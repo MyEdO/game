@@ -362,6 +362,40 @@ label.radio {
   background: var(--panel2);
 }
 
+/* ── RANGÉE DE CHAMPS (`.fieldrow`) ── contrôles d'un formulaire d'édition posés sur une ligne qui
+   s'enroule (sélecteur + saisie + retrait ✕), et sa tenue à 360 px (règle stricte 4) :
+   - `flex-wrap` fait passer la rangée à la ligne quand elle déborde ; il ne suffit pas, un `<select>`
+     refusant de rétrécir sous sa largeur intrinsèque tant que son `min-width` vaut `auto` ;
+   - sur les CONTRÔLES, `flex: 0 1 auto; min-width: 0; max-width: 100%`. La base `auto` garde la
+     largeur INTRINSÈQUE quand la place existe ; `min-width: 0` lève le plancher intrinsèque et
+     `max-width: 100%` borne au parent, donc le bord droit tombe sur l'hôte, sans débordement.
+   Le plancher se lève sur les ÉLÉMENTS de la rangée (`> *`) et sur les contrôles qu'ils enveloppent,
+   jamais sur la rangée : `min-width: auto` n'est un plancher que sur l'axe PRINCIPAL du flex, et la
+   rangée est un élément d'une COLONNE (`.ed-field`). */
+.fieldrow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; }
+.fieldrow > *, .fieldrow input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+/* Un `<select>` prend la largeur de son option courante : sa largeur NATURELLE reste la bonne. Le
+   PLANCHER `min(14rem, 100%)` évite le libellé tronqué sans plafonner, et se replie à la largeur de
+   la rangée sous 360 px. */
+.fieldrow select { flex: 0 1 auto; min-width: min(14rem, 100%); max-width: 100%; }
+/* VARIANTE `texte-dessous` : le `<textarea>` de la rangée prend SA ligne, pleine largeur, sous les
+   contrôles — un texte libre long reste lisible à 360 px, là où un champ en ligne se réduit au reste
+   de la rangée.
+   - Le `<select>` et le ✕ partagent la PREMIÈRE ligne à toute largeur : l'enroulement se décide sur
+     la base flex, donc une base `auto` (largeur de l'option la plus longue) pousse le ✕ à la ligne
+     avant tout rétrécissement. Base `0` + `flex-grow: 1` : le sélecteur prend le reste de la ligne,
+     le ✕ garde sa taille ; `min-width: 0` lève le plancher de `.fieldrow select` dans CETTE variante.
+   - Le `<textarea>` grandit avec son contenu (`field-sizing: content`), plancher de 2 lignes (`2lh`
+     + padding et filet de la peau de champ, `base.css`). Navigateur sans `field-sizing` (Firefox) :
+     le plancher fixe la hauteur à 2 lignes, avec défilement interne et poignée `resize`. */
+.fieldrow[data-variant='texte-dessous'] > select { flex: 1 1 0; min-width: 0; }
+.fieldrow[data-variant='texte-dessous'] > textarea {
+  flex: 1 0 100%;
+  resize: vertical;
+  field-sizing: content;
+  min-height: calc(2lh + 18px);
+}
+
 /* ── PASTILLE PEINTE (`.swatch`) ── Carré/bande peint à une couleur de DONNÉE (posée en style inline
    par l'appelant) : rangée `couleur` d'une fiche du Codex, bande de jeton de la galerie. Toujours
    DÉCORATIVE (`aria-hidden`) — le hex ou le nom du jeton est écrit à côté. La FORME se règle par

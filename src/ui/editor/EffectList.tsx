@@ -1011,7 +1011,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
   return (
     <div>
       {list.map((id, i) => (
-        <div key={i} className="de-reflrow">
+        <div key={i} className="fieldrow">
           <select value={id} onChange={(ev) => set(list.map((s, j) => (j === i ? ev.target.value : s)))}>
             {!BATTLE_SCENES().some((o) => o.id === id) && <option value={id}>{id} (inconnu)</option>}
             {BATTLE_SCENES().map((o) => <option key={o.id} value={o.id}>{o.label} · {libelleDeValeur(sceneKindSchema, o.sceneKind ?? '')}</option>)}
@@ -1074,7 +1074,7 @@ function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; o
       <div className="branch">
         <span className="branch-label">Rencontres des Scènes de combat / menace (rencontre de la scène courante ; vide = rencontre par défaut de la Scène).</span>
         {combatScenes.length ? combatScenes.map((id) => (
-          <div key={id} className="de-reflrow">
+          <div key={id} className="fieldrow">
             <span className="dr" style={{ minWidth: 140 }}>{battleSceneById(id)?.label ?? id}</span>
             <select
               value={b.sceneEncounters?.[id] ?? ''}

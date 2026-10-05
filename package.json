@@ -35,6 +35,7 @@
     "docs:build": "node scripts/docs/build-all.mjs",
     "docs:primitives": "node scripts/docs/build-primitives.mjs",
     "docs:doctrines": "node scripts/docs/build-doctrines.mjs",
+    "docs:dossiers": "node scripts/docs/build-dossiers-de-chapitre.mjs",
     "docs:systemes": "node scripts/docs/build-systemes.mjs",
     "docs:donnees": "node scripts/docs/build-donnees.mjs",
     "docs:sources-vf": "node scripts/docs/build-sources-vf.mjs",

@@ -68,6 +68,7 @@ import { estCardinal, type Dir8 } from '../../state/dir8';
 import { propFootTiles } from '../../state/footprint';
 import { Row, Stack } from '../Layout';
 import { CAP_IDENTITE_PROP } from '../../data/props.types';
+import { CouvreField } from './CouvreField';
 
 /** Caps OFFERTS au sélecteur d'orientation, dans l'ordre horaire de `DIR8_ORDER` : les huit pour une
  *  entité ordinaire, les quatre CARDINAUX pour un décor volumique (`Dir4`, #1680 ligne 3). Un seul
@@ -1027,6 +1028,7 @@ export function Inspector({
                   )}
                   <LayerField z={efz.z} layers={sceneLayerZs(scene)} onChange={(z) => setEfz({ ...efz, z: z || undefined })} />
                   <ZoneTilesBrush zone={efz} tool={tool} onArm={armZoneTiles} onChange={setEfz} focusKey={zoneFocusKey} port={panelRef} />
+                  <CouvreField value={efz.couvre} sujet="de la zone" onChange={(couvre) => setEfz({ ...efz, couvre })} />
                 </Fold>
                 {/* Une zone est DESCRIPTIVE tant qu'elle ne porte AUCUN de ces cinq champs, et MÉCANIQUE dès
                     qu'elle en porte un (`isDescriptiveZone`) : ce n'est pas un genre à choisir, c'est l'état
@@ -1382,6 +1384,7 @@ function EntityPanel({
         </label>
         <SelecteurDOrientation ent={ent} updateSel={updateSel} />
         <LayerField z={ent.z} layers={sceneLayerZs(scene)} onChange={(z) => updateSel({ z: z || undefined })} />
+        <CouvreField value={ent.couvre} sujet="de l'entité" onChange={(couvre) => updateSel({ couvre })} />
       </Fold>
       {ent.kind === 'personnage' && (
         <>
@@ -1907,7 +1910,7 @@ function CrewPicker({
     <div className="ed-field">
       <span>{caption}</span>
       {ids.map((id, i) => (
-        <div key={`${id}-${i}`} className="de-reflrow">
+        <div key={`${id}-${i}`} className="fieldrow">
           <span className="chip" title={head && i === 0 ? head : `Membre ${i + 1}`}>{head && i === 0 ? '★' : i + 1}</span>
           <select value={id} onChange={(e) => onChange(ids.map((c, j) => (j === i ? e.target.value : c)))}>
             {!candidates.some((c) => c.id === id) && <option value={id}>{labelOf(id)}</option>}
@@ -2029,16 +2032,19 @@ function SceneProps({
           Description (notes d'auteur)
           <textarea value={scene.desc ?? ''} onChange={(e) => setScene({ ...scene, desc: e.target.value })} />
         </label>
-        <div className="ed-dim">
-          <label>
-            L
-            <input type="number" value={scene.dimensions.w} min={5} max={40} onChange={(e) => resizeScene(Number(e.target.value) || 5, scene.dimensions.h)} />
-          </label>
-          <label>
-            H
-            <input type="number" value={scene.dimensions.h} min={5} max={40} onChange={(e) => resizeScene(scene.dimensions.w, Number(e.target.value) || 5)} />
-          </label>
+        <div className="ed-field">
+          <div className="ed-dim">
+            <label>
+              L
+              <input type="number" value={scene.dimensions.w} min={5} max={40} onChange={(e) => resizeScene(Number(e.target.value) || 5, scene.dimensions.h)} />
+            </label>
+            <label>
+              H
+              <input type="number" value={scene.dimensions.h} min={5} max={40} onChange={(e) => resizeScene(scene.dimensions.w, Number(e.target.value) || 5)} />
+            </label>
+          </div>
         </div>
+        <CouvreField value={scene.couvre} sujet="de la scène" onChange={(couvre) => setScene({ ...scene, couvre })} />
       </Fold>
       <Fold title={`Contenu du plan (${content.length})`} open>
         <p className="hint">

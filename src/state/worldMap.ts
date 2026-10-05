@@ -62,6 +62,8 @@ export interface MapPlace {
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */
   when?: Condition;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
@@ -154,6 +156,8 @@ export interface MapRoute {
   /** Raison JOUEUR de l'indisponibilité du trajet, portée par `GatedAction` (infobulle `refus` —
    *  arbitrage 2026-08-24, jamais inline par défaut). Sans objet en l'absence de `when`. */
   refus?: string;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 export interface WorldMapParams {

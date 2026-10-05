@@ -20,6 +20,7 @@ import { effectCtxOf, Ctx } from './EffectList';
 import { FlowEditor } from './FlowEditor';
 import { WhenEditor, condSummary } from './ConditionEditor';
 import { DialogueDetail } from './DialogueDetail';
+import { CouvreField } from './CouvreField';
 import { ValidationPanel } from './ValidationPanel';
 import { Icon } from '../Icon';
 import { Tabs } from '../Tabs';
@@ -201,6 +202,7 @@ function TriggersTab({
               Supprimer
             </button>
           </Row>
+          <CouvreField value={t.couvre} sujet="du déclencheur" onChange={(couvre) => upd({ couvre })} />
           <div className="mini-title" title="Le trigger ne se déclenche qu'en entrant dans la zone si la condition est vraie (flag, créneau horaire, ET/OU/NON).">Condition de déclenchement</div>
           <WhenEditor when={t.when} onChange={(when) => upd({ when })} />
           <div className="mini-title">Au déclenchement (effets · conditions · tests)</div>
@@ -345,6 +347,7 @@ function EncountersTab({
               Supprimer
             </button>
           </Row>
+          <CouvreField value={enc.couvre} sujet="de la rencontre" onChange={(couvre) => upd({ couvre })} />
           <div className="mini-title">Combattants (membres)</div>
           <div className="enemy-list">
             {members.map((m) => {

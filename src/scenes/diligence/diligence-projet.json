@@ -21,6 +21,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 18
     },
+    "couvre": [
+     "EDO-01#pnj4"
+    ],
     "profil": {
      "label": "Fhluger'dagh",
      "title": "Démon mineur",
@@ -77,6 +80,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 20
     },
+    "couvre": [
+     "EDO-01#pnj1"
+    ],
     "profil": {
      "label": "Gustav Fondleburger",
      "title": "Bourgeois humain (Argent 2)",
@@ -170,6 +176,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 21
     },
+    "couvre": [
+     "EDO-01#pnj3"
+    ],
     "profil": {
      "label": "Noiraud",
      "title": "Corbeau",
@@ -247,6 +256,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 21
     },
+    "couvre": [
+     "EDO-01#pnj2"
+    ],
     "profil": {
      "label": "Herpin Stiggerwurt",
      "title": "Villageois humain (Bronze 3)",
@@ -316,6 +328,11 @@
      "book": "ennemi-dans-l-ombre",
      "page": 21
     },
+    "couvre": [
+     "EDO-01#pnj6",
+     "EDO-02#pnj8",
+     "EDO-02#pnj9"
+    ],
     "profil": {
      "label": "Gunnar et Hultz",
      "title": "Cocher humain (Argent 2)",
@@ -410,6 +427,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj7",
+     "EDO-02#pnj12"
+    ],
     "profil": {
      "label": "Isolde von Strudeldorf",
      "title": "Héritier humain (Or 1)",
@@ -498,6 +519,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj8",
+     "EDO-02#pnj13"
+    ],
     "profil": {
      "label": "Janna Elleiner",
      "title": "Serviteur humain (Argent 3)",
@@ -573,6 +598,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj9",
+     "EDO-02#pnj11"
+    ],
     "profil": {
      "label": "Marie Schultz",
      "title": "Garde d'honneur humain (Argent 3)",
@@ -692,6 +721,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj10",
+     "EDO-02#pnj14"
+    ],
     "profil": {
      "label": "Ernst Heidlemann",
      "title": "Sorcier novice humain (Bronze 3)",
@@ -805,6 +838,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 23
     },
+    "couvre": [
+     "EDO-01#pnj5",
+     "EDO-02#pnj10"
+    ],
     "profil": {
      "label": "Phillipe Descartes",
      "title": "Prostitué humain (Bronze 1)",
@@ -996,6 +1033,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 20
     },
+    "couvre": [
+     "EDO-01#pnj12"
+    ],
     "profil": {
      "label": "Fredrick",
      "title": "Portier",
@@ -1045,6 +1085,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 20
     },
+    "couvre": [
+     "EDO-01#pnj12"
+    ],
     "profil": {
      "label": "Artur",
      "title": "Forgeron",
@@ -1095,6 +1138,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 18
     },
+    "couvre": [
+     "EDO-01#pnj11"
+    ],
     "profil": {
      "label": "Lukas",
      "named": true,
@@ -1108,6 +1154,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 29
     },
+    "couvre": [
+     "EDO-02#pnj1"
+    ],
     "profil": {
      "label": "Rolf Hurtsis",
      "title": "Bandit mutant (Bronze 1)",
@@ -1198,6 +1247,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj3"
+    ],
     "profil": {
      "label": "Terenz",
      "title": "Bandit mutant (Bronze 1)",
@@ -1254,6 +1306,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj4"
+    ],
     "profil": {
      "label": "Mikael",
      "title": "Bandit mutant (Bronze 1)",
@@ -1310,6 +1365,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj5"
+    ],
     "profil": {
      "label": "Johann",
      "title": "Bandit mutant (Bronze 1)",
@@ -1366,6 +1424,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj6"
+    ],
     "profil": {
      "label": "Erik",
      "title": "Bandit mutant (Bronze 1)",
@@ -1422,6 +1483,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj2"
+    ],
     "profil": {
      "label": "Knud Cratinx",
      "title": "Hors-la-loi mutant (Bronze 2)",
@@ -1530,6 +1594,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj15"
+    ],
     "profil": {
      "label": "Magnus Pflaster",
      "title": "Sergent patrouilleur routier humain (Argent 4)",
@@ -1650,6 +1717,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 31
     },
+    "couvre": [
+     "EDO-02#pnj16"
+    ],
     "profil": {
      "label": "Baldwin, Leopold, Sunna, Willirun",
      "title": "Patrouilleur routier humain (Argent 2)",
@@ -1770,6 +1840,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 31
     },
+    "couvre": [
+     "EDO-02#pnj17"
+    ],
     "profil": {
      "label": "Anida Pflaster",
      "title": "Doktor humain (Argent 5)",
@@ -19399,6 +19472,9 @@
    "type": "scene",
    "id": "route-principale-virage",
    "label": "La route principale — le virage",
+   "couvre": [
+    "EDO-02#lieu1"
+   ],
    "dimensions": {
     "w": 40,
     "h": 24
@@ -22511,6 +22587,10 @@
    "type": "scene",
    "id": "auberge-des-sept-rayons",
    "label": "Auberge des Sept Rayons",
+   "couvre": [
+    "EDO-01#lieu19",
+    "EDO-02#lieu8"
+   ],
    "dimensions": {
     "w": 32,
     "h": 38

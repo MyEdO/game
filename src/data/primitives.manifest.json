@@ -608,6 +608,15 @@
     "verrou": "src/ui/SourceRefField.test.tsx"
   },
   {
+    "id": "couvreField",
+    "type": "primitives.manifest",
+    "label": "CouvreField / SelecteurDEntreeDeFiche",
+    "fichier": "src/ui/editor/CouvreField.tsx",
+    "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
+    "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/ui/editor/scene-field-editability-guard.test.ts"
+  },
+  {
     "id": "freeAttackLabel",
     "type": "primitives.manifest",
     "label": "FREE_ATTACK_LABEL",

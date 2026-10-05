@@ -6,9 +6,9 @@ import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { mergeCreatureProfile } from '../../state/campaignData';
-import { creatures, creatureLabel, findCreatureById, memoParVersion } from '../../data';
+import { charAbr, creatures, creatureLabel, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
-import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
+import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../state/campaignNarratif';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 import type { CreatureData } from '../../data';
@@ -17,6 +17,8 @@ import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
+import { CouvreField, SelecteurDEntreeDeFiche } from './CouvreField';
+import { Stack } from '../Layout';
 
 /**
  * Éditeur du bloc NARRATIF d'un paquet de campagne (#765) — overlay plein-champ (`ScreenShell`, même
@@ -24,7 +26,7 @@ import { useClesDeRangees } from '../useClesDeRangees';
  * ÉDITABLES ; l'onglet Objets reste en lecture. Frontière RÉFÉRENCE vs NARRATIF : ces entrées
  * référencent la règle globale PAR ID.
  */
-type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'presetsPnj' | 'objets';
+type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'presetsPnj' | 'objets' | 'ecartes';
 
 /** Liste des créatures globales (base d'un preset), triée par libellé — patron `Inspector.tsx`. */
 const optionsDeCreature = memoParVersion('creatures', () => [...creatures].map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)));
@@ -242,6 +244,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
 
   const setOuverture = (ouverture: OuvertureBlock | undefined) => onChange?.({ ...narratif, ouverture });
   const setCloture = (cloture: ClotureBlock | undefined) => onChange?.({ ...narratif, cloture });
+  const setEcartes = (ecartes: EcartDeFiche[] | undefined) => onChange?.({ ...narratif, ecartes });
 
   const tabs: TabItem<NarratifTab>[] = [
     { key: 'cadre', label: 'Cadre', count: (narratif.ouverture ? 1 : 0) + (narratif.cloture ? 1 : 0) },
@@ -249,6 +252,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
     { key: 'indices', label: 'Indices', count: narratif.indices.length },
     { key: 'presetsPnj', label: 'PNJ', count: narratif.presetsPnj.length },
     { key: 'objets', label: 'Objets', count: narratif.objets.length },
+    { key: 'ecartes', label: 'Écarts', count: narratif.ecartes?.length ?? 0 },
   ];
 
   return (
@@ -274,9 +278,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
               {narratif.affaires.length === 0
                 ? <p className="empty">Aucune affaire dans cette campagne.</p>
                 : narratif.affaires.map((a) => (
-                    <ListRow key={a.id} selected={a.id === selAffaireId} onClick={() => setSelAffaireId(a.id)} label={a.titre}>
-                      <span className="chip">{a.id}</span>
-                    </ListRow>
+                    <ListRow key={a.id} selected={a.id === selAffaireId} onClick={() => setSelAffaireId(a.id)} label={a.titre} subtitle={a.id} />
                   ))}
               <button type="button" className="btn small" onClick={addAffaire}>
                 <Icon id="ui/add" size="sm" /> Ajouter une affaire
@@ -305,9 +307,8 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
               {narratif.indices.length === 0
                 ? <p className="empty">Aucun indice dans cette campagne.</p>
                 : narratif.indices.map((i) => (
-                    <ListRow key={i.id} selected={i.id === selIndiceId} onClick={() => setSelIndiceId(i.id)} label={i.titre}>
+                    <ListRow key={i.id} selected={i.id === selIndiceId} onClick={() => setSelIndiceId(i.id)} label={i.titre} subtitle={i.id}>
                       <span className="chip">{i.kind === 'rumeur' ? 'Rumeur' : 'Indice'}</span>
-                      <span className="chip">{i.id}</span>
                     </ListRow>
                   ))}
               <button
@@ -345,9 +346,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
               {narratif.presetsPnj.length === 0
                 ? <p className="empty">Aucun PNJ pré-composé dans cette campagne.</p>
                 : narratif.presetsPnj.map((p) => (
-                    <ListRow key={p.id} selected={p.id === selId} onClick={() => setSelId(p.id)} label={presetName(p)}>
-                      <span className="chip">{p.id}</span>
-                    </ListRow>
+                    <ListRow key={p.id} selected={p.id === selId} onClick={() => setSelId(p.id)} label={presetName(p)} subtitle={p.id} />
                   ))}
               <button type="button" className="btn small" onClick={addPreset}>
                 <Icon id="ui/add" size="sm" /> Ajouter un PNJ
@@ -372,12 +371,12 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
         narratif.objets.length === 0
           ? <p className="empty">Aucun objet narratif dans cette campagne.</p>
           : narratif.objets.map((o) => (
-              <div key={o.id} className="listrow">
-                <span className="lr-name">{o.label}</span>
+              <ListRow key={o.id} label={o.label}>
                 <span className="chip">{o.id}</span>
-              </div>
+              </ListRow>
             ))
       )}
+      {tab === 'ecartes' && <EcartesForm ecartes={narratif.ecartes ?? []} onChange={setEcartes} />}
     </ScreenShell>
   );
 }
@@ -397,7 +396,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
   // champ), donc l'auteur nomme son drapeau ou retire la clôture.
   const patchClo = (patch: Partial<ClotureBlock>) => onCloture({ ...(cloture ?? { titre: '', when: { kind: 'flag', expr: '' } }), ...patch });
   return (
-    <div className="preset-form">
+    <div>
       <h4 className="mini-title">Ouverture cérémonielle</h4>
       {!ouverture ? (
         <button type="button" className="btn small" onClick={() => onOuverture({ titre: '', pitch: '' })}>
@@ -476,7 +475,7 @@ function AffaireForm({ affaire, referenced, porteurDe, onRename, onPatch, onRemo
   onRemove: () => void;
 }) {
   return (
-    <div className="preset-form">
+    <div>
       <ChampIdStable libelle="Identifiant (id stable)" value={affaire.id} porteurDe={porteurDe} onRename={onRename} />
       <label className="ed-field">
         Titre
@@ -537,7 +536,7 @@ function IndiceForm({ porteur, indice, affaires, otherIndices, porteurDe, onRena
   const clesStades = useClesDeRangees(indice.stades);
 
   return (
-    <div className="preset-form">
+    <div>
       <ChampIdStable libelle="Identifiant (id stable)" value={indice.id} porteurDe={porteurDe} onRename={onRename} />
       <div className="ed-field">
         <span>Affaire</span>
@@ -573,10 +572,11 @@ function IndiceForm({ porteur, indice, affaires, otherIndices, porteurDe, onRena
               </label>
             ))}
       </div>
+      <CouvreField value={indice.couvre} sujet="de l'indice" onChange={(couvre) => onPatch({ couvre })} />
       <div className="ed-field">
         <span>Stades révélables</span>
         {indice.stades.map((s, idx) => (
-          <div key={clesStades[idx]} className="preset-form">
+          <div key={clesStades[idx]}>
             <ChampIdStable
               libelle={`Id du stade ${idx + 1}`} className="ed-subfield" value={s.id}
               porteurDe={(c) => stadePorteur(s.id, c)} onRename={(id) => updateStade(s.id, { id })}
@@ -608,7 +608,17 @@ function IndiceForm({ porteur, indice, affaires, otherIndices, porteurDe, onRena
   );
 }
 
-/** Formulaire d'un preset de PNJ : identité + base + surcharges de caracs + apparence + portrait + source. */
+type OngletDuPnj = 'profil' | 'apparence' | 'couverture';
+
+/** Rubriques du formulaire d'un PNJ (CLAUDE.md, règle stricte 4). */
+const ongletsDuPnj = (preset: PresetPnj): TabItem<OngletDuPnj>[] => [
+  { key: 'profil', label: 'Profil' },
+  { key: 'apparence', label: 'Apparence' },
+  { key: 'couverture', label: 'Couverture', count: preset.couvre?.length ?? 0 },
+];
+
+/** Formulaire d'un preset de PNJ, en onglets : profil (identité, base, caracs, source), apparence (réglages,
+ *  portrait), couverture des entrées de fiche. */
 function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, onRemove }: {
   /** Identité STABLE du PNJ, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
@@ -636,63 +646,117 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, onRemove }:
   };
   /** Pose l'apparence suivante (retire `apparence` si elle redevient vide). */
   const poserApparence = (next: EntityAppearance) => onPatch({ apparence: Object.keys(next).length ? next : undefined });
+  const [onglet, setOnglet] = useState<OngletDuPnj>('profil');
 
   return (
-    <div className="preset-form">
-      <ChampIdStable libelle="Identifiant (id stable)" value={preset.id} porteurDe={porteurDe} onRename={onRename} />
-      <label className="ed-field">
-        Créature de base (profil de combat)
-        <select value={preset.base ?? ''} onChange={(e) => onPatch({ base: e.target.value || undefined })}>
-          <option value="">— aucune (profil ad hoc) —</option>
-          {optionsDeCreature().map((c) => (
-            <option key={c.id} value={c.id}>{c.label}</option>
-          ))}
-        </select>
-      </label>
-      <label className="ed-field">
-        Nom du PNJ
-        <input
-          value={profil.label ?? ''}
-          placeholder={base?.label ?? 'ex. Josef Quartjin'}
-          onChange={(e) => patchProfil({ label: e.target.value || undefined })}
-        />
-      </label>
-      <div className="ed-field">
-        <span>Surcharges de caractéristiques (vide = héritée de la base)</span>
-        <div className="statblock-grid">
-          {CHAR_KEYS.map((k) => (
-            <label key={k} className="ed-subfield" title={CHAR_LABELS[k]}>
-              {k}
-              <NumberField
-                variant="nu"
-                label={CHAR_LABELS[k]}
-                vide
-                value={profil.char?.[k]}
-                placeholder={base ? String(base.char[k] ?? '') : ''}
-                onChange={(n) => setChar(k, n)}
+    <Stack>
+      <Tabs tabs={ongletsDuPnj(preset)} active={onglet} onChange={setOnglet} label="Rubriques du PNJ" />
+      <div>
+        {onglet === 'profil' && (
+          <>
+            <ChampIdStable libelle="Identifiant (id stable)" value={preset.id} porteurDe={porteurDe} onRename={onRename} />
+            <label className="ed-field">
+              Créature de base (profil de combat)
+              <select value={preset.base ?? ''} onChange={(e) => onPatch({ base: e.target.value || undefined })}>
+                <option value="">— aucune (profil ad hoc) —</option>
+                {optionsDeCreature().map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="ed-field">
+              Nom du PNJ
+              <input
+                value={profil.label ?? ''}
+                placeholder={base?.label ?? 'ex. Josef Quartjin'}
+                onChange={(e) => patchProfil({ label: e.target.value || undefined })}
               />
             </label>
-          ))}
-        </div>
+            <div className="ed-field">
+              <span>Surcharges de caractéristiques (vide = héritée de la base)</span>
+              <div className="statblock-grid">
+                {CHAR_KEYS.map((k) => (
+                  <label key={k} className="ed-subfield" title={CHAR_LABELS[k]}>
+                    {charAbr(k)}
+                    <NumberField
+                      variant="nu"
+                      label={CHAR_LABELS[k]}
+                      vide
+                      value={profil.char?.[k]}
+                      placeholder={base ? String(base.char[k] ?? '') : ''}
+                      onChange={(n) => setChar(k, n)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <SourceRefField identite={porteur} label="Source" facultative sujet="du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
+          </>
+        )}
+        {onglet === 'apparence' && (
+          <>
+            <div className="ed-field">
+              <span>Apparence</span>
+              <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
+                nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
+            </div>
+            <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
+            <label className="ed-field">
+              Portrait (id d'illustration)
+              <input
+                value={preset.portrait ?? ''}
+                placeholder="id du registre d'art"
+                onChange={(e) => onPatch({ portrait: e.target.value || undefined })}
+              />
+            </label>
+          </>
+        )}
+        {onglet === 'couverture' && <CouvreField value={preset.couvre} sujet="du PNJ" onChange={(couvre) => onPatch({ couvre })} />}
+        <button type="button" className="btn small danger" onClick={onRemove}>
+          <Icon id="ui/delete" size="sm" /> Supprimer ce PNJ
+        </button>
       </div>
-      <div className="ed-field">
-        <span>Apparence</span>
-        <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
-          nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
-      </div>
-      <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
-      <label className="ed-field">
-        Portrait (id d'illustration)
-        <input
-          value={preset.portrait ?? ''}
-          placeholder="id du registre d'art"
-          onChange={(e) => onPatch({ portrait: e.target.value || undefined })}
-        />
-      </label>
-      <SourceRefField identite={porteur} label="Source" facultative sujet="du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
-      <button type="button" className="btn small danger" onClick={onRemove}>
-        <Icon id="ui/delete" size="sm" /> Supprimer ce PNJ
-      </button>
+    </Stack>
+  );
+}
+
+/** ÉCARTS d'adaptation (#2290, `narratif.ecartes`) : une rangée par entrée de fiche écartée — l'entrée,
+ *  son motif, le retrait. Une liste vidée se retire (`undefined`). */
+function EcartesForm({ ecartes, onChange }: {
+  ecartes: EcartDeFiche[];
+  onChange: (ecartes: EcartDeFiche[] | undefined) => void;
+}) {
+  const poser = (next: EcartDeFiche[]) => onChange(next.length ? next : undefined);
+  const remplacer = (i: number, patch: Partial<EcartDeFiche>) => poser(ecartes.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+  const prises = new Set(ecartes.map((e) => e.entree));
+  const cles = useClesDeRangees(ecartes);
+  const alerteId = useId();
+  return (
+    <div className="ed-field">
+      <span>Entrées de fiche écartées par l'adaptation</span>
+      {ecartes.length === 0
+        ? <p className="empty">Aucune entrée de fiche écartée.</p>
+        : ecartes.map((e, i) => {
+            const sansMotif = !/\S/.test(e.motif);
+            const alerte = `${alerteId}-${i}`;
+            return (
+              <div key={cles[i]}>
+                <div className="fieldrow" data-variant="texte-dessous">
+                  <SelecteurDEntreeDeFiche value={e.entree} exclues={prises} libelle={`Entrée écartée ${i + 1}`} onChoisir={(entree) => remplacer(i, { entree })} />
+                  <button type="button" className="btn small danger" aria-label={`Retirer l'écart ${i + 1}`} title="Retirer" onClick={() => poser(ecartes.filter((_, j) => j !== i))}>
+                    ✕
+                  </button>
+                  <textarea
+                    aria-label={`Motif de l'écart ${i + 1}`} placeholder="Motif de l'écart" value={e.motif} rows={2}
+                    aria-invalid={sansMotif ? true : undefined} aria-describedby={sansMotif ? alerte : undefined}
+                    onChange={(ev) => remplacer(i, { motif: ev.target.value })}
+                  />
+                </div>
+                {sansMotif && <p id={alerte} className="chip tone-danger" role="alert">Motif requis.</p>}
+              </div>
+            );
+          })}
+      <SelecteurDEntreeDeFiche value="" exclues={prises} libelle="Écarter une entrée de fiche" onChoisir={(entree) => poser([...ecartes, { entree, motif: '' }])} />
     </div>
   );
 }

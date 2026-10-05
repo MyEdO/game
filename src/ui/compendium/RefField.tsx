@@ -188,7 +188,7 @@ function SingleRefField(
   return (
     <div className="ed-field">
       <span>{label}<em className="de-hint"> (réf {cfg.ds})</em></span>
-      <div className="de-reflrow">
+      <div className="fieldrow">
         <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
           {nullable && <option value="">— (aucun) —</option>}
           {!nullable && id === '' && <option value="">— (choisir dans {cfg.ds}) —</option>}
@@ -291,7 +291,7 @@ function ListRefField(
     <div className="ed-field">
       <span>{label}<em className="de-hint"> (réf {cfg.ds} par id)</em></span>
       {list.map((ref, i) => (
-        <div key={i} className="de-reflrow">
+        <div key={i} className="fieldrow">
           <select value={ref.id} onChange={(e) => set(list.map((r, j) => (j === i ? { ...r, id: e.target.value } : r)))}>
             {ref.id === '' && <option value="">— (choisir dans {cfg.ds}) —</option>}
             {ref.id !== '' && !options.some((o) => o.v === ref.id) && <option value={ref.id}>{ref.id} (inconnu)</option>}

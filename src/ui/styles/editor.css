@@ -385,7 +385,8 @@
   margin: 2px 0;
   color: var(--muted);
 }
-.ed-subfield select,
+/* `:where` (spécificité nulle) : le `<select>` d'une `.fieldrow` suit les réglages de la rangée. */
+.ed-subfield select:where(:not(.fieldrow *)),
 .ed-subfield input[type='range'] {
   flex: 1;
   min-width: 0;
@@ -823,11 +824,26 @@ input.dr,
   flex: 1;
   min-width: 0;
 }
-/* Profil custom (créature à la carte) : grille de caractéristiques + rangée Taille. */
+/* Profil custom (créature à la carte) : grille de caractéristiques + rangée Taille. Pistes à plancher
+   FIXE et champ à `min-width: 0` : une piste `1fr` nue (`minmax(auto, 1fr)`) s'élargit à la largeur
+   intrinsèque d'un `<input type="number">`. Chaque case est une grille « libellé | champ » : le
+   libellé (abréviation de 1 à 3 caractères, nœud texte = élément anonyme de la grille) a une piste
+   FIXE de 3ch, les champs tombent donc en colonne. */
 .statblock-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(min(7.5rem, 100%), 1fr));
   gap: 4px;
+}
+.statblock-grid > .ed-subfield {
+  display: grid;
+  grid-template-columns: 3ch minmax(0, 1fr);
+}
+/* Le domaine d'une saisie refusée (`NumberField`) se range sous son champ. */
+.statblock-grid > .ed-subfield > .hint {
+  grid-column: 2;
+}
+.statblock-grid input {
+  min-width: 0;
 }
 .statblock-size {
   display: flex;

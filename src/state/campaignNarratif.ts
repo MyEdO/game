@@ -9,6 +9,8 @@ import type { TrappingData, CreatureData } from '../data/index';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { Condition } from '../engine/flowCore';
+import type { z } from 'zod';
+import type { ecartSchema } from '../data/schemas/defs-scenes/narratif';
 
 /** Un stade RÉVÉLABLE d'un indice : la prose qui se dévoile à ce palier d'enquête (`indiceStadeSchema`). */
 export interface IndiceStade {
@@ -30,6 +32,8 @@ export interface Indice {
   stades: IndiceStade[];
   /** Autres indices (ids) que celui-ci recoupe/débloque. */
   refs?: string[];
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Une affaire (fil d'enquête) de la campagne. */
@@ -50,7 +54,12 @@ export interface PresetPnj {
   /** id d'illustration (registre d'art), affichage seul. */
   portrait?: string;
   source?: SourceRef;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
+
+/** Entrée de fiche de dossier de chapitre écartée par l'adaptation, avec son motif (`ecartSchema`, #2290). */
+export type EcartDeFiche = z.infer<typeof ecartSchema>;
 
 /** AMBIANCE d'un cadre de campagne (#717) — strate de matière lue par les tokens `--amb-*`
  *  (`styles/base.css`), portée en `data-ambiance` par la coquille d'écran. */
@@ -90,6 +99,8 @@ export interface NarratifBlock {
   ouverture?: OuvertureBlock;
   /** Cadre de campagne (#717) — la clôture du chapitre. Absente = le chapitre ne se ferme jamais. */
   cloture?: ClotureBlock;
+  /** Entrées de fiche de dossier de chapitre écartées par l'adaptation (#2290), une par entrée. */
+  ecartes?: EcartDeFiche[];
 }
 
 /** Narratif vide — posé par `newProject`. */

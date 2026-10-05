@@ -12,6 +12,7 @@
 import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
+import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { idDe } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseDeScene } from '../grammaire/prose';
@@ -38,6 +39,7 @@ export const indiceSchema = z.strictObject({
   stades: listeCle(indiceStadeSchema, 'id'),
   /** Autres indices (ids) que celui-ci recoupe/débloque. */
   refs: z.array(z.string()).optional(),
+  couvre: couvreSchema.optional(),
 });
 
 /** Une affaire (fil d'enquête) de la campagne. */
@@ -57,6 +59,13 @@ export const presetPnjSchema = z.strictObject({
   /** id d'illustration (registre d'art), affichage seul. */
   portrait: z.string().optional(),
   source: sourceRefSchema.optional(),
+  couvre: couvreSchema.optional(),
+});
+
+/** Une entrée de fiche de dossier de chapitre ÉCARTÉE par l'adaptation (#2290), avec son motif. */
+export const ecartSchema = z.strictObject({
+  entree: entreeDeFicheSchema,
+  motif: z.string().regex(/\S/, 'motif vide.'),
 });
 
 /** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
@@ -177,6 +186,7 @@ const formeNarratif = z.strictObject({
   objets: listeCle(z.custom<TrappingData>(), 'id'),
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
+  ecartes: listeCle(ecartSchema, 'entree').optional(),
 });
 
 /** `NarratifBlock` (`state/campaignNarratif.ts:58`) — forme + sémantique. */
