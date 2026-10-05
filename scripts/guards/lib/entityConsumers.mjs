@@ -42,7 +42,7 @@
 // VÉRACITÉ de champ (`param.champ`) ou sa NÉGATION (`!param.champ`) — un seul niveau de champ à chaque
 // fois — ces trois formes de terme étant COMBINABLES entre elles par `&&`/`||` (jamais les deux dans le
 // même prédicat — ambiguïté de précédence non résolue). Mesuré : `vehicles.filter((v) => v.purchase &&
-// !v.ship)` (`state/merchantFlow.ts:130`, catalogue de vente du Maquignon, `unitKinds:
+// !v.ship)` (`state/merchantFlow.ts:136`, catalogue de vente du Maquignon, `unitKinds:
 // ['vehicule-terrestre']` dans `merchants.json`) combine véracité et négation, chaîne bien à
 // `.map((v) => v.id)` (`unitIdsOfKind`) : c'est ce cas qui a fait étendre la grammaire (2026-07-27).
 // Toute parenthèse de groupement, tout chaînage optionnel (`x?.y`), tout niveau de champ multiple
@@ -87,7 +87,7 @@ export const CATEGORY_FILES = {
   // Au périmètre depuis #1553 L3. Le chemin de JEU d'une créature est la CITATION de son id (un
   // document de scène — `entities[].ref`, `encounters[]` —, une autre donnée : `montures.json`,
   // `groups.json`, `careerLevels.json`…) ou la sélection MODE 2 `creatures.filter((c) => c.purchase)
-  // .map((c) => c.id)` (`state/merchantFlow.ts:132`, bétail du Maquignon, 14 entrées). La palette de
+  // .map((c) => c.id)` (`state/merchantFlow.ts:134`, bétail du Maquignon, 14 entrées). La palette de
   // l'éditeur n'en est PAS un — cf. SÉMANTIQUE en en-tête.
   creatures: 'creatures.json',
 };

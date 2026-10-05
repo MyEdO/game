@@ -4,7 +4,7 @@ import { useGame } from './store';
 import { buildRiverPlan, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from './riverVoyageFlow';
 import { buildApi } from './devtools';
 import { cascadeAppliers } from './cascade';
-import { inexplique, soutienDe, avanceEtapeCascade } from './cascadeTestKit';
+import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
 import { byId, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles, skills, etats } from '../data';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
@@ -18,7 +18,7 @@ import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
-import type { MapRoute, WorldMap } from './worldMap';
+import type { MapRoute, MapRouteTrace, WorldMap } from './worldMap';
 
 /**
  * VOYAGE FLUVIAL (MSRC 7) — la descente du Reik en barge JOUÉE jour par jour. Depuis la Phase B, TOUS
@@ -49,11 +49,11 @@ function crew(withSavoir = false): Combatant[] {
   return trio;
 }
 
-const route = (km: number, extra: Partial<MapRoute> = {}): MapRoute => ({
+const route = (km: number, extra: Partial<MapRouteTrace> = {}): MapRoute => ({
   id: 'r-reik', a: 'A', b: 'B', km, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra,
 });
 
-function riverMap(km: number, extra: Partial<MapRoute> = {}): WorldMap {
+function riverMap(km: number, extra: Partial<MapRouteTrace> = {}): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [
@@ -67,7 +67,7 @@ function riverMap(km: number, extra: Partial<MapRoute> = {}): WorldMap {
 const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
 
 /** Charge le projet (2 quais + carte) et l'équipage, au quai de Grünburg. */
-function launch(withSavoir = false, km = 45, extra: Partial<MapRoute> = {}): void {
+function launch(withSavoir = false, km = 45, extra: Partial<MapRouteTrace> = {}): void {
   seedBattleRng(7);
   const g = get();
   g.setParty(crew(withSavoir));
@@ -434,9 +434,8 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
  */
 describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage passe par la porte', () => {
   function riggingFailStep(actorId: string) {
-    return { title: 'Journée', purpose: 'travelDay' as const, cursor: 0, log: [],
-      participants: [{ id: 'rig', kind: 'riverRigging', actorId, rollLabel: 'Voile', base: 40, target: 40,
-        result: { roll: 90, target: 40, sl: -5, success: false }, interactive: true }] };
+    return cascadeDeTest([{ id: 'rig', kind: 'riverRigging', actorId, rollLabel: 'Voile', base: 40, target: 40,
+      result: { roll: 90, target: 40, sl: -5, success: false } }], { title: 'Journée', purpose: 'travelDay' });
   }
 
   /** MSRC 07 l.78 : « Toute personne présente sur le pont » — la rangée vise la STATION, et personne

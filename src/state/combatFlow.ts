@@ -316,7 +316,8 @@ export function attackWeaponOf(battle: BattleState, attacker: Combatant, target:
     ? freeAttackWeapon(pa.freeKind, creatureAttacks(attacker.traits ?? []).find((a) => a.kind === pa.freeKind)?.bonus ?? 0)
     : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
-  // peut donc être introuvable et rendre la main à l'auto-choix. Repli = pending d'avant le gel.
+  // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
+  // lancé (`openAttackCascade`, `cleaveAttack`) ou 2ᵉ frappe (`dualStrikeAttack`).
   return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants);
 }
 
@@ -1050,7 +1051,7 @@ export function previewCast(
     ...(windsLine ? [windsLine] : []),
   ];
   return {
-    label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.155-156)
+    label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.101)
     base: castingBaseValue(caster, ci.skill, ci.spec),
     target: target + windsMod + (ctx?.total ?? 0),
     mods,
@@ -5287,7 +5288,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
 }
 
 /** Contexte de visibilité OPTIONNEL pour filtrer des cibles de sort par Ligne de Vue (LDB 46
- *  l.170). Absent/null (hors combat, tests purs) : pas de filtre — comportement historique. */
+ *  l.121). Absent/null (hors combat, tests purs) : pas de filtre. */
 export type SpellSight = { scene: Scene; smoke?: Pt[] } | null;
 const spellSightBlocked = (sight: SpellSight | undefined, caster: Combatant, t: Combatant): boolean =>
   !!sight && !!caster.pos && !!t.pos && !losClear(sight.scene, caster.pos, t.pos, sight.smoke ?? []);

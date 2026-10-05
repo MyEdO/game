@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
 import { applyAttackResult } from './combatFlow';
 import { combatAdvanceBlocked } from './combatGate';
 import { createHero } from '../engine/character';
@@ -57,10 +57,10 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     // (terme UNIQUE de `combatAdvanceBlocked`) qui gèle l'avancement, plus une file parallèle.
     useGame.setState({
       battle: { ...b, turn, acted: true },
-      pendingCascade: {
-        title: 'Coup Critique', purpose: 'combat', cursor: 0, log: [],
-        participants: [{ id: 'cons-critical-0', kind: 'critical', reveal: { kind: 'critical', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
-      },
+      pendingCascade: cascadeDeTest(
+        [{ id: 'cons-critical-0', kind: 'critical', reveal: { kind: 'critical', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
+        { title: 'Coup Critique', purpose: 'combat' },
+      ),
     });
     // La GARDE UNIQUE de reprise (`combatAdvanceBlocked`) est l'unité mesurée : c'est ELLE que la
     // séquence ouverte doit fermer (un `battleEndTurn` seul ne le prouverait pas — `combatBusy` le
@@ -85,10 +85,10 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     // séquence de purpose `test` PENDANT le combat. Elle gèle l'avancement comme les autres…
     useGame.setState({
       battle: { ...b, turn, acted: true },
-      pendingCascade: {
-        title: 'Test', purpose: 'test', cursor: 0, log: [],
-        participants: [{ id: 'cons-effet-0', kind: 'effet', reveal: { kind: 'effet', title: 'Conséquence', lines: ['x'] } }],
-      },
+      pendingCascade: cascadeDeTest(
+        [{ id: 'cons-effet-0', kind: 'effet', reveal: { kind: 'effet', title: 'Conséquence', lines: ['x'] } }],
+        { title: 'Test' },
+      ),
     });
     expect(combatAdvanceBlocked(useGame.getState())).toBe(true);
     useGame.getState().cascadeNext();

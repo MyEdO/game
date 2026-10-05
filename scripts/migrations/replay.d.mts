@@ -38,3 +38,6 @@ export function mesurerParGit(params: {
   diffAvant: string;
   neufsAvant: Set<string>;
 }): { rouges: string[]; lignes: string[] };
+
+/** Une migration se RECONNAÎT à son préfixe DATÉ (`<AAAA-MM-JJ>-….mjs`). */
+export function estUneMigration(nom: string): boolean;

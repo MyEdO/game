@@ -40,5 +40,5 @@ export function applique(
   if (res.success) return []; // `diseaseTick` : la réussite n'applique RIEN (branche `success` vide au schéma)
   // MÊME ancrage que l'applier de nuit : la maladie est l'entité SOURCE de ce que son échec inflige.
   const source = { kind: 'disease' as const, id: String(meta.diseaseName ?? '') };
-  return applyOps(c, (meta.onFail ?? []) as GameOp[], { rng, sl, source });
+  return applyOps(c, (meta.opsEchec ?? []) as GameOp[], { rng, sl, source });
 }

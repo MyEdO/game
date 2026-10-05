@@ -129,4 +129,8 @@ describe('mdToText — Markdown → texte brut', () => {
   it('réduit un lien à son texte', () => {
     expect(mdToText('voir [la règle](http://x) ici')).toBe('voir la règle ici');
   });
+  it('rend une table GFM rangée par rangée, sans séparatrice ni barres verticales', () => {
+    const table = '| Difficulté | Modificateur |\n|---|---|\n| **Viser** | +20 |\n|  | –10 |';
+    expect(mdToText(`Intro.\n\n${table}`)).toBe('Intro. Difficulté — Modificateur ; Viser — +20 ; –10 ;');
+  });
 });

@@ -22,7 +22,7 @@
  * (`scripts/docs/lib/zod-introspect.mts#introspecterDefs`, qui descend le sceau `document()`). Les
  * y faire entrer est le geste (iii) de #1620 — dérivation de `TARGETS` par jointure `type`↔`XData`,
  * les defs sans type TS sortant par raison structurelle nommée —, pas une conséquence de ce lot.
- * Retenus (`fieldConsumerTargets.mjs`, 23 cibles) : les schémas exportés sous un nom
+ * Retenus (`fieldConsumerTargets.mjs`) : les schémas exportés sous un nom
  * `export const xSchema` ET portant un alias TS NOMMÉ vérifiable ailleurs dans le dépôt
  * (`interface`/`type X = …`) — c'est la classe exacte où vit `TrappingRef.spec`. Candidats
  * mesurés dans `src/data/schemas/grammaire/` (formes de valeur/référence/mécanique partagées par
@@ -70,8 +70,6 @@
  * `src/data/field-consumers.test.ts` : liste attendue écrite champ par champ, comparée à l'identique.
  *
  * EXCLUS, avec raison :
- *   - `secondarySourceRefSchema` (`grammaire/valeurs.ts`) : aucun alias TS nommé exploitable trouvé
- *     (contrairement aux schémas retenus) — dette de nommage distincte, non traitée ici ;
  *   - `gameOpSchema`/`conditionSchema`/`effectOpSchema`/`flowSchema`/`effectTargetingSchema`/
  *     `triggeredEffectSchema`/`formulaSchema`/`combatFeatureSchema` : vocabulaire MÉCANIQUE du
  *     moteur (`GameOp`/`Condition`/`Flow`/`EffectTrigger`/`EffectTargeting`/`Formula`,
@@ -104,7 +102,7 @@ type Hit = { file: string; line: number; symbole: string }
  * la garde le rejoue en ordre INVERSÉ pour prouver que le `.md` ne dépend pas de l'ordre du système
  * de fichiers (le rapport est committé depuis Windows et rejoué par la CI sous Linux). Le `cache`
  * porte le `ts.Program` et l'index des accès : créé ICI,
- * partagé par les 23 cibles de `TARGETS`, et libéré au retour — ~1,33 Go ne survit pas à l'appel,
+ * partagé par toutes les cibles de `TARGETS`, et libéré au retour — ~1,33 Go ne survit pas à l'appel,
  * ce qui compte sous Vitest `isolate: false`.
  */
 export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)): { md: string; byType: Map<string, Map<string, Hit[]>>; totalFields: number; totalUnread: number; zeros: string[] } {

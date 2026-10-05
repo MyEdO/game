@@ -18,6 +18,7 @@ import { CascadeBody } from './CascadeModal';
 import { dieStep } from '../state/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import type { CascadeStep } from '../state/pendings';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -39,7 +40,7 @@ function openSteps(title: string, steps: (heroId: string) => CascadeStep[], curs
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
-    pendingCascade: { title, icon: 'nav/dice', purpose: 'affichage', cursor, log: [], participants: steps(hero.id) },
+    pendingCascade: cascadeDeTest(steps(hero.id), { title, icon: 'nav/dice', purpose: 'affichage', cursor }),
   });
   return hero;
 }

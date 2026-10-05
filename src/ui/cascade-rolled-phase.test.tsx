@@ -18,6 +18,7 @@ import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
 import type { CascadeStep, CascadeRoll } from '../state/pendings';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -35,7 +36,7 @@ function ouvrir(result: CascadeRoll | null) {
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
-    pendingCascade: { title: 'Épreuve', icon: 'nav/dice', purpose: 'affichage', cursor: 0, log: [], participants: [jetStep(hero.id, result)] },
+    pendingCascade: cascadeDeTest([jetStep(hero.id, result)], { title: 'Épreuve', icon: 'nav/dice', purpose: 'affichage' }),
   });
   act(() => { root.render(<CascadeBody />); });
 }

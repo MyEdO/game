@@ -11,6 +11,7 @@ import type { Scene } from './scene';
 import { spawnEnemy } from './spawn';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { cascadeDeTest } from './cascadeTestKit';
 
 /** Stockage local en mémoire (patron partagé des tests de save). */
 function fakeStorage(): Storage {
@@ -79,7 +80,7 @@ describe('révélation → étape d’affichage de cascade', () => {
 
   it('une séquence EN VOL accueille la révélation (append), au lieu d’être parquée', () => {
     useGame.setState({
-      pendingCascade: { title: 'Nuit', purpose: 'night', cursor: 0, log: [], participants: [{ id: 'x', kind: 'affichage-test' }] },
+      pendingCascade: cascadeDeTest([{ id: 'x', kind: 'affichage-test' }], { title: 'Nuit', purpose: 'night' }),
     });
     pushReveal(useGame.setState, { kind: 'mutation', title: 'Mutation — X', lines: [] });
     const c = useGame.getState().pendingCascade!;
@@ -195,7 +196,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     // …et sous elle, un jour de voyage parqué plus tôt, curseur au milieu de ses étapes.
     useGame.setState({
       suspendedCascades: [
-        { title: 'Jour 2', purpose: 'travelDay', cursor: 1, log: [], participants: [{ id: 'j1', kind: 'progression' }, { id: 'j2', kind: 'orientation' }, { id: 'j3', kind: 'entretien' }] },
+        cascadeDeTest([{ id: 'j1', kind: 'progression' }, { id: 'j2', kind: 'orientation' }, { id: 'j3', kind: 'entretien' }], { title: 'Jour 2', purpose: 'travelDay', cursor: 1 }),
         ...useGame.getState().suspendedCascades,
       ],
     });
