@@ -599,7 +599,7 @@ const FAMILLE_CMD = {
 // `pwsh` et `powershell` ne lient pas leurs paramètres comme une cmdlet : ils les essaient dans l'ORDRE de
 // leur table, et le PREMIER couple `[nom, préfixe minimal]` qui correspond l'emporte (`MatchSwitch`,
 // `CLPP.cs:793-802` ; ordre de `ParseHelper`, `CLPP.cs:897-1257`). `CLPP.cs` =
-// `src/Microsoft.PowerShell.ConsoleHost/host/msh/CommandLineParameterParser.cs`, PowerShell v7.5.5. La table de
+// `Microsoft.PowerShell.ConsoleHost/host/msh/CommandLineParameterParser.cs` du dépôt PowerShell, v7.5.5. La table de
 // `powershell` 5.1.26100.9444, sans source publique, est MESURÉE (`scripts/ops/sondes/hote-powershell.mjs`).
 // `lecture` : `commande` = la valeur et tout le reste de la ligne (`-CommandWithArgs` compris : ses `$args`
 // sont joints, car la commande peut les exécuter) ; `encodee` = la valeur, base64 d'UTF-16LE ; `valeur` = la

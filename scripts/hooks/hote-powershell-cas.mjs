@@ -1,6 +1,6 @@
 // Cas de l'hôte PowerShell (#2292) : UNE liste, lue par les tests (`argumentChaine` dans
-// `solde-ticket-guard.test.mjs`, la garde réelle dans `commande-piege-guard.test.mjs`) et rejouée sur l'hôte RÉEL
-// par la sonde `scripts/ops/sondes/hote-powershell.mjs`, qui signale tout écart.
+// `scripts/hooks/solde-ticket-guard.test.mjs`, la garde réelle dans
+// `scripts/hooks/commande-piege-guard.test.mjs`) et rejouée sur l'hôte RÉEL par la sonde `scripts/ops/sondes/hote-powershell.mjs`, qui signale tout écart.
 //
 // `args` : les arguments de l'hôte, où `CHARGE` (dans un argument) devient la commande portée, `CHARGE_ETALEE`
 // (un argument entier) ses mots, un argument chacun, et `CHARGE_B64` sa forme `-EncodedCommand`.
