@@ -317,7 +317,7 @@ describe('buildWalls — porte BOIS (routée par le seg.door)', () => {
   });
 });
 
-/** PORTE SECRÈTE (`EDO 08 l.402`) : la LECTURE est explicite — l'éditeur (`auteur`) dessine la porte
+/** PORTE SECRÈTE (`EDO 08 l.404`) : la LECTURE est explicite — l'éditeur (`auteur`) dessine la porte
  *  authorée, le jeu (`jeu`) dessine le MUR NU de sa façade tant qu'elle est masquée. */
 describe('buildWalls — porte SECRÈTE : lecture auteur / jeu', () => {
   const SECRETE: WallSeg = { x: 2, y: 2, side: 'N', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' }, structure: 'solide-porte-en-bois' };

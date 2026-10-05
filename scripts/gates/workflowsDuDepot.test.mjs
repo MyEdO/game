@@ -221,7 +221,7 @@ test('un workflow déclaré mais ABSENT du disque fait rougir la garde', () => {
 
 test('la PORTE est celle que `coursesCi` consulte — mesuré sur les args réellement passés à `gh`', () => {
   let vus = null
-  coursesCi({ env: {}, spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } } })
+  coursesCi({ commit: 'a'.repeat(40), spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } } })
   const consulte = vus[vus.indexOf('--workflow') + 1]
   assert.ok(vus.includes('--workflow'), `coursesCi ne filtre aucun workflow : ${vus.join(' ')}`)
   assert.equal(consulte, PORTE, 'la porte au push consulte un autre workflow que PORTE')

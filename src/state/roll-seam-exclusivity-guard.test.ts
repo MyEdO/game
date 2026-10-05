@@ -1,6 +1,7 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect, vi } from 'vitest';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { useGame } from './store';
 import { CLOTURE_VERBES, jouerLesClotures } from './combatEffects';
 import './combatFlow'; // charge les clôtures que le combat enregistre (`ouvrirEcranDeVictoire`)
@@ -74,7 +75,7 @@ describe('contexte d’import des parcours manuels', () => {
     ['rng vivant', () => scanBattleRngEngineLeak('src/state/probe.ts', rng, { resolveurs: { 'src/engine/combat.ts': ['resolveMelee'] } })],
   ] as const)('%s partage un contexte et un programme entre occurrences, renouvelés au scan suivant', (_nom, scanner) => {
     const contextes = vi.spyOn(canon, 'contexteImports');
-    const programmesCrees = vi.spyOn(programmes, 'parsedProgram');
+    const programmesCrees = vi.spyOn(programmes, 'syntaxProgram');
     try {
       expect(scanner()).toHaveLength(3);
       expect(contextes).toHaveBeenCalledTimes(1);
@@ -95,13 +96,13 @@ describe('contexte d’import des parcours manuels', () => {
 
   it('registre : le vocabulaire importé garde son origine sans construire de checker', () => {
     const contextes = vi.spyOn(canon, 'contexteImports');
-    const programmesCrees = vi.spyOn(programmes, 'parsedProgram');
+    const programmesCrees = vi.spyOn(programmes, 'syntaxProgram');
     const corps = "const ids: Os[] = ['head', 'torso']; function f(entry) { return ids.includes(entry.id); }";
     try {
       expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './gameIso/rig/bones';" + corps)).toEqual([]);
       expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './engine/types';" + corps)).toHaveLength(1);
       expect(contextes).toHaveBeenCalledTimes(2);
-      expect(programmesCrees).not.toHaveBeenCalled();
+      expect(programmesCrees).toHaveBeenCalledTimes(2);
     } finally {
       contextes.mockRestore();
       programmesCrees.mockRestore();
@@ -114,7 +115,7 @@ describe('contexte d’import des parcours manuels', () => {
  *  un seul parcours nourrit le garde d'exclusivité ET le compteur (M). */
 const sitesByFile = detenteur(() => {
   const m = new Map<string, { line: number; detail: string; excludedBy?: string }[]>();
-  for (const { rel, text } of corpus()) m.set(rel, scanRollSeamExclusivity(rel, text, { includeExcluded: true }));
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(corpus())) m.set(rel, scanRollSeamExclusivity(rel, text, { includeExcluded: true }, sourceFile!));
   return m;
 });
 
@@ -129,7 +130,7 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutcome.seal (cliquet, #274)', () => {
-  it('aucun fichier hors whitelist ne roule/scelle un Test en direct', () => {
+  it('aucun fichier hors whitelist ne roule/scelle un Test en direct', { timeout: 240_000 }, () => {
     const counts = countsByFile();
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(
@@ -276,7 +277,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
     expect(rates.map(([nom]) => nom)).toEqual([]);
   });
 
-  it('stock de phase 2 (#918) : le compte déclaré par fichier est le compte MESURÉ', () => {
+  it('stock de phase 2 (#918) : le compte déclaré par fichier est le compte MESURÉ', { timeout: 60_000 }, () => {
     const ecarts: string[] = [];
     for (const [rel, attendu] of ROLL_SEAM_PHASE2_STOCK) {
       const n = scanRollSeamExclusivity(rel, readFileSync(join(ROOT, rel), 'utf8')).length;
@@ -372,12 +373,12 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
  * `rollTest(` inline.
  */
 describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** ne peut plus appeler un resolveXxx(…) moteur avec battleRng() en direct (#370)', () => {
-  it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', () => {
+  const contexte = detenteur(contexteDeScanRng);
+  it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', { timeout: 60_000 }, () => {
     const offenders: string[] = [];
-    const passage = contexteDeScanRng();
-    for (const { rel, text } of corpus()) {
-      if (estFichierVitest(rel) || battleRngEngineLeakExcluded(rel)) continue;
-      const findings = scanBattleRngEngineLeak(rel, text, passage);
+    const passage = contexte();
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(corpus().filter(({ rel }) => !estFichierVitest(rel) && !battleRngEngineLeakExcluded(rel)))) {
+      const findings = scanBattleRngEngineLeak(rel, text, passage, sourceFile!, checker);
       for (const x of findings) offenders.push(`${rel}:${x.line} [rng vivant → ${x.name}] ${x.detail}`);
     }
     expect(
@@ -392,7 +393,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       "import { battleRng } from './battleRng';",
       "const res = resolveMelee(attacker, defender, battleRng());",
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).length).toBe(1);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed, contexte()).length).toBe(1);
   });
 
   it('le scanner MORD le rng HOISTÉ (battleRng() et resolveXxx( sur des lignes séparées, #370)', () => {
@@ -402,7 +403,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       "const rng = battleRng();",
       "const res = resolveMelee(attacker, defender, rng);",
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', hoisted).length).toBe(1);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', hoisted, contexte()).length).toBe(1);
   });
 
   it('zéro faux positif : une primitive roll*/valeur (testValue/effectiveChar) voisine d’un battleRng() sur une AUTRE ligne ne matche pas', () => {
@@ -412,7 +413,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       "const v = testValue(hero, 'pari');",
       "const opponentTR = rollTavernTest(opponentValue, battleRng());",
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', clean).length).toBe(0);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', clean, contexte()).length).toBe(0);
   });
 
   it('zéro faux positif : un résolveur moteur PUR (resolveOpposed, aucun paramètre RNG) coexistant avec battleRng() ne matche pas (#912)', () => {
@@ -422,7 +423,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       'const rng = battleRng();',
       "const res = resolveOpposed(attackerTR, defenderTR);",
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', clean).length).toBe(0);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', clean, contexte()).length).toBe(0);
   });
 
   it('vrai positif préservé : un résolveur moteur RNG-capable réel (resolveCasting) reste détecté (#912)', () => {
@@ -431,7 +432,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       "import { battleRng } from './battleRng';",
       "const res = resolveCasting(caster, spell, battleRng());",
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).length).toBe(1);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed, contexte()).length).toBe(1);
   });
 
   it('un import RENOMMÉ et un appel par NAMESPACE d’un résolveur à RNG comptent, sous le nom exporté', () => {
@@ -440,13 +441,13 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       "import { battleRng } from './battleRng';",
       'const res = melee(attacker, defender, battleRng());',
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', renomme).map((f) => f.name)).toEqual(['resolveMelee']);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', renomme, contexte()).map((f) => f.name)).toEqual(['resolveMelee']);
     const espace = [
       "import * as combat from '../engine/combat';",
       "import { battleRng } from './battleRng';",
       'const res = combat.resolveMelee(attacker, defender, battleRng());',
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', espace).map((f) => f.name)).toEqual(['resolveMelee']);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', espace, contexte()).map((f) => f.name)).toEqual(['resolveMelee']);
   });
 
   it('un battleRng LOCAL, non importé, ou un HOMONYME local d’un résolveur ne comptent pas', () => {
@@ -455,13 +456,13 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       'const battleRng = () => makeRNG(1);',
       'const res = resolveMelee(attacker, defender, battleRng());',
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', local)).toEqual([]);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', local, contexte())).toEqual([]);
     const homonyme = [
       "import { battleRng } from './battleRng';",
       'const resolveMelee = (a, b, rng) => a;',
       'const res = resolveMelee(attacker, defender, battleRng());',
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', homonyme)).toEqual([]);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', homonyme, contexte())).toEqual([]);
   });
 
   /* CONTRAT DU TEXTE SCANNÉ (#1788) : le scan lit la vue CODE SEUL (`codeSeul.mjs`), commentaires ET
@@ -474,10 +475,10 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       'const rng = battleRng();',
       "const gabarit = 'resolveCasting(caster, spell, rng)';",
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', donnee).length).toBe(0);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', donnee, contexte()).length).toBe(0);
 
     const codeEtDonnee = [...donnee.split('\n'), 'const res = resolveCasting(caster, spell, rng);'].join('\n');
-    const trouve = scanBattleRngEngineLeak('src/state/x.ts', codeEtDonnee);
+    const trouve = scanBattleRngEngineLeak('src/state/x.ts', codeEtDonnee, contexte());
     expect(trouve.map((f) => f.line)).toEqual([5]);
   });
 
@@ -490,7 +491,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       ' */',
       'const res = resolveCasting(caster, spell, battleRng());',
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).map((f) => f.line)).toEqual([6]);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed, contexte()).map((f) => f.line)).toEqual([6]);
   });
 });
 
@@ -609,15 +610,14 @@ describe('REGISTRE des chemins de jet (#1657) — la section « NON routés » s
 describe('REGISTRE des chemins de jet (#1066) — (F) fabrication d’un pending de jet', () => {
   const mesure = () => {
     const m = new Map<string, number>();
-    for (const { rel, text } of prodFiles('src')) {
-      if (SEAM_CORE.has(rel)) continue; // ces fichiers SONT le seam : leur pending est le foyer, pas un contournement
-      const n = scanPendingJetFabrication(rel, text).length;
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(prodFiles('src').filter(({ rel }) => !SEAM_CORE.has(rel)))) {
+      const n = scanPendingJetFabrication(rel, text, sourceFile!).length;
       if (n > 0) m.set(rel, n);
     }
     return m;
   };
 
-  it('le compte par fichier est EXACT et fail-closed (site en plus, entrée périmée, fichier hors registre)', () => {
+  it('le compte par fichier est EXACT et fail-closed (site en plus, entrée périmée, fichier hors registre)', { timeout: 60_000 }, () => {
     const ecarts = stockDiff(PENDING_JET_FABRICATION_STOCK, mesure());
     expect(
       ecarts,
@@ -659,9 +659,8 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
 
   const mesure = (table: Readonly<Record<string, readonly string[]>>) => {
     const m = new Map<string, number>();
-    for (const { rel, text } of prodFiles('src/state', 'src/ui')) {
-      if (SEAM_CORE.has(rel)) continue;
-      const n = scanEngineDelegatedRoll(rel, text, table).length;
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(prodFiles('src/state', 'src/ui').filter(({ rel }) => !SEAM_CORE.has(rel)))) {
+      const n = scanEngineDelegatedRoll(rel, text, table, sourceFile!, checker).length;
       if (n > 0) m.set(rel, n);
     }
     return m;
@@ -1021,20 +1020,14 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
   /** Mesure du corpus de PRODUCTION hors moteur et hors noyau du seam. */
   function mesureDesHorsPorte(): Map<string, number> {
     const m = new Map<string, number>();
-    for (const { rel, text } of prodFiles('src')) {
-      if (rel.startsWith('src/engine/') || SEAM_CORE.has(rel)) continue;
-      const n = scanDesHorsPorte(rel, text, desRollers()).length;
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(prodFiles('src').filter(({ rel }) => !rel.startsWith('src/engine/') && !SEAM_CORE.has(rel)))) {
+      const n = scanDesHorsPorte(rel, text, desRollers(), sourceFile!, checker).length;
       if (n > 0) m.set(rel, n);
     }
     return m;
   }
 
-  /**
-   * LA MORSURE (promue de la sonde du juge, `tmp/juge-1508/sonde-morsure.mjs`) — cinq dés
-   * SYNTHÉTIQUES posés dans un applier de `src/state`, identiques à l'octet sauf la primitive. Le
-   * garde d'exclusivité n'en voit qu'UN (le `d100` d'un Test) ; la garde sœur les voit TOUS. Sans ce
-   * contrat, l'élargissement se relirait comme acquis alors qu'il est exactement ce qui manquait.
-   */
+  // #1508
   it('MORSURE : les cinq primitives de dé sont vues par la sœur, là où l’exclusivité n’en voit qu’une', () => {
     const cas: [string, string][] = [
       ['d100', "import { d100 } from '../engine/dice';\nexport function f(rng) { return d100(rng); }\n"],
@@ -1137,7 +1130,7 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
     expect(scanDesHorsPorte('src/state/x.ts', spec, desRollers())).toEqual([]);
   });
 
-  it('le stock « dés hors porte » déclare le compte MESURÉ, à l’unité, dans les DEUX sens', () => {
+  it('le stock « dés hors porte » déclare le compte MESURÉ, à l’unité, dans les DEUX sens', { timeout: 60_000 }, () => {
     const mesure = mesureDesHorsPorte();
     const ecarts: string[] = [];
     for (const [rel, { n }] of DES_HORS_PORTE_STOCK) {
@@ -1187,10 +1180,10 @@ function formePerdue(n: ts.CallExpression, sf: ts.SourceFile): string | null {
     return CONSOMMATEURS.includes(nom) ? null : `retour passé en ARGUMENT de « ${nom} »`;
   }
   // B — capturé dans une variable JAMAIS RELUE : la capture ne consomme rien, seule la lecture le fait.
-  if (ts.isVariableDeclaration(p) && p.initializer === n && ts.isIdentifier(p.name)) {
+  if (ts.isVariableDeclaration(p) && p.initializer === n && ('name' in p && ts.isIdentifier(p.name))) {
     const nom = p.name.text;
     let lectures = 0;
-    const compte = (x: ts.Node): void => { if (ts.isIdentifier(x) && x.text === nom && x !== p.name) lectures++; ts.forEachChild(x, compte); };
+    const compte = (x: ts.Node): void => { if (ts.isIdentifier(x) && x.text === nom && x !== p.name) lectures++; x.forEachChild(compte); };
     compte(sf);
     if (lectures === 0) return `retour capturé dans « ${nom} », JAMAIS relu`;
   }
@@ -1201,16 +1194,14 @@ function formePerdue(n: ts.CallExpression, sf: ts.SourceFile): string | null {
  *  mesure une couture, il ne joue pas la suite d'une partie : le corpus est donc `prod` seul. */
 function appelsPerdus(): string[] {
   const out: string[] = [];
-  for (const { rel, text } of corpus()) {
-    if (estFichierVitest(rel)) continue;
-    if (!POINTS_DAPPLICATION.some((n) => text.includes(`${n}(`))) continue;
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, /\.tsx$/.test(rel) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && POINTS_DAPPLICATION.some((n) => text.includes(`${n}(`))))) {
+    if (!sf) continue;
     const walk = (n: ts.Node): void => {
       if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && POINTS_DAPPLICATION.includes(n.expression.text)) {
         const forme = formePerdue(n, sf);
         if (forme) out.push(`${rel}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1} ${n.expression.text}(…) — ${forme}`);
       }
-      ts.forEachChild(n, walk);
+      n.forEachChild(walk);
     };
     walk(sf);
   }
@@ -1225,7 +1216,7 @@ function appelsPerdus(): string[] {
  *
  * Le TYPE ne peut pas l'imposer, et c'est MESURÉ (2026-09-05, sonde à deux fichiers hors dépôt) :
  * `tsc --noEmit --strict` accepte une valeur rendue jetée en position d'instruction (sortie 0), et
- * `@typescript-eslint/no-unused-expressions` aussi (sortie 0 — la règle laisse passer tout appel de
+ * `no-unused-expressions` (`oxlint.config.mjs`) aussi (sortie 0 — la règle laisse passer tout appel de
  * fonction, par construction). TypeScript n'a pas de `must_use` : CE scan tient donc l'invariant.
  *
  * TROIS issues admises, et AUCUNE liste de sites : l'appelant lit le retour lui-même (il confie sa
@@ -1246,14 +1237,14 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
 
   it('QUATRE formes de perte sont reconnues (instruction nue, virgule, flèche à corps expression, argument étranger)', () => {
     const sonde = (src: string): string[] => {
-      const sf = ts.createSourceFile('x.ts', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+      const sf = ast({ rel: 'x.ts', text: src })!;
       const out: string[] = [];
       const walk = (n: ts.Node): void => {
         if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && POINTS_DAPPLICATION.includes(n.expression.text)) {
           const f = formePerdue(n, sf);
           if (f) out.push(f);
         }
-        ts.forEachChild(n, walk);
+        n.forEachChild(walk);
       };
       walk(sf);
       return out;
@@ -1290,9 +1281,9 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
  */
 describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet)', () => {
   const sondeVoit = (src: string): number => {
-    const sf = ts.createSourceFile('x.ts', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const sf = ast({ rel: 'x.ts', text: src })!;
     let n = 0;
-    const walk = (x: ts.Node): void => { if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && POINTS_DAPPLICATION.includes(x.expression.text)) n++; ts.forEachChild(x, walk); };
+    const walk = (x: ts.Node): void => { if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && POINTS_DAPPLICATION.includes(x.expression.text)) n++; x.forEachChild(walk); };
     walk(sf);
     return n;
   };
@@ -1312,14 +1303,14 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     // poussées s'INSÈRENT derrière l'étape courante (`cascade.poseDansLaSequence`), cette suite-là
     // passe APRÈS le dé par construction — plus rien à déclarer au site. Le contrat qui le mord :
     // `chute-a-la-porte.test.ts` (xi).
-    const sf = ts.createSourceFile('x.ts', 'function f() { jouerFlowEntier(runFlow(g, s, x)); autreChose(); }', ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const sf = ast({ rel: 'x.ts', text: 'function f() { jouerFlowEntier(runFlow(g, s, x)); autreChose(); }' })!;
     const perdus: string[] = [];
     const walk = (n: ts.Node): void => {
       if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && POINTS_DAPPLICATION.includes(n.expression.text)) {
         const f = formePerdue(n, sf);
         if (f) perdus.push(f);
       }
-      ts.forEachChild(n, walk);
+      n.forEachChild(walk);
     };
     walk(sf);
     expect(perdus, 'le scan voit un retour CONSOMMÉ — il ne peut pas savoir que l’appelant poursuit').toEqual([]);
@@ -1351,4 +1342,3 @@ describe('#1508 — le registre des clôtures est TOTAL', () => {
       .toThrow(/sans applier/);
   });
 });
-

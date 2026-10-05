@@ -142,7 +142,7 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
       surplus: (port.surplus?.[cargoId] ?? 0) > 0,
     });
   }
-  set({ port: { placeId: cur.placeId, label: cur.label, ref: cur.ref, port, freeEnc: vesselFreeEnc(get), maxLoadEnc: vesselMaxLoadEnc(get), offers } });
+  set({ port: { placeId: cur.placeId, label: cur.label, ref: cur.ref, port: structuredClone(port), freeEnc: vesselFreeEnc(get), maxLoadEnc: vesselMaxLoadEnc(get), offers } }); // #2097
 }
 
 registerEtalGenerateur('port', genererEtalPort);

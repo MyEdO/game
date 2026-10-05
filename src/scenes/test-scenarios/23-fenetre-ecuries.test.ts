@@ -12,7 +12,7 @@ import { scenario } from './23-fenetre-ecuries';
 
 /**
  * « La fenêtre sur les écuries » : la croisée d'étage (EDO 01 l.229-231) et la porte secrète du bureau
- * (EDO 08 l.402) se lisent sur la Scène PRODUITE par `buildScene`, par les coutures du moteur.
+ * (EDO 08 l.404) se lisent sur la Scène PRODUITE par `buildScene`, par les coutures du moteur.
  */
 describe('Scénario « La fenêtre sur les écuries »', () => {
   const scene = scenario.construire().scene;
@@ -24,7 +24,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     expect(validateScene([scene]).filter((w) => w.level === 'error')).toEqual([]);
   });
 
-  it('la cachette, close par la seule porte secrète, est atteignable pour l’auteur (EDO 08 l.402)', () => {
+  it('la cachette, close par la seule porte secrète, est atteignable pour l’auteur (EDO 08 l.404)', () => {
     const inatteignables = (sc: typeof scene) => validateScene([sc]).filter((w) => w.message.includes('inatteignable à pied')).map((w) => w.message);
     expect(inatteignables(scene)).toEqual([]);
     // Opposé : la même arête en mur nu, la cachette est réellement close — signalée.

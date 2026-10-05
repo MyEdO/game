@@ -129,7 +129,7 @@ describe('wallIndex — TOUTES les scènes livrées', () => {
     expect(portees).toBeGreaterThan(murs().length);
   });
 
-  it('`doorAt` suit `porteEnJeu` : la porte secrète du bureau (EDO 08 l.402) masquée n\'est pas une porte, révélée l\'est', () => {
+  it('`doorAt` suit `porteEnJeu` : la porte secrète du bureau (EDO 08 l.404) masquée n\'est pas une porte, révélée l\'est', () => {
     const scene = fenetreEcuries.construire().scene;
     const porte = scene.walls!.find((w) => w.x === 3 && w.y === 2 && w.side === 'E' && w.z === 1)!;
     expect(porte.door).toBeTruthy();

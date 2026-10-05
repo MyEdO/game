@@ -29,7 +29,7 @@ export function zoneWalkableCells(scene: Scene, zone: SceneEffectZone): { x: num
 }
 
 /** La scène telle que l'AUTEUR la lit : chaque porte authorée (`porteAuteur`) est un PASSAGE — révélée si
- *  elle est secrète (`EDO 08 l.402`), ouverte si elle est fermée. PUR. */
+ *  elle est secrète (`EDO 08 l.404`), ouverte si elle est fermée. PUR. */
 function sceneSelonAuteur(scene: Scene): Scene {
   return (scene.walls ?? []).filter(porteAuteur).reduce((s, w) => {
     const z = w.z ?? 0;

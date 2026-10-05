@@ -498,7 +498,7 @@ Ce tableau est celui des cibles à **forme humanoïde** (bipède). Les créature
 **Voir aussi** : Toucher et Test opposé de Corps à corps · Dégâts et Points de Blessure (BE + PA de la zone) · Localisation visée / attaque Complexe · Tableaux de Localisation alternatifs (Bestiaire : serpentin, arachnéen, monture)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.133, l.135, l.137-145, l.147, l.153, l.159) → `localisation`, `useDefenseJetProps`, `engage`, `hitLocation`, `markAttacked`, `agressifEnvers`, `useAttackJetProps`, `toucheSauvee`, `Condition`, `resolvePsychAI`, +12 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, `src/engine/flowCore.ts`, `src/engine/psychology.ts`, +9 fichiers
+- `LDB 13` (l.133, l.135, l.137-145, l.147, l.153, l.159) → `localisation`, `useDefenseJetProps`, `engage`, `hitLocation`, `markAttacked`, `agressifEnvers`, `useAttackJetProps`, `toucheSauvee`, `resolvePsychAI`, `Condition`, +12 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, `src/engine/flowCore.ts`, `src/engine/psychology.ts`, +9 fichiers
 
 ---
 
@@ -2994,8 +2994,8 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 
 - **Amibe** (`EDO 07 l.320-327`) — M4 CC30 CT– F40 E40 I– Ag20 Dex10 Int– FM– Soc– B16. **Traits :** 2 Tentacules +6, Absorption, Amorphe, Amphibie, Arme +6, Décérébré, Insensible à la douleur, Limicole. **Facultatif :** Pisteur, Taille (Grande-Énorme), 3+ Tentacules, Venin (Accessible-Difficile).
 - **Héraut de Tzeentch / Démon Gardien** (`EDO 07 l.328-348`) — M4 CC39 CT49 F49 E39 I39 Ag59 Dex39 Int49 FM99 Soc19 B19. **Traits :** Arme +9, Cornes +8, Corruption (Modérée), Démoniaque 8+, Insensible à la douleur, **Instable (Hors du temple secret)**, Peur 2, **Territorial (Temple secret)** — illustre Territorial à condition géographique et Instable conditionnel.
-- **Sheru-Tar Gee'taru** (Gideon) (`EDO 09 l.513-529`) — M4 CC45 CT47 F42 E40 I58 Ag47 Dex39 Int59 FM60 Soc51 B22. **Traits :** Arme +9, Contagieux (Fièvre cérébrale pourpre), Corruption (Modérée), Démoniaque 8+, Dur à cuire, Instable, Lanceur de sorts, Peur 2, Vision nocturne, Voleur de chair.
-- **Horreur Rose** (`EDO 09 l.556-570`) — M4 CC49 CT39 F49 E39 I69 Ag59 B17. **Traits :** Arme (Griffes) +8, Corruption (Modérée), **Dédoublement**, Démoniaque 8+, Peur 2. **Horreur Bleue** — M4 CC29 CT39 F39 E29 I29 B9 — Arme (Griffes) +6, Corruption (Modérée), Démoniaque 9+, Peur 1 (issue du Dédoublement de l'Horreur Rose).
+- **Sheru-Tar Gee'taru** (Gideon) (`EDO 09 l.517-533`) — M4 CC45 CT47 F42 E40 I58 Ag47 Dex39 Int59 FM60 Soc51 B22. **Traits :** Arme +9, Contagieux (Fièvre cérébrale pourpre), Corruption (Modérée), Démoniaque 8+, Dur à cuire, Instable, Lanceur de sorts, Peur 2, Vision nocturne, Voleur de chair.
+- **Horreur Rose** (`EDO 09 l.560-574`) — M4 CC49 CT39 F49 E39 I69 Ag59 B17. **Traits :** Arme (Griffes) +8, Corruption (Modérée), **Dédoublement**, Démoniaque 8+, Peur 2. **Horreur Bleue** — M4 CC29 CT39 F39 E29 I29 B9 — Arme (Griffes) +6, Corruption (Modérée), Démoniaque 9+, Peur 1 (issue du Dédoublement de l'Horreur Rose).
 - **Fhluger'Dagh** (Démon Mineur) (`EDO 01 l.271-290`) — M4 CC35 CT35 F35 E45 I45 Ag50 B13. **Traits :** Arme (Griffes) +7, Armure 1, Corruption (Modérée), Démoniaque 9+, Peur 2.
 
 **Sources RAW** :
@@ -3013,7 +3013,7 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 - `MSRC 15 l.138-163` — 8 nouveaux Traits du Compagnon T2 : Aquatique, S'accrocher Pour Se Nourrir, Hallucinogène, Rampant, Salive Analgésique, Salive Anticoagulante, Capricieux, Engloutir (effet mécanique verbatim).
 - `MSRC 15 l.153-160` — tableau d10 du Trait **Capricieux** (DR ±0–2 selon le jet).
 - `MSRC 15 l.119-128` — profil du **Troll des rivières** (exemple mêlant Traits standard + fluviaux).
-- `EDO 07 l.320-348`, `EDO 09 l.513-570`, `EDO 01 l.271-290` — profils-exemples montrant le schéma Traits/Facultatif et l'usage des nouveaux Traits.
+- `EDO 07 l.320-348`, `EDO 09 l.517-574`, `EDO 01 l.271-290` — profils-exemples montrant le schéma Traits/Facultatif et l'usage des nouveaux Traits.
 
 > *« Les Traits standard de créature sont ajoutés à la liste Facultative de toutes les créatures. »* — `LDB 76 l.33`
 > *« L'arme inflige Indice Dégâts qui incluent déjà son bonus de Force. En général, le nombre de Dégâts est égal à 4 + son bonus de Force. »* — `LDB 85 l.35`
@@ -3029,7 +3029,7 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 - `MSRC 15` (l.119-128, l.133-135, l.138-163) → `placeCombatant`, `useTestJetProps`, `capriciousDR`, `effectiveMovement`, `DECLARATIONS_D_OPS`, `PendingTest`, `PerSL`, `offTerrainOps`, `offTerrainMoveCap`, `hasNoRun`, +12 — `src/data/creatures.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/encumbrance.ts`, `src/engine/ops.ts`, `src/engine/social.ts`, +6 fichiers
 - `EDO 1` (l.271-290) → `edo-fhluger-dagh`, `edo-lukas` — `src/scenes/diligence/diligence-projet.json`
 - `EDO 11` (l.172-243) → `Formula`, `Condition`, `engagedAdvantageLead`, `gonflement`, `EffectTargeting`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +10 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/symptoms.json`, `src/data/traits.json`, `src/data/trappings.json`, `src/engine/flowCore.ts`, +3 fichiers
-- sans code : `EDO 7` (l.320-348), `EDO 9` (l.513-570)
+- sans code : `EDO 7` (l.320-348), `EDO 9` (l.517-574)
 
 ---
 

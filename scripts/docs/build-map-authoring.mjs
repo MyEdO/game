@@ -16,7 +16,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
@@ -59,9 +59,9 @@ function rendu() {
     const rows = []
     let prevEnd = decl.members.pos
     for (const m of decl.members) {
-      if (!ts.isPropertySignature(m)) continue
+      if (!ts.isPropertySignatureDeclaration(m)) continue
       rows.push({
-        nom: m.name.getText(sf) + (m.questionToken ? '?' : ''),
+        nom: m.name.getText(sf) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
         type: m.type ? plat(m.type.getText(sf)) : '—',
         role: jsdocRole(src.slice(prevEnd, m.getStart(sf))),
       })

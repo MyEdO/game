@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
 // src/state/label-logic-guard.test.ts, le hook pre-commit (scripts/git-hooks/pre-commit.mjs) ET le
@@ -6,8 +7,7 @@
 // (`scanLabelLogicFichier`, en fin de fichier) et des volets sans stock (`clesInterditesAuStock`),
 // pour que les trois consommateurs ne divergent jamais.
 import { parUnitesDeCode } from './lister.mjs';
-import { scriptKindDe } from './dialecte.mjs';
-import tsModule from 'typescript';
+import * as tsModule from 'typescript/unstable/ast';
 
 // Liaison LOCALE de l'API du compilateur — même FAIT mesuré qu'en tête de `sceneMutation.mjs`
 // (2026-08-23) : sous Vitest, un `ts.x` de visiteur AST se relit sur l'objet d'import de vite-node.
@@ -80,13 +80,13 @@ export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
  *  `slugId(p.name)` d'un `splitLabel` — est la couture label→id d'authoring tolérée). Lecture par l'AST
  *  (`litLeLabel`, le critère du volet (c) de la garde de face), jamais par une regex de ligne.
  *  @param {string} relPath @param {string} contenu @returns {Set<number>} lignes des appels fautifs */
-function lignesDeSlugDepuisLabel(relPath, contenu) {
+function lignesDeSlugDepuisLabel(relPath, contenu, sourceFile) {
   const lignes = new Set();
   if (!contenu.includes('slugId')) return lignes;
-  const sf = arbre(relPath, contenu);
+  const sf = sourceFile ?? arbre(relPath, contenu);
   const voir = (n) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'slugId' && n.arguments.some(litLeLabel)) lignes.add(ligneDe(sf, n));
-    ts.forEachChild(n, voir);
+    n.forEachChild(voir);
   };
   voir(sf);
   return lignes;
@@ -174,10 +174,10 @@ export function hasDisplayCollectionKey(line) {
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string, rule: 'label-logic' | 'collection-key' | 'display-key' }[]}
  */
-export function scanLabelLogic(relPath, contenu) {
+export function scanLabelLogic(relPath, contenu, sourceFile) {
   const findings = [];
   const source = contenu.split('\n');
-  const slugDeLabel = lignesDeSlugDepuisLabel(relPath, contenu);
+  const slugDeLabel = lignesDeSlugDepuisLabel(relPath, contenu, sourceFile);
   codeSeul(contenu).split('\n').forEach((line, i) => {
     const detail = source[i].trim();
     const labelLogic =
@@ -317,7 +317,7 @@ function containsEntityFieldRead(node) {
       return;
     }
     if (readsEntityField(n)) { found = true; return; }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(node);
   return found;
@@ -344,7 +344,7 @@ function regexDecisionOf(node) {
 
 /** Déclare DÉRIVÉS les paramètres d'un callback passé à une méthode appelée sur une expression qui
  *  lit un champ de donnée (`(c.traits ?? []).map(f).find((s) => …)`) : `s` porte alors du texte
- *  d'entité. @param {import('typescript').SignatureDeclaration} fn */
+ *  d'entité. @param {import('typescript/unstable/ast').SignatureDeclaration} fn */
 function declareDerivedParams(fn, scopes) {
   const call = fn.parent;
   if (!call || !ts.isCallExpression(call) || !call.arguments.includes(fn)) return;
@@ -382,8 +382,8 @@ function declareDerivedParams(fn, scopes) {
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string, rule: 'label-literal' | 'label-switch' | 'label-record' | 'label-regex' }[]}
  */
-export function scanLabelLiteralCompare(relPath, contenu) {
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+export function scanLabelLiteralCompare(relPath, contenu, sourceFile) {
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const lines = contenu.split('\n');
   const findings = [];
   const seen = new Set();
@@ -398,10 +398,10 @@ export function scanLabelLiteralCompare(relPath, contenu) {
   };
 
   const visit = (node) => {
-    if (ts.isFunctionLike(node) || ts.isBlock(node) || ts.isCaseBlock(node) || ts.isModuleBlock(node)) {
+    if (ts.isFunctionLikeDeclaration(node) || ts.isBlock(node) || ts.isCaseBlock(node) || ts.isModuleBlock(node)) {
       scopes.push();
-      if (ts.isFunctionLike(node)) declareDerivedParams(node, scopes);
-      ts.forEachChild(node, visit);
+      if (ts.isFunctionLikeDeclaration(node)) declareDerivedParams(node, scopes);
+      node.forEachChild(visit);
       scopes.pop();
       return;
     }
@@ -427,10 +427,10 @@ export function scanLabelLiteralCompare(relPath, contenu) {
     if (rxUse && hasLabelWordRegex(rxUse.rx.getText(sf)) && holdsOrDerivesFieldValue(rxUse.subject, scopes)) {
       report(node, 'label-regex');
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
 
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   findings.sort((a, b) => a.line - b.line || parUnitesDeCode(a.rule, b.rule));
   return findings;
 }
@@ -450,8 +450,8 @@ export function scanLabelLiteralCompare(relPath, contenu) {
  * @returns {{ line: number, detail: string, rule: 'label-call-literal' }[]}
  */
 const FORMATTING_CALLS = new Set(['String', 't', 'JSON']);
-export function scanCallResultLiteralCompare(relPath, contenu) {
- const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+export function scanCallResultLiteralCompare(relPath, contenu, sourceFile) {
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
  const lines = contenu.split('\n');
  const findings = [];
  const seen = new Set();
@@ -476,9 +476,9 @@ export function scanCallResultLiteralCompare(relPath, contenu) {
     }
    }
   }
-  ts.forEachChild(node, visit);
+  node.forEachChild(visit);
  };
- ts.forEachChild(sf, visit);
+ sf.forEachChild(visit);
  findings.sort((a, b) => a.line - b.line);
  return findings;
 }
@@ -607,10 +607,10 @@ const DISPLAY_FIELD_NAME_RX = new RegExp('^' + DISPLAY_FIELD + '$');
  *  (`[[x.label, x.kind].join(':'), x.id]`) — `[a.label, b.label].join(', ')`,
  *  `{ v: [r.label, suffixe].filter(Boolean).join(' ') }` sont des tableaux d'AFFICHAGE, aucune clé n'y
  *  naît. @param {string} relPath @param {string} contenu @returns {Set<number>} */
-function lignesDePaireParLibelle(relPath, contenu) {
+function lignesDePaireParLibelle(relPath, contenu, sourceFile) {
   const lignes = new Set();
   if (!/\.(?:label|name)\b/.test(contenu)) return lignes;
-  const sf = arbre(relPath, contenu);
+  const sf = sourceFile ?? arbre(relPath, contenu);
   const sousUneConstruction = (n) => {
     for (let p = n.parent; p && !ts.isSourceFile(p); p = p.parent) {
       if (ts.isNewExpression(p) && ts.isIdentifier(p.expression) && (p.expression.text === 'Map' || p.expression.text === 'Set')) return true;
@@ -643,7 +643,7 @@ function lignesDePaireParLibelle(relPath, contenu) {
       const enCle = resultat === n || (estPaire(paire) && paire.elements[0] === resultat);
       if (enCle && ts.isPropertyAccessExpression(cle) && DISPLAY_FIELD_NAME_RX.test(cle.name.text) && sousUneConstruction(paire)) lignes.add(ligneDe(sf, n));
     }
-    ts.forEachChild(n, voir);
+    n.forEachChild(voir);
   };
   voir(sf);
   return lignes;
@@ -660,10 +660,10 @@ const LABEL_INDEX_WRITE_RX = new RegExp('[\\w)\\]]\\[[^\\]]*\\.' + DISPLAY_FIELD
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string, rule: 'label-keyed-index' }[]}
  */
-export function scanLabelKeyedIndex(relPath, contenu) {
+export function scanLabelKeyedIndex(relPath, contenu, sourceFile) {
   const findings = [];
   const source = contenu.split('\n');
-  const paires = lignesDePaireParLibelle(relPath, contenu);
+  const paires = lignesDePaireParLibelle(relPath, contenu, sourceFile);
   codeSeul(contenu).split('\n').forEach((line, i) => {
     if (paires.has(i + 1) || LABEL_SET_RX.test(line) || LABEL_INDEX_WRITE_RX.test(line)) {
       findings.push({ line: i + 1, detail: source[i].trim(), rule: 'label-keyed-index' });
@@ -1085,7 +1085,7 @@ function isLabelKeyedIndex(init) {
   let litLeLabel = false;
   const voir = (x) => {
     if (ts.isPropertyAccessExpression(x) && ts.isIdentifier(x.name) && x.name.text === 'label') litLeLabel = true;
-    ts.forEachChild(x, voir);
+    x.forEachChild(voir);
   };
   voir(clef.body);
   return litLeLabel;
@@ -1105,9 +1105,9 @@ function labelKeyedBindings(sf) {
         if (isLabelKeyedIndex(init) || (ts.isIdentifier(init) && noms.has(init.text))) noms.add(d.name.text);
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   return noms;
 }
 
@@ -1124,7 +1124,7 @@ function labelKeyedBindings(sf) {
  * @param {string} contenu — contenu de `src/data/index.ts` @returns {Set<string>}
  */
 export function collectLabelEntityResolvers(contenu) {
-  const sf = ts.createSourceFile('index.ts', contenu, ts.ScriptTarget.Latest, true, scriptKindDe('index.ts'));
+  const sf = ast({ rel: 'index.ts', text: contenu });
   const names = new Set();
   const parLabel = labelKeyedBindings(sf);
   const hasLabelFirstParam = (params) => params.length >= 1 && ts.isIdentifier(params[0].name) && params[0].name.text === 'label';
@@ -1145,9 +1145,9 @@ export function collectLabelEntityResolvers(contenu) {
         if (init && ts.isIdentifier(init) && parLabel.has(init.text)) names.add(d.name.text);
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   return names;
 }
 
@@ -1159,11 +1159,11 @@ export function collectLabelEntityResolvers(contenu) {
  * @param {string} relPath @param {string} contenu @param {Set<string>} resolverNames
  * @returns {{ line: number, detail: string, rule: 'label-entity-resolver-call', fn: string }[]}
  */
-export function scanLabelResolverCalls(relPath, contenu, resolverNames) {
+export function scanLabelResolverCalls(relPath, contenu, resolverNames, sourceFile) {
   const local = collectDeclaredNames(contenu);
   const active = new Set([...resolverNames].filter((n) => !local.has(n)));
   if (active.size === 0) return [];
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const lines = contenu.split('\n');
   const findings = [];
   const visit = (node) => {
@@ -1171,9 +1171,9 @@ export function scanLabelResolverCalls(relPath, contenu, resolverNames) {
       const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
       findings.push({ line, detail: (lines[line - 1] || '').trim(), rule: 'label-entity-resolver-call', fn: node.expression.text });
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   return findings;
 }
 
@@ -1236,7 +1236,7 @@ function declareString(t) {
  *  @returns {{ nom: string, type: ts.TypeNode | undefined, corps: ts.Node | undefined, noeud: ts.Node }[]} */
 function fonctionsExportees(sf, privees = false) {
   const out = [];
-  ts.forEachChild(sf, (n) => {
+  sf.forEachChild((n) => {
     if (ts.isFunctionDeclaration(n) && n.name && (privees || isExported(n))) out.push({ nom: n.name.text, type: n.type, corps: n.body, noeud: n });
     if (ts.isVariableStatement(n) && (privees || isExported(n))) {
       for (const d of n.declarationList.declarations) {
@@ -1249,16 +1249,15 @@ function fonctionsExportees(sf, privees = false) {
   return out;
 }
 
-const arbre = (rel, contenu) => ts.createSourceFile(rel, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(rel));
+const arbre = (rel, contenu) => ast({ rel: rel, text: contenu });
 const ligneDe = (sf, node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
 
 /** Les FACES D'AFFICHAGE d'un corpus : nom → fichier déclarant (le premier rencontré).
  *  @param {{ rel: string, text: string }[]} fichiers @returns {Map<string, string>} */
 export function collectFacesDAffichage(fichiers) {
   const faces = new Map();
-  for (const { rel, text } of fichiers) {
-    if (!text.includes('PlayerText')) continue;
-    for (const f of fonctionsExportees(arbre(rel, text))) if (declarePlayerText(f.type) && !faces.has(f.nom)) faces.set(f.nom, rel);
+  for (const { fichier: { rel }, sourceFile } of analyserCorpus(fichiers.filter(({ text }) => text.includes('PlayerText')))) {
+    for (const f of fonctionsExportees(sourceFile)) if (declarePlayerText(f.type) && !faces.has(f.nom)) faces.set(f.nom, rel);
   }
   return faces;
 }
@@ -1280,8 +1279,8 @@ const LOCAL = 'local';
  * @param {string} relPath @param {string} contenu @param {ReadonlyMap<string, string>} faces
  * @returns {{ line: number, detail: string, rule: 'face-affichage-identite', face: string }[]}
  */
-export function scanFaceDAffichageIdentite(relPath, contenu, faces) {
-  const sf = arbre(relPath, contenu);
+export function scanFaceDAffichageIdentite(relPath, contenu, faces, sourceFile) {
+  const sf = sourceFile ?? arbre(relPath, contenu);
   const lines = contenu.split('\n');
   const findings = [];
   const seen = new Set();
@@ -1342,11 +1341,11 @@ export function scanFaceDAffichageIdentite(relPath, contenu, faces) {
     }
   };
   const visit = (node) => {
-    if (ts.isFunctionLike(node)) {
+    if (ts.isFunctionLikeDeclaration(node)) {
       if (ts.isFunctionDeclaration(node) && node.name) scopes.declare(node.name.text, LOCAL);
       scopes.push();
       for (const p of node.parameters) for (const n of bindingNames(p.name)) scopes.declare(n, LOCAL);
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
       scopes.pop();
       return;
     }
@@ -1354,7 +1353,7 @@ export function scanFaceDAffichageIdentite(relPath, contenu, faces) {
       || ts.isForOfStatement(node) || ts.isForInStatement(node) || ts.isCatchClause(node)) {
       scopes.push();
       if (ts.isCatchClause(node) && node.variableDeclaration) for (const n of bindingNames(node.variableDeclaration.name)) scopes.declare(n, LOCAL);
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
       scopes.pop();
       return;
     }
@@ -1384,9 +1383,9 @@ export function scanFaceDAffichageIdentite(relPath, contenu, faces) {
       const f = faceTenue(node.elements[0]);
       if (f && entreeDeTable(node)) report(node, f);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   return findings;
 }
 
@@ -1396,7 +1395,7 @@ function litLeLabel(corps) {
   const voir = (x) => {
     if (lu) return;
     if (ts.isPropertyAccessExpression(x) && ts.isIdentifier(x.name) && x.name.text === 'label') lu = true;
-    ts.forEachChild(x, voir);
+    x.forEachChild(voir);
   };
   if (corps) voir(corps);
   return lu;
@@ -1405,9 +1404,9 @@ function litLeLabel(corps) {
 /** (c) Exports de `src/data/**` qui lisent `.label` sans DÉCLARER un retour autre que `string`.
  *  @param {string} relPath @param {string} contenu
  *  @returns {{ line: number, detail: string, rule: 'face-donnee-string', face: string }[]} */
-export function scanFaceDeDonneeString(relPath, contenu) {
+export function scanFaceDeDonneeString(relPath, contenu, sourceFile) {
   if (!relPath.startsWith('src/data/')) return [];
-  const sf = arbre(relPath, contenu);
+  const sf = sourceFile ?? arbre(relPath, contenu);
   const lines = contenu.split('\n');
   return fonctionsExportees(sf)
     .filter((f) => (!f.type || declareString(f.type)) && litLeLabel(f.corps))
@@ -1452,9 +1451,9 @@ function produitDuTexte(lit) {
 /** (d) Liants littéraux dans le corps des fonctions au retour `PlayerText` de `src/data/index.ts`.
  *  @param {string} relPath @param {string} contenu
  *  @returns {{ line: number, detail: string, rule: 'liant-litteral-de-face', face: string }[]} */
-export function scanLiantsLitterauxDesFaces(relPath, contenu) {
+export function scanLiantsLitterauxDesFaces(relPath, contenu, sourceFile) {
   if (relPath !== 'src/data/index.ts') return [];
-  const sf = arbre(relPath, contenu);
+  const sf = sourceFile ?? arbre(relPath, contenu);
   const lines = contenu.split('\n');
   const findings = [];
   for (const f of fonctionsExportees(sf, true)) {
@@ -1469,7 +1468,7 @@ export function scanLiantsLitterauxDesFaces(relPath, contenu) {
           findings.push({ line, detail: (lines[line - 1] || '').trim(), rule: 'liant-litteral-de-face', face: f.nom });
         }
       }
-      ts.forEachChild(x, voir);
+      x.forEachChild(voir);
     };
     voir(f.corps);
   }
@@ -1503,18 +1502,19 @@ export function contexteDeLaGarde(fichiers) {
  * @param {string} rel @param {string} text @param {GardeContexte} ctx
  * @returns {{ rel: string, line: number, detail: string, rule: string, statut: 'couture' | 'dette' | 'nu' }[]}
  */
-export function scanLabelLogicFichier(rel, text, ctx) {
+export function scanLabelLogicFichier(rel, text, ctx, sourceFile) {
   if (!estDansLeCorpus(rel)) return [];
+  sourceFile ??= ast({ rel, text });
   return [
-    ...scanLabelLogic(rel, text),
+    ...scanLabelLogic(rel, text, sourceFile),
     ...scanLabelAsIdArg(rel, text, effectiveIdParamFns(text, ctx.idParamFns)),
-    ...scanLabelLiteralCompare(rel, text),
-    ...scanCallResultLiteralCompare(rel, text),
-    ...scanLabelKeyedIndex(rel, text),
-    ...scanLabelResolverCalls(rel, text, ctx.resolveurs),
-    ...scanFaceDAffichageIdentite(rel, text, ctx.faces),
-    ...scanFaceDeDonneeString(rel, text),
-    ...scanLiantsLitterauxDesFaces(rel, text),
+    ...scanLabelLiteralCompare(rel, text, sourceFile),
+    ...scanCallResultLiteralCompare(rel, text, sourceFile),
+    ...scanLabelKeyedIndex(rel, text, sourceFile),
+    ...scanLabelResolverCalls(rel, text, ctx.resolveurs, sourceFile),
+    ...scanFaceDAffichageIdentite(rel, text, ctx.faces, sourceFile),
+    ...scanFaceDeDonneeString(rel, text, sourceFile),
+    ...scanLiantsLitterauxDesFaces(rel, text, sourceFile),
   ].map((f) => {
     const site = { rel, ...f };
     const statut = ratchetShortKey(site) in RATCHET_EXCEPTIONS ? 'couture' : stockDe(cleDeDette(site)) > 0 ? 'dette' : 'nu';
@@ -1527,7 +1527,9 @@ export function scanLabelLogicFichier(rel, text, ctx) {
 export function scanLabelLogicCorpus(fichiers) {
   const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
   const ctx = contexteDeLaGarde(corpus);
-  return { fichiers: corpus.map(({ rel }) => rel), sites: corpus.flatMap(({ rel, text }) => scanLabelLogicFichier(rel, text, ctx)) };
+  const sites = [];
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(corpus)) sites.push(...scanLabelLogicFichier(rel, text, ctx, sourceFile));
+  return { fichiers: corpus.map(({ rel }) => rel), sites };
 }
 
 /** Compte des sites HORS couture, par `fichier#règle` — la mesure que juge `ecartsAuxDettesDeLibelle`.

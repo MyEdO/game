@@ -126,7 +126,7 @@ export interface WallSpec extends WallOverlay {
   /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée (`WallSeg.suspendu`, `EDO 01 l.231`) :
    *  valeur de CETTE fenêtre, offerte au saut seulement sous sa hauteur réelle. Exige `crossable`. */
   suspendu?: number;
-  /** Porte SECRÈTE (`WallSeg.secret`, `EDO 08 l.402`) : masquée en jeu tant qu'elle n'est pas révélée.
+  /** Porte SECRÈTE (`WallSeg.secret`, `EDO 08 l.404`) : masquée en jeu tant qu'elle n'est pas révélée.
    *  Exige `door` ; la porte est posée FERMÉE (`closed`). Arête cardinale seulement. Porte sa
    *  `difficulty` (Test de Perception, `LDB 12 l.137`) et sa `face` découvrable — `porteuse` (la case
    *  `(x,y)` canonique), `voisine` (à travers `side`) ou `les-deux` (`EDO 07 l.263`). */

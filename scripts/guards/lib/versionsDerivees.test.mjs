@@ -1,10 +1,11 @@
 // `versionsNonDerivees` (#2226) : les quatre prédicats sur des fichiers fabriqués, puis sur `src/` ;
 // la collision de deux migrations de même clé, au compilateur.
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
+import { API, Snapshot } from 'typescript/unstable/sync'
 import { readCorpus } from './sourceCorpus.mjs'
-import { repoProgram } from './tsProgram.mjs'
+import { repoProgram, libererSessions } from './tsProgram.mjs'
 import { relevePerimetre, versionsNonDerivees } from './versionsDerivees.mjs'
 
 const PRIMITIVE = { rel: 'src/lib/versionCourante.ts', text: 'export function versionCourante(t) { return 0 }\n' }
@@ -26,6 +27,7 @@ export const d = { schema: z.literal(S) };`)
   assert.equal(juge([f('src/d.ts', 'export const d = { schema: z.literal(17) };')]).P1.length, 1)
   assert.deepEqual(juge([f('src/e.ts', "export const d = { kind: 'export', v: z.literal(7) };")]).P1, ['src/e.ts:1 — `v: z.literal(7)` ne prend pas une version dérivée par `versionCourante`'])
   assert.deepEqual(juge([f('src/g.ts', 'export const d = { v: z.literal(7) };')]).P1, [], '`v` sans étiquette de forme persistée n’est pas un champ de version')
+  assert.deepEqual(juge([f('src/angle.ts', "import { versionCourante } from './lib/versionCourante';\nconst T = <Record<number, string>>{ 0: 'a' };\nconst S = <number>versionCourante(T);\nexport const d = { schema: z.literal(<number>S) };")]), { P1: [], P2: [], P3: [], P4: [] })
 })
 
 test('P2 : aucun champ de version initialisé par un nombre littéral, quelle que soit sa syntaxe', () => {
@@ -159,6 +161,8 @@ test('P3 : une liaison proche masque la const externe, et la vraie const locale 
   for (const corps of [
     'function f(V) { return { version: V } }',
     'function f({ V }) { return { version: V } }',
+    'type F = (V = { version: V }) => void;',
+    'interface I { f(V = { version: V }): void; }',
     'function f() { let V; return { version: V } }',
     'function f() { if (true) { var V; } return { version: V } }',
     'try {} catch (V) { const x = { version: V }; }',
@@ -190,9 +194,14 @@ const IDB = { 0: () => {}, 1: (db) => db.close(), 1: (db) => db.close() } satisf
 export const I = versionCourante(IDB);
 `
   const programme = repoProgram(racine, () => [virtuel], { 'src/__collision__.ts': texte })
-  const sf = programme.getSourceFile(virtuel)
-  const lignes = programme.getSemanticDiagnostics(sf).filter((d) => d.code === 1117).map((d) => sf.getLineAndCharacterOfPosition(d.start).line + 1)
-  assert.deepEqual(lignes, [7, 12, 15])
+  const erreurs = []
+  try {
+    const sf = programme.program.getSourceFile(virtuel)
+    assert.ok(sf)
+    const lignes = programme.program.getSemanticDiagnostics(virtuel).filter((d) => d.code === 1117).map((d) => sf.getLineAndCharacterOfPosition(d.pos).line + 1)
+    assert.deepEqual(lignes, [7, 12, 15])
+  } catch (erreur) { erreurs.push(erreur) }
+  finally { libererSessions([programme], erreurs) }
 })
 
 test('périmètre : `src/**` en `.ts`/`.tsx`, hors instruments, doublures et déclarations', () => {
@@ -200,6 +209,88 @@ test('périmètre : `src/**` en `.ts`/`.tsx`, hors instruments, doublures et dé
     ['src/a.ts', 'src/a.tsx', 'src/a.test.ts', 'src/a.testkit.ts', 'src/a.d.ts', 'scripts/migrations/x.mjs', 'scripts/a.ts'].map(relevePerimetre),
     [true, true, false, false, false, false, false],
   )
+})
+
+const observerParcours = (t, visite) => {
+  const choisir = Snapshot.prototype.getDefaultProjectForFile
+  t.mock.method(Snapshot.prototype, 'getDefaultProjectForFile', function (...args) {
+    const projet = choisir.apply(this, args)
+    const lire = projet.program.getSourceFile
+    t.mock.method(projet.program, 'getSourceFile', function (...noms) {
+      const sf = lire.apply(this, noms)
+      if (sf) {
+        const parcourir = sf.forEachChild
+        t.mock.method(sf, 'forEachChild', function (...visiteurs) { return visite(() => parcourir.apply(this, visiteurs)) })
+      }
+      return sf
+    })
+    return projet
+  })
+}
+
+test('corpus : une session native unique, fermée après les relevés de tous les fichiers', (t) => {
+  const update = API.prototype.updateSnapshot
+  const close = API.prototype.close
+  let ferme = false
+  const ouvertures = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args) })
+  const fermetures = mock.method(API.prototype, 'close', function () { ferme = true; return close.call(this) })
+  let parcours = 0
+  observerParcours(t, parcourir => { assert.equal(ferme, false); parcours++; return parcourir() })
+  try {
+    assert.deepEqual(versionsNonDerivees([
+      f('src/a.ts', 'export const a = { version: 1 };'),
+      f('src/b.ts', 'export const b = { schema: 2 };'),
+    ]), { P1: [], P2: ['src/a.ts:1 — `version: 1`', 'src/b.ts:1 — `schema: 2`'], P3: [], P4: [] })
+    assert.equal(ouvertures.mock.callCount(), 1)
+    assert.equal(fermetures.mock.callCount(), 1)
+    assert.ok(parcours > 0)
+    assert.equal(ferme, true)
+  } finally { fermetures.mock.restore(); ouvertures.mock.restore() }
+})
+
+test('corpus : vide ou intégralement exclu n’ouvre aucune session', () => {
+  const ouvertures = mock.method(API.prototype, 'updateSnapshot', () => { assert.fail('session native inattendue') })
+  try {
+    for (const corpus of [[], [f('src/a.test.ts', 'const a = { version: 1 };'), f('src/a.d.ts', 'declare const a: number;'), f('scripts/a.ts', 'const a = { schema: 1 };')]]) {
+      assert.deepEqual(versionsNonDerivees(corpus), { P1: [], P2: [], P3: [], P4: [] })
+    }
+    assert.equal(ouvertures.mock.callCount(), 0)
+  } finally { ouvertures.mock.restore() }
+})
+
+test('corpus : basenames identiques, imports et portes gardent leurs chemins relatifs exacts', () => {
+  const corpus = [
+    f('src/gauche/base.ts', "export const V = 3; export const T = { 0: 'a', 2: 'b' };"),
+    f('src/droite/base.ts', "export const V = 4; export const T = { 0: 'a' };"),
+    f('src/gauche/porte.ts', "import { versionCourante } from '../lib/versionCourante'; export function ouvrir(t) { return versionCourante(t) }"),
+    f('src/droite/porte.ts', "import { versionCourante } from '../lib/versionCourante'; export function ouvrir(t) { return versionCourante(t) }"),
+    f('src/gauche/app.ts', "import { V, T } from './base'; import { ouvrir } from './porte'; export const d = { version: V }; ouvrir(T);"),
+    f('src/droite/app.ts', "import { V, T } from './base'; import { ouvrir } from './porte'; export const d = { schema: V }; ouvrir(T);"),
+  ]
+  assert.deepEqual(juge(corpus), {
+    P1: [], P2: [],
+    P3: ['src/droite/app.ts:1 — `schema` initialisé par `V = 4`', 'src/gauche/app.ts:1 — `version` initialisé par `V = 3`'],
+    P4: ['src/gauche/base.ts:1 — clés non contiguës (0, 2)'],
+  })
+})
+
+test('corpus : fautes d’analyse et de fermeture conservent leurs identités, session fermée une fois', (t) => {
+  const analyse = { phase: 'analyse' }
+  const fermeture = { phase: 'fermeture' }
+  observerParcours(t, () => { throw analyse })
+  const close = API.prototype.close
+  const fermetures = mock.method(API.prototype, 'close', function () { close.call(this); throw fermeture })
+  try {
+    assert.throws(() => versionsNonDerivees([f('src/a.ts', 'export const a = { version: 1 };')]), erreur => {
+      assert.ok(erreur instanceof AggregateError)
+      assert.equal(erreur.errors.length, 2)
+      assert.equal(erreur.errors[0], analyse)
+      assert.equal(erreur.errors[1], fermeture)
+      assert.equal(erreur.cause, analyse)
+      return true
+    })
+    assert.equal(fermetures.mock.callCount(), 1)
+  } finally { fermetures.mock.restore() }
 })
 
 test('src/ : aucune version de forme persistée qui ne dérive pas de sa table', () => {

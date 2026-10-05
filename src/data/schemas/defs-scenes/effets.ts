@@ -203,10 +203,12 @@ export const startDialogueSchema = z.strictObject({
 
 export const journalSchema = z.strictObject({ type: z.literal('journal'), desc: z.string() });
 
-export const documentSchema = z.strictObject({ type: z.literal('document'), title: z.string(), desc: z.string() });
+/** Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse
+ *  du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). */
+export const documentSchema = z.strictObject({ type: z.literal('document'), documentId: z.string() });
 
 /** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
- *  `campaignNarratif`. `stade` omis → premier stade si l'indice est encore caché, sinon no-op. */
+ *  `campaignNarratif`. `stade` omis → `revealClue` (`state/clues.ts`). */
 export const revealClueSchema = z.strictObject({
   type: z.literal('revealClue'),
   indiceId: z.string(),
@@ -399,7 +401,7 @@ export const fallSchema = z.strictObject({
 export const setLightSchema = z.strictObject({ type: z.literal('setLight'), level: z.number() });
 
 /** Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side), et/ou RÉVÈLE
- *  une porte secrète (`setDoorRevealed`, `EDO 08 l.402`) — `revealed` s'applique AVANT `open` —, et/ou
+ *  une porte secrète (`setDoorRevealed`, `EDO 08 l.404`) — `revealed` s'applique AVANT `open` —, et/ou
  *  pose la marque de TENTATIVE de sa découverte (`attempted`, `setDoorTentee` ; arbitrage #700,
  *  2026-09-29). Une porte fermée bloque vue ET passage. Pour un levier/piège/scripted authored. */
 export const setDoorSchema = z.strictObject({

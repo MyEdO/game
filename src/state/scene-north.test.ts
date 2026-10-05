@@ -51,7 +51,7 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
     const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
     expect(relu?.version).toBe(SAVE_VERSION);
-    expect((relu?.data.scene as Scene).northDeg).toBe(90);
+    expect(relu?.data.scene).toMatchObject({ northDeg: 90 });
   });
 
   it('une save SANS le champ (toute save d’avant le lot) reste valide, nord implicite', () => {

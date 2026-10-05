@@ -240,7 +240,7 @@ describe('buildProps — ornements de bâtiment (data-driven par ArchitectureBod
     expect(poseA(o, { x: 1, y: 3 }, 'S')).toBe(true); // plaqué sur la case sortante, sans saillie
   });
 
-  it('une porte SECRÈTE n’est jamais l’entrée : l’ornement suit la porte publique (EDO 08 l.402)', () => {
+  it('une porte SECRÈTE n’est jamais l’entrée : l’ornement suit la porte publique (EDO 08 l.404)', () => {
     const s = withRoof('taverne', { x: 1, y: 1, w: 3, h: 3 }, [
       { x: 3, y: 2, side: 'E', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' } },
       { x: 0, y: 2, side: 'E', door: true },

@@ -10,7 +10,7 @@ import { rayonEnCases } from './vision';
 import type { RoomFocus } from './rooms';
 
 /**
- * DÉCOUVERTE d'une porte secrète — `EDO 08 l.402`, `LDB 09 l.399`, `LDB 12 l.189` ; arbitrage utilisateur
+ * DÉCOUVERTE d'une porte secrète — `EDO 08 l.404`, `LDB 09 l.399`, `LDB 12 l.189` ; arbitrage utilisateur
  * #700 (2026-09-29, commentaires 5896287794 et 5896407205) : « Les deux » déclencheurs, « Une seule
  * (Recommandé) — Un échec est définitif pour cette porte », « Exploration seulement (Recommandé) ».
  * UNE définition par porte (`testDePorteSecrete`), jouée par ses déclencheurs : à l'APPROCHE, un Trigger

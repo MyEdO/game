@@ -11,7 +11,7 @@
 // DÉFINITION D'UNE LECTURE — un champ `F` du type `T` est LU en un site (`a.F`, `a['F']`, ou un
 // élément `{ F }` d'une déstructuration) si les DEUX conditions tiennent :
 //   (1) le symbole de propriété résolu au site déclare la MÊME propriété que `T.F` — la déclaration
-//       du symbole (`getRootSymbols` déroulé, unions/intersections/arguments d'alias traversés) est
+//       du symbole (unions/intersections/arguments d'alias traversés) est
 //       l'une de celles que porte le type déclaré de `T`. Un type ANONYME de même forme
 //       (`{ id: string; hidden?: boolean }`) porte SES propres déclarations : il ne crédite rien ;
 //   (2) ET la propriété est PROPRE à `T` — déclarée dans le SOUS-ARBRE de la déclaration de `T`, ou
@@ -46,18 +46,15 @@
 //     ce détecteur, mais un tel site peut légitimement consommer tous les champs en aval ;
 //   - un accès par clé DYNAMIQUE (`ref[k]`, `Object.entries(ref)`) n'a pas de symbole de propriété
 //     et ne crédite rien.
-import tsModule from 'typescript'
-
-// Liaison LOCALE de l'API du compilateur — même FAIT mesuré qu'en tête de `sceneMutation.mjs`
-// (2026-08-23) : sous Vitest, un `ts.x` de visiteur AST se relit sur l'objet d'import de vite-node.
-const ts = tsModule
+import * as ts from 'typescript/unstable/ast'
+import { SymbolFlags } from 'typescript/unstable/sync'
 import { join, relative, resolve, sep } from 'node:path'
 import { listerArbre, parUnitesDeCode } from './lister.mjs'
 import { estFichierVitest } from './fichierVitest.mjs'
-import { repoProgram } from './tsProgram.mjs'
+import { repoProgram, libererSessions } from './tsProgram.mjs'
 
 /** Fichiers de PRODUCTION `.ts(x)` sous `dir`, hors `*.test.ts(x)`, en ORDRE TOTAL (`listerArbre`).
- *  L'ordre des RACINES décide de celui de `program.getSourceFiles()`, donc de l'index des accès,
+ *  L'ordre des RACINES décide de celui de `program.getSourceFileNames().map((file) => program.getSourceFile(file))`, donc de l'index des accès,
  *  donc du site cité en exemple par le rapport : sans ordre total, le même dépôt rend deux `.md`
  *  différents selon la machine. */
 export function listProdFiles(dir) {
@@ -75,14 +72,14 @@ const norm = (p) => p.replace(/\\/g, '/')
 function constituants(type, out = new Set()) {
   if (!type || out.has(type)) return out
   out.add(type)
-  if (type.isUnionOrIntersection?.()) for (const t of type.types) constituants(t, out)
-  for (const a of type.aliasTypeArguments ?? []) constituants(a, out)
+  if (type.isUnionType() || type.isIntersectionType()) for (const t of type.getTypes()) constituants(t, out)
+  for (const a of type.getAliasTypeArguments()) constituants(a, out)
   return out
 }
 
 /** Déclarations de la propriété `nom` sur `type` (constituants déroulés). */
-function declarationsDeProp(type, nom, out = new Set()) {
-  for (const part of constituants(type)) for (const d of part.getProperty?.(nom)?.declarations ?? []) out.add(d)
+function declarationsDeProp(checker, type, nom, out = new Set()) {
+  for (const part of constituants(type)) for (const d of checker.getPropertyOfType(part, nom)?.declarations ?? []) out.add(d.resolve())
   return out
 }
 
@@ -117,7 +114,7 @@ function schemasInferes(checker, decl) {
   const visit = (n) => {
     if (ts.isTypeQueryNode(n) && ts.isIdentifier(n.exprName)) {
       let s = checker.getSymbolAtLocation(n.exprName)
-      if (s && s.flags & ts.SymbolFlags.Alias) {
+      if (s && s.flags & SymbolFlags.Alias) {
         try {
           s = checker.getAliasedSymbol(s)
         } catch {
@@ -186,32 +183,36 @@ function contexteDe(cache, files, rootDir, programme = null) {
   let ctx = cache.get(cle)
   if (ctx) return ctx
   const racines = files.map((f) => resolve(f))
-  const program = programme ?? repoProgram(rootDir, () => racines)
-  const checker = program.getTypeChecker()
-  const retenus = new Set(racines.map(norm))
-  // Index des accès CANDIDATS par nom de champ — un seul parcours d'AST pour tous les types.
-  const index = new Map()
-  const poser = (nom, sf, node) => {
-    if (!nom) return
-    let a = index.get(nom)
-    if (!a) index.set(nom, (a = []))
-    a.push({ sf, node })
-  }
-  for (const sf of program.getSourceFiles()) {
-    if (sf.isDeclarationFile || !retenus.has(norm(sf.fileName))) continue
-    const visit = (n) => {
-      if (ts.isPropertyAccessExpression(n)) poser(n.name.text, sf, n)
-      else if (ts.isElementAccessExpression(n) && n.argumentExpression && ts.isStringLiteralLike(n.argumentExpression)) poser(n.argumentExpression.text, sf, n)
-      else if (ts.isBindingElement(n) && ts.isObjectBindingPattern(n.parent) && !n.dotDotDotToken) {
-        poser(n.propertyName ? n.propertyName.getText(sf) : (ts.isIdentifier(n.name) ? n.name.text : ''), sf, n)
-      }
-      n.forEachChild(visit)
+  const session = programme ?? repoProgram(rootDir, () => racines)
+  try {
+    const { program, checker } = session
+    const retenus = new Set(racines.map(norm))
+    // Index des accès CANDIDATS par nom de champ — un seul parcours d'AST pour tous les types.
+    const index = new Map()
+    const poser = (nom, sf, node) => {
+      if (!nom) return
+      let a = index.get(nom)
+      if (!a) index.set(nom, (a = []))
+      a.push({ sf, node })
     }
-    visit(sf)
+    for (const sf of program.getSourceFileNames().map((file) => program.getSourceFile(file))) {
+      if (sf.isDeclarationFile || !retenus.has(norm(sf.fileName))) continue
+      const visit = (n) => {
+        if (ts.isPropertyAccessExpression(n)) poser(n.name.text, sf, n)
+        else if (ts.isElementAccessExpression(n) && n.argumentExpression && ts.isStringLiteralLikeNode(n.argumentExpression)) poser(n.argumentExpression.text, sf, n)
+        else if (ts.isBindingElement(n) && ts.isObjectBindingPattern(n.parent) && !n.dotDotDotToken) {
+          poser(n.propertyName ? n.propertyName.getText(sf) : (ts.isIdentifier(n.name) ? n.name.text : ''), sf, n)
+        }
+        n.forEachChild(visit)
+      }
+      visit(sf)
+    }
+    ctx = { program, checker, index, sites: new Map(), cibles: new Map(), rootDir, sessionPropre: programme ? null : session }
+    cache.set(cle, ctx)
+    return ctx
+  } catch (erreur) {
+    libererSessions(programme ? [] : [session], [erreur])
   }
-  ctx = { program, checker, index, sites: new Map(), cibles: new Map(), rootDir }
-  cache.set(cle, ctx)
-  return ctx
 }
 
 /** Sites candidats d'un nom de champ, avec leur symbole de propriété résolu (mémoïsé par nom). */
@@ -222,13 +223,12 @@ function sitesDe(ctx, nom) {
   sites = (ctx.index.get(nom) ?? []).map(({ sf, node }) => {
     const props = new Set()
     if (ts.isBindingElement(node)) {
-      declarationsDeProp(checker.getTypeAtLocation(node.parent), nom, props)
+      declarationsDeProp(checker, checker.getTypeAtLocation(node.parent), nom, props)
     } else {
       const cible = ts.isPropertyAccessExpression(node) ? node.name : node.argumentExpression
       const sym = checker.getSymbolAtLocation(cible)
       if (sym) {
-        const racines = checker.getRootSymbols(sym)
-        for (const r of (racines?.length ? racines : [sym])) for (const d of r.declarations ?? []) props.add(d)
+        for (const d of sym.declarations) props.add(d.resolve())
       }
     }
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf))
@@ -253,7 +253,7 @@ function porteurDe(ctx, site) {
   const out = new Set()
   const expr = ts.isBindingElement(site.node) ? site.node.parent : site.node.expression
   const sym = checker.getSymbolAtLocation(expr)
-  const decl = sym?.valueDeclaration ?? sym?.declarations?.[0]
+  const decl = (sym?.valueDeclaration ?? sym?.declarations?.[0])?.resolve()
   let type
   if (sym && decl) {
     try {
@@ -264,22 +264,22 @@ function porteurDe(ctx, site) {
   }
   type ??= checker.getTypeAtLocation(expr)
   for (const t of [type, type && checker.getNonNullableType(type)]) {
-    for (const part of constituants(t)) for (const s of [part.aliasSymbol, part.symbol]) for (const d of s?.declarations ?? []) out.add(d)
+    for (const part of constituants(t)) for (const s of [part.getAliasSymbol(), part.getSymbol()]) for (const d of s?.declarations ?? []) out.add(d.resolve())
   }
   const hote = ts.isBindingElement(site.node) ? site.node.parent.parent : decl
-  const annotation = hote && (ts.isVariableDeclaration(hote) || ts.isParameter(hote) || ts.isPropertySignature(hote) || ts.isPropertyDeclaration(hote)) ? hote.type : undefined
+  const annotation = hote && (ts.isVariableDeclaration(hote) || ts.isParameterDeclaration(hote) || ts.isPropertySignatureDeclaration(hote) || ts.isPropertyDeclaration(hote)) ? hote.type : undefined
   if (annotation) {
     const visit = (n) => {
       if (ts.isTypeReferenceNode(n) && ts.isIdentifier(n.typeName)) {
         let s = checker.getSymbolAtLocation(n.typeName)
-        if (s && s.flags & ts.SymbolFlags.Alias) {
+         if (s && s.flags & SymbolFlags.Alias) {
           try {
             s = checker.getAliasedSymbol(s)
           } catch {
             s = undefined
           }
         }
-        for (const d of s?.declarations ?? []) out.add(d)
+        for (const d of s?.declarations ?? []) out.add(d.resolve())
       }
       n.forEachChild(visit)
     }
@@ -298,7 +298,7 @@ function cibleDe(ctx, type, home, fields) {
   if (cible) return cible
   const { program, checker } = ctx
   const vise = norm(resolve(ctx.rootDir, home))
-  const sf = program.getSourceFiles().find((s) => norm(s.fileName) === vise)
+  const sf = program.getSourceFileNames().map((file) => program.getSourceFile(file)).find((s) => norm(s.fileName) === vise)
   const decl = sf && declarationDeType(sf, type)
   if (!decl) throw new Error(`fieldConsumers : type \`${type}\` introuvable dans ${home} — cible non résoluble`)
   const declare = checker.getDeclaredTypeOfSymbol(checker.getSymbolAtLocation(decl.name))
@@ -306,7 +306,7 @@ function cibleDe(ctx, type, home, fields) {
   const toutes = new Map()
   const propres = new Map()
   for (const f of fields) {
-    const a = declarationsDeProp(declare, f)
+    const a = declarationsDeProp(checker, declare, f)
     toutes.set(f, a)
     propres.set(f, new Set([...a].filter((d) => dansSousArbre(d, decl) || schemas.has(constDuShape(checker, d)))))
   }
@@ -339,7 +339,14 @@ function symboleEnglobant(node) {
  * d'un rapport, et le laisser mourir avec l'appel. `programme` INJECTE le Program (fixtures en
  * mémoire de `virtualProgram`) — absent, il est bâti sur `files`.
  */
-export function scanFieldReads(cibleVisee, fields, files, rootDir, cache = new Map(), programme = null) {
+export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, programme = null) {
+  if (!cache) {
+    const local = new Map()
+    const erreurs = []
+    try { return scanFieldReads(cibleVisee, fields, files, rootDir, local, programme) }
+    catch (erreur) { erreurs.push(erreur) }
+    finally { libererCache(local, erreurs) }
+  }
   const ctx = contexteDe(cache, files, rootDir, programme)
   const { toutes, propres, decl } = cibleDe(ctx, cibleVisee.type, cibleVisee.home, fields)
   const hits = []
@@ -366,7 +373,7 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache = new M
     }
   }
   // ORDRE TOTAL du résultat : (fichier en unités de code, ligne NUMÉRIQUE). L'ordre de récolte est
-  // celui de `program.getSourceFiles()` — racines puis dépendances, donc dépendant du parcours du
+  // celui de `program.getSourceFileNames().map((file) => program.getSourceFile(file))` — racines puis dépendances, donc dépendant du parcours du
   // système de fichiers ET du graphe d'imports. Trier ICI rend le « premier site » d'un champ
   // (l'exemple publié par le rapport) égal au MINIMUM de cet ordre, sur toute machine.
   hits.sort((a, b) => parUnitesDeCode(a.file, b.file) || a.line - b.line)
@@ -384,7 +391,14 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache = new M
  *   - `propre` : la cible la déclare — un « 0 » y est une vraie absence de lecteur.
  * Même `cache` (donc même Program) que `scanFieldReads`.
  */
-export function fieldOwnership(cibleVisee, fields, files, rootDir, cache = new Map(), programme = null) {
+export function fieldOwnership(cibleVisee, fields, files, rootDir, cache, programme = null) {
+  if (!cache) {
+    const local = new Map()
+    const erreurs = []
+    try { return fieldOwnership(cibleVisee, fields, files, rootDir, local, programme) }
+    catch (erreur) { erreurs.push(erreur) }
+    finally { libererCache(local, erreurs) }
+  }
   const ctx = contexteDe(cache, files, rootDir, programme)
   const { toutes, propres } = cibleDe(ctx, cibleVisee.type, cibleVisee.home, fields)
   const etats = new Map()
@@ -408,4 +422,12 @@ export function groupByField(fields, hits) {
   const byField = new Map(fields.map((f) => [f, []]))
   for (const h of hits) byField.get(h.field)?.push(h)
   return byField
+}
+
+export function libererCache(cache, erreursInitiales = []) {
+  try {
+    libererSessions([...cache.values()].map((ctx) => ctx.sessionPropre).filter(Boolean), erreursInitiales)
+  } finally {
+    cache.clear()
+  }
 }

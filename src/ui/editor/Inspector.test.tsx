@@ -11,6 +11,7 @@ import type { Sel } from './editorState';
 import { validateScene } from '../../state/validateScene';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { MISSING_TONE } from '../../gameIso/rig/viewArt';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -41,7 +42,7 @@ function mount(entity: SceneEntity) {
         enemyCreatures={[{ id: 'humain', label: 'Humain' }]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }], objets: [] }}
+        narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }] }}
         tool={{ mode: 'select' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
@@ -82,7 +83,7 @@ describe('Inspector — apparence visuelle des murs', () => {
         enemyCreatures={[]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        narratif={emptyNarratif()}
         tool={{ mode: 'select' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
@@ -128,7 +129,7 @@ function mountWall(wall: NonNullable<Scene['walls']>[number]) {
       enemyCreatures={[]}
       openLogic={() => undefined}
       resizeScene={() => undefined}
-      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [], documents: [] }}
       tool={{ mode: 'select' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
@@ -486,7 +487,7 @@ describe('Inspector — l’identifiant affiché est celui de la zone SÉLECTION
           enemyCreatures={[]}
           openLogic={() => undefined}
           resizeScene={() => undefined}
-          narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+          narratif={emptyNarratif()}
           tool={{ mode: 'select' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={zoneFocusKey}
@@ -589,7 +590,7 @@ describe('Inspector — l’appareil mécanique d’une zone suit ce que la zone
           enemyCreatures={[]}
           openLogic={() => undefined}
           resizeScene={() => undefined}
-          narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+          narratif={emptyNarratif()}
           tool={{ mode: 'select' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={null}
@@ -649,7 +650,7 @@ describe('Inspector — places assises d’un décor', () => {
           enemyCreatures={[]}
           openLogic={() => undefined}
           resizeScene={() => undefined}
-          narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+          narratif={emptyNarratif()}
           tool={{ mode: 'select' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={null}
@@ -787,7 +788,7 @@ describe('Inspector — le profil de toiture est nommé par le NŒUD, une seule 
             enemyCreatures={[]}
             openLogic={() => undefined}
             resizeScene={() => undefined}
-            narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+            narratif={emptyNarratif()}
             tool={{ mode: 'select' }}
             armZoneTiles={() => undefined}
             zoneFocusKey={null}
@@ -842,7 +843,7 @@ describe("Inspector — le type d'un ornement de façade est nommé par le NŒUD
           enemyCreatures={[]}
           openLogic={() => undefined}
           resizeScene={() => undefined}
-          narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+          narratif={emptyNarratif()}
           tool={{ mode: 'select' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={null}

@@ -1,7 +1,8 @@
+import { ast, analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
 import { validateScene } from '../../state/validateScene';
@@ -53,7 +54,7 @@ const SEAM = 'normaliseAssises';
 const MECANIQUES = ['patchEntity', 'patchEntityCombat'];
 
 const parse = (code: string, nom: string): ts.SourceFile =>
-  ts.createSourceFile(nom, code, ts.ScriptTarget.Latest, true, /\.tsx$/.test(nom) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  ast({ rel: nom, text: code })!;
 
 function visiter(node: ts.Node, f: (n: ts.Node) => void): void {
   f(node);
@@ -64,7 +65,7 @@ function visiter(node: ts.Node, f: (n: ts.Node) => void): void {
  *  l'expression est une chaîne littérale. Rien d'autre ne nomme une propriété à coup sûr. */
 function nomDeProp(name: ts.PropertyName): string | null {
   if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) return name.text;
-  if (ts.isComputedPropertyName(name) && ts.isStringLiteralLike(name.expression)) return name.expression.text;
+  if (ts.isComputedPropertyName(name) && ts.isStringLiteralLikeNode(name.expression)) return name.expression.text;
   return null;
 }
 
@@ -76,7 +77,7 @@ function proprietesEntites(racine: ts.Node, sf: ts.SourceFile): string[] {
   visiter(racine, (n) => {
     if (!ts.isObjectLiteralExpression(n)) return;
     for (const p of n.properties) {
-      const cle = ts.isShorthandPropertyAssignment(p) ? p.name.text : p.name ? nomDeProp(p.name) : null;
+      const cle = 'name' in p && p.name ? nomDeProp(p.name) : null;
       if (cle !== CLE) continue;
       out.push(`entities → ${p.getText(sf).replace(/\s+/g, ' ').slice(0, 90)}`);
     }
@@ -102,7 +103,7 @@ function fonctionsDuModule(rel: string): { sf: ts.SourceFile; fns: Map<string, F
   const sf = parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel);
   const fns = new Map<string, Fonction>();
   const exporte = (n: ts.Node): boolean =>
-    ts.canHaveModifiers(n) && !!ts.getModifiers(n)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+    ('modifierFlags' in n) && typeof n.modifierFlags === 'number' && !!(n.modifierFlags & ts.ModifierFlags.Export);
   for (const st of sf.statements) {
     if (ts.isFunctionDeclaration(st) && st.name) fns.set(st.name.text, { node: st, exportee: exporte(st) });
     else if (ts.isVariableStatement(st))
@@ -173,8 +174,8 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
     // passe lui aussi par `addEntity`. Le balayage couvre `.ts` ET `.tsx` — un module utilitaire de
     // `src/ui/**` n'est pas moins une porte qu'un composant.
     const fautifs: string[] = [];
-    for (const { rel, text } of readCorpus(['src/ui'])) {
-      const sf = parse(text, rel);
+    for (const { fichier: { rel }, sourceFile } of analyserCorpus(readCorpus(['src/ui']))) {
+      const sf = sourceFile!;
       for (const motif of proprietesEntites(sf, sf)) fautifs.push(`${rel} :: ${motif}`);
     }
     expect(fautifs, `écriture d’entité en direct depuis l’interface :\n${fautifs.join('\n')}`).toEqual([]);

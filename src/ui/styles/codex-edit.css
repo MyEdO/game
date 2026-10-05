@@ -21,7 +21,6 @@
 .de-ok { color: var(--ok); font-size: 0.85rem; }
 .de-warn { color: var(--danger-soft); font-size: 0.85rem; }
 .de-msg { color: var(--muted); font-size: 0.85rem; }
-.de-hint { font-style: italic; color: var(--muted); font-size: 0.75rem; }
 /* erreurs BLOQUANTES de validateEntry (identité / refs) — Enregistrer reste grisé tant que non vide */
 .codex-edit-errors {
   margin: 0;

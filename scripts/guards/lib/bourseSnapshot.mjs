@@ -3,7 +3,7 @@
  * Variables locales intermédiaires et sélecteurs prédéfinis restent hors de cette construction.
  * Les agrégats convertis en scalaire, comme Council avec toBrass, sont autorisés.
  */
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { estAppelDeclare } from './canonUnique.mjs';
 
 const BOURSE = { 'src/state/bourseFlow.ts': ['partyMoneyTotal'] };
@@ -29,8 +29,8 @@ export const SNAPSHOT_DE_BOURSE = {
     let alloue = false;
     const walk = (noeud) => {
       if (ts.isReturnStatement(noeud) && estTotal(noeud.expression)) alloue = true;
-      if (ts.isFunctionLike(noeud)) return;
-      ts.forEachChild(noeud, walk);
+      if (ts.isFunctionLikeDeclaration(noeud)) return;
+      noeud.forEachChild(walk);
     };
     walk(selector.body);
     return alloue ? 'partyMoneyTotal rendu directement par useGame' : null;

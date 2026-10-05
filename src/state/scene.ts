@@ -693,14 +693,14 @@ export function doorIsOpen(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
 }
 
 /** Clé de flag de RÉVÉLATION d'une porte secrète (`scene.flags`) — présent & `true` = révélée.
- *  Absent = masquée (défaut authored de `WallSeg.secret`). `EDO 08 l.402`. */
+ *  Absent = masquée (défaut authored de `WallSeg.secret`). `EDO 08 l.404`. */
 export function secretKey(x: number, y: number, side: WallSide, z = 0): string {
   return `__secret_${x}_${y}_${side}_${z}`;
 }
 
 /** Clé de flag de TENTATIVE de découverte d'une porte secrète (`scene.flags`) — présent & `true` = le
  *  Test de Perception a été tenté (arbitrage utilisateur #700, 2026-09-29 : « Une seule (Recommandé) —
- *  Un échec est définitif pour cette porte »). Absent = jamais tentée. `EDO 08 l.402`. */
+ *  Un échec est définitif pour cette porte »). Absent = jamais tentée. `EDO 08 l.404`. */
 export function secretTenteKey(x: number, y: number, side: WallSide, z = 0): string {
   return `__secret_tente_${x}_${y}_${side}_${z}`;
 }
@@ -718,7 +718,7 @@ export function porteAuteur(seg: WallSeg): boolean {
 }
 
 /** Porte SECRÈTE authorée — lecture du DOCUMENT : sa définition (`wallSecretSchema`), ou undefined.
- *  Seul lecteur de `WallSeg.secret`. `EDO 08 l.402`. */
+ *  Seul lecteur de `WallSeg.secret`. `EDO 08 l.404`. */
 export function secretAuteur(seg: WallSeg): WallSecret | undefined {
   return seg.secret;
 }

@@ -8,7 +8,7 @@ import { realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
-import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
+import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from './flow';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
@@ -400,7 +400,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
         walkFlow(flow, (node) => {
           if (node.kind === 'do') {
             checkEffect(node.effect, refId, scope);
-            for (const porte of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
+            for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
           } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
           else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
             add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
@@ -414,12 +414,10 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     for (const t of s.triggers) {
       if (!within(t.rect.x, t.rect.y) || !within(t.rect.x + t.rect.w - 1, t.rect.y + t.rect.h - 1)) add('warn', 'trigger', t.id, `Zone « ${t.id} » déborde de la carte`);
       if (t.when) checkCondTimes(t.when, t.id, 'trigger');
-      checkFlow(t.flow, t.id, 'trigger');
     }
-    // Flow d'INTERACTION d'une entité (fouiller, crocheter, examiner) : une PORTE de Flow authoré au
-    // même titre qu'une zone ou un choix de dialogue — donc validée par le même parcours (réfs d'effets,
-    // fenêtres horaires, enjeu des jets). Sans elle, la moitié des jets d'une scène échapperait à la garde.
-    for (const e of s.entities) for (const a of e.usable?.actions ?? []) checkFlow(a.flow, `${e.id}›${a.id}`, 'entity');
+    // Chaque RACINE de Flow authoré (`racinesDeFlow`) passe le même parcours : réfs d'effets, fenêtres
+    // horaires, enjeu des jets.
+    for (const r of racinesDeFlow(s)) checkFlow(r.flow as Flow, r.porteur.id, r.porteur.genre);
     for (const d of s.dialogues) {
       const nodeIds = new Set(d.nodes.map((n) => n.id));
       if (!nodeIds.has(d.start)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : départ « ${d.start} » inexistant`);
@@ -427,14 +425,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
         for (const c of n.choices) {
           if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
           if (c.when) checkCondTimes(c.when, d.id, 'dialogue');
-          if (c.flow) checkFlow(c.flow, d.id, 'dialogue');
           const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
           if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
         }
     }
     const entById = new Map(s.entities.map((e) => [e.id, e] as const));
     for (const e of s.encounters) {
-      checkFlow(e.onVictory ?? EMPTY_FLOW, e.id, 'encounter'); // onVictory est déjà un Flow (delayedEffect.flow récursé)
       // onVictory est APPLIQUÉ À PLAT à la victoire (finishVictory → flattenFlow), pour préserver la
       // déférence transition/dialogue → « Continuer ». flattenFlow lève sur un nœud interactif → on
       // l'interdit ici (les `if` conditionnels restent permis, eux, car flattenFlow les évalue).

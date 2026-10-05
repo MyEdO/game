@@ -15,7 +15,8 @@
  * En-tête structuré `GARDE` (#1475) : la garde se déclare elle-même, et un test tient cette
  * déclaration — angles morts compris.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { API } from 'typescript/unstable/sync';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,6 +25,7 @@ import { envDeDepotForge } from '../../scripts/guards/lib/depotGabarit.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { neufsDe } from '../../scripts/migrations/replay.mjs';
 import { scan } from '../../scripts/guards/lib/grammaireGuard.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { GRAMMAIRE_STOCK } from '../../scripts/guards/lib/grammaireStock.mjs';
 import { ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
 import { defDe, descendre, enfantsDe } from './schemas/grammaire/descente';
@@ -168,6 +170,28 @@ describe('liaison lexicale des extensions de grammaire', () => {
     ]);
   });
 
+  it('plusieurs scans empruntent une même session ouverte et conservent les ombres', () => {
+    const close = vi.spyOn(API.prototype, 'close');
+    const snapshot = vi.spyOn(API.prototype, 'updateSnapshot');
+    try {
+      const fichiers = ['premiere', 'seconde'].map(nom => ({
+        rel: `src/data/schemas/defs/${nom}.ts`,
+        text: "import { refSchema as porte } from '../grammaire/reference';\nconst vrai = porte.extend({});\nfunction masque(porte) { return porte.extend({}); }",
+      }));
+      const vues: string[] = [];
+      for (const { fichier, sourceFile, checker } of analyserCorpus(fichiers)) {
+        expect(close).toHaveBeenCalledTimes(0);
+        expect(scan(fichier.rel, fichier.text, regles, sourceFile!, checker)).toEqual([
+          { ligne: 2, symbole: 'vrai', champ: '', motif: 'extend', detail: 'porte.extend(…)' },
+        ]);
+        vues.push(fichier.rel);
+      }
+      expect(vues).toEqual(fichiers.map(f => f.rel));
+      expect(snapshot).toHaveBeenCalledTimes(1);
+      expect(close).toHaveBeenCalledTimes(1);
+    } finally { snapshot.mockRestore(); close.mockRestore(); }
+  });
+
   it('les schémas locaux du module de grammaire gardent leur règle syntaxique', () => {
     const text = 'const porteSchema = local; const vrai = porteSchema.extend({}); const non = local.extend({});';
     expect(scan('src/data/schemas/grammaire/sonde.ts', text, regles).map((t) => t.symbole)).toEqual(['vrai']);
@@ -180,8 +204,8 @@ function trouvailles(): { cle: string; ligne: number }[] {
   const regles = { signatures: signaturesDeLaGrammaire(), alias: ALIAS };
   const out: { cle: string; ligne: number }[] = [];
   const relever = (fichiers: readonly { rel: string; text: string }[], sansRedeclaration: boolean) => {
-    for (const f of fichiers)
-      for (const t of scan(f.rel, f.text, { ...regles, sansRedeclaration }))
+    for (const { fichier: f, sourceFile, checker } of analyserCorpus(fichiers))
+      for (const t of scan(f.rel, f.text, { ...regles, sansRedeclaration }, sourceFile!, checker))
         out.push({ cle: `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.motif}|${t.detail}`, ligne: t.ligne });
   };
   relever(readCorpus(PERIMETRE), false);

@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 // FORME D'UN SCRIPT DE WORKFLOW — le jugement PUR que partagent la porte de forme
 // (`scripts/ops/workflows.test.mjs`) et la doublure qui joue les scripts (`jouer-workflow.mjs`).
 //
@@ -9,7 +10,7 @@
 // Limite déclarée : la reconnaissance (`lireWorkflow`) est bornée au dépôt SUIVI ou à suivre
 // (`git ls-files -co --exclude-standard`, jouer-workflow.mjs) — un script ignoré par git n'est pas jugé.
 
-import { scriptKindDe, typescript } from './dialecte.mjs'
+import { typescript } from './dialecte.mjs'
 
 /** Les SEULES clés permises à la racine d'un schéma de sortie d'agent. */
 export const CLES_DE_RACINE = ['type', 'properties', 'required', 'additionalProperties']
@@ -59,7 +60,7 @@ export function defautsDeRacine(valeur, lieu) {
 
 /** Nœuds dont `.name` DÉCLARE un nom. */
 const declarants = (ts) => [
-  ts.isVariableDeclaration, ts.isParameter, ts.isBindingElement, ts.isFunctionDeclaration, ts.isFunctionExpression,
+  ts.isVariableDeclaration, ts.isParameterDeclaration, ts.isBindingElement, ts.isFunctionDeclaration, ts.isFunctionExpression,
   ts.isClassDeclaration, ts.isClassExpression, ts.isImportClause, ts.isImportSpecifier, ts.isNamespaceImport,
 ]
 
@@ -79,7 +80,7 @@ export function estReference(id) {
   const p = id.parent
   if (!p || estDeclaration(id)) return false
   if (ts.isPropertyAccessExpression(p) && p.name === id) return false
-  if ((ts.isPropertyAssignment(p) || ts.isMethodDeclaration(p) || ts.isPropertyDeclaration(p) || ts.isGetAccessor(p) || ts.isSetAccessor(p)) && p.name === id) return false
+  if ((ts.isPropertyAssignment(p) || ts.isMethodDeclaration(p) || ts.isPropertyDeclaration(p) || ts.isGetAccessorDeclaration(p) || ts.isSetAccessorDeclaration(p)) && p.name === id) return false
   if (ts.isBindingElement(p) && p.propertyName === id) return false
   if (ts.isImportSpecifier(p) && p.propertyName === id) return false
   if (ts.isExportSpecifier(p) && p.propertyName && p.name === id) return false
@@ -94,7 +95,7 @@ export function declarationsDuFichier(sf) {
   const noms = new Map()
   const marcher = (n) => {
     if (ts.isIdentifier(n) && estDeclaration(n)) noms.set(n.text, [...(noms.get(n.text) ?? []), n])
-    ts.forEachChild(n, marcher)
+    n.forEachChild(marcher)
   }
   marcher(sf)
   return noms
@@ -105,13 +106,13 @@ function porteeDe(id) {
   const ts = typescript()
   let n = id.parent
   while (ts.isBindingElement(n) || ts.isObjectBindingPattern(n) || ts.isArrayBindingPattern(n)) n = n.parent
-  if (ts.isParameter(n)) return n.parent
+  if (ts.isParameterDeclaration(n)) return n.parent
   if (ts.isVariableDeclaration(n)) {
     if (ts.isCatchClause(n.parent)) return n.parent
     const liste = n.parent
     if (liste.flags & (ts.NodeFlags.Let | ts.NodeFlags.Const)) return ts.isVariableStatement(liste.parent) ? liste.parent.parent : liste.parent
     let f = liste.parent
-    while (f && !ts.isFunctionLike(f) && !ts.isSourceFile(f)) f = f.parent
+    while (f && !ts.isFunctionLikeDeclaration(f) && !ts.isSourceFile(f)) f = f.parent
     return f
   }
   if (ts.isFunctionExpression(n) || ts.isClassExpression(n)) return n
@@ -130,7 +131,7 @@ export function referencesLibres(sf, nom) {
       for (let a = n.parent; a && !lie; a = a.parent) lie = portees.has(a)
       if (!lie) libres.push(n)
     }
-    ts.forEachChild(n, marcher)
+    n.forEachChild(marcher)
   }
   marcher(sf)
   return libres
@@ -138,7 +139,7 @@ export function referencesLibres(sf, nom) {
 
 /**
  * A3 — le mot-clé `export` de `export const meta` de PREMIER niveau, ou `null`.
- * @returns {import('typescript').Node | null}
+ * @returns {import('typescript/unstable/ast').Node | null}
  */
 export function exportDeMeta(sf) {
   const ts = typescript()
@@ -165,8 +166,7 @@ export const PREFILTRE_DE_WORKFLOW = /\bagent\b|\bmeta\b/
 export function lireWorkflow(texte, fichier) {
   const source = String(texte)
   if (!PREFILTRE_DE_WORKFLOW.test(source)) return { script: false, exportDeMeta: null, defauts: [] }
-  const ts = typescript()
-  const sf = ts.createSourceFile(fichier, source, ts.ScriptTarget.Latest, true, scriptKindDe(fichier))
+  const sf = ast({ rel: fichier, text: source })
   const exporte = exportDeMeta(sf)
   const libres = referencesLibres(sf, 'agent')
   const defauts = []

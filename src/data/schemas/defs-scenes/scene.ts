@@ -690,7 +690,7 @@ export const faceDAreteSchema = enumNomme({
   'les-deux': 'Les deux faces',
 });
 
-/** Porte SECRÈTE (`WallSeg.secret`) — `EDO 08 l.402`, `LDB 09 l.399`. */
+/** Porte SECRÈTE (`WallSeg.secret`) — `EDO 08 l.404`, `LDB 09 l.399`. */
 export const wallSecretSchema = z.strictObject({
   /** Difficulté du Test de Perception qui la découvre — `LDB 12 l.137`, fixée par l'auteur (règle 7). */
   difficulty: difficultySchema,
@@ -734,7 +734,7 @@ export const wallSegSchema = z.strictObject({
   /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée — `EDO 01 l.231`. Exige `crossable`.
    *  Offerte par `state/fallMove.ts` seulement sous la hauteur géométrique du saut. */
   suspendu: z.number().positive().optional(),
-  /** Porte SECRÈTE — `EDO 08 l.402`. Exige `door` ET `closed`. Masquée tant que non révélée
+  /** Porte SECRÈTE — `EDO 08 l.404`. Exige `door` ET `closed`. Masquée tant que non révélée
    *  (`porteEnJeu`, `setDoorRevealed`, `state/scene.ts`). */
   secret: wallSecretSchema.optional(),
   /** ESCALADABLE (`LDB 15 l.53-57`) : l'arête sépare deux surfaces de hauteurs différentes (une FALAISE au

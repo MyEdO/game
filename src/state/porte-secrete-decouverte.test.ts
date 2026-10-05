@@ -12,7 +12,7 @@ import { idDeTriggerDePorte, triggersDePortesSecretes } from './decouvertePorteS
 import { t } from '../i18n';
 
 /**
- * DÉCOUVRIR une porte secrète à l'APPROCHE (#700) — `EDO 08 l.402`, `EDO 07 l.263`, `LDB 09 l.399`,
+ * DÉCOUVRIR une porte secrète à l'APPROCHE (#700) — `EDO 08 l.404`, `EDO 07 l.263`, `LDB 09 l.399`,
  * `LDB 12 l.189` : zone de la face découvrable, en vue du groupe, une tentative par porte, hors combat.
  */
 

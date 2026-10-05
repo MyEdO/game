@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE — aucune information de la CONSOLE ne vit dans un `title` (infobulle native).
  *
@@ -21,7 +22,7 @@
  * c'est le périmètre de la primitive, pas celui de la console.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -41,15 +42,14 @@ const UI = join(process.cwd(), 'src', 'ui');
 
 /** Attributs JSX `title` d'un fichier, en `ligne` — parseur réel : un `title:` de propriété d'objet ou
  *  une chaîne contenant « title » n'en est pas un, et un attribut réparti sur plusieurs lignes l'est. */
-export function titleAttributes(src: string, file: string): { site: string; texte: string }[] {
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+export function titleAttributes(src: string, file: string, sf = ast({ rel: file, text: src })!): { site: string; texte: string }[] {
   const out: { site: string; texte: string }[] = [];
   const walk = (n: ts.Node): void => {
     if (ts.isJsxAttribute(n) && ts.isIdentifier(n.name) && n.name.text === 'title') {
       const line = sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
       out.push({ site: `${file}:${line}`, texte: n.getText(sf).replace(/\s+/g, ' ').slice(0, 120) });
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return out;
@@ -57,14 +57,13 @@ export function titleAttributes(src: string, file: string): { site: string; text
 
 /** Propriétés `title:` des littéraux de CASE : une case NOMME son geste et POINTE sa règle (champ
  *  `rule`), elle ne la raconte pas — un `title:` de littéral finit en attribut `title` au rendu. */
-export function titleProperties(src: string, file: string): string[] {
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+export function titleProperties(src: string, file: string, sf = ast({ rel: file, text: src })!): string[] {
   const out: string[] = [];
   const walk = (n: ts.Node): void => {
     if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === 'title') {
       out.push(`${file}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1}`);
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return out;
@@ -73,8 +72,8 @@ export function titleProperties(src: string, file: string): string[] {
 describe('console de combat & chaîne d’assignation — aucune information en `title` seul', () => {
   it('aucun attribut JSX `title` dans les fichiers gardés, hors exemption nominative', () => {
     const trouves: string[] = [];
-    for (const f of CONSOLE_FILES) {
-      for (const { site, texte } of titleAttributes(readFileSync(join(UI, f), 'utf8'), f)) {
+    for (const { fichier: { rel: f, text }, sourceFile } of analyserCorpus(CONSOLE_FILES.map((rel) => ({ rel, text: readFileSync(join(UI, rel), 'utf8') })))) {
+      for (const { site, texte } of titleAttributes(text, f, sourceFile!)) {
         if (!(site in EXEMPTIONS)) trouves.push(`${site} ${texte}`);
       }
     }
@@ -86,12 +85,12 @@ describe('console de combat & chaîne d’assignation — aucune information en 
 
   it('aucune propriété `title` de littéral (une CASE nomme et pointe sa règle, elle ne la raconte pas)', () => {
     const trouves: string[] = [];
-    for (const f of CONSOLE_FILES) trouves.push(...titleProperties(readFileSync(join(UI, f), 'utf8'), f));
+    for (const { fichier: { rel: f, text }, sourceFile } of analyserCorpus(CONSOLE_FILES.map((rel) => ({ rel, text: readFileSync(join(UI, rel), 'utf8') })))) trouves.push(...titleProperties(text, f, sourceFile!));
     expect(trouves, 'Un `title:` de littéral finit dans un attribut `title` : passer par `rule` (foyer Codex) ou `gate` (raison visible).').toEqual([]);
   });
 
   it('les exemptions déclarées sont RÉELLES (aucune entrée périmée) et la liste reste vide', () => {
-    const sites = new Set(CONSOLE_FILES.flatMap((f) => titleAttributes(readFileSync(join(UI, f), 'utf8'), f).map((t) => t.site)));
+    const sites = new Set([...analyserCorpus(CONSOLE_FILES.map((rel) => ({ rel, text: readFileSync(join(UI, rel), 'utf8') })))].flatMap(({ fichier: { rel: f, text }, sourceFile }) => titleAttributes(text, f, sourceFile!).map((t) => t.site)));
     for (const site of Object.keys(EXEMPTIONS)) {
       expect(sites.has(site), `exemption PÉRIMÉE : ${site} n’a plus de \`title\` — retirer la ligne`).toBe(true);
     }

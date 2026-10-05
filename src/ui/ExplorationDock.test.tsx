@@ -16,7 +16,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
 import type { WorldMap } from '../state/worldMap';
-import type { NarratifBlock } from '../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import { testScene } from '../scenes/test-fixture';
 import { CampaignView } from './CampaignView';
 import { TIME_COST } from '../engine/timeCost';
@@ -113,9 +113,9 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
     act(() => {
       useGame.setState({
         campaignNarratif: {
+          ...emptyNarratif(),
           affaires: [{ id: 'aff', titre: 'Affaire' }],
           indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'Indice', stades: [{ id: 's1', prose: 'Prose.' }] }],
-          presetsPnj: [], objets: [],
         } satisfies NarratifBlock,
       });
     });

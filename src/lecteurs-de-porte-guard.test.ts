@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listProdFiles, scanFieldReads } from '../scripts/guards/lib/fieldConsumers.mjs';
+import type * as TS from 'typescript/unstable/ast';
 import { ast, typescript } from '../scripts/guards/lib/dialecte.mjs';
 import { detenteur } from './detenteur.testkit';
 
@@ -37,7 +38,7 @@ const SCENE = 'src/state/scene.ts';
 const TEST_DES_PREDICATS = 'src/state/porte-secrete.test.ts';
 
 /** Arbre syntaxique d'un fichier du dépôt (`ast`, dialecte TS). */
-function arbre(rel: string): import('typescript').SourceFile {
+function arbre(rel: string): TS.SourceFile {
   const sf = ast({ rel, text: readFileSync(join(ROOT, rel), 'utf8') });
   if (!sf) throw new Error(`${rel} : dialecte non TS`);
   return sf;
@@ -63,7 +64,7 @@ function lecturesStatiques(): Set<string> {
   const sf = arbre(SCENE);
   return new Set(
     sf.statements
-      .filter((st): st is import('typescript').FunctionDeclaration => ts.isFunctionDeclaration(st) && !!st.name && st.parameters.length === 1)
+      .filter((st): st is TS.FunctionDeclaration => ts.isFunctionDeclaration(st) && !!st.name && st.parameters.length === 1)
       .map((st) => st.name!.text),
   );
 }

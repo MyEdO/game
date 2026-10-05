@@ -1,3 +1,4 @@
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE D'INVENTAIRE des sites de PROSE (#1392 Lot E, design v8 §1) — verrou par construction du
  * périmètre du liage : on ne peut pas rendre du markdown quelque part sans que ce site figure, avec
@@ -20,7 +21,7 @@
  * tout spread de props portant la prop de markdown.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { SITES_PROSE } from './liage';
 import { detenteur } from '../detenteur.testkit';
@@ -44,7 +45,7 @@ function englobant(node: ts.Node): CompEnglobant | null {
       const props = new Set<string>();
       const p0 = n.parameters[0];
       if (p0 && ts.isObjectBindingPattern(p0.name)) {
-        for (const el of p0.name.elements) if (ts.isIdentifier(el.name)) props.add(el.name.text);
+        for (const el of p0.name.elements) if (el.name && ts.isIdentifier(el.name)) props.add(el.name.text);
       }
       return { nom, props };
     }
@@ -73,9 +74,9 @@ const spreads = (e: ts.JsxOpeningElement | ts.JsxSelfClosingElement): ts.JsxSpre
  *  `src/**`) : les `*.test.*` et les `*.d.ts` en sont exclus PAR LA LIB — les `<Prose>` d'un test
  *  sont des fixtures, pas des sites de l'application. C'est la seule exclusion, et elle est dite. */
 const SOURCES = detenteur(() =>
-  readCorpus(['src']).map(({ rel: r, text }) => ({
-    fichier: r,
-    sf: ts.createSourceFile(r, text, ts.ScriptTarget.Latest, true, r.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS),
+  [...analyserCorpus(readCorpus(['src']))].map(({ fichier, sourceFile }) => ({
+    fichier: fichier.rel,
+    sf: sourceFile!,
   })),
 );
 

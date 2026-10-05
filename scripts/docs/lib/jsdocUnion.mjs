@@ -1,13 +1,14 @@
+import { ast, analyserCorpus } from '../../guards/lib/dialecte.mjs';
 // Socle PARTAGÉ des générateurs de doc « vocabulaire » (#298bis) : lecture d'une union discriminée
-// TypeScript par AST (`ts.createSourceFile` — jamais de regex sur les accolades, les unions imbriquent
+// TypeScript par AST (jamais de regex sur les accolades, les unions imbriquent
 // des littéraux d'objet et des intersections) et extraction du JSDoc de chaque membre. Consommé par
 // scripts/docs/build-effects.mjs (union `Effect` de src/state/scene.ts) et
 // scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { VIRTUAL_ROOT, virtualProgram } from '../../guards/lib/tsProgram.mjs'
+import { VIRTUAL_ROOT, virtualProgram, libererSessions } from '../../guards/lib/tsProgram.mjs'
 
 /** Abréviations FR à ne PAS prendre pour une fin de phrase (« ex. », « l. », « p. »… — sinon un
  *  « (ex. » tronque le rôle en pleine parenthèse ouverte). */
@@ -48,9 +49,9 @@ export function jsdocRole(between) {
 }
 
 /** Charge un fichier source et rend `{ text, sf }`. */
-export function loadSource(path) {
+export function loadSource(path, sourceFile) {
   const text = readFileSync(path, 'utf8')
-  return { text, sf: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true) }
+  return { text, sf: sourceFile ?? ast({ rel: path, text: text }) }
 }
 
 /** Alias de type NOMMÉ d'un fichier (fail-fast : un vocabulaire renommé doit casser bruyamment). */
@@ -98,14 +99,14 @@ export function readUnionMembers(sf, text, alias, discriminant, tool, opts = {})
     let name = null
     const fields = []
     for (const prop of member.members) {
-      if (!ts.isPropertySignature(prop)) continue
+      if (!ts.isPropertySignatureDeclaration(prop)) continue
       const pname = prop.name.getText(sf)
       if (pname === discriminant && prop.type && ts.isLiteralTypeNode(prop.type) && ts.isStringLiteral(prop.type.literal)) {
         name = prop.type.literal.text
         continue
       }
       if (estExclusion(prop)) continue
-      fields.push(pname + (prop.questionToken ? '?' : ''))
+      fields.push(pname + (prop.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''))
     }
     if (!name) {
       if (opts.allowLiterals && fields.length) return { name: `{ ${fields[0]} … }`, fields: fields.slice(1) }
@@ -211,8 +212,7 @@ function estOptionnel(node) {
 /** Index `nom → { statement, sf, text }` des `export const NOM = …` de plusieurs fichiers. */
 export function indexerConstantes(fichiers) {
   const index = new Map()
-  for (const chemin of fichiers) {
-    const { text, sf } = loadSource(chemin)
+  for (const { fichier: { rel: chemin, text }, sourceFile: sf } of analyserCorpus(fichiers.map((chemin) => ({ rel: chemin, text: readFileSync(chemin, 'utf8') })))) {
     sf.forEachChild((node) => {
       if (!ts.isVariableStatement(node)) return
       for (const d of node.declarationList.declarations) {
@@ -238,17 +238,17 @@ function declarationReelle(entree, programmes) {
     programme = virtualProgram({ [entree.chemin]: entree.text })
     programmes.set(entree.chemin, programme)
   }
-  const checker = programme.getTypeChecker()
-  const sf = programme.getSourceFile(path.resolve(VIRTUAL_ROOT, entree.chemin))
-  const trouver = (n) => (n.pos === init.pos && n.end === init.end && ts.isPropertyAccessExpression(n) ? n : ts.forEachChild(n, trouver))
+  const checker = programme.checker
+  const sf = programme.program.getSourceFile(path.resolve(VIRTUAL_ROOT, entree.chemin))
+  const trouver = (n) => (n.pos === init.pos && n.end === init.end && ts.isPropertyAccessExpression(n) ? n : n.forEachChild(trouver))
   let acces = trouver(sf)
   if (!acces) throw new Error(`declarationReelle — l'accès « ${init.getText()} » de « ${entree.decl.name.getText()} » est introuvable dans le programme de ${entree.chemin}`)
   for (;;) {
     let symbole = checker.getSymbolAtLocation(acces.name)
-    const porteur = symbole?.declarations?.[0]
+    const porteur = symbole?.declarations?.[0]?.resolve()
     if (porteur && ts.isShorthandPropertyAssignment(porteur)) symbole = checker.getShorthandAssignmentValueSymbol(porteur)
     else if (porteur && ts.isPropertyAssignment(porteur) && ts.isIdentifier(porteur.initializer)) symbole = checker.getSymbolAtLocation(porteur.initializer)
-    const decl = symbole?.valueDeclaration
+    const decl = symbole?.valueDeclaration?.resolve()
     if (!decl || !ts.isVariableDeclaration(decl) || !ts.isVariableStatement(decl.parent.parent)) return null
     if (decl.initializer && ts.isPropertyAccessExpression(decl.initializer)) { acces = decl.initializer; continue }
     return { decl, statement: decl.parent.parent, sf: decl.getSourceFile(), text: decl.getSourceFile().text }
@@ -273,62 +273,65 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
   }
   const membres = appel.arguments[1].elements
   const programmes = new Map()
+  const erreurs = []
+  try {
 
-  const rows = []
-  for (const m of membres) {
-    if (!ts.isIdentifier(m)) {
-      console.error(`${tool} — membre de « ${alias} » qui n'est pas un identifiant de schéma (kind ${ts.SyntaxKind[m.kind]})`)
-      process.exit(1)
-    }
-    const entree = index.get(m.text)
-    const cible = entree && declarationReelle(entree, programmes)
-    if (!cible) {
-      console.error(`${tool} — membre « ${m.text} » de « ${alias} » : schéma introuvable dans les fichiers indexés`)
-      process.exit(1)
-    }
-    const objet = noyauZod(cible.decl.initializer)
-    if (!ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) {
-      console.error(`${tool} — membre « ${m.text} » : forme d'objet zod illisible`)
-      process.exit(1)
-    }
-    let name = null
-    const fields = []
-    for (const prop of objet.arguments[0].properties) {
-      if (ts.isSpreadAssignment(prop)) {
-        fields.push(`...${opts.nomsDeSpread?.[prop.expression.getText(cible.sf)] ?? prop.expression.getText(cible.sf)}`)
-        continue
+    const rows = []
+    for (const m of membres) {
+      if (!ts.isIdentifier(m)) {
+        throw new Error(`${tool} — membre de « ${alias} » qui n'est pas un identifiant de schéma (kind ${ts.SyntaxKind[m.kind]})`)
       }
-      const pname = prop.name?.getText(cible.sf)
-      if (!pname) continue
-      if (ts.isGetAccessorDeclaration(prop)) { fields.push(pname); continue }
-      if (!ts.isPropertyAssignment(prop)) continue
-      const litt = prop.initializer
-      if (pname === discriminant && ts.isCallExpression(litt) && ts.isStringLiteral(litt.arguments[0])) {
-        name = litt.arguments[0].text
-        continue
+      const entree = index.get(m.text)
+      const cible = entree && declarationReelle(entree, programmes)
+      if (!cible) {
+        throw new Error(`${tool} — membre « ${m.text} » de « ${alias} » : schéma introuvable dans les fichiers indexés`)
       }
-      fields.push(pname + (estOptionnel(litt) ? '?' : ''))
+      const objet = noyauZod(cible.decl.initializer)
+      if (!ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) {
+        throw new Error(`${tool} — membre « ${m.text} » : forme d'objet zod illisible`)
+      }
+      let name = null
+      const fields = []
+      for (const prop of objet.arguments[0].properties) {
+        if (ts.isSpreadAssignment(prop)) {
+          fields.push(`...${opts.nomsDeSpread?.[prop.expression.getText(cible.sf)] ?? prop.expression.getText(cible.sf)}`)
+          continue
+        }
+        const pname = prop.name?.getText(cible.sf)
+        if (!pname) continue
+        if (ts.isGetAccessorDeclaration(prop)) { fields.push(pname); continue }
+        if (!ts.isPropertyAssignment(prop)) continue
+        const litt = prop.initializer
+        if (pname === discriminant && ts.isCallExpression(litt) && ts.isStringLiteral(litt.arguments[0])) {
+          name = litt.arguments[0].text
+          continue
+        }
+        fields.push(pname + (estOptionnel(litt) ? '?' : ''))
+      }
+      if (!name) {
+        throw new Error(`${tool} — membre « ${m.text} » sans « ${discriminant}: z.literal('…') »`)
+      }
+      const role = jsdocRole(cible.text.slice(cible.statement.getFullStart(), cible.statement.getStart(cible.sf)))
+      rows.push({ name, fieldGroups: [fields], role })
     }
-    if (!name) {
-      console.error(`${tool} — membre « ${m.text} » sans « ${discriminant}: z.literal('…') »`)
-      process.exit(1)
-    }
-    const role = jsdocRole(cible.text.slice(cible.statement.getFullStart(), cible.statement.getStart(cible.sf)))
-    rows.push({ name, fieldGroups: [fields], role })
-  }
 
-  const merged = []
-  const byName = new Map()
-  for (const r of rows) {
-    const existing = byName.get(r.name)
-    if (existing) {
-      existing.fieldGroups.push(...r.fieldGroups)
-      if (!existing.role && r.role) existing.role = r.role
-    } else {
-      const copy = { name: r.name, fieldGroups: [...r.fieldGroups], role: r.role }
-      byName.set(r.name, copy)
-      merged.push(copy)
+    const merged = []
+    const byName = new Map()
+    for (const r of rows) {
+      const existing = byName.get(r.name)
+      if (existing) {
+        existing.fieldGroups.push(...r.fieldGroups)
+        if (!existing.role && r.role) existing.role = r.role
+      } else {
+        const copy = { name: r.name, fieldGroups: [...r.fieldGroups], role: r.role }
+        byName.set(r.name, copy)
+        merged.push(copy)
+      }
     }
+    return { rows: merged, rawCount: membres.length }
+  } catch (erreur) { erreurs.push(erreur) }
+  finally {
+    try { libererSessions(programmes.values(), erreurs) }
+    finally { programmes.clear() }
   }
-  return { rows: merged, rawCount: membres.length }
 }

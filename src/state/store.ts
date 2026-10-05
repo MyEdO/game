@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
@@ -202,6 +203,10 @@ export function registerScene(s: Scene) {
  *  entre fichiers du worker partagé). */
 export function resetSceneRegistry(): void {
   for (const k of Object.keys(sceneRegistry)) delete sceneRegistry[k];
+}
+/** TEST-ONLY (#2097) : les scènes du registre, sources de donnée de la garde de partage. */
+export function scenesDuRegistre(): Scene[] {
+  return Object.values(sceneRegistry);
 }
 
 // Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
@@ -772,7 +777,7 @@ export interface GameState extends RollFlowActionsMap {
   raiseHand: () => void;
   lowerHand: () => void;
   /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide. */
-  document: { title: string; text: string } | null;
+  document: { title: string; text: string; source?: SourceRef } | null;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
   previousScene: { id: string; pos: Pt } | null;
 
@@ -2274,7 +2279,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (worldMap !== undefined) set({ worldMap });
     // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
     // l'init. Absente du paquet = démarrage direct.
-    set({ pendingOuverture: narratif?.ouverture ?? null });
+    set({ pendingOuverture: structuredClone(narratif?.ouverture ?? null) }); // #2097
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
     // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).

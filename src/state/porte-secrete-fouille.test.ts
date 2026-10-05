@@ -8,7 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 
 /**
- * FOUILLER LA PIÈCE (#700) — second déclencheur de la découverte d'une porte secrète : `EDO 08 l.402`,
+ * FOUILLER LA PIÈCE (#700) — second déclencheur de la découverte d'une porte secrète : `EDO 08 l.404`,
  * `LDB 12 l.189`, `LDB 12 l.200` ; une tentative par porte, quel que soit le déclencheur, hors combat.
  */
 

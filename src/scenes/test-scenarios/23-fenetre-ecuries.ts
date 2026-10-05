@@ -6,7 +6,7 @@ import type { TestScenario } from './_shared';
 
 /**
  * « La fenêtre sur les écuries » — recette de la croisée FRANCHISSABLE et de la porte SECRÈTE (#700) :
- * EDO 01 l.229-231, EDO 08 l.402.
+ * EDO 01 l.229-231, EDO 08 l.404.
  *  - ÉTAGE (z1, plancher à 4 m) : couloir, bureau, cachette ; croisée E de (7,2) sur les écuries, au rez.
  *  - Porte secrète E de (3,2), face porteuse dans le bureau, Complexe ; la cachette et son coffre derrière.
  *  - REZ (z0) : salle basse, volée d'escalier (2..5,6) qui remonte au couloir ; porte E de (7,5) sur les écuries.
@@ -160,7 +160,7 @@ export const scenario: TestScenario = {
   tests:
     'Croisée franchissable d’étage (4 m, se suspendre = 2 m, EDO 01 l.229-231) : sauter en exploration puis EN COMBAT ' +
     '(rencontre `enc-homme-de-main`, ouverte par le dialogue de l’homme de main) ; remonter par l’escalier. Porte secrète ' +
-    'Complexe du bureau (EDO 08 l.402) : découverte à l’approche, ou « Fouiller la pièce » ; la cachette et son coffre derrière.',
+    'Complexe du bureau (EDO 08 l.404) : découverte à l’approche, ou « Fouiller la pièce » ; la cachette et son coffre derrière.',
   partyNote:
     'Pré-tirés, à l’étage. Gestes : sauter/se suspendre à la croisée (hors combat, puis en combat via l’homme de main) · ' +
     'remonter par l’escalier de la salle basse · entrer au bureau (découverte à l’approche) · Fouiller la pièce.',

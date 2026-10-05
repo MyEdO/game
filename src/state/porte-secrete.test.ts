@@ -14,7 +14,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Effect } from './scene';
 
 /**
- * PORTE SECRÈTE — `EDO 08 l.402` (« Cette porte ne peut être découverte qu'après la réussite d'un Test
+ * PORTE SECRÈTE — `EDO 08 l.404` (« Cette porte ne peut être découverte qu'après la réussite d'un Test
  * de Perception Complexe (-10) »), `LDB 09 l.399`. Tant qu'elle n'est pas révélée, l'arête n'est PAS
  * une porte pour le jeu (`porteEnJeu`) : elle bloque comme un mur, ne s'offre pas, ne s'enrôle pas.
  */

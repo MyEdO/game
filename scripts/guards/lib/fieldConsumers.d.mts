@@ -1,4 +1,4 @@
-import type { Program } from 'typescript';
+import type { SessionProgramme } from './tsProgram.mjs';
 
 export interface FieldReadHit {
   field: string;
@@ -26,7 +26,7 @@ export function scanFieldReads(
   files: string[],
   rootDir: string,
   cache?: Map<unknown, unknown>,
-  programme?: Program | null
+  programme?: SessionProgramme | null
 ): FieldReadHit[];
 
 /** État d'un champ VIS-À-VIS du type : absent du type TS, hérité d'un ancêtre, ou propre à la cible. */
@@ -41,6 +41,8 @@ export function fieldOwnership(
   files: string[],
   rootDir: string,
   cache?: Map<unknown, unknown>,
-  programme?: Program | null
+  programme?: SessionProgramme | null
 ): Map<string, FieldOwnership>;
 export function groupByField(fields: string[], hits: FieldReadHit[]): Map<string, FieldReadHit[]>;
+
+export function libererCache(cache: Map<unknown, unknown>, erreursInitiales?: readonly unknown[]): void;

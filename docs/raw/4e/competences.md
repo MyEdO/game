@@ -699,9 +699,9 @@ Discrétion).
 > « Une porte secrète verrouillée (D -30, DR 4 ; BE 5, B 15) est dissimulée derrière le lambris dans
 > le bureau de Franz. […] Cette porte ne peut être découverte qu'après la réussite d'un Test de
 > **Perception Complexe (-10)**. »
-> — EDO 08 l.402
+> — EDO 08 l.404
 
-**Sources RAW :** LDB 09 l.398-401 · EDO 08 l.402
+**Sources RAW :** LDB 09 l.398-401 · EDO 08 l.404
 
 ---
 

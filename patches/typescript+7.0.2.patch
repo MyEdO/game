@@ -1,0 +1,14 @@
+diff --git a/node_modules/typescript/dist/api/node/wtf8.js b/node_modules/typescript/dist/api/node/wtf8.js
+index ae98df9..baa78e2 100644
+--- a/node_modules/typescript/dist/api/node/wtf8.js
++++ b/node_modules/typescript/dist/api/node/wtf8.js
+@@ -28,6 +28,9 @@ function toUint8Array(input) {
+     return new Uint8Array(input);
+ }
+ export class Wtf8Decoder extends TextDecoder {
++    constructor() {
++        super("utf-8", { ignoreBOM: true });
++    }
+     decode(input, options) {
+         if (input === undefined) {
+             return super.decode(input, options);

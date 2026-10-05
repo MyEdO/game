@@ -107,7 +107,9 @@ Cet événement peut être utilisé de différentes façons. Par exemple, dans l
 
 ## DOCUMENT 8 : UNE HEURE APRÈS LE COUCHER DU SOLEIL
 
-Une heure après le coucher du soleil, chez moi. Tous les membres du Conseil intérieur sont attendus.
+Une heure après le coucher du soleil, chez moi.
+
+Tous les membres du Conseil intérieur sont attendus.
 
 Johannes Teugen
 

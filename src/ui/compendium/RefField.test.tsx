@@ -28,6 +28,16 @@ describe('RefField — l’accessibilité passée atteint le contrôle rendu', (
     });
   }
 
+  it('l’indication tait le registre que le libellé du champ nomme déjà (« Livre » / « Livres »)', () => {
+    const indication = (cfg: RefFieldCfgUnique, label: string) =>
+      new DOMParser().parseFromString(renderToStaticMarkup(<RefField cfg={cfg} label={label} value="" onChange={() => {}} />), 'text/html')
+        .querySelector('.ed-hint')?.textContent ?? null;
+    expect(indication({ ds: 'books', single: true }, 'Livre')).toBeNull();
+    expect(indication({ ds: 'books', single: true }, 'Ouvrage cité')).toBe(' (Livres)');
+    expect(indication({ ds: 'books', freeText: true }, 'Livre')).toBe(' (saisie libre)');
+    expect(indication({ ds: 'books', freeText: true }, 'Ouvrage cité')).toBe(' (Livres, ou saisie libre)');
+  });
+
   it('mode liste : aucune accessibilité de contrôle unique ne se passe', () => {
     // @ts-expect-error — une `liste` n'a pas de contrôle unique à qui poser `invalide`.
     const html = renderToStaticMarkup(<RefField cfg={{ ds: 'spells' }} invalide value={[]} onChange={() => {}} />);

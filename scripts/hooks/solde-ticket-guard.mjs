@@ -10,19 +10,18 @@
 //
 // Extension même jour (verbatim) — « De la même maniere, apres un certain nombre de ticket fermé,
 // il faudrait lancer une review adversarial. Ou a chaque ticket ... c'est peut etre la même régle
-// finalement. A toi de voir » : arbitrage orchestrateur — LES DEUX niveaux dans le MÊME hook.
-// (1) chaque solde porte sa propre réfutation adversariale (verdict CONFIRMÉ/PARTIEL/RÉFUTÉ) ;
-// (2) tous les `PALIER` tickets fermés, une revue adversariale de PALIER (cumul) est exigée avant
-// toute nouvelle fermeture.
+// finalement. A toi de voir » : chaque solde porte sa propre réfutation adversariale (verdict
+// CONFIRMÉ/PARTIEL/RÉFUTÉ). La revue PAR TICKET est la seule : décision utilisateur du 2026-10-05
+// (#2365, verbatim) — « Pour moi la revue de palier de 10 tickets n'a plus aucun sens. Autant une
+// review sur le ticket sur son ensemble OK, mais pas un mélange de commit entre ticket de chantier
+// séparé ».
 //
 // Extension 2026-07-14 (constat utilisateur, verbatim) — « je pensais que tu avais un hook qui te
 // forceait a faire une review reversal, elle ne doit clairement pas marcher » puis « Ou alors
 // seulement sur les tickets ? » : un commit « ref #N » (rattaché SANS fermer) échappait à tout
-// regard adversarial ET n'entrait pas dans le palier. Deux volets : (1) le palier se MESURE sur
-// l'histoire (`scripts/guards/lib/revuePalier.mjs` : commits touchant `src`/`scripts` depuis la tête
-// de fenêtre de la dernière revue archivée), donc TOUT commit de substance y entre, fermeture ou pas ;
-// (2) anti-esquive — un commit `ref #N` qui touche `src/**` (≥10 lignes de diff staged) exige lui
-// aussi sa réfutation (ligne `REFUTATION:` dans le message, ou fichier `.claude/soldes/ref-<N>.md`).
+// regard adversarial. Anti-esquive — un commit `ref #N` qui touche `src/**` (≥10 lignes de diff
+// staged) exige lui aussi sa réfutation (ligne `REFUTATION:` dans le message, ou fichier
+// `.claude/soldes/ref-<N>.md`).
 // Le déclencheur du mécanisme REFUTATION est le TICKET explicitement rattaché (fermeture ou `ref #N`),
 // et c'est la PORTE DU TICKET qui le précède : un commit de substance cite un ticket, donc tout commit
 // de substance arrive ici avec le sien.
@@ -60,7 +59,7 @@
 // jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
 // toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
 // Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
-// `SUBSTANTIVE_MIN_LINES` insertions sous src/ exigent, d'un commit postérieur de la plage, `JUGE:` et
+// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent, d'un commit postérieur de la plage, `JUGE:` et
 // `REFUTATION:` (plus `JUGE-VISION:` sur un écran) qui nomment son sha.
 //
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
@@ -72,24 +71,17 @@
 // Lot `-a` de 3 686 modules de `src/` : l'étage 1 rend son refus en 1,4-3,1 s ; l'étage 2 y lit les
 // stocks en 8,2-9,5 s (1 716 porteurs, dont un `git diff` de 0,96 s ; le reste est l'évaluation), plus
 // les reclassements (1,8-3,9 s), donc il expire. Lot réel de 10 fichiers (07d9f850d) : stocks 46-48 ms.
-// Le PALIER (`mesureDuPalier`) ne se mesure que pour un commit qui ferme un ticket ou ajoute une revue,
-// et son compte s'arrête à `PALIER`. Son nombre de processus git, compté au PROCESSUS (`lancesDeGit`,
-// `scripts/test/gitDeBanc.mjs`), ne croît ni avec les revues archivées, ni avec la fenêtre, ni avec ses
-// fusions (`scripts/guards/lib/revuePalier.test.mjs`) : la dernière revue se lit sur UN graphe de HEAD
-// (`grapheDe`) et UNE résolution des têtes (`commitsNommes`), les chemins des commits à un parent en
-// UN lot, les fusions lues avant l'arrêt au seuil en UN `merge-tree` et le même `diff-tree`
-// (`ceQueFontLesCommits`). La lecture du graphe croît avec l'HISTOIRE : 133 à 387 ms, 455 Ko et
-// +9,7 Mo de tas à 5 480 commits. Mesuré le 2026-10-05 sous win32 (16 cœurs), commit de fermeture
-// `git commit -a -m "fix: corrige #2125"`, 39 archives : mesure du palier 0,42-0,62 s pour 10
-// processus ; hook entier 1,1-1,6 s pour 21 processus. La tête des revues neuves se juge sur le MÊME
-// graphe (`histoireDeHead`) ; les captures citées (`verifierCaptures`) et les shas cités par
-// « corrigé par » (`histoireDesCitations`) de TOUS les soldes se lisent chacun en UN lot : 42
-// processus pour 1 comme pour 8 tickets fermés, chacun avec ses fichiers stagés.
-// VERSION DE GIT : le graphe exige git 2.33 (`rev-list --no-commit-header`), même sans aucune fusion ;
-// une fusion lue exige git 2.40 (`merge-tree --write-tree --stdin`, `exigerMergeTree`). Sous un git
-// plus ancien, le palier est INMESURABLE et le refus NOMME la version requise (`versionManquante`,
-// `gitPorte.mjs`) ; une fusion à trois parents dans la fenêtre aussi. Toute fermeture est alors
-// refusée jusqu'à ce que git soit mis à jour, ou qu'une revue neuve porte la fenêtre au-delà de la fusion.
+// Les captures citées (`verifierCaptures`) et les shas cités par « corrigé par »
+// (`histoireDesCitations`, sur le graphe de HEAD lu une fois, `histoireDeHead`) de TOUS les soldes
+// se lisent chacun en UN lot, compté au PROCESSUS (`lancesDeGit`, `scripts/test/gitDeBanc.mjs`). Hook
+// entier, processus neuf préchargé d'un compteur de lancements, dépôt jetable, mesuré le 2026-10-05
+// sous win32 (16 cœurs) : 37 processus git pour 1 comme pour 8 tickets fermés, chacun avec son solde
+// à citation et sa capture, et ses fichiers stagés (src, écran, scripts, porteur de stock). La lecture du graphe croît avec l'HISTOIRE : 133 à 387 ms, 455 Ko et
+// +9,7 Mo de tas à 5 480 commits.
+// VERSION DE GIT : une citation se lit sur le graphe, qui exige git 2.33 (`rev-list
+// --no-commit-header`) ; une FUSION citée exige git 2.40 (`merge-tree --write-tree --stdin`,
+// `exigerMergeTree`). Sous un git plus ancien, le refus NOMME la version requise (`versionManquante`,
+// `gitPorte.mjs`).
 // Ce qu'une expiration de l'étage 2 PERD :
 //   - le refus des stocks et des reclassements au commit. Restent, pour les STOCKS, le pre-push puis
 //     la CI, qui rejuge la plage poussée a posteriori (`scripts/hooks/stocks-nominatifs.test.mjs`,
@@ -116,10 +108,10 @@
 //   - tête d'un segment, épluchée jusqu'à stabilité : jetons nus et mots réservés (`TOKENS_TETE_NUS`),
 //     affectations `VAR=val` (relevées par nom, `affectationsDEnvironnement`), enrobeurs de tête (`ENROBEURS_TETE`) ;
 //   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
-//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
-//     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k` (ou
-//     `//c`/`//k`, graphie Git Bash), `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de
-//     `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
+//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression` ; tout le reste de la ligne, joint
+//     par des espaces, après `cmd /c`/`/k` (ou `//c`/`//k`, graphie Git Bash) et `eval` ; le texte
+//     qu'exécute l'hôte `powershell`/`pwsh`, lu selon SA grammaire (`GRAMMAIRES_HOTE_POWERSHELL`, #2292) ;
+//     la chaîne de `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
 //   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
 //     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
@@ -145,7 +137,9 @@
 // citeuse qui exécute) ; `gh alias set --shell ci 'git commit -a' && gh ci` (tête citeuse qui
 // exécute) ; `git merge --no-ff -m x autre`, `git cherry-pick <sha>` (porcelaine) ; `git ci -a` (alias
 // du `.gitconfig`) ; `echo 'git commit -a' | sh`, `bash <<'EOF'` (corps sur stdin) ;
-// `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`, `make release`,
+// `echo 'git commit -a' | pwsh -Command -`, `| pwsh -`, `| powershell` (l'hôte lit sa commande sur stdin,
+// `-ServerMode` y lit du PSRP) ; `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`,
+// `pwsh -File x.ps1`, `make release`,
 // `node --run c`, `yarn c`, `npm --prefix ../autre run c` (script hors du dépôt ancré) ;
 // `python3 -c "os.system('git commit -a')"` (interpréteur non shell).
 import { Buffer } from 'node:buffer'
@@ -163,16 +157,12 @@ import {
 } from '../guards/budget-contexte.mjs'
 import {
   GitIndisponible, INDEX, SUIVI, apportDeLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, listerImage, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { SUBSTANTIVE_MIN_LINES, TRAILERS, corpsDuTrailer, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
-import {
-  DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, histoireDeHead, memeSha, mesureDuPalier,
-  nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
-} from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
@@ -551,34 +541,28 @@ export function basenameExecutable(token) {
 const EXTENSIONS_EXECUTABLES = new Set(['exe', 'cmd', 'bat'])
 const NOMS_EXECUTABLES = new Map() // mémo-pur : jeton → son nom d'exécutable
 
-/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU, OU par le nom
- *  EXACT, insensible à la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte
- *  tout préfixe qu'aucun AUTRE paramètre de la commande ne partage, et lie le nom exact en priorité
- *  (`-Query` à côté de `QueryDialect`). `noms` = tous ses paramètres. `-1` si absent. */
-function indexParametre(args, nom, noms = [nom]) {
+/** `true` si `c` est un tiret de PowerShell : `-`, U+2013, U+2014 ou U+2015 (`IsDash`, `CharTraits.cs:255-261`,
+ *  PowerShell v7.5.5). Le lieur de cmdlet (`valeurParametre`) et l'analyseur de l'hôte (`cleDeParametreHote`)
+ *  le partagent. */
+function estTiretPowerShell(c) {
+  return c === '-' || c === '\u2013' || c === '\u2014' || c === '\u2015'
+}
+
+/** Valeur d'un paramètre nommé d'une CMDLET (`''` si absent), selon le LIEUR DE CMDLET : le paramètre
+ *  s'ouvre par un tiret (`estTiretPowerShell`) et se nomme par son nom EXACT ou par un PRÉFIXE NON AMBIGU,
+ *  insensible à la casse — `-Command` s'écrit aussi bien `-com`, `-Comm`… : tout préfixe qu'aucun AUTRE
+ *  paramètre de la commande ne partage, le nom exact lié en priorité (`-Query` à côté de `QueryDialect`).
+ *  `noms` = tous ses paramètres. L'HÔTE `pwsh`/`powershell` suit une autre grammaire (`lireHotePowerShell`). */
+export function valeurParametre(args, nom, noms = [nom]) {
   const cible = nom.toLowerCase()
   const autres = noms.map((n) => n.toLowerCase()).filter((n) => n !== cible)
-  return args.findIndex((a) => {
-    if (a[0] !== '-') return false
+  const i = args.findIndex((a) => {
+    if (!estTiretPowerShell(a[0])) return false
     const p = a.slice(1).toLowerCase()
     return p !== '' && cible.startsWith(p) && (p === cible || !autres.some((n) => n.startsWith(p)))
   })
-}
-
-/** Valeur d'un paramètre PowerShell nommé (`''` si absent) — voir `indexParametre`. */
-export function valeurParametre(args, nom, noms = [nom]) {
-  const i = indexParametre(args, nom, noms)
   return i !== -1 ? (args[i + 1] ?? '') : ''
 }
-
-// Paramètres de l'hôte `powershell.exe`/`pwsh` : base d'ambiguïté des préfixes. `-c` y est traité à
-// part (`porteurCourt`) — l'hôte le résout en `-Command` bien qu'il préfixe aussi
-// `-ConfigurationName`.
-const PARAMS_HOTE_POWERSHELL = [
-  'Command', 'File', 'EncodedCommand', 'ExecutionPolicy', 'ConfigurationName', 'InputFormat',
-  'OutputFormat', 'NoProfile', 'NoLogo', 'NoExit', 'NonInteractive', 'Sta', 'Mta', 'Version',
-  'WindowStyle', 'WorkingDirectory',
-]
 
 // `-o` (isolé ou en fin de groupe court : `-euo pipefail`) et `--rcfile`/`--init-file` prennent le
 // token SUIVANT pour valeur : sans ce saut, `pipefail` passait pour la commande à exécuter.
@@ -601,9 +585,119 @@ const FAMILLE_CMD = {
   aValeur: () => false,
   suite: 'reste',
 }
-const FAMILLE_POWERSHELL = {
-  parametre: 'Command', parametreEncode: 'EncodedCommand', params: PARAMS_HOTE_POWERSHELL, porteurCourt: '-c',
-  suite: 'reste',
+
+// ── Analyseur de l'HÔTE PowerShell (#2292) ───────────────────────────────────────────────────────
+// `pwsh` et `powershell` ne lient pas leurs paramètres comme une cmdlet : ils les essaient dans l'ORDRE de
+// leur table, et le PREMIER couple `[nom, préfixe minimal]` qui correspond l'emporte (`MatchSwitch`,
+// `CLPP.cs:793-802` ; ordre de `ParseHelper`, `CLPP.cs:897-1257`). `CLPP.cs` =
+// `Microsoft.PowerShell.ConsoleHost/host/msh/CommandLineParameterParser.cs` du dépôt PowerShell, v7.5.5. La table de
+// `powershell` 5.1.26100.9444, sans source publique, est MESURÉE (`scripts/ops/sondes/hote-powershell.mjs`).
+// `lecture` : `commande` = la valeur et tout le reste de la ligne (`-CommandWithArgs` compris : ses `$args`
+// sont joints, car la commande peut les exécuter) ; `encodee` = la valeur, base64 d'UTF-16LE ; `valeur` = la
+// valeur est sautée ; `drapeau` = rien n'est sauté ; `fichier` = un script `.ps1` (ou stdin pour `-`), hors
+// portée ; `fin` = l'hôte n'exécute rien ; `commandeIncluse` = ce jeton et tout le reste de la ligne.
+// `nonReconnu` = la lecture d'un jeton qu'aucune entrée ne reconnaît, positionnel compris.
+const HOTE_PWSH = {
+  parametres: [
+    { alias: [['version', 'v']], lecture: 'fin' }, // CLPP.cs:897
+    { alias: [['help', 'h'], ['?', '?']], lecture: 'fin' }, // :908
+    { alias: [['login', 'l']], lecture: 'drapeau' }, // :915
+    { alias: [['noexit', 'noe']], lecture: 'drapeau' }, // :921
+    { alias: [['noprofile', 'nop']], lecture: 'drapeau' }, // :927
+    { alias: [['nologo', 'nol']], lecture: 'drapeau' }, // :932
+    { alias: [['noninteractive', 'noni']], lecture: 'drapeau' }, // :937
+    { alias: [['socketservermode', 'so']], lecture: 'drapeau' }, // :942
+    { alias: [['v2socketservermode', 'v2so']], lecture: 'drapeau' }, // :949
+    { alias: [['servermode', 's']], lecture: 'drapeau' }, // :956
+    { alias: [['namedpipeservermode', 'nam']], lecture: 'drapeau' }, // :962
+    { alias: [['sshservermode', 'sshs']], lecture: 'drapeau' }, // :968
+    { alias: [['noprofileloadtime', 'noprofileloadtime']], lecture: 'drapeau' }, // :974
+    { alias: [['interactive', 'i']], lecture: 'drapeau' }, // :979
+    { alias: [['configurationfile', 'configurationfile']], lecture: 'valeur' }, // :984
+    { alias: [['configurationname', 'config']], lecture: 'valeur' }, // :997
+    { alias: [['custompipename', 'cus']], lecture: 'valeur' }, // :1010
+    { alias: [['commandwithargs', 'commandwithargs'], ['cwa', 'cwa']], lecture: 'commande' }, // :1037
+    { alias: [['command', 'c']], lecture: 'commande' }, // :1050
+    { alias: [['windowstyle', 'w']], lecture: 'valeur' }, // :1059
+    { alias: [['file', 'f']], lecture: 'fichier' }, // :1088
+    { alias: [['outputformat', 'o'], ['of', 'o']], lecture: 'valeur' }, // :1103
+    { alias: [['inputformat', 'inp'], ['if', 'if']], lecture: 'valeur' }, // :1109
+    { alias: [['executionpolicy', 'ex'], ['ep', 'ep']], lecture: 'valeur' }, // :1114
+    { alias: [['encodedcommand', 'e'], ['ec', 'e']], lecture: 'encodee' }, // :1129
+    { alias: [['encodedarguments', 'encodeda'], ['ea', 'ea']], lecture: 'valeur' }, // :1139
+    { alias: [['settingsfile', 'settings']], lecture: 'valeur' }, // :1148
+    { alias: [['sta', 'sta']], lecture: 'drapeau' }, // :1158
+    { alias: [['mta', 'mta']], lecture: 'drapeau' }, // :1178
+    { alias: [['workingdirectory', 'wo'], ['wd', 'wd']], lecture: 'valeur' }, // :1198
+    { alias: [['removeworkingdirectorytrailingcharacter', 'removeworkingdirectorytrailingcharacter']], lecture: 'drapeau' }, // :1212
+    { alias: [['token', 'to']], lecture: 'valeur' }, // :1216
+    { alias: [['utctimestamp', 'utc']], lecture: 'valeur' }, // :1230
+  ],
+  nonReconnu: 'fichier', // :713-720, :1246-1253
+}
+// `powershell` 5.1 : la table de pwsh, à ses écarts MESURÉS (`hote-powershell.mjs`) près — paramètres absents (lus
+// comme non reconnus), préfixes minimaux qui diffèrent, jeton blanc sauté ; ce que la table ne reconnaît pas OUVRE
+// la commande, lui compris.
+const ABSENTS_DE_51 = new Set([
+  'version', 'login', 'sshservermode', 'noprofileloadtime', 'interactive', 'configurationfile', 'custompipename',
+  'commandwithargs', 'settingsfile', 'removeworkingdirectorytrailingcharacter',
+])
+const MINIMUMS_51 = { inputformat: 'i', sta: 'st' }
+const HOTE_POWERSHELL_51 = {
+  parametres: [
+    { alias: [['', '']], lecture: 'drapeau' },
+    ...HOTE_PWSH.parametres
+      .filter(({ alias: [[nom]] }) => !ABSENTS_DE_51.has(nom))
+      .map(({ alias: [[nom, min], ...autres], lecture }) => ({ alias: [[nom, MINIMUMS_51[nom] ?? min], ...autres], lecture })),
+  ],
+  nonReconnu: 'commandeIncluse',
+}
+/** Grammaire de l'hôte PowerShell, par exécutable. */
+export const GRAMMAIRES_HOTE_POWERSHELL = { pwsh: HOTE_PWSH, powershell: HOTE_POWERSHELL_51 }
+const FAMILLE_PWSH = { hote: HOTE_PWSH, suite: 'reste' }
+const FAMILLE_POWERSHELL_51 = { hote: HOTE_POWERSHELL_51, suite: 'reste' }
+
+/** Blancs de .NET, ceux que retire `String.Trim()` : `Char.IsWhiteSpace` (documentation .NET, « Remarques ») =
+ *  U+0009-000D, U+0020, U+0085, U+00A0, U+1680, U+2000-200A, U+2028, U+2029, U+202F, U+205F, U+3000. Le `trim()` de JS
+ *  n'est pas cet ensemble : il garde U+0085 et retire U+FEFF. */
+const BLANCS_DOTNET = '[\t-\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]'
+const BLANCS_DOTNET_AUX_BORDS = new RegExp(`^${BLANCS_DOTNET}+|${BLANCS_DOTNET}+$`, 'g')
+
+/** Nom de paramètre que l'hôte lit dans ce jeton, en minuscules (`GetSwitchKey`, `CLPP.cs:705-734`) : le jeton
+ *  privé des blancs de .NET à ses bords (`Trim()`, `BLANCS_DOTNET`), ouvert par un tiret (`estTiretPowerShell`) ou
+ *  `/`, le second tiret retiré s'il est IDENTIQUE au premier ; `//` est la graphie Git Bash de `/`, comme le `//c`
+ *  de `FAMILLE_CMD` (#2173). `''` pour un jeton blanc, `null` pour un positionnel. */
+function cleDeParametreHote(jeton) {
+  const t = jeton.replace(BLANCS_DOTNET_AUX_BORDS, '').replace(/^\/\//, '/')
+  if (t === '') return ''
+  if (!estTiretPowerShell(t[0]) && t[0] !== '/') return null
+  return (estTiretPowerShell(t[0]) && t[1] === t[0] ? t.slice(2) : t.slice(1)).toLowerCase()
+}
+
+/** Lecture de l'hôte qui tranche `jeton` : celle de la PREMIÈRE entrée dont un couple
+ *  `[nom, min]` correspond (`MatchSwitch` : au moins `min.length` caractères, préfixe de `nom`), sinon
+ *  `nonReconnu`. */
+function lectureDuJetonHote(jeton, { parametres, nonReconnu }) {
+  const cle = cleDeParametreHote(jeton)
+  if (cle === null) return nonReconnu
+  const entree = parametres.find(({ alias }) => alias.some(([nom, min]) => cle.length >= min.length && nom.startsWith(cle)))
+  return entree?.lecture ?? nonReconnu
+}
+
+/** Texte qu'exécute l'hôte PowerShell `famille.hote` sur `args`, lus de gauche à droite comme `ParseHelper`
+ *  (`CLPP.cs:877-1257`) — forme de `lecturePorteur` —, `null` quand il n'exécute aucun texte de la ligne. */
+function lireHotePowerShell(famille, args) {
+  for (let i = 0; i < args.length; i++) {
+    const lecture = lectureDuJetonHote(args[i], famille.hote)
+    if (lecture === 'valeur') i += 1
+    else if (lecture === 'commande') return portee(famille, args[i + 1] ?? null, args, i + 2)
+    else if (lecture === 'commandeIncluse') return portee(famille, args[i], args, i + 1)
+    else if (lecture === 'encodee') {
+      const decodee = decodeCommandeEncodee(args[i + 1])
+      return decodee === null ? null : { commande: decodee, suite: null, memeShell: false }
+    } else if (lecture !== 'drapeau') return null
+  }
+  return null
 }
 const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste', memeShell: true }
 const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true, memeShell: true }
@@ -663,7 +757,7 @@ function decodeCommandeEncodee(valeur) {
  *  interpréteur = une ligne de plus ici, jamais un chemin de reconnaissance parallèle. */
 const ENROBEURS_ARGUMENT = new Map([
   ['sh', FAMILLE_SH], ['bash', FAMILLE_SH], ['dash', FAMILLE_SH], ['zsh', FAMILLE_SH],
-  ['powershell', FAMILLE_POWERSHELL], ['pwsh', FAMILLE_POWERSHELL],
+  ['powershell', FAMILLE_POWERSHELL_51], ['pwsh', FAMILLE_PWSH],
   ['cmd', FAMILLE_CMD],
   ['eval', FAMILLE_EVAL], ['invoke-expression', FAMILLE_INVOKE_EXPRESSION],
   ['npx', FAMILLE_NPX],
@@ -694,14 +788,7 @@ function lecturePorteur(segment) {
     if (args[k] === '--') k += 1
     return portee(famille, args[k] ?? null, args, k + 1)
   }
-  if (famille.parametre) {
-    const court = args.findIndex((a) => a.toLowerCase() === famille.porteurCourt)
-    const i = court !== -1 ? court : indexParametre(args, famille.parametre, famille.params)
-    if (i !== -1) return portee(famille, args[i + 1] ?? null, args, i + 2)
-    const encode = indexParametre(args, famille.parametreEncode, famille.params)
-    const decodee = encode !== -1 ? decodeCommandeEncodee(args[encode + 1]) : null
-    return decodee === null ? null : { commande: decodee, suite: null }
-  }
+  if (famille.hote) return lireHotePowerShell(famille, args)
   const memeFlag = famille.porteurInsensible
     ? (a, b) => a.toLowerCase() === b.toLowerCase()
     : (a, b) => a === b
@@ -1801,8 +1888,6 @@ const TAILLE_MIN_CAPTURE = 1024
 const COTE_MIN_CAPTURE = 200
 const VERDICT_RE = /verdict\s*:\s*([A-Za-zÀ-ÖØ-öø-ÿ]+)/i
 const MIN_REFUTATION_LEN = 40
-const PALIER = 10
-const MIN_REVUE_PALIER_LEN = 80
 
 /** `CONFIRMÉ`/`confirme`/`CONFIRME` → `CONFIRME` (compare sans accent, insensible à la casse). */
 function normalizeVerdict(word) {
@@ -1919,8 +2004,8 @@ function jugerCapture(chemin, { racine, mtimeMin, ignorees }) {
     problemes.push(`capture "${chemin}" hors de ${DOSSIER_CAPTURES} (les captures de recette y vivent, cf. scripts/qc/capture-jeu.mjs)`)
     return { ok: false, problemes }
   }
-  // Une capture qu'un `.gitignore` retient ne part PAS avec le commit : le palier suivant lit un
-  // solde qui cite une preuve inouvrable. Le refus vient AVANT la lecture du disque — exister sur la
+  // Une capture qu'un `.gitignore` retient ne part PAS avec le commit : quiconque relit le solde
+  // y trouve une preuve inouvrable. Le refus vient AVANT la lecture du disque — exister sur la
   // machine du geste ne la rend pas opposable. Hors dépôt, la porte ne juge que le disque : le banc
   // de `verifierCapture` travaille hors git.
   if (ignorees.has(norm)) {
@@ -2145,124 +2230,18 @@ export function validateSolde(content, today, {
 }
 
 /**
- * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures) : nommable
- * (`problemesDeRevue`, scripts/guards/lib/revuePalier.mjs), ligne `verdict:`, synthèse
- * ≥ `MIN_REVUE_PALIER_LEN`, date du jour. Le NOM du fichier se juge dans `problemesDeRevueNeuve`.
- */
-export function validateRevuePalier(content, today) {
-  if (!content) return { ok: false, problems: ['fichier absent'] }
-  const problems = [...problemesDeRevue(content)]
-  if (!VERDICT_RE.test(content)) {
-    problems.push('ligne "verdict: …" absente')
-  }
-  const descLen = lenWithoutVerdictLine(content)
-  if (descLen < MIN_REVUE_PALIER_LEN) {
-    problems.push(`synthèse trop maigre (${descLen} car. hors verdict, ${MIN_REVUE_PALIER_LEN} requis — revue du CUMUL des fermetures)`)
-  }
-  if (!content.includes(today)) {
-    problems.push(`date du jour (${today}) absente du fichier`)
-  }
-  return { ok: problems.length === 0, problems }
-}
-
-/**
- * Revues neuves STAGÉES croisées avec ce que le commit EMPORTE. PUR.
- * Une revue peut être dans l'index sans partir avec le commit : `git commit -- <chemins>` n'emporte
- * QUE ces chemins-là (forme recommandée en arbre PARTAGÉ : le WIP d'une session voisine ne part pas),
- * et `--amend` a le même angle mort. C'est exactement la règle du solde, qui se lit déjà par
- * `commit.contenu` : la preuve doit PARTIR avec le commit, pas rester dans l'index.
- * @returns {{ emportees: object[], omises: string[] }}
- */
-export function revuesDuCommit(stagees, fichiersEmportes) {
-  const emportes = new Set((fichiersEmportes ?? []).map((f) => String(f).replace(/\\/g, '/')))
-  return {
-    emportees: (stagees ?? []).filter((r) => emportes.has(r.chemin)),
-    omises: (stagees ?? []).filter((r) => !emportes.has(r.chemin)).map((r) => r.chemin),
-  }
-}
-
-/**
- * Verdict sur UNE revue neuve stagée : contenu, NOM, continuité de fenêtre, et tête dans l'histoire.
- * PUR — `dansHead(sha)` est injecté (c'est la seule lecture git de ce contrôle).
- * @returns {string[]} problèmes, vide = conforme
- */
-export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHead }) {
-  const problemes = [...validateRevuePalier(contenu, today).problems]
-  const attendu = nomDArchiveDeRevue(contenu)
-  if (attendu && nom !== attendu) {
-    problemes.push(`la revue s'appelle ${nom}, son contenu la nomme ${attendu} — le nom PORTE la fenêtre jugée`)
-  }
-  const { base, tete } = fenetreDeRevue(contenu)
-  // Les fenêtres s'ENCHAÎNENT : une revue part où la précédente s'est arrêtée. C'est cet invariant
-  // qui rend la suite des revues continue et vérifiable, quel que soit le nom d'un fichier.
-  if (base && palier.tete && !memeSha(base, palier.tete)) {
-    problemes.push(
-      `sa fenêtre part de ${base}, or la dernière revue de HEAD (${palier.chemin}) s'arrête à `
-      + `${palier.tete} — les fenêtres s'ENCHAÎNENT, base attendue : ${palier.tete}`,
-    )
-  }
-  // Aucun lecteur d'ascendance = le contrôle ne se JOUE PAS, et il le DIT. Un défaut `() => true`
-  // rendait « oui » sans avoir rien lu, ce qui est le contraire d'une porte.
-  if (tete && typeof dansHead !== 'function') {
-    problemes.push(`sa tête de fenêtre ${tete} n'a pas pu être vérifiée : aucun lecteur d'ascendance n'a été fourni`)
-  } else if (tete && !dansHead(tete)) {
-    problemes.push(`sa tête de fenêtre ${tete} n'est pas dans l'histoire de HEAD — elle juge une histoire absente d'ici`)
-  }
-  return problemes
-}
-
-/**
  * Décision du hook (PURE, testable). `readSoldes(ns)` rend, dans l'ordre de `ns` et en UNE lecture
  * pour tous les tickets fermés, le contenu que le commit EMPORTE de chaque `.claude/soldes/<n>.md`, ou
  * `null`/`''` s'il n'y est pas. `soldeOnDisk(n)` renvoie le
  * contenu du même fichier sur le DISQUE : il ne sert qu'à distinguer « jamais écrit » de « écrit mais
- * non stagé » dans le message. `palier()` rend la MESURE de `mesureDuPalier` (scripts/guards/lib/revuePalier.mjs),
- * lue une fois et seulement par une revue neuve ou une fermeture : `compte` de commits de substance
- * depuis `tete` (la tête de fenêtre de la dernière revue archivée dans HEAD, lue dans `chemin`), arrêté
- * à `PALIER`, ou `erreur` quand le palier est INMESURABLE. `neuves()` rend les
- * revues de palier AJOUTÉES par ce commit et EMPORTÉES par sa forme (`revuesDuCommit`) : ce sont
- * elles qui franchissent le palier, et une revue neuve non conforme refuse le commit même hors palier
- * — une revue fausse dans l'histoire fausse toutes les mesures suivantes. `omises()` rend les revues
- * stagées que la forme du commit laisse en rade : le refus les NOMME. `tetesDansHead(tetes)` dit, pour
- * chaque tête de fenêtre des revues neuves, si elle est dans l'histoire de HEAD : une question pour
- * TOUTES (`histoireDeHead`, `dansHead`), posée une fois. `contexteSolde` = le contexte injecté de
+ * non stagé » dans le message. `contexteSolde` = le contexte injecté de
  * `validateSolde` (diff stagé, hunks, écran touché), où `verifierCapturesDe(chemins)` contrôle d'un
  * coup les captures de TOUS les soldes (`verifierCaptures`) et `histoireDe(shas)` lit d'un coup les
  * shas que TOUS les soldes citent par « corrigé par » (`histoireDesCitations`) — `issuesFermees` y est
  * posé ICI, c'est cette décision qui connaît les tickets fermés.
  * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
-export function evaluate({
-  command, today, readSoldes, soldeOnDisk = () => null,
-  palier: mesurer = () => ({ compte: 0, tete: null, chemin: null }), neuves = () => [], omises = () => [],
-  tetesDansHead,
-  contexteSolde = {},
-}) {
-  let mesure = null
-  const palier = () => (mesure ??= mesurer())
-  const revues = neuves()
-  let dedans = null
-  const dansHead = tetesDansHead && ((tete) => {
-    if (!dedans) {
-      const tetes = [...new Set(revues.map((r) => fenetreDeRevue(r.contenu).tete).filter(Boolean))]
-      const vus = tetesDansHead(tetes)
-      dedans = new Set(tetes.filter((_, i) => vus[i]))
-    }
-    return dedans.has(tete)
-  })
-  for (const revue of revues) {
-    const problemes = problemesDeRevueNeuve(revue, { today, palier: palier(), dansHead })
-    if (problemes.length) {
-      return {
-        reason:
-          `⚠ Revue de palier NON CONFORME : ${revue.chemin} — ${problemes.join(' ; ')}. Une revue entre `
-          + `dans l'histoire sous le nom de ce qu'elle juge (\`${nomDeRevue('<date>', '<base>', '<tête>')}\`), avec sa `
-          + `ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-          + 'le CUMUL, sa date du jour en 1re ligne et sa fenêtre `<base>..<tête>`.',
-      }
-    }
-  }
-
+export function evaluate({ command, today, readSoldes, soldeOnDisk = () => null, contexteSolde = {} }) {
   const nus = extractFermeturesNues(command)
   if (nus.length > 0) {
     const cites = nus.map((n) => `#${n}`).join(', ')
@@ -2277,33 +2256,6 @@ export function evaluate({
 
   const issues = extractClosedIssues(command)
   if (issues.length === 0) return null
-
-  const { compte, tete, chemin, erreur } = palier()
-  if (erreur) {
-    return {
-      reason:
-        `⚠ Palier INMESURABLE, donc aucune fermeture : ${erreur}. Le palier se mesure sur `
-        + "l'HISTOIRE : les commits de `<tête de la dernière revue de HEAD>..HEAD` dont ce qu'ils font touche "
-        + '`src` ou `scripts` (`shasDeSubstance`, scripts/guards/lib/revuePalier.mjs).',
-    }
-  }
-
-  if (compte >= PALIER && revues.length === 0) {
-    const enRade = omises()
-    return {
-      reason:
-        `⚠ Palier atteint : au moins ${compte} commits de substance depuis ${tete} `
-        + `(${chemin}) — revue adversariale de PALIER exigée avant toute nouvelle fermeture. `
-        + (enRade.length
-          ? `${enRade.join(', ')} est écrite et stagée mais NON EMPORTÉE par ce commit : une commande `
-            + `par pathspec n'emporte QUE les chemins nommés — y AJOUTER ${enRade.join(', ')}. `
-          : '')
-        + `Sinon, l'écrire et la STAGER sous .claude/soldes/${nomDeRevue(today, tete, '<tête>')} `
-        + `(ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et les DEUX bornes `
-        + 'NOMMENT le fichier).',
-    }
-  }
 
   const lus = readSoldes(issues)
   const emportes = new Map(issues.map((n, i) => [n, lus[i]]))
@@ -2378,22 +2330,24 @@ export function soldesEmportes(commit, ns) {
   return ns.map((n) => lus.get(cheminDuSolde(n)) ?? null)
 }
 
-/** Les revues `emportees` (`revuesDuCommit`), chacune avec le contenu que `commit` (`diffDuCommit`)
- *  EMPORTE, le sien à défaut : UNE lecture pour toutes (`contenus`). */
-export function revuesEmportees(commit, emportees) {
-  const lus = commit.contenus(emportees.map((r) => r.chemin))
-  return emportees.map((r) => ({ ...r, contenu: lus.get(r.chemin) ?? r.contenu }))
-}
-
 // ── Porte du TICKET (option retenue par l'utilisateur le 2026-09-11) ──────────────────────────────
 // Le ticket est l'unité de travail : un commit qui touche `src` ou `scripts` cite au moins un ticket.
-// Le critère de SUBSTANCE est celui du palier (`estCheminDeSubstance`, scripts/guards/lib/revuePalier.mjs) —
-// une seule définition, sinon un commit franchit l'une des deux portes sans franchir l'autre. La
-// grammaire des références est celle des deux extracteurs déjà en place (`extractClosedIssues` pour
+// Le critère de SUBSTANCE (`estCheminDeSubstance`) est le même pour la porte et pour le pré-filtre des
+// commentaires de dette (`fichiersCitantTickets`) : une seule définition. La grammaire des références est celle des deux extracteurs déjà en place (`extractClosedIssues` pour
 // `corrige`/`fixes`/`closes`/`ferme`, `extractRefIssues` pour `ref`/`refs`), jamais une regex de plus.
 // Ce que le commit EMPORTE décide (`diffDuCommit`), pas l'index : un `git commit -- <chemins>` ou un
 // `-a` sans `git add` emporte l'arbre de travail, et c'est ce lot-là que la porte doit voir.
 const MAX_FICHIERS_NOMMES = 3
+
+/** Les dossiers qui font la SUBSTANCE d'un commit : le moteur et l'outillage. */
+const DOSSIERS_DE_SUBSTANCE = ['src', 'scripts']
+
+/** Ce chemin est-il de SUBSTANCE ? PUR — le pendant par-chemin de `DOSSIERS_DE_SUBSTANCE`, pour qui
+ *  tient déjà la liste des fichiers (le contenu qu'un commit EMPORTE) plutôt qu'un pathspec git. */
+function estCheminDeSubstance(chemin) {
+  const p = String(chemin ?? '').replace(/\\/g, '/')
+  return DOSSIERS_DE_SUBSTANCE.some((d) => p === d || p.startsWith(`${d}/`))
+}
 
 /**
  * Décision de la porte du ticket (PURE, testable). `fichiersEmportes` = les chemins que le commit
@@ -2920,8 +2874,8 @@ export function analyzeDiffDuCommit(entrees = [], { ecranParInsertion = false } 
 // les autres ; sous `-i`/`--include` (`git commit -h`), l'arbre de ces chemins et l'INDEX pour les
 // autres ; avec `-a` c'est tout le modifié SUIVI, sinon c'est l'INDEX. Lire l'index dans les deux premiers cas
 // rendait un diff VIDE quand rien n'était stagé, et toute évaluation qui en dépend se taisait —
-// c'est par là que la croissance de stock de `429b9a1a2` est passée (revue de palier n°2, cause
-// prouvée par sonde le 2026-09-03). La forme se décide ICI, une fois, pour toutes les évaluations.
+// c'est par là que la croissance de stock de `429b9a1a2` est passée (cause prouvée par sonde le
+// 2026-09-03). La forme se décide ICI, une fois, pour toutes les évaluations.
 //
 // `--amend` ne change pas la règle et n'ajoute PAS le diff de HEAD : un amend n'introduit aucun
 // contenu que HEAD ne portait déjà (donc rien de neuf à juger), et le contenu final est de toute
@@ -3202,7 +3156,7 @@ export function mtimeMaxDe(fichiers, racine = process.cwd()) {
 // ── Fermeture hors commit (l'angle mort mesuré du garde) ──────────────────────────────────────────
 // Le mécanisme entier s'accroche à `git commit` : `gh issue close` fermait le MÊME ticket sans que
 // rien ne demande son solde (sonde `scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs`,
-// revue de palier `revue-palier-2205fde51.md:17`). La fermeture passe par le commit, un point.
+// archive `.claude/soldes/revue-palier-2205fde51.md:17`). La fermeture passe par le commit, un point.
 
 /** `true` si les arguments portent un état `closed` (`--state closed`, `--state=closed`,
  *  `-f state=closed`, `--field state=closed`, `--raw-field state=closed`). */
@@ -3326,8 +3280,8 @@ export function porteUnGesteGh(command) {
  * (`evaluateFermetureHorsCommit`, le seul évaluateur qui ne demande pas de commit).
  *
  * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) n'a rien d'un commit, et lire
- * `mesureDuPalier` ou `readChangedNames` dans son cwd hors dépôt la refuserait pour une lecture git
- * indisponible (#1729 sonde 3).
+ * `readChangedNames` dans son cwd hors dépôt la refuserait pour une lecture git indisponible (#1729
+ * sonde 3).
  * @returns {'commit'|'fermeture'|null}
  */
 export function gesteJuge(command) {
@@ -3547,7 +3501,7 @@ export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
 /**
  * Le verdict de la porte sur la commande de `entree`. `contexte` (répartiteur, `construireContexte`) :
  * `dir` = le répertoire où la commande s'exécute RÉELLEMENT, `null` s'il n'est pas jugeable — tout ce que la porte lit sur disque ou
- * dans git s'y lit (index, message `-F`, palier, revue, histoire) ; `cibleIgnoree` = ce que la
+ * dans git s'y lit (index, message `-F`, histoire) ; `cibleIgnoree` = ce que la
  * commande nommait sans que ce soit un répertoire réel, DIT dans tout refus ; `today` = date locale ;
  * `pannes` = les pannes de lecture git de l'appel, refusées au rendu (`refusDesPannes`).
  */
@@ -3596,14 +3550,9 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
   // capture antérieure au geste montre l'écran d'avant.
   const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), targetDir)
-  // Lecture PARESSEUSE et unique : elle a lieu DANS le juge, donc une indisponibilité de git y est
-  // rattrapée et NOMMÉE au lieu d'emporter la garde.
-  let revuesVues = null
-  const revuesDuGeste = () => (revuesVues ??= revuesDuCommit(revuesNeuves(targetDir), fichiers))
-  // UNE histoire de HEAD pour l'évaluation : la mesure du palier et la tête des revues neuves
-  // partagent sa lecture du graphe.
-  const depot = depotDe(targetDir)
-  const histoire = histoireDeHead(depot)
+  // UNE histoire de HEAD pour l'évaluation, que les citations « corrigé par » de tous les soldes
+  // partagent ; lue PARESSEUSEMENT, DANS le juge : une indisponibilité de git y est rattrapée et NOMMÉE.
+  const histoire = histoireDeHead(depotDe(targetDir))
   const decision = jugerOuConfier(() => evaluate({
     command: text,
     today,
@@ -3612,14 +3561,6 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
     // preuve ne part pas.
     readSoldes: (ns) => soldesEmportes(commit, ns),
     soldeOnDisk: (n) => readSoldeFile(n, targetDir),
-    // Le commit en cours compte par ce qu'il EMPORTE (`fichiers`), la liste de la porte du ticket.
-    palier: () => mesureDuPalier(targetDir, { emportes: fichiers, seuil: PALIER, depot, histoire }),
-    // La revue qui franchit le palier est celle que ce commit AJOUTE **et** EMPORTE : elle naît sous
-    // son nom d'archive. Une revue posée sur le disque sans être stagée, ou stagée hors des pathspecs
-    // de la commande, ne part pas avec le commit — donc ne franchit rien. Même règle que le solde.
-    neuves: () => revuesEmportees(commit, revuesDuGeste().emportees),
-    omises: () => revuesDuGeste().omises,
-    tetesDansHead: (tetes) => histoire.dansHead(tetes),
     contexteSolde: {
       fichiersEmportes: fichiers,
       lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
@@ -3632,7 +3573,7 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // lecture que toutes les autres évaluations de cette garde.
   const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers, messages })
   // TOUT ce que la garde lit sur DISQUE se lit dans le répertoire où le commit s'exécute — comme le
-  // solde stagé, la mesure du palier, le message `-F` et la revue de palier. Lu depuis le dépôt de la
+  // solde stagé et le message `-F`. Lu depuis le dépôt de la
   // garde, un fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
   const antiEsquive = evaluateAntiEsquive({
     command: text,

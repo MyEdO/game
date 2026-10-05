@@ -323,7 +323,7 @@ test('équivalence — solde au commit et plage au push comptent la même chose'
   t.diagnostic('deux voies, deux cas, même verdict')
 })
 
-// #1709 D3 — sonde 3 de la revue de palier du 2026-09-08, promue sur un dépôt RÉEL : un
+// #1709 D3 — sonde 3 de la revue du 2026-09-08, promue sur un dépôt RÉEL : un
 // `*-stock.json` qui NAÎT. Ses entrées vivent sur des propriétés (`"sites": [ … ]`) qu'aucune
 // lecture par ligne ne reconnaît : seule une IMAGE les compte. Les deux portes en ont une — l'arbre
 // de travail au commit, `git show <sha>:<f>` au push — et rendent le même compte ; un appelant qui
