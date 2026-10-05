@@ -198,7 +198,15 @@ const ATTENDU = {
     'scripts/ops/suivi.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
+    // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
+    // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
+    // de os.tmpdir(), effacé en finally.
+    'scripts/mods/verifier.mjs',
+    'scripts/mods/verifier.test.mjs',
   ],
+  // +1 le 2026-10-04 (#2278) : la garde copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
+  // finally ; l'arbre n'est jamais écrit.
+  'mods:check': ['scripts/mods/verifier.mjs'],
   'test:ops': [
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
@@ -246,6 +254,13 @@ const ATTENDU = {
     // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
+    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
+    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
+    // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`
+    // (`reprendre`), `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
+    // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;
+    // l'arbre n'est jamais écrit.
+    'scripts/test/verrou.mjs',
     // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
     // défaut sous os.tmpdir()) pour qu'un workflow n'ait pas à le recopier dans chaque prompt, et son
     // test fabrique un dépôt jetable sous os.tmpdir() — aucune écriture DANS l'arbre.
@@ -285,6 +300,10 @@ const ATTENDU = {
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
+    // +1 le 2026-10-05 (#2279 N0) : le banc de concurrence du verrou lance ses preneurs (processus réels)
+    // sous un `mkdtempSync` d'os.tmpdir() (`writeFileSync` du compteur, `rmSync` en finally) ; l'arbre
+    // n'est jamais écrit.
+    'scripts/test/verrou.test.mjs',
   ],
   'test:docs': [
     'scripts/docs/build-all-check.test.mjs',
