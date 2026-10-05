@@ -2,7 +2,7 @@
 // c'est le CLASSEMENT des sorties de git qui doit être juste, et git seul dit ce qu'il écrit.
 // Sonde d'origine (2026-09-05) : 13 cas, dont deux motifs que la première liste ne portait pas
 // (`bad object`, `Invalid revision range`) et qui auraient classé « git en panne » deux absences.
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
 import { DEPOT } from './ticketsGh.mjs'
@@ -13,9 +13,9 @@ import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
-  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, conclureFusionSansChemins,
+  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsDesCommits, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, pointDeDepart, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
@@ -91,7 +91,7 @@ test('env fournisseur : absence, promesse et retour invalide sont nommés sans r
 const reponseDeFusion = (args, version = 'git version 2.45.1\n') => ({
   status: 0,
   stdout: args.includes('version') ? version
-    : args.includes('rev-list') ? 'abc p1 p2\n'
+    : args.includes('rev-list') ? 'abc arbre-de-abc p1 p2\n'
       : args.includes('hash-object') ? 'vide\n'
         : args.includes('merge-tree') ? '1\0arbre\0' : '',
   stderr: '',
@@ -112,17 +112,20 @@ test('env fournisseur : versions ancienne/récente dans les deux ordres, même p
   }
 })
 
-test('env objet ou défaut : cache de version historique et environnement de lancement conservés', () => {
+test('env objet ou défaut : version et arbre vide lus une fois par dépôt, environnement de lancement conservé', () => {
   for (const env of [undefined, envDeDepotForge()]) {
     let versions = 0
+    let vides = 0
     const d = depotDe(tmpdir(), { env, spawn: (_git, args, options) => {
       assert.equal(options.env, env)
       if (args.includes('version')) versions += 1
+      if (args.includes('hash-object')) vides += 1
       return reponseDeFusion(args)
     } })
     assert.deepEqual(ceQueFaitLeCommit(d, 'abc').chemins(), [])
     assert.deepEqual(ceQueFaitLeCommit(d, 'abc').chemins(), [])
     assert.equal(versions, 1)
+    assert.equal(vides, 1)
   }
 })
 
@@ -708,7 +711,7 @@ test('ceQueFaitLeCommit : un commit à un parent se lit contre lui — chemins, 
 
 test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION lève une raison NOMMÉE', () => {
   const lecteur = (version, parents) => depotFeint(tmpdir(), (args) => {
-    const stdout = args[0] === 'version' ? version : args[0] === 'rev-list' ? `abc ${parents}\n` : args[0] === 'diff-tree' ? '1\t0\ta.txt\0' : null
+    const stdout = args[0] === 'version' ? version : args[0] === 'rev-list' ? `abc arbre-de-abc ${parents}\n` : args[0] === 'diff-tree' ? '1\t0\ta.txt\0' : null
     return stdout === null ? { status: 1, stdout: '', stderr: '' } : { status: 0, stdout, stderr: '' }
   })
   assert.deepEqual(ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1'), 'abc').chemins(), ['a.txt'])
@@ -1164,7 +1167,7 @@ test('un CHEMIN positionnel qui commence par `-` passe APRÈS `--` : git le lit 
     ajouterOrigine: [() => ajouterOrigine(d, '-u'), ['remote', 'add', '--', 'origin', '-u']],
     commitDe: [() => commitDe(d, { message: 'm', chemins: ['-A'] }), ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', '-A']],
     fusionDeTextes: [() => fusionDeTextes(d, { ours: '-o', base: '-b', theirs: '-t' }, { ours: 'o', base: 'b', theirs: 't' }), ['merge-file', '-p', '-L', 'o', '-L', 'b', '-L', 't', '--', '-o', '-b', '-t']],
-    estIgnore: [() => estIgnore(d, '-v'), ['check-ignore', '-q', '--', '-v']],
+    estIgnore: [() => estIgnore(d, '-v'), ['check-ignore', '--stdin', '-z']],
     attributDe: [() => attributDe(d, '-v', 'merge'), ['check-attr', '-z', 'merge', '--', '-v']],
     eolsDe: [() => eolsDe(d, ['-z']), ['ls-files', '-z', '--eol', '--cached', '--', '-z']],
   }
@@ -1429,4 +1432,132 @@ test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE
     assert.equal(pannes.length, 1, JSON.stringify(pannes))
     assert.match(pannes[0], raison)
   }
+})
+
+
+// ── LES CAS BORDS du graphe et des chemins en lot (#2294) : grapheDe, commitsNommes, cheminsDesCommits,
+// diffParChemin, contre git RÉEL. Sondes d'origine du juge de diff : gitlink, mode seul, espaces et
+// non-ASCII, octopus, clone superficiel, fusion sans ancêtre commun, fusion retouchée.
+
+/** `git <args>` dans `cwd` sous l'environnement forgé : le lancement brut de git des bancs de #2294 ;
+ *  un code non nul LÈVE, avec son stderr. */
+function gitDuBanc(cwd, args) {
+  const vu = spawnSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8' })
+  if (vu.status !== 0) throw new Error(`git ${args.join(' ')} → ${vu.status} : ${vu.stderr}`)
+  return vu.stdout.trim()
+}
+
+/** Le dépôt des cas bords, et chaque commit nommé. */
+function depotDesBords() {
+  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'src/a.txt': 'a\n', README: 'r\n' }, message: 'racine' })
+  const ecrire = (rel, texte) => { mkdirSync(join(racine, rel, '..'), { recursive: true }); writeFileSync(join(racine, rel), texte) }
+  const g = (...args) => gitDuBanc(racine, args)
+  const commit = (message) => { g('add', '-A'); g('commit', '-q', '--no-verify', '-m', message); return g('rev-parse', 'HEAD') }
+  const c = { racine: socle }
+  g('mv', 'src/a.txt', 'src/b.txt'); c.renommage = commit('renommage')
+  g('update-index', '--chmod=+x', 'src/b.txt'); g('commit', '-q', '--no-verify', '-m', 'mode'); c.mode = g('rev-parse', 'HEAD')
+  g('commit', '-q', '--no-verify', '--allow-empty', '-m', 'vide'); c.vide = g('rev-parse', 'HEAD')
+  ecrire('src/dossier é/fi chier.txt', 'z\n'); ecrire('scripts/ü ñ.md', 'n\n'); c.espaces = commit('espaces')
+  g('update-index', '--add', '--cacheinfo', `160000,${c.racine},src/sub`); g('commit', '-q', '--no-verify', '-m', 'gitlink'); c.gitlink = g('rev-parse', 'HEAD')
+  g('checkout', '-q', '-b', 'cote'); ecrire('src/x.txt', 'x\n'); c.cote = commit('cote')
+  g('checkout', '-q', 'main'); ecrire('docs/z.md', 'z\n'); c.principal = commit('principal')
+  g('merge', '-q', '--no-ff', '--no-verify', '-m', 'propre', 'cote'); c.fusionPropre = g('rev-parse', 'HEAD')
+  g('checkout', '-q', '-b', 'retouche'); ecrire('docs/r.md', 'r\n'); c.retouche = commit('retouche')
+  g('checkout', '-q', 'main'); g('merge', '-q', '--no-ff', '--no-commit', 'retouche'); ecrire('src/ajout.txt', 'e\n'); c.fusionRetouchee = commit('retouchée')
+  g('checkout', '-q', '--orphan', 'orpheline'); g('rm', '-rqf', '--cached', '.')
+  for (const d of ['src', 'docs', 'scripts', 'README']) rmSync(join(racine, d), { recursive: true, force: true })
+  ecrire('autre/o.txt', 'o\n'); c.orpheline = commit('racine orpheline')
+  g('checkout', '-q', '-f', 'main'); g('clean', '-qfdx')
+  g('merge', '-q', '--no-verify', '--allow-unrelated-histories', '-m', 'sans ancêtre', 'orpheline'); c.fusionSansAncetre = g('rev-parse', 'HEAD')
+  for (const n of [1, 2]) { g('checkout', '-q', '-b', `o${n}`, c.fusionSansAncetre); ecrire(`docs/o${n}.md`, `${n}\n`); c[`o${n}`] = commit(`o${n}`) }
+  g('checkout', '-q', 'main'); ecrire('docs/o3.md', '3\n'); c.o3 = commit('o3')
+  g('merge', '-q', '--no-verify', '-m', 'octopus', 'o1', 'o2'); c.octopus = g('rev-parse', 'HEAD')
+  g('tag', '-a', '-m', 'étiquette', 'v1', c.fusionPropre)
+  return { racine, c, g }
+}
+
+/** Le dépôt des cas bords, forgé une fois pour les bancs qui ne font que le LIRE. */
+let bords = null
+const lesBords = () => (bords ??= depotDesBords())
+after(() => bords && jeter(bords.racine))
+
+test('grapheDe : arbre et parents de chaque commit, racine, fusion sans ancêtre commun et octopus compris (#2294)', () => {
+  const { racine, c, g } = lesBords()
+  const graphe = grapheDe(forge(racine), ['main'])
+  const tous = g('rev-list', '--reverse', 'main').split('\n')
+  assert.deepEqual(graphe.map((x) => x.sha), tous, 'du plus ancien au plus récent, comme rev-list --reverse')
+  for (const commit of graphe) {
+    assert.equal(commit.arbre, g('rev-parse', `${commit.sha}^{tree}`), commit.sha)
+    assert.deepEqual(commit.parents, g('rev-parse', `${commit.sha}^@`).split('\n').filter(Boolean), commit.sha)
+  }
+  const de = (sha) => graphe.find((x) => x.sha === sha)
+  assert.deepEqual(de(c.racine).parents, [])
+  assert.deepEqual(de(c.orpheline).parents, [])
+  assert.deepEqual(de(c.fusionSansAncetre).parents, [c.fusionRetouchee, c.orpheline])
+  assert.deepEqual(de(c.octopus).parents, [c.o3, c.o1, c.o2])
+  assert.equal(grapheDe(forge(racine), ['deadbeef..main']), null, 'une plage que git ne rend pas : null')
+})
+
+test('cheminsDesCommits : gitlink, mode seul, renommage, commit vide, espaces et non-ASCII — les VALEURS (#2294)', () => {
+  const { racine, c } = lesBords()
+  const d = forge(racine)
+  const simples = grapheDe(d, ['main']).filter((x) => x.parents.length <= 1)
+  const chemins = cheminsDesCommits(d, simples)
+  const trie = (sha) => [...chemins.get(sha)].sort(parUnitesDeCode)
+  assert.deepEqual(trie(c.racine), ['README', 'src/a.txt'])
+  assert.deepEqual(trie(c.renommage), ['src/a.txt', 'src/b.txt'], 'un renommage en ses deux bouts')
+  assert.deepEqual(trie(c.mode), ['src/b.txt'], 'un changement de mode seul est un chemin touché')
+  assert.deepEqual(trie(c.vide), [])
+  assert.deepEqual(trie(c.espaces), ['scripts/ü ñ.md', 'src/dossier é/fi chier.txt'])
+  assert.deepEqual(trie(c.gitlink), ['src/sub'], 'un gitlink est un chemin')
+  assert.deepEqual(trie(c.orpheline), ['autre/o.txt'], 'une seconde racine se lit contre l’arbre vide')
+  for (const commit of simples) assert.deepEqual(trie(commit.sha), [...ceQueFaitLeCommit(d, commit.sha).chemins()].sort(parUnitesDeCode), commit.sha)
+  assert.throws(() => cheminsDesCommits(d, grapheDe(d, ['main']).filter((x) => x.sha === c.fusionPropre)), /fusions .* ceQueFaitLeCommit/)
+})
+
+test('ceQueFaitLeCommit d’une FUSION lue dans le graphe : propre, sans ancêtre commun, retouchée, octopus (#2294)', () => {
+  const { racine, c } = lesBords()
+  const d = forge(racine)
+  const graphe = new Map(grapheDe(d, ['main']).map((x) => [x.sha, x]))
+  assert.deepEqual(ceQueFaitLeCommit(d, graphe.get(c.fusionPropre)).chemins(), [])
+  assert.deepEqual(ceQueFaitLeCommit(d, graphe.get(c.fusionSansAncetre)).chemins(), [])
+  assert.deepEqual(ceQueFaitLeCommit(d, graphe.get(c.fusionRetouchee)).chemins(), ['src/ajout.txt'], 'seule la retouche est l’apport de la fusion')
+  assert.throws(() => ceQueFaitLeCommit(d, graphe.get(c.octopus)), (e) => e instanceof GitIndisponible && /3 parents/.test(e.raison))
+})
+
+test('commitsNommes : sha complet ou abrégé, étiquette pelée ; arbre, blob et inconnu ne nomment aucun commit (#2294)', () => {
+  const { racine, c, g } = lesBords()
+  const noms = [c.principal, c.principal.slice(0, 7), 'v1', g('rev-parse', `${c.octopus}^{tree}`), g('rev-parse', 'HEAD:docs/z.md'), 'deadbee']
+  assert.deepEqual(commitsNommes(forge(racine), noms), [c.principal, c.principal, c.fusionPropre, null, null, null])
+  assert.deepEqual(commitsNommes(forge(racine), []), [])
+})
+
+test('diffParChemin : le patch d’UN commit découpé par chemin, espaces et non-ASCII compris (#2294)', () => {
+  const { racine, c } = lesBords()
+  const patchs = ceQueFaitLeCommit(forge(racine), c.espaces).diffParChemin()
+  assert.deepEqual([...patchs.keys()].sort(parUnitesDeCode), ['scripts/ü ñ.md', 'src/dossier é/fi chier.txt'])
+  assert.match(patchs.get('src/dossier é/fi chier.txt'), /\n@@ -0,0 \+1 @@\n\+z(?:\n|$)/)
+  assert.deepEqual([...ceQueFaitLeCommit(forge(racine), c.fusionPropre).diffParChemin()], [], 'une fusion propre n’a aucun patch')
+})
+
+test('patchsParChemin : un en-tête CITÉ (core.quotePath) se décode, un changement de type joint ses deux sections, un en-tête hors forme LÈVE (#2294)', () => {
+  const cite = 'diff --git "a/x\\"y\\303\\251" "b/x\\"y\\303\\251"\nnew file mode 100644\n@@ -0,0 +1 @@\n+q'
+  assert.deepEqual([...patchsParChemin(cite)], [['x"yé', cite]])
+  const type = 'diff --git a/l b/l\ndeleted file mode 100644\n@@ -1 +0,0 @@\n-a\ndiff --git a/l b/l\nnew file mode 120000\n@@ -0,0 +1 @@\n+cible'
+  assert.deepEqual([...patchsParChemin(type)], [['l', type]])
+  assert.throws(() => patchsParChemin('diff --git a/x b/y\n'), /patch illisible/)
+})
+
+test('clone SUPERFICIEL : la borne se lit comme une racine (#2294)', () => {
+  const { racine } = lesBords()
+  const clone = mkdtempSync(join(tmpdir(), 'superficiel-'))
+  try {
+    gitDuBanc(tmpdir(), ['clone', '-q', '--no-local', '--depth', '2', `file://${racine.replace(/\\/g, '/')}`, join(clone, 'c')])
+    const d = forge(join(clone, 'c'))
+    const graphe = grapheDe(d, ['HEAD'])
+    const borne = graphe.find((x) => x.parents.length === 0)
+    assert.ok(borne, `graphe : ${JSON.stringify(graphe)}`)
+    const tout = gitDuBanc(join(clone, 'c'), ['ls-tree', '-r', '-z', '--name-only', borne.sha]).split('\0').filter(Boolean).sort(parUnitesDeCode)
+    assert.deepEqual([...cheminsDesCommits(d, [borne]).get(borne.sha)].sort(parUnitesDeCode), tout, 'la borne apporte tout son arbre')
+  } finally { jeter(clone) }
 })

@@ -23,8 +23,10 @@ describe('budget-contexte', () => {
     '.claude/skills/a/SKILL.md': '---\nname: a\ndescription: dix\n---\n\ncorps très long ignoré\n',
     '.claude/agents/b.md': '---\nname: b\ndescription: douze\n---\n\ncorps\n',
   }
+  /** Une lecture par LOT (`lireTout`) depuis un dictionnaire de textes. */
+  const parLot = (textes) => (chemins) => new Map(chemins.map((c) => [c, textes[c] ?? null]))
   const io = {
-    lire: (chemin) => FAUX[chemin] ?? null,
+    lireTout: parLot(FAUX),
     lister: (dossier) => (dossier === '.claude/skills' ? ['a'] : dossier === '.claude/agents' ? ['b.md'] : []),
   }
 
@@ -43,13 +45,13 @@ describe('budget-contexte', () => {
   })
 
   test('un fichier en CRLF pèse le même nombre d’octets qu’en LF (worktree du harnais)', () => {
-    const crlf = { lire: (c) => FAUX[c]?.replace(/\n/g, '\r\n') ?? null, lister: io.lister }
+    const crlf = { lireTout: parLot(Object.fromEntries(Object.entries(FAUX).map(([c, t]) => [c, t.replace(/\n/g, '\r\n')]))), lister: io.lister }
     assert.equal(mesurerBudget('/nulle-part', crlf).total, mesurerBudget('/nulle-part', io).total)
   })
 
   test('un import @ ne se suit qu’UNE passe : l’import d’un import n’entre pas', () => {
     const chaine = {
-      lire: (c) => ({ 'CLAUDE.md': '@a.md\n', 'a.md': '@b.md\n', 'b.md': 'xxxxxxxxxx\n' })[c] ?? null,
+      lireTout: parLot({ 'CLAUDE.md': '@a.md\n', 'a.md': '@b.md\n', 'b.md': 'xxxxxxxxxx\n' }),
       lister: () => [],
     }
     assert.deepEqual(mesurerBudget('/nulle-part', chaine).postes.map((p) => p.nom), ['CLAUDE.md', 'a.md'])
