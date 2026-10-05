@@ -6,7 +6,7 @@
 // se juge avant la publication, par son propre message, ou par un commit POSTÉRIEUR de la plage qui nomme son sha.
 import { estFichierVitest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
-import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
 
 /** Le seuil de SUBSTANCE d'un commit : au commit, ses lignes de diff sous `src/` ; à la publication,
  *  les lignes CHANGÉES (ajoutées ou supprimées) sous `src/` de la résolution d'une fusion (#2328 A4). */
@@ -184,6 +184,6 @@ export function verdictDePublication(depot, bornes) {
       : { ok: true, texte: `${plageEnClair(borne)} : toute résolution substantielle de fusion est jugée` }
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    return { ok: false, texte: `⛔ lecture git indisponible : ${e.raison} — la porte de publication ne juge pas ce que git n'a pas lu.` }
+    return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte de publication ne juge pas ce que git n'a pas lu.` }
   }
 }
