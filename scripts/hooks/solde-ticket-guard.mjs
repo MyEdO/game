@@ -53,6 +53,13 @@
 //   `evaluateReclassementsCss`    module qui FRANCHIT la frontière CSS (`reclassementCss.mjs`) sans
 //                                 `RECLASSEMENT:` au message, ou ligne sans franchissement.
 //
+// FUSION EN COURS (`MERGE_HEAD`, #2328, Attendu) — « Sauver une fusion résolue est un geste de
+// CONSERVATION, pas une livraison. Il se commite et se pousse sans les trailers de livraison. » :
+// `evaluateAntiEsquive` et `evaluateJuge` se TAISENT ; toutes les évaluations qui lisent le DIFF du
+// commit jugent son APPORT PROPRE (de sa fusion automatique à l'image qu'elle commite, `diffDuCommit`),
+// jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
+// toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
+//
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
 // reste à 10 s. Un hook tué au `timeout` n'émet RIEN, et le geste passe. D'où DEUX ÉTAGES : le premier
 // prend toutes les décisions que rien d'autre ne rejuge et sort au premier refus ; le second juge les
@@ -146,7 +153,7 @@ import {
   PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
+  GitIndisponible, INDEX, SUIVI, apportDeLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
   estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
@@ -2129,11 +2136,12 @@ export function validateRefFile(content) {
 /**
  * Décision anti-esquive (PURE, testable). `stagedTouchesSrc`/`stagedTotalLines` = état du diff
  * STAGED (`git diff --cached`), injectés par `evaluerSolde`. `readRefFile(n)` lit
- * `.claude/soldes/ref-<n>.md` (ou `null`).
+ * `.claude/soldes/ref-<n>.md` (ou `null`). `fusionEnCours` (`MERGE_HEAD`, `diffDuCommit(…).enFusion()`) :
+ * silence — sauver une fusion n'est pas une livraison (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateAntiEsquive({ command, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluateAntiEsquive({ command, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
+  if (!command || !isGitCommitCommand(command) || fusionEnCours) return null
   if (!stagedTouchesSrc) return null
   if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
 
@@ -2225,10 +2233,11 @@ export function validateJugeVisionFile(content) {
  * Décision JUGE (PURE, testable). Même périmètre de déclenchement qu'`evaluateAntiEsquive` (silence
  * sur les fermetures, déjà couvertes par leur propre solde ; silence aussi sur un commit sans AUCUN
  * ticket rattaché — #591). `stagedTouchesUi` = le diff staged touche `src/ui/**` (tests compris).
+ * `fusionEnCours` : silence, comme `evaluateAntiEsquive` (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateJuge({ command, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluateJuge({ command, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
+  if (!command || !isGitCommitCommand(command) || fusionEnCours) return null
   if (!stagedTouchesSrc) return null
   if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
   if (extractClosedIssues(command).length > 0) return null
@@ -2557,13 +2566,16 @@ export function estFichierEcran(path) {
  * `fichiers` porte les DEUX bouts d'un renommage (`chemins` de l'entrée) : c'est par eux que la porte
  * des stocks voit le porteur source ET le porteur cible, qu'un solde prouve sa correction au NOUVEAU chemin, et qu'un `.tsx` renommé reste un ÉCRAN (#1720).
  * `totalLines` compte le renommage replié : c'est le VOLUME écrit, et un renommage n'écrit rien.
- * @param {readonly { plus: number | null, moins: number | null, chemins: string[] }[]} [entrees] */
-export function analyzeDiffDuCommit(entrees = []) {
+ * `ecranParInsertion` (l'apport d'une fusion en cours, #2328 A5) : un écran ne compte que s'il y gagne
+ * des lignes (`plus > 0`).
+ * @param {readonly { plus: number | null, moins: number | null, chemins: string[] }[]} [entrees]
+ * @param {{ ecranParInsertion?: boolean }} [options] */
+export function analyzeDiffDuCommit(entrees = [], { ecranParInsertion = false } = {}) {
   const totalLines = entrees.reduce((n, e) => n + (e.plus ?? 0) + (e.moins ?? 0), 0)
   const fichiers = entrees.flatMap((e) => e.chemins)
   return {
     touchesSrc: fichiers.some((f) => /^src\//.test(f)),
-    touchesUi: fichiers.some(estFichierEcran),
+    touchesUi: entrees.some((e) => (!ecranParInsertion || e.plus > 0) && e.chemins.some(estFichierEcran)),
     totalLines,
     fichiers,
   }
@@ -2625,7 +2637,10 @@ export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
  * `analyzeDiffDuCommit`), `diff(chemins)` (le `-U0` de ces chemins, de tout le commit sans argument,
  * en un `git diff` par côté de la forme), `contenu(f)`/`lirePreImage(f)` (le fichier APRÈS le commit, et dans sa BASE
  * — `sourceDeLaBase`), `contenus(rels)`/`preImages(rels)` puis `images(chemins)` (les mêmes, lus par lot : `lireEnLot`). Diffs, chemins et renommages lus par `ceQuiChange` (plomberie), contre `base()` : l'image de HEAD
- * (`imageDeHead`), l'arbre vide dans un dépôt sans premier commit, qui n'a que l'index.
+ * (`imageDeHead`), l'arbre vide dans un dépôt sans premier commit, qui n'a que l'index ; sous une
+ * fusion EN COURS (`enFusion()`), sa fusion automatique : le commit se lit par son APPORT PROPRE
+ * (`apport()`, `apportDeLaFusionEnCours`, une lecture), jamais par ce que ses parents fusionnés
+ * apportent (#2328 A2). Une fusion que git ne rejoue pas LÈVE `GitIndisponible` à la lecture de `base()`.
  *
  * `contenu(f)` est la lecture de `sourceDuCommit`, qui suit la forme JUSQU'AU FICHIER, et c'est là que
  * se règle la porte de FERMETURE : sous `git commit -m "… corrige #N" -- src/x.ts`, un solde stagé
@@ -2642,8 +2657,14 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
   const shaDeHead = () => (head === undefined ? (head = shaDe(depot, 'HEAD')) : head)
   const aHead = () => shaDeHead() !== null
   const contreIndex = () => forme === 'index' || !aHead()
+  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours`.
+  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  let fusionnes
+  const enFusion = () => (fusionnes ??= aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []).length > 0
+  let apportLu
+  const apport = () => (apportLu ??= enFusion() ? apportDeLaFusionEnCours(depot, image(), fusionnes) : null)
   let imageDeBase
-  const base = () => (imageDeBase ??= imageDeHead(depot))
+  const base = () => (imageDeBase ??= enFusion() ? apport().change.base : imageDeHead(depot))
   const vers = (apres, avant = base()) => ceQuiChange(depot, avant, apres)
   const image = () => (contreIndex() ? INDEX : SUIVI)
   const dans = (f) => pathspecs.some((ps) => pathMatchesPathspec(f, ps))
@@ -2683,18 +2704,15 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
     }
   }
   const sourceDeLaBase = () => sourceGit({ cwd: dir, arbre: base(), depot })
-  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours` : elle se lit
-  // comme la plage lit une fusion (`lecturesDeFusion`), son image étant ce que le commit emporte.
-  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  // La fusion en cours se lit aussi comme la plage lit une fusion (`lecturesDeFusion`), son image étant
+  // ce que le commit emporte.
   let enCours
   const fusion = () => {
     if (enCours !== undefined) return enCours
-    const fusionnes = aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []
-    if (!fusionnes.length) return (enCours = null)
-    const parents = [shaDeHead(), ...fusionnes]
+    if (!enFusion()) return (enCours = null)
     try {
-      const fait = ceQueFaitLaFusionEnCours(depot, parents, image())
-      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() && fait.base ? lireDepuis(fait.base) : fait, lireDepuis })
+      const { parents, change } = apport()
+      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() ? lireDepuis(base()) : change, lireDepuis })
       return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
     } catch (e) {
       if (!(e instanceof GitIndisponible)) throw e
@@ -2739,6 +2757,10 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
       }
     },
     renommages: () => new Map(unir((change, ps) => [...change.renommages(ps)], (e) => e)),
+    /** Les chemins que l'INDEX change contre `base()` : le lot stagé, l'apport stagé sous une fusion. */
+    stages: () => vers(INDEX).chemins(),
+    enFusion,
+    apport,
     fusion,
     deplaceLaFrontiereCss: (chemins) => {
       const f = fusion()
@@ -2756,12 +2778,10 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
   }
 }
 
-/** Chemins que l'arbre de travail change contre l'index (`etatDeLArbre`, colonne Y), ou, sous
- *  `cached`, que l'index change contre `HEAD` (`ceQuiChange`) dans `dir`. */
-export function readChangedNames(dir = process.cwd(), { cached = false, pannes = [] } = {}) {
-  const depot = depotDuHook(dir, pannes)
-  if (cached) return ceQuEmporteLIndex(depot).chemins()
-  return etatDeLArbre(depot).filter((e) => e.etat !== '??' && e.etat[1] !== ' ').map((e) => e.chemins[0])
+/** Chemins que l'arbre de travail change contre l'index (`etatDeLArbre`, colonne Y) dans `dir` ; ce
+ *  que l'index change, lui, se lit contre la base du commit (`diffDuCommit(…).stages()`). */
+export function readChangedNames(dir = process.cwd(), { pannes = [] } = {}) {
+  return etatDeLArbre(depotDuHook(dir, pannes)).filter((e) => e.etat !== '??' && e.etat[1] !== ' ').map((e) => e.chemins[0])
 }
 
 /** Fichiers de l'INDEX qui citent un des `numeros` (pré-filtre `git grep --cached -l`) : le scan de
@@ -3223,14 +3243,16 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // HOTE UNIQUE de sortie : tout refus porte la cible écartée.
   const dire = (decision) => verdictDe(avecCibleIgnoree(decision, cibleIgnoree))
   const ou = ouDeLaLecture(targetDir)
-  // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`).
-  const commit = diffDuCommit(command, targetDir, { pannes })
-  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat())
-  // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT.
-  const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
   // Tout refus d'une commande qui porte un commit PRÉSUMÉ commence par son motif.
   const presume = motifDuCommitPresume(command)
   const prefixe = (motif) => (presume ? `${presume} || ${motif}` : motif)
+  // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`) ; sous une fusion
+  // en cours, son APPORT PROPRE (`commit.base()`, #2328 A2 et A5). Une fusion que git ne rejoue pas LÈVE
+  // `GitIndisponible` : le refus nommé d'`evaluerSolde`, jamais une retombée sur le diff contre HEAD (#2328 D2).
+  const commit = diffDuCommit(command, targetDir, { pannes })
+  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat(), { ecranParInsertion: commit.enFusion() })
+  // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT.
+  const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
   if (fileError) {
     return dire({
       reason: prefixe(
@@ -3281,12 +3303,14 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // garde, un fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
   const antiEsquive = evaluateAntiEsquive({
     command: text,
+    fusionEnCours: commit.enFusion(),
     stagedTouchesSrc: touchesSrc,
     stagedTotalLines: totalLines,
     readRefFile: (n) => readRefFile(n, targetDir),
   })
   const juge = evaluateJuge({
     command: text,
+    fusionEnCours: commit.enFusion(),
     stagedTouchesSrc: touchesSrc,
     stagedTotalLines: totalLines,
     stagedTouchesUi: touchesUi,
@@ -3313,7 +3337,7 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   const hunks = evaluateHunksEmportes({
     command,
     fichiersModifies: readChangedNames(targetDir, { pannes }),
-    fichiersStages: readChangedNames(targetDir, { cached: true, pannes }),
+    fichiersStages: commit.stages(),
   })
   // BUDGET DU CONTEXTE PERMANENT : mesuré seulement si le commit touche un chemin du périmètre —
   // sinon aucune lecture n'est payée au-delà de l'image de `CLAUDE.md`, qui dit les fichiers IMPORTÉS
