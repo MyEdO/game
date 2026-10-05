@@ -7,7 +7,7 @@ import {
 } from './campaign';
 import { parseProject, projetVersDepot, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import { allAxes } from '../data';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { campagnesLivrees as livrees } from './projetsLivres.testkit';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
 import { materialiser } from '../../scripts/source/resoudre.mjs';
 import areneProjet from './arene/arene-projet.json';
@@ -139,15 +139,6 @@ describe('export portable d’une campagne livrée — la prose ADRESSÉE fait l
       })
       .map((a) => a.id);
     expect(sansTexte).toEqual([]);
-  });
-
-  /** Chaque campagne du jeu et SON fichier livré, appariés par l'`id` du document. */
-  const livrees = listerProjetsLivres().map((rel) => {
-    const texte = readFileSync(join(__dirname, rel), 'utf8');
-    const id = (JSON.parse(texte) as { id: string }).id;
-    const campagne = allBuiltinCampaigns.find((c) => c.id === id);
-    if (!campagne) throw new Error(`${rel} : aucune campagne du jeu d’id « ${id} »`);
-    return [rel, campagne, texte] as const;
   });
 
   it.each(livrees)('%s : la campagne du registre nomme SON fichier (`fichier`)', (rel, campagne) => {
