@@ -10,7 +10,8 @@
 // n'existant, il rend **exit 0**, soit le vert le plus fort qui soit sur un arbre pourtant réécrit.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
+import { lancerGit } from '../../test/gitDeBanc.mjs'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
@@ -23,7 +24,7 @@ import { efface } from './joue.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 
-const git = (cwd) => (args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
+const git = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
 function ecrire(racine, rel, texte) {
   mkdirSync(join(racine, dirname(rel)), { recursive: true })

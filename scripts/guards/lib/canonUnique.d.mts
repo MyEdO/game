@@ -90,6 +90,10 @@ export function lectureBruteDeCollection(p: {
   dataset: string;
   sitesAdmis?: readonly SiteAdmis[];
 }): Construction & { readonly indice: (texte: string) => boolean };
+export function appelReserve(p: {
+  nom: string;
+  fonctions: Readonly<Record<string, readonly string[]>>;
+}): Construction & { readonly indice: (texte: string) => boolean };
 export function comparaisonDAppel(p: {
   nom: string;
   fonctions: Readonly<Record<string, readonly string[]>>;

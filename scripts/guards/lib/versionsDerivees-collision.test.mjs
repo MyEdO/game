@@ -1,11 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { canoniser, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs'
-import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
+import { resultatDeGit } from '../../test/gitDeBanc.mjs'
+import { instanceDeDepot } from './depotGabarit.mjs'
 import { repoProgram } from './tsProgram.mjs'
 
 const RACINE = resolve(import.meta.dirname, '../../..')
@@ -47,7 +47,7 @@ for (const cas of [
   const { racine, sha: base } = instanceDeDepot({ fichiers: { [FICHIER]: texteDe() } })
   const cible = join(racine, FICHIER)
   const git = (args, statut = 0) => {
-    const vu = spawnSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' })
+    const vu = resultatDeGit(args, { cwd: racine })
     assert.ifError(vu.error)
     assert.equal(vu.status, statut, `${args.join(' ')}\n${vu.stdout}\n${vu.stderr}`)
     return vu.stdout.trim()

@@ -41,7 +41,7 @@ export const FEUILLES = Object.freeze([
     module: 'scripts/ops/fermer-depuis-main.mjs',
     bancs: Object.freeze(['scripts/ops/fermer-depuis-main.test.mjs']),
     pourquoi:
-      'porte le geste qui ferme les tickets SOLDÉS d’une plage poussée sur main (job `fermetures` de ' +
+      'porte le geste qui ferme les tickets SOLDÉS d’une plage de main rattrapée depuis la dernière course réussie (job `fermetures` de ' +
       'fermetures.yml) — le dépôt compte un SECOND site de fermeture, `scripts/ops/signaler-rouge.mjs` pour le ' +
       'canari, et les deux sont recensés par `sitesDeFermeture.mjs` (#1813)',
   }),

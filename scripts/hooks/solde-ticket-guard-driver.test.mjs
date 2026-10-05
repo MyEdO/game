@@ -7,11 +7,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 
 /** Dépôt jetable dont on juge un WORKTREE lié (`.git` fichier), l'arbre où vivent les chantiers.
@@ -19,7 +19,7 @@ import { lancerHook } from '../guards/lib/lancerHook.mjs'
 function depotDeChantier(params) {
   const { racine: depot } = instanceDeDepot(params)
   const racine = join(depot, '.wt-chantier')
-  execFileSync('git', ['worktree', 'add', '-q', '--detach', racine], { cwd: depot, env: envDeDepotForge(), stdio: 'ignore' })
+  lancerGit(['worktree', 'add', '-q', '--detach', racine], { cwd: depot })
   return { racine, depot }
 }
 
@@ -44,7 +44,7 @@ test('DRIVER : un message -F est lu dans le répertoire où le commit S\'EXÉCUT
     // Deux DÉPÔTS réels : hors dépôt, `git diff --cached` bascule en mode `--no-index` et la porte
     // refuse (à juste titre) pour ascendance indisponible — ce qui masquerait ce que ce test mesure.
     for (const d of [base, join(base, 'wt')])
-      execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: d, env: envDeDepotForge(), encoding: 'utf8' })
+      lancerGit(['init', '-q', '-b', 'main'], { cwd: d })
     // Homonyme ANODIN à la racine : c'est lui qu'une garde résolvant contre le cwd de départ
     // lirait — la fermeture portée par le vrai fichier resterait alors invisible.
     writeFileSync(join(base, 'm2.txt'), 'chore: rien a signaler\n', 'utf8')
@@ -129,7 +129,7 @@ test('DRIVER : tout refus porte la cible écartée, le `-F illisible` compris', 
 test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELLE du dépôt cible', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/touche.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     const sha = git('rev-parse', '--short=8', 'HEAD').trim()
 
     const aujourdhui = new Date()
@@ -166,7 +166,7 @@ test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELL
 test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CLIQUET au message', () => {
   const { racine: repo, depot } = depotDeChantier({ fichiers: { 'src/state/exemptions.test.ts': 'export const STOCK = [\n]\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     const stock = join(repo, 'src', 'state', 'exemptions.test.ts')
 
     writeFileSync(stock, ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
@@ -194,7 +194,7 @@ test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CL
 test('DRIVER : le palier compte le commit en cours par ce qu’il emporte -- `-a` non indexé le franchit, `-- <note>` non', () => {
   const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { 'scripts/a.txt': 'a\n', 'notes/d.md': 'd\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     const revue = `# PALIER (2026-09-24)\n\nverdict: CONFIRMÉ\n${'A'.repeat(90)}\n\n\`0000000..${socle}\`\n`
     mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
     writeFileSync(join(repo, '.claude', 'soldes', `revue-palier-2026-09-24-0000000-${socle}.md`), revue)
@@ -223,7 +223,7 @@ test('DRIVER : un refus d’étage 1 sort SANS jouer l’étage 2 (stocks, recla
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/state/exemptions.test.ts': 'export const STOCK = [\n]\n' }, message: 'socle' })
   try {
     writeFileSync(join(repo, 'src', 'state', 'exemptions.test.ts'), "export const STOCK = [\n  'src/a.ts',\n]\n", 'utf8')
-    execFileSync('git', ['add', '-A'], { cwd: repo, env: envDeDepotForge(), stdio: 'ignore' })
+    lancerGit(['add', '-A'], { cwd: repo })
     const refus = decisionOf('git commit -m "feat: une exemption de plus"', repo)
     assert.equal(refus?.decision, 'deny', 'le refus d’étage 1 doit sortir')
     assert.match(refus.reason, /Commit de SUBSTANCE sans ticket/)
@@ -245,7 +245,7 @@ test('DRIVER : un `git mv` de porteur ne grandit pas ; renommé PLUS une entrée
   for (const [nom, ajout] of [['renommage pur', []], ['renommage + 1 entrée', ["  'src/ui/Band.tsx',"]]]) {
     const { racine: repo, depot } = depotDeChantier({ fichiers: { [ancien]: source(entrees) }, message: 'socle' })
     try {
-      const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+      const git = gitDe(repo)
       git('mv', ancien, nouveau)
       if (ajout.length) writeFileSync(join(repo, nouveau), source([...entrees, ...ajout]), 'utf8')
       git('add', '-A')
@@ -281,7 +281,7 @@ test('DRIVER : un porteur SCINDÉ en deux ne grandit pas ; renommé MOINS une en
   for (const [nom, porteurs] of Object.entries(cas)) {
     const { racine: repo } = instanceDeDepot({ fichiers: { [ancien]: source(entrees) }, message: 'socle' })
     try {
-      const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+      const git = gitDe(repo)
       rmSync(join(repo, ancien))
       for (const [chemin, lignes] of Object.entries(porteurs)) writeFileSync(join(repo, chemin), source(lignes), 'utf8')
       git('add', '-A')
@@ -302,7 +302,7 @@ test('DRIVER : sur un renommage, le lot porte les DEUX chemins (solde au site, �
     fichiers: { 'src/ui/Ancien.tsx': 'export const A = 1\n' }, message: 'socle',
   })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     git('mv', 'src/ui/Ancien.tsx', 'src/ui/Nouveau.tsx')
     const aujourdhui = new Date()
     const jour = `${aujourdhui.getFullYear()}-${String(aujourdhui.getMonth() + 1).padStart(2, '0')}-${String(aujourdhui.getDate()).padStart(2, '0')}`
@@ -337,7 +337,7 @@ test('DRIVER : les TROIS formes de commit sont jugées sur ce qu\'elles emporten
   const chemin = 'scripts/guards/lib/xStock.mjs'
   const { racine: repo, depot } = depotDeChantier({ fichiers: { [chemin]: 'export const STOCK = [\n]\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     const stock = join(repo, chemin)
 
     // La croissance vit dans l'ARBRE DE TRAVAIL et NULLE PART dans l'index.
@@ -371,7 +371,7 @@ test('DRIVER : un stock au chemin NON-ASCII qui grandit est refusé — le patch
   const { racine: repo, depot } = depotDeChantier({ fichiers: { [porteur]: "export const STOCK = [\n  'src/a.ts',\n]\n" }, message: 'socle' })
   try {
     writeFileSync(join(repo, porteur), "export const STOCK = [\n  'src/a.ts',\n  'src/b.ts',\n]\n", 'utf8')
-    execFileSync('git', ['add', '--', porteur], { cwd: repo, env: envDeDepotForge(), stdio: 'ignore' })
+    lancerGit(['add', '--', porteur], { cwd: repo })
     const refus = decisionOf('git commit -m "feat: une exemption de plus (refs #1806)"', repo)
     assert.equal(refus?.decision, 'deny', 'aucune décision : le porteur cité a échappé à la porte')
     assert.ok(refus.reason.includes(`${porteur} : +1`), refus.reason)
@@ -386,7 +386,7 @@ function depotAStock() {
   const vide = 'export const STOCK = [\n]\n'
   const plein = ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n')
   const { racine: repo, depot } = depotDeChantier({ fichiers: { [chemin]: vide }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   return { repo, depot, git, chemin, vide, plein }
 }
 
@@ -605,7 +605,7 @@ test('DRIVER : `-m"ajoute…"` collé ne se lit pas comme un `-a` — l\'index s
 test('DRIVER : un solde stagé HORS pathspec ne vaut pas preuve — le refus dit pourquoi', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
     writeFileSync(
       join(repo, '.claude', 'soldes', '4242.md'),
@@ -635,7 +635,7 @@ test('DRIVER : un solde stagé HORS pathspec ne vaut pas preuve — le refus dit
 test('DRIVER : « corrigé par <sha> » dont le commit n\'existe pas dans le dépôt cible → refus', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/touche.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     const d = new Date()
     const jour = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
@@ -662,7 +662,7 @@ test('DRIVER : « corrigé par <sha> » dont le commit n\'existe pas dans le dé
 test('DRIVER : un commit de substance sans ticket est refusé ; avec `refs #N`, il passe', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     writeFileSync(join(repo, 'src', 'x.ts'), 'export const a = 2\n', 'utf8')
     git('add', 'src/x.ts')
 
@@ -687,7 +687,7 @@ test('DRIVER : `evaluateHunksEmportes` refuse pareil dans l’arbre PRINCIPAL et
   const { racine: lie, depot } = depotDeChantier({ fichiers, message: 'socle' })
   try {
     for (const [arbre, nom] of [[principal, 'principal'], [lie, 'worktree lié']]) {
-      const git = (...args) => execFileSync('git', args, { cwd: arbre, env: envDeDepotForge(), stdio: 'ignore' })
+      const git = gitDe(arbre)
       writeFileSync(join(arbre, 'notes', 'a.md'), '# a\nstagé\n', 'utf8')
       git('add', 'notes/a.md')
       writeFileSync(join(arbre, 'notes', 'a.md'), '# a\nstagé\nnon stagé\n', 'utf8')
@@ -704,7 +704,7 @@ test('DRIVER : `evaluateHunksEmportes` refuse pareil dans l’arbre PRINCIPAL et
 test('DRIVER : un commit hors src/ et scripts/ passe sans ticket', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'docs/architecture.md': '# carte\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     writeFileSync(join(repo, 'docs', 'architecture.md'), '# carte\n\nune ligne de plus\n', 'utf8')
     git('add', 'docs/architecture.md')
 
@@ -721,7 +721,7 @@ test('DRIVER : un commit hors src/ et scripts/ passe sans ticket', () => {
 test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU, ou `diff-index` en panne) est un `deny` NOMMÉ', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const git = gitDe(repo, { net: true })
     writeFileSync(join(repo, 'src', 'x.ts'), 'export const x = 2\nexport const y = 3\n', 'utf8')
     git('add', 'src/x.ts')
     const commande = 'git commit -m "feat(x): y (refs #1806)"'
@@ -747,7 +747,7 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
 test('DRIVER : un dépôt SANS premier commit et un commit qui touche `CLAUDE.md` — la base est l’arbre vide, le hook ne tombe pas', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'CLAUDE.md': '# x\n', '.claude/skills/a/SKILL.md': 's\n' }, commit: false })
   try {
-    execFileSync('git', ['add', 'CLAUDE.md', '.claude/skills/a/SKILL.md'], { cwd: repo, env: envDeDepotForge(), stdio: 'ignore' })
+    lancerGit(['add', 'CLAUDE.md', '.claude/skills/a/SKILL.md'], { cwd: repo })
     const out = decisionOf('git commit -m "chore: socle"', repo)
     assert.doesNotMatch(out?.reason ?? '', /BorneAbsente|lecture git indisponible/)
   } finally {

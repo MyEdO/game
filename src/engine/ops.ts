@@ -26,7 +26,7 @@ import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import { bypassedAP } from './armourBypass';
-import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits } from './grantedTraits';
+import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
 import { rollObsession } from '../data/obsessions';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
@@ -2111,7 +2111,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
       case 'removeTrait': {
         const gone = removeGrantedTraitsFrom(target, o.traitId, ctx.source);
         if (!gone.length) break; // rien d'accordé par cette source — rien à dire
-        if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait === g));
+        if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait && sameInstance(e.grantedTrait, g)));
         lines.push(t('op.removeTrait', { name: target.label, trait: formatTrait(gone[0]) }));
         break;
       }

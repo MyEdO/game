@@ -11,11 +11,11 @@
 // et l'arbre suivi du verdict de git lui-même (`git ls-files`).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { rendre } from './build-catalogs.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from './motif-catalogues.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -26,6 +26,6 @@ test('tout catalogue RENDU est ATTEINT par le motif, cible du générateur', () 
 })
 
 test('le motif n’atteint aucun fichier SUIVI : un manuscrit qu’il toucherait serait réécrit par le générateur', () => {
-  const suivis = execFileSync('git', ['ls-files', '--', 'docs/raw'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
+  const suivis = gitDeLArbreReel(ROOT)('ls-files', '--', 'docs/raw').split('\n').filter(Boolean)
   assert.deepEqual(suivis.filter((f) => correspondGlob(f, MOTIF_CATALOGUES)), [])
 })

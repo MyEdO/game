@@ -6,13 +6,23 @@ name: Fermetures
 # file de fusion (#2178) : le sha poussé est un commit de file, jugé par `ci.yml` sur `merge_group`.
 # Aucun `needs:` possible vers ces jobs d'un autre événement : leurs check-runs se LISENT
 # (scripts/ops/checks-requis.mjs), et aucun ticket ne se ferme s'ils ne sont pas tous verts.
+# La plage fermée part du dernier commit où ce workflow a RÉUSSI, pas de `event.before` : une course
+# rouge, annulée ou jamais lancée est rattrapée par la suivante (#2155, `baseDeLaPlage`), dans la limite
+# du plafond de recul — le dépasser est DIT par un `::warning::` ; des courses illisibles ROUGISSENT.
+# Les courses se SÉRIALISENT (`concurrency`, sans annulation en vol) : deux courses ne traitent jamais
+# le même ticket ensemble, et une course en attente annulée par GitHub est rattrapée par la suivante.
 on:
   push:
     branches: [main]
 
+concurrency:
+  group: fermetures
+  cancel-in-progress: false
+
 permissions:
   contents: read
   checks: read
+  actions: read
   issues: write
 
 jobs:
@@ -20,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # L'histoire complète : le script lit les MESSAGES de la plage poussée et le solde que chaque
-      # commit EMPORTE (`git show <sha>:.claude/soldes/<N>.md`).
+      # L'histoire complète : le script lit les MESSAGES de la plage, le solde que chaque commit
+      # EMPORTE (`git show <sha>:.claude/soldes/<N>.md`) et les premiers parents de sa base.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -33,14 +43,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SHA: ${{ github.sha }}
         run: node scripts/ops/checks-requis.mjs
-      - name: Fermer les tickets soldés par la plage poussée
+      - name: Fermer les tickets soldés depuis la dernière course réussie
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
-        run: |
-          case "$BEFORE" in *[!0]*) ;; *) BEFORE="$(git rev-parse "$SHA^")" ;; esac
-          node scripts/ops/fermer-depuis-main.mjs "$BEFORE..$SHA"
+        run: node scripts/ops/fermer-depuis-main.mjs --rattraper "$BEFORE..$SHA"
 
       # Ce workflow n'est pas la porte : il se NOMME en rougissant — registre
       # scripts/gates/workflowsDuDepot.mjs (#1779). Le signaleur n'importe que `node:*`.
@@ -50,10 +58,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           STATUT: ${{ job.status }}
+          BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
         run: |
+          PLAGE="$(node scripts/ops/fermer-depuis-main.mjs --plage "$BEFORE..$SHA")" || PLAGE="<plage non calculée, voir ce run>"
           RAPPORT="$RUNNER_TEMP/fermetures-rapport.md"
-          echo "Run $RUN_URL sur $SHA : job \`$STATUT\` — rejouer à la main : \`npm run ops:fermer -- <before>..$SHA\`" > "$RAPPORT"
+          echo "Run $RUN_URL sur $SHA : job \`$STATUT\` — rejouer à la main : \`npm run ops:fermer -- $PLAGE\`" > "$RAPPORT"
           node scripts/ops/signaler-rouge.mjs \
             --titre "Fermetures rouges" \
             --label canari \

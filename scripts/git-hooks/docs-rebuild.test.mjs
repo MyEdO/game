@@ -6,12 +6,12 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { mesurerEnRendu } from '../docs/build-all.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { planDuCheckout, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { gitDe } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -101,7 +101,7 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
 
 test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (`null`, on régénère), jamais vide', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
-  const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const g = gitDe(racine)
   writeFileSync(join(racine, 'b.txt'), 'b\n'); g('add', 'b.txt'); g('commit', '-q', '-m', 'b')
   g('update-ref', 'ORIG_HEAD', 'HEAD~1')
   try {

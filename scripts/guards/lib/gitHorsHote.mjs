@@ -10,6 +10,19 @@
 // Hors instruments Vitest (`estFichierVitest` : une suite FORGE des dépôts, un banc n'est pas une porte)
 // et hors l'hôte lui-même. Un module neuf y entre en naissant, ou en important l'hôte.
 //
+// LES TESTS DE `scripts/` (`estFichierVitest`, sources suivies) : le `lanceur` seul y est un site. Leur
+// git passe par le module de banc (`BANC`), qui capture le stderr d'un échec et pose
+// `envDeDepotForge()` (#2155) ; leurs `forme` et `decoupe` sont des arguments de banc, pas des lectures.
+// Hors de cette face : les tests Vitest de `src/`, et tout module non-test hors du périmètre ci-dessus.
+//
+// CE QUE `lanceur` NE VOIT PAS : un exécutable passé par VARIABLE (`spawnSync(GIT, …)`,
+// `spawnSync(commande, …)`) ou tiré d'un argv en tableau (`spawnSync(cmd[0], …)`) — le motif lit le
+// littéral `git`, pas une valeur. Sites vivants de cette forme : les espions injectés à la couture
+// `spawn` de l'hôte (`depotDe(…, { spawn })`), `gitPorte.test.mjs:457,912,1055,1068,1083` et
+// `publier.test.mjs:1527`. Ils relaient le binaire que l'HÔTE leur passe pour observer ses argv : c'est
+// la couture `spawn` qu'ils testent, et la fermer interdirait ce test. La garde ne les ferme donc pas ;
+// une résolution de valeur (variable → `'git'`) lui demanderait une analyse de flux qu'elle n'a pas.
+//
 // TROIS FORMES, chacune un site :
 //   · `lanceur`  — un appel dont le premier argument est l'exécutable `git` (`execFileSync('git', …)`,
 //     `run('git', …)`), ou un `exec`/`execSync` dont la ligne de commande commence par `git ` : git
@@ -68,7 +81,18 @@ export function sitesHorsHote(chemin, texte) {
   return sites.sort((a, b) => a.ligne - b.ligne)
 }
 
-/** Les sites du périmètre, lus sur le disque de `racine` (ou par `lire`). */
-export function sitesDuDepot(racine = RACINE, { lister = sourcesDesPortes, lire = (rel) => readFileSync(join(racine, rel), 'utf8') } = {}) {
-  return lister(racine).flatMap((rel) => sitesHorsHote(rel, lire(rel) ?? ''))
+/** Le module de banc : le lanceur git des tests de `scripts/`, hors du périmètre des portes. */
+export const BANC = 'scripts/test/gitDeBanc.mjs'
+
+/** Les tests suivis de `scripts/`, chemins POSIX relatifs, triés. */
+export function testsDeScripts(racine = RACINE) {
+  return listerImage(depotDe(racine), INDEX, 'scripts').filter((f) => MODULE.test(f) && estFichierVitest(f)).sort()
+}
+
+/** Les sites du périmètre, lus sur le disque de `racine` (ou par `lire`) : toutes les formes dans les
+ *  portes, le `lanceur` dans les tests de `scripts/`. */
+export function sitesDuDepot(racine = RACINE, { lister = sourcesDesPortes, listerTests = testsDeScripts, lire = (rel) => readFileSync(join(racine, rel), 'utf8') } = {}) {
+  const portes = lister(racine).flatMap((rel) => sitesHorsHote(rel, lire(rel) ?? ''))
+  const tests = listerTests(racine).flatMap((rel) => sitesHorsHote(rel, lire(rel) ?? '').filter((s) => s.forme === 'lanceur'))
+  return [...portes, ...tests]
 }
