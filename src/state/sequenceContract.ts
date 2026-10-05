@@ -173,10 +173,13 @@ export interface SequenceRoundActors {
 
 /** Ce que le réducteur de clôture REÇOIT : l'état, les rangées CLOSES de la manche, et un RNG injecté
  *  (les jets d'un camp sans porteur jouable s'y roulent — un réducteur ne tire jamais son propre dé). */
+/** Ce que la clôture LIT de la manche close : ses étapes, rien d'autre. */
+export type MancheClose = Pick<PendingCascade, 'participants'>;
+
 export interface SequenceCloseCtx<P> {
   get: Get;
   seq: SequenceState<P>;
-  done: PendingCascade;
+  done: MancheClose;
   rng: RNG;
 }
 

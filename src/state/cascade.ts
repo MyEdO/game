@@ -1025,20 +1025,6 @@ export function idDeLaDernierePoussee(): string | null {
 }
 
 /**
- * COMPTEUR d'identité d'une séquence. REPLI sur la longueur quand `seq` manque — une séquence
- * restaurée d'une sauvegarde ANTÉRIEURE à #1508, seul cas où elle n'en porte pas (toute séquence
- * ouverte par le code en pose un).
- *
- * Ce repli n'est PAS monotone : une longueur qui a reculé (troncature avant la sauvegarde) redonne un
- * id déjà porté, et `state/combatEffects.indexDeLEtapeQuiAttend` lève alors nommément plutôt que
- * d'accrocher la suite au mauvais porteur. Le régime des sauvegardes (MEMORY.md « SAVES : reset »,
- * 2026-08-17) ne migre pas une sauvegarde antérieure : elle se jette, le cas ne survit pas à un reset.
- */
-function seqDe(p: PendingCascade): number {
-  return p.seq ?? p.participants.length;
-}
-
-/**
  * La FENÊTRE qui accueille une poussée, ou `null` si elle doit aller au STORE (#1508). DEUX formes
  * d'ancrage, parce que le tableau en cours de validation n'est pas toujours dans le slot :
  *  - la séquence du STORE porte l'étape courante (pilotes interactif et « Tout résoudre ») ;
@@ -1072,7 +1058,7 @@ export function compteurDeSequence(s: Pick<GameState, 'pendingCascade'>, purpose
   const p = purpose ?? same?.purpose ?? cur?.purpose;
   const fenetre = p ? fenetrePour(same, p) : null;
   if (fenetre) return fenetre.seqBase + fenetre.inseres.length;
-  return same ? seqDe(same) : 0;
+  return same ? same.seq : 0;
 }
 
 /** Pousse UNE étape déjà formée dans la séquence de `purpose` (doctrine du slot ci-dessus). Quand
@@ -1237,7 +1223,7 @@ export function startCascade(
         ...same,
         ...fusionnerLesBornes(same, { log, travelHalt, roundBoundary, combatEndBoundary, restNights }),
         participants: [...same.participants, ...opts.steps],
-        seq: seqDe(same) + opts.steps.length,
+        seq: same.seq + opts.steps.length,
       }, same.cursor >= same.participants.length),
     });
     return;
@@ -1330,7 +1316,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // Le `max` garde le compteur MONOTONE si le slot a avancé de son côté (poussée hors fenêtre).
   const enSlot = get().pendingCascade;
   const dansLeSlot = !!enSlot && enSlot.participants.some((x) => x.id === step.id);
-  const seqBase = Math.max(pilote.seq, dansLeSlot ? seqDe(enSlot) : 0);
+  const seqBase = Math.max(pilote.seq, dansLeSlot ? enSlot.seq : 0);
   fenetreInsertion = { apres: step.id, inseres: [], seqBase, purpose: pilote.purpose, dernier: null, bornes: null };
   let out: ReturnType<CascadeApplier>;
   let lines: ReturnType<typeof resultLines>;
@@ -1645,7 +1631,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   // Le COMPTEUR d'identité (#1508) voyage avec le tableau : `commitStep` le rend augmenté de ce que
   // l'applier a poussé, et TOUTE écriture du slot le repose — sinon la prochaine poussée re-servirait
   // un id déjà porté.
-  let seq = seqDe(p);
+  let seq = p.seq;
   // La conséquence d'une étape vit sur l'ÉTAPE (`outcome`, affichée dans la pile) — pas dupliquée
   // dans `log` (réservé aux notes hors-jet : entretien). Évite le doublon « X contracte… » écran/journal.
   // PARITÉ DE TRACE (#1479) : un dé POSÉ D'OFFICE par le curseur (`poserLeCurseur`, aucun siège ne
@@ -1700,7 +1686,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
   if (!p) return null;
   let steps = p.participants;
   let log = p.log;
-  let seq = seqDe(p);
+  let seq = p.seq;
   let fondu: PendingCascade = p; // les bornes des fragments collectés par les appliers
   for (let i = p.cursor; i < steps.length; i++) {
     const st = steps[i];
