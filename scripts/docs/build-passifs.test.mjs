@@ -6,8 +6,9 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { instanceDeDepot, envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
-import ts from 'typescript'
+import { SymbolFlags } from 'typescript/unstable/sync'
 import { contexteImports } from '../guards/lib/canonUnique.mjs'
+import { virtualProgram, libererSessions } from '../guards/lib/tsProgram.mjs'
 import { loadSource } from './lib/jsdocUnion.mjs'
 import { canoniser, relatifSousRacine } from './lib/chemin-mesure.mjs'
 
@@ -151,14 +152,20 @@ for (const prive of [false, true]) {
       + (prive ? '\n/** Privé homonyme indésirable. */\nfunction produire() { return []; }' : '')
     const tr = prive ? trauma({ importee: "import { produire as emettre } from './source';", appel: 'emettre' }) : trauma()
     jouer(fichiers(tr, { 'src/engine/source.ts': source }), (sortie, racine) => {
-      const { sf } = loadSource(join(racine, 'src/engine/source.ts'))
-      const contexte = contexteImports(sf)
-      assert.equal(contexte.source, sf)
-      const checker = contexte.checker()
-      assert.equal(contexte.checker(), checker)
-      const symbole = checker.getExportsOfModule(checker.getSymbolAtLocation(sf)).find((s) => s.name === 'produire')
-      assert.ok(symbole.flags & ts.SymbolFlags.Alias)
-      assert.equal(checker.getAliasedSymbol(symbole).declarations[0], sf.statements[0])
+      const chemin = join(racine, 'src/engine/source.ts')
+      const session = virtualProgram({ [chemin]: source })
+      const erreurs = []
+      try {
+        const { sf } = loadSource(chemin, session.program.getSourceFile(chemin.replaceAll('\\', '/')))
+        const contexte = contexteImports(sf, session.checker)
+        assert.equal(contexte.source, sf)
+        const checker = contexte.checker()
+        assert.equal(contexte.checker(), checker)
+        const symbole = checker.getExportsOfModule(checker.getSymbolAtLocation(sf)).find((s) => s.name === 'produire')
+        assert.ok(symbole.flags & SymbolFlags.Alias)
+        assert.equal(checker.getAliasedSymbol(symbole).declarations[0].resolve(), sf.statements[0])
+      } catch (erreur) { erreurs.push(erreur) }
+      finally { libererSessions([session], erreurs) }
       const doc = documentDe(sortie)
       const ligne = ligneAncree(source, 'function interne')
       assert.ok(doc.includes(`| \`interne\` (appelé \`produire\`${prive ? ', `emettre`' : ''}) | \`src/engine/source.ts:${ligne}\` | Source interne canonique. |`))

@@ -2,7 +2,7 @@
  "id": "loup-et-saumure",
  "type": "projet",
  "label": "Le Loup et la Saumure",
- "schema": 17,
+ "schema": 18,
  "icon": "scenario/naval",
  "versionContenu": 1,
  "maison": "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer",
@@ -10,7 +10,34 @@
   "affaires": [],
   "indices": [],
   "presetsPnj": [],
-  "objets": []
+  "objets": [],
+  "documents": [
+   {
+    "id": "document-la-passerelle-du-grimm",
+    "titre": "La passerelle du Grimm",
+    "prose": "Le maître de quai croise les bras devant la passerelle. « Pas d’appareillage sans l’ordre du baron Köhler, capitaine. Voyez-le d’abord. »"
+   },
+   {
+    "id": "document-votre-intuition",
+    "titre": "Votre intuition",
+    "prose": "Un éclair de calcul froid passe dans le regard de Dame Kramer, vite maîtrisé. Cette femme cache quelque chose — et ce n’est pas une simple affaire de fret."
+   },
+   {
+    "id": "document-votre-intuition-2",
+    "titre": "Votre intuition",
+    "prose": "Rien ne transparaît — une négociante comme une autre, en apparence."
+   },
+   {
+    "id": "document-kramer-demasquee",
+    "titre": "Kramer démasquée",
+    "prose": "Elle craque. Ce n’est pas une négociante de Kislev, mais une initiée de Stromfels — c’est elle qui minait le Grimm depuis Salzenmund. Prise à découvert, elle n’a plus les mains libres : ses manigances cessent. L’équipage gronde."
+   },
+   {
+    "id": "document-la-nuit-du-chat",
+    "titre": "La nuit du chat",
+    "prose": "« Une insomnie de plus, capitaine. La traversée est éprouvante pour tous. »"
+   }
+  ]
  },
  "scenes": [
   {
@@ -384,8 +411,7 @@
             "kind": "do",
             "effect": {
              "type": "document",
-             "title": "La passerelle du Grimm",
-             "desc": "Le maître de quai croise les bras devant la passerelle. « Pas d’appareillage sans l’ordre du baron Köhler, capitaine. Voyez-le d’abord. »"
+             "documentId": "document-la-passerelle-du-grimm"
             }
            }
           ]
@@ -743,8 +769,7 @@
              "kind": "do",
              "effect": {
               "type": "document",
-              "title": "Votre intuition",
-              "desc": "Un éclair de calcul froid passe dans le regard de Dame Kramer, vite maîtrisé. Cette femme cache quelque chose — et ce n’est pas une simple affaire de fret."
+              "documentId": "document-votre-intuition"
              }
             },
             {
@@ -763,8 +788,7 @@
              "kind": "do",
              "effect": {
               "type": "document",
-              "title": "Votre intuition",
-              "desc": "Rien ne transparaît — une négociante comme une autre, en apparence."
+              "documentId": "document-votre-intuition-2"
              }
             }
            ]
@@ -2199,8 +2223,7 @@
              "kind": "do",
              "effect": {
               "type": "document",
-              "title": "Kramer démasquée",
-              "desc": "Elle craque. Ce n’est pas une négociante de Kislev, mais une initiée de Stromfels — c’est elle qui minait le Grimm depuis Salzenmund. Prise à découvert, elle n’a plus les mains libres : ses manigances cessent. L’équipage gronde."
+              "documentId": "document-kramer-demasquee"
              }
             },
             {
@@ -2219,8 +2242,7 @@
              "kind": "do",
              "effect": {
               "type": "document",
-              "title": "La nuit du chat",
-              "desc": "« Une insomnie de plus, capitaine. La traversée est éprouvante pour tous. »"
+              "documentId": "document-la-nuit-du-chat"
              }
             }
            ]

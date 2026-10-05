@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE — un ÉTAT (ouvert, pressé, sélectionné, courant, coché, désactivé) se lit sur son attribut ARIA,
  * jamais sur une classe qui le DOUBLE : la condition d'une classe égale à l'expression d'un
@@ -13,7 +14,7 @@
  * STOCK : sites présents, keyés `fichier | attribut | classe` ; il ne fait que décroître.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 const ETATS_ARIA = new Set(['aria-expanded', 'aria-pressed', 'aria-selected', 'aria-current', 'aria-checked', 'aria-disabled']);
@@ -36,7 +37,7 @@ function jetons(n: ts.Node): Set<string> {
     if (ts.isStringLiteral(c) || ts.isNoSubstitutionTemplateLiteral(c) || ts.isTemplateHead(c) || ts.isTemplateMiddle(c) || ts.isTemplateTail(c)) {
       for (const j of c.text.split(/\s+/)) if (j) out.add(j);
     }
-    ts.forEachChild(c, walk);
+    c.forEachChild(walk);
   };
   walk(n);
   return out;
@@ -56,7 +57,7 @@ function descendants(el: Element): Element[] {
     if (ts.isJsxSelfClosingElement(n)) { out.push(n); return; }
     if (ts.isJsxElement(n)) { out.push(n); n.children.forEach(walk); return; }
     if (ts.isJsxFragment(n)) { n.children.forEach(walk); return; }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   el.children.forEach(walk);
   return out;
@@ -79,15 +80,14 @@ function classesConditionnees(init: ts.Expression, sf: ts.SourceFile): { conditi
   const walk = (c: ts.Node): void => {
     if (ts.isConditionalExpression(c)) out.push({ condition: normaliser(c.condition, sf), classe: difference(jetons(c.whenTrue), jetons(c.whenFalse)) });
     if (ts.isBinaryExpression(c) && c.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) out.push({ condition: normaliser(c.left, sf), classe: [...jetons(c.right)].join(' ') });
-    ts.forEachChild(c, walk);
+    c.forEachChild(walk);
   };
   walk(init);
   return out;
 }
 
 /** Classes qui doublent un état ARIA, keyées `fichier | attribut | classe`. */
-export function classesQuiDoublentAria(src: string, file: string): string[] {
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+export function classesQuiDoublentAria(src: string, file: string, sf = ast({ rel: file, text: src })!): string[] {
   const out: string[] = [];
   const walk = (n: ts.Node): void => {
     if (ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n)) {
@@ -100,7 +100,7 @@ export function classesQuiDoublentAria(src: string, file: string): string[] {
         }
       }
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return out;
@@ -145,7 +145,7 @@ describe('état ARIA — jamais doublé par une classe', () => {
   });
 
   it('`src/ui` : les classes qui doublent un état ARIA ne sont que celles du stock', () => {
-    const sites = readCorpus(['src/ui']).filter((f) => f.rel.endsWith('.tsx')).flatMap((f) => classesQuiDoublentAria(f.text, f.rel));
+    const sites = [...analyserCorpus(readCorpus(['src/ui']).filter((f) => f.rel.endsWith('.tsx')))].flatMap(({ fichier: f, sourceFile }) => classesQuiDoublentAria(f.text, f.rel, sourceFile!));
     expect(compter(sites)).toEqual(STOCK);
   });
 });

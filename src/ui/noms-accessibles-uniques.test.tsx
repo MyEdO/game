@@ -10,7 +10,7 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { NarratifEditor } from './editor/NarratifEditor';
+import { NarratifEditor, type ProjetEdite } from './editor/NarratifEditor';
 import { CodexEdit } from './compendium/CodexEdit';
 import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import { creatures } from '../data';
@@ -43,8 +43,8 @@ const bouton = (texte: string) => {
 const cliquer = (el: HTMLElement) => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
 function Narratif({ initial }: { initial: NarratifBlock }) {
-  const [n, setN] = useState(initial);
-  return <NarratifEditor narratif={n} onChange={setN} onClose={() => {}} />;
+  const [p, setP] = useState<ProjetEdite>({ scenes: [], worldMap: null, narratif: initial });
+  return <NarratifEditor projet={p} onChange={setP} onClose={() => {}} />;
 }
 
 describe('noms accessibles uniques — éditeur Narratif', () => {

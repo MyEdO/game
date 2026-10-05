@@ -1,4 +1,4 @@
-import { ast, typescript } from './dialecte.mjs'
+import { analyserTexte, typescript } from './dialecte.mjs'
 import { ecartsDeStock } from './stock.mjs'
 
 export const siteDeForme = (f) => `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature}`
@@ -12,8 +12,8 @@ export function actualiserOccurrences(collections) {
       throw new Error(`${nom} : identités dupliquées`)
     if (ecarts.neuves.length || ecarts.perimees.length)
       throw new Error(`${nom} : identités inconnues ${ecarts.neuves.join('; ')} ; disparues ${ecarts.perimees.join('; ')}`)
-    const sf = ast({ rel, text: texte })
-    if (!sf || sf.parseDiagnostics.length) throw new Error(`${nom} : AST invalide`)
+    const { sourceFile: sf, diagnostics } = analyserTexte({ rel, text: texte })
+    if (!sf || diagnostics.length) throw new Error(`${nom} : AST invalide`)
     const declarations = sf.statements.filter((s) => ts.isVariableStatement(s)
       && s.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
       && (s.declarationList.flags & ts.NodeFlags.Const)).flatMap((s) => [...s.declarationList.declarations])

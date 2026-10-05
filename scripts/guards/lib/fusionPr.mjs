@@ -40,4 +40,3 @@ export function fusionDe(vu) {
   if (!lu.ok) return { ok: false, raison: vu.ok ? lu.raison : `${vu.raison} — ${lu.raison}` }
   return issueDeFusion(lu)
 }
-

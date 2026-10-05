@@ -1,3 +1,4 @@
+import { analyserCorpus } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « le moteur ne ROULE pas le nœud qu'il LIT » (#1657 train B3).
 //
 // Le garde d'exclusivité du seam (`rollSeamExclusivity.mjs`, #274) exempte TOUT `src/engine/**` de
@@ -10,7 +11,7 @@
 // → `runCombatFlow`) ou le DIFFÈRE (patron `UpkeepDeferTest`) — il ne le roule pas, sinon l'issue est
 // décidée hors de toute fenêtre de joueur (ni Chance, ni Pacte, ni Résilience).
 //
-// Socle AST partagé (`typescript`, `ts.createSourceFile`) — MÊME parseur que `rollSeamExclusivity.mjs`
+// Socle AST partagé — MÊME parseur que `rollSeamExclusivity.mjs`
 // et `battleRngEngineLeak.mjs`, aucun second socle ; la clôture transitive du roulage reprend
 // l'algorithme de point fixe d'`engineRollerExports` (section (D) du registre des chemins de jet).
 //
@@ -66,7 +67,7 @@
 //    comme celui de la fonction ENGLOBANTE quand il y en a une (fail-closed) ; au niveau module, il
 //    ne l'est pas. Mesuré au 2026-09-02 : `src/engine/**` ne déclare aucun rouleur sous ces formes —
 //    0 morsure perdue. Les couvrir se fait AU SOCLE, pour les trois gardes à la fois, jamais ici seul.
-import tsModule from 'typescript';
+import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
 
 // Liaison LOCALE de l'API du compilateur — même FAIT mesuré qu'en tête de `rollSeamExclusivity.mjs`
@@ -107,7 +108,7 @@ function rawRollKind(node) {
 }
 
 /** Le type référence-t-il (nu, optionnel, en union/intersection, en générique) un type de nœud ?
- *  @param {import('typescript').TypeNode | undefined} t @returns {boolean} */
+ *  @param {import('typescript/unstable/ast').TypeNode | undefined} t @returns {boolean} */
 function typeReferencesNode(t) {
   if (!t) return false;
   if (ts.isParenthesizedTypeNode(t)) return typeReferencesNode(t.type);
@@ -144,7 +145,7 @@ function bodyDeclaresNode(body) {
   const visit = (n) => {
     if (found) return;
     if (ts.isVariableDeclaration(n) && typeReferencesNode(n.type)) { found = true; return; }
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   };
   visit(body);
   return found;
@@ -161,7 +162,7 @@ function bodyReadsThroughTest(body) {
       while (ts.isNonNullExpression(inner) || ts.isParenthesizedExpression(inner)) inner = inner.expression;
       if (ts.isPropertyAccessExpression(inner) && inner.name.text === 'test') { found = true; return; }
     }
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   };
   visit(body);
   return found;
@@ -175,8 +176,7 @@ function bodyReadsThroughTest(body) {
 function collectDecls(engineFiles) {
   /** @type {{ name, file, line, reads, rollsDirectly, calls: Set<string>, rollSites, callSites }[]} */
   const decls = [];
-  for (const { rel, text } of engineFiles) {
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true);
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(engineFiles)) {
     const visit = (node) => {
       const fn = functionOf(node);
       if (fn) {
@@ -194,7 +194,7 @@ function collectDecls(engineFiles) {
               callSites.push({ line: ligne, name: nom, detail: x.getText(sf).replace(/\s+/g, ' ').trim() });
             }
           }
-          ts.forEachChild(x, cv);
+          x.forEachChild(cv);
         };
         cv(fn.body);
         decls.push({
@@ -209,9 +209,9 @@ function collectDecls(engineFiles) {
           callSites,
         });
       }
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
     };
-    ts.forEachChild(sf, visit);
+    sf.forEachChild(visit);
   }
   return decls;
 }

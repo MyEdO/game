@@ -382,6 +382,47 @@ function lireLeLotOuLever(depot, args, opts, quoi) {
  *  (identité, signature, proxy, identifiants) fait foi. */
 const ecrire = (depot, args, { timeout, entree } = {}) => interroger(depot, args, { entree, timeout, options: [] })
 
+/** git-scm.com/docs/git-apply */
+export function appliquerCorrectif(depot, { patch, include }) {
+  const chemin = (valeur) => typeof valeur === 'string' && valeur.length > 0 && !valeur.startsWith('-')
+    && !Array.from(valeur).some(caractere => caractere.charCodeAt(0) < 32 || caractere.charCodeAt(0) === 127 || '\\:*?[]{}'.includes(caractere))
+    && valeur.split('/').every(segment => segment && segment !== '.' && segment !== '..')
+  if (!chemin(patch) || !chemin(include)) throw new TypeError('appliquerCorrectif : patch et include doivent être des chemins relatifs littéraux bornés')
+  const { cwd, env, spawn, attendre } = lanceurDe(depot)
+  const executer = (phase, options) => {
+    const argv = ['-c', 'core.autocrlf=false', 'apply', '--whitespace=error', `--include=${include}`, ...options, '--', patch]
+    let vu
+    try {
+      vu = feinteDeGit(env ?? process.env, argv, `git apply ${phase}`)
+        ?? lancer('git', argv, { cwd, env, spawn, attendre, site: `git apply ${phase}` })
+    } catch (error) {
+      vu = { error }
+    }
+    if (!vu || vu.error || vu.signal) {
+      const diagnostic = classer(vu, { cwd })
+      throw Object.assign(new GitIndisponible(diagnostic.raison), {
+        cause: vu?.error, phase, signal: vu?.signal, status: vu?.status,
+        stdout: String(vu?.stdout ?? ''), stderr: String(vu?.stderr ?? ''),
+      })
+    }
+    const resultat = { status: vu.status, stdout: String(vu.stdout ?? ''), stderr: String(vu.stderr ?? '') }
+    const faute = () => Object.assign(new Error(`Correctif refusé (${phase}, status ${resultat.status}) : ${resultat.stderr || 'raison non dite'}`), { name: 'CorrectifRefuse', phase, ...resultat })
+    if (resultat.status !== 0 && (phase === 'application' || resultat.status !== 1)) throw faute()
+    return { ...resultat, faute }
+  }
+  const initial = executer('vérification', ['--check'])
+  if (initial.status === 1) {
+    const inverse = executer('vérification inverse', ['--reverse', '--check'])
+    if (inverse.status === 1) {
+      const erreurs = [initial.faute(), inverse.faute()]
+      throw new AggregateError(erreurs, 'Correctif inapplicable', { cause: erreurs[1] })
+    }
+    return false
+  }
+  executer('application', [])
+  return true
+}
+
 /** Marques des images qui ne sont pas des refs : l'index, l'arbre de travail des chemins suivis
  *  présents sur le disque (`git commit -a`, `git commit -h` : « commit all changed files », un suivi
  *  supprimé du disque est supprimé), et l'arbre de travail entier, non-suivis compris. */

@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « branchement par IDENTITÉ dans du code GÉNÉRIQUE » (#842).
 // Doctrine utilisateur (2026-07-26, verbatim) : « "if (id=" n'est jamais une solution. Si je veux
 // rajouter d'autres options, je ne veux pas voir une suite d'id. Soit la cadence n'a rien a faire
@@ -9,7 +10,7 @@
 // tout aussi fautif — dans un code générique, on ne key pas, on lit un champ.
 //
 // Module ESM pur, consommé par src/ui/registry-id-branch-guard.test.ts. Le scan parse le fichier avec
-// le compilateur TypeScript (`ts.createSourceFile`) : la NATURE de la liaison (valeur reçue/itérée vs
+// le compilateur TypeScript : la NATURE de la liaison (valeur reçue/itérée vs
 // tenue par le module), l'opérateur et la littéralité de l'opérande se lisent sur l'AST — aucune liste
 // de noms d'offenseurs tolérés. En revanche l'EXPRESSION D'IDENTITÉ se reconnaît, elle, à une
 // CONVENTION DE NOM (`ID_NAME_RX` : `id`, `xxxId`, `ref`, `xxxRef`) : un registre dont le champ
@@ -20,9 +21,8 @@
 // n'est pas un critère de branchement ici : c'est le NOM du champ qui dit « identité ».
 // Le détail de ce que la garde ne voit pas est écrit noir sur blanc dans l'en-tête de
 // `scanRegistryIdBranch`.
-import tsModule from 'typescript';
+import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
-import { scriptKindDe } from './dialecte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs';
 import { contexteImports, estTableTotale, origineImportee } from './canonUnique.mjs';
 
@@ -44,9 +44,9 @@ export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
 
 /** Arbre syntaxique d'un fichier, bâti à chaque appel : l'appelant qui passe les deux scans sur le
  *  même fichier le tient et le leur passe (`tsProgram.mjs`, en-tête, pour la durée de vie).
- *  @param {string} relPath @param {string} contenu @returns {import('typescript').SourceFile} */
+ *  @param {string} relPath @param {string} contenu @returns {import('typescript/unstable/ast').SourceFile} */
 export function arbreDe(relPath, contenu) {
-  return ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+  return ast({ rel: relPath, text: contenu });
 }
 
 /**
@@ -188,7 +188,7 @@ function rootIdentifier(node) {
 export function bindingNames(name, out = []) {
   if (ts.isIdentifier(name)) out.push(name.text);
   else if (ts.isObjectBindingPattern(name) || ts.isArrayBindingPattern(name)) {
-    for (const el of name.elements) if (ts.isBindingElement(el)) bindingNames(el.name, out);
+    for (const el of name.elements) if (ts.isBindingElement(el) && el.name) bindingNames(el.name, out);
   }
   return out;
 }
@@ -283,7 +283,7 @@ function isLiteralStringCollection(node, literalCollections) {
 function isLiteralRecord(node, literalRecords) {
   const n = unwrap(node);
   if (ts.isObjectLiteralExpression(n)) {
-    return n.properties.length > 0 && n.properties.every((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && !!p.name && !ts.isComputedPropertyName(p.name));
+    return n.properties.length > 0 && n.properties.every((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && 'name' in p && p.name && !ts.isComputedPropertyName(p.name));
   }
   if (ts.isIdentifier(n)) return literalRecords.has(n.text);
   return false;
@@ -313,9 +313,9 @@ function collectLiteralHolders(sf, contexte) {
       else if (isLiteralRecord(node.initializer, records) && !estTableTotale(unwrap(node.initializer))) records.add(name);
       else computed.add(name);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   for (const name of computed) { collections.delete(name); records.delete(name); }
   for (const name of vocabulary) { collections.delete(name); records.delete(name); }
   return { collections, records };
@@ -357,7 +357,7 @@ function collectLiteralHolders(sf, contexte) {
  * Est en revanche SUIVI l'ALIAS d'identité (`const k = def.id; k === 'x'`, `switch (k)`), évasion la
  * plus probable en pratique : la liaison hérite le kind `IDENTITY`, indépendamment de son nom.
  * @param {string} relPath @param {string} contenu
- * @param {import('typescript').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
+ * @param {import('typescript/unstable/ast').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
  * @returns {{ line: number, detail: string, rule: 'id-equality'|'id-switch'|'id-membership'|'id-record' }[]}
  */
 export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, contenu)) {
@@ -392,17 +392,17 @@ export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, con
   };
 
   const visit = (node) => {
-    if (ts.isFunctionLike(node)) {
+    if (ts.isFunctionLikeDeclaration(node)) {
       const paramKind = isSelectionPredicate(node) ? SELECTOR : GENERIC;
       scopes.push();
       for (const p of node.parameters) for (const n of bindingNames(p.name)) scopes.declare(n, paramKind);
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
       scopes.pop();
       return;
     }
     if (ts.isBlock(node) || ts.isCaseBlock(node) || ts.isModuleBlock(node)) {
       scopes.push();
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
       scopes.pop();
       return;
     }
@@ -442,10 +442,10 @@ export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, con
       report(node, 'id-record');
     }
 
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
 
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   findings.sort((a, b) => a.line - b.line || parUnitesDeCode(a.rule, b.rule));
   return findings;
 }
@@ -491,7 +491,7 @@ export function countRegistryIdBranch(rel, contenu) {
  * Compté par NŒUD et non par ligne (contrairement au garde principal) : `id === 'a' ? … : id === 'b'`
  * sur une seule ligne pèse deux comparaisons, et n'en éteindre qu'une doit se voir.
  * @param {string} relPath @param {string} contenu
- * @param {import('typescript').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
+ * @param {import('typescript/unstable/ast').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
  * @returns {{ line: number, detail: string }[]}
  */
 export function scanRawIdEqualities(relPath, contenu, sf = arbreDe(relPath, contenu)) {
@@ -533,9 +533,9 @@ export function scanRawIdEqualities(relPath, contenu, sf = arbreDe(relPath, cont
         findings.push({ line, detail: (lines[line - 1] || '').trim() });
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   findings.sort((a, b) => a.line - b.line);
   return findings;
 }

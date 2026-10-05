@@ -265,11 +265,12 @@ src/state/
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
   campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
-                            = `{affaires, indices, presetsPnj, objets}`, EMBARQUÉ dans le JSON du projet, jamais
-                            copié dans `src/data` global (`narratifSchema` refuse toute collision d'id).
+                            = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
+                            `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
+                            global (`narratifSchema` refuse toute collision d'id).
   campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
                             `campaignNarratif` (posé par `loadProject`) par id STABLE. `presetPnjById`/`affaireById`/
-                            `indiceById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
+                            `indiceById`/`documentById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
                             campagne-D'ABORD puis règle globale (`findTrappingById`). Maps mémoïsées par référence du
                             bloc. Le moteur reste PUR : `engine/items` reçoit ce `trappingById` en résolveur injecté
                             (défaut = global) aux sites d'état `giveTrapping` — il n'importe jamais le store.

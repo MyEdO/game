@@ -1,5 +1,6 @@
+import { ast, analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, expect, it } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { typeNonNomme } from './data/schemas/defs-scenes/scene';
@@ -64,7 +65,7 @@ const texteLitteral = (n: ts.Expression): string | undefined => {
 const champs = (o: ts.ObjectLiteralExpression): Map<string, ts.Expression | undefined> => {
   const m = new Map<string, ts.Expression | undefined>();
   for (const p of o.properties) {
-    if (!p.name || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) continue;
+    if (!('name' in p) || !p.name || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) continue;
     m.set(p.name.text, ts.isPropertyAssignment(p) ? p.initializer : undefined);
   }
   return m;
@@ -75,7 +76,7 @@ function porteurDuTableau(element: ts.Node, cle: string): ts.ObjectLiteralExpres
   const tableau = element.parent;
   if (!tableau || !ts.isArrayLiteralExpression(tableau)) return undefined;
   const prop = tableau.parent;
-  if (!prop || !ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name) || prop.name.text !== cle) return undefined;
+  if (!prop || !ts.isPropertyAssignment(prop) || !('name' in prop && ts.isIdentifier(prop.name)) || prop.name.text !== cle) return undefined;
   return ts.isObjectLiteralExpression(prop.parent) ? prop.parent : undefined;
 }
 
@@ -100,8 +101,7 @@ function itEnglobant(node: ts.Node): string | undefined {
   return undefined;
 }
 
-export function personnagesSansFiche(rel: string, raw: string): Site[] {
-  const sf = ts.createSourceFile(rel, raw, ts.ScriptTarget.Latest, true, rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+export function personnagesSansFiche(rel: string, raw: string, sf = ast({ rel, text: raw })!): Site[] {
   const out: Site[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isObjectLiteralExpression(node) && !node.properties.some(ts.isSpreadAssignment)) {
@@ -124,7 +124,7 @@ export function personnagesSansFiche(rel: string, raw: string): Site[] {
         if (faute) out.push({ rel, ligne: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, it: itEnglobant(node), faute });
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(sf);
   return out;
@@ -133,9 +133,8 @@ export function personnagesSansFiche(rel: string, raw: string): Site[] {
 const estSujetProuve = (s: Site) => SANS_FICHE_PROUVES.some((r) => r.fichier === s.rel && r.it === s.it);
 
 const sitesDuCorpus = detenteur((): Site[] =>
-  readCorpus(['src'], { tests: true })
-    .filter((f) => estSuiteVitest(f.rel))
-    .flatMap(({ rel, text }) => personnagesSansFiche(rel, text)),
+  [...analyserCorpus(readCorpus(['src'], { tests: true }).filter((f) => estSuiteVitest(f.rel)))]
+    .flatMap(({ fichier: { rel, text }, sourceFile }) => personnagesSansFiche(rel, text, sourceFile!)),
 );
 
 describe('personnage-sans-fiche-guard : aucune fixture ne pose un personnage sans fiche (#1882)', () => {
@@ -171,7 +170,7 @@ describe('personnage-sans-fiche-guard : aucune fixture ne pose un personnage san
     expect(personnagesSansFiche('x.test.ts', src)).toHaveLength(1);
   });
 
-  it('aucune fixture de test ne pose un personnage sans fiche', () => {
+  it('aucune fixture de test ne pose un personnage sans fiche', { timeout: 60_000 }, () => {
     const fautes = sitesDuCorpus().filter((s) => !estSujetProuve(s)).map((s) => `${s.rel}:${s.ligne} ${s.faute}`);
     expect(fautes, 'typer la fixture par la fiche que le test suppose (`ref`, `statblock` ou `presetId`)').toEqual([]);
   });

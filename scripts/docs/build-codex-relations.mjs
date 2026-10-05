@@ -18,7 +18,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'

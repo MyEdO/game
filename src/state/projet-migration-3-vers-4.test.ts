@@ -93,8 +93,14 @@ describe('PROJECT_MIGRATIONS[3] — un projet format 3 se charge à travers la m
     expect(node.choices.map((c) => c.label)).toEqual(['Le saluer', 'Insister']);
 
     const steps = (node.choices[1].flow as { steps: { effect: Record<string, unknown> }[] }).steps;
-    expect(steps.map((s) => s.effect.desc)).toEqual(['Il hausse les épaules.', 'Par ordre du baron…', 'Trouver le baron']);
-    for (const s of steps) expect(s.effect).not.toHaveProperty('text');
+    expect(steps.map((s) => s.effect)).toEqual([
+      { type: 'journal', desc: 'Il hausse les épaules.' },
+      { type: 'document', documentId: 'document-ordre-de-mission' },
+      { type: 'setObjective', id: 'obj-1', desc: 'Trouver le baron' },
+    ]);
+    // Le texte du document, rebaptisé `desc` par cette migration, est SOULEVÉ au registre par
+    // `PROJECT_MIGRATIONS[17]` (#679) : la chaîne entière le mène à `narratif.documents`.
+    expect(doc.narratif.documents).toEqual([{ id: 'document-ordre-de-mission', titre: 'Ordre de mission', prose: 'Par ordre du baron…' }]);
 
     // Prose ABSENTE = clé absente : le `desc: null` du snapshot embarqué ne survit pas.
     const ammo = (scene.entities[0] as unknown as { postes: { ammo: Record<string, unknown>[] }[] }).postes[0].ammo[0];

@@ -203,14 +203,25 @@ ol.grid {
   margin: 0 auto;
 }
 /* Géométrie de défilement du rail de `MasterDetail` (le reste de la primitive compose `Split`/`Stack`).
-   ≤700px, la liste passe en rangée qui s'enroule : plus de plafond, plus de défilement propre. */
-.master-detail-list {
+   Avec un slot d'ACTION (`MasterDetail action`), c'est la colonne `.master-detail-rail` qui porte le
+   plafond : la liste s'y rétrécit et défile, l'action reste sous elle, HORS de son défilement.
+   ≤700px, la liste passe en rangée qui s'enroule : plus de plafond, plus de défilement propre — sauf
+   dans la colonne à action, qui garde son plafond pour que l'action reste à l'écran. */
+.master-detail-list,
+.master-detail-rail {
   max-height: min(60vh, 520px);
-  overflow-y: auto;
 }
+.master-detail-list { overflow-y: auto; }
+.master-detail-rail { display: flex; flex-direction: column; gap: var(--sp-md); min-width: 0; }
+.master-detail-rail > .master-detail-list {
+  max-height: none;
+  min-height: 0;
+}
+.master-detail-action { flex: 0 0 auto; }
 @media (max-width: 700px) {
   .master-detail-list {
     max-height: none;
     overflow: visible;
   }
+  .master-detail-rail > .master-detail-list { overflow-y: auto; }
 }

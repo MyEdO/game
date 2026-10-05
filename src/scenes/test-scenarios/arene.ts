@@ -28,12 +28,13 @@ export const scenario: TestScenario = {
   tests: 'campagne vitrine complète : Bourg (bâtiments/intérieurs), échelle des 13 zones, contrats, carte du monde, marchands, fouilles',
   partyNote: 'Groupe d’arène pré-tiré (+1 ration chacun)',
   construire: () => {
-    const { scenes, worldMap } = paquetDuJeu(areneCampaign);
+    const { scenes, worldMap, narratif } = paquetDuJeu(areneCampaign);
     return {
       party: groupe(),
       scene: scenes.find((s) => s.id === 'arene-hub')!,
       extraScenes: scenes.filter((s) => s.id !== 'arene-hub'),
       worldMap,
+      narratif,
     };
   },
 };

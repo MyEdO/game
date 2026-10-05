@@ -14,6 +14,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { closureOf, clotureDImports, directImportsOf } from './importGraph.mjs';
+import { analyserCorpus } from './dialecte.mjs';
 
 /**
  * Calcule, pour chaque module atteint par au moins une closure système, le NOMBRE de systèmes qui
@@ -25,6 +26,7 @@ import { closureOf, clotureDImports, directImportsOf } from './importGraph.mjs';
  */
 export function computeOwnerSystems(systemes, cache = new Map()) {
   const owners = new Map();
+  closureOf(systemes.flatMap((s) => s.modules), { cache });
   for (const s of systemes) {
     for (const rel of closureOf(s.modules, { cache })) {
       const list = owners.get(rel) ?? [];
@@ -41,11 +43,13 @@ export function computeOwnerSystems(systemes, cache = new Map()) {
  * @param {string} primitiveFile chemin POSIX relatif à la racine du repo
  * @param {string} contenu
  * @param {Map<string, string[]>} ownerSystems (`computeOwnerSystems`)
+ * @param {import('typescript/unstable/ast').SourceFile} [sourceFile]
+ * @param {readonly import('typescript/unstable/sync').Diagnostic[]} [diagnostics]
  * @returns {{ target: string, systemId: string }[]}
  */
-export function scanGenericDomainImport(primitiveFile, contenu, ownerSystems) {
+export function scanGenericDomainImport(primitiveFile, contenu, ownerSystems, sourceFile, diagnostics) {
   const findings = [];
-  for (const target of directImportsOf(primitiveFile, contenu)) {
+  for (const target of directImportsOf(primitiveFile, sourceFile ?? contenu, { diagnostics })) {
     if (target === primitiveFile) continue;
     const owners = ownerSystems.get(target);
     if (owners && owners.length === 1) findings.push({ target, systemId: owners[0] });
@@ -67,11 +71,29 @@ export function scanGenericDomainImport(primitiveFile, contenu, ownerSystems) {
 export function scanAllPrimitives(primitives, systemes, readFile = (p) => readFileSync(p, 'utf8')) {
   const cache = new Map();
   const ownerSystems = computeOwnerSystems(systemes, cache);
-  const findings = [];
+  const lectures = [];
+  const parChemin = new Map();
   for (const p of primitives) {
     if (p.nature === 'organisme') continue;
     const contenu = readFile(p.fichier);
-    for (const f of scanGenericDomainImport(p.fichier, contenu, ownerSystems)) {
+    const chemin = resolve(p.fichier).split('\\').join('/');
+    const lecture = { primitive: p, contenu };
+    lectures.push(lecture);
+    const precedente = parChemin.get(chemin);
+    if (precedente && precedente.text !== contenu)
+      throw new Error(`scanAllPrimitives : textes différents pour le même chemin : ${precedente.rel} et ${p.fichier} (${chemin})`);
+    if (precedente) precedente.lectures.push(lecture);
+    else parChemin.set(chemin, { rel: p.fichier, text: contenu, lectures: [lecture] });
+  }
+  const mesures = new Map();
+  for (const { fichier, sourceFile, diagnostics } of analyserCorpus(parChemin.values())) {
+    for (const lecture of fichier.lectures)
+      mesures.set(lecture, scanGenericDomainImport(lecture.primitive.fichier, lecture.contenu, ownerSystems, sourceFile, diagnostics));
+  }
+  const findings = [];
+  for (const lecture of lectures) {
+    const p = lecture.primitive;
+    for (const f of mesures.get(lecture)) {
       const systeme = systemes.find((s) => s.id === f.systemId);
       if (!atteintSansLaPrimitive(systeme.modules, p.fichier, f.target, cache)) continue;
       findings.push({ primitiveId: p.id, fichier: p.fichier, target: f.target, systemId: f.systemId });

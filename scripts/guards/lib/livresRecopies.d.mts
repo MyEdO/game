@@ -21,4 +21,5 @@ export const SEUIL: number;
 export function estExclu(rel: string): boolean;
 export function identitesDe(registre: { id?: string; abbr?: string }[]): Map<string, string>;
 export function identitesReelles(): Map<string, string>;
-export function scanLivresRecopies(relPath: string, contenu: string, identites?: Map<string, string>): SiteDeRecopie[];
+export function scanLivresRecopies(relPath: string, contenu: string, identites?: Map<string, string>, sourceFile?: SourceFile): SiteDeRecopie[];
+import type { SourceFile } from 'typescript/unstable/ast';

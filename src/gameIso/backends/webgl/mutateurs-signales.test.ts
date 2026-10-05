@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs';
 /**
  * MUTATEURS SIGNALÉS (#1401) — tout export de `src/gameIso/backends/webgl/**` qui MUTE un objet three
  * déjà monté rend un signal de CHANGEMENT, et chacun de ses sites d'appel du monde volumique consomme
@@ -34,7 +35,7 @@
  * fichier voisin, y compris étrangère au foyer — le compte par fichier est le compromis retenu.
  */
 import { describe, expect, it } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { detenteur } from '../../../detenteur.testkit';
 
@@ -115,11 +116,6 @@ const FOYERS_SITE: readonly {
 
 // ── Outillage AST ────────────────────────────────────────────────────────────────────────────────
 
-function analyser(fichier: string, code: string): ts.SourceFile {
-  const kind = /\.tsx$/.test(fichier) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  return ts.createSourceFile(fichier, code, ts.ScriptTarget.Latest, true, kind);
-}
-
 const ligneDe = (sf: ts.SourceFile, n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
 
 export interface Mutateur {
@@ -133,7 +129,7 @@ export interface Mutateur {
 }
 
 function estExporté(n: ts.Node): boolean {
-  return ts.canHaveModifiers(n) && !!ts.getModifiers(n)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  return ('modifierFlags' in n) && typeof n.modifierFlags === 'number' && !!(n.modifierFlags & ts.ModifierFlags.Export);
 }
 
 function verdictDuRetour(retour: string): string {
@@ -144,8 +140,7 @@ function verdictDuRetour(retour: string): string {
 }
 
 /** Les exports mutateurs d'un fichier de `backends/webgl` — sélecteur du contrat, ci-dessus. */
-export function mutateursDe(fichier: string, code: string): Mutateur[] {
-  const sf = analyser(fichier, code);
+export function mutateursDe(fichier: string, code: string, sf = ast({ rel: fichier, text: code })!): Mutateur[] {
   const out: Mutateur[] = [];
   const retenir = (nom: string, params: readonly ts.ParameterDeclaration[], type: ts.TypeNode | undefined, n: ts.Node) => {
     if (!PREFIXES.test(nom)) return;
@@ -211,13 +206,12 @@ function estNu(n: ts.CallExpression): boolean {
   const p = n.parent;
   if (ts.isExpressionStatement(p)) return true;
   if (ts.isVoidExpression(p)) return true;
-  if (ts.isVariableDeclaration(p) && ts.isIdentifier(p.name) && p.name.text.startsWith('_')) return true;
+  if (ts.isVariableDeclaration(p) && ('name' in p && ts.isIdentifier(p.name)) && p.name.text.startsWith('_')) return true;
   return false;
 }
 
 /** Les appels des exports `noms` dans une source du monde volumique. */
-export function sitesDe(fichier: string, code: string, noms: ReadonlySet<string>): Site[] {
-  const sf = analyser(fichier, code);
+export function sitesDe(fichier: string, code: string, noms: ReadonlySet<string>, sf = ast({ rel: fichier, text: code })!): Site[] {
   const out: Site[] = [];
   const visiter = (n: ts.Node) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && noms.has(n.expression.text)) {
@@ -237,14 +231,14 @@ export function sitesDe(fichier: string, code: string, noms: ReadonlySet<string>
 // ── Le monde réel ────────────────────────────────────────────────────────────────────────────────
 
 const MUTATEURS = detenteur(() =>
-  readCorpus([DIR_WEBGL]).flatMap(({ rel, text }) =>
-    mutateursDe(rel, text).map((m) => ({ ...m, fichier: rel })),
+  [...analyserCorpus(readCorpus([DIR_WEBGL]))].flatMap(({ fichier: { rel, text }, sourceFile }) =>
+    mutateursDe(rel, text, sourceFile!).map((m) => ({ ...m, fichier: rel })),
   ),
 );
 const SIGNALANTS = detenteur(() => new Set(MUTATEURS().filter((m) => m.signalant).map((m) => m.nom)));
 const SITES = detenteur(() =>
-  readCorpus([DIR_WEBGL, DIR_STAGE]).flatMap(({ rel, text }) =>
-    sitesDe(rel, text, SIGNALANTS()).map((s) => ({ ...s, fichier: rel })),
+  [...analyserCorpus(readCorpus([DIR_WEBGL, DIR_STAGE]))].flatMap(({ fichier: { rel, text }, sourceFile }) =>
+    sitesDe(rel, text, SIGNALANTS(), sourceFile!).map((s) => ({ ...s, fichier: rel })),
   ),
 );
 /** Les sites qui laissent tomber un verdict, exclusions structurelles retirées. */

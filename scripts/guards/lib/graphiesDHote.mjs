@@ -29,10 +29,10 @@ const MODULE_DE_CHEMIN = /^module:(?:path|url)(?:\/(?:posix|win32))?$/
  * @param {string} [chemin] nom du fichier, qui fixe le dialecte de parse
  * @returns {{ ligne: number, extrait: string }[]} `ligne` 1-based, valable pour la source d'origine
  */
-export function lecturesDHote(source, chemin = 'source.ts') {
+export function lecturesDHote(source, chemin = 'source.ts', sourceFile) {
   return sitesDeGlobalesNode(source, chemin, {
     termes: TERMES,
     retenir: ({ sorte, valeurs }) =>
       (sorte !== 'nom' && valeurs.has('hote')) || (sorte === 'expression' && [...valeurs].some((v) => MODULE_DE_CHEMIN.test(v))),
-  })
+  }, sourceFile)
 }

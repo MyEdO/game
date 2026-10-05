@@ -1,25 +1,25 @@
 /**
  * LA POLICE DE LA POSSESSION SE MESURE (#1262 L1) — `ownsLocally` ne peut PAS être muré par export
  * (six consommateurs internes à `netOwnership`, plus un ré-export par `netFlow`) : ce qui tient la
- * porte UI (`ui/ownership.ts`) est le mur d'import `murs/possession` de `eslint.config.js`. Une règle
+ * porte UI (`ui/ownership.ts`) est le mur d'import `murs/possession` de `oxlint.config.mjs`. Une règle
  * qu'aucun test ne lance est décorative — un `group` mal écrit ou un `importNames` oublié passerait
  * en silence, comme le sélecteur trop étroit du verrou de forge (patron `built-brand-lint.test.ts`).
  *
- * Ici on la LANCE sur la config RÉELLE (API ESLint), aux deux chemins d'import et aux deux périmètres
+ * Ici on la LANCE sur la config RÉELLE (lanceur Oxlint), aux deux chemins d'import et aux deux périmètres
  * (sous la règle / module exempté), et on vérifie qu'elle ne mord PAS les autres exports.
  */
 import { describe, it, expect } from 'vitest';
-import { ESLint } from 'eslint';
+import { creerBancLint, selectionnerMessages } from '../../scripts/guards/lib/lint.testkit.mjs';
 
-const eslint = new ESLint({ cwd: process.cwd() });
+const eslint = creerBancLint();
 
 /** Fichier SOUS la règle (une fenêtre quelconque), et le module PORTE, qui en est exempté. */
 const SOUS_LA_REGLE = 'src/ui/__sonde-possession.ts';
 const LA_PORTE = 'src/ui/ownership.ts';
 
 async function messages(code: string, filePath = SOUS_LA_REGLE): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
-  return res.messages.filter((m) => m.ruleId === 'murs/possession').map((m) => `${m.line}:${m.column}`);
+  const [res] = await eslint.lintText(code, { filePath });
+  return selectionnerMessages(res, (m) => m.ruleId === 'murs/possession').map((m) => `${m.line}:${m.column}`);
 }
 
 describe('#1262 L1 — le lint refuse le prédicat d’état importé dans une fenêtre', () => {

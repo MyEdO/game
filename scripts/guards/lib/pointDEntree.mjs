@@ -29,7 +29,7 @@
  * cherche le script lancé ou balaie des drapeaux ; `import.meta.main` placé dans une propriété d'objet
  * ou rendu par `export default` : la décision se prend chez le lecteur de l'objet ou de l'export.
  */
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { methodeAppelee, sitesDeGlobalesNode } from './globalesNode.mjs'
 
 /**
@@ -51,7 +51,7 @@ const RECHERCHES_DANS_ARGV = new Set(['includes', 'indexOf', 'lastIndexOf'])
 /** L'identité du module est-elle opérande d'une égalité (`Object.is` compris), ou argument d'une
  *  recherche dans `argv` (`RECHERCHES_DANS_ARGV`) ? */
 function identiteComparee(noeud, valeursDe) {
-  for (let enfant = noeud, p = noeud.parent; p && !ts.isSourceFile(p) && !ts.isStatement(p) && !ts.isFunctionLike(p); enfant = p, p = p.parent) {
+  for (let enfant = noeud, p = noeud.parent; p && !ts.isSourceFile(p) && !ts.isStatement(p) && !ts.isFunctionLikeDeclaration(p); enfant = p, p = p.parent) {
     if (ts.isBinaryExpression(p) && EGALITES.has(p.operatorToken.kind)) return true
     const appel = ts.isCallExpression(p) && p.arguments.includes(enfant) ? methodeAppelee(p) : null
     if (appel?.methode === 'is' && ts.isIdentifier(appel.objet) && appel.objet.text === 'Object') return true
@@ -68,7 +68,7 @@ function identiteComparee(noeud, valeursDe) {
  * @param {string} [chemin] nom du fichier, qui fixe le dialecte de parse
  * @returns {{ ligne: number, extrait: string }[]} `ligne` 1-based, valable pour la source d'origine
  */
-export function detectionsDePointDEntree(source, chemin = 'source.ts') {
+export function detectionsDePointDEntree(source, chemin = 'source.ts', sourceFile) {
   return sitesDeGlobalesNode(source, chemin, {
     termes: TERMES,
     retenir: ({ noeud, sorte, valeurs, valeursDe }) => {
@@ -77,5 +77,5 @@ export function detectionsDePointDEntree(source, chemin = 'source.ts') {
       if (sorte !== 'expression' && valeurs.has('import.meta.main')) return true
       return sorte === 'expression' && valeurs.has('identite') && identiteComparee(noeud, valeursDe)
     },
-  })
+  }, sourceFile)
 }

@@ -2,7 +2,7 @@
  * Détenteur PARESSEUX d'un fichier de test (#1801) : la valeur se bâtit au premier appel du lecteur,
  * se partage entre les cas, et se libère au `afterAll` de la portée qui a appelé `detenteur` (le
  * fichier, ou le `describe` qui l'enveloppe). Sous `isolate: false` (`vite.config.ts`), une valeur
- * tenue en portée de collection sans libération vit autant que le worker : invariant à l'en-tête de
+ * tenue en portée de collection sans libération vit autant que le worker : sessions libérées par
  * `scripts/guards/lib/tsProgram.mjs`, garde `src/analyse-retention-guard.test.ts`, qui reconnaît un
  * appel de CETTE primitive, importée depuis ce module, en portée de collection d'un fichier de test.
  *
@@ -29,7 +29,7 @@ export const enCollecte = (): boolean => {
 };
 
 /** Lecteur paresseux de `fabrique`, vidé en `afterAll`. */
-export function detenteur<T>(fabrique: () => T): () => T {
+export function detenteur<T>(fabrique: () => T, liberer?: (valeur: T) => void): () => T {
   if (!enCollecte())
     throw new Error(
       'detenteur : appel hors de la collecte (dans un `it` ou un hook) — son `afterAll` ne s’exécuterait ' +
@@ -38,7 +38,9 @@ export function detenteur<T>(fabrique: () => T): () => T {
   const fichier = tacheCourante()?.file?.filepath;
   let tenu: { valeur: T } | undefined;
   afterAll(() => {
+    const precedent = tenu;
     tenu = undefined;
+    if (precedent) liberer?.(precedent.valeur);
   });
   return () => {
     const ici = tacheCourante()?.file?.filepath;

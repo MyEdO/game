@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { Inspector } from './Inspector';
-import { NarratifEditor } from './NarratifEditor';
+import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { ReglagesApparence } from './MonsterPartsFields';
 import { CodexEdit } from '../compendium/CodexEdit';
 import { DetailsScreen } from '../creator/CharacterCreator';
@@ -18,7 +18,7 @@ import { datasetArray } from '../../data/overrides';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyScene, type Scene } from '../../state/scene';
-import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -54,7 +54,7 @@ function monterInspecteur(): HTMLElement {
         enemyCreatures={[{ id: 'humain', label: 'Humain' }]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        narratif={emptyNarratif()}
         tool={{ mode: 'select' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
@@ -65,8 +65,8 @@ function monterInspecteur(): HTMLElement {
 }
 
 function HarnaisNarratif() {
-  const [n, setN] = useState<NarratifBlock>(emptyNarratif());
-  return <NarratifEditor narratif={n} onChange={setN} onClose={() => {}} />;
+  const [p, setP] = useState<ProjetEdite>({ scenes: [], worldMap: null, narratif: emptyNarratif() });
+  return <NarratifEditor projet={p} onChange={setP} onClose={() => {}} />;
 }
 
 function monterNarratif(): HTMLElement {

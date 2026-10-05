@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
@@ -771,7 +772,7 @@ export interface GameState extends RollFlowActionsMap {
   raiseHand: () => void;
   lowerHand: () => void;
   /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide. */
-  document: { title: string; text: string } | null;
+  document: { title: string; text: string; source?: SourceRef } | null;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
   previousScene: { id: string; pos: Pt } | null;
 

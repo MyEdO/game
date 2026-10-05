@@ -19,7 +19,8 @@
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc } from '../campagne/lib.mjs';
+import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc, remetLeDocument } from '../campagne/lib.mjs';
+import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
 import { dailyWaterLitres } from '../../src/engine/seaWeather.ts';
 import { itemFromTrappingById } from '../../src/engine/items.ts';
 
@@ -28,6 +29,15 @@ import { itemFromTrappingById } from '../../src/engine/items.ts';
  *  d'écriture. Rejouable à volonté dans un même process (toute séquence d'ids vit ICI ou est remise à
  *  zéro par `resetIds()`) — garde `src/scenes/generateurs-byte-stables.test.ts`. */
 export function build() {
+/** Documents remis au joueur (#679) — registre `narratif.documents` du paquet, dans l'ordre des scènes
+ *  qui les remettent ; les Effects les désignent par `documentId` (`remetLeDocument`). */
+const DOCUMENTS = {
+  passerelle: { id: 'document-la-passerelle-du-grimm', titre: 'La passerelle du Grimm', prose: 'Le maître de quai croise les bras devant la passerelle. « Pas d’appareillage sans l’ordre du baron Köhler, capitaine. Voyez-le d’abord. »' },
+  intuitionPercee: { id: 'document-votre-intuition', titre: 'Votre intuition', prose: 'Un éclair de calcul froid passe dans le regard de Dame Kramer, vite maîtrisé. Cette femme cache quelque chose — et ce n’est pas une simple affaire de fret.' },
+  intuitionMuette: { id: 'document-votre-intuition-2', titre: 'Votre intuition', prose: 'Rien ne transparaît — une négociante comme une autre, en apparence.' },
+  kramerDemasquee: { id: 'document-kramer-demasquee', titre: 'Kramer démasquée', prose: 'Elle craque. Ce n’est pas une négociante de Kislev, mais une initiée de Stromfels — c’est elle qui minait le Grimm depuis Salzenmund. Prise à découvert, elle n’a plus les mains libres : ses manigances cessent. L’équipage gronde.' },
+  nuitDuChat: { id: 'document-la-nuit-du-chat', titre: 'La nuit du chat', prose: '« Une insomnie de plus, capitaine. La traversée est éprouvante pour tous. »' },
+};
 let ammoSeq = 0;
 /** Munition de bord (`ItemInstance` kind:'ammo') bâtie par la couture CANONIQUE `itemFromTrappingById`
  *  (Dégâts/Qualités du catalogue), estampillée d'un uid STABLE et de sa quantité (le fond de soute). */
@@ -178,7 +188,7 @@ scenes.push(scene({
           kind: 'if', cond: flagWhen('ls_commission_acceptee'),
           then: flowOf([{ type: 'openWorldMap' }]),
           // Refus VISIBLE (modale) : « personne ne lit le journal » — le maître de quai barre la passerelle.
-          else: flowOf([{ type: 'document', title: 'La passerelle du Grimm', desc: 'Le maître de quai croise les bras devant la passerelle. « Pas d’appareillage sans l’ordre du baron Köhler, capitaine. Voyez-le d’abord. »' }]),
+          else: flowOf([remetLeDocument(DOCUMENTS.passerelle)]),
         },
         unique: true,
       }] },
@@ -324,10 +334,10 @@ scenes.push(scene({
                 // Révélation VISIBLE au moment (modale document) + flag + archive au journal.
                 [
                   { type: 'setFlag', flag: 'ls_kramer_soupconnee' },
-                  { type: 'document', title: 'Votre intuition', desc: 'Un éclair de calcul froid passe dans le regard de Dame Kramer, vite maîtrisé. Cette femme cache quelque chose — et ce n’est pas une simple affaire de fret.' },
+                  remetLeDocument(DOCUMENTS.intuitionPercee),
                   { type: 'journal', desc: 'Intuition : Dame Kramer cache quelque chose.' },
                 ],
-                [{ type: 'document', title: 'Votre intuition', desc: 'Rien ne transparaît — une négociante comme une autre, en apparence.' }],
+                [remetLeDocument(DOCUMENTS.intuitionMuette)],
               ),
               next: 'kr1',
             },
@@ -518,10 +528,10 @@ scenes.push(scene({
               [
                 { type: 'setFlag', flag: 'ls_kramer_demasquee' },
                 { type: 'adjustVessel', saboteurDR: 0 },
-                { type: 'document', title: 'Kramer démasquée', desc: 'Elle craque. Ce n’est pas une négociante de Kislev, mais une initiée de Stromfels — c’est elle qui minait le Grimm depuis Salzenmund. Prise à découvert, elle n’a plus les mains libres : ses manigances cessent. L’équipage gronde.' },
+                remetLeDocument(DOCUMENTS.kramerDemasquee),
                 { type: 'journal', desc: 'Dame Kramer démasquée : initiée de Stromfels, saboteuse. Le sabotage cesse.' },
               ],
-              [{ type: 'document', title: 'La nuit du chat', desc: '« Une insomnie de plus, capitaine. La traversée est éprouvante pour tous. »' }],
+              [remetLeDocument(DOCUMENTS.nuitDuChat)],
             ),
             next: 'nc1',
           },
@@ -744,6 +754,7 @@ return projectDoc({
   identite: { id: 'loup-et-saumure', label: 'Le Loup et la Saumure', icon: 'scenario/naval', versionContenu: 1, maison: "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer" },
   scenes,
   worldMap,
+  narratif: { ...emptyNarratif(), documents: Object.values(DOCUMENTS) },
 });
 }
 

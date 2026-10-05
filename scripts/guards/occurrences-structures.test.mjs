@@ -40,6 +40,11 @@ test('AST : propriétés ambiguës, expressions et formes non reconnues refusée
   assert.throws(() => actualiserOccurrences([collection({ observe: [{ ...a, occurrences: -1 }, b] })]), /entières littérales/)
 })
 
+test('AST syntaxiquement invalide : refus explicite avant toute préparation', () => {
+  const invalide = texte.replace('occurrences: 9 },', 'occurrences: 9 ,')
+  assert.throws(() => actualiserOccurrences([collection({ texte: invalide })]), /SLOTS : AST invalide/)
+})
+
 test('erreur du deuxième stock : aucun résultat publiable, sources intactes', () => {
   const premier = collection()
   const second = collection({ observe: [a] })

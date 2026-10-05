@@ -209,7 +209,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
 
 /**
  * UNE RÉVÉLATION RAPPORTE UN TIRAGE, ELLE N'EN OUVRE PAS (#1262 V2 L6) — `revealToStep` est la seule
- * fabrique d'étape EXEMPTÉE du lint de forge (`eslint.config.js`) hors des mints de `rollSeam` : tant
+ * fabrique d'étape EXEMPTÉE du lint de forge (`oxlint.config.mjs`) hors des mints de `rollSeam` : tant
  * que son `opts.table` acceptait une déclaration OUVERTE (`result` optionnel), elle pouvait produire
  * une étape d'interaction `'table'` — un tirage à faire, sans enjeu, qu'aucune porte n'a montée. Le
  * type le refuse désormais (`CascadeTableDone`) ; ce couple test + directive en est la mesure.

@@ -6,7 +6,9 @@
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
-import { ast, typescript } from './dialecte.mjs';
+import { analyserTexte, analyserCorpus, typescript } from './dialecte.mjs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 const EXTS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
 
@@ -26,28 +28,38 @@ const estRequire = (ts, appele) =>
 
 /**
  * Sites de module, liaisons et rôles lus dans un seul parcours AST. Le source texte est parsé par
- * `ast` ; un SourceFile fourni est réutilisé, ses nœuds et diagnostics conservés. Les positions
+ * `analyserTexte`, avec diagnostics séparés ; un SourceFile fourni est réutilisé sans reparsage,
+ * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. Les positions
  * utilisent cet arbre explicitement, y compris sans parents. Un nom synthétique porte position:null.
  * @param {string} fichier
- * @param {string | import('typescript').SourceFile} source
+ * @param {string | import('typescript/unstable/ast').SourceFile} source
+ * @param {readonly import('typescript/unstable/sync').Diagnostic[]} [diagnostics] diagnostics de l'arbre fourni
  */
-export function sitesDeModule(fichier, source) {
+export function sitesDeModule(fichier, source, diagnostics) {
   const ts = typescript();
-  const arbre = typeof source === 'string' ? ast({ rel: fichier, text: source }) : source;
+  const analyse = typeof source === 'string' ? analyserTexte({ rel: fichier, text: source }) : { sourceFile: source, diagnostics: diagnostics ?? [] };
+  const arbre = analyse.sourceFile;
   const texte = arbre.text;
-  const [faute] = arbre.parseDiagnostics ?? [];
+  const [faute] = analyse.diagnostics;
   if (faute) {
-    const ligne = arbre.getLineAndCharacterOfPosition(faute.start).line + 1;
-    throw new Error(`sitesDeModule : ${fichier} ne se parse pas, ligne ${ligne} : ${ts.flattenDiagnosticMessageText(faute.messageText, ' ')}`);
+    const ligne = arbre.getLineAndCharacterOfPosition(faute.pos).line + 1;
+    throw new Error(`sitesDeModule : ${fichier} ne se parse pas, ligne ${ligne} : ${faute.text}`);
   }
-  const litteral = (n) => (n && ts.isStringLiteralLike(n) ? n.text : null);
+  const litteral = (n) => (n && ts.isStringLiteralLikeNode(n) ? n.text : null);
   const position = (noeud) => {
     const debut = noeud.getStart(arbre);
     return { noeud, debut, fin: noeud.getEnd(), ligne: arbre.getLineAndCharacterOfPosition(debut).line + 1 };
   };
   const nom = (noeud) => noeud ? { nom: noeud.text ?? noeud.getText(arbre), position: position(noeud) } : null;
   const synthetique = (nom) => ({ nom, position: null });
-  const etoile = (noeud) => nom(noeud.getChildren(arbre).find((n) => n.kind === ts.SyntaxKind.AsteriskToken));
+  const etoile = (noeud) => {
+    let token = ts.getTokenAtPosition(arbre, noeud.getStart(arbre));
+    while (token && token.getStart(arbre) < noeud.end) {
+      if (token.kind === ts.SyntaxKind.AsteriskToken) return nom(token);
+      token = ts.findNextToken(token, noeud, arbre);
+    }
+    return null;
+  };
   const liaison = (forme, typeSeul, local, importe, exporte) => ({ forme, typeSeul: !!typeSeul, local, importe, exporte });
   const tetes = new Set(arbre.statements);
   const vus = [];
@@ -94,50 +106,32 @@ export function sitesDeModule(fichier, source) {
       if (n.expression.kind === ts.SyntaxKind.ImportKeyword) ajouter(n, 'appel', 'dynamique', true, spec);
       else if (estRequire(ts, n.expression)) ajouter(n, 'appel', 'require', true, spec);
     } else if (ts.isIdentifier(n) && n.text === 'createRequire') ajouter(n, 'fournisseur', 'require', false, null);
-    ts.forEachChild(n, visiter);
+    n.forEachChild(visiter);
   };
   visiter(arbre);
   return vus;
 }
 
-export const liaisonsDe = (fichier, source) => sitesDeModule(fichier, source)
+export const liaisonsDe = (fichier, source, diagnostics) => sitesDeModule(fichier, source, diagnostics)
   .flatMap(({ liaisons, ...site }) => liaisons.map((liaison) => ({ ...site, ...liaison })));
 
-export const chargementsDe = (fichier, source) => sitesDeModule(fichier, source)
+export const chargementsDe = (fichier, source, diagnostics) => sitesDeModule(fichier, source, diagnostics)
   .filter(({ acquisition, genre }) => acquisition || genre === 'fournisseur');
 
-export const specificateursDe = (fichier, source) => sitesDeModule(fichier, source)
+export const specificateursDe = (fichier, source, diagnostics) => sitesDeModule(fichier, source, diagnostics)
   .filter(({ acquisition, spec }) => acquisition && spec !== null)
   .map(({ spec, nature, ligne, debut, fin, texte }) => ({ spec, nature, ligne, debut, fin, texte }));
 
 /** Le `tsconfig.json` d'un dépôt, à sa racine. */
 export const CHEMIN_TSCONFIG = 'tsconfig.json';
 
-/** Options de compilation du dépôt du répertoire courant (`CHEMIN_TSCONFIG`), converties par le
- *  compilateur lui-même : c'est d'elles (`isolatedModules`, `verbatimModuleSyntax`,
- *  `preserveValueImports`…) que dépend l'effacement d'un import. Lues au PREMIER `sourceALExecution`, comme le compilateur (`typescript()`) : la
- *  clôture sans `typesEffaces` ne charge aucun paquet npm. */
-let compilerOptions = null;
-const optionsDuDepot = () =>
-  (compilerOptions ??= typescript().convertCompilerOptionsFromJson(
-    JSON.parse(readFileSync(resolve(CHEMIN_TSCONFIG), 'utf8')).compilerOptions,
-    resolve('.'),
-  ).options);
-
-/**
- * Le source tel que la COMPILATION l'émet : `ts.transpileModule` (le compilateur DÉCLARÉ du dépôt,
- * fichier par fichier comme le bundler en `isolatedModules`) sous les options du dépôt. Tout import
- * que la compilation EFFACE en est absent — `import type`, spécifieur `type`, import dont les liaisons
- * ne servent qu'au typage, `import('…')` en position de type — et un import à EFFET DE BORD y reste.
- * Oracle, pas heuristique : c'est ce que demande un appelant qui suit un EFFET DE MODULE (une
- * configuration posée au chargement), sans quoi il conclut à une atteignabilité que le bundle ne
- * réalise pas. Un module JS n'a aucun arc de type : il est rendu tel quel.
- * @param {string} fichier chemin (son extension choisit TS ou TSX) @param {string} texte
- * @returns {string}
- */
-export function sourceALExecution(fichier, texte) {
+export function sourceALExecution(fichier, texte, { racine = '.' } = {}) {
   if (!/\.[cm]?tsx?$/.test(fichier)) return texte;
-  return typescript().transpileModule(texte, { fileName: fichier, compilerOptions: optionsDuDepot() }).outputText;
+  const { transformSync } = require('rolldown/utils');
+  const config = resolve(racine, CHEMIN_TSCONFIG);
+  const resultat = transformSync(resolve(racine, fichier), texte, { tsconfig: existsSync(config) ? config : false });
+  if (resultat.errors.length) throw new Error(`sourceALExecution : ${fichier} : ${resultat.errors.map(e => e.message).join('; ')}`);
+  return resultat.code;
 }
 
 /**
@@ -213,13 +207,13 @@ export function resolveImport(fromFile, spec, existe = fichierExiste, alias = al
  * Les ARCS d'un module : ses spécificateurs (`specificateursDe`) résolus (`resolveImport`) contre
  * l'arbre que disent `existe` et `alias` (le disque et les alias du répertoire courant par défaut). Un
  * spécificateur qui ne se résout pas (paquet npm, fichier absent) ne fait pas d'arc.
- * @param {string} abs chemin absolu du module @param {string} texte
- * @param {{ existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
+ * @param {string} abs chemin absolu du module @param {string | import('typescript/unstable/ast').SourceFile} texte
+ * @param {{ existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[], diagnostics?: readonly import('typescript/unstable/sync').Diagnostic[] }} [options]
  * @returns {Arc[]}
  */
-export function arcsDe(abs, texte, { existe = fichierExiste, alias = aliasDuDepot() } = {}) {
+export function arcsDe(abs, texte, { existe = fichierExiste, alias = aliasDuDepot(), diagnostics } = {}) {
   const arcs = [];
-  for (const site of specificateursDe(abs, texte)) {
+  for (const site of specificateursDe(abs, texte, diagnostics)) {
     const cible = resolveImport(abs, site.spec, existe, alias);
     if (cible) arcs.push({ ...site, cible });
   }
@@ -228,27 +222,6 @@ export function arcsDe(abs, texte, { existe = fichierExiste, alias = aliasDuDepo
 
 /** Natures qu'écarte `dynamiques: false` : ce que le chargement ne lie pas avant d'évaluer. */
 const NON_LIEES = new Set(['dynamique', 'require']);
-
-/**
- * Enfants d'un module : TOUS ses arcs (`arcsDe`), sans borne ni filtre. `null` = fichier absent (hors
- * closure) ; `[]` = membre qui n'est pas un module (`estModule` : `.json`, #487) ou illisible.
- * `typesEffaces` lit le source À L'EXÉCUTION (`sourceALExecution`) : les arcs effacés n'y sont plus.
- * @param {string} abs @param {readonly { prefixe: string, vers: string }[]} alias
- * @param {boolean} typesEffaces
- * @returns {Arc[]|null}
- */
-function enfantsDe(abs, alias, typesEffaces) {
-  if (!existsSync(abs)) return null;
-  if (!estModule(abs)) return [];
-  let text;
-  try {
-    text = readFileSync(abs, 'utf8');
-  } catch {
-    return [];
-  }
-  if (typesEffaces) text = sourceALExecution(abs, text);
-  return arcsDe(abs, text, { alias });
-}
 
 /** Le régime sous lequel chaque cache de marche a été rempli : `typesEffaces` et la racine dont les
  *  alias résolvent. Un cache n'est valable que sous son régime. */
@@ -262,9 +235,7 @@ const regimeDesCaches = new WeakMap();
  * courant par défaut) ; ses racines relatives s'y résolvent, ses alias (`aliasDuDepot`) y sont lus. Un
  * membre HORS de `racine` lève une erreur qui nomme son importeur et son spécificateur.
  * `cache` (module absolu -> enfants résolus) est PARTAGEABLE entre plusieurs marches d'un MÊME appelant :
- * les 16 systèmes de `systemes.manifest.json` visitent 21 197 modules pour 1 859 distincts (mesuré le
- * 2026-08-23) — sans partage, chaque fichier est relu et re-résolu 11 fois. Le cache porte les
- * arcs NON filtrés (`Arc`, nature comprise) : il reste valable quels que soient le prédicat et
+ * il porte les arcs NON filtrés (`Arc`, nature comprise) : il reste valable quels que soient le prédicat et
  * `dynamiques`, filtrés pendant la marche. Par défaut le cache naît et meurt avec l'appel : aucun état
  * ne survit entre deux marches indépendantes.
  * `typesEffaces` marche les arcs d'EXÉCUTION seuls (cf. `sourceALExecution`) : c'est ce que demande un
@@ -293,20 +264,36 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
     return rel.split(sep).join('/');
   };
   const seen = new Set();
-  const stack = roots.map((r) => ({ abs: resolve(base, r).split(sep).join('/') }));
-  while (stack.length) {
-    const { abs, importeur, spec } = stack.pop();
-    const rel = relatif(abs, importeur, spec);
-    if (seen.has(rel)) continue;
-    let enfants = cache.get(abs);
-    if (enfants === undefined) {
-      enfants = enfantsDe(abs, alias, typesEffaces);
-      cache.set(abs, enfants);
+  let frontiere = roots.map(r => ({ abs: resolve(base, r).split(sep).join('/') }));
+  while (frontiere.length) {
+    const suivants = [];
+    const aLire = [];
+    const ajoutes = new Set();
+    for (const { abs, importeur, spec } of frontiere) {
+      relatif(abs, importeur, spec);
+      if (seen.has(relatif(abs)) || cache.has(abs) || ajoutes.has(abs)) continue;
+      ajoutes.add(abs);
+      if (!existsSync(abs)) { cache.set(abs, null); continue; }
+      if (!estModule(abs)) { cache.set(abs, []); continue; }
+      let text;
+      try { text = readFileSync(abs, 'utf8'); }
+      catch { cache.set(abs, []); continue; }
+      if (typesEffaces) text = sourceALExecution(abs, text, { racine: base });
+      aLire.push({ rel: abs, text });
     }
-    if (enfants === null) continue;
-    seen.add(rel);
-    for (const e of enfants)
-      if ((dynamiques || !NON_LIEES.has(e.nature)) && (!retenir || retenir(e.cible))) stack.push({ abs: e.cible, importeur: rel, spec: e.spec });
+    for (const { fichier, sourceFile, diagnostics } of analyserCorpus(aLire))
+      cache.set(fichier.rel, arcsDe(fichier.rel, sourceFile, { alias, diagnostics }));
+    for (const { abs, importeur, spec } of frontiere) {
+      const rel = relatif(abs, importeur, spec);
+      if (seen.has(rel)) continue;
+      const enfants = cache.get(abs);
+      if (enfants === null) continue;
+      seen.add(rel);
+      for (const e of enfants)
+        if ((dynamiques || !NON_LIEES.has(e.nature)) && (!retenir || retenir(e.cible)))
+          suivants.push({ abs: e.cible, importeur: rel, spec: e.spec });
+    }
+    frontiere = suivants;
   }
   return seen;
 }
@@ -328,14 +315,14 @@ export function closureOf(roots, { racine, cache } = {}) {
  * se résout, le répertoire courant par défaut : un hook s'exécute ailleurs que dans l'arbre jugé.
  * `existe` et `alias` : l'arbre contre lequel résoudre (`resolveImport`) ; par défaut les alias du
  * disque de `racine` (`aliasDuDepot`).
- * @param {string} fromFile @param {string} contenu
- * @param {{ racine?: string, existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
+ * @param {string} fromFile @param {string | import('typescript/unstable/ast').SourceFile} contenu
+ * @param {{ racine?: string, existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[], diagnostics?: readonly import('typescript/unstable/sync').Diagnostic[] }} [options]
  * @returns {string[]}
  */
-export function directImportsOf(fromFile, contenu, { racine = '.', existe, alias = aliasDuDepot(racine) } = {}) {
+export function directImportsOf(fromFile, contenu, { racine = '.', existe, alias = aliasDuDepot(racine), diagnostics } = {}) {
   const root = resolve(racine).split('\\').join('/');
   const found = new Set();
-  for (const { cible } of arcsDe(resolve(root, fromFile), contenu, { existe, alias })) {
+  for (const { cible } of arcsDe(resolve(root, fromFile), contenu, { existe, alias, diagnostics })) {
     if (cible.startsWith(`${root}/`) && cible.includes('/src/')) found.add(cible.slice(root.length + 1));
   }
   return [...found];

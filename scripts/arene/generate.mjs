@@ -10,10 +10,11 @@ import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { projectDoc } from '../campagne/lib.mjs';
-import { makeHub } from './hub.mjs';
-import { makeZone1, makeZone2, makeZone3, makeZone4, makeZone5, makeZone6, makeZone7 } from './zones1-7.mjs';
+import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
+import { makeHub, DOC_TITRE_DE_CHAMPION } from './hub.mjs';
+import { makeZone1, makeZone2, makeZone3, makeZone4, makeZone5, makeZone6, makeZone7, DOC_STELE_DES_RUINES } from './zones1-7.mjs';
 import { makeZone8, makeZone9, makeZone10, makeZone11, makeZone12, makeZone13 } from './zones8-13.mjs';
-import { makeForet, makeMarais, makeVillage, makeEmbuscade } from './expeditions.mjs';
+import { makeForet, makeMarais, makeVillage, makeEmbuscade, DOC_JOURNAL_DU_PREVOT } from './expeditions.mjs';
 
 /** Construction PURE du document de projet : la SOURCE possède 100 % de la donnée de l'artefact
  *  (`src/scenes/arene/arene-projet.json`), le CLI ci-dessous n'en est que la voie d'écriture.
@@ -126,6 +127,8 @@ return projectDoc({
   identite: { id: 'arene', label: 'L’Arène', icon: 'scenario/arena', versionContenu: 1, maison: "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source" },
   scenes,
   worldMap,
+  // Documents remis au joueur (#679), dans l'ordre des scènes qui les remettent.
+  narratif: { ...emptyNarratif(), documents: [DOC_TITRE_DE_CHAMPION, DOC_STELE_DES_RUINES, DOC_JOURNAL_DU_PREVOT] },
 });
 }
 

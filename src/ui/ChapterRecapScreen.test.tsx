@@ -15,7 +15,7 @@ import { SessionEndModal } from './SessionEndModal';
 import { useGame } from '../state/store';
 import { applyEffects } from '../state/combatEffects';
 import type { ChapterRecap } from '../state/chapitreRecap';
-import type { NarratifBlock } from '../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {
@@ -61,7 +61,7 @@ afterEach(async () => {
 /** Campagne dont la CLÔTURE est vraie — le cas où le récap vient de s'armer, et où la Condition
  *  restera vraie après la séance close (un drapeau ne se retire pas). */
 const narratifClos: NarratifBlock = {
-  affaires: [], indices: [], presetsPnj: [], objets: [],
+  ...emptyNarratif(),
   cloture: { when: { kind: 'flag', expr: 'chapitre-clos' }, titre: 'Chapitre 1 — accompli' },
 };
 
