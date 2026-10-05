@@ -12,7 +12,7 @@
 // compterait ce que chaque worktree fait de son côté (20 sur ce dépôt, dont des trains qui ne
 // rejoignent jamais `main`) : deux worktrees suffisent à en faire un nombre que rien ne recoupe.
 import {
-  GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, cheminsDesCommits, commitsNommes, depotDe, estAncetre,
+  GitIndisponible, INDEX, ceQuEmporteLIndex, estEchecDeLecture, ceQueFaitLeCommit, ceQueFontLesCommits, commitsNommes, depotDe, estAncetre,
   fusionnesEnCours, grapheDe, imageDeHead, lireEnLot, listerImage,
 } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
@@ -141,36 +141,41 @@ export function revuesNeuves(cwd = process.cwd()) {
 
 /**
  * L'HISTOIRE de HEAD dans `depot`, lue au plus UNE fois (`grapheDe`, à la première question) et
- * partagée par les questions d'UNE évaluation — la dernière revue (`derniereRevueArchivee`) et la
- * tête d'une revue neuve (`evaluate`, scripts/hooks/solde-ticket-guard.mjs) ; aucune ne survit à
- * l'évaluation, HEAD pouvant bouger. Chaque question porte sur une LISTE de révisions, résolue en UN
+ * partagée par les questions d'UNE évaluation — la dernière revue (`derniereRevueArchivee`), la
+ * tête d'une revue neuve (`evaluate`, scripts/hooks/solde-ticket-guard.mjs) et les commits qu'un
+ * solde dit correcteurs (`histoireDesCitations`, même fichier) ; aucune ne survit à l'évaluation,
+ * HEAD pouvant bouger. Chaque question porte sur une LISTE de révisions, résolue en UN
  * lot (`commitsNommes`) comme git la résout, parmi TOUS les objets du dépôt : un préfixe ambigu ou
  * inconnu n'est pas dans l'histoire. Une révision de plus ne lance donc aucun processus.
  *   - `restes(revisions)` : pour chacune, les commits de `<révision>..HEAD`, soit
  *     |ancêtres(HEAD)| − |ancêtres(révision)|, ou `null` hors de HEAD ;
- *   - `dansHead(revisions)` : chacune est-elle dans HEAD (HEAD compris) ? Le prédicat d'`estDansHead`
- *     (`gitPorte.mjs`), en lot.
+ *   - `dansHead(revisions)` : chacune est-elle dans HEAD (HEAD compris) ? Le PRÉDICAT booléen
+ *     unique des portes ;
+ *   - `commits(revisions)` : le commit du graphe (`CommitDuGraphe`) de chacune, `null` hors de HEAD
+ *     — le même prédicat, qui rend le commit.
  * @param {import('./gitPorte.mjs').Depot} depot
  * @throws {GitIndisponible} propagée de `grapheDe` ou `commitsNommes`, à la question.
  */
 export function histoireDeHead(depot) {
-  let parents = null
-  const graphe = () => (parents ??= new Map((grapheDe(depot, ['HEAD']) ?? []).map((c) => [c.sha, c.parents])))
-  /** Les commits nommés par `revisions` qui sont dans HEAD, `null` pour les autres. */
-  const dedans = (revisions) => {
+  /** @type {Map<string, import('./gitPorte.mjs').CommitDuGraphe> | null} */
+  let parSha = null
+  const graphe = () => (parSha ??= new Map((grapheDe(depot, ['HEAD']) ?? []).map((c) => [c.sha, c])))
+  /** Le commit du graphe de chacune des `revisions`, `null` hors de HEAD. */
+  const commits = (revisions) => {
     if (!revisions.length) return []
     const noms = commitsNommes(depot, revisions)
-    return noms.some(Boolean) ? noms.map((sha) => (graphe().has(sha) ? sha : null)) : noms
+    return noms.map((sha) => (sha === null ? null : graphe().get(sha) ?? null))
   }
   const ancetres = (sha) => {
     const vus = new Set([sha])
     const pile = [sha]
-    while (pile.length) for (const p of graphe().get(pile.pop()) ?? []) if (!vus.has(p)) { vus.add(p); pile.push(p) }
+    while (pile.length) for (const p of graphe().get(pile.pop())?.parents ?? []) if (!vus.has(p)) { vus.add(p); pile.push(p) }
     return vus.size
   }
   return {
-    restes: (revisions) => dedans(revisions).map((sha) => (sha === null ? null : graphe().size - ancetres(sha))),
-    dansHead: (revisions) => dedans(revisions).map((sha) => sha !== null),
+    restes: (revisions) => commits(revisions).map((c) => (c === null ? null : graphe().size - ancetres(c.sha))),
+    dansHead: (revisions) => commits(revisions).map((c) => c !== null),
+    commits,
   }
 }
 
@@ -208,7 +213,7 @@ export function derniereRevueArchivee(cwd = process.cwd(), { depot = depotDe(cwd
 /** L'ascendance de `sha` vis-à-vis de HEAD, en union à trois issues : la tête de fenêtre d'une revue
  *  neuve est un commit que ce dépôt porte, sinon la revue juge une histoire qui n'existe pas ici. Un
  *  sha INCONNU rend `absent` — l'appelant en fait « pas dans cette histoire ». Le PRÉDICAT booléen
- *  correspondant est `estDansHead` (`gitPorte.mjs`), partagé avec le garde de solde. */
+ *  correspondant est `histoireDeHead(depot).dansHead`, en lot. */
 export const ascendanceDansHead = (sha, cwd = process.cwd()) =>
   sha ? estAncetre(depotDe(cwd), sha, 'HEAD') : { disponible: true, absent: true }
 
@@ -230,23 +235,42 @@ export function estCheminDeSubstance(chemin) {
  * FONT (`ceQueFaitLeCommit`, contre leur base) touche un chemin de substance (`estCheminDeSubstance`).
  * Une fusion propre n'en est pas ; une fusion qui apporte une ligne sous `src`/`scripts` en est.
  * Une plage que git ne rend pas n'en a aucun. `limite` : la lecture s'arrête au `limite`-ième
- * commit de substance trouvé. Le nombre de processus git ne croît pas avec la plage : les chemins de
- * TOUS ses commits à un parent au plus se lisent en un lot (`cheminsDesCommits`) ; chaque fusion se
- * lit à son rang (`ceQueFaitLeCommit` sur le commit du graphe), jamais au-delà de la limite.
+ * commit de substance trouvé. Le nombre de processus git ne croît ni avec la plage ni avec ses fusions
+ * (`ceQueFontLesCommits`) : les chemins de TOUS ses commits à un parent au plus se lisent en un lot ;
+ * à la première fusion atteinte, toutes les fusions À DEUX PARENTS que la lecture peut encore atteindre
+ * — celles d'avant la limite, si aucune fusion n'est de substance — se lisent en un second lot. Une
+ * fusion à plus de deux parents se lit à son rang (`ceQueFaitLeCommit`), qui lève.
  * @param {import('./gitPorte.mjs').Depot} depot @param {readonly string[]} revisions
  * @param {{ limite?: number }} [options]
  * @returns {string[]}
- * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit`.
+ * @throws {GitIndisponible} propagée de `ceQueFontLesCommits` ou de `ceQueFaitLeCommit`, à la première fusion atteinte.
  */
 export function shasDeSubstance(depot, revisions, { limite = Infinity } = {}) {
   const commits = grapheDe(depot, revisions) ?? []
+  const estSimple = (c) => c.parents.length <= 1
   let simples = null
+  const cheminsSimples = () => (simples ??= ceQueFontLesCommits(depot, commits.filter(estSimple)).chemins())
+  let fusions = null
+  /** Les fusions à deux parents que la lecture peut atteindre : celles d'avant la limite quand
+   *  aucune fusion n'est de substance. */
+  const cheminsFusions = () => {
+    if (fusions) return fusions
+    const atteignables = []
+    let trouves = 0
+    for (const c of commits) {
+      if (trouves >= limite) break
+      if (c.parents.length === 2) atteignables.push(c)
+      else if (estSimple(c) && cheminsSimples().get(c.sha).some(estCheminDeSubstance)) trouves += 1
+    }
+    fusions = ceQueFontLesCommits(depot, atteignables).chemins()
+    return fusions
+  }
   const vus = []
   for (const commit of commits) {
     if (vus.length >= limite) break
-    const chemins = commit.parents.length > 1
-      ? ceQueFaitLeCommit(depot, commit).chemins()
-      : (simples ??= cheminsDesCommits(depot, commits.filter((c) => c.parents.length <= 1))).get(commit.sha)
+    const chemins = estSimple(commit) ? cheminsSimples().get(commit.sha)
+      : commit.parents.length === 2 ? cheminsFusions().get(commit.sha)
+        : ceQueFaitLeCommit(depot, commit).chemins()
     if (chemins.some(estCheminDeSubstance)) vus.push(commit.sha)
   }
   return vus
@@ -269,6 +293,7 @@ export function mesureDuPalier(cwd = process.cwd(), { emportes = [], seuil = Inf
   try {
     derniere = derniereRevueArchivee(cwd, { depot, histoire })
   } catch (err) {
+    if (!estEchecDeLecture(err)) throw err
     return { compte: 0, tete: null, chemin: null, erreur: `histoire illisible depuis ${cwd} — ${err.message}` }
   }
   if (derniere.etat === 'aucune-archive') return { compte: 0, tete: null, chemin: null }
