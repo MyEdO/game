@@ -91,22 +91,26 @@ export function suivi(on: On) {
   })
 
   on('prompt.context', async ($, e, next) => {
-    const { etat } = await read($, atome)
-    if (!etat?.contexte) return next(e)
-    await update($, atome, (s) => retenir(s, etat.cle, etat))
-    return next({ ...e, blocks: [...e.blocks, { name: 'suivi', text: etat.contexte }] })
+    const porte: { etat: HarnaisEtatDeSession | null } = { etat: null }
+    await update($, atome, (s) => {
+      porte.etat = s.etat?.contexte ? s.etat : null
+      return porte.etat ? retenir(s, porte.etat.cle) : s
+    })
+    const { etat } = porte
+    return etat ? next({ ...e, blocks: [...e.blocks, { name: 'suivi', text: etat.contexte }] }) : next(e)
   })
 
   on('turn.start', async ($, e, next) => {
-    const { enAttente } = await read($, atome)
-    if (enAttente) {
-      try {
-        await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: enAttente.ajout }] } })
-        await update($, atome, (s) => retenir(s, enAttente.cle))
-      } catch (erreur) {
-        $.ui.log(`harnais, ajout du suivi non fait, reporté au tour suivant : ${String(erreur)}`, { to: 'debug' })
-      }
+    const lu = await read($, atome)
+    const { enAttente } = lu
+    if (!enAttente) return next(e)
+    try {
+      await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: enAttente.ajout }] } })
+    } catch (erreur) {
+      $.ui.log(`harnais, ajout du suivi non fait, reporté au tour suivant : ${String(erreur)}`, { to: 'debug' })
+      return next(e)
     }
+    await update($, atome, (s) => (s.generation !== lu.generation ? s : retenir(s, enAttente.cle)))
     return next(e)
   })
 

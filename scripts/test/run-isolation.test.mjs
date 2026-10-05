@@ -59,31 +59,48 @@ test('un seul filtre-DOSSIER parmi des fichiers suffit à exiger le verrou', () 
 })
 
 // ── verrou de SUITE à l'échelle machine (#1679 L1c-M7) ────────────────────────────────────────
-// `fs` factice : un seul fichier, `openSync('wx')` refusant une cible déjà présente — la propriété
-// d'exclusion sur laquelle repose le verrou.
-function fsFactice(present = null) {
-  const boite = { contenu: present }
+// `fs` factice : des fichiers par chemin ; `writeFileSync(…, { flag: 'wx' })` et `linkSync` refusent une
+// cible déjà présente — la propriété d'exclusion sur laquelle repose le verrou. `boite.contenu` est le
+// verrou `/tmp/wfrp-suite.lock`. `espion.creation()` est appelé à l'instant où le verrou vient d'exister,
+// `espion.lecture()` avant chaque lecture du verrou, `espion.apresLecture()` après : un tiers y entre au
+// pire moment.
+function fsFactice(present = null, espion = {}) {
+  const VERROU = '/tmp/wfrp-suite.lock'
+  const fichiers = new Map(present === null ? [] : [[VERROU, present]])
+  const existe = (chemin) => {
+    const e = new Error(`EEXIST: ${chemin}`)
+    e.code = 'EEXIST'
+    return e
+  }
   return {
-    boite,
-    openSync(_chemin, mode) {
-      if (mode === 'wx' && boite.contenu !== null) {
-        const e = new Error('EEXIST')
-        e.code = 'EEXIST'
+    fichiers,
+    get boite() {
+      return { contenu: fichiers.get(VERROU) ?? null }
+    },
+    writeFileSync(chemin, texte, { flag } = {}) {
+      if (flag === 'wx' && fichiers.has(chemin)) throw existe(chemin)
+      const neuf = !fichiers.has(chemin)
+      fichiers.set(chemin, texte)
+      if (neuf && chemin === VERROU) espion.creation?.()
+    },
+    linkSync(source, cible) {
+      if (fichiers.has(cible)) throw existe(cible)
+      fichiers.set(cible, fichiers.get(source))
+      if (cible === VERROU) espion.creation?.()
+    },
+    readFileSync(chemin) {
+      if (chemin === VERROU) espion.lecture?.()
+      if (!fichiers.has(chemin)) {
+        const e = new Error(`ENOENT: ${chemin}`)
+        e.code = 'ENOENT'
         throw e
       }
-      boite.contenu = ''
-      return 7
+      const lu = fichiers.get(chemin)
+      if (chemin === VERROU) espion.apresLecture?.()
+      return lu
     },
-    writeSync(_fd, texte) {
-      boite.contenu = texte
-    },
-    closeSync() {},
-    readFileSync() {
-      if (boite.contenu === null) throw new Error('ENOENT')
-      return boite.contenu
-    },
-    rmSync() {
-      boite.contenu = null
+    rmSync(chemin) {
+      fichiers.delete(chemin)
     },
   }
 }
@@ -221,4 +238,49 @@ test('tenantVivant : le tenant s’il VIT — un verrou de PID mort ne tient per
   assert.equal(vivant.cwd, '/arbres/Game')
   assert.equal(tenantVivant({ chemin: '/tmp/wfrp-suite.lock', fs: fsFactice(ecrit), estVivant: () => false }), null)
   assert.equal(tenantVivant({ chemin: '/tmp/wfrp-suite.lock', fs: fsFactice(), estVivant: () => true }), null)
+})
+
+test('#2279 N0 — le verrou porte son tenant DÈS qu’il existe : un second preneur arrivé à l’instant de la création est refusé', () => {
+  let second = null
+  const espion = {
+    creation: () => {
+      espion.creation = null
+      second = prendreVerrou({ chemin: '/tmp/wfrp-suite.lock', pid: 2, env: {}, fs, estVivant: (p) => p === 1 })
+    },
+  }
+  const fs = fsFactice(null, espion)
+  const premier = prendreVerrou({ chemin: '/tmp/wfrp-suite.lock', pid: 1, env: {}, fs, estVivant: (p) => p === 1 })
+  assert.equal(premier.etat, 'pris')
+  assert.equal(second?.etat, 'refus', 'le second a lu un verrou sans tenant et l’a repris')
+  assert.equal(JSON.parse(fs.boite.contenu).pid, 1)
+  assert.deepEqual([...fs.fichiers.keys()], ['/tmp/wfrp-suite.lock'], 'aucun temporaire ni verrou de reprise restant')
+})
+
+test('#2279 N0 — deux repreneurs d’un verrou MORT : celui qui arrive après la reprise de l’autre ne retire pas son verrou', () => {
+  let premier = null
+  const espion = {
+    apresLecture: () => {
+      espion.apresLecture = null
+      premier = prendreVerrou({ chemin: '/tmp/wfrp-suite.lock', pid: 1, env: {}, fs, estVivant: (p) => p !== 999 })
+    },
+  }
+  const fs = fsFactice(JSON.stringify({ pid: 999 }), espion)
+  const second = prendreVerrou({ chemin: '/tmp/wfrp-suite.lock', pid: 2, env: {}, fs, estVivant: (p) => p !== 999 })
+  assert.equal(premier?.etat, 'pris')
+  assert.equal(second.etat, 'refus')
+  assert.equal(JSON.parse(fs.boite.contenu).pid, 1, 'le verrou du premier repreneur est intact')
+  assert.deepEqual([...fs.fichiers.keys()], ['/tmp/wfrp-suite.lock'])
+})
+
+test('#2279 N0 — un verrou absent à la relecture se retente sans rien retirer ; un verrou de reprise tenu par un MORT est retiré', () => {
+  const espion = { lecture: () => { espion.lecture = null; absent.rmSync('/tmp/wfrp-suite.lock') } }
+  const absent = fsFactice(JSON.stringify({ pid: 5 }), espion)
+  const vu = prendreVerrou({ chemin: '/tmp/wfrp-suite.lock', pid: 1, env: {}, fs: absent, estVivant: () => true })
+  assert.equal(vu.etat, 'pris')
+  assert.equal(JSON.parse(absent.boite.contenu).pid, 1)
+  const fs = fsFactice(JSON.stringify({ pid: 999 }))
+  fs.fichiers.set('/tmp/wfrp-suite.lock.reprise', JSON.stringify({ pid: 998 }))
+  const pris = prendreVerrou({ chemin: '/tmp/wfrp-suite.lock', pid: 1, env: {}, fs, estVivant: (p) => p < 998 })
+  assert.equal(pris.etat, 'pris')
+  assert.deepEqual([...fs.fichiers.keys()], ['/tmp/wfrp-suite.lock'])
 })

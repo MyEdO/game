@@ -259,9 +259,11 @@ const ATTENDU = {
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
     // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
-    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs`, `openSync(chemin, 'wx')` puis
-    // `rmSync`), donc sous `.git/suivi` derrière la porte `import.meta.main` de `suivi.mjs`, et sous le
-    // `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ; l'arbre n'est jamais écrit.
+    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
+    // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif, l.92-105, reprise sous `<chemin>.reprise`,
+    // l.133-145, `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
+    // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;
+    // l'arbre n'est jamais écrit.
     'scripts/test/verrou.mjs',
     // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
     // défaut sous os.tmpdir()) pour qu'un workflow n'ait pas à le recopier dans chaque prompt, et son
@@ -297,6 +299,10 @@ const ATTENDU = {
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
+    // +1 le 2026-10-05 (#2279 N0) : le banc de concurrence du verrou lance ses preneurs (processus réels)
+    // sous un `mkdtempSync` d'os.tmpdir() (`writeFileSync` du compteur, `rmSync` en finally) ; l'arbre
+    // n'est jamais écrit.
+    'scripts/test/verrou.test.mjs',
   ],
   'test:docs': [
     'scripts/docs/build-all-check.test.mjs',

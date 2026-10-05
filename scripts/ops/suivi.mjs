@@ -145,16 +145,20 @@ export function zonesDe(texte) {
 
 /**
  * Les lignes de la zone écrite après nettoyage (zone mesurée, commentaires HTML, blocs de code), à
- * leur NUMÉRO d'origine : ce qui est retiré devient une ligne vide. PURE.
+ * leur NUMÉRO d'origine : ce qui est retiré devient une ligne vide. `traversees[i]` dit que la fin de la
+ * ligne `i` tombe dans un commentaire HTML. PURE.
  * @param {{lignes: string[], debut: number, fin: number}} zones
- * @returns {{lignes: string[], anomalies: string[]}}
+ * @returns {{lignes: string[], anomalies: string[], traversees: boolean[]}}
  */
 function nettoyer({ lignes: brutes, debut, fin }) {
   const anomalies = []
+  const traversees = brutes.map(() => false)
   const zone = brutes.map((l, i) => (debut >= 0 && i >= debut && i <= fin ? '' : sansFin(l)))
   const sansCommentaires = zone.join('\n').replace(/<!--[\s\S]*?-->|<!--[\s\S]*$/g, (bloc, position, tout) => {
+    const premiere = tout.slice(0, position).split('\n').length - 1
+    bloc.split('\n').slice(1).forEach((_, k) => { traversees[premiere + k] = true })
     if (!bloc.endsWith('-->')) {
-      const ligne = tout.slice(0, position).split('\n').length
+      const ligne = premiere + 1
       anomalies.push(`commentaire HTML non fermé (ouvert l.${ligne}) : il court jusqu'à la fin du document`)
     }
     return bloc.replace(/[^\n]/g, '')
@@ -176,7 +180,7 @@ function nettoyer({ lignes: brutes, debut, fin }) {
     }
   }
   if (dans) anomalies.push(`bloc de code non fermé (ouvert l.${dans.ligne}) : il court jusqu'à la fin du document`)
-  return { lignes, anomalies }
+  return { lignes, anomalies, traversees }
 }
 
 /**
@@ -529,9 +533,10 @@ const formeDe = (structure) => ({
 /**
  * Le texte d'un suivi après UNE édition de sa zone ÉCRITE, les autres lignes à l'octet, une ligne ajoutée
  * à la fin de ligne du fichier. Gestes :
- * - `ajouter-item` : `<n>. <texte>` après la dernière ligne de la première section `## En cours`, `<n>`
+ * - `ajouter-item` : `<n>. <texte>` après la dernière ligne de la première section `## En cours` (après la fin
+ *   du commentaire HTML que cette ligne ouvre, s'il y en a un), `<n>`
  *   suivant le numéro de son dernier item ; `texte` porte un `#M` (le ticket de l'item) absent des items ;
- * - `ajouter-etape` : `- [ ] <texte>` après la dernière ligne de l'item du ticket `ticket`, à
+ * - `ajouter-etape` : `- [ ] <texte>` après la dernière ligne de l'item du ticket `ticket` (même règle), à
  *   l'indentation de sa première étape (trois espaces sans étape) ;
  * - `cocher` : `[ ]` → `[x]` sur la SEULE étape ouverte de l'item `ticket` dont le texte commence par `texte`.
  * La structure relue après (`structureDuSuivi`, `zonesDe`) doit valoir celle d'avant plus EXACTEMENT
@@ -561,7 +566,11 @@ export function editionDuSuivi(texte, geste) {
     }
     return { ok: true, texte: nouveau }
   }
-  const inserer = (i, ligne) => {
+  const vues = zonesDe(texte)
+  const { traversees } = nettoyer(vues.ok ? vues : { lignes, debut: -1, fin: -1 })
+  const inserer = (derniere, ligne) => {
+    let i = derniere
+    while (traversees[i]) i += 1
     const avant = lignes.slice(0, i + 1)
     if (!avant[i].endsWith('\n')) avant[i] += fin
     return verifie([...avant, `${ligne}${fin}`, ...lignes.slice(i + 1)].join(''))

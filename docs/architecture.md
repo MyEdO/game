@@ -484,17 +484,24 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
   hors bancs `*.test.ts` ; le reste de `.claude/` reste ignoré, et tout module hors `.ts` (`.js`, `.mjs`,
   `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
-  Hors couture, `$` n'a que trois places : objet d'un accès ni calculé ni optionnel à liste blanche
+  Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
+  Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
   (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
   `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
-  paramètre. Y sont refusés : un `appel` qui ne soit l'import de `./ops` ; le seuil (opérateur
-  relationnel, arithmétique sur un non-littéral, égalité ou `case` numérique, `Math`, `++`/`--`) ;
-  le parsing (méthodes de découpe et de recherche de chaîne, `parseInt`, `parseFloat`, `Number`,
-  `RegExp`, littéral regex, `JSON.parse`) ; `ask` en clé ou en littéral ; `$.ui.invalidate` hors de
-  `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun `$`, seuil, `Math` et
-  parsing refusés, sauf `JSON.parse` et l'égalité. Le mur NE GARDE PAS l'évasion délibérée (`'a' +
-  'sk'`, clé calculée) ni la localité d'une fonction qui reçoit `$` : le moteur refuse `$` passé à
-  une fonction importée, et la garde `mods:check` le prouve par `claude plugin validate --strict`.
+  paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
+  une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
+  sans déstructuration ; le tsconfig posé par le moteur est `strict`, donc `tsc` refuse un paramètre
+  sans type. Y sont refusés : un `appel` qui ne soit l'import de `./ops` ; le seuil (opérateur
+  relationnel, arithmétique sur un non-littéral, `+` unaire ou entre deux non-littéraux, affectation
+  composée, égalité ou `case` numérique, `Math`, `++`/`--`) ; le parsing (appel d'une méthode de
+  découpe ou de recherche de chaîne, `parseInt`, `parseFloat`, `Number`, `RegExp`, littéral regex,
+  `Date.parse`, `new Date(x)`, `new URL(x)`, `JSON.parse`) ; `ask` en clé ou en littéral ;
+  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun
+  `$`, et les mêmes refus, sauf `JSON.parse`. Le mur NE GARDE PAS l'évasion délibérée (`'a' + 'sk'`,
+  clé calculée, type dérivé de `On`) ; l'appelé IMPORTÉ qui reçoit `$` (le moteur le refuse, la garde
+  `mods:check` le prouve par `claude plugin validate --strict`) ; un `../x` depuis un sous-dossier de
+  `hooks/` ; ni les prédicats que seul le type du receveur distingue (`.every`, `.length === x`,
+  `Object.is`, `t[0]`, la déstructuration d'une chaîne).
 - **Garde** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : un mod sans banc
   `*.test.ts` est rouge ; sur une COPIE sans les artefacts du moteur (`.claude-plugin/types`,
   `tsconfig.json`), validation stricte, types posés par `claude -p` à la version exacte, `tsc`, bancs ;

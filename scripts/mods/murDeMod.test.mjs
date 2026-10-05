@@ -1,7 +1,8 @@
 // Banc du mur `murs/mod-sans-regle` (#2278, eslint.config.js) sur la config RÉSOLUE du dépôt, comme
 // src/eslint-ordre-total-et-purete.test.ts : aucun sélecteur n'est recopié ici, chaque forme est lintée
 // par `ESLint#lintText` au chemin d'un module de mod. Formes rouges : sondes du juge de diff du
-// 2026-10-04 (`a0351b8ec..84d6342d7`, F1 à F6), https://github.com/MyEdO/game/issues/2278
+// 2026-10-04 (`a0351b8ec..84d6342d7`, F1 à F6) et du juge des corrections (`b55b5bb11..7e47a38a2`, N1 à
+// N6), https://github.com/MyEdO/game/issues/2278
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -18,7 +19,7 @@ const HORS_COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'module.
 const COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'ops.ts')
 
 /** Le corps `corps` dans une fonction de mod, `$` et les valeurs reçus en paramètres. */
-const module = (corps) => `import { appel } from './ops'\nexport async function f($: any, n: number, t: string, re: any, q: unknown, lignes: string[], ms: number, i: number, nom: string) {\n${corps}\n}\n`
+const module = (corps) => `import type { EngineInterface } from 'claude-code'\nimport { appel } from './ops'\nexport async function f($: EngineInterface, n: number, m: number, t: string, re: RegExp, q: unknown, lignes: string[], ids: string[], id: string, ms: number, i: number, nom: string, e: { at: string, test: string }) {\n${corps}\n}\n`
 
 /** Les messages du mur sur `source` au chemin `chemin` ; une erreur d'analyse fait échouer le banc. */
 async function messagesDuMur(source, chemin) {
@@ -84,6 +85,38 @@ const ROUGES = [
   ["$.ui.invalidate(\n 'prompt.section')", 'F6 invalidate multiligne'],
   ["const s = 'ui.render'\n$.ui.invalidate(s)", 'F6 invalidate par constante'],
   ['const inv = $.ui.invalidate', 'F6 invalidate détaché'],
+  ["function lire(api: any) { return api.fs.read('x') }\nawait lire($)", 'N1 `$` renommé en paramètre `any`'],
+  ["function inval(api: any) { api.ui.invalidate('prompt.context') }\ninval($)", 'N1 invalidate par un paramètre renommé'],
+  ["function inval({ ui }: any) { ui.invalidate('tool.describe') }\ninval($)", 'N1 invalidate par un paramètre déstructuré'],
+  ["function lancer(api: any) { return api.process.run(['curl','x']) }\nawait lancer($)", 'N1 lancement hors idiome par un paramètre'],
+  ["function lire(api: EngineInterface) { return api.ui.log('x') }\nawait lire($)", 'N1 paramètre `EngineInterface` renommé'],
+  ["function lire({ ui }: EngineInterface) { return ui.log('x') }\nawait lire($)", 'N1 paramètre `EngineInterface` déstructuré'],
+  ["function lire(api: typeof $ | null) { return api }\nawait lire($)", 'N1 paramètre `typeof $` renommé'],
+  ["function lire(x: unknown) { return (x as EngineInterface).ui }\nawait lire($)", 'N1 cast vers `EngineInterface` hors liaison `$`'],
+  ["function lire(x: unknown) { const api = x as EngineInterface\nreturn api.ui }\nawait lire($)", 'N1 cast lié à un autre nom'],
+  ["type Moteur = EngineInterface\nfunction lire(api: Moteur) { return api.ui }\nawait lire($)", 'N1 alias de `EngineInterface`'],
+  ["function lire<T extends EngineInterface>(api: T) { return api.ui }\nawait lire($)", 'N1 contrainte générique `EngineInterface`'],
+  ['let r: typeof $ | null = null', 'N1 `typeof $` lié à un autre nom'],
+  ['type T = typeof $', 'N1 alias de `typeof $`'],
+  ['const total = n + m', 'N3 `+` entre deux non-littéraux'],
+  ['const v = +t', 'N3 `+` unaire'],
+  ['let c = n\nc += m', 'N3 `+=`'],
+  ["let c = nom\nc += 'x'", 'N3 `+=` de chaîne'],
+  ['let c = n\nc -= m', 'N3 `-=`'],
+  ['let c = n\nc *= m', 'N3 `*=`'],
+  ['let c = n\nc /= m', 'N3 `/=`'],
+  ['let c = n\nc %= m', 'N3 `%=`'],
+  ['const c = t.codePointAt(0)', 'N3 codePointAt'],
+  ['const d = Date.parse(t)', 'N3 Date.parse'],
+  ['const d = new Date(t)', 'N3 new Date(x)'],
+  ["const u = new URL(t).searchParams.get('n')", 'N3 new URL(x)'],
+  ["import { calc } from '../lib/calc'\nconst v = calc(t)", 'N5 import hors de hooks/ (`../lib`)'],
+  ["import { calc } from '../../x'\nconst v = calc(t)", 'N5 import hors du mod (`../../x`)'],
+  ["import { calc } from './../lib/calc'\nconst v = calc(t)", 'N5 import `./../`'],
+  ["export { calc } from '../lib/calc'", 'N5 réexport hors de hooks/'],
+  ["const m2 = await import('../lib/calc')", 'N5 import dynamique hors de hooks/'],
+  ["const sel = ids.includes(id) ? 'actif' : ''", 'N6 `includes` appelé, receveur inconnu'],
+  ['const v = lignes.slice()', 'N6 `slice` appelé, receveur inconnu'],
 ]
 
 for (const [corps, forme] of ROUGES)
@@ -98,7 +131,7 @@ const VERTS = [
   ["const lu = await $.process.run(...appel($.plugin.root, 'suivi', ['--json']))", 'idiome'],
   ["const lu = await $.process.run(\n  ...appel(\n    $.plugin.root,\n    'suivi',\n    ['--json'],\n  ),\n)", 'idiome sur plusieurs lignes'],
   ["const lu = $.process.run(...appel($.plugin.root, 'suivi', [t]))", 'idiome sans `await`'],
-  ['async function suiviMjs($: any, args: readonly string[]) { return $.session.id() }\nawait suiviMjs($, [t])', 'helper local `suiviMjs($, args)`'],
+  ['async function suiviMjs($: EngineInterface, args: readonly string[]) { return $.session.id() }\nawait suiviMjs($, [t])', 'helper local `suiviMjs($, args)`'],
   ['const PERIODE_MS = 60 * 1000', 'pliage de littéraux'],
   ['const BORNE = 10 * 60 * 1000', 'pliage de littéraux en chaîne'],
   ["if (t === 'ajouter-item') q = 1", 'égalité de chaînes'],
@@ -106,6 +139,14 @@ const VERTS = [
   ["$.ui.invalidate('ui.render')", 'invalidate d’un événement de rendu'],
   ["$.ui.log('x', { to: 'debug' })\nawait $.state.get('k')\nawait $.tool.register({})\n$.clock.every(PERIODE, () => {})\nawait $.session.append({})", 'accès à liste blanche'],
   ['const PERIODE = 1', 'constante sans seuil'],
+  ['const v = e.at', 'N6 lecture d’un champ nommé `at`'],
+  ['const v = e.test', 'N6 lecture d’un champ nommé `test`'],
+  ['const v = $.state.search', 'N6 clé d’état nommée `search`'],
+  ["const opts: Parameters<typeof $.ui.log>[1] = { to: 'debug' }", 'N6 `typeof $.x` en position de type'],
+  ["import type { HarnaisSuivi } from '../types'\nconst v: HarnaisSuivi | null = null", 'N5 `../types` permis'],
+  ["import { h } from 'claude-code'\nconst v = h", 'N5 `claude-code` permis'],
+  ["import { suivi } from './suivi'\nconst v = suivi", 'N5 `./x` permis'],
+  ['const v = `${n} / ${m}`', 'gabarit d’affichage'],
 ]
 
 for (const [corps, forme] of VERTS)
@@ -113,23 +154,33 @@ for (const [corps, forme] of VERTS)
     assert.deepEqual(await messagesDuMur(module(corps), HORS_COUTURE), [])
   })
 
-test('LIMITES dites au bloc du mur : l’évasion délibérée et la localité de l’appelé passent', async () => {
+test('LIMITES dites au bloc du mur : l’évasion délibérée, l’appelé IMPORTÉ et les prédicats de receveur passent', async () => {
   for (const corps of [
     "const d = 'a' + 'sk'",
-    "const r = new (globalThis as any)['Reg' + 'Exp']('x')",
-    "helper($)\nfunction helper(x: any) { return x.fs.read('a') }",
+    "const r = new (globalThis as unknown as Record<string, new (s: string) => object>)['Reg' + 'Exp']('x')",
+    "import { lire } from './lire'\nawait lire($)",
+    "const fini = lignes.every((l) => l === 'x')",
+    'if (lignes.length === ids.length) q = 1',
+    'if (Object.is(n, 3)) q = 1',
+    "const premier = t[0]\nif (premier === '#') q = 1",
+    "const [tete] = t\nif (tete === '#') q = 1",
   ]) assert.deepEqual(await messagesDuMur(module(corps), HORS_COUTURE), [], corps)
 })
 
-const couture = (corps) => `export function lire(resultat: any, valeur: any) {\n${corps}\n}\n`
+const couture = (corps) => `import type { ProcessRunResult } from 'claude-code'\nexport function lire(resultat: ProcessRunResult, valeur: number) {\n${corps}\n}\n`
 
-test('COUTURE `hooks/ops.ts` : `JSON.parse` et l’égalité passent', async () => {
-  for (const corps of ['if (resultat.exitCode !== 0) return null', 'return JSON.parse(resultat.stdout)', 'const BORNE_MS = 20 * 1000'])
+test('COUTURE `hooks/ops.ts` : `JSON.parse`, la véracité et l’égalité de chaînes passent', async () => {
+  for (const corps of ['if (resultat.exitCode) return null', "if (resultat.stdout === '') return null", 'return JSON.parse(resultat.stdout)', 'const BORNE_MS = 20 * 1000'])
     assert.deepEqual(await messagesDuMur(couture(corps), COUTURE), [], corps)
 })
 
-test('COUTURE `hooks/ops.ts` : `$`, seuil, `Math` et parsing sont rouges', async () => {
+test('COUTURE `hooks/ops.ts` : `$`, `any`, seuil, égalité numérique, `Math`, parsing, `ask` et import hors mod sont rouges', async () => {
   for (const corps of [
+    'if (resultat.exitCode !== 0) return null',
+    'const v: any = valeur',
+    "return { decision: valeur ? 'ask' : 'allow' }",
+    'return valeur + valeur',
+    "return import('../lib/x')",
     'return $.plugin.root',
     'if (valeur.version >= 1) return valeur',
     "const lignes = resultat.stdout.split('\\n')",

@@ -1,5 +1,5 @@
-// Contrat d'état du mod `harnais` (#2279) : la forme de `node scripts/ops/suivi.mjs --session <id> --json`
-// (`etatDeSession`, scripts/ops/suivi.mjs), et ce que le mod garde dans `$.state`.
+// Types de la fonction `suivi` du mod `harnais` (#2279) : l'état de session que rend `node scripts/ops/suivi.mjs
+// --session <id> --json` (`etatDeSession`, scripts/ops/suivi.mjs), et l'atome `harnais.suivi` du mod.
 
 /** Un suivi lié à la session : son épique, son chemin et les lignes de sa situation (le bandeau). */
 export type HarnaisSuiviLie = { epique: number; chemin: string; lignes: string[] }

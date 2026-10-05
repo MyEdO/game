@@ -1,5 +1,5 @@
 // La RACINE D'UN MOD Claude Code (#2278), définie une fois : un enfant direct de `.claude/skills/` qui
-// porte `.claude-plugin/plugin.json`. Lue sur le disque (gate `mods:check`, classement du push) ou sur
+// porte `.claude-plugin/plugin.json`. Lue sur le disque (garde `mods:check`, classement du push) ou sur
 // une liste de chemins (miroir Codex, scripts/agents/compat-core.mjs). N'importe que `node:*` et des
 // fichiers du dépôt : le classement du push la charge avant `npm ci` (scripts/gates/classerPush.mjs).
 import { existsSync } from 'node:fs'

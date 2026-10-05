@@ -13,6 +13,7 @@ import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre } from '../guards/lib/lister.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { MANIFESTE, racinesDeMods } from './racines.mjs'
 
@@ -68,7 +69,7 @@ export function envBlanc(base, home) {
   const cacheNpm = base.npm_config_cache
     ?? (process.platform === 'win32' && base.LOCALAPPDATA ? join(base.LOCALAPPDATA, 'npm-cache') : join(homedir(), '.npm'))
   const herite = Object.fromEntries(Object.entries(base).filter(([cle]) => Object.hasOwn(ENV_HERITE, cle)))
-  return { ...herite, ...Object.fromEntries(PROFILS.map((cle) => [cle, home])), npm_config_cache: cacheNpm }
+  return { ...herite, ...tableTotale(PROFILS, () => home), npm_config_cache: cacheNpm }
 }
 
 /**

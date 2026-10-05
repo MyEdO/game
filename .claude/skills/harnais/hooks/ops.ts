@@ -20,7 +20,7 @@ export function appel(racinePlugin: string, script: string, args: readonly strin
 
 /** La sortie JSON d'un script : un objet, sinon le motif (code non nul, JSON illisible, forme fausse). */
 export function lire<T>(resultat: ProcessRunResult): Lu<T> {
-  if (resultat.exitCode !== 0) return { ok: false, motif: resultat.stderr.trim() || `code de sortie ${resultat.exitCode}` }
+  if (resultat.exitCode) return { ok: false, motif: resultat.stderr.trim() || `code de sortie ${resultat.exitCode}` }
   let valeur: unknown
   try {
     valeur = JSON.parse(resultat.stdout)

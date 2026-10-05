@@ -748,8 +748,8 @@ test('#2279 B2 — une édition ne porte qu’UNE ligne : `\\n` et `\\r` refusé
   }
 })
 
-test('#2279 B2 — la structure relue doit être celle d’avant plus l’élément visé : insertion dans un commentaire ouvert (C1), case derrière un commentaire (R2), refusées', () => {
-  const ouvert = PLAN.replace('3. #5 suivant', '3. #5 suivant <!-- note ouverte').replace('<!-- 4. #6 commenté -->', 'suite -->')
+test('#2279 B2 — la structure relue doit être celle d’avant plus l’élément visé : insertion dans un commentaire jamais fermé (C1), case derrière un commentaire (R2), refusées', () => {
+  const ouvert = PLAN.replace('3. #5 suivant', '3. #5 suivant <!-- note ouverte').replace('<!-- 4. #6 commenté -->', 'suite')
   for (const [texte, geste, quoi] of [
     [ouvert, { quoi: 'ajouter-item', texte: '#7 nouveau' }, 'item dans un commentaire ouvert'],
     [ouvert, { quoi: 'ajouter-etape', ticket: 5, texte: 'étape' }, 'étape dans un commentaire ouvert'],
@@ -760,6 +760,18 @@ test('#2279 B2 — la structure relue doit être celle d’avant plus l’élém
     assert.equal(r.ok, false, quoi)
     assert.match(r.refus, /ne serait pas lue telle quelle/, quoi)
   }
+})
+
+test('#2279 N7 — la dernière ligne de l’item ou de la section ouvre un commentaire fermé plus bas : l’insertion va APRÈS sa fermeture', () => {
+  const note = PLAN.replace('3. #5 suivant', '3. #5 suivant <!-- note').replace('<!-- 4. #6 commenté -->', '   suite -->')
+  const item = editionDuSuivi(note, { quoi: 'ajouter-item', texte: '#7 nouveau' })
+  assert.equal(item.ok, true, item.refus)
+  assert.match(item.texte, /3\. #5 suivant <!-- note\n {3}suite -->\n4\. #7 nouveau\n/)
+  const etape = editionDuSuivi(note, { quoi: 'ajouter-etape', ticket: 5, texte: 'brief' })
+  assert.equal(etape.ok, true, etape.refus)
+  assert.match(etape.texte, /3\. #5 suivant <!-- note\n {3}suite -->\n {3}- \[ \] brief\n/)
+  const crlf = editionDuSuivi(note.replace(/\n/g, '\r\n'), { quoi: 'ajouter-etape', ticket: 5, texte: 'brief' })
+  assert.equal(crlf.texte, etape.texte.replace(/\n/g, '\r\n'))
 })
 
 test('#2279 R1 — les formes HISTORIQUES des arguments gardent leur sens (2 380 formes énumérées, 52 acceptées hier)', () => {
