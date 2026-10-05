@@ -1,8 +1,8 @@
 // GRAMMAIRE UNIQUE des fermetures de ticket portées par un TEXTE : quels numéros un message de commit
 // (ou une commande `git commit` déroulée) FERME. Un seul module la définit, et tous ses lecteurs la
 // consomment — la porte de commit (`scripts/hooks/solde-ticket-guard.mjs`), le closer de publication
-// (`scripts/ops/fermer-depuis-main.mjs`), la mesure des fermetures non citées, les cliquets et l'objet
-// de faits de palier. Deux graphies pour un même concept rendent des ensembles différents pour un même
+// (`scripts/ops/fermer-depuis-main.mjs`), la mesure des fermetures non citées et les cliquets. Deux
+// graphies pour un même concept rendent des ensembles différents pour un même
 // message : un solde exigé au commit ne ferme alors pas son ticket à la publication.
 // PUR : aucune lecture de git, aucun accès disque.
 

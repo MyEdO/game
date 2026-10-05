@@ -1,7 +1,7 @@
 // CLIQUET du vocabulaire de PLAGE FERMANTE (node --test, sans réseau) : ses décisions sont PURES, et
 // la lecture de la plage se joue sur un dépôt JETABLE sous `os.tmpdir()`.
 // Il vit sous `scripts/ops/` — donc joué par `npm run test:ops`, comme le geste qu'il alimente et les
-// trois autres lecteurs de la grammaire de fermeture qu'il confronte.
+// deux autres lecteurs de la grammaire de fermeture qu'il confronte.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
@@ -13,7 +13,6 @@ import {
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 import { extractClosedIssues } from '../hooks/solde-ticket-guard.mjs'
-import { fermeturesDesCommits } from './faits-de-palier.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 
 /** Un fil de commentaires DATÉS, un jour d'écart chacun à partir du 2026-01-01, dans l'ordre donné. */
@@ -139,8 +138,8 @@ test('les quatre verbes de fermeture sont reconnus, et rien d’autre', () => {
   assert.deepEqual(r.map((x) => x.numero), ['1', '2', '3', '4'])
 })
 
-// Les QUATRE lecteurs de la grammaire de fermeture, sur la même table : porte de commit, closer de
-// publication, objet de faits de palier, primitive. L'attendu est ÉCRIT par message — quatre lecteurs
+// Les TROIS lecteurs de la grammaire de fermeture, sur la même table : porte de commit, closer de
+// publication, primitive. L'attendu est ÉCRIT par message — trois lecteurs
 // tous d'accord sur un ensemble FAUX resteraient verts si le test ne comparait qu'eux entre eux.
 const TABLE_DE_FERMETURE = [
   ['corrige #1709 #1708', ['1709']],
@@ -158,12 +157,11 @@ const TABLE_DE_FERMETURE = [
   ['corrige #0012', ['12']],
 ]
 
-test('les QUATRE lecteurs de la grammaire rendent le MÊME ensemble, et celui qui est attendu', () => {
+test('les TROIS lecteurs de la grammaire rendent le MÊME ensemble, et celui qui est attendu', () => {
   for (const [message, attendu] of TABLE_DE_FERMETURE) {
     const lectures = {
       porte: extractClosedIssues(`git commit -m ${JSON.stringify(message)}`).map(String),
       closer: fermeturesDeLaPlage([{ sha: 'a', message }]).map((f) => f.numero),
-      palier: fermeturesDesCommits([{ sha: 'a', sujet: message, corps: '' }], []).map((f) => f.numero),
       primitive: numerosFermes(message),
     }
     for (const [nom, lu] of Object.entries(lectures)) {

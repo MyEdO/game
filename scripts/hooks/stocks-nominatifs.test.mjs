@@ -830,7 +830,7 @@ test('repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, e
 })
 
 // ── NAISSANCE : le compte d'un fichier qui naît vient du LECTEUR, ou l'appel est REFUSÉ ─────────
-// Sonde 3 de la revue de palier du 2026-09-08 : `croissanceDesStocks(diff)` SANS lecteur rendait
+// Sonde 3 de la revue du 2026-09-08 : `croissanceDesStocks(diff)` SANS lecteur rendait
 // `[]` sur `5756d2d2c`, où `scripts/raw/reconciliation-stock.json` NAÎT avec 13 entrées — un zéro
 // qui ment pour tout appelant hors CI (diagnostic, sonde, revue). Un tel appel est un
 // REFUS NOMMÉ : la lib ne devine aucune image, elle exige son unique source.

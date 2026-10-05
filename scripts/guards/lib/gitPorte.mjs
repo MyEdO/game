@@ -1,5 +1,5 @@
 // LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes
-// (pre-push, garde de solde, revue de palier, stocks de plage, faits de palier, closer) exécutent.
+// (pre-push, garde de solde, stocks de plage, closer) exécutent.
 //
 // COMBIEN D'ISSUES A UNE LECTURE GIT ? TROIS, et les confondre a deux ans de conséquences :
 //   1. `{ disponible: true, valeur }`      — git a répondu ;
@@ -123,7 +123,7 @@ const ditAbsent = (stderr) => MOTIFS_ABSENT.some((re) => re.test(String(stderr ?
  * PROGRAMME, qui remonte. PUR.
  * @param {unknown} e @returns {boolean}
  */
-export const estEchecDeLecture = (e) => e instanceof GitIndisponible || e instanceof BorneAbsente
+const estEchecDeLecture = (e) => e instanceof GitIndisponible || e instanceof BorneAbsente
   || (typeof e?.errno === 'number' && typeof e?.syscall === 'string')
   || typeof e?.status === 'number' || typeof e?.signal === 'string'
 
@@ -610,6 +610,30 @@ export function commitsNommes(depot, revisions) {
     if (brut === null || / (?:missing|ambiguous)$/.test(lignes[2 * i] ?? ' missing')) return null
     return /^([0-9a-f]+) commit /.exec(lignes[2 * i + 1] ?? '')?.[1] ?? null
   })
+}
+
+/**
+ * L'HISTOIRE de HEAD dans `depot`, lue au plus UNE fois (`grapheDe`, à la première question) et
+ * partagée par les questions d'UNE évaluation — les commits qu'un solde dit correcteurs
+ * (`histoireDesCitations`, scripts/hooks/solde-ticket-guard.mjs) ; elle ne survit pas à
+ * l'évaluation, HEAD pouvant bouger. Chaque question porte sur une LISTE de révisions, résolue en UN
+ * lot (`commitsNommes`) comme git la résout, parmi TOUS les objets du dépôt : un préfixe ambigu ou
+ * inconnu n'est pas dans l'histoire. Une révision de plus ne lance donc aucun processus.
+ *   - `commits(revisions)` : le commit du graphe (`CommitDuGraphe`) de chacune, `null` hors de HEAD
+ *     (HEAD compris) — le PRÉDICAT unique « dans HEAD » des portes, qui rend le commit.
+ * @param {Depot} depot
+ * @throws {GitIndisponible} propagée de `grapheDe` ou `commitsNommes`, à la question.
+ */
+export function histoireDeHead(depot) {
+  /** @type {Map<string, CommitDuGraphe> | null} */
+  let parSha = null
+  const graphe = () => (parSha ??= new Map((grapheDe(depot, ['HEAD']) ?? []).map((c) => [c.sha, c])))
+  return {
+    commits: (revisions) => {
+      if (!revisions.length) return []
+      return commitsNommes(depot, revisions).map((sha) => (sha === null ? null : graphe().get(sha) ?? null))
+    },
+  }
 }
 
 /** La date d'un commit par `strftime` (`git help rev-list`, `--date=format:` ; `git help
