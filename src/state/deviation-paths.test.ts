@@ -162,7 +162,7 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
 });
 
 // ── Chemin magie : HÉROS blindé (Dévier/Subir) + ENNEMI auto + multi-cibles ───
-describe('Projectile magique — Déviation Critique (LDB 46 l.55 + 63 l.30)', () => {
+describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', () => {
   beforeEach(() => seedBattleRng(99));
   afterEach(() => resetRule('combat-critical-deflect'));
 

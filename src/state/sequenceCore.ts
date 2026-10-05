@@ -25,11 +25,10 @@
  * s'ajoutent à `SequenceParams` avec le système qui les exerce — le socle ne porte que du vocabulaire vivant.
  */
 import type { Get, Set } from './flowTypes';
-import type { PendingCascade } from './pendings';
 import { openSequence } from './rollSeam';
 import {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
-  type SequenceDef, type SequenceParams, type SequenceState,
+  type SequenceDef, type SequenceParams, type SequenceState, type MancheClose,
 } from './sequenceContract';
 import { runCascadeImmediate } from './cascade';
 import { extendedTestStep } from '../engine/tests';
@@ -52,7 +51,7 @@ export {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
 } from './sequenceContract';
 export type {
-  SequenceDef, SequenceParams, SequenceState, SequenceRound, SequenceVerdict, SequenceCloseCtx,
+  SequenceDef, SequenceParams, SequenceState, SequenceRound, SequenceVerdict, SequenceCloseCtx, MancheClose,
   SequenceTableRow, SequenceBoard, SequenceRoundActors,
   SequencePotRow, SequencePotTurn, SequencePotOutcome,
   SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome, SequenceSide,
@@ -496,9 +495,7 @@ export function openSequenceRound(get: Get, set: Set): void {
   if (manche.immediate) {
     const resolues = runCascadeImmediate(get, set, [...manche.steps], { title: manche.title, purpose: SEQUENCE_PURPOSE, log: manche.log });
     for (const l of manche.log ?? []) get().log(l);
-    closeSequenceRound(get, set, {
-      title: manche.title, purpose: SEQUENCE_PURPOSE, participants: resolues, cursor: resolues.length, log: [],
-    });
+    closeSequenceRound(get, set, { participants: resolues });
     return;
   }
   openSequence(get, set, {
@@ -515,7 +512,7 @@ export function openSequenceRound(get: Get, set: Set): void {
  * (cumuls/charge), puis ROUVRE ou DÉNOUE. La BORNE est tenue ICI, une fois pour tous les jeux : un
  * verdict « continue » à la borne devient une fin sur l'issue réservée `SEQUENCE_BORNE`.
  */
-export function closeSequenceRound(get: Get, set: Set, done: PendingCascade): void {
+export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void {
   const seq = activeSequence(get);
   if (!seq) return;
   const def = sequenceDefOf(seq.def);

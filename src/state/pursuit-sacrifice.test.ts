@@ -15,10 +15,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pursuitOf, PURSUIT_POLICY_DEFAUT, type PursuitPayload } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type SequenceState } from './sequenceCore';
+import { closeSequenceRound, type SequenceState, type MancheClose } from './sequenceCore';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import type { PendingCascade, CascadeStep } from './pendings';
+import type { CascadeStep } from './pendings';
 
 function heroes(): Combatant[] {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
@@ -46,7 +46,7 @@ function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): Sequen
 }
 
 /** Manche FIGÉE : une rangée par coureur, DR imposé (le jet adverse, lui, tombe au RNG semé). */
-function doneRound(rows: { id: string; sl: number }[]): PendingCascade {
+function doneRound(rows: { id: string; sl: number }[]): MancheClose {
   const participants: CascadeStep[] = [{
     id: 'pursuit-1', kind: 'pursuitMove', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: rows.map((r) => ({
@@ -54,7 +54,7 @@ function doneRound(rows: { id: string; sl: number }[]): PendingCascade {
       result: { roll: 40, target: 40, sl: r.sl, success: r.sl >= 0 },
     })),
   }];
-  return { title: 't', purpose: 'sequence', participants, cursor: participants.length, log: [] };
+  return { participants };
 }
 
 /** Les variations de Distance journalisées : celle de la manche, puis celle du recalcul (l.100-102). */

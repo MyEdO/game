@@ -14,6 +14,7 @@ import type { Combatant } from '../../engine/types';
 import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../state/localIntent';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
+import { cascadeDeTest } from '../../state/cascadeTestKit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -300,7 +301,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     // une cible SUR LA CARTE (`pendingDualStrike`) — la modale s'est effacée.
     useGame.setState({
       pendingDualStrike: { attackerId: active.id, offWeaponUid: 'off-1', mainRoll: 30 },
-      pendingCascade: { id: 'combat', cursor: 0, participants: [{ actorId: active.id }] } as never,
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: active.id }], { purpose: 'combat' }),
     });
 
     const aim = probeAim({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim;

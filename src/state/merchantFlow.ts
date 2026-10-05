@@ -27,6 +27,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
 import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
+import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
@@ -70,11 +71,11 @@ export interface MerchantState {
   /** « Baisse des prix » (LDB 59 l.60) : par instance vendue, nombre de fois où le vendeur divise son
    *  prix par deux pour trouver un acheteur (chaque division monte la Disponibilité d'un cran). */
   sellHalvings?: Record<string, number>;
-  /** Répartition post-achat (#760) : objet de sac (`item`) OU unité (véhicule/navire/bête, `unit`) —
+  /** Répartition post-achat (#760) : objet de sac (`item`) OU unité achetable (`unit`) —
    *  discrimination par la présence du champ, jamais un `kind` redondant. */
   pendingDistribution?: (
     | { item: ItemInstance; heroId: string }
-    | { unit: { nature: 'vehicule' | 'navire' | 'bete'; id: string }; heroId: string }
+    | { unit: UniteVendue; heroId: string }
   )[] | null;
   bargainLocked: boolean;
   bargainPaid?: boolean;
@@ -95,9 +96,7 @@ function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: unk
  *  véhicule `vehicles.json` / créature-monture `creatures.json`, facette `purchase`).
  *  SOURCE UNIQUE du triplet label/prix/Disponibilité, réutilisée par le STOCK (`computeFreshStockLines`)
  *  ET le PAIEMENT (`buyItem`/`payCart`) — jamais un lookup de prix dupliqué par site. `unit` absent =
- *  trapping ordinaire (achat → objet de sac) ; présent = achat → POSSESSION (`nature`/id du catalogue).
- *  `unit.nature` porte la nature de `Possession` CIBLE : `vehicule`/`navire` (coque, `veh.ship`) ou
- *  `bete` (créature) — jamais un `'vehicule'` générique qui confondrait chariot et navire.
+ *  trapping ordinaire (achat → objet de sac) ; présent = achat → POSSESSION (`kind`/id du catalogue).
  *  EXPORTÉE : `MerchantPanel` (UI) résout AUSSI label/prix/Dispo/famille d'une ligne de stock par cette
  *  SOURCE UNIQUE — jamais un `findTrappingById` nu qui présumerait une ligne trapping. */
 export interface CatalogEntry {
@@ -105,8 +104,11 @@ export interface CatalogEntry {
   price: Partial<Money> | null;
   availability: Availability | null;
   qualities?: unknown[];
-  unit?: { nature: 'vehicule' | 'navire' | 'bete'; id: string };
+  unit?: UniteVendue;
 }
+
+/** Unité vendue : sa catégorie ACHETABLE (`unitKinds`) et son id de catalogue. */
+export interface UniteVendue { kind: UniteAchetable; id: string }
 
 export function catalogEntryOf(id: string): CatalogEntry | undefined {
   // La donnée porte AUSSI les marques du livre hors des 4 classes (`'ND'`) : `isTradable` est la SEULE
@@ -119,18 +121,23 @@ export function catalogEntryOf(id: string): CatalogEntry | undefined {
   const t = findTrappingById(id);
   if (t) return { label: t.label, price: moneyOf(t.price), availability: classOf(t.availability), qualities: t.qualities };
   const veh = findVehicleById(id);
-  if (veh?.purchase) return { label: veh.label, price: veh.purchase.price, availability: classOf(veh.purchase.availability), unit: { nature: veh.ship ? 'navire' : 'vehicule', id } };
+  if (veh?.purchase && vehiculeTerrestre(veh)) return { label: veh.label, price: veh.purchase.price, availability: classOf(veh.purchase.availability), unit: { kind: 'vehicule-terrestre', id } };
   const cre = findCreatureById(id);
-  if (cre?.purchase) return { label: cre.label, price: cre.purchase.price, availability: classOf(cre.purchase.availability), unit: { nature: 'bete', id } };
+  if (cre?.purchase) return { label: cre.label, price: cre.purchase.price, availability: classOf(cre.purchase.availability), unit: { kind: 'bete', id } };
   return undefined;
 }
 
 /** Ids de catalogue vendus pour UNE catégorie d'unité (#619 Lot A) — DÉRIVÉS du dataset (`purchase`
  *  chiffré), jamais une liste en dur : une monture/un véhicule neuf à facette `purchase` apparaît
  *  AUTOMATIQUEMENT chez tout archétype portant sa catégorie. SOURCE UNIQUE de cette dérivation. */
-function unitIdsOfKind(kind: 'bete' | 'vehicule-terrestre'): string[] {
+function unitIdsOfKind(kind: UniteAchetable): string[] {
   if (kind === 'bete') return creatures.filter((c) => c.purchase).map((c) => c.id);
-  return vehicles.filter((v) => v.purchase && !v.ship).map((v) => v.id); // vehicule-terrestre (navire non vendu -> #748)
+  return vehicles.filter((v) => v.purchase && vehiculeTerrestre(v)).map((v) => v.id);
+}
+
+/** Un véhicule sans coque (`ship`) : la catégorie `vehicule-terrestre`, seule vendue (#748). */
+function vehiculeTerrestre(v: { ship?: unknown }): boolean {
+  return !v.ship;
 }
 
 /** Meilleur seuil « Tenir les comptes » du groupe (LDB 59 l.9-11) : le plus haut budget de Statut
@@ -428,6 +435,14 @@ export function closeMerchant(get: Get, set: Set): void {
   set({ merchant: null });
 }
 
+/** La Possession d'une UNITÉ achetée (#619, #760), au propriétaire `ownerId`, avec le groupe : écriture
+ *  partagée par `buyItem` et `confirmDistribution`. */
+function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof addPossession>[2] {
+  return unit.kind === 'bete'
+    ? { nature: 'bete', ref: { creatureId: unit.id }, ownerId, location: { kind: 'avec-le-groupe' }, items: [] }
+    : { nature: 'vehicule', vehicleId: unit.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [] };
+}
+
 export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
   const m = get().merchant; if (!m) return;
   const line = m.stock.find((l) => l.id === id); if (!line || line.qty <= 0) return;
@@ -444,11 +459,8 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
   if (!free) payWithAllocation(get, set, { debits: soloPayer(dest!, cost), recipient: dest, purpose: 'achat' });
   const decr = (st: { id: string; qty: number }[]) => st.map((l) => (l.id === id ? { ...l, qty: l.qty - 1 } : l));
   if (entry.unit && dest) {
-    // Achat d'une UNITÉ (#619 Lot A) : possession, pas un objet de sac. Propriétaire = l'acheteur —
-    // le picker de choix (lot suivant) reste hors périmètre ici.
-    addPossession(get, set, entry.unit.nature === 'vehicule'
-      ? { nature: 'vehicule', vehicleId: entry.unit.id, ownerId: dest, location: { kind: 'avec-le-groupe' }, items: [] }
-      : { nature: 'bete', ref: { creatureId: entry.unit.id }, ownerId: dest, location: { kind: 'avec-le-groupe' }, items: [] });
+    // Achat d'une UNITÉ (#619) : possession, pas un objet de sac. Propriétaire = l'acheteur (`heroId`).
+    addPossession(get, set, possessionDUnite(entry.unit, dest));
   }
   set((s) => {
     const newStock = decr(s.merchant!.stock);
@@ -532,7 +544,7 @@ export function payCart(get: Get, set: Set): void {
   for (const c of cart) {
     const entry = catalogEntryOf(c.id);
     if (entry?.unit) {
-      for (let i = 0; i < c.qty; i++) staged.push({ unit: { nature: entry.unit.nature, id: entry.unit.id }, heroId: dest });
+      for (let i = 0; i < c.qty; i++) staged.push({ unit: entry.unit, heroId: dest });
     } else {
       for (let i = 0; i < c.qty; i++) { const it = itemFromTrappingById(c.id); if (it) staged.push({ item: it, heroId: dest }); }
     }
@@ -562,7 +574,7 @@ export function assignDistribution(_get: Get, set: Set, index: number, heroId: s
 export function confirmDistribution(get: Get, set: Set): void {
   const m = get().merchant; const dist = m?.pendingDistribution;
   if (!m || !dist || !dist.length) return;
-  const unitEntries = dist.filter((d): d is { unit: { nature: 'vehicule' | 'navire' | 'bete'; id: string }; heroId: string } => 'unit' in d);
+  const unitEntries = dist.filter((d): d is { unit: UniteVendue; heroId: string } => 'unit' in d);
   set((s) => {
     const mm = s.merchant; if (!mm) return {};
     const byHero: Record<string, ItemInstance[]> = {};
@@ -578,11 +590,7 @@ export function confirmDistribution(get: Get, set: Set): void {
     });
     return { party, merchant: { ...mm, pendingDistribution: null } };
   });
-  for (const u of unitEntries) {
-    addPossession(get, set, u.unit.nature === 'bete'
-      ? { nature: 'bete', ref: { creatureId: u.unit.id }, ownerId: u.heroId, location: { kind: 'avec-le-groupe' }, items: [] }
-      : { nature: 'vehicule', vehicleId: u.unit.id, ownerId: u.heroId, location: { kind: 'avec-le-groupe' }, items: [] });
-  }
+  for (const u of unitEntries) addPossession(get, set, possessionDUnite(u.unit, u.heroId));
 }
 
 /** Gain de revente d'un objet (catalogue × qualité × resaleRate × facteur de Marchandage). SOURCE UNIQUE

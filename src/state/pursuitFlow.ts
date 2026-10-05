@@ -46,10 +46,10 @@ import {
 } from '../engine/pursuit';
 import {
   registerSequence, startSequence, abandonSequence, sequenceScoreOf,
-  SEQUENCE_BORNE, type SequenceRound, type SequenceState, type SequenceVerdict,
+  SEQUENCE_BORNE, type SequenceRound, type SequenceState, type SequenceVerdict, type MancheClose,
 } from './sequenceCore';
 import type { RNG } from '../engine/dice';
-import type { BatchParticipant, CascadeStep, PendingCascade } from './pendings';
+import type { BatchParticipant, CascadeStep } from './pendings';
 import type { GameState } from './store';
 import { traceLineOf } from '../engine/traceLine';
 import { t } from '../i18n';
@@ -360,7 +360,7 @@ export const pursuitBands = makeBandFactory<BuiltCascadeStep>({
 });
 
 /** Les deux camps de la manche, DR totaux compris (Test + bonus de vitesse l.105-108). */
-function campsOf(get: Get, p: PursuitPayload, done: PendingCascade, rng: RNG, log: string[]): { fleeing: PursuitRunner[]; pursuers: PursuitRunner[] } {
+function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: string[]): { fleeing: PursuitRunner[]; pursuers: PursuitRunner[] } {
   // Les DR du groupe sont ceux des RANGÉES de la bande de manche (une par coureur).
   const partyRolls = done.participants
     .filter((s) => s.kind === PURSUIT_MOVE_KIND)
@@ -396,7 +396,7 @@ const fuyardsSontLeGroupe = (p: PursuitPayload) => p.partyRole === 'fleeing';
 
 /** RÉDUCTEUR DE CLÔTURE (enregistré sous `pursuit`) : lit les rangées closes, roule les adversaires,
  *  actualise la Distance (l.93), juge l'issue (l.94) et route les décisions de rattrapage. Ne mute rien. */
-function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: PendingCascade; rng: RNG }): SequenceVerdict<PursuitPayload> {
+function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; rng: RNG }): SequenceVerdict<PursuitPayload> {
   const { get, seq, done, rng } = ctx;
   const p = seq.payload;
   if (p.phase !== 'course') return closeDecision(seq, done);
@@ -445,7 +445,7 @@ function decisionPoursuivants(seq: PursuitSequence, p: PursuitPayload, log: stri
 }
 
 /** Clôture d'une fenêtre de DÉCISION : la voie choisie par le joueur. */
-function closeDecision(seq: PursuitSequence, done: PendingCascade): SequenceVerdict<PursuitPayload> {
+function closeDecision(seq: PursuitSequence, done: MancheClose): SequenceVerdict<PursuitPayload> {
   const p = seq.payload;
   const pris = p.pris;
   const chosen = done.participants.find((s) => s.kind === PURSUIT_CHOICE_KIND)?.chosen;

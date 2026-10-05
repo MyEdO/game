@@ -6,7 +6,7 @@
  * Principe (cf. plan « les casters jouent tout leur arsenal ») : la valeur d'un sort n'est PAS lue
  * dans une catégorie — c'est la Σ de la valeur de ses `GameOp` appliqués à l'endroit visé, × fiabilité
  * d'incantation (`landProb`, fourni par l'appelant) × opposition (Sorts de Contact/résistés, LDB 46
- * l.123-124). L'échelle est « Blessures-équivalent pour mon camp » (l'unité déjà employée par `ai.ts`).
+ * l.103-105). L'échelle est « Blessures-équivalent pour mon camp » (l'unité déjà employée par `ai.ts`).
  *
  * ZÉRO `battleRng()`/`rollTest`/`Math.random` : le planning doit rester déterministe (coop/tests
  * reproductibles). Les magnitudes de dés sont des MOYENNES (`formulaExpectation`), jamais tirées.
@@ -111,7 +111,7 @@ const bodyPA = (target: Combatant): number => Math.max(0, target.armour?.corps ?
 const missingWounds = (c: Combatant): number => Math.max(0, c.wounds.max - c.wounds.current);
 
 /** Composante de Projectile magique (flag `missile`, hors `GameOp`) : `Dégâts + BFM + DR moyen`, mitigée
- *  BE/PA selon `ignoreBE/ignorePA` (LDB 46 l.101-105), plancher 0. 0 si non-missile (ou pas de cible). */
+ *  BE/PA selon `ignoreBE/ignorePA` (LDB 46 l.99-101), plancher 0. 0 si non-missile (ou pas de cible). */
 function missileComponent(caster: Combatant, target: Combatant | null, spell: SpellData): number {
   const md = missileDamage(spell);
   if (!md) return 0;
@@ -314,7 +314,7 @@ export function spellIsOffensive(spell: SpellData): boolean {
   );
 }
 
-/** Escompte d'OPPOSITION (RAW Sorts de Contact/résistés, LDB 46 l.123-124), déterministe : un Sort de
+/** Escompte d'OPPOSITION (RAW Sorts de Contact/résistés, LDB 46 l.103-105), déterministe : un Sort de
  *  Contact frappe via un Test opposé (CC lanceur vs meilleure défense de la cible) ; un Sort résisté
  *  réussit ~½ ; un sort non opposé passe à coup sûr (×1). */
 export function oppositionDiscount(spell: SpellData, caster: Combatant, target: Combatant | null): number {

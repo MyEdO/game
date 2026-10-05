@@ -54,11 +54,11 @@ function trapCol(fn: (t: TrapRow) => string): (id: string) => string {
   return (id) => { const t = findTrappingById(id); return t ? fn(t) : DASH; };
 }
 /** Capacité de PORT d'une unité (#619 Lot A) — Enc portée EDOC 07 (monture) ou Chargement LDB 70/EDOC 07
- *  (véhicule terrestre) ; DASH si non chiffré (navire — hors Lot A). */
+ *  (véhicule terrestre) ; DASH si non chiffré. */
 function unitCapacity(id: string): string {
   const unit = catalogEntryOf(id)?.unit;
   if (!unit) return DASH;
-  if (unit.nature === 'bete') { const p = mountProfileForCreature(unit.id); return p ? `M ${p.m} / Enc ${p.encPortee}` : DASH; }
+  if (unit.kind === 'bete') { const p = mountProfileForCreature(unit.id); return p ? `M ${p.m} / Enc ${p.encPortee}` : DASH; }
   const v = findVehicleById(unit.id);
   return v?.chargement != null ? `Chargement ${v.chargement}` : DASH;
 }
@@ -413,7 +413,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 // Unités (#619 Lot A) : groupées par NATURE (montures/véhicules), pas par `subType` de
                 // trapping (toujours absent d'une ligne unité — `catalogEntryOf`).
                 const g = isUnitCat
-                  ? (catalogEntryOf(l.id)?.unit?.nature === 'bete' ? 'montures' : 'vehicules')
+                  ? (catalogEntryOf(l.id)?.unit?.kind === 'bete' ? 'montures' : 'vehicules')
                   : (findTrappingById(l.id)?.subType ?? 'autres');
                 let bucket = groups.find((x) => x.key === g);
                 if (!bucket) {

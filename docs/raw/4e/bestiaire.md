@@ -150,7 +150,7 @@ Règle d'application des Traits Facultatifs modificateurs de profil (**Élite, C
 - Un Trait Facultatif **ajouté par l'auteur** s'applique en DIRECT via `liveTraits` (collecteur passif), sans modifier `characteristics` (base bestiaire) → pas de double-compte.
 
 **Sources RAW** :
-- `LDB 76 l.45` — « Traits Facultatifs : Traits de créature courants que vous pouvez ajouter si vous créez votre propre version. »
+- `LDB 76 l.45` — « **Facultatif :** Traits de créature courants que vous pouvez ajouter si vous créez votre propre version. »
 - `LDB 85 l.339-340` — « Utiliser les Tailles » (si la Taille Facultative change la catégorie → ±10 F/E, ∓5 Ag).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_

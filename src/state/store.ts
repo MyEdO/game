@@ -772,10 +772,9 @@ export interface GameState extends RollFlowActionsMap {
   previousScene: { id: string; pos: Pt } | null;
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
-   *  null = « Nouvelle partie » standard (campagne par défaut). `id` optionnel (#608) : plombé
-   *  à la sélection (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label` ;
-   *  absent sur une vieille save migrée = pas de surlignage, pas de crash. */
-  pendingCampaign: { id?: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
+   *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
+   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. */
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;

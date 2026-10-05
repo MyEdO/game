@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { combatAdvanceBlocked } from './combatGate';
 import type { ArbiterState } from './modalArbiter';
+import { cascadeDeTest } from './cascadeTestKit';
 
 /**
  * Garde unique de reprise (A1) — strictement ISO aux 4 gardes historiques. Les `opts` reflètent
@@ -24,8 +25,8 @@ describe('combatAdvanceBlocked — garde de reprise unifiée (A1, iso)', () => {
     expect(combatAdvanceBlocked(s({ pendingFateSave: {} as never }))).toBe(true);
     // Ni la Maladresse ni la RÉVÉLATION ne sont des pendings à part : ce sont des ÉTAPES de
     // `pendingCascade` (#942 L8) — un seul terme les couvre toutes.
-    expect(combatAdvanceBlocked(s({ pendingCascade: {} as never }))).toBe(true);
-    expect(combatAdvanceBlocked(s({ pendingCascade: { cursor: 0, participants: [{ kind: 'round', reveal: {} }] } as never }))).toBe(true);
+    expect(combatAdvanceBlocked(s({ pendingCascade: cascadeDeTest([]) }))).toBe(true);
+    expect(combatAdvanceBlocked(s({ pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]) }))).toBe(true);
   });
 
   it('pendingCast : bloque par défaut, MAIS pas avec {cast:false} (iso resumeSuspendedAI)', () => {
