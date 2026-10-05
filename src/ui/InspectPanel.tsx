@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import type { Combatant } from '../engine/types';
 import { useGame } from '../state/store';
+import { presetPnjById } from '../state/campaignData';
 import { Modal } from './Modal';
 import { CharFrame } from './CharFrame';
 import { PortraitTile } from './PortraitTile';
 import { summarizeEffects, combatantFlags } from '../gameIso/effectIcons';
 import { CodexSections } from './compendium/CodexEntry';
-import { combatantSections } from './compendium/registry';
+import { combatantSections, proseDeFiche } from './compendium/registry';
+import { Tabs } from './Tabs';
 import { EffectChips } from './EffectChips';
 import { isFrenzied } from '../engine/psychology';
 import { isVehicle } from '../engine/vehicle';
@@ -20,6 +23,9 @@ import { WoundsBadge } from './WoundsBadge';
  * que la fiche Codex (`CodexSections`, alimenté par les valeurs réelles via `combatantSections`).
  * Plus de panneau recopié ni de sous-ensemble de caractéristiques — une seule vérité de rendu.
  *
+ * ONGLETS (#2206) : « Profil » (le statbloc) et « Description » (`proseDeFiche` : la `desc` de la fiche,
+ * avec l'entrée qui la porte). Sans prose, ni onglet ni barre : le statbloc seul.
+ *
  * COQUE (navire/engin, #240) : le statbloc-personnage n'a aucun sens (caracs nulles) → on inspecte l'objet
  * visible via `ShipInspectBody` (Coque, cap, postes, Traits/Améliorations dont la Proue-idole #221) — même
  * geste (mode Inspection), une coque ENNEMIE y répond comme un combattant, en LECTURE.
@@ -30,6 +36,8 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
   const facing = useGame((s) => s.facing);
   const hull = isVehicle(c) || isEngin(c);
   const fx = summarizeEffects(c.conditions, c.activeEffects ?? [], Infinity, combatantFlags(c));
+  const prose = hull ? null : proseDeFiche(c, presetPnjById);
+  const [onglet, setOnglet] = useState<'profil' | 'description'>('profil');
   const crew = hull ? (c.crewIds ?? []).map((id) => battle?.combatants.find((x) => x.id === id)).filter((x): x is Combatant => !!x) : [];
 
   return (
@@ -76,10 +84,20 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
             </div>
           )}
 
-          {/* Statbloc COMPLET via le rendu PARTAGÉ du Codex (toutes les caracs, armes, armure, traits,
-              compétences, talents, sorts — chaque entité cliquable vers sa fiche). */}
+          {prose && (
+            <Tabs
+              tabs={[{ key: 'profil', label: 'Profil' }, { key: 'description', label: 'Description' }]}
+              active={onglet}
+              onChange={setOnglet}
+              label={`Fiche de ${c.label}`}
+            />
+          )}
+          {/* Statbloc COMPLET, ou la Description, via le rendu PARTAGÉ du Codex (toutes les caracs, armes,
+              armure, traits, compétences, talents, sorts — chaque entité cliquable vers sa fiche). */}
           <div className="insp-statblock">
-            <CodexSections sections={combatantSections(c)} />
+            {prose && onglet === 'description'
+              ? <CodexSections sections={[prose.section]} entree={prose.entree} />
+              : <CodexSections sections={combatantSections(c)} />}
           </div>
         </>
       )}
