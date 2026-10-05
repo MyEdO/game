@@ -22,7 +22,7 @@ import {
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
 import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
-import { ecartDuVolet, ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, ecartsDeStock, SEPARATEUR_DE_REMEDE, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
 import { siteDeForme } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import {
@@ -257,7 +257,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   it('HORS STRATE : remède applicable à une forme valide absente du lexique, sans modifier sa clé', () => {
     const sites = [{ file: 'src/scenes/fixture.json', ref: 'flow — effect,kind' }];
     const { neuves, perimees } = ecartsHorsStrate(sites, []);
-    expect(neuves).toEqual([' :: src/scenes/fixture.json :: flow — effect,kind :: 1 — Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.']);
+    const cle = cleDeSite(sitesEnEntrees(sites)[0]);
+    expect(neuves).toEqual([cle + SEPARATEUR_DE_REMEDE + 'Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.']);
     expect(neuves[0]).not.toContain('CLIQUET:');
     expect(perimees).toEqual([]);
   });
