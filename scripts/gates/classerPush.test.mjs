@@ -7,7 +7,7 @@
 // en la NOMMANT, qu'elle soit sautée à tort ou jouée pour rien.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
 import { join, dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -21,9 +21,10 @@ import {
   ID_PROLOGUE,
   classer,
   classerPush,
+  baseDuDiff,
   gatesSautables,
 } from './classerPush.mjs'
-import { envDeDepotForge, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
@@ -261,6 +262,43 @@ test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON'
 
 const gitDe = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
+test('#2285 famille classer callback : diagnostic du merge-base', () => {
+  const { racine } = depotJetable()
+  try {
+    const stderr = 'note callback\n'.repeat(45) + 'cause callback tardive\n'
+    const stdout = 'stdout callback distinct'
+    assert.ok(stderr.indexOf('cause callback tardive') > 400)
+    const vu = sousGitFeint([{ si: ['merge-base'], status: 27, stdout, stderr }], () => baseDuDiff({ sha: 'HEAD', cwd: racine }))
+    assert.deepEqual(vu, { base: null, motif: 'merge-base origin/main en échec — git indisponible : refus (status 27) — ' + stderr + '\n' + stdout + ' : conservateur' })
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2285 famille classer fetch : diagnostic de l’union refusée', () => {
+  const { racine, git } = depotJetable()
+  try {
+    git(['update-ref', '-d', 'refs/remotes/origin/main'])
+    const stderr = 'note fetch\n'.repeat(45) + 'cause fetch tardive\n'
+    const stdout = 'stdout fetch distinct'
+    assert.ok(stderr.indexOf('cause fetch tardive') > 400)
+    const vu = sousGitFeint([{ si: ['fetch'], status: 28, stdout, stderr }], () => baseDuDiff({ sha: 'HEAD', cwd: racine }))
+    assert.deepEqual(vu, { base: null, motif: 'origin/main absent après fetch — git indisponible : refus (status 28) — ' + stderr + '\n' + stdout + ' : conservateur' })
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2285 famille classer CLI : catch Git complet', () => {
+  const { racine, git } = depotJetable()
+  try {
+    const sha = git(['rev-parse', 'HEAD'])
+    const stderr = 'note CLI\n'.repeat(45) + 'cause CLI tardive\n'
+    const stdout = 'stdout CLI distinct'
+    assert.ok(stderr.indexOf('cause CLI tardive') > 400)
+    const vu = jouerCli(racine, { BASE: sha, SHA: sha, ...envGitFeint([{ si: ['diff-tree'], status: 29, stdout, stderr }]) })
+    assert.equal(vu.code, 1)
+    assert.equal(vu.stdout, '')
+    assert.ok(vu.stderr.includes('[classerPush] erreur git non prévue : refus (status 29) — ' + stderr + '\n' + stdout + '\n'), vu.stderr)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 /** Un dépôt jetable avec un `main` d'un commit, une branche de travail, et `origin` sur lui-même. */
 function depotJetable() {
   const racine = mkdtempSync(join(tmpdir(), 'wfrp-classer-'))
@@ -284,17 +322,8 @@ function ecrire(racine, chemin, contenu) {
 
 /** Joue le CLI dans `cwd` et rend `{ code, stdout, stderr }` — le code de sortie est LU, pas deviné. */
 function jouerCli(cwd, env) {
-  try {
-    const stdout = execFileSync(process.execPath, [CLASSEUR], {
-      cwd,
-      encoding: 'utf8',
-      env: { ...envDeDepotForge(), ...env },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-    return { code: 0, stdout }
-  } catch (erreur) {
-    return { code: erreur.status, stdout: erreur.stdout ?? '' }
-  }
+  const vu = spawnSync(process.execPath, [CLASSEUR], { cwd, encoding: 'utf8', env: { ...envDeDepotForge(), ...env }, timeout: 10000 })
+  return { code: vu.status, stdout: vu.stdout ?? '', stderr: vu.stderr ?? '' }
 }
 
 test('CLI — une branche dont le seul commit touche une fiche sort `produit=false`', () => {
@@ -462,7 +491,7 @@ for (const [nom, stderr] of [
   const { racine } = depotJetable()
   try {
     const v = sousGitFeint([{ si: ['merge-base'], status: 128, stderr }], () => classerPush({ sha: 'HEAD', cwd: racine }))
-    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, [`merge-base origin/main en échec — git indisponible : ${stderr} : conservateur`]])
+    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, [`merge-base origin/main en échec — git indisponible : refus (status 128) — ${stderr} : conservateur`]])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

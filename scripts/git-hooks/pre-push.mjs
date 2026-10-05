@@ -30,7 +30,7 @@
 import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, depotDe, estAncetre, origineDe, refusDeGit, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
@@ -68,7 +68,7 @@ export function jugerPush({ cwd, stdin }) {
   // Les lectures git passent par les questions de l'hôte unique : `null` dit « l'objet n'existe pas »,
   // et une INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const refus = []
   const notes = []
 
@@ -93,7 +93,7 @@ export function jugerPush({ cwd, stdin }) {
     } else {
       const ancetre = estAncetre(depot, shaDistant, shaLocal)
       if (!ancetre.disponible)
-        refus.push(`${refLocale} → ${refDistante} : ascendance illisible — ${ancetre.raison}`)
+        refus.push(`${refLocale} → ${refDistante} : ascendance illisible — ${refusDeGit(ancetre)}`)
       else if (ancetre.absent)
         refus.push(
           `push vers ${refDistante} non jugé : ${shaDistant.slice(0, 7)} est inconnu de ce dépôt — `

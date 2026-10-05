@@ -788,7 +788,7 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
 
     const parCale = decisionOf(commande, repo, { ...process.env, ...envGitFeint([{ si: ['diff-index', '--numstat', '-M'], status: 128, stderr: 'fatal: panne simulée\n' }]) })
     assert.equal(parCale?.decision, 'deny')
-    assert.match(parCale.reason, /^⛔ lecture git indisponible : fatal: panne simulée/)
+    assert.match(parCale.reason, /^⛔ lecture git indisponible : refus \(status 128\) — fatal: panne simulée/)
     assert.equal(parCale.reason.split('lecture git indisponible').length, 2, 'une panne, UN refus')
 
     const blob = git('rev-parse', 'HEAD:src/x.ts')
@@ -801,6 +801,16 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
+})
+
+test('#2285 DRIVER : diagnostic Git complet dans la décision publique', () => {
+  const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const x = 1\n' } })
+  try {
+    const stderr = `${'ligne diagnostique longue\n'.repeat(45)}CAUSE TARDIVE 2285`
+    const vu = decisionOf('git commit -m "refs #1806"', repo, { ...process.env, ...envGitFeint([{ si: ['diff-index', '--numstat', '-M'], status: 37, stdout: 'stdout distinct 2285', stderr }]) })
+    assert.equal(vu?.decision, 'deny')
+    assert.ok(vu.reason.includes(`refus (status 37) — ${stderr}\nstdout distinct 2285`), vu.reason)
+  } finally { rmSync(repo, { recursive: true, force: true }) }
 })
 
 test('DRIVER : un dépôt SANS premier commit et un commit qui touche `CLAUDE.md` — la base est l’arbre vide, le hook ne tombe pas', () => {

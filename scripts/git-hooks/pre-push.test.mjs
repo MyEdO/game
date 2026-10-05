@@ -11,11 +11,35 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { REFUS_PUSH_VERS_MAIN, REF_PROTEGEE, jugerPush, refsAPousser } from './pre-push.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
 
 const ZERO = '0'.repeat(40)
+
+test('#2285 famille prepush callback : origin complet', () => {
+  const racine = depot()
+  try {
+    const stderr = 'note origin\n'.repeat(45) + 'cause origin tardive\n'
+    const stdout = 'stdout origin distinct'
+    assert.ok(stderr.indexOf('cause origin tardive') > 400)
+    const vu = sousGitFeint([{ si: ['remote', 'get-url', 'origin'], status: 30, stdout, stderr }], () => jugerPush({ cwd: racine, stdin: '' }))
+    assert.deepEqual(vu.refus, ['origin illisible, git indisponible : refus (status 30) — ' + stderr + '\n' + stdout])
+  } finally { jeter(racine) }
+})
+
+test('#2285 famille prepush union : ascendance complète', () => {
+  const racine = depot()
+  try {
+    const sha = tete(racine)
+    const stderr = 'note ancêtre\n'.repeat(45) + 'cause ancêtre tardive\n'
+    const stdout = 'stdout ancêtre distinct'
+    assert.ok(stderr.indexOf('cause ancêtre tardive') > 400)
+    const stdin = 'refs/heads/feat/x ' + sha + ' refs/heads/feat/x ' + sha + '\n'
+    const vu = sousGitFeint([{ si: ['merge-base', '--is-ancestor'], status: 31, stdout, stderr }], () => jugerPush({ cwd: racine, stdin }))
+    assert.deepEqual(vu.refus, ['refs/heads/feat/x → refs/heads/feat/x : ascendance illisible — refus (status 31) — ' + stderr + '\n' + stdout])
+  } finally { jeter(racine) }
+})
 
 const git = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 

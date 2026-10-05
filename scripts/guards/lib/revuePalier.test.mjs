@@ -9,7 +9,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { depotReel, envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { gitDe, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
-import { depotDe, grapheDe } from './gitPorte.mjs'
+import { GitIndisponible, depotDe, grapheDe } from './gitPorte.mjs'
 import { derniereRevueArchivee, histoireDeHead, mesureDuPalier, nomDArchiveDeRevue, shasDeSubstance } from './revuePalier.mjs'
 
 const JOUR = '2026-10-05'
@@ -230,10 +230,14 @@ test('mesureDuPalier : une erreur de PROGRAMME remonte ; une lecture git indispo
     assert.equal(systeme.code, 'ENOENT', 'témoin : une vraie erreur système')
     const parSysteme = depotDe(d.dossier, { env: envDeDepotForge(), spawn: () => { throw systeme } })
     assert.match(mesureDuPalier(d.dossier, { depot: parSysteme }).erreur, /^histoire illisible depuis .*ENOENT/)
-    const panne = depotDe(d.dossier, { env: envDeDepotForge(), spawn: () => ({ status: 128, stdout: '', stderr: 'fatal: panne simulée\n' }) })
+    const stderr = 'note initiale\n'.repeat(45) + 'cause initiale tardive\n'
+    const stdout = 'stdout initial distinct'
+    assert.ok(stderr.indexOf('cause initiale tardive') > 400)
+    assert.ok(stderr.endsWith('\n'))
+    const panne = depotDe(d.dossier, { env: envDeDepotForge(), spawn: () => ({ status: 128, stdout, stderr }) })
     const mesure = mesureDuPalier(d.dossier, { depot: panne })
     assert.deepEqual({ ...mesure, erreur: undefined }, { compte: 0, tete: null, chemin: null, erreur: undefined })
-    assert.match(mesure.erreur, /^histoire illisible depuis .* — git indisponible : fatal: panne simulée/)
+    assert.equal(mesure.erreur, 'histoire illisible depuis ' + d.dossier + ' — refus (status 128) — ' + stderr + '\n' + stdout)
   } finally { d.jeter() }
 })
 
@@ -249,6 +253,44 @@ test('un git plus ancien que 2.33 ne lit pas le graphe : la mesure du palier NOM
     const depot = depotDe(d.dossier, { env: envDeDepotForge(), spawn })
     const mesure = mesureDuPalier(d.dossier, { depot })
     assert.deepEqual({ ...mesure, erreur: undefined }, { compte: 0, tete: null, chemin: null, erreur: undefined })
-    assert.match(mesure.erreur, /^ascendance indisponible : git 2\.30 ne sait pas git rev-list --no-commit-header \(git 2\.33 ou plus\)/)
+    assert.equal(mesure.erreur, 'ascendance indisponible : refus (status 129) — git 2.30 ne sait pas git rev-list --no-commit-header (git 2.33 ou plus) : le graphe des commits n’est pas lisible\nusage: git rev-list [<options>] <commit>... [--] [<path>...]\n — le palier ne se mesure pas sans git')
+  } finally { d.jeter() }
+})
+
+test('#2285 legacy ascendance : diagnostic entier de la dernière archive', () => {
+  const d = depotForge()
+  try {
+    d.archiver(d.commit('a'))
+    const stderr = 'note ascendance\n'.repeat(45) + 'cause ascendance tardive\n'
+    const stdout = 'stdout ascendance distinct'
+    assert.ok(stderr.indexOf('cause ascendance tardive') > 400)
+    assert.ok(stderr.endsWith('\n'))
+    const erreur = new GitIndisponible({ disponible: false, raison: stderr, issue: 'refus', diagnostic: { status: 30, stdout, stderr } })
+    const histoire = { restes: () => { throw erreur } }
+    assert.deepEqual(derniereRevueArchivee(d.dossier, { depot: depotReel(d.dossier), histoire }),
+      { etat: 'ascendance-indisponible', raison: 'refus (status 30) — ' + stderr + '\n' + stdout })
+  } finally { d.jeter() }
+})
+
+test('#2285 legacy substance : refus final conserve tête et chemin', () => {
+  const d = depotForge()
+  try {
+    const tete = d.commit('a')
+    d.archiver(tete)
+    const stderr = 'note substance\n'.repeat(45) + 'cause substance tardive\n'
+    const stdout = 'stdout substance distinct'
+    assert.ok(stderr.indexOf('cause substance tardive') > 400)
+    assert.ok(stderr.endsWith('\n'))
+    const spawn = (commande, args, options) => args.includes('rev-list')
+      ? { status: 31, stdout, stderr } : spawnSync(commande, args, options)
+    const depot = depotDe(d.dossier, { env: envDeDepotForge(), spawn })
+    const histoire = { restes: (revisions) => {
+      assert.deepEqual(revisions, [tete])
+      return [0]
+    } }
+    assert.deepEqual(mesureDuPalier(d.dossier, { depot, histoire }), {
+      compte: 0, tete, chemin: '.claude/soldes/revue-palier-' + JOUR + '-0000000-' + tete + '.md',
+      erreur: 'ce que font les commits depuis ' + tete + ' est illisible : refus (status 31) — ' + stderr + '\n' + stdout,
+    })
   } finally { d.jeter() }
 })

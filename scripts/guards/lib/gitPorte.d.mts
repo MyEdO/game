@@ -37,6 +37,7 @@ export class GitIndisponible extends Error {
   diagnostic?: DiagnosticGit;
 }
 export function reussi(union: ResultatGit): boolean;
+export function refusDeGit(vu: ResultatGit | GitIndisponible): string;
 export function pousser(depot: Depot, geste: { vers: string; bail?: boolean }): ResultatGit;
 export function fetchOrigin(depot: Depot, opts?: { branche?: string }): ResultatGit;
 

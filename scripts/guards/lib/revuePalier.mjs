@@ -13,7 +13,7 @@
 // rejoignent jamais `main`) : deux worktrees suffisent à en faire un nombre que rien ne recoupe.
 import {
   GitIndisponible, INDEX, ceQuEmporteLIndex, estEchecDeLecture, ceQueFaitLeCommit, ceQueFontLesCommits, commitsNommes, depotDe, estAncetre,
-  fusionnesEnCours, grapheDe, imageDeHead, lireEnLot, listerImage,
+  fusionnesEnCours, grapheDe, imageDeHead, lireEnLot, listerImage, refusDeGit,
 } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
@@ -181,10 +181,7 @@ export function histoireDeHead(depot) {
 
 /**
  * La dernière revue de HEAD qui JUGE son histoire : celle dont la tête de fenêtre est un ancêtre de
- * HEAD, et dont il reste le moins de commits jusqu'à HEAD (`histoireDeHead`, `restes`). C'est la FENÊTRE qui décide, jamais le nom
- * du fichier — `.claude/soldes/revue-palier-82e95be10.md` porte dans son NOM un sha orphelin (la
- * version pré-rebase de `112c814b6`), et sa FENÊTRE `7692b631c..2c11fdd9a` est bien dans l'histoire :
- * c'est cette revue-là qui fait référence.
+ * HEAD, et dont il reste le moins de commits jusqu'à HEAD (`histoireDeHead`, `restes`). C'est la FENÊTRE qui décide, jamais le nom.
  * Une ASCENDANCE INDISPONIBLE (git muet) n'est pas « orpheline » : elle a son propre état, et
  * l'appelant la nomme au lieu de conclure que la revue ne juge rien.
  * @param {string} [cwd] @param {{ depot?: import('./gitPorte.mjs').Depot, histoire?: ReturnType<typeof histoireDeHead> }} [options]
@@ -203,7 +200,7 @@ export function derniereRevueArchivee(cwd = process.cwd(), { depot = depotDe(cwd
     jugeantes = avecTete.flatMap((r, i) => (restes[i] === null ? [] : [{ ...r, reste: restes[i] }]))
   } catch (err) {
     if (!(err instanceof GitIndisponible)) throw err
-    return { etat: 'ascendance-indisponible', raison: err.raison }
+    return { etat: 'ascendance-indisponible', raison: refusDeGit(err) }
   }
   jugeantes.sort((a, b) => a.reste - b.reste || parUnitesDeCode(a.chemin, b.chemin))
   if (jugeantes.length === 0) return { etat: 'toutes-orphelines', chemins: archivees.map((r) => r.chemin) }
@@ -294,7 +291,7 @@ export function mesureDuPalier(cwd = process.cwd(), { emportes = [], seuil = Inf
     derniere = derniereRevueArchivee(cwd, { depot, histoire })
   } catch (err) {
     if (!estEchecDeLecture(err)) throw err
-    return { compte: 0, tete: null, chemin: null, erreur: `histoire illisible depuis ${cwd} — ${err.message}` }
+    return { compte: 0, tete: null, chemin: null, erreur: `histoire illisible depuis ${cwd} — ${err instanceof GitIndisponible ? refusDeGit(err) : err.message}` }
   }
   if (derniere.etat === 'aucune-archive') return { compte: 0, tete: null, chemin: null }
   if (derniere.etat === 'ascendance-indisponible') {
@@ -323,6 +320,6 @@ export function mesureDuPalier(cwd = process.cwd(), { emportes = [], seuil = Inf
     return { compte: publies + enCours, tete, chemin }
   } catch (err) {
     if (!(err instanceof GitIndisponible)) throw err
-    return { compte: 0, tete, chemin, erreur: `ce que font les commits depuis ${tete} est illisible : ${err.raison}` }
+    return { compte: 0, tete, chemin, erreur: `ce que font les commits depuis ${tete} est illisible : ${refusDeGit(err)}` }
   }
 }

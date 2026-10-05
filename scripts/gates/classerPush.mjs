@@ -11,7 +11,7 @@
 // vide n'est jamais sautée, un diff vide est PRODUIT.
 import { basename, join } from 'node:path'
 import { env, exit, stderr, stdout } from 'node:process'
-import { TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
 
 /**
@@ -129,12 +129,18 @@ const shaNul = (sha) => !sha || !/[^0]/.test(sha)
 export function baseDuDiff({ base, sha, cwd = process.cwd() } = {}) {
   if (!shaNul(base)) return { base }
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const conservateur = (motif) => ({
     base: null,
     motif: `${motif}${pannes.length ? ` — git indisponible : ${pannes.join(' ; ')}` : ''} : conservateur`,
   })
-  if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null && !reussi(fetchOrigin(depot))) return conservateur('origin/main absent après fetch')
+  if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null) {
+    const vu = fetchOrigin(depot)
+    if (!reussi(vu)) {
+      pannes.push(refusDeGit(vu))
+      return conservateur('origin/main absent après fetch')
+    }
+  }
   const commune = baseCommune(depot, TRONC.suivi, sha)
   return commune ? { base: commune } : conservateur('merge-base origin/main en échec')
 }
@@ -160,7 +166,7 @@ if (import.meta.main) {
         verdict.motifs.map((m) => `  - ${m}\n`).join(''),
     )
   } catch (erreur) {
-    stderr.write(`[classerPush] erreur git non prévue : ${erreur.message}\n`)
+    stderr.write(`[classerPush] erreur git non prévue : ${erreur instanceof GitIndisponible ? refusDeGit(erreur) : erreur.message}\n`)
     exit(1)
   }
 }

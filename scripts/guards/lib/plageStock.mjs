@@ -35,7 +35,7 @@
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
-import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, parentsDe, shasDe } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, parentsDe, refusDeGit, shasDe } from './gitPorte.mjs'
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
@@ -109,7 +109,7 @@ export function reclassementsDeLaPlage({ commits = [] } = {}) {
     try {
       lus = cotes()
     } catch (e) {
-      refus.push({ sha, fusion: Boolean(fusion), illisible: e.message })
+      refus.push({ sha, fusion: Boolean(fusion), illisible: e instanceof GitIndisponible ? refusDeGit(e) : e.message })
       continue
     }
     const lignes = lignesDeReclassement(message)
@@ -210,7 +210,7 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  */
 export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const notes = []
   const avecLeTronc = (sha) => baseCommune(depot, sha, TRONC.suivi)
   if (debut === SHA_NUL) debut = null
@@ -254,7 +254,7 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
-    return { refus: [], reclassements: [], notes, plage, indisponible: e.raison }
+    return { refus: [], reclassements: [], notes, plage, indisponible: refusDeGit(e) }
   }
   const bilanEntre = (a, b) => {
     const change = ceQuiChange(depot, a, b)
