@@ -317,6 +317,7 @@ test('echecsDuLog : sans ligne reconnue, le job nomme son ÉTAPE (colonne 2) et 
   assert.equal(docs.etape, 'Run npm run docs:build')
   assert.equal(docs.lignes.length, BORNE_LIGNES_DE_CONTEXTE)
   assert.ok(docs.lignes.includes('docs:check — 1 référence(s) morte(s) :'), docs.lignes.join('\n'))
+  assert.ok(docs.lignes.includes('scripts/guards/lib/livraison.test.mjs:126  [doc citée mais absente]  docs/x.md'), 'la ligne qui NOMME la panne')
   assert.ok(docs.lignes.includes('docs:build — scripts/docs/check-doc-refs.mjs — sortie 1'))
   assert.equal(docs.lignes.at(-1), 'progression : OK', 'la dernière ligne avant l’erreur générique')
   assert.ok(docs.lignes.every((l) => l && !l.startsWith('##[')), 'ni ligne vide, ni directive')
