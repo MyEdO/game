@@ -393,10 +393,6 @@ export const DRAPEAUX_RESTRICTIFS = [
   '--exclude',
 ]
 
-/** Une suite est COMPLÈTE quand aucun fichier ne la filtre et qu'aucun drapeau ne la restreint. */
-export const suiteComplete = (filtres, argv) =>
-  filtres.length === 0 && !argv.some((a) => DRAPEAUX_RESTRICTIFS.includes(a.split('=')[0]))
-
 /** Variable d'environnement qui demande UNE partie de la suite, `i/K` — posée par le job matrice
  *  `suite` de `.github/workflows/ci.yml`. */
 export const VARIABLE_PARTIE = 'WFRP_TEST_PARTIE'
@@ -411,7 +407,7 @@ export function partieDe(valeur) {
 }
 
 /** Refus de jouer une partie sous ces arguments, ou `null`. Une partie est COMPLÈTE sur sa tranche :
- *  aucun filtre de fichier ni drapeau restrictif (`suiteComplete`), et aucun drapeau global à un seul
+ *  aucun filtre de fichier ni drapeau restrictif (`DRAPEAUX_RESTRICTIFS`), et aucun drapeau global à un seul
  *  processus (`DRAPEAUX_MONO`), dont la config ou la racine contrediraient celle de la tranche. */
 export function refusDePartie({ filtres, argv }) {
   if (filtres.length)
@@ -442,11 +438,4 @@ const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).d
 export function trancher(chemins, { i, k }) {
   const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort(parUniteDeCode)
   return { fichiers, empreinte: empreinteDe(fichiers), empreinteListe: empreinteDe([...chemins].sort(parUniteDeCode)) }
-}
-
-/** Refus d'un registre de passage DOM ABSENT au terme d'une suite complète verte, ou `null`. Seul un
- *  fichier jsdom l'écrit (`src/test-setup.ts`) : son absence ne se tolère que si aucun n'a joué. */
-export function refusRegistreDomAbsent(jsdomJoues) {
-  if (jsdomJoues === 0) return null
-  return `[test] registre de passage de la barrière DOM ABSENT après ${jsdomJoues} fichier(s) jsdom joué(s) : la péremption du stock des fuites DOM n'est pas jugée`
 }

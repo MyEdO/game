@@ -11,12 +11,13 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
-//  - cinq fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
+//  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
 //    collection lue hors de sa vue, admise à des SITES nommés par `englobanteDe`),
-//    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne) et `constructionDeFragment`
-//    (un fragment d'adresse bâti hors de ses constructeurs) ;
+//    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne), `constructionDeFragment`
+//    (un fragment d'adresse bâti hors de ses constructeurs) et `appelReserve` (une fonction déclarée
+//    appelée hors de son foyer) ;
 //  - `estAppelDeclare`, la reconnaissance d'un appel à une fonction déclarée par son module, sur la
 //    liaison `liaisonImportee` et la table `tableDesExports` ;
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
@@ -678,6 +679,29 @@ function englobanteDe(n) {
       noms.unshift(p.name.text);
   }
   return noms.length ? noms.join(' › ') : '(module)';
+}
+
+/**
+ * L'APPEL RÉSERVÉ d'une fonction déclarée, construction réservée : hors du foyer que la déclaration
+ * y joint, tout appel à l'une des `fonctions` (`estAppelDeclare`).
+ * Angle mort : la fonction passée en valeur (`xs.map(f)`) ou liée à un autre nom avant l'appel, et
+ * l'appel à travers un RÉEXPORT (`export { f } from '<foyer>'` dans un autre module, appelé depuis
+ * un troisième) — `estAppelDeclare` ne lit que les modules clés de `fonctions`.
+ * @param {{ nom: string, fonctions: Readonly<Record<string, readonly string[]>> }} p
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
+ */
+export function appelReserve({ nom, fonctions }) {
+  const noms = Object.values(fonctions).flat();
+  return {
+    nom,
+    indice: (texte) => noms.some((f) => texte.includes(f)),
+    reconnait: (n, sf, contexte) => {
+      if (!ts.isCallExpression(n)) return null;
+      const appele = estAppelDeclare(n, sf, fonctions, contexte);
+      if (!appele) return null;
+      return `${nom} : \`${appele}\` appelé dans \`${englobanteDe(n)}\``;
+    },
+  };
 }
 
 /**

@@ -11,7 +11,7 @@
  * un module sur un `input` non typé) vit dans `src/ui/ui-ratchets.test.ts` (xx).
  */
 import { readFileSync } from 'node:fs';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 
 const CSS = (f: string) => readFileSync(`src/ui/styles/${f}`, 'utf8');
 const STYLES = readFileSync('src/ui/styles.css', 'utf8');
@@ -52,6 +52,11 @@ function poseUneCase(site: keyof typeof SITES): HTMLInputElement {
   document.body.innerHTML = SITES[site];
   return document.querySelector('input[type="checkbox"]') as HTMLInputElement;
 }
+
+afterEach(() => {
+  document.body.replaceChildren();
+  document.head.replaceChildren();
+});
 
 describe('cases à cocher — la boîte de la charte tient contre TOUTES les feuilles', () => {
   it('l’ordre de cascade lu dans styles.css commence par base.css', () => {

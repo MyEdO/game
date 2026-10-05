@@ -170,3 +170,30 @@ describe('Talent octroyé par une mutation — acquisition bornée par le Maxi (
     expect(c.talents).toEqual([{ talentId: 'ambidextre', times: 2 }]);
   });
 });
+
+describe('détachement PAR PROVENANCE (#1853)', () => {
+  it('Haine sporadique : la Haine à Cible TIRÉE part avec la mutation (EDOC 12 l.217)', () => {
+    const haine = mutationById('haine-sporadique')!;
+    const c = hero({ traits: [] });
+    attachMutation(c, haine, makeRNG(7));
+    expect(c.traits?.filter((t) => t.id === 'haine' && t.src?.id === 'haine-sporadique')).toHaveLength(1);
+    detachMutation(c, haine);
+    expect(c.traits?.some((t) => t.id === 'haine')).toBe(false);
+  });
+  it('Colère impie : le Trait psy porte sa provenance, la Frénésie NATIVE survit au détachement', () => {
+    const colere = mutationById('colere-impie')!;
+    const c = hero({ psychTraits: [{ type: 'frenesie' }] });
+    attachMutation(c, colere);
+    expect(c.psychTraits).toEqual([{ type: 'frenesie' }, { type: 'frenesie', src: { kind: 'mutation', id: 'colere-impie' } }]);
+    detachMutation(c, colere);
+    expect(c.psychTraits).toEqual([{ type: 'frenesie' }]);
+  });
+  it('deux instances de la même mutation : en détacher une laisse le trait de l’autre', () => {
+    const tentacule = mutationById('tentacule-epais')!;
+    const c = hero({ traits: [] });
+    attachMutation(c, { ...tentacule, roll: 1 });
+    attachMutation(c, { ...tentacule, roll: 2 });
+    detachMutation(c, { ...tentacule, roll: 2 });
+    expect(c.traits?.filter((t) => t.id === 'tentacules')).toEqual([{ id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } }]);
+  });
+});

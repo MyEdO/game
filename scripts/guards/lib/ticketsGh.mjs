@@ -78,7 +78,7 @@ export const appelGhRunner = ({ cwd, maxBuffer = 64 * 1024 * 1024, executer = ex
       }),
     }
   } catch (err) {
-    return { ok: false, raison: String(err?.stderr || err?.message || err).trim().slice(0, BORNE_RAISON) }
+    return { ok: false, ...(String(err?.stdout ?? '').length === 0 ? {} : { stdout: String(err.stdout) }), raison: String(err?.stderr || err?.message || err).trim().slice(0, BORNE_RAISON) }
   }
 }
 
@@ -153,7 +153,28 @@ export function lireTicket({ depot, numero, appel }) {
   if (issue?.pull_request) return { ok: false, raison: `#${numero} est une pull request, pas un ticket` }
   const pages = pagesRest(`${chemin}/comments`, appel)
   if (!pages.ok) return { ok: false, raison: pages.raison }
-  return { ok: true, etat: String(issue?.state ?? ''), corps: pages.entrees.map((c) => String(c?.body ?? '')) }
+  return {
+    ok: true,
+    etat: String(issue?.state ?? ''),
+    corps: pages.entrees.map((c) => String(c?.body ?? '')),
+    dates: pages.entrees.map((c) => String(c?.created_at ?? '')),
+  }
+}
+
+/** Les événements qui CHANGENT l'état d'un ticket (`GET /repos/{owner}/{repo}/issues/{n}/events`). */
+const EVENEMENTS_D_ETAT = Object.freeze(['closed', 'reopened'])
+
+/**
+ * Le DERNIER événement d'état d'un ticket (`EVENEMENTS_D_ETAT`) et sa date (`created_at`), dans
+ * l'ordre chronologique que rend la route REST ; `evenement` et `date` valent `null` s'il n'en a aucun.
+ * @param {{depot:string, numero:string|number, appel:(args:string[]) => {ok:boolean, stdout?:string, raison?:string}}} p
+ * @returns {{ok:true, evenement:string|null, date:string|null} | {ok:false, raison:string}}
+ */
+export function dernierEtatDe({ depot, numero, appel }) {
+  const pages = pagesRest(`${cheminTicket(depot, numero)}/events`, appel)
+  if (!pages.ok) return { ok: false, raison: pages.raison }
+  const dernier = pages.entrees.filter((e) => EVENEMENTS_D_ETAT.includes(String(e?.event ?? ''))).at(-1)
+  return { ok: true, evenement: dernier ? String(dernier.event) : null, date: dernier ? String(dernier.created_at ?? '') : null }
 }
 
 /**

@@ -1,8 +1,8 @@
 // LIEN DE SESSION du suivi de vague (#2132) : `npm run ops:suivi -- <N>` lie la session qui le
 // lance à l'épique `<N>`. Le lien est une ligne du JOURNAL `<dossierDesSuivis>/.journal`
-// (`scripts/ops/suivi.mjs`), que seul le `trace` du répartiteur écrit (`scripts/guards/lib/contratGarde.mjs`) ;
-// le hook de session `scripts/hooks/inject-suivi.mjs` le relit pour choisir les suivis à mettre en
-// contexte. Une ligne TSV par lien : iso, session_id, épique.
+// (`JOURNAL`, `ligneDeLien` : `scripts/ops/suivi.mjs`), qu'écrivent le `trace` du répartiteur
+// (`scripts/guards/lib/contratGarde.mjs`) et l'édition `editer` de `suivi.mjs` (#2279) ; `etatDeSession`
+// le relit pour choisir les suivis à mettre en contexte. Une ligne TSV par lien : iso, session_id, épique.
 //
 // La garde ne rend de contexte que pour un `ops:suivi` dont elle ne lit pas les arguments : la session
 // n'est alors pas liée, et l'avertissement le dit (#2233). Sans `session_id`, ou avec `agent_id`
@@ -18,32 +18,11 @@
 import * as FS from 'node:fs'
 import { join } from 'node:path'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
-import { argumentsDuSuivi, dossierDesSuivis, relire } from '../ops/suivi.mjs'
+import { JOURNAL, argumentsDuSuivi, dossierDesSuivis, ligneDeLien, relire } from '../ops/suivi.mjs'
 import { finAvantOperateur, segmentsProfonds } from './solde-ticket-guard.mjs'
-
-/** Nom du journal, dans le dossier des suivis (le listage des suivis, `^\d+\.md$`, l'ignore). */
-export const JOURNAL = '.journal'
 
 /** Un segment qui lance `scripts/ops/suivi.mjs`, et ses arguments. */
 const LANCE_SUIVI = /^node\s+(?:\S*[\\/])?scripts[\\/]ops[\\/]suivi\.mjs(?=\s|$)(.*)$/
-
-/** La ligne TSV d'un lien, fin comprise. PURE. */
-export const ligneDeJournal = ({ iso, session, epique }) =>
-  `${[iso, session, epique].map((v) => String(v).replace(/[\t\r\n]/g, ' ')).join('\t')}\n`
-
-/**
- * Les lignes lisibles d'un journal ; une ligne mal formée est ignorée. PURE.
- * @param {string} texte
- * @returns {Array<{iso: string, session: string, epique: number}>}
- */
-export function lignesDuJournal(texte) {
-  return String(texte ?? '').split(/\r?\n/).map((l) => l.split('\t')).filter((c) => c.length === 3 && /^\d+$/.test(c[2]))
-    .map(([iso, session, epique]) => ({ iso, session, epique: Number(epique) }))
-}
-
-/** Les épiques liées à `session`, dans l'ordre de leur premier lien. PURE. */
-export const epiquesLiees = (lignes, session) =>
-  [...new Set(lignes.filter((l) => l.session === session).map((l) => l.epique))]
 
 /** Vrai pour la session PRINCIPALE : un `session_id`, aucun `agent_id` (sous-agent). PURE. */
 export const sessionPrincipale = (entree) => typeof entree?.session_id === 'string' && entree.session_id !== '' && !entree.agent_id
@@ -89,8 +68,7 @@ export const garde = {
     const vu = dossierDesSuivis(contexte.dir)
     if (!vu.disponible) return null
     const fichier = join(vu.valeur, JOURNAL)
-    if (epiquesLiees(lignesDuJournal(relire(fichier, FS) ?? ''), entree.session_id).includes(epique)) return null
-    const ligne = ligneDeJournal({ iso: new Date().toISOString(), session: entree.session_id, epique })
-    return { trace: { fichier, ligne } }
+    const ligne = ligneDeLien({ journal: relire(fichier, FS) ?? '', session: entree.session_id, epique, iso: new Date().toISOString() })
+    return ligne ? { trace: { fichier, ligne } } : null
   },
 }

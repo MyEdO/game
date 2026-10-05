@@ -1,6 +1,6 @@
 // CLIQUET du ruleset `main` (node --test, sans réseau) : le corps est PUR, et les contextes de check
 // se lisent DANS `ci.yml` — jamais recopiés. Le corps POSÉ lit le `ci.yml` du TRONC ; les gardes de
-// forme des jobs (aucun check requis sautable, plafond par job, compteurs de la file) lisent l'arbre,
+// forme des jobs (aucun check requis sautable, plafond par job) lisent l'arbre,
 // là où la forme se change. Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -227,15 +227,6 @@ test('`ci.yml` de l’ARBRE déclenche sur `merge_group`, jamais sur `push` de `
   assert.equal(refusDeFile(texte), null)
   assert.ok(!declencheursDe(texte).includes('pull_request'), 'le push de la branche attache déjà ses checks à la tête de la PR')
   assert.doesNotMatch(texte, /^ {4}branches: .*\bmain\b/m, 'le sha poussé sur `main` est un commit de file déjà jugé')
-})
-
-test('un job REQUIS juge les compteurs de version sur le commit de file, par un `if:` de STEP sur `merge_group`', () => {
-  const steps = jobsRequis({ cwd: RACINE })
-    .flatMap((b) => stepsDu(b.texte).map((s) => ({ job: b.job, ...s })))
-    .filter((s) => /^\s*-?\s*run: node scripts\/ops\/compteurs-de-file\.mjs\s*$/m.test(s.bloc))
-  assert.equal(steps.length, 1, 'aucun (ou plusieurs) step « compteurs-de-file » dans un job requis')
-  assert.match(steps[0].si ?? '', /github\.event_name == 'merge_group'/)
-  assert.match(steps[0].bloc, /SHA: \$\{\{ github\.event\.merge_group\.head_sha \}\}/)
 })
 
 test('les fermetures vivent HORS de `ci.yml` : `fermetures.yml` lit les checks requis AVANT de fermer', () => {

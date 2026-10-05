@@ -20,9 +20,6 @@ export const CI_SEULEMENT = {
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
-  'node scripts/ops/compteurs-de-file.mjs':
-    'juge le commit de FILE (`merge_group`, `G^2` contre `G^1`) : localement, le train juge la tête contre ' +
-    '`origin/main` à sa préflight (scripts/ops/etapesDuTrain.mjs)',
 }
 
 /**
@@ -78,7 +75,7 @@ export const texteDeCi = ({ cwd, fichier } = {}) => readFileSync(cheminCi({ cwd,
 
 /**
  * Plafond de durée de CHAQUE job de `ci.yml`, en minutes — la clé `timeout-minutes` de niveau JOB,
- * jamais de step. Course la plus longue mesurée : 18,5 min sur 40 runs (audit CI du 2026-09-29, #2178).
+ * jamais de step. #2178
  * Sans plafond, un job bloqué tient son runner jusqu'au défaut de GitHub (360 min).
  */
 export const TIMEOUT_JOB_MINUTES = 30

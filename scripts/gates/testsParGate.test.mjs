@@ -8,15 +8,14 @@
 // Le verdict est NOMINATIF : il nomme le fichier, jamais un cardinal.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, RACINES, couverture, gateDe, listerTests, testsDe } from './testsParGate.mjs'
+import { gitDe, gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
-const RACINE = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
 const listerReel = () => listerTests(RACINE)
 
 test('aucun test de `scripts/**` n’est orphelin, aucun n’est joué deux fois', () => {
@@ -110,7 +109,7 @@ test('la découverte prend le test NEUF (pas encore indexé) et laisse l’IGNOR
   // n'est pas indexée : la lister par les seuls fichiers suivis la rendrait verte par ABSENCE.
   const racine = mkdtempSync(join(tmpdir(), 'testsParGate-'))
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' })
+    const git = gitDe(racine)
     git('init', '-q')
     git('config', 'user.email', 'banc@local')
     git('config', 'user.name', 'banc')

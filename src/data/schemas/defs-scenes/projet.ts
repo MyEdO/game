@@ -26,9 +26,11 @@ import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
+import { PROJECT_MIGRATIONS } from '../../migrationsDeProjet';
+import { versionCourante } from '../../../lib/versionCourante';
 
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = 17;
+export const SCHEMA_PROJET = versionCourante(PROJECT_MIGRATIONS);
 
 /** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(

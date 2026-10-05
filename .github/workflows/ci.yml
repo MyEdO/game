@@ -36,9 +36,8 @@ concurrency:
 # fermeture depuis le 2026-08-01, commit fondateur d’un solde « corrigé par <sha> ») ;
 # `docs:build` la lit (scripts/docs/build-doctrines.mjs, scripts/docs/check-plans-anchors.mjs) ;
 # `npm test` aussi (src/data/regles-migration-fidelite.test.ts) ; le classement du push (#1738) lit
-# `merge-base origin/main`, ou `merge_group.base_sha` sur un commit de file ; les compteurs de version
-# de la file lisent `G^1` et `G^2`. Dans le clone superficiel par défaut (depth 1), `git log --since`
-# est vide et les shas anciens sont absents.
+# `merge-base origin/main`, ou `merge_group.base_sha` sur un commit de file. Dans le clone superficiel
+# par défaut (depth 1), `git log --since` est vide et les shas anciens sont absents.
 #
 # Le PROLOGUE de chaque job vérifiant est l'action composite `.github/actions/prologue` : Node, le
 # CLASSEMENT du push (#1738, scripts/gates/classerPush.mjs) puis `npm ci`. POLARITÉ FAIL-CLOSED :
@@ -122,14 +121,6 @@ jobs:
           fetch-depth: 0
       - id: prologue
         uses: ./.github/actions/prologue
-      # Collision des compteurs de version (#2222) jugée sur le commit de file : `G^2` contre `G^1`
-      # (scripts/ops/compteurs-de-file.mjs). `if:` de STEP, jamais de job : un check requis sauté rend
-      # « Success ».
-      - name: Compteurs de version de la file
-        if: ${{ github.event_name == 'merge_group' && !cancelled() && steps.prologue.outcome == 'success' }}
-        env:
-          SHA: ${{ github.event.merge_group.head_sha }}
-        run: node scripts/ops/compteurs-de-file.mjs
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -142,7 +133,7 @@ jobs:
         run: npm run test:recette
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run typecheck
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm --prefix server ci
@@ -154,6 +145,8 @@ jobs:
 
   # `test:hooks` hors du chemin critique de `types` (#2178). Il ne fait aucune écriture d'arbre SUIVIE
   # (sa seule écriture réelle, le journal gitignoré, est en `ecritFerme` d'`ECRIT_LU`).
+  # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
+  # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   types-hooks:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -165,6 +158,8 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:hooks
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run mods:check
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

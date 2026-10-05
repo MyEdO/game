@@ -2155,7 +2155,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
         const marche = rigWalkDef(s.rig);
         const parade = s.enrolé ? rigDefenseDef({ defense: 'parade' }, s.rig) : null;
         const gestes: RigClipDef[] = s.enrolé
-          ? [rigAttackDef({ weapon: s.rig.mainWeapon }, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
+          ? [rigAttackDef({}, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
           : [];
         for (const def of [REPOS, ...(marche ? [marche] : []), ...gestes]) poser(def, s.view, s.mirror, PRIORITE_VUE_COURANTE);
         for (const v of VUES_REGARD) {

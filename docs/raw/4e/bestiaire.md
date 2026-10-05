@@ -204,7 +204,7 @@ Le trait **Endurant** ajoute +BE aux Blessures calculées (appliqué avant tout 
 **Voir aussi** : [Modificateurs de Taille en combat](#modificateurs-de-taille-en-combat) ; [Taille dans combat.md](combat.md#taille--catégories-et-modificateurs-de-combat) (récapitulatif en-combat, renvoi ici pour le détail des Blessures).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.343-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `structureTaille`, `sizeDamageMultiplier`, `weaponFromTrait`, `sizeGrantedQualities`, +64 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/traits.json`, `src/engine/character.ts`, +19 fichiers
+- `LDB 85` (l.343-406) → `TraitDef`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `structureTaille`, `agressifEnvers`, `sizeDamageMultiplier`, `weaponFromTrait`, `sizeGrantedQualities`, +64 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/traits.json`, `src/engine/character.ts`, +19 fichiers
 
 ---
 
@@ -294,7 +294,7 @@ Une créature plus grande peut effectuer une **Attaque de Piétinement comme Act
 **Voir aussi** : [Localisation des créatures non humaines](#localisation-des-créatures-non-humaines) ; [Taille — tir sur créature grande](combat.md#taille--catégories-et-modificateurs-de-combat).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `grappleTierMod`, `grapple`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, `combat-deux-armes`, `main-secondaire`, +44 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +23 fichiers
+- `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `grappleTierMod`, `grapple`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, `combat-deux-armes`, `MODAL_DEFS`, +44 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +23 fichiers
 - `LDB 85` (l.357-387) → `TraitDef`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `sizeDamageMultiplier`, `sizeGrantedQualities`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, +31 — `src/data/index.ts`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/character.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +13 fichiers
 
 ---
@@ -353,7 +353,7 @@ Ces traits octroient une ou plusieurs manœuvres d'attaque à la créature (`LDB
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 76` (l.31-35) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `fr`, `bodyShapeOf`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, +8 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +6 fichiers
-- `LDB 85` (l.1-447) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +233 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +45 fichiers
+- `LDB 85` (l.1-447) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +236 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +46 fichiers
 
 ---
 

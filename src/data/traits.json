@@ -420,7 +420,10 @@
     "id": "corruption-mentale",
     "type": "traits",
     "label": "Corruption mentale",
-    "specsOpen": true,
+    "indice": {
+      "label": "Indice"
+    },
+    "specsSource": "mutations",
     "desc": "Le Chaos s'est insinué dans l'esprit de la créature... Faites un lancer sur le Tableau de la Corruption Mentale qui se trouve à la p. 185.",
     "source": {
       "book": "livre-de-base",

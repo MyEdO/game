@@ -3,7 +3,7 @@
  *
  * DEUX gestes, un seul passage : chaque Scène reçoit `roofDefaults`, et le document passe en
  * `schema: 9` — le champ étant EXIGÉ, la FORME du document change, et un projet antérieur se rattrape
- * au chargement par `PROJECT_MIGRATIONS[8]` (`src/state/worldMap.ts`), pendant applicatif de ce script.
+ * au chargement par `PROJECT_MIGRATIONS[8]` (`src/data/migrationsDeProjet.ts`), pendant applicatif de ce script.
  *
  * Chaque Scène des projets livrés reçoit `roofDefaults` : la couverture, la pente de RÉFÉRENCE et la
  * borne de comble que la dérivation des masses applique quand ni le corps ni le TYPE de bâtiment ne

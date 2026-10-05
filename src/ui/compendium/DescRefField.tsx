@@ -1,7 +1,9 @@
 /**
  * Éditeur d'une ADRESSE DE PROSE (`descRef`, #1389 — épique #1388) : l'entrée ne recopie pas le texte
  * du livre, elle DÉSIGNE le passage. Le champ compose l'adresse de haut en bas — livre, chapitre,
- * section, puis un à `MAX_FRAGMENTS` fragments — et montre à chaque geste le texte que l'adresse RÉSOUT.
+ * section, puis un à `MAX_FRAGMENTS` fragments, dont un fragment de blocs peut finir dans une autre
+ * section du chapitre (intervalle, titres intermédiaires compris) — et montre à chaque geste le texte
+ * que l'adresse RÉSOUT.
  *
  * L'empreinte `sum` n'est JAMAIS saisie : elle est RECALCULÉE par `empreinteDe` à chaque changement de
  * fragment. Un auteur ne peut donc pas écrire une empreinte fausse, et une adresse qui ne résout pas
@@ -21,13 +23,15 @@ import { chargerChapitre, chargerManifeste, type ChapitreManifeste, type Manifes
 import {
   MAX_FRAGMENTS,
   MIN_FRAGMENT,
-  blocsCouverts,
+  couvertureDe,
   estErreur,
+  finDe,
   fragmentBlocs,
   fragmentCellule,
   graphieDeChapitre,
   largeurDeChapitre,
   memeTexte,
+  positionDuBloc,
   resoudreAdresse,
   resoudreFragment,
   scelle,
@@ -64,6 +68,8 @@ export const PHRASE_REFUS = {
   'fragment-trop-court': `Ce fragment est trop court pour un montage : il en faut au moins ${MIN_FRAGMENT} caractères — étendez les bornes de blocs.`,
   'fragment-ambigu': 'Ce texte apparaît plusieurs fois dans le chapitre : l’adresse désignerait un autre passage — étendez le fragment.',
   'fragments-chevauchants': 'Deux fragments de ce montage citent le même passage — déplacez l’un d’eux sur d’autres blocs.',
+  'fragments-contigus': 'Ce fragment reprend au bloc qui suit le précédent : c’est un seul passage — écrivez-le en un seul fragment, en reportant sa fin sur celle de ce fragment.',
+  'fin-avant-depart': 'La fin de ce fragment précède son départ dans le chapitre — choisissez une section et un bloc de fin situés après le départ.',
   'montage-hors-plafond': `Une adresse monte ${MAX_FRAGMENTS} fragments au plus — retirez-en un.`,
 } satisfies Record<CodeErreur, string>;
 
@@ -216,22 +222,23 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
     ? filterByLabel(chapitresDuLivre ?? [], libelleChapitre, filtreCh)
     : chapitresDuLivre ?? [];
 
-  /** Sections proposées à UN fragment : celles que le filtre laisse passer (titrées d'abord, préambule
-   *  en dernier), PLUS la sienne — un `<select>` qui perd son option courante réécrit l'adresse au
-   *  premier rendu. */
-  const sectionsPour = (f: Fragment): Section[] => {
+  /** Sections proposées à UNE liste de section (départ ou fin d'un fragment) : celles que le filtre
+   *  laisse passer (titrées d'abord, préambule en dernier), PLUS la courante — un `<select>` qui perd
+   *  son option courante réécrit l'adresse au premier rendu. */
+  const sectionsPour = (sienne: Section | undefined): Section[] => {
     const vues = sectionsOrdonnees(sectionsFiltrees);
-    const sienne = sectionDe(f);
     if (!sienne || vues.includes(sienne)) return vues;
     return [sienne, ...vues];
   };
 
   /**
    * Le fragment NEUF cite un passage LIBRE : jamais un bloc déjà couvert par l'adresse en cours.
-   * La couverture vient du prédicat UNIQUE du parseur (`blocsCouverts`, celui-là même dont le verrou
-   * `fragments-chevauchants` se sert) — une `cellule` couvre le bloc de sa table, donc le fragment
-   * neuf ne retombe pas dessus. Ordre de recherche : la section COURANTE d'abord (quel que soit le
-   * genre du dernier fragment), puis les sections titrées suivantes, puis les précédentes.
+   * La couverture vient du prédicat UNIQUE du parseur (`couvertureDe`, celui-là même dont le verrou
+   * `fragments-chevauchants` se sert), en POSITIONS au fil du chapitre (`positionDuBloc`) — un
+   * intervalle couvre les blocs de toutes les sections qu'il traverse, une `cellule` le bloc de sa
+   * table, donc le fragment neuf ne retombe pas dessus. Ordre de recherche : la section COURANTE
+   * d'abord (quel que soit le genre du dernier fragment), puis les sections titrées suivantes, puis
+   * les précédentes.
    * `null` = il n'y a plus rien à ajouter, et le bouton porte alors sa raison.
    *
    * Le PRÉAMBULE d'extraction (section sans titre) n'est jamais candidat tant qu'une section titrée à
@@ -242,14 +249,8 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
    */
   const fragmentNeuf = (): { frag: Fragment } | { frag: null; raison: string } => {
     if (!chapitre) return { frag: null, raison: RAISON_EPUISE };
-    const couverts = new Map<Section, Set<number>>();
-    for (const f of parts) {
-      const s = sectionDe(f);
-      if (!s) continue;
-      const deja = couverts.get(s) ?? new Set<number>();
-      for (const k of blocsCouverts(chapitre, f)) deja.add(k);
-      couverts.set(s, deja);
-    }
+    const pris = new Set<number>();
+    for (const f of parts) for (const p of couvertureDe(chapitre, f).blocs) pris.add(p);
     // La faute que l'adresse porte DÉJÀ, avant tout ajout : c'est l'étalon. Un candidat n'a pas à
     // réparer un fragment fautif, mais il ne doit pas non plus en ABÎMER un sain.
     const avant = parts.length ? resoudreAdresse(chapitre, { book, ch, parts }) : null;
@@ -263,23 +264,20 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
     const tient = (f: Fragment): boolean => {
       const res = resoudreAdresse(chapitre, { book, ch, parts: [...parts, f] });
       if (!estErreur(res)) return true;
-      // L'adresse était DÉJÀ fautive : le candidat n'y est pour rien, et elle ne doit pas condamner
-      // tous les candidats. La faute d'avant SURVIT forcément à l'ajout, et à l'identique — d'où le
-      // test sur sa seule PRÉSENCE, sans comparer code ni indice : `resoudreAdresse` résout les
-      // fragments dans l'ordre et rend au PREMIER refus, le chevauchement est jugé avant la boucle,
-      // et un candidat est toujours poussé EN QUEUE — un fragment déjà refusé l'est donc encore, au
-      // même indice, avant que le candidat ne soit seulement examiné. Comparer code et indice a été
-      // MESURÉ non mordant (aucun cas atteignable ne les fait diverger).
-      if (fauteAvant) return true;
+      // L'adresse était DÉJÀ fautive : elle ne doit pas condamner tous les candidats. Le candidat
+      // tient s'il laisse cette faute-là, à l'identique (code et indice), en tête : les refus de
+      // STRUCTURE (chevauchement, contiguïté) sont jugés avant ceux de chaque fragment, et un
+      // candidat qui CONTINUE le dernier fragment ferait passer `fragments-contigus` devant la faute
+      // d'avant — c'est alors lui qui ne va pas.
+      if (fauteAvant) return res.error === fauteAvant.error && res.fragment === fauteAvant.fragment;
       // Faute sur le CANDIDAT (dernier indice) : c'est ce candidat-là qui ne va pas, on en essaie un
       // autre. Faute AILLEURS : elle est née de l'ajout, et vise un fragment qui allait bien.
       if (res.fragment !== parts.length) naissance = { error: res.error, fragment: res.fragment };
       return false;
     };
     const libreDans = (s: Section): FragmentBlocs | null => {
-      const pris = couverts.get(s) ?? new Set<number>();
       for (let i = 0; i < s.blocks.length; i++) {
-        if (pris.has(i)) continue;
+        if (pris.has(positionDuBloc(chapitre, { sec: s.slug, secOcc: s.occ, idx: i })!)) continue;
         const f = fragmentBlocs(chapitre, { sec: s.slug, secOcc: s.occ, b0: i, b1: i });
         if (tient(f)) return f;
       }
@@ -455,6 +453,11 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
           return t ? `${libelleTable(t, tablesSection)} — table absente de la ligne` : 'table absente de la section';
         };
         const dernierBloc = Math.max(0, (section?.blocks.length ?? 1) - 1);
+        // Section de FIN d'un fragment de blocs : celle du départ, sauf intervalle (`finSec`).
+        const aCheval = f.kind === 'blocs' && f.finSec != null;
+        const fin = f.kind === 'blocs' ? finDe(f) : { sec: f.sec, secOcc: f.secOcc };
+        const sectionFin = sections.find((s) => s.slug === fin.sec && s.occ === fin.secOcc);
+        const dernierBlocFin = Math.max(0, (sectionFin?.blocks.length ?? 1) - 1);
         return (
           <div className="de-reflrow" key={i} data-fragment={i}>
             <select
@@ -462,13 +465,13 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
               value={cleSection(f.sec, f.secOcc)}
               onChange={(e) => {
                 const s = sections.find((x) => cleSection(x.slug, x.occ) === e.target.value);
-                if (s) majeur(i, (x, c) => scelle(c, { ...x, sec: s.slug, secOcc: s.occ }));
+                if (s) majeur(i, (x, c) => (x.kind === 'blocs' ? fragmentBlocs(c, { ...x, sec: s.slug, secOcc: s.occ }) : scelle(c, { ...x, sec: s.slug, secOcc: s.occ })));
               }}
             >
               {!section && (
                 <option value={cleSection(f.sec, f.secOcc)}>{cleSection(f.sec, f.secOcc)} — section absente du chapitre</option>
               )}
-              {sectionsPour(f).map((s) => (
+              {sectionsPour(section).map((s) => (
                 <option key={cleSection(s.slug, s.occ)} value={cleSection(s.slug, s.occ)}>
                   {libelleSection(s)}{filtrable && !sectionsFiltrees.includes(s) ? ' (section courante)' : ''}
                 </option>
@@ -487,7 +490,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
                   label: 'blocs',
                   ariaLabel: nomme(`Fragment ${i + 1} en blocs`),
                   selected: f.kind === 'blocs',
-                  title: 'Une suite contiguë de blocs de la section',
+                  title: 'Une suite contiguë de blocs, dans la section ou jusqu’à une section suivante',
                   onSelect: () => majeur(i, (x, c) => fragmentBlocs(c, { sec: x.sec, secOcc: x.secOcc, b0: 0, b1: 0 })),
                 },
                 {
@@ -514,11 +517,34 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
               <>
                 <NumberField variant="champ" label="premier bloc" ariaLabel={nomme(`premier bloc du fragment ${i + 1}`)} width={84}
                   min={0} max={dernierBloc} value={f.b0}
-                  onChange={(n) => majeur(i, (x, c) => (x.kind === 'blocs' ? fragmentBlocs(c, { ...x, b0: n, b1: Math.max(n, x.b1) }) : x))} />
+                  onChange={(n) => majeur(i, (x, c) => (x.kind === 'blocs' ? fragmentBlocs(c, { ...x, b0: n, b1: x.finSec == null ? Math.max(n, x.b1) : x.b1 }) : x))} />
+                {/* La FIN d'un fragment de blocs : sa section (celle du départ par défaut) puis son bloc. Une
+                    section suivante fait de lui un INTERVALLE, titres intermédiaires compris. */}
+                <label className="de-cell"><span>fin</span>
+                  <select
+                    aria-label={nomme(`Section de fin du fragment ${i + 1}`)}
+                    value={cleSection(fin.sec, fin.secOcc)}
+                    onChange={(e) => {
+                      const s = sections.find((x) => cleSection(x.slug, x.occ) === e.target.value);
+                      if (s) {
+                        majeur(i, (x, c) => (x.kind === 'blocs'
+                          ? fragmentBlocs(c, { ...x, finSec: s.slug, finSecOcc: s.occ, b1: s.slug === x.sec && s.occ === x.secOcc ? x.b0 : 0 })
+                          : x));
+                      }
+                    }}
+                  >
+                    {!sectionFin && (
+                      <option value={cleSection(fin.sec, fin.secOcc)}>{cleSection(fin.sec, fin.secOcc)} — section absente du chapitre</option>
+                    )}
+                    {sectionsPour(sectionFin).map((s) => (
+                      <option key={cleSection(s.slug, s.occ)} value={cleSection(s.slug, s.occ)}>{libelleSection(s)}</option>
+                    ))}
+                  </select>
+                </label>
                 <NumberField variant="champ" label="dernier bloc" ariaLabel={nomme(`dernier bloc du fragment ${i + 1}`)} width={84}
-                  min={f.b0} max={dernierBloc} value={f.b1}
+                  min={aCheval ? 0 : f.b0} max={dernierBlocFin} value={f.b1}
                   onChange={(n) => majeur(i, (x, c) => (x.kind === 'blocs' ? fragmentBlocs(c, { ...x, b1: n }) : x))} />
-                <em className="de-hint">0 à {dernierBloc}</em>
+                <em className="de-hint">{aCheval ? `départ 0 à ${dernierBloc} · fin 0 à ${dernierBlocFin}` : `0 à ${dernierBloc}`}</em>
               </>
             ) : tables.length === 0 ? (
               // Adresse chargée en `cellule` sur une section sans table : la PHRASE, jamais deux combos vides.

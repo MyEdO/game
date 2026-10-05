@@ -3,12 +3,12 @@
 // réelle qui décide si un fichier est jugé ou ignoré.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defautsDeRapport, fichiersALinter, lancerLint, lotsDeLigne } from './lintStage.mjs'
+import { gitDeLArbreReel } from '../../test/gitDeBanc.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const NBSP = String.fromCharCode(0x00a0)
@@ -125,7 +125,7 @@ test('MORSURE — un fichier fautif est refusé, un fichier IGNORÉ par la confi
 
     // NOMINATIVE : la morsure ne dépose RIEN dans l'arbre que les autres lanes lisent au même moment.
     // Seuls les chemins de fixture sont regardés — un écrivain d'une autre gate ne rougit pas ce test.
-    const statut = execFileSync('git', ['status', '--porcelain'], { cwd: RACINE, encoding: 'utf8' })
+    const statut = gitDeLArbreReel(RACINE)('status', '--porcelain')
     assert.deepEqual(statut.split('\n').filter((l) => l.includes('lint-fixture')), [])
   } finally {
     rmSync(dossier, { recursive: true, force: true })

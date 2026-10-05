@@ -116,13 +116,27 @@ const MOTIFS_ABSENT = [
 const ditAbsent = (stderr) => MOTIFS_ABSENT.some((re) => re.test(String(stderr ?? '')))
 
 /**
+ * L'erreur dit-elle qu'une LECTURE n'a pas eu lieu ? Les seules nommées : git (`GitIndisponible`,
+ * `BorneAbsente`), le SYSTÈME (fs, spawn : `errno` numérique et `syscall`, que Node ne pose que sur
+ * une erreur système — jamais sur une erreur interne `ERR_*`, qui porte pourtant un `code`), un
+ * sous-processus sorti en échec (`status`, `signal` : `execFileSync`). Toute autre est une erreur de
+ * PROGRAMME, qui remonte. PUR.
+ * @param {unknown} e @returns {boolean}
+ */
+export const estEchecDeLecture = (e) => e instanceof GitIndisponible || e instanceof BorneAbsente
+  || (typeof e?.errno === 'number' && typeof e?.syscall === 'string')
+  || typeof e?.status === 'number' || typeof e?.signal === 'string'
+
+/**
  * Un fait qui peut manquer : sa valeur OU sa raison d'absence, jamais un silence. Enveloppe les
- * lectures qui JETTENT (fs, sous-processus de mesure) dans la même union que les lectures git.
+ * lectures qui JETTENT (fs, sous-processus de mesure) dans la même union que les lectures git ; une
+ * erreur de programme (`estEchecDeLecture`) remonte.
  */
 export function tenter(fn) {
   try {
     return fait(fn())
   } catch (e) {
+    if (!estEchecDeLecture(e)) throw e
     const sortie = [e.stdout, e.stderr].filter(Boolean).map(String).join('\n').trim()
     return { disponible: false, raison: `${e.message}${sortie ? ` — ${sortie.slice(0, 4000)}` : ''}` }
   }
@@ -207,7 +221,7 @@ export function classer(vu, { cwd, nature = natureDuChemin } = {}) {
  */
 export const OPTIONS_DE_L_HOTE = Object.freeze([
   '-c', 'core.quotePath=false', // git help config, core.quotePath : en-têtes d'un patch `diff-tree -p` / `diff-index -p`
-  '-c', 'merge.conflictStyle=merge', // git help config, merge.conflictStyle : l'arbre de `merge-tree` (baseDuCommit)
+  '-c', 'merge.conflictStyle=merge', // git help config, merge.conflictStyle : l'arbre de `merge-tree` (baseDe)
   '-c', 'i18n.logOutputEncoding=UTF-8', // git help config, i18n.logOutputEncoding : `rev-list --format` (journalDe)
 ])
 
@@ -216,8 +230,9 @@ export const OPTIONS_DE_L_HOTE = Object.freeze([
 /** La marque d'une poignée `depotDe` : un `{ cwd }` écrit à la main n'est pas un `Depot`. */
 const MARQUE_DEPOT = Symbol('Depot')
 
-/** L'état de chaque DÉPÔT (`depotDe`), privé : son lanceur, et la version de git lue une fois
- *  (`exigerMergeTree`) hors fournisseur d'environnement. L'appelant d'une question ne tient jamais git. */
+/** L'état de chaque DÉPÔT (`depotDe`), privé : son lanceur, et ce qui se lit une fois hors fournisseur
+ *  d'environnement — la version de git (`exigerMergeTree`) et l'arbre vide (`arbreVide`). L'appelant
+ *  d'une question ne tient jamais git. */
 const lanceurs = new WeakMap()
 
 /**
@@ -234,7 +249,7 @@ const lanceurs = new WeakMap()
 export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {
   /** @type {Depot} */
   const depot = Object.freeze({ cwd, [MARQUE_DEPOT]: /** @type {true} */ (true) })
-  lanceurs.set(depot, { cwd, env, spawn, attendre, enPanne, version: undefined })
+  lanceurs.set(depot, { cwd, env, spawn, attendre, enPanne, version: undefined, vide: undefined })
   return depot
 }
 
@@ -279,7 +294,10 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
   const brut = env[ENV_GIT_FEINT]
   if (!brut) return null
   let regles
-  try { regles = JSON.parse(brut) } catch (e) { return { status: null, error: new Error(`${ENV_GIT_FEINT} illisible : ${e.message}`) } }
+  try { regles = JSON.parse(brut) } catch (e) {
+    if (!(e instanceof SyntaxError)) throw e
+    return { status: null, error: new Error(`${ENV_GIT_FEINT} illisible : ${e.message}`) }
+  }
   if (!Array.isArray(regles) || !regles.every(estRegleFeinte)) {
     return { status: null, error: new Error(`${ENV_GIT_FEINT} : une liste de règles { si, status, stdout?, stderr? } ou { si, absent: true } est attendue — ${brut}`) }
   }
@@ -324,6 +342,22 @@ function confier(depot, raison) {
 function lire(depot, args, opts) {
   const vu = interroger(depot, args, opts)
   return vu.disponible ? sortieOuNull(vu) : confier(depot, vu.raison)
+}
+
+/**
+ * La sortie d'une LECTURE EN LOT, dont tout échec LÈVE — indisponibilité (même sous `enPanne`), objet
+ * absent ou code non nul : un lot que git ne rend pas n'est le vide d'AUCUN de ses éléments, et le
+ * rendre vide ferait passer chacun pour « ne change rien ». `quoi` nomme le lot dans la levée.
+ * @param {Depot} depot @param {string[]} args @param {Parameters<typeof interroger>[2]} opts @param {string} quoi
+ * @returns {string}
+ * @throws {GitIndisponible}
+ */
+function lireLeLotOuLever(depot, args, opts, quoi) {
+  const vu = interroger(depot, args, opts)
+  if (!vu.disponible) throw new GitIndisponible(`${quoi} illisible : ${vu.raison}`)
+  if (vu.absent) throw new GitIndisponible(`${quoi} illisible : un objet manque`)
+  if (vu.valeur.status !== 0) throw new GitIndisponible(`${quoi} illisible : git ${args[0]} sort en ${vu.valeur.status}`)
+  return vu.valeur.stdout
 }
 
 /** Une ÉCRITURE de l'hôte, en union : sans `OPTIONS_DE_L_HOTE`, la configuration de l'utilisateur
@@ -480,25 +514,23 @@ const absentSaufCorrompu = (depot, revisions) => {
   return null
 }
 
-/** Les filtres de fusion de `shasDe` (`git help rev-list`). */
-const FILTRES_DE_FUSIONS = Object.freeze({ toutes: [], seules: ['--merges'], aucune: ['--no-merges'] })
-
 /**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
- * du plus ancien au plus récent ; `fusions` : `'seules'` (`--merges`), `'aucune'` (`--no-merges`) ;
- * `chemins` : les seuls commits qui les touchent, sous `--full-history` — sans lui, une fusion
- * TREESAME à un parent cache les commits de l'autre (`git help rev-list`, « History Simplification »).
- * `null` quand git ne rend pas la plage : une plage illisible n'est pas une plage vide.
- * @param {Depot} depot @param {readonly string[]} revisions
- * @param {{ fusions?: 'toutes' | 'seules' | 'aucune', chemins?: readonly string[] }} [opts] @returns {string[] | null}
+ * du plus ancien au plus récent. `null` quand git ne rend pas la plage : une plage illisible n'est pas
+ * une plage vide.
+ * @param {Depot} depot @param {readonly string[]} revisions @returns {string[] | null}
  */
-export function shasDe(depot, revisions, { fusions = 'toutes', chemins = [] } = {}) {
-  const filtre = Object.hasOwn(FILTRES_DE_FUSIONS, fusions) ? FILTRES_DE_FUSIONS[fusions] : null
-  if (!filtre) throw new Error(`shasDe : fusions « ${fusions} » inconnu`)
-  const historique = chemins.length ? ['--full-history'] : []
-  const brut = lire(depot, ['rev-list', '--reverse', ...filtre, ...historique, ...revisionsDe(revisions), '--', ...chemins])
+export function shasDe(depot, revisions) {
+  const brut = lire(depot, ['rev-list', '--reverse', ...revisionsDe(revisions), '--'])
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
 }
+
+/**
+ * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
+ * pas ou si git ne la rend pas.
+ * @param {Depot} depot @param {string} a @param {string} b @returns {string | null}
+ */
+export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisionsDe([a, b])])?.trim() || absentSaufCorrompu(depot, [a, b])
 
 /**
  * Les PARENTS de `revision` (`git help revisions`, `<rev>^@`), dans leur ordre ; `null` quand git ne
@@ -510,26 +542,57 @@ export function parentsDe(depot, revision) {
   return brut === null ? absentSaufCorrompu(depot, [revision]) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
+/** @typedef {{ sha: string, arbre: string, parents: string[] }} CommitDuGraphe */
+
+/** La ligne d'un commit du graphe (`git help rev-list`, PRETTY FORMATS : `%H`, `%T`, `%P`). */
+const FORMAT_DU_GRAPHE = '--format=%H %T %P'
+
+/** Les commits d'une lecture sous `FORMAT_DU_GRAPHE`. PURE. @param {string} brut @returns {CommitDuGraphe[]} */
+const commitsDuGraphe = (brut) => brut.split('\n').map((l) => l.trim()).filter(Boolean).map((ligne) => {
+  const [sha, arbre, ...parents] = ligne.split(' ')
+  return { sha, arbre, parents }
+})
+
 /**
- * Le POINT DE DÉPART de `tete` dans `tronc` : le premier commit de la chaîne des premiers parents de
- * `tete` (`git help rev-list`, `--first-parent`) contenu dans `tronc` — `tete` elle-même quand le
- * tronc la contient. `null` quand git ne le rend pas, ou quand la chaîne n'entre jamais dans le tronc.
- * @param {Depot} depot @param {string} tete @param {string} tronc @returns {string | null}
+ * Le GRAPHE des commits de la plage `revisions` (`shasDe`), du plus ancien au plus récent, en UNE
+ * lecture : chaque commit avec son ARBRE et ses PARENTS. L'ascendance, le compte d'une plage et la
+ * base d'un commit (`ceQueFaitLeCommit`) s'en déduisent sans relancer git. `null` quand git ne rend
+ * pas la plage (`shasDe`).
+ * @param {Depot} depot @param {readonly string[]} revisions @returns {CommitDuGraphe[] | null}
  */
-export function pointDeDepart(depot, tete, tronc) {
-  const [t, tr] = revisionsDe([tete, tronc])
-  const brut = lire(depot, ['rev-list', '--first-parent', t, `^${tr}`, '--'])
-  if (brut === null) return absentSaufCorrompu(depot, [tete, tronc])
-  const propres = brut.split('\n').map((l) => l.trim()).filter(Boolean)
-  return shaDe(depot, propres.length ? `${propres.at(-1)}^1` : tete)
+export function grapheDe(depot, revisions) {
+  const brut = lireLeGraphe(depot, ['rev-list', '--reverse', '--no-commit-header', FORMAT_DU_GRAPHE, ...revisionsDe(revisions), '--'])
+  return brut === null ? absentSaufCorrompu(depot, revisions) : commitsDuGraphe(brut)
+}
+
+/** La première version de git dont `rev-list` connaît `--no-commit-header` (notes de version de git 2.33). */
+const GIT_NO_COMMIT_HEADER = Object.freeze([2, 33])
+
+/** Une lecture du graphe (`FORMAT_DU_GRAPHE`), comme `lire` ; son INDISPONIBILITÉ nomme d'abord un git
+ *  plus ancien que `GIT_NO_COMMIT_HEADER` (`versionManquante`), qui la rend sans dire pourquoi. */
+function lireLeGraphe(depot, args) {
+  const vu = interroger(depot, args)
+  if (vu.disponible) return sortieOuNull(vu)
+  return confier(depot, versionManquante(depot, GIT_NO_COMMIT_HEADER, 'git rev-list --no-commit-header', 'le graphe des commits n’est pas lisible') ?? vu.raison)
 }
 
 /**
- * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
- * pas ou si git ne la rend pas.
- * @param {Depot} depot @param {string} a @param {string} b @returns {string | null}
+ * Le COMMIT que nomme chacune des `revisions`, dans leur ordre, en UN lot (`cat-file --batch-check`
+ * de `<rev>` puis `<rev>^{commit}`, `git help revisions`) : son sha complet, ou `null` quand le nom
+ * ne désigne aucun objet, en désigne PLUSIEURS (`git help cat-file`, « ambiguous » : un préfixe se
+ * résout parmi TOUS les objets du dépôt, pas parmi les seuls commits d'un graphe), ou ne se pèle pas
+ * en commit. Une indisponibilité suit `lire`, qui rend alors `null` pour chacune.
+ * @param {Depot} depot @param {readonly string[]} revisions @returns {(string | null)[]}
  */
-export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisionsDe([a, b])])?.trim() || absentSaufCorrompu(depot, [a, b])
+export function commitsNommes(depot, revisions) {
+  if (!revisions.length) return []
+  const brut = lire(depot, ['cat-file', '--batch-check'], { entree: revisionsDe(revisions).map((r) => `${r}\n${r}^{commit}\n`).join('') })
+  const lignes = (brut ?? '').split('\n')
+  return revisions.map((_, i) => {
+    if (brut === null || / (?:missing|ambiguous)$/.test(lignes[2 * i] ?? ' missing')) return null
+    return /^([0-9a-f]+) commit /.exec(lignes[2 * i + 1] ?? '')?.[1] ?? null
+  })
+}
 
 /** La date d'un commit par `strftime` (`git help rev-list`, `--date=format:` ; `git help
  *  for-each-ref`, `:format:`), dans le fuseau du commit : `%z` en `±hhmm` sous toute version, là où
@@ -608,70 +671,129 @@ const GIT_MERGE_TREE = Object.freeze([2, 40])
  * @throws {GitIndisponible}
  */
 function exigerMergeTree(depot) {
+  const raison = versionManquante(depot, GIT_MERGE_TREE, 'git merge-tree --write-tree --stdin', "ce que fait un commit n'est pas lisible")
+  if (raison) throw new GitIndisponible(raison)
+}
+
+/**
+ * La raison NOMMÉE d'un git plus ancien que `exige` (`[majeure, mineure]`) pour la `capacite` qu'il ne
+ * sait pas, et ce qu'elle `empeche` ; `null` pour un git assez récent. La version se lit une fois par
+ * dépôt hors fournisseur d'environnement (`depotDe`).
+ * @param {Depot} depot @param {readonly number[]} exige @param {string} capacite @param {string} empeche
+ * @returns {string | null}
+ */
+function versionManquante(depot, exige, capacite, empeche) {
   const etat = lanceurDe(depot)
   const fournisseur = typeof etat.env === 'function'
   if (!fournisseur && etat.version === undefined) etat.version = lire(depot, ['version'])
   const brut = fournisseur ? lire(depot, ['version']) : etat.version
   const m = /(\d+)\.(\d+)/.exec(String(brut ?? ''))
-  const exige = GIT_MERGE_TREE.join('.')
-  if (!m) throw new GitIndisponible(`version de git illisible (« ${String(brut ?? '').trim()} ») : git merge-tree --write-tree --stdin exige git ${exige}`)
+  const requise = exige.join('.')
+  if (!m) return `version de git illisible (« ${String(brut ?? '').trim()} ») : ${capacite} exige git ${requise}`
   const [majeure, mineure] = [Number(m[1]), Number(m[2])]
-  if (majeure < GIT_MERGE_TREE[0] || (majeure === GIT_MERGE_TREE[0] && mineure < GIT_MERGE_TREE[1])) {
-    throw new GitIndisponible(`git ${majeure}.${mineure} ne sait pas git merge-tree --write-tree --stdin (git ${exige} ou plus) : ce que fait un commit n'est pas lisible`)
+  if (majeure < exige[0] || (majeure === exige[0] && mineure < exige[1])) {
+    return `git ${majeure}.${mineure} ne sait pas ${capacite} (git ${requise} ou plus) : ${empeche}`
   }
+  return null
 }
 
-/** L'ARBRE VIDE du dépôt (`hash-object -t tree`, son format d'objets), `null` si git ne le rend pas :
- *  la base d'une racine, et l'image de départ d'un dépôt sans premier commit.
- *  @param {Depot} depot @returns {string | null} */
-export const arbreVide = (depot) => (lire(depot, ['hash-object', '-t', 'tree', '--stdin'], { entree: '' }) ?? '').trim() || null
+/** L'ARBRE VIDE du dépôt (`hash-object -t tree`, son format d'objets) : la base d'une racine, et
+ *  l'image de départ d'un dépôt sans premier commit. Lu une fois par dépôt hors fournisseur
+ *  d'environnement, comme la version de `exigerMergeTree`. Il ne se lit jamais `null` : une révision
+ *  vide passée à git ne se lirait plus comme une panne (`revisionsDe` la refuse en erreur de programme).
+ *  @param {Depot} depot @returns {string}
+ *  @throws {GitIndisponible} git ne le rend pas, même sous `enPanne` (qui en garde la cause). */
+export function arbreVide(depot) {
+  const etat = lanceurDe(depot)
+  const lu = () => {
+    const vide = (lire(depot, ['hash-object', '-t', 'tree', '--stdin'], { entree: '' }) ?? '').trim()
+    if (!vide) throw new GitIndisponible("arbre vide illisible : git hash-object ne le rend pas")
+    return vide
+  }
+  if (typeof etat.env === 'function') return lu()
+  etat.vide ??= lu()
+  return etat.vide
+}
 
-/** L'IMAGE de HEAD : son commit, ou l'arbre vide dans un dépôt sans premier commit (`arbreVide`) ;
- *  `null` si git ne rend ni l'un ni l'autre. La pré-image d'un commit à venir se lit contre elle.
- *  @param {Depot} depot @returns {string | null} */
+/** L'IMAGE de HEAD : son commit, ou l'arbre vide dans un dépôt sans premier commit (`arbreVide`). La
+ *  pré-image d'un commit à venir se lit contre elle.
+ *  @param {Depot} depot @returns {string}
+ *  @throws {GitIndisponible} propagée d'`arbreVide` : git ne rend ni HEAD ni l'arbre vide. */
 export const imageDeHead = (depot) => shaDe(depot, 'HEAD') ?? arbreVide(depot)
 
 /**
- * La BASE du commit `sha` : l'arbre contre lequel il se lit. Son parent ; l'arbre vide pour une
+ * La BASE du commit `commit` (`CommitDuGraphe`) : l'arbre contre lequel il se lit. Son parent ; l'arbre vide pour une
  * racine ; pour une fusion, l'arbre que git aurait fusionné TOUT SEUL depuis ses deux parents, conflits
  * compris, qu'ils aient un ancêtre commun ou non, sans pilote ni attribut (`git --attr-source=<arbre
  * vide> merge-tree --write-tree --stdin --allow-unrelated-histories`, dont la sortie est
  * `<propre>\0<arbre>\0…` et le code 0 même en conflit : git help git, `--attr-source`). `merge-tree`
- * ÉCRIT les objets de cet arbre, jamais une ref : des objets inaccessibles, que `git gc` ramasse. `null` quand `git` ne rend pas la lecture qui la donne : sha inconnu
- * (`rev-list`), arbre vide non rendu (`hash-object`), fusion refusée (`merge-tree`), ou toute
- * indisponibilité qu'un lecteur à `null` rend en `null` au lieu de la lever.
- * @param {Depot} depot @param {string} sha
- * @returns {string | null}
- * @throws {GitIndisponible} fusion à plus de deux parents, ou fusion lue par un git plus ancien que
- *   `GIT_MERGE_TREE` : seule la base d'une fusion demande `merge-tree`. {BorneAbsente} `sha` absent.
+ * ÉCRIT les objets de cet arbre, jamais une ref : des objets inaccessibles, que `git gc` ramasse.
+ * @param {Depot} depot @param {CommitDuGraphe} commit
+ * @returns {string}
+ * @throws {GitIndisponible} arbre vide non rendu (`arbreVide`) ; fusion à plus de deux parents, lue
+ *   par un git plus ancien que `GIT_MERGE_TREE`, ou illisible (`fusionsAutomatiques`).
  */
-function baseDuCommit(depot, sha) {
-  const ligne = lire(depot, ['rev-list', '--parents', '-n', '1', ...revisionsDe([sha]), '--'])
-  if (ligne === null) {
-    bornesDe(depot, 'ceQueFaitLeCommit', [sha], 'commit')
-    return null
-  }
-  const [, ...parents] = ligne.trim().split(/\s+/)
+function baseDe(depot, { sha, parents }) {
   if (parents.length === 0) return arbreVide(depot)
   if (parents.length === 1) return parents[0]
   return fusionAutomatique(depot, parents, `fusion ${sha.slice(0, 9)}`)
 }
 
+/** Le commit `sha` lu dans le graphe (`FORMAT_DU_GRAPHE`), `null` quand git ne le rend pas.
+ *  @param {Depot} depot @param {string} sha @returns {CommitDuGraphe | null}
+ *  @throws {BorneAbsente} `sha` absent. */
+function commitDuGraphe(depot, sha) {
+  const brut = lireLeGraphe(depot, ['rev-list', '--no-commit-header', FORMAT_DU_GRAPHE, '-n', '1', ...revisionsDe([sha]), '--'])
+  if (brut === null) {
+    bornesDe(depot, 'ceQueFaitLeCommit', [sha], 'commit')
+    return null
+  }
+  return commitsDuGraphe(brut)[0] ?? null
+}
+
 /**
- * La FUSION AUTOMATIQUE de deux `parents` : l'arbre que git fusionne TOUT SEUL (`baseDuCommit`), `null`
- * quand git ne le rend pas. `nom` nomme la fusion dans la levée.
+ * La FUSION AUTOMATIQUE de deux `parents` : l'arbre que git fusionne TOUT SEUL (`baseDe`). `nom`
+ * nomme la fusion dans la levée.
  * @param {Depot} depot @param {string[]} parents @param {string} nom
- * @returns {string | null}
- * @throws {GitIndisponible} plus de deux parents, ou git plus ancien que `GIT_MERGE_TREE`.
+ * @returns {string}
+ * @throws {GitIndisponible} plus de deux parents, git plus ancien que `GIT_MERGE_TREE`, ou fusion
+ *   illisible (`fusionsAutomatiques`).
  */
 function fusionAutomatique(depot, parents, nom) {
-  if (parents.length > 2) throw new GitIndisponible(`${nom} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
+  return fusionsAutomatiques(depot, [{ parents, nom }])[0]
+}
+
+/**
+ * Les FUSIONS AUTOMATIQUES de chacune des `fusions` (`fusionAutomatique`), dans leur ordre, en UN lot
+ * (`merge-tree --stdin`, une ligne par fusion ; sous `-z --no-messages`, chaque fusion rend
+ * `<propre>\0<arbre>\0`, ses entrées en conflit, puis un champ vide : git help merge-tree, « INPUT
+ * FORMAT », « OUTPUT »). Une fusion que git ne sait pas rejouer (un objet d'un côté manque) fait
+ * échouer TOUT le lot (code 128) : le lot LÈVE en nommant ses fusions (`lireLeLotOuLever`), jamais
+ * une fusion « sans apport ».
+ * @param {Depot} depot @param {readonly { parents: string[], nom: string }[]} fusions
+ * @returns {string[]}
+ * @throws {GitIndisponible} une fusion à plus de deux parents, git plus ancien que `GIT_MERGE_TREE`,
+ *   arbre vide non rendu, ou lot illisible. {Error} une sortie de `merge-tree` hors de sa forme.
+ */
+function fusionsAutomatiques(depot, fusions) {
+  const octopus = fusions.find((f) => f.parents.length > 2)
+  if (octopus) throw new GitIndisponible(`${octopus.nom} à ${octopus.parents.length} parents : aucune fusion automatique ne rejoue sa base`)
+  if (!fusions.length) return []
   exigerMergeTree(depot)
+  const noms = fusions.map((f) => f.nom).join(', ')
   const vide = arbreVide(depot)
-  if (!vide) return null
-  const [, arbre] = (lire(depot, ['merge-tree', '--write-tree', '--allow-unrelated-histories', '-z', '--stdin'],
-    { entree: `${parents[0]} ${parents[1]}\n`, options: [...OPTIONS_DE_L_HOTE, `--attr-source=${vide}`] }) ?? '').split('\0')
-  return arbre || null
+  const brut = lireLeLotOuLever(depot, ['merge-tree', '--write-tree', '--no-messages', '--allow-unrelated-histories', '-z', '--stdin'],
+    { entree: fusions.map((f) => `${revisionsDe(f.parents).join(' ')}\n`).join(''), options: [...OPTIONS_DE_L_HOTE, `--attr-source=${vide}`] },
+    `fusion automatique de ${noms}`)
+  const champs = brut.split('\0')
+  let i = 0
+  return fusions.map((f) => {
+    const [propre, arbre] = [champs[i], champs[i + 1]]
+    if (!/^[01]$/.test(propre ?? '') || !/^[0-9a-f]+$/.test(arbre ?? '')) throw new Error(`git merge-tree --stdin illisible à ${f.nom} : « ${propre} », « ${arbre} »`)
+    for (i += 2; champs[i] !== ''; i += 1) if (champs[i] === undefined) throw new Error(`git merge-tree --stdin illisible : ${f.nom} sans fin de conflits`)
+    i += 1
+    return arbre
+  })
 }
 
 /** Les lettres de `--diff-filter` (`git help diff-tree`) : le filtre d'une lecture de chemins. */
@@ -699,13 +821,15 @@ export function ceQuiChange(depot, avant, apres) {
 }
 
 /** `ceQuiChange` sur des bornes que git vient de rendre (`ceQueFaitLeCommit`, `ceQuEmporteLIndex`) :
- *  les exiger relancerait git pour rien. @param {Depot} depot @param {string} avant @param {string} apres */
-function changeEntre(depot, avant, apres) {
+ *  les exiger relancerait git pour rien. `inchange` : `avant` et `apres` sont le MÊME arbre, donc rien
+ *  ne change et aucune lecture de différence ne se lance.
+ *  @param {Depot} depot @param {string} avant @param {string} apres @param {{ inchange?: boolean }} [opts] */
+function changeEntre(depot, avant, apres, { inchange = false } = {}) {
   const [commande, ...bornes] = apres === INDEX ? ['diff-index', '--cached', avant]
     : apres === SUIVI ? ['diff-index', avant]
       : ['diff-tree', '-r', avant, apres]
   const lecture = (forme, pathspecs) => [commande, ...forme, ...bornes, '--', ...pathspecs]
-  return {
+  const change = {
     base: avant,
     chemins: (filtre = '', pathspecs = []) => {
       if (!FILTRE.test(filtre)) throw new Error(`ceQuiChange : filtre « ${filtre} » hors des lettres de --diff-filter`)
@@ -716,6 +840,69 @@ function changeEntre(depot, avant, apres) {
     lirePreImage: (chemin) => lireEnLot(depot, avant, [chemin]).get(chemin) ?? null,
     renommages: (pathspecs = []) => new Map(numstatDe(depot, lecture(['--numstat', '-M', '--diff-filter=R'], pathspecs)).map((e) => e.chemins)),
   }
+  return inchange ? { ...change, chemins: RIEN.chemins, numstat: RIEN.numstat, diff: RIEN.diff, renommages: RIEN.renommages } : change
+}
+
+/** Les échappements d'un chemin CITÉ (`"…"`) d'un en-tête de patch (`git help config`, core.quotePath). */
+const ECHAPPEMENTS = Object.freeze({ a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13, '"': 34, '\\': 92 })
+
+/** Le chemin cité (`"<prefixe><chemin>"`) en tête de `texte`, sans son `prefixe`, et ce qui le suit ;
+ *  `null` hors de cette forme. PURE. @param {string} texte @param {string} prefixe */
+function cheminCite(texte, prefixe) {
+  if (!texte.startsWith('"')) return null
+  const octets = []
+  for (let i = 1; i < texte.length; i += 1) {
+    const c = texte[i]
+    if (c === '"') {
+      const cite = Buffer.from(octets).toString('utf8')
+      return cite.startsWith(prefixe) ? { chemin: cite.slice(prefixe.length), suite: texte.slice(i + 1) } : null
+    }
+    if (c !== '\\') {
+      octets.push(...Buffer.from(c, 'utf8'))
+      continue
+    }
+    const octal = /^[0-7]{3}/.exec(texte.slice(i + 1))
+    const code = octal ? parseInt(octal[0], 8) : ECHAPPEMENTS[texte[i + 1]]
+    if (code === undefined) return null
+    octets.push(code)
+    i += octal ? 3 : 1
+  }
+  return null
+}
+
+/** Le chemin de l'en-tête `diff --git a/<p> b/<p>` d'un patch `--no-renames`, où `<p>` est deux fois
+ *  le MÊME : cité (`cheminCite`) s'il porte un caractère que core.quotePath échappe, nu sinon — espaces
+ *  compris, d'où les deux moitiés égales. `null` hors de cette forme. PURE. @param {string} entete */
+function cheminDeLEntete(entete) {
+  if (entete.startsWith('"')) {
+    const a = cheminCite(entete, 'a/')
+    const b = a?.suite.startsWith(' ') ? cheminCite(a.suite.slice(1), 'b/') : null
+    return b && b.suite === '' && b.chemin === a.chemin ? a.chemin : null
+  }
+  const moitie = (entete.length - 1) / 2
+  const [a, b] = [entete.slice(0, moitie), entete.slice(moitie + 1)]
+  return Number.isInteger(moitie) && entete[moitie] === ' ' && a.startsWith('a/') && b === `b/${a.slice(2)}` ? a.slice(2) : null
+}
+
+/**
+ * Le patch `-p --no-renames` d'un commit (`ceQueFontLesCommits`, `patchs`) découpé par CHEMIN : chemin ↦ ses sections
+ * `diff --git`, jointes (un changement de TYPE en porte deux). PURE.
+ * @param {string} patch @returns {Map<string, string>}
+ * @throws {Error} un en-tête hors de la forme `cheminDeLEntete`.
+ */
+export function patchsParChemin(patch) {
+  const parChemin = new Map()
+  let courant = null
+  for (const ligne of patch.split('\n')) {
+    if (ligne.startsWith('diff --git ')) {
+      courant = cheminDeLEntete(ligne.slice('diff --git '.length))
+      if (courant === null) throw new Error(`patch illisible : en-tête « ${ligne} » hors de la forme \`diff --git a/<chemin> b/<chemin>\``)
+      parChemin.set(courant, parChemin.has(courant) ? `${parChemin.get(courant)}\n${ligne}` : ligne)
+    } else if (courant !== null) {
+      parChemin.set(courant, `${parChemin.get(courant)}\n${ligne}`)
+    }
+  }
+  return parChemin
 }
 
 /** Ce qui change d'une base `null` : rien. */
@@ -729,28 +916,149 @@ const RIEN = Object.freeze({
 })
 
 /**
- * CE QUE FAIT LE COMMIT `sha` : son APPORT PROPRE, ce qui change de sa BASE (`baseDuCommit`) à lui
+ * CE QUE FAIT LE COMMIT `commit` : son APPORT PROPRE, ce qui change de sa BASE (`baseDe`) à lui
  * (`ceQuiChange`). Une fusion propre n'apporte rien ; une résolution ou une retouche apporte ses
  * lignes. L'unique lecture d'un commit POSÉ des portes : fichiers, diff, textes et renommages
- * viennent tous de la même base. Base `null` (les cas de `baseDuCommit`) : tout est vide.
- * @param {Depot} depot @param {string} sha
- * @throws {GitIndisponible} propagée de `baseDuCommit` (fusion seulement). {BorneAbsente} `sha` absent.
+ * viennent tous de la même base. `commit` : une révision, lue dans le graphe, ou un commit que
+ * l'appelant tient déjà de `grapheDe` (aucune relecture). Une fusion dont l'ARBRE est celui de sa
+ * fusion automatique ne change rien, sans lecture de différence. Une révision que git ne rend pas : tout
+ * est vide.
+ * @param {Depot} depot @param {string | CommitDuGraphe} commit
+ * @throws {GitIndisponible} propagée de `baseDe`. {BorneAbsente} révision absente.
  */
-export function ceQueFaitLeCommit(depot, sha) {
-  const base = baseDuCommit(depot, sha)
-  return base ? changeEntre(depot, base, sha) : RIEN
+export function ceQueFaitLeCommit(depot, commit) {
+  const lu = typeof commit === 'string' ? commitDuGraphe(depot, commit) : commit
+  if (!lu) return RIEN
+  const base = baseDe(depot, lu)
+  return changeEntre(depot, base, lu.sha, { inchange: base === lu.arbre })
+}
+
+/** Un en-tête de deux arbres d'une lecture `diff-tree --stdin` (`<avant> <apres>`, suivi d'un saut de ligne). */
+const ENTETE_DE_DEUX_ARBRES = /^([0-9a-f]+) ([0-9a-f]+)\n/
+
+/** Un en-tête de commit (son sha) ou de deux arbres d'une lecture `diff-tree --stdin -p`. */
+const ENTETE_DE_PATCH = /^[0-9a-f]+(?: [0-9a-f]+)?$/
+
+/**
+ * CE QUE FONT LES COMMITS `commits` (`grapheDe`) : ce que `ceQueFaitLeCommit` rend de chacun, en un
+ * nombre de lectures qui ne croît pas avec la liste — le lecteur canonique d'une LISTE de commits. Un
+ * commit à un parent au plus se lit contre son parent, ou contre l'arbre vide pour une racine
+ * (`--root`) ; une fusion contre sa fusion automatique, toutes en UN `merge-tree`
+ * (`fusionsAutomatiques`), et seule une fusion dont l'arbre en DIFFÈRE a quelque chose à lire. Les uns
+ * et les autres passent dans la MÊME lecture `diff-tree --stdin` : une ligne `<commit>` pour les
+ * premiers, `<base> <arbre>` pour les secondes (git help diff-tree, `--stdin`).
+ *   - `chemins()` : sha ↦ ses chemins (`--raw -z --no-renames` : un renommage en ses deux bouts), `[]`
+ *     pour un commit qui ne change rien ;
+ *   - `patchs()` : sha ↦ chemin ↦ son patch `-U0 --no-renames` (`patchsParChemin`).
+ * Chaque lecture se fait au plus une fois.
+ * @param {Depot} depot @param {readonly CommitDuGraphe[]} commits
+ * @throws {GitIndisponible} propagée de `fusionsAutomatiques`, dès qu'une lecture porte sur une fusion ;
+ *   un lot `diff-tree` que git ne rend pas (`lireLeLotOuLever`). {Error} une sortie de `diff-tree`
+ *   hors de sa forme.
+ */
+export function ceQueFontLesCommits(depot, commits) {
+  const fusions = commits.filter((c) => c.parents.length > 1)
+  let lignes = null
+  /** Sha ↦ la ligne `diff-tree --stdin` de chaque commit qui a quelque chose à lire, clé de sa sortie ;
+   *  deux commits de même ligne (deux fusions de même base et de même arbre) la lisent une fois. */
+  const lignesALire = () => {
+    if (lignes) return lignes
+    const bases = fusionsAutomatiques(depot, fusions.map((c) => ({ parents: c.parents, nom: `fusion ${c.sha.slice(0, 9)}` })))
+    const baseDe = new Map(fusions.map((c, i) => [c.sha, bases[i]]))
+    lignes = new Map(commits.flatMap((c) => {
+      if (c.parents.length <= 1) return [[c.sha, c.sha]]
+      const base = baseDe.get(c.sha)
+      return base !== c.arbre ? [[c.sha, `${base} ${c.arbre}`]] : []
+    }))
+    return lignes
+  }
+  /** `diff-tree --stdin <forme>` sur les lignes uniques de `lignesALire`, chacune ↦ sa sortie vide. */
+  const lireLeLot = (forme) => {
+    const uniques = [...new Set(lignesALire().values())]
+    const brut = uniques.length
+      ? lireLeLotOuLever(depot, ['diff-tree', '--stdin', '-r', '--root', '--no-renames', ...forme], { entree: uniques.map((l) => `${l}\n`).join('') }, `ce que font ${uniques.length} commit(s)`)
+      : ''
+    return { brut, parCle: new Map(uniques.map((l) => [l, []])) }
+  }
+  /** Sha ↦ `deCle(sortie de sa ligne)`, `vide` pour un commit sans ligne. */
+  const parSha = (parCle, deCle, vide) => {
+    const lues = new Map([...parCle].map(([cle, sortie]) => [cle, deCle(sortie)]))
+    return new Map(commits.map((c) => [c.sha, lignesALire().has(c.sha) ? lues.get(lignesALire().get(c.sha)) : vide()]))
+  }
+  let chemins = null
+  let patchs = null
+  return {
+    chemins: () => {
+      if (chemins) return chemins
+      const { brut, parCle } = lireLeLot(['--raw', '-z'])
+      const champs = brut.split('\0')
+      let courant = null
+      for (let i = 0; i < champs.length; i += 1) {
+        let champ = champs[i]
+        for (let m = ENTETE_DE_DEUX_ARBRES.exec(champ); m; m = ENTETE_DE_DEUX_ARBRES.exec(champ)) {
+          courant = parCle.get(`${m[1]} ${m[2]}`)
+          if (!courant) throw new Error(`git diff-tree --stdin illisible : « ${m[1]} ${m[2]} » n'est aucune des paires demandées`)
+          champ = champ.slice(m[0].length)
+        }
+        if (!champ) continue
+        if (champ.startsWith(':')) {
+          if (!courant) throw new Error(`git diff-tree --stdin illisible : enregistrement « ${champ} » sans commit`)
+          courant.push(champs[(i += 1)])
+          continue
+        }
+        courant = parCle.get(champ)
+        if (!courant) throw new Error(`git diff-tree --stdin illisible : « ${champ} » n'est aucun des commits demandés`)
+      }
+      chemins = parSha(parCle, (sortie) => sortie, () => [])
+      return chemins
+    },
+    patchs: () => {
+      if (patchs) return patchs
+      const { brut, parCle } = lireLeLot(['-p', '-U0'])
+      let courant = null
+      const lignes = brut.split('\n')
+      if (lignes.at(-1) === '') lignes.pop()
+      for (const ligne of lignes) {
+        if (ENTETE_DE_PATCH.test(ligne) && parCle.has(ligne)) {
+          courant = parCle.get(ligne)
+          continue
+        }
+        if (courant === null) {
+          if (ligne) throw new Error(`git diff-tree --stdin -p illisible : « ${ligne} » avant tout en-tête`)
+          continue
+        }
+        courant.push(ligne)
+      }
+      patchs = parSha(parCle, (sortie) => patchsParChemin(sortie.map((l) => `${l}\n`).join('')), () => new Map())
+      return patchs
+    },
+  }
 }
 
 /**
  * CE QUE FAIT LA FUSION EN COURS : ce qui change de la fusion automatique de ses `parents` (HEAD puis
  * `fusionnesEnCours`, `fusionAutomatique`) à l'image `apres` qui la conclut (`INDEX` ou `SUIVI`) — la
- * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe. Base `null` : tout est vide.
+ * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe.
  * @param {Depot} depot @param {string[]} parents @param {string} apres
- * @throws {GitIndisponible} propagée de `fusionAutomatique`.
+ * @throws {GitIndisponible} propagée de `fusionAutomatique` : une fusion que git ne rejoue pas
+ *   n'apporte pas « rien » (#2328 D2).
  */
 export function ceQueFaitLaFusionEnCours(depot, parents, apres) {
-  const base = fusionAutomatique(depot, parents, 'fusion en cours')
-  return base ? changeEntre(depot, base, apres) : RIEN
+  return changeEntre(depot, fusionAutomatique(depot, parents, 'fusion en cours'), apres)
+}
+
+/**
+ * L'APPORT PROPRE de la fusion EN COURS (#2328) : `parents` (HEAD puis `fusionnes`) et `change`, ce
+ * que `ceQueFaitLaFusionEnCours` lit de sa fusion automatique à l'image `apres` ; `null` hors fusion
+ * (`fusionnes` vide) ou sans HEAD.
+ * @param {Depot} depot @param {string} apres @param {string[]} [fusionnes]
+ * @throws {GitIndisponible} propagée de `ceQueFaitLaFusionEnCours`.
+ */
+export function apportDeLaFusionEnCours(depot, apres, fusionnes = fusionnesEnCours(depot)) {
+  const head = fusionnes.length ? shaDe(depot, 'HEAD') : null
+  if (!head) return null
+  const parents = [head, ...fusionnes]
+  return { parents, change: ceQueFaitLaFusionEnCours(depot, parents, apres) }
 }
 
 /**
@@ -758,10 +1066,7 @@ export function ceQueFaitLaFusionEnCours(depot, parents, apres) {
  * (`ceQuiChange`).
  * @param {Depot} depot
  */
-export const ceQuEmporteLIndex = (depot) => {
-  const base = imageDeHead(depot)
-  return base ? changeEntre(depot, base, INDEX) : RIEN
-}
+export const ceQuEmporteLIndex = (depot) => changeEntre(depot, imageDeHead(depot), INDEX)
 
 /** Colonnes d'un enregistrement `git ls-files --eol` : `i/<eol>`, `w/<eol>`, `attr/<attributs>`
  *  séparés par des ESPACES (la valeur d'`attr/` en contient), puis une TABULATION et le chemin. */
@@ -903,20 +1208,6 @@ export function estAncetre(depot, ancetre, descendant) {
 }
 
 /**
- * `sha` est-il dans l'histoire de HEAD (HEAD compris) ? PRÉDICAT BOOLÉEN unique des portes : un sha
- * INCONNU est `false` (il n'est pas dans cette histoire), une INDISPONIBILITÉ JETTE. Deux portes s'en
- * servent — la tête de fenêtre d'une revue de palier, et le commit qu'un solde dit correcteur — et
- * elles ne peuvent pas en avoir deux définitions : la seconde dériverait de la première en silence.
- * @param {Depot} depot @param {string} sha @returns {boolean}
- */
-export function estDansHead(depot, sha) {
-  if (!sha) return false
-  const vu = estAncetre(depot, sha, 'HEAD')
-  if (!vu.disponible) throw new GitIndisponible(vu.raison)
-  return !vu.absent && vu.valeur === true
-}
-
-/**
  * L'ARBRE PRINCIPAL du dépôt — la racine des GESTES git d'un outil, depuis n'importe quel worktree
  * (`ops:chantier`, `ops:worktrees`, le pre-commit). Source UNIQUE de cette résolution : trois copies
  * manuscrites la re-posaient, chacune avec son repli.
@@ -997,8 +1288,12 @@ export function racineDe(depot) {
 export const brancheDe = (depot) => lire(depot, ['symbolic-ref', '--quiet', '--short', 'HEAD'])?.trim() || null
 
 /** Le chemin de `nom` sous le répertoire git (`rev-parse --git-path`, `git help rev-parse`), relatif
- *  au `cwd` du lecteur. @param {Depot} depot @param {string} nom @returns {string | null} */
-export const cheminGit = (depot, nom) => lire(depot, ['rev-parse', '--git-path', nom])?.trim() || null
+ *  au `cwd` du lecteur. Une réponse qui porte un octet NUL ne nomme aucun chemin du disque : elle va
+ *  à `confier` (`null` sous `enPanne`). @param {Depot} depot @param {string} nom @returns {string | null} */
+export function cheminGit(depot, nom) {
+  const chemin = lire(depot, ['rev-parse', '--git-path', nom])?.trim() || null
+  return chemin?.includes('\0') ? confier(depot, `${nom} illisible : octet nul dans le chemin que git rend (« ${chemin.replace(/\0/g, '\\0')} »)`) : chemin
+}
 
 /**
  * Les commits que la FUSION EN COURS fusionne dans HEAD (`MERGE_HEAD`, une ligne par commit : écrite
@@ -1070,13 +1365,21 @@ export const dossierDesHooks = (depot) => lire(depot, ['config', '--get', 'core.
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
 /**
- * `chemin` est-il IGNORÉ (`check-ignore -q`) ? Un chemin SUIVI qu'un motif couvre ne l'est pas, sauf
- * sous `suivisCompris` (`--no-index`). Code de sortie 1, ou git muet : `false`.
- * @param {Depot} depot @param {string} chemin
- * @param {{ suivisCompris?: boolean }} [opts] @returns {boolean}
+ * Les `chemins` IGNORÉS, en UN lot (`check-ignore --stdin -z`, qui rend chacun tel qu'il lui est
+ * donné) : un chemin SUIVI qu'un motif couvre ne l'est pas, sauf sous `suivisCompris` (`--no-index`).
+ * Code de sortie 1 (aucun ignoré), ou git muet : aucun.
+ * @param {Depot} depot @param {readonly string[]} chemins
+ * @param {{ suivisCompris?: boolean }} [opts] @returns {Set<string>}
  */
-export const estIgnore = (depot, chemin, { suivisCompris = false } = {}) =>
-  lire(depot, ['check-ignore', '-q', ...(suivisCompris ? ['--no-index'] : []), '--', chemin]) !== null
+export function cheminsIgnores(depot, chemins, { suivisCompris = false } = {}) {
+  if (!chemins.length) return new Set()
+  const brut = lire(depot, ['check-ignore', '--stdin', '-z', ...(suivisCompris ? ['--no-index'] : [])], { entree: chemins.map((c) => `${c}\0`).join('') })
+  return new Set((brut ?? '').split('\0').filter(Boolean))
+}
+
+/** `chemin` est-il IGNORÉ ? `cheminsIgnores` d'un seul chemin.
+ *  @param {Depot} depot @param {string} chemin @param {{ suivisCompris?: boolean }} [opts] @returns {boolean} */
+export const estIgnore = (depot, chemin, opts) => cheminsIgnores(depot, [chemin], opts).has(chemin)
 
 /**
  * La valeur de l'attribut `nom` sur `chemin` (`check-attr -z`, `git help check-attr`) : la valeur

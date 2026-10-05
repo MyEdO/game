@@ -19,6 +19,7 @@ import { RigSprite, GROUND_Y, bodyHeight, useCompositionRig } from '../gameIso/r
 import { defaultAppearance, type Appearance } from '../gameIso/rig/appearance';
 import { equipPorte, type EquipCtx } from '../gameIso/rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../gameIso/rig/parts/combatantVisuals';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { RigOverlay } from '../gameIso/rig/bones';
 import type { Pose } from '../gameIso/rig/poses';
 import type { View } from '../gameIso/rig/facing';
@@ -94,7 +95,9 @@ function CharacterPreviewBase(props: CharacterPreviewProps) {
     () => (hero ? combatantAppearance(hero.appearance ?? defaultAppearance(hero), hero) : props.appearance),
     [hero, props.appearance],
   );
-  const equip = useMemo(() => (hero ? equipPorte(hero) : props.equip ?? EMPTY_EQUIP), [hero, props.equip]);
+  // La projection RÉSOUT la forme au catalogue (`formeResolue`) : sa version entre dans le mémo (#2113).
+  const versionDesDatasets = useVersionDesDatasets();
+  const equip = useMemo(() => (hero ? equipPorte(hero) : props.equip ?? EMPTY_EQUIP), [hero, props.equip, versionDesDatasets]);
   const overlays = useMemo(() => (hero ? combatantOverlays(hero) : props.overlays), [hero, props.overlays]);
   const career = hero ? hero.career : props.career; // id de garde-robe (carrière), jamais un libellé
   // Composition retenue (`useCompositionRig`) ; l'élément sur la composition et la pose (rendu en

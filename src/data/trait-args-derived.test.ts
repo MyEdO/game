@@ -40,6 +40,7 @@ import areneProjetJson from '../scenes/arene/arene-projet.json';
 import type { Scene } from '../state/scene';
 import { fileURLToPath } from 'node:url';
 import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
+import { refusDArgHorsRegistre, partsDArg } from './schemas/grammaire/reference';
 
 /** Entrées partielles embarquées du corpus des DEUX racines (`scanDuCorpus`), mesurées UNE fois. */
 const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.meta.url))).scan.entreesPartielles;
@@ -49,9 +50,6 @@ const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.me
 type RawTraitInstance = { id?: string; note?: string; value?: unknown; arg?: unknown; range?: unknown; count?: unknown };
 
 const byId = new Map(traits.map((t) => [t.id, t] as const));
-
-/** Sentinelle joker d'un statbloc RAW (« Animosité (un au choix) », « Peur (Au choix) ») — tolérée. */
-const WILDCARD = /^(un |une |deux )?au choix$/i;
 
 /** Résout un texte comme LIBELLÉ (pas id) d'une source de spéc partagée : l'id du POOL (choisissable,
  *  cf. doctrine `SPEC_SOURCES`) dont `.label()` reproduit EXACTEMENT ce texte. Sert l'invariant #2/#4 sur
@@ -123,9 +121,21 @@ function* eachInstance(): Generator<Row> {
   yield* eachEntreePartielle();
 }
 
-/** Parts d'un `arg` : liste séparée par virgules si `specsMulti`, sinon l'arg entier. */
-const argParts = (arg: string, multi: boolean): string[] =>
-  (multi ? arg.split(',').map((s) => s.trim()) : [arg.trim()]).filter(Boolean);
+/** Fautes de l'`arg` `arg` du Trait `def` — source FERMÉE : le prédicat du SCHÉMA (`refusDArgHorsRegistre`) ;
+ *  source OUVERTE : une part qui reproduit le LIBELLÉ d'un id du registre (#145). */
+function fautesDArg(def: TraitData, arg: string): string[] {
+  const src: SpecsSource | undefined = def.specsSource;
+  if (!src) return []; // sans source = descripteur texte libre (légitime, non contraint)
+  if (!def.specsOpen) {
+    const refus = refusDArgHorsRegistre(def.id, arg);
+    return refus ? [`${src}: ${refus}`] : [];
+  }
+  return partsDArg(def.id, arg).flatMap((part) => {
+    if (SPEC_SOURCES[src].resolves(part)) return [];
+    const asId = labelAsId(src, part);
+    return asId ? [`${src}: ${JSON.stringify(part)} est le libellé de « ${asId} » — utiliser l'id`] : [];
+  });
+}
 
 describe('schéma d\'argument des traits — chaque instance est COUVERTE par la déclaration de son trait', () => {
   it('value numérique ⟹ le trait déclare `indice` (sens de la valeur)', () => {
@@ -141,17 +151,7 @@ describe('schéma d\'argument des traits — chaque instance est COUVERTE par la
     const offenders: string[] = [];
     for (const { inst, def, where, hasId } of eachInstance()) {
       if (!hasId || !def || typeof inst.arg !== 'string') continue;
-      const src: SpecsSource | undefined = def.specsSource;
-      if (!src) continue; // sans source = descripteur texte libre (légitime, non contraint)
-      if (WILDCARD.test(inst.arg.trim())) continue; // sentinelle « au choix » sur l'arg entier
-      for (const part of argParts(inst.arg, !!def.specsMulti)) {
-        if (WILDCARD.test(part)) continue; // part joker « un au choix »
-        if (SPEC_SOURCES[src].resolves(part)) continue; // id valide
-        if (!def.specsOpen) { offenders.push(`${where} → ${src}: ${JSON.stringify(part)} (id inconnu du registre)`); continue; }
-        // Source OUVERTE : légitime SAUF si le texte EST le libellé d'un id du même registre (#145).
-        const asId = labelAsId(src, part);
-        if (asId) offenders.push(`${where} → ${src}: ${JSON.stringify(part)} est le libellé de « ${asId} » — utiliser l'id`);
-      }
+      for (const faute of fautesDArg(def, inst.arg)) offenders.push(`${where} → ${faute}`);
     }
     expect(offenders, `arg non résolu (libellé pris pour un id ?) :\n${offenders.join('\n')}`).toEqual([]);
   });
@@ -176,16 +176,7 @@ describe('schéma d\'argument des traits — chaque instance est COUVERTE par la
       const o = node as Record<string, unknown>;
       if (o.op === 'grantTrait' && typeof o.traitId === 'string' && typeof o.arg === 'string') {
         const def = byId.get(o.traitId);
-        const src: SpecsSource | undefined = def?.specsSource;
-        if (def && src && !WILDCARD.test(o.arg.trim())) {
-          for (const part of argParts(o.arg, !!def.specsMulti)) {
-            if (WILDCARD.test(part)) continue;
-            if (SPEC_SOURCES[src].resolves(part)) continue;
-            if (!def.specsOpen) { offenders.push(`${where} grantTrait ${o.traitId} → ${src}: ${JSON.stringify(part)}`); continue; }
-            const asId = labelAsId(src, part);
-            if (asId) offenders.push(`${where} grantTrait ${o.traitId} → ${src}: ${JSON.stringify(part)} est le libellé de « ${asId} » — utiliser l'id`);
-          }
-        }
+        if (def) for (const faute of fautesDArg(def, o.arg)) offenders.push(`${where} grantTrait ${o.traitId} → ${faute}`);
       }
       for (const v of Object.values(o)) walk(v, where);
     };
