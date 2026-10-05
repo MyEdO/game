@@ -6,7 +6,7 @@ export const SUFFIXE_SUITE: string;
 /** Le SUFFIXE d'un INSTRUMENT (suite OU banc), source de `EST_FICHIER_VITEST`. */
 export const SUFFIXE_INSTRUMENT: string;
 
-/** Un fichier joué par Vitest (ou par `node --test`) : `.test.` (suite, `scripts/guards/lib/racinesDeLaSuite.mjs`) ou
+/** Un fichier joué par Vitest (ou par `node --test`) : `.test.` (suite, `test.include` tiré de `scripts/guards/lib/racinesDeLaSuite.mjs`) ou
  *  `.bench.` (banc, `npm run bench`, hors suite et hors CI), dans TOUS les dialectes du dépôt
  *  (`.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs`). En FIN de nom : un `.bak` n'en
  *  est pas un. */
@@ -26,3 +26,9 @@ export const EST_SUITE_VITEST: RegExp;
  *  seulement » — sélectionner les suites, les compter, en refuser une dans une liste. Un banc répond
  *  NON : il n'est ni joué en suite ni de la production. */
 export function estSuiteVitest(rel: string): boolean;
+
+/** Le séparateur d'un glob d'`include` : DOSSIER à gauche, FIN de nom à droite. */
+export const SEPARATEUR_GLOB: string;
+
+/** Les FINS DE NOM qu'un glob d'`include` accepte, accolade dépliée. Lève sur un glob sans séparateur. */
+export function finsDuGlob(motif: string): string[];

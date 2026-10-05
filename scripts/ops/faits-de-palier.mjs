@@ -27,7 +27,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ascendanceDansHead, derniereRevueArchivee, memeSha, shasDeSubstance } from '../guards/lib/revuePalier.mjs'
 import { croissancesDeLaPlage } from '../guards/lib/plageStock.mjs'
-import { depotDe, imageDeHead, journalDe, lireEnLot, tenter } from '../guards/lib/gitPorte.mjs'
+import { depotDe, fait, imageDeHead, indisponible, journalDe, lireEnLot, tenter } from '../guards/lib/gitPorte.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { soldesSuivis } from './fermetures-non-citees.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -95,17 +95,16 @@ export function fermeturesDesCommits(commits, soldes) {
 }
 
 /**
- * Courses CI par commit, depuis la liste servie par `coursesCi`. PUR.
+ * Courses CI par commit, depuis la liste servie par `coursesCi` (un tableau). PUR.
  * Un sha sans course est rendu avec `conclusion: null` : « pas de course » est un fait, et pas un
  * défaut — un push de plusieurs commits est jugé par sa TÊTE (régime du 2026-09-11, CLAUDE.md
  * § Commandes) : la CI ne joue que le sha poussé.
  * @returns {{ sha: string, courses: { workflow: string, conclusion: string|null, statut: string|null }[] }[]}
  */
 export function coursesParCommit(servies, shas) {
-  const courses = Array.isArray(servies) ? servies : []
   return [...(shas ?? [])].map((sha) => ({
     sha,
-    courses: courses
+    courses: servies
       .filter((c) => String(c.headSha ?? '') === sha)
       .map((c) => ({
         workflow: c.workflowName ?? null,
@@ -113,6 +112,26 @@ export function coursesParCommit(servies, shas) {
         statut: c.status || null,
       })),
   }))
+}
+
+/**
+ * Les courses de la fenêtre, depuis l'union rendue par `coursesCi`. PUR. La liste servie est
+ * PÉRIMÉE quand elle ne porte aucune course de la tête et que sa course la plus récente précède la
+ * date de commit de la tête (#2178, revue de palier : 2 lectures sur 13 servaient un instantané figé
+ * au 2026-09-27T19:48:17Z) : la fenêtre est alors INDISPONIBLE, jamais `courses: []`.
+ * @param {{disponible:boolean, valeur?:any, raison?:string}} vu
+ * @param {{ shas: string[], tete: string, dateTete: string }} fenetre
+ * @returns {{disponible:true, valeur:ReturnType<typeof coursesParCommit>}|{disponible:false, raison:string}}
+ */
+export function coursesDeLaFenetre(vu, { shas, tete, dateTete }) {
+  if (!vu?.disponible) return indisponible(vu?.raison ?? 'courses CI non lues')
+  if (!Array.isArray(vu.valeur)) return indisponible('courses CI : la lecture n’a pas rendu un tableau')
+  const instants = vu.valeur.map((c) => Date.parse(c?.createdAt ?? '')).filter(Number.isFinite)
+  const plusRecente = instants.length ? Math.max(...instants) : null
+  const fraiche = vu.valeur.some((c) => String(c?.headSha ?? '') === tete) || (plusRecente !== null && plusRecente >= Date.parse(dateTete))
+  if (!fraiche)
+    return indisponible(`liste de courses PÉRIMÉE : aucune course de la tête ${tete}, et la plus récente (${plusRecente === null ? 'aucune' : new Date(plusRecente).toISOString()}) précède sa date de commit (${dateTete})`)
+  return fait(coursesParCommit(vu.valeur, shas))
 }
 
 // ── Lecture réelle ────────────────────────────────────────────────────────────────────────────
@@ -184,14 +203,14 @@ function main() {
       cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 300000,
     }))
   // `limit: 300` : la lecture des courses n'a pas de fenêtre de dates, la limite EST la fenêtre. Une
-  // plage dont le plus ancien commit sort des 300 dernières courses de `main` rend `courses: []` —
-  // indiscernable d'un commit jamais couru, et c'est ce que le lecteur doit savoir.
-  // `workflow: null` : TOUS les workflows, pas seulement `ci.yml`.
-  const coursesDeLaFenetre = (() => {
-    if (horsLigne) return { disponible: false, raison: '`--hors-ligne` : courses CI non consultées' }
-    const vu = coursesCi({ cwd, limit: 300, workflow: null })
-    return vu.disponible ? { disponible: true, valeur: coursesParCommit(vu.valeur, shas) } : vu
-  })()
+  // plage dont le plus ancien commit sort des 300 dernières courses rend `courses: []` pour ce
+  // commit — indiscernable d'un commit jamais couru, et c'est ce que le lecteur doit savoir.
+  // `workflow: null` : TOUS les workflows, pas seulement `ci.yml`. `branche: null` : toutes les refs —
+  // un commit de `main` court sous `gh-readonly-queue/main/*` (`merge_group`, #2178).
+  const commitTete = exiger(journalDe(depot, [`${tete}^!`])?.[0], `le commit ${tete}`, cwd)
+  const coursesDeLaPlage = horsLigne
+    ? { disponible: false, raison: '`--hors-ligne` : courses CI non consultées' }
+    : coursesDeLaFenetre(coursesCi({ cwd, limit: 300, workflow: null, branche: null }), { shas, tete: commitTete.sha, dateTete: commitTete.date })
 
   const texteDeRevue = tenter(() => (revuePrecedente
     ? readFileSync(revuePrecedente, 'utf8')
@@ -209,7 +228,7 @@ function main() {
     stocks,
     fermeturesHorsCommit,
     auditStock,
-    coursesCi: coursesDeLaFenetre,
+    coursesCi: coursesDeLaPlage,
     revuePrecedente: { chemin: revuePrecedente ?? derniere.chemin, ...texteDeRevue },
     provenance: {
       commits: 'script',

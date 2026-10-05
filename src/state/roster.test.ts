@@ -100,7 +100,7 @@ describe('roster — persistance des personnages créés', () => {
 
   it('rosterLoad ÉCARTE un `draft` sans format (choix en libellés, #1923) : le héros reste, le brouillon ne se relit pas', () => {
     const ancien = { speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Ancien', careerTalent: 'Magie mineure', pettySpells: ['Putréfaction'] };
-    const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'] };
+    const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'], specChoices: {}, speciesTalentChoices: {}, randomSpecPicks: {}, talentRerolls: {} };
     const v2 = { ...actuel, v: 2, label: 'Tirages de Talents par id (#1897)' };
     localStorage.setItem(
       'wfrp4.roster.v1',

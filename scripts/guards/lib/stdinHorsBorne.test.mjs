@@ -4,13 +4,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { ENTREES_OUTIL, HOOKS_MONO_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../../agents/compat-core.mjs'
+import { ENTREES_OUTIL, HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../../agents/compat-core.mjs'
 import { accesStdin, demandes, effetsDeModule, gardesAEffets, hooksHorsBorne, modulesQuiDemandent } from './stdinHorsBorne.mjs'
 
 const HOOKS = fileURLToPath(new URL('../../hooks/', import.meta.url))
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
-/** Les points d'entrée des hooks : ceux des appels d'outil, puis les mono-surface. */
-const POINTS_D_ENTREE = new Set([...ENTREES_OUTIL, ...HOOKS_MONO_SURFACE].map((e) => e.script))
+/** Les points d'entrée des hooks : ceux des appels d'outil, puis ceux de session. */
+const POINTS_D_ENTREE = new Set([...ENTREES_OUTIL, ...HOOKS_DE_SESSION].map((e) => e.script))
 
 test('accesStdin : le flux et le descripteur 0 sont des accès, leur MENTION ne l’est pas', () => {
   const cas = [

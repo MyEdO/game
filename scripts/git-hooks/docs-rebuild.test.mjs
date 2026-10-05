@@ -1,16 +1,17 @@
 // Porte des hooks post-merge / post-rewrite et de l'étape docs de `ops:publier` : « ce lot peut-il
 // avoir périmé un doc dérivé ? ». La réponse se DÉRIVE de la mesure, donc elle se teste sur une
-// mesure FORGÉE (volet pur) puis sur celle de l'arbre (volet classes, #1773).
+// mesure FORGÉE (volet pur) puis sur celle que RENDENT les générateurs de l'arbre (volet classes, #1773).
 //   node --test scripts/git-hooks/docs-rebuild.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { tmpdir } from 'node:os'
-import { sourcesMesurees, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { mesurerEnRendu } from '../docs/build-all.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { planDuCheckout, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -45,15 +46,51 @@ test('FAIL-CLOSED : lot inconnu ou mesure illisible → on régénère ; lot vid
   assert.equal(touchesDocSources([], MESURE), false)
 })
 
-test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure de l’arbre', () => {
-  const mesure = sourcesMesurees(RACINE)
-  assert.ok(mesure && Object.keys(mesure).length > 10, 'la mesure de l’arbre doit être lisible')
+test('un fichier dans un dossier NEUF sous un dossier LISTÉ fait régénérer : tout ANCÊTRE compte (#2193)', () => {
+  const mesure = { 'g/a.mjs': { cibles: [], fichiers: ['scripts/a.mjs', 'scripts/b.mjs'], dossiers: ['src'] } }
+  assert.equal(touchesDocSources(['src/nouveau-dossier/x.ts'], mesure), true)
+  assert.equal(touchesDocSources(['src/nouveau/plus/bas/x.ts'], mesure), true)
+})
+
+/** Une mesure FORGÉE à deux générateurs : `g/m.mjs` (le périmètre restreint) et `g/p.mjs` (hors). */
+const MESURE_DEUX = {
+  'g/m.mjs': { cibles: [], fichiers: ['src/m.ts', 'scripts/m.mjs'], dossiers: ['data'] },
+  'g/p.mjs': { cibles: [], fichiers: ['notes/p.md', 'scripts/p.mjs'], dossiers: ['.github/workflows'] },
+}
+
+test('`seulement` restreint la mesure aux entrées de ses générateurs : une source d’un AUTRE ne fait pas régénérer', () => {
+  assert.equal(touchesDocSources(['notes/p.md'], MESURE_DEUX), true)
+  assert.equal(touchesDocSources(['notes/p.md'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+  assert.equal(touchesDocSources(['.github/workflows/ci.yml'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+  assert.equal(touchesDocSources(['src/m.ts'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), true)
+  assert.equal(touchesDocSources(['data/neuf.json'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), true)
+})
+
+test('`seulement` : un membre SANS entrée dans la mesure fait régénérer (fermé par défaut)', () => {
+  assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs', 'g/absent.mjs'] }), true)
+})
+
+test('`seulement` : un chemin hors de toute source du périmètre ne fait pas régénérer', () => {
+  assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+})
+
+/** Les générateurs dont le rendu lit chaque classe jugée ci-dessous — mémoire, workflows, fiches de
+ *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
+const MESURES = [
+  'scripts/docs/build-doctrines.mjs', 'scripts/docs/build-reprise.mjs', 'scripts/raw/build-atlas-index.mjs',
+  'scripts/docs/build-usages-jets.mjs', 'scripts/docs/build-donnees.mjs',
+]
+
+test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure RENDUE par les générateurs', () => {
+  const rendues = mesurerEnRendu(MESURES, { cwd: RACINE })
+  const mesure = tableTotale(MESURES, (script) => rendues.get(script).entree)
+  for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
   // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (frère d'une
   // source lue), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
   assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)
   assert.equal(touchesDocSources(['.github/workflows/ci.yml'], mesure), true)
   assert.equal(touchesDocSources(['tsconfig.json'], mesure), true)
-  // Ce qu'aucun générateur ne lit ne périme aucun pied, quel que soit son dossier.
+  // Ce qu'aucun générateur ne lit ne périme aucun dérivé, quel que soit son dossier.
   assert.equal(touchesDocSources(['README.md'], mesure), false)
   assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
   // Et les classes que la liste voyait déjà restent vues.
@@ -67,17 +104,28 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
   const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   writeFileSync(join(racine, 'b.txt'), 'b\n'); g('add', 'b.txt'); g('commit', '-q', '-m', 'b')
   g('update-ref', 'ORIG_HEAD', 'HEAD~1')
-  const cale = mkdtempSync(join(tmpdir(), 'git-diff-tree-en-panne-'))
-  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-  writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = diff-tree ] && { echo 'fatal: panne simulée' >&2; exit 128; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-  const chemin = process.env.PATH
   try {
     assert.deepEqual(touchedFiles(racine), ['b.txt'], 'témoin : git répond, le lot se lit')
-    process.env.PATH = `${cale}:${chemin}`
-    assert.equal(touchedFiles(racine), null)
+    assert.equal(sousGitFeint([{ si: ['diff-tree'], status: 128, stderr: 'fatal: panne simulée\n' }], () => touchedFiles(racine)), null)
   } finally {
-    process.env.PATH = chemin
     rmSync(racine, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
+})
+
+// post-checkout (#2203) : un changement de branche régénère les docs purs dont une source a bougé ;
+// un worktree NEUF (aucune mesure) ne bloque jamais sur un `docs:build` complet, il dit la commande.
+test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon la sélection de post-merge', () => {
+  const a = 'a'.repeat(40)
+  const b = 'b'.repeat(40)
+  assert.equal(planDuCheckout({ avant: a, apres: a, mesure: MESURE, lot: ['src/ui/Prose.tsx'] }), 'rien')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: null, lot: null }), 'consigne')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: ['src/ui/Prose.tsx'] }), 'regenerer')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: ['README.md'] }), 'rien')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: null }), 'regenerer', 'lot inconnu : on régénère')
+})
+
+test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout aussi ses deux HEAD', () => {
+  const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
+  assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
+  for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
 })

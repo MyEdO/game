@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Constructeur d'effets réutilisable (triggers, dialogues, rencontres, props interactifs).
  * Un effet = une action de gameplay (journal, flag, objet, argent, combat, transition, test…).
@@ -15,7 +16,9 @@ import { EMPTY_FLOW } from '../../state/flow';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../state/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappings as trappingsData, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence } from '../../data';
+import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import { useMemo } from 'react';
+import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -24,6 +27,7 @@ import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
 import { chaosAlignSchema } from '../../data/schemas/grammaire/valeurs';
@@ -82,14 +86,17 @@ const groupesDeSorts = memoParVersion('spells', (): [string, { id: string; label
 
 /** Contexte « projet » des selects guidés (M9), depuis la scène active + les autres scènes.
  *  `worldMap` est PROJET (pas scène) : passé par le fournisseur quand il y a structurellement
- *  accès à la carte du monde (Editor) — absent ⇒ fallback texte pour `openPort`. */
+ *  accès à la carte du monde (Editor) — absent ⇒ fallback texte pour `openPort`. `objets` : objets du
+ *  PROJET (`narratif.objets`), jamais ceux de la campagne JOUÉE. */
 export function effectCtxOf(
   scene: Scene,
-  otherScenes: Scene[] = [],
-  worldMap?: { places: { id: string; label: string }[] },
-): Pick<Ctx, 'merchants' | 'scenes' | 'places' | 'personas' | 'cibles'> {
+  otherScenes: Scene[],
+  worldMap: { places: { id: string; label: string }[] } | undefined,
+  objets: readonly TrappingData[],
+): Pick<Ctx, 'merchants' | 'scenes' | 'places' | 'personas' | 'cibles' | 'objets'> {
   return {
     cibles: CIBLES_PAR_RACINE.scene,
+    objets,
     merchants: scene.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
     scenes: [scene, ...otherScenes].map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
     places: worldMap?.places.map((p) => ({ id: p.id, label: p.label })),
@@ -113,11 +120,14 @@ export interface Ctx {
   /** Les cibles qu'offre la RACINE à ses Effets `ops` (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`) :
    *  sélecteur ET résumé la lisent. Sans défaut — chaque racine dit la sienne. */
   cibles: TableDeCibles;
+  /** Objets du PROJET édité (`narratif.objets`, `Editor.tsx`) : l'Effet `giveTrapping` les résout avant
+   *  le catalogue (`trappingDesObjetsPuisDuCatalogue`). Sans défaut — chaque racine dit les siens. */
+  objets: readonly TrappingData[];
 }
 
 /** Contexte d'une racine de CATALOGUE (`src/data`, monté au Compendium) : ni rencontre ni dialogue de
- *  scène ; ses Effets `ops` visent la table de SA racine. */
-export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine] });
+ *  scène, aucun objet de projet ; ses Effets `ops` visent la table de SA racine. */
+export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine], objets: [] });
 
 /** Libellé / icône d'un type d'effet — dérivés du REGISTRE unique (aucun Record parallèle à
  *  maintenir : la source de vérité est `EFFECT_HANDLERS[t].label/icon`). */
@@ -154,8 +164,9 @@ function scheduleSummary(spec: ScheduleSpec): string {
 }
 
 /** Résumé HUMAIN d'un effet (rangée repliée) — texte SEUL, PUR, testé. L'icône (`EFFECT_ICON`) est
- *  rendue séparément par l'appelant via `<Icon>` (même patron que `opSummary`/`OP_ICON`). */
-export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'>): string {
+ *  rendue séparément par l'appelant via `<Icon>` (même patron que `opSummary`/`OP_ICON`). L'objet d'un
+ *  `giveTrapping` se nomme par la chaîne de son champ (`trappingDesObjetsPuisDuCatalogue`, `ctx.objets`). */
+export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles' | 'objets'>): string {
   const e = effect as any;
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
@@ -165,7 +176,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'document': return `Document : ${e.title || '(sans titre)'}`;
     case 'revealClue': return `Indice : ${e.indiceId || '?'}${e.stade ? ` → stade ${e.stade}` : ''}`;
     case 'discreditClue': return `Fausse piste : ${e.indiceId || '?'}`;
-    case 'giveTrapping': return `Objet : ${giveTrappingLabel(e) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
+    case 'giveTrapping': return `Objet : ${giveTrappingLabel(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(ctx.objets.map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
     case 'givePossession': {
       const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
       const refLabelStr = e.nature === 'vehicule'
@@ -264,6 +275,25 @@ export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
 }
 
+/** Objet donné par l'Effet `giveTrapping` : le sélecteur résout la saisie dans les objets du projet puis le
+ *  catalogue, sous la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`) ; l'id
+ *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`. */
+function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData[]; value: string | undefined; upd: (patch: object) => void }) {
+  const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
+  return (
+    <RefField
+      cfg={{ ds: 'trappings', freeText: true }}
+      noeud={giveTrappingSchema.shape.trappingId}
+      entreesEnTete={objets}
+      value={value}
+      onChange={(v) => {
+        const val = v as string | undefined;
+        upd(val && trappingDesObjetsPuisDuCatalogue(parId, val) ? { trappingId: val, custom: undefined } : { custom: val, trappingId: undefined });
+      }}
+    />
+  );
+}
+
 /** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
@@ -317,15 +347,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'giveTrapping' && (
           <>
-            <RefField
-              cfg={{ ds: 'trappings', freeText: true }}
-              value={e.trappingId ?? e.custom}
-              onChange={(v) => {
-                const val = v as string | undefined;
-                const known = val ? trappingsData.some((t) => t.id === val) : false;
-                upd(known ? { trappingId: val, custom: undefined } : { custom: val, trappingId: undefined });
-              }}
-            />
+            <ObjetDonneField objets={ctx.objets} value={e.trappingId ?? e.custom} upd={upd} />
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}
@@ -1094,10 +1116,11 @@ export function EffectList({ effects, onChange, ctx }: { effects: Effect[]; onCh
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   };
+  const cles = useClesDeRangees(effects);
   return (
     <div className="eff-list">
       {effects.map((eff, i) => (
-        <details className="eff-row" key={i}>
+        <details className="eff-row" key={cles[i]}>
           <summary>
             <span className="eff-summary"><Icon id={EFFECT_ICON[eff.type]} size="sm" /> {effectSummary(eff, ctx)}</span>
             <span className="eff-actions" onClick={(e) => e.preventDefault()}>

@@ -4,7 +4,8 @@
     "index.html",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
-    "scripts/**/*.{mjs,mts,ts}"
+    "scripts/**/*.{mjs,mts,ts}",
+    "src/**/*.generated.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
@@ -15,5 +16,6 @@
     "dist/**",
     "public/**"
   ],
+  "ignoreBinaries": ["lean-ctx"],
   "ignoreExportsUsedInFile": true
 }

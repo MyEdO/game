@@ -1,9 +1,10 @@
-/** Les campagnes du jeu : chacune est un paquet éditeur commité (`{schema, <identité>, scenes, worldMap,
- *  narratif}`, `src/scenes/<campagne>/<campagne>-projet.json`), créable et éditable dans l'éditeur. À
- *  l'import, une campagne du jeu n'est que son IDENTITÉ, lue non parsée à la racine du paquet, et son
- *  paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter fait passer son paquet par la porte
- *  `parseProject` AU GESTE (#1692), comme une entrée de bibliothèque (`campagneDeLEntree`,
- *  `state/projectLibrary.ts`). */
+/** Les campagnes du jeu : chacune est un paquet commité (`{schema: SCHEMA_PROJET, <identité>, scenes,
+ *  worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
+ *  — celui de l'Arène est l'octet du `build()` de `scripts/arene/generate.mjs` (#1522, #1601) —, que
+ *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, une campagne du jeu n'est que son IDENTITÉ, lue
+ *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
+ *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
+ *  bibliothèque (`campagneDeLEntree`, `state/projectLibrary.ts`). */
 import { Scene } from '../state/scene';
 import { WorldMap, parseProject, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../state/worldMap';
 import type { NarratifBlock } from '../state/campaignNarratif';
@@ -28,6 +29,8 @@ export interface BuiltinCampaign extends ProjectIdentite {
   /** L'icône est REQUISE sur une campagne exposée au picker (l'enveloppe la pose optionnelle). */
   icon: string;
   paquet: PaquetDuJeu;
+  /** Nom du fichier du paquet sous `src/scenes/` (`diligence-projet.json`), tel que ce registre le déclare. */
+  fichier: string;
 }
 
 /** Le paquet d'une campagne du jeu passé par la porte `parseProject`, AU GESTE : un refus lève
@@ -142,6 +145,7 @@ function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>
     ...(source !== undefined ? { source } : {}),
     ...(maison !== undefined ? { maison } : {}),
     paquet,
+    fichier,
   };
 }
 

@@ -19,8 +19,8 @@ tests de son PÉRIMÈTRE, dérivé des LECTEURS du symbole touché (`git grep <s
 liste de dossiers habituelle :
 - l'arbre du fichier touché lui-même ;
 - les cliquets : dataset ou schéma neuf/renommé → `npm test -- src/data` entier ;
-- un `.test.` écrit → gardes de racine `npx vitest run src/*-guard.test.ts` lancées par le tool Bash
-  (PowerShell ne développe pas le glob : aucune garde ne tourne, sortie 0) ; exiger le compte ;
+- un `.test.` écrit → gardes de racine `npm test -- src/*-guard.test.ts` lancées par le tool Bash
+  (PowerShell ne développe pas le glob : aucune garde ne tourne) ; exiger le compte ;
 - un module de `scripts/` importé par une migration, ou `scripts/migrations/**` →
   `npm run migrations:replay:head` et `migrations:replay:croissance`.
 Jamais `npm test` nu ni `npm run gates` en local ; gate du train rouge → train COURT. Voir [[user-doctrine-chantier-outille-sans-reinventer]] et

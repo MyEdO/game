@@ -12,9 +12,20 @@
 import { byId, findSkill, findTalent, findTalentById, specCatalogOf, specLabel, specResolves, type SkillRef, type TalentRef } from '../../data';
 import { slugId } from '../../data/slug';
 import { parseStatEntry } from '../../engine/statEntry';
+import { t } from '../../i18n';
 
-/** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). */
-const SAISIE_AU_CHOIX = /^(un |une |deux )?au choix$/i;
+/** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). Le mot lu est celui que
+ *  l'affichage compose (`ref.motAuChoix`, `choixLabel`). */
+function saisieAuChoix(arg: string): boolean {
+  return arg.toLowerCase().replace(/^(un |une |deux )/, '') === t('ref.motAuChoix').toLowerCase();
+}
+
+/** Branches d'une saisie « A ou B », coupées sur le liant que l'affichage compose (`ref.ou`,
+ *  `ouListe`) ; une seule branche sans liant. */
+function branchesOu(arg: string): string[] {
+  const liant = t('ref.ou').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return arg.split(new RegExp(`\\s+${liant}\\s+`, 'i')).map((x) => x.trim());
+}
 
 /**
  * Libellé FR d'une spécialisation → son `id`. Deux étages, car ce qui est ÉNUMÉRABLE (`specCatalogOf`)
@@ -42,8 +53,9 @@ export function parseSkillRef(text: string): SkillRef {
   const value = p.indice ?? 0;
   const arg = p.arg?.trim();
   if (!arg) return { id, value };
-  if (SAISIE_AU_CHOIX.test(arg)) return { id, choix: true, value };
-  if (/\sou\s/i.test(arg)) return { id, choix: arg.split(/\s+ou\s+/i).map((x) => specIdOf('skills', id, x.trim())), value };
+  if (saisieAuChoix(arg)) return { id, choix: true, value };
+  const branches = branchesOu(arg);
+  if (branches.length > 1) return { id, choix: branches.map((x) => specIdOf('skills', id, x)), value };
   return { id, spec: specIdOf('skills', id, arg), value };
 }
 

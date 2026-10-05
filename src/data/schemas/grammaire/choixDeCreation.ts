@@ -9,9 +9,18 @@ import type { MetaChamp } from './meta';
 import { idDe, refOuSpec } from './ref';
 import { avancement } from './avancement';
 import { marquerCollection, marqueDeRecord } from './collection-cle';
+import { adresseLue } from '../../../engine/adresseDeCreation';
 
-/** Choix par adresse d'emplacement (`adresseDeCreation`). */
-const parAdresse = <T extends z.ZodType>(valeur: T) => marquerCollection(z.record(z.string(), valeur), marqueDeRecord()).optional();
+/** Choix par adresse d'emplacement : chaque clé est lue par la grammaire de `adresseDeCreation` (`adresseLue`). */
+const parAdresse = <T extends z.ZodType>(valeur: T) =>
+  marquerCollection(
+    z.record(z.string(), valeur).superRefine((choix, ctx) => {
+      for (const cle of Object.keys(choix)) {
+        if (adresseLue(cle) === undefined) ctx.addIssue({ code: 'custom', path: [cle], message: `« ${cle} » n’est pas une adresse d’emplacement de création (adresseDeCreation)` });
+      }
+    }),
+    marqueDeRecord(),
+  ).optional();
 
 export const champsDeChoix = {
   seed: z.number().int(),
@@ -25,7 +34,8 @@ export const champsDeChoix = {
   talentsRolled: z.boolean().optional(),
   skillAdvances: z.record(z.string(), z.number().int().nonnegative()).optional(),
   speciesSkillAdvances: z.strictObject({ plus5: z.array(refOuSpec('skill')), plus3: z.array(refOuSpec('skill')) }).optional(),
-  trappingChoices: z.record(z.string(), z.string()).optional(),
+  /** Branche retenue d'un `{choice}` (son index), objet ou Atout sinon (id), par adresse (`emplacementsDeDotation`). */
+  trappingChoices: parAdresse(z.union([z.number().int().nonnegative(), z.string()])),
   /** Sorts de Magie mineure (`idDe('spell', 'mineure')`), complétés au quota BFM exact (LDB 10 l.714). */
   pettySpells: z.array(idDe('spell', 'mineure')).optional(),
 } satisfies { [K in keyof ChoixDeCreation]-?: z.ZodType };

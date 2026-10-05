@@ -1,47 +1,45 @@
-// Le MARQUEUR d'intégration d'un livre : ce qu'`apply-livre.mjs` ÉCRIT doit être ce que
-// `build-catalogs.mjs` / `merge-docs.mjs` RELISENT — pour TOUT sigle du registre, pas pour ceux
-// dont la graphie tombait par chance dans une classe de caractères écrite à la main.
-// Le défaut mesuré : `/^<!-- ([A-Z0-9_-]+-INTEGRATION) -->/` laissait tomber en SILENCE tout sigle
-// à espace, à minuscule ou à point — le correctif manuel disparaissait à la régénération suivante.
-// Aucun sigle en dur ici : la boucle parcourt le registre RÉEL.
+// `apply-livre.mjs` : appliquer deux fois l'intégration d'un livre à une fiche = l'appliquer une fois,
+// pour TOUT sigle extrait du registre (sentinel `marqueurIntegration`, `_lib.mjs`).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { REGISTRE_LIVRES, estLivreExtrait, marqueurIntegration, marqueurIntegrationFin } from './_lib.mjs'
-import { BLOCK_START, extractPreservedBlocks } from './build-catalogs.mjs'
+import { fileURLToPath } from 'node:url'
+import { REGISTRE_LIVRES, estLivreExtrait, marqueurIntegration } from './_lib.mjs'
 
+const SCRIPT = fileURLToPath(new URL('./apply-livre.mjs', import.meta.url))
 const SIGLES = REGISTRE_LIVRES.filter(estLivreExtrait).map((b) => b.abbr)
+const FICHE = ['# Fiche fixture', '', '## Sommaire', '', '- un topic', '', '---', '', '## Un topic', '', 'corps', ''].join('\n')
 
-test('registre : au moins un sigle porte une graphie hors `[A-Z0-9_-]` (le défaut n’est pas théorique)', () => {
-  const hors = SIGLES.filter((a) => !/^[A-Z0-9_-]+$/.test(a))
-  assert.ok(hors.length > 0, `aucun sigle hors classe — la garde ne mesurerait rien (sigles : ${SIGLES.join(', ')})`)
-})
+/** Rejoue `apply-livre.mjs <abbr> <sortie>` ; rend le texte de la fiche après ce passage. */
+function appliquer(abbr, sortie, fiche) {
+  const r = spawnSync(process.execPath, [SCRIPT, abbr, sortie], { encoding: 'utf8' })
+  assert.equal(r.status, 0, `${abbr} : ${r.stderr}`)
+  return readFileSync(fiche, 'utf8')
+}
 
-test('marqueur : pour CHAQUE livre extrait du registre, le bloc écrit est relu par extractPreservedBlocks', () => {
+test('idempotence : pour CHAQUE livre extrait du registre, deux passages écrivent la fiche d’un seul', () => {
+  assert.ok(SIGLES.length > 0, 'registre sans livre extrait — la garde serait verte à vide')
   const dir = mkdtempSync(join(tmpdir(), 'apply-livre-'))
   try {
     const rates = []
     for (const abbr of SIGLES) {
-      const debut = marqueurIntegration(abbr)
-      const path = join(dir, 'catalogue-fixture.md')
-      writeFileSync(path, [
-        '# Catalogue fixture', '', '## [X 1] Un chapitre', 'corps', '',
-        '---', debut, 'correctif MANUEL', marqueurIntegrationFin(abbr), '',
-      ].join('\n'), 'utf8')
-      const blocs = extractPreservedBlocks(path)
-      if (blocs.length !== 1 || !blocs[0].includes(debut) || !BLOCK_START.test(debut)) rates.push(`${abbr} (${blocs.length} bloc(s))`)
+      const fiche = join(dir, 'fiche.md')
+      const sortie = join(dir, 'sortie.json')
+      writeFileSync(fiche, FICHE, 'utf8')
+      writeFileSync(sortie, JSON.stringify({
+        result: [{ fiche, domain: 'fixture', sommaire: '  - topic intégré', ficheTopics: '## Topic intégré\n\ncorps intégré' }],
+      }), 'utf8')
+      const une = appliquer(abbr, sortie, fiche)
+      const deux = appliquer(abbr, sortie, fiche)
+      if (!une.includes(marqueurIntegration(abbr)) || !une.includes('corps intégré') || deux !== une) rates.push(abbr)
     }
-    assert.deepEqual(rates, [], `marqueurs écrits mais NON relus — leur correctif manuel serait effacé : ${rates.join(', ')}`)
+    assert.deepEqual(rates, [], `intégration non idempotente : ${rates.join(', ')}`)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
-})
-
-test('marqueur : le tag capturé est le sigle, et un sigle HORS registre n’ouvre aucun bloc', () => {
-  assert.equal(BLOCK_START.exec(marqueurIntegration(SIGLES[0]))[1], `${SIGLES[0]}-INTEGRATION`)
-  assert.equal(BLOCK_START.test(marqueurIntegration('SIGLE-QUI-NEXISTE-PAS')), false)
 })
 
 test('estLivreExtrait : un livre sans `dir` est refusé par le même prédicat que le périmètre', () => {

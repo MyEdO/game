@@ -15,7 +15,11 @@
 //    bloc, son bloc seul quand le titre est une bannière. Une table et une section d'un même fichier au
 //    même titre sont UNE cible : la table ;
 //  - `section-adjacente` : le titre de section du folio N le plus proche AVANT le renvoi, dans sa clause ;
-//  - `section-phrase` : aucun titre dans la clause, UN seul titre du folio N ailleurs dans la phrase ;
+//  - `section-englobante` : aucun titre dans la clause, UN seul titre du folio N CONTIENT la clause
+//    (« Poisons » dans « Selection of Poisons »), dont la clé compte au moins deux caractères comme
+//    celle d'un titre — pour tout renvoi, du texte comme d'un index imprimé ;
+//  - `section-phrase` : aucun titre dans la clause ni qui la contienne, UN seul titre du folio N ailleurs
+//    dans la phrase ;
 //  - `page` : aucun titre, UN seul fichier porte du texte au folio N, la clause ne nomme pas de table ;
 //    la cible est la PAGE, `{ book, page: N }` — jamais une section ;
 //  - `ambigu` : plusieurs candidats (listés), ou une table nommée qu'aucun titre ne porte ;
@@ -24,16 +28,18 @@
 // fichier au même titre normalisé (un titre et l'intitulé de sa table) sont UNE cible : la première,
 // l'englobante. Un titre à parenthèse finale (`Fear (Rating)`) se compare aussi sans elle. Un titre
 // trouvé DANS l'étendue d'un autre titre trouvé n'est pas nommé (« Fate » dans « Fate and Fortune »).
-// Design : #1393, lot 1 (2026-09-25).
+// Un texte NOMME une clé par `nommes`, sur des clés `cle` mises au `singulier`, dans ses trois rôles :
+// titre dans une clause, clause ou terme dans un titre, terme dans le texte d'une section (#1887, lot 7).
+// Design : #1393, lot 1 (2026-09-25) ; #1887, lot 7.
 import {
-  empreinteDe,
+  adresseDe,
+  estErreur,
   graphieDuFichier,
   normText,
   tablesOf,
   type Bloc,
   type ChapitreParse,
   type DescRef,
-  type FragmentBlocs,
   type TableDeSection,
 } from './decoupe.ts';
 import type { SourceRef } from '../schemas/grammaire/valeurs.ts';
@@ -190,7 +196,8 @@ export function indexerLivre(book: string, langue: string, chapitres: ChapitreDu
   return { book, langue, chapitres: new Map(chapitres.map((c) => [c.fichier, c.parse])), parFolio };
 }
 
-export type Niveau = 'table' | 'section-adjacente' | 'section-phrase' | 'page' | 'ambigu' | 'introuvable';
+export type Niveau =
+  | 'table' | 'section-adjacente' | 'section-englobante' | 'section-phrase' | 'page' | 'ambigu' | 'introuvable';
 
 /** Résolution d'un renvoi. `page` est ce que le livre dit, à tout niveau (fin de plage : `fin`) ; au
  *  niveau `page`, c'est LA cible. `cible` n'existe qu'aux niveaux `section-*` et `table` ; `candidats`
@@ -205,10 +212,10 @@ export interface Resolution {
 }
 
 /** Clé de comparaison d'un texte : normalisé, ponctuation aplatie en espaces. */
-const cle = (s: string): string => normText(s).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+export const cle = (s: string): string => normText(s).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 /** Clé au singulier : la marque du pluriel retirée des mots de 4 lettres ou plus. */
-const singulier = (k: string, pluriel: string): string =>
+export const singulier = (k: string, pluriel: string): string =>
   k.split(' ').map((w) => (w.length >= 4 && w.endsWith(pluriel) ? w.slice(0, -pluriel.length) : w)).join(' ');
 
 /** Une même cible par fichier et titre normalisé : la PREMIÈRE section, l'englobante. */
@@ -242,10 +249,10 @@ const clesDuTitre = (titre: string): string[] => {
 /** Étendue `[debut, fin)` d'un titre trouvé dans un texte. */
 interface Etendue { debut: number; fin: number }
 
-/** Titres NOMMÉS dans un texte bordé d'espaces : chaque occurrence ` k ` des clés de chaque section,
- *  hors celles qui tombent DANS l'étendue plus longue d'un autre titre trouvé (« Fate » dans
+/** Clés NOMMÉES dans un texte bordé d'espaces : chaque occurrence ` k ` des clés de chaque porteur,
+ *  hors celles qui tombent DANS l'étendue plus longue d'une clé d'un autre porteur (« Fate » dans
  *  « Fate and Fortune », `007 - Character Sheet Explained.md:14`). */
-function nommes<T>(texte: string, cles: [T, string[]][]): Map<T, Etendue[]> {
+export function nommes<T>(texte: string, cles: [T, string[]][]): Map<T, Etendue[]> {
   const trouves: { s: T; e: Etendue }[] = [];
   for (const [s, ks] of cles) {
     for (const k of ks) {
@@ -272,16 +279,13 @@ function lue(livre: LivreIndexe, s: SectionAuFolio) {
   return { chapitre, section, ch };
 }
 
-/** Adresse d'une cible — section entière, ou légende et bloc d'une table —, empreinte calculée au texte
- *  résolu. */
-function adresseDe(livre: LivreIndexe, { s, t }: Cible): DescRef {
+/** Adresse d'une cible (`adresseDe`). Une section au folio porte au moins un bloc (`indexerLivre`) :
+ *  une adresse qui ne résout pas lève. */
+function adresseDeLaCible(livre: LivreIndexe, { s, t }: Cible): DescRef {
   const { chapitre, section, ch } = lue(livre, s);
-  const b1 = t ? section.blocks.indexOf(t.block) : section.blocks.length - 1;
-  const b0 = t ? section.blocks.indexOf(t.legende ?? t.block) : 0;
-  const frag: FragmentBlocs = { kind: 'blocs', sec: s.slug, secOcc: s.occ, b0, b1, sum: '' };
-  const sum = empreinteDe(chapitre, frag);
-  if (typeof sum !== 'string') throw new Error(`renvoi : ${sum.error} — ${sum.detail}`);
-  return { book: livre.book, ch, parts: [{ ...frag, sum }] };
+  const ref = adresseDe({ book: livre.book, ch }, chapitre, { section, table: t });
+  if (estErreur(ref)) throw new Error(`renvoi : ${ref.error} — ${ref.detail}`);
+  return ref;
 }
 
 /** Résout un renvoi dans un livre indexé. */
@@ -296,7 +300,7 @@ export function resoudreRenvoi(livre: LivreIndexe, renvoi: Renvoi): Resolution {
     rendreCibles(niveau, sections.map((s) => ({ s })), table);
   const rendreCibles = (niveau: Niveau, elues: Cible[], table: string | null): Resolution =>
     elues.length === 1
-      ? { ...base, table, niveau, cible: adresseDe(livre, elues[0]), candidats: [nommer(elues[0])] }
+      ? { ...base, table, niveau, cible: adresseDeLaCible(livre, elues[0]), candidats: [nommer(elues[0])] }
       : { ...base, table, niveau: 'ambigu', cible: null, candidats: elues.map(nommer) };
 
   const clause = ` ${cle(renvoi.clause)} `;
@@ -331,6 +335,12 @@ export function resoudreRenvoi(livre: LivreIndexe, renvoi: Renvoi): Resolution {
     const long = Math.max(...aDistance.map((p) => p.long));
     return rendre('section-adjacente', aDistance.filter((p) => p.long === long).map((p) => p.s));
   }
+
+  const k = sg(clause.trim());
+  const englobantes = k.length > 1
+    ? cles.filter(([, ks]) => ks.some((t) => nommes(` ${t} `, [[k, [k]]]).size)).map(([s]) => s)
+    : [];
+  if (englobantes.length) return rendre('section-englobante', englobantes);
 
   const dansPhrase = [...nommes(` ${sg(cle(renvoi.phrase))} `, cles).keys()];
   if (dansPhrase.length) return rendre('section-phrase', dansPhrase);

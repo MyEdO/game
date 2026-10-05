@@ -75,8 +75,8 @@ test('scanIncompleteChapters : chapitre crédité mais UNE section absente du bl
 })
 
 test('#604 stock réel (Disque RÉEL, tolérance zéro) : 0 violation sur les chapitres réellement crédités', () => {
-  // Les pages LUES viennent du lecteur lui-même (`pagesLues`, coverage.mjs) — jamais un listing
-  // recopié ici : un banc qui compose son propre périmètre mesure autre chose que la garde.
+  // Les pages JUGÉES viennent de la couture de la garde (`pagesLues`) — jamais un listing recopié
+  // ici : un banc qui compose son propre périmètre mesure autre chose que la garde.
   const docs = pagesLues()
   const catalogCh = catalogChaptersOf(docs)
   const blocks = catalogueBlocksOf(docs)

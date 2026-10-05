@@ -7,11 +7,11 @@
  * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
-import { useSyncExternalStore } from 'react';
+import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, advancementBaseId, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -65,7 +65,7 @@ import SURINCANTATION from '../../data/surincantation.json';
 import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
-import { statName, isOptionalNote, type TraitList } from '../../engine/statEntry';
+import { isOptionalNote, type TraitList } from '../../engine/statEntry';
 import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
@@ -81,7 +81,6 @@ import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Co
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
-import { sizeFromTraits } from '../../state/spawn';
 import { formatDice, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
@@ -162,8 +161,9 @@ export type CodexRow =
    *  verdict juge vision : une Possession rendue en PARAGRAPHE inversait la hiérarchie de la section
    *  et fondait « Presse à imprimer » et « Chapeau impressionnant » en un seul objet). */
   | { t: 'chip'; label: string; badge?: string }
-  /** CHOIX « A ou B » : chaque option est un lien cross-réf cliquable, séparées par « ou ». */
-  | { t: 'choice'; category: string; options: { id: string; label: string; show: string }[] }
+  /** CHOIX « A ou B » / « n parmi » d'un emplacement d'avancement (`{pick}`), rendu par `EntityChoice` sur
+   *  la STRUCTURE : une option référence = un lien cross-réf par son `id`, une option sans id = une pastille. */
+  | { t: 'choice'; category: 'skills' | 'talents'; advancement: Extract<AdvancementRef, { pick: number }> }
   /** Mini sous-en-tête à l'intérieur d'une section (« Compétences », « Talents »…). */
   | { t: 'sub'; label: string }
   /** Bloc REPLIABLE (`<details class="fold">`) : `summary` visible, `text` (Markdown) dévoilé au clic.
@@ -235,9 +235,9 @@ export interface CodexCategory {
   /** Réf de source de la TABLE entière (« LDB 18 », « MDG 13 ») — affichée discrètement, JAMAIS
    *  dans le libellé joueur (une réf de livre nue n'est pas un nom de catégorie). */
   sourceRef?: string;
-  /** Projection PARESSEUSE (getter, cache par version) : les datasets étant mutés EN PLACE
-   *  (`overrides.ts::setDataset`), la re-projection après `invalidateCodexLookup()` lit la donnée
-   *  FRAÎCHE. Ne se re-matérialise qu'à l'invalidation (persist DEV, rare), jamais par rendu. */
+  /** Projection PARESSEUSE (getter, `memoParVersion`) : les datasets étant mutés EN PLACE
+   *  (`overrides.ts::setDataset`), la re-projection après une écriture au seam lit la donnée FRAÎCHE.
+   *  Ne se re-matérialise qu'après une écriture (persist DEV, rare), jamais par rendu. */
   items: CodexItem[];
   /** Facettes de filtre — DÉRIVÉES des items dans la même re-projection (livre partout, groupe là où porté). */
   facets?: CodexFacet[];
@@ -324,27 +324,19 @@ const damageFact = (t: { damage: import('../../engine/types').WeaponDamageSpec |
  *  nom pour une référence hors catalogue, que le parse refuse nominativement (`idDe('prop')`). */
 const propLabel = (id: string): string => props.find((p) => p.id === id)?.label ?? id;
 
-/** Nom d'auteur d'une matière de RELIEF de `materials.json` (domaine filtré comme le picker,
- *  `REF_FIELD['terrains.matiere']`) — lecture VIVANTE, l'id nu tenant lieu de nom hors catalogue. */
-const matiereLabel = (id: string): string => materials.find((m) => m.id === id && m.domain === 'relief')?.label ?? id;
-/** Nom d'auteur d'une matière de COUVERTURE (`materials.json` domaine `roof`) — l'id nu à défaut. */
-const couvertureLabel = (id: string): string => materials.find((m) => m.id === id && m.domain === 'roof')?.label ?? id;
+/** Nom d'auteur d'une matière de `materials.json` — lecture VIVANTE ; sa sous-liste se juge au parse
+ *  (`idDe('material', …)`), l'id nu tient lieu de nom hors catalogue. */
+const matiereLabel = (id: string): string => materials.find((m) => m.id === id)?.label ?? id;
 
 /** Famille d'une race/variante : « Humains (Reiklander) » → « Humains ». */
 const family = (label: string): string => label.split(' (')[0].trim();
-
-/** Id résolu d'une référence par (catégorie, libellé) — même résolution que `CodexRef` (recherche
- *  exacte puis casse pliée dans les items DÉJÀ projetés de la catégorie cible) ; repli sur un slug
- *  du libellé si la cible n'est pas (encore) au catalogue (défensif — arme naturelle hors catalogue,
- *  entrée cassée… — ne doit jamais faire échouer un build). */
-const refId = (category: string, label: string): string => codexLookup(category, label)?.id ?? slugId(label);
 
 /** Rangées de référence d'une liste de Caractéristiques : `CharKey` EST l'id de `characteristics.json`
  *  (`charKeySchema`, `grammaire/valeurs.ts`) — aucun round-trip par libellé, même patron
  *  qu'`opRows.ts` (`case 'charMod'`). */
 const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
   keys.map((k) => ({ t: 'ref', category: 'characteristics', id: k, label: CHAR_LABELS[k], show: CHAR_LABELS[k] }));
-/** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé (`refId`) : `label` =
+/** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé : `label` =
  *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
 const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
   const label = refLabel(category, { id, spec });
@@ -354,17 +346,8 @@ const idRefRow = (category: string, id: string, spec?: string, show?: string): C
 const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
 /** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
-const advancementRow = (category: string, a: AdvancementRef): CodexRow => {
-  if ('pick' in a) {
-    return {
-      t: 'choice', category,
-      options: a.of.map((x) => {
-        const lbl = advancementLabel(category, x);
-        const name = statName(lbl);
-        return { id: advancementBaseId(x) ?? refId(category, name), label: name, show: lbl };
-      }),
-    };
-  }
+const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {
+  if ('pick' in a) return { t: 'choice', category, advancement: a };
   if ('id' in a) return idRefRow(category, a.id, a.spec, advancementLabel(category, a));
   return { t: 'chip', label: advancementLabel(category, a) };
 };
@@ -378,19 +361,19 @@ const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
  *  foyer — `id`→Possessions, `creatureId`→Créatures, `vehicleId`→Véhicules — jamais une re-résolution
- *  par libellé (`refId`/`slugId`). `{text}` reste du texte narratif (aucune entité désignée) ;
+ *  par libellé. `{text}` reste du texte narratif (aucune entité désignée) ;
  *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);
+  if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
+  if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
+  if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
   // PASTILLE NUE, jamais de la prose : `{text}` est un NOM D'OBJET (« Grand hôtel particulier avec
   // jardins » y ferait lier « Grand »), et `choice`/`wildcard` sont des libellés composites. Aucune
   // entité du Codex n'est désignée — donc pas de `t:'ref'` non plus, et aucun porteur : le libellé
-  // rendu n'est même pas toujours le champ (`trappingRefLabel`, `src/data/index.ts:3573-3589`, le
-  // DÉCORE du compte `ref.count` — « Pamphlétaire (3) »). Même boîte que ses voisines de section.
-  if ('text' in ref || 'choice' in ref || 'wildcard' in ref) return { t: 'chip', label: show };
-  if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
-  if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
-  return idRefRow('trappings', ref.id, undefined, show);
+  // rendu n'est même pas toujours le champ (`trappingRefLabel` le DÉCORE du compte `ref.count` —
+  // « Pamphlétaire (3) »). Même boîte que ses voisines de section.
+  return { t: 'chip', label: show };
 };
 const trappingRefRows = (items?: TrappingRef[] | null): CodexRow[] => (items ?? []).map(trappingRefRow);
 /** Section de pastilles de Possessions (skip si vide) — équivalent `chips` pour les `TrappingRef[]` STRUCTURÉES. */
@@ -600,9 +583,9 @@ export function raceFicheTabs(s: (typeof species)[number]): CodexTab[] {
 /** Statbloc compact d'une créature : profil IMPRIMÉ (M + les 10 caracs, « – » si inexistante —
  *  LDB 76, Schéma des Profils) + Blessures (valeur livre `char.B` si imprimée, sinon formule
  *  BF+2×BE+BFM × Taille, LDB 85) + traits en chips cross-réf. Zéro logique par-créature. */
-function creatureStatblock(c: (typeof creatures)[number]): NonNullable<CodexItem['statblock']> {
+export function creatureStatblock(c: (typeof creatures)[number]): NonNullable<CodexItem['statblock']> {
   const cell = (label: string, v: number | null | undefined, kref?: CodexFact['kref']): CodexFact => ({ label, value: v != null ? String(v) : '–', kref });
-  const size = sizeFromTraits(c.traits) ?? 'moyenne';
+  const size = tailleDuProfil(c);
   const wounds = typeof c.char.B === 'number'
     ? c.char.B
     : woundsForSize(bonus(c.char.force ?? 0), bonus(c.char.endurance ?? 0), bonus(c.char['force-mentale'] ?? 0), size);
@@ -643,38 +626,15 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
   });
 };
 
-// ── Fraîcheur du Codex : invalidation, version, projections paresseuses ─────────────────────────
-// `setDataset` (persist d'une édition Codex) splice les tableaux de `src/data` EN PLACE : les
-// projections ci-dessous redonnent la donnée FRAÎCHE à condition d'être RE-EXÉCUTÉES. Chaque
-// catégorie matérialise donc ses `items` (et ses facettes dérivées) PARESSEUSEMENT, cachés tant que
-// la version ne bouge pas ; `invalidateCodexLookup()` (appelé par `CodexEdit` au persist) bump la
-// version → le prochain accès re-projette, et les composants abonnés (`useCodexVersion`) re-rendent.
-let LOOKUP: Map<string, { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> }> | null = null;
-let LOOKUP_VERSION = 0;
-const VERSION_LISTENERS = new Set<() => void>();
+// ── Fraîcheur du Codex : projections paresseuses sur le témoin des datasets ─────────────────────
+// `setDataset`/`setObjectDataset` (persist d'une édition Codex) mutent `src/data` EN PLACE, et
+// `setRule`/`resetRule` basculent une règle optionnelle : tous bumpent `versionDesDatasets`
+// (`data/versionDataset.ts`) : les projections et index ci-dessous se
+// re-matérialisent à la lecture qui suit (`memoParVersion`), et les composants abonnés
+// (`useVersionDesDatasets`) re-rendent.
+type IndexDeCategorie = { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> };
+const LOOKUP = memoParVersion(CLES_VERSIONNEES, () => new Map<string, IndexDeCategorie>());
 
-/** Version courante de la donnée Codex — bumpée à chaque invalidation. */
-export const codexLookupVersion = (): number => LOOKUP_VERSION;
-
-/** Invalide index ET projections (donnée modifiée — persist de `CodexEdit`) : le prochain accès
- *  (`codexLookup`, `c.items`, `c.facets`) reconstruit depuis les datasets live, et les composants
- *  abonnés via `useCodexVersion()` re-rendent. */
-export function invalidateCodexLookup(): void {
-  LOOKUP = null;
-  LOOKUP_VERSION++;
-  for (const l of VERSION_LISTENERS) l();
-}
-
-const subscribeCodex = (l: () => void): (() => void) => {
-  VERSION_LISTENERS.add(l);
-  return () => VERSION_LISTENERS.delete(l);
-};
-
-/** Abonne un composant à la fraîcheur du Codex : re-rend après chaque `invalidateCodexLookup()`.
- *  La valeur sert aussi de dépendance de `useMemo` sur `c.items` (cf. `CompendiumScreen`). */
-export function useCodexVersion(): number {
-  return useSyncExternalStore(subscribeCodex, codexLookupVersion);
-}
 
 /** Libellé de la facette hiérarchique (`group`) par catégorie. */
 const GROUP_FACET_LABEL: Record<string, string> = {
@@ -707,19 +667,12 @@ interface CodexCategorySpec {
   build: () => CodexItem[];
 }
 
-/** Catégorie à projections PARESSEUSES (cache keyé sur la version d'invalidation). */
+/** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_VERSIONNEES` : datasets et règles). */
 function makeCategory(spec: CodexCategorySpec): CodexCategory {
-  let items: CodexItem[] | null = null;
-  let facets: CodexFacet[] | undefined;
-  let builtAt = -1;
-  const fresh = (): CodexItem[] => {
-    if (!items || builtAt !== LOOKUP_VERSION) {
-      items = spec.build();
-      facets = deriveFacets(spec.key, items);
-      builtAt = LOOKUP_VERSION;
-    }
-    return items;
-  };
+  const projection = memoParVersion(CLES_VERSIONNEES, () => {
+    const items = spec.build();
+    return { items, facets: deriveFacets(spec.key, items) };
+  });
   return {
     key: spec.key,
     label: spec.label,
@@ -727,8 +680,8 @@ function makeCategory(spec: CodexCategorySpec): CodexCategory {
     cluster: spec.cluster,
     sourceRef: spec.sourceRef,
     exergues: spec.exergues,
-    get items() { return fresh(); },
-    get facets() { fresh(); return facets; },
+    get items() { return projection().items; },
+    get facets() { return projection().facets; },
   };
 }
 
@@ -2110,7 +2063,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       const nom = (cle: string) => libelleDuChamp(cle, { meta });
       return buildings.map((b) => depuisEnveloppe(b, {
         meta: facts(
-          fact(nom('roofMaterial'), couvertureLabel(b.roofMaterial)),
+          fact(nom('roofMaterial'), matiereLabel(b.roofMaterial)),
           fact(
             nom('features'),
             b.features?.length
@@ -2137,7 +2090,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'groups', label: 'Groupes (Cible)', group: 'Monde',
-    build: () => groups.map((g) => ({ id: g.id, label: g.label })),
+    build: () => groups.map((g) => depuisEnveloppe(g)),
   },
   {
     key: 'psychologies', label: 'États psychologiques', group: 'Effets',
@@ -2697,16 +2650,16 @@ export const codexItemKey = (category: string, id: string): string => `${categor
 // pas (des centaines de refs × des centaines d'items). L'index (label exact → item, + repli casse
 // pliée) se construit à la 1re résolution d'une catégorie — sur les `items` COURANTS du getter
 // re-projetable — et se ré-utilise ensuite. La 1re occurrence gagne (même précédence que l'ancien
-// `find`). Invalidé par `invalidateCodexLookup` (persist d'une édition Codex) : index ET projections
-// (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useCodexVersion` fait re-rendre
-// les lecteurs (CompendiumScreen). L'état (`LOOKUP`/`LOOKUP_VERSION`) vit en tête de fichier, avec
-// la machinerie de fraîcheur.
+// `find`). Reconstruit après une écriture au seam des datasets (`memoParVersion`) : index ET
+// projections (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useVersionDesDatasets` fait
+// re-rendre les lecteurs (CompendiumScreen). L'état (`LOOKUP`) vit en tête de fichier, avec la
+// machinerie de fraîcheur.
 
 /** Index (byId + label exact/casse pliée) d'une catégorie, construit à la 1re résolution — `undefined`
  *  si la catégorie est inconnue (jamais mis en cache, répond `undefined` à chaque appel). */
-function categoryIndex(category: string): { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> } | undefined {
-  if (!LOOKUP) LOOKUP = new Map();
-  let idx = LOOKUP.get(category);
+function categoryIndex(category: string): IndexDeCategorie | undefined {
+  const lookup = LOOKUP();
+  let idx = lookup.get(category);
   if (!idx) {
     const items = categoryByKey(category)?.items;
     if (!items) return undefined;
@@ -2721,7 +2674,7 @@ function categoryIndex(category: string): { byId: Map<string, CodexItem>; exact:
       idx.exact.set(it.label, it);
       idx.folded.set(it.label.toLowerCase(), it);
     }
-    LOOKUP.set(category, idx);
+    lookup.set(category, idx);
   }
   return idx;
 }

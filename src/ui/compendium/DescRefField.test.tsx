@@ -20,7 +20,8 @@ import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { inferFields } from './editFields';
 import { DescRefField, PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS, type ChargeursSource } from './DescRefField';
-import { empreinteDe, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type DescRef, type Fragment, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
+import { defautsDeNoms, nomAccessible } from '../nomsAccessibles.testkit';
+import { MAX_FRAGMENTS, empreinteDe, fragmentBlocs, fragmentCellule, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type ChoixDeCellule, type DescRef, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
 
 /** Ce que le chargeur injecté sert, et ce qu'on lui a demandé — réglable par cas. */
 const etat = { manifeste: true, appels: [] as string[] };
@@ -123,15 +124,15 @@ const TEXTES: Record<string, string> = {
 
 const PARSE = parseChapitre(CHAPITRE);
 
-/** L'empreinte JUSTE d'un fragment de la fixture, posée par le helper unique. */
+/** L'empreinte JUSTE d'un fragment de la fixture, posée par le helper unique. ORACLE des empreintes
+ *  que le champ pose : il lit `empreinteDe`, jamais les constructeurs qu'il éprouve. */
 function sumDe(sec: string, b0: number, b1: number): string {
   const sum = empreinteDe(PARSE, { kind: 'blocs', sec, secOcc: 1, b0, b1, sum: '' });
   if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error}`);
   return sum;
 }
 
-const frag = (sec: string, b0: number, b1: number): FragmentBlocs =>
-  ({ kind: 'blocs', sec, secOcc: 1, b0, b1, sum: sumDe(sec, b0, b1) });
+const frag = (sec: string, b0: number, b1: number): FragmentBlocs => fragmentBlocs(PARSE, { sec, secOcc: 1, b0, b1 });
 
 const adresse = (...parts: FragmentBlocs[]): DescRef => ({ book: 'livre-de-base', ch: '21', parts });
 
@@ -360,6 +361,30 @@ describe('`DescRefField` — l’empreinte est RECALCULÉE, jamais saisie', () =
   });
 });
 
+describe('NOMS POSITIONNÉS — deux adresses en rangée, chaque contrôle a SON nom', () => {
+  it('boutons de fragment compris : aucun nom porté par deux contrôles', async () => {
+    const boite = document.createElement('div');
+    document.body.appendChild(boite);
+    container = boite;
+    const racine = createRoot(boite);
+    root = racine;
+    const valeur = adresse(frag('terreur', 0, 0), frag('terreur', 1, 1));
+    await act(async () => {
+      racine.render(<>
+        {[1, 2].map((n) => <DescRefField key={n} label="Adresse" sujet={`de la rangée ${n}`} value={valeur} onChange={() => {}} chargeurs={CHARGEURS} />)}
+      </>);
+    });
+    await laisserPoser();
+    const noms = [...boite.querySelectorAll<HTMLElement>('button')].map(nomAccessible);
+    for (const n of [1, 2]) {
+      for (const nom of [`Retirer le fragment 1 de la rangée ${n}`, `Retirer le fragment 2 de la rangée ${n}`, `Ajouter un fragment de la rangée ${n}`]) {
+        expect(noms.filter((x) => x === nom), `« ${nom} »`).toHaveLength(1);
+      }
+    }
+    expect(defautsDeNoms(boite).doublons).toEqual([]);
+  });
+});
+
 describe('« + Fragment » — CONTINUE le montage, ou porte sa RAISON', () => {
   it('le fragment neuf prend le bloc SUIVANT : aucun passage n’est cité deux fois', async () => {
     const poses: (DescRef | undefined)[] = [];
@@ -415,7 +440,7 @@ describe('« + Fragment » — CONTINUE le montage, ou porte sa RAISON', () => {
     // `aria-disabled`, JAMAIS `disabled` : la raison doit rester atteignable au clavier et au doigt.
     expect(btn.getAttribute('aria-disabled')).toBe('true');
     expect(btn.hasAttribute('disabled')).toBe(false);
-    expect(document.getElementById(btn.getAttribute('aria-describedby') ?? '')?.textContent).toContain('trois fragments au plus');
+    expect(document.getElementById(btn.getAttribute('aria-describedby') ?? '')?.textContent).toContain(`${MAX_FRAGMENTS} fragments au plus`);
     await clic(btn);
     expect(poses, 'un clic sur un bouton refusé ne doit RIEN poser').toHaveLength(0);
   });
@@ -449,12 +474,7 @@ describe('REFUS « cellule » — raison au survol/focus, jamais inline', () => 
 
 describe('« + Fragment » APRÈS UNE CELLULE — le chapitre n’est pas « épuisé »', () => {
   const PARSE24 = parseChapitre(CHAPITRE_TABLE);
-  const CELLULE: Fragment = (() => {
-    const brouillon: Fragment = { kind: 'cellule', sec: 'blessures', secOcc: 1, row: 'Bras', col: 'Séquelle', sum: '' };
-    const sum = empreinteDe(PARSE24, brouillon);
-    if (typeof sum !== 'string') throw new Error(`fixture de cellule non résoluble : ${sum.error}`);
-    return { ...brouillon, sum };
-  })();
+  const CELLULE = fragmentCellule(PARSE24, { sec: 'blessures', secOcc: 1, row: 'Bras', col: 'Séquelle' });
 
   it('un montage qui commence par une CELLULE continue sur un bloc LIBRE de la section', async () => {
     const poses: (DescRef | undefined)[] = [];
@@ -475,10 +495,7 @@ describe('« + Fragment » APRÈS UNE CELLULE — le chapitre n’est pas « ép
     // Règle D : le plancher de 40 caractères ne vise que les fragments `blocs`. « Assommé. » est
     // adressée EXACTEMENT (section, ligne, colonne) — lui opposer « étendez les bornes de blocs »
     // était un remède impossible (mesuré en recette sur la table des races, ch. 04).
-    const courte: Fragment = { kind: 'cellule', sec: 'blessures', secOcc: 1, row: 'Tete', col: 'Séquelle', sum: '' };
-    const sum = empreinteDe(PARSE24, courte);
-    if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error}`);
-    const seule = { book: 'livre-de-base', ch: '24', parts: [{ ...courte, sum }] };
+    const seule = { book: 'livre-de-base', ch: '24', parts: [fragmentCellule(PARSE24, { sec: 'blessures', secOcc: 1, row: 'Tete', col: 'Séquelle' })] };
     expect(estErreur(resoudreAdresse(PARSE24, seule)), 'PRÉMISSE : la cellule seule doit résoudre').toBe(false);
 
     const poses: (DescRef | undefined)[] = [];
@@ -497,10 +514,7 @@ describe('« + Fragment » APRÈS UNE CELLULE — le chapitre n’est pas « ép
 describe('les tables d’une section — celles du lecteur canonique `tablesOf` (#1739)', () => {
   it('lignes et colonnes offertes = celles de `tablesOf` : la bannière absorbée n’est ni un en-tête ni une ligne', async () => {
     const parse = parseChapitre(CHAPITRE_TITRES);
-    const brouillon: Fragment = { kind: 'cellule', sec: 'tables', secOcc: 1, row: '2 m', col: 'Dégâts', sum: '' };
-    const sum = empreinteDe(parse, brouillon);
-    if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error}`);
-    await monter({ book: 'livre-de-base', ch: '25', parts: [{ ...brouillon, sum }] }, () => {});
+    await monter({ book: 'livre-de-base', ch: '25', parts: [fragmentCellule(parse, { sec: 'tables', secOcc: 1, row: '2 m', col: 'Dégâts' })] }, () => {});
     const options = (nom: string) => [...(container?.querySelector(`select[aria-label="Fragment 1 — ${nom} de la table"]`)?.querySelectorAll('option') ?? [])].map((o) => o.textContent);
     const tables = tablesOf(parse.sections.find((s) => s.slug === 'tables')!);
     expect(options('colonne')).toEqual(['Hauteur', 'Dégâts']);
@@ -508,17 +522,16 @@ describe('les tables d’une section — celles du lecteur canonique `tablesOf` 
     expect(options('colonne')).not.toContain('TABLEAU DES MOUVEMENTS');
   });
 
-  const scelle = (over: Partial<Fragment>) => {
-    const brouillon = { kind: 'cellule', sec: 'tables', secOcc: 1, row: 'Marche', col: 'Allure', sum: '', ...over } as Fragment;
-    const sum = empreinteDe(parseChapitre(CHAPITRE_TITRES), brouillon);
-    if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error}`);
-    return { book: 'livre-de-base', ch: '25', parts: [{ ...brouillon, sum }] } as DescRef;
-  };
+  const adresseDesTables = (over: Partial<ChoixDeCellule>): DescRef => ({
+    book: 'livre-de-base',
+    ch: '25',
+    parts: [fragmentCellule(parseChapitre(CHAPITRE_TITRES), { sec: 'tables', secOcc: 1, row: 'Marche', col: 'Allure', ...over })],
+  });
   const combo = (nom: string) => container?.querySelector(`select[aria-label="Fragment 1 — ${nom}"]`) as HTMLSelectElement | null;
 
   it('une clé de ligne AMBIGUË entre tables titrées fait paraître le choix de la table ; le choisir pose `table`', async () => {
     const poses: (DescRef | undefined)[] = [];
-    await monterVivant(scelle({ table: 'tableau des mouvements#1' }), (v) => poses.push(v));
+    await monterVivant(adresseDesTables({ table: 'tableau des mouvements#1' }), (v) => poses.push(v));
     const table = combo('table de la ligne');
     expect([...(table?.options ?? [])].map((o) => o.value)).toEqual(['', 'tableau des mouvements#1', 'tableau des chutes#1']);
     expect(table?.value).toBe('tableau des mouvements#1');
@@ -531,7 +544,7 @@ describe('les tables d’une section — celles du lecteur canonique `tablesOf` 
   const textes = (el: HTMLSelectElement | null) => [...(el?.options ?? [])].map((o) => o.textContent);
 
   it('le choix de table se LIT au titre, avec un rang seulement entre tables de même titre', async () => {
-    await monter(scelle({ table: 'tableau des mouvements#1' }), () => {});
+    await monter(adresseDesTables({ table: 'tableau des mouvements#1' }), () => {});
     expect(textes(combo('table de la ligne'))).toEqual(['—', 'TABLEAU DES MOUVEMENTS', 'TABLEAU DES CHUTES (1)']);
   });
 
@@ -578,13 +591,13 @@ describe('les tables d’une section — celles du lecteur canonique `tablesOf` 
   });
 
   it('une clé de ligne UNIQUE ne montre aucun choix de table', async () => {
-    await monter(scelle({ row: '2 m', col: 'Dégâts' }), () => {});
+    await monter(adresseDesTables({ row: '2 m', col: 'Dégâts' }), () => {});
     expect(combo('table de la ligne')).toBeNull();
   });
 
   it('changer de LIGNE retire le `table` choisi pour l’ancienne', async () => {
     const poses: (DescRef | undefined)[] = [];
-    await monterVivant(scelle({ table: 'tableau des mouvements#1' }), (v) => poses.push(v));
+    await monterVivant(adresseDesTables({ table: 'tableau des mouvements#1' }), (v) => poses.push(v));
     await poserValeur(combo('ligne de la table')!, '2 m');
     expect(poses[poses.length - 1]!.parts[0]).not.toHaveProperty('table');
   });

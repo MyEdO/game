@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { parseProject, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import { validateScene } from '../state/validateScene';
@@ -15,6 +16,8 @@ import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../state/scene';
 import type { Flow } from '../state/flow';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+import { auPlusProcheAncetre, coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
+import { projetSchema } from '../data/schemas/defs-scenes/projet';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
@@ -25,10 +28,7 @@ import { coupeAuMot } from '../lib/coupeAuMot.mjs';
  * `scripts/campagne/lib.mjs`) — cette garde empêche cette classe de dérive de revenir, pour ce
  * paquet comme pour tout futur paquet de campagne.
  */
-const SCENES_DIR = join(__dirname);
-
-const bundledFiles = listerProjetsLivres()
-  .map((rel) => join(SCENES_DIR, rel));
+const bundledFiles = listerProjetsLivres();
 
 /** Erreurs de contenu d'un paquet, chacune NOMMANT son fautif (scène / portée / réf) — jamais un compte. */
 function erreursDe(doc: Pick<ProjectDoc, 'scenes' | 'worldMap'>): string[] {
@@ -72,7 +72,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * le rouge dit laquelle, à charge de retirer la garde ou de rendre son sujet.
    */
   it('chaque famille de garde a au moins un sujet dans les paquets livrés', () => {
-    const docs = bundledFiles.map((f) => parseProject(JSON.parse(readFileSync(f, 'utf8'))));
+    const docs = bundledFiles.map((f) => parseProject(lireProjetLivre(f)));
     const entites = docs.flatMap((d) => d.scenes.flatMap((sc) => sc.entities));
     const rencontres = docs.flatMap((d) => d.scenes.flatMap((sc) => sc.encounters));
     const muettes = Object.entries({
@@ -89,7 +89,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   it.each(bundledFiles.map((f) => [f] as const))('%s : parseProject ne lève pas et porte une identité valide', (file) => {
-    const raw = JSON.parse(readFileSync(file, 'utf8'));
+    const raw = lireProjetLivre(file);
     const doc = parseProject(raw);
     expect(doc.id, `${file} : identité absente — régénérer via projectDoc()`).toBeTruthy();
     expect(typeof doc.id).toBe('string');
@@ -110,7 +110,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   it.each(bundledFiles.map((f) => [f] as const))(
     '%s : toute entité PERSONNAGE résout son apparence (réf de catalogue OU Espèce du rig, tenue résolue)',
     (file) => {
-      const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+      const doc = parseProject(lireProjetLivre(file));
       const muettes: string[] = [];
       const inconnues: string[] = [];
       for (const sc of doc.scenes)
@@ -133,7 +133,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * Le `label` d'entité, lui, est facultatif : les ennemis de rencontre n'en portent pas.
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : toute entité PERSONNAGE porte un nom résoluble (réf, ou label de statbloc)', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const anonymes: string[] = [];
     for (const sc of doc.scenes)
       for (const e of sc.entities) {
@@ -146,7 +146,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   /** Et le CustomStatblock d'auteur porte SON label : `spawn.ts:339` le lit sans repli — le `label`
    *  d'entité ne le sauve pas, il n'est jamais consulté par ce chemin. */
   it.each(bundledFiles.map((f) => [f] as const))('%s : tout CustomStatblock d’auteur porte son label', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const fautifs = doc.scenes.flatMap((sc) => sc.entities.filter((e) => e.statblock && !e.statblock.label).map((e) => `${sc.id}:${e.id}`));
     expect(fautifs).toEqual([]);
   });
@@ -158,7 +158,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * ne nomme ni scène ni contenu, elle relit le verdict du moteur sur ce que le glob trouve.
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : validateScene ne rend AUCUNE erreur', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     expect(erreursDe(doc)).toEqual([]);
   });
 
@@ -170,7 +170,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * la retrouve pas), et un équipage exposé (`crewIds`) nomme des entités de SA scène.
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : coques — upgrades du catalogue, coffres à munitions cohérents, équipage exposé résoluble', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
       const ids = new Set(sc.entities.map((e) => e.id));
@@ -194,7 +194,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
 
   /** Un marchand d'auteur pointe un ARCHÉTYPE du registre (`state/merchants.ts`) — sinon son stock est vide. */
   it.each(bundledFiles.map((f) => [f] as const))('%s : tout marchand référence un archétype RÉEL du registre', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const fautifs = doc.scenes.flatMap((sc) =>
       sc.entities
         .filter((e) => e.merchant?.archetype && !MERCHANTS[e.merchant.archetype])
@@ -210,7 +210,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * `setObjective` un id d'objectif non vide (la pile est keyée par id STABLE).
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : tout Effect de campagne référence du catalogue (Manann, navire, rôles d’équipage, objectif)', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
       if (eff.type === 'adjustManann' && (!eff.factorId || !findManannFactor(eff.factorId)))
@@ -229,7 +229,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
 
   /** Une condition de victoire par seuil de Blessures cible une entité de SA scène, sous un seuil utile. */
   it.each(bundledFiles.map((f) => [f] as const))('%s : toute victoire par seuil de Blessures cible une entité de sa scène', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
       const ids = new Set(sc.entities.map((e) => e.id));
@@ -248,7 +248,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * le nom d'une op, d'un champ d'état ou d'une réf de folio n'a rien à faire sous les yeux du joueur.
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : aucun jargon technique dans les textes joueur', (file) => {
-    const doc = parseProject(JSON.parse(readFileSync(file, 'utf8')));
+    const doc = parseProject(lireProjetLivre(file));
     const jargon = /`|INEXPRIMABLE|CONTOURN|\bstate\.|\bvessel\.|\bTODO\b|seaVoyageFlow|op:'testMod'|engine\/ops\.ts|adjustManann|adjustVessel|setVessel|setObjective|saboteurDR|factorId|woundsThreshold|[A-Z]{2,4} \d+ l\.\d/;
     const fautifs: string[] = [];
     for (const sc of doc.scenes)
@@ -268,7 +268,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   it('CONTRE-PREUVE : une réf de créature inexistante glissée dans une COPIE d’un paquet livré rougit la garde, en nommant la scène et l’entité', () => {
     // ⚠ copie EN MÉMOIRE — aucun fichier touché.
     const trouve = bundledFiles
-      .map((file) => ({ file, doc: parseProject(JSON.parse(readFileSync(file, 'utf8'))) }))
+      .map((file) => ({ file, doc: parseProject(lireProjetLivre(file)) }))
       .flatMap(({ file, doc }) =>
         doc.scenes.flatMap((sc) =>
           sc.entities
@@ -374,8 +374,9 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
  * paquets livrés, aucune scène ni aucun titre nommé.
  */
 const REPO_ROOT = join(__dirname, '..', '..');
-/** Champs de PROSE VERBATIM du bloc narratif (`state/campaignNarratif.ts`) : `OuvertureBlock.pitch`, `IndiceStade.prose`. */
-const PROSE_KEYS = ['pitch', 'prose'] as const;
+/** Champs de PROSE VERBATIM du bloc narratif (`state/campaignNarratif.ts`) : `OuvertureBlock.pitch`,
+ *  `IndiceStade.prose`, `PresetPnj.profil.desc`. */
+const PROSE_KEYS = ['pitch', 'prose', 'desc'] as const;
 
 interface ProseSourcee {
   chemin: string;
@@ -383,19 +384,35 @@ interface ProseSourcee {
   source: { book?: unknown; page?: unknown };
 }
 
-/** Toute prose du bloc narratif qui porte un `source` — la prose SANS source est authorée maison, hors sujet. */
-function proseSourcees(node: unknown, chemin: string, out: ProseSourcee[]): void {
-  if (node == null || typeof node !== 'object') return;
-  if (Array.isArray(node)) {
-    node.forEach((x, i) => proseSourcees(x, `${chemin}[${i}]`, out));
-    return;
-  }
-  const rec = node as Record<string, unknown>;
-  const source = rec.source;
-  if (source != null && typeof source === 'object' && !Array.isArray(source))
-    for (const key of PROSE_KEYS)
-      if (typeof rec[key] === 'string') out.push({ chemin: `${chemin}.${key}`, texte: rec[key] as string, source: source as ProseSourcee['source'] });
-  for (const [key, value] of Object.entries(rec)) proseSourcees(value, `${chemin}.${key}`, out);
+const estSource = (v: unknown): v is ProseSourcee['source'] => v != null && typeof v === 'object' && !Array.isArray(v);
+
+/** Chemin lisible d'un point : un élément de liste est nommé par son `id` quand il en porte un. */
+const cheminDe = (p: PointDeDonnee): string =>
+  p.chemin
+    .map((seg, i) => {
+      if (typeof seg === 'string') return `.${seg}`;
+      let q: PointDeDonnee = p;
+      for (let k = p.chemin.length - 1; k > i; k -= 1) q = q.parent!;
+      const id = (q.valeur as { id?: unknown } | null)?.id;
+      return `[${typeof id === 'string' ? id : seg}]`;
+    })
+    .join('');
+
+/** Toute prose du bloc narratif qui porte un `source`, le sien ou celui de son plus proche ancêtre qui
+ *  en porte un (`auPlusProcheAncetre` : `PresetPnj.source` pour `profil.desc`) — la prose SANS source est
+ *  authorée maison, hors sujet. Co-descente du schéma de projet (`coDescendre`). */
+function proseSourcees(narratif: unknown, fichier: string, out: ProseSourcee[]): void {
+  coDescendre(projetSchema, { narratif }, (p) => {
+    const rec = p.valeur;
+    if (rec == null || typeof rec !== 'object' || Array.isArray(rec)) return;
+    const propre = (rec as { source?: unknown }).source;
+    const source = estSource(propre) ? propre : auPlusProcheAncetre(p, (o) => (estSource(o.source) ? o.source : undefined));
+    if (!source) return;
+    for (const key of PROSE_KEYS) {
+      const texte = (rec as Record<string, unknown>)[key];
+      if (typeof texte === 'string') out.push({ chemin: `${fichier}${cheminDe(p)}.${key}`, texte, source });
+    }
+  });
 }
 
 const fichiersMd = (dir: string): string[] =>
@@ -415,13 +432,27 @@ function texteDuLivre(bookId: string): string {
 
 const prosesSourcees = bundledFiles.flatMap((file) => {
   const out: ProseSourcee[] = [];
-  proseSourcees(parseProject(JSON.parse(readFileSync(file, 'utf8'))).narratif, file, out);
+  proseSourcees(parseProject(lireProjetLivre(file)).narratif, file, out);
   return out;
 });
 
 describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré (règle stricte 5)', () => {
   it('au moins une prose sourcée dans les paquets livrés (la garde couvre réellement quelque chose)', () => {
     expect(prosesSourcees.length).toBeGreaterThan(0);
+  });
+
+  it('chaque preset à prose ADRESSÉE y est jugé sur sa prose SERVIE (`lireProjetLivre`) : l’adresse ne sort pas de la garde (#680)', () => {
+    const vus = new Set(prosesSourcees.map((p) => p.chemin));
+    const adresses = bundledFiles.flatMap((rel) => {
+      const disque = JSON.parse(readFileSync(join(__dirname, rel), 'utf8')) as {
+        narratif?: { presetsPnj?: { id: string; profil?: { descRef?: unknown } }[] };
+      };
+      return (disque.narratif?.presetsPnj ?? [])
+        .filter((p) => p.profil?.descRef !== undefined)
+        .map((p) => `${rel}.narratif.presetsPnj[${p.id}].profil.desc`);
+    });
+    expect(adresses.length, 'aucun preset adressé dans les paquets livrés — l’assertion ne mesurerait rien').toBeGreaterThan(0);
+    expect(adresses.filter((c) => !vus.has(c))).toEqual([]);
   });
 
   it('chaque prose sourcée déclare un livre du REGISTRE et son folio', () => {

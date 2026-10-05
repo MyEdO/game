@@ -14,7 +14,7 @@
  *  - la population des CATALOGUES de matériaux.
  * La part ÉDITORIALE (contrat de perf, doctrine, « où ajouter… ») vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-rendu-pipeline.mjs
  */
@@ -22,256 +22,258 @@ import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier, listerArbre } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
-const OUTIL = 'build-rendu-pipeline'
-const ISO = 'src/gameIso'
-const TYPES = `${ISO}/builders/types.ts`
-const BUILDERS = `${ISO}/builders`
-const GARDE = `${ISO}/renderer-no-hardcoded-color.test.ts`
-const AMBIANCE = 'src/data/ambiance.json'
-const DETAIL = `${ISO}/detail/types.ts`
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  const OUTIL = 'build-rendu-pipeline'
+  const ISO = 'src/gameIso'
+  const TYPES = `${ISO}/builders/types.ts`
+  const BUILDERS = `${ISO}/builders`
+  const GARDE = `${ISO}/renderer-no-hardcoded-color.test.ts`
+  const AMBIANCE = 'src/data/ambiance.json'
+  const DETAIL = `${ISO}/detail/types.ts`
 
-function abandon(msg) {
-  console.error(`${OUTIL} — ${msg}`)
-  process.exit(1)
-}
-const ancre = (p, quoi) => {
-  if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
-  return p
-}
-const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-for (const p of [TYPES, BUILDERS, GARDE, AMBIANCE, DETAIL]) ancre(p, 'source du générateur')
+  function abandon(msg) {
+    console.error(`${OUTIL} — ${msg}`)
+    process.exit(1)
+  }
+  const ancre = (p, quoi) => {
+    if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
+    return p
+  }
+  const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
+  for (const p of [TYPES, BUILDERS, GARDE, AMBIANCE, DETAIL]) ancre(p, 'source du générateur')
 
-const { text: T_SRC, sf: T_SF } = loadSource(TYPES)
-const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
+  const { text: T_SRC, sf: T_SF } = loadSource(TYPES)
+  const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
-// ── Le PIVOT : union `SceneEl` + les interfaces qui la composent ─────────────────────────────────
+  // ── Le PIVOT : union `SceneEl` + les interfaces qui la composent ─────────────────────────────────
 
-function alias(nom) {
-  let a
-  T_SF.forEachChild((n) => {
-    if (ts.isTypeAliasDeclaration(n) && n.name.text === nom) a = n
-  })
-  if (!a) abandon(`\`${nom}\` introuvable dans ${TYPES}`)
-  return a
-}
-
-const SCENE_EL = (() => {
-  const a = alias('SceneEl')
-  if (!ts.isUnionTypeNode(a.type)) abandon(`\`SceneEl\` n'est plus une union dans ${TYPES}`)
-  return { membres: a.type.types.map((t) => plat(t.getText(T_SF))), l: ligne(T_SF, a.name.getStart(T_SF)) }
-})()
-const PROP_EL = (() => {
-  const a = alias('PropEl')
-  return { membres: ts.isUnionTypeNode(a.type) ? a.type.types.map((t) => plat(t.getText(T_SF))) : [plat(a.type.getText(T_SF))], l: ligne(T_SF, a.name.getStart(T_SF)) }
-})()
-
-/** Champs d'une interface : nom (+ `?`), type aplati, 1re phrase de JSDoc. */
-function champs(nom) {
-  let decl
-  T_SF.forEachChild((n) => {
-    if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n
-  })
-  if (!decl) abandon(`interface \`${nom}\` introuvable dans ${TYPES}`)
-  const rows = []
-  let prevEnd = decl.members.pos
-  for (const m of decl.members) {
-    if (!ts.isPropertySignature(m)) continue
-    const doc = jsdocBody(T_SRC.slice(prevEnd, m.getStart(T_SF)))
-    rows.push({
-      nom: m.name.getText(T_SF) + (m.questionToken ? '?' : ''),
-      type: m.type ? plat(m.type.getText(T_SF)) : '—',
-      role: doc ? plat(firstSentence(doc)) : null,
+  function alias(nom) {
+    let a
+    T_SF.forEachChild((n) => {
+      if (ts.isTypeAliasDeclaration(n) && n.name.text === nom) a = n
     })
-    prevEnd = m.getEnd()
+    if (!a) abandon(`\`${nom}\` introuvable dans ${TYPES}`)
+    return a
   }
-  if (!rows.length) abandon(`interface \`${nom}\` sans propriété lisible (${TYPES})`)
-  return { rows, l: ligne(T_SF, decl.name.getStart(T_SF)) }
-}
 
-const GP = champs('GP')
-const MATERIAL = champs('MaterialRef')
-const FACE = champs('Face')
-const ELBASE = champs('ElBase')
-const ELSTATES = champs('ElStates')
+  const SCENE_EL = (() => {
+    const a = alias('SceneEl')
+    if (!ts.isUnionTypeNode(a.type)) abandon(`\`SceneEl\` n'est plus une union dans ${TYPES}`)
+    return { membres: a.type.types.map((t) => plat(t.getText(T_SF))), l: ligne(T_SF, a.name.getStart(T_SF)) }
+  })()
+  const PROP_EL = (() => {
+    const a = alias('PropEl')
+    return { membres: ts.isUnionTypeNode(a.type) ? a.type.types.map((t) => plat(t.getText(T_SF))) : [plat(a.type.getText(T_SF))], l: ligne(T_SF, a.name.getStart(T_SF)) }
+  })()
 
-/** Domaines de matériau — l'univers FERMÉ lu au champ `domain` de `MaterialRef`. */
-const DOMAINES = (() => {
-  const d = MATERIAL.rows.find((r) => r.nom === 'domain' || r.nom === 'domain?')
-  if (!d) abandon(`\`MaterialRef\` n'expose plus de champ \`domain\` (${TYPES})`)
-  const vals = [...d.type.matchAll(/'([\w-]+)'/g)].map((m) => m[1])
-  if (!vals.length) abandon(`le champ \`domain\` de \`MaterialRef\` n'est plus une union de littéraux`)
-  return vals
-})()
-
-// ── Les BUILDERS réellement exportés ─────────────────────────────────────────────────────────────
-
-const LISTE_BUILDERS = listerDossier(BUILDERS)
-  .filter((f) => /\.tsx?$/.test(f) && !f.includes('.test.'))
-  .flatMap((f) =>
-    fileExports(`${BUILDERS}/${f}`)
-      .filter((e) => (e.kind === 'function' || e.kind === 'const') && /^build/.test(e.name))
-      .map((e) => ({ ...e, fichier: `${BUILDERS}/${f}` })),
-  )
-if (LISTE_BUILDERS.length < 6) abandon(`moins de 6 builders exportés sous ${BUILDERS}/ — le pipeline a changé de forme`)
-
-/** Type de sortie déclaré d'un builder (`FloorEl[]`…). Deux formes co-existent : `export function`
- *  (type de retour à la signature) et `export const b: (…) => X` (type de retour du TYPE FONCTION). */
-function sortieDe(fichier, nom) {
-  const { sf } = loadSource(fichier)
-  let sortie = null
-  const visite = (n) => {
-    if (ts.isFunctionDeclaration(n) && n.name?.text === nom && n.type) sortie = n.type
-    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === nom && n.type) {
-      sortie = ts.isFunctionTypeNode(n.type) ? n.type.type : n.type
+  /** Champs d'une interface : nom (+ `?`), type aplati, 1re phrase de JSDoc. */
+  function champs(nom) {
+    let decl
+    T_SF.forEachChild((n) => {
+      if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n
+    })
+    if (!decl) abandon(`interface \`${nom}\` introuvable dans ${TYPES}`)
+    const rows = []
+    let prevEnd = decl.members.pos
+    for (const m of decl.members) {
+      if (!ts.isPropertySignature(m)) continue
+      const doc = jsdocBody(T_SRC.slice(prevEnd, m.getStart(T_SF)))
+      rows.push({
+        nom: m.name.getText(T_SF) + (m.questionToken ? '?' : ''),
+        type: m.type ? plat(m.type.getText(T_SF)) : '—',
+        role: doc ? plat(firstSentence(doc)) : null,
+      })
+      prevEnd = m.getEnd()
     }
-    n.forEachChild(visite)
+    if (!rows.length) abandon(`interface \`${nom}\` sans propriété lisible (${TYPES})`)
+    return { rows, l: ligne(T_SF, decl.name.getStart(T_SF)) }
   }
-  sf.forEachChild(visite)
-  return sortie ? plat(sortie.getText(sf)) : '—'
-}
-const BUILDERS_MESURES = LISTE_BUILDERS.map((b) => ({ ...b, sortie: sortieDe(b.fichier, b.name) }))
 
-// ── L'arborescence de gameIso : modules DIRECTS par sous-dossier ─────────────────────────────────
+  const GP = champs('GP')
+  const MATERIAL = champs('MaterialRef')
+  const FACE = champs('Face')
+  const ELBASE = champs('ElBase')
+  const ELSTATES = champs('ElStates')
 
-const estDossier = (p) => statSync(p).isDirectory()
-const SOUS_DOSSIERS = listerDossier(ISO)
-  .filter((nom) => estDossier(`${ISO}/${nom}`))
-  .map((nom) => {
-    const enfants = listerDossier(`${ISO}/${nom}`).map((f) => ({ f, dossier: estDossier(`${ISO}/${nom}/${f}`) }))
-    return {
-      nom,
-      n: enfants.filter((e) => !e.dossier && /\.tsx?$/.test(e.f) && !e.f.includes('.test.')).length,
-      sous: enfants.filter((e) => e.dossier).length,
+  /** Domaines de matériau — l'univers FERMÉ lu au champ `domain` de `MaterialRef`. */
+  const DOMAINES = (() => {
+    const d = MATERIAL.rows.find((r) => r.nom === 'domain' || r.nom === 'domain?')
+    if (!d) abandon(`\`MaterialRef\` n'expose plus de champ \`domain\` (${TYPES})`)
+    const vals = [...d.type.matchAll(/'([\w-]+)'/g)].map((m) => m[1])
+    if (!vals.length) abandon(`le champ \`domain\` de \`MaterialRef\` n'est plus une union de littéraux`)
+    return vals
+  })()
+
+  // ── Les BUILDERS réellement exportés ─────────────────────────────────────────────────────────────
+
+  const LISTE_BUILDERS = listerDossier(BUILDERS)
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes('.test.'))
+    .flatMap((f) =>
+      fileExports(`${BUILDERS}/${f}`)
+        .filter((e) => (e.kind === 'function' || e.kind === 'const') && /^build/.test(e.name))
+        .map((e) => ({ ...e, fichier: `${BUILDERS}/${f}` })),
+    )
+  if (LISTE_BUILDERS.length < 6) abandon(`moins de 6 builders exportés sous ${BUILDERS}/ — le pipeline a changé de forme`)
+
+  /** Type de sortie déclaré d'un builder (`FloorEl[]`…). Deux formes co-existent : `export function`
+   *  (type de retour à la signature) et `export const b: (…) => X` (type de retour du TYPE FONCTION). */
+  function sortieDe(fichier, nom) {
+    const { sf } = loadSource(fichier)
+    let sortie = null
+    const visite = (n) => {
+      if (ts.isFunctionDeclaration(n) && n.name?.text === nom && n.type) sortie = n.type
+      if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === nom && n.type) {
+        sortie = ts.isFunctionTypeNode(n.type) ? n.type.type : n.type
+      }
+      n.forEachChild(visite)
     }
-  })
-if (SOUS_DOSSIERS.length < 5) abandon(`moins de 5 sous-dossiers sous ${ISO}/ — l'arborescence a changé`)
-
-/** Rôle de chaque sous-dossier — ÉDITORIAL, mais la CLÉ est ancrée : un dossier renommé (ou neuf)
- *  fait échouer la génération plutôt que de laisser la carte mentir par omission. */
-const ROLES = {
-  authoring: 'peintres SVG (plan de station, aperçu d’éditeur, oracles de parité) — pilotés par `Dims`, seul pont monde→écran',
-  backends: 'le MONDE, cuit en géométrie et rendu par une caméra réelle (three) — LE moteur du jeu en toutes vues',
-  builders: 'dérivation PURE de la Scène en éléments sémantiques, en espace MONDE (aucun import de caméra ni d’écran)',
-  catalog: 'catalogues d’apparence : ambiance, décor, dégradés — la couleur y est une DONNÉE',
-  detail: 'détail de surface (matériaux v2) : recettes dépliées en primitives UV, déterministes au seed',
-  fx: 'effets de combat — hors périmètre de la garde anti-couleur (couleur d’intention, pas d’identité de matériau)',
-  pov: 'première personne : caméra, brume, boîtes de billboard, voiles d’écran',
-  rig: 'art des sujets (bestiaire, équipement, véhicules) — hors périmètre de la garde anti-couleur',
-  stage: 'hôtes de montage : le monde et ses surcouches React, le plan de station, le tri des objets',
-}
-const inconnus = SOUS_DOSSIERS.filter((d) => !ROLES[d.nom]).map((d) => d.nom)
-if (inconnus.length) abandon(`sous-dossier(s) de ${ISO}/ sans rôle décrit dans ce script : ${inconnus.join(', ')} — décrire, ou corriger le renommage`)
-
-// ── AMBIANCE : les clés de la donnée ─────────────────────────────────────────────────────────────
-
-const AMB = JSON.parse(readFileSync(AMBIANCE, 'utf8'))
-const CLES_AMB = Object.keys(AMB).filter((k) => !['id', 'type', 'label', 'desc', 'source', 'maison'].includes(k))
-if (!CLES_AMB.length) abandon(`${AMBIANCE} ne porte plus aucune clé d'ambiance hors enveloppe`)
-
-// ── DÉTAIL de surface : les sections d'une `DetailRecipe` ────────────────────────────────────────
-
-const RECETTE = (() => {
-  const { text, sf } = loadSource(DETAIL)
-  let decl
-  sf.forEachChild((n) => {
-    if (ts.isInterfaceDeclaration(n) && n.name.text === 'DetailRecipe') decl = n
-  })
-  if (!decl) abandon(`interface \`DetailRecipe\` introuvable dans ${DETAIL}`)
-  const rows = []
-  let prevEnd = decl.members.pos
-  for (const m of decl.members) {
-    if (!ts.isPropertySignature(m)) continue
-    const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
-    rows.push({ nom: m.name.getText(sf) + (m.questionToken ? '?' : ''), role: doc ? plat(firstSentence(doc)) : null })
-    prevEnd = m.getEnd()
+    sf.forEachChild(visite)
+    return sortie ? plat(sortie.getText(sf)) : '—'
   }
-  if (!rows.length) abandon(`\`DetailRecipe\` sans section lisible (${DETAIL})`)
-  return { rows, l: ligne(sf, decl.name.getStart(sf)) }
-})()
+  const BUILDERS_MESURES = LISTE_BUILDERS.map((b) => ({ ...b, sortie: sortieDe(b.fichier, b.name) }))
 
-// ── La GARDE anti-couleur : sa couverture RÉELLE, lue dans la garde ──────────────────────────────
+  // ── L'arborescence de gameIso : modules DIRECTS par sous-dossier ─────────────────────────────────
 
-const COUVERTURE = (() => {
-  const src = readFileSync(GARDE, 'utf8')
-  const liste = (nom) => {
-    const m = src.match(new RegExp(`const ${nom} = \\[([\\s\\S]*?)\\]`))
-    if (!m) abandon(`\`${nom}\` illisible dans ${GARDE} — la couverture de la garde ne se dérive plus`)
-    return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+  const estDossier = (p) => statSync(p).isDirectory()
+  const SOUS_DOSSIERS = listerDossier(ISO)
+    .filter((nom) => estDossier(`${ISO}/${nom}`))
+    .map((nom) => {
+      const enfants = listerDossier(`${ISO}/${nom}`).map((f) => ({ f, dossier: estDossier(`${ISO}/${nom}/${f}`) }))
+      return {
+        nom,
+        n: enfants.filter((e) => !e.dossier && /\.tsx?$/.test(e.f) && !e.f.includes('.test.')).length,
+        sous: enfants.filter((e) => e.dossier).length,
+      }
+    })
+  if (SOUS_DOSSIERS.length < 5) abandon(`moins de 5 sous-dossiers sous ${ISO}/ — l'arborescence a changé`)
+
+  /** Rôle de chaque sous-dossier — ÉDITORIAL, mais la CLÉ est ancrée : un dossier renommé (ou neuf)
+   *  fait échouer la génération plutôt que de laisser la carte mentir par omission. */
+  const ROLES = {
+    authoring: 'peintres SVG (plan de station, aperçu d’éditeur, oracles de parité) — pilotés par `Dims`, seul pont monde→écran',
+    backends: 'le MONDE, cuit en géométrie et rendu par une caméra réelle (three) — LE moteur du jeu en toutes vues',
+    builders: 'dérivation PURE de la Scène en éléments sémantiques, en espace MONDE (aucun import de caméra ni d’écran)',
+    catalog: 'catalogues d’apparence : ambiance, décor, dégradés — la couleur y est une DONNÉE',
+    detail: 'détail de surface (matériaux v2) : recettes dépliées en primitives UV, déterministes au seed',
+    fx: 'effets de combat — hors périmètre de la garde anti-couleur (couleur d’intention, pas d’identité de matériau)',
+    pov: 'première personne : caméra, brume, boîtes de billboard, voiles d’écran',
+    rig: 'art des sujets (bestiaire, équipement, véhicules) — hors périmètre de la garde anti-couleur',
+    stage: 'hôtes de montage : le monde et ses surcouches React, le plan de station, le tri des objets',
   }
-  return { balayees: liste('SWEEP_DIRS'), racine: liste('ROOT_RENDERERS'), chrome: liste('CHROME_RENDERERS') }
-})()
-for (const d of COUVERTURE.balayees) ancre(`${ISO}/${d}`, `arborescence balayée par la garde anti-couleur`)
-for (const f of [...COUVERTURE.racine, ...COUVERTURE.chrome]) ancre(`${ISO}/${f}`, `renderer nommé par la garde anti-couleur`)
-const HORS = SOUS_DOSSIERS.filter((d) => !COUVERTURE.balayees.includes(d.nom)).map((d) => d.nom)
+  const inconnus = SOUS_DOSSIERS.filter((d) => !ROLES[d.nom]).map((d) => d.nom)
+  if (inconnus.length) abandon(`sous-dossier(s) de ${ISO}/ sans rôle décrit dans ce script : ${inconnus.join(', ')} — décrire, ou corriger le renommage`)
 
-// ── Catalogues de matériaux : population mesurée ─────────────────────────────────────────────────
+  // ── AMBIANCE : les clés de la donnée ─────────────────────────────────────────────────────────────
 
-const CATALOGUES = ['structureAppearance', 'materials', 'decorPalette']
-  .map((n) => ({ n, p: `src/data/${n}.json` }))
-  .filter(({ p }) => existsSync(p))
-  .map(({ n, p }) => {
-    const d = JSON.parse(readFileSync(p, 'utf8'))
-    const entrees = Array.isArray(d) ? d.length : d && typeof d === 'object' && d.entries ? Object.keys(d.entries).length : Object.keys(d).length
-    return { n, p, entrees }
-  })
-if (CATALOGUES.length < 3) abandon(`moins de 3 catalogues de matériaux trouvés sous src/data/ — les noms ont changé`)
+  const AMB = JSON.parse(readFileSync(AMBIANCE, 'utf8'))
+  const CLES_AMB = Object.keys(AMB).filter((k) => !['id', 'type', 'label', 'desc', 'source', 'maison'].includes(k))
+  if (!CLES_AMB.length) abandon(`${AMBIANCE} ne porte plus aucune clé d'ambiance hors enveloppe`)
 
-// ── APPENDICES du rig : le registre, ses defs, et qui les référence PAR ID ─────────────────────
+  // ── DÉTAIL de surface : les sections d'une `DetailRecipe` ────────────────────────────────────────
 
-const APPENDAGES = ancre(`${ISO}/rig/parts/appendages`, 'registre des appendices')
-const APPENDAGES_DEFS = ancre(`${APPENDAGES}/defs`, 'defs du registre des appendices')
+  const RECETTE = (() => {
+    const { text, sf } = loadSource(DETAIL)
+    let decl
+    sf.forEachChild((n) => {
+      if (ts.isInterfaceDeclaration(n) && n.name.text === 'DetailRecipe') decl = n
+    })
+    if (!decl) abandon(`interface \`DetailRecipe\` introuvable dans ${DETAIL}`)
+    const rows = []
+    let prevEnd = decl.members.pos
+    for (const m of decl.members) {
+      if (!ts.isPropertySignature(m)) continue
+      const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
+      rows.push({ nom: m.name.getText(sf) + (m.questionToken ? '?' : ''), role: doc ? plat(firstSentence(doc)) : null })
+      prevEnd = m.getEnd()
+    }
+    if (!rows.length) abandon(`\`DetailRecipe\` sans section lisible (${DETAIL})`)
+    return { rows, l: ligne(sf, decl.name.getStart(sf)) }
+  })()
 
-/** 1 appendice = 1 def qui porte SON art : l'id est LU au def et confronté au nom de fichier. */
-const APPENDICES = listerDossier(APPENDAGES_DEFS)
-  .filter((f) => f.endsWith('.ts') && !f.includes('.test.'))
-  .map((f) => {
-    const fichier = `${APPENDAGES_DEFS}/${f}`
-    const t = readFileSync(fichier, 'utf8')
-    const id = t.match(/\bid:\s*'([^']+)'/)?.[1]
-    const label = t.match(/\blabel:\s*'([^']+)'/)?.[1]
-    if (!id || !label) abandon(`def d'appendice \`${fichier}\` sans \`id\`/\`label\` lisible`)
-    if (id !== f.replace(/\.ts$/, '')) abandon(`def d'appendice \`${fichier}\` : id « ${id} » ≠ nom de fichier`)
-    return { id, label, fichier, dos: /^\s*back:/m.test(t), profil: /^\s*profile:/m.test(t) }
-  })
-if (APPENDICES.length < 3) abandon(`moins de 3 defs sous ${APPENDAGES_DEFS}/ — le registre a changé de forme`)
+  // ── La GARDE anti-couleur : sa couverture RÉELLE, lue dans la garde ──────────────────────────────
 
-/** Références PAR ID hors du paquet registre : c'est la mesure du « référencé partout par id ». */
-const CONSOMMATEURS = (() => {
-  const fichiers = listerArbre(ISO, { filtre: (rel) => /\.tsx?$/.test(rel) && !rel.includes('.test.') })
+  const COUVERTURE = (() => {
+    const src = readFileSync(GARDE, 'utf8')
+    const liste = (nom) => {
+      const m = src.match(new RegExp(`const ${nom} = \\[([\\s\\S]*?)\\]`))
+      if (!m) abandon(`\`${nom}\` illisible dans ${GARDE} — la couverture de la garde ne se dérive plus`)
+      return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+    }
+    return { balayees: liste('SWEEP_DIRS'), racine: liste('ROOT_RENDERERS'), chrome: liste('CHROME_RENDERERS') }
+  })()
+  for (const d of COUVERTURE.balayees) ancre(`${ISO}/${d}`, `arborescence balayée par la garde anti-couleur`)
+  for (const f of [...COUVERTURE.racine, ...COUVERTURE.chrome]) ancre(`${ISO}/${f}`, `renderer nommé par la garde anti-couleur`)
+  const HORS = SOUS_DOSSIERS.filter((d) => !COUVERTURE.balayees.includes(d.nom)).map((d) => d.nom)
+
+  // ── Catalogues de matériaux : population mesurée ─────────────────────────────────────────────────
+
+  const CATALOGUES = ['structureAppearance', 'materials', 'decorPalette']
+    .map((n) => ({ n, p: `src/data/${n}.json` }))
+    .filter(({ p }) => existsSync(p))
+    .map(({ n, p }) => {
+      const d = JSON.parse(readFileSync(p, 'utf8'))
+      const entrees = Array.isArray(d) ? d.length : d && typeof d === 'object' && d.entries ? Object.keys(d.entries).length : Object.keys(d).length
+      return { n, p, entrees }
+    })
+  if (CATALOGUES.length < 3) abandon(`moins de 3 catalogues de matériaux trouvés sous src/data/ — les noms ont changé`)
+
+  // ── APPENDICES du rig : le registre, ses defs, et qui les référence PAR ID ─────────────────────
+
+  const APPENDAGES = ancre(`${ISO}/rig/parts/appendages`, 'registre des appendices')
+  const APPENDAGES_DEFS = ancre(`${APPENDAGES}/defs`, 'defs du registre des appendices')
+
+  /** 1 appendice = 1 def qui porte SON art : l'id est LU au def et confronté au nom de fichier. */
+  const APPENDICES = listerDossier(APPENDAGES_DEFS)
+    .filter((f) => f.endsWith('.ts') && !f.includes('.test.'))
+    .map((f) => {
+      const fichier = `${APPENDAGES_DEFS}/${f}`
+      const t = readFileSync(fichier, 'utf8')
+      const id = t.match(/\bid:\s*'([^']+)'/)?.[1]
+      const label = t.match(/\blabel:\s*'([^']+)'/)?.[1]
+      if (!id || !label) abandon(`def d'appendice \`${fichier}\` sans \`id\`/\`label\` lisible`)
+      if (id !== f.replace(/\.ts$/, '')) abandon(`def d'appendice \`${fichier}\` : id « ${id} » ≠ nom de fichier`)
+      return { id, label, fichier, dos: /^\s*back:/m.test(t), profil: /^\s*profile:/m.test(t) }
+    })
+  if (APPENDICES.length < 3) abandon(`moins de 3 defs sous ${APPENDAGES_DEFS}/ — le registre a changé de forme`)
+
+  /** Références PAR ID hors du paquet registre : c'est la mesure du « référencé partout par id ». */
+  const CONSOMMATEURS = (() => {
+    const fichiers = listerArbre(ISO, { filtre: (rel) => /\.tsx?$/.test(rel) && !rel.includes('.test.') })
+      .map((rel) => `${ISO}/${rel}`)
+      .filter((f) => !f.startsWith(`${APPENDAGES}/`))
+    const parId = new Map(APPENDICES.map((a) => [a.id, new Set()]))
+    for (const f of fichiers) {
+      const t = readFileSync(f, 'utf8')
+      for (const a of APPENDICES) if (t.includes(`'${a.id}'`)) parId.get(a.id).add(f)
+    }
+    return parId
+  })()
+
+  /** La primitive UNIQUE de résolution vue→art, et les coutures qui l'appellent sur un appendice. */
+  const VIEW_OR_FRONT = (() => {
+    const p = ancre(`${ISO}/rig/parts/types.ts`, 'primitive de résolution par vue')
+    const { sf, text } = loadSource(p)
+    const i = text.indexOf('export function viewOrFront')
+    if (i < 0) abandon(`\`viewOrFront\` introuvable dans ${p} — la résolution des appendices ne se dérive plus`)
+    return { fichier: p, ligne: ligne(sf, i) }
+  })()
+  const COUTURES = listerArbre(ISO, { filtre: (rel) => /\.tsx?$/.test(rel) && !rel.includes('.test.') })
     .map((rel) => `${ISO}/${rel}`)
-    .filter((f) => !f.startsWith(`${APPENDAGES}/`))
-  const parId = new Map(APPENDICES.map((a) => [a.id, new Set()]))
-  for (const f of fichiers) {
-    const t = readFileSync(f, 'utf8')
-    for (const a of APPENDICES) if (t.includes(`'${a.id}'`)) parId.get(a.id).add(f)
-  }
-  return parId
-})()
+    .filter((f) => !f.startsWith(`${APPENDAGES}/`) && readFileSync(f, 'utf8').includes('appendageArt('))
+  if (!COUTURES.length) abandon(`aucune couture n'appelle \`appendageArt(\` hors du registre — forme changée`)
 
-/** La primitive UNIQUE de résolution vue→art, et les coutures qui l'appellent sur un appendice. */
-const VIEW_OR_FRONT = (() => {
-  const p = ancre(`${ISO}/rig/parts/types.ts`, 'primitive de résolution par vue')
-  const { sf, text } = loadSource(p)
-  const i = text.indexOf('export function viewOrFront')
-  if (i < 0) abandon(`\`viewOrFront\` introuvable dans ${p} — la résolution des appendices ne se dérive plus`)
-  return { fichier: p, ligne: ligne(sf, i) }
-})()
-const COUTURES = listerArbre(ISO, { filtre: (rel) => /\.tsx?$/.test(rel) && !rel.includes('.test.') })
-  .map((rel) => `${ISO}/${rel}`)
-  .filter((f) => !f.startsWith(`${APPENDAGES}/`) && readFileSync(f, 'utf8').includes('appendageArt('))
-if (!COUTURES.length) abandon(`aucune couture n'appelle \`appendageArt(\` hors du registre — forme changée`)
+  const CAPTURE = ancre('scripts/qc/capture-jeu.mjs', 'capture QC du jeu')
 
-const CAPTURE = ancre('scripts/qc/capture-jeu.mjs', 'capture QC du jeu')
+  // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
-// ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
+  const table = (rows, entete, l) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(l).join('\n')}`
+  const tableChamps = (c) => table(c.rows, ['Champ', 'Type', 'Rôle (JSDoc)'], (r) => `| \`${r.nom}\` | \`${r.type}\` | ${r.role ?? '—'} |`)
 
-const table = (rows, entete, l) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(l).join('\n')}`
-const tableChamps = (c) => table(c.rows, ['Champ', 'Type', 'Rôle (JSDoc)'], (r) => `| \`${r.nom}\` | \`${r.type}\` | ${r.role ?? '—'} |`)
-
-const out = `# Pipeline de rendu — « une scène, une apparence, N projections »
+  const out = `# Pipeline de rendu — « une scène, une apparence, N projections »
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-rendu-pipeline.mjs\` (\`npm run docs:rendu-pipeline\`) — NE PAS ÉDITER À LA MAIN.
 
@@ -349,9 +351,9 @@ et la résolution passe par la primitive unique \`viewOrFront\` (\`${VIEW_OR_FRO
 sur un appendice par ${COUTURES.map((f) => `\`${f}\``).join(', ')}.
 
 ${table(APPENDICES, ['Appendice', 'id', 'Def', 'Dos propre', 'Référencé par'], (a) => {
-  const c = [...CONSOMMATEURS.get(a.id)]
-  return `| ${a.label} | \`${a.id}\` | \`${a.fichier}\` | ${a.dos ? 'oui' : '= face'} | ${c.length ? `${c.length} — ${c.map((f) => `\`${f}\``).join(', ')}` : '**0**'} |`
-})}
+    const c = [...CONSOMMATEURS.get(a.id)]
+    return `| ${a.label} | \`${a.id}\` | \`${a.fichier}\` | ${a.dos ? 'oui' : '= face'} | ${c.length ? `${c.length} — ${c.map((f) => `\`${f}\``).join(', ')}` : '**0**'} |`
+  })}
 
 Un **0** en « Référencé par » est une PISTE, pas une preuve de mort : la colonne compte les fichiers de
 \`${ISO}/\` (hors tests et hors registre) qui citent l'id — un id choisi en donnée de scène ou au Codex n'y
@@ -407,14 +409,21 @@ ${table(CATALOGUES, ['Catalogue', 'Entrées'], (c) => `| \`${c.p}\` | ${c.entree
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
 `
+  return {
+    out,
+    path: 'docs/rendu-pipeline.md',
+    staleMsg:
+      'docs:rendu-pipeline — docs/rendu-pipeline.md est PÉRIMÉ (diverge de src/gameIso/, de src/data/ambiance.json, de la garde anti-couleur, ou du script).',
+    rerunMsg: '  → relancer `npm run docs:rendu-pipeline` (dérivé jamais commité, #2203).',
+    okMsg: 'docs:rendu-pipeline — OK (docs/rendu-pipeline.md à jour)',
+    writeMsg: `docs/rendu-pipeline.md — ${SCENE_EL.membres.length} membres de SceneEl, ${BUILDERS_MESURES.length} builders, ${SOUS_DOSSIERS.length} sous-dossiers, ${CATALOGUES.length} catalogues.`,
+  }
+}
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/rendu-pipeline.md',
-  check: process.argv.includes('--check'),
-  staleMsg:
-    'docs:rendu-pipeline — docs/rendu-pipeline.md est PÉRIMÉ (diverge de src/gameIso/, de src/data/ambiance.json, de la garde anti-couleur, ou du script).',
-  rerunMsg: '  → relancer `npm run docs:rendu-pipeline` et committer le résultat.',
-  okMsg: 'docs:rendu-pipeline — OK (docs/rendu-pipeline.md à jour)',
-  writeMsg: `docs/rendu-pipeline.md — ${SCENE_EL.membres.length} membres de SceneEl, ${BUILDERS_MESURES.length} builders, ${SOUS_DOSSIERS.length} sous-dossiers, ${CATALOGUES.length} catalogues.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

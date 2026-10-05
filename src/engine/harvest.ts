@@ -5,11 +5,10 @@
 // Degré de Conservation depuis la mort. Le profil de récolte (rareté/dangerosité/usages)
 // est porté par la créature (`CreatureData.harvest`) — pas de table parallèle.
 import type { CreatureData, HarvestRarity, HarvestDanger } from '../data';
-import { findCreatureById } from '../data';
+import { findCreatureById, tailleDuProfil } from '../data';
 import { fromBrass, type Money, PA_PER_SC, PA_PER_CO } from './money';
-import { findResolvedTrait } from './traits/dispatch';
 import type { TraitList } from './statEntry';
-import { effectiveSize, parseSizeLabel, type SizeCategory } from './size';
+import { type SizeCategory } from './size';
 
 export type Rarity = HarvestRarity;
 export type Danger = HarvestDanger;
@@ -50,14 +49,11 @@ const HARVEST_SIZE_BY_CATEGORY: Record<SizeCategory, HarvestSize> = {
   monstrueuse: 'Monstrueuse',
 };
 
-/** Taille de récolte d'un cadavre : Trait `taille` lu par le REGISTRE (`findResolvedTrait` → `arg` →
- *  `parseSizeLabel`, même voie que `spawn.sizeFromTraits` et `possession.livingSize`). Sans Trait
- *  Taille, la catégorie retombe sur Moyenne par `effectiveSize` — ARBITRAGE de ce projet (standard
+/** Taille de récolte d'un cadavre : la Taille de son profil (`tailleDuProfil`, `src/data/index.ts`).
+ *  Sans Taille, la catégorie retombe sur Moyenne — ARBITRAGE de ce projet (standard
  *  implicite des espèces sans Trait, cf. `src/engine/size.ts`), la table ZI ne dit rien du cas. */
-export function harvestSizeOf(creature: { traits?: TraitList }): HarvestSize {
-  const arg = findResolvedTrait(creature.traits, 'taille')?.arg;
-  const parsed = arg ? parseSizeLabel(arg) : null;
-  return HARVEST_SIZE_BY_CATEGORY[effectiveSize(parsed ?? undefined)];
+export function harvestSizeOf(creature: { traits?: TraitList; talents?: readonly { id: string }[] }): HarvestSize {
+  return HARVEST_SIZE_BY_CATEGORY[tailleDuProfil(creature)];
 }
 
 /** Coût de base d'1 Enc de pièces de cette créature = rareté × dangerosité. */

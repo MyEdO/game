@@ -2,11 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
 import { isCapeItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
-import { weaponPart, armourPart, shieldPart, isShield, objetSansPorteur } from '../gameIso/rig/parts/equipment';
+import { armourPart, isShield, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { viewOrFront } from '../gameIso/rig/parts/types';
 import type { Slot } from '../gameIso/rig/bones';
 import { defsGlobaux } from '../gameIso/sprites';
 import { Icon } from './Icon';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { IconId } from './icons';
 
 /**
@@ -38,7 +39,7 @@ function resolve(item: ItemInstance | Weapon): Resolved {
   if ('kind' in item) {
     if (item.kind === 'armor') {
       for (const slot of ARMOUR_SLOTS) {
-        const p = armourPart(item, slot); // null si l'item ne couvre pas ce slot → on essaie le suivant
+        const p = armourPart(pieceDeDessin(item), slot); // null si l'item ne couvre pas ce slot → on essaie le suivant
         if (p) return { art: viewOrFront(objetSansPorteur(p), 'front'), geom: 'armor' };
       }
       return { glyph: 'item/armour' };
@@ -78,6 +79,7 @@ const VB_CACHE = new Map<string, string>();
 const cacheKey = (art: string, rotate: boolean) => (rotate ? 'r:' : 'n:') + art;
 
 export function ItemIcon({ item, size = 'sm' }: { item: ItemInstance | Weapon; size?: number | SizeKey }) {
+  useVersionDesDatasets();
   const r = resolve(item);
   const px = typeof size === 'number' ? size : SIZE_PX[size];
   if ('glyph' in r) {

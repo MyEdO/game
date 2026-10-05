@@ -31,7 +31,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob } from './lister.mjs'
-import { clotureDImports } from './importGraph.mjs'
+import { clotureDImports, estModule } from './importGraph.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
 import { scriptKindDe } from './dialecte.mjs'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
@@ -168,14 +168,7 @@ test('MUR — toute racine du registre des générateurs est sous les globs de c
 // --- (c) CLÔTURE : les modules atteints hors des globs, lintés par les règles du mur -------------
 
 test('CLÔTURE — aucun module atteint par une racine du registre, hors des globs du mur, n’enfreint ses règles', async () => {
-  const precedent = process.cwd()
-  process.chdir(RACINE_DEPOT)
-  let cloture
-  try {
-    cloture = [...clotureDImports(racinesDuRegistre())].sort()
-  } finally {
-    process.chdir(precedent)
-  }
+  const cloture = [...clotureDImports(racinesDuRegistre(), { racine: RACINE_DEPOT })].sort()
   // Contrôle de MESURE par DEUX témoins NOMMÉS, un de chaque côté de la frontière que ce volet existe
   // pour franchir : une lib de `scripts/` (ce que `closureOf`, bornée à `src/`, ne rend JAMAIS — et
   // c'est par là que l'incident #1620 est entré) et un module de `src/`, hors des globs du mur. Jamais
@@ -187,11 +180,8 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
     )
   }
 
-  // Une table `.json` de la clôture n'a pas de code à linter (dialecte `JSON`, `dialecte.mjs`) ; la
-  // source du mur, exemptée au fichier, n'est pas relintée.
-  const JSON_ = scriptKindDe('.json')
   const horsDuMur = cloture.filter(
-    (rel) => scriptKindDe(rel) !== JSON_ && !blocsDuMur().every((c) => couvre(c, rel)) && !blocsDuMur().some((c) => exempte(c, rel)),
+    (rel) => estModule(rel) && !blocsDuMur().every((c) => couvre(c, rel)) && !blocsDuMur().some((c) => exempte(c, rel)),
   )
   assert.ok(horsDuMur.includes('src/data/index.ts'), 'le témoin `src/data/index.ts` n’est plus linté par ce volet')
   const sonde = sondeDesDirectives(Object.keys(REGLES_ORDRE_TOTAL))
@@ -229,7 +219,7 @@ const EXEMPTIONS_DU_MUR = [
   'scripts/docs/lib/enregistreur-lectures.mjs:111', 'scripts/docs/lib/enregistreur-lectures.mjs:119',
   'scripts/docs/lib/enregistreur-lectures.mjs:123', 'scripts/docs/lib/enregistreur-lectures.mjs:133',
   'scripts/docs/lib/enregistreur-lectures.mjs:139',
-  'scripts/test/partition.mjs:172', 'scripts/test/partition.mjs:177',
+  'scripts/test/partition.mjs:173', 'scripts/test/partition.mjs:178',
 ]
 
 /** Sonde des commentaires ESLint qui ÉTEIGNENT l'une de ces règles, lus par la grammaire d'ESLint

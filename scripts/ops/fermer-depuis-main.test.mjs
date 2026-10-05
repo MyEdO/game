@@ -3,6 +3,7 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { readFileSync } from 'node:fs'
 import { FEUILLES, manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
@@ -20,10 +21,10 @@ test('fermerLeTicket : le solde POSTÉ puis l’état PATCHÉ — jamais `gh iss
   assert.equal(vus.length, 2)
   // Le corps ne passe NI par la liste d'arguments, NI par un fichier : `-F body=@-` le fait lire sur
   // l'ENTRÉE STANDARD (`gh api --help`, `cli/cli` 2.45.0).
-  assert.deepEqual(vus[0].args, ['api', 'repos/cgauche/game/issues/1813/comments', '-X', 'POST', '-F', 'body=@-'])
+  assert.deepEqual(vus[0].args, ['api', `repos/${DEPOT}/issues/1813/comments`, '-X', 'POST', '-F', 'body=@-'])
   assert.deepEqual(vus[0].o, { input: 'le solde' })
   assert.equal(vus.flatMap((v) => v.args).some((a) => a.includes('le solde') || a.startsWith('body=@/')), false)
-  assert.deepEqual(vus[1].args, ['api', 'repos/cgauche/game/issues/1813', '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
+  assert.deepEqual(vus[1].args, ['api', `repos/${DEPOT}/issues/1813`, '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
   for (const v of vus) assert.equal(v.args.includes('issue'), false)
 })
 
@@ -35,7 +36,7 @@ test('fermerLeTicket : `poser: false` rejoue le SEUL patch — un solde déjà a
   } })
   assert.deepEqual(vu, { ok: true })
   assert.equal(vus.length, 1)
-  assert.deepEqual(vus[0], ['api', 'repos/cgauche/game/issues/1813', '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
+  assert.deepEqual(vus[0], ['api', `repos/${DEPOT}/issues/1813`, '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
 })
 
 test('fermerLeTicket : la RAISON de fermeture est posée EXPLICITEMENT, et vaut `completed`', () => {

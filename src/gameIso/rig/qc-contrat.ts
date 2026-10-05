@@ -1,7 +1,6 @@
 /**
- * CONTRAT du harnais de mesure de volume (`scripts/qc/mesure-volume.mts`) — extrait en module
- * PUR pour être testable depuis `src/**` (vitest ne ramasse pas `scripts/**`, cf. `vite.config.ts`
- * `test.include`). Réf #635 (contrat écart∧part-claire) + #638 volet B (clause quasi-blanc).
+ * CONTRAT du harnais de mesure de volume (`scripts/qc/mesure-volume.mts`), en module PUR.
+ * Réf #635 (contrat écart∧part-claire) + #638 volet B (clause quasi-blanc).
  */
 
 export type Verdict = 'NON MESURABLE' | 'ECHEC' | 'NON-REFUTE';

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * LES CAMÉRAS SONT REPOSÉES, JAMAIS RECONSTRUITES (#1404) — l'écran volumique tient UNE caméra par

@@ -192,6 +192,7 @@ export function emptyWorldMap(): WorldMap {
  * (chargement de projet, entrée déjà résolue/concrète ou sparse à plat) et par l'éditeur au moment où
  * l'auteur choisit une réf au picker (`WorldMapEditor` — entrée sparse `{ ref, lighthouse }` : choisir
  * une réf REMPLACE le profil par celui du catalogue, seul `lighthouse` — hors catalogue — est préservé).
+ * Inverse : `portVersDepot`.
  */
 export function resolvePortRef(
   port: ({ ref?: string } & Partial<PortProfile> & { lighthouse?: boolean }) | undefined,
@@ -211,6 +212,32 @@ export function resolvePortRef(
     cosmopolite: port.cosmopolite ?? def.cosmopolite,
     lighthouse: port.lighthouse,
   };
+}
+
+/** Égalité PROFONDE de deux valeurs JSON (tableaux ordonnés, objets à clés sans ordre). */
+function egalJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => egalJson((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
+/**
+ * FORME CANONIQUE d'un port (dépôt) : une surcharge égale au catalogue disparaît. Sans `ref`, le port
+ * est rendu tel quel (même référence). Avec `ref`, il ne garde que `ref`, `lighthouse` s'il est posé, et
+ * chaque champ qui DIFFÈRE du défaut que `resolvePortRef({ ref })` en tire — source UNIQUE des défauts
+ * comme de l'erreur de `ref` inconnue.
+ */
+export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
+  if (!port?.ref) return port;
+  const { ref: _ref, lighthouse: _phare, ...defauts } = resolvePortRef({ ref: port.ref })!;
+  const clesSurchargees = (Object.keys(defauts) as (keyof typeof defauts)[]).filter(
+    (k) => port[k] !== undefined && !egalJson(port[k], defauts[k]),
+  );
+  const surcharges = tableTotale(clesSurchargees, (k) => port[k]);
+  return { ref: port.ref, ...surcharges, ...(port.lighthouse !== undefined ? { lighthouse: port.lighthouse } : {}) } as MapPlace['port'];
 }
 
 /** Lieu correspondant à une scène (être dans la scène = être à ce lieu). */
@@ -484,6 +511,8 @@ import { validateDocument, rapportDeFautes, type Faute } from '../data/schemas/v
 import { projetSchema, SCHEMA_PROJET } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema, typeNonNomme } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import { proseNonMaterialisee, versDisque } from '../data/schemas/grammaire/prose';
+import { tableTotale } from '../lib/tableTotale';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
  *  L1b, posée par l'enveloppe de `document()` depuis #1552. Le trio `id`/`label`/`versionContenu`
@@ -1115,9 +1144,14 @@ export const MAISON_PROJET_AUTHORE =
 type ProjetProuve = { [K in keyof ProjectDoc]: ProjectDoc[K] };
 
 /** Étape de la porte qui a refusé : document mal formé (illisible comme projet, ou que la migration
- *  n'a pas pu traverser), version sans migration, schéma, ou entrée de bibliothèque
+ *  n'a pas pu traverser), version sans migration, schéma, prose adressée non matérialisée (la FORME
+ *  DISQUE d'un projet livré, `proseNonMaterialisee`), ou entrée de bibliothèque
  *  (`campagneDeLEntree`, #1627). */
-export type CauseDeRefus = 'mal-forme' | 'version' | 'schema' | 'entree';
+export type CauseDeRefus = 'mal-forme' | 'version' | 'schema' | 'prose-non-materialisee' | 'entree';
+
+/** Un chemin brut en notation JSON (`narratif.presetsPnj[3].profil`). */
+const cheminJson = (chemin: readonly (string | number)[]): string =>
+  chemin.map((s, i) => (typeof s === 'number' ? `[${s}]` : i === 0 ? s : `.${s}`)).join('') || '(racine)';
 
 /** Refus de la porte `parseProject`, MESURÉ : la cause et les fautes (chemin + message), à charge de
  *  l'appelant de les dire à sa surface. Le `message` reste le rapport TECHNIQUE de la porte. Patron :
@@ -1201,12 +1235,14 @@ export function migreSceneDeProjet(scene: unknown, schema: unknown): Scene {
 /** Parse un document de projet, migrant au besoin via `migrateDoc`. Refus EXPLICITE (`ProjetRefuse`,
  *  jamais un throw sec sans espoir de migration), dont la cause se LIT : la raison d'un refus de
  *  migration est celle que `migrateDoc` nomme (`REFUS_DE_MIGRATION`) ; puis forme finale invalide
- *  (`scenes` absent/non-tableau) ou schéma enfreint. Les anciens formats (tableau de scènes nu,
+ *  (`scenes` absent/non-tableau), schéma enfreint, ou prose adressée sans son texte (la forme
+ *  disque d'un projet livré : un lecteur Node passe par `lireProjetLivre`). Les anciens formats (tableau de scènes nu,
  *  scène unique) restent refusés : ils n'ont jamais porté de `schema`. Chaque scène ressort passée
  *  par `normalizeScene` (`scene.ts`) : les collections requises absentes d'un document ancien (même
  *  schema 2) sont complétées ici, au SEUL point d'entrée, jamais par un `?? []` dispersé côté
  *  consommateur. La porte n'altère JAMAIS ce qu'on lui passe. Ce qui suit le schéma travaille sur
- *  un document PROUVÉ : une exception y est une faute du jeu, pas de l'auteur, et se propage. */
+ *  un document PROUVÉ : une exception y est une faute du jeu, pas de l'auteur, et se propage.
+ *  Inverse : `projetVersDepot`. */
 export function parseProject(data: unknown): Omit<ProjectDoc, 'schema'> {
   const migrated = migreFormeDeProjet(data);
   if (!Array.isArray(migrated.scenes)) {
@@ -1221,6 +1257,17 @@ export function parseProject(data: unknown): Omit<ProjectDoc, 'schema'> {
   const { version: _version, ...doc } = migrated;
   const fautes = validateDocument(projetSchema, doc);
   if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Projet', fautes));
+  // Un nœud ADRESSÉ sans son texte est la forme disque : le lire tel quel perdrait la prose en silence.
+  const nus = proseNonMaterialisee(doc);
+  if (nus.length > 0) {
+    const cause = 'prose-non-materialisee';
+    const message = 'prose adressée (`descRef`) sans son texte (`desc`)';
+    throw new ProjetRefuse(
+      cause,
+      nus.map((chemin) => ({ chemin, lieu: chemin, message, code: cause })),
+      `Projet invalide : ${message} — ${nus.map(cheminJson).join(', ')}.`,
+    );
+  }
 
   // Carte et lieux NEUFS : les ports se résolvent sur la copie, jamais sur le document reçu.
   const carteRecue = migrated.worldMap as WorldMap | undefined;
@@ -1235,4 +1282,16 @@ export function parseProject(data: unknown): Omit<ProjectDoc, 'schema'> {
   // du RESTE, typés : rien de ce que le document porte en plus ne peut s'y glisser muet.
   const { schema: _schema, scenes: _scenes, worldMap: _wm, activeAxes: _aa, narratif: _na, ...identite } = doc as ProjetProuve;
   return { ...identite, scenes: (migrated.scenes as Scene[]).map(normalizeScene), worldMap, activeAxes, narratif };
+}
+
+/**
+ * FORME DÉPÔT d'un document de projet — le fichier que l'on commite sous `src/scenes/` : inverse de
+ * TOUTES les matérialisations du chargement, la prose adressée (`versDisque`) et les ports par
+ * référence (`portVersDepot`). Fonction PURE, elle rend une copie.
+ */
+export function projetVersDepot<T extends { worldMap?: WorldMap }>(doc: T): T {
+  const disque = versDisque(doc);
+  const carte = disque.worldMap;
+  if (!carte) return disque;
+  return { ...disque, worldMap: { ...carte, places: carte.places.map((p) => (p.port ? { ...p, port: portVersDepot(p.port) } : p)) } };
 }

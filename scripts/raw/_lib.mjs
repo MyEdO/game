@@ -151,6 +151,22 @@ const HORS_REGLE = horsRegleDe(chapitresData)
 export const motifHorsRegle = (abbr, ch, table = HORS_REGLE) => table.get(abbr)?.get(Number(ch)) ?? null
 export const estHorsRegle = (abbr, ch, table = HORS_REGLE) => motifHorsRegle(abbr, ch, table) != null
 
+// Chapitres ou PLAGES de sections qui cataloguent des ENTITÉS (`chapitres.json`, `entites`) : sigle →
+// `[{ ch, from?, to?, motif }, …]` dans l'ORDRE DU FICHIER ; `from`/`to` sont des `{ slug, occ }`,
+// bornes incluses. Lu par `releve.mjs`.
+export const entitesDe = (chapitres, registre = booksData) => {
+  const parSigle = new Map()
+  for (const { book, ...plage } of chapitres.entites ?? []) {
+    const ab = sigleDe(book, registre)
+    if (!ab) continue
+    if (!parSigle.has(ab)) parSigle.set(ab, [])
+    parSigle.get(ab).push(plage)
+  }
+  return parSigle
+}
+const ENTITES = entitesDe(chapitresData)
+export const plagesDEntites = (abbr, table = ENTITES) => table.get(abbr) ?? []
+
 // Appartenance des chapitres aux CATALOGUES de l'Atlas (`chapitres.json`, `enCatalogue` : UNE entrée
 // par chapitre ET par catalogue) : id de catalogue → `[[abbr, [{ ch, from, to, title }, …]], …]`, dans
 // l'ORDRE DU FICHIER (registre des livres puis numéro de chapitre, tenu par `chapitres.test.mjs` —
@@ -351,15 +367,8 @@ export const allAbbrAlternation = () => ABBR_ALT
 const ABBR_ALT_REGISTRE = alternationDe(booksData.filter((b) => b.abbr).map((b) => b.abbr))
 export const alternationDuRegistre = () => ABBR_ALT_REGISTRE
 
-// MARQUEUR de BLOC PRÉSERVÉ d'un livre — `<!-- <ABRÉV>-INTEGRATION -->` : un correctif MANUEL posé
-// dans une fiche ou un catalogue de l'Atlas, que `build-catalogs.mjs` re-préserve à chaque
-// régénération et que `merge-docs.mjs` re-fusionne. L'ÉCRIVAIN (`apply-livre.mjs`) et les LECTEURS
-// passent par ICI, et la regex se DÉRIVE de `allAbbrAlternation` : un marqueur écrit que le
-// lecteur ne relit pas, c'est un correctif manuel effacé sans un mot à la régénération suivante.
+// Sentinel d'intégration d'un livre dans une fiche de l'Atlas : `apply-livre.mjs`.
 export const marqueurIntegration = (abbr) => `<!-- ${abbr}-INTEGRATION -->`
-export const marqueurIntegrationFin = (abbr) => `<!-- /${abbr}-INTEGRATION -->`
-export const blockStartReDe = (alt) => new RegExp(`^<!-- ((?:${alt})-INTEGRATION) -->`)
-export const blockStartRe = () => blockStartReDe(ABBR_ALT)
 
 // Mention LÂCHE d'un chapitre (« <ABRÉV> 12 », « <ABRÉV> ch.7 », sans réf de ligne) sur l'alternation
 // que l'appelant injecte : c'est elle qui dit « ce document parle de ce chapitre » (`reconcile.mjs`,

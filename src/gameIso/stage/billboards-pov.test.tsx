@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * BILLBOARDS EN PREMIÈRE PERSONNE (#1176) — l'art des quads suit enfin le regard de l'œil.

@@ -2,6 +2,7 @@ import { forwardRef, type AriaAttributes, type AriaRole, type ReactNode } from '
 import type { SceneEntity } from '../state/scene';
 import { tokenBodyKind } from '../gameIso/tokenBodyKind';
 import { Fleuron } from './Ornaments';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 
 /**
  * Bandeau d'interlocuteur (#371 lot 1) — gabarit visuel UNIQUE d'un PNJ qui s'adresse au joueur :
@@ -36,6 +37,7 @@ export const SpeakerBanner = forwardRef<HTMLDivElement, SpeakerBannerProps>(func
   { ent, label, variant = 'dialogue', children, choices, className, labelId, textId, ...aria },
   ref,
 ) {
+  useVersionDesDatasets();
   const portrait = ent ? tokenBodyKind({ kind: 'sceneEntity', ent }, 'top') : null;
   const showPortraitSlot = portrait != null || variant === 'boniment';
   return (

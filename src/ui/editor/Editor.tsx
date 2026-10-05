@@ -23,7 +23,7 @@ import { downloadText } from '../../lib/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
-import { WorldMap, parseProject, documentDeProjet, MAISON_PROJET_AUTHORE, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
+import { WorldMap, parseProject, projetVersDepot, documentDeProjet, MAISON_PROJET_AUTHORE, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
 import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
 import { nextEntityId } from '../../state/entityId';
 import { publierEditeur } from '../../state/editeurBridge';
@@ -173,6 +173,9 @@ export function Editor({
   const [identite, setIdentite] = useState<Omit<ProjectIdentite, 'label'> | undefined>(undefined);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState('La Diligence');
+  /** Campagne LIVRÉE d'où vient le projet ouvert (`loadBuiltin`) : son fichier, son libellé, et le nom
+   *  que l'éditeur a posé à l'ouverture. `null` pour toute autre origine. Porte le geste « forme dépôt ». */
+  const [origineLivree, setOrigineLivree] = useState<{ fichier: string; label: string; nomALOuverture: string } | null>(null);
   const [published, setPublished] = useState(false);
   const [saveError, setSaveError] = useState<RefusRendu | null>(null);
   /** Refus d'un geste du menu Fichier — export, import, mise à l'essai : ces gestes n'ont AUCUNE
@@ -688,6 +691,21 @@ export function Editor({
     setRefusDuGeste(null);
     downloadText(`${scene.id}-projet.json`, JSON.stringify(project, null, 2));
   }
+  /** Export en FORME DÉPÔT (DEV) d'une campagne livrée : le fichier que l'on commite sous `src/scenes/`
+   *  (`projetVersDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
+   *  nom posé à l'ouverture n'a pas bougé, sinon le nom que l'auteur a donné. Équivalent projet de
+   *  `datasetSerializeRoot` (`data/overrides.ts`) ; la même porte que l'export passe AVANT. */
+  function exportDepot(origine: NonNullable<typeof origineLivree>) {
+    const nom = projectName === origine.nomALOuverture ? origine.label : projectName;
+    const project = documentCourant(nom, projectId ?? scene.id);
+    const refus = refusDeLaPorte(project, 'export');
+    if (refus) {
+      setRefusDuGeste({ titre: TITRE_EXPORT, ...refus });
+      return;
+    }
+    setRefusDuGeste(null);
+    downloadText(origine.fichier, `${JSON.stringify(projetVersDepot(project), null, 1)}\n`);
+  }
   /**
    * Un fichier peut être refusé pour DEUX causes, et l'auteur ne corrige pas la même chose : le
    * fichier n'est pas du JSON (éditeur de texte), ou c'est un JSON que la porte du document refuse
@@ -724,6 +742,7 @@ export function Editor({
       setIdentite(ident);
       setProjectId(ident.id);
       setProjectName(label);
+      setOrigineLivree(null);
       setSel(null);
       resetScene(clone(scenes[0]));
     });
@@ -757,6 +776,7 @@ export function Editor({
     setIdentite(undefined);
     setProjectId(null);
     setProjectName(sc.title);
+    setOrigineLivree(null);
     setPublished(false);
     setSel(null);
     resetScene(clone(construit.scene));
@@ -783,7 +803,9 @@ export function Editor({
     // Seul `projectId` reste `null` — l'enregistrement crée une entrée neuve.
     setIdentite(copie.identite);
     setProjectId(null);
-    setProjectName(`Copie de ${bc.label}`);
+    const nom = `Copie de ${bc.label}`;
+    setProjectName(nom);
+    setOrigineLivree({ fichier: bc.fichier, label: bc.label, nomALOuverture: nom });
     setPublished(false);
     setSel(null);
     resetScene(copie.depart);
@@ -816,6 +838,7 @@ export function Editor({
     setIdentite(ident);
     setProjectId(p.id);
     setProjectName(label);
+    setOrigineLivree(null);
     setPublished(p.published);
     setSel(null);
     resetScene(clone(scenes[0]));
@@ -873,6 +896,7 @@ export function Editor({
     setIdentite(undefined);
     setProjectId(null);
     setProjectName('Nouveau projet');
+    setOrigineLivree(null);
     setPublished(false);
     setSel(null);
     resetScene(emptyScene());
@@ -937,6 +961,7 @@ export function Editor({
         onImport={importJson}
         onExport={exportJson}
         onExportAscii={exportAscii}
+        onExportDepot={import.meta.env.DEV && origineLivree ? () => exportDepot(origineLivree) : undefined}
         onAdvanced={openAdvanced}
         undo={undo}
         redo={redo}
@@ -1153,6 +1178,7 @@ export function Editor({
         scene={scene}
         otherScenes={otherScenes}
         worldMap={worldMap}
+        objets={narratif.objets}
         setScene={setScene}
         warnings={warnings}
         onSelectWarning={selectWarning}
@@ -1218,7 +1244,7 @@ export function Editor({
         </Modal>
       )}
       {worldOpen && (
-        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={[scene, ...otherScenes]} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
+        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={[scene, ...otherScenes]} objets={narratif.objets} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
       )}
       {narratifOpen && (
         <NarratifEditor narratif={narratif} onChange={setNarratif} onClose={() => setNarratifOpen(false)} />

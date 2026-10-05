@@ -10,10 +10,9 @@
  */
 import { CustomStatblock } from '../../state/scene';
 import { CHAR_KEYS, CHAR_LABELS, CharKey } from '../../engine/types';
-import { creatures, findCreatureById, skillRefLabel, talentRefLabel } from '../../data';
+import { creatures, findCreatureById, skillRefLabel, tailleDuProfil, talentRefLabel } from '../../data';
 import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '../../engine/size';
 import { bonus } from '../../engine/characteristics';
-import { sizeFromTraits } from '../../state/spawn';
 import { SpellsField } from './OptionalTraitsPicker';
 import { TraitListField } from '../compendium/StructFields';
 import { Icon } from '../Icon';
@@ -46,9 +45,9 @@ function cloneFromCreature(creatureId: string): CustomStatblock | null {
 
 export function StatblockEditor({ stat, onChange }: { stat: CustomStatblock; onChange: (s: CustomStatblock) => void }) {
   const setChar = (k: string, v: number) => onChange({ ...stat, char: { ...stat.char, [k]: v } });
-  // Blessures de la formule (LDB 85), recalculées en live depuis F/E/FM + la Taille (explicite ou dérivée
-  // d'un Trait « Taille (X) », sinon Moyenne) — sert de placeholder au champ « B » laissé vide.
-  const size = stat.size ?? sizeFromTraits(stat.traits ?? []) ?? 'moyenne';
+  // Blessures de la formule (LDB 85), recalculées en live depuis F/E/FM + la Taille du profil
+  // (`tailleDuProfil`, `size` explicite compris) — sert de placeholder au champ « B » laissé vide.
+  const size = tailleDuProfil(stat);
   const formulaWounds = woundsForSize(bonus(stat.char.force ?? 30), bonus(stat.char.endurance ?? 30), bonus(stat.char['force-mentale'] ?? 30), size);
   /** Champ Blessures optionnel : vide → `char.B` retiré (formule au spawn) ; rempli → surcharge fixe. */
   const setB = (v: number | null) => {

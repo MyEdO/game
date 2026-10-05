@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { describe, it, expect } from 'vitest';
 import { sortByDepth, mergeByDepth, type StageObj } from './objs';
 

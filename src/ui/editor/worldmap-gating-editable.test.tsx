@@ -44,7 +44,7 @@ function Harness() {
   const [m, setM] = useState<WorldMap | null>(baseMap());
   const [axes, setAxes] = useState<string[] | undefined>(undefined);
   lastMap = m;
-  return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} onClose={() => {}} activeAxes={axes} setActiveAxes={setAxes} />;
+  return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} objets={[]} onClose={() => {}} activeAxes={axes} setActiveAxes={setAxes} />;
 }
 
 function mount() {

@@ -34,16 +34,19 @@ import {
   careerRollPool,
   withCoastalSwap,
   speciesTalentChoiceEntries,
-  trappingSlotResolved,
+  unresolvedTrappingSlots,
   rerollDraftTalent,
   withRandomTalentSpec,
   withSpeciesTalentChoice,
 } from './draft';
 import { CHAR_KEYS } from '../../engine/types';
-import { rigSpeciesId, trappingRefLabel, type TrappingRef } from '../../data';
+import { rigSpeciesId, trappingRefLabel } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './draft';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
-import { adresseDeCreation, speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
+import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
+import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
+import { emplacementsDeDotation } from '../../engine/trappingChoices';
+import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
 import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
@@ -57,7 +60,7 @@ const draft = () => withCareer(withSpecies(newDraft(1234), DEFAULT_SPECIES.id), 
 /** Spécialisation par défaut des jokers de carrière (1re du pool LIBRE) + répartition par défaut des
  *  40 Augmentations (`evenCareerSkillAdvances`). */
 function carrierePrete(d: CreatorDraft): Pick<CreatorDraft, 'specChoices' | 'skillAdvances'> {
-  let specChoices: Record<string, string> = {};
+  let specChoices: Record<AdresseDeCreation, string> = {};
   for (const { adresse, ref } of careerSkillEntries(d)) {
     if (ref.choix == null) continue;
     const c = careerSkillEntries({ ...d, specChoices }).find((e) => e.adresse === adresse)!;
@@ -82,7 +85,7 @@ function readyDraft() {
     speciesPlus5: speciesSkillDefaults(sp).plus5,
     speciesPlus3: speciesSkillDefaults(sp).plus3,
     ...carrierePrete(d),
-    speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
+    speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } },
     careerTalent: 'id' in level.talents[0] ? designer('talent', level.talents[0]) : undefined, // un Talent du Niveau 1 de la carrière (LDB 05 l.535)
     label: 'Testeur',
   };
@@ -128,7 +131,7 @@ describe('aléatoire FIGÉ (anti-savescum)', () => {
     const d = rollDraftTalents(draft()); // geste 5c posé — Reiklander : « 3 Talent aléatoire »
     expect(resolveSpeciesTalents(draftSpecies(d)!, d)).toEqual(resolveSpeciesTalents(draftSpecies(d)!, d));
     // Changer un choix « A ou B » ne re-tire pas les dés des aléatoires.
-    const d2 = { ...d, speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } } };
+    const d2 = { ...d, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } } };
     const randoms = (x: RefDesignee[]) => x.filter((t) => !['perspicace', 'affable', 'destinee'].includes(t.id));
     expect(randoms(resolveSpeciesTalents(draftSpecies(d2)!, d2))).toEqual(randoms(resolveSpeciesTalents(draftSpecies(d)!, d)));
   });
@@ -177,7 +180,7 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
   });
 
   it('un doublon au Maxi est signalé `auMaxi` (LDB 10 l.18) ; sous le Maxi, non', () => {
-    expect(speciesTalentRandomDrawn(withSpeciesTalentChoice(tire(5), 'espece:talents:0', { id: 'perspicace' }))[1]).toMatchObject({ ref: { id: 'perspicace' }, doublon: true, auMaxi: true });
+    expect(speciesTalentRandomDrawn(withSpeciesTalentChoice(tire(5), adresseDeCreation.especeTalent(0), { id: 'perspicace' }))[1]).toMatchObject({ ref: { id: 'perspicace' }, doublon: true, auMaxi: true });
     expect(speciesTalentRandomDrawn(tire(169))[1]).toMatchObject({ ref: { id: 'doue-en-calcul' }, doublon: true, auMaxi: false });
   });
 
@@ -186,16 +189,45 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
     const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
     const d = {
       ...withSpecies(newDraft(1), 'humains-middenland'),
-      speciesTalentChoices: { 'espece:talents:1': { random: 1 } },
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
       talentRerolls: { [de(1, 0)]: 1, [de(2, 1)]: 1 },
       randomSpecPicks: { [de(1, 0)]: 'odorat', [de(2, 0)]: 'gout' },
     };
-    expect(withSpeciesTalentChoice(d, 'espece:talents:1', { random: 1 })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
-    expect(withSpeciesTalentChoice(d, 'espece:talents:1', { id: 'destinee' })).toMatchObject({
-      speciesTalentChoices: { 'espece:talents:1': { id: 'destinee' } }, talentRerolls: { [de(2, 1)]: 1 }, randomSpecPicks: { [de(2, 0)]: 'gout' },
-    });
-    expect(withSpeciesTalentChoice(d, 'espece:talents:0', { id: 'guerrier-ne' })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { random: 1 })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
+    const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
+    expect(change.speciesTalentChoices).toEqual({ [adresseDeCreation.especeTalent(1)]: { id: 'destinee' } });
+    expect(change.talentRerolls).toEqual({ [de(2, 1)]: 1 });
+    expect(change.randomSpecPicks).toEqual({ [de(2, 0)]: 'gout' });
+    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(0), { id: 'guerrier-ne' })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
     expect(withSpecies(d, 'nains')).toMatchObject({ talentRerolls: {}, randomSpecPicks: {} });
+  });
+
+  it('les tirages d’une entrée sont les SIENS : l’entrée 1 ne remet pas à zéro ceux de l’entrée 10', () => {
+    const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
+    const d = {
+      ...withSpecies(newDraft(1), 'humains-middenland'),
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
+      talentRerolls: { [de(1, 0)]: 1, [de(10, 0)]: 2 },
+      randomSpecPicks: { [de(1, 0)]: 'odorat', [de(10, 0)]: 'gout' },
+    };
+    const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
+    expect(change.talentRerolls).toEqual({ [de(10, 0)]: 2 });
+    expect(change.randomSpecPicks).toEqual({ [de(10, 0)]: 'gout' });
+  });
+});
+
+describe('changer d’espèce ou de carrière écarte les spécialisations des emplacements de SA famille', () => {
+  const a = adresseDeCreation;
+  const autreEspece = allSpecies.find((s) => s.id !== DEFAULT_SPECIES.id)!.id;
+  const autreCarriere = careersForSpecies(DEFAULT_SPECIES.refCareer).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
+  const d = () => ({ ...draft(), specChoices: { [a.especeTalent(0)]: 'e', [a.carriereCompetence(0)]: 'c', [a.ajout('metier')]: 'x', [a.signe(1)]: 's' } });
+
+  it('l’espèce écarte les emplacements d’espèce et les ajouts, garde la carrière et le signe', () => {
+    expect(withSpecies(d(), autreEspece).specChoices).toEqual({ [a.carriereCompetence(0)]: 'c', [a.signe(1)]: 's' });
+  });
+
+  it('la carrière écarte les emplacements de carrière et les ajouts, garde l’espèce et le signe', () => {
+    expect(withCareer(d(), autreCarriere).specChoices).toEqual({ [a.especeTalent(0)]: 'e', [a.signe(1)]: 's' });
   });
 });
 
@@ -420,7 +452,7 @@ describe('buildHero — bout en bout', () => {
 });
 
 describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, construct de choix d\'équipement)', () => {
-  const WEAPON_SLOT = 'Arme (au choix)'; // trappingRefLabel({ wildcard: 'arme' })
+  const WEAPON_SLOT = emplacementsDeDotation('pretre-guerrier', 1).find((e) => e.sorte === 'joker')!.adresse;
 
   it('trappingChoices (id STABLE) résout l\'emplacement en l\'objet catalogue choisi', () => {
     // Prêtre Guerrier (Novice) : seule carrière du LDB à porter { wildcard: 'arme' } (l.1).
@@ -437,44 +469,21 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
     expect(validateStep({ ...base, trappingChoices: {} }, 'trappings')).toMatch(/Arme \(au choix\)/);
     expect(validateStep({ ...base, trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } }, 'trappings')).toBeNull();
   });
-});
 
-describe('trappingSlotResolved — emplacement `{choice}` (construct de choix d\'équipement, Lot 1/2)', () => {
-  it('un `{choice}` résolu vers la 2e branche est tenu pour résolu (et vers la bonne branche)', () => {
-    const ref: TrappingRef = { choice: [{ id: 'epee' }, { id: 'hache' }] };
-    const label = trappingRefLabel(ref);
-    expect(trappingSlotResolved(ref, {})).toBe(false); // aucun choix posé : pas encore résolu à l'étape
-    expect(trappingSlotResolved(ref, { [label]: trappingRefLabel({ id: 'hache' }) })).toBe(true);
-    expect(trappingSlotResolved(ref, { [label]: 'inconnu' })).toBe(false);
-  });
-
-  it('un `{choice}` imbriqué exige la résolution RÉCURSIVE de la branche choisie', () => {
-    const inner: TrappingRef = { choice: [{ id: 'dague' }, { wildcard: 'arme' }] };
-    const outer: TrappingRef = { choice: [inner, { id: 'hache' }] };
-    const outerLabel = trappingRefLabel(outer);
-    const innerLabel = trappingRefLabel(inner);
-    const wildcardLabel = trappingRefLabel({ wildcard: 'arme' });
-    // Branche externe pointée vers `inner`, mais `inner` (lui-même un `{choice}`) pas encore résolu.
-    expect(trappingSlotResolved(outer, { [outerLabel]: innerLabel })).toBe(false);
-    // `inner` pointé vers son wildcard, mais ce wildcard est SANS id choisi.
-    expect(trappingSlotResolved(outer, { [outerLabel]: innerLabel, [innerLabel]: wildcardLabel })).toBe(false);
-    // Chaîne complète résolue jusqu'à la feuille.
-    expect(trappingSlotResolved(outer, { [outerLabel]: innerLabel, [innerLabel]: wildcardLabel, [wildcardLabel]: 'epee' })).toBe(true);
-  });
-
-  it('un `{id, qualityChoice}` est TOUJOURS résolu — choisi ou non (défaut raffine, #657 Lot 2)', () => {
-    const ref: TrappingRef = { id: 'fleuret', qualityChoice: true };
-    const label = trappingRefLabel(ref);
-    expect(trappingSlotResolved(ref, {})).toBe(true); // aucun choix : le résolveur défaute sur raffine
-    expect(trappingSlotResolved(ref, { [label]: 'solide' })).toBe(true);
-  });
-
-  it('une branche `{choice}` qui est un `{id, qualityChoice}` reste résolue même non tranchée', () => {
-    const branch: TrappingRef = { id: 'fleuret', qualityChoice: true };
-    const outer: TrappingRef = { choice: [{ id: 'miroir-a-main' }, branch] };
-    const outerLabel = trappingRefLabel(outer);
-    const branchLabel = trappingRefLabel(branch);
-    expect(trappingSlotResolved(outer, { [outerLabel]: branchLabel })).toBe(true);
+  it('la porte et `buildHero` lisent les MÊMES adresses : dotation de classe puis de niveau, branches comprises', () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      const dot = adresseDeCreation.dotation;
+      const d = { ...withCareer(readyDraft(), CARRIERE_FIXTURE), careerTalent: undefined, wealthRoll: true };
+      const [classe] = DOTATIONS_FIXTURE.classe;
+      const [joker, , branches] = DOTATIONS_FIXTURE.niveau;
+      expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches].map(trappingRefLabel));
+      const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague' };
+      expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
+      const objets = (buildHero({ ...d, trappingChoices }, 'h-dotations').items ?? []).map((it) => it.trappingId);
+      expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague']));
+      expect(objets).not.toContain('miroir-a-main');
+      expect(objets).not.toContain('grande-hache');
+    });
   });
 });
 

@@ -31,7 +31,7 @@ const CASES_MONSTRE = [['cornes', 'Cornes'], ['queue', 'Queue'], ['ailes', 'Aile
 
 /** Libellé d'AFFICHAGE d'une espèce d'auteur, lu sur l'entrée de son registre ; l'id nu hors registre. */
 function libelleDEspece(id: string): string {
-  return speciesSingular(findSpeciesById(id)?.label) || defById(id)?.label || libelleDeFormeDeNuee(id) || id;
+  return (findSpeciesById(id) ? speciesSingular(id) : '') || defById(id)?.label || libelleDeFormeDeNuee(id) || id;
 }
 
 /** Groupes d'espèces PROPOSÉS (`domaineDEspeces`) : une Nuée ne se dessine que par une forme de nuée,
@@ -158,7 +158,7 @@ export function MonsterPartsFields({
           ))}
           {CASES_MONSTRE.map(([k, lbl]) => (
             <label key={k} className="reglage-apparence">
-              <input type="checkbox" checked={!!monster?.[k]} onChange={(e) => poser({ monster: { [k]: e.target.checked || undefined } })} />
+              <input type="checkbox" aria-label={`${lbl} — mutation du rig`} checked={!!monster?.[k]} onChange={(e) => poser({ monster: { [k]: e.target.checked || undefined } })} />
               {lbl}
             </label>
           ))}

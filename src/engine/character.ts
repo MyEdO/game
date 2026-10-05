@@ -26,22 +26,20 @@ import {
   SpeciesData,
   CareerLevelData,
   findSpeciesById,
-  findCareerById,
-  findClassById,
   firstLevel,
   levelsForCareer,
   byId,
-  findTalentById,
+  tailleDuTalent,
   specPoolOf,
   talents as talentTable,
   rigSpeciesId,
-  type TrappingRef,
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
-import { resolveTrappingChoices } from './trappingChoices';
-import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
+import { resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
+import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
+import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
 
@@ -52,17 +50,6 @@ export function skillCharacteristicById(id: string): CharKey {
   return data?.characteristic ?? 'dexterite'; // CharKey stable portée par la donnée (repli prudent)
 }
 
-/** Adresse d'un EMPLACEMENT de création — la clé des choix portés par un emplacement (`specChoices`,
- *  `speciesTalentChoices`). Deux emplacements qui désignent la même Compétence restent deux adresses. */
-export const adresseDeCreation = {
-  especeTalent: (i: number): string => `espece:talents:${i}`,
-  /** Tirage `j` d'une entrée `{random: n}` de l'entrée d'espèce `i`, y compris comme option d'un choix. */
-  especeTirage: (i: number, j: number): string => `espece:talents:${i}:tirage:${j}`,
-  carriereCompetence: (i: number): string => `carriere:competences:${i}`,
-  ajout: (skillId: string): string => `ajout:${skillId}`,
-  signe: (k: number): string => `signe:${k}`,
-};
-
 /** « Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ » (LDB 05 l.535). */
 export const CAREER_SKILL_ADVANCES = 40;
 /** « sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade » (LDB 05 l.535). */
@@ -72,8 +59,9 @@ export const MAX_ADV_PER_SKILL = 10;
 export const CAREER_SKILLS_ADVANCED = 8;
 
 /** Format PERSISTÉ des choix de création (brouillon du roster) : 4 = flux des tirages de Talents sous
- *  l'étape `talents`, option « A ou B » par `cleDOption` (#1897). */
-export const FORMAT_DES_CHOIX = 4;
+ *  l'étape `talents`, option « A ou B » par `cleDOption` (#1897) ; 5 = choix de dotation par adresse
+ *  (#1988). */
+export const FORMAT_DES_CHOIX = 5;
 
 /** Étapes aléatoires de la création, chacune son flux (`fluxDeCreation`). */
 export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details';
@@ -102,14 +90,14 @@ export interface ChoixDeCreation {
    *  du Niveau 1 dont le Maxi n'est pas atteint. */
   careerTalent?: RefDesignee;
   /** Spécialisation choisie (id) par ADRESSE d'emplacement (`adresseDeCreation`). */
-  specChoices?: Record<string, string>;
+  specChoices?: Record<AdresseDeCreation, string>;
   /** Option retenue, une option de `of`, par adresse d'une entrée « A ou B » des Talents d'espèce ; comparée par
    *  `cleDOption` ; défaut : la 1re de `of`. */
-  speciesTalentChoices?: Record<string, AdvancementRef>;
+  speciesTalentChoices?: Record<AdresseDeCreation, AdvancementRef>;
   /** Spécialisation (id) d'un Talent aléatoire tiré, par adresse de tirage (`adresseDeCreation.especeTirage`). */
-  randomSpecPicks?: Record<string, string>;
+  randomSpecPicks?: Record<AdresseDeCreation, string>;
   /** Relances d'un Talent aléatoire tiré, par adresse de tirage (LDB 05 l.484). Absente : le tirage est gardé. */
-  talentRerolls?: Record<string, number>;
+  talentRerolls?: Record<AdresseDeCreation, number>;
   /** Les Talents aléatoires sont-ils découverts (#393) ? `false` : ils sont résolus mais n'entrent pas dans
    *  le résultat ; absent : découverts. */
   talentsRolled?: boolean;
@@ -118,8 +106,8 @@ export interface ChoixDeCreation {
   skillAdvances?: Record<string, number>;
   /** Compétences d'espèce recevant +5/+3 (LDB 05 l.484). Défaut : 3 premières / 3 suivantes. */
   speciesSkillAdvances?: { plus5: RefDesignee[]; plus3: RefDesignee[] };
-  /** Emplacements `{choice}`/`{wildcard}` des dotations, cf. `resolveTrappingChoices`. */
-  trappingChoices?: Record<string, string>;
+  /** Choix des emplacements de dotation par adresse (`emplacementsDeDotation`). */
+  trappingChoices?: ChoixDeDotation;
   /** Sorts de Magie mineure choisis (ids de `spells.json`), dans la limite du quota (LDB 10 l.714). */
   pettySpells?: string[];
 }
@@ -149,7 +137,7 @@ export function designer(kind: 'skill' | 'talent', ref: RefASpecialisation, choi
 
 /** Un emplacement de Compétence de carrière de départ : le Niveau 1 ou un ajout de Talent (LDB 10). */
 export interface CompetenceDeCarriere {
-  adresse: string;
+  adresse: AdresseDeCreation;
   ref: RefASpecialisation;
   /** La Compétence désignée — `null` pour un joker sans spécialisation choisie. */
   designee: RefDesignee | null;
@@ -163,7 +151,7 @@ export interface CompetenceDeCarriere {
 
 /** Les Compétences de carrière de départ (LDB 05 l.535) : un emplacement par entrée du Niveau 1, puis les
  *  ajouts des Talents (LDB 10 l.70, l.745, l.891 ; LDB 11 l.204) qu'aucune entrée ne tient déjà (`cle`). */
-export function competencesDeCarriere(level: CareerLevelData | undefined, hero: Combatant, specChoices: Record<string, string> = {}): CompetenceDeCarriere[] {
+export function competencesDeCarriere(level: CareerLevelData | undefined, hero: Combatant, specChoices: Record<AdresseDeCreation, string> = {}): CompetenceDeCarriere[] {
   const out: CompetenceDeCarriere[] = [];
   const refs = level?.skills ?? [];
   const slots = level ? skillSlots([level], level.level) : [];
@@ -171,7 +159,7 @@ export function competencesDeCarriere(level: CareerLevelData | undefined, hero: 
     const choisie = specChoices[adresseDeCreation.carriereCompetence(i)];
     return 'id' in ref && ref.choix != null && choisie ? [[slots[i].key, refKey(ref.id, choisie)]] : [];
   }));
-  const designerA = (adresse: string, ref: RefASpecialisation, ajout: boolean, libre: (spec: string) => boolean): CompetenceDeCarriere => {
+  const designerA = (adresse: AdresseDeCreation, ref: RefASpecialisation, ajout: boolean, libre: (spec: string) => boolean): CompetenceDeCarriere => {
     const choisie = specChoices[adresse];
     const designee = ref.choix == null || choisie ? designer('skill', ref, choisie) : null;
     return { adresse, ref, designee, cle: designee ? cleDeCompetence(designee) : ref.id, ajout, libre };
@@ -256,14 +244,14 @@ type OptionsDeResolution = Pick<ChoixDeCreation, 'seed' | 'speciesTalentChoices'
  *  résolus avant lui. */
 export interface TalentDEspece {
   ref: RefDesignee;
-  tirage?: { adresse: string; rang: number; doublon: boolean };
+  tirage?: { adresse: AdresseDeCreation; rang: number; doublon: boolean };
 }
 
 /** `resolveSpeciesTalents`, chaque Talent tiré portant son `tirage`. */
 export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeResolution): TalentDEspece[] {
   const result: TalentDEspece[] = [];
   const possedes = () => result.map((t) => t.ref);
-  const tirer = (adresse: string) => {
+  const tirer = (adresse: AdresseDeCreation) => {
     const aRang = (rang: number) => rollRandomTalent(fluxDeCreation(opts.seed, 'talents', adresse, rang), possedes(), opts.randomSpecPicks?.[adresse]);
     const relances = opts.talentRerolls?.[adresse] ?? 0;
     let rang = 0;
@@ -386,7 +374,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     else skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv });
   };
   const carriere = competencesDeCarriere(level, heroSoFar, specChoices);
-  const allouees: { adresse: string; designee: RefDesignee }[] = [];
+  const allouees: { adresse: AdresseDeCreation; designee: RefDesignee }[] = [];
   const parDefaut = new Set<string>();
   const repartition = opts.skillAdvances ?? repartitionDeCarriere(carriere);
   for (const c of carriere) {
@@ -413,10 +401,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
 
   // 5) Possessions : classe + carrière → inventaire à stats, armes/armures équipées. Les refs `{id}`
   //    (catalogue) deviennent des objets ; les refs `{text}` (« Arme (Base) », flavor) n'ont pas de
-  //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Résolution des
-  //    emplacements `{choice}`/`{wildcard}` (construct de choix d'équipement, Lot 1/2/3) via
-  //    `opts.trappingChoices` AVANT `buildInventory`.
-  const rawTrappings = resolveTrappingChoices(dotationRefsForHero(opts.careerId, 1), opts.trappingChoices ?? {});
+  //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
+  //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
+  const rawTrappings = resolveTrappingChoices(opts.careerId, 1, opts.trappingChoices ?? {});
   const items = buildInventory(rawTrappings);
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
@@ -424,10 +411,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // le spawn de créature bestiaire, #513).
   const speciesTraits: import('./statEntry').TraitList = sp.traits ?? [];
 
-  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (DATA-DRIVEN, jamais un id de talent
-  // nommé dans le moteur, #572) : la plus grande catégorie parmi les talents résolus (espèce +
-  // carrière + signe astral) ci-dessus, sinon Moyenne.
-  const size = sizeFromTalents(talents.map((tt) => tt.talentId), (id) => findTalentById(id)?.size);
+  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
+  // résolus (espèce + carrière + signe astral) ci-dessus, sinon Moyenne.
+  const size = sizeFromTalents(talents.map((tt) => tt.talentId), tailleDuTalent) ?? 'moyenne';
 
   // Destin / Résilience
   const fateBase = sp.fate;
@@ -469,9 +455,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     ...(opts.apparence ? { appearance: { ...opts.apparence, species: rigSpeciesId(opts.speciesId) } } : {}),
   };
 
-  // Effets d'acquisition des Talents (+5 Caractéristique de départ, Véloce) — une fois par
-  // acquisition —, puis attributs dérivés (Blessures + Dur à cuire, Chance, Détermination).
-  for (const t of hero.talents) for (let i = 0; i < t.times; i++) applyTalentAcquisition(hero, t.talentId, t.spec);
+  // Effets d'acquisition des Talents (`appliquerAcquisitions`), puis attributs dérivés (Blessures + Dur
+  // à cuire, Chance, Détermination).
+  appliquerAcquisitions(hero);
   const wmax = heroMaxWounds(hero);
   hero.wounds = { current: wmax, max: wmax, base: wmax };
   hero.fortune = fortuneMax(hero);
@@ -531,18 +517,3 @@ function autoFateSplit(extra: number): { fate: number; resilience: number } {
   const fate = Math.ceil(extra / 2);
   return { fate, resilience: extra - fate };
 }
-
-function classForCareer(careerId: string) {
-  // careerLevels n'a pas la classe ; on la retrouve via la carrière (par id stable).
-  return findClassById(findCareerById(careerId)?.class);
-}
-
-/** Dotations de Classe + Niveau de carrière (`TrappingRef[]`) — PUR, réutilisé par `createHero`
- *  (5, sac de départ) ET par le seam de semis de Possessions au démarrage d'une partie neuve
- *  (#617/#618 Lot 1, `state/possessionsFlow.ts`). `careerLevel` défaut 1 (création). */
-export function dotationRefsForHero(careerId: string, careerLevel: number = 1): TrappingRef[] {
-  const levels = levelsForCareer(careerId);
-  const level = levels.find((l) => l.level === careerLevel) ?? firstLevel(careerId);
-  return [...(classForCareer(careerId)?.trappings ?? []), ...(level?.trappings ?? [])];
-}
-

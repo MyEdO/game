@@ -93,6 +93,12 @@ export function applyTalentAcquisition(hero: Combatant, talentId: string, spec?:
   }
 }
 
+/** `applyTalentAcquisition` de chaque Talent du porteur, une fois par acquisition (`times`) : création
+ *  d'un héros (`createHero`) comme spawn d'une créature ou d'un statbloc (`state/spawn.ts`). */
+export function appliquerAcquisitions(porteur: Combatant): void {
+  for (const t of porteur.talents ?? []) for (let i = 0; i < (t.times ?? 1); i++) applyTalentAcquisition(porteur, t.talentId, t.spec);
+}
+
 /** Points de Blessure supplémentaires : BE par acquisition d'un talent « Blessure » (Dur à cuire).
  *  Le BE utilisé est `baseWithTalents(hero,'endurance')` pour inclure un éventuel +5 E de « Très résistant ». */
 export function extraWounds(hero: Combatant): number {

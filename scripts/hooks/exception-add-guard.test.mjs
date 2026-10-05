@@ -117,3 +117,69 @@ test('DRIVER : un fichier de garde EXISTANT décide pareil en natif et en MSYS (
     rmSync(racine, { recursive: true, force: true })
   }
 })
+
+test('DRIVER : ctx_patch (old_text/new_text, find/replace, lot `ops`) avertit comme Edit', () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const cible = join(racine, 'run-guard.test.mjs')
+    writeFileSync(cible, TABLE)
+    const contexte = (tool_input, tool_name = 'mcp__lean-ctx__ctx_patch') => lancerHook('repartiteur.mjs', ecriture(tool_input, tool_name)).specifique?.additionalContext ?? ''
+    const edit = contexte({ file_path: cible, old_string: TABLE, new_string: AJOUT }, 'Edit')
+    assert.ok(edit.includes(AVERTISSEMENT), edit)
+    assert.equal(contexte({ op: 'replace_unique', path: cible, old_text: TABLE, new_text: AJOUT }), edit)
+    assert.equal(contexte({ op: 'replace_all', path: cible, find: TABLE, replace: AJOUT }), edit)
+    assert.equal(contexte({ ops: [{ op: 'set_line', path: cible, line: 1, hash: '00', new_text: AJOUT.trimEnd() }, { op: 'set_line', path: cible, line: 1, hash: '00', new_text: AJOUT.trimEnd() }] }), edit)
+    assert.equal(contexte({ op: 'create', path: join(racine, 'neuf-guard.mjs'), new_text: AJOUT }), '', 'création : silence')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : une op ANCRÉE qui ré-écrit une entrée déjà présente → silence ; qui en ajoute une → avertissement', () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const cible = join(racine, 'run-guard.test.mjs')
+    writeFileSync(cible, TABLE)
+    const contexte = (tool_input) => lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch')).specifique?.additionalContext ?? ''
+    assert.equal(contexte({ op: 'set_line', path: cible, line: 1, hash: '00', new_text: TABLE.trimEnd() }), '')
+    assert.ok(contexte({ op: 'set_line', path: cible, line: 1, hash: '00', new_text: AJOUT.trimEnd() }).includes(AVERTISSEMENT))
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op déléguée, ou deux `path` d’un même fichier) est REFUSÉ ; un lot ancré à un `path` reste jugé — surfaces claude et codex', () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const cible = join(racine, 'tables-guard.test.mjs')
+    const autre = join(racine, 'autre-guard.test.mjs')
+    const table = "export const EXC_B = [\n  'src/b.ts',\n]\nexport const EXC_A = [\n  'src/a.ts',\n]\n"
+    writeFileSync(cible, table)
+    writeFileSync(autre, table)
+    const ajout = "// B bis\n// B ter\nexport const EXC_B = [\n  'src/b.ts',\n  'src/a.ts',"
+    const refuses = [
+      ['déléguée puis ancrée', { path: cible, ops: [
+        { op: 'replace_unique', old_text: 'export const EXC_B = [', new_text: '// B\n// B bis\n// B ter\nexport const EXC_B = [' },
+        { op: 'replace_lines', start_line: 2, end_line: 5, new_text: ajout },
+      ] }],
+      ['deux runs ancrés séparés par une déléguée sur un autre fichier', { path: cible, ops: [
+        { op: 'insert_after', line: 0, new_text: '// B\n// B bis\n// B ter' },
+        { op: 'replace_unique', path: autre, old_text: 'EXC_A', new_text: 'EXC_Z' },
+        { op: 'replace_lines', start_line: 2, end_line: 5, new_text: ajout },
+      ] }],
+      ['deux `path` du même fichier', { ops: [
+        { op: 'insert_after', path: cible, line: 0, new_text: '// B\n// B bis\n// B ter' },
+        { op: 'replace_lines', path: `${racine}/./tables-guard.test.mjs`, start_line: 2, end_line: 5, new_text: ajout },
+      ] }],
+    ]
+    for (const surface of ['claude', 'codex']) {
+      const sortie = (tool_input) => lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch'), { surface }).specifique ?? {}
+      for (const [nom, entree] of refuses) assert.equal(sortie(entree).permissionDecision, 'deny', `${surface} : ${nom}`)
+      const ancre = sortie({ path: cible, ops: [{ op: 'replace_lines', start_line: 1, end_line: 2, new_text: "export const EXC_B = [\n  'src/b.ts',\n  'src/a.ts'," }] })
+      assert.equal(ancre.permissionDecision, undefined, `${surface} : lot ancré`)
+      assert.ok((ancre.additionalContext ?? '').includes(AVERTISSEMENT), `${surface} : lot ancré jugé : ${ancre.additionalContext}`)
+    }
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})

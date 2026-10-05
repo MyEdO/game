@@ -1,20 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, invalidateCodexLookup, type CodexItem, type CodexFacet } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, creatureStatblock, raceTalentSection, type CodexItem, type CodexFacet } from './registry';
+import { woundsForSize } from '../../engine/size';
 import { codexMatch, filterItems, facetValues } from './search';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from './CodexEdit';
-import { creatures, etats, trappings, gods, spells, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
+import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
 
-/** Toutes les lignes 'ref' (cross-réf) d'une fiche, sections + onglets confondus. */
-const refLabelsOf = (item: CodexItem): string[] =>
+/** Les ids ciblés par les cross-réf d'une fiche (lignes 'ref' et options référence d'un choix),
+ *  sections + onglets confondus. */
+const refIdsOf = (item: CodexItem): string[] =>
   [...(item.sections ?? []), ...(item.tabs ?? []).flatMap((t) => t.sections)]
     .flatMap((s) => s.rows)
-    .flatMap((r) => (r.t === 'ref' ? [r.label] : r.t === 'choice' ? r.options.map((o) => o.label) : []));
+    .flatMap((r) => (r.t === 'ref' ? [r.id] : r.t === 'choice' ? r.advancement.of.flatMap((o) => ('id' in o ? [o.id] : [])) : []));
 
 describe('Codex registry', () => {
   it('a des catégories, toutes peuplées, à clés uniques', () => {
@@ -52,9 +54,9 @@ describe('Codex registry', () => {
     expect(codexLookup('categorie-inexistante', first.label)).toBeUndefined();
   });
 
-  it('FRAÎCHEUR après persist : setDataset (mutation en place) + invalidate → items re-projetés + lookup à jour', () => {
-    // Simule le VRAI chemin de `CodexEdit.save` : le dataset source est muté EN PLACE
-    // (`overrides.ts::setDataset`), puis `invalidateCodexLookup()` — index figé AVANT, frais APRÈS.
+  it('FRAÎCHEUR après persist : setDataset (mutation en place) → items re-projetés + lookup à jour, sans autre geste', () => {
+    // Le VRAI chemin de `CodexEdit.save` : le dataset source est muté EN PLACE au seam
+    // (`overrides.ts::setDataset`), qui bumpe `versionDesDatasets` — index et projection FRAIS dès là.
     const cat = categoryByKey('etats')!;
     const before = [...etats]; // snapshot (références d'origine) pour restauration
     const original = etats[0];
@@ -62,18 +64,12 @@ describe('Codex registry', () => {
     try {
       expect(codexLookup('etats', renamed)).toBeUndefined(); // construit l'index de la catégorie
       setDataset('etats', etats.map((e, i) => (i === 0 ? { ...e, label: renamed } : e)));
-      // Comportement défensif conservé : index ET projection figés tant que non invalidés.
-      expect(codexLookup('etats', renamed)).toBeUndefined();
-      const v0 = codexLookupVersion();
-      invalidateCodexLookup();
-      expect(codexLookupVersion()).toBe(v0 + 1);
       // Re-projection : la catégorie reflète le nouveau libellé, le lookup le résout.
       expect(cat.items.some((i) => i.label === renamed)).toBe(true);
       expect(codexLookup('etats', renamed)?.label).toBe(renamed);
       expect(codexLookup('etats', original.label)).toBeUndefined(); // l'ancien libellé a disparu
     } finally {
       setDataset('etats', before);
-      invalidateCodexLookup();
     }
   });
 });
@@ -93,7 +89,16 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
   it('la fiche d’une compétence porte des sections inverses (cross-réf cliquables)', () => {
     // Une compétence très référencée (carac la cite toujours) → au moins une cross-réf inverse.
     const skills = categoryByKey('skills')!.items;
-    expect(skills.some((s) => refLabelsOf(s).length > 0)).toBe(true);
+    expect(skills.some((s) => refIdsOf(s).length > 0)).toBe(true);
+  });
+
+  it('un emplacement « A ou B » de race devient une rangée de choix qui porte SA structure, jamais un texte re-parsé (#1988)', () => {
+    const picks = species.flatMap((s) => s.talents.filter((a) => 'pick' in a).map((a) => ({ s, a })));
+    expect(picks.length, 'la donnée ne porte plus aucun `{pick}` de race : choisir un autre gisement').toBeGreaterThan(0);
+    for (const { s, a } of picks) {
+      const choix = raceTalentSection(s)!.rows.filter((r) => r.t === 'choice');
+      expect(choix.map((r) => r.t === 'choice' && r.advancement), s.id).toContainEqual(a);
+    }
   });
 
   it('la fiche d’une Table de Corruption rend le tirage d100 → Mutation (cross-réf + badge de plage)', () => {
@@ -165,6 +170,21 @@ describe('Codex registry — statbloc bestiaire compact', () => {
     }
     const withTraits = items.find((i) => i.statblock!.traits.length > 0)!;
     expect(withTraits.statblock!.traits.every((r) => r.t === 'ref' && r.category === 'traits')).toBe(true);
+  });
+
+  // Taille du profil : Talent Petit (LDB 10 l.943) sans Trait Taille → Blessures de formule en Petite (LDB 85).
+  const blessures = (c: (typeof creatures)[number]): string => creatureStatblock(c).profile.find((f) => f.label === 'B')!.value;
+  const sansB = (talents: (typeof creatures)[number]['talents']): (typeof creatures)[number] => {
+    const base = creatures[0];
+    const { B: _b, ...char } = base.char;
+    return { ...base, char: { ...char, force: 30, endurance: 30, 'force-mentale': 30 }, traits: [], talents };
+  };
+  it('Talent Petit sans Trait Taille : Blessures de formule en Petite', () => {
+    expect(blessures(sansB([{ id: 'petit' }]))).toBe(String(woundsForSize(3, 3, 3, 'petite')));
+  });
+  it('ni Trait ni Talent de Taille : Blessures de formule en Moyenne', () => {
+    expect(blessures(sansB([]))).toBe(String(woundsForSize(3, 3, 3, 'moyenne')));
+    expect(woundsForSize(3, 3, 3, 'moyenne')).not.toBe(woundsForSize(3, 3, 3, 'petite'));
   });
 });
 

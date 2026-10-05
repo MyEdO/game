@@ -5,12 +5,13 @@
  * plus long ne satisfasse un plus court (`river-criticals.json` ne compte pas pour `criticals.json`).
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
-const ATLAS = readFileSync(fileURLToPath(new URL('../../docs/donnees.md', import.meta.url)), 'utf8');
+/** `docs/donnees.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const ATLAS = await rendreCible('docs/donnees.md');
 
 const mentioned = (file: string): boolean =>
   new RegExp(`(?<![A-Za-z0-9_-])${file.replace(/\./g, '\\.')}`).test(ATLAS);

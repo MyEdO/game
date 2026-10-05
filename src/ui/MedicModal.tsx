@@ -134,7 +134,7 @@ export function MedicModal() {
           un jet de soin, il reste MONTÉ, masqué et `inert` : l'acte qui a posé le jet est l'invocateur
           auquel le jet rend le focus (`EmbeddedShell`). */}
       {patient && (
-        <div className="medic-dossier" hidden={!!ph} {...(ph ? { inert: '' } : null)}>
+        <div className="medic-dossier" hidden={!!ph} inert={!!ph}>
           {sg && (() => {
             const recovery = sg.kind === 'recovery';
             const pool = recovery ? recoverableTraumas(patient) : surgeryTraumas(patient);

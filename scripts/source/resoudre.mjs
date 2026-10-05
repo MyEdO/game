@@ -11,13 +11,16 @@ import { chapterFile, sigleDe } from '../raw/_lib.mjs'
  * Prose d'une entrée.
  * @param {{ desc?: unknown, descRef?: { book: string, ch: string, parts: object[] } }} entree
  * @param {(bookId: string, ch: string) => object|null} lecteur
+ * @param {string} [ou] chemin JSON du nœud dans son document (`narratif.presetsPnj[3].profil`), qui
+ *   NOMME le nœud dans l'erreur, suivi de son `id` ou de son `label` s'il en porte un.
  * @returns {{ etat: 'inline', md: string } | { etat: 'resolue', md: string, folios: number[] }
  *           | { etat: 'absente' }}
  */
-export function resoudreProse(entree, lecteur = lireChapitre) {
+export function resoudreProse(entree, lecteur = lireChapitre, ou) {
   const ref = entree?.descRef
   if (typeof entree?.desc === 'string' && ref) {
-    throw new Error(`desc-et-descRef : ${entree.id ?? entree.label ?? '(sans id)'}`)
+    const nom = entree.id ?? entree.label
+    throw new Error(`desc-et-descRef : ${ou ? `${ou}${nom ? ` (${nom})` : ''}` : nom ?? '(sans id)'}`)
   }
   if (typeof entree?.desc === 'string') return { etat: 'inline', md: entree.desc }
   if (!ref) return { etat: 'absente' }
@@ -68,8 +71,8 @@ export function cheminChapitre(bookId, ch) {
 export function materialiser(racine, options = {}) {
   const { lecteur = lireChapitre, chemin = cheminChapitre, surDependance } = options
   let materialises = 0
-  const copie = (v) => {
-    if (Array.isArray(v)) return v.map(copie)
+  const copie = (v, ou = '') => {
+    if (Array.isArray(v)) return v.map((x, i) => copie(x, `${ou}[${i}]`))
     if (!v || typeof v !== 'object') return v
     const source = v
     const out = {}
@@ -80,13 +83,13 @@ export function materialiser(racine, options = {}) {
       // écraserait en silence la prose matérialisée quand elle suit `descRef`.
       if (k === 'desc' && source.descRef !== undefined) continue
       if (k === 'descRef' && source.descRef !== undefined) {
-        out.desc = resoudreProse(source, lecteur).md
+        out.desc = resoudreProse(source, lecteur, ou || '(racine)').md
         materialises += 1
         const ref = source.descRef
         const fichier = surDependance ? chemin(ref?.book, ref?.ch) : null
         if (fichier) surDependance(fichier, ref?.book, ref?.ch)
       }
-      out[k] = copie(x)
+      out[k] = copie(x, ou ? `${ou}.${k}` : k)
     }
     return out
   }

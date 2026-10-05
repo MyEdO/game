@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // `npm run gates` (#1776) — REJEU LOCAL des gates de `ci.yml`, en LANES PARALLÈLES, avec le verdict
 // de chacune DANS L'ORDRE DE `ci.yml`. C'est un confort de diagnostic, jamais une porte : la porte
-// est le run CI de la branche, et `main` ne reçoit qu'un fast-forward d'une tête verte (ruleset
-// `main`, `scripts/ops/ruleset-main.mjs`).
+// est le run CI, sur la branche puis sur le commit de la file de fusion par laquelle seule `main`
+// avance (ruleset `main`, `scripts/ops/ruleset-main.mjs`).
 //
 // `--serie` change le MUR, jamais le VERDICT : il joue exactement les mêmes gates en une lane
 // unique, dans l'ordre de ci.yml (morsure d'équivalence, `scripts/gates/toutes.test.mjs`). Une
@@ -11,9 +11,10 @@
 // repayer les vingt autres.
 //
 // TROIS PHASES, et l'ordre est la garantie :
-//   1. `npm run gen -- --check` — `build` et la suite appellent `genAll()` depuis deux lanes : un
-//      registre périmé se dit ici, sans rien écrire, et un registre à jour ne se réécrit jamais.
-//   2. les LANES, qui ne contiennent que des LECTEURS (aucune gate de ci.yml n'écrit dans l'arbre).
+//   1. `npm run gen` — `build`, la suite et `docs:build` produisent les cibles de CODE depuis plusieurs
+//      lanes : produites ici, elles ne se réécrivent plus.
+//   2. les LANES, qui ne contiennent que des LECTEURS (ce qu'une gate écrit encore est FERMÉ par sa
+//      porte, `ecritFerme`).
 //   3. le RÉSUMÉ, puis la photo de l'arbre. Dans cet ordre : un résumé est ce qu'on vient de payer,
 //      il s'imprime AVANT tout ce qui pourrait encore échouer.
 //
@@ -43,7 +44,7 @@ import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { gatesDeCi } from './gatesDeCi.mjs'
+import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import {
   compterRejeux,
   execFileResilient,
@@ -60,7 +61,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * Repassée le 2026-09-08 (#1709 E) à l'ENREGISTREUR DE LECTURES (`scripts/docs/lib/enregistreur-lectures.mjs`
  * posé en `--import` sur la commande de chaque gate) : `lit` déclare aussi le CODE que la
  * gate exécute — le changer change son verdict, donc c'est une lecture. Angles morts de la sonde,
- * nommés : ce qu'un sous-processus NON-node lit (`git ls-files` de src/source-hygiene-guard.test.ts:76,
+ * nommés : ce qu'un sous-processus NON-node lit (`git ls-files` de src/source-hygiene-guard.test.ts,
  * `tsc`/`eslint` binaires) lui échappe, et un chemin RELATIF écrit par un enfant dont le `cwd` est un
  * dépôt jetable lui apparaît sous la racine (vérifié fichier par fichier avant d'être écrit ici).
  * C'est cette table, et rien d'autre, qui autorise deux gates à tourner EN MÊME TEMPS : un écrivain
@@ -106,7 +107,7 @@ export const ECRIT_LU = {
       '.claude/logs/new-src-guard-skips.log':
         'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
         'scripts/hooks/repartiteur.mjs) : il est ' +
-        'GITIGNORÉ (.gitignore:41 `.claude/*`, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
+        'GITIGNORÉ (motif `.claude/*` de .gitignore, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
         'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },
     lit: [
@@ -116,11 +117,11 @@ export const ECRIT_LU = {
     ],
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
-      '`REGISTRE_DEFAUT`, scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
+      '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
       'le reste des fixtures vit sous os.tmpdir() ; LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
-      'scripts/git-hooks/, `pre-commit.mjs` l.272 — mesuré le 2026-09-16 par une sonde `fs` sur `test:hooks`) ; ' +
+      'scripts/git-hooks/, sélection de `docs-rebuild.mjs`) ; ' +
       'LIT Source/ parce que `idempotence-ordre-des-cles.test.mjs` copie le corpus (Source/ moins les ' +
       '`.pdf`, écartés par extension : sans les extractions quatre migrations sortent 1 faute de livres) sous ' +
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
@@ -129,7 +130,7 @@ export const ECRIT_LU = {
       '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, eslint.config.js et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
-      '`stocks-nominatifs.test.mjs:113-129` dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
+      '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
       'suivi par git (`git ls-files --cached -- *.json`), saute les porteurs connus et PARSE le reste, ' +
       'donc public/qc/*.json, server/package.json, server/package-lock.json, server/tsconfig.json, ' +
       'knip.json et package-lock.json ; il n’en écrit aucun, et aucune gate n’écrit sous public/ ni server/ ; ' +
@@ -151,26 +152,37 @@ export const ECRIT_LU = {
       '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
       '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
       'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
-      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir()',
+      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +3 écrivains le ' +
+      '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
+      'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
+      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
+      '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
+      'sur l’arbre principal',
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/ops/', 'scripts/guards/lib/', 'scripts/raw/', 'scripts/port-dev.mjs', 'scripts/hooks/', '.claude/workflows/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'eslint.config.js', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison:
-      'six modules atteints portent un appel d’écriture, tous hors de l’arbre ou gardés : ' +
-      '`knip-exports-ratchet.mjs` (`main()` gardé par `import.meta.main`, l.121 ; seul `--sync` ' +
-      'écrirait la baseline, l.94-96), `ruleset-main.mjs` (le corps du ruleset part par un fichier de ' +
-      'os.tmpdir(), `executer` de ruleset-main.mjs, et son `executer` n’est jamais appelé par les tests), ' +
-      '`fermer-depuis-main.test.mjs` (dépôts jetables de os.tmpdir()), `faits-de-palier.mjs` (le JSON des ' +
-      'faits va à `--sortie`, sous os.tmpdir() par défaut — `sortieParDefaut`, faits-de-palier.mjs) ' +
-      'et `depotGabarit.mjs`, qui fabrique les dépôts jetables de `fermer-depuis-main.test.mjs` et ' +
-      '`faits-de-palier.test.mjs` : ses seules écritures (`mkdtempSync`, `cpSync`, `rmSync` — ' +
-      'depotGabarit.mjs:62,82,99-100) visent `os.tmpdir()` ; LIT .github/workflows/ parce que ' +
-      '`canari.test.mjs` et `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
-      'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT .claude/workflows/ ' +
-      '(`workflows.test.mjs` les parse, `workflows-joues.test.mjs` les joue) et scripts/hooks/ ' +
-      '(`validateRevuePalier` de solde-ticket-guard.mjs), sans rien y écrire ; LIT knip.json (le cliquet ' +
-      'd’exports le relit) ; les 3 fichiers de .claude/workflows/ sont lus EN PLACE, sur l’arbre réel. ' +
+      'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
+      '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
+      '`mkdtempSync`, ou les dépôts jetables de `depotGabarit.mjs`, dont toutes les écritures visent ' +
+      'os.tmpdir() —, et un module dont l’écriture réelle vise un autre lieu la tient derrière sa porte ' +
+      '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
+      '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
+      'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
+      '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
+      '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
+      'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
+      'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
+      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, eslint.config.js, ' +
+      'kill-pid.mjs), que la porte `workflows.test.mjs` parse pour y RECONNAÎTRE les scripts de workflow et ' +
+      'les bancs qui importent `jouer-workflow.mjs` (`reconnaissanceDuDepot`, `bancsDeWorkflowDuDepot`), sans ' +
+      'processus fils ; LIT .claude/agents/ (le cliquet d’EXCEPTIONS_MECANIQUES exige `.claude/agents/<type>.md`) ; ' +
+      '`workflows-joues.test.mjs` joue les scripts de .claude/workflows/ EN PLACE, sur l’arbre réel ; ' +
+      'scripts/hooks/ est lu par `validateRevuePalier` (solde-ticket-guard.mjs), sans rien y écrire ; LIT ' +
+      'knip.json (le cliquet d’exports le relit). ' +
       'Ce que `soldesSuivis()` lirait de .claude/soldes/ n’est atteint que par le `main()` du script, ' +
       'gardé par `import.meta.main` (fermetures-non-citees.mjs) : les tests passent leurs ' +
       'PROPRES dépôts jetables, et la sonde n’a mesuré aucune lecture sous .claude/soldes/ ; ' +
@@ -207,9 +219,9 @@ export const ECRIT_LU = {
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
       '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ depuis le 2026-09-23 (#1801) : `plateforme-win32.test.mjs` joue ' +
-      '`build-all.mjs --check` (qui importe gen-registry.mjs et scripts/raw/) sur build-vocabulaire et ' +
-      'reanchor, qui lit l’Atlas et Source/ — en `--check`, rien n’est écrit',
+      'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
+      '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
+      'l’Atlas et Source/ — rien n’est écrit',
   },
   'deps:unused': {
     ecrit: [],
@@ -246,15 +258,15 @@ export const ECRIT_LU = {
   test: {
     ecrit: [],
     ecritFerme: {
-      'src/_registry.generated.ts':
-        'le `buildStart` du plugin `registryGen` (vite.config.ts) appelle `genAll()`, qui n’écrit que si ' +
-        'le rendu diffère (`ecrireDoc`, scripts/docs/lib/empreinte-sources.mjs) — `toutes.mjs` joue ' +
-        '`npm run gen -- --check` avant toute gate et REFUSE un registre périmé, donc il ne reste rien à écrire',
+      'src/':
+        'le `buildStart` du plugin `registryGen` (vite.config.ts) lance `build-all.mjs --code`, qui n’écrit que si ' +
+        'le rendu diffère (`ecrireDoc`, scripts/docs/lib/ecriture-derives.mjs) — `toutes.mjs` joue ' +
+        '`npm run gen` avant toute gate, donc il ne reste rien à écrire',
     },
     lit: ['src/', 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],
     raison:
-      'LIT scripts/ EN ENTIER, pas le seul `scripts/map/` de son `include` : les tests de `src/` ' +
-      'IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
+      'LIT scripts/ EN ENTIER, pas les seules racines `scripts/` de son `include` (racinesDeLaSuite.mjs) : ' +
+      'les tests de `src/` IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
       'docs/lib, data/lib, qc/lib, raw, migrations, campagne, arene, gen-registry.mjs) ; ' +
       'LIT docs/ ET docs/raw/ (sonde `fs` du 2026-09-16, #1738) : la famille des ' +
       'CLIQUETS ET CONTRATS qui confrontent le code à un doc DÉRIVÉ (data-atlas-complete, ' +
@@ -264,15 +276,18 @@ export const ECRIT_LU = {
       '(même sonde) : les deux gardes documentaires qui les balayaient vivent ' +
       'en node:test (scripts/guards/lib/memoryLinks.test.mjs dans test:hooks, ' +
       'scripts/docs/manual-docs-ratchet.test.mjs dans test:docs) ; LIT Source/ (verbatims ' +
-      'et résolution de prose : src/data/psychology-verbatim.test.ts:24, tavern-desc-verbatim.test.ts:20, ' +
-      'variants-integrity.test.ts:234, vdm-objets-maudits.test.ts:154, prose-resolution.test.ts:142, ' +
-      'src/oversize-search-blindspot.test.ts:121) ; LIT .gitattributes parce que le verdict de ' +
-      'src/source-hygiene-guard.test.ts:58 tient à la colonne `-text` que `git ls-files --eol` en tire',
+      'et résolution de prose : `CHAPITRE` de src/data/tavern-desc-verbatim.test.ts et de ' +
+      'vdm-objets-maudits.test.ts, `AA_ANNEXE_III` de variants-integrity.test.ts, le cas « A — chaque ' +
+      'adresse RÉSOUT » de prose-resolution.test.ts, `oversizeIn(\'Source\', …)` de ' +
+      'src/oversize-search-blindspot.test.ts) ; LIT .gitattributes parce que le verdict de `nonLf` ' +
+      '(src/source-hygiene-guard.test.ts) tient à la colonne `-text` que `git ls-files --eol` en tire',
   },
   build: {
     ecrit: [],
     ecritFerme: {
-      'src/_registry.generated.ts': 'même `genAll()` que la suite, même porte : `npm run gen -- --check` avant toute gate',
+      'src/':
+        'les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs) sont produites AVANT toute gate ' +
+        '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
       'vite.config.ts.timestamp-':
         'Vite recompile sa config dans un module horodaté posé à côté d’elle, puis l’efface — mesuré ' +
         '(`vite.config.ts.timestamp-1788894628882-….mjs`, sonde 2026-09-08). LA PORTE : AUCUNE gate ne lit ' +
@@ -285,36 +300,30 @@ export const ECRIT_LU = {
     raison:
       '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
-      'parce que l’esbuild de Vite y relit `target`/`jsx`/`useDefineForClassFields` pour transformer ' +
-      'chaque module TS (les `meaningfulFields` que Vite 5.4 recopie dans `tsconfigRaw`) — `paths`, lui, ' +
-      'n’en vient pas : l’alias `@` est déclaré dans vite.config.ts:47 ; LIT Source/ parce que le plugin ' +
+      'parce que `transformWithOxc` de Vite 8.3.2 résout la configuration TypeScript pendant la transformation ' +
+      'des modules (node_modules/vite/dist/node/chunks/node.js, `transformWithOxc` → `getTSConfigResolutionCache`) — l’alias `@`, lui, ' +
+      'est déclaré dans `resolve.alias` de vite.config.ts ; LIT Source/ parce que le plugin ' +
       '`wfrp:prose-source` (scripts/source/prose-source-plugin.mjs) y résout la prose que les entrées ADRESSENT ' +
       '— la sonde du 2026-09-08 n’a compté AUCUNE lecture sous Source/ sur un build complet (2 056 lectures) : ' +
       'la déclaration reste, une sur-déclaration ne peut que RESSERRER les lanes ; LIT aussi index.html ' +
       '(l’entrée) et package.json',
   },
-  'docs:check:tout': {
+  'docs:build': {
     ecrit: [],
+    ecritFerme: {
+      'docs/':
+        'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
+        '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
+        'si son rendu diffère (`ecrireOuVerifier`), ce que `Arbre inchangé` refuse dans le même job',
+      'src/':
+        'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
+        'ne réécrit pas un rendu identique',
+    },
     lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/'],
     raison:
-      'chaque générateur de `GENERATORS` rejoué en `--check` (`ecrireOuVerifier` COMPARE sans écrire), ' +
-      'puis les vérificateurs purs ; LIT Source/ (catalogues et rapports d’Atlas) et .claude/memory/ ' +
-      'parce que `build-doctrines.mjs` dérive `docs/doctrines.md` des fiches `.claude/memory/user-*.md` ' +
-      'SUIVIES par git (`fichesSuivies`)',
-  },
-  'docs:empreinte': {
-    ecrit: [],
-    lit: [
-      'docs/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/gen-registry.mjs',
-      'scripts/raw/motif-catalogues.mjs',
-    ],
-    raison:
-      '`--empreinte` sort avant toute génération (build-all.mjs, branche `--empreinte` de `executer`) : les ' +
-      '12 lectures mesurées le 2026-09-23 sont `docs/.sources-lues.json` et son propre code — les BLOBS qu’il compare sortent ' +
-      'de l’INDEX (`indexGit` d’empreinte-sources.mjs, `git ls-files -s`), jamais du disque : angle mort ' +
-      'de la sonde (sous-processus git), d’où `.claude/memory/` déclaré par LECTURE — les fiches `user-*.md` ' +
-      'sont des sources de `docs/doctrines.md` (docs/.sources-lues.json) et leur blob entre dans le verdict (#1738)',
+      'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
+      '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
+      '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`)',
   },
   'test:raw': {
     ecrit: [],
@@ -367,7 +376,7 @@ export const ECRIT_LU = {
       '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son `writeFileSync` vit dans ' +
       '`main()`, sous sa porte `import.meta.main` ; +1 lecture le 2026-09-22 (#1873) : ' +
       '`atlas-domain.workflow.test.mjs` lit les fiches d’agent de .claude/agents/ (frontmatter `tools:`) ' +
-      'pour tenir la liste des types SANS outil d’écriture (scripts/raw/atlas-domain.workflow.test.mjs:312) — ' +
+      'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/raw/atlas-domain.workflow.test.mjs) — ' +
       'la gate n’est plus sautable : un push qui donne `Edit` à `lecteur` doit la jouer ; +1 écrivain le ' +
       '2026-09-23 (#1739) : `pdf-de.test.mjs`, même régime os.tmpdir() (`avecSource`) — son PDF et ses dossiers de sortie Marker ' +
       'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs)',
@@ -449,67 +458,58 @@ export const ECRIT_LU = {
 }
 
 /**
- * Les LANES, nominatives. Une lane est une SÉRIE ; les lanes tournent ensemble, sur une machine qui
- * les porte (`lanesPortees`). Elles ne portent que des LECTEURS, et la morsure `conflitsEntreLanes` le
- * verrouille. Une gate de `ci.yml` qui n'est dans
- * aucune lane fait REFUSER le run, avec son nom : le classement est une décision, pas un silence
- * (patron `CI_SEULEMENT`).
- *
- * TROIS lanes, et non quatre : la première exécution réelle (2026-09-04) a fait rendre au loader
- * Windows `STATUS_DLL_INIT_FAILED` sur quatre spawns concurrents. Une lane de moins, c'est −25 % de
- * processus simultanés au pire moment, pour un mur inchangé.
- *
- * QUI EST LE MUR : chaque run le mesure et l'imprime au résumé (`lanes : suite … · types … · docs …`),
- * et pose la durée de chaque gate dans `node_modules/.cache/gates/durees.json`. La composition tient
- * tant qu'aucune lane ne dépasse la somme des deux autres : c'est cette ligne qu'on relit avant
- * d'ajouter une gate à une lane.
+ * PLAFOND de lanes du rejeu LOCAL. TROIS, et non quatre : la première exécution réelle (2026-09-04) a
+ * fait rendre au loader Windows `STATUS_DLL_INIT_FAILED` sur quatre spawns concurrents. Une lane de
+ * moins, c'est −25 % de processus simultanés au pire moment, pour un mur inchangé.
  */
-export const LANES = [
-  {
-    nom: 'suite',
-    gates: ['test'],
-    raison:
-      'la seule à saturer la machine — seule dans sa lane, et BORNÉE par `WFRP_TEST_COEURS` pendant que ' +
-      'les deux autres tournent',
-  },
-  {
-    nom: 'types',
-    gates: [
-      'typecheck', 'lint', 'deps:unused', 'server:typecheck', 'test:agents', 'test:ops',
-      'test:runner', 'test:recette', 'test:hooks',
-    ],
-    raison:
-      'lectures du même graphe TypeScript et gates courtes, aucune écriture d’arbre. `test:hooks` y est ' +
-      'admis parce qu’il ne fait aucune écriture d’arbre SUIVIE (registre d’écrans injectable ; sa seule ' +
-      'écriture réelle, le journal gitignoré, est en `ecritFerme`)',
-  },
-  {
-    nom: 'docs',
-    gates: [
-      'docs:check:tout', 'docs:empreinte', 'test:raw', 'raw:check-refs', 'raw:check-code-refs', 'raw:check-ancres',
-      'raw:check-folio-continuity', 'raw:check-source-tables', 'raw:check-source-format',
-      'raw:check-source-puces', 'raw:check-renvois', 'test:docs',
-      'agents:check', 'build',
-    ],
-    raison:
-      'tous les LECTEURS de docs/ et docs/raw/ — aucun n’y écrit : `docs:check:tout` vérifie chaque dérivé ' +
-      'sans l’écrire, rendu sur l’hôte ET sous win32. `build` y tient parce qu’il ne joue que ' +
-      '`gen && vite build` et n’écrit ni docs/ ni docs/raw/ : ses écritures sont celles de son entrée `build`',
-  },
-]
+export const PLAFOND_LANES = 3
+
+/**
+ * Les LANES du rejeu local, DÉRIVÉES de `ci.yml` : une lane par job de gates, ses gates dans l'ordre
+ * du fichier (`job` de `gatesDeCi`, qui écarte déjà `JOBS_HORS_REJEU_LOCAL`) — sauf un job de
+ * `LANE_LOCALE_DE_JOB` (scripts/gates/gatesDeCi.mjs), dont les gates rejoignent la lane qu'il nomme,
+ * qui doit être celle d'un job de gates. Une lane est une SÉRIE ; les lanes tournent ensemble, sur une
+ * machine qui les porte (`lanesPortees`). Elles ne portent que des LECTEURS, et la morsure
+ * `conflitsEntreLanes` le verrouille.
+ * Au-delà de `PLAFOND_LANES` lanes, REFUS nommé : aucun regroupement silencieux.
+ *
+ * QUI EST LE MUR : chaque run le mesure et l'imprime au résumé (`lanes : docs … · types … · suite …`),
+ * et pose la durée de chaque gate dans `node_modules/.cache/gates/durees.json`.
+ * PURE. REND `[{ nom, gates }]`.
+ */
+export function lanesDeCi(gates, laneDeJob = LANE_LOCALE_DE_JOB) {
+  const propres = new Set(gates.map((g) => g.job).filter((job) => !(job in laneDeJob)))
+  const parLane = new Map()
+  for (const { nom, job } of gates) {
+    const lane = laneDeJob[job]?.lane ?? job
+    if (!propres.has(lane))
+      throw new Error(
+        `ci.yml : le job ${job} rejoint la lane ${lane} (LANE_LOCALE_DE_JOB, scripts/gates/gatesDeCi.mjs), ` +
+          'qu’aucun job de gates de ci.yml ne porte',
+      )
+    if (!parLane.has(lane)) parLane.set(lane, [])
+    parLane.get(lane).push(nom)
+  }
+  if (parLane.size > PLAFOND_LANES)
+    throw new Error(
+      `ci.yml porte ${parLane.size} jobs de gates (${[...parLane.keys()].join(', ')}) : le rejeu local en tient ` +
+        `${PLAFOND_LANES} au plus (PLAFOND_LANES, scripts/gates/toutes.mjs) — rattache-le à une lane ` +
+        '(LANE_LOCALE_DE_JOB, scripts/gates/gatesDeCi.mjs) avant d’ajouter un job',
+    )
+  return [...parLane].map(([nom, noms]) => ({ nom, gates: noms }))
+}
 
 /**
  * Plafond de durée par gate, en SECONDES : ×3 de la pire durée observée, jamais moins. Sans plafond,
  * une gate bloquée tient sa lane pour toujours — vécu : `server:typecheck` a rendu 0xC0000142 après
  * 33 434 s (9 h 17). Une gate EXPIRÉE est un ROUGE nommé, pas un silence.
  * Mesures de référence : pire gate hors `test` = `typecheck` 77,8 s (série du 2026-09-07 ; ×3 = 233,
- * largement sous les 600) ; `docs:check:tout`, chaque générateur rendu sur l'hôte ET sous win32 :
- * 141 s au pire de trois runs SEULS (133,7 et 134,5 s le 2026-09-23, 141 s le 2026-09-24 sur un
- * conteneur Linux de 4 cœurs, #1801) ; ×3 = 423, sous les 600 ;
+ * largement sous les 600) ; `docs:build` 252,7 s sur un clone froid le 2026-09-30 (poste Windows de
+ * 16 cœurs chargé, #2203) ; ×3 = 759 ;
  * `test` 339,2 s le 2026-09-26 (conteneur Linux de 4 cœurs, 3 workers, borne de tas 3 072 Mo, run
  * `mconf`) ; ×3 = 1 018.
  */
-export const TIMEOUTS = { defaut: 600, test: 1020 }
+export const TIMEOUTS = { defaut: 600, test: 1020, 'docs:build': 760 }
 
 /**
  * Cœurs servis à la SUITE pendant les lanes. Valeur mesurée le 2026-09-04 sur un poste de 16 cœurs
@@ -574,7 +574,7 @@ const chevauche = (a, b) => a.startsWith(b) || b.startsWith(a)
 
 /** Couples « une lane ÉCRIT ce qu'une AUTRE lit » — la liste doit être VIDE. Seul `ecrit` compte :
  *  un chemin passé en `ecritFerme` porte, AU CHEMIN, la porte qui ferme son cas. */
-export function conflitsEntreLanes(lanes = LANES, ecritLu = ECRIT_LU) {
+export function conflitsEntreLanes(lanes, ecritLu = ECRIT_LU) {
   const conflits = []
   for (const a of lanes)
     for (const b of lanes) {
@@ -590,23 +590,13 @@ export function conflitsEntreLanes(lanes = LANES, ecritLu = ECRIT_LU) {
 }
 
 /**
- * Refus de COUVERTURE : gate de ci.yml placée dans aucune lane, gate nommée par une lane et
- * absente de ci.yml, gate sans entrée ÉCRIT/LU, gate placée deux fois. La liste doit être VIDE — une
- * gate ajoutée à la CI ARRÊTE `npm run gates` tant qu'on n'a pas dit ce qu'elle écrit, ce qu'elle lit
- * et où elle court.
+ * Refus de COUVERTURE : gate de ci.yml sans entrée ÉCRIT/LU, ou dont `lit` est vide. La liste doit
+ * être VIDE — une gate ajoutée à la CI ARRÊTE `npm run gates` tant qu'on n'a pas dit ce qu'elle écrit
+ * et ce qu'elle lit. Où elle court, c'est son job de `ci.yml` qui le dit (`lanesDeCi`).
  */
-export function refusDeCouverture(noms, lanes = LANES, ecritLu = ECRIT_LU) {
+export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
   const refus = []
-  const placees = new Map()
-  const poser = (gate, ou) => {
-    if (placees.has(gate)) refus.push(`${gate} : placée deux fois (${placees.get(gate)} ET ${ou})`)
-    else placees.set(gate, ou)
-    if (!noms.includes(gate)) refus.push(`${gate} : nommée par ${ou}, absente de ci.yml — la retirer`)
-  }
-  for (const lane of lanes) for (const gate of lane.gates) poser(gate, `la lane ${lane.nom}`)
   for (const nom of noms) {
-    if (!placees.has(nom))
-      refus.push(`${nom} : gate de ci.yml sans place — la mettre dans LANES, avec ce qu'elle ÉCRIT et LIT`)
     if (!ecritLu[nom]) refus.push(`${nom} : aucune entrée ÉCRIT/LU — la mesurer avant de la placer`)
     // `lit` NON VIDE, pas seulement l'entrée : c'est `lit` qui décide si la gate est sautable sur un
     // push documentaire (`gatesSautables`, scripts/gates/classerPush.mjs) — une gate sans lecture
@@ -709,7 +699,7 @@ export const limiteDe = (gate) => (TIMEOUTS[gate] ?? TIMEOUTS.defaut) * 1000
  * c'est ici, et nulle part ailleurs, que les deux modes se séparent — le reste du lanceur (commande,
  * commande, plafond, verdict) est commun, donc le verdict l'est aussi.
  */
-export function lanesAJouer(aJouer, { serie = false, lanes = LANES } = {}) {
+export function lanesAJouer(aJouer, { serie = false, lanes }) {
   const noms = new Set(aJouer.map((g) => g.nom))
   if (serie) return [{ nom: 'serie', gates: aJouer.map((g) => g.nom) }]
   return lanes.map((l) => ({ ...l, gates: l.gates.filter((n) => noms.has(n)) })).filter((l) => l.gates.length)
@@ -803,7 +793,6 @@ export async function principal({
   racine = RACINE,
   argv = process.argv,
   journal = (t) => process.stderr.write(t),
-  lanes: lanesDeclarees = LANES,
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
 } = {}) {
@@ -831,16 +820,24 @@ export async function principal({
   const gates = demandees ? toutesLesGates.filter((g) => demandees.includes(g.nom)) : toutesLesGates
   journal(`[gates] ${gates.length} gate(s) lues dans ci.yml${demandees ? ` (sur ${toutesLesGates.length})` : ''}\n`)
 
-  // La couverture se juge sur ci.yml ENTIER, jamais sur le sous-ensemble de `--gates` : la table des
-  // lanes doit couvrir le fichier, et une gate écartée d'un run ne la rend pas fautive.
-  const manques = refusDeCouverture(toutesLesGates.map((g) => g.nom), lanesDeclarees, ecritLu)
+  // La couverture et les lanes se jugent sur ci.yml ENTIER, jamais sur le sous-ensemble de `--gates` :
+  // une gate écartée d'un run ne rend pas la table fautive.
+  const manques = refusDeCouverture(toutesLesGates.map((g) => g.nom), ecritLu)
   if (manques.length) {
     journal(
-      `[gates] REFUS — la table des lanes ne couvre pas ci.yml :\n${manques.map((m) => `  ${m}`).join('\n')}\n` +
-        '[gates] scripts/gates/toutes.mjs : LANES et ECRIT_LU.\n',
+      `[gates] REFUS — ECRIT_LU ne couvre pas ci.yml :\n${manques.map((m) => `  ${m}`).join('\n')}\n` +
+        '[gates] scripts/gates/toutes.mjs : ECRIT_LU.\n',
     )
     return 1
   }
+  let lanesDeclarees
+  try {
+    lanesDeclarees = lanesDeCi(toutesLesGates)
+  } catch (e) {
+    journal(`[gates] REFUS — ${e.message}\n`)
+    return 1
+  }
+  for (const lane of lanesDeclarees) journal(`[gates] lane ${lane.nom} (job de ci.yml) : ${lane.gates.join(', ')}\n`)
   const conflits = conflitsEntreLanes(lanesDeclarees, ecritLu)
   if (conflits.length) {
     journal(`[gates] REFUS — une lane écrit ce qu'une autre lit :\n${conflits.map((c) => `  ${c}`).join('\n')}\n`)
@@ -860,22 +857,21 @@ export async function principal({
     return 0
   }
 
-  // `npm run gen -- --check` AVANT tout : `build` ET la suite appellent `genAll()` (plugin
-  // `registryGen` de vite.config.ts) depuis deux lanes, et réécriraient `src/**/*.generated.ts` en
-  // même temps si un registre était périmé. Le verdict est celui de `ecrireOuVerifier`, rien n'est
-  // écrit, et un registre périmé se dit MAINTENANT, avant sept minutes de lanes.
+  // `npm run gen` AVANT tout (`genererCode`, scripts/docs/build-all.mjs ; #2203 A2) : `build`, la
+  // suite et `docs:build` produisent les cibles de CODE depuis plusieurs lanes ; produites ici, elles
+  // ne sont plus réécrites (`ecrireOuVerifier` n'écrit qu'un rendu qui diffère).
   const avantGen = Date.now()
-  const gen = spawnSync('npm', ['run', 'gen', '--', '--check'], {
+  const gen = spawnSync('npm', ['run', 'gen'], {
     cwd: racine,
     stdio: ['ignore', 'ignore', 'pipe'],
     shell: process.platform === 'win32',
     encoding: 'utf8',
   })
   if (gen.status !== 0) {
-    journal(`[gates] REFUS — « npm run gen -- --check » rouge (exit ${gen.status}) :\n${gen.stderr ?? ''}\n`)
+    journal(`[gates] REFUS — « npm run gen » rouge (exit ${gen.status}) :\n${gen.stderr ?? ''}\n`)
     return 1
   }
-  journal(`[gates] gen — registres à jour en ${secondesDepuis(avantGen).toFixed(1)} s\n`)
+  journal(`[gates] gen — cibles de code produites en ${secondesDepuis(avantGen).toFixed(1)} s\n`)
 
   mkdirSync(dossierSorties(racine), { recursive: true })
   purgerPerimes({ dossier: dossierSorties(racine), motif: MOTIF_SORTIE, ageMs: PEREMPTION_MS })

@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Combatant } from './types';
 import {
-  splitTopLevelOu,
-  parseEntry,
-  parseOption,
-  isUnresolvedChoice,
   skillSlots,
   talentSlots,
   availableChars,
@@ -19,13 +15,10 @@ import {
   arcaneDomainCap,
   arcaneDomainGate,
   wildcardSpecs,
-  parseAdvancement,
   prisParLesAutres,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
 
-/** Fixtures : libellés d'avancement → `AdvancementRef[]` (la donnée est structurée). */
-const A = (xs: string[]) => xs.map(parseAdvancement);
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -46,49 +39,18 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
     ...over,
   }) as unknown as Combatant;
 
-describe('parsing des entrées de carrière (LDB 09 l.38 / pièges de données)', () => {
-  it('splitTopLevelOu : coupe hors parenthèses uniquement', () => {
-    expect(splitTopLevelOu('Perspicace ou Affable')).toEqual(['Perspicace', 'Affable']);
-    expect(splitTopLevelOu('Savoir-vivre (Criminel ou Guilde)')).toEqual(['Savoir-vivre (Criminel ou Guilde)']);
-    expect(splitTopLevelOu('Lire/Écrire ou Savoir-vivre (Érudits ou Nobles)')).toEqual(['Lire/Écrire', 'Savoir-vivre (Érudits ou Nobles)']);
-    expect(splitTopLevelOu('Criminel ou Savoir-vivre (Criminel ou Guilde)')).toEqual(['Criminel', 'Savoir-vivre (Criminel ou Guilde)']);
-  });
-  it('parseOption : explicite / joker / joker restreint', () => {
-    expect(parseOption('Sens aiguisé (Vue)')).toEqual({ label: 'Sens aiguisé', spec: 'Vue', wildcard: false });
-    expect(parseOption('Savoir (Au choix)')).toEqual({ label: 'Savoir', wildcard: true });
-    expect(parseOption('Métier (un au choix)')).toEqual({ label: 'Métier', wildcard: true });
-    expect(parseOption('Corps à corps (Fléau ou À deux mains)')).toEqual({
-      label: 'Corps à corps',
-      wildcard: true,
-      specOptions: ['Fléau', 'À deux mains'],
-    });
-  });
-  it('parseEntry : « A ou B » de premier niveau (Guide fluvial ou Bonnes jambes)', () => {
-    const options = parseEntry('Guide fluvial ou Bonnes jambes');
-    expect(options).toHaveLength(2);
-    expect(options[0].label).toBe('Guide fluvial');
-    expect(options[1].label).toBe('Bonnes jambes');
-  });
-  it('isUnresolvedChoice', () => {
-    expect(isUnresolvedChoice('Savoir (Au choix)')).toBe(true);
-    expect(isUnresolvedChoice('Sens aiguisé (Goût ou Toucher)')).toBe(true);
-    expect(isUnresolvedChoice('Sens aiguisé (Goût)')).toBe(false);
-    expect(isUnresolvedChoice('Baratiner')).toBe(false);
-  });
-});
-
 // Carrière factice C1 : « Sens aiguisé (Au choix) » aux niveaux 1 ET 2 (comme Érudit avec
 // Savoir) — le scénario complet de désignation se joue dessus.
 const C1: CareerLevelData[] = [
   {
     id: 'C1-1', type: 'careerLevels', label: 'N1', career: 'C1', level: 1,
-    skills: A(['Charme', 'Savoir (Au choix)']),
+    skills: [{ id: 'charme' }, { id: 'savoir', choix: true }],
     talents: [{ id: 'sens-aiguise', choix: true }, { id: 'baratiner' }],
     trappings: [], characteristics: ['force', 'endurance', 'sociabilite'], status: 'Bronze 1',
   },
   {
     id: 'C1-2', type: 'careerLevels', label: 'N2', career: 'C1', level: 2,
-    skills: A(['Ragot', 'Savoir (Au choix)']),
+    skills: [{ id: 'ragot' }, { id: 'savoir', choix: true }],
     talents: [{ id: 'sens-aiguise', choix: true }, { id: 'sociable' }],
     trappings: [], characteristics: ['agilite'], status: 'Bronze 2',
   },

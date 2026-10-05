@@ -30,10 +30,8 @@ import { chapitresDe, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
 import { cheminChapitre, materialiser } from './resoudre.mjs'
 import { BOOKS, REGISTRE_LIVRES, estLivreExtrait, readText, sigleDe } from '../raw/_lib.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { estDocumentDeProse } from '../guards/lib/proseInline.mjs'
 
-/** Documents de catalogue, et eux seuls : `src/data/<nom>.json` à plat (les projets de `src/scenes`
- *  entrent au périmètre quand leur schéma compose la prose adressable). */
-const CIBLE = /[\\/]src[\\/]data[\\/][^\\/]+\.json$/
 /** Séparateurs POSIX — l'index de dépendance apparie des chemins Windows et des chemins Vite. */
 const normalise = (chemin) => String(chemin).split('\\').join('/')
 
@@ -144,7 +142,9 @@ export function proseSource(options = {}) {
     transform(code, id) {
       const propre = normalise(id)
       const marque = propre.indexOf('?')
-      if (!CIBLE.test(marque === -1 ? propre : propre.slice(0, marque))) return null
+      // Documents transformés : ceux des `RACINES_PROSE` (`estDocumentDeProse`, `scripts/guards/lib/proseInline.mjs`)
+      // — les catalogues `src/data/<nom>.json` à plat et les projets livrés `<x>-projet.json` de `src/scenes`.
+      if (!estDocumentDeProse(marque === -1 ? propre : propre.slice(0, marque))) return null
       // Un id à QUERY demande une AUTRE forme du fichier, et l'id est vu ici (`vite:json` vient après) :
       // `?raw` sert la FORME DISQUE, celle que le schéma décrit et que `dev-validate` valide.
       if (marque !== -1) return null

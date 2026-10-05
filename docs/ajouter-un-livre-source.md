@@ -581,8 +581,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    français, les **citations, termes et abréviations de jeu** restent verbatim dans la langue du livre
    cité (champ `language`), jamais traduits. Il ne nomme **aucun domaine** non plus : la carte et le
    lot lui arrivent par le même `args`.
-   Tous ses agents sont en **LECTURE SEULE** (type d'agent sans outil d'écriture, posé au point
-   unique `lire()`, et clause dans chaque prompt) : un passage de source tronqué ou fusionné se
+   Tous ses agents sont en **LECTURE SEULE** (type d'agent sans outil d'écriture, écrit à chaque
+   site d'appel, et clause dans chaque prompt) : un passage de source tronqué ou fusionné se
    SIGNALE (`sourceAbimee: [{ phase, ref, constat }]`, remonté au rendu du domaine) et ne se répare
    jamais — un agent qui corrige la source qu'il cite ensuite fabrique sa propre preuve. APRÈS un
    run, `git status --porcelain` du worktree doit donc être IDENTIQUE à ce qu'il était AVANT : toute
@@ -619,8 +619,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
 4. **Apply déterministe** (enrichir des fiches DÉJÀ écrites, au lieu d'en assembler une) —
    `node scripts/raw/apply-livre.mjs <ABRÉV> <workflow-output.json>` insère topics + sommaire dans
    les fiches de domaine, **idempotent** via un sentinel `<!-- <ABRÉV>-INTEGRATION -->` (sigle en
-   argument, libellé lu au registre ; le motif du marqueur est dérivé du registre dans `_lib.mjs`,
-   donc un sigle à espace ou à point reste préservé par `build-catalogs.mjs`).
+   argument, libellé lu au registre). Un catalogue ne s'enrichit jamais ainsi : il n'entre que par
+   `enCatalogue` (ci-dessous).
 5. **Gardes** — `npm run docs:check`, qui rejoue `raw:coverage`, `raw:reconcile` (dont le refus d'une
    fiche qui cite le livre de cœur d'un AUTRE cœur que celui de son dossier), `raw:implemente` et
    `scripts/raw/check-atlas-counts.mjs` ; puis `raw:check-refs`.
@@ -629,7 +629,7 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
   `node scripts/raw/build-catalogs.mjs`, qui concatène **verbatim** les chapitres de données des
   livres. Rien à éditer dans le script : ajouter une entrée `{ book, ch, catalogue }` à la liste
   **`enCatalogue`** de `scripts/raw/chapitres.json` (§ 3), le `catalogue` étant `creatures`, `sorts`,
-  `divin`, `equipement`, `carrieres` ou `divers`. Seuls le fichier, le titre et la fiche de règles
+  `divin`, `equipement`, `carrieres` ou `divers`. Seuls le fichier, le cœur, le titre et la fiche de règles
   d'un catalogue vivent dans le script — jamais une liste de livres. Un chapitre cité par un catalogue est crédité
   **au niveau chapitre** par `coverage.mjs`/`reconcile.mjs` (pas besoin de citation `l.X`).
 
@@ -729,7 +729,7 @@ stock et rougit la garde — c'est ainsi qu'un geste non canonique se voit.
    un titre supprimé, scindé ou d'appariement incertain, ou une entrée sans section porteuse, est
    RAPPORTÉE et BLOQUE l'écriture (sortie en échec) jusqu'à son tri à la main. Un titre rapporté
    qu'aucune entrée ne keye est listé « aucun stock keyé » et ne bloque pas.
-3. `npx vitest run src/data/prose-resolution.test.ts` — la garde de re-résolution liste **exactement**
+3. `npm test -- src/data/prose-resolution.test.ts` — la garde de re-résolution liste **exactement**
    les entrées dont l'adresse ne rend plus son texte, avec le code de la rupture
    (`bornes-hors-limites`, `empreinte-divergente`, `ligne-introuvable`…). C'est l'inventaire des
    consommateurs impactés : ni plus, ni moins.
@@ -783,7 +783,7 @@ jugé). Une `preuve` vide, ou posée sur un site qui n'est plus mesuré, est rou
 | bandeau de titre en MAJUSCULES | `\| \| TABLEAU DES MOUVEMENTS \| \|` devant les en-têtes | **RIEN** : le parseur l'absorbe (`parseTable` → `titre`), les en-têtes réels remontent tout seuls |
 | `banniere-suspecte`, bandeau **non majuscule** ou d'**une seule lettre** | `\| Effet \| \|` (en-tête réel d'une table à UNE colonne), `\| A \| \|` (séparateur d'index), `\| \| \| 159 \|` (folio capté) | **trier au PDF, un par un** : en-tête réel → on n'y touche pas ; folio capté ou séparateur d'index → se retire ou se sort de la table. Jamais d'élargissement de la garde, qui sauterait un en-tête réel |
 | `banniere-suspecte`, bandeau **MAJUSCULE sans rangée de donnée** (titres de statbloc PNJ et leurs rubriques) | `\| \| ISABELLA — PROPHÈTE (BRONZE 4) \| \| \|`, `\| COMPÉTENCES DE BASE \| \| \|` | si le livre imprime ce libellé comme un **TITRE** au-dessus du bloc, il devient un **heading `####` tel qu'imprimé**, au-dessus de la table — jamais un titre inventé. Le corpus le prouve pour une partie d'entre eux : `ZI 14 - Expéditions prévues.md:66` porte déjà `#### COMPÉTENCES DE BASE` là où `:234` rend le même libellé en rangée (14 des 63 bandeaux à ≤ 2 rangées sont dans ce cas, mesuré). Pour les autres (`ISABELLA — PROPHÈTE…`, jamais heading ailleurs) : **trier au PDF** |
-| `banniere-suspecte`, bandeau **MAJUSCULE devant une table SANS en-têtes** | `46 - Les règles magiques.md:34-36` : `TABLEAU DES INCANTATIONS IMPARFAITES MINEURES` puis directement `\| 01-05 \| Signe de Sorcière… \|` | **restituer la rangée d'en-têtes telle qu'imprimée au PDF**, entre le bandeau et la première donnée. Le parseur REFUSE d'absorber ce bandeau (`estCleDePlage(headers[0])`) : l'absorber promouvrait la fourchette `01-05` en en-tête et ferait perdre une rangée à la table |
+| `banniere-suspecte`, bandeau **MAJUSCULE devant une table SANS en-têtes** | `46 - Les regles magiques.md:34-36` : `TABLEAU DES INCANTATIONS IMPARFAITES MINEURES` puis directement `\| 01-05 \| Signe de Sorcière… \|` | **restituer la rangée d'en-têtes telle qu'imprimée au PDF**, entre le bandeau et la première donnée. Le parseur REFUSE d'absorber ce bandeau (`estCleDePlage(headers[0])`) : l'absorber promouvrait la fourchette `01-05` en en-tête et ferait perdre une rangée à la table |
 
 Ce que chaque outil voit, et ce qu'il ne voit **pas** :
 
@@ -816,7 +816,7 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   toute extension de `src/engine`/`src/data` qui cite le nouveau livre.
 - `node scripts/raw/reanchor.mjs` (+ `--apply`, one-shot `--remap` avant commit de la Source) —
   citations verbatim de l'Atlas alignées sur la Source courante.
-- `npx vitest run src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
+- `npm test -- src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
   `HTML_TAG` vit dans `src/data/source/normalize.ts` et sert AUSSI au volet E de
   `src/data/prose-resolution.test.ts` : la prose **adressée** ne rend pas plus de HTML que la prose
   copiée — un `<br>` resté dans une cellule du `Source/` ne peut donc pas atteindre le joueur.
@@ -836,7 +836,8 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   invisibles à la garde ; ils se tranchent à la page, pas au stock.
   `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-puces.mjs` régénère le stock après une correction.
 - `node scripts/raw/check-renvois.mjs` (#1393) — les renvois « page N » du texte, résolus en ADRESSE
-  par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-phrase`, `page`),
+  par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-englobante` — aucun
+  titre dans la clause, un seul titre du folio la CONTIENT, plusieurs → `ambigu` —, `section-phrase`, `page`),
   pour tout livre extrait dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`, construits par comptage
   du corpus — une langue neuve se mesure avant de s'y ajouter). Stock nominatif décroissant
   `scripts/raw/renvois-stock.json` : les renvois `ambigu` et `introuvable`, clé

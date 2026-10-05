@@ -1,7 +1,7 @@
 // CE QU'UNE PLAGE DE COMMITS FERME — le vocabulaire de LECTURE, partagé (#1813).
 //
 // Il vit ici, et non dans `scripts/ops/fermer-depuis-main.mjs`, pour une raison MÉCANIQUE : ce script
-// porte le geste qui ferme les tickets SOLDÉS (job `fermetures` de ci.yml), et ce geste n'est hors de
+// porte le geste qui ferme les tickets SOLDÉS (job `fermetures` de fermetures.yml), et ce geste n'est hors de
 // portée d'un tiers que tant que le script est une FEUILLE que rien n'importe (`modulesFeuilles.mjs`).
 // Le train de publication lit donc son vocabulaire de plage ICI. Un cliquet d'argv littéraux ne
 // suffirait pas à le dire : un appel indirect n'en laisse aucun — mesuré, un `fermerLeTicket(...)`

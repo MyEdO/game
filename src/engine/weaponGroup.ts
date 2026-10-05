@@ -20,12 +20,12 @@ const GROUP_KEY: Record<string, string> = {
 
 /** Groupe canonique : l'id `Weapon.subType` (#602), posé par le catalogue ou par l'éditeur ; absent =
  *  pas de Groupe (LDB 85 l.31-33). */
-export function weaponGroup(w?: Weapon): string | null {
+export function weaponGroup(w?: Pick<Weapon, 'subType'>): string | null {
   return w?.subType ?? null;
 }
 
 /** Clé de famille d'arme (base/escrime/…/poudre) : Groupe → défaut par type. */
-export function weaponGroupKey(w?: Weapon): string {
+export function weaponGroupKey(w?: Pick<Weapon, 'subType' | 'type'>): string {
   if (!w) return 'base';
   const g = weaponGroup(w);
   if (g) return GROUP_KEY[g] ?? 'base';

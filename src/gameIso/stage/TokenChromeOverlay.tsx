@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * SURCOUCHE DES JETONS du stage (#1176, P3-0f puis P3-5c) — ce qui se peint AU-DESSUS du canevas, dans
  * le SVG : le CHROME d'écran (barre de PV, icônes d'États, pastille d'état de FIN) et, sous le verdict
@@ -30,6 +31,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import type { Dir8 } from '../../state/dir8';
 import { useGame } from '../../state/store';
+import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { ISO_PX_PER_M } from '../iso';
 import { billboardHeightM, CONVENTION } from '../backends/webgl/billboardMath';
 import type { TintAt } from '../backends/webgl/sceneMeshes';
@@ -111,6 +113,7 @@ const DISQUE_STROKE_PX = 2.5;
  */
 function TokenDisc({ m, dims }: { m: TokenChromeMark; dims: Dims }): JSX.Element | null {
   const facing: Dir8 = useGame((s) => s.facing?.[m.capKey]) ?? 'S';
+  useVersionDesDatasets();
   const corps = tokenBodyKind(m.subject, 'top');
   if (!corps.flat) return null;
   const R = discR(m.n);

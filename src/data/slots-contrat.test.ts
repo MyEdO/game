@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -45,6 +46,8 @@ const GARDE = {
   ticket: '#1466',
 } as const;
 
+/** `docs/structures-donnees.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** La composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`) : la
  *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `horsStrateAudit.ts`. */
@@ -110,7 +113,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('le doc ÉMET le MANDAT et les ANGLES MORTS de leur source unique, le lexique', () => {
-    const doc = readFileSync(join(ROOT, 'docs/structures-donnees.md'), 'utf8');
+    const doc = DOC_STRUCTURES;
     expect(
       ANGLES_MORTS_SLOTS.filter((a) => !doc.includes(a)),
       'le §6.3 de `docs/structures-donnees.md` a divergé de `ANGLES_MORTS_SLOTS`.',
@@ -192,7 +195,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
 
   it('RÉF DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `idDe(\'prop\')` (`diligence-projet.json › ref`, joint)', () => {
     expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].ref').map((s) => s.type))).toEqual(new Set(['prop']));
-    expect(couple('diligence-projet.json', 'ref')).toMatchObject({ occurrences: 20, atteintes: 20 });
+    expect(couple('diligence-projet.json', 'ref')).toMatchObject({ occurrences: 274, atteintes: 274 });
   });
 
   it('fixture : ENTRÉE DE RACINE `(racine)` jointe, et une référence portée par une CLÉ de record rend « — » au doc', () => {
@@ -221,7 +224,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     }
     const cles = registreDesSlots(scan, SLOTS).filter((l) => l.path === 'tablesDeChute[].bandes[].hauteurs{}');
     expect(cles).toEqual([{ dataset: 'ship-criticals.json', path: 'tablesDeChute[].bandes[].hauteurs{}', type: 'shipStation', valeurs: 6, couples: [] }]);
-    expect(readFileSync(join(ROOT, 'docs/structures-donnees.md'), 'utf8')).toContain(
+    expect(DOC_STRUCTURES).toContain(
       '| `ship-criticals.json` | `tablesDeChute[].bandes[].hauteurs{}` | `shipStation` | 6 | — |',
     );
   });
@@ -267,7 +270,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('le volet est ÉMIS dans `docs/structures-donnees.md` (le doc et la garde lisent la MÊME mesure)', () => {
-    const doc = readFileSync(join(ROOT, 'docs/structures-donnees.md'), 'utf8');
+    const doc = DOC_STRUCTURES;
     expect(doc, 'le §6 du doc a disparu : le volet SLOTS n’aurait plus de face lisible.').toContain(
       '## 6. Slots DÉCLARÉS × réfs OBSERVÉES',
     );

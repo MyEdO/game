@@ -21,18 +21,22 @@ toute profondeur — doit désigner un fichier existant (exclusions structurelle
 sa garde dédiée, et les épreuves DATÉES, qui disent l'arbre de leur jour). Une référence vivante qui
 ment ne se tague pas, elle se corrige.
 
-**Fusion des docs DÉRIVÉS** (`.gitattributes`, trois familles, pilote
-`scripts/git-hooks/merge-docs.mjs` déclaré par `npm run postinstall`) :
+**Dérivés PURS, jamais commités** (#2203) : une cible que son générateur écrit EN ENTIER (`targets`
+de `GENERATORS`, `scripts/docs/build-all.mjs` — docs générés, catalogues de l'Atlas, `*.generated.ts`,
+`docs/.sources-lues.json`) est ignorée par git (bloc de `.gitignore`, garde
+`scripts/docs/cibles-pures.test.mjs`) et se PRODUIT là où on la lit : les cibles de code par `npm run gen`
+(aussi `postinstall`, hooks `post-checkout`/`post-merge`/`post-rewrite`, `buildStart` de Vite), les docs
+par `npm run docs:build`. Aucune ne se fusionne.
 
-- `merge=docs-generes` — docs 100 % générés : la version courante est retenue, `docs:build` régénère.
-- `merge=docs-catalogue` — `docs/raw/**/catalogue-*.md` : dérivés SAUF leurs blocs `<!-- X-INTEGRATION -->`,
-  correctifs manuels dont la perte est refusée.
-- `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` mixtes (prose manuscrite + champ `**Implémente :**`
-  dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ (heading porteur),
-  donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un vrai conflit humain.
+**Fusion des docs MIXTES** (`.gitattributes`, pilote `scripts/git-hooks/merge-docs.mjs` déclaré par
+`npm run postinstall`) : `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` (prose manuscrite + champ
+`**Implémente :**` dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ
+(heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
+vrai conflit humain.
 
-Après toute fusion ou tout rebase : `npm run docs:build` (`scripts/docs/build-all.mjs`) régénère et
-nomme ce qui a bougé — les hooks `post-merge`/`post-rewrite` le lancent, le commit reste à toi.
+Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` régénèrent les cibles de
+code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
+reste à committer.
 
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
@@ -249,7 +253,7 @@ src/state/
                             une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
-  campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (schema 3, #765) : `NarratifBlock`
+  campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
                             = `{affaires, indices, presetsPnj, objets}`, EMBARQUÉ dans le JSON du projet, jamais
                             copié dans `src/data` global (`narratifSchema` refuse toute collision d'id).
   campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
@@ -431,12 +435,15 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               master-détail, édition live), EffectList (rangées repliées + picker),
                               useSceneHistory (undo/redo), useEditorView (caméra)
 src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arène, `arene/arene-projet.json`,
-                            projet v2 {scenes, worldMap} — 20 scènes : Bourg+intérieurs, 13 zones, 3 expéditions,
-                            embuscade ; AUTHORING par `scripts/arene/generate.mjs`, cartes ASCII → JSON canonique
-                            qui RESTE la source éditable dans l'éditeur)
+                            projet {scenes, worldMap}, scènes listées par `build()` de `scripts/arene/generate.mjs`).
+                            Ce GÉNÉRATEUR (cartes ASCII → JSON) est le propriétaire EXCLUSIF du paquet : le JSON
+                            committé est l'octet de son `build()` (`src/scenes/generateurs-byte-stables.test.ts`),
+                            une édition à l'éditeur est écrasée au prochain `generate`, ou refusée par cette garde.
+                            L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
-src/state/asciiMap.ts       AUTHORING de map en ASCII — la MÉTHODE À PRIVILÉGIER pour tout contenu de
-                            map (scène/scénario) plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
+src/state/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
+                            paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
+                            plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
                             base, legend)` → {w,h,tiles} (1 char = 1 tuile) ; `parseWalledAscii` (box-drawing
                             (2W+1)×(2H+1) : tuiles + MURS d'arête, `:` = porte). Légende de base : `#`mur
                             `~`eau `D`porte `_`fosse `=`planches (surchargeable). Garde-fou : lignes de

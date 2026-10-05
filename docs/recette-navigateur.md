@@ -1496,6 +1496,8 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   (`src/ui/editor/EditorToolbar.tsx:111-126`) : le cliquer ouvrirait le dialogue de fichier de l'OS,
   qu'aucun pilote ne ferme. Le peupler par `poserFichier` (`scripts/recette/lib.mjs`), qui déclenche
   son `change` sans aucun dialogue.
+- **`browser_file_upload` de Playwright-MCP refuse tout chemin hors de la racine de la session** :
+  copier d'abord le fichier sous `.playwright-mcp/`, puis l'uploader depuis là.
 - **Les boutons de zoom répondent à `onPointerDown`, pas à `click`**, et n'ont pas de texte : les
   cibler par leur `title`/`aria-label` EXACT — « Zoom arrière » (`src/ui/ViewControls.tsx:100`),
   « Zoom avant » (`:106`), « Réinitialiser le zoom » (`:110`). Un `.click()` de pilote qui n'émet

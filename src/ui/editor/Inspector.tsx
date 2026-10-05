@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Inspecteur v2 — volet droit DOCKÉ (fini la modale du POC qui masquait le canvas) :
  * la sélection s'édite EN PLACE, en sections repliables `.fold`, pendant que la carte reste
@@ -14,7 +15,9 @@ import {
 } from '../../state/scene';
 import { isRoomZone } from '../../state/rooms';
 import { PARTS_RELIEF } from '../../data/materials.types';
+import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
 import type { WorldMap } from '../../state/worldMap';
@@ -28,7 +31,7 @@ import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
 import { MERCHANTS } from '../../state/merchants/index';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines } from '../../data';
+import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, type TrappingData } from '../../data';
 import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../state/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
@@ -195,6 +198,9 @@ export function Inspector({
   const selT = sel?.type === 'trigger' ? scene.triggers.find((t) => t.id === sel.id) ?? null : null;
   const zone = sel?.type === 'restZone' ? scene.restZones?.[sel.idx] ?? null : null;
   const efz = sel?.type === 'effectZone' ? scene.effectZones?.[sel.idx] ?? null : null;
+  // Identité STABLE de la zone sélectionnée : elle survit au renommage de son id (`EntryRename`).
+  const clesZones = useClesDeRangees(scene.effectZones);
+  const cleZone = sel?.type === 'effectZone' ? clesZones[sel.idx] : undefined;
   const setEfz = (z: SceneEffectZone) => {
     if (sel?.type !== 'effectZone') return;
     setScene({ ...scene, effectZones: (scene.effectZones ?? []).map((x, i) => (i === sel.idx ? z : x)) });
@@ -364,7 +370,7 @@ export function Inspector({
           </div>
 
           {ent && refusPatch?.id === ent.id && <p className="chip tone-danger" role="alert">{refusPatch.message}</p>}
-          {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
+          {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} objets={narratif.objets} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
 
           {sel?.type === 'architectureBody' && architectureBody && toiture && (
             <>
@@ -1027,7 +1033,7 @@ export function Inspector({
                     qu'elle en porte un (`isDescriptiveZone`) : ce n'est pas un genre à choisir, c'est l'état
                     que l'appareil ci-dessous décrit. Il s'ouvre donc sur les zones qui agissent, et se
                     présente REPLIÉ — armable en un clic — sur celles qui ne font que nommer un lieu. */}
-                <Fold key={efz.id} title={<><Icon id="ui/warning" size="sm" /> Piège / zone d'effet</>} open={!isDescriptiveZone(efz)}>
+                <Fold key={cleZone} title={<><Icon id="ui/warning" size="sm" /> Piège / zone d'effet</>} open={!isDescriptiveZone(efz)}>
                   <p className="hint">
                     Tout combattant qui TRAVERSE ou STATIONNE dans la zone y subit ce qui suit (en combat). Une
                     pièce reste un simple nom de lieu tant que rien n'est posé ici.
@@ -1386,6 +1392,7 @@ function EntityPanel({
   scene,
   otherScenes,
   worldMap,
+  objets,
   setScene,
   updateSel,
   removeSel,
@@ -1394,10 +1401,13 @@ function EntityPanel({
   scene: Scene;
   otherScenes: Scene[];
   worldMap: WorldMap | null;
+  /** Objets du projet (`narratif.objets`) — résolus avant le catalogue par l'Effet `giveTrapping`. */
+  objets: readonly TrappingData[];
   setScene: (s: Scene) => void;
   updateSel: (patch: Partial<SceneEntity>) => void;
   removeSel: () => void;
 }) {
+  useVersionDesDatasets();
   return (
     <>
       <div className="ent-preview">
@@ -1635,10 +1645,11 @@ function EntityPanel({
             </>
           )}
           <UsableFields
+            key={ent.id}
             ent={ent}
             scene={scene}
             updateSel={updateSel}
-            flowCtx={{ encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined) }}
+            flowCtx={{ encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined, objets) }}
           />
         </Fold>
       )}
@@ -1679,6 +1690,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
     const suivant = renameActionAuthoree(actions, from, to);
     if (suivant !== actions) poser({ actions: suivant });
   };
+  const cles = useClesDeRangees(actions);
   return (
     <>
       <label className="ed-check">
@@ -1690,7 +1702,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
         Assise (ouvre les places que le TYPE de décor porte)
       </label>
       {actions.map((a, i) => (
-        <div className="ed-field" key={a.id}>
+        <div className="ed-field" key={cles[i]}>
           <span className="mini-title">Action « {a.label ?? a.id} »</span>
           {/* L'id n'est écrit au document qu'au COMMIT (blur/Entrée) — la primitive du fichier, déjà
               servie par les points d'entrée et les zones d'effet. Frappé lettre à lettre, il posait

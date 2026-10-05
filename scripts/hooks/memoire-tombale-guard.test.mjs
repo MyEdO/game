@@ -4,11 +4,10 @@
 // qu'un motif trop large crierait sur du récit daté légitime.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { evaluate, enteteSupersession, estLigneEntete, lignesAjoutees, estFicheMemoire } from './memoire-tombale-guard.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
@@ -120,8 +119,8 @@ test('hors .claude/memory, et hors .md, le garde se tait', () => {
   assert.equal(estFicheMemoire(join(REPO, 'docs', 'x.md')), false)
 })
 
-test('ctx_patch porte le texte en new_text/old_text', () => {
-  const d = decision({ path: FICHE, old_text: 'Corps.', new_text: 'PÉRIMÉ — voir plus bas.\nCorps.' })
+test('ctx_patch replace_unique porte le texte en new_text/old_text', () => {
+  const d = decision({ op: 'replace_unique', path: FICHE, old_text: 'Corps.', new_text: 'PÉRIMÉ — voir plus bas.\nCorps.' })
   assert.equal(d?.decision, 'deny')
 })
 
@@ -196,14 +195,14 @@ test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) →
   }
 })
 
-test('la garde est au registre PreToolUse du répartiteur, et les DEUX surfaces le câblent sur Write, Edit et ctx_patch', () => {
+test('la garde est au registre PreToolUse du répartiteur (câblage des surfaces : garde de classe `settings-guard-canaux.test.mjs`)', () => {
   assert.ok(REGISTRE.PreToolUse.includes(garde))
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
-    const matcher = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
-      .find((h) => h.phase === 'PreToolUse' && h.script === 'repartiteur.mjs')?.matcher ?? ''
-    for (const canal of ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch']) {
-      assert.ok(garde.outils.includes(canal), 'garde : canal ' + canal)
-      assert.ok(matcher.split('|').includes(canal), surface + ' : canal ' + canal + ' non matché')
-    }
-  }
+})
+
+test('op ANCRÉE : se juge contre les lignes qu’elle vise sur disque (une ligne ré-écrite n’est pas ajoutée)', () => {
+  const disque = 'Titre\n\n⚠ SUPERSÉDÉ par la fiche voisine.\n\nCorps.'
+  const reecrit = { path: FICHE, op: 'set_line', line: 3, hash: '00', new_text: '⚠ SUPERSÉDÉ par la fiche voisine.' }
+  assert.equal(decision(reecrit, disque), null)
+  assert.equal(decision({ ...reecrit, op: 'replace_lines', start_line: 3, end_line: 5, line: undefined }, disque), null)
+  assert.notEqual(decision({ path: FICHE, op: 'insert_after', line: 1, hash: '00', new_text: '\nOBSOLÈTE : x' }, disque), null, 'insert_after ne remplace rien')
 })

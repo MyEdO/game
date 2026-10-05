@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { codeSeul } from '../scripts/guards/lib/codeSeul.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
-import { estSuiteVitest, EST_SUITE_VITEST } from '../scripts/guards/lib/fichierVitest.mjs';
+import { estSuiteVitest, EST_SUITE_VITEST, finsDuGlob } from '../scripts/guards/lib/fichierVitest.mjs';
 import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import { detenteur } from './detenteur.testkit';
 
@@ -13,16 +13,14 @@ import { detenteur } from './detenteur.testkit';
  * `version` d'attribut, index, compteurs d'appels), qui est déterministe.
  *
  * PÉRIMÈTRE = LE CORPUS DE `npm test`, jamais une liste à nous : les racines de la suite
- * (`RACINES_DE_LA_SUITE`, d'où `vite.config.ts` tire `test.include` : `src/**`, `server/src/**`,
- * `scripts/map/**`) sont EXACTEMENT ce que la suite joue, donc
- * exactement ce dont la baseline ZÉRO parle — la garde ne porte AUCUNE liste de sites tolérés (une
- * garde qui nomme ses tolérés valide des défauts). Ces tests prouvent du code PUR (moteur, état,
- * rendu, worker) : aucun n'a un délai pour sujet. Les tests de `scripts/**` HORS `scripts/map`
- * exercent des processus, des sockets et des délais d'attente, où une durée EST le sujet légitime
- * du contrat (`scripts/guards/lib/spawnResilient.test.mjs`, `scripts/recette/lib.test.mjs` en
- * portent) — et `npm test` ne les joue pas : ils sortent du périmètre par la MÊME règle, sans
- * énumération. Les motifs ne sont pas recopiés : la garde lit la source unique
- * (`scripts/guards/lib/racinesDeLaSuite.mjs`) et ne porte donc AUCUNE liste — ni de sites, ni de globs.
+ * (`RACINES_DE_LA_SUITE`, d'où `vite.config.ts` tire `test.include`) sont EXACTEMENT ce que la suite
+ * joue, donc exactement ce dont la baseline ZÉRO parle — la garde ne porte AUCUNE liste de sites
+ * tolérés (une garde qui nomme ses tolérés valide des défauts). Un test que `npm test` ne joue pas
+ * (les suites `node --test` de `scripts/**`, qui pilotent des processus et des sockets où un délai
+ * peut être le sujet du contrat) sort du périmètre par la MÊME règle, sans énumération. Les motifs
+ * ne sont pas recopiés : la garde lit la source unique (`scripts/guards/lib/racinesDeLaSuite.mjs`),
+ * les déplie par le lecteur partagé (`finsDuGlob`, `scripts/guards/lib/fichierVitest.mjs`), et ne
+ * porte donc AUCUNE liste — ni de sites, ni de globs.
  *
  * Ce fichier est DANS le corpus qu'il scanne : son motif n'y apparaît qu'ÉCLATÉ (alternance de la
  * regex, concaténation des cas vivants), donc la garde ne s'exempte pas — elle ne se matche pas.
@@ -45,10 +43,8 @@ const GARDE = {
   perimetre:
     'Le corpus de `npm test`, lu aux racines de la suite (`racinesDeLaSuite.mjs`, source du `test.include` de `vite.config.ts`) — aucune ' +
     'liste de globs ici : fichiers de test ET le harnais `src/test-setup.ts` qui court avant chacun ' +
-    'd’eux. Les tests de `scripts/**` hors `scripts/map` ' +
-    'pilotent des processus et des sockets, où un délai est le SUJET du contrat — et `npm test` ne ' +
-    'les joue pas. Le code de PRODUCTION est hors périmètre : une boucle de rendu a le droit de ' +
-    'dater ses images.',
+    'd’eux. Un test que `npm test` ne joue pas en sort par la même règle. Le code de PRODUCTION est ' +
+    'hors périmètre : une boucle de rendu a le droit de dater ses images.',
   angleMort: [
     'La garde mesure un TEXTE, pas une sémantique : un test qui passe par un alias (`const maintenant = ' +
       'globalThis.performance.now` capturé ailleurs, un utilitaire de chronométrage importé) lui échappe.',
@@ -73,20 +69,6 @@ const HORLOGE = /\b(?:performance|Date)\s*\.\s*now\s*\(/;
  *  (`src/test-setup.ts`, `setupFiles` de `vite.config.ts`). Une horloge dans le harnais est une
  *  horloge dans tous les tests à la fois — et celle-là n'apparaît dans aucun d'eux. */
 const EST_TEST = (rel: string): boolean => estSuiteVitest(rel) || rel.endsWith('/test-setup.ts');
-
-
-/** Le séparateur d'un glob de Vitest : ce qui précède est le DOSSIER, ce qui suit est la FIN de nom. */
-const SEPARATEUR_GLOB = '/**/*';
-
-/** Les FINS DE NOM qu'un motif d'`include` accepte — l'accolade dépliée en un nom par dialecte.
- *  Découpé au séparateur de glob : aucune forme de nom de test n'est RÉÉCRITE ici, c'est le glob
- *  qui la porte, et le test de concordance ci-dessous la confronte au prédicat partagé. */
-const finsDuGlob = (motif: string): string[] => {
-  const [dir, suffixe] = motif.split(SEPARATEUR_GLOB);
-  if (!dir || !suffixe) throw new Error(`tests-sans-horloge : motif d'include non reconnu — ${motif}`);
-  const accolade = /\{([a-z,]+)\}$/.exec(suffixe);
-  return accolade ? accolade[1].split(',').map((d) => suffixe.replace(accolade[0], d)) : [suffixe];
-};
 
 /** Ce nom de fichier serait-il joué par ce motif d'`include` ? */
 const accepteParLeGlob = (motif: string, nom: string): boolean => finsDuGlob(motif).some((fin) => nom.endsWith(fin));

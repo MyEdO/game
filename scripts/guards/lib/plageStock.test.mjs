@@ -9,9 +9,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
+import { franchisDuCommit } from './reclassementCss.mjs'
 import { TRONC } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
-import { instanceDeDepot } from './depotGabarit.mjs'
+import { texteDeStock } from './stockDeSites.mjs'
+import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
 
@@ -79,7 +81,8 @@ test('C : un commit du MILIEU sans cliquet est refusé, et le refus le NOMME', (
   const raison = raisonDeRefusDePlage(refus)
   assert.match(raison, /bbb2222/)
   assert.ok(raison.includes('scripts/x.test.mjs +2'), raison)
-  assert.match(raison, /rebase -i/)
+  assert.match(raison, /commit simple : `git commit --amend` s’il est la tête ; plus bas, reconstruire la pile depuis son parent/)
+  assert.doesNotMatch(raison, /FUSION|rebase -i/)
 })
 
 // ── Sur un dépôt JETABLE : la lecture git réelle, la plage et son repli ───────────────────────────
@@ -439,7 +442,7 @@ test('RECLASSEMENT : un SECOND importeur fait franchir la console — refusé sa
   try {
     const muet = commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, 'feat: second écran')
     assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut: base, fin: muet }).reclassements,
-      [{ sha: muet, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
+      [{ sha: muet, fusion: false, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -458,7 +461,7 @@ test('RECLASSEMENT (D3″) : franchie puis rendue au stock dans la plage — le 
     const c1 = commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, 'feat: second écran')
     const c2 = commettre({ 'src/ui/Ecran2.tsx': null }, 'revert: un seul écran')
     const { reclassements } = croissancesDeLaPlage({ cwd: racine, debut: base, fin: c2 })
-    assert.deepEqual(reclassements, [{ sha: c1, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
+    assert.deepEqual(reclassements, [{ sha: c1, fusion: false, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -543,7 +546,7 @@ test('RECLASSEMENT d’une FUSION « maléfique » : le franchissement qu’elle
   })
   try {
     assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut, fin: fusion }).reclassements,
-      [{ sha: fusion, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
+      [{ sha: fusion, fusion: true, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -558,7 +561,7 @@ test('RECLASSEMENT : le second importeur au chemin NON-ASCII fait franchir la co
     const debut = commettre({ [ECRAN_ACCENTUE]: 'export const E = 1\n' }, 'feat: écran nu')
     const muet = commettre({ [ECRAN_ACCENTUE]: importeur('E') }, 'feat: l’écran importe la console')
     assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut, fin: muet }).reclassements,
-      [{ sha: muet, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
+      [{ sha: muet, fusion: false, ecarts: [{ module: CONSOLE, n: 3, declare: null }] }])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -604,9 +607,9 @@ test('RECLASSEMENT au commit : chaque FORME lit l’arbre que le commit emporte 
 test('RECLASSEMENT (D3″) : un rebase qui fait disparaître le franchissement rend la ligne INVALIDE — refus bruyant', () => {
   const vide = { manifeste: [], partagees: [], reutilises: new Set(), lire: () => null }
   const commits = [{ sha: 'c1'.padEnd(40, '0'), message: RECLASSE, cotes: () => ({ base: vide, commit: vide }) }]
-  assert.deepEqual(reclassementsDeLaPlage({ commits }), [{ sha: commits[0].sha, ecarts: [{ module: CONSOLE, n: null, declare: 3 }] }])
+  assert.deepEqual(reclassementsDeLaPlage({ commits }), [{ sha: commits[0].sha, fusion: false, ecarts: [{ module: CONSOLE, n: null, declare: 3 }] }])
   const horsFrontiere = [{ ...commits[0], cotes: () => null }]
-  assert.deepEqual(reclassementsDeLaPlage({ commits: horsFrontiere }), [{ sha: commits[0].sha, ecarts: [{ module: CONSOLE, n: null, declare: 3 }] }],
+  assert.deepEqual(reclassementsDeLaPlage({ commits: horsFrontiere }), [{ sha: commits[0].sha, fusion: false, ecarts: [{ module: CONSOLE, n: null, declare: 3 }] }],
     'un commit qui ne touche pas la frontière et porte une ligne est refusé aussi')
   assert.deepEqual(reclassementsDeLaPlage({ commits: [{ ...horsFrontiere[0], message: 'docs' }] }), [])
 })
@@ -669,7 +672,7 @@ test('CLIQUET (D5″) : le renommage PUR d’un fichier cité par un stock coût
   }
 })
 
-// ── Les FUSIONS se lisent par ce qu'elles font (`ceQueFaitLeCommit`, contre leur base) ─────
+// ── Les FUSIONS se lisent par ce qu'elles font contre CHACUN de leurs parents (#2223) ─────────────
 
 /** Dépôt jetable dont `main` fusionne une branche `cote`. La branche fait grandir le stock sous son
  *  CLIQUET ; `retouche` (texte du porteur posé DANS la fusion, ou `null`) rend la fusion maléfique. */
@@ -712,7 +715,7 @@ test('PLAGE : une fusion « maléfique » qui fait grandir un stock en fusionnan
   }
 })
 
-test('PLAGE : une fusion qui RÉÉCRIT une entrée amenée par la branche ne grandit rien — sa base est la fusion automatique', () => {
+test('PLAGE : une fusion qui RÉÉCRIT une entrée amenée par la branche ne grandit rien — sa base est la fusion automatique, en entrées', () => {
   const { repo, socle, fusion } = depotAFusion(sourceStock([A, "  'src/b.ts', // retouchée à la fusion"]))
   try {
     assert.deepEqual(croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion }).refus, [])
@@ -723,19 +726,12 @@ test('PLAGE : une fusion qui RÉÉCRIT une entrée amenée par la branche ne gra
 
 test('PLAGE : une FUSION lue par un git plus ancien que 2.40 rend la plage INDISPONIBLE, nommée, sans rien juger', () => {
   const { repo, socle, fusion } = depotAFusion(null)
-  const cale = mkdtempSync(join(tmpdir(), 'git-2-39-'))
-  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-  writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = version ] && { echo 'git version 2.39.2'; exit 0; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-  const chemin = process.env.PATH
-  process.env.PATH = `${cale}:${chemin}`
   try {
-    const vu = croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion })
+    const vu = sousGitFeint([{ si: ['version'], status: 0, stdout: 'git version 2.39.2\n' }], () => croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion }))
     assert.match(vu.indisponible, /git 2\.39 ne sait pas git merge-tree --write-tree --stdin/)
     assert.deepEqual([vu.refus, vu.reclassements], [[], []])
   } finally {
-    process.env.PATH = chemin
     rmSync(repo, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
 })
 
@@ -1001,6 +997,446 @@ test('SEUL : le cumul d’une fusion jugée seule est SON apport, pas le diff de
     git('commit', '-q', '--no-verify', '-m', 'fusion qui remet b, sans cliquet')
     const fusion = git('rev-parse', 'HEAD').trim()
     assert.deepEqual(refusDe(croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: fusion })), [[fusion, PORTEUR, 1]])
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// ── #2223 : la croissance se compte en ENTRÉES identifiées, une fusion jamais contre un texte à marqueurs ──
+
+/** Un stock de sites JSON (`FORMAT_JSON`) de quatre champs par entrée. */
+const STOCK_JSON = 'scripts/raw/x-stock.json'
+const site = (fichier, ref, valeur) => ({ fichier, ref, occurrence: 1, pdfChars: valeur })
+const stockJson = (entrees) => texteDeStock('test', entrees)
+const SITES = [site('src/a.ts', 'r1', 1), site('src/b.ts', 'r2', 2), site('src/c.ts', 'r3', 3), site('src/b.ts', 'r4', 4)]
+
+test('#2223 ENTRÉES : réécrire une entrée sans changer son fichier ne fait rien naître — champ d’un site, extension ajoutée dans une paire de Map', () => {
+  const REGISTRE = 'scripts/guards/lib/x.mjs'
+  const paire = (valeur) => `export const TYPES = new Map([['BoneId', '${valeur}']])\n`
+  const d = depotDeChantier({ [STOCK_JSON]: stockJson(SITES), [REGISTRE]: paire('src/os/bones') })
+  try {
+    const fin = d.poser({
+      [STOCK_JSON]: stockJson([SITES[0], site('src/b.ts', 'r2', 99), SITES[2], SITES[3]]),
+      [REGISTRE]: paire('src/os/bones.ts'),
+    }, 'réécrit deux valeurs')
+    assert.deepEqual(refusDe(d.plage(fin)), [])
+  } finally {
+    rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+test('#2223 ENTRÉES : ajouter une entrée la compte +1 (contrat positif), réordonnancement compris', () => {
+  const d = depotDeChantier({ [STOCK_JSON]: stockJson(SITES) })
+  try {
+    const fin = d.poser({ [STOCK_JSON]: stockJson([SITES[3], site('src/d.ts', 'r5', 5), ...SITES.slice(0, 3)]) }, 'ajoute d')
+    assert.deepEqual(refusDe(d.plage(fin)), [[fin, STOCK_JSON, 1]])
+  } finally {
+    rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+test('#2223 FUSION : un conflit résolu sur le manifeste se lit contre les parents — aucun « illisible »', () => {
+  const MANIFESTE = 'src/data/primitives.manifest.json'
+  const manifeste = (x) => `${JSON.stringify([{ id: 'a', x }], null, 2)}\n`
+  const d = depotDeChantier({ [MANIFESTE]: manifeste(0) })
+  try {
+    d.poser({ [MANIFESTE]: manifeste(1) }, 'chantier touche le manifeste')
+    d.git('checkout', '-q', '-b', 'x', d.debut)
+    d.poser({ [MANIFESTE]: manifeste(2) }, 'x touche la même ligne')
+    d.git('checkout', '-q', 'chantier')
+    assert.throws(() => d.git('merge', '-q', '--no-ff', '--no-verify', 'x'), 'témoin : la fusion est EN CONFLIT')
+    writeFileSync(join(d.repo, MANIFESTE), manifeste(3), 'utf8')
+    d.git('add', MANIFESTE)
+    d.git('commit', '-q', '--no-verify', '-m', 'fusion résolue')
+    const fin = d.git('rev-parse', 'HEAD').trim()
+    const vu = d.plage(fin)
+    assert.deepEqual([vu.indisponible, vu.reclassements, vu.refus], [null, [], []])
+  } finally {
+    rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+test('#2223 RECLASSEMENT d’une FUSION à trois voies : les DEUX côtés franchissent la console, la fusion n’ajoute rien — aucune ligne exigée', () => {
+  const d = depotCss()
+  try {
+    d.git('checkout', '-q', '-b', 'chantier')
+    d.commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, RECLASSE)
+    d.git('checkout', '-q', 'main')
+    d.commettre({ 'src/ui/Ecran3.tsx': importeur('Ecran3') }, RECLASSE)
+    d.git('checkout', '-q', 'chantier')
+    d.git('merge', '-q', '--no-ff', '--no-commit', 'main')
+    const fusion = d.commettre({ [MANIFESTE]: manifesteAvec(PRIMITIVE_CONSOLE, { id: 'b' }) }, 'fusion de main, manifeste retouché')
+    assert.deepEqual(croissancesDeLaPlage({ cwd: d.racine, debut: d.base, fin: fusion }).reclassements, [])
+  } finally {
+    rmSync(d.racine, { recursive: true, force: true })
+  }
+})
+
+test('#2223 RECLASSEMENT d’une FUSION à trois voies : une exemption RESSUSCITÉE (base exemptée, `^1` libère, `^2` garde, fusion exempte) est franchie, payée contre `^1`', () => {
+  const Q = 'src/ui/styles/ecran-q.css'
+  const cote = (exempte) => ({
+    manifeste: [{ id: 'sans-css' }, ...(exempte ? [{ id: Q, fichier: `${Q}.tsx`, css: Q }] : [])],
+    partagees: [], reutilises: new Set(exempte ? [`${Q}.tsx`] : []), lire: (f) => (f === Q ? '.e { color: red; border: 0; font-size: 3px; gap: 3px }' : null),
+  })
+  const [libre, exempte] = [cote(false), cote(true)]
+  assert.deepEqual(franchisDuCommit({ base: exempte, commit: exempte, parents: [libre, exempte] }).map((f) => [f.module, f.n]), [[Q, 4]])
+  assert.deepEqual(franchisDuCommit({ base: exempte, commit: exempte, parents: [exempte, exempte] }), [], 'témoin : gardée des deux côtés, rien n’est franchi')
+  assert.deepEqual(franchisDuCommit({ base: libre, commit: exempte, parents: [libre, exempte] }), [], 'témoin : `^2` l’exempte seul, la fusion automatique aussi')
+})
+
+test('#2223 FUSION : un porteur SUPPRIMÉ par le tronc, enrichi par le chantier, gardé par la résolution — ses entrées ressuscitées sont refusées', () => {
+  const d = depotDeChantier({ [PORTEUR]: sourceStock([A, B, C]) })
+  try {
+    d.poser({ [PORTEUR]: sourceStock([A, B, C, D]) }, `ajoute d\n\nCLIQUET: ${PORTEUR} +1 — le chantier ajoute une entrée, refs #2223`)
+    d.git('checkout', '-q', '-b', 'tronc', d.debut)
+    const supprime = d.poser({ [PORTEUR]: null }, 'le tronc supprime le porteur')
+    d.git('update-ref', 'refs/remotes/origin/main', supprime)
+    d.git('checkout', '-q', 'chantier')
+    assert.throws(() => d.git('merge', '-q', '--no-ff', '--no-verify', 'tronc'), 'témoin : modify/delete EN CONFLIT')
+    d.git('add', PORTEUR)
+    d.git('commit', '-q', '--no-verify', '-m', 'fusion qui garde le porteur')
+    const fin = d.git('rev-parse', 'HEAD').trim()
+    assert.deepEqual(refusDe(d.plage(fin)), [[fin, PORTEUR, 3]])
+  } finally {
+    rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+// ── #2223 : la porte publiée sur les scénarios CONSTRUITS des juges (issuecomment-5933197112) ─────────
+
+const MOTIF_LONG = 'motif assez long pour la porte'
+const cliquet = (fichier, n) => `\n\nCLIQUET: ${fichier} +${n} — ${MOTIF_LONG}`
+const ent = (f, c = '') => `  '${f}',${c ? ` // ${c}` : ''}`
+const SIX = ['src/k1.ts', 'src/k2.ts', 'src/k3.ts', 'src/k4.ts', 'src/k5.ts', 'src/k6.ts'].map((f) => ent(f))
+const corpsDe = (s) => `${Array.from({ length: 30 }, (_, i) => `export const v${i} = '${s}${i}'`).join('\n')}\n`
+
+/** `depotDeChantier` d'un porteur de six entrées ; `fusionner(...cotes)` laisse la fusion EN COURS,
+ *  conflit compris, et `poser` la conclut. */
+function depotConstruit(fichiers = {}) {
+  const d = depotDeChantier({ [PORTEUR]: sourceStock(SIX), ...fichiers })
+  const fusionner = (...cotes) => {
+    try {
+      d.git('merge', '-q', '--no-ff', '--no-verify', '--no-commit', ...cotes)
+    } catch {
+      // conflit : la résolution est posée par `poser`
+    }
+  }
+  return { ...d, fusionner, juger: (debut, fin, vers = CHANTIER) => refusDe(croissancesDeLaPlage({ cwd: d.repo, debut, fin, vers })) }
+}
+
+/** Les scénarios des juges : chacun construit son histoire et rend `[debut, fin, attendu, vers?]`. */
+const CONSTRUITS = {
+  'F1 porteur renommé après une croissance déclarée': (d) => {
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/neuf.ts')]) }, `ajoute neuf${cliquet(PORTEUR, 1)}`)
+    d.git('mv', PORTEUR, 'scripts/y.test.mjs')
+    return [d.debut, d.poser({}, 'renomme le porteur'), () => []]
+  },
+  'F2 main renomme le porteur, la branche y ajoute une entrée déclarée ; plage de file': (d) => {
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/neuf.ts')]) }, `ajoute neuf${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', '-b', 'tronc', d.debut)
+    d.git('mv', PORTEUR, 'scripts/y.test.mjs')
+    const t = d.poser({}, 'tronc : renomme le porteur')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('tronc')
+    d.poser({}, 'fusion de main')
+    d.git('checkout', '-q', 'tronc')
+    d.fusionner('chantier')
+    return [t, d.poser({}, 'Merge pull request'), () => []]
+  },
+  'F3 fichier nommé renommé avec son entrée, puis réécrit': (d) => {
+    const debut = d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/a.ts')]) }, `entrée a${cliquet(PORTEUR, 1)}`)
+    d.git('mv', 'src/a.ts', 'src/b.ts')
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/b.ts')]) }, 'renomme a -> b, entrée suivie')
+    return [debut, d.poser({ 'src/b.ts': corpsDe('zz') }, 'réécrit b'), () => []]
+  },
+  'R1 les deux côtés retirent k1': (d) => {
+    d.poser({ [PORTEUR]: sourceStock(SIX.slice(1)) }, 'chantier retire k1')
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock(SIX.slice(1)) }, 'cote retire k1')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    return [d.debut, d.poser({}, 'fusion'), () => []]
+  },
+  'N1 fusion propre : chaque côté ajoute une entrée distincte de même clé, déclarée': (d) => {
+    d.poser({ [PORTEUR]: sourceStock([ent('src/k1.ts:10'), ...SIX]) }, `chantier +k1:10${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/k1.ts:20')]) }, `cote +k1:20${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    return [d.debut, d.poser({}, 'fusion propre'), () => []]
+  },
+  'N4b porteur créé des deux côtés (add/add), même clé, union': (d) => {
+    const R = 'scripts/r.test.mjs'
+    d.poser({ [R]: sourceStock([ent('src/a.ts:1')]) }, `chantier crée r${cliquet(R, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [R]: sourceStock([ent('src/a.ts:2')]) }, `cote crée r${cliquet(R, 1)}`)
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    return [d.debut, d.poser({ [R]: sourceStock([ent('src/a.ts:1'), ent('src/a.ts:2')]) }, 'fusion add/add, union'), () => []]
+  },
+  'M1 croissance déclarée puis retirée, fusion muette': (d) => {
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/e.ts')]) }, `ajoute e${cliquet(PORTEUR, 1)}`)
+    d.poser({ [PORTEUR]: sourceStock(SIX) }, 'retire e')
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({}, 'côté vide')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    const fin = d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/muette.ts')]) }, 'fusion qui ajoute muette')
+    return [d.debut, fin, () => [[fin, PORTEUR, 1]]]
+  },
+  'M2 retrait puis remise déclarée, fusion muette sous la même clé': (d) => {
+    d.poser({ [PORTEUR]: sourceStock(SIX.slice(1)) }, 'retire k1')
+    d.poser({ [PORTEUR]: sourceStock(SIX) }, `remet k1${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({}, 'côté vide')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    const fin = d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/k1.ts', 'bis')]) }, 'fusion qui ajoute k1 bis')
+    return [d.debut, fin, () => [[fin, PORTEUR, 1]]]
+  },
+  'M3 ligne tampon sur un commit qui ne grandit pas, fusion muette +3': (d) => {
+    d.poser({}, `commit vide${cliquet(PORTEUR, 3)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({}, 'côté vide')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    const fin = d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/m1.ts'), ent('src/m2.ts'), ent('src/m3.ts')]) }, 'fusion +3 muette')
+    return [d.debut, fin, () => [[fin, PORTEUR, 3]]]
+  },
+  'R2 ajout double déclaré, fusion muette sous la même clé': (d) => {
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/z.ts')]) }, `chantier +z${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/z.ts')]) }, `cote +z${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    const fin = d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/z.ts'), ent('src/z.ts:2')]) }, 'fusion + z:2 muette')
+    return [d.debut, fin, () => [[fin, PORTEUR, 1]]]
+  },
+  'N2c main retire k2, la fusion de main reprend le porteur de la branche ; plage de file': (d) => {
+    d.poser({}, 'chantier : travail')
+    d.git('checkout', '-q', '-b', 'tronc', d.debut)
+    const t = d.poser({ [PORTEUR]: sourceStock(SIX.filter((l) => !l.includes('k2'))) }, 'main retire k2')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('tronc')
+    const fusion = d.poser({ [PORTEUR]: sourceStock(SIX) }, 'fusion de main : porteur pris à la branche')
+    d.git('checkout', '-q', 'tronc')
+    d.fusionner('chantier')
+    return [t, d.poser({}, 'Merge pull request'), () => [[fusion, PORTEUR, 1]], 'refs/heads/tronc']
+  },
+  'N2 main retire k2, la résolution reprend la branche ; cumul nul': (d) => {
+    d.poser({}, 'chantier : travail')
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock(SIX.filter((l) => !l.includes('k2'))) }, 'main retire k2')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    return [d.debut, d.poser({ [PORTEUR]: sourceStock(SIX) }, 'fusion : porteur pris à la branche'), () => []]
+  },
+  'N2b main retire k2, fusion ours ; cumul nul': (d) => {
+    d.poser({}, 'chantier : travail')
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock(SIX.filter((l) => !l.includes('k2'))) }, 'main retire k2')
+    d.git('checkout', '-q', 'chantier')
+    d.git('merge', '-q', '--no-ff', '--no-verify', '-s', 'ours', '-m', 'fusion ours', 'cote')
+    return [d.debut, d.git('rev-parse', 'HEAD').trim(), () => []]
+  },
+  'N3 la fusion renomme le fichier nommé et suit son entrée': (d) => {
+    const debut = d.poser({ 'src/k1.ts': corpsDe('a') }, 'k1 existe')
+    d.poser({}, 'chantier : travail')
+    d.git('checkout', '-q', '-b', 'cote', debut)
+    d.poser({}, 'côté')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    d.git('mv', 'src/k1.ts', 'src/kk.ts')
+    return [debut, d.poser({ [PORTEUR]: sourceStock(SIX.map((l) => l.replace('k1.ts', 'kk.ts'))) }, 'fusion qui renomme'), () => []]
+  },
+  'N4 porteur créé des deux côtés (add/add), clés distinctes, union': (d) => {
+    const R = 'scripts/r.test.mjs'
+    d.poser({ [R]: sourceStock([ent('src/a.ts')]) }, `chantier crée r${cliquet(R, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [R]: sourceStock([ent('src/b.ts')]) }, `cote crée r${cliquet(R, 1)}`)
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    return [d.debut, d.poser({ [R]: sourceStock([ent('src/a.ts'), ent('src/b.ts')]) }, 'fusion add/add, union'), () => []]
+  },
+  'N5 multiplicités différentes, retouche de k3 ; fusion propre': (d) => {
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/k1.ts:9')]) }, `chantier +k1:9${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock(SIX.map((l) => l.replace('k3.ts', 'k3.ts:1'))) }, 'cote retouche k3')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    return [d.debut, d.poser({}, 'fusion propre'), () => []]
+  },
+  'N3b main renomme k1 -> kk, la branche ajoute k1:5, la résolution la suit en kk': (d) => {
+    const ren = (l) => l.replace('k1.ts', 'kk.ts')
+    const debut = d.poser({ 'src/k1.ts': corpsDe('a') }, 'k1 existe')
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/k1.ts:5')]) }, `chantier +k1:5${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', '-b', 'cote', debut)
+    d.git('mv', 'src/k1.ts', 'src/kk.ts')
+    d.poser({ [PORTEUR]: sourceStock(SIX.map(ren)) }, 'main renomme k1 -> kk')
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    const fin = d.poser({ [PORTEUR]: sourceStock([...SIX.map(ren), ent('src/kk.ts:5')]) }, 'fusion : entrée suivie en kk')
+    return [debut, fin, () => [[fin, PORTEUR, 1]]]
+  },
+  'N7 chantier retire k1, cote ajoute k1:7 déclaré, la fusion garde k1 et k1:7': (d) => {
+    d.poser({ [PORTEUR]: sourceStock(SIX.slice(1)) }, 'chantier retire k1')
+    d.git('checkout', '-q', '-b', 'cote', d.debut)
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/k1.ts:7')]) }, `cote +k1:7${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', 'chantier')
+    d.fusionner('cote')
+    const fin = d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/k1.ts:7')]) }, 'fusion : k1 ressuscité')
+    return [d.debut, fin, () => [[fin, PORTEUR, 1]]]
+  },
+}
+
+for (const [nom, construire] of Object.entries(CONSTRUITS)) {
+  test(`#2223 CONSTRUIT ${nom}`, () => {
+    const d = depotConstruit({ 'src/a.ts': corpsDe('a') })
+    try {
+      const [debut, fin, attendu, vers] = construire(d)
+      assert.deepEqual(d.juger(debut, fin, vers), attendu())
+    } finally {
+      rmSync(d.repo, { recursive: true, force: true })
+    }
+  })
+}
+
+for (const muette of [false, true]) {
+  test(`#2223 CONSTRUIT N6${muette ? 'b' : ''} : octopus résolu, trois parents et indisponibilité nommée`, () => {
+    const d = depotConstruit()
+    try {
+      for (const [branche, cle] of [['o1', 'src/o1.ts'], ['o2', 'src/o2.ts']]) {
+        d.git('checkout', '-q', '-b', branche, d.debut)
+        d.poser({ [PORTEUR]: sourceStock([...SIX, ent(cle)]) }, `${branche}${cliquet(PORTEUR, 1)}`)
+      }
+      d.git('checkout', '-q', 'chantier')
+      d.poser(muette ? {} : { [PORTEUR]: sourceStock([ent('src/o0.ts'), ...SIX]) }, `o0${muette ? '' : cliquet(PORTEUR, 1)}`)
+      assert.throws(() => d.git('merge', '-q', '--no-ff', '--no-verify', '--no-commit', 'o1', 'o2'))
+      const entrees = muette ? [...SIX, ent('src/o1.ts'), ent('src/o2.ts'), ent('src/o9.ts')]
+        : [ent('src/o0.ts'), ...SIX, ent('src/o1.ts'), ent('src/o2.ts')]
+      const fin = d.poser({ [PORTEUR]: sourceStock(entrees) }, 'conclusion après échec octopus')
+      const parents = d.git('show', '-s', '--format=%P', fin).trim().split(' ')
+      assert.equal(parents.length, 3)
+      const vu = d.plage(fin)
+      assert.match(vu.indisponible, /3 parents/)
+      assert.deepEqual([vu.refus, vu.reclassements], [[], []])
+    } finally {
+      rmSync(d.repo, { recursive: true, force: true })
+    }
+  })
+}
+
+// ── #2223 : le hook de commit juge une fusion EN COURS sur son apport, comme la plage ──────────────
+
+const commandeDeFusion = (lignes = '') => `git commit -m "chore(merge): refs #2223 — fusion de main${lignes}"`
+const auHook = async (repo, command) => {
+  const { garde } = await import('../../hooks/solde-ticket-guard.mjs')
+  return garde.evaluer({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } }, { dir: repo, cibleIgnoree: null, today: '2026-10-01', pannes: [] })
+}
+
+for (const option of ['-i', '--include', '-a']) {
+  test(`#2223 HOOK image emportée ${option} : fusion, index hors pathspec et disque inclus`, async () => {
+    const autre = 'scripts/autre.test.mjs'
+    const inclus = 'scripts/inclus.test.mjs'
+    const d = depotConstruit({ [autre]: sourceStock(SIX), [inclus]: sourceStock(SIX) })
+    try {
+      d.git('checkout', '-q', '-b', 'tronc', d.debut)
+      d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/tronc.ts')]) }, `tronc +1${cliquet(PORTEUR, 1)}`)
+      d.git('checkout', '-q', 'chantier')
+      d.poser({}, 'chantier')
+      d.fusionner('tronc')
+      writeFileSync(join(d.repo, autre), sourceStock([...SIX, ent('src/index.ts')]), 'utf8')
+      d.git('add', autre)
+      writeFileSync(join(d.repo, autre), sourceStock(SIX), 'utf8')
+      writeFileSync(join(d.repo, PORTEUR), sourceStock([...SIX, ent('src/tronc.ts'), ent('src/muette.ts')]), 'utf8')
+      d.git('add', PORTEUR)
+      writeFileSync(join(d.repo, inclus), sourceStock([...SIX, ent('src/disque.ts')]), 'utf8')
+      const lignes = cliquet(PORTEUR, 1) + cliquet(inclus, 1) + (option === '-a' ? '' : cliquet(autre, 1))
+      const commande = (texte) => `${commandeDeFusion(texte)} ${option}${option === '-a' ? '' : ` -- ${PORTEUR} ${inclus}`}`
+      const resultat = await auHook(d.repo, commande(lignes))
+      assert.notEqual(resultat?.decision, 'deny', JSON.stringify(resultat))
+      const refus = await auHook(d.repo, commande(''))
+      assert.equal(refus?.decision, 'deny')
+      assert.ok(refus.raison.includes(`${PORTEUR} : +1 entrée`))
+      assert.ok(refus.raison.includes(`${inclus} : +1 entrée`))
+      if (option !== '-a') assert.ok(refus.raison.includes(`${autre} : +1 entrée`))
+      const { diffDuCommit } = await import('../../hooks/solde-ticket-guard.mjs')
+      const lu = diffDuCommit(commande(lignes), d.repo)
+      assert.equal(lu.contenu(autre), sourceStock(option === '-a' ? SIX : [...SIX, ent('src/index.ts')]))
+      assert.equal(lu.contenu(inclus), sourceStock([...SIX, ent('src/disque.ts')]))
+      assert.ok(lu.fusion())
+    } finally {
+      rmSync(d.repo, { recursive: true, force: true })
+    }
+  })
+}
+
+test('#2223 HOOK sous MERGE_HEAD : main ajoute +1 déclaré, la conclusion une entrée muette — seule l’entrée de la fusion se déclare, `+1`', async () => {
+  const d = depotConstruit()
+  try {
+    d.git('checkout', '-q', '-b', 'tronc', d.debut)
+    d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/tronc.ts')]) }, `tronc +1${cliquet(PORTEUR, 1)}`)
+    d.git('checkout', '-q', 'chantier')
+    d.poser({}, 'chantier')
+    d.fusionner('tronc')
+    writeFileSync(join(d.repo, PORTEUR), sourceStock([...SIX, ent('src/tronc.ts'), ent('src/muette.ts')]), 'utf8')
+    d.git('add', PORTEUR)
+    assert.equal(await auHook(d.repo, commandeDeFusion(cliquet(PORTEUR, 1))), null, 'la ligne exacte de l’apport passe')
+    for (const lignes of ['', cliquet(PORTEUR, 2)]) {
+      const refus = await auHook(d.repo, commandeDeFusion(lignes))
+      assert.equal(refus?.decision, 'deny', JSON.stringify(lignes))
+      assert.ok(refus.raison.includes(`${PORTEUR} : +1 entrée(s) nette(s)`))
+    }
+    const fin = d.poser({}, `fusion de main${cliquet(PORTEUR, 1)}`)
+    assert.deepEqual(d.juger(d.debut, fin), [], 'la plage rend le même verdict sur la fusion posée')
+  } finally {
+    rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+test('#2223 HOOK sous MERGE_HEAD : un franchissement CSS amené par main n’est pas à la fusion — aucune ligne `RECLASSEMENT:` exigée', async () => {
+  const d = depotCss()
+  try {
+    d.git('checkout', '-q', '-b', 'chantier')
+    d.commettre({ 'notes.txt': 'travail du chantier\n' }, 'docs: notes du chantier')
+    d.git('checkout', '-q', 'main')
+    d.commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, RECLASSE)
+    d.git('checkout', '-q', 'chantier')
+    d.git('merge', '-q', '--no-ff', '--no-commit', 'main')
+    assert.equal(await auHook(d.racine, commandeDeFusion()), null)
+  } finally {
+    rmSync(d.racine, { recursive: true, force: true })
+  }
+})
+
+test('#2223 HOOK sous MERGE_HEAD : le franchissement CSS que la conclusion pose elle-même est refusé, et nommé', async () => {
+  const d = depotCss()
+  try {
+    d.git('checkout', '-q', '-b', 'chantier')
+    d.commettre({ 'notes.txt': 'travail du chantier\n' }, 'docs: notes du chantier')
+    d.git('checkout', '-q', 'main')
+    d.commettre({ 'main.txt': 'main avance\n' }, 'docs: main avance')
+    d.git('checkout', '-q', 'chantier')
+    d.git('merge', '-q', '--no-ff', '--no-commit', 'main')
+    writeFileSync(join(d.racine, 'src/ui/Ecran2.tsx'), importeur('Ecran2'), 'utf8')
+    d.git('add', 'src/ui/Ecran2.tsx')
+    const refus = await auHook(d.racine, commandeDeFusion())
+    assert.equal(refus?.decision, 'deny')
+    assert.match(refus.raison, /RECLASSEMENT CSS : src\/ui\/styles\/console\.css : franchi au prix 3, aucune ligne/)
+  } finally {
+    rmSync(d.racine, { recursive: true, force: true })
+  }
+})
+
+test('#2223 REFUS d’une plage : le geste suit la sorte du commit fautif — fusion ou commit simple, jamais `rebase -i`', () => {
+  const { repo, socle, fusion } = depotAFusion(sourceStock([A, B, C]))
+  try {
+    const { refus } = croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion })
+    assert.deepEqual(refus.map((r) => [r.sha, r.fusion]), [[fusion, true]])
+    const raison = raisonDeRefusDePlage(refus)
+    assert.ok(raison.includes(`(fusion) ${PORTEUR} +1`))
+    assert.match(raison, /FUSION : `git commit --amend` de la fusion si elle est la tête ; sinon refaire la fusion/)
+    assert.doesNotMatch(raison, /commit simple|rebase -i/)
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }

@@ -2,6 +2,8 @@
 /** #766 lot C : la bibliothèque de campagnes (menu principal) — liste les campagnes du jeu + la
  *  bibliothèque locale, importe un projet portable (JSON → `SavedProject` publié), en supprime un
  *  (local seulement). Contrats POSITIFS. */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -13,6 +15,7 @@ import {
   projectsLoad,
   publishedProjects,
   __resetLibraryForTest,
+  IMPORT_FORME_DEPOT,
   type SavedProject,
 } from '../state/projectLibrary';
 import { __setOuvertureIdbForTest } from '../lib/indexedDb';
@@ -324,7 +327,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it('« Exporter » une copie au nom d’entrée DIVERGENT : le document exporté porte le nom que la liste montre (#1343)', async () => {
-    const { paquet: _pq, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
+    const { paquet: _pq, fichier: _fi, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
     const copie = {
       id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-copie', savedAt: 1, published: true,
       project: {
@@ -525,6 +528,22 @@ describe('playerImportError — frontière d’affichage (#780)', () => {
   it('un `Error` simple portant le même TEXTE n’est PAS traité comme un message joueur : il remonte (discrimination par classe, pas par texte)', () => {
     const bogue = new Error('Fichier illisible : ce n’est pas du JSON valide.');
     expect(() => playerImportError(bogue)).toThrow(bogue);
+  });
+
+  it('le FICHIER DU DÉPÔT d’une campagne livrée (prose adressée sans son texte) : refusé, et le joueur apprend quel fichier importer', () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const disque = readFileSync(join(__dirname, '../scenes/diligence/diligence-projet.json'), 'utf8');
+    let erreur: unknown;
+    try {
+      buildImportedProject(disque);
+    } catch (e) {
+      erreur = e;
+    }
+    expect(erreur).toBeInstanceOf(ProjetRefuse);
+    const msg = playerImportError(erreur);
+    expect(msg).toBe(IMPORT_FORME_DEPOT);
+    expect(msg.toLowerCase()).not.toMatch(/descref|matérialis|schéma|schema/);
+    consoleErr.mockRestore();
   });
 
   it('remplace un refus de la porte par un langage JOUEUR, sans terme de schéma', () => {

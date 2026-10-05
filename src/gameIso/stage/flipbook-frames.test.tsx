@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -761,6 +762,24 @@ describe('Effondrement — la chute se compte depuis l’ENTRÉE AU SOL (#1176 L
     await remonter({ actors: acteurs });
     act(() => battre!());
     expect(celluleMontrée(N), 'la chute se rejoue à chaque rebuild de board').toBe(N - 1);
+  });
+
+  it('un occupant qui QUITTE les sujets perd son entrée au sol : revenu, sa chute repart (#2097)', async () => {
+    vi.useFakeTimers({ toFake: [...TIMERS_PAR_DÉFAUT, 'performance'] });
+    servirLesPlanches();
+    const N = atlasFrames(planDyingDef('prone'));
+    const acteurs: ActorPose[] = [{ c: àTerre('h1'), x: 2, y: 2, z: 0, heroIndex: 0 }];
+    await monter({ actors: acteurs });
+    await tranche(COLLAPSE_MS + 100);
+    act(() => battre!());
+    expect(celluleMontrée(N), 'PRÉMISSE : la chute est jouée jusqu’au bout').toBe(N - 1);
+    await remonter({ actors: [] });
+    await remonter({ actors: acteurs });
+    await attendreMontage(1);
+    act(() => battre!());
+    const cellule = celluleMontrée(N);
+    expect(cellule, 'PRÉMISSE : la planche d’effondrement est servie au retour').not.toBeNull();
+    expect(cellule!, 'l’entrée au sol d’un occupant parti survit à son départ').toBeLessThan(N - 1);
   });
 });
 

@@ -36,7 +36,7 @@ import { execFileSync } from 'node:child_process'
 /** Le dépôt, `<owner>/<repo>` — SOURCE UNIQUE. Il vit avec la couture qui construit les routes REST
  *  (`cheminTicket`) : quatre copies littérales de cette chaîne, c'est quatre dépôts à corriger le jour
  *  d'un renommage, et trois qui restent muettes. */
-export const DEPOT = 'cgauche/game'
+export const DEPOT = 'MyEdO/game'
 
 /** Taille de page REST demandée (maximum autorisé par l'API GitHub). */
 export const PAR_PAGE = 100

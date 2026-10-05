@@ -250,7 +250,7 @@ const figurantSujet = (ent: SceneEntity) =>
   collectBillboards(scene, mpt, { tokens: [tokenEl(ent)], props: [] })[0];
 
 describe('Figurant à ambiance authorée — la donnée éditable JOUE en volumique', () => {
-  it('avec `anim` : identité de piste, couture de frame, et ambiance déclarée', () => {
+  it('avec `anim` : un occupant `eid`, une couture de frame, et l’ambiance déclarée', () => {
     const s = figurantSujet(figurant('feed'));
     expect(s.eid).toBe('f1');
     expect(s.frameSvg).toBeTypeOf('function');
@@ -266,7 +266,7 @@ describe('Figurant à ambiance authorée — la donnée éditable JOUE en volumi
     expect(s.eid).toBeUndefined();
     expect(s.frameSvg).toBeUndefined();
     expect(s.anim).toBeUndefined();
-    expect(s.identity).toBe('perso:f1');
+    expect(s.identity).toMatch(/^perso:f1\|[0-9a-f]+$/);
   });
 
   it('la BOUCLE vit : les cellules du clip d’ambiance diffèrent', () => {

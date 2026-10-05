@@ -37,12 +37,12 @@ jobs:
       - id: install
         run: npm ci
 
-      # PREMIÈRE gate : `test` et `build` passent par `vite.config.ts`, dont `buildStart` appelle
-      # `genAll()` et réécrit les `*.generated.ts` (même ordre que `ci.yml`).
-      - id: docs-check-tout
+      # Chaque dérivé de `GENERATORS` PRODUIT (#2203) : un MIXTE périmé laisse un diff que « Arbre
+      # inchangé » refuse (même ordre que `ci.yml`).
+      - id: docs-build
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run docs:check:tout
+        run: npm run docs:build
       - id: agents-check
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -126,7 +126,7 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
-      # Filet des écrivains par nature (`genAll()` de `build` et de la suite), comme `ci.yml`.
+      # Filet des écrivains par nature (`docs:build`, `genererCode` de `build` et de la suite), comme `ci.yml`.
       - name: Arbre inchangé
         id: arbre-inchange
         continue-on-error: true
@@ -163,7 +163,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           RESULTATS: |
             install=${{ steps.install.outcome }}
-            docs-check-tout=${{ steps.docs-check-tout.outcome }}
+            docs-build=${{ steps.docs-build.outcome }}
             agents-check=${{ steps.agents-check.outcome }}
             test-agents=${{ steps.test-agents.outcome }}
             test-hooks=${{ steps.test-hooks.outcome }}

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * UN PAS D'EXPLORATION EST UNE REPOSE — mesuré sur l'écran monté, au chemin RÉEL du pas clavier

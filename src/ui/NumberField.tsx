@@ -42,6 +42,9 @@ type NumberFieldCommun = {
   // classe d'écran, elle, se déclare au CONTENEUR du site, cf. `.rm-die-pick > label > input`).
   title?: string;
   describedBy?: string;
+  /** Invalidité posée par l'APPELANT (règle qui dépasse le champ) : s'ajoute au refus de saisie du
+   *  champ ; le message de l'appelant se lie par `describedBy`. */
+  invalide?: boolean;
   commit?: NumberFieldCommit;
   /** La perte de focus commet (défaut, `commit: 'geste'`). `false` là où commettre est IRRÉVERSIBLE. */
   commitOnBlur?: boolean;
@@ -78,7 +81,7 @@ export function NumberField(props: NumberFieldProps) {
   const {
     label, ariaLabel, min, max, step = 1, unit, variant = 'complet',
     disabled, placeholder, width, title, describedBy, commit = 'frappe',
-    commitOnBlur = true, commitRef, vide, value,
+    commitOnBlur = true, commitRef, vide, value, invalide,
   } = props;
   const auto = useId();
   const id = props.id ?? auto;
@@ -101,7 +104,7 @@ export function NumberField(props: NumberFieldProps) {
   // deux frappes — un commit par frappe rendrait tout nombre à deux chiffres insaisissable là où
   // poser la valeur DÉCLENCHE (le « 5 » de « 50 » résoudrait le Test, recette #1117).
   const [brouillon, setBrouillon] = useState(courant != null ? String(courant) : '');
-  const [invalide, setInvalide] = useState(false);
+  const [refusee, setRefusee] = useState(false);
   const commis = useRef<number | null>(courant);
   // Resynchronisation sur une valeur EXTERNE nouvelle (l'hôte passe d'une fiche à une entrée neuve,
   // la même instance restant montée) : la valeur précédente est tenue en ÉTAT, jamais dans la seule
@@ -121,10 +124,10 @@ export function NumberField(props: NumberFieldProps) {
         setBrouillon(String(n));
         emet(n);
       }
-      setInvalide(false);
+      setRefusee(false);
       return true;
     }
-    setInvalide(brouillon !== ''); // champ VIDE = pas de saisie à refuser
+    setRefusee(brouillon !== ''); // champ VIDE = pas de saisie à refuser
     setBrouillon(commis.current != null ? String(commis.current) : '');
     return false;
   };
@@ -143,6 +146,7 @@ export function NumberField(props: NumberFieldProps) {
     if (commit === 'geste' && commitRef) commitRef.current = mienne.current;
     return () => { if (commitRef && commitRef.current === mienne.current) commitRef.current = null; };
   }, [commit, commitRef]);
+  const domaineDit = refusee && min != null && max != null;
 
   const saisie = (
     <input
@@ -156,11 +160,11 @@ export function NumberField(props: NumberFieldProps) {
       placeholder={placeholder}
       title={title}
       style={width != null ? { width } : undefined}
-      aria-invalid={invalide || undefined}
-      aria-describedby={invalide ? domaineId : describedBy}
+      aria-invalid={refusee || invalide || undefined}
+      aria-describedby={domaineDit ? domaineId : describedBy}
       value={commit === 'geste' ? brouillon : (courant ?? '')}
       onChange={(e) => {
-        if (commit === 'geste') { setInvalide(false); setBrouillon(e.target.value); return; }
+        if (commit === 'geste') { setRefusee(false); setBrouillon(e.target.value); return; }
         if (e.target.value === '') { emet(null); return; }
         emet(cale(Number(e.target.value) || 0));
       }}
@@ -180,7 +184,7 @@ export function NumberField(props: NumberFieldProps) {
   );
   // Le DOMAINE, rendu apparent quand la saisie est refusée — un fait (les bornes), pas une phrase
   // d'aide rédigée.
-  const domaine = invalide && min != null && max != null
+  const domaine = domaineDit
     ? <span id={domaineId} className="hint" role="status">{min}–{max}</span>
     : null;
 

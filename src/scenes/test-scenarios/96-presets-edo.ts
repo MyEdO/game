@@ -3,14 +3,21 @@ import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { Dialogue, Scene } from '../../state/scene';
 import type { NarratifBlock, PresetPnj } from '../../state/campaignNarratif';
+import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
 
 /**
- * Recette du LOT C de #671 : trois PNJ pilotes de « L'Ennemi Intérieur » authorés en `presetsPnj`
- * (base globale + surcharges embarquées, résolus par `resolvePresetCreature` une fois le narratif posé
- * par `loadProject`), puis mis en scène — spawn + dialogue avec portrait (Phillipe) + combat (Knud).
- * Statblocs VF verbatim (règle 1), chaque preset tagué à sa `source {book, page}` (folio imprimé).
+ * Recette du LOT C de #671 : trois PNJ de « L'Ennemi Intérieur » authorés en `presetsPnj` (base globale
+ * + surcharges embarquées, résolus par `resolvePresetCreature` une fois le narratif posé par
+ * `loadProject`), puis mis en scène — spawn + dialogue avec portrait (Phillipe) + combat (Knud).
+ * Knud et Phillipe : le paquet de la Diligence (`diligence/diligence-projet.json`, #680) ; Josef : MSR 141.
  */
+function presetDuPaquet(id: string): PresetPnj {
+  const preset = paquetDuJeu(diligenceCampaign).narratif.presetsPnj.find((p) => p.id === id);
+  if (!preset) throw new Error(`preset « ${id} » absent du paquet de la Diligence`);
+  return preset;
+}
+
 function construireNarratif(): NarratifBlock {
   const presetsPnj: PresetPnj[] = [
     {
@@ -36,87 +43,14 @@ function construireNarratif(): NarratifBlock {
           { id: 'voile', value: 82 },
         ],
         talents: [
-          { id: 'destinee' },
+          { id: 'destinee', spec: 'Une soif insatiable vous poussera à la noyade' },
           { id: 'pecheur' },
           { id: 'sens-de-l-orientation' },
           { id: 'tres-fort' },
         ],
       },
     },
-    {
-      // EDO 30 — ch.2 « Erreur sur la personne » (le chef mutant). Le `mutant` de base porte 2 Traits
-      // `mutation` : le tableau `traits` remplace en bloc (merge lot A) → tous listés ici.
-      id: 'edo-knud-cratinx',
-      base: 'mutant',
-      source: { book: 'ennemi-dans-l-ombre', page: 30 },
-      profil: {
-        label: 'Knud Cratinx',
-        char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, initiative: 35, agilite: 33, dexterite: 29, intelligence: 33, 'force-mentale': 35, sociabilite: 30, B: 12 },
-        traits: [
-          { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 },
-          { id: 'arme', value: 7, arg: 'Épée' },
-          { id: 'corruption', arg: 'Mineure' },
-          { id: 'mutation', arg: 'ecailles-epineuses' },
-        ],
-        skills: [
-          { id: 'commandement', value: 45 },
-          { id: 'corps-a-corps', spec: 'base', value: 54 },
-          { id: 'intimidation', value: 49 },
-          { id: 'perception', value: 43 },
-          { id: 'projectiles', spec: 'arbalete', value: 52 },
-          { id: 'survie-en-exterieur', value: 38 },
-        ],
-      },
-    },
-    {
-      // EDO 23 — ch.1 « On recherche : aventuriers courageux » (« Le Joueur », Phillipe Descartes).
-      id: 'edo-phillipe-descartes',
-      base: 'humain',
-      source: { book: 'ennemi-dans-l-ombre', page: 23 },
-      profil: {
-        label: 'Phillipe Descartes',
-        char: { M: 4, 'capacite-de-combat': 30, 'capacite-de-tir': 32, force: 30, endurance: 26, initiative: 31, agilite: 34, dexterite: 44, intelligence: 33, 'force-mentale': 30, sociabilite: 29, B: 10 },
-        traits: [
-          { id: 'a-distance', value: 7, arg: 'pistolet', range: 30 },
-          { id: 'arme', value: 8, arg: 'Épée' },
-        ],
-        skills: [
-          { id: 'athletisme', value: 60 },
-          { id: 'calme', value: 60 },
-          { id: 'charme', value: 44 },
-          { id: 'commandement', value: 49 },
-          { id: 'corps-a-corps', spec: 'bagarre', value: 47 },
-          { id: 'corps-a-corps', spec: 'base', value: 57 },
-          { id: 'escalade', value: 62 },
-          { id: 'escamotage', value: 64 },
-          { id: 'esquive', value: 60 },
-          { id: 'guerison', value: 39 },
-          { id: 'intimidation', value: 52 },
-          { id: 'intuition', value: 50 },
-          { id: 'langue', spec: 'bataille', value: 49 },
-          { id: 'marchandage', value: 44 },
-          { id: 'musicien', spec: 'tambour', value: 35 },
-          { id: 'pari', value: 50 },
-          { id: 'perception', value: 55 },
-          { id: 'projectiles', spec: 'poudre-noire', value: 60 },
-          { id: 'ragot', value: 44 },
-          { id: 'resistance', value: 53 },
-          { id: 'resistance-a-l-alcool', value: 58 },
-          { id: 'survie-en-exterieur', value: 44 },
-        ],
-        talents: [
-          { id: 'attirant' },
-          { id: 'chat-de-gouttiere' },
-          { id: 'coude-a-coude' },
-          { id: 'maitrise-des-des' },
-          { id: 'rechargement-rapide' },
-          { id: 'savoir-vivre', spec: 'Soldats' },
-          { id: 'seigneur-de-guerre' },
-          { id: 'tricheur' },
-          { id: 'vigilance' },
-        ],
-      },
-    },
+    ...['edo-knud-cratinx', 'edo-phillipe-descartes'].map(presetDuPaquet),
   ];
   return { affaires: [], indices: [], objets: [], presetsPnj };
 }

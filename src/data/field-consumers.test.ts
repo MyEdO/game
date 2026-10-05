@@ -91,11 +91,11 @@ describe('périmètre de TARGETS — aucune cible ne rend zéro champ', () => {
 
 describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
   /**
-   * `TrappingRef.spec` a DEUX lecteurs directs, un par ROLE : `resolveOne`
-   * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement `{choice}`/
+   * `TrappingRef.spec` a DEUX lecteurs directs, un par ROLE : `resoudre`
+   * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement
    * `qualityChoice`, et `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
    * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
-   * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refConcrete`
+   * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refLabel`
    * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
    * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
@@ -113,10 +113,10 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(
       specSites.sort(),
       'TrappingRef.spec devrait avoir EXACTEMENT 2 sites lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:36']);
+    ).toEqual(['src/engine/items.ts:313', 'src/engine/trappingChoices.ts:107']);
     expect(
       specReaders.some((s: string) => s.includes('data/index.ts')),
-      'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refConcrete`',
+      'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',
     ).toBe(false);
     // Program du dépôt, mémoïsé entre les `it` — mais celui-ci le paie SEUL s'il est lancé à part
     // (`-t`) : même mesure, donc même marge.
@@ -166,7 +166,7 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
-  ['EntityAppearance', 'armurePortee', 'src/gameIso/rig/enemyProfile.ts @armour, src/ui/compendium/CodexEdit.tsx @AppearanceField'],
+  ['EntityAppearance', 'armurePortee', 'src/gameIso/rig/enemyProfile.ts @equip, src/ui/compendium/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
   ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/ui/compendium/registry.ts @meta'],
   ['FlowTest', 'opposed', 'src/state/combat/triggeredTest.ts @opp'],
@@ -190,7 +190,6 @@ const ZEROS = [
   'CastingNumberMod.maison',
   'CastingNumberMod.source',
   'PropData.type',
-  'SourceRef.note',
 ];
 
 describe('contrat POSITIF des champs recouvrés + cliquet des « 0 lecteur »', () => {

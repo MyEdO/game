@@ -53,6 +53,15 @@ describe('co-descente — un pas de donnée par segment de schéma', () => {
     expect(lu(schema, { k: 'b', l: [{ id: 'x' }] }), 'la branche `b` ignore `l` : la descente ne s’y engage pas').toEqual([]);
   });
 
+  it('`|N` d’une union DISCRIMINÉE, discriminant ABSENT : la branche qui admet `undefined`, s’il en est une', () => {
+    const schema = z.discriminatedUnion('k', [
+      z.strictObject({ k: z.literal(true).optional(), l: liste() }),
+      z.strictObject({ k: z.literal(false), l: listeCle(z.strictObject({ nom: z.string() }), 'nom') }),
+    ]);
+    const [c] = collectionsDuDocument(schema, { l: [{ id: 'x' }] });
+    expect([c.suite, c.marque.forme === 'liste' && c.marque.nom, c.ids]).toEqual(['l', 'id', ['x']]);
+  });
+
   it('`|N` d’une union SIMPLE : toutes les branches', () => {
     expect(lu(z.union([z.strictObject({ l: liste() }), z.string()]), { l: [{ id: 'x' }] })).toEqual([['l', ['x']]]);
   });

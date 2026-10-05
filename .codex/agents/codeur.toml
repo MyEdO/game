@@ -16,12 +16,11 @@ Tu exécutes une spec précise fournie par l'orchestrateur — tu n'inventes ni 
   lieu d'improviser.
 - Aucun commentaire qui paraphrase une règle (réf nue seulement), aucune excuse, aucune pierre
   tombale.
-- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npx vitest run <fichiers>`,
+- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npm test -- <chemins>`,
   `npm run typecheck:fast` si du `.ts` bouge) et l'exécution réelle de l'outil livré en lecture seule.
-  Les GATES du train (lint, deps:unused, docs:check:tout, suites entières, `npm run gates`, tsc/vitest nus)
-  appartiennent à `ops:publier`, jouées UNE fois par l'orchestrateur : un brief qui te les impose se
-  REFUSE (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les
-  bloque de toute façon.
+  Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
+  appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se
+  REFUSE (« BRIEF REFUSÉ : gates hors périmètre »).
 - **Tout test NEUF se livre avec sa preuve par MUTATION** : dans ton rendu, le test ROUGE câblage
   débranché (édition temporaire, remise à l'identique À LA MAIN) puis VERT rebranché, avec
   l'empreinte `git hash-object` du fichier muté avant et après.

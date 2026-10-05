@@ -15,9 +15,8 @@ import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
 import type { ManannMood } from './seaVoyage';
 import type { CustomStatblock } from './statblock';
-import { findVehicleById, findCreatureById } from '../data';
-import { findResolvedTrait } from './traits/dispatch';
-import { effectiveSize, parseSizeLabel, SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
+import { findVehicleById, findCreatureById, tailleDuProfil } from '../data';
+import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
 
 export type PossessionLocation =
   | { kind: 'avec-le-groupe' }
@@ -166,13 +165,10 @@ export function possessionLabel(p: Possession): string {
   }
 }
 
-/** Taille effective d'un VIVANT (bête/serviteur) — Trait « Taille (X) » du bestiaire (même primitive
- *  que `state/spawn.ts` `sizeFromTraits` : `findResolvedTrait`+`parseSizeLabel`) ou `size` du statbloc
- *  custom ; défaut Moyenne (LDB 85, standard implicite des espèces sans Trait). */
+/** Taille effective d'un VIVANT (bête/serviteur) — la Taille de son profil (`tailleDuProfil`, `size`
+ *  explicite d'un statbloc custom compris, comme au spawn) ; défaut Moyenne (LDB 85, standard implicite des espèces sans Trait). */
 function livingSize(ref: LivingRef): SizeCategory {
-  if ('custom' in ref) return effectiveSize(ref.custom.size);
-  const arg = findResolvedTrait(findCreatureById(ref.creatureId)?.traits, 'taille')?.arg;
-  return effectiveSize(arg ? (parseSizeLabel(arg) ?? undefined) : undefined);
+  return tailleDuProfil(('custom' in ref ? ref.custom : findCreatureById(ref.creatureId)) ?? {});
 }
 
 /** Poids PROPRE d'une possession (hors items/cargo/embarquées) — véhicule/navire : `enc` du catalogue

@@ -12,8 +12,8 @@ export function repoProgram(
 ): Program;
 
 /** Programme bâti sur des sources EN MÉMOIRE (`chemin relatif` → contenu), bibliothèque standard
- *  comprise, sans disque (un import ne se résout qu'entre ces sources). */
-export function virtualProgram(files: Record<string, string>): Program;
+ *  comprise, sans disque (un import ne se résout qu'entre ces sources) ; `allowJs` admet les sources JS. */
+export function virtualProgram(files: Record<string, string>, options?: { allowJs?: boolean }): Program;
 
 /** Programme bâti sur UN arbre DÉJÀ parsé, sans bibliothèque ni import. */
 export function parsedProgram(racine: SourceFile): Program;

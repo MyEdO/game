@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { RigSprite } from './composeRig';
+import { RigSprite, rigComposition } from './composeRig';
 import type { Appearance } from './appearance';
 import { asRigSpeciesId } from './appearance';
+import { equipDe } from './parts/equipment';
 import type { EquipCtx } from './parts/equipment';
 import type { Weapon } from '../../engine/types';
 
@@ -12,7 +13,7 @@ describe('RigSprite (rendu headless)', () => {
   it('émet un <g data-bone> par os avec une matrice de transform', () => {
     const html = renderToStaticMarkup(
       <svg>
-        <RigSprite appearance={app} equip={{ weapons: [], armour: [] }} career="Soldat" />
+        <RigSprite comp={rigComposition(app, equipDe([], []), 'Soldat')} />
       </svg>,
     );
     expect(html).toContain('data-bone="torse"');
@@ -23,9 +24,9 @@ describe('RigSprite (rendu headless)', () => {
   });
 
   it('affiche une arme quand une est équipée', () => {
-    const equip: EquipCtx = { weapons: [{ label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon], armour: [] };
+    const equip: EquipCtx = equipDe([{ label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon], []);
     const html = renderToStaticMarkup(
-      <svg><RigSprite appearance={app} equip={equip} career="Soldat" /></svg>,
+      <svg><RigSprite comp={rigComposition(app, equip, 'Soldat')} /></svg>,
     );
     expect(html).toContain('data-bone="arme"');
   });

@@ -6,17 +6,18 @@
  * System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
 import { tableTotale } from '../../lib/tableTotale';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useId, useMemo, useState } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../engine/shipBuild';
 import { serializeDataset } from '../../data/serialize';
-import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, schemaForFile } from '../../data/schemas/validate';
+import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../data/schemas/validate';
+import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import * as fs from '../../data/fsPersist';
 import { estDerive, inferFields, type FieldDesc } from './editFields';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { entryKey, invalidateCodexLookup } from './registry';
+import { categoryByKey, entryKey } from './registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../engine/activities';
 import { weatherCondition } from '../../engine/travelStages';
@@ -28,6 +29,8 @@ import { DescRefField } from './DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
+import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../SourceRefField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { PlageField, type PlageValue } from '../PlageField';
 import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
@@ -65,7 +68,7 @@ import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureD
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
-import type { SecondaryRef, Variant } from '../../data/schemas/grammaire/valeurs';
+import type { SecondaryRef, SourceRef, Variant } from '../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../engine/policy';
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../data/schemas/defs/spells';
@@ -404,21 +407,21 @@ export function editableEntries(categoryKey: string): Entry[] {
 /** Props de l'atelier : l'ancrage est un VERROU PAR CONSTRUCTION (#1472) — soit l'entrée est NEUVE
  *  (`isNew`, le save APPEND), soit elle porte l'`id` STABLE du document édité. Aucun appel ne peut
  *  être « ni l'un ni l'autre » : la branche APPEND silencieuse n'est plus atteignable. */
-type CodexEditProps = { categoryKey: string; label: string; onClose: () => void }
+type CodexEditProps = { categoryKey: string; onClose: () => void }
   & ({ isNew: true; id?: undefined } | { isNew?: false; id: string });
 
-export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditProps) {
+export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
   // SOURCE de données UNIFIÉE (tableau d'entités OU dataset-objet) → la même UI de formulaire édite les
   // deux formes : tableau (une entité par item Codex) et objet unique (`details`, fiches de règle).
   // `entries` = échantillons pour `inferFields` ; `initial` = l'objet édité ;
   // `file`/`persist` = écriture disque (preview live in-place + `serializeDataset` byte-fidèle).
   const obj = editableObjectDataset(categoryKey);
-  const src = useMemo<{ entries: Entry[]; initial: Entry; index: number; file: string; persist: (entry: Entry) => void }>(() => {
+  const src = useMemo<{ dataset: string; entries: Entry[]; initial: Entry; index: number; file: string; persist: (entry: Entry) => void }>(() => {
     const entries = editableEntries(categoryKey);
     if (obj) {
       const data = datasetObject(obj.ds) as Record<string, unknown>;
       const file = datasetObjectFile(obj.ds);
-      return { entries, initial: data as Entry, index: -1, file, persist: (e) => setObjectDataset(obj.ds, e as never) };
+      return { dataset: obj.ds, entries, initial: data as Entry, index: -1, file, persist: (e) => setObjectDataset(obj.ds, e as never) };
     }
     const dsKey = editableDataset(categoryKey)!;
     const arr = entries;
@@ -427,6 +430,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
     const index = isNew ? -1 : arr.findIndex((e) => String(e.id ?? '') === id);
     const file = datasetFile(dsKey);
     return {
+      dataset: dsKey,
       entries: arr,
       // Une entrée NEUVE part de ce que le def DÉTERMINE (`brouillonNeuf`) : le `type` d'enveloppe et,
       // pour un document discriminé, la valeur que le `select` affiche en tête — sinon l'écran promet
@@ -436,9 +440,11 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
       file,
       persist: (e) => setDataset(dsKey, (index < 0 ? [...arr, e] : arr.map((x, i) => (i === index ? e : x))) as never),
     };
-  }, [obj, categoryKey, label, id, isNew]);
+  }, [obj, categoryKey, id, isNew]);
 
   const [entry, setEntry] = useState<Entry>(() => structuredClone(src.initial));
+  // Libellé COURANT de l'entrée (`entryKey`), celui de sa catégorie tant qu'elle n'en porte pas (#1830).
+  const libelle = entryKey(entry).trim() || categoryByKey(categoryKey)!.label;
   const [dir, setDir] = useState<FileSystemDirectoryHandle | null>(null);
   const [needsGrant, setNeedsGrant] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -572,11 +578,23 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   // que sur l'entrée de base.
   // La méta d'ÉDITION du document arrive par le CANAL REGISTRE (`SchemaDef.meta`, posée par
   // `document()`) — un def qui adopte la fabrique fait apparaître ses libellés FR sans une ligne d'UI.
-  const allFields = useMemo(() => inferFields(src.entries as Record<string, unknown>[], { meta: metaPourFichier(src.file), noeud: noeudObjet(schemaForFile(src.file)) }), [src.entries, src.file]);
+  // NŒUD de l'entrée éditée — UNE source pour le formulaire inféré et les éditeurs dédiés : la RANGÉE
+  // de son dataset, lue sur sa route déclarée (`noeudDeLEntree`). Une rangée refusée par son élément
+  // (`RangeeSansNoeud`) est une faute de SCHÉMA de l'entrée, dite par `rapportDeFautes` au nom COURANT
+  // de l'entrée (`libelle`) : elle bloque Enregistrer ; ses champs restent inférés de l'échantillon (#1830).
+  const rangee = useMemo((): { noeud?: unknown; faute?: string } => {
+    try { return { noeud: noeudDeLEntree(src.dataset, entry) }; }
+    catch (e) {
+      if (e instanceof RangeeSansNoeud) return { faute: rapportDeFautes(libelle, e.fautes) };
+      throw e;
+    }
+  }, [src.dataset, entry, libelle]);
+  const noeudEntree = rangee.noeud;
+  const allFields = useMemo(() => inferFields(src.entries as Record<string, unknown>[], { meta: metaPourFichier(src.file), noeud: noeudEntree }), [src.entries, src.file, noeudEntree]);
   // Un éditeur DÉDIÉ de tableau d'objets reçoit le NŒUD de SON champ, comme le chemin générique
   // (`Field` → `GenericArrayField`, `field.noeud`) : c'est le nœud qui porte le libellé des VALEURS
   // (`enumNomme`, #1694), donc le `select` nommé à toute profondeur du sous-formulaire.
-  const noeudDe = (champ: string): unknown => noeudDuChamp(src.file, champ);
+  const noeudDe = (champ: string): unknown => enfantsDe(noeudEntree).find((e) => e.cle === champ)?.noeud;
   // Un document DISCRIMINÉ (`espace.discriminant` de sa racine, `partitionDeCharge`) présente la charge du CAS de l'entrée — jamais
   // l'union des cas (mesuré sur `materials.json` : union 28 clés, 7 portées par une matière `prop`).
   // Le discriminant lui-même reste à l'écran : c'est en le changeant qu'on change de cas.
@@ -598,7 +616,12 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   // Erreurs BLOQUANTES avant persist (identité + refs résolvables) — pas de validation des
   // datasets-objet (`details`, fiches de règle : pas d'identité par entrée).
   const errors = useMemo(() => (obj ? [] : validateEntry(categoryKey, entry, src.entries, src.index)), [obj, categoryKey, entry, src]);
-  const canSave = dirty && errors.length === 0;
+  // Une saisie que l'enregistrement ne poserait pas (source incomplète, rangée `alsoIn`, clé de record en conflit) le bloque.
+  const saisies = useSuiviDesSaisies();
+  const canSave = dirty && errors.length === 0 && !saisies.enCours && rangee.faute === undefined;
+  // IDENTITÉ de l'entrée éditée : racine des `chemin` de ses champs ; le formulaire se remonte quand elle change.
+  const porteurEntree = `${categoryKey}#${isNew ? '(neuve)' : (id ?? '')}`;
+  const chemin = (champ: string): string => `${porteurEntree}/${champ}`;
 
   const save = async () => {
     // Contrat de donnée (#176) : la source entière doit parser son schéma zod (SCHEMA_DEFS) avant toute
@@ -618,7 +641,6 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
       else setDataset(dsKey!, avant as never);
       setSchemaError(schemaErr); setMsg(''); return;
     }
-    invalidateCodexLookup(); // l'index de `codexLookup` repart de la donnée persistée
     setSchemaError(null);
     const text = serializeDataset(root);
     try {
@@ -646,9 +668,11 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         <button className="btn small" onClick={onClose}>Fermer</button>
         <button className="btn small btn-primary" disabled={!canSave} onClick={save}>Enregistrer{dirty ? ' •' : ''}</button>
       </div>
-      {dirty && errors.length > 0 && (
+      {((dirty && errors.length > 0) || saisies.enCours || rangee.faute) && (
         <ul className="codex-edit-errors">
-          {errors.map((e) => <li key={e}>{e}</li>)}
+          {rangee.faute?.split('\n').map((line, i) => <li key={`rangee-${i}`}>{line}</li>)}
+          {dirty && errors.map((e) => <li key={e}>{e}</li>)}
+          {saisies.enCours && <li>Une saisie en cours n'est pas retenue : Enregistrer attend qu'elle soit complétée ou retirée (voir le champ signalé).</li>}
         </ul>
       )}
       {schemaError && (
@@ -656,8 +680,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
           {schemaError.split('\n').map((line, i) => <li key={i}>{line}</li>)}
         </ul>
       )}
-      <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+      <SuiviDesSaisies signaler={saisies.signaler}>
+      <div className="codex-edit-form" key={porteurEntree}>
+        {hasAppearance && <AppearanceField label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -709,19 +734,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
           <div className="ed-field">
             <span>passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik −10 Soc si visible, MSRC 16 l.140) — actifs seulement si la localisation tirée est cochée ci-dessous</span>
             <GameOpEditor ops={(entry.visiblePassive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('visiblePassive', ops.length ? ops : undefined)} />
-            <div className="de-reflrow">
-              {(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const).map((loc) => {
-                const cur = (entry.visibleLocations as string[] | undefined) ?? [];
-                return (
-                  <label key={loc}>
-                    <input type="checkbox" checked={cur.includes(loc)} onChange={(e) => {
-                      const next = e.target.checked ? [...cur, loc] : cur.filter((l) => l !== loc);
-                      edit('visibleLocations', next.length ? next : undefined);
-                    }} /> {HIT_LOCATION_LABELS[loc]}
-                  </label>
-                );
-              })}
-            </div>
+            <EnsembleDeCases nom="Localisations visibles" options={(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const).map((loc) => [loc, HIT_LOCATION_LABELS[loc]] as const)}
+              value={entry.visibleLocations as string[] | undefined} facultatif={admetLAbsence(noeudDe('visibleLocations')) ?? true}
+              onChange={(next) => edit('visibleLocations', next)} />
           </div>
         )}
         {isSymptom && <SymptomTickField value={entry.onTick as import('./StructFields').SymptomTick | undefined} onChange={(v) => edit('onTick', v)} />}
@@ -744,8 +759,8 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isDisease && <DiseaseDailyTestField value={entry.dailyTest as DiseaseDailyTest | undefined} onChange={(v) => edit('dailyTest', v)} />}
         {hasCombat && <TalentTestField value={entry.test as TalentTest | undefined} onChange={(v) => edit('test', v)} />}
         {hasCombat && <CombatField value={entry.combat as Partial<CombatFeature> | undefined} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('combat', v)} />}
-        {variantFields && <VariantsField value={entry.variants as Variant[] | undefined} resolved={variantFields} entryFields={allFields} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('variants', v.length ? v : undefined)} />}
-        {hasAlsoIn && <AlsoInField value={entry.alsoIn as SecondaryRef[] | undefined} onChange={(v) => edit('alsoIn', v.length ? v : undefined)} />}
+        {variantFields && <VariantsField chemin={chemin('variants')} value={entry.variants as Variant[] | undefined} resolved={variantFields} entryFields={allFields} allFeatures={src.entries.map((e) => e.combat as Partial<CombatFeature> | undefined)} onChange={(v) => edit('variants', v.length ? v : undefined)} />}
+        {hasAlsoIn && <AlsoInField chemin={chemin('alsoIn')} value={entry.alsoIn as SecondaryRef[] | undefined} onChange={(v) => edit('alsoIn', v.length ? v : undefined)} />}
         {hasSpecs && <SpecsField value={entry.specs as SpecEntry[] | undefined} onChange={(v) => edit('specs', v)} />}
         {hasAdvancement && <AdvancementRefField ds="skills" label="Compétences" value={entry.skills as AdvancementRef[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAdvancement && <AdvancementRefField ds="talents" label="Talents" value={entry.talents as AdvancementRef[] | undefined} onChange={(v) => edit('talents', v)} />}
@@ -780,17 +795,17 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
             onCasterOps={(v) => edit('casterOps', v)}
           />
         )}
-        {hasDomainEffects && <GenericArrayField noeud={noeudDe('windModifiers')} label="windModifiers (rubrique de Vent — DR par circonstance)" value={entry.windModifiers as Record<string, unknown>[] | undefined} onChange={(v) => edit('windModifiers', v)} />}
+        {hasDomainEffects && <GenericArrayField chemin={chemin('windModifiers')} noeud={noeudDe('windModifiers')} label="windModifiers (rubrique de Vent — DR par circonstance)" value={entry.windModifiers as Record<string, unknown>[] | undefined} onChange={(v) => edit('windModifiers', v)} />}
         {/* DÉPENSES d'une ressource (`characteristics.options` — Résilience, #1117 geste 5) : tableau
             top-level d'objets homogènes → MÊME éditeur générique que la rubrique de Vent. */}
-        {categoryKey === 'characteristics' && <GenericArrayField noeud={noeudDe('options')} label="options (dépenses de la ressource — verbatim du Source)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
+        {categoryKey === 'characteristics' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options (dépenses de la ressource — verbatim du Source)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
         {/* OPTIONS de Test d'un jeu de taverne (`tavernGames.options` — Middenball NADJ 16 l.119 :
             Bagarre (+20) OU Athlétisme (+0)) : même forme, même éditeur générique. */}
-        {categoryKey === 'tavernGames' && <GenericArrayField noeud={noeudDe('options')} label="options de Test (la règle en offre plusieurs — le joueur choisit)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
+        {categoryKey === 'tavernGames' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options de Test (la règle en offre plusieurs — le joueur choisit)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
         {/* Barème de points par plage de DR (`tavernGames.table` — Torchon trempé NADJ 16 l.111). */}
-        {categoryKey === 'tavernGames' && <GenericArrayField noeud={noeudDe('table')} label="barème de points par plage de DR" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
+        {categoryKey === 'tavernGames' && <GenericArrayField chemin={chemin('table')} noeud={noeudDe('table')} label="barème de points par plage de DR" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
-        {categoryKey === 'buildings' && <GenericArrayField noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
+        {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
         {isCreature && (
           <>
             <TraitListField label="Traits" hint="(LDB 85 — armement « Arme (Épée) +7 », Psychologie « Peur 3 »…)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />
@@ -817,7 +832,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {hasCrewSkills && <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
         {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
-        {hasConsumable && <GenericArrayField noeud={noeudDe('prosthesisTraining')} label="prosthesisTraining (paliers d’entraînement — PX, libellé joueur, tranche rachetée, aspect levé)" value={entry.prosthesisTraining as Record<string, unknown>[] | undefined} onChange={(v) => edit('prosthesisTraining', v.length ? v : undefined)} />}
+        {hasConsumable && <GenericArrayField chemin={chemin('prosthesisTraining')} noeud={noeudDe('prosthesisTraining')} label="prosthesisTraining (paliers d’entraînement — PX, libellé joueur, tranche rachetée, aspect levé)" value={entry.prosthesisTraining as Record<string, unknown>[] | undefined} onChange={(v) => edit('prosthesisTraining', v.length ? v : undefined)} />}
         {hasProsthesis && <ProsthesisField value={entry.prosthesis as { trappingId: string; cancels: 'all' | 'movement' }[] | undefined} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
         {hasTraumaList && <TraumaListField value={entry.traumas as string[] | undefined} onChange={(v) => edit('traumas', v.length ? v : undefined)} />}
         {hasRestartTest && <RestartTestField value={entry.restart as RestartTest[] | undefined} onChange={(v) => edit('restart', v.length ? v : undefined)} />}
@@ -825,25 +840,25 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isWaterExposure && <WaterTestField value={entry.test as WaterTest | undefined} onChange={(v) => edit('test', v)} />}
         {isWaterExposure && <WaterModifiersField value={entry.modifiers as WaterExposureModifier[] | undefined} onChange={(v) => edit('modifiers', v)} />}
         {isWaterExposure && <WaterDiseasesField value={entry.diseases as WaterExposureData['diseases'] | undefined} onChange={(v) => edit('diseases', v)} />}
-        {isSeaNavigation && <GenericArrayField noeud={noeudDe('forcerLeRythme')} label="forcerLeRythme (bonus M → difficulté Voile/Rames)" value={entry.forcerLeRythme as Record<string, unknown>[] | undefined} onChange={(v) => edit('forcerLeRythme', v)} />}
-        {isSeaPerils && <GenericArrayField noeud={noeudDe('hazards')} label="hazards (dangers flottants)" value={entry.hazards as Record<string, unknown>[] | undefined} onChange={(v) => edit('hazards', v)} />}
-        {isSeaPerils && <GenericArrayField noeud={noeudDe('detroits')} label="detroits" value={entry.detroits as Record<string, unknown>[] | undefined} onChange={(v) => edit('detroits', v)} />}
-        {isSeaPerils && <GenericArrayField noeud={noeudDe('tourbillons')} label="tourbillons" value={entry.tourbillons as Record<string, unknown>[] | undefined} onChange={(v) => edit('tourbillons', v)} />}
-        {isSeaPerils && <GenericArrayField noeud={noeudDe('gestionDesPerils')} label="gestionDesPerils" value={entry.gestionDesPerils as Record<string, unknown>[] | undefined} onChange={(v) => edit('gestionDesPerils', v)} />}
-        {isSeaWeather && <GenericArrayField noeud={noeudDe('table')} label="table (tirage quotidien)" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
-        {isSeaWeather && <GenericArrayField noeud={noeudDe('precipitations')} label="precipitations" value={entry.precipitations as Record<string, unknown>[] | undefined} onChange={(v) => edit('precipitations', v)} />}
-        {isSeaWeather && <GenericArrayField noeud={noeudDe('temperatures')} label="temperatures" value={entry.temperatures as Record<string, unknown>[] | undefined} onChange={(v) => edit('temperatures', v)} />}
-        {isSeaWeather && <GenericArrayField noeud={noeudDe('visibilites')} label="visibilites" value={entry.visibilites as Record<string, unknown>[] | undefined} onChange={(v) => edit('visibilites', v)} />}
-        {isSeaWeather && <GenericArrayField noeud={noeudDe('vents')} label="vents" value={entry.vents as Record<string, unknown>[] | undefined} onChange={(v) => edit('vents', v)} />}
-        {isSeaWeather && <GenericArrayField noeud={noeudDe('roseDesVents')} label="roseDesVents" value={entry.roseDesVents as Record<string, unknown>[] | undefined} onChange={(v) => edit('roseDesVents', v)} />}
-        {isDisponibilite && <GenericArrayField noeud={noeudDe('dispoPct')} label="dispoPct (% de Disponibilité par taille de colonie)" value={entry.dispoPct as Record<string, unknown>[] | undefined} onChange={(v) => edit('dispoPct', v)} />}
-        {isDisponibilite && <GenericArrayField noeud={noeudDe('barterRatios')} label="barterRatios (Ratios de Troc)" value={entry.barterRatios as Record<string, unknown>[] | undefined} onChange={(v) => edit('barterRatios', v)} />}
-        {isArcanePhenomena && <GenericArrayField noeud={noeudDe('saturationLevels')} label="saturationLevels (Paliers de Saturation)" value={entry.saturationLevels as Record<string, unknown>[] | undefined} onChange={(v) => edit('saturationLevels', v)} />}
-        {isArcanePhenomena && <GenericArrayField noeud={noeudDe('windSaturationEffects')} label="windSaturationEffects (Effets de Saturation par Vent)" value={entry.windSaturationEffects as Record<string, unknown>[] | undefined} onChange={(v) => edit('windSaturationEffects', v)} />}
-        {isArcanePhenomena && <GenericArrayField noeud={noeudDe('phenomena')} label="phenomena (Phénomènes arcaniques)" value={entry.phenomena as Record<string, unknown>[] | undefined} onChange={(v) => edit('phenomena', v)} />}
-        {isArcanePhenomena && <GenericArrayField noeud={noeudDe('tables')} label="tables (Tables du chapitre)" value={entry.tables as Record<string, unknown>[] | undefined} onChange={(v) => edit('tables', v)} />}
-        {isRiverNavigation && <GenericArrayField noeud={noeudDe('windForces')} label="windForces (Force du vent, 1d10)" value={entry.windForces as Record<string, unknown>[] | undefined} onChange={(v) => edit('windForces', v)} />}
-        {isRiverNavigation && <GenericArrayField noeud={noeudDe('windDirections')} label="windDirections (Direction du vent, 1d10)" value={entry.windDirections as Record<string, unknown>[] | undefined} onChange={(v) => edit('windDirections', v)} />}
+        {isSeaNavigation && <GenericArrayField chemin={chemin('forcerLeRythme')} noeud={noeudDe('forcerLeRythme')} label="forcerLeRythme (bonus M → difficulté Voile/Rames)" value={entry.forcerLeRythme as Record<string, unknown>[] | undefined} onChange={(v) => edit('forcerLeRythme', v)} />}
+        {isSeaPerils && <GenericArrayField chemin={chemin('hazards')} noeud={noeudDe('hazards')} label="hazards (dangers flottants)" value={entry.hazards as Record<string, unknown>[] | undefined} onChange={(v) => edit('hazards', v)} />}
+        {isSeaPerils && <GenericArrayField chemin={chemin('detroits')} noeud={noeudDe('detroits')} label="detroits" value={entry.detroits as Record<string, unknown>[] | undefined} onChange={(v) => edit('detroits', v)} />}
+        {isSeaPerils && <GenericArrayField chemin={chemin('tourbillons')} noeud={noeudDe('tourbillons')} label="tourbillons" value={entry.tourbillons as Record<string, unknown>[] | undefined} onChange={(v) => edit('tourbillons', v)} />}
+        {isSeaPerils && <GenericArrayField chemin={chemin('gestionDesPerils')} noeud={noeudDe('gestionDesPerils')} label="gestionDesPerils" value={entry.gestionDesPerils as Record<string, unknown>[] | undefined} onChange={(v) => edit('gestionDesPerils', v)} />}
+        {isSeaWeather && <GenericArrayField chemin={chemin('table')} noeud={noeudDe('table')} label="table (tirage quotidien)" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
+        {isSeaWeather && <GenericArrayField chemin={chemin('precipitations')} noeud={noeudDe('precipitations')} label="precipitations" value={entry.precipitations as Record<string, unknown>[] | undefined} onChange={(v) => edit('precipitations', v)} />}
+        {isSeaWeather && <GenericArrayField chemin={chemin('temperatures')} noeud={noeudDe('temperatures')} label="temperatures" value={entry.temperatures as Record<string, unknown>[] | undefined} onChange={(v) => edit('temperatures', v)} />}
+        {isSeaWeather && <GenericArrayField chemin={chemin('visibilites')} noeud={noeudDe('visibilites')} label="visibilites" value={entry.visibilites as Record<string, unknown>[] | undefined} onChange={(v) => edit('visibilites', v)} />}
+        {isSeaWeather && <GenericArrayField chemin={chemin('vents')} noeud={noeudDe('vents')} label="vents" value={entry.vents as Record<string, unknown>[] | undefined} onChange={(v) => edit('vents', v)} />}
+        {isSeaWeather && <GenericArrayField chemin={chemin('roseDesVents')} noeud={noeudDe('roseDesVents')} label="roseDesVents" value={entry.roseDesVents as Record<string, unknown>[] | undefined} onChange={(v) => edit('roseDesVents', v)} />}
+        {isDisponibilite && <GenericArrayField chemin={chemin('dispoPct')} noeud={noeudDe('dispoPct')} label="dispoPct (% de Disponibilité par taille de colonie)" value={entry.dispoPct as Record<string, unknown>[] | undefined} onChange={(v) => edit('dispoPct', v)} />}
+        {isDisponibilite && <GenericArrayField chemin={chemin('barterRatios')} noeud={noeudDe('barterRatios')} label="barterRatios (Ratios de Troc)" value={entry.barterRatios as Record<string, unknown>[] | undefined} onChange={(v) => edit('barterRatios', v)} />}
+        {isArcanePhenomena && <GenericArrayField chemin={chemin('saturationLevels')} noeud={noeudDe('saturationLevels')} label="saturationLevels (Paliers de Saturation)" value={entry.saturationLevels as Record<string, unknown>[] | undefined} onChange={(v) => edit('saturationLevels', v)} />}
+        {isArcanePhenomena && <GenericArrayField chemin={chemin('windSaturationEffects')} noeud={noeudDe('windSaturationEffects')} label="windSaturationEffects (Effets de Saturation par Vent)" value={entry.windSaturationEffects as Record<string, unknown>[] | undefined} onChange={(v) => edit('windSaturationEffects', v)} />}
+        {isArcanePhenomena && <GenericArrayField chemin={chemin('phenomena')} noeud={noeudDe('phenomena')} label="phenomena (Phénomènes arcaniques)" value={entry.phenomena as Record<string, unknown>[] | undefined} onChange={(v) => edit('phenomena', v)} />}
+        {isArcanePhenomena && <GenericArrayField chemin={chemin('tables')} noeud={noeudDe('tables')} label="tables (Tables du chapitre)" value={entry.tables as Record<string, unknown>[] | undefined} onChange={(v) => edit('tables', v)} />}
+        {isRiverNavigation && <GenericArrayField chemin={chemin('windForces')} noeud={noeudDe('windForces')} label="windForces (Force du vent, 1d10)" value={entry.windForces as Record<string, unknown>[] | undefined} onChange={(v) => edit('windForces', v)} />}
+        {isRiverNavigation && <GenericArrayField chemin={chemin('windDirections')} noeud={noeudDe('windDirections')} label="windDirections (Direction du vent, 1d10)" value={entry.windDirections as Record<string, unknown>[] | undefined} onChange={(v) => edit('windDirections', v)} />}
         {hasHullLength && (
           <PlageField
             label="Longueur"
@@ -858,21 +873,22 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isActivity && <ActivityTestField entry={entry} edit={edit} />}
         {isActivity && <ActivityResolverField entry={entry} edit={edit} />}
         {isActivity && <OutcomeBandsField value={entry.outcomes as OutcomeBand[] | undefined} onChange={(v) => edit('outcomes', v.length ? v : undefined)} />}
-        {isActivity && <GenericArrayField noeud={noeudDe('testMods')} label="testMods (modificateurs de situation du Test)" value={entry.testMods as Record<string, unknown>[] | undefined} onChange={(v) => edit('testMods', v.length ? v : undefined)} />}
-        {isActivity && <GenericArrayField noeud={noeudDe('worldRolls')} label="worldRolls (tirages d’environnement après le Test)" value={entry.worldRolls as Record<string, unknown>[] | undefined} onChange={(v) => edit('worldRolls', v.length ? v : undefined)} />}
+        {isActivity && <GenericArrayField chemin={chemin('testMods')} noeud={noeudDe('testMods')} label="testMods (modificateurs de situation du Test)" value={entry.testMods as Record<string, unknown>[] | undefined} onChange={(v) => edit('testMods', v.length ? v : undefined)} />}
+        {isActivity && <GenericArrayField chemin={chemin('worldRolls')} noeud={noeudDe('worldRolls')} label="worldRolls (tirages d’environnement après le Test)" value={entry.worldRolls as Record<string, unknown>[] | undefined} onChange={(v) => edit('worldRolls', v.length ? v : undefined)} />}
         {opsFields.map((fieldKey) => (
           <div className="ed-field" key={fieldKey}>
             <span>{fieldKey} — effet (GameOp[], même éditeur que les modificateurs passifs)</span>
-            <GameOpEditor ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
+            <GameOpEditor noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
           </div>
         ))}
         {fields.map((f) => {
           const cfg = refFieldCfg(categoryKey, f.key);
           return cfg
-            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
-            : <Field key={f.key} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
+            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
+            : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
         })}
       </div>
+      </SuiviDesSaisies>
     </div>
   );
 }
@@ -952,11 +968,12 @@ function TriggeredEffectsField({ value, onChange, label = 'effets déclenchés (
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const add = () => onChange([...list, { trigger: 'onHit', on: 'victim', flow: EMPTY_FLOW }]);
+  const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
       <span>{label}</span>
       {list.map((eff, i) => (
-        <div className="ed-subfield trait-effect" key={i}>
+        <div className="ed-subfield trait-effect" key={cles[i]}>
           <div className="tf-row">
             <label className="dr">Déclencheur
               <select value={eff.trigger} onChange={(e) => set(i, { trigger: e.target.value as EffectTrigger })}>
@@ -1220,36 +1237,58 @@ function TraumaListField({ value, onChange }: { value: string[] | undefined; onC
   );
 }
 
-/** Sous-formulaire `{book,page,note?}` (patron du kind `source` générique, `Field` l.~1486) — réutilisé
- *  tel quel par `AlsoInField` (+ `quote`) et `VariantsField` (`variant.source`, optionnel). */
-function SourceSubForm({ value, onChange }: { value: { book?: string; page?: number; note?: string }; onChange: (v: { book?: string; page?: number; note?: string }) => void }) {
-  return (
-    <div className="de-source">
-      <input placeholder="livre" value={value.book ?? ''} onChange={(e) => onChange({ ...value, book: e.target.value })} />
-      <NumberField variant="nu" label="page" placeholder="page" vide value={value.page} onChange={(n) => onChange({ ...value, page: n ?? 0 })} />
-      <input placeholder="note (facultatif)" value={value.note ?? ''} onChange={(e) => onChange({ ...value, note: e.target.value || undefined })} />
-    </div>
-  );
-}
+/** Une rangée de `AlsoInField` : `valeur` = réf COMPLÈTE émise ; absente, la rangée est un BROUILLON
+ *  local, dont la citation déjà saisie attend dans `quote`. `cle` = identité stable de la rangée. */
+type RangeeAlsoIn = { cle: number; valeur?: SecondaryRef; quote?: string };
 
 /** Emplacements SECONDAIRES d'une entrée réimprimée ailleurs (`alsoIn: SecondaryRef[]`, #563, doctrine
  *  user 2026-07-17 — « jamais 2 talents différents »). L'ANCRE (`source`) reste seule à porter la
  *  `desc` (règle stricte 5) ; chaque rangée secondaire = `{book,page,note?}` + `quote` (preuve
- *  verbatim, obligatoire si le label n'est pas imprimé tel quel dans ce span). */
-function AlsoInField({ value, onChange }: { value: SecondaryRef[] | undefined; onChange: (v: SecondaryRef[]) => void }) {
-  const list = value ?? [];
-  const set = (next: SecondaryRef[]) => onChange(next);
+ *  verbatim, obligatoire si le label n'est pas imprimé tel quel dans ce span). La liste n'ÉMET que ses
+ *  rangées complètes, contrat de `SourceRefField` (#1993). */
+function AlsoInField({ chemin, value, onChange }: { chemin: string; value: SecondaryRef[] | undefined; onChange: (v: SecondaryRef[]) => void }) {
+  const [rangees, setRangees] = useState<RangeeAlsoIn[]>(() => (value ?? []).map((valeur, cle) => ({ cle, valeur })));
+  const [prochaine, setProchaine] = useState(() => value?.length ?? 0);
+  // Resynchronisation sur une valeur EXTERNE nouvelle ; la liste que le champ vient d'émettre (vide,
+  // le porteur la pose `undefined`) ne l'écrase pas, et ses brouillons survivent.
+  const [precedente, setPrecedente] = useState(value);
+  const [emise, setEmise] = useState<SecondaryRef[] | undefined>(value);
+  if (precedente !== value) {
+    setPrecedente(value);
+    if (value !== emise && !(value === undefined && emise?.length === 0)) {
+      setRangees((value ?? []).map((valeur, i) => ({ cle: prochaine + i, valeur })));
+      setProchaine(prochaine + (value?.length ?? 0));
+    }
+  }
+  const poser = (suivantes: RangeeAlsoIn[], emettre: boolean) => {
+    setRangees(suivantes);
+    if (!emettre) return;
+    const liste = suivantes.flatMap((r) => (r.valeur ? [r.valeur] : []));
+    setEmise(liste);
+    onChange(liste);
+  };
+  const remplacer = (cle: number, r: RangeeAlsoIn) => rangees.map((x) => (x.cle === cle ? r : x));
+  useSaisieEnCours(rangees.some((r) => !r.valeur && r.quote !== undefined));
+  const ajouter = () => {
+    poser([...rangees, { cle: prochaine }], false);
+    setProchaine(prochaine + 1);
+  };
   return (
     <div className="ed-field">
       <span>autres emplacements (`alsoIn`, #563) — l'ancre (`source`) ci-dessus reste seule à porter la desc</span>
-      {list.map((r, i) => (
-        <div className="ed-subfield" key={i}>
-          <SourceSubForm value={r} onChange={(v) => set(list.map((x, j) => (j === i ? { ...x, ...v } : x)))} />
-          <input placeholder="citation verbatim — preuve du span (obligatoire si le label n'y est pas imprimé)" value={r.quote ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, quote: e.target.value || undefined } : x)))} />
-          <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+      {rangees.map((r, i) => (
+        <div className="ed-field" key={r.cle}>
+          <SourceRefField identite={`${chemin}/${r.cle}`} label={`Emplacement ${i + 1}`} sujet={`de l'emplacement ${i + 1}`} value={r.valeur} onChange={(v) => poser(remplacer(r.cle, { cle: r.cle, valeur: r.valeur || !r.quote ? v : { ...v, quote: r.quote } }), true)} />
+          <div className="de-reflrow">
+            <input aria-label={`Citation de l'emplacement ${i + 1}`} placeholder="citation verbatim — preuve du span (obligatoire si le label n'y est pas imprimé)" value={(r.valeur ? r.valeur.quote : r.quote) ?? ''} onChange={(e) => {
+              const quote = e.target.value || undefined;
+              poser(remplacer(r.cle, r.valeur ? { cle: r.cle, valeur: { ...r.valeur, quote } } : { cle: r.cle, quote }), r.valeur !== undefined);
+            }} />
+            <button className="btn small danger" aria-label={`Retirer l'emplacement ${i + 1}`} title="Retirer" onClick={() => poser(rangees.filter((x) => x.cle !== r.cle), r.valeur !== undefined)}>✕</button>
+          </div>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { book: '', page: 0 }])}>+ Emplacement secondaire</button>
+      <button className="btn small" onClick={ajouter}>+ Emplacement secondaire</button>
     </div>
   );
 }
@@ -1270,42 +1309,40 @@ function coerceRuleValue(raw: string, kind: RuleKind | undefined): RuleValue | u
   return raw;
 }
 
-function VariantsField({ value, resolved, entryFields, allFeatures, onChange }: { value: Variant[] | undefined; resolved: readonly string[]; entryFields: FieldDesc[]; allFeatures: (Partial<CombatFeature> | undefined)[]; onChange: (v: Variant[]) => void }) {
+function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onChange }: { chemin: string; value: Variant[] | undefined; resolved: readonly string[]; entryFields: FieldDesc[]; allFeatures: (Partial<CombatFeature> | undefined)[]; onChange: (v: Variant[]) => void }) {
   const list = value ?? [];
   const set = (next: Variant[]) => onChange(next);
   const patch = (i: number, key: string, v: unknown) => set(list.map((x, j) => (j === i ? { ...x, [key]: v } : x)));
   // Champs republiables SANS éditeur bespoke ci-dessous : rendus par le gabarit de l'entrée de base.
   const generic = entryFields.filter((f) => resolved.includes(f.key) && !['desc', 'source', 'combat', 'effects'].includes(f.key));
+  const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
       <span>variantes réglées par règle optionnelle (#563/#564 — gatées par le MODULE, jamais par la source)</span>
       {list.map((v, i) => (
-        <div className="ed-subfield" key={i}>
+        <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
             <label className="dr">Règle
-              <select value={v.when.rule} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, rule: e.target.value } } : x)))}>
+              <select aria-label={`Règle de la variante ${i + 1}`} value={v.when.rule} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, rule: e.target.value } } : x)))}>
                 <option value="">— (choisir une règle optionnelle) —</option>
                 {OPTIONAL_RULES.map((r) => <option key={r.id} value={r.id}>{r.label} — {r.id}</option>)}
               </select>
             </label>
             <label className="dr">Valeur attendue
-              <input placeholder="défaut : true" value={v.when.equals == null ? '' : String(v.when.equals)}
+              <input aria-label={`Valeur attendue de la variante ${i + 1}`} placeholder="défaut : true" value={v.when.equals == null ? '' : String(v.when.equals)}
                 onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, equals: coerceRuleValue(e.target.value, OPTIONAL_RULES.find((r) => r.id === x.when.rule)?.kind) } } : x)))} />
             </label>
-            <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+            <button className="btn small danger" aria-label={`Retirer la variante ${i + 1}`} title={`Retirer la variante ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
           {resolved.includes('desc') && (
             <label className="ed-subfield">description (facultatif — sinon celle de l'ancre)
-              <textarea rows={2} value={v.desc ?? ''} onChange={(e) => patch(i, 'desc', e.target.value || undefined)} />
+              <textarea aria-label={`Description de la variante ${i + 1}`} rows={2} value={v.desc ?? ''} onChange={(e) => patch(i, 'desc', e.target.value || undefined)} />
             </label>
           )}
           {resolved.includes('source') && (
-            <div className="ed-subfield">
-              <span>source (facultatif)</span>
-              <SourceSubForm value={v.source ?? {}} onChange={(s) => patch(i, 'source', (s.book || s.page) ? { book: s.book ?? '', page: s.page ?? 0, note: s.note } : undefined)} />
-            </div>
+            <SourceRefField identite={`${chemin}/${cles[i]}/source`} label="source (facultatif)" facultative sujet={`de la variante ${i + 1}`} value={v.source} onChange={(s) => patch(i, 'source', s)} />
           )}
-          {generic.map((f) => <Field key={f.key} field={f} value={v[f.key]} onChange={(nv) => patch(i, f.key, nv)} />)}
+          {generic.map((f) => <Field key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={`de la variante ${i + 1}`} field={f} value={v[f.key]} onChange={(nv) => patch(i, f.key, nv)} />)}
           {resolved.includes('effects') && <SpellEffectsField value={v.effects as Flow | undefined} onChange={(fl) => patch(i, 'effects', fl)} />}
           {resolved.includes('combat') && <CombatField value={v.combat as Partial<CombatFeature> | undefined} allFeatures={allFeatures} onChange={(c) => patch(i, 'combat', c)} />}
         </div>
@@ -1387,15 +1424,12 @@ const WATER_TABLE_OPTS = optionsDuNoeud(waterTableSchema);
 function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier[] | undefined; onChange: (v: WaterExposureModifier[]) => void }) {
   const list = value ?? [];
   const set = (i: number, patch: Partial<WaterExposureModifier>) => onChange(list.map((m, j) => (j === i ? { ...m, ...patch } : m)));
-  const toggleAppliesTo = (i: number, ctx: 'ingestion' | 'immersion') => {
-    const cur = list[i].appliesTo;
-    set(i, { appliesTo: cur.includes(ctx) ? cur.filter((c) => c !== ctx) : [...cur, ctx] });
-  };
+  const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
       <span>modificateurs du Test de Résistance (MSRC 16 l.23-47) — cumulables</span>
       {list.map((m, i) => (
-        <div className="ed-subfield" key={i}>
+        <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
             <input placeholder="id" style={{ width: 140 }} value={m.id} onChange={(e) => set(i, { id: e.target.value })} />
             <input placeholder="libellé" value={m.label} onChange={(e) => set(i, { label: e.target.value })} />
@@ -1405,11 +1439,8 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
             </select>
             <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <div className="tf-row">
-            {WATER_APPLIES_TO_OPTS.map(([id, l]) => (
-              <label className="dr" key={id}><input type="checkbox" checked={m.appliesTo.includes(id)} onChange={() => toggleAppliesTo(i, id)} /> {l}</label>
-            ))}
-          </div>
+          <EnsembleDeCases nom={`Contextes du modificateur ${i + 1}`} options={WATER_APPLIES_TO_OPTS} value={m.appliesTo}
+            facultatif={false} onChange={(appliesTo) => set(i, { appliesTo: appliesTo ?? [] })} />
           <JsonField label="condition automatique (auto — facultatif, dérivée du Combatant)" value={m.auto} onChange={(v) => set(i, { auto: v as WaterExposureModifier['auto'] })} />
         </div>
       ))}
@@ -1458,16 +1489,11 @@ const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
  *  choix » (la meilleure de l'acteur est retenue) + caractéristique de repli + Difficulté. Réutilise
  *  `SkillSpecListField` (mêmes `{id,spec?}[]` que les Rôles d'équipage). Vide = Activité SANS Test. */
 function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
-  const contexts = (entry.contexts as ActivityContext[] | undefined) ?? [];
-  const toggle = (c: ActivityContext) => edit('contexts', contexts.includes(c) ? contexts.filter((x) => x !== c) : [...contexts, c]);
   return (
     <div className="ed-field">
       <span>contextes où l’Activité est proposable (au moins un)</span>
-      <div className="tf-row">
-        {ACTIVITY_CONTEXTS.map(([c, l]) => (
-          <label className="dr" key={c}><input type="checkbox" checked={contexts.includes(c)} onChange={() => toggle(c)} /> {l}</label>
-        ))}
-      </div>
+      <EnsembleDeCases nom="Contextes de l’Activité" options={ACTIVITY_CONTEXTS} value={entry.contexts as ActivityContext[] | undefined}
+        facultatif={admetLAbsence(noeudDuChamp('activities.json', 'contexts')) ?? false} onChange={(next) => edit('contexts', next)} />
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
       <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
       <div className="tf-row">
@@ -1581,11 +1607,12 @@ function ActivityResolverField({ entry, edit }: { entry: Record<string, unknown>
 function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefined; onChange: (v: OutcomeBand[]) => void }) {
   const list = value ?? [];
   const set = (i: number, patch: Partial<OutcomeBand>) => onChange(list.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+  const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
       <span>issues par Degrés de Réussite (bandes DR → résultat) — Maladresse remplace toute autre issue ; sans « issue » la bande matche par DR seul (ACE Annexe I)</span>
       {list.map((b, i) => (
-        <div className="ed-subfield" key={i}>
+        <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
             <label className="dr">Issue
               <select value={b.on ?? ''} onChange={(e) => set(i, { on: (e.target.value || undefined) as OutcomeBand['on'] })}>
@@ -1756,11 +1783,15 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   );
 }
 
-/** Rendu d'un champ, avec autocomplétion `<datalist>` pour les listes de références. */
-function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
+/** Rendu d'un champ, avec autocomplétion `<datalist>` pour les listes de références. `sujet` = sa
+ *  POSITION dans un conteneur (« de la rangée 2 de windModifiers »), qui complète ses noms accessibles :
+ *  deux champs de même libellé, dans deux rangées, ne se confondent pas. */
+function Field({ chemin, sujet, field, value, onChange }: { chemin: string; sujet?: string; field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
   // `key` = IDENTITÉ du champ (jointures de valeurs, `REF_LIST_DATASET`) ; `label` = AFFICHAGE (#1466).
   const { key, kind, label } = field;
   const refDs = REF_LIST_DATASET[key];
+  const nom = sujet ? `${label} ${sujet}` : label;
+  const nomPositionne = sujet ? nom : undefined;
 
   if (kind === 'stringList') {
     const list = (value as string[]) ?? [];
@@ -1770,12 +1801,12 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
         <span>{label}{refDs && <em className="de-hint"> (autocomplétion {refDs})</em>}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
-            <input value={item} list={refDs ? `dl-${refDs}` : undefined}
+            <input aria-label={`${nom} — valeur ${i + 1}`} value={item} list={refDs ? `dl-${refDs}` : undefined}
               onChange={(e) => set(list.map((x, j) => (j === i ? e.target.value : x)))} />
-            <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+            <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => set([...list, ''])}>+ Ajouter</button>
+        <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, ''])}>+ Ajouter</button>
         {refDs && <RefDatalist ds={refDs} />}
       </div>
     );
@@ -1788,11 +1819,11 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
         <span>{label}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
-            <NumberField variant="nu" label={`${label} — valeur ${i + 1}`} value={item} onChange={(n) => set(list.map((x, j) => (j === i ? n : x)))} />
-            <button className="btn small danger" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
+            <NumberField variant="nu" label={`${nom} — valeur ${i + 1}`} value={item} onChange={(n) => set(list.map((x, j) => (j === i ? n : x)))} />
+            <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button className="btn small" onClick={() => set([...list, 0])}>+ Ajouter</button>
+        <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, 0])}>+ Ajouter</button>
       </div>
     );
   }
@@ -1802,33 +1833,39 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
     const valeurs = field.valeurs;
     return (
       <label className="ed-field"><span>{label}</span>
-        <select value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value || (field.nullable ? null : e.target.value))}>
+        <select aria-label={nomPositionne} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value || (field.nullable ? null : e.target.value))}>
           {field.nullable && <option value="">— (aucun)</option>}
           {Object.keys(valeurs).map((v) => <option key={v} value={v}>{valeurs[v]}</option>)}
         </select>
       </label>
     );
   }
-  if (kind === 'textarea')
-    return <label className="ed-field"><span>{label}</span><textarea rows={3} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} /></label>;
-  if (kind === 'number')
-    return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={label} vide value={value as number | null} onChange={(n) => onChange(n ?? (field.nullable ? null : 0))} /></label>;
-  if (kind === 'checkbox')
-    return <label className="ed-check"><input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} /><span>{label}</span></label>;
-  if (kind === 'source') {
-    const s = (value as { book?: string; page?: number }) ?? {};
-    return <div className="ed-field"><span>{label}</span><div className="de-source"><input placeholder="livre" value={s.book ?? ''} onChange={(e) => onChange({ ...s, book: e.target.value })} /><NumberField variant="nu" label={`${label} — page`} placeholder="page" vide value={s.page} onChange={(n) => onChange({ ...s, page: n ?? 0 })} /></div></div>;
+  if (kind === 'selectList' && field.valeurs) {
+    return (
+      <div className="ed-field">
+        <span>{label}</span>
+        <EnsembleDeCases nom={nom} options={Object.entries(field.valeurs)} value={value as string[] | undefined}
+          facultatif={admetLAbsence(field.noeud) ?? field.nullable} onChange={onChange} />
+      </div>
+    );
   }
+  if (kind === 'textarea')
+    return <label className="ed-field"><span>{label}</span><textarea aria-label={nomPositionne} rows={3} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} /></label>;
+  if (kind === 'number')
+    return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={nom} vide value={value as number | null} onChange={(n) => onChange(n ?? (field.nullable ? null : 0))} /></label>;
+  if (kind === 'checkbox')
+    return <label className="ed-check"><input type="checkbox" aria-label={nomPositionne} checked={!!value} onChange={(e) => onChange(e.target.checked)} /><span>{label}</span></label>;
+  if (kind === 'source') return <SourceRefField identite={chemin} label={label} sujet={sujet} facultative={field.nullable} value={value as SourceRef | undefined} onChange={onChange} />;
   if (kind === 'descRef') {
-    return <DescRefField label={label} value={value as DescRef | undefined} onChange={onChange as (v: DescRef | undefined) => void} />;
+    return <DescRefField label={label} sujet={sujet} value={value as DescRef | undefined} onChange={onChange as (v: DescRef | undefined) => void} />;
   }
   if (kind === 'recordNumber') {
     const rec = (value as Record<string, number | null>) ?? {};
     const keys = Object.keys(rec);
-    return <div className="ed-field"><span>{label}</span>{keys.length === 0 ? <em className="de-hint">vide</em> : <div className="de-grid">{keys.map((k) => <label key={k} className="de-cell"><span>{k}</span><NumberField variant="nu" label={`${label} — ${k}`} vide value={rec[k]} onChange={(n) => onChange({ ...rec, [k]: n })} /></label>)}</div>}</div>;
+    return <div className="ed-field"><span>{label}</span>{keys.length === 0 ? <em className="de-hint">vide</em> : <div className="de-grid">{keys.map((k) => <label key={k} className="de-cell"><span>{k}</span><NumberField variant="nu" label={`${nom} — ${k}`} vide value={rec[k]} onChange={(n) => onChange({ ...rec, [k]: n })} /></label>)}</div>}</div>;
   }
-  if (kind === 'recordText') return <RecordTextField label={label} value={value as Record<string, string> | undefined} onChange={onChange} />;
-  if (kind === 'object') return <ObjectField label={label} value={value as Record<string, unknown> | undefined} noeud={field.noeud} onChange={onChange} />;
+  if (kind === 'recordText') return <RecordTextField label={label} nom={nom} value={value as Record<string, string> | undefined} onChange={onChange} />;
+  if (kind === 'object') return <ObjectField chemin={chemin} sujet={sujet} label={label} value={value as Record<string, unknown> | undefined} noeud={field.noeud} onChange={onChange} />;
   if (kind === 'json') {
     // Un tableau d'objets PLATS niché (`vitesseMax.table`, `hazards[].entanglePenalties`… sous un
     // `ObjectField`/`GenericArrayField` récursif, hors du périmètre TOP-LEVEL du garde
@@ -1838,45 +1875,151 @@ function Field({ field, value, onChange }: { field: FieldDesc; value: unknown; o
     // fonctionnel). `JsonField` ne reste qu'un filet pour une forme vraiment hors gabarit (tableau de
     // tableaux…), aucun cas réel actuel.
     if (value == null || (Array.isArray(value) && value.every((x) => x != null && typeof x === 'object' && !Array.isArray(x))))
-      return <GenericArrayField label={label} value={value as Record<string, unknown>[] | undefined} noeud={field.noeud} onChange={onChange as (v: Record<string, unknown>[]) => void} />;
-    return <JsonField label={label} value={value} onChange={onChange} />;
+      return <GenericArrayField chemin={chemin} sujet={sujet} label={label} value={value as Record<string, unknown>[] | undefined} noeud={field.noeud} onChange={onChange as (v: Record<string, unknown>[]) => void} />;
+    return <JsonField label={label} sujet={sujet} value={value} onChange={onChange} />;
   }
   // `fige` : valeur POSÉE par le def — affichée, jamais saisie (un champ ouvert à la frappe dont une
   // seule valeur parse est une affordance qui ment).
-  if (field.fige) return <label className="ed-field"><span>{label}</span><input value={(value as string) ?? ''} readOnly /></label>;
-  return <label className="ed-field"><span>{label}</span><input value={(value as string) ?? ''} onChange={(e) => onChange(field.nullable && e.target.value === '' ? null : e.target.value)} /></label>;
+  if (field.fige) return <label className="ed-field"><span>{label}</span><input aria-label={nomPositionne} value={(value as string) ?? ''} readOnly /></label>;
+  return <label className="ed-field"><span>{label}</span><input aria-label={nomPositionne} value={(value as string) ?? ''} onChange={(e) => onChange(field.nullable && e.target.value === '' ? null : e.target.value)} /></label>;
+}
+
+/** Le NŒUD du champ admet-il l'absence ? `undefined` quand l'appelant ne tient pas de nœud. */
+function admetLAbsence(noeud: unknown): boolean | undefined {
+  const n = noeud as { safeParse?: (v: unknown) => { success: boolean } } | undefined;
+  return n?.safeParse ? n.safeParse(undefined).success : undefined;
+}
+
+/** ENSEMBLE de valeurs d'un enum : une case par option, cochée quand la valeur est portée. Une valeur
+ *  portée hors des options reste montrée, décochable. Vidé, l'ensemble d'un champ `facultatif` émet
+ *  `undefined`. Chaque case est nommée par son option ET par `nom` (qui porte la position). */
+function EnsembleDeCases<V extends string>({ nom, options, value, facultatif, onChange }: {
+  nom: string;
+  options: readonly (readonly [V, string])[];
+  value: readonly V[] | undefined;
+  facultatif: boolean;
+  onChange: (next: V[] | undefined) => void;
+}) {
+  const cur = value ?? [];
+  const connues = new Set(options.map(([v]) => v));
+  const toutes = [...options, ...cur.filter((v) => !connues.has(v)).map((v) => [v, `${v} (inconnu)`] as const)];
+  const basculer = (v: V) => {
+    const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
+    onChange(next.length || !facultatif ? next : undefined);
+  };
+  return (
+    <div className="tf-row" role="group" aria-label={nom}>
+      {toutes.map(([v, l]) => (
+        <label className="dr" key={v}><input type="checkbox" aria-label={`${l} — ${nom}`} checked={cur.includes(v)} onChange={() => basculer(v)} /> {l}</label>
+      ))}
+    </div>
+  );
 }
 
 /** Record homogène clé→chaîne (couleur par espèce des yeux/cheveux, palette de couleurs d'apparence) :
  *  une rangée par clé (clé renommable + valeur), + ajout/retrait. Clés OUVERTES → un nouveau membre
  *  s'ajoute sans toucher le code. */
-function RecordTextField({ label, value, onChange }: { label: string; value: Record<string, string> | undefined; onChange: (v: Record<string, string>) => void }) {
-  const rec = value ?? {};
-  const keys = Object.keys(rec);
-  const rename = (oldK: string, newK: string) => {
-    const next: Record<string, string> = {};
-    for (const k of keys) next[k === oldK ? newK : k] = rec[k]; // ordre préservé
-    onChange(next);
+function RecordTextField({ label, nom, value, onChange }: { label: string; nom: string; value: Record<string, string> | undefined; onChange: (v: Record<string, string>) => void }) {
+  // Les rangées sont tenues ICI : une clé tapée en conflit reste à l'écran telle quelle, sans entrer
+  // dans le record. La valeur externe ne les réinitialise que si elle diffère de ce qu'elles retiennent.
+  const [etat, setEtat] = useState(() => ({ rangees: versRangees(value ?? {}), value }));
+  let rangees = etat.rangees;
+  if (etat.value !== value) {
+    rangees = memeRecord(value ?? {}, recordDe(etat.rangees)) ? etat.rangees : versRangees(value ?? {});
+    setEtat({ rangees, value });
+  }
+  const poser = (suivantes: readonly RangeeDeRecord[]) => {
+    const retenues = retenirLesCles(suivantes);
+    const rec = recordDe(retenues);
+    const change = !memeRecord(rec, recordDe(rangees));
+    setEtat({ rangees: retenues, value: change ? rec : value });
+    if (change) onChange(rec);
   };
+  const conflits = rangees.map((_, i) => conflitDeCle(rangees, i));
+  useSaisieEnCours(conflits.some((c) => c !== null));
+  // La rangée est keyed sur son identité STABLE, pas sur la clé qu'elle renomme : frappée lettre à
+  // lettre, la clé ne remonte pas sa rangée (le champ garde la main).
+  const cles = useClesDeRangees(rangees);
+  const base = useId();
+  const sansCle = rangees.findIndex((r) => r.saisie === '');
   return (
     <div className="ed-field">
       <span>{label}</span>
-      {keys.map((k) => (
-        <div className="de-reflrow" key={k}>
-          <input style={{ width: 140 }} value={k} onChange={(e) => rename(k, e.target.value)} />
-          <input value={rec[k]} onChange={(e) => onChange({ ...rec, [k]: e.target.value })} />
-          <button className="btn small danger" title="Retirer" onClick={() => { const next = { ...rec }; delete next[k]; onChange(next); }}>✕</button>
-        </div>
-      ))}
-      <button className="btn small" onClick={() => onChange({ ...rec, '': '' })}>+ Entrée</button>
+      {rangees.map((r, i) => {
+        const conflit = conflits[i];
+        const message = `${base}-conflit-${i}`;
+        return (
+          <Fragment key={cles[i]}>
+            <div className="de-reflrow">
+              <input
+                aria-label={`${nom} — clé ${i + 1}`} style={{ width: 140 }} value={r.saisie}
+                aria-invalid={conflit ? true : undefined} aria-describedby={conflit ? message : undefined}
+                onChange={(e) => poser(rangees.map((x, j) => (j === i ? { ...x, saisie: e.target.value } : x)))}
+              />
+              <input aria-label={`${nom} — valeur ${i + 1}`} value={r.valeur} onChange={(e) => poser(rangees.map((x, j) => (j === i ? { ...x, valeur: e.target.value } : x)))} />
+              <button className="btn small danger" aria-label={`Retirer ${nom} — entrée ${i + 1}`} title={`Retirer ${nom} — entrée ${i + 1}`} onClick={() => poser(rangees.filter((_, j) => j !== i))}>✕</button>
+            </div>
+            {conflit && (
+              <span id={message} className="hint" role="status">
+                {conflit.vide ? `Clé vide : l'entrée ${i + 1} n'est pas retenue.` : `Clé « ${r.saisie} » déjà portée par l'entrée ${conflit.doublon + 1} : non retenue.`}
+                {r.retenue !== null && ` La clé retenue reste « ${r.retenue} ».`}
+              </span>
+            )}
+          </Fragment>
+        );
+      })}
+      <GatedAction
+        id={`${base}-ajout`} label="+ Entrée" ariaLabel={`Ajouter une entrée à ${nom}`} primary={false} btnClassName="small"
+        enabled={sansCle < 0} reason={`L'entrée ${sansCle + 1} attend sa clé.`}
+        onClick={() => poser([...rangees, { saisie: '', retenue: null, valeur: '' }])}
+      />
     </div>
   );
+}
+
+/** Rangée d'un record de textes : la clé TAPÉE, la clé RETENUE dans le record (`null` = rangée neuve
+ *  jamais retenue), et sa valeur. */
+type RangeeDeRecord = { saisie: string; retenue: string | null; valeur: string };
+
+const versRangees = (rec: Record<string, string>): RangeeDeRecord[] =>
+  Object.entries(rec).map(([k, v]) => ({ saisie: k, retenue: k, valeur: v }));
+
+/** Le record émis : les rangées retenues, dans leur ordre. */
+function recordDe(rangees: readonly RangeeDeRecord[]): Record<string, string> {
+  const rec: Record<string, string> = {};
+  for (const r of rangees) if (r.retenue !== null) rec[r.retenue] = r.valeur;
+  return rec;
+}
+
+const memeRecord = (a: Record<string, string>, b: Record<string, string>): boolean =>
+  JSON.stringify(Object.entries(a)) === JSON.stringify(Object.entries(b));
+
+/** Pourquoi la clé tapée d'une rangée n'est pas retenue : vide, ou déjà retenue par une autre rangée. */
+function conflitDeCle(rangees: readonly RangeeDeRecord[], i: number): { vide: true } | { vide?: never; doublon: number } | null {
+  const cle = rangees[i].saisie;
+  if (cle === '') return { vide: true };
+  const doublon = rangees.findIndex((r, j) => j !== i && r.retenue === cle);
+  return doublon >= 0 ? { doublon } : null;
+}
+
+/** Chaque clé tapée devenue libre est retenue, jusqu'à stabilité (une clé libérée peut en libérer une autre). */
+function retenirLesCles(rangees: readonly RangeeDeRecord[]): RangeeDeRecord[] {
+  const out = [...rangees];
+  for (let change = true; change;) {
+    change = false;
+    out.forEach((r, i) => {
+      if (r.saisie === r.retenue || conflitDeCle(out, i) !== null) return;
+      out[i] = { ...r, retenue: r.saisie };
+      change = true;
+    });
+  }
+  return out;
 }
 
 /** Objet de config hétérogène (`interludeEvents.fx`, `raceAppearance.eyes`…) : SOUS-FORMULAIRE inféré
  *  (récursif) — chaque sous-champ retrouve son kind structuré (number/checkbox/stringList/recordText/…)
  *  via le MÊME `inferFields` + `Field`, sans repli JSON pour les objets plats. */
-function ObjectField({ label, value, noeud, onChange }: { label: string; value: Record<string, unknown> | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>) => void }) {
+function ObjectField({ chemin, sujet, label, value, noeud, onChange }: { chemin: string; sujet?: string; label: string; value: Record<string, unknown> | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>) => void }) {
   const obj = value ?? {};
   // Régime PROFONDEUR : un sous-champ nommé `id`/`maison` n'est pas le champ d'enveloppe du même nom —
   // il reste en clé technique, sa méta relève de la dérivation des widgets (#1466 L6). Le NŒUD, lui,
@@ -1887,7 +2030,7 @@ function ObjectField({ label, value, noeud, onChange }: { label: string; value: 
       <span>{label}</span>
       <div className="ed-subfield">
         {subFields.map((f) => (
-          <Field key={f.key} field={f} value={obj[f.key]} onChange={(v) => onChange({ ...obj, [f.key]: v })} />
+          <Field key={f.key} chemin={`${chemin}/${f.key}`} sujet={`de ${label}${sujet ? ` ${sujet}` : ''}`} field={f} value={obj[f.key]} onChange={(v) => onChange({ ...obj, [f.key]: v })} />
         ))}
       </div>
     </div>
@@ -1905,7 +2048,7 @@ function ObjectField({ label, value, noeud, onChange }: { label: string; value: 
  *  inférable localement. `columns` (optionnel) permet à un appelant récursif d'imposer ce gabarit externe
  *  plutôt que de le re-dériver depuis un tableau parfois vide. « + Ajouter » clone la 1ʳᵉ ligne (gabarit
  *  de champs) ou démarre vide si le tableau l'est. */
-function GenericArrayField({ label, value, noeud, onChange, columns }: { label: string; value: Record<string, unknown>[] | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>[]) => void; columns?: FieldDesc[] }) {
+function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, columns }: { chemin: string; sujet?: string; label: string; value: Record<string, unknown>[] | undefined; noeud?: unknown; onChange: (v: Record<string, unknown>[]) => void; columns?: FieldDesc[] }) {
   const list = value ?? [];
   // Colonnes de PROFONDEUR : même frontière que `ObjectField` (méta de profondeur = #1466 L6 ; le nœud
   // de rangée porte, lui, les libellés de valeurs de ses enums nommés, #1694).
@@ -1921,18 +2064,20 @@ function GenericArrayField({ label, value, noeud, onChange, columns }: { label: 
     return map;
   }, [list, cols]);
   const setRow = (i: number, key: string, v: unknown) => onChange(list.map((r, j) => (j === i ? { ...r, [key]: v } : r)));
+  const cles = useClesDeRangees(value);
+  const rangee = (i: number) => `de la rangée ${i + 1} de ${label}${sujet ? ` ${sujet}` : ''}`;
   return (
     <div className="ed-field ed-subform">
       <span>{label}</span>
       {list.map((row, i) => (
-        <div className="ed-subfield" key={i}>
+        <div className="ed-subfield" key={cles[i]}>
           {cols.map((f) => nestedCols.has(f.key)
-            ? <GenericArrayField key={f.key} label={f.label} value={(row[f.key] as Record<string, unknown>[] | undefined) ?? []} noeud={f.noeud} columns={nestedCols.get(f.key)} onChange={(v) => setRow(i, f.key, v)} />
-            : <Field key={f.key} field={f} value={row[f.key]} onChange={(v) => setRow(i, f.key, v)} />)}
-          <button className="btn small danger" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕ Retirer la rangée</button>
+            ? <GenericArrayField key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} label={f.label} value={(row[f.key] as Record<string, unknown>[] | undefined) ?? []} noeud={f.noeud} columns={nestedCols.get(f.key)} onChange={(v) => setRow(i, f.key, v)} />
+            : <Field key={f.key} chemin={`${chemin}/${cles[i]}/${f.key}`} sujet={rangee(i)} field={f} value={row[f.key]} onChange={(v) => setRow(i, f.key, v)} />)}
+          <button className="btn small danger" aria-label={`Retirer la rangée ${i + 1} de ${label}${sujet ? ` ${sujet}` : ''}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>✕ Retirer la rangée</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, {}])}>+ Ajouter</button>
+      <button className="btn small" aria-label={`Ajouter une rangée à ${label}${sujet ? ` ${sujet}` : ''}`} onClick={() => onChange([...list, {}])}>+ Ajouter</button>
     </div>
   );
 }

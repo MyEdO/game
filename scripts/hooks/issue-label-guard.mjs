@@ -1,4 +1,4 @@
-// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : ÉMISSION de tickets GitHub.
+// Garde PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : ÉMISSION de tickets GitHub.
 // Constat utilisateur (2026-07-22) : « les labels sont sous-exploités par les agents/orchestrateur ».
 // La doctrine (credo : « les LABELS sont l'index du backlog ») ne suffit pas — on la rend MÉCANIQUE.
 //
@@ -189,7 +189,7 @@ export function contexteEmission(command, options) {
   return notes.length > 0 ? notes.join('\n') : null
 }
 
-/** Le refus, sinon le contexte d'émission. `npm run <x>` se résout dans le répertoire cible du contexte
+/** Le refus, sinon le contexte d'émission. `npm run <x>` se résout dans la racine npm du contexte
  *  (portée posée par le répartiteur). */
 function evaluer(entree) {
   const command = commandeDe(entree)

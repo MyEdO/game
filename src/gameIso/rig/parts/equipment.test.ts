@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipFromCombatant, isShield } from './equipment';
+import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, isShield, pieceDeDessin, armeDeDessin, armePrincipale, equipDe } from './equipment';
+import { resolveParts } from './resolve';
+import { rigAttackDef, rigDefenseDef } from '../anim/actorAnimSelect';
+import { contexteDeGeste } from '../../fx/animTracks';
+import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
 import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
 import { findMutationById, trappings } from '../../../data';
@@ -42,10 +46,21 @@ describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)',
 });
 
 describe('isShield', () => {
-  it('reconnaît un bouclier par qualité ou nom, pas une épée', () => {
-    expect(isShield({ label: 'Targe', qualities: [{ id: 'protectrice', value: 1 }] })).toBe(true);
-    expect(isShield({ label: 'Bouclier', qualities: [] })).toBe(true);
-    expect(isShield({ label: 'Épée', qualities: [] })).toBe(false);
+  it('reconnaît un bouclier par l’id de sa Qualité Protectrice, jamais par son libellé', () => {
+    expect(isShield({ qualities: [{ id: 'protectrice', value: 1 }] })).toBe(true);
+    expect(isShield({ qualities: [] })).toBe(false);
+    expect(isShield(wep('Bouclier', 'melee'))).toBe(false);
+  });
+
+  it('catalogue : chaque arme au libellé de bouclier porte Protectrice, et se dessine en bouclier ; la potion homonyme non', () => {
+    const armes = trappings.filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && /bouclier/i.test(t.label));
+    expect(armes.map((t) => t.id)).toContain('bouclier');
+    for (const t of armes) {
+      const w = weaponFromItem(itemFromGive({ trappingId: t.id }));
+      expect(isShield(w), t.id).toBe(true);
+      expect(viewOrFront(shieldPart(w), 'front'), t.id).toContain('<');
+    }
+    expect(isShield(itemFromGive({ trappingId: 'bouclier-de-la-forge' }))).toBe(false);
   });
 });
 
@@ -68,7 +83,7 @@ describe('armourMaterial — corrections audit', () => {
 });
 
 describe('armourPart', () => {
-  const mail: ItemInstance = { uid: '1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true };
+  const mail = pieceDeDessin({ uid: '1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true });
   it('mappe une pièce de corps sur le slot torse', () => {
     expect(viewOrFront(armourPart(mail, 'torse'), 'front')).toContain('<');
   });
@@ -79,21 +94,21 @@ describe('armourPart', () => {
 
 describe('shieldPart', () => {
   it('renvoie un SVG de bouclier non vide', () => {
-    expect(viewOrFront(shieldPart(wep('Bouclier', 'melee')), 'front')).toContain('<');
+    expect(viewOrFront(shieldPart(wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])), 'front')).toContain('<');
   });
 });
 
-describe('equipFromCombatant', () => {
+describe('equipPorte', () => {
   it('extrait armes actives + pièces d’armure équipées + bouclier', () => {
     const c = {
-      weapons: [wep('Épée', 'melee'), wep('Bouclier', 'melee')],
+      weapons: [wep('Épée', 'melee'), wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])],
       items: [
         { uid: 'a', label: 'Plastron', kind: 'armor', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true } as ItemInstance,
         { uid: 'b', label: 'Heaume', kind: 'armor', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,
       ],
     } as unknown as Combatant;
-    const e = equipFromCombatant(c);
-    expect(e.armour.map((i) => i.label)).toEqual(['Plastron']); // 'Heaume' non équipé exclu
+    const e = equipPorte(c);
+    expect(e.armour.map((i) => i.locs)).toEqual([['corps']]); // 'Heaume' non équipé exclu
     expect(e.shield).toBeTruthy();
     expect(e.weapons.length).toBe(2);
   });
@@ -109,8 +124,8 @@ describe('equipFromCombatant', () => {
         piece('plate', 'Plastron', ['corps']),
       ],
     } as unknown as Combatant;
-    const e = equipFromCombatant(c);
-    expect(e.armour.map((i) => i.label)).toEqual(['Plastron', 'Chemise de mailles', 'Veste de cuir']);
+    const e = equipPorte(c);
+    expect(e.armour.map((i) => i.materiau)).toEqual(['plaque', 'maille', 'cuir']);
     // resolve.ts prend la 1re pièce couvrant le slot → torse = plate, bras = cuir (seule à couvrir).
     expect(viewOrFront(armourPart(e.armour.find((i) => (i.locs ?? []).includes('corps'))!, 'torse'), 'front'))
       .toBe(viewOrFront(armourPart(e.armour[0], 'torse'), 'front'));
@@ -119,9 +134,9 @@ describe('equipFromCombatant', () => {
   it('cape/manteau porté → EquipCtx.cape (cosmétique) ; non porté → absent', () => {
     const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
     const c = { weapons: [], items: [cape] } as unknown as Combatant;
-    expect(equipFromCombatant(c).cape?.label).toBe('Cape');
+    expect(equipPorte(c).cape).toBe(true);
     cape.equipped = false;
-    expect(equipFromCombatant(c).cape).toBeUndefined();
+    expect(equipPorte(c).cape).toBeUndefined();
   });
 
   it('chaque trapping d’arme à Groupe (`subType`) garde son Groupe jusqu’à l’arme tenue par le héros (#602)', () => {
@@ -131,8 +146,9 @@ describe('equipFromCombatant', () => {
       it.equipped = true;
       const c = { id: 'h', label: 'Héros', items: [it], loadouts: [{ id: 'lo', main: it.uid }], activeLoadoutId: 'lo' } as unknown as Combatant;
       recomputeLoadout(c);
-      const tenue = equipFromCombatant(c).weapons.find((w) => w.uid === it.uid);
-      const w = tenue ?? weaponFromItem(it); // machine à Équipe (ADE II 8 l.233) : hors loadout, servie en poste
+      const tenue = c.weapons?.find((w) => w.uid === it.uid);
+      if (tenue) expect(equipPorte(c).weapons, `${t.id} : l’arme tenue manque à l’équipement porté`).toContainEqual(armeDeDessin(tenue));
+      const w = armeDeDessin(tenue ?? weaponFromItem(it)); // machine à Équipe (ADE II 8 l.233) : hors loadout, servie en poste
       (tenue ? tenues : enPoste).push(t.id);
       if (weaponGroup(w) !== t.subType) perdues.push(`${t.id}: ${t.subType} → ${String(weaponGroup(w))}`);
     }
@@ -146,9 +162,29 @@ describe('héros cornu sans arme au set : le rig ne dessine aucune arme pour les
   it('les Cornes sont naturelles, leur forme est vide', () => {
     const hero = { id: 'h', label: 'h', kind: 'hero', items: [], weapons: [], traits: [], activeEffects: [], mutations: [findMutationById('cornes-asymetriques')!] } as unknown as Combatant;
     recomputeLoadout(hero);
-    const cornes = equipFromCombatant(hero).weapons.find((w) => !isShield(w))!;
-    expect(cornes.label).toBe('Cornes');
+    expect(hero.weapons?.[0]?.label, 'PRÉMISSE : les Cornes sont la première arme du set').toBe('Cornes');
+    const cornes = armePrincipale(equipPorte(hero))!;
     expect(cornes.natural).toBe(true);
     expect(weaponFamily(cornes)).toBe('');
+  });
+});
+
+describe('#2097 J6 — porteur d’un bouclier SEUL : ses gestes suivent ce qui est dessiné, main droite vide', () => {
+  const bouclier = weaponFromId('bouclier')!;
+  const equip = equipDe([bouclier], []);
+  const ctx = contexteDeGeste(equip);
+
+  it('aucune arme principale : l’os `arme` ne dessine rien', () => {
+    expect(isShield(bouclier), 'PRÉMISSE : l’arme du catalogue est un bouclier').toBe(true);
+    expect(ctx.mainWeapon).toBeUndefined();
+    expect(resolveParts('humain', 'M', 'soldat', equip, {}, 1).arme?.svg ?? '').toBe('');
+  });
+
+  it('parade : main nue, bouclier levé — jamais la prise d’une lame', () => {
+    expect(rigDefenseDef({ kind: 'weapon', defense: 'parade' }, ctx)?.key).toBe('rig:parry:pied:nu:bouclier');
+  });
+
+  it('attaque sans arme postée : à mains nues', () => {
+    expect(rigAttackDef({ kind: 'weapon' }, ctx).key).toBe('rig:attack:pied:nu');
   });
 });

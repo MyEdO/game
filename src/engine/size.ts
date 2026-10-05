@@ -10,6 +10,7 @@
  */
 import sizesJson from '../data/sizes.json';
 import type { QualityId } from './qualities/ids';
+import type { TraitInstance } from './statEntry';
 import { replier } from '../lib/ordre.mjs';
 
 export type SizeCategory =
@@ -143,16 +144,37 @@ export function woundsForSize(bf: number, be: number, bfm: number, size: SizeCat
 }
 
 /**
- * Taille conférée par une liste de talents résolus (LDB 85 l.344, #572) : la plus GRANDE catégorie
- * portée par `TalentData.size` parmi les talents possédés, sinon `moyenne`. Générique — aucun id de
- * talent nommé ici, la classe entière (Massif, Petit, tout futur talent de Taille) est couverte.
+ * Taille conférée par une liste de talents (LDB 10 l.943, ADE II 02 l.257, #572) : la catégorie du
+ * PREMIER talent qui en porte une (`sizeOf`, lecture de `TalentData.size` injectée par l'appelant : cette
+ * feuille n'importe pas le catalogue), sinon null. Générique — aucun id de talent nommé ici.
  */
-export function sizeFromTalents(talentIds: readonly string[], sizeOf: (talentId: string) => SizeCategory | undefined): SizeCategory {
+export function sizeFromTalents(talentIds: readonly string[], sizeOf: (talentId: string) => SizeCategory | undefined): SizeCategory | null {
   for (const id of talentIds) {
     const size = sizeOf(id);
     if (size) return size;
   }
-  return 'moyenne';
+  return null;
+}
+
+/** L'`arg` du trait d'`id` donné dans une liste de traits structurés. */
+const argDuTrait = (traits: readonly TraitInstance[] | undefined, id: string): string | undefined =>
+  traits?.find((t) => t.id === id)?.arg;
+
+/** Catégorie du Trait « Taille (X) » (LDB 85 l.279-280), son argument lu par `parseSizeLabel` (une plage
+ *  à sa borne haute). null si absent ou argument non reconnu. */
+export function sizeFromTraits(traits: readonly TraitInstance[] | undefined): SizeCategory | null {
+  const arg = argDuTrait(traits, 'taille');
+  return arg ? parseSizeLabel(arg) : null;
+}
+
+/** Catégorie de Taille d'un PROFIL (créature, statbloc) : son Trait Taille (`sizeFromTraits`), sinon celle
+ *  d'un Talent (`sizeFromTalents`, lecture du catalogue injectée), sinon null (LDB 10 l.943). */
+export function sizeFromProfile(
+  traits: readonly TraitInstance[] | undefined,
+  talents: readonly { readonly id: string }[] | undefined,
+  sizeOf: (talentId: string) => SizeCategory | undefined,
+): SizeCategory | null {
+  return sizeFromTraits(traits) ?? sizeFromTalents((talents ?? []).map((t) => t.id), sizeOf);
 }
 
 /** Décale une catégorie de Taille de `steps` crans (positif = agrandir), bornée Minuscule..Monstrueuse. */

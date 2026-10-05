@@ -20,8 +20,6 @@ import { emptyScene, type Scene } from '../../state/scene';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { parseProject } from '../../state/worldMap';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import { refEstVolumique, props as catalogueDeDecor } from '../../data';
@@ -43,6 +41,8 @@ import {
   scènes,
   viderCaptures,
 } from './banc-volumique';
+// Le module JSON SERVI (prose adressée matérialisée par `wfrp:prose-source`) : la forme que le jeu lit.
+import areneProjet from '../../scenes/arene/arene-projet.json';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -140,7 +140,7 @@ function scèneArène(): Scene {
  *  et une soixantaine de sujets. C'est sur elle que la loi de dégagement MORD — sur une carte nue, les
  *  deux regards regardent la même chose et « rien ne remonte » serait vrai sans rien prouver. */
 const HUB = parseProject(
-  JSON.parse(readFileSync(join(__dirname, '../../scenes/arene/arene-projet.json'), 'utf8')),
+  areneProjet,
 ).scenes.find((sc) => sc.id === 'arene-hub')!;
 
 /** Le poste de départ authored du groupe (`heroStart`) — la même lecture que `store.startScene`. */

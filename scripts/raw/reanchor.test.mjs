@@ -15,6 +15,8 @@ import { avecAtlasFixture } from './atlasFixture.mjs'
 // posée à sa racine. Fabrique PARTAGÉE avec les autres bancs de lecteurs (`atlasFixture.mjs`).
 const withTempRawDir = (content, fn) =>
   avecAtlasFixture({ 'fixture.md': content }, (dir, coeur) => fn(dir, `${coeur}/fixture.md`), { prefixe: 'reanchor-' })
+/** Source de catalogues d'un Atlas de fixture : aucun (`pagesDeLAtlasRendues`). */
+const AUCUN_CATALOGUE = () => new Map()
 
 // ---------- classifyQuote (pur, fixtures synthétiques — reproduit la FORME du bug réel) ----------
 
@@ -67,7 +69,7 @@ const LDB6_LINE5 = "*(Page 48 partagée avec un chapitre voisin — le contenu d
 test('scan() : citation juste → silencieuse (pas de ligne LOW, pas dans lowRows)', () => {
   const md = `Une note.\n> « ${LDB6_LINE5} »\n> \`LDB 6 l.5\`\n`
   withTempRawDir(md, (dir) => {
-    const r = scan(dir, {})
+    const r = scan(dir, { catalogues: AUCUN_CATALOGUE })
     assert.equal(r.tally.OK, 1)
     assert.equal(r.tally.LOW, 0)
     assert.equal(r.lowRows.length, 0)
@@ -77,7 +79,7 @@ test('scan() : citation juste → silencieuse (pas de ligne LOW, pas dans lowRow
 test('scan() : citation introuvable dans le chapitre cité → LOW, alimente lowRows (unité du cliquet)', () => {
   const md = `Une note.\n> « Une phrase qui n'existe nulle part dans ce chapitre source. »\n> \`LDB 6 l.5\`\n`
   withTempRawDir(md, (dir, relatif) => {
-    const r = scan(dir, {})
+    const r = scan(dir, { catalogues: AUCUN_CATALOGUE })
     assert.equal(r.tally.LOW, 1)
     assert.equal(r.lowRows.length, 1)
     assert.equal(basename(r.lowRows[0].doc), 'fixture.md', 'le site NOMME la fiche où la réf est lue')
@@ -90,7 +92,7 @@ test('scan() : citation introuvable dans le chapitre cité → LOW, alimente low
 test('scan() : citation présente mais à une autre ligne du chapitre RÉEL → DRIFT (réparable, jamais silencieux)', () => {
   const md = `Une note.\n> « ${LDB6_LINE5} »\n> \`LDB 6 l.3\`\n`
   withTempRawDir(md, (dir) => {
-    const r = scan(dir, {})
+    const r = scan(dir, { catalogues: AUCUN_CATALOGUE })
     assert.equal(r.tally.DRIFT, 1)
     assert.equal(r.tally.OK, 0)
   })
@@ -152,7 +154,7 @@ const CARTE_FORGEE = (n) => n === 30 ? { supprimee: true } : n === 32 ? { ambigu
 test('--remap : réf directe ET continuation nue réécrites par la carte', () => {
   const md = '- `CRB 075 l.24`, `l.26` — synthèse\n'
   withTempRawDir(md, (dir, relatif) => {
-    const r = scan(dir, { remap: true, carteDe: () => CARTE_FORGEE })
+    const r = scan(dir, { catalogues: AUCUN_CATALOGUE, remap: true, carteDe: () => CARTE_FORGEE })
     assert.deepEqual(r.nonRemappees, [])
     assert.equal(r.remappedTotal, 2)
     assert.equal(readFileSync(join(dir, relatif), 'utf8'), '- `CRB 075 l.23`, `l.25` — synthèse\n')
@@ -162,7 +164,7 @@ test('--remap : réf directe ET continuation nue réécrites par la carte', () =
 test('--remap : une réf vers une ligne SUPPRIMÉE ou AMBIGUË est RAPPORTÉE avec son site, jamais réécrite', () => {
   const md = '- `CRB 075 l.30`, `l.32` — synthèse\n'
   withTempRawDir(md, (dir, relatif) => {
-    const r = scan(dir, { remap: true, carteDe: () => CARTE_FORGEE })
+    const r = scan(dir, { catalogues: AUCUN_CATALOGUE, remap: true, carteDe: () => CARTE_FORGEE })
     assert.deepEqual(r.nonRemappees.map((n) => [basename(n.doc), n.ligne, n.full, n.detail]), [
       ['fixture.md', 1, 'CRB 075 l.30', 'l.30 : ligne supprimée'],
       ['fixture.md', 1, 'l.32', 'l.32 : hunk ambigu, candidates l.30/31'],
@@ -175,7 +177,7 @@ test('--remap : une réf vers une ligne SUPPRIMÉE ou AMBIGUË est RAPPORTÉE av
 test('--remap : une réf dont le chapitre n’a PAS de carte (absent de HEAD) est RAPPORTÉE, jamais passée sous silence', () => {
   const md = '- `CRB 075 l.24`, `l.26` — synthèse\n'
   withTempRawDir(md, (dir, relatif) => {
-    const r = scan(dir, { remap: true, carteDe: () => null })
+    const r = scan(dir, { catalogues: AUCUN_CATALOGUE, remap: true, carteDe: () => null })
     assert.deepEqual(r.nonRemappees.map((n) => [n.full, n.detail]), [
       ['CRB 075 l.24', 'chapitre absent de HEAD'],
       ['l.26', 'chapitre absent de HEAD'],

@@ -12,8 +12,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SIGNALEUR, stepsDu } from '../gates/workflowsDuDepot.mjs'
-import { COMMANDE_ARBRE_INCHANGE, nomDeGate } from '../gates/gatesDeCi.mjs'
-import { ECRIT_LU } from '../gates/toutes.mjs'
+import { COMMANDE_ARBRE_INCHANGE, JOBS_HORS_REJEU_LOCAL, blocsDeJobs } from '../gates/gatesDeCi.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const CHEMIN = join(RACINE, '.github', 'workflows', 'canari.yml')
@@ -97,19 +96,18 @@ test('les deux mesures d’ÉTAT sont jouées par le canari', () => {
 /** Commande `run:` d'un step, sur une ligne. PUR. */
 const commandeDu = (step) => /^\s*-?\s*run:\s*(.+)$/m.exec(step.bloc)?.[1]?.trim() ?? null
 
-for (const [nom, texte] of [['ci.yml', readFileSync(join(RACINE, '.github', 'workflows', 'ci.yml'), 'utf8')], ['canari.yml', TEXTE]]) {
-  test(`${nom} : \`docs:check:tout\` joue AVANT toute gate qui réécrit un registre \`*.generated.ts\``, () => {
-    const steps = stepsDu(texte).map(commandeDu)
-    const verification = steps.indexOf('npm run docs:check:tout')
-    assert.ok(verification >= 0, `${nom} ne joue pas \`npm run docs:check:tout\``)
-    const ecrivains = Object.entries(ECRIT_LU)
-      .filter(([, g]) => Object.keys(g.ecritFerme ?? {}).some((c) => c.endsWith('.generated.ts')))
-      .map(([gate]) => gate)
-    assert.ok(ecrivains.length > 0, 'aucune gate d’`ECRIT_LU` ne déclare réécrire un registre')
-    const avant = steps.slice(0, verification).map((c) => c && nomDeGate(c)).filter((g) => ecrivains.includes(g))
-    assert.deepEqual(avant, [], 'vérifiée après eux, la gate juge un registre déjà réécrit par `genAll()`')
-  })
+// Dans CHAQUE job de ci.yml : un job est un runner, et c'est l'arbre de CE runner que les écrivains
+// par nature (`docs:build`, `genererCode`) touchent.
+for (const { job, texte } of blocsDeJobs({ cwd: RACINE })) {
+  if (!(job in JOBS_HORS_REJEU_LOCAL))
+    test(`ci.yml / job ${job} : le filet « Arbre inchangé » est son DERNIER step`, () => {
+      const dernier = stepsDu(texte).at(-1)
+      assert.equal(dernier?.nom, 'Arbre inchangé', `${job} : une gate jouée après le filet échapperait à sa photo`)
+      assert.equal(commandeDu(dernier), COMMANDE_ARBRE_INCHANGE)
+    })
+}
 
+for (const [nom, texte] of [['ci.yml', readFileSync(join(RACINE, '.github', 'workflows', 'ci.yml'), 'utf8')], ['canari.yml', TEXTE]]) {
   test(`${nom} : le step « Arbre inchangé » joue \`COMMANDE_ARBRE_INCHANGE\` tel quel`, () => {
     const step = stepsDu(texte).find((s) => s.nom === 'Arbre inchangé')
     assert.ok(step, `${nom} n’a pas de step « Arbre inchangé »`)

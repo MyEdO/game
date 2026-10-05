@@ -13,6 +13,7 @@ import { join } from 'node:path'
 import { parUnitesDeCode, listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { estSuiteVitest, SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
+import { cibleProduite, generateurDe } from './build-all.mjs'
 
 const DOCS_DIR = 'docs'
 const SRC_DIR = 'src'
@@ -36,20 +37,31 @@ for (const f of [...fichiersSources(SRC_DIR, EXTS_SRC), ...fichiersSources(SCRIP
 
 const isDir = (p) => { try { return statSync(p).isDirectory() } catch { return false } }
 
-/** Un chemin cité existe-t-il ? (fichier, dossier, ou glob `*` dont le dossier parent existe & matche).
+/** Les fichiers cités qu'une cible GLOB de `GENERATORS` atteint, jugés en fin de passe par le rendu. */
+const citesGeneres = [] // { chemin, probleme }
+
+/** Juge un fichier cité, jamais par le disque pour une cible de `GENERATORS` : une cible LITTÉRALE
+ *  existe par sa déclaration (build-all.mjs refuse celle que le rendu ne produit pas), une cible
+ *  qu'un GLOB atteint si son générateur la PRODUIT (`cibleProduite`) ; tout autre chemin, par le disque. */
+function jugerFichier(chemin, probleme) {
+  const g = generateurDe(chemin)
+  if (g === undefined) {
+    if (!existsSync(chemin)) problems.push(probleme)
+  } else if (!g.targets.includes(chemin)) citesGeneres.push({ chemin, probleme })
+}
+
+/** Juge un chemin cité (fichier, dossier, ou glob `*` dont le dossier parent existe & matche).
  *  Un glob RECURSIF (`src/**\/*.test.ts`) ne se vérifie qu'au dossier stable qui précède son premier
  *  jocker : énumérer l'arbre pour un motif de prose coûterait plus que ce qu'il prouve. */
-function pathExists(tok) {
-  if (tok.includes('*')) {
-    const avantJocker = tok.slice(0, tok.indexOf('*'))
-    const slash = avantJocker.lastIndexOf('/')
-    const dir = slash < 0 ? '.' : avantJocker.slice(0, slash) || '.'
-    if (!isDir(dir)) return false
-    if (tok.includes('**')) return true
-    const rx = new RegExp('^' + tok.slice(tok.lastIndexOf('/') + 1).replace(/[.]/g, '\\.').replace(/\*/g, '.*') + '$')
-    return listerDossier(dir, { absent: 'vide' }).some((n) => rx.test(n))
-  }
-  return existsSync(tok)
+function jugerChemin(tok, probleme) {
+  if (!tok.includes('*')) return jugerFichier(tok, probleme)
+  const avantJocker = tok.slice(0, tok.indexOf('*'))
+  const slash = avantJocker.lastIndexOf('/')
+  const dir = slash < 0 ? '.' : avantJocker.slice(0, slash) || '.'
+  if (!isDir(dir)) return problems.push(probleme)
+  if (tok.includes('**')) return
+  const rx = new RegExp('^' + tok.slice(tok.lastIndexOf('/') + 1).replace(/[.]/g, '\\.').replace(/\*/g, '.*') + '$')
+  if (!listerDossier(dir, { absent: 'vide' }).some((n) => rx.test(n))) problems.push(probleme)
 }
 
 /** Chemin cité dans un texte, tel que le sens 1 le résout : point final de phrase retiré, et
@@ -78,7 +90,7 @@ for (const file of listerDossier(DOCS_DIR).filter((f) => f.endsWith('.md'))) {
   let m
   while ((m = CHEMIN_RE.exec(text))) {
     const tok = cheminCite(text, m)
-    if (!pathExists(tok)) problems.push({ file: rel, line: lineAt(text, m.index), kind: 'chemin mort', tok })
+    jugerChemin(tok, { file: rel, line: lineAt(text, m.index), kind: 'chemin mort', tok })
   }
 
   // 2. SYMBOLES — appels de fonction backtiqués (`nomCamel(` / `NomPascal(`), mixte-casse only.
@@ -251,6 +263,8 @@ const DOC_REF_RE = /\bdocs\/[A-Za-z0-9_./-]*\.md\b/g
 const DOC_REF_SITES_EXEMPTS = new Set([
   'scripts/docs/check-plans-anchors.test.mjs|docs/note.md', // fixture du dépôt jetable de la garde des plans
   'scripts/git-hooks/docs-rebuild.test.mjs|docs/a.md', // cible d'une MESURE forgée (`touchesDocSources`, #1773) : aucun doc à exister
+  'scripts/docs/rendre-cible.test.mjs|docs/raw/4e/catalogue-nexiste-pas.md', // chemin INVENTÉ que le motif des catalogues atteint (#2203)
+  'scripts/docs/rendre-cible.test.mjs|docs/raw/9e/sous/catalogue-typo.md', // chemin INVENTÉ que le motif des catalogues atteint (#2203)
 ])
 // Ce fichier-ci est hors du sens 5 : il ÉNONCE les jetons exemptés ci-dessus (même patron que
 // `FICHIERS_DE_LA_GARDE` dans check-plans-anchors.mjs), il ne les cite pas comme documentation.
@@ -267,8 +281,7 @@ for (const f of [...fichiersSources(SRC_DIR, EXTS_SRC), ...fichiersSources(SCRIP
   for (const m of text.matchAll(DOC_REF_RE)) {
     const site = `${rel}|${m[0]}`
     if (m[0].startsWith('docs/plans/') || DOC_REF_SITES_EXEMPTS.has(site)) continue
-    if (!existsSync(m[0]))
-      problems.push({ file: rel, line: lineAt(text, m.index), kind: 'doc citée mais absente', tok: m[0] })
+    jugerFichier(m[0], { file: rel, line: lineAt(text, m.index), kind: 'doc citée mais absente', tok: m[0] })
   }
 }
 
@@ -284,8 +297,7 @@ for (const f of DOCS_LISANT) {
   const dossier = rel.slice(0, rel.lastIndexOf('/'))
   const { texteScanne, liens } = liensJugeables(readFileSync(f, 'utf8'))
   for (const lien of liens) {
-    if (!existsSync(join(dossier, lien.cible)))
-      problems.push({ file: rel, line: lineAt(texteScanne, lien.index), kind: 'lien de doc mort', tok: lien.ecrit })
+    jugerFichier(join(dossier, lien.cible).replace(/\\/g, '/'), { file: rel, line: lineAt(texteScanne, lien.index), kind: 'lien de doc mort', tok: lien.ecrit })
   }
 }
 
@@ -321,7 +333,7 @@ for (const dir of HOOKS_DIRS) {
       const tok = cheminCite(text, m)
       const ligne = lineAt(text, m.index)
       if (estMetavariable(tok)) continue
-      if (!pathExists(tok)) problems.push({ file: f, line: ligne, kind: 'chemin cité par un hook, absent du disque', tok })
+      jugerChemin(tok, { file: f, line: ligne, kind: 'chemin cité par un hook, absent du disque', tok })
     }
     while ((m = NOM_DE_TEST_RE.exec(text))) {
       if (estMotif(text.slice(Math.max(0, m.index - 2), m.index))) continue // motif, pas un nom
@@ -354,11 +366,11 @@ for (const f of CONTEXTE_FICHIERS) {
   while ((m = CHEMIN_RE.exec(text))) {
     const tok = cheminCite(text, m)
     if (estMetavariable(tok) || estMotif(tok)) continue
-    if (!pathExists(tok)) {
-      problems.push({ file: f, line: lineAt(text, m.index), kind: 'chemin cité par le contexte permanent, absent du disque', tok })
-    }
+    jugerChemin(tok, { file: f, line: lineAt(text, m.index), kind: 'chemin cité par le contexte permanent, absent du disque', tok })
   }
 }
+
+for (const { chemin, probleme } of citesGeneres) if (!(await cibleProduite(chemin))) problems.push(probleme)
 
 if (problems.length) {
   console.error(`docs:check — ${problems.length} référence(s) morte(s) :`)

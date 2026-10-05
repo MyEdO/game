@@ -11,8 +11,6 @@
  * (`runBindingById`) sur la donnée committée : une réponse qui ouvre une fenêtre en RESTANT au nœud.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { useGame } from './store';
 import type { GameState } from './store';
 import { conversationRepond, ouvrirDialogue } from './dialogue';
@@ -21,6 +19,7 @@ import { withActingSeat } from './netOwnership';
 import { parseProject } from './worldMap';
 import { makeShowcaseParty } from '../data/pregens';
 import type { Dialogue, Scene } from './scene';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 
 const dlg: Dialogue = {
   id: 'd-surface', start: 'n1',
@@ -115,7 +114,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
 describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la réponse vient d’ouvrir', () => {
   // Donnée COMMITTÉE : la réponse 1 jette un Test, chaque branche ouvre un `document`, et la
   // conversation revient à SON nœud (`next: nc1`) — derrière le document. La réponse 2 la clôt.
-  const doc = parseProject(JSON.parse(readFileSync(join(__dirname, '../scenes/loup-et-saumure/loup-et-saumure-projet.json'), 'utf8')));
+  const doc = parseProject(lireProjetLivre('loup-et-saumure/loup-et-saumure-projet.json'));
   const quai = (doc.scenes as Scene[]).find((s) => s.dialogues.some((d) => d.id === 'dlg-kramer-nuit-du-chat'))!;
   const nuitDuChat = quai.dialogues.find((d) => d.id === 'dlg-kramer-nuit-du-chat')!;
 

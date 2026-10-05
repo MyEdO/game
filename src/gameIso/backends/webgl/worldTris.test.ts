@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { IMPORT_RE } from '../../../../scripts/guards/lib/importGraph.mjs';
+import { specificateursDe } from '../../../../scripts/guards/lib/importGraph.mjs';
 import {
   COPLANAR_BIAS_M,
   biasPoly,
@@ -824,16 +824,15 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
  * ligne de commande). Un `three` ou un `document` qui y entrerait casserait le QC sans que rien ne le
  * dise, et la LOI d'orientation se dédoublerait aussitôt.
  *
- * Le parseur d'imports est le CANONIQUE du dépôt (`scripts/guards/lib/importGraph.mjs:IMPORT_RE`) —
+ * Le lecteur d'imports est le CANONIQUE du dépôt (`scripts/guards/lib/importGraph.mjs:specificateursDe`) —
  * jamais un second.
  */
 describe('worldTris — module PUR : ses imports sont son contrat (#1680)', () => {
   const SRC = readFileSync(fileURLToPath(new URL('./worldTris.ts', import.meta.url)), 'utf8');
-  /** Le code seul : une réf `'./x'` citée en commentaire n'est pas un import. Seul le COMMENTAIRE
-   *  est masqué, jamais la ligne entière — `const el = document.body; // …` doit rester lisible par
-   *  la clause DOM ci-dessous. */
+  /** Le code seul, pour la clause DOM : seul le COMMENTAIRE est masqué, jamais la ligne entière —
+   *  `const el = document.body; // …` doit rester lisible. */
   const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-  const specificateurs = [...CODE.matchAll(IMPORT_RE)].map((m) => m[1] ?? m[2] ?? m[3]);
+  const specificateurs = specificateursDe('worldTris.ts', SRC).map(({ spec }) => spec);
 
   it('n’importe QUE la géométrie pure et la FORME du pivot', () => {
     expect(specificateurs.length, 'aucun import lu : ce contrat ne mesure plus rien').toBeGreaterThan(0);
@@ -861,9 +860,9 @@ describe('worldTris — module PUR : ses imports sont son contrat (#1680)', () =
   });
 });
 
-/** `IMPORT_RE` capture l'import à effet de bord RELATIF (`import './x'`, groupe 3). La clause reste à
- *  part parce qu'elle vise plus large : un `import 'paquet'` NON relatif, qu'aucun parseur de graphe
- *  ne résout, reste un effet de bord qu'un module pur ne porte pas. */
+/** `specificateursDe` rend l'import à effet de bord comme tout `statique`. La clause reste à part
+ *  parce qu'elle vise plus large : un `import 'paquet'` NON relatif, qu'aucun parseur de graphe ne
+ *  résout, reste un effet de bord qu'un module pur ne porte pas. */
 describe('worldTris — aucun import à effet de bord', () => {
   it('zéro `import \'…\'` nu', () => {
     const SRC = readFileSync(fileURLToPath(new URL('./worldTris.ts', import.meta.url)), 'utf8');

@@ -11,15 +11,19 @@
 // d'adresse, une adresse arbitraire mentirait) · ECHEC (rien de contigu — paraphrase probable ou
 // défaut d'extraction) · SANS-SOURCE (pas de `source.book`, ou livre sans `dir` dans `books.json`).
 //
-// Anti-faux-EXACT : toute adresse émise porte l'empreinte de chacun de ses fragments et est
-// RE-RÉSOLUE par `resoudreAdresse` (empreintes, plafond de montage et unicité des fragments
-// comprises), son texte normalisé re-comparé à la desc normalisée ; une divergence est rapportée en
-// `verification` (bug de la chaîne, jamais un verdict silencieux).
+// Les chercheurs (`findRuns`, `findCells`, `cellRefFor`) PROPOSENT des candidats sur la chaîne de la
+// desc préparée (`unitesDuTexte`). Anti-faux-EXACT : toute adresse émise porte l'empreinte de chacun
+// de ses fragments et est RE-RÉSOLUE par `resoudreAdresse` (empreintes, plafond de montage et unicité
+// des fragments comprises) ; la SEULE décision est `verifier`, l'égalité d'`aligner` entre les unités
+// de la desc et celles de l'adresse (`unitesDeLAdresse`). Une divergence est rapportée en `verification`
+// (bug de la chaîne, jamais un verdict silencieux). « sous-bloc » est la partie stricte d'`aligner`
+// sur les unités d'un bloc.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  cellRefFor, estErreur, findCells, findRuns, joinNorm, normText, resoudreAdresse,
+  MIN_FRAGMENT, aligner, cellRefFor, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse, unitesDuBloc,
+  unitesDuTexte,
 } from '../../src/data/source/decoupe.ts'
 import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
 import { sigleDe } from '../raw/_lib.mjs'
@@ -37,17 +41,20 @@ function chapitresDuLivre(bookId) {
   return out
 }
 
+/** La chaîne que portent des unités préparées : la cible des chercheurs. */
+const chaineDe = (unites) => joinNorm(unites.map((u) => u.norm))
+
 /**
- * Découpe gloutonne de la desc par paragraphes DANS UN chapitre : fragments de l'adresse, ou `null`
- * si un morceau résiste.
+ * Découpe gloutonne de la desc par GROUPES d'unités DANS UN chapitre : fragments proposés par
+ * `findRuns` pour l'adresse, ou `null` si un groupe résiste. Aucune décision par groupe : `verifier`.
  */
-function montage(chapitre, paras) {
+function montage(chapitre, unites) {
   const parts = []
   let pos = 0
-  while (pos < paras.length) {
+  while (pos < unites.length) {
     let hit = null
-    for (let k = paras.length; k > pos; k--) {
-      const frags = findRuns(chapitre, joinNorm(paras.slice(pos, k)))
+    for (let k = unites.length; k > pos; k--) {
+      const frags = findRuns(chapitre, chaineDe(unites.slice(pos, k)))
       if (frags) { hit = { frags, next: k }; break }
     }
     if (!hit) return null
@@ -57,12 +64,23 @@ function montage(chapitre, paras) {
   return parts
 }
 
-/** Re-résout une adresse et compare son texte à la desc normalisée. @returns {string|undefined} */
-function verifier(chapitre, ref, D) {
-  const res = resoudreAdresse(chapitre, ref)
-  if (estErreur(res)) return `${res.error} : ${res.detail}`
-  return normText(res.md) === D ? undefined : 'texte re-résolu != desc'
+/**
+ * LA décision de `judge` : re-résout l'adresse en ses unités (`unitesDeLAdresse`), puis juge
+ * l'ÉGALITÉ (`aligner`, `ajoute` vide) entre les unités de la desc et celles de l'adresse.
+ * `undefined` si elle tient, la divergence sinon.
+ * @param {import('../../src/data/source/decoupe.ts').ChapitreParse} chapitre
+ * @param {import('../../src/data/source/decoupe.ts').DescRef} ref
+ * @param {import('../../src/data/source/decoupe.ts').Unite[]} unites
+ * @returns {string|undefined}
+ */
+export function verifier(chapitre, ref, unites) {
+  const adresse = unitesDeLAdresse(chapitre, ref)
+  if (estErreur(adresse)) return `${adresse.error} : ${adresse.detail}`
+  return aligner(unites, adresse.unites)?.ajoute.length === 0 ? undefined : 'texte re-résolu != desc'
 }
+
+/** Le bloc `b` de la section `s` contient-il la desc comme PARTIE STRICTE (`aligner`) ? */
+const partieStricteDuBloc = (s, b, unites) => (aligner(unites, unitesDuBloc(s, b))?.ajoute.length ?? 0) > 0
 
 /**
  * Juge une entrée : SEULE définition du verdict d'adressabilité du dépôt — le rapport de dérivation
@@ -76,17 +94,16 @@ export function judge(entry) {
   if (!book || !sigleDe(book)) {
     return { verdict: 'SANS-SOURCE', reason: book ? `livre sans dir: ${book}` : 'source.book absent' }
   }
-  const desc = typeof entry.desc === 'string' ? entry.desc : ''
-  if (!desc.trim()) return { verdict: 'ECHEC', reason: 'desc-vide' }
+  const unites = unitesDuTexte(typeof entry.desc === 'string' ? entry.desc : '')
+  if (!unites.length) return { verdict: 'ECHEC', reason: 'desc-vide' }
   const chapitres = chapitresDuLivre(book)
-  const D = normText(desc)
-  const paras = desc.split(/\n\s*\n/).map(normText).filter(Boolean)
+  const texte = chaineDe(unites)
 
   for (const { ch, chapitre } of chapitres) {
-    const parts = findRuns(chapitre, D)
+    const parts = findRuns(chapitre, texte)
     if (!parts) continue
     const ref = { book, ch, parts }
-    const verification = verifier(chapitre, ref, D)
+    const verification = verifier(chapitre, ref, unites)
     return {
       verdict: parts.length > 1 ? 'EXACT-MULTI-SECTIONS' : 'EXACT',
       ref,
@@ -94,19 +111,19 @@ export function judge(entry) {
     }
   }
 
-  if (paras.length > 1) {
+  if (unites.length > 1) {
     for (const { ch, chapitre } of chapitres) {
-      const parts = montage(chapitre, paras)
+      const parts = montage(chapitre, unites)
       if (!parts) continue
       const ref = { book, ch, parts }
-      const verification = verifier(chapitre, ref, D)
+      const verification = verifier(chapitre, ref, unites)
       return { verdict: 'MONTAGE', ref, ...(verification ? { verification } : {}) }
     }
   }
 
   const cellules = []
   for (const { ch, chapitre } of chapitres) {
-    for (const hit of findCells(chapitre, D)) cellules.push({ ch, chapitre, hit })
+    for (const hit of findCells(chapitre, texte)) cellules.push({ ch, chapitre, hit })
   }
   if (cellules.length > 1) {
     return { verdict: 'CELLULE-AMBIGUE', reason: `${cellules.length} cases portent ce texte` }
@@ -116,18 +133,18 @@ export function judge(entry) {
     const frag = cellRefFor(chapitre, hit)
     if (frag) {
       const ref = { book, ch, parts: [frag] }
-      const verification = verifier(chapitre, ref, D)
+      const verification = verifier(chapitre, ref, unites)
       return { verdict: 'CELLULE', ref, ...(verification ? { verification } : {}) }
     }
     return { verdict: 'ECHEC', reason: 'cellule sans clé de ligne adressable' }
   }
 
-  const sub = D.length > 40 && chapitres.some(({ chapitre }) =>
-    chapitre.sections.some((s) => s.blocks.some((b) => normText(b.md).includes(D))))
-  const orphan = paras.find((p) => !chapitres.some(({ chapitre }) => findRuns(chapitre, p))) ?? D
+  const sub = texte.length >= MIN_FRAGMENT && chapitres.some(({ chapitre }) =>
+    chapitre.sections.some((s) => s.blocks.some((_, b) => partieStricteDuBloc(s, b, unites))))
+  const orpheline = unites.find((u) => !chapitres.some(({ chapitre }) => findRuns(chapitre, u.norm)))
   return {
     verdict: 'ECHEC',
-    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${coupeAuMot(orphan, 70)} »`,
+    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${coupeAuMot(orpheline?.norm ?? texte, 70)} »`,
   }
 }
 

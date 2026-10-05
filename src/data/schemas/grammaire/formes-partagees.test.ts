@@ -48,7 +48,9 @@ import traits from '../../traits.json';
 import { corruptionExposureSchema } from '../defs-scenes/effets';
 import { menaceIds } from '../../../engine/menace';
 import { resolveTrappingChoices } from '../../../engine/trappingChoices';
-import { trappingRefLabel, type TrappingRef } from '../../index';
+import { adresseDeCreation } from '../../../engine/adresseDeCreation';
+import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
+import type { TrappingRef } from '../../index';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
@@ -87,10 +89,9 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
 
   it('{choice} migré (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
     const ref: TrappingRef = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
-    const label = trappingRefLabel(ref);
-    expect(resolveTrappingChoices([ref], { [label]: trappingRefLabel({ id: 'pistolet' }) })).toEqual([
-      { id: 'pistolet' },
-    ]);
+    const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
+      resolveTrappingChoices(CARRIERE_FIXTURE, 1, { [adresseDeCreation.dotation([0])]: 1 }));
+    expect(resolues).toEqual([{ id: 'pistolet' }]);
   });
 });
 

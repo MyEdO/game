@@ -10,6 +10,8 @@ import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../data/graphieOp
 import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
+import { adresseLue, type AdresseDeCreation } from '../engine/adresseDeCreation';
+import type { AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
 
@@ -48,17 +50,51 @@ export function rosterLoad(): RosterEntry[] {
     // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) et la
     // graphie des ops de Talent (#1473) de même, héros par héros.
     return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
-      .filter((e): e is RosterEntry => !!e && typeof e === 'object' && typeof (e as RosterEntry).hero?.id === 'string')
-      .map((e) => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
+      .filter((e): e is EntreeLue => !!e && typeof e === 'object' && typeof (e as EntreeLue).hero?.id === 'string')
+      .map((e): RosterEntry => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
   } catch {
     return [];
   }
 }
 
-/** Le brouillon persisté s'il est au format `FORMAT_DES_CHOIX` ; tout autre format (`v` absent, antérieur
- *  ou autre) est écarté, le créateur rouvre alors le héros par `draftFromHero`. */
-function brouillonRelu(draft: CreatorDraft | undefined): CreatorDraft | undefined {
-  return draft?.v === FORMAT_DES_CHOIX ? draft : undefined;
+/** Entrée telle que lue du stockage, avant `brouillonRelu`. */
+type EntreeLue = Omit<RosterEntry, 'draft'> & { draft?: BrouillonPersiste };
+
+/** Brouillon tel que lu du stockage : ses choix par adresse sont des clés brutes. */
+type BrouillonPersiste = Omit<CreatorDraft, 'v' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'trappingChoices'> & {
+  v?: number;
+  specChoices?: Record<string, string>;
+  speciesTalentChoices?: Record<string, AdvancementRef>;
+  randomSpecPicks?: Record<string, string>;
+  talentRerolls?: Record<string, number>;
+  trappingChoices?: Record<string, number | string>;
+};
+
+/** Le brouillon persisté s'il est au format `FORMAT_DES_CHOIX`, ses clés marquées à la lecture
+ *  (`adresseLue`) ; tout autre format (`v` absent, antérieur ou autre) est écarté, le créateur rouvre
+ *  alors le héros par `draftFromHero`. Idempotent. */
+function brouillonRelu(draft: BrouillonPersiste | undefined): CreatorDraft | undefined {
+  if (draft?.v !== FORMAT_DES_CHOIX) return undefined;
+  const { specChoices, speciesTalentChoices, randomSpecPicks, talentRerolls, trappingChoices, ...choix } = draft;
+  return {
+    ...choix,
+    v: FORMAT_DES_CHOIX,
+    specChoices: adressesLues(specChoices),
+    speciesTalentChoices: adressesLues(speciesTalentChoices),
+    randomSpecPicks: adressesLues(randomSpecPicks),
+    talentRerolls: adressesLues(talentRerolls),
+    ...(trappingChoices && { trappingChoices: adressesLues(trappingChoices) }),
+  };
+}
+
+/** Les entrées de `choix` dont la clé est une adresse (`adresseLue`). */
+function adressesLues<V>(choix: Record<string, V> = {}): Record<AdresseDeCreation, V> {
+  const lues: Record<AdresseDeCreation, V> = {};
+  for (const [cle, v] of Object.entries(choix)) {
+    const adresse = adresseLue(cle);
+    if (adresse) lues[adresse] = v;
+  }
+  return lues;
 }
 
 /** `careerSlotChoices` du héros aux clés en ids (#1924, `migrerClesDEmplacement`) — idempotent. */

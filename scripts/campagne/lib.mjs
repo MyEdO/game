@@ -1,10 +1,11 @@
 /**
  * Outillage d'AUTHORING de CAMPAGNE — helpers purs pour composer un projet (`ProjectDoc`, construit par
  * `documentDeProjet`, `src/state/worldMap.ts`, via `projectDoc()` ci-dessous)
- * partagé par TOUTES les campagnes (Arène, « Le Loup et la Saumure », …). Le JSON commité
- * (`src/scenes/<campagne>/<campagne>-projet.json`) reste la SOURCE CANONIQUE, 100 % éditable dans
- * l'éditeur : ce script n'est qu'un outil d'auteur (itération de layout), PAS un build — ne pas le
- * brancher dans package.json.
+ * partagé par les générateurs `scripts/<dossier>/generate.mjs` (Arène, « Le Loup et la Saumure »,
+ * « La Barge du sel »). Chaque générateur est le PROPRIÉTAIRE EXCLUSIF de son paquet
+ * `src/scenes/<campagne>/<campagne>-projet.json` : l'artefact commité est l'octet de son `build()`
+ * (`src/scenes/generateurs-byte-stables.test.ts`, #1522), et une édition du JSON hors générateur rougit
+ * cette garde. Migration de ces campagnes vers un paquet MANUSCRIT : #1601.
  *
  * Lancé via tsx : `scene()` construit un `MapSpec` (format déclaratif) puis appelle `buildScene`
  * (`src/state/mapSpec.ts`) — MÊME compilateur headless-editor que les scénarios `src/scenes/…`. L'ASCII,

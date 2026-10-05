@@ -1,7 +1,7 @@
 /**
  * Rapport des CONSOMMATEURS PAR CHAMP — GÉNÉRÉ. Sortie : docs/consommateurs-de-champs.md.
  * Re-run : `npx tsx scripts/docs/build-field-consumers.mts` (`npm run docs:field-consumers`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  * Objet (#903) — la mesure INVERSE de `build-entity-orphans.mjs` : celui-ci répond « qui cite cet
  * ID d'ENTITÉ de catalogue ? », celui-ci répond « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
@@ -15,8 +15,9 @@
  * morts qui restent sont en tête de `scripts/guards/lib/fieldConsumers.mjs`. Les catalogues
  * `src/data/schemas/defs/*.ts` dont le `schema` d'entrée est ANONYME (`z.array(z.strictObject({…}))`)
  * ONT pour la plupart un alias TS : `src/data/index.ts` porte 41 interfaces au patron `XData`
- * (mesure 2026-09-01), dont `export interface TrappingData` (`index.ts:1113`), annotée par de vrais
- * consommateurs (`src/engine/items.ts:20`, `src/engine/activities.ts:28`/`799`/`805`/`907`) ; et la
+ * (mesure 2026-09-01), dont `export interface TrappingData`, annotée par de vrais consommateurs
+ * (`TrappingResolver` de `src/engine/items.ts` ; `craftSpecOf`, `orderBlockOf` de
+ * `src/engine/activities.ts`) ; et la
  * liste des champs d'une entrée anonyme est dérivable sans nommage manuel
  * (`scripts/docs/lib/zod-introspect.mts#introspecterDefs`, qui descend le sceau `document()`). Les
  * y faire entrer est le geste (iii) de #1620 — dérivation de `TARGETS` par jointure `type`↔`XData`,
@@ -52,17 +53,17 @@
  *   - 12 ont un lecteur mesuré : `DetailRecipe.tintVar`, `EntityAppearance.armurePortee`,
  *     `CritEscalation.onRepeat`, `Amputation.timing`, `FlowTest.opposed`, `CountSpec.fixed`,
  *     `CountSpec.roll`, `TrappingRef.label`, `FlowTest.argDifficulty`
- *     (`src/state/triggeredEffects.ts:73`, `f.test.argDifficulty`), `TravelTableEntry.stageOutcome`
- *     (`src/state/travelPostes.ts:363`, `enc.stageOutcome` sur un retour INFÉRÉ), `QualityRef.spec`
+ *     (`withArg` de `src/state/triggeredEffects.ts`, `f.test.argDifficulty`), `TravelTableEntry.stageOutcome`
+ *     (`buildWeatherResistanceSteps` de `src/state/travelPostes.ts`, `enc.stageOutcome` sur un retour
+ *     INFÉRÉ), `QualityRef.spec`
  *     (champ PROPRE : `qualityRefSchema` porte son propre shape) et `TraitInstance.hidden`, dont
- *     `hiddenGroupsOf` annote le porteur `TraitInstance[]` (`src/engine/groups.ts:57`). Les deux
+ *     `hiddenGroupsOf` annote le porteur `TraitInstance[]` (`src/engine/groups.ts`). Les deux
  *     sites INFÉRÉS (`argDifficulty`, `stageOutcome`) échappent aussi à une vérification à la main,
  *     qui a le même angle mort que le scan syntaxique ;
- *   - 4 sont de VRAIS zéros : `SourceRef.note`, `CastingNumberMod.maison`/`.source`/`.desc`.
- * Sur tout le rapport (158 champs) : 6 cellules « 0 — JAMAIS LU », toutes de VRAIS zéros — les deux
- * qui ne sont pas de cet échantillon étant `PropData.type` et `PropData.label` (un décor lit sa
- * géométrie, jamais son libellé) —, 0 hérité, 7 absents du type TS. Les cardinaux du rapport sont
- * ÉMIS depuis les compteurs, jamais recopiés.
+ *   - 4 étaient de VRAIS zéros ce jour-là : `SourceRef.note`, `CastingNumberMod.maison`/`.source`/`.desc`.
+ * La liste COURANTE des « 0 — JAMAIS LU », tous de VRAIS zéros, est le cliquet nominatif de
+ * `src/data/field-consumers.test.ts` ; les cardinaux du rapport sont ÉMIS depuis les compteurs,
+ * jamais recopiés.
  * COÛT MESURÉ du rapport complet (23 types, 1 952 fichiers de `src/`, Program bâti UNE fois pour
  * les 23 et libéré au retour) : ~17 s et ~1,33 Go de pic, contre 1,8 s au scan syntaxique. La liste
  * des « 0 lecteur » sort NOMMÉE de cette fonction (`zeros`) et son CLIQUET vit dans
@@ -82,7 +83,7 @@
  */
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../guards/lib/fieldConsumers.mjs'
 import { TARGETS, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 
@@ -97,7 +98,7 @@ type Hit = { file: string; line: number; symbole: string }
 
 /**
  * Le rapport, EN MÉMOIRE : le `.md` à écrire + les sites mesurés par type et par champ. UN SEUL
- * balayage du corpus nourrit les deux consommateurs — la fraîcheur du `.md` et le cas fondateur de
+ * balayage du corpus nourrit les deux consommateurs — le rendu du `.md` et le cas fondateur de
  * `src/data/field-consumers.test.ts`, qui appelle cette fonction EN PROCESSUS (le CLI ci-dessous
  * n'est qu'un autre appelant). `files` est INJECTABLE — le corpus par défaut est `listProdFiles`, et
  * la garde le rejoue en ordre INVERSÉ pour prouver que le `.md` ne dépend pas de l'ordre du système
@@ -121,8 +122,8 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `**${TARGETS.length} retenus** (voir en-tête du générateur pour les raisons d'exclusion). Les catalogues `
   out += `\`src/data/schemas/defs/*.ts\` à schéma d'entrée ANONYME restent HORS PÉRIMÈTRE — non par absence de `
   out += `nom TS : l'alias existe pour la plupart (41 interfaces \`XData\` dans `
-  out += `\`src/data/index.ts\`, mesure 2026-09-01 — ex. \`TrappingData\` \`index.ts:1113\`, annotée par `
-  out += `\`src/engine/items.ts:20\` et \`src/engine/activities.ts:28\`) et les champs d'une entrée anonyme sont `
+  out += `\`src/data/index.ts\`, mesure 2026-09-01 — ex. \`TrappingData\`, annotée par \`TrappingResolver\` de `
+  out += `\`src/engine/items.ts\` et \`craftSpecOf\` de \`src/engine/activities.ts\`) et les champs d'une entrée anonyme sont `
   out += `dérivables (\`scripts/docs/lib/zod-introspect.mts#introspecterDefs\`) —, mais parce que la DÉRIVATION `
   out += `de \`TARGETS\` (jointure \`type\`↔\`XData\`) est un geste distinct, encore à faire (#1620) ; à l'unité, `
   out += `le geste d'auteur reste ouvert (nommer `
@@ -237,15 +238,12 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `liste attendue y est écrite champ par champ — un zéro apparu comme un zéro disparu est rouge, et `
   out += `la ligne ne se retire qu'avec le lecteur qui l'annule.\n\n`
   // Les lecteurs sont ÉNUMÉRÉS depuis la mesure (jamais un nom en dur) : la phrase reste vraie quand
-  // le nombre de lecteurs change — #1463 L-ref-1 en a ajouté un (matérialisation de la spec sur
-  // l'`ItemInstance`) et la version « l'unique lecteur est `resolveOne` » est devenue fausse en
-  // silence. La clause de RENDU suit la mesure elle-même : un lecteur dans `src/data/index.ts`
-  // signalerait une SECONDE définition du libellé affiché (cf. `src/data/field-consumers.test.ts`).
+  // le nombre ou le nom des lecteurs change. La clause de RENDU suit la mesure elle-même : un lecteur
+  // dans `src/data/index.ts` signalerait une SECONDE définition du libellé affiché (cf. `src/data/field-consumers.test.ts`).
   const specDansLeRendu = trappingRefSpecSites.some((s) => s.startsWith('src/data/index.ts'))
-  // DEUX paragraphes, et la coupure est STRUCTURELLE : la porte de commit `check-docs-vs-head.mjs`
-  // exige que chaque `fichier:ligne` cité porte, à ±2 lignes du site AU COMMIT, l'un des identifiants
+  // DEUX paragraphes : un `fichier:ligne` cité porte, à ±2 lignes du site, l'un des identifiants
   // backtiqués de la MÊME ligne du doc. La ligne des SITES ne backtique donc que `spec` (présent aux
-  // deux sites) ; les identifiants du RENDU (`trappingRefLabel`, `refConcrete`), qui vivent dans
+  // deux sites) ; les identifiants du RENDU (`trappingRefLabel`, `refLabel`), qui vivent dans
   // `src/data/index.ts`, restent sur une ligne SANS `fichier:ligne`.
   out += `## Cas fondateur\n\n`
   out += `Le champ \`spec\` d'une référence de dotation a ${trappingRefSpecSites.length} lecteur(s) mesuré(s)`
@@ -253,12 +251,17 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `\`trappingRefLabel\` `
   out += `(\`src/data/index.ts\`, SOURCE UNIQUE du libellé affiché d'une \`TrappingRef\`) `
   out += specDansLeRendu
-    ? `LIT \`ref.spec\` : une SECONDE définition du rendu « base (spec) », qui appartient à \`refConcrete\`.\n`
-    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refConcrete\`, partagée par toute \`RefDesignee\`.\n`
+    ? `LIT \`ref.spec\` : une SECONDE définition du rendu « base (spec) », qui appartient à \`refLabel\`.\n`
+    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refLabel\`, partagée par toute \`RefDesignee\`.\n`
 
   // `zeros` sort NOMMÉ (`Type.champ`) : le cliquet de `src/data/field-consumers.test.ts` compare
   // cette liste à la sienne, écrite en dur — aucun re-parsing du `.md`, dont la table est un RENDU.
   return { md: out, byType, totalFields, totalUnread, zeros }
+}
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(files?: string[]): Map<string, string> {
+  return new Map([[OUT, buildFieldConsumersMd(files).md]]);
 }
 
 /** CLI : écriture du `.md`, ou `--check` : `ecrireOuVerifier`, rejoué par `build-all.mjs`. */
@@ -269,7 +272,7 @@ if (import.meta.main) {
     path: OUT,
     check: process.argv.includes('--check'),
     staleMsg: `docs:field-consumers — ${OUT} est PÉRIMÉ (les schémas/le code source ont changé).`,
-    rerunMsg: '  → relancer `npm run docs:field-consumers` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:field-consumers` (dérivé jamais commité, #2203).',
     okMsg: `docs:field-consumers — OK (${OUT} à jour, ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES)`,
     writeMsg: `${OUT} — ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES sur ${TARGETS.length} types.`,
   })

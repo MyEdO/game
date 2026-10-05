@@ -40,12 +40,12 @@ afterEach(() => {
   container = undefined;
 });
 
-function monte(categoryKey: string, label: string, id: string) {
+function monte(categoryKey: string, id: string) {
   container = document.createElement('div');
   document.body.appendChild(container);
   const racine = createRoot(container);
   root = racine;
-  act(() => { racine.render(<CodexEdit categoryKey={categoryKey} label={label} id={id} onClose={() => {}} />); });
+  act(() => { racine.render(<CodexEdit categoryKey={categoryKey} id={id} onClose={() => {}} />); });
 }
 
 /** Le champ nommé `label`, tel que l'écran le porte. */
@@ -83,7 +83,7 @@ describe('atelier du Codex — la prose ADRESSÉE ne s’édite pas en double (#
   });
 
   it('une entrée ADRESSÉE n’offre PAS de champ « Description » — le champ d’adresse tient sa place', () => {
-    monte('psychologies', TERREUR.label, TERREUR.id);
+    monte('psychologies', TERREUR.id);
     const presentes = champsPresentes();
     expect(presentes, 'le formulaire n’est pas monté — la sonde ne mesure rien').toContain('Libellé');
     expect(presentes, 'l’atelier propose de saisir un texte DÉRIVÉ de l’adresse').not.toContain('Description');
@@ -94,7 +94,7 @@ describe('atelier du Codex — la prose ADRESSÉE ne s’édite pas en double (#
   });
 
   it('DÉTACHER — le livre remis à vide rend la prose éditable, avec le texte matérialisé', () => {
-    monte('psychologies', TERREUR.label, TERREUR.id);
+    monte('psychologies', TERREUR.id);
     const select = selecteurDeLivre();
     expect(select.value).toBe('livre-de-base');
     const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!;
@@ -108,7 +108,7 @@ describe('atelier du Codex — la prose ADRESSÉE ne s’édite pas en double (#
   });
 
   it('RE-CHOISIR un livre après détachement : « Description » reste éditable tant que l’adresse n’adresse rien', () => {
-    monte('psychologies', TERREUR.label, TERREUR.id);
+    monte('psychologies', TERREUR.id);
     const select = selecteurDeLivre();
     const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!;
     const choisir = (v: string) => act(() => {

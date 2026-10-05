@@ -15,7 +15,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { stepsCi } from './gatesDeCi.mjs'
-import { DOSSIER, ETATS, PORTE, SIGNALEUR, WORKFLOWS, corpsRun, lireWorkflows, mesurerEtat, verdict } from './workflowsDuDepot.mjs'
+import { DOSSIER, ETATS, PORTE, SIGNALEUR, WORKFLOWS, branchesDePush, corpsRun, declencheursDe, lireWorkflows, mesurerEtat, verdict } from './workflowsDuDepot.mjs'
 
 /** Un workflow d'une seule ligne de `run`, sous la condition `si`. PUR — aucun disque. */
 const workflowAvec = (si, ligneRun) =>
@@ -52,6 +52,46 @@ test('`mesurerEtat` rend, sur chaque YAML réel, exactement l’état DÉCLARÉ'
 test('chaque raison déclarée NOMME son fait (elle n’est jamais vide)', () => {
   for (const [fichier, { raison }] of Object.entries(WORKFLOWS))
     assert.ok(raison && raison.length > 30, `${fichier} : la raison doit citer le fait qui porte l’état`)
+})
+
+test('`declencheursDe` lit les clés du bloc `on:`, sous-clés et commentaires sautés', () => {
+  const texte =
+    'name: x\non:  # déclencheurs\n  push:\n    branches: [main]\n\n  # à la main\n  workflow_dispatch:\n    inputs:\n      nom:\njobs:\n  tests:\n'
+  assert.deepEqual(declencheursDe(texte), ['push', 'workflow_dispatch'])
+})
+
+test('`declencheursDe` LÈVE sur toute forme de `on:` qu’il ne sait pas lire, et `mesurerEtat` avec lui', () => {
+  const formes = {
+    'liste en ligne': 'name: x\non: [push, workflow_dispatch]\njobs:\n',
+    'scalaire en ligne': 'name: x\non: workflow_dispatch\njobs:\n',
+    'clé citée': 'name: x\n"on":\n  push:\njobs:\n',
+    'bloc absent': 'name: x\njobs:\n  tests:\n',
+    'bloc vide': 'name: x\non:\njobs:\n',
+    'élément de liste': 'name: x\non:\n  - push\njobs:\n',
+    'indentation inconnue': 'name: x\non:\n   push:\njobs:\n',
+  }
+  for (const [forme, texte] of Object.entries(formes)) {
+    assert.throws(() => declencheursDe(texte, 'banc.yml'), /^Error: banc\.yml : bloc `on:` illisible/, forme)
+    assert.throws(() => mesurerEtat('banc.yml', texte), /^Error: banc\.yml : bloc `on:` illisible/, forme)
+  }
+})
+
+test('`branchesDePush` lit les filtres `push.branches` du bloc `on:` : liste en ligne ou en bloc, `null` sans filtre, `[]` sans `push`', () => {
+  assert.deepEqual(branchesDePush("on:\n  push:\n    branches: ['chantier/**', \"feat/**\", main]  # x\n  merge_group:\n    types: [checks_requested]\njobs:\n"), ['chantier/**', 'feat/**', 'main'])
+  assert.deepEqual(branchesDePush('on:\n  push:\n    branches:\n      - chantier/**\n      - feat/**\n    paths:\n      - src/**\njobs:\n'), ['chantier/**', 'feat/**'])
+  assert.equal(branchesDePush('on:\n  push:\n    paths: [src/**]\njobs:\n'), null)
+  assert.deepEqual(branchesDePush('on:\n  merge_group:\njobs:\n'), [])
+  assert.ok(branchesDePush(readFileSync(join(RACINE, DOSSIER, PORTE), 'utf8'), PORTE).length > 0, 'le `ci.yml` du dépôt se lit')
+})
+
+test('`branchesDePush` LÈVE sur `branches-ignore`, une valeur scalaire ou une liste vide', () => {
+  for (const texte of [
+    'on:\n  push:\n    branches-ignore: [x]\njobs:\n',
+    'on:\n  push:\n    branches: main\njobs:\n',
+    'on:\n  push:\n    branches: []\njobs:\n',
+    'on:\n  push:\n    branches:\n    paths: [x]\njobs:\n',
+  ])
+    assert.throws(() => branchesDePush(texte, 'banc.yml'), /^Error: banc\.yml : filtre `push\.branches` illisible/, texte)
 })
 
 test('un `if` qui N’EXIGE PAS le rouge ne vaut pas autosignale (!failure(), success() && !cancelled())', () => {

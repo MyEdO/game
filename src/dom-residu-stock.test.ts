@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
-/**
- * Cliquet du stock des fuites DOM (#1619) : la barrière de `src/test-setup.ts` échoue au fichier qui
- * laisse un nœud dans `document.body` ; `scripts/guards/lib/domResiduStock.mjs` liste les fuites
- * connues, en EXTINCTION. Ce fichier verrouille les deux : le verdict de la barrière et la décroissance.
- */
+/** #1619 */
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { residusDom, cleFichierTest, messageResiduDom } from './test-setup';
@@ -11,7 +7,7 @@ import { DOM_RESIDU_STOCK } from '../scripts/guards/lib/domResiduStock.mjs';
 import { ecartsDeStock } from '../scripts/guards/lib/stock.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
-// Lecteur ASSEMBLÉ à l'exécution : patron de `src/portable-paths-guard.test.ts:51`.
+// src/portable-paths-guard.test.ts:51
 const LECTEUR = 'C' + ':';
 
 describe('barrière de fuite DOM — verdict', () => {
@@ -26,12 +22,13 @@ describe('barrière de fuite DOM — verdict', () => {
       expect(msg).toContain('src/ui/JouetQuiFuit.test.tsx');
       expect(msg).toContain('<div class="fuite-jouet">');
     } finally {
-      div.remove(); // ce fichier ne fuit pas : il démonte son propre jouet
+      div.remove();
     }
   });
 
   it('se tait pour un fichier du stock d’extinction, et pour un body vide', () => {
-    expect(messageResiduDom('src/ui/CampaignView.test.tsx', ['<div>'], DOM_RESIDU_STOCK)).toBeNull();
+    const fichier = 'src/ui/JouetQuiFuit.test.tsx';
+    expect(messageResiduDom(fichier, ['<div>'], new Set([fichier]))).toBeNull();
     expect(messageResiduDom('src/ui/JouetQuiFuit.test.tsx', [], new Set())).toBeNull();
     expect(residusDom(document.body)).toEqual([]);
   });
@@ -42,15 +39,7 @@ describe('barrière de fuite DOM — verdict', () => {
   });
 });
 
-/**
- * CLIQUET du stock, en deux sens et sans AUCUN compte. La forme reste un `Set` de CHEMINS : la clé
- * EST le fichier (`src/test-setup.ts` la consomme par `.has` à l'exécution), et c'est ce chemin que
- * la porte de plage (`croissanceDesStocks`) voit — lui inventer une `ref` serait une donnée sans
- * mesure. D'où la disparition du plafond : allonger ce stock se DÉCLARE déjà, ligne par ligne.
- * UNE lecture de « périmée » par module : ici la ligne MORTE (fichier disparu), et à la fin d'une
- * suite complète verte celle d'`entreesPerimees` (le fichier a JOUÉ et n'a PAS fui) — la seconde
- * exige d'avoir joué, ce que cette suite-ci ne fait pas.
- */
+/** #1619 */
 describe('stock d’extinction — cliquet', () => {
   it('ne porte que des fichiers existants (une ligne morte se retire)', () => {
     const { perimees } = ecartsDeStock({

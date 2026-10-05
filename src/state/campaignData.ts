@@ -3,7 +3,7 @@
 // campagne (`state.campaignNarratif`, posé par `loadProject`) est lu ICI par id STABLE, jamais copié
 // dans `src/data` global. Les accesseurs d'affaire/indice/preset n'existent QUE dans la couche ; seul
 // `trappingById` chaîne campagne-d'abord puis règle globale (`findTrappingById`).
-import { findCreatureById, findTrappingById, type CreatureData, type TrappingData } from '../data';
+import { findCreatureById, trappingDesObjetsPuisDuCatalogue, type CreatureData, type TrappingData } from '../data';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { Affaire, Indice, NarratifBlock, PresetPnj } from './campaignNarratif';
 // Import de `useGame` au top-level mais lu UNIQUEMENT dans les fonctions (usage runtime différé) :
@@ -91,9 +91,9 @@ export function indiceById(id: string): Indice | undefined {
 }
 
 /** Possession résolue par id STABLE, campagne-D'ABORD (`campaignNarratif.objets`) puis règle globale
- *  (`findTrappingById`). Les ids narratifs ne collisionnent jamais avec le global (garde `narratifSchema`,
+ *  (`trappingDesObjetsPuisDuCatalogue`). Les ids narratifs ne collisionnent jamais avec le global (garde `narratifSchema`,
  *  #765) → chaîne déterministe. Signature IDENTIQUE à `findTrappingById` : sert de résolveur injecté aux
  *  coutures d'objet du moteur (`engine/items`), qui restent PURES (elles reçoivent la fonction). */
 export function trappingById(id: string): TrappingData | undefined {
-  return maps().objets.get(id) ?? findTrappingById(id);
+  return trappingDesObjetsPuisDuCatalogue(maps().objets, id);
 }

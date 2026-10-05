@@ -5,13 +5,7 @@
 // %O = ancêtre commun, %A = version COURANTE (« ours », c'est le fichier que le pilote doit écrire),
 // %B = version entrante, %P = chemin réel dans l'arbre.
 //
-// Trois familles, trois contrats :
-//   - `generes`   : fichier 100 % dérivé. La fusion textuelle n'a aucun sens (seule la
-//                   régénération fait foi) : on garde %A tel quel, exit 0. `npm run docs:build`
-//                   (hooks post-merge / post-rewrite) reconstruit la valeur juste.
-//   - `catalogue` : docs/raw/catalogue-*.md — dérivé SAUF ses blocs `<!-- X-INTEGRATION -->`
-//                   (correctifs manuels, cf. scripts/raw/build-catalogs.mjs). Garde %A comme
-//                   `generes`, mais REFUSE la fusion si un bloc entrant serait perdu.
+// Une famille — un fichier 100 % dérivé n'est pas commité (#2203), aucun pilote ne le fusionne :
 //   - `fiche-raw` : fiche docs/raw/*.md MIXTE (prose manuscrite + champs `**Implémente :**`
 //                   dérivés). Les champs dérivés sont neutralisés (sentinelle) dans les TROIS
 //                   versions, la fusion 3-voies ne porte donc que sur la PROSE ; chaque champ est
@@ -25,10 +19,8 @@ import { threeWay } from './three-way.mjs'
 // Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 // Frontière du champ dérivé : SOURCE UNIQUE partagée avec le générateur (scripts/raw/build-implemente.mjs).
 const { NOT_IMPL, parseFiche } = await import('../raw/build-implemente.mjs')
-// Blocs préservés des catalogues : SOURCE UNIQUE partagée avec le générateur.
-const { BLOCK_START, extractPreservedBlocks } = await import('../raw/build-catalogs.mjs')
 
-export const FAMILIES = ['generes', 'catalogue', 'fiche-raw']
+export const FAMILIES = ['fiche-raw']
 
 /** Stem neutre passé à `parseFiche` : seule la part APRÈS `#` du topic sert de clé, et elle doit
  *  être identique dans les trois versions — le nom réel du fichier n'entre donc pas dans l'identité. */
@@ -74,30 +66,6 @@ export function restoreImplemente(text, ...blockMaps) {
   return out.join('\n')
 }
 
-/** Blocs `<!-- X-INTEGRATION -->` d'un catalogue, indexés par marqueur. */
-export function preservedBlocksByTag(path) {
-  const byTag = new Map()
-  for (const block of extractPreservedBlocks(path)) {
-    const header = block.split('\n').find((l) => BLOCK_START.test(l))
-    if (header) byTag.set(header.match(BLOCK_START)[1], block)
-  }
-  return byTag
-}
-
-/** Marqueurs dont le correctif MANUEL entrant serait perdu en gardant %A : absent du courant, ou
- *  modifié côté entrant seul. Liste vide = la régénération suffit, %A peut être gardé. */
-export function catalogueConflicts({ base, ours, theirs }) {
-  const O = preservedBlocksByTag(base)
-  const A = preservedBlocksByTag(ours)
-  const B = preservedBlocksByTag(theirs)
-  const lost = []
-  for (const [tag, block] of B) {
-    if (!A.has(tag)) { lost.push(tag); continue }
-    if (block !== A.get(tag) && block !== O.get(tag)) lost.push(tag)
-  }
-  return lost
-}
-
 /** Fusion d'une fiche docs/raw : prose fusionnée 3-voies, champs dérivés repris de `ours`. */
 export function mergeFicheRaw(ours, base, theirs, labels) {
   const a = stripImplemente(ours)
@@ -112,13 +80,6 @@ function main(argv) {
   if (!FAMILIES.includes(family) || !O || !A || !B) {
     process.stderr.write(`merge-docs: usage — merge-docs.mjs <${FAMILIES.join('|')}> %O %A %B %P\n`)
     return 2
-  }
-  if (family === 'generes') return 0
-  if (family === 'catalogue') {
-    const lost = catalogueConflicts({ base: O, ours: A, theirs: B })
-    if (!lost.length) return 0
-    process.stderr.write(`merge-docs: ${P ?? A} — correctif(s) MANUEL(s) entrant(s) que la régénération ne reproduira pas : ${lost.join(', ')} — bloc(s) récupérable(s) : \`git show :3:${P ?? A}\`.\n`)
-    return 1
   }
   const res = mergeFicheRaw(
     readFileSync(A, 'utf8'), readFileSync(O, 'utf8'), readFileSync(B, 'utf8'),

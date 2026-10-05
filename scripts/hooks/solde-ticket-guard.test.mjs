@@ -3,6 +3,7 @@
 // adversariale (demande 2026-07-14). Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { Buffer } from 'node:buffer'
 import { resolve, join } from 'node:path'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs'
@@ -376,6 +377,19 @@ test('evaluate : solde absent → deny actionnable', () => {
   assert.match(d.reason, /fichier absent/)
 })
 
+test('evaluate : `#N` nus énumérés après une clause de fermeture → refus qui les NOMME (92f57ea33)', () => {
+  const d = evaluate({
+    command: 'git commit -m "fix(tests): corrige #2225 #2114 + #2151/#2191 — lot"',
+    today: TODAY,
+    readSolde: () => solde(),
+  })
+  assert.ok(d && typeof d.reason === 'string')
+  assert.match(d.reason, /#2114, #2151, #2191 suit une clause de fermeture/)
+  assert.match(d.reason, /`corrige #2114`, `corrige #2151`, `corrige #2191`/)
+  assert.match(d.reason, /`refs #2114 #2151 #2191`/)
+  assert.equal(evaluate({ command: 'git commit -m "corrige #99, refs #1 #2"', today: TODAY, readSolde: () => solde() }), null)
+})
+
 test('evaluate : multi-fermeture — un seul solde manquant listé nommément', () => {
   const d = evaluate({
     command: 'git commit -m "corrige #1, ferme #2"',
@@ -436,8 +450,23 @@ test('evaluate : palier >=10 sans revue neuve -> deny palier, quel que soit le s
   // fichier a ecrire, nom compris : c'est le nom qui porte la fenetre.
   assert.match(d.reason, /10 commits de substance depuis 2c11fdd9a/)
   assert.match(d.reason, /revue-palier-82e95be10\.md/)
-  assert.match(d.reason, new RegExp(`revue-palier-${TODAY}-2c11fdd9a\\.md`))
+  assert.match(d.reason, new RegExp(`revue-palier-${TODAY}-2c11fdd9a-<tête>\\.md`))
   assert.ok(!/[^-]revue-palier\.md/.test(d.reason), 'aucun fichier « vivant » : la revue nait archivee')
+})
+
+test('evaluate : le nom que PRESCRIT le refus de palier est celui que la porte ACCEPTE (#2236)', () => {
+  const tete = 'aaaaaaaaa'
+  const d = evaluate({
+    command: 'git commit -m "corrige #9"',
+    today: TODAY,
+    readSolde: () => solde(),
+    palier: () => ({ ...PALIER_MESURE, compte: 10 }),
+  })
+  const prescrit = /STAGER sous \.claude\/soldes\/(revue-palier-\S+\.md)/.exec(d.reason)?.[1]
+  assert.ok(prescrit, d.reason)
+  const nom = prescrit.replace('<tête>', tete)
+  const [revue] = neuve(revueEnchainee({ fenetre: `${PALIER_MESURE.tete}..${tete}` }), nom)
+  assert.deepEqual(problemesDeRevueNeuve(revue, { today: TODAY, palier: PALIER_MESURE, dansHead: () => true }), [])
 })
 
 test('evaluate : palier >=10 + revue neuve ENCHAINEE et conforme -> pass (solde encore requis)', () => {
@@ -463,6 +492,7 @@ test('evaluate : revue neuve dont le CONTENU est trop maigre -> deny nomme', () 
   assert.ok(d)
   assert.match(d.reason, /Revue de palier NON CONFORME/)
   assert.match(d.reason, /trop maigre/)
+  assert.match(d.reason, /`revue-palier-<date>-<base>-<tête>\.md`/, 'le gabarit du nom porte les DEUX bornes')
 })
 
 test('evaluate : revue neuve dont le NOM ne repond pas au CONTENU -> deny qui dit les deux', () => {
@@ -1588,7 +1618,7 @@ test('pathspecsDuCommit : un sous-shell parenthésé rend ses chemins ; une subs
 test('evaluateHunksEmportes : sous `-i`/`--include`, le texte dit que l\'index ENTIER part', () => {
   for (const command of ['git commit -F m -i src/a.ts', 'git commit -F m --incl src/a.ts']) {
     const refus = evaluateHunksEmportes({ command, fichiersModifies: ['src/a.ts'], fichiersStages: ['src/a.ts'] })
-    assert.equal(refus.decision, 'deny', command)
+    assert.deepEqual(Object.keys(refus), ['reason'], command)
     assert.match(refus.reason, /git commit -i <paths>.*index ENTIER/, command)
     assert.doesNotMatch(refus.reason, /ignore l'index/, command)
     const note = evaluateHunksEmportes({ command, fichiersModifies: ['src/a.ts'], fichiersStages: [] })
@@ -2355,7 +2385,7 @@ test('extractMessageSources : « -F » en PROSE d un message -m n est pas un fla
 // Le drapeau `-F` ne vaut QUE dans le segment qui exécute `git commit` (mesuré 2026-09-04 : deux
 // refus « message de commit en fichier illisible » sur des commandes qui ne committent rien).
 test('extractMessageSources : le -F de « gh api -X PATCH … -F corps=@fichier » n est PAS un message de commit', () => {
-  const cmd = 'gh api -X PATCH repos/cgauche/game/issues/comments/42 -F body=@rapport.md'
+  const cmd = `gh api -X PATCH repos/${DEPOT}/issues/comments/42 -F body=@rapport.md`
   const r = extractMessageSources(cmd, { readFile: () => { throw new Error('ne doit jamais être appelé') } })
   assert.equal(r.fileError, null)
   assert.equal(r.text, cmd)
@@ -2368,7 +2398,7 @@ test('extractMessageSources : une ligne de todo qui CITE le drapeau ne cherche a
 })
 
 test('extractMessageSources : « gh issue comment --body-file » n est pas un flag fichier de commit', () => {
-  const cmd = 'gh issue comment 1614 --repo cgauche/game --body-file rapport.md'
+  const cmd = `gh issue comment 1614 --repo ${DEPOT} --body-file rapport.md`
   const r = extractMessageSources(cmd, { readFile: () => { throw new Error('ne doit jamais être appelé') } })
   assert.equal(r.fileError, null)
 })
@@ -2762,12 +2792,12 @@ test('evaluateFermetureHorsCommit : `gh issue close` refusé, y compris derrièr
     'gh issue close 1636 --comment "fait"',
     'bash -lc "gh issue close 1636"',
     'gh issue edit 1636 --state closed',
-    'gh api repos/cgauche/game/issues/1636 -X PATCH -f state=closed',
-    'gh api repos/cgauche/game/issues/1636 --method PATCH --field state=closed',
+    `gh api repos/${DEPOT}/issues/1636 -X PATCH -f state=closed`,
+    `gh api repos/${DEPOT}/issues/1636 --method PATCH --field state=closed`,
   ]) {
     const d = evaluateFermetureHorsCommit(cmd)
     assert.ok(d, `passé en silence : ${cmd}`)
-    assert.equal(d.decision, 'deny')
+    assert.deepEqual(Object.keys(d), ['reason'])
     assert.match(d.reason, /la fermeture passe par un commit/)
   }
 })
@@ -2787,13 +2817,13 @@ test('evaluateFermetureHorsCommit : silence sur ce qui ne ferme pas', () => {
 test('evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "closed" est refusé', () => {
   const lire = () => JSON.stringify({ state: 'closed', state_reason: 'completed' })
   for (const cmd of [
-    'gh api -X PATCH /repos/cgauche/game/issues/1679 --input corps.json',
+    `gh api -X PATCH /repos/${DEPOT}/issues/1679 --input corps.json`,
     'gh api --method PATCH /repos/o/r/issues/1 --input=corps.json',
     'bash -lc "gh api -X PATCH /repos/o/r/issues/1 --input corps.json"',
   ]) {
     const d = evaluateFermetureHorsCommit(cmd, { lire })
     assert.ok(d, `passé en silence : ${cmd}`)
-    assert.equal(d.decision, 'deny')
+    assert.deepEqual(Object.keys(d), ['reason'])
     assert.match(d.reason, /la fermeture passe par un commit/)
   }
 })
@@ -2804,7 +2834,7 @@ test('evaluateFermetureHorsCommit : les gestes `--input` qui ne peuvent pas FERM
   // d'UN ticket et une méthode qui ÉCRIT.
   const absent = () => { throw new Error('ENOENT') }
   for (const cmd of [
-    'gh api repos/cgauche/game/issues --input body.json',
+    `gh api repos/${DEPOT}/issues --input body.json`,
     'gh api graphql --input query.json',
     'gh api repos/o/r/issues --input filtre.json -X GET',
     'echo \'{"title":"x"}\' > body.json && gh api repos/o/r/issues --input body.json',
@@ -2827,7 +2857,7 @@ test('evaluateFermetureHorsCommit : sur l\'endpoint d\'UN ticket, un corps ILLIS
   const d = evaluateFermetureHorsCommit('gh api -X PATCH /repos/o/r/issues/1 --input absent.json', {
     lire: () => { throw new Error('ENOENT') },
   })
-  assert.equal(d?.decision, 'deny')
+  assert.deepEqual(Object.keys(d ?? {}), ['reason'])
   assert.match(d.reason, /illisible ou non-JSON/)
   assert.match(d.reason, /absent\.json/)
 })
@@ -2852,7 +2882,7 @@ test('natureDeLArbre : `.git` DOSSIER = principal, `.git` FICHIER = worktree li�
 // ── Chemin d'écriture résolu UNE fois ; hors du contenu versionné sur preuve positive seulement (#1973) ────
 /** Graphie MSYS (`/c/Users/…`) d'un chemin win32 absolu. */
 const versMsys = (p) => '/' + p[0].toLowerCase() + p.slice(2).replace(/\\/g, '/')
-const ecriture = (file_path, opts) => cheminDEcriture({ file_path }, opts)
+const ecriture = (file_path, opts) => cheminDEcriture({ file_path }, { base: tmpdir(), ...opts })
 
 test('cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné — graphie native ou MSYS', () => {
   const { racine } = instanceDeDepot()
@@ -2863,7 +2893,7 @@ test('cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné �
     assert.equal(natif.relatif, 'src/data/x.json')
     assert.notEqual(natif.racine, null)
     if (process.platform === 'win32') assert.deepEqual(ecriture(versMsys(cible)), natif, 'MSYS = natif')
-    assert.equal(cheminDEcriture({ path: cible }).horsContenu, false, '`path` quand `file_path` manque')
+    assert.equal(cheminDEcriture({ path: cible }, { base: racine }).horsContenu, false, '`path` quand `file_path` manque')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -2906,7 +2936,7 @@ test('cheminDEcriture : IGNORÉ par git → `horsContenu` ; un fichier SUIVI qu�
 })
 
 test('cheminDEcriture : sans preuve positive, le hook garde — aucun chemin, lecteur absent', () => {
-  assert.equal(cheminDEcriture({}), null)
+  assert.equal(cheminDEcriture({}, { base: tmpdir() }), null)
   assert.equal(ecriture(''), null)
   const absent = process.platform === 'win32'
     ? [...'ZYXWVUTSRQPONMLKJIHGFE'].find((l) => !existsSync(`${l}:\\`))
@@ -2922,7 +2952,7 @@ test('evaluateHunksEmportes : chemin nommé stagé ET modifié → deny', () => 
     fichiersStages: ['src/a.ts'],
   })
   assert.ok(d)
-  assert.equal(d.decision, 'deny')
+  assert.deepEqual(Object.keys(d), ['reason'])
   assert.match(d.reason, /prend le contenu de l'ARBRE et ignore l'index/)
 })
 
@@ -2933,7 +2963,7 @@ test('evaluateHunksEmportes : chemin nommé modifié SEULEMENT → contexte, jam
     fichiersStages: ['src/b.ts'],
   })
   assert.ok(d)
-  assert.equal(d.decision, undefined)
+  assert.equal(d.reason, undefined)
   assert.match(d.contexte, /src\/a\.ts/)
 })
 
@@ -3250,7 +3280,7 @@ test('evaluateHunksEmportes : `git commit -a` emporte TOUT le modifié suivi →
     fichiersStages: ['src/a.ts'],
   })
   assert.ok(d, '`-a` passé en silence')
-  assert.equal(d.decision, undefined, 'jamais un refus : `-a` est un geste légitime')
+  assert.equal(d.reason, undefined, 'jamais un refus : `-a` est un geste légitime')
   assert.match(d.contexte, /src\/b\.ts/)
   assert.doesNotMatch(d.contexte, /src\/a\.ts/, 'ce que l\'index porte déjà n\'est pas une surprise')
   assert.equal(evaluateHunksEmportes({ command: 'git commit -a -m "x"', fichiersModifies: [], fichiersStages: [] }), null)
@@ -3275,7 +3305,7 @@ test('estDansHead HORS dépôt : JETTE une indisponibilité nommée, ne rend pas
 
 test('jugerOuNommerLIndisponible : le refus NOMME ce que git n’a pas lu ; toute autre erreur remonte', () => {
   const vu = jugerOuNommerLIndisponible(() => { throw new GitIndisponible('not a git repository') })
-  assert.equal(vu.decision, 'deny')
+  assert.deepEqual(Object.keys(vu), ['reason'])
   assert.match(vu.reason, /ascendance indisponible : not a git repository/)
   assert.equal(jugerOuNommerLIndisponible(() => null), null)
   assert.throws(() => jugerOuNommerLIndisponible(() => { throw new TypeError('un vrai bug') }), TypeError)
@@ -3372,9 +3402,9 @@ test('extractTargetDir : `Set-Location`/`sl`/`chdir`/`pushd` déplacent le commi
 })
 
 test('avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il n’est pas touché', () => {
-  const refus = { decision: 'deny', reason: '⛔ solde absent' }
+  const refus = { reason: '⛔ solde absent' }
   const dit = avecCibleIgnoree(refus, { chemin: '/base/.wt-x', raison: 'répertoire inexistant au moment du contrôle' })
-  assert.equal(dit.decision, 'deny')
+  assert.deepEqual(Object.keys(dit), ['reason'])
   assert.match(dit.reason, /\.wt-x/)
   assert.match(dit.reason, /inexistant/)
   assert.equal(avecCibleIgnoree(refus, null), refus)
@@ -3472,7 +3502,7 @@ test('reclassement CSS (#1806 D2″) : jugé sur un commit qui touche la fronti�
   })
   const franchit = () => ({ base: cote(false), commit: cote(true) })
   const sans = evaluateReclassementsCss({ command: 'git commit -m "feat: second écran"', deplace: () => true, cotes: franchit })
-  assert.equal(sans.decision, 'deny')
+  assert.deepEqual(Object.keys(sans), ['reason'])
   assert.ok(sans.reason.includes(`${module} : franchi au prix 2, aucune ligne`), sans.reason)
   const ligne = `RECLASSEMENT: ${module} +2 — la console devient une primitive, refs #1806`
   assert.equal(evaluateReclassementsCss({ command: `git commit -m "feat\n\n${ligne}"`, deplace: () => true, cotes: franchit }), null)
@@ -3490,7 +3520,7 @@ test('reclassement CSS (#1806 D2″) : jugé sur un commit qui touche la fronti�
     deplace: () => true,
     cotes: () => { throw new Error('src/data/primitives.manifest.json illisible : x') },
   })
-  assert.equal(injugeable?.decision, 'deny', 'manifeste illisible : refus nommé, jamais un passage muet')
+  assert.deepEqual(Object.keys(injugeable ?? {}), ['reason'], 'manifeste illisible : refus nommé, jamais un passage muet')
   assert.match(injugeable.reason, /injugeable : src\/data\/primitives\.manifest\.json illisible/)
 })
 

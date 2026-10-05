@@ -5,7 +5,7 @@
 import { Combatant, Characteristics, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../engine/types';
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
-import { findCreatureById, byId, findTalentById, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
+import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
 import { vehicleCombatant } from '../engine/vehicle';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
@@ -18,9 +18,10 @@ import { randomizeChars, type PorteurDeFiche } from '../engine/statblock';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../engine/items';
 import { maxWounds, bonus } from '../engine/characteristics';
-import { parseSizeLabel, resizeBySteps, SIZE_ORDER, SizeCategory } from '../engine/size';
+import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../engine/size';
+import { appliquerAcquisitions } from '../engine/talentEffects';
 import { parsePsychTraits } from '../engine/psychology';
-import { traitCharMods, traitBonusWoundsBE, isMindless, mutationsAtSpawn, markMutationsAtSpawn, isSwarm, findResolvedTrait } from '../engine/traits/dispatch';
+import { traitCharMods, traitBonusWoundsBE, isMindless, mutationsAtSpawn, markMutationsAtSpawn, isSwarm } from '../engine/traits/dispatch';
 import { rollMutation, mutationById } from '../data/mutations';
 import { makeRNG } from '../engine/dice';
 import { groupsFor } from '../engine/groups';
@@ -76,20 +77,15 @@ function charsFrom(src: Partial<Record<string, number | null>>, fallback = 30): 
 // le RENDU d'exploration sans cycle de couches. Re-exportée pour les importeurs.
 export { weaponFromTrait } from '../engine/creatureEquip';
 
-/** Catégorie de Taille depuis le trait « Taille (X) » (LDB 85) — lue par le REGISTRE des Traits
- *  (`findResolvedTrait` → arg), jamais par une regex propre. Une plage (« Taille (de Petite à Énorme) ») est
- *  résolue à sa borne haute par `parseSizeLabel`. null si absent ou argument non reconnu. */
-export function sizeFromTraits(traits: TraitList): SizeCategory | null {
-  const arg = findResolvedTrait(traits, 'taille')?.arg;
-  return arg ? parseSizeLabel(arg) : null;
-}
-
 /** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
- *  dérivée des Traits (statbloc ou créature du bestiaire via `ref`). `undefined` ⇒ Moyenne au rendu. */
-export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): SizeCategory | undefined {
-  if (ent.statblock?.size) return ent.statblock.size;
-  const traits = ent.statblock?.traits ?? (ent.ref ? findCreatureById(ent.ref)?.traits : undefined); // tous TraitInstance[]
-  return (traits && sizeFromTraits(traits)) || undefined;
+ *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire via `ref`). */
+export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): SizeCategory {
+  const creature = ent.ref ? findCreatureById(ent.ref) : undefined;
+  return tailleDuProfil({
+    size: ent.statblock?.size,
+    traits: ent.statblock?.traits ?? creature?.traits,
+    talents: ent.statblock?.talents ?? creature?.talents,
+  });
 }
 
 /** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
@@ -170,9 +166,8 @@ export function skillsFromBook(list: SkillRef[] | undefined, printedChars: Chara
   return out;
 }
 
-/** Talents d'une créature/statbloc → `TalentInstance[]` (libellés concrets : « Magie des Arcanes (Ghur) »,
- *  « Menaçant »). Refs STRUCTURÉES `TalentRef` (id stable + niveau/spec). Le nom RECONSTRUIT garde sa spec
- *  entre parenthèses : c'est la clé du registre combatFeatures (`featureKey`) et du grimoire. */
+/** Talents d'une créature/statbloc → `TalentInstance[]` (`talentId` + `spec` + `times`), depuis les refs
+ *  STRUCTURÉES `TalentRef` ; un id hors catalogue est écarté. */
 export function talentsFromBook(list: TalentRef[] | undefined): TalentInstance[] {
   const out: TalentInstance[] = [];
   for (const ref of list ?? []) {
@@ -259,7 +254,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // Traits facultatifs à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : le profil
   // imprimé est FINAL pour ses traits fixes (déjà cuits) ; un facultatif AJOUTÉ s'applique en DIRECT via
   // `liveTraits` (collecteur passif) → `characteristics` reste la base bestiaire, sans double-compte.
-  const baseSize = sizeFromTraits(creature.traits) ?? 'moyenne';
+  const baseSize = tailleDuProfil(creature);
   // Taille FACULTATIVE : trait « Taille (X) » choisi, OU catégorie posée par une variante « swap »
   // (bidirectionnel : Grand Loup Moyenne→Grande, Vouivre Énorme→Grande). PRIME sur celle du bestiaire
   // et applique « Utiliser les Tailles » (LDB 85 l.276-277 : ±10 F/E, ∓5 Ag par catégorie d'écart).
@@ -282,7 +277,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const swarm = isSwarm(traits);
   if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // ×5 PB + 10 CC (la nuée = 5 créatures, LDB 85 l.253)
   const movement = typeof creature.char.M === 'number' ? creature.char.M : 4; // facultatifs → liveTraits (effectiveMovement)
-  return {
+  const combattant: Combatant = {
     id,
     label: creature.label,
     creatureId: creature.id, // identité bestiaire STABLE → le rig la résout par id (plus par `name`)
@@ -298,6 +293,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     size,
     bodyShape: bodyShapeOf(creature.id), // Tableau de Localisation par forme du corps (LDB 76 l.15-29)
     ...(creature.followsCharacterRules ? { followsCharacterRules: true } : {}), // #152 : bestiaire HUMAIN rétro-flagué (CreatureData) — même prédicat unique que statblockToCombatant (#143)
+    ...(creature.corruption != null ? { corruption: creature.corruption } : {}), // EDO 01 l.504 ; LDB 19
     ...parsePsychTraits(traits), // Peur/Terreur/Immunité + traits ciblés depuis les traits (LDB 21+85)
     ...(swarm ? { swarm: true, psychImmune: true } : {}), // Nuée : ignore la Psychologie (LDB 85 l.253)
     ...(isMindless(traits) ? { psychImmune: true } : {}), // Fabriqué : Tests d'Int/FM/Soc auto-réussis (LDB 85 l.142)
@@ -313,6 +309,8 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     movement,
     pos,
   };
+  appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
+  return combattant;
 }
 
 export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
@@ -333,7 +331,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
   // (collecteur passif). `characteristics` reste le profil de BASE saisi ; `effectiveChar` ajoute les traits.
-  const size = sb.size ?? sizeFromTraits(traits) ?? 'moyenne';
+  const size = tailleDuProfil({ size: sb.size, traits, talents: sb.talents });
   // Blessures : surcharge explicite `char.B` si fournie, sinon formule par Taille (vide ⇒ formule, LDB 85).
   // La formule reprend la main si les caractéristiques ont été tirées (le B saisi valait pour le profil rond).
   // Blessures sur le profil INCLUANT les traits (Coriace +E…) ; `characteristics` ne garde que la base saisie.
@@ -345,7 +343,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   const swarm = isSwarm(traits);
   if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // Nuée : ×5 PB + 10 CC (LDB 85 l.253)
   const movement = typeof sb.char.M === 'number' ? (sb.char.M as number) : 4; // traits → liveTraits (effectiveMovement)
-  return {
+  const combattant: Combatant = {
     id,
     label: sb.label,
     kind: 'enemy',
@@ -374,6 +372,8 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     movement,
     pos,
   };
+  appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
+  return combattant;
 }
 
 /** Une réf hors du faisceau `refEntiteResolue` a franchi la porte (`sceneEntitySchema`, #1882) : bogue du jeu. */

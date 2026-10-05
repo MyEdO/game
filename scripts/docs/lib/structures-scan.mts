@@ -30,6 +30,8 @@ import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
 import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
+import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/schemas/grammaire/descente';
+import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import ts from 'typescript';
 import {
@@ -419,15 +421,94 @@ const identiteDe = (o: Obj): { cle: string; valeur: string } | null => {
   return null;
 };
 
-/** Parcours de tout objet du document, avec le CHAMP porteur (clé du parent) et son chemin. */
-function parcourir(racine: unknown, visite: (o: Obj, champ: string, chemin: string, dansTableau: boolean) => void) {
+/**
+ * Parcours de tout objet sous `racine`, avec le CHAMP porteur (clé du parent) et son chemin. Un objet
+ * que `saute` retient n'est ni visité ni descendu — sauf `racine` elle-même.
+ */
+function parcourir(
+  racine: unknown,
+  visite: (o: Obj, champ: string, chemin: string, dansTableau: boolean) => void,
+  saute: (o: Obj) => boolean = () => false,
+) {
   const marche = (n: unknown, champ: string, chemin: string, dansTableau: boolean): void => {
     if (Array.isArray(n)) return void n.forEach((x) => marche(x, champ, chemin, true));
-    if (!estObjet(n)) return;
+    if (!estObjet(n) || (n !== racine && saute(n))) return;
     visite(n, champ, chemin, dansTableau);
     for (const [k, v] of Object.entries(n)) marche(v, k, chemin ? `${chemin}.${k}` : k, false);
   };
   marche(racine, '', '', false);
+}
+
+/** Fiche d'une ENTRÉE PARTIELLE embarquée (`entreesPartiellesEmbarquees`). */
+export type EntreePartielleEmbarquee = {
+  /** Nom du document dont l'objet est l'entrée partielle (`documentDeLEntreePartielle`). */
+  readonly document: string;
+  /** Nom du document hôte. */
+  readonly hote: string;
+  /** Plus proche ANCÊTRE (l'objet exclu) portant un `id` chaîne, resp. un `source` objet
+   *  (`auPlusProcheAncetre`, `grammaire/descente.ts`). */
+  readonly id?: string;
+  readonly source?: Readonly<Record<string, unknown>>;
+};
+
+/**
+ * ENTRÉES PARTIELLES EMBARQUÉES : chaque objet d'un document du corpus qui est une entrée PARTIELLE
+ * d'un document D, → sa fiche (`EntreePartielleEmbarquee`). Repéré par la co-descente (`coDescendre`) :
+ * un point dont un nœud porte la marque `documentDeLEntreePartielle` (`grammaire/document.ts`) ET dont
+ * la valeur en est une INSTANCE (le nœud la parse : `ouverts` garde toutes les branches d'une union
+ * simple, `grammaire/descente.ts`), D retrouvé par l'identité de `schema`. Seuls les documents dont le
+ * schéma atteint une entrée partielle (`descendre`) sont co-descendus.
+ */
+export function entreesPartiellesEmbarquees(
+  bruts: ReadonlyMap<string, unknown>,
+  defs: readonly { readonly file: string; readonly schema: unknown }[],
+): Map<object, EntreePartielleEmbarquee> {
+  const reperes = new Map<object, EntreePartielleEmbarquee>();
+  const fichierDuSchema = new Map<unknown, string>(defs.map((d) => [d.schema, d.file]));
+  const embarqueUneEntreePartielle = (schema: unknown): boolean => {
+    let oui = false;
+    descendre([schema], ({ noeud }) => {
+      if (!documentDeLEntreePartielle(noeud)) return;
+      oui = true;
+      return 'arreter';
+    });
+    return oui;
+  };
+  for (const d of defs) {
+    if (!bruts.has(d.file) || !embarqueUneEntreePartielle(d.schema)) continue;
+    coDescendre(d.schema, bruts.get(d.file), (p) => {
+      if (!estObjet(p.valeur)) return;
+      for (const n of p.noeuds) {
+        const schemaCible = documentDeLEntreePartielle(n);
+        if (!schemaCible || !(n as { safeParse(v: unknown): { success: boolean } }).safeParse(p.valeur).success) continue;
+        const cible = fichierDuSchema.get(schemaCible);
+        const lieu = `${d.file} › ${p.chemin.join('.')}`;
+        if (cible === undefined) throw new Error(`${lieu} — entrée partielle d'un document absent des defs.`);
+        const deja = reperes.get(p.valeur)?.document;
+        if (deja !== undefined && deja !== cible) throw new Error(`${lieu} — entrée partielle de DEUX documents : ${deja}, ${cible}.`);
+        const id = auPlusProcheAncetre(p, (o) => (typeof o.id === 'string' ? o.id : undefined));
+        const source = auPlusProcheAncetre(p, (o) => (estObjet(o.source) ? o.source : undefined));
+        reperes.set(p.valeur, { document: cible, hote: d.file, ...(id !== undefined ? { id } : {}), ...(source !== undefined ? { source } : {}) });
+      }
+    });
+  }
+  return reperes;
+}
+
+/**
+ * Clés de niveau 1 PORTÉES par la donnée de chaque document, keyées par nom : celles de ses entrées de
+ * racine (`clesNiveau1`) et celles de ses entrées partielles embarquées (`entreesPartiellesEmbarquees`).
+ */
+export function clesPortees(
+  documents: readonly { readonly nom: string; readonly clesNiveau1: readonly { readonly cle: string }[] }[],
+  reperes: ReadonlyMap<object, EntreePartielleEmbarquee>,
+): Map<string, Set<string>> {
+  const portees = new Map(documents.map((d) => [d.nom, new Set(d.clesNiveau1.map((k) => k.cle))]));
+  for (const [objet, { document: cible }] of reperes) {
+    if (!portees.has(cible)) portees.set(cible, new Set());
+    for (const k of Object.keys(objet)) portees.get(cible)!.add(k);
+  }
+  return portees;
 }
 
 /**
@@ -462,6 +543,10 @@ export function scannerDonnees(
       return estObjet(carte) ? [carte] : [];
     }),
   );
+  /** Objets qui sont une entrée PARTIELLE d'un document D → leur fiche : mesurés comme entrées de D. */
+  const reperes = entreesPartiellesEmbarquees(brutParNom, defs) as ReadonlyMap<Obj, EntreePartielleEmbarquee>;
+  const partiellesParNom = new Map<string, Obj[]>();
+  for (const [o, { document: nom }] of reperes) partiellesParNom.set(nom, [...(partiellesParNom.get(nom) ?? []), o]);
 
   // --- passe 1 : régime, entrées de racine, INDEX DES IDS -------------------
   type Prepare = Document & {
@@ -470,6 +555,9 @@ export function scannerDonnees(
     familleDeclaree: string;
     regime: 'elements' | 'valeurs' | 'racine';
     entrees: Obj[];
+    /** Ses entrées PARTIELLES embarquées dans d'autres documents (`entreesPartiellesEmbarquees`) : des
+     *  entrées pour le classement (`racineEntrees`), hors des comptes d'entrées et de l'enveloppe. */
+    partielles: Obj[];
     racineEntrees: Set<Obj>;
     famille: string;
   };
@@ -504,8 +592,23 @@ export function scannerDonnees(
     }).length;
     const famille =
       regime === 'valeurs' ? 'record' : regime === 'racine' ? 'config' : portePlage * 2 >= entrees.length && entrees.length ? 'table' : 'entité';
-    return { ...doc, brut, racineJson, familleDeclaree, regime, entrees, racineEntrees: new Set(entrees), famille };
+    const partielles = partiellesParNom.get(doc.nom) ?? [];
+    return { ...doc, brut, racineJson, familleDeclaree, regime, entrees, partielles, racineEntrees: new Set([...entrees, ...partielles]), famille };
   });
+  const nomsPrepares = new Set(prepares.map((p) => p.nom));
+  for (const nom of partiellesParNom.keys())
+    if (!nomsPrepares.has(nom)) throw new Error(`entrées partielles embarquées de ${nom}, document absent du corpus scanné.`);
+
+  /**
+   * Parcours d'un document : son JSON, puis ses entrées partielles embarquées ailleurs ; un objet
+   * repéré (`reperes`) n'est jamais parcouru par son hôte, seulement par le document dont il est une
+   * entrée.
+   */
+  const parcourirDocument = (p: Prepare, visite: (o: Obj, champ: string, chemin: string, dansTableau: boolean) => void) => {
+    const saute = (o: Obj) => reperes.has(o);
+    parcourir(p.brut, visite, saute);
+    for (const e of p.partielles) parcourir(e, visite, saute);
+  };
 
   /**
    * Libellés d'entité, normalisés, SCOPÉS PAR DATASET (`libellé → Set<dataset>`) : c'est ce qui
@@ -514,7 +617,7 @@ export function scannerDonnees(
    */
   const libelles = new Map<string, Set<string>>();
   for (const p of prepares)
-    parcourir(p.brut, (o) => {
+    parcourirDocument(p, (o) => {
       if (typeof o.label !== 'string' || !o.label.trim()) return;
       const k = normaliserLibelle(o.label);
       if (!libelles.has(k)) libelles.set(k, new Set());
@@ -554,7 +657,7 @@ export function scannerDonnees(
   const mesurerSites = (embarque: ReadonlySet<Obj>): Map<string, Site> => {
     const sites = new Map<string, Site>();
     for (const p of prepares)
-      parcourir(p.brut, (o, champ) => {
+      parcourirDocument(p, (o, champ) => {
         const champSite = champDeSite(p, o, champ);
         if (!champSite) return;
         // La clé d'IDENTITÉ d'un document ne se résout pas elle-même : sans cette exclusion, un
@@ -607,7 +710,7 @@ export function scannerDonnees(
   // --- passe 3 : DOCUMENTS EMBARQUÉS ---------------------------------------
   const documentsEmbarques = new Set<Obj>();
   for (const p of prepares)
-    parcourir(p.brut, (o, champ) => {
+    parcourirDocument(p, (o, champ) => {
       if (p.racineEntrees.has(o)) return;
       if (typeof o.op === 'string' || estCondition(o)) return;
       const ident = identiteDe(o);
@@ -821,7 +924,7 @@ export function scannerDonnees(
       for (const [ck, cv] of Object.entries(o)) ajouteCle(g.cles, ck, cv);
     };
 
-    parcourir(p.brut, (o, champ, chemin, dansTableau) => {
+    parcourirDocument(p, (o, champ, chemin, dansTableau) => {
       objetsVus += 1;
       const cles = Object.keys(o);
       // Compte BRUT des clés-graphies enveloppantes, indépendant de tout classement : il borne par
@@ -1028,6 +1131,10 @@ export function scannerDonnees(
 
   return {
     documents,
+    /** Clés de niveau 1 PORTÉES par la donnée de chaque document, entrées partielles embarquées comprises (`clesPortees`). */
+    clesPortees: clesPortees(documents, reperes) as ReadonlyMap<string, ReadonlySet<string>>,
+    /** Les entrées PARTIELLES embarquées du corpus, objet → fiche (`entreesPartiellesEmbarquees`). */
+    entreesPartielles: reperes as ReadonlyMap<object, EntreePartielleEmbarquee>,
     /** Le JSON PARSÉ de chaque document, keyé par nom : celui dont les objets portent les
      *  occurrences de `referencesParPorteur` (#1473). */
     brutParNom,

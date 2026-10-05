@@ -1,5 +1,5 @@
 /**
- * Seam i18n (plan évacué → https://github.com/cgauche/game/issues/320) — PUR (aucun React/DOM) → importable par le moteur sans casser sa
+ * Seam i18n (plan évacué → https://github.com/MyEdO/game/issues/320) — PUR (aucun React/DOM) → importable par le moteur sans casser sa
  * pureté (peer module, comme src/data). `t(key, params)` résout depuis le catalogue de la locale courante
  * (FR par défaut, figée au lancement en v1) ; `MsgKey` est dérivé du catalogue FR → une clé absente est
  * une ERREUR DE COMPILATION. La 2ᵉ langue = un catalogue frère ajouté à `CATALOGS`.
@@ -63,6 +63,7 @@ export function interpolate(pattern: string, params?: Params): string {
  */
 export function t(key: MsgKey, params?: Params): PlayerText {
   const pat: string = CATALOGS[locale][key] ?? CATALOGS.fr[key] ?? key;
+  // eslint-disable-next-line murs/marques -- #1318 : minteur (a) de `PlayerText` — ce qui sort du catalogue est du texte joueur (cf. JSDoc de `t`).
   return interpolate(pat, params) as PlayerText;
 }
 

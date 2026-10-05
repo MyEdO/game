@@ -1,4 +1,4 @@
-// Hook PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : demande utilisateur 2026-07-14
+// Hook PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : demande utilisateur 2026-07-14
 // (verbatim) — « J'en ai marre
 // que tu donne un ticket a un agent, commit et consigne les résultats dans le ticket tout en le
 // fermant, et oubliant que potentiellement il n'a pas bien fait son boulot ou qu'il a detecter un
@@ -95,7 +95,7 @@
 //   - découpage : quotes, here-strings, heredocs (leur corps n'est pas une commande), enchaînements
 //     `;` `&&` `||` `|`, sous-shells `( … )` ;
 //   - tête d'un segment, épluchée jusqu'à stabilité : jetons nus et mots réservés (`TOKENS_TETE_NUS`),
-//     affectations `VAR=val` (sautées, jamais relues), enrobeurs de tête (`ENROBEURS_TETE`) ;
+//     affectations `VAR=val` (relevées par nom, `affectationsDEnvironnement`), enrobeurs de tête (`ENROBEURS_TETE`) ;
 //   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
 //     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
 //     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k`,
@@ -126,8 +126,9 @@
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join, relative, resolve, sep } from 'node:path'
-import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { estPorteurDeStock, nonCouvertesDuBilan, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { bilanDuCommit, entreeDeFusion, lecturesDeFusion } from '../guards/lib/plageStock.mjs'
 import {
   deplaceLaFrontiere, lignesDeReclassement, raisonDeRefusDeReclassement, reclassementsNonDeclares,
 } from '../guards/lib/reclassementCss.mjs'
@@ -136,19 +137,20 @@ import {
   PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, depotDe, enfantsDirects, estDansHead, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, imageDeHead, listerImage, shaDe,
+  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQuiChange, depotDe, enfantsDirects, estDansHead, estIgnore,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
-import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
+import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
-  nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
+  nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
-import { OUTILS_SHELL, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { LECTEURS } from '../guards/lib/appelsRunners.mjs'
+import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { racineNpmCourante } from '../guards/lib/racineNpm.mjs'
 
 // Message passé par FICHIER (`git commit -F <path>` / `--file <path>` / `--file=<path>`) : le
@@ -315,6 +317,8 @@ function tokenizeCommand(command) {
     if (command.startsWith('||', i)) { tokens.push({ text: '||', op: '||' }); i += 2; continue }
     if (command[i] === ';') { tokens.push({ text: ';', op: ';' }); i += 1; continue }
     if (command[i] === '|') { tokens.push({ text: '|', op: '|' }); i += 1; continue }
+    const redirection = /^(?:\d*|&)>>?(?:&\d+)?/.exec(command.slice(i))
+    if (redirection) { tokens.push({ text: redirection[0], raw: redirection[0], op: null }); i += redirection[0].length; continue }
     // MOT (bareword ± span(s) quoté(s) EMBARQUÉS) : le comportement shell réel colle une quote
     // rencontrée en PLEIN MILIEU d'un token à ce MÊME token (`-m"a b c"` → un seul token `-ma b c`,
     // `--message="a b c"` → `--message=a b c`) — jamais une coupure qui laisserait les mots du
@@ -323,6 +327,7 @@ function tokenizeCommand(command) {
     let buf = ''
     const quotes = new Set()
     let nu = false
+    let substitution = false
     let j = i
     while (j < n) {
       const c = command[j]
@@ -331,7 +336,7 @@ function tokenizeCommand(command) {
       // Sans cela, `git commit --amend \` + saut + `-F msg.txt` perdait son `-F` (message jamais lu,
       // refus FAUX « SUBSTANCE sans ticket ») et le backtick devenait un pathspec.
       if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
-      if (/\s/.test(c) || c === ';' || c === '|' || (c === '&' && command[j + 1] === '&')) break
+      if (/\s/.test(c) || c === ';' || c === '|' || c === '>' || (c === '&' && (command[j + 1] === '&' || command[j + 1] === '>'))) break
       // ANSI-C quoting `$'…'` (bash) : span QUOTÉ au même titre que `'…'`. Sans lui le `$` restait
       // collé au mot suivant (`bash -c $'gh issue create …'` rendait un token `$gh`) et l'exécutable
       // de tête devenait méconnaissable. Un `\x` y rend son caractère littéral : la reconnaissance
@@ -351,6 +356,7 @@ function tokenizeCommand(command) {
         quotes.add(quote === "'" ? 'simple' : 'double')
         j++
         while (j < n && command[j] !== quote) {
+          if (quote === '"' && (command.startsWith('$(', j) || command[j] === '`')) substitution = true
           // Échappement réel `\"`/`\\` seulement — un backslash de chemin Windows (`C:\Program…`)
           // n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins perdent leurs
           // séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
@@ -365,6 +371,7 @@ function tokenizeCommand(command) {
       if (c === ')' && substitutions === 0 && sousShells > 0) break
       if (c === '(' && command[j - 1] === '$') substitutions += 1
       else if (c === ')' && substitutions > 0) substitutions -= 1
+      if (command.startsWith('$(', j) || c === '`') substitution = true
       buf += c
       nu = true
       j++
@@ -372,7 +379,7 @@ function tokenizeCommand(command) {
     // Un mot fait UNIQUEMENT de continuations n'est pas un token vide : il n'existe pas. Un vrai
     // argument vide (`''`) en reste un — c'est la quote qui le prouve.
     if (buf !== '' || quotes.size > 0) {
-      tokens.push({ text: buf, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
+      tokens.push({ text: buf, raw: command.slice(i, j), substitution, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
     }
     i = j
   }
@@ -615,27 +622,32 @@ const ENROBEURS_TETE = new Map([
 const TOKENS_TETE_NUS = new Set(['&', '{', '}', '(', '!', 'if', 'then', 'elif', 'else', 'while', 'until', 'do'])
 /** Jetons après lesquels `(` ouvre un sous-shell : ceux de `TOKENS_TETE_NUS` et le mot réservé `time`. */
 const AVANT_SOUS_SHELL = new Set([...TOKENS_TETE_NUS, 'time'])
-const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*=/
+const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*[+]?=/
 
 /** Enrobeurs de TÊTE d'un segment, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
  *  `debut` = index du premier jeton exécuté (`segment.length` si le segment n'est fait que
- *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre. */
+ *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre,
+ *  `affectations` = les noms des `VAR=val` épluchés, ceux d'un `env` compris. */
 function epluchageTete(segment) {
   const enrobeurs = []
+  const affectations = []
+  const affecte = (t) => affectations.push(t.slice(0, t.indexOf('=')).replace(/[+]$/, ''))
   let i = 0
   for (;;) {
     const t = segment[i]
-    if (t === undefined) return { debut: segment.length, enrobeurs }
+    if (t === undefined) return { debut: segment.length, enrobeurs, affectations }
+    if (AFFECTATION_RE.test(t)) affecte(t)
     if (TOKENS_TETE_NUS.has(t) || AFFECTATION_RE.test(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
-    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs }
+    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations }
     const nom = basenameExecutable(t)
     const enrobeur = ENROBEURS_TETE.get(nom)
-    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs }
+    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations }
     enrobeurs.push(nom)
     i += 1
     if (enrobeur.flags) {
       while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && AFFECTATION_RE.test(segment[i])))) {
+        if (enrobeur.affectations && AFFECTATION_RE.test(segment[i])) affecte(segment[i])
         i += enrobeur.flags.includes(segment[i]) ? 2 : 1
       }
     }
@@ -655,7 +667,7 @@ const SOUS_COMMANDES_RUN = ['run', 'run-script']
 const RACCOURCIS_NPM = ['test', 'start', 'stop', 'restart']
 
 // Dépôt où `npm run <x>` se résout quand l'appelant ne le dit pas : celui de la portée de la garde
-// (`racineNpmCourante`, le répertoire cible du contexte du répartiteur) — sans lui, un
+// (`racineNpmCourante`, la racine npm du contexte du répartiteur, `racineNpmDe`) — sans lui, un
 // `cd <autre dépôt> && npm run x` serait lu dans le dépôt du HOOK. À défaut, le dépôt du hook.
 
 /** Table `scripts` du `package.json` de `dir` (`{}` s'il est absent ou illisible — un hook ne lève
@@ -714,16 +726,18 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  `PROFONDEUR_MAX_ENROBEURS`, l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par
  *  toute la récursion) le dit ; tous les segments en deçà sont rendus. `suite` = jetons ajoutés au
  *  DERNIER segment de `command` : les arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`),
- *  avec leur provenance d'origine. */
-function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [] } = {}) {
+ *  avec leur provenance d'origine. `affectations` reçoit les noms de variables d'environnement que
+ *  chaque segment lu pose (`affectationsDuSegment`). */
+function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [], affectations = [] } = {}) {
   const pipelines = []
   if (!command) return pipelines
   if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return pipelines }
   let courant = []
   for (const { jetons: lus, op } of segmentsAvecOperateur(command)) {
     const jetons = op === null ? [...lus, ...suite] : lus
-    const { debut, enrobeurs } = epluchageTete(jetons.map((j) => j.text))
+    const { debut, enrobeurs, affectations: deTete } = epluchageTete(jetons.map((j) => j.text))
     const segment = jetons.slice(debut)
+    affectations.push(...deTete, ...affectationsDuSegment(segment.map((j) => j.text)))
     if (segment.length > 0) {
       const textes = segment.map((j) => j.text)
       const porteur = lecturePorteur(textes)
@@ -731,7 +745,7 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
       if (inner !== null) {
         const debutSuite = porteur?.suite ?? null
         const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
-        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne })) pipelines.push(p)
+        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations })) pipelines.push(p)
       }
       courant.push({ jetons: segment, enrobeurs, deploye: inner !== null })
     }
@@ -744,6 +758,154 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
   return pipelines
 }
 
+/** Têtes POSIX qui affectent leurs arguments `NOM[=val]` : `export` (sauf `-n`), `readonly` (sauf `-f`), et
+ *  `declare`/`typeset`/`local` avec ou sans `-x` — une variable déjà exportée le reste (`man bash`, ENVIRONMENT). */
+const AFFECTEURS = new Map([
+  ['export', (args) => !args.includes('-n')], ['readonly', (args) => !args.includes('-f')],
+  ...['declare', 'typeset', 'local'].map((t) => [t, () => true]),
+])
+const NOM_EXPORTE_RE = /^([A-Za-z_][A-Za-z0-9_]*)(?:[+]?=|$)/
+/** PowerShell : `$env:NOM = …`, `$env:NOM += …`, `${env:NOM} = …` ; `Set-Item`/`New-Item` (alias `si`,
+ *  `ni`), `Set-Content`/`Add-Content` sur le lecteur `env:` ; `[Environment]::SetEnvironmentVariable`
+ *  (`about_Environment_Variables`). */
+const ENV_POWERSHELL_RE = /^\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?([+]?=.*)?$/i
+const ECRIVAINS_ENV_POWERSHELL = new Set(['set-item', 'si', 'new-item', 'ni', 'set-content', 'add-content'])
+const SET_ENVIRONMENT_VARIABLE_RE = /SetEnvironmentVariable[(]([^,)]*)/i
+const NOM_LITTERAL_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+/** Ce qu'`affectationsDuSegment` rend pour une écriture d'environnement dont le NOM n'est pas littéral
+ *  (`export "$X=…"`, `SetEnvironmentVariable($n, …)`, `Set-Item ('env:'+$n)`) : nul ne sait ce qu'elle pose. */
+export const NOM_NON_LITTERAL = '<nom non littéral>'
+const LECTEUR_ENV_RE = /^env:[\\/]?([A-Za-z_][A-Za-z0-9_]*)$/i
+
+/** Les noms de variables d'environnement qu'un segment épluché POSE pour les segments suivants :
+ *  `export`, `declare`/`typeset`/`local` (`AFFECTEURS`), `$env:NOM = …`, `Set-Item env:NOM`,
+ *  `SetEnvironmentVariable(NOM, …)` ; `NOM_NON_LITTERAL` quand la syntaxe écrit un nom calculé. */
+function affectationsDuSegment(textes) {
+  if (textes.length === 0) return []
+  const tete = basenameExecutable(textes[0])
+  const args = textes.slice(1)
+  const affecte = AFFECTEURS.get(tete)
+  if (affecte) {
+    if (!affecte(args)) return []
+    return args.filter((a) => !a.startsWith('-')).map((a) => NOM_EXPORTE_RE.exec(a)?.[1] ?? NOM_NON_LITTERAL)
+  }
+  const ps = ENV_POWERSHELL_RE.exec(textes[0])
+  if (ps && (ps[2] !== undefined || args[0] === '=' || args[0] === '+=')) return [ps[1]]
+  if (ECRIVAINS_ENV_POWERSHELL.has(tete)) {
+    return args.filter((a) => /env:/i.test(a)).map((a) => LECTEUR_ENV_RE.exec(a)?.[1] ?? NOM_NON_LITTERAL)
+  }
+  const appel = SET_ENVIRONMENT_VARIABLE_RE.exec(textes.join(' '))
+  if (appel) return [NOM_LITTERAL_RE.test(appel[1].trim()) ? appel[1].trim() : NOM_NON_LITTERAL]
+  return []
+}
+
+/** Les noms de variables d'environnement que la commande pose, dans l'ordre, porteurs de chaîne et
+ *  scripts npm dépliés (`pipelinesDeJetons`) : affectation de TÊTE (`VAR=val cmd`, `env VAR=val`),
+ *  affectation seule (`VAR=val;`, qu'un `set -a` ou un export antérieur rend visible aux suivants), et
+ *  export (`affectationsDuSegment`). */
+export function affectationsDEnvironnement(command, options) {
+  const affectations = []
+  pipelinesDeJetons(command, 0, { ...options, affectations })
+  return affectations
+}
+
+const IDENTIFIANT_RE = /[A-Za-z_][A-Za-z0-9_]*/g
+
+/** Sous-commande git d'un segment, `notes` suivie de la sienne (`notes add`). */
+const sousCommandeGitDe = (segment) => {
+  const git = gitSubcommand(segment)
+  return git?.sub === 'notes' ? `notes ${git.args[0] ?? ''}` : git?.sub
+}
+const estGh = (segment) => basenameExecutable(segment[0] ?? '') === 'gh'
+const estGhApi = (segment) => estGh(segment) && segment[1] === 'api'
+const REDIRECTION_RE = /^(?:\d*|&)>/
+const redirige = (segment) => segment.slice(1).some((t) => REDIRECTION_RE.test(t))
+
+/** Porteurs dont des jetons sont du TEXTE, pas une commande : `drapeaux` (forme `-m x`, `-mx`,
+ *  `--message=x`), `motif` (celui d'une recherche, `motifDe`) ou `tout` (chaque argument hors
+ *  redirection), et le `canal` qui porte ce texte dans un fichier (`git help commit`/`tag`/`notes`,
+ *  -F ; `gh … --help`, --body-file ; `gh api --help`, -F « @<path> » ; `grep --help`, -f). */
+const MESSAGES = Object.freeze([
+  { porteur: (s) => sousCommandeGitDe(s) === 'commit', drapeaux: ['-m', '--message'], canal: 'le message dans un fichier : `git commit -F <fichier>`' },
+  { porteur: (s) => sousCommandeGitDe(s) === 'tag', drapeaux: ['-m', '--message'], canal: 'le message dans un fichier : `git tag -F <fichier>`' },
+  { porteur: (s) => /^notes (add|append)$/.test(sousCommandeGitDe(s) ?? ''), drapeaux: ['-m', '--message'], canal: 'le message dans un fichier : `git notes add -F <fichier>`' },
+  { porteur: (s) => estGh(s) && !estGhApi(s), drapeaux: ['--body', '-b'], canal: 'le corps dans un fichier : `gh … --body-file <fichier>`' },
+  { porteur: (s) => estGh(s) && !estGhApi(s), drapeaux: ['--title', '-t'], canal: 'le titre dans un fichier : `gh api … -F title=@<fichier>` (`--title` n’a pas de forme fichier)' },
+  { porteur: (s) => estGh(s) && !estGhApi(s), drapeaux: ['--search', '-S'], canal: 'la recherche dans un fichier : `gh api -X GET search/issues -F q=@<fichier>`' },
+  { porteur: estGhApi, drapeaux: ['-f', '--raw-field', '-F', '--field'], canal: 'le champ dans un fichier : `gh api … -F <champ>=@<fichier>`' },
+  { porteur: (s) => /^(?:grep|egrep|fgrep|rg)$/.test(basenameExecutable(s[0] ?? '')), motif: true, canal: 'le motif dans un fichier : `grep -f <fichier>` (`rg -f <fichier>`)' },
+  { porteur: (s) => /^(?:echo|printf)$/.test(basenameExecutable(s[0] ?? '')) && redirige(s), tout: true, canal: 'le fichier écrit par l’outil d’écriture de fichier (Write)' },
+])
+
+/** Options de `grep`/`rg` qui prennent la valeur suivante (`grep --help`, `rg --help`). */
+const OPTIONS_A_VALEUR_DE_RECHERCHE = new Set(['-A', '-B', '-C', '-m', '-d', '-D', '-g', '-t', '-T', '-j', '-M', '--glob', '--type', '--max-count', '--context', '--after-context', '--before-context'])
+
+/** Le MOTIF d'un `grep`/`rg`, `{ k, valeur }` : la valeur de `-e`/`--regexp`, sinon son premier
+ *  opérande ; `null` sans motif. */
+function motifDe(segment) {
+  for (let k = 1; k < segment.length; k++) {
+    const t = segment[k]
+    if ((t === '-e' || t === '--regexp') && k + 1 < segment.length) return { k: k + 1, valeur: segment[k + 1] }
+    const accole = /^(?:-e|--regexp=)(.+)$/.exec(t)
+    if (accole) return { k, valeur: accole[1] }
+    if (OPTIONS_A_VALEUR_DE_RECHERCHE.has(t)) { k += 1; continue }
+    if (!t.startsWith('-')) return { k, valeur: t }
+  }
+  return null
+}
+
+/** Le segment partagé en jetons de COMMANDE (`hors`) et valeurs de TEXTE (`messages`, chacune avec le
+ *  canal de son porteur, `MESSAGES`), drapeau accolé retiré (`-mx` → `x`). Un texte qui porte une
+ *  substitution (`$(…)`, `` `…` ``) l'exécute : il reste dans `hors`. */
+function partageDuSegment(jetons) {
+  const segment = jetons.map((j) => j.text)
+  const porteurs = MESSAGES.filter((m) => m.porteur(segment))
+  const tout = porteurs.find((m) => m.tout)
+  const recherche = porteurs.find((m) => m.motif)
+  const motif = recherche ? motifDe(segment) : null
+  const hors = []
+  const messages = []
+  const range = (t, canal, k) => ((jetons[k].substitution ?? (jetons[k].quote !== 'simple' && /\$\(|`/.test(t))) ? hors.push(t) : messages.push({ jeton: t, canal }))
+  for (let k = 0; k < segment.length; k++) {
+    const t = segment[k]
+    if (tout && k > 0 && !REDIRECTION_RE.test(t) && !REDIRECTION_RE.test(segment[k - 1])) { range(t, tout.canal, k); continue }
+    if (k === motif?.k) { range(motif.valeur, recherche.canal, k); continue }
+    const separe = porteurs.find((m) => m.drapeaux?.includes(t))
+    if (separe && k + 1 < segment.length) { hors.push(t); range(segment[k + 1], separe.canal, k + 1); k += 1; continue }
+    const accole = porteurs.flatMap((m) => (m.drapeaux ?? []).map((d) => ({ m, prefixe: d.startsWith('--') ? `${d}=` : d })))
+      .find(({ prefixe }) => t !== prefixe && t.startsWith(prefixe))
+    if (accole) { range(t.slice(accole.prefixe.length), accole.m.canal, k); continue }
+    hors.push(t)
+  }
+  return { hors, messages }
+}
+
+/** Les identifiants que portent les jetons de la commande, quelle que soit la syntaxe qui les écrit :
+ *  ceux des segments réellement exécutés et de leurs porteurs de chaîne (`segmentsProfonds`), et les
+ *  noms affectés en tête (`affectationsDEnvironnement`), que l'épluchage retire des segments.
+ *  `horsMessages` : sans les valeurs de texte (`partageDuSegment`). */
+export function nomsDeLaCommande(command, { horsMessages = false } = {}) {
+  const noms = new Set(affectationsDEnvironnement(command))
+  for (const { jetons } of pipelinesDeJetons(command).flat()) {
+    const { hors, messages } = partageDuSegment(jetons)
+    for (const jeton of horsMessages ? hors : [...hors, ...messages.map((m) => m.jeton)]) for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) noms.add(nom)
+  }
+  return [...noms]
+}
+
+/** Pour chaque identifiant écrit dans une valeur de TEXTE de la commande (`partageDuSegment`), les
+ *  canaux qui portent ce texte dans un fichier. */
+export function canauxDesMessages(command) {
+  const canaux = new Map()
+  for (const { jetons } of pipelinesDeJetons(command).flat()) {
+    for (const { jeton, canal } of partageDuSegment(jetons).messages) {
+      for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) canaux.set(nom, new Set([...(canaux.get(nom) ?? []), canal]))
+    }
+  }
+  return canaux
+}
+
 /** Liste PLATE des segments RÉELLEMENT exécutés par la commande — l'aplati de `pipelinesProfonds`,
  *  dans le même ordre (un segment enrobé précède son enrobeur : `cmd /c mklink …` rend `mklink …`
  *  puis `cmd /c …`).
@@ -752,7 +914,7 @@ export function segmentsProfonds(command, profondeur = 0, options) {
   return pipelinesProfonds(command, profondeur, options).flat()
 }
 
-const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path'])
+const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--config-env', '--git-dir', '--work-tree', '--namespace', '--attr-source'])
 
 /** Index de la SOUS-COMMANDE git dans un segment (`[&] git [flags globales] <sub>`), `-1` si le
  *  segment n'exécute pas `git`. Un token `&` de tête (call-operator PowerShell :
@@ -775,6 +937,43 @@ export function gitSubcommandIndex(segment, depart = 0) {
     break
   }
   return idx < segment.length ? idx : -1
+}
+
+/** Les options globales que portent, avant leur sous-commande, les segments git réellement exécutés
+ *  (`segmentsProfonds`), telles qu'écrites (`--git-dir=x` comme `--git-dir`, sa valeur à part). */
+export function optionsGitGlobales(command) {
+  return segmentsProfonds(command).flatMap((segment) => {
+    const start = segment[0] === '&' ? 1 : 0
+    if (segment.length <= start || !estGit(segment[start])) return []
+    const fin = gitSubcommandIndex(segment)
+    return segment.slice(start + 1, fin === -1 ? segment.length : fin).filter((t) => t.startsWith('-'))
+  })
+}
+
+/** Les `{ cle, valeur }` (clé en minuscules) que posent les flags globaux `-c <clé>=<val>` et `--config-env <clé>=<var>`
+ *  (ou `--config-env=<clé>=<var>`) des segments git réellement exécutés (`git help git`, `-c`,
+ *  `--config-env`) ; les formes collées `-c<clé>` et `--config-env<clé>` sont refusées par git
+ *  (« unknown option », mesuré git 2.51, #2224). */
+export function configsGitDeLaCommande(command) {
+  return pipelinesDeJetons(command).flat().flatMap(({ jetons }) => {
+    const segment = jetons.map((j) => j.text)
+    const appel = { segment, jetons }
+    const start = segment[0] === '&' ? 1 : 0
+    if (segment.length <= start || !estGit(segment[start])) return []
+    const fin = gitSubcommandIndex(segment)
+    const globaux = segment.slice(start + 1, fin === -1 ? segment.length : fin)
+    const cles = []
+    for (let k = 0; k < globaux.length; k++) {
+      const t = globaux[k]
+      const debut = start + 1 + k
+      const valeur = t === '-c' || t === '--config-env' ? globaux[++k] : t.startsWith('--config-env=') ? t.slice('--config-env='.length) : undefined
+      if (valeur) {
+        const [cle, ...reste] = valeur.split('=')
+        cles.push({ cle: cle.toLowerCase(), valeur: reste.join('='), variable: t !== '-c', appel, debut, fin: start + 2 + k })
+      }
+    }
+    return cles
+  })
 }
 
 /** `true` si le jeton nomme l'exécutable `git` (`basenameExecutable`), lu tel quel (`C:\Git\git.exe`)
@@ -819,6 +1018,52 @@ function estCiteur(segment) {
   if (tete !== 'git') return CITEURS.has(tete)
   const idx = gitSubcommandIndex(segment)
   return idx !== -1 && !SOUS_COMMANDES_GIT_EXECUTANTES.has(segment[idx])
+}
+
+const SOUS_COMMANDES_GIT_DE_LECTURE = new Set(['grep', 'log', 'show', 'diff', 'blame'])
+
+/** Options de `uniq` qui prennent la valeur suivante (`uniq --help`). */
+const OPTIONS_A_VALEUR_D_UNIQ = new Set(['-f', '-s', '-w', '--skip-fields', '--skip-chars', '--check-chars'])
+
+const SUBSTITUTION_SED_RE = /(?:^|[;\n{}\d$/])\s*s([^\n\\])(?:\\.|(?!\1)[^\\])*\1(?:\\.|(?!\1)[^\\])*\1([gpiIme0-9]*w\s+\S)/
+
+/** Un segment qui ÉCRIT malgré une tête de lecture, hors redirection (`redirigeVersUnFichier`) : sortie
+ *  `-o`/`--output[=]` (`sort -of` compris), `uniq <entrée> <sortie>`, `tail -f`/`-F`/`--follow` (qui
+ *  ne rend pas la main), `sed -i`/`--in-place` et commande `w` de sed (`info sed`, « w filename »),
+ *  `print >` d'awk (`info gawk`, « Redirecting Output of print and printf »). */
+function ecritMalgreLaTete(segment) {
+  const tete = basenameExecutable(segment[0])
+  const args = segment.slice(1)
+  if (args.some((t) => t === '-o' || /^--output(=|$)/.test(t))) return true
+  if (tete === 'sort') return args.some((t) => /^-[a-zA-Z]*o/.test(t))
+  if (tete === 'uniq') return args.filter((t, k) => !t.startsWith('-') && !OPTIONS_A_VALEUR_D_UNIQ.has(args[k - 1])).length >= 2
+  if (tete === 'tail') return args.some((t) => t === '-f' || t === '-F' || t === '--follow')
+  if (tete === 'sed') return args.some((t) => /^-[a-zA-Z]*i/.test(t) || t.startsWith('--in-place') || (!t.startsWith('-') && (SUBSTITUTION_SED_RE.test(t) || /(?:^|[;\n{}/\d$])\s*[wW]\s+\S/.test(t))))
+  if (tete === 'awk' || tete === 'gawk') return args.some((t) => /\bprintf?\b[^;}]*>/.test(t))
+  return false
+}
+
+/** Puits qui n'écrivent rien : `/dev/null`, `$null` (PowerShell), `nul` (cmd). */
+const PUITS_RE = /^(?:\/dev\/null|\$null|nul)$/i
+
+/** `true` si la commande redirige vers un fichier hors guillemets — `>`, `>>`, `1>`, `2>`, `&>`,
+ *  collée (`x>f`) ou non ; `N>&M` (duplication) et les puits (`PUITS_RE`) exceptés. */
+function redirigeVersUnFichier(command) {
+  const nu = command.replace(/'[^']*'|"(?:\\.|[^"\\])*"/g, (m) => ' '.repeat(m.length))
+  return [...nu.matchAll(/>>?(?!&)\s*([^\s;&|)]*)/g)].some((m) => !PUITS_RE.test(m[1]))
+}
+
+/** `true` si chaque segment exécuté de la commande ne fait que LIRE : tête de `LECTEURS`
+ *  (`appelsRunners.mjs`) ou sous-commande de `SOUS_COMMANDES_GIT_DE_LECTURE`, sans écriture
+ *  (`ecritMalgreLaTete`, `redirigeVersUnFichier`). */
+export function commandeDeLecture(command) {
+  if (redirigeVersUnFichier(command)) return false
+  const segments = segmentsLus(command)
+  return segments.length > 0 && segments.every((segment) => {
+    const git = gitSubcommand(segment)
+    const lit = git ? SOUS_COMMANDES_GIT_DE_LECTURE.has(git.sub) : LECTEURS.test(basenameExecutable(segment[0]))
+    return lit && !ecritMalgreLaTete(segment)
+  })
 }
 
 /** Bornes PARTAGÉES par toute la récursion d'une analyse : `reste` = segments que la RÉ-ANALYSE des
@@ -974,6 +1219,14 @@ function optionLongueDuCommit(graphie) {
  *  cité par le solde (mesuré 2026-09-04 sur un vrai commit de fermeture depuis un worktree). */
 const OPERATEUR_SHELL_RE = /^(?:\d*(?:>>?|>&)|&(?![&>])|&>>?|<<?|\|\|?|&&|;)/
 
+/** Index du premier jeton de `segment` (textes), à partir de `depart`, qui est une redirection ou un
+ *  opérateur de shell (`OPERATEUR_SHELL_RE`) ; `segment.length` sinon. `segment.slice(0, fin)` est ce
+ *  que la commande du segment reçoit en arguments. */
+export function finAvantOperateur(segment, depart = 0) {
+  const k = segment.findIndex((t, i) => i >= depart && OPERATEUR_SHELL_RE.test(t))
+  return k === -1 ? segment.length : k
+}
+
 /** Jeton de pathspec NON RÉSOLU, par PROVENANCE quotée (`tokenizeCommand`) : sa valeur n'est connue
  *  qu'après le shell ou git, et la garde ne réimplémente ni l'un ni l'autre.
  *  - GIT, quelle que soit la quote : joker de pathspec (`*`, `?`, `[`) et magie en tête (`:(glob)`,
@@ -1024,9 +1277,9 @@ function lireCommit({ jetons, enrobeurs, sub, embarque }) {
     if (OPTIONS_PATHSPEC_HORS_TEXTE.has(option.nom)) nonResolus = true
   }
   let separe = false
-  for (let k = sub + 1; k < segment.length; k++) {
+  const fin = finAvantOperateur(segment, sub + 1)
+  for (let k = sub + 1; k < fin; k++) {
     const t = segment[k]
-    if (OPERATEUR_SHELL_RE.test(t)) break
     if (separe) {
       chemins.push(t)
       if (jetonNonResolu(jetons[k])) nonResolus = true
@@ -1111,6 +1364,13 @@ const texteProfond = memoParCommande((command) => [command, ...segmentsLus(comma
 export function extractClosedIssues(command) {
   if (!command || !isGitCommitCommand(command)) return []
   return numerosFermes(texteProfond(command)).map(Number).sort((a, b) => a - b)
+}
+
+/** Numéros qu'une clause de fermeture de la commande ÉNUMÈRE sans leur verbe (`numerosNusEnumeres`),
+ *  dédupliqués/triés. `[]` hors `git commit`. */
+export function extractFermeturesNues(command) {
+  if (!command || !isGitCommitCommand(command)) return []
+  return numerosNusEnumeres(texteProfond(command)).map(Number).sort((a, b) => a - b)
 }
 
 const VERIFIE_RE = /VERIFIE\s*:\s*(.+)/i
@@ -1487,9 +1747,9 @@ export function validateSolde(content, today, {
 }
 
 /**
- * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures). La revue doit être
- * NOMMABLE : sa date et la base de sa fenêtre forment le nom du fichier
- * (`.claude/soldes/revue-palier-<date>-<base>.md`), et `verdictDeNom` vérifie qu'ils se répondent.
+ * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures) : nommable
+ * (`problemesDeRevue`, scripts/guards/lib/revuePalier.mjs), ligne `verdict:`, synthèse
+ * ≥ `MIN_REVUE_PALIER_LEN`, date du jour. Le NOM du fichier se juge dans `problemesDeRevueNeuve`.
  */
 export function validateRevuePalier(content, today) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
@@ -1567,7 +1827,7 @@ export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHea
  * stagées que la forme du commit laisse en rade : le refus les NOMME. `contexteSolde` = le contexte injecté de
  * `validateSolde` (diff stagé, hunks, écran touché, contrôle de capture) — `issuesFermees` y est posé
  * ICI, c'est cette décision qui connaît les tickets fermés.
- * @returns {{ decision: 'deny', reason: string } | null} — non-null = refus, null = silence.
+ * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
 export function evaluate({
   command, today, readSolde, soldeOnDisk = () => null,
@@ -1582,13 +1842,24 @@ export function evaluate({
     const problemes = problemesDeRevueNeuve(revue, { today, palier: palier(), dansHead })
     if (problemes.length) {
       return {
-        decision: 'deny',
         reason:
           `⚠ Revue de palier NON CONFORME : ${revue.chemin} — ${problemes.join(' ; ')}. Une revue entre `
-          + "dans l'histoire sous le nom de ce qu'elle juge (`revue-palier-<date>-<base>.md`), avec sa "
+          + `dans l'histoire sous le nom de ce qu'elle juge (\`${nomDeRevue('<date>', '<base>', '<tête>')}\`), avec sa `
           + `ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
           + 'le CUMUL, sa date du jour en 1re ligne et sa fenêtre `<base>..<tête>`.',
       }
+    }
+  }
+
+  const nus = extractFermeturesNues(command)
+  if (nus.length > 0) {
+    const cites = nus.map((n) => `#${n}`).join(', ')
+    return {
+      reason:
+        `⛔ ${cites} suit une clause de fermeture sans son propre mot-clef : seul le premier \`#N\` d'une `
+        + 'clause se ferme (`numerosFermes`, scripts/guards/lib/fermetures.mjs). '
+        + `Geste : écrire \`corrige ${nus.map((n) => `#${n}`).join('`, `corrige ')}\` `
+        + `pour chacun, ou \`refs ${nus.map((n) => `#${n}`).join(' ')}\` s'il n'est pas fermé.`,
     }
   }
 
@@ -1598,7 +1869,6 @@ export function evaluate({
   const { compte, tete, chemin, erreur } = palier()
   if (erreur) {
     return {
-      decision: 'deny',
       reason:
         `⚠ Palier INMESURABLE, donc aucune fermeture : ${erreur}. Le palier se mesure sur `
         + "l'HISTOIRE : les commits de `<tête de la dernière revue de HEAD>..HEAD` dont ce qu'ils font touche "
@@ -1609,7 +1879,6 @@ export function evaluate({
   if (compte >= PALIER && revues.length === 0) {
     const enRade = omises()
     return {
-      decision: 'deny',
       reason:
         `⚠ Palier atteint : au moins ${compte} commits de substance depuis ${tete} `
         + `(${chemin}) — revue adversariale de PALIER exigée avant toute nouvelle fermeture. `
@@ -1617,9 +1886,9 @@ export function evaluate({
           ? `${enRade.join(', ')} est écrite et stagée mais NON EMPORTÉE par ce commit : une commande `
             + `par pathspec n'emporte QUE les chemins nommés — y AJOUTER ${enRade.join(', ')}. `
           : '')
-        + `Sinon, l'écrire et la STAGER sous .claude/soldes/revue-palier-${today}-${tete}.md `
+        + `Sinon, l'écrire et la STAGER sous .claude/soldes/${nomDeRevue(today, tete, '<tête>')} `
         + `(ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et la base `
+        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et les DEUX bornes `
         + 'NOMMENT le fichier).',
     }
   }
@@ -1646,7 +1915,6 @@ export function evaluate({
 
   const detail = failures.map(({ n, problems }) => `#${n} (.claude/soldes/${n}.md) — ${problems.join(' ; ')}`).join(' | ')
   return {
-    decision: 'deny',
     reason:
       `⚠ Fermeture de ticket au commit sans SOLDE conforme : ${detail}. Écrire (ou compléter) le fichier ` +
       `avec une ligne "VERIFIE: <ce que l'orchestrateur a concrètement vérifié, ≥${MIN_VERIFIE_LEN} caractères>", ` +
@@ -1986,17 +2254,19 @@ export function versCheminNatif(chemin, platform = process.platform) {
   return m ? `${m[1].toUpperCase()}:/${m[2]}` : chemin
 }
 
-/** Valeur du flag global `git -C <path>` d'un segment, ou `null` (segment non-git, ou sans `-C`). */
-function valeurGitDashC(segment) {
+/** Les valeurs des flags globaux `git -C <path>` d'un segment, dans l'ordre ; `[]` hors git. Git les
+ *  compose (`git help git`, `-C` : « each subsequent non-absolute -C <path> is interpreted relative to
+ *  the preceding -C <path> ») et laisse le répertoire inchangé sous `-C ""` ; la forme collée `-Cx`
+ *  est refusée par git (« unknown option », mesuré git 2.51, #2224). */
+function valeursGitDashC(segment) {
   const start = segment[0] === '&' ? 1 : 0
-  if (basenameExecutable(segment[start]) !== 'git') return null
-  for (let k = start + 1; k < segment.length; k++) {
-    const t = segment[k]
-    if (!t.startsWith('-')) return null
-    if (t === '-C') return segment[k + 1] ?? null
-    if (GLOBAL_VALUE_FLAGS.has(t)) k += 1
+  if (segment.length <= start || !estGit(segment[start])) return []
+  const valeurs = []
+  for (let k = start + 1; k < segment.length && segment[k].startsWith('-'); k++) {
+    if (segment[k] === '-C' && segment[k + 1]) valeurs.push(segment[k + 1])
+    if (GLOBAL_VALUE_FLAGS.has(segment[k])) k += 1
   }
-  return null
+  return valeurs
 }
 
 /** Commandes qui CHANGENT le répertoire courant, dans les deux shells où ce hook est câblé : POSIX
@@ -2009,24 +2279,23 @@ const CHANGEMENTS_DE_REPERTOIRE = new Set(['cd', 'chdir', 'pushd', 'set-location
  *  hook — le texte ne désigne aucun répertoire. */
 const VARIABLE_NON_EXPANSEE_RE = /[$%]/
 
-/** Chemin que la COMMANDE nomme, TEL QU'ÉCRIT (`brut`) et résolu contre `cwd` (`resolu`) : `git -C
- *  <path>` en priorité, sinon le dernier `cd`/`Set-Location` du pipeline. `null` si aucun. */
+/** Chemin que la COMMANDE nomme, TEL QU'ÉCRIT (`brut` ; un relatif hérite de la variable non expansée
+ *  du lieu qu'il prolonge) et résolu (`resolu`) : le lieu du premier `git -C <path>` en priorité, ses `-C` composés
+ *  depuis le répertoire où tourne SON segment, sinon le dernier `cd`/`Set-Location`. `null` si aucun.
+ *  Les `cd` se PLIENT dans l'ordre : chacun se résout contre le répertoire où le précédent a mené. */
 function cheminNommeParLaCommande(command, cwd, platform) {
-  const segments = segmentsLus(command)
-  for (const segment of segments) {
-    const dashC = valeurGitDashC(segment)
-    if (dashC) return { brut: dashC, resolu: resolve(cwd, versCheminNatif(dashC, platform)) }
+  const pas = (depuis, brut) => {
+    const natif = versCheminNatif(brut, platform)
+    const herite = !isAbsolute(natif) && VARIABLE_NON_EXPANSEE_RE.test(depuis?.brut ?? '')
+    return { brut: herite ? depuis.brut : brut, resolu: resolve(depuis?.resolu ?? cwd, natif) }
   }
-  // Les `cd` se PLIENT dans l'ordre : `cd <wt> && cd .. && git …` s'exécute dans le PARENT du
-  // worktree, pas dedans. Retenir le premier faisait dire « worktree » à un geste qui n'y est plus
-  // (mesuré 2026-09-04) — chaque `cd` se résout contre le répertoire où le précédent a mené.
-  let nomme = null
-  for (const segment of segments) {
-    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) {
-      nomme = { brut: segment[1], resolu: resolve(nomme?.resolu ?? cwd, versCheminNatif(segment[1], platform)) }
-    }
+  let lieu = null
+  for (const segment of segmentsLus(command)) {
+    const dashC = valeursGitDashC(segment)
+    if (dashC.length) return dashC.reduce(pas, lieu)
+    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
   }
-  return nomme
+  return lieu
 }
 
 /**
@@ -2252,7 +2521,7 @@ const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.
 
 /** Le refus des `pannes` de lecture vues depuis le début de l'appel, `null` s'il n'y en a aucune. */
 const refusDesPannes = (pannes) => (pannes.length
-  ? { decision: 'deny', reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
+  ? { reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
   : null)
 
 /**
@@ -2278,7 +2547,7 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
   const contreIndex = () => forme === 'index' || !aHead()
   let imageDeBase
   const base = () => (imageDeBase ??= imageDeHead(depot))
-  const vers = (apres) => ceQuiChange(depot, base(), apres)
+  const vers = (apres, avant = base()) => ceQuiChange(depot, avant, apres)
   const image = () => (contreIndex() ? INDEX : SUIVI)
   const dans = (f) => pathspecs.some((ps) => pathMatchesPathspec(f, ps))
   // Sous `inclus`, le commit emporte l'arbre des pathspecs ET l'index des autres chemins : chaque
@@ -2288,15 +2557,55 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
   // lectures `numstat` et `diff` : sans lui, `diff.renames=copies` de l'utilisateur fait d'une copie
   // une paire, et son bout extérieur se relit dans l'arbre au lieu de l'index (#1806 A6).
   const inclus = () => forme === 'inclus' && !contreIndex()
-  const unir = (lecture, chemins) => {
-    if (!inclus()) return lecture(vers(image()), pathspecs)
-    const index = lecture(vers(INDEX), [])
+  const unir = (lecture, chemins, avant = base()) => {
+    if (!inclus()) return lecture(vers(image(), avant), pathspecs)
+    const index = lecture(vers(INDEX, avant), [])
     const traverse = (e) => chemins(e).some(dans) && !chemins(e).every(dans)
     const bouts = [...new Set(index.filter(traverse).flatMap(chemins).filter((f) => !dans(f)))]
     const cote = (f) => dans(f) || bouts.includes(f)
-    return [...lecture(vers(SUIVI), [...pathspecs, ...bouts]), ...index.filter((e) => !chemins(e).some(cote))]
+    return [...lecture(vers(SUIVI, avant), [...pathspecs, ...bouts]), ...index.filter((e) => !chemins(e).some(cote))]
+  }
+  const lireDepuis = (avant) => {
+    if (!inclus()) return vers(image(), avant)
+    const chemins = (filtre = '', specs = []) => unir((change, ps) => change.chemins(filtre, ps), (f) => [f], avant)
+      .filter((f) => !specs.length || specs.some((ps) => ps.startsWith(':(literal)') ? f === ps.slice(10) : pathMatchesPathspec(f, ps)))
+    const lire = (lecture, specs = []) => {
+      const tous = chemins('', specs)
+      return [true, false].map((dedans) => {
+        const ps = tous.filter((f) => dans(f) === dedans).map((f) => `:(literal)${f}`)
+        return ps.length ? lecture(vers(dedans ? SUIVI : INDEX, avant), ps) : null
+      }).filter((x) => x !== null)
+    }
+    return {
+      base: avant,
+      chemins,
+      numstat: (ps) => lire((change, specs) => change.numstat(specs), ps).flat(),
+      diff: (ps, options) => lire((change, specs) => change.diff(specs, options), ps).join('\n'),
+      lirePreImage: (f) => vers(INDEX, avant).lirePreImage(f),
+      renommages: (ps) => new Map(lire((change, specs) => [...change.renommages(specs)], ps).flat()),
+    }
   }
   const sourceDeLaBase = () => sourceGit({ cwd: dir, arbre: base(), depot })
+  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours` : elle se lit
+  // comme la plage lit une fusion (`lecturesDeFusion`), son image étant ce que le commit emporte.
+  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  let enCours
+  const fusion = () => {
+    if (enCours !== undefined) return enCours
+    const fusionnes = aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []
+    if (!fusionnes.length) return (enCours = null)
+    const parents = [shaDe(depot, 'HEAD'), ...fusionnes]
+    try {
+      const fait = ceQueFaitLaFusionEnCours(depot, parents, image())
+      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() && fait.base ? lireDepuis(fait.base) : fait, lireDepuis })
+      return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
+    } catch (e) {
+      if (!(e instanceof GitIndisponible)) throw e
+      pannes.push(e.raison)
+      return (enCours = null)
+    }
+  }
+  const sourceA = (arbre) => sourceGit({ cwd: dir, arbre, depot })
   let source = null
   const sourceDuCommit = () => (source ??= (() => {
     if (contreIndex()) return sourceGit({ cwd: dir, arbre: INDEX, depot })
@@ -2327,17 +2636,20 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
       }
     },
     renommages: () => new Map(unir((change, ps) => [...change.renommages(ps)], (e) => e)),
-    deplaceLaFrontiereCss: (chemins) => deplaceLaFrontiere({
-      chemins,
-      nesOuMorts: () => unir((change, ps) => change.chemins('AD', ps), (e) => [e]),
-      base: sourceDeLaBase(),
-      commit: sourceDuCommit(),
-      racine: dir,
-    }),
-    cotesCss: () => ({
-      base: coteCss(sourceDeLaBase(), { racine: dir }),
-      commit: coteCss(sourceDuCommit(), { racine: dir }),
-    }),
+    fusion,
+    deplaceLaFrontiereCss: (chemins) => {
+      const f = fusion()
+      return deplaceLaFrontiere(f
+        ? { chemins: f.fait.chemins(), nesOuMorts: () => f.fait.chemins('AD'), base: sourceA(f.fusion.commune), commit: sourceDuCommit(), racine: dir }
+        : { chemins, nesOuMorts: () => unir((change, ps) => change.chemins('AD', ps), (e) => [e]), base: sourceDeLaBase(), commit: sourceDuCommit(), racine: dir })
+    },
+    cotesCss: () => {
+      const f = fusion()
+      const cote = (s) => coteCss(s, { racine: dir })
+      return f
+        ? { base: cote(sourceA(f.fusion.commune)), commit: cote(sourceDuCommit()), parents: f.fusion.parents.map((p) => cote(sourceA(p))) }
+        : { base: cote(sourceDeLaBase()), commit: cote(sourceDuCommit()) }
+    },
   }
 }
 
@@ -2363,7 +2675,7 @@ export function fichiersCitantTickets(numeros, dir = process.cwd(), { pannes = [
  * La CAUSE se nomme telle qu'elle est — un répertoire qui existe mais n'est gouverné par aucun
  * dépôt (`horsDepot`) n'est ni un git absent ni un cwd manquant, et le renvoyer vers « un arbre où
  * git répond » désignait la mauvaise correction (#1729).
- * @param {() => ({ decision: string, reason: string } | null)} juger
+ * @param {() => ({ reason: string } | null)} juger
  * @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
  */
 export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = false } = {}) {
@@ -2376,7 +2688,6 @@ export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = fals
       ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
       : 'Geste : rejouer le commit depuis un arbre où git répond.'
     return {
-      decision: 'deny',
       reason: `⛔ ascendance indisponible : ${cause} — la porte ne peut rien juger de ce que git n'a pas lu. ${geste}`,
     }
   }
@@ -2484,24 +2795,23 @@ function corpsInputGh(segment, lire) {
  * annoncé mais ILLISIBLE est refusé, jamais silencé (fail-closed sur sa propre annonce, comme le
  * `-F` d'un message de commit). Lire aussi la sortie de
  * `scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs`, qui joue ces cas.
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSync(p, 'utf8') } = {}) {
   if (!command) return null
   const parCommit =
     `la fermeture passe par un commit \`corrige #N\` porteur de son solde (.claude/soldes/<N>.md) — ` +
-    `le job \`fermetures\` de ci.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
-    `le solde, après un \`build\` vert sur main. Fermer à la main court-circuite le contrôle entier.`
+    `le job \`fermetures\` de fermetures.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
+    `le solde, checks requis du sha publié sur main verts. Fermer à la main court-circuite le contrôle entier.`
   for (const segment of segmentsLus(command)) {
     const forme = fermetureGh(segment)
     if (forme) {
-      return { decision: 'deny', reason: `⛔ Fermeture de ticket HORS commit (${forme}) : ${parCommit}` }
+      return { reason: `⛔ Fermeture de ticket HORS commit (${forme}) : ${parCommit}` }
     }
     const corps = corpsInputGh(segment, lire)
     if (!corps) continue
     if (corps.illisible) {
       return {
-        decision: 'deny',
         reason:
           `⛔ Corps de requête \`gh api --input ${corps.chemin}\` illisible ou non-JSON pour le contrôle de ` +
           `fermeture — écrire un corps JSON lisible à ce chemin (fail-closed : pas de \`state: closed\` ` +
@@ -2510,7 +2820,6 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
     }
     if (corps.etat === 'closed') {
       return {
-        decision: 'deny',
         reason: `⛔ Fermeture de ticket HORS commit (gh api --input ${corps.chemin}, "state": "closed") : ${parCommit}`,
       }
     }
@@ -2561,7 +2870,8 @@ export function natureDeLArbre(dir = process.cwd()) {
 }
 
 /** Racine de l'arbre git qui contient `dir` — le premier dossier porté par un `.git` en remontant —,
- *  ou `null` s'il n'y en a aucun. */
+ *  ou `null` s'il n'y en a aucun. Lue sur le disque, pas par `racineDe` (`gitPorte.mjs`) : elle répond
+ *  sans git, et pour une cible qui n'existe pas encore. */
 function racineDeLArbre(dir = process.cwd()) {
   let courant = resolve(dir)
   for (;;) {
@@ -2575,7 +2885,8 @@ function racineDeLArbre(dir = process.cwd()) {
 /**
  * Le chemin d'un `tool_input` d'écriture (`file_path`, sinon `path`), résolu UNE fois à l'entrée d'un
  * hook : toute la suite (périmètre, lecture disque, message) travaille sur lui, jamais sur le brut
- * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base`, puis :
+ * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base` (le `dir`
+ * du contexte, `construireContexte`, `scripts/hooks/repartiteur.mjs`), puis :
  * `reel` = `canoniser` (jonctions et liens suivis, fichier à créer compris) ; `racine` = l'arbre git
  * qui le contient, ou `null` ; `relatif` = POSIX sous `racine`, ou `reel` entier sans arbre.
  * `horsContenu` : le fichier n'est pas du contenu VERSIONNÉ du dépôt, et les hooks d'écriture s'y
@@ -2588,8 +2899,8 @@ function racineDeLArbre(dir = process.cwd()) {
  * le hook a quelque chose à dire. `null` quand le `tool_input` ne porte aucun chemin.
  * @returns {{ reel: string, racine: string|null, relatif: string, readonly horsContenu: boolean } | null}
  */
-export function cheminDEcriture(toolInput, { base = process.cwd(), platform = process.platform } = {}) {
-  const brut = toolInput?.file_path ?? toolInput?.path
+export function cheminDEcriture(toolInput, { base, platform = process.platform }) {
+  const brut = cheminVise(toolInput)
   if (typeof brut !== 'string' || brut === '') return null
   const absolu = resolve(base, versCheminNatif(brut, platform))
   const ancetre = ancetreExistant(absolu)
@@ -2643,7 +2954,7 @@ function aFlagTout(command) {
  * Décision « le commit prendra l'ARBRE, pas l'index ». `fichiersModifies` = `git diff --name-only`
  * (non stagé), `fichiersStages` = `git diff --cached --name-only`. C'est le SEUL évaluateur dont le
  * sujet EST l'index : il compare ce que l'index porte à ce que la commande va prendre.
- * @returns {{ decision: 'deny', reason: string } | { contexte: string } | null}
+ * @returns {{ reason: string } | { contexte: string } | null}
  */
 export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiersStages = [] }) {
   if (!command || !isGitCommitCommand(command)) return null
@@ -2668,7 +2979,6 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
   const geste = inclut ? '`git commit -i <paths>`' : '`git commit -- <paths>`'
   if (aussiStages.length > 0) {
     return {
-      decision: 'deny',
       reason:
         `⛔ ${geste} ` +
         (inclut
@@ -2697,13 +3007,14 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
  * Décision « un stock nominatif a grossi sans que le message le dise ». `command` = texte du
  * message (comme les autres évaluateurs), `diff` = diff unifié de ce que le commit emporte
  * (les fichiers porteurs suffisent), `images` = les lecteurs de pré/post-image qui décident la
- * PORTÉE DE MODULE d'une entrée. Ne se prononce que sur un `git commit`.
- * @returns {{ decision: 'deny', reason: string } | null}
+ * PORTÉE DE MODULE d'une entrée ; sous une fusion en cours, `fusion` (`entreeDeFusion`) remplace les
+ * deux : son APPORT est jugé (`bilanDuCommit`). Ne se prononce que sur un `git commit`.
+ * @returns {{ reason: string } | null}
  */
-export function evaluateStocksQuiGrandissent({ command, diff, images }) {
-  if (!command || !isGitCommitCommand(command) || !diff) return null
-  const restantes = croissancesNonCouvertes({ diff: diff, message: command ?? '' }, images)
-  return restantes.length ? { decision: 'deny', reason: raisonDeRefus(restantes) } : null
+export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = null }) {
+  if (!command || !isGitCommitCommand(command) || (!fusion && !diff)) return null
+  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), command)
+  return restantes.length ? { reason: raisonDeRefus(restantes) } : null
 }
 
 /**
@@ -2713,7 +3024,7 @@ export function evaluateStocksQuiGrandissent({ command, diff, images }) {
  * peut déplacer la frontière (`deplace()`, `deplaceLaFrontiere`). Une lecture qui lève est un refus
  * NOMMÉ, jamais un passage muet.
  * @param {{ command: string, deplace: () => boolean, cotes: () => { base: object, commit: object } }} p
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateReclassementsCss({ command, deplace, cotes }) {
   if (!command || !isGitCommitCommand(command)) return null
@@ -2722,16 +3033,16 @@ export function evaluateReclassementsCss({ command, deplace, cotes }) {
     if (!lignesDeReclassement(command).length && !deplace()) return null
     ecarts = reclassementsNonDeclares({ message: command }, cotes())
   } catch (e) {
-    return { decision: 'deny', reason: `⛔ RECLASSEMENT CSS injugeable : ${e.message}` }
+    return { reason: `⛔ RECLASSEMENT CSS injugeable : ${e.message}` }
   }
-  return ecarts.length ? { decision: 'deny', reason: raisonDeRefusDeReclassement([{ ecarts }]) } : null
+  return ecarts.length ? { reason: raisonDeRefusDeReclassement([{ ecarts }]) } : null
 }
 
 /**
  * Le refus d'un commit qui fait GRANDIR le contexte permanent au-delà du plafond de sa pré-image sans
  * le DIRE (`CLIQUET:`). La mesure vient de ce que le commit EMPORTE, la référence et le plafond de sa
  * pré-image : c'est la même discipline de lecture que `evaluateStocksQuiGrandissent`.
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateBudgetContexte({ command, mesure, reference, plafond }) {
   if (!command || !isGitCommitCommand(command)) return null
@@ -2752,15 +3063,16 @@ export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
 // ── Garde (#2125) : la porte de fermeture et de commit, sur la commande d'un canal shell ─────────
 /**
  * Le verdict de la porte sur la commande de `entree`. `contexte` (répartiteur, `construireContexte`) :
- * `dir` = le répertoire où la commande s'exécute RÉELLEMENT — tout ce que la porte lit sur disque ou
+ * `dir` = le répertoire où la commande s'exécute RÉELLEMENT, `null` s'il n'est pas jugeable — tout ce que la porte lit sur disque ou
  * dans git s'y lit (index, message `-F`, palier, revue, histoire) ; `cibleIgnoree` = ce que la
  * commande nommait sans que ce soit un répertoire réel, DIT dans tout refus ; `today` = date locale ;
  * `pannes` = les pannes de lecture git de l'appel, refusées au rendu (`refusDesPannes`).
  */
 async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
   const command = commandeDe(entree)
-  // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3).
-  if (!gesteJuge(command)) return null
+  // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3) ; un
+  // lieu d'exécution non jugeable (`dir` nul) est refusé par la garde `canal-outil` du répartiteur.
+  if (!gesteJuge(command) || targetDir === null) return null
   // HOTE UNIQUE de sortie : tout refus porte la cible écartée.
   const dire = (decision) => verdictDe(avecCibleIgnoree(decision, cibleIgnoree))
   // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`).
@@ -2773,7 +3085,6 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   const prefixe = (motif) => (presume ? `${presume} || ${motif}` : motif)
   if (fileError) {
     return dire({
-      decision: 'deny',
       reason: prefixe(
         `⚠ Message de commit en fichier illisible pour le contrôle de solde (-F/--file "${fileError}") ` +
         `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`),
@@ -2879,16 +3190,19 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   }
   const premier = cumuler([
     decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
-    horsCommit, tombale, hunks?.decision ? hunks : null, budget, refusDesPannes(pannes),
+    horsCommit, tombale, hunks?.reason ? hunks : null, budget, refusDesPannes(pannes),
   ])
   if (premier) return premier
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
   // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
-  const porteursDeStock = isGitCommitCommand(text) ? fichiers.filter(estPorteurDeStock) : []
+  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
+  const fusion = isGitCommitCommand(text) ? commit.fusion() : null
+  const porteursDeStock = isGitCommitCommand(text) ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
   const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
     command: text,
-    diff: commit.diff(),
-    images: { ...commit.images(porteursDeStock), renommages: commit.renommages() },
+    ...(fusion
+      ? { fusion: fusion.entree }
+      : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
   }) : null
   const reclassements = evaluateReclassementsCss({
     command: text,

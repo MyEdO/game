@@ -247,8 +247,7 @@ function rollingNames(decls) {
  * appellent une telle fonction. Rendu TRIÉ (fichier, ligne, famille, nom) — ordre TOTAL, donc
  * identique d'une machine à l'autre quel que soit l'ordre de marche du corpus.
  * `fnLine` = ligne de DÉCLARATION de `fn` : un doc généré qui NOMME le résolveur doit citer la ligne
- * où ce nom se lit (garde de commit `docs-vs-commit`, `scripts/docs/check-docs-vs-head.mjs` : le
- * symbole backtiqué doit se trouver à ±2 lignes du site cité), tandis que le CLIQUET reste sur
+ * où ce nom se lit (le symbole backtiqué se trouve à ±2 lignes du site cité), tandis que le CLIQUET reste sur
  * `line`, le site du dé. Les deux voyagent donc ensemble.
  * @param {{ rel: string, text: string }[]} engineFiles corpus `src/engine/**` (hors tests)
  * @returns {{ file: string, line: number, fn: string, fnLine: number, famille: 'lecteur'|'appelant', name: string, detail: string }[]}

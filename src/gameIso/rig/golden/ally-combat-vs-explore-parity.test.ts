@@ -3,7 +3,7 @@
  * en combat et hors combat (doctrine « tenues + armures = defs SOURCE UNIQUE »). La cause racine :
  * un allié PNJ passe `side:'ally'` → `kind:'hero'` (camp) au spawn de combat, et le rendu routait la
  * dérivation d'apparence sur le CAMP (`c.kind === 'hero'`) au lieu de l'ORIGINE — il court-circuitait
- * `enemyRigProfile` et rendait via `equipFromCombatant` (items SEULS, aucune synthèse des PA) → armure
+ * `enemyRigProfile` et rendait l'équipement porté SEUL (items, aucune synthèse des PA) → armure
  * absente en combat, présente en explo. `rendersFromOwnInventory` route désormais sur l'origine.
  *
  * SECONDE cause de rupture (#774, trouvée en réfutation adversariale) : l'armure de statblock VISIBLE
@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { spawnEnemy } from '../../../state/spawn';
 import { enemyRigProfile, entityRigProfileFor, rendersFromOwnInventory } from '../enemyProfile';
 import type { EnemyRigProfile } from '../enemyProfile';
+import { armourPart } from '../parts/equipment';
 import type { SceneEntity } from '../../../state/scene';
 import type { Combatant } from '../../../engine/types';
 
@@ -38,10 +39,8 @@ function allyCombatant(): Combatant {
 const explEntity = (): SceneEntity =>
   ({ kind: 'personnage', id: ID, label: 'Servant du bélier', pos: { x: 0, y: 0 }, ref: REF }) as SceneEntity;
 
-const armourShape = (p: EnemyRigProfile | null) =>
-  (p?.equip.armour ?? []).map((i) => ({ name: i.label, pa: i.pa, locs: i.locs })).sort((a, b) => a.name.localeCompare(b.name));
-const weaponShape = (p: EnemyRigProfile | null) =>
-  (p?.equip.weapons ?? []).map((w) => ({ name: w.label, type: w.type })).sort((a, b) => a.name.localeCompare(b.name));
+const armourShape = (p: EnemyRigProfile | null) => (p?.equip.armour ?? []).map((i) => JSON.stringify(i)).sort();
+const weaponShape = (p: EnemyRigProfile | null) => (p?.equip.weapons ?? []).map((w) => JSON.stringify(w)).sort();
 
 describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié PNJ armuré', () => {
   it('le jeton de combat d’un allié PNJ de bestiaire N’est PAS rendu depuis son inventaire (→ profil synthétisé)', () => {
@@ -57,7 +56,10 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
   it('le profil de combat porte bien la couche ARMURE (synthétisée des PA du trait Armure 3)', () => {
     const prof = enemyRigProfile(allyCombatant());
     expect(armourShape(prof).length).toBeGreaterThan(0);
-    expect(armourShape(prof).every((a) => (a.pa ?? 0) > 0)).toBe(true);
+    // Armure 3 : matériau par palier de PA (`armourMaterial`), dessiné sur le torse.
+    const corps = prof!.equip.armour.find((a) => a.locs?.includes('corps'))!;
+    expect(corps.materiau).toBe('maille');
+    expect(armourPart(corps, 'torse')).not.toBeNull();
   });
 
   it('combat et hors-combat rendent la MÊME tenue, armure, armes et apparence de base', () => {

@@ -26,6 +26,8 @@ export const famille = 'config';
 const cargoMarchand = z.strictObject({
   id: z.string(),
   label: z.string(),
+  /** Discriminant du catalogue (`catalogueSaisonnier`) : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
+  echangeable: z.literal(true).optional(),
   avail: dispoSaisonniereSchema,
   price: z.union([prixSaisonnierSchema, prixTireSchema]),
   source: sourceRefSchema,
@@ -55,7 +57,7 @@ const offerPriceSchema = z
 /** Un MARQUEUR de la colonne Production de l'Index (« commerce », « minimum vital », MDG 15 l.321) :
  *  il occupe la même colonne que les cargaisons sans être une marchandise — donc ni disponibilité ni
  *  prix. `echangeable: false` est le champ d'EXCLUSION lu par le résolveur (`engine/seaVoyage.ts`),
- *  qui filtre le catalogue échangeable à la source ; une entrée marchande ne porte pas le champ. */
+ *  qui filtre le catalogue échangeable à la source ; une entrée marchande ne le porte pas `false`. */
 const cargoMarqueur = z.strictObject({
   id: z.string(),
   label: z.string(),

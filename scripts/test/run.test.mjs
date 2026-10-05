@@ -32,6 +32,10 @@ import {
   PARENT_MO,
   TAS_UTILISE,
   TAS_WORKER_MO,
+  partieDe,
+  refusDePartie,
+  refusRegistreDomAbsent,
+  trancher,
 } from './partition.mjs'
 
 // `filterFiles` de Vitest résout ses filtres relatifs contre le CWD (`relative(dir, f)`) : la
@@ -145,7 +149,7 @@ test('arguments : un positionnel ne route que s’il est un chemin existant ; dr
 })
 
 test('argv de l’enfant : les arguments de l’appelant ressortent TELS QUELS, en queue', () => {
-  const tete = ['/v.mjs', 'run', '--config', '/atelier/vitest.node.config.ts', '--maxWorkers', '10', '--minWorkers', '1', '--passWithNoTests']
+  const tete = ['/v.mjs', 'run', '--config', '/atelier/vitest.node.config.ts', '--maxWorkers', '10', '--passWithNoTests']
   for (const argv of [
     ['src/i18n', '--retry', '2'],
     ['src/i18n', '--maxWorkers', '4'],
@@ -159,28 +163,22 @@ test('argv de l’enfant : les arguments de l’appelant ressortent TELS QUELS, 
   }
 })
 
-test('bornes de charge : injectées par PAIRE, et jamais par-dessus celles de l’appelant', () => {
-  assert.deepEqual(bornesWorkers([], 16), ['--minWorkers=1', '--maxWorkers=4'])
+test('plafond de charge : injecté sauf si l’appelant borne déjà', () => {
+  assert.deepEqual(bornesWorkers([], 16), ['--maxWorkers=4'])
   assert.deepEqual(bornesWorkers(['src/engine', '--retry', '2'], 16), [
-    '--minWorkers=1',
     '--maxWorkers=4',
   ])
-  // Un `--minWorkers` en double fait sortir cac (« Expected a single value ») : aucune injection.
-  assert.deepEqual(bornesWorkers(['--minWorkers=2'], 16), [])
-  assert.deepEqual(bornesWorkers(['--minWorkers', '2'], 16), [])
   assert.deepEqual(bornesWorkers(['--maxWorkers=8'], 16), [])
-  assert.deepEqual(bornesWorkers(['--min-workers=2'], 16), [])
   assert.deepEqual(bornesWorkers(['--max-workers', '8'], 16), [])
   // Un POSITIONNEL qui contient le mot n’est pas un drapeau.
-  assert.deepEqual(bornesWorkers(['src/minWorkers.test.ts'], 16), [
-    '--minWorkers=1',
+  assert.deepEqual(bornesWorkers(['src/maxWorkers.test.ts'], 16), [
     '--maxWorkers=4',
   ])
 })
 
 test('plafond mono : min(4, cœurs − 1), plancher 1 — la CI 4 vCPU sert 3 workers', () => {
   assert.equal(maxWorkersMono(4), 3)
-  assert.deepEqual(bornesWorkers([], 4), ['--minWorkers=1', '--maxWorkers=3'])
+  assert.deepEqual(bornesWorkers([], 4), ['--maxWorkers=3'])
   assert.equal(maxWorkersMono(5), 4)
   assert.equal(maxWorkersMono(16), 4)
   assert.equal(maxWorkersMono(2), 1)
@@ -468,4 +466,69 @@ test('bloc [diag] : la mémoire qui borne et le plancher sont dits, le tas alert
   assert.match(pauvre, / · disponible 4\.9 Go → mémoire insuffisante pour un worker \(5000 Mo < 5060 Mo\) · réserve de 1 parent · borné par plancher \(2 cœurs servis\) · mono /)
   const muet = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: null })
   assert.match(muet, new RegExp(`^\\[diag\\] tas max d'un worker : non relevé / ${TAS_WORKER_MO} Mo$`, 'm'))
+})
+
+// ── Partie de la suite (`WFRP_TEST_PARTIE`, job matrice `suite` de ci.yml) ─────────────────────────
+
+/** Liste de chemins relatifs POSIX à la forme du dépôt. */
+const listeDe = (n) => Array.from({ length: n }, (_, k) => `src/${['ui', 'engine', 'state'][k % 3]}/f${k}.test.ts`)
+
+test('partie : `i/K` avec 1 ≤ i ≤ K, variable absente = null, toute autre forme est un REFUS nommé', () => {
+  assert.equal(partieDe(undefined), null)
+  assert.deepEqual(partieDe('1/1'), { i: 1, k: 1 })
+  assert.deepEqual(partieDe('3/3'), { i: 3, k: 3 })
+  for (const mal of ['', '0/3', '4/3', '1/0', '1', '1/3 ', ' 1/3', '01/3', 'a/b', '1/3/4', '-1/3'])
+    assert.match(partieDe(mal).refus, new RegExp(`WFRP_TEST_PARTIE mal formée : « ${mal.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')} »`), JSON.stringify(mal))
+})
+
+test('partie : un filtre de fichier, un drapeau restrictif ou global à un processus la REFUSENT', () => {
+  assert.equal(refusDePartie({ filtres: [], argv: [] }), null)
+  assert.equal(refusDePartie({ filtres: [], argv: ['--bail'] }), null, '`--bail` ne restreint pas un run vert')
+  assert.match(refusDePartie({ filtres: ['src/a.ts'], argv: ['src/a.ts'] }), /combinée à un filtre de fichier \(src\/a\.ts\)/)
+  assert.match(refusDePartie({ filtres: [], argv: ['-t', 'x'] }), /drapeau restrictif -t/)
+  assert.match(refusDePartie({ filtres: [], argv: ['--shard=1/2'] }), /drapeau restrictif --shard=1\/2/)
+  assert.match(refusDePartie({ filtres: [], argv: ['--config', 'x.ts'] }), /drapeau --config, global à un seul processus/)
+})
+
+test('partie : pour K ∈ {1..5}, les K tranches sont DISJOINTES et leur union est la liste', () => {
+  const liste = listeDe(200)
+  for (let k = 1; k <= 5; k += 1) {
+    const tranches = Array.from({ length: k }, (_, i) => trancher(liste, { i: i + 1, k }).fichiers)
+    const union = tranches.flat()
+    assert.equal(union.length, liste.length, `K=${k} : un fichier joué deux fois ou jamais`)
+    assert.deepEqual([...union].sort(), [...liste].sort(), `K=${k} : union ≠ liste`)
+    for (const t of tranches) assert.ok(t.length > 0, `K=${k} : une tranche vide sur 200 fichiers`)
+  }
+})
+
+test('partie : un fichier AJOUTÉ ne déplace aucun autre fichier de tranche', () => {
+  const liste = listeDe(120)
+  const partieDeChacun = (l, k) =>
+    new Map(Array.from({ length: k }, (_, i) => trancher(l, { i: i + 1, k }).fichiers.map((f) => [f, i + 1])).flat())
+  for (let k = 2; k <= 5; k += 1) {
+    const avant = partieDeChacun(liste, k)
+    for (const ajout of ['src/aaa/premier.test.ts', 'src/state/f60b.test.ts', 'zzz/dernier.test.ts']) {
+      const apres = partieDeChacun([...liste, ajout], k)
+      const deplaces = liste.filter((f) => apres.get(f) !== avant.get(f))
+      assert.deepEqual(deplaces, [], `K=${k}, ajout de ${ajout} : fichiers déplacés`)
+    }
+  }
+})
+
+test('partie : la tranche est triée par unité de code, son empreinte ne dépend que de son contenu', () => {
+  const liste = listeDe(60)
+  const t = trancher(liste, { i: 2, k: 3 })
+  assert.deepEqual(t.fichiers, [...t.fichiers].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))
+  assert.match(t.empreinte, /^[0-9a-f]{12}$/)
+  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinte, t.empreinte, 'l’ordre d’énumération change l’empreinte')
+  assert.match(t.empreinteListe, /^[0-9a-f]{12}$/)
+  assert.notEqual(t.empreinteListe, t.empreinte, 'l’empreinte de la liste est celle de la liste ENTIÈRE')
+  for (const i of [1, 3]) assert.equal(trancher(liste, { i, k: 3 }).empreinteListe, t.empreinteListe, 'les K parties portent la même empreinte de liste')
+  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'l’ordre d’énumération change l’empreinte de liste')
+  assert.notEqual(trancher(liste.slice(1), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'une liste amputée garde son empreinte')
+})
+
+test('registre DOM absent : toléré sans fichier jsdom joué, REFUS nommé dès un fichier jsdom', () => {
+  assert.equal(refusRegistreDomAbsent(0), null)
+  assert.match(refusRegistreDomAbsent(3), /registre de passage de la barrière DOM ABSENT après 3 fichier\(s\) jsdom joué\(s\)/)
 })

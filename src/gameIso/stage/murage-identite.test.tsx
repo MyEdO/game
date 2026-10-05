@@ -35,8 +35,6 @@
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type * as THREE from 'three';
 import { useGame } from '../../state/store';
@@ -65,6 +63,8 @@ import {
   simulerRasterisation,
   viderCaptures,
 } from './banc-volumique';
+// Le module JSON SERVI (prose adressée matérialisée par `wfrp:prose-source`) : la forme que le jeu lit.
+import areneProjet from '../../scenes/arene/arene-projet.json';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -265,7 +265,7 @@ const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat',
 /** La scène RÉELLE du jeu (le hub de l'arène) : bâtiments, toitures, une soixantaine de sujets. Sur une
  *  carte nue, « rien n'a bougé » serait vrai sans rien prouver. */
 const HUB = parseProject(
-  JSON.parse(readFileSync(join(__dirname, '../../scenes/arene/arene-projet.json'), 'utf8')),
+  areneProjet,
 ).scenes.find((sc) => sc.id === 'arene-hub')!;
 
 /** Le poste de départ authoré du groupe (`heroStart`) — la même lecture que `store.startScene`. */

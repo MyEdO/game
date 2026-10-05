@@ -30,7 +30,7 @@ function classNames(src: string): string[] {
 }
 
 /** Idem, mais UNIQUEMENT le `className` d'un `<div>` natif — un modificateur passé en props à un
- *  composant (`<ScreenShell className="ship-dossier">`) n'est pas un voile hand-rollé : le composant
+ *  composant (`<ScreenShell className="merchant-overlay">`) n'est pas un voile hand-rollé : le composant
  *  possède déjà le voile réel. */
 function divClassNames(src: string): string[] {
   const out: string[] = [];

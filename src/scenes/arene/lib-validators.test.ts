@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error — outil d'auteur .mjs sans types (validateurs id-only branchés dans NPC/scene/poste).
+// @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
 import { sceneMetresPerTile } from '../../state/scene';
 import { domaineDEspeces } from '../../data/schemas/grammaire/art';

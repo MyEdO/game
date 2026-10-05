@@ -15,10 +15,10 @@
  * est remplacé par une table vide AVANT que les modules qui l'importent (`_registry.generated` → defs →
  * `grammaire/ref.ts`) ne se chargent.
  *
- * Jouée par `genAll` (`scripts/gen-registry.mjs`), après la phase 1 : `npm run gen` et `buildStart`
- * (`vite.config.ts`) ; `--check` compare sans écrire (`npm run gen -- --check`).
+ * Jouée par `genAll` (`scripts/gen-registry.mjs`), après la phase 1 : `genererCode`
+ * (scripts/docs/build-all.mjs) ; `--check` compare sans écrire (`npm run docs:check`).
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier } from '../src/data/schemas/grammaire/collection-cle';
@@ -26,7 +26,7 @@ import { cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE } from '../src/data/schemas
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
-import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
+import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
 
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
@@ -128,23 +128,8 @@ function specificateur(sortie: string, chemin: string): string {
   return rel.startsWith('.') ? rel : `./${rel}`;
 }
 
-/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
- *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
-async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
-  let prev = '';
-  try {
-    prev = readFileSync(SORTIE, 'utf8');
-  } catch {
-    /* nouveau */
-  }
-  if (!indexChargeable(prev)) {
-    if (check) {
-      console.error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
-      process.exitCode = (Number(process.exitCode) || 0) | 1;
-      return null;
-    }
-    writeFileSync(SORTIE, TABLE_VIDE);
-  }
+/** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
+async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
   const { table, clesDeDataset, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
@@ -155,9 +140,10 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     ` *\n` +
     ` * Deux RÉGIMES de lecture, tous deux déclarés :\n` +
     ` *  - CI / DEV / test : ce fichier généré, figé au commit — une référence morte casse au parse ;\n` +
-    ` *  - APPLICATION (éditeur compris, \`CodexEdit.save\` → \`validateDataset\`) : les ids se lisent sur les\n` +
-    ` *    RACINES VIVANTES (\`src/data/overrides.ts\` pose le régime vivant, \`grammaire/idsVivants.ts\` le\n` +
-    ` *    sert à \`ref.ts\`), par le même calcul (\`idsDeLEspace\`), dans l'ordre de la donnée.\n` +
+    ` *  - APPLICATION (éditeur compris) : les ids se lisent sur les RACINES VIVANTES, recalculés par version\n` +
+    ` *    du dataset à toute écriture du seam (\`src/data/overrides.ts\` pose le régime vivant,\n` +
+    ` *    \`grammaire/idsVivants.ts\` le sert à \`ref.ts\`), par le même calcul (\`idsDeLEspace\`), dans l'ordre\n` +
+    ` *    de la donnée.\n` +
     ` */\n` +
     `const IDS = {\n` +
     [...table].map(([cle, ids]) => `  ${litteralJs(cle)}: [${ids.map(litteralJs).join(', ')}],\n`).join('') +
@@ -186,11 +172,59 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     `export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {\n` +
     racines.map((r, i) => `  ${litteralJs(r.fichier)}: r${i},\n`).join('') +
     `};\n`;
-  const changed = ecrire(SORTIE, body, check);
-  const clesChangees = ecrire(SORTIE_CLES, cles, check);
-  const racinesChangees = ecrire(SORTIE_RACINES, modRacines, check);
+  return { textes: new Map([[SORTIE, body], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines]]), table, clesDeDataset, racines };
+}
+
+/** Le texte de l'index des ids sur disque, `''` s'il n'existe pas encore. */
+function indexSurDisque(): string {
+  try {
+    return readFileSync(SORTIE, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * EXCEPTION NOMMÉE au contrat `rendre()` PUR de `GENERATORS` (#2203 A2) : la phase 2 IMPORTE les defs
+ * (`_registry.generated`, sortie de la phase 1) et `grammaire/ref.ts`, qui importe l'index qu'elle rend.
+ * `rendre()` exige donc l'index sur disque ; seul `genEspaces` l'amorce par `TABLE_VIDE`. Mesure du
+ * 2026-09-30 : 90 importeurs de `grammaire/ref`, 55 de `schemas/_registry.generated` — l'injection
+ * de la table ne rendrait pas la phase 2 pure (la phase 1 reste importée).
+ */
+export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TABLE_VIDE, puis rendu)';
+
+/** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts` et
+ *  `src/data/versionDataset.ts` que la phase 2 charge : posés VIDES quand ils manquent (clone neuf,
+ *  #2203 A2), puis rendus. */
+const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
+  [SORTIE_CLES, 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\n'],
+  [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
+]);
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
+ *  écrire. LÈVE sur un index illisible (`AMORCAGE_EN_DEUX_TEMPS`). */
+export async function rendre(): Promise<Map<string, string>> {
+  if (!indexChargeable(indexSurDisque())) throw new Error(`gen-espaces — ${SORTIE} est illisible ou absent, ${AMORCAGE_EN_DEUX_TEMPS} : relancer \`npm run gen\`.`);
+  return (await rendu()).textes;
+}
+
+/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
+ *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
+async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
+  if (!indexChargeable(indexSurDisque())) {
+    if (check) {
+      console.error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
+      process.exitCode = (Number(process.exitCode) || 0) | 1;
+      return null;
+    }
+    writeFileSync(SORTIE, TABLE_VIDE);
+  }
+  for (const [chemin, amorce] of AMORCES_DES_MODULES) if (!existsSync(chemin)) writeFileSync(chemin, amorce);
+  const { textes, table, clesDeDataset, racines } = await rendu();
+  let changed = false;
+  for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;
   return {
-    changed: changed || clesChangees || racinesChangees,
+    changed,
     espaces: table.size,
     ids: [...table.values()].reduce((n, l) => n + l.length, 0),
     clesDeDataset: clesDeDataset.length,

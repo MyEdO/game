@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { resolveRig } from './composeRig';
 import type { Appearance } from './appearance';
 import { asRigSpeciesId } from './appearance';
+import { equipDe } from './parts/equipment';
 import type { EquipCtx } from './parts/equipment';
 
 const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 7 };
-const equip: EquipCtx = { weapons: [], armour: [] };
+const equip: EquipCtx = equipDe([], []);
 
 describe('resolveRig', () => {
   it('produit des os triés par z croissant', () => {
@@ -49,7 +50,7 @@ describe('resolveRig — échelle des parts par os', () => {
 
   it('l’arme (os de longueur nulle) hérite de l’échelle de son parent', () => {
     const weap = { label: 'Épée', type: 'melee' as const, damage: { plusBF: false, flat: 4 }, qualities: [] };
-    const bones = resolveRig({ species: asRigSpeciesId('ogre'), sex: 'M', build: 0.5, seed: 1 }, { weapons: [weap], armour: [] }, {});
+    const bones = resolveRig({ species: asRigSpeciesId('ogre'), sex: 'M', build: 0.5, seed: 1 }, equipDe([weap], []), {});
     const arme = bones.find((b) => b.id === 'arme');
     expect(arme).toBeTruthy();
     expect(arme!.scale[0]).toBeGreaterThan(1); // l'Ogre agrandit aussi son arme

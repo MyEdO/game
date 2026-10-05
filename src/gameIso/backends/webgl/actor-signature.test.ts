@@ -1,14 +1,14 @@
 /**
  * DOUBLE PÉREMPTION du monde volumique (#1176) : la clé de mémo des acteurs (`actorPoseKey`, composée
  * par `stage/VolumetricWorld`) et l'identité de cache de texture (`BillboardSubject.identity`) se
- * dérivent de la MÊME signature d'entrées de dessin (`combatantRenderSignature`). Une entrée que le billboard
+ * dérivent de la MÊME signature d'entrées de dessin (`actorRenderSignature`). Une entrée que le billboard
  * consomme ne peut donc plus périmer l'une sans l'autre.
  *
  * Chaque axe porte sa PREUVE D'EFFET dans le même test : le SVG rendu (ou l'échelle du sujet) diffère
  * VRAIMENT entre les deux états comparés — sinon la sonde ne pèserait rien.
  */
 import { describe, expect, it } from 'vitest';
-import { actorBillboards, actorPoseKey, combatantRenderSignature, type ActorPose } from './sceneMeshes';
+import { actorBillboards, actorPoseKey, actorRenderSignature, type ActorPose } from './sceneMeshes';
 import { emptyScene, sceneMetresPerTile } from '../../../state/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
 
@@ -59,7 +59,7 @@ describe('Signature de dessin d’un acteur — la clé de mémo ET l’identit�
   });
 
   it('la signature est STABLE d’un appel à l’autre (aucune entrée d’horloge ni d’aléa)', () => {
-    expect(combatantRenderSignature(base)).toBe(combatantRenderSignature(héros()));
+    expect(actorRenderSignature(pose(base))).toBe(actorRenderSignature(pose(héros())));
   });
 
   it('l’identity reste ancrée sur l’ID du combattant, la signature ne le porte pas', () => {
@@ -68,6 +68,6 @@ describe('Signature de dessin d’un acteur — la clé de mémo ET l’identit�
     const jumeau = héros({ id: 'h2' });
     expect(sujet(jumeau).identity.startsWith('acteur:h2|')).toBe(true);
     expect(sujet(base).identity.startsWith('acteur:h1|')).toBe(true);
-    expect(combatantRenderSignature(base)).toBe(sujet(base).identity.split('|')[1]);
+    expect(actorRenderSignature(pose(base))).toBe(sujet(base).identity.split('|')[1]);
   });
 });

@@ -2,8 +2,10 @@
 //
 // CLÔTURE, gardée contre une retouche de bonne foi (#1806) : une étape ne tient que son contexte
 // (`contexteDe`, `publier.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
-// arguments validés (`commit` → `commitDe`, `rebaser`, `abandonnerRebase`, `pousser`, `tronc`, `npm`,
-// `docs`, `coursesCi`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
+// arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
+// `pousser`, `tronc`, `npm`,
+// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsRouges`, `lirePr`, `ouvrirPr`, `demanderFusion`,
+// `lireFusion`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
 // inertes, import d'un paquet, import d'un module du dépôt qui l'exporte lanceuse ou n'est pas lu,
@@ -11,28 +13,35 @@
 // lu hors de ses inertes), évaluation ; `import.meta` est inerte. Résidu que le test ne garde pas :
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
-import { TRONC, raisonCourte, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
-import { natureDuRouge, rougesNommes, SOURCES_LUES } from '../docs/build-all.mjs'
-import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
+import { estCiblePure, perimetreDesMixtes } from '../docs/build-all.mjs'
 import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
-/** Période de la sonde CI, en millisecondes. */
+/** Période des sondes de la PR et des courses, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
 
 /** Nom du workflow que la sonde reconnaît (`.github/workflows/ci.yml`, `name: CI`). */
 export const WORKFLOW = 'CI'
 
-/** Marque d'IDEMPOTENCE du pilotage : elle porte la tête publiée. */
+/** Éjections de la file qu'un lot reprend (FUSION d'`origin/main`, `docs`, push, nouvelle demande de
+ *  fusion) avant de rendre la main : au-delà, la cause n'est pas le tronc. */
+export const BORNE_EJECTIONS = 1
+
+/** Marque d'IDEMPOTENCE du pilotage : elle porte le commit de fusion publié. */
 export const marquePublication = (sha) => `<!-- publier: ${sha} -->`
+
+/** Titre de la PR d'une branche : aucun mot fermant (`closing keywords`), la fermeture appartient au
+ *  workflow `fermetures.yml`. */
+export const titreDePr = (branche) => `publication ${branche}`
 
 
 // ── Purs : verdicts et mise en forme ───────────────────────────────────────────────────
@@ -58,20 +67,106 @@ export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
 }
 
 /**
- * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Trois familles, toutes déclarées
- * ailleurs : les `targets`/`injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le
- * contexte du train, `ctx.generators`), la mesure `docs/.sources-lues.json`
- * (`build-all.mjs` REFUSE si elle n'est pas dans l'index), et les sorties de `npm run agents:sync`
- * (le pre-commit joue `agents:check` à chaque commit). PURE.
+ * Le refus d'une branche qu'aucun filtre `push.branches` de `ci.yml` (`branchesDePush`,
+ * scripts/gates/workflowsDuDepot.mjs) ne déclenche, ou `null`. PUR. Sans course de branche, l'étape
+ * `file` attendrait jusqu'à sa borne. `filtres === null` : un `push` sans filtre de branche.
+ * @param {string} branche @param {string[]|null} filtres @returns {string|null}
  */
-export function estDocDerive(chemin, generators, { sourcesLues = SOURCES_LUES, racinesAgents = MANAGED_ROOTS } = {}) {
+export function refusDeBranche(branche, filtres) {
+  if (filtres === null || filtres.some((f) => correspondGlob(branche, f))) return null
+  return `la branche ${branche} ne déclenche pas \`ci.yml\` (push.branches : ${filtres.join(', ') || 'aucun `push`'}) : aucune course de branche, la file ne l’accepterait pas — publier depuis une branche qu’un de ces filtres nomme`
+}
+
+/** Préfixe de la ref d'une entrée de file de la PR `numero` : `gh-readonly-queue/main/pr-<N>-<sha>`
+ *  (managing-a-merge-queue.md, « temporary branches ... with a special prefix »). */
+export const prefixeDeFile = (numero) => `gh-readonly-queue/${TRONC.nom}/pr-${numero}-`
+
+/**
+ * La course de file la plus récente de la PR `numero` sur la tête `tete`, ou `null`. `courses`
+ * triées ; `parentsDe(sha)` rend `{ok, parents}`. Méthode MERGE (scripts/ops/ruleset-main.mjs) : le
+ * commit de file de la tête a `tete` pour parent — la course d'une entrée antérieure de la même PR,
+ * éjectée, n'est pas celle de la tête.
+ */
+export const courseDeFile = (courses, numero, { tete, parentsDe }) =>
+  (courses ?? []).find((c) => {
+    if (!String(c?.headBranch ?? '').startsWith(prefixeDeFile(numero))) return false
+    const vu = parentsDe(String(c.headSha ?? ''))
+    return vu.ok && vu.parents.includes(tete)
+  }) ?? null
+
+/**
+ * Une PR de l'API REST (`GET /repos/{owner}/{repo}/pulls`), réduite à ce que le train lit. PUR.
+ * `mergeable_state` n'est rendu que par la lecture d'UNE PR (`GET …/pulls/{n}`).
+ * @returns {{numero:number, etat:'ouverte'|'fusionnee'|'fermee', tete:string,
+ *   fusion:string|null, conflit:boolean}}
+ */
+export const prDeRest = (p) => ({
+  numero: p.number,
+  etat: p.merged_at ? 'fusionnee' : p.state === 'open' ? 'ouverte' : 'fermee',
+  tete: p.head?.sha ?? null,
+  fusion: p.merged_at ? p.merge_commit_sha ?? null : null,
+  conflit: p.mergeable_state === 'dirty',
+})
+
+/**
+ * La PR d'une branche parmi ses PR réduites (`prDeRest`, récentes d'abord) : l'OUVERTE, sinon la
+ * FUSIONNÉE dont la tête est `tete`. PUR.
+ * @returns {object|null}
+ */
+export function prDeLaBranche(prs, tete) {
+  const liste = prs ?? []
+  return liste.find((p) => p?.etat === 'ouverte')
+    ?? liste.find((p) => p?.etat === 'fusionnee' && p?.tete === tete)
+    ?? null
+}
+
+/**
+ * Où en est la PR `pr` de la tête `tete`. PUR. L'appartenance à la file n'est exposée qu'en GraphQL
+ * (#1804) : une PR `ouverte` sur la tête est jugée par la demande de fusion de l'étape `file`.
+ * @returns {'fusionnee'|'absente'|'tete-changee'|'ouverte'}
+ */
+export function etatDeLaPr(pr, tete) {
+  if (!pr) return 'absente'
+  if (pr.etat === 'fusionnee') return 'fusionnee'
+  if (pr.tete !== tete) return 'tete-changee'
+  return 'ouverte'
+}
+
+/**
+ * Une réponse de `PUT …/pulls/{n}/merge-async` ou de `GET …/merge-async/{uuid}` (schéma
+ * `pull-request-merge-async-result`), réduite à ce que l'étape `file` lit. PUR. `409` : une demande
+ * est déjà PENDANTE, et la réponse porte son `uuid` ; `400` : la PR n'est pas fusionnable, `failed`.
+ * Tout autre code, ou un corps hors schéma, est un refus NOMMÉ.
+ * @param {{code:number, corps:any}} reponse
+ * @returns {{ok:true, statut:'pending', uuid:string, attendue:string|null, deja:boolean}
+ *   |{ok:true, statut:'merged', fusion:string|null}|{ok:true, statut:'enqueued'}
+ *   |{ok:true, statut:'failed', message:string}|{ok:false, raison:string}}
+ */
+export function issueDeFusion({ code, corps }) {
+  const statut = corps?.status
+  const details = corps?.details ?? {}
+  const message = String(details.message ?? '')
+  if (![200, 202, 400, 409].includes(code)) return { ok: false, raison: `HTTP ${code}${message || corps?.message ? ` : ${message || corps.message}` : ''}` }
+  if (statut === 'pending' && typeof details.uuid === 'string' && details.uuid)
+    return { ok: true, statut, uuid: details.uuid, attendue: details.expected_head_sha ?? null, deja: code === 409 }
+  if (statut === 'merged') return { ok: true, statut, fusion: details.sha ?? null }
+  if (statut === 'enqueued') return { ok: true, statut }
+  if (statut === 'failed') return { ok: true, statut, message: message || `HTTP ${code}` }
+  return { ok: false, raison: `HTTP ${code} hors schéma : ${JSON.stringify(corps).slice(0, 200)}` }
+}
+
+/**
+ * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
+ * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
+ * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
+ * commités (#2203) —, et les sorties de `npm run agents:sync` (le pre-commit joue `agents:check` à
+ * chaque commit). PURE.
+ */
+export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
-  if (c === sourcesLues) return true
   if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
-  return generators.some((g) =>
-    [...(g.targets ?? []), ...(g.injecte ?? [])].some((motif) => correspondGlob(c, motif)),
-  )
+  return !estCiblePure(c, generators) && generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
 }
 
 /**
@@ -89,36 +184,32 @@ export function partitionSales(chemins, generators, ...reste) {
   return { derives, manuscrits }
 }
 
-/** Motif du commit de dérivés de l'étape `derives` — ceux que le hook `post-rewrite` a laissés. */
-export const MOTIF_POST_REWRITE = 'docs dérivés laissés non commités par le hook post-rewrite d’un rebase manuel'
-
 /** Motif du commit de dérivés de l'étape `docs` — ceux que la régénération du train vient d'écrire. */
-export const MOTIF_APRES_REBASE = 'docs dérivés régénérés après rebase sur origin/main (post-rewrite)'
+export const MOTIF_REGENERATION = 'docs dérivés régénérés par le train de publication'
 
-/** Refus commun aux deux commits de dérivés : sans `#N`, la porte de commit refuserait le message. */
+/** Motif de la fusion d'`origin/main` qui reprend une PR éjectée de la file. */
+export const MOTIF_EJECTION = 'fusion d’origin/main après éjection de la file de fusion'
+
+/** Refus commun aux commits du train : sans `#N`, la porte de commit refuserait le message. */
 export const REFUS_SANS_TICKET =
-  'aucun `#N` cité par la plage : le commit `chore(docs)` n’aurait aucun ticket, et la porte de commit le refuse — cite un ticket dans un commit de la plage'
+  'aucun `#N` cité par la plage : le commit du train n’aurait aucun ticket, et la porte de commit le refuse — cite un ticket dans un commit de la plage'
+
+/** La PLAGE dont les `#N` légitiment un commit du train : les commits de la branche absents du tronc. */
+export const PLAGE_DE_CITATIONS = `${TRONC.suivi}..HEAD`
 
 /**
- * La PLAGE dont les `#N` légitiment un commit de dérivés. PURE. Le journal la porte dès que l'étape
- * `rebase` a rendu ; AVANT elle (étape `derives`), `origin/main..HEAD` la remplace — `origin/main`
- * vient d'être fetché par la préflight.
- */
-export const plageDeCitations = (journal) =>
-  journal?.base && journal?.tete ? `${journal.base}..${journal.tete}` : `${TRONC.suivi}..HEAD`
-
-/**
- * Message du commit de docs dérivés. PURE — une seule forme pour les deux étapes qui commettent.
- * Le SUJET tient la règle du dépôt (`scripts/guards/lib/sujetDeCommit.mjs`, mesurée ici par
- * `refusDeSujet`, jamais par un compte recopié) ; le MOTIF va au CORPS. Quand les `refs` d'une plage
- * chargée feraient déborder le sujet, elles descendent au corps : `numerosCites` lit le message
+ * Message d'un commit du train (`chore(docs)` des dérivés, `chore(merge)` de la reprise). PURE — une
+ * seule forme. Le SUJET tient la règle du dépôt (`scripts/guards/lib/sujetDeCommit.mjs`, mesurée ici
+ * par `refusDeSujet`, jamais par un compte recopié) ; le MOTIF va au CORPS. Quand les `refs` d'une
+ * plage chargée feraient déborder le sujet, elles descendent au corps : `numerosCites` lit le message
  * ENTIER (`scripts/guards/lib/fermetures.mjs:63`), corps compris.
+ * @param {{portee:string, titre:string, numeros:string[], motif:string}} p
  */
-export const messageDeDerives = (numeros, motif) => {
+export const messageDuTrain = ({ portee, titre, numeros, motif }) => {
   const refs = numeros.map((n) => `refs #${n}`).join(' ')
-  const avecRefs = `chore(docs): ${refs} — docs dérivés\n\n${motif}\n`
+  const avecRefs = `${portee}: ${refs} — ${titre}\n\n${motif}\n`
   if (refs && refusDeSujet(avecRefs) === null) return avecRefs
-  return `chore(docs): docs dérivés\n\n${motif}\n${refs ? `\n${refs}\n` : ''}`
+  return `${portee}: ${titre}\n\n${motif}\n${refs ? `\n${refs}\n` : ''}`
 }
 
 /**
@@ -152,36 +243,6 @@ export const sortieDe = (vu, max = 400) =>
 /** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
 export const refusDeGit = (vu, max = 400) => sortieDe(vu, max) || `(status ${vu?.valeur?.status ?? '?'}) — git n'a rien imprimé`
 
-/** Refus du train quand le tronc bouge une SECONDE fois — une seule formulation, deux sites de lecture. */
-export const REFUS_DEUX_FOIS = 'origin/main a bougé DEUX fois pendant le train — relancer `npm run ops:publier`'
-
-/**
- * Le tronc a-t-il bougé sous le train ? PURE — UNE comparaison et UNE borne, lues AVANT le push et
- * APRÈS un push refusé (origin/main peut recevoir des commits entre les deux).
- * @param {{distant:string|null, base:string|null, reprises?:number}} p
- * @returns {'inchangé'|'relancer'|'rouge-deux-fois'}
- */
-export function verdictDuTronc({ distant, base, reprises = 0 }) {
-  if (distant === base) return 'inchangé'
-  return (reprises ?? 0) >= 1 ? 'rouge-deux-fois' : 'relancer'
-}
-
-/** Refus de l'étape `rebase` sur un train de FUSION qui ne contient pas le tronc (#1998). */
-export const REFUS_TRAIN_DE_FUSION =
-  'train de fusion : fusionner `origin/main` dans la branche, puis `--reprendre` — jamais un rebase qui linéarise les fusions'
-
-/**
- * Ce que l'étape `rebase` fait de la relation d'`origin/main` à HEAD (#1998). PURE.
- * @param {{contenu:boolean, fusions:boolean}} p `contenu` = `origin/main` ancêtre de HEAD ;
- *   `fusions` = `origin/main..HEAD` porte au moins un commit de fusion.
- * @returns {'contenu'|'fusions'|'rebase'}
- */
-export function decisionDeRebase({ contenu, fusions }) {
-  if (contenu) return 'contenu'
-  return fusions ? 'fusions' : 'rebase'
-}
-
-
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
 export const titreDeCommit = (message, max = 120) => {
   const ligne = String(message ?? '').split('\n')[0].trim()
@@ -190,80 +251,56 @@ export const titreDeCommit = (message, max = 120) => {
 
 /**
  * Corps du commentaire de pilotage d'UN ticket. PURE — la marque est TOUJOURS la dernière ligne.
- * @param {{numero:string, base:string, tete:string, commits:{sha:string,message:string}[],
- *   ci:{etat:string, course?:object, attenteCiSecondes?:number},
+ * @param {{numero:string, base:string, tete:string, fusion:string, commits:{sha:string,message:string}[],
+ *   file:{pr?:number, attenteSecondes?:number},
  *   ferme:boolean, fermeParCi?:boolean, fermeAutrement?:boolean}} p
  */
-export function corpsDePilotage({ numero, base, tete, commits, ci, ferme, fermeParCi = false, fermeAutrement = false }) {
+export function corpsDePilotage({ numero, base, tete, fusion, commits, file, ferme, fermeParCi = false, fermeAutrement = false }) {
   const court = (sha) => String(sha ?? '').slice(0, 9)
   const lignes = [
-    `## Publication ${court(tete)}`,
+    `## Publication ${court(fusion)}`,
     '',
-    `Plage publiée : \`${court(base)} → ${court(tete)}\` sur \`main\`.`,
+    `Plage publiée : \`${court(base)} → ${court(tete)}\`, entrée sur \`main\` par le commit de file \`${court(fusion)}\`.`,
     '',
     `### Commits (${commits.length})`,
     ...commits.map((c) => `- \`${court(c.sha)}\` ${titreDeCommit(c.message)}`),
     '',
-    '### CI',
+    '### File de fusion',
+    file?.pr ? `- PR #${file.pr} : https://github.com/${DEPOT}/pull/${file.pr}` : '- PR non lue.',
   ]
-  const course = ci?.course
-  lignes.push(
-    course
-      ? `- ${ci.etat} — course \`${course.databaseId}\` : https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
-      : `- ${ci?.etat ?? 'non lue'} — aucune course rattachée à cette tête.`,
-  )
-  if (typeof ci?.attenteCiSecondes === 'number')
-    lignes.push(`- attente du verdict CI : ${(ci.attenteCiSecondes / 60).toFixed(1)} min (temps d’attente, pas de machine locale).`)
+  if (typeof file?.attenteSecondes === 'number')
+    lignes.push(`- attente de la file : ${(file.attenteSecondes / 60).toFixed(1)} min (temps d’attente, pas de machine locale).`)
   lignes.push('')
   if (fermeAutrement) lignes.push(`#${numero} était déjà FERMÉ par un autre geste que cette publication.`)
   else if (fermeParCi) lignes.push(`#${numero} a été FERMÉ par la CI (job \`fermetures\`) sur cette publication.`)
   else if (ferme) lignes.push(`Ce commit FERME #${numero} : fermeture par le job \`fermetures\` de la CI.`)
   else lignes.push(`#${numero} est rattaché (\`refs\`) par cette publication, non fermé.`)
-  lignes.push('', marquePublication(tete))
+  lignes.push('', marquePublication(fusion))
   return `${lignes.join('\n')}\n`
 }
 
 
-/** Les `#N` cités par la plage de `journal` (ou `origin/main..HEAD` avant le rebase), dédupliqués. */
-function numerosDeLaPlage(questions, journal) {
-  return [...new Set(questions.commitsDeLaPlage(plageDeCitations(journal)).flatMap((c) => numerosCites(c.message)))]
+/** Les `#N` cités par les commits de la branche absents du tronc, dédupliqués. */
+function numerosDeLaPlage(questions) {
+  return [...new Set(questions.commitsDeLaPlage(PLAGE_DE_CITATIONS).flatMap((c) => numerosCites(c.message)))]
 }
 
 /**
- * COMMIT de docs DÉRIVÉS : stage des chemins EXPLICITES, message qui cite les tickets de la plage,
- * `journal.tete` avancé. UNE implémentation, deux appelants (`derives` avant le rebase, `docs`
- * après) — le geste est le même, seul le MOTIF change.
- * @param {object} ctx @param {{chemins:string[], numeros:string[], motif:string, journal:object}} p
+ * COMMIT des DÉRIVÉS de l'étape `docs` : stage des chemins EXPLICITES, message qui cite les tickets de
+ * la plage, `journal.tete` avancé.
+ * @param {object} ctx @param {{chemins:string[], numeros:string[], journal:object}} p
  * @returns {{ok:boolean, raison?:string, detail?:object, dit?:string}}
  */
-function commettreDerives(ctx, { chemins, numeros, motif, journal }) {
-  const commit = ctx.commit({ message: messageDeDerives(numeros, motif), chemins })
+function commettreDerives(ctx, { chemins, numeros, journal }) {
+  const commit = ctx.commit({ message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros, motif: MOTIF_REGENERATION }), chemins })
   if (!reussi(commit)) return { ok: false, raison: `\`git add\` puis \`git commit\` des docs ont échoué : ${refusDeGit(commit)}` }
   journal.tete = ctx.tete
   return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} doc(s) dérivé(s) commis — tête ${journal.tete.slice(0, 9)}` }
 }
 
-/**
- * Le verdict d'étape que porte un tronc MESURÉ, ou `null` s'il n'a pas bougé. Seul site qui
- * incrémente `journal.reprises` : la décision, elle, est la pure `verdictDuTronc`.
- * @param {object} journal @param {string|null} distant sha lu d'`origin/main` @param {string} phrase
- * @returns {{ok:boolean, relancer?:string[], dit?:string, raison?:string}|null}
- */
-function jugerLeTronc(journal, distant, phrase) {
-  const verdict = verdictDuTronc({ distant, base: journal.base, reprises: journal.reprises })
-  if (verdict === 'inchangé') return null
-  if (verdict === 'rouge-deux-fois') return { ok: false, raison: REFUS_DEUX_FOIS }
-  journal.reprises = (journal.reprises ?? 0) + 1
-  return {
-    ok: true,
-    relancer: ['rebase', 'docs', 'push-branche', 'ci'],
-    dit: `${phrase} (${distant?.slice(0, 9)}) : le train reprend au rebase`,
-  }
-}
-
 
 /** Attente BLOQUANTE sans busy-loop (le train est synchrone de bout en bout). */
-function attendre(ms) {
+export function attendre(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
 
@@ -286,20 +323,112 @@ export function synchroniserAgents(ctx) {
   return { ok: true }
 }
 
+/** Le refus nommé d'une course de BRANCHE rouge ou annulée sur la tête `tete` de la PR `pr`, ou `null`. */
+function rougeDeBranche(ctx, pr, tete) {
+  const vues = ctx.coursesCi(tete)
+  const ci = vues.disponible ? verdictDesRuns(vues.valeur, tete) : null
+  if (!ci || (ci.etat !== 'rouge' && ci.etat !== 'annulee')) return null
+  return `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)} — la PR #${pr.numero} n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/${ci.course.databaseId}`
+}
+
+/**
+ * Une PR mise en file y est encore, ou en a été ÉJECTÉE. `merge-queue-reject.md` : « if there are
+ * failed required status checks or conflicts with the base branch, the pull request will be removed
+ * from the queue ». Un CONFLIT avec la base (`mergeable_state: dirty`), ou une course de file rouge
+ * sur les seuls jobs des DÉRIVÉS (`ctx.jobsDesDerives`), se reprennent ; tout autre rouge se NOMME.
+ * Sans course de file terminée rouge ni conflit, la PR est dans la file : on attend. Une course rouge
+ * n'est ATTRIBUÉE à la PR que si `G^1`, le premier parent de son commit de file, est dans `origin/main` :
+ * sinon elle juge un GROUPE dont une entrée précédente a pu casser, et GitHub reconstruit l'entrée
+ * (`managing-a-merge-queue.md` l.104-109) — on attend.
+ * @returns {{attendre:true, dit:string}|{reprendre:boolean, raison:string}}
+ */
+function causeDEjection(ctx, pr, tete) {
+  const rouge = rougeDeBranche(ctx, pr, tete)
+  if (rouge) return { reprendre: false, raison: rouge }
+  if (pr.conflit) return { reprendre: true, raison: `PR #${pr.numero} en CONFLIT avec la base de la file` }
+  const vues = ctx.coursesDeFile()
+  if (!vues.disponible) return { attendre: true, dit: `courses de file illisibles : ${vues.raison}` }
+  const course = courseDeFile(vues.valeur, pr.numero, { tete, parentsDe: ctx.parentsDe })
+  const verdict = course ? verdictDesRuns([course], course.headSha) : null
+  if (!verdict || !['rouge', 'annulee'].includes(verdict.etat)) return { attendre: true, dit: `course de file ${verdict?.etat ?? 'absente'}` }
+  const url = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
+  const base = ctx.parentsDe(course.headSha).parents?.[0]
+  const vuTronc = ctx.tronc()
+  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${vuTronc.raison}` }
+  const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
+  if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
+    return { attendre: true, dit: `course de file ${verdict.etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
+  const jobs = ctx.jobsRouges(course.databaseId)
+  if (!jobs.disponible) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${jobs.raison}` }
+  const derives = new Set(ctx.jobsDesDerives)
+  const reprendre = jobs.valeur.length > 0 && jobs.valeur.every((j) => derives.has(j))
+  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url} — jobs rouges : ${jobs.valeur.join(', ') || '(aucun nommé)'}` }
+}
+
+/**
+ * Reprise BORNÉE d'une PR éjectée (#2178, design v3) : FUSION d'`origin/main` dans la branche — jamais
+ * un rebase —, puis `docs`, `push-branche`, `pr` et `file` (nouvelle demande de fusion) se rejouent.
+ * Un conflit dont TOUS les chemins sont des cibles PURES (`estCiblePure`) se conclut en les retirant
+ * de l'index, puis les cibles de code se produisent (`post-merge` ne joue pas sur un `git commit`) ;
+ * tout autre conflit abandonne la fusion.
+ */
+function reprendreApresEjection(ctx, journal, cause) {
+  if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
+    return { ok: false, raison: `${cause.raison} — éjectée une ${journal.ejections + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS}) : la cause n’est pas le tronc` }
+  const vuTronc = ctx.tronc()
+  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${vuTronc.raison}` }
+  const numeros = numerosDeLaPlage(ctx.questions)
+  if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
+  const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${TRONC.suivi} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
+  const vu = ctx.fusionner({ message })
+  if (!reussi(vu)) {
+    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    const conflits = ctx.questions.cheminsEnConflit()
+    const pures = conflits.length > 0 && conflits.every((c) => estCiblePure(c, ctx.generators))
+    const conclue = pures ? ctx.conclureFusionSansCiblesPures({ chemins: conflits, message }) : null
+    if (!conclue || !reussi(conclue)) {
+      if (conflits.length) ctx.abandonnerFusion()
+      return {
+        ok: false,
+        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
+      }
+    }
+    const code = ctx.docs('--code')
+    if (code.status !== 0)
+      return { ok: false, raison: `${cause.raison} — fusion conclue, mais les cibles de code ne sont pas produites (\`npm run gen\` a rendu ${code.status ?? code.signal})${code.stderr ? `\n${finDeSortie(code.stderr)}` : ''}` }
+  }
+  journal.ejections = (journal.ejections ?? 0) + 1
+  journal.tete = ctx.tete
+  return {
+    ok: true,
+    relancer: ['docs', 'push-branche', 'pr', 'file'],
+    dit: `${cause.raison} — ${TRONC.suivi} fusionné (tête ${journal.tete.slice(0, 9)}) : le train reprend à \`docs\``,
+  }
+}
+
 /** La table des ÉTAPES : nom, `jouer(ctx, journal)`, `dejaFaite(ctx, journal)`. Ajouter une étape,
  *  c'est ajouter UNE entrée ici — rien d'autre. */
 export const ETAPES = [
   {
     nom: 'preflight',
-    // TOUJOURS rejouée : elle EST la garde.
+    // TOUJOURS rejouée : elle EST la garde. Elle pose la tête et, sur un lot neuf, la base du lot
+    // (`merge-base origin/main HEAD`) que l'étape `docs` compare à la tête.
     dejaFaite: () => false,
-    jouer(ctx) {
+    jouer(ctx, journal) {
       const { racine, questions } = ctx
       const entame = questions.rebaseEntame()
       if (entame)
         return { ok: false, raison: `rebase interrompu (${entame}) : \`git rebase --abort\` ou \`--continue\` à la main, puis \`--reprendre\`` }
       if (questions.brancheDe() === null)
         return { ok: false, raison: 'HEAD DÉTACHÉ : le train publie une branche, pas un sha errant' }
+      let filtres
+      try {
+        filtres = ctx.filtresDePush
+      } catch (e) {
+        return { ok: false, raison: e.message }
+      }
+      const horsCi = refusDeBranche(ctx.branche, filtres)
+      if (horsCi) return { ok: false, raison: horsCi }
       const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
       if (manuscrits.length)
         return {
@@ -307,7 +436,7 @@ export const ETAPES = [
           raison:
             `arbre NON COMMITÉ (${manuscrits.length}) — on ne publie que du committé :\n` +
             `${manuscrits.map((s) => `    ${s}`).join('\n')}` +
-            (derives.length ? `\n  (et ${derives.length} doc(s) dérivé(s) régénéré(s) que l’étape derives aurait commis)` : ''),
+            (derives.length ? `\n  (et ${derives.length} dérivé(s) sale(s) que l’étape docs aurait commis)` : ''),
         }
       const origine = questions.origineDe()
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
@@ -315,135 +444,70 @@ export const ETAPES = [
       if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${vuFetch.raison}` }
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
       if (outil.refus) return { ok: false, raison: outil.refus }
+      // Une branche déjà fusionnée (étape `file` verte) n'a plus rien d'absent du tronc : sa reprise
+      // rejoue le pilotage.
+      if (!journal.etapes.file?.detail?.fusion && !questions.combienDe([PLAGE_DE_CITATIONS]))
+        return { ok: false, raison: `rien à publier : ${PLAGE_DE_CITATIONS} est VIDE` }
+      journal.base ??= questions.baseAuTronc()
+      if (!journal.base) return { ok: false, raison: `aucune base commune entre ${TRONC.suivi} et HEAD` }
+      journal.tete = ctx.tete
+      // La collision des compteurs de version (#2222) se JUGE sur le commit de file (`ci.yml`, step
+      // « Compteurs de version de la file ») ; contre `origin/main`, elle n'est qu'un AVERTISSEMENT.
+      for (const refus of questions.refusDesCompteurs()) ctx.journaliser(`[publier] preflight — AVERTISSEMENT : ${refus}\n`)
       const reste = derives.length
-        ? `${derives.length} doc(s) dérivé(s) régénéré(s) non commités (post-rewrite) : l’étape derives les commet`
+        ? `${derives.length} dérivé(s) sale(s) non commité(s) : l’étape docs les commet`
         : 'arbre propre'
       return {
         ok: true,
-        detail: { derivesSales: derives },
-        dit: `${reste}, origin consultable, outillage local posé`,
+        detail: { derivesSales: derives, base: journal.base },
+        dit: `${reste}, origin consultable, outillage local posé, base ${journal.base.slice(0, 9)}`,
       }
     },
   },
   {
-    // Les docs DÉRIVÉS sales sont commis ICI, AVANT le rebase. Mesuré (2026-09-14, 2ᵉ train réel) :
-    // `git rebase origin/main` REFUSE de démarrer sur un arbre sale (« cannot rebase: You have
-    // unstaged changes ») — tolérer la saleté à la préflight sans la committer avant le rebase ne
-    // faisait que déplacer le refus d'une étape.
-    nom: 'derives',
-    dejaFaite(ctx) {
-      return partitionSales(ctx.questions.cheminsSales(), ctx.generators).derives.length === 0
-    },
-    jouer(ctx, journal) {
-      const { questions } = ctx
-      const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
-      if (manuscrits.length)
-        return {
-          ok: false,
-          raison:
-            `MANUSCRIT(S) sale(s) que la préflight venait de refuser — l’arbre a bougé depuis :\n` +
-            manuscrits.map((c) => `    ${c}`).join('\n'),
-        }
-      if (!derives.length) return { ok: true, dit: 'aucun doc dérivé sale' }
-      const numeros = numerosDeLaPlage(ctx.questions, journal)
-      if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins: derives, numeros, motif: MOTIF_POST_REWRITE, journal })
-    },
-  },
-  {
-    nom: 'rebase',
-    dejaFaite(ctx, journal) {
-      return Boolean(journal.base) && journal.base === ctx.questions.shaDe(TRONC.suivi) && journal.tete === ctx.tete
-    },
-    jouer(ctx, journal) {
-      const { questions } = ctx
-      const teteAvant = ctx.tete
-      const relation = questions.relationAuTronc()
-      if (!relation.disponible) return { ok: false, raison: `relation d’origin/main à HEAD illisible : ${relation.raison}` }
-      const decision = decisionDeRebase(relation)
-      if (decision === 'fusions') return { ok: false, raison: REFUS_TRAIN_DE_FUSION }
-      const vu = decision === 'rebase' ? ctx.rebaser() : null
-      if (vu && (!vu.disponible || vu.absent || vu.valeur.status !== 0)) {
-        const conflits = questions.cheminsEnConflit()
-        const entame = questions.rebaseEntame() !== null
-        // Un rebase qui REFUSE DE DÉMARRER (arbre sale, HEAD détaché…) n'a rien entamé : `--abort`
-        // y rendrait « No rebase in progress » et masquerait la vraie raison. Mesuré (2026-09-14) :
-        // tout échec était classé CONFLIT, sans un seul fichier à nommer.
-        if (!conflits.length && !entame) {
-          const brut = vu.disponible && !vu.absent ? `${vu.valeur.stderr ?? ''}\n${vu.valeur.stdout ?? ''}` : vu.raison
-          return { ok: false, raison: `rebase sur origin/main REFUSÉ (aucun rebase entamé) : ${raisonCourte(brut)}` }
-        }
-        ctx.abandonnerRebase()
-        return {
-          ok: false,
-          raison: `rebase sur origin/main en CONFLIT (abandonné)${conflits.length ? ` — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}` : ''}`,
-        }
-      }
-      journal.base = questions.shaDe(TRONC.suivi)
-      journal.tete = ctx.tete
-      journal.teteAvant = teteAvant
-      if (!journal.base || !questions.combienDe([`${journal.base}..HEAD`])) return { ok: false, raison: `rien à publier : ${journal.base?.slice(0, 9)}..HEAD est VIDE` }
-      const dit = `base ${journal.base.slice(0, 9)} → tête ${journal.tete.slice(0, 9)}`
-      return {
-        ok: true,
-        detail: { base: journal.base, tete: journal.tete, reecrit: teteAvant !== journal.tete },
-        dit: decision === 'contenu' ? `tronc déjà contenu — ${dit}` : dit,
-      }
-    },
-  },
-  {
+    // Les MIXTES (`injecte` des `generators`) et les miroirs d'agents : régénérés, puis commis. Une
+    // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi. Le train
+    // ne régénère que ce qu'il commet : `--mixtes`, si la plage touche une source de `perimetreDesMixtes`
+    // (#2193).
     nom: 'docs',
-    // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci est réécrit par l'étape
-    // `rebase` du lot SUIVANT, et un `docs` vert du lot précédent serait alors sauté à tort.
+    // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci avance à la fusion d'une
+    // reprise, et un `docs` vert d'avant serait alors sauté à tort ; un dérivé sali depuis la rejoue.
     dejaFaite(ctx, journal) {
-      return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete
+      return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete &&
+        partitionSales(ctx.questions.cheminsSales(), ctx.generators).derives.length === 0
     },
     jouer(ctx, journal) {
       const { racine } = ctx
       const touches = ctx.questions.ceQuiChange(journal.base, journal.tete).chemins()
-      // La saleté est lue AVANT toute décision de saut : le hook `post-rewrite` d'un rebase MANUEL a
-      // pu régénérer des dérivés sans les committer, alors que la plage ne touche aucune source de
-      // doc. `touchesDocSources` ne court-circuite donc que la RÉGÉNÉRATION, jamais le COMMIT —
-      // sauter celui-ci laisserait l'arbre sale jusqu'aux gates, qui le refusent.
+      // La saleté est lue AVANT toute décision de saut : `touchesDocSources` ne court-circuite que la
+      // RÉGÉNÉRATION, jamais le COMMIT.
       const salesAvant = ctx.questions.cheminsSales()
-      const regenerer = touchesDocSources(touches, sourcesMesurees(racine))
-      if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de doc dans la plage, arbre propre : docs inchangés' }
+      const seulement = perimetreDesMixtes(ctx.generators).map((g) => g.script)
+      const regenerer = touchesDocSources(touches, sourcesMesurees(racine), { seulement })
+      if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de mixte dans la plage, arbre propre : docs inchangés' }
       if (regenerer) {
-        const check = ctx.docs('--check')
-        // Seul un rouge que la régénération GUÉRIT la déclenche (`executer`, build-all.mjs) : un
-        // cliquet, un vérificateur ou un refus rendrait un `docs:build` vain, ou le masquerait.
-        if (check.status !== 0 && check.status !== CODE_CORPS_PERIME) {
-          const nommes = rougesNommes(check.stderr)
+        const passe = ctx.docs('--mixtes')
+        if (passe.status !== 0)
           return {
             ok: false,
-            raison: `\`build-all --check\` rouge, que \`docs:build\` ne guérit pas (${natureDuRouge({ status: check.status, signal: check.signal, code: check.error?.code ?? null })})${nommes.length ? ` :\n${nommes.map((r) => `    ${r}`).join('\n')}` : ''}`,
+            raison: `\`build-all --mixtes\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
           }
-        }
-        if (check.status === CODE_CORPS_PERIME) {
-          ctx.journaliser('[publier] docs — `--check` : dérivés périmés, passe COMPLÈTE de build-all\n')
-          const passe = ctx.docs('--quiet')
-          if (passe.status !== 0)
-            return {
-              ok: false,
-              raison: `build-all a rendu ${passe.status} : docs/ possiblement incohérent — \`git checkout -- docs/\` puis corriger la cause (rien n'a été staged ni commité)`,
-            }
-        }
       }
       const agents = synchroniserAgents(ctx)
       if (!agents.ok) return agents
       const chemins = ctx.questions.cheminsSales()
       const { manuscrits } = partitionSales(chemins, ctx.generators)
       if (manuscrits.length)
-        return { ok: false, raison: `doc MANUSCRIT modifié par la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
-      if (!chemins.length) return { ok: true, dit: 'docs dérivés déjà à jour : rien à committer' }
-      const numeros = numerosDeLaPlage(ctx.questions, journal)
+        return { ok: false, raison: `fichier MANUSCRIT sale après la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
+      if (!chemins.length) return { ok: true, dit: 'dérivés déjà à jour : rien à committer' }
+      const numeros = numerosDeLaPlage(ctx.questions)
       if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins, numeros, motif: MOTIF_APRES_REBASE, journal })
+      return commettreDerives(ctx, { chemins, numeros, journal })
     },
   },
   {
-    // PUSH DE LA BRANCHE : c'est lui qui DÉCLENCHE la CI, et la CI est la porte (#1776). Le rebase a
-    // réécrit l'histoire de la branche, donc `--force-with-lease` : il n'écrase que ce qu'on a lu.
+    // PUSH DE LA BRANCHE : il déclenche la CI de la tête, que la PR exige verte avant d'entrer dans la
+    // file. `--force-with-lease` : il n'écrase que ce qu'on a lu (`pousser`, gitPorte.mjs).
     nom: 'push-branche',
     dejaFaite(ctx, journal) {
       if (!journal.tete) return false
@@ -457,72 +521,109 @@ export const ETAPES = [
     },
   },
   {
-    // ATTENTE DU VERDICT CI sur la TÊTE, lue par son COMMIT : c'est ce sha-là que le ruleset exigera
-    // vert au fast-forward. Le temps passé ici est du temps d'ATTENTE, pas du temps machine local —
-    // le journal les sépare (`attenteCiSecondes`).
-    nom: 'ci',
+    // LA PR vers `main`, créée si elle manque. Elle entre dans la file à l'étape `file`.
+    nom: 'pr',
     dejaFaite(ctx, journal) {
-      const vue = journal.etapes.ci
-      return vue?.etat === 'vert' && vue.tete === ctx.tete && vue.detail?.etat === 'verte'
+      const vu = ctx.lirePr()
+      return vu.ok && ['ouverte', 'fusionnee'].includes(etatDeLaPr(prDeLaBranche(vu.prs, journal.tete), journal.tete))
     },
     jouer(ctx, journal) {
-      const debut = Date.now()
-      const fin = debut + ctx.options.ciTimeoutMin * 60_000
-      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), attenteCiSecondes: (Date.now() - debut) / 1000 } })
-      let dernier = { etat: 'absente' }
-      while (Date.now() < fin) {
-        const vu = ctx.coursesCi(journal.tete)
-        if (!vu.disponible) ctx.journaliser(`[publier] ci — courses non lues : ${vu.raison}\n`)
-        else {
-          dernier = verdictDesRuns(vu.valeur, journal.tete)
-          const id = dernier.course?.databaseId
-          const url = id ? `https://github.com/${DEPOT}/actions/runs/${id}` : null
-          ctx.journaliser(`[publier] ci — ${dernier.etat}${url ? ` — ${url}` : ''}\n`)
-          if (dernier.etat === 'verte') return attendu({ ok: true, detail: dernier, dit: `course ${id} verte` })
-          if (dernier.etat === 'rouge' || dernier.etat === 'annulee')
-            return attendu({
-              ok: false,
-              detail: dernier,
-              raison:
-                `course CI ${dernier.etat}${id ? ` (${id})` : ''} sur ${journal.tete.slice(0, 9)} — RIEN n'est entré `
-                + `dans main. Lire le job/step rouge : ${url ?? `gh run list --commit ${journal.tete.slice(0, 12)}`}`,
-            })
-        }
-        attendre(PERIODE_SONDE_MS)
+      const lu = ctx.lirePr()
+      if (!lu.ok) return { ok: false, raison: `PR de ${ctx.branche} illisible : ${lu.raison}` }
+      let pr = prDeLaBranche(lu.prs, journal.tete)
+      if (!pr) {
+        const ouverte = ctx.ouvrirPr({
+          titre: titreDePr(ctx.branche),
+          corps: `Train de publication (\`npm run ops:publier\`), tête ${journal.tete}.`,
+        })
+        if (!ouverte.ok) return { ok: false, raison: `\`POST /repos/{owner}/{repo}/pulls\` REFUSÉ : ${ouverte.raison}` }
+        const relu = ctx.lirePr()
+        pr = relu.ok ? prDeLaBranche(relu.prs, journal.tete) : null
+        if (!pr) return { ok: false, raison: `PR de ${ctx.branche} créée mais illisible${relu.ok ? '' : ` : ${relu.raison}`}` }
       }
-      return attendu({
-        indetermine: true,
-        detail: dernier,
-        raison: `aucun verdict de la CI en ${ctx.options.ciTimeoutMin} min sur ${journal.tete.slice(0, 9)} — rien n'est entré dans main`,
-      })
+      return { ok: true, detail: { pr: pr.numero }, dit: `PR #${pr.numero} ${pr.etat === 'fusionnee' ? 'déjà fusionnée' : `ouverte sur ${pr.tete?.slice(0, 9)}`}` }
     },
   },
   {
-    // FAST-FORWARD de `main` sur une tête dont la CI est VERTE. Le ruleset `main` refuse tout le
-    // reste côté serveur ; ici on ne fait que le geste, et on RELANCE quand le tronc a bougé pendant
-    // l'attente CI (patron #1751) — la tête rebasée devra repasser par sa propre course.
-    nom: 'ff-main',
+    // ATTENTE BORNÉE (`--file-timeout-min`), en trois temps : la course VERTE de la branche sur la tête
+    // (managing-a-merge-queue.md : « Once a pull request has passed all required branch protection
+    // checks, a user with write access to the repository can add the pull request to the queue »),
+    // puis `PUT …/pulls/{n}/merge-async` sur cette tête (`merge_action: default` : la file si elle
+    // est configurée, la fusion directe sinon), puis le suivi de la demande (`GET …/merge-async/{uuid}`)
+    // et, mise en file, de la PR jusqu'à sa fusion. Le serveur sérialise : aucun rebase, aucun
+    // fast-forward client. Une éjection se NOMME, et se reprend une fois (`reprendreApresEjection`)
+    // quand sa cause est le tronc. Le temps passé ici est du temps d'ATTENTE (`attenteSecondes`).
+    nom: 'file',
     dejaFaite(ctx, journal) {
-      if (!journal.tete) return false
-      const vu = ctx.questions.estAncetre(journal.tete, TRONC.suivi)
-      return vu.disponible && !vu.absent && vu.valeur === true
+      const vue = journal.etapes.file
+      return vue?.etat === 'vert' && vue.tete === ctx.tete && Boolean(vue.detail?.fusion)
     },
     jouer(ctx, journal) {
-      const avant = ctx.tronc()
-      if (!avant.disponible) return { ok: false, raison: `origin non consultable avant le fast-forward : ${avant.raison}` }
-      const vuAvant = jugerLeTronc(journal, avant.sha, 'origin/main a bougé pendant l’attente CI')
-      if (vuAvant) return vuAvant
-      const vu = ctx.pousser({ vers: TRONC.nom })
-      if (!reussi(vu)) {
-        // Le tronc se REMESURE après un refus : origin/main peut recevoir des commits entre la
-        // lecture d'amont et le push, et git refuse alors en `non-fast-forward` — c'est la MÊME
-        // relance, jugée par la MÊME décision, pas une panne.
-        const apres = ctx.tronc()
-        const vuApres = apres.disponible ? jugerLeTronc(journal, apres.sha, 'origin/main a bougé pendant le push') : null
-        if (vuApres) return vuApres
-        return { ok: false, raison: `fast-forward de main REFUSÉ :\n${refusDeGit(vu)}` }
+      const debut = Date.now()
+      const fin = debut + ctx.options.fileTimeoutMin * 60_000
+      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), attenteSecondes: (Date.now() - debut) / 1000 } })
+      const fusionnee = (pr, fusion) =>
+        attendu({ ok: true, detail: { pr: pr.numero, fusion }, dit: `PR #${pr.numero} fusionnée en ${String(fusion ?? '?').slice(0, 9)}` })
+      // `null` : aucune demande ; `{uuid}` : demande PENDANTE ; `{enFile:true}` : PR mise en file.
+      let demande = null
+      const patienter = () => attendre(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
+      while (Date.now() < fin) {
+        const lu = ctx.lirePr()
+        if (!lu.ok) ctx.journaliser(`[publier] file — PR illisible : ${lu.raison}\n`)
+        else {
+          const pr = prDeLaBranche(lu.prs, journal.tete)
+          const etat = etatDeLaPr(pr, journal.tete)
+          ctx.journaliser(`[publier] file — ${etat}${pr ? ` (PR #${pr.numero})` : ''}\n`)
+          if (etat === 'fusionnee') return fusionnee(pr, pr.fusion)
+          if (etat === 'absente') return attendu({ ok: false, raison: `aucune PR ouverte ni fusionnée pour ${ctx.branche} à ${journal.tete.slice(0, 9)}` })
+          if (etat === 'tete-changee') {
+            const avant = ctx.questions.estAncetre(pr.tete, journal.tete)
+            if (!(avant.disponible && !avant.absent && avant.valeur))
+              return attendu({ ok: false, raison: `la PR #${pr.numero} porte ${String(pr.tete).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : un push hors du train — relancer \`npm run ops:publier\`` })
+            ctx.journaliser(`[publier] file — la PR #${pr.numero} porte ${String(pr.tete).slice(0, 9)}, ancêtre de la tête publiée : GitHub n’a pas encore vu le push\n`)
+            patienter()
+            continue
+          }
+          let issue = null
+          if (!demande) {
+            const vues = ctx.coursesCi(journal.tete)
+            const ci = vues.disponible ? verdictDesRuns(vues.valeur, journal.tete) : null
+            if (ci?.etat === 'rouge' || ci?.etat === 'annulee')
+              return attendu({ ok: false, detail: { pr: pr.numero }, raison: rougeDeBranche(ctx, pr, journal.tete) ?? `course CI ${ci.etat} de la branche sur ${journal.tete.slice(0, 9)}` })
+            if (ci?.etat !== 'verte') ctx.journaliser(`[publier] file — course de la branche ${ci?.etat ?? `illisible : ${vues.raison}`}\n`)
+            else {
+              issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
+              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `\`PUT …/pulls/${pr.numero}/merge-async\` REFUSÉ : ${issue.raison}` })
+              if (issue.statut === 'pending' && issue.deja && issue.attendue !== journal.tete)
+                return attendu({ ok: false, detail: { pr: pr.numero }, raison: `une demande de fusion de la PR #${pr.numero} est DÉJÀ pendante (409, ${issue.uuid}) sur ${String(issue.attendue).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : GitHub l’annule (schéma de \`merge-async\`, \`sha\`) — \`--reprendre\` après son échec` })
+              if (issue.statut === 'pending' && issue.deja)
+                ctx.journaliser(`[publier] file — demande DÉJÀ pendante (409) ${issue.uuid} sur la tête publiée : elle est suivie\n`)
+            }
+          } else if (demande.uuid) {
+            issue = ctx.lireFusion({ numero: pr.numero, uuid: demande.uuid })
+            if (!issue.ok) {
+              ctx.journaliser(`[publier] file — demande ${demande.uuid} illisible : ${issue.raison}\n`)
+              issue = null
+            }
+          }
+          if (issue?.statut === 'merged') return fusionnee(pr, issue.fusion)
+          if (issue?.statut === 'failed')
+            return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} en ÉCHEC : ${issue.message}` })
+          if (issue?.statut === 'pending') demande = { uuid: issue.uuid }
+          if (issue?.statut === 'enqueued') demande = { enFile: true }
+          if (demande?.enFile) {
+            const cause = causeDEjection(ctx, pr, journal.tete)
+            if (cause.attendre) ctx.journaliser(`[publier] file — PR #${pr.numero} dans la file : ${cause.dit}\n`)
+            else if (!cause.reprendre) return attendu({ ok: false, detail: { pr: pr.numero }, raison: cause.raison })
+            else return attendu(reprendreApresEjection(ctx, journal, cause))
+          }
+        }
+        patienter()
       }
-      return { ok: true, dit: `${journal.tete.slice(0, 9)} entré dans main en fast-forward` }
+      return attendu({
+        indetermine: true,
+        raison: `aucune fusion en ${ctx.options.fileTimeoutMin} min pour ${journal.tete.slice(0, 9)} — \`--reprendre\` reprend l’attente (une nouvelle demande rend la demande pendante, 409, ou la file, 200)`,
+      })
     },
   },
   {
@@ -534,10 +635,19 @@ export const ETAPES = [
       return vue?.etat === 'vert' && vue.tete === ctx.tete
     },
     jouer(ctx, journal) {
-      const commits = ctx.questions.commitsDeLaPlage(`${journal.base}..${journal.tete}`)
+      const file = journal.etapes.file?.detail ?? {}
+      const fusion = file.fusion
+      if (!fusion) return { ok: false, raison: 'aucun commit de fusion au journal de l’étape `file`' }
+      const vuTronc = ctx.tronc()
+      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${vuTronc.raison}` }
+      // Méthode MERGE (scripts/ops/ruleset-main.mjs) : `fusion^1` = `main` d'avant, `fusion^2` = la tête
+      // de la PR. La plage est celle de la branche, jamais le commit de fusion (« Merge pull request #N »).
+      const base = ctx.questions.shaDe(`${fusion}^1`)
+      const tete = ctx.questions.shaDe(`${fusion}^2`)
+      if (!base || !tete) return { ok: false, raison: `${fusion.slice(0, 9)} n’a pas deux parents lisibles après fetch` }
+      const commits = ctx.questions.commitsDeLaPlage(`${base}..${tete}`)
       const numeros = [...new Set(commits.flatMap((c) => numerosCites(c.message)))]
       const fermes = new Set(commits.flatMap((c) => numerosFermes(c.message)))
-      const ci = journal.etapes.ci?.detail ?? { etat: 'non lue' }
       const rates = []
       const poses = []
       for (const numero of numeros) {
@@ -547,17 +657,18 @@ export const ETAPES = [
           continue
         }
         const corpsVus = vue.corps
-        if (corpsVus.some((c) => c.includes(marquePublication(journal.tete)))) {
+        if (corpsVus.some((c) => c.includes(marquePublication(fusion)))) {
           ctx.journaliser(`[publier] pilotage — #${numero} déjà piloté\n`)
           continue
         }
         const fermeParCi = corpsVus.some((c) => commits.some((k) => c.includes(marqueDe(k.sha))))
         const corps = corpsDePilotage({
           numero,
-          base: journal.base,
-          tete: journal.tete,
+          base,
+          tete,
+          fusion,
           commits,
-          ci,
+          file,
           ferme: fermes.has(numero),
           fermeParCi,
           fermeAutrement: vue.etat.toLowerCase() === 'closed' && !fermeParCi,
@@ -576,8 +687,7 @@ export const ETAPES = [
       return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
     },
     jouer(ctx, journal) {
-      journal.etat = 'vert'
-      return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)}` }
+      return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}` }
     },
   },
 ]

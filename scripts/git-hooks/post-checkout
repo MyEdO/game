@@ -1,0 +1,8 @@
+#!/bin/sh
+# scripts/git-hooks/post-checkout — après un changement de branche ($3 = 1), worktree neuf compris :
+# produit les cibles de CODE, puis régénère les docs purs dont une source a bougé entre $1 et $2
+# (docs-rebuild.mjs post-checkout ; #2203 A2). Contrat de post-hook : ne fait jamais échouer
+# l'opération qui vient d'avoir lieu.
+[ "${3:-}" = "1" ] || exit 0
+"${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-checkout "$1" "$2" || true
+exit 0

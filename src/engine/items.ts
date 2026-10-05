@@ -19,6 +19,8 @@ import { t } from '../i18n';
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
 export type TrappingResolver = (id: string) => TrappingData | undefined;
 import { slugId } from '../data/slug';
+import { dansLaSousListe } from '../data/schemas/grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
@@ -237,11 +239,13 @@ function kindOf(categorie: string): ItemKind {
 }
 
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
- *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). */
+ *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
+ *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
   const t = resolveTrapping(id);
   if (!t) return null;
-  if (t.service) throw new Error(`itemFromTrappingById: "${t.id}" est un tarif de service (LDB 66 l.12-14), pas un objet possédable.`);
+  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, t))
+    throw new Error(`itemFromTrappingById: "${t.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
   const kind = kindOf(t.categorie);
   const locs =
     t.loc != null
@@ -1010,13 +1014,13 @@ export function damageScore(d?: WeaponDamageSpec): number {
 
 /** Construit l'inventaire d'un héros depuis des `TrappingRef[]` (possessions de Classe + niveau de
  *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; le `count` d'une munition
- *  donne sa quantité. Les refs `{text}` (flavor hors catalogue : « Réseau d'informateurs ») n'ont pas
- *  de stats → ignorées. */
+ *  donne sa quantité. Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
+ *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). */
 export function buildInventory(refs: TrappingRef[]): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
     if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
-    if (!('id' in ref)) continue; // {text} narratif : pas d'objet à stats
+    if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
     const it = itemFromTrappingRef(ref);
     if (it) items.push(it);
   }

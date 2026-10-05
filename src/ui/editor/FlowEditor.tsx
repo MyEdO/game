@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * ÉDITEUR DE FLOW — la « liste de blocs imbriqués » (façon RPG Maker / ink) qui authore la LOGIQUE
  * d'un trigger / choix de dialogue / piège / sort : une séquence de blocs
@@ -18,6 +19,7 @@ import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';
 import {
   EffectFields,
@@ -254,10 +256,11 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
     [next[i], next[j]] = [next[j], next[i]];
     set(next);
   };
+  const cles = useClesDeRangees(steps);
   return (
     <div className="flow-list eff-list">
       {steps.map((node, i) => (
-        <details className={`eff-row flow-node flow-${node.kind}`} key={i} open={node.kind !== 'do'}>
+        <details className={`eff-row flow-node flow-${node.kind}`} key={cles[i]} open={node.kind !== 'do'}>
           <summary>
             <span className="eff-summary">{nodeSummary(node, ctx)}</span>
             <span className="eff-actions" onClick={(e) => e.preventDefault()}>

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * PANNEAU LOGIQUE — dock bas repliable/redimensionnable remplaçant les 3 modales du POC
  * (Triggers / Dialogues / Rencontres) + l'onglet Validation. MASTER-DÉTAIL : liste à gauche,
@@ -8,6 +9,7 @@ import { useRef } from 'react';
 import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
+import type { TrappingData } from '../../data';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../state/flow';
 import type { Warning } from '../../state/validateScene';
@@ -23,6 +25,7 @@ import { Icon } from '../Icon';
 import { Tabs } from '../Tabs';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { Row } from '../Layout';
 
 export type LogicTab = 'triggers' | 'dialogues' | 'encounters' | 'validation';
@@ -31,6 +34,7 @@ export function LogicDock({
   scene,
   otherScenes,
   worldMap,
+  objets,
   setScene,
   warnings,
   onSelectWarning,
@@ -51,6 +55,8 @@ export function LogicDock({
   otherScenes: Scene[];
   /** Carte du monde du projet (id + label des lieux) pour `openPort` — absente ⇒ fallback texte. */
   worldMap: WorldMap | null;
+  /** Objets du projet (`narratif.objets`) — résolus avant le catalogue par l'Effet `giveTrapping`. */
+  objets: readonly TrappingData[];
   setScene: (s: Scene) => void;
   warnings: Warning[];
   onSelectWarning: (w: Warning) => void;
@@ -71,7 +77,7 @@ export function LogicDock({
   /** Couche (z) en cours d'édition — toute logique créée depuis le dock s'y pose. */
   currentLayer: number;
 }) {
-  const ctx: Ctx = { encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined) };
+  const ctx: Ctx = { encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined, objets) };
   const dragRef = useRef<{ sy: number; sh: number } | null>(null);
 
   const errors = warnings.filter((w) => w.level === 'error').length;
@@ -141,6 +147,8 @@ function TriggersTab({
 }) {
   const t = scene.triggers.find((x) => x.id === sel) ?? null;
   const upd = (patch: Partial<Trigger>) => setScene({ ...scene, triggers: scene.triggers.map((x) => (t && x.id === t.id ? { ...x, ...patch } : x)) });
+  // Le détail est keyed sur l'identité STABLE du trigger : un renommage le garde, une autre sélection le remonte.
+  const cles = useClesDeRangees(scene.triggers);
   return (
     <div className="logic-split">
       <div className="logic-list">
@@ -168,7 +176,7 @@ function TriggersTab({
         <p className="hint">Astuce : outil <Icon id="map-tool/zone" size="sm" /> → glisser sur la carte pour dessiner la zone directement.</p>
       </div>
       {t ? (
-        <div className="logic-detail">
+        <div className="logic-detail" key={cles[scene.triggers.indexOf(t)]}>
           <Row>
             <label className="ed-field">
               Id
@@ -219,6 +227,7 @@ function DialoguesTab({
   setSel: (id: string | null) => void;
 }) {
   const d = scene.dialogues.find((x) => x.id === sel) ?? null;
+  const cles = useClesDeRangees(scene.dialogues);
   return (
     <div className="logic-split">
       <div className="logic-list">
@@ -252,7 +261,7 @@ function DialoguesTab({
             </button>
           </Row>
           <DialogueDetail
-            key={d.id}
+            key={cles[scene.dialogues.indexOf(d)]}
             dialogue={d}
             ctx={ctx}
             onChange={(nd: Dialogue) => {

@@ -8,10 +8,9 @@
  * Motif : label d'entité enrôlée, différent du nom de sa fiche, de plus de `MOTS_MAX` mots hors article initial.
  * Exemptés au SITE (`scène|entité`) : un nom propre plus long, avec sa raison.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject } from '../state/worldMap';
 import { ficheDEntite } from '../state/sceneNpc';
 import { useGame } from '../state/store';
@@ -31,7 +30,7 @@ const legende = (label: string): boolean => label.trim().replace(ARTICLE, '').sp
 function paquets(): { scenes: Scene[]; narratif?: NarratifBlock }[] {
   const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => s.construire()).map((c) => ({ scenes: [c.scene, ...(c.extraScenes ?? [])], narratif: c.narratif }));
   for (const rel of listerProjetsLivres())
-    out.push(parseProject(JSON.parse(readFileSync(join(__dirname, rel), 'utf8'))));
+    out.push(parseProject(lireProjetLivre(rel)));
   return out;
 }
 

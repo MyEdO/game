@@ -6,10 +6,13 @@ description: À utiliser quand on crée ou modifie une carte, une scène, un bâ
 
 # Créer une map / une scène
 
-**`MapSpec` + `buildScene` est le SEUL chemin d'authoring** (jamais poser les tuiles une à une ; si le
-vocabulaire manque, ÉTENDRE une primitive + un golden, jamais bricoler le scénario). Cartes ASCII :
-`src/state/asciiMap.ts` (`parseAsciiRows`/`parseWalledAscii`). Le résultat reste éditable dans l'éditeur
-(règle stricte 2 : tout le contenu de campagne est éditable, rien en dur).
+**Dans un paquet de campagne MANUSCRIT, la carte se pose à l'éditeur** (fiche
+`user-doctrine-campagne-jamais-generee-par-script`, skill `creer-une-campagne`) : terrain, murs, relief et
+escaliers, décor, bâtiments et leurs étages. **`MapSpec` + `buildScene` reste le chemin des scénarios de
+test et des générateurs** (dette #1601) : jamais poser les tuiles une à une ; si le vocabulaire manque,
+ÉTENDRE une primitive + un golden, jamais bricoler le scénario. Cartes ASCII : `src/state/asciiMap.ts`
+(`parseAsciiRows`/`parseWalledAscii`). `buildScene` rejoue les primitives de l'éditeur : son résultat reste
+éditable (règle stricte 2).
 
 Référence complète (champs, ordre de compilation, pièges) : **`docs/map-authoring.md`**.
 

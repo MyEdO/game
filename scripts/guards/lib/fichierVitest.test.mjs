@@ -17,6 +17,8 @@ import {
   EST_SUITE_VITEST,
   SUFFIXE_SUITE,
   SUFFIXE_INSTRUMENT,
+  finsDuGlob,
+  SEPARATEUR_GLOB,
 } from './fichierVitest.mjs'
 
 test('estFichierVitest : les deux formes JOUÉES sont des instruments', () => {
@@ -81,6 +83,13 @@ test('les deux prédicats se DÉRIVENT des fragments exportés — une source, q
   // Le fragment d'INSTRUMENT accepte les deux formes, celui de SUITE une seule.
   assert.equal(new RegExp(`${SUFFIXE_INSTRUMENT}$`).test('a.bench.mts'), true)
   assert.equal(new RegExp(`${SUFFIXE_SUITE}$`).test('a.bench.mts'), false)
+})
+
+test('finsDuGlob : l’accolade se DÉPLIE en une fin par dialecte, sans accolade une seule fin', () => {
+  assert.equal(SEPARATEUR_GLOB, '/**/*')
+  assert.deepEqual(finsDuGlob('src/**/*.test.{ts,tsx}'), ['.test.ts', '.test.tsx'])
+  assert.deepEqual(finsDuGlob('server/src/**/*.test.ts'), ['.test.ts'])
+  assert.throws(() => finsDuGlob('src/*.test.ts'), /non reconnu/)
 })
 
 // ── CLIQUET DE BALAYAGE : le prédicat vit en UN exemplaire ────────────────────────────────────────

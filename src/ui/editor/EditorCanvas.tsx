@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Canvas SVG iso de l'éditeur v2 : rendu WYSIWYG (sol, toits, entités, spawns) + calques
  * d'auteur (triggers, zones de repos, points d'entrée) + interactions pointeur — peindre, poser,

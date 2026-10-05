@@ -8,10 +8,9 @@
  *
  * ABSOLUE : aucun stock, aucune exemption — le compte attendu est ZÉRO, et la garde NOMME ses sites.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject } from '../state/worldMap';
 import { avisDialogueJamaisOuvert, validateScene, type Warning } from '../state/validateScene';
 import { emptyScene, type Scene } from '../state/scene';
@@ -22,7 +21,7 @@ const jamaisOuverts = (ws: Warning[]) =>
   ws.filter((w) => w.refId && w.message === avisDialogueJamaisOuvert(w.refId)).map((w) => `${w.sceneId} › ${w.refId}`);
 
 const projetsLivres = listerProjetsLivres()
-  .map((rel) => parseProject(JSON.parse(readFileSync(join(__dirname, rel), 'utf8'))));
+  .map((rel) => parseProject(lireProjetLivre(rel)));
 
 describe('#1869 — un dialogue sans ouvreur est injouable', () => {
   it('aucun scénario de test ni projet livré ne porte de dialogue jamais ouvert', () => {

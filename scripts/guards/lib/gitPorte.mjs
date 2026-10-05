@@ -44,6 +44,7 @@ import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+import { DEPOT } from './ticketsGh.mjs'
 
 /** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
 const RAISON_MAX = 200
@@ -216,17 +217,18 @@ export const OPTIONS_DE_L_HOTE = Object.freeze([
 const MARQUE_DEPOT = Symbol('Depot')
 
 /** L'état de chaque DÉPÔT (`depotDe`), privé : son lanceur, et la version de git lue une fois
- *  (`exigerMergeTree`). L'appelant d'une question ne tient jamais git. */
+ *  (`exigerMergeTree`) hors fournisseur d'environnement. L'appelant d'une question ne tient jamais git. */
 const lanceurs = new WeakMap()
 
 /**
  * Le DÉPÔT git de `cwd` : une poignée OPAQUE que chaque question et chaque écrivain de l'hôte prend
  * en premier paramètre ; la commande, ses drapeaux et sa forme restent à l'hôte. `env` : l'environnement
- * du processus (`envDeDepotForge`, `depotGabarit.mjs`), celui du parent par défaut ; `spawn`/`attendre` :
+ * du processus (`envDeDepotForge`, `depotGabarit.mjs`), objet ou fournisseur synchrone résolu une fois
+ * par interrogation, celui du parent par défaut ; `spawn`/`attendre` :
  * injectables (mesure) ; `enPanne(raison)` : sans lui, une INDISPONIBILITÉ JETTE (`GitIndisponible`),
  * avec lui la lecture la lui confie et rend `null`.
  * @param {string} cwd
- * @param {{ env?: NodeJS.ProcessEnv, spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
+ * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
  * @returns {Depot}
  */
 export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {
@@ -242,11 +244,66 @@ function lanceurDe(depot) {
   return lanceur
 }
 
+/**
+ * La variable d'environnement d'une git FEINTE (#2225, #2114) : une liste JSON de règles
+ * `{ si: string[], status: number, stdout?: string, stderr?: string }`, ou `{ si: string[], absent: true }`
+ * (le binaire INTROUVABLE : le spawn échoue en `ENOENT`, comme sans git au `PATH`). La première règle
+ * dont chaque mot de `si` est un argument de la commande y RÉPOND, sans processus ; aucune règle : git
+ * répond. Elle passe aux processus enfants comme `PATH`, sur toute plateforme.
+ */
+export const ENV_GIT_FEINT = 'WFRP_GIT_FEINT'
+
+/** Ce qu'imprime sur stderr chaque réponse FEINTE, comme `MARQUE_REJEU` chaque rejeu : un vert obtenu
+ *  sous `ENV_GIT_FEINT` se voit. */
+export const MARQUE_FEINTE = '[git] feinte — WFRP_GIT_FEINT répond'
+
+/** Une règle de `ENV_GIT_FEINT` bien formée. PUR. */
+const estRegleFeinte = (r) =>
+  Array.isArray(r?.si) && r.si.every((mot) => typeof mot === 'string') && (r.absent === true
+    ? ['status', 'stdout', 'stderr'].every((champ) => r[champ] === undefined)
+    : r.absent === undefined && Number.isInteger(r.status) && ['stdout', 'stderr'].every((flux) => r[flux] === undefined || typeof r[flux] === 'string'))
+
+/** Le résultat de `spawnSync` d'un exécutable introuvable (`ENOENT`, nodejs.org/api/child_process.html). */
+const spawnIntrouvable = (commande) => ({
+  status: null,
+  error: Object.assign(new Error(`spawnSync ${commande} ENOENT`), { code: 'ENOENT', syscall: `spawnSync ${commande}`, path: commande }),
+})
+
+/**
+ * La réponse FEINTE (`ENV_GIT_FEINT` de `env`) à `git <argv>`, sous la forme d'un résultat de
+ * `spawnSync`, marquée sur `journal` (`MARQUE_FEINTE`) ; `null` sans règle qui s'y applique. Une valeur
+ * mal formée est une panne de spawn NOMMÉE.
+ * @param {NodeJS.ProcessEnv} env @param {string[]} argv @param {string} site
+ */
+function feinteDeGit(env, argv, site, journal = process.stderr) {
+  const brut = env[ENV_GIT_FEINT]
+  if (!brut) return null
+  let regles
+  try { regles = JSON.parse(brut) } catch (e) { return { status: null, error: new Error(`${ENV_GIT_FEINT} illisible : ${e.message}`) } }
+  if (!Array.isArray(regles) || !regles.every(estRegleFeinte)) {
+    return { status: null, error: new Error(`${ENV_GIT_FEINT} : une liste de règles { si, status, stdout?, stderr? } ou { si, absent: true } est attendue — ${brut}`) }
+  }
+  const regle = regles.find((r) => r.si.every((mot) => argv.includes(mot)))
+  if (!regle) return null
+  journal.write(`${MARQUE_FEINTE} : ${site} (${regle.absent ? 'absent' : regle.status})\n`)
+  return regle.absent ? spawnIntrouvable('git') : { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' }
+}
+
 /** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
  *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. */
 function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE } = {}) {
   const { cwd, env, spawn, attendre } = lanceurDe(depot)
-  return classer(lancer('git', [...options, ...args], { cwd, env, spawn, attendre, entree, timeout, site: `git ${args[0]}` }), { cwd })
+  const fournisseur = typeof env === 'function'
+  const environnement = fournisseur ? env() : env
+  if (fournisseur && (typeof environnement?.then === 'function'
+    || Object.prototype.toString.call(environnement) !== '[object Object]'
+    || Object.values(environnement).some((valeur) => valeur !== undefined && typeof valeur !== 'string'))) {
+    throw new TypeError('gitPorte : fournisseur env — un objet environnement synchrone est attendu, sans promesse ni valeur absente ou invalide')
+  }
+  const argv = [...options, ...args]
+  const site = `git ${args[0]}`
+  const vu = feinteDeGit(environnement ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env: environnement, spawn, attendre, entree, timeout, site })
+  return classer(vu, { cwd })
 }
 
 /** La sortie d'une lecture réussie, `null` si l'objet est absent ou si le code de sortie n'est pas 0.
@@ -423,16 +480,48 @@ const absentSaufCorrompu = (depot, revisions) => {
   return null
 }
 
+/** Les filtres de fusion de `shasDe` (`git help rev-list`). */
+const FILTRES_DE_FUSIONS = Object.freeze({ toutes: [], seules: ['--merges'], aucune: ['--no-merges'] })
+
 /**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
- * du plus ancien au plus récent ; `fusions` : les seules fusions. `null` quand git ne rend pas la
- * plage : une plage illisible n'est pas une plage vide.
+ * du plus ancien au plus récent ; `fusions` : `'seules'` (`--merges`), `'aucune'` (`--no-merges`) ;
+ * `chemins` : les seuls commits qui les touchent, sous `--full-history` — sans lui, une fusion
+ * TREESAME à un parent cache les commits de l'autre (`git help rev-list`, « History Simplification »).
+ * `null` quand git ne rend pas la plage : une plage illisible n'est pas une plage vide.
  * @param {Depot} depot @param {readonly string[]} revisions
- * @param {{ fusions?: boolean }} [opts] @returns {string[] | null}
+ * @param {{ fusions?: 'toutes' | 'seules' | 'aucune', chemins?: readonly string[] }} [opts] @returns {string[] | null}
  */
-export function shasDe(depot, revisions, { fusions = false } = {}) {
-  const brut = lire(depot, ['rev-list', '--reverse', ...(fusions ? ['--merges'] : []), ...revisionsDe(revisions), '--'])
+export function shasDe(depot, revisions, { fusions = 'toutes', chemins = [] } = {}) {
+  const filtre = Object.hasOwn(FILTRES_DE_FUSIONS, fusions) ? FILTRES_DE_FUSIONS[fusions] : null
+  if (!filtre) throw new Error(`shasDe : fusions « ${fusions} » inconnu`)
+  const historique = chemins.length ? ['--full-history'] : []
+  const brut = lire(depot, ['rev-list', '--reverse', ...filtre, ...historique, ...revisionsDe(revisions), '--', ...chemins])
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
+/**
+ * Les PARENTS de `revision` (`git help revisions`, `<rev>^@`), dans leur ordre ; `null` quand git ne
+ * les rend pas.
+ * @param {Depot} depot @param {string} revision @returns {string[] | null}
+ */
+export function parentsDe(depot, revision) {
+  const brut = lire(depot, ['rev-parse', `${revisionsDe([revision])[0]}^@`])
+  return brut === null ? absentSaufCorrompu(depot, [revision]) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
+/**
+ * Le POINT DE DÉPART de `tete` dans `tronc` : le premier commit de la chaîne des premiers parents de
+ * `tete` (`git help rev-list`, `--first-parent`) contenu dans `tronc` — `tete` elle-même quand le
+ * tronc la contient. `null` quand git ne le rend pas, ou quand la chaîne n'entre jamais dans le tronc.
+ * @param {Depot} depot @param {string} tete @param {string} tronc @returns {string | null}
+ */
+export function pointDeDepart(depot, tete, tronc) {
+  const [t, tr] = revisionsDe([tete, tronc])
+  const brut = lire(depot, ['rev-list', '--first-parent', t, `^${tr}`, '--'])
+  if (brut === null) return absentSaufCorrompu(depot, [tete, tronc])
+  const propres = brut.split('\n').map((l) => l.trim()).filter(Boolean)
+  return shaDe(depot, propres.length ? `${propres.at(-1)}^1` : tete)
 }
 
 /**
@@ -520,8 +609,9 @@ const GIT_MERGE_TREE = Object.freeze([2, 40])
  */
 function exigerMergeTree(depot) {
   const etat = lanceurDe(depot)
-  if (etat.version === undefined) etat.version = lire(depot, ['version'])
-  const brut = etat.version
+  const fournisseur = typeof etat.env === 'function'
+  if (!fournisseur && etat.version === undefined) etat.version = lire(depot, ['version'])
+  const brut = fournisseur ? lire(depot, ['version']) : etat.version
   const m = /(\d+)\.(\d+)/.exec(String(brut ?? ''))
   const exige = GIT_MERGE_TREE.join('.')
   if (!m) throw new GitIndisponible(`version de git illisible (« ${String(brut ?? '').trim()} ») : git merge-tree --write-tree --stdin exige git ${exige}`)
@@ -564,7 +654,18 @@ function baseDuCommit(depot, sha) {
   const [, ...parents] = ligne.trim().split(/\s+/)
   if (parents.length === 0) return arbreVide(depot)
   if (parents.length === 1) return parents[0]
-  if (parents.length > 2) throw new GitIndisponible(`fusion ${sha.slice(0, 9)} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
+  return fusionAutomatique(depot, parents, `fusion ${sha.slice(0, 9)}`)
+}
+
+/**
+ * La FUSION AUTOMATIQUE de deux `parents` : l'arbre que git fusionne TOUT SEUL (`baseDuCommit`), `null`
+ * quand git ne le rend pas. `nom` nomme la fusion dans la levée.
+ * @param {Depot} depot @param {string[]} parents @param {string} nom
+ * @returns {string | null}
+ * @throws {GitIndisponible} plus de deux parents, ou git plus ancien que `GIT_MERGE_TREE`.
+ */
+function fusionAutomatique(depot, parents, nom) {
+  if (parents.length > 2) throw new GitIndisponible(`${nom} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
   exigerMergeTree(depot)
   const vide = arbreVide(depot)
   if (!vide) return null
@@ -638,6 +739,18 @@ const RIEN = Object.freeze({
 export function ceQueFaitLeCommit(depot, sha) {
   const base = baseDuCommit(depot, sha)
   return base ? changeEntre(depot, base, sha) : RIEN
+}
+
+/**
+ * CE QUE FAIT LA FUSION EN COURS : ce qui change de la fusion automatique de ses `parents` (HEAD puis
+ * `fusionnesEnCours`, `fusionAutomatique`) à l'image `apres` qui la conclut (`INDEX` ou `SUIVI`) — la
+ * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe. Base `null` : tout est vide.
+ * @param {Depot} depot @param {string[]} parents @param {string} apres
+ * @throws {GitIndisponible} propagée de `fusionAutomatique`.
+ */
+export function ceQueFaitLaFusionEnCours(depot, parents, apres) {
+  const base = fusionAutomatique(depot, parents, 'fusion en cours')
+  return base ? changeEntre(depot, base, apres) : RIEN
 }
 
 /**
@@ -730,7 +843,8 @@ export function fichiersDuGrep(depot, portee, motif, pathspecs) {
 
 /**
  * Le texte de chaque chemin de `rels` dans l'image `arbre` (une ref ou `INDEX`), `null` s'il y est
- * absent ou si `git` ne rend rien — l'unique lecture PAR LOT des portes : un seul `git cat-file --batch`.
+ * absent — l'unique lecture PAR LOT des portes : un seul `git cat-file --batch`. Un `cat-file` qui ne
+ * rend pas son lot est une PANNE, confiée (`confier` : `enPanne` et tout `null`, sinon `GitIndisponible`).
  * @param {Depot} depot @param {string} arbre
  * @param {readonly string[]} rels @returns {Map<string, string | null>}
  * @throws {Error} un chemin à caractère de contrôle (`porteUnControle`), avant le spawn ; sortie de
@@ -744,9 +858,12 @@ export function lireEnLot(depot, arbre, rels) {
   const prefixe = arbre === INDEX ? ':' : `${revisionsDe([arbre])[0]}:`
   const fautifs = rels.filter((rel) => typeof rel !== 'string' || porteUnControle(rel))
   if (fautifs.length) throw new Error(`lireEnLot : un chemin tient sur une ligne du lot, sans caractère de contrôle — refusés : ${JSON.stringify(fautifs)}`)
-  const brut = lire(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
-  if (brut === null) return new Map(rels.map((rel) => [rel, null]))
-  const sortie = Buffer.from(brut, 'utf8')
+  const vu = interroger(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
+  if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
+    confier(depot, vu.disponible ? `\`git cat-file --batch\` sans lot (${vu.absent ? 'objet absent' : `status ${vu.valeur.status}`})` : vu.raison)
+    return new Map(rels.map((rel) => [rel, null]))
+  }
+  const sortie = Buffer.from(vu.valeur.stdout, 'utf8')
   let p = 0
   for (const rel of rels) {
     const fin = sortie.indexOf(10, p)
@@ -819,7 +936,7 @@ export function estDansHead(depot, sha) {
  * parce que cette valeur sert de `cwd` et de préfixe de cible. `normaliserRacine` (qui abaisse la
  * casse) ne sert ici qu'aux COMPARAISONS ; l'employer sur la valeur casserait tout chemin
  * case-sensible (mesure du 2026-09-14 : `mkdtempSync` rend 8/8 suffixes porteurs d'une majuscule, et
- * `test:ops` tourne sur `ubuntu-latest`, `runs-on` du job `build` de .github/workflows/ci.yml).
+ * `test:ops` tourne sur `ubuntu-latest`, `runs-on` de son job de .github/workflows/ci.yml).
  * @param {Depot} depot
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */
@@ -840,9 +957,11 @@ export function arbrePrincipal(depot) {
   return fait(chemin.slice(0, -'/.git'.length))
 }
 
-/** Le dépôt de ce projet, en https comme en ssh. Notion d'ORIGINE, donc hôte des lectures git : la
- *  porte au push et la préflight de publication refusent l'une comme l'autre un `origin` étranger. */
-export const urlOrigineAcceptee = (url) => /github\.com[:/]cgauche\/game(?:\.git)?$/.test(String(url ?? '').trim())
+/** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
+ *  GitHub l'ignore. Notion d'ORIGINE, donc hôte des lectures git : la porte au push et la préflight
+ *  de publication refusent l'une comme l'autre un `origin` étranger. */
+const URL_ORIGINE = new RegExp(`github\\.com[:/]${DEPOT.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?:\\.git)?$`, 'i')
+export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').trim())
 
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })
@@ -1073,20 +1192,38 @@ export function commitDe(depot, { message, chemins, vide = false }) {
   return ecrire(depot, ['--literal-pathspecs', 'commit', '-q', ...(vide ? ['--allow-empty'] : []), '-F', '-', '--', ...chemins], commit)
 }
 
-/** Rebase de la branche courante sur `sur` (`rebase <sur>`). @param {Depot} depot @param {string} sur */
-export const rebaser = (depot, sur) => ecrire(depot, ['rebase', ...revisionsDe([sur])], { timeout: 600_000 })
+/**
+ * FUSION de `de` dans la branche courante, toujours par un commit de fusion (`merge --no-ff`), sous
+ * le `message` donné (`-m`) : la porte de commit exige un `#N` que le message par défaut ne porte pas.
+ * @param {Depot} depot @param {{ de: string, message: string }} p
+ */
+export const fusionner = (depot, { de, message }) =>
+  ecrire(depot, ['merge', '--no-ff', '-m', String(message), ...revisionsDe([de])], { timeout: 600_000 })
 
-/** Le rebase entamé, abandonné (`rebase --abort`). @param {Depot} depot */
-export const abandonnerRebase = (depot) => ecrire(depot, ['rebase', '--abort'])
+/** La fusion entamée, abandonnée (`merge --abort`). @param {Depot} depot */
+export const abandonnerFusion = (depot) => ecrire(depot, ['merge', '--abort'])
+
+/**
+ * La fusion entamée, CONCLUE en retirant `chemins` de l'index (`rm --cached`, le fichier reste sur le
+ * disque), puis commit de fusion sous `message`. FOSSILE #2203.
+ * @param {Depot} depot @param {{ chemins: string[], message: string }} p
+ */
+export function conclureFusionSansChemins(depot, { chemins, message }) {
+  if (!Array.isArray(chemins) || !chemins.length) throw new Error('conclureFusionSansChemins : des `chemins` explicites')
+  const retrait = ecrire(depot, ['--literal-pathspecs', 'rm', '-q', '--cached', '--', ...chemins])
+  if (!reussi(retrait)) return retrait
+  return ecrire(depot, ['commit', '-q', '-F', '-'], { entree: String(message), timeout: 600_000 })
+}
 
 /**
  * HEAD poussé vers la branche `vers` de l'origine. `bail` = `--force-with-lease`, qui n'écrase que ce
- * que le dépôt vient de lire, et jamais vers le tronc : le tronc n'entre qu'en fast-forward.
+ * que le dépôt vient de lire. Jamais vers le tronc : `main` n'avance que par la file de fusion
+ * (scripts/ops/ruleset-main.mjs).
  * @param {Depot} depot @param {{ vers: string, bail?: boolean }} p
- * @throws {Error} `bail` vers `TRONC`.
+ * @throws {Error} `vers` = `TRONC`.
  */
 export function pousser(depot, { vers, bail = false }) {
-  if (bail && [TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push --force-with-lease` vers `main` : main n’entre qu’en fast-forward')
+  if ([TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push` vers `main` : main n’avance que par la file de fusion (`npm run ops:publier`)')
   return ecrire(depot, ['push', ...(bail ? ['--force-with-lease'] : []), 'origin', `HEAD:${revisionsDe([vers])[0]}`], { timeout: 600_000 })
 }
 

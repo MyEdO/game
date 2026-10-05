@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { byId, specPoolOf, specCatalogOf, specResolves, specLabel } from '../data';
 import { wildcardSpecs } from './careerSlots';
-import { createHero, adresseDeCreation } from './character';
+import { createHero } from './character';
+import { adresseDeCreation } from './adresseDeCreation';
 import { testValue } from './skills';
 import type { Combatant, SkillInstance } from './types';
 

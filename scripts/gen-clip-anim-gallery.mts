@@ -12,13 +12,14 @@ import { addPose } from '../src/gameIso/rig/poses';
 import { CLIPS, sampleClip, clipDuration, type Clip } from '../src/gameIso/rig/anim/clips';
 import { spellCastClip } from '../src/gameIso/rig/anim/spellClips';
 import { weaponRest, mountedAttackClip, mountedParryClip, seatedClip } from '../src/gameIso/rig/anim/weaponClips';
-import { seatRiderOnMount, mountedRest, mountedPlanOpts } from '../src/gameIso/rig/mountedRig';
-import { planById, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
+import { seatRiderOnMount, mountedRest, harnaisDeMonture } from '../src/gameIso/rig/mountedRig';
+import { planById, planOptsForRecord, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
 import { sizeTokenScale } from '../src/gameIso/sizeScale';
 import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
+import { equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -48,10 +49,10 @@ const sorcier: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build
 const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
 const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [] };
 const baton: Weapon = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 2 }, qualities: [] };
-const eqEpee: EquipCtx = { weapons: [epee], armour: [] };
-const eqArc: EquipCtx = { weapons: [arc], armour: [] };
-const eqBaton: EquipCtx = { weapons: [baton], armour: [] };
-const eqNu: EquipCtx = { weapons: [], armour: [] };
+const eqEpee: EquipCtx = equipDe([epee], []);
+const eqArc: EquipCtx = equipDe([arc], []);
+const eqBaton: EquipCtx = equipDe([baton], []);
+const eqNu: EquipCtx = equipDe([], []);
 
 const meleeClips: [string, Clip][] = [
   ['idle', CLIPS.idle], ['walk', CLIPS.walk], ['melee', CLIPS.melee],
@@ -71,10 +72,10 @@ const quad = planById('quadruped');
 const horse = resolveSpecies('cheval').species; // id d'espèce quad canonique (data)
 function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
   const dur = Math.max(clipDuration(clip), 1);
-  const equip: EquipCtx = { weapons: weapon ? [weapon] : [], armour: [] };
+  const equip: EquipCtx = equipDe(weapon ? [weapon] : [], []);
   const samples = sampleTimes(dur, N).map((t) => {
     // Monture PORTÉE : le harnachement vient de la couture montée (canal DONNÉE), jamais réexprimé ici.
-    const mountBones = quad.resolve(horse, 'profile', quad.restPose(), mountedPlanOpts(undefined));
+    const mountBones = quad.resolve(horse, 'profile', quad.restPose(), harnaisDeMonture(planOptsForRecord(undefined)));
     const riderPose = addPose(mountedRest('profile', weapon), sampleClip(clip, t).pose);
     const riderBones = resolveRig(soldat, equip, riderPose, TENUE_SOLDAT, 'profile', [], false);
     // Ratio cavalier DÉRIVÉ comme en jeu (`backends/webgl/sceneMeshes`, couple monté) : cavalier ÷ (art monture × Taille).
