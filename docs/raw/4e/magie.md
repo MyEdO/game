@@ -351,7 +351,7 @@ Un **Critique** (double réussi) lors de la Focalisation signifie qu'un flux pui
 > **Verbatim** (l.186-187) : « tant de magie concentrée si rapidement en un endroit entraîne un contrecoup magique : lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures (voir p.234), sauf si vous possédez le Talent Harmonisation aethyrique (voir p.138). »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.135-137) → `combat-spell-plus`, `FocusInterruptHook`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `focalisation-etendue`, `BattleState`, `lecture-au-grimoire`, +22 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +7 fichiers
+- `LDB 46` (l.135-137) → `combat-spell-plus`, `FocusInterruptHook`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `BattleState`, `focalisation-etendue`, `dispel`, +22 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +7 fichiers
 
 ---
 
@@ -545,7 +545,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 3. Si le sort est un *Projectile magique*, le Test de Corps à corps (Bagarre) est utilisé pour déterminer la **Localisation** (à la place du Test de Langue Magick inversé).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.123-124) → `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `focalisation-etendue`, `BattleState`, +32 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +11 fichiers
+- `LDB 46` (l.123-124) → `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `BattleState`, `focalisation-etendue`, +32 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +11 fichiers
 
 ---
 
@@ -557,7 +557,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 - Gain d'Avantage spécifique pendant l'incantation : si la cible a déjà été visée par un sort **du même Domaine** durant ce Round → +1 Avantage (le renforcement du Vent aide à focaliser la magie).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.122-126) → `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `focalisation-etendue`, `BattleState`, +33 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +11 fichiers
+- `LDB 46` (l.122-126) → `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `BattleState`, `focalisation-etendue`, +33 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +11 fichiers
 
 ---
 

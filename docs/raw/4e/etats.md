@@ -605,7 +605,7 @@ Ces tableaux utilisent tous les États standards (Hémorragique, Sonné, Aveugl�
 
 **Voir aussi** : Traumatisme (`traumatisme.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `AA 7` (l.27-29, l.82-182) → `StructureCritEntry`, `critEscalationSchema`, `pendantRounds`, `CritEscalation`, `amputationSchema`, `attackHandGate`, `Formula`, `MODAL_DEFS`, `retenir-ses-coups`, `aaCriticalOffset`, +108 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/valeurs.ts`, +16 fichiers
+- `AA 7` (l.27-29, l.82-182) → `StructureCritEntry`, `critEscalationSchema`, `pendantRounds`, `CritEscalation`, `amputationSchema`, `attackHandGate`, `Formula`, `MODAL_DEFS`, `aaCriticalOffset`, `retenir-ses-coups`, +108 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/grammaire/valeurs.ts`, +16 fichiers
 
 ---
 
