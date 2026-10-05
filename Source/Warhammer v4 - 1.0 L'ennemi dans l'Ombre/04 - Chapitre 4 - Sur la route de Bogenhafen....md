@@ -175,7 +175,13 @@ D'ici là, ils doivent rester perplexes.
 <span id="page-47-0" data-folio="48"></span>
 ## DOCUMENT 7 : LA LETTRE
 
-*À l'attention personnelle de Herr Adolphus Kuftsos À l'auberge-relais des Neuf Etoiles Route de Middenheim Altdorf*
+*À l'attention personnelle de Herr Adolphus Kuftsos*
+
+*À l'auberge-relais des Neuf Etoiles*
+
+*Route de Middenheim*
+
+*Altdorf*
 
 *Mon cher Herr Kuftsos,*
 

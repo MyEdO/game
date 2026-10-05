@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
 import { useGame } from '../../state/store';
-import type { NarratifBlock } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 
 /**
  * Anti-spoiler STRUCTUREL de la couche de campagne (#767). Le Compendium ne lit QUE les arrays GLOBAUX
@@ -13,6 +13,7 @@ import type { NarratifBlock } from '../../state/campaignNarratif';
  */
 describe('anti-spoiler : la couche de campagne n’entre jamais dans l’index Compendium (#767)', () => {
   const narratif: NarratifBlock = {
+    ...emptyNarratif(),
     affaires: [{ id: 'aff-corbeau-noir', titre: 'Le Corbeau noir' }],
     indices: [{ id: 'ind-lettre-scellee', affaireId: 'aff-corbeau-noir', kind: 'indice', titre: 'Lettre scellée', stades: [{ id: 's1', prose: 'Une lettre.' }] }],
     presetsPnj: [{ id: 'pnj-baron-spoiler' }],

@@ -33,7 +33,7 @@ export function ListRow({
    *  sémantique de sélection (rangée de navigation) : ni classe d'état, ni attribut d'état. */
   selected?: boolean;
   variant?: 'insp' | 'codex';
-  /** Puces de méta, alignées à droite. */
+  /** Puces de méta, alignées à droite ; elles passent SOUS le nom quand la place manque. */
   children?: ReactNode;
 }) {
   return (

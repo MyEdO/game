@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { presetPnjById, affaireById, indiceById, trappingById } from './campaignData';
-import type { NarratifBlock } from './campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import { emptyScene } from './scene';
 import { applyEffects } from './combatFlow';
 import type { Combatant } from '../engine/types';
@@ -12,6 +12,7 @@ import type { Scene } from './scene';
 const LAME_CAMPAGNE = 'campagne-lame-maudite';
 
 const narratif: NarratifBlock = {
+  ...emptyNarratif(),
   affaires: [{ id: 'aff-corbeau-noir', titre: 'Le Corbeau noir' }],
   indices: [{ id: 'ind-lettre-scellee', affaireId: 'aff-corbeau-noir', kind: 'indice', titre: 'Lettre scellée', stades: [{ id: 's1', prose: 'Une lettre.' }] }],
   presetsPnj: [{ id: 'pnj-baron-caché' }],

@@ -13,7 +13,7 @@ import { snapshotSave } from './saves';
 import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { NarratifBlock } from './campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 
 function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant {
   return {
@@ -25,7 +25,7 @@ function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant 
 }
 
 const CLOTURE = { when: { kind: 'flag' as const, expr: 'chapitre-clos' }, titre: 'Chapitre 1 — accompli' };
-const narratifClos: NarratifBlock = { affaires: [], indices: [], presetsPnj: [], objets: [], cloture: CLOTURE };
+const narratifClos: NarratifBlock = { ...emptyNarratif(), cloture: CLOTURE };
 
 const get = () => useGame.getState();
 const set = useGame.setState;

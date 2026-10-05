@@ -158,9 +158,29 @@ Tout Personnage qui accepterait l'offre de Josef de faire partie de l'équipage 
 
 #### DOCUMENT 6 : LA SCHAFFENFEST
 
-*Le Conseil et les Citoyens de Bögenhafen Vous invitent à l'inauguration de la Schaffenfest Qui se tiendra sur le pré communal le jour de Mitterfrülh La foire durera trois jours, du lever au coucher du soleil. Avec la gracieuse permission de Son Excellence Le Graf Wilhelm von Saponatheim Et de Son Altesse Le Grand-Duc Leopold du Middenland Une grande joute*
+*Le Conseil et les Citoyens de Bögenhafen*
 
-*Sera organisée entre les chevaliers et écuyers de leurs maisons Tout ceci en plus des distractions habituelles de notre fameux Marché aux bestiaux*
+*Vous invitent à l'inauguration de la Schaffenfest*
+
+*Qui se tiendra sur le pré communal le jour de Mitterfrülh*
+
+*La foire durera trois jours, du lever au coucher du soleil.*
+
+*Avec la gracieuse permission de Son Excellence*
+
+*Le Graf Wilhelm von Saponatheim*
+
+*Et de Son Altesse*
+
+*Le Grand-Duc Leopold du Middenland*
+
+*Une grande joute*
+
+*Sera organisée entre les chevaliers et écuyers de leurs maisons*
+
+*Tout ceci en plus des distractions habituelles de notre fameux*
+
+*Marché aux bestiaux*
 
 *Et de la plus grande foire ambulante du Reikland*
 

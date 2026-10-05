@@ -39,7 +39,7 @@ import {
   CLES_DE_SPECIALISATION,
   CLES_IDENTITE,
   CLES_PROSE_SANS_REFERENCE,
-  CLES_REFERENCE_SCOPEE,
+  estCleScopee,
   CLES_RESERVEES,
   CONCEPTS,
   CONCEPT_REFERENCE,
@@ -636,7 +636,7 @@ export function scannerDonnees(
    */
   const ouvreReference = (dataset: string, k: string, v: string): boolean =>
     !(CLES_PROSE_SANS_REFERENCE as readonly string[]).includes(k) &&
-    !(k in CLES_REFERENCE_SCOPEE) &&
+    !estCleScopee(k) &&
     !choixDeclares.get(dataset)?.get(k)?.has(v);
 
   /** Résolution BRUTE (l'id est indexé quelque part, ou le `{text}` égale un libellé). */
@@ -1031,7 +1031,7 @@ export function scannerDonnees(
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
       if (!estDocument && !estCollectionACle && !classe && typeof o.op !== 'string') {
-        const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k));
+        const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k) && !estCleScopee(k));
         const cleReservee = cles.find((k) => (CLES_RESERVEES as readonly string[]).includes(k));
         const cleIdentite = cles.find((k) => (CLES_IDENTITE as readonly string[]).includes(k));
         const motif: SignatureOrpheline['motif'] | null = cleRef

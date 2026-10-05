@@ -3,8 +3,9 @@
  * `SourceRefField` — l'UNIQUE éditeur d'une réf de source `{book, page, note?}` (#1993) : atelier du
  * Codex (champ `source`, emplacements secondaires, variantes) et éditeur narratif (ouverture, stade,
  * PNJ). Contrat : seule une réf COMPLÈTE (livre du registre, page ≥ 1) est émise ; une saisie
- * incomplète n'est jamais perdue — facultative, elle émet `undefined` ; exigée, elle n'émet rien et le
- * champ se dit incomplet. Les clés du porteur (`quote` d'un `SecondaryRef`) gardent leur place.
+ * incomplète n'est jamais perdue : elle n'émet rien, la source retenue reste la précédente et le champ
+ * se dit incomplet ; facultative, seul un brouillon VIDE (livre, page et note vides) émet `undefined`.
+ * Les clés du porteur (`quote` d'un `SecondaryRef`) gardent leur place.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState, type ReactElement } from 'react';
@@ -86,6 +87,8 @@ describe('SourceRefField — seule une réf complète est émise, la saisie ne s
     const options = [...livre('Livre de la source du témoin').options].map((o) => o.value);
     expect(options).toContain('livre-de-base');
     expect(options).toContain('');
+    const option = [...livre('Livre de la source du témoin').options].find((o) => o.value === 'livre-de-base');
+    expect(option?.textContent, 'le livre s’affiche par son id, pas par son libellé').toBe('Livre de Base');
   });
 
   it('facultative : le livre seul n’émet rien de complet ; la page VALIDÉE le complète ; « aucun » retire la source', () => {
@@ -103,9 +106,11 @@ describe('SourceRefField — seule une réf complète est émise, la saisie ne s
     expect(incomplet(), 'un champ facultatif vide n’est pas incomplet').toBeNull();
   });
 
-  it('facultative : une note seule émet `undefined` et reste à l’écran ; le livre et la page la posent', () => {
+  it('facultative : une note seule n’émet rien et reste à l’écran ; le livre et la page la posent', () => {
+    emissions = 0;
     monter(<Facultative />);
     saisir(champ('Note de la source du témoin'), 'ch. 4 l.12');
+    expect(emissions, 'un brouillon facultatif incomplet a été émis').toBe(0);
     expect(facultative).toBeUndefined();
     expect(champ('Note de la source du témoin').value).toBe('ch. 4 l.12');
     saisir(livre('Livre de la source du témoin'), 'livre-de-base');
@@ -119,6 +124,18 @@ describe('SourceRefField — seule une réf complète est émise, la saisie ne s
     poserPage(champ('Page de la source du témoin'), '0');
     expect(facultative).toBeUndefined();
     expect(incomplet()).toContain('incomplète');
+  });
+
+  it('facultative : une source COMPLÈTE dont la page passe à 0 reste retenue — rien n’est émis, le message la nomme', () => {
+    emissions = 0;
+    monter(<Facultative initiale={{ book: 'livre-de-base', page: 27 }} />);
+    const page = champ('Page de la source du témoin');
+    poserPage(page, '');
+    poserPage(page, '0');
+    expect(emissions, 'un brouillon facultatif incomplet a effacé la source retenue').toBe(0);
+    expect(facultative).toEqual({ book: 'livre-de-base', page: 27 });
+    expect(incomplet()).toContain('la source retenue reste « ');
+    expect(incomplet()).toContain(' p. 27 »');
   });
 
   it('facultative : « aucun » au livre retire la source en UN geste — livre, page et note se vident, rien n’est incomplet', () => {
@@ -332,6 +349,13 @@ describe('atelier du Codex — le champ `source` et les variantes composent la p
     saisir(champ('Citation de l\'emplacement 1'), 'citation modifiée');
     expect(champ('Page de la source de l\'emplacement 1').value, 'la page du brouillon est revenue en silence').toBe('0');
     expect(enregistrer().disabled, 'Enregistrer poserait l’ancienne page sous la page vidée').toBe(true);
+  });
+
+  it('entrée NEUVE : la source se choisit dans les livres, pas en texte libre', () => {
+    monter(<CodexEdit categoryKey="talents" isNew onClose={() => {}} />);
+    const nom = [...container!.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label')!).find((n) => n.startsWith('Livre — '));
+    expect(nom, 'aucun sélecteur de livre sur la source d’un talent neuf').toBeTruthy();
+    expect([...livre(nom!).options].map((o) => o.value)).toContain('livre-de-base');
   });
 
   it('dataset à source FACULTATIVE : une entrée sans source ne se dit pas incomplète', () => {

@@ -1441,10 +1441,10 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       'un noyau d’enveloppe a mordu ailleurs que sur sa porte (ou l’a lâchée) — un concept qui déborde est le débordement global que le DoD interdit, et il se NOMME ici avant de se déclarer.',
     ).toEqual(
       lignes([
-        'narratif | arene-projet.json › narratif | affaires,indices,objets,presetsPnj',
-        'narratif | loup-et-saumure-projet.json › narratif | affaires,indices,objets,presetsPnj',
-        'narratif | barge-du-sel-projet.json › narratif | affaires,indices,objets,presetsPnj+…',
-        'narratif | diligence-projet.json › narratif | affaires,indices,objets,presetsPnj+…',
+        'narratif | arene-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
+        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
+        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
+        'narratif | diligence-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
         'ouverture | barge-du-sel-projet.json › ouverture | pitch,titre+…',
         'ouverture | diligence-projet.json › ouverture | pitch,titre+…',
         'cloture | barge-du-sel-projet.json › cloture | titre,when+…',

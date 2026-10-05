@@ -76,6 +76,7 @@ export function MasterDetail({
   list,
   detail,
   listLabel,
+  action,
   aside = 'sm',
   className,
 }: {
@@ -85,6 +86,9 @@ export function MasterDetail({
   detail: ReactNode;
   /** `aria-label` du conteneur de liste. */
   listLabel?: string;
+  /** Slot d'ACTION de la liste (« Ajouter un… ») : collé SOUS le rail, hors de son défilement —
+   *  jamais perdu au pied d'une liste longue. */
+  action?: ReactNode;
   /** Largeur du rail de liste (`Split` prop `aside`) : `sm` rail étroit, `lg` liste qui respire. */
   aside?: 'sm' | 'lg';
   className?: string;
@@ -106,19 +110,27 @@ export function MasterDetail({
     });
   }, []);
 
+  const rail = (
+    <Stack
+      ref={listRef}
+      className="master-detail-list"
+      gap="xs"
+      rowBelow={MASTER_DETAIL_STACK_BREAKPOINT_PX}
+      aria-label={listLabel}
+      onClickCapture={handleListInteraction}
+      onKeyDownCapture={handleListInteraction}
+    >
+      {list}
+    </Stack>
+  );
   return (
     <Split className={className} aside={aside} gap="lg" stackBelow={MASTER_DETAIL_STACK_BREAKPOINT_PX}>
-      <Stack
-        ref={listRef}
-        className="master-detail-list"
-        gap="xs"
-        rowBelow={MASTER_DETAIL_STACK_BREAKPOINT_PX}
-        aria-label={listLabel}
-        onClickCapture={handleListInteraction}
-        onKeyDownCapture={handleListInteraction}
-      >
-        {list}
-      </Stack>
+      {action == null ? rail : (
+        <div className="master-detail-rail">
+          {rail}
+          <div className="master-detail-action">{action}</div>
+        </div>
+      )}
       <div ref={detailRef}>{detail}</div>
     </Split>
   );
