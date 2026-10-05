@@ -61,7 +61,8 @@ import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { BORNE_EJECTIONS, ETAPES, attendre, issueDeFusion, prDeRest, refusDeGit } from './etapesDuTrain.mjs'
+import { corpsDeFusion, fusionDe } from '../guards/lib/fusionPr.mjs'
+import { BORNE_EJECTIONS, ETAPES, attendre, prDeRest, refusDeGit } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -726,39 +727,6 @@ function lirePr(racine, branche) {
   } catch (e) {
     return { ok: false, raison: e.message }
   }
-}
-
-/**
- * Une sortie de `gh api --include` : le code de la ligne d'état, puis le corps JSON après la ligne vide.
- * PURE. `gh` rend un code non nul sur un 4xx, mais écrit l'état et le corps sur stdout (mesuré
- * 2026-09-30 : `gh api -i` sur un 404 → `HTTP/2.0 404 Not Found`, en-têtes CRLF, corps JSON, exit 1).
- * @returns {{ok:true, code:number, corps:any}|{ok:false, raison:string}}
- */
-export function reponseHttp(sortie) {
-  const texte = String(sortie ?? '')
-  const etat = /^HTTP\/[\d.]+ (\d{3})/.exec(texte)
-  if (!etat) return { ok: false, raison: `réponse sans ligne d’état HTTP : ${JSON.stringify(texte.slice(0, 120))}` }
-  const vide = /\r?\n\r?\n/.exec(texte)
-  const brut = vide ? texte.slice(vide.index + vide[0].length).trim() : ''
-  try {
-    return { ok: true, code: Number(etat[1]), corps: brut ? JSON.parse(brut) : null }
-  } catch (e) {
-    return { ok: false, raison: `HTTP ${etat[1]}, corps illisible : ${e.message}` }
-  }
-}
-
-/** Le corps de `PUT …/pulls/{n}/merge-async` : `sha` = la tête jugée (« SHA that pull request head
- *  must match to allow merge »), `merge_action: default`. Aucun `merge_method` (« Only supported for
- *  direct merges ») : la file suit sa règle, scripts/ops/ruleset-main.mjs. PURE. */
-export const corpsDeFusion = (sha) => JSON.stringify({ sha, merge_action: 'default' })
-
-/** Un appel `gh api --include` de la demande de fusion, réduit par `issueDeFusion` : un 4xx porte un
- *  corps que l'étape lit. PURE. */
-export function fusionDe(vu) {
-  if (!vu.ok && vu.stdout === undefined) return vu
-  const lu = reponseHttp(vu.stdout)
-  if (!lu.ok) return { ok: false, raison: vu.ok ? lu.raison : `${vu.raison} — ${lu.raison}` }
-  return issueDeFusion(lu)
 }
 
 /** Un uuid de demande de fusion, sinon levée. */

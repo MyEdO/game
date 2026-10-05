@@ -1223,6 +1223,9 @@ export interface TrappingData {
    *  (`engine/items`). À NE PAS confondre avec `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE à
    *  l'état improvisé par l'usure (`LDB 62 l.135`). */
   improvised?: true;
+  /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911), lue par `isShieldTrapping`
+   *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+  shield?: true;
   /** Formes choisibles (slugs `WeaponDef.slug`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
    *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
    *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */

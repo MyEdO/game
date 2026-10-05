@@ -107,6 +107,9 @@ const doc = document(
      *  `isImprovisedTrapping` (engine/items). ≠ `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE
      *  à cet état par l'usure (`LDB 62 l.135`). */
     improvised: z.literal(true).optional(),
+    /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911) — marque lue par
+     *  `isShieldTrapping` (engine/items). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+    shield: z.literal(true).optional(),
     indirect: z.boolean().optional(),
     /** LDB 62 l.278 — approximation MAISON (le RAW ne liste pas les armes à lame), éditable. */
     bladed: z.boolean().optional(),
@@ -204,6 +207,7 @@ const doc = document(
       hint: 'Marque l’entrée « Mains nues » du catalogue — seule lue pour écarter les poings des armes tenues',
     },
     improvised: { label: 'Est l’arme improvisée', hint: 'Marque l’entrée « Arme improvisée » du catalogue' },
+    shield: { label: 'Est un bouclier', hint: 'Marque une entrée de bouclier du catalogue — seule lue pour reconnaître un bouclier' },
     indirect: { label: 'Tir indirect', hint: 'Tir en arc (mortier/catapulte) : vise une case, jamais une cible directe' },
     bladed: {
       label: 'Porte une lame (maison)',

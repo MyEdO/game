@@ -10,11 +10,14 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 ## 1. Pipeline
 
 - **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
-  `user-doctrine-campagne-jamais-generee-par-script`), édité comme document JSON. À l'éditeur, « Ouvrir »
-  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> », et « Fichier → Exporter
-  JSON » passe la porte du document puis télécharge `<id de la scène COURANTE>-projet.json`, scène courante
-  en tête (donc scène d'entrée) : ce fichier ne remplace PAS le paquet commité tel quel, son label, son nom
-  et sa scène d'entrée ont changé (`src/ui/editor/Editor.tsx`, `exportJson` et `loadBuiltin` ; #1997). Tout paquet neuf se
+  `user-doctrine-campagne-jamais-generee-par-script`), édité à l'éditeur ou comme document JSON. « Ouvrir »
+  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> ». L'aller-retour vers le
+  paquet est « Fichier → Exporter forme dépôt (dev) » (offert en DEV pour une campagne livrée,
+  `origineLivree`) : le fichier `BuiltinCampaign.fichier`, au format du dépôt (`projetVersDepot`, §10ter),
+  libellé d'origine tant que le projet n'est pas renommé, ordre des scènes et scène d'entrée conservés
+  (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
+  « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
+  copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
   déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
   `src/scenes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
@@ -313,7 +316,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   (`src/state/campaignData.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
-  passées à `spawnEnemy` (canal `presetCreature`) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
+  passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
   dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
   (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (clause `presetId` de
   `projetSchema`) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
@@ -325,10 +328,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
   refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
   livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
-  `?raw`. L'export portable garde `desc` ET `descRef` ; l'éditeur offre en DEV, pour une campagne LIVRÉE
-  ouverte (`origineLivree`), « Exporter forme dépôt » (`projetVersDepot`, `src/state/worldMap.ts` : prose
-  ET ports par référence ramenés à leur forme canonique) : le fichier téléchargé sous son nom
-  (`BuiltinCampaign.fichier`), avec le libellé d'origine tant que le projet n'est pas renommé.
+  `?raw`. L'export portable garde `desc` ET `descRef` ; « Exporter forme dépôt » (§1) passe par
+  `projetVersDepot` (`src/state/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
+  canonique.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
 

@@ -11,8 +11,8 @@ import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
-  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsDesCommits, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
+  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
+  depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
@@ -20,6 +20,7 @@ import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } fr
 import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
 import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
+import { histoireDeHead, shasDeSubstance } from './revuePalier.mjs'
 
 const ZERO = '0'.repeat(40)
 
@@ -90,9 +91,9 @@ test('env fournisseur : absence, promesse et retour invalide sont nommés sans r
 const reponseDeFusion = (args, version = 'git version 2.45.1\n') => ({
   status: 0,
   stdout: args.includes('version') ? version
-    : args.includes('rev-list') ? 'abc arbre-de-abc p1 p2\n'
+    : args.includes('rev-list') ? 'abc aaaa p1 p2\n'
       : args.includes('hash-object') ? 'vide\n'
-        : args.includes('merge-tree') ? '1\0arbre\0' : '',
+        : args.includes('merge-tree') ? '1\0bbbb\0\0' : '',
   stderr: '',
 })
 
@@ -500,6 +501,82 @@ test('#2285 mesure : tenter conserve les sorties complètes et les détails rée
   assert.deepEqual(tenter(() => null), { disponible: true, valeur: null })
 })
 
+for (const issue of ['refus', 'lancement', 'interruption']) test(`#2285 intégration tenter : GitIndisponible structurée — ${issue}`, () => {
+  const diagnostic = { status: issue === 'refus' ? 17 : null, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: `${'note stderr\n'.repeat(50)}cause stderr tardive\n`, ...(issue === 'interruption' ? { signal: 'SIGTERM' } : {}) }
+  const erreur = new GitIndisponible({ disponible: false, raison: 'lecture refusée', issue, diagnostic })
+  const vu = tenter(() => { throw erreur })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, issue)
+  assert.equal(vu.diagnostic, diagnostic)
+  assert.ok(vu.raison.includes(diagnostic.stdout))
+  assert.ok(vu.raison.includes(diagnostic.stderr))
+})
+
+test('#2285 intégration tenter : consommation réelle shasDeSubstance', () => {
+  const stderr = `${'note stderr\n'.repeat(50)}fatal: cause tardive\n`
+  const stdout = 'flux distinct complet\n'
+  const d = depotFeint(tmpdir(), () => ({ status: 17, stdout, stderr }))
+  const vu = tenter(() => shasDeSubstance(d, ['HEAD']))
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'refus')
+  assert.equal(vu.diagnostic.status, 17)
+  assert.equal(vu.diagnostic.stdout, stdout)
+  assert.equal(vu.diagnostic.stderr, stderr)
+  assert.ok(vu.raison.includes(stdout))
+  assert.ok(vu.raison.includes(stderr))
+})
+
+test('#2285 intégration tenter : erreur système sans processus inventé', () => {
+  const erreur = Object.assign(new Error('lecture système refusée'), { errno: -13, syscall: 'read', code: 'EACCES' })
+  const vu = tenter(() => { throw erreur })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'mesure')
+  assert.equal(vu.raison, erreur.message)
+  assert.equal(Object.hasOwn(vu, 'diagnostic'), false)
+})
+
+test('#2285 intégration tenter : erreur de programme remontée par identité', () => {
+  for (const erreur of [new TypeError('programme'), Object.assign(new Error('interne'), { code: 'ERR_INTERNE' })]) {
+    assert.throws(() => tenter(() => { throw erreur }), (e) => e === erreur)
+  }
+})
+
+for (const [lecteur, commande, jouer] of [
+  ['commits', 'diff-tree', (d) => ceQueFontLesCommits(d, [{ sha: 'a'.repeat(40), arbre: 'b'.repeat(40), parents: [] }]).chemins()],
+  ['fusion en cours', 'merge-tree', (d) => ceQueFaitLaFusionEnCours(d, ['a'.repeat(40), 'b'.repeat(40)], INDEX)],
+]) for (const [nom, reponse, issue] of [
+  ['absence', { status: 128, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: `${'note stderr\n'.repeat(50)}fatal: bad object — cause tardive\n` }, 'mesure'],
+  ['nonzero', { status: 17, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: '' }, 'refus'],
+  ['panne', { status: 17, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: `${'note stderr\n'.repeat(50)}fatal: cause tardive\n` }, 'refus'],
+  ['interruption', { status: null, stdout: 'avant interruption\n', stderr: 'cause interruption\n', signal: 'SIGTERM' }, 'interruption'],
+]) test(`#2285 intégration lot : ${lecteur} — ${nom}`, () => {
+  const pannes = []
+  const d = depotFeint(tmpdir(), (args) => args.includes(commande) ? reponse : { status: 0, stdout: args.includes('version') ? 'git version 2.45.1\n' : args.includes('hash-object') ? `${ZERO}\n` : '', stderr: '' }, (r) => pannes.push(r))
+  assert.throws(() => jouer(d), (e) => {
+    assert.ok(e instanceof GitIndisponible)
+    assert.equal(e.issue, issue)
+    assert.ok(e.raison.includes('illisible'))
+    assert.equal(e.diagnostic.status, reponse.status)
+    for (const flux of ['stdout', 'stderr']) {
+      assert.equal(e.diagnostic[flux], reponse[flux])
+      if (reponse[flux]) assert.ok(e.raison.includes(reponse[flux]))
+    }
+    if (reponse.signal) assert.equal(e.diagnostic.signal, reponse.signal)
+    return true
+  })
+  assert.deepEqual(pannes, [], 'un lot lève même avec enPanne')
+})
+
+test('#2285 intégration lot : succès et conflit amont gardent leur arbre', () => {
+  for (const propre of ['0', '1']) {
+    const d = depotFeint(tmpdir(), (args) => ({ status: 0, stdout: args.includes('version') ? 'git version 2.45.1\n' : args.includes('hash-object') ? `${ZERO}\n` : args.includes('merge-tree') ? `${propre}\0${'b'.repeat(40)}\0\0` : '', stderr: '' }))
+    const change = ceQueFaitLaFusionEnCours(d, ['a'.repeat(40), 'c'.repeat(40)], INDEX)
+    assert.equal(change.base, 'b'.repeat(40))
+    assert.deepEqual(change.chemins(), [])
+    assert.deepEqual([...ceQueFontLesCommits(d, []).chemins()], [])
+  }
+})
+
 test('#2285 mesure fs : lecteur réel, exception et callback, sans processus inventé', () => {
   const cwd = mkdtempSync(join(tmpdir(), 'mesure-fs-2285-'))
   try {
@@ -804,7 +881,7 @@ test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION 
   assert.deepEqual(ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1'), 'abc').chemins(), ['a.txt'])
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas git merge-tree --write-tree --stdin \(git 2\.40 ou plus\)/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur(null, 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /version de git illisible/.test(e.raison))
-  assert.deepEqual(ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc').chemins(), [], 'windows lu ; merge-tree muet : base nulle')
+  assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /illisible/.test(e.raison), 'windows lu ; git muet : la fusion illisible se NOMME, jamais « sans apport »')
   assert.deepEqual(ceQueFaitLeCommit(muet(), 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.43.0', 'p1 p2 p3'), 'abc'), (e) => e instanceof GitIndisponible && /à 3 parents/.test(e.raison))
 })
@@ -1168,7 +1245,7 @@ const gestesALaBorne = (d, b) => ({
   baseCommune: () => baseCommune(d, b, 'HEAD'),
   shaDe: () => shaDe(d, b),
   estAncetre: () => estAncetre(d, b, 'HEAD'),
-  estDansHead: () => estDansHead(d, b),
+  'histoireDeHead dansHead': () => histoireDeHead(d).dansHead([b])[0],
   'ceQuiChange avant': () => ceQuiChange(d, b, 'HEAD'),
   'ceQuiChange apres': () => ceQuiChange(d, 'HEAD', b),
   'ceQuiChange INDEX': () => ceQuiChange(d, b, INDEX),
@@ -1263,7 +1340,7 @@ test('un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndis
           combienDe: () => combienDe(d, [`${premier}..main`]),
           shasDe: () => shasDe(d, [`${premier}..main`]),
           journalDe: () => journalDe(d, [`${premier}..main`]),
-          estDansHead: () => estDansHead(d, premier),
+          'histoireDeHead dansHead': () => histoireDeHead(d).dansHead([premier]),
         } : {}),
       }
       for (const [nom, question] of Object.entries(questions))
@@ -1326,7 +1403,7 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const F = 'f'.repeat(40)
     const attendus = {
       shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, parentsDe: null,
-      estAncetre: { disponible: true, absent: true }, estDansHead: false,
+      estAncetre: { disponible: true, absent: true }, 'histoireDeHead dansHead': false,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
     assert.equal(questions.length, 17)
@@ -1566,22 +1643,49 @@ test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git ré
   assert.equal(lances.length, 1, 'un binaire absent ne lance rien')
 })
 
-test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {
-  const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' })
-  const illisible = (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' })
-  for (const [repondre, raison] of [[panne, /^fatal: boum\n$/], [illisible, /^rebase-merge illisible : .*without null bytes/]]) {
+/** Un FAUX git (`process.execPath` sur un script du banc) qui sort en `code` avec `stderr` SANS lire son
+ *  entrée : `fn(depot)`, sous 8 Mo d'entrée, perd TOUJOURS la course de l'écriture (pas de course). */
+function sousUnGitQuiNeLitPas(code, stderr, fn) {
+  const dossier = mkdtempSync(join(tmpdir(), 'faux-git-'))
+  try {
+    const script = join(dossier, 'faux-git.mjs')
+    writeFileSync(script, `process.stderr.write(${JSON.stringify(stderr)})\nprocess.exit(${code})\n`)
+    const vus = []
+    const spawn = (_git, _args, options) => {
+      const vu = spawnSync(process.execPath, [script], options)
+      vus.push(vu.error?.code)
+      return vu
+    }
+    return fn(depotDe(dossier, { env: envDeDepotForge(), spawn }), vus)
+  } finally { jeter(dossier) }
+}
+
+test('une ENTRÉE que git ne lit pas (EPIPE, EOF) ne masque jamais son statut : sorti en 128, la cause est son stderr ; sorti en 0, l’entrée non lue se NOMME', () => {
+  const revisions = Array.from({ length: 100000 }, (_, i) => i.toString(16).padStart(40, 'a'))
+  sousUnGitQuiNeLitPas(128, 'fatal: not a git repository (faux git)\n', (d, vus) => {
+    assert.throws(() => commitsNommes(d, revisions), (e) => e instanceof GitIndisponible && /^fatal: not a git repository \(faux git\)/.test(e.raison), 'la cause est le stderr de git')
+    assert.ok(['EPIPE', 'EOF'].includes(vus[0]), `témoin : l'écriture de l'entrée a perdu la course (${vus[0]})`)
+  })
+  sousUnGitQuiNeLitPas(0, '', (d, vus) => {
+    assert.throws(() => commitsNommes(d, revisions), (e) => e instanceof GitIndisponible && /sorti en 0 sans lire son entrée en entier \((EPIPE|EOF)\)/.test(e.raison))
+    assert.ok(['EPIPE', 'EOF'].includes(vus[0]), `témoin : l'écriture de l'entrée a perdu la course (${vus[0]})`)
+  })
+})
+
+for (const [nom, repondre, raison] of [
+  ['panne newline', () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' }), /^fatal: boum\n$/],
+  ['panne cause tardive', () => ({ status: 128, stdout: '', stderr: `${'note de refus\n'.repeat(50)}fatal: cause tardive\n` }), /^note de refus\n(?:note de refus\n){49}fatal: cause tardive\n$/],
+  ['NUL', (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' }), /^rebase-merge illisible : octet nul dans le chemin que git rend/],
+]) test(`rebaseEntame : git en panne ou chemin d’état ILLISIBLE — ${nom}`, () => {
     assert.throws(() => rebaseEntame(depotFeint(tmpdir(), repondre)), (e) => e instanceof GitIndisponible && raison.test(e.raison), String(raison))
     const pannes = []
     assert.equal(rebaseEntame(depotFeint(tmpdir(), repondre, (r) => pannes.push(r))), null)
     assert.equal(pannes.length, 1, JSON.stringify(pannes))
     assert.match(pannes[0], raison)
-  }
 })
 
 
-// ── LES CAS BORDS du graphe et des chemins en lot (#2294) : grapheDe, commitsNommes, cheminsDesCommits,
-// diffParChemin, contre git RÉEL. Sondes d'origine du juge de diff : gitlink, mode seul, espaces et
-// non-ASCII, octopus, clone superficiel, fusion sans ancêtre commun, fusion retouchée.
+// #2294
 
 /** Le dépôt des cas bords, et chaque commit nommé. */
 function depotDesBords() {
@@ -1634,11 +1738,11 @@ test('grapheDe : arbre et parents de chaque commit, racine, fusion sans ancêtre
   assert.equal(grapheDe(forge(racine), ['deadbeef..main']), null, 'une plage que git ne rend pas : null')
 })
 
-test('cheminsDesCommits : gitlink, mode seul, renommage, commit vide, espaces et non-ASCII — les VALEURS (#2294)', () => {
+test('ceQueFontLesCommits : gitlink, mode seul, renommage, commit vide, espaces et non-ASCII — les VALEURS (#2294)', () => {
   const { racine, c } = lesBords()
   const d = forge(racine)
   const simples = grapheDe(d, ['main']).filter((x) => x.parents.length <= 1)
-  const chemins = cheminsDesCommits(d, simples)
+  const chemins = ceQueFontLesCommits(d, simples).chemins()
   const trie = (sha) => [...chemins.get(sha)].sort(parUnitesDeCode)
   assert.deepEqual(trie(c.racine), ['README', 'src/a.txt'])
   assert.deepEqual(trie(c.renommage), ['src/a.txt', 'src/b.txt'], 'un renommage en ses deux bouts')
@@ -1648,7 +1752,22 @@ test('cheminsDesCommits : gitlink, mode seul, renommage, commit vide, espaces et
   assert.deepEqual(trie(c.gitlink), ['src/sub'], 'un gitlink est un chemin')
   assert.deepEqual(trie(c.orpheline), ['autre/o.txt'], 'une seconde racine se lit contre l’arbre vide')
   for (const commit of simples) assert.deepEqual(trie(commit.sha), [...ceQueFaitLeCommit(d, commit.sha).chemins()].sort(parUnitesDeCode), commit.sha)
-  assert.throws(() => cheminsDesCommits(d, grapheDe(d, ['main']).filter((x) => x.sha === c.fusionPropre)), /fusions .* ceQueFaitLeCommit/)
+})
+
+test('ceQueFontLesCommits : fusions et commits simples d’UN lot rendent ce que ceQueFaitLeCommit rend de chacun ; l’octopus LÈVE (#2294)', () => {
+  const { racine, c } = lesBords()
+  const d = forge(racine)
+  const graphe = grapheDe(d, ['main'])
+  const lot = graphe.filter((x) => x.parents.length <= 2)
+  assert.ok(lot.filter((x) => x.parents.length === 2).length >= 3, 'témoin : propre, sans ancêtre commun, retouchée')
+  const fait = ceQueFontLesCommits(d, lot)
+  for (const commit of lot) {
+    const seul = ceQueFaitLeCommit(d, commit)
+    assert.deepEqual([...fait.chemins().get(commit.sha)].sort(parUnitesDeCode), [...seul.chemins()].sort(parUnitesDeCode), commit.sha)
+    assert.deepEqual(fait.patchs().get(commit.sha), patchsParChemin(seul.diff()), commit.sha)
+  }
+  assert.deepEqual(fait.chemins().get(c.fusionRetouchee), ['src/ajout.txt'], 'seule la retouche est l’apport de la fusion')
+  assert.throws(() => ceQueFontLesCommits(d, graphe).chemins(), (e) => e instanceof GitIndisponible && /3 parents/.test(e.raison))
 })
 
 test('ceQueFaitLeCommit d’une FUSION lue dans le graphe : propre, sans ancêtre commun, retouchée, octopus (#2294)', () => {
@@ -1668,12 +1787,14 @@ test('commitsNommes : sha complet ou abrégé, étiquette pelée ; arbre, blob e
   assert.deepEqual(commitsNommes(forge(racine), []), [])
 })
 
-test('diffParChemin : le patch d’UN commit découpé par chemin, espaces et non-ASCII compris (#2294)', () => {
+test('ceQueFontLesCommits, patchs : le patch de chaque commit découpé par chemin, espaces et non-ASCII compris (#2294)', () => {
   const { racine, c } = lesBords()
-  const patchs = ceQueFaitLeCommit(forge(racine), c.espaces).diffParChemin()
-  assert.deepEqual([...patchs.keys()].sort(parUnitesDeCode), ['scripts/ü ñ.md', 'src/dossier é/fi chier.txt'])
-  assert.match(patchs.get('src/dossier é/fi chier.txt'), /\n@@ -0,0 \+1 @@\n\+z(?:\n|$)/)
-  assert.deepEqual([...ceQueFaitLeCommit(forge(racine), c.fusionPropre).diffParChemin()], [], 'une fusion propre n’a aucun patch')
+  const d = forge(racine)
+  const graphe = new Map(grapheDe(d, ['main']).map((x) => [x.sha, x]))
+  const patchs = ceQueFontLesCommits(d, [graphe.get(c.espaces), graphe.get(c.fusionPropre)]).patchs()
+  assert.deepEqual([...patchs.get(c.espaces).keys()].sort(parUnitesDeCode), ['scripts/ü ñ.md', 'src/dossier é/fi chier.txt'])
+  assert.match(patchs.get(c.espaces).get('src/dossier é/fi chier.txt'), /\n@@ -0,0 \+1 @@\n\+z(?:\n|$)/)
+  assert.deepEqual([...patchs.get(c.fusionPropre)], [], 'une fusion propre n’a aucun patch')
 })
 
 test('patchsParChemin : un en-tête CITÉ (core.quotePath) se décode, un changement de type joint ses deux sections, un en-tête hors forme LÈVE (#2294)', () => {
@@ -1694,6 +1815,6 @@ test('clone SUPERFICIEL : la borne se lit comme une racine (#2294)', () => {
     const borne = graphe.find((x) => x.parents.length === 0)
     assert.ok(borne, `graphe : ${JSON.stringify(graphe)}`)
     const tout = lancerGit(['ls-tree', '-r', '-z', '--name-only', borne.sha], { cwd: join(clone, 'c') }).split('\0').filter(Boolean).sort(parUnitesDeCode)
-    assert.deepEqual([...cheminsDesCommits(d, [borne]).get(borne.sha)].sort(parUnitesDeCode), tout, 'la borne apporte tout son arbre')
+    assert.deepEqual([...ceQueFontLesCommits(d, [borne]).chemins().get(borne.sha)].sort(parUnitesDeCode), tout, 'la borne apporte tout son arbre')
   } finally { jeter(clone) }
 })

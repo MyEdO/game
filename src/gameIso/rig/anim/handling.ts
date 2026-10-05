@@ -18,7 +18,7 @@ export type Handling =
 /** FORME (slug d'art résolu, `FormeDArme.forme`) → classe de maniement. Clés = slugs des formes (weaponForms.ts). */
 const FORM_HANDLING: Record<string, Handling> = {
   // Lame/percussion à UNE main (taille au côté). bec-de-corbin = pic 1-main (≠ son Groupe Cavalerie).
-  couteau: 'lame1m', dague: 'lame1m', gourdin: 'lame1m', improvisee: 'lame1m', bec_de_corbin: 'lame1m',
+  couteau: 'lame1m', dague: 'lame1m', improvisee: 'lame1m', bec_de_corbin: 'lame1m',
   // Escrime : estoc/fente, pointe en avant.
   fleuret: 'escrime', rapiere: 'escrime',
   // Lourde à DEUX mains : grand coup vertical, deux mains sur la poignée.

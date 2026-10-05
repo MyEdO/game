@@ -124,9 +124,18 @@ describe('1. composition : le rendu est l’assemblage de ses unités, sa norme 
   });
 
   it('sur les textes libres des fixtures', () => {
-    for (const md of [...ESSAIS.blocks.map((b) => b.md), FIXTURE, '***\n\nUn paragraphe.\n\n**']) {
+    for (const md of [...ESSAIS.blocks.map((b) => b.md), '***\n\nUn paragraphe.\n\n**']) {
       expect(normDe(unitesDuTexte(md))).toBe(normText(md));
     }
+    // Une ligne de titre est traduite (ci-dessous) : la norme est celle du texte traduit.
+    expect(normDe(unitesDuTexte(FIXTURE))).toBe(normText(FIXTURE.replace('# Essais', '**Essais**')));
+  });
+
+  it('une ligne de titre markdown du texte libre devient le titre du fil, en gras', () => {
+    const [titre, paragraphe] = unitesDuTexte(FIXTURE);
+    expect(titre.md).toBe('**Essais**');
+    expect(paragraphe.md).toBe(ESSAIS.blocks[0].md);
+    expect(unitesDuTexte('### **Titre** ##\nsuite du paragraphe')[0].md).toBe('**Titre**\nsuite du paragraphe');
   });
 });
 
