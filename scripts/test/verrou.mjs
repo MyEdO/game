@@ -9,6 +9,7 @@
 // La suite lancée PAR les gates ne le reprend pas : le jeton `WFRP_SUITE_LOCK_TENU` la rend réentrante.
 // Restent hors porte : `npm run test:watch`, `npm run test:map` (scripts/map, court) et tout
 // `npx vitest run` tapé à la main — `scripts/lancer-local.mjs` leur sert au moins le vitest de CET arbre.
+import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -45,11 +46,13 @@ export function refusVerrou({ chemin, tenant }) {
 
 /**
  * PREND le verrou. REND `{ etat }` :
- *  - `pris` (+ `liberer()`) : le fichier a été créé par CE processus ;
+ *  - `pris` (+ `liberer()`) : le fichier a été créé par CE processus ; il porte son tenant dès qu'il
+ *    existe — écrit dans un temporaire voisin, puis lié à `chemin` par `linkSync`, exclusif ;
  *  - `refus` (+ `message`) : un PID VIVANT le tient ;
  *  - `reentrant` : un ANCÊTRE de ce processus le tient déjà (jeton `WFRP_SUITE_LOCK_TENU`) ;
  *  - `ignore` (+ `avertissement`) : opt-out `WFRP_SUITE_LOCK=0`.
- * Un verrou laissé par un PID MORT (machine éteinte, run tué) est REPRIS.
+ * Un verrou laissé par un PID MORT (machine éteinte, run tué), ou illisible, est REPRIS sous le verrou
+ * de reprise `<chemin>.reprise` (`reprendre`) ; un verrou absent ou inaccessible à la lecture se retente.
  * `fs` et `estVivant` sont injectés pour la mesure ; par défaut, le disque et `process.kill(pid, 0)`.
  */
 export function prendreVerrou({
@@ -86,28 +89,30 @@ export function prendreVerrou({
       /* verrou déjà retiré : rien à libérer */
     }
   }
+  const temporaire = `${chemin}.${pid}.${randomUUID()}`
+  fs.writeFileSync(temporaire, JSON.stringify({ pid, commande, cwd, date: maintenant() }), { flag: 'wx' })
+  try {
+    return prendreDepuis({ chemin, temporaire, fs, estVivant, liberer })
+  } finally {
+    fs.rmSync(temporaire, { force: true })
+  }
+}
+
+/** Le corps de `prendreVerrou`, le tenant déjà écrit dans `temporaire`. */
+function prendreDepuis({ chemin, temporaire, fs, estVivant, liberer }) {
   for (let essai = 0; essai < 3; essai += 1) {
-    let fd
     try {
-      fd = fs.openSync(chemin, 'wx')
+      fs.linkSync(temporaire, chemin)
     } catch (e) {
       if (e.code !== 'EEXIST') throw e
-      const tenant = lireTenant(fs, chemin)
+      const brut = lireBrut(fs, chemin)
+      if (brut === undefined) continue
+      const tenant = tenantDe(brut)
       if (tenant && estVivant(tenant.pid)) {
         return { etat: 'refus', message: refusVerrou({ chemin, tenant }), tenant }
       }
-      // PID mort, ou verrou illisible (écriture interrompue) : le verrou est repris.
-      try {
-        fs.rmSync(chemin, { force: true })
-      } catch {
-        /* concurrence : le second essai tranchera */
-      }
+      reprendre({ chemin, mort: brut, temporaire, fs, estVivant })
       continue
-    }
-    try {
-      fs.writeSync(fd, JSON.stringify({ pid, commande, cwd, date: maintenant() }))
-    } finally {
-      fs.closeSync(fd)
     }
     return { etat: 'pris', liberer }
   }
@@ -116,6 +121,28 @@ export function prendreVerrou({
     etat: 'refus',
     message:
       `[verrou] verrou disputé (${chemin}) : un autre lanceur le reprend en boucle — relancer.`,
+  }
+}
+
+/**
+ * Retire le verrou `chemin` s'il porte encore le texte `mort`, sous le verrou de reprise `<chemin>.reprise`
+ * pris par `linkSync` de `temporaire` : deux repreneurs ne retirent jamais le verrou que l'un d'eux vient
+ * de prendre. Un verrou de reprise tenu par un PID mort est retiré ; tenu par un vivant, rien n'est fait.
+ */
+function reprendre({ chemin, mort, temporaire, fs, estVivant }) {
+  const reprise = `${chemin}.reprise`
+  try {
+    fs.linkSync(temporaire, reprise)
+  } catch (e) {
+    if (e.code !== 'EEXIST') throw e
+    const tenant = tenantDe(lireBrut(fs, reprise))
+    if (tenant && !estVivant(tenant.pid)) fs.rmSync(reprise, { force: true })
+    return
+  }
+  try {
+    if (lireBrut(fs, chemin) === mort) fs.rmSync(chemin, { force: true })
+  } finally {
+    fs.rmSync(reprise, { force: true })
   }
 }
 
@@ -129,15 +156,29 @@ export function verrouRequis(filtres, estFichier) {
 }
 
 /**
- * Contenu du verrou, ou `null` s'il est illisible / sans PID exploitable. SEUL lecteur du JSON
- * `{ pid, commande, cwd, date }` — `prendreVerrou` et la sonde du verrou (`scripts/ops/publier.mjs`)
- * passent tous deux par ici.
+ * Contenu du verrou, ou `null` s'il est absent, illisible ou sans PID exploitable. Le JSON
+ * `{ pid, commande, cwd, date }` ne se lit que par `lireBrut` puis `tenantDe` : `prendreVerrou`, `tenantVivant`
+ * et la sonde du verrou (`scripts/ops/publier.mjs`) passent tous par là.
  * @param {typeof fsReel} fs @param {string} chemin
  */
 export function lireTenant(fs = fsReel, chemin = CHEMIN_VERROU) {
+  return tenantDe(lireBrut(fs, chemin))
+}
+
+/** Le texte du verrou, ou `undefined` s'il est absent ou inaccessible à la lecture. */
+function lireBrut(fs, chemin) {
   try {
-    const brut = JSON.parse(fs.readFileSync(chemin, 'utf8'))
-    return Number.isInteger(brut?.pid) ? brut : null
+    return fs.readFileSync(chemin, 'utf8')
+  } catch {
+    return undefined
+  }
+}
+
+/** Le tenant que porte le texte `brut`, ou `null` s'il est absent, illisible ou sans PID exploitable. */
+function tenantDe(brut) {
+  try {
+    const lu = JSON.parse(brut ?? '')
+    return Number.isInteger(lu?.pid) ? lu : null
   } catch {
     return null
   }

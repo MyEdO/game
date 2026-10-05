@@ -6,9 +6,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { PLAFOND_INJECTION } from '../ops/suivi.mjs'
-import { PART_D_UN_DIGEST, texteDInjection } from './inject-suivi.mjs'
-import { JOURNAL, ligneDeJournal } from './suivi-lien-guard.mjs'
+import { JOURNAL, PART_D_UN_DIGEST, PLAFOND_INJECTION, ligneDeJournal } from '../ops/suivi.mjs'
+import { texteDInjection } from './inject-suivi.mjs'
 
 const REEL = FS.readFileSync(new URL('../ops/fixtures/suivi-1816.md', import.meta.url), 'utf8')
 const HOOK = fileURLToPath(new URL('./inject-suivi.mjs', import.meta.url))
