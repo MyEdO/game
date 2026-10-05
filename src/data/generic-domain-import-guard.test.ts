@@ -5,28 +5,7 @@ import { computeOwnerSystems, scanAllPrimitives, scanGenericDomainImport } from 
 import { directImportsOf } from '../../scripts/guards/lib/importGraph.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 
-/**
- * Garde-fou « le générique n'importe pas le domanial » (#329 — recensement adversarial, classe (a)
- * « marque de naissance »). Un fichier listé comme PRIMITIVE générique (`src/data/primitives.manifest.json`)
- * ne doit IMPORTER (relatif, direct) AUCUN module appartenant, par closure racine
- * (`src/data/systemes.manifest.json`, même mécanique que `scripts/docs/build-systemes.mjs` —
- * `scripts/guards/lib/importGraph.mjs`), à UN SEUL système. Un module atteint par ≥2 systèmes est
- * de l'infra partagée légitime (pas domanial) ; un module atteint par exactement 1 système, importé
- * DIRECTEMENT par une primitive, est exactement la faute-souche relevée par #329 (ex. `cascade.ts`
- * → `shipManeuver.ts`, `CascadeModal.tsx` → `crewMorale.ts`/`data` naval — RÉSOLUES depuis par le
- * lot en vol sur #328/#329, cf. tableau du ticket). Ce système doit l'atteindre SANS traverser la
- * primitive : un propriétaire HÉRITÉ de la primitive (seul son système la pose) ne rend pas sa
- * dépendance domaniale.
- *
- * BASELINE NOMINATIVE (état RÉEL de l'arbre au 2026-07-11, renvoi #329) : AUCUNE marque (a) ouverte
- * ne correspond au motif « import direct d'un module single-système » à cette date — les items #1,
- * #2, #3, #6, #7, #8 du tableau #329 sont déjà résorbés (lot en vol) ; les items #4/#5 (littéral
- * `worldSide:'ship'`/`shipId` dans `rollSeam.ts`) et l'ajout USER du 2026-07-11 (`peur` calculé
- * inline dans `CascadeModal.tsx`) sont des fautes de TYPE/VOCABULAIRE et d'ARITHMÉTIQUE dupliquée —
- * pas des imports de module domanial — donc HORS PÉRIMÈTRE de cette mécanique précise (traités par
- * les lots 3-4 annoncés sur #329, pas par cette garde). Baseline = `{}` : CLIQUET zéro-tolérance,
- * toute HAUSSE échoue.
- */
+// #329
 
 /**
  * Baseline gelée : `primitiveId -> nombre de cibles domaniales tolérées` (renvoi #329 par entrée).
@@ -67,8 +46,7 @@ describe('garde-fou « le générique n’importe pas le domanial » (cliquet, #
     }
     expect(
       offenders,
-      'Import de domaine dans une primitive GÉNÉRIQUE — router via un registre par kind (patron ' +
-        `cascadeAppliers), ou si legit AUGMENTER la baseline avec renvoi #329 :\n${offenders.join('\n')}`,
+      `Import de domaine dans une primitive GÉNÉRIQUE — corriger ses imports ou vérifier sa nature au manifeste :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 
