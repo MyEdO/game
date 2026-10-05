@@ -260,8 +260,8 @@ const ATTENDU = {
     'scripts/ops/suivi.test.mjs',
     // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
     // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
-    // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif, l.92-105, reprise sous `<chemin>.reprise`,
-    // l.133-145, `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
+    // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`
+    // (`reprendre`), `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
     // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;
     // l'arbre n'est jamais écrit.
     'scripts/test/verrou.mjs',
