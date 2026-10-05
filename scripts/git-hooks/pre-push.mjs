@@ -5,8 +5,8 @@
 //   1. `origin` ne pointe pas `github.com/<DEPOT>` (`scripts/guards/lib/ticketsGh.mjs`) ;
 //   2. un STOCK NOMINATIF qui grandit quelque part dans la PLAGE poussée, sans que le message de SON
 //      commit le dise (`scripts/guards/lib/plageStock.mjs`) : les portes de stock du commit et du
-//      DERNIER commit ne voient qu'une tête, et un commit intermédiaire leur échappe (revue de
-//      palier n°2, 2026-09-03 — `429b9a1a2` a traversé les deux, six heures après leur pose) — et,
+//      DERNIER commit ne voient qu'une tête, et un commit intermédiaire leur échappe (revue du
+//      2026-09-03 — `429b9a1a2` a traversé les deux, six heures après leur pose) — et,
 //      par la même lecture, un RECLASSEMENT CSS non déclaré, chaque commit contre sa base
 //      (`reclassementsDeLaPlage`, même fichier) ;
 //   3. un push NON fast-forward vers une ref distante EXISTANTE. Une ref neuve ne peut écraser aucune

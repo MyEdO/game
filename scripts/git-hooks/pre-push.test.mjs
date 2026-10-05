@@ -192,7 +192,7 @@ test('un origin ÉTRANGER est refusé, et le refus le cite', () => {
   }
 })
 
-// ── Stocks nominatifs de la PLAGE (revue de palier n°2) ────────────────────────────────────────
+// ── Stocks nominatifs de la PLAGE (revue du 2026-09-03) ────────────────────────────────────────
 
 /** Un PORTEUR de stock nominatif (`scripts/guards/lib/**.mjs`), tel que `stocksNominatifs` le lit. */
 const PORTEUR_DE_STOCK = 'scripts/guards/lib/exemptions.mjs'

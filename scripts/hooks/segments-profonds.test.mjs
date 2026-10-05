@@ -1,6 +1,6 @@
 // Tests du SOCLE de reconnaissance de commande partagé par les gardes PreToolUse (#1679 L1a T1) :
 // `segmentsProfonds` (sous-shells + enrobeurs de tête), `extractTargetDir` (répertoire cible réel),
-// le refus de PALIER (mesuré sur l'histoire), et le contrat de sortie du point d'entrée.
+// et le contrat de sortie du point d'entrée.
 //
 // Les formes couvertes ici viennent de sondes jouées contre les évaluateurs RÉELS avant écriture :
 // onze formes que le tokenizer voyait déjà par accident, dix-sept qu'il laissait passer (flags avant
@@ -30,7 +30,6 @@ import {
   extractTargetDir,
   versCheminNatif,
   scriptsNpm,
-  evaluate as evaluateSolde,
 } from './solde-ticket-guard.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
@@ -328,7 +327,6 @@ test('DRIVER : une décision NULLE ne produit AUCUNE sortie (silence, jamais un 
 test('DRIVER solde : une fermeture sans solde est refusée, et le refus dit l\'ordre stage-puis-commit', () => {
   const { base, principal } = depotAvecWorktree()
   try {
-    // Aucune revue dans l'histoire de ce dépôt : le palier n'a pas d'origine, et c'est le SOLDE qui refuse.
     const out = sortieDriver('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #424242)"', principal)
     const { hookSpecificOutput } = JSON.parse(out)
     assert.equal(hookSpecificOutput.permissionDecision, 'deny')
@@ -337,33 +335,6 @@ test('DRIVER solde : une fermeture sans solde est refusée, et le refus dit l\'o
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
-})
-
-test('refus de PALIER : le message NOMME la MESURE (compte, tête, archive) — elle se re-vérifie en une commande', () => {
-  const d = evaluateSolde({
-    command: 'git commit -m "feat: x (corrige #77)"',
-    today: '2026-09-02',
-    readSoldes: (ns) => ns.map(() => null),
-    palier: () => ({ compte: 11, tete: '2c11fdd9a', chemin: '.claude/soldes/revue-palier-82e95be10.md' }),
-  })
-  assert.ok(d, 'palier atteint sans revue : le refus manque')
-  assert.deepEqual(Object.keys(d), ['reason'])
-  assert.match(d.reason, /11 commits de substance depuis 2c11fdd9a/)
-  assert.match(d.reason, /revue-palier-82e95be10\.md/)
-  assert.match(d.reason, /2c11fdd9a\.\.<tête>/, 'le refus doit dire la fenêtre attendue de la revue à écrire')
-  assert.match(d.reason, /revue-palier-2026-09-02-2c11fdd9a-<tête>\.md/, 'et le NOM du fichier à écrire, aux DEUX bornes')
-})
-
-test('refus de PALIER : un palier INMESURABLE refuse aussi — jamais un silence', () => {
-  const d = evaluateSolde({
-    command: 'git commit -m "feat: x (corrige #77)"',
-    today: '2026-09-02',
-    readSoldes: (ns) => ns.map(() => null),
-    palier: () => ({ compte: 0, tete: null, chemin: null, erreur: 'toutes les archives sont orphelines' }),
-  })
-  assert.ok(d)
-  assert.match(d.reason, /Palier INMESURABLE/)
-  assert.match(d.reason, /toutes les archives sont orphelines/)
 })
 
 // ── Cumul de refus ──────────────────────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ test('le périmètre : les sources suivies des dossiers de portes et les importe
   assert.ok(!sources.includes(HOTE), 'l’hôte est la définition, pas un site')
   assert.ok(!sources.some(estFichierVitest), 'un instrument Vitest n’est pas une porte')
   const horsDossiers = sources.filter((f) => !DOSSIERS_DES_PORTES.some((d) => f.startsWith(`${d}/`)))
-  assert.ok(horsDossiers.includes('scripts/ops/faits-de-palier.mjs'), 'les faits de palier importent l’hôte')
+  assert.ok(horsDossiers.includes('scripts/ops/publier.mjs'), 'le train importe l’hôte')
   assert.ok(horsDossiers.every((f) => new RegExp(IMPORT_DE_L_HOTE.replace('[[:space:]]', '\\s')).test(readFileSync(join(RACINE, f), 'utf8'))),
     'hors des dossiers, seul un importeur de l’hôte est dans le périmètre')
 })

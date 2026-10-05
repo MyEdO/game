@@ -791,7 +791,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     coursesCi(sha) {
       return coursesCi({ cwd: racine, commit: shaComplet('coursesCi', sha), limit: 30 })
     },
-    coursesDeFile: () => coursesCi({ cwd: racine, branche: null, evenement: 'merge_group', limit: 30 }),
+    coursesDeFile: () => coursesCi({ cwd: racine, evenement: 'merge_group', limit: 30 }),
     /** Les parents d'un commit (`GET /repos/{owner}/{repo}/commits/{ref}`), mémorisés : un commit ne
      *  change jamais de parents. */
     parentsDe(sha) {
