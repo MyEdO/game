@@ -4,7 +4,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { parseSync } from 'rolldown/utils'
-import config, { BLOCS_LINT } from '../../../oxlint.config.mjs'
+import { BLOCS_LINT } from '../../../oxlint.config.mjs'
 import { correspondGlob } from './lister.mjs'
 import { lancerLint, nomDeRegle, positionDeRapport } from './lintStage.mjs'
 
@@ -34,10 +34,6 @@ export function configPourFichier(fichier) {
   for (const b of BLOCS_LINT) if ((b.files ?? ['**/*']).some(g=>correspondGlob(rel,g)) && !(b.excludeFiles??[]).some(g=>correspondGlob(rel,g))) Object.assign(rules,b.rules)
   return {rules}
 }
-export function ignoreLint(fichier, configuration = config) {
-  const rel = relative(RACINE,resolve(RACINE,fichier)).replaceAll('\\','/')
-  return configuration.ignorePatterns.some(g=>correspondGlob(rel,g.replace(/^\//,'')))
-}
 /** @param {{filePath:string,code:string}[]} fixtures @param {object} [configuration] */
 export function lintFixtures(fixtures, configuration) {
   const cwd = mkdtempSync(join(tmpdir(),'lint-contrat-'))
@@ -60,11 +56,10 @@ export function selectionnerMessages(resultat, predicate) {
 }
 export function creerBancLint() {
   return {
-    /** @param {string} code @param {{filePath:string,warnIgnored?:boolean}} options */
+    /** @param {string} code @param {{filePath:string}} options */
     lintText(code,{filePath}) { return lintFixtures([{filePath,code}]) },
     /** @param {string[]} fichiers */
     lintFiles(fichiers) { return lintFixtures(fichiers.map(filePath=>({filePath,code:readFileSync(resolve(RACINE,filePath),'utf8')}))) },
     calculateConfigForFile:configPourFichier,
-    isPathIgnored:ignoreLint,
   }
 }

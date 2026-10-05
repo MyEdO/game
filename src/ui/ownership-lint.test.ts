@@ -18,7 +18,7 @@ const SOUS_LA_REGLE = 'src/ui/__sonde-possession.ts';
 const LA_PORTE = 'src/ui/ownership.ts';
 
 async function messages(code: string, filePath = SOUS_LA_REGLE): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
+  const [res] = await eslint.lintText(code, { filePath });
   return selectionnerMessages(res, (m) => m.ruleId === 'murs/possession').map((m) => `${m.line}:${m.column}`);
 }
 

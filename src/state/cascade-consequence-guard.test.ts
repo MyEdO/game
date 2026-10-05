@@ -255,7 +255,7 @@ const eslint = creerBancLint();
 
 /** Occurrences de la règle d'import restreint sur un CODE donné (config réelle). */
 async function violationsCanal(code: string, filePath = SOUS_LA_REGLE): Promise<number> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
+  const [res] = await eslint.lintText(code, { filePath });
   return selectionnerMessages(res, (m) => m.ruleId === 'murs/canal-issue').length;
 }
 

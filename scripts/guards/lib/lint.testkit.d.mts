@@ -14,12 +14,10 @@ export interface ResultatLint {
 export interface FixtureLint { filePath: string; code: string }
 export function directivesLint(texte: string, fichier: string, regles: string[]): number[]
 export function configPourFichier(fichier: string): { rules: Record<string, unknown> }
-export function ignoreLint(fichier: string, configuration?: object): boolean
 export function lintFixtures(fixtures: FixtureLint[], configuration?: object): ResultatLint[]
 export function selectionnerMessages(resultat: ResultatLint, predicate: (message: MessageLint) => boolean): MessageLint[]
 export function creerBancLint(): {
-  lintText(code: string, options: {filePath: string; warnIgnored?: boolean}): ResultatLint[]
+  lintText(code: string, options: {filePath: string}): ResultatLint[]
   lintFiles(fichiers: string[]): ResultatLint[]
   calculateConfigForFile: typeof configPourFichier
-  isPathIgnored: typeof ignoreLint
 }

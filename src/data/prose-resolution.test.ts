@@ -104,7 +104,7 @@ const graphieFautive = (ref: { book: string; ch: string }): boolean => prefixeRe
 /** Les trois volets, par le CODE que le résolveur rend — un code de plus sans volet est une omission
  *  visible (il tombe dans `A`, le volet de la résolution elle-même). */
 const CODES_B = new Set(['empreinte-divergente']);
-const CODES_D = new Set(['fragment-trop-court', 'fragment-ambigu', 'fragments-chevauchants', 'montage-hors-plafond']);
+const CODES_D = new Set(['fragment-trop-court', 'fragment-ambigu', 'fragments-chevauchants', 'fragments-contigus', 'montage-hors-plafond']);
 
 const ADRESSES: AdresseVue[] = adressesDuDepot();
 const ECHECS = ADRESSES.map((a) => ({ ...a, echec: echecDe(a.noeud) }));
@@ -149,7 +149,7 @@ describe('résolution de la prose ADRESSÉE — toute `descRef` rend son texte, 
     ).toEqual([]);
   });
 
-  it('D — un MONTAGE tient ses plafonds (fragments longs, uniques, trois au plus)', () => {
+  it('D — un MONTAGE tient ses plafonds (fragments longs, uniques, ni chevauchants ni contigus, trois au plus)', () => {
     const rouges = lignes((code) => CODES_D.has(code));
     expect(
       rouges,
@@ -288,7 +288,7 @@ describe('les trois volets MORDENT — fixture synthétique', () => {
 
   it('D — un MONTAGE dont un fragment est trop court est REFUSÉ', () => {
     // Le 3ᵉ bloc de la fixture (« Bref. ») fait moins de 40 caractères normalisés.
-    expect(echecDe(adresse(fragment('terreur', 1, 1), fragment('terreur', 2, 2)), LECTEUR)?.code).toBe('fragment-trop-court');
+    expect(echecDe(adresse(fragment('terreur', 2, 2), fragment('terreur', 1, 1)), LECTEUR)?.code).toBe('fragment-trop-court');
   });
 
   it('D — une CELLULE d’un mot se monte : le plancher et l’unicité ne visent que les `blocs`', () => {

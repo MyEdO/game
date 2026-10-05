@@ -14,7 +14,8 @@
   "ignore": [
     "server/**",
     "dist/**",
-    "public/**"
+    "public/**",
+    ".claude/skills/*/{hooks,types,tests}/**"
   ],
   "ignoreBinaries": ["lean-ctx"],
   "ignoreDependencies": ["oxlint"],

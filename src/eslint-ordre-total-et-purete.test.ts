@@ -60,7 +60,7 @@ const FORMES: { nom: string; code: (p: string) => string; regle: string | null }
 
 /** Règles qui ont pris ce code au titre de la PURETÉ (message porteur de la réf ticket). */
 async function pris(code: string, filePath: string): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
+  const [res] = await eslint.lintText(code, { filePath });
   const purete = selectionnerMessages(res, (m) => m.message.includes(REF));
   for (const m of purete) {
     expect(m.ruleId, `${filePath} : ruleId nul — la config n’a pas été résolue (cwd hors dépôt ?), tout serait faussement « pris »`).toBeTruthy();
@@ -230,7 +230,7 @@ const FORMES_LOCALE_NEUTRES: { nom: string; code: string }[] = [
 
 /** Règles qui ont pris ce code au titre de l'ORDRE TOTAL (message porteur de la réf du mur). */
 async function prisOrdreTotal(code: string, filePath: string): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
+  const [res] = await eslint.lintText(code, { filePath });
   const mur = selectionnerMessages(res, (m) => m.message.includes('Ordre total'));
   for (const m of mur) {
     expect(m.ruleId, `${filePath} : ruleId nul — la config n’a pas été résolue, tout serait faussement « pris »`).toBeTruthy();
@@ -283,13 +283,12 @@ describe('ordre total dans les tests de `src` — mur mesuré sur la config RÉS
       `le mur ne vise que les \`*.test.*\` : un fichier de PRODUCTION ne doit résoudre aucun de ses sélecteurs. Sonde : ${production}`,
     ).not.toContain('opendirSync');
     // #1709 C3c-3b
-    // C’est ce fait qui porte les deux volets ci-dessus pour cette couche — un `ignores` de tête qui la
-    // reprendrait les rendrait MUETS et VERTS.
     for (const rel of [sondeTest('src/data'), sondes('src/data')[0]]) {
+      const [resultat] = await eslint.lintText('debugger;', { filePath: `${ROOT}/${rel}` });
       expect(
-        await eslint.isPathIgnored(`${ROOT}/${rel}`),
+        selectionnerMessages(resultat, (message) => message.ruleId === 'no-debugger').map((message) => message.severity),
         `src/data : Oxlint doit le LIRE (aucun \`ignores\` ne le reprend) — sinon le mur et la pureté de couche y sont muets. Sonde : ${rel}`,
-      ).toBe(false);
+      ).toEqual([2]);
     }
   });
 

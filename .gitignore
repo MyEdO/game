@@ -52,6 +52,10 @@ scripts/data/.out/
 # Soldes de fermeture et revues de palier : VERSIONNÉS (les messages de commit les citent par chemin,
 # et le palier se mesure sur les revues que porte l'histoire — la preuve doit survivre).
 !.claude/soldes/
+# tsconfig d'un mod, posé par le moteur au chargement `--plugin-dir` (#2278, sonde S6 :
+# https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521) ; ses types `.claude-plugin/types/`
+# portent leur propre .gitignore.
+.claude/skills/*/tsconfig.json
 
 # Worktrees d'agents posés d'un niveau sous la racine (`.wt-<ticket>/`) : arbres de travail, jamais du
 # contenu du dépôt. Ceux de `.claude/worktrees/` sont déjà couverts par `.claude/*` ci-dessus. #1679 L1c

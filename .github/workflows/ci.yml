@@ -145,6 +145,8 @@ jobs:
 
   # `test:hooks` hors du chemin critique de `types` (#2178). Il ne fait aucune écriture d'arbre SUIVIE
   # (sa seule écriture réelle, le journal gitignoré, est en `ecritFerme` d'`ECRIT_LU`).
+  # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
+  # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   types-hooks:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -156,6 +158,8 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:hooks
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run mods:check
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

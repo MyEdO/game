@@ -294,7 +294,7 @@ Une créature plus grande peut effectuer une **Attaque de Piétinement comme Act
 **Voir aussi** : [Localisation des créatures non humaines](#localisation-des-créatures-non-humaines) ; [Taille — tir sur créature grande](combat.md#taille--catégories-et-modificateurs-de-combat).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `grappleTierMod`, `grapple`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, `combat-deux-armes`, `main-secondaire`, +44 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +23 fichiers
+- `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `grappleTierMod`, `grapple`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, `combat-deux-armes`, `MODAL_DEFS`, +44 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +23 fichiers
 - `LDB 85` (l.357-387) → `TraitDef`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `sizeDamageMultiplier`, `sizeGrantedQualities`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, +31 — `src/data/index.ts`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/character.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +13 fichiers
 
 ---

@@ -174,7 +174,24 @@ export const ECRIT_LU = {
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal',
+      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
+      '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
+      '`mods/murDeMod.test.mjs` crée ses fichiers de sélection native par mkdirSync/writeFileSync ' +
+      'sous mkdtempSync(join(os.tmpdir(), "lint-mod-perimetre-")), puis rmSync en finally ; ' +
+      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally',
+  },
+  'mods:check': {
+    ecrit: [],
+    lit: ['.claude/skills/', 'scripts/mods/', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'src/lib/tableTotale.ts', 'src/lib/ordre.mjs'],
+    raison:
+      'découvre les mods sous .claude/skills/ (`racinesDeMods`, scripts/mods/racines.mjs, par `listerDossier` de ' +
+      'scripts/guards/lib/lister.mjs, qui réexporte src/lib/ordre.mjs), compose ses env par `tableTotale` (src/lib/tableTotale.ts) et lance par l’hôte ' +
+      'de processus (scripts/guards/lib/spawnResilient.mjs) ; chaque ' +
+      'mod est COPIÉ, sans les artefacts du moteur, sous `mkdtempSync` de os.tmpdir() : `claude plugin validate --strict`, ' +
+      '`claude -p` qui y pose ses types, `tsc --project <copie>` (noEmit du tsconfig posé par le moteur) et ' +
+      '`claude plugin test` portent sur la COPIE ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
+      'Le CLI vit hors de l’arbre (PATH, ou cache npm de `npx`)',
   },
   'test:ops': {
     ecrit: [],
@@ -189,7 +206,9 @@ export const ECRIT_LU = {
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
       '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
       '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
-      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
+      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
@@ -216,7 +235,8 @@ export const ECRIT_LU = {
       'LIT package.json (les scripts que le runner relaie) et .npmrc (copié par scripts/node-requis.test.mjs ' +
       'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
-      'le 2026-09-27, #1801)',
+      'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
+      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally)',
   },
   'test:docs': {
     ecrit: [],
@@ -274,11 +294,12 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', '.claude/workflows/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
+    lit: ['src/', 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
     raison:
       'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et les ' +
       'modules de code sélectionnés, dont .claude/workflows/ : lecture du code et découverte native ' +
-      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-10-05 ; les configurations imbriquées sont désactivées.',
+      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-10-05 ; les configurations imbriquées sont désactivées ; ' +
+      'le mur des mods (#2278) porte le périmètre hooks/types/tests sous .claude/skills/.',
   },
   test: {
     ecrit: [],
