@@ -8,6 +8,7 @@ import { Buffer } from 'node:buffer'
 import { resolve, join } from 'node:path'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { CAS_HOTE_POWERSHELL, argumentsDuCas } from './hote-powershell-cas.mjs'
 import {
   extractClosedIssues,
   validateSolde,
@@ -19,6 +20,7 @@ import {
   evaluatePorteDuTicket,
   valeurParametre,
   argumentChaine,
+  GRAMMAIRES_HOTE_POWERSHELL,
   messagesDesCommits,
   analyzeDiffDuCommit,
   extractMessageSources,
@@ -1473,6 +1475,9 @@ test('#2071 NON COUVERT — le corps lu sur stdin par un shell ou un exécuteur 
     "echo 'git commit -a -m x' | sh",
     "echo 'git commit -a -m x' | bash -s",
     "echo 'git commit -a -m x' | at now",
+    "echo 'git commit -a -m x' | pwsh -NoProfile -Command -",
+    "echo 'git commit -a -m x' | pwsh -",
+    "echo 'git commit -a -m x' | powershell -NoProfile",
   ]) {
     assert.equal(isGitCommitCommand(commande), false, commande)
   }
@@ -3787,6 +3792,48 @@ test('valeurParametre : le nom EXACT gagne, un préfixe strict ambigu est refus�
   assert.equal(valeurParametre(args('-QueryD'), 'Query', noms), '')
   assert.equal(valeurParametre(args('-querydialect'), 'QueryDialect', noms), 'v')
   assert.equal(valeurParametre(args('-Fil'), 'Filter', noms), 'v')
+})
+
+test('valeurParametre : le lieur de cmdlet ouvre un paramètre par tout tiret de PowerShell, jamais par « / » (#2292)', () => {
+  const noms = ['Name', 'Id']
+  for (const tiret of ['-', '\u2013', '\u2014', '\u2015']) assert.equal(valeurParametre([`${tiret}Name`, 'node'], 'Name', noms), 'node', tiret)
+  assert.equal(valeurParametre(['/Name', 'node'], 'Name', noms), '')
+})
+
+// ── #2292 : l'HÔTE PowerShell lit sa ligne de commande selon SA grammaire ─────────────────────────────
+test('argumentChaine : chaque cas de l\'hôte PowerShell rend ce que l\'hôte exécute (hote-powershell-cas.mjs)', () => {
+  const commande = 'Stop-Process -Name node'
+  for (const cas of CAS_HOTE_POWERSHELL) {
+    const lu = argumentChaine([cas.exe, ...argumentsDuCas(cas, commande)])
+    const libelle = `${cas.exe} ${JSON.stringify(cas.args)} (${cas.classe})`
+    if (cas.classe === 'execute' || cas.surApproximation) assert.ok(lu?.includes(commande), `${libelle} → ${JSON.stringify(lu)}`)
+    else if (cas.classe === 'stdin') assert.ok(!lu?.includes(commande), libelle)
+    else assert.equal(lu, null, libelle)
+  }
+})
+
+// Aucune clé n'est reconnue par deux entrées d'une même table : l'ordre de la table n'y est donc pas observable. Une
+// entrée qui en rompt une rendrait l'ordre porteur, à prouver à l'hôte réel (`scripts/ops/sondes/hote-powershell.mjs`).
+test('GRAMMAIRES_HOTE_POWERSHELL : chaque clé reconnue l\'est par UNE seule entrée de sa table (#2292)', () => {
+  for (const [exe, { parametres }] of Object.entries(GRAMMAIRES_HOTE_POWERSHELL)) {
+    for (const { alias } of parametres) {
+      for (const [nom, min] of alias) {
+        for (let n = min.length; n <= nom.length; n++) {
+          const cle = nom.slice(0, n)
+          const entrees = parametres.filter((p) => p.alias.some(([m, mi]) => cle.length >= mi.length && m.startsWith(cle)))
+          assert.equal(entrees.length, 1, `${exe} : « ${cle} » reconnue par ${entrees.map((p) => p.alias[0][0]).join(', ')}`)
+        }
+      }
+    }
+  }
+})
+
+test('argumentChaine : l\'hôte lit sa commande ENTIÈRE, jointe, après ses paramètres ordonnés', () => {
+  assert.equal(argumentChaine(['pwsh', '-NoProfile', '-co', 'Get-Date', '-x']), 'Get-Date -x')
+  assert.equal(argumentChaine(['powershell', '-NoProfile', 'Get-Date', '-x']), 'Get-Date -x')
+  assert.equal(argumentChaine(['powershell', '-NoProfile', '-zz;', 'Get-Date']), '-zz; Get-Date')
+  assert.equal(argumentChaine(['pwsh', '-cwa', 'Write-Output $args', 'a', 'b']), 'Write-Output $args a b')
+  assert.equal(argumentChaine(['pwsh', '-NoProfile', '-c']), null)
 })
 
 // ── #2328 : une FUSION EN COURS se juge sur son APPORT PROPRE, sans trailers de livraison ──────────

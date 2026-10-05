@@ -98,6 +98,22 @@ const FORMES_VUES = [
     git: `powershell -EncodedCommand ${encodePourPowerShell('git commit -m "corrige #42"')}`,
     gh: `powershell -EncodedCommand ${encodePourPowerShell('gh issue create --title x')}`,
   },
+  // L'hôte PowerShell lit sa ligne selon SA grammaire (#2292) : préfixes ordonnés, caractère de paramètre,
+  // positionnel de 5.1.
+  { nom: 'pwsh -co (préfixe de l\'hôte)', git: 'pwsh -co "git commit -m \'corrige #42\'"', gh: 'pwsh -co "gh issue create --title x"' },
+  {
+    nom: 'pwsh -ec (alias de -EncodedCommand)',
+    git: `pwsh -ec ${encodePourPowerShell('git commit -m "corrige #42"')}`,
+    gh: `pwsh -ec ${encodePourPowerShell('gh issue create --title x')}`,
+  },
+  { nom: 'pwsh /c', git: 'pwsh /c "git commit -m \'corrige #42\'"', gh: 'pwsh /c "gh issue create --title x"' },
+  { nom: 'pwsh \u2013c (tiret demi-cadratin)', git: 'pwsh \u2013c "git commit -m \'corrige #42\'"', gh: 'pwsh \u2013c "gh issue create --title x"' },
+  { nom: 'pwsh -cwa', git: 'pwsh -cwa "git commit -m \'corrige #42\'"', gh: 'pwsh -cwa "gh issue create --title x"' },
+  {
+    nom: 'powershell positionnel (5.1)',
+    git: 'powershell -NoProfile "git commit -m \'corrige #42\'"',
+    gh: 'powershell -NoProfile "gh issue create --title x"',
+  },
 ]
 
 for (const { nom, git, gh } of FORMES_VUES) {
