@@ -89,6 +89,24 @@ test('chaque gate porte la condition du classement SSI elle est sautable', () =>
   assert.deepEqual(ecarts, [])
 })
 
+test('un push qui ne touche qu’un mod est PRODUIT ; un skill `SKILL.md` reste documentaire (#2278)', () => {
+  const mods = ['.claude/skills/harnais/']
+  const verdict = classer(['.claude/skills/harnais/hooks/x.ts'], { mods })
+  assert.equal(verdict.produit, true)
+  assert.match(verdict.motifs[0], /racine de mod/)
+  assert.equal(classer(['.claude/skills/m/hooks/x.ts', '.claude/skills/m/.claude-plugin/plugin.json']).produit, true, 'un manifeste du diff fait la racine')
+  assert.equal(classer(['.claude/skills/orchestrer/SKILL.md'], { mods }).produit, false)
+  assert.equal(classer(['.claude/skills/harnais2/SKILL.md'], { mods }).produit, false, '`harnais2/` n’est pas sous `harnais/`')
+})
+
+test('le mur et la garde d’un mod jouent sur un push qui ne touche qu’un mod, en CI comme dans `npm run gates` (#2278)', () => {
+  for (const nom of ['lint', 'mods:check']) {
+    assert.ok(gates.some((g) => g.nom === nom), `${nom} absente de ci.yml, donc du rejeu local \`npm run gates\``)
+    assert.ok(ECRIT_LU[nom].lit.includes('.claude/skills/'), `${nom} : son \`lit\` couvre les mods`)
+    assert.equal(sautables.has(nom), false, `${nom} n’est jamais sautée`)
+  }
+})
+
 test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_PRODUIT', () => {
   const ecarts = []
   for (const { job, commande, si } of stepsCi({ cwd: RACINE })) {
@@ -295,6 +313,28 @@ test('CLI — une branche dont le seul commit touche une fiche sort `produit=fal
     const apres = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(apres.code, 0)
     assert.equal(apres.stdout.trim(), 'produit=true')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('CLI — une branche qui ne touche qu’un module de mod sort `produit=true` ; un `SKILL.md` seul, `produit=false`', () => {
+  const { racine, git } = depotJetable()
+  try {
+    ecrire(racine, '.claude/skills/m/.claude-plugin/plugin.json', '{}\n')
+    ecrire(racine, '.claude/skills/s/SKILL.md', 'skill\n')
+    git(['add', '.claude'])
+    git(['commit', '-q', '-m', 'mod et skill'])
+    git(['update-ref', 'refs/remotes/origin/main', 'HEAD'])
+    ecrire(racine, '.claude/skills/s/SKILL.md', 'skill retouché\n')
+    git(['commit', '-q', '-am', 'skill'])
+    assert.equal(jouerCli(racine, { SHA: 'HEAD' }).stdout.trim(), 'produit=false')
+    ecrire(racine, '.claude/skills/m/hooks/x.ts', 'export {}\n')
+    git(['add', '.claude'])
+    git(['commit', '-q', '-m', 'module de mod'])
+    const r = jouerCli(racine, { SHA: 'HEAD' })
+    assert.equal(r.code, 0)
+    assert.equal(r.stdout.trim(), 'produit=true')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

@@ -6,8 +6,8 @@ import { craftPriceFactor } from '../engine/qualities/craftEconomy';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { Row } from './Layout';
 import { bargainBuyFactor } from '../engine/bargain';
-import { compareEquip, isShieldItem } from '../engine/equipCompare';
-import { itemFromTrappingById, isWeaponActive, damageString } from '../engine/items';
+import { compareEquip } from '../engine/equipCompare';
+import { itemFromTrappingById, isWeaponActive, damageString, isShieldTrapping } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
 import { rangeSpecLabel, ammoRangeModLabel } from './weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
@@ -95,7 +95,7 @@ function familyOf(id: string): string {
   if (catalogEntryOf(id)?.unit) return UNIT_FAMILY;
   const t = findTrappingById(id);
   if (!t) return FALLBACK_FAMILY;
-  if (isShieldItem({ qualities: t.qualities })) return SHIELD_FAMILY;
+  if (isShieldTrapping(id)) return SHIELD_FAMILY;
   return FAMILY_BY_TRAPPING_CATEGORIE.get(t.categorie) ?? FALLBACK_FAMILY;
 }
 
