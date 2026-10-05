@@ -92,13 +92,23 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
               label={`Fiche de ${c.label}`}
             />
           )}
-          {/* Statbloc COMPLET, ou la Description, via le rendu PARTAGÉ du Codex (toutes les caracs, armes,
-              armure, traits, compétences, talents, sorts — chaque entité cliquable vers sa fiche). */}
-          <div className="insp-statblock">
-            {prose && onglet === 'description'
-              ? <CodexSections sections={[prose.section]} entree={prose.entree} />
-              : <CodexSections sections={combatantSections(c)} />}
-          </div>
+          {/* Statbloc COMPLET et Description via le rendu PARTAGÉ du Codex (toutes les caracs, armes,
+              armure, traits, compétences, talents, sorts — chaque entité cliquable vers sa fiche). Les
+              deux onglets restent montés : l'inactif est inerte et caché (`.insp-onglets`). */}
+          {prose ? (
+            <div className="insp-statblock insp-onglets">
+              <div inert={onglet !== 'profil'} aria-hidden={onglet !== 'profil'}>
+                <CodexSections sections={combatantSections(c)} />
+              </div>
+              <div inert={onglet !== 'description'} aria-hidden={onglet !== 'description'}>
+                <CodexSections sections={[prose.section]} entree={prose.entree} />
+              </div>
+            </div>
+          ) : (
+            <div className="insp-statblock">
+              <CodexSections sections={combatantSections(c)} />
+            </div>
+          )}
         </>
       )}
 

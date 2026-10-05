@@ -13,7 +13,8 @@ import { netSnapshot, applyNetSnapshot } from '../state/netFlow';
 import { emptyNarratif } from '../state/campaignNarratif';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
-import { proseDeFiche } from './compendium/registry';
+import { proseDeFiche, codexLookupById } from './compendium/registry';
+import { CodexEntry } from './compendium/CodexEntry';
 import { InspectPanel } from './InspectPanel';
 import { CampaignView } from './CampaignView';
 import { useGameKeyboard } from './useGameKeyboard';
@@ -62,12 +63,25 @@ function combatKnud(): Combatant {
 const onglet = (el: HTMLElement, nom: string): HTMLButtonElement | undefined =>
   [...el.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((b) => b.textContent === nom);
 
-function ouvrirDescription(el: HTMLElement): HTMLElement {
-  const tab = onglet(el, 'Description');
-  expect(tab, 'onglet « Description » absent').toBeTruthy();
+/** Les deux panneaux de la fiche, empilés : [Profil, Description]. */
+const panneaux = (el: HTMLElement): HTMLElement[] => [...el.querySelectorAll<HTMLElement>('.insp-onglets > *')];
+
+function cliquer(el: HTMLElement, nom: string): void {
+  const tab = onglet(el, nom);
+  expect(tab, `onglet « ${nom} » absent`).toBeTruthy();
   act(() => { tab!.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-  return el.querySelector<HTMLElement>('.insp-statblock')!;
 }
+
+/** Ouvre l'onglet « Description » et rend son panneau, le seul lisible. */
+function ouvrirDescription(el: HTMLElement): HTMLElement {
+  cliquer(el, 'Description');
+  const actifs = panneaux(el).filter((p) => !p.hasAttribute('inert'));
+  expect(actifs).toHaveLength(1);
+  return actifs[0];
+}
+
+/** Les mentions liées (`CodexRef`) d'un rendu, par leur texte. */
+const liens = (el: Element): string[] => [...el.querySelectorAll('.codex-ref')].map((a) => a.textContent ?? '');
 
 /** Une scène nue qui porte un PNJ par preset. */
 const sceneAuPreset = (presetId: string): Scene =>
@@ -151,7 +165,7 @@ describe('InspectPanel — sans prose, ni onglet ni bloc vide', () => {
   const sansOnglets = (c: Combatant) => {
     expect(proseDeFiche(c, presetPnjById)).toBeNull();
     const el = monter(<InspectPanel combatant={c} onClose={() => {}} />).ownerDocument.body;
-    expect(el.querySelector('[role="tablist"]')).toBeNull();
+    expect(el.querySelector('[role="tab"]')).toBeNull();
     expect(el.textContent).not.toContain('Description');
     expect(el.textContent).toContain('Caractéristiques');
   };
@@ -198,5 +212,33 @@ describe('Aller-retour de l’état : `presetId` survit, `presetPnjById` répond
     const relu = (useGame.getState().scheduledEffects[0] as { respawn: { summon: { porteur: typeof porteur } } }).respawn.summon.porteur;
     expect(relu.presetId).toBe('edo-knud-cratinx');
     expect(presetPnjById(relu.presetId!)).toBeTruthy();
+  });
+});
+
+describe('InspectPanel — hauteur stable entre onglets', () => {
+  it('les deux panneaux restent montés dans la même cellule ; seul l’actif est lisible', () => {
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: 'squelette', profil: { label: 'Squelette muet' } }] } });
+    const el = monter(<InspectPanel combatant={sceneNpc(sceneAuPreset('pnj-muet'), 'pnj')!} onClose={() => {}} />).ownerDocument.body;
+    const lisibles = () => panneaux(el).map((p) => !p.hasAttribute('inert') && p.getAttribute('aria-hidden') !== 'true');
+    expect(el.querySelector('.insp-onglets')).toBeTruthy();
+    expect(lisibles()).toEqual([true, false]);
+    cliquer(el, 'Description');
+    expect(lisibles()).toEqual([false, true]);
+    cliquer(el, 'Profil');
+    expect(lisibles()).toEqual([true, false]);
+  });
+});
+
+describe('Parité des liens : Description d’InspectPanel (réf) = onglet Description de la fiche Codex', () => {
+  it.each(['squelette', 'troll', 'mutant'])('%s', (id) => {
+    const item = codexLookupById('creatures', id)!;
+    const codex = monter(<CodexEntry item={item} category="creatures" />);
+    const attendus = liens(codex.querySelector('.codex-tabpane.codex-body')!);
+    act(() => { root!.unmount(); });
+    host!.remove();
+    root = null; host = null;
+    const insp = ouvrirDescription(monter(<InspectPanel combatant={spawnEnemy({ ref: id }, 'r', { x: 0, y: 0 })} onClose={() => {}} />).ownerDocument.body);
+    expect(liens(insp)).toEqual(attendus);
+    if (id === 'squelette') expect(attendus.length, 'la desc de `squelette` cite des entrées du Codex').toBeGreaterThan(0);
   });
 });

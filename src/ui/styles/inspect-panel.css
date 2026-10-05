@@ -53,3 +53,16 @@
   letter-spacing: 0.4px;
   padding-top: 2px;
 }
+/* Onglets de la fiche (#2206) : les deux panneaux partagent la MÊME cellule de grille, la carte prend
+   la hauteur du plus haut — changer d'onglet ne la redimensionne ni ne la recentre. L'inactif reste
+   monté, `inert` et caché. */
+.insp-onglets {
+  display: grid;
+}
+.insp-onglets > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.insp-onglets > [inert] {
+  visibility: hidden;
+}
