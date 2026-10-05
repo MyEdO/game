@@ -73,23 +73,23 @@ describe('marqueur, classe entière — parcouru sur le catalogue', () => {
   });
 
   it('l’Effet refuse tout service et admet la pièce avec sa créature', () => {
-    for (const t of HORS.filter((x) => x.service)) expect(messages(effet({ trappingId: t.id })), t.id).toMatch(/porte le marqueur « service »/);
+    for (const t of HORS.filter((x) => x.service)) expect(messages(effet({ trappingId: t.id })), t.id).toMatch(/porte « Objet-service »/);
     expect(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: GRIFFON }).success).toBe(true);
   });
 });
 
 describe('invariant de l’Effet : `creatureId` présent ⇔ l’entrée porte `exigeUneCreature`', () => {
   it('refusé sans `creatureId` sur l’entrée marquée', () => {
-    expect(messages(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID }))).toMatch(/exige `creatureId`/);
+    expect(messages(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID }))).toMatch(/porte « Exige une créature » : le don nomme la créature dont la pièce provient\./);
   });
   it('refusé avec un `creatureId` sur une autre entrée', () => {
-    expect(messages(effet({ trappingId: 'dague', creatureId: GRIFFON }))).toMatch(/n'est admis que sur une entrée/);
+    expect(messages(effet({ trappingId: 'dague', creatureId: GRIFFON }))).toMatch(/« dague » ne porte pas « Exige une créature » : le don ne nomme aucune créature\./);
   });
   it('refusé avec une créature inconnue', () => {
     expect(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: 'creature-inexistante' }).success).toBe(false);
   });
   it('refusé avec une créature SANS profil de récolte', () => {
-    expect(messages(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: SANS_RECOLTE.id }))).toMatch(/ne porte pas le marqueur « harvest »/);
+    expect(messages(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: SANS_RECOLTE.id }))).toMatch(/ne porte pas « Récolte »/);
   });
 });
 
@@ -134,7 +134,7 @@ describe('fabrique : `pieceDeCreature` et `instancesDeDon`', () => {
   it('les discordances entre l’entrée et `creatureId` lèvent avec leur nom', () => {
     expect(() => instancesDeDon({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID }, 1)).toThrow(/n'a pas de `creatureId`/);
     expect(() => instancesDeDon({ trappingId: 'dague', creatureId: GRIFFON }, 1)).toThrow(/entrée sans `exigeUneCreature`/);
-    expect(() => pieceDeCreature(SANS_RECOLTE.id)).toThrow(/RECOLTABLE[\s\S]*ne porte pas le marqueur « harvest »/);
+    expect(() => pieceDeCreature(SANS_RECOLTE.id)).toThrow(/RECOLTABLE[\s\S]*ne porte pas « Récolte »/);
   });
 
   it('le marqueur CLASSE : toute entrée qui porte `exigeUneCreature` naît en pièce de sa créature', () => {

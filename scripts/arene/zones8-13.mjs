@@ -464,7 +464,7 @@ export function makeZone12() {
       P(18, 9, 'sarcophage', {
         label: 'Sarcophage du seigneur',
         ...fouille([
-          { type: 'giveTrapping', trappingId: 'epee-batarde', qualities: ['magique', 'de-plaies-atroces'], identified: false },
+          { type: 'giveTrapping', trappingId: 'epee-batarde', qualities: [{ id: 'magique' }, { id: 'de-plaies-atroces' }], identified: false },
           { type: 'journal', desc: 'Entre les mains du gisant : une épée bâtarde au fil GLACIAL. Quelque chose dort dans cet acier — faites-la évaluer.' },
         ]),
       }),

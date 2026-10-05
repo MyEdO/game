@@ -1,18 +1,17 @@
 import type { JSX } from 'react';
 /**
- * Picker DEV de RÉFÉRENCE unifié au Codex — UN composant, 4 modes, configuré par (catégorie, champ) :
+ * Picker DEV de RÉFÉRENCE unifié au Codex — UN composant, 3 modes, configuré par (catégorie, champ) :
  *  - `liste`    : `Ref[]` = {id, value?} (sorts d'une créature, Bénédictions/Miracles d'un dieu, Qualités
  *                 d'une possession) — choix dans le dataset cible, LIBELLÉ affiché mais `id` STABLE stocké ;
  *  - `single`   : UN `<select>` (sous-type d'arme, classe d'une carrière, espèce/carrière d'un pré-tiré…) ;
- *  - `freeText` : `single` + `<input list>`/`<datalist>` (au lieu d'un `<select>` strict) — pioche par
- *                 LIBELLÉ ou id (id stocké) OU saisie libre hors catalogue, émise telle quelle ;
  *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/refCareer/subType…)
  *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset).
  * On stocke partout l'`id` — multilangue-safe (cf.
  * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
-import { useId, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';
+import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../data';
 import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
 import { NumberField } from '../NumberField';
@@ -21,13 +20,12 @@ import { NumberField } from '../NumberField';
  *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
 type RefDatasetCfg = { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean };
 /** Mode `liste` : une rangée par réf, aucun contrôle unique. */
-type ListeRefCfg = RefDatasetCfg & { value?: boolean; single?: false; freeText?: false };
+type ListeRefCfg = RefDatasetCfg & { value?: boolean; single?: false };
 /** Mode `single` avec `spec` : le `<select>` ET l'`<input>` de spécialisation, aucun contrôle unique. */
-type SpecRefCfg = RefDatasetCfg & { single: true; freeText?: false; spec: true };
+type SpecRefCfg = RefDatasetCfg & { single: true; spec: true };
 /** Config dont le rendu est UN contrôle : il porte le nom accessible, l'invalidité et la description. */
 export type RefFieldCfgUnique =
-  | (RefDatasetCfg & { single: true; freeText?: false; spec?: false })
-  | (RefDatasetCfg & { freeText: true; single?: boolean })
+  | (RefDatasetCfg & { single: true; spec?: false })
   | { vocabFrom: string };
 /** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
 export type RefFieldCfg = ListeRefCfg | SpecRefCfg | RefFieldCfgUnique;
@@ -35,8 +33,8 @@ export type RefFieldCfg = ListeRefCfg | SpecRefCfg | RefFieldCfgUnique;
 /**
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
  *  Trois formes, lues sur l'entrée elle-même : une LISTE d'ids d'un dataset (`ds`), un id SEUL
- *  (`single`), ou un vocabulaire tiré d'un champ (`vocabFrom`). `spec` et `freeText` sont posés par
- *  les appelants directs du composant, jamais ici.
+ *  (`single`), ou un vocabulaire tiré d'un champ (`vocabFrom`). `spec` est posé par les appelants
+ *  directs du composant, jamais ici.
  */
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
@@ -90,15 +88,16 @@ interface RefEntry { id: string; value?: number }
 interface SpecRef { id: string; spec?: string }
 
 /** `noeud` : le nœud de schéma du champ — sa feuille `idDe` restreint les options à sa sous-liste.
- *  `entreesEnTete` : entrées hors dataset (objets du projet édité), résolues AVANT lui — à id égal, elles priment. */
+ *  `entreesEnTete` : objets du projet édité (`narratif.objets`, champ du dataset `trappings`), résolus AVANT
+ *  lui par `trappingDesObjetsPuisDuCatalogue` — à id égal, ils priment. */
 type RefFieldCommun = {
   categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean;
-  noeud?: unknown; entreesEnTete?: readonly { readonly id: string }[];
+  noeud?: unknown; entreesEnTete?: readonly TrappingData[];
 };
 /** Nom accessible, invalidité et description du contrôle rendu. */
 type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: string };
 
-/** Un contrôle UNIQUE (`single` sans `spec`, `freeText`, `vocab`) porte `Accessibilite` ; la `liste` et le
+/** Un contrôle UNIQUE (`single` sans `spec`, `vocab`) porte `Accessibilite` ; la `liste` et le
  *  `single` à `spec` n'en rendent aucun à qui la poser, et l'appel qui la passerait ne compile pas. */
 export function RefField(props: RefFieldCommun & Accessibilite & { cfg: RefFieldCfgUnique }): JSX.Element;
 export function RefField(props: RefFieldCommun & { cfg: RefFieldCfg; ariaLabel?: never; invalide?: never; describedBy?: never }): JSX.Element;
@@ -112,13 +111,12 @@ export function RefField(
   const a11y = { ariaLabel, invalide, describedBy };
   const champ = { noeud, entreesEnTete };
   if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
-  if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} {...a11y} />;
   if (cfg.single) return <SingleRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
   return <ListRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} />;
 }
 
 /** Le nœud de schéma d'un champ-réf et ses entrées hors dataset (`RefFieldCommun`). */
-type Champ = { noeud: unknown; entreesEnTete: readonly { readonly id: string }[] };
+type Champ = { noeud: unknown; entreesEnTete: readonly TrappingData[] };
 /** `entreesEnTete` absent : une référence STABLE, que les `useMemo` de l'univers ne voient pas changer. */
 const SANS_ENTREE: Champ['entreesEnTete'] = [];
 
@@ -146,13 +144,20 @@ export function refusDuNoeud(noeud: unknown): ((entree: { readonly id: string })
 /** Une entrée et son id (`String(e.id)`) : la forme que lisent univers, options et refus. */
 type Entree = { id: string; e: Record<string, unknown> };
 
-/** L'univers du champ : `entreesEnTete`, puis les entrées du dataset dont elles ne prennent pas l'id. */
+/** L'univers du champ : les entrées du dataset ; avec des objets du projet (`entreesEnTete`), leurs ids
+ *  d'abord, chaque id résolu par la source unique `trappingDesObjetsPuisDuCatalogue`. */
 function useUnivers(ds: DatasetKey, entreesEnTete: Champ['entreesEnTete']): readonly Entree[] {
   return useMemo(() => {
-    const enTete = entreesEnTete.map((e) => ({ id: e.id, e: e as Record<string, unknown> }));
-    const pris = new Set(enTete.map((x) => x.id));
-    const duDataset = (datasetArray(ds) as Record<string, unknown>[]).map((e) => ({ id: String(e.id ?? ''), e })).filter((x) => !pris.has(x.id));
-    return [...enTete, ...duDataset];
+    const duDataset = (datasetArray(ds) as Record<string, unknown>[]).map((e) => ({ id: String(e.id ?? ''), e }));
+    if (!entreesEnTete.length) return duDataset;
+    if (ds !== 'trappings') throw new Error(`RefField : des objets du projet (\`entreesEnTete\`) sur le dataset « ${ds} » — ils ne précèdent que \`trappings\`.`);
+    const parId = new Map(entreesEnTete.map((o) => [o.id, o]));
+    const ids = [...new Set([...parId.keys(), ...duDataset.map((x) => x.id)])];
+    return ids.map((id) => {
+      const e = trappingDesObjetsPuisDuCatalogue(parId, id);
+      if (!e) throw new Error(`RefField : « ${id} » n'est ni un objet du projet ni une entrée du catalogue des objets.`);
+      return { id, e: e as unknown as Record<string, unknown> };
+    });
   }, [ds, entreesEnTete]);
 }
 
@@ -200,59 +205,6 @@ function SingleRefField(
             onChange={(e) => emit(id, e.target.value || undefined)} />
         )}
       </div>
-    </div>
-  );
-}
-
-/** Mode `single` + `freeText` : `<input list>` + `<datalist>` des options — la saisie se résout par id
- *  puis par LIBELLÉ dans l'univers du champ (`useUnivers`, entrées refusées comprises) : une entrée
- *  admise émet son id ; une entrée que la sous-liste refuse (`refusDuNoeud`) affiche le refus et
- *  n'émet rien ; une saisie non résolue s'émet telle quelle. Une datalist par instance (`useId`).
- *  Le texte saisi vit ICI : il ne se recale sur `value` que lorsqu'elle diffère de la dernière valeur
- *  que le champ a émise, jamais à chaque frappe. */
-function FreeRefField(
-  { label, ariaLabel, invalide, describedBy, cfg, champ, value, onChange }:
-  Accessibilite & { label?: string; cfg: { ds: DatasetKey }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
-) {
-  const univers = useUnivers(cfg.ds, champ.entreesEnTete);
-  const options = useOptions(cfg, champ.noeud, univers);
-  const juger = useMemo(() => refusDuNoeud(champ.noeud), [champ.noeud]);
-  const cur = typeof value === 'string' ? value : '';
-  const dlId = useId();
-  const idRefus = useId();
-  const libelleDe = (id: string) => entryLabel(univers.find((x) => x.id === id)?.e ?? { id });
-  const [texte, setTexte] = useState(() => libelleDe(cur));
-  const [connue, setConnue] = useState(cur);
-  const [refus, setRefus] = useState<string | null>(null);
-  if (cur !== connue) {
-    setConnue(cur);
-    setTexte(libelleDe(cur));
-    setRefus(null);
-  }
-  const resoudre = (v: string): Entree | undefined =>
-    univers.find((x) => x.id === v) ?? univers.find((x) => entryLabel(x.e).toLowerCase() === v.toLowerCase());
-  return (
-    <div className="ed-field">
-      <span>{label}<em className="de-hint"> (réf {cfg.ds}, ou saisie libre)</em></span>
-      <input
-        list={dlId} value={texte}
-        aria-label={ariaLabel} aria-invalid={invalide || refus !== null || undefined}
-        aria-describedby={[describedBy, refus === null ? undefined : idRefus].filter(Boolean).join(' ') || undefined}
-        onChange={(e) => {
-          const brut = e.target.value;
-          const v = brut.trim();
-          const entree = v ? resoudre(v) : undefined;
-          const r = entree && juger ? juger({ ...entree.e, id: entree.id }) : null;
-          setTexte(brut);
-          setRefus(r);
-          if (r !== null) return;
-          const emise = entree ? entree.id : v || undefined;
-          setConnue(emise ?? '');
-          onChange(emise);
-        }}
-      />
-      <datalist id={dlId}>{options.map((o) => <option key={o.v} value={o.label} />)}</datalist>
-      {refus !== null && <span id={idRefus} className="hint" role="status">{refus}</span>}
     </div>
   );
 }

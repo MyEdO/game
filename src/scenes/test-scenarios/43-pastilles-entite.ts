@@ -60,7 +60,7 @@ function construireScene(): Scene {
         id: 'coffre-de-cour', kind: 'prop', ref: 'coffre', pos: { x: 5, y: 7 }, label: 'Coffre entrouvert',
         usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([
             { type: 'giveTrapping', trappingId: 'dague' },
-            { type: 'giveTrapping', custom: 'Fiole d’huile' },
+            { type: 'giveTrapping', trappingId: 'huile-de-lampe' },
           ]) }] },
       },
     ],

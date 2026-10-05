@@ -9,7 +9,7 @@
  */
 import { z } from 'zod';
 import './locale-fr';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE, LIBELLES_DES_MARQUEURS } from '../_ids.generated';
 import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
 import { idsVivants } from './idsVivants';
 
@@ -151,14 +151,27 @@ const cleDuMarqueur = (type: TypeEntite, marqueur: string): string => cleFiltree
 const marqueurFautif = (sousListe: SousListeMarquee, porte: (marqueur: string) => boolean): string | undefined =>
   'avecMarqueur' in sousListe ? (porte(sousListe.avecMarqueur) ? undefined : sousListe.avecMarqueur) : sousListe.horsMarqueurs.find(porte);
 
+/** Le LIBELLÉ du marqueur `marqueur` de l'espace d'un type, tel que l'auteur le lit : la `MetaChamp` du
+ *  champ marqueur dans le def de son document (`LIBELLES_DES_MARQUEURS`, INDEX DES IDS), jamais son nom. */
+export function libelleDuMarqueur(type: TypeEntite, marqueur: string): string {
+  const cle = cleDuMarqueur(type, marqueur);
+  const libelle = LIBELLES_DES_MARQUEURS[cle];
+  if (libelle === undefined) throw new Error(`libelleDuMarqueur : « ${cle} » n'a aucun libellé à l'INDEX DES IDS (\`LIBELLES_DES_MARQUEURS\`, \`npm run gen\`).`);
+  return libelle;
+}
+
+/** La PROVENANCE d'une entrée, telle qu'un refus la nomme : par défaut le catalogue de son type ; un
+ *  document qui porte ses propres entrées nomme les siennes (`des objets du projet (narratif.objets)`). */
+const duCatalogue = (type: TypeEntite): string => `du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)})`;
+
 /** Refus d'une référence à l'entrée `id` par une sous-liste marquée (`marqueurFautif`), ou `null` si elle l'admet. */
-function refusDeMarqueur(type: TypeEntite, id: string, sousListe: SousListeMarquee, porte: (marqueur: string) => boolean): string | null {
+function refusDeMarqueur(type: TypeEntite, id: string, sousListe: SousListeMarquee, porte: (marqueur: string) => boolean, provenance = duCatalogue(type)): string | null {
   const marqueur = marqueurFautif(sousListe, porte);
   if (marqueur === undefined) return null;
-  const catalogue = `catalogue des ${TYPES[type].catalogue} (${espaceDe(type)})`;
+  const libelle = libelleDuMarqueur(type, marqueur);
   return 'avecMarqueur' in sousListe
-    ? `« ${id} » ne porte pas le marqueur « ${marqueur} » : cette référence n'admet que les entrées du ${catalogue} qui le portent.`
-    : `« ${id} » porte le marqueur « ${marqueur} » : cette référence l'exclut du ${catalogue}.`;
+    ? `« ${id} » ne porte pas « ${libelle} » : cette référence n'admet ${provenance} que les entrées qui le portent.`
+    : `« ${id} » porte « ${libelle} » : cette référence écarte ${provenance} les entrées qui le portent.`;
 }
 
 /** Le refus d'un id PRÉSENT dans l'espace de son type par une sous-liste marquée — `null` s'il est ADMIS. */
@@ -171,18 +184,24 @@ export const lEntreePorte = (entree: object) => (marqueur: string): boolean =>
   porteLeChampMarqueur(entree as Readonly<Record<string, unknown>>, marqueur);
 
 /** Le refus d'un id par une sous-liste DISCRIMINÉE — `null` s'il est ADMIS. */
-const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string): string | null =>
+const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string, provenance = duCatalogue(type)): string | null =>
   idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
     ? null
-    : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+    : `« ${id} » est hors de la sous-liste « ${sousListe} » ${provenance}.`;
 
 /** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
  *  marquée sur ses champs (`marqueurDeLEntree`), la discriminée sur son id —, lu par le sélecteur qui
  *  résout une saisie hors du registre (`ui/compendium/RefField.tsx`). */
-export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
+export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }, provenance = duCatalogue(type)): string | null {
   return typeof sousListe === 'string'
-    ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
-    : refusDeMarqueur(type, entree.id, sousListe, lEntreePorte(entree));
+    ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id, provenance)
+    : refusDeMarqueur(type, entree.id, sousListe, lEntreePorte(entree), provenance);
+}
+
+/** Le refus d'un id ABSENT de l'espace de son type — ce qu'une feuille OUVERTE admet sans le juger
+ *  (`idDe`), jugé sous le régime FERMÉ ; `null` si l'id est PRÉSENT (la feuille l'a jugé elle-même). */
+export function refusHorsDeLEspace(type: TypeEntite, id: string): string | null {
+  return idsDesignes(espaceDe(type), `refusHorsDeLEspace('${type}')`).has(id) ? null : refMorte(type, id);
 }
 
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
@@ -324,10 +343,11 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * la table (`idsVivants.ts`, en-tête) : un espace désigné et absent LÈVE au parse, et
  * `espaces-contrat.test.ts` exige la cible de chaque désignation (`espacesDesignes`).
  *
- * `ouverte` : le porteur admet aussi un id ABSENT de l'espace, que son runtime résout ailleurs (Effet
- * `giveTrapping` : objets de la campagne, `state/campaignData.ts`, sinon objet `custom`) ; un id
- * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
- * du type.
+ * `ouverte` : le porteur admet aussi un id ABSENT de l'espace, que son runtime résout ailleurs
+ * (`objetDeSceneSchema` : objets de la campagne, `state/campaignData.ts`) ; un id PRÉSENT reste jugé par
+ * la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence du type. Le DOCUMENT
+ * qui porte la feuille le rejuge (`document()`, `options.registresOuverts`) : par le registre qu'il
+ * déclare (`projetDoc`, `defs-scenes/projet.ts`), sinon sous le régime FERMÉ (`refusHorsDeLEspace`).
  */
 export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string> {
   const ouverte = options?.ouverte === true;

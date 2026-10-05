@@ -21,7 +21,7 @@ import { missileBypassSchema } from '../../data/schemas/defs/domains';
 import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../data';
 import type { z } from 'zod';
 import { slugId } from '../../data/slug';
-import { ConditionEditor } from '../editor/ConditionEditor';
+import { AUCUN_OBJET_DE_PROJET, ConditionEditor } from '../editor/ConditionEditor';
 import { isOptionalNote, type TraitInstance, type OptionalEntry } from '../../engine/statEntry';
 import { parseTraitInstance, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
 import { GameOpEditor, newOp } from '../editor/GameOpEditor';
@@ -276,7 +276,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
           {m.when ? (
             <div className="de-reflrow" style={{ marginLeft: 16 }}>
               <span>quand :</span>
-              <ConditionEditor cond={m.when} onChange={(c) => setM(i, { when: c })} />
+              <ConditionEditor cond={m.when} objets={AUCUN_OBJET_DE_PROJET} onChange={(c) => setM(i, { when: c })} />
               <button className="btn small danger" title="Retirer le contexte" onClick={() => setM(i, { when: undefined })}>✕</button>
             </div>
           ) : (

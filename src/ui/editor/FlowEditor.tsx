@@ -13,6 +13,7 @@ import { Flow, FlowTest, EMPTY_FLOW } from '../../state/flow';
 import type { Effect } from '../../state/scene';
 import type { FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
+import { objetDeSceneSchema } from '../../data/schemas/grammaire/mecanique';
 import { Icon } from '../Icon';
 import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
@@ -20,7 +21,7 @@ import { menaceIds } from '../../engine/menace';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import { refLabel } from '../../data';
+import { refLabel, type TrappingData } from '../../data';
 import {
   EffectFields,
   Ctx,
@@ -44,7 +45,7 @@ const seqOf = (steps: Flow[]): Flow => ({ kind: 'seq', steps });
 function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
   switch (node.kind) {
     case 'do': return <><Icon id={EFFECT_ICON[node.effect.type]} size="sm" /> {effectSummary(node.effect, ctx)}</>;
-    case 'if': return <><Icon id="ui/branch" size="sm" /> Si {condSummary(node.cond)}{node.else != null ? ' · sinon…' : ''}</>;
+    case 'if': return <><Icon id="ui/branch" size="sm" /> Si {condSummary(node.cond, ctx.objets)}{node.else != null ? ' · sinon…' : ''}</>;
     case 'test': return <><Icon id="nav/dice" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
     case 'choice': return <><Icon id="ui/balance" size="sm" /> Choix{node.advantageCost != null ? ` (${node.advantageCost} Av)` : ''} « {node.prompt} » → ✓ / ✗</>;
     case 'seq': return `▸ ${node.steps.length} bloc(s)`;
@@ -91,7 +92,7 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
       <span>{desc}</span>
       {value ? (
         <div className="eff-body flow-branch">
-          <TestFields test={value.test} onChange={(test) => onChange({ ...value, test })} />
+          <TestFields test={value.test} objets={ctxDeCatalogue(racine).objets} onChange={(test) => onChange({ ...value, test })} />
           {branches === 'les-deux' && (
             <div className="branch">
               <span className="branch-label ok">Si RÉUSSITE :</span>
@@ -117,7 +118,12 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
  * optionnels sans refinement, et `testValue` (`engine/skills.ts`) lit `characteristic` comme la carac
  * EXPLICITE contre laquelle le jet roule, celle de la Compétence n'étant que le défaut.
  */
-export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: FlowTest) => void }) {
+export function TestFields({ test, onChange, objets }: {
+  test: FlowTest;
+  onChange: (t: FlowTest) => void;
+  /** Objets du projet (`narratif.objets`) — offerts avant le catalogue pour l'outil du Test. */
+  objets: readonly TrappingData[];
+}) {
   const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
   const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
     const m = { ...(test.easierIf ?? {}), ...patch };
@@ -148,8 +154,8 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           ))}
         </select>
         <label className="dr">DR≥<NumberField variant="nu" label="Degrés de Réussite requis" value={test.requireSL ?? 0} onChange={(requireSL) => upd({ requireSL })} /></label>
-        {/* Outil : picker catalogue (stocke l'id) avec repli nom pour les objets CUSTOM. */}
-        <RefField cfg={{ ds: 'trappings', freeText: true }} value={test.tool} onChange={(v) => upd({ tool: v as string | undefined })} />
+        <RefField cfg={{ ds: 'trappings', single: true }} ariaLabel="Outil du Test" nullable noeud={objetDeSceneSchema} entreesEnTete={objets}
+          value={test.tool} onChange={(v) => upd({ tool: (v as string | null) || undefined })} />
       </div>
       {/* ENJEU (#1117, arbitrage user 2026-08-12 / #1262) : ce que le jet met en jeu s'authore ICI, avec
           la scène — `validateScene` refuse un jet muet. Un enjeu de CATALOGUE (Flow produit par le
@@ -274,7 +280,7 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
           )}
           {node.kind === 'if' && (
             <div className="eff-body flow-branch">
-              <ConditionEditor cond={node.cond} onChange={(c) => updAt(i, { ...node, cond: c })} />
+              <ConditionEditor cond={node.cond} objets={ctx.objets} onChange={(c) => updAt(i, { ...node, cond: c })} />
               <div className="branch">
                 <span className="branch-label ok">ALORS :</span>
                 <FlowEditor flow={node.then} ctx={ctx} onChange={(f) => updAt(i, { ...node, then: f })} />
@@ -292,7 +298,7 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
           )}
           {node.kind === 'test' && (
             <div className="eff-body flow-branch">
-              <TestFields test={node.test} onChange={(t) => updAt(i, { ...node, test: t })} />
+              <TestFields test={node.test} objets={ctx.objets} onChange={(t) => updAt(i, { ...node, test: t })} />
               <div className="branch">
                 <span className="branch-label ok">Si RÉUSSITE :</span>
                 <FlowEditor flow={node.success} ctx={ctx} onChange={(f) => updAt(i, { ...node, success: f })} />

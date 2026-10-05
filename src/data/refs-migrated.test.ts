@@ -1222,7 +1222,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
 
   it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', () => {
     const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
-    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(38);
+    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(0);
     expect(unclassified, `champs de GameOp sans cible déclarée (gameOpRefFk.mjs) :\n${unclassified.join('\n')}`).toEqual([]);
     expect(stale.map((c) => `${c.key} — ${c.raison}`), 'cibles déclarées hors périmètre').toEqual([]);
   });

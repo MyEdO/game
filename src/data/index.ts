@@ -7,6 +7,7 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
+import type { ResolveursDeDon } from './donsDObjet';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID, RECOLTABLE } from './schemas/grammaire/sousListes';
@@ -3058,6 +3059,9 @@ export const creatureSemee = (): string => premierOffert(creatures, 'Créature s
 export const creatureRecoltableSemee = (): string =>
   premierOffert(creatures.filter((c) => dansLaSousListe(RECOLTABLE, c)), 'Créature récoltable semée par un don de pièce');
 export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
+/** L'objet que sème un Effet `giveTrapping` neuf : le premier de `trappingsInstanciables`, qu'aucun
+ *  `creatureId` ne conditionne. */
+export const objetSeme = (): string => premierOffert(trappingsInstanciables(), 'Objet semé par un don neuf');
 export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
 /** La Taille que porte un Talent du catalogue (`TalentData.size`) : la lecture que les primitives de Taille
  *  de `engine/size.ts` (`sizeFromTalents`, `sizeFromProfile`) reçoivent injectée. */
@@ -3299,6 +3303,31 @@ export function findTrappingById(id: string): TrappingData | undefined {
  *  `state/campaignData.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
+}
+const instanciableParLabelMinuscule = memoParVersion('trappings', () => {
+  const m = new Map<string, string[]>();
+  for (const t of trappingsInstanciables()) m.set(t.label.toLowerCase(), [...(m.get(t.label.toLowerCase()) ?? []), t.id]);
+  return m;
+});
+/** Ids des objets que nomme un LIBELLÉ d'AUTHORING, casse ignorée : les `objets` de la campagne d'abord,
+ *  sinon les entrées de `trappingsInstanciables`. Vide = aucun objet ; plusieurs = des homonymes que le
+ *  libellé ne départage pas (« Couteau » : `couteau`, `couteau-2`). Résolveur par libellé de la couture
+ *  de chargement (#909). */
+export function trappingIdsByLabel(label: string, objets: readonly TrappingData[]): readonly string[] {
+  const cle = label.toLowerCase();
+  const duProjet = objets.filter((o) => o.label.toLowerCase() === cle).map((o) => o.id);
+  return duProjet.length ? duProjet : (instanciableParLabelMinuscule().get(cle) ?? []);
+}
+/** Les résolveurs de `donsDObjetEnFKDeep` (`PROJECT_MIGRATIONS[17]`) pour un projet dont `objets` sont
+ *  les objets (`narratif.objets`) : la couture label→id de la qualité et de l'objet, objets du projet
+ *  d'abord. */
+export function resolveursDeDon(objets: readonly TrappingData[]): ResolveursDeDon {
+  const parId = new Map(objets.map((o) => [o.id, o]));
+  return {
+    qualite: (brut) => (findQualityById(brut) ? brut : qualityIdByLabel(brut)),
+    objets: (libelle) => trappingIdsByLabel(libelle, objets),
+    objetConnu: (id) => trappingDesObjetsPuisDuCatalogue(parId, id) !== undefined,
+  };
 }
 /** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
  *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */

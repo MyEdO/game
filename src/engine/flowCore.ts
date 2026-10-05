@@ -126,8 +126,8 @@ export type Condition =
   | { kind: 'flag'; expr: string }
   /** Fenêtre horaire (heure-du-jour, `before` exclusif) — sémantique `temporalConditionMet`. */
   | { kind: 'time'; window: TemporalCondition }
-  /** Le GROUPE possède au moins `count` (défaut 1) exemplaire(s) de l'objet d'`id` `trappingId` (réf de
-   *  catalogue stable). Repli sur le NOM pour les objets CUSTOM (hors-base, sans `trappingId`). */
+  /** Le GROUPE possède au moins `count` (défaut 1) exemplaire(s) de l'objet d'`id` `trappingId` (objet de
+   *  la campagne ou du catalogue, `objetDeSceneSchema`). */
   | { kind: 'hasItem'; trappingId: string; count?: number }
   /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre). */
   | { kind: 'money'; atLeast: Purse }
@@ -293,11 +293,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     }
     case 'hasItem': {
       const need = Math.max(1, cond.count ?? 1);
-      // Objet catalogué → match par `trappingId` stable ; objet CUSTOM (sans trappingId) → repli sur le nom.
-      // Carve-out doctrine (#318) : ce repli n'est PAS une comparaison par-label déguisée — un objet
-      // CUSTOM n'a structurellement AUCUN id de catalogue à comparer (il n'existe dans aucune source
-      // data), donc son nom EST son seul identifiant stable côté ItemInstance. Rien à migrer.
-      const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) => (it.trappingId ?? it.label) === cond.trappingId).length, 0);
+      const have = (ctx.party ?? []).reduce((n, h) => n + (h.items ?? []).filter((it) => it.trappingId === cond.trappingId).length, 0);
       return have >= need;
     }
     case 'money': return ctx.money ? brassValue(ctx.money) >= brassValue(cond.atLeast) : false;

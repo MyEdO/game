@@ -15,10 +15,11 @@
 import { z } from 'zod';
 import { proseDeScene } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
-import { compteDObjetsSchema, conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
-import { idDe, porteLeMarqueur, refOuSpec } from '../grammaire/ref';
-import { DONNABLE, EXIGE_UNE_CREATURE, RECOLTABLE } from '../grammaire/sousListes';
+import { compteDObjetsSchema, conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest, objetDeSceneSchema } from '../grammaire/mecanique';
+import { idDe, libelleDuMarqueur, porteLeMarqueur, refOuSpec } from '../grammaire/ref';
+import { EXIGE_UNE_CREATURE, RECOLTABLE } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
+import { qualityRefSchema } from '../grammaire/reference';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { Effect } from '../../../state/scene';
@@ -129,28 +130,24 @@ export const setObjectiveSchema = z.strictObject({
 /** Retire un objectif de la pile : `id` précis, ou TOUS si absent (fin d'acte). */
 export const clearObjectiveSchema = z.strictObject({ type: z.literal('clearObjective'), id: z.string().optional() });
 
-/** Objet donné par `giveTrapping` : feuille OUVERTE de `DONNABLE`, FORME DE SORTIE déclarée
- *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', DONNABLE, { ouverte: true });
 /** Créature d'une pièce donnée : feuille de `RECOLTABLE`. */
 const creatureDeLaPieceSchema: z.ZodType<string, string> = idDe('creature', RECOLTABLE);
 /** L'entrée du registre porte-t-elle `EXIGE_UNE_CREATURE` ? */
 const exigeUneCreature = porteLeMarqueur('trapping', EXIGE_UNE_CREATURE);
 
 /** Donne `count` objets (défaut 1) à un héros (défaut : le premier). `trappingId` = objet à stats de la
- *  campagne (`narratif.objets`) ou du catalogue, feuille OUVERTE de `DONNABLE` ; `custom` = objet HORS-base
- *  (nom libre) sans stats ; `creatureId` présent SI ET SEULEMENT SI l'entrée porte `EXIGE_UNE_CREATURE`
- *  (ZI 13 l.294, l.319). L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities`
- *  AJOUTÉES, `identified:false` = qualités masquées jusqu'à Évaluation (#2), `skin` = recoloration. */
+ *  campagne (`narratif.objets`) ou du catalogue (`objetDeSceneSchema`) ; `creatureId` présent SI
+ *  ET SEULEMENT SI l'entrée porte `EXIGE_UNE_CREATURE` (ZI 13 l.294, l.319). L'objet arrive NON équipé.
+ *  Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES (`qualityRefSchema`, #1615),
+ *  `identified:false` = qualités masquées jusqu'à Évaluation (#2), `skin` = recoloration. */
 export const giveTrappingSchema = z
   .strictObject({
     type: z.literal('giveTrapping'),
-    trappingId: objetDonneSchema.optional(),
-    custom: z.string().optional(),
+    trappingId: objetDeSceneSchema,
     creatureId: creatureDeLaPieceSchema.optional(),
     count: compteDObjetsSchema.optional(),
     heroId: z.string().optional(),
-    qualities: z.array(z.string()).optional(),
+    qualities: z.array(qualityRefSchema).optional(),
     identified: z.boolean().optional(),
     skin: surchargePaletteSchema.optional(),
     /** Aura détectée / Détection déjà tentée (Talent Détection d'artefact, `LDB 10`) / jour de la
@@ -161,11 +158,11 @@ export const giveTrappingSchema = z
     appraiseTriedDay: z.number().optional(),
   })
   .superRefine((v, ctx) => {
-    const marquee = v.trappingId !== undefined && exigeUneCreature(v.trappingId);
+    const marquee = exigeUneCreature(v.trappingId);
     if (marquee && v.creatureId === undefined)
-      ctx.addIssue({ code: 'custom', message: `giveTrapping : « ${v.trappingId} » porte \`${EXIGE_UNE_CREATURE}\` et exige \`creatureId\``, path: ['creatureId'] });
+      ctx.addIssue({ code: 'custom', message: `« ${v.trappingId} » porte « ${libelleDuMarqueur('trapping', EXIGE_UNE_CREATURE)} » : le don nomme la créature dont la pièce provient.`, path: ['creatureId'] });
     if (!marquee && v.creatureId !== undefined)
-      ctx.addIssue({ code: 'custom', message: `giveTrapping : \`creatureId\` n'est admis que sur une entrée qui porte \`${EXIGE_UNE_CREATURE}\``, path: ['creatureId'] });
+      ctx.addIssue({ code: 'custom', message: `« ${v.trappingId} » ne porte pas « ${libelleDuMarqueur('trapping', EXIGE_UNE_CREATURE)} » : le don ne nomme aucune créature.`, path: ['creatureId'] });
   });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre

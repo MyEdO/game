@@ -12,8 +12,8 @@ import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
  *
  * `RefField.tsx` HORS SCAN : c'est le foyer de la primitive, son implémentation EST le motif.
  *
- * BASELINE gelée (surface d'ATELIER DEV) : `CodexEdit`/`StructFields` sont l'éditeur de fiches du
- * Compendium (surface développeur, hors jeu joué) ; leur `<datalist>` pioche par LIBELLÉ car
+ * BASELINE gelée (surface d'ATELIER DEV) : `StructFields` est l'éditeur de fiches du
+ * Compendium (surface développeur, hors jeu joué) ; son `<datalist>` pioche par LIBELLÉ car
  * plusieurs fiches partagent un même libellé (cf. `CodexEdit.tsx`), là où `RefField` pioche par id.
  * Ce stock reste GELÉ et VISIBLE au cliquet : toute HAUSSE échoue, toute BAISSE abaisse la baseline.
  */
@@ -24,7 +24,6 @@ const EXCLUDED = (rel: string) => rel === 'src/ui/compendium/RefField.tsx';
 
 /** Stock GELÉ de datalist en surface d'atelier DEV (#410, 2026-07-13). */
 const BASELINE: Record<string, number> = {
-  'src/ui/compendium/CodexEdit.tsx': 1,
   'src/ui/compendium/StructFields.tsx': 2,
 };
 

@@ -35,8 +35,7 @@ function construireScene(): Scene {
   const HERSE_WHEN: Condition = {
     kind: 'all',
     of: [
-      // « Clé en fer » est un objet CUSTOM (giveTrapping custom, sans id de catalogue) → match par nom (repli).
-      { kind: 'any', of: [{ kind: 'hasItem', trappingId: 'Clé en fer' }, { kind: 'flag', expr: 'levier_tire' }] },
+      { kind: 'any', of: [{ kind: 'hasItem', trappingId: 'clef' }, { kind: 'flag', expr: 'levier_tire' }] },
       { kind: 'not', of: { kind: 'flag', expr: 'alarme' } },
     ],
   };
@@ -61,14 +60,14 @@ function construireScene(): Scene {
         ]) }] } },
       { id: 'cle', kind: 'prop', ref: 'cle', pos: { x: 2, y: 8 }, label: 'Clé en fer, posée là',
         usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
-          { type: 'giveTrapping', custom: 'Clé en fer' },
+          { type: 'giveTrapping', trappingId: 'clef' },
           { type: 'journal', desc: 'Vous empochez la lourde clé en fer.' },
         ]) }] } },
       { id: 'herse-grille', kind: 'prop', ref: 'grille', pos: { x: 10, y: 5 }, label: 'Herse du trésor' },
       { id: 'tresor', kind: 'prop', ref: 'coffre', pos: { x: 12, y: 5 }, label: 'Coffre du trésor',
         usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
           { type: 'giveMoney', montant: { gold: 5 } },
-          { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false },
+          { type: 'giveTrapping', trappingId: 'arme-simple', qualities: [{ id: 'precise' }], identified: false },
           { type: 'journal', desc: 'Le coffre regorge d’or et d’une lame finement ouvragée.' },
         ]) }] } },
     ],

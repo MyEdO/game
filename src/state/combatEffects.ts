@@ -28,7 +28,7 @@ import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { recomputeLoadout, instancesDeDon, libelleDuDon, autoStowNewItem } from '../engine/items';
 import { trappingById, indiceById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
-import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
+import { creatureSemee, navireSeme, objetSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR } from './shipCrew';
 import { harvestSizeOf, harvestYield, PIECES_DE_CREATURE_TRAPPING_ID } from '../engine/harvest';
@@ -1433,8 +1433,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 
   // ── Récompenses ────────────────────────────────────────────────────────
   giveTrapping: {
-    group: 'Récompenses', label: 'Donner un objet (équipement/potion/babiole — réel ou custom)', icon: 'item/misc',
-    make: () => ({ type: 'giveTrapping', custom: '' }),
+    group: 'Récompenses', label: 'Donner un objet (équipement, potion, objet de la campagne)', icon: 'item/misc',
+    make: () => ({ type: 'giveTrapping', trappingId: objetSeme() }),
     apply: (e, env) => {
       // Résolveur campagne-D'ABORD (`campaignData.trappingById`) : un objet de `narratif.objets` gagne (#767).
       const its = instancesDeDon(e, e.count ?? 1, { resoudre: trappingById });

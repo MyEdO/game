@@ -1,6 +1,6 @@
 /**
  * PHASE 2 de `npm run gen` (#1463) — l'INDEX DES IDS (`src/data/schemas/_ids.generated.ts`,
- * `IDS_PAR_ESPACE`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), les CLÉS
+ * `IDS_PAR_ESPACE`, et le LIBELLÉ de chaque sous-liste marquée, `LIBELLES_DES_MARQUEURS`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), les CLÉS
  * DE DATASET (`src/data/schemas/_cles-de-dataset.generated.ts`, `CLES_DE_DATASET`), le domaine de
  * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), et les RACINES VIVANTES
  * (`src/data/schemas/_racines-vivantes.generated.ts`, `RACINES_VIVANTES`), son image.
@@ -32,11 +32,14 @@ import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
 
 /** Table VIDE : ce que la phase 2 pose à la place d'un index illisible. */
-export const TABLE_VIDE = 'export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {};\n';
+export const TABLE_VIDE =
+  'export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {};\n' +
+  'export const LIBELLES_DES_MARQUEURS: Readonly<Record<string, string>> = {};\n';
 
-/** L'index en texte est-il chargeable : il exporte `IDS_PAR_ESPACE` et ne porte aucun marqueur de conflit ? */
+/** L'index en texte est-il chargeable : il exporte `IDS_PAR_ESPACE` et `LIBELLES_DES_MARQUEURS`, et ne
+ *  porte aucun marqueur de conflit ? */
 export function indexChargeable(texte: string): boolean {
-  return /^export const IDS_PAR_ESPACE\b/m.test(texte) && !/^(<{7}|={7}|>{7})( |$)/m.test(texte);
+  return /^export const IDS_PAR_ESPACE\b/m.test(texte) && /^export const LIBELLES_DES_MARQUEURS\b/m.test(texte) && !/^(<{7}|={7}|>{7})( |$)/m.test(texte);
 }
 
 const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -80,10 +83,11 @@ interface DocumentDeDataset {
   readonly chemin: string;
 }
 
-/** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
- *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
- *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
+/** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), le LIBELLÉ de chaque sous-liste
+ *  marquée (la `MetaChamp` du champ marqueur, dans le def de son document), les CLÉS DE DATASET et les
+ *  documents de leur image. Les modules qui importent l'index se chargent ICI, par `import()` :
+ *  l'appelant a déjà rendu l'index chargeable. */
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; libelles: Map<string, string>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { DATASET_FICHIER_DERIVE } = await import('../src/data/schemas/exposition-derivee');
@@ -92,8 +96,15 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   const acces: AccesAuxDocuments = (fichier) => (brutParNom.has(fichier) ? { schema: schemaParNom.get(fichier), racine: brutParNom.get(fichier) } : undefined);
   const lire = (c: string) => lectureDeLEspace(c, acces);
   const table = new Map<string, readonly string[]>();
+  const libelles = new Map<string, string>();
+  const metaDe = new Map(SCHEMA_DEFS.map((d) => [d.file, d.meta]));
   for (const c of collectionsDesDocuments(SCHEMA_DEFS, brutParNom))
-    if (c.marque.espace)
+    if (c.marque.espace) {
+      for (const champ of c.marque.espace.marqueurs ?? []) {
+        const libelle = c.suite === '' ? metaDe.get(c.dataset)?.[champ]?.label : undefined;
+        if (!libelle) throw new Error(`gen-espaces: ${c.cle} : le marqueur « ${champ} » n'a aucun libellé (\`MetaChamp\` du champ dans le def de ${c.dataset}).`);
+        libelles.set(cleFiltree(c.cle, { champ }), libelle);
+      }
       for (const cle of clesDe(c)) {
         if (table.has(cle)) throw new Error(`gen-espaces: clé d'espace « ${cle} » rendue deux fois.`);
         const ids = idsDeLEspace(cle, lire);
@@ -101,6 +112,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
         if (cle.includes('?') && !ids.length) throw new Error(`gen-espaces: ${cle} : filtre qu'aucun élément ne retient.`);
         table.set(cle, ids);
       }
+    }
   for (const [nom, source] of Object.entries(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>))
     for (const cle of [source.univers, source.pool ?? source.univers])
       if (!table.has(cle)) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : « ${cle} » n'est aucun espace mesuré.`);
@@ -112,6 +124,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   });
   return {
     table: new Map([...table].sort(([a], [b]) => parUnitesDeCode(a, b))),
+    libelles: new Map([...libelles].sort(([a], [b]) => parUnitesDeCode(a, b))),
     clesDeDataset: Object.keys(DATASET_FICHIER_DERIVE).sort(parUnitesDeCode),
     racines,
   };
@@ -130,7 +143,7 @@ function specificateur(sortie: string, chemin: string): string {
 
 /** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, racines } = await indexDesIds();
+  const { table, libelles, clesDeDataset, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -150,7 +163,12 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `} as const;\n\n` +
     `export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = IDS;\n\n` +
     `/** Union LITTÉRALE des ids de chaque espace, dérivée de \`IDS\` : un id absent de la donnée ne compile pas. */\n` +
-    `export type IdsParEspace = { readonly [E in keyof typeof IDS]: (typeof IDS)[E][number] };\n`;
+    `export type IdsParEspace = { readonly [E in keyof typeof IDS]: (typeof IDS)[E][number] };\n\n` +
+    `/** LIBELLÉ de chaque sous-liste MARQUÉE (\`<espace>?<marqueur>\`) : la \`MetaChamp\` du champ marqueur, dans le\n` +
+    ` *  def de son document — ce qu'un refus de sous-liste dit à l'auteur (\`grammaire/ref.ts\`), jamais le nom du champ. */\n` +
+    `export const LIBELLES_DES_MARQUEURS: Readonly<Record<string, string>> = {\n` +
+    [...libelles].map(([cle, libelle]) => `  ${litteralJs(cle)}: ${litteralJs(libelle)},\n`).join('') +
+    `};\n`;
   const cles =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +

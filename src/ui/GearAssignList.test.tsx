@@ -29,15 +29,15 @@ describe('GearAssignList (butin attribuable)', () => {
     expect(html).not.toContain('entity-chip');
   });
 
-  it('qualité MAGIQUE portée par l’Effet (objet custom) : rendue en chip, id brut jamais affiché', () => {
-    const html = render([{ label: 'Amulette', magic: true, effect: { type: 'giveTrapping', custom: 'Amulette', qualities: ['empaleuse'], identified: true } }]);
+  it('qualité MAGIQUE portée par l’Effet : rendue en chip, id brut jamais affiché', () => {
+    const html = render([{ label: 'Amulette', magic: true, effect: { type: 'giveTrapping', trappingId: 'amulette', qualities: [{ id: 'empaleuse' }], identified: true } }]);
     expect(html).toContain('entity-chip');
     expect(html).toContain('Empaleuse'); // libellé résolu via le registre, pas l'id « empaleuse »
     expect(html).not.toContain('>empaleuse<');
   });
 
   it('objet catalogué + qualité magique NON identifié : qualités masquées jusqu’à Évaluation', () => {
-    const html = render([{ label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } }]);
+    const html = render([{ label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: [{ id: 'empaleuse' }], identified: false } }]);
     expect(html).toContain('non identifié');
     expect(html).not.toContain('entity-chip'); // ni def ni magiques tant que non révélé
   });

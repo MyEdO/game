@@ -149,7 +149,7 @@ function sceneAvecTas(nb: number): Scene {
   const sc = emptyScene(12, 12);
   sc.entities.push({
     id: 'tas', kind: 'prop', pos: { x: 4, y: 3 }, label: 'Tas',
-    usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects(Array.from({ length: nb }, (_, i) => ({ type: 'giveTrapping', custom: `Objet ${i + 1}` }))) }] },
+    usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects(Array.from({ length: nb }, () => ({ type: 'giveTrapping', trappingId: 'dague' }))) }] },
   } as never);
   return sc;
 }

@@ -26,7 +26,7 @@ type Probe = {
 
 /** Harnais minimal : expose l'état du hook sur `window.__probe` pour l'inspection depuis le test. */
 function Harness({ scene, onRecovered }: { scene: Scene; onRecovered: (s: Scene) => void }) {
-  const { recovery, hasHiddenRecovery, restore, dismiss, hide, show } = useEditorAutosave(scene, onRecovered);
+  const { recovery, hasHiddenRecovery, restore, dismiss, hide, show } = useEditorAutosave(scene, [], onRecovered);
   (window as unknown as { __probe: Probe }).__probe = { recovery, hasHiddenRecovery, restore, dismiss, hide, show };
   return null;
 }

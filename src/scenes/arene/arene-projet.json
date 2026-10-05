@@ -2,7 +2,7 @@
  "id": "arene",
  "type": "projet",
  "label": "L’Arène",
- "schema": 17,
+ "schema": 18,
  "icon": "scenario/arena",
  "versionContenu": 1,
  "maison": "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source",
@@ -18111,8 +18111,12 @@
             "type": "giveTrapping",
             "trappingId": "epee-batarde",
             "qualities": [
-             "magique",
-             "de-plaies-atroces"
+             {
+              "id": "magique"
+             },
+             {
+              "id": "de-plaies-atroces"
+             }
             ],
             "identified": false
            }
@@ -21355,7 +21359,9 @@
             "type": "giveTrapping",
             "trappingId": "rapiere",
             "qualities": [
-             "raffine"
+             {
+              "id": "raffine"
+             }
             ]
            }
           },

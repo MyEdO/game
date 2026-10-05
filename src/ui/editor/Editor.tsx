@@ -124,6 +124,8 @@ export function Editor({
   const party = useGame((s) => s.party);
 
   const { scene, setScene, setSceneNoHistory, pushSnapshot, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
+  /** Bloc NARRATIF du paquet de campagne (#765) — affaires/indices/PNJ/objets, préservé au round-trip. */
+  const [narratif, setNarratif] = useState<NarratifBlock>(emptyNarratif());
   // Filet de crash : sauvegarde locale débattue de LA scène active, indépendante de
   // « Fichier → Enregistrer » — un crash de rendu (`SceneErrorBoundary`) ne perd plus le travail en
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
@@ -135,7 +137,7 @@ export function Editor({
     dismiss: dismissAutosave,
     hide: hideAutosaveRecovery,
     show: showAutosaveRecovery,
-  } = useEditorAutosave(scene, (s) => setScene(clone(s)));
+  } = useEditorAutosave(scene, narratif.objets, (s) => setScene(clone(s)));
   const [tool, setTool] = useState<Tool>({ mode: 'select' });
   const [architectureMode, setArchitectureMode] = useState(false);
   const [architectureBodyId, setArchitectureBodyId] = useState<string | null>(null);
@@ -167,8 +169,6 @@ export function Editor({
   const [worldMap, setWorldMap] = useState<WorldMap | null>(null);
   /** Axes de forces/faiblesses ACTIFS de la campagne (#409) — `undefined` = socle de base. */
   const [activeAxes, setActiveAxes] = useState<string[] | undefined>(undefined);
-  /** Bloc NARRATIF du paquet de campagne (#765) — affaires/indices/PNJ/objets, préservé au round-trip. */
-  const [narratif, setNarratif] = useState<NarratifBlock>(emptyNarratif());
   /** Identité de campagne (#765/#766) — préservée au round-trip, absente d'un projet legacy sans identité.
    *  SANS son `label` : le nom du projet a UNE source, `projectName`. */
   const [identite, setIdentite] = useState<Omit<ProjectIdentite, 'label'> | undefined>(undefined);

@@ -13,7 +13,8 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf } from './valeurs';
-import { defDe } from './descente';
+import { coDescendre, defDe, descendre } from './descente';
+import { declarationDeFeuilleDId, refusDeLEntree, refusHorsDeLEspace, type TypeEntite } from './ref';
 import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { champsProse, refineProse } from './prose';
@@ -212,6 +213,13 @@ export interface OptionsDocument {
    */
   readonly affinerEntree?: (entree: z.ZodObject<z.ZodRawShape>) => z.ZodType<unknown>;
   /**
+   * Registres des feuilles `idDe` OUVERTES que CE document porte, lus sur la valeur de l'entrée
+   * (`projetDoc` : les objets du projet). Une feuille ouverte d'un type sans registre est jugée FERMÉE
+   * (`rejugementDesFeuillesOuvertes`) : hors d'un document qui les déclare, aucune entrée n'existe
+   * hors de l'espace du type.
+   */
+  readonly registresOuverts?: (valeur: unknown) => RegistresOuverts;
+  /**
    * Raffinement du DATASET, appliqué APRÈS l'emballage par famille.
    * Consommateurs mesurés : `names` (exhaustivité des ids du dataset-liste). Un invariant de record se
    * porte, lui, par `affinerEntree` — en famille `record` l'entrée EST le document, `entries` comprise.
@@ -222,6 +230,58 @@ export interface OptionsDocument {
    * `grammaire/collection-cle.ts`) — refusés hors des familles `entite`/`record`, qui seules en ouvrent un.
    */
   readonly espace?: EspaceDeNoms;
+}
+
+/** Ce qu'un document ajoute au registre d'un type pour ses feuilles `idDe` OUVERTES (`ref.ts`) : la
+ *  résolution d'un id ABSENT de l'espace du type, le nom de ce qu'il consulte (`ou`), et la provenance
+ *  de l'entrée résolue, telle qu'un refus de sous-liste la nomme. */
+export type RegistreOuvert = {
+  readonly resoudre: (id: string) => { readonly id: string } | undefined;
+  readonly ou: string;
+  readonly provenance: string;
+};
+export type RegistresOuverts = Partial<Record<TypeEntite, RegistreOuvert>>;
+
+/** Le document porte-t-il une feuille `idDe` OUVERTE, à quelque profondeur que ce soit ? */
+function porteUneFeuilleOuverte(schema: unknown): boolean {
+  let porte = false;
+  descendre([schema], ({ noeud }) => {
+    if (!declarationDeFeuilleDId(noeud)?.ouverte) return;
+    porte = true;
+    return 'arreter';
+  });
+  return porte;
+}
+
+/**
+ * Le REJUGEMENT des feuilles `idDe` OUVERTES d'une entrée : chaque chaîne qu'une feuille ouverte a
+ * admise sans la juger (id ABSENT de l'espace de son type), trouvée par la CO-DESCENTE du schéma et de
+ * la valeur, est jugée par le registre que le document déclare pour ce type (`registresOuverts`) puis
+ * par la sous-liste de la feuille ; sans registre, sous le régime FERMÉ (`refusHorsDeLEspace`). Le
+ * parcours n'a lieu que si le schéma porte une feuille ouverte (mesuré une fois, au premier parse).
+ */
+function rejugementDesFeuillesOuvertes(schema: unknown, registresOuverts: ((valeur: unknown) => RegistresOuverts) | undefined) {
+  let porte: boolean | undefined;
+  return (valeur: unknown, ctx: z.RefinementCtx): void => {
+    porte ??= porteUneFeuilleOuverte(schema);
+    if (!porte) return;
+    const registres = registresOuverts?.(valeur) ?? {};
+    coDescendre(schema, valeur, (p) => {
+      if (typeof p.valeur !== 'string') return;
+      const feuille = p.noeuds.map(declarationDeFeuilleDId).find((f) => f?.ouverte);
+      if (!feuille) return;
+      const ferme = refusHorsDeLEspace(feuille.type, p.valeur);
+      if (ferme === null) return;
+      const registre = registres[feuille.type];
+      const resolue = registre?.resoudre(p.valeur);
+      const refus = !registre
+        ? ferme
+        : !resolue
+          ? `« ${p.valeur} » n'est ${registre.ou}.`
+          : feuille.sousListe === undefined ? null : refusDeLEntree(feuille.type, feuille.sousListe, resolue, registre.provenance);
+      if (refus !== null) ctx.addIssue({ code: 'custom', path: [...p.chemin], message: refus });
+    });
+  };
 }
 
 /** Handle FERMÉ d'un document : ce que le registre, l'éditeur et les gardes consomment. */
@@ -391,7 +451,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   exposition: Exposition,
   options: OptionsDocument = {},
 ): DocumentHandle<T> {
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], rangee, deDeTirage, affinerEntree, registresOuverts, affinerDataset, espace = {} } = options;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -514,7 +574,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   const avecProse = avecProvenance.superRefine(
     refineProse({ type, site: type, exigeProse: exiges.includes('desc') }),
   ) as z.ZodObject<z.ZodRawShape>;
-  const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
+  const affine = (affinerEntree ? affinerEntree(avecProse) : avecProse).superRefine(rejugementDesFeuillesOuvertes(corps, registresOuverts));
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées

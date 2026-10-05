@@ -11,15 +11,12 @@ import type { TemporalCondition } from '../../state/scene';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
-import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
+import { actorFieldSchema, actorRefSchema, hasWhatSchema, objetDeSceneSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
-import { findTrappingById } from '../../data';
+import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../data';
 import { formatMoney } from '../../engine/money';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
-
-/** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
-const trappingLabelOrId = (id?: string): string => (id ? findTrappingById(id)?.label ?? id : '');
 
 /** Options `[valeur, libellé]` d'un nœud ÉNUMÉRÉ de la grammaire (`enumNomme`, #1694) — l'éditeur ne
  *  tient AUCUNE table de libellés : options ET noms viennent de la déclaration du nœud. */
@@ -79,14 +76,19 @@ const winSummary = (w: TemporalCondition) => {
   const b = w.beforeHour != null ? `${pad(w.beforeHour)}:${pad(w.beforeMinute ?? 0)}` : null;
   return a && b ? `${a}–${b}` : a ? `dès ${a}` : b ? `avant ${b}` : 'créneau';
 };
-/** Résumé HUMAIN compact d'une Condition (rangées repliées, listes). */
-export function condSummary(c: Condition | undefined): string {
+/** Résumé HUMAIN compact d'une Condition (rangées repliées, listes). `objets` : objets du projet
+ *  (`narratif.objets`), nommés avant le catalogue (`trappingDesObjetsPuisDuCatalogue`). */
+export function condSummary(c: Condition | undefined, objets: readonly TrappingData[]): string {
   if (!c) return '';
+  const resume = (x: Condition) => condSummary(x, objets);
   switch (c.kind) {
     case 'always': return 'toujours';
     case 'flag': return c.expr || '(flag ?)';
     case 'time': return winSummary(c.window);
-    case 'hasItem': return `a « ${trappingLabelOrId(c.trappingId) || '?'} »${c.count && c.count > 1 ? ` ×${c.count}` : ''}`;
+    case 'hasItem': {
+      const nom = c.trappingId ? trappingDesObjetsPuisDuCatalogue(new Map(objets.map((o) => [o.id, o])), c.trappingId)?.label ?? c.trappingId : '?';
+      return `a « ${nom} »${c.count && c.count > 1 ? ` ×${c.count}` : ''}`;
+    }
     case 'money': return `bourse ≥ ${formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 })}`;
     case 'partyDead': return c.who === 'all' ? 'tout le groupe mort' : 'un héros mort';
     case 'compare': {
@@ -114,9 +116,9 @@ export function condSummary(c: Condition | undefined): string {
     case 'career': return `${c.who === 'all' ? 'groupe' : 'un héros'} : carrière « ${c.id || '?'} »`;
     case 'species': return `${c.who === 'all' ? 'groupe' : 'un héros'} : espèce « ${c.id || '?'} »`;
     case 'status': return `${c.who === 'all' ? 'groupe' : 'un héros'} : Statut ≥ « ${c.atLeast || '?'} »`;
-    case 'all': return c.of.length ? c.of.map(condSummary).join(' ET ') : 'toujours';
-    case 'any': return c.of.length ? c.of.map(condSummary).join(' OU ') : 'jamais';
-    case 'not': return `NON(${condSummary(c.of)})`;
+    case 'all': return c.of.length ? c.of.map(resume).join(' ET ') : 'toujours';
+    case 'any': return c.of.length ? c.of.map(resume).join(' OU ') : 'jamais';
+    case 'not': return `NON(${resume(c.of)})`;
   }
 }
 
@@ -176,12 +178,19 @@ function TimeWindowFields({ window: w, onChange }: { window: TemporalCondition; 
   );
 }
 
-export function ConditionEditor({ cond, onChange, kinds }: {
+/** Les objets de projet d'une racine de CATALOGUE (`src/data`, `ctxDeCatalogue`) : aucun — ses sélecteurs
+ *  d'objet n'offrent que le catalogue. */
+export const AUCUN_OBJET_DE_PROJET: readonly TrappingData[] = [];
+
+export function ConditionEditor({ cond, onChange, kinds, objets }: {
   cond: Condition;
   onChange: (c: Condition) => void;
   /** Sous-ensemble de kinds offert (défaut : tous). Le porteur du `when` le fournit quand son
    *  contexte d'évaluation n'en couvre qu'une partie — ex. `CONDITION_KINDS_CARTE`. */
   kinds?: ReadonlySet<Condition['kind']>;
+  /** Objets du projet (`narratif.objets`) — offerts avant le catalogue par la Condition `hasItem`. Sans
+   *  défaut : chaque racine dit les siens. */
+  objets: readonly TrappingData[];
 }) {
   const options = kinds ? KIND_OPTIONS.filter(([k]) => kinds.has(k)) : KIND_OPTIONS;
   return (
@@ -197,12 +206,13 @@ export function ConditionEditor({ cond, onChange, kinds }: {
       {cond.kind === 'time' && <TimeWindowFields window={cond.window} onChange={(window) => onChange({ kind: 'time', window })} />}
       {cond.kind === 'hasItem' && (
         <>
-          {/* L'objet catalogué se choisit par LIBELLÉ mais on stocke son `id` ; un nom hors catalogue
-              (objet CUSTOM) est stocké tel quel → repli `it.name` côté runtime (evalCondition). */}
           <RefField
-            cfg={{ ds: 'trappings', freeText: true }}
+            cfg={{ ds: 'trappings', single: true }}
+            ariaLabel="Objet possédé"
+            noeud={objetDeSceneSchema}
+            entreesEnTete={objets}
             value={cond.trappingId}
-            onChange={(v) => onChange({ kind: 'hasItem', trappingId: (v as string) ?? '', count: cond.count })}
+            onChange={(v) => onChange({ kind: 'hasItem', trappingId: v as string, count: cond.count })}
           />
           <label className="dr">×<NumberField variant="nu" label="Nombre d’exemplaires" min={1} value={cond.count ?? 1} onChange={(count) => onChange({ kind: 'hasItem', trappingId: cond.trappingId, count })} /></label>
         </>
@@ -421,7 +431,7 @@ export function ConditionEditor({ cond, onChange, kinds }: {
         <div className={`cond-children ${cond.kind}`}>
           {cond.of.map((c, i) => (
             <div className="cond-child" key={i}>
-              <ConditionEditor cond={c} kinds={kinds} onChange={(nc) => onChange({ ...cond, of: cond.of.map((x, j) => (j === i ? nc : x)) })} />
+              <ConditionEditor cond={c} kinds={kinds} objets={objets} onChange={(nc) => onChange({ ...cond, of: cond.of.map((x, j) => (j === i ? nc : x)) })} />
               <button className="btn small danger" title="Retirer cette sous-condition" onClick={() => onChange({ ...cond, of: cond.of.filter((_, j) => j !== i) })}>✕</button>
             </div>
           ))}
@@ -432,7 +442,7 @@ export function ConditionEditor({ cond, onChange, kinds }: {
       )}
       {cond.kind === 'not' && (
         <div className="cond-children not">
-          <ConditionEditor cond={cond.of} kinds={kinds} onChange={(nc) => onChange({ kind: 'not', of: nc })} />
+          <ConditionEditor cond={cond.of} kinds={kinds} objets={objets} onChange={(nc) => onChange({ kind: 'not', of: nc })} />
         </div>
       )}
     </div>
@@ -440,10 +450,11 @@ export function ConditionEditor({ cond, onChange, kinds }: {
 }
 
 /** Variante pour un `when` OPTIONNEL : « Toujours » ↔ `undefined` (pas de condition). */
-export function WhenEditor({ when, onChange, kinds }: {
+export function WhenEditor({ when, onChange, kinds, objets }: {
   when?: Condition;
   onChange: (c: Condition | undefined) => void;
   kinds?: ReadonlySet<Condition['kind']>;
+  objets: readonly TrappingData[];
 }) {
-  return <ConditionEditor cond={when ?? ALWAYS} kinds={kinds} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
+  return <ConditionEditor cond={when ?? ALWAYS} kinds={kinds} objets={objets} onChange={(c) => onChange(c.kind === 'always' ? undefined : c)} />;
 }

@@ -319,8 +319,8 @@
     "type": "primitives.manifest",
     "label": "RefField/refusDuNoeud",
     "fichier": "src/ui/compendium/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste",
-    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping`",
+    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; `entreesEnTete` (objets du projet édité) précèdent le dataset et priment à id égal",
+    "perimetre": "toute ref id statique du Compendium ; objet et qualités de l'Effet `giveTrapping`, objet de la Condition `hasItem`, outil d'un Test de Flow",
     "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx"
   },
   {

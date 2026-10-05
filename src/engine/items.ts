@@ -11,7 +11,7 @@ import { applyEnchants } from './weaponDamage';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type QualityRef, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
@@ -240,11 +240,16 @@ function kindOf(categorie: string): ItemKind {
 }
 
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
- *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
- *  `INSTANCIABLE_PAR_ID` lève (`refusDeLEntree`) ; une pièce de créature naît par `pieceDeCreature`. */
+ *  de re-dérivation). Id inconnu → null. L'entrée RÉSOLUE hors de `INSTANCIABLE_PAR_ID` lève
+ *  (`refusDeLEntree`) ; une pièce de créature naît par `pieceDeCreature`. */
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
   const t = resolveTrapping(id);
-  if (!t) return null;
+  return t ? instanceInstanciable(t) : null;
+}
+
+/** Instance d'une entrée RÉSOLUE, jugée par `INSTANCIABLE_PAR_ID` — le corps de `itemFromTrappingById`,
+ *  que `instanceDuDon` appelle sur l'entrée qu'il a déjà résolue. */
+function instanceInstanciable(t: TrappingData): ItemInstance {
   const refus = refusDeLEntree('trapping', INSTANCIABLE_PAR_ID, t);
   if (refus !== null)
     throw new Error(`itemFromTrappingById: hors de INSTANCIABLE_PAR_ID — ${refus}${lEntreePorte(t)(EXIGE_UNE_CREATURE) ? ' Une pièce de créature naît par `pieceDeCreature` (`instancesDeDon`).' : ''}`);
@@ -329,11 +334,6 @@ export function itemFromTrappingRef(
   return it;
 }
 
-/** Objet CUSTOM d'un don `giveTrapping.custom` (nom libre hors catalogue) : kind `misc`, sans stats (#1988). */
-export function customTrapping(name: string): ItemInstance {
-  return { uid: newUid(), label: name, kind: 'misc', qualities: [], enc: 0, equipped: false };
-}
-
 /** ZI 13 l.282, l.294 — UNE pièce de l'entrée RÉSOLUE `t` (qui porte `EXIGE_UNE_CREATURE`) tirée de
  *  `creatureId`, jugée par la sous-liste `RECOLTABLE` — la primitive PRIVÉE de `pieceDeCreature` et
  *  `instanceDuDon`. */
@@ -355,10 +355,9 @@ export function pieceDeCreature(creatureId: string, resolveTrapping: TrappingRes
 /** Un DON d'objet, forme STRUCTURELLE commune de l'Effet `giveTrapping` (`defs-scenes/effets.ts`) et de
  *  l'op `giveTrapping` (`grammaire/mecanique.ts`) — le moteur n'importe rien de `state`. */
 interface DonDObjet {
-  trappingId?: string;
-  custom?: string;
+  trappingId: string;
   creatureId?: string;
-  qualities?: string[];
+  qualities?: readonly QualityRef[];
   identified?: boolean;
   skin?: ItemInstance['skin'];
   magicKnown?: boolean;
@@ -367,16 +366,17 @@ interface DonDObjet {
 }
 
 /** L'instance d'UN don, branchée sur le MARQUEUR de l'entrée résolue : une entrée `EXIGE_UNE_CREATURE`
- *  naît par `pieceDe`, toute autre par le catalogue, un id non résolu en `customTrapping`. Toute
- *  discordance entre l'entrée et `creatureId` (régime vivant du Compendium) lève avec son nom. */
+ *  naît par `pieceDe`, toute autre par le catalogue. Un id que `resoudre` ne résout pas, et toute
+ *  discordance entre l'entrée et `creatureId` (régime vivant du Compendium), lèvent avec leur nom. */
 function instanceDuDon(don: DonDObjet, resoudre: TrappingResolver): ItemInstance {
-  const t = don.trappingId ? resoudre(don.trappingId) : undefined;
-  if (t && lEntreePorte(t)(EXIGE_UNE_CREATURE)) {
+  const t = resoudre(don.trappingId);
+  if (!t) throw new Error(`instancesDeDon: « ${don.trappingId} » n'est ni un objet de la campagne ni une entrée du catalogue des objets.`);
+  if (lEntreePorte(t)(EXIGE_UNE_CREATURE)) {
     if (!don.creatureId) throw new Error(`instancesDeDon: « ${t.id} » porte \`${EXIGE_UNE_CREATURE}\` et le don n'a pas de \`creatureId\`.`);
     return pieceDe(t, don.creatureId);
   }
-  if (don.creatureId) throw new Error(`instancesDeDon: \`creatureId\` « ${don.creatureId} » sur « ${don.trappingId ?? don.custom ?? ''} », entrée sans \`${EXIGE_UNE_CREATURE}\`.`);
-  return (t ? itemFromTrappingById(t.id, resoudre) : null) ?? customTrapping(don.custom ?? don.trappingId ?? 'Objet');
+  if (don.creatureId) throw new Error(`instancesDeDon: \`creatureId\` « ${don.creatureId} » sur « ${t.id} », entrée sans \`${EXIGE_UNE_CREATURE}\`.`);
+  return instanceInstanciable(t);
 }
 
 /** Les `n` instances d'un DON d'objet — SOURCE UNIQUE : l'apply de l'Effet `giveTrapping`
@@ -403,9 +403,10 @@ export function instancesDeDon(
   });
 }
 
-/** Fusionne les qualités ajoutées d'un don (`giveTrapping.qualities`) aux qualités de base d'un objet. */
-function withGiveQualities(base: QualityInstance[], give: { qualities?: string[] }): QualityInstance[] {
-  return give.qualities?.length ? [...base, ...give.qualities.map((id) => ({ id }))] : base;
+/** Fusionne les qualités ajoutées d'un don (`giveTrapping.qualities`) aux qualités de base d'un objet,
+ *  Indice compris (`qualityInstance`). */
+function withGiveQualities(base: QualityInstance[], give: { qualities?: readonly QualityRef[] }): QualityInstance[] {
+  return give.qualities?.length ? [...base, ...give.qualities.map(qualityInstance)] : base;
 }
 
 /** Qualités RÉSOLUES de l'objet qu'un don remet (`instancesDeDon`) — l'affichage des chips de butin
@@ -420,23 +421,22 @@ export function giveTrappingQualities(give: DonDObjet, resolveTrapping: Trapping
 const libelleDeCatalogue = (trappingId: string, spec: string | undefined, creatureId: string | undefined): string =>
   refLabel('trappings', { id: trappingId, spec: creatureId ? refLabel('creatures', { id: creatureId }) : spec });
 
-/** Libellé d'affichage d'un don `giveTrapping` (catalogue ou objet de campagne → label, sinon nom custom). */
-export function giveTrappingLabel(give: { trappingId?: string; custom?: string; creatureId?: string }, resolveTrapping: TrappingResolver = findTrappingById): string {
-  if (!give.trappingId) return give.custom ?? 'Objet';
+/** Libellé d'affichage d'un don `giveTrapping` : l'objet de campagne ou l'entrée du catalogue, repli sur l'id. */
+export function giveTrappingLabel(give: { trappingId: string; creatureId?: string }, resolveTrapping: TrappingResolver = findTrappingById): string {
   if (give.creatureId) return libelleDeCatalogue(give.trappingId, undefined, give.creatureId);
   return resolveTrapping(give.trappingId)?.label ?? give.trappingId;
 }
 
 /** Libellé d'un DON `giveTrapping` (Effet ou op) : « N× » au-delà d'un objet, puis `giveTrappingLabel` —
  *  SOURCE UNIQUE du journal, du butin, du ramassage, du résumé de l'éditeur et de l'op. */
-export function libelleDuDon(don: { trappingId?: string; custom?: string; creatureId?: string; count?: number }, resoudre: TrappingResolver = findTrappingById): string {
+export function libelleDuDon(don: { trappingId: string; creatureId?: string; count?: number }, resoudre: TrappingResolver = findTrappingById): string {
   const n = don.count ?? 1;
   return `${n > 1 ? `${n}× ` : ''}${giveTrappingLabel(don, resoudre)}`;
 }
 
 /** Libellé D'AFFICHAGE d'une instance d'objet, DÉRIVÉ de son id STABLE (`trappingId` → libellé FR du
- *  catalogue via `refLabel`) — id = logique, label = affichage. Repli sur `label` pour un objet CUSTOM
- *  (`customTrapping`) ou une instance sans `trappingId` (#1988). SOURCE UNIQUE de l'affichage du nom d'un
+ *  catalogue via `refLabel`) — id = logique, label = affichage. Repli sur `label` pour une instance sans
+ *  `trappingId` (#1988). SOURCE UNIQUE de l'affichage du nom d'un
  *  objet catalogué (fiche/sac/pickers) : un objet CATALOGUÉ ne rend jamais son id brut, même si son champ
  *  `label` a dérivé (save ancienne, donnée fautive). */
 export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec' | 'creatureId'>): string {

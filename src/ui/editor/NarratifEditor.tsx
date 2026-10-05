@@ -11,7 +11,7 @@ import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
-import type { CreatureData } from '../../data';
+import type { CreatureData, TrappingData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
@@ -260,6 +260,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
     >
       {tab === 'cadre' && (
         <CadreForm
+          objets={narratif.objets}
           ouverture={narratif.ouverture}
           cloture={narratif.cloture}
           onOuverture={setOuverture}
@@ -384,7 +385,8 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
 
 /** CADRE du chapitre (#717) : l'ouverture cérémonielle et la clôture. La Condition de clôture est
  *  bornée aux kinds évaluables hors combat (`CONDITION_KINDS_CARTE`), comme un `when` de carte. */
-function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
+function CadreForm({ objets, ouverture, cloture, onOuverture, onCloture }: {
+  objets: readonly TrappingData[];
   ouverture?: OuvertureBlock;
   cloture?: ClotureBlock;
   onOuverture: (o: OuvertureBlock | undefined) => void;
@@ -455,7 +457,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
           </label>
           <div className="ed-field">
             Condition de clôture
-            <ConditionEditor cond={cloture.when} kinds={CONDITION_KINDS_CARTE} onChange={(when) => patchClo({ when })} />
+            <ConditionEditor cond={cloture.when} kinds={CONDITION_KINDS_CARTE} objets={objets} onChange={(when) => patchClo({ when })} />
           </div>
           <button type="button" className="btn small danger" onClick={() => onCloture(undefined)}>
             <Icon id="ui/delete" size="sm" /> Retirer la clôture

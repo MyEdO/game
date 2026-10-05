@@ -1050,7 +1050,7 @@ export function Inspector({
                     />
                     <Icon id="nav/dice" size="sm" /> Test requis pour franchir (piège/hasard GATÉ)
                   </label>
-                  {efz.crossTest && <TestFields test={efz.crossTest} onChange={(crossTest) => setEfz({ ...efz, crossTest })} />}
+                  {efz.crossTest && <TestFields test={efz.crossTest} objets={narratif.objets} onChange={(crossTest) => setEfz({ ...efz, crossTest })} />}
                   <label className="ed-check">
                     <input type="checkbox" checked={!!efz.blocksLoS} onChange={(e) => setEfz({ ...efz, blocksLoS: e.target.checked || undefined })} />
                     <Icon id="ui/eye" size="sm" /> Masque la ligne de vue (fumée, ténèbres)

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * #1993 — `RefField` porte le nom accessible, l'invalidité et la description sur le contrôle qu'il
- * rend, dans CHAQUE mode à contrôle unique (`single`, `freeText`, `vocab`). Le mode `liste` et le
+ * rend, dans CHAQUE mode à contrôle unique (`single`, `vocab`). Le mode `liste` et le
  * `single` à `spec` n'en rendent aucun : l'appel qui les leur passerait ne compile pas
  * (`@ts-expect-error` ci-dessous, lu par `tsc`).
  */
@@ -11,7 +11,6 @@ import { RefField, type RefFieldCfgUnique } from './RefField';
 
 const MODES: [string, RefFieldCfgUnique, string][] = [
   ['single', { ds: 'books', single: true }, 'select'],
-  ['freeText', { ds: 'trappings', freeText: true }, 'input'],
   ['vocab', { vocabFrom: 'species.refChar' }, 'input'],
 ];
 

@@ -26,7 +26,8 @@
  * (comparaison normalisée : accents, casse, apostrophes typographiques, espaces multiples).
  * FAIL-FAST : 0 candidat ou 2+ candidats pour un libellé → rien n'est écrit, sortie 1.
  * IDEMPOTENT : un second passage ne trouve plus aucun `trapping`, et tout élément de `qualities`
- * déjà porteur d'un id du registre est laissé intact — aucun fichier n'est réécrit.
+ * déjà porteur d'un id du registre, ou déjà une `QualityRef` `{ id }` (#1988 B4a), est laissé intact —
+ * aucun fichier n'est réécrit.
  *
  * FORMATAGE PRÉSERVÉ : la réécriture est TEXTUELLE et ancrée sur le couple clé/valeur exact ; le
  * compte textuel est confronté au compte STRUCTUREL (nœuds `type:'giveTrapping'` parcourus sur
@@ -186,7 +187,8 @@ function migrateJsonQualites(full) {
   let i = 0;
   ANCRE_QUAL_JSON.lastIndex = 0;
   const out = brut.replace(ANCRE_QUAL_JSON, (m, tete, corps) => {
-    const { chemin } = cibles[i++];
+    const { chemin, valeurs } = cibles[i++];
+    if (!valeurs.some((v) => typeof v === 'string')) return m;
     const neuf = corps.replace(/"(?:[^"\\]|\\.)*"/g, (q) => {
       const decode = JSON.parse(q);
       const id = resolveQualite(decode, `${rel(full)} ${chemin}`);

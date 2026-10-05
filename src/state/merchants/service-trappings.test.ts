@@ -62,7 +62,7 @@ describe('curated — `refs(\'trapping\', { sousListe: INSTANCIABLE_PAR_ID })`, 
     const r = merchantsSchema.safeParse(doc);
     expect(r.success).toBe(false);
     expect(r.error!.issues.map((i) => i.message)).toContain(
-      `« ${service} » porte le marqueur « service » : cette référence l'exclut du catalogue des objets (trappings.json).`,
+      `« ${service} » porte « Objet-service » : cette référence écarte du catalogue des objets (trappings.json) les entrées qui le portent.`,
     );
     expect(merchantsSchema.safeParse(MERCHANT_ARCHETYPES).success, 'le registre réel passe').toBe(true);
   });

@@ -18,8 +18,8 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
   const scene = scenarioConstruit.scene;
   const herse = scene.triggers.find((t) => t.id === 'herse')!;
   const dalle = scene.triggers.find((t) => t.id === 'dalle-piegee')!;
-  const withKey = [{ items: [{ label: 'Clé en fer' }] }];
-  const at = (flags: Record<string, boolean>, party: { items: { label: string }[] }[] = []) =>
+  const withKey = [{ items: [{ label: 'Clef', trappingId: 'clef' }] }];
+  const at = (flags: Record<string, boolean>, party: { items: { label: string; trappingId: string }[] }[] = []) =>
     evalCondition(herse.when!, { flags, gameTime: 0, party });
 
   it('la Scene produite garde ses dimensions, base pierre et murs (périmètre + cloison, trouée en (10,5))', () => {
@@ -57,8 +57,8 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
     useGame.setState({ battle: null, flags: {}, party: scenario.construire().party, scene });
     runFlow(useGame.getState, useGame.setState, levier.usable!.actions![0].flow);
     expect(useGame.getState().flags.levier_tire).toBe(true);
-    // la fouille de la clé donne l'objet « Clé en fer » — c'est lui que la condition hasItem de la herse lit.
-    expect(flowEffects(cle.usable!.actions![0].flow).some((e) => e.type === 'giveTrapping' && e.custom === 'Clé en fer')).toBe(true);
+    // la fouille de la clé donne la Clef du catalogue — c'est elle que la condition hasItem de la herse lit.
+    expect(flowEffects(cle.usable!.actions![0].flow).some((e) => e.type === 'giveTrapping' && e.trappingId === 'clef')).toBe(true);
   });
 
   it('le coffre donne une ARME de catalogue (LDB 62 l.125-127), Précise et non identifiée, tenable en main', () => {

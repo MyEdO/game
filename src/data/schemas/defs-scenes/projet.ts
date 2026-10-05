@@ -8,7 +8,9 @@
  * sur objet unique (patron `defs/crew-morale.ts`) : l'enveloppe pose `type`, `id`, `label`, `desc`,
  * `icon` et la provenance (`source` ∨ `maison`), la fabrique scelle, et les sémantiques restantes du
  * seam passent par `options.affinerEntree` — FK intra-document `entity.presetId` →
- * `narratif.presetsPnj`. `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
+ * `narratif.presetsPnj`, objets du projet instanciables par leur id — et par `options.registresOuverts`,
+ * le registre du PROJET des feuilles `idDe` OUVERTES (`registresDuProjet`).
+ * `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine` :
  * jamais des `ref()` (une référence intra-document n'entre pas au registre global).
  *
@@ -20,14 +22,40 @@
  * La version de FORME du document reste le littéral `schema`, champ de charge utile de ce document.
  */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
-import { refs } from '../grammaire/ref';
+import { document, type RegistresOuverts } from '../grammaire/document';
+import { refs, refusDeLEntree } from '../grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
+import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../index';
 import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
 import { PROJECT_MIGRATIONS } from '../../migrationsDeProjet';
 import { versionCourante } from '../../../lib/versionCourante';
+
+/** Provenance d'un objet du projet, telle qu'un refus de sous-liste la nomme. */
+const DES_OBJETS_DU_PROJET = 'des objets du projet (narratif.objets)';
+
+/** Les objets du projet (`narratif.objets`) d'une valeur d'entrée — vide si le bloc est mal formé (le
+ *  schéma du bloc le refuse alors lui-même). */
+const objetsDe = (valeur: unknown): readonly TrappingData[] => {
+  const objets = (valeur as { narratif?: { objets?: unknown } } | null)?.narratif?.objets;
+  return Array.isArray(objets) ? (objets as TrappingData[]) : [];
+};
+
+/** Le registre du PROJET de chaque type qu'une feuille ouverte désigne (`document()`,
+ *  `registresOuverts`) : les objets d'abord (`narratif.objets`), puis le catalogue
+ *  (`trappingDesObjetsPuisDuCatalogue`). */
+function registresDuProjet(objets: readonly TrappingData[]): RegistresOuverts {
+  const parId = new Map(objets.map((o) => [o.id, o]));
+  return {
+    trapping: {
+      resoudre: (id) => trappingDesObjetsPuisDuCatalogue(parId, id),
+      ou: 'ni un objet du projet (narratif.objets) ni une entrée du catalogue des objets (trappings.json)',
+      provenance: DES_OBJETS_DU_PROJET,
+    },
+  };
+}
 
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
 export const SCHEMA_PROJET = versionCourante(PROJECT_MIGRATIONS);
@@ -95,7 +123,13 @@ export const projetDoc = document(
             });
           });
         });
+        /** Un objet du projet s'instancie par son SEUL id (`itemFromTrappingById`) : `INSTANCIABLE_PAR_ID`. */
+        objetsDe(valeur).forEach((o, i) => {
+          const refus = refusDeLEntree('trapping', INSTANCIABLE_PAR_ID, o, DES_OBJETS_DU_PROJET);
+          if (refus !== null) ctx.addIssue({ code: 'custom', path: ['narratif', 'objets', i], message: `objet du projet désigné par son id : ${refus}` });
+        });
       }),
+    registresOuverts: (valeur) => registresDuProjet(objetsDe(valeur)),
   },
 );
 

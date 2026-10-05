@@ -8,7 +8,8 @@ import type { MigrationMap } from '../state/migrateDoc';
 import type { NarratifBlock } from '../state/campaignNarratif';
 import { graphieOpsDeTalentDeep } from './graphieOpsDeTalent';
 import { remapSortsFusionnesDeep } from './sortsFusionnes';
-import { findPropById, findSpeciesById, creatureSemee, vehiculeSeme, navireSeme } from './index';
+import { findPropById, findSpeciesById, creatureSemee, vehiculeSeme, navireSeme, resolveursDeDon, type TrappingData } from './index';
+import { donsDObjetEnFKDeep } from './donsDObjet';
 import { typeNonNomme } from './schemas/defs-scenes/scene';
 
 /** Le narratif vide que posait la migration 2 → 3. */
@@ -389,7 +390,15 @@ export const PROJECT_MIGRATIONS = {
   15: (doc) => remapSortsFusionnesDeep(doc) as Record<string, unknown>,
   // #1473
   16: (doc) => graphieOpsDeTalentDeep(doc) as Record<string, unknown>,
+  /** #1988 B4a — UNE entrée pour le train (tranches ii et iii). */
+  17: (doc) => donsDObjetEnFKDeep(doc, resolveursDeDon(objetsDuProjet(doc))) as Record<string, unknown>,
 } satisfies MigrationMap;
+
+/** Les objets du projet (`narratif.objets`) d'un document en cours de migration. */
+function objetsDuProjet(doc: Record<string, unknown>): readonly TrappingData[] {
+  const brut = (doc.narratif as { objets?: unknown } | undefined)?.objets;
+  return (Array.isArray(brut) ? brut : []) as TrappingData[];
+}
 
 /** Toute réf. VIDE d'un `startPursuit` (`foes[].ref.creatureId`), d'un `givePossession` (`ref.creatureId`,
  *  `ref.vehicleId`) ou d'un `setVessel` (`vehicleId`), où que l'effet soit niché dans le DOCUMENT (Scène,

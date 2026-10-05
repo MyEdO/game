@@ -28,7 +28,6 @@ const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'CodexEdit › save', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'CodexEdit › save', appele: 'datasetSerializeRoot', raison: 'l’écriture au seam du dataset édité' },
-  { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'RefDatalist', appele: 'datasetArray', raison: 'libellés d’un dataset, proposés à une saisie libre' },
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'ProsthesisField', appele: 'datasetArray', raison: 'champ de COMPARAISON (`traumas.prosthesis`, `engine/trauma.ts › prosthesisCancels` compare aux objets portés, n’instancie rien), #1463' },
   { rel: 'src/ui/compendium/RefField.tsx', englobante: 'useUnivers', appele: 'datasetArray', raison: 'univers d’un sélecteur générique : ses options et sa saisie se jugent sur la sous-liste du nœud du champ (`refusDuNoeud`)' },
   { rel: 'src/ui/compendium/RefField.tsx', englobante: 'VocabField', appele: 'datasetArray', raison: 'vocabulaire des valeurs d’un champ, jamais des ids' },

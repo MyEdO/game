@@ -107,7 +107,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantWeapon.label': { nonRef: 'nom affiché de l\'arme invoquée (l\'arme n\'a pas d\'entrée de catalogue)' },
   'grantNaturalWeapon.label': { nonRef: 'nom affiché de l\'attaque naturelle conférée' },
   'grantFreeAttack.label': { nonRef: 'libellé de l\'option d\'attaque surfacée au Tour' },
-  'giveTrapping.custom': { nonRef: 'objet CUSTOM (misc), défini par ce nom faute d\'entrée de catalogue (src/engine/items.ts › instancesDeDon)' },
   'grantNaturalWeapon.uid': { nonRef: 'identité d\'INSTANCE de l\'arme injectée dans `c.weapons` (déduplication)' },
   'grantNaturalWeapon.attackKind': { nonRef: 'kind d\'attaque naturelle, lu par le rig (src/gameIso/rig/anim/handling.ts) — espace de noms du geste, pas un registre de données' },
   'transform.tag': { nonRef: 'étiquette de GROUPEMENT des effets posés, relue par `endTransform` (retrait atomique)' },

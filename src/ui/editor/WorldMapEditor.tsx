@@ -277,7 +277,7 @@ export function WorldMapEditor({ map, setMap, scenes, objets, onClose, activeAxe
             </>
           )}
 
-          {selPlace && <WorldMapPlacePanel place={selPlace} scenes={scenes} updPlace={updPlace} />}
+          {selPlace && <WorldMapPlacePanel place={selPlace} scenes={scenes} objets={objets} updPlace={updPlace} />}
           {selRoute && (
             <WorldMapRoutePanel route={selRoute} map={m} scenes={scenes} updRoute={updRoute} effCtx={effCtx} toggleMode={toggleMode} />
           )}

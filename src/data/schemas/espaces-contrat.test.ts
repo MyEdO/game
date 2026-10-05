@@ -120,7 +120,7 @@ describe('AMORÇAGE — `npm run gen` répare un index illisible', () => {
   });
 
   it('la phase 2 sur une table VIDE rend le même index que sur la table courante', () => {
-    const table = 'export const IDS_PAR_ESPACE = {};';
+    const table = 'export const IDS_PAR_ESPACE = {}; export const LIBELLES_DES_MARQUEURS = {};';
     const crochets = `export async function resolve(s, c, n) { return /_ids\\.generated(\\.ts)?$/.test(s) ? { url: 'data:text/javascript,' + encodeURIComponent(${JSON.stringify(table)}), shortCircuit: true } : n(s, c); }`;
     const code = [
       "import { register } from 'node:module';",

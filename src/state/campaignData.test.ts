@@ -7,8 +7,8 @@ import { applyEffects } from './combatFlow';
 import type { Combatant } from '../engine/types';
 import type { Scene } from './scene';
 
-/** Objet de campagne (id NON-colluant avec le global) : type `melee` → `kind:'melee'` distingue une
- *  vraie résolution catalogue-campagne d'un repli `customTrapping` (kind `misc`, label = id brut). */
+/** Objet de campagne (id NON-colluant avec le global) : type `melee` → `kind:'melee'` prouve la
+ *  résolution par la couche de campagne. */
 const LAME_CAMPAGNE = 'campagne-lame-maudite';
 
 const narratif: NarratifBlock = {
@@ -81,16 +81,14 @@ describe('campaignData — câblage giveTrapping campagne-d’abord par le chemi
     applyEffects(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
     const it = (useGame.getState().party[0].items ?? []).find((i) => i.trappingId === LAME_CAMPAGNE);
     expect(it?.label).toBe('Lame maudite');
-    expect(it?.kind).toBe('melee'); // objet à stats du narratif, pas un customTrapping
+    expect(it?.kind).toBe('melee'); // objet à stats du narratif
   });
 
-  it('sans couche chargée : le MÊME giveTrapping tombe sur un customTrapping (kind misc) — la clé est au bon site', () => {
+  it('sans couche chargée : le MÊME giveTrapping LÈVE, nommé, et ne donne rien — la clé est au bon site', () => {
     useGame.setState({ party: [hero()], campaignNarratif: null });
     useGame.getState().startScene(fixtureScene('nu-scene'));
-    applyEffects(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
-    const it = (useGame.getState().party[0].items ?? []).find((i) => i.label === LAME_CAMPAGNE || i.trappingId === LAME_CAMPAGNE);
-    expect(it).toBeTruthy();
-    expect(it?.trappingId).toBeUndefined(); // customTrapping : aucune réf catalogue
-    expect(it?.kind).toBe('misc'); // pas de stats — la campagne n'est PAS chargée
+    expect(() => applyEffects(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]))
+      .toThrow(`instancesDeDon: « ${LAME_CAMPAGNE} » n'est ni un objet de la campagne ni une entrée du catalogue des objets.`);
+    expect(useGame.getState().party[0].items ?? []).toEqual([]);
   });
 });

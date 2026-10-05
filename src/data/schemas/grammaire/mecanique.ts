@@ -13,7 +13,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type Effe
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
-import { INSTANCIABLE_PAR_ID } from './sousListes';
+import { DONNABLE, INSTANCIABLE_PAR_ID } from './sousListes';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
 export const armourBypassCategorieSchema = enumNomme({
@@ -206,8 +206,7 @@ const DECLARATIONS_D_OPS = {
   suppressSymptom: z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }),
   giveTrapping: z.strictObject({
     op: z.literal('giveTrapping'),
-    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
-    custom: z.string().optional(),
+    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID),
     count: compteDObjetsSchema.optional(),
     perSL: perSLSchema.optional(),
   }),
@@ -500,6 +499,12 @@ const compareValueSchema = z.union([
   z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }),
 ]);
 
+/** Objet d'une SCÈNE (Effet `giveTrapping`, Condition `hasItem`, outil d'un Test) : feuille OUVERTE de
+ *  `DONNABLE` — un objet de la campagne (`narratif.objets`) ou du catalogue. Un id absent du catalogue est
+ *  rejugé au niveau du PROJET (`projetDoc`, `defs-scenes/projet.ts`). FORME DE SORTIE déclarée nue
+ *  (patron `sortSchema`). */
+export const objetDeSceneSchema: z.ZodType<string, string> = idDe('trapping', DONNABLE, { ouverte: true });
+
 /** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`. */
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.discriminatedUnion('kind', [
@@ -514,7 +519,7 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
         beforeMinute: z.number().optional(),
       }),
     }),
-    z.strictObject({ kind: z.literal('hasItem'), trappingId: z.string(), count: z.number().optional() }),
+    z.strictObject({ kind: z.literal('hasItem'), trappingId: objetDeSceneSchema, count: z.number().optional() }),
     z.strictObject({
       kind: z.literal('money'),
       atLeast: z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }),
@@ -593,7 +598,7 @@ export const flowTestSchema = z.strictObject({
   difficulty: difficultySchema.optional(),
   requireSL: z.number().optional(),
   label: z.string().optional(),
-  tool: z.string().optional(),
+  tool: objetDeSceneSchema.optional(),
   vsGroups: z.array(z.string()).optional(),
   vsStatus: z.string().optional(),
   begging: z.boolean().optional(),

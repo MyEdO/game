@@ -120,7 +120,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/StakeNote.tsx#Prose.md#1', origine: 'Y', note: 'les 3 formes de `resolveStake` (`src/data/index.ts`) : synthèse, texte authoré de scène, gabarit substitué — aucune n’est un champ rendu verbatim' },
   { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'R', note: '`store.document.text` — instantané posé par l’effet `document` (`src/state/combatEffects.ts`) ou le rapport de naufrage (`src/state/shipwreck.ts`), sans adresse' },
   { cle: 'src/ui/DialogueHistoryScreen.tsx#Prose.md#1', origine: 'R', note: 'texte de nœud RECOPIÉ au tour joué (journal runtime)' },
-  { cle: 'src/ui/MerchantPanel.tsx#Prose.md#1', origine: 'R', note: '`ItemInstance.desc` — snapshot d’instance, surchargeable par un objet custom (`giveTrapping`)' },
+  { cle: 'src/ui/MerchantPanel.tsx#Prose.md#1', origine: 'R', note: '`ItemInstance.desc` — snapshot d’instance, surchargeable par un objet de la campagne (`narratif.objets`, donné par `giveTrapping`)' },
   { cle: 'src/ui/PartyScreen.tsx#DetailFrame.prose#1', origine: 'Y', note: 'présentation composée des champs du héros + libellés i18n' },
 
   // ── Prose de SCÈNE : adressée, mais son projet n'a pas d'identité en jeu (reste nommé de T0) ───

@@ -18,7 +18,7 @@ import { findSpeciesById } from '../data';
 
 /** La scène d’une reprise relue — l’enregistrement monté au format courant, donc repris. */
 const repris = async (sceneId: string) => {
-  const lu = await autosaveLoad(sceneId);
+  const lu = await autosaveLoad(sceneId, []);
   if (!lu?.ok) throw new Error(`reprise attendue pour « ${sceneId} »`);
   return lu.record;
 };
@@ -59,7 +59,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
     const scene = { ...emptyScene(), id: 'scene-a' };
     await autosaveSave({ sceneId: scene.id, scene, savedAt: 1 });
     await autosaveDelete('scene-a');
-    expect(await autosaveLoad('scene-a')).toBeNull();
+    expect(await autosaveLoad('scene-a', [])).toBeNull();
   });
 
   it('scènes distinctes = entrées distinctes (keyé par sceneId, jamais un slot unique)', async () => {
@@ -72,7 +72,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
   it('lecture/écriture best-effort : une base dont toute requête échoue ne fait jamais throw', async () => {
     bases.base(NOM).panne = () => new DOMException('boom', 'UnknownError');
     await expect(autosaveSave({ sceneId: 'x', scene: emptyScene(), savedAt: 1 })).resolves.toBeUndefined();
-    await expect(autosaveLoad('x')).resolves.toBeNull();
+    await expect(autosaveLoad('x', [])).resolves.toBeNull();
     await expect(autosaveDelete('x')).resolves.toBeUndefined();
   });
 
@@ -82,7 +82,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
     /** Ce que rend la relecture d'une scène au format COURANT portant `scene`. */
     const relu = async (scene: object) => {
       sauvegardes().set('s', { sceneId: 's', scene: { ...emptyScene(), id: 's', ...scene }, schema: CURRENT_PROJECT_SCHEMA, savedAt: 7 });
-      return autosaveLoad('s');
+      return autosaveLoad('s', []);
     };
 
     it('un champ inconnu du schéma de scène : ÉCARTÉ, la faute nommée', async () => {
@@ -114,7 +114,7 @@ describe('MIGRATIONS_AUTOSAVE — migration de `wfrp4-editor-autosave`', () => {
     await autosaveSave({ sceneId: 's1', scene: { ...emptyScene(), id: 's1' }, savedAt: 5 });
     expect((await repris('s1')).savedAt).toBe(5);
     await autosaveDelete('s1');
-    expect(await autosaveLoad('s1')).toBeNull();
+    expect(await autosaveLoad('s1', [])).toBeNull();
     expect(base.fermetures).toBe(base.transactions.length);
   });
 });

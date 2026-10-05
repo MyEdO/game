@@ -1,9 +1,8 @@
 /**
  * Édition DEV d'une entrée du Compendium — édite la VRAIE donnée (`src/data/*.json`, app-owned).
- * Réutilise le navigateur du Compendium (cet éditeur ne vit QUE dans le panneau détail) + le motif
- * `<datalist>` d'autocomplétion (cf. SpellsField) pour les champs-références (traits/talents/sorts…
- * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Sauvegarde via File
- * System Access (`fsPersist`) + preview mémoire (`setDataset`).
+ * Réutilise le navigateur du Compendium (cet éditeur ne vit QUE dans le panneau détail) + `RefField`
+ * pour les champs-références (traits/talents/sorts… piochés PAR ID dans leurs vrais datasets).
+ * Sauvegarde via File System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
 import { tableTotale } from '../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState } from 'react';
@@ -92,8 +91,8 @@ export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetK
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
 
-/** Champ-réf → son dataset. Double usage : autocomplétion `<datalist>` des champs-listes ET
- *  validation des refs (`validateEntry` : chaque `{id}` du champ doit résoudre dans ce dataset). */
+/** Champ-réf → son dataset. Double usage : sélecteur PAR ID de chaque valeur d'un champ-liste de chaînes
+ *  (`RefField`) ET validation des refs (`validateEntry` : chaque `{id}` du champ doit résoudre dans ce dataset). */
 const REF_LIST_DATASET: Record<string, DatasetKey> = {
   traits: 'traits', optionals: 'traits', skills: 'skills', talents: 'talents',
   spells: 'spells', trappings: 'trappings', blessings: 'spells', miracles: 'spells', chaosSpells: 'spells',
@@ -1783,7 +1782,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   );
 }
 
-/** Rendu d'un champ, avec autocomplétion `<datalist>` pour les listes de références. `sujet` = sa
+/** Rendu d'un champ, avec un sélecteur par id (`RefField`) pour les listes de références. `sujet` = sa
  *  POSITION dans un conteneur (« de la rangée 2 de windModifiers »), qui complète ses noms accessibles :
  *  deux champs de même libellé, dans deux rangées, ne se confondent pas. */
 function Field({ chemin, sujet, field, value, onChange }: { chemin: string; sujet?: string; field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
@@ -1798,16 +1797,18 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     const set = (next: string[]) => onChange(next);
     return (
       <div className="ed-field">
-        <span>{label}{refDs && <em className="de-hint"> (autocomplétion {refDs})</em>}</span>
+        <span>{label}</span>
         {list.map((item, i) => (
           <div key={i} className="de-reflrow">
-            <input aria-label={`${nom} — valeur ${i + 1}`} value={item} list={refDs ? `dl-${refDs}` : undefined}
-              onChange={(e) => set(list.map((x, j) => (j === i ? e.target.value : x)))} />
+            {refDs
+              ? <RefField cfg={{ ds: refDs, single: true }} ariaLabel={`${nom} — valeur ${i + 1}`} value={item}
+                  onChange={(v) => set(list.map((x, j) => (j === i ? v as string : x)))} />
+              : <input aria-label={`${nom} — valeur ${i + 1}`} value={item}
+                  onChange={(e) => set(list.map((x, j) => (j === i ? e.target.value : x)))} />}
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
         <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, ''])}>+ Ajouter</button>
-        {refDs && <RefDatalist ds={refDs} />}
       </div>
     );
   }
@@ -2081,10 +2082,3 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
     </div>
   );
 }
-
-/** `<datalist>` des libellés d'un dataset (dé-dupliqués) — réutilise le motif SpellsField. */
-function RefDatalist({ ds }: { ds: DatasetKey }) {
-  const labels = useMemo(() => [...new Set((datasetArray(ds) as { label?: string }[]).map((e) => e.label).filter(Boolean))] as string[], [ds]);
-  return <datalist id={`dl-${ds}`}>{labels.map((l) => <option key={l} value={l} />)}</datalist>;
-}
-

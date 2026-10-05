@@ -125,7 +125,7 @@ describe('fabrique unique — Effet, ramassage, op et butin rendent la même ins
   };
 
   it.each([
-    ['objet magique', { type: 'giveTrapping', trappingId: 'epee-batarde', qualities: ['magique'], identified: false } as DonDObjet],
+    ['objet magique', { type: 'giveTrapping', trappingId: 'epee-batarde', qualities: [{ id: 'magique' }], identified: false } as DonDObjet],
     ['pièce', { type: 'giveTrapping', trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: 'griffon', count: 3 } as DonDObjet],
   ])('%s', (_nom, don) => {
     const attendu = instancesDeDon(don, don.count ?? 1).map(sansUid);

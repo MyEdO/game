@@ -15,6 +15,7 @@ import { RewardRecap } from './RewardRecap';
 import { LootModal } from './LootModal';
 import { Modal } from './Modal';
 import { useGame } from '../state/store';
+import { findTrappingById } from '../data';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { reglesCss } from '../../scripts/guards/lib/cssCouches.mjs';
@@ -114,7 +115,7 @@ describe('Modal — le cadre que le récapitulatif habite', () => {
 
 describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', () => {
   const heros = () => [hero('h1', 'Magnus'), hero('h2', 'Elsa')];
-  const gear = (label: string) => ({ label, magic: false, effect: { type: 'giveTrapping' as const, custom: label } });
+  const gear = (trappingId: string) => ({ label: findTrappingById(trappingId)!.label, magic: false, effect: { type: 'giveTrapping' as const, trappingId } });
 
   /** Une frappe d'Entrée telle que le document la reçoit. `Modal` laisse un BOUTON focalisé à son
    *  activation native (il ne l'empêche pas) : jsdom n'active pas un bouton sur `keydown`, le banc
@@ -129,21 +130,21 @@ describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', (
   }
 
   it('AVEC équipement : focus au 1er portrait ; Entrée répétée attribue ligne à ligne au 1er héros, puis « Continuer » ferme (déclaré, réversible par `transferItem`)', async () => {
-    useGame.setState({ party: heros(), pendingLoot: { title: 'Coffre', gear: [gear('Fiole'), gear('Lettre')] } });
+    useGame.setState({ party: heros(), pendingLoot: { title: 'Coffre', gear: [gear('huile-de-lampe'), gear('clef')] } });
     monterRacine(<LootModal />);
     const items = (i: number) => (useGame.getState().party[i].items ?? []).map((x) => x.label);
     const focus = () => document.activeElement as HTMLElement;
 
     expect(focus().closest('.gear-row .portrait-picker'), '#0 : portrait d’attribution').not.toBeNull();
-    expect(focus().closest('.gear-row')?.textContent).toContain('Fiole');
+    expect(focus().closest('.gear-row')?.textContent).toContain('Lampe à huile');
 
     await entree();
-    expect(items(0)).toEqual(['Fiole']);
-    expect(useGame.getState().pendingLoot?.gear.map((g) => g.label)).toEqual(['Lettre']);
-    expect(focus().closest('.gear-row')?.textContent, '#1 : le focus passe à la ligne suivante').toContain('Lettre');
+    expect(items(0)).toEqual(['Lampe à huile']);
+    expect(useGame.getState().pendingLoot?.gear.map((g) => g.label)).toEqual(['Clef']);
+    expect(focus().closest('.gear-row')?.textContent, '#1 : le focus passe à la ligne suivante').toContain('Clef');
 
     await entree();
-    expect(items(0)).toEqual(['Fiole', 'Lettre']);
+    expect(items(0)).toEqual(['Lampe à huile', 'Clef']);
     expect(focus().textContent, '#2 : plus rien à attribuer, le primaire de la barre').toBe('Continuer');
     expect(focus().closest('.cadre-pied')).not.toBeNull();
 

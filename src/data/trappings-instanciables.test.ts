@@ -62,7 +62,7 @@ describe('régime vivant — le marqueur posé au seam déplace l’entrée part
     expect(effet(objet.id).success && op(objet.id).success && forme(objet.id).success).toBe(true);
     setDataset('trappings', LIVRES.map((t) => (t.id === objet.id ? { ...t, service: true } : t)));
     expect(idsDeLaVue()).not.toContain(objet.id);
-    for (const r of [effet(objet.id), op(objet.id), forme(objet.id)]) expect(messages(r)).toMatch(/porte le marqueur « service »/);
+    for (const r of [effet(objet.id), op(objet.id), forme(objet.id)]) expect(messages(r)).toMatch(/porte « Objet-service »/);
     expect(() => itemFromTrappingById(objet.id)).toThrow(/INSTANCIABLE_PAR_ID/);
   });
 
@@ -99,7 +99,7 @@ describe('objet de campagne — jugé sur l’entrée résolue', () => {
 describe('Effet `giveTrapping` — la feuille ouverte juge un id PRÉSENT', () => {
   it('un tarif de service est refusé au parse, message de la sous-liste', () => {
     const service = trappings.find((t) => t.service)!;
-    expect(messages(effet(service.id))).toBe(`« ${service.id} » porte le marqueur « service » : cette référence l'exclut du catalogue des objets (trappings.json).`);
+    expect(messages(effet(service.id))).toBe(`« ${service.id} » porte « Objet-service » : cette référence écarte du catalogue des objets (trappings.json) les entrées qui le portent.`);
   });
 
   it('l’op `giveTrapping` et la forme de `grantWeapon` refusent un id absent (feuilles fermées)', () => {

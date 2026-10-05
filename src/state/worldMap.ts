@@ -18,7 +18,7 @@ import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds } from '../data';
+import { findNavalPortById, findLieuServiceById, coreAxisIds, type TrappingData } from '../data';
 
 /** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
 export interface MapPlace {
@@ -665,11 +665,13 @@ function migreFormeDeProjet(data: unknown): Record<string, unknown> {
 /** Une scène persistée HORS de son projet (filet de crash de l'éditeur, `editorAutosave.ts`), au
  *  `schema` de projet qu'elle portait à l'écriture : montée au format courant par la MÊME chaîne que
  *  `parseProject`, PROUVÉE par `sceneSchema`, puis `normalizeScene`. Sans `schema` lisible, la chaîne
- *  refuse (`version-absente`) : aucune version n'est supposée. Les FK intra-document de `projetSchema`
- *  (`entity.presetId` → `narratif.presetsPnj`) restent à la porte du projet : une scène seule n'a pas
- *  de narratif. Ce qui suit le schéma est une faute du jeu, et se propage. */
-export function migreSceneDeProjet(scene: unknown, schema: unknown): Scene {
-  const monte = (migreFormeDeProjet({ schema, scenes: [scene] }).scenes as unknown[])[0];
+ *  refuse (`version-absente`) : aucune version n'est supposée. `objets` : les objets du projet OUVERT
+ *  (`narratif.objets`), que la chaîne lit pour monter un don ou une Condition qui les désigne
+ *  (`PROJECT_MIGRATIONS[17]`). Les FK intra-document de `projetSchema` (`entity.presetId` →
+ *  `narratif.presetsPnj`) restent à la porte du projet. Ce qui suit le schéma est une faute du jeu, et
+ *  se propage. */
+export function migreSceneDeProjet(scene: unknown, schema: unknown, objets: readonly TrappingData[]): Scene {
+  const monte = (migreFormeDeProjet({ schema, scenes: [scene], narratif: { objets } }).scenes as unknown[])[0];
   const fautes = validateDocument(sceneSchema, monte);
   if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Scène', fautes));
   return normalizeScene(monte as Scene);

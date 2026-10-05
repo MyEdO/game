@@ -16,7 +16,7 @@ import { Scene } from '../../state/scene';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../state/worldMap';
 import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';
 import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';
-import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
+import { navalPorts, findNavalPortById, lieuxServices, type TrappingData } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
@@ -31,10 +31,12 @@ const produitOptions = (entries: readonly CargoEntry[]): { id: string; label: st
 /** Port MARITIME par défaut posé quand l'auteur coche « Port » (petit port de production côtière). */
 const DEFAULT_PORT: PortProfile & { lighthouse?: boolean } = { taille: 2, richesse: 2, production: [] };
 
-export function WorldMapPlacePanel({ place, scenes, updPlace }: {
+export function WorldMapPlacePanel({ place, scenes, objets, updPlace }: {
   place: MapPlace;
   /** Toutes les scènes du projet (active + réserve) — pour lier lieux/POI. */
   scenes: Scene[];
+  /** Objets du projet (`narratif.objets`) — offerts avant le catalogue par la Condition `hasItem`. */
+  objets: readonly TrappingData[];
   updPlace: (id: string, patch: Partial<MapPlace>) => void;
 }) {
   const [placeTab, setPlaceTab] = useState<'lieu' | 'commerce' | 'plan'>('lieu');
@@ -70,7 +72,7 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
           </label>
 
           <div className="mini-title" title="Le lieu n'existe sur la carte qu'une fois la condition vraie : ni médaillon, ni route, ni voyage vers lui. « Toujours » = lieu toujours visible.">Visible si</div>
-          <WhenEditor when={place.when} kinds={CONDITION_KINDS_CARTE} onChange={(when) => updPlace(place.id, { when })} />
+          <WhenEditor when={place.when} kinds={CONDITION_KINDS_CARTE} objets={objets} onChange={(when) => updPlace(place.id, { when })} />
 
           {/* ── Services du lieu (auberge/temple/forgeron/guilde…, catalogue lieux-services.json #343) ── */}
           <div className="mini-title">Services du lieu</div>

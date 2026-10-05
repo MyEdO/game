@@ -16,7 +16,7 @@ import { giveTrappingLabel } from '../../engine/items';
 import { statName } from '../../engine/statEntry';
 import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
-  refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById,
+  refLabel, findEffectTableById, mutationTables, findPsychologyById,
 } from '../../data';
 
 const textRow = (o: GameOp): CodexRow => ({ t: 'text', text: humanizeOp(o) });
@@ -142,9 +142,8 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
     }
     case 'giveTrapping': {
-      if (!o.trappingId) return textRow(o); // objet CUSTOM (misc) sans id de catalogue → repli
-      const label = findTrappingById(o.trappingId)?.label ?? o.trappingId;
-      return { t: 'ref', category: 'trappings', id: o.trappingId, label, show: giveTrappingLabel(o), badge: o.count && o.count > 1 ? `×${o.count}` : undefined };
+      const label = giveTrappingLabel(o);
+      return { t: 'ref', category: 'trappings', id: o.trappingId, label, show: label, badge: o.count && o.count > 1 ? `×${o.count}` : undefined };
     }
     case 'contractDisease': {
       const label = diseaseLabel(o.disease);

@@ -1,4 +1,5 @@
 import type { Scene } from './scene';
+import type { TrappingData } from '../data';
 import { accesBase, type MigrationsIdb } from '../lib/indexedDb';
 import { CURRENT_PROJECT_SCHEMA, migreSceneDeProjet, exigerUnRefus, type ProjetRefuse, type ProjectDoc } from './worldMap';
 
@@ -40,23 +41,24 @@ const sauvegardes = base.magasin<EditorAutosaveRecord, string>(STORE);
 
 /** Lecture — `null` si aucune sauvegarde automatique pour cette scène, ou si IndexedDB est
  *  indisponible (mode privé strict, jsdom…) : l'autosave reste une aide de SESSION, jamais une
- *  donnée qui bloque l'ouverture de l'éditeur. */
-export async function autosaveLoad(sceneId: string): Promise<RepriseLocale | null> {
+ *  donnée qui bloque l'ouverture de l'éditeur. `objets` : les objets du projet ouvert (`narratif.objets`),
+ *  que la montée de la scène lit (`migreSceneDeProjet`). */
+export async function autosaveLoad(sceneId: string, objets: readonly TrappingData[]): Promise<RepriseLocale | null> {
   let brut: EditorAutosaveRecord | null;
   try {
     brut = await sauvegardes.lire(sceneId);
   } catch {
     return null;
   }
-  return brut && relire(brut);
+  return brut && relire(brut, objets);
 }
 
 /** Un enregistrement du magasin est une donnée PERSISTÉE d'une version antérieure de l'application :
  *  il monte par la chaîne de forme du projet (`migreSceneDeProjet`), au `schema` qu'il porte. Sans
  *  marqueur de format, il est ÉCARTÉ, jamais migré sur une version supposée. */
-function relire(brut: EditorAutosaveRecord): RepriseLocale {
+function relire(brut: EditorAutosaveRecord, objets: readonly TrappingData[]): RepriseLocale {
   try {
-    return { ok: true, record: { ...brut, scene: migreSceneDeProjet(brut.scene, brut.schema), schema: CURRENT_PROJECT_SCHEMA } };
+    return { ok: true, record: { ...brut, scene: migreSceneDeProjet(brut.scene, brut.schema, objets), schema: CURRENT_PROJECT_SCHEMA } };
   } catch (e) {
     exigerUnRefus(e);
     return { ok: false, sceneId: brut.sceneId, savedAt: brut.savedAt, refus: e };

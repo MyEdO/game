@@ -61,6 +61,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
           <WhenEditor
             when={route.when}
             kinds={CONDITION_KINDS_CARTE}
+            objets={effCtx.objets}
             onChange={(when) => updRoute(route.id, when ? { when } : { when: undefined, refus: undefined })}
           />
           {route.when && (

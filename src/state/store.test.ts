@@ -1582,7 +1582,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     const scene = emptyScene(6, 6);
     scene.id = 'loot-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-    scene.entities.push({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Coffre', usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([{ type: 'giveTrapping', custom: 'Fiole' }, { type: 'giveTrapping', custom: 'Lettre' }]) }] } });
+    scene.entities.push({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Coffre', usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([{ type: 'giveTrapping', trappingId: 'huile-de-lampe' }, { type: 'giveTrapping', trappingId: 'clef' }]) }] } });
     useGame.setState({ party: [looter()] });
     useGame.getState().startScene(scene);
     useGame.setState({ partyPos: { x: 0, y: 0 } });
@@ -1592,17 +1592,17 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     // Le butin N'EST PLUS donné en silence au 1er héros : il s'ouvre en fenêtre d'attribution.
     expect(st.party[0].items ?? []).toEqual([]);
     expect(st.pendingLoot?.title).toBe('Coffre');
-    expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Fiole', 'Lettre']);
+    expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Lampe à huile', 'Clef']);
     expect(st.scene!.entities.find((e) => e.id === 'coffre')).toBeUndefined(); // ramassé → disparaît
 
     useGame.getState().assignLootGear(0, 'a'); // attribution explicite par portrait
     st = useGame.getState();
-    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Fiole']);
-    expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Lettre']);
+    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Lampe à huile']);
+    expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Clef']);
 
     useGame.getState().dismissLoot(); // « Continuer » : le non-attribué va au 1er héros (contrat victoire)
     st = useGame.getState();
-    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(expect.arrayContaining(['Fiole', 'Lettre']));
+    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(expect.arrayContaining(['Lampe à huile', 'Clef']));
     expect(st.pendingLoot).toBeNull();
   });
 
@@ -1862,7 +1862,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
       usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([
         { type: 'journal', desc: 'Sous une fausse planche, la solde du mois.' },
         { type: 'giveMoney', montant: { silver: 18 } },
-        { type: 'giveTrapping', custom: 'Épée', qualities: ['de-plaies-atroces'], identified: false },
+        { type: 'giveTrapping', trappingId: 'epee-batarde', qualities: [{ id: 'de-plaies-atroces' }], identified: false },
       ]) }] },
     });
     useGame.setState({ party: [looter()] });
@@ -1878,9 +1878,9 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(st.pendingLoot?.messages).toEqual(['Sous une fausse planche, la solde du mois.']);
     expect(st.pendingLoot?.gold).toEqual({ gold: 0, silver: 18, brass: 0 }); // affiché…
     expect(partyMoneyTotal(useGame.getState).silver).toBe(18); // …ET déjà en bourse (l'argent est commun)
-    expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Épée']);
+    expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Épée bâtarde']);
     expect(st.pendingLoot?.gear[0].magic).toBe(true);
-    // Aucun ÉQUIPEMENT donné en silence au héros 1 (l'Épée attend la fenêtre) ; seule la Bourse
+    // Aucun ÉQUIPEMENT donné en silence au héros 1 (l'Épée bâtarde attend la fenêtre) ; seule la Bourse
     // d'argent est matérialisée sur lui, car la monnaie est portée par le héros (SOCLE POSSESSIONS §8).
     expect((st.party[0].items ?? []).filter((i) => i.trappingId !== 'bourse')).toEqual([]);
   });
@@ -1913,7 +1913,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     const line = useGame.getState().pendingLoot!.gear[0];
     expect(line.effect.identified).toBeUndefined(); // révélé = champ absent
     useGame.getState().assignLootGear(0, 'a');
-    const it2 = useGame.getState().party[0].items!.find((i) => i.label === 'Épée')!;
+    const it2 = useGame.getState().party[0].items!.find((i) => i.trappingId === 'epee-batarde')!;
     expect(it2.identified).not.toBe(false);
     expect(it2.qualities.some((q) => q.id === 'de-plaies-atroces')).toBe(true); // id de qualité runtime
   });
@@ -1984,7 +1984,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     applyEffectsLoot(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac oublié');
     const pl = useGame.getState().pendingLoot!;
     expect(pl.title).toBe('Coffre de la garnison'); // la 1re fenêtre garde son titre
-    expect(pl.gear.map((g) => g.label)).toEqual(['Épée', 'Dague']);
+    expect(pl.gear.map((g) => g.label)).toEqual(['Épée bâtarde', 'Dague']);
   });
 });
 

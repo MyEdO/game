@@ -80,7 +80,7 @@ export function makeForet() {
         label: 'Coffre de la bande',
         ...fouille([
           { type: 'giveMoney', montant: { gold: 5 } },
-          { type: 'giveTrapping', trappingId: 'rapiere', qualities: ['raffine'] },
+          { type: 'giveTrapping', trappingId: 'rapiere', qualities: [{ id: 'raffine' }] },
           { type: 'journal', desc: 'Le coffre de Bella : 5 co… et une rapière de duelliste, raffinée, prise à quelque noble détroussé.' },
         ]),
       }),

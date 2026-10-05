@@ -42,13 +42,18 @@ const saisir = (champ: HTMLInputElement, texte: string) => {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, texte);
   champ.dispatchEvent(new Event('input', { bubbles: true }));
 };
+const choisirLObjet = (host: HTMLElement, id: string) => {
+  const s = host.querySelector<HTMLSelectElement>('select[aria-label="Objet donné"]')!;
+  s.value = id;
+  s.dispatchEvent(new Event('change', { bubbles: true }));
+};
 const selecteurDeCreature = (host: HTMLElement) =>
   [...host.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'griffon'));
 
 describe('Effet `giveTrapping` — don de pièce de créature', () => {
   it('bascule aller : choisir l’entrée marquée SÈME la créature récoltable', () => {
-    const { emis } = monte({ type: 'giveTrapping', custom: '' } as Effect, (host) => saisir(host.querySelector<HTMLInputElement>('input[list]')!, PIECES_DE_CREATURE_TRAPPING_ID));
-    expect(emis.slice(-1)[0]).toMatchObject({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: creatureRecoltableSemee(), custom: undefined });
+    const { emis } = monte({ type: 'giveTrapping', trappingId: 'dague' } as Effect, (host) => choisirLObjet(host, PIECES_DE_CREATURE_TRAPPING_ID));
+    expect(emis.slice(-1)[0]).toMatchObject({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: creatureRecoltableSemee() });
   });
 
   it('le sélecteur de créature ne propose que les créatures récoltables, et son choix s’écrit', () => {
@@ -63,7 +68,7 @@ describe('Effet `giveTrapping` — don de pièce de créature', () => {
   });
 
   it('bascule retour : un objet sans marqueur EFFACE la créature, et le sélecteur disparaît', () => {
-    const { emis } = monte(PIECE, (host) => saisir(host.querySelector<HTMLInputElement>('input[list]')!, 'dague'));
+    const { emis } = monte(PIECE, (host) => choisirLObjet(host, 'dague'));
     expect(emis.slice(-1)[0]).toMatchObject({ trappingId: 'dague', creatureId: undefined });
     const { lu } = monte({ type: 'giveTrapping', trappingId: 'dague' } as Effect, () => {}, selecteurDeCreature);
     expect(lu).toBeUndefined();

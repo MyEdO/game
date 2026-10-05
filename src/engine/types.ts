@@ -1104,7 +1104,7 @@ export interface ItemInstance {
   /** À répétition (Indice) (LDB 62 l.229/231) : munitions restantes dans le chargeur de CETTE arme. */
   chambered?: number;
   /** `id` du trapping de catalogue dont l'objet dérive (`TrappingData.id`) — réf STABLE posée par
-   *  `itemFromTrappingById` et `pieceDeCreature`. ABSENT : `customTrapping`, `weaponItem` (#1988).
+   *  `itemFromTrappingById` et `pieceDeCreature`. ABSENT : `weaponItem` (#1988).
    *  Source de re-dérivation (arme dérivée de prothèse, prix de revente, réparation) — ≠ name-match. */
   trappingId?: string;
   /** ZI 13 l.294, l.319 — id de `creatures.json` dont la pièce provient : présent SI ET SEULEMENT SI

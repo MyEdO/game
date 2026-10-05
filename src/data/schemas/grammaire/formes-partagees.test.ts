@@ -58,6 +58,21 @@ import type { TrappingRef } from '../../index';
 const pathsRefuses = (fichier: string, valeur: unknown): string[] =>
   (validateDocument(schemaForFile(fichier)!, valeur) ?? []).map((f) => f.chemin.join('.'));
 
+/** Les documents COMMITÉS des deux racines, en forme disque (patron de `dev-validate.ts`). */
+const DOCUMENTS_COMMITES: Record<string, string> = {
+  ...(import.meta.glob('../../*.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>),
+  ...(import.meta.glob('../../../scenes/**/*-projet.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>),
+};
+
+/** Les ids de qualité de chaque don d'objet (Effet `type` ou op `op` `giveTrapping`) d'un document. */
+function qualitesDonnees(noeud: unknown): string[] {
+  if (Array.isArray(noeud)) return noeud.flatMap(qualitesDonnees);
+  if (noeud === null || typeof noeud !== 'object') return [];
+  const n = noeud as Record<string, unknown>;
+  const ici = n.type === 'giveTrapping' || n.op === 'giveTrapping' ? ((n.qualities ?? []) as ReadonlyArray<{ id: string }>).map((q) => q.id) : [];
+  return [...ici, ...Object.values(n).flatMap(qualitesDonnees)];
+}
+
 describe('trappingRefSchema — branches de TrappingRef', () => {
   it('accepte {id} de catalogue (+ count optionnel)', () => {
     expect(trappingRefSchema.safeParse({ id: 'epee-courte' }).success).toBe(true);
@@ -388,13 +403,13 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
 
 /**
  * POPULATIONS DE RÉFÉRENCE entrées en garde au lot L-gram-2 (#1463) — sonde A du design jugé,
- * promue en contrat. Les quatre populations résolvent à 100 % contre leur catalogue, et chacune est
- * mesurée AVEC son cardinal : une population qui se viderait rendrait la garde vacueuse, une valeur
- * qui cesserait de résoudre est une FK morte. `ref(type)` refuse déjà l'id inconnu AU PARSE
- * (`grammaire/ref.ts`) — sauf pour les Atouts d'objet, qui passent par `qualityRefSchema` (sans FK,
- * #1615/#1621) : c'est LÀ que cette mesure est la seule garde.
+ * promue en contrat. Chaque population résout à 100 % contre son catalogue, et chacune est mesurée
+ * NON VIDE : une population qui se viderait rendrait la garde vacueuse, une valeur qui cesserait de
+ * résoudre est une FK morte. `ref(type)` refuse déjà l'id inconnu AU PARSE (`grammaire/ref.ts`) — sauf
+ * pour les Atouts d'objet et les qualités d'un don d'objet, qui passent par `qualityRefSchema` (sans FK,
+ * #1615/#1621, #1988 B4a) : c'est LÀ que cette mesure est la seule garde.
  */
-describe('références migrées — les 4 populations résolvent contre leur catalogue (#1463 L-gram-2)', () => {
+describe('références migrées — chaque population résout contre son catalogue (#1463 L-gram-2)', () => {
   const ids = (liste: ReadonlyArray<{ id: string }>) => new Set(liste.map((e) => e.id));
   const CATALOGUES = {
     careers: ids(careers as ReadonlyArray<{ id: string }>),
@@ -425,6 +440,12 @@ describe('références migrées — les 4 populations résolvent contre leur cat
     const vus = (trappings as ReadonlyArray<{ qualities?: ReadonlyArray<{ id: string }> }>).flatMap((t) => t.qualities ?? []);
     expect(vus.length, 'la population des Atouts d’objet a disparu.').toBe(438);
     expect(vus.filter((q) => !CATALOGUES.qualities.has(q.id)), 'Atout hors de qualities.json').toEqual([]);
+  });
+
+  it('Effets et ops `giveTrapping` commités › qualities — chaque qualité donnée résolue (#1988 B4a)', () => {
+    const vus = Object.entries(DOCUMENTS_COMMITES).flatMap(([chemin, texte]) => qualitesDonnees(JSON.parse(texte)).map((id) => ({ chemin, id })));
+    expect(vus.length, 'la population des qualités données par un don d’objet a disparu.').toBeGreaterThan(0);
+    expect(vus.filter((q) => !CATALOGUES.qualities.has(q.id)), 'qualité donnée hors de qualities.json').toEqual([]);
   });
 
   it('structures.json › traits — 5 Traits de structure résolus', () => {

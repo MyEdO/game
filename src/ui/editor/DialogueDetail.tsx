@@ -136,7 +136,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                       {c.label ? `« ${coupeAuMot(c.label, 38)} »` : '(choix sans texte)'}
                       {c.next ? ` → ${c.next}` : ' → fin'}
                       {c.cost?.gold || c.cost?.silver || c.cost?.brass ? <> · <Icon id="resource/gold-purse" size="sm" /></> : ''}
-                      {condSummary(c.when) ? ' · si ' + condSummary(c.when) : ''}
+                      {condSummary(c.when, ctx.objets) ? ' · si ' + condSummary(c.when, ctx.objets) : ''}
                       {flowLen(c.flow) ? ` · ${flowLen(c.flow)} bloc(s)` : ''}
                     </span>
                     <span className="eff-actions" onClick={(e) => e.preventDefault()}>
@@ -193,7 +193,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                       </span>
                     </Row>
                     <div className="mini-title" title="Le choix n'apparaît que si la condition est vraie (flag, créneau horaire, ET/OU/NON).">Affiché si</div>
-                    <WhenEditor when={c.when} onChange={(when) => updChoice(ci, { when })} />
+                    <WhenEditor when={c.when} objets={ctx.objets} onChange={(when) => updChoice(ci, { when })} />
                     <div className="mini-title">À la sélection (effets · conditions · tests)</div>
                     <FlowEditor flow={c.flow ?? EMPTY_FLOW} ctx={ctx} onChange={(flow) => updChoice(ci, { flow: flowLen(flow) ? flow : undefined })} />
                   </div>

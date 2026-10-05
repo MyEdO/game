@@ -16,7 +16,7 @@ import { EMPTY_FLOW } from '../../state/flow';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../state/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, creatureRecoltableSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, creatureRecoltableSemee, vehiculeSeme, libelleOuAbsence, type QualityRef, type TrappingData } from '../../data';
 import { useMemo } from 'react';
 import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
@@ -24,10 +24,11 @@ import { libelleDuDon } from '../../engine/items';
 import { lEntreePorte } from '../../data/schemas/grammaire/ref';
 import { EXIGE_UNE_CREATURE } from '../../data/schemas/grammaire/sousListes';
 import { FlowEditor } from './FlowEditor';
+import { AUCUN_OBJET_DE_PROJET } from './ConditionEditor';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
-import { RefField } from '../compendium/RefField';
+import { RefField, REF_FIELD } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
@@ -129,7 +130,7 @@ export interface Ctx {
 
 /** Contexte d'une racine de CATALOGUE (`src/data`, monté au Compendium) : ni rencontre ni dialogue de
  *  scène, aucun objet de projet ; ses Effets `ops` visent la table de SA racine. */
-export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine], objets: [] });
+export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine], objets: AUCUN_OBJET_DE_PROJET });
 
 /** Libellé / icône d'un type d'effet — dérivés du REGISTRE unique (aucun Record parallèle à
  *  maintenir : la source de vérité est `EFFECT_HANDLERS[t].label/icon`). */
@@ -277,33 +278,30 @@ export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
 }
 
-/** Objet donné par l'Effet `giveTrapping` : le sélecteur résout la saisie dans les objets du projet puis le
- *  catalogue, sous la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`) ; l'id
- *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`.
- *  Une entrée qui porte `EXIGE_UNE_CREATURE` SÈME `creatureId` (`creatureRecoltableSemee`) et montre son
- *  sélecteur, sous la feuille `giveTrappingSchema.shape.creatureId` ; la bascule retour l'efface. */
+/** Objet donné par l'Effet `giveTrapping` : le sélecteur offre les objets du projet puis le catalogue, sous
+ *  la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`). Une entrée qui porte
+ *  `EXIGE_UNE_CREATURE` SÈME `creatureId` (`creatureRecoltableSemee`) et montre son sélecteur, sous la
+ *  feuille `giveTrappingSchema.shape.creatureId` ; la bascule retour l'efface. */
 function ObjetDonneField({ objets, don, upd }: {
   objets: readonly TrappingData[];
-  don: { trappingId?: string; custom?: string; creatureId?: string };
+  don: { trappingId: string; creatureId?: string };
   upd: (patch: object) => void;
 }) {
   const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
-  const entree = don.trappingId ? trappingDesObjetsPuisDuCatalogue(parId, don.trappingId) : undefined;
+  const entree = trappingDesObjetsPuisDuCatalogue(parId, don.trappingId);
   return (
     <>
       <RefField
-        cfg={{ ds: 'trappings', freeText: true }}
+        cfg={{ ds: 'trappings', single: true }}
+        label="Objet"
+        ariaLabel="Objet donné"
         noeud={giveTrappingSchema.shape.trappingId}
         entreesEnTete={objets}
-        value={don.trappingId ?? don.custom}
+        value={don.trappingId}
         onChange={(v) => {
-          const val = v as string | undefined;
-          const choisie = val ? trappingDesObjetsPuisDuCatalogue(parId, val) : undefined;
-          if (!choisie) {
-            upd({ custom: val, trappingId: undefined, creatureId: undefined });
-            return;
-          }
-          upd({ trappingId: val, custom: undefined, creatureId: lEntreePorte(choisie)(EXIGE_UNE_CREATURE) ? (don.creatureId ?? creatureRecoltableSemee()) : undefined });
+          const val = v as string;
+          const choisie = trappingDesObjetsPuisDuCatalogue(parId, val);
+          upd({ trappingId: val, creatureId: choisie && lEntreePorte(choisie)(EXIGE_UNE_CREATURE) ? (don.creatureId ?? creatureRecoltableSemee()) : undefined });
         }}
       />
       {entree && lEntreePorte(entree)(EXIGE_UNE_CREATURE) && (
@@ -373,13 +371,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           <>
             <ObjetDonneField objets={ctx.objets} don={e} upd={upd} />
             <label className="dr">Nombre <NumberField variant="nu" label="Nombre d’objets donnés" min={1} value={e.count ?? 1} onChange={(count) => upd({ count })} /></label>
-            <input
-              placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
-              value={(e.qualities ?? []).join(', ')}
-              onChange={(ev) => {
-                const q = ev.target.value.split(',').map((s: string) => s.trim()).filter(Boolean);
-                upd({ qualities: q.length ? q : undefined });
-              }}
+            <RefField
+              cfg={REF_FIELD.qualities}
+              label="Qualités magiques ajoutées"
+              value={e.qualities ?? []}
+              onChange={(v) => upd({ qualities: (v as QualityRef[]).length ? v : undefined })}
             />
             <label className="radio">
               <input type="checkbox" checked={e.identified === false} onChange={(ev) => upd({ identified: ev.target.checked ? false : undefined })} /> non identifié (qualités masquées jusqu’à Évaluation)

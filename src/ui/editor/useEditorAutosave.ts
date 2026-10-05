@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scene } from '../../state/scene';
+import type { TrappingData } from '../../data';
 import { autosaveLoad, autosaveSave, autosaveDelete, type RepriseLocale } from '../../state/editorAutosave';
 
 /** Délai de débattue avant écriture (pas à chaque frappe/pas de pinceau — cf. `editorAutosave.ts`). */
@@ -19,9 +20,10 @@ const MAX_WAIT_MS = 5000;
  * `hide` lève cette suspension : masquer la proposition (Échap, #834 audit pt. A) ne détruit RIEN
  * (seul `dismiss`, geste explicite et nommé, supprime la sauvegarde locale) mais ne doit PLUS non plus
  * geler l'écriture du travail en cours (#834 audit-2 défaut 1 : Échap ne peut pas rendre l'autosave
- * périmé pour le reste de la session). `show` referme la fenêtre de suspension.
+ * périmé pour le reste de la session). `show` referme la fenêtre de suspension. `objets` : les objets du
+ * projet ouvert (`narratif.objets`), que la reprise lit pour monter la scène (`autosaveLoad`).
  */
-export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => void) {
+export function useEditorAutosave(scene: Scene, objets: readonly TrappingData[], applyRecovered: (s: Scene) => void) {
   const [recovery, setRecovery] = useState<RepriseLocale | null>(null);
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false); // reste faux tant que la vérification de reprise n'a pas conclu pour CETTE scène
@@ -39,7 +41,7 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     let cancelled = false;
     // Une faute du jeu à la relecture (`relire` ne rend que les refus de la porte) se PROPAGE jusqu'au
     // capteur `unhandledrejection` (`errorCollector.ts`) ; l'écriture débattue reprend quand même.
-    autosaveLoad(scene.id)
+    autosaveLoad(scene.id, objets)
       .then((lu) => {
         if (cancelled) return;
         // Un enregistrement ÉCARTÉ se montre toujours : l'auteur apprend pourquoi, et le supprime.

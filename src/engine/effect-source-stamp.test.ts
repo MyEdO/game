@@ -53,13 +53,13 @@ describe('grantWeapon — stampe ctx.source sur l’objet invoqué créé', () =
 describe('giveTrapping — stampe ctx.source sur l’objet donné', () => {
   it('avec ctx.source : l’ItemInstance créée porte la source', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'giveTrapping', custom: 'Babiole invoquée' }], { source: SRC });
+    applyOps(c, [{ op: 'giveTrapping', trappingId: 'ration' }], { source: SRC });
     expect(c.items?.[0].source).toEqual(SRC);
   });
 
   it('sans ctx.source : aucune fausse valeur — le champ reste absent', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'giveTrapping', custom: 'Babiole' }], {});
+    applyOps(c, [{ op: 'giveTrapping', trappingId: 'ration' }], {});
     expect(c.items?.[0].source).toBeUndefined();
   });
 });

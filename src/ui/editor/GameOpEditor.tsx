@@ -19,7 +19,7 @@ import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
-import { ConditionEditor } from './ConditionEditor';
+import { AUCUN_OBJET_DE_PROJET, ConditionEditor } from './ConditionEditor';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
 import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
@@ -598,7 +598,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'banish': return { op: 'banish' };
     case 'kill': return { op: 'kill' };
     case 'martyr': return { op: 'martyr' };
-    case 'giveTrapping': return { op: 'giveTrapping' };
+    case 'giveTrapping': return { op: 'giveTrapping', trappingId: '' };
     case 'perRound': return { op: 'perRound', ops: [] };
     case 'summon': return { op: 'summon', ref: '', count: 1, allyOfCaster: true };
     case 'zone': return { op: 'zone', shape: 'disc', radiusMeters: { bonusOf: 'force-mentale' } };
@@ -697,7 +697,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   exposeDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   contractDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   reduceDiseaseDays: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: false }],
-  giveTrapping: [{ field: 'trappingId', ds: 'trappings', label: 'Possession', required: false }],
+  giveTrapping: [{ field: 'trappingId', ds: 'trappings', label: 'Possession', required: true }],
 };
 
 /** Réfs REQUISES non élues d'UNE op (champ absent ou vide) — sans récursion. PURE. */
@@ -1058,7 +1058,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                       {o.lockedUntil != null && (
                         // `kinds` = les seuls sujets que le contexte de verrou GARANTIT (`conditionLockCtx`) :
                         // SOURCE UNIQUE partagée avec le refus au parse (`SUJETS_DE_VERROU`, mecanique.ts:159).
-                        <ConditionEditor cond={o.lockedUntil as Condition} kinds={SUJETS_DE_VERROU as ReadonlySet<Condition['kind']>} onChange={(lockedUntil) => upd({ lockedUntil })} />
+                        // `SUJETS_DE_VERROU` n'offre pas `hasItem` : aucun objet à proposer.
+                        <ConditionEditor cond={o.lockedUntil as Condition} kinds={SUJETS_DE_VERROU as ReadonlySet<Condition['kind']>} objets={AUCUN_OBJET_DE_PROJET} onChange={(lockedUntil) => upd({ lockedUntil })} />
                       )}
                       <label className="dr">Retiré par{/* LDB 18 : « ne peut être retiré que par [acte] » */}
                         <select value={o.unlockBy ?? ''} onChange={(e) => upd({ unlockBy: (e.target.value || undefined) as ConditionUnlock | undefined })}>
