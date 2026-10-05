@@ -454,7 +454,7 @@ test('pipelinesDeJetons : un segment vidé par l’épluchage pose ses affectati
   assert.deepEqual(pgrep.jetons.map((j) => j.text), ['pgrep', 'node'])
   assert.deepEqual(vide.jetons, [])
   assert.deepEqual(vide.valeurs.map(({ nom, valeur }) => ({ nom, valeur })), [{ nom: 'p', valeur: '$(pgrep node)' }])
-  assert.deepEqual(vide.deplies.get(vide.valeurs[0].jeton), [[pgrep]])
+  assert.deepEqual(vide.deplies.get(vide.valeurs[0].jeton), [ [pgrep] ])
   assert.deepEqual(kill.jetons.map((j) => j.text), ['kill', '$p'])
   assert.deepEqual(kill.valeurs, [], 'un segment qui exécute ne pose pas ses affectations de tête')
   assert.deepEqual(pipelinesProfonds('p=$(pgrep node); kill $p'), [[['pgrep', 'node']], [['kill', '$p']]], '`node)` n’est pas une commande')

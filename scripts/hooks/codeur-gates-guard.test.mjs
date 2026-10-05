@@ -199,14 +199,14 @@ test('la portée server/ suit le shell du `cd` : ses segments et les shells qu�
 // suivent restent.
 test('une redirection n’est pas un argument : elle se retire avec sa cible, les arguments qui la suivent restent', () => {
   for (const cmd of [
-    'npx vitest run --minWorkers=1 2>&1 > C:/tmp/suite.log', 'npm test > /tmp/suite.log 2>&1', 'npx vitest run > out/x.txt',
+    'npx vitest run --minWorkers=1 2>&1 > tmp/suite.log', 'npm test > /tmp/suite.log 2>&1', 'npx vitest run > out/x.txt',
     'npx vitest run > out.txt', 'npx tsc >x.txt --noEmit', 'npx tsc 2>&1 --noEmit', 'npx vitest run <in.txt', 'npx eslint 2>e.txt .',
     'npx tsc >|x.txt --noEmit',
   ]) {
     assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
   }
   for (const cmd of [
-    'npx vitest run src/a.test.ts > C:/tmp/a.log 2>&1', 'npm test -- src/a.test.ts > /tmp/a.log',
+    'npx vitest run src/a.test.ts > tmp/a.log 2>&1', 'npm test -- src/a.test.ts > /tmp/a.log',
     'npx vitest run 2>err.txt src/x.test.ts', 'npx eslint 2>e.txt src/a.ts',
   ]) {
     assert.equal(pourCodeur(cmd), null, cmd)
