@@ -63,17 +63,18 @@
 // stocks en 8,2-9,5 s (1 716 porteurs, dont un `git diff` de 0,96 s ; le reste est l'évaluation), plus
 // les reclassements (1,8-3,9 s), donc il expire. Lot réel de 10 fichiers (07d9f850d) : stocks 46-48 ms.
 // Le PALIER (`mesureDuPalier`) ne se mesure que pour un commit qui ferme un ticket ou ajoute une revue,
-// et son compte s'arrête à `PALIER`. Son nombre de processus git ne croît ni avec les revues
-// archivées ni avec la fenêtre (`scripts/guards/lib/revuePalier.test.mjs`) : la dernière revue se lit
-// sur UN graphe de HEAD (`grapheDe`) et UNE résolution des têtes (`commitsNommes`), les chemins des
-// commits à un parent en UN lot (`cheminsDesCommits`) ; seule une FUSION lue avant l'arrêt au seuil
-// coûte sa fusion automatique (`merge-tree`), plus un `diff-tree` quand son arbre en diffère. La lecture
-// du graphe croît avec l'HISTOIRE : 133 à 387 ms, 455 Ko et +9,7 Mo de tas à 5 480 commits. Mesuré le
-// 2026-10-05 sous win32 (16 cœurs ; démarrage d'un git 30 à 41 ms), commit de fermeture
-// `git commit -a -m "fix: corrige #2125"`, 38 archives, 5 fusions lues avant le seuil : mesure du
-// palier 0,72-1,18 s pour 15 processus ; hook entier 1,4-2,8 s pour 26 processus. La tête des
-// revues neuves se juge sur le MÊME graphe (`histoireDeHead`), les captures citées en UN lot
-// (`verifierCaptures`), chaque sha cité par « corrigé par » UNE fois (`histoireDesCitations`).
+// et son compte s'arrête à `PALIER`. Son nombre de processus git, compté au PROCESSUS (`lancesDeGit`,
+// `scripts/test/gitDeBanc.mjs`), ne croît ni avec les revues archivées, ni avec la fenêtre, ni avec ses
+// fusions (`scripts/guards/lib/revuePalier.test.mjs`) : la dernière revue se lit sur UN graphe de HEAD
+// (`grapheDe`) et UNE résolution des têtes (`commitsNommes`), les chemins des commits à un parent en
+// UN lot, les fusions lues avant l'arrêt au seuil en UN `merge-tree` et le même `diff-tree`
+// (`ceQueFontLesCommits`). La lecture du graphe croît avec l'HISTOIRE : 133 à 387 ms, 455 Ko et
+// +9,7 Mo de tas à 5 480 commits. Mesuré le 2026-10-05 sous win32 (16 cœurs), commit de fermeture
+// `git commit -a -m "fix: corrige #2125"`, 39 archives : mesure du palier 0,42-0,62 s pour 10
+// processus ; hook entier 1,1-1,6 s pour 21 processus. La tête des revues neuves se juge sur le MÊME
+// graphe (`histoireDeHead`) ; les captures citées (`verifierCaptures`) et les shas cités par
+// « corrigé par » (`histoireDesCitations`) de TOUS les soldes se lisent chacun en UN lot : 42
+// processus pour 1 comme pour 8 tickets fermés, chacun avec ses fichiers stagés.
 // VERSION DE GIT : le graphe exige git 2.33 (`rev-list --no-commit-header`), même sans aucune fusion ;
 // une fusion lue exige git 2.40 (`merge-tree --write-tree --stdin`, `exigerMergeTree`). Sous un git
 // plus ancien, le palier est INMESURABLE et le refus NOMME la version requise (`versionManquante`,
@@ -145,7 +146,7 @@ import {
   PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estDansHead, estIgnore,
+  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
   estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
@@ -1865,9 +1866,10 @@ export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHea
  * stagées que la forme du commit laisse en rade : le refus les NOMME. `tetesDansHead(tetes)` dit, pour
  * chaque tête de fenêtre des revues neuves, si elle est dans l'histoire de HEAD : une question pour
  * TOUTES (`histoireDeHead`, `dansHead`), posée une fois. `contexteSolde` = le contexte injecté de
- * `validateSolde` (diff stagé, hunks, écran touché, histoire des citations), où
- * `verifierCapturesDe(chemins)` contrôle d'un coup les captures de TOUS les soldes (`verifierCaptures`)
- * — `issuesFermees` y est posé ICI, c'est cette décision qui connaît les tickets fermés.
+ * `validateSolde` (diff stagé, hunks, écran touché), où `verifierCapturesDe(chemins)` contrôle d'un
+ * coup les captures de TOUS les soldes (`verifierCaptures`) et `histoireDe(shas)` lit d'un coup les
+ * shas que TOUS les soldes citent par « corrigé par » (`histoireDesCitations`) — `issuesFermees` y est
+ * posé ICI, c'est cette décision qui connaît les tickets fermés.
  * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
 export function evaluate({
@@ -1945,12 +1947,19 @@ export function evaluate({
 
   const lus = readSoldes(issues)
   const emportes = new Map(issues.map((n, i) => [n, lus[i]]))
-  const { verifierCapturesDe, ...contexte } = contexteSolde
+  const { verifierCapturesDe, histoireDe, ...contexte } = contexteSolde
   let captures = null
   const verifierCaptureDe = verifierCapturesDe && ((chemin) => {
     captures ??= verifierCapturesDe([...new Set([...emportes.values()].map(captureDuSolde).filter(Boolean))])
     return captures.get(chemin)
   })
+  let histoire = null
+  const lue = () => (histoire ??= histoireDe([...new Set([...emportes.values()].flatMap(shasCitesDuSolde))]))
+  const citations = histoireDe ? {
+    commitEstAncetre: (sha) => lue().commitEstAncetre(sha),
+    fichiersDuCommit: (sha) => lue().fichiersDuCommit(sha),
+    lignesDuCommit: (sha, fichier) => lue().lignesDuCommit(sha, fichier),
+  } : {}
   const failures = []
   for (const n of issues) {
     const emporte = emportes.get(n)
@@ -1966,7 +1975,7 @@ export function evaluate({
       })
       continue
     }
-    const { ok, problems } = validateSolde(emporte, today, { ...contexte, verifierCaptureDe, issuesFermees: issues })
+    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...citations, verifierCaptureDe, issuesFermees: issues })
     if (!ok) failures.push({ n, problems })
   }
   if (failures.length === 0) return null
@@ -2377,8 +2386,8 @@ function cheminNommeParLaCommande(command, cwd, platform) {
  * Répertoire CIBLE prouvé par la commande, et ce qu'elle nomme sans qu'il puisse servir de cwd.
  * `dir` n'est retenu que s'il désigne un répertoire RÉEL : un chemin porteur d'une variable non
  * expansée (`git -C "$M"`) et un chemin ABSENT du disque donnent au spawn de git un ENOENT
- * impossible à distinguer d'un git absent — la porte refusait alors « ascendance indisponible » un
- * geste que git exécutait très bien (#1729 sondes 1-2). La cible d'un `git worktree add <cible>`
+ * impossible à distinguer d'un git absent : la porte refuserait pour une lecture git indisponible un
+ * geste que git exécute très bien (#1729 sondes 1-2). La cible d'un `git worktree add <cible>`
  * n'est JAMAIS un cwd : ce n'est pas un `-C`, et c'est git qui la crée.
  * `ignore` (`null` ou `{ chemin, raison }`) est DIT dans le message quand la porte refuse : sinon le
  * refus juge un autre répertoire que celui que l'utilisateur lit.
@@ -2594,10 +2603,22 @@ export function formeDuCommit(command) {
  *  jamais « rien n'est emporté ». */
 const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.push(raison) })
 
-/** Le refus des `pannes` de lecture vues depuis le début de l'appel, `null` s'il n'y en a aucune. */
-const refusDesPannes = (pannes) => (pannes.length
-  ? { reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
-  : null)
+/**
+ * Le refus UNIQUE de ce que git n'a pas lu : les `pannes` de lecture de l'appel, chacune nommée une
+ * fois, en UN refus — `null` s'il n'y en a aucune. La CAUSE se nomme telle qu'elle est : un répertoire
+ * qui existe mais n'est gouverné par aucun dépôt (`horsDepot`) n'est ni un git absent ni un cwd
+ * manquant, et le renvoyer vers « un arbre où git répond » désignait la mauvaise correction (#1729).
+ * @param {readonly string[]} pannes @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
+ * @returns {{ reason: string } | null}
+ */
+export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
+  if (!pannes.length) return null
+  const cause = horsDepot ? `hors dépôt : ${cwd}` : [...new Set(pannes)].join(' ; ')
+  const geste = horsDepot
+    ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
+    : 'Geste : rejouer le commit depuis un arbre où git répond.'
+  return { reason: `⛔ lecture git indisponible : ${cause} — la porte ne juge pas ce que git n'a pas lu. ${geste}` }
+}
 
 /**
  * Lectures du contenu que `command` va committer dans `dir` : `numstat()` (les champs du `--numstat`,
@@ -2616,8 +2637,10 @@ const refusDesPannes = (pannes) => (pannes.length
  */
 export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot = depotDuHook(dir, pannes) } = {}) {
   const { forme, pathspecs } = formeDuCommit(command)
-  let head = null
-  const aHead = () => (head ??= shaDe(depot, 'HEAD') !== null)
+  let head
+  /** Le sha de HEAD, lu une fois ; `null` sans premier commit (ou en panne, confiée à `pannes`). */
+  const shaDeHead = () => (head === undefined ? (head = shaDe(depot, 'HEAD')) : head)
+  const aHead = () => shaDeHead() !== null
   const contreIndex = () => forme === 'index' || !aHead()
   let imageDeBase
   const base = () => (imageDeBase ??= imageDeHead(depot))
@@ -2668,7 +2691,7 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
     if (enCours !== undefined) return enCours
     const fusionnes = aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []
     if (!fusionnes.length) return (enCours = null)
-    const parents = [shaDe(depot, 'HEAD'), ...fusionnes]
+    const parents = [shaDeHead(), ...fusionnes]
     try {
       const fait = ceQueFaitLaFusionEnCours(depot, parents, image())
       const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() && fait.base ? lireDepuis(fait.base) : fait, lireDepuis })
@@ -2750,57 +2773,68 @@ export function fichiersCitantTickets(numeros, dir = process.cwd(), { pannes = [
 }
 
 /**
- * Le verdict PUR, ou le refus qui NOMME ce que git n'a pas pu lire. Une ascendance indisponible n'est
- * pas un « non » : la conclure ferait refuser un solde juste (ou passer un solde faux) sur rien.
- * La CAUSE se nomme telle qu'elle est — un répertoire qui existe mais n'est gouverné par aucun
- * dépôt (`horsDepot`) n'est ni un git absent ni un cwd manquant, et le renvoyer vers « un arbre où
- * git répond » désignait la mauvaise correction (#1729).
- * @param {() => ({ reason: string } | null)} juger
- * @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
+ * Le verdict PUR, ou `null` quand git n'a pas pu lire : sa raison (`GitIndisponible`) va à `pannes`,
+ * que `refusDesPannes` refuse au rendu, en UN refus avec les autres pannes de l'appel. Une lecture
+ * indisponible n'est pas un « non » : la conclure ferait refuser un solde juste (ou passer un solde
+ * faux) sur rien. Toute autre erreur remonte.
+ * @param {() => ({ reason: string } | null)} juger @param {string[]} pannes
  */
-export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = false } = {}) {
+export function jugerOuConfier(juger, pannes) {
   try {
     return juger()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    const cause = horsDepot ? `hors dépôt : ${cwd}` : e.raison
-    const geste = horsDepot
-      ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
-      : 'Geste : rejouer le commit depuis un arbre où git répond.'
-    return {
-      reason: `⛔ ascendance indisponible : ${cause} — la porte ne peut rien juger de ce que git n'a pas lu. ${geste}`,
-    }
+    pannes.push(e.raison)
+    return null
   }
 }
 
 /**
- * L'HISTOIRE que lit « corrigé par <sha> <fichier>:<ligne> » (`problemesCorrigePar`) dans `depot` : le
- * commit est-il dans HEAD (`estDansHead`), quels chemins touche-t-il, quelles lignes de `fichier` —
- * lus sur CE QUE FAIT le commit (`ceQueFaitLeCommit`). Chaque lecture se fait UNE fois par sha et par
- * histoire, quel que soit le nombre de citations du sha : l'ascendance, les chemins, et le patch de
- * TOUS ses fichiers (`diffParChemin`), d'où se lisent les lignes de chacun. Une histoire vit le temps
+ * L'HISTOIRE que lit « corrigé par <sha> <fichier>:<ligne> » (`problemesCorrigePar`) pour les `shas`
+ * cités, tous annoncés d'avance (`shasCitesDuSolde`) : le commit est-il dans HEAD (`histoire`,
+ * `histoireDeHead`), quels chemins touche-t-il, quelles lignes de `fichier` — lus sur CE QUE FAIT le
+ * commit (`ceQueFontLesCommits`), dans `depot`. Chaque lecture porte sur TOUS les shas cités à la
+ * fois, au plus une fois : un sha cité de plus ne lance aucun processus. Une histoire vit le temps
  * d'UNE évaluation : aucun cache ne survit d'un appel du hook au suivant. Le diff est celui d'UN SHA
  * DÉJÀ POSÉ, à ne pas confondre avec `diffDuCommit`, qui lit ce que la commande EN COURS va emporter.
- * Une base `null` rend `[]` ; sous `depotDuHook`, une panne de git y rend `[]` elle aussi, et
- * `refusDesPannes` la refuse au rendu ; `BorneAbsente` se lève là où `ceQueFaitLeCommit` la lève.
- * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
+ * Un sha hors de HEAD n'a ni chemins ni lignes (`null`) ; sous `depotDuHook`, une panne de git rend
+ * `[]`, et `refusDesPannes` la refuse au rendu.
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {readonly string[]} shas
+ * @param {{ histoire?: ReturnType<typeof histoireDeHead> }} [options] l'histoire de HEAD de l'évaluation
+ * @throws {Error} une question sur un sha que `shas` n'annonce pas.
  */
-export function histoireDesCitations(depot) {
-  /** `lire(sha)`, lu une fois par sha. */
-  const parSha = (lire) => {
-    const lus = new Map()
-    return (sha) => {
-      if (!lus.has(sha)) lus.set(sha, lire(sha))
-      return lus.get(sha)
-    }
+export function histoireDesCitations(depot, shas, { histoire = histoireDeHead(depot) } = {}) {
+  const annonces = [...new Set(shas)]
+  let lus = null
+  const lire = () => {
+    if (lus) return lus
+    const commits = histoire.commits(annonces)
+    lus = { parSha: new Map(annonces.map((sha, i) => [sha, commits[i]])), fait: ceQueFontLesCommits(depot, commits.filter(Boolean)) }
+    return lus
   }
-  const fait = parSha((sha) => ceQueFaitLeCommit(depot, sha))
-  const patchs = parSha((sha) => fait(sha).diffParChemin())
+  /** Le commit du graphe de HEAD que nomme `sha`, `null` hors de HEAD. */
+  const commitDe = (sha) => {
+    const { parSha } = lire()
+    if (!parSha.has(sha)) throw new Error(`histoireDesCitations : « ${sha} » n'est aucun des shas annoncés (${annonces.join(', ')})`)
+    return parSha.get(sha)
+  }
   return {
-    commitEstAncetre: parSha((sha) => estDansHead(depot, sha)),
-    fichiersDuCommit: parSha((sha) => fait(sha).chemins()),
-    lignesDuCommit: (sha, fichier) => lignesDeHunks(patchs(sha).get(fichier) ?? ''),
+    commitEstAncetre: (sha) => commitDe(sha) !== null,
+    fichiersDuCommit: (sha) => {
+      const commit = commitDe(sha)
+      return commit && lire().fait.chemins().get(commit.sha)
+    },
+    lignesDuCommit: (sha, fichier) => {
+      const commit = commitDe(sha)
+      return commit && lignesDeHunks(lire().fait.patchs().get(commit.sha).get(fichier) ?? '')
+    },
   }
+}
+
+/** Les shas que cite un solde par « corrigé par <sha> <fichier>:<ligne> » (`CORRIGE_PAR_RE`, la lecture
+ *  de `checkRestesSection`). PUR. @param {string | null} content @returns {string[]} */
+export function shasCitesDuSolde(content) {
+  return content ? restesItems(content).map((l) => CORRIGE_PAR_RE.exec(l)?.[1]).filter(Boolean) : []
 }
 
 /** Date de dernière écriture la plus RÉCENTE parmi `fichiers` (ms, `0` si aucune lisible). */
@@ -2938,9 +2972,9 @@ export function porteUnGesteGh(command) {
  * s'ouvrent sur `isGitCommitCommand`) et une fermeture `gh` hors commit
  * (`evaluateFermetureHorsCommit`, le seul évaluateur qui ne demande pas de commit).
  *
- * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) lançait `mesureDuPalier` et
- * `readChangedNames` dans son cwd, et un cwd hors dépôt faisait refuser « ascendance indisponible »
- * une commande qui n'avait rien à voir avec un commit (#1729 sonde 3).
+ * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) n'a rien d'un commit, et lire
+ * `mesureDuPalier` ou `readChangedNames` dans son cwd hors dépôt la refuserait pour une lecture git
+ * indisponible (#1729 sonde 3).
  * @returns {'commit'|'fermeture'|null}
  */
 export function gesteJuge(command) {
@@ -3164,13 +3198,31 @@ export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
  * commande nommait sans que ce soit un répertoire réel, DIT dans tout refus ; `today` = date locale ;
  * `pannes` = les pannes de lecture git de l'appel, refusées au rendu (`refusDesPannes`).
  */
-async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
+async function evaluerSolde(entree, contexte) {
+  try {
+    return await jugerLeSolde(entree, contexte)
+  } catch (e) {
+    // Une lecture que git ne rend pas, levée hors d'un juge (la base du commit, `imageDeHead`) : le
+    // refus NOMMÉ des pannes, jamais une garde « en panne » qui laisse passer le commit.
+    if (!(e instanceof GitIndisponible)) throw e
+    const presume = motifDuCommitPresume(commandeDe(entree))
+    const refus = refusDesPannes([...contexte.pannes, e.raison], ouDeLaLecture(contexte.dir))
+    return verdictDe(avecCibleIgnoree({ reason: presume ? `${presume} || ${refus.reason}` : refus.reason }, contexte.cibleIgnoree))
+  }
+}
+
+/** Le répertoire où la lecture a été tentée, pour `refusDesPannes` : hors dépôt, la cause est là. */
+const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: natureDeLArbre(dir) === null })
+
+/** Le jugement de `evaluerSolde`, dont une `GitIndisponible` levée remonte au refus nommé. */
+async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
   const command = commandeDe(entree)
   // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3) ; un
   // lieu d'exécution non jugeable (`dir` nul) est refusé par la garde `canal-outil` du répartiteur.
   if (!gesteJuge(command) || targetDir === null) return null
   // HOTE UNIQUE de sortie : tout refus porte la cible écartée.
   const dire = (decision) => verdictDe(avecCibleIgnoree(decision, cibleIgnoree))
+  const ou = ouDeLaLecture(targetDir)
   // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`).
   const commit = diffDuCommit(command, targetDir, { pannes })
   const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat())
@@ -3197,7 +3249,7 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // partagent sa lecture du graphe.
   const depot = depotDe(targetDir)
   const histoire = histoireDeHead(depot)
-  const decision = jugerOuNommerLIndisponible(() => evaluate({
+  const decision = jugerOuConfier(() => evaluate({
     command: text,
     today,
     // Le solde LU est celui que le commit EMPORTE (`commit.contenus`, un lot pour tous les soldes) :
@@ -3218,9 +3270,9 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
       lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
       touchesUi,
       verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: targetDir, mtimeMin: mtimeEcrans, pannes }),
-      ...histoireDesCitations(depotDuHook(targetDir, pannes)),
+      histoireDe: (shas) => histoireDesCitations(depotDuHook(targetDir, pannes), shas, { histoire }),
     },
-  }), { cwd: targetDir, horsDepot: natureDeLArbre(targetDir) === null })
+  }), pannes)
   // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
   // lecture que toutes les autres évaluations de cette garde.
   const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers, messages })
@@ -3289,7 +3341,7 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   }
   const premier = cumuler([
     decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
-    horsCommit, tombale, hunks?.reason ? hunks : null, budget, refusDesPannes(pannes),
+    horsCommit, tombale, hunks?.reason ? hunks : null, budget, refusDesPannes(pannes, ou),
   ])
   if (premier) return premier
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
@@ -3308,7 +3360,7 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
     deplace: () => commit.deplaceLaFrontiereCss(fichiers),
     cotes: commit.cotesCss,
   })
-  const second = cumuler([stocks, reclassements, refusDesPannes(pannes)])
+  const second = cumuler([stocks, reclassements, refusDesPannes(pannes, ou)])
   if (second) return second
   return hunks?.contexte ? { contexte: hunks.contexte } : null
 }
