@@ -20,10 +20,10 @@ const lignes = (n, marque = 'l') => `${Array.from({ length: n }, (_, i) => `expo
 
 /**
  * Un chantier qui a FUSIONNÉ main : `socle` sur `tronc`, `main` sur `amont`, `chantier` sur la branche
- * courante, puis `git merge --no-commit amont` dont la résolution écrit `resolution` et se commite.
- * Rend `{ racine, git, fusion, poser(fichiers, message), juger() }`.
+ * courante, puis `git merge --no-commit amont` dont la résolution écrit `resolution` et se commite sous
+ * `messageDeFusion`. Rend `{ racine, git, fusion, poser(fichiers, message), juger() }`.
  */
-function chantierFusionne({ socle, main, chantier, resolution = {} }) {
+function chantierFusionne({ socle, main, chantier, resolution = {}, messageDeFusion = 'merge: intègre main' }) {
   const { racine } = instanceDeDepot({ fichiers: socle, message: 'socle' })
   const git = gitDe(racine)
   const ecrire = (fichiers) => {
@@ -42,7 +42,7 @@ function chantierFusionne({ socle, main, chantier, resolution = {} }) {
   git('checkout', '-q', 'tronc'); git('checkout', '-q', '-b', 'chantier'); poser(chantier, 'chantier')
   resultatDeGit(['merge', '--no-commit', '--no-ff', 'amont'], { cwd: racine })
   ecrire(resolution)
-  git('add', '-A'); git('commit', '-q', '-m', 'merge: intègre main')
+  git('add', '-A'); git('commit', '-q', '-m', messageDeFusion)
   const fusion = git('rev-parse', 'HEAD').trim()
   const juger = () => fusionsNonJugees(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
   return { racine, git, fusion, poser, juger }
@@ -67,6 +67,7 @@ test('#2328 DoD 2 — une résolution de 15 lignes changées sous src/ sans juge
     const verdict = verdictDePublication(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
     assert.equal(verdict.ok, false)
     assert.match(verdict.texte, new RegExp(`${fusion.slice(0, 9)} \\(15 lignes changées\\) : manque \`JUGE:\`, \`REFUTATION:\``))
+    assert.match(verdict.texte, /\nGeste : le message de la fusion porte ces lignes ; sinon un commit postérieur/, 'le geste nomme d’abord la voie la plus simple')
     poser({}, `chore: refs #42 — juge\n\n${juge('0123456789')}\n${refutation('0123456789')}`)
     assert.equal(juger().refus.length, 1, 'test opposé : un juge qui ne NOMME pas la fusion ne la couvre pas')
     poser({}, `chore: refs #42 — juge\n\n${juge(fusion)}\n${refutation(fusion)}`)
@@ -93,6 +94,55 @@ test('#2328 — une résolution qui CHANGE un écran exige aussi `JUGE-VISION:`'
     assert.deepEqual(juger().refus.map((r) => r.manque), [['JUGE-VISION']])
     poser({}, `chore: refs #42\n\n${vision(fusion)}`)
     assert.deepEqual(juger().refus, [])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 — le message de la fusion ELLE-MÊME porte `JUGE:` et `REFUTATION:` sans nommer son sha : la fusion est jugée', () => {
+  const message = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const { racine, juger } = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: message })
+  try {
+    assert.deepEqual(juger().refus, [])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 — test opposé : la fusion sans trailers, ou avec un trailer trop court, est refusée', () => {
+  const nue = chantierFusionne(conflitResolu('src/a.ts', 12))
+  const courte = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: rien' })
+  try {
+    assert.deepEqual(nue.juger().refus, [{ sha: nue.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual(courte.juger().refus, [{ sha: courte.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
+  } finally {
+    rmSync(nue.racine, { recursive: true, force: true })
+    rmSync(courte.racine, { recursive: true, force: true })
+  }
+})
+
+test('#2328 — test opposé : `AUTOREFUTATION:` dans le message de la fusion ne vaut pas `REFUTATION:`', () => {
+  const message = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nAUTOREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const { racine, fusion, juger } = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: message })
+  try {
+    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 — une fusion qui change un ÉCRAN : son message porte aussi `JUGE-VISION:`, sinon `manque` le nomme seul', () => {
+  const trailers = 'JUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const avecVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}\nJUGE-VISION: captures de l’écran que touche cette fusion jugées conformes` })
+  const sansVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}` })
+  try {
+    assert.deepEqual(avecVision.juger().refus, [])
+    assert.deepEqual(sansVision.juger().refus.map((r) => r.manque), [['JUGE-VISION']])
+  } finally {
+    rmSync(avecVision.racine, { recursive: true, force: true })
+    rmSync(sansVision.racine, { recursive: true, force: true })
+  }
+})
+
+test('#2328 — test opposé : le juge d’un AUTRE commit qui ne nomme pas le sha ne vaut toujours pas pour la fusion', () => {
+  const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
+  try {
+    poser({}, 'chore: refs #42 — juge\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille')
+    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 

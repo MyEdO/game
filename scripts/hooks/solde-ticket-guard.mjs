@@ -59,8 +59,9 @@
 // jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
 // toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
 // Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
-// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent, d'un commit postérieur de la plage, `JUGE:` et
-// `REFUTATION:` (plus `JUGE-VISION:` sur un écran) qui nomment son sha.
+// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent `JUGE:` et `REFUTATION:` (plus `JUGE-VISION:`
+// sur un écran), portés par le message de la fusion elle-même, sinon par un commit postérieur de la plage
+// ou le solde d'un ticket qu'il cite, qui nomment son sha.
 //
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
 // reste à 10 s. Un hook tué au `timeout` n'émet RIEN, et le geste passe. D'où DEUX ÉTAGES : le premier
