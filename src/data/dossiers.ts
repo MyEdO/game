@@ -18,7 +18,7 @@ export const FICHES_DE_DOSSIER: readonly FicheLue[] = Object.entries(FICHIERS)
   });
 
 /** Une entrée nommée d'une fiche commitée, avec le livre et le chapitre de sa fiche. */
-export interface EntreeDeDossier extends EntreeNommee {
+interface EntreeDeDossier extends EntreeNommee {
   abbr: string;
   nn: string;
 }

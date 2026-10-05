@@ -375,6 +375,9 @@ Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `fic
   `NarratifEditor`. Les entrées offertes sont celles des fiches commitées.
 - **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
   famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
+  Il lit le paquet commité sous `src/scenes/` : un lien posé à l'éditeur ne l'atteint qu'après « Fichier →
+  Exporter forme dépôt (dev) » et le remplacement du fichier du paquet par l'export (§1) — « Enregistrer… »
+  n'écrit qu'une copie locale (localStorage).
   Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
   entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 

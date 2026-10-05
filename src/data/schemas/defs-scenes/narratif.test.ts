@@ -103,7 +103,7 @@ describe('narratifSchema — `couvre` et `ecartes` (#2290)', () => {
     expect(issues(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: 'gobelin', couvre: ['pnj2'] }] })))
       .toEqual(['presetsPnj.0.couvre.0 :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu.']);
     expect(issues(narratifSchema.safeParse({ ...vide, affaires: [affaire], indices: [indice({ couvre: ['EDO-01#ind1', 'EDO-01#ind1'] })] })))
-      .toEqual(['indices.0.couvre.1 :: « EDO-01#ind1 » en double dans `couvre`.']);
+      .toEqual(['indices.0.couvre.1 :: « EDO-01#ind1 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique.']);
   });
 
   it('`ecartes` : une entrée et son motif passent ; le registre est optionnel', () => {

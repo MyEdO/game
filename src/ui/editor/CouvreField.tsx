@@ -1,6 +1,6 @@
 import { ListRow } from '../ListRow';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
-import { LIBELLES_DE_FAMILLE } from '../../data/source/dossier';
+import { LIBELLES_DE_FAMILLE, nomDeFiche } from '../../data/source/dossier';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 
 /**
@@ -26,7 +26,7 @@ interface GroupeDEntrees {
 /** Un groupe par fiche et par famille, dans l'ordre des entrées. */
 const GROUPES: readonly GroupeDEntrees[] = [
   ...ENTREES_DE_DOSSIER.reduce((groupes, e) => {
-    const libelle = `${e.abbr}-${e.nn} · ${LIBELLES_DE_FAMILLE[e.famille]}`;
+    const libelle = `${nomDeFiche(e.abbr, e.nn)} · ${LIBELLES_DE_FAMILLE[e.famille]}`;
     const groupe = groupes.get(libelle) ?? { libelle, options: [] };
     groupe.options.push({ id: e.id, court: coupeAuMot(e.libelle, 70), libelle: e.libelle });
     return groupes.set(libelle, groupe);

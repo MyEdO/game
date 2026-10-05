@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chargerDossiers } from './lib/dossiers.mjs'
 import { chapterFile, livreDuSigle } from './_lib.mjs'
-import { ficheDeDossier, idDEntree, lireIdDEntree, ID_D_ENTREE } from '../../src/data/source/dossier.ts'
+import { ficheDeDossier, idDEntree, ID_D_ENTREE } from '../../src/data/source/dossier.ts'
 
 const DOSSIERS = chargerDossiers()
 
@@ -106,8 +106,9 @@ test('une `l.<ligne>` nue en prose est refusée, fiche, famille, id, champ et ex
   }
 })
 
-test('identifiant global : écriture et lecture', () => {
+test('identifiant global : écriture, et format `ID_D_ENTREE`', () => {
   assert.equal(idDEntree('EDO', '01', 'b3'), 'EDO-01#b3')
-  assert.deepEqual(lireIdDEntree('ADE I-04#lieu12'), { abbr: 'ADE I', nn: '04', id: 'lieu12' })
-  assert.equal(lireIdDEntree('EDO-01'), null)
+  assert.equal(idDEntree('ADE I', '04', 'lieu12'), 'ADE I-04#lieu12')
+  assert.match(idDEntree('ADE I', '04', 'lieu12'), ID_D_ENTREE)
+  assert.doesNotMatch('EDO-01', ID_D_ENTREE)
 })

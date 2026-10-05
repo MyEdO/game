@@ -9,12 +9,12 @@ import { z } from 'zod';
 import '../schemas/grammaire/locale-fr.ts';
 import { tableTotale } from '../../lib/tableTotale.ts';
 
-export const MEDIAS = ['scene-jouee', 'dialogue', 'interlude', 'resume', 'coupe'] as const;
-export const TYPES_POINT_AU_MJ = ['veracite-rumeur', 'consequence-ouverte', 'rythme-deblocage', 'variante-pnj', 'encart-optionnel'] as const;
+const MEDIAS = ['scene-jouee', 'dialogue', 'interlude', 'resume', 'coupe'] as const;
+const TYPES_POINT_AU_MJ = ['veracite-rumeur', 'consequence-ouverte', 'rythme-deblocage', 'variante-pnj', 'encart-optionnel'] as const;
 export const STATUTS_DE_BEAT = ['obligatoire', 'optionnel', 'non-qualifie'] as const;
-export const NATURES_DE_TEXTE = ['document-verbatim', 'motivation-a-authorer', 'narration-a-reformuler'] as const;
-export const SENS_D_ETAT = ['produit', 'lu'] as const;
-export const PORTEES_D_ETAT = ['chapitre', 'campagne'] as const;
+const NATURES_DE_TEXTE = ['document-verbatim', 'motivation-a-authorer', 'narration-a-reformuler'] as const;
+const SENS_D_ETAT = ['produit', 'lu'] as const;
+const PORTEES_D_ETAT = ['chapitre', 'campagne'] as const;
 
 const texte = z.string().trim().min(1);
 /** Réfs NUES au livre, une par élément ; leur graphie se juge au chargement des fiches commitées
@@ -51,7 +51,7 @@ const FAMILLES = {
   matiereCompagnons: { prefixe: 'comp', attributs: { texte, categorie: texte, pourCeChapitre: texte } },
 } as const;
 
-export type FamilleDeDossier = keyof typeof FAMILLES;
+type FamilleDeDossier = keyof typeof FAMILLES;
 export const FAMILLES_DE_DOSSIER = Object.keys(FAMILLES) as FamilleDeDossier[];
 export const PREFIXES_D_ID: Readonly<Record<FamilleDeDossier, string>> = tableTotale(FAMILLES_DE_DOSSIER, (f) => FAMILLES[f].prefixe);
 
@@ -105,9 +105,9 @@ export const ficheDeDossier = z
     }
   });
 
-export type FicheDeDossier = z.infer<typeof ficheDeDossier>;
+type FicheDeDossier = z.infer<typeof ficheDeDossier>;
 /** Une entrée de la famille `F`. */
-export type EntreeDe<F extends FamilleDeDossier> = FicheDeDossier[F][number];
+type EntreeDe<F extends FamilleDeDossier> = FicheDeDossier[F][number];
 
 /** Nom d'affichage de chaque famille. */
 export const LIBELLES_DE_FAMILLE: Readonly<Record<FamilleDeDossier, string>> = {
@@ -148,22 +148,19 @@ const LIBELLE_D_ENTREE: { readonly [F in FamilleDeDossier]: (e: EntreeDe<F>) => 
 };
 
 /** Le libellé d'une entrée de la famille `famille`, entier (l'affichage le coupe). */
-export const libelleDEntree = <F extends FamilleDeDossier>(famille: F, e: EntreeDe<F>): string => LIBELLE_D_ENTREE[famille](e);
+const libelleDEntree = <F extends FamilleDeDossier>(famille: F, e: EntreeDe<F>): string => LIBELLE_D_ENTREE[famille](e);
 
 /** Les entrées de la famille `famille`, typées par famille. */
-export const entreesDe = <F extends FamilleDeDossier>(fiche: FicheDeDossier, famille: F): readonly EntreeDe<F>[] =>
+const entreesDe = <F extends FamilleDeDossier>(fiche: FicheDeDossier, famille: F): readonly EntreeDe<F>[] =>
   fiche[famille] as readonly EntreeDe<F>[];
 
 /** Identifiant GLOBAL d'une entrée : `<ABBR>-<NN>#<id>` (ex. `EDO-01#b3`). */
 export const ID_D_ENTREE = /^([^#]+)-(\d+)#([a-z]+[1-9]\d*)$/;
 
-export const idDEntree = (abbr: string, nn: string, id: string): string => `${abbr}-${nn}#${id}`;
+/** Nom d'une fiche : `<ABBR>-<NN>` (ex. `EDO-01`), préfixe de l'identifiant global de ses entrées. */
+export const nomDeFiche = (abbr: string, nn: string): string => `${abbr}-${nn}`;
 
-/** Les trois parts d'un identifiant global, ou `null` hors format. */
-export function lireIdDEntree(s: string): { abbr: string; nn: string; id: string } | null {
-  const m = ID_D_ENTREE.exec(s);
-  return m ? { abbr: m[1], nn: m[2], id: m[3] } : null;
-}
+export const idDEntree = (abbr: string, nn: string, id: string): string => `${nomDeFiche(abbr, nn)}#${id}`;
 
 /** Une entrée d'une fiche, nommée : famille, identifiant GLOBAL, libellé entier. */
 export interface EntreeNommee {
@@ -180,11 +177,11 @@ export const entreesDeLaFiche = (abbr: string, nn: string, fiche: FicheDeDossier
   FAMILLES_DE_DOSSIER.flatMap((f) => nommer(abbr, nn, fiche, f));
 
 /** Les identifiants globaux des entrées d'une fiche, dans l'ordre des familles. */
-export const idsDeLaFiche = (abbr: string, nn: string, fiche: FicheDeDossier): string[] =>
+const idsDeLaFiche = (abbr: string, nn: string, fiche: FicheDeDossier): string[] =>
   entreesDeLaFiche(abbr, nn, fiche).map((e) => e.id);
 
 /** Chemin d'une fiche RELATIF à la racine des dossiers (`docs/dossiers`), séparateur `/` : `<ABBR>/<NN>.json`. */
-export const CHEMIN_DE_FICHE = /^([^/]+)\/(\d+)\.json$/;
+const CHEMIN_DE_FICHE = /^([^/]+)\/(\d+)\.json$/;
 
 /** Une fiche commitée, lue : `chemin` (affichage), livre et chapitre tirés du chemin, fiche validée,
  *  identifiants globaux de ses entrées. */

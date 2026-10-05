@@ -504,8 +504,8 @@ describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
     it(`${nom} : des identifiants globaux passent ; hors format, puis en double, refusés au chemin`, () => {
       const ok = projetSchema.safeParse(doc(['EDO-01#b3', 'EDO-02#pnj1']));
       expect(ok.success, ok.success ? '' : JSON.stringify(ok.error.issues.slice(0, 3))).toBe(true);
-      expect(fautes(doc(['EDO-01-b3']))).toEqual([expect.stringMatching(/couvre\.0 :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu\.$/)]);
-      expect(fautes(doc(['EDO-01#b3', 'EDO-01#b3']))).toEqual([expect.stringMatching(/couvre\.1 :: « EDO-01#b3 » en double dans `couvre`\.$/)]);
+      expect(fautes(doc(['EDO-01-b3']))).toEqual([expect.stringMatching(/couvre « EDO-01-b3 » :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu\.$/)]);
+      expect(fautes(doc(['EDO-01#b3', 'EDO-01#b3']))).toEqual([expect.stringMatching(/couvre « EDO-01#b3 » :: « EDO-01#b3 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique\.$/)]);
     });
   }
 });

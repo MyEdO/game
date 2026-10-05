@@ -8,6 +8,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
+import { listeCle } from '../grammaire/collection-cle';
 import type { SkillRef } from '../../index';
 import { charStatKeySchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
@@ -31,13 +32,7 @@ export const entreeDeFicheSchema = z.string().regex(ID_D_ENTREE, 'entrée de fic
 
 /** `couvre` (#2290) — les entrées de fiche de dossier de chapitre qu'un élément du paquet de campagne
  *  couvre, sans doublon. Posé par l'éditeur (`CouvreField`, `src/ui/editor/CouvreField.tsx`). */
-export const couvreSchema = z.array(entreeDeFicheSchema).superRefine((ids, ctx) => {
-  const vus = new Set<string>();
-  ids.forEach((id, i) => {
-    if (vus.has(id)) ctx.addIssue({ code: 'custom', path: [i], message: `« ${id} » en double dans \`couvre\`.` });
-    vus.add(id);
-  });
-});
+export const couvreSchema = listeCle(entreeDeFicheSchema, { nom: 'entrée de fiche', scalaire: true });
 
 /** `CustomStatblock.spells` — ids de `spells.json` : la porte est la fabrique canonique (`refs('spell')`),
  *  la FORME DE SORTIE est DÉCLARÉE nue (patron `couvertureSchema`, `./scene.ts`) — le type moteur

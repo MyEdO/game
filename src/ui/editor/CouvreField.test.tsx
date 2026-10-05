@@ -137,7 +137,7 @@ describe('NarratifEditor — `couvre` d’un PNJ et onglet Écarts (#2290)', () 
   it('le formulaire du PNJ porte la couverture dans SON onglet, compté ; il écrit `presetsPnj[].couvre`, et le narratif reste valide', () => {
     monter(<HarnaisNarratif initial={{ ...emptyNarratif(), presetsPnj: [{ id: 'le-borgne', base: creatures[0].id }] }} />);
     onglet('PNJ');
-    const ongletCouverture = container.querySelector<HTMLElement>('[role="tablist"][aria-label="Rubriques du PNJ"] [role="tab"]:last-of-type');
+    const ongletCouverture = [...container.querySelectorAll<HTMLElement>('[aria-label="Rubriques du PNJ"] [role="tab"]')].find((t) => t.textContent?.startsWith('Couverture'));
     expect(ongletCouverture?.textContent).toBe('Couverture0');
     expect(container.querySelector('[aria-label="Ajouter une entrée de fiche couverte du PNJ"]'), 'la couverture s’affiche hors de son onglet').toBeNull();
     click(ongletCouverture!);

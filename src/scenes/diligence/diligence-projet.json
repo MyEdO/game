@@ -1932,6 +1932,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 40
     },
+    "couvre": [
+     "EDO-01#comp3"
+    ],
     "profil": {
      "label": "Johann Hindersson",
      "title": "Péager humain (Bronze 5)",
@@ -2053,6 +2056,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 41
     },
+    "couvre": [
+     "EDO-01#comp4"
+    ],
     "profil": {
      "label": "Aleanora 'Al' Basfond",
      "title": "Péager halfling (Bronze 5)",
@@ -2202,6 +2208,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 41
     },
+    "couvre": [
+     "EDO-01#comp8"
+    ],
     "profil": {
      "label": "Charlotte-Samantha Maiers",
      "title": "Sergent patrouilleur humain (Argent 4)",
@@ -2386,6 +2395,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 42
     },
+    "couvre": [
+     "EDO-01#comp9"
+    ],
     "profil": {
      "label": "Heinrich Steele",
      "title": "Capitaine patrouilleur routier humain (Or 1)",
@@ -2615,6 +2627,10 @@
    "type": "scene",
    "id": "la-diligence",
    "label": "La Diligence",
+   "couvre": [
+    "EDO-01#lieu2",
+    "EDO-01#b2"
+   ],
    "dimensions": {
     "w": 32,
     "h": 38
@@ -14806,6 +14822,9 @@
     {
      "id": "zone-A-z0",
      "label": "Portier",
+     "couvre": [
+      "EDO-01#lieu3"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -14819,6 +14838,9 @@
     {
      "id": "zone-C-z0",
      "label": "Cour",
+     "couvre": [
+      "EDO-01#lieu4"
+     ],
      "presentation": "exterior",
      "area": {
       "kind": "rect",
@@ -15575,6 +15597,9 @@
     {
      "id": "zone-R-z0",
      "label": "Réserves",
+     "couvre": [
+      "EDO-01#lieu8"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -15803,6 +15828,9 @@
     {
      "id": "zone-S-z0",
      "label": "Salle principale",
+     "couvre": [
+      "EDO-01#lieu5"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16234,6 +16262,9 @@
     {
      "id": "zone-U-z0",
      "label": "Salle commune",
+     "couvre": [
+      "EDO-01#lieu10"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16602,6 +16633,9 @@
     {
      "id": "zone-H-z0",
      "label": "Chambre",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16615,6 +16649,9 @@
     {
      "id": "zone-I-z0",
      "label": "Chambre",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16628,6 +16665,9 @@
     {
      "id": "zone-j-z0",
      "label": "Chambre",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16654,6 +16694,9 @@
     {
      "id": "zone-Z-z0",
      "label": "Cour",
+     "couvre": [
+      "EDO-01#lieu4"
+     ],
      "presentation": "exterior",
      "area": {
       "kind": "rect",
@@ -17505,6 +17548,9 @@
     {
      "id": "zone-B-z0",
      "label": "Brasserie",
+     "couvre": [
+      "EDO-01#lieu9"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17518,6 +17564,9 @@
     {
      "id": "zone-F-z0",
      "label": "Forge",
+     "couvre": [
+      "EDO-01#lieu7"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17531,6 +17580,9 @@
     {
      "id": "zone-E-z0",
      "label": "Écuries & remise",
+     "couvre": [
+      "EDO-01#lieu6"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17544,6 +17596,9 @@
     {
      "id": "zone-e-z0",
      "label": "Écuries & remise",
+     "couvre": [
+      "EDO-01#lieu6"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17656,6 +17711,9 @@
     {
      "id": "zone-r-z0",
      "label": "Réserves",
+     "couvre": [
+      "EDO-01#lieu8"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17695,6 +17753,9 @@
     {
      "id": "zone-T-z1",
      "label": "Patrouilleurs routiers",
+     "couvre": [
+      "EDO-01#lieu13"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17708,6 +17769,9 @@
     {
      "id": "zone-t-z1",
      "label": "Patrouilleurs routiers",
+     "couvre": [
+      "EDO-01#lieu13"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17734,6 +17798,9 @@
     {
      "id": "zone-Q-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17760,6 +17827,9 @@
     {
      "id": "zone-r-z1",
      "label": "Réserves",
+     "couvre": [
+      "EDO-01#lieu8"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18043,6 +18113,9 @@
     {
      "id": "zone-D-z1",
      "label": "Quartier des serviteurs",
+     "couvre": [
+      "EDO-01#lieu12"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18056,6 +18129,9 @@
     {
      "id": "zone-d-z1",
      "label": "Quartier des serviteurs",
+     "couvre": [
+      "EDO-01#lieu12"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18229,6 +18305,9 @@
     {
      "id": "zone-q-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18875,6 +18954,9 @@
     {
      "id": "zone-a-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18888,6 +18970,9 @@
     {
      "id": "zone-b-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18901,6 +18986,9 @@
     {
      "id": "zone-c-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",

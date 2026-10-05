@@ -8,10 +8,10 @@
 
 /** Les porteurs de `couvre`, dans l'ordre de lecture. */
 export const KINDS_DE_PORTEUR = ['presetPnj', 'indice', 'scene', 'entite', 'zoneDEffet', 'declencheur', 'dialogue', 'rencontre', 'lieu', 'route'] as const;
-export type KindDePorteur = (typeof KINDS_DE_PORTEUR)[number];
+type KindDePorteur = (typeof KINDS_DE_PORTEUR)[number];
 
 /** Nom d'affichage de chaque porteur. */
-export const LIBELLES_DE_PORTEUR: Readonly<Record<KindDePorteur, string>> = {
+const LIBELLES_DE_PORTEUR: Readonly<Record<KindDePorteur, string>> = {
   presetPnj: 'PNJ',
   indice: 'indice',
   scene: 'scène',
@@ -48,24 +48,24 @@ export interface ProjetLu {
   worldMap?: { places?: readonly ElementCouvrant[]; routes?: readonly ElementCouvrant[] };
 }
 
-export interface EcartLu {
+interface EcartLu {
   entree: string;
   motif: string;
 }
 
 /** Le porteur d'un `couvre` : son genre, son id, et la scène qui le contient (porteurs de scène). */
-export interface Porteur {
+interface Porteur {
   kind: KindDePorteur;
   id: string;
   sceneId?: string;
 }
 
-export interface Couverture {
+interface Couverture {
   entree: string;
   porteur: Porteur;
 }
 
-export interface CouverturesDuProjet {
+interface CouverturesDuProjet {
   couvertures: Couverture[];
   ecartes: EcartLu[];
 }

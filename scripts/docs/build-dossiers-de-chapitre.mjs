@@ -12,7 +12,7 @@ import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { chargerDossiers } from '../raw/lib/dossiers.mjs'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_LIVRES } from '../guards/lib/projetsLivres.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
-import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE } from '../../src/data/source/dossier.ts'
+import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE, nomDeFiche } from '../../src/data/source/dossier.ts'
 import { couverturesDuProjet, nommerPorteur } from '../../src/data/source/couvertures.ts'
 
 const OUT = 'docs/dossiers-de-chapitre.md'
@@ -58,7 +58,7 @@ export function rendreEtat(fiches, paquets) {
   }
   const parFiche = fiches.map(({ chemin, abbr, nn, fiche }) => ({
     chemin,
-    nom: `${abbr}-${nn}`,
+    nom: nomDeFiche(abbr, nn),
     lecture: fiche.lecture,
     entrees: entreesDeLaFiche(abbr, nn, fiche).map((e) => {
       const avecPreuves = { ...e, couvertures: couverturesPar.get(e.id) ?? [], ecartes: ecartesPar.get(e.id) ?? [] }
