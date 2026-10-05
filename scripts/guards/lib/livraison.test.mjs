@@ -123,7 +123,7 @@ test('#2328 — une fusion que git ne rejoue pas (octopus) : le verdict est un r
 
 test('#2328 A4 — seules les INSERTIONS sous src/ comptent ; un écran compte s’il en reçoit', () => {
   const patch = (chemin, plus, moins) => [chemin, [`diff --git a/${chemin} b/${chemin}`, `--- a/${chemin}`, `+++ b/${chemin}`, '@@ -1 +1 @@', ...Array(moins).fill('-x'), ...Array(plus).fill('+++y')].join('\n')]
-  assert.deepEqual(apportDeLaResolution(new Map([patch('src/a.ts', 2, 40), patch('docs/x.md', 30, 0)])), { insertions: 2, ecran: false })
+  assert.deepEqual(apportDeLaResolution(new Map([patch('src/a.ts', 2, 40), patch('README.md', 30, 0)])), { insertions: 2, ecran: false })
   assert.deepEqual(apportDeLaResolution(new Map([patch('src/ui/E.tsx', 0, 9)])), { insertions: 0, ecran: false })
   assert.deepEqual(apportDeLaResolution(new Map([patch('src/ui/E.tsx', 1, 0)])), { insertions: 1, ecran: true })
   assert.equal(SUBSTANTIVE_MIN_LINES, 10)
