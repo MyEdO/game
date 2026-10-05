@@ -214,8 +214,7 @@ export const ECRIT_LU = {
       '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
       '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
-      '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
-      '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      '`suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
       'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
       'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
@@ -231,8 +230,7 @@ export const ECRIT_LU = {
       'les bancs qui importent `jouer-workflow.mjs` (`reconnaissanceDuDepot`, `bancsDeWorkflowDuDepot`), sans ' +
       'processus fils ; LIT .claude/agents/ (le cliquet d’EXCEPTIONS_MECANIQUES exige `.claude/agents/<type>.md`) ; ' +
       '`workflows-joues.test.mjs` joue les scripts de .claude/workflows/ EN PLACE, sur l’arbre réel ; ' +
-      'scripts/hooks/ est lu par `validateRevuePalier` (solde-ticket-guard.mjs), sans rien y écrire ; LIT ' +
-      'knip.json (le cliquet d’exports le relit). ' +
+      'LIT knip.json (le cliquet d’exports le relit). ' +
       'Ce que `soldesSuivis()` lirait de .claude/soldes/ n’est atteint que par le `main()` du script, ' +
       'gardé par `import.meta.main` (fermetures-non-citees.mjs) : les tests passent leurs ' +
       'PROPRES dépôts jetables, et la sonde n’a mesuré aucune lecture sous .claude/soldes/ ; ' +

@@ -642,7 +642,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // déclarées-jamais-observées, dont 243 posées d'office par la fabrique, hors dénominateur ici
       // (`CLES_POSEES_INCONDITIONNELLEMENT`) — ces 8-là sont les seules à entrer au stock.
       // Réel 26 → 27 sous le plafond 27 INCHANGÉ (#1716, 2026-09-18 ; le cran 28 posé au train 2 était
-      // un mou sans contrepartie, redescendu à la revue de palier) : `semences-de-scene.json › ambientLight`, le
+      // un mou sans contrepartie, redescendu à la revue suivante) : `semences-de-scene.json › ambientLight`, le
       // réglage OPTIONNEL de la semence d'une scène neuve, que la donnée livrée n'écrit pas — son
       // ABSENCE EST la valeur de départ (`auto`, l'éclairage suit l'horloge), à l'identique de la
       // scène elle-même, dont l'inspecteur écrit `undefined` pour « Automatique ». Même nature que
