@@ -5,7 +5,6 @@
  */
 import type { Fige, ReliefDefaults, SceneRoofDefaults } from '../state/scene';
 import type { MigrationMap } from '../state/migrateDoc';
-import type { NarratifBlock } from '../state/campaignNarratif';
 import { graphieOpsDeTalentDeep } from './graphieOpsDeTalent';
 import { remapSortsFusionnesDeep } from './sortsFusionnes';
 import { findPropById, findSpeciesById, creatureSemee, vehiculeSeme, navireSeme } from './index';
@@ -15,7 +14,7 @@ import { souleveLesDocuments } from './documentsAuNarratif';
 
 /** Le narratif vide que posait la migration 2 → 3. */
 // 782383c32
-const NARRATIF_VIDE_2_VERS_3 = (): Omit<NarratifBlock, 'documents'> => ({ affaires: [], indices: [], presetsPnj: [], objets: [] });
+const NARRATIF_VIDE_2_VERS_3 = () => ({ affaires: [], indices: [], presetsPnj: [], objets: [] });
 
 /** L'id de l'action de fouille que posait la migration 10 → 11. */
 // 81e015d55

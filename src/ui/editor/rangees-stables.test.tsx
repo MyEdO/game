@@ -40,7 +40,7 @@ function monter(el: ReactElement) {
   act(() => { root.render(el); });
 }
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
 const rangees = () => [...container.querySelectorAll<HTMLDetailsElement>('details.eff-row')];
 
 /** Ouvre la 2ᵉ rangée, retire la 1ʳᵉ : la seule rangée qui reste, la 2ᵉ, est encore ouverte. */

@@ -124,9 +124,9 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "diligence-projet.json", champ: "a", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
   { dataset: "diligence-projet.json", champ: "b", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
   { dataset: "diligence-projet.json", champ: "modes", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" }, // 38→76 : +38 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
+  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" }, // 38→76 : +38 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.184)
   { dataset: "diligence-projet.json", champ: "scene", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" }, // 668→1336 : +668 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
+  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" }, // 668→1336 : +668 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.184)
   { dataset: "domains.json", champ: "amount", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "castBonus", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "casterOps", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },

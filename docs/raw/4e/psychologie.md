@@ -408,11 +408,11 @@ Applique les mêmes règles que le Préjugé des personnages.
 
 La *Cible* peut être un groupe de COMPORTEMENT, que ni l'espèce ni la carrière ne confèrent (`groups.json`) :
 
-> « **Traits :** À distance (Arbalète) +9 (60), Arme (Épées) +7, Armure (Veste de cuir) 1, Préjugé (Criminels, Personnes qui ne leur offrent rien) » — `EDO 02 l.289`
+> « **Traits :** À distance (Arbalète) +9 (60), Arme (Épées) +7, Armure (Veste de cuir) 1, Préjugé (Criminels, Personnes qui ne leur offrent rien) » — `EDO 02 l.301`
 
-> « **Traits :** Arme (Poings) +3, Préjugé (Rustres et Idiots) » — `EDO 02 l.315`
+> « **Traits :** Arme (Poings) +3, Préjugé (Rustres et Idiots) » — `EDO 02 l.327`
 
-**Sources RAW** : `LDB 85 l.274` — renvoi LDB 21 ; cibles de comportement `EDO 02 l.289`, `EDO 02 l.315`
+**Sources RAW** : `LDB 85 l.274` — renvoi LDB 21 ; cibles de comportement `EDO 02 l.301`, `EDO 02 l.327`
 
 ---
 
@@ -455,7 +455,7 @@ Les créatures agressives de grande Taille inspirent automatiquement Peur ou Ter
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 85` (l.274, l.282, l.382-384) → `TraitDef`, `StatblockEditor`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `seuilsDeSauvegarde`, `EnemyTurnInput`, `forceOpposedOutcome` ⚠sans-appelant, `woundsForSize`, `toucheSauvee`, +55 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/combat.ts`, `src/engine/engagement.ts`, +19 fichiers
-- `EDO 2` (l.289, l.315) → `personnes-qui-ne-leur-offrent-rien`, `rustres-et-idiots`, `edo-mutant-terenz`, `edo-mutant-mikael`, `edo-mutant-johann`, `edo-mutant-erik`, `edo-knud-cratinx`, `edo-magnus-pflaster`, `edo-patrouilleurs-de-pflaster`, `edo-anida-pflaster` — `src/data/groups.json`, `src/scenes/diligence/diligence-projet.json`
+- `EDO 2` (l.301, l.327) → `personnes-qui-ne-leur-offrent-rien`, `rustres-et-idiots`, `edo-patrouilleurs-de-pflaster`, `edo-anida-pflaster` — `src/data/groups.json`, `src/scenes/diligence/diligence-projet.json`
 
 ---
 

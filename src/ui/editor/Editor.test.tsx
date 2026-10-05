@@ -22,6 +22,8 @@ import { useGameKeyboard } from '../useGameKeyboard';
 import { editeur } from '../../state/editeurBridge';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from './editeur.testkit';
+import { parseProject } from '../../state/worldMap';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';
@@ -158,6 +160,61 @@ describe('Editor v2 — scènes du projet : la suppression garde l’ordre (#199
       root.unmount();
     });
     container.remove();
+  });
+});
+
+describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (#679)', () => {
+  afterEach(async () => {
+    demonterRacines();
+    await __resetLibraryForTest();
+    __setOuvertureIdbForTest(null);
+  });
+
+  it('garde la scène active, l’ordre des scènes, et réécrit l’Effet des voisines AVANT et APRÈS', async () => {
+    const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } });
+    const { container, rendre } = monterRacine(null);
+    const cite: Scene = {
+      ...emptyScene(4, 4), id: 'a', label: 'A',
+      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'document', documentId: 'document-1' } } }],
+    };
+    await act(async () => { rendre(<Editor initialScene={cite} />); });
+    const bouton = (texte: string) => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(texte))!;
+    const champ = (texte: string) => [...container.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith(texte))!.querySelector('input')!;
+    const saisir = (el: HTMLInputElement, valeur: string) => act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, valeur);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { boutonParTitre(container, 'Dupliquer la scène active').click(); });
+    await act(async () => { boutonParTitre(container, 'Dupliquer la scène active').click(); });
+    const ordre = scenesDuSelecteur(container);
+    const [a, b, c] = ordre;
+    await basculerSur(container, b);
+    saisir(champ('Nom'), 'B');
+
+    await act(async () => { bouton('Narratif').click(); });
+    await act(async () => { bouton('Documents').click(); });
+    await act(async () => { bouton('Ajouter un document').click(); });
+    const texte = [...container.querySelectorAll('label')].find((l) => l.textContent?.includes('Texte (verbatim'))!.querySelector('textarea')!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(texte, 'VOYAGEURS');
+      texte.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    saisir(champ('Identifiant (id stable)'), 'doc-lettre');
+
+    const active = selecteurDeScene(container);
+    expect(active.value, 'la scène active reste la 2ᵉ').toBe(b);
+    expect(active.selectedOptions[0].textContent).toContain('B');
+    expect(scenesDuSelecteur(container), 'l’ordre du document est intact').toEqual(ordre);
+
+    await act(async () => { bouton('Fichier').click(); });
+    await act(async () => { bouton('Enregistrer…').click(); });
+    await act(async () => { [...container.querySelectorAll('button')].find((x) => x.textContent?.trim() === 'Enregistrer')!.click(); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const relu = parseProject(projetsEcrits(base)[0].project);
+    expect(relu.scenes.map((s) => [s.id, s.label])).toEqual([[a, 'A'], [b, 'B'], [c, 'A (copie) (copie)']]);
+    for (const voisine of [relu.scenes[0], relu.scenes[2]]) {
+      expect(voisine.triggers[0].flow, voisine.id).toEqual({ kind: 'do', effect: { type: 'document', documentId: 'doc-lettre' } });
+    }
   });
 });
 

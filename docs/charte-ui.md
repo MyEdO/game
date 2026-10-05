@@ -754,7 +754,8 @@ MÊME TEMPS qu'au catalogue ci-dessus et à `src/data/primitives.manifest.json` 
 - La consigne d'un champ va dans son `placeholder` ; l'explication optionnelle dans un `title`.
   GARDER en revanche les infos de DÉCISION (enjeux d'un choix : bonus PX, prix) et le lore — ce
   n'est pas du texte tutoriel.
-- **JAMAIS de référence au livre dans un texte joueur** (pas de « Parer le tir — Protectrice 2+
-  (LDB 62 l.307) » affiché à l'écran) : les refs LDB restent dans les commentaires de code
-  (convention du dépôt), jamais dans l'UI. Réutiliser les libellés EXISTANTS plutôt que d'en
+- **JAMAIS de référence au livre dans un libellé ou une consigne joueur** (pas de « Parer le tir —
+  Protectrice 2+ (LDB 62 l.307) » affiché à l'écran) : les refs LDB restent dans les commentaires de
+  code (convention du dépôt), jamais dans l'UI. Seule l'attribution d'une prose VERBATIM citée passe
+  côté joueur, par `SourceBadge` (Carnet, modale de document). Réutiliser les libellés EXISTANTS plutôt que d'en
   réinventer un plus verbeux.

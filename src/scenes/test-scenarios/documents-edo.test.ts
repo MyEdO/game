@@ -108,6 +108,13 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     expect(useGame.getState().dialogue?.nodeId).toBe('liasse');
   });
 
+  it('chaque réponse de lecture cite son titre entre UNE paire de guillemets, même un titre qui porte les siens', () => {
+    const lectures = ouvrirLaLiasse().nodes.flatMap((n) => n.choices.map((c) => String(c.label))).filter((l) => l.startsWith('Lire '));
+    expect(lectures).toHaveLength(DOCUMENTS_EDO.length);
+    for (const l of lectures) expect(l).toMatch(/^Lire «[^«»]*»\.$/);
+    expect(lectures).toContain('Lire « Tout se passe bien ».');
+  });
+
   it('les stades croisés résolvent leur document et se révèlent au Carnet', () => {
     const dlg = ouvrirLaLiasse();
     const indice = useGame.getState().campaignNarratif!.indices.find((i) => i.id === 'ind-billets-de-teugen')!;

@@ -61,6 +61,9 @@ function construireNarratif(documents: DocumentNarratif[]): NarratifBlock {
   };
 }
 
+/** Un titre entre guillemets, sauf s'il porte déjà les siens (Document 9, « Tout se passe bien »). */
+const cite = (titre: string): string => (/^[«“"].*[»”"]$/u.test(titre) ? titre : `« ${titre} »`);
+
 function construireScene(documents: readonly DocumentNarratif[]): Scene {
   const titreDe = (id: string): string => {
     const doc = documents.find((d) => d.id === id);
@@ -72,7 +75,7 @@ function construireScene(documents: readonly DocumentNarratif[]): Scene {
     desc: ch.label,
     choices: [
       ...ch.documents.map((documentId): DialogueChoice => ({
-        label: `Lire « ${titreDe(documentId)} ».`,
+        label: `Lire ${cite(titreDe(documentId))}.`,
         flow: flowFromEffects([{ type: 'document', documentId }]),
         next: LIASSE,
       })),

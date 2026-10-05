@@ -18,6 +18,7 @@ import { datasetArray, type DatasetKey } from '../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
 import { creatureLabel } from '../../data';
+import { slugId } from '../../data/slug';
 import { REFERENCES_NARRATIVES, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
@@ -113,6 +114,12 @@ export function libelleDeDataset(ds: string): string | undefined {
 /** L'indication `(…)` d'un champ-réf, ou rien. */
 const indiceDe = (texte: string | undefined) => (texte ? <em className="ed-hint"> ({texte})</em> : null);
 
+/** Forme comparable d'un libellé : son slug (`slugId`), marque du pluriel effacée. */
+const forme = (texte: string): string => slugId(texte).replace(/[sx]$/, '');
+/** Le nom du registre que montre l'indication, sauf quand le libellé du champ le dit déjà (« Livre » / « Livres »). */
+const nomDistinct = (label: string | undefined, nom: string | undefined): string | undefined =>
+  (nom && !(label && forme(label) === forme(nom)) ? nom : undefined);
+
 /** `noeud` : le nœud de schéma du champ — sa feuille `idDe` restreint les options à sa sous-liste.
  *  `entreesEnTete` : entrées hors dataset (objets du projet édité), résolues AVANT lui — à id égal, elles priment. */
 type RefFieldCommun = {
@@ -121,6 +128,8 @@ type RefFieldCommun = {
   /** Mode `single` + `nullable` : l'option « (aucun) » est montrée mais INÉLIGIBLE (le champ vide
    *  laisserait le porteur sans ce qu'il exige, #1882). */
   aucunIneligible?: boolean;
+  /** L'explication optionnelle du champ (`docs/charte-ui.md`, « Zéro texte tutoriel ») : `title` de son enveloppe. */
+  title?: string;
 };
 /** Nom accessible, invalidité et description du contrôle rendu. */
 type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: string };
@@ -130,15 +139,15 @@ type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: str
 export function RefField(props: RefFieldCommun & Accessibilite & { cfg: RefFieldCfgUnique }): JSX.Element;
 export function RefField(props: RefFieldCommun & { cfg: RefFieldCfg; ariaLabel?: never; invalide?: never; describedBy?: never }): JSX.Element;
 export function RefField(
-  { cfg, fieldKey, label, ariaLabel, value, onChange, nullable, aucunIneligible, invalide, describedBy, noeud, entreesEnTete = SANS_ENTREE }:
+  { cfg, fieldKey, label, title, ariaLabel, value, onChange, nullable, aucunIneligible, invalide, describedBy, noeud, entreesEnTete = SANS_ENTREE }:
   RefFieldCommun & Accessibilite & { cfg: RefFieldCfg },
 ) {
   // `label` = AFFICHAGE (libellé FR du champ, #1466) ; `fieldKey`/`cfg` restent l'IDENTITé. Un appelant
   // qui ne connaît que la clé affiche la clé.
   const affiche = label ?? fieldKey;
+  const champ = { noeud, entreesEnTete, title };
   const a11y = { ariaLabel, invalide, describedBy };
-  const champ = { noeud, entreesEnTete };
-  if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
+  if (isVocab(cfg)) return <VocabField label={affiche} title={title} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
   const single = (c: SingleCfg) => <SingleRefField label={affiche} cfg={c} champ={champ} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} {...a11y} />;
   if (fournies(cfg)) return single(cfg);
   if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} {...a11y} />;
@@ -146,8 +155,8 @@ export function RefField(
   return <ListRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} />;
 }
 
-/** Le nœud de schéma d'un champ-réf et ses entrées hors dataset (`RefFieldCommun`). */
-type Champ = { noeud: unknown; entreesEnTete: readonly { readonly id: string }[] };
+/** Le nœud de schéma d'un champ-réf, ses entrées hors dataset et son explication (`RefFieldCommun`). */
+type Champ = { noeud: unknown; entreesEnTete: readonly { readonly id: string }[]; title?: string };
 /** `entreesEnTete` absent : une référence STABLE, que les `useMemo` de l'univers ne voient pas changer. */
 const SANS_ENTREE: Champ['entreesEnTete'] = [];
 
@@ -211,10 +220,10 @@ function SingleRefField(
   { label, ariaLabel, cfg, champ, value, onChange, nullable, aucunIneligible, invalide, describedBy }:
   Accessibilite & { label?: string; cfg: SingleCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean },
 ) {
-  const deDataset = 'ds' in cfg ? cfg : undefined;
-  const univers = useUnivers(deDataset ? deDataset.ds : (cfg as EntreesCfg).entrees, champ.entreesEnTete);
+  const deDataset = 'entrees' in cfg ? undefined : cfg;
+  const univers = useUnivers('entrees' in cfg ? cfg.entrees : cfg.ds, champ.entreesEnTete);
   const options = useOptions(deDataset ?? SANS_FILTRE, champ.noeud, univers, deDataset !== undefined);
-  const nom = deDataset ? libelleDeDataset(deDataset.ds) : (cfg as EntreesCfg).nom;
+  const nom = 'entrees' in cfg ? cfg.nom : libelleDeDataset(cfg.ds);
   const avecSpec = !!deDataset?.spec;
   const cur: SpecRef = avecSpec
     ? (value && typeof value === 'object' ? (value as SpecRef) : { id: typeof value === 'string' ? value : '' })
@@ -229,8 +238,8 @@ function SingleRefField(
   // UN contrôle : le libellé visible le NOMME (`<label>`). Avec `spec`, deux contrôles : un `<div>`.
   const Enveloppe = avecSpec ? 'div' : 'label';
   return (
-    <Enveloppe className="ed-field">
-      <span>{label}{indiceDe(nom)}</span>
+    <Enveloppe className="ed-field" title={champ.title}>
+      <span>{label}{indiceDe(nomDistinct(label, nom))}</span>
       <div className="de-reflrow">
         <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
           {nullable && <option value="" disabled={aucunIneligible}>— (aucun) —</option>}
@@ -275,8 +284,8 @@ function FreeRefField(
   const resoudre = (v: string): Entree | undefined =>
     univers.find((x) => x.id === v) ?? univers.find((x) => entryLabel(x.e).toLowerCase() === v.toLowerCase());
   return (
-    <div className="ed-field">
-      <span>{label}{indiceDe([libelleDeDataset(cfg.ds), 'ou saisie libre'].filter(Boolean).join(', '))}</span>
+    <div className="ed-field" title={champ.title}>
+      <span>{label}{indiceDe([nomDistinct(label, libelleDeDataset(cfg.ds)), 'saisie libre'].filter(Boolean).join(', ou '))}</span>
       <input
         list={dlId} value={texte}
         aria-label={ariaLabel} aria-invalid={invalide || refus !== null || undefined}
@@ -302,8 +311,8 @@ function FreeRefField(
 
 /** Mode `vocab` : `<input list>` + `<datalist>` des valeurs distinctes d'un champ `'<ds>.<champ>'`. */
 function VocabField(
-  { label, ariaLabel, invalide, describedBy, vocabFrom, value, onChange, nullable }:
-  Accessibilite & { label?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label, title, ariaLabel, invalide, describedBy, vocabFrom, value, onChange, nullable }:
+  Accessibilite & { label?: string; title?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
 ) {
   const [ds, field] = vocabFrom.split('.') as [DatasetKey, string];
   const dlId = `dl-vocab-${ds}-${field}`;
@@ -312,7 +321,7 @@ function VocabField(
     [ds, field],
   );
   return (
-    <div className="ed-field">
+    <div className="ed-field" title={title}>
       <span>{label}{indiceDe('valeurs déjà saisies, ou saisie libre')}</span>
       <input list={dlId} value={(value as string) ?? ''}
         aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
@@ -331,8 +340,8 @@ function ListRefField(
   const list = (value as RefEntry[]) ?? [];
   const set = (next: RefEntry[]) => onChange(next);
   return (
-    <div className="ed-field">
-      <span>{label}{indiceDe(libelleDeDataset(cfg.ds))}</span>
+    <div className="ed-field" title={champ.title}>
+      <span>{label}{indiceDe(nomDistinct(label, libelleDeDataset(cfg.ds)))}</span>
       {list.map((ref, i) => (
         <div key={i} className="de-reflrow">
           <select value={ref.id} onChange={(e) => set(list.map((r, j) => (j === i ? { ...r, id: e.target.value } : r)))}>

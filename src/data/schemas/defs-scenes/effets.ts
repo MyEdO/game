@@ -208,7 +208,7 @@ export const journalSchema = z.strictObject({ type: z.literal('journal'), desc: 
 export const documentSchema = z.strictObject({ type: z.literal('document'), documentId: z.string() });
 
 /** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
- *  `campaignNarratif`. `stade` omis → premier stade si l'indice est encore caché, sinon no-op. */
+ *  `campaignNarratif`. `stade` omis → `revealClue` (`state/clues.ts`). */
 export const revealClueSchema = z.strictObject({
   type: z.literal('revealClue'),
   indiceId: z.string(),

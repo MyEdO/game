@@ -3,8 +3,9 @@
  * `SourceRefField` — l'UNIQUE éditeur d'une réf de source `{book, page, note?}` (#1993) : atelier du
  * Codex (champ `source`, emplacements secondaires, variantes) et éditeur narratif (ouverture, stade,
  * PNJ). Contrat : seule une réf COMPLÈTE (livre du registre, page ≥ 1) est émise ; une saisie
- * incomplète n'est jamais perdue — facultative, elle émet `undefined` ; exigée, elle n'émet rien et le
- * champ se dit incomplet. Les clés du porteur (`quote` d'un `SecondaryRef`) gardent leur place.
+ * incomplète n'est jamais perdue : elle n'émet rien, la source retenue reste la précédente et le champ
+ * se dit incomplet ; facultative, seul un brouillon VIDE (livre, page et note vides) émet `undefined`.
+ * Les clés du porteur (`quote` d'un `SecondaryRef`) gardent leur place.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState, type ReactElement } from 'react';
@@ -105,9 +106,11 @@ describe('SourceRefField — seule une réf complète est émise, la saisie ne s
     expect(incomplet(), 'un champ facultatif vide n’est pas incomplet').toBeNull();
   });
 
-  it('facultative : une note seule émet `undefined` et reste à l’écran ; le livre et la page la posent', () => {
+  it('facultative : une note seule n’émet rien et reste à l’écran ; le livre et la page la posent', () => {
+    emissions = 0;
     monter(<Facultative />);
     saisir(champ('Note de la source du témoin'), 'ch. 4 l.12');
+    expect(emissions, 'un brouillon facultatif incomplet a été émis').toBe(0);
     expect(facultative).toBeUndefined();
     expect(champ('Note de la source du témoin').value).toBe('ch. 4 l.12');
     saisir(livre('Livre de la source du témoin'), 'livre-de-base');
@@ -121,6 +124,18 @@ describe('SourceRefField — seule une réf complète est émise, la saisie ne s
     poserPage(champ('Page de la source du témoin'), '0');
     expect(facultative).toBeUndefined();
     expect(incomplet()).toContain('incomplète');
+  });
+
+  it('facultative : une source COMPLÈTE dont la page passe à 0 reste retenue — rien n’est émis, le message la nomme', () => {
+    emissions = 0;
+    monter(<Facultative initiale={{ book: 'livre-de-base', page: 27 }} />);
+    const page = champ('Page de la source du témoin');
+    poserPage(page, '');
+    poserPage(page, '0');
+    expect(emissions, 'un brouillon facultatif incomplet a effacé la source retenue').toBe(0);
+    expect(facultative).toEqual({ book: 'livre-de-base', page: 27 });
+    expect(incomplet()).toContain('la source retenue reste « ');
+    expect(incomplet()).toContain(' p. 27 »');
   });
 
   it('facultative : « aucun » au livre retire la source en UN geste — livre, page et note se vident, rien n’est incomplet', () => {

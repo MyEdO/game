@@ -18,7 +18,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
 
 describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
   it('newEffect("setTime") crée un défaut phase nuit', () => {
@@ -41,7 +41,7 @@ describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
 describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('learnSpell : sorts de la base en optgroups (plus de « libellé exact »)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] }} />,
+      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE }} />,
     );
     expect(html).toContain('<optgroup');
     expect(html).toContain('Fléchette');
@@ -50,7 +50,7 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('transition : scènes du projet + points d’entrée quand le contexte les fournit', () => {
     const ctx = {
-      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [],
+      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE,
       scenes: [
         { id: 'sc-a', nom: 'Village', entries: [] },
         { id: 'sc-b', nom: 'Taverne', entries: ['porte', 'cave'] },
@@ -68,12 +68,12 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('openMerchant : entités marchandes de la scène (ou explication si aucune)', () => {
     const withM = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
     );
     expect(withM).toContain('Maître armurier (armurier)');
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], merchants: [] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [] }} />,
     );
     expect(without).toContain('Aucune entité marchande');
   });
@@ -113,13 +113,13 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
   it('openPort : lieux de la carte du monde (ou explication si aucun)', () => {
     const withP = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
     );
     expect(withP).toContain('Marienburg (port-marienburg)');
     expect(withP).not.toMatch(/id du lieu/);
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], places: [] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [] }} />,
     );
     expect(without).toContain('Aucun lieu sur la carte du monde');
   });
@@ -380,6 +380,8 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
       .find((s) => s.closest('label')?.textContent?.includes(libelle)) as HTMLSelectElement;
     return {
       dernier: () => dernier,
+      /** Le libellé VISIBLE du champ et son explication (`title`). */
+      champ: (libelle: string) => { const l = select(libelle).closest('label')!; return { texte: l.querySelector('span')?.textContent, title: l.title }; },
       /** Libellés des options qui portent une valeur (le « à choisir » et le « aucun » exclus). */
       options: (libelle: string) => [...select(libelle).options].filter((o) => o.value !== '').map((o) => o.textContent),
       choisir: async (libelle: string, valeur: string) => {
@@ -409,6 +411,10 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
       expect(h.options('Indice révélé')).toEqual(['La lettre chiffrée', 'Le bruit du port']);
       await h.choisir('Indice révélé', 'ind-lettre');
       expect(h.options('Stade')).toEqual(['stade 1', 'stade 2']);
+      expect(h.champ('Stade')).toEqual({
+        texte: 'Stade (stades de l’indice)',
+        title: 'Sans stade : premier stade si l’indice est caché, sinon son stade atteint, remis en piste active',
+      });
       await h.choisir('Stade', 'dechiffree');
       expect(h.dernier()).toMatchObject({ type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' });
       // Changer d'indice retire le stade de l'ancien : il ne désigne rien dans le nouveau.
@@ -424,6 +430,14 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
       await h.choisir('Indice écarté', 'ind-bruit');
       expect(h.dernier()).toEqual({ type: 'discreditClue', indiceId: 'ind-bruit' });
     } finally { await h.demonte(); }
+  });
+
+  it('résumé : une réf narrative non choisie se dit « (aucun) » ; un `revealClue` sans stade dit sa forme COURTE, sans indice rien de plus', () => {
+    expect(effectSummary({ type: 'document', documentId: '' }, ctxProjet)).toBe('Document : (aucun)');
+    expect(effectSummary({ type: 'discreditClue', indiceId: '' }, ctxProjet)).toBe('Fausse piste : (aucun)');
+    expect(effectSummary({ type: 'revealClue', indiceId: '' }, ctxProjet)).toBe('Indice : (aucun)');
+    expect(effectSummary({ type: 'revealClue', indiceId: 'ind-lettre' }, ctxProjet)).toBe('Indice : La lettre chiffrée → stade par défaut');
+    expect(effectSummary({ type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' }, ctxProjet)).toBe('Indice : La lettre chiffrée → stade 2');
   });
 
   it('racine de catalogue : « + Effet », « + Bloc » et le changement de type taisent les trois Effects à réf narrative ; la racine de projet les offre', async () => {

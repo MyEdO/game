@@ -97,7 +97,6 @@ export function effectCtxOf(
 ): Ctx {
   return {
     cibles: CIBLES_PAR_RACINE.scene,
-    objets: projet.narratif.objets,
     encounters: scene ? scene.encounters : projet.scenes.flatMap((s) => s.encounters),
     dialogues: scene ? scene.dialogues : projet.scenes.flatMap((s) => s.dialogues),
     merchants: scene?.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
@@ -124,17 +123,19 @@ export interface Ctx {
   /** Les cibles qu'offre la RACINE à ses Effets `ops` (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`) :
    *  sélecteur ET résumé la lisent. Sans défaut — chaque racine dit la sienne. */
   cibles: TableDeCibles;
-  /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`). Absent =
-   *  racine de CATALOGUE : les Effects à référence narrative n'y sont pas proposés (`menuDEffets`). */
+  /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`), et dont
+   *  l'Effet `giveTrapping` résout les objets avant le catalogue (`trappingDesObjetsPuisDuCatalogue`).
+   *  Absent = racine de CATALOGUE : ni objet de projet, ni Effect à référence narrative (`menuDEffets`). */
   narratif?: NarratifBlock;
-  /** Objets du PROJET édité (`narratif.objets`, `Editor.tsx`) : l'Effet `giveTrapping` les résout avant
-   *  le catalogue (`trappingDesObjetsPuisDuCatalogue`). Sans défaut — chaque racine dit les siens. */
-  objets: readonly TrappingData[];
 }
+
+/** Les objets du projet que lit `giveTrapping` : ceux du narratif, aucun à une racine de catalogue. */
+const AUCUN_OBJET: readonly TrappingData[] = [];
+const objetsDuProjet = (ctx: Pick<Ctx, 'narratif'>): readonly TrappingData[] => ctx.narratif?.objets ?? AUCUN_OBJET;
 
 /** Contexte d'une racine de CATALOGUE (`src/data`, monté au Compendium) : ni rencontre ni dialogue de
  *  scène, aucun objet de projet ; ses Effets `ops` visent la table de SA racine. */
-export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine], objets: [] });
+export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine] });
 
 /** Libellé / icône d'un type d'effet — dérivés du REGISTRE unique (aucun Record parallèle à
  *  maintenir : la source de vérité est `EFFECT_HANDLERS[t].label/icon`). */
@@ -169,6 +170,11 @@ const MENU_SANS_NARRATIF: TypeMenuGroup[] = EFFECT_MENU_GROUPS
 /** Les types d'Effet que propose une racine — lu par « + Effet », « + Bloc » et le changement de type. */
 export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_SANS_NARRATIF);
 
+/** Ce que révèle un `revealClue` sans stade (`revealClue`, `state/clues.ts`) : `title` du champ ; le résumé
+ *  d'une rangée en porte la forme COURTE. */
+const STADE_OMIS = 'Sans stade : premier stade si l’indice est caché, sinon son stade atteint, remis en piste active';
+const STADE_OMIS_COURT = 'stade par défaut';
+
 /** Une `ScheduleSpec` est-elle posée sur cet effet ? Même garde que `combatEffects.ts` (`setObjective.apply`). */
 const hasSchedule = (e: Partial<ScheduleSpec>): boolean =>
   e.afterMinutes != null || e.afterDays != null || e.atDate != null || e.atHour != null || e.atMinute != null;
@@ -186,21 +192,21 @@ function scheduleSummary(spec: ScheduleSpec): string {
 
 /** Résumé HUMAIN d'un effet (rangée repliée) — texte SEUL, PUR, testé. L'icône (`EFFECT_ICON`) est
  *  rendue séparément par l'appelant via `<Icon>` (même patron que `opSummary`/`OP_ICON`). L'objet d'un
- *  `giveTrapping` se nomme par la chaîne de son champ (`trappingDesObjetsPuisDuCatalogue`, `ctx.objets`). */
-export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles' | 'narratif' | 'objets'>): string {
+ *  `giveTrapping` se nomme par la chaîne de son champ (`trappingDesObjetsPuisDuCatalogue`, `objetsDuProjet`). */
+export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles' | 'narratif'>): string {
   const e = effect as any;
-  /** Libellé résolu d'une référence narrative, sinon son id, sinon « ? ». */
+  /** Libellé résolu d'une référence narrative, sinon son id ; non choisie, « (aucun) » comme au sélecteur. */
   const ref = (cle: CleDeReferenceNarrative, id: string | undefined): string =>
-    (id && ctx.narratif ? libelleNarratif(ctx.narratif, cle, id) : undefined) ?? (id || '?');
+    (id ? (ctx.narratif && libelleNarratif(ctx.narratif, cle, id)) || id : '(aucun)');
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
     case 'document': return `Document : ${ref('documentId', e.documentId)}`;
-    case 'revealClue': return `Indice : ${ref('indiceId', e.indiceId)}${e.stade ? ` → ${(ctx.narratif && libelleDeStade(ctx.narratif, e.indiceId, e.stade)) ?? e.stade}` : ''}`;
+    case 'revealClue': return `Indice : ${ref('indiceId', e.indiceId)}${e.indiceId ? ` → ${e.stade ? (ctx.narratif && libelleDeStade(ctx.narratif, e.indiceId, e.stade)) ?? e.stade : STADE_OMIS_COURT}` : ''}`;
     case 'discreditClue': return `Fausse piste : ${ref('indiceId', e.indiceId)}`;
-    case 'giveTrapping': return `Objet : ${giveTrappingLabel(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(ctx.objets.map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
+    case 'giveTrapping': return `Objet : ${giveTrappingLabel(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(objetsDuProjet(ctx).map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
     case 'givePossession': {
       const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
       const refLabelStr = e.nature === 'vehicule'
@@ -381,7 +387,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'revealClue' && ctx.narratif && (
           <RefField
             cfg={{ entrees: entreesDeStades(ctx.narratif, e.indiceId), nom: 'stades de l’indice' }}
-            label="Stade (aucun = premier stade si l’indice est encore caché)"
+            label="Stade"
+            title={STADE_OMIS}
             value={e.stade ?? ''}
             onChange={(v) => upd({ stade: typeof v === 'string' && v !== '' ? v : undefined })}
             nullable
@@ -389,7 +396,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'giveTrapping' && (
           <>
-            <ObjetDonneField objets={ctx.objets} value={e.trappingId ?? e.custom} upd={upd} />
+            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e.trappingId ?? e.custom} upd={upd} />
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}
