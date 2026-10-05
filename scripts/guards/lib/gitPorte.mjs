@@ -668,7 +668,7 @@ export function commitsNommes(depot, revisions) {
  *   - `commits(revisions)` : le commit du graphe (`CommitDuGraphe`) de chacune, `null` hors de HEAD
  *     (HEAD compris) — le PRÉDICAT unique « dans HEAD » des portes, qui rend le commit.
  * @param {Depot} depot
- * @throws {GitIndisponible} propagée de `grapheDe`, à la question.
+ * @throws {GitIndisponible} propagée de `grapheDe` ou `commitsNommes`, à la question.
  */
 export function histoireDeHead(depot) {
   /** @type {Map<string, CommitDuGraphe> | null} */
