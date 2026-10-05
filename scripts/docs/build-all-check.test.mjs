@@ -9,7 +9,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
@@ -213,6 +213,107 @@ test('`--mixtes` réécrit les seuls générateurs du périmètre, et JAMAIS `SO
     assert.match(readFileSync(path.join(racine, DOC_A), 'utf8'), /\(47 octets\)/, 'le mixte est régénéré')
     assert.equal(readFileSync(path.join(racine, DOC_B), 'utf8'), docB, 'un générateur hors périmètre ne joue pas')
     assert.equal(readFileSync(sourcesLues, 'utf8'), 'SENTINELLE\n', '`--mixtes` ne réécrit pas la mesure')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('`--only` écrit sa sélection, conserve les autres mesures, purge les anciens et garde les vérificateurs', () => {
+  const { racine } = depotReel()
+  try {
+    const fichier = path.join(racine, 'docs', '.sources-lues.json')
+    const ancienne = JSON.parse(readFileSync(fichier, 'utf8'))
+    ancienne['g/supprime.mjs'] = ancienne['g/b.mjs']
+    writeFileSync(fichier, JSON.stringify(ancienne))
+    const b = readFileSync(path.join(racine, DOC_B), 'utf8')
+    writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 222222\n')
+    writeFileSync(path.join(racine, 'src/b.ts'), 'export const b = 222222\n')
+    mkdirSync(path.join(racine, 'v'))
+    writeFileSync(path.join(racine, 'v', 'rouge.mjs'), "console.error('VÉRIFICATEUR CONSERVÉ'); process.exitCode = 1\n")
+    const vu = executer(racine, ['--only', 'g/a.mjs'], {}, ['v/rouge.mjs'])
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.match(vu.sortie, /VÉRIFICATEUR CONSERVÉ/)
+    assert.match(readFileSync(path.join(racine, DOC_A), 'utf8'), /48 octets/)
+    assert.equal(readFileSync(path.join(racine, DOC_B), 'utf8'), b)
+    const apres = JSON.parse(readFileSync(fichier, 'utf8'))
+    assert.deepEqual(apres['g/b.mjs'], ancienne['g/b.mjs'])
+    assert.equal(Object.hasOwn(apres, 'g/supprime.mjs'), false)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+for (const vide of [false, true]) test(`--only refuse ${vide ? 'une sélection vide' : 'un nom inconnu'} avant toute écriture ou préparation de cache`, () => {
+  const { racine } = depotReel()
+  const cache = path.join(racine, 'node_modules/.cache/lectures-docs')
+  const sources = path.join(racine, 'docs/.sources-lues.json')
+  try {
+    const avant = [DOC_A, DOC_B].map((f) => readFileSync(path.join(racine, f), 'utf8'))
+    const mesure = readFileSync(sources, 'utf8')
+    writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 999999\n')
+    rmSync(cache, { recursive: true, force: true })
+    const selection = vide ? ['--only'] : ['--only', 'g/a.mjs', 'g/typo.mjs']
+    for (const mode of [[], ['--check'], ['--code'], ['--mixtes']]) {
+      const vu = executer(racine, [...mode, ...selection])
+      assert.equal(vu.status, 1, vu.sortie)
+      assert.match(vu.sortie, vide ? /--only sélection vide/ : /--only nom\(s\) inconnu\(s\) : g\/typo\.mjs/)
+      assert.deepEqual([DOC_A, DOC_B].map((f) => readFileSync(path.join(racine, f), 'utf8')), avant)
+      assert.equal(readFileSync(sources, 'utf8'), mesure)
+      assert.deepEqual(listerDossier(cache, { absent: 'vide' }), [])
+      assert.throws(() => statSync(cache), { code: 'ENOENT' })
+    }
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('--only reconnaît les vérificateurs canoniques et conserve tous leurs verdicts', () => {
+  const { racine } = depotReel()
+  try {
+    mkdirSync(path.join(racine, 'v'))
+    writeFileSync(path.join(racine, 'v/a.mjs'), "Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15); console.error('VERIFICATEUR_A'); process.exitCode = 1")
+    writeFileSync(path.join(racine, 'v/b.mjs'), "console.error('VERIFICATEUR_B'); process.exitCode = 1")
+    const vu = executer(racine, ['--only', 'v/a.mjs'], {}, ['v/a.mjs', 'v/b.mjs'])
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.match(vu.sortie, /VERIFICATEUR_A/)
+    assert.match(vu.sortie, /VERIFICATEUR_B/)
+    for (const nom of ['a', 'b']) {
+      const debut = `[docs:build] v/${nom}.mjs — début`
+      assert.ok(vu.sortie.includes(debut), vu.sortie)
+      assert.ok(vu.sortie.indexOf(debut) < vu.sortie.indexOf(`VERIFICATEUR_${nom.toUpperCase()}`), vu.sortie)
+      assert.match(vu.sortie, new RegExp(`v/${nom}\\.mjs — fin \\(\\d+ ms\\)`))
+    }
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('`--verifier-code` mesure le code identique sans écrire ; code absent ou périmé arrête les docs', () => {
+  const { racine } = depotReel()
+  const code = 'src/a.gen.ts'
+  const generateurs = [{ ...GENERATEURS_REELS[0], targets: [code] }, GENERATEURS_REELS[1]]
+  writeFileSync(path.join(racine, 'g/a.mjs'), generateurReel('a').replaceAll(DOC_A, code))
+  try {
+    assert.equal(executer(racine, [], {}, [], generateurs).status, 0)
+    const codeEnPlace = readFileSync(path.join(racine, code), 'utf8')
+    const modification = statSync(path.join(racine, code)).mtimeMs
+    const mesureAvant = JSON.parse(readFileSync(path.join(racine, 'docs/.sources-lues.json'), 'utf8'))
+    const vert = executer(racine, ['--verifier-code'], {}, [], generateurs)
+    assert.equal(vert.status, 0, vert.sortie)
+    assert.equal(statSync(path.join(racine, code)).mtimeMs, modification)
+    assert.deepEqual(JSON.parse(readFileSync(path.join(racine, 'docs/.sources-lues.json'), 'utf8')), mesureAvant)
+    const b = readFileSync(path.join(racine, DOC_B), 'utf8')
+    for (const absent of [false, true]) {
+      if (absent) rmSync(path.join(racine, code))
+      else writeFileSync(path.join(racine, code), 'périmé')
+      writeFileSync(path.join(racine, 'src/b.ts'), 'export const b = 999999\n')
+      const rouge = executer(racine, ['--verifier-code'], {}, [], generateurs)
+      assert.equal(rouge.status, 1, rouge.sortie)
+      assert.equal(readFileSync(path.join(racine, DOC_B), 'utf8'), b)
+      assert.deepEqual(JSON.parse(readFileSync(path.join(racine, 'docs/.sources-lues.json'), 'utf8')), mesureAvant)
+    }
+    writeFileSync(path.join(racine, code), codeEnPlace)
+    assert.equal(executer(racine, ['--verifier-code', '--only', 'g/a.mjs'], {}, [], generateurs).status, 0)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

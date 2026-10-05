@@ -90,7 +90,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
 la session : ultracode = xhigh silencieux), définition épinglée. Workflows lourds SÉQUENTIELS (en
 parallèle : rate-limit, finders morts). Un type qui hérite tous les outils (`tools:` omis) porte
 `disallowedTools: Agent, Workflow`, sinon il se re-délègue sa mission à l'infini. **UN juge par
-jugement** (design, diff, palier) : les lentilles tiennent dans un seul prompt nourri du grounding
+jugement** (design, diff, fermeture) : les lentilles tiennent dans un seul prompt nourri du grounding
 déjà écrit, il ne re-mesure que ce qu'il conteste ; un workflow multi-agents ne se justifie que sur des
 travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regards sur la même entrée.
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
@@ -185,9 +185,6 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
   ce qui n'appelle aucun goût (données, gardes, ré-instruction) ; écrans et arbitrages en PRÉSENCE.
 - **Checkpoint avant épuisement de quota** : suivi de vague à jour (`npm run ops:suivi -- <N>`),
   tickets commentés.
-- **Revue de palier et réfutation de fermeture = UN juge**, nourri de `npm run ops:faits-de-palier --
-  --base <sha> --tete <sha>` : le script mesure, le juge juge. Le texte s'écrit sous le nom d'archive
-  qu'il donne (`nomDArchiveDeRevue`) et passe la porte de solde (`validateRevuePalier`).
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
   à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
   suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.

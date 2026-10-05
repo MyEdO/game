@@ -59,6 +59,7 @@ import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
+import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { corpsDeFusion, fusionDe } from '../guards/lib/fusionPr.mjs'
@@ -706,6 +707,7 @@ const questionsDuTrain = (depot) => Object.freeze({
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
+  verdictDesFusions: () => verdictDePublication(depot),
 })
 
 /** `gh <args>`, en union simple. Jamais `shell: true`. Un refus garde `stdout` : sous `--include`, un 4xx
@@ -832,7 +834,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     coursesCi(sha) {
       return coursesCi({ cwd: racine, commit: shaComplet('coursesCi', sha), limit: 30 })
     },
-    coursesDeFile: () => coursesCi({ cwd: racine, branche: null, evenement: 'merge_group', limit: 30 }),
+    coursesDeFile: () => coursesCi({ cwd: racine, evenement: 'merge_group', limit: 30 }),
     /** Les parents d'un commit (`GET /repos/{owner}/{repo}/commits/{ref}`), mémorisés : un commit ne
      *  change jamais de parents. */
     parentsDe(sha) {

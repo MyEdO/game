@@ -444,6 +444,9 @@ export const ETAPES = [
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
       const vuFetch = ctx.tronc()
       if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${vuFetch.raison}` }
+      // #2328 A3 : la résolution substantielle d'une fusion de la plage se juge avant la publication.
+      const fusions = questions.verdictDesFusions()
+      if (!fusions.ok) return { ok: false, raison: fusions.texte }
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
       if (outil.refus) return { ok: false, raison: outil.refus }
       // Une branche déjà fusionnée (étape `file` verte) n'a plus rien d'absent du tronc : sa reprise

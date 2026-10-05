@@ -193,20 +193,26 @@ export function tick({
   }
 }
 
-function main() {
-  const options = optionsDe(process.argv.slice(2))
+/**
+ * La ligne de commande : le `tick` des options de `argv` en UN objet JSON sur `sortie`, ou le motif de la
+ * panne sur `erreur` et un code non nul. `lire` et `jobs` vont au `tick` (les lectures réelles par défaut).
+ * @param {{argv:string[], sortie?:(texte:string) => void, erreur?:(texte:string) => void, lire?:Function, jobs?:Function}} p
+ * @returns {number}
+ */
+export function executer({ argv, sortie = (texte) => process.stdout.write(texte), erreur = (texte) => process.stderr.write(texte), lire, jobs }) {
+  const options = optionsDe(argv)
   if (!options) {
-    process.stderr.write('[vigie] usage : node scripts/ops/vigie.mjs --json --arbre <racine> [--depuis <etat>]\n')
+    erreur('[vigie] usage : node scripts/ops/vigie.mjs --json --arbre <racine> [--depuis <etat>]\n')
     return 1
   }
   try {
-    process.stdout.write(`${JSON.stringify(tick(options))}\n`)
+    sortie(`${JSON.stringify(tick({ ...options, ...(lire ? { lire } : {}), ...(jobs ? { jobs } : {}) }))}\n`)
     return 0
   } catch (e) {
     if (!(e instanceof GitIndisponible || e instanceof CiIllisible)) throw e
-    process.stderr.write(`[vigie] ${e.message}\n`)
+    erreur(`[vigie] ${e.message}\n`)
     return 1
   }
 }
 
-if (import.meta.main) process.exit(main())
+if (import.meta.main) process.exit(executer({ argv: process.argv.slice(2) }))

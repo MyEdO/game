@@ -215,6 +215,19 @@ describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c
     expect(tombstonesIn("// avant : pas d'arme à 2 mains")).toEqual([]);
   });
 
+  it('cas planté : le RANG de version du code raconte l’histoire du site, quelle que soit la graphie (#2199)', () => {
+    const rang = 'rang de version du code (histoire du site)';
+    expect(tombstonesIn('// Écran POSSESSIONS — PREMIÈRE version, composition PURE de primitives.')).toContain(rang);
+    expect(tombstonesIn('// la 1re version en Q non monotones s’auto-croisait')).toContain(rang);
+    expect(tombstonesIn('// corrige un faux positif de la 1ère version qui testait seulement le préfixe')).toContain(rang);
+    expect(tombstonesIn('// Première mouture, à reprendre.')).toContain(rang);
+  });
+
+  it('faux positif écarté : la version d’un artefact TIERS, introduite par de/du/des/d’ (#2199)', () => {
+    expect(tombstonesIn('// La première version de git dont `merge-tree --write-tree` lit `--stdin`.')).toEqual([]);
+    expect(tombstonesIn('// la première version d’Electron qui expose cette API')).toEqual([]);
+  });
+
   it('cas planté : `ex-` nomme un artefact révolu QUELLE QUE SOIT la casse (#828)', () => {
     expect(tombstonesIn("// Mêmes teintes que l'ex-houseWallIso.")).toContain('ex-Nom');
     expect(tombstonesIn("// Reprend la logique de l'ex-mode manœuvre.")).toContain('ex-Nom');
@@ -437,6 +450,22 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
 
   it('cas planté : le tag [entériné AAAA-MM-JJ] neutralise la détection (preuve TDD)', () => {
     expect(untaggedExcuseMatch("// on garde X pour l'instant [entériné 2026-07-06]")).toBeNull();
+  });
+
+  it('cas plantés : le site qui se déclare INACHEVÉ ici, ou renvoie à un lot à venir (#2199)', () => {
+    expect(untaggedExcuseMatch(' * Soute/Voyage = sous-lots suivants, non codés ici.')).not.toBeNull();
+    expect(untaggedExcuseMatch('// dette de nommage distincte, non traitée ici ;')).not.toBeNull();
+    expect(untaggedExcuseMatch('// portés — NON implémenté ici (la sommation compte tout).')).not.toBeNull();
+    expect(untaggedExcuseMatch('// le cas naval pas encore géré ici')).not.toBeNull();
+    expect(untaggedExcuseMatch('// le picker de choix (lot suivant) reste hors périmètre.')).not.toBeNull();
+    expect(untaggedExcuseMatch('// Recherche = lots à venir.')).not.toBeNull();
+  });
+
+  it('faux positifs écartés par la forme : délégation, lot sujet d’une hypothèse, incise après un ticket (#2199)', () => {
+    expect(untaggedExcuseMatch('// le tir n’est pas traité par cette fonction : `resolveAttack` le porte.')).toBeNull();
+    expect(untaggedExcuseMatch('// la baseline ne fond jamais : un fichier nettoyé par un lot suivant')).toBeNull();
+    expect(untaggedExcuseMatch('// STOCK gelé, résorbé par #276 (lots futurs) ; la garde arrête la croissance')).toBeNull();
+    expect(untaggedExcuseMatch('// un lot futur ne sait pas laquelle doit tomber à zéro.')).toBeNull();
   });
 
   it('cas planté : un commentaire neutre ne matche pas (contrôle négatif)', () => {
@@ -708,6 +737,28 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
       const sites = scanLegacyVocab(rel, texte).filter((x) => /^\[second nom/.test(x.detail));
       expect(sites.length, `${rel} : ${JSON.stringify(texte)}`).toBe(attendu);
     }
+  });
+
+  it('cas plantés : le repli justifié par un état antérieur, en phrase ou en incise (#2199)', () => {
+    const repli = 'repli pour un état antérieur';
+    expect(legacyVocabIn('// repli sur la 1re arme à distance pour un pending sans uid (état antérieur).', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// le repli ne sert que les paquets antérieurs.', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// REPLI sur la longueur quand `seq` manque — une séquence restaurée d’une sauvegarde ANTÉRIEURE à #1508', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// Repli = pending d’avant le gel.', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// absent sur une vieille save migrée = pas de surlignage, pas de crash.', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// `undefined` si une vieille save persistée sans id', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// entrée supprimée depuis une ancienne sauvegarde', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// les anciennes saves portent encore `name`', HORS_ART)).toContain(repli);
+  });
+
+  it('faux positifs écartés par la forme : participe, objet de jeu, repli sans état antérieur (#2199)', () => {
+    const repli = 'repli pour un état antérieur';
+    expect(legacyVocabIn("// TÉMOIN du repli mort : 'soir' (l'ancienne cible de `[length - 2]`) n'est PAS le crépuscule.", HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// s’appliquent donc en repli IDEMPOTENT à chaque chargement', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// Le chemin replié `src/ui/{Ancien.tsx => Nouveau.tsx}` du `--numstat` ne nomme aucun état', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// le slot écrase l’ancienne sauvegarde après confirmation', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// une sauvegarde ancienne de trois jours de JEU reste chargeable', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// le vieux saule et l’ancienne savane du décor', HORS_ART)).not.toContain(repli);
   });
 
   it('cas plantés : chaque mot qui nomme l’état d’avant est détecté (preuve TDD)', () => {

@@ -15,14 +15,14 @@ import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, shasDistants, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
-import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
-import { histoireDeHead } from './revuePalier.mjs'
+import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
+import { createHash } from 'node:crypto'
 
 const ZERO = '0'.repeat(40)
 
@@ -180,6 +180,60 @@ test('classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT 
   // Une erreur de spawn qui se nomme elle-même garde SON message : « git introuvable » serait faux.
   const acces = classer({ error: new Error('spawnSync git EACCES'), status: null }, { cwd: '/x', nature: sonde('repertoire') })
   assert.equal(acces.raison, 'spawnSync git EACCES')
+})
+
+test('shaPrecedentDeHead : HEAD index1 fixe, absence et panne distinctes, validateur inchangé', () => {
+  const { racine, premier } = depot()
+  const unique = instanceDeDepot({ fichiers: { 'unique.txt': 'une entrée' } })
+  try {
+    assert.equal(shaPrecedentDeHead(forge(unique.racine)), null)
+    assert.equal(shaPrecedentDeHead(forge(racine)), premier)
+    const vus = []
+    const ferme = depotFeint(racine, (args) => {
+      vus.push(args)
+      return { status: 0, stdout: `${premier}\n`, stderr: '' }
+    })
+    assert.equal(shaPrecedentDeHead(ferme), premier)
+    assert.deepEqual(vus, [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+    assert.throws(() => shaDe(ferme, 'HEAD@{1}'), /@\{/)
+    rmSync(join(racine, '.git', 'logs', 'HEAD'))
+    assert.equal(shaPrecedentDeHead(forge(racine)), null)
+    const repondre = () => ({ status: 128, stdout: '', stderr: 'fatal: panne reflog' })
+    assert.throws(() => shaPrecedentDeHead(depotFeint(racine, repondre)), GitIndisponible)
+    const pannes = []
+    assert.equal(shaPrecedentDeHead(depotFeint(racine, repondre, (r) => pannes.push(r))), null)
+    assert.match(pannes.join(''), /panne reflog/)
+  } finally { jeter(racine); jeter(unique.racine) }
+})
+
+test('shaPrecedentDeHead sous log.showSignature : SHA signé résolu sans présentation ni GPG', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'signé' } })
+  const gnupg = join(racine, '.git', 'gnupg-feint')
+  mkdirSync(gnupg)
+  const env = { ...envDeDepotForge(), GNUPGHOME: gnupg }
+  const git = gitDe(racine, { env, net: true })
+  const journal = join(racine, '.git', 'gpg-journal')
+  const programme = join(racine, '.git', 'gpg-feint.sh')
+  try {
+    writeFileSync(programme, "#!/bin/sh\nprintf 'verification\\n' >> .git/gpg-journal\nprintf '[GNUPG:] BADSIG 0123456789ABCDEF fixture\\n'\nprintf 'gpg: diagnostic fixture premier\\ngpg: diagnostic fixture deuxième\\n' >&2\nexit 1\n", { mode: 0o755 })
+    git('config', 'gpg.program', programme)
+    git('config', 'log.showSignature', 'true')
+    const arbre = git('rev-parse', 'HEAD^{tree}')
+    const parent = git('rev-parse', 'HEAD')
+    const commit = `tree ${arbre}\nparent ${parent}\nauthor fixture <fixture@example.invalid> 1791194400 +0000\ncommitter fixture <fixture@example.invalid> 1791194400 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n Zml4dHVyZQ==\n -----END PGP SIGNATURE-----\n\nentrée signée du banc\n`
+    const signe = lancerGit(['hash-object', '-t', 'commit', '-w', '--stdin'], { cwd: racine, env, input: commit, net: true })
+    git('update-ref', 'HEAD', signe)
+    git('commit', '--allow-empty', '-m', 'tête suivante')
+    const depot = depotDe(racine, { env })
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false, 'la résolution SHA ne lance pas GPG')
+    const presentation = git('reflog', 'show', '--format=%H', '--max-count=2', 'HEAD')
+    assert.match(presentation, /diagnostic fixture/)
+    assert.equal(readFileSync(journal, 'utf8'), 'verification\n')
+    rmSync(journal)
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false)
+  } finally { jeter(racine) }
 })
 
 test('status 0 rend un FAIT porteur de la sortie', () => {
@@ -715,7 +769,7 @@ test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION 
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas git merge-tree --write-tree --stdin \(git 2\.40 ou plus\)/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur(null, 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /version de git illisible/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /illisible/.test(e.raison), 'windows lu ; git muet : la fusion illisible se NOMME, jamais « sans apport »')
-  assert.deepEqual(ceQueFaitLeCommit(muet(), 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
+  assert.throws(() => ceQueFaitLeCommit(muet(), 'abc'), (e) => e instanceof GitIndisponible && /ce que fait abc : git ne rend pas le commit/.test(e.raison), 'un commit que git ne rend pas LÈVE, jamais « rien » (#2328)')
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.43.0', 'p1 p2 p3'), 'abc'), (e) => e instanceof GitIndisponible && /à 3 parents/.test(e.raison))
 })
 
@@ -1049,7 +1103,7 @@ const gestesALaBorne = (d, b) => ({
   baseCommune: () => baseCommune(d, b, 'HEAD'),
   shaDe: () => shaDe(d, b),
   estAncetre: () => estAncetre(d, b, 'HEAD'),
-  'histoireDeHead dansHead': () => histoireDeHead(d).dansHead([b])[0],
+  'histoireDeHead commits': () => histoireDeHead(d).commits([b])[0],
   'ceQuiChange avant': () => ceQuiChange(d, b, 'HEAD'),
   'ceQuiChange apres': () => ceQuiChange(d, 'HEAD', b),
   'ceQuiChange INDEX': () => ceQuiChange(d, b, INDEX),
@@ -1144,7 +1198,7 @@ test('un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndis
           combienDe: () => combienDe(d, [`${premier}..main`]),
           shasDe: () => shasDe(d, [`${premier}..main`]),
           journalDe: () => journalDe(d, [`${premier}..main`]),
-          'histoireDeHead dansHead': () => histoireDeHead(d).dansHead([premier]),
+          'histoireDeHead commits': () => histoireDeHead(d).commits([premier]),
         } : {}),
       }
       for (const [nom, question] of Object.entries(questions))
@@ -1207,7 +1261,7 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const F = 'f'.repeat(40)
     const attendus = {
       shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, parentsDe: null,
-      estAncetre: { disponible: true, absent: true }, 'histoireDeHead dansHead': false,
+      estAncetre: { disponible: true, absent: true }, 'histoireDeHead commits': null,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
     assert.equal(questions.length, 17)
@@ -1619,4 +1673,156 @@ test('clone SUPERFICIEL : la borne se lit comme une racine (#2294)', () => {
     const tout = lancerGit(['ls-tree', '-r', '-z', '--name-only', borne.sha], { cwd: join(clone, 'c') }).split('\0').filter(Boolean).sort(parUnitesDeCode)
     assert.deepEqual([...ceQueFontLesCommits(d, [borne]).chemins().get(borne.sha)].sort(parUnitesDeCode), tout, 'la borne apporte tout son arbre')
   } finally { jeter(clone) }
+})
+
+// ── L'HISTOIRE DE HEAD (`histoireDeHead`) : une liste de révisions résolue en UN lot, comme git la
+// résout (#2294). ─────────────────────────────────────
+
+/** Un dépôt forgé à racine `scripts/racine.txt`, et ses gestes. */
+function depotDHistoire() {
+  const { racine: dossier, sha: racine } = instanceDeDepot({ fichiers: { 'scripts/racine.txt': 'racine\n' }, message: 'racine' })
+  const git = gitDe(dossier, { net: true })
+  const commit = (marque) => {
+    writeFileSync(join(dossier, 'scripts', `${marque}.txt`), `${marque}\n`)
+    git('add', '-A')
+    git('commit', '-q', '-m', marque)
+    return git('rev-parse', 'HEAD')
+  }
+  return { dossier, racine, git, commit, depot: () => depotDe(dossier, { env: envDeDepotForge() }), jeter: () => jeter(dossier) }
+}
+
+/**
+ * Deux commits de même parent `racine` dont les shas partagent leurs 7 premiers caractères au moins :
+ * l'un dans HEAD, l'autre hors de HEAD. Parmi les seuls commits du graphe de HEAD, un préfixe de 7
+ * est unique ; git le résout parmi TOUS les objets du dépôt (`commitsNommes`) et le dit ambigu.
+ * Rend le commit de HEAD et la longueur du préfixe COMMUN de la paire.
+ */
+function poserUnePaireAmbigue(d, racine) {
+  const arbre = d.git('rev-parse', 'HEAD^{tree}')
+  const signature = 'mesure <mesure@example.invalid> 1700000000 +0000'
+  const shaDuCommit = (message) => {
+    const corps = `tree ${arbre}\nparent ${racine}\nauthor ${signature}\ncommitter ${signature}\n\n${message}\n`
+    return createHash('sha1').update(`commit ${Buffer.byteLength(corps)}\0${corps}`).digest('hex')
+  }
+  const vus = new Map()
+  let paire = null
+  for (let i = 0; !paire; i += 1) {
+    const sha = shaDuCommit(`m${i}`)
+    const autre = vus.get(sha.slice(0, 7))
+    if (autre !== undefined) paire = [autre, i]
+    else vus.set(sha.slice(0, 7), i)
+  }
+  const env = { ...envDeDepotForge(), GIT_AUTHOR_DATE: '1700000000 +0000', GIT_COMMITTER_DATE: '1700000000 +0000' }
+  const poser = (i) => gitDe(d.dossier, { env, net: true })('commit-tree', arbre, '-p', racine, '-m', `m${i}`)
+  const [dansHead, horsHead] = paire.map(poser)
+  assert.equal(dansHead, shaDuCommit(`m${paire[0]}`), 'témoin : le sha forgé est celui que git écrit')
+  let commun = 0
+  while (dansHead[commun] === horsHead[commun]) commun += 1
+  assert.ok(commun >= 7, `témoin : les deux commits partagent ${commun} caractères`)
+  d.git('update-ref', 'refs/heads/cote', horsHead)
+  d.git('reset', '-q', '--hard', dansHead)
+  return { dansHead, commun }
+}
+
+test('histoireDeHead : un préfixe que git dit AMBIGU n’est pas dans HEAD, même unique parmi ses commits ; un préfixe plus long que le commun l’est', () => {
+  const d = depotDHistoire()
+  try {
+    const { dansHead, commun } = poserUnePaireAmbigue(d, d.racine)
+    const depot = d.depot()
+    assert.equal((grapheDe(depot, ['HEAD']) ?? []).filter((c) => c.sha.startsWith(dansHead.slice(0, 7))).length, 1, 'témoin : unique parmi les commits de HEAD')
+    assert.deepEqual(histoireDeHead(depot).commits([dansHead.slice(0, 7), dansHead.slice(0, commun + 1)]).map((c) => c?.sha ?? null), [null, dansHead])
+  } finally { d.jeter() }
+})
+
+test('histoireDeHead : une paire qui partage 9 caractères laisse le préfixe de 9 AMBIGU', () => {
+  const d = depotDHistoire()
+  try {
+    // La racine de date 1600000164 donne une paire qui partage 9 caractères.
+    const identite = { GIT_AUTHOR_NAME: 'mesure', GIT_AUTHOR_EMAIL: 'mesure@example.invalid', GIT_COMMITTER_NAME: 'mesure', GIT_COMMITTER_EMAIL: 'mesure@example.invalid' }
+    const env = { ...envDeDepotForge(), ...identite, GIT_AUTHOR_DATE: '1600000164 +0000', GIT_COMMITTER_DATE: '1600000164 +0000' }
+    const racine = gitDe(d.dossier, { env, net: true })('commit-tree', d.git('rev-parse', 'HEAD^{tree}'), '-m', 'racine')
+    const { dansHead, commun } = poserUnePaireAmbigue(d, racine)
+    assert.equal(commun, 9, 'témoin : la paire partage 9 caractères')
+    assert.deepEqual(histoireDeHead(d.depot()).commits([dansHead.slice(0, 9), dansHead.slice(0, commun + 1)]).map((c) => c?.sha ?? null), [null, dansHead])
+  } finally { d.jeter() }
+})
+
+test('histoireDeHead : 1 ou 3 révisions se jugent dans HEAD en autant de processus git', () => {
+  const d = depotDHistoire()
+  try {
+    const tetes = ['a', 'b'].map((m) => d.commit(m))
+    d.git('checkout', '-q', '-b', 'cote', d.racine)
+    const horsHead = d.commit('cote')
+    d.git('checkout', '-q', 'main')
+    const juger = (shas) => {
+      const { valeur, lances } = lancesDeGit(() => histoireDeHead(d.depot()).commits(shas))
+      assert.ok(lances.length > 0, 'témoin : le compte voit les processus du jugement')
+      return { lances: lances.map(sousCommande), dedans: valeur.map((c) => c !== null) }
+    }
+    const une = juger([tetes[0]])
+    const trois = juger([tetes[1].slice(0, 9), horsHead, 'deadbee'])
+    assert.deepEqual(une.dedans, [true])
+    assert.deepEqual(trois.dedans, [true, false, false], 'témoin : dans HEAD, hors de HEAD, inconnu')
+    assert.deepEqual(trois.lances, une.lances, `1 révision : ${une.lances.length} processus ; 3 : ${trois.lances.length}`)
+  } finally { d.jeter() }
+})
+
+test('histoireDeHead : un git plus ancien que 2.33 ne lit pas le graphe — la question NOMME la version requise', () => {
+  const d = depotDHistoire()
+  try {
+    const tete = d.commit('a')
+    // git 2.30 ne connaît pas `rev-list --no-commit-header` : il rend son usage, code 129.
+    const spawn = (commande, args, options) => (args.includes('--no-commit-header')
+      ? { status: 129, stdout: '', stderr: 'usage: git rev-list [<options>] <commit>... [--] [<path>...]\n' }
+      : args.includes('version') ? { status: 0, stdout: 'git version 2.30.2\n', stderr: '' }
+        : spawnSync(commande, args, options))
+    const depot = depotDe(d.dossier, { env: envDeDepotForge(), spawn })
+    assert.throws(() => histoireDeHead(depot).commits([tete]),
+      (e) => e instanceof GitIndisponible && /^git 2\.30 ne sait pas git rev-list --no-commit-header \(git 2\.33 ou plus\)/.test(e.raison))
+  } finally { d.jeter() }
+})
+
+test('GARDE DE CLASSE : ceQueFontLesCommits lit K=2 et K=8 fusions propres en autant de processus git', () => {
+  const lancesSur = (k) => {
+    const d = depotDHistoire()
+    try {
+      const socle = d.commit('socle')
+      for (let i = 0; i < k; i += 1) {
+        d.git('checkout', '-q', '-b', `b${i}`)
+        d.commit(`b${i}`)
+        d.git('checkout', '-q', 'main')
+        d.commit(`m${i}`)
+        d.git('merge', '-q', '--no-ff', '-m', `fusion ${i}`, `b${i}`)
+      }
+      const depot = d.depot()
+      const commits = grapheDe(depot, [`${socle}..HEAD`])
+      const fusions = commits.filter((c) => c.parents.length === 2)
+      assert.equal(fusions.length, k, 'témoin : K fusions dans la plage')
+      const { valeur, lances } = lancesDeGit(() => ceQueFontLesCommits(depot, commits).chemins())
+      assert.deepEqual(fusions.map((c) => valeur.get(c.sha)), fusions.map(() => []), 'témoin : une fusion propre n’apporte rien')
+      assert.equal(lances.filter((x) => sousCommande(x) === 'merge-tree').length, 1, `${k} fusions propres : une seule fusion automatique, en lot`)
+      return lances.map(sousCommande)
+    } finally { d.jeter() }
+  }
+  const deux = lancesSur(2)
+  const huit = lancesSur(8)
+  assert.deepEqual(huit, deux, `K=2 : ${deux.length} processus ; K=8 : ${huit.length}`)
+})
+
+/** L'erreur que lève `fn`. */
+const erreurDe = (fn) => {
+  try { fn() } catch (e) { return e }
+  throw new Error('erreurDe : fn n’a rien levé')
+}
+
+test('tenter : une erreur SYSTÈME ou de lecture git est une indisponibilité ; une erreur de PROGRAMME remonte', () => {
+  assert.throws(() => tenter(() => { throw new TypeError('bug injecté') }), (e) => e instanceof TypeError && e.message === 'bug injecté')
+  // Une erreur INTERNE de Node porte un `code` (`ERR_INVALID_ARG_TYPE`) : c'est une erreur de programme.
+  const interne = erreurDe(() => Buffer.from(123))
+  assert.equal(interne.code, 'ERR_INVALID_ARG_TYPE', 'témoin : une vraie erreur interne de Node')
+  assert.throws(() => tenter(() => { throw interne }), (e) => e === interne)
+  const systeme = erreurDe(() => readFileSync(join(tmpdir(), 'jamais-la-2365.txt')))
+  assert.equal(systeme.code, 'ENOENT', 'témoin : une vraie erreur système')
+  assert.match(tenter(() => { throw systeme }).raison, /ENOENT/)
+  assert.deepEqual(tenter(() => { throw new GitIndisponible('fatal: panne simulée') }).disponible, false)
 })

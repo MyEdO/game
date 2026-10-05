@@ -3,7 +3,7 @@
  * défaut de fond que les lots V1, sur les quatre feuilles hors combat :
  *  - la BANDE d'équipage de mer (`contributors.map`) ne déclarait AUCUNE possession → `modalOwnerOf`
  *    `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL, qui jouait le Test du héros d'un invité
- *    (classe #1268, mesurée par le juge de palier) ;
+ *    (classe #1268) ;
  *  - les CHOIX collectifs (Progression du jour, interpellation pirate, décision d'Embrigadement)
  *    n'avaient pas de porteur → même fenêtre hôte-seul, et l'hôte tranchait pour autrui ;
  *  - les GATES d'insertion lisaient l'affordance LOCALE (`humanControlled` — « qui a la main devant
@@ -36,7 +36,7 @@ import { buildScene } from './mapSpec';
 import { setRule, resetRule } from '../engine/policy';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { WorldMap, MapRoute } from './worldMap';
+import type { WorldMap, MapRouteTrace } from './worldMap';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -171,7 +171,7 @@ describe('#1262 V2 — la décision d’Embrigadement est au siège du MENEUR', 
 
 const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
 
-function riverMap(extra: Partial<MapRoute> = {}): WorldMap {
+function riverMap(extra: Partial<MapRouteTrace> = {}): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [

@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CiIllisible, decoder, encoder, ligneDe, optionsDe, tick, transitionsDe, verdictDeCi } from './vigie.mjs'
+import { CiIllisible, decoder, executer, encoder, ligneDe, optionsDe, tick, transitionsDe, verdictDeCi } from './vigie.mjs'
 import { cheminsDeJournal, journalVide, sauverJournal } from './publier.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
@@ -175,12 +175,12 @@ test('câblage : `vigie.mjs` écrit UN objet JSON `{ ligne, transitions, etat }`
   } finally { jeter(horsDepot) }
   const { amont, aval, main } = depotsDuTick()
   try {
-    const stub = join(aval, '..', `${main}-stub.json`)
-    writeFileSync(stub, JSON.stringify([{ headSha: main, workflowName: 'CI', status: 'completed', conclusion: 'success', databaseId: 1, attempt: 1 }]))
-    const vu = spawnSync(process.execPath, [script, '--json', '--arbre', aval], { encoding: 'utf8', env: { ...process.env, WFRP_GH_STUB: stub } })
-    rmSync(stub, { force: true })
-    assert.equal(vu.status, 0, vu.stderr)
-    const sortie = JSON.parse(vu.stdout)
+    let texte = ''
+    const lire = (sha) => ({ disponible: true, valeur: sha === main ? [{ headSha: main, workflowName: 'CI', status: 'completed', conclusion: 'success', databaseId: 1, attempt: 1 }] : [] })
+    const code = executer({ argv: ['--json', '--arbre', aval], sortie: (t) => { texte += t }, erreur: (t) => assert.fail(t), lire, jobs: () => assert.fail('aucun rouge') })
+    assert.equal(code, 0)
+    assert.equal(texte.split('\n').length, 2, 'UNE ligne JSON')
+    const sortie = JSON.parse(texte)
     assert.deepEqual(Object.keys(sortie).sort(), ['etat', 'ligne', 'transitions'])
     assert.equal(sortie.ligne, 'CI main ✓ · chantier/9 ∅ · train : —')
     assert.deepEqual(sortie.transitions, [])

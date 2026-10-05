@@ -3,12 +3,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  BORNE_ABSENTE_MIN, BORNE_ATTENTE_MIN, CODES_DE_CI, CODE_PANNE, attendreLaCi, echecsDeLaCourse, ligneDeCi, lignesDuRouge, optionsDe, shaPousse, urlDeCourse,
+  BORNE_ABSENTE_MIN, BORNE_ATTENTE_MIN, CODES_DE_CI, CODE_PANNE, attendreLaCi, executer, echecsDeLaCourse, ligneDeCi, lignesDuRouge, optionsDe, shaPousse, urlDeCourse,
 } from './ci.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
@@ -159,23 +159,32 @@ test('ligneDeCi : la ligne finale `CI:` de chaque verdict', () => {
   assert.equal(ligneDeCi({ etat: 'borne' }, SHA), `CI: borne de ${BORNE_ATTENTE_MIN} min dépassée sans verdict pour ${SHA}`)
 })
 
-test('câblage : `ci.mjs --attendre <sha>` lit les courses par `coursesCi` et SORT sur le code du verdict', () => {
-  const dossier = mkdtempSync(join(tmpdir(), 'ci-attendre-'))
-  try {
-    for (const [conclusion, etat] of [['success', 'verte'], ['cancelled', 'annulee']]) {
-      const stub = join(dossier, `${etat}.json`)
-      writeFileSync(stub, JSON.stringify([course('completed', conclusion)]))
-      const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', SHA], { encoding: 'utf8', env: { ...process.env, WFRP_GH_STUB: stub } })
-      assert.equal(vu.status, CODES_DE_CI[etat], vu.stderr)
-      assert.equal(vu.stdout.trim().split('\n').at(-1), ligneDeCi({ etat, course: { databaseId: 41 } }, SHA))
-    }
-    const refus = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', 'court'], { encoding: 'utf8' })
-    assert.equal(refus.status, CODE_PANNE)
-    assert.match(refus.stderr, /usage/)
-    const casse = join(dossier, 'casse.json')
-    writeFileSync(casse, JSON.stringify([null, null]))
-    const panne = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', SHA], { encoding: 'utf8', env: { ...process.env, WFRP_GH_STUB: casse } })
-    assert.equal(panne.status, CODE_PANNE, 'une exception non nommée est une PANNE, jamais le code du rouge')
-    assert.match(panne.stderr, /^\[ci\] ARRÊT INATTENDU : TypeError/)
-  } finally { rmSync(dossier, { recursive: true, force: true }) }
+/** `executer` sur des lectures injectées : son code, sa sortie et son erreur. */
+function execute(argv, lectures) {
+  let sortie = ''
+  let erreur = ''
+  const code = executer({ argv, sortie: (t) => { sortie += t }, erreur: (t) => { erreur += t }, ...lectures })
+  return { code, sortie, erreur }
+}
+
+test('câblage : `--attendre <sha>` lit les courses du sha et SORT sur le code du verdict ; un rouge se juge sur ses jobs', () => {
+  for (const [conclusion, etat] of [['success', 'verte'], ['cancelled', 'annulee']]) {
+    const vu = execute(['--attendre', SHA], { lire: (sha) => lu({ ...course('completed', conclusion), headSha: sha }), echecs: () => assert.fail('seul un rouge lit ses jobs') })
+    assert.equal(vu.code, CODES_DE_CI[etat], vu.erreur)
+    assert.equal(vu.sortie.trim().split('\n').at(-1), ligneDeCi({ etat, course: { databaseId: 41 } }, SHA))
+  }
+  const annulee = execute(['--attendre', SHA], {
+    lire: () => lu(course('completed', 'failure', 41, 1)),
+    echecs: (p) => { assert.deepEqual(p, { id: 41, attempt: 1 }, 'l’essai jugé'); return { disponible: true, valeur: { rouges: [], annules: ['docs'], lignes: ['  docs : annulé'] } } },
+  })
+  assert.equal(annulee.code, CODES_DE_CI.annulee)
+  assert.deepEqual(annulee.sortie.trim().split('\n').slice(-2), [ligneDeCi({ etat: 'annulee', course: { databaseId: 41 } }, SHA), '  docs : annulé'])
+  const pousse = execute(['--attendre'], { pousse: () => ({ refus: 'chantier/9 n’est pas poussée sur origin — rien à attendre' }) })
+  assert.deepEqual([pousse.code, pousse.erreur], [CODE_PANNE, '[ci] chantier/9 n’est pas poussée sur origin — rien à attendre\n'])
+  const refus = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', 'court'], { encoding: 'utf8' })
+  assert.equal(refus.status, CODE_PANNE)
+  assert.match(refus.stderr, /usage/)
+  const panne = execute(['--attendre', SHA], { lire: () => { throw new TypeError('casse') } })
+  assert.equal(panne.code, CODE_PANNE, 'une exception non nommée est une PANNE, jamais le code du rouge')
+  assert.match(panne.erreur, /^\[ci\] ARRÊT INATTENDU : TypeError: casse/)
 })

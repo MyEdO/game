@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from './stateFields';
 import { useGame, entityPickables, type BattleState } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { flowFromEffects, flowEffects, testFlow, EMPTY_FLOW } from './flow';
 import { buildAdvancementView } from './advancement';
 import { createHero } from '../engine/character';
@@ -267,7 +267,7 @@ describe('Boucle de jeu (store)', () => {
     useGame.setState({
       battle, mode: 'battle',
       pendingAttack: { attackerId: 'h1', targetId: 'e1', location: null, result: res },
-      pendingCascade: { title: 'Attaque', icon: '⚔️', purpose: 'combat', cursor: 0, log: [], participants: [{ id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'h1' }] },
+      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'h1' }], { title: 'Attaque', icon: '⚔️', purpose: 'combat' }),
     });
   }
 
@@ -428,7 +428,7 @@ describe('Boucle de jeu (store)', () => {
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
-    useGame.setState({ battle: { ...b }, pendingCascade: { title: '', icon: '', purpose: 'combat', cursor: 0, log: [], participants: [{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }] } as any });
+    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', icon: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const after = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
@@ -444,7 +444,7 @@ describe('Boucle de jeu (store)', () => {
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
-    useGame.setState({ battle: { ...b }, pendingCascade: { title: '', icon: '', purpose: 'combat', cursor: 0, log: [], participants: [{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }] } as any });
+    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', icon: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const after = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
@@ -500,7 +500,7 @@ describe('Boucle de jeu (store)', () => {
         suite: { mode: 'machine', coup: {} },
       },
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
-      pendingCascade: { title: 'Défense', icon: '🛡️', purpose: 'combat', cursor: 0, log: [], participants: [{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }] } as any,
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: '🛡️', purpose: 'combat' }),
     });
     useGame.getState().defenseConfirm();
     const st = useGame.getState();
@@ -509,6 +509,9 @@ describe('Boucle de jeu (store)', () => {
     expect(cur?.jet).toBe('fumble');
     expect(cur?.actorId).toBe(h.id);
     expect(cur?.fumble?.weapon).toBeTruthy();
+    // Identité de l'étape poussée = compteur `seq` de la séquence (#1508) : une fixture sans `seq` donne `…-undefined`.
+    expect(cur?.id).toBe(`cons-fumble-${h.id}-1`);
+    expect(st.pendingCascade!.seq).toBe(2);
   });
 
   it('Déviation Critique — défenseur héros crité : le curseur AVANCE sur l’étape deviation (anti soft-lock Auto-combat)', () => {
@@ -538,7 +541,7 @@ describe('Boucle de jeu (store)', () => {
         def: { roll: 60, target: 40, success: false, sl: 0, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: { title: 'Défense', icon: '🛡️', purpose: 'combat', cursor: 0, log: [], participants: [{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }] } as any,
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: '🛡️', purpose: 'combat' }),
     });
     useGame.getState().defenseConfirm();
     const st = useGame.getState();
@@ -588,7 +591,7 @@ describe('Boucle de jeu (store)', () => {
     const witem = h.items!.find((i) => (i.kind === 'melee' || i.kind === 'ranged') && h.weapons.some((w) => w.uid === i.uid))!;
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
-    useGame.setState({ battle: { ...b }, pendingCascade: { title: '', icon: '', purpose: 'combat', cursor: 0, log: [], participants: [{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }] } as any });
+    useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', icon: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const hMid = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);

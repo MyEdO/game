@@ -1,11 +1,10 @@
 // COURSES CI — l'unique lecture `gh run list` de ce dépôt (hors sondes), et celles des jobs et du
 // journal en échec d'une course.
 //
-// Une COURSE est une exécution de workflow. Trois QUESTIONS, une seule lecture : « les courses de
-// telle BRANCHE » (les faits de palier), « les courses de tel COMMIT » (l'étape `file` du train, qui
-// juge la tête de sa PR) et « les courses de tel ÉVÉNEMENT » (`merge_group` : les commits de file, dont
-// la ref nomme la PR, `headBranch`). `commit` prime sur `branche` : `gh run list --commit <sha>` ne
-// dépend d'aucune branche.
+// Une COURSE est une exécution de workflow. Deux QUESTIONS, une seule lecture : « les courses de tel
+// COMMIT » (l'étape `file` du train, qui juge la tête de sa PR ; le closer, qui situe sa plage) et
+// « les courses de tel ÉVÉNEMENT » (`merge_group` : les commits de file, dont la ref nomme la PR,
+// `headBranch`). `gh run list --commit <sha>` ne dépend d'aucune branche.
 //
 // COÛT MESURÉ (2026-09-05, ce dépôt, médiane de trois passes) : `--limit 1` = 985 ms,
 // `--limit 30` = 1 583 ms, `--limit 300` = 10 732 ms. La limite EST la fenêtre : `gh run list` n'a
@@ -13,14 +12,8 @@
 //
 // La sortie est TRIÉE par `createdAt` décroissant ICI : un consommateur qui prend `courses[0]` prend
 // la plus récente sans avoir à le savoir, et deux consommateurs ne trient pas différemment.
-//
-// MESURE : `WFRP_GH_STUB=<fichier json>` fournit la réponse au lieu de `gh`. Deux formes :
-//   · un TABLEAU de courses — servi à chaque appel ;
-//   · `{ "appels": [ [...], [...] ] }` — une liste PAR APPEL, la dernière se répète. C'est la forme
-//     qui rejoue une liste PÉRIMÉE puis sa relecture (session #1508), et les deux fenêtres 30/300.
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { TRONC, classer, fait, indisponible } from './gitPorte.mjs'
+import { classer, fait, indisponible } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 import { PORTE } from '../../gates/workflowsDuDepot.mjs'
 
@@ -36,28 +29,6 @@ export const ROUGES = new Set(['failure', 'timed_out', 'startup_failure'])
 /** `cancelled` n'est ni vert ni rouge : personne n'a jugé ce contenu. */
 export const ANNULEE = 'cancelled'
 
-/** Appels déjà servis par un fichier de stub, par chemin. */
-const appelsServis = new Map()
-
-/** Remet les compteurs du stub à zéro (un test qui joue deux scénarios sur le même fichier). */
-export const reinitialiserStub = () => appelsServis.clear()
-
-/** Courses d'un stub, PUR sauf le compteur d'appels : la n-ième lecture reçoit la n-ième liste. */
-function listeDuStub(chemin) {
-  let lu
-  try {
-    lu = JSON.parse(readFileSync(chemin, 'utf8'))
-  } catch (e) {
-    return indisponible(e.message)
-  }
-  if (Array.isArray(lu)) return fait(triees(lu))
-  const appels = Array.isArray(lu?.appels) ? lu.appels : null
-  if (!appels || appels.length === 0) return indisponible(`stub sans courses — ni tableau ni \`appels\` : ${chemin}`)
-  const rang = appelsServis.get(chemin) ?? 0
-  appelsServis.set(chemin, rang + 1)
-  return fait(triees(appels[Math.min(rang, appels.length - 1)]))
-}
-
 /** Tri par `createdAt` décroissant ; à défaut de date, l'ordre servi est conservé. PUR. */
 export function triees(courses) {
   return [...(courses ?? [])]
@@ -67,22 +38,19 @@ export function triees(courses) {
 }
 
 /**
- * Les courses CI d'une branche, d'un commit ou d'un événement (`evenement`, `gh run list --event`), en
- * union à trois issues (jamais `absent` : une liste vide EST un fait).
- * @param {{cwd?:string, env?:object, limit?:number, workflow?:string|null, branche?:string|null,
- *          commit?:string|null, evenement?:string|null, spawn?:Function}} [p]
+ * Les courses CI du workflow `workflow` pour un `commit` ou un `evenement` (`gh run list --event`),
+ * en union à trois issues (jamais `absent` : une liste vide EST un fait).
+ * @param {{cwd?:string, limit?:number, workflow?:string, commit?:string|null, evenement?:string|null, spawn?:Function}} p
  * @returns {{disponible:true, valeur:object[]}|{disponible:false, raison:string}}
+ * @throws {TypeError} ni `commit` ni `evenement` : la question n'est pas posée.
  */
-export function coursesCi({
-  cwd = process.cwd(), env = process.env, limit = 30, workflow = PORTE,
-  branche = TRONC.nom, commit = null, evenement = null, spawn = spawnSync,
-} = {}) {
-  if (env.WFRP_GH_STUB) return listeDuStub(env.WFRP_GH_STUB)
+export function coursesCi({ cwd = process.cwd(), limit = 30, workflow = PORTE, commit = null, evenement = null, spawn = spawnSync } = {}) {
+  if (!commit && !evenement) throw new TypeError('coursesCi : un `commit` ou un `evenement` est la question')
   const args = [
     'run', 'list',
-    ...(commit ? ['--commit', commit] : branche ? ['--branch', branche] : []),
+    ...(commit ? ['--commit', commit] : []),
     ...(evenement ? ['--event', evenement] : []),
-    ...(workflow ? ['--workflow', workflow] : []),
+    '--workflow', workflow,
     '--limit', String(limit), '--json', CHAMPS,
   ]
   const vu = classer(spawn('gh', args, {
@@ -101,8 +69,7 @@ export function coursesCi({
 
 /**
  * Les noms des jobs ROUGES (`ROUGES`) et ANNULÉS (`ANNULEE`) de la course `id` (`gh run view <id> --json
- * jobs`), de l'essai `attempt` s'il est nommé (`vueDeCourse`), en union à trois issues. `WFRP_GH_STUB` n'y répond
- * pas : un test injecte `spawn`.
+ * jobs`), de l'essai `attempt` s'il est nommé (`vueDeCourse`), en union à trois issues.
  * @param {{cwd?:string, id:number, attempt?:number|null, spawn?:Function}} p
  * @returns {{disponible:true, valeur:{rouges:string[], annules:string[]}}|{disponible:false, raison:string}}
  */
@@ -203,7 +170,7 @@ export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC, contexte = 
 
 /**
  * Le journal des jobs en ÉCHEC de la course `id` (`gh run view <id> --log-failed`), de l'essai `attempt` s'il
- * est nommé, en union à trois issues. `WFRP_GH_STUB` n'y répond pas : un test injecte `spawn`.
+ * est nommé, en union à trois issues.
  * @param {{cwd?:string, id:number, attempt?:number|null, spawn?:Function}} p
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */

@@ -149,16 +149,17 @@ export function shaPousse({ depot, filtres }) {
   return sha ? { sha } : { refus: `${branche} n’est pas poussée sur origin — rien à attendre` }
 }
 
-function main() {
-  const options = optionsDe(process.argv.slice(2))
-  const ecrire = (ligne) => process.stdout.write(`${ligne}\n`)
-  const panne = (motif) => {
-    process.stderr.write(`[ci] ${motif}\n`)
-    return CODE_PANNE
-  }
+/**
+ * Le geste entier de la ligne de commande, ses lectures injectables : `lire(sha)` (les courses du sha),
+ * `echecs({id, attempt})` (`echecsDeLaCourse`), `pousse()` (`shaPousse` de l'arbre). Rend le code de sortie.
+ * @param {{argv:string[], ecrire:(ligne:string) => void, panne:(motif:string) => number, lire:Function, echecs:Function, pousse:Function}} p
+ * @returns {number}
+ */
+function principal({ argv, ecrire, panne, lire, echecs, pousse }) {
+  const options = optionsDe(argv)
   if (!options) return panne('usage : node scripts/ops/ci.mjs --attendre [<sha complet>] | --echecs <run>')
   if (options.echecs) {
-    const vu = echecsDeLaCourse({ cwd: RACINE, id: options.echecs })
+    const vu = echecs({ id: options.echecs })
     if (!vu.disponible) return panne(`course ${options.echecs} illisible : ${vu.raison}`)
     ecrire(`échecs de ${urlDeCourse(options.echecs)}`)
     vu.valeur.lignes.forEach(ecrire)
@@ -166,16 +167,16 @@ function main() {
   }
   let sha = options.sha
   if (!sha) {
-    const pousse = shaPousse({ depot: depotDe(RACINE), filtres: branchesDePush(texteDeCi({ cwd: RACINE }), `${DOSSIER}/${PORTE}`) })
-    if (pousse.refus) return panne(pousse.refus)
-    sha = pousse.sha
+    const vu = pousse()
+    if (vu.refus) return panne(vu.refus)
+    sha = vu.sha
   }
-  const verdict = attendreLaCi({ sha, lire: () => coursesCi({ cwd: RACINE, commit: sha, limit: 30 }), ecrire })
+  const verdict = attendreLaCi({ sha, lire: () => lire(sha), ecrire })
   if (verdict.etat !== 'rouge') {
     ecrire(ligneDeCi(verdict, sha))
     return CODES_DE_CI[verdict.etat]
   }
-  const vu = echecsDeLaCourse({ cwd: RACINE, id: verdict.course.databaseId, attempt: verdict.course.attempt ?? null })
+  const vu = echecs({ id: verdict.course.databaseId, attempt: verdict.course.attempt ?? null })
   if (!vu.disponible) {
     ecrire(ligneDeCi(verdict, sha))
     ecrire(`  jobs illisibles : ${vu.raison} — \`node scripts/ops/ci.mjs --echecs ${verdict.course.databaseId}\``)
@@ -187,14 +188,29 @@ function main() {
   return CODES_DE_CI[juge.etat]
 }
 
-/** `main`, dont TOUTE exception sort en `CODE_PANNE` nommée sur stderr : jamais en 1, le code du rouge. */
-function mainNomme() {
-  try {
-    return main()
-  } catch (e) {
-    process.stderr.write(e instanceof GitIndisponible ? `[ci] git indisponible : ${e.raison}\n` : `[ci] ARRÊT INATTENDU : ${e?.stack ?? e}\n`)
+/**
+ * `principal` sur les lectures RÉELLES de `RACINE` (les injectées pour la mesure), dont TOUTE exception
+ * sort en `CODE_PANNE` nommée par `erreur` : jamais en 1, le code du rouge.
+ * @param {{argv:string[], sortie?:(texte:string) => void, erreur?:(texte:string) => void, lire?:Function, echecs?:Function, pousse?:Function}} p
+ * @returns {number}
+ */
+export function executer({
+  argv,
+  sortie = (texte) => process.stdout.write(texte),
+  erreur = (texte) => process.stderr.write(texte),
+  lire = (sha) => coursesCi({ cwd: RACINE, commit: sha, limit: 30 }),
+  echecs = (p) => echecsDeLaCourse({ cwd: RACINE, ...p }),
+  pousse = () => shaPousse({ depot: depotDe(RACINE), filtres: branchesDePush(texteDeCi({ cwd: RACINE }), `${DOSSIER}/${PORTE}`) }),
+}) {
+  const panne = (motif) => {
+    erreur(`[ci] ${motif}\n`)
     return CODE_PANNE
+  }
+  try {
+    return principal({ argv, ecrire: (ligne) => sortie(`${ligne}\n`), panne, lire, echecs, pousse })
+  } catch (e) {
+    return panne(e instanceof GitIndisponible ? `git indisponible : ${e.raison}` : `ARRÊT INATTENDU : ${e?.stack ?? e}`)
   }
 }
 
-if (import.meta.main) process.exit(mainNomme())
+if (import.meta.main) process.exit(executer({ argv: process.argv.slice(2) }))

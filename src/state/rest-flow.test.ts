@@ -26,6 +26,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { cascadeDeTest } from './cascadeTestKit';
 
 const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
 
@@ -174,21 +175,19 @@ describe('openRest / choix par héros', () => {
     h.diseases = [contractDisease('pneumonie', battleRngFor())!];
     useGame.setState((s) => ({ party: [...s.party] }));
     const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
-    const bande = (id: string) => ({
-      title: 'Entretien', purpose: 'travel' as const, cursor: 0, log: [], participants: [
-        { id, kind: 'diseaseTick', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
-          participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,
-            meta: { diseaseName: 'pneumonie', symptomId: 'fievre', onFail },
-            result: { roll: 99, target: 30, sl: -6, success: false } }] },
-      ],
-    });
+    const bande = (id: string) => cascadeDeTest([
+      { id, kind: 'diseaseTick', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
+        participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,
+          meta: { diseaseName: 'pneumonie', symptomId: 'fievre', opsEchec: onFail },
+          result: { roll: 99, target: 30, sl: -6, success: false } }] },
+    ], { title: 'Entretien', purpose: 'travel' });
 
-    useGame.setState({ pendingCascade: bande('bande-dz1') as never });
+    useGame.setState({ pendingCascade: bande('bande-dz1') });
     useGame.getState().cascadeNext();
     const fievre = () => useGame.getState().party[0].diseases![0].symptoms.find((s) => s.symptomId === 'fievre');
     expect(fievre()!.severity, '1er échec : la Fièvre passe Grave').toBe('grave');
 
-    useGame.setState({ pendingCascade: bande('bande-dz2') as never });
+    useGame.setState({ pendingCascade: bande('bande-dz2') });
     useGame.getState().cascadeNext();
     const symptomes = useGame.getState().party[0].diseases![0].symptoms.map((s) => s.symptomId);
     expect(symptomes, '2ᵉ échec, Fièvre DÉJÀ Grave : l’échelon suivant tombe').toContain('toxine');
@@ -198,12 +197,10 @@ describe('openRest / choix par héros', () => {
     const h = useGame.getState().party[0];
     const exten0 = stacks(h, 'extenue');
     // Cascade à une BANDE de marche forcée (#1117 L3), jet de la rangée figé sur un ÉCHEC.
-    useGame.setState({ pendingCascade: {
-      title: 'Marche', purpose: 'travel', cursor: 0, log: [], participants: [
-        { id: 'bande-m1', kind: 'forcedMarch', label: fixtureText('Marche forcée'), aggregate: 'none',
-          participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
-      ],
-    } });
+    useGame.setState({ pendingCascade: cascadeDeTest([
+      { id: 'bande-m1', kind: 'forcedMarch', label: fixtureText('Marche forcée'), aggregate: 'none',
+        participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
+    ], { title: 'Marche', purpose: 'travel' }) });
     useGame.getState().cascadeNext(); // verrouille l'échec → +Exténué (applyForcedMarch)
     expect(stacks(useGame.getState().party[0], 'extenue')).toBe(exten0 + 1);
     expect(useGame.getState().pendingCascade).toBeNull();

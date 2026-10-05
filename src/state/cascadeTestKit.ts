@@ -7,10 +7,19 @@
  */
 import { registerCascadeApplier, type CascadeApplier } from './cascade';
 import type { GameState } from './store';
-import type { BatchParticipant, CascadeStep } from './pendings';
+import type { BatchParticipant, CascadeStep, PendingCascade } from './pendings';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
+
+/** UNE séquence de test, seule fabrique des fixtures de `PendingCascade` : son compteur d'identité
+ *  (`seq`, #1508) vaut le nombre d'étapes poussées, comme pour une séquence ouverte par le code. */
+export function cascadeDeTest(
+  participants: CascadeStep[],
+  champs: Partial<Omit<PendingCascade, 'participants' | 'seq'>> = {},
+): PendingCascade {
+  return { title: 'Test', purpose: 'test', cursor: 0, log: [], ...champs, participants, seq: participants.length };
+}
 
 /** Ce qu'il faut porter pour être JUGEABLE par `inexplique` — les quatre grandeurs d'une ligne de jet,
  *  toutes optionnelles. STRUCTUREL, jamais un type de porteur : `CascadeStep`, `BatchParticipant`,

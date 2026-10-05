@@ -1,5 +1,5 @@
 // LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes
-// (pre-push, garde de solde, revue de palier, stocks de plage, faits de palier, closer) exécutent.
+// (pre-push, garde de solde, stocks de plage, closer) exécutent.
 //
 // COMBIEN D'ISSUES A UNE LECTURE GIT ? TROIS, et les confondre a deux ans de conséquences :
 //   1. `{ disponible: true, valeur }`      — git a répondu ;
@@ -123,7 +123,7 @@ const ditAbsent = (stderr) => MOTIFS_ABSENT.some((re) => re.test(String(stderr ?
  * PROGRAMME, qui remonte. PUR.
  * @param {unknown} e @returns {boolean}
  */
-export const estEchecDeLecture = (e) => e instanceof GitIndisponible || e instanceof BorneAbsente
+const estEchecDeLecture = (e) => e instanceof GitIndisponible || e instanceof BorneAbsente
   || (typeof e?.errno === 'number' && typeof e?.syscall === 'string')
   || typeof e?.status === 'number' || typeof e?.signal === 'string'
 
@@ -615,6 +615,30 @@ export function commitsNommes(depot, revisions) {
   })
 }
 
+/**
+ * L'HISTOIRE de HEAD dans `depot`, lue au plus UNE fois (`grapheDe`, à la première question) et
+ * partagée par les questions d'UNE évaluation — les commits qu'un solde dit correcteurs
+ * (`histoireDesCitations`, scripts/hooks/solde-ticket-guard.mjs) ; elle ne survit pas à
+ * l'évaluation, HEAD pouvant bouger. Chaque question porte sur une LISTE de révisions, résolue en UN
+ * lot (`commitsNommes`) comme git la résout, parmi TOUS les objets du dépôt : un préfixe ambigu ou
+ * inconnu n'est pas dans l'histoire. Une révision de plus ne lance donc aucun processus.
+ *   - `commits(revisions)` : le commit du graphe (`CommitDuGraphe`) de chacune, `null` hors de HEAD
+ *     (HEAD compris) — le PRÉDICAT unique « dans HEAD » des portes, qui rend le commit.
+ * @param {Depot} depot
+ * @throws {GitIndisponible} propagée de `grapheDe` ou `commitsNommes`, à la question.
+ */
+export function histoireDeHead(depot) {
+  /** @type {Map<string, CommitDuGraphe> | null} */
+  let parSha = null
+  const graphe = () => (parSha ??= new Map((grapheDe(depot, ['HEAD']) ?? []).map((c) => [c.sha, c])))
+  return {
+    commits: (revisions) => {
+      if (!revisions.length) return []
+      return commitsNommes(depot, revisions).map((sha) => (sha === null ? null : graphe().get(sha) ?? null))
+    },
+  }
+}
+
 /** La date d'un commit par `strftime` (`git help rev-list`, `--date=format:` ; `git help
  *  for-each-ref`, `:format:`), dans le fuseau du commit : `%z` en `±hhmm` sous toute version, là où
  *  `%cI` et `:iso-strict` écrivent `Z` pour UTC depuis git 2.45 (notes de version de git 2.45.0). */
@@ -926,13 +950,11 @@ export function patchsParChemin(patch) {
   return parChemin
 }
 
-/** Ce qui change d'une base `null` : rien. */
+/** Les lectures de deux arbres IDENTIQUES (`changeEntre` sous `inchange`) : rien ne change. */
 const RIEN = Object.freeze({
-  base: null,
   chemins: () => [],
   numstat: () => [],
   diff: () => '',
-  lirePreImage: () => null,
   renommages: () => new Map(),
 })
 
@@ -942,14 +964,15 @@ const RIEN = Object.freeze({
  * lignes. L'unique lecture d'un commit POSÉ des portes : fichiers, diff, textes et renommages
  * viennent tous de la même base. `commit` : une révision, lue dans le graphe, ou un commit que
  * l'appelant tient déjà de `grapheDe` (aucune relecture). Une fusion dont l'ARBRE est celui de sa
- * fusion automatique ne change rien, sans lecture de différence. Une révision que git ne rend pas : tout
- * est vide.
+ * fusion automatique ne change rien, sans lecture de différence. Un commit que git ne rend pas n'a pas
+ * de base : il LÈVE, jamais « rien » (#2328).
  * @param {Depot} depot @param {string | CommitDuGraphe} commit
- * @throws {GitIndisponible} propagée de `baseDe`. {BorneAbsente} révision absente.
+ * @throws {GitIndisponible} commit que git ne rend pas, ou propagée de `baseDe`. {BorneAbsente}
+ *   révision absente.
  */
 export function ceQueFaitLeCommit(depot, commit) {
   const lu = typeof commit === 'string' ? commitDuGraphe(depot, commit) : commit
-  if (!lu) return RIEN
+  if (!lu) throw new GitIndisponible(`ce que fait ${String(commit).slice(0, 9)} : git ne rend pas le commit, sa base est inconnue`)
   const base = baseDe(depot, lu)
   return changeEntre(depot, base, lu.sha, { inchange: base === lu.arbre })
 }
@@ -1277,6 +1300,15 @@ export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').tr
 
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })
+
+// #2329
+export function shaPrecedentDeHead(depot) {
+  const existe = interroger(depot, ['reflog', 'exists', 'HEAD'])
+  if (!existe.disponible) return confier(depot, existe.raison)
+  if (sortieOuNull(existe) === null) return null
+  const brut = lire(depot, ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}'])
+  return brut?.trim() || null
+}
 
 /**
  * Le SHA du commit que `ref` nomme (`rev-parse --verify --quiet <ref>^{commit}`), abrégé sous
