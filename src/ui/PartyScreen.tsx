@@ -18,7 +18,8 @@ import { ActiveModal } from './ActiveModal';
 import { HeroPresentation } from './HeroPresentation';
 import { Modal } from './Modal';
 import { ScreenShell } from './ScreenShell';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
+import { refusComposition } from '../state/partyFlow';
 import { RoseAxes } from './RoseAxes';
 import { DetailFrame } from './DetailFrame';
 import { HeroSheet } from './HeroSheet';
@@ -83,6 +84,7 @@ export function PartyScreen() {
   const addHero = useGame((s) => s.partyAddHero);
   const removeHero = useGame((s) => s.partyRemoveHero);
   const replaceHero = useGame((s) => s.partyReplaceHero);
+  const refusDeComposition = useGame(refusComposition);
   const setEditingHero = useGame((s) => s.setEditingHero);
   const assignSlot = useGame((s) => s.netAssignSlot);
   const leave = useGame((s) => s.netLeave);
@@ -119,6 +121,7 @@ export function PartyScreen() {
         onQuitCoop={() => { leave(); setScreen('menu'); }}
         onCreate={() => { setEditingHero(null); setScreen('creator'); }}
         onEditHero={(id) => { setEditingHero(id); setScreen('creator'); }}
+        refusComposition={refusDeComposition}
         onAddHero={addHero}
         onRemoveHero={removeHero}
         onReplaceHero={(oldId, hero) => {
@@ -340,6 +343,7 @@ export function PartyScreenView({
   onAssignSlot,
   onStart,
   onResume,
+  refusComposition: refus = null,
 }: {
   party: Combatant[];
   net: NetState;
@@ -369,6 +373,9 @@ export function PartyScreenView({
   onAssignSlot: (slot: number, seat: number) => void;
   onStart: () => void;
   onResume?: () => void;
+  /** Raison du refus de composition (`refusComposition`, en combat) : Créer, Choisir, Modifier, Remplacer
+   *  et Retirer se ferment sur elle, le sélecteur ne s'ouvre pas. Absent = composition ouverte. */
+  refusComposition?: string | null;
 }) {
   // Sélecteur dédié ouvert (recrutement d'un siège vide OU remplacement ciblé).
   const [selector, setSelector] = useState<SelectorTarget | null>(null);
@@ -452,6 +459,7 @@ export function PartyScreenView({
           <span className="hint"><Icon id="ui/wait" size="sm" /> {t('party.guest.waiting')}</span>
         )}
       </header>
+      {refus && <p className="hint party-coop-hint" role="status">{refus}</p>}
       {isHost && guestPending && (
         <p className="hint party-coop-hint"><Icon id="ui/wait" size="sm" /> {t('party.coop.pending')}</p>
       )}
@@ -516,12 +524,15 @@ export function PartyScreenView({
                     actions={ownsHero(h.id) && (
                       <>
                         {onEditHero && (
-                          <button className="btn small ghost" onClick={() => onEditHero(h.id)}>{t('party.hero.edit')}</button>
+                          <GatedAction id={`party-edit-${h.id}`} primary={false} btnClassName="small ghost" enabled={!refus} {...raisonSi(refus)}
+                            onClick={() => onEditHero(h.id)} label={t('party.hero.edit')} />
                         )}
                         {onReplaceHero && (
-                          <button className="btn small ghost" onClick={() => setSelector({ mode: 'replace', heroId: h.id })}>{t('party.hero.replace')}</button>
+                          <GatedAction id={`party-replace-${h.id}`} primary={false} btnClassName="small ghost" enabled={!refus} {...raisonSi(refus)}
+                            onClick={() => setSelector({ mode: 'replace', heroId: h.id })} label={t('party.hero.replace')} />
                         )}
-                        <button className="btn small ghost danger" onClick={() => onRemoveHero(h.id)}>{t('party.hero.remove')}</button>
+                        <GatedAction id={`party-remove-${h.id}`} primary={false} btnClassName="small ghost danger" enabled={!refus} {...raisonSi(refus)}
+                          onClick={() => onRemoveHero(h.id)} label={t('party.hero.remove')} />
                       </>
                     )}
                   />
@@ -534,8 +545,10 @@ export function PartyScreenView({
                     </span>
                     {mine && (
                       <Row className="seat-empty-actions">
-                        <button className="btn small" onClick={onCreate}>{t('party.seat.create')}</button>
-                        <button className="btn small btn-primary" onClick={() => setSelector({ mode: 'recruit' })}>{t('party.seat.choose')}</button>
+                        <GatedAction id={`party-create-${i}`} primary={false} btnClassName="small" enabled={!refus} {...raisonSi(refus)}
+                          onClick={onCreate} label={t('party.seat.create')} />
+                        <GatedAction id={`party-choose-${i}`} btnClassName="small" enabled={!refus} {...raisonSi(refus)}
+                          onClick={() => setSelector({ mode: 'recruit' })} label={t('party.seat.choose')} />
                       </Row>
                     )}
                   </div>

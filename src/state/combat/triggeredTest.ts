@@ -44,16 +44,10 @@ import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId } from '../combatants';
+import { touchActors } from '../combatOrParty';
 import { campSpend, spendableAdvantage } from './advantagePool';
 import { dataLabel } from '../../data';
 import { t } from '../../i18n';
-
-/** Reflète la mutation EN PLACE d'un combattant (États retirés) dans les références party/battle pour
- *  un re-rendu React (clone des tableaux) — mirroir de `syncCombatant` des appliers d'upkeep. */
-function syncCombatant(get: Get, set: SetFn): void {
-  set({ party: [...get().party] });
-  if (get().battle) set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
-}
 
 /** Pousse des lignes de journal d'un effet inline dans la file différée (déversée au rendu) — un hook
  *  profond fire AVANT le `set(battle.log)` final → on passe par la file (`drainPendingLog`, §5). */
@@ -392,7 +386,7 @@ registerCascadeApplier('triggeredBatchTest', (get, set, step) => {
     const hero = actorIn(get(), part.id);
     if (!hero || !part.result) continue;
     journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
-    syncCombatant(get, set);
+    set(touchActors(get()));
     playAfter(get, set, hero, step.meta?.after, nomDeSource(step));
   }
   return { consequences: freeCons(journal) };
@@ -503,7 +497,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
               differerLaSuite(ctx.set, { kind: 'seq', steps: stack.splice(0) }, 'combat', label);
               return;
             }
-            syncCombatant(ctx.get, ctx.set); queueLines(ctx.get, ctx.set, lines, unit.id);
+            ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
           }
         }
         break;
@@ -644,7 +638,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test OPPOSÉ PERDU par le porteur). Une
     // égalité parfaite n'est pas un échec (statu quo) : le trigger ne part que si l'attaquant l'emporte.
     if (o.winner === 'attacker') lines.push(...fireOwnTestFailed(ctx.get, c, { sl: t.sl }));
-    syncCombatant(ctx.get, ctx.set);
+    ctx.set(touchActors(ctx.get()));
     queueLines(ctx.get, ctx.set, lines, c.id);
     playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source);
     return;
@@ -653,7 +647,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.success, onFail: node.fail }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success) lines.push(...fireOwnTestFailed(ctx.get, c, { sl: t.sl }));
-  syncCombatant(ctx.get, ctx.set); // les combattants ont muté (États retirés)
+  ctx.set(touchActors(ctx.get())); // les combattants ont muté (États retirés)
   queueLines(ctx.get, ctx.set, lines, c.id);
   playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source); // continuation APRÈS la branche (ordre du journal)
 }
@@ -695,7 +689,7 @@ registerCascadeApplier('triggeredTest', (get, set, step, hero) => {
   const journal = applyTriggeredTestBranch(hero, step.result, { onSuccess, onFail }, exec);
   // (SEAM `onOwnTestFailed` d'une étape de cascade : centralisé dans `commitStep` — jamais ici, sinon
   //  double-émission ; l'étampe `meta.noOwnTestFailed` y garde la ré-entrance du FM de palier 2.)
-  syncCombatant(get, set); // refléter la mutation du héros (États) dans party/battle
+  set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
   // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
   // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
   playAfter(get, set, hero, step.meta?.after, nomDeSource(step), exec.source);
@@ -782,7 +776,7 @@ registerCascadeApplier('triggeredChoice', (get, set, step, hero) => {
   const fa = step.meta?.freeAttack;
   const freeAttack = fa && typeof fa === 'object' && 'targetId' in fa ? fa : undefined;
   const can = yes && choiceAffordable(get, hero, cost);
-  if (yes && can && cost != null) { campSpend(get, hero, cost); syncCombatant(get, set); } // débite la réserve du camp (mode groupe) / le combattant (LDB)
+  if (yes && can && cost != null) { campSpend(get, hero, cost); set(touchActors(get())); } // débite la réserve du camp (mode groupe) / le combattant (LDB)
   // Le DÉCIDEUR (`hero`) est le `caster` (porteur). La branche vise `choiceTargetId` (la VICTIME, Déstabilisante)
   // si présent, sinon le décideur lui-même (Frappe réactive : Test sur soi). Reconstruit depuis get() — jamais capturé.
   const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;

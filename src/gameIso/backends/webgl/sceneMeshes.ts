@@ -1131,6 +1131,17 @@ function cléActeur(p: ActorPose, signature: string): string {
   return `${p.c.id}${p.rider ? `+${p.rider.id}` : ''}|${signature}`;
 }
 
+/** Préfixe de l'identité de texture d'un acteur (`actorBillboards`), que porte le nom de son quad. */
+const PREFIXE_ACTEUR = 'acteur:';
+
+/** DÉCODEUR de l'identité d'un acteur (`PREFIXE_ACTEUR` + `cléActeur`) : l'ensemble EXACT des ids qu'elle
+ *  porte — le sujet, et son cavalier s'il est monté. Vide pour toute autre identité (#2198). */
+export function idsDeLActeur(identite: string): string[] {
+  if (!identite.startsWith(PREFIXE_ACTEUR)) return [];
+  const fin = identite.indexOf('|', PREFIXE_ACTEUR.length);
+  return identite.slice(PREFIXE_ACTEUR.length, fin < 0 ? undefined : fin).split('+');
+}
+
 /** Clé de MÉMO d'un acteur du monde volumique (`stage/VolumetricWorld`) : son identité
  *  (`actorIdentityKey`), plus la case, le cap et le sol de sa place — l'ancre du quad. */
 export function actorPoseKey(p: ActorPose): string {
@@ -1479,7 +1490,7 @@ export function actorBillboards(actors: readonly ActorPose[], scene: Scene, mpt:
     const { anchor, cell } = ancreActeur(pose, scene, mpt);
     out.push({
       // la signature de l'INSTANTANÉ (`actorRenderSignature`) — la MÊME valeur que `actorIdentityKey`.
-      identity: `acteur:${cléActeur(p, signatureDe(instantané))}`,
+      identity: `${PREFIXE_ACTEUR}${cléActeur(p, signatureDe(instantané))}`,
       cid: c.id,
       ...(rider ? { cavalier: rider.id } : {}),
       // TEINTE D'ÉQUIPE (#1297) : la MÊME dérivation que l'anneau aux pieds du jeton et que le jeton

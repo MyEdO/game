@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { setItemShape, transferItem, toggleEquip, stowItem, setLoadoutSlot } from './partyFlow';
-import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, addItemToHero, activeLoadout } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import type { GameState } from './store';
@@ -254,7 +254,7 @@ describe('setLoadoutSlot — une arme ACHETÉE, rangée dans un sac, choisie au 
   it('elle est en main, et n’est plus dans le sac', () => {
     const base = { id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 } } as unknown as Combatant;
     recomputeLoadout(base);
-    const hero = addItemToHero(base, 'arme-simple');
+    const hero = avecObjet(base, itemFromTrappingById('arme-simple')!);
     const achat = hero.items!.find((i) => i.kind === 'melee')!;
     expect(achat.inside, 'rangée d’office à l’achat').toBe('sac-1');
     const { get, set } = makeHarness([hero]);

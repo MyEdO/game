@@ -16,7 +16,7 @@ import { act } from 'react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as THREE from 'three';
 import type { StageRenderer } from './GameStage3D';
-import { frameRectOf } from './boardPose';
+import { corpsDeLActeur, estCorps } from './corpsActeur';
 import { BUDGET_TRANCHE_MS_DEFAUT, clearAtlasCache, resetBakeQueue, setBudgetTrancheMs } from '../backends/webgl/atlasBake';
 import { clearFaceBakes } from '../backends/webgl/faceBake';
 import { clearPeriodTextures } from '../backends/webgl/periodTexture';
@@ -311,15 +311,19 @@ export async function respirer(ms: number, battre?: () => void): Promise<void> {
   } while (Date.now() < fin);
 }
 
-/** Tous les quads de billboard de la dernière frame dessinée (les corps, jamais leurs jumeaux de
- *  silhouette ni la géométrie empruntée au monde cuit). */
+/** Tous les quads de billboard de la dernière frame dessinée (`estCorps`). */
 export function quads(): THREE.Mesh[] {
   const out: THREE.Mesh[] = [];
   scènes[scènes.length - 1]?.traverse((o) => {
-    const m = o as THREE.Mesh;
-    if (m.isMesh && !m.userData.emprunte && frameRectOf(m.material as THREE.Material)) out.push(m);
+    if (estCorps(o)) out.push(o);
   });
   return out;
+}
+
+/** Corps VISIBLES de l'acteur `id` à la dernière frame dessinée (`corpsDeLActeur`). */
+export function corpsDessines(id: string): THREE.Mesh[] {
+  const scène = scènes[scènes.length - 1];
+  return scène ? corpsDeLActeur(scène, id) : [];
 }
 
 /**

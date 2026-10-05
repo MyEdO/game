@@ -146,6 +146,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
 import { actorIn, inBattleId, garanti } from './combatants';
+import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { norm } from '../lib/normalize';
@@ -2393,7 +2394,6 @@ function appliquerLaTouche(
   // → un héros à Destin est suspendu via pendingFateSave, sinon `dead = true`), pas un early-return brutal.
   // Le reste du flux d'attaque (États/Avantage/Critiques) est court-circuité : la cible est hors de combat.
   if (res.hit && res.autoKill) {
-    const battle = get().battle!;
     attacker.aiming = false;
     if (weapon.type === 'melee' && !isInanimate(target)) engage(attacker, target); // Engagé symétrique (LDB 13 l.174-175) — jamais avec un objet INANIMÉ
     if (!isInanimate(target)) markAttacked(attacker, target); // trace orientée du Round (LDB 85 l.383, `agressifEnvers`)
@@ -2409,7 +2409,7 @@ function appliquerLaTouche(
       set((s: GameState) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
     }
     bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind: 'melee', defense: 'none', weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
-    const b = markActed(get, set, battle); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
+    const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
     const log = [...b.log, ev('attack', tr('cf.finishHelpless', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
     if (isOutOfAction(target)) log.push(ev('death', tr('cf.outOfAction', { name: target.label }), target.id));
     for (const line of notifySlain(get, set, target)) log.push(ev('death', line, target.id)); // effet « à la mort » (banni…) — mort-auto du désespéré
@@ -3665,7 +3665,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const bg = get().battle;
   if (!gt.success) {
     const lache = applyOps(attacker, [{ op: 'disarm' }], { rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD' });
-    if (bg) set({ battle: { ...bg, combatants: [...bg.combatants], log: [...bg.log, ev('info', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'info', attacker.id)] } });
+    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('info', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'info', attacker.id)] } });
     return false;
   }
   if (bg) set({ battle: { ...bg, log: [...bg.log, ev('info', tr('cf.handGatePass', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id)] } });
@@ -4145,7 +4145,7 @@ export function applyGaze(get: Get, set: SetFn, attacker: Combatant): boolean {
   const spent = attacker.advantage; // l'IA met tout (min 1)
   const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-tir', battleRng());
   const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, spent);
-  set({ battle: markActed(get, set, get().battle!) }); // Regard = Action de la créature (l.238)
+  set({ battle: markActed(get, set) }); // Regard = Action de la créature (l.238)
   if (!suspended) checkBattleOver(get, set); // héros influençable → checkBattleOver à la fermeture de la cascade
   return true;
 }
@@ -4160,7 +4160,7 @@ export function applyChillGrasp(get: Get, set: SetFn, attacker: Combatant): bool
   if (!a) return false;
   const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-combat', battleRng());
   const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, a.avantage);
-  set({ battle: markActed(get, set, get().battle!) }); // Étreinte = Action de la créature (l.112)
+  set({ battle: markActed(get, set) }); // Étreinte = Action de la créature (l.112)
   if (!suspended) checkBattleOver(get, set); // héros influençable → checkBattleOver à la fermeture de la cascade
   return true;
 }
@@ -4198,7 +4198,7 @@ function aiBattement(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
   if (!battle) return false;
   const atk = rollManeuverAttacker(enemy, 'capacite-de-combat', battleRng());
   const line = resolveBattement(get, enemy, foe, atk);
-  set({ battle: { ...markActed(get, set, get().battle!), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
+  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return true;
@@ -4216,7 +4216,7 @@ function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
   const atk = { ...rollSansPilote(get, enemy, atkValue, 'intermediaire', battleRng()), base: atkValue };
   const def = { ...rollTest(defValue, 'intermediaire', battleRng()), base: defValue };
   const line = resolveDistraire(enemy, foe, atk, def);
-  set({ battle: { ...markActed(get, set, get().battle!), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
+  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return true;
@@ -4697,14 +4697,14 @@ export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: 
     // touché par les ops d'un sort de soutien, OU un rider de Domaine) a pu pousser des lignes dans la
     // file différée APRÈS les drains inline d'`applyCast` → on les DRAINE ici et on les passe en `extra`
     // au routage unique, qui les écrit dans le MÊME `log` que `lines`. File vide (heal/focus) → no-op.
-    const b = markActed(get, set, battle); // scellé AVANT la copie du journal : les lignes du Test d'approche en font partie
+    const b = markActed(get, set); // scellé AVANT la copie du journal : les lignes du Test d'approche en font partie
     const extra = drainPendingLog(get, set);
     set({ battle: { ...b, action: null, selectedSpellId: null } });
     journaliser(get, set, lines, kind, { extra });
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
   } else {
-    set({ party: [...get().party] });
+    set(touchActors(get()));
     journaliser(get, set, lines, kind);
     bus.emit(EVT.SCENE_DIRTY);
   }
@@ -6636,8 +6636,7 @@ function registerCombatEndBandApplier(
       row.outcome = resultLines(freeCons(lines));
       for (const l of lines) get().log(l);
     }
-    set({ party: [...get().party] });
-    if (get().battle) set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
+    set(touchActors(get()));
     return { consequences: [] };
   });
 }
@@ -6759,13 +6758,11 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   // et PERMANENTE (plus aucun porteur pour la détacher). Détachement propre AVANT writeback, comme une
   // expiration normale (`removeActiveEffects` : MÊME couture que `tickDurations`).
   for (const c of battle.combatants) removeActiveEffects(c, (e) => e.duration.scale === 'rounds');
-  // `outOfRencontre` est l'état de LA rencontre (éjection par le Destin, reddition, homme à la mer) :
-  // il tombe avec elle — `LDB 17 l.31` / `LDB 17 l.35`. Sans cette remise à zéro AU TEARDOWN, le
-  // héros éjecté restait exclu de tout ce qui filtre le groupe hors combat (quorum des ready-checks,
-  // nuit de repos, voyage) ET du carry-in du combat suivant (`startCombat`).
+  // Couture de RETOUR complète (`REPORT_DE_COMBATTANT`, #2312) : ce qui est propre à la rencontre
+  // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
   const newParty = party.map((h) => {
     const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'hero');
-    return c ? { ...h, ...carryOverState(c), outOfRencontre: false, exitReason: undefined } : h;
+    return c ? { ...h, ...carryOverState(c) } : h;
   });
   set({ party: newParty });
   if (endLines.length) get().log(endLines);
@@ -7501,9 +7498,11 @@ export function sealApproachMoves(get: Get, set: SetFn, c: Combatant | null | un
 /** SEULE couture qui pose `acted` (Action du Tour consommée) : elle scelle du même geste les
  *  déplacements en attente de l'acteur — une Action prise interdit `cancelMove`, donc le
  *  déplacement est irrévocable et son approche est due (LDB 21 l.27). Rend le `BattleState` à poser. */
-export function markActed(get: Get, set: SetFn, battle: BattleState): BattleState {
-  sealApproachMoves(get, set, inBattleId(battle, battle.order[battle.turn]));
-  return { ...get().battle ?? battle, acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
+export function markActed(get: Get, set: SetFn): BattleState {
+  // L'acteur se lit dans l'état VIVANT : un effet joué avant (`ecrireActeur`, #2312) a pu remplacer son objet.
+  const vivant = garanti(get().battle, 'battle', 'markActed');
+  sealApproachMoves(get, set, inBattleId(vivant, vivant.order[vivant.turn]));
+  return { ...garanti(get().battle, 'battle', 'markActed'), acted: true }; // RE-LU après le scellement : ce qu'il a écrit ne se réverte pas
 }
 
 /** Forme commune d'un Test de Psychologie de combat DÛ pour un héros (cumul `prevDR` = 0 sauf Peur étendue). */
@@ -7695,9 +7694,7 @@ export function openRoundStartPsych(get: Get, set: SetFn): void {
   // détenteurs du roster — il rafraîchit ici le verdict de présence porté par `active`, que les
   // résolutions d'attaque (sans roster) liront ensuite.
   const battle = get().battle;
-  if (battle && refreshAllDefendedPsych(battle.combatants)) {
-    set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
-  }
+  if (battle && refreshAllDefendedPsych(battle.combatants)) set(touchActors(get()));
   openCombatPsychCascade(get, set, collectHeroRoundStartPsych, 'Sang-froid', 'resource/resolve');
 }
 
@@ -7824,8 +7821,7 @@ registerCascadeApplier('combatPsych', (get, set, step) => {
     part.outcome = lines;
     for (const l of lines) get().log(l.text);
   }
-  set({ party: [...get().party] });
-  if (get().battle) set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
+  set(touchActors(get()));
   return { consequences: [] };
 });
 
@@ -8153,7 +8149,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const def = selfManeuversOf(enemy).find((m) => m.id === action.maneuverId);
       if (!def || !selfManeuverApplicable(enemy, def)) return advanceTurn(get, set);
       resolveManeuver(get, set, enemy, def, 0, null, 0, enemy); // cible = soi
-      set({ battle: markActed(get, set, get().battle!) });
+      set({ battle: markActed(get, set) });
       checkBattleOver(get, set);
       scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance'));
       return;
@@ -8232,7 +8228,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // IA n'ouvre aucune fenêtre, elle FOURNIT son pending — même déclaration, même ligne.
       const pr: PendingReload = { actorId: enemy.id, actorName: enemy.label, weaponUid: rw.uid ?? '', reload: reloadTarget, progressBefore, skillValue, difficulty: 'intermediaire', roll: test.roll, target: test.target, sl: test.sl, success: test.success };
       const aiReloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
-      set({ battle: { ...markActed(get, set, battle), log: [...battle.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
+      set({ battle: { ...markActed(get, set), log: [...get().battle!.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
       return;
@@ -8290,7 +8286,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // l'emporte (les options Empêtrer/Se libérer restent en DONNÉE, offertes au joueur). Test opposé PARTAGÉ
       // avec l'Attaque gratuite de tentacule/langue (`resolveGrappleOpposed`) ; ici il CONSOMME l'Action (l.161).
       const line = resolveGrappleOpposed(get, enemy, foe);
-      set({ battle: { ...markActed(get, set, battle), action: null, log: [...battle.log, ev('attack', line, enemy.id, foe.id)] } });
+      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       checkBattleOver(get, set);
       scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'postAttack'));
@@ -8305,7 +8301,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const poste = hull?.postes?.find((p) => p.item.uid === action.posteUid);
       if (!poste || (poste.crewIds ?? []).includes(enemy.id)) return advanceTurn(get, set);
       serveAtPoste(enemy, poste, battle.combatants);
-      set({ battle: { ...markActed(get, set, battle), action: null, log: [...battle.log, ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id)] } });
+      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
       return;

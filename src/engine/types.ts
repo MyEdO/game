@@ -1745,9 +1745,6 @@ export interface Combatant {
    *  `battleWater`) sur une cible adjacente, immunise le Round courant, puis consommé par
    *  `suffocationTick` (`engine/suffocation.ts`) : à reposer chaque Round pour rester immunisé. */
   wateredThisRound?: boolean;
-  /** Attribut de Shyish (LDB 48 l.501) : « Une cible ne peut avoir qu'un seul État Exténué gagné
-   *  de cette façon à la fois » — marqueur posé au premier Exténué d'un Sort de la Mort. */
-  shyishExhausted?: boolean;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).
    *  Réinitialisé au début de chaque combat (startCombat). N'affecte PAS l'arrêt d'Hémorragie. */
   soinRencontreUtilise?: boolean;

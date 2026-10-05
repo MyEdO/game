@@ -20,7 +20,8 @@ import * as spriteRaycast from '../backends/webgl/spriteRaycast';
 import { targetUnderPointer } from './spritePicker';
 import * as percageModule from './percage';
 import { actorCapsuleOf } from './actorCapsule';
-import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, quads, respirer, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, quads, respirer, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import { idsDeLActeur } from '../backends/webgl/sceneMeshes';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -102,8 +103,8 @@ function rendre(actors: ActorPose[], percage?: PercageEntrees): void {
   });
 }
 
-/** Quads VISIBLES de l'acteur `h1` (le nom d'un quad porte l'identité de son sujet). */
-const silhouettes = (): THREE.Mesh[] => quads().filter((m) => m.visible && m.name.startsWith('acteur:h1'));
+/** Corps VISIBLES de l'acteur `h1` (`corpsDeLActeur`). */
+const corpsDeH1 = (): THREE.Mesh[] => corpsDessines('h1');
 
 /** Sert toutes les images en vol, tour par tour, jusqu'à une file vide deux tours de suite. */
 async function toutServir(àChaqueTour?: () => void): Promise<void> {
@@ -139,20 +140,20 @@ afterEach(() => {
   battre = null;
 });
 
-describe('#2097 — identité d’acteur changée : une seule silhouette pendant la cuisson, et un rejet libère le sortant', () => {
+describe('#2097 — identité d’acteur changée : un seul corps pendant la cuisson, et un rejet libère le sortant', () => {
   it('le sortant tient la case en sursis pendant la cuisson, et cède au montage de l’entrant', async () => {
-    const [avant] = silhouettes();
+    const [avant] = corpsDeH1();
     expect(avant, 'PRÉMISSE : le quad de l’acteur est monté').toBeDefined();
 
     rendre(pose(héros('rapiere')));
     await respirer(40, () => battre?.());
     expect(ras.enAttente.length, 'PRÉMISSE : la texture de l’entrant est en vol').toBeGreaterThan(0);
-    expect(silhouettes().map((m) => m.name), 'pendant la cuisson, le sortant en sursis reste seul à l’écran').toEqual([avant.name]);
+    expect(corpsDeH1().map((m) => m.name), 'pendant la cuisson, le sortant en sursis reste seul à l’écran').toEqual([avant.name]);
 
     const comptes: number[] = [];
-    await toutServir(() => comptes.push(silhouettes().length));
-    expect(comptes.every((n) => n === 1), `silhouettes de l’acteur à chaque issue : ${comptes.join(',')}`).toBe(true);
-    const après = silhouettes();
+    await toutServir(() => comptes.push(corpsDeH1().length));
+    expect(comptes.every((n) => n === 1), `corps de l’acteur à chaque issue : ${comptes.join(',')}`).toBe(true);
+    const après = corpsDeH1();
     expect(après.length).toBe(1);
     expect(après[0].name, 'l’entrant a remplacé le sortant').not.toBe(avant.name);
   });
@@ -162,13 +163,13 @@ describe('#2097 — identité d’acteur changée : une seule silhouette pendant
     rendre(pose(héros('rapiere')));
     await respirer(40, () => battre?.());
     expect(ras.enAttente.length, 'PRÉMISSE : la texture de l’entrant est en vol').toBe(1);
-    expect(silhouettes().length, 'PRÉMISSE : le sortant est en sursis').toBe(1);
+    expect(corpsDeH1().length, 'PRÉMISSE : le sortant est en sursis').toBe(1);
 
     await act(async () => { ras.rejeterUne(); });
     await respirer(40, () => battre?.());
 
     expect(avertir, 'PRÉMISSE : le rejet a atteint le montage').toHaveBeenCalled();
-    expect(quads().filter((m) => m.name.startsWith('acteur:h1')), 'au rejet de l’entrant, le sortant en sursis est libéré').toEqual([]);
+    expect(quads().filter((m) => idsDeLActeur(m.name).includes('h1')), 'au rejet de l’entrant, le sortant en sursis est libéré').toEqual([]);
   });
 });
 

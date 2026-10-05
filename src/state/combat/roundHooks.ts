@@ -22,6 +22,7 @@ import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
 import { collectRoundEndTestSteps } from './triggeredTest';
 import { inBattleId } from '../combatants';
+import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
 import { groupMatch } from '../../engine/groups';
 import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
@@ -34,7 +35,7 @@ import { combatStakeRef } from '../../data';
 import { t } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
 import type { CascadeStep } from '../pendings';
-import type { Get, Set as SetFn } from '../flowTypes';
+import type { Get } from '../flowTypes';
 import { dataLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 
@@ -426,13 +427,6 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
   return steps;
 }
 
-/** Applique la conséquence d'une étape d'upkeep (mute le héros, renvoie les lignes de journal). Mirroir
- *  du refresh d'état de `combatPsych` (le collecteur ne possède pas `set`, l'applier oui). */
-function syncCombatant(get: Get, set: SetFn): void {
-  set({ party: [...get().party] });
-  if (get().battle) set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
-}
-
 // (La Résistance à l'Empoisonné passe par l'applier GÉNÉRIQUE : son étape est de kind `triggeredTest`,
 //  résolue par l'applier `triggeredTest` de la brique cadence-aware — la branche `success`/`fail` de la donnée
 //  (retire 1+DR, puis Exténué si vidé) y est rejouée.)
@@ -444,13 +438,13 @@ function syncCombatant(get: Get, set: SetFn): void {
 registerCascadeApplier('fatigue', (get, set, step, hero) => {
   if (!hero || !step.result) return;
   const line = fatigueApply(hero, step.result.success, step.result.sl);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons([line ?? t('turn.effortHeld', { name: hero.label })]) };
 });
 registerCascadeApplier('aaBleedUnconscious', (get, set, step, hero) => {
   if (!hero || !step.result) return;
   const line = aaBleedUnconsciousApply(hero, step.result.success);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons([line ?? t('cond.aaBleedHold', { name: hero.label })]) };
 });
 
@@ -486,7 +480,7 @@ registerCascadeApplier('spellPlusChoice', (get, set, step, hero) => {
     return;
   }
   const lines = resolvePlusExtension(hero, effect, false);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons(lines) };
 });
 
@@ -498,6 +492,6 @@ registerCascadeApplier('spellPlusTest', (get, set, step, hero) => {
   const effect = findAwaitingExtension(hero, step);
   if (!effect) return;
   const lines = resolvePlusExtension(hero, effect, step.result.success);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons(lines) };
 });

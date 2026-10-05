@@ -114,8 +114,8 @@ describe('#62 — persistance des Traits psy acquis + compteur de Phobie (writeb
     expect(co.briseFromTerreur).toBe(2);
   });
 
-  it('carryOverState : compteur à 0 (ou absent) → pas reporté (rien à traîner)', () => {
+  it('carryOverState : le combattant EST le héros — un compteur absent revient absent (#2312)', () => {
     expect(carryOverState(hero({})).briseFromTerreur).toBeUndefined();
-    expect(carryOverState(hero({ psychTraits: [] })).psychTraits).toBeUndefined();
+    expect(carryOverState(hero({ psychTraits: [] })).psychTraits).toEqual([]);
   });
 });

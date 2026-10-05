@@ -118,7 +118,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
-import { capDuGroupe, inBattleId, meneurDeboutDuMonde, meneurDuMonde, poserCapDuGroupe } from './combatants';
+import { actorIn, capDuGroupe, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
@@ -2154,10 +2154,10 @@ export const useGame = create<GameState>((set, get) => ({
   buySpell: (heroId, spellId) => {
     const r = partyFlow.buySpell(get, set, heroId, spellId);
     if (r.ok && r.chaos) {
-      const hero = get().party.find((h) => h.id === heroId);
+      const hero = actorIn(get(), heroId);
       if (hero) {
         for (const l of gainCorruption(get, set, hero, 1)) get().log(l);
-        set({ party: [...get().party] });
+        set(touchActors(get()));
       }
     }
   },
@@ -2793,7 +2793,7 @@ export const useGame = create<GameState>((set, get) => ({
         // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
         const b = get().battle;
         const n = b ? dissipateSpell(b.combatants, p.dispel.spellId, p.dispel.casterId) : 0;
-        if (b) set({ battle: { ...b, combatants: [...b.combatants] } });
+        set(touchActors(get()));
         get().log(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
       }
       if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
@@ -2926,7 +2926,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (ca && battle) {
       const c = inBattleId(battle, ca.combatantId);
       if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
-      set({ battle: { ...markActed(get, set, battle), action: null } });
+      set({ battle: { ...markActed(get, set), action: null } });
     }
     // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
     // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
@@ -3038,25 +3038,9 @@ export const useGame = create<GameState>((set, get) => ({
   seaActivitiesConfirm: (picks) => seaActivities.seaActivitiesConfirm(get, set, picks),
   resolveManannPriest: (pay) => seaVoyageFlow.resolveManannPriest(get, set, pay),
   resolveShoreLeave: (allow) => seaVoyageFlow.resolveShoreLeave(get, set, allow),
-  setTravelRole: (heroId, role) => set({
-    party: get().party.map((h) => h.id === heroId ? { ...h, ...(role ? { travelRole: role } : { travelRole: undefined }) } : h),
-  }),
-  setShipRole: (crewId, role) => {
-    const b = get().battle;
-    const patch = (c: Combatant) => c.id === crewId ? { ...c, ...(role ? { shipRole: role } : { shipRole: undefined }) } : c;
-    set({
-      party: get().party.map(patch),
-      ...(b ? { battle: { ...b, combatants: b.combatants.map(patch) } } : {}),
-    });
-  },
-  setShipStation: (crewId, station) => {
-    const b = get().battle;
-    const patch = (c: Combatant) => c.id === crewId ? { ...c, ...(station ? { shipStation: station } : { shipStation: undefined }) } : c;
-    set({
-      party: get().party.map(patch),
-      ...(b ? { battle: { ...b, combatants: b.combatants.map(patch) } } : {}),
-    });
-  },
+  setTravelRole: (heroId, role) => set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role || undefined }))),
+  setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+  setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
   setPosteAmmo: (shipId, posteUid, ammoUid) => {
     const b = get().battle;
     const ship = inBattleId(b, shipId);
