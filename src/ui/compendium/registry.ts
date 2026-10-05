@@ -11,7 +11,7 @@ import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
@@ -78,6 +78,7 @@ import type { OutcomeBand } from '../../engine/activities';
 import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
+import type { PresetPnj } from '../../state/campaignNarratif';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
@@ -177,6 +178,7 @@ export type CodexRow =
    *  jamais une règle inventée : un simple repère de parcours (#393 P2, verdict juge vision P1 item 8). */
   | { t: 'nb'; text: string };
 export interface CodexSection {
+  /** Vide : section sans titre (la Description d'`InspectPanel`, sous l'onglet qui la nomme). */
   title: string;
   layout?: 'list' | 'chips' | 'grid';
   rows: CodexRow[];
@@ -2730,4 +2732,39 @@ export function combatantSections(c: Combatant): CodexSection[] {
     chips('Talents', (c.talents ?? []).map((t) => idRefRow('talents', t.talentId, t.spec))),
     chips('Sorts', (c.spells ?? []).map((id) => idRefRow('spells', id))),
   );
+}
+
+/** Catégorie Codex des créatures (`CODEX`, clé `creatures`) : le `type` du porteur de leur `desc`. */
+const CATEGORIE_DES_CREATURES = 'creatures';
+
+const sectionDescription = (text: string): CodexSection =>
+  ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur: { chemin: 'desc' } }] });
+
+/**
+ * La prose d'un combattant à fiche (#2206) : une section sans titre et l'entrée qui PORTE son texte
+ * (`CodexSections`, `entree`), ou `null` sans prose. Lit le porteur de fiche, jamais `creatureId`
+ * (`mergeCreatureProfile` laisse un `profil.id` l'écraser) ; lit `desc`, jamais `maison`.
+ * - réf : la `desc` de la créature du catalogue ;
+ * - preset : la `desc` de la fiche fusionnée, portée par la base du preset (`presetDe`, résolveur
+ *   injecté) quand elle est ce texte même ; sinon nue ;
+ * - statbloc (`defs-scenes/communs.ts`, aucun champ de prose), héros : `null`.
+ */
+export function proseDeFiche(
+  c: Combatant,
+  presetDe: (id: string) => PresetPnj | undefined,
+): { section: CodexSection; entree?: { type: string; id: string } } | null {
+  const p = c.porteurDeFiche;
+  if (p?.presetCreature) {
+    const text = p.presetCreature.desc;
+    if (!text) return null;
+    const base = presetDe(p.presetId)?.base;
+    return base && findCreatureById(base)?.desc === text
+      ? { section: sectionDescription(text), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
+      : { section: sectionDescription(text) };
+  }
+  if (p?.ref !== undefined) {
+    const desc = findCreatureById(p.ref)?.desc;
+    return desc ? { section: sectionDescription(desc), entree: { type: CATEGORIE_DES_CREATURES, id: p.ref } } : null;
+  }
+  return null;
 }

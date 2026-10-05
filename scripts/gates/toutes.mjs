@@ -247,12 +247,14 @@ export const ECRIT_LU = {
     lit: [
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
+      'scripts/etape-profilee.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
     ],
     raison:
+      'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
       'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
       '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
-      'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous mkdtempSync(os.tmpdir(), préfixe plateforme-win32-decodage-), ' +
+      'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous os.tmpdir(), préfixe plateforme-win32-decodage-, ' +
       'puis supprime chaque dossier par rmSync en finally ; ' +
       '`build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
       'os.tmpdir() hors racine canonique par `canoniser` et `relatifSousRacine`, puis exige l’instance hors ' +

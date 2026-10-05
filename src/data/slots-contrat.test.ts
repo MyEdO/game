@@ -195,7 +195,8 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
 
   it('RÉF DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `idDe(\'prop\')` (`diligence-projet.json › ref`, joint)', () => {
     expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].ref').map((s) => s.type))).toEqual(new Set(['prop']));
-    expect(couple('diligence-projet.json', 'ref')).toMatchObject({ occurrences: 274, atteintes: 274 });
+    // #2219 (274→275, 2026-10-05) : +1, la charrette de la remise de la-diligence.
+    expect(couple('diligence-projet.json', 'ref')).toMatchObject({ occurrences: 275, atteintes: 275 });
   });
 
   it('fixture : ENTRÉE DE RACINE `(racine)` jointe, et une référence portée par une CLÉ de record rend « — » au doc', () => {

@@ -14,7 +14,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shaPrecedentDeHead, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -268,6 +268,60 @@ test('classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT 
   // Une erreur de spawn qui se nomme elle-même garde SON message : « git introuvable » serait faux.
   const acces = classer({ error: new Error('spawnSync git EACCES'), status: null }, { cwd: '/x', nature: sonde('repertoire') })
   assert.equal(acces.raison, 'spawnSync git EACCES')
+})
+
+test('shaPrecedentDeHead : HEAD index1 fixe, absence et panne distinctes, validateur inchangé', () => {
+  const { racine, premier } = depot()
+  const unique = instanceDeDepot({ fichiers: { 'unique.txt': 'une entrée' } })
+  try {
+    assert.equal(shaPrecedentDeHead(forge(unique.racine)), null)
+    assert.equal(shaPrecedentDeHead(forge(racine)), premier)
+    const vus = []
+    const ferme = depotFeint(racine, (args) => {
+      vus.push(args)
+      return { status: 0, stdout: `${premier}\n`, stderr: '' }
+    })
+    assert.equal(shaPrecedentDeHead(ferme), premier)
+    assert.deepEqual(vus, [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+    assert.throws(() => shaDe(ferme, 'HEAD@{1}'), /@\{/)
+    rmSync(join(racine, '.git', 'logs', 'HEAD'))
+    assert.equal(shaPrecedentDeHead(forge(racine)), null)
+    const repondre = () => ({ status: 128, stdout: '', stderr: 'fatal: panne reflog' })
+    assert.throws(() => shaPrecedentDeHead(depotFeint(racine, repondre)), GitIndisponible)
+    const pannes = []
+    assert.equal(shaPrecedentDeHead(depotFeint(racine, repondre, (r) => pannes.push(r))), null)
+    assert.match(pannes.join(''), /panne reflog/)
+  } finally { jeter(racine); jeter(unique.racine) }
+})
+
+test('shaPrecedentDeHead sous log.showSignature : SHA signé résolu sans présentation ni GPG', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'signé' } })
+  const gnupg = join(racine, '.git', 'gnupg-feint')
+  mkdirSync(gnupg)
+  const env = { ...envDeDepotForge(), GNUPGHOME: gnupg }
+  const git = gitDe(racine, { env, net: true })
+  const journal = join(racine, '.git', 'gpg-journal')
+  const programme = join(racine, '.git', 'gpg-feint.sh')
+  try {
+    writeFileSync(programme, "#!/bin/sh\nprintf 'verification\\n' >> .git/gpg-journal\nprintf '[GNUPG:] BADSIG 0123456789ABCDEF fixture\\n'\nprintf 'gpg: diagnostic fixture premier\\ngpg: diagnostic fixture deuxième\\n' >&2\nexit 1\n", { mode: 0o755 })
+    git('config', 'gpg.program', programme)
+    git('config', 'log.showSignature', 'true')
+    const arbre = git('rev-parse', 'HEAD^{tree}')
+    const parent = git('rev-parse', 'HEAD')
+    const commit = `tree ${arbre}\nparent ${parent}\nauthor fixture <fixture@example.invalid> 1791194400 +0000\ncommitter fixture <fixture@example.invalid> 1791194400 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n Zml4dHVyZQ==\n -----END PGP SIGNATURE-----\n\nentrée signée du banc\n`
+    const signe = lancerGit(['hash-object', '-t', 'commit', '-w', '--stdin'], { cwd: racine, env, input: commit, net: true })
+    git('update-ref', 'HEAD', signe)
+    git('commit', '--allow-empty', '-m', 'tête suivante')
+    const depot = depotDe(racine, { env })
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false, 'la résolution SHA ne lance pas GPG')
+    const presentation = git('reflog', 'show', '--format=%H', '--max-count=2', 'HEAD')
+    assert.match(presentation, /diagnostic fixture/)
+    assert.equal(readFileSync(journal, 'utf8'), 'verification\n')
+    rmSync(journal)
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false)
+  } finally { jeter(racine) }
 })
 
 test('status 0 rend un FAIT porteur de la sortie', () => {
