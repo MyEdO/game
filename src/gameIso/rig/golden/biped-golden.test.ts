@@ -84,8 +84,8 @@ describe('golden master — héros équipés (anti-régression chemins arme/armu
   const appGuardien: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.6, seed: 11 };
   const equipGuardien: EquipCtx = {
     ...equipDe([weaponFromId('grande-hache')!], [
-      { uid: 'syn-corps', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true },
-      { uid: 'syn-tete',  label: 'Heaume',            kind: 'armor', qualities: [], pa: 2, locs: ['tete'],  enc: 1, equipped: true },
+      { locs: ['corps'], materiau: 'maille' },
+      { locs: ['tete'], materiau: 'plaque' },
     ]),
     shield: bouclierDeDessin({ label: 'Bouclier rondache', type: 'melee' as const, damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'protectrice', value: 1 }] }),
   };

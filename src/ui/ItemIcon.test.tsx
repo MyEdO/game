@@ -5,10 +5,12 @@ import { iconSvg } from './Icon';
 import { itemFromTrappingById } from '../engine/items';
 import { tokensOf } from '../gameIso/rig/palette';
 import type { ItemInstance, Weapon } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
 /** Objet minimal (catégories sans art : munition/cape/consommable/divers). */
-const mk = (p: Partial<ItemInstance>): ItemInstance =>
-  ({ uid: 'x', label: '?', kind: 'misc', qualities: [], enc: 0, equipped: false, ...p } as ItemInstance);
+const mk = (p: SurchargeDObjet): ItemInstance =>
+  objetDeTest({ uid: 'x', trappingId: '', kind: 'misc', qualities: [], enc: 0, equipped: false, ...p });
 
 const html = (item: ItemInstance) => renderToStaticMarkup(<ItemIcon item={item} />);
 
@@ -34,20 +36,20 @@ describe('ItemIcon', () => {
   });
 
   it('munition → icône item/ammo', () => {
-    expect(html(mk({ kind: 'ammo', label: 'Flèches' }))).toContain(iconSvg('item/ammo'));
+    expect(html(mk({ kind: 'ammo', trappingId: 'fleche' }))).toContain(iconSvg('item/ammo'));
   });
 
   it('cape → icône item/cloak', () => {
-    expect(html(mk({ kind: 'misc', label: 'Cape', trappingId: 'cape' }))).toContain(iconSvg('item/cloak'));
+    expect(html(mk({ kind: 'misc', trappingId: 'cape' }))).toContain(iconSvg('item/cloak'));
   });
 
   it('consommable (Flow structuré) → icône item/consumable', () => {
-    const potion = mk({ kind: 'misc', label: 'Potion de guérison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
+    const potion = mk({ kind: 'misc', trappingId: 'potion-de-guerison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
     expect(html(potion)).toContain(iconSvg('item/consumable'));
   });
 
   it('objet divers → icône item/misc', () => {
-    expect(html(mk({ kind: 'misc', label: 'Corde', desc: 'Trois mètres de corde.' }))).toContain(iconSvg('item/misc'));
+    expect(html(mk({ kind: 'misc', trappingId: 'corde', desc: 'Trois mètres de corde.' }))).toContain(iconSvg('item/misc'));
   });
 
   it('rend en SSR sans getBBox (repli viewBox, aucune exception)', () => {

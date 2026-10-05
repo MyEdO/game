@@ -96,10 +96,11 @@ export function effectCtxOf(
   otherScenes: Scene[],
   worldMap: { places: { id: string; label: string }[] } | undefined,
   objets: readonly TrappingData[],
-): Pick<Ctx, 'merchants' | 'scenes' | 'places' | 'personas' | 'cibles' | 'objets'> {
+): Pick<Ctx, 'merchants' | 'scenes' | 'places' | 'personas' | 'cibles' | 'objets' | 'sansSource'> {
   return {
     cibles: CIBLES_PAR_RACINE.scene,
     objets,
+    sansSource: true,
     merchants: scene.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
     scenes: [scene, ...otherScenes].map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
     places: worldMap?.places.map((p) => ({ id: p.id, label: p.label })),
@@ -126,11 +127,14 @@ export interface Ctx {
   /** Objets du PROJET édité (`narratif.objets`, `Editor.tsx`) : l'Effet `giveTrapping` les résout avant
    *  le catalogue (`trappingDesObjetsPuisDuCatalogue`). Sans défaut — chaque racine dit les siens. */
   objets: readonly TrappingData[];
+  /** Le document édité n'est aucune entité du Codex (projet : scène, carte) — ses listes d'ops n'offrent
+   *  pas les ops à source (`GameOpEditor`). Sans défaut — chaque racine dit le sien. */
+  sansSource: boolean;
 }
 
 /** Contexte d'une racine de CATALOGUE (`src/data`, monté au Compendium) : ni rencontre ni dialogue de
  *  scène, aucun objet de projet ; ses Effets `ops` visent la table de SA racine. */
-export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine], objets: AUCUN_OBJET_DE_PROJET });
+export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_PAR_RACINE[racine], objets: AUCUN_OBJET_DE_PROJET, sansSource: false });
 
 /** Libellé / icône d'un type d'effet — dérivés du REGISTRE unique (aucun Record parallèle à
  *  maintenir : la source de vérité est `EFFECT_HANDLERS[t].label/icon`). */
@@ -755,7 +759,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 )}
               </div>
             )}
-            <GameOpEditor ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor ops={e.ops ?? []} sansSource={ctx.sansSource} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'setLight' && (
@@ -800,7 +804,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <label className="dr">Centre <NumberField variant="nu" label="Centre — X" value={e.center?.x ?? 0} onChange={(x) => upd({ center: { x, y: e.center?.y ?? 0 } })} />,<NumberField variant="nu" label="Centre — Y" value={e.center?.y ?? 0} onChange={(y) => upd({ center: { x: e.center?.x ?? 0, y } })} /></label>
               <label className="dr">Rayon <NumberField variant="nu" label="Rayon" min={0} value={e.radius ?? 0} onChange={(radius) => upd({ radius })} /></label>
             </div>
-            <GameOpEditor ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor ops={e.ops ?? []} sansSource={ctx.sansSource} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'startCombat' && (

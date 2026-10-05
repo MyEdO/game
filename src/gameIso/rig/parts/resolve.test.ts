@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { resolveParts } from './resolve';
 import { tenueFor } from './career';
-import { armourPart, equipDe, pieceDeDessin } from './equipment';
+import { armourPart, equipDe, type PieceDeDessin } from './equipment';
 import { viewOrFront } from './types';
 import type { EquipCtx } from './equipment';
-import type { ItemInstance, Weapon } from '../../../engine/types';
+import type { Weapon } from '../../../engine/types';
 
 const empty: EquipCtx = equipDe([], []);
 const wep = (name: string, type: 'melee' | 'ranged'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
-const plastron: ItemInstance = { uid: '1', label: 'Plastron', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
+const plastron: PieceDeDessin = { locs: ['corps'], materiau: 'plaque' };
 
 describe('resolveParts — priorité', () => {
   it('sans rien : torse = tenue de la carrière (par-carrière)', () => {
@@ -19,7 +19,7 @@ describe('resolveParts — priorité', () => {
   it('armure équipée sur le corps PRIME sur la tenue de carrière', () => {
     const equip: EquipCtx = equipDe([], [plastron]);
     const r = resolveParts('Humain', 'M', 'soldat', equip, {}, 1);
-    expect(r.torse?.svg).toBe(viewOrFront(armourPart(pieceDeDessin(plastron), 'torse'), 'front'));
+    expect(r.torse?.svg).toBe(viewOrFront(armourPart(plastron, 'torse'), 'front'));
     expect(r.torse?.svg).not.toBe(viewOrFront(tenueFor('soldat').torse, 'front'));
   });
 
@@ -33,7 +33,7 @@ describe('resolveParts — priorité', () => {
   it('override éditeur (parts) PRIME sur l’équipement', () => {
     const equip: EquipCtx = equipDe([], [plastron]);
     const r = resolveParts('Humain', 'M', 'soldat', equip, { torse: 0 }, 1);
-    expect(r.torse?.svg).not.toBe(viewOrFront(armourPart(pieceDeDessin(plastron), 'torse'), 'front'));
+    expect(r.torse?.svg).not.toBe(viewOrFront(armourPart(plastron, 'torse'), 'front'));
   });
 
   it('visage et cheveux sont toujours présents', () => {

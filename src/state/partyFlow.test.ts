@@ -5,6 +5,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import type { GameState } from './store';
 import type { Get, Set } from './flowTypes';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party`+`possessions` — `resolveCarrier` (#620) lit
  *  les deux ; `setItemShape` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
@@ -92,9 +93,9 @@ function twoHeroes(fromItems: ItemInstance[]): { from: Combatant; to: Combatant 
 
 describe('transferItem — contenants et objets rangés (#612)', () => {
   it('transférer un sac (contenant) déplace aussi son contenu, sans orphelin ni PA fantôme', () => {
-    const sac: ItemInstance = { uid: 'sac', label: 'Sac à dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } } as unknown as ItemInstance;
-    const rations: ItemInstance = { uid: 'rations', label: 'Rations', kind: 'misc', qualities: [], enc: 2, equipped: false, inside: 'sac' } as unknown as ItemInstance;
-    const corde: ItemInstance = { uid: 'corde', label: 'Corde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'sac' } as unknown as ItemInstance;
+    const sac: ItemInstance = objetDeTest({ uid: 'sac', trappingId: 'sac-a-dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } });
+    const rations: ItemInstance = objetDeTest({ uid: 'rations', trappingId: 'ration', kind: 'misc', qualities: [], enc: 2, equipped: false, inside: 'sac' });
+    const corde: ItemInstance = objetDeTest({ uid: 'corde', trappingId: 'corde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'sac' });
     const { from, to } = twoHeroes([sac, rations, corde]);
     const { get, set } = makeHarness([from, to]);
 
@@ -115,8 +116,8 @@ describe('transferItem — contenants et objets rangés (#612)', () => {
   });
 
   it('transférer un objet RANGÉ dans un sac du donneur : il arrive LIBRE chez le receveur', () => {
-    const sac: ItemInstance = { uid: 'sac', label: 'Sac à dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } } as unknown as ItemInstance;
-    const rations: ItemInstance = { uid: 'rations', label: 'Rations', kind: 'misc', qualities: [], enc: 2, equipped: false, inside: 'sac' } as unknown as ItemInstance;
+    const sac: ItemInstance = objetDeTest({ uid: 'sac', trappingId: 'sac-a-dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } });
+    const rations: ItemInstance = objetDeTest({ uid: 'rations', trappingId: 'ration', kind: 'misc', qualities: [], enc: 2, equipped: false, inside: 'sac' });
     const { from, to } = twoHeroes([sac, rations]);
     const { get, set } = makeHarness([from, to]);
 
@@ -155,7 +156,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
   });
 
   it('toggleEquip(carrierId=possession.uid) : bascule equipped sur la possession, SANS recomputeLoadout', () => {
-    const it: ItemInstance = { uid: 'selle', label: 'Selle', kind: 'misc', qualities: [], enc: 2, equipped: false } as unknown as ItemInstance;
+    const it: ItemInstance = objetDeTest({ uid: 'selle', trappingId: 'selle-et-harnais', kind: 'misc', qualities: [], enc: 2, equipped: false });
     const mule = makeMulePossession([it]);
     const { get, set } = makeHarness([], [mule]);
 
@@ -167,7 +168,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
   });
 
   it('transferItem héros→possession : déplace l’item, met à jour les deux porteurs (recompute héros seulement)', () => {
-    const it: ItemInstance = { uid: 'lanterne', label: 'Lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false } as unknown as ItemInstance;
+    const it: ItemInstance = objetDeTest({ uid: 'lanterne', trappingId: 'lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false });
     const hero = { ...twoHeroes([it]).from };
     const mule = makeMulePossession([]);
     const { get, set } = makeHarness([hero], [mule]);
@@ -181,8 +182,8 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
   });
 
   it('stowItem sur une possession : range dans un contenant DE LA POSSESSION', () => {
-    const sac: ItemInstance = { uid: 'bat', label: 'Bât', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } } as unknown as ItemInstance;
-    const rations: ItemInstance = { uid: 'rations', label: 'Rations', kind: 'misc', qualities: [], enc: 2, equipped: false } as unknown as ItemInstance;
+    const sac: ItemInstance = objetDeTest({ uid: 'bat', trappingId: 'sac-a-dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } });
+    const rations: ItemInstance = objetDeTest({ uid: 'rations', trappingId: 'ration', kind: 'misc', qualities: [], enc: 2, equipped: false });
     const mule = makeMulePossession([sac, rations]);
     const { get, set } = makeHarness([], [mule]);
 
@@ -195,7 +196,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
 
 describe('transferItem — invariant de CO-LOCALISATION (#723, garde store, source de vérité)', () => {
   it('héros→possession « avec-le-groupe » : co-localisés, l’objet arrive', () => {
-    const it: ItemInstance = { uid: 'lanterne', label: 'Lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false } as unknown as ItemInstance;
+    const it: ItemInstance = objetDeTest({ uid: 'lanterne', trappingId: 'lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false });
     const hero = { ...twoHeroes([it]).from };
     const mule = makeMulePossession([]); // location par défaut : avec-le-groupe
     const { get, set } = makeHarness([hero], [mule]);
@@ -207,7 +208,7 @@ describe('transferItem — invariant de CO-LOCALISATION (#723, garde store, sour
   });
 
   it('héros→possession « au-lieu » (à l’écurie ailleurs) : NON co-localisés, NO-OP', () => {
-    const it: ItemInstance = { uid: 'lanterne', label: 'Lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false } as unknown as ItemInstance;
+    const it: ItemInstance = objetDeTest({ uid: 'lanterne', trappingId: 'lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false });
     const hero = { ...twoHeroes([it]).from };
     const mule = { ...makeMulePossession([]), location: { kind: 'au-lieu', placeId: 'altdorf' } } as Possession;
     const { get, set } = makeHarness([hero], [mule]);
@@ -219,7 +220,7 @@ describe('transferItem — invariant de CO-LOCALISATION (#723, garde store, sour
   });
 
   it('héros→possession « embarquée » (sur un navire) : NON co-localisés, NO-OP', () => {
-    const it: ItemInstance = { uid: 'lanterne', label: 'Lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false } as unknown as ItemInstance;
+    const it: ItemInstance = objetDeTest({ uid: 'lanterne', trappingId: 'lanterne', kind: 'misc', qualities: [], enc: 1, equipped: false });
     const hero = { ...twoHeroes([it]).from };
     const mule = { ...makeMulePossession([]), location: { kind: 'embarquee', hostUid: 'pos-navire' } } as Possession;
     const { get, set } = makeHarness([hero], [mule]);

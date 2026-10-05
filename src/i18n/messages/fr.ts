@@ -211,6 +211,9 @@ export const fr = {
   'picker.import.btn.title': 'Importer un personnage depuis un fichier JSON exporté',
   'picker.import.error': 'Fichier de personnage invalide.',
   'picker.import.error.version': "Version de fichier non reconnue — ré-exportez ce personnage depuis une version à jour du jeu.",
+  // Personnage du roster qu'une version antérieure du jeu rend illisible (#1988) — `takeRosterNotice`.
+  'picker.roster.ecarte': '{heros} a été retiré de vos personnages : sa fiche vient d’une version antérieure du jeu et ne peut plus être lue. {motif}',
+  'picker.roster.motif.objets': 'Objets non reconnus : {objets}.',
   // Sauvegarde / chargement (SaveLoadModal) — Phase D.
   'saveload.title.save': 'Sauvegarder',
   'saveload.title.load': 'Charger une partie',

@@ -4,13 +4,14 @@ import { crewTestSuccess } from './crewMorale';
 import { setRule, resetRule } from './policy';
 import type { RNG } from './dice';
 import type { Combatant, ShipPoste } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: { current: 10, max: 10, base: 10 }, items: [], ...over }) as unknown as Combatant;
 
 /** Pièce d'artillerie : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
 const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = []): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
+  ({ side: 'tribord', item: objetDeTest({ uid: 'gun-' + crewIds.join('') + flat, trappingId: 'canon-ade2', kind: 'ranged', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }), crewIds }) as unknown as ShipPoste;
 
 const ship = (): Combatant => ({ id: 'ship', label: 'Navire', kind: 'npc', bodyShape: 'vehicule', conditions: [], weapons: [] }) as unknown as Combatant;
 
@@ -37,16 +38,16 @@ describe('resolveVolley — la bordée RÉUTILISE le pipeline de tir (MDG 14 l.1
   });
 
   it('munition fusionnée : Dégâts de la munition s’appliquent (réutilise weaponWithAmmo)', () => {
-    const g = gunner('g1', { items: [{ uid: 'boulet', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
+    const g = gunner('g1', { items: [objetDeTest({ uid: 'boulet', trappingId: 'boulet-et-poudre', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 })] });
     const r = resolveVolley(firing, [poste(['g1'])], target(), 'voile', 3, true, [g], fixed(34));
     expect(r.shots[0].damage).toBe(21); // 14 + 4 (boulet) + 3
-    expect(r.shots[0].ammoName).toBe('Boulet');
+    expect(r.shots[0].ammoName).toBe('Boulet et poudre');
   });
 
   it('Perforante de la munition perce le blindage (réutilise woundsFromHit)', () => {
     const armored = () => hull(40, 4); // BE 4 + blindage 4
     const plain = resolveVolley(firing, [poste(['g1'])], armored(), 'voile', 3, true, [gunner('g1')], fixed(34));
-    const perf = gunner('g1', { items: [{ uid: 'p', label: 'Carreau', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 0, plusBF: false }, qualities: [{ id: 'perforante' }], qty: 5 } as never] });
+    const perf = gunner('g1', { items: [objetDeTest({ uid: 'p', trappingId: 'carreau', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 0, plusBF: false }, qualities: [{ id: 'perforante' }], qty: 5 })] });
     const r = resolveVolley(firing, [poste(['g1'])], armored(), 'voile', 3, true, [perf], fixed(34));
     expect(r.shots[0].wounds).toBeGreaterThan(plain.shots[0].wounds); // Perforante réduit la PA → plus de Blessures
   });
@@ -80,7 +81,7 @@ describe('resolveVolley — Test d’équipage RATÉ : la bordée manque en bloc
   const POINTUE = [{ id: 'pointue' }];
 
   it('les pièces font feu (Recharge + munition consommables) mais n’infligent NI Dégâts NI Blessures', () => {
-    const g = gunner('g1', { items: [{ uid: 'boulet', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
+    const g = gunner('g1', { items: [objetDeTest({ uid: 'boulet', trappingId: 'boulet-et-poudre', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 })] });
     const r = resolveVolley(firing, [poste(['g1'])], target(), 'voile', -1, false, [g], fixed(34));
     expect(r.shots).toHaveLength(1); // la pièce a fait feu : l'appelant la décharge et consomme la munition
     expect(r.shots[0].ammo?.uid).toBe('boulet');

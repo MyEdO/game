@@ -6,7 +6,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { trappings, trappingsInstanciables, armesChoisissables, trappingDesObjetsPuisDuCatalogue, type TrappingData } from './index';
 import { setDataset } from './overrides';
-import { itemFromTrappingById } from '../engine/items';
+import { itemFromTrappingById, itemLabel } from '../engine/items';
 import { craftCatalog, orderCatalog } from '../engine/activities';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import { idsDeLaSousListe } from './schemas/grammaire/ref';
@@ -21,7 +21,7 @@ const horsDeLaVue = (): string[] => trappings.filter((t) => !idsDeLaVue().includ
 const messages = (r: { success: boolean; error?: { issues: { message: string }[] } }): string => (r.error?.issues ?? []).map((i) => i.message).join('\n');
 const effet = (trappingId: string) => giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId });
 const op = (trappingId: string) => gameOpSchema.safeParse({ op: 'giveTrapping', trappingId });
-const forme = (form: string) => gameOpSchema.safeParse({ op: 'grantWeapon', label: 'Arme', damage: 1, form });
+const forme = (form: string) => gameOpSchema.safeParse({ op: 'grantWeapon', damage: 1, form });
 
 describe('vue `trappingsInstanciables`', () => {
   it('tout id de la vue s’instancie sans lever', () => {
@@ -84,7 +84,9 @@ describe('objet de campagne — jugé sur l’entrée résolue', () => {
   };
 
   it('sans marqueur, il s’instancie par le résolveur de campagne', () => {
-    expect(itemFromTrappingById(OBJET.id, resoudre([OBJET]))?.label).toBe('Sceau du comte');
+    const it = itemFromTrappingById(OBJET.id, resoudre([OBJET]))!;
+    expect(it.trappingId).toBe(OBJET.id);
+    expect(itemLabel(it, resoudre([OBJET]))).toBe('Sceau du comte');
   });
 
   it('marqué `service`, il lève', () => {

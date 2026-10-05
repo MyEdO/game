@@ -4,8 +4,9 @@
  * soin / buff marginal / contrôle / invocation / défaut signé) + escompte d'opposition. PUR, déterministe.
  */
 import { describe, it, expect } from 'vitest';
-import { opValue, oppositionDiscount, hitProbability, type OpEvalCtx } from './aiSpellValue';
-import type { SpellData } from '../data';
+import { opValue, oppositionDiscount, hitProbability, applyOpClone, spellActionValue, type OpEvalCtx } from './aiSpellValue';
+import { spells, type SpellData } from '../data';
+import { spellEffectOps } from '../engine/flowCore';
 import type { Combatant, Weapon } from '../engine/types';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
@@ -19,7 +20,7 @@ function combatant(over: Partial<Combatant> = {}): Combatant {
     skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 }, ...over,
   } as Combatant;
 }
-const ctxOf = (refEnemy: Combatant | null = null): OpEvalCtx => ({ refEnemy, horizon: 3 });
+const ctxOf = (refEnemy: Combatant | null = null): OpEvalCtx => ({ refEnemy, horizon: 3, source: { kind: 'spell', id: 'benediction-de-bataille' } });
 const op = (o: object): never => o as never;
 
 describe('opValue — DÉGÂTS (wounds), espérance mitigée correcte', () => {
@@ -127,5 +128,30 @@ describe('hitProbability — chaque pion d’État coûte sa marche à l’IA (C
     // comparaison « ≤ » sans rien prouver), et le 4ᵉ pion doit peser (le plafond l'aurait mangé).
     expect(p[0]).toBeGreaterThan(p[5]);
     for (let i = 1; i < 4; i++) expect(p[i - 1]! - p[i]!).toBeCloseTo(0.1, 10);
+  });
+});
+
+/**
+ * B1 (#1988) — l'arme INVOQUÉE est désignée par l'Effet qui la produit : l'évaluateur la pose sur son
+ * clone au nom du SORT évalué, comme le lancer réel (`combatFlow.ts › runCastFlow`). Sans source, `grantWeapon`
+ * lève (`engine/ops.ts`) : un ennemi lanceur ferait tomber son tour d'IA.
+ */
+describe('opValue — chaque `grantWeapon` du catalogue s’évalue au nom de SON sort', () => {
+  const porteurs = spells.flatMap((sp) => spellEffectOps(sp.effects).filter((o) => o.op === 'grantWeapon').map((o) => ({ sp, o })));
+
+  it('le catalogue porte des `grantWeapon` (non-vacuité)', () => {
+    expect(porteurs.length).toBeGreaterThan(0);
+  });
+
+  it.each(porteurs.map(({ sp, o }) => [sp.id, sp, o] as const))('%s : `opValue` et `spellActionValue` ne lèvent pas', (_id, sp, o) => {
+    const ref = combatant({ id: 'h', kind: 'hero', pos: { x: 1, y: 0 } });
+    expect(() => opValue(o, combatant(), combatant(), { refEnemy: ref, horizon: 3, source: { kind: 'spell', id: sp.id } })).not.toThrow();
+    expect(() => spellActionValue(combatant(), sp, { kind: 'self' }, { landProb: 1, refEnemy: ref, horizon: 3 })).not.toThrow();
+  });
+
+  it.each(porteurs.map(({ sp, o }) => [sp.id, sp, o] as const))('%s : l’arme posée sur le clone est désignée par ce sort', (_id, sp, o) => {
+    const clone = applyOpClone(combatant(), o, { kind: 'spell', id: sp.id });
+    const invoquees = (clone.items ?? []).filter((it) => it.conjured);
+    expect(invoquees.map((it) => it.conjured && it.source)).toEqual([{ kind: 'spell', id: sp.id }]);
   });
 });

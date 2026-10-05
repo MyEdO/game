@@ -19,6 +19,7 @@ import { easeExposure, corruptionEaseSteps, type ExposureLevel } from './corrupt
 import { findSpellById } from '../data';
 import { makeRNG } from './dice';
 import type { Combatant, ItemInstance } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
   ({
@@ -75,7 +76,7 @@ describe('1 bis — `ap` `atHitLocation` : Inscription, volet acide (VDM 05)', (
 describe('2 — `augmentWeapon` DÉGRADANT : Défaut (VDM 05)', () => {
   /** Combattant tenant une épée PRÉCISE (Atout `precise` : +10 en attaque, `weaponRollMod`). */
   const wielder = (): Combatant => {
-    const item: ItemInstance = { uid: 'w', label: 'Épée', kind: 'melee', damage: parseDamage('+BF+4'), reach: 'Moyenne', range: null, qualities: [{ id: 'precise' }], enc: 1, equipped: true } as ItemInstance;
+    const item: ItemInstance = objetDeTest({ uid: 'w', trappingId: 'arme-simple', kind: 'melee', damage: parseDamage('+BF+4'), reach: 'Moyenne', range: null, qualities: [{ id: 'precise' }], enc: 1, equipped: true });
     const c = dummy({ items: [item], loadouts: [{ id: 'lo', main: 'w' }], activeLoadoutId: 'lo' });
     recomputeLoadout(c);
     return c;

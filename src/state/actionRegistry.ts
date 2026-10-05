@@ -37,6 +37,7 @@ import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../da
 import { isArcaneSpell, castBlockedBy, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './exploreNav';
+import { libelleDObjet } from './campaignData';
 
 /** Verdict d'un gate : l'indisponibilité PORTE SA RAISON (patron `GatedAction`, charte UI). */
 export interface ActionGate {
@@ -363,11 +364,11 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
   },
   'pieces-servables': (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
-    return { porteurId: sp.hull.id, args: { shipId: sp.hull.id, posteUid: sp.poste.item.uid }, label: sp.poste.item.label };
+    return { porteurId: sp.hull.id, args: { shipId: sp.hull.id, posteUid: sp.poste.item.uid }, label: libelleDObjet(sp.poste.item) };
   },
   'piece-poussable': (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
-    return { porteurId: sp.hull.id, args: {}, label: sp.poste.item.label };
+    return { porteurId: sp.hull.id, args: {}, label: libelleDObjet(sp.poste.item) };
   },
   'objets-au-sol': (c) => {
     const o = c as { entityId: string; key: string; label: string };

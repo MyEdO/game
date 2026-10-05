@@ -20,12 +20,12 @@ import type { ElementOverlay } from '../../../src/gameIso/rig/parts/elements/typ
 import { appendageArt } from '../../../src/gameIso/rig/parts/appendages';
 import type { View } from '../../../src/gameIso/rig/facing';
 import { equipDe } from '../../../src/gameIso/rig/parts/equipment';
-import type { EquipCtx } from '../../../src/gameIso/rig/parts/equipment';
+import type { EquipCtx, Materiau, PieceDeDessin } from '../../../src/gameIso/rig/parts/equipment';
 import type { Site } from './stock.mjs';
 import { fileURLToPath } from 'node:url';
 import { sep } from 'node:path';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
-import type { ItemInstance, HitLocation } from '../../../src/engine/types';
+import type { HitLocation } from '../../../src/engine/types';
 import { slugId } from '../../../src/data/slug';
 import { fichierDeDef, REGISTRE_TENUES, REGISTRE_ARMURES, REGISTRE_PARTS_MONSTRUEUSES, REGISTRE_ELEMENTS } from './registreDeDefs';
 
@@ -109,11 +109,10 @@ function auditBearer(
   }
 }
 
-/** Item d'armure de test couvrant les 4 slots de corps — `armourMaterial` infère le matériau du nom,
- *  et `name` du def EST le matériau (cf. `parts/armour/types.ts`). */
+/** Pièce d'armure de test couvrant les 4 slots de corps — l'`id` du def EST le matériau (cf.
+ *  `parts/armour/types.ts`). */
 const ALL_LOCS: HitLocation[] = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
-const armourItem = (mat: string): ItemInstance =>
-  ({ uid: `audit_${mat}`, label: mat, kind: 'armor', qualities: [], enc: 0, equipped: true, locs: ALL_LOCS });
+const armourItem = (mat: string): PieceDeDessin => ({ locs: ALL_LOCS, materiau: mat as Materiau });
 
 /** Mesure les violations de format sur les DEUX registres de slots de corps (tenues + armures). */
 export function auditPartViews(): Audit {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { presetPnjById, affaireById, indiceById, trappingById } from './campaignData';
+import { presetPnjById, affaireById, indiceById, trappingById, libelleDObjet } from './campaignData';
 import type { NarratifBlock } from './campaignNarratif';
 import { emptyScene } from './scene';
 import { applyEffects } from './combatFlow';
@@ -80,7 +80,7 @@ describe('campaignData — câblage giveTrapping campagne-d’abord par le chemi
     loadCampaign();
     applyEffects(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: LAME_CAMPAGNE, heroId: 'a' }]);
     const it = (useGame.getState().party[0].items ?? []).find((i) => i.trappingId === LAME_CAMPAGNE);
-    expect(it?.label).toBe('Lame maudite');
+    expect(libelleDObjet(it!)).toBe('Lame maudite'); // libellé de l'objet de CAMPAGNE, résolu campagne-d'abord
     expect(it?.kind).toBe('melee'); // objet à stats du narratif
   });
 

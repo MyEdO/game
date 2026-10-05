@@ -9,6 +9,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /** L'état de charge vit sur l'ARME — raccourci de FIXTURE vers l'arme à distance du combattant. */
 const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
@@ -111,8 +112,8 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
         pos: { x: 5, y: 5 },
         weapons: [{ ...CROSSBOW, uid: 'w-arb', subType: 'Arbalète', loaded: false, reloadProgress: 0, ammoUid: 'am2' }],
         items: [
-          { uid: 'am1', label: 'Carreau', kind: 'ammo', subType: 'Arbalète', qty: 2, qualities: [], enc: 0, equipped: false },
-          { uid: 'am2', label: 'Carreau perçant', kind: 'ammo', subType: 'Arbalète', qty: 3, qualities: [], enc: 0, equipped: false },
+          objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', subType: 'Arbalète', qty: 2, qualities: [], enc: 0, equipped: false }),
+          objetDeTest({ uid: 'am2', trappingId: 'carreau', kind: 'ammo', subType: 'Arbalète', qty: 3, qualities: [], enc: 0, equipped: false }),
         ] as never,
       });
       const hero = heroAt(1, 1);

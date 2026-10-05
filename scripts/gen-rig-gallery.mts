@@ -11,8 +11,8 @@ import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import { bouclierDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
-import type { Weapon, ItemInstance } from '../src/engine/types';
+import type { EquipCtx, PieceDeDessin } from '../src/gameIso/rig/parts/equipment';
+import type { Weapon } from '../src/engine/types';
 import { raceAppearance } from '../src/data';
 import { sexeSchema } from '../src/data/schemas/grammaire/valeurs';
 import { tenueLabel } from '../src/gameIso/rig/parts/career';
@@ -29,8 +29,8 @@ for (const id of [...TENUES_QC, 'soldat'])
 // apparence de rig authorée). `label` ne sert que de légende.
 const SPECIES = raceAppearance.map((r) => ({ id: asRigSpeciesId(r.id), label: r.label }));
 const wep = (name: string, type: 'melee' | 'ranged'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
-const plate: ItemInstance = { uid: '1', label: 'Plastron de plaque', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
-const helm: ItemInstance = { uid: '2', label: 'Heaume', kind: 'armor', qualities: [], pa: 2, locs: ['tete'], enc: 1, equipped: true };
+const plate: PieceDeDessin = { locs: ['corps'], materiau: 'plaque' };
+const helm: PieceDeDessin = { locs: ['tete'], materiau: 'plaque' };
 
 function cell(label: string, app: Appearance, equip: EquipCtx, career: string, view: View = 'front') {
   const svg = renderToStaticMarkup(

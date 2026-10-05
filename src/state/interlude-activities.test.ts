@@ -18,6 +18,7 @@ import { openRitualFocus } from './interludeFlow';
 import { evaluateTest } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
+import { itemLabel } from '../engine/items';
 // (les tests Apprentissage/commande utilisent les actions store et les données réelles)
 
 describe('Activités d’interlude (LDB 23)', () => {
@@ -99,7 +100,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     const after = st();
     expect(hero().craft).toBeUndefined();
     expect(after.left).toBe(2);
-    const made = hero().items?.find((i) => i.label === 'Dague' && (i.qualities ?? []).some((q) => q.id === 'solide'));
+    const made = hero().items?.find((i) => itemLabel(i) === 'Dague' && (i.qualities ?? []).some((q) => q.id === 'solide'));
     expect(made).toBeTruthy();
   });
 
@@ -262,7 +263,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     useGame.getState().interludeEnd();
     useGame.getState().startInterlude(1);
     draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    expect(hero().items?.some((i) => i.label === exotic.label)).toBe(true);
+    expect(hero().items?.some((i) => itemLabel(i) === exotic.label)).toBe(true);
     expect(useGame.getState().pendingOrders).toHaveLength(0);
   });
 

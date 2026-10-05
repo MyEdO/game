@@ -12,15 +12,16 @@ import { spawnEnemy } from './spawn';
 import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
 import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
 const emptyScene = (w = 16, h = 12) =>
   ({ id: 's', dimensions: { w, h }, layers: [{ z: 0, tiles: new Array(w * h).fill('herbe') }],
      entities: [], dialogues: [], triggers: [], encounters: [] }) as never;
 
-const take = (id: string, over: Partial<ItemInstance> = {}): ItemInstance => {
+const take = (id: string, over: SurchargeDObjet = {}): ItemInstance => {
   const it = itemFromTrappingById(id);
   if (!it) throw new Error(`trapping introuvable : ${id}`);
-  return { ...it, uid: id, equipped: true, ...over };
+  return Object.assign(it, { uid: id, equipped: true }, over);
 };
 
 /** Héros RÉEL (pré-tiré) porteur d'une arme à distance (set 1) et d'une épée (set 2), arme de tir CHARGÉE. */

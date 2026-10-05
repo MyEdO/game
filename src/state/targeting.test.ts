@@ -10,6 +10,7 @@ import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { Scene } from './scene';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 const combatant = (over: Partial<Combatant>): Combatant =>
   ({
@@ -87,7 +88,7 @@ describe('hoverTargeting — mode neutre (attaque implicite)', () => {
 
 describe('hoverTargeting — tir à Recharge / munition (affordance ≠ log silencieux)', () => {
   const xbow = { label: 'Arbalète', type: 'ranged', subType: 'arbalete', damage: { plusBF: false, flat: 8 }, range: 4, reload: 3, qualities: [] };
-  const bolts = { uid: 'am1', label: 'Carreaux', kind: 'ammo', subType: 'arbalete', qty: 10, qualities: [] }; // munition sans modificateur de Dégâts (comme les vraies Flèches/Carreaux : damage absent)
+  const bolts = objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', subType: 'arbalete', qty: 10, qualities: [] }); // munition sans modificateur de Dégâts (comme les vraies Flèches/Carreaux : damage absent)
   const enemy = () => combatant({ id: 'B', kind: 'enemy', pos: { x: 2, y: 0 } });
 
   it('arme à Recharge NON chargée → invalid unloaded (le réticule réclame le rechargement)', () => {

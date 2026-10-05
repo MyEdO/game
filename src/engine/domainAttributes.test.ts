@@ -13,6 +13,7 @@ import { hasCondition, stacks, addCondition } from './conditions';
 import { runPureFlowLines } from '../state/combatEffects';
 import { applyTriggeredEffects } from '../state/triggeredEffects';
 import type { Get } from '../state/flowTypes';
+import { objetDeTest } from './objetDeTest.testkit';
 
 /** Applique les riders onHit AUTHORÉS d'un Domaine à `target` (gating par les Conditions Flow, contre
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
@@ -38,12 +39,12 @@ function mk(over: Partial<Combatant> = {}): Combatant {
   } as unknown as Combatant;
 }
 
-const mail = (pa: number): ItemInstance => ({
-  uid: 'm1', name: 'Chemise de mailles', subType: 'mailles', kind: 'armor', pa, locs: ['corps'], equipped: true, qualities: [],
-} as unknown as ItemInstance);
-const leather = (pa: number): ItemInstance => ({
-  uid: 'l1', name: 'Armure de cuir souple', subType: 'cuir-souple', kind: 'armor', pa, locs: ['corps'], equipped: true, qualities: [],
-} as unknown as ItemInstance);
+const mail = (pa: number): ItemInstance => objetDeTest({
+  uid: 'm1', trappingId: 'chemise-de-mailles', subType: 'mailles', kind: 'armor', pa, locs: ['corps'], equipped: true, qualities: [],
+});
+const leather = (pa: number): ItemInstance => objetDeTest({
+  uid: 'l1', trappingId: 'veste-de-cuir', subType: 'cuir-souple', kind: 'armor', pa, locs: ['corps'], equipped: true, qualities: [],
+});
 
 describe('hasArcaneTalent', () => {
   it('talent Magie des Arcanes (X) détecté', () => {

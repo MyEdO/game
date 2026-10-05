@@ -30,12 +30,13 @@ const shieldCells = SHIELDS.map((name) =>
 );
 
 // Armures : matériau × emplacement (ItemIcon choisit le slot réellement couvert par la pièce).
-const MATS = ['Rembourré', 'Cuir', 'Maille', 'Plaque'];
+// Le matériau d'une pièce sans Groupe suit le palier de ses PA (`materiauDuPalier`).
+const MATS: [label: string, pa: number][] = [['Rembourré', 0], ['Cuir', 1], ['Maille', 2], ['Plaque', 4]];
 const SLOTS: [label: string, loc: HitLocation][] = [['tête', 'tete'], ['torse', 'corps'], ['bras', 'brasG'], ['jambes', 'jambeG']];
 const armourCells: string[] = [];
-for (const mat of MATS) {
+for (const [mat, pa] of MATS) {
   for (const [slotLabel, loc] of SLOTS) {
-    const item: ItemInstance = { uid: `${mat}-${loc}`, label: `${mat} ${slotLabel}`, kind: 'armor', qualities: [], enc: 0, equipped: false, pa: 1, locs: [loc] };
+    const item: ItemInstance = { uid: `${mat}-${loc}`, trappingId: 'galerie-armure', kind: 'armor', qualities: [], enc: 0, equipped: false, pa, locs: [loc] };
     armourCells.push(cell(`${mat} · ${slotLabel}`, React.createElement(ItemIcon, { item, size: 56 })));
   }
 }

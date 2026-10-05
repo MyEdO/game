@@ -26,8 +26,9 @@ describe('migrateDoc — une issue, et un refus NOMMÉ', () => {
     expect(migrateDoc(doc, CHAINE)).toMatchObject({ ok: false, ...attendu });
   });
 
-  it('un migrateur qui LÈVE : `migrateur-en-echec`, son message gardé', () => {
-    const casse: MigrationMap = { 1: () => { throw new TypeError('illisible'); } };
-    expect(migrateDoc({ version: 1 }, casse)).toEqual({ ok: false, raison: 'migrateur-en-echec', version: 1, detail: 'illisible' });
+  it('un migrateur qui LÈVE : `migrateur-en-echec`, ce qu’il a levé gardé', () => {
+    const levee = new TypeError('illisible');
+    const casse: MigrationMap = { 1: () => { throw levee; } };
+    expect(migrateDoc({ version: 1 }, casse)).toEqual({ ok: false, raison: 'migrateur-en-echec', version: 1, erreur: levee });
   });
 });

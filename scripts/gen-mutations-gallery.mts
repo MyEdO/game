@@ -17,11 +17,11 @@ import type { Mutation } from '../src/engine/corruption';
 import type { Combatant, Trauma } from '../src/engine/types';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
-import { equipDe } from '../src/gameIso/rig/parts/equipment';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
+import { equipDe, materiauDuPalier } from '../src/gameIso/rig/parts/equipment';
+import type { EquipCtx, PieceDeDessin } from '../src/gameIso/rig/parts/equipment';
 import type { RigOverlay } from '../src/gameIso/rig/bones';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
-import type { ItemInstance, Weapon } from '../src/engine/types';
+import type { HitLocation, Weapon } from '../src/engine/types';
 import { assertWardrobeId } from './_lib-wardrobe';
 
 // la tenue de `rigComposition` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
@@ -66,9 +66,8 @@ section('Vues — les détails de visage disparaissent de dos/profil', VUES.flat
   VIEWS.map((view) => mutCell(id, { view }))));
 
 // 3) Collisions avec l'armure équipée + arme en main (Soldat cuirassé).
-const piece = (uid: string, pa: number, locs: ItemInstance['locs']): ItemInstance =>
-  ({ uid, label: `Protection (${locs![0]})`, kind: 'armor', qualities: [], pa, locs, enc: 0, equipped: true });
-const ARMOUR: ItemInstance[] = [piece('a1', 3, ['corps']), piece('a2', 2, ['tete']), piece('a3', 1, ['brasG', 'brasD']), piece('a4', 1, ['jambeG', 'jambeD'])];
+const piece = (pa: number, locs: HitLocation[]): PieceDeDessin => ({ locs, materiau: materiauDuPalier(pa) });
+const ARMOUR: PieceDeDessin[] = [piece(3, ['corps']), piece(2, ['tete']), piece(1, ['brasG', 'brasD']), piece(1, ['jambeG', 'jambeD'])];
 const EPEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
 const SOLDAT: Parameters<typeof cell>[3] = { equip: equipDe([EPEE], ARMOUR), career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
 section('Sur armure équipée (épée en main)', [

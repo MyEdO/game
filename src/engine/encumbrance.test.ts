@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Characteristics, Combatant, ItemInstance } from './types';
 import { encumbrancePenalties, effectiveMovement, agilityTestPenalty } from './encumbrance';
+import { objetDeTest } from './objetDeTest.testkit';
 
 // F=30,E=30 → BF+BE = 3+3 = 6 → capacité d'Encombrement = 6 (LDB 61 l.5).
 const chars = (F = 30, E = 30): Characteristics => ({
@@ -9,7 +10,7 @@ const chars = (F = 30, E = 30): Characteristics => ({
 
 function combatant(opts: { force?: number; endurance?: number; movement?: number; enc?: number }): Combatant {
   const enc = opts.enc ?? 0;
-  const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
+  const items: ItemInstance[] = enc > 0 ? [objetDeTest({ uid: 'x', trappingId: 'corde', kind: 'misc', qualities: [], enc, equipped: false })] : [];
   return {
     id: 'c', label: 'Test', kind: 'hero',
     characteristics: chars(opts.force, opts.endurance),

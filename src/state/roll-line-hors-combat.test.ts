@@ -11,6 +11,7 @@ import { cascadeAppliers } from './cascade';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import { rule } from '../engine/policy';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /**
  * MONTEUR CANONIQUE — les flux HORS COMBAT (#1153 L3). Chaque site migré est jugé sur DEUX grandeurs
@@ -285,7 +286,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
   it('Exposition : la pénalité « sans manteau » est SUR LA CIBLE et nommée (tente + tempête)', () => {
     const transi = campeur({
       id: 'tra', label: 'Transi',
-      items: [{ uid: 't', label: 'Tente', trappingId: 'tente', kind: 'misc', qualities: [], enc: 2, equipped: false }] as never,
+      items: [objetDeTest({ uid: 't', trappingId: 'tente', kind: 'misc', qualities: [], enc: 2, equipped: false })] as never,
     });
     fresh([transi]);
     set({ scene: { ...scene, weather: 'tempete' } } as never);

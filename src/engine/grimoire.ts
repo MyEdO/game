@@ -18,7 +18,7 @@
  * Objet grimoire (LDB 46 l.95-97, 47 l.19-21) : ÉLIGIBILITÉ seule (`canCastFromGrimoire`). Le NI de
  * lecture est calculé ailleurs — `effectiveSpellOf`/`GRIMOIRE_NI_MODS` (`src/state/combatFlow.ts`).
  */
-import { Combatant } from './types';
+import { Combatant, type ItemInstance } from './types';
 import { bonus, effectiveChar } from './characteristics';
 import { spells, blessingsOf, miraclesOf, chaosSpellsOf, findSpellById, type SpellData } from '../data'; // appartenance sort→dieu par IDS (dataset gods)
 import { featuresOf } from './combatFeatures/dispatch';
@@ -176,7 +176,7 @@ export function learnableSpells(c: Combatant): { spell: SpellData; cost: number 
 /** Un objet-grimoire dans le paquetage (LDB 47 l.19-21 — lecture à deux mains). Capacité par-OBJET
  *  `isGrimoire`, NON gatée sur le port (un grimoire dans le sac reste lisible) — lue PAR ID dans le
  *  catalogue (≠ nom — multilangue-safe). */
-export function carriedGrimoire(c: Combatant): { label: string } | undefined {
+export function carriedGrimoire(c: Combatant): ItemInstance | undefined {
   return (c.items ?? []).find((i) => itemCapability(i, 'isGrimoire') && !i.destroyed);
 }
 

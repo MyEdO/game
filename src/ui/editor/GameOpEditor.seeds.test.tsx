@@ -19,7 +19,7 @@ afterEach(demonterRacines);
  */
 function mount() {
   let ops: GameOp[] = [];
-  const editeur = () => <GameOpEditor ops={ops} onChange={(next) => { ops = next; montage.rendre(editeur()); }} />;
+  const editeur = () => <GameOpEditor sansSource={false} ops={ops} onChange={(next) => { ops = next; montage.rendre(editeur()); }} />;
   const montage = monterRacine(editeur());
   const { container } = montage;
   return {

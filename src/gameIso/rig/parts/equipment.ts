@@ -7,8 +7,7 @@ import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
-import { norm as wnorm } from './weaponForms';
-import { findTrappingById } from '../../../data';
+import { findTrappingById, findWeaponGroupById, type MateriauDessine } from '../../../data';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
 /** Clés d'une arme que le rig LIT (#2097) : le type `FormeDArme` et le sélecteur `armeDeDessin` en
@@ -24,7 +23,7 @@ export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]>;
 export type ArmeDeDessin = FormeDArme & { bouclier: boolean };
 export type PieceDeDessin = Pick<ItemInstance, (typeof CLES_PIECE)[number]> & { materiau: Materiau };
 export type BouclierDeDessin = Pick<Weapon | ItemInstance, (typeof CLES_BOUCLIER)[number]>;
-export type Materiau = 'rembourre' | 'cuir' | 'maille' | 'plaque';
+export type Materiau = MateriauDessine;
 
 /** Équipement DESSINÉ d'un porteur : projection de son état par `armeDeDessin`/`pieceDeDessin`
  *  (#2097), jamais une copie. */
@@ -53,10 +52,10 @@ export const bouclierDeDessin = (x: Weapon | ItemInstance): BouclierDeDessin => 
 const MATERIAL_RANK: Record<Materiau, number> = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 };
 
 /** Équipement dessiné : armes, pièces d'armure, bouclier (tenu parmi les armes), cape. */
-export function equipDe(weapons: Weapon[], armour: ItemInstance[], cape?: ItemInstance): EquipCtx {
+export function equipDe(weapons: Weapon[], armour: PieceDeDessin[], cape?: ItemInstance): EquipCtx {
   // Pièces TRIÉES par matériau décroissant : par slot, le rendu (resolve.ts) prend la 1re pièce qui
   // le couvre → un héros en cuir + maille montre la maille, la plate par-dessus tout.
-  const pieces = armour.map(pieceDeDessin).sort((a, b) => MATERIAL_RANK[b.materiau] - MATERIAL_RANK[a.materiau]);
+  const pieces = [...armour].sort((a, b) => MATERIAL_RANK[b.materiau] - MATERIAL_RANK[a.materiau]);
   const shield = weapons.find(isShield); // un bouclier tenu est dans le set actif → présent dans c.weapons
   return {
     weapons: weapons.map(armeDeDessin),
@@ -77,9 +76,9 @@ export const armePrincipale = (equip: EquipCtx): ArmeDeDessin | undefined => equ
 
 /** Équipement PORTÉ d'un combattant : ses armes, ses pièces portées — sinon `repliArmure` (armure
  *  synthétisée d'un profil, `enemyRigProfile`) —, sa cape. */
-export function equipPorte(c: Combatant, repliArmure: () => ItemInstance[] = () => []): EquipCtx {
+export function equipPorte(c: Combatant, repliArmure: () => PieceDeDessin[] = () => []): EquipCtx {
   const portees = piecesPortees(c);
-  return equipDe(c.weapons ?? [], portees.length ? portees : repliArmure(), (c.items ?? []).find((i) => i.equipped && isCapeItem(i)));
+  return equipDe(c.weapons ?? [], portees.length ? portees.map(pieceDeDessin) : repliArmure(), (c.items ?? []).find((i) => i.equipped && isCapeItem(i)));
 }
 
 /** Ensemble des slugs de FORME catalogués (clés de l'art rig) — pour valider un `shape` reçu en donnée.
@@ -149,15 +148,15 @@ export function shieldPart(x: BouclierDeDessin): PartArt {
   return applyTokenMapArt(d.art, TABLE_BOUCLIER);
 }
 
-/** Matériau inféré du nom (sinon palier de PA). Cuir AVANT plaque (« Plastron de cuir »). */
-export function armourMaterial(item: Pick<ItemInstance, 'label' | 'pa'>): Materiau {
-  const n = wnorm(item.label);
-  if (/cuir|jaque/.test(n)) return 'cuir';
-  if (/maille|cotte|haubert/.test(n)) return 'maille';
-  if (/plaque|plastron|harnois|heaume|brassard|acier|gantelet|greve/.test(n)) return 'plaque';
-  if (/rembourr|gambison|matelass/.test(n)) return 'rembourre';
-  const pa = item.pa ?? 0;
+/** Matériau d'une pièce par les seuls PA (armure de statbloc synthétisée, sans Groupe). */
+export function materiauDuPalier(pa: number): Materiau {
   return pa >= 4 ? 'plaque' : pa >= 2 ? 'maille' : pa >= 1 ? 'cuir' : 'rembourre';
+}
+
+/** Matériau d'une pièce d'armure : le matériau dessiné de son Groupe (`subType` → `WeaponGroupData.dessin`),
+ *  sinon le palier de ses PA. */
+export function armourMaterial(item: Pick<ItemInstance, 'subType' | 'pa'>): Materiau {
+  return findWeaponGroupById(item.subType)?.dessin ?? materiauDuPalier(item.pa ?? 0);
 }
 
 /** Slot de corps couvert par cet item (via ses locs WFRP4) — false si pas ce slot.

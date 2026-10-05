@@ -29,6 +29,7 @@ import type { RNG } from './dice';
 import { rollTest } from './tests';
 import { addCondition, hasCondition, loseWounds } from './conditions';
 import { hasCapability, itemCapability } from './capabilities';
+import { itemLabel } from './items';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { RULE_REF } from './ruleRefs';
@@ -146,7 +147,7 @@ export function dropHeaviestPossession(c: Combatant): string | undefined {
   const it = heaviestPossession(c);
   if (!it) return undefined;
   c.items = (c.items ?? []).filter((x) => x.uid !== it.uid);
-  return it.label;
+  return itemLabel(it);
 }
 
 /**

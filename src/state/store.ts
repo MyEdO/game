@@ -179,6 +179,7 @@ import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
 import { createCombatSlice } from './combatSlice';
+import { libelleDObjet } from './campaignData';
 
 /** Source unique des écrans valides — `Screen` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -2916,7 +2917,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
       tool.destroyed = true;
       set({ party: [...get().party] }); // persiste la casse + re-render
-      get().log(t('store.toolBroken', { tool: tool.label, name: actor?.label ?? pt.actorName }));
+      get().log(t('store.toolBroken', { tool: libelleDObjet(tool), name: actor?.label ?? pt.actorName }));
     }
     // Action de combat « cumuler l'Avantage » (LDB 09 l.305-308) : sur réussite, +1 Avantage plafonné au
     // `cap` de la Compétence (via `gainAdvantage`, qui respecte aussi le plafond général) ; l'Action est

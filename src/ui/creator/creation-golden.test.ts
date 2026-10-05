@@ -5,6 +5,7 @@ import { createHero, competencesDeCarriere, repartitionDeCarriere } from '../../
 import { firstLevel } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './draft';
+import { itemLabel } from '../../engine/items';
 
 /** Ce que la création produit — la forme des choix (clés, désignations) n'y figure pas : seules leurs
  *  conséquences sur le héros. */
@@ -18,7 +19,7 @@ function empreinte(h: Combatant) {
     talents: h.talents,
     skills: h.skills,
     spells: h.spells ?? [],
-    items: (h.items ?? []).map((i) => i.trappingId ?? i.label),
+    items: (h.items ?? []).map((i) => i.trappingId ?? itemLabel(i)),
     wounds: h.wounds,
     fate: h.fate,
     resilience: h.resilience,

@@ -49,6 +49,7 @@ import { ensureBourse, creditBourse, bourseOf, payWithAllocation, soloPayer } fr
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
+import { libelleDObjet } from './campaignData';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
  *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
@@ -100,7 +101,7 @@ function applyToggleEquip(items: ItemInstance[], uid: string, label: string): st
     it.inside = undefined; // on ne porte pas un objet rangé dans un sac : il en sort d'abord
     const out = equipConflicts({ items }, it);
     for (const o of out) o.equipped = false;
-    if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => o.label).join(' + '), item: it.label });
+    if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => libelleDObjet(o)).join(' + '), item: libelleDObjet(it) });
   }
   it.equipped = !it.equipped;
   return msg;
@@ -146,17 +147,17 @@ function applyStow(items: ItemInstance[], uid: string, containerUid: string | nu
   if (!it) return { msg: '', moved: false };
   if (containerUid) {
     if (!canStow({ items }, it, containerUid)) {
-      const msg = t('pf.stowTooBig', { name: label, item: it.label });
+      const msg = t('pf.stowTooBig', { name: label, item: libelleDObjet(it) });
       return { msg, moved: false };
     }
     const bag = items.find((i) => i.uid === containerUid);
     it.inside = containerUid; // rangé : ni porté ni tenu
     it.equipped = false;
-    const msg = t('pf.stow', { name: label, item: it.label, bag: bag ? t('pf.fragInBag', { bag: bag.label }) : '' });
+    const msg = t('pf.stow', { name: label, item: libelleDObjet(it), bag: bag ? t('pf.fragInBag', { bag: libelleDObjet(bag) }) : '' });
     return { msg, moved: true };
   }
   it.inside = undefined; // sorti du sac (remis en vrac)
-  const msg = t('pf.unstow', { name: label, item: it.label });
+  const msg = t('pf.unstow', { name: label, item: libelleDObjet(it) });
   return { msg, moved: true };
 }
 
@@ -286,7 +287,7 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
     }
     return patch;
   });
-  get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
+  get().log(t('pf.give', { from: fromLabel, item: libelleDObjet(item), to: toLabel }));
 }
 
 function applySkinPatch(it: ItemInstance, patch: Record<string, string | undefined>): void {
@@ -655,13 +656,13 @@ export function trainProsthesis(get: Get, set: Set, heroId: string, uid: string)
       if (!tier) {
         // Prothèse non entraînable (aucun palier déclaré / non portée) vs. déjà entièrement maîtrisée.
         const done = it.equipped && !!it.trappingId && (findTrappingById(it.trappingId)?.prosthesisTraining?.length ?? 0) > 0;
-        msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: it.label }) : t('pf.prosthesisNotTrainable', { name: clone.label });
+        msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: libelleDObjet(it) }) : t('pf.prosthesisNotTrainable', { name: clone.label });
         return h;
       }
       if ((clone.xp ?? 0) < tier.px) { msg = t('pf.notEnoughXp', { name: clone.label, cost: tier.px }); return h; }
       clone.xp = (clone.xp ?? 0) - tier.px;
       grantProsthesisTier(it, tier);
-      msg = t('pf.prosthesisTierBought', { name: clone.label, item: it.label, tier: tier.label, cost: tier.px });
+      msg = t('pf.prosthesisTierBought', { name: clone.label, item: libelleDObjet(it), tier: tier.label, cost: tier.px });
       return clone;
     }),
   }));

@@ -55,6 +55,7 @@ import { MasterDetail } from './MasterDetail';
 import { Tabs } from './Tabs';
 import { t } from '../i18n';
 import { GatedAction, lieeA, type PropsDeRaison } from './GatedAction';
+import { libelleDObjet } from '../state/campaignData';
 
 /** Repli NOMMÉ d'une Activité fermée. Jamais une chaîne VIDE : `GatedAction` ne tient `aria-disabled`
  *  que s'il a une raison à faire atteindre — sans texte il rendrait un `disabled` natif, donc un
@@ -1071,7 +1072,7 @@ function IdentifyPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?:
         <select className="interlude-select" value={uid} onChange={(e) => setUid(e.target.value)} aria-label="Artefact à étudier">
           {items.map((i) => (
             <option key={i.uid} value={i.uid}>
-              {i.label}{i.magicKnown ? ' ★' : ''}{i.suspectedQualities?.length ? ' (certitudes douteuses)' : ''}
+              {libelleDObjet(i)}{i.magicKnown ? ' ★' : ''}{i.suspectedQualities?.length ? ' (certitudes douteuses)' : ''}
             </option>
           ))}
         </select>
@@ -1126,7 +1127,7 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
     const item = weapons.find((i) => i.uid === uid);
     if (item) {
       const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
-      const base = combatValue(hero, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+      const base = combatValue(hero, kind, buildWeapon({ label: libelleDObjet(item), type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
       prejet = withStake(testPending(<SkillChip skillId={kind === 'melee' ? 'corps-a-corps' : 'projectiles'} />, base, undefined, diff, modsSituation), def.id);
     }
   } else if (def.skills?.length) {
@@ -1166,12 +1167,12 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
     >
       {weapons.length > 0 && (
         <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Arme à maîtriser">
-          {weapons.map((i) => <option key={i.uid} value={i.uid}>{i.label}</option>)}
+          {weapons.map((i) => <option key={i.uid} value={i.uid}>{libelleDObjet(i)}</option>)}
         </select>
       )}
       {artefacts.length > 0 && (
         <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Objet magique à tester">
-          {artefacts.map((i) => <option key={i.uid} value={i.uid}>{i.label}{i.magicKnown ? ' ★' : ''}</option>)}
+          {artefacts.map((i) => <option key={i.uid} value={i.uid}>{libelleDObjet(i)}{i.magicKnown ? ' ★' : ''}</option>)}
         </select>
       )}
       {spellOptions.length > 0 && (

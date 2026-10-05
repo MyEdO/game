@@ -17,7 +17,7 @@ import { noeudObjet } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
-import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
+import { CHAR_LABELS, CharKey, ArmourBypass, opExigeUneSource, type ConditionUnlock } from '../../engine/types';
 import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { AUCUN_OBJET_DE_PROJET, ConditionEditor } from './ConditionEditor';
 import type { Condition } from '../../engine/flowCore';
@@ -238,6 +238,13 @@ const OP_MENU_GROUPS: TypeMenuGroup[] = OP_GROUPS.map(([g, keys]) => ({
   title: g,
   items: keys.map((k) => ({ key: k, label: <><Icon id={OP_ICON[k]} size="sm" /> {OP_LABEL[k]}</> })),
 }));
+
+/** Le vocabulaire OFFERT à une liste d'ops : `sansSource` (document de projet, aucune entité du Codex)
+ *  retire les ops à source — le MÊME prédicat que le refus du schéma de projet (`opExigeUneSource`). */
+const OP_MENU_SANS_SOURCE: TypeMenuGroup[] = OP_MENU_GROUPS
+  .map((g) => ({ ...g, items: g.items.filter((i) => !opExigeUneSource(i.key)) }))
+  .filter((g) => g.items.length > 0);
+const opsOffertes = (sansSource: boolean): TypeMenuGroup[] => (sansSource ? OP_MENU_SANS_SOURCE : OP_MENU_GROUPS);
 
 // ---------------------------------------------------------------------------
 // Formules
@@ -565,7 +572,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     // Aucune zone : elle vient de la ligne « Cible » du sort (ZdE), pas de l'op.
     case 'domeWard': return { op: 'domeWard', traitId: '', indice: 1 };
     case 'attackWardFM': return { op: 'attackWardFM' };
-    case 'grantWeapon': return { op: 'grantWeapon', label: '', damage: { bonusOf: 'force-mentale' } };
+    case 'grantWeapon': return { op: 'grantWeapon', damage: { bonusOf: 'force-mentale' } };
     case 'grantNaturalWeapon': return { op: 'grantNaturalWeapon', label: '', damage: 3 };
     case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
     case 'grantTrait': return { op: 'grantTrait', traitId: '' };
@@ -770,7 +777,7 @@ export function opSummary(o: GameOp): string {
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
     case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.traitId }, formulaSummary(o.indice))} (ZdE du sort)`;
     case 'attackWardFM': return 'l’attaquer exige un Test de FM';
-    case 'grantWeapon': return `${o.label} (Dégâts ${o.plusBF ? 'BF+' : ''}${formulaSummary(o.damage)})`;
+    case 'grantWeapon': return `Arme invoquée (Dégâts ${o.plusBF ? 'BF+' : ''}${formulaSummary(o.damage)})`;
     case 'grantNaturalWeapon': return `${o.label} (${o.plusBF !== false ? 'BF+' : ''}${formulaSummary(o.damage)})`;
     case 'grantTrait': return `${formatTrait({ id: o.traitId, arg: o.arg })}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'removeTrait': return `${formatTrait({ id: o.traitId })}`;
@@ -858,7 +865,7 @@ function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined;
 /** Rangées d'une op `rollTable` (Vers de carie, MSRC 16 l.90) : `[min,max]` (source unique de fourchette,
  *  cf. `OutcomeBandsField`/`MutationRange`) → `ops` de la rangée, éditées par le MÊME `GameOpEditor`
  *  (récursif) que toute autre liste de `GameOp[]` — jamais un widget parallèle. */
-function RollTableRowsField({ rows, onChange }: { rows: { min: number; max: number; ops: GameOp[] }[]; onChange: (rows: { min: number; max: number; ops: GameOp[] }[]) => void }) {
+function RollTableRowsField({ rows, onChange, sansSource }: { rows: { min: number; max: number; ops: GameOp[] }[]; onChange: (rows: { min: number; max: number; ops: GameOp[] }[]) => void; sansSource: boolean }) {
   const set = (i: number, patch: Partial<{ min: number; max: number; ops: GameOp[] }>) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= rows.length) return;
@@ -879,7 +886,7 @@ function RollTableRowsField({ rows, onChange }: { rows: { min: number; max: numb
             <button className="btn small" title="Descendre" disabled={i === rows.length - 1} onClick={() => swap(i, i + 1)}>↓</button>
             <button className="btn small danger" title="Supprimer la rangée" onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <GameOpEditor ops={r.ops} onChange={(ops) => set(i, { ops })} />
+          <GameOpEditor ops={r.ops} sansSource={sansSource} onChange={(ops) => set(i, { ops })} />
         </div>
       ))}
       <button className="btn small" onClick={() => onChange([...rows, { min: 1, max: 1, ops: [] }])}>+ Rangée</button>
@@ -893,7 +900,7 @@ function sansClesVides<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 }
 
-function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
+function OpFields({ op, onChange, noeudListe, sansSource }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown; sansSource: boolean }) {
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
   // Le payload d'une op est STRICT : un champ VIDÉ ôte sa clé, jamais une clé à `undefined` (une option
@@ -908,7 +915,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         value={op}
         discriminant="op"
         currentLabel={OP_LABEL[op.op]}
-        groups={OP_MENU_GROUPS}
+        groups={opsOffertes(sansSource)}
         make={(key) => newOp(key)}
         onChange={onChange}
       />
@@ -1287,7 +1294,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                     ))}
                   </select>
                 </label>
-                <RollTableRowsField rows={o.rows ?? []} onChange={(rows) => upd({ rows })} />
+                <RollTableRowsField rows={o.rows ?? []} sansSource={sansSource} onChange={(rows) => upd({ rows })} />
               </>
             )}
           </>
@@ -1316,8 +1323,10 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
 }
 
 /** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
- *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `formulaSchema` partout. */
-export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
+ *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `formulaSchema` partout.
+ *  `sansSource` : la liste vit dans un document de projet, sans entité du Codex (`opsOffertes`) — SANS
+ *  défaut, chaque site dit le sien. */
+export function GameOpEditor({ ops, onChange, noeud, sansSource }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown; sansSource: boolean }) {
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];
@@ -1338,12 +1347,12 @@ export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange
               <button className="btn small danger" title="Supprimer l'op" onClick={() => onChange(ops.filter((_, j) => j !== i))}>✕</button>
             </span>
           </summary>
-          <OpFields noeudListe={noeud} op={o} onChange={(no) => onChange(ops.map((x, j) => (j === i ? no : x)))} />
+          <OpFields noeudListe={noeud} op={o} sansSource={sansSource} onChange={(no) => onChange(ops.map((x, j) => (j === i ? no : x)))} />
         </details>
       ))}
       <AddMenu
         label="+ Op mécanique"
-        groups={pickable(OP_MENU_GROUPS, (key) => onChange([...ops, newOp(key)]))}
+        groups={pickable(opsOffertes(sansSource), (key) => onChange([...ops, newOp(key)]))}
       />
     </div>
   );

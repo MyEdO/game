@@ -9,10 +9,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { itemCapability, hasCapability } from './capabilities';
+import { armeInvoquee, itemFromTrappingById } from './items';
 import type { Combatant, ItemInstance, Weapon } from './types';
+import { objetDeTest, type SurchargeDObjet } from './objetDeTest.testkit';
 
-const item = (uid: string, trappingId: string | undefined, extra: Partial<ItemInstance> = {}): ItemInstance =>
-  ({ uid, label: uid, trappingId, kind: 'misc', qualities: [], enc: 0, equipped: false, ...extra }) as ItemInstance;
+const item = (uid: string, trappingId: string, extra: SurchargeDObjet = {}): ItemInstance =>
+  objetDeTest({ uid, trappingId, kind: 'misc', qualities: [], enc: 0, equipped: false, ...extra });
 
 /** Combattant minimal porteur d'un inventaire (et d'un loadout actif `weapons` pour la garde TENU). */
 const carrier = (items: ItemInstance[], weapons: Weapon[] = []): Combatant =>
@@ -28,10 +30,17 @@ describe('itemCapability — lecture par-OBJET (catalogue, NON gatée sur le por
     expect(itemCapability(item('t', 'tente'), 'isShelter')).toBe(true);
   });
 
-  it('false pour une autre capacité, un autre trapping, ou un objet custom (sans trappingId)', () => {
+  it('false pour une autre capacité ou un autre trapping', () => {
     expect(itemCapability(item('r', 'ration'), 'isGrimoire')).toBe(false);
     expect(itemCapability(item('cap', 'cape'), 'isRations')).toBe(false);
-    expect(itemCapability(item('x', undefined), 'isRations')).toBe(false); // custom : aucune capacité
+  });
+});
+
+describe('itemCapability — une arme INVOQUÉE n’a aucune capacité, quelle que soit sa forme', () => {
+  it('l’arme invoquée sous la forme du Poing de fer n’en hérite pas l’immunité au désarmement', () => {
+    expect(itemCapability(itemFromTrappingById('poing-de-fer')!, 'disarmImmune'), 'non-vacuité : l’objet du catalogue la porte').toBe(true);
+    const invoquee = armeInvoquee({ type: 'melee', damage: { plusBF: true, flat: 0 }, source: { kind: 'spell', id: 'arme-aethyrique' }, form: 'poing-de-fer' });
+    expect(itemCapability(invoquee, 'disarmImmune')).toBe(false);
   });
 });
 

@@ -104,7 +104,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'light.tone': { registry: 'lightTones' },
   // ── Champs qui ne visent AUCUN registre ──
   'narrative.text': { nonRef: 'prose d\'arbitrage, journalisée verbatim (src/engine/ops.ts › applyOps, `case \'narrative\'`)' },
-  'grantWeapon.label': { nonRef: 'nom affiché de l\'arme invoquée (l\'arme n\'a pas d\'entrée de catalogue)' },
   'grantNaturalWeapon.label': { nonRef: 'nom affiché de l\'attaque naturelle conférée' },
   'grantFreeAttack.label': { nonRef: 'libellé de l\'option d\'attaque surfacée au Tour' },
   'grantNaturalWeapon.uid': { nonRef: 'identité d\'INSTANCE de l\'arme injectée dans `c.weapons` (déduplication)' },

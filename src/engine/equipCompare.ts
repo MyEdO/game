@@ -6,7 +6,7 @@
  * Protection des boucliers via l'Atout « Protectrice N »). Présentation pure → testable hors UI.
  */
 import type { Combatant, ItemInstance, HitLocation, WeaponDamageSpec, QualityInstance } from './types';
-import { damageScore, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
+import { damageScore, isUnarmed, damageString, unarmedWeapon, reachRankOf, itemLabel } from './items';
 import { effectiveRange } from './weaponDamage';
 import { bonus, effectiveChar } from './characteristics';
 import { resolveQualities } from './qualities/dispatch';
@@ -97,7 +97,7 @@ export function compareEquip(item: ItemInstance, hero: Combatant): EquipComparis
       // Le modèle prend le MAX par localisation (recomputeLoadout) → gain seulement si la neuve fait mieux.
       rows.push({ label: `PA ${z.label}`, current: String(curPA), next: String(Math.max(curPA, newPA)), trend: trendOf(newPA - curPA) });
     }
-    return { slot: 'armor', currentName: cur.map((i) => i.label).join(', ') || null, rows };
+    return { slot: 'armor', currentName: cur.map((i) => itemLabel(i)).join(', ') || null, rows };
   }
 
   return { slot: 'other', currentName: null, rows: [] };

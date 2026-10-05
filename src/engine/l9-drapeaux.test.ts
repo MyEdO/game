@@ -7,6 +7,7 @@ import { addCondition, hasCondition, combatTestPenalty, testStatePenalty, endOfR
 import { resolveCritique } from './critical';
 import { findSpell } from '../data';
 import { spellOps } from '../state/flow';
+import { objetDeTest, type SurchargeDObjet } from './objetDeTest.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');
@@ -184,9 +185,9 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
 });
 
 describe('Putréfaction — « le cuir se racornit (perdant 1 PA à 1 Localisation) » (LDB 47)', () => {
-  const leather = (over: Partial<ItemInstance> = {}): ItemInstance => ({
-    uid: 'a1', name: 'Armure de cuir souple', subType: 'cuir-souple', kind: 'armor', pa: 1, locs: ['corps'], equipped: true, enc: 1, qualities: [], ...over,
-  } as unknown as ItemInstance);
+  const leather = (over: SurchargeDObjet = {}): ItemInstance => objetDeTest({
+    uid: 'a1', trappingId: 'veste-de-cuir', subType: 'cuir-souple', kind: 'armor', pa: 1, locs: ['corps'], equipped: true, enc: 1, qualities: [], ...over,
+  });
   it('endommage de 1 PA une pièce de cuir portée (et re-dérive l’armure)', () => {
     const c = mk({ items: [leather()] });
     const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { label: 'Putréfaction' });

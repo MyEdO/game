@@ -7,12 +7,14 @@ import { remapCharKeysDeep } from './charKeyMigration';
 import { remapNameToLabelDeep } from './instanceIdMigration';
 import { remapSkillIdDeep } from './skillIdMigration';
 import { remapSortsFusionnesDeep } from '../data/sortsFusionnes';
+import { objetsEnFKDeep } from '../data/donsDObjet';
+import { itemInstanceSchema } from '../data/schemas/grammaire/instanceDObjet';
 import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../data/graphieOpsDeTalent';
 import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { adresseLue, type AdresseDeCreation } from '../engine/adresseDeCreation';
-import type { AdvancementRef } from '../data';
+import { findTrappingById, resolveursDeDon, type AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
 
@@ -49,13 +51,36 @@ export function rosterLoad(): RosterEntry[] {
     // `remapSortsFusionnesDeep`) s'appliquent donc en repli IDEMPOTENT à chaque
     // lecture (aucun ancien token restant après un 1er passage → no-op), plutôt que via `migrateDoc`
     // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) et la
-    // graphie des ops de Talent (#1473) de même, héros par héros.
+    // graphie des ops de Talent (#1473) de même, héros par héros. Les objets désignés par id (#1988,
+    // `heroAuxObjetsDesignes`) aussi : un héros dont la fiche ne se monte pas est écarté, et le joueur
+    // l'apprend par le témoin `takeRosterNotice`.
     return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
       .filter((e): e is EntreeLue => !!e && typeof e === 'object' && typeof (e as EntreeLue).hero?.id === 'string')
-      .map((e): RosterEntry => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
+      .flatMap((e): RosterEntry[] => {
+        try {
+          return [{ ...e, hero: heroAuxObjetsDesignes(avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero))), draft: brouillonRelu(e.draft) }];
+        } catch (err) {
+          console.warn(`roster : « ${e.hero.label ?? e.hero.id} » écarté`, err);
+          herosEcartes.add(t('picker.roster.ecarte', { heros: e.hero.label ?? e.hero.id, motif: motifJoueur(err) }).trim());
+          return [];
+        }
+      });
   } catch {
     return [];
   }
+}
+
+/** Témoin « un personnage a été retiré du roster à la lecture » — une phrase JOUEUR par personnage,
+ *  posée par `rosterLoad`, consommée par le sélecteur de héros (`ui/PartyScreen`) ; patron de
+ *  `takeObsoleteNotice` (`saves.ts`). Le prochain enregistrement du roster l'efface du stockage. */
+let herosEcartes = new Set<string>();
+
+/** Consomme le témoin (et le remet à zéro) : les personnages retirés depuis la dernière consommation,
+ *  chacun une fois même si le roster a été relu entre-temps. */
+export function takeRosterNotice(): string[] {
+  const ecartes = [...herosEcartes];
+  herosEcartes = new Set();
+  return ecartes;
 }
 
 /** Entrée telle que lue du stockage, avant `brouillonRelu`. */
@@ -96,6 +121,51 @@ function adressesLues<V>(choix: Record<string, V> = {}): Record<AdresseDeCreatio
     if (adresse) lues[adresse] = v;
   }
   return lues;
+}
+
+/** Héros dont des objets ne se montent pas (#1988) : leurs NOMS tels que la fiche les portait, et la
+ *  raison technique de chacun (`message`, pour le journal du développeur). */
+class HerosNonMontable extends Error {
+  constructor(readonly objets: readonly string[], raisons: readonly string[]) {
+    super(raisons.join(' ; '));
+  }
+}
+
+/** La raison d'un refus, en langue JOUEUR : les objets non reconnus, nommés ; rien d'autre à dire sinon. */
+function motifJoueur(err: unknown): string {
+  return err instanceof HerosNonMontable ? t('picker.roster.motif.objets', { objets: err.objets.map((o) => `« ${o} »`).join(', ') }) : '';
+}
+
+/** Le nom qu'une instance d'avant #1988 portait : son `label`, sinon celui de son entrée du catalogue
+ *  (un roster ne porte aucun objet de campagne), sinon son id. */
+const nomHerite = (it: unknown): string => {
+  const { label, trappingId, uid } = (it ?? {}) as { label?: unknown; trappingId?: unknown; uid?: unknown };
+  if (typeof label === 'string') return label;
+  if (typeof trappingId === 'string') return findTrappingById(trappingId)?.label ?? trappingId;
+  return String(uid);
+};
+
+/** Les objets du héros désignés par id (#1988) : `objetsEnFKDeep` (`data/donsDObjet.ts`) sur les résolveurs
+ *  du catalogue — un roster ne porte aucun objet de campagne —, chaque instance de `items` montée puis
+ *  jugée par `itemInstanceSchema`, une à une ; puis le reste de la fiche (dons, Conditions). LÈVE
+ *  `HerosNonMontable`, qui nomme TOUS les objets refusés. Idempotent. */
+function heroAuxObjetsDesignes<T>(hero: T): T {
+  const resolveurs = resolveursDeDon([]);
+  const items = (hero as { items?: unknown } | null)?.items;
+  const refus: { nom: string; raison: string }[] = [];
+  const montes = (Array.isArray(items) ? items : []).map((it: unknown) => {
+    try {
+      const monte = objetsEnFKDeep(it, resolveurs);
+      const jugee = itemInstanceSchema.safeParse(monte);
+      if (!jugee.success) throw new Error(jugee.error.issues.map((i) => i.message).join(' ; '));
+      return monte;
+    } catch (err) {
+      refus.push({ nom: nomHerite(it), raison: err instanceof Error ? err.message : String(err) });
+      return it;
+    }
+  });
+  if (refus.length) throw new HerosNonMontable(refus.map((r) => r.nom), refus.map((r) => `« ${r.nom} » : ${r.raison}`));
+  return objetsEnFKDeep(Array.isArray(items) ? { ...hero, items: montes } : hero, resolveurs) as T;
 }
 
 /** `careerSlotChoices` du héros aux clés en ids (#1924, `migrerClesDEmplacement`) — idempotent. */
@@ -190,6 +260,9 @@ export const ROSTER_MIGRATIONS = {
   // `avecOpsDeTalentALaGraphie`. Sans elle, l'op importée n'a pas de `talent` et son application
   // lève (`engine/ops.ts`, `grantTalent`).
   6: (doc) => ({ ...doc, hero: avecOpsDeTalentALaGraphie(doc.hero) }),
+  // v7 → v8 (#1988) : les objets du héros désignés par id, `label` mort — `heroAuxObjetsDesignes`. Un
+  // objet qui ne se monte pas LÈVE : l'import est refusé (`migrateur-en-echec`), jamais un objet sans nom.
+  7: (doc) => ({ ...doc, hero: heroAuxObjetsDesignes(doc.hero) }),
 } satisfies MigrationMap;
 
 export const EXPORT_VERSION = versionCourante(ROSTER_MIGRATIONS);
@@ -232,7 +305,7 @@ export function rosterImport(str: string): RosterImportResult {
   if (raw.kind !== undefined && raw.kind !== EXPORT_KIND) return { error: t('picker.import.error.version') };
   const normalized = { ...raw, version: typeof raw.v === 'number' ? raw.v : raw.version };
   const issue = migrateDoc(normalized, ROSTER_MIGRATIONS);
-  if (!issue.ok) return { error: t(MESSAGE_DU_REFUS_DE_MIGRATION[issue.raison]) };
+  if (!issue.ok) return { error: `${t(MESSAGE_DU_REFUS_DE_MIGRATION[issue.raison])} ${motifJoueur(issue.erreur)}`.trim() };
   const doc = issue.doc;
   const hero = (doc as { hero?: { id?: unknown } }).hero;
   if (!hero || typeof hero !== 'object' || typeof hero.id !== 'string') return { error: t('picker.import.error') };

@@ -28,6 +28,7 @@ import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
 import { normalizePassiveKind, resolveFormula } from './ops';
+import { itemLabel } from './items';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
@@ -1033,7 +1034,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   for (const it of c.items ?? []) {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
     if (!held || !it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: it.label });
+    for (const op of findTrappingById(it.trappingId)?.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: itemLabel(it) });
   }
   // Traits à modificateur de PROFIL appliqués en DIRECT (LDB 85 : Élite/Coriace/Brutal/Rapide… facultatifs,
   // statbloc d'éditeur, traits accordés) — leurs `PassiveMod` (vocab GameOp unifié, `TraitData.passive`) émis
@@ -1145,7 +1146,7 @@ export function passiveGlobalTestMod(c: Combatant): number {
  * `charMod` → `traumaCharPenaltiesLabeled` → modale d'attaque). Deux provenances DISTINCTES, jamais
  * mêlées (arbitrage utilisateur, #1153) :
  *  - le NOM vient de l'ENTITÉ ATTACHÉE, qui le porte toujours (`Combatant.mutations` stocke l'objet
- *    COMPLET, `ItemInstance` et `Trauma` portent leur `label`…) ; le catalogue n'est interrogé
+ *    COMPLET, `Trauma` porte son `label`, une instance d'objet se nomme par `itemLabel`…) ; le catalogue n'est interrogé
  *    (`refLabel`) que lorsque l'émetteur n'a fourni QUE son id.
  *  - le LIEN Codex vient du CATALOGUE, qui peut ne pas l'avoir (entrée supprimée depuis une vieille
  *    sauvegarde) : `ref` n'est posée que si l'id RÉSOUT, pour ne jamais offrir une chip morte. Elle

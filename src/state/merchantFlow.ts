@@ -39,6 +39,7 @@ import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
+import { libelleDObjet } from './campaignData';
 
 /** Issue d'un Marchandage conclu (achat OU vente) — module les prix de la visite. */
 export interface BargainOutcome {
@@ -613,8 +614,8 @@ export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeo
 }
 
 /** Refus de VENTE d'une instance, avec sa RAISON (null = vendable) — LDB 59 l.54, `isTradable`. Vendables
- *  hors Disponibilité : l'objet CUSTOM (sans ligne de catalogue) et l'instance à valeur propre
- *  (`valeurPropre` ; carte marine MDG 15 l.290). */
+ *  hors Disponibilité : l'instance sans ligne au catalogue des objets (objet de la campagne, arme
+ *  invoquée) et l'instance à valeur propre (`valeurPropre` ; carte marine MDG 15 l.290). */
 export function sellRefusal(item: ItemInstance): string | null {
   if (valeurPropre(item) !== null) return null;
   const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
@@ -772,7 +773,7 @@ export function confirmSell(get: Get, set: Set): void {
     const g = sellGain(item, m);
     gainByHero[c.heroId] = moneyAdd(gainByHero[c.heroId] ?? fromBrass(0), g);
     total = moneyAdd(total, g);
-    names.push(item.label);
+    names.push(libelleDObjet(item));
     sold.push(c);
   }
   if (!names.length) return;
@@ -794,7 +795,7 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
   const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
   const base = t ? toBrass(priceToMoney(t.price)) : 0;
   const cost = fromBrass(itemRepairCostBrass(item, base));
-  if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: item.label })); return; }
+  if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: libelleDObjet(item) })); return; }
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
   set((s) => ({
     party: s.party.map((h) => {
@@ -805,7 +806,7 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
       return clone;
     }),
   }));
-  get().log(msg('mf.repairDone', { label: item.label }));
+  get().log(msg('mf.repairDone', { label: libelleDObjet(item) }));
 }
 
 export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
@@ -904,10 +905,10 @@ export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mo
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get)) {
-    get().log(t('mf.appraiseSameDay', { label: item.label }));
+    get().log(t('mf.appraiseSameDay', { label: libelleDObjet(item) }));
     return;
   }
-  openAppraise(get, set, { itemUid: uid }, item.label, mode, item.trappingId);
+  openAppraise(get, set, { itemUid: uid }, libelleDObjet(item), mode, item.trappingId);
 }
 
 /** Évaluation/Détection d'une ligne de butin ENCORE en fenêtre (loot ou victoire) — révéler AVANT

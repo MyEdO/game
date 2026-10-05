@@ -9,6 +9,7 @@ import { battleSceneById } from './massBattleFlow';
 import type { FireArc } from './fireArc';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { Scene } from './scene';
+import { libelleDObjet } from './campaignData';
 
 export type StationKind = 'poste' | 'activity' | 'battleScene';
 
@@ -57,7 +58,7 @@ export function postesToStations(
         id: `poste:${hull.id}:${poste.item.uid}`,
         kind: 'poste',
         pos,
-        label: poste.item.label,
+        label: libelleDObjet(poste.item),
         icon: 'action/serve-engine',
         faction: FACTION[hull.kind],
         assignedIds: poste.crewIds ?? [],

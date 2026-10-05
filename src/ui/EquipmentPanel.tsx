@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import type { Combatant, HitLocation, ItemInstance } from '../engine/types';
-import { armourLayer, isCapeItem, itemLabel, weaponHands, compatibleAmmo, loadoutLabel, isOffHandEligible, isUnarmed, setADeuxMains, type ArmourLayer } from '../engine/items';
+import { armourLayer, isCapeItem, weaponHands, compatibleAmmo, loadoutLabel, isOffHandEligible, isUnarmed, setADeuxMains, type ArmourLayer } from '../engine/items';
 import { CodexRef } from './compendium/CodexRef';
 import { QualityChips } from './EntityChip';
 import { ItemIcon } from './ItemIcon';
@@ -14,6 +14,7 @@ import { Grid } from './Layout';
 import { GatedAction } from './GatedAction';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
+import { libelleDObjet } from '../state/campaignData';
 
 /** Raison UNIQUE du verrou des SETS d'armes pendant un combat. */
 const VERROU_SETS = 'Équipement verrouillé en combat (changez de set depuis la barre d’action).';
@@ -71,14 +72,14 @@ function weaponQualities(it: ItemInstance): string {
 const armourOpt = (it: ItemInstance): MediaOption => ({
   key: it.uid,
   media: <ItemIcon item={it} size="sm" />,
-  label: `${itemLabel(it)} · PA ${it.pa ?? 0}${(it.locs?.length ?? 0) > 1 ? ` · ${zonesOf(it).join('+')}` : ''}`,
+  label: `${libelleDObjet(it)} · PA ${it.pa ?? 0}${(it.locs?.length ?? 0) > 1 ? ` · ${zonesOf(it).join('+')}` : ''}`,
 });
 const weaponOpt = (w: ItemInstance): MediaOption => ({
   key: w.uid,
   media: <ItemIcon item={w} size="sm" />,
-  label: `${itemLabel(w)}${weaponHands(w) === 2 ? ' (2M)' : ''}`,
+  label: `${libelleDObjet(w)}${weaponHands(w) === 2 ? ' (2M)' : ''}`,
 });
-const capeOpt = (c: ItemInstance): MediaOption => ({ key: c.uid, media: <ItemIcon item={c} size="sm" />, label: itemLabel(c) });
+const capeOpt = (c: ItemInstance): MediaOption => ({ key: c.uid, media: <ItemIcon item={c} size="sm" />, label: libelleDObjet(c) });
 
 /** Corps du popover de stats (arme invoquée / hors-catalogue) : Dégâts résolus + Allonge/Portée
  *  (composeur partagé `weaponStatParts`) + qualités. */
@@ -139,7 +140,7 @@ function SlotCell({ id, nom, item, pa, fallback, options, value, onSelect, refus
   }
   const trigger = (
     <>
-      <CodexRef category="trappings" id={item.trappingId} label={itemLabel(item)} className="eq-slot-icon" tooltipOnly fallback={fallback} refus={refusCellule}>
+      <CodexRef category="trappings" id={item.trappingId} label={libelleDObjet(item)} className="eq-slot-icon" tooltipOnly fallback={fallback} refus={refusCellule}>
         <ItemIcon item={item} size="md" />
       </CodexRef>
       {pa != null && <span className="eq-slot-pa">{pa}</span>}
@@ -152,7 +153,7 @@ function SlotCell({ id, nom, item, pa, fallback, options, value, onSelect, refus
     return (
       <>
         <GatedAction
-          id={id} reasonId={id} label={trigger} ariaLabel={`${nom} — ${itemLabel(item)}`}
+          id={id} reasonId={id} label={trigger} ariaLabel={`${nom} — ${libelleDObjet(item)}`}
           enabled={false} onClick={() => {}} primary={false} bare btnClassName="eq-slot filled locked"
         />
         <p className="hors-ecran" id={id}>{refusCellule}</p>

@@ -11,18 +11,18 @@ import { buildTokenMap, tokensOf } from '../palette';
 import { declaredView, viewEntries } from '../viewArt';
 import { couchesDuRig } from './career';
 import { racePalette } from '../races';
-import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from './equipment';
+import { armourPart, equipDe, objetSansPorteur, shieldPart, weaponPart, type PieceDeDessin } from './equipment';
 import { ARMOUR } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { asRigSpeciesId } from '../appearance';
-import type { ItemInstance, Weapon } from '../../../engine/types';
+import type { HitLocation, Weapon } from '../../../engine/types';
 import type { PartArt } from './types';
 
 const HUMAIN = asRigSpeciesId('humain');
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const LOCS: HitLocation[] = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
 const arme = (shape: string) => ({ label: shape, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape }) as unknown as Weapon;
-const plaque = (skin?: Record<string, string>) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
+const plaque = (skin?: Record<string, string>): PieceDeDessin => ({ locs: LOCS, materiau: 'plaque', ...(skin && { skin }) });
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** Vrai si le texte porte un jeton `@clé`. */
 const aUnJeton = (s: string) => tokensOf(s).length > 0;
@@ -46,7 +46,7 @@ describe('préséance objet/porteur (#1903)', () => {
     for (const d of WEAPON_DEFS) if (vues(objetSansPorteur(weaponPart(arme(d.slug)))).some(aUnJeton)) fautes.push(`arme:${d.slug}`);
     for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ ...arme('bouclier'), shape: d.slug }))).some(aUnJeton)) fautes.push(`bouclier:${d.slug}`);
     for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
-      const p = armourPart(pieceDeDessin(plaque()), slot);
+      const p = armourPart(plaque(), slot);
       if (p && vues(objetSansPorteur(p)).some(aUnJeton)) fautes.push(`armure:plaque:${slot}`);
     }
     expect(fautes).toEqual([]);

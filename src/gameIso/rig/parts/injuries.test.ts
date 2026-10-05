@@ -3,13 +3,14 @@ import { injuryOverlaysFor, injuryAppearance } from './injuries';
 import { traumaById } from '../../../engine/trauma';
 import type { Combatant, Trauma, ItemInstance } from '../../../engine/types';
 import type { Appearance } from '../appearance';
+import { objetDeTest } from '../../../engine/objetDeTest.testkit';
 
 const mk = (traumas: Trauma[], items: ItemInstance[] = []): Combatant =>
   ({ id: 'h1', name: 'H', kind: 'hero', traumas, items }) as unknown as Combatant;
 const t = (over: Partial<Trauma>): Trauma => ({ label: 'x', location: 'tete', ...over });
 // Prothèse PORTÉE par `trappingId` STABLE (≠ libellé) — c'est ce que `worn()` matche désormais.
 const item = (trappingId: string, equipped = true): ItemInstance =>
-  ({ uid: trappingId, trappingId, name: trappingId, kind: 'misc', qualities: [], enc: 0, equipped }) as unknown as ItemInstance;
+  objetDeTest({ uid: trappingId, trappingId, kind: 'misc', qualities: [], enc: 0, equipped });
 
 const MAIN_D = t({ label: 'Main/bras amputé (brasD)', location: 'brasD', ops: [{ op: 'maxWeaponHands', hands: 1 }] });
 // Fiches réelles (traumas.json) via traumaById() : label + traumaId + ops COHÉRENTS avec le catalogue.

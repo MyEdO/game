@@ -105,3 +105,20 @@ test('(i) FAIL-FAST PÉRIMÈTRE VIDE (aucun projet de scène) → sortie 1 NOMIN
 test('(j) FORMATAGE non canonique (indentation 4) → sortie 1 NOMINATIVE, rien d’écrit', () => {
   refuse(MIGRATION, { ...poses(alpha()), [ALPHA]: `${JSON.stringify(alpha(), null, 4)}\n` }, `${ALPHA} : FORME NON CANONIQUE`, COPIES);
 });
+
+/** Campagne jouet à POSTE : une munition d'avant B4a-iii, `label` posé. */
+const gamma = (schema, munition) => ({ type: 'projet', schema, id: 'gamma', scenes: [{ id: 'quai', entities: [{ id: 'navire', postes: [{ trappingId: 'canon-moyen', ammo: [munition] }] }] }] });
+const MUNITION = { uid: 'b', trappingId: 'boulet-et-poudre', kind: 'ammo', qualities: [], enc: 1, equipped: false, qty: 4 };
+
+test('(k) MIGRATION RÉELLE : une munition de poste perd `label`, sa désignation reste', (t) => {
+  const d = depot(poses(gamma(SCHEMA_APRES, { ...MUNITION, label: 'Boulet et poudre' })), COPIES);
+  t.after(() => efface(d.racine));
+  const { code, sortie } = joue(d.racine, MIGRATION);
+  assert.equal(code, 0, `sortie ${code} : ${sortie.slice(0, 1200)}`);
+  assert.equal(lireDans(d.racine, ALPHA), serialise(gamma(SCHEMA_APRES, MUNITION), FORME_PROJET));
+});
+
+test('(l) FAIL-FAST munition sans `trappingId` : le dépôt DIT ne pas résoudre un libellé → sortie 1, rien d’écrit', () => {
+  const { trappingId: _retire, ...sansId } = MUNITION;
+  refuse(MIGRATION, poses(gamma(SCHEMA_APRES, { ...sansId, label: 'Mitraille maison' })), `${ALPHA} : le dépôt ne résout pas un libellé (« Mitraille maison »)`, COPIES);
+});

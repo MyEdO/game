@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { postesToStations, battleScenesToStations } from './stations';
 import { posteAnchor, applyShipPostes } from './shipPostes';
 import { battleSceneById } from './massBattleFlow';
-import { itemFromTrappingById } from '../engine/items';
+import { itemFromTrappingById, itemLabel } from '../engine/items';
 import type { Combatant, ShipPoste, ShipDeck } from '../engine/types';
 import type { Scene } from './scene';
 import type { FireArc } from './fireArc';
@@ -40,7 +40,7 @@ describe('postesToStations — une Station par poste, ids/assignedIds/side/ref',
     expect(s1.side).toBe('tribord');
     expect(s2.side).toBe('babord');
     expect(s1.ref).toEqual({ kind: 'poste', hullId: 'emplacement', posteUid: p1.item.uid });
-    expect(s1.label).toBe(p1.item.label);
+    expect(s1.label).toBe(itemLabel(p1.item));
     expect(s1.icon).toBe('action/serve-engine');
     expect(s1.kind).toBe('poste');
   });

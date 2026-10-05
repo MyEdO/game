@@ -25,7 +25,7 @@ import { lireDegradeDerive, tokensOf } from '../palette';
 import { FX_GRADIENT_IDS, rigFxGradients } from '../fxGradients';
 import { VIEWS } from '../facing';
 import { viewEntries } from '../viewArt';
-import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from './equipment';
+import { armourPart, equipDe, objetSansPorteur, shieldPart, weaponPart, type Materiau, type PieceDeDessin } from './equipment';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { TENUE_DEFS } from './tenues/_registry.generated';
@@ -36,11 +36,11 @@ import { asRigSpeciesId, type Appearance } from '../appearance';
 import { defsGlobaux } from '../../sprites';
 import { listerArbre } from '../../../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
-import type { ItemInstance, Weapon } from '../../../engine/types';
+import type { HitLocation, Weapon } from '../../../engine/types';
 import type { PartArt } from './types';
 
 const RIG = resolve(__dirname, '..');
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const LOCS: HitLocation[] = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
 const GLOBAUX = new Set([...defsGlobaux().matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
 const DEFINITION = /<(linear|radial)Gradient\b[^>]*\bid="([^"]+)"[^>]*>.*?<\/\1Gradient>/gs;
 const SURCHARGES: (Appearance['colors'] | undefined)[] = [
@@ -51,9 +51,8 @@ const SURCHARGES: (Appearance['colors'] | undefined)[] = [
 const SKINS = [undefined, { metal: '#ff0000', cuir: '#00ff00', peau: '#123456' }];
 const arme = (shape: string, skin?: Record<string, string>) =>
   ({ label: shape, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape, ...(skin && { skin }) }) as unknown as Weapon;
-const armure = (label: string, skin?: Record<string, string>) =>
-  ({ uid: 'a', kind: 'armor', label, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
-const MATIERES = ['Gambison', 'Jaque de cuir', 'Cotte de mailles', 'Plastron de plaque'];
+const armure = (materiau: Materiau, skin?: Record<string, string>): PieceDeDessin => ({ locs: LOCS, materiau, ...(skin && { skin }) });
+const MATIERES: Materiau[] = ['rembourre', 'cuir', 'maille', 'plaque'];
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** (1') Un `url(#id)` littéral du source vise un id global, un id défini dans son fichier, ou un `dg-`
  *  que lit `lireDegradeDerive`. */
@@ -106,7 +105,7 @@ function* corpus(): Generator<[string, string]> {
   for (const d of SHIELD_DEFS)
     for (const [n, v] of vues(objetSansPorteur(shieldPart({ ...arme('bouclier'), shape: d.slug }))).entries()) yield [`icone-bouclier|${d.slug}|${n}`, v];
   for (const l of MATIERES) for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
-    const p = armourPart(pieceDeDessin(armure(l)), slot);
+    const p = armourPart(armure(l), slot);
     if (p) for (const [n, v] of vues(objetSansPorteur(p)).entries()) yield [`icone-armure|${l}|${slot}|${n}`, v];
   }
 }

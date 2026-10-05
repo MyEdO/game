@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { combatValue, defenseValue, hasWeaponGroupSkill, weaponGroupSkillMode, weaponUnmastered } from './combat';
 import type { Combatant, ItemInstance, Weapon } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 /**
  * Jalon ② — la Spécialisation de Corps à corps / Projectiles compte enfin.
@@ -150,10 +151,10 @@ describe('combatValue — résolution ALTERNATIVE déclarée par l\'arme (bélie
 describe('Arme inhabituelle — maîtrise requise (ACE 12 l.17 « Entraînement avec une arme inhabituelle »)', () => {
   const sk = (spec: string, advances: number) =>
     ({ id: 'corps-a-corps', spec, characteristic: 'capacite-de-combat', advances } as Combatant['skills'][number]);
-  const item: ItemInstance = {
-    uid: 'u1', trappingId: 'couteau-de-harald', label: 'Couteau de Harald', kind: 'melee',
+  const item: ItemInstance = objetDeTest({
+    uid: 'u1', trappingId: 'couteau', kind: 'melee',
     qualities: [], enc: 0, equipped: true, requiresMastery: true,
-  };
+  });
   const w: Weapon = { ...wpn('base'), uid: 'u1' };
 
   it('non maîtrisée : carac brute (mécanique LDB 09 l.44) + Groupe réputé NON couvert (Défauts contextuels)', () => {
@@ -164,7 +165,7 @@ describe('Arme inhabituelle — maîtrise requise (ACE 12 l.17 « Entraînement 
   });
 
   it('maîtrisée (masteredWeapons, par id de trapping) : la Spé du Groupe compte à nouveau', () => {
-    const c = hero({ skills: [sk('base', 20)], items: [item], masteredWeapons: ['couteau-de-harald'] });
+    const c = hero({ skills: [sk('base', 20)], items: [item], masteredWeapons: ['couteau'] });
     expect(weaponUnmastered(c, w)).toBe(false);
     expect(combatValue(c, 'melee', w)).toBe(60);
     expect(hasWeaponGroupSkill(c, w, 'melee')).toBe(true);
@@ -217,11 +218,11 @@ describe('defenseValue — Esquive scopée par movementOnly (#193)', () => {
 // ACE 12 l.17-21 : la maîtrise se lit sur l'OBJET SOURCE, y compris la pièce du poste servi (`weaponLoad.objetSourceDeLArme`).
 describe('weaponUnmastered — pièce SERVIE en poste', () => {
   it('une pièce Inhabituelle non maîtrisée est non maîtrisée ; maîtrisée, elle ne l’est plus', () => {
-    const poste = { item: { uid: 'piece-1', trappingId: 'piece-rare', label: 'Pièce', kind: 'ranged', requiresMastery: true }, crewIds: ['chef'] };
+    const poste = { item: objetDeTest({ uid: 'piece-1', trappingId: 'canon-moyen', kind: 'ranged', requiresMastery: true }), crewIds: ['chef'] };
     const c = { id: 'chef', items: [], weapons: [], mannedPoste: poste } as unknown as Combatant;
     const w = { uid: 'piece-1', label: 'Pièce', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
     expect(weaponUnmastered(c, w)).toBe(true);
-    c.masteredWeapons = ['piece-rare'];
+    c.masteredWeapons = ['canon-moyen'];
     expect(weaponUnmastered(c, w)).toBe(false);
   });
 });

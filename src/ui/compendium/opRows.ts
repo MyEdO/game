@@ -12,7 +12,7 @@ import type { CodexRow } from './registry';
 import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { formatTrait, traitLabelById } from '../../engine/traits/dispatch';
-import { giveTrappingLabel } from '../../engine/items';
+import { itemLabel } from '../../engine/items';
 import { statName } from '../../engine/statEntry';
 import {
   conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
@@ -142,7 +142,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
     }
     case 'giveTrapping': {
-      const label = giveTrappingLabel(o);
+      const label = itemLabel(o);
       return { t: 'ref', category: 'trappings', id: o.trappingId, label, show: label, badge: o.count && o.count > 1 ? `×${o.count}` : undefined };
     }
     case 'contractDisease': {

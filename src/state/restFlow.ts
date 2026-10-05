@@ -131,6 +131,7 @@ import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
 import { stepPrecision } from './rollSeam';
+import { libelleDObjet } from './campaignData';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -343,14 +344,14 @@ for (const kindExposition of EXPOSURE_BAND_KINDS) registerNightBandApplier(kindE
   const drop = heavy ? choiceStep({
     id: `${band.id}-${row.id}-drop`, kind: 'exposure-heat-drop', actorId: hero.id, icon: 'item/misc',
     label: t('step.possessionLourde'),
-    options: [{ key: 'jeter', label: t('opt.jeter', { quoi: heavy.label }) }, { key: 'garder', label: t('opt.garderPaquetage') }],
+    options: [{ key: 'jeter', label: t('opt.jeter', { quoi: libelleDObjet(heavy) }) }, { key: 'garder', label: t('opt.garderPaquetage') }],
     defaultChoice: 'garder', // consommé par `runCascadeImmediate` (repos multi-jours) — `resolveRemainingCascade`
     // (« Tout résoudre ») s'arrête TOUJOURS sur ce choix depuis 249e931f, n'applique plus JAMAIS de défaut
     meta: { failNumber: priorFails + 1, cancelsRowId: nightRowId(band, row) },
   }) : undefined;
   if (heavy && drop) {
     return {
-      consequences: freeCons([t('rf.heatFailDrop', { name: hero.label, item: heavy.label })]),
+      consequences: freeCons([t('rf.heatFailDrop', { name: hero.label, item: libelleDObjet(heavy) })]),
       insert: [drop],
     };
   }

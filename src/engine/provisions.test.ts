@@ -6,12 +6,13 @@ import { effectiveChar } from './characteristics';
 import { RULE_REF } from './ruleRefs';
 import { restRecovery, needsRecoveryRoll } from './rest';
 import { addCondition, stacks } from './conditions';
+import { objetDeTest } from './objetDeTest.testkit';
 
 const chars = (E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
 });
 
-const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
+const ration = (uid: string): ItemInstance => (objetDeTest({ uid, trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false }));
 
 function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; traits?: { id: string }[] } = {}): Combatant {
   return {
@@ -127,8 +128,8 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
   it('isRation : capacité par-OBJET `isRations` lue au catalogue par trappingId (≠ nom — multilangue-safe)', () => {
     expect(isRation(ration('r'))).toBe(true);
     // Objet non-ration (autre trapping) et objet custom (sans trappingId) → false.
-    expect(isRation({ uid: 'g', label: 'Grimoire', trappingId: 'grimoire', kind: 'misc', qualities: [], enc: 1, equipped: false })).toBe(false);
-    expect(isRation({ uid: 'x', label: 'Caillou', kind: 'misc', qualities: [], enc: 0, equipped: false })).toBe(false);
+    expect(isRation(objetDeTest({ uid: 'g', trappingId: 'grimoire', kind: 'misc', qualities: [], enc: 1, equipped: false }))).toBe(false);
+    expect(isRation(objetDeTest({ uid: 'x', trappingId: 'caillou', kind: 'misc', qualities: [], enc: 0, equipped: false }))).toBe(false);
   });
 
   it('deferTest (cascade de nuit) : un Test de Faim DÛ est DIFFÉRÉ, pas roulé ici', () => {

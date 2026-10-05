@@ -5,6 +5,8 @@
 // `trappingById` chaîne campagne-d'abord puis règle globale (`findTrappingById`).
 import { findCreatureById, trappingDesObjetsPuisDuCatalogue, type CreatureData, type TrappingData } from '../data';
 import type { EntityAppearance } from '../engine/authoringAppearance';
+import { itemLabel } from '../engine/items';
+import type { DesignationDObjet } from '../engine/types';
 import type { Affaire, Indice, NarratifBlock, PresetPnj } from './campaignNarratif';
 // Import de `useGame` au top-level mais lu UNIQUEMENT dans les fonctions (usage runtime différé) :
 // le cycle store → combatEffects → campaignData → store ne se résout que par la liaison vivante ESM.
@@ -96,4 +98,10 @@ export function indiceById(id: string): Indice | undefined {
  *  coutures d'objet du moteur (`engine/items`), qui restent PURES (elles reçoivent la fonction). */
 export function trappingById(id: string): TrappingData | undefined {
   return trappingDesObjetsPuisDuCatalogue(maps().objets, id);
+}
+
+/** Libellé d'AFFICHAGE d'un objet (instance ou don) résolu campagne-D'ABORD : `itemLabel` (`engine/items`)
+ *  sur le résolveur `trappingById` — un objet de la campagne se nomme par son entrée `narratif.objets`. */
+export function libelleDObjet(it: DesignationDObjet): string {
+  return itemLabel(it, trappingById);
 }

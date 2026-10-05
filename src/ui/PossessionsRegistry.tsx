@@ -23,13 +23,13 @@ import { placeById } from '../state/worldMap';
 import { Band } from './Band';
 import { PlaqueRow } from './PlaqueRow';
 import { LifeBar } from './LifeBar';
-import { itemLabel } from '../engine/items';
 import { ItemIcon } from './ItemIcon';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { woundsTone } from './gaugeTones';
 import { findVehicleById } from '../data';
 import { Row } from './Layout';
+import { libelleDObjet } from '../state/campaignData';
 
 export const NATURE_ORDER: Possession['nature'][] = ['bete', 'vehicule', 'navire', 'serviteur', 'immeuble'];
 
@@ -131,7 +131,7 @@ function PossessionRow({ p, allPossessions, onOpen }: { p: Possession; allPosses
         <div className="inv-nested">
           {p.items.slice(0, 6).map((it) => (
             <span key={it.uid} className="chip">
-              <ItemIcon item={it} size="sm" /> {itemLabel(it)}
+              <ItemIcon item={it} size="sm" /> {libelleDObjet(it)}
             </span>
           ))}
           {p.items.length > 6 && <span className="chip">+{p.items.length - 6}</span>}

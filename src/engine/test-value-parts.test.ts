@@ -5,6 +5,7 @@ import { addCondition, COND, passivePartLine } from './conditions';
 import { talentPassiveMods } from './talentEffects';
 import { etats, findMutationById, qualities, refLabel, skills, spells, talents, trappings, traits } from '../data';
 import type { Combatant, CharKey, SkillInstance } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 /**
  * GARDE DE CLÔTURE du décomposeur de `testValue` (#1153). L'écran n'a le droit d'annoncer une base NUE
@@ -33,7 +34,7 @@ function hero(over: Partial<Combatant> = {}): Combatant {
  *  un arbitrage (le `nom` est de l'affichage de test, l'`id` est le contrat). */
 type CasId =
   | 'nu' | 'pure-carac' | 'etat' | 'mutation' | 'qualite-laid' | 'effet-char' | 'port-armure'
-  | 'encombrement' | 'outil' | 'trait' | 'sort-skillmods' | 'armure-custom' | 'mutation-perimee'
+  | 'encombrement' | 'outil' | 'trait' | 'sort-skillmods' | 'mutation-perimee'
   | 'sequelle' | 'instance-id-only' | 'etat+mutation' | 'etat+effet' | 'mutation+laid';
 
 /** Un cas de la grille : son id stable, son nom lisible, le cobaye, et le Test visé. */
@@ -69,14 +70,14 @@ function withEffetSansSource(): Combatant {
 
 function withLaid(): Combatant {
   // Objet ÉQUIPÉ portant la qualité `laid` (`qualities.json` : testMod −10 Sociabilité, LDB 60 l.54).
-  return hero({ items: [{ uid: 'i1', trappingId: 'chemise', kind: 'armor', equipped: true, qualities: [{ id: 'laid' }] }] as Combatant['items'] });
+  return hero({ items: [objetDeTest({ uid: 'i1', trappingId: 'chemise-de-mailles', kind: 'armor', equipped: true, qualities: [{ id: 'laid' }] })] as Combatant['items'] });
 }
 
 function withArmureLourde(): Combatant {
   // Port d'armure (LDB 63) : pseudo-qualité `en-discretion` −10 → pèse sur un Test de Discrétion.
   return hero({
     skills: [{ id: 'discretion', advances: 15 }] as SkillInstance[],
-    items: [{ uid: 'i2', trappingId: 'cotte-de-mailles', kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] }] as Combatant['items'],
+    items: [objetDeTest({ uid: 'i2', trappingId: 'cotte-de-mailles', kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] })] as Combatant['items'],
   });
 }
 
@@ -85,7 +86,7 @@ function withEncombrement(): Combatant {
   return hero({
     skills: [{ id: 'athletisme', advances: 15 }] as SkillInstance[],
     characteristics: { sociabilite: 40, agilite: 40, force: 20, endurance: 20 } as Combatant['characteristics'],
-    items: Array.from({ length: 12 }, (_, i) => ({ uid: `enc${i}`, label: 'Lest', trappingId: 'sac-a-dos', kind: 'trapping', enc: 1, qualities: [], equipped: false })) as unknown as Combatant['items'],
+    items: Array.from({ length: 12 }, (_, i) => (objetDeTest({ uid: `enc${i}`, trappingId: 'sac-a-dos', kind: 'misc', enc: 1, qualities: [], equipped: false }))) as unknown as Combatant['items'],
   });
 }
 
@@ -128,14 +129,6 @@ function withSortSkillMod(): Combatant {
   });
 }
 
-/** Pièce d'armure CUSTOM (forgée à la main, SANS `trappingId`) : hors catalogue, donc sans fiche. */
-function withArmureCustom(): Combatant {
-  return hero({
-    skills: [{ id: 'discretion', advances: 15 }] as SkillInstance[],
-    items: [{ uid: 'i3', label: 'Harnois du forgeron', kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] }] as unknown as Combatant['items'],
-  });
-}
-
 /** Mutation d'une SAUVEGARDE PÉRIMÉE (l'entrée a disparu du catalogue depuis) : le Combattant en porte
  *  l'objet COMPLET, donc son nom tient ; seul le lien Codex manque. */
 function withMutationPerimee(): Combatant {
@@ -153,7 +146,7 @@ function withMutationPerimee(): Combatant {
  *    alors pas une chip morte.
  * Retirer une entrée d'ici la remet sous l'exigence générale ; en ajouter une est un ARBITRAGE à énoncer.
  */
-const SANS_REF_DECLARE = new Set<CasId>(['armure-custom', 'mutation-perimee', 'sequelle']);
+const SANS_REF_DECLARE = new Set<CasId>(['mutation-perimee', 'sequelle']);
 
 /** Replis de FAMILLE : jamais un nom d'octroyeur (`passivePartLine` n'en produit aucun ; cette liste
  *  interdit qu'on en réintroduise un). */
@@ -185,7 +178,6 @@ const GRILLE: Cas[] = [
   // Les canaux que la garde de la passe 3 ne voyait pas (sondes du juge).
   { id: 'trait', nom: 'TRAIT à passif skillMod (Dressé pour divertir)', c: withTrait(), skill: 'divertissement' },
   { id: 'sort-skillmods', nom: 'SORT à `skillMod` passif (effet actif temporaire)', c: withSortSkillMod(), skill: 'marchandage' },
-  { id: 'armure-custom', nom: 'pièce d’armure CUSTOM (hors catalogue)', c: withArmureCustom(), skill: 'discretion' },
   { id: 'mutation-perimee', nom: 'mutation d’une sauvegarde périmée', c: withMutationPerimee(), skill: 'marchandage' },
   { id: 'sequelle', nom: 'SÉQUELLE (traumatisme à skillMod)', c: withSequelle(), skill: 'marchandage' },
   { id: 'instance-id-only', nom: 'instance ID-ONLY d’une sauvegarde périmée', c: withTalentPerime(), skill: 'marchandage' },
@@ -255,13 +247,6 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
     expect(part.label).toBe(SORT.label);
     expect(part.ref).toEqual({ category: 'spells', id: SORT.id }); // lien Codex VERS LE SORT
     expect(part.value).toBe(-20);
-  });
-
-  it('(C) armure CUSTOM : NOMMÉE par le label que l’objet PORTE, lien absent (exception déclarée)', () => {
-    const [part, ...reste] = testValueParts(withArmureCustom(), 'discretion');
-    expect(reste).toEqual([]);
-    expect(part.label).toBe('Harnois du forgeron'); // ni « Passif », ni un id brut
-    expect(part.ref).toBeUndefined(); // aucune fiche à ouvrir : la pièce n'est pas au catalogue
   });
 
   it('(C bis) mutation d’une sauvegarde périmée : le NOM tient (objet complet), seul le LIEN manque', () => {

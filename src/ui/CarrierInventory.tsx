@@ -12,7 +12,7 @@
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { HitLocation, ItemInstance, Combatant } from '../engine/types';
-import { isCapeItem, isWearable, containerFillEnc, canStow, armourLayer, itemLabel } from '../engine/items';
+import { isCapeItem, isWearable, containerFillEnc, canStow, armourLayer } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, carriersCoLocated, type Carrier } from '../state/carrier';
@@ -31,6 +31,7 @@ import { prefixOf } from './PossessionsRegistry';
 import { GatedAction } from './GatedAction';
 import type { Palette } from '../gameIso/rig/palette';
 import { projectionEditeur } from '../gameIso/rig/clesDePalette';
+import { libelleDObjet } from '../state/campaignData';
 
 /** Raison UNIQUE du verrou d'équipement pendant un combat, partagée par les actions de sac. */
 const VERROU_COMBAT = 'Équipement verrouillé en combat (seul le changement de set d’armes est permis).';
@@ -167,7 +168,7 @@ export function CarrierInventory({
         <PlaqueRow
           valueMuted
           prefix={<ItemIcon item={it} size="sm" />}
-          content={<CodexRef category="trappings" id={it.trappingId} label={itemLabel(it)} tooltipOnly>{itemLabel(it)}</CodexRef>}
+          content={<CodexRef category="trappings" id={it.trappingId} label={libelleDObjet(it)} tooltipOnly>{libelleDObjet(it)}</CodexRef>}
           sub={itemStats(it)}
           meta={badges.length ? <>{badges}</> : undefined}
           value={it.container ? <>Enc {it.enc} · {containerFillEnc(carrier, it.uid)}/{it.container.capacity}</> : <>Enc {it.enc}</>}
@@ -210,7 +211,7 @@ export function CarrierInventory({
                 options={containers.map((bag) => ({
                   key: bag.uid,
                   media: <ItemIcon item={bag} size="sm" />,
-                  label: itemLabel(bag),
+                  label: libelleDObjet(bag),
                   sub: `${containerFillEnc(carrier, bag.uid)}/${bag.container?.capacity ?? 0}`,
                 }))}
                 onSelect={(cid) => stowItem(carrierId, it.uid, cid)}

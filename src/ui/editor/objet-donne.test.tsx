@@ -21,7 +21,7 @@ beforeAll(() => {
 
 const OBJET_DU_PROJET: TrappingData = { ...trappings.find((t) => t.id === 'dague')!, id: 'projet-sceau-du-comte', label: 'Sceau du comte' };
 const SERVICE = trappings.find((t) => !dansLaSousListe(DONNABLE, t))!;
-const ctx = (objets: readonly TrappingData[]): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets });
+const ctx = (objets: readonly TrappingData[]): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets, sansSource: true });
 const DON = { type: 'giveTrapping', trappingId: 'dague' } as Effect;
 
 /** Monte l'Effet ; rend ce que `lire(host)` observe AVANT `geste(host)`, puis les émissions du geste. */

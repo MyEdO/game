@@ -2219,7 +2219,6 @@
             "ops": [
               {
                 "op": "grantWeapon",
-                "label": "Arme aethyrique",
                 "damage": {
                   "bonusOf": "force-mentale"
                 },
@@ -4991,7 +4990,6 @@
             "ops": [
               {
                 "op": "grantWeapon",
-                "label": "Épée ardente de Rhuin",
                 "damage": 6,
                 "subType": "base",
                 "reach": "Moyenne",
@@ -6835,7 +6833,6 @@
             "ops": [
               {
                 "op": "grantWeapon",
-                "label": "Faux de Shyish",
                 "damage": {
                   "bonusOf": "force-mentale"
                 },

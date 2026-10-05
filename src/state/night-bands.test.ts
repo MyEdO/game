@@ -32,6 +32,7 @@ import type { Combatant, Difficulty } from '../engine/types';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import { monoStep, type BuiltCascadeStep } from './rollSeam';
 import { nightStakeRef } from '../data';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -432,7 +433,7 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
  */
 describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRowId → vague N+1', () => {
   it('la vague 1 porte priorFails { h1: 0, h2: 1 } — l’échec annulé ne compte que pour son porteur', () => {
-    const heavy = { uid: 'sac', trappingId: 'grand-sac', label: 'Grand sac à dos', kind: 'misc', qualities: [], equipped: true, enc: 3 } as never;
+    const heavy = objetDeTest({ uid: 'sac', trappingId: 'grand-sac', kind: 'misc', qualities: [], equipped: true, enc: 3 });
     const h1 = h('h1'); h1.items = [heavy];
     const h2 = h('h2'); h2.items = [];
     set({ party: [h1, h2], pendingCascade: null, journal: [] } as never);

@@ -7,6 +7,7 @@ import {
   vehicleTravel, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
 } from './travel';
 import { toBrass } from './money';
+import { objetDeTest } from './objetDeTest.testkit';
 
 const chars = (E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
@@ -14,7 +15,7 @@ const chars = (E = 30): Characteristics => ({
 
 function hero(opts: { id?: string; movement?: number; enc?: number; endurance?: number; dead?: boolean } = {}): Combatant {
   const enc = opts.enc ?? 0;
-  const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
+  const items: ItemInstance[] = enc > 0 ? [objetDeTest({ uid: 'x', trappingId: 'corde', kind: 'misc', qualities: [], enc, equipped: false })] : [];
   return {
     id: opts.id ?? 'c', label: opts.id ?? 'Test', kind: 'hero',
     characteristics: chars(opts.endurance),

@@ -19,6 +19,7 @@ import { combatBaseValue, combatValue, defenseBaseValue, defenseValue, rollMelee
 import { hydrateTR } from './tests';
 import { COND } from './conditions';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 const chars = (over: Partial<Characteristics> = {}): Characteristics => ({
   'capacite-de-combat': 40, 'capacite-de-tir': 35, force: 30, endurance: 30, initiative: 30,
@@ -29,7 +30,7 @@ const epee = { label: 'Épée', type: 'melee', subType: 'epee', damage: 4, quali
 
 function hero(opts: { conditions?: { id: string; value: number }[]; skills?: Combatant['skills']; enc?: number; chars?: Partial<Characteristics> } = {}): Combatant {
   const enc = opts.enc ?? 0;
-  const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
+  const items: ItemInstance[] = enc > 0 ? [objetDeTest({ uid: 'x', trappingId: 'corde', kind: 'misc', qualities: [], enc, equipped: false })] : [];
   return {
     id: 'h', label: 'Sujet', kind: 'hero',
     characteristics: chars(opts.chars),

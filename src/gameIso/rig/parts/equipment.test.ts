@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, isShield, pieceDeDessin, armeDeDessin, armePrincipale, equipDe } from './equipment';
+import { entree as entreeDeGroupe } from '../../../data/schemas/defs/weaponGroups';
 import { resolveParts } from './resolve';
 import { rigAttackDef, rigDefenseDef } from '../anim/actorAnimSelect';
 import { contexteDeGeste } from '../../fx/animTracks';
 import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
-import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
-import { findMutationById, trappings } from '../../../data';
+import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
+import { findMutationById, trappings, weaponGroups } from '../../../data';
 import { itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
+import { objetDeTest } from '../../../engine/objetDeTest.testkit';
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
@@ -64,26 +66,35 @@ describe('isShield', () => {
   });
 });
 
-describe('armourMaterial — corrections audit', () => {
-  const mat = (name: string, pa: number) =>
-    armourMaterial({ uid: 'x', label: name, kind: 'armor', qualities: [], pa, locs: ['corps'], enc: 1, equipped: true } as ItemInstance);
-  it('« Plastron de cuir » = cuir (cuir prime sur plaque)', () => {
-    expect(mat('Plastron de cuir', 2)).toBe('cuir');
+describe('armourMaterial — le matériau dessiné du Groupe de la pièce (`subType`), sinon le palier de ses PA', () => {
+  it('le matériau dessiné vit sur l’entrée de Groupe d’armure : le schéma le REQUIERT, et le refuse ailleurs', () => {
+    const plate = weaponGroups.find((g) => g.id === 'plate')!;
+    const { dessin: _dessin, ...sansDessin } = plate;
+    expect(entreeDeGroupe.safeParse(plate).success).toBe(true);
+    expect(entreeDeGroupe.safeParse(sansDessin).success).toBe(false);
+    const arme = weaponGroups.find((g) => g.kind === 'weapon')!;
+    expect(entreeDeGroupe.safeParse({ ...arme, dessin: 'plaque' }).success).toBe(false);
   });
-  it('« Plastron » (plaque) = plaque', () => {
-    expect(mat('Plastron', 5)).toBe('plaque');
+  it('chaque Groupe d’armure se dessine par SON matériau, lu dans la donnée', () => {
+    for (const g of weaponGroups.filter((x) => x.kind === 'armour')) expect(armourMaterial({ subType: g.id, pa: 0 }), g.id).toBe(g.dessin);
   });
-  it('« Jambières d’acier » et « Brassards » = plaque', () => {
-    expect(mat("Jambières d'acier", 2)).toBe('plaque');
-    expect(mat('Brassards', 2)).toBe('plaque');
+  it('le Groupe prime sur les PA : Mailles à 4 PA reste maille, Cuir souple à 5 PA reste cuir', () => {
+    expect(armourMaterial({ subType: 'mailles', pa: 4 })).toBe('maille');
+    expect(armourMaterial({ subType: 'cuir-souple', pa: 5 })).toBe('cuir');
+    expect(armourMaterial({ subType: 'plate', pa: 1 })).toBe('plaque');
   });
-  it('« Cotte de mailles » = maille', () => {
-    expect(mat('Cotte de mailles', 2)).toBe('maille');
+  it('sans Groupe (armure de statbloc dessinée), le palier de PA', () => {
+    expect([0, 1, 2, 4].map((pa) => armourMaterial({ pa }))).toEqual(['rembourre', 'cuir', 'maille', 'plaque']);
+  });
+  it('les armures du catalogue au Groupe Plate se dessinent en plaque, Léviathan et Pansière ogre comprises', () => {
+    const plates = trappings.filter((t) => t.categorie === 'armor' && t.subType === 'plate').map((t) => t.id);
+    expect(plates).toEqual(expect.arrayContaining(['armure-de-plates-du-leviathan', 'pansiere-ogre']));
+    expect(plates.filter((id) => armourMaterial(itemFromTrappingById(id)!) !== 'plaque')).toEqual([]);
   });
 });
 
 describe('armourPart', () => {
-  const mail = pieceDeDessin({ uid: '1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true });
+  const mail = pieceDeDessin(objetDeTest({ uid: '1', trappingId: 'cotte-de-mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true }));
   it('mappe une pièce de corps sur le slot torse', () => {
     expect(viewOrFront(armourPart(mail, 'torse'), 'front')).toContain('<');
   });
@@ -103,8 +114,8 @@ describe('equipPorte', () => {
     const c = {
       weapons: [wep('Épée', 'melee'), wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])],
       items: [
-        { uid: 'a', label: 'Plastron', kind: 'armor', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true } as ItemInstance,
-        { uid: 'b', label: 'Heaume', kind: 'armor', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,
+        objetDeTest({ uid: 'a', trappingId: 'plastron', kind: 'armor', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true }),
+        objetDeTest({ uid: 'b', trappingId: 'heaume', kind: 'armor', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false }),
       ],
     } as unknown as Combatant;
     const e = equipPorte(c);
@@ -114,14 +125,14 @@ describe('equipPorte', () => {
   });
 
   it('superposition : la couche du DESSUS s’affiche (plaque > maille > cuir), par slot', () => {
-    const piece = (uid: string, name: string, locs: string[]): ItemInstance =>
-      ({ uid, label: name, kind: 'armor', qualities: [], pa: 1, locs, enc: 1, equipped: true } as ItemInstance);
+    const piece = (uid: string, subType: string, locs: HitLocation[]): ItemInstance =>
+      objetDeTest({ uid, trappingId: uid, subType, kind: 'armor', pa: 1, locs, enc: 1, equipped: true });
     const c = {
       weapons: [],
       items: [
-        piece('cuir', 'Veste de cuir', ['brasG', 'brasD', 'corps']),
-        piece('maille', 'Chemise de mailles', ['corps']),
-        piece('plate', 'Plastron', ['corps']),
+        piece('cuir', 'cuir-souple', ['brasG', 'brasD', 'corps']),
+        piece('maille', 'mailles', ['corps']),
+        piece('plate', 'plate', ['corps']),
       ],
     } as unknown as Combatant;
     const e = equipPorte(c);
@@ -132,7 +143,7 @@ describe('equipPorte', () => {
   });
 
   it('cape/manteau porté → EquipCtx.cape (cosmétique) ; non porté → absent', () => {
-    const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
+    const cape = objetDeTest({ uid: 'c', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true });
     const c = { weapons: [], items: [cape] } as unknown as Combatant;
     expect(equipPorte(c).cape).toBe(true);
     cape.equipped = false;

@@ -12,7 +12,8 @@ import { finalizeBattle } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Possession } from '../engine/possession';
-import type { Combatant, ItemInstance } from '../engine/types';
+import type { Combatant } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en pièce, #618)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null, possessions: [] }); });
@@ -30,7 +31,7 @@ describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en 
 
   const mule = (uid: string): Possession => ({
     uid, nature: 'bete', ownerId: 'W', label: 'Marguerite',
-    location: { kind: 'avec-le-groupe' }, items: [{ itemId: 'sac-a-dos', qty: 1 } as unknown as ItemInstance],
+    location: { kind: 'avec-le-groupe' }, items: [objetDeTest({ trappingId: 'sac-a-dos', qty: 1 })],
     ref: { creatureId: 'mule' }, wounds: { current: 8, max: 8 },
   });
 

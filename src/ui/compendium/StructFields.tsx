@@ -123,7 +123,7 @@ export function SymptomTickField({ value, onChange }: { value: SymptomTick | und
           <label><input type="checkbox" checked={!!value.once} onChange={(e) => patch({ once: e.target.checked || undefined })} /> une seule fois (au jour exact)</label>
           {value.test
             ? <NoeudTestField racine="maladie" desc="jet du cycle (Difficulté, compétence, conséquence de l’échec)" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />
-            : <GameOpEditor ops={value.ops ?? []} onChange={(ops) => patch({ ops })} />}
+            : <GameOpEditor sansSource={false} ops={value.ops ?? []} onChange={(ops) => patch({ ops })} />}
         </>
       )}
     </div>
@@ -217,7 +217,7 @@ export function ShipCrewHitField({ value, onChange }: { value: ShipCrewHitValue 
           />
           {value.test
             ? <NoeudTestField racine="critiqueDeCoque" desc="Test encouru — Difficulté, Compétence ou Caractéristique, et ce que l’échec inflige" retirable={false} branches="echec" value={value.test} onChange={(t) => patch({ test: t ?? noeudTestNeuf() })} />
-            : <GameOpEditor ops={value.ops ?? []} onChange={(ops) => patch({ ops })} />}
+            : <GameOpEditor sansSource={false} ops={value.ops ?? []} onChange={(ops) => patch({ ops })} />}
         </>
       )}
     </div>
@@ -685,7 +685,7 @@ export function DomainEffectsField(
       </div>
       <div className="ed-subfield">
         <span>Ops post-incantation (appliquées au lanceur après incantation réussie — ex. Bête → Peur 1 pour 1d10 Rounds)</span>
-        <GameOpEditor ops={casterOps ?? []} onChange={(ops) => onCasterOps(ops.length ? ops : undefined)} />
+        <GameOpEditor sansSource={false} ops={casterOps ?? []} onChange={(ops) => onCasterOps(ops.length ? ops : undefined)} />
       </div>
     </div>
   );

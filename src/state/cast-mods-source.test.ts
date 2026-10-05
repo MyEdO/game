@@ -8,6 +8,7 @@ import { evaluateTest } from '../engine/tests';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { findSpellById } from '../data/index';
 import type { Combatant } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /**
  * UNE source de modificateurs pour les Tests de la famille Incantation (`castTestDRMods`) — à DÉ
@@ -45,7 +46,7 @@ const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => ({
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
   wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], traumas: [],
   resilience: 3, fortune: 2, weapons: [],
-  items: [{ id: 'a1', kind: 'armor', label: 'Plastron', equipped: true, pa: PA, locations: ['corps'] }],
+  items: [objetDeTest({ uid: 'a1', trappingId: 'plastron', kind: 'armor', equipped: true, pa: PA, locs: ['corps'] })],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 1 }],
   talents: [{ talentId: 'diction-instinctive', times: TALENT }],
@@ -249,14 +250,14 @@ const FOCUS_TARGET = 41;
 
 const focalisateur = (pa: number) => ({
   ...(mk('A') as unknown as Record<string, unknown>),
-  items: pa ? [{ id: 'a1', kind: 'armor', label: 'Plastron', equipped: true, pa, locations: ['corps'] }] : [],
+  items: pa ? [objetDeTest({ uid: 'a1', trappingId: 'plastron', kind: 'armor', equipped: true, pa, locs: ['corps'] })] : [],
   skills: [{ id: 'focalisation', spec: 'bete', characteristic: 'force-mentale', advances: 1 }],
   talents: [{ talentId: 'harmonisation-aethyrique', times: 1 }],
 } as unknown as Combatant);
 
 const lanceur = (pa: number) => ({
   ...(mk('A') as unknown as Record<string, unknown>),
-  items: pa ? [{ id: 'a1', kind: 'armor', label: 'Plastron', equipped: true, pa, locations: ['corps'] }] : [],
+  items: pa ? [objetDeTest({ uid: 'a1', trappingId: 'plastron', kind: 'armor', equipped: true, pa, locs: ['corps'] })] : [],
 } as unknown as Combatant);
 
 const poser = (hero: Combatant, extra: Record<string, unknown> = {}) => useGame.setState({

@@ -10,6 +10,7 @@ import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
 import { recomputeLoadout, isUnarmed, itemFromTrappingById } from './items';
+import { objetDeTest } from './objetDeTest.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -379,7 +380,7 @@ describe('applyOps — opérations unitaires', () => {
   // #153 — Aux Armes « Vous lâchez ce que vous teniez dans cette main » (bras/corps) : op `disarm`.
   describe("op disarm (#153 — « lâche l'objet tenu »)", () => {
     const withWeapon = (): Combatant => {
-      const c = hero({ items: [{ uid: 'w1', label: 'Épée', kind: 'melee', equipped: true, qualities: [], enc: 1 } as never] });
+      const c = hero({ items: [objetDeTest({ uid: 'w1', trappingId: 'arme-simple', kind: 'melee', equipped: true, qualities: [], enc: 1 })] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';
       recomputeLoadout(c);
@@ -390,7 +391,7 @@ describe('applyOps — opérations unitaires', () => {
       const c = withWeapon();
       const lines = applyOps(c, [{ op: 'disarm' }], { location: 'brasD' });
       expect(c.loadouts![0].main).toBeUndefined();
-      expect(lines[0]).toMatch(/Épée/);
+      expect(lines[0]).toMatch(/Arme simple/);
     });
 
     it("ctx.location='brasG' → cible la main SECONDAIRE (off), la MAIN n'est pas touchée", () => {
@@ -414,7 +415,7 @@ describe('applyOps — opérations unitaires', () => {
 
     // #476 — Poing de fer ogre (ADE II 02 l.694-698) : capacité `disarmImmune` (`ItemCapabilities`).
     it("capacité disarmImmune (Poing de fer, ADE II 02 l.694-698) → refuse le désarmement, l'arme reste tenue", () => {
-      const c = hero({ items: [{ uid: 'w1', trappingId: 'poing-de-fer', label: 'Poing de fer', kind: 'melee', equipped: true, qualities: [], enc: 2 } as never] });
+      const c = hero({ items: [objetDeTest({ uid: 'w1', trappingId: 'poing-de-fer', kind: 'melee', equipped: true, qualities: [], enc: 2 })] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';
       recomputeLoadout(c);

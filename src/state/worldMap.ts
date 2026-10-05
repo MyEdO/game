@@ -658,7 +658,7 @@ function refusDeMigration(raison: RaisonDeRefus, schema: unknown, detail?: strin
 function migreFormeDeProjet(data: unknown): Record<string, unknown> {
   const obj = data as Record<string, unknown> | null | undefined;
   const issue = migrateDoc(obj == null ? obj : { ...obj, version: obj.schema }, PROJECT_MIGRATIONS);
-  if (!issue.ok) throw refusDeMigration(issue.raison, issue.version, issue.detail);
+  if (!issue.ok) throw refusDeMigration(issue.raison, issue.version, issue.erreur === undefined ? undefined : issue.erreur instanceof Error ? issue.erreur.message : String(issue.erreur));
   return { ...issue.doc, schema: issue.doc.version };
 }
 

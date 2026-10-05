@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
+import { itemInstanceSchema } from '../grammaire/instanceDObjet';
 import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
@@ -42,8 +43,18 @@ export const rectSchema = z.strictObject({ x: z.number(), y: z.number(), w: z.nu
 /** Offre de couchage d'une scène/zone (`RestPlaces` sans `bord`, réservé au navire de campagne). */
 export const restPlacesSchema = z.strictObject({ auberge: z.boolean().optional(), maison: z.boolean().optional(), camp: z.boolean().optional() });
 
-/** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. */
-export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
+/** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. Ses
+ *  instances d'objet (`item`, `ammo[]`) passent par `itemInstanceSchema`. */
+export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>().superRefine((poste, ctx) => {
+  const instances: [PropertyKey[], unknown][] = [
+    ...(poste?.item !== undefined ? [[['item'], poste.item] as [PropertyKey[], unknown]] : []),
+    ...(Array.isArray(poste?.ammo) ? poste.ammo.map((it, i): [PropertyKey[], unknown] => [['ammo', i], it]) : []),
+  ];
+  for (const [path, it] of instances) {
+    const jugee = itemInstanceSchema.safeParse(it);
+    if (!jugee.success) for (const issue of jugee.error.issues) ctx.addIssue({ code: 'custom', message: issue.message, path: [...path, ...issue.path] });
+  }
+});
 /** `NavalTraitRef` (`engine/types.ts`) — Amélioration d'INSTANCE d'un navire (MDG 12). C'est la
  *  référence INDICÉE de la grammaire (`refIndiceSchema`), pas une seconde graphie de sa signature. */
 export const navalTraitRefSchema = refIndiceSchema;

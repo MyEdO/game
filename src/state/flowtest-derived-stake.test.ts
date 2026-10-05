@@ -44,6 +44,7 @@ import { applyOps } from '../engine/ops';
 import { recomputeLoadout, parseDamage } from '../engine/items';
 import type { TriggeredEffect } from '../engine/flowCore';
 import { CATEGORY_BY_SOURCE_KIND, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /**
  * Familles dont l'ENJEU est POSÉ PAR LE PRODUCTEUR moteur (patron `miscast.mkTest`) — ni une exemption
@@ -273,11 +274,13 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
  *    pour qu'une « correction » ne le casse pas au passage.
  */
 describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais l’arme qui la porte', () => {
-  const arme = (): ItemInstance => ({ uid: 'w', label: 'Épée', kind: 'melee', damage: parseDamage('+BF+4'), reach: 'Moyenne', range: null, qualities: [], enc: 1, equipped: true } as unknown as ItemInstance);
+  /** Id VOLONTAIREMENT hors du catalogue : l'arme forgée de la sonde « sans provenance », sans fiche à nommer. */
+  const ARME_HORS_CATALOGUE = 'arme-hors-catalogue';
+  const arme = (trappingId = 'arme-simple'): ItemInstance => objetDeTest({ uid: 'w', trappingId, kind: 'melee', damage: parseDamage('+BF+4'), reach: 'Moyenne', range: null, qualities: [], enc: 1, equipped: true });
 
-  const porteur = (): Combatant => {
+  const porteur = (trappingId?: string): Combatant => {
     const c = hero();
-    (c as unknown as { items: ItemInstance[] }).items = [arme()];
+    (c as unknown as { items: ItemInstance[] }).items = [arme(trappingId)];
     (c as unknown as { loadouts: unknown[] }).loadouts = [{ id: 'lo', main: 'w' }];
     (c as unknown as { activeLoadoutId: string }).activeLoadoutId = 'lo';
     recomputeLoadout(c);
@@ -296,7 +299,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
     const stake = withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!;
     const texte = resolveStake(stake).text!;
     expect(texte).toContain(findById('spells', 'morsure-de-l-hiver')!.label);
-    expect(texte, 'l’enjeu nomme l’ARME : il ment sur ce qui se joue').not.toContain('Épée');
+    expect(texte, 'l’enjeu nomme l’ARME : il ment sur ce qui se joue').not.toContain(findById('trappings', 'arme-simple')!.label);
     expect(resolveStake(stake).rule).toEqual({ category: 'spells', id: 'morsure-de-l-hiver' });
   });
 
@@ -306,7 +309,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     const texte = resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text!;
     expect(texte).toContain(findById('trappings', 'lotus-noir')!.label);
-    expect(texte).not.toContain('Épée');
+    expect(texte).not.toContain(findById('trappings', 'arme-simple')!.label);
   });
 
   it('effet EN PROPRE de l’objet : l’enjeu nomme l’OBJET — c’est lui qui exige le jet', () => {
@@ -321,7 +324,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   /** SANS provenance (op appliquée hors de tout contexte d'entité) : le socle SE TAIT — il ne se
    *  rabat pas sur l'arme. C'est la règle du lot : se taire plutôt que mentir. */
   it('effet fondu SANS provenance : la dérivation se tait plutôt que de nommer l’arme', () => {
-    const c = porteur();
+    const c = porteur(ARME_HORS_CATALOGUE);
     applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { label: 'Enchantement anonyme', defaultDurationRounds: 4 });
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     // Le dispatcher tague au porteur ce qui n'a pas de source : ici l'arme est SANS id de catalogue

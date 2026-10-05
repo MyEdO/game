@@ -8,6 +8,8 @@ import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, ItemInstance, ShipPoste, Weapon } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
 /**
  * #25 — MUNITIONS PAR POSTE (MDG 12 l.410-424 « Munitions pour pièces d'artillerie ») : le poste porte
@@ -17,8 +19,8 @@ import type { Combatant, ItemInstance, ShipPoste, Weapon } from '../engine/types
  * Incident de tir, tous les membres de son équipage sont affectés. »
  */
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const ammoItem = (uid: string, name: string, qty: number, over: Partial<ItemInstance> = {}): ItemInstance =>
-  ({ uid, label: name, kind: 'ammo', subType: 'munition-de-siege', qty, qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
+const ammoItem = (uid: string, trappingId: string, qty: number, over: SurchargeDObjet = {}): ItemInstance =>
+  objetDeTest({ uid, trappingId, kind: 'ammo', subType: 'munition-de-siege', qty, qualities: [], enc: 0, equipped: false, ...over });
 const mkPoste = (ammo: ItemInstance[], ammoUid?: string): ShipPoste =>
   ({ side: 'tribord',
     item: { uid: 'canon', name: 'Canon (moyen)', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
@@ -41,9 +43,9 @@ const foeHull = (): Combatant =>
 
 describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
   it('compatibleAmmo du chef = stock du POSTE (en tête) ∪ sa besace ; selectedAmmo suit poste.ammoUid', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
-    const perso = ammoItem('perso', 'Boulet perso', 2);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 3);
+    const perso = ammoItem('perso', 'boulet-perso', 2);
     const poste = mkPoste([boulet, mitraille], 'mitraille');
     const chef = mkCrew('chef', [perso]);
     serveChef(chef, poste); // pose mannedPoste + l'arme dérivée (mountSide)
@@ -56,7 +58,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
   });
 
   it('consumeAmmo décrémente LÀ où vit la munition (stock du poste) et retire l’instance à 0', () => {
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 1);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 1);
     const poste = mkPoste([mitraille], 'mitraille');
     const chef = mkCrew('chef');
     serveChef(chef, poste);
@@ -66,7 +68,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
   });
 
   it('resolveVolley tire la munition du STOCK DU POSTE (qualités de la munition fusionnées)', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5, { qualities: [{ id: 'percutante' }], damage: { flat: 0, plusBF: false } });
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5, { qualities: [{ id: 'percutante' }], damage: { flat: 0, plusBF: false } });
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -81,7 +83,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
 
   it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (shipBatteryConfirm)', () => {
     seedBattleRng(7);
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 2);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 2);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -106,7 +108,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
    */
   it('Test d’équipage RATÉ : 0 Dégât, mais la pièce est DÉCHARGÉE, la munition CONSOMMÉE, et le journal dit que la bordée MANQUE', () => {
     seedBattleRng(7);
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 2);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 2);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -145,8 +147,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     });
 
   it('setPosteAmmo sur une pièce CHARGÉE la décharge (le chef perd son gate de tir), sans rien détruire', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
     const chef = mkCrew('chef');
     const hull = mkHull(poste);
@@ -165,7 +167,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
   });
 
   it('setPosteAmmo sur la munition DÉJÀ chargée : sans effet (aucun rechargement imposé)', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     serveChef(chef, poste);
@@ -179,8 +181,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
 
   it('recharge d’équipage en MITRAILLE → la bordée suivante tire de la MITRAILLE', () => {
     seedBattleRng(1); // jet bas → réussite franche : le Test étendu aboutit
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -207,8 +209,8 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
   });
 
   it('bascule de munition du CHEF (hotbar) : la bordée suivante ne part plus au boulet abandonné', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
-    const mitraille = ammoItem('mitraille', 'Mitraille et poudre', 3);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5);
+    const mitraille = ammoItem('mitraille', 'mitraille-et-poudre', 3);
     const poste = mkPoste([boulet, mitraille], 'boulet');
     const chef = mkCrew('chef');
     const aide = mkCrew('aide');
@@ -229,7 +231,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
   // pièce (nouveau chef, relève) ne le remplace pas. Seule une pièce dont le cycle n'a JAMAIS commencé est
   // amorcée à la mise en batterie. Sans ce gate, changer de servant rechargerait gratis.
   it('reprendre une pièce qui a TIRÉ ne la recharge pas (le Test étendu en cours survit à la relève)', () => {
-    const boulet = ammoItem('boulet', 'Boulet et poudre', 5);
+    const boulet = ammoItem('boulet', 'boulet-et-poudre', 5);
     const poste = mkPoste([boulet], 'boulet');
     const chef = mkCrew('chef');
     serveChef(chef, poste); // 1re mise en batterie : la pièce est amorcée

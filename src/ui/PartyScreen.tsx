@@ -4,7 +4,7 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../state/netFlow';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
-import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport } from '../state/roster';
+import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice } from '../state/roster';
 import { PARTY_MAX } from '../state/combatants';
 import { downloadText, fileSlug } from '../lib/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -674,6 +674,14 @@ export function CandidatePool({
   const [roster, setRoster] = useState(() => rosterLoad());
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
+  // Personnages que la lecture du roster a retirés (`takeRosterNotice`) : consommés dans un EFFET, dont le
+  // double-appel StrictMode ne fait que relire un témoin vide — patron de `SaveLoadModal`.
+  const [ecartes, setEcartes] = useState<string[]>([]);
+  const lireLesEcartes = () => {
+    const nouveaux = takeRosterNotice();
+    if (nouveaux.length) setEcartes(nouveaux);
+  };
+  useEffect(lireLesEcartes, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -692,6 +700,7 @@ export function CandidatePool({
   const removeSaved = (id: string) => {
     rosterRemove(id);
     setRoster(rosterLoad());
+    lireLesEcartes();
   };
   const exportHero = (entry: { hero: Combatant; wealth: Money }) =>
     downloadText(`wfrp4-perso-${fileSlug(entry.hero.label)}.json`, rosterExport(entry));
@@ -709,6 +718,7 @@ export function CandidatePool({
     }
     rosterAdd(result.entry);
     setRoster(rosterLoad());
+    lireLesEcartes();
     setImportErr(null);
     setTab('roster');
   };
@@ -777,6 +787,7 @@ export function CandidatePool({
         />
       </Stack>
       {importErr && <p className="hint danger candidate-import-err">{importErr}</p>}
+      {ecartes.map((e) => <p key={e} className="hint danger candidate-import-err">{e}</p>)}
       <input
         ref={fileRef}
         type="file"

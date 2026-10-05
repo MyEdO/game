@@ -34,6 +34,7 @@ import { hydratePoste, isUnarmed, itemFromTrappingById, recomputeLoadout } from 
 import { serveChef } from './shipPostes';
 import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -257,7 +258,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   it('arme dont l’objet SOURCE est DÉJÀ détruit (Bâclé + Solide) : aucun dé ne s’ouvre, et aucune ligne ne dit qu’elle tient le choc', () => {
     const arme = { ...epeeBacleeSolide(), uid: 'epee-1' } as Weapon;
     const hero = monteHote(arme);
-    hero.items = [{ uid: 'epee-1', label: arme.label, kind: 'melee', qualities: arme.qualities, destroyed: true }] as never;
+    hero.items = [objetDeTest({ uid: 'epee-1', trappingId: 'arme-simple', kind: 'melee', qualities: arme.qualities, destroyed: true })] as never;
     useGame.getState().fumbleRoll();
     useGame.getState().fumbleConfirm();
     expect(etapesDeCasse(), 'la cassure a eu lieu : rien à sauver (`LDB 60 l.30`)').toEqual([]);

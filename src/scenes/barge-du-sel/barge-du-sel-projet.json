@@ -672,7 +672,6 @@
         {
          "uid": "ammo-boulet-et-poudre-1",
          "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
          "kind": "ammo",
          "reach": null,
          "range": null,
@@ -693,7 +692,6 @@
         {
          "uid": "ammo-mitraille-et-poudre-2",
          "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
          "kind": "ammo",
          "damage": {
           "plusBF": false,
@@ -727,7 +725,6 @@
         {
          "uid": "ammo-boulet-et-poudre-3",
          "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
          "kind": "ammo",
          "reach": null,
          "range": null,
@@ -748,7 +745,6 @@
         {
          "uid": "ammo-mitraille-et-poudre-4",
          "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
          "kind": "ammo",
          "damage": {
           "plusBF": false,
@@ -782,7 +778,6 @@
         {
          "uid": "ammo-balles-et-poudre-pierrier-5",
          "trappingId": "balles-et-poudre-pierrier",
-         "label": "Balles et poudre pour 1 tir",
          "kind": "ammo",
          "damage": {
           "plusBF": false,
@@ -916,7 +911,6 @@
         {
          "uid": "ammo-boulet-et-poudre-6",
          "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
          "kind": "ammo",
          "reach": null,
          "range": null,
@@ -946,7 +940,6 @@
         {
          "uid": "ammo-boulet-et-poudre-7",
          "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
          "kind": "ammo",
          "reach": null,
          "range": null,
@@ -976,7 +969,6 @@
         {
          "uid": "ammo-boulet-et-poudre-8",
          "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
          "kind": "ammo",
          "reach": null,
          "range": null,

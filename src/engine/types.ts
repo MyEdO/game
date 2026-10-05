@@ -697,6 +697,17 @@ export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
   miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastWrath: 'miscastWrath',
 };
 
+/** Ops dont le PRODUIT est désigné par l'Effet qui les porte (`DesignationParSource`) : elles exigent
+ *  `OpsCtx.source`, donc une entité du Codex. Un document authoré (projet : scènes, carte, bloc
+ *  narratif) n'en est pas une. */
+const OPS_A_SOURCE: ReadonlySet<string> = new Set<import('./ops').GameOp['op']>(['grantWeapon']);
+
+/** `op` exige-t-elle une source (`OPS_A_SOURCE`) ? SOURCE UNIQUE du refus du document de projet
+ *  (`data/schemas/defs-scenes/projet.ts`) et de l'offre de l'éditeur (`ui/editor/GameOpEditor.tsx`). */
+export function opExigeUneSource(op: string): boolean {
+  return OPS_A_SOURCE.has(op);
+}
+
 /**
  * Famille d'un modificateur de jet (`ModLine.famille`) — la taxonomie du contrat d'affichage,
  * #1153 L3b. Elle vit ICI, avec `effectRef`, pour être lisible des collecteurs (`conditions`,
@@ -736,8 +747,14 @@ export interface ModLine {
  *  de la table qu'elle indexe, pour être lisible des DEUX collecteurs (`conditions`, `trauma`) sans
  *  cycle d'import entre eux. */
 export function effectRef(e: ActiveEffect): CodexTarget | undefined {
-  if (e.source) return { category: CATEGORY_BY_SOURCE_KIND[e.source.kind], id: e.source.id };
+  if (e.source) return sourceRef(e.source);
   return e.sourceSpellId ? { category: 'spells', id: e.sourceSpellId } : undefined;
+}
+
+/** Fiche Codex d'une `EffectSource` (`CATEGORY_BY_SOURCE_KIND`) — lue par `effectRef`, `chipCodex`
+ *  (`src/gameIso/effectIcons.ts`) et le libellé d'une instance désignée par sa source (`itemLabel`). */
+export function sourceRef(s: EffectSource): CodexTarget {
+  return { category: CATEGORY_BY_SOURCE_KIND[s.kind], id: s.id };
 }
 
 /** IDENTITÉ de ce qui a produit un effet — « les GameOps sont rattachés à quelque chose » (arbitrage
@@ -1083,8 +1100,46 @@ export interface Trauma {
 
 export type ItemKind = 'melee' | 'ranged' | 'armor' | 'ammo' | 'misc';
 
-/** Instance d'objet portée par un personnage (dérivée d'un trapping à stats). */
-export interface ItemInstance {
+/** Instance d'objet portée par un personnage : ce que porte toute instance (`ItemInstanceCommun`) et
+ *  sa DÉSIGNATION obligatoire (`DesignationDObjet`). #1988 */
+export type ItemInstance = ItemInstanceCommun & DesignationDObjet;
+
+/** DÉSIGNATION d'une instance d'objet, par id STABLE (doctrine `user-doctrine-ids-stables-labels-affichage`) :
+ *  une entrée de catalogue, ou l'Effet qui l'a PRODUITE. Le libellé s'en DÉRIVE (`itemLabel`). #1988 */
+export type DesignationDObjet = DesignationParCatalogue | DesignationParSource;
+
+/** Une entrée de catalogue (`trappings.json`) ou un objet de la campagne (`narratif.objets`). */
+export interface DesignationParCatalogue {
+  /** `TrappingData.id` — posé par `itemFromTrappingById` et `pieceDeCreature`. Source de re-dérivation
+   *  (arme dérivée de prothèse, prix de revente, réparation). */
+  trappingId: string;
+  /** Spécialisation de CETTE possession — `LDB 08` l.1130. Posée par `itemFromTrappingRef` depuis la
+   *  `TrappingRef` résolue ; rendue par `itemLabel`. */
+  spec?: string;
+  /** ZI 13 l.294, l.319 — id de `creatures.json` : présent SI ET SEULEMENT SI l'entrée `trappingId` porte
+   *  `exigeUneCreature` (posé par `pieceDeCreature`). Même nom que `TrappingRef.creatureId` : les deux
+   *  nomment le FOYER de la clé (`creatures.json`), comme `trappingId` et `vehicleId`. */
+  creatureId?: string;
+  conjured?: never;
+  form?: never;
+}
+
+/** L'arme INVOQUÉE (op `grantWeapon`) : désignée par l'Effet qui la produit, comme un `ActiveEffect`. */
+export interface DesignationParSource {
+  /** TENUE d'office (injectée en tête de `c.weapons` par `recomputeLoadout`), retirée à l'expiration. */
+  conjured: true;
+  /** L'Effet producteur (le sort) — `EffectSource`. */
+  source: EffectSource;
+  /** id de trapping de la forme CHOISIE par le lanceur (`grantWeapon.chooseForm`, `OpsCtx.conjureForm`) —
+   *  propagé à `Weapon.form` (silhouette de rendu). */
+  form?: string;
+  trappingId?: never;
+  spec?: never;
+  creatureId?: never;
+}
+
+/** Ce que porte TOUTE instance d'objet, quelle que soit sa désignation. */
+export interface ItemInstanceCommun {
   uid: string;
   // ── ÉTAT DE CHARGE de CET objet-arme : chaque arme à distance possédée gère son propre
   // rechargement et sa propre munition (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes à distance
@@ -1103,20 +1158,6 @@ export interface ItemInstance {
   reloadProgress?: number;
   /** À répétition (Indice) (LDB 62 l.229/231) : munitions restantes dans le chargeur de CETTE arme. */
   chambered?: number;
-  /** `id` du trapping de catalogue dont l'objet dérive (`TrappingData.id`) — réf STABLE posée par
-   *  `itemFromTrappingById` et `pieceDeCreature`. ABSENT : `weaponItem` (#1988).
-   *  Source de re-dérivation (arme dérivée de prothèse, prix de revente, réparation) — ≠ name-match. */
-  trappingId?: string;
-  /** ZI 13 l.294, l.319 — id de `creatures.json` dont la pièce provient : présent SI ET SEULEMENT SI
-   *  l'entrée `trappingId` porte `exigeUneCreature` (posé par `pieceDeCreature`). */
-  creatureId?: string;
-  /** Spécialisation de CETTE possession, telle que le livre l'imprime entre parenthèses — `LDB 08`
-   *  l.1130 « outils de la profession (Maréchal-ferrant) ». DONNÉE, pas affichage : elle vit sur
-   *  l'OBJET parce que deux « Outils professionnels » du même sac doivent rester DISCERNABLES (le
-   *  catalogue, lui, ne connaît que « Outils professionnels »). Posée par `itemFromTrappingRef`
-   *  depuis la `TrappingRef` résolue ; rendue par `itemLabel` via `refLabel`. */
-  spec?: string;
-  label: string;
   kind: ItemKind;
   damage?: WeaponDamageSpec; // armes
   /** Allonge de MÊLÉE — cf. `Weapon.reach` (même vocabulaire `ReachValue`, même lecture de rang). */
@@ -1234,13 +1275,8 @@ export interface ItemInstance {
    *  Crochet : « 100 PX pour chaque tranche de 5, soustraite de la pénalité ») — cumul des `reduces`
    *  des paliers acquis (`TrappingData.prosthesisTraining`), lu par `amputationCombatPenalty`. */
   prosthesisReduced?: number;
-  /** Arme INVOQUÉE temporaire (op `grantWeapon`) : objet ordinaire mais TENU d'office (injecté en
-   *  tête de `c.weapons` par recomputeLoadout) et retiré à l'expiration du Sort. */
-  conjured?: boolean;
-  /** Silhouette de RENDU forcée : id de trapping du catalogue (`grantWeapon.form`, `grammaire/mecanique.ts`) — propagée à `Weapon.form`. */
-  form?: string;
   /** Valeur propre de l'instance, lue par `merchantFlow.valeurPropre` : carte marine (MDG 15 l.290,
-   *  `seaActivities.ts`) ; pièce récoltée HÉRITÉE sans `trappingId` (#1988, montée de fin de train). */
+   *  `seaActivities.ts`). */
   price?: import('./money').Money;
   // Les capacités FONCTIONNELLES de catégorie (weatherProtection/isShelter/isRations/isGrimoire/
   // preventForcedDrop) ne sont PAS propagées sur l'instance : elles sont lues DEPUIS le catalogue par

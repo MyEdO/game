@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
 import { recomputeLoadout, damageString } from './items';
 import type { Weapon, Combatant } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
 const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
@@ -59,7 +60,7 @@ describe('applyAmmoMod + effectiveWeaponRange (LDB 62) — la munition modifie l
 
 describe('recomputeLoadout — Portée = SPEC COPIÉE (résolue à l’usage, pas au loadout)', () => {
   it('une arme de jet conserve sa spec {bf} sur le Weapon actif (non pré-résolue)', () => {
-    const c = hero([{ uid: 'jav', label: 'Javelot', kind: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], enc: 1, equipped: true, range: { bf: 3 } }]);
+    const c = hero([objetDeTest({ uid: 'jav', trappingId: 'javelot', kind: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], enc: 1, equipped: true, range: { bf: 3 } })]);
     recomputeLoadout(c);
     const jav = c.weapons.find((w) => w.label === 'Javelot');
     expect(jav?.range).toEqual({ bf: 3 }); // copiée telle quelle ; effectiveRange la résout au tir/affichage
@@ -114,13 +115,13 @@ function hero(items: Combatant['items']): Combatant {
 
 describe("recomputeLoadout — propagation des Dégâts d'arme", () => {
   it("propage damageTaken de l'ItemInstance vers le Weapon actif", () => {
-    const c = hero([{ uid: 'w1', label: 'Épée', kind: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], enc: 1, equipped: true, damageTaken: 2 }]);
+    const c = hero([objetDeTest({ uid: 'w1', trappingId: 'arme-simple', kind: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], enc: 1, equipped: true, damageTaken: 2 })]);
     recomputeLoadout(c);
-    const s = c.weapons.find((w) => w.label === 'Épée');
+    const s = c.weapons.find((w) => w.uid === 'w1');
     expect(s?.damageTaken).toBe(2);
   });
   it("une arme détruite n'est pas équipée (repli mains nues)", () => {
-    const c = hero([{ uid: 'w1', label: 'Épée', kind: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], enc: 1, equipped: true, destroyed: true }]);
+    const c = hero([objetDeTest({ uid: 'w1', trappingId: 'arme-simple', kind: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], enc: 1, equipped: true, destroyed: true })]);
     recomputeLoadout(c);
     expect(c.weapons.some((w) => w.label === 'Épée')).toBe(false);
     expect(c.weapons.some((w) => w.label === 'Mains nues')).toBe(true);

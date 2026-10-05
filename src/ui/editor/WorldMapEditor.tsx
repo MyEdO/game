@@ -114,6 +114,7 @@ export function WorldMapEditor({ map, setMap, scenes, objets, onClose, activeAxe
     scenes: scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
     cibles: CIBLES_PAR_RACINE.scene,
     objets,
+    sansSource: true,
   };
 
   const toggleMode = (r: MapRoute, mode: TravelMode) => {

@@ -33,6 +33,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
 import { AVAILABILITIES } from '../engine/types';
+import { libelleDObjet } from '../state/campaignData';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -244,9 +245,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       .sort((a, b) => (a.info.polarite === 'defaut' ? 1 : 0) - (b.info.polarite === 'defaut' ? 1 : 0));
     const canCompare = item.kind === 'melee' || item.kind === 'ranged' || item.kind === 'armor';
     return (
-      <div className="merch-compare preview" role="region" aria-label={`Détails ${item.label}`}>
+      <div className="merch-compare preview" role="region" aria-label={`Détails ${libelleDObjet(item)}`}>
         <div className="mc-head">
-          <strong>{item.label}</strong>
+          <strong>{libelleDObjet(item)}</strong>
           <button className="btn small" onClick={() => setDetails(null)}>Fermer</button>
         </div>
         {quals.length > 0 && (
@@ -288,7 +289,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         {(dist ?? []).map((d, i) => (
           <div className="dist-row" key={i}>
             <span className="merch-name">
-              {'item' in d ? d.item.label : (catalogEntryOf(d.unit.id)?.label ?? d.unit.id)}
+              {'item' in d ? libelleDObjet(d.item) : (catalogEntryOf(d.unit.id)?.label ?? d.unit.id)}
               {'unit' in d && <span className="hint"> (monture/véhicule)</span>}
             </span>
             <Row gap="sm" align="start">
@@ -520,7 +521,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           return (
           <div className="merch-row sell" key={it.uid}>
             <span className="merch-name">
-              {it.label}
+              {libelleDObjet(it)}
               {isEquippedForSell(it) && <span className="equipped-tag" title="Actuellement équipé">✓ équipé</span>}
               {it.identified === false ? ' (non identifié)' : ''}
             </span>
@@ -578,7 +579,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             <tbody>
               {sellCartItems.map(({ hero, it }) => (
                 <tr key={it.uid}>
-                  <td className="cart-name">{it.label}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
+                  <td className="cart-name">{libelleDObjet(it)}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
                   <td className="cart-sub"><Coins money={sellPriceMoney(it)} /></td>
                   <td className="cart-rm"><button className="btn-step" onClick={() => onRemoveSellCart(it.uid)} aria-label="Retirer">✕</button></td>
                 </tr>
@@ -699,7 +700,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             <div className="merch-tab">
               {damaged.map(({ h, it }) => (
                 <div className="merch-row repair" key={it.uid}>
-                  <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {it.label}</span>
+                  <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {libelleDObjet(it)}</span>
                   <span className="merch-price"><Coins money={repairCost(it)} /></span>
                   <button className="btn small" onClick={() => onRepair(it.uid, h.id)}>Réparer</button>
                 </div>

@@ -1,10 +1,10 @@
 /**
- * Migration #1988 B4a — les dons d'objet d'un document de projet ne désignent plus un objet que par son
- * id, volet `src/scenes`.
+ * Migration #1988 B4a — un document de projet ne désigne plus un objet que par son id, volet `src/scenes`.
  *
- * UN geste, et le document passe en `schema: 18` : tout Effet ou op `giveTrapping` et toute Condition
- * `hasItem` du document sont réécrits par la primitive `donsDObjetEnFKDeep` (`src/data/donsDObjet.ts`) —
- * la MÊME que celle du migrateur de chargement, jamais un second calcul.
+ * UN geste, et le document passe en `schema: 18` : tout Effet ou op `giveTrapping`, toute Condition
+ * `hasItem`, toute op `grantWeapon` et toute instance d'objet (munitions de poste) du document sont
+ * réécrits par la primitive `objetsEnFKDeep` (`src/data/donsDObjet.ts`) — la MÊME que celle du migrateur
+ * de chargement, jamais un second calcul.
  *
  * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[17]` (`src/data/migrationsDeProjet.ts`), qui
  * rattrape les `.json` de bibliothèque utilisateur. Parité mesurée par
@@ -29,7 +29,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { donsDObjetEnFKDeep } from '../../src/data/donsDObjet.ts';
+import { objetsEnFKDeep } from '../../src/data/donsDObjet.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-10-05-1988-projet-dons-d-objet-en-fk';
@@ -82,7 +82,7 @@ for (const abs of cibles) {
   if (!Array.isArray(doc.scenes)) { echecs.push(`${rel} : \`scenes\` absent ou non-tableau`); continue; }
 
   let remappe;
-  try { remappe = donsDObjetEnFKDeep(doc, resolveurs(doc)); } catch (e) { echecs.push(`${rel} : ${e.message}`); continue; }
+  try { remappe = objetsEnFKDeep(doc, resolveurs(doc)); } catch (e) { echecs.push(`${rel} : ${e.message}`); continue; }
   rapports.push({ rel, abs, brut, doc, sortie: { ...remappe, schema: SCHEMA_APRES }, remappe: canonique(remappe) !== brut });
 }
 
@@ -100,11 +100,11 @@ for (const r of rapports) {
 
   // PREUVE post-écriture : la primitive n'a plus rien à réécrire, et le document s'annonce au format d'après.
   const apres = JSON.parse(out);
-  if (canonique(donsDObjetEnFKDeep(apres, resolveurs(apres))) !== out || apres.schema !== SCHEMA_APRES) {
-    console.error(`[${NOM}] VÉRIFICATION POST-ÉCRITURE ROUGE — ${r.rel} : schema=${apres.schema}, don d’objet hors FK restant`);
+  if (canonique(objetsEnFKDeep(apres, resolveurs(apres))) !== out || apres.schema !== SCHEMA_APRES) {
+    console.error(`[${NOM}] VÉRIFICATION POST-ÉCRITURE ROUGE — ${r.rel} : schema=${apres.schema}, objet hors FK restant`);
     process.exit(1);
   }
-  console.log(`[${NOM}] ${r.rel} — schema ${r.doc.schema} → ${apres.schema}, dons d’objet réécrits : ${r.remappe ? 'oui' : 'aucun'} — fichier ${out !== r.brut ? 'réécrit' : 'INCHANGÉ'}`);
+  console.log(`[${NOM}] ${r.rel} — schema ${r.doc.schema} → ${apres.schema}, objets réécrits : ${r.remappe ? 'oui' : 'aucun'} — fichier ${out !== r.brut ? 'réécrit' : 'INCHANGÉ'}`);
 }
 
 console.log(`[${NOM}] TOTAL — ${cibles.length} projet(s), ${rapports.filter((r) => r.remappe).length} réécrit(s) par la primitive`);

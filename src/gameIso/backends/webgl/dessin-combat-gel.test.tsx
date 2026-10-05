@@ -17,7 +17,8 @@ import { damageArmour } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
-import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import type { Combatant, Weapon } from '../../../engine/types';
+import { objetDeTest } from '../../../engine/objetDeTest.testkit';
 
 const scene = emptyScene(8, 8);
 const mpt = sceneMetresPerTile(scene);
@@ -25,7 +26,7 @@ const mpt = sceneMetresPerTile(scene);
 function combat(): { H: Combatant; E: Combatant } {
   const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
   H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1, shape: 'arbalete' } as unknown as Weapon];
-  H.items = [...(H.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 } as ItemInstance];
+  H.items = [...(H.items ?? []), objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 })];
   loadRegister(H, H.weapons[0]).loaded = true;
   H.pos = { x: 0, y: 0 };
   const E: Combatant = JSON.parse(JSON.stringify(H));

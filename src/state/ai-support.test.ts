@@ -58,13 +58,13 @@ describe('opValue — un buff de combat vaut son bénéfice marginal (armé > 0,
     const e = caster('e', { x: 0, y: 0 });
     const armed = caster('a', { x: 1, y: 0 }, { weapons: [MELEE] });
     const ref = foeAt('h', 2, 0);
-    expect(opValue(buff, e, armed, { refEnemy: ref, horizon: 3 })).toBeGreaterThan(0);
+    expect(opValue(buff, e, armed, { refEnemy: ref, horizon: 3, source: { kind: 'spell', id: 'benediction-de-bataille' } })).toBeGreaterThan(0);
   });
   it('combattant SANS arme : +10 CC n’améliore aucune attaque → valeur ≈ 0', () => {
     const e = caster('e', { x: 0, y: 0 });
     const unarmed = caster('u', { x: 1, y: 0 }, { weapons: [] });
     const ref = foeAt('h', 2, 0);
-    expect(opValue(buff, e, unarmed, { refEnemy: ref, horizon: 3 })).toBe(0);
+    expect(opValue(buff, e, unarmed, { refEnemy: ref, horizon: 3, source: { kind: 'spell', id: 'benediction-de-bataille' } })).toBe(0);
   });
 });
 

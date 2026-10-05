@@ -16,6 +16,8 @@ import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
 import { cheminLisible, validateDocument } from '../validate';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
+import { entree as entreeDeSort } from '../defs/spells';
+import spellsJson from '../../spells.json';
 
 type Jouet = Record<string, unknown>;
 
@@ -470,5 +472,26 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
     expect(fautes(narratif({ objets: [{ id: '' }] }), narratifSchema)).toEqual([
       'objets.0.id :: id absent.',
     ]);
+  });
+});
+
+/**
+ * B1 (#1988) — une arme invoquée est désignée par l'Effet qui la produit (`DesignationParSource`) : seule
+ * une entité du Codex en est un. Le document de projet REFUSE donc toute op à source (`opExigeUneSource`),
+ * où qu'elle soit ; un sort qui la porte est admis.
+ */
+describe('op à source (`grantWeapon`) : refusée par le projet, admise par un sort', () => {
+  const zoneArmee = { id: 'z', label: 'Autel', area: { kind: 'rect', x: 0, y: 0, w: 1, h: 1 }, onCross: [{ op: 'grantWeapon', damage: 4 }] };
+
+  it('un Effet authoré (zone de scène) qui porte `grantWeapon` est refusé, au chemin de l’op', () => {
+    expect(fautes(projet({ scenes: [sceneMinimale({ effectZones: [zoneArmee] })] }))).toEqual([
+      'scenes « scene-1 » › effectZones « z » › onCross.0 :: GameOp « grantWeapon » : son produit est désigné par l’Effet qui la porte (un sort, un talent… du Codex) ; un document de projet n’en est pas un, l’op n’y est pas admise.',
+    ]);
+  });
+
+  it('un sort du catalogue qui porte `grantWeapon` est accepté', () => {
+    const sort = (spellsJson as { id: string }[]).find((sp) => sp.id === 'arme-aethyrique');
+    expect(JSON.stringify(sort)).toContain('"op":"grantWeapon"');
+    expect(entreeDeSort.safeParse(sort).success).toBe(true);
   });
 });

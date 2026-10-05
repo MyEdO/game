@@ -11,11 +11,12 @@ import { openAttackCascade, doAttack, runPreemptShots } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 const CHARS = (dex: number) => ({ 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 const ARM = () => ({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
 const SWORD = (uid: string): Weapon => ({ uid, label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'main', hands: 1 } as unknown as Weapon);
-const SWORD_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Épée', kind: 'melee', qualities: [] } as unknown as ItemInstance);
+const SWORD_ITEM = (uid: string): ItemInstance => objetDeTest({ uid, trappingId: 'arme-simple', kind: 'melee', qualities: [] });
 
 const mkHero = (over: Partial<Combatant> = {}): Combatant => ({
   id: 'h', label: 'H', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
@@ -155,7 +156,7 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
 // ce faux négatif qui disparaît, et la fixture n'a donc plus rien à poser.
 describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main ensanglantée (AA 07 l.117)', () => {
   const BOW = (uid: string): Weapon => ({ uid, label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
-  const BOW_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Arc', kind: 'ranged', qualities: [] } as unknown as ItemInstance);
+  const BOW_ITEM = (uid: string): ItemInstance => objetDeTest({ uid, trappingId: 'arc', kind: 'ranged', qualities: [] });
   const shooter = (over: Partial<Combatant> = {}): Combatant => mkFoe('f', {
     pos: { x: 2, y: 0 }, talents: [{ talentId: 'tir-rapide', times: 1 }] as never,
     weapons: [BOW('bow')], items: [BOW_ITEM('bow')], loadouts: [{ id: 'lob', main: 'bow' }] as never, activeLoadoutId: 'lob',

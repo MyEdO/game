@@ -12,7 +12,7 @@
  * reproductibles). Les magnitudes de dés sont des MOYENNES (`formulaExpectation`), jamais tirées.
  */
 import { tableTotale } from '../lib/tableTotale';
-import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../engine/types';
+import { Combatant, Weapon, ArmourPoints, CHAR_KEYS, type EffectSource } from '../engine/types';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine } from '../engine/combat';
 import { effectiveWeaponDamage } from '../engine/weaponDamage';
@@ -95,10 +95,17 @@ const GENERIC_DUMMY: Combatant = {
   skills: [], talents: [], movement: 4,
 };
 
-/** Contexte de scoring d'UNE op : ennemi de référence (cible des buffs offensifs) + horizon de buff. */
-export interface OpEvalCtx { refEnemy: Combatant | null; horizon: number }
-/** Contexte de scoring d'UN sort lancé : ajoute la fiabilité d'incantation `landProb` (fournie). */
-export interface SpellEvalCtx extends OpEvalCtx { landProb: number }
+/** Ennemi de référence (cible des buffs offensifs) + horizon de buff : le socle des deux contextes. */
+interface EvalCtx { refEnemy: Combatant | null; horizon: number }
+/** Contexte de scoring d'UNE op : `source` = l'entité qui la porte, propagée à l'op appliquée au clone
+ *  comme au lancer réel (`OpsCtx.source`). */
+export interface OpEvalCtx extends EvalCtx { source: EffectSource }
+/** Contexte de scoring d'UN sort lancé : ajoute la fiabilité d'incantation `landProb` (fournie) ; la
+ *  source est le sort lui-même (`sourceDuSort`). */
+export interface SpellEvalCtx extends EvalCtx { landProb: number }
+
+/** L'entité qui porte les ops d'un sort lancé — la MÊME que le lancer réel (`combatFlow.ts › runCastFlow`). */
+const sourceDuSort = (spell: SpellData): EffectSource => ({ kind: 'spell', id: spell.id });
 /** Endroit où le sort est lancé : sur soi, sur une unité, ou en ZdE couvrant `covered`. */
 export type SpellPlacement =
   | { kind: 'self' }
@@ -162,7 +169,7 @@ export function spellTargetHarm(caster: Combatant, target: Combatant, spell: Spe
   let harm = expectedSpellOutput(caster, target, spell);
   for (const op of spellOps(spell.effects, 'target')) {
     if (op.op === 'wounds' || op.op === 'reduceToZero' || op.op === 'banish') continue; // déjà dans expectedSpellOutput
-    if (opIsHostileControl(op)) harm += opValue(op, caster, target, { refEnemy: null, horizon: 1 });
+    if (opIsHostileControl(op)) harm += opValue(op, caster, target, { refEnemy: null, horizon: 1, source: sourceDuSort(spell) });
   }
   return harm;
 }
@@ -180,9 +187,9 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
 
 /** Clone PROFOND de `c` avec `op` appliquée (charMod/augment/octroi…) — déterministe (RNG constant non
  *  consommé par ces ops). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
-function applyOpClone(c: Combatant, op: GameOp): Combatant {
+export function applyOpClone(c: Combatant, op: GameOp, source: EffectSource): Combatant {
   const clone = structuredClone(c);
-  applyOps(clone, [op], { caster: c, rng: STATIC_RNG });
+  applyOps(clone, [op], { caster: c, rng: STATIC_RNG, source });
   return clone;
 }
 
@@ -190,7 +197,7 @@ function applyOpClone(c: Combatant, op: GameOp): Combatant {
  *  Δ(meilleure EV d'attaque AVEC l'op − SANS)`. Un buff qui n'améliore pas le combat → ≈0 → non lancé. */
 function marginalBuff(_caster: Combatant, subject: Combatant, op: GameOp, ctx: OpEvalCtx): number {
   const before = bestAttackEV(subject, ctx.refEnemy);
-  const after = bestAttackEV(applyOpClone(subject, op), ctx.refEnemy);
+  const after = bestAttackEV(applyOpClone(subject, op, ctx.source), ctx.refEnemy);
   return ctx.horizon * Math.max(0, after - before);
 }
 
@@ -330,7 +337,7 @@ export function oppositionDiscount(spell: SpellData, caster: Combatant, target: 
  * du placement). Pour une ZdE, somme sur `covered`. PUR, déterministe.
  */
 export function spellActionValue(caster: Combatant, spell: SpellData, placement: SpellPlacement, ctx: SpellEvalCtx): number {
-  const opCtx: OpEvalCtx = { refEnemy: ctx.refEnemy, horizon: ctx.horizon };
+  const opCtx: OpEvalCtx = { refEnemy: ctx.refEnemy, horizon: ctx.horizon, source: sourceDuSort(spell) };
   const targetSubjects = placement.kind === 'self' ? [caster]
     : placement.kind === 'unit' ? [placement.subject]
       : placement.covered;

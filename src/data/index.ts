@@ -1329,6 +1329,9 @@ export interface TrappingData {
  *  d'hast…), famille de MUNITION (Arc, Arbalète, Poudre noire…), type d'ARMURE (Plate, Mailles, Cuir
  *  souple/bouilli) ou catégorie d'INVENTAIRE (Outils, Possessions diverses…). `id` = cible de
  *  `Trapping/Weapon/ItemInstance.subType` (réf, ≠ libellé) ; `kind` = métadonnée d'affichage. */
+/** Matière qu'un rendu peint sur une pièce d'armure. */
+export type MateriauDessine = 'rembourre' | 'cuir' | 'maille' | 'plaque';
+
 export interface WeaponGroupData {
   id: string;
   type: 'weaponGroups';
@@ -1338,6 +1341,9 @@ export interface WeaponGroupData {
    *  (LDB 46 l.150-152 ; `chaos` = armure du Chaos, exemptée pour le Sorcier du Chaos, VDM 02 l.169).
    *  Remplace la devinette par regex sur le nom. */
   material?: 'metal' | 'leather' | 'chaos';
+  /** Matériau DESSINÉ d'une armure (`kind:'armour'`, requis par le schéma) — lu par le rig
+   *  (`armourMaterial`), fait de rendu distinct de `material`. */
+  dessin?: MateriauDessine;
   /** Sous-ensemble de COMBAT d'un Groupe d'arme (`kind:'weapon'`/`'ammo'`) : `melee` = Spé de Corps à corps,
    *  `ranged` = Spé de Projectiles. SOURCE des pools `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES)
    *  — fin des `specs[]` maintenues à la main sur `corps-a-corps`/`projectiles`. */
@@ -3318,7 +3324,7 @@ export function trappingIdsByLabel(label: string, objets: readonly TrappingData[
   const duProjet = objets.filter((o) => o.label.toLowerCase() === cle).map((o) => o.id);
   return duProjet.length ? duProjet : (instanciableParLabelMinuscule().get(cle) ?? []);
 }
-/** Les résolveurs de `donsDObjetEnFKDeep` (`PROJECT_MIGRATIONS[17]`) pour un projet dont `objets` sont
+/** Les résolveurs de `objetsEnFKDeep` (`PROJECT_MIGRATIONS[17]`, montée du roster) pour un projet dont `objets` sont
  *  les objets (`narratif.objets`) : la couture label→id de la qualité et de l'objet, objets du projet
  *  d'abord. */
 export function resolveursDeDon(objets: readonly TrappingData[]): ResolveursDeDon {

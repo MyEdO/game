@@ -18,7 +18,7 @@ import { isDoubleRoll } from './tests';
 import { effectiveWeaponDamage } from './weaponDamage';
 import { woundsFromHit, shipHitLocation, type ShipRig, type ShipLocation } from './combat';
 import { attackDRAdjust } from './qualities/dispatch';
-import { mannedPosteWeapon, loadedAmmo, weaponWithAmmo } from './items';
+import { mannedPosteWeapon, loadedAmmo, weaponWithAmmo, itemLabel } from './items';
 import { crewedFireWeapon } from './crewedWeapon';
 import { crewedTeamIndice } from './qualities/dispatch';
 import { exposedCrew } from './shipCritical';
@@ -99,7 +99,7 @@ export function resolveVolley(
     const wounds = success ? woundsFromHit(weapon, target, 'corps', damage, 0, 0, chef?.size) : 0; // BE/blindage/Perforante/bypass, plancher 0
     const locRoll = d100(rng); // Localisation des Dégâts d'un bateau (MDG 13 l.571)
     shots.push({
-      weaponName: weapon.label, ammoName: ammo?.label, ammo, damage, wounds, weapon, // arme effective : Atouts d'aire + effets onHit côté appelant
+      weaponName: weapon.label, ammoName: ammo ? itemLabel(ammo) : undefined, ammo, damage, wounds, weapon, // arme effective : Atouts d'aire + effets onHit côté appelant
       location: shipHitLocation(rig, locRoll), locRoll,
       critical: success && (isDoubleRoll(locRoll) || target.wounds.current <= 0), // jet d'attaque RÉUSSI : double, OU coque à 0 (l.656)
       posteUid: poste.item.uid, reload: weapon.reload ?? 0, // Recharge effective (crewedFireWeapon a doublé si sous-effectif)

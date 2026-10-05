@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MerchantPanelView } from './MerchantPanel';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 const noop = {
   onAddToCart: () => {}, onDecCart: () => {}, onRemoveCart: () => {}, onClearCart: () => {}, onRefuse: () => {}, onPay: () => {},
@@ -25,7 +26,7 @@ describe('MerchantPanel (#2 — panier)', () => {
   // #1318 E1 : le champ de quantité du Troc passe par `NumberField` — la borne n'est plus rejouée à la
   // main au site, elle est DÉCLARÉE, et ce qu'elle déclare doit rester le domaine réel (le stock).
   it('Troc : la borne du champ « Quantité acquise » est le STOCK du marchand, plancher 1', () => {
-    const porteur = stubHero('h', 'H', [{ uid: 'u1', trappingId: 'hallebarde' } as unknown as ItemInstance]);
+    const porteur = stubHero('h', 'H', [objetDeTest({ uid: 'u1', trappingId: 'hallebarde' })]);
     const html = renderToStaticMarkup(
       <MerchantPanelView
         merchant={{ ...base, stock: [{ id: 'epee', qty: 3 }] }}
@@ -93,7 +94,7 @@ describe('MerchantPanel (#2 — panier)', () => {
 
   it('Répartition (après paiement) : un menu héros par objet + Confirmer', () => {
     const party = [stubHero('h1', 'Anna'), stubHero('h2', 'Bruno')];
-    const bought = { uid: 'b1', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false } as ItemInstance;
+    const bought = objetDeTest({ uid: 'b1', trappingId: 'hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false });
     const html = renderToStaticMarkup(
       <MerchantPanelView merchant={{ ...base, pendingDistribution: [{ item: bought, heroId: 'h1' }] }} party={party} money={{ gold: 5, silver: 0, brass: 0 }} {...noop} />,
     );
@@ -140,8 +141,8 @@ describe('MerchantPanel (#2 — panier)', () => {
 
   it('onglet Vendre / Réparer + Marchandage par onglet (#2c/#2d)', () => {
     const party = [stubHero('h', 'H', [
-      { uid: 'x', trappingId: 'dague', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false },
-      { uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true },
+      objetDeTest({ uid: 'x', trappingId: 'dague', kind: 'melee', qualities: [], enc: 0, equipped: false }),
+      objetDeTest({ uid: 'a', trappingId: 'chemise-de-mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true }),
     ] as ItemInstance[])];
     const sell = renderToStaticMarkup(<MerchantPanelView merchant={base} party={party} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);
     expect(sell).toContain('Dague');

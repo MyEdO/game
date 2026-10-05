@@ -319,7 +319,6 @@ const DECLARATIONS_D_OPS = {
    *  `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`). */
   grantWeapon: z.strictObject({
     op: z.literal('grantWeapon'),
-    label: z.string(),
     damage: formulaSchema,
     damagePlus: z.number().optional(),
     plusBF: z.boolean().optional(),
@@ -572,13 +571,16 @@ export const catalogStakeSchema = z.strictObject({
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */
 export const authoredStakeSchema = z.strictObject({ authored: z.string() });
 
+/** `EffectSource` (`src/engine/types.ts`) — l'entité qui a produit un effet, `{kind, id}`. */
+export const effectSourceSchema = z.strictObject({
+  kind: z.enum(Object.keys(CATEGORY_BY_SOURCE_KIND) as [EffectSourceKind, ...EffectSourceKind[]]),
+  id: z.string(),
+});
+
 /** `DerivedStake` (`src/data/index.ts`) — enjeu DÉRIVÉ de l'entité porteuse (`{kind, id}`), calculé
  *  au montage de l'étape par le socle. */
 export const derivedStakeSchema = z.strictObject({
-  from: z.strictObject({
-    kind: z.enum(Object.keys(CATEGORY_BY_SOURCE_KIND) as [EffectSourceKind, ...EffectSourceKind[]]),
-    id: z.string(),
-  }),
+  from: effectSourceSchema,
 });
 
 /** `StakeRef` (`src/data/index.ts`) — les TROIS formes d'enjeu d'une entrée de jet, qui passent par

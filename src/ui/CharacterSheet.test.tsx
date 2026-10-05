@@ -9,6 +9,7 @@ import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
 import { findTrappingById } from '../data';
 import { useGame } from '../state/store';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
 const hero = (): Combatant =>
@@ -187,7 +188,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
   it('surcharge qui CRIE (arbitrage 2026-07-17) : Enc. > max → piste pleine, surplus affiché, teinte danger', () => {
     const h = {
       ...hero(),
-      items: [{ uid: 'sac', label: 'Fourniment', kind: 'misc', qualities: [], enc: 15, equipped: false }],
+      items: [objetDeTest({ uid: 'sac', trappingId: 'corde', kind: 'misc', qualities: [], enc: 15, equipped: false })],
     } as unknown as Combatant;
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
@@ -245,7 +246,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(tiers.map((t) => t.label)).toEqual(['récupérer le dernier Point de Mouvement perdu', 'réapprendre à utiliser Esquive']);
     const porteur = {
       ...hero(),
-      items: [{ uid: 'fj', trappingId: 'fausse-jambe', label: 'Fausse jambe', kind: 'misc', subType: 'protheses', qualities: [], enc: 2, equipped: true }],
+      items: [objetDeTest({ uid: 'fj', trappingId: 'fausse-jambe', kind: 'misc', subType: 'protheses', qualities: [], enc: 2, equipped: true })],
     } as unknown as Combatant;
     const html = renderToStaticMarkup(<AdvancementPanel hero={porteur} />);
     expect(html).toContain('Fausse jambe — récupérer le dernier Point de Mouvement perdu');
@@ -255,7 +256,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     const h = {
       ...hero(),
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 'a1', label: 'Cotte de mailles', kind: 'armor', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'], damageTaken: 1 } as never],
+      items: [objetDeTest({ uid: 'a1', trappingId: 'cotte-de-mailles', kind: 'armor', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'], damageTaken: 1 })],
     } as unknown as Combatant;
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
@@ -308,11 +309,11 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
     ({
       ...hero(),
       items: [
-        { uid: 'w1', label: 'Épée', kind: 'melee', qualities: [], enc: 1, equipped: false },
-        { uid: 'a1', label: 'Cotte de mailles', kind: 'armor', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'] },
-        { uid: 'bag1', label: 'Sac à dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } },
-        { uid: 'n1', label: 'Gourde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'bag1' },
-        { uid: 'p1', label: 'Crochet', trappingId: 'crochet', subType: 'protheses', kind: 'misc', qualities: [], enc: 0, equipped: true },
+        objetDeTest({ uid: 'w1', trappingId: 'arme-simple', kind: 'melee', qualities: [], enc: 1, equipped: false }),
+        objetDeTest({ uid: 'a1', trappingId: 'cotte-de-mailles', kind: 'armor', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'] }),
+        objetDeTest({ uid: 'bag1', trappingId: 'sac-a-dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } }),
+        objetDeTest({ uid: 'n1', trappingId: 'corde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'bag1' }),
+        objetDeTest({ uid: 'p1', trappingId: 'crochet', subType: 'protheses', kind: 'misc', qualities: [], enc: 0, equipped: true }),
       ],
       loadouts: [{ id: 'lo1', main: null, off: null }],
       activeLoadoutId: 'lo1',
@@ -342,8 +343,8 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
     const rows = el.querySelectorAll('.plaque-row');
     // 5 objets déclarés → 5 rangées (le rangé `n1` reste visible, imbriqué sous `bag1`).
     expect(rows.length).toBe(5);
-    expect(el.innerHTML).toContain('Gourde');
-    expect(el.querySelector('.inv-nested')?.innerHTML).toContain('Gourde');
+    expect(el.innerHTML).toContain('Corde');
+    expect(el.querySelector('.inv-nested')?.innerHTML).toContain('Corde');
   });
 
   it('ZÉRO `<button>` dans les rangées non élues ; élire une rangée déplie sa barre d’actions EN PLACE', () => {
@@ -392,7 +393,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
   it('la Bourse PERSO (montant en CO/pistoles-sous) reste visible sur TOUT onglet — pas seulement Possessions (Lot 3 T-bourse #531)', () => {
     const h = {
       ...heroWithItems(),
-      items: [...(heroWithItems().items ?? []), { uid: 'bourse1', label: 'Bourse', trappingId: 'bourse', kind: 'misc', qualities: [], enc: 0, equipped: true, money: { gold: 2, silver: 0, brass: 0 } }],
+      items: [...(heroWithItems().items ?? []), objetDeTest({ uid: 'bourse1', trappingId: 'bourse', kind: 'misc', qualities: [], enc: 0, equipped: true, money: { gold: 2, silver: 0, brass: 0 } })],
     } as Combatant;
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'competences' });
     const el = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);

@@ -3,6 +3,7 @@ import { combatBaseValue, combatValueMods, combatValue, defenseBaseValue, defens
 import { skillBaseValue } from './skills';
 import { COND } from './conditions';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 // F=30,E=30 → BF+BE = 6 → capacité d'Encombrement 6 (LDB 61 l.5) : `enc:14` = palier 2 (−20 Ag).
 const chars = (over: Partial<Characteristics> = {}): Characteristics => ({
@@ -20,7 +21,7 @@ function hero(opts: {
   enc?: number;
 } = {}): Combatant {
   const enc = opts.enc ?? 0;
-  const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
+  const items: ItemInstance[] = enc > 0 ? [objetDeTest({ uid: 'x', trappingId: 'corde', kind: 'misc', qualities: [], enc, equipped: false })] : [];
   return {
     id: 'h', label: 'Sujet', kind: 'hero',
     characteristics: chars(),

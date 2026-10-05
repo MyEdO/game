@@ -4,6 +4,7 @@ import type { CargoLot } from '../engine/cargo';
 import { carrierUsedEnc } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
 import { partyCarriers, carrierById, primaryCargoCarrier, bulkCargoRefs, partyCargoTotalEnc, persistCarriersCargo, CAMPAIGN_VESSEL_CARRIER_ID, type CarrierStateSlice } from './carriers';
+import { objetDeTest, type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
 const chars = (F = 30, E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: F, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
@@ -18,7 +19,7 @@ function hero(id: string, items: ItemInstance[] = [], F = 30, E = 30): Combatant
   };
 }
 
-const item = (uid: string, over: Partial<ItemInstance> = {}): ItemInstance => ({ uid, label: uid, kind: 'misc', qualities: [], enc: 0, equipped: false, ...over });
+const item = (uid: string, over: SurchargeDObjet = {}): ItemInstance => objetDeTest({ uid, trappingId: uid, ...over });
 const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePriceGold: 1 });
 
 /** Possession bête (SOCLE POSSESSIONS #617/#618) — `mule` = `poney-ane-ou-mule` → encPortee 14. */

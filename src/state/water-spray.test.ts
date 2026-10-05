@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { suffocationTick } from '../engine/suffocation';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 function hero(p: Partial<Combatant>): Combatant {
   return {
@@ -21,7 +22,7 @@ function hero(p: Partial<Combatant>): Combatant {
   } as Combatant;
 }
 
-const outreAEau = (): ItemInstance => ({ uid: 'outre1', trappingId: 'outre-a-eau' } as unknown as ItemInstance);
+const outreAEau = (): ItemInstance => objetDeTest({ uid: 'outre1', trappingId: 'outre-a-eau' });
 
 function marine(p: Partial<Combatant>): Combatant {
   return hero({

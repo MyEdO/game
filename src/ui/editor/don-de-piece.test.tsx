@@ -17,7 +17,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const CTX: Ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
+const CTX: Ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], sansSource: true };
 const PIECE = { type: 'giveTrapping', trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: 'griffon' } as Effect;
 const RECOLTABLES = creatures.filter((c) => c.harvest).map((c) => c.label).sort((a, b) => a.localeCompare(b));
 

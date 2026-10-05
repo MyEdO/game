@@ -70,7 +70,6 @@ import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
 import { hoverTargeting } from './targeting';
 import { maneuverShip } from './shipManeuver';
-import { itemLabel } from '../engine/items';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from './visionState';
 import { doorIsOpen, emptyScene } from './scene';
@@ -93,6 +92,7 @@ import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene
 import { scheduleFlowTimer } from './combatTimers';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../lib/stockageWeb';
+import { libelleDObjet } from './campaignData';
 
 /** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
@@ -1329,7 +1329,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const it = [...(after?.items ?? [])].reverse().find((i) => i.trappingId === trappingId);
       if (!it) return `✗ don échoué (trappingId « ${trappingId} » inconnu au catalogue ?)`;
       if (qty != null) { it.qty = qty; useGame.setState((st) => ({ party: [...st.party] })); }
-      return `✓ ${after!.label} reçoit « ${itemLabel(it)} »${qty != null ? ` ×${qty}` : ''}`;
+      return `✓ ${after!.label} reçoit « ${libelleDObjet(it)} »${qty != null ? ` ×${qty}` : ''}`;
     },
 
     /**

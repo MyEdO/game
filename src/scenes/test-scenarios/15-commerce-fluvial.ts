@@ -41,10 +41,7 @@ function traders(): Combatant[] {
   skill(berta, 'ragot', 55);
   skill(berta, 'evaluation', 50);
   skill(berta, 'resistance-a-l-alcool', 45);
-  // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
-  // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
-  const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
-  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
+  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
   const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar' });
@@ -102,7 +99,7 @@ function quay(e: ReikEntry, start: boolean): Scene {
     startMessage: start
       ? `Berta Kaufmann inspecte les étals de ${e.label} d’un œil connaisseur. « On achète bon marché ici, on redescend ` +
         `le Reik en barge, et on revend plus cher où la ville est florissante — à Altdorf, on paiera dix bons pour cent ` +
-        `de plus. Le chariot de convoi porte la cargaison tout le voyage. » (Ouvrez le marché pour acheter, puis la carte ` +
+        `de plus. » (Ouvrez le marché pour acheter, puis la carte ` +
         `du monde pour prendre la barge.) Berta marchande, jauge le vin et tend l’oreille aux rumeurs de marché.`
       : `${e.label}, sur le Reik. (Le marché pour acheter ou vendre ; la carte du monde pour reprendre la barge.)`,
   });
@@ -146,7 +143,7 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   // Route DIRECTE Grünburg → Altdorf (le grand axe du Reik) : ~45 km, une journée de barge (M8 × 6 h = 48 km) —
   // permet la boucle d'arbitrage en un seul saut (achat à Grünburg → vente à Altdorf, l.150-156). Cette descente
   // est JOUÉE (MSRC 7 « Navigation fluviale ») : Test de Navigation par étape, table des vents, et un péril
-  // atteignable (débris flottants, l.123-125). Le chariot de convoi (porteur réel) persiste pendant la descente.
+  // atteignable (débris flottants, l.123-125).
   const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
   grunburgAltdorf.river = true;
   grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }];
@@ -175,8 +172,7 @@ export const scenario: TestScenario = {
   tests:
     'Commerce de cargaison MSRC 13 JOUABLE : le Reik peuplé de ses VRAIES localités marchandes (Index ' +
     'géographique l.185-270, indices Taille/Richesse/Produits verbatim), reliées par des routes de BARGE. ' +
-    'Boucle du marchand : acheter une cargaison à Grünburg (R 2), descendre le fleuve en barge (le convoi ' +
-    'persiste sur le chariot de convoi), revendre à Altdorf (Florissant R 5, Mise à prix +10 %, l.156) — profit. ' +
+    'Boucle du marchand : acheter une cargaison à Grünburg (R 2), descendre le fleuve en barge, revendre à Altdorf (Florissant R 5, Mise à prix +10 %, l.156) — profit. ' +
     'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente EXERCE aussi ' +
     'l’exposition hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
   partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',

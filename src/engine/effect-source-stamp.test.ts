@@ -37,17 +37,11 @@ describe('grantNaturalWeapon — stampe ctx.source sur l’arme naturelle créé
 describe('grantWeapon — stampe ctx.source sur l’objet invoqué créé', () => {
   it('avec ctx.source : l’ItemInstance conjured porte la source', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' } }], { label: 'Arme aethyrique', defaultDurationRounds: 4, source: SRC });
+    applyOps(c, [{ op: 'grantWeapon', damage: { bonusOf: 'force-mentale' } }], { label: 'Arme aethyrique', defaultDurationRounds: 4, source: SRC });
     const it = c.items?.find((i) => i.conjured);
     expect(it?.source).toEqual(SRC);
   });
 
-  it('sans ctx.source : aucune fausse valeur — le champ reste absent', () => {
-    const c = combatant();
-    applyOps(c, [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' } }], { label: 'Arme aethyrique', defaultDurationRounds: 4 });
-    const it = c.items?.find((i) => i.conjured);
-    expect(it?.source).toBeUndefined();
-  });
 });
 
 describe('giveTrapping — stampe ctx.source sur l’objet donné', () => {

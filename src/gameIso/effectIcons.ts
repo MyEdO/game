@@ -3,7 +3,7 @@
  * (pion sur le terrain, panneau Perso, ordre de bataille, fiche express au survol).
  * Aucune règle ici : on lit `conditions[]` et `activeEffects[]` déjà gérés par le moteur.
  */
-import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
+import { CHAR_LABELS, sourceRef, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
 import type { IconId } from '../ui/icons';
 import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
@@ -247,7 +247,8 @@ export function chipCodex(c: EffectChip): ChipCodex | null {
   const flag = c.flagId ? FLAG_CODEX[c.flagId] : undefined;
   if (flag) return at(flag.category, flag.id, withDetail ?? c.label);
   if (c.kind !== 'buff') return at('etats', c.condId, withDetail);
-  const bySource = c.source ? at(CATEGORY_BY_SOURCE_KIND[c.source.kind], c.source.id, withDetail) : null;
+  const source = c.source ? sourceRef(c.source) : undefined;
+  const bySource = source ? at(source.category, source.id, withDetail) : null;
   if (bySource) return bySource;
   const bySpell = at('spells', c.sourceSpellId, withDetail);
   if (bySpell) return bySpell;

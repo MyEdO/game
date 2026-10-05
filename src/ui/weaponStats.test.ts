@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { ItemInstance, Weapon } from '../engine/types';
 import { weaponStatParts, rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from './weaponStats';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
-const item = (o: Partial<ItemInstance>): ItemInstance =>
-  ({ uid: 'u', label: 'x', kind: 'melee', qualities: [], enc: 0, equipped: false, ...o }) as ItemInstance;
+const item = (o: SurchargeDObjet): ItemInstance =>
+  objetDeTest({ uid: 'u', trappingId: 'arme-simple', kind: 'melee', qualities: [], enc: 0, equipped: false, ...o });
 
 describe('weaponStatParts (composeur partagé des stats d’arme)', () => {
   it('mêlée : « Dégâts +BF+4 (7) · Allonge Longue » (BF=3 injecté, jamais [object Object])', () => {

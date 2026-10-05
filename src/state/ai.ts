@@ -922,7 +922,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   for (const def of selfManeuversOf(enemy)) {
     if (!selfManeuverApplicable(enemy, def)) continue;
     let v = 0;
-    for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON });
+    for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON, source: { kind: 'maneuver', id: def.id } });
     if (v > 0) candidates.push({ action: { kind: 'selfManeuver', maneuverId: def.id }, kind: 'selfManeuver', utility: v, targetId: enemy.id, coord: pos });
   }
 

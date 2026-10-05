@@ -5,9 +5,9 @@
  *
  * Décisions : voir docs/superpowers/specs/2026-06-05-F1-ennemis-rig-design.md
  */
-import type { Combatant, ItemInstance, ArmourPoints, HitLocation } from '../../engine/types';
+import type { Combatant, ArmourPoints, HitLocation } from '../../engine/types';
 import type { Appearance } from './appearance';
-import { equipDe, equipPorte, type EquipCtx } from './parts/equipment';
+import { equipDe, equipPorte, materiauDuPalier, type EquipCtx, type PieceDeDessin } from './parts/equipment';
 import { emptyArmour } from '../../engine/items';
 import { renderWeaponsFromTraits, armourFromTraits, weaponFromId } from '../../engine/creatureEquip';
 import type { TraitList } from '../../engine/statEntry';
@@ -65,24 +65,22 @@ function apparenceDAuteur(a: ApparenceDAuteur | undefined): Omit<Partial<Appeara
   };
 }
 
-/** Synthèse d'items d'armure depuis les PA par localisation (matériau via palier) — UNIQUEMENT si
+/** Pièces d'armure DESSINÉES depuis les PA par localisation (matériau par palier) — UNIQUEMENT si
  *  l'apparence de la créature DÉCLARE son armure de statblock PORTÉE (`armurePortee`) [entériné
  *  2026-07-22, #774 : « Les PA ne devrait pas impacté l'apparence, sauf si on le décide »]. Par défaut,
- *  les PA restent mécaniques PURS (PA/zoneBadges/enc lisent `c.armour`/de vrais items) : aucun item
- *  d'art n'est fabriqué. Curation par créature dans `creatures.json` (`appearance.armurePortee`). */
-function synthArmour(ap: ArmourPoints, armurePortee: boolean | undefined): ItemInstance[] {
+ *  les PA restent mécaniques PURS (PA/zoneBadges/enc lisent `c.armour`/de vrais items) : aucune pièce
+ *  n'est dessinée. Curation par créature dans `creatures.json` (`appearance.armurePortee`). */
+function synthArmour(ap: ArmourPoints, armurePortee: boolean | undefined): PieceDeDessin[] {
   if (!armurePortee) return [];
-  const items: ItemInstance[] = [];
-  const piece = (uid: string, name: string, pa: number, locs: HitLocation[]) => {
-    items.push({ uid, label: name, kind: 'armor', qualities: [], pa, locs, enc: 0, equipped: true });
+  const pieces: PieceDeDessin[] = [];
+  const piece = (pa: number, locs: HitLocation[]) => {
+    if (pa > 0) pieces.push({ locs, materiau: materiauDuPalier(pa) });
   };
-  if (ap.corps > 0) piece('syn-corps', 'Protection (corps)', ap.corps, ['corps']);
-  if (ap.tete > 0) piece('syn-tete', 'Protection (tête)', ap.tete, ['tete']);
-  const bras = Math.max(ap.brasG, ap.brasD);
-  if (bras > 0) piece('syn-bras', 'Protection (bras)', bras, ['brasG', 'brasD']);
-  const jambes = Math.max(ap.jambeG, ap.jambeD);
-  if (jambes > 0) piece('syn-jambes', 'Protection (jambes)', jambes, ['jambeG', 'jambeD']);
-  return items;
+  piece(ap.corps, ['corps']);
+  piece(ap.tete, ['tete']);
+  piece(Math.max(ap.brasG, ap.brasD), ['brasG', 'brasD']);
+  piece(Math.max(ap.jambeG, ap.jambeD), ['jambeG', 'jambeD']);
+  return pieces;
 }
 
 /** Résolution PARTAGÉE (combat ET exploration, IDENTIQUE) : espèce → def bipède canonique + race

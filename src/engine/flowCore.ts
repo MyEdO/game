@@ -226,7 +226,7 @@ export type Condition =
 export interface ConditionCtx {
   flags: Record<string, boolean>;
   gameTime: number;
-  party?: { dead?: boolean; items?: { label: string; trappingId?: string }[];
+  party?: { dead?: boolean; items?: { trappingId?: string }[];
     /** Compétences possédées (#711 `skill`) — instances brutes, comme `Combatant.skills`. */
     skills?: { id: string; spec?: string; advances?: number }[];
     /** Carrière/espèce/niveau de carrière courants (#711 `career`/`species`/`status`) — bruts,

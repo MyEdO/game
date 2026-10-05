@@ -39,7 +39,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, instancesDeDon, libelleDuDon, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
+import { damageLeatherArmour, itemFromTrappingById, instancesDeDon, libelleDuDon, recomputeLoadout, armeInvoquee, itemLabel, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { weaponMatchesFamily } from './weaponDamage';
@@ -788,7 +788,7 @@ export type GameOp =
    *  dans un SET d'armes DÉDIÉ actif (engine/conjuredWeapons.equipConjuredWeapon) puis retiré à
    *  l'expiration. `onHitEffects` : effets DÉCLENCHÉS à la touche (Épée ardente → En flammes) — même
    *  forme `TriggeredEffect` unifiée que `augmentWeapon`/les Atouts d'arme. */
-  | { op: 'grantWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean;
+  | { op: 'grantWeapon'; damage: Formula; damagePlus?: number; plusBF?: boolean;
       qualities?: string[]; subType?: string /* `id` de Groupe d'arme (WeaponGroupData.id) */; reach?: ReachValue; hands?: 1 | 2;
       onHitEffects?: TriggeredEffect[];
       /** SKIN cosmétique magique (clé→hex, ex. lame aethyrique bleutée / améthyste / ardente) —
@@ -2123,7 +2123,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         const held = [lo?.main, lo?.off]
           .map((u) => (target.items ?? []).find((i) => i.uid === u))
           .filter((i): i is ItemInstance => !!i && (i.kind === 'melee' || i.kind === 'ranged'));
-        const item = held.find((i) => weaponMatchesFamily(i, o.requiresWeapon));
+        const item = held.find((i) => weaponMatchesFamily({ label: itemLabel(i), subType: i.subType }, o.requiresWeapon));
         if (!item) {
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));
           break;
@@ -2159,7 +2159,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
           ...(o.suppressEnchants ? [t('op.frag.enchantsSuppressed')] : []),
           ...(o.passive?.length ? [t('op.frag.weaponPassive')] : []),
         ];
-        lines.push(t('op.enchantWeapon', { name: target.label, item: item.label, parts: parts.join(', '), src: nomDeSource(ctx) }));
+        lines.push(t('op.enchantWeapon', { name: target.label, item: itemLabel(item), parts: parts.join(', '), src: nomDeSource(ctx) }));
         break;
       }
       case 'cureDisease': {
@@ -2277,7 +2277,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
             const piece = (chef.weapons ?? []).find((w) => w.uid === lost.item.uid);
             if (piece) lacherLArme(chef, piece);
           }
-          lines.push(t('op.removeShipPoste', { name: lost.item.label }));
+          lines.push(t('op.removeShipPoste', { name: itemLabel(lost.item) }));
         }
         break;
       }
@@ -2562,26 +2562,26 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         break;
       }
       case 'grantWeapon': {
+        if (!ctx.source) throw new Error('grantWeapon : `ctx.source` absent — l’arme invoquée est désignée par l’Effet qui la produit (`DesignationParSource`), et le déclencheur ne l’a pas propagé.');
         const flat = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
         // Forme LIBRE (Arme aethyrique) : on CLONE le profil (Groupe/allonge/mains) d'une arme RÉELLE
         // choisie par le lanceur (ctx.conjureForm, défaut = sa meilleure Spé de CC) ; sinon stats du
         // Sort. Seuls les Dégâts (= BFM…) et les Atouts du Sort surchargent le profil → un OBJET ordinaire.
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
         const tpl = form ? itemFromTrappingById(form.weapon) : null;
-        // L'objet vit dans un SET dédié (equipConjuredWeapon), hors Set I/II auto → `weaponItem` (conjured).
-        // Silhouette de rendu : forme choisie (chooseForm) ou silhouette fixe du Sort → le rig dessine
-        // l'arme réelle bien que nommée « Arme aethyrique » / « Faux de Shyish ».
-        const item = weaponItem({
-          label: form ? `${o.label} (${tpl?.label ?? form.weapon})` : o.label,
+        // L'objet vit dans un SET dédié (equipConjuredWeapon), hors Set I/II auto → `armeInvoquee`.
+        // Silhouette de rendu : forme choisie (`form`, désignation) ou silhouette fixe du Sort (`shape` de
+        // l'entrée `o.form`) → le rig dessine l'arme réelle bien que nommée « Arme aethyrique » / « La Faux de Shyish ».
+        const item = armeInvoquee({
           damage: { plusBF: !!o.plusBF, flat },
           subType: form ? tpl?.subType : o.subType,
           reach: form ? tpl?.reach : (o.reach ?? null),
           hands: form ? (tpl?.hands ?? 1) : (o.hands ?? 1),
           qualities: (o.qualities ?? []).map((id) => ({ id })), // Atouts du Sort (ids) — PAS ceux du gabarit ; copiés par buildWeapon
-          conjured: true,
           uid: { prefix: 'conjure' },
           ...(o.skin ? { skin: o.skin } : {}), // teinte magique unique (aethyrique/améthyste/ardente)
-          ...(form ? { form: form.weapon } : o.form ? { form: o.form } : {}),
+          ...(form ? { form: form.weapon } : {}),
+          ...(!form && o.form ? { shape: findTrappingById(o.form)?.shape } : {}),
           source: ctx.source,
         });
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
@@ -2593,12 +2593,12 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         const conjuredSet = equipConjuredWeapon(target, item);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
-          label: ctx.label ?? o.label, bonus: 0,
+          label: ctx.label ?? itemLabel(item), bonus: 0,
           duration: durationFromCtx(ctx),
           conjuredSet,
         });
         const conjQuals = item.qualities.map(qualityRefLabel).join(', ');
-        lines.push(t('op.grantWeapon', { name: target.label, item: item.label, dmg: item.damage ? damageString(item.damage) : '—', quals: item.qualities.length ? `, ${conjQuals}` : '', src: nomDeSource(ctx) }));
+        lines.push(t('op.grantWeapon', { name: target.label, item: itemLabel(item), dmg: item.damage ? damageString(item.damage) : '—', quals: item.qualities.length ? `, ${conjQuals}` : '', src: nomDeSource(ctx) }));
         break;
       }
       case 'castWard': {
@@ -2838,7 +2838,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         const source = tenue ? objetSourceDeLArme(target, tenue) : undefined;
         if (source && itemCapability(source, 'disarmImmune')) {
           // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
-          lines.push(t('op.disarmImmune', { name: target.label, item: source.label }));
+          lines.push(t('op.disarmImmune', { name: target.label, item: itemLabel(source) }));
         } else if (tenue) {
           lacherLArme(target, tenue);
           lines.push(t('op.disarm', { name: target.label, item: tenue.label }));

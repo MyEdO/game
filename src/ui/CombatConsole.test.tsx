@@ -13,7 +13,7 @@ import { makeRNG } from '../engine/dice';
 import { contractDisease } from '../engine/disease';
 import { syncDerivedConditions, stacks } from '../engine/conditions';
 import type { Combatant, ConditionInstance, ItemInstance, ShipPoste, Weapon } from '../engine/types';
-import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selectedAmmo, loadWeapon } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selectedAmmo, loadWeapon, itemLabel } from '../engine/items';
 import { weaponLoaded } from '../engine/weaponLoad';
 import { t } from '../i18n';
 import { visibleFocusables } from './focus';
@@ -33,6 +33,7 @@ import { join } from 'node:path';
 import { baseSection, mediaBlock } from '../../scripts/guards/lib/cssCouches.mjs';
 import { hpColor, ENEMY_TINT } from '../gameIso/teamColors';
 import { srgbToLinear } from '../gameIso/shade';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -1178,7 +1179,7 @@ describe('CombatConsole — case Recharger : le porteur de l’état est l’ARM
 // (`itemFromTrappingById`) montés par la dérivation réelle (`recomputeLoadout`) : aucune arme forgée.
 describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapide', () => {
   /** Objet du CATALOGUE, uid stable pour que les sets le désignent. */
-  function objet(id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance {
+  function objet(id: string, uid: string, over: SurchargeDObjet = {}): ItemInstance {
     const it = itemFromTrappingById(id);
     expect(it, `catalogue : « ${id} » absent`).not.toBeNull();
     return Object.assign(it!, { uid }, over);
@@ -1340,7 +1341,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
 // (contraste et HIÉRARCHIE des encres, hauteur du pont invariante, icône par arme, une grammaire de case
 // vide, lisibilité des vignettes, MATIÈRE UNIQUE du pont).
 describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-17)', () => {
-  function objet(id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance {
+  function objet(id: string, uid: string, over: SurchargeDObjet = {}): ItemInstance {
     const it = itemFromTrappingById(id);
     expect(it, `catalogue : « ${id} » absent`).not.toBeNull();
     return Object.assign(it!, { uid }, over);
@@ -1362,7 +1363,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
   const cellKeys = () => casesGauche().map((c) => c.getAttribute('data-cell'));
 
   /** Set d'une seule arme du catalogue, au poing. */
-  function unSet(trappingId: string, opts: Partial<ItemInstance> = {}) {
+  function unSet(trappingId: string, opts: SurchargeDObjet = {}) {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     h.items = [objet(trappingId, 'i-1', opts)];
@@ -1959,7 +1960,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     expect(parseFloat(decl(ruleOf(at560, ':root'), '--cc-fronton')!)).toBe(0);
     // … et la travée ne porte AUCUNE bande réservée : la munition vit dans l'EN-TÊTE, à côté du set
     // (arbitrage #1348 complément a — 47px de plaque NUE mesurés sous les travées avant la coupe).
-    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
+    const objet = (id: string, uid: string, over: SurchargeDObjet = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
     const tireur = hero('h1', 'Gunnar');
     tireur.conditions = [];
     tireur.items = [objet('arbalete-lourde', 'i-arb', { loaded: false }), objet('carreau', 'i-c')];
@@ -2147,7 +2148,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
   });
 
   it('G-2 — la munition CHARGÉE vit dans l’en-tête de travée, lue au registre de l’arme', () => {
-    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
+    const objet = (id: string, uid: string, over: SurchargeDObjet = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     const arb = objet('arbalete-lourde', 'i-arb');
@@ -2164,7 +2165,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     const tete = host.querySelector('.cc-bay-head')!;
     const mun = tete.querySelector('[data-ammo]');
     expect(mun, 'la munition doit être dans l’EN-TÊTE de travée').not.toBeNull();
-    expect(mun!.textContent).toBe(`${carreaux.label} ×12`);
+    expect(mun!.textContent).toBe(`${itemLabel(carreaux)} ×12`);
     expect(tete.textContent).toContain(loadoutLabel(h.loadouts![0], h));
     // … et elle porte sa fiche, comme toute possession de la console.
     expect(mun!.closest('.codex-ref'), 'la munition doit porter son foyer Codex').not.toBeNull();
@@ -2624,7 +2625,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
  * registre (`select-ammo` → `battleSelectAmmo`), jamais par une closure de site.
  */
 describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix', () => {
-  const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
+  const objet = (id: string, uid: string, over: SurchargeDObjet = {}) =>
     Object.assign(itemFromTrappingById(id)!, { uid }, over) as ItemInstance;
 
   /** Arbalétrier au set de tir, avec DEUX munitions compatibles (même famille) dans sa besace. */
@@ -2635,7 +2636,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     h.items = [
       arb,
       objet('carreau', 'i-c', { qty: 12 }),
-      ...(opts.deuxMunitions === false ? [] : [objet('carreau', 'i-c2', { label: 'Carreau perçant', qty: 5 })]),
+      ...(opts.deuxMunitions === false ? [] : [objet('seve-de-tregara', 'i-c2', { qty: 5 })]),
     ];
     h.loadouts = [{ id: 'lo-tir', main: 'i-arb' }];
     h.activeLoadoutId = 'lo-tir';
@@ -2662,7 +2663,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     ouvrir();
     expect(panneau()).toBeTruthy();
     // La conséquence ne pend qu'au candidat qui DÉCHARGERA : celui en chambre ne la porte pas.
-    expect(candidats().map((b) => b.textContent)).toEqual(['Carreau×12valeur actuelle', 'Carreau perçant×5décharge — rechargement à refaire']);
+    expect(candidats().map((b) => b.textContent)).toEqual(['Carreau×12valeur actuelle', 'Sève de trégara×5décharge — rechargement à refaire']);
     // La munition EN CHAMBRE est MARQUÉE (état, pas une simple mise en avant) — et son marquage est
     // LISIBLE : l'état ferré `aria-pressed`, une règle qui le PEINT, ET un mot à l'écran (un état
     // qu'aucune règle ne peint ne marque rien : sonde du juge vision).
@@ -2694,7 +2695,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
   it('la CONSÉQUENCE n’est rendue que là où le dispatcher déchargera VRAIMENT (arme non chargée : aucune)', () => {
     monter(tireur({ charge: false }));
     ouvrir();
-    expect(candidats().map((b) => b.textContent)).toEqual(['Carreau×12valeur actuelle', 'Carreau perçant×5']);
+    expect(candidats().map((b) => b.textContent)).toEqual(['Carreau×12valeur actuelle', 'Sève de trégara×5']);
     expect(panneau()!.textContent).not.toContain('rechargement à refaire');
   });
 
@@ -2744,7 +2745,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
       ...h.items!,
       objet('arc', 'i-arc'),
       objet('fleche', 'i-f', { qty: 10 }),
-      objet('fleche', 'i-f2', { label: 'Flèche barbelée', qty: 4 }),
+      objet('pointes-barbelees', 'i-f2', { qty: 4 }),
     ];
     h.loadouts = [...h.loadouts!, { id: 'lo-arc', main: 'i-arc' }];
     monter(h);
@@ -2956,7 +2957,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
  * dispatche directement. La munition, elle, est une chip PAR arme dans l'EN-TÊTE (pas la grille).
  */
 describe('CombatConsole — deux armes à distance : une case, un paramètre à élire', () => {
-  const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
+  const objet = (id: string, uid: string, over: SurchargeDObjet = {}) =>
     Object.assign(itemFromTrappingById(id)!, { uid }, over) as ItemInstance;
 
   /** Bretteur à DEUX pistolets (Recharge 1 chacun) et deux munitions compatibles au sac. */
@@ -2967,7 +2968,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
       objet('pistolet', 'i-p1'),
       ...(opts.deux === false ? [] : [objet('pistolet', 'i-p2')]),
       objet('balle-et-poudre', 'i-a1', { qty: 12 }),
-      objet('balle-et-poudre', 'i-a2', { label: 'Balle bénie', qty: 4 }),
+      objet('petites-munitions-et-poudre', 'i-a2', { qty: 4 }),
     ];
     h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { off: 'i-p2' }) }];
     h.activeLoadoutId = 'lo-2p';
@@ -3039,7 +3040,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     const chips = [...host.querySelectorAll('.cc-bay-head button[data-ammo]')] as HTMLButtonElement[];
     expect(chips.map((c) => c.getAttribute('data-ammo')), 'deux armes à distance = deux chips').toEqual(['i-p1', 'i-p2']);
     act(() => { chips[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(panneau()!.textContent).toContain('Balle bénie');
+    expect(panneau()!.textContent).toContain('Petites munitions et Poudre');
     act(() => { candidats()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     const c = acteur();
     const p1 = c.weapons.find((w) => w.uid === 'i-p1')!;

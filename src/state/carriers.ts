@@ -6,7 +6,7 @@
  *
  * SOURCE UNIQUE PAR PORTEUR (verrou 1 de la conception) : le carrier LIT le stock réel, il ne le double
  * pas — la cale du navire reste `CampaignVessel.cargo`, la cargaison en bât/véhicule reste
- * `ItemInstance.cargo`. Aucun 2ᵉ silo (le convoi abstrait `caravanCargo` a été matérialisé, lot C). Les
+ * `Possession.cargo`. Aucun 2ᵉ silo (le convoi abstrait `caravanCargo` a été matérialisé, lot C). Les
  * mutations passent par le tronc (`loadCargo`/`unloadCargo`/`transferCargo`) puis sont RE-PERSISTÉES sur
  * ces mêmes champs par `persistCarriersCargo` (patron `shipDamage.ts`).
  */

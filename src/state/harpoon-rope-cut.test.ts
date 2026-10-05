@@ -3,6 +3,7 @@ import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 import type { PendingAttack } from './pendings';
 import { firedWeapon, weaponContextOf } from './combatFlow';
 import * as capabilities from '../engine/capabilities';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 // Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : choix joueur AVANT le jet
 // (`PendingAttack.harpoonRopeCut`), GATÉ sur la capacité `ItemCapabilities.ropeMode` de l'arme
@@ -26,7 +27,7 @@ const harpoon: Weapon = {
   label: 'Lance-harpon', type: 'ranged', hands: 2, uid: 'hp', range: 20,
   damage: { plusBF: false, flat: 10 }, qualities: [{ id: 'immobilisante' }, { id: 'recharge', value: 2 }],
 };
-const harpoonItem: ItemInstance = { uid: 'hp', trappingId: 'lance-harpon', label: 'Lance-harpon', kind: 'ranged', qualities: [], enc: 5, equipped: true };
+const harpoonItem: ItemInstance = objetDeTest({ uid: 'hp', trappingId: 'lance-harpon', kind: 'ranged', qualities: [], enc: 5, equipped: true });
 
 describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476)', () => {
   it('toggle posé + arme éligible (ropeMode) → arme résolue au tir Portée 60, Immobilisante perdue', () => {
@@ -53,7 +54,7 @@ describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476
   });
 
   it('arme SANS aucune capacité ropeMode (trapping inconnu) → le toggle est ignoré même posé', () => {
-    const otherItem: ItemInstance = { uid: 'hp', trappingId: 'autre-arme-inconnue', label: 'Autre', kind: 'ranged', qualities: [], enc: 5, equipped: true };
+    const otherItem: ItemInstance = objetDeTest({ uid: 'hp', trappingId: 'arbalete', kind: 'ranged', qualities: [], enc: 5, equipped: true });
     const atk = mk({ weapons: [harpoon], items: [otherItem] });
     const ctx = weaponContextOf(atk, harpoon, target, { harpoonRopeCut: true });
     expect(ctx.harpoonRopeCut).toBe(false);

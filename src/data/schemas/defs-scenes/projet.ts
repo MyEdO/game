@@ -32,6 +32,7 @@ import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
 import { PROJECT_MIGRATIONS } from '../../migrationsDeProjet';
 import { versionCourante } from '../../../lib/versionCourante';
+import { opExigeUneSource } from '../../../engine/types';
 
 /** Provenance d'un objet du projet, telle qu'un refus de sous-liste la nomme. */
 const DES_OBJETS_DU_PROJET = 'des objets du projet (narratif.objets)';
@@ -42,6 +43,16 @@ const objetsDe = (valeur: unknown): readonly TrappingData[] => {
   const objets = (valeur as { narratif?: { objets?: unknown } } | null)?.narratif?.objets;
   return Array.isArray(objets) ? (objets as TrappingData[]) : [];
 };
+
+/** Les ops à SOURCE (`opExigeUneSource`) d'un document, à leur chemin : un document authoré n'est aucune
+ *  entité du Codex, l'op n'y a pas d'Effet qui la désigne. */
+function opsASourceDe(noeud: unknown, chemin: (string | number)[] = []): { chemin: (string | number)[]; op: string }[] {
+  if (Array.isArray(noeud)) return noeud.flatMap((n, i) => opsASourceDe(n, [...chemin, i]));
+  if (noeud === null || typeof noeud !== 'object') return [];
+  const op = (noeud as { op?: unknown }).op;
+  const ici = typeof op === 'string' && opExigeUneSource(op) ? [{ chemin, op }] : [];
+  return [...ici, ...Object.entries(noeud).flatMap(([cle, n]) => opsASourceDe(n, [...chemin, cle]))];
+}
 
 /** Le registre du PROJET de chaque type qu'une feuille ouverte désigne (`document()`,
  *  `registresOuverts`) : les objets d'abord (`narratif.objets`), puis le catalogue
@@ -123,6 +134,13 @@ export const projetDoc = document(
             });
           });
         });
+        for (const { chemin, op } of opsASourceDe(valeur)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: chemin,
+            message: `GameOp « ${op} » : son produit est désigné par l’Effet qui la porte (un sort, un talent… du Codex) ; un document de projet n’en est pas un, l’op n’y est pas admise.`,
+          });
+        }
         /** Un objet du projet s'instancie par son SEUL id (`itemFromTrappingById`) : `INSTANCIABLE_PAR_ID`. */
         objetsDe(valeur).forEach((o, i) => {
           const refus = refusDeLEntree('trapping', INSTANCIABLE_PAR_ID, o, DES_OBJETS_DU_PROJET);

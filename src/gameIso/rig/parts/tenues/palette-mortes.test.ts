@@ -12,11 +12,11 @@ import { sexeSchema } from '../../../../data/schemas/grammaire/valeurs';
 import { resolveRig } from '../../composeRig';
 import { bonesToSvg } from '../../renderBones';
 import { asRigSpeciesId } from '../../appearance';
-import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, weaponPart } from '../equipment';
+import { armourPart, equipDe, objetSansPorteur, weaponPart, type Materiau, type PieceDeDessin } from '../equipment';
 import { TENUE_DEFS } from './_registry.generated';
 import { WEAPON_DEFS } from '../weapons/_registry.generated';
 import { ARMOUR_DEFS } from '../armour/_registry.generated';
-import type { ItemInstance, Weapon } from '../../../../engine/types';
+import type { HitLocation, Weapon } from '../../../../engine/types';
 import type { PartArt } from '../types';
 import { VIEWS } from '../../facing';
 import { viewEntries } from '../../viewArt';
@@ -25,7 +25,7 @@ import { gammeDe } from '../../../../data/palette.types';
 
 const ESPECES = (JSON.parse(readFileSync(resolve(__dirname, '../../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
 const SENTINELLE = '#123457';
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const LOCS: HitLocation[] = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
 const vues = (a: PartArt | null) => viewEntries(a).map(([, s]) => s);
 
 /** Clés candidates d'une palette : sans jeton `@clé` dans `art`, hors base dont un rôle est déclaré. */
@@ -50,8 +50,6 @@ function mortes(ou: string, palette: { [k: string]: string | undefined }, art: s
 }
 
 const texte = (x: unknown) => JSON.stringify(x);
-/** Libellé qui route `armourMaterial` vers le matériau du def. */
-const LIBELLE_DE_MATIERE: Record<string, string> = { rembourre: 'Gambison', cuir: 'Jaque de cuir', maille: 'Cotte de mailles', plaque: 'Plastron de plaque' };
 
 describe('déclarations de palette mortes (#1903)', () => {
   it('aucune clé déclarée par une tenue, une arme ou une armure n’est peinte par aucun rendu', () => {
@@ -64,9 +62,9 @@ describe('déclarations de palette mortes (#1903)', () => {
       fautes.push(...mortes(`arme:${d.slug}`, d.palette, texte(d.art), () => vues(objetSansPorteur(weaponPart(w))).join('\n')));
     }
     for (const d of ARMOUR_DEFS) if (d.palette) {
-      const item = { uid: 'a', kind: 'armor', label: LIBELLE_DE_MATIERE[d.id] ?? d.id, locs: LOCS, equipped: true, qualities: [], enc: 0, pa: 0 } as unknown as ItemInstance;
+      const piece: PieceDeDessin = { locs: LOCS, materiau: d.id as Materiau };
       const slots = ['tete', 'torse', 'bras', 'jambes', 'pied', 'main', 'cou'] as const;
-      fautes.push(...mortes(`armure:${d.id}`, d.palette, texte(d.set), () => slots.flatMap((s) => vues(armourPart(pieceDeDessin(item), s))).join('\n')));
+      fautes.push(...mortes(`armure:${d.id}`, d.palette, texte(d.set), () => slots.flatMap((s) => vues(armourPart(piece, s))).join('\n')));
     }
     expect(fautes).toEqual([]);
   });

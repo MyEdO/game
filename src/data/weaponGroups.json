@@ -241,6 +241,7 @@
     "label": "Cuir souple",
     "kind": "armour",
     "material": "leather",
+    "dessin": "cuir",
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -252,6 +253,7 @@
     "label": "Cuir bouilli",
     "kind": "armour",
     "material": "leather",
+    "dessin": "cuir",
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -263,6 +265,7 @@
     "label": "Mailles",
     "kind": "armour",
     "material": "metal",
+    "dessin": "maille",
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -274,6 +277,7 @@
     "label": "Plate",
     "kind": "armour",
     "material": "metal",
+    "dessin": "plaque",
     "source": {
       "book": "livre-de-base",
       "page": 300
@@ -285,6 +289,7 @@
     "label": "Armure du Chaos",
     "kind": "armour",
     "material": "chaos",
+    "dessin": "plaque",
     "source": {
       "book": "vents-de-la-magie",
       "page": 22,

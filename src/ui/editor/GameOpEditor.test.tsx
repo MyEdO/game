@@ -6,6 +6,7 @@ import { datasetArray } from '../../data/overrides';
 import { fallTables } from '../../data/shipCriticals';
 import { lightTones } from '../../data';
 import type { GameOp } from '../../engine/ops';
+import { opExigeUneSource } from '../../engine/types';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 
@@ -23,7 +24,7 @@ afterEach(demonterRacines);
 describe('GameOpEditor — Formule sans perte (correction du bug num()→0)', () => {
   it('un wounds {dice} N’affiche PAS « 0 » et rend l’éditeur de dés (1 d 10)', () => {
     const ops: GameOp[] = [{ op: 'wounds', amount: { dice: { n: 1, sides: 10 } } }];
-    const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     // Le résumé montre la formule, pas « 0 » (le bug historique : num()→0 → « 0 Blessure(s) »).
     expect(html).toContain('1d10');
     expect(opSummary(ops[0])).not.toMatch(/(^|[^d\d])0 Blessure/); // pas un « 0 » isolé devant « Blessure »
@@ -63,10 +64,20 @@ describe('GameOpEditor — Formule sans perte (correction du bug num()→0)', ()
 
 describe('GameOpEditor — menu « + op » COMPLET', () => {
   it('le menu propose narrative ET grantWeapon (entre autres)', async () => {
-    const { container } = monterRacine(<GameOpEditor ops={[]} onChange={() => {}} />);
+    const { container } = monterRacine(<GameOpEditor sansSource={false} ops={[]} onChange={() => {}} />);
     const menu = await ouvrirMenu(menuDe(container, '+ Op mécanique'));
     expect(entreeDe(menu, OP_LABEL.narrative), 'narrative').toBeDefined();
     expect(entreeDe(menu, OP_LABEL.grantWeapon), 'grantWeapon').toBeDefined();
+  });
+
+  it('dans un document de projet (`sansSource`), le menu n’offre aucune op à source — le prédicat du schéma', async () => {
+    const { container } = monterRacine(<GameOpEditor sansSource ops={[]} onChange={() => {}} />);
+    const menu = await ouvrirMenu(menuDe(container, '+ Op mécanique'));
+    expect(entreeDe(menu, OP_LABEL.narrative), 'narrative').toBeDefined();
+    for (const k of (Object.keys(OP_LABEL) as GameOp['op'][]).filter(opExigeUneSource)) {
+      expect(entreeDe(menu, OP_LABEL[k]), k).toBeUndefined();
+    }
+    expect((Object.keys(OP_LABEL) as string[]).filter(opExigeUneSource)).toContain('grantWeapon');
   });
 
   it('toutes les op du vocabulaire ont un défaut valide et un libellé', () => {
@@ -117,24 +128,23 @@ describe('GameOpEditor — aucune graine de réf semée par newOp', () => {
 
 describe('GameOpEditor — éditeur pour TOUTE op (dédié ou repli JSON)', () => {
   it('grantWeapon (sans éditeur dédié) rend un repli JSON montrant ses params', () => {
-    const ops: GameOp[] = [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' }, plusBF: false }];
-    const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
+    const ops: GameOp[] = [{ op: 'grantWeapon', damage: { bonusOf: 'force-mentale' }, plusBF: false }];
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(html).toContain('(JSON)'); // repli JSON présent
-    expect(html).toContain('Arme aethyrique'); // params lisibles dans le textarea
     expect(html).toContain('bonusOf'); // la formule de Dégâts est visible (pas perdue)
-    expect(opSummary(ops[0])).toContain('Arme aethyrique');
+    expect(opSummary(ops[0])).toContain('Arme invoquée');
   });
 
   it('narrative a un éditeur de texte dédié', () => {
     const ops: GameOp[] = [{ op: 'narrative', text: 'Le sol tremble.' }];
-    const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(html).toContain('Le sol tremble.');
     expect(opSummary(ops[0])).toContain('Le sol tremble.');
   });
 
   it('light a un éditeur dédié : rayon SAISISSABLE et ton élu dans le catalogue lightTones', () => {
     const ops: GameOp[] = [{ op: 'light', radiusM: 7, tone: 'chandelle' }];
-    const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(html).not.toContain('(JSON)'); // éditeur dédié, pas un repli
     expect(html).toContain('Rayon (m)');
     expect(html).toContain('value="7"'); // rayon éditable
@@ -151,7 +161,7 @@ describe('GameOpEditor — éditeur pour TOUTE op (dédié ou repli JSON)', () =
       op: 'rollTable', die: 'd10', addNegativeSL: true,
       rows: [{ min: 1, max: 2, ops: [{ op: 'wounds', amount: 3 }] }],
     }];
-    const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(html).not.toContain('(JSON)'); // aucun repli JSON pour cette op
     expect(html).toContain('value="d10"'); // sélecteur de dé
     expect(html).toContain('value="1"'); // min de la rangée
@@ -193,7 +203,7 @@ describe('GameOpEditor — l’op `fall` a son champ de table (recette #1508)', 
 
   it('la rangée expose son SÉLECTEUR de table, peuplé depuis la donnée', () => {
     const ops: GameOp[] = [newOp('fall')];
-    const html = renderToStaticMarkup(<GameOpEditor ops={ops} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(html).not.toContain('paramètres de l’op'); // l'op a son éditeur dédié, pas le repli JSON
     expect(html).toContain('Table de hauteur');
     expect(html).toContain('— (choisir une table) —');
@@ -207,7 +217,7 @@ describe('GameOpEditor — l’op `fall` a son champ de table (recette #1508)', 
     expect(opSummary(choisie)).toContain('hauteur lue dans');
     expect(opSummary(choisie)).toContain(table.label);
     expect(OP_LABEL.fall).toBe('Chute (hauteur lue dans une table)');
-    const html = renderToStaticMarkup(<GameOpEditor ops={[choisie]} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<GameOpEditor sansSource={false} ops={[choisie]} onChange={() => {}} />);
     expect(html).toContain(`value="${table.id}"`);
   });
 });

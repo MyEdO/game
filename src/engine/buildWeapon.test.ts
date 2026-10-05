@@ -5,7 +5,7 @@
  * canonique (« +BF+N »/« +N »/« +BF »/« -2 ») — vérifiée ici en round-trip.
  */
 import { describe, it, expect } from 'vitest';
-import { buildWeapon, weaponItem, damageString } from './items';
+import { buildWeapon, armeInvoquee, damageString } from './items';
 
 describe('buildWeapon — convention de Dégâts (le flag plusBF est porteur)', () => {
   it('SB-relatif → « +BF+N » (naturelles/invoquées/mains nues)', () => {
@@ -45,10 +45,12 @@ describe('buildWeapon — défauts, uid, copie', () => {
   });
 });
 
-describe('weaponItem — RÉUTILISE buildWeapon, bascule en ItemInstance', () => {
-  it('type→kind, ajoute enc/equipped/conjured ; partage la convention de Dégâts et l\'uid', () => {
-    const item = weaponItem({ label: 'Arme aethyrique', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'magique' }], uid: { prefix: 'conjure' }, conjured: true });
-    expect(item).toMatchObject({ kind: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'magique' }], enc: 0, equipped: false, conjured: true });
+describe('armeInvoquee — RÉUTILISE buildWeapon, bascule en ItemInstance désignée par sa source', () => {
+  it('type→kind, ajoute enc/equipped/conjured/source, sans `label` ni `trappingId` ; partage la convention de Dégâts et l\'uid', () => {
+    const source = { kind: 'spell', id: 'arme-aethyrique' } as const;
+    const item = armeInvoquee({ damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'magique' }], uid: { prefix: 'conjure' }, source });
+    expect(item).toMatchObject({ kind: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'magique' }], enc: 0, equipped: false, conjured: true, source });
+    expect('label' in item || 'trappingId' in item).toBe(false);
     expect(item.uid).toMatch(/^conjure-it-\d+$/);
     expect((item as { type?: unknown }).type).toBeUndefined(); // pas de fuite du champ Weapon.type
   });

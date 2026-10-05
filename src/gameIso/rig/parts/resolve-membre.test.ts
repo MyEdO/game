@@ -23,8 +23,7 @@ const resolve = (tenueKey: string | undefined) =>
   resolveParts('humain', 'M', tenueKey, NO_EQUIP, {}, 0, 'front');
 
 const PLAQUE: EquipCtx = equipDe([], [
-  { uid: 'harnois-qc', kind: 'armor', equipped: true, label: 'Harnois de plaque', pa: 5, qualities: [], enc: 3,
-    locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'] },
+  { locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'], materiau: 'plaque' },
 ]);
 
 // Contrat POSITIF (#633 D1) : le membre supérieur se résout en UNITÉ — l'avant-bras est le BAS

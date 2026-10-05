@@ -84,6 +84,8 @@ const MIGRATIONS_DE_SAVE = {
   58: '#1692 Arène lancée par `loadProject`',
   // #1920
   59: '#1920 clé d’enjeu de modale en id',
+  // #1988
+  60: '#1988 objet désigné par id : `ItemInstance.label` meurt, dons d’objet en FK',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

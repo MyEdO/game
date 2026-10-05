@@ -51,6 +51,7 @@ import { corruptionThresholdExceeded } from '../engine/corruption';
 import { locationLabel } from '../engine/combat';
 import { CarrierInventory } from './CarrierInventory';
 import { Row } from './Layout';
+import { libelleDObjet } from '../state/campaignData';
 
 /** Badges de zone de l'onglet Possessions (lot « corps-index », #492) : PA cumulé des 6 Localisations
  *  RÉELLES (`hero.armour`, couches rigide+Flexible+mutations déjà cumulées) — `sang` si une pièce
@@ -847,7 +848,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
           if (!tier) continue;
           rows.push({
             key: `${it.uid}-${it.prosthesisReduced ?? 0}-${tier.grants ?? 'palier'}`,
-            label: `${it.label} — ${tier.label}`, // libellé du palier : DONNÉE éditable, jamais un texte d'écran
+            label: `${libelleDObjet(it)} — ${tier.label}`, // libellé du palier : DONNÉE éditable, jamais un texte d'écran
             cost: tier.px,
             onBuy: () => trainProsthesis(hero.id, it.uid),
           });

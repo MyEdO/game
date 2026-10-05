@@ -3,6 +3,7 @@ import { availableAttacks } from './combatManeuvers';
 import { firedAttackBlock } from './combatFlow';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { BattleState, GameState } from './store';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /**
  * Étape 3 « Servir un poste » (MDG 12-13). Un chef de pièce (`mannedPoste`) voit une attaque DÉDIÉE
@@ -13,7 +14,7 @@ import type { BattleState, GameState } from './store';
 const POSTE_UID = 'p-pierrier';
 const cannon = { label: 'Pierrier', type: 'ranged' as const, damage: { plusBF: false, flat: 9 }, range: 50, qualities: [], uid: POSTE_UID, mountSide: 'tribord' as const };
 const personalSword = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 0 }, reach: 1, qualities: [], uid: 'sword' };
-const poste: ShipPoste = { item: { uid: POSTE_UID, trappingId: 'pierrier', label: 'Pierrier', kind: 'ranged' } as never, side: 'tribord', crewIds: ['gunner'] };
+const poste: ShipPoste = { item: objetDeTest({ uid: POSTE_UID, trappingId: 'pierrier', kind: 'ranged' }), side: 'tribord', crewIds: ['gunner'] };
 
 const gunner = (): Combatant =>
   ({

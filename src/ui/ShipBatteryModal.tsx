@@ -9,6 +9,7 @@ import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows } from './buildParticipantRows';
 import { Icon } from './Icon';
 import { testBreakdown, testPending } from './breakdown';
+import { libelleDObjet } from '../state/campaignData';
 
 /**
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
@@ -69,7 +70,7 @@ export function ShipBatteryModal() {
       subtitle={<><strong>{ship.label}</strong> — bordée {p.side} sur <strong>{target.label}</strong> ({postes.length} pièce{plural(postes.length)})</>}
       extra={
         <div className="rm-note" data-ton="menace">
-          <Icon id="action/aim" size="sm" /> {target.label} — Coque {target.wounds.current}/{target.wounds.max}. {postes.length} pièce{plural(postes.length)} : {postes.map((pp) => pp.item.label).join(' · ')}.
+          <Icon id="action/aim" size="sm" /> {target.label} — Coque {target.wounds.current}/{target.wounds.max}. {postes.length} pièce{plural(postes.length)} : {postes.map((pp) => libelleDObjet(pp.item)).join(' · ')}.
         </div>
       }
       rows={rows}

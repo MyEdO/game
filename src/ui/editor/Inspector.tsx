@@ -1039,9 +1039,9 @@ export function Inspector({
                   </p>
                   <div className="mini-title"><Icon id="resource/movement" size="sm" /> À la traversée (effets mécaniques)</div>
                   <p className="hint">Dégâts mitigés BE+PA : op « Blessures », forme Dés, puis cocher « déduit BE / PA ». État entretenu : op « Poser un État » + paramètre <code>unlessCondition</code> (= le même État).</p>
-                  <GameOpEditor ops={efz.onCross ?? []} onChange={(onCross) => setEfz({ ...efz, onCross: onCross.length ? onCross : undefined })} />
+                  <GameOpEditor ops={efz.onCross ?? []} sansSource onChange={(onCross) => setEfz({ ...efz, onCross: onCross.length ? onCross : undefined })} />
                   <div className="mini-title"><Icon id="ui/wait" size="sm" /> Au stationnement (chaque round)</div>
-                  <GameOpEditor ops={efz.perRound ?? []} onChange={(perRound) => setEfz({ ...efz, perRound: perRound.length ? perRound : undefined })} />
+                  <GameOpEditor ops={efz.perRound ?? []} sansSource onChange={(perRound) => setEfz({ ...efz, perRound: perRound.length ? perRound : undefined })} />
                   <label className="ed-check">
                     <input
                       type="checkbox"

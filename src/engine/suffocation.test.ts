@@ -13,6 +13,7 @@ import { applyOps } from './ops';
 import { findSpell } from '../data';
 import { spellOps } from '../state/flow';
 import { setRule, resetRule } from './policy';
+import { objetDeTest } from './objetDeTest.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');
@@ -145,7 +146,7 @@ describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MD
 
   describe('« Asperger d’eau » (#497) — hasWaterContainer / isWaterSprayTarget / waterSprayCandidates', () => {
     it('hasWaterContainer : vrai avec une Outre à eau/un Seau dans le sac, faux sans', () => {
-      const item = (trappingId: string): ItemInstance => ({ uid: 'i1', trappingId } as unknown as ItemInstance);
+      const item = (trappingId: string): ItemInstance => objetDeTest({ uid: 'i1', trappingId });
       expect(hasWaterContainer(mk({ items: [item('outre-a-eau')] }))).toBe(true);
       expect(hasWaterContainer(mk({ items: [] }))).toBe(false);
       expect(hasWaterContainer(mk({ items: [item('seau')] }))).toBe(true);

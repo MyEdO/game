@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { traumaDodgePenalty, cannotWieldTwoHanded, amputationCombatPenalty } from '../engine/trauma';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
 const legSequela = { label: 'Membre inférieur amputé (jambeD)', location: 'jambeD' as const, ops: [{ op: 'moveScale' as const, num: 1, den: 2 }, { op: 'skillMod' as const, skill: { id: 'esquive' }, mod: -20 }], prosthesis: [{ trappingId: 'fausse-jambe', cancels: 'movement' as const }] };
-const fausseJambe = (over: Partial<ItemInstance> = {}): ItemInstance => ({ uid: 'fj', trappingId: 'fausse-jambe', label: 'Fausse jambe', kind: 'misc', subType: 'Prothèses', qualities: [], enc: 2, equipped: true, ...over } as ItemInstance);
+const fausseJambe = (over: SurchargeDObjet = {}): ItemInstance => objetDeTest({ uid: 'fj', trappingId: 'fausse-jambe', kind: 'misc', subType: 'Prothèses', qualities: [], enc: 2, equipped: true, ...over });
 
 const hero = (p: Partial<Combatant>): Combatant =>
   ({
@@ -89,7 +91,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
    *  Tests impliquant deux mains pour 100 PX pour chaque tranche de 5, soustraite de la pénalité, retirant
    *  la pénalité entière pour 400 PX ». 4 paliers DÉCLARÉS (`TrappingData.prosthesisTraining`). */
   it('Crochet : chaque tranche de 100 PX rachète 5 points de la pénalité de main perdue', () => {
-    const crochet: ItemInstance = { uid: 'cr', trappingId: 'crochet', label: 'Crochet', kind: 'misc', subType: 'Prothèses', qualities: [], enc: 1, equipped: true } as ItemInstance;
+    const crochet: ItemInstance = objetDeTest({ uid: 'cr', trappingId: 'crochet', kind: 'misc', subType: 'Prothèses', qualities: [], enc: 1, equipped: true });
     const main = { label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD' as const, ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] };
     const arme = { label: 'Épée', hands: 1, hand: 'main' } as never;
     const h = hero({ id: 'a', xp: 500, traumas: [main], items: [crochet] });
@@ -103,7 +105,7 @@ describe('trainProsthesis — rachat PX en 2 paliers de la Fausse jambe (LDB 73 
   });
 
   it('Crochet : les 4 tranches (400 PX) retirent la pénalité ENTIÈRE et rétablissent les armes à deux mains', () => {
-    const crochet: ItemInstance = { uid: 'cr', trappingId: 'crochet', label: 'Crochet', kind: 'misc', subType: 'Prothèses', qualities: [], enc: 1, equipped: true } as ItemInstance;
+    const crochet: ItemInstance = objetDeTest({ uid: 'cr', trappingId: 'crochet', kind: 'misc', subType: 'Prothèses', qualities: [], enc: 1, equipped: true });
     const arme = { label: 'Épée', hands: 1, hand: 'main' } as never;
     const h = hero({ id: 'a', xp: 500, traumas: [{ label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD', ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] }], items: [crochet] });
     useGame.setState({ party: [h] });

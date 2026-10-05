@@ -23,6 +23,7 @@ import { WEAPON_DEFS } from '../../rig/parts/weapons/_registry.generated';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import { objetDeTest } from '../../../engine/objetDeTest.testkit';
 
 const scene = emptyScene(8, 8);
 const mpt = sceneMetresPerTile(scene);
@@ -45,7 +46,7 @@ function arbalétrier(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
   h.id = 'h1';
   h.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1, shape: 'arbalete' } as unknown as Weapon];
-  h.items = [...(h.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 } as ItemInstance];
+  h.items = [...(h.items ?? []), objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 })];
   loadRegister(h, h.weapons[0]).loaded = true;
   h.pos = { x: 1, y: 1 };
   return h;
@@ -66,7 +67,7 @@ function armureEquipee(c: Combatant): ItemInstance {
 
 function soldatEnArmure(): Combatant {
   const h = arbalétrier();
-  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
+  h.items = [...(h.items ?? []), objetDeTest({ uid: 'arm-1', trappingId: 'cotte-de-mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true })];
   return h;
 }
 

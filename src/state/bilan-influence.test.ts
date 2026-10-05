@@ -7,6 +7,7 @@ import { emptyScene } from './scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep, CascadeRoll } from './pendings';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /**
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
@@ -26,7 +27,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
     items: [], movement: 4, fortune: 2, ...p,
   } as Combatant);
 
-const ration = (uid: string) => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc' as const, qualities: [], enc: 0, equipped: false });
+const ration = (uid: string) => objetDeTest({ uid, trappingId: 'ration' });
 
 /** Fige un ÉCHEC sur la RANGÉE `rowId` de la bande `bandId` (dé 100, DR négatif) — pour exercer
  *  l'influence sur un jet raté. Depuis #1117 L3 le jet d'un Test de nuit vit sur SA rangée. */

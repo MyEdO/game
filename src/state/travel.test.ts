@@ -16,8 +16,9 @@ import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascadeTestKit';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
-const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
+const ration = (uid: string): ItemInstance => (objetDeTest({ uid, trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false }));
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   ({

@@ -12,6 +12,7 @@ import type { AttackResult } from '../engine/combat';
 import { emptyScene } from './scene';
 import { draineCascade } from './cascadeTestKit';
 import { stepInteraction } from './cascade';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)
 // — la DONNÉE réelle de mutations.json, pour que ce test casse si le drapeau `noDeviation` disparaît.
@@ -61,7 +62,7 @@ const critRes = (): AttackResult => ({
 
 // Une pièce d'armure PORTÉE (héros) — `wornArmourPoints` la lit (equipped + kind:'armor' + pa + locs).
 const wornPiece = (pa: number): ItemInstance =>
-  ({ uid: 'arm1', name: 'Plastron', kind: 'armor', equipped: true, pa, locs: ['corps'], qualities: [] } as unknown as ItemInstance);
+  objetDeTest({ uid: 'arm1', trappingId: 'plastron', kind: 'armor', equipped: true, pa, locs: ['corps'], qualities: [] });
 
 // ── PA déviatable (LDB 63 l.30) : pur, sans flux ──────────────────────────────
 describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 63 l.30 + EDO App.2 l.196)', () => {

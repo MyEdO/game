@@ -7,6 +7,7 @@ import { endOfRound } from './conditions';
 import { runPureFlowLines } from '../state/combatEffects';
 import type { Combatant, ItemInstance, Weapon } from './types';
 import type { TriggeredEffect, Flow } from './flowCore';
+import { objetDeTest } from './objetDeTest.testkit';
 
 /** Construit un `TriggeredEffect` onHit→victim portant `ops` (forme unifiée des onHit d'arme). */
 const onHitFlow = (ops: unknown[]): TriggeredEffect =>
@@ -31,8 +32,8 @@ const dummy = (p: Partial<Combatant> = {}): Combatant =>
 /** Arme NUE pour les comparaisons de mitigation (non enchantée). */
 const sword = (): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', range: null, qualities: [] });
 
-const weaponItem = (uid: string, name: string, damage: string): ItemInstance =>
-  ({ uid, label: name, kind: 'melee', damage: parseDamage(damage), reach: 'Moyenne', range: null, qualities: [], enc: 1, equipped: true });
+const weaponItem = (uid: string, trappingId: string, damage: string): ItemInstance =>
+  (objetDeTest({ uid, trappingId, kind: 'melee', damage: parseDamage(damage), reach: 'Moyenne', range: null, qualities: [], enc: 1, equipped: true }));
 
 /** Combattant tenant une arme dans son set actif (l'op enchante l'arme TENUE). */
 const wielder = (item: ItemInstance, p: Partial<Combatant> = {}): Combatant => {
@@ -44,7 +45,7 @@ const heldEnchants = (c: Combatant) => (c.items ?? []).find((i) => i.uid === 'w'
 
 describe('augmentWeapon — enchantement porté par l’arme, replié dans c.weapons', () => {
   it('B. de Droiture : l’arme tenue devient Magique (isMagicWeapon → touche l’Éthéré), objet non muté', () => {
-    const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
+    const c = wielder(weaponItem('w', 'epee', '+BF+4'));
     applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'] }], { label: 'Bénédiction de Droiture', defaultDurationRounds: 6 });
     expect(isMagicWeapon(c.weapons[0])).toBe(true); // arme active enchantée
     expect(heldEnchants(c)).toHaveLength(1); // l'enchant vit sur l'OBJET
@@ -53,7 +54,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
 
   it('Marteau ardent : +BSoc Dégâts (du PRÊTRE) + Magique + En flammes/À Terre à la touche', () => {
     const priest = dummy({}); // BSoc 4
-    const fighter = wielder(weaponItem('w', 'Épée', '+BF+4'), { id: 'f' });
+    const fighter = wielder(weaponItem('w', 'epee', '+BF+4'), { id: 'f' });
     applyOps(fighter, [{
       op: 'augmentWeapon', addQualities: ['magique'], damageBonus: { bonusOf: 'sociabilite' },
       onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }, { op: 'condition', id: 'a-terre' }])],
@@ -67,7 +68,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
   });
 
   it('Épée ardente de Rhuin : +6 et Percutante s’apposent, et l’enchantement EXPIRE (objet nettoyé)', () => {
-    const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
+    const c = wielder(weaponItem('w', 'epee', '+BF+4'));
     applyOps(c, [{ op: 'augmentWeapon', addQualities: ['percutante'], damageBonus: 6, onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }], {
       label: 'Épée ardente de Rhuin', defaultDurationRounds: 1,
     });
@@ -81,10 +82,10 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
 
   it('Épée de justice : bypass « all » lie l’ÉPÉE tenue (requiresWeapon) ; un marteau tenu → fizzle', async () => {
     const { woundsFromHit } = await import('./combat');
-    const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
+    const c = wielder(weaponItem('w', 'epee', '+BF+4'));
     applyOps(c, [{ op: 'augmentWeapon', requiresWeapon: 'épée', addQualities: ['magique'], bypass: 'all' }], { label: 'Épée de justice', defaultDurationRounds: 4 });
     expect(c.weapons[0].bypass).toBe('all'); // épée tenue → enchantée
-    const hammerGuy = wielder(weaponItem('w', 'Marteau de guerre', '+BF+5'), { id: 'h' });
+    const hammerGuy = wielder(weaponItem('w', 'marteau-de-guerre', '+BF+5'), { id: 'h' });
     applyOps(hammerGuy, [{ op: 'augmentWeapon', requiresWeapon: 'épée', addQualities: ['magique'], bypass: 'all' }], { label: 'Épée de justice', defaultDurationRounds: 4 });
     expect(hammerGuy.weapons[0].bypass).toBeUndefined(); // pas d'épée tenue → fizzle
     expect(heldEnchants(hammerGuy)).toBeUndefined();
@@ -104,7 +105,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
       success: { kind: 'seq', steps: [] },
       fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'inconscient' }] } },
     };
-    const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
+    const c = wielder(weaponItem('w', 'epee', '+BF+4'));
     applyOps(c, [{
       op: 'augmentWeapon', addQualities: ['magique'],
       onHitEffects: [{ trigger: 'onHit', on: 'victim', flow: justiceTest }],

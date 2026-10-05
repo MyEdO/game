@@ -19,6 +19,7 @@ import {
   resolveMeleePassive,
   woundsFromHit,
 } from './combat';
+import { objetDeTest, type SurchargeDObjet } from './objetDeTest.testkit';
 
 describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1 case = 2 m)', () => {
   it('Bout portant +40, Courte +20, Moyenne +0, Longue −10, Extrême −30, au-delà = null', () => {
@@ -62,8 +63,8 @@ describe("Atouts d'arme (LDB Les armes)", () => {
   describe('Perforante — matériau (LDB 62 l.270)', () => {
     const arme = (perforante: boolean): Weapon =>
       ({ label: 'W', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: perforante ? [{ id: 'perforante' }] : [] } as unknown as Weapon);
-    const piece = (over: Partial<ItemInstance>): ItemInstance =>
-      ({ uid: over.uid ?? 'i', name: 'Pièce', kind: 'armor', locs: ['corps'], equipped: true, qualities: [], ...over } as unknown as ItemInstance);
+    const piece = (over: SurchargeDObjet): ItemInstance =>
+      objetDeTest({ uid: over.uid ?? 'i', trappingId: 'plastron', kind: 'armor', locs: ['corps'], equipped: true, qualities: [], ...over });
     const target = (armourCorps: number, items: ItemInstance[] = []): Combatant => {
       const t = fighter(30);
       t.armour.corps = armourCorps;

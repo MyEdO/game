@@ -21,7 +21,7 @@ import { resolveQualities } from './qualities/dispatch';
 import { hasActiveCapability } from './disease';
 
 /** Lecture par-OBJET (catalogue, NON gatée) : cet objet porte-t-il la capacité `cap` ? Lue PAR ID dans
- *  `TrappingData.capabilities` — un objet custom (sans `trappingId`) n'a aucune capacité. */
+ *  `TrappingData.capabilities` — une arme invoquée (`DesignationParSource`) n'en a aucune. */
 export function itemCapability(it: ItemInstance, cap: keyof ItemCapabilities): boolean {
   return !!(it.trappingId && findTrappingById(it.trappingId)?.capabilities?.[cap]);
 }

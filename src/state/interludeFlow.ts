@@ -66,6 +66,7 @@ import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
+import { libelleDObjet } from './campaignData';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -656,7 +657,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // Spé du Groupe si possédée). L'arme synthétique n'a pas d'uid retrouvable → le gate de
     // maîtrise est inerte pour le TEST d'entraînement (c'est l'arme qui est inhabituelle, pas la Spé).
     const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
-    skillValue = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+    skillValue = combatValue(h, kind, buildWeapon({ label: libelleDObjet(item), type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
     skillLabel = refLabel('skills', { id: kind === 'melee' ? 'corps-a-corps' : 'projectiles' });
   } else if (def.resolver === 'identify') {
     // Identifier un artefact (ADE II 4 l.41) : « Pour d'autres sorciers » (sans le Talent Détection
@@ -670,7 +671,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     }
     skillValue = testValue(h, savoir.id, undefined, savoir.spec);
     skillLabel = skillInstanceLabel(savoir);
-    extra.label = stepDetail(dataLabel(def.label), dataLabel(item.label));
+    extra.label = stepDetail(dataLabel(def.label), dataLabel(libelleDObjet(item)));
   } else if (def.resolver === 'combatTraining') {
     // Entraînement au Combat (LDB 23 l.205-209) : « une Compétence de Corps à corps ou Projectiles »
     // au choix du joueur — approximée par `bestActivitySkill` (convention partagée avec la branche
@@ -919,32 +920,32 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
           // +4 ou plus : sait s'il a des Particularités — le Stupéfiant (+6) les révèle TOUTES.
           it.magicKnown = true;
           delete it.suspectedQualities;
-          return { lines: [msg(isAstoundingSuccess(pa.success, pa.sl) ? 'if.identifyAstounding' : 'if.identifyImpressive', { name: h.label, item: it.label })] };
+          return { lines: [msg(isAstoundingSuccess(pa.success, pa.sl) ? 'if.identifyAstounding' : 'if.identifyImpressive', { name: h.label, item: libelleDObjet(it) })] };
         }
         if (pa.sl <= 1) {
           // 0 à +1 (Succès Minime) : identifie l'objet ET découvre UNE Particularité cachée (RAW).
           it.magicKnown = true;
           delete it.suspectedQualities;
-          return { lines: [msg('if.identifyMinimal', { name: h.label, item: it.label })] };
+          return { lines: [msg('if.identifyMinimal', { name: h.label, item: libelleDObjet(it) })] };
         }
         // +2 à +3 : identifie l'objet, connaît les Particularités visibles, pas les cachées.
-        return { lines: [msg('if.identifySuccess', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.identifySuccess', { name: h.label, item: libelleDObjet(it) })] };
       }
       // Échec : les rangs Impressionnant/Stupéfiant ancrent 1 / au moins 2 FAUSSES Particularités.
       if (isImpressiveFailure(pa.success, pa.sl)) {
         const fakes = falseQualities(it, isAstoundingFailure(pa.success, pa.sl) ? 2 : 1);
         if (fakes.length) {
           it.suspectedQualities = [...new Set([...(it.suspectedQualities ?? []), ...fakes])];
-          return { lines: [msg('if.identifyFakes', { name: h.label, item: it.label, fakes: fakes.join(msg('if.fakesJoin')) })] };
+          return { lines: [msg('if.identifyFakes', { name: h.label, item: libelleDObjet(it), fakes: fakes.join(msg('if.fakesJoin')) })] };
         }
-        return { lines: [msg('if.identifyConfusedWeek', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.identifyConfusedWeek', { name: h.label, item: libelleDObjet(it) })] };
       }
       // -2 à -3 (Échec, l.50) : confond l'artefact avec un type d'objet SIMILAIRE (méprise sur sa nature ; pas de fausse Particularité).
       if (pa.sl <= -2) {
-        return { lines: [msg('if.identifyConfusedType', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.identifyConfusedType', { name: h.label, item: libelleDObjet(it) })] };
       }
       // 0 à -1 (Échec Minime, l.49) : incapable d'identifier, mais conscient de son échec, sans se tromper sur la nature.
-      return { lines: [msg('if.identifyFailAware', { name: h.label, item: it.label })] };
+      return { lines: [msg('if.identifyFailAware', { name: h.label, item: libelleDObjet(it) })] };
     }
     case 'wrathOfTheGods':
       // « réalisez un Test sur le Tableau de la Colère des Dieux […] à la place » (ACE 12 l.15) —
@@ -954,7 +955,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const it = (h.items ?? []).find((i) => i.uid === pa.itemUid);
       if (!it?.trappingId) return { lines: [] };
       h.masteredWeapons = [...new Set([...(h.masteredWeapons ?? []), it.trappingId])];
-      return { lines: [msg('if.masterWeapon', { name: h.label, item: it.label })] };
+      return { lines: [msg('if.masterWeapon', { name: h.label, item: libelleDObjet(it) })] };
     }
     case 'identifyByResearch': {
       // ACE 12 l.33-42 : ≥ +4 DR = étude en profondeur (plein potentiel + dangers) ; succès ≤ +3 =
@@ -965,11 +966,11 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         it.identified = true;
         it.magicKnown = true;
         delete it.suspectedQualities;
-        return { lines: [msg('if.researchDeep', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.researchDeep', { name: h.label, item: libelleDObjet(it) })] };
       }
       if (pa.success) {
         it.magicKnown = true;
-        return { lines: [msg('if.researchMain', { name: h.label, item: it.label })] };
+        return { lines: [msg('if.researchMain', { name: h.label, item: libelleDObjet(it) })] };
       }
       return { lines: [] };
     }

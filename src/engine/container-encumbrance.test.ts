@@ -6,35 +6,36 @@
 import { describe, it, expect } from 'vitest';
 import { totalEncumbrance, containerFillEnc, canStow, defaultContainerFor } from './items';
 import type { Combatant, ItemInstance } from './types';
+import { objetDeTest, type SurchargeDObjet } from './objetDeTest.testkit';
 
 const mk = (items: ItemInstance[]): Combatant => ({ items } as unknown as Combatant);
-const item = (o: Partial<ItemInstance>): ItemInstance =>
-  ({ uid: o.uid ?? 'x', name: o.label ?? 'Objet', kind: 'misc', qualities: [], enc: 0, equipped: false, ...o } as unknown as ItemInstance);
+const item = (o: SurchargeDObjet): ItemInstance =>
+  objetDeTest({ uid: o.uid ?? 'x', trappingId: 'corde', ...o });
 
 describe('Encombrement — objet PORTÉ (accessoire) : LDB 61 l.21', () => {
   it('un accessoire misc porté (equipped) voit son Enc réduit de 1', () => {
     // Cape Enc1 portée → 0 ; en vrac → 1.
-    const cape = item({ uid: 'cape', label: 'Cape', enc: 1, subType: 'vetements-et-accessoires' });
+    const cape = item({ uid: 'cape', trappingId: 'cape', enc: 1, subType: 'vetements-et-accessoires' });
     expect(totalEncumbrance(mk([{ ...cape, equipped: true }]))).toBe(0);
     expect(totalEncumbrance(mk([{ ...cape, equipped: false }]))).toBe(1);
   });
 
   it('des bésicles Enc0 portées restent à 0 (max(0, 0−1) = 0)', () => {
-    const besicles = item({ uid: 'b', label: 'Bésicles', enc: 0, equipped: true, subType: 'vetements-et-accessoires' });
+    const besicles = item({ uid: 'b', trappingId: 'besicles', enc: 0, equipped: true, subType: 'vetements-et-accessoires' });
     expect(totalEncumbrance(mk([besicles]))).toBe(0);
   });
 
   it('un objet en vrac (ni porté ni rangé) compte son Enc plein', () => {
-    const corde = item({ uid: 'c', label: 'Corde', enc: 1 });
+    const corde = item({ uid: 'c', trappingId: 'corde', enc: 1 });
     expect(totalEncumbrance(mk([corde]))).toBe(1);
   });
 });
 
 describe('Encombrement — CONTENANTS : LDB 64 l.5', () => {
   it('un objet rangé DANS un contenant ne compte pas ; seul l’Enc du contenant compte', () => {
-    const sac = item({ uid: 'sac', label: 'Sac', enc: 2, container: { capacity: 4 } });
-    const corde = item({ uid: 'corde', label: 'Corde', enc: 1, inside: 'sac' });
-    const torches = item({ uid: 'torches', label: 'Torches', enc: 2, inside: 'sac' });
+    const sac = item({ uid: 'sac', trappingId: 'sac', enc: 2, container: { capacity: 4 } });
+    const corde = item({ uid: 'corde', trappingId: 'corde', enc: 1, inside: 'sac' });
+    const torches = item({ uid: 'torches', trappingId: 'lanterne', enc: 2, inside: 'sac' });
     // Sac 2 (compte) + corde 1 (absorbée) + torches 2 (absorbées) → 2.
     expect(totalEncumbrance(mk([sac, corde, torches]))).toBe(2);
   });
@@ -110,12 +111,12 @@ describe('defaultContainerFor — rangement par défaut d’un objet acquis (#20
 
 describe('Encombrement — régressions préservées', () => {
   it('une prothèse PORTÉE compte Enc 0 (LDB 73)', () => {
-    const jambe = item({ uid: 'j', label: 'Fausse jambe', enc: 1, subType: 'protheses', equipped: true });
+    const jambe = item({ uid: 'j', trappingId: 'fausse-jambe', enc: 1, subType: 'protheses', equipped: true });
     expect(totalEncumbrance(mk([jambe]))).toBe(0);
   });
 
   it('une armure portée voit aussi son Enc réduit de 1', () => {
-    const cuir = item({ uid: 'a', label: 'Veste de cuir', kind: 'armor', enc: 1, equipped: true });
+    const cuir = item({ uid: 'a', trappingId: 'veste-de-cuir', kind: 'armor', enc: 1, equipped: true });
     expect(totalEncumbrance(mk([cuir]))).toBe(0);
   });
 });

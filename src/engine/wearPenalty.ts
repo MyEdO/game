@@ -6,6 +6,7 @@
  * double — LDB 60 l.22/58).
  */
 import { Combatant } from './types';
+import { itemLabel } from './items';
 import type { GameOp, PassiveMod } from './ops';
 import type { CodexTarget } from './ruleRefs';
 import { hasQuality, qualitySocMods } from './qualities/dispatch';
@@ -27,9 +28,7 @@ function wearEntries(c: Combatant): { skill: string; value: number; src?: CodexT
       if (hasQuality(piece, 'peu-fiable')) v = v * 2; // Défaut : doublée (LDB 60 l.58)
       // `src` = LA PIÈCE portée : c'est elle qui NOMME la chip du jet (« −10 Cotte de mailles »), pas la
       // pseudo-qualité `en-<skill>` dont le libellé de catalogue (« % en discretion ») est un gabarit.
-      // Pièce CUSTOM (forgée à la main, sans `trappingId`) : aucune fiche à ouvrir — son `label` propre
-      // la nomme quand même (arbitrage hors-catalogue, cf. `passivePartLine`).
-      if (v) out.push({ skill, value: v, label: piece.label, ...(piece.trappingId ? { src: { category: 'trappings', id: piece.trappingId } } : {}) });
+      if (v) out.push({ skill, value: v, label: itemLabel(piece), ...(piece.trappingId ? { src: { category: 'trappings', id: piece.trappingId } } : {}) });
     }
   }
   return out;

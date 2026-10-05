@@ -11,7 +11,7 @@ import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
 import { compteDObjetsSchema, gameOpSchema, OP_DEFS } from '../data/schemas/grammaire/mecanique';
 import { fr } from '../i18n/messages/fr';
 import type { MsgKey } from '../i18n';
-import { giveTrappingLabel, instancesDeDon, itemFromTrappingById, itemLabel, itemsEncumbrance, pieceDeCreature, type TrappingResolver } from './items';
+import { instancesDeDon, itemFromTrappingById, itemLabel, itemsEncumbrance, pieceDeCreature, type TrappingResolver } from './items';
 import { applyOps } from './ops';
 import { conjureFormOptions } from './conjuredWeapons';
 import { orderCatalog } from './activities';
@@ -120,7 +120,8 @@ describe('fabrique : `pieceDeCreature` et `instancesDeDon`', () => {
     expect(p.creatureId).toBe(GRIFFON);
     expect(p.enc).toBe(1);
     expect(itemLabel(p)).toBe('Pièces de créature brutes (Griffon)');
-    expect(giveTrappingLabel({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: GRIFFON })).toBe(itemLabel(p));
+    const attendu = `${findTrappingById(PIECES_DE_CREATURE_TRAPPING_ID)!.label} (${creatures.find((c) => c.id === GRIFFON)!.label})`;
+    expect(itemLabel({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: GRIFFON }), 'le don se nomme comme l’instance, lu dans la donnée').toBe(attendu);
   });
 
   it('`instancesDeDon` rend N pièces distinctes, chacune portant sa créature', () => {

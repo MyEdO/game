@@ -8,6 +8,7 @@ const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocatio
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { applyOps } from '../engine/ops';
 import type { Combatant } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /**
  * #T3 — Cascade RAW d'horloge (`state/upkeep.ts`) : ce que le passage du temps déclenche sur les
@@ -23,7 +24,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    items: ['r1', 'r2', 'r3'].map((uid) => ({ uid, name: 'Ration', trappingId: 'ration', kind: 'misc' as const, qualities: [], enc: 0, equipped: false })),
+    items: ['r1', 'r2', 'r3'].map((uid) => (objetDeTest({ uid, trappingId: 'ration' }))),
     ...p,
   } as Combatant);
 

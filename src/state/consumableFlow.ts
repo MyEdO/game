@@ -28,6 +28,7 @@ import { ev } from './combatLog';
 import type { Get, Set as SetFn } from './flowTypes';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
+import { libelleDObjet } from './campaignData';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
  *  d'acteur (`has group Elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
@@ -102,18 +103,17 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
   if (!item.consumable) return;
   const now = get().gameTime;
   const untilTime = consumableUntilTime(item, now, hero, battleRng());
-  const baked = bakeConsumableFlow(item.consumable, hero.id, untilTime, item.label);
+  const baked = bakeConsumableFlow(item.consumable, hero.id, untilTime, libelleDObjet(item));
   const inBattle = !!get().battle && get().battle!.combatants.some((c) => c.id === hero.id);
-  // ENTITÉ PORTEUSE du Flow : la POSSESSION bue (id de catalogue). Un objet CUSTOM (hors catalogue)
-  // n'en a pas — il n'a pas de fiche où renvoyer, la dérivation d'enjeu se tait alors (#1262 V2 L6d).
+  // ENTITÉ PORTEUSE du Flow : la POSSESSION bue, par son id de catalogue (#1262 V2 L6d).
   const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
   if (inBattle) {
     runCombatFlow({
-      mode: 'combat', get, set, target: hero, caster: hero, label: item.label,
-      opsCtx: { now, ...(untilTime != null ? { defaultUntilTime: untilTime } : {}), label: item.label, ...(source ? { source } : {}) },
+      mode: 'combat', get, set, target: hero, caster: hero, label: libelleDObjet(item),
+      opsCtx: { now, ...(untilTime != null ? { defaultUntilTime: untilTime } : {}), label: libelleDObjet(item), ...(source ? { source } : {}) },
     }, baked);
   } else {
-    runSceneConsumableFlow(get, set, hero, baked, item.label, source);
+    runSceneConsumableFlow(get, set, hero, baked, libelleDObjet(item), source);
   }
 }
 
@@ -129,7 +129,7 @@ export function usePartyItem(get: Get, set: SetFn, heroId: string, uid: string):
   if (!isConsumable(it)) return;
   hero.items = (hero.items ?? []).filter((i) => i.uid !== uid); // consommé AVANT l'effet (dose unique)
   set({ party: [...party] });
-  get().log(`${hero.label} utilise : ${it.label}.`);
+  get().log(`${hero.label} utilise : ${libelleDObjet(it)}.`);
   runConsumable(get, set, hero, it);
   bus.emit(EVT.SCENE_DIRTY);
 }
@@ -147,7 +147,7 @@ export function battleConsumeItem(get: Get, set: SetFn, active: Combatant, it: I
   set({
     battle: {
       ...markActed(get, set, battle), action: null,
-      log: [...battle.log, ev('item', t('cs.useConsumable', { name: active.label, item: it.label }), active.id), ...queued],
+      log: [...battle.log, ev('item', t('cs.useConsumable', { name: active.label, item: libelleDObjet(it) }), active.id), ...queued],
     },
   });
 }

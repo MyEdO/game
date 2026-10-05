@@ -50,7 +50,7 @@ describe('opValue / spellActionValue — un sort de dégâts vaut des Blessures,
   const enemy = (): Combatant => foeAt('h', 3, 0);
 
   it('op `wounds` SANS missile → valeur > 0 (un dégât authoré en GameOp compte, jadis « invisible »)', () => {
-    const v = opValue({ op: 'wounds', amount: 6 } as never, caster(), enemy(), { refEnemy: enemy(), horizon: 3 });
+    const v = opValue({ op: 'wounds', amount: 6 } as never, caster(), enemy(), { refEnemy: enemy(), horizon: 3, source: { kind: 'spell', id: 'mur-de-feu' } });
     expect(v).toBeGreaterThan(0);
   });
 

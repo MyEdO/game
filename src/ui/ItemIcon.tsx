@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
-import { isCapeItem } from '../engine/items';
+import { isCapeItem, itemLabel } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { armourPart, isShield, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { viewOrFront } from '../gameIso/rig/parts/types';
@@ -32,7 +32,7 @@ const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
  *  Porte `shape` (id de FORME = routage de l'art), `skin`, `form` (+`subType`) — sans `shape` un
  *  ItemInstance retomberait sur l'art générique alors que l'arme dérivée (Weapon) l'a déjà. */
 function asWeapon(item: ItemInstance): Weapon {
-  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, shape: item.shape, subType: item.subType };
+  return { label: itemLabel(item), type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, shape: item.shape, subType: item.subType };
 }
 
 function resolve(item: ItemInstance | Weapon): Resolved {

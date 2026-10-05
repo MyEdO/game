@@ -285,6 +285,7 @@ import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel } from '../data';
 import { stepPrecision, stepPsych } from './rollSeam';
+import { libelleDObjet } from './campaignData';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -8305,7 +8306,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const poste = hull?.postes?.find((p) => p.item.uid === action.posteUid);
       if (!poste || (poste.crewIds ?? []).includes(enemy.id)) return advanceTurn(get, set);
       serveAtPoste(enemy, poste, battle.combatants);
-      set({ battle: { ...markActed(get, set, battle), action: null, log: [...battle.log, ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id)] } });
+      set({ battle: { ...markActed(get, set, battle), action: null, log: [...battle.log, ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: libelleDObjet(poste.item) }), enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
       return;

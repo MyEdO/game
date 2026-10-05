@@ -3,6 +3,7 @@ import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
 import type { Combatant, Trauma, ItemInstance } from '../engine/types';
 import type { Disease } from '../engine/disease';
 import type { Mutation } from '../engine/corruption';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /** Héros de test minimal — mêmes caractéristiques que le patron `EquipmentPanel.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
@@ -32,7 +33,7 @@ const mkDisease = (id: string): Disease => ({
   durationMinutes: 100,
 });
 
-const mkItem = (uid: string, enc: number): ItemInstance => ({ uid, kind: 'misc', enc, qualities: [] } as unknown as ItemInstance);
+const mkItem = (uid: string, enc: number): ItemInstance => objetDeTest({ uid, trappingId: uid, kind: 'misc', enc, qualities: [] });
 
 /** `sheetAlarms` sert UNIQUEMENT la règle d'atterrissage (auto-ouverture de l'onglet État à
  *  l'apparition d'une affliction NOUVELLE, `CharacterSheet.tsx`) — plus l'affichage de l'aside

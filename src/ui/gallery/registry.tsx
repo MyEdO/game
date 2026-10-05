@@ -106,6 +106,7 @@ import { MediaSelect } from '../MediaSelect';
 import { RefField, refFieldCfg } from '../compendium/RefField';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
+import { libelleDObjet } from '../../state/campaignData';
 
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
@@ -273,7 +274,7 @@ function ItemIconDemo() {
         <Row key={size} align="center" gap="lg">
           <span className="hint" style={{ width: 32 }}>{size}</span>
           {objets.map((item) => (
-            <span key={item.uid} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span key={item.uid} title={libelleDObjet(item)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <ItemIcon item={item} size={size} />
             </span>
           ))}
@@ -293,7 +294,7 @@ function MediaSelectDemo() {
       options={objets.map((item) => ({
         key: item.uid,
         media: <ItemIcon item={item} size="sm" />,
-        label: item.label,
+        label: libelleDObjet(item),
         sub: item.kind,
       }))}
       value={choix}
@@ -1103,7 +1104,7 @@ function BandDemo() {
 
 function GameOpEditorDemo() {
   const [ops, setOps] = useState<GameOp[]>([]);
-  return <GameOpEditor ops={ops} onChange={setOps} />;
+  return <GameOpEditor sansSource={false} ops={ops} onChange={setOps} />;
 }
 
 function ReglagesApparenceDemo() {

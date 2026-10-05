@@ -21,6 +21,7 @@ import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { reglesCss } from '../../scripts/guards/lib/cssCouches.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import type { Combatant } from '../engine/types';
+import { itemLabel } from '../engine/items';
 
 let retirerLayout: () => void;
 beforeAll(() => {
@@ -132,7 +133,7 @@ describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', (
   it('AVEC équipement : focus au 1er portrait ; Entrée répétée attribue ligne à ligne au 1er héros, puis « Continuer » ferme (déclaré, réversible par `transferItem`)', async () => {
     useGame.setState({ party: heros(), pendingLoot: { title: 'Coffre', gear: [gear('huile-de-lampe'), gear('clef')] } });
     monterRacine(<LootModal />);
-    const items = (i: number) => (useGame.getState().party[i].items ?? []).map((x) => x.label);
+    const items = (i: number) => (useGame.getState().party[i].items ?? []).map((x) => itemLabel(x));
     const focus = () => document.activeElement as HTMLElement;
 
     expect(focus().closest('.gear-row .portrait-picker'), '#0 : portrait d’attribution').not.toBeNull();

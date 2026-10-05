@@ -21,7 +21,7 @@ import { seedBattleRng } from './battleRng';
 import type { AttackResult } from '../engine/combat';
 import { campaignStart, MINUTES_PER_DAY } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
-import { loadWeapon, unloadWeapon, setReloadProgress, recomputeLoadout } from '../engine/items';
+import { loadWeapon, unloadWeapon, setReloadProgress, recomputeLoadout, itemLabel } from '../engine/items';
 import { loadRegister, weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 // L'état de charge vit sur l'ARME (chaque arme à distance gère son
 // rechargement et sa munition) — raccourci de FIXTURE vers l'arme à distance du combattant.
@@ -32,6 +32,7 @@ import { toBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -101,7 +102,7 @@ describe('Boucle de jeu (store)', () => {
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 'w1', label: 'Épée bâtarde', kind: 'melee', damage: { plusBF: true, flat: 5 }, qualities: [], enc: 1, equipped: true } as ItemInstance],
+      items: [objetDeTest({ uid: 'w1', trappingId: 'epee-batarde', kind: 'melee', damage: { plusBF: true, flat: 5 }, qualities: [], enc: 1, equipped: true })],
     } as unknown as Combatant;
     useGame.setState({ party: [hero] });
 
@@ -296,7 +297,7 @@ describe('Boucle de jeu (store)', () => {
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       // tool = 'marteau' (id catalogue) ; l'item porte trappingId: 'marteau' → match par id
-      items: [{ uid: 't1', label: 'Marteau', trappingId: 'marteau', kind: 'trapping', qualities: [{ id: 'pratique' }], enc: 0, equipped: false }],
+      items: [objetDeTest({ uid: 't1', trappingId: 'marteau', kind: 'misc', qualities: [{ id: 'pratique' }], enc: 0, equipped: false })],
     } as unknown as Combatant;
     useGame.setState({ party: [hero] });
     runFlow(useGame.getState, useGame.setState, testFlow({ characteristic: 'dexterite', tool: 'marteau', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
@@ -312,7 +313,7 @@ describe('Boucle de jeu (store)', () => {
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       // tool = 'outils-de-crochetage' (id catalogue) ; l'item porte trappingId → match par id, ≠ label 'Rossignols'
-      items: [{ uid: 't2', label: 'Rossignols', trappingId: 'outils-de-crochetage', kind: 'trapping', qualities: [], enc: 0, equipped: false }],
+      items: [objetDeTest({ uid: 't2', trappingId: 'outils-de-crochetage', kind: 'misc', qualities: [], enc: 0, equipped: false })],
     } as unknown as Combatant;
     useGame.setState({ party: [hero] });
     runFlow(useGame.getState, useGame.setState, testFlow({ characteristic: 'dexterite', tool: 'outils-de-crochetage', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
@@ -345,7 +346,7 @@ describe('Boucle de jeu (store)', () => {
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 't1', label: 'Outil', kind: 'melee', qualities: quality ? [parseQualityInstance(quality)!] : [], enc: 0, equipped: false }],
+      items: [objetDeTest({ uid: 't1', trappingId: 'outils-professionnels', kind: 'melee', qualities: quality ? [parseQualityInstance(quality)!] : [], enc: 0, equipped: false })],
     } as unknown as Combatant;
     useGame.setState({
       party: [hero], flags: {}, journal: [],
@@ -591,7 +592,7 @@ describe('Boucle de jeu (store)', () => {
     useGame.setState({ battle: { ...b }, pendingCascade: { title: '', icon: '', purpose: 'combat', cursor: 0, log: [], participants: [{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }] } as any });
     useGame.getState().fumbleConfirm();
     const hMid = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
-    expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
+    expect(hMid.items!.find((i) => itemLabel(i) === itemLabel(witem))!.damageTaken).toBe(1);
     // (2) Fin de combat (victoire) → writeback vers le groupe.
     b = useGame.getState().battle!;
     const combatants = b.combatants.map((c) => (c.kind === 'hero' ? c : { ...c, dead: true }));
@@ -600,13 +601,13 @@ describe('Boucle de jeu (store)', () => {
     useGame.getState().battleEndTurn();
     drainCombatEndCascade(); // mutants Corrompus → cascade de fin de combat AVANT victoire
     expect(useGame.getState().battle?.over).toBe('victory');
-    expect(useGame.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
+    expect(useGame.getState().party[0].items!.find((i) => itemLabel(i) === itemLabel(witem))!.damageTaken).toBe(1);
     // (3) Combat suivant : l'usure est ré-importée (carry-in + recomputeLoadout).
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
     const h2 = useGame.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
-    expect(h2.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
+    expect(h2.items!.find((i) => itemLabel(i) === itemLabel(witem))!.damageTaken).toBe(1);
   });
 
   it('incanter un Projectile magique résout l’incantation et consomme l’action', () => {
@@ -1597,12 +1598,12 @@ describe('Fouille / butin par objet cherchable (store)', () => {
 
     useGame.getState().assignLootGear(0, 'a'); // attribution explicite par portrait
     st = useGame.getState();
-    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Lampe à huile']);
+    expect((st.party[0].items ?? []).map((i) => itemLabel(i))).toEqual(['Lampe à huile']);
     expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Clef']);
 
     useGame.getState().dismissLoot(); // « Continuer » : le non-attribué va au 1er héros (contrat victoire)
     st = useGame.getState();
-    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(expect.arrayContaining(['Lampe à huile', 'Clef']));
+    expect((st.party[0].items ?? []).map((i) => itemLabel(i))).toEqual(expect.arrayContaining(['Lampe à huile', 'Clef']));
     expect(st.pendingLoot).toBeNull();
   });
 
@@ -1641,7 +1642,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     expect(useGame.getState().pendingLoot?.gear.map((g) => g.label)).toEqual(['Dague']); // fenêtre d'abord
     useGame.getState().dismissLoot(); // non attribué → 1er héros
     const hero = useGame.getState().party[0];
-    const dague = (hero.items ?? []).find((i) => i.label === 'Dague');
+    const dague = (hero.items ?? []).find((i) => itemLabel(i) === 'Dague');
     expect(dague).toBeTruthy();
     expect(dague!.kind).toBe('melee'); // objet à stats, pas un simple nom
     expect(dague!.equipped).toBe(false); // ramassé, à équiper soi-même
@@ -1890,7 +1891,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     applyEffectsLoot(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: 'dague', heroId: 'a' }], 'Test');
     const st = useGame.getState();
     expect(st.pendingLoot).toBeNull();
-    expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
+    expect((st.party[0].items ?? []).map((i) => itemLabel(i))).toEqual(['Dague']);
   });
 
   it('en combat : applyEffectsLoot passe en direct (pas de fenêtre — Ramasser/victoire ont leurs flux)', () => {
@@ -1898,7 +1899,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     useGame.setState({ battle: {} as unknown as BattleState });
     applyEffectsLoot(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Test');
     expect(useGame.getState().pendingLoot).toBeNull();
-    expect((useGame.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
+    expect((useGame.getState().party[0].items ?? []).map((i) => itemLabel(i))).toEqual(['Dague']);
   });
 
   it('appraiseGear (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
@@ -2009,8 +2010,8 @@ describe('Utiliser un consommable en combat (store)', () => {
       ...over,
     }) as unknown as Combatant;
 
-  const potion = (uid: string, name: string, consumable: ItemInstance['consumable']) =>
-    ({ uid, label: name, kind: 'misc', qualities: [], enc: 0, equipped: false, consumable }) as ItemInstance;
+  const potion = (uid: string, trappingId: string, consumable: ItemInstance['consumable']) =>
+    objetDeTest({ uid, trappingId, kind: 'misc', qualities: [], enc: 0, equipped: false, consumable });
 
   const mkBattle = (h: Combatant, over = {}): BattleState => ({
     combatants: [h],
@@ -2030,7 +2031,7 @@ describe('Utiliser un consommable en combat (store)', () => {
   it('Potion de guérison : soigne du Bonus d’Endurance, consomme l’objet, coûte l’Action', () => {
     const h = combatHero({
       wounds: { current: 5, max: 12 },
-      items: [potion('p1', 'Potion de guérison', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } })],
+      items: [potion('p1', 'potion-de-guerison', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } })],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().battleUseItem('p1');
@@ -2043,7 +2044,7 @@ describe('Utiliser un consommable en combat (store)', () => {
   it('Potion de vitalité : retire l’État Exténué (toutes les piles)', () => {
     const h = combatHero({
       conditions: [{ id: 'extenue', value: 2 }],
-      items: [potion('p2', 'Potion de vitalité', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'extenue', all: true }] } })],
+      items: [potion('p2', 'potion-de-vitalite', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'extenue', all: true }] } })],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h) });
     useGame.getState().battleUseItem('p2');
@@ -2055,7 +2056,7 @@ describe('Utiliser un consommable en combat (store)', () => {
   it('Action déjà consommée : aucune utilisation (objet conservé)', () => {
     const h = combatHero({
       wounds: { current: 5, max: 12 },
-      items: [potion('p3', 'Potion de guérison', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } })],
+      items: [potion('p3', 'potion-de-guerison', { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } })],
     });
     useGame.setState({ mode: 'battle', battle: mkBattle(h, { acted: true }) });
     useGame.getState().battleUseItem('p3');
@@ -2250,9 +2251,9 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     useGame.getState().battlePickup('corps', 'fouiller:eff:2'); // index 2 = Tromblon
     const st = useGame.getState();
     const bH = st.battle!.combatants.find((c) => c.id === bh.id)!;
-    expect((bH.items ?? []).some((i) => i.label === 'Tromblon')).toBe(true); // utilisable ce combat
-    expect((st.party[0].items ?? []).some((i) => i.label === 'Tromblon')).toBe(true); // persiste
-    expect((bH.items ?? []).filter((i) => i.label === 'Tromblon').length).toBe(1); // un SEUL objet ramassé
+    expect((bH.items ?? []).some((i) => itemLabel(i) === 'Tromblon')).toBe(true); // utilisable ce combat
+    expect((st.party[0].items ?? []).some((i) => itemLabel(i) === 'Tromblon')).toBe(true); // persiste
+    expect((bH.items ?? []).filter((i) => itemLabel(i) === 'Tromblon').length).toBe(1); // un SEUL objet ramassé
     expect(st.battle!.acted).toBe(true); // coûte l'Action
     // Le DOCUMENT de scène est intact — c'est de la donnée d'auteur ; ce qui a changé, c'est l'ÉTAT de
     // la partie : le drapeau de la feuille prise, que le pool comme la fouille en exploration lisent.
@@ -2268,7 +2269,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     useGame.setState({ battle: { ...useGame.getState().battle!, acted: true } });
     useGame.getState().battlePickup('corps', 'fouiller:eff:2');
     const bH = useGame.getState().battle!.combatants.find((c) => c.id === bh.id)!;
-    expect((bH.items ?? []).some((i) => i.label === 'Tromblon')).toBe(false);
+    expect((bH.items ?? []).some((i) => itemLabel(i) === 'Tromblon')).toBe(false);
   });
 
   it('#800 — un corps posé à même (x,y) mais sur un AUTRE étage (z) n’est pas ramassable', () => {
@@ -2277,7 +2278,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     scene.entities.find((e) => e.id === 'corps')!.z = 1; // corps à l'étage 1
     useGame.setState({ scene: { ...scene }, battle: { ...useGame.getState().battle!, combatants: [{ ...bh, pos: { x: 0, y: 0, z: 0 } }] } }); // actif au rez
     useGame.getState().battlePickup('corps', 'fouiller:eff:2');
-    expect((useGame.getState().battle!.combatants[0].items ?? []).some((i) => i.label === 'Tromblon')).toBe(false); // pas de ramassage à travers l'étage
+    expect((useGame.getState().battle!.combatants[0].items ?? []).some((i) => itemLabel(i) === 'Tromblon')).toBe(false); // pas de ramassage à travers l'étage
   });
 });
 
@@ -2613,7 +2614,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   function archer() {
     const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1 }];
-    H.items = [{ uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 } as ItemInstance];
+    H.items = [objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 })];
     rangedOf(H).loaded = true;
     H.pos = { x: 0, y: 0 };
     const E: Combatant = JSON.parse(JSON.stringify(H));
@@ -2744,17 +2745,17 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   // La munition se fixe au CHARGEMENT et l'état de charge vit sur CHAQUE ARME : charger sélectionne une
   // munition, et deux armes à distance gèrent chacune leur rechargement et leur munition. Test étendu de
   // rechargement : LDB 62 l.335.
-  const am2 = () => ({ uid: 'am2', label: 'Carreau perçant', kind: 'ammo', qualities: [{ id: 'perforante' }], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 } as ItemInstance);
+  const am2 = () => objetDeTest({ uid: 'am2', trappingId: 'carreau', kind: 'ammo', qualities: [{ id: 'perforante' }], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 });
 
   // CONTRAT CENTRAL du modèle par-arme : deux armes à distance dans deux SETS, chacune son cycle. Changer
   // de set ne téléporte ni n'efface un coup chargé — l'arme retrouvée est dans l'état où on l'a laissée.
   it('changement de set : chaque arme garde SON état de charge (arbalète en cours de recharge ⇄ pistolet chargé)', () => {
     const { H, E } = archer();
     H.items = [
-      { uid: 'w-arb', label: 'Arbalète', kind: 'ranged', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true },
-      { uid: 'w-pist', label: 'Pistolet', kind: 'ranged', subType: 'Poudre noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true },
-      { uid: 'am1', label: 'Carreau', kind: 'ammo', subType: 'Arbalète', qty: 5, qualities: [], enc: 0, equipped: false },
-      { uid: 'am-balles', label: 'Balles et poudre', kind: 'ammo', subType: 'Poudre noire', qty: 5, qualities: [], enc: 0, equipped: false },
+      objetDeTest({ uid: 'w-arb', trappingId: 'arbalete', kind: 'ranged', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true }),
+      objetDeTest({ uid: 'w-pist', trappingId: 'pistolet', kind: 'ranged', subType: 'Poudre noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true }),
+      objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', subType: 'Arbalète', qty: 5, qualities: [], enc: 0, equipped: false }),
+      objetDeTest({ uid: 'am-balles', trappingId: 'balle-et-poudre', kind: 'ammo', subType: 'Poudre noire', qty: 5, qualities: [], enc: 0, equipped: false }),
     ] as ItemInstance[];
     H.loadouts = [{ id: 'arb', main: 'w-arb' }, { id: 'pist', main: 'w-pist' }] as never;
     H.activeLoadoutId = 'arb';
@@ -2793,10 +2794,10 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('deux armes à distance tenues : recharger/choisir vise l’arme DÉSIGNÉE, l’autre garde son état', () => {
     const { H } = archer();
     H.items = [
-      { uid: 'p1', label: 'Pistolet droit', kind: 'ranged', subType: 'Poudre noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true },
-      { uid: 'p2', label: 'Pistolet gauche', kind: 'ranged', subType: 'Poudre noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true },
-      { uid: 'balles', label: 'Balles et poudre', kind: 'ammo', subType: 'Poudre noire', qty: 9, qualities: [], enc: 0, equipped: false },
-      { uid: 'balles-fines', label: 'Balles fines', kind: 'ammo', subType: 'Poudre noire', qty: 4, qualities: [], enc: 0, equipped: false },
+      objetDeTest({ uid: 'p1', trappingId: 'pistolet', kind: 'ranged', subType: 'Poudre noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true }),
+      objetDeTest({ uid: 'p2', trappingId: 'pistolet-patte-de-griffon', kind: 'ranged', subType: 'Poudre noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true }),
+      objetDeTest({ uid: 'balles', trappingId: 'balle-et-poudre', kind: 'ammo', subType: 'Poudre noire', qty: 9, qualities: [], enc: 0, equipped: false }),
+      objetDeTest({ uid: 'balles-fines', trappingId: 'balle', kind: 'ammo', subType: 'Poudre noire', qty: 4, qualities: [], enc: 0, equipped: false }),
     ] as ItemInstance[];
     H.loadouts = [{ id: 'duo', main: 'p1', off: 'p2' }] as never;
     H.activeLoadoutId = 'duo';
@@ -2925,8 +2926,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const { H, E } = archer();
     H.weapons = [{ uid: 'w-arc', label: 'Arc', type: 'ranged', damage: { plusBF: true, flat: 3 }, range: 60, qualities: [], subType: 'Arc', reload: 0 }];
     H.items = [
-      { uid: 'fl1', label: 'Flèche', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arc', qty: 5 } as ItemInstance,
-      { uid: 'fl2', label: 'Flèche barbelée', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arc', qty: 5 } as ItemInstance,
+      objetDeTest({ uid: 'fl1', trappingId: 'fleche', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arc', qty: 5 }),
+      objetDeTest({ uid: 'fl2', trappingId: 'fleche-barbelee', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arc', qty: 5 }),
     ];
     rangedOf(H).loaded = true;
     useGame.getState().battleSelectAmmo('fl2');
@@ -2946,7 +2947,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
       { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] },
       { label: 'Arc', type: 'ranged', damage: { plusBF: true, flat: 3 }, range: 60, qualities: [], subType: 'Arc', reload: 0 },
     ];
-    H.items = [{ uid: 'fl1', label: 'Flèche', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arc', qty: 5 } as ItemInstance];
+    H.items = [objetDeTest({ uid: 'fl1', trappingId: 'fleche', kind: 'ammo', qualities: [{ id: 'empaleuse' }], enc: 0, equipped: false, subType: 'Arc', qty: 5 })];
     rangedOf(H).loaded = true;
     rangedOf(H).ammoUid = 'fl1';
     useGame.getState().battleClickEntity(E.id, { confirm: true }); // E à (4,0) → l'Arc (weapons[1]) doit s'employer, pas « hors de portée de mêlée »
@@ -3008,8 +3009,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   it('interruption : un héros touché en plein rechargement repart de zéro, DANS le registre de son arme (LDB 62 l.335)', () => {
     const { H, E } = archer();
     H.items = [
-      { uid: 'w-arb', label: 'Arbalète', kind: 'ranged', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true },
-      { uid: 'am1', label: 'Carreau', kind: 'ammo', subType: 'Arbalète', qty: 5, qualities: [], enc: 0, equipped: false },
+      objetDeTest({ uid: 'w-arb', trappingId: 'arbalete', kind: 'ranged', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true }),
+      objetDeTest({ uid: 'am1', trappingId: 'carreau', kind: 'ammo', subType: 'Arbalète', qty: 5, qualities: [], enc: 0, equipped: false }),
     ] as ItemInstance[];
     H.loadouts = [{ id: 'arb', main: 'w-arb' }] as never;
     H.activeLoadoutId = 'arb';
@@ -3412,7 +3413,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   });
 
   it('vente négociée puis quittée SANS rien vendre → bloqué (vente non honorée)', () => {
-    useGame.setState({ party: [{ ...hero(), items: [{ uid: 'd', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false }] } as any], scene: merchantScene() });
+    useGame.setState({ party: [{ ...hero(), items: [objetDeTest({ uid: 'd', trappingId: 'dague', kind: 'melee', qualities: [], enc: 0, equipped: false })] } as any], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
     useGame.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } }));
     useGame.getState().closeMerchant(); // quitte sans vendre
@@ -3462,7 +3463,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   });
 
   it('vente (panier) : crédite resaleRate × prix et retire l’objet du héros', () => {
-    const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
+    const h = hero(); h.items = [objetDeTest({ uid: 'x', trappingId: 'hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false })] as any;
     useGame.setState({ party: [h], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
     useGame.getState().addToSellCart('x', 'h');
@@ -3473,7 +3474,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   });
 
   it('repairItem : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
-    const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as any];
+    const h = hero(); h.items = [objetDeTest({ uid: 'a', trappingId: 'chemise-de-mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true })];
     useGame.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(useGame.getState));
@@ -3484,7 +3485,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   });
 
   it('repairItem : ignore une armure intacte (damageTaken 0) — pas de débit', () => {
-    const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
+    const h = hero(); h.items = [objetDeTest({ uid: 'b', trappingId: 'chemise-de-mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true })];
     useGame.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(useGame.getState));
@@ -3493,7 +3494,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   });
 
   it('repairItem : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
-    const h = hero(); h.items = [{ uid: 'w', trappingId: 'dague', label: 'Dague', kind: 'melee', damage: { plusBF: true, flat: 2 }, damageTaken: 1, qualities: [], enc: 0, equipped: true } as any];
+    const h = hero(); h.items = [objetDeTest({ uid: 'w', trappingId: 'dague', kind: 'melee', damage: { plusBF: true, flat: 2 }, damageTaken: 1, qualities: [], enc: 0, equipped: true })];
     useGame.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     useGame.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(useGame.getState));
@@ -3568,7 +3569,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
 
   it('vente (panier) : Option 2 — défaut/perdu = ¼ (lowball), marchandage de vente GAGNÉ = ½ (#2c)', () => {
     const sellWith = (bargainSell: { won: boolean; drNet: number; negotiator: boolean } | null): number => {
-      const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
+      const h = hero(); h.items = [objetDeTest({ uid: 'x', trappingId: 'hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false })] as any;
       reset();
       useGame.setState({ party: [h], scene: merchantScene() });
       useGame.getState().openMerchant('pnj');
@@ -3600,7 +3601,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(buyAt(1.5)).toBeGreaterThan(buyAt(1)); // +50 % → coûte plus cher
   });
 
-  const appraiser = (): Combatant => ({ id: 'h', label: 'H', characteristics: { intelligence: 40 }, skills: [], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
+  const appraiser = (): Combatant => ({ id: 'h', label: 'H', characteristics: { intelligence: 40 }, skills: [], talents: [], items: [objetDeTest({ uid: 'm', trappingId: 'arme-simple', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false })], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
 
   it('appraiseItem : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     useGame.setState({ party: [appraiser()], scene: merchantScene() });
@@ -3671,7 +3672,7 @@ describe('transferItem — donner un objet à un autre héros', () => {
     ({ id, label: id.toUpperCase(), items, characteristics: {}, wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
 
   it('déplace l’objet (retiré de la source, ajouté NON équipé chez la cible)', () => {
-    const a = h('a', [{ uid: 'x', label: 'Épée bâtarde', kind: 'melee', qualities: [], enc: 2, equipped: true }]);
+    const a = h('a', [objetDeTest({ uid: 'x', trappingId: 'epee-batarde', kind: 'melee', qualities: [], enc: 2, equipped: true })]);
     useGame.setState({ party: [a, h('b')] });
     useGame.getState().transferItem('x', 'a', 'b');
     const st = useGame.getState();
@@ -3681,7 +3682,7 @@ describe('transferItem — donner un objet à un autre héros', () => {
     expect(moved!.equipped).toBe(false); // arrive non équipé chez le destinataire
   });
   it('no-op si même héros ou objet absent', () => {
-    const a = h('a', [{ uid: 'x', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false }]);
+    const a = h('a', [objetDeTest({ uid: 'x', trappingId: 'dague', kind: 'melee', qualities: [], enc: 0, equipped: false })]);
     useGame.setState({ party: [a, h('b')] });
     useGame.getState().transferItem('x', 'a', 'a'); // même héros
     useGame.getState().transferItem('zzz', 'a', 'b'); // objet inexistant

@@ -81,14 +81,14 @@ describe('ResolveWindowField — les quatre formes de la fenêtre sont AUTHORABL
 describe('GameOpEditor — l’op `condition` porte son champ de fenêtre', () => {
   it('le formulaire dédié de `condition` expose la fenêtre de Détermination', () => {
     const ops: GameOp[] = [{ op: 'condition', id: 'inconscient', resolveWindow: 'none' }];
-    mount(<GameOpEditor ops={ops} onChange={() => {}} />);
+    mount(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(selecteur(), 'aucun champ de fenêtre dans l’éditeur de l’op `condition`').toBeTruthy();
     expect(selecteur().value).toBe('none');
   });
 
   it('`removeCondition` ne porte PAS de fenêtre (elle RETIRE un État, elle n’en pose aucun)', () => {
     const ops: GameOp[] = [{ op: 'removeCondition', id: 'inconscient' }];
-    mount(<GameOpEditor ops={ops} onChange={() => {}} />);
+    mount(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
     expect(container.querySelector('select[aria-label="Fenêtre de Détermination"]')).toBeNull();
   });
 });

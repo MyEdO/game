@@ -292,7 +292,7 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
     summon: { byId: 'x', spellId: 'nuee' },
     activeEffects: [{ id: 'e', sourceSpellId: 'soins', spell: { spellId: 'soins', ni: 0, casterId: id, label: 'Soins' } }],
     barre: { capacites: { 0: { actionId: 'lancer-sort', cle: 'sort-projectile' }, 1: { actionId: 'objet', cle: 'q-objet-bouclier' } } },
-    items: [{ trappingId: 'bouclier' }],
+    items: [{ uid: 'i-bouclier', trappingId: 'bouclier', kind: 'melee', qualities: [], enc: 1, equipped: false }],
   });
   const FUSIONNES = Object.keys(SORTS_FUSIONNES_1897).join('|');
   /** Les ids fusionnés qui SURVIVENT dans le héros sérialisé, à une place de sort (`sort-` compris). */
@@ -307,7 +307,7 @@ describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)',
     summon: { byId: 'x', spellId: 'menace-rampante' },
     activeEffects: [{ id: 'e', sourceSpellId: 'benediction-de-guerison', spell: { spellId: 'benediction-de-guerison', ni: 0, casterId: 'h', label: 'Soins' } }],
     barre: { capacites: { 0: { actionId: 'lancer-sort', cle: 'sort-carreau' }, 1: { actionId: 'objet', cle: 'q-objet-bouclier' } } },
-    items: [{ trappingId: 'bouclier' }],
+    items: [{ uid: 'i-bouclier', trappingId: 'bouclier', kind: 'melee', qualities: [], enc: 1, equipped: false }],
   };
 
   it('(c) un export v4 : AUCUN id fusionné ne survit, à aucune place de sort du héros ; les homonymes hors place traversent', () => {

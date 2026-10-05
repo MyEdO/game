@@ -4,6 +4,7 @@ import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { defenseValue } from './combat';
 import type { Combatant, ItemInstance, Trauma, HitLocation } from './types';
+import { objetDeTest } from './objetDeTest.testkit';
 
 /** Trauma de déchirure/fracture posé à `location` (raccourci data-driven : id de fiche → instance). */
 function tk(kind: 'dechirure' | 'fracture', severity: 'mineur' | 'majeur', location: HitLocation, opts?: { be?: number; d10?: number }): Trauma {
@@ -64,7 +65,7 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
   };
   // Une prothèse doit être PORTÉE (équipée) pour lever le malus (LDB 73), pas seulement possédée. Matchée
   // par `trappingId` STABLE (≠ libellé) — `worn`/`prosthesisCancels` lisent l'id.
-  const item = (trappingId: string, equipped = true): ItemInstance => ({ uid: trappingId, trappingId, label: trappingId, kind: 'misc', subType: 'Prothèses', qualities: [], enc: 0, equipped } as ItemInstance);
+  const item = (trappingId: string, equipped = true): ItemInstance => objetDeTest({ uid: trappingId, trappingId, kind: 'misc', subType: 'Prothèses', qualities: [], enc: 0, equipped });
 
   it('sans prothèse : Mouvement ÷2 et −20 Esquive s’appliquent', () => {
     const c = fullCombatant({ traumas: [legSequela], items: [] });

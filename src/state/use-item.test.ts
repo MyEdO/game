@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { objetDeTest } from '../engine/objetDeTest.testkit';
+import { type SurchargeDObjet } from '../engine/objetDeTest.testkit';
 
-function item(over: Partial<ItemInstance>): ItemInstance {
-  return { uid: 'i1', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over } as ItemInstance;
+function item(over: SurchargeDObjet): ItemInstance {
+  return objetDeTest({ uid: 'i1', trappingId: 'corde', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over });
 }
 
 function hero(p: Partial<Combatant>): Combatant {
@@ -17,8 +19,8 @@ function hero(p: Partial<Combatant>): Combatant {
 }
 
 // Effets STRUCTURÉS (Flow, feuilles EffectOp) — comme le catalogue migré (#50).
-const BANDAGE = item({ uid: 'b1', label: 'Bandages', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'hemorragique', value: 1 }, { op: 'preventInfection' }] } } });
-const POTION = item({ uid: 'p1', label: 'Potion de guérison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
+const BANDAGE = item({ uid: 'b1', trappingId: 'bandages', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'removeCondition', id: 'hemorragique', value: 1 }, { op: 'preventInfection' }] } } });
+const POTION = item({ uid: 'p1', trappingId: 'potion-de-guerison', consumable: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: { bonusOf: 'endurance' } }] } } });
 
 describe('usePartyItem — consommables hors combat (fiche)', () => {
   beforeEach(() => {

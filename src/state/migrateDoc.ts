@@ -30,10 +30,10 @@ export type RaisonDeRefus =
   | 'migrateur-en-echec';
 
 /** Issue d'une migration : le document à jour, ou la raison du refus, la version où la chaîne s'est
- *  arrêtée et, pour un migrateur qui a levé, son message. */
+ *  arrêtée et, pour un migrateur qui a levé, ce qu'il a levé — l'appelant le dit dans SA langue. */
 export type IssueDeMigration =
   | { readonly ok: true; readonly doc: Record<string, unknown> }
-  | { readonly ok: false; readonly raison: RaisonDeRefus; readonly version: unknown; readonly detail?: string };
+  | { readonly ok: false; readonly raison: RaisonDeRefus; readonly version: unknown; readonly erreur?: unknown };
 
 export function migrateDoc(parsed: unknown, migrations: MigrationMap): IssueDeMigration {
   if (!parsed || typeof parsed !== 'object') return { ok: false, raison: 'non-objet', version: undefined };
@@ -48,7 +48,7 @@ export function migrateDoc(parsed: unknown, migrations: MigrationMap): IssueDeMi
     try {
       doc = { ...up(doc), version: v + 1 };
     } catch (e) {
-      return { ok: false, raison: 'migrateur-en-echec', version: v, detail: e instanceof Error ? e.message : String(e) };
+      return { ok: false, raison: 'migrateur-en-echec', version: v, erreur: e };
     }
   }
   return { ok: true, doc };

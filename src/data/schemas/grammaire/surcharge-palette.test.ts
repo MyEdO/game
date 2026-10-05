@@ -20,7 +20,7 @@ const PORTES: [string, z.ZodType<unknown>, (s: Record<string, string>) => unknow
   ['apparence d’entité `colors`', entityAppearanceSchema, (s) => ({ colors: s })],
   ['espèce `raceAppearance.colors`', raceAppearanceSchema, (s) => [{ ...raceAppearanceJson[0], colors: s }]],
   ['effet de scène `giveTrapping.skin`', giveTrappingSchema, (s) => ({ type: 'giveTrapping', trappingId: 'epee', skin: s })],
-  ['op `grantWeapon.skin`', gameOpSchema, (s) => ({ op: 'grantWeapon', label: 'Arme aethyrique', damage: 6, skin: s })],
+  ['op `grantWeapon.skin`', gameOpSchema, (s) => ({ op: 'grantWeapon', damage: 6, skin: s })],
 ];
 
 describe('surcharge de palette persistée : clés dans SLOTS, valeurs #rrggbb (#1903)', () => {
