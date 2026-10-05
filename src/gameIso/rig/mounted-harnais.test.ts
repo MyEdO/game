@@ -19,6 +19,7 @@ import { apply, worldTransforms } from './kinematics';
 import type { BoneId } from './bones';
 import { weaponRest } from './anim/weaponClips';
 import { buildWeapon } from '../../engine/items';
+import { armeDeDessin } from './parts/equipment';
 import { resolveById, planById, planOptsForRecord } from './bodyPlan';
 import { QUAD_HARNAIS, DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_REST } from './quadruped/quadPose';
@@ -98,7 +99,7 @@ describe('une monture dont l\'espèce n\'est pas cuite pour le set : ALARME visi
  * AU REPOS du fantassin, jamais une tenue montée ni un geste.
  */
 describe('seatedRest — un attablé n’est pas un cavalier', () => {
-  const HAMPE = buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] });
+  const HAMPE = armeDeDessin(buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] }));
   const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritById('humain'), 'M')), speciesPose: {}, viewPose: {}, };
   const ASSISE = 32; // unités de boîte — un tabouret, cf. `boxUnitsPerM`
 

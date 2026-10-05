@@ -96,8 +96,20 @@ export interface RoutePeril {
   effects: Effect[];
 }
 
-/** Route entre deux lieux (`a` ↔ `b`, bidirectionnelle par défaut). */
-export interface MapRoute {
+/** Route entre deux lieux (`a` ↔ `b`, bidirectionnelle par défaut), praticable ou fermable. */
+export type MapRoute = MapRouteTrace & Praticabilite;
+
+/** Le trajet est-il PRATICABLE (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
+ *  narratif, indépendant de `MapPlace.when` : un tronçon se ferme sans que le lieu déjà visité
+ *  cesse d'exister sur la carte. `when` absent = toujours praticable ; posé, il vient avec `refus`, la
+ *  raison JOUEUR de l'indisponibilité portée par `GatedAction` (infobulle — arbitrage 2026-08-24, jamais
+ *  inline par défaut). Lue par `routesFrom`. */
+export type Praticabilite =
+  | { when?: undefined; refus?: undefined }
+  | { when: Condition; refus: string };
+
+/** Le tracé d'une route, hors praticabilité. */
+export interface MapRouteTrace {
   id: string;
   a: string;
   b: string;
@@ -147,13 +159,6 @@ export interface MapRoute {
    *  portion de fleuve : `grande-ville-marais`, `aval-grande-ville-8km`…), `mode` = `ingestion` (boire l'eau
    *  du fleuve non bouillie, l.5) / `immersion` (chute\nage, blessures ouvertes, l.7-9). Data-driven, éditable. */
   riverExposure?: { source?: string; mode: import('../data').WaterExposureMode; chancePct: number };
-  /** Le trajet est-il PRATICABLE (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
-   *  narratif, indépendant de `MapPlace.when` : un tronçon se ferme sans que le lieu déjà visité
-   *  cesse d'exister sur la carte. Absente = toujours praticable. Lue par `routesFrom`. */
-  when?: Condition;
-  /** Raison JOUEUR de l'indisponibilité du trajet, portée par `GatedAction` (infobulle `refus` —
-   *  arbitrage 2026-08-24, jamais inline par défaut). Sans objet en l'absence de `when`. */
-  refus?: string;
 }
 
 export interface WorldMapParams {

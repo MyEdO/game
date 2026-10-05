@@ -1519,8 +1519,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: 'Apprendre un sort (trouvaille, sans PX)', icon: 'magic/power',
     make: () => ({ type: 'learnSpell', spell: '', heroId: '' }),
     apply: (e, env) => {
-      // Trouvaille de campagne : le sort est appris SANS PX (l'auteur l'octroie — le coût
-      // en PX ne vaut que pour la mémorisation volontaire, LDB 46 l.16-20).
+      // LDB 46 l.20
       const sp = findSpellById(e.spell);
       if (!sp) return;
       // `c.spells` = IDS de sort (résolus par findSpellById dans la console/IA/grimoire) ; le libellé

@@ -6,7 +6,7 @@
 **Vérification** : après une feature UI, valider dans le navigateur (Playwright MCP) — charger
 l'app de CET arbre (`npm run dev` imprime son URL), dérouler le flux, vérifier `console` (0 erreur)
 et screenshoter. Le menu
-**« 🧪 Tests — scénarios »** ouvre un choix de scénarios de test (groupe fixé + scène adaptée,
+**« Scénarios de test »** (`menu.testScenarios`, `src/i18n/messages/fr.ts`) ouvre un choix de scénarios de test (groupe fixé + scène adaptée,
 combat direct) ; **passer par le scénario adapté, sinon en créer un** — un scénario = un fichier
 dans `src/scenes/test-scenarios/` (cf. `docs/test-scenarios.md`).
 

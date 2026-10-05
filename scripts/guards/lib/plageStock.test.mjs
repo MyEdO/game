@@ -4,7 +4,6 @@
 // plage qui ajoute puis RETIRE un stock rougit à tort aussi. Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -14,6 +13,7 @@ import { TRONC } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
+import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
 
@@ -92,7 +92,7 @@ function depotJetable(commits) {
   const [fondation, ...suite] = commits
   assert.ok(fondation, 'depotJetable : le premier commit FONDE le dépôt — `commits` ne peut pas être vide')
   const { racine: repo, sha } = instanceDeDepot({ fichiers: { [PORTEUR]: fondation.contenu }, message: fondation.message })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   const shas = [sha]
   for (const { contenu, message } of suite) {
     writeFileSync(join(repo, PORTEUR), contenu, 'utf8')
@@ -215,7 +215,7 @@ test('C : un `git mv` de porteur rend net 0 ; renommé PLUS une entrée reste +1
   const source = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
   for (const [nom, ajoutees] of [['renommage pur', []], ['renommage + 1 entrée', [D]]]) {
     const { racine: repo, sha } = instanceDeDepot({ fichiers: { [ancien]: source([A, B, C]) }, message: 'socle' })
-    const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     try {
       git('mv', ancien, nouveau)
       if (ajoutees.length) writeFileSync(join(repo, nouveau), source([A, B, C, ...ajoutees]), 'utf8')
@@ -245,7 +245,7 @@ test('C : un porteur SCINDÉ en deux ne grandit pas ; renommé MOINS une entrée
   }
   for (const [nom, porteurs] of Object.entries(cas)) {
     const { racine: repo, sha } = instanceDeDepot({ fichiers: { [ancien]: source([A, B, C]) }, message: 'socle' })
-    const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     try {
       rmSync(join(repo, ancien))
       for (const [chemin, entrees] of Object.entries(porteurs)) writeFileSync(join(repo, chemin), source(entrees), 'utf8')
@@ -267,7 +267,7 @@ test('C : une ligne de contenu `-- …` retirée n\'est pas un en-tête de diff'
   const avant = `export const STOCK = [\n-- sentinelle\n${A}\n${B}\n]\n`
   const apres = "export const STOCK = [\n  'src/a.ts',\n]\n"
   const { racine: repo } = instanceDeDepot({ fichiers: { [PORTEUR]: avant }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   try {
     writeFileSync(join(repo, PORTEUR), apres, 'utf8')
     git('add', '-A')
@@ -294,10 +294,10 @@ test('équivalence — solde au commit et plage au push comptent la même chose'
   }
   for (const [nom, ajout] of Object.entries(cas)) {
     const { racine } = instanceDeDepot({ fichiers: { [porteur]: '// socle\n' }, message: 'socle' })
-    const gitDe = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(racine)
     try {
       writeFileSync(join(racine, porteur), `// socle\n${ajout.join('\n')}\n`, 'utf8')
-      gitDe('add', '-A')
+      git('add', '-A')
       const commande = 'git commit -m "test: sans cliquet"'
       const lectures = diffDuCommit(commande, racine)
       const auCommit = evaluateStocksQuiGrandissent({
@@ -305,9 +305,9 @@ test('équivalence — solde au commit et plage au push comptent la même chose'
         diff: lectures.diff([porteur]),
         images: { lirePostImage: lectures.contenu, lirePreImage: lectures.avant },
       })
-      const base = gitDe('rev-parse', 'HEAD').trim()
-      gitDe('commit', '-q', '--no-verify', '-m', 'test: sans cliquet')
-      const auPush = croissancesDeLaPlage({ cwd: racine, debut: base, fin: gitDe('rev-parse', 'HEAD').trim() })
+      const base = git('rev-parse', 'HEAD').trim()
+      git('commit', '-q', '--no-verify', '-m', 'test: sans cliquet')
+      const auPush = croissancesDeLaPlage({ cwd: racine, debut: base, fin: git('rev-parse', 'HEAD').trim() })
       assert.equal(auPush.indisponible, null, `${nom} : plage illisible`)
       assert.equal(
         auCommit === null, auPush.refus.length === 0,
@@ -349,9 +349,9 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
   ].join('\n')
 
   const { racine } = instanceDeDepot({ fichiers: { 'scripts/raw/socle.md': '# socle\n' }, message: 'socle' })
-  const gitDe = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-  const poser = (entrees) => { writeFileSync(join(racine, porteur), stock(entrees), 'utf8'); gitDe('add', '-A') }
-  const auPush = (debut) => croissancesDeLaPlage({ cwd: racine, debut, fin: gitDe('rev-parse', 'HEAD').trim() })
+  const git = gitDe(racine)
+  const poser = (entrees) => { writeFileSync(join(racine, porteur), stock(entrees), 'utf8'); git('add', '-A') }
+  const auPush = (debut) => croissancesDeLaPlage({ cwd: racine, debut, fin: git('rev-parse', 'HEAD').trim() })
   const auCommit = (commande) => {
     const lectures = diffDuCommit(commande, racine)
     return {
@@ -365,7 +365,7 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
   }
   try {
     // NAISSANCE de 13 entrées, message muet : les deux portes refusent, et le compte est le VRAI.
-    const base = gitDe('rev-parse', 'HEAD').trim()
+    const base = git('rev-parse', 'HEAD').trim()
     poser(trous(13))
     const naissance = auCommit('git commit -m "test: un stock qui naît"')
     assert.match(naissance.verdict?.reason ?? '', /\+13 entrée\(s\) nette\(s\)/, 'porte au commit : le compte de la naissance')
@@ -379,11 +379,11 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
       /aucun lecteur d'image post — un compte sans image ment/,
       'un appelant sans lecteur (diagnostic, sonde, revue) est REFUSÉ, jamais servi d’un zéro qui ment',
     )
-    gitDe('commit', '-q', '--no-verify', '-m', 'test: un stock qui naît')
+    git('commit', '-q', '--no-verify', '-m', 'test: un stock qui naît')
     assert.deepEqual(auPush(base).refus.map((r) => [r.fichier, r.net]), [[porteur, 13]], 'porte au push : le même compte')
 
     // CROISSANCE de deux entrées sur les treize, DITE par le message : les deux portes passent.
-    const debut = gitDe('rev-parse', 'HEAD').trim()
+    const debut = git('rev-parse', 'HEAD').trim()
     poser(trous(15))
     const message = 'test: deux trous durs de plus\n\nCLIQUET: scripts/raw/fixture-stock.json +2 — deux chapitres non couverts par l’Atlas'
     const croissance = auCommit(`git commit -m "${message}"`)
@@ -393,7 +393,7 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
         .map((c) => c.net), [2],
       'témoin de non-vacuité : la croissance vaut bien +2 — sans le cliquet, le verdict serait un refus',
     )
-    gitDe('commit', '-q', '--no-verify', '-m', message)
+    git('commit', '-q', '--no-verify', '-m', message)
     assert.deepEqual(auPush(debut).refus, [], 'porte au push : le cliquet du message couvre la croissance')
     t.diagnostic('naissance +13, croissance +2, trois lectures concordantes')
   } finally {
@@ -424,7 +424,7 @@ function depotCss() {
     },
     message: 'socle',
   })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(racine)
   const commettre = (fichiers, message) => {
     for (const [f, texte] of Object.entries(fichiers)) {
       if (texte === null) git('rm', '-q', f)
@@ -582,7 +582,7 @@ test('RECLASSEMENT au commit : chaque FORME lit l’arbre que le commit emporte 
     })
     try {
       for (const f of ecrire) writeFileSync(join(racine, f), importeur(f.slice(7, -4)), 'utf8')
-      if (indexer.length) execFileSync('git', ['add', '--', ...indexer], { cwd: racine, stdio: 'ignore' })
+      if (indexer.length) lancerGit(['add', '--', ...indexer], { cwd: racine })
       const c = diffDuCommit(commande, racine)
       const { fichiers } = analyzeDiffDuCommit(c.numstat())
       return { fichiers: fichiers.sort(), deplace: c.deplaceLaFrontiereCss(fichiers), reutilises: [...c.cotesCss().commit.reutilises] }
@@ -616,7 +616,7 @@ test('RECLASSEMENT (D3″) : un rebase qui fait disparaître le franchissement r
 
 test('RECLASSEMENT : manifeste ILLISIBLE → refus NOMMÉ par son commit, jamais une levée qui emporterait les autres refus', () => {
   const { racine, sha } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(racine)
   try {
     mkdirSync(join(racine, dirname(MANIFESTE)), { recursive: true })
     writeFileSync(join(racine, MANIFESTE), '{pas du json\n', 'utf8')
@@ -636,7 +636,7 @@ test('RECLASSEMENT : manifeste ILLISIBLE → refus NOMMÉ par son commit, jamais
 test('PLAGE : un stock au chemin NON-ASCII qui grandit sans CLIQUET est refusé', () => {
   const porteur = 'src/ui/Écran.test.ts'
   const { racine, sha } = instanceDeDepot({ fichiers: { [porteur]: `export const STOCK = [\n${A}\n]\n` }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(racine)
   try {
     writeFileSync(join(racine, porteur), `export const STOCK = [\n${A}\n${B}\n]\n`, 'utf8')
     git('commit', '-q', '--no-verify', '-am', 'feat: une exemption de plus')
@@ -654,7 +654,7 @@ test('CLIQUET (D5″) : le renommage PUR d’un fichier cité par un stock coût
     fichiers: { [PORTEUR]: `export const STOCK = [\n${A}\n${B}\n]\n`, 'src/a.ts': 'export const a = 1\n'.repeat(20) },
     message: 'socle',
   })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(racine)
   try {
     git('mv', 'src/a.ts', 'src/z.ts')
     writeFileSync(join(racine, PORTEUR), `export const STOCK = [\n  'src/z.ts',\n${B}\n]\n`, 'utf8')
@@ -678,7 +678,7 @@ test('CLIQUET (D5″) : le renommage PUR d’un fichier cité par un stock coût
  *  CLIQUET ; `retouche` (texte du porteur posé DANS la fusion, ou `null`) rend la fusion maléfique. */
 function depotAFusion(retouche) {
   const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { [PORTEUR]: sourceStock([A]), 'autre.txt': 'o\n' }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   git('checkout', '-q', '-b', 'cote')
   writeFileSync(join(repo, PORTEUR), sourceStock([A, B]), 'utf8')
   git('commit', '-q', '--no-verify', '-am', 'cote\n\nCLIQUET: scripts/x.test.mjs +1 — fixture du test neuf, motif assez long')
@@ -745,7 +745,7 @@ const A_BIS = "  'src/a.ts', // bis"
  *  branche avant et après la fusion. `refs/remotes/origin/main` = la tête du tronc. */
 function depotATronc({ surMain, dansLaFusion = null, avant = null, apres = null }) {
   const { racine: repo, sha: debut } = instanceDeDepot({ fichiers: { [PORTEUR]: sourceStock([A, B, C, D]) }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   const commettre = (contenu, message) => {
     writeFileSync(join(repo, PORTEUR), contenu, 'utf8')
     git('commit', '-q', '--no-verify', '-am', message)
@@ -805,7 +805,7 @@ test('TRONC : une baisse faite par le tronc ne paie pas la croissance non décla
 
 test('TRONC : un push VERS le tronc juge ses commits, et le dit', () => {
   const { racine: repo, sha: debut } = instanceDeDepot({ fichiers: { [PORTEUR]: sourceStock([A]) }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   try {
     writeFileSync(join(repo, PORTEUR), sourceStock([A, B]), 'utf8')
     git('commit', '-q', '--no-verify', '-am', 'tronc, sans cliquet')
@@ -822,7 +822,7 @@ test('TRONC : un push VERS le tronc juge ses commits, et le dit', () => {
 test('TRONC : un tronc ILLISIBLE est nommé, et n’exclut rien', () => {
   const d = depotATronc({ surMain: sourceStock([A, B, C, D, "  'src/e.ts',"]), apres: sourceStock([A, B, C, D, "  'src/e.ts',", "  'src/f.ts',"]) })
   try {
-    execFileSync('git', ['update-ref', '-d', 'refs/remotes/origin/main'], { cwd: d.repo, stdio: 'ignore' })
+    lancerGit(['update-ref', '-d', 'refs/remotes/origin/main'], { cwd: d.repo })
     const vu = juge(d)
     assert.deepEqual(vu.notes, [`tronc \`origin/main\` illisible depuis ${d.fin.slice(0, 9)} : ses commits ne sont PAS exclus de la plage`])
     assert.equal(vu.commits, 3, 'le commit du tronc est jugé, et la note le dit')
@@ -837,7 +837,7 @@ test('TRONC : un tronc ILLISIBLE est nommé, et n’exclut rien', () => {
  *  supprime) puis commet, et rend le sha. */
 function depotDeChantier(fichiers) {
   const { racine: repo, sha: debut } = instanceDeDepot({ fichiers, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   git('update-ref', 'refs/remotes/origin/main', debut)
   git('checkout', '-q', '-b', 'chantier')
   const poser = (aPoser, message) => {
@@ -916,7 +916,7 @@ test('CUMUL (C) : un stock DÉPLACÉ d’un porteur à un autre sur deux commits
 /** Tronc local `main` en avance de deux commits sur `origin/main`, le second sans cliquet. */
 function depotEnAvance() {
   const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { [PORTEUR]: sourceStock([A]) }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   git('update-ref', 'refs/remotes/origin/main', socle)
   writeFileSync(join(repo, PORTEUR), sourceStock([A, B]), 'utf8')
   git('commit', '-q', '--no-verify', '-am', 'non poussé, sans cliquet')
@@ -960,7 +960,7 @@ test('SEUL : sans aucune borne, une FUSION est jugée seule, sans le côté de s
 
 test('CUMUL : un `debut` sans ancêtre commun avec le tronc est NOMMÉ, et rien n’est retranché', () => {
   const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { [PORTEUR]: sourceStock([A]) }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   try {
     git('update-ref', 'refs/remotes/origin/main', socle)
     git('checkout', '-q', '--orphan', 'orpheline')
@@ -983,7 +983,7 @@ test('CUMUL : un `debut` sans ancêtre commun avec le tronc est NOMMÉ, et rien 
 
 test('SEUL : le cumul d’une fusion jugée seule est SON apport, pas le diff de son premier parent', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { [PORTEUR]: sourceStock([A, B]), 'autre.txt': 'o\n' }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(repo)
   try {
     git('checkout', '-q', '-b', 'cote')
     writeFileSync(join(repo, PORTEUR), sourceStock([A]), 'utf8')

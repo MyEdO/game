@@ -19,7 +19,7 @@
 import { readFileSync } from 'node:fs'
 import { livreDuReleve } from './releve.mjs'
 import { CONSIGNE_DE_TRI, nommeUnDeSesTermes, sectionsDuPaquet, texteDe } from './paquet.mjs'
-import { aligner, estErreur, fragmentBlocs, normText, resoudreAdresse, unitesDuBloc, unitesDuTexte } from '../../src/data/source/decoupe.ts'
+import { aligner, couvertureDe, estErreur, filDuChapitre, fragmentBlocs, normText, resoudreAdresse, unitesDuBloc, unitesDuTexte } from '../../src/data/source/decoupe.ts'
 
 /** Les rôles d'une ligne retenue, ceux de la consigne du rappel. */
 export const ROLES = ['définit', 'modifie', 'déclenche', 'consomme']
@@ -31,11 +31,10 @@ export const REFUS = ['ref-hors-paquet', 'section-sans-verdict', 'hors-systeme-n
 /** Le rappel du dépôt. */
 export const RAPPEL = new URL('./releve-rappel.json', import.meta.url)
 
-/** La section d'une section du paquet, dans son chapitre parsé. */
-function sectionDuPaquet(livre, it) {
-  const chapitre = livre.indexe.chapitres.get(it.fichier)
+/** Le chapitre parsé d'une section du paquet, et son fragment. */
+function chapitreDuPaquet(livre, it) {
   const [f] = it.adresse.parts
-  return { chapitre, f, section: chapitre.sections.find((s) => s.slug === f.sec && s.occ === f.secOcc) }
+  return { chapitre: livre.indexe.chapitres.get(it.fichier), f }
 }
 
 /** Un caractère de MOT : lettre ou chiffre. */
@@ -51,17 +50,19 @@ function entreBornesDeMot(unites, { couvertes: { premiere, derniere } }) {
   return !(avant && DE_MOT.test(avant)) && !(apres && DE_MOT.test(apres))
 }
 
-/** Les blocs de la section du paquet où la preuve s'aligne (`aligner` : égalité ou partie stricte)
- *  entre deux bornes de mot. */
+/** Les blocs couverts par la section du paquet (`couvertureDe`, `BlocDuFil`) où la preuve s'aligne (`aligner` :
+ *  égalité ou partie stricte) entre deux bornes de mot. */
 export function blocsDeLaPreuve(livre, it, preuve) {
-  const { f, section } = sectionDuPaquet(livre, it)
+  const { chapitre, f } = chapitreDuPaquet(livre, it)
   const u = unitesDuTexte(preuve)
   if (!u.length) return []
+  const fil = filDuChapitre(chapitre)
   const blocs = []
-  for (let b = f.b0; b <= f.b1; b++) {
-    const unites = unitesDuBloc(section, b)
+  for (const p of [...couvertureDe(chapitre, f).blocs].sort((a, b) => a - b)) {
+    const { sec, secOcc, idx } = fil[p]
+    const unites = unitesDuBloc(chapitre.sections.find((s) => s.slug === sec && s.occ === secOcc), idx)
     const a = aligner(u, unites)
-    if (a != null && entreBornesDeMot(unites, a)) blocs.push(b)
+    if (a != null && entreBornesDeMot(unites, a)) blocs.push({ sec, secOcc, idx })
   }
   return blocs
 }
@@ -73,10 +74,11 @@ export function adresseDeLaPreuve(livre, it, preuve) {
   if (blocs.length !== 1) return { refus: blocs.length ? 'preuve-ambigue' : 'preuve-introuvable', blocs }
   const nommeUn = nommeUnDeSesTermes(livre, it)
   if (nommeUn(texteDe(livre, it)) && !nommeUn(preuve)) return { refus: 'preuve-sans-terme', blocs }
-  const { chapitre, f } = sectionDuPaquet(livre, it)
-  const adresse = { book: it.adresse.book, ch: it.adresse.ch, parts: [fragmentBlocs(chapitre, { sec: f.sec, secOcc: f.secOcc, b0: blocs[0], b1: blocs[0] })] }
+  const { chapitre } = chapitreDuPaquet(livre, it)
+  const [{ sec, secOcc, idx }] = blocs
+  const adresse = { book: it.adresse.book, ch: it.adresse.ch, parts: [fragmentBlocs(chapitre, { sec, secOcc, b0: idx, b1: idx })] }
   const r = resoudreAdresse(chapitre, adresse)
-  if (estErreur(r)) throw new Error(`tri : l'adresse dérivée de ${it.ref} bloc ${blocs[0]} ne résout pas — ${r.error} : ${r.detail}`)
+  if (estErreur(r)) throw new Error(`tri : l'adresse dérivée de ${it.ref} bloc §${sec}#${secOcc}:${idx} ne résout pas — ${r.error} : ${r.detail}`)
   return { adresse }
 }
 

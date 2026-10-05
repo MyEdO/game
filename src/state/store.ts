@@ -776,10 +776,9 @@ export interface GameState extends RollFlowActionsMap {
   previousScene: { id: string; pos: Pt } | null;
 
   /** Campagne publiée choisie au menu — jouée après constitution du groupe (PartyScreen).
-   *  null = « Nouvelle partie » standard (campagne par défaut). `id` optionnel (#608) : plombé
-   *  à la sélection (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label` ;
-   *  absent sur une vieille save migrée = pas de surlignage, pas de crash. */
-  pendingCampaign: { id?: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
+   *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
+   *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. */
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;
@@ -895,8 +894,8 @@ export interface GameState extends RollFlowActionsMap {
    *  Propagé à l'arme active via recomputeLoadout → le rendu se recolore (objet légendaire). */
   setItemSkin: (heroId: string, uid: string, patch: Record<string, string | undefined>) => void;
   /** Change la FORME (silhouette) d'une arme abstraite parmi ses `formChoices` (« Arme simple » →
-   *  épée/hache/masse/…). Pose `ItemInstance.shape` puis recompute → l'arme tenue change de silhouette. */
-  setItemShape: (heroId: string, uid: string, shape: string) => void;
+   *  épée/hache/masse/…). Pose `ItemInstance.formeChoisie` puis recompute → l'arme tenue change de silhouette. */
+  choisirForme: (heroId: string, uid: string, forme: string) => void;
   // ── Avancement par PX (LDB 07-Carrières) — câblage du moteur testé ──
   /** Octroie des PX à un héros. */
   grantXp: (heroId: string, amount: number) => void;
@@ -2148,7 +2147,7 @@ export const useGame = create<GameState>((set, get) => ({
   setLoadoutSlot: (heroId, id, slot, uid) => partyFlow.setLoadoutSlot(get, set, heroId, id, slot, uid),
   transferItem: (uid, fromHeroId, toHeroId) => partyFlow.transferItem(get, set, uid, fromHeroId, toHeroId),
   setItemSkin: (heroId, uid, patch) => partyFlow.setItemSkin(get, set, heroId, uid, patch),
-  setItemShape: (heroId, uid, shape) => partyFlow.setItemShape(get, set, heroId, uid, shape),
+  choisirForme: (heroId, uid, forme) => partyFlow.choisirForme(get, set, heroId, uid, forme),
   grantXp: (heroId, amount) => partyFlow.grantXp(get, set, heroId, amount),
   buyCharAdvance: (heroId, char) => partyFlow.buyCharAdvance(get, set, heroId, char),
   buySkillAdvance: (heroId, skillId, spec) => partyFlow.buySkillAdvance(get, set, heroId, skillId, spec),

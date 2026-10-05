@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { fleeReachable } from './path';
@@ -364,7 +364,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const { frappeur, fuyard } = duelHeros(8);
     useGame.setState({
       net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { [frappeur.id]: 1 } },
-      pendingCascade: { title: 'Se désengager', icon: '↩', purpose: 'combat', cursor: 0, log: [], participants: [{ id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: fuyard.id }] } as never,
+      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: fuyard.id }], { title: 'Se désengager', icon: '↩', purpose: 'combat' }),
     });
     useGame.getState().disengageFlee();
     const st = useGame.getState();

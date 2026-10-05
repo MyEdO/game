@@ -487,14 +487,14 @@ describe('items — recomputeLoadout / encombrement', () => {
       traumas: [{ label: 'Main', location: 'brasG', ops: [{ op: 'maxWeaponHands', hands: 1 }] }],
       items: [
         item({ uid: 'ep', label: 'Épée', kind: 'melee', damage: { plusBF: true, flat: 4 }, equipped: true }),
-        item({ uid: 'bo', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }], equipped: true }),
+        item({ uid: 'bo', trappingId: 'bouclier', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }], equipped: true }),
       ],
       loadouts: [{ id: 'l1', name: 'Épée+Bouclier', main: 'ep', off: 'bo' }],
       activeLoadoutId: 'l1',
     } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.map((w) => w.label)).toContain('Épée');
-    expect(c.weapons.map((w) => w.label)).not.toContain('Bouclier'); // main secondaire amputée → impossible de tenir le bouclier
+    expect(c.weapons.map((w) => w.trappingId)).not.toContain('bouclier'); // main secondaire amputée → impossible de tenir le bouclier
   });
   it('amputation de la main DIRECTRICE (brasD) : arme directrice conservée (−20, adaptation) ; la 2e arme (slot off) tombe', () => {
     const c = {
@@ -542,14 +542,14 @@ describe('items — recomputeLoadout / encombrement', () => {
       traumas: [{ label: 'Main', location: 'brasG', ops: [{ op: 'maxWeaponHands', hands: 1 }], prosthesis: [{ trappingId: 'merveille-d-ingenierie', cancels: 'all' }] }],
       items: [
         item({ uid: 'ep', label: 'Épée', kind: 'melee', damage: { plusBF: true, flat: 4 }, equipped: true }),
-        item({ uid: 'bo', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }], equipped: true }),
+        item({ uid: 'bo', trappingId: 'bouclier', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }], equipped: true }),
         item({ trappingId: 'merveille-d-ingenierie', label: "Merveille d'ingénierie", subType: 'protheses', equipped: true }),
       ],
       loadouts: [{ id: 'l1', name: 'X', main: 'ep', off: 'bo' }],
       activeLoadoutId: 'l1',
     } as unknown as Combatant;
     recomputeLoadout(c);
-    expect(c.weapons.map((w) => w.label)).toContain('Bouclier'); // prothèse « tout » → main rétablie, bouclier de nouveau tenu
+    expect(c.weapons.map((w) => w.trappingId)).toContain('bouclier'); // prothèse « tout » → main rétablie, bouclier de nouveau tenu
   });
   it('prothèse PORTÉE = Enc 0 ; possédée mais non portée = son Enc (LDB 73)', () => {
     const worn = { items: [item({ label: 'Fausse jambe', subType: 'protheses', enc: 2, equipped: true })] } as unknown as Combatant;

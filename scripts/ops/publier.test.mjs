@@ -4,10 +4,11 @@
 // Rien ici ne touche l'arbre : le moteur reçoit des étapes FACTICES et un journal EN MÉMOIRE, les
 // verdicts reçoivent des listes de courses littérales. Ce que ce fichier ne couvre pas est dit :
 // les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué.
+import { corpsDeFusion, fusionDe, issueDeFusion, reponseHttp } from '../guards/lib/fusionPr.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -18,7 +19,7 @@ import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, MARQUE_FEINTE } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { envDeDepotForge, envGitFeint, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { envGitFeint, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
 import {
   CODE_ARRET_MOTEUR,
@@ -41,10 +42,8 @@ import {
   veillerLeTrain,
   citerArgv,
   contexteDe,
-  corpsDeFusion,
   etatDeLEtape,
   filetDuTrainEnfant,
-  fusionDe,
   jouerLeTrain,
   journalInitial,
   journalVide,
@@ -57,7 +56,6 @@ import {
   nomDeRotation,
   optionsDe,
   planDeReprise,
-  reponseHttp,
   rotationnerLog,
 } from './publier.mjs'
 import {
@@ -71,7 +69,6 @@ import {
   estDocDerive,
   etatDeLaPr,
   finDeSortie,
-  issueDeFusion,
   marquePublication,
   messageDuTrain,
   partitionSales,
@@ -85,6 +82,7 @@ import {
   titreDePr,
   verdictDesRuns,
 } from './etapesDuTrain.mjs'
+import { gitDe } from '../test/gitDeBanc.mjs'
 
 const NOMS = ETAPES.map((e) => e.nom)
 
@@ -381,7 +379,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsRouges', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -453,7 +451,7 @@ test('`pousser` refuse tout push vers `main`, sous ses deux noms, bail ou non, A
 test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   const mesure = mkdtempSync(join(tmpdir(), 'train-hostile-'))
-  const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  const g = gitDe(racine, { net: true })
   try {
     g('config', '--local', '--unset', 'user.name')
     g('config', '--local', '--unset', 'user.email')
@@ -1289,6 +1287,27 @@ test('preflight : une branche hors des filtres `push.branches` est ROUGE avant t
   })
   assert.match(preflight.jouer(ctxDe(['chantier/**']), journalVide('claude/x')).raison, /^la branche claude.x ne déclenche pas/)
   assert.equal(preflight.jouer(ctxDe(new Error('ci.yml : filtre illisible')), journalVide('claude/x')).raison, 'ci.yml : filtre illisible')
+})
+
+test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, avec le refus de la porte de publication (#2328)', () => {
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  const ctx = {
+    branche: 'chantier/x',
+    filtresDePush: ['chantier/**'],
+    generators: GENERATORS,
+    tronc: () => ({ disponible: true }),
+    questions: {
+      rebaseEntame: () => null,
+      brancheDe: () => 'chantier/x',
+      cheminsSales: () => [],
+      origineDe: () => `https://github.com/${DEPOT}.git`,
+      verdictDesFusions: () => ({ ok: false, texte: '⛔ origin/main (base 0123456789 du 2026-10-05T10:00:00+02:00)..HEAD : 1 fusion(s) dont la RÉSOLUTION porte ≥10 insertions sous src/ sans juge qui la nomme' }),
+      combienDe: () => assert.fail('aucune lecture après le refus'),
+    },
+  }
+  const vu = preflight.jouer(ctx, journalVide('chantier/x'))
+  assert.equal(vu.ok, false)
+  assert.match(vu.raison, /^⛔ origin\/main \(base 0123456789 du .+\)\.\.HEAD : 1 fusion\(s\) dont la RÉSOLUTION/)
 })
 
 test('file : ÉJECTÉE par une course de file rouge HORS des dérivés — rouge NOMMÉ (course, jobs), aucune fusion', () => {

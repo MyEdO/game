@@ -47,6 +47,10 @@ export const WORKFLOWS = Object.freeze({
       'joués sur `merge_group` ; l’étape `file` du train lit ses courses par `coursesCi` ' +
       '(scripts/guards/lib/coursesCi.mjs), dont le workflow par défaut EST PORTE',
   },
+  'reprise-file.yml': {
+    etat: 'autosignale',
+    raison: `le step sous !cancelled() exécute ${SIGNALEUR} avec job.status ; les refus de fusion sont visibles sur la PR et ses tickets par reprendre-file.mjs`,
+  },
   'fermetures.yml': {
     etat: 'autosignale',
     raison:

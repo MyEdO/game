@@ -721,7 +721,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
             // MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
             applyOnFailInline(c, tick.onFail, contractOnce, log, emit);
           } else {
-            defer({ kind: 'diseaseTick', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, onFail: tick.onFail } });
+            defer({ kind: 'diseaseTick', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
           }
         }
         // Gangrène (l.176) : capacité `amputation` — Test de Résistance Accessible (+20) journalier ; plus
@@ -743,7 +743,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
           // `defs/maladies.ts`) — `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.
           const difficulty = daily.test.test.difficulty!;
           const onFail = opsDeLEchec(daily.test);
-          defer({ kind: 'diseaseTick', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, onFail } });
+          defer({ kind: 'diseaseTick', label: t('step.sujetPrecision', { sujet: symptomLabel(daily.symptomId), precision: diseaseLabel(dz.id) }), test: idsDuNoeud(daily.test), difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: daily.symptomId, opsEchec: onFail } });
         }
         // MUE (EDOC 08 l.122) : au-delà de `afterDays` jours de phase active, la maladie CÈDE la place
         // à `into` — propriété de la DONNÉE, aucun id codé ici.

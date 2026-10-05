@@ -149,8 +149,7 @@ function withMutationPerimee(): Combatant {
  * LIEN peut manquer, pour DEUX raisons mesurées :
  *  - l'émetteur n'a rien à pointer : effet actif sans `source` ni `sourceSpellId`, séquelle (les
  *    traumatismes ne sont pas une catégorie du Codex) ;
- *  - l'id ne RÉSOUT plus : entrée de catalogue supprimée depuis une vieille sauvegarde — on n'offre
- *    alors pas une chip morte.
+ *  - l'id ne RÉSOUT plus : absent du catalogue — on n'offre alors pas une chip morte.
  * Retirer une entrée d'ici la remet sous l'exigence générale ; en ajouter une est un ARBITRAGE à énoncer.
  */
 const SANS_REF_DECLARE = new Set<CasId>(['armure-custom', 'mutation-perimee', 'sequelle']);

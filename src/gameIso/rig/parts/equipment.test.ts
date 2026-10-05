@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, isShield, pieceDeDessin, armeDeDessin, armePrincipale, equipDe } from './equipment';
+import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, pieceDeDessin, armeDeDessin, armePrincipale, equipDe, bouclierDeDessin, type FormeDArme } from './equipment';
 import { resolveParts } from './resolve';
 import { rigAttackDef, rigDefenseDef } from '../anim/actorAnimSelect';
 import { contexteDeGeste } from '../../fx/animTracks';
@@ -7,15 +7,14 @@ import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
 import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
 import { findMutationById, trappings } from '../../../data';
-import { itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
+import { isShieldItem, itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
-const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(wep(name, type)), 'front');
-/** Arme routée PAR SHAPE (id stable) — plus aucun routage par libellé au runtime. */
-const wepShape = (shape: string, type: 'melee' | 'ranged' = 'melee'): Weapon =>
-  ({ label: 'x', type, damage: { plusBF: false, flat: 4 }, qualities: [], shape } as Weapon);
+const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(armeDeDessin(wep(name, type))), 'front');
+/** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé au runtime. */
+const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
 const famShape = (shape: string, type: 'melee' | 'ranged' = 'melee') => weaponFamily(wepShape(shape, type));
 
 describe('weaponPart', () => {
@@ -27,11 +26,11 @@ describe('weaponPart', () => {
   });
 });
 
-// Contrat « 1 forme par arme » routé PAR SHAPE (id stable), jamais par LIBELLÉ (lookup par libellé =
-// bug multilingue) : chaque arme garde une silhouette (slug) distincte ; une arme sans shape retombe
-// sur le défaut de son Groupe.
-describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)', () => {
-  it('chaque shape catalogué résout vers lui-même (formes distinctes préservées)', () => {
+// Contrat « 1 forme par arme » routé PAR FORME résolue (id stable), jamais par LIBELLÉ (lookup par
+// libellé = bug multilingue) : chaque arme garde une silhouette (slug) distincte ; une arme sans forme
+// résolue retombe sur le défaut de son Groupe.
+describe('weaponFamily — 1 forme par arme, routée par la forme résolue (anti-collapse)', () => {
+  it('chaque forme résolue cataloguée résout vers elle-même (formes distinctes préservées)', () => {
     expect(famShape('arc_court', 'ranged')).toBe('arc_court');
     expect(famShape('javelot', 'ranged')).not.toBe(famShape('lance_cavalerie'));
     expect(famShape('main_gauche')).not.toBe(famShape('brise_epee'));
@@ -39,28 +38,19 @@ describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)',
     expect(famShape('pioche_2m')).not.toBe(famShape('grande_hache'));
     expect(famShape('fleuret')).not.toBe(famShape('zweihander'));
   });
-  it('une arme SANS shape ne route plus par son nom → repli par Groupe', () => {
-    expect(weaponFamily(wep('Épée bâtarde', 'melee', [], 'deux-mains'))).toBe('epee_batarde'); // Groupe deux-mains → défaut
-    expect(weaponFamily(wep('Truc inconnu', 'melee'))).toBe('epee'); // défaut mêlée
+  it('une arme SANS forme résolue ne route pas par son nom → repli par Groupe', () => {
+    expect(weaponFamily(armeDeDessin(wep('Épée bâtarde', 'melee', [], 'deux-mains')))).toBe('epee_batarde'); // Groupe deux-mains → défaut
+    expect(weaponFamily(armeDeDessin(wep('Truc inconnu', 'melee')))).toBe('epee'); // défaut mêlée
   });
 });
 
-describe('isShield', () => {
-  it('reconnaît un bouclier par l’id de sa Qualité Protectrice, jamais par son libellé', () => {
-    expect(isShield({ qualities: [{ id: 'protectrice', value: 1 }] })).toBe(true);
-    expect(isShield({ qualities: [] })).toBe(false);
-    expect(isShield(wep('Bouclier', 'melee'))).toBe(false);
+describe('isShieldItem — la marque de l’entrée fait le bouclier (LDB 62 l.33-35)', () => {
+  it('ni le libellé ni l’Atout Protectrice sans marque : une arme hors catalogue n’est pas un bouclier', () => {
+    expect(isShieldItem(wep('Bouclier', 'melee', [{ id: 'protectrice', value: 2 }]))).toBe(false);
   });
 
-  it('catalogue : chaque arme au libellé de bouclier porte Protectrice, et se dessine en bouclier ; la potion homonyme non', () => {
-    const armes = trappings.filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && /bouclier/i.test(t.label));
-    expect(armes.map((t) => t.id)).toContain('bouclier');
-    for (const t of armes) {
-      const w = weaponFromItem(itemFromGive({ trappingId: t.id }));
-      expect(isShield(w), t.id).toBe(true);
-      expect(viewOrFront(shieldPart(w), 'front'), t.id).toContain('<');
-    }
-    expect(isShield(itemFromGive({ trappingId: 'bouclier-de-la-forge' }))).toBe(false);
+  it('la potion homonyme n’est pas un bouclier', () => {
+    expect(isShieldItem(itemFromGive({ trappingId: 'bouclier-de-la-forge' }))).toBe(false);
   });
 });
 
@@ -94,14 +84,14 @@ describe('armourPart', () => {
 
 describe('shieldPart', () => {
   it('renvoie un SVG de bouclier non vide', () => {
-    expect(viewOrFront(shieldPart(wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])), 'front')).toContain('<');
+    expect(viewOrFront(shieldPart(bouclierDeDessin(weaponFromId('bouclier')!)), 'front')).toContain('<');
   });
 });
 
 describe('equipPorte', () => {
   it('extrait armes actives + pièces d’armure équipées + bouclier', () => {
     const c = {
-      weapons: [wep('Épée', 'melee'), wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])],
+      weapons: [wep('Épée', 'melee'), weaponFromId('bouclier')!],
       items: [
         { uid: 'a', label: 'Plastron', kind: 'armor', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true } as ItemInstance,
         { uid: 'b', label: 'Heaume', kind: 'armor', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,
@@ -175,7 +165,7 @@ describe('#2097 J6 — porteur d’un bouclier SEUL : ses gestes suivent ce qui 
   const ctx = contexteDeGeste(equip);
 
   it('aucune arme principale : l’os `arme` ne dessine rien', () => {
-    expect(isShield(bouclier), 'PRÉMISSE : l’arme du catalogue est un bouclier').toBe(true);
+    expect(isShieldItem(bouclier), 'PRÉMISSE : l’arme du catalogue est un bouclier').toBe(true);
     expect(ctx.mainWeapon).toBeUndefined();
     expect(resolveParts('humain', 'M', 'soldat', equip, {}, 1).arme?.svg ?? '').toBe('');
   });

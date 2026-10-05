@@ -1146,8 +1146,8 @@ export function passiveGlobalTestMod(c: Combatant): number {
  *  - le NOM vient de l'ENTITÉ ATTACHÉE, qui le porte toujours (`Combatant.mutations` stocke l'objet
  *    COMPLET, `ItemInstance` et `Trauma` portent leur `label`…) ; le catalogue n'est interrogé
  *    (`refLabel`) que lorsque l'émetteur n'a fourni QUE son id.
- *  - le LIEN Codex vient du CATALOGUE, qui peut ne pas l'avoir (entrée supprimée depuis une vieille
- *    sauvegarde) : `ref` n'est posée que si l'id RÉSOUT, pour ne jamais offrir une chip morte. Elle
+ *  - le LIEN Codex vient du CATALOGUE, qui peut ne pas l'avoir (id absent du
+ *    catalogue) : `ref` n'est posée que si l'id RÉSOUT, pour ne jamais offrir une chip morte. Elle
  *    est TOUJOURS déclarée (`undefined` sinon) : le producteur affirme avoir cherché le lien, il ne
  *    l'omet pas en silence (cliquet #1078, `rule-refs.test.ts`).
  * `amount` : la magnitude de l'op, que le lecteur connaît (les op-types la nomment différemment —

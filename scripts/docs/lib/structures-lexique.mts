@@ -405,7 +405,7 @@ export const CONCEPTS: readonly Concept[] = [
       // Le discriminant `kind` reste HORS du vocabulaire du concept (c'est lui, le `+…`) : `CLES_DE_VALEUR`
       // en dérive, et l'y verser retirerait `kind` de la charge utile des TELLS de document — 44 pions de
       // scène `{id, kind, label, pos, ref}` changeraient de tell (mesure de la sonde C, #1633).
-      { sig: 'b0,b1,sec,secOcc,sum+…', statut: 'cible', note: 'suite contiguë `b0..b1` des blocs d’une section (`FragmentBlocs`)' },
+      { sig: 'b0,b1,sec,secOcc,sum+…', statut: 'cible', note: 'intervalle du fil d’un chapitre, du bloc `b0` de `sec#secOcc` au bloc `b1` de `finSec#finSecOcc` (par défaut la section de départ), titres intermédiaires compris (`FragmentBlocs`)' },
       { sig: 'col,row,sec,secOcc,sum+…', statut: 'cible', note: 'case d’une table adressée par CLÉ de ligne × en-tête de colonne (`FragmentCellule`)' },
     ],
     noyau: ['sec', 'secOcc', 'sum'],

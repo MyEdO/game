@@ -27,6 +27,7 @@ import { projectsLoad, __resetLibraryForTest } from './projectLibrary';
 import { __setOuvertureIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { parseProject } from './worldMap';
+import { cascadeDeTest } from './cascadeTestKit';
 
 describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, victoire normale)', () => {
   beforeEach(() => {
@@ -388,7 +389,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
       battle: { ...b, order: [enemyId, hero.id], baseOrder: [enemyId, hero.id], turn: 0 },
       // Une fenêtre de défense VIVANTE, sur son étape : la main appartient au joueur.
       pendingDefense: { attackerId: b.combatants.find((c) => c.kind === 'enemy')!.id, defenderId: hero.id, weapon: hero.weapons[0], mode: 'parade', def: null, result: null } as never,
-      pendingCascade: { title: 'Défense', purpose: 'combat', cursor: 0, log: [], seq: 1, participants: [{ id: 'defense-jet-0', kind: 'defenseJet', jet: 'defense', actorId: hero.id }] } as never,
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet-0', kind: 'defenseJet', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }),
     });
 
     const p = buildApi().fastForward(100);

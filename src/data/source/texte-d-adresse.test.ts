@@ -124,9 +124,18 @@ describe('1. composition : le rendu est l’assemblage de ses unités, sa norme 
   });
 
   it('sur les textes libres des fixtures', () => {
-    for (const md of [...ESSAIS.blocks.map((b) => b.md), FIXTURE, '***\n\nUn paragraphe.\n\n**']) {
+    for (const md of [...ESSAIS.blocks.map((b) => b.md), '***\n\nUn paragraphe.\n\n**']) {
       expect(normDe(unitesDuTexte(md))).toBe(normText(md));
     }
+    // Une ligne de titre est traduite (ci-dessous) : la norme est celle du texte traduit.
+    expect(normDe(unitesDuTexte(FIXTURE))).toBe(normText(FIXTURE.replace('# Essais', '**Essais**')));
+  });
+
+  it('une ligne de titre markdown du texte libre devient le titre du fil, en gras', () => {
+    const [titre, paragraphe] = unitesDuTexte(FIXTURE);
+    expect(titre.md).toBe('**Essais**');
+    expect(paragraphe.md).toBe(ESSAIS.blocks[0].md);
+    expect(unitesDuTexte('### **Titre** ##\nsuite du paragraphe')[0].md).toBe('**Titre**\nsuite du paragraphe');
   });
 });
 
@@ -209,11 +218,18 @@ describe('4. forges : une adresse qui ne rend pas le texte porte sa `verificatio
   });
 });
 
-describe('5-6. verdicts du dépôt', () => {
-  it('Z1 : `regles:surincantation-des-sorts-d-augure` est un « sous-bloc »', () => {
-    expect(judge(entree('regles', 'surincantation-des-sorts-d-augure'))).toEqual(SOUS_BLOC);
+describe('Z1. sous-bloc : une partie stricte d’un bloc-table, reconstruite depuis le Source', () => {
+  it('le bloc-table adressé par `regles:surincantation-des-sorts-d-augure`, privé de sa dernière ligne, est un « sous-bloc »', () => {
+    const e = { ...entree('regles', 'surincantation-des-sorts-d-augure') };
+    const ref = e.descRef as DescRef;
+    const rendu = resoudreAdresse(lireChapitre(ref.book, ref.ch), ref);
+    if (estErreur(rendu)) throw new Error(rendu.detail);
+    delete e.descRef;
+    expect(judge({ ...e, desc: rendu.md.split('\n').slice(0, -1).join('\n') })).toEqual(SOUS_BLOC);
   });
+});
 
+describe('5-6. verdicts du dépôt', () => {
   it.each(['saltimbanque', 'chansonnier', 'ratisseur-de-plages'])('`careers:%s` reste un MONTAGE', (id) => {
     const j = judge(entree('careers', id));
     expect(j.verdict).toBe('MONTAGE');

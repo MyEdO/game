@@ -42,7 +42,7 @@ function acteur(patch: Partial<Combatant> = {}): Combatant {
 
 /** Arme à forme DESSINÉE : sa classe de maniement (`hampe`) porte une prise à deux mains non vide
  *  (`weaponRest`) — c'est cette prise que la parité frame 0 doit voir. */
-const HALLEBARDE: Weapon = { id: 'hallebarde', label: 'Hallebarde', damage: 5, group: 'hast', shape: 'hallebarde' } as unknown as Weapon;
+const HALLEBARDE: Weapon = { id: 'hallebarde', label: 'Hallebarde', damage: 5, group: 'hast', trappingId: 'hallebarde' } as unknown as Weapon;
 
 const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' });
 const sujet = (c: Combatant) => actorBillboards([pose(c)], scene, mpt)[0];

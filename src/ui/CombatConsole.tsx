@@ -1103,6 +1103,7 @@ export function CombatConsole() {
   // 3ᵉ ligne de la plaque de sortie : elle dit l'état VRAI du tour — l'armement du 2ᵉ geste, sinon
   // l'avertissement « Action non dépensée », sinon « Tour fini », sinon SA touche (Espace,
   // `keybindings.ts` `end-turn`). Un héros Sonné n'a rien à dépenser : il lit la touche, pas un reproche.
+  // Armée, elle redit le libellé : hors du nom accessible, qui porte le texte vu UNE fois.
   const endNote = arme ? 'Finir quand même ?' : wastingAction ? 'Action non dépensée' : battle.acted ? 'Tour fini' : 'ESPACE';
 
   /** « Retirez un État » (LDB 17 l.61) — la 3ᵉ dépense de Détermination est le geste de L'ÉTAT, porté
@@ -1310,7 +1311,7 @@ export function CombatConsole() {
                         data-action="switch-loadout"
                         className={`chip cc-set${held ? ' on' : ''}`}
                         disabled={!live || (!!battle.loadoutSwapped && !held)}
-                        aria-label={loadoutLabel(lo, active)}
+                        aria-label={unloaded ? `${loadoutLabel(lo, active)}, VIDE` : loadoutLabel(lo, active)}
                         onClick={() => runAction('switch-loadout', useGame.getState, { loadoutId: lo.id })}
                       >
                         <i className="cc-set-n">{i + 1}</i>
@@ -1395,14 +1396,13 @@ export function CombatConsole() {
             data-armed={arme ? '' : undefined}
             className={`chip cc-cell cc-end${!meaningfulLeft ? ' pulse' : ''}`}
             disabled={!live}
-            aria-label={arme ? 'Finir le tour quand même' : 'Finir le tour'}
             onClick={onEndTurn}
           >
             <span className="cc-ico">
               <Icon id={arme ? 'ui/warning' : 'ui/turn-end'} />
             </span>
             <span className="cc-lbl">{arme ? 'Finir quand même' : 'Fin du tour'}</span>
-            <span className="cc-key">{endNote}</span>
+            <span className="cc-key" aria-hidden={arme || undefined}>{endNote}</span>
           </button>
         </div>
       </>

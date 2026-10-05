@@ -8,7 +8,7 @@
 // chemin absolu : c'est bien ce code-ci que git exécute.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -17,6 +17,7 @@ import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs
 import { SUJET_MAX, refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { refusDeVersion } from '../node-requis.mjs'
 import { jugerFichierDeMessage } from './commit-msg.mjs'
+import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const DRIVER = join(ICI, 'commit-msg.mjs')
@@ -91,10 +92,10 @@ for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime $
       writeFileSync(sonde, `require('node:fs').writeFileSync(${JSON.stringify(traceRuntime)}, JSON.stringify(process.execPath))`, 'utf8')
       env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require="${sonde.replace(/\\/g, '/')}"`.trim()
     }
-    const git = (...args) => spawnSync('git', args, { cwd: racine, env, encoding: 'utf8' })
-    execFileSync('git', ['config', 'core.hooksPath', hooks.replace(/\\/g, '/')], { cwd: racine, env })
+    const git = (...args) => resultatDeGit(args, { cwd: racine, env })
+    lancerGit(['config', 'core.hooksPath', hooks.replace(/\\/g, '/')], { cwd: racine, env })
     writeFileSync(join(racine, 'a.txt'), 'v2\n', 'utf8')
-    execFileSync('git', ['add', 'a.txt'], { cwd: racine, env })
+    lancerGit(['add', 'a.txt'], { cwd: racine, env })
 
     if (!runtimeExplicite) {
       const sonde = spawnSync('sh', ['-c', 'node -p process.versions.node'], { cwd: racine, env, encoding: 'utf8' })

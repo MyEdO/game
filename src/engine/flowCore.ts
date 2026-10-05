@@ -278,12 +278,18 @@ function matchParty(ctx: ConditionCtx, who: 'any' | 'all', pred: (m: NonNullable
   return who === 'all' ? list.length > 0 && list.every(pred) : list.some(pred);
 }
 
+/** Termes d'une Condition `flag` — « v1,!v2 », espaces tolérés : chaque drapeau NOMMÉ et sa négation.
+ *  SOURCE UNIQUE du parse de `expr`, lue par `evalCondition` et par tout lecteur des drapeaux d'un paquet. */
+export function flagTerms(expr: string): { flag: string; negated: boolean }[] {
+  return expr.split(',').map((c) => c.trim()).filter(Boolean)
+    .map((c) => (c.startsWith('!') ? { flag: c.slice(1), negated: true } : { flag: c, negated: false }));
+}
+
 export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
   switch (cond.kind) {
     case 'always': return true;
     case 'flag':
-      return cond.expr.split(',').map((c) => c.trim()).filter(Boolean)
-        .every((c) => (c.startsWith('!') ? !ctx.flags[c.slice(1)] : !!ctx.flags[c]));
+      return flagTerms(cond.expr).every((t) => (t.negated ? !ctx.flags[t.flag] : !!ctx.flags[t.flag]));
     case 'time': {
       const d = toDate(ctx.gameTime);
       const now = d.hour * 60 + d.minute;

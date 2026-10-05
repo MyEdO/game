@@ -7,6 +7,8 @@
  * Le folio ne se croit pas sur parole : il se RECALCULE depuis le marqueur `data-folio` le plus
  * proche en amont du passage cité, et doit égaler `source.page`. Et le verbatim s'ancre au FICHIER
  * DE CHAPITRE de la note — un paragraphe qui vit dans un autre chapitre du même livre est un défaut.
+ * Une fiche à prose ADRESSÉE (`descRef`) est prouvée par sa résolution ; elle doit seulement viser
+ * le chapitre de sa note.
  */
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
@@ -93,6 +95,16 @@ describe('night-stakes.json — chaque enjeu porte sa règle (#1117 L0a)', () =>
         continue;
       }
       const note = r.source.note ?? '';
+      // Prose ADRESSÉE : le texte et son folio sont prouvés par la résolution de l'adresse
+      // (`book-source-integrity.test.ts`, volet 3) ; reste l'ancrage au CHAPITRE de la note.
+      const ref = (r as { descRef?: { book: string; ch: string } }).descRef;
+      if (ref) {
+        const chap = /^\S+\s+(\d+)/.exec(note)?.[1];
+        if (ref.book !== r.source.book || Number(ref.ch) !== Number(chap)) {
+          defauts.push(`${id} : adresse ${ref.book} ch.${ref.ch} ≠ chapitre cité par la note (${note})`);
+        }
+        continue;
+      }
       const lines = chapterLines(r.source.book, note);
       // Chaque paragraphe du desc est une LIGNE du chapitre — on retient la position de la première.
       let first: number | null = null;

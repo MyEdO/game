@@ -10,6 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { KEYBINDINGS, bindingParId, formatCombo, modsDeLaTouche, modsMatch, type KeyBinding } from './keybindings';
 import { modalHolds, pickActiveModalKey } from './modalArbiter';
 import type { GameState } from './store';
+import { cascadeDeTest } from './cascadeTestKit';
 
 const binding = (id: string) => bindingParId(id)!;
 
@@ -28,14 +29,14 @@ const cartePilote = (over: Partial<GameState> = {}) =>
     // Étape `jet:'cast'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
     // `cascade`, `modalArbiter`). Une étape sans `jet` ne mesurerait pas la garde — l'arbitre élirait
     // la cascade et toutes les portes seraient fermées pour une autre raison.
-    pendingCascade: { participants: [{ actorId: 'h1', id: 'c', kind: 'castJet', jet: 'cast' }], cursor: 0 } as never,
+    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: 'castJet', jet: 'cast' }]),
     pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     ...over,
   });
 
 /** Cascade ORDINAIRE (révélation) : elle bloque la carte — clavier ET souris se taisent. */
 const cascadeBloquante = (over: Partial<GameState> = {}) =>
-  fake({ pendingCascade: { participants: [{ actorId: 'h1' }], cursor: 0 } as never, ...over });
+  fake({ pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]), ...over });
 
 const CURSEUR = ['cursor-up', 'cursor-down', 'cursor-left', 'cursor-right'];
 
@@ -245,7 +246,7 @@ describe('raccourcis — X commute le set d’armes', () => {
 
   it('se tait pendant un ciblage par la carte, comme les autres gestes qui ENGAGENT', () => {
     const s = avecSets(['lo-a', 'lo-b'], 'lo-a', {
-      pendingCascade: { participants: [{ actorId: 'h1' }], cursor: 0 } as never,
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]),
       pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     });
     expect(binding('switch-loadout').when(s)).toBe(false);
