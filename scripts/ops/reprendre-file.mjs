@@ -1,9 +1,8 @@
 import { appendFileSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
+import { TRONC } from '../guards/lib/gitPorte.mjs'
 import { corpsDeFusion, estPrDuTrain, fusionDe } from '../guards/lib/fusionPr.mjs'
 
 export const BORNE_SONDES = 12
@@ -11,10 +10,10 @@ export const PERIODE_MS = 5_000
 const route = (suffixe) => `repos/${DEPOT}/${suffixe}`
 const shaValide = (sha) => /^[0-9a-f]{40}$/i.test(String(sha ?? ''))
 const uuidValide = (uuid) => /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(String(uuid ?? ''))
-export const prEligible = (pr) => pr?.state === 'open' && !pr.draft && !pr.merged_at
-  && estPrDuTrain(pr.body)
-  && pr.base?.ref === 'main' && pr.base?.repo?.full_name === DEPOT
+const prDePublication = (pr) => estPrDuTrain(pr?.body)
+  && pr?.base?.ref === TRONC.nom && pr.base?.repo?.full_name === DEPOT
   && pr.head?.repo?.full_name === DEPOT && /^chantier\/.+/.test(pr.head?.ref ?? '') && shaValide(pr.head?.sha)
+export const prEligible = (pr) => pr?.state === 'open' && !pr.draft && !pr.merged_at && prDePublication(pr)
 
 function lire(chemin, appel) {
   const vu = appel(['api', chemin])
@@ -42,7 +41,7 @@ function coursesDe(pr, appel) {
 async function reprendrePr(pr, course, { appel, attendre, borne }) {
   const actuelle = () => {
     const relue = lire(route(`pulls/${pr.number}`), appel)
-    if (relue.head?.sha === pr.head.sha && relue.merged_at && shaValide(relue.merge_commit_sha))
+    if (prDePublication(relue) && relue.head?.sha === pr.head.sha && relue.merged_at && shaValide(relue.merge_commit_sha))
       return { statut: 'merged', raison: `fusion confirmée ${relue.merge_commit_sha}` }
     return prEligible(relue) && relue.head.sha === pr.head.sha
   }
@@ -74,14 +73,27 @@ async function reprendrePr(pr, course, { appel, attendre, borne }) {
 }
 
 function signaler(pr, course, resultat, appel, veille) {
-  const commits = pagesRest(route(`pulls/${pr.number}/commits`), appel)
-  if (!commits.ok) throw new Error(commits.raison)
-  const tickets = numerosCites([pr.title, pr.body, ...commits.entrees.map((c) => c.commit?.message ?? '')].join('\n'))
+  let messages = []
+  try {
+    const detail = lire(route(`pulls/${pr.number}`), appel)
+    if (!prDePublication(detail) || detail.head.sha !== pr.head.sha) throw new Error('identité ou tête de PR changée')
+    if (!Number.isSafeInteger(detail.commits) || detail.commits < 0) throw new Error('total de commits inconnu')
+    if (detail.commits > 250) throw new Error(`total ${detail.commits} supérieur au plafond REST de 250 commits`)
+    const commits = pagesRest(route(`pulls/${pr.number}/commits`), appel)
+    if (!commits.ok) throw new Error(commits.raison)
+    if (commits.entrees.length !== detail.commits)
+      throw new Error(`liste de commits incohérente : ${commits.entrees.length} lus pour ${detail.commits} annoncés`)
+    messages = commits.entrees.map((c) => c.commit?.message ?? '')
+  } catch (e) {
+    resultat.collecte = 'refusee'
+    resultat.raison += ` — collecte des tickets des commits refusée : ${e.message} ; seuls les tickets du titre et du corps sont connus`
+  }
+  const tickets = numerosCites([pr.title, pr.body, ...messages].join('\n'))
   const empreinte = createHash('sha256').update(`${resultat.statut}:${resultat.raison}`).digest('hex').slice(0, 16)
   const marque = `<!-- reprise-file:${pr.number}:${pr.head.sha}:${empreinte} -->`
   const lienCi = `https://github.com/${DEPOT}/actions/runs/${course.id}/attempts/${course.run_attempt ?? 1}`
   const lienVeille = veille.id ? `[veille ${veille.id}](${veille.serveur}/${DEPOT}/actions/runs/${veille.id})` : 'veille locale'
-  const corps = `${marque}\nPR #${pr.number}, SHA \`${pr.head.sha}\`, [CI run ${course.id}/attempt ${course.run_attempt ?? 1}](${lienCi}), ${lienVeille} : **${resultat.statut}** — ${resultat.raison}.\n\n${['enqueued', 'merged'].includes(resultat.statut) ? '' : 'Reprise : `npm run ops:publier -- --detache`.'}`
+  const corps = `${marque}\nPR #${pr.number}, SHA \`${pr.head.sha}\`, [CI run ${course.id}/attempt ${course.run_attempt ?? 1}](${lienCi}), ${lienVeille} : **${resultat.statut}** — ${resultat.raison}.\n\n${['enqueued', 'merged'].includes(resultat.statut) && !resultat.collecte ? '' : 'Reprise : `npm run ops:publier -- --detache`.'}`
   for (const numero of new Set([String(pr.number), ...tickets])) {
     const commentaires = pagesRest(route(`issues/${numero}/comments`), appel)
     if (!commentaires.ok) throw new Error(commentaires.raison)
@@ -99,7 +111,7 @@ export async function reprendreFile({ appel, evenement = {}, lectureSeule = fals
   if (evenement.workflow_run && (evenement.workflow_run.status !== 'completed'
     || evenement.workflow_run.conclusion !== 'success' || evenement.workflow_run.name !== 'CI'
     || evenement.workflow_run.repository?.full_name !== DEPOT)) return []
-  const prs = pagesRest(route('pulls?state=open&base=main'), appel)
+  const prs = pagesRest(route(`pulls?state=open&base=${encodeURIComponent(TRONC.nom)}`), appel)
   if (!prs.ok) throw new Error(prs.raison)
   const resultats = []
   for (const pr of prs.entrees.filter(prEligible)) {
@@ -108,14 +120,14 @@ export async function reprendreFile({ appel, evenement = {}, lectureSeule = fals
     if (!course || course.status !== 'completed' || course.conclusion !== 'success') continue
     const resultat = lectureSeule ? { statut: 'candidate', raison: 'lecture seule' }
       : await reprendrePr(pr, course, { appel, attendre, borne })
+    if (!lectureSeule && resultat.statut !== 'ignoree') signaler(pr, course, resultat, appel, veille)
     const mesure = { pr: pr.number, sha: pr.head.sha, run: course.id, attempt: course.run_attempt ?? 1, ...resultat }
     resultats.push(mesure)
-    if (!lectureSeule && resultat.statut !== 'ignoree') signaler(pr, course, resultat, appel, veille)
   }
   return resultats
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+if (import.meta.main) {
   try {
     const evenement = process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : {}
     const resultats = await reprendreFile({ appel: appelGhRunner({ cwd: process.cwd() }), evenement,

@@ -238,6 +238,8 @@ const ATTENDU = {
     'scripts/ops/plageFermante.test.mjs',
     'scripts/ops/publier.mjs',
     'scripts/ops/publier.test.mjs',
+    'scripts/ops/reprendre-file.mjs',
+    'scripts/ops/reprendre-file.test.mjs',
     'scripts/ops/worktrees.test.mjs',
     // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.md` (temporaire voisin puis
     // `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis

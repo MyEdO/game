@@ -177,6 +177,10 @@ export const ECRIT_LU = {
       '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
       '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
+      '`import.meta.main` ET si `GITHUB_STEP_SUMMARY` est défini ; ' +
+      'le runner fournit ce fichier hors du dépôt, et le banc CLI le remplace par un fichier de ' +
+      '`mkdtempSync` sous os.tmpdir(), avec événement CI rouge et PATH vide, sans API ni écriture dans l’arbre ; ' +
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
