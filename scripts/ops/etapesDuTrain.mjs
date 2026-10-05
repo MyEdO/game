@@ -13,7 +13,7 @@
 // lu hors de ses inertes), évaluation ; `import.meta` est inerte. Résidu que le test ne garde pas :
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
-import { TRONC, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -199,27 +199,6 @@ export const finDeSortie = (texte, max = 400) => {
   const refus = t.split(/\r?\n/).filter((l) => l.includes('⛔'))
   if (refus.length) return refus.join('\n').slice(-max)
   return t.slice(-max)
-}
-
-/**
- * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
- * indisponibilité, puis `stderr`, puis `stdout`, sans répéter la raison identique à stderr. PURE.
- * @param {object} vu union git
- * @returns {string} '' quand git n'a rien imprimé
- */
-export const sortieDe = (vu) => {
-  const diagnostic = vu?.diagnostic ?? vu?.valeur
-  return [vu?.raison === diagnostic?.stderr ? '' : vu?.raison, diagnostic?.stderr, diagnostic?.stdout]
-    .filter((texte) => typeof texte === 'string' && texte.trim())
-    .join('\n')
-}
-
-/** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
-export const refusDeGit = (vu) => {
-  const diagnostic = vu?.diagnostic ?? vu?.valeur
-  const issue = vu?.issue ?? (vu?.absent ? 'objet absent' : 'refus')
-  const code = diagnostic?.signal ? `signal ${diagnostic.signal}` : `status ${diagnostic?.status ?? '?'}`
-  return `${issue} (${code}) — ${sortieDe(vu) || "git n'a rien imprimé"}`
 }
 
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */

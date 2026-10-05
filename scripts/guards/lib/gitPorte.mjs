@@ -74,6 +74,27 @@ export class GitIndisponible extends Error {
   }
 }
 
+/**
+ * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
+ * indisponibilité, puis `stderr`, puis `stdout`, sans répéter la raison identique à stderr. PURE.
+ * @param {object} vu union git
+ * @returns {string} '' quand git n'a rien imprimé
+ */
+export const sortieDe = (vu) => {
+  const diagnostic = vu?.diagnostic ?? vu?.valeur
+  return [vu?.raison === diagnostic?.stderr ? '' : vu?.raison, diagnostic?.stderr, diagnostic?.stdout]
+    .filter((texte) => typeof texte === 'string' && texte.trim())
+    .join('\n')
+}
+
+/** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
+export const refusDeGit = (vu) => {
+  const diagnostic = vu?.diagnostic ?? vu?.valeur
+  const issue = vu?.issue ?? (vu?.absent ? 'objet absent' : 'refus')
+  const code = diagnostic?.signal ? `signal ${diagnostic.signal}` : `status ${diagnostic?.status ?? '?'}`
+  return `${issue} (${code}) — ${sortieDe(vu) || "git n'a rien imprimé"}`
+}
+
 /** Une BORNE de question (révision, arbre, commit) qu'aucun objet du dépôt ne porte : une faute de
  *  l'appelant, NOMMÉE (en-tête, « La BORNE d'une question »). */
 export class BorneAbsente extends Error {

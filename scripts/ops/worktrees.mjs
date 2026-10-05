@@ -22,10 +22,9 @@
 // Usage : `npm run ops:worktrees` (inventaire seul) ou `npm run ops:worktrees -- --purger`.
 import { fileURLToPath } from 'node:url'
 import {
-  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, retirerWorktree, reussi, supprimerBranche, worktreesDe,
+  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, refusDeGit, retirerWorktree, reussi, supprimerBranche, worktreesDe,
 } from '../guards/lib/gitPorte.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
-import { refusDeGit } from './etapesDuTrain.mjs'
 
 /** Racine de l'arbre qui porte CE script (le dépôt commun répond pour tous ses worktrees). */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))

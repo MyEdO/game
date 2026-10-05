@@ -17,7 +17,7 @@ import { codeSeul } from '../guards/lib/commentPoison.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
-import { GitIndisponible, MARQUE_FEINTE, classer, depotDe, pousser } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, MARQUE_FEINTE, classer, depotDe, pousser, refusDeGit, sortieDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
@@ -31,6 +31,7 @@ import {
   borneDeVeilleMin,
   codeDeVerdict,
   commandeDeVeille,
+  cheminsDeJournal,
   entameDuRun,
   envDeLancement,
   idDeRun,
@@ -75,8 +76,6 @@ import {
   prDeLaBranche,
   prDeRest,
   refusDeBranche,
-  refusDeGit,
-  sortieDe,
   synchroniserAgents,
   titreDeCommit,
   titreDePr,
@@ -448,6 +447,41 @@ test('#2285 avant train : processus réel, diagnostic complet puis ligne finale 
   assert.ok(vu.stderr.includes(stdout), vu.stderr)
   assert.match(vu.stderr, /refus \(status 19\)/)
   assert.equal(vu.stderr.trimEnd().split('\n').at(-1), 'PUBLICATION: rouge moteur — refus (status 19) — notes avant train')
+})
+
+test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
+  const branche = 'chantier/2285-consommateurs-' + process.pid + '-' + Date.now()
+  const chemins = cheminsDeJournal(RACINE, branche)
+  assert.equal(existsSync(chemins.json), false)
+  assert.equal(existsSync(chemins.log), false)
+  const stderr = 'note moteur\n'.repeat(45) + 'cause moteur tardive\n'
+  const stdout = 'stdout moteur distinct'
+  assert.ok(stderr.indexOf('cause moteur tardive') > 400)
+  assert.ok(stderr.endsWith('\n'))
+  try {
+    const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url))], {
+      encoding: 'utf8', env: { ...process.env, ...envGitFeint([
+        { si: ['--show-toplevel'], stdout: RACINE, status: 0 },
+        { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
+        { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
+        { si: ['rev-parse', '--git-path', 'rebase-merge'], stdout, stderr, status: 29 },
+        { si: [], status: 97, stderr: 'GARDE consommateurs : commande interdite\n' },
+      ]), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
+    })
+    assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
+    const journal = JSON.parse(readFileSync(chemins.json, 'utf8'))
+    const log = readFileSync(chemins.log, 'utf8')
+    for (const texte of [journal.verdict.raison, log]) {
+      assert.ok(texte.includes(stderr), texte)
+      assert.ok(texte.includes(stdout), texte)
+      assert.match(texte, /refus \(status 29\)/)
+      assert.equal(texte.includes('GARDE consommateurs'), false, texte)
+    }
+    assert.equal(log.trimEnd().split('\n').at(-1), 'PUBLICATION: rouge moteur — refus (status 29) — note moteur')
+  } finally {
+    rmSync(chemins.json, { force: true })
+    rmSync(chemins.log, { force: true })
+  }
 })
 
 test('`ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index', () => {

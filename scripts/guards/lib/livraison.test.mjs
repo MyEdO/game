@@ -10,6 +10,32 @@ import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { depotDe } from './gitPorte.mjs'
 import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, fusionsNonJugees, verdictDePublication } from './livraison.mjs'
+
+test('#2285 consommateurs livraison : diagnostic autonome et erreur programme par identité', () => {
+  const sha = 'a'.repeat(40)
+  const stderr = 'note livraison\n'.repeat(45) + 'cause livraison tardive\n'
+  const stdout = 'stdout livraison distinct'
+  assert.ok(stderr.indexOf('cause livraison tardive') > 400)
+  assert.ok(stderr.endsWith('\n'))
+  for (const version of ['git version 2.32.0', 'version illisible']) {
+    const depot = depotDe('/fixture-consommateurs', { env: {}, spawn: (_bin, argv) => {
+      if (argv.includes('merge-base')) return { status: 0, stdout: sha, stderr: '' }
+      if (argv.includes('--format=%H%x1f%cd%x1f%B%x00'))
+        return { status: 0, stdout: sha + '\x1f2026-10-05T00:00:00+00:00\x1fbase\0', stderr: '' }
+      if (argv.includes('version')) return { status: 0, stdout: version, stderr: '' }
+      return { status: 23, stdout, stderr }
+    } })
+    const vu = verdictDePublication(depot)
+    assert.equal(vu.ok, false)
+    assert.match(vu.texte, version.includes('2.32') ? /git 2\.32 ne sait pas/ : /version de git illisible/)
+    assert.ok(vu.texte.includes(stderr), vu.texte)
+    assert.ok(vu.texte.includes(stdout), vu.texte)
+    assert.match(vu.texte, /refus \(status 23\)/)
+  }
+  const erreur = new TypeError('programme livraison')
+  const depot = depotDe('/fixture-consommateurs', { env: {}, spawn: () => { throw erreur } })
+  assert.throws(() => verdictDePublication(depot), (e) => e === erreur)
+})
 import { validateJugeFile, validateJugeVisionFile } from '../../hooks/solde-ticket-guard.mjs'
 import { gitDe, resultatDeGit } from '../../test/gitDeBanc.mjs'
 
@@ -117,7 +143,7 @@ test('#2328 — une fusion que git ne rejoue pas (octopus) : le verdict est un r
     git('merge', '-q', '--no-ff', '-m', 'octopus', 'un', 'deux')
     const verdict = verdictDePublication(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
     assert.equal(verdict.ok, false)
-    assert.match(verdict.texte, /^⛔ lecture git indisponible : fusion [0-9a-f]{9} à 3 parents/)
+    assert.match(verdict.texte, /^⛔ lecture git indisponible : mesure \(status \?\) — fusion [0-9a-f]{9} à 3 parents/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 

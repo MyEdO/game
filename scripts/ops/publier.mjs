@@ -49,7 +49,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe,
+  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
   conclureFusionSansChemins, depotDe,
   estAncetre, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
@@ -63,7 +63,7 @@ import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { corpsDeFusion, fusionDe } from '../guards/lib/fusionPr.mjs'
-import { BORNE_EJECTIONS, ETAPES, attendre, prDeRest, refusDeGit } from './etapesDuTrain.mjs'
+import { BORNE_EJECTIONS, ETAPES, attendre, prDeRest } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -955,7 +955,8 @@ function main() {
     }
     verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => sauverJournal(chemins.json, j), journaliser })
   } catch (e) {
-    verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e?.stack ?? e}` }
+    verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : `ARRÊT INATTENDU : ${e?.stack ?? e}` }
+    if (e instanceof GitIndisponible) journaliser(`${verdict.raison}\n`)
   }
   journal.verdict = verdict
   sauverJournal(chemins.json, journal)
