@@ -5,7 +5,7 @@
  */
 import type { Combatant, Weapon } from '../types';
 import { groupMatch } from '../groups';
-import { isShieldItem } from '../equipCompare';
+import { isShieldItem } from '../items';
 import { findTalentById, findTraitById } from '../../data';
 import { canStrikeFirst } from '../qualities/dispatch';
 import { effectiveEntry } from '../variants';
@@ -187,8 +187,7 @@ export function pursuitTargetMovementBonus(c: Combatant): number {
   return featuresOf(c).some(({ def }) => def.pursuitTargetBonus) ? 1 : 0;
 }
 
-/** Porte-Bouclier (LDB 10) : +niveau Avantage en défense gagnée au Bouclier. Bouclier = `isShieldItem`
- *  (source UNIQUE du prédicat de bouclier — Atout « Bouclier » ou nom « Bouclier… »), pas de regex dupliquée. */
+/** Porte-bouclier (LDB 10 l.972). Bouclier = `isShieldItem`. */
 export function shieldAdvantageLevel(c: Combatant, parryWeapon: Weapon | undefined): number {
   if (!parryWeapon || !isShieldItem(parryWeapon)) return 0;
   return levelSum(c, (d) => !!d.shieldAdvantage);
@@ -196,7 +195,7 @@ export function shieldAdvantageLevel(c: Combatant, parryWeapon: Weapon | undefin
 
 /** Réaction défensive à coût d'Avantages de réserve (Porte-Bouclier variante AA 13 l.84) : coût en
  *  Avantages (0 = capacité absente) de la réaction offerte quand on se défend au Bouclier. Bouclier requis
- *  (`isShieldItem`, source UNIQUE du prédicat). GÉNÉRIQUE — tout talent déclarant `advantageDefenseReaction`.
+ *  (`isShieldItem`). GÉNÉRIQUE — tout talent déclarant `advantageDefenseReaction`.
  *  Présent uniquement en mode « Avantage de groupe » (porté par la variante réglée, résolue par
  *  `effectiveEntry`, `src/engine/variants.ts`). */
 export function shieldReactionCost(c: Combatant, parryWeapon: Weapon | undefined): number {

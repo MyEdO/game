@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import { armeDeDessin, bouclierDeDessin, equipDe, isShield, weaponFamily } from '../src/gameIso/rig/parts/equipment';
+import { armeDeDessin, bouclierDeDessin, equipDe, weaponFamily } from '../src/gameIso/rig/parts/equipment';
 import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 import { trappingsInstanciables, weaponGroups } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
@@ -54,7 +54,7 @@ for (const g of GROUPS) {
   const cells = ws
     .map((t) => {
       const w = weaponFromItem(itemFromTrappingById(t.id)!);
-      return fig(w, isShield(w)); // #2177
+      return fig(w, armeDeDessin(w).bouclier);
     })
     .join('');
   body += `<h2 style="color:#d8a93b;font:14px sans-serif;margin:18px 0 6px">${g.label} <span style="color:#6a7384;font-size:11px">(${ws.length})</span></h2>
