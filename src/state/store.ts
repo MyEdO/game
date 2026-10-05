@@ -155,7 +155,7 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, startOf, type SceneEntity, type VictoryCondition, type Effect } from './scene';
+import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerLabel, startOf, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
@@ -179,7 +179,7 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest } from './combatEffects';
+import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
@@ -961,8 +961,8 @@ export interface GameState extends RollFlowActionsMap {
   jouerAction: (entityId: string, actionId: string) => void;
   /** FOUILLER LA PIÈCE où se tient le groupe (`rooms.roomFocusAt`) — geste d'exploration du GROUPE :
    *  second déclencheur de la découverte des portes secrètes (`decouvertePorteSecrete.fouilleDeLaPiece`),
-   *  coûte `TIME_COST.search` une fois par geste. Refus DIT hors exploration, en dialogue, sans meneur
-   *  debout, hors de toute pièce. */
+   *  coûte la maison `fouille-piece-minutes` une fois par geste (LDB 12 l.200). Refus DIT hors exploration,
+   *  en dialogue, sans meneur debout, hors de toute pièce. */
   fouillerLaPiece: () => void;
   setPendingInteract: (pending: PendingInteract | null) => void;
   chooseDialogue: (choiceIndex: number) => void;
@@ -1371,8 +1371,8 @@ export interface GameState extends RollFlowActionsMap {
    *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
    *  d'Athlétisme). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
   fallAcross: (from: Pt, to: Pt) => void;
-  /** ENJAMBER une croisée franchissable de plain-pied (#700 ; LDB 15 l.55, maison
-   *  `fenetre-hauteur-allege`) : exploration = le pas du groupe (`moveParty`) ; combat = le mobile de
+  /** ENJAMBER une croisée franchissable de plain-pied (#700 ; LDB 15 l.55, allège de la croisée
+   *  `WallSeg.allege`) : exploration = le pas du groupe (`moveParty`) ; combat = le mobile de
    *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
    *  est NOMMÉ (`refuserGeste`). */
   windowAcross: (from: Pt, to: Pt) => void;
@@ -1731,12 +1731,14 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
     return;
   }
   get().moveParty({ ...p.to });
-  const effets: Effect[] = [];
+  // Les 1d10 de TOUS les tombants s'ouvrent ENSEMBLE (`ouvrirChute`, patron de l'Effet `fall` à plusieurs
+  // cibles et de `collapseStructure`) : la séquence compte d'emblée chaque dé de la chute.
   for (const { c, m } of chutes) {
-    if (m > 0) effets.push({ type: 'fall', target: 'hero', heroId: c.id, metres: m });
-    else get().log(t('fall.jumpSafe', { name: c.label }));
+    if (m > 0) {
+      get().log(t('eff.fallOuverte', { m, noms: c.label }));
+      ouvrirChute(set, c, m);
+    } else get().log(t('fall.jumpSafe', { name: c.label }));
   }
-  if (effets.length) jouerFlowEntier(applyEffects(get, set, effets));
 }
 
 /** Les TOMBANTS d'une chute volontaire : combat = l'actif seul ; exploration = le groupe
@@ -2358,7 +2360,7 @@ export const useGame = create<GameState>((set, get) => ({
   moveParty: (pt) => {
     const { scene, mode, partyPos } = get();
     if (!scene || mode !== 'exploration') return;
-    if (!isWalkable(scene, pt.x, pt.y, pt.z ?? 0)) return; // case de l'ÉTAGE visé (z) — une case « vide » se refuse
+    if (!groupePosable(scene, pt)) return;
     const from = partyPos; // case quittée → oriente le meneur le long du pas
     // MARCHER, C'EST SE LEVER : le meneur assis qui fait un pas quitte sa place. Libéré AVANT
     // l'écriture de `partyPos`, dans la MÊME écriture — aucun état intermédiaire ne le montre assis
@@ -2449,7 +2451,7 @@ export const useGame = create<GameState>((set, get) => ({
       pendingFall: {
         to: plan.to, metres: plan.metres, initiateurId: mover.id,
         ...(plan.suspendu !== undefined ? { suspendu: plan.suspendu } : {}),
-        ...(plan.croisee ? { croisee: true as const } : {}),
+        ...(plan.allege !== undefined ? { allege: plan.allege } : {}),
         participants: tombants.map((c) => (estDebout(c)
           ? { id: c.id, interactive: true, attempt: null, ...(plan.suspendu !== undefined ? { suspendre: null } : {}), result: null }
           : { id: c.id, interactive: false, attempt: false, ...(plan.suspendu !== undefined ? { suspendre: false } : {}), result: null })),
@@ -2498,7 +2500,7 @@ export const useGame = create<GameState>((set, get) => ({
       get().moveParty(plan.to);
       return;
     }
-    const cout = 1 + mouvementDeLAllege(sceneMetresPerTile(scene));
+    const cout = 1 + mouvementDeLAllege(plan.allege, sceneMetresPerTile(scene));
     if (movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fenetre.mouvementInsuffisant', { name: mover.label, cout }));
     if (arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
     placeCombatant(mover, scene, plan.to);
@@ -2639,7 +2641,7 @@ export const useGame = create<GameState>((set, get) => ({
     // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
     get().log(t('fouille.journal'));
     cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(s.scene, piece), t('eff.flowTitleDiscovery')), [
-      { verbe: 'avancerHorloge', minutes: TIME_COST.search },
+      { verbe: 'avancerHorloge', minutes: rule('fouille-piece-minutes') as number },
     ]);
   },
 

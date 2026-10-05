@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, type Scene, type Terrain } from './scene';
-import { planFranchissement } from './fallMove';
+import { planFranchissement, mouvementDeLAllege } from './fallMove';
 import { pathTo } from './path';
 
 /**
@@ -32,14 +32,14 @@ function etageScene(crossable: boolean): Scene {
   const height = new Array(n).fill(0) as number[];
   height[1 * 4 + 1] = 4;
   s.layers.push({ z: 1, tiles, height });
-  s.walls = [{ x: 1, y: 1, side: 'E', z: 1, window: true, ...(crossable ? { crossable: true } : {}) }];
+  s.walls = [{ x: 1, y: 1, side: 'E', z: 1, window: true, ...(crossable ? { crossable: true, allege: 1 } : {}) }];
   return s;
 }
 
-/** Plain-pied : un couloir 3×1, une croisée sur l'arête E de (1,0) — aucun détour possible. */
-function plainPiedScene(crossable: boolean): Scene {
+/** Plain-pied : un couloir 3×1, une croisée d'allège `allege` m sur l'arête E de (1,0) — aucun détour possible. */
+function plainPiedScene(crossable: boolean, allege = 1): Scene {
   const s = emptyScene(3, 1);
-  s.walls = [{ x: 1, y: 0, side: 'E', window: true, ...(crossable ? { crossable: true } : {}) }];
+  s.walls = [{ x: 1, y: 0, side: 'E', window: true, ...(crossable ? { crossable: true, allege } : {}) }];
   return s;
 }
 
@@ -89,7 +89,7 @@ describe('planFranchissement — croisée (#700)', () => {
   const rue = { x: 2, y: 1 };
 
   it('croisée franchissable d’étage → chute PAR une croisée : dénivelé réel (4 m), arrivée à la couche BASSE', () => {
-    expect(planFranchissement(etageScene(true), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, croisee: true });
+    expect(planFranchissement(etageScene(true), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, allege: 1 });
   });
 
   it('croisée NON franchissable d’étage → murée, aucun saut', () => {
@@ -97,7 +97,26 @@ describe('planFranchissement — croisée (#700)', () => {
   });
 
   it('croisée franchissable de plain-pied → enjamber', () => {
-    expect(planFranchissement(plainPiedScene(true), { x: 1, y: 0 }, { x: 2, y: 0 })).toEqual({ kind: 'enjamber', to: { x: 2, y: 0, z: 0 } });
+    expect(planFranchissement(plainPiedScene(true), { x: 1, y: 0 }, { x: 2, y: 0 })).toEqual({ kind: 'enjamber', to: { x: 2, y: 0, z: 0 }, allege: 1 });
+  });
+
+  it('l’enjambée porte l’allège de CETTE croisée, et son coût la suit (LDB 15 l.55, ½ vitesse)', () => {
+    const basse = planFranchissement(plainPiedScene(true, 0.5), { x: 1, y: 0 }, { x: 2, y: 0 });
+    const haute = planFranchissement(plainPiedScene(true, 3), { x: 1, y: 0 }, { x: 2, y: 0 });
+    expect(basse).toEqual({ kind: 'enjamber', to: { x: 2, y: 0, z: 0 }, allege: 0.5 });
+    expect(haute).toEqual({ kind: 'enjamber', to: { x: 2, y: 0, z: 0 }, allege: 3 });
+    if (basse.kind !== 'enjamber' || haute.kind !== 'enjamber') throw new Error('enjambée attendue');
+    expect(mouvementDeLAllege(basse.allege, 2)).toBe(1);
+    expect(mouvementDeLAllege(haute.allege, 2)).toBe(3);
+  });
+
+  it('croisée franchissable SANS allège authorée → ne se franchit pas (#700 issuecomment-5984719806)', () => {
+    const plain = plainPiedScene(true);
+    plain.walls = [{ x: 1, y: 0, side: 'E', window: true, crossable: true }];
+    expect(planFranchissement(plain, { x: 1, y: 0 }, { x: 2, y: 0 })).toEqual({ kind: 'none', raison: 'muree' });
+    const etage = etageScene(true);
+    etage.walls = [{ x: 1, y: 1, side: 'E', z: 1, window: true, crossable: true }];
+    expect(planFranchissement(etage, chambre, rue)).toEqual({ kind: 'none', raison: 'muree' });
   });
 
   it('croisée NON franchissable de plain-pied → murée', () => {

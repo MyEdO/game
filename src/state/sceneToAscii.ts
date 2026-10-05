@@ -14,7 +14,7 @@
  * `triggers`, `dialogues`, `encounters`, `architecture`, `stations`, `restZones`, zones d'effet
  * MÉCANIQUES (pièges/auras — seules les zones DESCRIPTIVES le sont), `heroStart`, `entryPoints`,
  * crénelure de rendu (`Layer.crenellated`), et les clés d'arête de `CLES_HORS_ASCII` (`climb`, `closed`,
- * `secret`, `shuttered`, `crossable`, `suspendu`). Réimporter ce texte SANS reporter le reste du `MapSpec` source ÉCRASERAIT
+ * `secret`, `shuttered`, `crossable`, `allege`, `suspendu`). Réimporter ce texte SANS reporter le reste du `MapSpec` source ÉCRASERAIT
  * ce contenu — d'où l'avertissement explicite en tête de `text` et l'exigence de ne coller QUE les
  * grilles/legend/wallLegend/zoneLegend/relief dans le fichier `*.ascii.ts` + `*.ts` d'origine.
  */
@@ -86,6 +86,7 @@ const CLES_HORS_ASCII = {
   secret: 'porte(s) secrète(s)',
   shuttered: 'croisée(s) aux volets clos',
   crossable: 'croisée(s) franchissable(s)',
+  allege: 'hauteur(s) d’allège de croisée',
   suspendu: 'hauteur(s) de suspension de croisée',
 } as const satisfies Partial<Record<keyof WallSeg, string>>;
 type CleHorsAscii = keyof typeof CLES_HORS_ASCII;
@@ -166,7 +167,7 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
     const z = seg.z ?? 0;
     if (seg.side === '\\' || seg.side === '/') diagAt.set(diagKey(seg.x, seg.y, z), seg);
     else edgeAt.set(edgeKey(seg.x, seg.y, seg.side, z), seg);
-    for (const k of CLES_HORS_ASCII_LISTE) if (seg[k]) perdues.set(k, (perdues.get(k) ?? 0) + 1);
+    for (const k of CLES_HORS_ASCII_LISTE) if (seg[k] !== undefined && seg[k] !== false) perdues.set(k, (perdues.get(k) ?? 0) + 1);
   }
   for (const [k, n] of perdues) warn(`${n} ${CLES_HORS_ASCII[k]} (\`WallSeg.${k}\`) — non représentable en ASCII, à reporter à la main.`);
 

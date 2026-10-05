@@ -353,10 +353,12 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     // des gardes) : cinq valeurs maison éditables, aucune figée au moteur.
     // 29→30 (#700, 2026-09-29) : `fenetre-hauteur-allege` (0..3 m), LDB 15 l.55 ne chiffre pas l'allège.
     // 30→31 (#700, 2026-09-30) : `porte-secrete-rayon-m` (1..20 m), LDB 09 l.399 ne chiffre pas la distance.
+    // 31→30 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, l'allège est une donnée de la croisée.
+    // 30→31 (#700, 2026-10-05) : `fouille-piece-minutes` (1..120 min), LDB 12 l.200 ne chiffre pas la durée.
     expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(31);
     expect(
       bornees.filter((r) => r.kind !== 'param').map((r) => r.id),
-      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 30/30 ne porte plus sur la même population.',
+      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 31/31 ne porte plus sur la même population.',
     ).toEqual([]);
     const i = regles.indexOf(bornees[0]);
     const { max: _absente, ...ampute } = bornees[0];

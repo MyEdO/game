@@ -38,7 +38,7 @@ function falaise(climb?: WallClimb): Scene {
 /** Croisée franchissable de plain-pied, E de (1,1) sur (2,1). */
 function croisee(): Scene {
   const s = emptyScene(4, 4);
-  s.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true }];
+  s.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1 }];
   return s;
 }
 /** Croisée franchissable d'étage : (1,1) à la couche 1 (4 m) sur la rue (2,1) au rez. */
@@ -49,7 +49,7 @@ function croiseeDEtage(): Scene {
   const height = new Array(12).fill(0) as number[];
   height[1 * 4 + 1] = 4;
   s.layers.push({ z: 1, tiles, height });
-  s.walls = [{ x: 1, y: 1, side: 'E', z: 1, window: true, crossable: true }];
+  s.walls = [{ x: 1, y: 1, side: 'E', z: 1, window: true, crossable: true, allege: 1 }];
   return s;
 }
 

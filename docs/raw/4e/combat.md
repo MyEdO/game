@@ -300,7 +300,7 @@ Pour votre **Action**, vous pouvez vous mettre **Sur la Défensive** : choisisse
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.14-15, l.74-88, l.90, l.93-98, l.105-107, l.108-110, l.117-119, l.170-171) → `localisation`, `CombatStartSplash`, `ClimbPlan`, `useDefenseJetProps`, `GrappleModal`, `AuContactModal`, `engage`, `secondsPerRound`, `useHoverTargeting`, `markAttacked`, +58 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +33 fichiers
 - `LDB 14` (l.205-215) → `advantageCap`, `advantageCapFor`, `gainAdvantage`, `ADVANTAGE_COLLARS`, `doc`, `TavernGame`, `combat-advantage-cap`, `combat-advantage-cap-bi`, `avantage`, `avantageSurLaCible`, +4 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/advantage.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +4 fichiers
-- `LDB 15` (l.12-16, l.18-31, l.35-41, l.45-53) → `METRES_PER_LEVEL`, `ClimbPlan`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `planClimb`, `DisengageModal`, `charge`, `occupied`, +69 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +35 fichiers
+- `LDB 15` (l.12-16, l.18-31, l.35-41, l.45-53) → `METRES_PER_LEVEL`, `ClimbPlan`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `planClimb`, `DisengageModal`, `charge`, `occupied`, +70 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +35 fichiers
 
 ---
 
@@ -1602,7 +1602,7 @@ La **Fuite** consiste à faire demi-tour et à utiliser son Mouvement pour fuir.
 **Voir aussi** : Avantage (combat) ; Engagement et portée de mêlée ; Test opposé et DR ; Compétence Esquive ; Psychologie — Terreur ; État Brisé ; Charge ; Course.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 15` (l.18-31, l.45-49, l.61-68) → `METRES_PER_LEVEL`, `ClimbPlan`, `fall-choice`, `RunModal`, `planJump`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `fall-roll`, `planClimb`, +86 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +37 fichiers
+- `LDB 15` (l.18-31, l.45-49, l.61-68) → `METRES_PER_LEVEL`, `ClimbPlan`, `fall-choice`, `RunModal`, `planJump`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `fall-roll`, `planClimb`, +87 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +37 fichiers
 - `LDB 21` (l.54) → `nightmare`, `terreur`, `resolvePsychRow`, `endEncounterPsych`, `resolvePsychAI`, `humanizePerSL`, `amour`, `camaraderie`, `phobie`, `failConditionAmount`, +6 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/psychology.ts`, +4 fichiers
 
 ---
@@ -1660,7 +1660,7 @@ Note (LDB 15 l.72) : dans la plupart des cas un simple Test d'**Athlétisme** (o
 **Voir aussi** : Mouvement & Course · Désengagement & Fuite · États (À Terre) · Athlétisme / Escalade (compétences) · Talent Grimpeur
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 15` (l.53-57, l.72-76, l.80-84) → `ClimbPlan`, `construireScene`, `RefusFranchissement`, `fall-choice`, `planJump`, `FallModal`, `hasMeaningfulOption`, `fall-roll`, `planClimb`, `DisengageModal`, +85 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +34 fichiers
+- `LDB 15` (l.53-57, l.72-76, l.80-84) → `ClimbPlan`, `construireScene`, `RefusFranchissement`, `fall-choice`, `planJump`, `hasMeaningfulOption`, `fall-roll`, `planClimb`, `DisengageModal`, `charge`, +86 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +34 fichiers
 
 ---
 
@@ -1750,7 +1750,7 @@ Un participant dont la **Caractéristique de Mouvement (M)** est supérieure gag
 **Voir aussi** : Désengagement et fuite (Attaque gratuite, +1 Avantage, Calme / Brisé) ; Mouvement & Course (Tableau des Mouvements, M en mètres) ; Saut et Chute ; Tests opposés & Degrés de Réussite (DR).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 15` (l.88, l.90, l.92, l.93, l.94, l.96, l.98-102, l.106, l.108) → `assourdi`, `construireScene`, `RefusFranchissement`, `fall-choice`, `FallModal`, `fall-roll`, `planJump`, `a-terre`, `pursuitFoeSchema`, `PursuitFoeRef`, +42 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
+- `LDB 15` (l.88, l.90, l.92, l.93, l.94, l.96, l.98-102, l.106, l.108) → `assourdi`, `construireScene`, `RefusFranchissement`, `fall-choice`, `fall-roll`, `planJump`, `FallModal`, `a-terre`, `pursuitFoeSchema`, `PursuitFoeRef`, +42 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
 - sans code : `NADJ 6` (l.150)
 
 ---
@@ -6231,7 +6231,7 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 
 ### Escalade, Saut et Chute
 - CONFORME — `applyFall` (`src/engine/movement.ts`) : Blessures perdues = `max(0, 3×m + 1d10 − BE)`, État *À Terre* si elles dépassent le BE. LDB 15 l.80 (« Ces Dégâts sont réduits par votre Bonus d'Endurance ») et l.84 (« Si vous subissez plus de Points de Blessure à cause de la chute que votre Bonus d'Endurance ») comparent au BE les Points de Blessure SUBIS, donc après réduction ; EDO 01 l.231 le confirme (« Si les Blessures encaissées excèdent son Bonus d'Endurance »). Aucun écart.
-- COLLISION (doctrine « livre définisseur », `.claude/memory/game-livre-definisseur.md`) — LDB 15 l.82 : « Pour chaque DR, considérez que vous tombez de 1m de moins » ; EDO 01 l.229 : « il diminue la hauteur de sa chute d'un total égal à 1+DR ». Le livre de règles définit la chute à dessein, l'aventure l'applique : LDB 15 l.82 prime, EDO 01 l.229 est écarté. `fallFromTest` (`src/engine/movement.ts`) suit LDB 15 l.82.
+- COLLISION — LDB 15 l.82 : « Pour chaque DR, considérez que vous tombez de 1m de moins » ; EDO 01 l.229 : « il diminue la hauteur de sa chute d'un total égal à 1+DR ». APPLICATION du livre de règles, qui définit la chute (LDB 15 l.80-84) ; précision utilisateur du 2026-10-04 (#700, issuecomment-5984760399), verbatim : « Il n'y a pas vraiment d'arbitrage a suivre les régles du LDB, si ? ». `fallFromTest` (`src/engine/movement.ts`) suit LDB 15 l.82.
 
 ### Poursuite (procédure de base) ⚠
 - LDB 15 l.88 — intro : le markdown ajoute « fuite à cheval » comme troisième exemple de poursuite ; la source ne mentionne que « marché bondé » et « chariot lancé à grande vitesse » dans ces lignes. La poursuite à cheval n'apparaît qu'à l'exemple l.146. Ajout éditorial mineur, non faux (la procédure couvre les montures), mais non sourcé dans ces lignes précises.

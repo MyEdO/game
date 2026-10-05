@@ -48,6 +48,10 @@ const REGLES = reglesOptionnelles as Regle[];
  *  disent rien d'un compagnon qui n'est pas debout quand le groupe saute : MAISON. */
 /** Puis 91 = 54 + 37 (#700, 2026-09-30) : `fenetre-suspension` — EDO 01 l.231 ne nomme que l'avance
  *  du fuyard, aucun coût tactique de la suspension : MAISON. */
+/** Puis 90 = 54 + 36 (#700, 2026-10-05) : `fenetre-hauteur-allege` SUPPRIMÉE — l'allège est une donnée
+ *  de la croisée (#700 issuecomment-5984719806). */
+/** Puis 91 = 54 + 37 (#700, 2026-10-05) : `fouille-piece-minutes` — LDB 12 l.200 ne chiffre pas la durée
+ *  de la fouille d'une pièce : MAISON. */
 const PARTITION = { total: 91, source: 54, maison: 37 };
 
 /**

@@ -25,7 +25,7 @@ import { battleRng } from './battleRng';
 import { defenseDodgeMod, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, resolveFreeAttacks, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, openRoundStartPsych, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, fireTurnStartTriggers, resolveActGates, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { losClear } from './lineOfSight';
-import { smokeOf, captureMoveSnapshot } from './combatGeometry';
+import { smokeOf, captureMoveSnapshot, formationDeCombat } from './combatGeometry';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { setTriggeredTestRouter, fireOwnTestFailed } from './triggeredEffects';
 import { emitCombatEvent } from './combatEvents';
@@ -113,7 +113,7 @@ import type {
   ConjureForm,
 } from '../engine/conjuredWeapons';
 import { findSpellById } from '../data/index';
-import { reachable, moveReachFor, chebyshev, Pt } from './path';
+import { reachable, moveReachFor, chebyshev, tileKey, Pt } from './path';
 import { combatDistance } from './footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './scene';
@@ -2777,11 +2777,16 @@ export function createCombatSlice(get: Get, set: Set) {
       // Carry-in : on n'instancie pas les morts/éjectés ; on ré-importe les États PERSISTANTS du
       // groupe (Hémorragique, Empoisonné…) et on réinitialise tout l'état de combat transitoire.
       const livingParty = party.filter((h) => !h.dead && !h.outOfRencontre);
+      // Les cases des membres de la rencontre ne reçoivent aucun héros (`formationDeCombat`).
+      const prises = new Set((enc.members ?? []).flatMap((m) => {
+        const ent = scene.entities.find((e) => e.id === m.entityId);
+        return ent?.pos ? [tileKey(ent.pos.x, ent.pos.y, ent.z ?? 0)] : [];
+      }));
+      const formation = formationDeCombat(scene, partyPos, livingParty.length, prises);
       const heroes = livingParty.map((h, i) => {
         const c = {
           ...structuredClone(h),
-          // z (étage) propagé depuis partyPos → Combatant.pos.z (omis au sol pour rester byte-identique, symétrique à #802 côté ennemis)
-          pos: { x: Math.max(0, partyPos.x - 1), y: Math.min(scene.dimensions.h - 1, partyPos.y + i), ...(partyPos.z ? { z: partyPos.z } : {}) },
+          pos: formation[i],
           advantage: 0,
           conditions: persistentConditions(h), // États persistants seuls (le transitoire est jeté)
           activeEffects: [],                    // buffs en Rounds : ne survivent pas entre combats

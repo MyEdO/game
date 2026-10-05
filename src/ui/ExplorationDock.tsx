@@ -47,28 +47,28 @@ export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoya
   return (
     <div className="exploration-dock skin-pont" data-deck="exploration">
       {onFouiller && (
-        <div className="xd-gestes" role="group" aria-label="Gestes du groupe">
+        <div className="xd-openers" data-bord="gauche" role="group" aria-label={t('pont.gestes')}>
           <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onFouiller} title={t('fouille.geste')}>
             <Icon id="ui/search" size="lg" />
           </button>
         </div>
       )}
-      <div className="xd-openers" aria-label="Écrans de campagne">
-        <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title="Possessions du groupe">
+      <div className="xd-openers" aria-label={t('pont.ecrans')}>
+        <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title={t('pont.possessions')}>
           <Icon id="travel/mount" size="lg" />
         </button>
         {onCarnet && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onCarnet} title="Carnet d’enquête">
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onCarnet} title={t('pont.carnet')}>
             <Icon id="nav/compendium" size="lg" />
           </button>
         )}
         {onShipDossier && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onShipDossier} title="Dossier du navire — état, cargaison, équipage">
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onShipDossier} title={t('pont.dossierNavire')}>
             <Icon id="travel/sail-ship" size="lg" />
           </button>
         )}
         {onVoyage && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onVoyage} title="Rouvrir l’écran de voyage">
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onVoyage} title={t('pont.voyage')}>
             <Icon id="travel/sail-ship" size="lg" />
           </button>
         )}
@@ -78,13 +78,13 @@ export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoya
             className={`worldmap-btn skin-tole ${worldMap.interrupted ? 'attention' : ''}`}
             data-ton="laiton"
             onClick={worldMap.onOpen}
-            title={worldMap.interrupted ? 'Carte du monde — voyage interrompu (reprendre)' : 'Carte du monde — voyager'}
+            title={t(worldMap.interrupted ? 'pont.carteInterrompue' : 'pont.carte')}
           >
             <Icon id="nav/campaign" size="lg" />
           </button>
         )}
         {hub && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={hub.onOpen} title={`${hub.label} — services du lieu`}>
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={hub.onOpen} title={t('pont.hub', { lieu: hub.label })}>
             <Icon id={hub.icon} size="lg" />
           </button>
         )}

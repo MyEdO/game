@@ -31,6 +31,7 @@ import { meneurDuMonde } from '../../state/combatants';
 // rôle, sans rebaptiser trente sites de pointeur.
 import { t as message } from '../../i18n';
 import { planJump } from '../../state/jumpMove';
+import { refuserGeste } from '../../state/refusVisible';
 import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../state/bus';
@@ -224,7 +225,7 @@ export function useStagePointer({
         }
         const jumpPlan = planJump(currentScene, prev, cur, mouvementDuGroupe(st.party), runUp);
         if (jumpPlan.kind === 'none') {
-          st.log(message('saut.aucuneSurface'));
+          refuserGeste(useGame.getState, useGame.setState, message('saut.aucuneSurface'));
           movingRef.current = false;
           return;
         }

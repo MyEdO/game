@@ -266,7 +266,7 @@ export function toggleDiagonalWall(scene: Scene, x: number, y: number, diag: '\\
 
 /** Forme CANONIQUE compacte d'un segment d'arête : on n'écrit que les champs significatifs (pas de z:0,
  *  pas de door:false, closed sans porte, secret hors porte fermée, fenêtre sur une porte, shuttered sans
- *  fenêtre, suspendu hors croisée franchissable, structure vide) — même convention que `setEdgeWall`. */
+ *  fenêtre, allège et suspendu hors croisée franchissable, structure vide) — même convention que `setEdgeWall`. */
 function normWall(w: WallSeg): WallSeg {
   const porte = porteAuteur(w);
   const secret = secretAuteur(w);
@@ -282,6 +282,7 @@ function normWall(w: WallSeg): WallSeg {
     ...(fenetre ? { window: true } : {}),
     ...(fenetre && w.shuttered ? { shuttered: true } : {}),
     ...(fenetre && w.crossable ? { crossable: true } : {}),
+    ...(fenetre && w.crossable && w.allege !== undefined ? { allege: w.allege } : {}),
     ...(fenetre && w.crossable && w.suspendu !== undefined ? { suspendu: w.suspendu } : {}),
     ...(w.climb ? { climb: w.climb } : {}),
   };

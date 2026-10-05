@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene, type Terrain, type WallSeg } from './scene';
+import { emptyScene, type Scene, type Terrain } from './scene';
 import { wallSegSchema } from '../data/schemas/defs-scenes/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
@@ -16,7 +16,7 @@ import { setRule, resetRule } from '../engine/policy';
  * Se SUSPENDRE d'abord à la croisée (EDO 01 l.231) : `WallSeg.suspendu` = hauteur de chute de qui se
  * suspend, offerte par `planFranchissement` seulement sous la hauteur réelle ; axe HAUTEUR de chaque
  * rangée (`suspendre`), indépendant du Test (LDB 15 l.82) ; coûts en combat : l'allège de la croisée
- * (maison `fenetre-hauteur-allege`) et la hauteur descendue en se suspendant (maison `fenetre-suspension`, LDB 15 l.55,
+ * (`WallSeg.allege`, LDB 15 l.55) et la hauteur descendue en se suspendant (maison `fenetre-suspension`, LDB 15 l.55,
  * LDB 15 l.57).
  */
 
@@ -26,7 +26,7 @@ const rue = { x: 2, y: 1 };
 
 /** 4×3 : la chambre (1,1) à la couche 1 (4 m), murée sur trois côtés ; croisée E de (1,1) couche 1 sur
  *  la rue (2,1) au rez, franchissable, `suspendu` posé si fourni. */
-function etage(suspendu?: number, murs: WallSeg[] = []): Scene {
+function etage(suspendu?: number, allege = 1): Scene {
   const s = emptyScene(4, 3);
   const tiles = new Array(12).fill('vide') as Terrain[];
   tiles[1 * 4 + 1] = s.layers[0].tiles[0];
@@ -34,9 +34,8 @@ function etage(suspendu?: number, murs: WallSeg[] = []): Scene {
   height[1 * 4 + 1] = 4;
   s.layers.push({ z: 1, tiles, height });
   s.walls = [
-    { x: 1, y: 1, side: 'E', z: 1, window: true, crossable: true, ...(suspendu !== undefined ? { suspendu } : {}) },
+    { x: 1, y: 1, side: 'E', z: 1, window: true, crossable: true, allege, ...(suspendu !== undefined ? { suspendu } : {}) },
     { x: 0, y: 1, side: 'E', z: 1 }, { x: 1, y: 1, side: 'N', z: 1 }, { x: 1, y: 2, side: 'N', z: 1 },
-    ...murs,
   ];
   return s;
 }
@@ -44,7 +43,7 @@ function etage(suspendu?: number, murs: WallSeg[] = []): Scene {
 /** 4×3 de plain-pied : croisée franchissable E de (1,1) sur (2,1). */
 function plainPied(suspendu: number): Scene {
   const s = emptyScene(4, 3);
-  s.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true, suspendu }];
+  s.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1, suspendu }];
   return s;
 }
 
@@ -73,23 +72,23 @@ describe('donnée : `WallSeg.suspendu`, sœur plate de `crossable`', () => {
     expect(r.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
       ['suspendu', 'hauteur de suspension (`suspendu`) sans `crossable: true` — on ne se suspend qu’à une croisée franchissable'],
     ]);
-    expect(wallSegSchema.safeParse({ x: 1, y: 1, side: 'E', window: true, crossable: true, suspendu: 2 }).success).toBe(true);
+    expect(wallSegSchema.safeParse({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1, suspendu: 2 }).success).toBe(true);
   });
 
   it('muette sur une cloison oblique', () => {
-    const r = wallSegSchema.safeParse({ x: 1, y: 1, side: '/', window: true, crossable: true, suspendu: 2 });
+    const r = wallSegSchema.safeParse({ x: 1, y: 1, side: '/', window: true, crossable: true, allege: 1, suspendu: 2 });
     expect(r.success).toBe(false);
     expect(r.error!.issues.map((i) => i.path.join('.'))).toContain('suspendu');
   });
 
   it('MapSpec → Scene : la hauteur voyage ; sans `crossable`, `buildScene` refuse', () => {
-    const s = buildScene({ id: 't', label: 't', size: [3, 3], walls: [{ x: 1, y: 1, side: 'E', window: true, crossable: true, suspendu: 2 }] });
-    expect(s.walls?.find((w) => w.x === 1 && w.y === 1 && w.side === 'E')).toMatchObject({ window: true, crossable: true, suspendu: 2 });
+    const s = buildScene({ id: 't', label: 't', size: [3, 3], walls: [{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1, suspendu: 2 }] });
+    expect(s.walls?.find((w) => w.x === 1 && w.y === 1 && w.side === 'E')).toMatchObject({ window: true, crossable: true, allege: 1, suspendu: 2 });
     expect(() => buildScene({ id: 't', label: 't', size: [3, 3], walls: [{ x: 1, y: 1, side: 'E', window: true, suspendu: 2 }] }))
       .toThrow('hauteur de suspension (`suspendu`) sans `crossable: true`');
   });
 
-  it('`normWall` : décocher « Franchissable » purge la hauteur de suspension', () => {
+  it('`normWall` : décocher « Franchissable » purge l’allège et la hauteur de suspension', () => {
     const apres = patchWall(plainPied(1), 1, 1, 'E', 0, { crossable: undefined });
     expect(apres.walls).toEqual([{ x: 1, y: 1, side: 'E', window: true }]);
   });
@@ -97,24 +96,18 @@ describe('donnée : `WallSeg.suspendu`, sœur plate de `crossable`', () => {
 
 describe('planificateur : la suspension n’est offerte que sous la hauteur réelle', () => {
   it('croisée d’étage (4 m), suspendu 2 → offerte, saut PAR une croisée', () => {
-    expect(planFranchissement(etage(2), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, suspendu: 2, croisee: true });
+    expect(planFranchissement(etage(2), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, suspendu: 2, allege: 1 });
     expect(defautDeSuspension(etage(2), chambre, rue)).toBeUndefined();
   });
 
   it('NEUTRALISATION : suspendu ≥ hauteur réelle → aucun axe hauteur, défaut d’auteur `trop-haute`', () => {
-    expect(planFranchissement(etage(4), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, croisee: true });
+    expect(planFranchissement(etage(4), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, allege: 1 });
     expect(defautDeSuspension(etage(4), chambre, rue)).toBe('trop-haute');
   });
 
   it('croisée de plain-pied portant `suspendu` → on l’enjambe, défaut `plain-pied`', () => {
-    expect(planFranchissement(plainPied(1), { x: 1, y: 1 }, rue)).toEqual({ kind: 'enjamber', to: { x: 2, y: 1, z: 0 } });
+    expect(planFranchissement(plainPied(1), { x: 1, y: 1 }, rue)).toEqual({ kind: 'enjamber', to: { x: 2, y: 1, z: 0 }, allege: 1 });
     expect(defautDeSuspension(plainPied(1), { x: 1, y: 1 }, rue)).toBe('plain-pied');
-  });
-
-  it('segments divergents sur le pas → aucun choix implicite : rien d’offert, défaut `divergente`', () => {
-    const sc = etage(2, [{ x: 1, y: 1, side: 'E', z: 1, window: true, crossable: true, suspendu: 3 }]);
-    expect(planFranchissement(sc, chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, croisee: true });
-    expect(defautDeSuspension(sc, chambre, rue)).toBe('divergente');
   });
 
   it('`planDefects` : la hauteur jamais offerte remonte à l’auteur, à l’arête ; la hauteur valable, non', () => {
@@ -141,7 +134,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
   it('l’étape offre l’axe : `suspendu` porté, chaque rangée non déclarée sur ses DEUX axes', () => {
     g().fallAcross(chambre, rue);
     const p = g().pendingFall!;
-    expect(p).toMatchObject({ metres: 4, suspendu: 2, croisee: true });
+    expect(p).toMatchObject({ metres: 4, suspendu: 2, allege: 1 });
     expect(p.participants.map((x) => [x.attempt, x.suspendre])).toEqual([[null, null], [null, null]]);
     expect(phaseDeChute(p)).toBe('choice');
   });
@@ -179,14 +172,13 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
   beforeEach(() => { vi.useFakeTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('fenetre-suspension'); });
 
-  function setup(movementUsed = 0) {
+  function setup(movementUsed = 0, sc = etage(2)) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     g().startScene(testScene());
     g().startCombat('enc-mutants');
     g().confirmRoundStart();
     vi.clearAllTimers();
-    const sc = etage(2);
     const b = g().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
@@ -203,6 +195,16 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
     const b = g().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.movementUsed).toBe(2);
+  });
+
+  it('saut par une croisée d’allège 3 m : le pas + CETTE allège (3 m à ½ vitesse → 3 cases), jamais une valeur globale', () => {
+    const { H } = setup(0, etage(undefined, 3));
+    g().fallAcross(chambre, rue);
+    expect(g().pendingFall).toMatchObject({ metres: 4, allege: 3 });
+    g().fallChoose(H.id, false);
+    const b = g().battle!;
+    expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
+    expect(b.movementUsed).toBe(4);
   });
 
   it('en se suspendant (`descente-facile`) : + la hauteur descendue (4 − 2 = 2 m à ½ vitesse → 2 cases)', () => {

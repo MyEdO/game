@@ -18,7 +18,7 @@ import { sceneMetresPerTile, type Scene } from './scene';
 import { garanti, inBattleId, meneurDeboutDuMonde } from './combatants';
 import { mobileDuTour, type RefusDuTour } from './combatFlow';
 import { isMount, isRider, movementRemaining } from './mount';
-import { ACTIONS } from '../data';
+import { findActionById } from '../data';
 
 /** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat. */
 export const GESTES_DEPLACANTS = ['escalade', 'chute', 'fenetre'] as const satisfies readonly CapaciteArete[];
@@ -44,7 +44,7 @@ const REFUS_MONTE: MsgKey = 'geste.refus.monte';
 const refus = (cle: MsgKey, vars: Record<string, string | number> = {}): RefusGeste => ({ refus: cle, vars });
 
 /** Libellé de l'action « Descendre » (`actions.json`, id `dismount`) — l'issue que le refus monté nomme. */
-const libelleDescendre = (): string => garanti(ACTIONS.find((a) => a.id === 'dismount'), 'dismount', 'action').label;
+const libelleDescendre = (): string => garanti(findActionById('dismount'), 'dismount', 'action').label;
 
 /** Ce que dit un plan de franchissement refusé (`fallMove.ts:RefusFranchissement`). */
 export const REFUS_FRANCHISSEMENT: Readonly<Record<RefusFranchissement, MsgKey>> = {

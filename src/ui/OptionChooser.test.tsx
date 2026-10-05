@@ -6,10 +6,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OptionChooser, ChoiceButtons, type RollOption, type RollSegOption } from './OptionChooser';
 import { optionValue, optionPending } from './breakdown';
 
-/** Pose la cascade RÉELLE de l'app, dans SON ordre (`src/ui/styles.css` : `base.css` puis
- *  `components.css`, foyer de `.seg`) — mesurer un style calculé sans elle mesurerait le vide. */
+/** Pose la cascade RÉELLE de l'app, dans SON ordre (`src/ui/styles.css` : `base.css`, puis
+ *  `components.css`, foyer de `.seg`, puis `option-chooser.css`, foyer de `.rm-loc-inline`) — mesurer un style calculé sans elle mesurerait le vide. */
 function poserFeuilles(): void {
-  for (const f of ['./styles/base.css', './styles/components.css']) {
+  for (const f of ['./styles/base.css', './styles/components.css', './styles/option-chooser.css']) {
     const style = document.createElement('style');
     style.dataset.recette = 'feuille';
     style.textContent = readFileSync(fileURLToPath(new URL(f, import.meta.url)), 'utf8');
@@ -99,6 +99,112 @@ describe('OptionChooser — sélecteur d’options de jet partagé', () => {
     expect(style.fontWeight, 'le segment RETENU mais refusé a perdu son relief').toBe('600');
     expect(style.opacity, 'un contrôle refusé se voit refusé').toBe('0.4');
     boite.remove();
+  });
+
+  it('layout seg : une barre plus large que sa rangée S’ENROULE — chaque option reste visible (#700)', () => {
+    // Quatre déclarations de chute (EDO 01 l.231) dans une rangée `.prow-act` : la rangée de choix
+    // rétrécit à la place offerte, la barre `.seg` s'enroule — aucune option rognée, aucun défilement
+    // horizontal. Mesuré sur le style CALCULÉ de la cascade réelle.
+    poserFeuilles();
+    const boite = document.createElement('div');
+    boite.innerHTML = renderToStaticMarkup(
+      <div className="prow-act">
+        <OptionChooser layout="seg" groupLabel="Déclarer" options={[
+          { key: 'jump', label: 'Sauter' },
+          { key: 'attempt', label: 'Tenter' },
+          { key: 'suspendre-jump', label: 'Se suspendre puis se lâcher' },
+          { key: 'suspendre-attempt', label: 'Se suspendre puis tenter', refus: 'Indisponible.' },
+        ]} />
+      </div>,
+    );
+    document.body.appendChild(boite);
+    const rangee = boite.querySelector('.rm-loc-inline') as HTMLElement;
+    const barre = boite.querySelector('.seg') as HTMLElement;
+    expect(getComputedStyle(barre).flexWrap, 'la barre de segments déborde au lieu de s’enrouler').toBe('wrap');
+    expect(getComputedStyle(rangee).flexShrink, 'la rangée de choix refuse de tenir dans `.prow-act`').not.toBe('0');
+    expect(barre.querySelectorAll('button')).toHaveLength(4);
+    boite.remove();
+  });
+
+  /** Monte une barre de segments dans la cascade réelle et rend ses ENFANTS DIRECTS (les segments
+   *  tels que la flexbox les place : bouton nu, ou enveloppe `.gated-action` d'un refus). */
+  function monterBarre(options: RollSegOption[]): { barre: HTMLElement; segments: HTMLElement[] } {
+    poserFeuilles();
+    const boite = document.createElement('div');
+    boite.innerHTML = renderToStaticMarkup(<OptionChooser layout="seg" groupLabel="Déclarer" options={options} />);
+    document.body.appendChild(boite);
+    const barre = boite.querySelector('.seg') as HTMLElement;
+    return { barre, segments: [...barre.children] as HTMLElement[] };
+  }
+  /** Règles de premier niveau de la cascade posée qui visent `el`, dans l'ordre des feuilles. */
+  const reglesQuiVisent = (el: Element): CSSStyleRule[] => [...document.styleSheets].flatMap((f) => [...f.cssRules])
+    .filter((r): r is CSSStyleRule => r instanceof CSSStyleRule && el.matches(r.selectorText));
+  /** Le CADRE de la barre, tel que déclaré : jsdom ne calcule pas un raccourci `border` qui porte un
+   *  `var()` — on lit donc la déclaration, épaisseur et couleur (le jeton). */
+  function cadreDe(barre: HTMLElement): { epaisseur: string; couleur: string } {
+    const [epaisseur, , couleur] = reglesQuiVisent(barre).map((r) => r.style.getPropertyValue('border')).filter(Boolean).pop()!.split(/\s+/);
+    return { epaisseur, couleur };
+  }
+
+  it('layout seg : CHAQUE segment porte son séparateur, quelle que soit sa ligne une fois enroulé (#700)', () => {
+    // Juge-vision de #700 : enroulée, la barre ne gardait un séparateur que sur sa 1re ligne — les
+    // segments des lignes suivantes se lisaient comme du texte centré. Le séparateur appartient au
+    // SEGMENT (à sa droite ET sous lui), jamais à sa position : aucun segment n'en est privé, le
+    // dernier compris, refusé compris (enveloppé, ou bouton nu d'un refus `refusId`) — même jeton et même épaisseur que le cadre.
+    const { barre, segments } = monterBarre([
+      { key: 'jump', label: 'Sauter' },
+      { key: 'attempt', label: 'Tenter', selected: true },
+      { key: 'suspendre-jump', label: 'Se suspendre puis se lâcher' },
+      { key: 'suspendre-attempt', label: 'Se suspendre puis tenter', refus: 'Indisponible.' },
+      { key: 'mutualise', label: 'Refus mutualisé', refusId: 'raison-commune' },
+    ]);
+    const { epaisseur, couleur } = cadreDe(barre);
+    expect(segments).toHaveLength(5);
+    for (const [i, el] of segments.entries()) {
+      const couches = getComputedStyle(el).boxShadow.split(/,\s*(?![^(]*\))/).map((c) => c.trim().split(/\s+/));
+      const quoi = `segment ${i + 1} : enroulé, il se lirait comme du texte`;
+      expect(couches.map((c) => c[c.length - 1]), `${quoi} — séparateur absent ou d'une autre encre que le cadre`).toEqual(couches.map(() => couleur));
+      const decalages = couches.map((c) => `${c[0]} ${c[1]}`);
+      expect(decalages, `${quoi} — aucun séparateur à sa droite`).toContain(`${epaisseur} 0`);
+      expect(decalages, `${quoi} — aucun séparateur sous lui`).toContain(`0 ${epaisseur}`);
+    }
+    expect(getComputedStyle(barre).gap, 'aucun interstice où tracer le séparateur').toBe(epaisseur);
+  });
+
+  it('layout seg : une barre qui tient sur UNE ligne garde sa géométrie (Parade | Esquive, #700)', () => {
+    // Sur une ligne, la largeur d'une barre = Σ segments + (n − 1) × séparateur. Le séparateur a
+    // l'épaisseur du cadre et vit dans l'interstice : l'interstice vaut donc le cadre, et aucune règle
+    // ne donne au bouton une bordure latérale qui l'élargirait d'autant.
+    const { barre, segments } = monterBarre(seg);
+    expect(segments).toHaveLength(2);
+    expect(getComputedStyle(barre).gap, 'l’interstice entre deux segments n’a pas l’épaisseur du cadre').toBe(cadreDe(barre).epaisseur);
+    for (const b of barre.querySelectorAll('button')) {
+      const lateral = reglesQuiVisent(b).filter((r) => r.selectorText.includes('.seg'))
+        .flatMap((r) => ['border-right-style', 'border-left-style'].map((p) => r.style.getPropertyValue(p))).filter((v) => v && v !== 'none');
+      expect(lateral, 'le segment porte encore une bordure latérale : la barre s’élargit d’un séparateur').toEqual([]);
+    }
+  });
+
+  it('layout seg : sous la tranche 560, le libellé passe AU-DESSUS de la barre — une rangée à menu le garde à côté (#700)', () => {
+    // À 360px, « Déclarer » à côté de la barre en prenait la largeur et repliait les segments. jsdom
+    // n'applique aucune tranche `@media` : on lit la tranche dans le CSSOM de la cascade réelle et
+    // on demande quelles de ses règles visent la rangée RENDUE.
+    poserFeuilles();
+    const boite = document.createElement('div');
+    boite.innerHTML = renderToStaticMarkup(
+      <>
+        <OptionChooser layout="seg" groupLabel="Déclarer" options={seg} />
+        <div className="rm-loc-inline"><span className="mini-title">Arme</span><select className="rm-loc-select" /></div>
+      </>,
+    );
+    document.body.appendChild(boite);
+    const [rangeeSeg, rangeeMenu] = [...boite.querySelectorAll('.rm-loc-inline')] as HTMLElement[];
+    const tranche = [...document.styleSheets].flatMap((f) => [...f.cssRules])
+      .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule && /max-width:\s*560px/.test(r.conditionText))
+      .flatMap((m) => [...m.cssRules] as CSSStyleRule[]);
+    const directionSous560 = (el: HTMLElement) => tranche.filter((r) => el.matches(r.selectorText)).map((r) => r.style.flexDirection).filter(Boolean);
+    expect(directionSous560(rangeeSeg), 'la rangée de segments garde son libellé à côté de la barre sous 560').toEqual(['column']);
+    expect(directionSous560(rangeeMenu), 'une rangée à menu déroulant n’a pas à empiler son libellé').toEqual([]);
   });
 
   it('layout seg : un segment REFUSÉ lit comme un segment offert — sa valeur effective comprise', () => {

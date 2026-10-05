@@ -98,7 +98,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('PORTE : une référence de créature cassée est REFUSÉE à la validation (aucune stat à lire)', () => {
-    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true };
+    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true, walkable: () => true };
     const eff = (creatureId: string) => ({
       type: 'startPursuit' as const, partyRole: 'fleeing' as const, distance: 4, skill: { id: 'athletisme' },
       foes: [{ ref: { creatureId } }],

@@ -1125,13 +1125,29 @@ button.chip:hover {
 
 /* ── CONTRÔLE SEGMENTÉ (`.seg`) ── Choix exclusif rendu en barre de segments (Parade/Esquive, main
    qui tient l'arme, allure de marche). Aucun composant ne le possède : 22 sites le posent, dont la
-   primitive `OptionChooser` (layout `seg`) — couche PARTAGÉE. Le segment ÉLU se dit `aria-pressed`. */
+   primitive `OptionChooser` (layout `seg`) — couche PARTAGÉE. Le segment ÉLU se dit `aria-pressed`.
+   Une barre plus large que sa place S'ENROULE (jamais de défilement ni de segment rogné, #700) ;
+   chaque ligne enroulée se remplit (`flex-grow`).
+   SÉPARATEUR : chaque segment PORTE le sien, sur toute ligne (#700) — un filet `--border` de
+   l'épaisseur du cadre, tracé dans l'interstice (`gap`) à sa droite et sous lui ; celui qui touche
+   le cadre est rogné par `overflow: hidden`. Sur une seule ligne, l'interstice occupe la place de
+   l'ancienne bordure droite : la barre garde sa géométrie au pixel. */
 .seg {
   display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   width: fit-content;
+}
+/* `.seg > .btn.btn-nu` : le bouton NU d'un refus `refusId` (sans enveloppe) ; `.btn.btn-nu` (0,2,0)
+   lui retirerait son séparateur (`box-shadow: none`, base.css). */
+.seg > *,
+.seg > .btn.btn-nu {
+  flex-grow: 1;
+  box-shadow: 1px 0 0 var(--border), 0 1px 0 var(--border), 1px 1px 0 var(--border);
 }
 /* La MATIÈRE du segment, y compris quand il compose `GatedAction bare` : `.btn.btn-nu` (deux classes)
    l'emporterait sur `.seg button` (une classe + un type) et lui retirerait sa boîte — le segment
@@ -1141,19 +1157,11 @@ button.chip:hover {
 .seg .btn.btn-nu {
   background: var(--panel2);
   border: none;
-  border-right: 1px solid var(--border);
   padding: 6px 14px;
   font: inherit;
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
-}
-/* Le dernier segment n'a pas de bordure droite — y compris quand il est porté par le conteneur
-   `.gated-action` de son refus (le bouton n'y est plus l'enfant direct du `.seg`). */
-.seg button:last-child,
-.seg > :last-child button,
-.seg > :last-child .btn.btn-nu {
-  border-right: none;
 }
 /* Un segment REFUSÉ compose `GatedAction bare` : son conteneur ne doit apporter AUCUNE boîte, le
    `.seg` portant déjà la géométrie de la barre. `display: flex` (et non `contents`) : l'infobulle

@@ -556,6 +556,12 @@ export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolea
   return crenellatedAt(scene, x, y, z) !== null;
 }
 
+/** Le GROUPE peut-il être posé en `pt`, case de SON étage ? Seule lecture de cette question : le pas du
+ *  groupe (`moveParty`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
+export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: number }): boolean {
+  return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
+}
+
 export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
   if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
   if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement

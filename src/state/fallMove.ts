@@ -1,4 +1,4 @@
-import { Scene, wallIsOpen, edgeOf, heightAt, surfaceDAtterrissage } from './scene';
+import { Scene, WallSeg, wallIsOpen, edgeOf, heightAt, surfaceDAtterrissage } from './scene';
 import { gradeBetween } from './relief';
 import { aretesA } from './wallIndex';
 import type { Pt } from './path';
@@ -13,8 +13,8 @@ import { climbMovementCost } from '../engine/movement';
  * « où atterrit-on, et de quelle hauteur tombe-t-on, quand on quitte volontairement une surface ? »
  * L'atterrissage vient de `surfaceDAtterrissage` (toutes couches) ; `gradeBetween` tranche : `cliff`
  * descendant → `fall` ; pas `flat`/`ramp` à travers une croisée franchissable → `enjamber` (LDB 15
- * l.55, maison `fenetre-hauteur-allege`). Le pathfinding ne traverse jamais une croisée (arbitrage
- * #1712, 2026-09-08) : seul ce geste la franchit.
+ * l.55, `WallSeg.allege`). Une croisée sans allège ne se franchit pas (#700 issuecomment-5984719806).
+ * Le pathfinding ne traverse jamais une croisée (arbitrage #1712, 2026-09-08) : seul ce geste la franchit.
  *
  * La résolution du Test de chute (numérique, DR-driven, LDB 15 l.82) vit dans `rollFlowSpecs.fall`
  * (patron `pendingRun`), PAS ici : contrairement à `climbMove.ts`/`flow.ts::testFlow` (binaire, réservé
@@ -28,20 +28,23 @@ export type RefusFranchissement =
   | 'marche'; // pas ordinaire sans croisée : la marche, pas un geste
 
 /** `fall` : `suspendu` = hauteur de chute de qui SE SUSPEND d'abord (EDO 01 l.231), présente
- *  seulement sous `metres` ; `croisee` = le saut passe par une croisée franchissable (son allège). */
+ *  seulement sous `metres` ; `allege` = le saut passe par une croisée franchissable, d'allège `allege` m. */
 export type PlanFranchissement =
   | { kind: 'none'; raison: RefusFranchissement }
-  | { kind: 'fall'; metres: number; to: Pt; suspendu?: number; croisee?: true }
-  | { kind: 'enjamber'; to: Pt };
+  | { kind: 'fall'; metres: number; to: Pt; suspendu?: number; allege?: number }
+  | { kind: 'enjamber'; to: Pt; allege: number };
 
 /** Défaut d'AUTEUR de la hauteur de suspension (`WallSeg.suspendu`) sur un pas : jamais offerte, lue
  *  par `planDefects`. `trop-haute` = pas sous la hauteur réelle du saut ; `plain-pied` = croisée qu'on
- *  enjambe ; `divergente` = les segments qui barrent le pas en portent des hauteurs différentes. */
-export type DefautDeSuspension = 'trop-haute' | 'plain-pied' | 'divergente';
+ *  enjambe. */
+export type DefautDeSuspension = 'trop-haute' | 'plain-pied';
 
 type Analyse = { plan: PlanFranchissement; defaut?: DefautDeSuspension };
 
 const refus = (raison: RefusFranchissement): Analyse => ({ plan: { kind: 'none', raison } });
+
+/** Croisée franchissable, son allège authorée (`LDB 15 l.55` ; #700 issuecomment-5984719806). */
+const estCroiseeFranchissable = (w: WallSeg): w is WallSeg & { allege: number } => !!w.window && !!w.crossable && w.allege !== undefined;
 
 function analyser(scene: Scene, from: Pt, to: Pt): Analyse {
   const e = edgeOf(from.x, from.y, to.x, to.y);
@@ -53,20 +56,19 @@ function analyser(scene: Scene, from: Pt, to: Pt): Analyse {
   const zHaut = Math.max(from.z ?? 0, atterrissage.to.z ?? 0);
   const barrent = aretesA(scene, e.x, e.y, e.side, zHaut).filter((w) => !wallIsOpen(scene, w));
   if (barrent.some((w) => !!w.climb)) return refus('escalade');
-  const croisee = barrent.length > 0 && barrent.every((w) => !!w.window && !!w.crossable);
-  if (barrent.length > 0 && !croisee) return refus('muree');
-  const hauteurs = [...new Set(barrent.map((w) => w.suspendu))];
-  const suspendu = hauteurs.length === 1 ? hauteurs[0] : undefined;
-  const defaut = (d: DefautDeSuspension | undefined) => (d ? { defaut: d } : {});
+  const croisees = barrent.length > 0 && barrent.every(estCroiseeFranchissable) ? barrent : null;
+  if (barrent.length > 0 && !croisees) return refus('muree');
+  // UNE arête, UN segment (#1624) : la croisée est la première.
+  const croisee = croisees?.[0];
+  const suspendu = croisee?.suspendu;
   if (gradeBetween(hDepart, atterrissage.hauteur) === 'cliff') {
     const metres = hDepart - atterrissage.hauteur;
-    const plan = { kind: 'fall' as const, metres, to: atterrissage.to, ...(croisee ? { croisee: true as const } : {}) };
-    if (hauteurs.length > 1) return { plan, ...defaut('divergente') };
+    const plan = { kind: 'fall' as const, metres, to: atterrissage.to, ...(croisee ? { allege: croisee.allege } : {}) };
     if (suspendu === undefined) return { plan };
-    return suspendu < metres ? { plan: { ...plan, suspendu } } : { plan, ...defaut('trop-haute') };
+    return suspendu < metres ? { plan: { ...plan, suspendu } } : { plan, defaut: 'trop-haute' };
   }
   if (!croisee) return refus('marche');
-  return { plan: { kind: 'enjamber', to: atterrissage.to }, ...defaut(hauteurs.length > 1 ? 'divergente' : suspendu !== undefined ? 'plain-pied' : undefined) };
+  return { plan: { kind: 'enjamber', to: atterrissage.to, allege: croisee.allege }, ...(suspendu !== undefined ? { defaut: 'plain-pied' as const } : {}) };
 }
 
 /** `from` = case du mobile (couche comprise), `to` = case cardinale adjacente visée — sa couche
@@ -80,21 +82,21 @@ export function defautDeSuspension(scene: Scene, from: Pt, to: Pt): DefautDeSusp
   return analyser(scene, from, to).defaut;
 }
 
-/** Mouvement (cases) que coûte l'allège d'une croisée — maison `fenetre-hauteur-allege`, LDB 15 l.55.
+/** Mouvement (cases) que coûte l'allège `allege` (m) de la croisée franchie — LDB 15 l.55.
  *  Lu par l'enjambée (`windowAcross`) et par la chute (`mouvementDeLaChute`). */
-export function mouvementDeLAllege(metresParCase: number): number {
-  return climbMovementCost(Number(rule('fenetre-hauteur-allege')), metresParCase);
+export function mouvementDeLAllege(allege: number, metresParCase: number): number {
+  return climbMovementCost(allege, metresParCase);
 }
 
-/** Mouvement (cases) que coûte à un tombant, en combat, le geste de chute : le pas, l'allège d'une
- *  croisée (maison `fenetre-hauteur-allege`, LDB 15 l.55), la hauteur descendue s'il se suspend (maison
+/** Mouvement (cases) que coûte à un tombant, en combat, le geste de chute : le pas, l'allège de la
+ *  croisée franchie (`WallSeg.allege`, LDB 15 l.55), la hauteur descendue s'il se suspend (maison
  *  `fenetre-suspension`, LDB 15 l.55, LDB 15 l.57, EDO 01 l.231). */
 export function mouvementDeLaChute(
-  p: { metres: number; suspendu?: number; croisee?: true },
+  p: { metres: number; suspendu?: number; allege?: number },
   suspendre: boolean,
   metresParCase: number,
 ): number {
-  const allege = p.croisee ? mouvementDeLAllege(metresParCase) : 0;
+  const allege = p.allege !== undefined ? mouvementDeLAllege(p.allege, metresParCase) : 0;
   const descente = suspendre && p.suspendu !== undefined && rule('fenetre-suspension') === 'descente-facile'
     ? climbMovementCost(p.metres - p.suspendu, metresParCase)
     : 0;

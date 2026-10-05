@@ -104,7 +104,7 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
 
   it('ESCALADE : depuis la case HAUTE, le même geste descend — et le libellé le dit', () => {
     // Le haut de la paroi borde le vide de trois côtés : ces cardinaux descendants offrent une CHUTE
-    // (le quatrième, vers (1,1), porte l'arête grimpable — `planFall` s'y refuse). Gestes distincts
+    // (le quatrième, vers (1,1), porte l'arête grimpable — `planFranchissement` s'y refuse). Gestes distincts
     // sur arêtes distinctes : la priorité n'a rien à départager ici.
     const aretes = aretesUtilisables({
       scene: scèneGrimpable(),

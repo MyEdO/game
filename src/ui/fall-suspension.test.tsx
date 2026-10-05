@@ -11,6 +11,7 @@ import { useGame } from '../state/store';
 import { FallModal } from './FallModal';
 import { emptyScene } from '../state/scene';
 import type { Combatant } from '../engine/types';
+import { t } from '../i18n';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -44,7 +45,7 @@ function monter(suspendu: number | undefined, battle: Record<string, unknown> | 
     battle: battle ? { combatants: [sauteur], order: [sauteur.id], turn: 0, acted: false, over: null, ...battle } : null,
     party: [sauteur],
     pendingFall: {
-      to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, croisee: true,
+      to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, allege: 1,
       ...(suspendu !== undefined ? { suspendu } : {}),
       participants: [{ id: sauteur.id, interactive: true, attempt: null, ...(suspendu !== undefined ? { suspendre: null } : {}), result: null }],
     },
@@ -60,7 +61,7 @@ describe('chute volontaire — l’axe « se suspendre d’abord »', () => {
 
   it('offerte : « Se suspendre, puis se lâcher » déclare les DEUX axes de la rangée', () => {
     monter(2, null);
-    const b = option('Se suspendre, puis se lâcher (chute de 2 m)')!;
+    const b = option(t('fall.option.suspendreSauter', { metres: 2 }))!;
     expect(b.getAttribute('aria-disabled')).not.toBe('true');
     act(() => b.click());
     expect(useGame.getState().pendingFall, 'la seule rangée a déclaré sans Test : l’étape est résolue').toBeNull();
@@ -70,6 +71,22 @@ describe('chute volontaire — l’axe « se suspendre d’abord »', () => {
     monter(2, null);
     act(() => option('Se suspendre, puis tenter')!.click());
     expect(useGame.getState().pendingFall!.participants[0]).toMatchObject({ attempt: true, suspendre: true });
+  });
+
+  it('chaque option DÉCLARE sa donnée typée : « se lâcher » suspend sans Test, « Sauter » saute sans suspension', () => {
+    const second = { ...sauteur, id: 'T', name: 'T', label: 'T' } as Combatant;
+    useGame.setState({
+      mode: 'exploration', scene: emptyScene(4, 4), battle: null, party: [sauteur, second],
+      pendingFall: {
+        to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, allege: 1, suspendu: 2,
+        participants: [sauteur, second].map((c) => ({ id: c.id, interactive: true, attempt: null, suspendre: null, result: null })),
+      },
+    } as never);
+    act(() => root.render(<FallModal />));
+    act(() => option(t('fall.option.suspendreSauter', { metres: 2 }))!.click());
+    expect(useGame.getState().pendingFall!.participants[0]).toMatchObject({ attempt: false, suspendre: true });
+    act(() => option('Sauter (chute pleine')!.click());
+    expect(useGame.getState().pendingFall, 'les deux rangées ont sauté sans Test : l’étape est résolue').toBeNull();
   });
 
   it('combat, Mouvement insuffisant : les options de suspension sont éteintes, « Sauter » reste offert', () => {

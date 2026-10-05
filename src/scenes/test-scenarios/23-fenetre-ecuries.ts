@@ -70,7 +70,7 @@ function enveloppe(z: number, percees: readonly string[]): WallSpec[] {
   return out.filter((w) => !percees.includes(`${w.x},${w.y},${w.side}`));
 }
 
-const CROISEE: WallSpec = { x: 7, y: 2, side: 'E', z: 1, window: true, crossable: true, suspendu: 2 };
+const CROISEE: WallSpec = { x: 7, y: 2, side: 'E', z: 1, window: true, crossable: true, allege: 1, suspendu: 2 };
 const PORTE_SECRETE: WallSpec = { x: 3, y: 2, side: 'E', z: 1, door: true, secret: { difficulty: 'complexe', face: 'porteuse' } };
 const PORTE_ECURIES: WallSpec = { x: 7, y: 5, side: 'E', door: true };
 

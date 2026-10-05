@@ -44,6 +44,7 @@ import type {
   ArchitectureRect,
   CellSide,
   WallOverlay,
+  WallSeg,
 } from './scene';
 import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './scene';
 import { findStructureById, structureAppearances } from '../data';
@@ -120,6 +121,8 @@ export interface WallSpec extends WallOverlay {
   /** Croisée FRANCHISSABLE (`WallSeg.crossable`, #700) : on l'enjambe ou on saute par elle, par un
    *  geste explicite — le pathfinding ne la traverse jamais. Exige `window`. */
   crossable?: boolean;
+  /** Hauteur d'ALLÈGE (m) de CETTE croisée (`WallSeg.allege`, `LDB 15 l.55`). Exigée par `crossable`. */
+  allege?: number;
   /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée (`WallSeg.suspendu`, `EDO 01 l.231`) :
    *  valeur de CETTE fenêtre, offerte au saut seulement sous sa hauteur réelle. Exige `crossable`. */
   suspendu?: number;
@@ -770,29 +773,27 @@ export function buildScene(spec: MapSpec): Scene {
   for (const wall of allWalls) {
     const z = wall.z ?? 0;
     const { side } = wall;
+    // Champs d'arête, écrits UNE fois : validés par `wallSegSchema`, puis posés par `patchWall`.
+    const champs: Partial<WallSeg> = {
+      ...(wall.structure ? { structure: wall.structure } : {}),
+      ...(wall.window ? { window: true } : {}),
+      ...(wall.shuttered ? { shuttered: true } : {}),
+      ...(wall.crossable ? { crossable: true } : {}),
+      ...(wall.allege !== undefined ? { allege: wall.allege } : {}),
+      ...(wall.suspendu !== undefined ? { suspendu: wall.suspendu } : {}),
+      ...(wall.climb ? { climb: wall.climb } : {}),
+      ...(wall.secret ? { secret: wall.secret, closed: true } : {}),
+    };
     const compile = wallSegSchema.safeParse({
       ...(side === '\\' || side === '/' ? { x: wall.x, y: wall.y, side } : canonEdge(wall.x, wall.y, side)), ...(z ? { z } : {}),
-      ...(wall.door ? { door: true } : {}), ...(wall.window ? { window: true } : {}),
-      ...(wall.shuttered ? { shuttered: true } : {}), ...(wall.crossable ? { crossable: true } : {}),
-      ...(wall.suspendu !== undefined ? { suspendu: wall.suspendu } : {}),
-      ...(wall.secret ? { secret: wall.secret, closed: true } : {}),
-      ...(wall.structure ? { structure: wall.structure } : {}), ...(wall.climb ? { climb: wall.climb } : {}),
+      ...(wall.door ? { door: true } : {}), ...champs,
     });
     if (!compile.success) throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
     if (side === '\\' || side === '/') continue;
     s = setEdgeWall(s, wall.x, wall.y, side, z, wall.door ? 'door' : 'wall');
     if (wall.structure || wall.appearance || wall.window || wall.climb || wall.secret) {
       const c = canonEdge(wall.x, wall.y, side);
-      s = patchWall(s, c.x, c.y, c.side, z, {
-        ...(wall.structure ? { structure: wall.structure } : {}),
-        ...(wall.appearance ? { appearance: wall.appearance } : {}),
-        ...(wall.window ? { window: true } : {}),
-        ...(wall.shuttered ? { shuttered: true } : {}),
-        ...(wall.crossable ? { crossable: true } : {}),
-        ...(wall.suspendu !== undefined ? { suspendu: wall.suspendu } : {}),
-        ...(wall.climb ? { climb: wall.climb } : {}),
-        ...(wall.secret ? { secret: wall.secret, closed: true } : {}),
-      });
+      s = patchWall(s, c.x, c.y, c.side, z, { ...champs, ...(wall.appearance ? { appearance: wall.appearance } : {}) });
     }
   }
   // Passe 2 : diagonales — arête PUREMENT VISUELLE : ce qu'elle ne porte jamais est refusé au parse de la

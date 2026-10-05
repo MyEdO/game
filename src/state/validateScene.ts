@@ -1,4 +1,4 @@
-import { heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from './scene';
+import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from './scene';
 import { unreachableDescriptiveZones } from './mapQC';
 import { isRoomZone } from './rooms';
 import { footprintTiles, sizeFootprint } from './footprint';
@@ -202,6 +202,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
       entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
       npcSheet: (id) => sceneNpc(s, id),
       within,
+      walkable: (x, y, z) => groupePosable(s, { x, y, z }),
     };
     // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
     // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).

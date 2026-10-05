@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
+import { t } from '../i18n';
 import { influencesLocally } from '../state/netOwnership';
 import { overcastTargetCandidates, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../state/combatFlow';
 import type { CounterDeclaration } from '../state/pendings';
@@ -517,7 +518,7 @@ export function CastModal() {
                 // reste jamais muette) ; en PHASE 2, chacune porte sa déclaration, un « passe » étant
                 // éteint mais motivé, jamais un vide inexpliqué.
                 const situation = !part.declared
-                  ? (!owned ? `en attente de la déclaration de ${actor.label}` : undefined)
+                  ? (!owned ? t('declaration.attente', { name: actor.label }) : undefined)
                   : part.declared === 'pass'
                     ? 'passe — ne tente pas la Dissipation ce Round'
                     : part.declared === 'soutenu' && grp
@@ -530,7 +531,7 @@ export function CastModal() {
                 const dissipateur = dejaDissipee && pool.find((c) => c.id === dejaDissipee.id);
                 if (dejaDissipee && !dissipateur) throw new Error(`[contre-sort] le participant « ${dejaDissipee.id} » a dissipé hors des combattants de la fenêtre`);
                 const rollBlocked = phase1
-                  ? 'En attente des déclarations de la fenêtre'
+                  ? t('declaration.attenteFenetre')
                   : dissipateur
                     ? `Déjà dissipé par ${dissipateur.label}`
                     : undefined;

@@ -197,7 +197,7 @@ function scenePorteOrpheline(): Scene {
  *  (`WallSeg.suspendu`, EDO 01 l.231) : de plain-pied, on l'enjambe, aucun saut ne l'offre. */
 function sceneSuspensionHorsSaut(): Scene {
   const w = 8, h = 8;
-  return makeScene(w, h, [{ z: 0, tiles: new Array(w * h).fill('plancher') }], [], [{ x: 5, y: 5, side: 'N', window: true, crossable: true, suspendu: 2 }]);
+  return makeScene(w, h, [{ z: 0, tiles: new Array(w * h).fill('plancher') }], [], [{ x: 5, y: 5, side: 'N', window: true, crossable: true, allege: 1, suspendu: 2 }]);
 }
 
 /** Plain-pied 9×9 entier de plancher, une pièce 5×5 CLOSE en (1,1), et dedans un refend qui part du

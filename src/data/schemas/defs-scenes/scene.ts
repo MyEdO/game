@@ -701,7 +701,7 @@ export const wallSecretSchema = z.strictObject({
 /** Ce qu'une cloison OBLIQUE (`\\`, `/`) ne porte jamais : elle est purement visuelle — déplacement,
  *  vision et grimpe ne résolvent que les arêtes cardinales (`edgeOf`, `state/scene.ts`). `window`,
  *  `shuttered` et `appearance` y restent admis : ils ne sont que du rendu. */
-const MUET_SUR_OBLIQUE = ['door', 'secret', 'crossable', 'suspendu', 'climb', 'structure'] as const;
+const MUET_SUR_OBLIQUE = ['door', 'secret', 'crossable', 'allege', 'suspendu', 'climb', 'structure'] as const;
 
 /** `WallSeg` — cloison sur ARÊTE. `door` = franchissable (porte) ; `z` = étage. */
 export const wallSegSchema = z.strictObject({
@@ -728,6 +728,9 @@ export const wallSegSchema = z.strictObject({
   /** Croisée FRANCHISSABLE — #700 ; `LDB 15 l.82`, `LDB 15 l.55` (maison). Exige `window`. Geste
    *  explicite (`state/fallMove.ts`), jamais un pas de pathfinding (arbitrage #1712, 2026-09-08). */
   crossable: z.boolean().optional(),
+  /** Hauteur d'ALLÈGE (m) de la croisée, enjambée à mi-vitesse sans Test — `LDB 15 l.55` ; arbitrage #700
+   *  (2026-10-04). Exigée par `crossable`, et l'exige. Lue par `state/fallMove.ts`. */
+  allege: z.number().min(0).optional(),
   /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée — `EDO 01 l.231`. Exige `crossable`.
    *  Offerte par `state/fallMove.ts` seulement sous la hauteur géométrique du saut. */
   suspendu: z.number().positive().optional(),
@@ -744,6 +747,8 @@ export const wallSegSchema = z.strictObject({
   if (w.secret && !w.closed) ctx.addIssue({ code: 'custom', path: ['secret'], message: 'porte secrète (`secret`) sans `closed: true` — une porte secrète est fermée au départ' });
   if (w.shuttered && !w.window) ctx.addIssue({ code: 'custom', path: ['shuttered'], message: 'volets clos (`shuttered`) sans `window: true` — seule une croisée a des volets' });
   if (w.crossable && !w.window) ctx.addIssue({ code: 'custom', path: ['crossable'], message: 'croisée franchissable (`crossable`) sans `window: true` — seule une croisée se franchit' });
+  if (w.crossable && w.allege === undefined) ctx.addIssue({ code: 'custom', path: ['allege'], message: 'croisée franchissable (`crossable`) sans hauteur d’allège (`allege`) — chaque croisée franchissable porte la sienne' });
+  if (w.allege !== undefined && !w.crossable) ctx.addIssue({ code: 'custom', path: ['allege'], message: 'hauteur d’allège (`allege`) sans `crossable: true` — seule une croisée franchissable s’enjambe' });
   if (w.suspendu !== undefined && !w.crossable) ctx.addIssue({ code: 'custom', path: ['suspendu'], message: 'hauteur de suspension (`suspendu`) sans `crossable: true` — on ne se suspend qu’à une croisée franchissable' });
   if (w.window && w.door) ctx.addIssue({ code: 'custom', path: ['window'], message: 'fenêtre (`window`) sur une porte (`door: true`) — une arête est porte OU croisée' });
   if (w.side === '\\' || w.side === '/') {

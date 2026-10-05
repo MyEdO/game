@@ -3,7 +3,7 @@ import { porteEnJeu, porteMasquee, porteTentee, type Scene, type WallSeg } from 
 import { buildScene, type WallSpec } from './mapSpec';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { TIME_COST } from '../engine/timeCost';
+import { rule, setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 
@@ -51,6 +51,8 @@ function explorer(scene: Scene, pos: { x: number; y: number }) {
   useGame.setState({ partyPos: pos, lightLevel: 1, dialogue: null });
 }
 const fouiller = () => useGame.getState().fouillerLaPiece();
+/** Durée de la fouille : la maison `fouille-piece-minutes` (LDB 12 l.200). */
+const DUREE = rule('fouille-piece-minutes') as number;
 const resoudre = (success: boolean) => {
   useGame.setState({ pendingTest: { ...useGame.getState().pendingTest!, roll: success ? 1 : 99, success, sl: success ? 3 : -3 } });
   useGame.getState().resolveTest();
@@ -79,7 +81,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     const avant = useGame.getState().gameTime;
     fouiller();
     expect(useGame.getState().pendingTest).toBeNull();
-    expect(useGame.getState().gameTime).toBe(avant + TIME_COST.search);
+    expect(useGame.getState().gameTime).toBe(avant + DUREE);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('fouille.journal'));
   });
 
@@ -87,14 +89,14 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     explorer(plan([A, B]), { x: 1, y: 2 });
     const avant = useGame.getState().gameTime;
     fouiller();
-    expect(useGame.getState().gameTime).toBe(avant + TIME_COST.search);
+    expect(useGame.getState().gameTime).toBe(avant + DUREE);
     const difficultes = [useGame.getState().pendingTest!.difficulty];
     resoudre(false);
     difficultes.push(useGame.getState().pendingTest!.difficulty);
     resoudre(false);
     expect(difficultes.sort()).toEqual(['complexe', 'difficile']);
     expect(useGame.getState().pendingTest).toBeNull();
-    expect(useGame.getState().gameTime).toBe(avant + TIME_COST.search);
+    expect(useGame.getState().gameTime).toBe(avant + DUREE);
   });
 
   it('porte déjà tentée à l’approche → Fouiller ne la reprend pas', () => {
@@ -113,7 +115,22 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     expect(useGame.getState().pendingTest).toBeNull();
     expect(porteTentee(useGame.getState().scene!, seg(C))).toBe(false);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('fouille.journal'));
-    expect(useGame.getState().gameTime).toBe(avant + TIME_COST.search);
+    expect(useGame.getState().gameTime).toBe(avant + DUREE);
+  });
+
+  it('la fouille avance l’horloge de la durée maison ; un réglage modifié change le coût', () => {
+    explorer(plan([C]), { x: 1, y: 2 });
+    expect(DUREE).toBe(10);
+    const avant = useGame.getState().gameTime;
+    fouiller();
+    expect(useGame.getState().gameTime).toBe(avant + 10);
+    try {
+      setRule('fouille-piece-minutes', 45);
+      fouiller();
+      expect(useGame.getState().gameTime).toBe(avant + 10 + 45);
+    } finally {
+      resetRule('fouille-piece-minutes');
+    }
   });
 
   it('hors de toute pièce → refus nommé, ni Test ni temps', () => {

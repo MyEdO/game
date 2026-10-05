@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { emptyScene, heightAt, porteMasquee, startOf, type WallSeg } from '../../state/scene';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { emptyScene, heightAt, isWalkable, porteMasquee, startOf, type WallSeg } from '../../state/scene';
 import { validateScene } from '../../state/validateScene';
 import { planFranchissement } from '../../state/fallMove';
 import { scenePlanDefects } from '../../state/planDefects';
@@ -23,13 +23,21 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     expect(validateScene([scene]).filter((w) => w.level === 'error')).toEqual([]);
   });
 
+  it('la cachette, close par la seule porte secrète, est atteignable pour l’auteur (EDO 08 l.402)', () => {
+    const inatteignables = (sc: typeof scene) => validateScene([sc]).filter((w) => w.message.includes('inatteignable à pied')).map((w) => w.message);
+    expect(inatteignables(scene)).toEqual([]);
+    // Opposé : la même arête en mur nu, la cachette est réellement close — signalée.
+    const muree = { ...scene, walls: scene.walls!.map((w) => (w === porte() ? { x: w.x, y: w.y, side: w.side, z: w.z } : w)) };
+    expect(inatteignables(muree)).toEqual([expect.stringContaining('« Cachette »')]);
+  });
+
   it('aucun défaut de plan (`scenePlanDefects` vide)', () => {
     expect(scenePlanDefects(scene)).toEqual([]);
   });
 
   it('la croisée du couloir : saut de 4 m (hauteur réelle de la carte), se suspendre = 2 m', () => {
     expect(heightAt(scene, couloir.x, couloir.y, 1) - heightAt(scene, ecuries.x, ecuries.y, 0)).toBe(4);
-    expect(planFranchissement(scene, couloir, ecuries)).toEqual({ kind: 'fall', metres: 4, to: { x: 8, y: 2, z: 0 }, suspendu: 2, croisee: true });
+    expect(planFranchissement(scene, couloir, ecuries)).toEqual({ kind: 'fall', metres: 4, to: { x: 8, y: 2, z: 0 }, suspendu: 2, allege: 1 });
   });
 
   it('des écuries, on remonte à pied au couloir (porte de la salle basse + escalier)', () => {
@@ -78,4 +86,39 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
   });
 
   beforeEach(() => useGame.setState({ battle: null, flags: {}, pendingTest: null, dialogue: null }));
+});
+
+describe('Scénario « La fenêtre sur les écuries » — formation de début de combat', () => {
+  const scene = scenario.construire().scene;
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    useGame.setState({ battle: null });
+  });
+  /** Ouvre la rencontre de l'homme de main, le groupe en `partyPos` ; rend les cases des héros. */
+  function formation(partyPos: { x: number; y: number; z?: number }) {
+    useGame.setState({ party: scenario.construire().party });
+    useGame.getState().startScene(scene);
+    useGame.setState({ partyPos });
+    useGame.getState().startCombat('enc-homme-de-main');
+    return useGame.getState().battle!.combatants.filter((c) => c.kind === 'hero' && !c.mountable).map((c) => c.pos!);
+  }
+
+  for (const depart of [{ x: 7, y: 6, z: 1 }, { x: 6, y: 2, z: 1 }]) {
+    it(`à l’étage, groupe en (${depart.x},${depart.y}) : chaque héros tient debout sur une case DISTINCTE du plancher de z1`, () => {
+      const cases = formation(depart);
+      expect(cases.length).toBeGreaterThan(1);
+      for (const p of cases) {
+        expect(p.z, `(${p.x},${p.y}) hors de l’étage`).toBe(1);
+        expect(isWalkable(scene, p.x, p.y, 1), `(${p.x},${p.y},1) sans plancher`).toBe(true);
+      }
+      expect(new Set(cases.map((p) => `${p.x},${p.y}`)).size, 'deux héros sur la même case').toBe(cases.length);
+    });
+  }
+
+  it('au rez, la colonne voisine du groupe tient sur le sol : la formation reste la colonne (x − 1, y + i)', () => {
+    const cases = formation({ x: 9, y: 0, z: 0 });
+    expect(cases).toEqual(cases.map((_, i) => ({ x: 8, y: i })));
+  });
 });

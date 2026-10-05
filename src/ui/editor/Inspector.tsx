@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type 
 import {
   Scene, SceneEntity, Trigger, SceneEffectZone, WallSeg, type ActionAuthoree,
   type ArchitecturePart, type ArchitectureStorey, type FacadeSection, type BuildingMass, type RoofDefaults,
-  type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, type FaceDArete, isDescriptiveZone, porteAuteur, sceneMetresPerTile,
+  type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, type FaceDArete, type WallSecret, isDescriptiveZone, porteAuteur, sceneMetresPerTile,
   secretAuteur,
 } from '../../state/scene';
 import { isRoomZone } from '../../state/rooms';
@@ -236,6 +236,25 @@ export function Inspector({
   const patchSelW = (patch: Partial<WallSeg>) => {
     if (sel?.type !== 'wall') return;
     setScene(patchWall(scene, sel.x, sel.y, sel.side, sel.z, patch));
+  };
+  // BROUILLON d'arête : ce que le schéma EXIGE de l'auteur sans valeur par défaut (`wallSegSchema` —
+  // `secret.difficulty`/`secret.face`, `LDB 12 l.137` ; `allege`, arbitrage #700 du 2026-10-04) se
+  // choisit ICI, hors de la Scène, et ne s'y écrit qu'entier : la Scène reste valide, l'état incomplet
+  // est NOMMÉ. Lié à l'arête où il a été ouvert.
+  const cleSelW = sel?.type === 'wall' ? `${sel.x},${sel.y},${sel.side},${sel.z}` : null;
+  // `allegeVide` : le champ d'allège vidé sur une croisée DÉJÀ franchissable — la Scène garde sa croisée
+  // (allège et `suspendu` compris) tant qu'une nouvelle valeur n'est pas saisie.
+  type BrouillonW = { crossable?: true; allegeVide?: true; secret?: Partial<WallSecret> };
+  const [brouillonW, setBrouillonW] = useState<BrouillonW & { cle: string } | null>(null);
+  const brouillon = brouillonW && brouillonW.cle === cleSelW ? brouillonW : null;
+  const brouillonner = (patch: BrouillonW) => {
+    if (cleSelW) setBrouillonW({ ...(brouillon ?? {}), ...patch, cle: cleSelW });
+  };
+  const choisirSecret = (secret: Partial<WallSecret>) => {
+    if (secret.difficulty && secret.face) {
+      patchSelW({ secret: { difficulty: secret.difficulty, face: secret.face }, closed: true });
+      brouillonner({ secret: undefined });
+    } else brouillonner({ secret });
   };
 
   // Toute écriture d'entité de l'inspecteur (libellé, orientation, étage, ref, apparence, statblock…)
@@ -1093,7 +1112,7 @@ export function Inspector({
                     <button className="btn small" aria-pressed={!porteAuteur(selW)} title="Cloison pleine (bloque vue et passage)" onClick={() => patchSelW({ door: undefined, closed: undefined })}>
                       ▮ Cloison
                     </button>
-                    <button className="btn small" aria-pressed={porteAuteur(selW)} title="Arête franchissable (porte)" onClick={() => patchSelW({ door: true, window: undefined, shuttered: undefined, crossable: undefined, suspendu: undefined })}>
+                    <button className="btn small" aria-pressed={porteAuteur(selW)} title="Arête franchissable (porte)" onClick={() => { patchSelW({ door: true, window: undefined, shuttered: undefined, crossable: undefined, allege: undefined, suspendu: undefined }); brouillonner({ crossable: undefined, allegeVide: undefined }); }}>
                       <Icon id="map-tool/door" size="sm" /> Porte
                     </button>
                   </Row>
@@ -1106,33 +1125,37 @@ export function Inspector({
                 )}
                 {porteAuteur(selW) && (
                   <label className="ed-check" title="Masquée en jeu tant qu'elle n'est pas découverte (EDO 08 l.402)">
-                    <input type="checkbox" checked={!!secretAuteur(selW)} onChange={(e) => patchSelW(e.target.checked ? { secret: { difficulty: 'intermediaire', face: 'les-deux' }, closed: true } : { secret: undefined })} />
+                    <input type="checkbox" checked={!!(secretAuteur(selW) ?? brouillon?.secret)} onChange={(e) => { if (e.target.checked) brouillonner({ secret: {} }); else { patchSelW({ secret: undefined }); brouillonner({ secret: undefined }); } }} />
                     Porte secrète
                   </label>
                 )}
                 {(() => {
-                  const secret = secretAuteur(selW);
+                  const secret: Partial<WallSecret> | undefined = secretAuteur(selW) ?? brouillon?.secret;
                   if (!porteAuteur(selW) || !secret) return null;
+                  const etat = secret.difficulty && secret.face ? null : 'Porte secrète incomplète — choisis sa difficulté de Perception et sa face découvrable';
                   return (
                     <>
                       <div className="ed-field">
                         <span>Difficulté de Perception</span>
-                        <select value={secret.difficulty} onChange={(e) => patchSelW({ secret: { ...secret, difficulty: e.target.value as Difficulty } })}>
+                        <select value={secret.difficulty ?? ''} aria-invalid={!secret.difficulty || undefined} onChange={(e) => choisirSecret({ ...secret, difficulty: e.target.value as Difficulty })}>
+                          {!secret.difficulty && <option value="" disabled>— à choisir —</option>}
                           {Object.entries(DIFFICULTY_LABELS).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                         </select>
                       </div>
                       <div className="ed-field" title="EDO 07 l.263 : une porte secrète peut n'être découvrable que d'un côté">
                         <span>Découvrable depuis</span>
-                        <select value={secret.face} onChange={(e) => patchSelW({ secret: { ...secret, face: e.target.value as FaceDArete } })}>
+                        <select value={secret.face ?? ''} aria-invalid={!secret.face || undefined} onChange={(e) => choisirSecret({ ...secret, face: e.target.value as FaceDArete })}>
+                          {!secret.face && <option value="" disabled>— à choisir —</option>}
                           {Object.entries(valeursDe(faceDAreteSchema) ?? {}).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                         </select>
                       </div>
+                      {etat && <p className="chip tone-danger" role="alert">{etat}</p>}
                     </>
                   );
                 })()}
                 {!porteAuteur(selW) && (
                   <label className="ed-check">
-                    <input type="checkbox" checked={!!selW.window} onChange={(e) => patchSelW({ window: e.target.checked || undefined })} />
+                    <input type="checkbox" checked={!!selW.window} onChange={(e) => { patchSelW({ window: e.target.checked || undefined }); if (!e.target.checked) brouillonner({ crossable: undefined, allegeVide: undefined }); }} />
                     Fenêtre
                   </label>
                 )}
@@ -1143,11 +1166,35 @@ export function Inspector({
                   </label>
                 )}
                 {!porteAuteur(selW) && selW.window && (
-                  <label className="ed-check" title="Geste explicite (LDB 15 l.82 pour sauter, LDB 15 l.55 maison pour enjamber) ; le déplacement reste bloqué">
-                    <input type="checkbox" checked={!!selW.crossable} onChange={(e) => patchSelW({ crossable: e.target.checked || undefined })} />
+                  <label className="ed-check" title="Geste explicite (LDB 15 l.82 pour sauter, LDB 15 l.55 pour enjamber son allège) ; le déplacement reste bloqué">
+                    <input type="checkbox" checked={!!(selW.crossable || brouillon?.crossable)} onChange={(e) => { if (e.target.checked) brouillonner({ crossable: true }); else { patchSelW({ crossable: undefined }); brouillonner({ crossable: undefined, allegeVide: undefined }); } }} />
                     Franchissable (enjamber / sauter)
                   </label>
                 )}
+                {!porteAuteur(selW) && selW.window && (selW.crossable || brouillon?.crossable) && (() => {
+                  const allegeSaisie = brouillon?.allegeVide ? undefined : selW.allege;
+                  return (
+                  <>
+                    <NumberField
+                      variant="champ"
+                      label="Hauteur d’allège (m)"
+                      title="LDB 15 l.55 — enjambée à mi-vitesse, sans Test"
+                      min={0}
+                      step={0.1}
+                      vide
+                      invalide={allegeSaisie === undefined}
+                      describedBy={allegeSaisie === undefined ? 'insp-allege-etat' : undefined}
+                      value={allegeSaisie ?? null}
+                      onChange={(allege) => {
+                        if (allege === null) { if (selW.crossable) brouillonner({ allegeVide: true }); return; }
+                        patchSelW({ crossable: true, allege });
+                        brouillonner({ crossable: undefined, allegeVide: undefined });
+                      }}
+                    />
+                    {allegeSaisie === undefined && <p id="insp-allege-etat" className="chip tone-danger" role="alert">Croisée franchissable sans hauteur d’allège — saisis-la</p>}
+                  </>
+                  );
+                })()}
                 {!porteAuteur(selW) && selW.window && selW.crossable && (
                   <NumberField
                     variant="champ"

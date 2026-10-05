@@ -51,10 +51,11 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney } from '../engine/money';
 import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
-import { Effect, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './scene';
+import { Effect, groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './scene';
 import { triggersEnJeu } from './decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
 import { placeCombatant } from './spawn';
+import { refuserGeste } from './refusVisible';
 import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowHasOpADe, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from './flow';
 import { inRect, combatantsWithinRadius } from './combatGeometry';
 import { removeEntity } from './combatGeometry';
@@ -1250,6 +1251,8 @@ export interface EffectRefCtx {
    *  comme `within` : une fonction du contexte, jamais un canal parallèle vers la scène. */
   npcSheet(id: string): Combatant | undefined;
   within(x: number, y: number): boolean;
+  /** Le groupe peut-il être posé en (x,y), étage `z` — `groupePosable` de la scène, comme `within`. Lue sur une case `within`. */
+  walkable(x: number, y: number, z: number): boolean;
 }
 export interface EffectRefIssue {
   level: 'error' | 'warn';
@@ -1696,7 +1699,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // `to` ramène le faller au PIED (chute → il retombe en bas, LDB 15) : le GROUPE hors combat, ou
       // les combattants nommés en combat (escalade ratée → hisse annulée par `placeCombatant`).
       // Hors combat, l'atterrissage du groupe est un PAS : `moveParty` (déclencheurs, cap du groupe).
+      // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
       const sc = env.get().scene;
+      if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.fallAtterrissageRefuse'));
       if (e.to && env.get().battle && sc) for (const c of targets) placeCombatant(c, sc, e.to);
       if (e.to && !env.get().battle) env.get().moveParty(e.to);
       if (targets.length) {
@@ -1704,6 +1709,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         env.log(t('eff.fallOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
         for (const c of targets) ouvrirChute(env.set, c, m);
       }
+    },
+    refs: (e, ctx) => {
+      if (!e.to) return [];
+      if (!ctx.within(e.to.x, e.to.y)) return [{ level: 'error', message: `Chute : atterrissage (${e.to.x},${e.to.y}) hors de la carte` }];
+      const z = e.to.z ?? 0;
+      return ctx.walkable(e.to.x, e.to.y, z) ? [] : [{ level: 'error', message: `Chute : atterrissage (${e.to.x},${e.to.y}, étage ${z}) sur une case non marchable` }];
     },
   },
   inflictDisease: {

@@ -59,6 +59,14 @@ describe('chute volontaire — l’option « Tenter » suit le verdict de `fallC
     expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('choice');
   });
 
+  it('le refus SUIT le store sans nouveau rendu du parent : l’entrée en combat éteint l’option', () => {
+    monter(true);
+    act(() => { useGame.setState({ mode: 'exploration' } as never); });
+    expect(tenter().getAttribute('aria-disabled')).not.toBe('true');
+    act(() => { useGame.setState({ mode: 'battle' } as never); });
+    expect(tenter().getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('Action libre : option offerte, le clic ouvre le jet', () => {
     monter(false);
     expect(tenter().getAttribute('aria-disabled')).not.toBe('true');

@@ -12,11 +12,14 @@ import { buildEncounter } from './encounterAuthoring';
 import { flowFromEffects } from './flow';
 import { finalizeBattle } from './combatFlow';
 import { t } from '../i18n';
+import { wallSegSchema } from '../data/schemas/defs-scenes/scene';
+import { buildScene } from './mapSpec';
+import { patchWall } from './sceneEdit';
 
 /**
  * Croisée FRANCHISSABLE (#700) : sauter par une fenêtre d'étage EST la chute volontaire (LDB 15 l.82,
- * EDO 01 l.229) ; l'enjamber de plain-pied est un geste sans Test (LDB 15 l.55, maison
- * `fenetre-hauteur-allege`). L'atterrissage d'exploration est un PAS du groupe (`moveParty`).
+ * EDO 01 l.229) ; l'enjamber de plain-pied est un geste sans Test (LDB 15 l.55) qui paie l'allège de
+ * CETTE croisée (`WallSeg.allege`, arbitrage #700 du 2026-10-04). L'atterrissage d'exploration est un PAS du groupe (`moveParty`).
  */
 
 /** Déclencheur `once` sur la case (x,y) au rez : son drapeau prouve que `checkTriggers` a joué. */
@@ -33,17 +36,17 @@ function etage(crossable = true): Scene {
   height[1 * 4 + 1] = 4;
   s.layers.push({ z: 1, tiles, height });
   s.walls = [
-    { x: 1, y: 1, side: 'E', z: 1, window: true, ...(crossable ? { crossable: true } : {}) },
+    { x: 1, y: 1, side: 'E', z: 1, window: true, ...(crossable ? { crossable: true, allege: 1 } : {}) },
     { x: 0, y: 1, side: 'E', z: 1 }, { x: 1, y: 1, side: 'N', z: 1 }, { x: 1, y: 2, side: 'N', z: 1 },
   ];
   s.triggers = [piege(2, 1)];
   return s;
 }
 
-/** 4×3 de plain-pied : croisée E de (1,1) sur (2,1). */
-function plainPied(crossable = true): Scene {
+/** 4×3 de plain-pied : croisée E de (1,1) sur (2,1), d'allège `allege` m. */
+function plainPied(crossable = true, allege = 1): Scene {
   const s = emptyScene(4, 3);
-  s.walls = [{ x: 1, y: 1, side: 'E', window: true, ...(crossable ? { crossable: true } : {}) }];
+  s.walls = [{ x: 1, y: 1, side: 'E', window: true, ...(crossable ? { crossable: true, allege } : {}) }];
   s.triggers = [piege(2, 1)];
   return s;
 }
@@ -61,6 +64,40 @@ const refusDit = (): string | undefined => {
   const s = useGame.getState();
   return s.battle ? s.refus?.texte : s.journal.slice(-1)[0];
 };
+
+describe('donnée : `WallSeg.allege`, portée par CHAQUE croisée franchissable (#700 issuecomment-5984719806)', () => {
+  const issues = (v: unknown) => (wallSegSchema.safeParse(v).error?.issues ?? []).map((i) => [i.path.join('.'), i.message]);
+
+  it('`crossable` sans `allege` → refusé au parse, à `allege`', () => {
+    expect(issues({ x: 1, y: 1, side: 'E', window: true, crossable: true })).toEqual([
+      ['allege', 'croisée franchissable (`crossable`) sans hauteur d’allège (`allege`) — chaque croisée franchissable porte la sienne'],
+    ]);
+  });
+
+  it('`allege` sans `crossable` → refusé au parse, à `allege`', () => {
+    expect(issues({ x: 1, y: 1, side: 'E', window: true, allege: 1 })).toEqual([
+      ['allege', 'hauteur d’allège (`allege`) sans `crossable: true` — seule une croisée franchissable s’enjambe'],
+    ]);
+  });
+
+  it('croisée franchissable et son allège → admise, 0 m compris', () => {
+    expect(issues({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1.2 })).toEqual([]);
+    expect(issues({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 0 })).toEqual([]);
+  });
+
+  it('MapSpec → Scene : l’allège voyage ; sans elle, `buildScene` refuse la croisée franchissable', () => {
+    const s = buildScene({ id: 't', label: 't', size: [3, 3], walls: [{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 0.8 }] });
+    expect(s.walls?.find((w) => w.x === 1 && w.y === 1 && w.side === 'E')).toMatchObject({ window: true, crossable: true, allege: 0.8 });
+    expect(() => buildScene({ id: 't', label: 't', size: [3, 3], walls: [{ x: 1, y: 1, side: 'E', window: true, crossable: true }] }))
+      .toThrow('croisée franchissable (`crossable`) sans hauteur d’allège (`allege`)');
+  });
+
+  it('`normWall` : l’allège suit `crossable`, et part avec lui', () => {
+    const posee = patchWall(plainPied(false), 1, 1, 'E', 0, { crossable: true, allege: 1.5 });
+    expect(posee.walls).toEqual([{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1.5 }]);
+    expect(patchWall(posee, 1, 1, 'E', 0, { crossable: undefined }).walls).toEqual([{ x: 1, y: 1, side: 'E', window: true }]);
+  });
+});
 
 describe('capacités d’arête d’une croisée', () => {
   it('franchissable d’étage → `chute` (hauteur réelle au libellé)', () => {
@@ -122,6 +159,15 @@ describe('enjamber la croisée de plain-pied — exploration', () => {
     expect(useGame.getState().partyPos).toEqual({ ...dedans, z: 0 });
   });
 
+  it('croisée franchissable SANS allège authorée → ne s’enjambe pas : refus NOMMÉ, rien ne bouge', () => {
+    const sc = plainPied();
+    sc.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true }];
+    explorer(sc, { ...dedans, z: 0 });
+    useGame.getState().windowAcross({ ...dedans, z: 0 }, dehors);
+    expect(useGame.getState().partyPos).toEqual({ ...dedans, z: 0 });
+    expect(refusDit()).toBe(t('franchir.refus.muree'));
+  });
+
   it('aucun héros debout → refus NOMMÉ, rien ne bouge (`meneurDeboutDuMonde`)', () => {
     explorer(plainPied(), { ...dedans, z: 0 });
     const [h] = useGame.getState().party;
@@ -145,14 +191,13 @@ describe('enjamber la croisée — combat', () => {
   beforeEach(() => { vi.useFakeTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  function setup(movementUsed = 0, tour: { acted?: boolean; movedPreAction?: boolean } = {}) {
+  function setup(movementUsed = 0, tour: { acted?: boolean; movedPreAction?: boolean } = {}, sc = plainPied()) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
-    const sc = plainPied();
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const foes = b.combatants.filter((c) => c.kind === 'enemy');
@@ -172,6 +217,14 @@ describe('enjamber la croisée — combat', () => {
     expect(b.acted).toBe(false);
     expect(b.movedPreAction).toBe(true);
     expect(useGame.getState().pendingFall).toBeNull();
+  });
+
+  it('le coût suit l’allège de CETTE croisée : 3 m à ½ vitesse (2 m/case → 3), soit 1 + 3 cases', () => {
+    const { H } = setup(0, {}, plainPied(true, 3));
+    useGame.getState().windowAcross(dedans, dehors);
+    const b = useGame.getState().battle!;
+    expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
+    expect(b.movementUsed).toBe(4);
   });
 
   it('Mouvement restant insuffisant → refus NOMMÉ, rien ne bouge', () => {

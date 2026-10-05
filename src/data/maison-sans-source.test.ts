@@ -68,6 +68,10 @@ const BASELINES: Record<string, number> = {
   // d'un compagnon qui n'est pas debout quand le groupe saute ; aucun folio n'est remplacé.
   // 36 → 37 (#700, 2026-09-30) : `fenetre-suspension` — EDO 01 l.231 ne nomme que l'avance du fuyard,
   // aucun coût tactique de la suspension ; aucun folio n'est remplacé.
+  // 37 → 36 (#700, 2026-10-05) : `fenetre-hauteur-allege` SUPPRIMÉE — l'allège est une donnée de la
+  // croisée (`WallSeg.allege`) (#700 issuecomment-5984719806).
+  // 36 → 37 (#700, 2026-10-05) : `fouille-piece-minutes` — LDB 12 l.200 ne chiffre pas la durée de la
+  // fouille d'une pièce ; aucun folio n'est remplacé.
   'reglesOptionnelles.json': 37,
 };
 
@@ -77,6 +81,8 @@ const BASELINES: Record<string, number> = {
 // 51 → 52 (#700, 2026-09-30) : `porte-secrete-rayon-m`, cf. la baseline ci-dessus.
 // 52 → 53 (#700, 2026-09-30) : `chute-tombant-non-debout`, cf. la baseline ci-dessus.
 // 53 → 54 (#700, 2026-09-30) : `fenetre-suspension`, cf. la baseline ci-dessus.
+// 54 → 53 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, cf. la baseline ci-dessus.
+// 53 → 54 (#700, 2026-10-05) : `fouille-piece-minutes`, cf. la baseline ci-dessus.
 const TOTAL_GELE = 54;
 
 /**

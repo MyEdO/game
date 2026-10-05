@@ -57,11 +57,10 @@
   align-items: center;
   gap: 6px;
 }
-/* GESTES du groupe : à l'extrémité GAUCHE du pont (la barre d'action hors combat), jamais mêlés aux
-   ouvreurs d'écrans. Rangée à plat, sans rétrécir : à 360 ce sont les ouvreurs qui défilent. */
-.xd-gestes {
-  display: flex;
-  align-items: center;
+/* La MÊME rangée, posée au bord GAUCHE (`data-bord='gauche'`) : les GESTES du groupe, la barre d'action
+   hors combat, jamais mêlés aux ouvreurs d'écrans. Sans rétrécir : à 360 ce sont les ouvreurs qui défilent. */
+.xd-openers[data-bord='gauche'] {
+  margin-left: 0;
   flex: 0 0 auto;
 }
 /* LE TIROIR-JOURNAL SUR LE PONT (§1c-ter : une plaque unique, jamais des éléments épars) — le PONT

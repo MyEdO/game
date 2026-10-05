@@ -51,10 +51,10 @@ describe('porte secrète — schéma (refus au parse)', () => {
     for (const face of ['porteuse', 'voisine', 'les-deux'] as const) expect(chemins({ ...SECRETE, secret: { difficulty: 'complexe', face } })).toEqual([]);
   });
 
-  it('cloison oblique : `door`, `secret`, `crossable`, `climb`, `structure` refusés au parse ; `window` admis', () => {
+  it('cloison oblique : `door`, `secret`, `crossable`, `allege`, `climb`, `structure` refusés au parse ; `window` admis', () => {
     const chemins = (v: unknown) => (wallSegSchema.safeParse(v).error?.issues ?? []).map((i) => i.path.join('.'));
     expect(chemins({ x: 1, y: 1, side: '/', door: true, closed: true, secret: SECRET })).toEqual(['door', 'secret']);
-    expect(chemins({ x: 1, y: 1, side: '/', window: true, crossable: true })).toEqual(['crossable']);
+    expect(chemins({ x: 1, y: 1, side: '/', window: true, crossable: true, allege: 1 })).toEqual(['crossable', 'allege']);
     expect(chemins({ x: 1, y: 1, side: '/', climb: { kind: 'ladder' } })).toEqual(['climb']);
     expect(chemins({ x: 1, y: 1, side: '/', structure: 'porte-de-ville' })).toEqual(['structure']);
     expect(chemins({ x: 1, y: 1, side: '/', window: true, shuttered: true })).toEqual([]);

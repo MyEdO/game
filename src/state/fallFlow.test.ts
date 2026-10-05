@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { placeCombatant } from './spawn';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade } from './cascadeTestKit';
+import { stepSubtitle } from '../ui/CascadeModal';
 import { planFranchissement } from './fallMove';
 import { phaseDeChute } from './fallMove';
 import { REFUS_FRANCHISSEMENT } from './gesteDArete';
@@ -244,6 +245,24 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
     g().fallChoose(A, false);
     expect(g().pendingFall).toBeNull();
     expect(drainerChutes()).toEqual([[A, 4], [B, 4]]);
+  });
+});
+
+describe('fallAcross — exploration, compteur des Dégâts de chute (LDB 15 l.80)', () => {
+  it('trois tombants : chaque 1d10 se situe sur les TROIS dés de la chute — 1/3, 2/3, 3/3', () => {
+    const heros = ['A', 'B', 'C'].map((label, i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 }));
+    useGame.setState({ battle: null, party: heros, mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null, journal: [] });
+    g().fallAcross(top, foot);
+    for (const h of heros) g().fallChoose(h.id, false);
+    // Le sous-titre RENDU par la fenêtre de cascade pour une étape à dé nu (`CascadeModal`, branche dé).
+    const vus: unknown[] = [];
+    for (let i = 0; i < 10 && g().pendingCascade; i++) {
+      const p = g().pendingCascade!;
+      const cur = p.participants[p.cursor];
+      if (cur?.kind === 'chuteDe') vus.push(stepSubtitle({ cursor: p.cursor, total: p.participants.length }, heros.find((h) => h.id === cur.actorId)?.label));
+      avanceEtapeCascade(g);
+    }
+    expect(vus).toEqual(['A — 1/3', 'B — 2/3', 'C — 3/3']);
   });
 });
 

@@ -742,7 +742,6 @@ export function auditWallDeadEndsInside(scene: Scene, z: number): PlanDefect[] {
 const SUSPENSION_FAUTIVE: Readonly<Record<DefautDeSuspension, string>> = {
   'trop-haute': 'elle n’est pas inférieure à la hauteur réelle du saut par cette croisée',
   'plain-pied': 'la croisée est de plain-pied : on l’enjambe, on ne saute pas',
-  divergente: 'les segments qui barrent ce pas en portent des hauteurs différentes',
 };
 
 /** Famille 12 (#700) — hauteur de suspension d'une croisée (`WallSeg.suspendu`, `EDO 01 l.231`) que le

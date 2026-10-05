@@ -1,4 +1,5 @@
-import { useGame } from '../state/store';
+import { useGame, type GameState } from '../state/store';
+import { useShallow } from 'zustand/react/shallow';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import type { TombantParticipant } from '../state/pendings';
 import { metresRetenus, phaseDeChute } from '../state/fallMove';
@@ -9,11 +10,28 @@ import { testBreakdown, testPending } from './breakdown';
 import { useOwns } from './ownership';
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../state/rollSeam';
-import { refusDuTestDeChute, refusDeLaSuspension } from '../state/gesteDArete';
+import { refusDuTestDeChute, refusDeLaSuspension, type RefusGeste } from '../state/gesteDArete';
+import type { RollSegOption } from './OptionChooser';
 import { t } from '../i18n';
 
 /** Enjeu servi par chaque phase de la chute. */
 const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
+
+/** Ce qu'une option de la rangée DÉCLARE à `fallChoose` : le choix lit cette donnée, jamais sa clé. */
+type DeclarationDeChute = { attempt: boolean; suspendre?: boolean };
+
+/** Refus TRADUIT de chaque tombant qui doit encore déclarer — valeurs chaînes, stables pour `useShallow`. */
+function refusParTombant(s: GameState, lire: (s: GameState, id: string) => RefusGeste | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of s.pendingFall?.participants ?? []) {
+    if (!part.interactive || part.attempt !== null) continue;
+    const v = lire(s, part.id);
+    if (v) out[part.id] = t(v.refus, v.vars);
+  }
+  return out;
+}
+const refusDesTests = (s: GameState) => refusParTombant(s, refusDuTestDeChute);
+const refusDesSuspensions = (s: GameState) => (s.pendingFall?.suspendu !== undefined ? refusParTombant(s, refusDeLaSuspension) : {});
 
 /**
  * Modale de Chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : une rangée par TOMBANT, patron de la rangée
@@ -34,6 +52,8 @@ export function FallModal() {
   const confirm = useGame((s) => s.fallConfirm);
   const cancel = useGame((s) => s.fallCancel);
   const choose = useGame((s) => s.fallChoose);
+  const refusTests = useGame(useShallow(refusDesTests));
+  const refusSuspensions = useGame(useShallow(refusDesSuspensions));
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const phase = phaseDeChute(p);
@@ -47,24 +67,29 @@ export function FallModal() {
     const val = testValue(c, 'athletisme');
     // La rangée DIT sa situation : attente d'un autre siège, chute pleine, ou l'issue du Test.
     const situation = part.attempt === null
-      ? (owned ? null : `en attente de la déclaration de ${c.label}`)
+      ? (owned ? null : t('declaration.attente', { name: c.label }))
       : part.attempt === false
-        ? (!part.interactive ? `n’est pas debout — chute pleine de ${m} m, sans Test` : part.suspendre ? `se suspend puis se lâche, sans Test — chute de ${m} m` : `saute sans Test — chute pleine de ${m} m`)
+        ? t(!part.interactive ? 'fall.situation.nonDebout' : part.suspendre ? 'fall.situation.suspendSansTest' : 'fall.situation.sauteSansTest', { metres: m })
         : r
-          ? (r.effectiveMetres <= 0 ? 'La chute est amortie : aucun Dégât.' : `${r.effectiveMetres} m de chute (réduite de ${Math.max(0, m - r.effectiveMetres)} m).`)
+          ? (r.effectiveMetres <= 0 ? t('fall.situation.amortie') : t('fall.situation.reduite', { metres: r.effectiveMetres, reduction: Math.max(0, m - r.effectiveMetres) }))
           : null;
     const note = situation ? <div className="hint">{resultLine(freeCons([situation]))}</div> : null;
-    const declarer = owned && part.attempt === null;
-    const refusTest = declarer ? refusDuTestDeChute(useGame.getState(), part.id) : null;
-    const refusSusp = declarer && p.suspendu !== undefined ? refusDeLaSuspension(useGame.getState(), part.id) : null;
-    const refusDe = (v: typeof refusTest) => (v ? { refus: t(v.refus, v.vars) } : {});
+    const refusTest = refusTests[part.id];
+    const refusSusp = refusSuspensions[part.id];
+    const refusDe = (v: string | undefined) => (v ? { refus: v } : {});
     // Axe HAUTEUR (EDO 01 l.231) : offert par la croisée, déclaré avec le Test, dans la même rangée.
-    const suspensions = p.suspendu !== undefined
-      ? [
-        { key: 'suspendre-jump', label: `Se suspendre, puis se lâcher (chute de ${p.suspendu} m)`, ...refusDe(refusSusp) },
-        { key: 'suspendre-attempt', label: `Se suspendre, puis tenter un Test d'Athlétisme (${p.suspendu} m)`, ...refusDe(refusSusp ?? refusTest) },
-      ]
-      : [];
+    const suspendu = p.suspendu;
+    const offerte = suspendu !== undefined;
+    const declarations: { option: RollSegOption; declaration: DeclarationDeChute }[] = [
+      { option: { key: 'jump', label: t('fall.option.sauter', { metres: m }) }, declaration: { attempt: false, ...(offerte ? { suspendre: false } : {}) } },
+      { option: { key: 'attempt', label: t('fall.option.tenter'), ...refusDe(refusTest) }, declaration: { attempt: true, ...(offerte ? { suspendre: false } : {}) } },
+      ...(suspendu !== undefined
+        ? [
+          { option: { key: 'suspendre-jump', label: t('fall.option.suspendreSauter', { metres: suspendu }), ...refusDe(refusSusp) }, declaration: { attempt: false, suspendre: true } },
+          { option: { key: 'suspendre-attempt', label: t('fall.option.suspendreTenter', { metres: suspendu }), ...refusDe(refusSusp ?? refusTest) }, declaration: { attempt: true, suspendre: true } },
+        ]
+        : []),
+    ];
     return [buildRollRow({
       actor: c,
       row: {
@@ -83,16 +108,15 @@ export function FallModal() {
     }, {
       key: part.id,
       interactive: owned && part.attempt !== false,
-      ...(part.attempt === true && phase === 'choice' ? { rollBlocked: 'En attente des déclarations de la fenêtre' } : {}),
+      ...(part.attempt === true && phase === 'choice' ? { rollBlocked: t('declaration.attenteFenetre') } : {}),
       ...(owned && part.attempt === null
         ? {
           declare: {
-            onChoose: (k: string) => choose(part.id, k.endsWith('attempt'), p.suspendu !== undefined ? k.startsWith('suspendre') : undefined),
-            options: [
-              { key: 'jump', label: `Sauter (chute pleine, ${m} m)` },
-              { key: 'attempt', label: "Tenter un Test d'Athlétisme", ...refusDe(refusTest) },
-              ...suspensions,
-            ],
+            onChoose: (k: string) => {
+              const d = declarations.find((x) => x.option.key === k)?.declaration;
+              if (d) choose(part.id, d.attempt, d.suspendre);
+            },
+            options: declarations.map((x) => x.option),
           },
         }
         : {}),
@@ -113,10 +137,10 @@ export function FallModal() {
       etape={phase}
       flowKey="fall"
       stake={flowStakeRef(FALL_STAKE[phase], { values: { metres: p.metres } })}
-      title={<><Icon id="melee/flee" size="sm" /> Chute volontaire</>}
+      title={<><Icon id="melee/flee" size="sm" /> {t('fall.modale.titre')}</>}
       /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur). La Compétence est le label de la ligne
          et le « +20 » sa Difficulté (`accessible`, `.rm-roll-diff` #1072) — pas ici. */
-      subtitle={<>Dénivelé de {p.metres} m{p.suspendu !== undefined ? ` · ${p.suspendu} m en se suspendant d’abord` : ''}</>}
+      subtitle={p.suspendu !== undefined ? t('fall.modale.deniveleSuspendu', { metres: p.metres, suspendu: p.suspendu }) : t('fall.modale.denivele', { metres: p.metres })}
       rows={rows}
       rolled={rolled}
       actions={actions}

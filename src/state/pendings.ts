@@ -581,8 +581,9 @@ export interface PendingFall extends MultiPending<TombantParticipant> {
   /** Hauteur de chute de qui SE SUSPEND d'abord (EDO 01 l.231), offerte par `planFranchissement`
    *  seulement sous `metres` ; absente = aucun axe de hauteur. */
   suspendu?: number;
-  /** Le saut passe par une croisée franchissable : son allège se paie (`mouvementDeLaChute`). */
-  croisee?: true;
+  /** Allège (m) de la croisée franchissable par laquelle passe le saut (`WallSeg.allege`) : elle se
+   *  paie (`mouvementDeLaChute`). Absente = saut hors croisée. */
+  allege?: number;
   initiateurId: string;
 }
 /** Un TOMBANT d'une chute volontaire (`PendingFall`) — `id` = le combattant qui tombe. `attempt` = sa
