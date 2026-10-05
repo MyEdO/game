@@ -3,7 +3,7 @@
  * défaut de fond que les lots V1, sur les quatre feuilles hors combat :
  *  - la BANDE d'équipage de mer (`contributors.map`) ne déclarait AUCUNE possession → `modalOwnerOf`
  *    `undefined`, c'est-à-dire fenêtre à l'HÔTE SEUL, qui jouait le Test du héros d'un invité
- *    (classe #1268, mesurée par le juge de palier) ;
+ *    (classe #1268) ;
  *  - les CHOIX collectifs (Progression du jour, interpellation pirate, décision d'Embrigadement)
  *    n'avaient pas de porteur → même fenêtre hôte-seul, et l'hôte tranchait pour autrui ;
  *  - les GATES d'insertion lisaient l'affordance LOCALE (`humanControlled` — « qui a la main devant

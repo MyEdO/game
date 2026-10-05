@@ -2,7 +2,7 @@ name: Fermetures
 
 # Un ticket se ferme quand son correctif est PUBLIÉ, jamais au commit local : AUCUN hook local ne
 # ferme de ticket, c'est ce workflow qui le fait (#1685 avait été fermé par 8b52f3a55 avant que ce
-# commit n'atteigne `main` — revue de palier n°3, 2026-09-04, écart 10). `main` n'avance que par la
+# commit n'atteigne `main` — revue du 2026-09-04, écart 10). `main` n'avance que par la
 # file de fusion (#2178) : le sha poussé est un commit de file, jugé par `ci.yml` sur `merge_group`.
 # Aucun `needs:` possible vers ces jobs d'un autre événement : leurs check-runs se LISENT
 # (scripts/ops/checks-requis.mjs), et aucun ticket ne se ferme s'ils ne sont pas tous verts.

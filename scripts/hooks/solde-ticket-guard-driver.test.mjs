@@ -6,7 +6,7 @@
 // fermeture de ticket devient invisible au contrôle de solde (fail-open mesuré 2026-08-03, #1052).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
@@ -53,7 +53,7 @@ test('DRIVER : un message -F est lu dans le répertoire où le commit S\'EXÉCUT
     const out = decisionOf('cd wt && git commit -F m2.txt', base)
     assert.ok(out, 'aucune décision : la fermeture #999999 portée par wt/m2.txt est passée inaperçue')
     assert.equal(out.decision, 'deny')
-    assert.match(out.reason, /999999|PALIER|Palier/)
+    assert.match(out.reason, /999999/)
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
@@ -248,29 +248,35 @@ test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CL
   }
 })
 
-// Le palier compte le commit en cours par ce qu'il EMPORTE : la GARDE lui passe la liste de la porte
-// du ticket (`revuePalier.mjs`, `DOSSIERS_DE_SUBSTANCE`).
-test('DRIVER : le palier compte le commit en cours par ce qu’il emporte -- `-a` non indexé le franchit, `-- <note>` non', () => {
-  const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { 'scripts/a.txt': 'a\n', 'notes/d.md': 'd\n' }, message: 'socle' })
+// La revue se fait PAR TICKET (décision utilisateur du 2026-10-05, #2365) : aucun cumul de commits
+// depuis la dernière archive `revue-palier-*` ne conditionne une fermeture.
+test('DRIVER : 12 commits de substance depuis la dernière archive `revue-palier-*`, sans revue neuve, ne bloquent AUCUNE fermeture', () => {
+  const registres = readFileSync(new URL('./registres-porteurs.json', import.meta.url), 'utf8')
+  const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { 'scripts/a.txt': 'a\n', 'notes/d.md': 'd\n', 'scripts/hooks/registres-porteurs.json': registres }, message: 'socle' })
   try {
     const git = gitDe(repo)
-    const revue = `# PALIER (2026-09-24)\n\nverdict: CONFIRMÉ\n${'A'.repeat(90)}\n\n\`0000000..${socle}\`\n`
+    const aujourdhui = new Date()
+    const jour = `${aujourdhui.getFullYear()}-${String(aujourdhui.getMonth() + 1).padStart(2, '0')}-${String(aujourdhui.getDate()).padStart(2, '0')}`
+    const revue = `# PALIER (${jour})\n\nverdict: CONFIRMÉ\n${'A'.repeat(90)}\n\n\`0000000..${socle}\`\n`
     mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
-    writeFileSync(join(repo, '.claude', 'soldes', `revue-palier-2026-09-24-0000000-${socle}.md`), revue)
+    writeFileSync(join(repo, '.claude', 'soldes', `revue-palier-${jour}-0000000-${socle}.md`), revue)
     git('add', '-A'); git('commit', '-q', '-m', 'revue')
-    for (let i = 0; i < 9; i += 1) {
-      writeFileSync(join(repo, 'scripts', `s${i}.txt`), `${i}\n`); git('add', '-A'); git('commit', '-q', '-m', `s${i}`)
+    for (let i = 0; i < 12; i += 1) {
+      writeFileSync(join(repo, 'scripts', `s${i}.txt`), `${i}\n`); git('add', '-A'); git('commit', '-q', '-m', `s${i} (refs #7)`)
     }
-    writeFileSync(join(repo, 'scripts', 'a.txt'), 'a modifié\n')
-    const tout = decisionOf('git commit -a -m "feat: x (corrige #7)"', repo)
-    assert.match(tout?.reason ?? '', /Palier atteint : au moins 10 commits de substance/, '9 publiés + le -a qui emporte scripts/a.txt')
-
-    writeFileSync(join(repo, 'scripts', 'a.txt'), 'a\n')
-    writeFileSync(join(repo, 'scripts', 'indexe.txt'), 'i\n'); git('add', 'scripts/indexe.txt')
+    assert.equal(git('rev-list', '--count', `${socle}..HEAD`).trim(), '13', 'témoin : 12 commits de substance après la revue archivée')
     writeFileSync(join(repo, 'notes', 'd.md'), 'd2\n')
-    const parChemin = decisionOf('git commit -m "notes (corrige #7)" -- notes/d.md', repo)
-    assert.ok(parChemin, 'la fermeture sans solde se refuse')
-    assert.doesNotMatch(parChemin.reason, /Palier atteint/, 'le src indexé hors pathspec ne part pas : 9 au palier')
+    writeFileSync(join(repo, '.claude', 'soldes', '7.md'), [
+      'VERIFIE: relu le diff complet, rejoué les tests du périmètre et vérifié le fichier touché à la main.',
+      '', '## Restes', 'RAS', '', '## Réfutation', 'verdict: CONFIRMÉ',
+      'Un juge a rejoué le diff contre le DoD, tenté deux contournements, aucun ne passe sur ce lot.',
+      '', `(${jour})`, '',
+    ].join('\n'))
+    git('add', '-A')
+    const commande = 'git commit -m "docs: d (corrige #7)"'
+    assert.equal(decisionOf(commande, repo), null, 'la fermeture à solde conforme passe, quel que soit le cumul depuis l’archive')
+    git('rm', '-q', '--cached', '.claude/soldes/7.md')
+    assert.match(decisionOf(commande, repo)?.reason ?? '', /SOLDE conforme.*#7/, 'témoin : la fermeture se juge sur SON solde')
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
@@ -467,7 +473,7 @@ test('DRIVER : un pathspec à JOKER ne rend pas le garde MUET', () => {
 
 // Un pathspec par SUBSTITUTION : git commite l'arbre de travail de ce que le shell rend, la garde n'en
 // voit que les fragments. Pris pour des chemins résolus, ils bornaient le diff à rien, et `JUGE:` se
-// taisait sur un `src/` de plusieurs centaines de lignes (revue de palier du 2026-09-27, #1801).
+// taisait sur un `src/` de plusieurs centaines de lignes (revue du 2026-09-27, #1801).
 test('DRIVER : un pathspec par SUBSTITUTION ne rend pas la porte du juge MUETTE', () => {
   const chemin = 'src/state/xFlux.ts'
   const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })
@@ -486,7 +492,7 @@ test('DRIVER : un pathspec par SUBSTITUTION ne rend pas la porte du juge MUETTE'
 })
 
 // `xargs` ajoute les chemins HORS du texte de la commande : la garde lisait un commit d'index — vide —
-// pendant que git emportait l'arbre des chemins listés (revue de palier du 2026-09-27, #1801, H-1).
+// pendant que git emportait l'arbre des chemins listés (revue du 2026-09-27, #1801, H-1).
 test('DRIVER : un commit sous `xargs` ne rend pas la porte du juge MUETTE', () => {
   const chemin = 'src/state/xFlux.ts'
   const { racine: repo } = instanceDeDepot({ fichiers: { [chemin]: 'export const X = 0\n' }, message: 'socle' })

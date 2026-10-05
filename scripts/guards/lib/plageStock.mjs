@@ -2,7 +2,7 @@
 //
 // La plage d'un PUSH est ce qu'il APPORTE au tronc : l'appelant passe la ref poussée (`vers`), et un
 // commit déjà sur le tronc n'y est pas rejugé (stocks-nominatifs.test.mjs:33-36). Une FENÊTRE mesurée
-// (palier) ne passe pas de `vers`. Le tronc est lu tel que le dépôt qui juge le connaît : un
+// ne passe pas de `vers`. Le tronc est lu tel que le dépôt qui juge le connaît : un
 // `origin/main` local périmé retranche moins au cumul (le pre-push), la CI refetche le sien.
 //
 // DEUX NIVEAUX, tous deux nécessaires (discriminés par sonde le 2026-09-03) :

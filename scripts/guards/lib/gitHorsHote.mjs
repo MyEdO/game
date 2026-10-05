@@ -6,7 +6,7 @@
 //     Claude Code, `.claude/settings.json`), `scripts/git-hooks` (hooks git, `core.hooksPath`) et
 //     `scripts/guards` (leur bibliothèque) : une porte qui n'importe pas l'hôte y est prise ;
 //   · toute source suivie qui IMPORTE l'hôte : elle compose ses lectures, elle lit donc git par lui
-//     seul (`scripts/ops/faits-de-palier.mjs`, faits de palier ; `scripts/ops/publier.mjs`).
+//     seul (`scripts/ops/publier.mjs`).
 // Hors instruments Vitest (`estFichierVitest` : une suite FORGE des dépôts, un banc n'est pas une porte)
 // et hors l'hôte lui-même. Un module neuf y entre en naissant, ou en important l'hôte.
 //

@@ -253,9 +253,8 @@ function rendu() {
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
    \`post-merge\` et \`post-rewrite\` produisent les cibles de code, et les deux derniers régénèrent les
-   docs dont une source a bougé après une fusion ou un rebase. Le PALIER de revue
-   adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
-   et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
+   docs dont une source a bougé après une fusion ou un rebase. La fermeture des issues suit la
+   PUBLICATION : job \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
    \`${script('ops:fermer')} --rattraper <before>..<sha>\` : la base recule jusqu'à la dernière course
    réussie de ce workflow (\`baseDeLaPlage\`, #2155).`,
