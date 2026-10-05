@@ -43,14 +43,12 @@ import {
   readRefFile,
   restesItems,
   restesRoutants,
-  sectionDe,
   compteSections,
   lignesDeHunks,
   verifierCapture,
   verifierCaptures,
   soldesEmportes,
   revuesEmportees,
-  estFichierEcran,
   natureDeLArbre,
   cheminDEcriture,
   evaluateFermetureHorsCommit,
@@ -71,6 +69,7 @@ import {
   shasCitesDuSolde,
 } from './solde-ticket-guard.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
+import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, depotDe } from '../guards/lib/gitPorte.mjs'
 import {

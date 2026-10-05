@@ -177,6 +177,16 @@ export const ECRIT_LU = {
       '`claude plugin test` portent sur la COPIE ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
       'Le CLI vit hors de l’arbre (PATH, ou cache npm de `npx`)',
   },
+  'livraison:plage': {
+    ecrit: [],
+    lit: ['.claude/soldes/', 'scripts/guards/livraison-plage.mjs', 'scripts/guards/lib/', 'scripts/node-requis.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'package.json'],
+    raison:
+      'aucune écriture : la porte de publication (#2328, scripts/guards/lib/livraison.mjs) lit l’HISTOIRE par git — ' +
+      'le graphe de `merge-base origin/main..HEAD`, le patch de chaque fusion contre sa fusion automatique ' +
+      '(`merge-tree --write-tree`, dont les objets inaccessibles vont à l’odb, jamais à l’arbre), le journal ' +
+      'des messages, et les soldes `.claude/soldes/ref-<N>.md`, `<N>.md` de HEAD ; LIT son code, la porte de ' +
+      'version de Node (`engines` de package.json) et ce qu’importe l’hôte git (scripts/port-dev.mjs, src/lib/coupeAuMot.mjs)',
+  },
   'test:ops': {
     ecrit: [],
     lit: ['src/', 'scripts/', 'eslint.config.js', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
