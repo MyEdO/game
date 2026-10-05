@@ -20,6 +20,7 @@ import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collectio
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, type MetaChamp } from './grammaire/meta';
 import { versDisque } from './grammaire/prose';
+import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
 export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
@@ -137,6 +138,22 @@ export function noeudObjet(schema: unknown, accepte: (noeud: unknown) => boolean
     return 'arreter';
   });
   return trouve;
+}
+
+/**
+ * PAYLOAD de l'op `op` dans la FAMILLE mécanique (`mecaniqueDe`) qui a construit la liste `liste` — ses
+ * champs réservés y figurent au régime du porteur (`charMod.min`). La famille est le premier nœud marqué
+ * (`regimesDuNoeud`) au-dessus de tout nœud objet ; `undefined` hors famille, ou pour une op encore loose
+ * (`OPS_NON_TYPEES`).
+ */
+export function payloadDeFamille(liste: unknown, op: string): unknown {
+  let regimes: Regimes | undefined;
+  descendre([liste], ({ noeud, def }) => {
+    regimes = regimesDuNoeud(noeud);
+    if (regimes) return 'arreter';
+    if (def.type === 'object') return 'elaguer';
+  });
+  return regimes && mecaniqueDe(regimes).opDefs[op];
 }
 
 /**

@@ -1772,9 +1772,9 @@ export interface TraitCapabilities {
   mindless?: boolean;
   /** Blessures calculées avec le Bonus de FORCE au lieu du Bonus de Force Mentale (Fabriqué, LDB 85
    *  l.142 : « au lieu d'utiliser son bonus de Force Mentale, utilisez son bonus de Force »). Lu par
-   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (qui porte l'auto-réussite
-   *  des Tests d'Int/FM/Soc et le profil IA « horde »), un autre trait pourrait un jour substituer la
-   *  même formule sans être Fabriqué. */
+   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (immunité psychologique,
+   *  `engine/psych/registry.ts` ; profil IA « horde », `state/ai.ts` — LDB 85 l.142), un autre trait
+   *  pourrait un jour substituer la même formule sans être Fabriqué. */
   woundsUseForce?: boolean;
   bestial?: boolean;
   coldBlooded?: boolean;

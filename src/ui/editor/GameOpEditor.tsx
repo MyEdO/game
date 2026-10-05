@@ -13,7 +13,7 @@ import { tableTotale } from '../../lib/tableTotale';
 import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
 import type { JsonFormula } from '../../engine/miscast';
 import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
-import { noeudObjet } from '../../data/schemas/validate';
+import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
@@ -32,6 +32,7 @@ import { parseTraitInstance, formatTrait, formatWardSave } from '../../engine/tr
 import { traumaLabelOf } from '../../engine/trauma';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
+import { dureePropre, plancher } from '../compendium/humanize';
 import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
@@ -307,7 +308,7 @@ const accepteLOp = (noeud: unknown, op: string): boolean => {
 };
 
 const varianteDOp = (noeudListe: unknown, op: string): unknown =>
-  noeudListe === undefined ? undefined : noeudObjet(noeudListe, (n) => accepteLOp(enfantsDe(n).find((e) => e.cle === 'op')?.noeud, op));
+  noeudListe === undefined ? undefined : payloadDeFamille(noeudListe, op) ?? noeudObjet(noeudListe, (n) => accepteLOp(enfantsDe(n).find((e) => e.cle === 'op')?.noeud, op));
 
 /** Une `Formula` sans terme de Péché est une `Formula` du moteur. */
 const estFormuleGenerale = (f: JsonFormula): f is Formula => !contientLePeche(f);
@@ -736,13 +737,13 @@ export function opSummary(o: GameOp): string {
     case 'wounds': return `${formulaSummary(o.amount)} Blessure(s)`;
     case 'heal': return `+${formulaSummary(o.amount)} PB`;
     case 'healCaster': return `+${formulaSummary(o.amount)} PB au lanceur`;
-    case 'condition': return `${conditionLabel(o.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`;
+    case 'condition': return [`${conditionLabel(o.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`, dureePropre(o)].filter(Boolean).join(', ');
     case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
     case 'endPsych': return `${o.type}`;
     case 'beginPsych': return `${o.type}${o.cible ? ` (${o.cible})` : ''}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'sbBonus': return `+${o.amount} BF aux Dégâts`;
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
-    case 'charMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char] ?? o.char}`;
+    case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char] ?? o.char}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
     case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.testType ? (findCrewTestTypeById(o.testType)?.label ?? o.testType) : '— compétence ou test à choisir —'}`;
     case 'charDRBonus': return `+${formulaSummary(o.bonus)} DR ${CHAR_LABELS[o.char] ?? o.char}`;
@@ -844,13 +845,31 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
 /** Durée PROPRE en Rounds d'une op qui en porte une (`durationFromOp`, engine/ops) : une `Formula`,
  *  donc la borne basse d'une entrée (`{minimum, of}` — AA 07 l.113) s'y édite comme toute autre forme.
  *  ABSENTE = la durée du CONTEXTE (`durationFromCtx`). SOURCE UNIQUE des ops à durée de Rounds SEULE
- *  (`charMod`, `moveScale`, `maxWeaponHands`) ; `condition` a son propre bloc à TROIS échelles exclusives. */
+ *  (`moveScale`, `maxWeaponHands`) ; `condition` et `charMod` portent TROIS échelles (`DureesPropresField`). */
 function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined; onChange: (f: JsonFormula | undefined) => void }) {
   return (
     <>
       <label className="dr"><input type="checkbox" checked={value != null}
         onChange={(e) => onChange(e.target.checked ? 1 : undefined)} /> dure N Rounds</label>
       {value != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={value} min={0} onChange={onChange} />}
+    </>
+  );
+}
+
+type DureesPropres = { durationRounds?: JsonFormula; durationMinutes?: JsonFormula; durationHours?: JsonFormula };
+
+/** Durée PROPRE à TROIS échelles EXCLUSIVES entre elles (JSDoc des ops `condition` et `charMod`) : cocher
+ *  une échelle efface les deux autres. ABSENTE = la durée du CONTEXTE (`durationFromCtx`). SOURCE UNIQUE
+ *  des ops qui les portent ; `minRounds` est la borne basse de la durée en Rounds de l'op. */
+function DureesPropresField({ value, minRounds, onChange }: { value: DureesPropres; minRounds: number; onChange: (patch: DureesPropres) => void }) {
+  return (
+    <>
+      <label className="dr"><input type="checkbox" checked={value.durationRounds != null} onChange={(e) => onChange({ durationRounds: e.target.checked ? 1 : undefined, durationMinutes: undefined, durationHours: undefined })} /> dure N Rounds</label>
+      {value.durationRounds != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={value.durationRounds} min={minRounds} onChange={(durationRounds) => onChange({ durationRounds })} />}
+      <label className="dr"><input type="checkbox" checked={value.durationMinutes != null} onChange={(e) => onChange({ durationMinutes: e.target.checked ? 1 : undefined, durationRounds: undefined, durationHours: undefined })} /> dure N minutes</label>
+      {value.durationMinutes != null && <FormulaField label="Durée (minutes)" champ="durationMinutes" value={value.durationMinutes} min={1} onChange={(durationMinutes) => onChange({ durationMinutes })} />}
+      <label className="dr"><input type="checkbox" checked={value.durationHours != null} onChange={(e) => onChange({ durationHours: e.target.checked ? 1 : undefined, durationRounds: undefined, durationMinutes: undefined })} /> dure N heures</label>
+      {value.durationHours != null && <FormulaField label="Durée (heures)" champ="durationHours" value={value.durationHours} min={1} onChange={(durationHours) => onChange({ durationHours })} />}
     </>
   );
 }
@@ -1046,13 +1065,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                   ? <span className="dr">— la durée et le verrou de l’État sont ceux de l’effet actif de la source : il part avec elle.</span>
                   : (
                     <>
-                      {/* Les trois échelles de durée PROPRE sont exclusives entre elles (JSDoc de l'op). */}
-                      <label className="dr"><input type="checkbox" checked={o.durationRounds != null} onChange={(e) => upd({ durationRounds: e.target.checked ? 1 : undefined, durationMinutes: undefined, durationHours: undefined })} /> dure N Rounds</label>
-                      {o.durationRounds != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={o.durationRounds} min={1} onChange={(durationRounds) => upd({ durationRounds })} />}
-                      <label className="dr"><input type="checkbox" checked={o.durationMinutes != null} onChange={(e) => upd({ durationMinutes: e.target.checked ? 1 : undefined, durationRounds: undefined, durationHours: undefined })} /> dure N minutes</label>
-                      {o.durationMinutes != null && <FormulaField label="Durée (minutes)" champ="durationMinutes" value={o.durationMinutes} min={1} onChange={(durationMinutes) => upd({ durationMinutes })} />}
-                      <label className="dr"><input type="checkbox" checked={o.durationHours != null} onChange={(e) => upd({ durationHours: e.target.checked ? 1 : undefined, durationRounds: undefined, durationMinutes: undefined })} /> dure N heures</label>
-                      {o.durationHours != null && <FormulaField label="Durée (heures)" champ="durationHours" value={o.durationHours} min={1} onChange={(durationHours) => upd({ durationHours })} />}
+                      <DureesPropresField value={o} minRounds={1} onChange={upd} />
                       {/* VERROUS de Critique (LDB 18) : prédicat d'état (`lockedUntil`) et acte de soin (`unlockBy`). */}
                       <label className="dr"><input type="checkbox" checked={o.lockedUntil != null} onChange={(e) => upd({ lockedUntil: e.target.checked ? { kind: 'always' } : undefined })} /> verrouillé tant que (LDB 18)</label>
                       {o.lockedUntil != null && (
@@ -1078,7 +1091,11 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
               {CHARS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
             </select>
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de caractéristique" value={o.mod} onChange={(mod) => upd({ mod })} /></label>
-            <DureeRoundsField value={o.durationRounds} onChange={(durationRounds) => upd({ durationRounds })} />
+            {/* Plancher : champ RÉSERVÉ, offert là seulement où la famille du porteur l'admet (EDO 11 l.190). */}
+            {enfantsDe(noeudDOp).some((e) => e.cle === 'min') && (
+              <label className="dr">Plancher<NumberField variant="nu" label="Plancher de la perte" placeholder="—" vide value={o.min} onChange={(n) => upd({ min: n ?? undefined })} /></label>
+            )}
+            <DureesPropresField value={o} minRounds={0} onChange={upd} />
           </>
         )}
         {/* Échelle de Mouvement et plafond de mains d'arme (Séquelles & mobilité) : même contrat de durée
