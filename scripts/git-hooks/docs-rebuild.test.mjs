@@ -132,31 +132,32 @@ test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checko
 })
 
 test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans doc frère général', () => {
-  const { racine } = instanceDeDepot({ fichiers: { 'docs/a.md': 'a', 'docs/b.md': 'b', 'docs/c.md': 'c', 'src/code.gen.ts': 'code' } })
+  const doc = (nom) => ['docs', `${nom}.md`].join('/')
+  const { racine } = instanceDeDepot({ fichiers: { [doc('a')]: 'a', [doc('b')]: 'b', [doc('c')]: 'c', 'src/code.gen.ts': 'code' } })
   const generateurs = [
     { script: 'g/code.mjs', targets: ['src/code.gen.ts'] },
-    { script: 'g/a.mjs', targets: ['docs/a.md'] },
-    { script: 'g/b.mjs', targets: ['docs/b.md'] },
-    { script: 'g/c.mjs', targets: ['docs/c.md'] },
+    { script: 'g/a.mjs', targets: [doc('a')] },
+    { script: 'g/b.mjs', targets: [doc('b')] },
+    { script: 'g/c.mjs', targets: [doc('c')] },
   ]
   const mesure = {
     'g/code.mjs': { fichiers: ['data/code.json'], dossiers: [], cibles: [] },
-    'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: ['notes'], cibles: ['docs/a.md'] },
-    'g/b.mjs': { fichiers: ['docs/a.md'], dossiers: [], cibles: ['docs/b.md'] },
-    'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: ['docs/c.md'] },
+    'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: ['notes'], cibles: [doc('a')] },
+    'g/b.mjs': { fichiers: [doc('a')], dossiers: [], cibles: [doc('b')] },
+    'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: [doc('c')] },
   }
   const selection = (lot, m = mesure) => selectionDesGenerateurs({ lot, mesure: m, cwd: racine, generateurs })
   try {
     assert.deepEqual(selection(['notes/a.txt']).scripts, ['g/a.mjs', 'g/b.mjs'])
     assert.deepEqual(selection(['notes/neuf/plus/bas.txt']).scripts, ['g/a.mjs', 'g/b.mjs'])
-    assert.deepEqual(selection(['docs/a.md']).scripts, ['g/a.mjs', 'g/b.mjs'])
+    assert.deepEqual(selection([doc('a')]).scripts, ['g/a.mjs', 'g/b.mjs'])
     assert.deepEqual(selection(['public/independent.svg']).scripts, [])
-    const mixte = [{ ...generateurs[1], targets: [], injecte: ['docs/a.md'] }, ...generateurs.filter((g) => g.script !== 'g/a.mjs')]
+    const mixte = [{ ...generateurs[1], targets: [], injecte: [doc('a')] }, ...generateurs.filter((g) => g.script !== 'g/a.mjs')]
     assert.ok(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts.includes('g/code.mjs'))
     assert.equal(selection(null).complete, true)
     assert.equal(selection(['notes/a.txt'], { 'g/a.mjs': mesure['g/a.mjs'] }).complete, true)
     assert.equal(selection(['scripts/docs/lib/enregistreur-lectures.mjs']).complete, true)
-    rmSync(join(racine, 'docs/c.md'))
+    rmSync(join(racine, doc('c')))
     assert.equal(selection(['notes/a.txt']).complete, true)
   } finally {
     rmSync(racine, { recursive: true, force: true })
