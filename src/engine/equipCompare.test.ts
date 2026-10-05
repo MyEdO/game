@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { compareEquip, isShieldItem } from './equipCompare';
+import { compareEquip } from './equipCompare';
 import type { Combatant, ItemInstance, Weapon } from './types';
 import { REACH_LABELS } from './types';
+import { itemFromTrappingById } from './items';
 
 // « Actuellement équipé » = l'arme tenue dans le set actif (Weapon dérivés `c.weapons`) ; l'armure reste pilotée
 // par `items.equipped`. On modélise donc l'équipement courant via `weapons` (armes) et `items` (armure).
@@ -94,13 +95,20 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
     expect(corps.trend).toBe('up');
   });
 
-  it('bouclier : compare la Protection (Protectrice N), exclut l’objet lui-même', () => {
-    expect(isShieldItem({ qualities: [{ id: 'protectrice', value: 1 }] })).toBe(true);
-    const h = hero({ weapons: [{ uid: 'cur', label: 'Bouclier (Targe)', type: 'melee', qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }] }] });
-    const grand = it_({ uid: 'new', label: 'Bouclier (Grand)', kind: 'melee', qualities: [{ id: 'protectrice', value: 3 }, { id: 'defensive' }] });
+  it('bouclier (LDB 62 l.33-35) : compare la Protection (Protectrice N, LDB 62 l.296), exclut l’objet lui-même', () => {
+    const h = hero({ weapons: [{ uid: 'cur', trappingId: 'bouclier-targe', label: 'Bouclier (Targe)', type: 'melee', qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }] }] });
+    const grand = it_({ uid: 'new', trappingId: 'bouclier-grand', label: 'Bouclier (Grand)', kind: 'melee', qualities: [{ id: 'protectrice', value: 3 }, { id: 'defensive' }] });
     const c = compareEquip(grand, h);
     expect(c.slot).toBe('shield');
     expect(c.currentName).toBe('Bouclier (Targe)');
     expect(c.rows[0].trend).toBe('up');
+  });
+
+  it('Atout Protectrice sans être un bouclier (ADE II 02 l.613) : comparé comme une arme de mêlée', () => {
+    const poing = itemFromTrappingById('poing-de-fer')!;
+    expect(poing.qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
+    const c = compareEquip(poing, hero({}));
+    expect(c.slot).toBe('melee');
+    expect(c.rows.map((r) => r.label)).toEqual(['Dégâts', 'Allonge', 'Qualités']);
   });
 });
