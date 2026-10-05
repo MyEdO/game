@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 /**
- * #2097 A7 — une surface React montée recompose son rig à l'édition d'un catalogue : la forme de
- * l'arme invoquée (`form` → `shape` du trapping) éditée par `setDataset('trappings', …)` change son
- * dessin sans autre rendu de l'appelant (`useCompositionRig`, témoin `abonnerAuxDatasets`).
+ * #2097 A7, #2113 A3 — une surface React montée recompose son rig à l'édition d'un catalogue : la forme
+ * d'une arme portée (invoquée par `form`, ou Possession par `trappingId`) éditée par
+ * `setDataset('trappings', …)` change le dessin de la poupée d'un héros sans autre rendu de l'appelant
+ * (`CharacterPreview` : la version des catalogues entre dans le mémo de sa projection).
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -12,9 +13,9 @@ import { setDataset } from '../../data/overrides';
 import { creatures, trappings } from '../../data';
 import { CreaturePreview } from '../../ui/compendium/CreaturePreview';
 import { WEAPON_DEFS } from './parts/weapons/_registry.generated';
-import { equipDe } from './parts/equipment';
-import { asRigSpeciesId } from './appearance';
-import type { Weapon } from '../../engine/types';
+import { createHero } from '../../engine/character';
+import { itemFromTrappingById, weaponFromItem } from '../../engine/items';
+import type { Combatant, Weapon } from '../../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -24,8 +25,13 @@ const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape)!;
 const catalogueDOrigine = trappings.slice();
 const bestiaireDOrigine = creatures.slice();
 
-const APPARENCE = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 } as const;
-const EQUIPEMENT = equipDe([{ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: armeDeCatalogue.id } as unknown as Weapon], []);
+/** Héros qui porte `arme`, rendu par la poupée depuis son état (`CharacterPreview hero`). */
+function héros(arme: Weapon): Combatant {
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
+  h.weapons = [arme];
+  return h;
+}
+const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape } : t)));
 
 let root: Root | null = null;
 let hôte: HTMLDivElement | null = null;
@@ -40,18 +46,27 @@ afterEach(() => {
 });
 
 describe('surface React montée : l’édition d’un catalogue recompose son rig', () => {
-  it('la forme de l’arme éditée au catalogue change le dessin de l’aperçu', () => {
-    hôte = document.createElement('div');
-    document.body.appendChild(hôte);
-    root = createRoot(hôte);
-    act(() => root!.render(<CharacterPreview appearance={APPARENCE} equip={EQUIPEMENT} career="soldat" />));
-    const avant = hôte.innerHTML;
-    expect(avant, 'PRÉMISSE : l’aperçu dessine un rig').toContain('data-bone="arme"');
+  const PORTEURS: [string, () => Combatant, () => void][] = [
+    [
+      'arme invoquée (`form`)',
+      () => héros({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: armeDeCatalogue.id }),
+      () => éditerLaForme(armeDeCatalogue.id, autreForme),
+    ],
+    ['Possession portée (`trappingId`)', () => héros(weaponFromItem(itemFromTrappingById('arbalete')!, 'main')), () => éditerLaForme('arbalete', 'hache_lancer')],
+  ];
+  for (const [nom, porteur, éditer] of PORTEURS)
+    it(`${nom} : la forme éditée au catalogue change le dessin de la poupée du héros`, () => {
+      hôte = document.createElement('div');
+      document.body.appendChild(hôte);
+      root = createRoot(hôte);
+      act(() => root!.render(<CharacterPreview hero={porteur()} />));
+      const avant = hôte.innerHTML;
+      expect(avant, 'PRÉMISSE : l’aperçu dessine un rig').toContain('data-bone="arme"');
 
-    act(() => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t))));
+      act(éditer);
 
-    expect(hôte.innerHTML, 'l’aperçu n’a pas suivi l’édition du catalogue').not.toBe(avant);
-  });
+      expect(hôte.innerHTML, 'l’aperçu n’a pas suivi l’édition du catalogue').not.toBe(avant);
+    });
 });
 
 describe('aperçu de créature monté : l’édition du record de bestiaire le redessine (C6)', () => {

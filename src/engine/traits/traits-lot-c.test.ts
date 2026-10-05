@@ -77,8 +77,12 @@ describe('dispatch — parsing et prédicats (LDB 85)', () => {
     expect(traitSeesInDark([{ id: 'vision-nocturne' }])).toBe(true);
     expect(traitSeesInDark([{ id: 'infravision' }])).toBe(true);
     expect(mutationsAtSpawn([{ id: 'mutation' }, { id: 'corruption-mentale' }])).toEqual([{ kind: 'physique', mutationId: undefined }, { kind: 'mentale', mutationId: undefined }]);
-    // Mutation EXPLICITE (tell figé en donnée) : l'argument d'auteur est résolu en id stable (slugId).
-    expect(mutationsAtSpawn([{ id: 'mutation', arg: 'Cornes asymétriques' }])).toEqual([{ kind: 'physique', mutationId: 'cornes-asymetriques' }]);
+    // Mutation EXPLICITE (tell figé en donnée) : l'arg est l'id de la mutation.
+    expect(mutationsAtSpawn([{ id: 'mutation', arg: 'cornes-asymetriques' }])).toEqual([{ kind: 'physique', mutationId: 'cornes-asymetriques' }]);
+    // Indice = NOMBRE d'instances ; l'arg fixe la première, les autres se tirent (ZI 04 l.118).
+    expect(mutationsAtSpawn([{ id: 'corruption-mentale', value: 3, arg: 'totalement-desequilibre' }, { id: 'mutation', value: 2 }])).toEqual([
+      { kind: 'mentale', mutationId: 'totalement-desequilibre' }, { kind: 'mentale' }, { kind: 'mentale' }, { kind: 'physique' }, { kind: 'physique' },
+    ]);
   });
 });
 

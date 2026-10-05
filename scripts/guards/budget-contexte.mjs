@@ -70,9 +70,9 @@ export function ligneDeDescription(texte) {
   return null
 }
 
-const lecteurDisque = (racine) => (chemin) => {
-  try { return readFileSync(resolve(racine, chemin), 'utf8') } catch { return null }
-}
+const lecteurDisque = (racine) => (chemins) => new Map(chemins.map((chemin) => {
+  try { return [chemin, readFileSync(resolve(racine, chemin), 'utf8')] } catch { return [chemin, null] }
+}))
 const listeurDisque = (racine) => (dossier) => {
   try { return readdirSync(resolve(racine, dossier)).sort() } catch { return [] }
 }
@@ -80,32 +80,33 @@ const listeurDisque = (racine) => (dossier) => {
 /**
  * Le budget du contexte permanent : un poste par fichier mesuré, et leur total en OCTETS. PURE hors
  * les deux lectures injectées — c'est par elles que la mesure se fait sur l'INDEX (`git show :<x>`)
- * plutôt que sur l'arbre.
+ * plutôt que sur l'arbre. `lireTout` lit une LISTE de chemins (`null` = absent) : deux lots par
+ * mesure, `CLAUDE.md` puis tout ce qu'il désigne, quel que soit le nombre de fichiers.
  * @param {string} racine
- * @param {{lire?: (chemin: string) => string|null, lister?: (dossier: string) => string[]}} [io]
+ * @param {{lireTout?: (chemins: string[]) => Map<string, string|null>, lister?: (dossier: string) => string[]}} [io]
  * @returns {{postes: {nom: string, octets: number}[], total: number}}
  */
 export function mesurerBudget(racine = process.cwd(), io = {}) {
-  const lire = io.lire ?? lecteurDisque(racine)
+  const lireTout = io.lireTout ?? lecteurDisque(racine)
   const lister = io.lister ?? listeurDisque(racine)
   const postes = []
   const poser = (nom, texte) => {
     if (typeof texte !== 'string') return
     postes.push({ nom, octets: octetsDe(texte) })
   }
-  const claude = lire('CLAUDE.md')
+  const claude = lireTout(['CLAUDE.md']).get('CLAUDE.md') ?? null
+  const imports = importsDe(claude)
+  const descriptions = [
+    ...lister('.claude/skills').map((nom) => `.claude/skills/${nom}/SKILL.md`),
+    ...lister('.claude/agents').filter((nom) => nom.endsWith('.md')).map((nom) => `.claude/agents/${nom}`),
+  ]
+  const lus = lireTout([...imports, '.claude/memory/MEMORY.md', ...descriptions])
+  const lu = (chemin) => lus.get(chemin) ?? null
   poser('CLAUDE.md', claude)
-  for (const importe of importsDe(claude)) poser(importe, lire(importe))
-  poser('.claude/memory/MEMORY.md', lire('.claude/memory/MEMORY.md'))
-  for (const nom of lister('.claude/skills')) {
-    const chemin = `.claude/skills/${nom}/SKILL.md`
-    const desc = ligneDeDescription(lire(chemin))
-    if (desc !== null) poser(`${chemin}#description`, desc)
-  }
-  for (const nom of lister('.claude/agents')) {
-    if (!nom.endsWith('.md')) continue
-    const chemin = `.claude/agents/${nom}`
-    const desc = ligneDeDescription(lire(chemin))
+  for (const importe of imports) poser(importe, lu(importe))
+  poser('.claude/memory/MEMORY.md', lu('.claude/memory/MEMORY.md'))
+  for (const chemin of descriptions) {
+    const desc = ligneDeDescription(lu(chemin))
     if (desc !== null) poser(`${chemin}#description`, desc)
   }
   return { postes, total: postes.reduce((n, p) => n + p.octets, 0) }

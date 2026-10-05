@@ -98,6 +98,26 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     expect(useGame.getState().battle!.over).toBe('defeat');
   });
 
+  it('une bête à statbloc CUSTOM garde son tirage figé et ses traits appris (LDB 77 l.108, LDB 23 l.130)', () => {
+    const hero = makeHero();
+    const charsRolled = {
+      'capacite-de-combat': 31, 'capacite-de-tir': 4, force: 42, endurance: 37, initiative: 23,
+      agilite: 33, dexterite: 6, intelligence: 12, 'force-mentale': 9, sociabilite: 7,
+    };
+    const destrier: Possession = {
+      uid: 'pos-destrier-custom', ownerId: hero.id, nature: 'bete',
+      ref: { custom: { type: 'statblock', label: 'Destrier', char: { 'capacite-de-combat': 25, force: 40, endurance: 35, M: 8 }, traits: [{ id: 'belliqueux' }] } },
+      charsRolled, learnedTraits: ['dresse-monture'],
+      location: { kind: 'avec-le-groupe' }, items: [],
+    };
+    startFixtureCombat(hero, [destrier]);
+
+    const mount = useGame.getState().battle!.combatants.find((c) => c.id === 'pos-destrier-custom');
+    expect(mount, 'Belliqueux mais Dressé (Monture) appris : montée en combat').toBeTruthy();
+    expect(mount!.characteristics).toEqual(charsRolled);
+    expect(mount!.traits?.map((t) => t.id)).toContain('dresse-monture');
+  });
+
   it('une bête AU LIEU (pas avec le groupe), même chevauchable, n’est PAS spawnée en combat', () => {
     const hero = makeHero();
     const chevalEnPension: Possession = {

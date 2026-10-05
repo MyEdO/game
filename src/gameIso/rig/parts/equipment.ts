@@ -11,19 +11,23 @@ import { norm as wnorm } from './weaponForms';
 import { findTrappingById } from '../../../data';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
-/** Clés d'une arme que le rig LIT (#2097) : le type `FormeDArme` et le sélecteur `armeDeDessin` en
- *  dérivent, l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et elles seules. */
-const CLES_ARME = ['attackKind', 'form', 'hand', 'natural', 'shape', 'skin', 'subType', 'type'] as const;
+/** Clés d'une arme que le rig LIT telles quelles (#2097) : le type `FormeDArme` et le sélecteur
+ *  `armeDeDessin` en dérivent ; l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et la forme
+ *  RÉSOLUE, et elles seules. */
+const CLES_ARME = ['attackKind', 'hand', 'natural', 'skin', 'subType', 'type'] as const;
 /** Clés d'une pièce d'armure que le rig LIT (#2097). */
 const CLES_PIECE = ['locs', 'skin'] as const;
-/** Clés d'un bouclier que le rig LIT (#2097). */
-const CLES_BOUCLIER = ['shape'] as const;
 
-/** Ce que le rig lit d'une arme. Un `Weapon` entier en est une instance. */
-export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]>;
+/** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
+ *  invoquée, le choix du joueur. */
+export type SourceDeForme = Pick<Weapon, 'form' | 'formeChoisie' | 'natural' | 'trappingId'>;
+
+/** Ce que le rig lit d'une arme : ses clés lues telles quelles, et sa forme RÉSOLUE (`formeResolue`).
+ *  `forme` n'existe pas sur `Weapon` : une arme brute ne s'y substitue pas (#2113). */
+export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { forme: string | undefined };
 export type ArmeDeDessin = FormeDArme & { bouclier: boolean };
 export type PieceDeDessin = Pick<ItemInstance, (typeof CLES_PIECE)[number]> & { materiau: Materiau };
-export type BouclierDeDessin = Pick<Weapon | ItemInstance, (typeof CLES_BOUCLIER)[number]>;
+export type BouclierDeDessin = { forme: string | undefined };
 export type Materiau = 'rembourre' | 'cuir' | 'maille' | 'plaque';
 
 /** Équipement DESSINÉ d'un porteur : projection de son état par `armeDeDessin`/`pieceDeDessin`
@@ -45,9 +49,27 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
 /** Bouclier au sens du rig : `isShieldItem` (`src/engine/equipCompare.ts`), par l'id de Qualité. */
 export const isShield = (x: { qualities?: QualityInstance[] }): boolean => isShieldItem(x);
 
-export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), bouclier: isShield(w) });
+/**
+ * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
+ * d'inventaire et sélecteur de forme la lisent. Routage PAR ID STABLE :
+ *  1. attaque naturelle → aucune forme ;
+ *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
+ *  3. choix du joueur, s'il est parmi les `formChoices` du catalogue ;
+ *  4. `shape` du catalogue, par `trappingId`.
+ * `undefined` : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
+ */
+export function formeResolue(x: SourceDeForme): string | undefined {
+  if (x.natural) return undefined;
+  const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
+  if (invoquee) return invoquee;
+  const t = x.trappingId ? findTrappingById(x.trappingId) : undefined;
+  if (x.formeChoisie && t?.formChoices?.includes(x.formeChoisie)) return x.formeChoisie;
+  return t?.shape;
+}
+
+export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), forme: formeResolue(w), bouclier: isShield(w) });
 export const pieceDeDessin = (it: ItemInstance): PieceDeDessin => ({ ...projeter(it, CLES_PIECE), materiau: armourMaterial(it) });
-export const bouclierDeDessin = (x: Weapon | ItemInstance): BouclierDeDessin => projeter(x, CLES_BOUCLIER);
+export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ forme: formeResolue(x) });
 
 /** Rang d'affichage des matériaux : la couche du DESSUS s'affiche (plaque sur maille sur cuir). */
 const MATERIAL_RANK: Record<Materiau, number> = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 };
@@ -82,11 +104,11 @@ export function equipPorte(c: Combatant, repliArmure: () => ItemInstance[] = () 
   return equipDe(c.weapons ?? [], portees.length ? portees : repliArmure(), (c.items ?? []).find((i) => i.equipped && isCapeItem(i)));
 }
 
-/** Ensemble des slugs de FORME catalogués (clés de l'art rig) — pour valider un `shape` reçu en donnée.
+/** Ensemble des slugs de FORME catalogués (clés de l'art rig) — pour valider une forme résolue.
  *  `epee` (forme générique, repli du Groupe `base` + défaut final) est une def du registre comme les autres. */
 const ART_BY_SLUG = new Set(WEAPON_DEFS.map((d) => d.slug));
 
-/** Forme par défaut d'un Groupe canonique (REPLI quand l'arme ne porte pas de `shape` : armes
+/** Forme par défaut d'un Groupe canonique (REPLI quand l'arme n'a pas de forme résolue : armes
  *  génériques de statbloc / hors catalogue). Le Groupe (WFRP4) n'encode pas la forme — c'est un
  *  simple défaut visuel par famille, pas un routage de libellé. */
 const ART_BY_GROUP: Record<string, string> = {
@@ -96,21 +118,11 @@ const ART_BY_GROUP: Record<string, string> = {
   fronde: 'fronde', lancer: 'javelot', entraves: 'fouet', explosifs: 'bombe',
 };
 
-/**
- * FORME d'art de l'arme (clé du registre WEAPONS) = 1 silhouette. Routage PAR ID STABLE, plus aucun
- * lookup de libellé/regex au runtime (« lookup par libellé = bug multilingue ») :
- *  1. attaque naturelle (`w.natural`) → aucune arme tenue ;
- *  2. arme invoquée (`w.form` = id de trapping) → son `shape` catalogué ;
- *  3. `w.shape` catalogué (stampé au spawn depuis l'objet/le trait) ;
- *  4. repli par Groupe canonique (armes génériques sans shape).
- */
+/** FORME d'art de l'arme (clé du registre WEAPONS) = 1 silhouette : aucune pour une attaque naturelle,
+ *  sinon la forme résolue (`formeResolue`) si l'art la connaît, sinon le repli par Groupe canonique. */
 export function weaponFamily(w: FormeDArme): string {
   if (w.natural) return ''; // attaque naturelle (corps) : la part du rig fait foi, rien en main
-  if (w.form) { // arme invoquée : `form` porte un id de trapping → résolu par id vers son shape
-    const s = findTrappingById(w.form)?.shape;
-    if (s && ART_BY_SLUG.has(s)) return s;
-  }
-  if (w.shape && ART_BY_SLUG.has(w.shape)) return w.shape;
+  if (w.forme && ART_BY_SLUG.has(w.forme)) return w.forme;
   return ART_BY_GROUP[weaponGroupKey(w)] ?? (w.type === 'ranged' ? 'arc' : 'epee');
 }
 
@@ -139,13 +151,13 @@ export function weaponPart(w: FormeDArme): PartArt {
 }
 
 /** Silhouette de bouclier (os `bouclier`, main faible) — registre DATA-DRIVEN `shields/defs/`,
- *  routé par SLUG de FORME (`x.shape`, stampé au spawn depuis le trapping), plus aucun lookup de
- *  libellé ; repli = le def marqué `fallback` (rondache). Plus aucun SVG ni tableau en dur ici. */
+ *  routé par la forme RÉSOLUE (`bouclierDeDessin`), plus aucun lookup de libellé ; repli = le def
+ *  marqué `fallback` (rondache). Plus aucun SVG ni tableau en dur ici. */
 const SHIELD_BY_SLUG = new Map(SHIELD_DEFS.map((d) => [d.slug, d]));
 const SHIELD_FALLBACK = SHIELD_DEFS.find((d) => d.fallback) ?? SHIELD_DEFS[0];
 const TABLE_BOUCLIER = tableDObjet([]);
 export function shieldPart(x: BouclierDeDessin): PartArt {
-  const d = (x.shape ? SHIELD_BY_SLUG.get(x.shape) : undefined) ?? SHIELD_FALLBACK;
+  const d = (x.forme ? SHIELD_BY_SLUG.get(x.forme) : undefined) ?? SHIELD_FALLBACK;
   return applyTokenMapArt(d.art, TABLE_BOUCLIER);
 }
 

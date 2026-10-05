@@ -1,6 +1,4 @@
 // @vitest-environment jsdom
-import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../../state/store';
 import { openAttackCascade } from '../../state/combatFlow';
@@ -10,6 +8,7 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { useDefenseJetProps } from './useDefenseJetProps';
 import { RollShell } from '../RollShell';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
 /**
  * #1000 — quand les DEUX camps ont dépensé « Je ne faillirai pas ! », l'arbitrage APPLIQUÉ (les deux
@@ -32,12 +31,7 @@ function Probe() {
   return props ? <RollShell {...props} /> : null;
 }
 
-let root: Root | null = null;
-let host: HTMLDivElement | null = null;
-afterEach(() => {
-  if (root) act(() => root!.unmount());
-  root = null; host = null;
-});
+afterEach(demonterRacines);
 
 /** Joue l'opposition PILOTÉE jusqu'à la fenêtre de Défense, en forçant les camps demandés. */
 function play(opts: { atk?: boolean; def?: boolean }): string {
@@ -60,12 +54,8 @@ function play(opts: { atk?: boolean; def?: boolean }): string {
   g().attackConfirm();
   g().defenseRoll();
   if (opts.def) g().defenseForceSuccess();
-  if (root) act(() => root!.unmount());
-  host = document.createElement('div');
-  document.body.appendChild(host);
-  root = createRoot(host);
-  act(() => root!.render(<Probe />));
-  return host.textContent ?? '';
+  demonterRacines();
+  return monterRacine(<Probe />).container.textContent ?? '';
 }
 
 describe('#1000 — l’annulation mutuelle des Résiliences est AFFICHÉE', () => {

@@ -2,12 +2,12 @@
 // forme qu'un module de porte peut écrire est vue. Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { estFichierVitest } from './fichierVitest.mjs'
-import { DOSSIERS_DES_PORTES, HOTE, IMPORT_DE_L_HOTE, RACINE, sitesDuDepot, sitesHorsHote, sourcesDesPortes } from './gitHorsHote.mjs'
+import { BANC, DOSSIERS_DES_PORTES, HOTE, IMPORT_DE_L_HOTE, RACINE, sitesDuDepot, sitesHorsHote, sourcesDesPortes, testsDeScripts } from './gitHorsHote.mjs'
 
-test('l’arbre : aucun module de porte ne lit git hors de l’hôte', () => {
+test('l’arbre : aucun module de porte ne lit git hors de l’hôte, aucun test de `scripts/` ne lance git hors du banc', () => {
   const sites = sitesDuDepot()
   assert.deepEqual(sites.map((s) => `${s.chemin}:${s.ligne} [${s.forme}] ${s.extrait}`), [])
 })
@@ -25,13 +25,30 @@ test('le périmètre : les sources suivies des dossiers de portes et les importe
     'hors des dossiers, seul un importeur de l’hôte est dans le périmètre')
 })
 
+test('les tests de `scripts/` : suivis, instruments seulement, et le banc hors d’eux comme hors des portes (#2155)', () => {
+  const tests = testsDeScripts()
+  assert.ok(tests.includes('scripts/hooks/solde-ticket-guard-driver.test.mjs'))
+  assert.ok(tests.includes('scripts/test/run.test.mjs'))
+  assert.ok(tests.every((f) => f.startsWith('scripts/') && estFichierVitest(f)))
+  assert.ok(existsSync(join(RACINE, BANC)), `le module de banc ${BANC} est absent`)
+  assert.ok(!tests.includes(BANC) && !sourcesDesPortes().includes(BANC), 'le banc est le lanceur, pas un site')
+})
+
+test('dans un test de `scripts/`, le `lanceur` seul est un site ; une porte garde ses trois formes', () => {
+  const texte = `${'execFileSync'}('git', ['ls-files', '-z'])\n`
+  const lire = () => texte
+  assert.deepEqual(sitesDuDepot(RACINE, { lister: () => [], listerTests: () => ['scripts/x.test.mjs'], lire }).map((s) => s.forme), ['lanceur'])
+  assert.deepEqual(sitesDuDepot(RACINE, { lister: () => ['scripts/hooks/x.mjs'], listerTests: () => [], lire }).map((s) => s.forme), ['lanceur', 'forme', 'forme'])
+})
+
 const formes = (texte) => sitesHorsHote('x.mjs', texte).map((s) => [s.ligne, s.forme])
 
+// Le lanceur des échantillons s'écrit en DEUX morceaux : ce test est lui-même au périmètre (tests de `scripts/`).
 test('lanceur : git passé comme exécutable, ou en tête d’une ligne de commande shell', () => {
-  assert.deepEqual(formes("execFileSync('git', ['status'])"), [[1, 'lanceur']])
-  assert.deepEqual(formes('spawnSync("git", args)'), [[1, 'lanceur']])
-  assert.deepEqual(formes("const x = 1\nrun('git', ['fetch'], { budget })"), [[2, 'lanceur']])
-  assert.deepEqual(formes("execSync('git status --porcelain')"), [[1, 'lanceur']])
+  assert.deepEqual(formes(`${'execFileSync'}('git', ['status'])`), [[1, 'lanceur']])
+  assert.deepEqual(formes(`${'spawnSync'}("git", args)`), [[1, 'lanceur']])
+  assert.deepEqual(formes(`const x = 1\n${'run'}('git', ['fetch'], { budget })`), [[2, 'lanceur']])
+  assert.deepEqual(formes(`${'execSync'}('git status --porcelain')`), [[1, 'lanceur']])
   assert.deepEqual(formes('throw new Error(`git ${args.join(" ")} refusé`)'), [], 'un message qui commence par git n’en lance pas')
   assert.deepEqual(formes("// execFileSync('git', args)\n/* spawnSync('git') */"), [], 'un commentaire ne lance rien')
 })

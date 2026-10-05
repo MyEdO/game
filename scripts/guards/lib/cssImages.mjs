@@ -105,8 +105,9 @@ export function imageCss(source, options) {
   const { manifeste, partagees, reutilises } = coteCss(source, options)
   const rels = new Set(source.lister(RACINE_DES_MODULES).filter((f) => f.endsWith('.css')))
   for (const c of modulesDePrimitive(manifeste)) rels.add(c)
+  const textes = source.lireTout([...rels])
   const fichiers = [...rels]
-    .map((rel) => ({ rel, text: source.lire(rel) }))
+    .map((rel) => ({ rel, text: textes.get(rel) ?? null }))
     .filter((f) => f.text !== null)
   return { fichiers, manifeste, partagees, reutilises }
 }

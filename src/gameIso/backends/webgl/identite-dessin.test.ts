@@ -7,6 +7,8 @@
  *    catalogue édité) ne change pas un octet de ce qu'il dessine ;
  *  - le sujet RECONSTRUIT après la mutation change d'identité SI ET SEULEMENT SI son dessin change —
  *    l'acteur (identité de texture, `actorPoseKey`, `actorIdentityKey`) comme le figurant de scène.
+ * Le « seulement si » est faux devant une édition de catalogue SANS rapport : l'instantané hache
+ * `version` (#2113 phase B, `it.fails` ci-dessous).
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { actorBillboards, actorIdentityKey, actorPoseKey, collectBillboards, type ActorPose, type BillboardSubject } from './sceneMeshes';
@@ -14,7 +16,7 @@ import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../state
 import type { SeatPose } from '../../../state/seating';
 import type { TokenEl } from '../../builders/types';
 import { createHero } from '../../../engine/character';
-import { unloadWeapon } from '../../../engine/items';
+import { itemFromTrappingById, unloadWeapon, weaponFromItem } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { setDataset } from '../../../data/overrides';
 import { abonnerAuxDatasets } from '../../../data/versionDataset';
@@ -41,10 +43,13 @@ const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape)!;
 const catalogueDOrigine = trappings.slice();
 afterEach(() => setDataset('trappings', catalogueDOrigine));
 
+/** Arme d'une Possession du catalogue, construite comme au loadout (`itemFromTrappingById` → `weaponFromItem`). */
+const armeDuCatalogue = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id)!, 'main');
+
 function arbalétrier(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
   h.id = 'h1';
-  h.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1, shape: 'arbalete' } as unknown as Weapon];
+  h.weapons = [armeDuCatalogue('arbalete')];
   h.items = [...(h.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 } as ItemInstance];
   loadRegister(h, h.weapons[0]).loaded = true;
   h.pos = { x: 1, y: 1 };
@@ -56,6 +61,15 @@ function porteurDeCatalogue(): Combatant {
   h.weapons = [{ label: 'x', type: 'melee', group: 'basic', damage: 4, form: armeDeCatalogue.id } as unknown as Weapon];
   return h;
 }
+
+/** Porteur d'une « Arme simple », arme à forme CHOISIE parmi ses `formChoices`. */
+function porteurDArmeSimple(): Combatant {
+  const h = arbalétrier();
+  h.weapons = [armeDuCatalogue('arme-simple')];
+  return h;
+}
+const formeAlternative = trappings.find((t) => t.id === 'arme-simple')!.formChoices!.find((f) => f !== 'epee')!;
+const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape } : t)));
 
 /** Pièce d'armure équipée du porteur — l'exiger fait mordre la mutation qui la vise. */
 function armureEquipee(c: Combatant): ItemInstance {
@@ -92,7 +106,7 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
     dessinChange: false,
     muter: (c) => void (c.weapons[0].qualities = [...c.weapons[0].qualities, { id: 'de-plaies-atroces' }]),
   },
-  { nom: 'forme de l’arme changée en place', porteur: arbalétrier, muter: (c) => void (c.weapons[0].shape = 'hache_lancer'), dessinChange: true },
+  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].formeChoisie = formeAlternative), dessinChange: true },
   { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',
@@ -100,6 +114,7 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
     dessinChange: true,
     muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t))),
   },
+  { nom: 'setDataset (forme de l’arme PORTÉE, par `trappingId`)', porteur: arbalétrier, muter: () => éditerLaForme('arbalete', 'hache_lancer'), dessinChange: true },
 ];
 
 describe('un sujet est une VALEUR, et son identité change SI ET SEULEMENT SI son dessin change', () => {
@@ -138,17 +153,35 @@ describe('#2097 — les trois états du tir (chargée, déchargée, rechargée) 
 });
 
 describe('#2113 B1 — forme d’arme changée au catalogue : le dessin change, donc les TROIS clés de l’acteur', () => {
-  it('identité de texture, actorPoseKey et actorIdentityKey suivent l’édition du catalogue', () => {
-    const c = porteurDeCatalogue();
+  const PORTEURS: [string, () => Combatant, () => void][] = [
+    ['arme invoquée (`form`)', porteurDeCatalogue, () => éditerLaForme(armeDeCatalogue.id, autreForme)],
+    ['arme portée de catalogue (`trappingId`, #2113 S1)', arbalétrier, () => éditerLaForme('arbalete', 'hache_lancer')],
+    ['arme portée à formes proposées, sans choix (`formChoices`)', porteurDArmeSimple, () => éditerLaForme('arme-simple', formeAlternative)],
+  ];
+  for (const [nom, porteur, éditer] of PORTEURS)
+    it(`${nom} : identité de texture, actorPoseKey et actorIdentityKey suivent l’édition du catalogue`, () => {
+      const c = porteur();
+      const s = sujet(pose(c));
+      const avant = dessins(s);
+      const clés = [actorPoseKey(pose(c)), actorIdentityKey(pose(c))];
+      éditer();
+      const neuf = sujet(pose(c));
+      expect(dessins(neuf).some((d, i) => d !== avant[i]), 'la forme éditée se dessine').toBe(true);
+      expect(neuf.identity).not.toBe(s.identity);
+      expect(actorPoseKey(pose(c))).not.toBe(clés[0]);
+      expect(actorIdentityKey(pose(c))).not.toBe(clés[1]);
+    });
+});
+
+describe('#2113 phase B (S2) — une édition de catalogue SANS rapport ne change pas l’identité', () => {
+  it.fails('le libellé d’un bouclier que personne ne porte : ni dessin, ni identité ne changent', () => {
+    const c = arbalétrier();
     const s = sujet(pose(c));
-    const avant = s.svg('front', false, 0);
-    const clés = [actorPoseKey(pose(c)), actorIdentityKey(pose(c))];
-    setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t)));
+    const avant = dessins(s);
+    setDataset('trappings', trappings.map((t) => (t.id === 'bouclier' ? { ...t, label: 'Bouclier renommé' } : t)));
     const neuf = sujet(pose(c));
-    expect(neuf.svg('front', false, 0), 'la sonde mord : la forme éditée se dessine').not.toBe(avant);
-    expect(neuf.identity).not.toBe(s.identity);
-    expect(actorPoseKey(pose(c))).not.toBe(clés[0]);
-    expect(actorIdentityKey(pose(c))).not.toBe(clés[1]);
+    expect(dessins(neuf), 'la sonde mord : le dessin ne change pas').toEqual(avant);
+    expect(neuf.identity).toBe(s.identity);
   });
 });
 

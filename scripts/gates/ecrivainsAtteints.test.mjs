@@ -15,14 +15,14 @@
 // entrée est libre ; en ajouter une exige de dire ce que la gate écrit.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { corpusParGate, ecrivainsParGate, transitif } from './ecrivainsAtteints.mjs'
 import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ECRIT_LU } from './toutes.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
-const RACINE = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
 
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
@@ -127,6 +127,11 @@ const ATTENDU = {
     // +1 le 2026-09-27 (#1903) : la commande de régénération des stocks de sites, exercée par son banc
     // (`stockDeSites.test.mjs`, morsure `--check`) sur des fixtures sous `os.tmpdir()`.
     'scripts/guards/lib/regenStock.mts',
+    // +1 le 2026-10-05 (#2294) : le banc du NOMBRE de processus git de la mesure du palier forge ses
+    // dépôts (`instanceDeDepot`, puis `mkdirSync` + `writeFileSync` des commits et des revues) sous
+    // `os.tmpdir()`, `rmSync` en finally — un compte de lancements contre git réel exige un vrai
+    // dépôt ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/revuePalier.test.mjs',
     // +1 le 2026-09-07 (#1709) : la porte de rôle du corpus source pose ses fixtures
     // (`mkdtempSync` + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — l'arbre versionné n'est
     // jamais écrit, et la lib mesurée (`sourceCorpus.mjs`) ne fait que LIRE.
@@ -265,11 +270,16 @@ const ATTENDU = {
     'scripts/ops/workflows-joues.test.mjs',
   ],
   'test:runner': [
+    // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts
+    // jetables à la primitive (`instanceDeDepot`, `rmSync` en finally) ; elle n'écrit que sous
+    // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/depotGabarit.mjs',
     'scripts/lancer-local.test.mjs',
     // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
     // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un
     // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
     'scripts/node-requis.test.mjs',
+    'scripts/test/gitDeBanc.test.mjs',
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
@@ -384,6 +394,9 @@ const ATTENDU = {
     'scripts/raw/atlasFixture.mjs',
     'scripts/raw/build-atlas-index.mjs',
     'scripts/raw/build-atlas-index.test.mjs',
+    // #2155 : les bancs de `test:raw` lancent git par `scripts/test/gitDeBanc.mjs`, qui tient son env isolé
+    // (`envDeDepotForge`) de la primitive ; elle n'écrit que sous `mkdtempSync` de os.tmpdir().
+    'scripts/guards/lib/depotGabarit.mjs',
     // +1 le 2026-09-21 (#1825) : le banc de la PROJECTION écrit les rendus de fixture que
     // `lireRendu` relit (mode de reprise du workflow) sous `mkdtempSync` de os.tmpdir(), `rmSync` en
     // finally ; le module mesuré (`workflow-args.mjs`) ne fait que LIRE.

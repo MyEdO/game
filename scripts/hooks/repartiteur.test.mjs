@@ -2,7 +2,7 @@
 // câblage du registre. Les gardes factices ne servent qu'au moteur ; les gardes réelles jouent leur rôle.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -18,7 +18,8 @@ import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { lancerGit } from '../test/gitDeBanc.mjs'
 
 const HOOKS = fileURLToPath(new URL('.', import.meta.url))
 const REPO = fileURLToPath(new URL('../..', import.meta.url))
@@ -249,7 +250,7 @@ test('#2224 cwd d’un shell lean-ctx : absent, relatif, inexistant ou hors de l
 test('#2224 cwd d’un shell lean-ctx dans un worktree de l’arbre principal : jugé là', async () => {
   await dansUnDepot(async (racine) => {
     const wt = join(racine, '.wt-1')
-    execFileSync('git', ['worktree', 'add', '-q', '--detach', wt], { cwd: racine, env: envDeDepotForge(), stdio: 'ignore' })
+    lancerGit(['worktree', 'add', '-q', '--detach', wt], { cwd: racine })
     const contexte = construireContexte({ tool_name: `${LC}ctx_shell`, cwd: racine, tool_input: { command: 'ls', cwd: wt } })
     assert.equal(contexte.nonJugeable, null)
     assert.equal(contexte.dir, resolve(wt))

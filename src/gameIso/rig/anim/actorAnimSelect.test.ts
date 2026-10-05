@@ -28,26 +28,29 @@ import { spellCastClip } from './spellClips';
 import { CORPSE_POSE, PRONE_POSE, planGroundPose } from '../../groundPose';
 import { planById } from '../bodyPlan';
 import { STEP_MS } from '../../../geometry/walk';
+import { armeDeDessin } from '../parts/equipment';
 import type { Weapon } from '../../../engine/types';
 
 const w = (label: string, type: Weapon['type'], extra: Partial<Weapon> = {}): Weapon =>
   ({ label, type, damage: { plusBF: true, flat: 4 }, qualities: [], ...extra }) as Weapon;
+/** Projection d'une arme : forme RÉSOLUE par son id de Possession. */
+const P = armeDeDessin;
 
-// Le maniement se route par ID STABLE (`shape`/`attackKind`, cf. `handling.ts`), jamais par libellé.
-const HACHE_2M = w('Hache à deux mains', 'melee', { shape: 'grande_hache', hands: 2 });
-const EPEE = w('Épée', 'melee', { shape: 'dague' });
-const A_PIED: RigSelectCtx = { seated: false, mainWeapon: EPEE, shield: false };
+// Le maniement se route par ID STABLE (forme résolue de `trappingId`/`attackKind`, cf. `handling.ts`), jamais par libellé.
+const HACHE_2M = w('Hache à deux mains', 'melee', { trappingId: 'grande-hache', hands: 2 });
+const EPEE = w('Épée', 'melee', { trappingId: 'dague' });
+const A_PIED: RigSelectCtx = { seated: false, mainWeapon: P(EPEE), shield: false };
 
 describe('sélection BIPÈDE — le geste rendu est celui que les résolveurs d’arme/sort produisent', () => {
   it('arme à DEUX MAINS employée : le clip de sa classe de maniement, pas celui de l’arme principale', () => {
     const def = rigAttackDef({ kind: 'melee', weapon: HACHE_2M }, A_PIED);
-    expect(def.clip).toBe(weaponAttackClip(HACHE_2M));
-    expect(def.clip).not.toBe(weaponAttackClip(EPEE));
+    expect(def.clip).toBe(weaponAttackClip(P(HACHE_2M)));
+    expect(def.clip).not.toBe(weaponAttackClip(P(EPEE)));
     expect(def.impactMs).toBe(def.clip.onImpact);
   });
 
   it('sans arme dans l’événement : repli sur l’arme principale du contexte', () => {
-    expect(rigAttackDef({ kind: 'melee' }, A_PIED).clip).toBe(weaponAttackClip(EPEE));
+    expect(rigAttackDef({ kind: 'melee' }, A_PIED).clip).toBe(weaponAttackClip(P(EPEE)));
   });
 
   it('sort sur un ENNEMI (kinds distincts) : geste `bolt`', () => {
@@ -62,20 +65,20 @@ describe('sélection BIPÈDE — le geste rendu est celui que les résolveurs d�
   });
 
   it('EN SELLE : le geste monté (attaque) et la variante assise (sort, esquive, touché)', () => {
-    const selle: RigSelectCtx = { seated: true, mainWeapon: EPEE };
-    expect(rigAttackDef({ kind: 'melee', weapon: HACHE_2M }, selle).clip).toEqual(mountedAttackClip(HACHE_2M));
+    const selle: RigSelectCtx = { seated: true, mainWeapon: P(EPEE) };
+    expect(rigAttackDef({ kind: 'melee', weapon: HACHE_2M }, selle).clip).toEqual(mountedAttackClip(P(HACHE_2M)));
     expect(rigAttackDef({ kind: 'spell', casterKind: 'hero', targetKind: 'enemy' }, selle).clip)
       .toEqual(seatedClip(spellCastClip('bolt')));
     expect(rigDefenseDef({ defense: 'esquive' }, selle)!.clip).toEqual(seatedClip(CLIPS.dodge));
-    expect(rigDefenseDef({ defense: 'parade', parryWeapon: HACHE_2M }, selle)!.clip).toEqual(mountedParryClip(HACHE_2M, false));
+    expect(rigDefenseDef({ defense: 'parade', parryWeapon: HACHE_2M }, selle)!.clip).toEqual(mountedParryClip(P(HACHE_2M), false));
     expect(rigHitDef(selle).clip).toEqual(seatedClip(CLIPS.hit));
     expect(rigWalkDef(selle)).toBeNull(); // la MONTURE marche, pas le cavalier
   });
 
   it('parade : l’arme QUI A PARÉ prime, sinon l’arme principale (+ bouclier du contexte)', () => {
-    expect(rigDefenseDef({ defense: 'parade', parryWeapon: HACHE_2M }, A_PIED)!.clip).toBe(weaponParryClip(HACHE_2M, false));
-    expect(rigDefenseDef({ defense: 'parade' }, { ...A_PIED, shield: true })!.clip).toBe(weaponParryClip(EPEE, true));
-    expect(rigDefenseDef({ defense: 'parade' }, A_PIED)!.clip).toBe(weaponParryClip(EPEE, false));
+    expect(rigDefenseDef({ defense: 'parade', parryWeapon: HACHE_2M }, A_PIED)!.clip).toBe(weaponParryClip(P(HACHE_2M), false));
+    expect(rigDefenseDef({ defense: 'parade' }, { ...A_PIED, shield: true })!.clip).toBe(weaponParryClip(P(EPEE), true));
+    expect(rigDefenseDef({ defense: 'parade' }, A_PIED)!.clip).toBe(weaponParryClip(P(EPEE), false));
   });
 
   it('pas de parade parée → esquive ; incantation de SOUTIEN reçue → aucune réaction', () => {
@@ -86,12 +89,12 @@ describe('sélection BIPÈDE — le geste rendu est celui que les résolveurs d�
 
   it('deux gestes identiques portent la MÊME clé, deux gestes distincts des clés distinctes', () => {
     const k = (weapon: Weapon, ctx: RigSelectCtx) => rigAttackDef({ kind: 'melee', weapon }, ctx).key;
-    const gourdin = w('Gourdin', 'melee', { shape: 'gourdin' }); // même classe de maniement que la dague
-    expect(rigAttackDef({ kind: 'melee', weapon: gourdin }, A_PIED).clip).toBe(rigAttackDef({ kind: 'melee', weapon: EPEE }, A_PIED).clip);
-    expect(k(EPEE, A_PIED)).toBe(k(gourdin, A_PIED));
+    const couteau = w('Couteau', 'melee', { trappingId: 'couteau' }); // même classe de maniement que la dague
+    expect(rigAttackDef({ kind: 'melee', weapon: couteau }, A_PIED).clip).toBe(rigAttackDef({ kind: 'melee', weapon: EPEE }, A_PIED).clip);
+    expect(k(EPEE, A_PIED)).toBe(k(couteau, A_PIED));
     expect(k(EPEE, A_PIED)).not.toBe(k(HACHE_2M, A_PIED));
     expect(k(EPEE, A_PIED)).not.toBe(k(EPEE, { ...A_PIED, seated: true }));
-    expect(k(EPEE, A_PIED)).not.toBe(k(w('Dague', 'melee', { shape: 'dague', hand: 'off' }), A_PIED)); // miroir main gauche
+    expect(k(EPEE, A_PIED)).not.toBe(k(w('Dague', 'melee', { trappingId: 'dague', hand: 'off' }), A_PIED)); // miroir main gauche
   });
 
   it('EFFONDREMENT bipède : part du repos, ARRIVE sur la pose au sol partagée (jamais un saut)', () => {

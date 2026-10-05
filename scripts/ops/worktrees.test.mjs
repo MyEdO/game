@@ -4,7 +4,6 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,6 +12,7 @@ import { GitIndisponible, depotDe, worktreesDe } from '../guards/lib/gitPorte.mj
 import {
   CLASSES, GESTES_DE_L_INVENTAIRE, arbresTenus, classerWorktree, comptesParClasse, inventaire, ligneDInventaire, purger,
 } from './worktrees.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 /** Les ÉCRIVAINS de la purge, factices : `vus` journalise chaque geste, `code(geste)` rend son code
  *  de sortie. */
@@ -149,9 +149,9 @@ test('purger : sans absent NI fusionné, aucun geste — la taille ne se joue pa
 /** Dépôt jetable + son `origin` NU, avec `origin/main` réellement posé. */
 function depotAvecOrigin() {
   const nu = mkdtempSync(join(tmpdir(), 'origin-nu-'))
-  execFileSync('git', ['init', '--bare', '-q', '-b', 'main', nu], { env: envDeDepotForge(), encoding: 'utf8' })
+  lancerGit(['init', '--bare', '-q', '-b', 'main', nu])
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'fondation' })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+  const git = gitDe(racine, { net: true })
   git('remote', 'add', 'origin', nu)
   git('push', '-q', 'origin', 'main')
   return { racine, git, jeter: () => { for (const d of [racine, nu]) rmSync(d, { recursive: true, force: true }) } }

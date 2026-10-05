@@ -227,7 +227,7 @@ const doc = document(
       label: 'Munition représentative',
       hint: 'Munition affichée par défaut pour cette arme de siège (indication au joueur)',
     },
-    shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur' },
+    shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur', renduPur: true },
     formChoices: {
       label: 'Formes proposées',
       hint: 'Formes visuelles alternatives que le joueur peut choisir pour cet objet',

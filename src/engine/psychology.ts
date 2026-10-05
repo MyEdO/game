@@ -4,7 +4,7 @@
  * exemples du livre l'utilisent). P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
-import { Combatant } from './types';
+import { Combatant, type EffectSource } from './types';
 import { t } from '../i18n';
 import { RNG, defaultRNG } from './dice';
 import { rollTest, evaluateTest, extendedTestStep } from './tests';
@@ -39,6 +39,8 @@ export interface PsychTrait {
   type: PsychType;
   cible?: string;
   indice?: number;
+  /** PROVENANCE d'un Trait ACCORDÉ (`grantPsychTrait`) — absente sur un Trait natif. */
+  src?: EffectSource;
 }
 
 /** Affliction psychologique ACTIVE en combat, posée après un Test de Psychologie raté. Conservée
