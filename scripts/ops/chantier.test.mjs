@@ -80,6 +80,24 @@ function depotAvecOrigin() {
   return { racine, nu, git, jeter: () => { for (const d of [racine, nu]) rmSync(d, { recursive: true, force: true }) } }
 }
 
+test('progression avant fetch, création et chaque équipement ; durée après leurs retours', () => {
+  const { racine, jeter } = depotAvecOrigin()
+  const sorties = []
+  try {
+    const vu = creerChantier({ racine, nom: '2329-banc', annoncer: (texte) => sorties.push(texte),
+      npm: (_cmd, args) => {
+        assert.match(sorties.at(-1), /début\n$/)
+        assert.ok(sorties.at(-1).includes(args.includes('docs:build') ? 'npm run docs:build' : 'npm'))
+        return { status: 0 }
+      },
+    })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.match(sorties.join(''), /git fetch origin — début\n\[chantier\] git fetch origin — fin \(\d+ ms\)/)
+    assert.match(sorties.join(''), /git worktree add — début/)
+    assert.match(sorties.at(-1), /docs dérivés\) — fin \(\d+ ms\)/)
+  } finally { jeter() }
+})
+
 test('création RÉELLE : worktree .wt-42 sur chantier/42 issue d’ORIGIN/main, puis refus du second appel', () => {
   const { racine, git, jeter } = depotAvecOrigin()
   try {
