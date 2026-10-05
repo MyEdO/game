@@ -27,7 +27,8 @@ function rendu() {
     }
   }
 
-  const closures = new Map(SYSTEMES.map((s) => [s.id, closureOf(s.modules)]))
+  const cache = new Map()
+  const closures = new Map(SYSTEMES.map((s) => [s.id, closureOf(s.modules, { cache })]))
 
   // --- matrice primitive × système (U = présente dans la closure du système) ---
   const usedByAny = new Map(PRIMITIVES.map((p) => [p.id, false]))

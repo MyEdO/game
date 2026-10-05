@@ -9,8 +9,8 @@ geste vit derrière son déclencheur.
 ## Ce qu'est ce projet
 
 Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nights / Baldur's Gate*
-(tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay 4e** : 4 aventuriers
-à travers la campagne **L'Ennemi Intérieur**.
+(tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay** 4e ou 5e (au
+choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
 Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
 (trunk-based). Le `Foundry/AGENTS.md` parent ne s'applique PAS ici.
@@ -56,7 +56,7 @@ script au nom différent du doc est entre parenthèses.
 | Absent à l'écran — gaté par une règle optionnelle ? | `docs/regles-optionnelles.md` |
 | Sprite/rig reconnaissable (QC) | `docs/qc-reconnaissabilite-sprites.md` |
 | Reprendre un chantier après pause | `docs/reprise-apres-pause.md` (`docs:reprise`) |
-| Sorts/miracles : état réel | `docs/sorts-implementation.md` (`npx tsx scripts/gen-sorts-doc.mts`) |
+| Sorts/miracles : état réel | `docs/sorts-implementation.md` (`docs:sorts`) |
 
 ## Règles strictes (NE PAS déroger)
 
@@ -83,7 +83,7 @@ script au nom différent du doc est entre parenthèses.
    IMPLÉMENTÉE, jamais reportée. Hors source → CustomStatblock, ou omission documentée.
 
 > **Pour TOUT agent dépêché sur ce repo**, quel que soit son brief :
-> - Ne crois RIEN sans vérifier au `Source/` — ton brief et ton orchestrateur compris.
+> - Toute règle de jeu se vérifie au `Source/` — brief et orchestrateur compris.
 > - Le poison de ton périmètre se CORRIGE dans le geste ; hors périmètre, il va dans ton rendu avec
 >   `fichier:ligne`. Un test qui verrouille un comportement faux se réécrit depuis le RAW.
 > - Toute LOGIQUE est keyée par id STABLE, le `label` est de l'AFFICHAGE ; seule couture label→id :

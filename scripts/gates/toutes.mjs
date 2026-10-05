@@ -131,6 +131,10 @@ export const ECRIT_LU = {
       'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
       'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
+      '`guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
+      'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
+      'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
+      'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
@@ -226,12 +230,15 @@ export const ECRIT_LU = {
       '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
       'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous mkdtempSync(os.tmpdir(), préfixe plateforme-win32-decodage-), ' +
       'puis supprime chaque dossier par rmSync en finally ; ' +
-      'lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
+      '`build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
+      'os.tmpdir() hors racine canonique par `canoniser` et `relatifSousRacine`, puis exige l’instance hors ' +
+      'arbre ; son finally supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé ' +
+      'avant `instanceDeDepot` ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ depuis le 2026-09-14 (#1759) : ' +
-      '`enregistreur-lectures.test.mjs`, venu de test:hooks avec sa racine `scripts/docs`, joue de VRAIS ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ : ' +
+      '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
       'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +

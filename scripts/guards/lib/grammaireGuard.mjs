@@ -1,7 +1,6 @@
-import { ast } from './dialecte.mjs';
 // Mécanique de scan de la GARDE DE GRAMMAIRE (#1466 L1a) — lue à l'AST (TypeScript compiler API),
 // jamais à la regex de ligne : un littéral zod s'écrit sur dix lignes, et `.extend(` se chaîne.
-// Deux formes scannées, toutes deux par FORME (jamais par nom : une redéclaration s'appelle
+// Trois formes scannées, toutes par FORME (jamais par nom : une redéclaration s'appelle
 // rarement comme le schéma qu'elle recopie) :
 //  - `redeclaration` : un littéral `z.object`/`z.strictObject`/`z.looseObject` dont le jeu de clés
 //    est EXACTEMENT la signature d'un schéma de la grammaire (`valeurs.ts`/`reference.ts`/`ref.ts`)
@@ -15,6 +14,8 @@ import { ast } from './dialecte.mjs';
 // reçoit UN fichier (`rel`, `contenu`) et les RÈGLES (signatures + alias, dérivées par l'appelant
 // des schémas eux-mêmes — aucune liste de clés n'est recopiée ici) et rend des trouvailles.
 import * as ts from 'typescript/unstable/ast';
+import { analyserCorpus } from './dialecte.mjs';
+import { contexteImports, liaisonImportee } from './canonUnique.mjs';
 
 /** Fabriques d'objet zod dont l'argument littéral porte une forme DÉCLARÉE. */
 const FABRIQUES_OBJET = new Set(['object', 'strictObject', 'looseObject']);
@@ -22,12 +23,7 @@ const FABRIQUES_OBJET = new Set(['object', 'strictObject', 'looseObject']);
 /**
  * FABRIQUE DE DOCUMENT (#1467) — `document(type, famille, champs, meta, exposition, options?)`.
  * Son 3ᵉ argument est un littéral de CHAMPS (clé → schéma zod) : c'est le MÊME plan de forme que
- * l'argument de `z.strictObject`, à ceci près qu'aucune fabrique zod ne l'entoure. Sans cette porte,
- * l'adoption de la fabrique par un def FAISAIT DISPARAÎTRE ses trouvailles du scan — une perte de
- * COUVERTURE que le cliquet « le stock ne peut que décroître » lisait comme un solde (#1467
- * V-FLIP-ENTITE-b : `interludeEvents.min/max` était toujours déclaré, donnée inchangée). La forme
- * est DOMINANTE (43 defs adoptés) : elle s'éteint, elle ne se déclare pas
- * en angle mort.
+ * l'argument de `z.strictObject`, à ceci près qu'aucune fabrique zod ne l'entoure.
  */
 const FABRIQUE_DOCUMENT = 'document';
 /** Index de l'argument `champs` dans la signature de `document()`. */
@@ -109,20 +105,6 @@ function racineDe(e) {
   return r;
 }
 
-/** Noms locaux importés d'un module de grammaire (`import { refSchema } from './grammaire/reference'`).
- * @param {ts.SourceFile} sf @returns {Set<string>} */
-function importsDeGrammaire(sf) {
-  const noms = new Set();
-  for (const st of sf.statements) {
-    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue;
-    if (!MODULES_GRAMMAIRE.test(st.moduleSpecifier.text)) continue;
-    const clause = st.importClause;
-    if (!clause?.namedBindings || !ts.isNamedImports(clause.namedBindings)) continue;
-    for (const el of clause.namedBindings.elements) noms.add(el.name.text);
-  }
-  return noms;
-}
-
 /**
  * Trouvailles de grammaire d'UN fichier.
  * @param {string} rel chemin POSIX depuis la racine du dépôt (`readCorpus().rel`)
@@ -133,9 +115,12 @@ function importsDeGrammaire(sf) {
  *   est une FABRIQUE de la grammaire (ses littéraux SONT le canon) : seul `.extend` y est scanné.
  * @returns {{ ligne: number, symbole: string, champ: string, motif: 'redeclaration'|'alias'|'extend', detail: string }[]}
  */
-export function scan(rel, contenu, regles, sourceFile) {
-  const sf = sourceFile ?? ast({ rel, text: contenu });
-  const importes = importsDeGrammaire(sf);
+export function scan(rel, contenu, regles, sourceFile, checker) {
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel, text: contenu }])) return scan(rel, contenu, regles, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   const local = estModuleGrammaire(rel);
   const alias = new Set(regles.alias);
   const signatures = regles.signatures.filter((s) => s.cles.length >= 2).map((s) => ({ nom: s.nom, cles: new Set(s.cles) }));
@@ -199,7 +184,10 @@ export function scan(rel, contenu, regles, sourceFile) {
       }
       if (nom === 'extend') {
         const racine = racineDe(n.expression.expression);
-        if (ts.isIdentifier(racine) && (importes.has(racine.text) || (local && /Schema$/.test(racine.text)))) {
+        const origine = ts.isIdentifier(racine) ? liaisonImportee(racine, sf, contexte) : null;
+        const importee = origine && MODULES_GRAMMAIRE.test(origine.spec)
+          && contexte.liaisonsDuNom(racine.text).some((l) => l.forme === 'nommee' && l.spec === origine.spec && l.importe.nom === origine.nom);
+        if (ts.isIdentifier(racine) && (importee || (local && /Schema$/.test(racine.text)))) {
           noter(n, 'extend', `${racine.text}.extend(…)`);
         }
       }

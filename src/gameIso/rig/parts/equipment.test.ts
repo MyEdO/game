@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, isShield, pieceDeDessin, armeDeDessin, armePrincipale, equipDe } from './equipment';
+import { weaponPart, weaponFamily, shieldPart, armourPart, armourMaterial, equipPorte, isShield, pieceDeDessin, armeDeDessin, armePrincipale, equipDe, bouclierDeDessin, type FormeDArme } from './equipment';
 import { resolveParts } from './resolve';
 import { rigAttackDef, rigDefenseDef } from '../anim/actorAnimSelect';
 import { contexteDeGeste } from '../../fx/animTracks';
@@ -12,10 +12,9 @@ import { weaponGroup } from '../../../engine/weaponGroup';
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
-const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(wep(name, type)), 'front');
-/** Arme routée PAR SHAPE (id stable) — plus aucun routage par libellé au runtime. */
-const wepShape = (shape: string, type: 'melee' | 'ranged' = 'melee'): Weapon =>
-  ({ label: 'x', type, damage: { plusBF: false, flat: 4 }, qualities: [], shape } as Weapon);
+const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(armeDeDessin(wep(name, type))), 'front');
+/** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé au runtime. */
+const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
 const famShape = (shape: string, type: 'melee' | 'ranged' = 'melee') => weaponFamily(wepShape(shape, type));
 
 describe('weaponPart', () => {
@@ -27,11 +26,11 @@ describe('weaponPart', () => {
   });
 });
 
-// Contrat « 1 forme par arme » routé PAR SHAPE (id stable), jamais par LIBELLÉ (lookup par libellé =
-// bug multilingue) : chaque arme garde une silhouette (slug) distincte ; une arme sans shape retombe
-// sur le défaut de son Groupe.
-describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)', () => {
-  it('chaque shape catalogué résout vers lui-même (formes distinctes préservées)', () => {
+// Contrat « 1 forme par arme » routé PAR FORME résolue (id stable), jamais par LIBELLÉ (lookup par
+// libellé = bug multilingue) : chaque arme garde une silhouette (slug) distincte ; une arme sans forme
+// résolue retombe sur le défaut de son Groupe.
+describe('weaponFamily — 1 forme par arme, routée par la forme résolue (anti-collapse)', () => {
+  it('chaque forme résolue cataloguée résout vers elle-même (formes distinctes préservées)', () => {
     expect(famShape('arc_court', 'ranged')).toBe('arc_court');
     expect(famShape('javelot', 'ranged')).not.toBe(famShape('lance_cavalerie'));
     expect(famShape('main_gauche')).not.toBe(famShape('brise_epee'));
@@ -39,9 +38,9 @@ describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)',
     expect(famShape('pioche_2m')).not.toBe(famShape('grande_hache'));
     expect(famShape('fleuret')).not.toBe(famShape('zweihander'));
   });
-  it('une arme SANS shape ne route plus par son nom → repli par Groupe', () => {
-    expect(weaponFamily(wep('Épée bâtarde', 'melee', [], 'deux-mains'))).toBe('epee_batarde'); // Groupe deux-mains → défaut
-    expect(weaponFamily(wep('Truc inconnu', 'melee'))).toBe('epee'); // défaut mêlée
+  it('une arme SANS forme résolue ne route pas par son nom → repli par Groupe', () => {
+    expect(weaponFamily(armeDeDessin(wep('Épée bâtarde', 'melee', [], 'deux-mains')))).toBe('epee_batarde'); // Groupe deux-mains → défaut
+    expect(weaponFamily(armeDeDessin(wep('Truc inconnu', 'melee')))).toBe('epee'); // défaut mêlée
   });
 });
 
@@ -58,7 +57,7 @@ describe('isShield', () => {
     for (const t of armes) {
       const w = weaponFromItem(itemFromGive({ trappingId: t.id }));
       expect(isShield(w), t.id).toBe(true);
-      expect(viewOrFront(shieldPart(w), 'front'), t.id).toContain('<');
+      expect(viewOrFront(shieldPart(bouclierDeDessin(w)), 'front'), t.id).toContain('<');
     }
     expect(isShield(itemFromGive({ trappingId: 'bouclier-de-la-forge' }))).toBe(false);
   });
@@ -94,7 +93,7 @@ describe('armourPart', () => {
 
 describe('shieldPart', () => {
   it('renvoie un SVG de bouclier non vide', () => {
-    expect(viewOrFront(shieldPart(wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])), 'front')).toContain('<');
+    expect(viewOrFront(shieldPart(bouclierDeDessin(wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }]))), 'front')).toContain('<');
   });
 });
 

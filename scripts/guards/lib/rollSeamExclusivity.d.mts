@@ -1,3 +1,4 @@
+import type { Checker } from 'typescript/unstable/sync';
 export interface Finding {
   line: number;
   detail: string;
@@ -30,6 +31,7 @@ export function scanEngineDelegatedRoll(
   contenu: string,
   table: Readonly<Record<string, readonly string[]>>,
   sourceFile?: SourceFile,
+  checker?: Checker,
 ): { line: number; name: string }[];
 
 /** Garde SŒUR (#1508) — famille (X) « tout dé tiré hors porte » : le SITE OÙ LE DÉ TOMBE. */
@@ -44,5 +46,6 @@ export function scanDesHorsPorte(
   contenu: string,
   table: Readonly<Record<string, readonly string[]>>,
   sourceFile?: SourceFile,
+  checker?: Checker,
 ): { line: number; name: string }[];
 import type { SourceFile } from 'typescript/unstable/ast';

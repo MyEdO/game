@@ -15,9 +15,9 @@ const PROGRAMME = { ...CONSTRUCTION_DE_PROGRAMME, foyer: 'scripts/guards/lib/tsP
 const EXPORT_AST = {
   nom: 'EXPORT_AST_NATIF',
   indice: (texte: string) => texte.includes('typescript/unstable/ast'),
-  reconnait: (n: native.Node, sf: native.SourceFile) => {
+  reconnait: (n: native.Node, sf: native.SourceFile, contexte: import('../scripts/guards/lib/canonUnique.mjs').ContexteImports) => {
     if (!native.isPropertyAccessExpression(n) && !native.isElementAccessExpression(n)) return null;
-    const origine = origineImportee(n, sf);
+    const origine = origineImportee(n, sf, contexte);
     return origine?.module === 'typescript/unstable/ast' && !Object.prototype.hasOwnProperty.call(native, origine.nom)
       ? `Export AST natif absent : ${origine.nom}` : null;
   },

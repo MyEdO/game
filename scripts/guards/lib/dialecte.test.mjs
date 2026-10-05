@@ -4,6 +4,20 @@ import { API, Program } from 'typescript/unstable/sync';
 import { analyserCorpus, analyserTexte, ast, scriptKindDe, typescript } from './dialecte.mjs';
 import path from 'node:path';
 
+test('une analyse détachée garde son AST et ses diagnostics sans exposer le checker fermé', () => {
+  const close = API.prototype.close;
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this); });
+  try {
+    const fichier = { rel: 'detache.ts', text: 'export const valeur = ;' };
+    const analyse = analyserTexte(fichier);
+    assert.equal(spy.mock.callCount(), 1);
+    assert.equal(analyse.fichier, fichier);
+    assert.deepEqual(Object.keys(analyse).sort(), ['diagnostics', 'fichier', 'sourceFile']);
+    assert.equal(analyse.sourceFile.statements[0].getText(), fichier.text);
+    assert.equal(analyse.diagnostics[0].code, 1109);
+  } finally { spy.mock.restore(); }
+});
+
 for (const methode of ['getSourceFile', 'getSyntacticDiagnostics']) test(`erreur native ${methode} et erreur de fermeture conservées ensemble`, () => {
   const analyse = new Error(`analyse ${methode}`);
   const fermeture = new Error('fermeture cache');
@@ -107,9 +121,21 @@ for (const mode of ['épuisement', 'break', 'exception']) test(`une API par corp
   const snapshot = mock.method(API.prototype, 'updateSnapshot', function (...args) { instances.push(this); return update.apply(this, args); });
   const fichiers = Array.from({ length: 100 }, (_, i) => ({ rel: `${i}.ts`, text: `const n = ${i}` }));
   try {
-    if (mode === 'épuisement') assert.equal([...analyserCorpus(fichiers)].length, 100);
-    else if (mode === 'break') for (const analyse of analyserCorpus(fichiers)) { assert.ok(analyse.sourceFile); break; }
-    else assert.throws(() => { for (const analyse of analyserCorpus(fichiers)) { assert.ok(analyse.sourceFile); throw new Error('consommateur'); } }, /consommateur/);
+    let emprunt;
+    let nombre = 0;
+    const verifier = ({ sourceFile, checker }) => {
+      assert.ok(sourceFile);
+      assert.equal(spy.mock.callCount(), 0);
+      if (emprunt) assert.equal(checker, emprunt);
+      emprunt = checker;
+      assert.equal(checker.getSymbolAtLocation(sourceFile.statements[0].declarationList.declarations[0].name).name, 'n');
+      nombre++;
+    };
+    if (mode === 'épuisement') {
+      for (const analyse of analyserCorpus(fichiers)) verifier(analyse);
+      assert.equal(nombre, 100);
+    } else if (mode === 'break') for (const analyse of analyserCorpus(fichiers)) { verifier(analyse); break; }
+    else assert.throws(() => { for (const analyse of analyserCorpus(fichiers)) { verifier(analyse); throw new Error('consommateur'); } }, /consommateur/);
     assert.equal(snapshot.mock.callCount(), 1);
     assert.equal(spy.mock.callCount(), 1);
   } finally { snapshot.mock.restore(); spy.mock.restore(); for (const instance of instances) close.call(instance); }

@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { CHEMIN_DU_JOURNAL } from './journal.mjs'
+import { lancerGit } from '../test/gitDeBanc.mjs'
 
 const HOOK = fileURLToPath(new URL('./pre-commit.mjs', import.meta.url))
 /** Le TÉMOIN que dépose l'`agents:check` du dépôt forgé quand le hook le lance. */
@@ -23,10 +24,9 @@ function depotDuHook(nom, texte) {
     fichiers: { 'package.json': JSON.stringify({ scripts: { 'agents:check': `node -e "require('fs').writeFileSync('${TEMOIN_AGENTS_CHECK}', '')"` } }) },
     message: 'socle',
   })
-  assert.equal(spawnSync('git', ['config', '--local', 'core.protectNTFS', 'false'], { cwd: racine, env }).status, 0)
-  const blob = spawnSync('git', ['hash-object', '-w', '--stdin'], { cwd: racine, env, input: texte, encoding: 'utf8' })
-  assert.equal(blob.status, 0, blob.stderr)
-  assert.equal(spawnSync('git', ['update-index', '--add', '--cacheinfo', `100644,${blob.stdout.trim()},${nom}`], { cwd: racine, env }).status, 0)
+  lancerGit(['config', '--local', 'core.protectNTFS', 'false'], { cwd: racine, env })
+  const blob = lancerGit(['hash-object', '-w', '--stdin'], { cwd: racine, env, input: texte, net: true })
+  lancerGit(['update-index', '--add', '--cacheinfo', `100644,${blob},${nom}`], { cwd: racine, env })
   const jouer = (envDuHook = env) => spawnSync(process.execPath, [HOOK], { cwd: racine, env: envDuHook, encoding: 'utf8', timeout: 120_000 })
   return { racine, env, jouer }
 }

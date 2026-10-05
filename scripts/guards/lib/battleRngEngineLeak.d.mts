@@ -1,3 +1,4 @@
+import type { Checker } from 'typescript/unstable/sync';
 export interface EngineLeakFinding {
   line: number;
   name: string;
@@ -9,5 +10,5 @@ export interface ContexteDeScanRng {
   resolveurs: Record<string, string[]> | null;
 }
 export function contexteDeScanRng(): ContexteDeScanRng;
-export function scanBattleRngEngineLeak(relPath: string, contenu: string, ctx?: ContexteDeScanRng, sourceFile?: SourceFile): EngineLeakFinding[];
+export function scanBattleRngEngineLeak(relPath: string, contenu: string, ctx?: ContexteDeScanRng, sourceFile?: SourceFile, checker?: Checker): EngineLeakFinding[];
 import type { SourceFile } from 'typescript/unstable/ast';

@@ -4,9 +4,7 @@
 // modale/MJ/inline ». Ce motif suppose que l'appelant, lui, PASSE PAR le seam (`openRoll`) — mais un
 // flux state/** peut contourner l'hypothèse en appelant DIRECTEMENT un résolveur moteur importé
 // (`../engine/...`) avec un rng VIVANT (`battleRng()`) au call-site : le résolveur roule ET décide de
-// l'issue (Test opposé/étendu), sans jamais passer par la policy M/V/I. C'est EXACTEMENT le trou
-// exploité par `tavernFlow.playTavernGame` → `resolveTavernGame(..., battleRng())` avant #370 — la
-// classe, pas le cas : tout AUTRE flux state/** qui ferait la même chose doit être rouge ICI.
+// l'issue (Test opposé/étendu), sans jamais passer par la policy M/V/I.
 //
 // Détection par `estAppelDeclare` (`canonUnique.mjs`) : au niveau du FICHIER entier (pas de la ligne),
 // si le fichier appelle `battleRng` IMPORTÉ de `src/state/battleRng.ts` (même hoisté dans une variable
@@ -29,8 +27,8 @@
 //    invisible à un scan lexical de l'AST syntaxique seul ;
 //  - une réexportation `export * from` (angle mort de `tableDesExports`).
 import * as tsModule from 'typescript/unstable/ast';
-import { ast, analyserCorpus } from './dialecte.mjs';
-import { estAppelDeclare, tableDesExports } from './canonUnique.mjs';
+import { analyserCorpus } from './dialecte.mjs';
+import { contexteImports, estAppelDeclare, tableDesExports } from './canonUnique.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
 // Vue CODE SEUL du texte (primitive PARTAGÉE) : la ligne rapportée ne porte que du code, lignes
 // préservées, donc les numéros rapportés restent ceux de la source.
@@ -107,17 +105,21 @@ function resolveursARng(ctx) {
  * @param {{ resolveurs: Record<string, string[]> | null }} [ctx] contexte du passage (`contexteDeScanRng`)
  * @returns {{ line: number, name: string, detail: string }[]}
  */
-export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng(), sourceFile) {
+export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng(), sourceFile, checker) {
   if (!/\bbattleRng\b/.test(contenu) || !/\bresolve[A-Z]/.test(contenu)) return [];
-  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanBattleRngEngineLeak(relPath, contenu, ctx, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   const table = resolveursARng(ctx);
   /** @type {{ line: number, name: string }[]} */
   const appels = [];
   let vivant = false;
   const visit = (node) => {
     if (ts.isCallExpression(node)) {
-      if (estAppelDeclare(node, sf, RNG_VIVANT)) vivant = true;
-      const name = estAppelDeclare(node, sf, table);
+      if (estAppelDeclare(node, sf, RNG_VIVANT, contexte)) vivant = true;
+      const name = estAppelDeclare(node, sf, table, contexte);
       if (name) appels.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
     }
     node.forEachChild(visit);

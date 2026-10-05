@@ -39,12 +39,9 @@ import { ast, analyserCorpus } from './dialecte.mjs';
 // par sa liaison d'import (`estAppelDeclare`) et le voit.
 import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
-import { estAppelDeclare, tableDesExports } from './canonUnique.mjs'
+import { contexteImports, estAppelDeclare, tableDesExports } from './canonUnique.mjs'
 
-// Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest ce module passe par
-// vite-node, et chaque `ts.x` d'un visiteur AST se relit alors sur l'objet d'import du runner. Même
-// socle, même mesure qu'en tête de `sceneMutation.mjs` : à la seule liaison ci-dessous,
-// `scene-mutation-guard.test.ts` tombe de 7,46 s à 3,60 s.
+// #1801
 const ts = tsModule;
 
 /** Les 3 motifs de forgeage/roulage bruts d'un Test — PRÉ-FILTRE lexical bon marché (un fichier sans
@@ -380,14 +377,18 @@ export function engineDiceRollers(engineFiles) {
  * @param {Readonly<Record<string, readonly string[]>>} table `engineDiceRollers`
  * @returns {{ line: number, name: string }[]}
  */
-export function scanDesHorsPorte(relPath, contenu, table, sourceFile) {
+export function scanDesHorsPorte(relPath, contenu, table, sourceFile, checker) {
   if (!DES_HORS_PORTE_RX.test(contenu) && !rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
-  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanDesHorsPorte(relPath, contenu, table, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   /** @type {Map<string, { line: number, name: string }>} */
   const vus = new Map();
   const visit = (node) => {
     if (ts.isCallExpression(node) && !inSpecCallback(node)) {
-      const nom = estAppelDeclare(node, sf, table) ?? (estAppelDeDe(node) ? 'rng.int' : null);
+      const nom = estAppelDeclare(node, sf, table, contexte) ?? (estAppelDeDe(node) ? 'rng.int' : null);
       if (nom) {
         const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
         vus.set(`${line}:${nom}`, { line, name: nom });
@@ -508,12 +509,16 @@ function rollerNameRx(names) {
  * @param {Readonly<Record<string, readonly string[]>>} table `tableDesExports(engineFiles, engineRollerExports(engineFiles).keys())`
  * @returns {{ line: number, name: string }[]}
  */
-export function scanEngineDelegatedRoll(relPath, contenu, table, sourceFile) {
+export function scanEngineDelegatedRoll(relPath, contenu, table, sourceFile, checker) {
   if (!rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
-  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanEngineDelegatedRoll(relPath, contenu, table, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   const findings = [];
   const visit = (node) => {
-    const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table) : null;
+    const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table, contexte) : null;
     if (name) findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
     node.forEachChild(visit);
   };

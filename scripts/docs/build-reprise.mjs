@@ -263,7 +263,8 @@ function rendu() {
    adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
    et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
-   \`${script('ops:fermer')} <before>..<sha>\`.`,
+   \`${script('ops:fermer')} --rattraper <before>..<sha>\` : la base recule jusqu'à la dernière course
+   réussie de ce workflow (\`baseDeLaPlage\`, #2155).`,
     },
     {
       module: 'scripts/git-hooks/merge-docs.mjs',

@@ -37,14 +37,14 @@ export function* analyserCorpus(fichiers, options = {}) {
       const sourceFile = session.program.getSourceFile(nom);
       if (!sourceFile) throw new Error(`Arbre TypeScript introuvable : ${fichier.rel}`);
       const diagnostics = session.program.getSyntacticDiagnostics(nom).map(d => ({ ...d, fileName: fichier.rel }));
-      yield { fichier, sourceFile, diagnostics };
+      yield { fichier, sourceFile, diagnostics, checker: session.checker };
     }
   } catch (erreur) { erreurs.push(erreur); }
   finally { libererSessions(session ? [session] : [], erreurs); }
 }
 
 export function analyserTexte(fichier, options) {
-  for (const analyse of analyserCorpus([fichier], options)) return analyse;
+  for (const { sourceFile, diagnostics } of analyserCorpus([fichier], options)) return { fichier, sourceFile, diagnostics };
 }
 
 export function ast(fichier, options) {

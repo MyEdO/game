@@ -10,7 +10,8 @@
  * que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 import { depot, efface, joue, lireDans, rienTouche } from '../../scripts/migrations/lib/joue.mjs';
 
@@ -108,10 +109,11 @@ function parLeDepot(doc: unknown): { code: number | null; sortie: string; doc: u
   }
 }
 
-/** Le document joué par le migrateur de chargement seul, `version` de travail retirée. */
+/** Le document joué par le migrateur de chargement seul, `version` de travail retirée, au `schema` que la
+ *  chaîne lui pose (`migreFormeDeProjet`, `worldMap.ts`). */
 function parLeChargement(doc: unknown): unknown {
   const { version: _travail, ...migre } = PROJECT_MIGRATIONS[14]!({ ...structuredClone(doc as object), version: 14 } as never) as Record<string, unknown>;
-  return migre;
+  return { ...migre, schema: 15 };
 }
 
 describe('PARITÉ dépôt ⇄ chargement du bump 14 → 15 — une fixture, deux pendants (#1897)', () => {

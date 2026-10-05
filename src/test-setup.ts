@@ -42,9 +42,10 @@
  *      Les bancs de la couture gardent en plus leur propre `resetDismissLayers` en `beforeEach` — ils
  *      posent leur décor de pile, ils ne dépendent pas de ce filet.
  *    - les REGISTRES D'ART du rig (cf. `rigArtRegistrySignatures` plus bas) : objets de module, donc
- *      partagés par tous les fichiers du worker. Ils ne se restaurent pas ici (un test qui en pose
- *      un doit le remettre lui-même) : on DÉTECTE leur dérive après chaque test et on échoue AU SITE
- *      qui l'a laissée. Un nettoyage `delete` sur une clé que le registre déclarait VRAIMENT amputait
+ *      partagés par tous les fichiers du worker. Un test qui en pose un le remet lui-même : on DÉTECTE
+ *      leur dérive après chaque test, on échoue AU SITE qui l'a laissée, puis on remet EN PLACE la
+ *      valeur capturée au chargement (`ART_RIG_ORIGINE`) — le test suivant part des tables d'origine.
+ *      Un nettoyage `delete` sur une clé que le registre déclarait VRAIMENT amputait
  *      la plaque (gantelet/soleret/gorgerin) pour tous les fichiers suivants — CI rouge sur le golden
  *      de combat et `enemyProfile`, verte en local, selon l'ordre des fichiers du worker (2026-07-29).
  *
@@ -63,11 +64,9 @@
  *    module partagé par le worker sous `isolate:false` : une racine laissée MONTÉE par un fichier se met
  *    à jour hors `act()` pendant les fichiers suivants (« Attempted to synchronously unmount a root while
  *    React was already rendering », « Should not already be working ») et leurs rendus deviennent VIDES
- *    (#1619). Tout nœud ÉLÉMENT resté enfant de `document.body` après un test échoue AU FICHIER FAUTIF,
- *    sauf ceux du stock d'extinction `scripts/guards/lib/domResiduStock.mjs` (cliquet :
- *    `src/dom-residu-stock.test.ts` ; re-mesure : variable `WFRP_DOM_RESIDU_COLLECTE`). Le passage de
- *    CHAQUE fichier (fui / propre) se note au registre `WFRP_DOM_RESIDU_REGISTRE` : c'est lui qui rend
- *    une entrée PÉRIMÉE du stock visible à la fin d'une suite complète (`entreesPerimees`).
+ *    (#1619). Tout nœud ÉLÉMENT resté enfant de `document.body` ou de `document.head` après un test
+ *    échoue AU FICHIER FAUTIF, puis est retiré : le fichier suivant part d'un document vierge (#2286).
+ *    Banc : `src/residu-dom-barriere.test.ts`.
  *
  * 4. BARRIÈRE DES RACINES MONTÉES ET DES `act()` EN VOL (`instrumenterRacines`/`messageRacineMontee`/
  *    `messageActEnVol`, `afterEach`). Le nœud resté dans `document.body` n'est qu'un SYMPTÔME : une
@@ -75,10 +74,12 @@
  *    react-dom du worker. Le compte est pris sur le PROTOTYPE des racines (`render` inscrit le fichier
  *    courant, `unmount` le retire) : chaque fichier est jugé sur ce QU'IL a rendu, et la fuite se dit
  *    chez lui, jamais chez la victime qui lève « Should not already be working » plus loin (#1724).
+ *
+ * Les barrières §1 (art), §3 et §4 jouent en TROIS temps : elles LISENT toutes les fuites, REMETTENT
+ * l'état partagé à vierge, puis JUGENT par un seul `throw` qui joint tous les verdicts. Aucune ne
+ * masque l'autre, et aucun résidu ne survit à son verdict pour accuser la victime suivante (#2286).
  */
 import { afterEach, beforeEach, expect, vi } from 'vitest';
-import { appendFileSync } from 'node:fs';
-import { DOM_RESIDU_STOCK } from '../scripts/guards/lib/domResiduStock.mjs';
 import { useGame, resetSceneRegistry, type GameState } from './state/store';
 import { loadRuleOverrides } from './engine/policy';
 import { cascadeAppliers } from './state/cascade';
@@ -139,24 +140,110 @@ const artWeight = (v: unknown, depth = 0): number => {
  */
 export function rigArtRegistrySignatures(): Map<string, string> {
   const sigs = new Map<string, string>();
-  for (const [path, mod] of Object.entries(RIG_PART_MODULES)) {
-    const family = path.split('/parts/')[1] ?? path;
-    for (const [name, reg] of Object.entries(mod)) {
-      if (!reg || typeof reg !== 'object') continue;
-      const parts: string[] = [];
-      for (const [k, entry] of Object.entries(reg as Record<string, unknown>)) {
-        const id = entry && typeof entry === 'object' && typeof (entry as { id?: unknown }).id === 'string'
-          ? (entry as { id: string }).id
-          : k;
-        parts.push(`${id}:${artWeight(entry)}`);
-      }
-      sigs.set(`${family}#${name}`, parts.join('|'));
+  for (const [cle, reg] of registresArtRig()) {
+    const parts: string[] = [];
+    for (const [k, entry] of Object.entries(reg)) {
+      const id = entry && typeof entry === 'object' && typeof (entry as { id?: unknown }).id === 'string'
+        ? (entry as { id: string }).id
+        : k;
+      parts.push(`${id}:${artWeight(entry)}`);
     }
+    sigs.set(cle, parts.join('|'));
   }
   return sigs;
 }
 
+/** Registres d'art du rig, clé `famille#export` : l'unique énumération que signent les signatures et
+ *  que la remise restaure. */
+function registresArtRig(): Map<string, Record<string, unknown>> {
+  const regs = new Map<string, Record<string, unknown>>();
+  for (const [path, mod] of Object.entries(RIG_PART_MODULES)) {
+    const family = path.split('/parts/')[1] ?? path;
+    for (const [name, reg] of Object.entries(mod)) {
+      if (reg && typeof reg === 'object') regs.set(`${family}#${name}`, reg as Record<string, unknown>);
+    }
+  }
+  return regs;
+}
+
+type ArtObjet = Record<string, unknown>;
+
+/** Cliché d'un objet d'art : la RÉFÉRENCE de l'objet et ses entrées dans l'ordre, chaque valeur objet
+ *  clichée à son tour. Garder les références (et non une copie) rend la remise EXACTE : un objet
+ *  imbriqué retiré ou substitué est remis lui-même, identité comprise. */
+class ClicheArt {
+  entrees: [string, unknown][] = [];
+  constructor(readonly ref: ArtObjet, readonly longueur: number | null) {}
+}
+
+function clicherArt(v: unknown, vus = new Map<object, ClicheArt>()): unknown {
+  if (v === null || typeof v !== 'object') return v;
+  const deja = vus.get(v);
+  if (deja) return deja;
+  const c = new ClicheArt(v as ArtObjet, Array.isArray(v) ? v.length : null);
+  vus.set(v, c);
+  for (const [k, e] of Object.entries(v)) c.entrees.push([k, clicherArt(e, vus)]);
+  return c;
+}
+
+/** Remet l'objet cliché EN PLACE : longueur, ordre des clés, valeurs et objets imbriqués d'origine.
+ *  Rien n'est écrit là où rien n'a bougé (un sous-objet gelé reste intouché). */
+function remettreArt(c: ClicheArt, vus = new Set<ClicheArt>()): void {
+  if (vus.has(c)) return;
+  vus.add(c);
+  const o = c.ref;
+  if (c.longueur !== null) {
+    if ((o as unknown as unknown[]).length !== c.longueur) (o as unknown as unknown[]).length = c.longueur;
+  } else {
+    const cles = Object.keys(o);
+    if (cles.length !== c.entrees.length || c.entrees.some(([k], i) => k !== cles[i])) {
+      for (const k of cles) delete o[k];
+    }
+  }
+  for (const [k, e] of c.entrees) {
+    const attendu = e instanceof ClicheArt ? e.ref : e;
+    if (o[k] !== attendu || !(k in o)) o[k] = attendu;
+    if (e instanceof ClicheArt) remettreArt(e, vus);
+  }
+}
+
 const PRISTINE_RIG_REGISTRIES = rigArtRegistrySignatures();
+/** Cliché d'ORIGINE de chaque registre d'art, pris une fois au chargement du worker : la source de
+ *  la remise après une dérive. */
+const ART_RIG_ORIGINE = new Map([...registresArtRig()].map(([cle, reg]) => [cle, clicherArt(reg) as ClicheArt]));
+
+/** Dérive de chaque registre d'art par rapport à l'origine : ligne de verdict par registre dérivé. */
+function deriveArtRig(): Map<string, string> {
+  const now = rigArtRegistrySignatures();
+  const drifted = new Map<string, string>();
+  for (const [reg, sig] of now) {
+    const was = PRISTINE_RIG_REGISTRIES.get(reg);
+    if (was === sig) continue;
+    drifted.set(reg, was === undefined
+      ? `${reg} : registre APPARU`
+      : `${reg}\n  attendu = ${was}\n  obtenu  = ${sig}`);
+  }
+  for (const reg of PRISTINE_RIG_REGISTRIES.keys()) if (!now.has(reg)) drifted.set(reg, `${reg} : registre DISPARU`);
+  return drifted;
+}
+
+/** Remet en place, à leur valeur d'origine, les registres d'art nommés. */
+function remettreArtRig(cles: Iterable<string>): void {
+  for (const cle of cles) {
+    const origine = ART_RIG_ORIGINE.get(cle);
+    if (origine) remettreArt(origine);
+  }
+}
+
+/** Verdict de la barrière d'art : message nommant le fichier et les registres dérivés, ou `null`. */
+export function messageDeriveArt(fichier: string, derives: readonly string[]): string | null {
+  if (!derives.length) return null;
+  return (
+    `Registre d'art du rig laissé MUTÉ par ${fichier} (les tables de gameIso/rig/parts sont partagées par le worker).\n`
+    + `Capturer la valeur d'origine et la REMETTRE (jamais un \`delete\` sec sur une clé déclarée).\n`
+    + derives.join('\n')
+  );
+}
 
 /** Description d'un nœud ÉLÉMENT résiduel : `<tag class="…">`, jamais son contenu (le nom suffit à
  *  retrouver le montage fautif, le contenu ferait un message illisible). */
@@ -169,7 +256,7 @@ export function residusDom(body: { children: ArrayLike<Element> } | null | undef
   });
 }
 
-/** Clé de stock d'un fichier de test : chemin POSIX relatif à la racine du dépôt. */
+/** Clé d'un fichier de test dans les verdicts des barrières : chemin POSIX relatif à la racine du dépôt. */
 export function cleFichierTest(testPath: string | undefined, racine = process.cwd()): string {
   if (!testPath) return '(fichier inconnu)';
   const p = testPath.split('\\').join('/');
@@ -177,19 +264,18 @@ export function cleFichierTest(testPath: string | undefined, racine = process.cw
   return p.startsWith(`${r}/`) ? p.slice(r.length + 1) : p;
 }
 
-/** Verdict de la barrière : message d'échec, ou `null` si rien à dire (aucun résidu, ou fichier du
- *  stock d'extinction `scripts/guards/lib/domResiduStock.mjs`). */
+/** Verdict de la barrière : message d'échec nommant le fichier, ou `null` s'il n'y a aucun résidu. */
 export function messageResiduDom(
   fichier: string,
+  conteneur: 'document.body' | 'document.head',
   residus: readonly string[],
-  stock: ReadonlySet<string> = DOM_RESIDU_STOCK,
 ): string | null {
-  if (!residus.length || stock.has(fichier)) return null;
+  if (!residus.length) return null;
   return (
-    `Nœud(s) laissé(s) dans document.body par ${fichier} (${residus.length}) : ${residus.join(' ')}\n`
+    `Nœud(s) laissé(s) dans ${conteneur} par ${fichier} (${residus.length}) : ${residus.join(' ')}\n`
     + `Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour `
     + `hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).\n`
-    + `Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.`
+    + `Démonter ce que le test monte ET retirer son hôte (monterRacine/demonterRacines de src/monterRacine.testkit.ts).`
   );
 }
 
@@ -292,30 +378,6 @@ export function messageActEnVol(fichier: string, enVol: boolean): string | null 
   );
 }
 
-/** Fichier d'inventaire de la re-mesure (`WFRP_DOM_RESIDU_COLLECTE`) : la barrière n'échoue plus et
- *  écrit `fichier<TAB>nombre<TAB>nœuds` — c'est ainsi que le stock d'extinction se re-établit. */
-const COLLECTE_RESIDU = process.env.WFRP_DOM_RESIDU_COLLECTE;
-const residuVus = new Set<string>();
-
-/** Registre de PASSAGE de la barrière (`WFRP_DOM_RESIDU_REGISTRE`, posé par `scripts/test/run.mjs`) :
- *  une ligne `fichier<TAB>fui|propre` par fichier de test qui a JOUÉ. Sans lui, une entrée du stock
- *  d'extinction qui ne fuit PLUS reste verte pour toujours — le verdict de péremption se rend APRÈS la
- *  suite (`entreesPerimees`), le seul moment où « ce fichier a joué et n'a pas fui » est mesurable :
- *  un fichier de test ne voit pas les autres (workers, deux processus, `isolate:false`, run filtré). */
-const REGISTRE_RESIDU = process.env.WFRP_DOM_RESIDU_REGISTRE;
-const passagesNotes = new Set<string>();
-const noterPassage = (fichier: string, aFui: boolean) => {
-  if (!REGISTRE_RESIDU) return;
-  const ligne = `${fichier}\t${aFui ? 'fui' : 'propre'}`;
-  if (passagesNotes.has(ligne)) return;
-  passagesNotes.add(ligne);
-  try {
-    appendFileSync(REGISTRE_RESIDU, `${ligne}\n`);
-  } catch {
-    /* registre concurrent ou tenu : le verdict de péremption se rendra au run suivant */
-  }
-};
-
 // Compte des racines react-dom (cf. `instrumenterRacines`) : posé au premier test qui dispose d'un
 // DOM, une seule fois par worker. Hook à part, et ENREGISTRÉ EN PREMIER (les hooks jouent dans leur
 // ordre d'enregistrement) : le filet est en place avant le moindre montage, et la remise à plat des
@@ -374,49 +436,26 @@ afterEach(() => {
   Object.assign(cascadeAppliers, cascadeSnapshot);
   vi.useRealTimers();
   clearTrackedTimers();
-  // FUITE DOM laissée par CE test (cf. §3 de l'en-tête) : observée au hook le plus EXTERNE, donc APRÈS
-  // les `afterEach` du fichier (démontage, `cleanup()`). On échoue ICI, au site fautif, plutôt que dans
-  // une victime éloignée du même worker. Stock d'extinction : scripts/guards/lib/domResiduStock.mjs.
+  // Barrières §1 (art), §3 (nœuds) et §4 (racines, act) en trois temps — cf. fin de l'en-tête.
+  // Observées au hook le plus EXTERNE, donc APRÈS les `afterEach` du fichier (démontage, `cleanup()`).
+  // 1. LIRE toutes les fuites de CE test.
+  const fichier = cleFichierTest(expect.getState().testPath);
+  const residusBody = typeof document !== 'undefined' ? residusDom(document.body) : [];
+  const residusHead = typeof document !== 'undefined' ? residusDom(document.head) : [];
+  const derivesArt = deriveArtRig();
+  // 2. REMETTRE l'état partagé à vierge : aucun résidu ne survit à son verdict.
+  remettreArtRig(derivesArt.keys());
   if (typeof document !== 'undefined') {
-    const residus = residusDom(document.body);
-    if (REGISTRE_RESIDU) noterPassage(cleFichierTest(expect.getState().testPath), residus.length > 0);
-    if (residus.length) {
-      const fichier = cleFichierTest(expect.getState().testPath);
-      if (COLLECTE_RESIDU) {
-        if (!residuVus.has(fichier)) {
-          residuVus.add(fichier);
-          appendFileSync(COLLECTE_RESIDU, `${fichier}\t${residus.length}\t${residus.slice(0, 4).join(' ')}\n`);
-        }
-      } else {
-        const msg = messageResiduDom(fichier, residus);
-        if (msg) throw new Error(msg);
-      }
-    }
+    document.body.replaceChildren();
+    document.head.replaceChildren();
   }
-  // VERDICT des lectures prises en tête : une racine rendue et non démontée, ou une file d'`act()`
-  // laissée ouverte — invisibles à la barrière de nœuds ci-dessus dès que le conteneur est détaché de
-  // `document.body`, et pourtant partagées par tout le worker (`isolate:false`). Chaque fuite se dit
-  // UNE fois, chez le fichier qui l'a ouverte, jamais chez la victime qui la subit ensuite.
-  const msgRacine = messageRacineMontee(racinesFuites)
-    ?? messageActEnVol(cleFichierTest(expect.getState().testPath), fileNeuve);
-  if (msgRacine) throw new Error(msgRacine);
-  // Dérive d'un registre d'ART laissée par CE test : elle fuirait vers tous les fichiers suivants du
-  // worker (`isolate: false`). On échoue ICI, au site fautif, plutôt que dans une victime éloignée.
-  const now = rigArtRegistrySignatures();
-  const drifted: string[] = [];
-  for (const [reg, sig] of now) {
-    const was = PRISTINE_RIG_REGISTRIES.get(reg);
-    if (was === sig) continue;
-    drifted.push(was === undefined
-      ? `${reg} : registre APPARU`
-      : `${reg}\n  attendu = ${was}\n  obtenu  = ${sig}`);
-  }
-  for (const reg of PRISTINE_RIG_REGISTRIES.keys()) if (!now.has(reg)) drifted.push(`${reg} : registre DISPARU`);
-  if (drifted.length) {
-    throw new Error(
-      `Registre d'art du rig laissé MUTÉ par ce test (les tables de gameIso/rig/parts sont partagées par le worker).\n`
-      + `Capturer la valeur d'origine et la REMETTRE (jamais un \`delete\` sec sur une clé déclarée).\n`
-      + drifted.join('\n'),
-    );
-  }
+  // 3. JUGER : un seul `throw`, chaque fuite dite UNE fois chez le fichier qui l'a laissée.
+  const verdicts = [
+    messageResiduDom(fichier, 'document.body', residusBody),
+    messageResiduDom(fichier, 'document.head', residusHead),
+    messageRacineMontee(racinesFuites),
+    messageActEnVol(fichier, fileNeuve),
+    messageDeriveArt(fichier, [...derivesArt.values()]),
+  ].filter((m): m is string => m !== null);
+  if (verdicts.length) throw new Error(verdicts.join('\n'));
 });

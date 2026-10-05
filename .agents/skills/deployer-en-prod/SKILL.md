@@ -6,8 +6,6 @@ description: À utiliser quand l'utilisateur demande une mise en production, un 
 
 # Déployer en production
 
-Référence canonique : § **Déploiement** du **AGENTS.md**.
-
 Préconditions ABSOLUES :
 - demande explicite de l'utilisateur ;
 - suite complète verte ;

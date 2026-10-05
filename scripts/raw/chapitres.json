@@ -1,5 +1,5 @@
 {
-  "quoi": "REGISTRE des CHAPITRES de l’Atlas RAW — ce qu’on sait des CHAPITRES d’un livre, là où son entrée de src/data/books.json dit ce qu’on sait du LIVRE (abbr, dir, langue, coeur, teneur, niveauDeSection). Donnée d’OUTILLAGE : elle ne sert qu’à la chaîne Atlas (coverage.mjs, build-catalogs.mjs), jamais au jeu, et ne s’édite pas au Compendium. `book` est l’id STABLE du livre (books.json), jamais son abréviation : le sigle est de l’affichage. `horsRegle` = les chapitres exclus du dénominateur de couverture, chacun avec le MOTIF de son exclusion — notre prose éditoriale, jamais une réf citable « ABRÉV NN l.X » : aucun scanner de réfs ne lit ce fichier (reconcile.mjs et check-code-refs.mjs scannent src/**, check-refs.mjs les .md de docs/raw/), une réf y pourrirait donc sans bruit. `enCatalogue` = les chapitres que l’Atlas transcrit verbatim, UNE entrée par chapitre ET par catalogue (les catalogues eux-mêmes — fichier, titre, fiche de règles — vivent dans scripts/raw/build-catalogs.mjs) ; `from`/`to`/`title` n’y transcrivent qu’une PLAGE de sous-section. Lecteur UNIQUE : scripts/raw/_lib.mjs. Intégrité : scripts/raw/chapitres.test.mjs.",
+  "quoi": "REGISTRE des CHAPITRES de l’Atlas RAW — ce qu’on sait des CHAPITRES d’un livre, là où son entrée de src/data/books.json dit ce qu’on sait du LIVRE (abbr, dir, langue, coeur, teneur, niveauDeSection). Donnée d’OUTILLAGE : elle ne sert qu’à la chaîne Atlas (coverage.mjs, build-catalogs.mjs, releve.mjs), jamais au jeu, et ne s’édite pas au Compendium. `book` est l’id STABLE du livre (books.json), jamais son abréviation : le sigle est de l’affichage. `horsRegle` = les chapitres exclus du dénominateur de couverture, chacun avec le MOTIF de son exclusion — notre prose éditoriale, jamais une réf citable « ABRÉV NN l.X » : aucun scanner de réfs ne lit ce fichier (reconcile.mjs et check-code-refs.mjs scannent src/**, check-refs.mjs les .md de docs/raw/), une réf y pourrirait donc sans bruit. `enCatalogue` = les chapitres que l’Atlas transcrit verbatim, UNE entrée par chapitre ET par catalogue (les catalogues eux-mêmes — fichier, titre, fiche de règles — vivent dans scripts/raw/build-catalogs.mjs) ; `from`/`to`/`title` n’y transcrivent qu’une PLAGE de sous-section ; lu par coverage.mjs et build-catalogs.mjs. `horsRegle` est lu par coverage.mjs et releve.mjs (jamais relevé). `entites` = les chapitres, ou les PLAGES de sections, qui cataloguent des entités (carrières, compétences, talents, bénédictions, miracles, sorts, équipement, créatures, traits de créature), chacun avec le MOTIF de sa déclaration ; `from`/`to` y désignent une section par `{ slug, occ }`, bornes incluses, le chapitre entier sans elles ; lu par releve.mjs seul, qui y range une section sous `entite` et non sous `regle`. Lecteur UNIQUE : scripts/raw/_lib.mjs. Intégrité : scripts/raw/chapitres.test.mjs.",
   "horsRegle": [
     {
       "book": "livre-de-base",
@@ -55,6 +55,11 @@
       "book": "core-rulebook-5e",
       "ch": 3,
       "motif": "crédits d'édition"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 121,
+      "motif": "index imprimé : termes et numéros de page, chacun défini ailleurs dans ce livre"
     },
     {
       "book": "core-rulebook-5e",
@@ -905,6 +910,238 @@
       "book": "pouvoir-derriere-le-trone",
       "ch": 11,
       "catalogue": "creatures"
+    }
+  ],
+  "entites": [
+    {
+      "book": "core-rulebook-5e",
+      "ch": 18,
+      "from": {
+        "slug": "adviser",
+        "occ": 1
+      },
+      "motif": "carrières, l’une après l’autre, après les règles de lecture d’une carrière"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 20,
+      "from": {
+        "slug": "animal-care-int-advanced",
+        "occ": 1
+      },
+      "motif": "compétences, l’une après l’autre, après les règles de compétence"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 21,
+      "from": {
+        "slug": "accurate-shot",
+        "occ": 1
+      },
+      "motif": "talents, l’un après l’autre"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 66,
+      "from": {
+        "slug": "blessing-of-battle",
+        "occ": 1
+      },
+      "motif": "bénédictions, l’une après l’autre, après les règles de prière"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 67,
+      "from": {
+        "slug": "miracles-of-manann",
+        "occ": 1
+      },
+      "motif": "miracles, par culte, après les règles de miracle"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 70,
+      "from": {
+        "slug": "petty-spells",
+        "occ": 1
+      },
+      "motif": "sorts mineurs et sorts arcaniques, après les règles de magie"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 71,
+      "motif": "liste de sorts, par domaine"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 72,
+      "motif": "liste de sorts, par domaine"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 73,
+      "motif": "liste de sorts, par domaine"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 74,
+      "motif": "liste de sorts, par domaine"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 86,
+      "from": {
+        "slug": "blackpowder-ammunition",
+        "occ": 1
+      },
+      "motif": "tables d’armes à distance et de munitions, qualités et défauts d’arme, après les règles de groupe et de portée"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 87,
+      "from": {
+        "slug": "armour-qualities",
+        "occ": 1
+      },
+      "to": {
+        "slug": "weakpoints",
+        "occ": 1
+      },
+      "motif": "qualités et défauts d’armure, l’un après l’autre, entre la lecture de la table d’armures et la règle de taille"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 88,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 89,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 90,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 91,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 92,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 93,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 94,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 95,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 96,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 97,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 98,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 99,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 100,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 101,
+      "motif": "liste d’équipement du Guide du consommateur : objets, prix, encombrement, disponibilité"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 104,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 105,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 106,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 107,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 108,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 109,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 110,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 111,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 112,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 113,
+      "motif": "gabarits de créature, l’un après l’autre"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 114,
+      "motif": "profils de créatures du bestiaire"
+    },
+    {
+      "book": "core-rulebook-5e",
+      "ch": 115,
+      "from": {
+        "slug": "afraid-target",
+        "occ": 1
+      },
+      "motif": "traits de créature, l’un après l’autre"
     }
   ]
 }

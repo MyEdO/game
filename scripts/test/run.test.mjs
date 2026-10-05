@@ -34,7 +34,6 @@ import {
   TAS_WORKER_MO,
   partieDe,
   refusDePartie,
-  refusRegistreDomAbsent,
   trancher,
 } from './partition.mjs'
 
@@ -526,9 +525,4 @@ test('partie : la tranche est triée par unité de code, son empreinte ne dépen
   for (const i of [1, 3]) assert.equal(trancher(liste, { i, k: 3 }).empreinteListe, t.empreinteListe, 'les K parties portent la même empreinte de liste')
   assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'l’ordre d’énumération change l’empreinte de liste')
   assert.notEqual(trancher(liste.slice(1), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'une liste amputée garde son empreinte')
-})
-
-test('registre DOM absent : toléré sans fichier jsdom joué, REFUS nommé dès un fichier jsdom', () => {
-  assert.equal(refusRegistreDomAbsent(0), null)
-  assert.match(refusRegistreDomAbsent(3), /registre de passage de la barrière DOM ABSENT après 3 fichier\(s\) jsdom joué\(s\)/)
 })

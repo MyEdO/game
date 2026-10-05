@@ -1203,7 +1203,7 @@
     "type": "primitives.manifest",
     "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
+    "concept": "base locale IndexedDB `{ nom, migrations }`, sa version dérivée de ses migrations keyées par version de départ (`migrerBase`, `versionCourante`) : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1370,6 +1370,15 @@
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
   },
   {
+    "id": "versionCourante",
+    "type": "primitives.manifest",
+    "label": "versionCourante",
+    "fichier": "src/lib/versionCourante.ts",
+    "concept": "version courante d'une forme persistée, dérivée de sa table de migrations (littéral objet keyé par version de DÉPART, clés contiguës) : plus grande clé + 1, en valeur et en type littéral (#2226)",
+    "perimetre": "toute version de forme persistée : saves, export du roster, schéma de projet, format des choix de création, bases IndexedDB",
+    "verrou": "src/lib/versionCourante.test.ts"
+  },
+  {
     "id": "isDrawnView",
     "type": "primitives.manifest",
     "label": "isDrawnView",
@@ -1455,7 +1464,7 @@
     "type": "primitives.manifest",
     "label": "analyserCorpus/analyserTexte/ast",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés et libération de session",
+    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
   },
@@ -1480,11 +1489,11 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",
-    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts"
+    "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts"
   },
   {
     "id": "tsProgram",
@@ -1579,9 +1588,9 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale/formeResolue",
     "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`, `CLES_BOUCLIER`) et les valeurs dérivées (`bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
+    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, l'UNIQUE résolution de forme au catalogue courant ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
     "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
     "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },

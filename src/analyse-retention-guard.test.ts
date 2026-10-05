@@ -24,11 +24,15 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const scan = (fichiers: Record<string, string>) => {
   const corpus = Object.entries(fichiers).map(([rel, text]) => ({ rel, text }));
   const exportees = fabriquesDuCorpus(corpus);
-  return Array.from(analyserCorpus(corpus)).flatMap(({ fichier: { rel, text }, sourceFile }) => retentionsDAnalyse(rel, text, exportees, sourceFile!));
+  const retentions: ReturnType<typeof retentionsDAnalyse> = [];
+  for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(corpus)) {
+    retentions.push(...retentionsDAnalyse(rel, text, exportees, sourceFile!, checker));
+  }
+  return retentions;
 };
 const liaisons = (fichiers: Record<string, string>) => scan(fichiers).map((r) => `${r.rel}#${r.liaison} ${r.forme}`);
 
-/** TÉMOIN ROUGE : le mémo de `sceneFieldEditability.mjs` avant #1801. */
+// #1801
 const ANCIEN_MEMO = `import { repoProgram } from './tsProgram.mjs';
 const PROGRAM_CACHE = new Map();
 export function programmeMemoise(root) {
@@ -40,7 +44,7 @@ export function programmeMemoise(root) {
 }
 `;
 
-/** TÉMOIN ROUGE : le cache d'AST de `battleRngEngineLeak.mjs` avant #1801. */
+// #1801
 const ANCIEN_CACHE_D_ARBRES = `import ts from 'typescript';
 import { readFileSync } from 'node:fs';
 const sourceFileCache = new Map();
@@ -92,6 +96,22 @@ it('x', () => { sfs.set('a', arbreDe({ rel: 'a.ts', text: '' }, arbres)); });
 `;
 
 describe('garde de classe #1801 — une structure d’analyse ne vit pas en portée de collection', () => {
+  it('le corpus vide rend un index vide et les fabriques transitives sont calculées pendant l’emprunt', () => {
+    expect(fabriquesDuCorpus([])).toEqual({ fabriques: new Set(), corpus: new Set(), ressources: new Map() });
+    const fichiers = [
+      { rel: 'scripts/guards/lib/troisieme.mjs', text: `import { seconde } from './seconde.mjs'; export const troisieme = () => seconde();` },
+      { rel: 'scripts/guards/lib/seconde.mjs', text: `import { premiere } from './premiere.mjs'; export const seconde = () => premiere();` },
+      { rel: 'scripts/guards/lib/premiere.mjs', text: `import { virtualProgram } from './tsProgram.mjs'; export const premiere = () => virtualProgram({});` },
+    ];
+    const exportees = fabriquesDuCorpus(fichiers);
+    expect([...exportees.fabriques].sort()).toEqual(['premiere', 'seconde', 'troisieme']);
+    expect([...exportees.ressources.entries()].sort()).toEqual([
+      ['scripts/guards/lib/premiere.mjs#premiere', 'dispose'],
+      ['scripts/guards/lib/seconde.mjs#seconde', 'dispose'],
+      ['scripts/guards/lib/troisieme.mjs#troisieme', 'dispose'],
+    ]);
+  });
+
   it('une ressource native exige une fermeture exécutée et issue de sa provenance', () => {
     const base = `import { beforeAll, afterAll } from 'vitest'; import { virtualProgram, libererSessions as fermer } from '../scripts/guards/lib/tsProgram.mjs';`;
     for (const fermeture of ['session=undefined', 'if(false) session.dispose(); session=undefined', 'const tard=()=>session.dispose(); session=undefined', 'return; session.dispose()']) {
@@ -616,7 +636,10 @@ it('x', () => lire());
     expect([...exportees.fabriques]).toEqual(
       expect.arrayContaining(['repoProgram', 'virtualProgram', 'syntaxProgram', 'analyserCorpus', 'programmeDuPerimetre', 'arbreDe']),
     );
-    const retentions = Array.from(analyserCorpus(lus)).flatMap(({ fichier: { rel, text }, sourceFile }) => retentionsDAnalyse(rel, text, exportees, sourceFile!));
+    const retentions: ReturnType<typeof retentionsDAnalyse> = [];
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(lus)) {
+      retentions.push(...retentionsDAnalyse(rel, text, exportees, sourceFile!, checker));
+    }
     expect(retentions.map((r) => `${r.rel}:${r.line} ${r.liaison} (${r.forme})`)).toEqual([]);
   });
 });

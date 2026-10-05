@@ -28,15 +28,17 @@ const estRequire = (ts, appele) =>
 
 /**
  * Sites de module, liaisons et rôles lus dans un seul parcours AST. Le source texte est parsé par
- * `analyserTexte`, avec diagnostics séparés ; un SourceFile fourni est réutilisé. Les positions
+ * `analyserTexte`, avec diagnostics séparés ; un SourceFile fourni est réutilisé sans reparsage,
+ * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. Les positions
  * utilisent cet arbre explicitement, y compris sans parents. Un nom synthétique porte position:null.
  * @param {string} fichier
  * @param {string | import('typescript/unstable/ast').SourceFile} source
+ * @param {readonly import('typescript/unstable/sync').Diagnostic[]} [diagnostics] diagnostics de l'arbre fourni
  */
 export function sitesDeModule(fichier, source, diagnostics) {
   const ts = typescript();
-  const analyse = typeof source === 'string' || diagnostics === undefined ? analyserTexte({ rel: fichier, text: typeof source === 'string' ? source : source.text }) : { sourceFile: source, diagnostics };
-  const arbre = typeof source === 'string' ? analyse.sourceFile : source;
+  const analyse = typeof source === 'string' ? analyserTexte({ rel: fichier, text: source }) : { sourceFile: source, diagnostics: diagnostics ?? [] };
+  const arbre = analyse.sourceFile;
   const texte = arbre.text;
   const [faute] = analyse.diagnostics;
   if (faute) {
@@ -233,9 +235,7 @@ const regimeDesCaches = new WeakMap();
  * courant par défaut) ; ses racines relatives s'y résolvent, ses alias (`aliasDuDepot`) y sont lus. Un
  * membre HORS de `racine` lève une erreur qui nomme son importeur et son spécificateur.
  * `cache` (module absolu -> enfants résolus) est PARTAGEABLE entre plusieurs marches d'un MÊME appelant :
- * les 16 systèmes de `systemes.manifest.json` visitent 21 197 modules pour 1 859 distincts (mesuré le
- * 2026-08-23) — sans partage, chaque fichier est relu et re-résolu 11 fois. Le cache porte les
- * arcs NON filtrés (`Arc`, nature comprise) : il reste valable quels que soient le prédicat et
+ * il porte les arcs NON filtrés (`Arc`, nature comprise) : il reste valable quels que soient le prédicat et
  * `dynamiques`, filtrés pendant la marche. Par défaut le cache naît et meurt avec l'appel : aucun état
  * ne survit entre deux marches indépendantes.
  * `typesEffaces` marche les arcs d'EXÉCUTION seuls (cf. `sourceALExecution`) : c'est ce que demande un

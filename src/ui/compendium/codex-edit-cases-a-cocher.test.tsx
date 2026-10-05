@@ -1,22 +1,26 @@
 // @vitest-environment jsdom
-/**
- * CHARTE : une case à cocher est un CARRÉ de 18 px (charbon bordé, marque or) — `base.css`, boîte
- * `!important` (#1792). Deux nappes de module l'attrapaient à spécificité égale, importées APRÈS
- * base.css par `styles.css` : `.codex-edit-form input { width: 100% }` (barres pleine largeur, constat
- * de recette 2026-08-26) et `.dr input { width: 44px }` (rectangles plats de l'atelier, #1792).
- *
- * Ce test rejoue la CASCADE RÉELLE : TOUTES les feuilles du dépôt, injectées dans l'ordre de leurs
- * `@import` dans `styles.css`, sur le markup réel des deux sites. La boîte attendue est LUE dans
- * `base.css`, jamais écrite en dur. La garde statique de la classe (toute propriété de boîte posée par
- * un module sur un `input` non typé) vit dans `src/ui/ui-ratchets.test.ts` (xx).
- */
+// #1792 ; src/ui/styles/base.css ; src/ui/ui-ratchets.test.ts
 import { readFileSync } from 'node:fs';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 
 const CSS = (f: string) => readFileSync(`src/ui/styles/${f}`, 'utf8');
 const STYLES = readFileSync('src/ui/styles.css', 'utf8');
 /** Les feuilles dans l'ordre de cascade de `styles.css`. */
 const FEUILLES = [...STYLES.matchAll(/@import '\.\/styles\/([^']+)'/g)].map((m) => m[1]);
+const styles: HTMLStyleElement[] = [];
+let host: HTMLDivElement | null = null;
+
+function retirerFeuilles() {
+  for (const style of styles.splice(0)) style.remove();
+}
+
+function poseMarkup(markup: string): HTMLDivElement {
+  host?.remove();
+  host = document.createElement('div');
+  host.innerHTML = markup;
+  document.body.appendChild(host);
+  return host;
+}
 
 /** Boîte DÉCLARÉE par la charte (bloc case/radio de base.css), valeurs calculées attendues. */
 function boiteDeLaCharte(): { width: string; height: string } {
@@ -34,11 +38,12 @@ function boiteDeLaCharte(): { width: string; height: string } {
 }
 
 function poseLesFeuilles(fichiers: string[]) {
-  document.head.innerHTML = '';
+  retirerFeuilles();
   for (const f of fichiers) {
     const style = document.createElement('style');
     style.textContent = CSS(f);
     document.head.appendChild(style);
+    styles.push(style);
   }
 }
 
@@ -49,9 +54,14 @@ const SITES: Record<string, string> = {
   'atelier .dr': '<div class="row"><label class="dr"><input type="checkbox" /> chaque Round</label></div>',
 };
 function poseUneCase(site: keyof typeof SITES): HTMLInputElement {
-  document.body.innerHTML = SITES[site];
-  return document.querySelector('input[type="checkbox"]') as HTMLInputElement;
+  return poseMarkup(SITES[site]).querySelector('input[type="checkbox"]') as HTMLInputElement;
 }
+
+afterEach(() => {
+  host?.remove();
+  host = null;
+  retirerFeuilles();
+});
 
 describe('cases à cocher — la boîte de la charte tient contre TOUTES les feuilles', () => {
   it('l’ordre de cascade lu dans styles.css commence par base.css', () => {
@@ -80,8 +90,8 @@ describe('cases à cocher — la boîte de la charte tient contre TOUTES les feu
 
   it('les VRAIES saisies de l’atelier gardent, elles, la pleine largeur', () => {
     poseLesFeuilles(FEUILLES);
-    document.body.innerHTML = '<div class="codex-edit-form"><label class="ed-field"><span>Libellé</span><input /></label></div>';
-    const texte = document.querySelector('.ed-field input') as HTMLInputElement;
+    const conteneur = poseMarkup('<div class="codex-edit-form"><label class="ed-field"><span>Libellé</span><input /></label></div>');
+    const texte = conteneur.querySelector('.ed-field input') as HTMLInputElement;
     expect(getComputedStyle(texte).width).toBe('100%');
   });
 });

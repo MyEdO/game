@@ -55,9 +55,9 @@
 // (liste de constats, table de noms remplie hors des formes 3 et 4) n'est pas teint.
 import { posix, resolve } from 'node:path'
 import * as ts from 'typescript/unstable/ast'
-import { ast, analyserCorpus } from './dialecte.mjs'
+import { analyserCorpus } from './dialecte.mjs'
 import { estSuiteVitest } from './fichierVitest.mjs'
-import { origineImportee } from './canonUnique.mjs'
+import { contexteImports, origineImportee } from './canonUnique.mjs'
 
 const FABRIQUES_DE_PROGRAMME = Object.freeze(['repoProgram', 'virtualProgram', 'syntaxProgram'])
 export const FABRIQUES_D_ANALYSE = Object.freeze([
@@ -100,7 +100,6 @@ const BRANCHES = new Set([
   ts.SyntaxKind.CommaToken,
 ])
 
-const sourceDe = (rel, texte) => ast({ rel, text: texte })
 
 const sansEnveloppe = (e) => {
   while (
@@ -178,7 +177,7 @@ function ressourceDeFabrique(expression, ctx) {
   const e = sansEnveloppe(expression)
   if (!e) return undefined
   if (estFonction(e) || ts.isFunctionDeclaration(e)) return ressourceRendue(e, ctx)
-  const origine = origineImportee(e, ctx.sf)
+  const origine = origineImportee(e, ctx.sf, ctx.imports)
   if (origine?.module === 'typescript/unstable/sync' && origine.nom === 'API') return 'close'
   if (origine?.module === moduleProgramme && FABRIQUES_DE_PROGRAMME.includes(origine.nom)) return 'dispose'
   if (origine) return ctx.exportees?.ressources?.get(cleRessource(origine.module, origine.nom))
@@ -298,7 +297,7 @@ const porteeDe = (n) => {
 /** Contexte d'un fichier : fabriques et sources de corpus VISIBLES, et ses portées (fonction ou
  *  module) — noms DÉCLARÉS, noms TEINTS, noms de CORPUS, par point fixe sur les déclarations et les
  *  affectations de noms nus. `resoudre(id)` rend la portée qui déclare le nom (`undefined` : global). */
-function contexteDu(sf, fabriques, corpus, detentions, exportees) {
+function contexteDu(sf, fabriques, corpus, detentions, exportees, checker) {
   const declares = new Map()
   const teints = new Map()
   const deCorpus = new Map()
@@ -348,7 +347,7 @@ function contexteDu(sf, fabriques, corpus, detentions, exportees) {
     ressource: id => ressources.get(resoudre(id))?.get(id.text),
     conteneur: id => !!conteneurs.get(resoudre(id))?.has(id.text),
   }
-  const ctx = { sf, fabriques, corpus, detentions, portees, exportees, fonctions, importees, enCours: new Set() }
+  const ctx = { sf, fabriques, corpus, detentions, portees, exportees, fonctions, importees, imports: contexteImports(sf, checker), enCours: new Set() }
   for (let change = true; change; ) {
     change = false
     marcher(sf, (n) => {
@@ -363,7 +362,7 @@ function contexteDu(sf, fabriques, corpus, detentions, exportees) {
         if (!ressources.has(portee)) ressources.set(portee, new Map())
         if (!ressources.get(portee).has(id.text)) { ressources.get(portee).set(id.text, qualite); change = true }
         const v = sansEnveloppe(valeur)
-        if (ts.isArrayLiteralExpression(v) || (ts.isNewExpression(v) && !origineImportee(v.expression, sf))) ajouter(conteneurs, portee, id.text)
+        if (ts.isArrayLiteralExpression(v) || (ts.isNewExpression(v) && !origineImportee(v.expression, sf, ctx.imports))) ajouter(conteneurs, portee, id.text)
       }
       if (teinte(valeur, ctx)) change = ajouter(teints, portee, id.text) || change
       else if (corpusDe(valeur, ctx)) change = ajouter(deCorpus, portee, id.text) || change
@@ -403,8 +402,8 @@ const qualiteDeFonction = (fn, ctx) =>
 /** Fonctions NOMMÉES du fichier qui rendent une valeur teinte (`fabriques`) ou un corpus (`corpus`),
  *  liaisons et propriétés d'objet littéral qui reçoivent une fabrique (`rendUneFabrique`) : leur
  *  appel en rend une (la liaison du lecteur, elle, n'est pas teinte). */
-function derivesDuFichier(sf, fabriques, corpus) {
-  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf))
+function derivesDuFichier(sf, fabriques, corpus, checker) {
+  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), undefined, checker)
   const out = { fabriques: new Set(), corpus: new Set() }
   marcher(sf, (n) => {
     if (ts.isFunctionLikeDeclaration(n) && n.body) {
@@ -480,7 +479,7 @@ function detentionsDe(sf) {
 
 /** Fabriques et sources de corpus VISIBLES dans le fichier : celles de base, les EXPORTÉES du corpus
  *  que le fichier IMPORTE (sous leur nom local), puis ses propres fonctions, par point fixe. */
-function visiblesDansLeFichier(sf, exportees) {
+function visiblesDansLeFichier(sf, exportees, checker) {
   const fabriques = new Set(FABRIQUES_D_ANALYSE)
   const corpus = new Set(SOURCES_DE_CORPUS)
   for (const st of sf.statements) {
@@ -494,7 +493,7 @@ function visiblesDansLeFichier(sf, exportees) {
   }
   for (let avant = -1; avant !== fabriques.size + corpus.size; ) {
     avant = fabriques.size + corpus.size
-    const d = derivesDuFichier(sf, fabriques, corpus)
+    const d = derivesDuFichier(sf, fabriques, corpus, checker)
     for (const nom of d.fabriques) fabriques.add(nom)
     for (const nom of d.corpus) if (!fabriques.has(nom)) corpus.add(nom)
   }
@@ -518,26 +517,32 @@ const termesDe = (exportees) => [
  */
 export function fabriquesDuCorpus(fichiers) {
   const exportees = { fabriques: new Set(), corpus: new Set(), ressources: new Map() }
-  const asts = new Map(Array.from(analyserCorpus(fichiers), ({ fichier, sourceFile }) => [fichier.rel, sourceFile]))
-  const taille = () => exportees.fabriques.size + exportees.corpus.size + exportees.ressources.size
-  for (let avant = -1; avant !== taille(); ) {
-    avant = taille()
-    for (const { rel, text } of fichiers) {
-      if (!mentionne(text, termesDe(exportees))) continue
-      const sf = asts.get(rel)
-      const vus = visiblesDansLeFichier(sf, exportees)
-      const ctx = contexteDu(sf, vus.fabriques, vus.corpus, detentionsDe(sf), exportees)
-      for (const [nom, qualite] of exportes(sf, ctx)) if (qualite) exportees[qualite].add(nom)
-      for (const st of sf.statements) if (estExporte(st) && ts.isFunctionDeclaration(st) && st.name) {
-        const qualite = ressourceRendue(st, ctx)
-        if (qualite) exportees.ressources.set(cleRessource(rel, st.name.text), qualite)
-      }
-      for (const st of sf.statements) if (estExporte(st) && ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) {
-        if (!ts.isIdentifier(d.name) || !estFonction(d.initializer)) continue
-        const qualite = ressourceRendue(d.initializer, ctx)
-        if (qualite) exportees.ressources.set(cleRessource(rel, d.name.text), qualite)
+  const asts = new Map()
+  let compte = 0
+  for (const analyse of analyserCorpus(fichiers)) {
+    asts.set(analyse.fichier.rel, analyse)
+    if (++compte !== fichiers.length) continue
+    const taille = () => exportees.fabriques.size + exportees.corpus.size + exportees.ressources.size
+    for (let avant = -1; avant !== taille(); ) {
+      avant = taille()
+      for (const { rel, text } of fichiers) {
+        if (!mentionne(text, termesDe(exportees))) continue
+        const { sourceFile: sf, checker } = asts.get(rel)
+        const vus = visiblesDansLeFichier(sf, exportees, checker)
+        const ctx = contexteDu(sf, vus.fabriques, vus.corpus, detentionsDe(sf), exportees, checker)
+        for (const [nom, qualite] of exportes(sf, ctx)) if (qualite) exportees[qualite].add(nom)
+        for (const st of sf.statements) if (estExporte(st) && ts.isFunctionDeclaration(st) && st.name) {
+          const qualite = ressourceRendue(st, ctx)
+          if (qualite) exportees.ressources.set(cleRessource(rel, st.name.text), qualite)
+        }
+        for (const st of sf.statements) if (estExporte(st) && ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) {
+          if (!ts.isIdentifier(d.name) || !estFonction(d.initializer)) continue
+          const qualite = ressourceRendue(d.initializer, ctx)
+          if (qualite) exportees.ressources.set(cleRessource(rel, d.name.text), qualite)
+        }
       }
     }
+    return exportees
   }
   return exportees
 }
@@ -624,11 +629,14 @@ const estStatique = (n) =>
  * @param {{ fabriques: Set<string>, corpus: Set<string> }} [exportees] `fabriquesDuCorpus` du corpus scanné
  * @returns {{ rel: string, line: number, liaison: string, forme: string }[]}
  */
-export function retentionsDAnalyse(rel, texte, exportees = { fabriques: new Set(), corpus: new Set() }, sourceFile) {
+export function retentionsDAnalyse(rel, texte, exportees = { fabriques: new Set(), corpus: new Set() }, sourceFile, checker) {
   if (!mentionne(texte, termesDe(exportees))) return []
-  const sf = sourceFile ?? sourceDe(rel, texte)
-  const { fabriques, corpus } = visiblesDansLeFichier(sf, exportees)
-  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), exportees)
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel, text: texte }])) return retentionsDAnalyse(rel, texte, exportees, analyse.sourceFile, analyse.checker)
+  }
+  const sf = sourceFile
+  const { fabriques, corpus } = visiblesDansLeFichier(sf, exportees, checker)
+  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), exportees, checker)
   const { portees } = ctx
   const libres = liberees(sf, portees)
   const fermees = new Map()
@@ -663,7 +671,7 @@ export function retentionsDAnalyse(rel, texte, exportees = { fabriques: new Set(
         if (portees.conteneur(id)) continue
       }
       else {
-        const origine = origineImportee(e, sf)
+        const origine = origineImportee(e, sf, ctx.imports)
         if (origine?.module === moduleProgramme && origine.nom === 'libererSessions') {
           const arg = appel.arguments[0]
           id = arg && racineDe(ts.isCallExpression(arg) && ts.isPropertyAccessExpression(arg.expression) && arg.expression.name.text === 'values' ? arg.expression.expression : arg)

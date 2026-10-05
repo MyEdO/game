@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 import { countSpecSchema } from './valeurs';
-import { porteLeMarqueur } from './ref';
+import { porteLeMarqueur, refusDeSpec } from './ref';
 
 /**
  * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
@@ -34,11 +34,39 @@ const declarants = new Map<string, (id: string) => boolean>();
 export function refusDArgDeTrait(id: string, arg: string): string | null {
   for (const r of ARG_DECLARE_AILLEURS) {
     if (!r.forme.test(arg.trim())) continue;
-    let declare = declarants.get(r.marqueur);
-    if (!declare) declarants.set(r.marqueur, (declare = porteLeMarqueur('trait', r.marqueur)));
-    if (declare(id)) return `Trait « ${id} » : « ${arg} » est ${r.nature} — il s'écrit en « ${r.champ} » (nombre), jamais en « arg ».`;
+    if (declare(r.marqueur, id)) return `Trait « ${id} » : « ${arg} » est ${r.nature} — il s'écrit en « ${r.champ} » (nombre), jamais en « arg ».`;
   }
   return null;
+}
+
+/** Joker d'un `arg` de Trait d'un statbloc RAW (« Animosité (un au choix) », « Peur (Au choix) ») : il
+ *  désigne un choix, jamais une entrée du registre. */
+export const ARG_JOKER = /^(un |une |deux )?au choix$/i;
+
+/** Le prédicat « le Trait déclare ce marqueur », construit à la PREMIÈRE lecture (voir `declarants`). */
+function declare(marqueur: string, id: string): boolean {
+  let pred = declarants.get(marqueur);
+  if (!pred) declarants.set(marqueur, (pred = porteLeMarqueur('trait', marqueur)));
+  return pred(id);
+}
+
+/** Parts de l'`arg` `arg` du Trait `id` : liste séparée par virgules si la def déclare `specsMulti`,
+ *  sinon l'arg entier ; jokers et parts vides écartés. */
+export function partsDArg(id: string, arg: string): string[] {
+  if (ARG_JOKER.test(arg.trim())) return [];
+  return (declare('specsMulti', id) ? arg.split(',') : [arg]).map((s) => s.trim()).filter((s) => s && !ARG_JOKER.test(s));
+}
+
+/**
+ * Refus de l'`arg` `arg` sur le Trait `id` dont le registre (`specsSource`) est FERMÉ : chaque part qui
+ * n'y résout pas — message nommé, sinon `null`. Prédicat UNIQUE, lu par le schéma d'instance ci-dessous
+ * et par `src/data/trait-args-derived.test.ts` ; un registre OUVERT (`specsOpen`) admet le texte libre.
+ */
+export function refusDArgHorsRegistre(id: string, arg: string): string | null {
+  const horsRegistre = partsDArg(id, arg).filter((part) => refusDeSpec('trait', id, part) === 'horsCatalogue');
+  return horsRegistre.length
+    ? `Trait « ${id} » : ${horsRegistre.map((x) => `« ${x} »`).join(', ')} ne résout aucune entrée de son registre — un id du registre, jamais un libellé.`
+    : null;
 }
 
 export const traitInstanceSchema = z.strictObject({
@@ -50,8 +78,10 @@ export const traitInstanceSchema = z.strictObject({
   natural: z.boolean().optional(),
   hidden: z.boolean().optional(),
 }).superRefine((t, ctx) => {
-  const refus = t.arg === undefined ? null : refusDArgDeTrait(t.id, t.arg);
-  if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
+  if (t.arg === undefined) return;
+  for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDArgHorsRegistre(t.id, t.arg)]) {
+    if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
+  }
 });
 
 /**

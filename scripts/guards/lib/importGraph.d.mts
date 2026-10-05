@@ -31,6 +31,8 @@ export interface SiteDeModule extends PositionDeModule {
   liaisons: LiaisonDeModule[];
 }
 export type LiaisonSituee = Omit<SiteDeModule, 'liaisons'> & LiaisonDeModule;
+/** Une chaîne est analysée et validée ; un SourceFile est réutilisé sans reparsage,
+ * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. */
 export function sitesDeModule(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): SiteDeModule[];
 export function liaisonsDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): LiaisonSituee[];
 export function chargementsDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): SiteDeModule[];

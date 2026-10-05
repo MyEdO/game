@@ -22,7 +22,7 @@ export interface ExporteesDuCorpus {
 }
 
 /** Fabriques et sources de corpus EXPORTÉES, par point fixe à travers les imports. */
-export function fabriquesDuCorpus(fichiers: readonly { rel: string; text: string }[]): ExporteesDuCorpus;
+export function fabriquesDuCorpus(fichiers: readonly { rel: string; text: string }[]): Required<ExporteesDuCorpus>;
 
 /** Rétentions d'analyse du fichier `rel`. */
-export function retentionsDAnalyse(rel: string, texte: string, exporteesDuCorpus?: ExporteesDuCorpus, sourceFile?: import('typescript/unstable/ast').SourceFile): RetentionDAnalyse[];
+export function retentionsDAnalyse(rel: string, texte: string, exporteesDuCorpus?: ExporteesDuCorpus, sourceFile?: import('typescript/unstable/ast').SourceFile, checker?: import('typescript/unstable/sync').Checker): RetentionDAnalyse[];

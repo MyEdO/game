@@ -170,7 +170,7 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.23-25) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +57 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/state/combatEffects.ts`, `src/state/combatFlow.ts`, +5 fichiers
-- `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `Condition`, `langue-prehensile`, `TriggerCtx`, `isUnstable` ⚠sans-appelant, `pullToward`, +25 — `src/data/maneuvers.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, `src/engine/polymorph.ts`, +9 fichiers
+- `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `Condition`, `langue-prehensile`, `mutationsAtSpawn`, `TriggerCtx`, `isUnstable` ⚠sans-appelant, +26 — `src/data/maneuvers.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, `src/engine/polymorph.ts`, +9 fichiers
 
 ---
 
@@ -647,7 +647,7 @@ Bypass des PA en métal **et** bonus de dégâts égal aux PA bypassés (Métal 
 Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par sort, mais une cible ne peut accumuler qu'un seul état `Exténué` issu de cet Attribut à la fois).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.497) → `effectSourcesOf`, `doc`, `refusLoose`, `GameOp`, `removeActiveEffects`, `ActiveEffect`, `OpFields`, `passiveMods`, `Combatant`, `applyOps`, +15 — `src/data/schemas/defs/spells.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/conditions.ts`, `src/engine/dispel.ts`, `src/engine/domainAttributes.ts`, +7 fichiers
+- `LDB 48` (l.497) → `MIGRATIONS_DE_SAVE`, `effectSourcesOf`, `doc`, `refusLoose`, `GameOp`, `removeActiveEffects`, `ActiveEffect`, `OpFields`, `passiveMods`, `Combatant`, +16 — `src/data/schemas/defs/spells.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/spells.json`, `src/engine/conditions.ts`, `src/engine/dispel.ts`, `src/engine/domainAttributes.ts`, +7 fichiers
 
 ---
 

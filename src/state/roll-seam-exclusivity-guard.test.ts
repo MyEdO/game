@@ -1,5 +1,5 @@
 import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import * as ts from 'typescript/unstable/ast';
 import { useGame } from './store';
@@ -13,6 +13,9 @@ import { RACINE_DU_SEAM, rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUB
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
+import * as canon from '../../scripts/guards/lib/canonUnique.mjs';
+import * as programmes from '../../scripts/guards/lib/tsProgram.mjs';
+import { scanRegistryIdBranch } from '../../scripts/guards/lib/registryIdBranch.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -50,6 +53,62 @@ const EXCLUDED = (rel: string) => estFichierVitest(rel) || rollSeamExcluded(rel)
  *  ce fichier — et les autres fichiers de test du même worker — partagent une seule lecture, payée
  *  au 1ᵉʳ appel (jamais à la collecte Vitest). */
 const corpus = () => readCorpus(SCAN_DIRS, { tests: true });
+
+describe('contexte d’import des parcours manuels', () => {
+  const table = { 'src/engine/dice.ts': ['d100'] };
+  const texte = [
+    "import { d100, d100 as alias } from '../engine/dice';",
+    "import * as dice from '../engine/dice';",
+    'd100();', 'alias();', 'dice.d100();',
+    'function masque(d100, dice) { d100(); dice.d100(); }',
+  ].join('\n');
+  const rng = [
+    "import { battleRng } from './battleRng';",
+    "import { resolveMelee, resolveMelee as alias } from '../engine/combat';",
+    "import * as combat from '../engine/combat';",
+    'battleRng();', 'resolveMelee();', 'alias();', 'combat.resolveMelee();',
+    'function masque(resolveMelee, combat) { resolveMelee(); combat.resolveMelee(); }',
+  ].join('\n');
+  it.each([
+    ['dés hors porte', () => scanDesHorsPorte('src/state/probe.ts', texte, table)],
+    ['jets délégués', () => scanEngineDelegatedRoll('src/state/probe.ts', texte, table)],
+    ['rng vivant', () => scanBattleRngEngineLeak('src/state/probe.ts', rng, { resolveurs: { 'src/engine/combat.ts': ['resolveMelee'] } })],
+  ] as const)('%s partage un contexte et un programme entre occurrences, renouvelés au scan suivant', (_nom, scanner) => {
+    const contextes = vi.spyOn(canon, 'contexteImports');
+    const programmesCrees = vi.spyOn(programmes, 'syntaxProgram');
+    try {
+      expect(scanner()).toHaveLength(3);
+      expect(contextes).toHaveBeenCalledTimes(1);
+      expect(programmesCrees).toHaveBeenCalledTimes(1);
+      const premier = contextes.mock.results[0].value as canon.ContexteImports;
+      expect(scanner()).toHaveLength(3);
+      expect(contextes).toHaveBeenCalledTimes(2);
+      expect(programmesCrees).toHaveBeenCalledTimes(2);
+      const second = contextes.mock.results[1].value as canon.ContexteImports;
+      expect(second).not.toBe(premier);
+      expect(second.source).not.toBe(premier.source);
+      expect(second.source.fileName).toBe(premier.source.fileName);
+    } finally {
+      contextes.mockRestore();
+      programmesCrees.mockRestore();
+    }
+  });
+
+  it('registre : le vocabulaire importé garde son origine sans construire de checker', () => {
+    const contextes = vi.spyOn(canon, 'contexteImports');
+    const programmesCrees = vi.spyOn(programmes, 'syntaxProgram');
+    const corps = "const ids: Os[] = ['head', 'torso']; function f(entry) { return ids.includes(entry.id); }";
+    try {
+      expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './gameIso/rig/bones';" + corps)).toEqual([]);
+      expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './engine/types';" + corps)).toHaveLength(1);
+      expect(contextes).toHaveBeenCalledTimes(2);
+      expect(programmesCrees).toHaveBeenCalledTimes(2);
+    } finally {
+      contextes.mockRestore();
+      programmesCrees.mockRestore();
+    }
+  });
+});
 
 /** Sites de roulage brut du corpus entier, mode `includeExcluded` — SUR-ENSEMBLE dont la forme NUE du
  *  garde est le sous-ensemble sans `excludedBy` (rollSeamExclusivity.mjs, `opts.includeExcluded`) :
@@ -318,8 +377,8 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', { timeout: 60_000 }, () => {
     const offenders: string[] = [];
     const passage = contexte();
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(corpus().filter(({ rel }) => !estFichierVitest(rel) && !battleRngEngineLeakExcluded(rel)))) {
-      const findings = scanBattleRngEngineLeak(rel, text, passage, sourceFile!);
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(corpus().filter(({ rel }) => !estFichierVitest(rel) && !battleRngEngineLeakExcluded(rel)))) {
+      const findings = scanBattleRngEngineLeak(rel, text, passage, sourceFile!, checker);
       for (const x of findings) offenders.push(`${rel}:${x.line} [rng vivant → ${x.name}] ${x.detail}`);
     }
     expect(
@@ -600,8 +659,8 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
 
   const mesure = (table: Readonly<Record<string, readonly string[]>>) => {
     const m = new Map<string, number>();
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(prodFiles('src/state', 'src/ui').filter(({ rel }) => !SEAM_CORE.has(rel)))) {
-      const n = scanEngineDelegatedRoll(rel, text, table, sourceFile!).length;
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(prodFiles('src/state', 'src/ui').filter(({ rel }) => !SEAM_CORE.has(rel)))) {
+      const n = scanEngineDelegatedRoll(rel, text, table, sourceFile!, checker).length;
       if (n > 0) m.set(rel, n);
     }
     return m;
@@ -961,19 +1020,14 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
   /** Mesure du corpus de PRODUCTION hors moteur et hors noyau du seam. */
   function mesureDesHorsPorte(): Map<string, number> {
     const m = new Map<string, number>();
-    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(prodFiles('src').filter(({ rel }) => !rel.startsWith('src/engine/') && !SEAM_CORE.has(rel)))) {
-      const n = scanDesHorsPorte(rel, text, desRollers(), sourceFile!).length;
+    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(prodFiles('src').filter(({ rel }) => !rel.startsWith('src/engine/') && !SEAM_CORE.has(rel)))) {
+      const n = scanDesHorsPorte(rel, text, desRollers(), sourceFile!, checker).length;
       if (n > 0) m.set(rel, n);
     }
     return m;
   }
 
-  /**
-   * LA MORSURE (promue de la sonde du juge, `tmp/juge-1508/sonde-morsure.mjs`) — cinq dés
-   * SYNTHÉTIQUES posés dans un applier de `src/state`, identiques à l'octet sauf la primitive. Le
-   * garde d'exclusivité n'en voit qu'UN (le `d100` d'un Test) ; la garde sœur les voit TOUS. Sans ce
-   * contrat, l'élargissement se relirait comme acquis alors qu'il est exactement ce qui manquait.
-   */
+  // #1508
   it('MORSURE : les cinq primitives de dé sont vues par la sœur, là où l’exclusivité n’en voit qu’une', () => {
     const cas: [string, string][] = [
       ['d100', "import { d100 } from '../engine/dice';\nexport function f(rng) { return d100(rng); }\n"],

@@ -30,6 +30,48 @@ import { ast, analyserTexte, analyserCorpus } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
+test('un AST fourni sans diagnostics conserve ses nœuds sans ouvrir de session', () => {
+  const rel = 'reutilise.ts'
+  const { sourceFile } = analyserTexte({ rel, text: "import { valeur as locale } from './cible';" })
+  const close = API.prototype.close
+  const update = API.prototype.updateSnapshot
+  const fermeture = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  const snapshot = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args) })
+  try {
+    for (const diagnostics of [undefined, []]) {
+      const [site] = sitesDeModule(rel, sourceFile, diagnostics)
+      assert.equal(site.noeud, sourceFile.statements[0])
+      assert.equal(site.spec, './cible')
+      const [liaison] = liaisonsDe(rel, sourceFile, diagnostics)
+      assert.equal(liaison.local.position.noeud, sourceFile.statements[0].importClause.namedBindings.elements[0].name)
+      assert.equal(liaison.local.nom, 'locale')
+      assert.equal(liaison.importe.nom, 'valeur')
+      assert.equal(chargementsDe(rel, sourceFile, diagnostics)[0].noeud, sourceFile.statements[0])
+      assert.equal(specificateursDe(rel, sourceFile, diagnostics)[0].spec, './cible')
+    }
+    assert.equal(snapshot.mock.callCount(), 0)
+    assert.equal(fermeture.mock.callCount(), 0)
+  } finally { snapshot.mock.restore(); fermeture.mock.restore() }
+})
+
+test('les diagnostics explicites refusent un AST malformé sans ouvrir de session', () => {
+  const rel = 'malforme.ts'
+  const { sourceFile, diagnostics } = analyserTexte({ rel, text: "import './cible';\nconst valeur = ;" })
+  assert.ok(diagnostics.length > 0)
+  const close = API.prototype.close
+  const update = API.prototype.updateSnapshot
+  const fermeture = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  const snapshot = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args) })
+  try {
+    for (const lire of [sitesDeModule, liaisonsDe, chargementsDe, specificateursDe]) {
+      assert.throws(() => lire(rel, sourceFile, diagnostics), /sitesDeModule : malforme\.ts ne se parse pas, ligne 2/)
+    }
+    assert.equal(sitesDeModule(rel, sourceFile)[0].spec, './cible')
+    assert.equal(snapshot.mock.callCount(), 0)
+    assert.equal(fermeture.mock.callCount(), 0)
+  } finally { snapshot.mock.restore(); fermeture.mock.restore() }
+})
+
 test('directImportsOf : AST et diagnostics préparés gardent les arcs sans session supplémentaire', () => {
   const racine = mkdtempSync(join(tmpdir(), 'imports-prepares-'))
   const close = API.prototype.close

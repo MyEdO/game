@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import * as THREE from 'three';
 import { TopoScene } from '../TopoScene';
 import { planLights, setPlanRendererFactory, HEURE_INERTE, PLAN_PLAT, type PlanRenderer } from './planSnapshot';
@@ -9,6 +8,7 @@ import { viewPolicy } from './viewPolicy';
 import { stageLightScalars, stageLights } from './stageLights';
 import { emptyScene, type Scene } from '../../state/scene';
 import type { Station } from '../../state/stations';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
 /**
  * LE PLAN DE STATION SUR LA VOIE VOLUMIQUE (#1176, P3-4, commit C2). Ce qui se mesure ici :
@@ -74,15 +74,8 @@ afterAll(() => {
   }
 });
 
-type Montage = { root: Root; hôte: HTMLDivElement };
-const racines: Montage[] = [];
 afterEach(() => {
-  const montages = racines.splice(0);
-  try {
-    act(() => { for (const { root } of montages) root.unmount(); });
-  } finally {
-    for (const { hôte } of montages) hôte.remove();
-  }
+  demonterRacines();
   setPlanRendererFactory(rendererDeBanc);
   mesure = { w: 420, h: 180 };
   créations = 0;
@@ -92,19 +85,8 @@ afterEach(() => {
   contenu = null;
 });
 
-function créeRacine(): Montage {
-  const hôte = document.createElement('div');
-  document.body.appendChild(hôte);
-  const root = createRoot(hôte);
-  const montage = { root, hôte };
-  racines.push(montage);
-  return montage;
-}
-
 function monte(ui: React.ReactElement): HTMLDivElement {
-  const { root, hôte } = créeRacine();
-  act(() => root.render(ui));
-  return hôte;
+  return monterRacine(ui).container;
 }
 
 function station(over: Partial<Station> = {}): Station {
@@ -167,15 +149,8 @@ describe('Plan de station — le monde volumique ne laisse aucun contexte vivant
   it('CINQ ouvertures de fiche : cinq contextes créés, cinq rendus, cinq perdus — rien ne s’empile', () => {
     const scene = scèneDePlan();
     for (let i = 0; i < 5; i++) {
-      const montage = créeRacine();
-      const { root, hôte } = montage;
-      try {
-        act(() => root.render(<TopoScene scene={scene} stations={STATIONS} />));
-      } finally {
-        racines.splice(racines.indexOf(montage), 1);
-        try { act(() => root.unmount()); }
-        finally { hôte.remove(); }
-      }
+      monterRacine(<TopoScene scene={scene} stations={STATIONS} />);
+      demonterRacines();
     }
     expect(créations).toBe(5);
     // C'est LE mode de défaillance de l'éphémère : un contexte gardé par ouverture évincerait le stage
@@ -202,36 +177,33 @@ describe('Plan de station — sans contexte volumique, le plan le DIT', () => {
 describe('Plan de station — rétention de l’instantané par CONTENU', () => {
   it('une scène REFORGÉE à contenu égal ne repaie aucun instantané ; changer d’étage en repaie un', () => {
     const scene = scèneDePlan();
-    const { root } = créeRacine();
-    act(() => root.render(<TopoScene scene={scene} stations={STATIONS} z={0} />));
+    const { rendre } = monterRacine(<TopoScene scene={scene} stations={STATIONS} z={0} />);
     expect(créations).toBe(1);
     // Référence NEUVE, même contenu : c'est ce que produit le store à chaque geste de jeu.
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} z={0} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} z={0} />));
     expect(créations).toBe(1);
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} z={1} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} z={1} />));
     expect(créations).toBe(2);
   });
 
   it('la BOÎTE DE PIXELS entre dans la clé : redimensionner recuit, la même boîte ne recuit pas', () => {
     const scene = scèneDePlan();
-    const { root } = créeRacine();
-    act(() => root.render(<TopoScene scene={scene} stations={STATIONS} />));
+    const { rendre } = monterRacine(<TopoScene scene={scene} stations={STATIONS} />);
     expect(créations).toBe(1);
     mesure = { w: 700, h: 300 };
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
     expect(créations).toBe(2); // une image cuite pour l'ancienne boîte serait étirée par la CSS
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
     expect(créations).toBe(2);
   });
 
   it('un instantané pris HORS MESURE n’est jamais retenu : la première mesure le refait', () => {
     mesure = { w: 0, h: 0 }; // avant toute mise en page — le plan cuit à sa résolution par défaut
     const scene = scèneDePlan();
-    const { root } = créeRacine();
-    act(() => root.render(<TopoScene scene={scene} stations={STATIONS} />));
+    const { rendre } = monterRacine(<TopoScene scene={scene} stations={STATIONS} />);
     expect(créations).toBe(1);
     mesure = { w: 420, h: 180 };
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
     expect(créations).toBe(2);
   });
 });

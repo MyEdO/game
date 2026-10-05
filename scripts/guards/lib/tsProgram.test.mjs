@@ -1,9 +1,11 @@
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { API, Snapshot } from 'typescript/unstable/sync';
+import { fileURLToPath } from 'node:url';
+import { API, Snapshot, SymbolFlags } from 'typescript/unstable/sync';
+import { typescript } from './dialecte.mjs';
 import { virtualProgram, syntaxProgram, repoProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 
 test('libererSessions : premier échec, fermeture suivante et dédoublage', () => {
@@ -213,4 +215,130 @@ test('repoProgram : config héritée, racines choisies, recouvrement et erreur p
     assert.throws(() => repoProgram(root, () => { throw new Error('sélection'); }), /sélection/);
     assert.equal(spy.mock.callCount(), 2);
   } finally { spy.mock.restore(); rmSync(root, { recursive: true, force: true }); }
+});
+
+const diagnostics = program => [...program.getProgramDiagnostics(), ...program.getSyntacticDiagnostics(), ...program.getSemanticDiagnostics(), ...program.getGlobalDiagnostics()];
+function identifiers(source, nom) {
+  const ts = typescript();
+  const resultat = [];
+  function visit(n) {
+    if (ts.isIdentifier(n) && n.text === nom) resultat.push(n);
+    n.forEachChild(visit);
+  }
+  visit(source);
+  return resultat;
+}
+
+function aliasCible(session, fichier, nom) {
+  const { program, checker } = session;
+  const source = program.getSourceFile(chemin(fichier));
+  assert.ok(source);
+  const symbol = checker.getSymbolAtLocation(identifiers(source, nom)[0]);
+  assert.ok(symbol.flags & SymbolFlags.Alias);
+  return checker.getAliasedSymbol(symbol);
+}
+
+test('virtualProgram charge les racines .js, .mjs et .cjs avec allowJs', () => {
+  const files = Object.fromEntries(['js', 'mjs', 'cjs'].map((extension) => [
+    `racine.${extension}`, 'export const valeur = 1;',
+  ]));
+  const session = virtualProgram(files, { allowJs: true });
+  try {
+    for (const fichier of Object.keys(files)) assert.ok(session.program.getSourceFile(chemin(fichier)), fichier);
+    assert.equal(diagnostics(session.program).length, 0);
+  } finally { session.dispose(); }
+});
+
+test('virtualProgram résout les alias importés de JS vers TS et de TS vers JS', () => {
+  const files = {
+    'source.mjs': 'export const donnees = [1];',
+    'source.ts': 'export const valeur = 2;',
+    'depuis-ts.ts': "import { donnees as table } from './source.mjs'; export const result = table;",
+    'depuis-js.mjs': "import { valeur as nombre } from './source'; export const result = nombre;",
+  };
+  const session = virtualProgram(files, { allowJs: true });
+  try {
+    for (const [importeur, nom, origine] of [
+      ['depuis-ts.ts', 'table', 'source.mjs'],
+      ['depuis-js.mjs', 'nombre', 'source.ts'],
+    ]) {
+      const cible = aliasCible(session, importeur, nom);
+      assert.ok(cible.declarations?.length, `${importeur} : ${nom}`);
+      assert.equal(cible.declarations[0].resolve().getSourceFile().fileName, chemin(origine));
+    }
+    assert.equal(diagnostics(session.program).length, 0);
+  } finally { session.dispose(); }
+});
+
+test('virtualProgram sépare le symbole importé de son homonyme local', () => {
+  const ts = typescript();
+  const session = virtualProgram({
+    'source.mjs': 'export const valeur = 1;',
+    'porteur.mjs': "import { valeur as cible } from './source.mjs'; function lire(cible) { return cible; } export const result = cible;",
+  }, { allowJs: true });
+  try {
+    const source = session.program.getSourceFile(chemin('porteur.mjs'));
+    assert.ok(source);
+    const checker = session.checker;
+    const refs = identifiers(source, 'cible');
+    assert.equal(refs.length, 4);
+    const symboles = refs.map((n) => checker.getSymbolAtLocation(n));
+    assert.equal(symboles[0], symboles[3]);
+    assert.equal(symboles[1], symboles[2]);
+    assert.notEqual(symboles[0], symboles[1]);
+    assert.ok(symboles[0].flags & SymbolFlags.Alias);
+    assert.equal(symboles[1].flags & SymbolFlags.Alias, 0);
+    assert.ok(ts.isParameterDeclaration(symboles[1].declarations[0].resolve()));
+    assert.equal(checker.getAliasedSymbol(symboles[0]).declarations[0].resolve().getSourceFile().fileName, chemin('source.mjs'));
+  } finally { session.dispose(); }
+});
+
+test('virtualProgram ne lit pas un module réel absent des images fournies', () => {
+  const root = fileURLToPath(new URL('../../../', import.meta.url));
+  const porteur = chemin(fileURLToPath(new URL('porteur-en-memoire.ts', import.meta.url)));
+  const modules = ['tsProgram.mjs', 'tsProgram.d.mts'].map((nom) => chemin(fileURLToPath(new URL(nom, import.meta.url))));
+  for (const module of modules) assert.ok(existsSync(module), module);
+  const texte = "import { virtualProgram as fabrique } from './tsProgram.mjs'; export const result = fabrique;";
+  const disque = repoProgram(root, () => [porteur], { [path.relative(root, porteur)]: texte });
+  try {
+    const cible = aliasCible(disque, porteur, 'fabrique');
+    assert.ok(cible.declarations?.length);
+    const origine = cible.declarations[0].resolve().getSourceFile();
+    assert.ok(modules.includes(chemin(origine.fileName)), origine.fileName);
+    assert.equal(disque.program.getSourceFile(origine.fileName), origine);
+    const session = virtualProgram({ [path.relative(VIRTUAL_ROOT, porteur)]: texte }, { allowJs: true });
+    try {
+      for (const module of modules) assert.equal(session.program.getSourceFile(module), undefined, module);
+      assert.equal(aliasCible(session, porteur, 'fabrique').declarations.length, 0);
+      assert.ok(diagnostics(session.program).some((d) => d.code === 2307 && d.fileName === porteur));
+    } finally { session.dispose(); }
+  } finally { disque.dispose(); }
+});
+
+test('virtualProgram conserve le programme TypeScript par défaut', () => {
+  const files = {
+    'source.ts': 'export const valeur: number = 1;',
+    'porteur.ts': "import { valeur as nombre } from './source'; export const result: number = nombre;",
+  };
+  for (const options of [{}, { allowJs: false }]) {
+    const session = virtualProgram(files, options);
+    try {
+      assert.equal(Boolean(session.program.getCompilerOptions().allowJs), false);
+      assert.equal(session.program.getCompilerOptions().strict, true);
+      assert.equal(session.program.getCompilerOptions().noEmit, true);
+      assert.equal(diagnostics(session.program).length, 0);
+      assert.equal(aliasCible(session, 'porteur.ts', 'nombre').declarations[0].resolve().getSourceFile().fileName, chemin('source.ts'));
+    } finally { session.dispose(); }
+  }
+});
+
+test('virtualProgram refuse encore les racines JavaScript sans activation explicite', () => {
+  const files = { 'racine.mjs': 'export const valeur = 1;' };
+  for (const options of [{}, { allowJs: false }]) {
+    const session = virtualProgram(files, options);
+    try {
+      assert.equal(Boolean(session.program.getSourceFile(chemin('racine.mjs'))), false);
+      assert.ok(diagnostics(session.program).some((d) => d.code === 6504));
+    } finally { session.dispose(); }
+  }
 });
