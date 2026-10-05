@@ -266,9 +266,8 @@ function rendu() {
     vide ou sans source pertinente ne les rejoue pas. Un changement de toolchain impose le lot
     complet, car les lectures de dépendances ne sont pas mesurées. Les cibles de code déjà produites
     se vérifient sans réécriture pendant cette passe.
-    Chaque étape annonce début, fin et durée. Le PALIER de revue
-   adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
-   et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
+    Chaque étape annonce début, fin et durée. La fermeture des issues suit la PUBLICATION : job
+   \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
    \`${script('ops:fermer')} --rattraper <before>..<sha>\` : la base recule jusqu'à la dernière course
    réussie de ce workflow (\`baseDeLaPlage\`, #2155).`,

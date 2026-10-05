@@ -70,7 +70,6 @@
     "ops:fermetures-non-citees": "node scripts/ops/fermetures-non-citees.mjs",
     "ops:fermer": "node scripts/ops/fermer-depuis-main.mjs",
     "ops:ruleset": "node scripts/ops/ruleset-main.mjs",
-    "ops:faits-de-palier": "node scripts/ops/faits-de-palier.mjs",
     "ops:chantier": "node scripts/ops/chantier.mjs",
     "ops:worktrees": "node scripts/ops/worktrees.mjs",
     "ops:publier": "node scripts/ops/publier.mjs",

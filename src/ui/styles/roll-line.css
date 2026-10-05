@@ -69,6 +69,11 @@
   text-align: right;
   font-weight: 600;
 }
+.rm-roll:not(.table) > .rm-roll-calc,
+.rm-roll:not(.table) > .rm-roll-dice,
+.rm-roll:not(.table) > .rm-roll-sl {
+  white-space: nowrap;
+}
 .rm-roll.ok .rm-roll-sl {
   color: var(--ok-bright);
 }
@@ -149,6 +154,15 @@
 .rm-mod.neg {
   color: var(--danger-soft);
   border-color: var(--accent2);
+}
+@media (max-width: 560px) {
+  .rm-roll:not(.table) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rm-roll:not(.table) > .rm-roll-label,
+  .rm-roll:not(.table) > .rm-roll-calc {
+    grid-column: 1 / -1;
+  }
 }
 /* Chip de mod CODEX-LIÉE (#1078) : aucune règle propre — `.codex-ref[role='button']`
    (`compendium.css`) porte déjà l'affordance (curseur + teinte or au survol/focus). La provenance
