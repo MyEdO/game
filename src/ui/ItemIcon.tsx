@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
-import { isCapeItem } from '../engine/items';
+import { isCapeItem, isShieldItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
-import { armeDeDessin, armourPart, bouclierDeDessin, isShield, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
+import { armeDeDessin, armourPart, bouclierDeDessin, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { viewOrFront } from '../gameIso/rig/parts/types';
 import type { Slot } from '../gameIso/rig/bones';
 import { defsGlobaux } from '../gameIso/sprites';
@@ -44,7 +44,7 @@ function resolve(item: ItemInstance | Weapon): Resolved {
       return { glyph: 'item/armour' };
     }
     if (item.kind === 'melee' || item.kind === 'ranged') {
-      if (isShield(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+      if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
       const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(asWeapon(item)))), 'front');
       return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
     }
@@ -54,7 +54,7 @@ function resolve(item: ItemInstance | Weapon): Resolved {
     return { glyph: 'item/misc' };
   }
   // `Weapon` (combat) : pas de champ `kind` — discriminant de l'union.
-  if (isShield(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+  if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
   const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(item))), 'front');
   return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
 }

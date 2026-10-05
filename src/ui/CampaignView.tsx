@@ -452,7 +452,7 @@ export function CampaignView() {
         }
         return <CharacterSheet heroId={sheetId} onClose={() => setSheetId(null)} />;
       })()}
-      {inspected && <InspectPanel combatant={inspected} onClose={() => setInspectId(null)} />}
+      {inspected && <InspectPanel key={inspected.id} combatant={inspected} onClose={() => setInspectId(null)} />}
     </div>
     </SceneErrorBoundary>
   );

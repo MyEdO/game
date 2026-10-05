@@ -11,7 +11,7 @@
  * def, seraient la porte ouverte qu'on ferme ici.
  */
 import { z } from 'zod';
-import { descRefSchema } from './valeurs';
+import { descRefSchemaDe, type GenreDeFragment } from './valeurs';
 import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { CheminProseDeScene } from './champs-prose-de-scene';
@@ -34,10 +34,10 @@ export function proseDeScene(_chemin: CheminProseDeScene) {
  * est un TROISIÈME état, vu « présent » par `search.ts` et « absent » par `CodexRef`. Absente plutôt
  * que vide ou nulle.
  */
-export function champsProse() {
+export function champsProse(fragmentsAdmis?: readonly GenreDeFragment[]) {
   return {
     desc: z.string().min(1).optional(),
-    descRef: descRefSchema.optional(),
+    descRef: descRefSchemaDe(fragmentsAdmis).optional(),
   };
 }
 

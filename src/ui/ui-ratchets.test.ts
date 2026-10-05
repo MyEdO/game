@@ -36,6 +36,7 @@ import {
 } from '../../scripts/guards/lib/cssCouchesStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartageesStock.mjs';
+import { sitesNomSansTexteVisible } from '../../scripts/guards/lib/nomVisibleDansNom.mjs';
 
 /**
  * Cliquets d'hygiène UI (#236) — même patron que `combat-hardcode-guard`/`no-emoji-affordance` : une
@@ -1590,5 +1591,34 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
   it('(xxii) preuve — un commentaire n’est pas du markup', () => {
     expect(sitesStyleInline([fixture('src/ui/Faux.tsx', '{/* style={{ color }} */}')])).toEqual([]);
     expect(sitesStyleInline([fixture('src/ui/Faux.tsx', '// style={{ color }}')])).toEqual([]);
+  });
+});
+
+describe('#2199 — le nom accessible d’un contrôle CONTIENT son texte vu (WCAG 2.5.3)', () => {
+  it('(xxiii) aucun `aria-label` littéral ne remplace un texte visible littéral qu’il ne reprend pas', () => {
+    const sites = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f)).flatMap(sitesNomSansTexteVisible);
+    expect(sites, 'nommer par le CONTENU, ou un `aria-label` qui commence par le texte vu').toEqual([]);
+  });
+
+  it('(xxiii) preuve — le détecteur voit un nom qui écarte le texte vu, branche de ternaire comprise', () => {
+    const vus = (tsx: string) => sitesNomSansTexteVisible({ rel: 'Faux.tsx', text: tsx });
+    expect(vus('const x = <button aria-label="Finir le tour">Fin du tour</button>;')).toEqual(['Faux.tsx:1']);
+    expect(vus("const x = <button aria-label={a ? 'Finir' : 'Passer'}><span>{a ? 'Finir' : 'Fin du tour'}</span></button>;")).toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <div role="button" aria-label="Ouvrir">Fermer</div>;')).toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <span onClick={f} aria-label="Ouvrir">Fermer</span>;')).toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <button aria-label="Ouvrir"><>Fermer</></button>;'), 'fragment traversé').toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <button aria-label="Ouvrir"><span aria-hidden={false}>Fermer</span></button>;'), '`{false}` ne masque pas').toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <button aria-label="Ouvrir"><span aria-hidden={a || undefined}>Fermer</span></button>;'), 'masque conditionnel : vu dans un état').toEqual(['Faux.tsx:1']);
+  });
+
+  it('(xxiii) preuve — ni glyphe, ni touche d’une lettre, ni valeur de liste, ni texte masqué, ni nom qui le reprend', () => {
+    const vus = (tsx: string) => sitesNomSansTexteVisible({ rel: 'Faux.tsx', text: tsx });
+    expect(vus('const x = <button aria-label="Retirer">✕</button>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Arsenal"><i>1</i><span>X</span></button>;')).toEqual([]);
+    expect(vus('const x = <select aria-label="Facteur"><option>Choisir un facteur…</option></select>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Fermer"><span aria-hidden>Croix</span></button>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Fermer"><span aria-hidden="true">Croix</span><span aria-hidden={true}>X ici</span></button>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Fin du tour, touche Espace">Fin du tour</button>;')).toEqual([]);
+    expect(vus('const x = <span aria-label="Ouvrir">Fermer</span>;'), 'un élément non interactif n’est pas un contrôle').toEqual([]);
   });
 });

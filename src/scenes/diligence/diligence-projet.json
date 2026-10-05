@@ -2616,7 +2616,7 @@
   "cloture": {
    "when": {
     "kind": "flag",
-    "expr": "edo-ch1-altdorf-revelee"
+    "expr": "edo-ch1-clos"
    },
    "titre": "Chapitre 1 — la route d’Altdorf",
    "sousTitre": "Ce que la compagnie emporte vers la capitale"
@@ -7750,10 +7750,43 @@
       "y": 19
      },
      "facing": "E"
+    },
+    {
+     "id": "diligence-remise-charrette",
+     "kind": "prop",
+     "ref": "charrette",
+     "pos": {
+      "x": 13,
+      "y": 32
+     },
+     "facing": "N"
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-depart-remise",
+     "rect": {
+      "x": 12,
+      "y": 31,
+      "w": 4,
+      "h": 3
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setFlag",
+         "flag": "edo-ch1-depart"
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {},
    "metresPerTile": 2,
@@ -19552,7 +19585,30 @@
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-entree-altdorf",
+     "rect": {
+      "x": 5,
+      "y": 8,
+      "w": 5,
+      "h": 4
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setFlag",
+         "flag": "edo-ch1-clos"
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {}
   },
@@ -22666,7 +22722,30 @@
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-corps-kastor",
+     "rect": {
+      "x": 35,
+      "y": 2,
+      "w": 4,
+      "h": 3
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setFlag",
+         "flag": "edo-ch1-corps-kastor-fouille"
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {},
    "environment": "sauvage"
@@ -39312,6 +39391,34 @@
     "icon": "scenario/hamlet"
    },
    {
+    "id": "route-principale",
+    "label": "La route principale",
+    "pos": {
+     "x": 36,
+     "y": 59
+    },
+    "scene": "route-principale-virage",
+    "icon": "scenario/travel",
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-depart"
+    }
+   },
+   {
+    "id": "auberge-des-sept-rayons",
+    "label": "Auberge des Sept Rayons",
+    "pos": {
+     "x": 44,
+     "y": 51
+    },
+    "scene": "auberge-des-sept-rayons",
+    "icon": "scenario/hamlet",
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-depart"
+    }
+   },
+   {
     "id": "altdorf",
     "label": "Altdorf",
     "pos": {
@@ -39322,16 +39429,17 @@
     "icon": "scenario/village",
     "when": {
      "kind": "flag",
-     "expr": "edo-ch1-altdorf-revelee"
+     "expr": "edo-ch1-depart"
     }
    }
   ],
   "routes": [
    {
-    "id": "route-la-diligence-altdorf",
+    "id": "route-la-diligence-route-principale",
     "a": "la-diligence",
-    "b": "altdorf",
-    "km": 180,
+    "b": "route-principale",
+    "from": "la-diligence",
+    "km": 40,
     "modes": [
      "pied",
      "diligence"
@@ -39342,9 +39450,44 @@
     "inns": true,
     "when": {
      "kind": "flag",
-     "expr": "edo-ch1-altdorf-revelee"
+     "expr": "edo-ch1-depart"
     },
     "refus": "Aucun trajet ne part encore de ce relais."
+   },
+   {
+    "id": "route-route-principale-sept-rayons",
+    "a": "route-principale",
+    "b": "auberge-des-sept-rayons",
+    "from": "route-principale",
+    "km": 35,
+    "modes": [
+     "pied",
+     "diligence"
+    ],
+    "speed": {
+     "diligence": 15
+    },
+    "inns": true,
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-corps-kastor-fouille"
+    },
+    "refus": "Vous n'avez pas fini d'examiner les lieux de l'embuscade."
+   },
+   {
+    "id": "route-sept-rayons-altdorf",
+    "a": "auberge-des-sept-rayons",
+    "b": "altdorf",
+    "from": "auberge-des-sept-rayons",
+    "km": 115,
+    "modes": [
+     "pied",
+     "diligence"
+    ],
+    "speed": {
+     "diligence": 15
+    },
+    "inns": true
    }
   ]
  }

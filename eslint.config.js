@@ -15,7 +15,7 @@ import { builtinRules } from 'eslint/use-at-your-own-risk';
  *  le mur qu'elle éteint, et un bloc qui pose un mur ne remplace jamais les options d'un autre — en flat
  *  config, le dernier bloc qui déclare une règle REMPLACE ses options : un nom partagé forçait chaque bloc
  *  à redire les murs voisins. */
-const MURS_DE_SYNTAXE = ['marques', 'conteneur', 'dialecte', 'ordre-total', 'ordre-total-locale', 'purete'];
+const MURS_DE_SYNTAXE = ['marques', 'conteneur', 'dialecte', 'ordre-total', 'ordre-total-locale', 'purete', 'mod-sans-regle'];
 const MURS_D_IMPORT = ['ordre-total-imports', 'possession', 'canal-issue', 'purete-imports'];
 const MURS = {
   meta: { name: 'murs' },
@@ -218,11 +218,179 @@ const AVALS_STATE = [
   ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.'],
 ];
 
+/** MUR DES MODS CLAUDE CODE (#2278, amendement n° 2 : issuecomment-5984597607) — un mod REND, les
+ *  scripts de `scripts/` MESURENT. Périmètre : l'`include` du tsconfig que pose le moteur
+ *  (`../../hooks`, `../../types`, `../../tests`), hors bancs ; un import relatif n'en sort pas. La
+ *  couture `hooks/ops.ts` est PURE. Liste blanche de `$` : issuecomment-5983917564 et
+ *  issuecomment-5984597607 ; idiome de lancement : issuecomment-5984257542. `$.ui.invalidate` ne prend
+ *  qu'un événement de RENDU : types 2.1.289, `RenderEventName = 'ui.render'`, quand
+ *  `InvalidatableEventName` y ajoute les six réponses que le moteur met en cache (`prompt.section`,
+ *  `prompt.context`, `prompt.attachment`, `tool.describe`, `command.describe`, `config.describe`).
+ *  `$` passé à une fonction locale reste `$` : `any` est refusé, et une liaison typée `EngineInterface`
+ *  (ou `typeof $`), castée vers lui ou contrainte par lui se nomme `$` et n'est jamais déstructurée ; le
+ *  tsconfig posé par le moteur est `"strict": true` (`.claude-plugin/types/tsconfig.json`, 2.1.289),
+ *  donc un paramètre sans type est refusé par `tsc` dans `mods:check`.
+ *  CE QUE LE MUR NE GARDE PAS : l'évasion DÉLIBÉRÉE (`'a' + 'sk'`, clé calculée, alias de `Math` reçu
+ *  en paramètre, type dérivé de `On` par `Parameters<…>`) ; l'appelé IMPORTÉ qui reçoit `$` (le moteur
+ *  le refuse, la garde `mods:check` le prouve par `claude plugin validate --strict`) ; un import `../x`
+ *  depuis un sous-dossier de `hooks/` (`../hooks/x` s'écrit à la racine seulement) ; et les prédicats
+ *  que le type du receveur seul distingue : `.every`, `.length === x`, `Object.is`, `t[0]`, la
+ *  déstructuration d'une chaîne. */
+const GLOBS_DE_MOD = ['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/**/*.ts`, `.claude/skills/*/${d}/**/*.mts`]);
+/** Les dossiers à dé-ignorer pour atteindre le périmètre : un fichier sous un dossier ignoré ne se rattrape pas. */
+const DOSSIERS_DE_MOD = ['.claude/skills/', '.claude/skills/*/', ...['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/`, `.claude/skills/*/${d}/**/`])];
+/** Les extensions refusées sous un mod, bancs compris : un module hors `.ts` porterait ce que le mur ne lit pas. */
+const EXTENSIONS_HORS_TS = ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'];
+const GLOBS_DE_MOD_HORS_TS = ['hooks', 'types', 'tests'].flatMap((d) => EXTENSIONS_HORS_TS.map((ext) => `.claude/skills/*/${d}/**/*.${ext}`));
+const BANCS_DE_MOD = ['.claude/skills/**/*.test.ts'];
+const COUTURE_DE_MOD = ['.claude/skills/*/hooks/ops.ts'];
+const REMEDE_MOD = 'le calcul va à un script de `scripts/`, le mod rend (#2278)';
+/** Un accès membre ni calculé ni optionnel, de propriété `nom` (chaîne entre guillemets ou regex). */
+const ACCES = (nom) => `[computed=false][optional=false][property.name=${nom}]`;
+/** La chaîne `$.<objet>.<membre>` à liste blanche : le `$` qui en est l'objet. */
+const DOLLAR_DE = (objet, membre) => `MemberExpression${ACCES(membre)} > MemberExpression.object${ACCES(objet)} > Identifier.object`;
+/** L'appel `$.process.run(...appel($.plugin.root, …))`, lu sur ses champs. */
+const IDIOME = [
+  '[optional=false][arguments.length=1]',
+  '[callee.computed=false][callee.optional=false][callee.property.name="run"]',
+  '[callee.object.computed=false][callee.object.optional=false][callee.object.property.name="process"][callee.object.object.name="$"]',
+  '[arguments.0.type="SpreadElement"][arguments.0.argument.type="CallExpression"][arguments.0.argument.optional=false]',
+  '[arguments.0.argument.callee.type="Identifier"][arguments.0.argument.callee.name="appel"]',
+].join('');
+const PLACES_DE_DOLLAR = [
+  DOLLAR_DE('"ui"', '/^(resolve|log|invalidate)$/'),
+  `MemberExpression[computed=false][optional=false] > MemberExpression.object${ACCES('"state"')} > Identifier.object`,
+  DOLLAR_DE('"session"', '/^(id|append)$/'),
+  DOLLAR_DE('"tool"', '"register"'),
+  DOLLAR_DE('"clock"', '"every"'),
+  `CallExpression${IDIOME} > MemberExpression.callee > MemberExpression.object > Identifier.object`,
+  `CallExpression${IDIOME} > SpreadElement > CallExpression > MemberExpression.arguments:first-child${ACCES('"root"')} > MemberExpression.object${ACCES('"plugin"')} > Identifier.object`,
+  'CallExpression[optional=false][callee.type="Identifier"] > Identifier.arguments',
+  ':function > Identifier.params',
+  'TSTypeQuery Identifier',
+  'MemberExpression[computed=false] > Identifier.property',
+];
+const MSG_DOLLAR = `\`$\` hors de ses places (accès à liste blanche ou idiome \`$.process.run(...appel($.plugin.root, …))\`, argument d'une fonction locale, paramètre, \`typeof $\` en type) : ${REMEDE_MOD}.`;
+/** Un type qui désigne le moteur : `EngineInterface` ou `typeof $`, à toute profondeur du type. */
+const TYPE_MOTEUR = ':matches(TSTypeReference[typeName.name="EngineInterface"], TSTypeQuery[exprName.name="$"])';
+const ANY_DE_MOD = [{
+  selector: 'TSAnyKeyword',
+  message: `\`any\` dans un mod : il laisse \`$\` circuler sous un autre nom et hors de sa liste blanche ; ${REMEDE_MOD}.`,
+}];
+const MOTEUR_SOUS_UN_AUTRE_NOM = [{
+  selector: [
+    `Identifier[name!="$"] > TSTypeAnnotation ${TYPE_MOTEUR}`,
+    `:matches(ObjectPattern, ArrayPattern) > TSTypeAnnotation ${TYPE_MOTEUR}`,
+    `VariableDeclarator:not([id.name="$"]) > :matches(TSAsExpression, TSTypeAssertion, TSSatisfiesExpression).init > ${TYPE_MOTEUR}.typeAnnotation`,
+    `:matches(TSAsExpression, TSTypeAssertion, TSSatisfiesExpression):not(VariableDeclarator > .init) > ${TYPE_MOTEUR}.typeAnnotation`,
+    `:matches(TSTypeAliasDeclaration, TSInterfaceDeclaration, TSTypeParameter) ${TYPE_MOTEUR}`,
+  ].join(', '),
+  message: `Le moteur sous un autre nom que \`$\` (liaison, déstructuration, cast, alias ou contrainte typés \`EngineInterface\`/\`typeof $\`) : \`$\` sortirait de sa liste blanche ; ${REMEDE_MOD}.`,
+}];
+const SEUIL_DE_MOD = [{
+  selector: 'BinaryExpression[operator=/^(<|>|<=|>=)$/]',
+  message: `Seuil dans un mod (opérateur relationnel) : ${REMEDE_MOD}.`,
+}, {
+  selector: [
+    'BinaryExpression[operator=/^([-*/%]|\\*\\*)$/]:not([left.type=/^(Literal|BinaryExpression)$/])',
+    'BinaryExpression[operator=/^([-*/%]|\\*\\*)$/]:not([right.type=/^(Literal|BinaryExpression)$/])',
+    'BinaryExpression[operator="+"][left.value=type(number)]:not([right.type="Literal"])',
+    'BinaryExpression[operator="+"][right.value=type(number)]:not([left.type="Literal"])',
+    'BinaryExpression[operator="+"]:not([left.type="Literal"]):not([right.type="Literal"])',
+    'AssignmentExpression[operator=/^([-+*/%]|\\*\\*)=$/]',
+    'UnaryExpression[operator="+"]',
+  ].join(', '),
+  message: `Seuil dans un mod (arithmétique sur un non-littéral, \`+\` unaire, affectation composée ; le pliage de littéraux, \`60 * 1000\`, passe, et un gabarit concatène) : ${REMEDE_MOD}.`,
+}, {
+  selector: 'UpdateExpression',
+  message: `Seuil dans un mod (\`++\`/\`--\`) : ${REMEDE_MOD}.`,
+}, {
+  selector: 'SwitchCase[test.value=type(number)]',
+  message: `Seuil dans un mod (\`case\` numérique) : ${REMEDE_MOD}.`,
+}, {
+  selector: 'Identifier[name="Math"]:not(MemberExpression[computed=false] > Identifier.property)',
+  message: `Seuil dans un mod (\`Math\`) : ${REMEDE_MOD}.`,
+}];
+const EGALITE_NUMERIQUE_DE_MOD = [{
+  selector: [
+    'BinaryExpression[operator=/^[!=]==?$/][left.value=type(number)]',
+    'BinaryExpression[operator=/^[!=]==?$/][right.value=type(number)]',
+    'BinaryExpression[operator=/^[!=]==?$/][left.operator="-"][left.argument.value=type(number)]',
+    'BinaryExpression[operator=/^[!=]==?$/][right.operator="-"][right.argument.value=type(number)]',
+  ].join(', '),
+  message: `Seuil dans un mod (égalité avec un littéral numérique) : ${REMEDE_MOD}.`,
+}];
+const METHODES_DE_PARSING = '/^(split|match|matchAll|replace|replaceAll|indexOf|lastIndexOf|slice|substring|substr|startsWith|endsWith|includes|search|exec|test|charAt|charCodeAt|codePointAt|at)$/';
+const PARSING_DE_MOD = [{
+  selector: `CallExpression > MemberExpression.callee[property.name=${METHODES_DE_PARSING}], CallExpression > MemberExpression.callee[computed=true][property.value=${METHODES_DE_PARSING}]`,
+  message: `Parsing dans un mod (appel d'une méthode de découpe ou de recherche de chaîne ; le type du receveur est inconnu du mur) : ${REMEDE_MOD}.`,
+}, {
+  selector: [
+    'Identifier[name=/^(parseInt|parseFloat|Number|RegExp)$/]:not(MemberExpression[computed=false] > Identifier.property):not(TSTypeReference > Identifier.typeName)',
+    'Literal[regex]',
+    'MemberExpression[object.name="Date"][property.name="parse"]',
+    'NewExpression[callee.name=/^(Date|URL)$/]:not([arguments.length=0])',
+  ].join(', '),
+  message: `Parsing dans un mod (\`parseInt\`, \`parseFloat\`, \`Number\`, \`RegExp\`, littéral regex, \`Date.parse\`, \`new Date(x)\` ou \`new URL(x)\`) : ${REMEDE_MOD}.`,
+}];
+const JSON_PARSE_DE_MOD = [{
+  selector: 'MemberExpression[object.name="JSON"][property.name="parse"]',
+  message: `Parsing dans un mod (\`JSON.parse\`, réservé à la couture \`hooks/ops.ts\`) : ${REMEDE_MOD}.`,
+}];
+const ASK_DE_MOD = [{
+  selector: [
+    ':matches(Property, TSPropertySignature, PropertyDefinition, MethodDefinition)[key.name="ask"]',
+    'Literal[value="ask"]',
+    'TemplateLiteral[expressions.length=0] > TemplateElement[value.cooked="ask"]',
+  ].join(', '),
+  message: `\`ask\` dans un mod : la décision de demander est une RÈGLE du régime ; ${REMEDE_MOD}.`,
+}];
+/** Un import relatif reste dans `hooks/`/`types/` : `./x`, ou `../types`/`../hooks` et leurs modules. */
+const SOURCE_HORS_MOD = [
+  '/^[.][.](?!.(types|hooks)(.[A-Za-z0-9_-]+)*$)/',
+  '/^[.][^.].*[.][.]/',
+];
+const IMPORT_DE_MOD = [{
+  selector: SOURCE_HORS_MOD.map((motif) =>
+    `:matches(ImportDeclaration, ExportNamedDeclaration, ExportAllDeclaration, ImportExpression) > Literal.source[value=${motif}]`).join(', '),
+  message: `Import relatif hors de \`hooks/\` et \`types/\` dans un mod : un module importé échapperait au mur (\`claude-code\`, \`./x\` et \`../types\` restent permis) ; ${REMEDE_MOD}.`,
+}];
+const VERROU_MOD_COUTURE = [{
+  selector: 'Identifier[name="$"]',
+  message: `\`$\` dans la couture \`hooks/ops.ts\` : le moteur ne suit \`$\` dans aucun import (issuecomment-5984257542), la couture est PURE ; ${REMEDE_MOD}.`,
+}, ...ANY_DE_MOD, ...SEUIL_DE_MOD, ...EGALITE_NUMERIQUE_DE_MOD, ...PARSING_DE_MOD, ...ASK_DE_MOD, ...IMPORT_DE_MOD];
+const VERROU_MOD = [{
+  selector: `Identifier[name="$"]:not(${PLACES_DE_DOLLAR.join(', ')})`,
+  message: MSG_DOLLAR,
+}, {
+  selector: 'MemberExpression[property.name="invalidate"][object.property.name="ui"][object.object.name="$"]:not(CallExpression[arguments.length=1][arguments.0.value="ui.render"] > MemberExpression.callee)',
+  message: `\`$.ui.invalidate\` hors d'un événement de RENDU (\`'ui.render'\`) : invalider une réponse mise en cache casse le cache de prompt ; ${REMEDE_MOD}.`,
+}, {
+  selector: [
+    ':matches(VariableDeclarator, FunctionDeclaration, FunctionExpression, ClassDeclaration, ClassExpression) > Identifier.id[name="appel"]',
+    ':function > Identifier.params[name="appel"]',
+    'ObjectPattern > Property > Identifier.value[name="appel"]',
+    'ArrayPattern > Identifier[name="appel"]',
+    ':matches(AssignmentPattern, AssignmentExpression) > Identifier.left[name="appel"]',
+    'RestElement > Identifier.argument[name="appel"]',
+    'CatchClause > Identifier.param[name="appel"]',
+    'ImportDeclaration:not([source.value="./ops"]) > :matches(ImportSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier) > Identifier.local[name="appel"]',
+    'ImportSpecifier[local.name="appel"]:not([imported.name="appel"])',
+  ].join(', '),
+  message: `\`appel\` est l'import de \`./ops\` : aucune déclaration locale ni import d'ailleurs sous ce nom, l'idiome de lancement serait détourné ; ${REMEDE_MOD}.`,
+}, ...ANY_DE_MOD, ...MOTEUR_SOUS_UN_AUTRE_NOM, ...SEUIL_DE_MOD, ...EGALITE_NUMERIQUE_DE_MOD, ...PARSING_DE_MOD, ...JSON_PARSE_DE_MOD, ...ASK_DE_MOD, ...IMPORT_DE_MOD];
+const VERROU_MOD_HORS_TS = [{
+  selector: 'Program',
+  message: `Module hors \`.ts\` dans un mod (\`.js\`, \`.mjs\`, \`.cjs\`, \`.cts\`, \`.jsx\`, \`.tsx\`, bancs compris) : un mod s'écrit en \`.ts\`, avec \`h()\` pour le rendu (#2278) ; ${REMEDE_MOD}.`,
+}];
+
 export default tseslint.config(
   // `src/data` est LU par ESLint comme le reste de `src` (#1709 C3c-3b) : ses `.ts` (fabriques,
   // grammaire, schémas générés, gardes) passent sous les mêmes verrous et la même pureté de couche ;
   // ses `.json` restent ignorés par `**/*.json` — la DONNÉE n'est pas ce qu'un lint juge.
-  { ignores: ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '*.config.*', '.claude/**', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '*.config.*', '.claude/**/*', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**',
+    // `.claude/` reste ignoré, sauf le périmètre du mur des mods (#2278) ; ses bancs restent dehors.
+    ...DOSSIERS_DE_MOD.map((dossier) => `!${dossier}`), ...[...GLOBS_DE_MOD, ...GLOBS_DE_MOD_HORS_TS].map((glob) => `!${glob}`), ...BANCS_DE_MOD] },
   { plugins: { murs: MURS } },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -431,6 +599,30 @@ export default tseslint.config(
     rules: {
       'murs/purete-imports': ['error', pureteImports('data', AVALS_DATA)],
       'murs/purete': ['error', ...pureteSyntaxe('data', AVALS_DATA)],
+    },
+  },
+  {
+    // MUR DES MODS (#2278) : hors couture, `$` à ses trois places, ni seuil, ni parsing, ni `ask`, ni
+    // `appel` qui ne soit l'import de `./ops` (en-tête de `VERROU_MOD`).
+    files: GLOBS_DE_MOD,
+    ignores: [...BANCS_DE_MOD, ...COUTURE_DE_MOD],
+    rules: {
+      'murs/mod-sans-regle': ['error', ...VERROU_MOD],
+    },
+  },
+  {
+    // MUR DES MODS — la couture `hooks/ops.ts` : aucun `$` ; seuil, `Math` et parsing refusés, sauf
+    // `JSON.parse` et l'égalité (`exitCode !== 0`), qui sont sa raison d'être.
+    files: COUTURE_DE_MOD,
+    rules: {
+      'murs/mod-sans-regle': ['error', ...VERROU_MOD_COUTURE],
+    },
+  },
+  {
+    // MUR DES MODS — un module hors `.ts` est refusé, bancs compris : un mod s'écrit en `.ts` avec `h()`.
+    files: GLOBS_DE_MOD_HORS_TS,
+    rules: {
+      'murs/mod-sans-regle': ['error', ...VERROU_MOD_HORS_TS],
     },
   },
 );

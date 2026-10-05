@@ -476,6 +476,14 @@ export const TOMBSTONE_FAMILIES = [
   // 10 sites échantillonnés du 2026-08-23, sur une population de 248 commentaires ; le vocabulaire
   // fermé et les exclusions de quantité/comparaison ramènent cette population aux seuls artefacts.
   { rx: NAMED_ARTIFACT_TOMBSTONE_RX, label: 'plus de <artefact de code> (état révolu)' },
+  // #2199 : le RANG de la version du code (ordinal 1 + version/mouture) raconte l'histoire du site, que git
+  // porte : le commentaire dit ce que le code EST. Seule soustraction : la version d'un artefact TIERS,
+  // introduite par « de/du/des/d' » (un outil externe et sa note de version). Formes et faux positif :
+  // LITTÉRAUX dans `src/comment-poison-guard.test.ts` (#828).
+  {
+    rx: new RegExp(`\\b(?:premi[eè]re|1re|1ère)\\s+(?:version|mouture)\\b(?!\\s+d(?:e|u|es)\\s|\\s+d${APOS})`, 'i'),
+    label: 'rang de version du code (histoire du site)',
+  },
 ];
 
 /** @param {string} text @returns {string[]} labels des familles matchées */
@@ -534,7 +542,7 @@ const GAME_STATE_PARTICIPLE =
 const VERBES_REPARATION =
   '(corriger|traiter|régler|migrer|nettoyer|purger|réparer|reprendre|refaire|supprimer|instruire)';
 const REPORT_AILLEURS = 'à ' + VERBES_REPARATION + ' (séparément|ailleurs|plus tard|à part|au propre)';
-// Deux formes mesurées MUETTES le 2026-08-29 (sonde de revue de palier), toutes deux relevées sur un
+// Deux formes mesurées MUETTES le 2026-08-29 (sonde de revue), toutes deux relevées sur un
 // site réel de `src/engine/travelStages.ts` : (i) la dette laissée EN ATTENTE, sans renvoi explicite —
 // un verbe d'état suivi de l'infinitif de réparation ; (ii) l'alibi de PÉRIMÈTRE daté, qui justifie
 // l'omission par l'état du chantier au moment du geste. Les deux sont des excuses au sens de 6b : une
@@ -555,7 +563,7 @@ const ALIBI_PERIMETRE = '(était|étaient) hors périmètre|hors périmètre le 
 // écrite ici (elle mordrait sur ce commentaire même) : elle est plantée dans le test (#828).
 const ATTENTE_ARBITRAGE = 'en attente d' + APOS + '\\s*(un )?arbitrage';
 // Dette laissée à une LOCUTION D'ATTENTE qui NOMME la chose future (#1732, site
-// `src/gameIso/stage/AreteOverlay.tsx`, muet pendant deux paliers) : le commentaire décrit un état à
+// `src/gameIso/stage/AreteOverlay.tsx`, muet pendant deux revues) : le commentaire décrit un état à
 // venir au lieu de ce que le code rend — excuse au sens de 6b.
 // CE QUE LE MOTIF FAIT, exactement : une des trois locutions d'attente (plantées en littéral dans le
 // test, #828 — ce module est scanné par sa propre garde) suivie, DANS LA MÊME PHRASE, d'un MARQUEUR DE
@@ -587,6 +595,15 @@ const LOCUTION_ATTENTE = '(en attendant|dans l' + APOS + 'attente d|en attente d
 // préfixe de continuation de commentaire.
 const SUITE_DE_PHRASE = '(?:[^.;!?\\n]|\\n[ \\t]*(?:\\*|//)?[ \\t]*){0,80}?';
 const ATTENTE_DE_X = LOCUTION_ATTENTE + SUITE_DE_PHRASE + MARQUEUR_ATTENTE;
+// #2199 : le commentaire déclare son propre site INACHEVÉ — une négation, le participe d'un geste de
+// réalisation, puis l'adverbe de lieu qui désigne le site. Le participe qui décrit une DÉLÉGATION
+// (« fait ailleurs », « porté par X ») n'a pas l'adverbe de lieu et reste hors motif.
+const INACHEVE_ICI = String.raw`\b(?:non|pas)\s+(?:encore\s+)?(?:codée?s?|implémentée?s?|câblée?s?|branchée?s?|gérée?s?|traitée?s?|supportée?s?)\s+ici(?![\wÀ-ÿ])`;
+// #2199 : la chose renvoyée à un LOT À VENIR, posée en ATTRIBUT (signe égal) ou en INCISE parenthésée.
+// Soustractions par la forme, mesurées le 2026-10-05 : le lot SUJET d'une hypothèse de mécanique (« un
+// lot … ne sait pas », « nettoyé par un lot … ») n'est ni attribut ni incise ; l'incise qui suit un
+// numéro de ticket NOMME où vit la dette (stock daté) — le ticket est la trace, pas une excuse.
+const LOT_A_VENIR = String.raw`(?:(?<!#\d+\s*)\(|=\s*)(?:sous-)?lots?\s+(?:suivants?|ultérieurs?|futurs?|à\s+venir)(?![\wÀ-ÿ])`;
 export const EXCUSE_RX = new RegExp(
   "(assume|épargn[ée]\\w*(?!\\w)(?!\\s+(par|pour)\\s)|pour l'instant|" +
     REPORT_AILLEURS +
@@ -598,6 +615,10 @@ export const EXCUSE_RX = new RegExp(
     ATTENTE_ARBITRAGE +
     '|' +
     ATTENTE_DE_X +
+    '|' +
+    INACHEVE_ICI +
+    '|' +
+    LOT_A_VENIR +
     '|pas encore (?!' +
     GAME_STATE_PARTICIPLE +
     ')|(?<!\\b(accordée?s?|prime|insensible)\\s)temporairement(?!\\s+(insensible|accordé|accordée|accordées|prime)))',
@@ -728,6 +749,21 @@ export const LEGACY_VOCAB_FAMILIES = [
     domaine: (rel) => !estArtDuRig(rel),
   },
   { rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_DE_LA_TABLE_TOTALE), 'im'), label: 'second nom de la table totale' },
+  // #2199 : le REPLI justifié par un état qui précède la forme courante — une save jetée à la lecture
+  // (`SAVE_VERSION`), un document refusé par la porte : le chemin qu'il garde est mort. Trois formes : le
+  // nom `repli` suivi, dans la même phrase, d'un porteur d'état qualifié d'antérieur ; ce qualificatif
+  // posé seul en incise ; la save dite vieille ou ancienne, qui n'atteint jamais le code. Le participe
+  // (`replié`), l'ancienneté d'un objet de JEU (une cible, un libellé) et `l'ancienne sauvegarde` (le
+  // contenu qu'un slot écrase, vivant) restent hors motif : le porteur est un nom fermé de persistance ou de flux.
+  {
+    rx: new RegExp(
+      String.raw`\brepli(?![\wÀ-ÿ])[^.;]{0,120}?\b(?:sauvegardes?|saves?|paquets?|pendings?|états?|données?|formats?|documents?)\s+(?:antérieure?s?|d['’]avant)(?![\wÀ-ÿ])` +
+        String.raw`|\((?:états?|saves?|sauvegardes?|formats?|formes?|pendings?|paquets?)\s+antérieure?s?\)` +
+        String.raw`|(?<![\wÀ-ÿ])(?<!l['’])(?:vieilles?|vieux|anciens?|anciennes?)\s+(?:saves?|sauvegardes?)(?![\wÀ-ÿ])`,
+      'i',
+    ),
+    label: 'repli pour un état antérieur',
+  },
 ];
 
 /** Réf de livre ancrant la thèse au Source (n'importe où dans le MÊME commentaire logique).

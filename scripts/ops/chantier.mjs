@@ -16,6 +16,7 @@
 //
 // Usage : `npm run ops:chantier -- <nom> [--sans-ci]`, `nom` = numéro de ticket + slug optionnel.
 import { spawnSync } from 'node:child_process'
+import { etapeProfilee } from '../etape-profilee.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
@@ -156,7 +157,8 @@ export const GESTES_DU_CHANTIER = Object.freeze({ arbrePrincipal, shaDe, fetchOr
  * @returns {{ok: true, cible: string, branche: string, base: string, resume: string, npmJoue: boolean}
  *   | {ok: false, refus: string, cible?: string, branche?: string}}
  */
-export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync }) {
+export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge }) {
+  const etape = (nomEtape, geste) => etapeProfilee(`[chantier] ${nomEtape}`, geste, { annoncer, horloge })
   if (!nomValide(nom)) {
     return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
   }
@@ -182,12 +184,12 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   const refus = refusDeCreation({ cibleExiste, brancheExiste, nom, cible })
   if (refus) return { ok: false, refus, cible, branche }
 
-  const vuFetch = gestes.fetchOrigin(depot)
+  const vuFetch = etape('git fetch origin', () => gestes.fetchOrigin(depot))
   if (!vuFetch.disponible) {
     return { ok: false, refus: `origin non consultable, le chantier ne peut pas partir d'origin/main : ${vuFetch.raison}` }
   }
 
-  const vuAdd = gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi })
+  const vuAdd = etape('git worktree add', () => gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi }))
   if (!vuAdd.disponible) return { ok: false, refus: `git worktree add a échoué : ${vuAdd.raison}`, cible, branche }
   if (!reussi(vuAdd)) {
     return { ok: false, refus: `git worktree add a échoué (code ${vuAdd.absent ? 'objet absent' : vuAdd.valeur.status})`, cible, branche }
@@ -202,9 +204,9 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   // `EINVAL` sous Node v22.20.0 / win32 (mesure du 2026-09-14). Aucun argument ne porte d'espace,
   // et le `cwd` ne passe pas par la ligne de commande — il n'y a donc rien à citer.
   for (const { args, ou, relance } of EQUIPEMENTS) {
-    const vuNpm = npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {
+    const vuNpm = etape(`${relance}${ou}`, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {
       cwd: cible, stdio: 'inherit', shell: true,
-    })
+    }))
     if (vuNpm?.error || vuNpm?.status !== 0) {
       return {
         ok: false,

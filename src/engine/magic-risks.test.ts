@@ -1,5 +1,5 @@
 /**
- * Risques d'incantation & Focalisation (LDB 46 l.26-32, 150-152, 176, 180-190) :
+ * Risques d'incantation & Focalisation (LDB 46 l.26-32, l.125, l.130, l.140, l.150-152) :
  * spécialisation par Vent, maladresse de Focalisation élargie, « Repousser les
  * Vents » (−1 DR/PA d'armure portée), Avantage sur l'Incantation (pas la
  * Focalisation).
@@ -47,7 +47,7 @@ describe('Focalisation — spécialisation par Vent (LDB 46)', () => {
   });
 });
 
-describe('Focalisation — maladresse élargie (l.190-191)', () => {
+describe('Focalisation — maladresse élargie (l.140)', () => {
   it('un échec se terminant par 0 (non-double) est une Maladresse ; un échec quelconque non', () => {
     // FM 45 + 10 → valeur 55. roll 90 (échec, finit par 0) → fumble ; roll 87 (échec) → non.
     const c = wiz();
@@ -110,7 +110,7 @@ describe('« Repousser les Vents » — armure portée (LDB 46 l.150-152)', () =
   });
 });
 
-describe('Avantage et magie (l.176)', () => {
+describe('Avantage et magie (l.125)', () => {
   it('l\'Avantage s\'applique à l\'Incantation (+10/point), PAS à la Focalisation', () => {
     const c = wiz({ advantage: 2 });
     expect(castingValue(c, 'langue', 'magick')).toBe(50 + 10 + 20);

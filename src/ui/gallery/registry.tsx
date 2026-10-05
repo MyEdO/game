@@ -1508,7 +1508,7 @@ function CombatConsoleMock() {
                       <Icon id="item/weapon" size="sm" />
                       <span className="cc-key">X</span>
                     </button>
-                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse">
+                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse, VIDE">
                       <i className="cc-set-n">2</i>
                       <Icon id="item/weapon" size="sm" />
                       <i className="cc-set-load">VIDE</i>
@@ -1552,7 +1552,7 @@ function CombatConsoleMock() {
             </div>
           </div>
           <div className="cc-corner">
-            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end" aria-label="Finir le tour">
+            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end">
               <span className="cc-ico"><Icon id="ui/turn-end" /></span>
               <span className="cc-lbl">Fin du tour</span>
               <span className="cc-key">F</span>

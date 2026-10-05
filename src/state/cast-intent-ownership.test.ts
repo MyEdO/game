@@ -30,6 +30,7 @@ import { FLOW_VERBS, jetOwnedIntents, flowActionName, type JetOwnerRef } from '.
 import { intentAllowedFor, modalOwnerOf, seatInfluences } from './netOwnership';
 import { GUEST_INTENTS } from '../net/intents';
 import type { GameState } from './store';
+import { cascadeDeTest } from './cascadeTestKit';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -101,7 +102,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {})
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
       { id: H_HOST, kind: 'hero' }, { id: H_GUEST, kind: 'hero' }, { id: ENEMY, kind: 'enemy' },
     ] },
-    pendingCascade: { participants: [{ id: 's0', jet: 'cast', groupOwner: true }], cursor: 0 },
+    pendingCascade: cascadeDeTest([{ id: 's0', kind: 'castJet', jet: 'cast', groupOwner: true }]),
     [jet.pending]: { [jet.field]: ownerId, targetId: H_HOST, spellId: 'drain', result: null },
     ...over,
   }) as unknown as GameState;

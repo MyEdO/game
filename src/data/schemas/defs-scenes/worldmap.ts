@@ -229,7 +229,7 @@ export const mapRouteSchema = z.strictObject({
   couvre: couvreSchema.optional(),
 })
   .superRefine((route, ctx) => {
-    if (route.when !== undefined && route.refus === undefined) {
+    if (route.when !== undefined && !route.refus?.trim()) {
       ctx.addIssue({
         code: 'custom',
         message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",

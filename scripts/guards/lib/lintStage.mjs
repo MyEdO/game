@@ -1,6 +1,6 @@
 // LINT DES FICHIERS STAGÉS — la porte que la CI joue déjà (`npm run lint`) ramenée AU COMMIT, sur le
 // seul diff. Sur la fenêtre mesurée (30 commits), les deux rouges CI venaient de là : le hook ne
-// jouait aucun lint (revue de palier 2026-09-02).
+// jouait aucun lint (revue du 2026-09-02).
 //
 // Quatre règles de câblage, chacune mesurée :
 //   · l'outil vient de CET arbre (`scripts/lancer-local.mjs`) — un worktree sans `eslint` doit REFUSER,

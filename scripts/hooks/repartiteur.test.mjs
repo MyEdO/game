@@ -582,6 +582,16 @@ test('#2224 affectation HORS préfixe qui change l’environnement des segments 
   })
 })
 
+// #2173 : un jeton QUOTÉ n'est pas une affectation, ni en tête de ligne ni dans un bloc.
+test('#2173 une chaîne quotée en tête n’est pas une affectation : `"PATH=x"` passe, `PATH=x` reste refusé', async () => {
+  await dansUnDepot(async (racine) => {
+    for (const [shell, command] of [['PowerShell', '1 | % { "PATH=$_" }'], ['PowerShell', '"PATH=x"; echo a'], ['Bash', '"PATH=x"; echo a']]) {
+      assert.equal(await decision(racine, shell, { command }), null, `${shell} « ${command} »`)
+    }
+    assert.match(await raison(racine, 'Bash', { command: 'PATH=x; echo a' }), /PATH/)
+  })
+})
+
 test('#2224 shell lean-ctx SANS `command` (`job_id`, `background_action`) : rien ne s’exécute, aucun `cwd` exigé', async () => {
   await dansUnDepot(async (racine) => {
     for (const entree of [{ background_action: 'status', job_id: 'shell_1' }, { background_action: 'cancel', job_id: 'shell_1' }, { job_id: 'shell_1' }, { command: '  ', background_action: 'status' }]) {

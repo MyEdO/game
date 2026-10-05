@@ -17,6 +17,9 @@ l'intégration triviale et les gates.
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
   Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
   `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
+- **La zone écrite s'édite par l'outil `mcp__harnais__suivi`** (mod `harnais`), ou par
+  `node scripts/ops/suivi.mjs <N> --session <id> --json [--ticket <M>] --ajouter-item|--ajouter-etape|--cocher <texte>` :
+  une ligne par geste, sous verrou, et la session se lie au suivi.
 - **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
   indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
   branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
@@ -88,7 +91,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
 la session : ultracode = xhigh silencieux), définition épinglée. Workflows lourds SÉQUENTIELS (en
 parallèle : rate-limit, finders morts). Un type qui hérite tous les outils (`tools:` omis) porte
 `disallowedTools: Agent, Workflow`, sinon il se re-délègue sa mission à l'infini. **UN juge par
-jugement** (design, diff, palier) : les lentilles tiennent dans un seul prompt nourri du grounding
+jugement** (design, diff, fermeture) : les lentilles tiennent dans un seul prompt nourri du grounding
 déjà écrit, il ne re-mesure que ce qu'il conteste ; un workflow multi-agents ne se justifie que sur des
 travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regards sur la même entrée.
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
@@ -182,9 +185,6 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
   ce qui n'appelle aucun goût (données, gardes, ré-instruction) ; écrans et arbitrages en PRÉSENCE.
 - **Checkpoint avant épuisement de quota** : suivi de vague à jour (`npm run ops:suivi -- <N>`),
   tickets commentés.
-- **Revue de palier et réfutation de fermeture = UN juge**, nourri de `npm run ops:faits-de-palier --
-  --base <sha> --tete <sha>` : le script mesure, le juge juge. Le texte s'écrit sous le nom d'archive
-  qu'il donne (`nomDArchiveDeRevue`) et passe la porte de solde (`validateRevuePalier`).
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
   à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
   suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.

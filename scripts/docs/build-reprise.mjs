@@ -252,10 +252,20 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
-   \`post-merge\` et \`post-rewrite\` produisent les cibles de code, et les deux derniers régénèrent les
-   docs dont une source a bougé après une fusion ou un rebase. Le PALIER de revue
-   adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
-   et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
+    \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
+    commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
+    un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
+    annoncée ; un commit ordinaire ne lance aucun équipement. Un lockfile modifié impose
+    \`npm ci\` dans sa racine (racine ou \`server/\`) avant toute génération ; un échec nomme la
+    réparation à rejouer et arrête les générations, sans annuler la fusion déjà effectuée. Les docs
+    se régénèrent par sélection des sources mesurées, préalables et lecteurs aval ; une mesure
+    absente/incomplète, une cible absente ou un outil de mesure modifié impose le lot complet,
+    annoncé. Les générateurs de CODE suivent eux aussi cette sélection et ses préalables ; un lot
+    vide ou sans source pertinente ne les rejoue pas. Un changement de toolchain impose le lot
+    complet, car les lectures de dépendances ne sont pas mesurées. Les cibles de code déjà produites
+    se vérifient sans réécriture pendant cette passe.
+    Chaque étape annonce début, fin et durée. La fermeture des issues suit la PUBLICATION : job
+   \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
    \`${script('ops:fermer')} --rattraper <before>..<sha>\` : la base recule jusqu'à la dernière course
    réussie de ce workflow (\`baseDeLaPlage\`, #2155).`,
@@ -393,12 +403,20 @@ dans la branche, une fois ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
 
+**Reprise serveur de file.** Le workflow \`reprise-file.yml\` reprend les PR ouvertes par le train de \`chantier/**\` vers \`main\` après une CI verte, même après la mort du train et un rerun. Leur corps porte la signature canonique écrite par le train. Il lit exclusivement le code de \`main\`, relit la tête avant la demande REST \`merge-async\`, suit une réponse \`pending\` pendant au plus 12 sondes espacées de 5 secondes et ne dit « en file » que sur \`enqueued\`. Une réconciliation toutes les 10 minutes couvre une PR ouverte après la CI ; GitHub peut retarder une course planifiée. Le résumé du run et les commentaires sur la PR et ses tickets cités portent le SHA, le run/attempt et le résultat ; les commentaires lient la course CI et la veille serveur. Un refus ou une indétermination donne la commande \`npm run ops:publier -- --detache\`. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit les candidates sans demander de fusion ni commenter.
+
 **Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
 \`.git/suivi/<N>.md\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
 dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas.
 \`npm run ops:suivi -- <N>\` (\`${script('ops:suivi')}\`) en rafraîchit la zone mesurée (branche,
 avance, état d'issue de chaque ticket prévu) et l'imprime ; \`-- <N> --creer\` pose le suivi d'une
 vague neuve, et sans \`<N>\` il liste les suivis présents.
+
+\`ops:chantier\` annonce le fetch, la création du worktree et chaque équipement avant de les
+lancer ; \`ops:suivi\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces
+annonces portent début, fin et durée sur stderr ; la sortie des équipements reste visible.
+Lors du \`post-checkout\` initial d'un worktree (ancien SHA de quarante zéros et mesure absente),
+le hook annonce cet équipement requis et laisse \`ops:chantier\` le jouer une seule fois.
 
 Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
 autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent

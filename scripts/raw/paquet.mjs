@@ -15,7 +15,7 @@
 //          (paquet ou prompt sur la sortie standard, tailles sur la sortie d'erreur)
 import { readFileSync } from 'node:fs'
 import { ORIGINES, cleDAdresse, livreDuReleve, nomme, releve } from './releve.mjs'
-import { estErreur, estSeparateur, resoudreAdresse, unitesDe } from '../../src/data/source/decoupe.ts'
+import { couvertureDe, estErreur, estSeparateur, resoudreAdresse, unitesDe } from '../../src/data/source/decoupe.ts'
 import { debutDePhrase, finDePhrase } from '../../src/data/source/renvoi.ts'
 import { parUnitesDeCode } from '../../src/lib/ordre.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -38,21 +38,19 @@ function trier(livre, items) {
   return [...items].sort((a, b) => rangs.get(a.fichier) - rangs.get(b.fichier) || a.ligne - b.ligne || parUnitesDeCode(cleDAdresse(a.adresse), cleDAdresse(b.adresse)))
 }
 
-/** Une adresse de blocs INCLUSE dans une autre de la même section se replie sur elle, origines
- *  comprises : le paquet ne porte jamais deux fois le même texte. */
-function replier(items) {
-  const bornes = (it) => {
+/** Une adresse d'UN fragment de blocs dont la couverture (`couvertureDe`) est INCLUSE dans celle d'une autre du
+ *  même chapitre s'y replie, origines comprises : le paquet ne porte jamais deux fois le même texte. */
+export function replier(livre, items) {
+  const couvertures = new Map(items.map((it) => {
     const [f] = it.adresse.parts
-    return it.adresse.parts.length === 1 && f.kind === 'blocs' ? { cle: `${it.fichier}\u0000${f.sec}#${f.secOcc}`, b0: f.b0, b1: f.b1 } : null
+    return [it, it.adresse.parts.length === 1 && f.kind === 'blocs' ? couvertureDe(livre.indexe.chapitres.get(it.fichier), f).blocs : null]
+  }))
+  const contient = (o, it) => {
+    const c = couvertures.get(o)
+    const b = couvertures.get(it)
+    return c != null && o.fichier === it.fichier && [...b].every((p) => c.has(p))
   }
-  const contient = (o, b) => {
-    const c = bornes(o)
-    return c != null && c.cle === b.cle && c.b0 <= b.b0 && b.b1 <= c.b1
-  }
-  const hoteDe = (it) => {
-    const b = bornes(it)
-    return b ? items.find((o) => o !== it && contient(o, b)) : undefined
-  }
+  const hoteDe = (it) => (couvertures.get(it)?.size ? items.find((o) => o !== it && contient(o, it)) : undefined)
   const gardes = items.filter((it) => !hoteDe(it))
   for (const it of items) {
     let hote = hoteDe(it)
@@ -84,7 +82,7 @@ export function releveDesTermes(livre, termes, { origines } = {}) {
 }
 
 /** Les sections de règle d'un paquet : le relevé fusionné de ses termes, replié, dans l'ordre du livre. */
-export const sectionsDuPaquet = (livre, termes, options = {}) => replier(releveDesTermes(livre, termes, options).regle)
+export const sectionsDuPaquet = (livre, termes, options = {}) => replier(livre, releveDesTermes(livre, termes, options).regle)
 
 /** Une section est FORTE quand une de ses origines n'est pas `mention` : elle est rendue entière. */
 export const estForte = (it) => it.origines.some((o) => o.origine !== 'mention')
@@ -183,7 +181,7 @@ const enTete = (it) => `### ${it.ref} — ${it.titre} [${etiquettes(it)}]`
  *  `tri`, ses seules sections de règle, réduites (`texteRendu`). */
 export function paquet(livre, termes, { forme, ...options } = {}) {
   const { ambigus, introuvables, ...r } = releveDesTermes(livre, termes, options)
-  const [regle, entite] = [replier(r.regle), replier(r.entite)]
+  const [regle, entite] = [replier(livre, r.regle), replier(livre, r.entite)]
   const out = [`# Paquet — ${livre.book} — ${termes.map((t) => `« ${t} »`).join(', ')}`, '', `## Règle (${regle.length})`, '']
   for (const it of regle) out.push(enTete(it), '', texteRendu(livre, it, forme), '')
   if (forme === 'tri') return `${out.join('\n')}\n`

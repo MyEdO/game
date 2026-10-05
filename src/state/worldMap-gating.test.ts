@@ -195,7 +195,7 @@ describe('`routesEtat` — lecteur de la VUE : TOUTES les routes du lieu, chacun
 });
 
 describe('AUTHORING verrouillé par CONSTRUCTION — le schéma refuse la carte qui mentirait au joueur', () => {
-  const projet = (map: WorldMap) => ({
+  const projet = (map: unknown) => ({
     type: 'projet',
     schema: 7,
     id: 'fixture-gating',

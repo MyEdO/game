@@ -29,8 +29,8 @@ dist/
 public/qc/*
 !public/qc/baseline-affine/
 # `public/qc/soldes/` est VERSIONNÉ : les captures citées par le champ `capture:` d'un solde
-# (`.claude/soldes/<N>.md`) y vivent, une par preuve — une preuve que le palier suivant ne peut pas
-# ouvrir n'en est pas une (revue de palier 2026-09-14, trouvaille 1).
+# (`.claude/soldes/<N>.md`) y vivent, une par preuve — une preuve qu'un relecteur ne peut pas ouvrir
+# n'en est pas une (`.claude/soldes/revue-palier-2026-09-14-9e15cba42-abedb5fd4.md`, trouvaille 1).
 !public/qc/soldes/
 
 # Rapports JSON régénérables des lentilles d'audit (#321 — obtainability-graph.mts, set-scan.mjs…)
@@ -52,6 +52,10 @@ scripts/data/.out/
 # Soldes de fermeture et revues de palier : VERSIONNÉS (les messages de commit les citent par chemin,
 # et le palier se mesure sur les revues que porte l'histoire — la preuve doit survivre).
 !.claude/soldes/
+# tsconfig d'un mod, posé par le moteur au chargement `--plugin-dir` (#2278, sonde S6 :
+# https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521) ; ses types `.claude-plugin/types/`
+# portent leur propre .gitignore.
+.claude/skills/*/tsconfig.json
 
 # Worktrees d'agents posés d'un niveau sous la racine (`.wt-<ticket>/`) : arbres de travail, jamais du
 # contenu du dépôt. Ceux de `.claude/worktrees/` sont déjà couverts par `.claude/*` ci-dessus. #1679 L1c
