@@ -198,6 +198,10 @@ export function registerScene(s: Scene) {
 export function resetSceneRegistry(): void {
   for (const k of Object.keys(sceneRegistry)) delete sceneRegistry[k];
 }
+/** TEST-ONLY (#2097) : les scènes du registre, sources de donnée de la garde de partage. */
+export function scenesDuRegistre(): Scene[] {
+  return Object.values(sceneRegistry);
+}
 
 // Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
 // pour la compat des imports existants (`from '../state/store'`).
@@ -2229,7 +2233,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (worldMap !== undefined) set({ worldMap });
     // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
     // l'init. Absente du paquet = démarrage direct.
-    set({ pendingOuverture: narratif?.ouverture ?? null });
+    set({ pendingOuverture: structuredClone(narratif?.ouverture ?? null) }); // #2097
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
     // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).

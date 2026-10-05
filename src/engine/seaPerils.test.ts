@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
+import { datasetObject, setObjectDataset } from '../data/overrides';
 import { SEA_HAZARDS, findSeaHazard, pickSeaHazard, strandingPenalty, strandingOccurs, debrisEntangleFor, perilManagement } from './seaPerils';
 
 /**
@@ -30,13 +31,13 @@ describe('pickSeaHazard — tirage pondéré (#444, poids MAISON défaut équipr
   });
 
   it('un poids à 0 sur les 3 autres force le tirage sur le 4ᵉ — la pondération est bien LUE en donnée', () => {
-    const original = SEA_HAZARDS.map((h) => h.weight);
+    const original = structuredClone(datasetObject('seaPerils'));
     try {
-      for (const h of SEA_HAZARDS) h.weight = h.id === 'bas-fonds' ? 1 : 0;
+      setObjectDataset('seaPerils', { ...original, hazards: SEA_HAZARDS.map((h) => ({ ...h, weight: h.id === 'bas-fonds' ? 1 : 0 })) } as never);
       const rng = makeRNG(3);
       for (let i = 0; i < 10; i++) expect(pickSeaHazard(rng).id).toBe('bas-fonds');
     } finally {
-      SEA_HAZARDS.forEach((h, i) => { h.weight = original[i]; });
+      setObjectDataset('seaPerils', original);
     }
   });
 });

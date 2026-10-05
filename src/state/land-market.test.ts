@@ -132,7 +132,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('landSellCargo trouve un acheteur et crédite la bourse (Demande = Taille×10 +30 Commerce)', () => {
     setCarrierCargo([{ cargoId: 'vivres', enc: 40, basePriceGold: 2 }]);
-    useGame.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: landMap.places[0].market!, offers: [] } } as never);
+    useGame.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
     seedBattleRng(2);
     const before = partyMoneyTotal(get).gold;
     vendLot0();
@@ -143,7 +143,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
 
   it('landDumpCargo brade à la moitié du prix de base (Lieu de Commerce, l.160)', () => {
     setCarrierCargo([{ cargoId: 'metal', enc: 20, basePriceGold: 3 }]);
-    useGame.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: landMap.places[0].market!, offers: [] } } as never);
+    useGame.setState({ landMarket: { placeId: 'A', label: 'Grünburg', market: structuredClone(landMap.places[0].market!), offers: [] } } as never);
     const before = partyMoneyTotal(get).gold;
     get().landDumpCargo(CARRIER_ID, 0);
     expect(carrierCargo().length).toBe(0);

@@ -2694,7 +2694,7 @@ export interface PendingShoreLeave {
  *  jamais un doublon de cette décision. */
 export function openPortAt(get: Get, set: Set, to: MapPlace): void {
   if (to.port) {
-    set({ pendingShoreLeave: { to } });
+    set({ pendingShoreLeave: { to: structuredClone(to) } }); // #2097
     return;
   }
   resolvePortArrival(get, set, to.port, battleRng(), true);

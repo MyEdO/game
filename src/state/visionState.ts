@@ -68,7 +68,7 @@ export const setRevealAll = (v: boolean): void => { REVEAL_ALL = v; };
 
 /** Champ de lumière PLAT (plein jour) : le repli pour REVEAL_ALL / `!scene`, où aucune occlusion iso n'a
  *  de sens mais un consommateur attend un `LightField` valide. */
-const FLAT_LIGHT = { at: () => 1 };
+const FLAT_LIGHT = Object.freeze({ at: () => 1 }); // #2097
 
 type StateLight = ReturnType<typeof sceneLightField>['light'];
 

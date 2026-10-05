@@ -2767,8 +2767,9 @@ export function createCombatSlice(get: Get, set: Set) {
     startCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean }) => {
       const { scene, party, partyPos } = get();
       if (!scene) return;
-      const enc = scene.encounters.find((e) => e.id === encounterId);
-      if (!enc) return;
+      const rencontre = scene.encounters.find((e) => e.id === encounterId);
+      if (!rencontre) return;
+      const { enc, victoire } = structuredClone({ enc: rencontre, victoire: onVictory }); // #2097
       // Couture UNIVERSELLE de suspension (state/cascade.ts) : un combat qui s'ouvre PENDANT une
       // cascade active (ex. un abordage déclenché par l'applier d'une étape de voyage) la PARQUE au
       // lieu de la perdre au `resetFields('combatStart')` ci-dessous — jamais un cas spécial « mer ».
@@ -2934,7 +2935,7 @@ export function createCombatSlice(get: Get, set: Set) {
         acted: false,
         log: [ev('round', t('cs.combatStart'))],
         over: null,
-        onVictory: onVictory ?? enc.onVictory,
+        onVictory: victoire ?? enc.onVictory,
         victoryCondition: enc.victoryCondition,
         banRanged: enc.banRanged,
         siege: enc.siege,

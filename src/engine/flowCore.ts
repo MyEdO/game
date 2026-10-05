@@ -32,6 +32,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
 import { statusOf, statusMeets } from './social';
+import { gelerLaConstante } from '../lib/gelerProfond';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
  *  ouverte ; objet vide = toujours vrai. Aucune dépendance — type structurel pur. */
@@ -520,8 +521,9 @@ export type ArgTemplate = typeof ARG_TEMPLATE;
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
 export type FlowTestNode<E = EffectOp> = Extract<Flow<E>, { kind: 'test' }>;
 
-/** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. */
-export const EMPTY_FLOW: Flow = { kind: 'seq', steps: [] };
+/** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
+ *  par la donnée comme par l'état : gelé à sa définition (#2097). */
+export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'seq', steps: [] });
 
 /** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
  *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une

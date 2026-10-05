@@ -196,10 +196,11 @@ export function resolvePortRef(
   port: ({ ref?: string } & Partial<PortProfile> & { lighthouse?: boolean }) | undefined,
 ): MapPlace['port'] {
   if (!port?.ref) return port as MapPlace['port'];
-  const def = findNavalPortById(port.ref);
-  if (!def) {
+  const trouve = findNavalPortById(port.ref);
+  if (!trouve) {
     throw new Error(`Lieu-port : réf de port inconnue "${port.ref}" (absente de naval-ports.json).`);
   }
+  const def = structuredClone(trouve); // #2097
   return {
     ref: port.ref,
     taille: port.taille ?? def.taille,

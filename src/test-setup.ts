@@ -75,11 +75,16 @@
  *    react-dom du worker. Le compte est pris sur le PROTOTYPE des racines (`render` inscrit le fichier
  *    courant, `unmount` le retire) : chaque fichier est jugé sur ce QU'IL a rendu, et la fuite se dit
  *    chez lui, jamais chez la victime qui lève « Should not already be working » plus loin (#1724).
+ *
+ * 5. GARDE DE PARTAGE (`partagesDeLEtat`, `afterEach`, #2097) : l'état laissé par le test n'atteint
+ *    aucune donnée par identité. Racines et sources : `state/partage.testkit.ts`.
  */
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 import { appendFileSync } from 'node:fs';
 import { DOM_RESIDU_STOCK } from '../scripts/guards/lib/domResiduStock.mjs';
-import { useGame, resetSceneRegistry, type GameState } from './state/store';
+import { useGame, resetSceneRegistry, scenesDuRegistre, type GameState } from './state/store';
+import { partagesDeLEtat } from './state/partage.testkit';
+import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';
 import { cascadeAppliers } from './state/cascade';
 import { clearTrackedTimers } from './state/combatTimers';
@@ -366,6 +371,8 @@ afterEach(() => {
   const fileOuverte = fileAct !== null && fileAct.actQueue !== null;
   const fileNeuve = fileOuverte && fileAct!.actQueue !== fileActSignalee;
   if (fileOuverte) fileActSignalee = fileAct!.actQueue;
+  // PARTAGE (#2097) : lu AVANT le vidage du registre des scènes, qui en est une source.
+  const partages = partagesDeLEtat(useGame.getState(), scenesDuRegistre());
   // REGISTRE DES SCÈNES (`state/store`) : vidé APRÈS CHAQUE test —
   // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
   // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `state/scene-registry-isolation.test.ts`.
@@ -417,6 +424,14 @@ afterEach(() => {
       `Registre d'art du rig laissé MUTÉ par ce test (les tables de gameIso/rig/parts sont partagées par le worker).\n`
       + `Capturer la valeur d'origine et la REMETTRE (jamais un \`delete\` sec sur une clé déclarée).\n`
       + drifted.join('\n'),
+    );
+  }
+  if (partages.length) {
+    throw new Error(
+      `État mutable laissé PARTAGÉ avec une donnée par ce test (#2097), ${partages.length} chemin(s) :\n`
+      + `${partages.slice(0, 12).join('\n')}\n`
+      + `Copier à la COUTURE qui a stocké la donnée. Un test qui bâtit son état hors des coutures du jeu passe `
+      + `par leur porte (\`spawnEnemy\`…).`,
     );
   }
 });
