@@ -252,8 +252,16 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
-   \`post-merge\` et \`post-rewrite\` produisent les cibles de code, et les deux derniers régénèrent les
-   docs dont une source a bougé après une fusion ou un rebase. Le PALIER de revue
+    \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. Un lockfile modifié impose
+    \`npm ci\` dans sa racine (racine ou \`server/\`) avant toute génération ; un échec nomme la
+    réparation à rejouer et arrête les générations, sans annuler la fusion déjà effectuée. Les docs
+    se régénèrent par sélection des sources mesurées, préalables et lecteurs aval ; une mesure
+    absente/incomplète, une cible absente ou un outil de mesure modifié impose le lot complet,
+    annoncé. Les générateurs de CODE suivent eux aussi cette sélection et ses préalables ; un lot
+    vide ou sans source pertinente ne les rejoue pas. Un changement de toolchain impose le lot
+    complet, car les lectures de dépendances ne sont pas mesurées. Les cibles de code déjà produites
+    se vérifient sans réécriture pendant cette passe.
+    Chaque étape annonce début, fin et durée. Le PALIER de revue
    adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
    et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
@@ -399,6 +407,12 @@ dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas
 \`npm run ops:suivi -- <N>\` (\`${script('ops:suivi')}\`) en rafraîchit la zone mesurée (branche,
 avance, état d'issue de chaque ticket prévu) et l'imprime ; \`-- <N> --creer\` pose le suivi d'une
 vague neuve, et sans \`<N>\` il liste les suivis présents.
+
+\`ops:chantier\` annonce le fetch, la création du worktree et chaque équipement avant de les
+lancer ; \`ops:suivi\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces
+annonces portent début, fin et durée sur stderr ; la sortie des équipements reste visible.
+Lors du \`post-checkout\` initial d'un worktree (ancien SHA de quarante zéros et mesure absente),
+le hook annonce cet équipement requis et laisse \`ops:chantier\` le jouer une seule fois.
 
 Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
 autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent

@@ -275,6 +275,27 @@ function mesureFactice(compte, { fetchOrigin, issues } = {}) {
   }
 }
 
+test('--creer annonce fetch et inventaire avant leurs gestes, conserve le profil final', () => {
+  const dossier = join(dossierJetable(), 'suivi')
+  const sorties = []
+  const mesure = mesureFactice({ fetch: 0, issues: [] }, { fetchOrigin: () => {
+    assert.equal(sorties.at(-1), '[suivi] fetchOrigin — début\n')
+    return { disponible: true, valeur: '' }
+  } })
+  const inv = mesure.inv
+  mesure.inv = (...args) => {
+    assert.equal(sorties.at(-1), '[suivi] inv — début\n')
+    return inv(...args)
+  }
+  mesure.annoncer = (texte) => sorties.push(texte)
+  try {
+    const vu = suivre({ numero: 2329, dossier, creer: true, mesure })
+    assert.equal(vu.code, 0, vu.stderr)
+    assert.match(vu.stdout, /\[suivi\] profil \(ms\)/)
+    assert.match(sorties.join(''), /fetchOrigin — fin \(\d+ ms\)/)
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
 test('--creer : gabarit, portée VIDE donc aucune lecture d’issues, un fetch ; puis refus si le fichier existe', () => {
   const dossier = join(dossierJetable(), 'suivi')
   try {

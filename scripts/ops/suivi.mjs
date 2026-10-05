@@ -47,6 +47,7 @@
 //
 // Usage : `npm run ops:suivi -- <N> [--creer] [--sans-fetch]` · sans `<N>` : la liste des suivis.
 import * as FS from 'node:fs'
+import { etapeProfilee } from '../etape-profilee.mjs'
 import { join } from 'node:path'
 import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
 import { numerosDeLaChaine } from '../guards/lib/fermetures.mjs'
@@ -385,15 +386,10 @@ export function digestDuSuivi(texte, { epique, chemin, mtime, maintenant, plafon
  *   horloge?: () => number} & Record<string, unknown>} [params] le reste va à `mesurer`
  * @returns {{vu: ReturnType<typeof mesurer>, profil: {durees: Record<string, number>, total: number, reste: number}}}
  */
-export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), ...params } = {}) {
+export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), annoncer = (texte) => process.stderr.write(texte), ...params } = {}) {
   const durees = tableTotale([...Object.keys(GESTES_DU_BOARD), 'inv', 'issues'], () => 0)
   const envelopper = (nom, geste) => (...args) => {
-    const depart = horloge()
-    try {
-      return geste(...args)
-    } finally {
-      durees[nom] += horloge() - depart
-    }
+    return etapeProfilee(`[suivi] ${nom}`, () => geste(...args), { horloge, annoncer, mesurer: (ms) => { durees[nom] += ms } })
   }
   const enveloppes = tableTotale(Object.keys(GESTES_DU_BOARD), (nom) => envelopper(nom, gestes[nom]))
   const depart = horloge()
@@ -498,7 +494,7 @@ export function texteDeLaListe({ dossier, suivis, orphelins }) {
 
 /**
  * Le geste entier sur un suivi : `--creer` éventuel, portée, mesure profilée, relecture, écriture
- * atomique. Rend le code de sortie et les deux flux, sans rien imprimer.
+ * atomique. Rend le code de sortie et les deux flux ; la mesure annonce ses gestes sur stderr.
  * @param {{numero: number, dossier: string, creer?: boolean, sansFetch?: boolean, fs?: typeof FS,
  *   pid?: number, maintenant?: Date, mesure?: Record<string, unknown>}} params `mesure` va à `mesureProfilee`
  * @returns {{code: number, stdout: string, stderr: string}}

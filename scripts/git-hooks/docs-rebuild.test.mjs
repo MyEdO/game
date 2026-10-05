@@ -5,12 +5,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { mesurerEnRendu } from '../docs/build-all.mjs'
+import { genererCode, mesurerEnRendu } from '../docs/build-all.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { planDuCheckout, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { planDuCheckout, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -128,4 +129,263 @@ test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checko
   const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
   assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
   for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
+})
+
+test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans doc frère général', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'docs/a.md': 'a', 'docs/b.md': 'b', 'docs/c.md': 'c', 'src/code.gen.ts': 'code' } })
+  const generateurs = [
+    { script: 'g/code.mjs', targets: ['src/code.gen.ts'] },
+    { script: 'g/a.mjs', targets: ['docs/a.md'] },
+    { script: 'g/b.mjs', targets: ['docs/b.md'] },
+    { script: 'g/c.mjs', targets: ['docs/c.md'] },
+  ]
+  const mesure = {
+    'g/code.mjs': { fichiers: ['data/code.json'], dossiers: [], cibles: [] },
+    'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: ['notes'], cibles: ['docs/a.md'] },
+    'g/b.mjs': { fichiers: ['docs/a.md'], dossiers: [], cibles: ['docs/b.md'] },
+    'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: ['docs/c.md'] },
+  }
+  const selection = (lot, m = mesure) => selectionDesGenerateurs({ lot, mesure: m, cwd: racine, generateurs })
+  try {
+    assert.deepEqual(selection(['notes/a.txt']).scripts, ['g/a.mjs', 'g/b.mjs'])
+    assert.deepEqual(selection(['notes/neuf/plus/bas.txt']).scripts, ['g/a.mjs', 'g/b.mjs'])
+    assert.deepEqual(selection(['docs/a.md']).scripts, ['g/a.mjs', 'g/b.mjs'])
+    assert.deepEqual(selection(['public/independent.svg']).scripts, [])
+    const mixte = [{ ...generateurs[1], targets: [], injecte: ['docs/a.md'] }, ...generateurs.filter((g) => g.script !== 'g/a.mjs')]
+    assert.ok(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts.includes('g/code.mjs'))
+    assert.equal(selection(null).complete, true)
+    assert.equal(selection(['notes/a.txt'], { 'g/a.mjs': mesure['g/a.mjs'] }).complete, true)
+    assert.equal(selection(['scripts/docs/lib/enregistreur-lectures.mjs']).complete, true)
+    rmSync(join(racine, 'docs/c.md'))
+    assert.equal(selection(['notes/a.txt']).complete, true)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+function fusionReelle(fichiersAvant, fichiersApres) {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'node_modules/\n', ...fichiersAvant } })
+  const git = gitDe(racine)
+  const origine = git('rev-parse', 'HEAD').trim()
+  for (const [nom, contenu] of Object.entries(fichiersApres)) {
+    mkdirSync(join(racine, nom, '..'), { recursive: true })
+    writeFileSync(join(racine, nom), contenu)
+  }
+  git('add', ...Object.keys(fichiersApres))
+  git('commit', '-q', '-m', 'main change')
+  const nouveau = git('rev-parse', 'HEAD').trim()
+  git('update-ref', 'refs/heads/main-modifie', nouveau)
+  git('update-ref', 'HEAD', origine)
+  for (const [nom, contenu] of Object.entries(fichiersAvant)) writeFileSync(join(racine, nom), contenu)
+  git('read-tree', origine)
+  git('merge', '--ff-only', 'main-modifie')
+  return { racine, lot: touchedFiles(racine) }
+}
+
+test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucune génération', () => {
+  const paquet = JSON.stringify({ name: 'banc2329', version: '1.0.0', private: true, dependencies: { introuvable: 'file:./absent' } })
+  const lock = JSON.stringify({ name: 'banc2329', version: '1.0.0', lockfileVersion: 3, packages: { '': { name: 'banc2329', version: '1.0.0' } } })
+  const { racine, lot } = fusionReelle({ 'package.json': paquet, 'package-lock.json': lock }, { 'package-lock.json': `${lock}\n` })
+  let generations = 0
+  const sorties = []
+  try {
+    assert.deepEqual(lot, ['package-lock.json'])
+    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte),
+      code: () => { generations++; return 0 }, docs: () => { generations++ },
+      npm: (cmd, args, opts) => {
+        assert.match(sorties.at(-1), /npm ci — début/)
+        return spawnSync(cmd, args, { ...opts, stdio: 'pipe', encoding: 'utf8' })
+      },
+    })
+    assert.equal(vu, 1)
+    assert.equal(generations, 0)
+    assert.match(sorties.join(''), /équipement incomplet : relancer `npm ci`/)
+    assert.match(sorties.join(''), /npm ci — fin \(\d+ ms\)/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('fusion server seule : installer avant code ; lot sans lockfile : aucun npm ; code rouge arrête docs', () => {
+  for (const server of [true, false]) {
+    const avant = server ? { 'server/package-lock.json': '{}', 'package-lock.json': '{}' } : { 'a.txt': 'a' }
+    const apres = server ? { 'server/package-lock.json': '{}\n' } : { 'a.txt': 'b' }
+    const { racine } = fusionReelle(avant, apres)
+    const gestes = []
+    try {
+      const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: () => {},
+        npm: (_cmd, args) => { gestes.push(args.join(' ')); return { status: 0 } },
+        code: () => { gestes.push('code'); return 1 }, docs: () => { gestes.push('docs') },
+      })
+      assert.equal(vu, 1)
+      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', 'code'] : ['code'])
+    } finally {
+      rmSync(racine, { recursive: true, force: true })
+    }
+  }
+})
+
+test('racine installée : postinstall suffit pour le code ; ORIG_HEAD inconnu et lockfile retiré sont annoncés', () => {
+  const { racine } = fusionReelle({ 'package-lock.json': '{}' }, { 'package-lock.json': '{}\n' })
+  const sorties = []
+  let code = 0
+  let docs = 0
+  try {
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs: [], annoncer: (texte) => sorties.push(texte),
+      npm: () => ({ status: 0 }), code: () => { code++; return 0 }, docs: () => { docs++ },
+    }), 0)
+    assert.deepEqual([code, docs], [0, 0])
+    const git = gitDe(racine)
+    git('update-ref', '-d', 'ORIG_HEAD')
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), npm: () => ({ status: 1 }), code: () => { code++; return 0 } }), 1)
+    assert.match(sorties.join(''), /plage Git inconnue/)
+    git('update-ref', 'ORIG_HEAD', 'HEAD~1')
+    rmSync(join(racine, 'package-lock.json'))
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte), code: () => { code++; return 0 } }), 1)
+    assert.match(sorties.join(''), /lockfile package-lock.json absent/)
+    assert.equal(code, 0)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('checkout neuf : ancien SHA nul et cache absent seuls dispensent de répéter l’équipement', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'package-lock.json': '{}' } })
+  const sorties = []
+  const gestes = []
+  const options = { cwd: racine, hook: 'post-checkout', apres: 'a'.repeat(40), annoncer: (texte) => sorties.push(texte),
+    npm: () => { gestes.push('npm'); return { status: 1 } }, code: () => { gestes.push('code'); return 0 }, docs: () => { gestes.push('docs') },
+  }
+  try {
+    assert.equal(reconstruireApresGit({ ...options, avant: '0'.repeat(40) }), 0)
+    assert.deepEqual(gestes, [])
+    assert.match(sorties.join(''), /worktree neuf.*npm ci.*npm --prefix server ci.*docs:build/)
+    for (const avant of ['inconnu', 'b'.repeat(40)]) {
+      gestes.length = 0
+      assert.equal(reconstruireApresGit({ ...options, avant }), 1)
+      assert.deepEqual(gestes, ['npm'])
+    }
+    mkdirSync(join(racine, 'docs'))
+    writeFileSync(join(racine, 'docs/.sources-lues.json'), '{}')
+    gestes.length = 0
+    assert.equal(reconstruireApresGit({ ...options, avant: '0'.repeat(40) }), 1)
+    assert.deepEqual(gestes, ['npm'])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE indépendant intact', () => {
+  const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
+  const module = pathToFileURL(join(RACINE, 'scripts/docs/build-all.mjs')).href
+  const doc = (nom) => ['docs', `${nom}.md`].join('/')
+  const noms = ['code', 'a', 'b', 'c']
+  const cible = (nom) => nom === 'code' ? 'src/code.gen.ts' : doc(nom)
+  const generateurs = noms.map((nom) => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [cible(nom)] }))
+  const source = (nom) => nom === 'b' ? doc('a') : `notes/${nom}/source.txt`
+  const generateur = (nom) => [
+    "import { appendFileSync, readFileSync } from 'node:fs'",
+    `import { ecrireOuVerifier } from ${JSON.stringify(primitive)}`,
+    `const texte = readFileSync(${JSON.stringify(source(nom))}, 'utf8') + readFileSync('commun.txt', 'utf8')`,
+    nom === 'code' ? "const resultat = texte + readFileSync('node_modules/dependency-value.txt', 'utf8')" :
+      nom === 'c' ? "const resultat = texte + readFileSync('src/code.gen.ts', 'utf8')" : 'const resultat = texte',
+    nom === 'code' ? "appendFileSync('node_modules/code-journal.txt', process.argv.includes('--check') ? 'verification\\n' : 'ecriture\\n')" : '',
+    `ecrireOuVerifier({ out: resultat, path: ${JSON.stringify(cible(nom))}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer' })`,
+  ].join('\n')
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': 'node_modules/\n', 'commun.txt': 'commun',
+    'notes/a/source.txt': 'a', 'notes/c/source.txt': 'c', 'notes/code/source.txt': 'code',
+    ...Object.fromEntries(noms.map((nom) => [`g/${nom}.mjs`, generateur(nom)])),
+  } })
+  const git = gitDe(racine)
+  mkdirSync(join(racine, 'docs'))
+  mkdirSync(join(racine, 'src'))
+  mkdirSync(join(racine, 'node_modules'))
+  writeFileSync(join(racine, 'node_modules/dependency-value.txt'), 'DEPENDANCE1')
+  const harnais = join(racine, 'node_modules/banc2329.mjs')
+  writeFileSync(harnais, `import { executer } from ${JSON.stringify(module)}\nprocess.exitCode = await executer({ cwd: ${JSON.stringify(racine)}, argv: ['--quiet', ...process.argv.slice(2)], generateurs: ${JSON.stringify(generateurs)}, verificateurs: [] })\n`)
+  const jouer = (args = []) => {
+    const debut = performance.now()
+    const vu = spawnSync(process.execPath, [harnais, ...args], { cwd: racine, encoding: 'utf8' })
+    assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
+    return { ms: Math.round(performance.now() - debut), compte: (vu.stderr.match(/— début/g) ?? []).length }
+  }
+  try {
+    const complet = jouer()
+    git('add', 'docs', 'notes', 'g', 'src', 'commun.txt', '.gitignore')
+    git('commit', '-q', '-m', 'mesure initiale')
+    const origine = git('rev-parse', 'HEAD').trim()
+    writeFileSync(join(racine, 'notes/a/source.txt'), 'a modifié')
+    git('add', 'notes/a/source.txt')
+    git('commit', '-q', '-m', 'main modifie source a')
+    git('update-ref', 'refs/heads/main-modifie', 'HEAD')
+    git('update-ref', 'HEAD', origine)
+    writeFileSync(join(racine, 'notes/a/source.txt'), 'a')
+    git('read-tree', origine)
+    git('merge', '--ff-only', 'main-modifie')
+    const independant = readFileSync(join(racine, doc('c')), 'utf8')
+    const codeAvant = statSync(join(racine, cible('code'))).mtimeMs
+    const journal = readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8')
+    const annonces = []
+    let partiel
+    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: (texte) => annonces.push(texte),
+      docs: (_cmd, args) => { partiel = jouer(args.slice(1)) },
+    })
+    assert.equal(vu, 0)
+    assert.deepEqual([complet.compte, partiel.compte], [4, 2])
+    assert.equal(statSync(join(racine, cible('code'))).mtimeMs, codeAvant)
+    assert.equal(readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8'), journal)
+    assert.equal(readFileSync(join(racine, doc('c')), 'utf8'), independant)
+    assert.match(readFileSync(join(racine, doc('b')), 'utf8'), /a modifié/)
+    assert.match(annonces.join(''), /sélection \(2\/4\)/)
+    for (const nonPertinent of [false, true]) {
+      git('update-ref', 'ORIG_HEAD', 'HEAD')
+      if (nonPertinent) {
+        mkdirSync(join(racine, 'public'))
+        writeFileSync(join(racine, 'public/independant.svg'), '<svg/>')
+        git('add', 'public/independant.svg')
+        git('commit', '-q', '-m', 'source non pertinente')
+      }
+      const gestes = []
+      assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs,
+        annoncer: () => {}, npm: () => { gestes.push('npm') }, code: () => { gestes.push('code') }, docs: () => { gestes.push('docs') },
+      }), 0)
+      assert.deepEqual(gestes, [])
+    }
+    writeFileSync(join(racine, 'notes/code/source.txt'), 'code modifié')
+    git('add', 'notes/code/source.txt')
+    git('commit', '-q', '-m', 'source code')
+    git('update-ref', 'ORIG_HEAD', 'HEAD~1')
+    const ordre = []
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {},
+      docs: (_cmd, args) => {
+        ordre.push(readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8'))
+        jouer(args.slice(1))
+      },
+    }), 0)
+    assert.match(ordre[0], /ecriture\necriture\n$/)
+    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/)
+    writeFileSync(join(racine, 'package-lock.json'), '{}')
+    git('add', 'package-lock.json')
+    git('commit', '-q', '-m', 'lockfile toolchain')
+    git('update-ref', 'ORIG_HEAD', 'HEAD~1')
+    const annoncesLock = []
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: (texte) => annoncesLock.push(texte),
+      npm: () => {
+        writeFileSync(join(racine, 'node_modules/dependency-value.txt'), 'DEPENDANCE2')
+        return { status: genererCode({ cwd: racine, generateurs, quiet: true }) }
+      },
+      code: () => { throw new Error('postinstall ne doit pas être doublé') },
+      docs: (_cmd, args) => { jouer(args.slice(1)) },
+    }), 0)
+    assert.match(readFileSync(join(racine, doc('c')), 'utf8'), /DEPENDANCE2/)
+    assert.match(annoncesLock.join(''), /génération complète.*toolchain modifiée/)
+    git('update-ref', 'ORIG_HEAD', 'HEAD')
+    rmSync(join(racine, cible('code')))
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {}, docs: (_cmd, args) => { jouer(args.slice(1)) } }), 0)
+    assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/)
+    console.log(JSON.stringify({ banc2329: 'hook-fusion-source', avant: complet, apres: partiel, sorties: annonces }))
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
