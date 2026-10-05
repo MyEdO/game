@@ -38,7 +38,7 @@ const carte: WorldMap = {
       label: 'Bögenhafen',
       pos: { x: 96, y: 62 },
       scene: 's-bogenhafen',
-      when: { kind: 'flag', expr: 'edo-ch1-bogenhafen-revelee' },
+      when: { kind: 'flag', expr: 'lieu-revele' },
     },
   ],
   routes: [
@@ -51,7 +51,7 @@ const carte: WorldMap = {
       from: 'auberge',
       km: 42,
       modes: ['pied'],
-      when: { kind: 'not', of: { kind: 'flag', expr: 'edo-ch1-clos' } },
+      when: { kind: 'not', of: { kind: 'flag', expr: 'chapitre-clos' } },
       refus: 'Les gardes ont barré le pont de Bögen.',
     },
   ],
@@ -108,7 +108,7 @@ describe('axe NŒUD — le lieu non révélé est ABSENT du rendu ET du cadrage'
   });
 
   it('flag posé : le lieu apparaît — le rendu n’a pas changé de nature, seule la donnée a bougé', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'edo-ch1-bogenhafen-revelee': true } });
+    useGame.setState({ worldMap: carte, flags: { 'lieu-revele': true } });
     await monter({ hereSceneId: 's-auberge' });
     expect(container.textContent).toContain('Bögenhafen');
     expect(container.querySelectorAll('path[pointer-events="stroke"]')).toHaveLength(3);
@@ -122,7 +122,7 @@ describe('axe NŒUD — le lieu non révélé est ABSENT du rendu ET du cadrage'
 
     await act(async () => root.unmount());
     root = createRoot(container);
-    useGame.setState({ worldMap: carte, flags: { 'edo-ch1-bogenhafen-revelee': true } });
+    useGame.setState({ worldMap: carte, flags: { 'lieu-revele': true } });
     await monter({ hereSceneId: 's-auberge' });
     const avecLui = cadrage();
 
@@ -134,7 +134,7 @@ describe('axe NŒUD — le lieu non révélé est ABSENT du rendu ET du cadrage'
 
 describe('axe ARÊTE — le trajet fermé reste VISIBLE, son départ est REFUSÉ avec sa raison', () => {
   it('chapitre clos : la route est rendue et sélectionnable, le départ porte `refus` (aria-disabled)', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'edo-ch1-clos': true } });
+    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true } });
     await monter({ hereSceneId: 's-auberge', initialRouteId: 'auberge-ferme' });
 
     const bouton = container.querySelector('#wm-route-fermee-auberge-ferme-reason')
@@ -162,7 +162,7 @@ describe('axe ARÊTE — le trajet fermé reste VISIBLE, son départ est REFUSÉ
 
 describe('recette — `__wfrp.routes()` décrit EXACTEMENT les tracés cliquables du DOM, dans le MÊME ordre', () => {
   it('un lieu caché ne décale plus l’index : `routes()[i]` est bien la route du iᵉ tracé', async () => {
-    useGame.setState({ worldMap: carte, flags: { 'edo-ch1-clos': true }, scene: scenePlate('s-auberge') });
+    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
     await monter({ hereSceneId: 's-auberge' });
 
     const annonce = buildApi().routes() as { id: string; etat: string }[];
@@ -181,7 +181,7 @@ describe('recette — `__wfrp.routes()` décrit EXACTEMENT les tracés cliquable
   });
 });
 
-/** Carte du CH.1 réel en réduction : un SEUL voisin, non révélé, posé LOIN du lieu courant. */
+/** Carte minimale : un SEUL voisin, non révélé, posé LOIN du lieu courant. */
 const carteMuette: WorldMap = {
   id: 'ch1',
   label: 'Chapitre 1',
@@ -192,10 +192,10 @@ const carteMuette: WorldMap = {
       label: 'Altdorf',
       pos: { x: 90, y: 60 },
       scene: 's-altdorf',
-      when: { kind: 'flag', expr: 'edo-ch1-altdorf-revelee' },
+      when: { kind: 'flag', expr: 'destination-revelee' },
     },
   ],
-  routes: [{ id: 'route-la-diligence-altdorf', a: 'auberge', b: 'altdorf', km: 180, modes: ['pied'] }],
+  routes: [{ id: 'route-depart-destination', a: 'auberge', b: 'altdorf', km: 180, modes: ['pied'] }],
 };
 
 /** Vue courante (zoom/pan) lue sur le groupe de cadrage. */
@@ -225,7 +225,7 @@ describe('AIDE de la colonne — elle se dit sur les routes DESSINÉES, jamais s
   });
 
   it('destination révélée : le médaillon existe, et le message redevient l’invitation au clic', async () => {
-    useGame.setState({ worldMap: carteMuette, flags: { 'edo-ch1-altdorf-revelee': true } });
+    useGame.setState({ worldMap: carteMuette, flags: { 'destination-revelee': true } });
     await monter({ hereSceneId: 's-auberge' });
     expect(container.querySelectorAll('path[pointer-events="stroke"]')).toHaveLength(1);
     expect(container.textContent).toContain('Cliquez une destination CERCLÉE');
@@ -240,7 +240,7 @@ describe('RÉVÉLATION en cours de partie — la vue se re-cadre pour que le lie
     const avant = vue();
 
     await act(async () => {
-      useGame.setState({ flags: { 'edo-ch1-altdorf-revelee': true } });
+      useGame.setState({ flags: { 'destination-revelee': true } });
     });
 
     // Le lieu neuf est cliquable LÀ OÙ LE JOUEUR REGARDE, pas hors du parchemin (mesure de recette :
