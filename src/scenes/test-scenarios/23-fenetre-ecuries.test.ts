@@ -7,6 +7,7 @@ import { portesDeLaPiece } from '../../state/decouvertePorteSecrete';
 import { roomFocusAt } from '../../state/rooms';
 import { reachableCells } from '../../state/mapQC';
 import { useGame } from '../../state/store';
+import { avanceEtapeCascade } from '../../state/cascadeTestKit';
 import { scenario } from './23-fenetre-ecuries';
 
 /**
@@ -120,5 +121,39 @@ describe('Scénario « La fenêtre sur les écuries » — formation de début d
   it('au rez, la colonne voisine du groupe tient sur le sol : la formation reste la colonne (x − 1, y + i)', () => {
     const cases = formation({ x: 9, y: 0, z: 0 });
     expect(cases).toEqual(cases.map((_, i) => ({ x: 8, y: i })));
+  });
+});
+
+describe('Scénario « La fenêtre sur les écuries » — l’homme de main se bat à SON étage (#2139)', () => {
+  const scene = scenario.construire().scene;
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    useGame.setState({ battle: null, pendingDefense: null });
+  });
+
+  it('il s’approche sur le plancher de z1 et frappe un héros de l’étage', () => {
+    const g = useGame.getState;
+    useGame.setState({ party: scenario.construire().party });
+    g().startScene(scene);
+    useGame.setState({ partyPos: { x: 7, y: 6, z: 1 } });
+    g().startCombat('enc-homme-de-main');
+    const homme = () => g().battle!.combatants.find((c) => c.id === 'homme-de-main')!;
+    expect(homme().pos!.z).toBe(1);
+    for (let i = 0; i < 80 && !g().pendingDefense; i++) {
+      if (g().pendingRoundStart) g().confirmRoundStart();
+      while (g().pendingCascade) avanceEtapeCascade(g);
+      const b = g().battle!;
+      const actif = b.combatants.find((c) => c.id === b.order[b.turn]);
+      if (actif?.kind === 'hero') g().battleEndTurn();
+      vi.advanceTimersByTime(1000);
+      expect(homme().pos!.z, `tour ${i} : l’homme de main a quitté l’étage`).toBe(1);
+    }
+    const def = g().pendingDefense!;
+    expect(def.attackerId).toBe('homme-de-main');
+    const cible = g().battle!.combatants.find((c) => c.id === def.defenderId)!;
+    expect(cible.pos!.z).toBe(1);
+    expect(homme().pos!.z).toBe(1);
   });
 });

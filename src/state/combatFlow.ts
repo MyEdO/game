@@ -211,7 +211,7 @@ import {
   type Weather,
 } from '../engine/travelStages';
 import { weaponGroupKey } from '../engine/weaponGroup';
-import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, Pt, climbTraverseFor } from './path';
+import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, tileFromKey, Pt, climbTraverseFor } from './path';
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
 import { resolveRun, chargeReach } from '../engine/movement';
 import type { RNG } from '../engine/dice';
@@ -1383,14 +1383,14 @@ export function bestAdjacentReachable(reach: Map<string, number>, target: Pt, ta
   let best: Pt | null = null;
   let bestD = Infinity;
   for (const k of reach.keys()) {
-    const [x, y] = k.split(',').map(Number);
+    const t = tileFromKey(k);
     // Adjacent à l'EMPREINTE de la cible (toute case du bloc N×N, pas seulement l'ancre) → un grand (créature,
     // navire) s'attaque depuis N'IMPORTE quel côté. `footprintChebyshev` coïncide avec `chebyshev` pour deux 1×1.
-    if (footprintChebyshev({ x, y }, moverN, target, targetN) !== 1) continue;
+    if (footprintChebyshev(t, moverN, target, targetN) !== 1) continue;
     const d = reach.get(k)!;
     if (d < bestD) {
       bestD = d;
-      best = { x, y };
+      best = t;
     }
   }
   return best;
@@ -1420,14 +1420,13 @@ function briseFleeFilter(scene: Scene, battle: BattleState, active: Combatant, r
   if (!foes.length) return reach;
   const smoke = smokeOf(battle);
   const hiddenTiles = new Map([...reach].filter(([k]) => {
-    const [x, y] = k.split(',').map(Number);
-    return !tileSeenByFoe(scene, foes, { x, y }, smoke);
+    return !tileSeenByFoe(scene, foes, tileFromKey(k), smoke);
   }));
   if (hiddenTiles.size) return hiddenTiles; // une cachette atteignable → s'y mettre à l'abri (RAW)
   const distNow = Math.min(...foes.map((e) => chebyshev(active.pos!, e.pos!)));
   return new Map([...reach].filter(([k]) => {
-    const [x, y] = k.split(',').map(Number);
-    return Math.min(...foes.map((e) => chebyshev({ x, y }, e.pos!))) >= distNow;
+    const t = tileFromKey(k);
+    return Math.min(...foes.map((e) => chebyshev(t, e.pos!))) >= distNow;
   }));
 }
 
@@ -1497,7 +1496,7 @@ export function aiApproachPlan(
   const M = effectiveMovement(geom);
   if (M <= 0) return none;
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'move' && combatDistance({ ...enemy, pos: a.to } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0]) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -1512,7 +1511,7 @@ export function aiApproachPlan(
   const r = resolveRun(testValue(enemy, enemy.mountId ? 'chevaucher' : 'athletisme'), M, rng);
   const runBudget = M + r.bonusCases;
   const run = runBudget > input.movement ? chooseEnemyAction({ ...inp, movement: runBudget }) : action;
-  if (run.kind === 'move' && (run.to.x !== action.to.x || run.to.y !== action.to.y))
+  if (run.kind === 'move' && tileKey(run.to.x, run.to.y, run.to.z ?? 0) !== tileKey(action.to.x, action.to.y, action.to.z ?? 0))
     return { plan: run, ran: { roll: r.roll, budget: runBudget } };
   // La Course ne porte pas plus loin que le plan de Marche : marcher normalement (pas d'Action gâchée).
   return none;
