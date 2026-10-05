@@ -3,8 +3,9 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { rmSync } from 'node:fs'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { gitDe, gitDeLArbreReel, lancerGit, resultatDeGit, resultatDeLArbreReel } from './gitDeBanc.mjs'
+import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { commitsNommes, depotDe } from '../guards/lib/gitPorte.mjs'
+import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, resultatDeLArbreReel, sousCommande } from './gitDeBanc.mjs'
 
 /** `fn(racine)` sur une instance jetée à la sortie. */
 function dansUneInstance(fn) {
@@ -80,4 +81,27 @@ test('`resultatDeGit` rend status, stdout et stderr sans jeter', () => {
     assert.notEqual(r.status, 0)
     assert.match(r.stderr, /revision-absente/)
   })
+})
+
+test('`lancesDeGit` compte au PROCESSUS : le git d’un `depotDe` sans `spawn` injecté et celui du banc, rien après la sortie (#2294)', () => {
+  dansUneInstance((racine) => {
+    const vu = lancesDeGit(() => {
+      const sha = commitsNommes(depotDe(racine, { env: envDeDepotForge() }), ['HEAD'])[0]
+      return gitDe(racine, { net: true })('rev-parse', sha)
+    })
+    assert.match(vu.valeur, /^[0-9a-f]{40}$/)
+    assert.deepEqual(vu.lances.map(sousCommande).filter((s) => s !== 'version' && s !== 'hash-object'), ['cat-file', 'rev-parse'])
+    const compte = vu.lances.length
+    gitDe(racine)('rev-parse', 'HEAD')
+    assert.equal(vu.lances.length, compte, 'hors de `fn`, le compte est clos')
+  })
+})
+
+test('`lancesDeGit` sous une git FEINTE LÈVE : la feinte répond sans processus, le compte ne mesurerait rien (#2294)', () => {
+  sousGitFeint([], () => assert.throws(() => lancesDeGit(() => 0), /répond sans processus/))
+})
+
+test('`sousCommande` saute `-c <réglage>` et les `--options` qui la précèdent', () => {
+  assert.equal(sousCommande(['-c', 'core.quotePath=false', '--no-pager', 'diff-tree', '-r', 'x']), 'diff-tree')
+  assert.equal(sousCommande(['--version']), null)
 })
