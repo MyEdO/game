@@ -142,7 +142,7 @@ function bbox(svg: string): { minX: number; minY: number; maxX: number; maxY: nu
   return { minX: +minX.toFixed(1), minY: +minY.toFixed(1), maxX: +maxX.toFixed(1), maxY: +maxY.toFixed(1) };
 }
 
-const LANCE = { label: 'Lance de cavalerie', type: 'melee', group: 'cavalerie', damage: 5, shape: 'lance' } as unknown as Weapon;
+const LANCE = { label: 'Lance de cavalerie', type: 'melee', group: 'cavalerie', damage: 5, trappingId: 'lance' } as unknown as Weapon;
 
 describe('Couple monté — UN billboard composite (monture + cavalier)', () => {
   it('le couple entre comme UN acteur (la monture porte la case, le cavalier voyage avec) et sort en UN sujet', () => {

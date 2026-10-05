@@ -184,7 +184,11 @@ import { stockageWeb } from '../lib/stockageWeb';
 // étapes d'un Test étendu (`combatEffects.ts`, `flowStakeRef('extended-test-roll')`). Une save de 59
 // rouvrirait avec une clé que `resolveStake` ne trouve plus : la fenêtre jetterait à l'ouverture au
 // lieu de dire son enjeu. La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 60;
+// 60 → 61 (#2113) : `ItemInstance.shape` et `Weapon.shape`, COPIES du catalogue, deviennent
+// `formeChoisie`, le seul choix du joueur ; la forme dessinée se résout au catalogue (`formeResolue`). Une
+// save de 60 porterait des copies figées que plus rien ne lit — l'arme simple choisie perdrait sa forme :
+// la save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 61;
 
 export interface SaveMeta {
   version: number;

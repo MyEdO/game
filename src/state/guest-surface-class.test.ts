@@ -107,7 +107,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   stowItem: HOTE('rangement d’objet'),
   transferItem: HOTE('transfert d’objet'),
   setItemSkin: HOTE('apparence d’objet'),
-  setItemShape: HOTE('forme d’objet'),
+  choisirForme: HOTE('forme d’objet'),
   setLoadoutSlot: HOTE('panoplie'),
   createLoadout: HOTE('panoplie'),
   deleteLoadout: HOTE('panoplie'),

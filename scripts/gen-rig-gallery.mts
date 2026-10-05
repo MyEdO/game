@@ -28,7 +28,8 @@ for (const id of [...TENUES_QC, 'soldat'])
 // Espèces de la planche : le registre `raceAppearance.json` fait foi (les races qui portent une
 // apparence de rig authorée). `label` ne sert que de légende.
 const SPECIES = raceAppearance.map((r) => ({ id: asRigSpeciesId(r.id), label: r.label }));
-const wep = (name: string, type: 'melee' | 'ranged'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
+const wep = (trappingId: string, type: 'melee' | 'ranged', formeChoisie?: string): Weapon =>
+  ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId, ...(formeChoisie && { formeChoisie }) });
 const plate: ItemInstance = { uid: '1', label: 'Plastron de plaque', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
 const helm: ItemInstance = { uid: '2', label: 'Heaume', kind: 'armor', qualities: [], pa: 2, locs: ['tete'], enc: 1, equipped: true };
 
@@ -50,15 +51,15 @@ for (const sp of SPECIES) {
   }
 }
 // variantes d'équipement (Humain M)
-cells.push(cell('Humain M + épée', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 }, equipDe([wep('Épée', 'melee')], []), 'soldat'));
-cells.push(cell('Humain M + hache+bouclier', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { ...equipDe([wep('Hache', 'melee')], []), shield: bouclierDeDessin({ name: 'Bouclier', qualities: ['Bouclier'] } as unknown as Weapon) }, 'soldat'));
-cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, equipDe([wep('Épée', 'melee')], [plate, helm]), 'soldat'));
-cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, equipDe([wep('Bâton', 'melee')], []), 'sorcier'));
-cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('Hache', 'melee')], []), 'soldat'));
+cells.push(cell('Humain M + épée', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 }, equipDe([wep('arme-simple', 'melee')], []), 'soldat'));
+cells.push(cell('Humain M + hache+bouclier', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { ...equipDe([wep('arme-simple', 'melee', 'hache')], []), shield: bouclierDeDessin({ trappingId: 'bouclier' }) }, 'soldat'));
+cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, equipDe([wep('arme-simple', 'melee')], [plate, helm]), 'soldat'));
+cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, equipDe([wep('baton-de-combat', 'melee')], []), 'sorcier'));
+cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('arme-simple', 'melee', 'hache')], []), 'soldat'));
 
 // Facing : Soldat humain en 3 vues (ordre de `VIEWS`) — tranche verticale.
 for (const view of VIEWS) {
-  cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe([wep('Épée', 'melee')], []), 'soldat', view));
+  cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe([wep('arme-simple', 'melee')], []), 'soldat', view));
 }
 
 // Tenues par carrière (sans équipement → la tenue de la carrière s'affiche). Ids de garde-robe ;
@@ -135,6 +136,6 @@ function standalone(app: Appearance, equip: EquipCtx, career: string) {
     ),
   );
 }
-writeFileSync('public/rig-sample-humain.svg', standalone({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 3 }, { ...equipDe([wep('Épée', 'melee')], []), shield: bouclierDeDessin({ name: 'Bouclier', qualities: ['Bouclier'] } as unknown as Weapon) }, 'soldat'));
-writeFileSync('public/rig-sample-nain.svg', standalone({ species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('Hache', 'melee')], []), 'soldat'));
+writeFileSync('public/rig-sample-humain.svg', standalone({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 3 }, { ...equipDe([wep('arme-simple', 'melee')], []), shield: bouclierDeDessin({ trappingId: 'bouclier' }) }, 'soldat'));
+writeFileSync('public/rig-sample-nain.svg', standalone({ species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('arme-simple', 'melee', 'hache')], []), 'soldat'));
 console.log(`OK: public/rig-gallery.html (${cells.length} cellules) + 2 svg autonomes`);

@@ -109,8 +109,8 @@ export interface WeaponSpec {
   uid?: string | { prefix: string };
   skin?: Record<string, string>;
   form?: string;
-  /** Slug de FORME (routage de l'art rig) — propagé de l'ItemInstance/trait vers `Weapon.shape`. */
-  shape?: string;
+  /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
+  formeChoisie?: string;
   /** Attaque naturelle de corps (aucune arme dessinée) — propagé vers `Weapon.natural`. */
   natural?: boolean;
   /** Nature d'attaque naturelle STAMPÉE (morsure/cornes/caudale/tentacules/pietinement…) — pour la
@@ -152,7 +152,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
   if (spec.skin !== undefined) w.skin = spec.skin;
   if (spec.form !== undefined) w.form = spec.form;
-  if (spec.shape !== undefined) w.shape = spec.shape;
+  if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
   if (spec.builtinId !== undefined) w.builtinId = spec.builtinId;
@@ -253,6 +253,9 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
           .split(',')
           .flatMap((p) => ARMOUR_LOC_BY_ID[slugId(p)] ?? [])
       : undefined;
+  // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
+  // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
+  // POSSÈDE, et une édition du catalogue ne les repeint pas.
   return {
     uid: newUid(),
     trappingId: t.id,
@@ -273,7 +276,6 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     enc: typeof t.enc === 'number' ? t.enc : 0, // 'ND' (ateliers) / 'Variable' (arme improvisée) → non-encombrant (0), jamais NaN
     ...(t.sizeFor ? { sizeFor: t.sizeFor } : {}), // taille prévue (ADE II 2 l.706-710) — version « taille ogre » d'une possession ordinaire
     equipped: false,
-    ...(t.shape ? { shape: t.shape } : {}), // slug de FORME (routage de l'art rig) — absent pour munitions/siège/Mains nues
     desc: t.desc,
     ...(t.consumable ? { consumable: t.consumable } : {}), // effet de consommable (Flow) copié du catalogue
     ...(t.consumableDuration ? { consumableDuration: t.consumableDuration } : {}), // durée d'horloge (LDB 71/72 « Durée : … »), résolue au boire
@@ -671,7 +673,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { 
     weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
     bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
     minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    skin: it.skin, form: it.form, shape: it.shape, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    skin: it.skin, form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
   }), it.enchants ?? []);
 }
