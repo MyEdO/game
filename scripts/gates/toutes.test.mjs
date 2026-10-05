@@ -8,7 +8,6 @@
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
@@ -39,6 +38,7 @@ import {
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import { refusVerrou } from '../test/verrou.mjs'
 import { coeurs, repartitionWorkers } from '../test/partition.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const GATES = gatesDeCi({ cwd: RACINE })
@@ -322,7 +322,7 @@ function depotDeGates(gatesFactices) {
   // Le gabarit est VIDE (donc partagé par tous les cas : les gates factices diffèrent à chaque
   // appel) ; les fichiers du cas entrent dans le MÊME et unique commit `jetable`.
   const { racine } = instanceDeDepot({ commit: false })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8' })
+  const git = gitDe(racine)
   mkdirSync(join(racine, '.github', 'workflows'), { recursive: true })
   const jobs = Map.groupBy(gatesFactices, (g) => g.job ?? 'a')
   writeFileSync(
@@ -536,8 +536,8 @@ test('une gate qui réécrit l’arbre fait REFUSER le run à la photo de fin', 
   ])
   try {
     writeFileSync(join(racine, 'rapport.md'), 'à jour\n')
-    execFileSync('git', ['add', '-A'], { cwd: racine })
-    execFileSync('git', ['commit', '-qm', 'rapport'], { cwd: racine })
+    lancerGit(['add', '-A'], { cwd: racine })
+    lancerGit(['commit', '-qm', 'rapport'], { cwd: racine })
     const lignes = []
     const code = await principal({
       racine,

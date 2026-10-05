@@ -8,12 +8,12 @@
 // Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 import { blocsDeJobs } from '../gates/gatesDeCi.mjs'
 import { corpsRun } from '../gates/workflowsDuDepot.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const DEPUIS = '2026-08-01'
@@ -34,7 +34,7 @@ const STOCK = [
   '1004', '1000', '1011', '1007', '1010', '1009', '1008', '1015', '1013', '1005',
 ]
 
-const git = (...args) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', maxBuffer: 1e8 })
+const git = gitDeLArbreReel(RACINE)
 
 /** ARRÊT NOMMÉ si le dépôt est un clone SUPERFICIEL : `git log --since` y est vide et les shas
  *  anciens absents — la mesure rendrait « rien à signaler » sur un dépôt qu'elle n'a pas lu.

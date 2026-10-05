@@ -4,11 +4,11 @@
 // des migrations (un `*.test.mjs` daté y serait exécuté comme une migration).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { migrer, planDeRenommage, reecrireChemins, reecrireLiensRelatifs, couplesTextuels, couplesDeBasenames, formeWindows, formeEchappee, STOCK_ANCRES_VIDES } from '../2026-09-14-1699-source-chemins-ascii.mjs'
+import { lancerGit } from '../../test/gitDeBanc.mjs'
 
 const LIVRE = "Source/Livre d'Épreuve é"
 const CHAPITRE = `${LIVRE}/01 - Côte de l'Ostland.md`
@@ -66,7 +66,7 @@ const fixture = () => instanceDeDepot({
   },
 })
 
-const suivis = (racine) => execFileSync('git', ['-c', 'core.quotePath=false', 'ls-files', '--', 'Source'], { cwd: racine, encoding: 'utf8' })
+const suivis = (racine) => lancerGit(['-c', 'core.quotePath=false', 'ls-files', '--', 'Source'], { cwd: racine })
   .split(/\r?\n/).filter(Boolean)
 
 test('la migration renomme, réécrit les trois formes, suit les liens et laisse les chapitres byte-identiques', () => {

@@ -3,7 +3,6 @@
 // n'est pas testée ici — elle compose des hôtes qui portent déjà leurs propres tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { soldesSuivis } from './fermetures-non-citees.mjs';
@@ -17,6 +16,7 @@ import {
   coursesParCommit,
   sortieParDefaut,
 } from './faits-de-palier.mjs';
+import { lancerGit } from '../test/gitDeBanc.mjs'
 
 test('analyserArguments : la fenêtre se lit, elle ne se devine pas', () => {
   const lu = analyserArguments(['--base', 'aaaaaaaaa', '--tete', 'bbbbbbbbb', '--revue-precedente', 'x.md', '--hors-ligne']);
@@ -110,7 +110,7 @@ test('soldesSuivis lit l’ARBRE qu’on lui donne (un objet de faits ne mélang
   mkdirSync(join(depot, '.claude', 'soldes'), { recursive: true });
   writeFileSync(join(depot, '.claude', 'soldes', '4242.md'), 'solde de banc\n');
   writeFileSync(join(depot, '.claude', 'soldes', '4243.md'), 'jamais ajouté à l’index\n');
-  execFileSync('git', ['add', '.claude/soldes/4242.md'], { cwd: depot, stdio: ['ignore', 'ignore', 'ignore'] });
+  lancerGit(['add', '.claude/soldes/4242.md'], { cwd: depot });
   const suivis = soldesSuivis(depot);
   assert.equal(suivis.has('4242'), true, 'le solde SUIVI de cet arbre est vu');
   assert.equal(suivis.has('4243'), false, 'un fichier seulement présent sur le disque n’est pas un solde suivi');

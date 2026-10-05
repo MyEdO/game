@@ -2,6 +2,7 @@ import { Combatant, type TalentInstance } from '../engine/types';
 import { Money } from '../engine/money';
 import type { CreatorDraft } from '../ui/creator/draft';
 import { migrateDoc, type MigrationMap, type RaisonDeRefus } from './migrateDoc';
+import { versionCourante } from '../lib/versionCourante';
 import { remapCharKeysDeep } from './charKeyMigration';
 import { remapNameToLabelDeep } from './instanceIdMigration';
 import { remapSkillIdDeep } from './skillIdMigration';
@@ -181,37 +182,38 @@ export function rosterUpdate(hero: Combatant): void {
 }
 
 const EXPORT_KIND = 'wfrp4-hero';
-export const EXPORT_VERSION = 8;
 
-/** Migrations SÉQUENTIELLES de l'export roster. À CHAQUE bump d'`EXPORT_VERSION`, ajouter ici
- *  l'entrée `vN → vN+1` — sinon les exports antérieurs sont refusés (jamais acceptés en silence
- *  avec des champs manquants). Chaînée par `migrateDoc` (primitive générique, `migrateDoc.ts`). */
-export const ROSTER_MIGRATIONS: MigrationMap = {
+/** Migrations SÉQUENTIELLES de l'export roster, keyées par version de DÉPART : `EXPORT_VERSION` en
+ *  dérive (`versionCourante`, #2226). Un export d'une version sans entrée est refusé (jamais accepté
+ *  en silence avec des champs manquants). Chaînée par `migrateDoc` (primitive générique, `migrateDoc.ts`). */
+export const ROSTER_MIGRATIONS = {
   // v1 → v2 : renommage CharKey → slugs pleins (#311) — primitive `charKeyMigration.ts`.
-  1: (doc) => ({ ...doc, version: 2, hero: remapCharKeysDeep(doc.hero) }),
+  1: (doc) => ({ ...doc, hero: remapCharKeysDeep(doc.hero) }),
   // v2 → v3 (#604) : renommage `name` → `label` du héros exporté (nom du personnage, de ses objets et
   // de ses armes) — primitive `instanceIdMigration.ts`.
-  2: (doc) => ({ ...doc, version: 3, hero: remapNameToLabelDeep(doc.hero) }),
+  2: (doc) => ({ ...doc, hero: remapNameToLabelDeep(doc.hero) }),
   // v3 → v4 (#1548 L2) : renommage `skillId` → `id` des `SkillInstance` du héros exporté —
   // primitive `skillIdMigration.ts`. Sans elle, les avancements de Compétence sont perdus en silence.
-  3: (doc) => ({ ...doc, version: 4, hero: remapSkillIdDeep(doc.hero) }),
+  3: (doc) => ({ ...doc, hero: remapSkillIdDeep(doc.hero) }),
   // v4 → v5 (#1897) : les ids de sort du livre fan FUSIONNÉS désignent l'entrée qui les absorbe —
   // primitive `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`). Sans elle, un sort appris est
   // perdu en silence (`findSpellById` ne le résout plus).
-  4: (doc) => ({ ...doc, version: 5, hero: remapSortsFusionnesDeep(doc.hero) }),
+  4: (doc) => ({ ...doc, hero: remapSortsFusionnesDeep(doc.hero) }),
   // v5 → v6 (#1924) : les clés de `careerSlotChoices` se résument en ids — `migrerClesDEmplacement`
   // (`engine/careerSlots.ts`). Sans elle, chaque joker de carrière désigné redevient à désigner.
-  5: (doc) => ({ ...doc, version: 6, hero: avecClesDEmplacementEnIds(doc.hero) }),
+  5: (doc) => ({ ...doc, hero: avecClesDEmplacementEnIds(doc.hero) }),
   // v6 → v7 (#1473, train 2a) : les ops de Talent que le héros porte s'écrivent
   // `talent: { id, spec? }`, et une mutation attachée avant le lot reçoit ses `talentsAcquis` —
   // `avecOpsDeTalentALaGraphie`. Sans elle, l'op importée n'a pas de `talent` et son application
   // lève (`engine/ops.ts`, `grantTalent`).
-  6: (doc) => ({ ...doc, version: 7, hero: avecOpsDeTalentALaGraphie(doc.hero) }),
+  6: (doc) => ({ ...doc, hero: avecOpsDeTalentALaGraphie(doc.hero) }),
   // v7 → v8 (#2113) : le `shape` d'un objet ou d'une arme, copie du catalogue ou choix, devient
   // `formeChoisie` (le choix seul) — `avecFormeChoisie`. Sans elle, l'Arme simple d'un héros importé
   // perd la forme choisie.
-  7: (doc) => ({ ...doc, version: 8, hero: avecFormeChoisie(doc.hero) }),
-};
+  7: (doc) => ({ ...doc, hero: avecFormeChoisie(doc.hero) }),
+} satisfies MigrationMap;
+
+export const EXPORT_VERSION = versionCourante(ROSTER_MIGRATIONS);
 
 /** Sérialise un héros (avec sa Richesse) en chaîne portable — sauvegarde, transfert d'appareil,
  *  ou partage pour rejoindre la coop d'un ami. Format taggé pour une réimportation robuste. */
@@ -231,7 +233,6 @@ const MESSAGE_DU_REFUS_DE_MIGRATION: Record<RaisonDeRefus, 'picker.import.error'
   'version-absente': 'picker.import.error.version',
   'version-future': 'picker.import.error.version',
   'migrateur-manquant': 'picker.import.error.version',
-  'migrateur-immobile': 'picker.import.error.version',
   'migrateur-en-echec': 'picker.import.error',
 };
 
@@ -251,7 +252,7 @@ export function rosterImport(str: string): RosterImportResult {
   const raw = parsed as { kind?: unknown; v?: unknown; version?: unknown };
   if (raw.kind !== undefined && raw.kind !== EXPORT_KIND) return { error: t('picker.import.error.version') };
   const normalized = { ...raw, version: typeof raw.v === 'number' ? raw.v : raw.version };
-  const issue = migrateDoc(normalized, EXPORT_VERSION, ROSTER_MIGRATIONS);
+  const issue = migrateDoc(normalized, ROSTER_MIGRATIONS);
   if (!issue.ok) return { error: t(MESSAGE_DU_REFUS_DE_MIGRATION[issue.raison]) };
   const doc = issue.doc;
   const hero = (doc as { hero?: { id?: unknown } }).hero;

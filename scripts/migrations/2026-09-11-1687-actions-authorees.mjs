@@ -28,7 +28,7 @@
  * `JSON.stringify(doc, null, 1) + '\n'`. Forme vérifiée AVANT toute écriture : non canonique =
  * sortie 1, jamais un reflow silencieux.
  * POSITION : `usable` prend la PLACE qu'occupait `interact` (renommage en place, patron `renommeCle`
- * de `src/state/worldMap.ts`) ; une entité qui portait DÉJÀ `usable` garde la place de son enveloppe
+ * de `src/data/migrationsDeProjet.ts`) ; une entité qui portait DÉJÀ `usable` garde la place de son enveloppe
  * et y reçoit les actions. Parité avec `PROJECT_MIGRATIONS[10]` mesurée par
  * `src/state/projet-migration-10-vers-11.test.ts`.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0 (plus aucun `interact`,

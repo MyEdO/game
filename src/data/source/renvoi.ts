@@ -123,12 +123,12 @@ const elementDeListe = (m: MotifsDeRenvoi): string =>
   `\\s*(?:${alternative(m.separateursDeListe)})\\s*(?:(?:${alternative(m.liaisonsDeListe)})\\s+)?\\d+`;
 
 /** Début de la phrase qui contient la position `at` (ligne ou `. `). */
-function debutDePhrase(texte: string, at: number): number {
+export function debutDePhrase(texte: string, at: number): number {
   return Math.max(texte.lastIndexOf('\n', at - 1) + 1, texte.lastIndexOf('. ', at - 1) + 1);
 }
 
 /** Fin de la phrase ouverte avant `depuis`. */
-function finDePhrase(texte: string, depuis: number): number {
+export function finDePhrase(texte: string, depuis: number): number {
   const bornes = [texte.indexOf('. ', depuis), texte.indexOf('\n', depuis)].filter((i) => i >= 0);
   return bornes.length ? Math.min(...bornes) : texte.length;
 }

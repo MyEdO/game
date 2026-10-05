@@ -3,13 +3,13 @@
 // (`git apply --index`, qui ne renormalise pas).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge } from './depotGabarit.mjs'
 import { cheminsMalNormalises, raisonDeRefusEol } from './eolStage.mjs'
 import { depotDe, eolsDe } from './gitPorte.mjs'
+import { gitDe } from '../../test/gitDeBanc.mjs'
 
 const ligne = (i, attr, chemin) => ({ index: i, travail: 'lf', attr, chemin })
 
@@ -54,7 +54,7 @@ test('le refus NOMME les chemins ET le geste de réparation', () => {
 
 test('dépôt JETABLE : `git apply --index` d’un patch CRLF stage un blob CRLF, et la porte le voit', () => {
   const dir = mkdtempSync(join(tmpdir(), 'eol-stage-'))
-  const git = (...args) => execFileSync('git', args, { cwd: dir, env: envDeDepotForge(), encoding: 'utf8' })
+  const git = gitDe(dir)
   try {
     git('init', '-q', '-b', 'main')
     git('config', 'user.email', 'x@y.z')

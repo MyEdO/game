@@ -7,7 +7,7 @@
  * (`2026-09-23-1897-sorts-de-creature-ids-nus.mjs`, volet `src/data`). Les ids eux-mêmes ne bougent
  * pas : seule l'ENVELOPPE `{ id }` tombe.
  *
- * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[14]` (`src/state/worldMap.ts`), qui
+ * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[14]` (`src/data/migrationsDeProjet.ts`), qui
  * rattrape les `.json` de bibliothèque utilisateur : ce que le chargement dénude, ce script le dénude ;
  * ce que le chargement laisse à `parseProject` pour qu'il le refuse, ce script le refuse. Parité
  * mesurée par `src/state/projet-migration-14-vers-15.test.ts`, qui joue la MÊME fixture par les deux.

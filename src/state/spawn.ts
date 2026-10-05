@@ -416,7 +416,7 @@ export function spawnEnemy(
   opts?: { appearance?: EntityAppearance; weapon?: string } & SpawnExtras,
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
-    : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance)
+    : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
     : ficheDeRef(porteur.ref, id, pos, opts);
   c.porteurDeFiche = porteur;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
@@ -463,5 +463,5 @@ export function spawnEnemy(
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
   const spawnRanged = c.weapons.find((w) => w.type === 'ranged');
   if (spawnRanged) loadWeapon(c, spawnRanged);
-  return c;
+  return structuredClone(c); // #2097
 }

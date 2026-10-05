@@ -76,6 +76,9 @@ describe('opValue — INVOCATION', () => {
   it('summon HORS DE CONTRÔLE (allyOfCaster:false, démon non lié) → 0 pour le lanceur', () => {
     expect(opValue(op({ op: 'summon', ref: 'sanguinaire-de-khorne', count: 1, allyOfCaster: false }), combatant(), combatant(), ctxOf())).toBe(0);
   });
+  it('summon à réf IRRÉSOLUBLE → le proxy borné (6 par créature), sans lever (#2097)', () => {
+    expect(opValue(op({ op: 'summon', ref: 'creature-absente', count: 2, allyOfCaster: true }), combatant(), combatant(), ctxOf())).toBe(12);
+  });
 });
 
 describe('opValue — DÉFAUT signé (longue traîne) : jamais de faux 0 silencieux', () => {

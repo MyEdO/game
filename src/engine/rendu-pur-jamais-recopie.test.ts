@@ -24,7 +24,12 @@ describe('rendu pur : aucune instance ne recopie un champ de rendu du catalogue'
 
   it('objets et armes construits depuis le catalogue : la sentinelle n’apparaît nulle part', () => {
     const tagues = (t: object) => RENDU_PUR.filter((cle) => cle in t);
-    setDataset('trappings', catalogueDOrigine.map((t) => (tagues(t).length ? { ...t, ...Object.fromEntries(tagues(t).map((cle) => [cle, `${SENTINELLE}${t.id}.${cle}`])) } : t)));
+    const marque = <T extends { id: string }>(t: T): T => {
+      const copie: Record<string, unknown> = { ...t };
+      for (const cle of tagues(t)) copie[cle] = `${SENTINELLE}${t.id}.${cle}`;
+      return copie as T;
+    };
+    setDataset('trappings', catalogueDOrigine.map(marque));
     const porteurs = trappingsInstanciables().filter((t) => tagues(t).length);
     expect(porteurs.length, 'la sonde mord : des objets instanciables portent un champ de rendu').toBeGreaterThan(0);
     const recopies: string[] = [];
