@@ -3696,12 +3696,12 @@ test('hors dépôt, le listeur d’image rend [] — comme le listeur de disque 
 test('le budget qui grandit sans CLIQUET est refusé, avec CLIQUET il passe, et hors commit il se tait', () => {
   const reference = { postes: [{ nom: 'CLAUDE.md', octets: 9127 }], total: 9127 }
   const mesure = { postes: [{ nom: 'CLAUDE.md', octets: 10151 }], total: 10151 }
-  const sans = evaluateBudgetContexte({ command: 'git commit -m "docs: une ligne"', mesure, reference, plafond: 9127 })
+  const sans = evaluateBudgetContexte({ command: 'git commit -m "docs: une ligne"', mesure, reference })
   assert.equal(sans.decision, 'deny')
   assert.match(sans.reason, /CLAUDE\.md \+1024 octets/)
   const avec = 'git commit -m "docs: une ligne\n\nCLIQUET: scripts/guards/budget-contexte.mjs +1024 — une règle de routage neuve"'
-  assert.equal(evaluateBudgetContexte({ command: avec, mesure, reference, plafond: 9127 }), null)
-  assert.equal(evaluateBudgetContexte({ command: 'git status', mesure, reference, plafond: 9127 }), null)
+  assert.equal(evaluateBudgetContexte({ command: avec, mesure, reference }), null)
+  assert.equal(evaluateBudgetContexte({ command: 'git status', mesure, reference }), null)
 })
 
 // ── RECLASSEMENT CSS (#1806) ────────────────────────────────────────────────────────────────────
@@ -3888,12 +3888,11 @@ test('#2328 A5 — sous fusion, un écran ne compte que s’il GAGNE des lignes 
 })
 
 test('#2328 A6 — un CLAUDE.md agrandi par main seul ne demande aucun CLIQUET ; la résolution qui le touche se mesure contre la fusion automatique', async () => {
-  const porteur = (plafond) => `export const PLAFOND_OCTETS = ${plafond}\n`
   const contexte = (n) => `# contexte\n${'x'.repeat(n)}\n`
   const { racine, git, evaluer } = depotEnFusion({
-    socle: { 'CLAUDE.md': contexte(50), 'scripts/guards/budget-contexte.mjs': porteur(100) },
+    socle: { 'CLAUDE.md': contexte(50) },
     chantier: { 'notes/c.md': 'c\n' },
-    main: { 'CLAUDE.md': contexte(400), 'scripts/guards/budget-contexte.mjs': porteur(500) },
+    main: { 'CLAUDE.md': contexte(400) },
   })
   try {
     assert.equal(await evaluer('git commit -m "merge: refs #42 — intègre main"'), null, 'fusion propre : rien à mesurer')

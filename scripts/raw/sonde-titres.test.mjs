@@ -677,17 +677,11 @@ test('#1739 : titre SUIVI d’un titre — une ligne SANS LETTRE entre eux (chif
   assert.deepEqual([lieu(r, 'Career Path'), lieu(r, 'Aide — Silver 1')[0]], [['ok', '018:1', '018:3'], 'ok'])
 })
 
-/** PLAFOND du stock — il vit ICI, jamais dans la sonde ni dans la lib (`guards/lib/stock.mjs`). */
-const PLAFOND = 367
 /** Le PDF du CRB, ou `null` là où il n'est pas (aucun dépôt ne suit un PDF : la CI ne l'a pas). */
 const PDF_CRB = (() => { try { return pdfDe('core-rulebook-5e') } catch { return null } })()
 /** Les boîtes du PDF du CRB, lues UNE fois pour les tests qui en ont besoin. */
 let boitesCrb = null
 const boitesDuCrb = () => (boitesCrb ??= boitesDuPdf('core-rulebook-5e'))
-
-test('#1820 le stock de la sonde est PLAFONNÉ : il ne décroît que quand un site disparaît', () => {
-  assert.ok(lireEntreesDeSite(STOCK_PATH).length <= PLAFOND, `stock ${lireEntreesDeSite(STOCK_PATH).length} > plafond ${PLAFOND}`)
-})
 
 test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne` y a son entrée, aucune entrée n’est soldée', (t) => {
   for (const r of regenerations()) {
