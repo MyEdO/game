@@ -296,10 +296,10 @@ const lanceurs = new WeakMap()
  * en premier paramètre ; la commande, ses drapeaux et sa forme restent à l'hôte. `env` : l'environnement
  * du processus (`envDeDepotForge`, `depotGabarit.mjs`), objet ou fournisseur synchrone résolu une fois
  * par interrogation, celui du parent par défaut ; `spawn`/`attendre` :
- * injectables (mesure) ; `enPanne(raison)` : sans lui, une INDISPONIBILITÉ JETTE (`GitIndisponible`),
+ * injectables (mesure) ; `enPanne(raison, vu)` : sans lui, une INDISPONIBILITÉ JETTE (`GitIndisponible`),
  * avec lui la lecture la lui confie et rend `null`.
  * @param {string} cwd
- * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
+ * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string, vu: ReturnType<typeof indisponible>) => void }} [opts]
  * @returns {Depot}
  */
 export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {

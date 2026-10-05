@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { ciblesSurDisque, GENERATORS, generateursDeCode, genererCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
-import { ceQuiChange, depotDe, etatDeLArbre, parentsDe, racineDe, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
+import { ceQuiChange, depotDe, etatDeLArbre, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
 /** Fichiers de `de`..`a` (ORIG_HEAD..HEAD par défaut, SHA capturés pour post-commit).
@@ -116,7 +116,7 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
 export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, code = genererCode, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
   let lot
   if (hook === 'post-commit') {
-    const depot = depotDe(cwd, { enPanne: (raison) => annoncer(`[${hook}] lecture Git indisponible : ${raison}\n`) })
+    const depot = depotDe(cwd, { enPanne: (_raison, vu) => annoncer(`[${hook}] lecture Git indisponible : ${refusDeGit(vu)}\n`) })
     const parents = parentsDe(depot, 'HEAD')
     if (parents !== null && parents.length < 2) return 0
     const nouveau = shaDe(depot, 'HEAD')
