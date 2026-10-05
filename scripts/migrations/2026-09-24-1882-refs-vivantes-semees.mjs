@@ -13,7 +13,7 @@
  * semait `''` : sans ce passage, un projet porteur serait REFUSÉ au parse. L'auteur n'avait rien choisi,
  * il reçoit le défaut de l'outil.
  *
- * Pendant applicatif : `PROJECT_MIGRATIONS[13]` (`src/state/worldMap.ts`, `semeLesRefsVides`) ; parité
+ * Pendant applicatif : `PROJECT_MIGRATIONS[13]` (`src/data/migrationsDeProjet.ts`, `semeLesRefsVides`) ; parité
  * mesurée par `src/state/projet-migration-13-vers-14.test.ts`.
  *
  * ENTRÉES : les `src/scenes/<campagne>/<campagne>-projet.json` ; `src/data/creatures.json` et

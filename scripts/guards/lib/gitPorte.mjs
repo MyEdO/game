@@ -481,25 +481,23 @@ const absentSaufCorrompu = (depot, revisions) => {
   return null
 }
 
-/** Les filtres de fusion de `shasDe` (`git help rev-list`). */
-const FILTRES_DE_FUSIONS = Object.freeze({ toutes: [], seules: ['--merges'], aucune: ['--no-merges'] })
-
 /**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
- * du plus ancien au plus récent ; `fusions` : `'seules'` (`--merges`), `'aucune'` (`--no-merges`) ;
- * `chemins` : les seuls commits qui les touchent, sous `--full-history` — sans lui, une fusion
- * TREESAME à un parent cache les commits de l'autre (`git help rev-list`, « History Simplification »).
- * `null` quand git ne rend pas la plage : une plage illisible n'est pas une plage vide.
- * @param {Depot} depot @param {readonly string[]} revisions
- * @param {{ fusions?: 'toutes' | 'seules' | 'aucune', chemins?: readonly string[] }} [opts] @returns {string[] | null}
+ * du plus ancien au plus récent. `null` quand git ne rend pas la plage : une plage illisible n'est pas
+ * une plage vide.
+ * @param {Depot} depot @param {readonly string[]} revisions @returns {string[] | null}
  */
-export function shasDe(depot, revisions, { fusions = 'toutes', chemins = [] } = {}) {
-  const filtre = Object.hasOwn(FILTRES_DE_FUSIONS, fusions) ? FILTRES_DE_FUSIONS[fusions] : null
-  if (!filtre) throw new Error(`shasDe : fusions « ${fusions} » inconnu`)
-  const historique = chemins.length ? ['--full-history'] : []
-  const brut = lire(depot, ['rev-list', '--reverse', ...filtre, ...historique, ...revisionsDe(revisions), '--', ...chemins])
+export function shasDe(depot, revisions) {
+  const brut = lire(depot, ['rev-list', '--reverse', ...revisionsDe(revisions), '--'])
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
 }
+
+/**
+ * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
+ * pas ou si git ne la rend pas.
+ * @param {Depot} depot @param {string} a @param {string} b @returns {string | null}
+ */
+export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisionsDe([a, b])])?.trim() || absentSaufCorrompu(depot, [a, b])
 
 /**
  * Les PARENTS de `revision` (`git help revisions`, `<rev>^@`), dans leur ordre ; `null` quand git ne
@@ -562,27 +560,6 @@ export function commitsNommes(depot, revisions) {
     return /^([0-9a-f]+) commit /.exec(lignes[2 * i + 1] ?? '')?.[1] ?? null
   })
 }
-
-/**
- * Le POINT DE DÉPART de `tete` dans `tronc` : le premier commit de la chaîne des premiers parents de
- * `tete` (`git help rev-list`, `--first-parent`) contenu dans `tronc` — `tete` elle-même quand le
- * tronc la contient. `null` quand git ne le rend pas, ou quand la chaîne n'entre jamais dans le tronc.
- * @param {Depot} depot @param {string} tete @param {string} tronc @returns {string | null}
- */
-export function pointDeDepart(depot, tete, tronc) {
-  const [t, tr] = revisionsDe([tete, tronc])
-  const brut = lire(depot, ['rev-list', '--first-parent', t, `^${tr}`, '--'])
-  if (brut === null) return absentSaufCorrompu(depot, [tete, tronc])
-  const propres = brut.split('\n').map((l) => l.trim()).filter(Boolean)
-  return shaDe(depot, propres.length ? `${propres.at(-1)}^1` : tete)
-}
-
-/**
- * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
- * pas ou si git ne la rend pas.
- * @param {Depot} depot @param {string} a @param {string} b @returns {string | null}
- */
-export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisionsDe([a, b])])?.trim() || absentSaufCorrompu(depot, [a, b])
 
 /** La date d'un commit par `strftime` (`git help rev-list`, `--date=format:` ; `git help
  *  for-each-ref`, `:format:`), dans le fuseau du commit : `%z` en `±hhmm` sous toute version, là où

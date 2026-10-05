@@ -7,7 +7,6 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { Buffer } from 'node:buffer'
 import { resolve, join } from 'node:path'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import {
   extractClosedIssues,
@@ -18,6 +17,7 @@ import {
   validateRefFile,
   evaluateAntiEsquive,
   evaluatePorteDuTicket,
+  valeurParametre,
   argumentChaine,
   messagesDesCommits,
   analyzeDiffDuCommit,
@@ -76,6 +76,7 @@ import {
   revuesNeuves, shasDeSubstance,
 } from '../guards/lib/revuePalier.mjs'
 import { depotCompte, envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { gitDe, gitDeLArbreReel, lancerGit } from '../test/gitDeBanc.mjs'
 
 const TODAY = '2026-07-14'
 const VERIFIE_OK = 'VERIFIE: relu le diff complet, lancé npm test et vérifié les 3 fichiers touchés à la main.'
@@ -86,9 +87,6 @@ const solde = ({ restes = 'RAS', verdict = 'CONFIRMÉ', date = TODAY } = {}) =>
 
 /** Le lecteur de soldes d'`evaluate` (`readSoldes`) qui lit chacun par `lire(n)`. */
 const parTicket = (lire) => (ns) => ns.map(lire)
-
-/** `git <args>` dans le dépôt forgé `cwd` (`envDeDepotForge`) : le lancement brut de git des bancs de #2294. */
-const gitDuBanc = (cwd, ...args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
 
 // ── extractClosedIssues ──────────────────────────────────────────────────────────────────────────
 test('extractClosedIssues : mono-fermeture', () => {
@@ -597,7 +595,7 @@ test('evaluate : palier INMESURABLE -> deny nomme, jamais un silence qui laisse 
 /** Depot jetable : la revue s'y ecrit DIRECTEMENT sous son nom d'archive, comme dans le dispositif. */
 function depotAvecRevues() {
   const { racine: depot, sha: racine } = instanceDeDepot({ fichiers: { 'scripts/racine.txt': 'racine' }, message: 'racine' })
-  const git = (...args) => execFileSync('git', args, { cwd: depot, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(depot)
   mkdirSync(join(depot, '.claude', 'soldes'), { recursive: true })
   const commit = (marque, dossier = 'scripts') => {
     mkdirSync(join(depot, dossier), { recursive: true })
@@ -680,7 +678,7 @@ test('mesureDuPalier : une fusion à trois parents dans la fenêtre rend l’err
 
 test('shasDeSubstance : une fusion PROPRE n’est pas de substance, une fusion qui ajoute src/mal.txt l’est -- ce que fait le commit, pas sa simplification d’histoire', () => {
   const { racine: depot } = instanceDeDepot({ fichiers: { 'src/s.txt': 's\n', 'notes/d.md': 'd\n' }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: depot, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(depot)
   const poser = (chemin, texte, message) => {
     writeFileSync(join(depot, chemin), texte); git('add', chemin); git('commit', '-q', '-m', message)
     return git('rev-parse', 'HEAD').trim()
@@ -845,7 +843,7 @@ test('CAS REEL : la CHAINE des revues de HEAD est continue, et chaque tete est d
   // qu'elle l'est.
   const racine = repoRoot()
   const lireDeHead = (chemin) =>
-    execFileSync('git', ['show', `HEAD:${chemin}`], { cwd: racine, encoding: 'utf8', maxBuffer: 1 << 26 })
+    gitDeLArbreReel(racine)('show', `HEAD:${chemin}`)
   const archives = archivesDe(racine)
   assert.ok(archives.length >= 10, `corpus de ${archives.length} revues dans HEAD`)
   const derniere = derniereRevueArchivee(racine)
@@ -2520,7 +2518,7 @@ test('evaluate : ni index ni disque → "fichier absent" (jamais le message de s
 test('diffDuCommit.contenu : le solde EMPORTÉ suit la forme — index oui, hors pathspec non', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
     writeFileSync(join(repo, '.claude', 'soldes', '77.md'), 'solde-77-stage', 'utf8')
     writeFileSync(join(repo, '.claude', 'soldes', '78.md'), 'solde-78-disque', 'utf8')
@@ -2551,7 +2549,7 @@ test('diffDuCommit.contenu : le solde EMPORTÉ suit la forme — index oui, hors
 test('diffDuCommit : sous `-i`/`--include`, l’INDEX hors pathspec part aussi — contenu et diff, pas HEAD', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     writeFileSync(join(repo, 'src', 'b.ts'), 'export const b = 2\n', 'utf8')
     git('add', 'src/b.ts')
     writeFileSync(join(repo, 'src', 'a.ts'), 'export const a = 2\n', 'utf8')
@@ -2578,7 +2576,7 @@ test('diffDuCommit : sous `-i`/`--include`, l’INDEX hors pathspec part aussi �
 test('diffDuCommit : sous `-i`, un renommage stagé qui TRAVERSE le pathspec garde ses deux bouts — comme `git show --numstat` après le commit', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'a.txt': 'un contenu assez long\npour être vu comme un renommage\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     git('mv', 'a.txt', 'b.txt')
     const commande = 'git commit -i -m "x" -- b.txt'
     const c = diffDuCommit(commande, repo)
@@ -2595,7 +2593,7 @@ test('diffDuCommit : sous `diff.renames=copies`, une COPIE stagée se lit comme 
   const lignes = Array.from({ length: 20 }, (_, i) => `ligne ${i} du fichier a\n`).join('')
   const { racine: repo } = instanceDeDepot({ fichiers: { a: lignes }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     git('config', 'diff.renames', 'copies')
     writeFileSync(join(repo, 'c'), lignes)
     writeFileSync(join(repo, 'a'), `${lignes}x\n`)
@@ -2616,7 +2614,7 @@ test('diffDuCommit : sous `diff.renames=copies`, une COPIE stagée se lit comme 
 test('diffDuCommit : `diff()` rend en UN diff par côté tout ce que le commit emporte, et `images` lit par lot ce qui part et ce qui était', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     writeFileSync(join(repo, 'src', 'a.ts'), 'export const a = 3\n', 'utf8')
     writeFileSync(join(repo, 'src', 'b.ts'), 'export const b = 2\n', 'utf8')
     git('add', 'src/a.ts', 'src/b.ts')
@@ -2644,7 +2642,7 @@ test('readChangedNames : le modifié NON stagé, ou le stagé sous `cached` — 
   const B = 'src/mon module.ts'
   const { racine: repo } = instanceDeDepot({ fichiers: { [E]: 'export const e = 1\n', [B]: 'export const b = 1\n', 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     writeFileSync(join(repo, B), 'export const b = 2\n', 'utf8')
     git('add', B)
     writeFileSync(join(repo, E), 'export const e = 2\n', 'utf8')
@@ -3036,7 +3034,7 @@ test('verifierCapture : une capture PLAUSIBLE passe ; les six défauts sont NOMM
 test('verifierCapture : une capture IGNORÉE par git est refusée, la même sous public/qc/soldes/ passe', () => {
   const base = mkdtempSync(join(tmpdir(), 'solde-capture-ignore-'))
   try {
-    execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: base, env: envDeDepotForge(), encoding: 'utf8' })
+    lancerGit(['init', '-q', '-b', 'main'], { cwd: base })
     writeFileSync(join(base, '.gitignore'), 'public/qc/*\n!public/qc/soldes/\n', 'utf8')
     mkdirSync(join(base, 'public', 'qc', 'soldes'), { recursive: true })
     writeFileSync(join(base, 'public', 'qc', 'ignoree.png'), pngDe(1280, 720, 4096))
@@ -3145,7 +3143,7 @@ test('validateSolde : « corrigé par <fusion> <fichier>:<ligne> » d’un trava
   // Cas b780a99e7 : lue contre son premier parent, la fusion « touchait » 556 fichiers venus de main,
   // et la preuve d’un autre commit passait sous son sha.
   const { racine: depot } = instanceDeDepot({ fichiers: { 'src/a.ts': 'export const a = 1\n' }, message: 'socle' })
-  const git = (...args) => execFileSync('git', args, { cwd: depot, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = gitDe(depot)
   try {
     git('checkout', '-q', '-b', 'cote')
     writeFileSync(join(depot, 'src/a.ts'), 'export const a = 1\nexport const b = 2\n')
@@ -3173,7 +3171,7 @@ test('histoireDesCitations : le cas fondateur #584 tient contre git RÉEL', () =
   // Un clone SUPERFICIEL (CI sans `fetch-depth: 0`) ne porte pas 4d6e1ff78 : le test doit dire QUOI
   // corriger, jamais verdir sur une histoire qu'il n'a pas lue.
   assert.equal(
-    execFileSync('git', ['rev-parse', '--is-shallow-repository'], { cwd: repoRoot(), encoding: 'utf8' }).trim(),
+    gitDeLArbreReel(repoRoot(), { net: true })('rev-parse', '--is-shallow-repository'),
     'false',
     'dépôt SUPERFICIEL : ce test lit l\'HISTOIRE — poser `fetch-depth: 0` sur le `actions/checkout` du job qui joue `test:hooks`.',
   )
@@ -3194,7 +3192,7 @@ test('le solde #584 de l\'arbre est CONFORME à sa propre grammaire', () => {
   // Même fail-loud que ci-dessus : sur un clone superficiel, ce solde serait déclaré FAUX alors que
   // c'est l'histoire qui manque.
   assert.equal(
-    execFileSync('git', ['rev-parse', '--is-shallow-repository'], { cwd: repoRoot(), encoding: 'utf8' }).trim(),
+    gitDeLArbreReel(repoRoot(), { net: true })('rev-parse', '--is-shallow-repository'),
     'false',
     'dépôt SUPERFICIEL : ce test lit l\'HISTOIRE — poser `fetch-depth: 0` sur le `actions/checkout` du job qui joue `test:hooks`.',
   )
@@ -3210,8 +3208,8 @@ test('histoireDesCitations : un RENOMMAGE rend les deux chemins NUS, jamais « {
   // chemin d'origine est refusé.
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/ancien.ts': 'export const a = 1\n'.repeat(20) }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-    execFileSync('git', ['mv', 'src/ancien.ts', 'src/nouveau.ts'], { cwd: repo, env: envDeDepotForge(), stdio: 'ignore' })
+    const git = gitDe(repo)
+    lancerGit(['mv', 'src/ancien.ts', 'src/nouveau.ts'], { cwd: repo })
     git('commit', '-q', '--no-verify', '-am', 'renomme')
     const sha = git('rev-parse', 'HEAD').trim()
 
@@ -3227,7 +3225,7 @@ test('histoireDesCitations : un RENOMMAGE rend les deux chemins NUS, jamais « {
 test('histoireDesCitations : une FUSION propre ne touche rien — le correctif appartient au commit de la branche', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/branche.ts': 'export const b = 1\n', 'src/principal.ts': 'export const p = 1\n' }, message: 'socle' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    const git = gitDe(repo)
     git('checkout', '-q', '-b', 'chantier')
     writeFileSync(join(repo, 'src', 'branche.ts'), 'export const b = 2\n')
     git('commit', '-q', '--no-verify', '-am', 'le correctif')
@@ -3249,8 +3247,9 @@ test('histoireDesCitations : le commit cité se lit UNE fois, pour ses chemins E
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/a.ts': 'export const a = 1\n' }, message: 'socle' })
   try {
     writeFileSync(join(repo, 'src', 'a.ts'), 'export const a = 2\n')
-    gitDuBanc(repo, 'commit', '-q', '--no-verify', '-am', 'le correctif')
-    const sha = gitDuBanc(repo, 'rev-parse', 'HEAD')
+    const git = gitDe(repo, { net: true })
+    git('commit', '-q', '--no-verify', '-am', 'le correctif')
+    const sha = git('rev-parse', 'HEAD')
     const { depot, lances } = depotCompte(repo)
     const histoire = histoireDesCitations(depot)
     assert.deepEqual(histoire.fichiersDuCommit(sha), ['src/a.ts'])
@@ -3266,8 +3265,9 @@ test('histoireDesCitations : K citations du MÊME sha lancent autant de processu
   const { racine: repo } = instanceDeDepot({ fichiers, message: 'socle' })
   try {
     for (let i = 1; i <= 4; i += 1) writeFileSync(join(repo, 'src', `f${i}.ts`), `export const a${i} = 2\n`)
-    gitDuBanc(repo, 'commit', '-q', '--no-verify', '-am', 'le correctif')
-    const sha = gitDuBanc(repo, 'rev-parse', 'HEAD')
+    const git = gitDe(repo, { net: true })
+    git('commit', '-q', '--no-verify', '-am', 'le correctif')
+    const sha = git('rev-parse', 'HEAD')
     const lectures = (k) => {
       const { depot, lances } = depotCompte(repo)
       const histoire = histoireDesCitations(depot)
@@ -3343,7 +3343,7 @@ test('soldesEmportes / revuesEmportees : 1 ou 3 soldes, 1 ou 3 revues se lisent 
     const revues = [1, 2, 3].map((n) => ({ chemin: `.claude/soldes/revue-palier-${TODAY}-${n}.md`, nom: `revue-palier-${TODAY}-${n}.md`, contenu: 'disque' }))
     for (const n of [1, 2, 3]) writeFileSync(join(repo, '.claude', 'soldes', `${n}.md`), `solde ${n}\n`)
     for (const r of revues) writeFileSync(join(repo, r.chemin), `emportée ${r.nom}\n`)
-    gitDuBanc(repo, 'add', '-A')
+    lancerGit(['add', '-A'], { cwd: repo })
     const lire = (lecture) => {
       const { depot, lances } = depotCompte(repo)
       const valeur = lecture(diffDuCommit('git commit -m "corrige #1"', repo, { depot }))
@@ -3575,7 +3575,7 @@ test('un poste SUPPRIMÉ par le commit sort de la mesure et reste dans la RÉFÉ
     message: 'socle',
   })
   try {
-    execFileSync('git', ['rm', '-q', '-r', '--cached', '.claude/skills/b'], { cwd: racine, env: envDeDepotForge(), stdio: ['ignore', 'pipe', 'ignore'] })
+    lancerGit(['rm', '-q', '-r', '--cached', '.claude/skills/b'], { cwd: racine })
     const image = listeurDuBudget(INDEX, racine)
     const preImage = listeurDuBudget('HEAD', racine)
     assert.deepEqual(image('.claude/skills'), ['a'], 'la skill retirée de l’index sort de la MESURE')
@@ -3677,4 +3677,18 @@ test('garde.evaluer : une panne de lecture git portée par `contexte.pannes` est
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+test('valeurParametre : le nom EXACT gagne, un préfixe strict ambigu est refusé, la casse est libre', () => {
+  const noms = ['Query', 'QueryDialect', 'Filter']
+  const args = (p) => [p, 'v']
+  assert.equal(valeurParametre(args('-Query'), 'Query', noms), 'v')
+  assert.equal(valeurParametre(args('-QUERY'), 'Query', noms), 'v')
+  assert.equal(valeurParametre(args('-query'), 'Query', noms), 'v')
+  assert.equal(valeurParametre(args('-Quer'), 'Query', noms), '')
+  assert.equal(valeurParametre(args('-Quer'), 'QueryDialect', noms), '')
+  assert.equal(valeurParametre(args('-QueryD'), 'QueryDialect', noms), 'v')
+  assert.equal(valeurParametre(args('-QueryD'), 'Query', noms), '')
+  assert.equal(valeurParametre(args('-querydialect'), 'QueryDialect', noms), 'v')
+  assert.equal(valeurParametre(args('-Fil'), 'Filter', noms), 'v')
 })

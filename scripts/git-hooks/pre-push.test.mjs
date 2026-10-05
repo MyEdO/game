@@ -8,16 +8,16 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { REFUS_PUSH_VERS_MAIN, REF_PROTEGEE, jugerPush, refsAPousser } from './pre-push.mjs'
+import { lancerGit } from '../test/gitDeBanc.mjs'
 
 const ZERO = '0'.repeat(40)
 
-const git = (cwd) => (args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
+const git = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
 /** Dépôt jetable, `origin` conforme. */
 const depot = () =>

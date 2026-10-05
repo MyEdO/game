@@ -4,7 +4,7 @@
  * DEUX gestes, un seul passage : chaque entité dont le TYPE de décor porte des `seatSlots` reçoit
  * `usable: {}`, et le document passe en `schema: 10` — la FORME du document change (un champ neuf sur
  * l'entité), et un projet antérieur se rattrape au chargement par `PROJECT_MIGRATIONS[9]`
- * (`src/state/worldMap.ts`), pendant applicatif de ce script.
+ * (`src/data/migrationsDeProjet.ts`), pendant applicatif de ce script.
  *
  * POURQUOI : depuis ce lot, l'utilisabilité d'une entité se DÉRIVE de ce qu'elle offre
  * (`estUtilisable(scene, ent) = actionsDe(scene, ent).length > 0`, `src/state/usable.ts`), et

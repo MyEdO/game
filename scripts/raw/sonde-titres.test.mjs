@@ -12,6 +12,7 @@ import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/
 import { lignes } from './lib/colonnes.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
+import { gitDeLArbreReel, resultatDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const GABARIT = {
   titre: { police: 'ACaslonPro-Bold', taille: 12 },
@@ -743,14 +744,14 @@ test('#1739 : titre SUIVI d’un titre — les lignes SANS LETTRE se sautent des
 
 /** Le lot qui a restauré Dog, Griffon, Varghulf et Skeleton : ses `.md` d'AVANT, lus dans l'historique git. */
 const AVANT_AF2A = 'af2a08ab1^'
-const historique = spawnSync('git', ['cat-file', '-e', AVANT_AF2A], { encoding: 'utf8' }).status === 0
+const historique = resultatDeLArbreReel(['cat-file', '-e', AVANT_AF2A]).status === 0
 
 test('#1739 la RÉPARATION ne contredit pas la SONDE : rejouée depuis les `.md` d’af2a08ab1^ (CRB 105, 106, 108), les S′ prouvés par COMPTAGE à côté de l’en-tête de profil (Dog, Griffon, Varghulf) et le F de Skeleton sont APPLIQUÉS, sans aucun refus', { skip: !PDF_CRB ? 'PDF du CRB absent de cet arbre' : !historique ? `${AVANT_AF2A} absent de l’historique` : false }, () => {
   const id = 'core-rulebook-5e'
   const dir = String(livreExtraitDe(id).dir).split('\\').join('/').replace(/\/$/, '')
   const liste = decoupeDe(id)
   const texte = (nom) => (/^10[568] /.test(nom)
-    ? spawnSync('git', ['show', `${AVANT_AF2A}:${dir}/${nom}`], { encoding: 'utf8', maxBuffer: 1e8 }).stdout
+    ? gitDeLArbreReel(undefined)('show', `${AVANT_AF2A}:${dir}/${nom}`)
     : readText(`${dir}/${nom}`))
   const textes = new Map(nomsDeLaListe(liste).map((nom) => [nom.slice(0, 3), texte(nom)]))
   const fichiers = nomsDeLaListe(liste).map((nom, i) => ({ nom, page: liste[i].page, pageFin: liste[i].pageFin, lignes: textes.get(nom.slice(0, 3)).split('\n') }))

@@ -4,12 +4,12 @@
 //   node --test scripts/docs/cibles-pures.test.mjs  (chaîné dans `npm run test:docs`)
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { ciblesPures, estCiblePure, GENERATORS, renduDe } from './build-all.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
-const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+const ROOT = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
 
 const DEBUT = '# Cibles PURES de `GENERATORS`'
 const FIN = '# fin des cibles pures'
@@ -28,9 +28,7 @@ function lignesDuBloc() {
 function motifsQuiIgnorent(chemins) {
   let sortie
   try {
-    sortie = execFileSync('git', ['-c', 'core.quotepath=false', 'check-ignore', '--no-index', '-v', '-z', '--stdin'], {
-      cwd: ROOT, input: chemins.join('\0'), encoding: 'utf8', maxBuffer: 1 << 26,
-    })
+    sortie = gitDeLArbreReel(ROOT, { input: chemins.join('\0') })('-c', 'core.quotepath=false', 'check-ignore', '--no-index', '-v', '-z', '--stdin')
   } catch (e) {
     if (e.status === 1) return new Map()
     throw e
@@ -60,16 +58,12 @@ test('chaque cible pure est ignorée par une ligne du bloc, et chaque ligne du b
 test('le bloc n’ignore rien d’autre qu’une cible pure', () => {
   const bloc = lignesDuBloc()
   const cibles = new Set(ciblesPures(ROOT))
-  const candidats = execFileSync('git', ['-c', 'core.quotepath=false', 'ls-files', '-z', '--cached', '--others', '--', 'src', 'docs'], {
-    cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28,
-  }).split('\0').filter(Boolean)
+  const candidats = gitDeLArbreReel(ROOT)('-c', 'core.quotepath=false', 'ls-files', '-z', '--cached', '--others', '--', 'src', 'docs').split('\0').filter(Boolean)
   const par = motifsQuiIgnorent(candidats)
   assert.deepEqual(candidats.filter((c) => bloc.has(par.get(c)) && !cibles.has(c)), [])
 })
 
 test('l’index ne porte aucune cible pure', () => {
-  const suivies = execFileSync('git', ['-c', 'core.quotepath=false', 'ls-files', '-z', '--cached', '--', ...ciblesPures(ROOT)], {
-    cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26,
-  }).split('\0').filter(Boolean)
+  const suivies = gitDeLArbreReel(ROOT)('-c', 'core.quotepath=false', 'ls-files', '-z', '--cached', '--', ...ciblesPures(ROOT)).split('\0').filter(Boolean)
   assert.deepEqual(suivies, [], 'git rm --cached -- $(node scripts/docs/build-all.mjs --cibles-pures)')
 })

@@ -4,24 +4,20 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { depotCompte, envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
+import { gitDe } from '../../test/gitDeBanc.mjs'
 import { depotDe, grapheDe } from './gitPorte.mjs'
 import { derniereRevueArchivee, histoireDeHead, mesureDuPalier, nomDArchiveDeRevue, shasDeSubstance } from './revuePalier.mjs'
 
 const JOUR = '2026-10-05'
 
-/** `git <args>` dans `cwd`, sous l'environnement forgé (`envDeDepotForge`) complété de `env` : le
- *  lancement brut de git de ce banc. */
-const gitDuBanc = (cwd, args, { env = {} } = {}) =>
-  execFileSync('git', args, { cwd, env: { ...envDeDepotForge(), ...env }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-
 /** Un dépôt forgé dont la racine porte `fichiers`, et ses gestes : commit, revue archivée. */
 function depotForge(fichiers = { 'scripts/racine.txt': 'racine\n' }) {
   const { racine: dossier, sha: racine } = instanceDeDepot({ fichiers, message: 'racine' })
-  const git = (...args) => gitDuBanc(dossier, args)
+  const git = gitDe(dossier, { net: true })
   const commit = (marque, dossierDuFichier = 'scripts') => {
     mkdirSync(join(dossier, dossierDuFichier), { recursive: true })
     writeFileSync(join(dossier, dossierDuFichier, `${marque}.txt`), `${marque}\n`)
@@ -135,8 +131,8 @@ test('derniereRevueArchivee : une tête que git dit AMBIGUË ne juge rien, même
       if (autre !== undefined) paire = [autre, i]
       else vus.set(sha.slice(0, 7), i)
     }
-    const env = { GIT_AUTHOR_DATE: '1700000000 +0000', GIT_COMMITTER_DATE: '1700000000 +0000' }
-    const poser = (i) => gitDuBanc(d.dossier, ['commit-tree', arbre, '-p', d.racine, '-m', `m${i}`], { env })
+    const env = { ...envDeDepotForge(), GIT_AUTHOR_DATE: '1700000000 +0000', GIT_COMMITTER_DATE: '1700000000 +0000' }
+    const poser = (i) => gitDe(d.dossier, { env, net: true })('commit-tree', arbre, '-p', d.racine, '-m', `m${i}`)
     const [dansHead, horsHead] = paire.map(poser)
     assert.equal(dansHead, shaDuCommit(`m${paire[0]}`), 'témoin : le sha forgé est celui que git écrit')
     assert.equal(horsHead.slice(0, 7), dansHead.slice(0, 7), 'témoin : les deux commits partagent 7 caractères')

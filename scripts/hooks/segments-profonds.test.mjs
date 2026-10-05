@@ -14,7 +14,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, posix, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,6 +34,7 @@ import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { evaluate as evaluateLabel } from './issue-label-guard.mjs'
 import { evaluate as evaluateGates } from './codeur-gates-guard.mjs'
+import { lancerGit } from '../test/gitDeBanc.mjs'
 
 // Lecteurs Windows et racines de profil ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin
 // absolu littéral, il reste donc soumis à `src/portable-paths-guard.test.ts` comme `scripts/**`.
@@ -292,7 +292,7 @@ test('extractTargetDir : `git -C` se résout là où tourne son segment, après 
 function depotAvecWorktree() {
   const { racine: principal } = instanceDeDepot({ fichiers: { 'a.txt': 'a', '.gitignore': '/wt/\n' }, message: 'racine' })
   const worktree = join(principal, 'wt')
-  const git = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'] })
+  const git = (cwd, ...args) => lancerGit(args, { cwd })
   git(principal, 'worktree', 'add', '-q', worktree)
   return { base: principal, principal, worktree }
 }

@@ -4,8 +4,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { ORIGINES, cleDAdresse, livreDuReleve, nomme, preparerLivre, releve, sortDeLEntree } from './releve.mjs'
-import { paquet, releveDesTermes, taillesDuPaquet } from './paquet.mjs'
-import { estErreur, graphieDuFichier, parseChapitre, resoudreAdresse } from '../../src/data/source/decoupe.ts'
+import { ELISION, estForte, paquet, passagesDe, releveDesTermes, sectionsDuPaquet, taillesDuPaquet, texteReduit } from './paquet.mjs'
+import { estErreur, estSeparateur, graphieDuFichier, parseChapitre, resoudreAdresse } from '../../src/data/source/decoupe.ts'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const chapitre = (fichier, lignes) => ({ fichier, parse: parseChapitre(lignes.join('\n')) })
@@ -94,6 +94,39 @@ test('#1887 : le paquet porte le texte RÉSOLU des sections de règle, une seule
   assert.ok(t.parOrigine.mention > 0 && t.parOrigine.renvoi > 0)
 })
 
+// Forme `tri` (lot 8) : une section FORTE (titre) entière, une section à origine `mention` seule réduite
+// à ses phrases et à ses lignes de table qui nomment le terme, jointes par `[…]` là où du texte est élidé,
+// par leur blanc d'origine sinon.
+const FIXTURE_TRI = preparerLivre({
+  book: 'fixture-tri',
+  langue: 'VO',
+  chapitres: [
+    chapitre('01 - Rules.md', [
+      `# ${ancre(10)}**Poisons**`, '', 'A poison harms whoever drinks it. It acts at once.', '',
+      '# **Combat**', '', 'Strike first. A coated blade carries poison into the wound. The poison burns. Then roll.', '',
+      'Poison lingers in the blood.', '',
+      '| Foe | Effect |', '|---|---|', '| Spider | Bite |', '| Snake | Poison fang |', '| Wolf | Bite |',
+    ]),
+  ],
+  indexMd: null,
+  horsRegle: () => false,
+  plages: [],
+})
+
+test('#1887 : forme `tri` — `## Règle` seule, la section forte entière, la section `mention` réduite à ses passages, sans séparatrice ni adresse', () => {
+  const md = paquet(FIXTURE_TRI, ['poison'], { forme: 'tri' })
+  const elision = `\n\n${ELISION}\n\n`
+  assert.equal(md, [
+    '# Paquet — fixture-tri — « poison »', '', '## Règle (2)', '',
+    '### 01 l.3 — Poisons [titre « poison », mention « poison »]', '', 'A poison harms whoever drinks it. It acts at once.', '',
+    '### 01 l.7 — Combat [mention « poison »]', '',
+    ['A coated blade carries poison into the wound. The poison burns', 'Poison lingers in the blood.\n\n| Foe | Effect |', '| Snake | Poison fang |'].join(elision), '', '',
+  ].join('\n'))
+  for (const it of sectionsDuPaquet(FIXTURE_TRI, ['poison'])) assert.ok(!md.includes(it.adresse.parts[0].sum), `${it.ref} : aucune adresse dans le paquet`)
+  const t = taillesDuPaquet(FIXTURE_TRI, ['poison'], { forme: 'tri' })
+  assert.deepEqual([t.paquet, t.sections, t.parForme.fortes.sections, t.parForme.reduites.sections, t.parForme.reduites.passages], [md.length, 2, 1, 1, 4])
+})
+
 const CRB = livreDuReleve('core-rulebook-5e')
 const COMPARTIMENTS = ['regle', 'entite', 'ambigus', 'introuvables']
 
@@ -130,6 +163,32 @@ test('#1887 : CRB — relevé de « poison », « ranged », « advantage » : o
 // Source sous sa `consigne`, sans lancer le relevé. Ensemble POSITIF : la précision s'imprime.
 const RAPPEL = JSON.parse(readFileSync(new URL('./releve-rappel.json', import.meta.url), 'utf8'))
 const chapitreDe = (livre, ch) => livre.indexe.chapitres.get([...livre.indexe.chapitres.keys()].find((f) => graphieDuFichier(f) === ch))
+
+for (const [id, { termes }] of Object.entries(RAPPEL.systemes)) {
+  test(`#1887 : CRB, forme \`tri\` de « ${id} » — passages sous-chaînes du texte résolu dans l'ordre, sans séparatrice ; section forte entière ; aucune adresse`, (t) => {
+    const md = paquet(CRB, termes, { forme: 'tri' })
+    assert.doesNotMatch(md, /^## (Entités|Ambigus|Introuvables)/m)
+    for (const it of sectionsDuPaquet(CRB, termes)) {
+      const r = resoudreAdresse(chapitreDe(CRB, it.adresse.ch), it.adresse)
+      assert.ok(!estErreur(r), it.ref)
+      assert.ok(!md.includes(it.adresse.parts[0].sum), `${it.ref} : aucune adresse dans le paquet`)
+      if (estForte(it)) {
+        assert.ok(md.includes(`\n\n${r.md}\n\n`), `${it.ref} : section forte entière`)
+        continue
+      }
+      const passages = passagesDe(CRB, it)
+      assert.ok(passages.length > 0, `${it.ref} : aucun passage`)
+      assert.ok(md.includes(`\n\n${texteReduit(CRB, it)}\n\n`), `${it.ref} : passages rendus`)
+      let curseur = 0
+      for (const p of passages) {
+        assert.ok(p.debut >= curseur && r.md.slice(p.debut, p.fin) === p.md, `${it.ref} : « ${p.md.slice(0, 60)} » n'est pas une sous-chaîne du texte résolu, dans l'ordre`)
+        curseur = p.fin
+        assert.ok(p.md.split('\n').every((l) => !estSeparateur(l)), `${it.ref} : ligne séparatrice dans un passage`)
+      }
+    }
+    t.diagnostic(JSON.stringify(taillesDuPaquet(CRB, termes, { forme: 'tri' })))
+  })
+}
 
 for (const [id, { termes, attendus }] of Object.entries(RAPPEL.systemes)) {
   test(`#1887 : rappel « ${id} » — chaque adresse attendue se résout et le relevé de ses termes la rend sous \`regle\``, (t) => {
