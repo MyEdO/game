@@ -1126,6 +1126,14 @@ export function actorRenderSignature(p: ActorPose): string {
   return signatureDe(actorSnapshot(p));
 }
 
+/** L'uniforme de cadre d'un matériau de corps, tel que l'écrivain de frames (`stage/boardPose`) le pilote. */
+export type FrameRectUniform = { value: THREE.Vector4 };
+
+/** Uniforme de cadre porté par un matériau, s'il en a un (corps de billboard ou son jumeau). */
+export function frameRectOf(material: THREE.Material): FrameRectUniform | undefined {
+  return material.userData.frameRect as FrameRectUniform | undefined;
+}
+
 /** Id(s) du sujet et signature de son instantané — l'identité d'un acteur (#1396). */
 function cléActeur(p: ActorPose, signature: string): string {
   return `${p.c.id}${p.rider ? `+${p.rider.id}` : ''}|${signature}`;

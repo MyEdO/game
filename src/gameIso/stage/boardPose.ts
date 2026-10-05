@@ -13,7 +13,7 @@
  * marcheur sur sa case d'arrivée ; une lanterne laissée là éclairerait la case qu'il vient de quitter.
  */
 import * as THREE from 'three';
-import { billboardDepthOffsetUnits, billboardViewDepth, poseContactShadow, type BillboardSubject, type TintAt } from '../backends/webgl/sceneMeshes';
+import { billboardDepthOffsetUnits, billboardViewDepth, frameRectOf, poseContactShadow, type BillboardSubject, type FrameRectUniform, type TintAt } from '../backends/webgl/sceneMeshes';
 import { billboardExposure, type PointLightSlots } from './stagePointLights';
 import { withRenderRank } from '../backends/webgl/renderRanks';
 import { materiauPlanTransparent } from '../backends/webgl/worldMaterials';
@@ -70,13 +70,6 @@ const MAP_FRAGMENT_CADRE = ((): string => {
   return cadre;
 })();
 
-/** L'uniforme de cadre d'un matériau de corps, tel que l'écrivain de frames le pilote. */
-export type FrameRectUniform = { value: THREE.Vector4 };
-
-/** Uniforme de cadre porté par un matériau, s'il en a un (corps de billboard ou son jumeau). */
-export function frameRectOf(material: THREE.Material): FrameRectUniform | undefined {
-  return material.userData.frameRect as FrameRectUniform | undefined;
-}
 
 /**
  * MATÉRIAU d'un billboard du stage (#1176, P2-5) — TOUJOURS `MeshBasicMaterial`, et c'est structurel :

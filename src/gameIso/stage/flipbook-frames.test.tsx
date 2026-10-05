@@ -23,7 +23,6 @@ import {
   billboardMaterial,
   boardDepthMaterial,
   frameIndexAt,
-  frameRectOf,
   palierAtlas,
   silhouetteMaterial,
   writeBoardFrames,
@@ -38,7 +37,7 @@ import { clearAtlasCache, resetBakeQueue } from '../backends/webgl/atlasBake';
 import * as svgTexture from '../backends/webgl/svgTexture';
 import { COLLAPSE_MS, planDyingDef, rigIdleDef } from '../rig/anim/actorAnimSelect';
 import { HERO_RING } from '../teamColors';
-import type { ActorPose, BillboardSubject, SceneBillboardEls } from '../backends/webgl/sceneMeshes';
+import { frameRectOf, type ActorPose, type BillboardSubject, type SceneBillboardEls } from '../backends/webgl/sceneMeshes';
 import type { TokenEl } from '../builders/types';
 
 /**

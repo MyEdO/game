@@ -4,8 +4,7 @@
  * (`__wfrp.corps`, par `setImageRendue`) et les tests de rétention la lisent.
  */
 import type * as THREE from 'three';
-import { frameRectOf } from './boardPose';
-import { idsDeLActeur } from '../backends/webgl/sceneMeshes';
+import { frameRectOf, idsDeLActeur } from '../backends/webgl/sceneMeshes';
 
 /** Un quad de billboard : maillé, porteur d'un cadre d'atlas (`frameRectOf` écarte le disque d'ombre de
  *  contact et le jumeau de silhouette), jamais la géométrie empruntée au monde cuit. */
