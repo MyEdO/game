@@ -14,6 +14,7 @@
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
 import { TRONC, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
@@ -130,29 +131,6 @@ export function etatDeLaPr(pr, tete) {
   if (pr.etat === 'fusionnee') return 'fusionnee'
   if (pr.tete !== tete) return 'tete-changee'
   return 'ouverte'
-}
-
-/**
- * Une réponse de `PUT …/pulls/{n}/merge-async` ou de `GET …/merge-async/{uuid}` (schéma
- * `pull-request-merge-async-result`), réduite à ce que l'étape `file` lit. PUR. `409` : une demande
- * est déjà PENDANTE, et la réponse porte son `uuid` ; `400` : la PR n'est pas fusionnable, `failed`.
- * Tout autre code, ou un corps hors schéma, est un refus NOMMÉ.
- * @param {{code:number, corps:any}} reponse
- * @returns {{ok:true, statut:'pending', uuid:string, attendue:string|null, deja:boolean}
- *   |{ok:true, statut:'merged', fusion:string|null}|{ok:true, statut:'enqueued'}
- *   |{ok:true, statut:'failed', message:string}|{ok:false, raison:string}}
- */
-export function issueDeFusion({ code, corps }) {
-  const statut = corps?.status
-  const details = corps?.details ?? {}
-  const message = String(details.message ?? '')
-  if (![200, 202, 400, 409].includes(code)) return { ok: false, raison: `HTTP ${code}${message || corps?.message ? ` : ${message || corps.message}` : ''}` }
-  if (statut === 'pending' && typeof details.uuid === 'string' && details.uuid)
-    return { ok: true, statut, uuid: details.uuid, attendue: details.expected_head_sha ?? null, deja: code === 409 }
-  if (statut === 'merged') return { ok: true, statut, fusion: details.sha ?? null }
-  if (statut === 'enqueued') return { ok: true, statut }
-  if (statut === 'failed') return { ok: true, statut, message: message || `HTTP ${code}` }
-  return { ok: false, raison: `HTTP ${code} hors schéma : ${JSON.stringify(corps).slice(0, 200)}` }
 }
 
 /**
@@ -531,7 +509,7 @@ export const ETAPES = [
       if (!pr) {
         const ouverte = ctx.ouvrirPr({
           titre: titreDePr(ctx.branche),
-          corps: `Train de publication (\`npm run ops:publier\`), tête ${journal.tete}.`,
+          corps: corpsDePr(journal.tete),
         })
         if (!ouverte.ok) return { ok: false, raison: `\`POST /repos/{owner}/{repo}/pulls\` REFUSÉ : ${ouverte.raison}` }
         const relu = ctx.lirePr()

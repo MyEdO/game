@@ -150,6 +150,12 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             jetable de la tête, mesuré par EMPREINTE (`lib/empreinteRejeu.mjs` —
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
+.claude/skills/<mod>/       Mod Claude Code (une racine qui porte `.claude-plugin/plugin.json`) : `hooks/**`
+                            en `.ts`, couture `hooks/ops.ts` ; chargé par le moteur, jamais par le produit
+                            (§ Mods Claude Code)
+scripts/mods/               Garde `mods:check` (`verifier.mjs`) : validation stricte, types posés par le
+                            moteur, `tsc` et bancs de chaque mod, sur une copie sous os.tmpdir() ;
+                            racine d'un mod (`racines.mjs`) ; banc du mur des mods (`murDeMod.test.mjs`)
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
                             normalisation d'un nom (`norm`).
@@ -269,7 +275,7 @@ src/state/
                             (défaut = global) aux sites d'état `giveTrapping` — il n'importe jamais le store.
                             PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
                             (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
-                            spawn de rencontre (`combatSlice` → `spawnEnemy` canal `presetCreature`, `spawn.ts` reste sans
+                            spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   store.ts                  store Zustand : GameState + vue (caméra/zoom) + campagne (scènes, dialogues,
                             effets, temps/repos) + actions de combat — délègue aux modules (get,set) :
@@ -466,6 +472,55 @@ server/                     Worker Cloudflare du relay coop (Durable Object « R
 art-ref/                    Illustrations extraites des PDFs + mapping.json (GITIGNORÉ — droits Cubicle 7)
 ```
 
+## Mods Claude Code (#2278)
+
+- **Chargement** : un mod vit sous `.claude/skills/<mod>/` avec `.claude-plugin/plugin.json` ; le
+  moteur Claude Code le charge seul, pour chaque session et chaque worktree (voie skills-dir, sonde S1 :
+  https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521). Il n'a ni Node ni DOM : il voit le
+  dépôt par `$.process.run(argv, init)` et rien d'autre.
+- **Un mod REND, les scripts MESURENT.** La couture `hooks/ops.ts` est PURE : `appel(racinePlugin,
+  script, args)` forme le tuple `[argv, init]` d'un script `scripts/ops/<script>.mjs` lancé avec
+  `--json`, et `lire(resultat)` en valide la sortie. Un module de fonction lance le script par
+  l'idiome UNIQUE `$.process.run(...appel($.plugin.root, …)`. Raison, `claude plugin validate` 2.1.289 :
+  « $ is followed only into a function declared in this same file, never across an import ; $ is
+  always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
+  régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
+  puis réécrit le suivi.
+- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`eslint.config.js`, joué par la garde `lint`, banc
+  `scripts/mods/murDeMod.test.mjs` sur la config résolue) : son périmètre est l'`include` du tsconfig
+  que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
+  hors bancs `*.test.ts` ; le reste de `.claude/` reste ignoré, et tout module hors `.ts` (`.js`, `.mjs`,
+  `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
+  Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
+  Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
+  (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
+  `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
+  paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
+  une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
+  sans déstructuration ; le tsconfig posé par le moteur est `strict`, donc `tsc` refuse un paramètre
+  sans type. Y sont refusés : un `appel` qui ne soit l'import de `./ops` ; le seuil (opérateur
+  relationnel, arithmétique sur un non-littéral, `+` unaire ou entre deux non-littéraux, affectation
+  composée, égalité ou `case` numérique, `Math`, `++`/`--`) ; le parsing (appel d'une méthode de
+  découpe ou de recherche de chaîne, `parseInt`, `parseFloat`, `Number`, `RegExp`, littéral regex,
+  `Date.parse`, `new Date(x)`, `new URL(x)`, `JSON.parse`) ; `ask` en clé ou en littéral ;
+  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun
+  `$`, et les mêmes refus, sauf `JSON.parse`. Le mur NE GARDE PAS l'évasion délibérée (`'a' + 'sk'`,
+  clé calculée, type dérivé de `On`) ; l'appelé IMPORTÉ qui reçoit `$` (le moteur le refuse, la garde
+  `mods:check` le prouve par `claude plugin validate --strict`) ; un `../x` depuis un sous-dossier de
+  `hooks/` ; ni les prédicats que seul le type du receveur distingue (`.every`, `.length === x`,
+  `Object.is`, `t[0]`, la déstructuration d'une chaîne).
+- **Garde** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : un mod sans banc
+  `*.test.ts` est rouge ; sur une COPIE sans les artefacts du moteur (`.claude-plugin/types`,
+  `tsconfig.json`), validation stricte, types posés par `claude -p` à la version exacte, `tsc`, bancs ;
+  le CLI tourne sous un env en liste blanche (`ENV_HERITE`) et un HOME temporaire, lancé par l'hôte
+  de processus (`scripts/guards/lib/spawnResilient.mjs`). Une racine de mod est du PRODUIT pour le
+  classement du push (`classer`, `scripts/gates/classerPush.mjs`) ; les `lit` de `lint` et de
+  `mods:check` couvrent `.claude/skills/`, elles ne sont jamais sautées.
+- **knip** ne mesure pas les mods (`ignore` de `knip.json`, périmètre du mur) : projet à part, dont le
+  module `claude-code` est fourni par le moteur, vérifié par la garde `mods:check`.
+- **Version épinglée** : `VERSION_CLAUDE` de `scripts/mods/verifier.mjs`. L'API des mods est
+  « EARLY ACCESS » : elle se monte avec Claude Code, à la main, garde rejouée.
+
 ## Coop en ligne — limitations connues (traçabilité #254)
 
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
@@ -536,6 +591,9 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   premier flag) — aucun dossier propre à cliqueter isolément. Activation = chantier dédié
   multi-session (refonte des accès indexés / des types optionnels site par site), pas une purge
   mécanique comme le cran 1. Différé, pas écarté.
+- **Second projet tsc : les mods** (`.claude/skills/<mod>/`). Leur `tsconfig.json` n'est pas commité :
+  le moteur le pose avec ses types (`claude -p --plugin-dir`), et il active `noUncheckedIndexedAccess`
+  que la racine désactive. `mods:check` le joue sur une copie (`scripts/mods/verifier.mjs`).
 
 ## Direction visuelle & apparence
 

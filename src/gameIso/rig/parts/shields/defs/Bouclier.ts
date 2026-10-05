@@ -1,7 +1,7 @@
 import type { ShieldDef } from '../types';
 
 // Rondache : bois cerclé de fer, umbo central acier. Le bouclier « de base » + REPLI par défaut
-// (tout objet à qualité Protectrice dont le nom ne matche pas une forme plus spécifique).
+// (`fallback`).
 export const shield: ShieldDef = {
   slug: 'rond',
   label: 'Bouclier',

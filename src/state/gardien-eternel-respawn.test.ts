@@ -120,7 +120,7 @@ describe("Gardien éternel — `ref:'self'` reconstitue la FICHE du défunt, que
 
   it('un preset de PNJ nommé revient avec SA fiche : son libellé et sa CC surchargée, pas la base', () => {
     const preset = mergeCreatureProfile(findCreatureById(GUARD_CREATURE)!, { label: 'Gardien nommé', char: { 'capacite-de-combat': 99 } as never });
-    const defunt = spawnEnemy({ presetCreature: preset }, 'gardien-nomme', { x: 6, y: 6 });
+    const defunt = spawnEnemy({ presetCreature: preset, presetId: 'gardien-nomme' }, 'gardien-nomme', { x: 6, y: 6 });
     expect(defunt.characteristics['capacite-de-combat']).toBe(99);
     const revenu = reconstitue(defunt);
     expect(revenu.label).toBe('Gardien nommé');

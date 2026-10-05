@@ -163,7 +163,11 @@ export function Editor({
   const [hover, setHover] = useState<Pt | null>(null); // barre de statut
 
   // --- Projet multi-scènes + métadonnées ---
-  const [otherScenes, setOtherScenes] = useState<Scene[]>([]);
+  /** Les scènes du projet AVANT et APRÈS l'active : l'ordre du document n'a que cette vérité. */
+  const [voisines, setVoisines] = useState<{ avant: Scene[]; apres: Scene[] }>({ avant: [], apres: [] });
+  /** L'ordre du document — la première scène est l'entrée. */
+  const scenesDuProjet = useMemo(() => [...voisines.avant, scene, ...voisines.apres], [voisines, scene]);
+  const otherScenes = useMemo(() => [...voisines.avant, ...voisines.apres], [voisines]);
   const [worldMap, setWorldMap] = useState<WorldMap | null>(null);
   /** Axes de forces/faiblesses ACTIFS de la campagne (#409) — `undefined` = socle de base. */
   const [activeAxes, setActiveAxes] = useState<string[] | undefined>(undefined);
@@ -441,37 +445,42 @@ export function Editor({
     setHover((h) => (h && h.x === p.x && h.y === p.y ? h : p));
   };
 
-  // --- Projet multi-scènes : la scène éditée (avec historique) + les autres en réserve. ---
+  // --- Projet multi-scènes : la scène éditée (avec historique) à SA place dans l'ordre du document. ---
   function switchScene(id: string) {
     if (id === scene.id) return;
-    const target = otherScenes.find((s) => s.id === id);
-    if (!target) return;
-    setOtherScenes([...otherScenes.filter((s) => s.id !== id), scene]); // ranger l'active, sortir la cible
+    const i = scenesDuProjet.findIndex((s) => s.id === id);
+    if (i < 0) return;
+    setVoisines({ avant: scenesDuProjet.slice(0, i), apres: scenesDuProjet.slice(i + 1) });
     setSel(null);
-    resetScene(target);
+    resetScene(scenesDuProjet[i]);
   }
   function addScene() {
     const s = emptyScene();
     s.id = `scene-${Date.now().toString(36)}`;
     s.label = 'Nouvelle scène';
-    setOtherScenes([...otherScenes, scene]);
+    setVoisines({ avant: scenesDuProjet, apres: [] });
     setSel(null);
     resetScene(s);
   }
   function duplicateScene() {
     const dup = clone(scene);
-    dup.id = nextEntityId(scene.id, [scene.id, ...otherScenes.map((s) => s.id)]);
+    dup.id = nextEntityId(scene.id, scenesDuProjet.map((s) => s.id));
     dup.label = `${scene.label || scene.id} (copie)`;
-    setOtherScenes([...otherScenes, scene]);
+    setVoisines({ avant: scenesDuProjet, apres: [] });
     setSel(null);
     resetScene(dup);
   }
   function deleteScene() {
-    if (otherScenes.length === 0) return; // ne pas supprimer la dernière scène
-    const [next, ...rest] = otherScenes;
-    setOtherScenes(rest);
-    setSel(null);
-    resetScene(next);
+    const { avant, apres } = voisines;
+    if (apres.length > 0) {
+      setVoisines({ avant, apres: apres.slice(1) });
+      setSel(null);
+      resetScene(apres[0]);
+    } else if (avant.length > 0) {
+      setVoisines({ avant: avant.slice(0, -1), apres: [] });
+      setSel(null);
+      resetScene(avant[avant.length - 1]);
+    }
   }
 
   // Commandes d'édition publiées au PONT (`state/editeurBridge`) : le registre de raccourcis unique
@@ -575,9 +584,9 @@ export function Editor({
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene([scene, ...otherScenes], worldMap)
+    () => validateScene(scenesDuProjet, worldMap)
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
-    [scene, otherScenes, worldMap],
+    [scenesDuProjet, scene.id, worldMap],
   );
   // Cases fautives à allumer MAINTENANT : re-résolution du défaut suivi contre les avertissements frais.
   const planFocus = useMemo(() => planFocusAt(warnings, planFocusKey), [warnings, planFocusKey]);
@@ -666,7 +675,7 @@ export function Editor({
   /** L'ÉTAT VIVANT de l'éditeur lié au constructeur unique du document (`state/worldMap`) — les
    *  trois sorties du projet (enregistrer, exporter, mettre à l'essai) partent d'ici. */
   function documentCourant(nom: string, id: string): ProjectDoc {
-    return documentDeProjet(identiteCourante(nom, id), [scene, ...otherScenes], { worldMap, activeAxes, narratif });
+    return documentDeProjet(identiteCourante(nom, id), scenesDuProjet, { worldMap, activeAxes, narratif });
   }
   /** La porte UNIQUE du document (`parseProject`), passée AVANT toute écriture : rend le refus À LIRE,
    *  ou `null`. */
@@ -679,9 +688,9 @@ export function Editor({
     }
   }
   function exportJson() {
-    // Exporte le PROJET (scènes + carte du monde) ; la première scène est l'entrée, et son id
-    // nomme le fichier — c'est donc lui qui identifie un projet encore jamais enregistré.
-    const project = documentCourant(projectName, projectId ?? scene.id);
+    // Exporte le PROJET (scènes + carte du monde) ; son id nomme le fichier. La première scène est
+    // l'entrée : son id identifie un projet encore jamais enregistré.
+    const project = documentCourant(projectName, projectId ?? scenesDuProjet[0].id);
     // Ce qui part au disque passe la porte unique du document, comme ce qui s'enregistre et ce qui
     // s'importe (#877) : refusé, rien n'est téléchargé et l'auteur le lit.
     const refus = refusDeLaPorte(project, 'export');
@@ -690,7 +699,7 @@ export function Editor({
       return;
     }
     setRefusDuGeste(null);
-    downloadText(`${scene.id}-projet.json`, JSON.stringify(project, null, 2));
+    downloadText(`${project.id}-projet.json`, JSON.stringify(project, null, 2));
   }
   /** Export en FORME DÉPÔT (DEV) d'une campagne livrée : le fichier que l'on commite sous `src/scenes/`
    *  (`projetVersDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
@@ -698,7 +707,7 @@ export function Editor({
    *  `datasetSerializeRoot` (`data/overrides.ts`) ; la même porte que l'export passe AVANT. */
   function exportDepot(origine: NonNullable<typeof origineLivree>) {
     const nom = projectName === origine.nomALOuverture ? origine.label : projectName;
-    const project = documentCourant(nom, projectId ?? scene.id);
+    const project = documentCourant(nom, projectId ?? scenesDuProjet[0].id);
     const refus = refusDeLaPorte(project, 'export');
     if (refus) {
       setRefusDuGeste({ titre: TITRE_EXPORT, ...refus });
@@ -730,7 +739,7 @@ export function Editor({
       }
       const { scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = paquet;
       setRefusDuGeste(null);
-      setOtherScenes(scenes.slice(1).map(clone));
+      setVoisines({ avant: [], apres: scenes.slice(1).map(clone) });
       setWorldMap(wm ?? null);
       setActiveAxes(aa);
       setNarratif(na);
@@ -759,18 +768,18 @@ export function Editor({
       });
       return;
     }
-    const refus = refusDeLaPorte(documentCourant(projectName, projectId ?? scene.id), 'test');
+    const refus = refusDeLaPorte(documentCourant(projectName, projectId ?? scenesDuProjet[0].id), 'test');
     if (refus) {
       setRefusDuGeste({ titre: TITRE_TEST, ...refus });
       return;
     }
     setRefusDuGeste(null);
-    loadProject([scene, ...otherScenes], scene.id, worldMap, narratif);
+    loadProject(scenesDuProjet, scene.id, worldMap, narratif);
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {
     const construit = sc.construire();
-    setOtherScenes((construit.extraScenes ?? []).map(clone));
+    setVoisines({ avant: [], apres: (construit.extraScenes ?? []).map(clone) });
     setWorldMap(construit.worldMap ? clone(construit.worldMap) : null);
     setActiveAxes(undefined);
     setNarratif(construit.narratif ? clone(construit.narratif) : emptyNarratif());
@@ -797,7 +806,7 @@ export function Editor({
       return refus;
     }
     setLoadError(null);
-    setOtherScenes(copie.autresScenes);
+    setVoisines({ avant: [], apres: copie.autresScenes });
     setWorldMap(copie.worldMap);
     setActiveAxes(copie.activeAxes);
     setNarratif(copie.narratif);
@@ -832,7 +841,7 @@ export function Editor({
       return refus;
     }
     setLoadError(null);
-    setOtherScenes(scenes.slice(1).map(clone));
+    setVoisines({ avant: [], apres: scenes.slice(1).map(clone) });
     setWorldMap(wm ? clone(wm) : null);
     setActiveAxes(aa);
     setNarratif(na);
@@ -886,11 +895,11 @@ export function Editor({
     // absorbé) ne purge RIEN — le projet ne vit alors QUE sur le miroir, le filet local reste le seul
     // recours tant qu'IndexedDB n'a pas absorbé une écriture réussie.
     if (!res.degraded) {
-      for (const s of [scene, ...otherScenes]) autosaveDelete(s.id);
+      for (const s of scenesDuProjet) autosaveDelete(s.id);
     }
   }
   function newProject() {
-    setOtherScenes([]);
+    setVoisines({ avant: [], apres: [] });
     setWorldMap(null);
     setActiveAxes(undefined);
     setNarratif(emptyNarratif());
@@ -968,7 +977,7 @@ export function Editor({
         redo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
-        scenes={[scene, ...otherScenes]}
+        scenes={scenesDuProjet}
         activeId={scene.id}
         onSwitchScene={switchScene}
         onAddScene={addScene}
@@ -1245,7 +1254,7 @@ export function Editor({
         </Modal>
       )}
       {worldOpen && (
-        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={[scene, ...otherScenes]} objets={narratif.objets} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
+        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={scenesDuProjet} objets={narratif.objets} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
       )}
       {narratifOpen && (
         <NarratifEditor narratif={narratif} onChange={setNarratif} onClose={() => setNarratifOpen(false)} />
@@ -1268,7 +1277,7 @@ export function Editor({
         <SaveProjectModal
           initialName={projectName}
           initialPublished={published}
-          scenes={[scene, ...otherScenes]}
+          scenes={scenesDuProjet}
           initialStartId={scene.id}
           onSave={saveProject}
           onClose={() => { setSaveOpen(false); setSaveError(null); }}

@@ -20,6 +20,7 @@ import { dirname, join } from 'node:path';
 import { useGame } from '../../state/store';
 import { useGameKeyboard } from '../useGameKeyboard';
 import { editeur } from '../../state/editeurBridge';
+import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from './editeur.testkit';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';
@@ -114,6 +115,43 @@ describe('Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367
 
     const h2 = container.querySelector('h2')!;
     expect(h2.getAttribute('title')).toBe(`Copie de ${first.label}`);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+});
+
+describe('Editor v2 — scènes du projet : la suppression garde l’ordre (#1997)', () => {
+  it('retirer l’active rend active la SUIVANTE, sinon la précédente, et jamais la dernière scène', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    await act(async () => {
+      root.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'a', label: 'A' }} />);
+    });
+    const dupliquer = () => boutonParTitre(container, 'Dupliquer la scène active');
+    const retirer = () => boutonParTitre(container, 'Retirer la scène active du projet');
+    await act(async () => { dupliquer().click(); });
+    await act(async () => { dupliquer().click(); });
+    const [a, b, c] = scenesDuSelecteur(container);
+    expect(scenesDuSelecteur(container)).toHaveLength(3);
+    expect(a).toBe('a');
+
+    await basculerSur(container, b);
+    expect(selecteurDeScene(container).value).toBe(b);
+    await act(async () => { retirer().click(); });
+    expect(selecteurDeScene(container).value, 'la suivante devient active').toBe(c);
+    expect(scenesDuSelecteur(container)).toEqual([a, c]);
+
+    await act(async () => { retirer().click(); });
+    expect(selecteurDeScene(container).value, 'sans suivante, la précédente').toBe(a);
+    expect(scenesDuSelecteur(container)).toEqual([a]);
+
+    expect(retirer().disabled).toBe(true);
+    await act(async () => { retirer().click(); });
+    expect(scenesDuSelecteur(container)).toEqual([a]);
 
     await act(async () => {
       root.unmount();

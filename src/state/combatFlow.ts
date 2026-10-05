@@ -2744,10 +2744,7 @@ function appliquerLaTouche(
     if (!groupAdvantage()) attacker.advantage = 0; // l'attaquant a échoué au Test opposé (LDB ; pas de perte per-combattant en mode groupe)
   }
   if (res.hit && res.woundsLost && !groupAdvantage()) target.advantage = 0; // perdre une Blessure → perte de tout Avantage (LDB ; inerte en mode groupe)
-  // Porte-Bouclier (LDB 10 l.972, VERBATIM) : « vous gagnez [niveau] Avantages SI VOUS PERDEZ le Test opposé »
-  // en vous défendant au Bouclier — consolation d'une « situation désespérée », APRÈS la perte d'Avantage due
-  // à la Blessure / au Test perdu. Défense PERDUE = l'attaquant a gagné (`advantageTo === 'attacker'`) et le
-  // défenseur a paré au Bouclier (`res.parryWeapon`). Variante groupe AA → `shieldAdvantageLevel` = 0.
+  // Porte-Bouclier (LDB 10 l.972)
   if (res.advantageTo === 'attacker') {
     const shieldAdv = shieldAdvantageLevel(target, res.parryWeapon);
     if (shieldAdv) { campGain(get, target, shieldAdv); target.gainedAdvThisRound = true; }
