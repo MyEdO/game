@@ -11,8 +11,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { ItemIcon } from '../src/ui/ItemIcon';
 import { findTrappingById, trappingsInstanciables } from '../src/data';
-import { itemFromTrappingById } from '../src/engine/items';
-import { formeResolue, isShield } from '../src/gameIso/rig/parts/equipment';
+import { isShieldItem, itemFromTrappingById } from '../src/engine/items';
+import { formeResolue } from '../src/gameIso/rig/parts/equipment';
 import type { HitLocation, ItemInstance } from '../src/engine/types';
 
 const cell = (label: string, node: React.ReactElement) =>
@@ -22,18 +22,18 @@ const grid = (cells: string[]) =>
   `<div style="display:grid;grid-template-columns:repeat(auto-fill,84px);gap:10px">${cells.join('')}</div>`;
 
 // Armes et boucliers : les possessions d'arme du CATALOGUE (`trappingId`), comme au Sac — la forme se
-// résout au catalogue (`formeResolue`) ; un bouclier se reconnaît à l'id de sa Qualité (`isShield`).
+// résout au catalogue (`formeResolue`) ; un bouclier se reconnaît à la marque de son entrée (`isShieldItem`).
 const objets = trappingsInstanciables()
   .filter((t) => t.categorie === 'melee' || t.categorie === 'ranged')
   .map((t) => itemFromTrappingById(t.id)!);
 const icone = (label: string, item: ItemInstance) => cell(label, React.createElement(ItemIcon, { item, size: 64 }));
-const weaponCells = objets.filter((it) => !isShield(it)).flatMap((it) => {
+const weaponCells = objets.filter((it) => !isShieldItem(it)).flatMap((it) => {
   const choix = findTrappingById(it.trappingId!)?.formChoices ?? [];
   return [icone(it.label, it), ...choix.filter((f) => f !== formeResolue(it)).map((f) => icone(`${it.label} · ${f}`, { ...it, formeChoisie: f }))];
 });
 
 // Boucliers (art dédié à dégradés → ItemIcon injecte ses <defs>).
-const shieldCells = objets.filter(isShield).map((it) => icone(it.label, it));
+const shieldCells = objets.filter(isShieldItem).map((it) => icone(it.label, it));
 
 // Armures : matériau × emplacement (ItemIcon choisit le slot réellement couvert par la pièce).
 const MATS = ['Rembourré', 'Cuir', 'Maille', 'Plaque'];

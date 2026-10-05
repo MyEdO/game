@@ -48,7 +48,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     e.characteristics['capacite-de-combat'] = 95;
     combattants.push(mk('h2', 'hero', { x: 1, y: 1 }, [arme('sw2', 'Épée')]));
   }
-  const bouclier = arme('sh', 'Bouclier', [{ id: 'protectrice', value: 2 }]);
+  const bouclier = { ...arme('sh', 'Bouclier', [{ id: 'protectrice', value: 2 }]), trappingId: 'bouclier' };
   if (charge === 'reaction') {
     h.weapons = [h.weapons[0], bouclier];
     h.talents = [{ talentId: 'porte-bouclier', times: 1 }] as never;
