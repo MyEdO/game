@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { GENERATORS, renduDe } from '../build-all.mjs'
-import { cwdDonne, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
+import { cwdDonne, estModuleDuDepot, hooksSdkSousWin32, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 const HOTE = process.platform
@@ -23,6 +23,27 @@ const PLATEFORME_WIN32 = new URL('plateforme-win32.mjs', import.meta.url).href
 const IMPORT_WIN32 = HOTE === 'win32' ? [] : ['--import', PLATEFORME_WIN32]
 const RENDRE_SEUL = fileURLToPath(new URL('rendre-seul.mjs', import.meta.url))
 const TSX_ESM = pathToFileURL(fileURLToPath(import.meta.resolve('tsx/esm'))).href
+
+test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et adaptateur', () => {
+  const depot = urlDuDepot(RACINE)
+  const parentURL = new URL('src/fixture.mjs', depot).href
+  const reel = { url: import.meta.resolve('typescript/unstable/sync'), format: 'module' }
+  const hook = hooksSdkSousWin32(RACINE)
+  const appels = []
+  const suivant = (specificateur, contexte) => { appels.push([specificateur, contexte.parentURL]); return reel }
+  const bridge = hook.resolve('typescript/unstable/sync', { parentURL }, suivant)
+  assert.ok(bridge.url.startsWith('data:text/javascript,'))
+  assert.equal(bridge.shortCircuit, true)
+  assert.deepEqual(hook.resolve('typescript/unstable/sync', { parentURL }, suivant), bridge)
+  const source = decodeURIComponent(bridge.url.slice('data:text/javascript,'.length))
+  assert.ok(source.includes(`export * from ${JSON.stringify(reel.url)}`))
+  for (const adresse of [new URL('node_modules/tiers/index.mjs', depot).href, new URL('plateforme-win32-fs.mjs', import.meta.url).href]) {
+    assert.equal(estModuleDuDepot(adresse, depot), false)
+    assert.equal(hook.resolve('typescript/unstable/sync', { parentURL: adresse }, suivant), reel)
+  }
+  assert.equal(hook.resolve('typescript/unstable/async', { parentURL }, suivant), reel)
+  assert.equal(appels.length, 5)
+})
 
 /** Le rendu de `g` par un processus rendu sous win32 : cible → texte. La simulation se pose AVANT
  *  `tsx/esm`. */
@@ -223,4 +244,76 @@ test('rendu sous win32 : sur l’arbre réel, tsx (node_modules) trouve son `jsx
   ].join('\n')
   const vu = JSON.parse(sousWin32(t, RACINE, ['--input-type=module', '--eval', source]))
   assert.deepEqual(vu, ['react-jsx', realpathSync(RACINE)])
+})
+
+test('SDK natif sous win32 : identité ESM/CJS, tiers hôte, configuration disque et SourceFile Windows', (t) => {
+  const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-sdk-')))
+  const texte = '\uFEFFconst marque = "\uFEFFé😀";\r\nconst faute: number = "x";\r\n'
+  try {
+    mkdirSync(path.join(racine, 'src'))
+    mkdirSync(path.join(racine, 'node_modules', 'tiers'), { recursive: true })
+    symlinkSync(path.join(RACINE, 'node_modules', 'typescript'), path.join(racine, 'node_modules', 'typescript'), 'junction')
+    writeFileSync(path.join(racine, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true, noLib: true, types: [] }, include: ['src/*.ts'] }))
+    writeFileSync(path.join(racine, 'src', 'fixture.ts'), texte)
+    writeFileSync(path.join(racine, 'node_modules', 'tiers', 'sdk.mjs'), "export * from 'typescript/unstable/sync'\n")
+    const source = [
+      "import * as sdk from 'typescript/unstable/sync'",
+      "import * as tiers from '../node_modules/tiers/sdk.mjs'",
+      "import { createRequire } from 'node:module'",
+      "import path from 'node:path'",
+      `import { libererSessions } from ${JSON.stringify(new URL('../../guards/lib/tsProgram.mjs', import.meta.url).href)}`,
+      "const cjs = createRequire(import.meta.url)('typescript/unstable/sync')",
+      "const config = path.join(process.cwd(), 'tsconfig.json')",
+      "const nom = path.join(process.cwd(), 'src', 'fixture.ts')",
+      'function lire(fs) {',
+      '  const api = new sdk.API({ cwd: process.cwd(), fs })',
+      '  let snapshot',
+      '  let erreur',
+      '  try {',
+      '    const parsed = api.parseConfigFile(config)',
+      '    snapshot = api.updateSnapshot({ openProjects: [config] })',
+      '    const projet = snapshot.getProject(config)',
+      '    const sf = projet.program.getSourceFile(nom)',
+      '    const diagnostic = projet.program.getSemanticDiagnostics(nom).find(d => d.code === 2322)',
+      '    return { files: parsed.fileNames, fileName: sf.fileName, text: sf.text, debut: sf.statements[0].getStart(sf),',
+      '      fin: sf.end, literal: sf.statements[0].declarationList.declarations[0].initializer.text,',
+      '      position: sf.getLineAndCharacterOfPosition(diagnostic.pos),',
+      '      diagnostic: { code: diagnostic.code, pos: diagnostic.pos, end: diagnostic.end } }',
+      '  } catch (e) { erreur = e } finally {',
+      '    libererSessions([{ dispose: () => snapshot?.dispose() }, { dispose: () => api.clearSourceFileCache() }, { dispose: () => api.close() }], erreur ? [erreur] : [])',
+      '  }',
+      '}',
+      'const disque = lire()',
+      'const demandes = []',
+      'const norm = p => p.replaceAll("\\\\", "/")',
+      `const brut = ${JSON.stringify(texte)}`,
+      'const callback = lire({ readFile: f => {',
+      '  if (norm(f) !== norm(nom)) return undefined',
+      '  demandes.push(f)',
+      '  return brut',
+      '} })',
+      'const autresExports = Object.keys(tiers).filter(k => k !== "API").every(k => sdk[k] === tiers[k] && cjs[k] === sdk[k])',
+      'console.log(JSON.stringify({ memeAPI: sdk.API === cjs.API, apiTiersIdentique: sdk.API === tiers.API, autresExports, disque, callback, demandes }))',
+    ].join('\n')
+    writeFileSync(path.join(racine, 'src', 'entree.mjs'), source)
+    const vu = JSON.parse(sousWin32(t, racine, [path.join(racine, 'src', 'entree.mjs')]))
+    const nom = versWindows(path.join(racine, 'src', 'fixture.ts')).replaceAll('\\', '/')
+    assert.equal(vu.memeAPI, true)
+    assert.equal(vu.apiTiersIdentique, HOTE === 'win32')
+    assert.equal(vu.autresExports, true)
+    for (const [branche, contenu, decalage] of [[vu.disque, texte.slice(1), 1], [vu.callback, texte, 0]]) {
+      assert.ok(branche.files.some((f) => f.replaceAll('\\', '/') === nom))
+      assert.equal(branche.fileName.replaceAll('\\', '/'), nom)
+      assert.equal(branche.text, contenu)
+      assert.equal(branche.debut, 1 - decalage)
+      assert.equal(branche.fin, contenu.length)
+      assert.equal(branche.literal, '\uFEFFé😀')
+      assert.deepEqual(branche.position, { line: 1, character: 6 })
+      assert.deepEqual(branche.diagnostic, { code: 2322, pos: texte.indexOf('faute') - decalage, end: texte.indexOf('faute') + 5 - decalage })
+    }
+    assert.ok(vu.demandes.length > 0)
+    for (const demande of vu.demandes) assert.equal(demande.replaceAll('\\', '/'), nom)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

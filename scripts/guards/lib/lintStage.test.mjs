@@ -4,11 +4,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defautsDeRapport, fichiersALinter, lancerLint, lotsDeLigne } from './lintStage.mjs'
+import { installer } from '../../docs/lib/enregistreur-lectures.mjs'
+import { ignoresGit } from '../../docs/lib/chemin-mesure.mjs'
+import configurationLint from '../../../oxlint.config.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const NBSP = String.fromCharCode(0x00a0)
@@ -141,6 +144,22 @@ test('LIGNE DE PROD (`cwd` = racine) : la config du dépôt juge un fichier rée
   const { defauts, stdout } = lancerLint(RACINE, [rel])
   assert.deepEqual(defauts, [], `défauts inattendus : ${JSON.stringify(defauts)}`)
   assert.equal(JSON.parse(stdout).number_of_files, 1)
+})
+
+test('configuration fournie : une écriture .lint- du processus à la racine, supprimée après le lint', () => {
+  const collecteur = installer({ racine: RACINE, ignores: ignoresGit(RACINE) })
+  try {
+    const { defauts, stdout, codeSortie } = lancerLint(RACINE, ['src/state/rollSeam.ts'], { configuration: configurationLint })
+    assert.equal(codeSortie, 0)
+    assert.deepEqual(defauts, [])
+    assert.equal(JSON.parse(stdout).number_of_files, 1)
+    const { ecrits } = collecteur.rendu()
+    assert.equal(ecrits.length, 1, JSON.stringify(ecrits))
+    assert.match(ecrits[0], new RegExp(`^\\.lint-${process.pid}-[a-z0-9]+\\.config\\.mjs$`))
+    assert.equal(existsSync(join(RACINE, ecrits[0])), false)
+  } finally {
+    collecteur.restaurer()
+  }
 })
 
 test('lots de ligne : ordre gardé, chaque lot tient dans le budget, un chemin trop long part seul', () => {

@@ -142,7 +142,7 @@ jobs:
         run: npm run test:recette
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run typecheck
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm --prefix server ci

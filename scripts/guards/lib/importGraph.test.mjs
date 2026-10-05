@@ -26,9 +26,34 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
-import { ast, analyserTexte } from './dialecte.mjs'
+import { ast, analyserTexte, analyserCorpus } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+
+test('directImportsOf : AST et diagnostics préparés gardent les arcs sans session supplémentaire', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'imports-prepares-'))
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    const rel = 'src/ui/A.tsx'
+    const text = "import {\n  X,\n} from '@/ui/Cible';\nimport './Cible';\nconst faux = './Faux';\n"
+    const options = { racine, existe: (abs) => abs === resolve(racine, 'src/ui/Cible.tsx').replaceAll('\\', '/'), alias: [{ prefixe: '@/', vers: `${racine.replaceAll('\\', '/')}/src/` }] }
+    assert.deepEqual(directImportsOf(rel, text, options), ['src/ui/Cible.tsx'])
+    const avant = spy.mock.callCount()
+    for (const { sourceFile, diagnostics } of analyserCorpus([{ rel, text }])) {
+      assert.deepEqual(directImportsOf(rel, sourceFile, { ...options, diagnostics }), ['src/ui/Cible.tsx'])
+      assert.equal(spy.mock.callCount(), avant)
+    }
+    assert.equal(spy.mock.callCount(), avant + 1)
+    for (const { sourceFile, diagnostics } of analyserCorpus([{ rel, text: 'const x = ;' }])) {
+      assert.ok(diagnostics.length > 0)
+      const avantErreur = spy.mock.callCount()
+      assert.throws(() => directImportsOf(rel, sourceFile, { ...options, diagnostics }), /ne se parse pas/)
+      assert.equal(spy.mock.callCount(), avantErreur)
+    }
+    assert.equal(spy.mock.callCount(), avant + 2)
+  } finally { spy.mock.restore(); rmSync(racine, { recursive: true, force: true }) }
+})
 
 test('effacement bundler : TSX/mts/cts, config héritée et erreurs refusées', () => {
   for (const verbatimModuleSyntax of [false, true]) {

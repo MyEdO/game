@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileResilient } from './lib/spawnResilient.mjs';
+import { appliquerCorrectif, depotDe } from './lib/gitPorte.mjs';
 
 const racine = fileURLToPath(new URL('../../', import.meta.url));
 const empreintes = { '7.0.2': '93e6a612f8594b4bfa07af28548a182ce2e63ed22028316d7778c8643f9a760e' };
@@ -27,20 +27,7 @@ export function appliquerPatch(root = racine) {
   assert.ok(Object.hasOwn(empreintes, version), 'Aucune empreinte de patch approuvée pour cette version TypeScript');
   assert.equal(createHash('sha256').update(fs.readFileSync(patch)).digest('hex'), empreintes[version], 'Empreinte du patch TypeScript non conforme');
   const cible = 'node_modules/typescript/dist/api/node/wtf8.js';
-  const git = options => execFileResilient('git', ['-c', 'core.autocrlf=false', 'apply', '--whitespace=error', `--include=${cible}`, ...options, patch], { cwd: path.resolve(root), encoding: 'utf8', stdio: 'pipe' }, { site: 'contrat-typescript' });
-  try {
-    git(['--check']);
-  } catch (erreur) {
-    if (erreur.status !== 1) throw erreur;
-    try {
-      git(['--reverse', '--check']);
-    } catch (inverse) {
-      throw new AggregateError([erreur, inverse], 'Patch TypeScript inapplicable', { cause: inverse });
-    }
-    return false;
-  }
-  git([]);
-  return true;
+  return appliquerCorrectif(depotDe(path.resolve(root)), { patch: `patches/typescript+${version}.patch`, include: cible });
 }
 
 export async function verifierApiNative() {

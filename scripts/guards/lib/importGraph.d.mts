@@ -81,8 +81,8 @@ export function clotureDImports(
 export function closureOf(roots: string[], options?: { racine?: string; cache?: Map<string, Arc[] | null> }): Set<string>;
 export function directImportsOf(
   fromFile: string,
-  contenu: string,
-  options?: { racine?: string; existe?: (abs: string) => boolean; alias?: readonly Alias[] },
+  contenu: string | SourceFile,
+  options?: { racine?: string; existe?: (abs: string) => boolean; alias?: readonly Alias[]; diagnostics?: readonly Diagnostic[] },
 ): string[];
 export const CHEMIN_TSCONFIG: string;
 /** Les alias que déclare le texte d'un `tsconfig.json`, cibles posées sous `racine`. */

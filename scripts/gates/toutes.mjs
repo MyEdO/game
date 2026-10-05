@@ -104,6 +104,14 @@ export const ECRIT_LU = {
   'test:hooks': {
     ecrit: [],
     ecritFerme: {
+      '.lint-':
+        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) sous la racine quand configuration est fournie ; ' +
+        'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
+      'node_modules/typescript/dist/api/node/wtf8.js':
+        'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +
+        'borne git apply à cet unique --include ; postinstall exécute verifierContratTypeScript avant les générateurs et hooks, donc le banc réel ' +
+        'rencontre le SDK déjà corrigé : --reverse --check puis return false sans écriture, éprouvé par le banc d’idempotence ; ' +
+        'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
       '.claude/logs/new-src-guard-skips.log':
         'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
         'scripts/hooks/repartiteur.mjs) : il est ' +
@@ -118,7 +126,11 @@ export const ECRIT_LU = {
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'le reste des fixtures vit sous os.tmpdir() ; le contrat d’installation TypeScript lit le patch réel sous patches/ ; ' +
+      'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
+      'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
+      'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
+      'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
@@ -210,7 +222,11 @@ export const ECRIT_LU = {
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
     ],
     raison:
-      'fixtures sous os.tmpdir() ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
+      'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
+      '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
+      'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous mkdtempSync(os.tmpdir(), préfixe plateforme-win32-decodage-), ' +
+      'puis supprime chaque dossier par rmSync en finally ; ' +
+      'lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
@@ -251,10 +267,11 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
+    lit: ['src/', 'scripts/', 'server/', '.claude/workflows/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
     raison:
       'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et les ' +
-      'modules de code sélectionnés ; les configurations imbriquées sont désactivées.',
+      'modules de code sélectionnés, dont .claude/workflows/ : lecture du code et découverte native ' +
+      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-10-05 ; les configurations imbriquées sont désactivées.',
   },
   test: {
     ecrit: [],

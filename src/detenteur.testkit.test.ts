@@ -1,18 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { fileURLToPath } from 'node:url';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawn } from 'node:child_process';
+import { VARIABLE_PARTIE } from '../scripts/test/partition.mjs';
+import { tuerArbre } from '../scripts/gates/toutes.mjs';
 import { detenteur, enCollecte } from './detenteur.testkit';
 
 const registre = await vi.hoisted(async () => {
   const precharge = await import('./detenteur.testkit');
   vi.resetModules();
-  return { precharge, capter: undefined as ((fn: () => void) => void) | undefined };
-});
-vi.mock('vitest', async importOriginal => {
-  const original = await importOriginal<typeof import('vitest')>();
-  return { ...original, afterAll: (...args: Parameters<typeof original.afterAll>) => {
-    if (registre.capter) registre.capter(args[0] as () => void);
-    else original.afterAll(...args);
-  } };
+  return { precharge };
 });
 
 /* Portée MODULE. Sous `sequence.hooks: 'stack'` (défaut de vitest), les `afterAll` d'une même portée
@@ -41,31 +40,93 @@ describe('destructeur du détenteur', () => {
   });
   it('libère exactement la valeur construite', () => { expect(liberations).toBe(1); });
 
-  it('une fabrique échouée ne se libère pas ; une destruction échouée abandonne la valeur', () => {
+  it('le module réévalué ne réutilise pas la précharge', () => {
     expect(detenteur).not.toBe(registre.precharge.detenteur);
     expect(enCollecte).not.toBe(registre.precharge.enCollecte);
-    const etat = (globalThis as { __vitest_worker__?: { current?: unknown } }).__vitest_worker__!;
-    const courant = etat.current;
-    const hooks: (() => void)[] = [];
-    registre.capter = fn => { hooks.push(fn); };
-    let constructions = 0;
-    let destructions = 0;
-    try {
-      etat.current = { type: 'suite', file: { filepath: fileURLToPath(import.meta.url).replace(/\\/g, '/') } };
-      const echoue = detenteur(() => { throw new Error('fabrique'); }, () => { destructions++; });
-      const lire = detenteur(() => ({ n: ++constructions }), () => { destructions++; throw new Error('destruction'); });
-      expect(hooks).toHaveLength(2);
-      expect(echoue).toThrow('fabrique');
-      hooks[0]();
-      expect(destructions).toBe(0);
-      expect(lire().n).toBe(1);
-      expect(hooks[1]).toThrow('destruction');
-      expect(destructions).toBe(1);
-      hooks[1]();
-      expect(destructions).toBe(1);
-      expect(lire().n).toBe(2);
-    } finally { registre.capter = undefined; etat.current = courant; }
   });
+
+  it('prouve le cycle afterAll réel et son erreur de destruction observable', async () => {
+    const racine = fileURLToPath(new URL('../', import.meta.url));
+    const fixture = fileURLToPath(new URL('../scripts/test/fixtures/detenteur-afterall.fixture.ts', import.meta.url)).replace(/\\/g, '/');
+    const config = fileURLToPath(new URL('../scripts/test/fixtures/detenteur-afterall.config.ts', import.meta.url));
+    const dossier = mkdtempSync(join(tmpdir(), 'detenteur-afterall-'));
+    const fichier = join(dossier, 'rapport.json');
+    const env: NodeJS.ProcessEnv = { ...process.env, WFRP_DETENTEUR_AFTERALL_RAPPORT: fichier };
+    delete env[VARIABLE_PARTIE];
+    try {
+      const execution = await new Promise<{
+        status: number | null; signal: NodeJS.Signals | null; erreur: Error | undefined;
+        expiree: boolean; stdout: string; stderr: string;
+      }>(resoudre => {
+        const enfant = spawn(process.execPath, [
+          fileURLToPath(new URL('../scripts/test/run.mjs', import.meta.url)),
+          fixture, '--maxWorkers=1', '--config', config,
+        ], { cwd: racine, env, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+        let stdout = '';
+        let stderr = '';
+        let erreur: Error | undefined;
+        let expiree = false;
+        enfant.stdout.setEncoding('utf8');
+        enfant.stderr.setEncoding('utf8');
+        enfant.stdout.on('data', texte => { stdout += texte; });
+        enfant.stderr.on('data', texte => { stderr += texte; });
+        enfant.on('error', faute => { erreur = faute; });
+        const minuterie = setTimeout(() => {
+          expiree = true;
+          tuerArbre(enfant.pid);
+        }, 60_000);
+        enfant.on('close', (status, signal) => {
+          clearTimeout(minuterie);
+          resoudre({ status, signal, erreur, expiree, stdout, stderr });
+        });
+      });
+      const diagnostic = `status=${execution.status}, signal=${execution.signal}, expiration=${execution.expiree}\n${execution.stdout}\n${execution.stderr}`;
+      expect(execution.erreur, diagnostic).toBeUndefined();
+      expect(execution.expiree, diagnostic).toBe(false);
+      expect(execution.signal, diagnostic).toBeNull();
+      expect(execution.status, diagnostic).toBe(1);
+      let rapport;
+      try {
+        rapport = JSON.parse(readFileSync(fichier, 'utf8'));
+      } catch (erreur) {
+        throw new Error(`Rapport du cycle afterAll absent ou illisible : ${diagnostic}`, { cause: erreur });
+      }
+      expect(rapport.version, diagnostic).toBe(1);
+      expect(rapport.reason, diagnostic).toBe('failed');
+      expect(rapport.errors, diagnostic).toEqual([]);
+      expect(rapport.modules, diagnostic).toHaveLength(1);
+      expect(rapport.modules[0], diagnostic).toEqual({
+        module: fixture,
+        state: 'failed',
+        errors: [],
+        tests: [
+          'la fabrique échouée ne produit aucune valeur',
+          'afterAll ne détruit pas la fabrique échouée',
+          'la valeur construite est partagée avant afterAll',
+          'le même lecteur reconstruit et partage une nouvelle identité',
+        ].map(name => ({ name, state: 'passed', mode: 'run', fails: false, errors: [] })),
+        suites: [
+          { name: 'fabrique échouée', state: 'passed', errors: [] },
+          { name: 'après fabrique échouée', state: 'passed', errors: [] },
+          { name: 'détenteur construit', state: 'failed', errors: [{ name: 'Error', message: 'DETENTEUR_AFTERALL_DESTRUCTION_ATTENDUE_2258' }] },
+          { name: 'après destruction échouée', state: 'passed', errors: [] },
+        ],
+      });
+      expect(Array.isArray(rapport.hooks), diagnostic).toBe(true);
+      expect(rapport.hooks.every((hook: { name: string; type: string; owner: string | null; module: string }) =>
+        hook.name === 'afterAll' && hook.module === fixture &&
+        ((hook.type === 'module' && hook.owner === null) || (hook.type === 'suite' && typeof hook.owner === 'string')),
+      ), diagnostic).toBe(true);
+      for (const owner of ['fabrique échouée', 'détenteur construit', 'après destruction échouée']) {
+        expect(rapport.hooks.filter((hook: { owner: string | null }) => hook.owner === owner), diagnostic).toEqual([
+          { name: 'afterAll', type: 'suite', owner, module: fixture },
+        ]);
+      }
+      expect(rapport.hooks.some((hook: { type: string }) => hook.type === 'module'), diagnostic).toBe(true);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  }, 75_000);
 });
 
 describe('detenteur — lecteur paresseux, libéré au `afterAll` de la portée qui l’appelle (#1801)', () => {

@@ -205,8 +205,8 @@ export function resolveImport(fromFile, spec, existe = fichierExiste, alias = al
  * Les ARCS d'un module : ses spécificateurs (`specificateursDe`) résolus (`resolveImport`) contre
  * l'arbre que disent `existe` et `alias` (le disque et les alias du répertoire courant par défaut). Un
  * spécificateur qui ne se résout pas (paquet npm, fichier absent) ne fait pas d'arc.
- * @param {string} abs chemin absolu du module @param {string} texte
- * @param {{ existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
+ * @param {string} abs chemin absolu du module @param {string | import('typescript/unstable/ast').SourceFile} texte
+ * @param {{ existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[], diagnostics?: readonly import('typescript/unstable/sync').Diagnostic[] }} [options]
  * @returns {Arc[]}
  */
 export function arcsDe(abs, texte, { existe = fichierExiste, alias = aliasDuDepot(), diagnostics } = {}) {
@@ -315,14 +315,14 @@ export function closureOf(roots, { racine, cache } = {}) {
  * se résout, le répertoire courant par défaut : un hook s'exécute ailleurs que dans l'arbre jugé.
  * `existe` et `alias` : l'arbre contre lequel résoudre (`resolveImport`) ; par défaut les alias du
  * disque de `racine` (`aliasDuDepot`).
- * @param {string} fromFile @param {string} contenu
- * @param {{ racine?: string, existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
+ * @param {string} fromFile @param {string | import('typescript/unstable/ast').SourceFile} contenu
+ * @param {{ racine?: string, existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[], diagnostics?: readonly import('typescript/unstable/sync').Diagnostic[] }} [options]
  * @returns {string[]}
  */
-export function directImportsOf(fromFile, contenu, { racine = '.', existe, alias = aliasDuDepot(racine) } = {}) {
+export function directImportsOf(fromFile, contenu, { racine = '.', existe, alias = aliasDuDepot(racine), diagnostics } = {}) {
   const root = resolve(racine).split('\\').join('/');
   const found = new Set();
-  for (const { cible } of arcsDe(resolve(root, fromFile), contenu, { existe, alias })) {
+  for (const { cible } of arcsDe(resolve(root, fromFile), contenu, { existe, alias, diagnostics })) {
     if (cible.startsWith(`${root}/`) && cible.includes('/src/')) found.add(cible.slice(root.length + 1));
   }
   return [...found];

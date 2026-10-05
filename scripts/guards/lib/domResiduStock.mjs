@@ -62,5 +62,4 @@ export const DOM_RESIDU_STOCK = new Set([
   'src/ui/CampaignView.test.tsx', // <div>
   'src/ui/compendium/codex-edit-cases-a-cocher.test.tsx', // <div class="codex-edit-form">
   'src/ui/jetProps/defense-forcage-annule.test.tsx', // <div>
-  'src/gameIso/stage/plan-volumique.test.tsx', // <div>
 ]);

@@ -55,7 +55,7 @@ test('Git refuse un patch inapplicable dans une installation isolée', t => {
   const cible = path.join(dossier, 'node_modules/typescript/dist/api/node/wtf8.js');
   fs.mkdirSync(path.dirname(cible), { recursive: true });
   fs.writeFileSync(cible, 'export const autre = 1;\n');
-  assert.throws(() => appliquerPatch(dossier), /Patch TypeScript inapplicable/);
+  assert.throws(() => appliquerPatch(dossier), /Correctif inapplicable/);
   assert.equal(fs.readFileSync(cible, 'utf8'), 'export const autre = 1;\n');
 });
 
@@ -83,7 +83,7 @@ test('Git applique le patch initial puis le contrat natif démarre et se répèt
     const origine = path.join(root, 'node_modules', nom);
     if (fs.existsSync(origine)) fs.cpSync(origine, path.join(dossier, 'node_modules', nom), { recursive: true });
   }
-  for (const rel of ['scripts/guards/contrat-typescript.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/guards/lib/tsProgram.mjs', 'scripts/guards/lib/dialecte.mjs']) {
+  for (const rel of ['scripts/guards/contrat-typescript.mjs', 'scripts/guards/lib/gitPorte.mjs', 'scripts/guards/lib/ticketsGh.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/guards/lib/tsProgram.mjs', 'scripts/guards/lib/dialecte.mjs']) {
     const destination = path.join(dossier, rel);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(path.join(root, rel), destination);

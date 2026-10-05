@@ -48,6 +48,22 @@ for (const [rel, text] of [
   } else assert.deepEqual(diagnostics, []);
 });
 
+test('la casse des noms originaux reste distincte dans le même corpus', () => {
+  const fichiers = [
+    { rel: 'EntreeMajuscule.TS', text: 'export const premier = "😀";' },
+    { rel: 'autreEntree.ts', text: 'export const second = "é";' },
+  ];
+  const analyses = [...analyserCorpus(fichiers)];
+  assert.equal(analyses.length, fichiers.length);
+  for (let i = 0; i < fichiers.length; i++) {
+    assert.equal(analyses[i].fichier, fichiers[i]);
+    assert.equal(analyses[i].sourceFile.fileName, path.resolve(fichiers[i].rel).replaceAll('\\', '/'));
+    assert.equal(analyses[i].sourceFile.text, fichiers[i].text);
+    assert.deepEqual(analyses[i].diagnostics, []);
+  }
+  assert.notEqual(analyses[0].sourceFile, analyses[1].sourceFile);
+});
+
 for (const [premier, second] of [['dossier/../identique.ts', 'identique.ts'], ['foo', 'foo.ts']]) {
   test(`collision de chemins refusée avant API : ${premier} et ${second}`, () => {
     const update = API.prototype.updateSnapshot;

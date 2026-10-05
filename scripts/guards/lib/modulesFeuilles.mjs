@@ -23,6 +23,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, listerImage } from './gitPorte.mjs'
 import { arcsDe } from './importGraph.mjs'
+import { analyserCorpus } from './dialecte.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
 export const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -57,9 +58,8 @@ export function sourcesSuivies(racine = RACINE) {
 
 /**
  * Les ARCS qu'un texte source acquiert (`arcsDe`, `importGraph.mjs`) : toutes les natures du lecteur
- * canonique, jamais une regex de plus. `require` y est
- * VIVANT — `createRequire(import.meta.url)` charge le compilateur TypeScript dans `dialecte.mjs` — et
- * atteindrait une feuille aussi sûrement qu'un `import`.
+ * canonique, jamais une regex de plus. `require` y est VIVANT et atteindrait une feuille aussi
+ * sûrement qu'un `import`.
  * HORS DE PORTÉE, et d'aucune lecture statique : un spécificateur passé par VARIABLE
  * (`require(chemin)`, `import(chemin)`) — il n'y a pas de littéral à lire —, et un `require` lié
  * sous un AUTRE nom (`const req = createRequire(…)` puis `req('./x')`), dont l'appelé n'est plus
@@ -68,10 +68,11 @@ export function sourcesSuivies(racine = RACINE) {
  * La résolution ramène toute graphie d'un spécificateur relatif au MÊME fichier, donc une source
  * qui acquiert deux fois la même cible ne rend qu'un arc par graphie écrite, jamais un par
  * extension possible.
- * @param {string} fichierAbsolu @param {string} texte
+ * @param {string} fichierAbsolu @param {string | import('typescript/unstable/ast').SourceFile} texte
+ * @param {readonly import('typescript/unstable/sync').Diagnostic[]} [diagnostics]
  * @returns {import('./importGraph.mjs').Arc[]}
  */
-export const importsResolus = (fichierAbsolu, texte) => arcsDe(fichierAbsolu, texte)
+export const importsResolus = (fichierAbsolu, texte, diagnostics) => arcsDe(fichierAbsolu, texte, { diagnostics })
 
 /**
  * Qui importe une feuille — la mesure, nominative. Une feuille dont le MODULE est introuvable rend
@@ -90,6 +91,7 @@ export function manquementsDeFeuilles({ racine = RACINE, sources, feuilles = FEU
   }
 
   const parCible = new Map(feuilles.map((f) => [absolu(f.module), f]))
+  const fichiers = new Map()
   for (const source of lues) {
     if (feuilles.some((f) => f.module === source || f.bancs.includes(source))) continue
     let texte
@@ -98,13 +100,24 @@ export function manquementsDeFeuilles({ racine = RACINE, sources, feuilles = FEU
     } catch {
       continue
     }
-    for (const { spec: specificateur, cible } of importsResolus(absolu(source), texte)) {
-      const feuille = parCible.get(cible)
-      if (feuille)
-        manquements.push(
-          `${source} importe la FEUILLE ${feuille.module} (« ${specificateur} ») — elle ${feuille.pourquoi} : ` +
-          'sors de cette feuille ce que tu viens y chercher, elle ne s’importe pas',
-        )
+    const chemin = absolu(source)
+    const precedent = fichiers.get(chemin)
+    if (precedent && precedent.text !== texte)
+      throw new Error(`manquementsDeFeuilles : textes différents pour le même chemin : ${chemin}`)
+    if (precedent) precedent.sources.push(source)
+    else fichiers.set(chemin, { rel: chemin, text: texte, sources: [source] })
+  }
+  for (const { fichier, sourceFile, diagnostics } of analyserCorpus(fichiers.values())) {
+    const arcs = importsResolus(fichier.rel, sourceFile, diagnostics)
+    for (const source of fichier.sources) {
+      for (const { spec: specificateur, cible } of arcs) {
+        const feuille = parCible.get(cible)
+        if (feuille)
+          manquements.push(
+            `${source} importe la FEUILLE ${feuille.module} (« ${specificateur} ») — elle ${feuille.pourquoi} : ` +
+            'sors de cette feuille ce que tu viens y chercher, elle ne s’importe pas',
+          )
+      }
     }
   }
   return { manquements: manquements.sort(), sourcesLues: lues.length }

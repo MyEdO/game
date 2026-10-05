@@ -146,7 +146,7 @@ const AVALS_STATE = [
   ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.'],
 ];
 
-export const IGNORE_LINT = ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '/*.config.*', '.claude/**', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**'];
+export const IGNORE_LINT = ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '/*.config.*', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**'];
 const coeur = Object.fromEntries(Object.entries(js.configs.recommended.rules).map(([k,v])=>[k==='no-dupe-args'||k==='no-octal'?'core/'+k:k,v]));
 export const BLOCS_LINT = [
 {files:['**/*'],rules:coeur},
