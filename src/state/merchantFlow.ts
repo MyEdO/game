@@ -121,7 +121,7 @@ export function catalogEntryOf(id: string): CatalogEntry | undefined {
   const t = findTrappingById(id);
   if (t) return { label: t.label, price: moneyOf(t.price), availability: classOf(t.availability), qualities: t.qualities };
   const veh = findVehicleById(id);
-  if (veh?.purchase && vehiculeTerrestre(veh)) return { label: veh.label, price: veh.purchase.price, availability: classOf(veh.purchase.availability), unit: { kind: 'vehicule-terrestre', id } };
+  if (veh?.purchase && !veh.ship) return { label: veh.label, price: veh.purchase.price, availability: classOf(veh.purchase.availability), unit: { kind: 'vehicule-terrestre', id } };
   const cre = findCreatureById(id);
   if (cre?.purchase) return { label: cre.label, price: cre.purchase.price, availability: classOf(cre.purchase.availability), unit: { kind: 'bete', id } };
   return undefined;
@@ -132,12 +132,8 @@ export function catalogEntryOf(id: string): CatalogEntry | undefined {
  *  AUTOMATIQUEMENT chez tout archétype portant sa catégorie. SOURCE UNIQUE de cette dérivation. */
 function unitIdsOfKind(kind: UniteAchetable): string[] {
   if (kind === 'bete') return creatures.filter((c) => c.purchase).map((c) => c.id);
-  return vehicles.filter((v) => v.purchase && vehiculeTerrestre(v)).map((v) => v.id);
-}
-
-/** Un véhicule sans coque (`ship`) : la catégorie `vehicule-terrestre`, seule vendue (#748). */
-function vehiculeTerrestre(v: { ship?: unknown }): boolean {
-  return !v.ship;
+  // `vehicule-terrestre` = sans coque (`!v.ship`, #748), prédicat lu par `entityConsumers.mjs` (MODE 2).
+  return vehicles.filter((v) => v.purchase && !v.ship).map((v) => v.id);
 }
 
 /** Meilleur seuil « Tenir les comptes » du groupe (LDB 59 l.9-11) : le plus haut budget de Statut
