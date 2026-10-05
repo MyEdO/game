@@ -620,7 +620,7 @@ function CorpsDuMonde() {
 
   const pointeur = useStagePointer({ svgRef, dims: dimsVue, zoom, camRef, hoverTracking, partyLeader, activeZ, aretes: aretesEcran });
   const hover = pointeur.hover;
-  const visée = useHoverTargeting(scene, hover, myTurn, pointeur.areteSurvolee?.portail ?? null);
+  const visée = useHoverTargeting(scene, hover, myTurn, pointeur.areteSurvolee?.portail ?? null, pointeur.ficheSurvolee);
 
   // MARQUES DYNAMIQUES : dérivées UNE fois (`builders/dynamicMarks`) et servies au monde volumique — le
   // contexte qui les autorise (mode, dialogue ouvert) se tranche ici, et nulle part ailleurs. Les

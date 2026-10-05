@@ -413,17 +413,14 @@ export interface GameState extends RollFlowActionsMap {
   camPan: { x: number; y: number };
   setCamPan: (x: number, y: number) => void;
   resetCamPan: () => void;
-  /** Option de jeu : INSPECTION des combattants (statbloc au clic sur la frise d'ordre). OFF par défaut
-   *  (préférence du joueur — l'inspection casse un peu l'immersion) ; préférence persistante (comme la vue). */
-  inspectEnabled: boolean;
-  toggleInspectEnabled: () => void;
   /** RÉVÉLATION des utilisables (Alt maintenu, binding `decor.reveler`) : état de TOUCHE, jamais une
    *  préférence — il vaut ce que vaut la touche à l'instant, se rend au relâchement comme au `blur`
    *  (`relacherTout`), et n'entre dans aucune sauvegarde. */
   reveler: boolean;
   setReveler: (v: boolean) => void;
-  /** Combattant dont on regarde le statbloc (InspectPanel) — porté par le STORE pour que la frise ET
-   *  le token sur la carte ouvrent la même inspection (clic non-actionnable). null = panneau fermé. */
+  /** Entité dont on regarde la fiche (InspectPanel) — porté par le STORE pour que TOUTES les surfaces
+   *  du geste d'inspection (jeton, portrait, touche) ouvrent le même panneau : un combattant en combat,
+   *  un PNJ de scène hors combat. null = panneau fermé. */
   inspectId: string | null;
   setInspectId: (id: string | null) => void;
   /** Fiche de personnage OUVERTE (`CharacterSheet.tsx`) — héros courant, partagé entre les hôtes
@@ -455,7 +452,7 @@ export interface GameState extends RollFlowActionsMap {
   moveCursor: (dir: ScreenDir) => void;
   /** Aimante le curseur sur la cible valide suivante (+1) / précédente (-1) — Tab / gâchettes. */
   snapCursorToTarget: (step: 1 | -1) => void;
-  /** Commet la case visée : attaque (ennemi), inspection (allié) ou déplacement (case libre). */
+  /** Commet la case visée : attaque (ennemi) ou déplacement (case libre) ; un allié non actionnable ne commet rien. */
   commitCursor: () => void;
   /** Efface le curseur (la souris reprend la main, ou geste « annuler »). */
   clearCursor: () => void;
@@ -482,8 +479,9 @@ export interface GameState extends RollFlowActionsMap {
   refus: RefusIHM | null;
   /** Arme (id d'action) ou dissout (`null`) l'intention locale. Re-armer la MÊME la dissout. */
   battleArmIntent: (actionId: string | null) => void;
-  /** Combattant mis en évidence par le SURVOL (token carte OU portrait frise) — pilote le miroir
-   *  réciproque sur la frise. Distinct de hoverCombatantId (frise/Tab → peek caméra). */
+  /** Entité mise en évidence par le SURVOL — en combat le combattant (token carte OU portrait frise),
+   *  qui pilote le miroir réciproque sur la frise ; hors combat le PNJ de scène à fiche sous le
+   *  pointeur. Distinct de hoverCombatantId (frise/Tab → peek caméra). */
   hovered: string | null;
   setHovered: (id: string | null) => void;
   /** Surcharges de touches du remap clavier (id de raccourci → event.code), persistées en
@@ -1971,8 +1969,6 @@ export const useGame = create<GameState>((set, get) => ({
     resetStagePan();
     set((s) => (s.camPan.x === 0 && s.camPan.y === 0 ? {} : { camPan: { x: 0, y: 0 } }));
   },
-  inspectEnabled: false,
-  toggleInspectEnabled: () => set((s) => ({ inspectEnabled: !s.inspectEnabled })),
   reveler: false,
   setReveler: (v) => set((s) => (s.reveler === v ? {} : { reveler: v })),
   inspectId: null,
@@ -2183,11 +2179,11 @@ export const useGame = create<GameState>((set, get) => ({
     // plat) ; `set()` (fusion superficielle) préserve les actions. On ne conserve QUE la
     // navigation/vue (screen, caméra, zoom), le groupe (posé par `setParty`) et la SESSION COOP
     // (net : héberger une partie PUIS la lancer ne doit pas dissoudre le salon — Jalon 7).
-    const { screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net } = get();
+    const { screen, party, camRot, zoom, viewMode, povActive, net } = get();
     const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
     set({
       ...(JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>),
-      screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net,
+      screen, party, camRot, zoom, viewMode, povActive, net,
       scene: JSON.parse(JSON.stringify(scene)),
       mode: 'exploration',
       partyPos: pos,

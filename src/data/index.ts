@@ -1689,10 +1689,6 @@ export interface ManeuverDef {
   /** Folio du Trait PROJETANT — la manœuvre ne porte AUCUNE prose (#1226) : sa description est celle du
    *  trait, résolue à l'affichage par `traitProjectingManeuver`. */
   source?: SourceRef;
-  /** Pertinence de BASE pour le scoreur d'attaque (clic droit joueur ET décision IA) : POIDS ÉDITABLE,
-   *  plus haut = choisie plus volontiers. Combinée aux bonus situationnels AUTO (dégâts attendus,
-   *  multi-cible, état onHit applicable). Défaut 1 ; 0 = jamais auto-choisie (reste manuelle). */
-  priority?: number;
   /** ENJEU porté par l'ENTRÉE (#1117 L2, patron `ActivityDef.stake`/`PsychologyData.stake`) : les
    *  `effects` d'une manœuvre sont AUTHORÉS entrée par entrée (aucune formule commune), donc un
    *  gabarit au `kind` serait tautologique. Rendu par `resolveStake` (dataset `combat`, kind

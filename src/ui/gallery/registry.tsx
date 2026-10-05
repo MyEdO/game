@@ -1580,7 +1580,6 @@ function ObjectiveBannerDemo() {
 /** Rangée de caméra : commandes vissées (peau `.skin-tole`), état enfoncé par `aria-pressed`. */
 function ViewControlsDemo() {
   const [vue, setVue] = useState<'iso' | 'top'>('iso');
-  const [inspection, setInspection] = useState(false);
   return (
     <ViewControls
       zoom={1}
@@ -1591,8 +1590,6 @@ function ViewControlsDemo() {
       onRotateRight={() => {}}
       view={vue}
       onToggleView={() => setVue((v) => (v === 'iso' ? 'top' : 'iso'))}
-      inspectEnabled={inspection}
-      onToggleInspect={() => setInspection((v) => !v)}
     />
   );
 }

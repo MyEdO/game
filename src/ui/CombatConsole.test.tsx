@@ -3316,6 +3316,42 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     }
   });
 
+  it('appui TENU 1300 ms : le clic du relâchement reste AVALÉ ; 800 ms après le relâchement, l’activation n’est plus avalée (#1822)', () => {
+    monter(mage(['carreau']));
+    const cellule = alveole('carreau');
+    vi.useFakeTimers();
+    try {
+      act(() => { cellule.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 10, clientY: 10 })); });
+      act(() => { vi.advanceTimersByTime(1300); });
+      expect(useGame.getState().pendingFocus?.spellId, 'témoin : l’appui tenu ouvre la Focalisation').toBe('carreau');
+      // La Focalisation refermée, l'alvéole est de nouveau libre : seul l'avalement peut taire le clic.
+      act(() => { useGame.setState({ pendingFocus: null }); });
+      act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: 10, clientY: 10 })); });
+      act(() => { cellule.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(useGame.getState().battle!.action, 'le clic du relâchement, 850 ms après le seuil, reste avalé').toBeNull();
+      act(() => { vi.advanceTimersByTime(800); });
+      act(() => { cellule.click(); });
+      expect(useGame.getState().battle!.action, 'une activation ULTÉRIEURE redevient le geste primaire').not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('SOURIS : le bouton gauche tenu n’arme AUCUN geste secondaire — la souris a le clic droit', () => {
+    monter(mage(['carreau']));
+    const cellule = alveole('carreau');
+    vi.useFakeTimers();
+    try {
+      const appui = new MouseEvent('pointerdown', { bubbles: true, clientX: 10, clientY: 10 });
+      Object.defineProperty(appui, 'pointerType', { value: 'mouse' });
+      act(() => { cellule.dispatchEvent(appui); });
+      act(() => { vi.advanceTimersByTime(900); });
+      expect(useGame.getState().pendingFocus, 'aucune Focalisation au bout du délai').toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('une PRIÈRE : N=1 REFUSÉ — aucun panneau, la raison se lit À LA CASE, rien au journal', () => {
     monter(mage(['benediction-de-chance']));
     const cellule = alveole('benediction-de-chance');

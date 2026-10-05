@@ -10,6 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { KEYBINDINGS, bindingParId, formatCombo, modsDeLaTouche, modsMatch, type KeyBinding } from './keybindings';
 import { modalHolds, pickActiveModalKey } from './modalArbiter';
 import type { GameState } from './store';
+import { spawnEnemy } from './spawn';
 
 const binding = (id: string) => bindingParId(id)!;
 
@@ -148,14 +149,22 @@ describe('raccourcis — la caméra se pilote au clavier : bascule de vue, inspe
     expect(toggleViewMode).toHaveBeenCalledOnce();
   });
 
-  it('I commute l’inspection des combattants, en COMBAT seulement', () => {
-    const b = binding('toggle-inspect');
+  it('I INSPECTE ce que le joueur désigne (#1822) — jamais une bascule de mode', () => {
+    const b = binding('inspecter');
     expect(b.codes).toEqual(['KeyI']);
-    expect(b.when(fake())).toBe(true);
-    expect(b.when(fake({ mode: 'exploration' }))).toBe(false);
-    const toggleInspectEnabled = vi.fn();
-    b.run(() => ({ toggleInspectEnabled }) as never);
-    expect(toggleInspectEnabled).toHaveBeenCalledOnce();
+    const run = (s: GameState) => { const setInspectId = vi.fn(); b.run(() => ({ ...s, setInspectId }) as never); return setInspectId; };
+    // Combat : la case du CURSEUR prime, puis le portrait survolé, puis le jeton survolé.
+    const surCase = { combatCursor: { tile: { x: 2, y: 3 } }, battle: { over: null, order: [], turn: 0, combatants: [spawnEnemy({ ref: 'brigand' }, 'e1', { x: 2, y: 3 })] } } as unknown as Partial<GameState>;
+    expect(run(fake({ ...surCase, hoverCombatantId: 'h2', hovered: 'h3' }))).toHaveBeenCalledWith('e1');
+    expect(run(fake({ hoverCombatantId: 'h2', hovered: 'h3' }))).toHaveBeenCalledWith('h2');
+    expect(run(fake({ hovered: 'h3' }))).toHaveBeenCalledWith('h3');
+    // Hors combat : l'entité survolée.
+    expect(b.when(fake({ mode: 'exploration', battle: null, hovered: 'npc-phillipe' }))).toBe(true);
+    expect(run(fake({ mode: 'exploration', battle: null, hovered: 'npc-phillipe' }))).toHaveBeenCalledWith('npc-phillipe');
+    // Rien de désigné : la touche se tait, en combat comme hors combat.
+    expect(b.when(fake())).toBe(false);
+    expect(b.when(fake({ mode: 'exploration', battle: null }))).toBe(false);
+    expect(run(fake())).not.toHaveBeenCalled();
   });
 
   it('C recentre HORS combat aussi, et remet le zoom à 100 %', () => {

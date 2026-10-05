@@ -32,7 +32,8 @@ export function touchActors(state: GameState): Partial<GameState> {
 
 /**
  * Cliquer un combattant — son TOKEN sur la carte OU son PORTRAIT dans la frise/dock — déclenche-t-il
- * une ACTION de combat plutôt qu'une simple inspection ? DÉRIVÉ du MODE de ciblage courant
+ * une ACTION de combat ? L'inspection n'emprunte jamais ce geste : elle est le geste SECONDAIRE
+ * (clic droit, appui long, touche Menu, touche `inspecter`). DÉRIVÉ du MODE de ciblage courant
  * (`targetingModes`) : « le mode courant cible des combattants ET `t` ∈ ses cibles » — un mode-CASE pur
  * (téléportation) ne cible aucun combattant ; un mode à liste (soin/Surincantation/Frappe Mortelle/2ᵉ
  * frappe) consulte ses `candidates` ; un mode à réticule (attaque/cast/bordée) consulte l'affordance
@@ -73,11 +74,6 @@ export function windsMagicLineOf(battle: GameState['battle']): ModLine | null {
 export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): boolean {
   const battle = get().battle;
   if (!battle || battle.over) return false;
-  // Mode INSPECTION (Inspection ON) : cliquer un combattant l'INSPECTE (carte, frise, curseur) — jamais une action.
-  // Sinon on ne peut pas REGARDER un ennemi sans l'attaquer (retour playtest : « je voulais voir le profil,
-  // mon perso a chargé »). Source UNIQUE des 3 surfaces → toutes basculent en lecture seule d'un coup.
-  // Pour agir, désactiver l'inspection (Inspection OFF).
-  if (get().inspectEnabled) return false;
   // Tir rapide ARMÉ (pause de début de Round, LDB 10) : cliquer un adversaire DÉCLENCHE l'interruption — même
   // prédicat partagé carte ⇄ frise, donc les DEUX surfaces l'honorent (sinon la carte serait inerte hors tour).
   // Le store (`preemptRangedShot`) valide portée/Ligne de Vue/état ; ici on n'ouvre l'affordance que sur un adversaire.

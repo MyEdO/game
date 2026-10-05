@@ -1085,12 +1085,11 @@ export function createCombatSlice(get: Get, set: Set) {
         // Mode-CASE (#198, résidus) : un commit qui tombe malgré tout sur une case non commettable
         // (occupant sans action pour ce mode) prévient — jamais muet — par la porte de refus commune
         // (`refusVisible` : le journal n'est pas affiché en combat). Hors mode-case : no-op voulu
-        // (allié sans Inspection, cf. combatCursor.test.ts).
+        // (allié non actionnable, cf. combatCursor.test.ts).
         if (currentTargetingMode(get).tileValidAt) refuserGeste(get, set, t('cs.cursorInvalidTile'));
         return;
       }
       if (intent.kind === 'entity') s.battleClickEntity(intent.id, { confirm: true });
-      else if (intent.kind === 'inspect') s.setInspectId(intent.id);
       else s.battleClickTile(intent.pt, { confirm: true });
     },
     // INTENTION LOCALE (spec zone 4) : la case d'action ARME le geste que le prochain clic du champ

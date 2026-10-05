@@ -3210,7 +3210,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
   // Champs DÉLIBÉRÉMENT conservés (navigation/vue/groupe) ou dérivés de la scène de départ.
   // Tout le RESTE doit revenir à son défaut de création, automatiquement, sans liste à maintenir.
   const PRESERVED_OR_DERIVED = new Set([
-    'screen', 'party', 'camRot', 'zoom', 'inspectEnabled',        // navigation / vue / groupe / préférences
+    'screen', 'party', 'camRot', 'zoom',                          // navigation / vue / groupe / préférences
     'scene', 'partyPos', 'flags', 'campaignSceneId', 'journal', 'mode', 'inventory', // dérivés
     'facing', // dérivé : orientation du meneur posée à l'entrée de scène (spawnFacing / heroStart)
   ]);
@@ -3261,16 +3261,19 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     expect(st.flags).toEqual({}); // flags de l’ancienne partie effacés
   });
 
-  it('l’option d’inspection est OFF par défaut, se bascule, et SURVIT à une nouvelle partie (préférence)', () => {
-    expect(useGame.getState().inspectEnabled).toBe(false); // défaut : immersion préservée
-    useGame.getState().toggleInspectEnabled();
-    expect(useGame.getState().inspectEnabled).toBe(true);
+  it('l’inspection est un GESTE, pas une préférence (#1822) : aucun interrupteur à l’état, et la fiche ouverte ne survit pas à une nouvelle partie', () => {
+    const init = (useGame as unknown as { getInitialState: () => Record<string, unknown> }).getInitialState();
+    expect(init, 'aucun interrupteur d’inspection').not.toHaveProperty('inspectEnabled');
+    expect(init, 'aucune bascule d’inspection').not.toHaveProperty('toggleInspectEnabled');
+    expect(init, 'la fiche ouverte reste un état de l’écran').toHaveProperty('inspectId', null);
+    useGame.getState().setInspectId('h');
+    expect(useGame.getState().inspectId).toBe('h');
     const scene = emptyScene(6, 6);
     scene.id = 'neuve2';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     useGame.getState().setParty([{ id: 'h', label: 'H', xp: 0 } as unknown as Combatant]);
     useGame.getState().startScene(scene);
-    expect(useGame.getState().inspectEnabled).toBe(true); // préférence conservée comme la vue (zoom/caméra)
+    expect(useGame.getState().inspectId).toBeNull();
   });
 });
 

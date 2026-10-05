@@ -29,7 +29,7 @@ describe('availableAttacks — énumération (pur)', () => {
     const enemy = at('enemy', 'E', 5, 6);
     const heroAdv = at('hero', 'H', 5, 5, { traits: [{ id: 'morsure', value: 10 }], advantage: 1 });
     const m = availableAttacks(heroAdv, mkBattle([heroAdv, enemy]));
-    expect(m[0]?.id).toBe('arme'); // Arme d'abord (clic droit = première abordable)
+    expect(m[0]?.id).toBe('arme'); // Arme d'abord
     const morsure = m.find((x) => x.id === 'morsure');
     expect(morsure).toBeTruthy();
     expect(morsure!.targeting).toBe('melee'); // mêlée → approche-puis-frappe

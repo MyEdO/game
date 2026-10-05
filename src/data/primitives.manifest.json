@@ -500,8 +500,8 @@
     "type": "primitives.manifest",
     "label": "useLongPress",
     "fichier": "src/ui/useLongPress.ts",
-    "concept": "appui long 450 ms tactile et souris, geste secondaire d’une alvéole",
-    "perimetre": "alvéoles de la console de combat",
+    "concept": "appui long 450 ms au doigt et au stylet (la souris a le clic droit : son clic gauche lent reste le geste primaire), geste secondaire d’une alvéole, d’un portrait ou d’un jeton",
+    "perimetre": "alvéoles de la console de combat, portraits (`PortraitTile.onInspect`), jetons du plateau (`useStagePointer`)",
     "verrou": "réflexe avant tout minuteur de pression recodé"
   },
   {

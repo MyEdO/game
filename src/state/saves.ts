@@ -88,6 +88,8 @@ const MIGRATIONS_DE_SAVE = {
   60: '#2113 forme d’objet choisie (`formeChoisie`), jamais recopiée du catalogue',
   // #2206
   61: '#2206 le porteur de fiche d’un preset nomme son preset (`presetId`)',
+  // #1822
+  62: '#1822 l’inspection est un geste, plus une préférence (`inspectEnabled`)',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent } from './combatCursor';
 import { useGame } from './store';
+import { runBindingById } from './keybindings';
 import { t } from '../i18n';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './spawn';
@@ -134,7 +135,7 @@ describe('nextCaseCursorTile — mode-CASE (#198, résidus) : navigation BORNÉE
 });
 
 describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
-  beforeEach(() => { useGame.setState({ battle: null, party: [], inspectEnabled: false }); }); // ACTION par défaut (Inspection OFF)
+  beforeEach(() => { useGame.setState({ battle: null, party: [], inspectId: null }); });
   function makeState(over: Record<string, unknown> = {}) {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
@@ -144,7 +145,7 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ battle: battle as never, scene: arena(), party: [hero, ally], inspectEnabled: false, ...over });
+    useGame.setState({ battle: battle as never, scene: arena(), party: [hero, ally], ...over });
     return { hero, ally, enemy };
   }
 
@@ -158,19 +159,26 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
     expect(cursorCommitIntent(useGame.getState, { tile: { x: 12, y: 4 } })).toEqual({ kind: 'tile', pt: { x: 12, y: 4 } });
   });
 
-  it('curseur sur un allié, inspection activée → { inspect }', () => {
-    const { ally } = makeState({ inspectEnabled: true });
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 5, y: 10 } })).toEqual({ kind: 'inspect', id: ally.id });
-  });
-
-  it('MODE INSPECTION (Inspection ON) : curseur sur un ENNEMI → { inspect } (on regarde, on n’attaque pas)', () => {
-    const { enemy } = makeState({ inspectEnabled: true });
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 7, y: 10 } })).toEqual({ kind: 'inspect', id: enemy.id });
-  });
-
-  it('curseur sur un allié, inspection désactivée → null (no-op, jamais clic-case)', () => {
-    makeState({ inspectEnabled: false });
+  it('curseur sur un allié non actionnable → null (no-op, jamais clic-case), et le commit n’ouvre aucune fiche', () => {
+    makeState();
     expect(cursorCommitIntent(useGame.getState, { tile: { x: 5, y: 10 } })).toBeNull();
+    useGame.setState({ combatCursor: { tile: { x: 5, y: 10 } } });
+    useGame.getState().commitCursor();
+    expect(useGame.getState().inspectId, 'l’inspection est la touche `inspecter`, jamais le commit').toBeNull();
+  });
+
+  it('touche `inspecter` sur la case du curseur (allié) : SA fiche s’ouvre — le commit, lui, n’y touche pas', () => {
+    const { ally } = makeState({ mode: 'battle', combatCursor: { tile: { x: 5, y: 10 } } });
+    runBindingById('inspecter', useGame.getState);
+    expect(useGame.getState().inspectId).toBe(ally.id);
+  });
+
+  it('touche `inspecter` sur la case du curseur (ennemi) : on REGARDE sans attaquer — le commit, lui, attaque', () => {
+    const { enemy } = makeState({ mode: 'battle', combatCursor: { tile: { x: 7, y: 10 } } });
+    runBindingById('inspecter', useGame.getState);
+    expect(useGame.getState().inspectId).toBe(enemy.id);
+    expect(useGame.getState().battle!.acted, 'inspecter ne consomme aucune Action').toBe(false);
+    expect(cursorCommitIntent(useGame.getState, { tile: { x: 7, y: 10 } })).toEqual({ kind: 'entity', id: enemy.id });
   });
 
   it('hors combat → null', () => {
@@ -180,7 +188,7 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
 });
 
 describe('tileModeValidTiles — ensemble VALIDE générique (#198, résidus)', () => {
-  beforeEach(() => { useGame.setState({ battle: null, party: [], inspectEnabled: false }); });
+  beforeEach(() => { useGame.setState({ battle: null, party: [] }); });
 
   it('filtre la scène ENTIÈRE par `tileValidAt` du mode — jamais toute la carte', () => {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
@@ -228,7 +236,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
       selectedSpellId: null, reachable: new Map(), // AUCUNE case de reach : (7,10) reste occupée/non commettable
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ battle: battle as never, scene: arena(), party: [hero], inspectEnabled: false, combatCursor: { tile: { x: 7, y: 10 } }, journal: [], refus: null });
+    useGame.setState({ battle: battle as never, scene: arena(), party: [hero], combatCursor: { tile: { x: 7, y: 10 } }, journal: [], refus: null });
     useGame.getState().commitCursor();
     // Le refus se dit AU POINT DU GESTE (`state/refusVisible`) : en combat, le journal n'est pas
     // affiché — un feedback qui n'y va QUE serait muet pour le joueur.
