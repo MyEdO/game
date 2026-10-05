@@ -128,7 +128,9 @@ export function exporter({ depot, sha, dossier }) {
       encoding: 'utf8',
       maxBuffer: 1 << 28,
     })
-    if (ecrit.status !== 0) throw new Error(`git checkout-index a rendu ${ecrit.status} : ${(ecrit.stderr || '').trim()}`)
+    // Le statut de git prime : un EPIPE de l'entrée, conséquence de sa sortie, ne le masque pas ; à 0, il se nomme.
+    if (typeof ecrit.status === 'number' && ecrit.status !== 0) throw new Error(`git checkout-index a rendu ${ecrit.status} : ${(ecrit.stderr || '').trim()}`)
+    if (ecrit.error || ecrit.status !== 0) throw new Error(`git checkout-index en échec : ${ecrit.error?.message ?? `signal ${ecrit.signal}`}`)
     preparerExport(dossier)
     return { fichiers }
   } finally {
