@@ -89,6 +89,12 @@ test('lecteurTronquantDeFlux : un OPÉRANDE de fichier vaut lecture d’après c
   assert.equal(lecteurTronquantDeFlux(['cat']), null)
 })
 
+// #2173 : le corps d'un bloc PowerShell se prolonge à travers le `|` jusqu'à son `}`.
+test('le runner tronqué DANS un bloc PowerShell est vu', () => {
+  assert.ok(denies('1 | % { npx vitest run | tail -5 }'))
+  assert.ok(allows("1 | % { 'npx vitest run | tail -5' }"))
+})
+
 test('capture : les graphies de redirection', () => {
   assert.equal(capture(['tsc', '>', 'f.txt']), true)
   assert.equal(capture(['tsc', '>f.txt']), true)
@@ -111,4 +117,8 @@ test('DRIVER : le hook décide de bout en bout sur un payload ctx_shell', () => 
   assert.equal(decisionOf('npx vitest run | tail -20'), 'deny')
   assert.equal(decisionOf('npm test | tail -20'), null)
   assert.equal(decisionOf('git status'), null)
+})
+
+test('une commande trop imbriquée pour être jugée est refusée', () => {
+  assert.match(evaluate('echo $($($($($(npx vitest run | tail -5)))))')?.reason ?? '', /commande trop imbriquée pour être jugée/)
 })

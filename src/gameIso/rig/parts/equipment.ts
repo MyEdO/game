@@ -1,6 +1,5 @@
-import type { Combatant, Weapon, ItemInstance, HitLocation, QualityInstance } from '../../../engine/types';
-import { isCapeItem } from '../../../engine/items';
-import { isShieldItem } from '../../../engine/equipCompare';
+import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
+import { isCapeItem, isShieldItem } from '../../../engine/items';
 import type { Slot } from '../bones';
 import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
@@ -46,9 +45,6 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
   return out;
 }
 
-/** Bouclier au sens du rig : `isShieldItem` (`src/engine/equipCompare.ts`), par l'id de Qualité. */
-export const isShield = (x: { qualities?: QualityInstance[] }): boolean => isShieldItem(x);
-
 /**
  * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
  * d'inventaire et sélecteur de forme la lisent. Routage PAR ID STABLE :
@@ -67,7 +63,7 @@ export function formeResolue(x: SourceDeForme): string | undefined {
   return t?.shape;
 }
 
-export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), forme: formeResolue(w), bouclier: isShield(w) });
+export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), forme: formeResolue(w), bouclier: isShieldItem(w) });
 export const pieceDeDessin = (it: ItemInstance): PieceDeDessin => ({ ...projeter(it, CLES_PIECE), materiau: armourMaterial(it) });
 export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ forme: formeResolue(x) });
 
@@ -79,11 +75,12 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], cape?: ItemIn
   // Pièces TRIÉES par matériau décroissant : par slot, le rendu (resolve.ts) prend la 1re pièce qui
   // le couvre → un héros en cuir + maille montre la maille, la plate par-dessus tout.
   const pieces = armour.map(pieceDeDessin).sort((a, b) => MATERIAL_RANK[b.materiau] - MATERIAL_RANK[a.materiau]);
-  const shield = weapons.find(isShield); // un bouclier tenu est dans le set actif → présent dans c.weapons
+  const dessins = weapons.map(armeDeDessin);
+  const iBouclier = dessins.findIndex((w) => w.bouclier); // un bouclier tenu est dans le set actif → présent dans c.weapons
   return {
-    weapons: weapons.map(armeDeDessin),
+    weapons: dessins,
     armour: pieces,
-    ...(shield ? { shield: bouclierDeDessin(shield) } : {}),
+    ...(iBouclier >= 0 ? { shield: bouclierDeDessin(weapons[iBouclier]) } : {}),
     ...(cape ? { cape: true } : {}),
   };
 }

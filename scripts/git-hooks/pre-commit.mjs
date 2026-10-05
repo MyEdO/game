@@ -5,6 +5,7 @@
 // `compile-dessin-quad`,
 // `test:raw`, `test:recette`, `agents:check` — chacun armé sur SES sources stagées —, et le LINT des
 // fichiers stagés (≈ 4 s / 20 fichiers).
+// Sous une fusion en cours, les fichiers « stagés » sont ceux de son APPORT PROPRE (`apport`, #2328).
 // CE QUI N'EST PAS JOUÉ ICI : ni typecheck, ni suite Vitest, ni les scanners de corpus entier — ils
 // coûtent des dizaines de secondes et restent à la CI. La durée totale est imprimée en fin de hook.
 // Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (dette neuve au-dessus du stock) ;
@@ -34,7 +35,7 @@ import { fichiersALinter, lancerLint } from '../guards/lib/lintStage.mjs';
 import { codeDePanne, docsDePorte, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
-import { INDEX, arbrePrincipal, ceQuEmporteLIndex, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
+import { INDEX, apportDeLaFusionEnCours, arbrePrincipal, ceQuEmporteLIndex, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { sourceDuCheck } from '../agents/compat-cli.mjs';
 import { journaliserLeHook } from './journal.mjs';
@@ -78,11 +79,24 @@ const GARDE_LIBELLE = contexteDeLaGarde(corpusDeLaGarde());
 const hardcodeRe = /^src\/(?:engine|state)\//;
 
 const argFiles = process.argv.slice(2);
+const offenders = [];
+/**
+ * Ce que le commit APPORTE : l'index contre HEAD (`ceQuEmporteLIndex`) ; sous une fusion en cours, son
+ * APPORT PROPRE (`apportDeLaFusionEnCours`, #2328 A7) — ce que main apporte a été jugé à son propre
+ * commit. Une fusion que git ne rejoue pas est un fautif NOMMÉ, jamais une retombée sur HEAD.
+ */
+const apport = (() => {
+  try {
+    return apportDeLaFusionEnCours(depot, INDEX)?.change ?? ceQuEmporteLIndex(depot);
+  } catch (e) {
+    offenders.push(`apport du commit illisible — ${raisonCourte(e?.message ?? e)}`);
+    return null;
+  }
+})();
 const staged = argFiles.length
   ? argFiles
-  : ceQuEmporteLIndex(depot).chemins('ACMR');
+  : apport?.chemins('ACMR') ?? [];
 
-const offenders = [];
 /**
  * Le texte à juger de `rel`, `null` s'il n'y en a pas : en mode `argFiles`, le fichier (illisible →
  * `null`) ; en mode stagé, le BLOB DE L'INDEX (`lireEnLot`) — sur l'arbre partagé, le fichier disque
@@ -100,12 +114,12 @@ function texteAJuger(rel) {
     return null;
   }
 }
-/** Le diff de l'INDEX (`ceQuEmporteLIndex`) ; une panne est un fautif NOMMÉ. */
-const diffDeLIndex = (() => {
+/** Le diff de l'APPORT (`apport`) ; une panne est un fautif NOMMÉ. */
+const diffDeLApport = (() => {
   try {
-    return ceQuEmporteLIndex(depot).diff();
+    return apport?.diff() ?? '';
   } catch (e) {
-    offenders.push(`diff de l'index illisible — ${raisonCourte(e?.message ?? e)}`);
+    offenders.push(`diff du lot illisible — ${raisonCourte(e?.message ?? e)}`);
     return '';
   }
 })();
@@ -211,7 +225,7 @@ if (dataStaged.length) {
 
 // Tag [entériné] NOUVELLEMENT introduit dans le diff stagé : visibilité systématique (le tag est
 // réservé à l'utilisateur, qui l'écrit lui-même ; ici on rend tout ajout VISIBLE).
-const ajoutees = diffDeLIndex.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
+const ajoutees = diffDeLApport.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
 const addedTags = ajoutees.filter((l) => /\[entériné[^\]]*\]/i.test(l));
 if (addedTags.length) {
   process.stderr.write(`pre-commit — tag(s) [entériné] AJOUTÉ(s) par ce commit (mot réservé à l'utilisateur — vérifier que CHAQUE site a reçu sa validation) :\n${addedTags.map((l) => `  ${l.slice(0, 160)}`).join('\n')}\n`);

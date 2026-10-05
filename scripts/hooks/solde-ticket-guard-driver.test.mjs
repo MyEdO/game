@@ -42,7 +42,7 @@ test('DRIVER : un message -F est lu dans le répertoire où le commit S\'EXÉCUT
   try {
     mkdirSync(join(base, 'wt'))
     // Deux DÉPÔTS réels : hors dépôt, `git diff --cached` bascule en mode `--no-index` et la porte
-    // refuse (à juste titre) pour ascendance indisponible — ce qui masquerait ce que ce test mesure.
+    // refuse (à juste titre) pour une lecture git indisponible — ce qui masquerait ce que ce test mesure.
     for (const d of [base, join(base, 'wt')])
       lancerGit(['init', '-q', '-b', 'main'], { cwd: d })
     // Homonyme ANODIN à la racine : c'est lui qu'une garde résolvant contre le cwd de départ
@@ -92,7 +92,7 @@ test('DRIVER : Bash lancé hors dépôt — `mv` et `git diff --cached` se taise
   const out = decisionBash('git commit -m "fix(x): closes #999999"')
   assert.ok(out, 'un commit, lui, se juge — et git n’a rien pu lire ici')
   assert.equal(out.permissionDecision, 'deny')
-  assert.match(out.permissionDecisionReason, /ascendance indisponible : hors dépôt/)
+  assert.match(out.permissionDecisionReason, /lecture git indisponible : hors dépôt/)
 })
 
 test('DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)', () => {
@@ -156,6 +156,65 @@ test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELL
     ecrireEtStager(solde('src/touche.ts:1'))
     const juste = decisionOf('git commit -m "corrige #4242"', repo)
     assert.doesNotMatch(juste?.reason ?? '', /ne touche PAS|ANCÊTRE|SOLDE conforme/, 'site conforme refusé')
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// Une PANNE de git sur la lecture de la citation n'est pas un « non » : sous `depotDuHook`, le patch en
+// panne se lisait vide, et le refus disait « ce commit ne touche PAS » — un motif faux (#2294).
+test('DRIVER : une PANNE de git sur « corrigé par <sha> » se NOMME — jamais « ce commit ne touche PAS »', () => {
+  const { racine: repo } = instanceDeDepot({ fichiers: { 'src/touche.ts': 'export const a = 1\n' }, message: 'socle' })
+  try {
+    const git = gitDe(repo)
+    const sha = git('rev-parse', '--short=9', 'HEAD').trim()
+    const aujourdhui = new Date()
+    const jour = `${aujourdhui.getFullYear()}-${String(aujourdhui.getMonth() + 1).padStart(2, '0')}-${String(aujourdhui.getDate()).padStart(2, '0')}`
+    mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
+    writeFileSync(join(repo, '.claude', 'soldes', '4242.md'), [
+      'VERIFIE: histoire git du dépôt cible relue commit par commit, fichiers touchés recoupés au numstat.',
+      '', '## Restes', `- chemin mort cité -> corrigé par ${sha} src/touche.ts:1`,
+      '', '## Réfutation', 'verdict: CONFIRMÉ',
+      'Un juge a rejoué le diff contre le DoD, tenté deux contournements, aucun ne passe sur ce lot.',
+      '', `(${jour})`, '',
+    ].join('\n'), 'utf8')
+    git('add', '--force', '.claude/soldes/4242.md')
+    const commande = 'git commit -m "corrige #4242"'
+    assert.doesNotMatch(decisionOf(commande, repo)?.reason ?? '', /ne touche PAS|SOLDE conforme|indisponible/, 'témoin : sans panne, la citation est conforme')
+    for (const sousCommande of ['diff-tree', 'rev-list']) {
+      const env = { ...process.env, ...envGitFeint([{ si: [sousCommande], status: 128, stderr: `fatal: panne simulée ${sousCommande}\n` }]) }
+      const vu = decisionOf(commande, repo, env)
+      assert.equal(vu?.decision, 'deny', sousCommande)
+      assert.match(vu.reason, new RegExp(`⛔ lecture git indisponible : .*fatal: panne simulée ${sousCommande}`), sousCommande)
+      assert.equal(vu.reason.split('lecture git indisponible').length, 2, `${sousCommande} : une panne, UN refus`)
+      assert.doesNotMatch(vu.reason, /ne touche PAS/, `${sousCommande} : une panne n'est pas un motif`)
+    }
+  } finally {
+    rmSync(repo, { recursive: true, force: true })
+  }
+})
+
+// Une base que git ne rend pas (ni HEAD ni l'arbre vide) devenait une révision VIDE passée à git : la
+// garde tombait « en panne » et le commit PASSAIT, solde non conforme compris (#2294, C6).
+test('DRIVER : une base ILLISIBLE (`rev-parse` et `hash-object` en panne, ou git absent) est un `deny` NOMMÉ, jamais un passage', () => {
+  const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
+  try {
+    mkdirSync(join(repo, '.claude', 'soldes'), { recursive: true })
+    writeFileSync(join(repo, '.claude', 'soldes', '1.md'), 'solde non conforme\n', 'utf8')
+    gitDe(repo)('add', '-A')
+    const commande = 'git commit -m "corrige #1"'
+    assert.match(decisionOf(commande, repo, process.env, { outil: 'Bash' })?.reason ?? '', /SOLDE conforme/, 'témoin : sans panne, le solde non conforme est refusé')
+    const pannes = {
+      'rev-parse et hash-object': [{ si: ['rev-parse'], status: 128, stderr: 'fatal: panne simulée rev-parse\n' }, { si: ['hash-object'], status: 128, stderr: 'fatal: panne simulée hash-object\n' }],
+      'git absent': [{ si: [], absent: true }],
+    }
+    for (const [quoi, regles] of Object.entries(pannes)) {
+      const vu = decisionOf(commande, repo, { ...process.env, ...envGitFeint(regles) }, { outil: 'Bash' })
+      assert.equal(vu?.decision, 'deny', `${quoi} : ${JSON.stringify(vu)}`)
+      assert.match(vu.reason, /⛔ lecture git indisponible : /, quoi)
+      assert.match(vu.reason, quoi === 'git absent' ? /git|introuvable|ENOENT/i : /fatal: panne simulée rev-parse/, quoi)
+      assert.equal(vu.reason.split('lecture git indisponible').length, 2, `${quoi} : une panne, UN refus`)
+    }
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
@@ -730,7 +789,7 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
     const parCale = decisionOf(commande, repo, { ...process.env, ...envGitFeint([{ si: ['diff-index', '--numstat', '-M'], status: 128, stderr: 'fatal: panne simulée\n' }]) })
     assert.equal(parCale?.decision, 'deny')
     assert.match(parCale.reason, /^⛔ lecture git indisponible : fatal: panne simulée/)
-    assert.doesNotMatch(parCale.reason, /ascendance indisponible/, 'la feinte épargne l’ascendance : un seul refus')
+    assert.equal(parCale.reason.split('lecture git indisponible').length, 2, 'une panne, UN refus')
 
     const blob = git('rev-parse', 'HEAD:src/x.ts')
     const objet = join(repo, '.git', 'objects', blob.slice(0, 2), blob.slice(2))

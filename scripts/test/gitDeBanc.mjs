@@ -8,8 +8,16 @@
 // (#2155) ; `cause`, `status`, `signal`, `stdout`, `stderr` restent posés. L'env est
 // `envDeDepotForge()` (#1806) ; un lancement qui lit l'arbre RÉEL du dépôt le dit par son nom
 // (`gitDeLArbreReel`, `resultatDeLArbreReel`) : son env HÉRITÉ est ce qui le rend juste.
+// Le COMPTE des lancements d'un code mesuré (`lancesDeGit`) vit ici aussi. Il voit les `spawnSync` et
+// `execFileSync` de git de `node:child_process`, lus à liaison VIVE : un import nommé ou un espace de
+// noms. Il ne voit ni `execSync`, ni un `spawn` asynchrone, ni une ligne de commande `shell: true`,
+// ni une fonction capturée dans une constante avant le compte. Cela suffit : tout git des portes passe
+// par `lancer` (`gitPorte.mjs`), qui appelle `spawnSync` à liaison vive, et la garde `gitHorsHote`
+// attrape le littéral `'git'` lancé hors de l'hôte et du banc.
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
+import { ENV_GIT_FEINT, envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
+import { estEchecDeChargement } from '../guards/lib/spawnResilient.mjs'
 
 /** La plus grande sortie lue par un banc : le journal complet de l'arbre réel. */
 const SORTIE_MAX = 1e8
@@ -71,3 +79,49 @@ export const resultatDeGit = (args, { cwd, env = envDeDepotForge(), input } = {}
  * @param {string[]} args @param {{ cwd?: string, input?: string }} [options]
  */
 export const resultatDeLArbreReel = (args, options = {}) => resultatDeGit(args, { ...options, env: process.env })
+
+/** L'exécutable `git`, nu ou par son chemin. */
+const EST_GIT = /(?:^|[\\/])git(?:\.exe)?$/i
+
+/**
+ * Les lancements de git de `fn()`, comptés au PROCESSUS : chaque `spawnSync` ou `execFileSync` de git
+ * lancé pendant `fn`, qu'il passe par un `spawn` injecté (`depotDe`) ou par un `depotDe(cwd)` interne,
+ * que la mesure ne voit pas autrement. Les liaisons ESM de `node:child_process` suivent le remplacement
+ * (`syncBuiltinESMExports`), restauré à la sortie. Un lancement qui n'a pas démarré
+ * (`estEchecDeChargement`), que l'hôte rejoue, n'y est pas. Sous une git FEINTE (`ENV_GIT_FEINT`),
+ * qui répond sans processus, le compte serait vide sans rien mesurer : il LÈVE.
+ * @template T @param {() => T} fn @returns {{ valeur: T, lances: string[][] }}
+ */
+export function lancesDeGit(fn) {
+  if (process.env[ENV_GIT_FEINT]) throw new Error(`lancesDeGit : ${ENV_GIT_FEINT} répond sans processus — le compte ne mesurerait rien`)
+  const cp = createRequire(import.meta.url)('node:child_process')
+  const origines = { spawnSync: cp.spawnSync, execFileSync: cp.execFileSync }
+  /** @type {string[][]} */
+  const lances = []
+  cp.spawnSync = function (commande, args, options) {
+    const vu = origines.spawnSync.call(this, commande, args, options)
+    if (EST_GIT.test(String(commande)) && !estEchecDeChargement(vu?.status)) lances.push([...(args ?? [])])
+    return vu
+  }
+  cp.execFileSync = function (commande, args, options) {
+    if (EST_GIT.test(String(commande))) lances.push([...(Array.isArray(args) ? args : [])])
+    return origines.execFileSync.call(this, commande, args, options)
+  }
+  syncBuiltinESMExports()
+  try {
+    return { valeur: fn(), lances }
+  } finally {
+    Object.assign(cp, origines)
+    syncBuiltinESMExports()
+  }
+}
+
+/** La sous-commande git d'une liste d'arguments lancée (après `-c <réglage>` et `--<option>`).
+ *  @param {readonly string[]} args @returns {string | null} */
+export function sousCommande(args) {
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === '-c') { i += 1; continue }
+    if (!args[i].startsWith('-')) return args[i]
+  }
+  return null
+}

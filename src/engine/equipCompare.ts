@@ -6,7 +6,7 @@
  * Protection des boucliers via l'Atout « Protectrice N »). Présentation pure → testable hors UI.
  */
 import type { Combatant, ItemInstance, HitLocation, WeaponDamageSpec, QualityInstance } from './types';
-import { damageScore, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
+import { damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
 import { effectiveRange } from './weaponDamage';
 import { bonus, effectiveChar } from './characteristics';
 import { resolveQualities } from './qualities/dispatch';
@@ -32,13 +32,6 @@ const ZONES: { label: string; locs: HitLocation[] }[] = [
   { label: 'Corps', locs: ['corps'] },
   { label: 'Jambes', locs: ['jambeG', 'jambeD'] },
 ];
-
-/** Un bouclier = l'arme portant l'Atout « Protectrice N » (LDB 62 l.296 — c'est la PA d'un bouclier en
- *  parade ; cet Atout est exclusif aux boucliers dans le catalogue). Détection par ID STABLE de qualité
- *  (`QualityInstance.id`) — multilangue-safe : ne dépend plus du libellé « Bouclier ». Pur (pas d'import rig). */
-export function isShieldItem(i: { qualities?: QualityInstance[] }): boolean {
-  return (i.qualities ?? []).some((q) => q.id === 'protectrice');
-}
 
 const trendOf = (n: number): Trend => (n > 0 ? 'up' : n < 0 ? 'down' : 'same');
 /** Indice de l'Atout « Protectrice N » (PA d'un bouclier en parade, LDB 62 l.296) — lecture structurée. */
