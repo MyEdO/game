@@ -50454,7 +50454,8 @@
       },
       {
         "id": "corruption-mentale",
-        "arg": "Totalement déséquilibré et 2 autres lancers"
+        "value": 3,
+        "arg": "totalement-desequilibre"
       },
       {
         "id": "endurant"
@@ -52534,7 +52535,7 @@
       },
       {
         "id": "corruption-mentale",
-        "arg": "Bête intérieure"
+        "arg": "bete-interieure"
       },
       {
         "id": "a-distance",

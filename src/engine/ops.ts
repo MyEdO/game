@@ -1923,7 +1923,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         // Trait PSYCHOLOGIQUE conféré (≠ état de combat) : posé dans `c.psychTraits` (la DONNÉE persistée),
         // noyau PARTAGÉ `grantPsychTrait` (`grantedTraits.ts`) — même chemin qu'`attachMutation` (permanent).
         const cible = o.cible ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        grantPsychTrait(target, o.psychType as PsychType, cible);
+        grantPsychTrait(target, o.psychType as PsychType, cible, ctx.source);
         lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(o.psychType), src: nomDeSource(ctx) }));
         break;
       }
