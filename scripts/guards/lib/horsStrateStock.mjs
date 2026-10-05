@@ -342,6 +342,7 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/mutations.json', ref: 'passive | amount,noDeviation,op', occurrence: 1 },
   { fichier: 'src/data/mutations.json', ref: 'passive | amount,op', occurrence: 1 },
   { fichier: 'src/data/mutations.json', ref: 'passive | bare,damage,label,op,plusBF,qualities', occurrence: 1 },
+  { fichier: 'src/data/mutations.json', ref: 'passive | char,min,mod,op', occurrence: 1 },
   { fichier: 'src/data/mutations.json', ref: 'passive | char,mod,op', occurrence: 1 },
   { fichier: 'src/data/mutations.json', ref: 'passive | mod,op', occurrence: 1 },
   { fichier: 'src/data/mutations.json', ref: 'passive | mod,op,skill', occurrence: 1 },
