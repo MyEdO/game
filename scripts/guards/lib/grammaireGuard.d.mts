@@ -1,3 +1,4 @@
+import type { Checker } from 'typescript/unstable/sync';
 /** Une forme de la grammaire re-tapée, ou une porte étendue, à un site précis. */
 export interface TrouvailleGrammaire {
   ligne: number;
@@ -17,4 +18,5 @@ export interface ReglesGrammaire {
   sansRedeclaration?: boolean;
 }
 
-export function scan(rel: string, contenu: string, regles: ReglesGrammaire): TrouvailleGrammaire[];
+export function scan(rel: string, contenu: string, regles: ReglesGrammaire, sourceFile?: SourceFile, checker?: Checker): TrouvailleGrammaire[];
+import type { SourceFile } from 'typescript/unstable/ast';

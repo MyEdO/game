@@ -27,7 +27,8 @@ function rendu() {
     }
   }
 
-  const closures = new Map(SYSTEMES.map((s) => [s.id, closureOf(s.modules)]))
+  const cache = new Map()
+  const closures = new Map(SYSTEMES.map((s) => [s.id, closureOf(s.modules, { cache })]))
 
   // --- matrice primitive × système (U = présente dans la closure du système) ---
   const usedByAny = new Map(PRIMITIVES.map((p) => [p.id, false]))
@@ -64,7 +65,7 @@ function rendu() {
   out += `> \`src/data/primitives.manifest.json\`. La matrice ci-dessous est CALCULÉE du graphe d'imports réel (closure\n`
   out += `> transitive des modules racines déclarés par système) — jamais périmée : re-générer après tout ajout.\n\n`
   out += `**Périmètre mesuré / angles morts** — la closure d'import est calculée par \`closureOf\` (\`scripts/guards/lib/importGraph.mjs\`) :\n`
-  out += `parcours RÉGEX des specifiers \`from '…'\`/\`import('…')\`, RÉSOLUS s'ils sont RELATIFS (\`./\`, \`../\`) ou sous un alias\n`
+  out += `parcours AST des spécificateurs de module, RÉSOLUS s'ils sont RELATIFS (\`./\`, \`../\`) ou sous un alias\n`
   out += `de \`tsconfig.json\` (\`@/…\`) — un paquet npm n'est jamais suivi (\`resolveImport\` renvoie \`null\`), donc invisible ici sans\n`
   out += `que la primitive soit hors d'usage. L'inventaire « modules non rattachés » est lui-même borné : SURFACE de\n`
   out += `\`src/state\`/\`src/engine\` uniquement (\`listerDossier\` non récursif, \`*.test.ts\` exclus) — un fichier niché dans un\n`

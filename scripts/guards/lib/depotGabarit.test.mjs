@@ -380,7 +380,7 @@ function surchargesDe(rel, texte) {
   const alias = new Set()
   const lierAlias = (n) => {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && litteral(n.initializer)) alias.add(n.name.text)
-    ts.forEachChild(n, lierAlias)
+    n.forEachChild(lierAlias)
   }
   lierAlias(racine)
   const designe = (n) => litteral(n) || (!!n && ts.isIdentifier(n) && alias.has(n.text))
@@ -399,7 +399,7 @@ function surchargesDe(rel, texte) {
       const ligne = racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1
       sites.push({ ligne, texte: lignes[ligne - 1].trim() })
     }
-    ts.forEachChild(n, visiter)
+    n.forEachChild(visiter)
   }
   visiter(racine)
   return sites

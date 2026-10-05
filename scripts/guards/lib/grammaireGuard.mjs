@@ -13,8 +13,8 @@
 // La lecture du corpus n'est PAS ici : elle vit dans `sourceCorpus.mjs` (`readCorpus`). Ce module
 // reçoit UN fichier (`rel`, `contenu`) et les RÈGLES (signatures + alias, dérivées par l'appelant
 // des schémas eux-mêmes — aucune liste de clés n'est recopiée ici) et rend des trouvailles.
-import ts from 'typescript';
-import { ast } from './dialecte.mjs';
+import * as ts from 'typescript/unstable/ast';
+import { analyserCorpus } from './dialecte.mjs';
 import { contexteImports, liaisonImportee } from './canonUnique.mjs';
 
 /** Fabriques d'objet zod dont l'argument littéral porte une forme DÉCLARÉE. */
@@ -44,7 +44,7 @@ const ligneDe = (sf, n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line
 function nomDeCle(name) {
   if (!name) return null;
   if (ts.isIdentifier(name) || ts.isStringLiteral(name)) return name.text;
-  if (ts.isComputedPropertyName(name) && ts.isStringLiteralLike(name.expression)) return name.expression.text;
+  if (ts.isComputedPropertyName(name) && ts.isStringLiteralLikeNode(name.expression)) return name.expression.text;
   return null;
 }
 
@@ -58,7 +58,7 @@ function siteDe(n) {
     if (ts.isPropertyAssignment(p)) {
       const c = nomDeCle(p.name);
       if (c) champs.unshift(c);
-    } else if (ts.isVariableDeclaration(p) && ts.isIdentifier(p.name)) {
+    } else if (ts.isVariableDeclaration(p) && ('name' in p && ts.isIdentifier(p.name))) {
       symbole = p.name.text;
       break;
     } else if (ts.isFunctionDeclaration(p) && p.name) {
@@ -115,9 +115,12 @@ function racineDe(e) {
  *   est une FABRIQUE de la grammaire (ses littéraux SONT le canon) : seul `.extend` y est scanné.
  * @returns {{ ligne: number, symbole: string, champ: string, motif: 'redeclaration'|'alias'|'extend', detail: string }[]}
  */
-export function scan(rel, contenu, regles) {
-  const sf = ast({ rel, text: contenu });
-  const contexte = contexteImports(sf);
+export function scan(rel, contenu, regles, sourceFile, checker) {
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel, text: contenu }])) return scan(rel, contenu, regles, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   const local = estModuleGrammaire(rel);
   const alias = new Set(regles.alias);
   const signatures = regles.signatures.filter((s) => s.cles.length >= 2).map((s) => ({ nom: s.nom, cles: new Set(s.cles) }));
@@ -155,7 +158,7 @@ export function scan(rel, contenu, regles) {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
       constsObjet.set(n.name.text, n.initializer);
     }
-    ts.forEachChild(n, releveConsts);
+    n.forEachChild(releveConsts);
   };
   releveConsts(sf);
 
@@ -189,7 +192,7 @@ export function scan(rel, contenu, regles) {
         }
       }
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return trouvailles;

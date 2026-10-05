@@ -1,3 +1,4 @@
+import { analyserCorpus } from './dialecte.mjs';
 // Mécanique de scan du CLIQUET des marcheurs de Flow sous `src/state` (#1874, ticket § Lot B : posé
 // avec C0 à 4, cible 1). Le verdict et le PLAFOND vivent dans le test (`src/marcheurs-de-flow-guard.test.ts`).
 //
@@ -12,7 +13,7 @@
 //  - une clause `case 'seq'` dont le PREMIER énoncé est un `return` qui marche quand même
 //    (`return f.steps.forEach(…)`) ;
 //  - un `switch` porté par une méthode de classe ou un littéral d'objet hors déclaration de module.
-import tsModule from 'typescript';
+import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs';
 
 const ts = tsModule;
@@ -45,8 +46,7 @@ function declarationDeModule(node, sf) {
  */
 export function scanMarcheursDeFlow(files) {
   const out = [];
-  for (const { rel, text } of files) {
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true);
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(files)) {
     const vus = new Set();
     const visit = (node) => {
       if (ts.isSwitchStatement(node) && ts.isPropertyAccessExpression(node.expression)
@@ -57,7 +57,7 @@ export function scanMarcheursDeFlow(files) {
           out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, fn });
         }
       }
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
     };
     visit(sf);
   }

@@ -231,7 +231,7 @@ export const gossipRule = LAND.gossip;
 /** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : d100 → une rumeur pointant les biens très
  *  demandés à un Emplacement. PUR. */
 export function rollTradeRumour(rng: RNG = defaultRNG): RumourRow {
-  return findTableEntry(LAND.rumours, d100(rng));
+  return structuredClone(findTableEntry(LAND.rumours, d100(rng))); // #2097
 }
 
 /** La cargaison `cargoId` correspond-elle à une rumeur (l.180 : « ils peuvent en vendre autant qu'ils le

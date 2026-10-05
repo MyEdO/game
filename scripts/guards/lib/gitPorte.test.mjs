@@ -12,9 +12,9 @@ import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shaPrecedentDeHead, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -45,6 +45,142 @@ const depotFeint = (cwd, repondre, enPanne) => depotDe(cwd, { enPanne, spawn: (_
 
 /** Un git MUET : code 1, rien sur aucun flux. */
 const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
+
+test('appliquerCorrectif garde ses arguments et distingue application et présence inverse', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'node_modules/paquet/fichier.js' }
+  for (const [statuses, attendu] of [[[0, 0], true], [[1, 0], false]]) {
+    const appels = []
+    const d = depotDe(tmpdir(), { env: {}, spawn: (commande, args, options) => {
+      appels.push({ commande, args, options })
+      return { status: statuses[appels.length - 1], stderr: 'diagnostic conservé', stdout: '' }
+    } })
+    assert.equal(appliquerCorrectif(d, cible), attendu)
+    assert.equal(appels.length, 2)
+    for (const appel of appels) {
+      assert.equal(appel.commande, 'git')
+      assert.equal(appel.options.cwd, tmpdir())
+      assert.deepEqual(appel.args.slice(0, 5), ['-c', 'core.autocrlf=false', 'apply', '--whitespace=error', `--include=${cible.include}`])
+      assert.deepEqual(appel.args.slice(-2), ['--', cible.patch])
+    }
+    assert.deepEqual(appels[0].args.slice(5, -2), ['--check'])
+    assert.deepEqual(appels[1].args.slice(5, -2), attendu ? [] : ['--reverse', '--check'])
+  }
+})
+
+test('appliquerCorrectif refuse incompatibilité, application échouée et statuts anormaux', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'paquet/fichier.js' }
+  for (const statuses of [[1, 1], [0, 1], [0, 2], [2], [128], [null], [undefined], [1, 128]]) {
+    let appels = 0
+    const d = depotDe(tmpdir(), { env: {}, spawn: () => ({ status: statuses[appels++], stderr: `diagnostic ${appels}`, stdout: `sortie ${appels}` }) })
+    assert.throws(() => appliquerCorrectif(d, cible), erreur => {
+      if (statuses[0] === 1 && statuses[1] === 1) {
+        assert.equal(erreur.name, 'AggregateError')
+        assert.deepEqual(erreur.errors.map(e => [e.status, e.stderr]), [[1, 'diagnostic 1'], [1, 'diagnostic 2']])
+        assert.equal(erreur.cause, erreur.errors[1])
+      } else {
+        assert.equal(erreur.name, 'CorrectifRefuse')
+        assert.equal(erreur.status, statuses[appels - 1])
+        assert.equal(erreur.stderr, `diagnostic ${appels}`)
+        assert.equal(erreur.stdout, `sortie ${appels}`)
+      }
+      return true
+    })
+    assert.equal(appels, statuses.length)
+  }
+})
+
+test('appliquerCorrectif nomme les échecs de démarrage et les signaux sans appliquer', t => {
+  const cible = { patch: 'patches/correctif.patch', include: 'paquet/fichier.js' }
+  for (const resultat of [{ error: new Error('spawnSync git ENOENT'), status: null }, { signal: 'SIGTERM', status: null }]) {
+    for (const statuses of [[], [0], [1]]) {
+      let appels = 0
+      const d = depotDe(tmpdir(), { env: {}, spawn: () => appels++ === statuses.length ? resultat : { status: statuses[appels - 1] }, enPanne: () => assert.fail('Une écriture ne confie pas son échec') })
+      assert.throws(() => appliquerCorrectif(d, cible), erreur => {
+        assert.equal(erreur.name, 'GitIndisponible')
+        assert.equal(erreur.status, null)
+        assert.equal(erreur.signal, resultat.signal)
+        assert.equal(erreur.cause, resultat.error)
+        return true
+      })
+      assert.equal(appels, statuses.length + 1)
+    }
+  }
+  const racine = mkdtempSync(join(tmpdir(), 'correctif-demarrage-'))
+  t.after(() => jeter(racine))
+  const cause = spawnSync(join(racine, 'git-absent.exe'), [], { encoding: 'utf8' }).error
+  assert.equal(cause.code, 'ENOENT')
+  const d = depotDe(tmpdir(), { env: {}, spawn: () => { throw cause } })
+  assert.throws(() => appliquerCorrectif(d, cible), erreur => erreur.name === 'GitIndisponible' && erreur.cause === cause && erreur.raison.endsWith(cause.message))
+})
+
+test('#2285 appliquerCorrectif transporte lancement et interruption complets', t => {
+  const racine = mkdtempSync(join(tmpdir(), 'correctif-diagnostic-'))
+  t.after(() => jeter(racine))
+  const stdout = `${'note stdout\n'.repeat(50)}cause stdout tardive\n`
+  const stderr = `${'note stderr\n'.repeat(50)}cause stderr tardive\n`
+  const lancement = spawnSync(join(racine, 'git-absent.exe'), [], { encoding: 'utf8' })
+  const interruption = spawnSync(process.execPath, ['-e', `const fs=require('node:fs');fs.writeFileSync(1,${JSON.stringify(stdout)});fs.writeFileSync(2,${JSON.stringify(stderr)});Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);`], { encoding: 'utf8', timeout:1500, killSignal:'SIGTERM' })
+  assert.equal(lancement.error.code, 'ENOENT')
+  assert.equal(interruption.signal, 'SIGTERM')
+  assert.equal(interruption.stdout, stdout)
+  assert.equal(interruption.stderr, stderr)
+  for (const [nom, vu] of [['lancement', lancement], ['interruption', interruption]]) {
+    t.diagnostic(JSON.stringify({ nom, ...vu, error: vu.error && { name:vu.error.name,message:vu.error.message,code:vu.error.code,errno:vu.error.errno,syscall:vu.error.syscall,path:vu.error.path,spawnargs:vu.error.spawnargs } }))
+  }
+  for (const [vu, issue, raison] of [[lancement,'lancement',`git introuvable (binaire absent du PATH) — ${lancement.error.message}`],[interruption,'interruption',`processus tué par le signal ${interruption.signal}`]]) {
+    let appels = 0
+    const d = depotDe(racine, { env:{}, spawn:()=>{appels+=1;return vu} })
+    assert.throws(()=>appliquerCorrectif(d,{patch:'correctif.patch',include:'cible.js'}), e=>{
+      assert.equal(e.issue, issue)
+      assert.equal(e.phase, 'vérification')
+      assert.equal(e.cause, vu.error)
+      assert.equal(e.status, vu.status)
+      assert.equal(e.signal, vu.signal)
+      assert.equal(e.stdout, vu.stdout ?? '')
+      assert.equal(e.stderr, vu.stderr ?? '')
+      assert.deepEqual(e.diagnostic, {status:vu.status ?? null,stdout:vu.stdout ?? '',stderr:vu.stderr ?? '',error:vu.error,...(vu.signal?{signal:vu.signal}:{})})
+      assert.equal(refusDeGit(e), `${issue} (${vu.signal?`signal ${vu.signal}`:'status ?'}) — ${raison}${vu.stderr?`\n${vu.stderr}`:''}${vu.stdout?`\n${vu.stdout}`:''}`)
+      return true
+    })
+    assert.equal(appels, 1)
+  }
+})
+
+test('#2285 appliquerCorrectif conserve identité programme', () => {
+  let interne
+  try { Buffer.from(123) } catch(e) { interne=e }
+  assert.equal(interne.code, 'ERR_INVALID_ARG_TYPE')
+  for(const erreur of [new TypeError('programme correctif'),interne]) {
+    const d=depotDe(tmpdir(),{env:{},spawn:()=>{throw erreur}})
+    assert.throws(()=>appliquerCorrectif(d,{patch:'correctif.patch',include:'cible.js'}),e=>e===erreur)
+  }
+})
+
+test('appliquerCorrectif refuse les chemins hors portée et les motifs avant tout lancement', () => {
+  const d = depotDe(tmpdir(), { spawn: () => assert.fail('Chemin refusé avant Git') })
+  for (const chemin of ['', '../ailleurs', 'a/../ailleurs', '/absolu', 'C' + ':/absolu', 'a\\b', '-p0', 'a/*', 'a/?', 'a/[bc]', 'a/{b,c}', 'a\nfin', 'a//b', './a']) {
+    assert.throws(() => appliquerCorrectif(d, { patch: chemin, include: 'paquet/fichier.js' }), /chemins relatifs littéraux bornés/)
+    assert.throws(() => appliquerCorrectif(d, { patch: 'patches/correctif.patch', include: chemin }), /chemins relatifs littéraux bornés/)
+  }
+})
+
+test('appliquerCorrectif réel ne touche que le chemin inclus et reste idempotent', t => {
+  const racine = mkdtempSync(join(tmpdir(), 'git-correctif-'))
+  t.after(() => jeter(racine))
+  mkdirSync(join(racine, 'paquet'))
+  for (const nom of ['cible', 'autre']) writeFileSync(join(racine, `paquet/${nom}.txt`), 'avant\n')
+  const patch = ['cible', 'autre'].map(nom => `diff --git a/paquet/${nom}.txt b/paquet/${nom}.txt\n--- a/paquet/${nom}.txt\n+++ b/paquet/${nom}.txt\n@@ -1 +1 @@\n-avant\n+apres\n`).join('')
+  writeFileSync(join(racine, 'correctif.patch'), patch)
+  const d = forge(racine)
+  const cible = { patch: 'correctif.patch', include: 'paquet/cible.txt' }
+  assert.equal(appliquerCorrectif(d, cible), true)
+  assert.equal(readFileSync(join(racine, cible.include), 'utf8'), 'apres\n')
+  assert.equal(readFileSync(join(racine, 'paquet/autre.txt'), 'utf8'), 'avant\n')
+  assert.equal(appliquerCorrectif(d, cible), false)
+  writeFileSync(join(racine, cible.include), 'incompatible\n')
+  assert.throws(() => appliquerCorrectif(d, cible), /Correctif inapplicable/)
+  assert.equal(readFileSync(join(racine, cible.include), 'utf8'), 'incompatible\n')
+})
 
 test('env fournisseur : une résolution par interrogation, objet partagé avec les rejeux et la feinte', () => {
   let resolutions = 0
@@ -1298,7 +1434,6 @@ test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le
   }
 })
 
-// #2203
 test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés se conclut en les retirant de l’index — le disque les garde', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'gen.md': 'base\n', 'a.txt': 'a\n' }, message: 'socle' })
   try {

@@ -4,8 +4,7 @@
  * Verbatim utilisateur (2026-09-09) : « faut que l'ensemble des raccourci soit cohérent. » Un
  * raccourci d'application vit dans `state/keybindings.ts` et n'est lu que par le hook unique
  * `ui/useGameKeyboard.ts` : remappable à l'écran Options, arbitré par un seul `find`, sans collision
- * silencieuse. Un `window.addEventListener('keydown')` posé ailleurs ré-ouvre exactement ce qui a été
- * fermé — l'éditeur avait ainsi trois listeners, dont deux sur `e.key` (donc faux en AZERTY).
+ * silencieuse.
  *
  * CE QUE CETTE GARDE MESURE, exactement (contrat POSITIF, par SIGNAL STRUCTUREL — jamais une liste de
  * chemins) :
@@ -78,6 +77,15 @@ describe('raccourcis — un seul lecteur de clavier global', () => {
     const ecouteur = "window.addEventListener('keydown', onKey);\n";
     expect(temoin('// cf. KEYBINDINGS pour le reste\n' + ecouteur)).toMatch(/hors du registre/);
     expect(temoin("import { KEYBINDINGS } from '../state/keybindings';\n" + ecouteur)).toBeNull();
+  });
+
+  it('la cible appartient à la passe même absente du dépôt ; une même identité n’est parsée qu’une fois', () => {
+    const table = { rel: 'src/x/types.ts', text: "export const TYPES = ['keydown'] as const;" };
+    const cible = { rel: 'src/x/lecteur.ts', text: "import { TYPES } from './types'; for (const type of TYPES) window.addEventListener(type, f);" };
+    expect(verdictClavier(cible, [table])).toMatch(/hors du registre/);
+    expect(verdictClavier(cible, [table, cible])).toMatch(/hors du registre/);
+    expect(verdictClavier(cible, [table, cible, cible])).toMatch(/hors du registre/);
+    expect(() => verdictClavier(cible, [table, { ...cible }])).toThrow(/chemins de parse en collision/);
   });
 
   it('les couches déclarées hors registre EXISTENT et posent bien un écouteur (aucune marque morte)', () => {

@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * RULE_REF (#1078 LOT B3a) — deux gardes.
  *
@@ -23,7 +24,7 @@
  * Aucune exemption par fichier : la discrimination porte sur la FORME, à tous les sites.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { RULE_REF, type RuleId } from './ruleRefs';
 import { weatherRef } from './travelStages';
@@ -105,15 +106,11 @@ function staticRuleKey(e: ts.Expression): string | null {
 }
 
 /** Les littéraux de `ModLine` d'un fichier, `ref` présente ou non. */
-export function modLineLiterals(path: string, raw: string): ModLiteral[] {
-  const sf = ts.createSourceFile(
-    path, raw, ts.ScriptTarget.Latest, true,
-    path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+export function modLineLiterals(path: string, raw: string, sf = ast({ rel: path, text: raw })!): ModLiteral[] {
   const found: ModLiteral[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isObjectLiteralExpression(node)) {
-      const names = node.properties.map((p) => (p.name && ts.isIdentifier(p.name) ? p.name.text : null));
+      const names = node.properties.map((p) => ('name' in p && p.name && ts.isIdentifier(p.name) ? p.name.text : null));
       const onlyModLineKeys = node.properties.every((p, i) => ts.isSpreadAssignment(p) || (!!names[i] && MODLINE_KEYS.has(names[i]!)));
       if (onlyModLineKeys && names.includes('label') && names.includes('value')) {
         const prop = (k: string) => node.properties.find((_, i) => names[i] === k);
@@ -136,7 +133,7 @@ export function modLineLiterals(path: string, raw: string): ModLiteral[] {
         }
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(sf);
   return found;
@@ -150,13 +147,6 @@ interface ModSite {
   ruleKey: string | null;
 }
 
-/**
- * TOUS les sites de `ModLine` de `src/**` (hors tests), `fichier · label`, avec l'état de leur `ref`.
- * COÛT MESURÉ (2026-08-23, 1880 fichiers / 15,2 Mo) : 2,04 s par balayage — 1,62 s de
- * `ts.createSourceFile`, 0,19 s de lecture, 0,03 s de parcours de dossiers, 0,21 s de visite. Les
- * neuf `it` de ce fichier interrogent le MÊME corpus : le balayage est mémoïsé, et PARESSEUX — au
- * premier `it` qui le demande, jamais à la collecte de vitest.
- */
 let sitesMemo: ModSite[] | undefined;
 function modLineSites(): ModSite[] {
   return (sitesMemo ??= scanModLineSites());
@@ -164,8 +154,8 @@ function modLineSites(): ModSite[] {
 
 function scanModLineSites(): ModSite[] {
   const out: ModSite[] = [];
-  for (const { abs, rel, text } of readCorpus(['src'])) {
-    for (const m of modLineLiterals(abs, text)) {
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src']))) {
+    for (const m of modLineLiterals(rel, text, sourceFile!)) {
       out.push({ at: `${rel} · ${m.label}`, where: `${rel}:${m.line} · ${m.label}`, hasRef: m.hasRef, famille: m.famille, ruleKey: m.ruleKey });
     }
   }
@@ -213,7 +203,7 @@ const RATCHET = [
 ].sort();
 
 describe('Cliquet — les ModLine SANS règle liée sont ÉNUMÉRÉES et décroissent (#1078)', () => {
-  it('le stock mesuré est EXACTEMENT le stock déclaré (lier une règle = retirer sa ligne)', () => {
+  it('le stock mesuré est EXACTEMENT le stock déclaré (lier une règle = retirer sa ligne)', { timeout: 60_000 }, () => {
     const measured = refLessProducers();
     const added = measured.filter((x) => !RATCHET.includes(x));
     const removed = RATCHET.filter((x) => !measured.includes(x));

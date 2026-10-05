@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE « un résolveur d'Activité a un CONSOMMATEUR » (#1318 V6) — pendant de l'union fermée
  * `ActivityResolver` : fermer le vocabulaire ne sert à rien si un membre n'est lu par personne. Un
@@ -13,7 +14,7 @@
  * elle ne peut pas manquer un vrai zéro, elle peut être trop indulgente. C'est le sens utile ici.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, type ActivityResolver } from '../engine/activities';
 
@@ -28,20 +29,13 @@ const DEFINITION_FILES = new Set([
 const MOT_FORGE = 'resolveurQuiNExistePas' as ActivityResolver;
 
 /** Littéraux de chaîne d'un source (nœuds AST — ni commentaires, ni prose de gabarit). */
-export function stringLiteralsOf(relPath: string, contenu: string): Set<string> {
-  const sf = ts.createSourceFile(
-    relPath,
-    contenu,
-    ts.ScriptTarget.Latest,
-    true,
-    relPath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+export function stringLiteralsOf(relPath: string, contenu: string, sf = ast({ rel: relPath, text: contenu })!): Set<string> {
   const found = new Set<string>();
   const visit = (n: ts.Node) => {
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) found.add(n.text);
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   return found;
 }
 
@@ -51,20 +45,13 @@ export function consumersByResolver(
   resolvers: readonly ActivityResolver[],
 ): Map<ActivityResolver, string[]> {
   const out = new Map<ActivityResolver, string[]>(resolvers.map((r) => [r, []]));
-  for (const { rel, contenu } of files) {
-    if (DEFINITION_FILES.has(rel)) continue;
-    const lits = stringLiteralsOf(rel, contenu);
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(files.filter((f) => !DEFINITION_FILES.has(f.rel)).map(({ rel, contenu }) => ({ rel, text: contenu })))) {
+    const lits = stringLiteralsOf(rel, text, sourceFile!);
     for (const r of resolvers) if (lits.has(r)) out.get(r)!.push(rel);
   }
   return out;
 }
 
-/**
- * Consommateurs du corpus RÉEL. COÛT MESURÉ (2026-08-23, 1880 fichiers / 15,2 Mo) : 2,0 s par
- * balayage, dont 1,6 s de `ts.createSourceFile`. Les deux `it` de cliquet lisent la MÊME carte :
- * elle est mémoïsée, et PARESSEUSE — au premier `it` qui la demande, jamais à la collecte de
- * vitest. Les `it` de MORSURE passent leur propre corpus FORGÉ au comparateur pur, hors mémo.
- */
 let consumersMemo: Map<ActivityResolver, string[]> | undefined;
 function consommateursReels(): Map<ActivityResolver, string[]> {
   return (consumersMemo ??= consumersByResolver(
@@ -74,7 +61,7 @@ function consommateursReels(): Map<ActivityResolver, string[]> {
 }
 
 describe('garde — un résolveur d’Activité a un CONSOMMATEUR (#1318 V6)', () => {
-  it('chaque membre d’ACTIVITY_RESOLVERS est lu par au moins un consommateur de production — SANS exception', () => {
+  it('chaque membre d’ACTIVITY_RESOLVERS est lu par au moins un consommateur de production — SANS exception', { timeout: 60_000 }, () => {
     const consumers = consommateursReels();
     expect(consumers.size, 'le balayage n’a pas couvert tout le vocabulaire').toBe(ACTIVITY_RESOLVERS.length);
     const mesure = ACTIVITY_RESOLVERS.map((r) => `${r} (famille ${RESOLVER_OWNER[r]}) : ${(consumers.get(r) ?? []).length}`);

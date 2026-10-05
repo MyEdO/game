@@ -7,7 +7,7 @@
  * garantit, par porte, dans un `Record<AdresseDeCreation, V>` :
  * - typecheck : une `string` (libellé ou texte à la forme d'une adresse) ne l'indexe ni en lecture ni en
  *   écriture, et n'est pas une clé d'un littéral d'objet écrit AU TYPE du Record (TS7053, TS2353) ;
- * - lint `murs/marques` (`eslint.config.js`, tests compris) : pas de cast vers la marque hors de
+ * - lint `murs/marques` (`oxlint.config.mjs`, tests compris) : pas de cast vers la marque hors de
  *   `marquer`, pas d'adresse écrite en texte (littéral complet, gabarit ouvert sur une famille) hors des
  *   fabriques.
  * Ce qu'elle ne garantit PAS : tsc laisse entrer, sans vérifier ni la clé ni la valeur, tout objet à

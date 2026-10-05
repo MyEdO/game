@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 // Audit EXHAUSTIF (AST, pas grep à l'oeil) des chaines FR affichees en dur dans l'UI, hors
 // catalogue i18n (`src/i18n/`). Etape 1 du ticket #320 (2e chasse aux dettes, lot L6) — MESURE
 // seule, aucune migration. Scanne `src/ui/**/*.tsx?` + `src/state/**/*.ts(x)` (messages composes
@@ -14,8 +15,7 @@
 // de migration estime = nombre de chaines UNIQUES apres dedoublonnage, pas le total brut.
 //
 // Usage : node scripts/ui/audit-i18n.mjs [--json] [--out <path>]
-import ts from 'typescript';
-import { scriptKindDe } from '../guards/lib/dialecte.mjs';
+import * as ts from 'typescript/unstable/ast';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
@@ -77,7 +77,7 @@ function templateLiteralText(node) {
 function isPropertyKeyPosition(node) {
   const p = node.parent;
   if (!p) return false;
-  if ((ts.isPropertyAssignment(p) || ts.isPropertySignature(p) || ts.isEnumMember(p)) && p.name === node) return true;
+  if ((ts.isPropertyAssignment(p) || ts.isPropertySignatureDeclaration(p) || ts.isEnumMember(p)) && p.name === node) return true;
   if (ts.isImportSpecifier(p) || ts.isExportSpecifier(p)) return true;
   return false;
 }
@@ -99,11 +99,8 @@ const globalOccurrences = new Map(); // text -> [{ file, line }]
 let catalogRefs = 0;
 const catalogRefsPerFile = new Map();
 
-for (const file of files) {
+for (const { fichier: { rel: file }, sourceFile: sf } of analyserCorpus(files.map((file) => ({ rel: file, text: readFileSync(file, 'utf8') })))) {
   const rel = relative(ROOT, file).replace(/\\/g, '/');
-  const text = readFileSync(file, 'utf8');
-  const scriptKind = scriptKindDe(file);
-  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind);
 
   const entries = [];
   let fileCatalogRefs = 0;
@@ -139,7 +136,7 @@ for (const file of files) {
       }
     }
 
-    ts.forEachChild(node, (child) => visit(child, suppressed));
+    node.forEachChild((child) => visit(child, suppressed));
   }
 
   visit(sf, false);

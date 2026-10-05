@@ -175,11 +175,10 @@ function scalePalierOp(o: GameOp, paliers: number): GameOp {
  *  nombre de paliers (`floor(count / taille)`, LDB 18 l.247 « pour chaque paire », l.281 « pour chaque
  *  orteil »). SOURCE UNIQUE lue par `traumaById`, `permanentAmputations` et `consolidateAmputations`. */
 export function traumaCumulOps(f: TraumaFiche, count: number): GameOp[] {
-  const base = (f.ops ?? []).map((o) => ({ ...o }));
+  const base = f.ops ?? [];
   const p = f.cumul?.parPalier;
-  if (!p) return base;
-  const paliers = Math.floor(count / Math.max(1, p.taille));
-  return paliers <= 0 ? base : [...base, ...p.ops.map((o) => scalePalierOp(o, paliers))];
+  const paliers = p ? Math.floor(count / Math.max(1, p.taille)) : 0;
+  return structuredClone(p && paliers > 0 ? [...base, ...p.ops.map((o) => scalePalierOp(o, paliers))] : base); // #2097
 }
 
 /** Pose `count` unités sur une séquelle cumulative et recalcule ses ops (`traumaCumulOps`). Mute `t`. */
@@ -197,14 +196,14 @@ export function setTraumaCount(t: Trauma, f: TraumaFiche, count: number): Trauma
  *  portée par la fiche (déchirures ET fractures sont désormais des fiches par localisation+sévérité).
  *  Omis (tests/legacy) ⇒ pas de décompte (séquelle permanente jusqu'à traitement explicite). */
 export function traumaById(id: string, opts?: { be?: number; d10?: number }, location?: HitLocation): Trauma {
-  const f = traumaFicheById(id);
+  const f = structuredClone(traumaFicheById(id)); // #2097
   const out: Trauma = {
     label: f.label,
     traumaId: f.id,
     location: location ?? 'corps',
     desc: f.desc,
-    ...(f.ops ? { ops: f.ops.map((o) => ({ ...o })) } : {}),
-    ...(f.prosthesis ? { prosthesis: f.prosthesis.map((p) => ({ ...p })) } : {}),
+    ...(f.ops ? { ops: f.ops } : {}),
+    ...(f.prosthesis ? { prosthesis: f.prosthesis } : {}),
   };
   // Convalescence à étapes (déchirure/fracture seules). Une fracture MAJEURE « fort peu probable qu'il se soigne
   // correctement sans intervention médicale » (l.208) exige la Chirurgie ; la formule garde le 1d10 seedé chez l'appelant.

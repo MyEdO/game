@@ -1,4 +1,4 @@
-import type { SourceFile, TypeAliasDeclaration } from 'typescript';
+import type { SourceFile, TypeAliasDeclaration } from 'typescript/unstable/ast';
 
 export const ABBR: Set<string>;
 
@@ -8,7 +8,7 @@ export function jsdocBody(between: string): string | null;
 
 export function jsdocRole(between: string): string | null;
 
-export function loadSource(path: string): { text: string; sf: SourceFile };
+export function loadSource(path: string, sourceFile?: SourceFile): { text: string; sf: SourceFile };
 
 export function findAlias(sf: SourceFile, name: string, tool: string, path: string): TypeAliasDeclaration;
 
@@ -35,4 +35,3 @@ export function readUnionMembers(
 ): { rows: UnionMemberRow[]; rawCount: number };
 
 export function renderFields(fieldGroups: string[][]): string;
-

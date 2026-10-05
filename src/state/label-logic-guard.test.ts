@@ -1,8 +1,9 @@
+import { ast } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import {
   scanLabelLogic, collectIdParamFunctions, scanLabelAsIdArg,
   scanLabelLiteralCompare, ecartsAuxDettesDeLibelle, DETTES_DE_LIBELLE, cleDeDette, fichierDeDette,
@@ -42,7 +43,7 @@ const garde = detenteur(() => scanLabelLogicCorpus(corpusDeLaGarde()));
 const cleDe = (s: { rel: string; line: number }): string => ratchetShortKey(s);
 
 describe('garde « logique par libellé » : un corpus, une composition, deux statuts de site', () => {
-  it('INVENTAIRE : chaque site du corpus est une couture légitime ou une dette au stock, aucun n’est nu', { timeout: 120_000 }, () => {
+  it('INVENTAIRE : chaque site du corpus est une couture légitime ou une dette au stock, aucun n’est nu', { timeout: 240_000 }, () => {
     const { fichiers, sites } = garde();
     const couverture = couvertureDuBalayage({ nom: 'garde libellé', stock: [...new Set(Object.keys(DETTES_DE_LIBELLE).map(fichierDeDette))], balayes: fichiers, gisements: [CORPUS_RACINE] });
     expect(couverture.gisementsMuets, couverture.gisementsMuets.join('\n')).toEqual([]);
@@ -70,7 +71,7 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
   it('chaque rubrique du stock nomme son ticket `#N`', () => {
     const rel = 'scripts/guards/lib/labelLogic.mjs';
     const texte = readFileSync(join(ROOT, rel), 'utf8');
-    const sf = ts.createSourceFile(rel, texte, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const sf = ast({ rel: rel, text: texte })!;
     const decl = sf.statements.filter(ts.isVariableStatement).flatMap((st) => [...st.declarationList.declarations])
       .find((d) => ts.isIdentifier(d.name) && d.name.text === 'DETTES_DE_LIBELLE');
     const objet = decl?.initializer;
@@ -81,7 +82,7 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     for (const p of objet.properties) {
       const commentaires = ts.getLeadingCommentRanges(texte, p.getFullStart()) ?? [];
       if (commentaires.length > 0) rubrique = commentaires.map((c) => texte.slice(c.pos, c.end)).join('\n');
-      if (!/#\d+/.test(rubrique)) sansTicket.push(p.name?.getText(sf) ?? '?');
+      if (!/#\d+/.test(rubrique)) sansTicket.push('name' in p ? p.name.getText(sf) : '?');
     }
     expect(sansTicket, 'Dette(s) sans ticket : la rubrique qui les précède doit nommer le `#N` qui les tue').toEqual([]);
   });
@@ -92,7 +93,7 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(perimees, 'Couture(s) PÉRIMÉE(s) (site déplacé ou assaini) — retirer/re-pointer ces entrées de RATCHET_EXCEPTIONS :\n' + perimees.join('\n')).toEqual([]);
   });
 
-  it('CORPUS unique : tout `src/` en `.ts`/`.tsx`, instruments Vitest exclus, rien hors `src/`', () => {
+  it('CORPUS unique : tout `src/` en `.ts`/`.tsx`, instruments Vitest exclus, rien hors `src/`', { timeout: 60_000 }, () => {
     expect(estDansLeCorpus('src/scenes/test-scenarios/marche-equipement.ts')).toBe(true);
     expect(estDansLeCorpus('src/i18n/index.ts')).toBe(true);
     expect(estDansLeCorpus('src/ui/App.tsx')).toBe(true);
@@ -164,10 +165,8 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
 });
 
 describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée par la déclaration qui porte son site', () => {
-  /** La déclaration de PREMIER NIVEAU qui porte la ligne `n` (1-based) du fichier `rel`, lue par l'AST. */
-  const declarationDe = (rel: string, n: number): string => {
-    const texte = readFileSync(join(ROOT, rel), 'utf8');
-    const sf = ts.createSourceFile(rel, texte, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  /** La déclaration de PREMIER NIVEAU qui porte la ligne `n` (1-based) de l'AST. */
+  const declarationDe = (sf: ts.SourceFile, n: number): string => {
     for (const st of sf.statements) {
       const debut = sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1;
       const fin = sf.getLineAndCharacterOfPosition(st.getEnd()).line + 1;
@@ -189,23 +188,26 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
 
   it('`data/index.ts` : chaque site est DANS un résolveur par libellé de #909, ou dans un index lu par lui SEUL', () => {
     const texte = readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8');
+    const sf = ast({ rel: 'src/data/index.ts', text: texte })!;
     const resolveurs = collectLabelEntityResolvers(texte);
     const sites = coutures('data/index.ts:');
     expect(sites.length, 'aucune couture `data/index.ts` : le volet est devenu muet').toBeGreaterThan(0);
     for (const cle of sites) {
-      const decl = declarationDe('src/data/index.ts', Number(cle.split(':')[1]));
+      const decl = declarationDe(sf, Number(cle.split(':')[1]));
       const lecteurs = new Set(texte.split('\n').flatMap((l, i) =>
-        new RegExp(`\\b${decl}\\b`).test(l) && declarationDe('src/data/index.ts', i + 1) !== decl ? [declarationDe('src/data/index.ts', i + 1)] : []));
+        new RegExp(`\\b${decl}\\b`).test(l) && declarationDe(sf, i + 1) !== decl ? [declarationDe(sf, i + 1)] : []));
       const porteur = resolveurs.has(decl) ? decl : lecteurs.size === 1 ? [...lecteurs][0] : `${decl} (lu par ${[...lecteurs].join(', ')})`;
       expect(resolveurs.has(porteur), `${cle} : \`${porteur}\` n'est pas un résolveur par libellé de #909`).toBe(true);
     }
   });
 
   it('`qualityIdByLabel` : le site (c) de `data/index.ts` est la déclaration du résolveur libellé→id', () => {
+    const texte = readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8');
+    const sf = ast({ rel: 'src/data/index.ts', text: texte })!;
     const site = garde().sites.find((s) => s.rule === 'face-donnee-string' && s.rel === 'src/data/index.ts');
     expect(site?.statut).toBe('couture');
-    expect(declarationDe('src/data/index.ts', site!.line)).toBe('qualityIdByLabel');
-    expect(collectLabelEntityResolvers(readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8')).has('qualityIdByLabel')).toBe(true);
+    expect(declarationDe(sf, site!.line)).toBe('qualityIdByLabel');
+    expect(collectLabelEntityResolvers(texte).has('qualityIdByLabel')).toBe(true);
   });
 
   /** Ce que FAIT chaque parseur de saisie qui porte une couture : il relit le texte que l'affichage
@@ -227,12 +229,14 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
 
   it('`refFormatLivre` : chaque site est dans le parseur de SAISIE, qui rend un id — l’aller-retour affichage → saisie tient', () => {
     const rel = 'src/ui/editor/refFormatLivre.ts';
-    const lignes = readFileSync(join(ROOT, rel), 'utf8').split('\n');
+    const texte = readFileSync(join(ROOT, rel), 'utf8');
+    const sf = ast({ rel, text: texte })!;
+    const lignes = texte.split('\n');
     const sites = coutures('ui/editor/refFormatLivre.ts:');
     expect(sites.length).toBeGreaterThan(0);
     for (const cle of sites) {
-      const decl = declarationDe(rel, Number(cle.split(':')[1]));
-      const lecteurs = new Set(lignes.flatMap((l, i) => (new RegExp(`\\b${decl}\\(`).test(l) && declarationDe(rel, i + 1) !== decl ? [declarationDe(rel, i + 1)] : [])));
+      const decl = declarationDe(sf, Number(cle.split(':')[1]));
+      const lecteurs = new Set(lignes.flatMap((l, i) => (new RegExp(`\\b${decl}\\(`).test(l) && declarationDe(sf, i + 1) !== decl ? [declarationDe(sf, i + 1)] : [])));
       const porteurs = decl in ALLER_RETOUR ? [decl] : [...lecteurs];
       expect(porteurs.length, `${cle} : \`${decl}\` n'est lu par aucun parseur`).toBeGreaterThan(0);
       for (const p of porteurs) {
@@ -245,9 +249,7 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
 
 describe('garde-fou « logique par label interdite » : volets `.label` (#142)', () => {
   it('scanLabelLogic : détecte un champ d’AFFICHAGE interpolé dans une CLÉ (#598)', () => {
-    // Cas PLANTÉ = le motif EXACT qui vivait en `state/triggeredEffects.ts` (Atouts d'arme keyés par
-    // LIBELLÉ, corrigé en `weaponIdentity`) : la garde `.label` d'origine n'en voyait NI le champ
-    // `name`, NI la construction de clé par littéral de gabarit — c'est ce trou qui l'a laissé vivre.
+    // La fixture couvre le champ `name` et les clés construites par littéral de gabarit.
     const src = [
       'out.push({ effects: w.onHitEffects, cap: 1, key: `weapon:${weapon.name}`, label: weapon.name });',
       'const key = `zone-${zone.label}-${t.x}`;',

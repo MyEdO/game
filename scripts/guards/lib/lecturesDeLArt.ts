@@ -31,7 +31,7 @@
  * `CANON_VIEWS` ne lit pas les valeurs d'un objet. Une liste des vues écrite dans une chaîne
  * (`'front,profile,back'.split(',')`) : `CANON_VIEWS` ne lit pas le texte d'un littéral.
  */
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { recopieDeCanon, type ConstructionGardee } from './canonUnique.mjs';
 import { CLES } from '../../../src/gameIso/rig/clesDePalette';
 import { ROLES_DE_GAMME, SUFFIXE_DE_ROLE } from '../../../src/data/palette.types';
@@ -112,22 +112,22 @@ function lieAUnConditionnelDeSuffixes(id: ts.Identifier, sf: ts.SourceFile): boo
       && ts.isVariableDeclarationList(x.parent) && (x.parent.flags & ts.NodeFlags.Const) !== 0
     ) {
       const fs = feuilles(x.initializer);
-      const lits = fs.map((f) => (ts.isStringLiteralLike(f) ? f.text : null));
+      const lits = fs.map((f) => (ts.isStringLiteralLikeNode(f) ? f.text : null));
       if (fs.length > 1 && lits.every((l) => l === '' || (l != null && estSuffixe(l))) && lits.some((l) => l != null && estSuffixe(l))) trouve = true;
     }
-    ts.forEachChild(x, walk);
+    x.forEachChild(walk);
   };
   walk(sf);
   return trouve;
 }
 
-const estLitteral = (e: ts.Expression) => ts.isStringLiteralLike(e) || ts.isNumericLiteral(e) || ts.isTemplateExpression(e);
+const estLitteral = (e: ts.Expression) => ts.isStringLiteralLikeNode(e) || ts.isNumericLiteral(e) || ts.isTemplateExpression(e);
 
 /** Rôle littéral d'un appel `gammeDe(…, '<rôle>')`, ou `null`. */
 function roleDeGammeDe(e: ts.Expression): string | null {
   if (!ts.isCallExpression(e) || !ts.isIdentifier(e.expression) || e.expression.text !== 'gammeDe') return null;
   const role = e.arguments[1];
-  return role && ts.isStringLiteralLike(role) ? role.text : null;
+  return role && ts.isStringLiteralLikeNode(role) ? role.text : null;
 }
 
 const GAMME_EN_LIGNE = {
@@ -143,7 +143,7 @@ const GAMME_EN_LIGNE = {
       return enLigne ? 'suffixe de rôle écrit dans un gabarit (`gammeDe`)' : null;
     }
     if (ts.isArrayLiteralExpression(n)) {
-      const lits = n.elements.map((e) => (ts.isStringLiteralLike(e) ? e.text : null));
+      const lits = n.elements.map((e) => (ts.isStringLiteralLikeNode(e) ? e.text : null));
       if (lits.length > 1 && lits.every((l) => l === '' || (l != null && estSuffixe(l))) && new Set(lits.filter((l) => l)).size >= 2) {
         return 'liste des suffixes de rôle (`gammes`, `ROLES_DE_GAMME`)';
       }
@@ -155,7 +155,7 @@ const GAMME_EN_LIGNE = {
     }
     if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken) {
       const b = n.right;
-      if (ts.isStringLiteralLike(b) && estSuffixe(b.text) && !estLitteral(n.left)) return 'suffixe de rôle concaténé (`gammeDe`)';
+      if (ts.isStringLiteralLikeNode(b) && estSuffixe(b.text) && !estLitteral(n.left)) return 'suffixe de rôle concaténé (`gammeDe`)';
       if (ts.isIdentifier(b) && lieAUnConditionnelDeSuffixes(b, sf)) return 'suffixe de rôle concaténé depuis un conditionnel (`gammeDe`)';
       return null;
     }
@@ -182,7 +182,7 @@ function litUneVueSur(zone: ts.Node, x: string, sf: ts.SourceFile, vues: readonl
     if (v && v[0] === x) lu = true;
     else if (indexee && ts.isElementAccessExpression(c) && recepteur(c.expression, sf) === x) lu = true;
     else if (indexee && ts.isPropertyAssignment(c) && ts.isIdentifier(c.name) && vues.includes(c.name.text) && recepteur(c.initializer, sf) === x) lu = true;
-    ts.forEachChild(c, walk);
+    c.forEachChild(walk);
   };
   walk(zone);
   return lu;
@@ -193,8 +193,8 @@ function nommeUneVue(zone: ts.Node, vues: readonly string[]): boolean {
   let nomme = false;
   const walk = (c: ts.Node) => {
     if (nomme) return;
-    if ((ts.isIdentifier(c) || ts.isStringLiteralLike(c)) && vues.includes(c.text)) nomme = true;
-    ts.forEachChild(c, walk);
+    if ((ts.isIdentifier(c) || ts.isStringLiteralLikeNode(c)) && vues.includes(c.text)) nomme = true;
+    c.forEachChild(walk);
   };
   walk(zone);
   return nomme;
@@ -208,10 +208,10 @@ function testsDeChaine(zone: ts.Node, sf: ts.SourceFile): string[] {
   const out: string[] = [];
   const walk = (c: ts.Node) => {
     if (
-      ts.isBinaryExpression(c) && ts.isTypeOfExpression(c.left) && ts.isStringLiteralLike(c.right)
+      ts.isBinaryExpression(c) && ts.isTypeOfExpression(c.left) && ts.isStringLiteralLikeNode(c.right)
       && c.right.text === 'string' && OPERATEURS_EGAL.includes(c.operatorToken.kind)
     ) out.push(recepteur(c.left.expression, sf));
-    ts.forEachChild(c, walk);
+    c.forEachChild(walk);
   };
   walk(zone);
   return out;
@@ -233,7 +233,7 @@ function valeurDeVue(valeur: ts.Expression, vue: string, sf: ts.SourceFile, vues
   const lue = vueLue(e, sf, vues);
   if (lue && lue[1] === vue) return true;
   if (ts.isCallExpression(e)) {
-    if (e.arguments.some((a) => ts.isStringLiteralLike(a) && a.text === vue)) return true;
+    if (e.arguments.some((a) => ts.isStringLiteralLikeNode(a) && a.text === vue)) return true;
     if (e.arguments.some((a) => { const l = vueLue(a, sf, vues); return l != null && l[1] === vue; })) return e.expression.getText(sf);
   }
   return false;
@@ -242,7 +242,7 @@ function valeurDeVue(valeur: ts.Expression, vue: string, sf: ts.SourceFile, vues
 /** Projection en CLÉS D'OBJET : toutes les vues en clés, chacune lue ou calculée depuis sa clé. */
 function projectionEnCles(n: ts.ObjectLiteralExpression, sf: ts.SourceFile, vues: readonly string[]): boolean {
   const parCle = new Map<string, ts.Expression>();
-  for (const p of n.properties) if (ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) parCle.set(p.name.text, p.initializer);
+  for (const p of n.properties) if (ts.isPropertyAssignment(p) && (('name' in p && ts.isIdentifier(p.name)) || ts.isStringLiteral(p.name))) parCle.set(p.name.text, p.initializer);
   if (!vues.every((v) => parCle.has(v))) return false;
   const lectures = vues.map((v) => valeurDeVue(parCle.get(v)!, v, sf, vues));
   if (lectures.some((l) => l === false)) return false;
@@ -257,9 +257,9 @@ function appelsFreres(elements: readonly ts.Node[], sf: ts.SourceFile, vues: rea
   for (const el of elements) {
     const appel = ts.isExpressionStatement(el) ? el.expression : el;
     if (!ts.isCallExpression(appel)) continue;
-    const vuesLues = appel.arguments.filter((a) => ts.isStringLiteralLike(a) && vues.includes(a.text));
+    const vuesLues = appel.arguments.filter((a) => ts.isStringLiteralLikeNode(a) && vues.includes(a.text));
     if (vuesLues.length !== 1) continue;
-    const vue = (vuesLues[0] as ts.StringLiteralLike).text;
+    const vue = (vuesLues[0] as ts.StringLiteralLikeNode).text;
     const cle = [appel.expression.getText(sf), ...appel.arguments.map((a) => (a === vuesLues[0] ? '\u0000' : a.getText(sf)))].join('\u0001');
     const vus = groupes.get(cle) ?? new Set<string>();
     vus.add(vue);
@@ -273,17 +273,17 @@ export function projectionDeVues(vues: readonly string[]): Omit<ConstructionGard
   return {
     nom: 'PROJECTION_DE_VUES',
     reconnait: (n, sf) => {
-      if (ts.isFunctionLike(n) && projetteSousTestDeChaine(n, sf, vues)) {
+      if (ts.isFunctionLikeDeclaration(n) && projetteSousTestDeChaine(n, sf, vues)) {
         let interne = true;
         const walk = (c: ts.Node) => {
           if (!interne) return;
-          if (ts.isFunctionLike(c) && projetteSousTestDeChaine(c, sf, vues)) interne = false;
-          ts.forEachChild(c, walk);
+          if (ts.isFunctionLikeDeclaration(c) && projetteSousTestDeChaine(c, sf, vues)) interne = false;
+          c.forEachChild(walk);
         };
-        ts.forEachChild(n, walk);
+        n.forEachChild(walk);
         if (interne) return 'projection de vues sous `typeof` chaîne (`declaredView`, `mapViews`, `viewArt.ts`)';
       }
-      if (ts.isBinaryExpression(n) && ts.isTypeOfExpression(n.left) && ts.isStringLiteralLike(n.right)) {
+      if (ts.isBinaryExpression(n) && ts.isTypeOfExpression(n.left) && ts.isStringLiteralLikeNode(n.right)) {
         const op = n.operatorToken.kind;
         const duale = (n.right.text === 'object' && OPERATEURS_EGAL.includes(op)) || (n.right.text === 'string' && OPERATEURS_DIFFERENT.includes(op));
         if (duale) {

@@ -23,12 +23,14 @@
  * construite dynamiquement (`\u0060es-${kind}\u0060`) n'est vue que par sa RACINE, et toute autre
  * écriture (`classList.toggle`, concaténation hors littéral, nom tiré d'une variable) échappe au scan.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { API } from 'typescript/unstable/sync';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { arcsDe, sourceALExecution } from '../../../scripts/guards/lib/importGraph.mjs';
+import { analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
 
 const GAMEISO = fileURLToPath(new URL('../', import.meta.url)); // …/stage/ → …/gameIso/
 const SOUS_GAMEISO = 'src/gameIso/';
@@ -43,10 +45,27 @@ const MISES_EN_PAGE: readonly { classe: string; feuille: string; rendeurs: reado
   { classe: 'plaque-nom', feuille: 'src/gameIso/stage/plaque-nom.css', rendeurs: ['src/gameIso/stage/PlaquesDeNom.tsx'] },
 ];
 
-export function importeFeuille(fichier: string, src: string, feuille: string, existe?: (abs: string) => boolean): boolean {
+function importeursDeFeuille(fichiers: readonly { fichier: string; src: string }[], feuille: string, existe?: (abs: string) => boolean): string[] {
   const cible = resolve(feuille).replace(/\\/g, '/');
-  return arcsDe(fichier, sourceALExecution(fichier, src), { existe })
-    .some((arc) => arc.nature === 'statique' && arc.cible === cible);
+  const cle = (fichier: string) => resolve(fichier).replace(/\\/g, '/');
+  const uniques = new Map<string, { rel: string; text: string }>();
+  for (const { fichier, src } of fichiers) {
+    const text = sourceALExecution(fichier, src);
+    const precedente = uniques.get(cle(fichier));
+    if (precedente && precedente.text !== text) throw new Error(`importeursDeFeuille : textes différents pour le même chemin : ${fichier}`);
+    uniques.set(cle(fichier), precedente ?? { rel: fichier, text });
+  }
+  const importeurs = new Set<string>();
+  for (const { fichier, sourceFile, diagnostics } of analyserCorpus(uniques.values())) {
+    if (arcsDe(fichier.rel, sourceFile!, { existe, diagnostics }).some((arc) => arc.nature === 'statique' && arc.cible === cible)) {
+      importeurs.add(cle(fichier.rel));
+    }
+  }
+  return fichiers.filter(({ fichier }) => importeurs.has(cle(fichier))).map(({ fichier }) => fichier);
+}
+
+export function importeFeuille(fichier: string, src: string, feuille: string, existe?: (abs: string) => boolean): boolean {
+  return importeursDeFeuille([{ fichier, src }], feuille, existe).length > 0;
 }
 
 /** Les sources de `gameIso/`, hors tests — chemin DEPUIS `gameIso/`, la forme que porte le rapport. */
@@ -83,9 +102,8 @@ describe('keyframes du stage — la feuille est BRANCHÉE, et sur l’hôte du m
   });
 
   it('AUCUN autre module ne l’importe : une feuille globale a UN propriétaire', () => {
-    const importeurs = sources()
-      .filter(({ chemin, code }) => importeFeuille(join(GAMEISO, chemin), code, join(GAMEISO, 'anim.css')))
-      .map(({ chemin }) => chemin);
+    const importeurs = importeursDeFeuille(sources().map(({ chemin, code }) => ({ fichier: join(GAMEISO, chemin), src: code })), join(GAMEISO, 'anim.css'))
+      .map((fichier) => fichier.slice(GAMEISO.length).replace(/\\/g, '/'));
     expect(importeurs, `deux propriétaires pour une même feuille :\n${importeurs.join('\n')}`)
       .toEqual(['stage/MondeDeCampagne.tsx']);
   });
@@ -100,8 +118,41 @@ describe('keyframes du stage — la feuille est BRANCHÉE, et sur l’hôte du m
     // PRÉMISSE — le scan MORD : les rendeurs connus rendent bien la classe.
     expect(rendeurs.map(({ rel }) => rel), `aucun rendeur de \`.${classe}\` : le scan ne voit rien`)
       .toEqual(expect.arrayContaining([...attendus]));
-    const sansFeuille = rendeurs.filter(({ rel, text }) => !importeFeuille(join(RACINE, rel), text, join(RACINE, feuille))).map(({ rel }) => rel);
+    const importeurs = new Set(importeursDeFeuille(rendeurs.map(({ rel, text }) => ({ fichier: join(RACINE, rel), src: text })), join(RACINE, feuille)));
+    const sansFeuille = rendeurs.filter(({ rel }) => !importeurs.has(join(RACINE, rel))).map(({ rel }) => rel);
     expect(sansFeuille, `rendent \`.${classe}\` sans importer \`${nomFeuille}\` :\n${sansFeuille.join('\n')}`).toEqual([]);
+  });
+
+  it('un batch ouvre un seul snapshot, libère sa session et conserve ordre et occurrences des importeurs', () => {
+    const snapshots = vi.spyOn(API.prototype, 'updateSnapshot');
+    const fermetures = vi.spyOn(API.prototype, 'close');
+    try {
+      const premier = join(GAMEISO, 'stage/FixtureA.tsx');
+      const second = join(GAMEISO, 'stage/FixtureB.tsx');
+      const neutre = join(GAMEISO, 'stage/FixtureC.tsx');
+      expect(importeursDeFeuille([
+        { fichier: second, src: "import '../anim.css';" },
+        { fichier: premier, src: "import '../anim.css';" },
+        { fichier: neutre, src: "import './autre/anim.css';" },
+        { fichier: second, src: "import '../anim.css';" },
+      ], join(GAMEISO, 'anim.css'), () => true)).toEqual([second, premier, second]);
+      expect(snapshots).toHaveBeenCalledTimes(1);
+      expect(fermetures).toHaveBeenCalledTimes(1);
+    } finally {
+      snapshots.mockRestore();
+      fermetures.mockRestore();
+    }
+  });
+
+  it('un diagnostic syntaxique refuse le batch et libère la session native', () => {
+    const fermetures = vi.spyOn(API.prototype, 'close');
+    try {
+      expect(() => importeursDeFeuille([
+        { fichier: HOTE, src: "import '../anim.css';" },
+        { fichier: join(GAMEISO, 'stage/FixtureInvalide.jsx'), src: "import '../anim.css'; const x = ;" },
+      ], join(GAMEISO, 'anim.css'), () => true)).toThrow();
+      expect(fermetures).toHaveBeenCalledTimes(1);
+    } finally { fermetures.mockRestore(); }
   });
 
   it('fail-closed : le scanner voit une déclaration et une réclamation SYNTHÉTIQUES', () => {

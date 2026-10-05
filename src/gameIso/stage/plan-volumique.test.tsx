@@ -26,12 +26,8 @@ let rendus = 0;
 /** BOÎTE que jsdom rendra à `clientWidth`/`clientHeight` — jsdom ne met rien en page, et la boîte
  *  mesurée est justement ce dont la clé de rétention dépend. */
 let mesure = { w: 420, h: 180 };
-for (const prop of ['clientWidth', 'clientHeight'] as const) {
-  Object.defineProperty(HTMLCanvasElement.prototype, prop, {
-    configurable: true,
-    get() { return prop === 'clientWidth' ? mesure.w : mesure.h; },
-  });
-}
+const dimensions = ['clientWidth', 'clientHeight'] as const;
+const descripteurs = new Map<typeof dimensions[number], PropertyDescriptor | undefined>();
 /** Ce que la scène three portait AU MOMENT du rendu — relevé dans la passe, jamais après : l'instantané
  *  démonte et libère tout avant de rendre la main, et il n'y aurait plus rien à interroger. */
 let contenu: { lampes: string[]; casteurs: number } | null = null;
@@ -59,8 +55,24 @@ function rendererDeBanc(): PlanRenderer {
   };
 }
 
-beforeAll(() => setPlanRendererFactory(rendererDeBanc));
-afterAll(() => { setPlanRendererFactory(null); });
+beforeAll(() => {
+  for (const prop of dimensions) {
+    descripteurs.set(prop, Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, prop));
+    Object.defineProperty(HTMLCanvasElement.prototype, prop, {
+      configurable: true,
+      get() { return prop === 'clientWidth' ? mesure.w : mesure.h; },
+    });
+  }
+  setPlanRendererFactory(rendererDeBanc);
+});
+afterAll(() => {
+  setPlanRendererFactory(null);
+  for (const prop of dimensions) {
+    const avant = descripteurs.get(prop);
+    if (avant) Object.defineProperty(HTMLCanvasElement.prototype, prop, avant);
+    else delete (HTMLCanvasElement.prototype as unknown as Record<string, unknown>)[prop];
+  }
+});
 
 afterEach(() => {
   demonterRacines();
