@@ -4,8 +4,7 @@ import { openCombatEndCascade, applyEffects } from './combatFlow';
 import { contractDisease } from '../engine/disease';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
-import { creatureToCombatant } from './spawn';
-import { findCreatureById } from '../data';
+import { spawnEnemy } from './spawn';
 import type { Combatant } from '../engine/types';
 
 const hero = (p: Partial<Combatant>): Combatant =>
@@ -179,14 +178,14 @@ describe('Fin de combat — prédicat personnage-vs-créature (#143, followsChar
 });
 
 // #152 (suite #143) : le flag `followsCharacterRules` doit aussi profiter aux ennemis spawnés depuis
-// le BESTIAIRE (creatureToCombatant, réf de scène), pas seulement aux statblocs d'éditeur — sinon un
+// le BESTIAIRE (`spawnEnemy`, réf de scène), pas seulement aux statblocs d'éditeur — sinon un
 // Cultiste/Brigand/Voleur (PNJ humain hostile) posé par `ref` échapperait à ses Tests de Personnage.
 describe('Fin de combat — #152 : bestiaire humain rétro-flagué (CreatureData.followsCharacterRules)', () => {
   beforeEach(() => { useGame.setState({ mode: 'exploration', journal: [], pendingCascade: null }); });
 
   it('Cultiste (bestiaire, flagué) contracte une Infection Mineure post-critique comme un héros (LDB 20 l.90)', () => {
     seedBattleRng(4); // même graine que le #143 direct : E30 → 1er d100 93 > cible 90 → échec garanti
-    const npc = creatureToCombatant(findCreatureById('cultiste')!, 'e', { x: 0, y: 0 });
+    const npc = spawnEnemy({ ref: 'cultiste' }, 'e', { x: 0, y: 0 });
     npc.tookCriticalThisFight = true;
     setBattle([npc]);
     useGame.setState({ party: [] });
@@ -197,7 +196,7 @@ describe('Fin de combat — #152 : bestiaire humain rétro-flagué (CreatureData
 
   it('Orc (bestiaire, GÉNÉRIQUE non flagué) n’a AUCUN Test de maladie de fin de combat, même après un critique', () => {
     seedBattleRng(4);
-    const npc = creatureToCombatant(findCreatureById('orc')!, 'e', { x: 0, y: 0 });
+    const npc = spawnEnemy({ ref: 'orc' }, 'e', { x: 0, y: 0 });
     npc.tookCriticalThisFight = true;
     setBattle([npc]);
     useGame.setState({ party: [] });
@@ -208,9 +207,9 @@ describe('Fin de combat — #152 : bestiaire humain rétro-flagué (CreatureData
 
   it('Cultiste (bestiaire, flagué) EST exposé à la Corruption de fin de combat comme un héros (LDB 19/85 p.338)', () => {
     seedBattleRng(4); // roll 93 > cible ~30 (Résistance Intermédiaire, E 30) → échec garanti → gain de Corruption
-    const corruptSource = creatureToCombatant(findCreatureById('orc')!, 'src', { x: 0, y: 0 });
+    const corruptSource = spawnEnemy({ ref: 'orc' }, 'src', { x: 0, y: 0 });
     corruptSource.traits = [{ id: 'corruption', arg: 'mineure' }];
-    const npc = creatureToCombatant(findCreatureById('cultiste')!, 'e', { x: 0, y: 0 });
+    const npc = spawnEnemy({ ref: 'cultiste' }, 'e', { x: 0, y: 0 });
     setBattle([corruptSource, npc]);
     useGame.setState({ party: [] });
     resolveCombatEnd();
@@ -219,9 +218,9 @@ describe('Fin de combat — #152 : bestiaire humain rétro-flagué (CreatureData
 
   it('Orc (bestiaire, GÉNÉRIQUE non flagué) exposé à une créature corrompue n’a AUCUN Test de Corruption de fin de combat', () => {
     seedBattleRng(4);
-    const corruptSource = creatureToCombatant(findCreatureById('orc')!, 'src', { x: 0, y: 0 });
+    const corruptSource = spawnEnemy({ ref: 'orc' }, 'src', { x: 0, y: 0 });
     corruptSource.traits = [{ id: 'corruption', arg: 'mineure' }];
-    const npc = creatureToCombatant(findCreatureById('orc')!, 'e', { x: 0, y: 0 });
+    const npc = spawnEnemy({ ref: 'orc' }, 'e', { x: 0, y: 0 });
     setBattle([corruptSource, npc]);
     useGame.setState({ party: [] });
     resolveCombatEnd();

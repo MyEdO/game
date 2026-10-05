@@ -1,3 +1,4 @@
+import { ast } from '../../../scripts/guards/lib/dialecte.mjs';
 /**
  * CONTRAT des unions PARTAGÉES entre le moteur et les schémas de donnée (#1440) : `Availability`
  * (LDB 59) et `StakeForm` (forme déclarée d'un enjeu) ont chacune UN tuple canon dans
@@ -21,7 +22,7 @@
  * `APPRAISED_AVAILABILITIES`) sont nommés au foyer, jamais re-tapés au site.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import type { z } from 'zod';
 import {
   constructionsReserveesDuCorpus, estTableTotale, recopieDeCanon, scanConstructionsReservees,
@@ -212,11 +213,11 @@ const s = alias.extract(['Limitée', 'Rare']);`, 1],
 
   it('`estTableTotale` : une table keyée par une union FERMÉE sous son type déclaré, jamais sous une assertion', () => {
     const totale = (code: string) => {
-      const sf = ts.createSourceFile('fixture.ts', code, ts.ScriptTarget.Latest, true);
+      const sf = ast({ rel: 'fixture.ts', text: code })!;
       const objets: ts.ObjectLiteralExpression[] = [];
       const walk = (n: ts.Node) => {
         if (ts.isObjectLiteralExpression(n)) objets.push(n);
-        ts.forEachChild(n, walk);
+        n.forEachChild(walk);
       };
       walk(sf);
       return estTableTotale(objets[0]);

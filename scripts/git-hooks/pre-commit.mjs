@@ -4,11 +4,11 @@
 // la lecture de l'index en panne, sans laquelle aucune des trois ne juge.
 // AVERTIT, site et geste, puis sort en 0 : les gardes de FORME (`FORMES`), que la CI rejuge en refus,
 // le canal de la baseline nominative (`decisions-baseline.json`) et le tag `[entériné]` ajouté. Une
-// panne d'outillage du lint (eslint absent, index illisible) est un saut averti, comme ses défauts.
+// panne d'outillage du lint (oxlint absent, index illisible) est un saut averti, comme ses défauts.
 // Sous une fusion en cours, les fichiers « stagés » sont ceux de son APPORT PROPRE (#2328 A7).
 // Contenu jugé : l'INDEX seul, baseline nominative comprise. Trois lectures du DISQUE, nommées : le
-// `.git` des dossiers parents des chemins stagés (`arbreImbrique.mjs`), la config et le module eslint
-// de CET arbre (`lintStage.mjs`, un écart de config est un saut déclaré). Corpus, contrats de donnée,
+// `.git` des dossiers parents des chemins stagés (`arbreImbrique.mjs`), la config et l'oxlint de CET
+// arbre (`lintStage.mjs`, un écart de config est un saut déclaré). Corpus, contrats de donnée,
 // docs dérivés et suites restent à la CI (#2327 §0, §1) ; les tests liés au diff se jouent à la main,
 // `npm run test:lies` (A7). La durée totale est imprimée en fin de hook.
 // Porte de version de Node en PREMIER import (`scripts/node-requis.mjs`) : la clôture STATIQUE ne porte
@@ -182,7 +182,7 @@ if (staged.length) {
 }
 
 // LINT des fichiers stagés, lus dans l'index (scripts/guards/lib/lintStage.mjs).
-const lint = await lintDeLIndex(ROOT, depot, staged);
+const lint = lintDeLIndex(ROOT, depot, staged);
 for (const d of lint.defauts) avertir('lint', `${d.site} [${d.gravite}] ${d.regle} — ${d.message}`);
 if (lint.saut) process.stderr.write(`pre-commit — lint SAUTÉ : ${lint.saut} ; la gate ${FORMES.lint} le rejuge.\n`);
 

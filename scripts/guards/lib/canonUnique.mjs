@@ -23,14 +23,13 @@
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
 //    `registryIdBranch.mjs`.
 // Le parse est `ast` (`dialecte.mjs`). Ce scan est l'hôte des constructions réservées que ses
-// appelants déclarent ; les verrous ESLint du même concept sont #2019.
-import ts from 'typescript';
-import { join, relative } from 'node:path';
-import { ast } from './dialecte.mjs';
+// appelants déclarent ; les verrous de lint du même concept sont #2019.
+import * as ts from 'typescript/unstable/ast';
+import { resolve, relative } from 'node:path';
+import { analyserCorpus } from './dialecte.mjs';
 import { sAppliqueA } from './sourceCorpus.mjs';
 import { RACINE } from './bindingsVivants.mjs';
 import { resolveImport, sitesDeModule, liaisonsDe } from './importGraph.mjs';
-import { parsedProgram } from './tsProgram.mjs';
 // Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 const { echapperRegex } = await import('../../../src/lib/regex.ts');
 
@@ -38,10 +37,9 @@ const { echapperRegex } = await import('../../../src/lib/regex.ts');
 const lineOf = (sf, n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
 
 /** @param {ts.SourceFile} sf @returns {import('./canonUnique.mjs').ContexteImports} */
-export function contexteImports(sf) {
+export function contexteImports(sf, verificateur) {
   let sites;
   let liaisons;
-  let checker;
   let index;
   const absent = [];
   const modules = new Map();
@@ -62,7 +60,10 @@ export function contexteImports(sf) {
       }
       return index.get(nom) ?? absent;
     },
-    checker: () => checker ??= parsedProgram(sf).getTypeChecker(),
+    checker: () => {
+      if (!verificateur) throw new TypeError('Vérificateur natif emprunté absent du contexte d’import');
+      return verificateur;
+    },
     module: (spec) => {
       if (!modules.has(spec)) modules.set(spec, moduleDe(spec, sf));
       return modules.get(spec);
@@ -80,13 +81,13 @@ function exigerContexte(sf, contexte) {
 function keyName(name) {
   if (!name) return null;
   if (ts.isIdentifier(name) || ts.isStringLiteral(name)) return name.text;
-  if (ts.isComputedPropertyName(name) && ts.isStringLiteralLike(name.expression)) return name.expression.text;
+  if (ts.isComputedPropertyName(name) && ts.isStringLiteralLikeNode(name.expression)) return name.expression.text;
   return null;
 }
 
 /** Texte d'un type littéral de chaîne (`'a'` dans une union) ; `null` sinon.
  * @param {ts.TypeNode} t @returns {string | null} */
-const litType = (t) => (ts.isLiteralTypeNode(t) && ts.isStringLiteralLike(t.literal) ? t.literal.text : null);
+const litType = (t) => (ts.isLiteralTypeNode(t) && ts.isStringLiteralLikeNode(t.literal) ? t.literal.text : null);
 
 /** SCHÉMAS DÉRIVÉS du canon, par module qui les exporte : les seuls récepteurs dont un
  *  `.extract(…)`/`.exclude(…)` SÉLECTIONNE dans le canon (leurs options SONT le tuple, cf.
@@ -159,11 +160,11 @@ function estRecordACleFermee(t) {
  */
 export function estTableTotale(valeur) {
   let n = valeur;
-  while (n.parent && (ts.isParenthesizedExpression(n.parent) || (ts.isAsExpression(n.parent) && ts.isConstTypeReference(n.parent.type)))) n = n.parent;
+  while (n.parent && (ts.isParenthesizedExpression(n.parent) || (ts.isAsExpression(n.parent) && ts.isTypeReferenceNode(n.parent.type) && ts.isIdentifier(n.parent.type.typeName) && n.parent.type.typeName.text === 'const'))) n = n.parent;
   const p = n.parent;
   if (!p) return false;
   if (ts.isSatisfiesExpression(p)) return estRecordACleFermee(p.type);
-  if ((ts.isVariableDeclaration(p) || ts.isPropertySignature(p) || ts.isPropertyDeclaration(p) || ts.isParameter(p)) && p.type) return estRecordACleFermee(p.type);
+  if ((ts.isVariableDeclaration(p) || ts.isPropertySignatureDeclaration(p) || ts.isPropertyDeclaration(p) || ts.isParameterDeclaration(p)) && p.type) return estRecordACleFermee(p.type);
   return false;
 }
 
@@ -184,9 +185,9 @@ function litterauxDeChaine(n) {
   /** @param {ts.Node} x */
   const walk = (x) => {
     if (ts.isBinaryExpression(x) && EGALITES.has(x.operatorToken.kind)) {
-      for (const cote of [x.left, x.right]) if (ts.isStringLiteralLike(cote)) vus.push(cote.text);
+      for (const cote of [x.left, x.right]) if (ts.isStringLiteralLikeNode(cote)) vus.push(cote.text);
     }
-    ts.forEachChild(x, walk);
+    x.forEachChild(walk);
   };
   walk(n);
   return vus;
@@ -200,7 +201,7 @@ function litterauxDeChaine(n) {
  * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {{ forme: string, membres: (string | null)[] } | null} */
 function formeDeRecopie(n, sf, contexte) {
   if (ts.isArrayLiteralExpression(n)) {
-    return estSelectionDerivee(n, sf, contexte) ? null : { forme: 'tableau', membres: n.elements.filter(ts.isStringLiteralLike).map((e) => e.text) };
+    return estSelectionDerivee(n, sf, contexte) ? null : { forme: 'tableau', membres: n.elements.filter(ts.isStringLiteralLikeNode).map((e) => e.text) };
   }
   if (ts.isUnionTypeNode(n)) return { forme: 'union de types', membres: n.types.map(litType) };
   if (ts.isObjectLiteralExpression(n)) {
@@ -208,7 +209,7 @@ function formeDeRecopie(n, sf, contexte) {
   }
   if (ts.isTypeLiteralNode(n) || ts.isInterfaceDeclaration(n)) return { forme: 'membres de type', membres: n.members.map((m) => keyName(m.name)) };
   if (ts.isCaseBlock(n)) {
-    return { forme: 'case d’un switch', membres: n.clauses.flatMap((c) => (ts.isCaseClause(c) && ts.isStringLiteralLike(c.expression) ? [c.expression.text] : [])) };
+    return { forme: 'case d’un switch', membres: n.clauses.flatMap((c) => (ts.isCaseClause(c) && ts.isStringLiteralLikeNode(c.expression) ? [c.expression.text] : [])) };
   }
   if (ts.isBinaryExpression(n)) {
     const lits = litterauxDeChaine(n);
@@ -255,7 +256,7 @@ function axes(n) {
   const walk = (x) => {
     if (ts.isPropertyAccessExpression(x)) out.add(x.name.text);
     else if (ts.isIdentifier(x)) out.add(x.text);
-    ts.forEachChild(x, walk);
+    x.forEachChild(walk);
   };
   walk(n);
   return out;
@@ -335,34 +336,67 @@ export const ECHAPPEUR_DE_LITTERAL = Object.freeze({
     if (!appel) return null;
     const [motif, remplacement] = appel.args;
     if (!motif || !ts.isRegularExpressionLiteral(motif) || !/^\/'\/[a-z]*g[a-z]*$/.test(motif.text)) return null;
-    return remplacement && ts.isStringLiteralLike(remplacement) && remplacement.text === "\\'" ? 'échappeur de littéral JS recopié (`litteralJs`)' : null;
+    return remplacement && ts.isStringLiteralLikeNode(remplacement) && remplacement.text === "\\'" ? 'échappeur de littéral JS recopié (`litteralJs`)' : null;
   },
 });
 
-/** Nom exporté par le compilateur d'une fabrique de `ts.Program` (`createProgram`,
- *  `createIncrementalProgram`, `createWatchProgram`, `create*BuilderProgram`) ou d'un
- *  `ts.LanguageService`, qui construit le sien (`getProgram()`). */
 const FABRIQUE_DE_PROGRAMME = /^create(\w*Program|LanguageService)$/;
 
-/**
- * La CONSTRUCTION d'un `ts.Program` (#1806) : un appel dont l'appelé est une fabrique du paquet
- * `typescript` (`liaisonDAppele`, l'import par défaut du paquet valant son espace de noms) — les
- * fabriques partagées sont celles de `tsProgram.mjs`. Un homonyme local, un membre d'un autre objet et
- * un appel écrit dans un littéral (fixture de morsure) ne sont pas lus.
- * HORS DE PORTÉE : l'accès calculé (`ts['createProgram']`), la déstructuration (`const { createProgram:
- * fab } = ts`), l'alias de membre (`const creer = ts.createProgram`), le compilateur reçu par un
- * paramètre, `require('typescript')`, `import ts = require(…)` et `import('typescript')`.
- */
+function origineConstruction(expression, sf, contexte, vus = new Set()) {
+  const e = sansEnveloppe(expression);
+  if (vus.has(e)) return null;
+  vus.add(e);
+  if (ts.isAwaitExpression(e)) return origineConstruction(e.expression, sf, contexte, vus);
+  if (ts.isCallExpression(e) && e.arguments[0] && ts.isStringLiteral(e.arguments[0])) {
+    const appele = e.expression;
+    if ((ts.isIdentifier(appele) && appele.text === 'require') || appele.kind === ts.SyntaxKind.ImportKeyword)
+      return { spec: e.arguments[0].text, nom: '*' };
+  }
+  if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) {
+    const base = origineConstruction(e.expression, sf, contexte, vus);
+    const nom = ts.isPropertyAccessExpression(e) ? e.name.text : e.argumentExpression && ts.isStringLiteral(e.argumentExpression) ? e.argumentExpression.text : null;
+    return base && ['*', 'default'].includes(base.nom) && nom ? { spec: base.spec, nom } : null;
+  }
+  if (!ts.isIdentifier(e)) return null;
+  for (let scope = e.parent; scope; scope = scope.parent) {
+    if (!(ts.isBlock(scope) || ts.isSourceFile(scope) || ts.isFunctionLikeDeclaration(scope))) continue;
+    if (scope.parameters?.some(p => ts.isIdentifier(p.name) && p.name.text === e.text)) return null;
+    if (ts.isFunctionLikeDeclaration(scope) && scope.name?.text === e.text) return null;
+    let declaration;
+    let membre;
+    let affectation;
+    const chercher = n => {
+      if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n)) && n.name?.text === e.text) { declaration = n; return; }
+      if (n !== scope && (ts.isFunctionLikeDeclaration(n) || ts.isBlock(n))) return;
+      if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) && n.left.text === e.text && n.end <= e.pos) affectation = n.right;
+      if (ts.isVariableDeclaration(n)) {
+        if (ts.isIdentifier(n.name) && n.name.text === e.text) declaration = n;
+        else if (ts.isObjectBindingPattern(n.name)) {
+          const element = n.name.elements.find(el => ts.isIdentifier(el.name) && el.name.text === e.text);
+          if (element) { declaration = n; membre = (element.propertyName ?? element.name).text; }
+        }
+      }
+      n.forEachChild(chercher);
+    };
+    chercher(scope);
+    if (declaration) {
+      const valeur = affectation ?? declaration.initializer;
+      const origine = valeur && origineConstruction(valeur, sf, contexte, vus);
+      return origine && membre ? { spec: origine.spec, nom: membre } : origine ?? null;
+    }
+  }
+  return liaisonImportee(e, sf, contexte);
+}
+
 export const CONSTRUCTION_DE_PROGRAMME = Object.freeze({
   nom: 'CONSTRUCTION_DE_PROGRAMME',
-  indice: (texte) => /create(\w*Program|LanguageService)/.test(texte),
-  /** @param {ts.Node} n @param {ts.SourceFile} sf
-   * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {string | null} */
+  indice: texte => /typescript|create(\w*Program|LanguageService)/.test(texte),
   reconnait: (n, sf, contexte) => {
-    if (!ts.isCallExpression(n)) return null;
-    const l = liaisonDAppele(n.expression, sf, ['*', 'default'], contexte);
-    const nom = l?.spec === 'typescript' ? l.nom : null;
-    return nom && FABRIQUE_DE_PROGRAMME.test(nom) ? `\`${nom}\` hors des fabriques (\`tsProgram.mjs\`)` : null;
+    if (!(ts.isCallExpression(n) || ts.isNewExpression(n))) return null;
+    const l = origineConstruction(n.expression, sf, contexte);
+    const native = /^typescript\/unstable\/(sync|async)$/.test(l?.spec ?? '') && l.nom === 'API';
+    const classique = l?.spec === 'typescript' && FABRIQUE_DE_PROGRAMME.test(l.nom);
+    return native || classique ? `\`${l.nom}\` hors des fabriques (\`tsProgram.mjs\`)` : null;
   },
 });
 
@@ -383,7 +417,7 @@ export const ECRITURE_DE_STOCK_JSON = Object.freeze({
 
 /** Expression privée de ses parenthèses, casts et `satisfies`. @param {ts.Expression} e @returns {ts.Expression} */
 function sansEnveloppe(e) {
-  while (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isTypeAssertionExpression(e) || ts.isNonNullExpression(e)) e = e.expression;
+  while (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isTypeAssertion(e) || ts.isNonNullExpression(e)) e = e.expression;
   return e;
 }
 
@@ -394,11 +428,11 @@ function rendusDe(f) {
   const out = [];
   /** @param {ts.Node} x */
   const walk = (x) => {
-    if (ts.isFunctionLike(x)) return;
+    if (ts.isFunctionLikeDeclaration(x)) return;
     if (ts.isReturnStatement(x) && x.expression) out.push(x.expression);
-    ts.forEachChild(x, walk);
+    x.forEachChild(walk);
   };
-  ts.forEachChild(f.body, walk);
+  f.body.forEachChild(walk);
   return out;
 }
 
@@ -467,7 +501,7 @@ export function constructionDeFragment({ nom, natures, designation, designationL
       if (!ts.isObjectLiteralExpression(n)) return null;
       const kind = proprieteDe(n, 'kind');
       const nature = kind && ts.isPropertyAssignment(kind) ? sansEnveloppe(kind.initializer) : null;
-      if (nature && ts.isStringLiteralLike(nature) && lesNatures.has(nature.text)) {
+      if (nature && ts.isStringLiteralLikeNode(nature) && lesNatures.has(nature.text)) {
         return `${nom} : fragment « ${nature.text} » littéral`;
       }
       if (!n.properties.some(ts.isSpreadAssignment)) return null;
@@ -518,7 +552,7 @@ function liaisonDAppele(e, sf, espaces, contexte) {
 /** Le module, relatif à la racine, qu'un spécificateur de `sf` désigne (`resolveImport`), ou `null`.
  * @param {string} spec @param {ts.SourceFile} sf @returns {string | null} */
 function moduleDe(spec, sf) {
-  const abs = resolveImport(join(RACINE, sf.fileName), spec);
+  const abs = resolveImport(resolve(RACINE, sf.fileName), spec);
   return abs ? relative(RACINE, abs).split('\\').join('/') : null;
 }
 
@@ -535,8 +569,9 @@ function moduleDe(spec, sf) {
  *   ne se résout pas (paquet, alias `@/`, fichier absent).
  */
 export function origineImportee(identifiant, sf, contexte) {
-  const l = liaisonDe(identifiant, sf, contexte);
-  const module = l && contexte.module(l.spec);
+  exigerContexte(sf, contexte);
+  const l = typeof identifiant === 'string' ? liaisonDe(identifiant, sf, contexte) : origineConstruction(identifiant, sf, contexte);
+  const module = l && (moduleDe(l.spec, sf) ?? (/^typescript\/unstable\//.test(l.spec) ? l.spec : null));
   return module ? { module, nom: l.nom } : null;
 }
 
@@ -574,8 +609,7 @@ export function tableDesExports(fichiers, noms) {
   /** @type {Record<string, string[]>} */
   const table = {};
   const exporte = (n) => n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
-  for (const fichier of fichiers) {
-    const sf = ast(fichier);
+  for (const { fichier, sourceFile: sf } of analyserCorpus(fichiers)) {
     const liaisons = liaisonsDe(sf.fileName, sf);
     const exportes = [];
     for (const st of sf.statements) {
@@ -640,14 +674,14 @@ export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separa
   /** @param {ts.Node} n @returns {string | null} */
   const aplati = (n) => {
     if (ts.isTemplateExpression(n)) return n.head.text + n.templateSpans.map((s) => ph(nomDe(s.expression) ?? '?') + s.literal.text).join('');
-    if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+    if (ts.isStringLiteralLikeNode(n)) {
       return n.parent && (ts.isImportDeclaration(n.parent) || ts.isExportDeclaration(n.parent)) ? null : n.text;
     }
     const jointure = appelDeMethode(n, 'join');
     if (!jointure || !ts.isArrayLiteralExpression(jointure.recepteur)) return null;
     const sep = jointure.args[0];
-    if (!sep || !ts.isStringLiteralLike(sep) || sep.text !== separateur) return null;
-    return jointure.recepteur.elements.map((e) => (ts.isStringLiteralLike(e) ? e.text : ph(nomDe(e) ?? '?'))).join(separateur);
+    if (!sep || !ts.isStringLiteralLikeNode(sep) || sep.text !== separateur) return null;
+    return jointure.recepteur.elements.map((e) => (ts.isStringLiteralLikeNode(e) ? e.text : ph(nomDe(e) ?? '?'))).join(separateur);
   };
   return {
     nom,
@@ -754,10 +788,10 @@ export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, s
       const appele = estAppelDeclare(n, sf, fonctions, contexte);
       if (!appele) return null;
       const arg = n.arguments[0] && sansEnveloppe(n.arguments[0]);
-      const litteral = arg && ts.isStringLiteralLike(arg);
+      const litteral = arg && ts.isStringLiteralLikeNode(arg);
       if (litteral && arg.text !== dataset) return null;
       const englobante = englobanteDe(n);
-      if (sitesAdmis.some((s) => s.rel === sf.fileName && s.englobante === englobante && s.appele === appele)) return null;
+      if (sitesAdmis.some((s) => resolve(RACINE, s.rel) === resolve(sf.fileName) && s.englobante === englobante && s.appele === appele)) return null;
       return litteral ? `\`${appele}('${dataset}')\` dans \`${englobante}\`` : `\`${appele}\` à argument non littéral dans \`${englobante}\``;
     },
   };
@@ -812,16 +846,20 @@ export function comparaisonDAppel({ nom, fonctions }) {
  * @param {readonly import('./canonUnique.mjs').ConstructionGardee[]} constructions
  * @returns {{ line: number, construction: string, detail: string }[]}
  */
-export function scanConstructionsReservees(fichier, constructions) {
+export function scanConstructionsReservees(fichier, constructions, sourceFile, checker) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
-  const sf = ast(fichier);
-  const contexte = contexteImports(sf);
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([fichier])) return scanConstructionsReservees(fichier, constructions, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   /** @type {{ line: number, construction: string, detail: string }[]} */
   const trouvailles = [];
   const vues = new Set();
   /** @param {ts.Node} n */
   const walk = (n) => {
+    if (ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc)) return;
     for (const c of retenues) {
       const detail = c.reconnait(n, sf, contexte);
       if (detail == null) continue;
@@ -831,7 +869,7 @@ export function scanConstructionsReservees(fichier, constructions) {
       vues.add(cle);
       trouvailles.push({ line, construction: c.nom, detail });
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return trouvailles;
@@ -845,5 +883,9 @@ export function scanConstructionsReservees(fichier, constructions) {
  * @returns {readonly { rel: string, line: number, construction: string, detail: string }[]}
  */
 export function constructionsReserveesDuCorpus(corpus, constructions) {
-  return corpus.flatMap((fichier) => scanConstructionsReservees(fichier, constructions).map((t) => ({ rel: fichier.rel, ...t })));
+  const candidats = corpus.filter(fichier => constructions.some(c => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text))));
+  const resultats = [];
+  for (const { fichier, sourceFile, checker } of analyserCorpus(candidats))
+    resultats.push(...scanConstructionsReservees(fichier, constructions, sourceFile, checker).map(t => ({ rel: fichier.rel, ...t })));
+  return resultats;
 }

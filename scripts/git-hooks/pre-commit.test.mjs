@@ -112,14 +112,14 @@ test('FORME — une pierre tombale stagée est AVERTIE (site, geste, step de CI)
   }
 })
 
-test('FORME — le lint d’un fichier stagé est AVERTI, et le commit passe (sa cause nommée : eslint absent du dépôt forgé)', () => {
+test('FORME — le lint d’un fichier stagé est AVERTI, et le commit passe (sa cause nommée : oxlint absent du dépôt forgé)', () => {
   const { racine, jouer } = depotDuHook({ 'src/a.ts': 'export const a = 1\n' })
   try {
     const r = jouer()
     assert.equal(r.status, 0, r.stderr)
     assert.ok(lignes(r).some((l) => l.startsWith('pre-commit — AVERTISSEMENT [lint] : corriger avant de pousser, la CI refuse — types (`npm run lint`)')), r.stderr)
     assert.ok(lignes(r).some((l) => l.startsWith('(lint) [erreur] (outillage)')), r.stderr)
-    assert.ok(r.stderr.includes("eslint n'est pas installé dans cet arbre"), r.stderr)
+    assert.ok(r.stderr.includes('oxlint a échoué sans rapport'), r.stderr)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

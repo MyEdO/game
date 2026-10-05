@@ -23,7 +23,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
@@ -136,10 +136,10 @@ function rendu() {
     const champs = []
     let prevEnd = d.noeud.members.pos
     for (const m of d.noeud.members) {
-      if (!ts.isPropertySignature(m)) continue
+      if (!ts.isPropertySignatureDeclaration(m)) continue
       const doc = jsdocBody(FC_SRC.slice(prevEnd, m.getStart(FC_SF)))
       champs.push({
-        nom: m.name.getText(FC_SF) + (m.questionToken ? '?' : ''),
+        nom: m.name.getText(FC_SF) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
         type: m.type ? plat(m.type.getText(FC_SF)) : '—',
         role: doc ? plat(firstSentence(doc)) : null,
       })
@@ -167,7 +167,7 @@ function rendu() {
     .filter((n) => new RegExp(`interface ${n}\\b`).test(readFileSync(INDEX, 'utf8')))
     .map((n) => {
       const d = declaration(INDEX, n)
-      return { ...d, drapeaux: d.noeud.members.filter(ts.isPropertySignature).length }
+      return { ...d, drapeaux: d.noeud.members.filter(ts.isPropertySignatureDeclaration).length }
     })
   if (CAPACITES.length < 3) abandon(`moins de 3 interfaces de capacités dans ${INDEX} — le canal a changé de forme`)
 

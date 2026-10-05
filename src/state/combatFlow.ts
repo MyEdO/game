@@ -149,6 +149,7 @@ import { actorIn, inBattleId, garanti } from './combatants';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { norm } from '../lib/normalize';
+import { gelerLaConstante } from '../lib/gelerProfond';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, buildWeapon, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
@@ -3867,7 +3868,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
 // ---------------------------------------------------------------------------
 
 /** Arme abstraite du Piétinement : Corps à corps (Bagarre), Dégâts = Bonus de Force (+0). */
-export const TRAMPLE_WEAPON: Weapon = buildWeapon({ label: 'Piétinement', attackKind: 'pietinement', damage: { plusBF: true, flat: 0, bare: true } });
+export const TRAMPLE_WEAPON: Weapon = gelerLaConstante(buildWeapon({ label: 'Piétinement', attackKind: 'pietinement', damage: { plusBF: true, flat: 0, bare: true } })); // #2097
 
 /** La voie GRATUITE du Piétinement est-elle ouverte ? « Se cabrer » (LDB 85 l.314) paie le Piétinement
  *  d'une Action de MOUVEMENT : elle exige donc que cette Action soit ENTIÈRE (aucun Mouvement dépensé
@@ -5979,7 +5980,7 @@ export function applyCast(
     /** LA TOUCHE telle qu'elle voyage — bâtie ICI pour les trois sites de cible (initiale, cible
      *  supplémentaire de Surincantation, maillon de rebond), jamais recomposée à la reprise. */
     const toucheDe = (t: Combatant, mres: CastResult & Partial<MissileResult>, rebond?: RebondDeChaine): ToucheDeProjectile => ({
-      casterId: caster.id, targetId: t.id, spell, mres, zoneTalentMod: zoneMod(t),
+      casterId: caster.id, targetId: t.id, spell: structuredClone(spell), mres, zoneTalentMod: zoneMod(t), // #2097
       // `crit` = double d'Incantation, `choice` = Incantation Critique (LDB 46 l.30).
       critWound: !!(crit && choice === 'critique'),
       overcastDamageSteps, overcastDurationSteps,
@@ -6263,7 +6264,8 @@ function placeSpellZone(
  *  sort les tire de sa durée/ZdE ; un trigger fournit des défauts). `target.pos` = centre du disque.
  *  `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
  *  (`crossTest`) en dérive son enjeu — ce qui se joue est le sort qui barre le passage (#1262 V2 L6d). */
-function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, pz: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], source?: EffectSource): void {
+function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
+  const { pz, source } = structuredClone({ pz: opDeZone, source: sourceRecue }); // #2097
   const battle = get().battle;
   if (!battle || !target.pos || !caster.pos) { logLines.push(tr('cf.zonePersists', { spell: label })); return; }
   const discRadiusM = pz.radiusMeters != null ? Math.max(0, resolveFormula(pz.radiusMeters, caster, battleRng())) : fallbackRadiusM;

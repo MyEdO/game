@@ -29,6 +29,12 @@ const ATTENDU = {
   'agents:check': ['scripts/agents/compat-cli.mjs'],
   'test:agents': ['scripts/agents/compat-cli.mjs'],
   'test:hooks': [
+    'scripts/docs/lib/enregistreur-lectures.mjs',
+    'scripts/guards/contrat-typescript.test.mjs',
+    'scripts/guards/lib/lint-parite.test.mjs',
+    'scripts/guards/lib/lint.testkit.mjs',
+    'scripts/guards/lib/lintStage.mjs',
+    'scripts/guards/lib/tsProgram.test.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     // +2 le 2026-09-16 (#1738) : la garde du classement de push fabrique des dépôts JETABLES
@@ -199,6 +205,8 @@ const ATTENDU = {
     // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
     // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
     // de os.tmpdir(), effacé en finally.
+    // #2258
+    'scripts/mods/murDeMod.test.mjs',
     'scripts/mods/verifier.mjs',
     'scripts/mods/verifier.test.mjs',
     // +1 le 2026-10-05 (#2328) : le banc de la porte de publication forge ses chantiers fusionnés sous
@@ -331,6 +339,9 @@ const ATTENDU = {
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
+    // `scripts/docs/lib/jsdocUnion.test.mjs`
+    'scripts/docs/lib/jsdocUnion.test.mjs',
+    'scripts/docs/lib/plateforme-win32-fs.test.mjs',
     // +1 le 2026-09-23 (#1801) : le banc de la simulation win32 forge un dépôt JETABLE (`mkdtempSync`
     // + `mkdirSync`/`writeFileSync` sous `os.tmpdir()`, `rmSync` en finally) — ce que voit un module
     // selon son LIEU exige de vrais fichiers à charger ; l'arbre n'est jamais écrit.
@@ -509,7 +520,7 @@ test('la sonde n’est pas AVEUGLE : elle voit les écrivains connus, et ignore 
     'le cas fondateur (un test qui écrit un registre de garde) doit rester visible',
   )
   assert.deepEqual(mesure.typecheck, [], '`tsc --noEmit` n’atteint aucun module écrivain')
-  assert.deepEqual(mesure.lint, [], '`eslint` sans `--fix` n’atteint aucun module écrivain')
+  assert.deepEqual(mesure.lint, [], '`oxlint` sans `--fix` n’atteint aucun module écrivain')
 })
 
 test('toute gate qui atteint un écrivain a une entrée ÉCRIT/LU qui en parle', () => {

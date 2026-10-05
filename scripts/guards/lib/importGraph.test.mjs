@@ -18,16 +18,123 @@
 //   6. le LECTEUR (`specificateursDe`) lit l'arbre syntaxique : une chaîne, un gabarit, un commentaire,
 //      une regex littérale ou du JSX n'est pas un import ;
 //   7. la marche rend des chemins RELATIFS à `racine`, et un membre hors de `racine` lève.
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
+import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe } from './importGraph.mjs'
-import { ast, typescript } from './dialecte.mjs'
+import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
+import { ast, analyserTexte, analyserCorpus } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+
+test('un AST fourni sans diagnostics conserve ses nœuds sans ouvrir de session', () => {
+  const rel = 'reutilise.ts'
+  const { sourceFile } = analyserTexte({ rel, text: "import { valeur as locale } from './cible';" })
+  const close = API.prototype.close
+  const update = API.prototype.updateSnapshot
+  const fermeture = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  const snapshot = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args) })
+  try {
+    for (const diagnostics of [undefined, []]) {
+      const [site] = sitesDeModule(rel, sourceFile, diagnostics)
+      assert.equal(site.noeud, sourceFile.statements[0])
+      assert.equal(site.spec, './cible')
+      const [liaison] = liaisonsDe(rel, sourceFile, diagnostics)
+      assert.equal(liaison.local.position.noeud, sourceFile.statements[0].importClause.namedBindings.elements[0].name)
+      assert.equal(liaison.local.nom, 'locale')
+      assert.equal(liaison.importe.nom, 'valeur')
+      assert.equal(chargementsDe(rel, sourceFile, diagnostics)[0].noeud, sourceFile.statements[0])
+      assert.equal(specificateursDe(rel, sourceFile, diagnostics)[0].spec, './cible')
+    }
+    assert.equal(snapshot.mock.callCount(), 0)
+    assert.equal(fermeture.mock.callCount(), 0)
+  } finally { snapshot.mock.restore(); fermeture.mock.restore() }
+})
+
+test('les diagnostics explicites refusent un AST malformé sans ouvrir de session', () => {
+  const rel = 'malforme.ts'
+  const { sourceFile, diagnostics } = analyserTexte({ rel, text: "import './cible';\nconst valeur = ;" })
+  assert.ok(diagnostics.length > 0)
+  const close = API.prototype.close
+  const update = API.prototype.updateSnapshot
+  const fermeture = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  const snapshot = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args) })
+  try {
+    for (const lire of [sitesDeModule, liaisonsDe, chargementsDe, specificateursDe]) {
+      assert.throws(() => lire(rel, sourceFile, diagnostics), /sitesDeModule : malforme\.ts ne se parse pas, ligne 2/)
+    }
+    assert.equal(sitesDeModule(rel, sourceFile)[0].spec, './cible')
+    assert.equal(snapshot.mock.callCount(), 0)
+    assert.equal(fermeture.mock.callCount(), 0)
+  } finally { snapshot.mock.restore(); fermeture.mock.restore() }
+})
+
+test('directImportsOf : AST et diagnostics préparés gardent les arcs sans session supplémentaire', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'imports-prepares-'))
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    const rel = 'src/ui/A.tsx'
+    const text = "import {\n  X,\n} from '@/ui/Cible';\nimport './Cible';\nconst faux = './Faux';\n"
+    const options = { racine, existe: (abs) => abs === resolve(racine, 'src/ui/Cible.tsx').replaceAll('\\', '/'), alias: [{ prefixe: '@/', vers: `${racine.replaceAll('\\', '/')}/src/` }] }
+    assert.deepEqual(directImportsOf(rel, text, options), ['src/ui/Cible.tsx'])
+    const avant = spy.mock.callCount()
+    for (const { sourceFile, diagnostics } of analyserCorpus([{ rel, text }])) {
+      assert.deepEqual(directImportsOf(rel, sourceFile, { ...options, diagnostics }), ['src/ui/Cible.tsx'])
+      assert.equal(spy.mock.callCount(), avant)
+    }
+    assert.equal(spy.mock.callCount(), avant + 1)
+    for (const { sourceFile, diagnostics } of analyserCorpus([{ rel, text: 'const x = ;' }])) {
+      assert.ok(diagnostics.length > 0)
+      const avantErreur = spy.mock.callCount()
+      assert.throws(() => directImportsOf(rel, sourceFile, { ...options, diagnostics }), /ne se parse pas/)
+      assert.equal(spy.mock.callCount(), avantErreur)
+    }
+    assert.equal(spy.mock.callCount(), avant + 2)
+  } finally { spy.mock.restore(); rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('effacement bundler : TSX/mts/cts, config héritée et erreurs refusées', () => {
+  for (const verbatimModuleSyntax of [false, true]) {
+    const racine = mkdtempSync(join(tmpdir(), 'imports-emission-'))
+    try {
+      writeFileSync(join(racine, 'base.json'), JSON.stringify({ compilerOptions: { verbatimModuleSyntax, jsx: 'preserve' } }))
+      writeFileSync(join(racine, 'tsconfig.json'), JSON.stringify({ extends: './base.json' }))
+      const code = "import { Shape } from './shape'; import { type X, value } from './mixed'; import './effect'; const shape: Shape = {}; export const out = value; import('./dynamic');"
+      for (const ext of ['tsx', 'mts', 'cts']) {
+        const emission = sourceALExecution(`a.${ext}`, code + (ext === 'tsx' ? ' export const vue = <div/>;' : ''), { racine })
+        const specs = specificateursDe('emission.js', emission).map(site => site.spec)
+        assert.deepEqual(specs, [...(verbatimModuleSyntax ? ['./shape'] : []), './mixed', './effect', './dynamic'])
+        assert.equal(/\btype X\b/.test(emission), false)
+      }
+      assert.throws(() => sourceALExecution('invalide.ts', 'const x = ;', { racine }), /sourceALExecution : invalide.ts/)
+    } finally { rmSync(racine, { recursive: true, force: true }) }
+  }
+})
+
+test('frontières : une session par niveau manquant, cycles et cache partagé sans reparse', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'imports-batch-'))
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    for (const [nom, texte] of Object.entries({
+      'a.ts': "import './b'; import './c';",
+      'b.ts': "import './d';",
+      'c.ts': "import './d';",
+      'd.ts': "import './a';",
+    })) writeFileSync(join(racine, nom), texte)
+    const cache = new Map()
+    const marche = () => clotureDImports(['a.ts', 'a.ts', 'absent.ts'], { racine, cache })
+    assert.deepEqual([...marche()].sort(), ['a.ts', 'b.ts', 'c.ts', 'd.ts'])
+    assert.equal(spy.mock.callCount(), 3)
+    assert.equal(cache.get(resolve(racine, 'absent.ts').replaceAll('\\', '/')), null)
+    assert.deepEqual([...marche()].sort(), ['a.ts', 'b.ts', 'c.ts', 'd.ts'])
+    assert.equal(spy.mock.callCount(), 3)
+  } finally { spy.mock.restore(); rmSync(racine, { recursive: true, force: true }) }
+})
 
 const nomsDeLiaison = ({ forme, typeSeul, local, importe, exporte }) => ({
   forme, typeSeul, local: local?.nom ?? null, importe: importe?.nom ?? null, exporte: exporte?.nom ?? null,
@@ -157,7 +264,7 @@ test('L3 equals exporté : rôle exporté sur le nom local réel, sans modifier 
     "import type TypeExterne = require('./types');",
   ].join('\n')
   const sf = ast({ rel: 'a.ts', text: texte })
-  assert.equal(sf.parseDiagnostics.length, 0)
+  assert.equal(analyserTexte({ rel: 'a.ts', text: texte }).diagnostics.length, 0)
   const sites = sitesDeModule('a.ts', sf)
   const liaisons = liaisonsDe('a.ts', sf)
   assert.deepEqual(liaisons.map(nomsDeLiaison), [
@@ -219,8 +326,7 @@ test('L3 chargements : expressions non littérales, import de type et fournisseu
 test('L3 AST réutilisé sans parents : identité, positions de tokens et niveau module', () => {
   const texte = "import { a as b } from './m';\nnamespace N { import X = Lib.x; export { X }; }"
   const sf = ast({ rel: 'a.ts', text: texte })
-  const ts = typescript()
-  const deparenter = (n) => { n.parent = undefined; ts.forEachChild(n, deparenter) }
+  const deparenter = (n) => { n.parent = undefined; n.forEachChild(deparenter) }
   deparenter(sf)
   const sites = sitesDeModule('a.ts', sf)
   assert.deepEqual(sites.map(({ genre, niveauModule }) => ({ genre, niveauModule })), [

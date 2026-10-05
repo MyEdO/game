@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « immutabilité de la scène du store » — toute l'architecture
 // dérivée de la scène (`src/state/vision.ts`, `src/state/sceneMemo.ts` `memoByRef`) repose sur
 // l'invariant : un chemin qui tient un porteur de la `Scene` du store (identifiant `scene`, alias,
@@ -6,8 +7,7 @@
 // scène par spread (`set({ scene: { ...scene, champ: nouvelleValeur } })`). Module ESM pur, AST
 // réelle (compilateur TypeScript, pas un grep textuel) — consommé par
 // `src/state/scene-mutation-guard.test.ts`.
-import tsModule from 'typescript';
-import { scriptKindDe } from './dialecte.mjs';
+import * as tsModule from 'typescript/unstable/ast';
 
 // Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest, ce module est
 // transformé par vite-node et chaque `ts.x` d'un visiteur AST se relit alors sur l'objet d'import du
@@ -20,7 +20,7 @@ export const MUTATING_ARRAY_METHODS = new Set([
   'push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'copyWithin',
 ]);
 
-/** Déroule les enrobages transparents (parenthèses, `!`, `as …`). @returns {import('typescript').Expression} */
+/** Déroule les enrobages transparents (parenthèses, `!`, `as …`). @returns {import('typescript/unstable/ast').Expression} */
 function unwrap(expr) {
   let e = expr;
   for (;;) {
@@ -44,7 +44,7 @@ function isSceneRootName(name, scopeStack) {
  * `store.getState().scene` — l'ancre est le nom `scene`, jamais le receveur, donc `get()`/`this`/un
  * paramètre non typé n'ont pas besoin d'être eux-mêmes tracés ; soit (2) une racine identifiant qui
  * EST `scene`, ou un ALIAS tracé (déclaration `const s = scene`/`const { entities } = scene`,
- * paramètre annoté `: Scene`). @param {import('typescript').Expression} expr @returns {boolean}
+ * paramètre annoté `: Scene`). @param {import('typescript/unstable/ast').Expression} expr @returns {boolean}
  */
 function isSceneRooted(expr, scopeStack) {
   let e = unwrap(expr);
@@ -61,7 +61,7 @@ function isSceneRooted(expr, scopeStack) {
 }
 
 /** Le type annoté d'un paramètre désigne-t-il `Scene` (directement ou dans une union) ?
- * @param {import('typescript').TypeNode | undefined} t @returns {boolean} */
+ * @param {import('typescript/unstable/ast').TypeNode | undefined} t @returns {boolean} */
 function typeMentionsScene(t) {
   if (!t) return false;
   if (ts.isTypeReferenceNode(t)) return ts.isIdentifier(t.typeName) && t.typeName.text === 'Scene';
@@ -103,10 +103,9 @@ function isFunctionLike(node) {
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string }[]}
  */
-export function scanSceneMutation(relPath, contenu) {
+export function scanSceneMutation(relPath, contenu, sourceFile) {
   const findings = [];
-  const scriptKind = scriptKindDe(relPath);
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKind);
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
   const report = (node) => {
     const text = node.getText(sf).split('\n')[0].trim();
@@ -130,10 +129,10 @@ export function scanSceneMutation(relPath, contenu) {
     if (isFunctionLike(node)) {
       const scope = new Set();
       for (const p of node.parameters ?? []) {
-        if (ts.isIdentifier(p.name) && typeMentionsScene(p.type)) scope.add(p.name.text);
+        if (('name' in p && ts.isIdentifier(p.name)) && typeMentionsScene(p.type)) scope.add(p.name.text);
       }
       const nextStack = [...scopeStack, scope];
-      ts.forEachChild(node, (child) => visit(child, nextStack));
+      node.forEachChild((child) => visit(child, nextStack));
       return;
     }
 
@@ -165,7 +164,7 @@ export function scanSceneMutation(relPath, contenu) {
       ) report(node);
     }
 
-    ts.forEachChild(node, (child) => visit(child, scopeStack));
+    node.forEachChild((child) => visit(child, scopeStack));
   };
   visit(sf, [new Set()]);
   return findings;

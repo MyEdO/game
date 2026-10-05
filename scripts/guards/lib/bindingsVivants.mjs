@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 /**
  * VOCABULAIRE des bindings VIVANTS (#1692) — un binding vivant est la collection de la RACINE VIVANTE
  * qu'une clé de dataset désigne (`racines-vivantes.test.ts`) —, dérivé du SEAM lui-même (`src/data/overrides.ts`), jamais
@@ -12,9 +13,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, posix } from 'node:path';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { listerArbre } from './lister.mjs';
-import { scriptKindDe } from './dialecte.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 
 export const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
@@ -566,7 +566,7 @@ function declarationsParPortee(sf, noms, resolveurs) {
   const nomsDuLiant = (liant, out = []) => {
     if (ts.isIdentifier(liant)) out.push(liant.text);
     else if (ts.isObjectBindingPattern(liant) || ts.isArrayBindingPattern(liant)) {
-      for (const el of liant.elements) if (ts.isBindingElement(el)) nomsDuLiant(el.name, out);
+      for (const el of liant.elements) if (ts.isBindingElement(el) && el.name) nomsDuLiant(el.name, out);
     }
     return out;
   };
@@ -578,10 +578,10 @@ function declarationsParPortee(sf, noms, resolveurs) {
       declarateurs.push({ noms: declares, portee, init: n.initializer });
     } else if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left)) {
       promotions.push({ nom: n.left.text, depuis: n, init: n.right });
-    } else if (ts.isParameter(n) && ts.isIdentifier(n.name)) poser(n.name.text, porteeDe(n), false);
+    } else if (ts.isParameterDeclaration(n) && ts.isIdentifier(n.name)) poser(n.name.text, porteeDe(n), false);
     else if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n)) && n.name) poser(n.name.text, porteeDe(n), false);
     else if (ts.isImportSpecifier(n) || ts.isNamespaceImport(n)) poser(n.name.text, n.getSourceFile(), false);
-    ts.forEachChild(n, visiter);
+    n.forEachChild(visiter);
   };
   visiter(sf);
   // FIXPOINT : une entrée en engendre d'autres (`const rec = ed.recover`), et la propagation suit
@@ -620,11 +620,11 @@ function declarationsParPortee(sf, noms, resolveurs) {
  * programme, pour une forme qu'aucun site du dépôt ne pratique). Ce qui reste couvert dans ce cas :
  * l'écriture faite DANS la portée qui résout l'entrée.
  */
-export function ecrituresHorsSeam(chemin, src, parBinding, resolveurs = resolveursDentree()) {
+export function ecrituresHorsSeam(chemin, src, parBinding, resolveurs = resolveursDentree(), sourceFile) {
   const noms = nomsVivantsDuFichier(chemin, src, parBinding);
   const candidateEntree = [...resolveurs].some((r) => src.includes(r));
   if (!noms.size && !candidateEntree) return [];
-  const sf = ts.createSourceFile(chemin, src, ts.ScriptTarget.Latest, true, scriptKindDe(chemin));
+  const sf = sourceFile ?? ast({ rel: chemin, text: src });
   const resoudre = declarationsParPortee(sf, noms, resolveurs);
   const lignes = src.split('\n');
   const out = [];
@@ -650,7 +650,7 @@ export function ecrituresHorsSeam(chemin, src, parBinding, resolveurs = resolveu
       }
     }
     if (quoi) fauter(n, quoi);
-    ts.forEachChild(n, visiter);
+    n.forEachChild(visiter);
   };
   visiter(sf);
   return out;

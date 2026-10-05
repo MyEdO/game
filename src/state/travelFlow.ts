@@ -434,6 +434,14 @@ export function resumeTravel(get: Get, set: Set): void {
   runTravelDays(get, set);
 }
 
+/** Clôt le récapitulatif du segment de voyage : statut, distance parcourue, suite du trajet. */
+function finishRecap(get: Get, set: Set, recap: TravelRecap | null | undefined, status: TravelRecap['status'], then?: TravelThen, daysTotal?: number): void {
+  if (!recap) return;
+  recap.status = status;
+  recap.kmDone = get().travelPlan?.kmDone ?? recap.km;
+  set({ travelRecap: { ...recap, days: [...recap.days], then: structuredClone(then), daysTotal } }); // #2097
+}
+
 /** Boucle jour par jour jusqu'à l'arrivée (ou l'interruption par une péripétie). */
 function runTravelDays(get: Get, set: Set): void {
   const worldMap = get().worldMap!;
@@ -449,12 +457,6 @@ function runTravelDays(get: Get, set: Set): void {
     mode: plan0.mode, status: 'arrived', km: plan0.km, kmDone: plan0.kmDone,
     days: [], // SEGMENT courant seulement — les journées passées ont été lues à leur halte du soir
   } : null;
-  const finishRecap = (status: TravelRecap['status'], then?: TravelThen, daysTotal?: number) => {
-    if (!recap) return;
-    recap.status = status;
-    recap.kmDone = get().travelPlan?.kmDone ?? recap.km;
-    set({ travelRecap: { ...recap, days: [...recap.days], then, daysTotal } });
-  };
   let guard = 0;
   while (true) {
     guard += 1;
@@ -472,7 +474,7 @@ function runTravelDays(get: Get, set: Set): void {
     if (kmh <= 0) {
       set({ travelPlan: { ...plan, interrupted: true } });
       log(get, set, [t('tf.overloaded')]);
-      finishRecap('stalled');
+      finishRecap(get, set, recap, 'stalled');
       return;
     }
 
@@ -483,7 +485,7 @@ function runTravelDays(get: Get, set: Set): void {
       const atStart = plan.diseasesAtStart ?? [];
       set({ travelPlan: null });
       log(get, set, [t('tf.arrival', { to: to.label }), ...travelArrivalCare(get, set), ...declareArrivalDiseases(get, set, atStart)]);
-      finishRecap('arrived', undefined, daysTotal);
+      finishRecap(get, set, recap, 'arrived', undefined, daysTotal);
       get().transitionTo(to.scene, to.entry);
       return;
     }
@@ -792,12 +794,6 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   // Efface les contextes transitoires du jour (jamais persistés au-delà de la journée).
   set({ travelPlan: { ...get().travelPlan!, land: undefined, stage: undefined, recap: undefined } });
 
-  const finishRecap = (status: TravelRecap['status'], then?: TravelThen, daysTotal?: number) => {
-    if (!recap) return;
-    recap.status = status;
-    recap.kmDone = get().travelPlan?.kmDone ?? recap.km;
-    set({ travelRecap: { ...recap, days: [...recap.days], then, daysTotal } });
-  };
   // Marche forcée du jour (LDB 51 l.195) : DIFFÉRÉE à la nuit si halte ; sinon roulée EAGER (arrivée/interruption).
   const rollMarchEager = () => {
     for (const id of ctx?.marchHeroes ?? []) {
@@ -813,7 +809,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   if (ctx?.interrupt) {
     rollMarchEager();
     set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
-    finishRecap('interrupted', ctx.interrupt);
+    finishRecap(get, set, recap, 'interrupted', ctx.interrupt);
     return true;
   }
   if (!route || !ctx) { set({ travelPlan: null }); return true; }
@@ -828,7 +824,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     const care = [...travelArrivalCare(get, set), ...declareArrivalDiseases(get, set, atStart)];
     if (recapDay) recapDay.lines.push(...toRecapLines(care));
     log(get, set, [t('tf.arrival', { to: ctx.toLabel }), ...care]);
-    finishRecap('arrived', undefined, daysTotal);
+    finishRecap(get, set, recap, 'arrived', undefined, daysTotal);
     get().transitionTo(ctx.toScene, ctx.toEntry);
     return true;
   }

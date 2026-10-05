@@ -54,6 +54,12 @@ function rendu() {
 
   // Clés `git config` posées par `postinstall` — dédupliquées sur leur préfixe `<section>.<nom>`.
   const POSTINSTALL = script('postinstall')
+  const CONTRAT_TYPESCRIPT = chemin('scripts/guards/contrat-typescript.mjs')
+  const PATCH_TYPESCRIPT = chemin(`patches/typescript+${PKG.devDependencies.typescript}.patch`)
+  const CYCLE_PATCH_TYPESCRIPT = chemin('patches/README.md')
+  if (!POSTINSTALL.startsWith(`node ${CONTRAT_TYPESCRIPT} && `)) {
+    abandon('`postinstall` ne vérifie plus le contrat TypeScript avant les réglages Git et les générateurs')
+  }
   const CONFIGS = [...new Set([...POSTINSTALL.matchAll(/git config ([\w.-]+)/g)].map((m) => m[1]))]
   if (!CONFIGS.includes('core.hooksPath')) {
     abandon('`postinstall` ne pose plus `core.hooksPath` — le runbook de reprise repose dessus')
@@ -381,7 +387,7 @@ longue pause. Chaque chemin/symbole cité existe dans le repo — vérifié via 
 
 \`\`\`bash
 git clone <url> && cd Game
-npm install     # pose ${CONFIGS.length} réglages git et produit les cibles de code (script "postinstall" de package.json)
+npm install     # vérifie le contrat TypeScript, pose ${CONFIGS.length} réglages git et produit les cibles de code (script "postinstall" de package.json)
 npm test        # suite du moteur — deux processus Vitest (node + jsdom) si ≥ ${SEUIL} cœurs, sinon un seul
 npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
 \`\`\`
@@ -424,11 +430,14 @@ Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree
 autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent
 jamais. \`npm run dev\` imprime celui qu'il sert.
 
-\`npm install\` déclenche le script \`postinstall\`, qui pose : ${listeCode(CONFIGS)} ; puis il produit les
+\`npm install\` déclenche le script \`postinstall\`, qui joue d'abord \`${CONTRAT_TYPESCRIPT}\` :
+version exacte, application de \`${PATCH_TYPESCRIPT}\`, puis vérification du contrat UTF-16 natif
+(texte, littéraux, positions et diagnostics). Le cycle de mise à jour et de retrait du correctif
+est décrit dans \`${CYCLE_PATCH_TYPESCRIPT}\`. Il pose ensuite : ${listeCode(CONFIGS)} ; puis il produit les
 cibles de CODE, jamais commitées (\`npm run gen\`, #2203) — les docs dérivés, eux, se produisent par
 \`npm run docs:build\`.
 
-**Sans ce postinstall, ${FAMILLES.length} familles de mécanismes sont MORTES.**
+**Sans ce postinstall, ${FAMILLES.length} familles de mécanismes Git sont MORTES.**
 
 ${lignesFamilles}
 

@@ -1,7 +1,8 @@
 // CLIQUET de la garde des MODULES FEUILLES (node --test, sans réseau) : l'arbre est fabriqué sous
 // `os.tmpdir()`, et les cas portent les graphies qu'un prédicat écrit à la main rate.
 // Lancé par `npm run test:hooks`.
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
+import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -43,21 +44,28 @@ const GRAPHIES = [
   ['sans extension', "import { geste } from './geste'\n"],
   ['chemin écrit autrement', "import { geste } from '../ops/./geste.mjs'\n"],
   ['effet de bord', "import './geste.mjs'\n"],
-  ['import de type', "import type { geste } from './geste.mjs'\n"],
+  ['import de type', "import type { geste } from './geste.mjs'\n", 'ts'],
   // `require` (#1813) : `createRequire` est une graphie VIVANTE de ce dépôt (`dialecte.mjs`).
   ['require nu', "const { geste } = require('./geste.mjs')\n"],
   ['createRequire chaîné', "const { geste } = createRequire(import.meta.url)('./geste.mjs')\n"],
   ['createRequire lié à `require`', "const require = createRequire(import.meta.url)\nconst m = require('./geste')\n"],
-  ['import x = require', "import geste = require('./geste.mjs')\n"],
+  ['import x = require', "import geste = require('./geste.mjs')\n", 'ts'],
   ['module.require', "const { geste } = module.require('./geste.mjs')\n"],
 ]
 
-for (const [graphie, code] of GRAPHIES) {
+for (const [graphie, code, extension = 'mjs'] of GRAPHIES) {
   test(`une acquisition en ${graphie} atteint la FEUILLE, et la garde la NOMME`, () => {
-    const vu = mesurer({ 'scripts/ops/tiers.mjs': code })
+    const source = `scripts/ops/tiers.${extension}`
+    const vu = mesurer({ [source]: code })
     assert.equal(vu.manquements.length, 1, `graphie « ${graphie} » : ${JSON.stringify(vu.manquements)}`)
-    assert.match(vu.manquements[0], /scripts\/ops\/tiers\.mjs importe la FEUILLE scripts\/ops\/geste\.mjs/)
+    assert.ok(vu.manquements[0].startsWith(`${source} importe la FEUILLE ${FEUILLE} (« `))
     assert.match(vu.manquements[0], /porte LE geste/, 'le manquement dit l’invariant que la feuille sert')
+  })
+}
+
+for (const [graphie, code, extension] of GRAPHIES) if (extension === 'ts') {
+  test(`la syntaxe TypeScript ${graphie} dans un .mjs est refusée par le parseur natif`, () => {
+    assert.throws(() => mesurer({ 'scripts/ops/tiers.mjs': code }), /sitesDeModule : .*scripts\/ops\/tiers\.mjs ne se parse pas, ligne 1/)
   })
 }
 
@@ -114,6 +122,53 @@ test('importsResolus : l’extraction vient de la primitive, jamais d’une rege
     // Deux graphies, UN seul fichier : c'est la résolution qui le dit.
     assert.equal(new Set(vus.map((v) => v.cible)).size, 1)
   } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('un corpus garde les constatations répétées et ferme une seule API, même sur erreur de syntaxe', () => {
+  const source = 'scripts/ops/tiers.mjs'
+  const second = 'scripts/ops/autre.mjs'
+  const { racine, sources } = arbre({
+    [source]: "import {\n  geste,\n} from './geste.mjs'\nconst d = import('./geste')\n",
+    [second]: "export { geste } from './geste.mjs'\n",
+    'scripts/ops/geste.test.mjs': 'const exclu = ;',
+  })
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  const constatation = (rel, spec) => `${rel} importe la FEUILLE ${FEUILLE} (« ${spec} ») — elle porte LE geste : sors de cette feuille ce que tu viens y chercher, elle ne s’importe pas`
+  try {
+    const lues = [...sources, source, 'scripts/ops/absent.mjs']
+    const vu = manquementsDeFeuilles({ racine, sources: lues, feuilles: FEUILLES_FIXTURE })
+    assert.deepEqual(vu, {
+      sourcesLues: lues.length,
+      manquements: [constatation(second, './geste.mjs'), ...[source, source].flatMap((rel) => [constatation(rel, './geste.mjs'), constatation(rel, './geste')])].sort(),
+    })
+    assert.equal(spy.mock.callCount(), 1)
+    writeFileSync(join(racine, source), 'const invalide = ;')
+    assert.throws(() => manquementsDeFeuilles({ racine, sources, feuilles: FEUILLES_FIXTURE }), /sitesDeModule : .*scripts\/ops\/tiers\.mjs ne se parse pas, ligne 1/)
+    assert.equal(spy.mock.callCount(), 2)
+  } finally {
+    spy.mock.restore()
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('des lectures différentes du même chemin sont refusées avant toute ouverture du corpus', () => {
+  const source = 'scripts/ops/tiers.mjs'
+  const { racine } = arbre({ [source]: 'export const x = 1\n' })
+  const sources = [FEUILLE, source, source]
+  Object.defineProperty(sources, 2, { get() {
+    writeFileSync(join(racine, source), 'export const x = 2\n')
+    return source
+  } })
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    assert.throws(() => manquementsDeFeuilles({ racine, sources, feuilles: FEUILLES_FIXTURE }), /manquementsDeFeuilles : textes différents pour le même chemin/)
+    assert.equal(spy.mock.callCount(), 0)
+  } finally {
+    spy.mock.restore()
     rmSync(racine, { recursive: true, force: true })
   }
 })

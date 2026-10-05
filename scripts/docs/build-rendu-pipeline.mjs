@@ -20,10 +20,11 @@
  */
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier, listerArbre } from '../guards/lib/lister.mjs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
+import { analyserCorpus } from '../guards/lib/dialecte.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -80,10 +81,10 @@ function rendu() {
     const rows = []
     let prevEnd = decl.members.pos
     for (const m of decl.members) {
-      if (!ts.isPropertySignature(m)) continue
+      if (!ts.isPropertySignatureDeclaration(m)) continue
       const doc = jsdocBody(T_SRC.slice(prevEnd, m.getStart(T_SF)))
       rows.push({
-        nom: m.name.getText(T_SF) + (m.questionToken ? '?' : ''),
+        nom: m.name.getText(T_SF) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
         type: m.type ? plat(m.type.getText(T_SF)) : '—',
         role: doc ? plat(firstSentence(doc)) : null,
       })
@@ -110,19 +111,13 @@ function rendu() {
 
   // ── Les BUILDERS réellement exportés ─────────────────────────────────────────────────────────────
 
-  const LISTE_BUILDERS = listerDossier(BUILDERS)
+  const fichiersBuilders = listerDossier(BUILDERS)
     .filter((f) => /\.tsx?$/.test(f) && !f.includes('.test.'))
-    .flatMap((f) =>
-      fileExports(`${BUILDERS}/${f}`)
-        .filter((e) => (e.kind === 'function' || e.kind === 'const') && /^build/.test(e.name))
-        .map((e) => ({ ...e, fichier: `${BUILDERS}/${f}` })),
-    )
-  if (LISTE_BUILDERS.length < 6) abandon(`moins de 6 builders exportés sous ${BUILDERS}/ — le pipeline a changé de forme`)
+    .map((f) => ({ rel: `${BUILDERS}/${f}`, text: readFileSync(`${BUILDERS}/${f}`, 'utf8') }))
 
   /** Type de sortie déclaré d'un builder (`FloorEl[]`…). Deux formes co-existent : `export function`
    *  (type de retour à la signature) et `export const b: (…) => X` (type de retour du TYPE FONCTION). */
-  function sortieDe(fichier, nom) {
-    const { sf } = loadSource(fichier)
+  function sortieDe(sf, nom) {
     let sortie = null
     const visite = (n) => {
       if (ts.isFunctionDeclaration(n) && n.name?.text === nom && n.type) sortie = n.type
@@ -134,7 +129,14 @@ function rendu() {
     sf.forEachChild(visite)
     return sortie ? plat(sortie.getText(sf)) : '—'
   }
-  const BUILDERS_MESURES = LISTE_BUILDERS.map((b) => ({ ...b, sortie: sortieDe(b.fichier, b.name) }))
+  const BUILDERS_MESURES = []
+  for (const { fichier, sourceFile } of analyserCorpus(fichiersBuilders)) {
+    const { sf } = loadSource(fichier.rel, sourceFile)
+    for (const b of fileExports(fichier.rel, sf).filter((e) => (e.kind === 'function' || e.kind === 'const') && /^build/.test(e.name))) {
+      BUILDERS_MESURES.push({ ...b, fichier: fichier.rel, sortie: sortieDe(sf, b.name) })
+    }
+  }
+  if (BUILDERS_MESURES.length < 6) abandon(`moins de 6 builders exportés sous ${BUILDERS}/ — le pipeline a changé de forme`)
 
   // ── L'arborescence de gameIso : modules DIRECTS par sous-dossier ─────────────────────────────────
 
@@ -185,9 +187,9 @@ function rendu() {
     const rows = []
     let prevEnd = decl.members.pos
     for (const m of decl.members) {
-      if (!ts.isPropertySignature(m)) continue
+      if (!ts.isPropertySignatureDeclaration(m)) continue
       const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
-      rows.push({ nom: m.name.getText(sf) + (m.questionToken ? '?' : ''), role: doc ? plat(firstSentence(doc)) : null })
+      rows.push({ nom: m.name.getText(sf) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''), role: doc ? plat(firstSentence(doc)) : null })
       prevEnd = m.getEnd()
     }
     if (!rows.length) abandon(`\`DetailRecipe\` sans section lisible (${DETAIL})`)

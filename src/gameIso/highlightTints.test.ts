@@ -49,7 +49,7 @@ import {
  * `backends/webgl/calageProps.ts` pour le mode calage de l'éditeur). Ce fichier
  * garde les trois coutures de cette bascule :
  *  1. PARITÉ liste-de-clés du schéma ⇄ JSON réel ⇄ ce que les façades servent — `src/data` recopie
- *     `TEINTE_KEYS` faute de pouvoir importer `src/gameIso` (pureté de couche, `eslint.config.js`), patron
+ *     `TEINTE_KEYS` faute de pouvoir importer `src/gameIso` (pureté de couche, `oxlint.config.mjs`), patron
  *     `WALL_PART_KEYS` ⇄ `relief.test.ts` ;
  *  2. ÉGALITÉ JSON ↔ vars CSS de repli homonymes de `src/ui/styles/base.css` (les feuilles de style
  *     les consomment encore) — `HIGHLIGHT_TINTS` est la projection `id → var` qui les apparie ;
