@@ -51,7 +51,7 @@ import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe,
   conclureFusionSansChemins, depotDe,
-  estAncetre, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
+  estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
@@ -399,9 +399,10 @@ const ETAT_DU_VERDICT = Object.freeze({ vert: 'vert', indeterminee: 'indétermin
  * L'ÉTAT DU TRAIN lu dans son journal — l'unique lecteur du journal pour `--etapes` et la vigie
  * (`scripts/ops/vigie.mjs`). PUR hors de `vivant`. `etat` :
  *   · `aucun` : aucun run au journal ;
- *   · `périmé` : un verdict posé pour une tête publiée qui n'est plus `teteVivante` ;
+ *   · `en-vol` : pas de verdict, le pid du run vit — quelle que soit la tête, que le train fait avancer ;
+ *   · `périmé` : un run fini (verdict) ou mort dont la tête publiée n'est plus `teteVivante` ;
  *   · `vert`, `rouge`, `indéterminée` : le verdict du run, pour la tête vivante ;
- *   · `en-vol` : pas de verdict, le pid du run vit ; `mort` : pas de verdict, le pid ne vit pas.
+ *   · `mort` : pas de verdict, le pid ne vit pas, pour la tête vivante.
  * `etape` est la dernière TRANSITION du run (`seq` le plus haut), `rang` sa place dans `noms` (1 à
  * `total`, 0 sans transition). `etapes` et `reprise` suivent la règle de tête (`etatDeLEtape`, `planDeReprise`).
  * @param {object|null} journal @param {{teteVivante:string|null, noms?:string[], vivant?:(pid:number) => boolean}} p `noms` : ceux d’`ETAPES`
@@ -415,11 +416,11 @@ export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.n
     .sort(([, a], [, b]) => b.seq - a.seq)
   const etape = transitions[0]?.[0] ?? null
   const verdict = journal?.verdict ?? null
-  const perime = Boolean(verdict && journal.tete && journal.tete !== teteVivante)
   const etat = !run ? 'aucun'
-    : perime ? 'périmé'
-      : verdict ? ETAT_DU_VERDICT[verdict.etat] ?? 'rouge'
-        : estVivant(journal.pid) ? 'en-vol' : 'mort'
+    : !verdict && estVivant(journal.pid) ? 'en-vol'
+      : journal.tete && journal.tete !== teteVivante ? 'périmé'
+        : verdict ? ETAT_DU_VERDICT[verdict.etat] ?? 'rouge'
+          : 'mort'
   return {
     etat,
     etape,
@@ -589,7 +590,8 @@ export const cheminsDeJournal = (racine, branche) => {
   return { dossier, json: join(dossier, `${nom}.json`), log: join(dossier, `${nom}.log`) }
 }
 
-/** Écriture ATOMIQUE du journal (temporaire + renommage). */
+/** Écriture ATOMIQUE d'une valeur JSON (temporaire propre au processus, puis renommage) : le journal du
+ *  train, et le cache de la vigie (`scripts/ops/vigie.mjs`), que plusieurs sessions partagent. */
 export function sauverJournal(chemin, journal) {
   mkdirSync(join(chemin, '..'), { recursive: true })
   const tmp = `${chemin}.${process.pid}.tmp`
@@ -739,7 +741,7 @@ export function lancementNpm(script, platform) {
 
 /** Un sha COMPLET, sinon levée. */
 function shaComplet(geste, sha) {
-  if (typeof sha === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) return sha
+  if (typeof sha === 'string' && estShaComplet(sha)) return sha
   throw new Error(`ctx.${geste} : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
 }
 

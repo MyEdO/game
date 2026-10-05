@@ -138,32 +138,61 @@ const ERREUR = /^##\[error\]/
 /** Une annotation d'erreur GÉNÉRIQUE : le code de sortie d'une étape, qui ne nomme aucune panne. */
 const ERREUR_GENERIQUE = /^##\[error\]Process completed with exit code \d+\.?$/
 
+/** Lignes de CONTEXTE retenues pour un job sans ligne reconnue (`echecsDuLog`) : valeur maison. Mesure du
+ *  2026-10-05 : la ligne qui nomme la panne de `docs:build` (course 37323572830) est la 16ᵉ ligne non vide
+ *  avant son erreur générique. */
+export const BORNE_LIGNES_DE_CONTEXTE = 20
+
+/** L'ouverture du groupe d'une ÉTAPE `run` d'Actions (`##[group]Run <commande>`) : son nom. */
+const ETAPE_DU_GROUPE = /^##\[group\](Run .*)$/
+
+/** Une directive d'Actions (`##[group]`, `##[endgroup]`, `##[error]`…) : jamais une ligne de contexte. */
+const DIRECTIVE = /^##\[/
+
+/** La colonne ÉTAPE d'un journal que GitHub n'a pas su attribuer. */
+const ETAPE_INCONNUE = 'UNKNOWN STEP'
+
 /**
  * Les ÉCHECS d'un journal `gh run view <id> --log-failed` (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
- * par job dans l'ordre du journal : ses lignes de test en échec, dédoublonnées et bornées à `borne`, puis
- * sa PREMIÈRE ligne `##[error]` qui n'est pas GÉNÉRIQUE (`ERREUR_GENERIQUE`), aucune s'il n'y en a pas ;
- * `tues` compte les lignes de test au-delà de la borne. PUR.
- * @param {string} journal @param {{borne?: number}} [opts]
- * @returns {{job: string, lignes: string[], tues: number}[]}
+ * par job dans l'ordre du journal. `etape` : l'étape fautive, celle de la PREMIÈRE erreur du job — sa
+ * colonne d'étape, ou, quand GitHub l'écrit `UNKNOWN STEP`, le dernier `##[group]Run …` ouvert avant elle.
+ * `lignes` : ses lignes de test en échec, dédoublonnées et bornées à `borne`, puis sa PREMIÈRE ligne
+ * `##[error]` qui n'est pas GÉNÉRIQUE (`ERREUR_GENERIQUE`) ; À DÉFAUT de toute ligne reconnue, les
+ * `contexte` dernières lignes non vides (hors directives) de son étape avant la première erreur. `tues` compte les
+ * lignes de test au-delà de la borne. PUR.
+ * @param {string} journal @param {{borne?: number, contexte?: number}} [opts]
+ * @returns {{job: string, etape: string|null, lignes: string[], tues: number}[]}
  */
-export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC } = {}) {
+export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC, contexte = BORNE_LIGNES_DE_CONTEXTE } = {}) {
   const parJob = new Map()
   for (const brute of String(journal ?? '').split(/\r?\n/)) {
-    const [job, , ...reste] = brute.split('\t')
+    const [job, colonne, ...reste] = brute.split('\t')
     if (!reste.length) continue
-    const ligne = reste.join('\t').replace(HORODATAGE, '')
-    if (!parJob.has(job)) parJob.set(job, { tests: [], erreur: null })
+    const texte = reste.join('\t').replace(HORODATAGE, '')
+    const ligne = texte.trim()
+    if (!parJob.has(job)) parJob.set(job, { tests: [], erreur: null, groupe: null, etape: null, fenetre: [], fige: null })
     const vu = parJob.get(job)
-    if (TEST_EN_ECHEC.test(ligne)) {
-      const test = ligne.trim()
-      if (!vu.tests.includes(test)) vu.tests.push(test)
-    } else if (vu.erreur === null && ERREUR.test(ligne) && !ERREUR_GENERIQUE.test(ligne.trim())) vu.erreur = ligne.trim()
+    const groupe = ETAPE_DU_GROUPE.exec(ligne)
+    if (groupe && vu.fige === null) {
+      vu.groupe = groupe[1]
+      vu.fenetre = []
+    }
+    if (TEST_EN_ECHEC.test(texte)) {
+      if (!vu.tests.includes(ligne)) vu.tests.push(ligne)
+    } else if (ERREUR.test(ligne)) {
+      if (vu.fige === null) {
+        vu.fige = vu.fenetre
+        vu.etape = colonne && colonne !== ETAPE_INCONNUE ? colonne : vu.groupe
+      }
+      if (vu.erreur === null && !ERREUR_GENERIQUE.test(ligne)) vu.erreur = ligne
+    } else if (ligne && !DIRECTIVE.test(ligne) && vu.fige === null) {
+      vu.fenetre = [...vu.fenetre, ligne].slice(-contexte)
+    }
   }
-  return [...parJob].map(([job, { tests, erreur }]) => ({
-    job,
-    lignes: [...tests.slice(0, borne), ...(erreur ? [erreur] : [])],
-    tues: Math.max(0, tests.length - borne),
-  }))
+  return [...parJob].map(([job, { tests, erreur, etape, fenetre, fige }]) => {
+    const reconnues = [...tests.slice(0, borne), ...(erreur ? [erreur] : [])]
+    return { job, etape, lignes: reconnues.length ? reconnues : (fige ?? fenetre), tues: Math.max(0, tests.length - borne) }
+  })
 }
 
 /**

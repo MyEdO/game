@@ -165,6 +165,12 @@ test('etatDuTrain : le VERDICT pour la tête vivante — vert, rouge, indétermi
   assert.equal(etatDuTrain(journalDuRun({ verdict: { etat: 'rouge', etape: 'moteur' } }), { teteVivante: 'aaa' }).etat, 'rouge')
 })
 
+test('etatDuTrain : un train MORT sur une tête qui n’est plus HEAD est `périmé`, jamais `mort` à vie', () => {
+  const journal = journalDuRun({ faites: 2 })
+  assert.equal(etatDuTrain(journal, { teteVivante: 'bbb', vivant: () => false }).etat, 'périmé')
+  assert.equal(etatDuTrain(journal, { teteVivante: 'aaa', vivant: () => false }).etat, 'mort', 'témoin : sur la tête vivante, il reste mort')
+})
+
 test('etatDuTrain : un verdict posé pour une AUTRE tête que HEAD est `périmé` ; en vol, la tête ne périme rien', () => {
   const perime = etatDuTrain(journalDuRun({ faites: NOMS.length, en: null, verdict: { etat: 'vert' } }), { teteVivante: 'bbb' })
   assert.deepEqual([perime.etat, perime.reprise], ['périmé', NOMS[0]])

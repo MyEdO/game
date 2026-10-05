@@ -9,10 +9,12 @@
 //
 // Usage : node scripts/ops/ci.mjs --attendre [<sha>] | --echecs <run>
 import { fileURLToPath } from 'node:url'
-import { GitIndisponible, brancheDe, depotDe, shasDistants } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, brancheDe, depotDe, estShaComplet, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { coursesCi, echecsDuLog, jobsRougesDe, journalEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { PERIODE_SONDE_MS, attendre, verdictDesRuns } from './etapesDuTrain.mjs'
+import { PERIODE_SONDE_MS, attendre, refusDeBranche, verdictDesRuns } from './etapesDuTrain.mjs'
+import { texteDeCi } from '../gates/gatesDeCi.mjs'
+import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { CODE_BORNE_DEPASSEE } from './publier.mjs'
 
@@ -32,9 +34,6 @@ export const CODES_DE_CI = Object.freeze({ verte: 0, rouge: 1, annulee: 6, absen
 /** Code de sortie d'une panne (arguments, git, gh) : rien n'a été jugé. */
 export const CODE_PANNE = 2
 
-/** Un sha COMPLET. PUR. */
-const estSha = (sha) => /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(String(sha ?? ''))
-
 /**
  * Les options. PURE. `{ attendre: true, sha: string|null }`, `{ echecs: number }`, ou `null` (refusées).
  * @param {string[]} argv arguments APRÈS `node ci.mjs`
@@ -42,7 +41,7 @@ const estSha = (sha) => /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(String(sha ?? '')
 export function optionsDe(argv) {
   const [geste, valeur, ...reste] = (argv ?? []).map(String)
   if (reste.length) return null
-  if (geste === '--attendre' && (valeur === undefined || estSha(valeur))) return { attendre: true, sha: valeur ?? null }
+  if (geste === '--attendre' && (valeur === undefined || estShaComplet(valeur))) return { attendre: true, sha: valeur ?? null }
   if (geste === '--echecs' && /^[1-9]\d*$/.test(String(valeur ?? ''))) return { echecs: Number(valeur) }
   return null
 }
@@ -82,16 +81,20 @@ export function attendreLaCi({
 }
 
 /**
- * Les lignes qui NOMMENT un rouge : par job rouge, ses lignes d'échec (`echecsDuLog`), sinon un renvoi
- * au journal. PURE.
- * @param {{jobs:string[], echecs:{job:string, lignes:string[], tues:number}[]}} p
+ * Les lignes qui NOMMENT un rouge : par job rouge, son étape fautive et ses lignes d'échec (`echecsDuLog`) ;
+ * un job rouge que le journal en échec ne porte pas se dit tel. PURE.
+ * @param {{jobs:string[], echecs:{job:string, etape:string|null, lignes:string[], tues:number}[]}} p
  * @returns {string[]}
  */
 export function lignesDuRouge({ jobs, echecs }) {
   return jobs.flatMap((job) => {
     const vu = echecs.find((e) => e.job === job)
-    if (!vu?.lignes.length) return [`  ${job} : aucune ligne d’échec reconnue au journal`]
-    return [`  ${job} :`, ...vu.lignes.map((l) => `    ${l}`), ...(vu.tues ? [`    (+${vu.tues} autres tests en échec)`] : [])]
+    if (!vu) return [`  ${job} : absent du journal en échec (\`gh run view --log-failed\`)`]
+    return [
+      `  ${job}${vu.etape ? ` — ${vu.etape}` : ''} :`,
+      ...vu.lignes.map((l) => `    ${l}`),
+      ...(vu.tues ? [`    (+${vu.tues} autres tests en échec)`] : []),
+    ]
   })
 }
 
@@ -117,13 +120,22 @@ export function ligneDeCi(verdict, sha) {
   return `CI: ${verdict.etat} ${sha}${url}`
 }
 
-/** Le sha POUSSÉ de la branche de `racine`, ou le refus nommé. */
-function shaPousse(racine) {
-  const depot = depotDe(racine)
+/**
+ * Le sha POUSSÉ de la branche du dépôt, ou le refus nommé : HEAD détaché, branche qu'aucun filtre
+ * `push.branches` de `ci.yml` ne déclenche (`refusDeBranche`, `filtres` = `branchesDePush`), origine
+ * illisible, branche non poussée.
+ * @param {{depot: import('../guards/lib/gitPorte.mjs').Depot, filtres: string[]|null}} p
+ * @returns {{sha: string}|{refus: string}}
+ */
+export function shaPousse({ depot, filtres }) {
   const branche = brancheDe(depot)
-  if (!branche) return { refus: `${racine} : HEAD détaché, aucune branche dont attendre la CI — nommer le sha` }
+  if (!branche) return { refus: `${depot.cwd} : HEAD détaché, aucune branche dont attendre la CI — nommer le sha` }
+  const horsCi = refusDeBranche(branche, filtres)
+  if (horsCi) return { refus: horsCi }
   const ref = `refs/heads/${branche}`
-  const sha = shasDistants(depot, [ref])?.[ref] ?? null
+  const distants = shasDistants(depot, [ref])
+  if (!distants) return { refus: `origine illisible : \`git ls-remote origin ${ref}\` n’a pas répondu` }
+  const sha = distants.get(ref)
   return sha ? { sha } : { refus: `${branche} n’est pas poussée sur origin — rien à attendre` }
 }
 
@@ -144,7 +156,7 @@ function main() {
   }
   let sha = options.sha
   if (!sha) {
-    const pousse = shaPousse(RACINE)
+    const pousse = shaPousse({ depot: depotDe(RACINE), filtres: branchesDePush(texteDeCi({ cwd: RACINE }), `${DOSSIER}/${PORTE}`) })
     if (pousse.refus) return panne(pousse.refus)
     sha = pousse.sha
   }
@@ -158,13 +170,12 @@ function main() {
   return CODES_DE_CI[verdict.etat]
 }
 
-/** `main`, dont une panne de git sort en `CODE_PANNE` NOMMÉE. */
+/** `main`, dont TOUTE exception sort en `CODE_PANNE` nommée sur stderr : jamais en 1, le code du rouge. */
 function mainNomme() {
   try {
     return main()
   } catch (e) {
-    if (!(e instanceof GitIndisponible)) throw e
-    process.stderr.write(`[ci] git indisponible : ${e.raison}\n`)
+    process.stderr.write(e instanceof GitIndisponible ? `[ci] git indisponible : ${e.raison}\n` : `[ci] ARRÊT INATTENDU : ${e?.stack ?? e}\n`)
     return CODE_PANNE
   }
 }

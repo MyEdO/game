@@ -312,7 +312,7 @@ test('shasDistants : UN `ls-remote` rend le sha de chaque ref de l’origine, `n
     lancerGit(['update-ref', '-d', 'refs/remotes/origin/main'], { cwd: aval })
     const argv = []
     const d = depotDe(aval, { env: envDeDepotForge(), spawn: (git, args, o) => { argv.push(args.slice(OPTIONS_DE_L_HOTE.length)); return spawnSync(git, args, o) } })
-    assert.deepEqual(shasDistants(d, ['refs/heads/main', 'refs/heads/jamais']), { 'refs/heads/main': amont.second, 'refs/heads/jamais': null })
+    assert.deepEqual(shasDistants(d, ['refs/heads/main', 'refs/heads/jamais']), new Map([['refs/heads/main', amont.second], ['refs/heads/jamais', null]]))
     assert.deepEqual(argv, [['ls-remote', 'origin', 'refs/heads/main', 'refs/heads/jamais']])
     assert.equal(shaDe(forge(aval), 'origin/main'), null, 'une LECTURE : la ref de suivi supprimée le reste')
     assert.throws(() => shasDistants(forge(amont.racine), ['refs/heads/main']), GitIndisponible, 'sans origine : une panne nommée, jamais « absente »')

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalEnEchecDe, jobsRougesDe, reinitialiserStub, triees } from './coursesCi.mjs'
+import { BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalEnEchecDe, jobsRougesDe, reinitialiserStub, triees } from './coursesCi.mjs'
 
 const dossier = () => mkdtempSync(join(tmpdir(), 'courses-ci-'))
 const jeter = (d) => rmSync(d, { recursive: true, force: true })
@@ -188,6 +188,7 @@ const JOURNAL_MIXTE = [
 test('echecsDuLog : le premier `##[error]` SIGNIFIANT, jamais un « Process completed with exit code N » ; aucun s’il n’y a que du générique', () => {
   assert.deepEqual(echecsDuLog(JOURNAL_MIXTE), [{
     job: 'build',
+    etape: null,
     lignes: [
       'not ok 18 - aucune gate n’acquiert un module ÉCRIVAIN sans que ÉCRIT/LU soit re-mesurée',
       'FAIL  src/stock-primitive.test.ts > la primitive tient sa FRONTIÈRE : elle calcule, elle ne juge pas > aucun VERDICT : ni `expect`, ni `throw`, ni `process.exit` — le rouge appartient à la garde appelante',
@@ -196,7 +197,7 @@ test('echecsDuLog : le premier `##[error]` SIGNIFIANT, jamais un « Process comp
     tues: 0,
   }])
   const generiqueSeul = JOURNAL_MIXTE.split('\n').slice(0, 3).join('\n')
-  assert.deepEqual(echecsDuLog(generiqueSeul), [{ job: 'build', lignes: ['not ok 18 - aucune gate n’acquiert un module ÉCRIVAIN sans que ÉCRIT/LU soit re-mesurée'], tues: 0 }])
+  assert.deepEqual(echecsDuLog(generiqueSeul), [{ job: 'build', etape: null, lignes: ['not ok 18 - aucune gate n’acquiert un module ÉCRIVAIN sans que ÉCRIT/LU soit re-mesurée'], tues: 0 }])
 })
 
 test('echecsDuLog : les `not ok` de node:test, sans horodatage ni BOM, dédoublonnés, bornés à BORNE_LIGNES_D_ECHEC', () => {
@@ -212,6 +213,7 @@ test('echecsDuLog : les `not ok` de node:test, sans horodatage ni BOM, dédoublo
 test('echecsDuLog : le ` FAIL  ` de vitest, puis le PREMIER `##[error]` seulement', () => {
   assert.deepEqual(echecsDuLog(JOURNAL_VITEST), [{
     job: 'build',
+    etape: null,
     lignes: [
       'FAIL  src/portable-paths-guard.test.ts > garde-fou chemins portables — aucun chemin absolu de machine dans le CODE > aucune source du périmètre ne porte de chemin absolu de machine (tolérance ZÉRO)',
       '##[error]AssertionError: Chemin(s) absolu(s) de machine — résoudre relativement à `import.meta.url` (cf. en-tête de ce fichier) :',
@@ -227,6 +229,107 @@ test('echecsDuLog : sans ligne de test, le premier `##[error]` nomme la panne (t
     ['types', '##[error]src/data/schemas/grammaire/collection-cle.ts(279,84): error TS2554: Expected 0-1 arguments, but got 2.'],
   ])
   assert.deepEqual(echecsDuLog(''), [])
+})
+
+/** Course 37323572830, job `docs` : un seul `##[error]` GÉNÉRIQUE, l'étape en colonne 2 (26 dernières lignes). */
+const JOURNAL_DOCS = [
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:41.9415640Z Sens B1 : 19 (non implémenté) — 17 sous dette déclarée, 0 sans entrée, 2 hors champ Implémente",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:41.9416313Z   dette de fiche 5e/tests.md (#1873) : couvre 16 topic(s) sur 16",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:41.9416993Z Sens B2 LDB (cœur 4e) : 12 → 1 chapitre(s) Atlas hors-code (11 crédité(s) par folio, 0 sous dette de fiche)",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:41.9417667Z Sens B2 CRB (cœur 5e) : 47 → 0 chapitre(s) Atlas hors-code (0 crédité(s) par folio, 47 sous dette de fiche)",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:41.9418290Z Cœur étranger : aucune des 23 fiche(s) ne cite le livre de cœur d'un autre cœur que le sien.",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:41.9421583Z Cliquet des trous durs : 13 trou(s) dur(s), tous au stock (13 entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:42.3838674Z ré-ancrage : ✅ 664 · 🔧 0 dérives (relancer --apply) · 🟡 0 · ❌ 0 · ➖ 3595 (⛔0 ⚠️0)",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:42.3839517Z 664 citations vérifiées sur 4259 réfs (29 fiches)",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:42.4075673Z docs/.sources-lues.json — 33 générateur(s) mesuré(s).",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:44.7637056Z docs:check — 1 référence(s) morte(s) :",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:44.7637941Z   scripts/guards/lib/livraison.test.mjs:126  [doc citée mais absente]  docs/x.md",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:44.7865463Z docs:build — scripts/docs/check-doc-refs.mjs — sortie 1",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.3915449Z check-atlas-counts — OK (aucun compte manuscrit dans 29 fichier(s) manuscrit(s) de l'Atlas ; 17 livres dans BOOKS)",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4366947Z progression : 108/108 Carrières appariées à une bande du PDF (111 bandes, livres extraits : archives-de-l-empire-1, archives-de-l-empire-2, aux-armes, livre-de-base, mer-des-griffes, middenheim, vents-de-la-magie)",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4368245Z   archives-de-l-empire-1 : 4",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4368582Z   archives-de-l-empire-2 : 3",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4368935Z   aux-armes : 15",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4369169Z   livre-de-base : 64",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4369359Z   mer-des-griffes : 9",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4369554Z   middenheim : 1",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4369737Z   vents-de-la-magie : 12",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4370550Z   BANDE HORS DONNÉE livre-de-base folio 46 (page PDF 48, y=389.5) : aucune Carrière de la donnée ne la réclame — titres de la page [\"CARRIÈRES\",\"CLASSES ET CARRIÈRES\",\"CLASSES\",\"CARRIÈRES\"]",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4372306Z   BANDE HORS DONNÉE vents-de-la-magie folio 188 (page PDF 192, y=753.1) : aucune Carrière de la donnée ne la réclame — titres de la page [\"FAMILIER DE COMBAT\",\"Évolution de Carrière\",\"FAMILIER DE SORTS\",\"Évolution de Carrière\"]",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4385039Z   BANDE HORS DONNÉE vents-de-la-magie folio 188 (page PDF 192, y=373.8) : aucune Carrière de la donnée ne la réclame — titres de la page [\"FAMILIER DE SORTS\",\"FAMILIER DE COMBAT\",\"Évolution de Carrière\",\"FAMILIER DE SORTS\",\"Évolution de Carrière\"]",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4386508Z progression : OK",
+  "docs\tRun npm run docs:build\t2026-10-05T14:23:47.4675550Z ##[error]Process completed with exit code 1.",
+].join('\n')
+
+/** Course 37319553290, job `docs` : idem, une autre panne de `docs:build` (24 dernières lignes du job). */
+const JOURNAL_DOCS_REANCRAGE = [
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:27.8251354Z coverage profondeur : ✅ 123 · 📖 78 · 🟡 19 · ⬜ 68 (sur 288 chapitres) · sections non-fiche : catalogue 639 · hors-règle 2443 · scénario 79 · règle 681 · 🔻enfoui 12 · folios ignorés 2",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:27.8255116Z par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅5·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9572772Z Sens A : 12 trou(s) dur(s) chapitre-livre · 11 chapitre(s)-livre à lignes non pinées · 0 réf(s) sans chapitre (hors mesure) · folios Atlas ignorés 2",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9574035Z   ADE I : 1 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9576976Z   ADE II : 0 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9578055Z   EDO : 1 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9579116Z   EDOC : 2 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9580048Z   MCLB : 1 trous durs · 0 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9580942Z   MDG : 2 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9581509Z   MSRC : 1 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9582063Z   NADJ : 2 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9582617Z   PDT : 2 trous durs · 0 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9583148Z   VDM : 0 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9584239Z Sens B1 : 19 (non implémenté) — 17 sous dette déclarée, 0 sans entrée, 2 hors champ Implémente",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9584829Z   dette de fiche 5e/tests.md (#1873) : couvre 16 topic(s) sur 16",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9585634Z Sens B2 LDB (cœur 4e) : 12 → 1 chapitre(s) Atlas hors-code (11 crédité(s) par folio, 0 sous dette de fiche)",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9586924Z Sens B2 CRB (cœur 5e) : 47 → 0 chapitre(s) Atlas hors-code (0 crédité(s) par folio, 47 sous dette de fiche)",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9587790Z Cœur étranger : aucune des 23 fiche(s) ne cite le livre de cœur d'un autre cœur que le sien.",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:28.9591466Z Cliquet des trous durs : 13 trou(s) dur(s), tous au stock (13 entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:29.5150541Z ré-ancrage : ✅ 662 · 🔧 2 dérives (relancer --apply) · 🟡 0 · ❌ 0 · ➖ 3595 (⛔0 ⚠️0)",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:29.5152180Z 664 citations vérifiées sur 4259 réfs (29 fiches) — relancer avec --apply pour corriger 2 dérives",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:29.5153674Z RÉGRESSION — 2 dérive(s) 🔧 non appliquée(s) : relancer --apply avant de committer.",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:29.5596941Z docs:build — ARRÊT sur scripts/raw/reanchor.mjs (sortie 1) : docs/ n'est PAS à jour.",
+  "docs\tRun npm run docs:build\t2026-10-05T13:50:29.5867860Z ##[error]Process completed with exit code 1.",
+].join('\n')
+
+/** Course 37317862076, job `types` : colonne d'étape `UNKNOWN STEP`, la panne sous `##[group]Run npm run deps:unused`. */
+const JOURNAL_DEPS = [
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.1947655Z # skipped 0",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.1947876Z # todo 0",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.1948006Z # duration_ms 2952.343793",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2027743Z ##[group]Run npm run deps:unused",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2027938Z ^[[36;1mnpm run deps:unused^[[0m",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2082370Z shell: /usr/bin/bash -e {0}",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2082537Z ##[endgroup]",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2728761Z ",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2729311Z > warhammer-v4-rpg@0.1.0 deps:unused",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2729853Z > knip --dependencies && npm run deps:exports",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:09.2730056Z ",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:12.7862530Z ",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:12.7863286Z > warhammer-v4-rpg@0.1.0 deps:exports",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:12.7863611Z > node scripts/ops/knip-exports-ratchet.mjs",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:12.7863745Z ",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3735432Z EXPORT(S) MORT(S) NOUVEAU(X) — supprimer l’export, ou le consommer :",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3735904Z   src/data/source/dossier.ts : LIBELLES_DE_FAMILLE",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3882740Z ##[error]Process completed with exit code 1.",
+].join('\n')
+
+test('echecsDuLog : sans ligne reconnue, le job nomme son ÉTAPE (colonne 2) et ses BORNE_LIGNES_DE_CONTEXTE dernières lignes avant l’erreur générique', () => {
+  const [docs] = echecsDuLog(JOURNAL_DOCS)
+  assert.equal(docs.job, 'docs')
+  assert.equal(docs.etape, 'Run npm run docs:build')
+  assert.equal(docs.lignes.length, BORNE_LIGNES_DE_CONTEXTE)
+  assert.ok(docs.lignes.includes('docs:check — 1 référence(s) morte(s) :'), docs.lignes.join('\n'))
+  assert.ok(docs.lignes.includes('docs:build — scripts/docs/check-doc-refs.mjs — sortie 1'))
+  assert.equal(docs.lignes.at(-1), 'progression : OK', 'la dernière ligne avant l’erreur générique')
+  assert.ok(docs.lignes.every((l) => l && !l.startsWith('##[')), 'ni ligne vide, ni directive')
+  const [reancrage] = echecsDuLog(JOURNAL_DOCS_REANCRAGE)
+  assert.equal(reancrage.etape, 'Run npm run docs:build')
+  assert.equal(reancrage.lignes.at(-1), 'docs:build — ARRÊT sur scripts/raw/reanchor.mjs (sortie 1) : docs/ n\'est PAS à jour.')
+})
+
+test('echecsDuLog : colonne `UNKNOWN STEP` — l’étape est le dernier `##[group]Run …`, le contexte part de son ouverture', () => {
+  const [types] = echecsDuLog(JOURNAL_DEPS)
+  assert.equal(types.etape, 'Run npm run deps:unused')
+  assert.deepEqual(types.lignes.slice(-2), ['EXPORT(S) MORT(S) NOUVEAU(X) — supprimer l’export, ou le consommer :', 'src/data/source/dossier.ts : LIBELLES_DE_FAMILLE'])
+  assert.ok(!types.lignes.some((l) => l.startsWith('# ')), 'rien de l’étape précédente (le résumé TAP)')
 })
 
 test('journalEnEchecDe : `gh run view <id> --log-failed`, en union — jamais un journal vide pour une panne', () => {

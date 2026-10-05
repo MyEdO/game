@@ -8,8 +8,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  BORNE_ABSENTE_MIN, BORNE_ATTENTE_MIN, CODES_DE_CI, CODE_PANNE, attendreLaCi, echecsDeLaCourse, ligneDeCi, lignesDuRouge, optionsDe, urlDeCourse,
+  BORNE_ABSENTE_MIN, BORNE_ATTENTE_MIN, CODES_DE_CI, CODE_PANNE, attendreLaCi, echecsDeLaCourse, ligneDeCi, lignesDuRouge, optionsDe, shaPousse, urlDeCourse,
 } from './ci.mjs'
+import { depotDe } from '../guards/lib/gitPorte.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { CODE_BORNE_DEPASSEE } from './publier.mjs'
 import { PERIODE_SONDE_MS } from './etapesDuTrain.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
@@ -85,17 +88,44 @@ test('attendreLaCi : une lecture INDISPONIBLE se dit et l’attente continue —
   assert.equal(lignes[0], `[ci] ${SHA.slice(0, 9)} courses illisibles : gh: jeton expiré`)
 })
 
-test('lignesDuRouge : par job ROUGE, ses lignes d’échec, le compte des tus, ou le renvoi au journal', () => {
+test('lignesDuRouge : par job ROUGE, son étape, ses lignes d’échec, le compte des tus ; un job absent du journal se dit tel', () => {
   assert.deepEqual(lignesDuRouge({
-    jobs: ['suite', 'types'],
-    echecs: [{ job: 'suite', lignes: ['not ok 3 - x', '##[error]Process completed with exit code 1.'], tues: 4 }, { job: 'docs', lignes: ['not ok 1 - y'], tues: 0 }],
+    jobs: ['suite', 'docs', 'types'],
+    echecs: [
+      { job: 'suite', etape: null, lignes: ['not ok 3 - x', '##[error]AssertionError: y'], tues: 4 },
+      { job: 'docs', etape: 'Run npm run docs:build', lignes: ['docs:build — scripts/docs/check-doc-refs.mjs — sortie 1'], tues: 0 },
+    ],
   }), [
     '  suite :',
     '    not ok 3 - x',
-    '    ##[error]Process completed with exit code 1.',
+    '    ##[error]AssertionError: y',
     '    (+4 autres tests en échec)',
-    '  types : aucune ligne d’échec reconnue au journal',
+    '  docs — Run npm run docs:build :',
+    '    docs:build — scripts/docs/check-doc-refs.mjs — sortie 1',
+    '  types : absent du journal en échec (`gh run view --log-failed`)',
   ])
+})
+
+test('shaPousse : le sha poussé ; refus NOMMÉS pour une branche hors `push.branches`, non poussée, ou une origine illisible', () => {
+  const amont = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'un' })
+  const aval = mkdtempSync(join(tmpdir(), 'ci-pousse-'))
+  try {
+    lancerGit(['clone', '-q', '--no-local', amont.racine, aval])
+    const g = gitDe(aval, { net: true })
+    const depot = depotDe(aval, { env: envDeDepotForge() })
+    const filtres = ['chantier/**', 'feat/**']
+    g('switch', '-q', '-c', 'autre')
+    assert.match(shaPousse({ depot, filtres }).refus, /la branche autre ne déclenche pas `ci\.yml`/, 'refusée d’emblée, sans attendre')
+    g('switch', '-q', '-c', 'chantier/9')
+    assert.deepEqual(shaPousse({ depot, filtres }), { refus: 'chantier/9 n’est pas poussée sur origin — rien à attendre' })
+    g('push', '-q', 'origin', 'chantier/9')
+    assert.deepEqual(shaPousse({ depot, filtres }), { sha: amont.sha })
+    const muet = depotDe(aval, { env: envDeDepotForge(), spawn: (cmd, args, o) => (args.includes('ls-remote') ? { status: 2, stdout: '', stderr: '' } : spawnSync(cmd, args, o)) })
+    assert.match(shaPousse({ depot: muet, filtres }).refus, /^origine illisible : /)
+  } finally {
+    rmSync(amont.racine, { recursive: true, force: true })
+    rmSync(aval, { recursive: true, force: true })
+  }
 })
 
 test('echecsDeLaCourse : les jobs rouges (`gh run view --json jobs`) croisés avec le journal en échec (`--log-failed`)', () => {
@@ -129,5 +159,10 @@ test('câblage : `ci.mjs --attendre <sha>` lit les courses par `coursesCi` et SO
     const refus = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', 'court'], { encoding: 'utf8' })
     assert.equal(refus.status, CODE_PANNE)
     assert.match(refus.stderr, /usage/)
+    const casse = join(dossier, 'casse.json')
+    writeFileSync(casse, JSON.stringify([null, null]))
+    const panne = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', SHA], { encoding: 'utf8', env: { ...process.env, WFRP_GH_STUB: casse } })
+    assert.equal(panne.status, CODE_PANNE, 'une exception non nommée est une PANNE, jamais le code du rouge')
+    assert.match(panne.stderr, /^\[ci\] ARRÊT INATTENDU : TypeError/)
   } finally { rmSync(dossier, { recursive: true, force: true }) }
 })

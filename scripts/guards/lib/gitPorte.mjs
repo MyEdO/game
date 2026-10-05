@@ -44,7 +44,6 @@ import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
-import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { DEPOT } from './ticketsGh.mjs'
 
 /** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
@@ -497,12 +496,15 @@ function bornesDe(depot, question, revisions, type) {
   return revisions
 }
 
+/** Un sha COMPLET (SHA-1 ou SHA-256), jamais abrégé. PUR. @param {unknown} texte @returns {boolean} */
+export const estShaComplet = (texte) => /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(String(texte ?? ''))
+
 /** Les NOMS aux extrémités d'une révision (`git help revisions` : `^<r>`, `<a>..<b>`, `<a>...<b>`,
  *  `<r>^!`, `<r>^@`, `<r>^-<n>`, `<r>^{<type>}`, `<r>~<n>`, `<r>^<n>`) ; un sha complet ne nomme que
  *  lui-même, il n'en est pas. */
 const nomsDe = (revision) => revision.replace(/^\^/, '').split(/\.{2,3}/)
   .map((r) => r.replace(/(?:\^\{[^}]*\}|~\d*|\^(?:\d*|[!@]|-\d*))+$/, ''))
-  .filter((r) => r && !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(r))
+  .filter((r) => r && !estShaComplet(r))
 
 /**
  * Une révision lue ABSENTE dont un NOM se résout (`rev-parse --verify --quiet`, sans pelage) vers un
@@ -1389,16 +1391,17 @@ const TIMEOUT_DU_DISTANT_MS = 60000
 /**
  * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
  * `ls-remote origin` (`git help ls-remote`), une LECTURE : aucune ref locale n'est posée, à l'inverse
- * de l'écrivain `fetchOrigin`. Chaque ref de `refs` y est une clé ; `null` pour une ref que
- * l'origine ne porte pas. `null` en entier quand git ne répond pas 0 ; une indisponibilité (réseau,
- * origine illisible) va à `confier`.
- * @param {Depot} depot @param {readonly string[]} refs @returns {Record<string, string | null> | null}
+ * de l'écrivain `fetchOrigin`. Une `Map` dont chaque ref de `refs` est une clé, dans leur ordre ; `null`
+ * pour une ref que l'origine ne porte pas. `null` en entier quand git ne répond pas 0 ; une indisponibilité
+ * (réseau, origine illisible) va à `confier`. Une `Map`, jamais `tableTotale` (`src/lib/tableTotale.ts`) :
+ * l'hôte est dans la clôture sans TypeScript de `scripts/node-requis.mjs` (#1801).
+ * @param {Depot} depot @param {readonly string[]} refs @returns {Map<string, string | null> | null}
  */
 export function shasDistants(depot, refs) {
   const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(refs)], { timeout: TIMEOUT_DU_DISTANT_MS })
   if (brut === null) return null
   const lus = new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
-  return tableTotale(refs, (ref) => lus.get(ref) ?? null)
+  return new Map(refs.map((ref) => [ref, lus.get(ref) ?? null]))
 }
 
 /**

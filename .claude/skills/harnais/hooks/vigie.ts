@@ -11,7 +11,7 @@ import type { Lu } from './ops'
 const DEPART: HarnaisVigie = { etat: null }
 const atome = atom({ plugin: 'harnais', key: 'vigie' } as const, DEPART)
 
-/** Période (ms) d'une mesure (#2280, V5). Valeur maison. */
+/** Période (ms) d'une mesure (#2280, V5), valeur maison mesurée le 2026-10-05 : un tick coûte 2,4 s (chaud) à 3,5 s (froid), 8 sessions en dépensent au pire ~960 requêtes gh par heure (~19 % du quota de 5 000), et une minute pèse peu devant la médiane d'une course CI (7 min). */
 const PERIODE_MS = 60 * 1000
 
 /**

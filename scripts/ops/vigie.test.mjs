@@ -62,7 +62,22 @@ test('transitionsDe : au PREMIER tick (sans `--depuis`), seuls un rouge et un tr
   assert.deepEqual(transitionsDe(null, mesure({ main: { sha: A, verdict: 'rouge' }, t: train('mort') })), ['CI main ROUGE (aaaaaaaaa)', 'train MORT à pr sans verdict'])
 })
 
+test('verdictDeCi : un cache VIDE ou illisible (écriture tronquée) est un cache absent — le verdict se relit et se réécrit, jamais une panne', () => {
+  const dossier = join(mkdtempSync(join(tmpdir(), 'vigie-cache-')), 'vigie')
+  try {
+    mkdirSync(dossier)
+    for (const contenu of ['', '{"verdict":', '"verte"']) {
+      writeFileSync(join(dossier, `${A}.json`), contenu)
+      let lus = 0
+      const vu = verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return { disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion: 'success', databaseId: 5 }] } } })
+      assert.deepEqual([vu, lus], ['verte', 1], JSON.stringify(contenu))
+      assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { verdict: 'verte' })
+    }
+  } finally { jeter(join(dossier, '..')) }
+})
+
 test('ligneDe : `CI main <s> · <branche> <s> · train : <étape k/n>`', () => {
+  assert.equal(ligneDe(mesure({ t: train('en-vol', { etape: null, rang: 0 }) })), 'CI main ✓ · chantier/9 … · train : en vol', 'en vol avant sa première transition')
   assert.equal(ligneDe(mesure()), 'CI main ✓ · chantier/9 … · train : pr 4/7')
   assert.equal(ligneDe(mesure({ branche: { nom: 'chantier/9', sha: null, verdict: null }, t: train('aucun', { etape: null, rang: 0 }) })), 'CI main ✓ · chantier/9 — · train : —')
   assert.equal(ligneDe(mesure({ main: { sha: A, verdict: 'rouge' }, branche: null, t: train('vert', { etape: 'fin', rang: 7 }) })), 'CI main ✗ · train : arrivé ✓')
@@ -70,7 +85,7 @@ test('ligneDe : `CI main <s> · <branche> <s> · train : <étape k/n>`', () => {
   assert.equal(ligneDe(mesure({ branche: { nom: 'b', sha: B, verdict: 'absente' }, t: train('rouge') })), 'CI main ✓ · b ∅ · train : ✗ pr 4/7')
 })
 
-test('verdictDeCi : seul un `verte` se garde au cache, `attempt` compris ; rouge et en vol se relisent ; une lecture illisible LÈVE', () => {
+test('verdictDeCi : seul un `verte` se garde au cache ; rouge et en vol se relisent ; une lecture illisible LÈVE', () => {
   const dossier = join(mkdtempSync(join(tmpdir(), 'vigie-cache-')), 'vigie')
   const course = (conclusion, attempt = 1) => ({ disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion, databaseId: 5, attempt }] })
   try {
@@ -78,7 +93,8 @@ test('verdictDeCi : seul un `verte` se garde au cache, `attempt` compris ; rouge
     assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('failure') } }), 'rouge')
     assert.equal(existsSync(dossier), false, 'un rouge ne s’écrit pas : sa relance le reverdit')
     assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('success', 2) } }), 'verte')
-    assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { verdict: 'verte', id: 5, attempt: 2 })
+    assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { verdict: 'verte' })
+    assert.deepEqual(readdirSync(dossier), [`${A}.json`], 'le temporaire de l’écriture atomique est renommé')
     assert.equal(verdictDeCi({ sha: A, dossier, lire: () => assert.fail('un verte gardé ne se relit pas') }), 'verte')
     assert.equal(lus, 2)
     assert.equal(verdictDeCi({ sha: null, dossier, lire: () => assert.fail('rien de poussé, rien à lire') }), null)

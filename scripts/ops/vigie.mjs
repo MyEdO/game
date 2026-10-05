@@ -5,20 +5,20 @@
 //
 // Un tick compose les lecteurs canoniques : `shasDistants` (UN `ls-remote` pour `main` et la branche),
 // `coursesCi` + `verdictDesRuns` par sha (la CI de `main` au sha d'`origin/main`, celle de la branche au
-// sha POUSSÉ), `etatDuTrain` sur le journal du train. Un verdict `verte` est gardé, `attempt` compris,
+// sha POUSSÉ), `etatDuTrain` sur le journal du train. Un verdict `verte` est gardé
 // sous `<.git commun>/vigie/` (partagé entre worktrees, hors de `node_modules`) ; tout autre verdict se
 // relit. La sortie `--json` est `{ ligne, transitions, etat }` : `etat`, opaque, se repasse en
 // `--depuis` au tick suivant, et les `transitions` se calculent depuis lui. Une panne sort non nulle,
 // son motif sur stderr.
 //
 // Usage : node scripts/ops/vigie.mjs --json --arbre <racine> [--depuis <etat>]
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { verdictDesRuns } from './etapesDuTrain.mjs'
-import { cheminsDeJournal, etatDuTrain, lireJournal } from './publier.mjs'
+import { cheminsDeJournal, etatDuTrain, lireJournal, sauverJournal } from './publier.mjs'
 
 /** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
 export const SYMBOLES_DE_CI = Object.freeze({ verte: '✓', rouge: '✗', annulee: '⊘', 'en-vol': '…', absente: '∅' })
@@ -112,7 +112,7 @@ export function ligneDe(etat) {
   if (etat.branche) morceaux.push(`${etat.branche.nom} ${symbole(etat.branche)}`)
   const { train } = etat
   const position = train.etape ? ` ${train.etape} ${train.rang}/${train.total}` : ''
-  const mot = { aucun: '—', 'en-vol': `${position.trim()}`, vert: 'arrivé ✓', rouge: `✗${position}`, 'indéterminée': `?${position}`, mort: `mort${position}`, 'périmé': 'périmé' }[train.etat]
+  const mot = { aucun: '—', 'en-vol': position.trim() || 'en vol', vert: 'arrivé ✓', rouge: `✗${position}`, 'indéterminée': `?${position}`, mort: `mort${position}`, 'périmé': 'périmé' }[train.etat]
   morceaux.push(`train : ${mot ?? train.etat}`)
   return morceaux.join(' · ')
 }
@@ -123,25 +123,38 @@ export class CiIllisible extends Error {}
 /** Le fichier de cache d'un sha. */
 const fichierDuCache = (dossier, sha) => join(dossier, `${sha}.json`)
 
-/** Motif des fichiers du cache, pour la péremption. */
-const MOTIF_DU_CACHE = /^[0-9a-f]{40,64}\.json$/
+/** Motif des fichiers du cache, pour la péremption : le verdict d'un sha, et le temporaire de `sauverJournal`
+ *  qu'un tick tué entre l'écriture et le renommage laisse derrière lui. */
+const MOTIF_DU_CACHE = /^[0-9a-f]{40,64}\.json(?:\.\d+\.tmp)?$/
+
+/** Le CACHE porte-t-il `verte` pour ce chemin ? Un fichier absent, vide ou illisible est un cache ABSENT,
+ *  jamais une panne : le verdict se relit. */
+function verteAuCache(chemin) {
+  try {
+    return JSON.parse(readFileSync(chemin, 'utf8'))?.verdict === 'verte'
+  } catch (e) {
+    if (e instanceof SyntaxError || e?.code === 'ENOENT') return false
+    throw e
+  }
+}
 
 /**
- * Le verdict de CI de `sha` : lu au CACHE s'il y est `verte`, sinon par `lire(sha)` (une union de
- * `coursesCi`) et `verdictDesRuns` ; un `verte` neuf s'écrit au cache, `attempt` compris. Une lecture
- * indisponible LÈVE `CiIllisible`.
+ * Le verdict de CI de `sha` : lu au CACHE s'il y est `verte` (`verteAuCache`), sinon par `lire(sha)` (une
+ * union de `coursesCi`) et `verdictDesRuns` ; un `verte` neuf s'écrit au cache par l'écriture ATOMIQUE
+ * `sauverJournal`, que huit sessions partagent sans lire un fichier à moitié écrit. Le cache ne garde
+ * que le verdict : un sha vu `verte` n'appelle plus `gh`.
+ * Une lecture indisponible LÈVE `CiIllisible`.
  * @param {{sha:string|null, dossier:string, lire:(sha:string) => object}} p @returns {string|null}
  */
 export function verdictDeCi({ sha, dossier, lire }) {
   if (!sha) return null
   const chemin = fichierDuCache(dossier, sha)
-  if (existsSync(chemin)) return JSON.parse(readFileSync(chemin, 'utf8')).verdict
+  if (verteAuCache(chemin)) return 'verte'
   const vues = lire(sha)
   if (!vues.disponible) throw new CiIllisible(`courses de ${sha.slice(0, 9)} illisibles : ${vues.raison}`)
   const vu = verdictDesRuns(vues.valeur, sha)
   if (vu.etat === 'verte') {
-    mkdirSync(dossier, { recursive: true })
-    writeFileSync(chemin, `${JSON.stringify({ verdict: 'verte', id: vu.course.databaseId, attempt: vu.course.attempt ?? 1 })}\n`)
+    sauverJournal(chemin, { verdict: 'verte' })
     purgerPerimes({ dossier, motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })
   }
   return vu.etat
@@ -161,8 +174,8 @@ export function tick({ arbre, depuis = null, lire = (sha) => coursesCi({ cwd: ar
   const refs = [TRONC.branche, ...(nom && nom !== TRONC.nom ? [`refs/heads/${nom}`] : [])]
   const distants = shasDistants(depot, refs)
   if (!distants) throw new GitIndisponible(`ls-remote origin n’a rien rendu pour ${refs.join(', ')}`)
-  const main = { sha: distants[TRONC.branche], verdict: verdictDeCi({ sha: distants[TRONC.branche], dossier, lire }) }
-  const branche = refs[1] ? { nom, sha: distants[refs[1]], verdict: verdictDeCi({ sha: distants[refs[1]], dossier, lire }) } : null
+  const main = { sha: distants.get(TRONC.branche), verdict: verdictDeCi({ sha: distants.get(TRONC.branche), dossier, lire }) }
+  const branche = refs[1] ? { nom, sha: distants.get(refs[1]), verdict: verdictDeCi({ sha: distants.get(refs[1]), dossier, lire }) } : null
   const { json } = cheminsDeJournal(arbre, nom ?? 'HEAD')
   const train = etatDuTrain(existsSync(json) ? lireJournal(json, nom) : null, { teteVivante })
   const vu = { main, branche, train }
