@@ -186,6 +186,14 @@ export const isUnarmedTrapping = (id: string | undefined, resolveTrapping: Trapp
 export const isImprovisedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
   !!(id && resolveTrapping(id)?.improvised);
 
+/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Bouclier » (`TrappingData.shield`) ? LDB 62 l.33-35 ;
+ *  AA 08 l.156 ; ZI 13 l.911. ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+export const isShieldTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
+  !!(id && resolveTrapping(id)?.shield);
+
+/** Arme ou objet reconnu bouclier par son IDENTITÉ de catalogue (`trappingId`). */
+export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTrapping(x.trappingId);
+
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
  *  des armes « wielded » / choisissables. */

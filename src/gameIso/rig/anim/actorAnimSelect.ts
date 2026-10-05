@@ -17,7 +17,7 @@ import { ambientClip } from './ambientClips';
 import { handlingClass } from './handling';
 import { mountedAttackClip, mountedParryClip, seatedClip, weaponAttackClip, weaponParryClip } from './weaponClips';
 import { isSupportiveCast, spellCastClip, spellCastStyle } from './spellClips';
-import { armeDeDessin, isShield, type FormeDArme } from '../parts/equipment';
+import { armeDeDessin, type FormeDArme } from '../parts/equipment';
 import type { BodyPlan, WingState } from '../bodyPlan';
 import { planGroundPose, rigGroundPose, type GroundState, type Pose } from '../../groundPose';
 import { lerpPose, scalePose } from '../poses';
@@ -177,8 +177,9 @@ export function rigAttackDef(ev: AttackSelect, ctx: RigSelectCtx): RigClipDef {
 export function rigDefenseDef(ev: DefenseSelect, ctx: RigSelectCtx): RigClipDef | null {
   if (ev.kind === 'spell' && isSupportiveCast(ev.casterKind, ev.targetKind, ev.isSelf)) return null;
   if (ev.defense === 'parade') {
-    const w = ev.parryWeapon ? armeDeDessin(ev.parryWeapon) : ctx.mainWeapon;
-    const shield = ev.parryWeapon ? isShield(ev.parryWeapon) : !!ctx.shield;
+    const parade = ev.parryWeapon ? armeDeDessin(ev.parryWeapon) : undefined;
+    const w = parade ?? ctx.mainWeapon;
+    const shield = parade ? parade.bouclier : !!ctx.shield;
     return rigDef(
       `rig:parry:${seat(ctx.seated)}:${weaponKey(w)}:${shield ? 'bouclier' : 'nu'}`,
       ctx.seated ? mountedParryClip(w, shield) : weaponParryClip(w, shield),

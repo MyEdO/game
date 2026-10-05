@@ -4,6 +4,7 @@
 // Rien ici ne touche l'arbre : le moteur reçoit des étapes FACTICES et un journal EN MÉMOIRE, les
 // verdicts reçoivent des listes de courses littérales. Ce que ce fichier ne couvre pas est dit :
 // les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué.
+import { corpsDeFusion, fusionDe, issueDeFusion, reponseHttp } from '../guards/lib/fusionPr.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
@@ -41,10 +42,8 @@ import {
   veillerLeTrain,
   citerArgv,
   contexteDe,
-  corpsDeFusion,
   etatDeLEtape,
   filetDuTrainEnfant,
-  fusionDe,
   jouerLeTrain,
   journalInitial,
   journalVide,
@@ -57,7 +56,6 @@ import {
   nomDeRotation,
   optionsDe,
   planDeReprise,
-  reponseHttp,
   rotationnerLog,
 } from './publier.mjs'
 import {
@@ -71,7 +69,6 @@ import {
   estDocDerive,
   etatDeLaPr,
   finDeSortie,
-  issueDeFusion,
   marquePublication,
   messageDuTrain,
   partitionSales,

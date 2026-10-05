@@ -3,6 +3,8 @@ import { WEAPON_FORMS, SHIELD_FORMS } from './weaponForms';
 import { weaponFamily, shieldPart, type FormeDArme } from './equipment';
 import { declaredView } from '../viewArt';
 import { trappings } from '../../../data';
+import { WEAPON_DEFS } from './weapons/_registry.generated';
+import { SHIELD_DEFS } from './shields/_registry.generated';
 
 /** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé. */
 const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
@@ -32,6 +34,13 @@ describe('weaponForms — shape catalogué sur les armes tenues en main', () => 
     expect(bad).toEqual([]);
   });
 
+  it('tout slug de WEAPON_DEFS et de SHIELD_DEFS est visé par une shape ou une formChoices du catalogue', () => {
+    const vises = new Set(trappings.flatMap((t) => [t.shape, ...(t.formChoices ?? [])]));
+    const defs = [...WEAPON_DEFS, ...SHIELD_DEFS].map((d) => d.slug);
+    expect(defs.some((s) => vises.has(s)), 'PRÉMISSE : le catalogue vise des défs du rig').toBe(true);
+    expect(defs.filter((s) => !vises.has(s))).toEqual([]);
+  });
+
   it('Mains nues n’a pas de shape (aucune arme dessinée)', () => {
     const mn = (trappings as { id: string; shape?: string }[]).find((t) => t.id === 'mains-nues');
     expect(mn?.shape).toBeUndefined();
@@ -41,11 +50,6 @@ describe('weaponForms — shape catalogué sur les armes tenues en main', () => 
     const slugs = WEAPON_FORMS.map((f) => f.slug);
     expect(slugs.every((s) => /^[a-z0-9_]+$/.test(s))).toBe(true);
     expect(new Set(slugs).size).toBe(slugs.length);
-  });
-
-  it('90 armes-arts + 4 boucliers', () => {
-    expect(WEAPON_FORMS).toHaveLength(90);
-    expect(SHIELD_FORMS).toHaveLength(4);
   });
 });
 
