@@ -127,6 +127,11 @@ const ATTENDU = {
     // +1 le 2026-09-27 (#1903) : la commande de régénération des stocks de sites, exercée par son banc
     // (`stockDeSites.test.mjs`, morsure `--check`) sur des fixtures sous `os.tmpdir()`.
     'scripts/guards/lib/regenStock.mts',
+    // +1 le 2026-10-05 (#2294) : le banc du NOMBRE de processus git de la mesure du palier forge ses
+    // dépôts (`instanceDeDepot`, puis `mkdirSync` + `writeFileSync` des commits et des revues) sous
+    // `os.tmpdir()`, `rmSync` en finally — un compte de lancements contre git réel exige un vrai
+    // dépôt ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/revuePalier.test.mjs',
     // +1 le 2026-09-07 (#1709) : la porte de rôle du corpus source pose ses fixtures
     // (`mkdtempSync` + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — l'arbre versionné n'est
     // jamais écrit, et la lib mesurée (`sourceCorpus.mjs`) ne fait que LIRE.

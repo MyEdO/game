@@ -340,7 +340,7 @@ test('refus de PALIER : le message NOMME la MESURE (compte, tête, archive) — 
   const d = evaluateSolde({
     command: 'git commit -m "feat: x (corrige #77)"',
     today: '2026-09-02',
-    readSolde: () => null,
+    readSoldes: (ns) => ns.map(() => null),
     palier: () => ({ compte: 11, tete: '2c11fdd9a', chemin: '.claude/soldes/revue-palier-82e95be10.md' }),
   })
   assert.ok(d, 'palier atteint sans revue : le refus manque')
@@ -355,7 +355,7 @@ test('refus de PALIER : un palier INMESURABLE refuse aussi — jamais un silence
   const d = evaluateSolde({
     command: 'git commit -m "feat: x (corrige #77)"',
     today: '2026-09-02',
-    readSolde: () => null,
+    readSoldes: (ns) => ns.map(() => null),
     palier: () => ({ compte: 0, tete: null, chemin: null, erreur: 'toutes les archives sont orphelines' }),
   })
   assert.ok(d)
