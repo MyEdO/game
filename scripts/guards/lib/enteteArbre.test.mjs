@@ -3,12 +3,12 @@
 // porte du travail non committé.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { instanceDeDepot } from './depotGabarit.mjs'
 import { enteteArbre } from './enteteArbre.mjs'
+import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 
 /** Dépôt jetable d'un commit, propre. */
 function depot() {
@@ -17,7 +17,7 @@ function depot() {
     branche: 'principale',
     message: 'sujet du dernier commit',
   })
-  return { racine, git: (...a) => execFileSync('git', a, { cwd: racine, encoding: 'utf8' }) }
+  return { racine, git: gitDe(racine) }
 }
 
 test('arbre PROPRE : sha court, sujet du dernier commit, zéro fichier non committé', () => {
@@ -47,7 +47,7 @@ test('le sujet est BORNÉ à 70 caractères (une ligne de filigrane reste lisibl
   try {
     const long = 'x'.repeat(120)
     writeFileSync(join(racine, 'a.txt'), 'encore\n')
-    execFileSync('git', ['commit', '-q', '-am', long], { cwd: racine })
+    lancerGit(['commit', '-q', '-am', long], { cwd: racine })
     const ligne = enteteArbre(racine)
     assert.ok(ligne.includes(`« ${'x'.repeat(70)} »`), ligne)
     assert.ok(!ligne.includes('x'.repeat(71)), 'le sujet déborde de sa borne')

@@ -3,10 +3,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { TAILLE_MAX, corpsDe, defautsDeForme, familleDe, raisonDeRefusDeForme } from './memoire-forme.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const entete = '---\nname: x\ndescription: "d"\n---\n'
@@ -99,7 +99,7 @@ test('le refus NOMME chaque site en fichier:ligne, et se tait quand il n’y a r
 })
 
 test('AUCUN motif de récit ne subsiste dans le stock permanent de cet arbre', () => {
-  const fichiers = execFileSync('git', ['ls-files', '.claude/'], { cwd: RACINE, encoding: 'utf8' })
+  const fichiers = gitDeLArbreReel(RACINE)('ls-files', '.claude/')
     .split('\n').filter(Boolean).filter(familleDe)
   assert.ok(fichiers.length > 0, `périmètre vide ou illisible : ${fichiers.length} fichier(s)`)
   const recits = fichiers.flatMap((c) => defautsDeForme(c, readFileSync(join(RACINE, c), 'utf8'))
@@ -109,7 +109,7 @@ test('AUCUN motif de récit ne subsiste dans le stock permanent de cet arbre', (
 })
 
 test('AUCUNE date hors citation ne subsiste dans le stock permanent de cet arbre', () => {
-  const fichiers = execFileSync('git', ['ls-files', '.claude/memory'], { cwd: RACINE, encoding: 'utf8' })
+  const fichiers = gitDeLArbreReel(RACINE)('ls-files', '.claude/memory')
     .split('\n').filter(Boolean).filter(familleDe)
   assert.ok(fichiers.length > 0, `périmètre vide ou illisible : ${fichiers.length} fichier(s)`)
   const dates = fichiers.flatMap((c) => defautsDeForme(c, readFileSync(join(RACINE, c), 'utf8'))
@@ -119,7 +119,7 @@ test('AUCUNE date hors citation ne subsiste dans le stock permanent de cet arbre
 })
 
 test('AUCUNE fiche ne dépasse le plafond de PROSE dans le stock permanent de cet arbre', () => {
-  const fichiers = execFileSync('git', ['ls-files', '.claude/memory'], { cwd: RACINE, encoding: 'utf8' })
+  const fichiers = gitDeLArbreReel(RACINE)('ls-files', '.claude/memory')
     .split('\n').filter(Boolean).filter((c) => familleDe(c) === 'fiche')
   assert.ok(fichiers.length > 0, `périmètre vide ou illisible : ${fichiers.length} fichier(s)`)
   const trop = fichiers.flatMap((c) => defautsDeForme(c, readFileSync(join(RACINE, c), 'utf8'))

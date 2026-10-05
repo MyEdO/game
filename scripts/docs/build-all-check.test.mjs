@@ -8,13 +8,14 @@
 // JETABLE et des générateurs RÉELS qui passent par `ecrireOuVerifier`.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
+import { gitDe } from '../test/gitDeBanc.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 
@@ -90,7 +91,7 @@ function depotReel() {
     },
   })
   mkdirSync(path.join(racine, 'docs'), { recursive: true })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8' })
+  const git = gitDe(racine)
   const build = executer(racine, [])
   assert.equal(build.status, 0, `docs:build du banc : ${build.sortie}`)
   git('add', '-A')
