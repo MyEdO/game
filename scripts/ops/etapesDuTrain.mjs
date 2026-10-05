@@ -451,9 +451,6 @@ export const ETAPES = [
       journal.base ??= questions.baseAuTronc()
       if (!journal.base) return { ok: false, raison: `aucune base commune entre ${TRONC.suivi} et HEAD` }
       journal.tete = ctx.tete
-      // La collision des compteurs de version (#2222) se JUGE sur le commit de file (`ci.yml`, step
-      // « Compteurs de version de la file ») ; contre `origin/main`, elle n'est qu'un AVERTISSEMENT.
-      for (const refus of questions.refusDesCompteurs()) ctx.journaliser(`[publier] preflight — AVERTISSEMENT : ${refus}\n`)
       const reste = derives.length
         ? `${derives.length} dérivé(s) sale(s) non commité(s) : l’étape docs les commet`
         : 'arbre propre'

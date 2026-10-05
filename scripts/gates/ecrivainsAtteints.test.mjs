@@ -33,7 +33,7 @@ const ATTENDU = {
     'scripts/docs/lib/ecriture-derives.mjs',
     // +2 le 2026-09-16 (#1738) : la garde du classement de push fabrique des dépôts JETABLES
     // (`mkdtempSync` + `git init` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) pour
-    // éprouver `merge-base` et le CLI ; la garde des liens de mémoire, venue de `src/` en node:test,
+    // éprouver `merge-base` et le CLI ; la garde des liens de mémoire
     // forge ses fiches sous un `mkdtempSync` de os.tmpdir() — l'arbre du dépôt n'est jamais écrit.
     'scripts/gates/classerPush.test.mjs',
     // #1964 — +1 le 2026-10-01 : fixtures sous os.tmpdir(), supprimées en finally.
@@ -78,8 +78,6 @@ const ATTENDU = {
     // du 2026-10-01 : `git status --short --ignored` identique avant et après, sur ce worktree et sur
     // l'arbre principal, et aucun `node_modules/.cache/hooks-git` créé.
     'scripts/git-hooks/journal.mjs',
-    // −1 le 2026-09-30 (#2203) : `merge-docs.test.mjs` n'écrit plus — ses fixtures de catalogue
-    // partent avec la famille `docs-catalogue`.
     'scripts/git-hooks/merge-docs.mjs',
     // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
     // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
@@ -93,17 +91,14 @@ const ATTENDU = {
     // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
     // `git status --short --ignored` identique avant et après, sur ce worktree et sur l'arbre principal.
     'scripts/git-hooks/pre-commit.test.mjs',
-    // −1 le 2026-09-29 (#2132) : `pre-push.mjs` n'écrit plus depuis `50b1a3e92` (#1776), qui a retiré son
-    // `appendFileSync` du journal `derogations.log` — mesuré par `ecrivainsParGate`.
     'scripts/git-hooks/pre-push.test.mjs',
     'scripts/git-hooks/three-way.mjs',
     // +2 le 2026-09-05 (#1679 L3 T2) : les deux tests de l'hôte des lectures git et de la lecture des
     // courses CI écrivent leurs fixtures (dépôts jetables, fichiers de stub) sous `os.tmpdir()` —
     // l'arbre n'est jamais touché.
     'scripts/guards/lib/coursesCi.test.mjs',
-    // +2 le 2026-09-07 (#1709) : la fixture de dépôt jetable est devenue une source unique ; le
-    // gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
-    // jamais écrit — même mesure que les fixtures qu'elle remplace.
+    // Le gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
+    // jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/guards/lib/depotGabarit.test.mjs',
     'scripts/guards/lib/enteteArbre.test.mjs',
@@ -136,12 +131,13 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — l'arbre versionné n'est
     // jamais écrit, et la lib mesurée (`sourceCorpus.mjs`) ne fait que LIRE.
     'scripts/guards/lib/sourceCorpus.test.mjs',
-    // +1 le 2026-09-14 (#1759) : le banc du rejeu de spawn ENTRE dans la gate — il était né le
-    // 2026-09-04 hors de toute liste écrite à la main, donc jamais joué. Ses écritures sont ses
+    // Le banc du rejeu de spawn écrit ses
     // fixtures : des scripts jetables sous `os.tmpdir()` (`mkdtempSync` + `writeFileSync`, `rmSync`
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
     'scripts/guards/lib/stockDeSites.test.mjs',
+    // #2226
+    'scripts/guards/lib/versionsDerivees-collision.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
@@ -187,10 +183,7 @@ const ATTENDU = {
     'scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs',
     // +1 le 2026-09-22 (#1873) : `joue.mjs` COPIE la migration jouée dans le dépôt jetable que lui donne
     // chaque banc de migration (`copyFileSync`, sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
-    // −8 le 2026-09-23 (#1897) : les bancs de migration fabriquent leur dépôt jetable par `joue.mjs`
-    // (`depot`, `efface`), unique écrivain de la famille ; −2 le 2026-09-24 (#1897) : les bancs #877
-    // et #1882 de `main` passent au même régime à la fusion ; −1 le 2026-09-26 (#1897) : le banc
-    // `1882-refs-vivantes-portes` de `main` aussi. +1 le 2026-09-23 (#1897) : son banc
+    // Son banc
     // `joue.test.mjs` réécrit (`writeFileSync`) les fichiers du dépôt jetable de `depot()` pour faire
     // mordre `crees`/`rienTouche` ; ce dépôt vit sous `os.tmpdir()` (`efface` en `t.after`), l'arbre
     // n'est jamais écrit.
@@ -204,7 +197,6 @@ const ATTENDU = {
   'test:ops': [
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
-    // +8 le 2026-09-14 (#1736) : le train de publication entre dans `test:ops`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
     //   sous os.tmpdir() (fixture partagée + mkdtemp), jetés en finally — aucune écriture DANS
     //   l'arbre. `chantier.mjs`/`worktrees.mjs` écrivent, eux, dans l'arbre PRINCIPAL en usage réel
@@ -245,9 +237,6 @@ const ATTENDU = {
     // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.md` (temporaire voisin puis
     // `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
     // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
-    // −2 le 2026-09-29 (#2132) : `fermer-depuis-main.test.mjs` n'écrit plus depuis `a0c68642c` (#1813), qui a
-    // retiré ses `writeFileSync`/`rmSync` et son `instanceDeDepot` ; `scripts/test/verrou.mjs` n'est plus
-    // atteint depuis `50b1a3e92` (#1776), qui a retiré son import de `publier.mjs` — mesurés par `ecrivainsParGate`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
     // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
@@ -294,8 +283,9 @@ const ATTENDU = {
     'scripts/docs/build-all-check.test.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/check-plans-anchors.test.mjs',
-    // +1 le 2026-09-14 (#1759) : `canauxMecaniques.test.mjs` ENTRE dans la gate — né le 2026-09-13
-    // hors de toute liste écrite à la main, donc jamais joué. Il forge ses sources (`mkdtempSync` +
+    // #1964
+    'scripts/docs/build-passifs.test.mjs',
+    // `canauxMecaniques.test.mjs` forge ses sources (`mkdtempSync` +
     // `writeFileSync`) sous `os.tmpdir()` ; l'arbre n'est jamais écrit.
     'scripts/docs/lib/canauxMecaniques.test.mjs',
     // +1 le 2026-09-26 (#1973) : le banc de `canoniser` pose deux dossiers (`mkdtempSync`,
@@ -325,8 +315,7 @@ const ATTENDU = {
   'test:recette': ['scripts/recette/lib.mjs'],
   typecheck: [],
   lint: [],
-  // +1 le 2026-09-06 (#1679 L3b) : la purge des captures périmées du lanceur est passée en source
-  // unique — elle efface dans `node_modules/.cache`, jamais dans l'arbre versionné.
+  // La purge des captures périmées du lanceur efface dans `node_modules/.cache`, jamais dans l'arbre versionné.
   test: [
     'scripts/guards/lib/purgerPerimes.mjs',
     'scripts/test/run.mjs',
@@ -355,9 +344,6 @@ const ATTENDU = {
     // l'arbre : même classe que `scripts/guards/lib/depotGabarit.mjs` (test:docs) et les dépôts
     // jetables de `scripts/ops/`.
     'scripts/raw/check-source-format.test.mjs',
-    // −2 le 2026-09-29 (#2132) : `check-refs.test.mjs` et `reanchor.test.mjs` n'écrivent plus depuis
-    // `95ece188e` (#1825), qui a remplacé leurs `mkdtempSync`/`writeFileSync`/`rmSync` par
-    // `avecAtlasFixture` (`atlasFixture.mjs`, inscrit plus bas) — mesuré par `ecrivainsParGate`.
     'scripts/raw/citation-graphy-guard.test.mjs',
     'scripts/raw/folio-bootstrap.mjs',
     'scripts/raw/folio-bootstrap.test.mjs',
@@ -371,8 +357,8 @@ const ATTENDU = {
     // retirés par `rmSync`) pour éprouver `mdsDeMarker`/`mdsDeRestitutions` sur le disque. Aucune
     // écriture DANS l'arbre : même classe que `check-source-format.test.mjs` ci-dessus.
     'scripts/raw/lib/marker-pages.test.mjs',
-    // +1 le 2026-09-25 (#1739) : l'extraction pypdf quitte `anchor-fill.mjs` pour sa maison, importée
-    // par `empty-folios-stock.mjs` et `marker-pages.mjs`. `extractPages` n'écrit que la sortie de
+    // L'extraction pypdf est importée par `empty-folios-stock.mjs` et `marker-pages.mjs`.
+    // `extractPages` n'écrit que la sortie de
     // `pdf-extract.py` sous un `mkdtempSync` de os.tmpdir(), `rmSync` en finally : aucune écriture
     // DANS l'arbre, même classe que `anchor-fill.mjs` ci-dessus.
     'scripts/raw/lib/pdf-extract.mjs',
@@ -403,15 +389,8 @@ const ATTENDU = {
     'scripts/raw/atlasFixture.mjs',
     'scripts/raw/build-atlas-index.mjs',
     'scripts/raw/build-atlas-index.test.mjs',
-    // +1 le 2026-09-20 (#1825) : le banc de l'aiguillage des catalogues prend la fixture de
-    // dépôt jetable (`instanceDeDepot`) et son env isolé (`envDeDepotForge`). La primitive ne fabrique
-    // que sous `mkdtempSync` de os.tmpdir(), et jette ses gabarits à la sortie du process — aucune
-    // écriture DANS l'arbre : même classe que `marker-pages.test.mjs` ci-dessus.
-    // −1 le 2026-09-29 (#2132) : `depotGabarit.mjs` n'est plus atteint par `test:raw` depuis `0339f0dad`
-    // (#1801 #1775), qui a retiré son import de `catalogues-aiguillage.test.mjs` — mesuré par `ecrivainsParGate`.
-    // +1 le 2026-10-04 (#2155) : les bancs de `test:raw` lancent git par le module de banc
-    // (`scripts/test/gitDeBanc.mjs`), qui tient son env isolé (`envDeDepotForge`) de la primitive. Elle
-    // n'écrit que sous `mkdtempSync` de os.tmpdir() : aucune écriture DANS l'arbre, même classe qu'au +1 du 2026-09-20.
+    // #2155 : les bancs de `test:raw` lancent git par `scripts/test/gitDeBanc.mjs`, qui tient son env isolé
+    // (`envDeDepotForge`) de la primitive ; elle n'écrit que sous `mkdtempSync` de os.tmpdir().
     'scripts/guards/lib/depotGabarit.mjs',
     // +1 le 2026-09-21 (#1825) : le banc de la PROJECTION écrit les rendus de fixture que
     // `lireRendu` relit (mode de reprise du workflow) sous `mkdtempSync` de os.tmpdir(), `rmSync` en
@@ -450,8 +429,6 @@ const ATTENDU = {
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  // −1 le 2026-10-01 (#2203) : `ecriture-derives.mjs` n'est plus atteint depuis `a1cfad5e6`, où le `--check`
-  // de `build-implemente.mjs` rend une fiche périmée par son code de sortie, sans `declarerCorpsPerime`.
   'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
@@ -488,7 +465,7 @@ test('aucune entrée PÉRIMÉE : chaque écrivain inscrit est encore atteint par
     perimes,
     [],
     perimes.map(([gate, scripts]) => `« ${gate} » n'atteint plus, ou n'a plus pour écrivain : ${scripts.join(', ')}`).join(' ; ') +
-      ' — retire chaque entrée avec sa ligne datée (« −N le <date> (#<ticket>) : <cause mesurée> »), et relis ECRIT_LU.',
+      ' — retire chaque entrée, justifie le retrait dans le commit ou le solde, et relis ECRIT_LU.',
   )
 })
 

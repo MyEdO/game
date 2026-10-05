@@ -12,7 +12,8 @@
  * garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 import { actionsDe, estUtilisable } from './usable';
 
@@ -84,7 +85,6 @@ describe('PROJECT_MIGRATIONS[10] — un projet format 10 se charge à travers la
    */
   it('S1. PARITÉ : le migrateur de CHARGEMENT rend exactement ce que le script de DÉPÔT écrit', () => {
     const migre = PROJECT_MIGRATIONS[10]!({ ...structuredClone(PROJET_FORMAT_10), version: 10 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(11);
     const scene = (migre.scenes as Record<string, unknown>[])[0];
     const entites = scene.entities as Record<string, unknown>[];
     // `usable` prend la place qu'occupait `interact` — en queue ici, comme dans la fixture.

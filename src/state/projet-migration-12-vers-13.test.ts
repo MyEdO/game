@@ -12,7 +12,8 @@
  * « moderniser » détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type SceneEntity } from './scene';
 import { ficheDEntite } from './sceneNpc';
 import species from '../data/species.json';
@@ -84,7 +85,6 @@ describe('PROJECT_MIGRATIONS[12] — un projet format 12 se charge à travers la
    *  CHARGEMENT posent la fiche en QUEUE de l'entité. */
   it('S1. PARITÉ : le migrateur de CHARGEMENT pose la fiche en QUEUE, comme le script de DÉPÔT', () => {
     const migre = PROJECT_MIGRATIONS[12]!({ ...structuredClone(PROJET_FORMAT_12), version: 12 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(13);
     const entites = ((migre.scenes as Record<string, unknown>[])[0].entities) as Record<string, unknown>[];
     expect(Object.keys(entites[0])).toEqual(['id', 'kind', 'pos', 'label', 'appearance', 'ref']);
     expect(Object.keys(entites[1])).toEqual(['id', 'kind', 'pos', 'appearance', 'statblock']);

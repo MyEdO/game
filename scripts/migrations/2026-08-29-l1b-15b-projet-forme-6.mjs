@@ -8,7 +8,7 @@
  *    1ʳᵉ clé. Le schéma l'EXIGE désormais (`defs-scenes/communs.ts`, `z.literal('statblock')`), donc
  *    un projet qui ne l'a pas ne se parse plus.
  *
- * Pendant committé de `PROJECT_MIGRATIONS[5]` (`src/state/worldMap.ts`), qui porte le MÊME geste au
+ * Pendant committé de `PROJECT_MIGRATIONS[5]` (`src/data/migrationsDeProjet.ts`), qui porte le MÊME geste au
  * CHARGEMENT pour les projets de bibliothèque utilisateur (`.json` portable exporté avant ce lot).
  *
  * ENTRÉES : les 4 `src/scenes/<campagne>/<campagne>-projet.json`. Les trois projets GÉNÉRÉS

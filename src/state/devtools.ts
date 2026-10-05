@@ -34,7 +34,8 @@ export function setPickProbe(p: PickProbe | null): void {
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from './seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from './shipwreck';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, MAISON_PROJET_AUTHORE, type MapRoute, type WorldMap } from './worldMap';
+import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from './worldMap';
+import { MAISON_PROJET_AUTHORE } from '../data/migrationsDeProjet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
 import { estAbsent } from './terrain';
