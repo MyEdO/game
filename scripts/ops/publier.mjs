@@ -10,8 +10,7 @@
 // fusion REST (`merge-async`) → la FILE DE FUSION du serveur sérialise, juge le commit de file et fusionne. Aucune gate ne se joue ici :
 // `.github/workflows/ci.yml` les joue toutes, et le ruleset `main` (`scripts/ops/ruleset-main.mjs`)
 // n'admet rien hors de la file. SEPT étapes — preflight, docs, push-branche, pr, file, pilotage, fin :
-// preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet ; les
-// compteurs de version contre `origin/main` n'y sont qu'un AVERTISSEMENT), docs (`build-all.mjs
+// preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet), docs (`build-all.mjs
 // --mixtes`, puis commit des MIXTES et des miroirs d'agents sales — la plage sans source de mixte
 // saute la RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
 // bornée de la course verte de la tête, de sa demande de fusion (`sha` = la tête jugée) puis de la
@@ -59,7 +58,6 @@ import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
 import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
-import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
@@ -652,7 +650,7 @@ const cheminsSales = (depot) => [...new Set(etatDeLArbre(depot).flatMap((e) => e
  * poignée, qui ouvrirait tout écrivain de l'hôte.
  * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
  */
-export const questionsDuTrain = (depot) => Object.freeze({
+const questionsDuTrain = (depot) => Object.freeze({
   shaDe: (ref) => shaDe(depot, ref),
   brancheDe: () => brancheDe(depot),
   origineDe: () => origineDe(depot),
@@ -660,7 +658,6 @@ export const questionsDuTrain = (depot) => Object.freeze({
   cheminsEnConflit: () => cheminsEnConflit(depot),
   combienDe: (revisions) => combienDe(depot, revisions),
   estAncetre: (ancetre, descendant) => estAncetre(depot, ancetre, descendant),
-  refusDesCompteurs: () => refusDesCompteurs(depot, { tete: 'HEAD', tronc: TRONC.suivi }),
   baseAuTronc: () => baseCommune(depot, TRONC.suivi, 'HEAD'),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),

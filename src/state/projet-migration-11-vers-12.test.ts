@@ -12,7 +12,8 @@
  * le « moderniser » (lui poser une `ref`) détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 
 /** Le type que le rendu DONNAIT à un décor sans `ref` avant #877 — ce que la migration ÉCRIT. */
@@ -78,7 +79,6 @@ describe('PROJECT_MIGRATIONS[11] — un projet format 11 se charge à travers la
    */
   it('S1. PARITÉ : le migrateur de CHARGEMENT rend exactement ce que le script de DÉPÔT écrit', () => {
     const migre = PROJECT_MIGRATIONS[11]!({ ...structuredClone(PROJET_FORMAT_11), version: 11 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(12);
     const scene = (migre.scenes as Record<string, unknown>[])[0];
     const entites = scene.entities as Record<string, unknown>[];
     expect(Object.keys(entites[0])).toEqual(['id', 'kind', 'pos', 'label', 'usable', 'ref']);

@@ -26,7 +26,7 @@ function resyncPsychScalars(c: Combatant): void {
 }
 
 /** Égalité STRUCTURELLE de deux `TraitInstance` (la même instance accordée doit être retrouvée). */
-const sameInstance = (a: TraitInstance, b: TraitInstance): boolean =>
+export const sameInstance = (a: TraitInstance, b: TraitInstance): boolean =>
   a.id === b.id && (a.value ?? null) === (b.value ?? null) && (a.arg ?? '') === (b.arg ?? '')
   && (a.count ?? null) === (b.count ?? null) && (a.range ?? null) === (b.range ?? null)
   // PROVENANCE comprise : deux instances identiques de sources différentes (Haine (Elfes) d'une
@@ -40,8 +40,9 @@ const lastIndexOfInstance = (list: TraitInstance[], t: TraitInstance): number =>
 };
 
 /** Accorde le `TraitInstance` (structuré — `{ id:'vol', value:35 }`, `{ id:'haine', arg:'mort-vivant' }`) :
- *  posé tel quel, psychologie re-synchronisée. Mute `c`. */
-export function grantTrait(c: Combatant, t: TraitInstance): void {
+ *  posé en COPIE, psychologie re-synchronisée. Mute `c`. */
+export function grantTrait(c: Combatant, accorde: TraitInstance): void {
+  const t = structuredClone(accorde); // #2097, #379
   c.traits = [...(c.traits ?? []), t];
   c.liveTraits = [...(c.liveTraits ?? []), t]; // modificateurs de PROFIL du trait accordé → appliqués en DIRECT (collecteur passif)
   resyncPsychScalars(c);

@@ -151,6 +151,22 @@ const HORS_REGLE = horsRegleDe(chapitresData)
 export const motifHorsRegle = (abbr, ch, table = HORS_REGLE) => table.get(abbr)?.get(Number(ch)) ?? null
 export const estHorsRegle = (abbr, ch, table = HORS_REGLE) => motifHorsRegle(abbr, ch, table) != null
 
+// Chapitres ou PLAGES de sections qui cataloguent des ENTITÉS (`chapitres.json`, `entites`) : sigle →
+// `[{ ch, from?, to?, motif }, …]` dans l'ORDRE DU FICHIER ; `from`/`to` sont des `{ slug, occ }`,
+// bornes incluses. Lu par `releve.mjs`.
+export const entitesDe = (chapitres, registre = booksData) => {
+  const parSigle = new Map()
+  for (const { book, ...plage } of chapitres.entites ?? []) {
+    const ab = sigleDe(book, registre)
+    if (!ab) continue
+    if (!parSigle.has(ab)) parSigle.set(ab, [])
+    parSigle.get(ab).push(plage)
+  }
+  return parSigle
+}
+const ENTITES = entitesDe(chapitresData)
+export const plagesDEntites = (abbr, table = ENTITES) => table.get(abbr) ?? []
+
 // Appartenance des chapitres aux CATALOGUES de l'Atlas (`chapitres.json`, `enCatalogue` : UNE entrée
 // par chapitre ET par catalogue) : id de catalogue → `[[abbr, [{ ch, from, to, title }, …]], …]`, dans
 // l'ORDRE DU FICHIER (registre des livres puis numéro de chapitre, tenu par `chapitres.test.mjs` —

@@ -10,12 +10,16 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chapterFile, estLivreExtrait, refRe, REGISTRE_CHAPITRES, REGISTRE_LIVRES } from './_lib.mjs'
 import { idsDeCatalogue } from './build-catalogs.mjs'
+import { lireChapitre } from '../source/lecteur-fs.mjs'
 
-const { horsRegle, enCatalogue } = REGISTRE_CHAPITRES
+const { horsRegle, enCatalogue, entites } = REGISTRE_CHAPITRES
 const TOUTES = [
   ...horsRegle.map((e) => ({ ...e, ou: 'horsRegle' })),
   ...enCatalogue.map((e) => ({ ...e, ou: `enCatalogue (${e.catalogue})` })),
+  ...entites.map((e) => ({ ...e, ou: 'entites' })),
 ]
+/** Les listes dont chaque entrée porte un MOTIF. */
+const MOTIVEES = [['horsRegle', horsRegle], ['entites', entites]]
 /** Les livres COUVERTS par l'Atlas : ceux dont le `dir` porte des chapitres sur disque. */
 const LIVRES_COUVERTS = new Map(REGISTRE_LIVRES.filter(estLivreExtrait).map((b) => [b.id, b]))
 
@@ -45,11 +49,19 @@ test('#1825 : tout `ch` résout un fichier-chapitre sous le `dir` de son livre',
 // inconnue telle quelle à `chapterFile`, qui la voit comme « aucune plage »). Un schéma zod ne peut
 // pas tenir ce fichier (il est hors `src/data`) : le contrat vit ici, et il est EXACT — toute clé
 // hors de la liste rougit, et `to`/`title` n'ont de sens qu'avec le `from` qui ouvre la plage.
-const CLES = { horsRegle: { obligatoires: ['book', 'ch', 'motif'], facultatives: [] }, enCatalogue: { obligatoires: ['book', 'ch', 'catalogue'], facultatives: ['from', 'to', 'title'] } }
+const CLES = {
+  horsRegle: { obligatoires: ['book', 'ch', 'motif'], facultatives: [] },
+  enCatalogue: { obligatoires: ['book', 'ch', 'catalogue'], facultatives: ['from', 'to', 'title'] },
+  entites: { obligatoires: ['book', 'ch', 'motif'], facultatives: ['from', 'to'] },
+}
+/** Une borne de plage d'`entites` : une SECTION, `{ slug, occ }` — jamais un titre seul. */
+const estBorneDeSection = (b) =>
+  b != null && typeof b === 'object' && Object.keys(b).sort().join() === 'occ,slug'
+  && typeof b.slug === 'string' && b.slug.trim() !== '' && Number.isInteger(b.occ) && b.occ >= 1
 
 test('#1825 : chaque entrée porte EXACTEMENT son jeu de clés — une clé inconnue est une faute muette', () => {
   const fautes = []
-  for (const [nom, liste] of [['horsRegle', horsRegle], ['enCatalogue', enCatalogue]]) {
+  for (const [nom, liste] of [['horsRegle', horsRegle], ['enCatalogue', enCatalogue], ['entites', entites]]) {
     const { obligatoires, facultatives } = CLES[nom]
     const admises = new Set([...obligatoires, ...facultatives])
     for (const e of liste) {
@@ -58,16 +70,32 @@ test('#1825 : chaque entrée porte EXACTEMENT son jeu de clés — une clé inco
       for (const k of cles) if (!admises.has(k)) fautes.push(`${ou} — clé INCONNUE \`${k}\``)
       for (const k of obligatoires) if (!(k in e)) fautes.push(`${ou} — clé MANQUANTE \`${k}\``)
       if (!Number.isInteger(e.ch) || e.ch <= 0) fautes.push(`${ou} — \`ch\` doit être un entier positif, pas ${JSON.stringify(e.ch)}`)
-      for (const k of cles) if (k !== 'ch' && (typeof e[k] !== 'string' || !e[k].trim())) fautes.push(`${ou} — \`${k}\` doit être une chaîne non vide`)
-      if ((e.to || e.title) && !e.from) fautes.push(`${ou} — \`to\`/\`title\` sans \`from\` : la plage n'a pas d'ouverture, le chapitre ENTIER serait transcrit`)
+      const bornes = nom === 'entites' ? ['from', 'to'] : []
+      for (const k of cles) if (k !== 'ch' && !bornes.includes(k) && (typeof e[k] !== 'string' || !e[k].trim())) fautes.push(`${ou} — \`${k}\` doit être une chaîne non vide`)
+      for (const k of bornes) if (k in e && !estBorneDeSection(e[k])) fautes.push(`${ou} — \`${k}\` doit être une section \`{ slug, occ }\`, pas ${JSON.stringify(e[k])}`)
+      if (nom === 'enCatalogue' && (e.to || e.title) && !e.from) fautes.push(`${ou} — \`to\`/\`title\` sans \`from\` : la plage n'a pas d'ouverture, le chapitre ENTIER serait transcrit`)
     }
   }
   assert.deepEqual(fautes, [], `jeu de clés violé :\n${fautes.join('\n')}`)
 })
 
 test('#1825 : tout motif est une phrase, jamais un vide qui rendrait l’exclusion muette', () => {
-  const muets = horsRegle.filter((e) => typeof e.motif !== 'string' || !e.motif.trim()).map((e) => `${e.book} ${e.ch}`)
-  assert.deepEqual(muets, [], 'le motif d’exclusion est de la DONNÉE : un chapitre hors-règle dit POURQUOI')
+  const muets = MOTIVEES.flatMap(([nom, l]) => l.filter((e) => typeof e.motif !== 'string' || !e.motif.trim()).map((e) => `${nom} ${e.book} ${e.ch}`))
+  assert.deepEqual(muets, [], 'le motif est de la DONNÉE : un chapitre hors-règle ou d’entités dit POURQUOI')
+})
+
+test('#1887 : toute borne d’`entites` désigne une section de son chapitre, `from` avant `to`', () => {
+  const fautes = []
+  for (const e of entites) {
+    const livre = LIVRES_COUVERTS.get(e.book)
+    const chapitre = livre ? lireChapitre(e.book, e.ch) : null
+    if (!chapitre) continue
+    const rang = (b) => chapitre.sections.findIndex((s) => s.slug === b.slug && s.occ === b.occ)
+    const [de, a] = [e.from, e.to].map((b) => (b ? rang(b) : null))
+    for (const [k, r] of [['from', de], ['to', a]]) if (r === -1) fautes.push(`${livre.abbr} ${e.ch} — \`${k}\` ${JSON.stringify(e[k])} ne désigne aucune section`)
+    if (de != null && a != null && de >= 0 && a >= 0 && de > a) fautes.push(`${livre.abbr} ${e.ch} — \`from\` après \`to\``)
+  }
+  assert.deepEqual(fautes, [], `bornes d’entités mortes :\n${fautes.join('\n')}`)
 })
 
 // Un motif est NOTRE prose éditoriale sur la classification, pas de la prose de livre : il se
@@ -77,7 +105,7 @@ test('#1825 : tout motif est une phrase, jamais un vide qui rendrait l’exclusi
 // de `docs/raw/`. Elle pourrirait donc en silence au premier réancrage. Un motif renvoie au CHAPITRE
 // (« ch.8 »), jamais à la ligne.
 test('#1825 : aucun motif ne porte de réf citable — ce serait une citation que rien ne vérifie', () => {
-  const citants = horsRegle.flatMap((e) => [...String(e.motif).matchAll(refRe())].map((m) => `${e.book} ${e.ch} — « ${m[0]} »`))
+  const citants = MOTIVEES.flatMap(([, l]) => l).flatMap((e) => [...String(e.motif).matchAll(refRe())].map((m) => `${e.book} ${e.ch} — « ${m[0]} »`))
   assert.deepEqual(
     citants,
     [],
@@ -97,7 +125,7 @@ test('#1825 : chaque catalogue produit reçoit au moins un chapitre — aucun fi
   assert.deepEqual(vides, [], 'un catalogue que plus aucun livre n’alimente s’écrirait VIDE, écrasant le committé')
 })
 
-test('#1825 : aucun doublon — (book, ch) en `horsRegle`, (book, ch, catalogue) en `enCatalogue`', () => {
+test('#1825 : aucun doublon — (book, ch) en `horsRegle` et en `entites`, (book, ch, catalogue) en `enCatalogue`', () => {
   const doublons = (liste, cle) => {
     const vus = new Set(), dupes = []
     for (const e of liste) { const k = cle(e); if (vus.has(k)) dupes.push(k); else vus.add(k) }
@@ -105,14 +133,17 @@ test('#1825 : aucun doublon — (book, ch) en `horsRegle`, (book, ch, catalogue)
   }
   assert.deepEqual(doublons(horsRegle, (e) => `${e.book} ${e.ch}`), [], 'un chapitre n’a qu’UN motif d’exclusion')
   assert.deepEqual(doublons(enCatalogue, (e) => `${e.book} ${e.ch} ${e.catalogue}`), [], 'un chapitre n’entre qu’UNE fois dans un catalogue donné')
+  assert.deepEqual(doublons(entites, (e) => `${e.book} ${e.ch}`), [], 'un chapitre n’a qu’UNE plage d’entités')
+  const exclus = new Set(horsRegle.map((e) => `${e.book} ${e.ch}`))
+  assert.deepEqual(entites.filter((e) => exclus.has(`${e.book} ${e.ch}`)).map((e) => `${e.book} ${e.ch}`), [], 'un chapitre hors-règle ne catalogue pas d’entités relevables')
 })
 
 // L'ORDRE du fichier EST celui du rendu (`_lib.mjs#cataloguesDe` ne trie pas) : les blocs d'un
 // catalogue sortent dans l'ordre du registre des livres, puis du numéro de chapitre. Le tenir ICI
 // plutôt qu'à la lecture garde le fichier lisible et la sortie stable par la MÊME règle.
-test('#1825 : les deux listes suivent l’ordre du registre des livres, puis le numéro de chapitre', () => {
+test('#1825 : les trois listes suivent l’ordre du registre des livres, puis le numéro de chapitre', () => {
   const rang = new Map(REGISTRE_LIVRES.map((b, i) => [b.id, i]))
-  for (const [nom, liste] of [['horsRegle', horsRegle], ['enCatalogue', enCatalogue]]) {
+  for (const [nom, liste] of [['horsRegle', horsRegle], ['enCatalogue', enCatalogue], ['entites', entites]]) {
     const cles = liste.map((e) => [rang.get(e.book) ?? Infinity, e.ch])
     const trie = [...cles].sort((a, b) => a[0] - b[0] || a[1] - b[1])
     assert.deepEqual(cles, trie, `${nom} : l’ordre du fichier doit être « ordre du registre, puis chapitre »`)

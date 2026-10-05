@@ -6,13 +6,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import {
   citationDe, dateDe, decouperFiche, defautsDuTexteAssistant, fichesSuivies, ligneDe, construireDoc, tronquer, verbatimsDe,
 } from './build-doctrines.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -263,7 +264,7 @@ test('--check — un doc ÉDITÉ À LA MAIN diverge du doc régénéré', () => 
 // ── Au RÉEL : les fiches du dépôt, pas des fixtures ────────────────────────────────────────
 test('AU RÉEL — aucun extrait des fiches du dépôt ne se termine sur un mot-outil', () => {
   const dateAjoutGit = (f) =>
-    execFileSync('git', ['log', '--diff-filter=A', '--format=%as', '-1', '--', f], { cwd: RACINE, encoding: 'utf8' }).trim()
+    gitDeLArbreReel(RACINE, { net: true })('log', '--diff-filter=A', '--format=%as', '-1', '--', f)
   const suspendus = []
   for (const fichier of fichesSuivies(RACINE)) {
     const ligne = ligneDe({ fichier, texte: readFileSync(resolve(RACINE, fichier), 'utf8') }, dateAjoutGit)

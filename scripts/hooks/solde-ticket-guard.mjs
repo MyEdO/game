@@ -127,7 +127,8 @@ import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { estPorteurDeStock, nonCouvertesDuBilan, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { bilanDuCommit, entreeDeFusion, lecturesDeFusion } from '../guards/lib/plageStock.mjs'
 import {
   deplaceLaFrontiere, lignesDeReclassement, raisonDeRefusDeReclassement, reclassementsNonDeclares,
 } from '../guards/lib/reclassementCss.mjs'
@@ -136,8 +137,8 @@ import {
   PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, depotDe, enfantsDirects, estDansHead, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, imageDeHead, listerImage, shaDe,
+  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQuiChange, depotDe, enfantsDirects, estDansHead, estIgnore,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
@@ -431,16 +432,17 @@ export function basenameExecutable(token) {
   return String(token ?? '').replace(/\\/g, '/').split('/').pop().replace(/\.(exe|cmd)$/i, '').toLowerCase()
 }
 
-/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU et insensible à
- *  la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte tout préfixe
- *  qu'aucun AUTRE paramètre de la commande ne partage. `noms` = tous ses paramètres. `-1` si absent. */
+/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU, OU par le nom
+ *  EXACT, insensible à la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte
+ *  tout préfixe qu'aucun AUTRE paramètre de la commande ne partage, et lie le nom exact en priorité
+ *  (`-Query` à côté de `QueryDialect`). `noms` = tous ses paramètres. `-1` si absent. */
 function indexParametre(args, nom, noms = [nom]) {
   const cible = nom.toLowerCase()
   const autres = noms.map((n) => n.toLowerCase()).filter((n) => n !== cible)
   return args.findIndex((a) => {
     if (a[0] !== '-') return false
     const p = a.slice(1).toLowerCase()
-    return p !== '' && cible.startsWith(p) && !autres.some((n) => n.startsWith(p))
+    return p !== '' && cible.startsWith(p) && (p === cible || !autres.some((n) => n.startsWith(p)))
   })
 }
 
@@ -2546,7 +2548,7 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
   const contreIndex = () => forme === 'index' || !aHead()
   let imageDeBase
   const base = () => (imageDeBase ??= imageDeHead(depot))
-  const vers = (apres) => ceQuiChange(depot, base(), apres)
+  const vers = (apres, avant = base()) => ceQuiChange(depot, avant, apres)
   const image = () => (contreIndex() ? INDEX : SUIVI)
   const dans = (f) => pathspecs.some((ps) => pathMatchesPathspec(f, ps))
   // Sous `inclus`, le commit emporte l'arbre des pathspecs ET l'index des autres chemins : chaque
@@ -2556,15 +2558,55 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
   // lectures `numstat` et `diff` : sans lui, `diff.renames=copies` de l'utilisateur fait d'une copie
   // une paire, et son bout extérieur se relit dans l'arbre au lieu de l'index (#1806 A6).
   const inclus = () => forme === 'inclus' && !contreIndex()
-  const unir = (lecture, chemins) => {
-    if (!inclus()) return lecture(vers(image()), pathspecs)
-    const index = lecture(vers(INDEX), [])
+  const unir = (lecture, chemins, avant = base()) => {
+    if (!inclus()) return lecture(vers(image(), avant), pathspecs)
+    const index = lecture(vers(INDEX, avant), [])
     const traverse = (e) => chemins(e).some(dans) && !chemins(e).every(dans)
     const bouts = [...new Set(index.filter(traverse).flatMap(chemins).filter((f) => !dans(f)))]
     const cote = (f) => dans(f) || bouts.includes(f)
-    return [...lecture(vers(SUIVI), [...pathspecs, ...bouts]), ...index.filter((e) => !chemins(e).some(cote))]
+    return [...lecture(vers(SUIVI, avant), [...pathspecs, ...bouts]), ...index.filter((e) => !chemins(e).some(cote))]
+  }
+  const lireDepuis = (avant) => {
+    if (!inclus()) return vers(image(), avant)
+    const chemins = (filtre = '', specs = []) => unir((change, ps) => change.chemins(filtre, ps), (f) => [f], avant)
+      .filter((f) => !specs.length || specs.some((ps) => ps.startsWith(':(literal)') ? f === ps.slice(10) : pathMatchesPathspec(f, ps)))
+    const lire = (lecture, specs = []) => {
+      const tous = chemins('', specs)
+      return [true, false].map((dedans) => {
+        const ps = tous.filter((f) => dans(f) === dedans).map((f) => `:(literal)${f}`)
+        return ps.length ? lecture(vers(dedans ? SUIVI : INDEX, avant), ps) : null
+      }).filter((x) => x !== null)
+    }
+    return {
+      base: avant,
+      chemins,
+      numstat: (ps) => lire((change, specs) => change.numstat(specs), ps).flat(),
+      diff: (ps, options) => lire((change, specs) => change.diff(specs, options), ps).join('\n'),
+      lirePreImage: (f) => vers(INDEX, avant).lirePreImage(f),
+      renommages: (ps) => new Map(lire((change, specs) => [...change.renommages(specs)], ps).flat()),
+    }
   }
   const sourceDeLaBase = () => sourceGit({ cwd: dir, arbre: base(), depot })
+  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours` : elle se lit
+  // comme la plage lit une fusion (`lecturesDeFusion`), son image étant ce que le commit emporte.
+  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  let enCours
+  const fusion = () => {
+    if (enCours !== undefined) return enCours
+    const fusionnes = aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []
+    if (!fusionnes.length) return (enCours = null)
+    const parents = [shaDe(depot, 'HEAD'), ...fusionnes]
+    try {
+      const fait = ceQueFaitLaFusionEnCours(depot, parents, image())
+      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() && fait.base ? lireDepuis(fait.base) : fait, lireDepuis })
+      return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
+    } catch (e) {
+      if (!(e instanceof GitIndisponible)) throw e
+      pannes.push(e.raison)
+      return (enCours = null)
+    }
+  }
+  const sourceA = (arbre) => sourceGit({ cwd: dir, arbre, depot })
   let source = null
   const sourceDuCommit = () => (source ??= (() => {
     if (contreIndex()) return sourceGit({ cwd: dir, arbre: INDEX, depot })
@@ -2595,17 +2637,20 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
       }
     },
     renommages: () => new Map(unir((change, ps) => [...change.renommages(ps)], (e) => e)),
-    deplaceLaFrontiereCss: (chemins) => deplaceLaFrontiere({
-      chemins,
-      nesOuMorts: () => unir((change, ps) => change.chemins('AD', ps), (e) => [e]),
-      base: sourceDeLaBase(),
-      commit: sourceDuCommit(),
-      racine: dir,
-    }),
-    cotesCss: () => ({
-      base: coteCss(sourceDeLaBase(), { racine: dir }),
-      commit: coteCss(sourceDuCommit(), { racine: dir }),
-    }),
+    fusion,
+    deplaceLaFrontiereCss: (chemins) => {
+      const f = fusion()
+      return deplaceLaFrontiere(f
+        ? { chemins: f.fait.chemins(), nesOuMorts: () => f.fait.chemins('AD'), base: sourceA(f.fusion.commune), commit: sourceDuCommit(), racine: dir }
+        : { chemins, nesOuMorts: () => unir((change, ps) => change.chemins('AD', ps), (e) => [e]), base: sourceDeLaBase(), commit: sourceDuCommit(), racine: dir })
+    },
+    cotesCss: () => {
+      const f = fusion()
+      const cote = (s) => coteCss(s, { racine: dir })
+      return f
+        ? { base: cote(sourceA(f.fusion.commune)), commit: cote(sourceDuCommit()), parents: f.fusion.parents.map((p) => cote(sourceA(p))) }
+        : { base: cote(sourceDeLaBase()), commit: cote(sourceDuCommit()) }
+    },
   }
 }
 
@@ -2963,12 +3008,13 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
  * Décision « un stock nominatif a grossi sans que le message le dise ». `command` = texte du
  * message (comme les autres évaluateurs), `diff` = diff unifié de ce que le commit emporte
  * (les fichiers porteurs suffisent), `images` = les lecteurs de pré/post-image qui décident la
- * PORTÉE DE MODULE d'une entrée. Ne se prononce que sur un `git commit`.
+ * PORTÉE DE MODULE d'une entrée ; sous une fusion en cours, `fusion` (`entreeDeFusion`) remplace les
+ * deux : son APPORT est jugé (`bilanDuCommit`). Ne se prononce que sur un `git commit`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateStocksQuiGrandissent({ command, diff, images }) {
-  if (!command || !isGitCommitCommand(command) || !diff) return null
-  const restantes = croissancesNonCouvertes({ diff: diff, message: command ?? '' }, images)
+export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = null }) {
+  if (!command || !isGitCommitCommand(command) || (!fusion && !diff)) return null
+  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), command)
   return restantes.length ? { reason: raisonDeRefus(restantes) } : null
 }
 
@@ -3150,11 +3196,14 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   if (premier) return premier
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
   // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
-  const porteursDeStock = isGitCommitCommand(text) ? fichiers.filter(estPorteurDeStock) : []
+  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
+  const fusion = isGitCommitCommand(text) ? commit.fusion() : null
+  const porteursDeStock = isGitCommitCommand(text) ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
   const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
     command: text,
-    diff: commit.diff(),
-    images: { ...commit.images(porteursDeStock), renommages: commit.renommages() },
+    ...(fusion
+      ? { fusion: fusion.entree }
+      : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
   }) : null
   const reclassements = evaluateReclassementsCss({
     command: text,

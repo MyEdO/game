@@ -44,8 +44,7 @@ function fauxDepot(sourceDuFauxVitest) {
 }
 
 /** Énumération du faux Vitest (`list --filesOnly --json=<f>`) : les fichiers de `TRACE_FICHIERS`,
- *  aucun par défaut. Le lanceur énumère toute suite COMPLÈTE, même en mono : le verdict d'un registre
- *  DOM absent dépend des fichiers jsdom joués (`refusRegistreDomAbsent`). */
+ *  aucun par défaut. */
 const LISTE =
   "import fs from 'node:fs'\n" +
   "if (process.argv[2] === 'list') {\n" +
@@ -233,8 +232,6 @@ const VITEST_SPLIT =
   LISTE +
   'const argv = process.argv.slice(2)\n' +
   "const cote = /vitest\\.([a-z]+)\\.config/.exec(argv[argv.indexOf('--config') + 1])[1]\n" +
-  // Le côté jsdom note son passage au registre de la barrière DOM, comme `src/test-setup.ts`.
-  "if (cote === 'jsdom') fs.appendFileSync(process.env.WFRP_DOM_RESIDU_REGISTRE, 'ecran.test.tsx\\tpropre\\n')\n" +
   "process.stdout.write(' Test Files  1 passed (1)\\n')\n" +
   "process.stdout.write('marque-stdout ' + cote + '\\n')\n" +
   "process.stderr.write('marque-stderr ' + cote + '\\n')\n" +
@@ -328,26 +325,6 @@ function lanceMono(base, env = {}, args = []) {
 }
 
 const posixDe = (p) => p.split('\\').join('/')
-
-test('registre DOM ABSENT après un fichier jsdom joué : ÉCHEC nommé — toléré sans aucun fichier jsdom', () => {
-  for (const [nom, contenu, statut] of [
-    ['ecran.test.tsx', '// @vitest-environment jsdom\n', 1],
-    ['moteur.test.ts', "import { test } from 'vitest'\n", 0],
-  ]) {
-    const base = fauxDepot(VITEST_VERT)
-    try {
-      const fichier = join(base, nom)
-      writeFileSync(fichier, contenu, 'utf8')
-      const run = lanceMono(base, { TRACE_FICHIERS: JSON.stringify([posixDe(fichier)]) })
-      assert.equal(run.status, statut, `${nom} : ${run.stdout}${run.stderr}`)
-      const message = /registre de passage de la barrière DOM ABSENT après 1 fichier\(s\) jsdom joué\(s\)/
-      if (statut) assert.match(run.stderr, message)
-      else assert.doesNotMatch(run.stderr, message)
-    } finally {
-      rmSync(base, { recursive: true, force: true })
-    }
-  }
-})
 
 /** Faux Vitest d'une PARTIE : il rend l'`include` de la config reçue (`--config`) dans `TRACE_INCLUDE`. */
 const VITEST_PARTIE =

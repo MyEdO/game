@@ -11,7 +11,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 import { creatureSemee, vehiculeSeme, navireSeme, creatures, vehicles } from '../data';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
@@ -108,7 +109,7 @@ describe('PROJECT_MIGRATIONS[13] — le DOCUMENT entier, péril de route compris
       const script = JSON.parse(readFileSync(cible, 'utf8'));
       const { version: _v, ...migre } = PROJECT_MIGRATIONS[13](structuredClone(doc)) as Record<string, unknown>;
       void _v;
-      expect(script).toEqual(migre);
+      expect(script).toEqual({ ...migre, schema: 14 });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -11,14 +11,15 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
-//  - cinq fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
+//  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
 //    collection lue hors de sa vue, admise à des SITES nommés par `englobanteDe`),
-//    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne) et `constructionDeFragment`
-//    (un fragment d'adresse bâti hors de ses constructeurs) ;
+//    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne), `constructionDeFragment`
+//    (un fragment d'adresse bâti hors de ses constructeurs) et `appelReserve` (une fonction déclarée
+//    appelée hors de son foyer) ;
 //  - `estAppelDeclare`, la reconnaissance d'un appel à une fonction déclarée par son module, sur la
-//    liaison `origineImportee` et la table `tableDesExports` ;
+//    liaison `liaisonImportee` et la table `tableDesExports` ;
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
 //    `registryIdBranch.mjs`.
 // Le parse est `ast` (`dialecte.mjs`). Ce scan est l'hôte des constructions réservées que ses
@@ -28,12 +29,51 @@ import { join, relative } from 'node:path';
 import { ast } from './dialecte.mjs';
 import { sAppliqueA } from './sourceCorpus.mjs';
 import { RACINE } from './bindingsVivants.mjs';
-import { resolveImport } from './importGraph.mjs';
+import { resolveImport, sitesDeModule, liaisonsDe } from './importGraph.mjs';
+import { parsedProgram } from './tsProgram.mjs';
 // Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 const { echapperRegex } = await import('../../../src/lib/regex.ts');
 
 /** @param {ts.SourceFile} sf @param {ts.Node} n @returns {number} ligne 1-based */
 const lineOf = (sf, n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+
+/** @param {ts.SourceFile} sf @returns {import('./canonUnique.mjs').ContexteImports} */
+export function contexteImports(sf) {
+  let sites;
+  let liaisons;
+  let checker;
+  let index;
+  const absent = [];
+  const modules = new Map();
+  const lireLiaisons = () => liaisons ??= liaisonsDe(sf.fileName, sf);
+  return {
+    get source() { return sf; },
+    sites: () => sites ??= sitesDeModule(sf.fileName, sf),
+    liaisons: lireLiaisons,
+    liaisonsDuNom: (nom) => {
+      if (!index) {
+        index = new Map();
+        for (const l of lireLiaisons()) {
+          if (l.genre !== 'import' || !l.niveauModule || l.spec === null || !['nommee', 'defaut', 'espace'].includes(l.forme)) continue;
+          const nomLocal = l.local.nom;
+          if (!index.has(nomLocal)) index.set(nomLocal, []);
+          index.get(nomLocal).push(l);
+        }
+      }
+      return index.get(nom) ?? absent;
+    },
+    checker: () => checker ??= parsedProgram(sf).getTypeChecker(),
+    module: (spec) => {
+      if (!modules.has(spec)) modules.set(spec, moduleDe(spec, sf));
+      return modules.get(spec);
+    },
+  };
+}
+
+/** @param {ts.SourceFile} sf @param {import('./canonUnique.mjs').ContexteImports} contexte */
+function exigerContexte(sf, contexte) {
+  if (!contexte || contexte.source !== sf) throw new TypeError('contexte d’import absent ou lié à un autre SourceFile');
+}
 
 /** Nom d'une clé de propriété (identifiant, chaîne, clé calculée littérale). `null` si dynamique.
  * @param {ts.PropertyName | undefined} name @returns {string | null} */
@@ -59,14 +99,14 @@ export const SCHEMAS_DU_CANON = Object.freeze({
 
 /** Le tableau est-il l'argument d'un `.extract(…)`/`.exclude(…)` posé sur un schéma DU canon ? zod
  *  type cet argument par les options du récepteur : sur un schéma du canon, un palier renommé ne
- *  compile plus. Le récepteur est donc vérifié par sa LIAISON (`origineImportee`, import renommé
+ *  compile plus. Le récepteur est donc vérifié par sa LIAISON (`liaisonImportee`, import renommé
  *  compris) à un export de `SCHEMAS_DU_CANON` — sinon n'importe quel `truc.extract(['Commune',
  *  'Rare'])`, ou un homonyme local du schéma, se blanchirait tout seul.
  *  HORS DE PORTÉE (vus comme recopie) : le schéma lu dans son module déclarant, par un espace de noms
- *  (`v.availabilitySchema`) ou par un alias local ; un nom local qui masque l'import est confondu avec
- *  lui (la liaison se tient par NOM).
- * @param {ts.ArrayLiteralExpression} n @param {ts.SourceFile} sf @returns {boolean} */
-function estSelectionDerivee(n, sf) {
+ *  (`v.availabilitySchema`) ou par un alias de valeur local.
+ * @param {ts.ArrayLiteralExpression} n @param {ts.SourceFile} sf
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {boolean} */
+function estSelectionDerivee(n, sf, contexte) {
   const p = n.parent;
   if (!p || !ts.isCallExpression(p) || p.arguments[0] !== n) return false;
   const cible = p.expression;
@@ -80,8 +120,9 @@ function estSelectionDerivee(n, sf) {
     break;
   }
   if (!ts.isIdentifier(recepteur)) return false;
-  const origine = origineImportee(recepteur.text, sf);
-  return !!origine && (SCHEMAS_DU_CANON[origine.module] ?? []).includes(origine.nom);
+  const origine = liaisonImportee(recepteur, sf, contexte);
+  const module = origine && contexte.module(origine.spec);
+  return !!module && (SCHEMAS_DU_CANON[module] ?? []).includes(origine.nom);
 }
 
 /** Clés OUVERTES d'un `Record` : celles dont le compilateur n'exige aucune complétude. */
@@ -155,10 +196,11 @@ function litterauxDeChaine(n) {
  *  membres qu'il reproduit, ou `null` si le nœud n'est d'aucune. Deux formes que le compilateur borne
  *  n'en sont pas : la sélection zod `.extract` sur un schéma du canon (`estSelectionDerivee`) et la
  *  table totale déclarée (`estTableTotale`).
- * @param {ts.Node} n @param {ts.SourceFile} sf @returns {{ forme: string, membres: (string | null)[] } | null} */
-function formeDeRecopie(n, sf) {
+ * @param {ts.Node} n @param {ts.SourceFile} sf
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {{ forme: string, membres: (string | null)[] } | null} */
+function formeDeRecopie(n, sf, contexte) {
   if (ts.isArrayLiteralExpression(n)) {
-    return estSelectionDerivee(n, sf) ? null : { forme: 'tableau', membres: n.elements.filter(ts.isStringLiteralLike).map((e) => e.text) };
+    return estSelectionDerivee(n, sf, contexte) ? null : { forme: 'tableau', membres: n.elements.filter(ts.isStringLiteralLike).map((e) => e.text) };
   }
   if (ts.isUnionTypeNode(n)) return { forme: 'union de types', membres: n.types.map(litType) };
   if (ts.isObjectLiteralExpression(n)) {
@@ -184,7 +226,7 @@ export const FORMES_DE_RECOPIE = Object.freeze(['tableau', 'union de types', 'cl
  * la duplication qui est la faute. La déclaration y joint son foyer.
  * @param {{ nom: string, membres: readonly string[], complet?: boolean, formes?: readonly string[] }} p
  *   `nom` celui du canon ; `formes` un sous-ensemble de `FORMES_DE_RECOPIE` (une forme inconnue lève).
- * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
  */
 export function recopieDeCanon({ nom, membres, complet = false, formes = FORMES_DE_RECOPIE }) {
   const inconnues = formes.filter((f) => !FORMES_DE_RECOPIE.includes(f));
@@ -195,8 +237,8 @@ export function recopieDeCanon({ nom, membres, complet = false, formes = FORMES_
   return {
     nom,
     indice: (texte) => [...canon].filter((m) => present(texte, m)).length >= 2,
-    reconnait: (noeud, sf) => {
-      const lue = formeDeRecopie(noeud, sf);
+    reconnait: (noeud, sf, contexte) => {
+      const lue = formeDeRecopie(noeud, sf, contexte);
       if (!lue || !retenues.has(lue.forme)) return null;
       const communs = [...new Set(lue.membres.filter((m) => m != null))].filter((m) => canon.has(m));
       if (communs.length < 2 || (complet && communs.length < canon.size)) return null;
@@ -309,16 +351,16 @@ const FABRIQUE_DE_PROGRAMME = /^create(\w*Program|LanguageService)$/;
  * un appel écrit dans un littéral (fixture de morsure) ne sont pas lus.
  * HORS DE PORTÉE : l'accès calculé (`ts['createProgram']`), la déstructuration (`const { createProgram:
  * fab } = ts`), l'alias de membre (`const creer = ts.createProgram`), le compilateur reçu par un
- * paramètre, `require('typescript')`, `import ts = require(…)` et `import('typescript')` ; un nom local
- * qui masque l'import est confondu avec lui (la liaison se tient par NOM, `liaisonDe`).
+ * paramètre, `require('typescript')`, `import ts = require(…)` et `import('typescript')`.
  */
 export const CONSTRUCTION_DE_PROGRAMME = Object.freeze({
   nom: 'CONSTRUCTION_DE_PROGRAMME',
   indice: (texte) => /create(\w*Program|LanguageService)/.test(texte),
-  /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
-  reconnait: (n, sf) => {
+  /** @param {ts.Node} n @param {ts.SourceFile} sf
+   * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {string | null} */
+  reconnait: (n, sf, contexte) => {
     if (!ts.isCallExpression(n)) return null;
-    const l = liaisonDAppele(n.expression, sf, ['*', 'default']);
+    const l = liaisonDAppele(n.expression, sf, ['*', 'default'], contexte);
     const nom = l?.spec === 'typescript' ? l.nom : null;
     return nom && FABRIQUE_DE_PROGRAMME.test(nom) ? `\`${nom}\` hors des fabriques (\`tsProgram.mjs\`)` : null;
   },
@@ -401,34 +443,27 @@ const proprieteDe = (o, nom) =>
  * La déclaration y joint son foyer.
  * @param {{ nom: string, natures: readonly string[], designation: readonly string[],
  *   designationLiee?: readonly string[], constructeurs: Readonly<Record<string, readonly string[]>> }} p
- * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
  */
 export function constructionDeFragment({ nom, natures, designation, designationLiee = [], constructeurs }) {
   const lesNatures = new Set(natures);
   const motif = (mots) => mots.map(echapperRegex).join('|');
   const indice = new RegExp(`\\bsum\\b|['"](?:${motif(natures)})['"]|\\b(?:${motif([...designation, ...designationLiee])})\\b`);
   const modules = new Set(Object.keys(constructeurs));
-  /** @type {WeakMap<ts.SourceFile, boolean>} */
-  const lies = new WeakMap();
-  /** Le fichier importe-t-il l'un des modules des `constructeurs` ? @param {ts.SourceFile} sf */
-  const lie = (sf) => {
-    if (!lies.has(sf)) {
-      lies.set(sf, sf.statements.some((st) => ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier)
-        && modules.has(moduleDe(st.moduleSpecifier.text, sf) ?? '')));
-    }
-    return lies.get(sf);
-  };
+  const lie = (contexte) => contexte.sites().some((site) => site.genre === 'import' && site.niveauModule
+    && site.spec !== null && modules.has(contexte.module(site.spec) ?? ''));
   /** L'objet est-il l'argument direct d'un appel à l'un des `constructeurs` ?
-   * @param {ts.Node} o @param {ts.SourceFile} sf */
-  const argumentDeConstructeur = (o, sf) => {
+   * @param {ts.Node} o @param {ts.SourceFile} sf
+   * @param {import('./canonUnique.mjs').ContexteImports} contexte */
+  const argumentDeConstructeur = (o, sf, contexte) => {
     let p = o.parent;
     while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression(p))) p = p.parent;
-    return !!p && ts.isCallExpression(p) && estAppelDeclare(p, sf, constructeurs) != null;
+    return !!p && ts.isCallExpression(p) && estAppelDeclare(p, sf, constructeurs, contexte) != null;
   };
   return {
     nom,
     indice: (texte) => indice.test(texte),
-    reconnait: (n, sf) => {
+    reconnait: (n, sf, contexte) => {
       if (!ts.isObjectLiteralExpression(n)) return null;
       const kind = proprieteDe(n, 'kind');
       const nature = kind && ts.isPropertyAssignment(kind) ? sansEnveloppe(kind.initializer) : null;
@@ -437,39 +472,46 @@ export function constructionDeFragment({ nom, natures, designation, designationL
       }
       if (!n.properties.some(ts.isSpreadAssignment)) return null;
       if (proprieteDe(n, 'sum')) return `${nom} : empreinte \`sum\` posée en ligne sur une recopie`;
-      const lus = designationLiee.length && lie(sf) ? [...designation, ...designationLiee] : designation;
+      const lus = designationLiee.length && lie(contexte) ? [...designation, ...designationLiee] : designation;
       const poses = lus.filter((c) => proprieteDe(n, c));
-      return poses.length && !argumentDeConstructeur(n, sf) ? `${nom} : recopie qui pose ${poses.join(', ')} hors constructeur` : null;
+      return poses.length && !argumentDeConstructeur(n, sf, contexte) ? `${nom} : recopie qui pose ${poses.join(', ')} hors constructeur` : null;
     },
   };
 }
 
 /** L'import de tête de `sf` qui lie le nom LOCAL `identifiant` : son spécificateur, non résolu, et le
  *  nom qu'il importe (`'default'`, `'*'`, ou le nom exporté).
- * @param {string} identifiant @param {ts.SourceFile} sf @returns {{ spec: string, nom: string } | null} */
-function liaisonDe(identifiant, sf) {
-  for (const st of sf.statements) {
-    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier) || !st.importClause) continue;
-    const spec = st.moduleSpecifier.text;
-    const clause = st.importClause;
-    if (clause.name?.text === identifiant) return { spec, nom: 'default' };
-    const b = clause.namedBindings;
-    if (b && ts.isNamespaceImport(b) && b.name.text === identifiant) return { spec, nom: '*' };
-    if (b && ts.isNamedImports(b)) {
-      for (const el of b.elements) if (el.name.text === identifiant) return { spec, nom: (el.propertyName ?? el.name).text };
-    }
-  }
-  return null;
+ * @param {string} identifiant @param {ts.SourceFile} sf
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {{ spec: string, nom: string } | null} */
+function liaisonDe(identifiant, sf, contexte) {
+  exigerContexte(sf, contexte);
+  const l = contexte.liaisonsDuNom(identifiant)[0];
+  return l ? { spec: l.spec, nom: l.importe.nom } : null;
 }
 
-/** La liaison d'import d'un APPELÉ (`liaisonDe`) : un identifiant, ou `x.f` sur un `x` dont
+/** @param {ts.Identifier} occurrence @param {ts.SourceFile} sf
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte
+ * @returns {{ spec: string, nom: string } | null} */
+export function liaisonImportee(occurrence, sf, contexte) {
+  exigerContexte(sf, contexte);
+  const candidats = contexte.liaisonsDuNom(occurrence.text);
+  if (!candidats.length) return null;
+  const checker = contexte.checker();
+  const symbole = checker.getSymbolAtLocation(occurrence);
+  if (!symbole) return null;
+  const l = candidats.find((l) => checker.getSymbolAtLocation(l.local.position.noeud) === symbole);
+  return l ? { spec: l.spec, nom: l.importe.nom } : null;
+}
+
+/** La liaison d'import d'un APPELÉ (`liaisonImportee`) : un identifiant, ou `x.f` sur un `x` dont
  *  l'import est l'un des `espaces` (`'*'`, `'default'`) — `nom` est alors le membre `f`.
  * @param {ts.Expression} e @param {ts.SourceFile} sf @param {readonly string[]} espaces
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte
  * @returns {{ spec: string, nom: string } | null} */
-function liaisonDAppele(e, sf, espaces) {
-  if (ts.isIdentifier(e)) return liaisonDe(e.text, sf);
+function liaisonDAppele(e, sf, espaces, contexte) {
+  if (ts.isIdentifier(e)) return liaisonImportee(e, sf, contexte);
   if (!ts.isPropertyAccessExpression(e) || !ts.isIdentifier(e.expression)) return null;
-  const l = liaisonDe(e.expression.text, sf);
+  const l = liaisonImportee(e.expression, sf, contexte);
   return l && espaces.includes(l.nom) ? { spec: l.spec, nom: e.name.text } : null;
 }
 
@@ -487,13 +529,14 @@ function moduleDe(spec, sf) {
  * `'default'`) —, son spécificateur résolu par `resolveImport` depuis la RACINE du dépôt (le chemin
  * relatif que porte `sf.fileName`), jamais depuis le répertoire courant.
  * @param {string} identifiant @param {ts.SourceFile} sf
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte
  * @returns {{ module: string, nom: string } | null} `module` relatif à la racine, séparateurs `/`,
  *   extension comprise ; `null` pour un nom qu'aucun import de tête ne lie, ou dont le spécificateur
  *   ne se résout pas (paquet, alias `@/`, fichier absent).
  */
-export function origineImportee(identifiant, sf) {
-  const l = liaisonDe(identifiant, sf);
-  const module = l && moduleDe(l.spec, sf);
+export function origineImportee(identifiant, sf, contexte) {
+  const l = liaisonDe(identifiant, sf, contexte);
+  const module = l && contexte.module(l.spec);
   return module ? { module, nom: l.nom } : null;
 }
 
@@ -504,13 +547,15 @@ export function origineImportee(identifiant, sf) {
  * liaison non importée ne comptent pas.
  * @param {ts.CallExpression} appel @param {ts.SourceFile} sf
  * @param {Readonly<Record<string, readonly string[]>>} fonctions `{ '<module relatif à la racine>': ['<nom exporté>', …] }`
+ * @param {import('./canonUnique.mjs').ContexteImports} contexte
  * @returns {string | null} le nom exporté que l'appel lie, `null` s'il n'en lie aucun de la table.
  */
-export function estAppelDeclare(appel, sf, fonctions) {
-  const liaison = liaisonDAppele(appel.expression, sf, ['*']);
+export function estAppelDeclare(appel, sf, fonctions, contexte) {
+  exigerContexte(sf, contexte);
+  const liaison = liaisonDAppele(appel.expression, sf, ['*'], contexte);
   const nom = liaison?.nom;
   if (!nom || !Object.values(fonctions).some((noms) => noms.includes(nom))) return null;
-  const module = moduleDe(liaison.spec, sf);
+  const module = contexte.module(liaison.spec);
   return module && (fonctions[module] ?? []).includes(nom) ? nom : null;
 }
 
@@ -531,6 +576,7 @@ export function tableDesExports(fichiers, noms) {
   const exporte = (n) => n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
   for (const fichier of fichiers) {
     const sf = ast(fichier);
+    const liaisons = liaisonsDe(sf.fileName, sf);
     const exportes = [];
     for (const st of sf.statements) {
       if (ts.isFunctionDeclaration(st) && st.name && exporte(st) && retenus.has(st.name.text)) exportes.push(st.name.text);
@@ -539,9 +585,8 @@ export function tableDesExports(fichiers, noms) {
           if (ts.isIdentifier(d.name) && d.initializer && (ts.isArrowFunction(d.initializer) || ts.isFunctionExpression(d.initializer)) && retenus.has(d.name.text)) exportes.push(d.name.text);
         }
       }
-      if (ts.isExportDeclaration(st) && st.exportClause && ts.isNamedExports(st.exportClause)) {
-        for (const el of st.exportClause.elements) if (retenus.has((el.propertyName ?? el.name).text)) exportes.push(el.name.text);
-      }
+      for (const l of liaisons) if (l.noeud === st && l.genre === 'export' && l.forme === 'nommee'
+        && retenus.has((l.importe ?? l.local).nom)) exportes.push(l.exporte.nom);
     }
     if (exportes.length) table[fichier.rel] = exportes;
   }
@@ -578,7 +623,7 @@ function nomDe(e) {
  * l'import, même renommé).
  * @param {{ nom: string, champsDeGroupe: readonly string[], occurrence: string, separateur: string,
  *   separateurDeRemede: string, fonctionsDeCle: Readonly<Record<string, readonly string[]>> }} p
- * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
  */
 export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separateurDeRemede, fonctionsDeCle }) {
   const ph = (n) => `⟨${n}⟩`;
@@ -607,10 +652,10 @@ export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separa
   return {
     nom,
     indice: (texte) => texte.includes(separateur) || (texte.includes(separateurDeRemede) && nomsDeCle.some((f) => texte.includes(f))),
-    reconnait: (n, sf) => {
+    reconnait: (n, sf, contexte) => {
       if (ts.isTemplateExpression(n)) {
         for (const span of n.templateSpans) {
-          if (span.literal.text.startsWith(separateurDeRemede) && ts.isCallExpression(span.expression) && estAppelDeclare(span.expression, sf, fonctionsDeCle)) {
+          if (span.literal.text.startsWith(separateurDeRemede) && ts.isCallExpression(span.expression) && estAppelDeclare(span.expression, sf, fonctionsDeCle, contexte)) {
             return `${nom} : clé calculée suivie de son remède`;
           }
         }
@@ -637,6 +682,29 @@ function englobanteDe(n) {
 }
 
 /**
+ * L'APPEL RÉSERVÉ d'une fonction déclarée, construction réservée : hors du foyer que la déclaration
+ * y joint, tout appel à l'une des `fonctions` (`estAppelDeclare`).
+ * Angle mort : la fonction passée en valeur (`xs.map(f)`) ou liée à un autre nom avant l'appel, et
+ * l'appel à travers un RÉEXPORT (`export { f } from '<foyer>'` dans un autre module, appelé depuis
+ * un troisième) — `estAppelDeclare` ne lit que les modules clés de `fonctions`.
+ * @param {{ nom: string, fonctions: Readonly<Record<string, readonly string[]>> }} p
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
+ */
+export function appelReserve({ nom, fonctions }) {
+  const noms = Object.values(fonctions).flat();
+  return {
+    nom,
+    indice: (texte) => noms.some((f) => texte.includes(f)),
+    reconnait: (n, sf, contexte) => {
+      if (!ts.isCallExpression(n)) return null;
+      const appele = estAppelDeclare(n, sf, fonctions, contexte);
+      if (!appele) return null;
+      return `${nom} : \`${appele}\` appelé dans \`${englobanteDe(n)}\``;
+    },
+  };
+}
+
+/**
  * La LECTURE BRUTE d'une collection dont une VUE est le canon (#1988) : hors de son foyer, le code lit
  * la vue, jamais la collection. Formes reconnues :
  *  - une LIAISON à l'un des exports `liaisons` (`{ module, exporte }`, module relatif à la racine) :
@@ -651,7 +719,7 @@ function englobanteDe(n) {
  * @param {{ nom: string, liaisons: readonly { module: string, exporte: string }[], json: string,
  *   seam: { module: string, fonctions: readonly string[] }, dataset: string,
  *   sitesAdmis?: readonly { rel: string, englobante: string, appele: string }[] }} p
- * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
  */
 export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, sitesAdmis = [] }) {
   const exportes = new Set(liaisons.map((l) => l.exporte));
@@ -660,24 +728,30 @@ export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, s
   return {
     nom,
     indice: (texte) => [...exportes, json, ...seam.fonctions].some((m) => texte.includes(m)),
-    reconnait: (n, sf) => {
-      if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) && n.moduleSpecifier.text.split('/').pop() === json)
+    reconnait: (n, sf, contexte) => {
+      const sites = contexte.sites();
+      if (sites.some((s) => s.noeud === n && s.genre === 'import' && s.spec?.split('/').pop() === json))
         return `import de \`${json}\``;
       if (ts.isImportSpecifier(n)) {
-        const o = origineImportee(n.name.text, sf);
-        return o && lie(o.module, o.nom) ? `\`${o.nom}\` importé de \`${o.module}\`` : null;
+        const l = contexte.liaisons().find((l) => l.genre === 'import' && l.forme === 'nommee'
+          && l.niveauModule && l.local.position.noeud.parent === n);
+        const module = l && contexte.module(l.spec);
+        return module && lie(module, l.importe.nom) ? `\`${l.importe.nom}\` importé de \`${module}\`` : null;
       }
       if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && exportes.has(n.name.text)) {
-        const o = origineImportee(n.expression.text, sf);
-        return o?.nom === '*' && lie(o.module, n.name.text) ? `\`${n.expression.text}.${n.name.text}\` sur l'espace de noms de \`${o.module}\`` : null;
+        const o = liaisonImportee(n.expression, sf, contexte);
+        const module = o && contexte.module(o.spec);
+        return o?.nom === '*' && module && lie(module, n.name.text) ? `\`${n.expression.text}.${n.name.text}\` sur l'espace de noms de \`${module}\`` : null;
       }
-      if (ts.isExportSpecifier(n) && n.parent.parent.moduleSpecifier && ts.isStringLiteral(n.parent.parent.moduleSpecifier)) {
-        const module = moduleDe(n.parent.parent.moduleSpecifier.text, sf);
-        const exporte = (n.propertyName ?? n.name).text;
+      if (ts.isExportSpecifier(n)) {
+        const l = contexte.liaisons().find((l) => l.genre === 'export' && l.forme === 'nommee'
+          && l.spec !== null && l.exporte.position.noeud.parent === n);
+        const module = l && contexte.module(l.spec);
+        const exporte = l?.importe.nom;
         return module && lie(module, exporte) ? `\`${exporte}\` réexporté de \`${module}\`` : null;
       }
       if (!ts.isCallExpression(n)) return null;
-      const appele = estAppelDeclare(n, sf, fonctions);
+      const appele = estAppelDeclare(n, sf, fonctions, contexte);
       if (!appele) return null;
       const arg = n.arguments[0] && sansEnveloppe(n.arguments[0]);
       const litteral = arg && ts.isStringLiteralLike(arg);
@@ -701,27 +775,28 @@ const METHODES_DE_COMPARAISON = new Set(['includes', 'startsWith', 'endsWith', '
  * Angle mort : le rendu lié à un nom avant la comparaison (`const a = f(x); a === b`), et tout rendu
  * reçu par une liaison locale ou un paramètre — la reconnaissance ne suit aucun flot.
  * @param {{ nom: string, fonctions: Readonly<Record<string, readonly string[]>> }} p
- * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ * @returns {import('./canonUnique.mjs').Construction & { indice: (texte: string) => boolean }}
  */
 export function comparaisonDAppel({ nom, fonctions }) {
   const noms = Object.values(fonctions).flat();
-  /** @param {ts.Expression | undefined} e @param {ts.SourceFile} sf @returns {string | null} */
-  const appele = (e, sf) => {
+  /** @param {ts.Expression | undefined} e @param {ts.SourceFile} sf
+   * @param {import('./canonUnique.mjs').ContexteImports} contexte @returns {string | null} */
+  const appele = (e, sf, contexte) => {
     const x = e && sansEnveloppe(e);
-    return x && ts.isCallExpression(x) ? estAppelDeclare(x, sf, fonctions) : null;
+    return x && ts.isCallExpression(x) ? estAppelDeclare(x, sf, fonctions, contexte) : null;
   };
   return {
     nom,
     indice: (texte) => noms.some((f) => texte.includes(f)),
-    reconnait: (n, sf) => {
+    reconnait: (n, sf, contexte) => {
       if (ts.isBinaryExpression(n) && EGALITES.has(n.operatorToken.kind)) {
-        const f = appele(n.left, sf) ?? appele(n.right, sf);
+        const f = appele(n.left, sf, contexte) ?? appele(n.right, sf, contexte);
         return f ? `${nom} : \`${f}(…)\` comparé par \`${n.operatorToken.getText(sf)}\`` : null;
       }
       if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression)) return null;
       const methode = n.expression.name.text;
       if (!METHODES_DE_COMPARAISON.has(methode)) return null;
-      const f = appele(n.expression.expression, sf) ?? appele(n.arguments[0], sf);
+      const f = appele(n.expression.expression, sf, contexte) ?? appele(n.arguments[0], sf, contexte);
       return f ? `${nom} : \`${f}(…)\` comparé par \`.${methode}\`` : null;
     },
   };
@@ -734,21 +809,21 @@ export function comparaisonDAppel({ nom, fonctions }) {
  * UNE fois et interroge sur chacun le prédicat de chaque construction retenue : une trouvaille par
  * ligne et par construction, la première du parcours.
  * @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} fichier
- * @param {readonly { nom: string, foyer?: string | readonly string[], domaine?: (rel: string) => boolean,
- *   indice?: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }[]} constructions
+ * @param {readonly import('./canonUnique.mjs').ConstructionGardee[]} constructions
  * @returns {{ line: number, construction: string, detail: string }[]}
  */
 export function scanConstructionsReservees(fichier, constructions) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
   const sf = ast(fichier);
+  const contexte = contexteImports(sf);
   /** @type {{ line: number, construction: string, detail: string }[]} */
   const trouvailles = [];
   const vues = new Set();
   /** @param {ts.Node} n */
   const walk = (n) => {
     for (const c of retenues) {
-      const detail = c.reconnait(n, sf);
+      const detail = c.reconnait(n, sf, contexte);
       if (detail == null) continue;
       const line = lineOf(sf, n);
       const cle = `${line}|${c.nom}`;

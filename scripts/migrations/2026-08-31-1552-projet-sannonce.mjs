@@ -8,7 +8,7 @@
  *  - `type: 'scene'` en PREMIÈRE clé de chaque scène embarquée (`sceneSchema` l'exige) ;
  *  - la PROVENANCE de la campagne — `source` OU `maison`, jamais ni l'un ni l'autre (refine de
  *    fabrique) — posée depuis la table NOMINATIVE ci-dessous, établie à la MESURE et non de mémoire ;
- *  - le `schema` passe de 6 à 7 (pendant committé de `PROJECT_MIGRATIONS[6]`, `src/state/worldMap.ts`,
+ *  - le `schema` passe de 6 à 7 (pendant committé de `PROJECT_MIGRATIONS[6]`, `src/data/migrationsDeProjet.ts`,
  *    qui porte le même geste au CHARGEMENT pour les projets de bibliothèque utilisateur).
  *
  * ENTRÉES : les 4 `src/scenes/<campagne>/<campagne>-projet.json`.

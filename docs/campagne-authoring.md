@@ -298,7 +298,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `src/data/schemas/defs-scenes/projet-schema.test.ts` cas (d bis)).
 - **Migration.** La forme courante du document est `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) ;
   un document d'une forme antérieure monte au format courant au chargement, un saut de forme par entrée
-  de `PROJECT_MIGRATIONS` (`src/state/worldMap.ts`). La fabrique UNIQUE du document est
+  de `PROJECT_MIGRATIONS` (`src/data/migrationsDeProjet.ts`). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans

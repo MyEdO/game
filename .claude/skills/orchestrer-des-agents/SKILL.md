@@ -7,7 +7,7 @@ description: À utiliser dès qu'une tâche implique d'écrire ou modifier du co
 
 **Je ne code pas — même le trivial.** Un guard d'une ligne, une regex, un refacto « couplé » → un agent
 sous spec précise. Moi = décomposer, spécifier, vérifier, intégrer ; seul code de ma main :
-l'intégration triviale et les gates. Violer la lettre de cette règle EST violer son esprit.
+l'intégration triviale et les gates.
 
 ## Suivi
 
@@ -27,9 +27,7 @@ l'intégration triviale et les gates. Violer la lettre de cette règle EST viole
 - **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101+,
   labels, Bloqué par / Débloque, DoD mesurable). Le commentaire de pilotage d'épique n'est qu'une
   PROJECTION du suivi, postée à la publication — jamais relue comme état.
-- **Jamais `superpowers:writing-plans` / `executing-plans` / `subagent-driven-development`** ici ;
-  `brainstorming` sert l'altitude, sa sortie va au TICKET. Un brief de codeur est un commentaire DATÉ
-  du ticket du chantier, jamais un fichier sous `docs/`.
+- **Un brief de codeur est un commentaire DATÉ du ticket du chantier**, jamais un fichier sous `docs/`.
 
 ## Cycle
 
@@ -134,7 +132,7 @@ lancement.
   `Measure-Object -Line` (PowerShell) ne compte pas les lignes vides — `wc -l` ou `git grep -c ""` ;
   `npm run typecheck:fast` est incrémental sur un tsbuildinfo PARTAGÉ entre sessions
   (`scripts/typecheck-fast.mjs:37-38`) — au doute, la porte complète `npm run typecheck`
-  (`package.json:33`, `--incremental false`) ;
+  (script `typecheck` de `package.json`, `--incremental false`) ;
   le hook `read-dedup` rend un faux « unchanged since last read » sur un
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
@@ -208,10 +206,9 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
 
-**Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**,
-pas l'art à l'aveugle. Déjà utilisés — audit de fidélité des règles (a trouvé 3 vrais bugs), extraction
-du Tome 1 en dossiers, génération des sprites de bestiaire depuis l'art officiel (lecture d'image par
-les agents).
+**Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**
+(audit de fidélité des règles, extraction d'un livre en dossiers, sprites depuis l'art officiel par
+lecture d'image), pas l'art à l'aveugle.
 
 Préférer ces types (modèle + effort épinglés) à `general-purpose`, qui hérite l'effort de session.
 **JAMAIS Sonnet en effort haut/xhigh** : plus cher qu'un Opus medium. La cérémonie se calibre à la

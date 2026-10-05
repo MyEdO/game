@@ -7,9 +7,7 @@
  *  - la table `PASSIVE_CANCELLERS` (`src/engine/trauma.ts`) : kind → annulateurs, lue par AST ;
  *  - le mode de COMBINAISON par kind, dérivé du seul kind additif reconnu par `isAdditiveKind` ;
  *  - les BRANCHES du collecteur `passiveMods` : une par source, avec sa ligne et son commentaire de
- *    tête — le manuscrit en listait 6 quand le collecteur en a bien davantage (États, psychologies,
- *    Ivresse, Soif, Talents, objets portés… tous absents de sa liste, et son §2 affirmait même que
- *    les États restaient HORS du collecteur) ;
+ *    tête ;
  *  - les documents PORTEURS d'un champ `passive`/`passiveBySeverity`, lus au def zod, avec le nombre
  *    d'entrées qui l'exercent RÉELLEMENT dans le `.json`.
  * La part ÉDITORIALE (frontières, doctrine « un seul format », recettes) vit ICI, en dur.
@@ -19,9 +17,12 @@
  *   node scripts/docs/build-passifs.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { parUnitesDeCode, listerDossier } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
-import { loadSource, firstSentence } from './lib/jsdocUnion.mjs'
+import { loadSource, firstSentence, jsdocRole } from './lib/jsdocUnion.mjs'
+import { contexteImports, liaisonImportee } from '../guards/lib/canonUnique.mjs'
+import { resolveImport } from '../guards/lib/importGraph.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -46,6 +47,7 @@ function rendu() {
 
   const { text: OPS_SRC, sf: OPS_SF } = loadSource(OPS)
   const { text: TR_SRC, sf: TR_SF } = loadSource(TRAUMA)
+  const contexte = contexteImports(TR_SF)
   const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
   // ── `PassiveKind` : membres + commentaire de QUEUE (la forme réelle du fichier) ────────────────────
@@ -121,8 +123,7 @@ function rendu() {
   /** Commentaire de TÊTE (`//` consécutifs) d'un fragment de trivia, aplati, 1re phrase. */
   function noteDeTete(triviaBrut) {
     // Une trivia qui ne commence PAS par un saut de ligne débute en MILIEU de la ligne précédente :
-    // ce qui s'y trouve est le commentaire de QUEUE de l'instruction d'avant, pas la tête de celle-ci
-    // (mesuré : `wornSocialMods` héritait ainsi de la note de `qualityWearMods`).
+    // ce qui s'y trouve est le commentaire de QUEUE de l'instruction d'avant, pas la tête de celle-ci.
     const trivia = triviaBrut.startsWith('\n') ? triviaBrut : triviaBrut.slice(triviaBrut.indexOf('\n') + 1)
     const lignes = trivia.split('\n').map((l) => l.trim())
     const bloc = []
@@ -158,17 +159,25 @@ function rendu() {
       prevEnd = st.getEnd()
       if (!/out\.push/.test(src)) continue
       const kinds = [...new Set([...src.matchAll(/kind:\s*'([a-z]+)'/g)].map((m) => m[1]))]
-      const producteurs = [...new Set([...src.matchAll(/\.\.\.([A-Za-z_$][\w$]*)\(/g)].map((m) => m[1]))]
+      const appels = []
+      const relever = (n) => {
+        if (ts.isSpreadElement(n) && ts.isCallExpression(n.expression) && ts.isIdentifier(n.expression.expression)) appels.push(n.expression)
+        ts.forEachChild(n, relever)
+      }
+      relever(st)
+      const producteurs = [...new Set(appels.map((appel) => appel.expression.text))]
       const implicite = /kind,/.test(src) // `kind` calculé (branche séquelle)
       // La ligne citée est celle qui PORTE le jeton nommé en table (`kind: '…'` ou l'appel du
       // producteur), pas le début de l'instruction : le site cité porte l'un des identifiants
       // backtiqués de la même ligne du doc — une instruction multi-lignes citée à son ouverture ne le
       // porte pas.
-      const ancreDansStatement = kinds.length ? src.indexOf(`kind: '${kinds[0]}'`) : producteurs.length ? src.indexOf(`...${producteurs[0]}(`) : 0
+      const ancreDansStatement = kinds.length ? src.indexOf(`kind: '${kinds[0]}'`)
+        : appels.length ? appels[0].expression.getStart(TR_SF) - st.getStart(TR_SF) : 0
       out.push({
         l: ligne(TR_SF, st.getStart(TR_SF) + Math.max(0, ancreDansStatement)),
         kinds: kinds.length ? kinds : implicite ? ['(dérivé)'] : [],
         producteurs,
+        appels,
         note: noteDeTete(trivia),
       })
     }
@@ -178,39 +187,57 @@ function rendu() {
 
   /** Producteurs NOMMÉS appelés par le collecteur, avec leur site réel (fichier:ligne) et leur rôle. */
   const PRODUCTEURS = (() => {
-    const noms = [...new Set(BRANCHES.flatMap((b) => b.producteurs))]
-    const importsDe = new Map()
-    for (const st of TR_SF.statements) {
-      if (!ts.isImportDeclaration(st) || !st.importClause?.namedBindings) continue
-      const chemin = st.moduleSpecifier.text
-      const b = st.importClause.namedBindings
-      if (!ts.isNamedImports(b)) continue
-      for (const e of b.elements) importsDe.set(e.name.text, chemin)
-    }
-    return noms
-      .map((nom) => {
-        const rel = importsDe.get(nom)
-        const fichier = rel
-          ? `src/engine/${rel.replace(/^\.\//, '')}.ts`.replace('src/engine/../', 'src/')
-          : TRAUMA
-        if (!existsSync(fichier)) abandon(`producteur \`${nom}\` : \`${fichier}\` introuvable (import déplacé ?)`)
-        const { text, sf } = loadSource(fichier)
-        let noeud
-        const visite = (n) => {
-          if ((ts.isFunctionDeclaration(n) || ts.isVariableDeclaration(n)) && n.name && ts.isIdentifier(n.name) && n.name.text === nom) noeud = n
-          n.forEachChild(visite)
+    const producteurs = new Map()
+    const sources = new Map([[resolve(TRAUMA), { text: TR_SRC, sf: TR_SF, contexte }]])
+    for (const appel of BRANCHES.flatMap((b) => b.appels)) {
+        const appele = appel.expression
+        const origine = liaisonImportee(appele, TR_SF, contexte)
+        if (!origine && contexte.liaisonsDuNom(appele.text).length) {
+          abandon(`producteur \`${appele.text}\` : occurrence masquée ou non liée à l'import dans \`${TRAUMA}\``)
         }
-        sf.forEachChild(visite)
-        if (!noeud) abandon(`producteur \`${nom}\` introuvable dans \`${fichier}\``)
+        const nomExporte = origine?.nom ?? appele.text
+        const cible = origine ? resolveImport(resolve(TRAUMA), origine.spec) : resolve(TRAUMA)
+        if (!cible) abandon(`import du producteur \`${appele.text}\` : \`${origine.spec}\` introuvable depuis \`${TRAUMA}\``)
+        const fichier = relative(process.cwd(), cible).split('\\').join('/')
+        if (!sources.has(cible)) {
+          const source = loadSource(cible)
+          sources.set(cible, { ...source, contexte: contexteImports(source.sf) })
+        }
+        const { text, sf, contexte: contexteSource } = sources.get(cible)
+        let declarations
+        if (origine) {
+          const checker = contexteSource.checker()
+          const module = checker.getSymbolAtLocation(sf)
+          let symbole = module && checker.getExportsOfModule(module).find((s) => s.name === nomExporte)
+          if (symbole?.flags & ts.SymbolFlags.Alias) symbole = checker.getAliasedSymbol(symbole)
+          declarations = symbole?.declarations ?? []
+        } else {
+          declarations = sf.statements.flatMap((n) => ts.isFunctionDeclaration(n) ? [n]
+            : ts.isVariableStatement(n) ? [...n.declarationList.declarations] : [])
+            .filter((n) => n.name && ts.isIdentifier(n.name) && n.name.text === nomExporte)
+        }
+        const noeud = declarations.find((n) => n.getSourceFile() === sf && n.name && ts.isIdentifier(n.name)
+          && (ts.isFunctionDeclaration(n) && n.parent === sf
+            || ts.isVariableDeclaration(n) && ts.isVariableStatement(n.parent.parent) && n.parent.parent.parent === sf))
+        if (!noeud) abandon(`déclaration du producteur \`${nomExporte}\` (appel \`${appele.text}\`) introuvable dans \`${fichier}\``)
+        if (!origine && contexte.checker().getSymbolAtLocation(appele) !== contexte.checker().getSymbolAtLocation(noeud.name)) {
+          abandon(`producteur \`${appele.text}\` : occurrence masquée ou non liée à la déclaration de module dans \`${TRAUMA}\``)
+        }
         const decl = ts.isVariableDeclaration(noeud) ? noeud.parent.parent : noeud
-        const doc = text.slice(decl.getFullStart(), decl.getStart(sf)).match(/\/\*\*[\s\S]*?\*\//)
-        return {
+        const nom = noeud.name.text
+        const cle = `${fichier}:${nom}`
+        const precedent = producteurs.get(cle)
+        const alias = precedent?.alias ?? new Set()
+        if (nomExporte !== nom) alias.add(nomExporte)
+        if (appele.text !== nom) alias.add(appele.text)
+        producteurs.set(cle, {
           nom,
+          alias,
           site: `${fichier}:${ligne(sf, noeud.name.getStart(sf))}`,
-          role: doc ? plat(firstSentence(doc[0].replace(/^\/\*\*|\*\/$/g, '').split('\n').map((l) => l.replace(/^\s*\*\s?/, '')).join(' ').replace(/\s+/g, ' ').trim())) : null,
-        }
-      })
-      .sort((a, b) => parUnitesDeCode(a.nom, b.nom))
+          role: jsdocRole(text.slice(decl.getFullStart(), decl.getStart(sf))),
+        })
+    }
+    return [...producteurs.values()].sort((a, b) => parUnitesDeCode(a.nom, b.nom))
   })()
 
   // ── Les documents PORTEURS d'un champ `passive` — lus au def, comptés à la donnée ──────────────────
@@ -346,7 +373,7 @@ ${table(
 
 Producteurs nommés, avec leur site réel :
 
-${table(PRODUCTEURS, ['Producteur', 'Site', 'Rôle (JSDoc)'], (p) => `| \`${p.nom}\` | \`${p.site}\` | ${p.role ?? '—'} |`)}
+${table(PRODUCTEURS, ['Producteur', 'Site', 'Rôle (JSDoc)'], (p) => `| \`${p.nom}\`${p.alias.size ? ` (appelé ${[...p.alias].map((a) => `\`${a}\``).join(', ')})` : ''} | \`${p.site}\` | ${p.role ? plat(p.role) : '—'} |`)}
 
 **Ajouter une source de passif = ajouter une branche ICI**, jamais un second collecteur ni une
 lecture directe d'un champ typé au consommateur. Les consommateurs
