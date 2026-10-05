@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gitDeLArbreReel, lancerGit } from './gitDeBanc.mjs'
+import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const HOOK = join(RACINE, 'scripts', 'git-hooks', 'pre-commit.mjs')
@@ -19,7 +20,7 @@ const git = gitDeLArbreReel(RACINE)
 
 /** Les cas du §5 : chacun choisit ses chemins suivis, dans l'ordre de `git ls-files`. */
 const CAS = {
-  C1: () => git('ls-files', 'src').split('\n').filter((c) => /\.ts$/.test(c) && !/\.(test|d)\.ts$/.test(c)).slice(0, 10),
+  C1: () => git('ls-files', 'src').split('\n').filter((c) => /\.ts$/.test(c) && !/\.d\.ts$/.test(c) && !estFichierVitest(c)).slice(0, 10),
   C2: () => git('ls-files', 'docs/raw/4e').split('\n').filter((c) => /^docs\/raw\/4e\/[^/]+\.md$/.test(c) && !c.endsWith('/00-index.md')).slice(0, 4),
 }
 

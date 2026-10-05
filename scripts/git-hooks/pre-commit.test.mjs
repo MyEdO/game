@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { CHEMIN_DU_JOURNAL } from './journal.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const HOOK = fileURLToPath(new URL('./pre-commit.mjs', import.meta.url))
 
@@ -46,12 +47,12 @@ const DECLENCHEURS = {
  *  s'y stage aussi) ; `jouer(env)` lance le HOOK réel dans ce dépôt. */
 function depotDuHook(stages) {
   const env = envDeDepotForge()
-  const scripts = Object.fromEntries(SCRIPTS_NPM.map((s) => [s, `node -e "require('fs').writeFileSync('temoin-${s.replace(':', '-')}', '')"`]))
+  const scripts = tableTotale(SCRIPTS_NPM, (s) => `node -e "require('fs').writeFileSync('temoin-${s.replace(':', '-')}', '')"`)
   const { racine } = instanceDeDepot({
     fichiers: {
       '.gitattributes': '* text=auto eol=lf\n',
       'package.json': JSON.stringify({ scripts }),
-      ...Object.fromEntries(SCRIPTS_PAR_CHEMIN.map((c) => [c, temoin(c.split('/').pop())])),
+      ...tableTotale(SCRIPTS_PAR_CHEMIN, (c) => temoin(c.split('/').pop())),
     },
     message: 'socle',
   })
