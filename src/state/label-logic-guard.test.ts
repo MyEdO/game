@@ -25,7 +25,7 @@ import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
  *
  * UNE garde : un corpus (`estDansLeCorpus`, tout `src/` hors instruments Vitest), une composition par
  * fichier (`scanLabelLogicFichier`, TOUS les volets), appelée ici sur le corpus entier et par le hook
- * pre-commit sur les fichiers stagés. Le dossier d'un site ne décide RIEN ; son statut est l'un de trois :
+ * au stylo sur le fichier écrit. Le dossier d'un site ne décide RIEN ; son statut est l'un de trois :
  *  - COUTURE légitime, au site (`RATCHET_EXCEPTIONS`) — la couture de chargement et de saisie de
  *    `src/data/index.ts` et le parseur de saisie de l'éditeur, chacune jugée par sa DÉCLARATION
  *    (« coutures légitimes » ci-dessous) ;

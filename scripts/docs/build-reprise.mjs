@@ -251,7 +251,9 @@ function rendu() {
       porte: (c) => c === 'core.hooksPath',
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
-   \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
+   \`pre-commit\` REFUSE au nom de l'intégrité (arbre imbriqué, lock npm amputé, fins de ligne) et
+    AVERTIT sur la forme, que la CI refuse ; les tests liés au diff se jouent à la main
+    (\`npm run test:lies\`). \`post-checkout\`,
     \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
     commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
     un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
@@ -463,7 +465,7 @@ C'est le signal qu'un geste manuel a dévié de ce que \`npm install\` pose seul
 
 - \`${chemin('Source')}/\` — texte des livres en \`.md\`, **citable** (réfs \`LDB <chap> l.<ligne>\`).
 - \`src/data/\` — données app-owned (${NB_DATA_JSON} fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : \`${chemin('scripts/guards/validate-data.mts')}\` + ${NB_GUARD_LIBS} modules
+- Les gardes de données : ${NB_GUARD_LIBS} modules
   sous \`scripts/guards/lib/\` (dont \`scripts/guards/lib/commentPoison.mjs\`,
   \`scripts/guards/lib/emojiAffordance.mjs\`, \`scripts/guards/lib/hardcode.mjs\`,
   \`scripts/guards/lib/labelLogic.mjs\`).

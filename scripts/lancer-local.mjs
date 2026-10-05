@@ -17,6 +17,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { execFileSync, spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { separerInvocation } from './guards/lib/invocation.mjs'
 import { refusOutillageLocal } from './outillage-local.mjs'
@@ -81,6 +82,23 @@ export function sortieOutilLocal(racine, paquet, bin, args) {
     env: envIsole(process.env, binLocal(racine)),
     maxBuffer: 1 << 28,
   })
+}
+
+/**
+ * Fichier d'entrée du module `specificateur` tel que l'arbre `racine` le résout, pour un `import()`
+ * dans le processus. REND `{ chemin }`, ou `{ refus }` (`refusOutillageLocal`) : la résolution de Node
+ * REMONTE les dossiers parents, donc un chemin résolu hors de `racine` est celui d'un AUTRE arbre.
+ */
+export function moduleLocal(racine, specificateur) {
+  const attendu = path.join(racine, 'node_modules', specificateur)
+  let chemin
+  try {
+    chemin = createRequire(path.join(racine, 'package.json')).resolve(specificateur)
+  } catch {
+    return { refus: refusOutillageLocal(racine, specificateur, attendu, () => false) }
+  }
+  const dedans = path.resolve(chemin).startsWith(path.resolve(racine) + path.sep)
+  return dedans ? { chemin } : { refus: refusOutillageLocal(racine, specificateur, attendu, () => false) }
 }
 
 /** Dossier des binaires de l'arbre — le SEUL `node_modules/.bin` que voit l'enfant. */

@@ -770,11 +770,11 @@ describe('synchroniserAgents', () => {
     assert.match(ctx.dits.join(''), /agents:check` rendu 1 : `npm run agents:sync`/)
   })
 
-  test('`agents:sync` ROUGE : refus qui NOMME le script, son code et ce que le pre-commit ferait', () => {
+  test('`agents:sync` ROUGE : refus qui NOMME le script, son code et ce que la CI ferait', () => {
     const ctx = ctxFactice({ 'agents:check': 1, 'agents:sync': 7 })
     const vu = synchroniserAgents(ctx)
     assert.equal(vu.ok, false)
-    assert.equal(vu.raison, '`npm run agents:sync` a rendu 7 : le pre-commit jouerait `agents:check` et refuserait le commit')
+    assert.equal(vu.raison, '`npm run agents:sync` a rendu 7 : la gate `agents:check` de la CI refuserait la plage')
     assert.deepEqual(ctx.joues, ['agents:check', 'agents:sync'])
   })
 })

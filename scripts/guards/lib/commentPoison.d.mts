@@ -66,6 +66,7 @@ export interface BaselineVerdict {
 }
 export const DECISIONS_BASELINE_PATH: string;
 export function loadDecisionsBaseline(path?: string): BaselineEntry[];
+export function decisionsBaselineDe(texte: string | null): BaselineEntry[];
 export function matchesBaselineEntry(finding: PlacedFinding, entry: BaselineEntry): boolean;
 export function partitionBaseline(
   findings: PlacedFinding[],

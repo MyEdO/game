@@ -826,9 +826,9 @@ export function legacyVocabIn(text, relPath) {
 }
 
 /**
- * Vocabulaire de l'ancien état HORS du stock nominatif daté de #1486 : ce que les PORTES BLOQUANTES
- * (pre-commit, hook au stylo) doivent refuser. Les sites déjà recensés partent avec leur lot ; seul
- * un site NEUF arrête le commit. Le contrat inverse (une entrée de stock sans site = à purger) se
+ * Vocabulaire de l'ancien état HORS du stock nominatif daté de #1486 : ce que les portes au DIFF
+ * (pre-commit, hook au stylo) signalent. Les sites déjà recensés partent avec leur lot ; seul un
+ * site NEUF est signalé. Le contrat inverse (une entrée de stock sans site = à purger) se
  * juge sur le corpus ENTIER, donc dans la suite Vitest, jamais sur un diff.
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string }[]}
@@ -962,8 +962,21 @@ export const DECISIONS_BASELINE_PATH = fileURLToPath(new URL('./decisions-baseli
  *  alors tout en NOUVEAU : la perte de la baseline ne masque jamais un signal).
  * @param {string} [path] @returns {BaselineEntry[]} */
 export function loadDecisionsBaseline(path = DECISIONS_BASELINE_PATH) {
+  let texte;
   try {
-    const doc = JSON.parse(readFileSync(path, 'utf8'));
+    texte = readFileSync(path, 'utf8');
+  } catch {
+    return [];
+  }
+  return decisionsBaselineDe(texte);
+}
+
+/** La baseline nominative d'un TEXTE (le blob de l'index, au pre-commit) ; absent (`null`) ou
+ *  illisible → liste vide, même contrat que `loadDecisionsBaseline`.
+ * @param {string | null} texte @returns {BaselineEntry[]} */
+export function decisionsBaselineDe(texte) {
+  try {
+    const doc = JSON.parse(texte ?? 'null');
     return Array.isArray(doc?.sites) ? doc.sites : [];
   } catch {
     return [];

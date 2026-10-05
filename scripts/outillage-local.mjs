@@ -5,7 +5,9 @@
 // l'arbre et la cause, plutôt que par un `Cannot find module` non attribué.
 // PORTÉE : TOUT script npm qui joue un outil (vite, tsc, tsx, vitest, eslint) passe par
 // `scripts/lancer-local.mjs` (13 scripts), plus `scripts/test/run.mjs`, `scripts/typecheck-fast.mjs`
-// et `scripts/docs/build-all.mjs` (le tsx des générateurs de docs). Restent NON COUVERTES deux classes, mesurées :
+// et `scripts/docs/build-all.mjs` (le tsx des générateurs de docs) ; un outil chargé DANS le processus
+// (l'eslint du pre-commit, `scripts/guards/lib/lintStage.mjs`) passe par `moduleLocal`.
+// Restent NON COUVERTES deux classes, mesurées :
 //  · un `npx <outil>` tapé à la main hors des scripts npm (session, en-têtes « Lancer : npx tsx … »
 //    des scripts de QC/galeries) — la remontée de Node y sert encore l'arbre parent ;
 //  · un fichier lancé DIRECTEMENT par son shebang `#!/usr/bin/env -S npx tsx` : `scripts/map/check.mts`

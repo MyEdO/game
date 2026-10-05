@@ -24,9 +24,8 @@ import { detenteur } from '../detenteur.testkit';
  * La porte `openRoll` (`src/state/rollSeam.ts`) +
  * `TestOutcome.seal` (`src/engine/testOutcome.ts`) sont le SEUL chemin scellé pour produire une issue
  * de Test — un `rollTest(`/`d100(`/`TestOutcome.seal(` inline hors whitelist forge un jet SANS passer
- * par la policy de surfaçage M/V/I (Décision 3). Double détente avec le hook pre-commit
- * (`scripts/git-hooks/pre-commit.mjs`) — un `rollTest` réintroduit dans un flow doit être rouge ICI
- * (CI/local) ET au commit.
+ * par la policy de surfaçage M/V/I (Décision 3). Un `rollTest` réintroduit dans un flow est rouge ICI
+ * (CI) et AVERTI au commit (`scripts/git-hooks/pre-commit.mjs`).
  *
  * Ce qui n'est PAS une violation se décide par la FORME, pas par une liste de noms (#918) :
  *  - `src/engine/**` : moteur PUR, fonctions qui REÇOIVENT un `rng` sans jamais décider du
@@ -153,7 +152,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
     expect(scanRollSeamExclusivity('src/state/x.ts', regressed).length).toBe(1);
   });
 
-  it('périmètre : le pre-commit juge ce que ce test balaie — un flux de `src/` y entre, un outil de `scripts/` non', () => {
+  it('périmètre : un flux de `src/` entre dans les gardes du seam et du rng, un outil de `scripts/` non', () => {
     expect(rollSeamExcluded('src/state/x.ts')).toBe(false);
     expect(battleRngEngineLeakExcluded('src/state/x.ts')).toBe(false);
     expect(rollSeamExcluded('scripts/ops/table-des.mts')).toBe(true);

@@ -9,8 +9,9 @@
  *     où ce stock est vide.
  *  2. PIPELINE d'atelier : un dessin `<set>@<espèce>-<vue>.dessin.mts` compile sur le gabarit de
  *     l'espèce nommée, dans UNE table keyée par vue par set, la sortie est IDEMPOTENTE, et sa
- *     désynchronisation fait ROUGIR `--check`
- *     (la porte de commit) — vert de nouveau après régénération PAR LE GÉNÉRATEUR.
+ *     désynchronisation fait ROUGIR `--check` — vert de nouveau après régénération PAR LE GÉNÉRATEUR ;
+ *     sur la racine RÉELLE `quadruped/`, `--check` rend 0 : le compilé committé est la compilation
+ *     exacte des dessins committés.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { spawnSync } from 'node:child_process';
@@ -239,6 +240,13 @@ describe('compilation d\'un dessin de SET (gabarit lu du suffixe @espèce)', () 
     } finally {
       rmSync(BAC, { recursive: true, force: true });
     }
+  }, 180_000);
+});
+
+describe('les compilés COMMITTÉS suivent leurs dessins (#1082, #1128)', () => {
+  it('`--check` sur la racine réelle `quadruped/` rend 0', () => {
+    const r = compilateurDe(resolve(ROOT, 'src/gameIso/rig/quadruped'))('--check');
+    expect(r.status, r.stderr + r.stdout).toBe(0);
   }, 180_000);
 });
 
