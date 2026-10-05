@@ -1,0 +1,48 @@
+name: Reprise de file
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: reprise-file
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  reprise:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reprendre les chantiers verts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ops/reprendre-file.mjs
+      - name: Se nommer en rougissant
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          STATUT: ${{ job.status }}
+        run: |
+          RAPPORT="$RUNNER_TEMP/reprise-file-rapport.md"
+          echo "Run $RUN_URL sur $SHA : reprise serveur $STATUT. Rejouer en cas d'échec : npm run ops:publier -- --detache." > "$RAPPORT"
+          node scripts/ops/signaler-rouge.mjs --titre "Reprise de file rouge" --label canari --corps "$RAPPORT" --verdict "$([ "$STATUT" = success ] && echo vert || echo rouge)"

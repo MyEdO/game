@@ -1477,6 +1477,35 @@ test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git ré
   assert.equal(lances.length, 1, 'un binaire absent ne lance rien')
 })
 
+/** Un FAUX git (`process.execPath` sur un script du banc) qui sort en `code` avec `stderr` SANS lire son
+ *  entrée : `fn(depot)`, sous 8 Mo d'entrée, perd TOUJOURS la course de l'écriture (pas de course). */
+function sousUnGitQuiNeLitPas(code, stderr, fn) {
+  const dossier = mkdtempSync(join(tmpdir(), 'faux-git-'))
+  try {
+    const script = join(dossier, 'faux-git.mjs')
+    writeFileSync(script, `process.stderr.write(${JSON.stringify(stderr)})\nprocess.exit(${code})\n`)
+    const vus = []
+    const spawn = (_git, _args, options) => {
+      const vu = spawnSync(process.execPath, [script], options)
+      vus.push(vu.error?.code)
+      return vu
+    }
+    return fn(depotDe(dossier, { env: envDeDepotForge(), spawn }), vus)
+  } finally { jeter(dossier) }
+}
+
+test('une ENTRÉE que git ne lit pas (EPIPE, EOF) ne masque jamais son statut : sorti en 128, la cause est son stderr ; sorti en 0, l’entrée non lue se NOMME', () => {
+  const revisions = Array.from({ length: 100000 }, (_, i) => i.toString(16).padStart(40, 'a'))
+  sousUnGitQuiNeLitPas(128, 'fatal: not a git repository (faux git)\n', (d, vus) => {
+    assert.throws(() => commitsNommes(d, revisions), (e) => e instanceof GitIndisponible && /^fatal: not a git repository \(faux git\)/.test(e.raison), 'la cause est le stderr de git')
+    assert.ok(['EPIPE', 'EOF'].includes(vus[0]), `témoin : l'écriture de l'entrée a perdu la course (${vus[0]})`)
+  })
+  sousUnGitQuiNeLitPas(0, '', (d, vus) => {
+    assert.throws(() => commitsNommes(d, revisions), (e) => e instanceof GitIndisponible && /sorti en 0 sans lire son entrée en entier \((EPIPE|EOF)\)/.test(e.raison))
+    assert.ok(['EPIPE', 'EOF'].includes(vus[0]), `témoin : l'écriture de l'entrée a perdu la course (${vus[0]})`)
+  })
+})
+
 test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {
   const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' })
   const illisible = (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' })

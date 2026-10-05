@@ -28,7 +28,7 @@
 // tant qu'AUCUN script `open-ticket` n'existe dans ce dépôt — le jour où il en porte un qui appelle
 // `gh issue create`, la création est refusée comme les autres.
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { segmentsProfonds } from './solde-ticket-guard.mjs'
+import { REFUS_SATURE, nouveauBudget, segmentsProfonds } from './solde-ticket-guard.mjs'
 
 /** Un token porte-t-il une option de label ? (`--label`, `--label=X`, `-l`, `-lX` glué) */
 export const isLabelFlag = (t) => /^--label(=|$)/.test(t) || /^-l/.test(t)
@@ -124,7 +124,10 @@ const INTERPOLATION_RE = /[`]|\$\(/
  */
 export function evaluate(command, options) {
   if (!command) return null
-  for (const segment of segmentsProfonds(command, 0, options)) {
+  const budget = nouveauBudget()
+  const segments = segmentsProfonds(command, 0, { ...options, budget })
+  if (budget.sature) return REFUS_SATURE
+  for (const segment of segments) {
     const args = ghArgs(segment)
     if (!args) continue
     const porteTexte = indexSousCommande(args, 'issue', ACTIONS_TEXTE) !== -1 ||

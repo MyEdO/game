@@ -193,6 +193,10 @@ export const ECRIT_LU = {
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
       'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
       'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
+      '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
+      '`import.meta.main` ET si `GITHUB_STEP_SUMMARY` est défini ; ' +
+      'le runner fournit ce fichier hors du dépôt, et le banc CLI le remplace par un fichier de ' +
+      '`mkdtempSync` sous os.tmpdir(), avec événement CI rouge, configuration GitHub temporaire et tokens GitHub vides, sans API ni écriture dans l’arbre ; ' +
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
