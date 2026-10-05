@@ -6,6 +6,8 @@
 // vitest et le navigateur. Le chemin de la fiche porte le livre et le chapitre : aucun champ ne les
 // répète, ni rien de ce qui s'en dérive.
 import { z } from 'zod';
+import '../schemas/grammaire/locale-fr.ts';
+import { tableTotale } from '../../lib/tableTotale.ts';
 
 export const MEDIAS = ['scene-jouee', 'dialogue', 'interlude', 'resume', 'coupe'] as const;
 export const TYPES_POINT_AU_MJ = ['veracite-rumeur', 'consequence-ouverte', 'rythme-deblocage', 'variante-pnj', 'encart-optionnel'] as const;
@@ -51,9 +53,7 @@ const FAMILLES = {
 
 export type FamilleDeDossier = keyof typeof FAMILLES;
 export const FAMILLES_DE_DOSSIER = Object.keys(FAMILLES) as FamilleDeDossier[];
-export const PREFIXES_D_ID: Readonly<Record<FamilleDeDossier, string>> = Object.fromEntries(
-  FAMILLES_DE_DOSSIER.map((f) => [f, FAMILLES[f].prefixe]),
-) as Record<FamilleDeDossier, string>;
+export const PREFIXES_D_ID: Readonly<Record<FamilleDeDossier, string>> = tableTotale(FAMILLES_DE_DOSSIER, (f) => FAMILLES[f].prefixe);
 
 /** Une entrée de la famille d'attributs `A` : `id` au préfixe de sa famille, ses attributs, `ref`. Les
  *  attributs passent en paramètre : étalés depuis une famille GÉNÉRIQUE, ils s'inféreraient comme l'union

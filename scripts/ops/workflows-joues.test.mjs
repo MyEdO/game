@@ -32,7 +32,7 @@ import { lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs';
 import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../guards/lib/jouer-workflow.mjs';
 import { tableTotale } from '../../src/lib/tableTotale.ts';
 import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts';
-import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche } from '../raw/workflow-args.mjs';
+import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 const DOSSIER = join(RACINE, '.claude', 'workflows');
@@ -561,8 +561,6 @@ const completude = (opts, corrige = {}) => ({
 });
 const repondreAuDossier = (corrige = {}) => (prompt, opts) => (opts.phase === 'Lecture' ? LECTURES[opts.label] : completude(opts, corrige));
 const jouerDossier = (argsDuRun = ARGS_DOSSIER, corrige = {}) => jouer('dossier-de-chapitre.js', argsDuRun, repondreAuDossier(corrige));
-/** La fiche que porte un rendu : sa provenance, puis ses familles. */
-const ficheDu = (rendu) => Object.fromEntries(['lecture', ...FAMILLES_DE_DOSSIER].map((cle) => [cle, rendu[cle]]));
 /** `corps(dir)` dans un dossier jetable, supprimé ensuite. */
 const dansUnJetable = async (corps) => {
   const dir = mkdtempSync(join(tmpdir(), 'dossiers-'));
@@ -576,13 +574,13 @@ const dansUnJetable = async (corps) => {
 test('dossier-de-chapitre : le rendu porte une FICHE au schéma `ficheDeDossier` — `lecture`, puis chaque famille en premier niveau, chaque id posé par le script', async () => {
   const { rendu } = await jouerDossier(AVEC_COMPAGNON);
   assert.equal(rendu.verdict, 'DOSSIER');
-  assert.deepEqual(ficheDeDossier.parse(ficheDu(rendu)), ficheDu(rendu), 'la fiche passe le schéma telle quelle');
+  assert.deepEqual(ficheDeDossier.parse(ficheDuRun(rendu)), ficheDuRun(rendu), 'la fiche passe le schéma telle quelle');
   assert.deepEqual(rendu.lecture, { date: DATE, commit: COMMIT });
   assert.deepEqual(
     [rendu.beats.map((b) => b.id), rendu.pnj.map((p) => p.id), rendu.declencheurs, rendu.etats.map((e) => e.id), rendu.matiereCompagnons.map((m) => m.id)],
     [['b1'], ['pnj1', 'pnj2'], [D1], ['etat1'], ['comp1']],
   );
-  const horsFiche = Object.keys(rendu).filter((cle) => !Object.hasOwn(ficheDu(rendu), cle)).sort();
+  const horsFiche = Object.keys(rendu).filter((cle) => !Object.hasOwn(ficheDuRun(rendu), cle)).sort();
   assert.deepEqual(horsFiche, ['agents', 'chapitre', 'corrections', 'livre', 'synthese_markdown', 'trous', 'verdict'], 'hors de la fiche : ce qui juge le run, et le chapitre qui la situe');
 });
 
@@ -644,9 +642,9 @@ test('dossier-de-chapitre : un OUBLI entre à la fiche sous l’id que le script
   assert.deepEqual(dossier.rendu.corrections, [{ type: 'oubli', famille: 'declencheurs', id: 'd2', entree: D2 }]);
   await dansUnJetable(async (dir) => {
     assert.equal(ecrireFiche({ result: dossier.rendu }, { dir }), `${dir}/EDO/01.json`, 'le rendu emballé par le lanceur s’écrit aussi');
-    assert.deepEqual(JSON.parse(readFileSync(`${dir}/EDO/01.json`, 'utf8')), ficheDu(dossier.rendu), 'la fiche écrite est celle du rendu, sans rien de ce qui juge le run');
+    assert.deepEqual(JSON.parse(readFileSync(`${dir}/EDO/01.json`, 'utf8')), ficheDuRun(dossier.rendu), 'la fiche écrite est celle du rendu, sans rien de ce qui juge le run');
     const argsTable = argsDeTableSimulee('EDO', '01', { worktree: ARBRE, date: DATE, seed: 'graine', maxEchanges: 3, dir, fichierDe: fichierDeFixture });
-    assert.deepEqual(argsTable.dossier, ficheDu(dossier.rendu), '`args.dossier` = l’OBJET de la fiche chargée');
+    assert.deepEqual(argsTable.dossier, ficheDuRun(dossier.rendu), '`args.dossier` = l’OBJET de la fiche chargée');
     const table = await jouerTable(mjSansFin, analyseCouvrante(), argsTable);
     assert.match(table.promptsParLabel.get('Partie:mj:1'), /^- d2 — Kastor attaque à minuit — condition : minuit sonne \(EDO 01 l\.300\) — en attente$/m);
     assert.deepEqual(table.rendu.declencheursNonJoues.map((d) => [d.id, d.ref]), [['d1', ['EDO 01 l.200']], ['d2', ['EDO 01 l.300']]]);
@@ -664,7 +662,7 @@ test('dossier-de-chapitre : une RÉF FAUSSE se corrige à l’entrée, à la for
     ['ref-fausse', 'declencheurs', 'd1', ['EDO 01 l.200'], ['EDO 01 l.201']],
     ['ref-fausse', 'pnj', 'pnj2', ['EDO 01 l.199'], ['EDO 01 l.7', 'EDO 01 l.9']],
   ]);
-  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: ficheDu(dossier.rendu) });
+  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: ficheDuRun(dossier.rendu) });
   assert.match(table.promptsParLabel.get('Partie:mj:1'), /^- d1 — [^\n]* \(EDO 01 l\.201\) — en attente$/m);
   assert.doesNotMatch(table.promptsParLabel.get('Partie:mj:1'), /EDO 01 l\.200/);
   const horsForme = await jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: [], motif: 'm' }] });

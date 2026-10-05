@@ -13,7 +13,9 @@
 // (`docs/dossiers/`, #2290) cite le livre et n'implémente rien : citante, hors du code.
 import { join } from 'node:path'
 import { listerArbre } from '../../guards/lib/lister.mjs'
-import { DOSSIERS_DIR } from './dossiers.mjs'
+
+/** Racine des fiches de dossier de chapitre commitées (#2290), lues par `scripts/raw/lib/dossiers.mjs`. */
+export const DOSSIERS_DIR = 'docs/dossiers'
 
 export const EXTS_CITANTES = ['.ts', '.tsx', '.mts', '.mjs', '.json', '.css', '.md']
 export const EXTS_IMPLEMENTANTES = ['.ts', '.tsx', '.json']

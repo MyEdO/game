@@ -10,10 +10,11 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { REGISTRE_LIVRES } from './_lib.mjs'
-import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, famillesDeLaFiche, lireRendu, perimetreDeCoeur, valeurDeDrapeau } from './workflow-args.mjs'
+import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, famillesDeLaFiche, ficheDuRun, lireRendu, perimetreDeCoeur, valeurDeDrapeau } from './workflow-args.mjs'
 import { chargerDossiers } from './lib/dossiers.mjs'
 import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, STATUTS_DE_BEAT, ficheDeDossier } from '../../src/data/source/dossier.ts'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 /** Domaines de fixture : deux cœurs, clés et titres inventés. */
 const DOMAINES = {
@@ -226,7 +227,7 @@ test('registre RÉEL : chaque cœur déclaré projette, sous les DEUX choix, un 
 const COMMIT = 'f6e343dc8abf36a9d34cc3fd13de60af3d9ac894'
 const fichierDe = (abbr, nn) => `Source/${abbr}-${nn}.md`
 const OPTIONS_DOSSIER = { worktree: '/arbre-jete', date: '2026-10-05', commit: COMMIT, fichierDe }
-const vides = Object.fromEntries(FAMILLES_DE_DOSSIER.map((f) => [f, []]))
+const vides = tableTotale(FAMILLES_DE_DOSSIER, () => [])
 /** Le rendu d'un run au verdict DOSSIER : la fiche, et ce qui juge le run. */
 const RUN = {
   verdict: 'DOSSIER', livre: 'EDO', chapitre: '01',
@@ -284,7 +285,7 @@ test('ecrireFiche : la fiche d’un run au verdict DOSSIER s’écrit à `<dir>/
   dansUnJetable((dir) => {
     assert.equal(ecrireFiche(RUN, { dir }), `${dir}/EDO/01.json`)
     const ecrit = readFileSync(`${dir}/EDO/01.json`, 'utf8')
-    const fiche = Object.fromEntries(['lecture', ...FAMILLES_DE_DOSSIER].map((c) => [c, RUN[c]]))
+    const fiche = ficheDuRun(RUN)
     assert.equal(ecrit, `${JSON.stringify(fiche, null, 2)}\n`)
     assert.deepEqual(chargerDossiers(dir).map((d) => [d.chemin, d.ids]), [[`${dir}/EDO/01.json`, ['EDO-01#b1']]])
     assert.deepEqual(argsDeTableSimulee('EDO', '01', { worktree: '/arbre-jete', date: '2026-10-05', seed: 'graine', dir, fichierDe }), {

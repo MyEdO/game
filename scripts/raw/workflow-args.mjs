@@ -36,7 +36,9 @@
 //     args de `.claude/workflows/table-simulee.js`, dont `dossier` = l'OBJET de la fiche commitée chargée.
 // Les fichiers `Source/` d'un chapitre se dérivent de `chapterFile`.
 import { REGISTRE_LIVRES, chapterFile, coeursDuRegistre, domainesDe, estLivreExtrait, livreDuSigle } from './_lib.mjs'
-import { DOSSIERS_DIR, chargerDossiers } from './lib/dossiers.mjs'
+import { chargerDossiers } from './lib/dossiers.mjs'
+import { DOSSIERS_DIR } from './lib/fichiersCitants.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { depotDe, shaDe } from '../guards/lib/gitPorte.mjs'
 import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, ficheDeDossier } from '../../src/data/source/dossier.ts'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -151,15 +153,15 @@ const fichierDuChapitre = (abbr, nn) => chapterFile(abbr, nn)?.path.replace(/\\/
  */
 export function famillesDeLaFiche() {
   const { properties } = z.toJSONSchema(ficheDeDossier)
-  return Object.fromEntries(FAMILLES_DE_DOSSIER.map((famille) => {
+  return tableTotale(FAMILLES_DE_DOSSIER, (famille) => {
     const { minItems = 0, items: { properties: attributs, required, ...forme } } = properties[famille]
     const sansId = (cle) => cle !== 'id'
-    return [famille, {
+    return {
       prefixe: PREFIXES_D_ID[famille],
       minimum: minItems,
       entree: { ...forme, properties: Object.fromEntries(Object.entries(attributs).filter(([cle]) => sansId(cle))), required: required.filter(sansId) },
-    }]
-  }))
+    }
+  })
 }
 
 /** LÈVE si `livre`/`chapitre` ne désignent pas un chapitre d'un livre du registre. */
@@ -227,6 +229,10 @@ export function argsDeTableSimulee(livre, chapitre, { worktree, date, seed, maxE
   }
 }
 
+/** La fiche que porte le rendu `run` d'un run de `dossier-de-chapitre` : sa `lecture`, puis ses familles,
+ *  sans rien de ce qui juge le run. PUR. */
+export const ficheDuRun = (run) => tableTotale(['lecture', ...FAMILLES_DE_DOSSIER], (cle) => run[cle])
+
 /**
  * ÉCRIT la fiche qu'un run de `dossier-de-chapitre` rend, à `<dir>/<livre>/<chapitre>.json` : seul un
  * run au verdict DOSSIER en porte une, et elle passe les gardes du chargeur (`chargerDossiers`, sur une
@@ -242,7 +248,7 @@ export function ecrireFiche(rendu, { dir = DOSSIERS_DIR } = {}) {
     throw new Error(`workflow-args: verdict « ${run.verdict} » — seul un run au verdict ${VERDICT_DE_FICHE} porte une fiche${troues.length ? ` ; trous : ${troues.map(([e, l]) => `${e} (${l.join(', ')})`).join(' · ')}` : ''}`)
   }
   exigerChapitre(run.livre, run.chapitre)
-  const fiche = Object.fromEntries(['lecture', ...FAMILLES_DE_DOSSIER].map((cle) => [cle, run[cle]]))
+  const fiche = ficheDuRun(run)
   const jetable = mkdtempSync(join(tmpdir(), 'fiche-de-dossier-'))
   let charge
   try {

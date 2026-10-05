@@ -7,8 +7,7 @@ import { join } from 'node:path'
 import { listerArbre } from '../../guards/lib/lister.mjs'
 import { refRe } from '../_lib.mjs'
 import { FAMILLES_DE_DOSSIER, lireFicheDeDossier } from '../../../src/data/source/dossier.ts'
-
-export const DOSSIERS_DIR = 'docs/dossiers'
+import { DOSSIERS_DIR } from './fichiersCitants.mjs'
 
 /** Un élément de `ref` est UNE réf à la graphie unique `refRe`, ENTIÈRE : ni préfixe, ni reste. */
 const estUneRef = (s) => {
