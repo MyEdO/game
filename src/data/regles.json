@@ -27,7 +27,22 @@
     "id": "soutien",
     "type": "regles",
     "label": "Soutien",
-    "desc": "Dans certaines situations, il est évident que plusieurs Personnages œuvrant de concert à une même tâche ont plus de chance d'y parvenir qu'un Personnage isolé. Avec l'accord du MJ, un Personnage peut apporter son soutien à un autre sur le point d'effectuer un Test. Lorsque c'est le cas, le Personnage qui possède la plus forte chance de réussite lance les dés. Chaque Personnage qui apporte son soutien octroie un bonus de +10 au Test. Ceci mis à part, le Test est effectué normalement.\n\n**Limites du Soutien**\n\nLes Joueurs peuvent se soutenir dans la plupart des cas, mais il existe certaines limites.\n\n- Pour apporter leur soutien, tous les Personnages doivent posséder au moins une Augmentation dans la Compétence utilisée pour le Test.\n- Le Personnage qui soutient doit normalement être adjacent à celui qui effectue le Test.\n- Vous ne pouvez pas soutenir les Personnages qui font des Tests pour résister à la maladie, au poison, à la peur, au danger, ou toute autre tentative que le MJ jugera inappropriée.\n- Le Personnage qui effectue le Test ne peut pas être soutenu par plus de Personnages que son propre bonus dans la Caractéristique appropriée (voir page 33).",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "12",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "soutien",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "limites-du-soutien",
+          "finSecOcc": 1,
+          "b1": 1,
+          "sum": "f0739417f326f4de"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 155,
@@ -440,7 +455,22 @@
     "id": "amputation",
     "type": "regles",
     "label": "Amputation",
-    "desc": "Les Blessures critiques les plus graves aboutissent généralement à la perte d'une partie du corps, comme les doigts, les mains, les pieds ou même une jambe ! Si un Personnage se fait trancher plusieurs parties du corps, il est peut-être temps de penser à les remplacer de façon à atténuer au maximum les éventuelles pénalités (voir **Chapitre 11 : Équipement**).\n\nÀ chaque fois que vous subissez une Blessure critique où il est indiqué *Amputation (Difficulté)*, vous devez réussir un Test de **Résistance** (la difficulté est indiquée entre parenthèses) ou gagner 1 État *À Terre*. Sur un échec (-2 DR) ou pire, vous recevez également un État *Sonné*. Si vous échouez avec au moins -4 DR, gagnez un État *Inconscient*.\n\nToutes les amputations nécessitent d'être traitées par la chirurgie, ce qui signifie qu'une Blessure ne peut pas être soignée tant que vous n'êtes pas passé entre les mains d'un chirurgien. Voir Chirurgie à la page 181.\n\n**Bras**\n\nUtilisez les règles pour la perte de la main, et il vous est impossible de sangler un bouclier à ce bras, puisqu'absent. Perdre ses deux bras est encore pire que de perdre ses deux mains, car il devient difficile de se laver ou d'accomplir quoi que ce soit d'autre.\n\n**Dents**\n\nLa perte de dents peut être disgracieuse et rend la mastication difficile. Pour chaque paire de dents manquante, vous perdez également 1 Point de votre caractéristique de Sociabilité. De plus, une fois qu'il vous manque plus de la moitié de vos dents (humains 16 ; elfes 18 ; nains et halflings : 20), vous avez beaucoup plus de mal à consommer de la nourriture solide que vos pairs, doublant le temps nécessaire aux repas et rendant certaines denrées alimentaires très difficiles à manger, ce qui, pour le coup dépend surtout de votre interprétation et de vos capacités narratives.\n\n**Doigts**\n\nAvec des doigts coupés, votre prise est moins ferme et les risques de Maladresses augmentent lorsque vous utilisez cette main. Pour le premier doigt perdu, sur un échec à tout Test en rapport dont le chiffre des unités est 1 est considéré comme une Maladresse. Pour deux doigts perdus, ce seront les résultats dont le chiffre des unités sera 1 ou 2 qui seront considérés comme des Maladresses, etc. De plus, vous subissez une pénalité de -5 à tous les Tests qui impliquent cette main par doigt perdu. Une fois que vous avez perdu 4 doigts ou plus, utilisez la règle de la main tranchée.\n\n**Jambe**\n\nUtilisez les mêmes règles que pour le pied. De plus, vous ne pouvez pas utiliser le talent Esquive du tout.\n\n**Langue**\n\nDépourvu de langue, vous ne pouvez plus que marmonner et grommeler, ou vous servir d'un système de signes maison pour communiquer. Tous les Tests de Langue qui impliquent la parole se soldent automatiquement par un échec.\n\n**Main**\n\nVous recevez une pénalité de -20 à tous les Tests qui utilisent cette main et vous ne pouvez pas utiliser d'armes à deux mains. Cependant, vous pouvez lacer un bouclier sur le bras blessé. Si la main perdue est votre main principale, vous subissez la pénalité habituelle de -20 à tous les Tests d'Arme effectués avec votre main secondaire. Vous pouvez réduire cette pénalité de 5 par tranche de 100 PX dépensés, car vous apprenez à tout effectuer avec cette seconde main.\n\nSi vous perdez les deux mains, il sera temps d'apprendre à maîtriser le combat au crochet.\n\n**Nez**\n\nLa perte d'un nez rend le visage plutôt effrayant. Votre Sociabilité est réduite de -20 de façon permanente et vous subissez une pénalité de -30 à tous les Tests qui impliquent l'odorat.\n\n**Œil**\n\nMême s'il est horrible de perdre un œil, vous apprendrez très vite à compenser. Si vous avez la malchance de perdre vos deux yeux, subissez une pénalité de -30 à tous les Tests en rapport avec la vue, comme les Tests d'Arme, les Tests d'Esquive, les Tests de Chevaucher, et autres. De plus, vous subissez une pénalité de -5 à tous vos Tests de Sociabilité par orbite vide que les autres peuvent voir.\n\n**Oreille**\n\nPerdre une oreille est douloureux, mais on apprend à vivre sans assez vite. Si vous avez la malchance de perdre vos deux oreilles, subissez une pénalité permanente de -20 à tous les Tests de Perception basés sur l'ouïe. De plus, vous subissez une pénalité de -5 à tous vos Tests de Sociabilité par oreille perdue lorsque les autres voient votre visage.\n\n**Orteils**\n\nLa perte d'orteils a un effet sur votre équilibre. Pour chaque orteil perdu, vous subissez une perte définitive de -1 à votre Agilité et à votre Capacité de Combat.\n\n**Pied**\n\nRéduisez de façon permanente votre Mouvement de moitié, et subissez une pénalité de -20 à tous les Tests qui impliquent la mobilité, comme une Esquive. Si vous perdez vos deux pieds, il devient très compliqué de marcher. Peut-être pourriez-vous engager un homme de main afin de vous porter ?",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "18",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "amputation",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "pied",
+          "finSecOcc": 1,
+          "b1": 0,
+          "sum": "7bc526511299ad16"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 180,
@@ -462,7 +492,22 @@
     "id": "portee-d-une-arme",
     "type": "regles",
     "label": "Portée d'une arme",
-    "desc": "La Portée d'une arme est sa portée moyenne en mètres. Le Chapitre 5 : Règles présente les modificateurs selon si une arme est à Bout portant, Courte, Longue ou Extrême. Calculez les Portées comme suit :\n\n**CALCUL DES FOURCHETTES DE PORTÉE**\n\nBout portant = Portée ÷ 10\n\nCourte = Portée ÷ 2\n\nLongue = Portée x 2\n\nExtrême = Portée x 3",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "62",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "portee-d-une-arme",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "calcul-des-fourchettes-de-portee",
+          "finSecOcc": 1,
+          "b1": 3,
+          "sum": "33337a976489943a"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -473,7 +518,22 @@
     "id": "allonge-longueur-d-arme",
     "type": "regles",
     "label": "Longueur d'arme et combat au contact",
-    "desc": "Ce sont des règles simples pour ceux qui aiment utiliser la longueur de l'Arme pour plus qu'une simple description de l'apparence, et un obstacle possible pour ajuster ses coups dans les tunnels sombres.\n\n**LONGUEUR D'ARME**\n\nSi votre arme est plus longue que celle de vos adversaires, ils subissent une pénalité de -10 pour vous toucher car vous trouvez plus facile de les tenir à distance.\n\n**AU CONTACT**\n\nPour votre Action, vous pouvez effectuer un Test opposé de **Corps à corps** pour tenter d'entrer dans la longueur d'arme de votre adversaire. Le vainqueur choisit si le combat continue normalement ou « au contact ». Pendant un combat au contact, n'importe quelle arme plus longue que Courte est considérée comme une Arme improvisée.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "62",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "option-longueur-d-arme-et-combat-au-contact",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "au-contact",
+          "finSecOcc": 1,
+          "b1": 0,
+          "sum": "1d05c1300a1af7cd"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -1100,7 +1160,22 @@
     "id": "fractures",
     "type": "regles",
     "label": "Fractures",
-    "desc": "Les fractures peu importantes guérissent d'elles-mêmes, mais certaines autres, lorsque les os dépassent de la plaie en adoptant des angles étranges, présentent un tout autre problème. Si vous souffrez d'une *Fracture*, elle sera majeure ou mineure.\n\n# **Mineure**\n\nL'un de vos os est fracturé mais il est toujours dans le bon alignement, ce qui signifie qu'il va pouvoir guérir sans intervention médicale.\n\nVous ne pouvez pas utiliser cette Localisation tant que la fracture n'est pas soignée. En ce qui concerne les Bras et les Jambes, vous êtes contraint de ne plus vous servir que d'un de vos deux membres car l'autre est devenu trop douloureux et devra sans doute être bandé. Utilisez la règle de Bras ou Jambe Sectionnés (voir **Membres amputés**). Pour les coups à la Tête, vous serez contraint de suivre un régime liquide et subirez une pénalité de -30 à tous vos Tests de Langue. Pour les blessures au Torse, votre force et votre mobilité seront sérieusement diminuées : subissez une perte de -30 à vos caractéristiques de Force et d'Agilité et votre Mouvement est divisé par deux.\n\n**Guérison :** il faudra 30+1d10 jours pour soigner une fracture. À la fin de cette période, un succès obtenu sur un Test de **Résistance Accessible (+20)** indique que l'os s'est remis correctement et que vous ne subirez aucun effet à long terme. Sur un échec, vous subirez une pénalité permanente de -5 à tous vos Tests d'Agilité pour une blessure au Bras, à la Jambe ou au Torse, ou une pénalité permanente de -5 à tous vos Tests de Langue s'il s'agit d'une blessure à la tête mal guérie.\n\nUn Test de **Guérison Accessible (+20)** réussi dans un intervalle d'une semaine suivant la fracture permet d'éviter le Test de Résistance, mais la zone touchée doit rester bandée et maintenue en place pendant tout le temps de la guérison. Si le bandage est défait, il faudra réussir un second Test de **Guérison Accessible (+20)** moins de 24 heures après pour éviter le Test de Résistance.\n\n# **Majeure**\n\nUn de vos os est salement fracturé et adopte un angle très bizarre avec le reste du membre ou a éclaté au point de fracture. Il est fort peu probable qu'il se soigne correctement sans intervention médicale.\n\nVous ne pouvez pas utiliser cette Localisation tant que l'os n'est pas guéri. Utilisez les mêmes règles que pour *Fracture (Mineure)*.\n\n**Guérison :** la guérison est plus longue de 10 jours. Tous les Tests associés sont **Intermédiaires (+0)**. Les pénalités en cas d'échec augmentent à -10.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "18",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "fractures",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "majeure",
+          "finSecOcc": 1,
+          "b1": 2,
+          "sum": "b94b748ef8fb9ee7"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 179,
@@ -1375,7 +1450,22 @@
     "id": "dissipation",
     "type": "regles",
     "label": "Dissipation",
-    "desc": "Si un Sort vous cible, ou vise un point que vous pouvez voir à une distance en mètres égale à votre Force Mentale, vous pouvez opposer le Test d'Incantation avec **Langue (Magick)**, car vous chantez un Contre-sort. Effectuez un Test opposé de **Langue (Magick)**. Sur un succès, vous dissipez le Sort ; sur un échec, le Sort utilise le DR du Test opposé pour déterminer si l'incantation a réussi normalement. Vous ne pouvez tenter de dissiper qu'un seul Sort chaque Round.\n\n#### **Dissiper des Sorts permanents**\n\nSi un Sort a un effet durable, vous pouvez tenter de le dissiper pour votre Action. Il faut pour cela effectuer un Test étendu de Langue (Magick). Quand votre DR atteint la NI du Sort, vous le dissipez avec succès.\n\nPlusieurs lanceurs de Sorts tentant de dissiper le même Sort effectuent leur lancer séparément. S'ils incantent en utilisant le même Domaine, ils peuvent décider d'effectuer un Test Soutenu à la place.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "46",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "dissipation",
+          "secOcc": 1,
+          "b0": 0,
+          "finSec": "dissiper-des-sorts-permanents",
+          "finSecOcc": 1,
+          "b1": 1,
+          "sum": "c9f61a5f2c9cf3a0"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 237,
