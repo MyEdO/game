@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { handlingClass, isTwoHanded, isRangedHandling, type Handling } from './handling';
 import { WEAPON_FORMS } from '../parts/weaponForms';
 import { findTrappingById } from '../../../data';
+import { armeDeDessin, type FormeDArme } from '../parts/equipment';
 import type { Weapon } from '../../../engine/types';
 
-// Le maniement est routé PAR ID STABLE (`shape`) — l'arme est construite comme au SPAWN : id de Possession → shape.
-const w = (id: string, type: 'melee' | 'ranged' = 'melee'): Weapon =>
-  ({ label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], shape: findTrappingById(id)?.shape } as Weapon);
-/** Arme routée directement par son slug de FORME (pas de libellé). */
-const byShape = (shape: string | undefined, type: 'melee' | 'ranged' = 'melee'): Weapon =>
-  ({ label: 'x', type, damage: { plusBF: false, flat: 4 }, qualities: [], shape } as Weapon);
+// Le maniement est routé PAR ID STABLE : l'arme porte son id de Possession, la projection en RÉSOUT la forme.
+const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme =>
+  armeDeDessin({ label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id });
+/** Projection de forme déjà résolue (pas de libellé). */
+const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
 
 describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () => {
   it('mappe un représentant de chaque classe', () => {
@@ -59,6 +59,12 @@ describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () 
 
   it('sans arme → lame1m (défaut neutre)', () => {
     expect(handlingClass(undefined)).toBe('lame1m');
+  });
+
+  it('#2113 S3 — arme invoquée : le maniement suit la forme résolue de `form`, comme son dessin', () => {
+    const invoquee: Weapon = { label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: 'arbalete' };
+    expect(findTrappingById('arbalete')?.shape, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
+    expect(handlingClass(armeDeDessin(invoquee))).toBe('arbalete');
   });
 });
 

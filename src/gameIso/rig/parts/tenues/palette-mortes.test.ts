@@ -12,11 +12,11 @@ import { sexeSchema } from '../../../../data/schemas/grammaire/valeurs';
 import { resolveRig } from '../../composeRig';
 import { bonesToSvg } from '../../renderBones';
 import { asRigSpeciesId } from '../../appearance';
-import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, weaponPart } from '../equipment';
+import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, weaponPart, type FormeDArme } from '../equipment';
 import { TENUE_DEFS } from './_registry.generated';
 import { WEAPON_DEFS } from '../weapons/_registry.generated';
 import { ARMOUR_DEFS } from '../armour/_registry.generated';
-import type { ItemInstance, Weapon } from '../../../../engine/types';
+import type { ItemInstance } from '../../../../engine/types';
 import type { PartArt } from '../types';
 import { VIEWS } from '../../facing';
 import { viewEntries } from '../../viewArt';
@@ -60,7 +60,7 @@ describe('déclarations de palette mortes (#1903)', () => {
       fautes.push(...mortes(`tenue:${d.id}`, d.palette, texte(d.set), () => ESPECES.flatMap((species) => sexeSchema.options.flatMap((sex) =>
         VIEWS.map((v) => bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1 }, equipDe([], []), {}, d.id, v))))).join('\n')));
     for (const d of WEAPON_DEFS) if (d.palette) {
-      const w = { label: d.slug, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape: d.slug, skin: {} } as unknown as Weapon;
+      const w: FormeDArme = { type: 'melee', forme: d.slug, skin: {} };
       fautes.push(...mortes(`arme:${d.slug}`, d.palette, texte(d.art), () => vues(objetSansPorteur(weaponPart(w))).join('\n')));
     }
     for (const d of ARMOUR_DEFS) if (d.palette) {

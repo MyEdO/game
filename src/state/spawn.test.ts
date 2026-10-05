@@ -3,7 +3,7 @@ import { weaponFromTrait, creatureToCombatant, statblockToCombatant, skillsFromB
 import { enemyRigProfile } from '../gameIso/rig/enemyProfile';
 import { teintesTirees } from '../gameIso/rig/parts/tirageIndividuel';
 import { raceById } from '../gameIso/rig/races';
-import { weaponFamily } from '../gameIso/rig/parts/equipment';
+import { armeDeDessin, weaponFamily } from '../gameIso/rig/parts/equipment';
 import { blessingsOf, findCreatureById, talentConcrete } from '../data';
 import { CHAR_KEYS } from '../engine/types';
 import { knowsCastingSkill, castingValue } from '../engine/magic';
@@ -16,15 +16,15 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   it('Arme (Épée) +7 → arme tenue « Épée »', () => {
     const w = weaponFromTrait({ id: 'arme', value: 7, arg: 'Épée' })!;
     expect(w).toMatchObject({ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 7 } });
-    expect(weaponFamily(w)).toBe('epee'); // le rig tient une épée
+    expect(weaponFamily(armeDeDessin(w))).toBe('epee'); // le rig tient une épée
   });
   it('Arme (Dague) +4 → dague', () => {
-    expect(weaponFamily(weaponFromTrait({ id: 'arme', value: 4, arg: 'dague' })!)).toBe('dague');
+    expect(weaponFamily(armeDeDessin(weaponFromTrait({ id: 'arme', value: 4, arg: 'dague' })!))).toBe('dague');
   });
   it('À distance (Arbalète) +9 (60) → arbalète à distance, portée 60', () => {
     const w = weaponFromTrait({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 })!;
     expect(w).toMatchObject({ label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60 });
-    expect(weaponFamily(w)).toBe('arbalete');
+    expect(weaponFamily(armeDeDessin(w))).toBe('arbalete');
   });
   it('À distance +8 (50) (sans type) → distance générique', () => {
     expect(weaponFromTrait({ id: 'a-distance', value: 8, range: 50 })).toMatchObject({ type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 50 });
@@ -35,12 +35,12 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
     const w = weaponFromTrait({ id: 'arme', arg: 'griffes', natural: true })!;
     expect(w.type).toBe('melee');
     expect(w.natural).toBe(true);
-    expect(weaponFamily(w)).toBe(''); // pas d'arme tenue
+    expect(weaponFamily(armeDeDessin(w))).toBe(''); // pas d'arme tenue
   });
   it('Morsure +9 → attaque naturelle (pas d’arme tenue)', () => {
     const w = weaponFromTrait({ id: 'morsure', value: 9 })!;
     expect(w).toMatchObject({ label: 'Morsure', type: 'melee', damage: { plusBF: false, flat: 9 } });
-    expect(weaponFamily(w)).toBe('');
+    expect(weaponFamily(armeDeDessin(w))).toBe('');
   });
   it('un trait non-arme → null', () => {
     expect(weaponFromTrait({ id: 'corruption', arg: 'Mineure' })).toBeNull();
@@ -49,7 +49,7 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   it('« 8 Tentacules +9 » (Pieuvre) → UNE arme naturelle Tentacules +9 (pas d’« Arme +BF »)', () => {
     const w = weaponFromTrait({ id: 'tentacules', count: 8, value: 9 })!;
     expect(w).toMatchObject({ label: 'Tentacules', type: 'melee', damage: { plusBF: false, flat: 9 } });
-    expect(weaponFamily(w)).toBe(''); // attaque naturelle : rien en main
+    expect(weaponFamily(armeDeDessin(w))).toBe(''); // attaque naturelle : rien en main
   });
 });
 

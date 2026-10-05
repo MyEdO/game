@@ -63,7 +63,7 @@ function bretteur(): Combatant {
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
     acquerirTalent(h, { id: 'maniement-de-deux-armes' });
   }
-  const main = itemFromTrappingById('arme-simple'); // shape:'epee' + formChoices (épée→hache/masse/…)
+  const main = itemFromTrappingById('arme-simple'); // formChoices (épée→hache/masse/…), forme résolue au catalogue
   const off = itemFromTrappingById('dague');
   h.items = [...(h.items ?? []), main, off].filter(Boolean) as ItemInstance[];
   if (main && off) {

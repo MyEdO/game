@@ -30,7 +30,7 @@ const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' })
 const sujet = (c: Combatant) => actorBillboards([pose(c)], scene, mpt)[0];
 const svgDe = (c: Combatant) => sujet(c).svg('front', false, 0);
 
-const ÉPÉE = { label: 'Épée', type: 'melee', group: 'base', damage: 4, shape: 'epee' } as unknown as Weapon;
+const ÉPÉE = { label: 'Épée', type: 'melee', group: 'base', damage: 4, trappingId: 'arme-simple' } as unknown as Weapon;
 
 describe('Signature de dessin d’un acteur — la clé de mémo ET l’identité de texture la portent', () => {
   const base = héros();

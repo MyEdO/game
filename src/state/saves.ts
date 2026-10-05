@@ -84,6 +84,8 @@ const MIGRATIONS_DE_SAVE = {
   58: '#1692 Arène lancée par `loadProject`',
   // #1920
   59: '#1920 clé d’enjeu de modale en id',
+  // #2113
+  60: '#2113 forme d’objet choisie (`formeChoisie`), jamais recopiée du catalogue',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);
