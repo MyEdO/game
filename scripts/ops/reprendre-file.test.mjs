@@ -217,7 +217,8 @@ test('CLI réel rouge sans API : résumé externe, écriture fermée à l’impo
     const evenement = join(dossier, 'event.json')
     const resume = join(dossier, 'summary.md')
     writeFileSync(evenement, JSON.stringify({ workflow_run: { ...CI, conclusion: 'failure' } }))
-    const env = { ...process.env, PATH: '', GITHUB_EVENT_PATH: evenement, GITHUB_STEP_SUMMARY: resume,
+    const env = { ...process.env, GH_CONFIG_DIR: dossier, GH_TOKEN: '', GITHUB_TOKEN: '',
+      GITHUB_EVENT_PATH: evenement, GITHUB_STEP_SUMMARY: resume,
       GITHUB_SERVER_URL: 'https://github.com', GITHUB_REPOSITORY: 'MyEdO/game', GITHUB_RUN_ID: '88' }
     const script = fileURLToPath(new URL('./reprendre-file.mjs', import.meta.url))
     const importer = spawnSync(process.execPath, ['--input-type=module', '--eval', `await import(${JSON.stringify(new URL('./reprendre-file.mjs', import.meta.url).href)})`],
