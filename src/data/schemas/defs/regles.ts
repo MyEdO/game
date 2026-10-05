@@ -21,7 +21,13 @@ const doc = document(
     codex: { keys: ['regles'] },
     edit: { none: 'exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier' },
   },
-  { exiges: ['desc', 'source'] },
+  {
+    exiges: ['desc', 'source'],
+    /** Une règle qui n'est qu'une ligne ou une case de table adresse le TABLEAU ENTIER : fiche
+     *  `user-doctrine-regle-ligne-de-tableau-adresse-le-tableau-entier`, utilisateur, 2026-09-28 :
+     *  « Le tableau entier (Recommandé) ». */
+    fragmentsAdmis: ['blocs'],
+  },
 );
 
 export const schema = doc.schema;

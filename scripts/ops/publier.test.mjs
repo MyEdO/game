@@ -379,7 +379,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsRouges', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -1355,6 +1355,83 @@ test('preflight : une branche hors des filtres `push.branches` est ROUGE avant t
   })
   assert.match(preflight.jouer(ctxDe(['chantier/**']), journalVide('claude/x')).raison, /^la branche claude.x ne déclenche pas/)
   assert.equal(preflight.jouer(ctxDe(new Error('ci.yml : filtre illisible')), journalVide('claude/x')).raison, 'ci.yml : filtre illisible')
+})
+
+
+test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le verdict', () => {
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  const stderr = `${'note fetch\n'.repeat(50)}fatal: cause tardive fetch\n`
+  const stdout = 'stdout fetch distinct\n'
+  const vuFetch = classer({ status: 128, stdout, stderr })
+  const ctx = {
+    branche: 'chantier/x',
+    filtresDePush: ['chantier/**'],
+    generators: GENERATORS,
+    tronc: () => vuFetch,
+    questions: {
+      rebaseEntame: () => null,
+      brancheDe: () => 'chantier/x',
+      cheminsSales: () => [],
+      origineDe: () => `https://github.com/${DEPOT}.git`,
+      verdictDesFusions: () => assert.fail('aucun verdict après fetch refusé'),
+      combienDe: () => assert.fail('aucune lecture après fetch refusé'),
+    },
+  }
+  assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), {
+    ok: false,
+    raison: `origin non consultable : refus (status 128) — ${stderr}\n${stdout}`,
+  })
+})
+
+test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', () => {
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  const appels = []
+  const base = 'b'.repeat(40)
+  const ctx = {
+    racine: RACINE,
+    branche: 'chantier/x',
+    tete: 'a'.repeat(40),
+    filtresDePush: ['chantier/**'],
+    generators: GENERATORS,
+    tronc: () => { appels.push('fetch'); return { disponible: true } },
+    questions: {
+      rebaseEntame: () => null,
+      brancheDe: () => 'chantier/x',
+      cheminsSales: () => [],
+      origineDe: () => `https://github.com/${DEPOT}.git`,
+      verdictDesFusions: () => { appels.push('verdict'); return { ok: true } },
+      combienDe: () => { appels.push('combien'); return 1 },
+      baseAuTronc: () => { appels.push('base'); return base },
+    },
+  }
+  const journal = journalVide('chantier/x')
+  const vu = preflight.jouer(ctx, journal)
+  assert.equal(vu.ok, true)
+  assert.deepEqual(vu.detail, { derivesSales: [], base })
+  assert.equal(journal.base, base)
+  assert.equal(journal.tete, ctx.tete)
+  assert.deepEqual(appels, ['fetch', 'verdict', 'combien', 'base'])
+})
+
+test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, avec le refus de la porte de publication (#2328)', () => {
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  const ctx = {
+    branche: 'chantier/x',
+    filtresDePush: ['chantier/**'],
+    generators: GENERATORS,
+    tronc: () => ({ disponible: true }),
+    questions: {
+      rebaseEntame: () => null,
+      brancheDe: () => 'chantier/x',
+      cheminsSales: () => [],
+      origineDe: () => `https://github.com/${DEPOT}.git`,
+      verdictDesFusions: () => ({ ok: false, texte: '⛔ origin/main (base 0123456789 du 2026-10-05T10:00:00+02:00)..HEAD : 1 fusion(s) dont la RÉSOLUTION porte ≥10 insertions sous src/ sans juge qui la nomme' }),
+      combienDe: () => assert.fail('aucune lecture après le refus'),
+    },
+  }
+  const vu = preflight.jouer(ctx, journalVide('chantier/x'))
+  assert.equal(vu.ok, false)
+  assert.match(vu.raison, /^⛔ origin\/main \(base 0123456789 du .+\)\.\.HEAD : 1 fusion\(s\) dont la RÉSOLUTION/)
 })
 
 test('file : ÉJECTÉE par une course de file rouge HORS des dérivés — rouge NOMMÉ (course, jobs), aucune fusion', () => {

@@ -59,6 +59,9 @@
 // commit jugent son APPORT PROPRE (de sa fusion automatique à l'image qu'elle commite, `diffDuCommit`),
 // jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
 // toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
+// Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
+// `SUBSTANTIVE_MIN_LINES` insertions sous src/ exigent, d'un commit postérieur de la plage, `JUGE:` et
+// `REFUTATION:` (plus `JUGE-VISION:` sur un écran) qui nomment son sha.
 //
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
 // reste à 10 s. Un hook tué au `timeout` n'émet RIEN, et le geste passe. D'où DEUX ÉTAGES : le premier
@@ -164,7 +167,7 @@ import {
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
-import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { SUBSTANTIVE_MIN_LINES, TRAILERS, corpsDuTrailer, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, histoireDeHead, memeSha, mesureDuPalier,
@@ -1757,16 +1760,8 @@ const MIN_VERIFIE_LEN = 40
 // grammaire de tout ce qui suivait le blanc (sonde D1 : 4 dispositions invalides sur 5 acceptées).
 const TITRE_RESTES = 'Restes'
 const TITRE_RECETTE_VISUELLE = 'Recette visuelle'
-const TITRE_REFUTATION = 'R[ée]futation'
+const TITRE_REFUTATION = TRAILERS.REFUTATION.section
 
-/** Corps de la section `## <titre>` d'un solde (`null` si elle est absente). `titre` est un motif
- *  d'expression régulière : le titre s'écrit avec ou sans accents selon la section. */
-export function sectionDe(content, titre) {
-  // Sans le drapeau `m`, `$` est la fin du TEXTE : avec lui, il vaudrait fin de chaque ligne et la
-  // section s'arrêterait à la première. Le titre se reconnaît donc en tête de ligne par `(?:^|\n)`.
-  const m = new RegExp(`(?:^|\\n)##\\s*${titre}\\s*\\n([\\s\\S]*?)(?=\\n##[^#]|$)`, 'i').exec(String(content ?? ''))
-  return m ? m[1] : null
-}
 
 /** Nombre de fois que le titre `## <titre>` apparaît dans le document. Une section DUPLIQUÉE n'est pas
  *  une section plus longue : `sectionDe` rend la PREMIÈRE, et tout ce que porte la seconde échappe au
@@ -2462,9 +2457,8 @@ export function evaluatePorteDuTicket({
 // et « ref #N » devient l'esquive mécanique. Le mécanisme REFUTATION porte sur le ticket
 // EXPLICITEMENT rattaché ; le commit de substance qui n'en cite AUCUN est refusé en amont par
 // `evaluatePorteDuTicket`.
-const REFUTATION_LINE_RE = /REFUTATION\s*:\s*(.+)/i
-const MIN_REFUTATION_LINE_LEN = 40
-const SUBSTANTIVE_MIN_LINES = 10
+const REFUTATION_LINE_RE = TRAILERS.REFUTATION.ligne
+const MIN_REFUTATION_LINE_LEN = TRAILERS.REFUTATION.min
 
 /** Numéros de ticket que la commande RATTACHE sans fermer (`ref #N`/`refs #N`), dédupliqués/triés. */
 export function extractRefIssues(command) {
@@ -2536,12 +2530,10 @@ export function evaluateAntiEsquive({ command, fusionEnCours = false, stagedTouc
 // "## Réfutation" à verdict) : un `ref #N` qui touche `src/**` en substance doit en plus porter la
 // preuve qu'un agent juge adversarial est passé sur le diff. Si le diff touche `src/ui/**`, une
 // preuve DISTINCTE de jugement sur captures (JUGE-VISION) est exigée en plus.
-const JUGE_LINE_RE = /\bJUGE\s*:\s*(.+)/i
-const MIN_JUGE_LINE_LEN = 40
-const JUGE_VISION_LINE_RE = /\bJUGE-VISION\s*:\s*(.+)/i
-const MIN_JUGE_VISION_LINE_LEN = 40
-const JUGE_SECTION_RE = /##\s*Juge\s*\n([\s\S]*?)(?:\n\s*\n|\n##|$)/i
-const JUGE_VISION_SECTION_RE = /##\s*Juge-Vision\s*\n([\s\S]*?)(?:\n\s*\n|\n##|$)/i
+const JUGE_LINE_RE = TRAILERS.JUGE.ligne
+const MIN_JUGE_LINE_LEN = TRAILERS.JUGE.min
+const JUGE_VISION_LINE_RE = TRAILERS['JUGE-VISION'].ligne
+const MIN_JUGE_VISION_LINE_LEN = TRAILERS['JUGE-VISION'].min
 
 /** `true` si le message porte une ligne "JUGE: <...>" d'au moins `MIN_JUGE_LINE_LEN` caractères
  *  après le mot-clef (n'accroche jamais "JUGE-VISION:", le tiret casse le motif `JUGE\s*:`). */
@@ -2557,33 +2549,27 @@ function hasInlineJugeVision(command) {
   return !!m && m[1].trim().length >= MIN_JUGE_VISION_LINE_LEN
 }
 
-/** Section nommée générique (`## <label>`) : présence + longueur minimale du corps. */
-function checkNamedSection(content, sectionRe, minLen, label) {
-  const problems = []
-  const m = sectionRe.exec(content ?? '')
-  if (!m) {
-    problems.push(`section "## ${label}" absente`)
-    return { problems }
-  }
-  const body = m[1].trim()
-  if (body.length < minLen) {
-    problems.push(`"## ${label}" trop maigre (${body.length} car., ${minLen} requis)`)
-  }
-  return { problems }
+/** La section du trailer `nom` d'un solde (`corpsDuTrailer`, la grammaire de la publication) : présence
+ *  + longueur minimale du corps. */
+function checkNamedSection(content, nom) {
+  const { section: label, min } = TRAILERS[nom]
+  const body = corpsDuTrailer(content, nom)
+  if (body === null) return { problems: [`section "## ${label}" absente`] }
+  return { problems: body.length < min ? [`"## ${label}" trop maigre (${body.length} car., ${min} requis)`] : [] }
 }
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` pour sa section "## Juge" (symétrie exacte de
  *  `validateRefFile`, mécanisme distinct — n'exige pas de "## Réfutation"). */
 export function validateJugeFile(content) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
-  const { problems } = checkNamedSection(content, JUGE_SECTION_RE, MIN_JUGE_LINE_LEN, 'Juge')
+  const { problems } = checkNamedSection(content, 'JUGE')
   return { ok: problems.length === 0, problems }
 }
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` pour sa section "## Juge-Vision". */
 export function validateJugeVisionFile(content) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
-  const { problems } = checkNamedSection(content, JUGE_VISION_SECTION_RE, MIN_JUGE_VISION_LINE_LEN, 'Juge-Vision')
+  const { problems } = checkNamedSection(content, 'JUGE-VISION')
   return { ok: problems.length === 0, problems }
 }
 
@@ -2896,19 +2882,6 @@ function pathMatchesPathspec(path, ps) {
   return np === nps || np.startsWith(`${nps}/`)
 }
 
-/** Fichier d'ÉCRAN : ce que l'utilisateur VOIT — un composant `.tsx` de `src/ui/**`/`src/gameIso/**`
- *  ou une feuille de `src/ui/styles/**`, hors tests. Concept unique, partagé par la preuve
- *  JUGE-VISION (`evaluateJuge`) et la section « ## Recette visuelle » du solde.
- *  BORNÉ au rendu, à dessein : `src/ui/breakdown.ts` (calcul pur) et `src/gameIso/builders/**.ts`
- *  (géométrie pure) vivent sous ces racines sans rien AFFICHER — exiger d'eux une capture ferait de
- *  la recette visuelle une formalité qu'on remplit sans regarder. Un diff qui ne touche que des
- *  tests d'écran n'a pas davantage de capture à montrer. */
-export function estFichierEcran(path) {
-  const p = String(path ?? '').replace(/\\/g, '/')
-  if (estFichierVitest(p)) return false
-  if (/^src\/ui\/styles\/.+\.css$/.test(p)) return true
-  return /^src\/(ui|gameIso)\/.+\.tsx$/.test(p)
-}
 
 /** Analyse du `--numstat` du diff que le commit va produire (`diffDuCommit(...).numstat()`, entrées de
  *  `ceQuiChange`) : touche-t-il `src/**` ? un ÉCRAN (`estFichierEcran`, rendu par `touchesUi`) ?

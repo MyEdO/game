@@ -14,7 +14,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shaPrecedentDeHead, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -178,6 +178,112 @@ test('classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT 
   // Une erreur de spawn qui se nomme elle-même garde SON message : « git introuvable » serait faux.
   const acces = classer({ error: new Error('spawnSync git EACCES'), status: null }, { cwd: '/x', nature: sonde('repertoire') })
   assert.equal(acces.raison, 'spawnSync git EACCES')
+})
+
+test('shaPrecedentDeHead : HEAD index1 fixe, absence et panne distinctes, validateur inchangé', () => {
+  const { racine, premier } = depot()
+  const unique = instanceDeDepot({ fichiers: { 'unique.txt': 'une entrée' } })
+  try {
+    assert.equal(shaPrecedentDeHead(forge(unique.racine)), null)
+    assert.equal(shaPrecedentDeHead(forge(racine)), premier)
+    const vus = []
+    const ferme = depotFeint(racine, (args) => {
+      vus.push(args)
+      return { status: 0, stdout: `${premier}\n`, stderr: '' }
+    })
+    assert.equal(shaPrecedentDeHead(ferme), premier)
+    assert.deepEqual(vus, [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+    assert.throws(() => shaDe(ferme, 'HEAD@{1}'), /@\{/)
+    rmSync(join(racine, '.git', 'logs', 'HEAD'))
+    assert.equal(shaPrecedentDeHead(forge(racine)), null)
+    const repondre = () => ({ status: 128, stdout: '', stderr: 'fatal: panne reflog' })
+    assert.throws(() => shaPrecedentDeHead(depotFeint(racine, repondre)), GitIndisponible)
+    const pannes = []
+    assert.equal(shaPrecedentDeHead(depotFeint(racine, repondre, (r) => pannes.push(r))), null)
+    assert.match(pannes.join(''), /panne reflog/)
+  } finally { jeter(racine); jeter(unique.racine) }
+})
+
+
+for (const commande of ['reflog', 'rev-parse']) for (const issue of ['refus', 'interruption', 'lancement']) for (const callback of [false, true]) test(`shaPrecedentDeHead #2285 fc1 : ${commande} — ${issue} — ${callback ? 'callback' : 'exception'}`, () => {
+  const error = new Error('spawnSync git EACCES')
+  const reponse = {
+    status: issue === 'refus' ? 128 : null,
+    stdout: 'stdout distinct avant arrêt\n',
+    stderr: issue === 'refus' ? `${'note de refus\n'.repeat(50)}fatal: cause tardive\n` : 'stderr partiel\n',
+    ...(issue === 'interruption' ? { signal: 'SIGTERM' } : {}),
+    ...(issue === 'lancement' ? { error } : {}),
+  }
+  const raison = issue === 'refus' ? reponse.stderr : issue === 'interruption' ? 'processus tué par le signal SIGTERM' : error.message
+  const appels = []
+  const pannes = []
+  const d = depotFeint(tmpdir(), (args) => {
+    appels.push(args)
+    return args[0] === commande ? reponse : { status: 0, stdout: '', stderr: '' }
+  }, callback ? (r, vu) => pannes.push({ r, vu }) : undefined)
+  const verifier = (vu) => {
+    assert.equal(vu.issue, issue)
+    assert.equal(vu.raison, raison)
+    assert.equal(vu.diagnostic.status, reponse.status)
+    assert.equal(vu.diagnostic.stdout, reponse.stdout)
+    assert.equal(vu.diagnostic.stderr, reponse.stderr)
+    if (reponse.signal) assert.equal(vu.diagnostic.signal, reponse.signal)
+    if (reponse.error) assert.equal(vu.diagnostic.error, error)
+  }
+  if (callback) {
+    assert.equal(shaPrecedentDeHead(d), null)
+    assert.equal(pannes.length, 1)
+    assert.equal(pannes[0].r, raison)
+    verifier(pannes[0].vu)
+  } else assert.throws(() => shaPrecedentDeHead(d), (e) => {
+    assert.ok(e instanceof GitIndisponible)
+    verifier(e)
+    return true
+  })
+  assert.deepEqual(appels, commande === 'reflog' ? [['reflog', 'exists', 'HEAD']] : [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+})
+
+for (const nom of ['reflog absent', 'reflog code1 muet', 'HEAD index1 absent']) test(`shaPrecedentDeHead #2285 fc1 : ${nom}`, () => {
+  const appels = []
+  const pannes = []
+  const d = depotFeint(tmpdir(), (args) => {
+    appels.push(args)
+    if (args[0] === 'reflog' && nom === 'HEAD index1 absent') return { status: 0, stdout: '', stderr: '' }
+    return { status: nom === 'reflog absent' ? 128 : 1, stdout: '', stderr: nom === 'reflog absent' ? 'fatal: bad object HEAD\n' : '' }
+  }, (r, vu) => pannes.push({ r, vu }))
+  assert.equal(shaPrecedentDeHead(d), null)
+  assert.deepEqual(pannes, [])
+  assert.deepEqual(appels, nom === 'HEAD index1 absent' ? [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']] : [['reflog', 'exists', 'HEAD']])
+})
+
+test('shaPrecedentDeHead sous log.showSignature : SHA signé résolu sans présentation ni GPG', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'signé' } })
+  const gnupg = join(racine, '.git', 'gnupg-feint')
+  mkdirSync(gnupg)
+  const env = { ...envDeDepotForge(), GNUPGHOME: gnupg }
+  const git = gitDe(racine, { env, net: true })
+  const journal = join(racine, '.git', 'gpg-journal')
+  const programme = join(racine, '.git', 'gpg-feint.sh')
+  try {
+    writeFileSync(programme, "#!/bin/sh\nprintf 'verification\\n' >> .git/gpg-journal\nprintf '[GNUPG:] BADSIG 0123456789ABCDEF fixture\\n'\nprintf 'gpg: diagnostic fixture premier\\ngpg: diagnostic fixture deuxième\\n' >&2\nexit 1\n", { mode: 0o755 })
+    git('config', 'gpg.program', programme)
+    git('config', 'log.showSignature', 'true')
+    const arbre = git('rev-parse', 'HEAD^{tree}')
+    const parent = git('rev-parse', 'HEAD')
+    const commit = `tree ${arbre}\nparent ${parent}\nauthor fixture <fixture@example.invalid> 1791194400 +0000\ncommitter fixture <fixture@example.invalid> 1791194400 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n Zml4dHVyZQ==\n -----END PGP SIGNATURE-----\n\nentrée signée du banc\n`
+    const signe = lancerGit(['hash-object', '-t', 'commit', '-w', '--stdin'], { cwd: racine, env, input: commit, net: true })
+    git('update-ref', 'HEAD', signe)
+    git('commit', '--allow-empty', '-m', 'tête suivante')
+    const depot = depotDe(racine, { env })
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false, 'la résolution SHA ne lance pas GPG')
+    const presentation = git('reflog', 'show', '--format=%H', '--max-count=2', 'HEAD')
+    assert.match(presentation, /diagnostic fixture/)
+    assert.equal(readFileSync(journal, 'utf8'), 'verification\n')
+    rmSync(journal)
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false)
+  } finally { jeter(racine) }
 })
 
 test('status 0 rend un FAIT porteur de la sortie', () => {
@@ -873,6 +979,55 @@ test('ceQueFaitLeCommit : un commit à un parent se lit contre lui — chemins, 
   }
 })
 
+
+for (const strict of [true, false]) test('#2285 graphe : ' + (strict ? 'lecture obligatoire' : 'lecture optionnelle') + ', refus, versions et programme', () => {
+  const sha = 'a'.repeat(40)
+  const stdout = 'stdout distinct du graphe\n'
+  const stderr = 'note de refus\n'.repeat(50) + 'fatal: cause tardive du graphe\n'
+  assert.equal(stderr.includes(String.fromCharCode(10)), true)
+  assert.equal(stderr.endsWith(String.fromCharCode(10)), true)
+  assert.ok(stderr.length > 400)
+  for (const [version, raison] of [
+    ['git version 2.45.1\n', stderr],
+    ['git version 2.32.0\n', 'git 2.32 ne sait pas git rev-list --no-commit-header (git 2.33 ou plus) : le graphe des commits n’est pas lisible'],
+    ['étrange\n', 'version de git illisible (« étrange ») : git rev-list --no-commit-header exige git 2.33'],
+  ]) {
+    const appels = []
+    const pannes = []
+    const d = depotFeint(tmpdir(), (args) => {
+      appels.push(args[0])
+      if (args[0] === 'rev-list') return { status: 128, stdout, stderr }
+      if (args[0] === 'version') return { status: 0, stdout: version, stderr: '' }
+      if (args[0] === 'cat-file') return { status: 0, stdout: sha + ' commit 1\n', stderr: '' }
+      assert.fail('commande inattendue : ' + args.join(' '))
+    }, (r, vu) => pannes.push({ r, vu }))
+    const verifier = (vu) => {
+      assert.equal(vu.issue, 'refus')
+      assert.equal(vu.raison, raison)
+      assert.equal(vu.diagnostic.status, 128)
+      assert.equal(vu.diagnostic.stdout, stdout)
+      assert.equal(vu.diagnostic.stderr, stderr)
+    }
+    if (strict) {
+      assert.throws(() => ceQueFaitLeCommit(d, sha), (e) => {
+        assert.ok(e instanceof GitIndisponible)
+        verifier(e)
+        return true
+      })
+      assert.deepEqual(pannes, [])
+    } else {
+      assert.equal(grapheDe(d, [sha]), null)
+      assert.equal(pannes.length, 1)
+      assert.equal(pannes[0].r, raison)
+      verifier(pannes[0].vu)
+    }
+    assert.deepEqual(appels, ['rev-list', 'version'])
+  }
+  const programme = new TypeError('programme du lecteur de graphe')
+  const d = depotFeint(tmpdir(), () => { throw programme }, () => assert.fail('pas de callback pour une erreur de programme'))
+  assert.throws(() => strict ? ceQueFaitLeCommit(d, sha) : grapheDe(d, [sha]), (e) => e === programme)
+})
+
 test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION lève une raison NOMMÉE', () => {
   const lecteur = (version, parents) => depotFeint(tmpdir(), (args) => {
     const stdout = args[0] === 'version' ? version : args[0] === 'rev-list' ? `abc arbre-de-abc ${parents}\n` : args[0] === 'diff-tree' ? '1\t0\ta.txt\0' : null
@@ -882,11 +1037,11 @@ test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION 
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas git merge-tree --write-tree --stdin \(git 2\.40 ou plus\)/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur(null, 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /version de git illisible/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /illisible/.test(e.raison), 'windows lu ; git muet : la fusion illisible se NOMME, jamais « sans apport »')
-  assert.deepEqual(ceQueFaitLeCommit(muet(), 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
+  assert.throws(() => ceQueFaitLeCommit(muet(), 'abc'), (e) => e instanceof GitIndisponible && /ce que fait abc : git ne rend pas le commit/.test(e.raison), 'un commit que git ne rend pas LÈVE, jamais « rien » (#2328)')
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.43.0', 'p1 p2 p3'), 'abc'), (e) => e instanceof GitIndisponible && /à 3 parents/.test(e.raison))
 })
 
-// ── Les lecteurs nommés sur leurs formes rares (#1806, juge des commits 8 et 9, Q7) ─────────────
+// #1806
 
 test('ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null` (git réel)', () => {
   const T = 'src/f\tg.test.ts'

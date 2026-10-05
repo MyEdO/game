@@ -112,6 +112,11 @@ const ATTENDU = {
     // +1 le 2026-09-05 (#1679 L3b) : la porte de rôle du lecteur à ordre total pose ses dossiers-fixtures
     // (`mkdtempSync` + `writeFileSync`) sous `os.tmpdir()` — l'arbre n'est jamais écrit.
     'scripts/guards/lib/lister.test.mjs',
+    // +1 le 2026-10-05 (#1887 6a-2c) : le banc de la garde des migrations au verdict vivant forge un
+    // dépôt JETABLE (`mkdtempSync` sous os.tmpdir(), `mkdirSync`/`writeFileSync` des migrations et du
+    // module relais, `rmSync` en finally) — la clôture d'imports exige de vrais fichiers à résoudre ;
+    // l'arbre du dépôt n'est jamais écrit.
+    'scripts/guards/lib/migrationsVerdictVivant.test.mjs',
     // +1 le 2026-09-18 (#1813) : la garde des MODULES FEUILLES fabrique un arbre JETABLE
     // (`mkdtempSync` sous os.tmpdir(), `mkdirSync`/`writeFileSync` pour la feuille, son banc et les
     // sources du cas, `rmSync` en finally) — éprouver les graphies d'import qui atteignent une feuille
@@ -203,10 +208,16 @@ const ATTENDU = {
     // de os.tmpdir(), effacé en finally.
     'scripts/mods/verifier.mjs',
     'scripts/mods/verifier.test.mjs',
+    // +1 le 2026-10-05 (#2328) : le banc de la porte de publication forge ses chantiers fusionnés sous
+    // `instanceDeDepot` (os.tmpdir(), `rmSync` en finally) ; l'arbre du dépôt n'est jamais écrit.
+    'scripts/guards/lib/livraison.test.mjs',
   ],
   // +1 le 2026-10-04 (#2278) : la garde copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
   // finally ; l'arbre n'est jamais écrit.
   'mods:check': ['scripts/mods/verifier.mjs'],
+  // La porte de publication des résolutions de fusion (#2328) n'atteint AUCUN module écrivain : elle lit
+  // l'histoire par git et rend son verdict.
+  'livraison:plage': [],
   'test:ops': [
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.

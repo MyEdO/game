@@ -133,7 +133,7 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 > lequel vous avez terminé la dernière aventure. […] tout l'argent restant à votre Personnage est
 > considéré dépensé. En totalité. »
 
-L'argent non sécurisé (voir *Opérations Bancaires*) disparaît avant la prochaine aventure. Les Revenus sont crédités **après** le gaspillage (LDB 23 l.191 : « seulement une fois que vous avez disposé de l'argent de votre dernière aventure »).
+L'argent non sécurisé (voir *Opérations Bancaires*) disparaît avant la prochaine aventure. Les Revenus sont crédités **après** le gaspillage (LDB 23 l.191 : « vous est seulement remis une fois que vous avez disposé de l'argent de votre dernière aventure »).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `everBelongedClasses`, `openCatalogActivity`, `confirmActivity`, `Combatant`, `dernieres-nouvelles`, +2 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, `src/state/massBattleFlow.ts`

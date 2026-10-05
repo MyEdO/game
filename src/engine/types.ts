@@ -651,7 +651,7 @@ export interface ConditionChange {
 export type ConditionEmit = (e: ConditionChange) => void;
 
 /** Pénalité/blocage d'incantation temporisé (contrecoups des tables d'Imparfaites /
- *  Colère des dieux — LDB 46 l.61-136, LDB 40 l.55-89). Une seule des deux durées :
+ *  Colère des dieux — LDB 46 l.34-80, LDB 40 l.52-89). Une seule des deux durées :
  *  `roundsLeft` (échelle tactique) ou `untilTime` (minutes d'horloge `gameTime`). */
 /** SENTINELLE de portée d'une `CastPenalty` RUNTIME : toute magie (Prière + Langue + Focalisation).
  *  C'est la projection de l'op `castPenalty` SANS référence de Compétence (`src/engine/ops.ts`). */
@@ -1940,7 +1940,7 @@ export type UpkeepDeferTest = (spec: {
    *  scopés à la maladie). Couture GÉNÉRIQUE (16 `kind`) : rien n'y est codé en dur, un `kind` futur
    *  apporte SES règles ou n'affiche aucune chip. */
   mods?: ModLine[];
-  meta?: Record<string, unknown>; // p.ex. { diseaseName, onFail: GameOp[] } — porté tel quel par l'étape de cascade
+  meta?: Record<string, unknown>; // p.ex. { diseaseName, opsEchec: GameOp[] } — porté tel quel par l'étape de cascade
 } & (
   /** Le producteur NOMME les ids de son Test : la valeur est celle de la PORTE (`rollLine` →
    *  `testValue` : États, Encombrement, séquelles, passifs), décomposée en Niveau de Compétence NU +

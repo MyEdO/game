@@ -450,6 +450,14 @@ export const TOMBSTONE_FAMILIES = [
   // 10 sites échantillonnés du 2026-08-23, sur une population de 248 commentaires ; le vocabulaire
   // fermé et les exclusions de quantité/comparaison ramènent cette population aux seuls artefacts.
   { rx: NAMED_ARTIFACT_TOMBSTONE_RX, label: 'plus de <artefact de code> (état révolu)' },
+  // #2199 : le RANG de la version du code (ordinal 1 + version/mouture) raconte l'histoire du site, que git
+  // porte : le commentaire dit ce que le code EST. Seule soustraction : la version d'un artefact TIERS,
+  // introduite par « de/du/des/d' » (un outil externe et sa note de version). Formes et faux positif :
+  // LITTÉRAUX dans `src/comment-poison-guard.test.ts` (#828).
+  {
+    rx: new RegExp(`\\b(?:premi[eè]re|1re|1ère)\\s+(?:version|mouture)\\b(?!\\s+d(?:e|u|es)\\s|\\s+d${APOS})`, 'i'),
+    label: 'rang de version du code (histoire du site)',
+  },
 ];
 
 /** @param {string} text @returns {string[]} labels des familles matchées */
@@ -560,6 +568,10 @@ const CONSERVATION_ANCIENS_APPELS =
   '(?:jusqu' + APOS + '(?:à|au)|en attendant)' + SUITE_DE_PHRASE +
   '(?:retrait|remplacement|suppression|disparition)' + SUITE_DE_PHRASE +
   'ancien(?:ne)?s?' + SUITE_DE_PHRASE + '(?:appels?|appelants?|branches?|usages?)(?![\\wÀ-ÿ-])';
+// #2199
+const INACHEVE_ICI = String.raw`\b(?:non|pas)\s+(?:encore\s+)?(?:codée?s?|implémentée?s?|câblée?s?|branchée?s?|gérée?s?|traitée?s?|supportée?s?)\s+ici(?![\wÀ-ÿ])`;
+// #2199
+const LOT_A_VENIR = String.raw`(?:(?<!#\d+\s*)\(|=\s*)(?:sous-)?lots?\s+(?:suivants?|ultérieurs?|futurs?|à\s+venir)(?![\wÀ-ÿ])`;
 export const EXCUSE_RX = new RegExp(
   "(assume|épargn[ée]\\w*(?!\\w)(?!\\s+(par|pour)\\s)|pour l'instant|" +
     REPORT_AILLEURS +
@@ -573,6 +585,10 @@ export const EXCUSE_RX = new RegExp(
     ATTENTE_DE_X +
     '|' +
     CONSERVATION_ANCIENS_APPELS +
+    '|' +
+    INACHEVE_ICI +
+    '|' +
+    LOT_A_VENIR +
     '|pas encore (?!' +
     GAME_STATE_PARTICIPLE +
     ')|(?<!\\b(accordée?s?|prime|insensible)\\s)temporairement(?!\\s+(insensible|accordé|accordée|accordées|prime)))',
@@ -703,6 +719,21 @@ export const LEGACY_VOCAB_FAMILIES = [
     domaine: (rel) => !estArtDuRig(rel),
   },
   { rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_DE_LA_TABLE_TOTALE), 'im'), label: 'second nom de la table totale' },
+  // #2199 : le REPLI justifié par un état qui précède la forme courante — une save jetée à la lecture
+  // (`SAVE_VERSION`), un document refusé par la porte : le chemin qu'il garde est mort. Trois formes : le
+  // nom `repli` suivi, dans la même phrase, d'un porteur d'état qualifié d'antérieur ; ce qualificatif
+  // posé seul en incise ; la save dite vieille ou ancienne, qui n'atteint jamais le code. Le participe
+  // (`replié`), l'ancienneté d'un objet de JEU (une cible, un libellé) et `l'ancienne sauvegarde` (le
+  // contenu qu'un slot écrase, vivant) restent hors motif : le porteur est un nom fermé de persistance ou de flux.
+  {
+    rx: new RegExp(
+      String.raw`\brepli(?![\wÀ-ÿ])[^.;]{0,120}?\b(?:sauvegardes?|saves?|paquets?|pendings?|états?|données?|formats?|documents?)\s+(?:antérieure?s?|d['’]avant)(?![\wÀ-ÿ])` +
+        String.raw`|\((?:états?|saves?|sauvegardes?|formats?|formes?|pendings?|paquets?)\s+antérieure?s?\)` +
+        String.raw`|(?<![\wÀ-ÿ])(?<!l['’])(?:vieilles?|vieux|anciens?|anciennes?)\s+(?:saves?|sauvegardes?)(?![\wÀ-ÿ])`,
+      'i',
+    ),
+    label: 'repli pour un état antérieur',
+  },
 ];
 
 /** Réf de livre ancrant la thèse au Source (n'importe où dans le MÊME commentaire logique).

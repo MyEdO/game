@@ -113,9 +113,8 @@ function callHasLiteralArg(line, callRx) {
  * regex : un backtick en tête de 2e argument peut être suivi d'une interpolation ARBITRAIREMENT
  * loin dans le segment (`` `etat-${x}` ``), donc juger sa littéralité exige de lire le segment ENTIER
  * jusqu'au backtick fermant — pas juste le caractère suivant. C'est `perEtatHasLiteralArg` (même
- * mécanique que `nameCallHasLiteralArg`, #385) qui tranche cette forme, dans `scanHardcode` (#413,
- * corrige un faux positif de la 1ère version qui testait seulement `` `(?!\$\{) `` — flaguait à tort
- * un préfixe littéral suivi d'interpolation).
+ * mécanique que `nameCallHasLiteralArg`, #385) qui tranche cette forme, dans `scanHardcode` (#413) :
+ * un préfixe littéral suivi d'interpolation n'est pas un littéral.
  * @type {RegExp}
  */
 export const PER_ETAT_RX = /hasCondition\(\w+, ?(?:COND\.|['"])|stacks\(\w+, ?(?:COND\.|['"])/;

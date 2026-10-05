@@ -451,9 +451,9 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     addCrampes(hero);
     useGame.setState({
       party: [hero], battle: null,
-      pendingCascade: { title: 'Entretien', purpose: 'test', participants: [
-        { id: 'dt', kind: 'diseaseTick', actorId: hero.id, base: 0, target: 5, result: null, interactive: true, meta: { diseaseName: 'x', onFail: [] } },
-      ], cursor: 0, log: [] } as never,
+      pendingCascade: cascadeDeTest([
+        { id: 'dt', kind: 'diseaseTick', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
+      ], { title: 'Entretien' }),
     });
     useGame.getState().cascadeResolveAll();
     expect(hasCondition(useGame.getState().party[0], 'sonne')).toBe(true); // Crampes réagissent au Test d'Endurance raté
@@ -464,6 +464,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
 import { applyAttackResult } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
+import { cascadeDeTest } from './cascadeTestKit';
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ pendingCascade: null, battle: null, pendingLogQueue: [] }); });

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Scene } from '../../state/scene';
 import { CIBLES_PAR_RACINE } from '../../state/combatEffects';
-import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById } from '../../state/worldMap';
+import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTrace, type Praticabilite } from '../../state/worldMap';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds, type TrappingData } from '../../data';
 import { Icon, IconG } from '../Icon';
@@ -49,7 +49,7 @@ export function WorldMapEditor({ map, setMap, scenes, objets, onClose, activeAxe
   const upd = (patch: Partial<WorldMap>) => setMap({ ...m, ...patch });
   const updPlace = (id: string, patch: Partial<MapPlace>) =>
     upd({ places: m.places.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
-  const updRoute = (id: string, patch: Partial<MapRoute>) =>
+  const updRoute = (id: string, patch: Partial<MapRouteTrace> | Praticabilite) =>
     upd({ routes: m.routes.map((r) => (r.id === id ? { ...r, ...patch } : r)) });
 
   /** Point écran → coordonnées carte (0-100 sur les deux axes ; rendu y × 0,64). */

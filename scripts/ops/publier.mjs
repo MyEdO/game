@@ -59,6 +59,7 @@ import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
+import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { corpsDeFusion, fusionDe } from '../guards/lib/fusionPr.mjs'
@@ -663,6 +664,7 @@ const questionsDuTrain = (depot) => Object.freeze({
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
+  verdictDesFusions: () => verdictDePublication(depot),
 })
 
 /** `gh <args>`, en union simple. Jamais `shell: true`. Un refus garde `stdout` : sous `--include`, un 4xx

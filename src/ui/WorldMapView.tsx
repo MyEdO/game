@@ -33,6 +33,7 @@ import { VB_W, VB_H, fitViewport, type Viewport } from './worldMapViewport';
 import { MapCanvas, type MapMarker, type MapPath } from './MapCanvas';
 import { CompassRose } from './PlanChrome';
 import { Row, Split } from './Layout';
+import { garanti } from '../state/combatants';
 
 /** Hash déterministe d'un id → sens de courbure stable d'une route (pas de Math.random). */
 function hashStr(s: string): number {
@@ -58,11 +59,6 @@ function routeCurve(ax: number, ay: number, bx: number, by: number, id: string) 
 /** Écart mini visé entre deux médaillons (unités viewBox) — un médaillon fait r≈2.9 + cartouche,
  *  ~8 les sépare confortablement sans les coller. */
 const DECLUTTER_MIN = 8;
-
-/** Raison de repli d'un trajet fermé quand l'auteur n'en a pas écrit (`MapRoute.refus`) — un paquet
- *  NEUF ne peut plus en arriver là (`mapRouteSchema` exige `refus` dès que `when` est posé) ; le repli
- *  ne sert que les paquets antérieurs. Catalogue des textes joueur : `src/i18n/messages/fr.ts`. */
-const ROUTE_FERMEE_REFUS = 'Ce trajet n’est plus praticable.';
 
 /**
  * Carte du monde (#T2 Voyage) — overlay plein écran en exploration : carte au PARCHEMIN dessinée
@@ -663,7 +659,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               label={<><Icon id="scenario/travel" size="sm" /> Partir</>}
               ariaLabel={`Partir vers ${destFermee.label}`}
               enabled={false}
-              reason={selFerme.refus ?? ROUTE_FERMEE_REFUS}
+              reason={garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)')}
               onClick={() => {}}
             />
           </Row>
