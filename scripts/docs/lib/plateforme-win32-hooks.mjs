@@ -8,7 +8,7 @@
 //
 // Ce module est aussi importé depuis le thread principal (le `node:url` de remplacement y prend
 // `versWindows` / `versPosix`) : il n'a donc AUCUN effet de bord à l'import.
-import { realpathSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import url from 'node:url'
 
@@ -59,6 +59,7 @@ const moduleDeSource = (source) => `data:text/javascript,${encodeURIComponent(so
 // node:module registerHooks ; typescript/dist/api/options.d.ts
 export function hooksSdkSousWin32(racine) {
   const racineDuDepot = urlDuDepot(racine)
+  const sources = new Map()
   return {
     resolve(specificateur, contexte, suivant) {
       if (specificateur !== 'typescript/unstable/sync' || !estModuleDuDepot(contexte.parentURL, racineDuDepot)) {
@@ -73,7 +74,15 @@ export function hooksSdkSousWin32(racine) {
         '  constructor(options = {}) { super({ ...options, fs: fsSousWin32(options.fs) }) }',
         '}',
       ].join('\n')
-      return { url: moduleDeSource(source), shortCircuit: true }
+      const adresse = new URL('./.wfrp-win32-sdk-bridge.mjs', reel.url).href
+      if (existsSync(url.fileURLToPath(adresse))) throw new Error(`hooksSdkSousWin32 : URL virtuelle déjà présente sur disque : ${adresse}`)
+      if (sources.has(adresse) && sources.get(adresse) !== source) throw new Error(`hooksSdkSousWin32 : sources différentes pour la même URL virtuelle : ${adresse}`)
+      sources.set(adresse, source)
+      return { url: adresse, format: 'module', shortCircuit: true }
+    },
+    load(adresse, contexte, suivant) {
+      if (sources.has(adresse)) return { source: sources.get(adresse), format: 'module', shortCircuit: true }
+      return suivant(adresse, contexte)
     },
   }
 }

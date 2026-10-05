@@ -6,7 +6,8 @@ import path from 'node:path'
 import { fsSousWin32 } from './plateforme-win32-fs.mjs'
 
 const callbacks = ['readFile', 'fileExists', 'directoryExists', 'getAccessibleEntries', 'realpath']
-const windows = 'C:\\depot\\src\\é.ts'
+const lecteur = 'C' + ':'
+const windows = lecteur + '\\depot\\src\\é.ts'
 const posix = '/depot/src/é.ts'
 
 for (const nom of callbacks) {
@@ -16,7 +17,7 @@ for (const nom of callbacks) {
     const adapte = fsSousWin32({ [nom]: (chemin) => { appels.push(['original', chemin]); return undefined } }, {
       [nom]: (chemin) => { appels.push(['disque', chemin]); return valeur },
     })
-    assert.deepEqual(adapte[nom](windows), nom === 'realpath' ? 'C:\\depot\\cible\\é.ts' : valeur)
+    assert.deepEqual(adapte[nom](windows), nom === 'realpath' ? lecteur + '\\depot\\cible\\é.ts' : valeur)
     assert.deepEqual(appels, [['original', windows], ['disque', posix]])
   })
 
@@ -60,7 +61,7 @@ test('readFile injecté : BOM, CRLF et unités UTF16 restent identiques, y compr
 const corps = 'é😀\r\n'
 const le = (texte) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(texte, 'utf16le')])
 const be = (texte) => Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(texte, 'utf16le').swap16()])
-// microsoft/typescript-go@2bd066d87f5bafd315be9f40889d0a60b9e58e0b internal/vfs/internal/internal.go:160-182
+// microsoft/typescript-go@2bd066d87f5bafd315be9f40889d0a60b9e58e0b internal/vfs/internal/internal.go decodeBytes
 for (const [nom, octets, attendu] of [
   ['vide', Buffer.alloc(0), ''],
   ['UTF8 sans BOM', Buffer.from(corps, 'utf8'), corps],
@@ -88,7 +89,7 @@ for (const [nom, octets, attendu] of [
 }
 
 test('realpath : retour disque Windows, relatif inchangé, callback original prioritaire', () => {
-  for (const [lue, attendu] of [['/cible/x', 'C:\\cible\\x'], ['relatif/x', 'relatif/x']]) {
+  for (const [lue, attendu] of [['/cible/x', lecteur + '\\cible\\x'], ['relatif/x', 'relatif/x']]) {
     assert.equal(fsSousWin32({}, { realpath: () => lue }).realpath(windows), attendu)
   }
   assert.equal(fsSousWin32({ realpath: () => windows }, { realpath: () => assert.fail() }).realpath(windows), windows)
@@ -96,7 +97,7 @@ test('realpath : retour disque Windows, relatif inchangé, callback original pri
 
 test('getAccessibleEntries : les noms simples délégués restent intacts', () => {
   const entrees = { files: ['A.ts', 'é.ts'], directories: ['sous-dossier'] }
-  assert.equal(fsSousWin32({}, { getAccessibleEntries: () => entrees }).getAccessibleEntries('C:/depot'), entrees)
+  assert.equal(fsSousWin32({}, { getAccessibleEntries: () => entrees }).getAccessibleEntries(lecteur + '/depot'), entrees)
 })
 
 test('les effets hors des cinq callbacks sont conservés sans adaptation', () => {
@@ -110,7 +111,7 @@ test('les effets hors des cinq callbacks sont conservés sans adaptation', () =>
 })
 
 test('les séparateurs Windows sont convertis uniquement pour le disque', () => {
-  for (const [entree, attendu] of [['C:/depot/src/é.ts', posix], [windows, posix], ['src\\é.ts', 'src/é.ts'], ['/depot/src/é.ts', posix]]) {
+  for (const [entree, attendu] of [[lecteur + '/depot/src/é.ts', posix], [windows, posix], ['src\\é.ts', 'src/é.ts'], ['/depot/src/é.ts', posix]]) {
     const appels = []
     const adapte = fsSousWin32({ readFile: (nom) => { appels.push(nom); return undefined } }, {
       readFile: (nom) => { appels.push(nom); return '' },

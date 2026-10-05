@@ -12,7 +12,7 @@ const lireOuAbsent = (lire, valeurAbsente) => {
   }
 }
 
-// microsoft/typescript-go@2bd066d87f5bafd315be9f40889d0a60b9e58e0b internal/vfs/internal/internal.go:160-182
+// microsoft/typescript-go@2bd066d87f5bafd315be9f40889d0a60b9e58e0b internal/vfs/internal/internal.go decodeBytes
 function decoderDisque(octets) {
   if (octets.length >= 2 && ((octets[0] === 0xff && octets[1] === 0xfe) || (octets[0] === 0xfe && octets[1] === 0xff))) {
     const contenu = octets.subarray(2)

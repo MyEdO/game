@@ -31,6 +31,8 @@ for (const [rel, text] of [
   ['data.JSON', '\uFEFF{"x":1}'],
   ['unicode.ts', '\uFEFFexport const a="\uFEFFx"; export const b="\\uD800"; export const c="😀"; export const d="\\uD800\\uFEFFx";'],
   ['diagnostic.ts', '\uFEFFconst s="😀";\r\nexport const meta = ;'],
+  ['diagnostic.TS', '\uFEFFconst s="😀";\r\nexport const meta = ;'],
+  ['diagnostic.JS', '\uFEFFconst s="😀";\r\nexport const meta = ;'],
 ]) test(`parité native texte, positions UTF16, dialecte et diagnostics : ${rel}`, () => {
   const { sourceFile: sf, diagnostics } = analyserTexte({ rel, text });
   assert.equal(sf.text, text);
@@ -41,7 +43,7 @@ for (const [rel, text] of [
   if (rel === 'bom.TS') assert.equal(text.slice(sf.statements[0].getStart(sf), sf.statements[0].getStart(sf) + 17), 'export const meta');
   if (rel === 'crlf.TS') assert.equal(sf.statements[1].getStart(sf), text.indexOf('export'));
   if (rel === 'unicode.ts') assert.deepEqual(sf.statements.map(n => n.declarationList.declarations[0].initializer.text), ['\uFEFFx', '\uD800', '😀', '\uD800\uFEFFx']);
-  if (rel === 'diagnostic.ts') {
+  if (rel.startsWith('diagnostic.')) {
     assert.equal(diagnostics[0].fileName, rel);
     assert.equal(diagnostics[0].pos, text.indexOf(';', text.indexOf('export')));
     assert.equal(diagnostics[0].end, text.length);

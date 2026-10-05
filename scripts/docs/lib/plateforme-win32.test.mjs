@@ -32,11 +32,33 @@ test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et a
   const appels = []
   const suivant = (specificateur, contexte) => { appels.push([specificateur, contexte.parentURL]); return reel }
   const bridge = hook.resolve('typescript/unstable/sync', { parentURL }, suivant)
-  assert.ok(bridge.url.startsWith('data:text/javascript,'))
+  assert.equal(new URL(bridge.url).protocol, 'file:')
+  assert.equal(bridge.url, new URL('./.wfrp-win32-sdk-bridge.mjs', reel.url).href)
+  assert.equal(bridge.format, 'module')
   assert.equal(bridge.shortCircuit, true)
   assert.deepEqual(hook.resolve('typescript/unstable/sync', { parentURL }, suivant), bridge)
-  const source = decodeURIComponent(bridge.url.slice('data:text/javascript,'.length))
-  assert.ok(source.includes(`export * from ${JSON.stringify(reel.url)}`))
+  const attendu = [
+    `export * from ${JSON.stringify(reel.url)}`,
+    `import { API as APIHote } from ${JSON.stringify(reel.url)}`,
+    `import { fsSousWin32 } from ${JSON.stringify(new URL('plateforme-win32-fs.mjs', import.meta.url).href)}`,
+    'export class API extends APIHote {',
+    '  constructor(options = {}) { super({ ...options, fs: fsSousWin32(options.fs) }) }',
+    '}',
+  ].join('\n')
+  assert.deepEqual(hook.load(bridge.url, {}, () => assert.fail('le bridge possède sa source')), { source: attendu, format: 'module', shortCircuit: true })
+  const resultatHote = { source: 'hote', format: 'module' }
+  const contexteHote = { format: 'module', importAttributes: {} }
+  for (const adresse of [reel.url, 'node:path', 'node:url', 'data:text/javascript,export%20const%20inconnu%20%3D%201']) {
+    let appelsLoad = 0
+    const charge = hook.load(adresse, contexteHote, (url, contexte) => {
+      appelsLoad++
+      assert.equal(url, adresse)
+      assert.equal(contexte, contexteHote)
+      return resultatHote
+    })
+    assert.equal(charge, resultatHote)
+    assert.equal(appelsLoad, 1)
+  }
   for (const adresse of [new URL('node_modules/tiers/index.mjs', depot).href, new URL('plateforme-win32-fs.mjs', import.meta.url).href]) {
     assert.equal(estModuleDuDepot(adresse, depot), false)
     assert.equal(hook.resolve('typescript/unstable/sync', { parentURL: adresse }, suivant), reel)
@@ -44,6 +66,76 @@ test('le hook SDK cible le spécificateur exact depuis le dépôt, hors SDK et a
   assert.equal(hook.resolve('typescript/unstable/async', { parentURL }, suivant), reel)
   assert.equal(appels.length, 5)
 })
+
+test('le hook SDK refuse une URL virtuelle déjà présente sur disque avant d’enregistrer sa source', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'plateforme-win32-sdk-collision-'))
+  try {
+    const reel = pathToFileURL(path.join(racine, 'api.js')).href
+    const adresse = new URL('./.wfrp-win32-sdk-bridge.mjs', reel).href
+    writeFileSync(fileURLToPath(adresse), 'export const reel = true')
+    const hook = hooksSdkSousWin32(RACINE)
+    const parentURL = new URL('src/fixture.mjs', urlDuDepot(RACINE)).href
+    assert.throws(() => hook.resolve('typescript/unstable/sync', { parentURL }, () => ({ url: reel })), /URL virtuelle déjà présente sur disque/)
+    const hote = { source: 'source réelle', format: 'module' }
+    assert.equal(hook.load(adresse, {}, () => hote), hote)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('le hook SDK refuse deux sources pour la même URL virtuelle et conserve la source enregistrée', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'plateforme-win32-sdk-sources-'))
+  try {
+    const premier = pathToFileURL(path.join(racine, 'apiA.js')).href
+    const second = pathToFileURL(path.join(racine, 'apiB.js')).href
+    const hook = hooksSdkSousWin32(RACINE)
+    const parentURL = new URL('src/fixture.mjs', urlDuDepot(RACINE)).href
+    const bridge = hook.resolve('typescript/unstable/sync', { parentURL }, () => ({ url: premier }))
+    const source = hook.load(bridge.url, {}, () => assert.fail('source enregistrée'))
+    assert.throws(() => hook.resolve('typescript/unstable/sync', { parentURL }, () => ({ url: second })), /sources différentes pour la même URL virtuelle/)
+    assert.deepEqual(hook.load(bridge.url, {}, () => assert.fail('source conservée')), source)
+    assert.deepEqual(hook.resolve('typescript/unstable/sync', { parentURL }, () => ({ url: premier })), bridge)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+for (const ordre of ['require-first', 'import-first']) {
+  test(`SDK bridge public sans simulation globale : ${ordre}, identité ESM/CJS et tiers hôte`, () => {
+    const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-sdk-chargeur-')))
+    try {
+      mkdirSync(path.join(racine, 'src'))
+      mkdirSync(path.join(racine, 'node_modules', 'tiers'), { recursive: true })
+      symlinkSync(path.join(RACINE, 'node_modules', 'typescript'), path.join(racine, 'node_modules', 'typescript'), 'junction')
+      writeFileSync(path.join(racine, 'node_modules', 'tiers', 'sdk.mjs'), "export * from 'typescript/unstable/sync'\n")
+      const source = [
+        "import { registerHooks, createRequire } from 'node:module'",
+        `import { hooksSdkSousWin32 } from ${JSON.stringify(new URL('plateforme-win32-hooks.mjs', import.meta.url).href)}`,
+        'const require = createRequire(import.meta.url)',
+        'const inscription = registerHooks(hooksSdkSousWin32(process.cwd()))',
+        'try {',
+        ordre === 'require-first' ? "  const premier = require('typescript/unstable/sync')" : "  const premier = await import('typescript/unstable/sync')",
+        ordre === 'require-first' ? "  const second = await import('typescript/unstable/sync')" : "  const second = require('typescript/unstable/sync')",
+        "  const tiers = await import('../node_modules/tiers/sdk.mjs')",
+        "  const tiersCjs = require('../node_modules/tiers/sdk.mjs')",
+        `  const hote = await import(${JSON.stringify(import.meta.resolve('typescript/unstable/sync'))})`,
+        '  const autresExports = Object.keys(hote).filter(k => k !== "API").every(k => premier[k] === hote[k] && second[k] === hote[k])',
+        '  const tiersHote = Object.keys(hote).every(k => tiers[k] === hote[k] && tiersCjs[k] === hote[k])',
+        '  console.log(JSON.stringify({ memeAPI: premier.API === second.API, apiAdaptee: premier.API !== hote.API, autresExports, tiersHote }))',
+        '} finally { inscription.deregister() }',
+      ].join('\n')
+      const entree = path.join(racine, 'src', 'entree.mjs')
+      writeFileSync(entree, source)
+      const enfant = spawnSync(process.execPath, [entree], { cwd: racine, encoding: 'utf8', timeout: 30_000 })
+      assert.equal(enfant.error, undefined, String(enfant.error))
+      assert.equal(enfant.signal, null, `${enfant.stdout}${enfant.stderr}`)
+      assert.equal(enfant.status, 0, `${enfant.stdout}${enfant.stderr}`)
+      assert.deepEqual(JSON.parse(enfant.stdout.trim()), { memeAPI: true, apiAdaptee: true, autresExports: true, tiersHote: true })
+    } finally {
+      rmSync(racine, { recursive: true, force: true })
+    }
+  })
+}
 
 /** Le rendu de `g` par un processus rendu sous win32 : cible → texte. La simulation se pose AVANT
  *  `tsx/esm`. */
@@ -313,6 +405,48 @@ test('SDK natif sous win32 : identité ESM/CJS, tiers hôte, configuration disqu
     }
     assert.ok(vu.demandes.length > 0)
     for (const demande of vu.demandes) assert.equal(demande.replaceAll('\\', '/'), nom)
+    const fixtures = [
+      { nom: 'valide.TS', texte: '\uFEFFexport const marque="é😀";\r\n', valide: true },
+      { nom: 'invalide.TS', texte: '\uFEFFexport const marque="é😀";\r\nconst faute=;\r\n', valide: false },
+      { nom: 'valide.TSX', texte: '\uFEFFexport const marque=<div>é😀</div>;\r\n', valide: true },
+      { nom: 'invalide.TSX', texte: '\uFEFFexport const marque=<div>é😀;\r\n', valide: false },
+      { nom: 'valide.JS', texte: '\uFEFFexport const marque="é😀";\r\n', valide: true },
+      { nom: 'invalide.JS', texte: '\uFEFFexport const marque="é😀";\r\nconst faute=;\r\n', valide: false },
+      { nom: 'valide.JSON', texte: '\uFEFF{\r\n"marque":"é😀"\r\n}\r\n', valide: true },
+      { nom: 'invalide.JSON', texte: '\uFEFF{\r\n"marque":"é😀","faute":\r\n}\r\n', valide: false },
+    ]
+    const syntaxe = [
+      "import path from 'node:path'",
+      `import { syntaxProgram, VIRTUAL_ROOT, libererSessions } from ${JSON.stringify(new URL('../../guards/lib/tsProgram.mjs', import.meta.url).href)}`,
+      `const fixtures = ${JSON.stringify(fixtures)}`,
+      'const fichiers = {}',
+      'const noms = fixtures.map(f => path.resolve(VIRTUAL_ROOT, f.nom).replaceAll("\\\\", "/"))',
+      'for (let i = 0; i < fixtures.length; i++) fichiers[noms[i]] = fixtures[i].texte',
+      'let session',
+      'let erreur',
+      'let resultat',
+      'try {',
+      '  session = syntaxProgram(fichiers)',
+      '  resultat = { racine: VIRTUAL_ROOT, sources: noms.map(nom => {',
+      '    const sf = session.program.getSourceFile(nom)',
+      '    return { nom, fileName: sf.fileName, text: sf.text, end: sf.end, diagnostics: session.program.getSyntacticDiagnostics(nom) }',
+      '  }) }',
+      '} catch (e) { erreur = e } finally { libererSessions(session ? [session] : [], erreur ? [erreur] : []) }',
+      'console.log(JSON.stringify(resultat))',
+    ].join('\n')
+    const vuSyntaxe = JSON.parse(sousWin32(t, RACINE, ['--input-type=module', '--eval', syntaxe]))
+    assert.match(vuSyntaxe.racine, /^[A-Z]:[\\/]/)
+    assert.equal(vuSyntaxe.sources.length, fixtures.length)
+    for (const [i, fixture] of fixtures.entries()) {
+      const attendu = path.win32.resolve(vuSyntaxe.racine, fixture.nom).replaceAll('\\', '/')
+      const sf = vuSyntaxe.sources[i]
+      assert.equal(sf.nom, attendu)
+      assert.equal(sf.fileName, attendu)
+      assert.equal(sf.text, fixture.texte)
+      assert.equal(sf.end, fixture.texte.length)
+      if (fixture.valide) assert.deepEqual(sf.diagnostics, [], fixture.nom)
+      else assert.ok(sf.diagnostics.length > 0, fixture.nom)
+    }
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

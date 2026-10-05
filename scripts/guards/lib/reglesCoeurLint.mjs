@@ -1,6 +1,7 @@
 import { builtinRules } from 'eslint/use-at-your-own-risk'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 export default {
   meta: { name: 'core' },
-  rules: Object.fromEntries(['no-dupe-args', 'no-octal'].map((nom) => [nom, builtinRules.get(nom)])),
+  rules: tableTotale(['no-dupe-args', 'no-octal'], (nom) => builtinRules.get(nom)),
 }

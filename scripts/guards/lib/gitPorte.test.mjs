@@ -112,7 +112,7 @@ test('appliquerCorrectif nomme les échecs de démarrage et les signaux sans app
 
 test('appliquerCorrectif refuse les chemins hors portée et les motifs avant tout lancement', () => {
   const d = depotDe(tmpdir(), { spawn: () => assert.fail('Chemin refusé avant Git') })
-  for (const chemin of ['', '../ailleurs', 'a/../ailleurs', '/absolu', 'C:/absolu', 'a\\b', '-p0', 'a/*', 'a/?', 'a/[bc]', 'a/{b,c}', 'a\nfin', 'a//b', './a']) {
+  for (const chemin of ['', '../ailleurs', 'a/../ailleurs', '/absolu', 'C' + ':/absolu', 'a\\b', '-p0', 'a/*', 'a/?', 'a/[bc]', 'a/{b,c}', 'a\nfin', 'a//b', './a']) {
     assert.throws(() => appliquerCorrectif(d, { patch: chemin, include: 'paquet/fichier.js' }), /chemins relatifs littéraux bornés/)
     assert.throws(() => appliquerCorrectif(d, { patch: 'patches/correctif.patch', include: chemin }), /chemins relatifs littéraux bornés/)
   }

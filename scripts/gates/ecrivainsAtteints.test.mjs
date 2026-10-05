@@ -314,7 +314,7 @@ const ATTENDU = {
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
-    // `scripts/docs/lib/jsdocUnion.test.mjs:40`
+    // `scripts/docs/lib/jsdocUnion.test.mjs`
     'scripts/docs/lib/jsdocUnion.test.mjs',
     'scripts/docs/lib/plateforme-win32-fs.test.mjs',
     // +1 le 2026-09-23 (#1801) : le banc de la simulation win32 forge un dépôt JETABLE (`mkdtempSync`

@@ -1489,11 +1489,11 @@
   {
     "id": "tsProgram",
     "type": "primitives.manifest",
-    "label": "repoProgram/virtualProgram/libererSessions/VIRTUAL_ROOT",
+    "label": "repoProgram/virtualProgram/syntaxProgram/libererSessions/VIRTUAL_ROOT",
     "fichier": "scripts/guards/lib/tsProgram.mjs",
-    "concept": "sessions natives Program et Checker avec libération explicite et collective conservant toutes les erreurs : dépôt recouvert ou sources virtuelles isolées",
-    "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types",
-    "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts"
+    "concept": "sessions natives avec libération explicite et collective conservant toutes les erreurs : dépôt recouvert, vérification de types de sources virtuelles isolées ou analyse syntaxique d'un corpus fermé aux noms originaux",
+    "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types ; syntaxProgram pour les AST et diagnostics syntaxiques, avec deux chemins réservés et des références aux chemins originaux sans encodage, refus nommé des chemins contenant les deux guillemets ou un séparateur de ligne",
+    "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts, scripts/guards/lib/tsProgram.test.mjs, scripts/guards/lib/dialecte.test.mjs"
   },
   {
     "id": "lecturesDeLArt",

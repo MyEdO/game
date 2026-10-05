@@ -109,6 +109,17 @@ describe('garde de classe #1801 — une structure d’analyse ne vit pas en port
     expect(liaisons({ 'src/resource.test.ts': `${base} import {API} from 'typescript/unstable/sync'; const s=flag?new API():virtualProgram({}); afterAll(()=>s.mixte());` })).toEqual(['src/resource.test.ts#s initialisée']);
   });
 
+  it('syntaxProgram conserve sa qualité de session possédée et exige dispose', () => {
+    const base = `import { beforeAll, afterAll } from 'vitest'; import { syntaxProgram } from '../scripts/guards/lib/tsProgram.mjs';`;
+    expect(liaisons({ 'src/syntax.test.ts': `${base} const session=syntaxProgram({});` })).toEqual(['src/syntax.test.ts#session initialisée']);
+    expect(liaisons({ 'src/syntax.test.ts': `${base} let session; beforeAll(()=>session=syntaxProgram({})); afterAll(()=>session=undefined);` })).toEqual(['src/syntax.test.ts#session affectée']);
+    expect(liaisons({ 'src/syntax.test.ts': `${base} let session; beforeAll(()=>session=syntaxProgram({})); afterAll(()=>{try{utiliser(session.program)}finally{session.dispose()}});` })).toEqual([]);
+    const detention = `import { syntaxProgram } from '../scripts/guards/lib/tsProgram.mjs'; import { detenteur } from './detenteur.testkit';`;
+    expect(liaisons({ 'src/syntax.test.ts': `${detention} const lire=detenteur(()=>syntaxProgram({}));` })).toEqual(['src/syntax.test.ts#lire initialisée']);
+    expect(liaisons({ 'src/syntax.test.ts': `${detention} const lire=detenteur(()=>syntaxProgram({}),s=>s.dispose());` })).toEqual([]);
+    expect(liaisons({ 'src/syntax.test.ts': `${base} export function lire(session){const program=session.program; return program}` })).toEqual([]);
+  });
+
   it('un détenteur de session native exige un libérateur effectif', () => {
     const base = `import { virtualProgram } from '../scripts/guards/lib/tsProgram.mjs'; import { detenteur } from './detenteur.testkit';`;
     for (const liberateur of ['', ',s=>{}', ',s=>{if(false)s.dispose()}', ',s=>{return;s.dispose()}']) {
@@ -603,7 +614,7 @@ it('x', () => lire());
     const exportees = fabriquesDuCorpus(lus);
     // Non-vacuité : les fabriques partagées et un lecteur d'arbres consommateur sont vus.
     expect([...exportees.fabriques]).toEqual(
-      expect.arrayContaining(['repoProgram', 'virtualProgram', 'analyserCorpus', 'programmeDuPerimetre', 'arbreDe']),
+      expect.arrayContaining(['repoProgram', 'virtualProgram', 'syntaxProgram', 'analyserCorpus', 'programmeDuPerimetre', 'arbreDe']),
     );
     const retentions = Array.from(analyserCorpus(lus)).flatMap(({ fichier: { rel, text }, sourceFile }) => retentionsDAnalyse(rel, text, exportees, sourceFile!));
     expect(retentions.map((r) => `${r.rel}:${r.line} ${r.liaison} (${r.forme})`)).toEqual([]);

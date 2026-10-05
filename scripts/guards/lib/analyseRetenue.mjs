@@ -59,9 +59,9 @@ import { ast, analyserCorpus } from './dialecte.mjs'
 import { estSuiteVitest } from './fichierVitest.mjs'
 import { origineImportee } from './canonUnique.mjs'
 
+const FABRIQUES_DE_PROGRAMME = Object.freeze(['repoProgram', 'virtualProgram', 'syntaxProgram'])
 export const FABRIQUES_D_ANALYSE = Object.freeze([
-  'repoProgram',
-  'virtualProgram',
+  ...FABRIQUES_DE_PROGRAMME,
   'analyserTexte',
   'analyserCorpus',
   'updateSnapshot',
@@ -180,7 +180,7 @@ function ressourceDeFabrique(expression, ctx) {
   if (estFonction(e) || ts.isFunctionDeclaration(e)) return ressourceRendue(e, ctx)
   const origine = origineImportee(e, ctx.sf)
   if (origine?.module === 'typescript/unstable/sync' && origine.nom === 'API') return 'close'
-  if (origine?.module === moduleProgramme && ['repoProgram', 'virtualProgram'].includes(origine.nom)) return 'dispose'
+  if (origine?.module === moduleProgramme && FABRIQUES_DE_PROGRAMME.includes(origine.nom)) return 'dispose'
   if (origine) return ctx.exportees?.ressources?.get(cleRessource(origine.module, origine.nom))
   if (!ts.isIdentifier(e)) return undefined
   if (!ctx.portees.resoudre(e) && ctx.importees.has(e.text)) return ctx.importees.get(e.text)

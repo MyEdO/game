@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { virtualProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
+import { syntaxProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 
 const require = createRequire(import.meta.url);
 let compilateur;
@@ -30,7 +30,7 @@ export function* analyserCorpus(fichiers, options = {}) {
   let session;
   const erreurs = [];
   try {
-    if (Object.keys(sources).length) session = virtualProgram(sources, { noLib: true, noResolve: true, allowJs: true, allowNonTsExtensions: true, jsx: 'preserve', resolveJsonModule: true });
+    if (Object.keys(sources).length) session = syntaxProgram(sources);
     for (const { fichier, chemin, kind } of entrees) {
       if (kind === null) { yield { fichier, sourceFile: null, diagnostics: [] }; continue; }
       const nom = path.resolve(VIRTUAL_ROOT, chemin).replaceAll('\\', '/');

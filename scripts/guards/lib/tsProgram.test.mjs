@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { API } from 'typescript/unstable/sync';
-import { virtualProgram, repoProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
+import { API, Snapshot } from 'typescript/unstable/sync';
+import { virtualProgram, syntaxProgram, repoProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 
 test('libererSessions : premier échec, fermeture suivante et dédoublage', () => {
   const erreur = new Error('première fermeture');
@@ -66,6 +66,91 @@ test('dispose : erreurs du snapshot et du cache conservées, fermeture native un
 });
 
 const chemin = rel => path.resolve(VIRTUAL_ROOT, rel).replaceAll('\\', '/');
+test('syntaxProgram : configuration propre, corpus fermé et une seule ouverture native', () => {
+  const rootSyntaxe = chemin('__analyse_syntaxique__').replace(/^([A-Za-z]):/, (_, drive) => `${drive.toLowerCase()}:`);
+  const racine = `${rootSyntaxe}/racine.TS`;
+  const sources = {
+    [chemin('tsconfig.json')]: JSON.stringify({ compilerOptions: { noLib: false, noResolve: true, allowJs: false, resolveJsonModule: false }, files: [] }),
+    [path.resolve(path.sep, 'tsconfig.json').replaceAll('\\', '/')]: JSON.stringify({ compilerOptions: { noLib: false, allowJs: false }, files: [] }),
+    [chemin('valide.TS')]: '\uFEFFexport const x="😀";',
+    [chemin('invalide.TS')]: '\uFEFFexport const x=;',
+    [chemin('valide.TSX')]: '\uFEFFexport const x=<div/>;',
+    [chemin('invalide.TSX')]: '\uFEFFexport const x=<div>;',
+    [chemin('valide.JS')]: '\uFEFFexport const x="😀";',
+    [chemin('invalide.JS')]: '\uFEFFexport const x=;',
+    [chemin('valide.JSON')]: '\uFEFF{"x":1}',
+    [chemin('invalide.JSON')]: '\uFEFF{"x":}',
+    [chemin('import.ts')]: 'import "./absent.ts";',
+  };
+  const update = API.prototype.updateSnapshot;
+  const ouvertures = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args); });
+  const choisir = Snapshot.prototype.getDefaultProjectForFile;
+  const selections = mock.method(Snapshot.prototype, 'getDefaultProjectForFile', function (...args) { return choisir.apply(this, args); });
+  let session;
+  try {
+    session = syntaxProgram(sources);
+    assert.equal(ouvertures.mock.callCount(), 1);
+    assert.deepEqual(ouvertures.mock.calls[0].arguments, [{ openProjects: [`${rootSyntaxe}/tsconfig.json`], openFiles: [racine] }]);
+    assert.equal(selections.mock.callCount(), 1);
+    assert.deepEqual(selections.mock.calls[0].arguments, [racine]);
+    for (const [nom, texte] of Object.entries(sources)) {
+      const sf = session.program.getSourceFile(nom);
+      assert.ok(sf, nom);
+      assert.equal(sf.fileName, nom);
+      assert.equal(sf.text, texte);
+      assert.equal(sf.end, texte.length);
+      const diagnostics = session.program.getSyntacticDiagnostics(nom);
+      if (nom.includes('/invalide.')) assert.ok(diagnostics.length, nom);
+      else assert.deepEqual(diagnostics, [], nom);
+    }
+    assert.equal(session.program.getSourceFileNames().some(nom => /\/lib\..*\.d\.ts$/.test(nom)), false);
+    assert.equal(session.program.getSourceFile(chemin('absent.ts')), undefined);
+  } finally { session?.dispose(); selections.mock.restore(); ouvertures.mock.restore(); }
+});
+
+for (const nom of ['simple".TS', "simple'.TS", 'esperluette&<angle>.TS']) {
+  test(`syntaxProgram : référence au nom original sans encodage : ${nom}`, () => {
+    const texte = '\uFEFFexport const x="😀";';
+    const session = syntaxProgram({ [nom]: texte });
+    try {
+      const sf = session.program.getSourceFile(chemin(nom));
+      assert.ok(sf);
+      assert.equal(sf.fileName, chemin(nom));
+      assert.equal(sf.text, texte);
+      assert.deepEqual(session.program.getSyntacticDiagnostics(chemin(nom)), []);
+    } finally { session.dispose(); }
+  });
+}
+
+for (const nom of ['__analyse_syntaxique__/tsconfig.json', '__analyse_syntaxique__/racine.TS', '__analyse_syntaxique__/racine.ts', '__ANALYSE_SYNTAXIQUE__/TSCONFIG.JSON', 'deux"\'.ts', 'ligne\r.ts', 'ligne\n.ts', 'ligne\u2028.ts', 'ligne\u2029.ts']) {
+  test(`syntaxProgram : chemin refusé avant ouverture native : ${JSON.stringify(nom)}`, () => {
+    const update = mock.method(API.prototype, 'updateSnapshot', () => { throw new Error('API ouverte'); });
+    const close = mock.method(API.prototype, 'close', () => { throw new Error('API fermée'); });
+    try {
+      assert.throws(() => syntaxProgram({ [nom]: '' }), erreur =>
+        erreur.message.includes(chemin(nom)) && /Fichier réservé|Chemin non représentable/.test(erreur.message));
+      assert.equal(update.mock.callCount(), 0);
+      assert.equal(close.mock.callCount(), 0);
+    } finally { close.mock.restore(); update.mock.restore(); }
+  });
+}
+
+test('syntaxProgram : homonymes par casse gardés distincts sur hôte sensible', { skip: process.platform === 'win32' }, () => {
+  const sources = { 'Foo.ts': 'export const majuscule=1;', 'foo.ts': 'export const minuscule=2;' };
+  const session = syntaxProgram(sources);
+  try {
+    const majuscule = session.program.getSourceFile(chemin('Foo.ts'));
+    const minuscule = session.program.getSourceFile(chemin('foo.ts'));
+    assert.ok(majuscule);
+    assert.ok(minuscule);
+    assert.notEqual(majuscule, minuscule);
+    assert.equal(majuscule.fileName, chemin('Foo.ts'));
+    assert.equal(minuscule.fileName, chemin('foo.ts'));
+    assert.equal(majuscule.text, sources['Foo.ts']);
+    assert.equal(minuscule.text, sources['foo.ts']);
+  } finally { session.dispose(); }
+});
+
 test('VFS : bibliothèques natives, déclarations exactes, homonymes et isolement disque', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'ts7-isolation-'));
   const physique = path.join(root, 'physique.ts').replaceAll('\\', '/');
