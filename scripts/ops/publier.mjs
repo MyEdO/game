@@ -392,6 +392,46 @@ export const etatDeLEtape = (journal, nom, teteVivante) => {
   return vue.etat
 }
 
+/** L'état d'un VERDICT au journal, sous le nom que porte l'état du train. */
+const ETAT_DU_VERDICT = Object.freeze({ vert: 'vert', indeterminee: 'indéterminée' })
+
+/**
+ * L'ÉTAT DU TRAIN lu dans son journal — l'unique lecteur du journal pour `--etapes` et la vigie
+ * (`scripts/ops/vigie.mjs`). PUR hors de `vivant`. `etat` :
+ *   · `aucun` : aucun run au journal ;
+ *   · `périmé` : un verdict posé pour une tête publiée qui n'est plus `teteVivante` ;
+ *   · `vert`, `rouge`, `indéterminée` : le verdict du run, pour la tête vivante ;
+ *   · `en-vol` : pas de verdict, le pid du run vit ; `mort` : pas de verdict, le pid ne vit pas.
+ * `etape` est la dernière TRANSITION du run (`seq` le plus haut), `rang` sa place dans `noms` (1 à
+ * `total`, 0 sans transition). `etapes` et `reprise` suivent la règle de tête (`etatDeLEtape`, `planDeReprise`).
+ * @param {object|null} journal @param {{teteVivante:string|null, noms?:string[], vivant?:(pid:number) => boolean}} p `noms` : ceux d’`ETAPES`
+ * @returns {{etat:string, etape:string|null, rang:number, total:number, run:string|null, seq:number,
+ *            etapes:{nom:string, etat:string}[], reprise:string|null}}
+ */
+export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = vivant }) {
+  const run = journal?.run ?? null
+  const transitions = Object.entries(journal?.etapes ?? {})
+    .filter(([nom, vue]) => run && vue?.run === run && Number.isInteger(vue.seq) && noms.includes(nom))
+    .sort(([, a], [, b]) => b.seq - a.seq)
+  const etape = transitions[0]?.[0] ?? null
+  const verdict = journal?.verdict ?? null
+  const perime = Boolean(verdict && journal.tete && journal.tete !== teteVivante)
+  const etat = !run ? 'aucun'
+    : perime ? 'périmé'
+      : verdict ? ETAT_DU_VERDICT[verdict.etat] ?? 'rouge'
+        : estVivant(journal.pid) ? 'en-vol' : 'mort'
+  return {
+    etat,
+    etape,
+    rang: etape ? noms.indexOf(etape) + 1 : 0,
+    total: noms.length,
+    run,
+    seq: journal?.seq ?? 0,
+    etapes: noms.map((nom) => ({ nom, etat: etatDeLEtape(journal, nom, teteVivante) })),
+    reprise: planDeReprise(journal, noms, teteVivante),
+  }
+}
+
 // ── Purs : le run courant et sa veille (#2227) ────────────────────────────────────────────────
 
 /** Code de sortie d'un verdict indéterminé (la file n'a pas fusionné dans sa borne). */
@@ -571,7 +611,8 @@ export function lireJournal(chemin, branche) {
 export const PERIODE_DE_VEILLE_MS = 5_000
 
 /** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
-function vivant(pid) {
+export function vivant(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false
   try {
     process.kill(pid, 0)
     return true
@@ -899,12 +940,13 @@ function main() {
 
   if (options.etapes) {
     const journal = surDisque ?? journalVide(branche)
-    const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), teteVivante)
+    const train = etatDuTrain(journal, { teteVivante })
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
-        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${journal.run ?? '—'}\n` +
-        ETAPES.map((e) => `  ${e.nom.padEnd(10)} ${etatDeLEtape(journal, e.nom, teteVivante)}`).join('\n') +
-        `\nreprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
+        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${train.run ?? '—'}\n` +
+        `train : ${train.etat}${train.etape ? ` — ${train.etape} ${train.rang}/${train.total}` : ''}\n` +
+        train.etapes.map((e) => `  ${e.nom.padEnd(10)} ${e.etat}`).join('\n') +
+        `\nreprise : ${train.reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
     )
     return 0
   }

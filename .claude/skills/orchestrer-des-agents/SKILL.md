@@ -143,10 +143,11 @@ lancement.
 **7. Push.** Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
 tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMENT : son run CI
 (`.github/workflows/ci.yml`, `push.branches`) joue les mêmes gates que `main`, une fois. **Après CHAQUE
-push de branche, sonder son run** (`gh run list --branch chantier/<N> --json
-headSha,status,conclusion`) AVANT de dépêcher un juge ou d'entrer dans une attente longue ; un rouge de
-branche ne bloque que cette branche, et se rejoue localement gate par gate (`npm run gates -- --gates
-<noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
+push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`run_in_background` ou
+`Monitor`), qui sort sur le verdict du sha poussé avec un code par verdict et, sur un rouge, les tests en
+échec de chaque job rouge ; `npm run ops:ci -- --echecs <run>` relit ceux d'une course nommée — jamais
+un `gh run` ni un `sleep` à la main. Un rouge de branche ne bloque que cette branche, et se rejoue
+localement gate par gate (`npm run gates -- --gates <noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
 (étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Un train `--detache` se suit par la
 commande `veille=` qu'il imprime (`Monitor`, ré-armé par `--depuis <dernier #seq>`), jamais par un
 filtre de son log. Migrations : le job `migrations` de `ci.yml`

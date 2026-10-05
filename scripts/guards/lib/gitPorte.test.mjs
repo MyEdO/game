@@ -16,7 +16,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, shasDistants, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -298,6 +298,26 @@ test('fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans 
 
     const sansOrigine = fetchOrigin(forge(amont.racine))
     assert.equal(sansOrigine.disponible, false)
+  } finally {
+    jeter(amont.racine)
+    jeter(aval)
+  }
+})
+
+test('shasDistants : UN `ls-remote` rend le sha de chaque ref de l’origine, `null` pour l’absente, sans poser AUCUNE ref locale', () => {
+  const amont = depot()
+  const aval = mkdtempSync(join(tmpdir(), 'git-aval-'))
+  try {
+    lancerGit(['clone', '-q', '--no-local', amont.racine, aval])
+    lancerGit(['update-ref', '-d', 'refs/remotes/origin/main'], { cwd: aval })
+    const argv = []
+    const d = depotDe(aval, { env: envDeDepotForge(), spawn: (git, args, o) => { argv.push(args.slice(OPTIONS_DE_L_HOTE.length)); return spawnSync(git, args, o) } })
+    assert.deepEqual(shasDistants(d, ['refs/heads/main', 'refs/heads/jamais']), { 'refs/heads/main': amont.second, 'refs/heads/jamais': null })
+    assert.deepEqual(argv, [['ls-remote', 'origin', 'refs/heads/main', 'refs/heads/jamais']])
+    assert.equal(shaDe(forge(aval), 'origin/main'), null, 'une LECTURE : la ref de suivi supprimée le reste')
+    assert.throws(() => shasDistants(forge(amont.racine), ['refs/heads/main']), GitIndisponible, 'sans origine : une panne nommée, jamais « absente »')
+    assert.throws(() => shasDistants(d, ['--upload-pack=x']), /ni vide ni un drapeau/)
+    assert.equal(argv.length, 1, 'une ref-drapeau n’atteint pas git')
   } finally {
     jeter(amont.racine)
     jeter(aval)

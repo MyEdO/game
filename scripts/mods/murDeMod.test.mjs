@@ -147,6 +147,9 @@ const VERTS = [
   ["import { h } from 'claude-code'\nconst v = h", 'N5 `claude-code` permis'],
   ["import { suivi } from './suivi'\nconst v = suivi", 'N5 `./x` permis'],
   ['const v = `${n} / ${m}`', 'gabarit d’affichage'],
+  ['$.ui.status(t)', 'V6 `ui.status`, puits de rendu (#2280)'],
+  ['$.ui.toast(t)', 'V6 `ui.toast`, puits de rendu (#2280)'],
+  ['const racine = await $.session.root()', 'V6 `session.root`, lecture de la racine (#2280)'],
 ]
 
 for (const [corps, forme] of VERTS)
@@ -212,7 +215,7 @@ test('PÉRIMÈTRE : l’`include` du moteur (hooks, types, tests) hors bancs ; l
 test('les modules RÉELS du mod `harnais` passent le mur', async () => {
   const hooks = join(RACINE, '.claude', 'skills', 'harnais', 'hooks')
   const modules = listerDossier(hooks).filter((nom) => nom.endsWith('.ts') && !estSuiteVitest(nom))
-  assert.ok(modules.includes('suivi.ts') && modules.includes('ops.ts'), 'le corpus réel est lu')
+  assert.ok(['suivi.ts', 'vigie.ts', 'ops.ts'].every((nom) => modules.includes(nom)), 'le corpus réel est lu')
   for (const nom of modules) {
     const chemin = join(hooks, nom)
     const [r] = await eslint.lintText(readFileSync(chemin, 'utf8'), { filePath: chemin })

@@ -44,6 +44,7 @@ import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { DEPOT } from './ticketsGh.mjs'
 
 /** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
@@ -1382,6 +1383,24 @@ export const dossierDesHooks = (depot) => lire(depot, ['config', '--get', 'core.
  *  @param {Depot} depot @returns {string | null} */
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
+/** Borne d'un `ls-remote` (`shasDistants`), en millisecondes : celle de `fetchOrigin`. */
+const TIMEOUT_DU_DISTANT_MS = 60000
+
+/**
+ * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
+ * `ls-remote origin` (`git help ls-remote`), une LECTURE : aucune ref locale n'est posée, à l'inverse
+ * de l'écrivain `fetchOrigin`. Chaque ref de `refs` y est une clé ; `null` pour une ref que
+ * l'origine ne porte pas. `null` en entier quand git ne répond pas 0 ; une indisponibilité (réseau,
+ * origine illisible) va à `confier`.
+ * @param {Depot} depot @param {readonly string[]} refs @returns {Record<string, string | null> | null}
+ */
+export function shasDistants(depot, refs) {
+  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(refs)], { timeout: TIMEOUT_DU_DISTANT_MS })
+  if (brut === null) return null
+  const lus = new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+  return tableTotale(refs, (ref) => lus.get(ref) ?? null)
+}
+
 /**
  * Les `chemins` IGNORÉS, en UN lot (`check-ignore --stdin -z`, qui rend chacun tel qu'il lui est
  * donné) : un chemin SUIVI qu'un motif couvre ne l'est pas, sauf sous `suivisCompris` (`--no-index`).
@@ -1469,7 +1488,7 @@ export const reussi = (union) => union.disponible && !union.absent && union.vale
  * @param {Depot} depot @param {{ branche?: string }} [opts]
  */
 export const fetchOrigin = (depot, { branche = TRONC.nom } = {}) =>
-  ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: 60000 })
+  ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: TIMEOUT_DU_DISTANT_MS })
 
 /** L'histoire complète d'un clone superficiel (`fetch --unshallow origin`). @param {Depot} depot @param {{ timeout?: number }} [opts] */
 export const approfondir = (depot, { timeout } = {}) => ecrire(depot, ['fetch', '--unshallow', 'origin'], { timeout })

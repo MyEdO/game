@@ -493,8 +493,9 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
   Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
   Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
-  (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
-  `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
+  (`ui.resolve`, `ui.log`, `ui.invalidate`, `ui.status`, `ui.toast`, `state.*`, `session.id`,
+  `session.append`, `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
+  fonction appelée par son nom,
   paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
   une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
   sans déstructuration ; le tsconfig posé par le moteur est `strict`, donc `tsc` refuse un paramètre

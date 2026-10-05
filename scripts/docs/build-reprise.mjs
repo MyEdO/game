@@ -385,7 +385,11 @@ journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBL
 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
 veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
 \`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
-\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
+\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. La CI d'une
+branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<sha>]\` (\`${script('ops:ci')}\`)
+attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
+absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
+rend cette extraction pour une course nommée. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
 de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). Aucun rebase : une
 PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'\`origin/main\`

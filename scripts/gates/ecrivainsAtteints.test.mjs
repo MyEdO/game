@@ -285,6 +285,15 @@ const ATTENDU = {
     // `dossier-de-chapitre.js` sous os.tmpdir() (`mkdtempSync` + `writeFileSync`, `rmSync` en finally)
     // pour la rejouer par `jouerWorkflow` ; l'arbre n'est jamais écrit.
     'scripts/ops/workflows-joues.test.mjs',
+    // +3 le 2026-10-05 (#2280) : `vigie.mjs` garde les verdicts `verte` sous `<arbre principal>/.git/vigie/`
+    // (`verdictDeCi`, `mkdirSync` + `writeFileSync`), dans le répertoire git COMMUN et non dans l'arbre ;
+    // son banc `vigie.test.mjs` le fait écrire dans les `.git` de dépôts jetables (`instanceDeDepot` et un
+    // clone sous `mkdtempSync` d'os.tmpdir(), `rmSync` en finally) et y pose le journal du train
+    // (`sauverJournal`) ; `ci.test.mjs` pose ses réponses `WFRP_GH_STUB` sous `mkdtempSync`. L'arbre
+    // n'est jamais écrit — mesuré le 2026-10-05, `git status --porcelain` identique avant/après les deux bancs.
+    'scripts/ops/ci.test.mjs',
+    'scripts/ops/vigie.mjs',
+    'scripts/ops/vigie.test.mjs',
   ],
   'test:runner': [
     // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts

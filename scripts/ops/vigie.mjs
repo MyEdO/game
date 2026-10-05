@@ -1,0 +1,192 @@
+// LA VIGIE — la MESURE instantanée de la CI (`main` et la branche) et du train d'un arbre (#2280, V4).
+//
+// INVARIANT (ticket #2280) : « L'état de la CI (sur `main` et sur la branche du chantier) et celui du
+// train de publication (`ops:publier`) se MESURENT une fois, à un seul endroit. »
+//
+// Un tick compose les lecteurs canoniques : `shasDistants` (UN `ls-remote` pour `main` et la branche),
+// `coursesCi` + `verdictDesRuns` par sha (la CI de `main` au sha d'`origin/main`, celle de la branche au
+// sha POUSSÉ), `etatDuTrain` sur le journal du train. Un verdict `verte` est gardé, `attempt` compris,
+// sous `<.git commun>/vigie/` (partagé entre worktrees, hors de `node_modules`) ; tout autre verdict se
+// relit. La sortie `--json` est `{ ligne, transitions, etat }` : `etat`, opaque, se repasse en
+// `--depuis` au tick suivant, et les `transitions` se calculent depuis lui. Une panne sort non nulle,
+// son motif sur stderr.
+//
+// Usage : node scripts/ops/vigie.mjs --json --arbre <racine> [--depuis <etat>]
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
+import { coursesCi } from '../guards/lib/coursesCi.mjs'
+import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
+import { verdictDesRuns } from './etapesDuTrain.mjs'
+import { cheminsDeJournal, etatDuTrain, lireJournal } from './publier.mjs'
+
+/** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
+export const SYMBOLES_DE_CI = Object.freeze({ verte: '✓', rouge: '✗', annulee: '⊘', 'en-vol': '…', absente: '∅' })
+
+/** Les verdicts de CI qui TERMINENT une course : seuls ils font une transition. */
+const VERDICTS_FINAUX = Object.freeze(['verte', 'rouge', 'annulee'])
+
+/** Les états du train qui font une transition ; au PREMIER tick, seuls `rouge` et `mort`. */
+const ETATS_DU_TRAIN_SIGNALES = Object.freeze(['vert', 'rouge', 'indéterminée', 'mort'])
+
+/** Ce qui se signale au premier tick, sans `--depuis` : un rouge, un train mort. */
+const SIGNALES_D_EMBLEE = Object.freeze(['rouge', 'mort'])
+
+/**
+ * Les options. PURE. `null` si refusées : `--json` et `--arbre <racine>` sont exigés.
+ * @param {string[]} argv @returns {{arbre:string, depuis:string|null}|null}
+ */
+export function optionsDe(argv) {
+  const args = (argv ?? []).map(String)
+  let arbre = null
+  let depuis = null
+  let json = false
+  for (let i = 0; i < args.length; i += 1) {
+    const a = args[i]
+    if (a === '--json') json = true
+    else if ((a === '--arbre' || a === '--depuis') && args[i + 1] !== undefined && !args[i + 1].startsWith('--')) {
+      if (a === '--arbre') arbre = args[i + 1]
+      else depuis = args[i + 1]
+      i += 1
+    } else return null
+  }
+  return json && arbre ? { arbre, depuis } : null
+}
+
+/** L'ÉTAT minimal d'un tick (`{main:{sha,verdict}, branche:{nom,sha,verdict}|null, train:{run,seq,etat}}`), encodé (base64url d'un JSON) : la valeur opaque du `--depuis` suivant. PURE. */
+export const encoder = (etat) => Buffer.from(JSON.stringify(etat), 'utf8').toString('base64url')
+
+/** L'état d'un `--depuis`, `null` s'il est absent ou illisible (le tick est alors un PREMIER tick). PURE. */
+export function decoder(texte) {
+  if (!texte) return null
+  try {
+    const etat = JSON.parse(Buffer.from(String(texte), 'base64url').toString('utf8'))
+    return etat && typeof etat === 'object' && etat.main && etat.train ? etat : null
+  } catch {
+    return null
+  }
+}
+
+/** La phrase d'un verdict de CI terminé. PURE. */
+const phraseDeCi = (nom, { sha, verdict }) =>
+  `CI ${nom} ${{ verte: 'verte', rouge: 'ROUGE', annulee: 'annulée' }[verdict]} (${String(sha).slice(0, 9)})`
+
+/** La phrase d'un état du train. PURE. */
+function phraseDuTrain({ etat, etape }) {
+  if (etat === 'vert') return 'train arrivé : publié'
+  if (etat === 'rouge') return `train ROUGE à ${etape ?? '?'}`
+  if (etat === 'indéterminée') return `train indéterminé à ${etape ?? '?'}`
+  return `train MORT à ${etape ?? '?'} sans verdict`
+}
+
+/**
+ * Les TRANSITIONS de `avant` à `apres`, une phrase chacune. PURE. Une CI se signale quand elle ATTEINT un
+ * verdict final (`VERDICTS_FINAUX`) qu'`avant` ne portait pas pour ce sha ; le train, quand il atteint
+ * un état de `ETATS_DU_TRAIN_SIGNALES` qu'`avant` ne portait pas pour ce run. Sans `avant` (premier tick),
+ * seuls un rouge et un train mort se signalent (`SIGNALES_D_EMBLEE`).
+ * @param {object|null} avant l'état décodé du `--depuis` @param {object} apres la mesure du tick
+ * @returns {string[]}
+ */
+export function transitionsDe(avant, apres) {
+  const ci = (cle, nom) => {
+    const a = avant?.[cle]
+    const b = apres[cle]
+    if (!b?.sha || !VERDICTS_FINAUX.includes(b.verdict)) return []
+    const neuf = avant ? a?.sha !== b.sha || a?.verdict !== b.verdict : SIGNALES_D_EMBLEE.includes(b.verdict)
+    return neuf ? [phraseDeCi(nom, b)] : []
+  }
+  const train = (() => {
+    const a = avant?.train
+    const b = apres.train
+    if (!ETATS_DU_TRAIN_SIGNALES.includes(b.etat)) return []
+    const neuf = avant ? a?.run !== b.run || a?.etat !== b.etat : SIGNALES_D_EMBLEE.includes(b.etat)
+    return neuf ? [phraseDuTrain(b)] : []
+  })()
+  return [...ci('main', TRONC.nom), ...ci('branche', apres.branche?.nom ?? 'branche'), ...train]
+}
+
+/** La STATUS LINE d'un état. PURE. */
+export function ligneDe(etat) {
+  const symbole = (vu) => (vu?.sha ? SYMBOLES_DE_CI[vu.verdict] ?? '?' : '—')
+  const morceaux = [`CI ${TRONC.nom} ${symbole(etat.main)}`]
+  if (etat.branche) morceaux.push(`${etat.branche.nom} ${symbole(etat.branche)}`)
+  const { train } = etat
+  const position = train.etape ? ` ${train.etape} ${train.rang}/${train.total}` : ''
+  const mot = { aucun: '—', 'en-vol': `${position.trim()}`, vert: 'arrivé ✓', rouge: `✗${position}`, 'indéterminée': `?${position}`, mort: `mort${position}`, 'périmé': 'périmé' }[train.etat]
+  morceaux.push(`train : ${mot ?? train.etat}`)
+  return morceaux.join(' · ')
+}
+
+/** Une mesure de CI qui n'a pas eu lieu (`gh` indisponible) : la vigie ne juge pas sur rien. */
+export class CiIllisible extends Error {}
+
+/** Le fichier de cache d'un sha. */
+const fichierDuCache = (dossier, sha) => join(dossier, `${sha}.json`)
+
+/** Motif des fichiers du cache, pour la péremption. */
+const MOTIF_DU_CACHE = /^[0-9a-f]{40,64}\.json$/
+
+/**
+ * Le verdict de CI de `sha` : lu au CACHE s'il y est `verte`, sinon par `lire(sha)` (une union de
+ * `coursesCi`) et `verdictDesRuns` ; un `verte` neuf s'écrit au cache, `attempt` compris. Une lecture
+ * indisponible LÈVE `CiIllisible`.
+ * @param {{sha:string|null, dossier:string, lire:(sha:string) => object}} p @returns {string|null}
+ */
+export function verdictDeCi({ sha, dossier, lire }) {
+  if (!sha) return null
+  const chemin = fichierDuCache(dossier, sha)
+  if (existsSync(chemin)) return JSON.parse(readFileSync(chemin, 'utf8')).verdict
+  const vues = lire(sha)
+  if (!vues.disponible) throw new CiIllisible(`courses de ${sha.slice(0, 9)} illisibles : ${vues.raison}`)
+  const vu = verdictDesRuns(vues.valeur, sha)
+  if (vu.etat === 'verte') {
+    mkdirSync(dossier, { recursive: true })
+    writeFileSync(chemin, `${JSON.stringify({ verdict: 'verte', id: vu.course.databaseId, attempt: vu.course.attempt ?? 1 })}\n`)
+    purgerPerimes({ dossier, motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })
+  }
+  return vu.etat
+}
+
+/**
+ * Le TICK : mesure l'arbre `arbre`, puis rend `{ ligne, transitions, etat }` depuis l'état `depuis`.
+ * @param {{arbre:string, depuis?:string|null, lire?:(sha:string) => object}} p
+ */
+export function tick({ arbre, depuis = null, lire = (sha) => coursesCi({ cwd: arbre, commit: sha, limit: 30 }) }) {
+  const depot = depotDe(arbre)
+  const principal = arbrePrincipal(depot)
+  if (!principal.disponible) throw new GitIndisponible(principal.raison)
+  const dossier = join(principal.valeur, '.git', 'vigie')
+  const nom = brancheDe(depot)
+  const teteVivante = shaDe(depot, 'HEAD')
+  const refs = [TRONC.branche, ...(nom && nom !== TRONC.nom ? [`refs/heads/${nom}`] : [])]
+  const distants = shasDistants(depot, refs)
+  if (!distants) throw new GitIndisponible(`ls-remote origin n’a rien rendu pour ${refs.join(', ')}`)
+  const main = { sha: distants[TRONC.branche], verdict: verdictDeCi({ sha: distants[TRONC.branche], dossier, lire }) }
+  const branche = refs[1] ? { nom, sha: distants[refs[1]], verdict: verdictDeCi({ sha: distants[refs[1]], dossier, lire }) } : null
+  const { json } = cheminsDeJournal(arbre, nom ?? 'HEAD')
+  const train = etatDuTrain(existsSync(json) ? lireJournal(json, nom) : null, { teteVivante })
+  const vu = { main, branche, train }
+  return {
+    ligne: ligneDe(vu),
+    transitions: transitionsDe(decoder(depuis), vu),
+    etat: encoder({ main, branche, train: { run: train.run, seq: train.seq, etat: train.etat } }),
+  }
+}
+
+function main() {
+  const options = optionsDe(process.argv.slice(2))
+  if (!options) {
+    process.stderr.write('[vigie] usage : node scripts/ops/vigie.mjs --json --arbre <racine> [--depuis <etat>]\n')
+    return 1
+  }
+  try {
+    process.stdout.write(`${JSON.stringify(tick(options))}\n`)
+    return 0
+  } catch (e) {
+    if (!(e instanceof GitIndisponible || e instanceof CiIllisible)) throw e
+    process.stderr.write(`[vigie] ${e.message}\n`)
+    return 1
+  }
+}
+
+if (import.meta.main) process.exit(main())

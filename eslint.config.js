@@ -222,7 +222,8 @@ const AVALS_STATE = [
  *  scripts de `scripts/` MESURENT. Périmètre : l'`include` du tsconfig que pose le moteur
  *  (`../../hooks`, `../../types`, `../../tests`), hors bancs ; un import relatif n'en sort pas. La
  *  couture `hooks/ops.ts` est PURE. Liste blanche de `$` : issuecomment-5983917564 et
- *  issuecomment-5984597607 ; idiome de lancement : issuecomment-5984257542. `$.ui.invalidate` ne prend
+ *  issuecomment-5984597607, amendée par #2280 (V6, issuecomment-5995615185 : `ui.status`, `ui.toast`,
+ *  `session.root`) ; idiome de lancement : issuecomment-5984257542. `$.ui.invalidate` ne prend
  *  qu'un événement de RENDU : types 2.1.289, `RenderEventName = 'ui.render'`, quand
  *  `InvalidatableEventName` y ajoute les six réponses que le moteur met en cache (`prompt.section`,
  *  `prompt.context`, `prompt.attachment`, `tool.describe`, `command.describe`, `config.describe`).
@@ -258,9 +259,9 @@ const IDIOME = [
   '[arguments.0.argument.callee.type="Identifier"][arguments.0.argument.callee.name="appel"]',
 ].join('');
 const PLACES_DE_DOLLAR = [
-  DOLLAR_DE('"ui"', '/^(resolve|log|invalidate)$/'),
+  DOLLAR_DE('"ui"', '/^(resolve|log|invalidate|status|toast)$/'),
   `MemberExpression[computed=false][optional=false] > MemberExpression.object${ACCES('"state"')} > Identifier.object`,
-  DOLLAR_DE('"session"', '/^(id|append)$/'),
+  DOLLAR_DE('"session"', '/^(id|append|root)$/'),
   DOLLAR_DE('"tool"', '"register"'),
   DOLLAR_DE('"clock"', '"every"'),
   `CallExpression${IDIOME} > MemberExpression.callee > MemberExpression.object > Identifier.object`,
