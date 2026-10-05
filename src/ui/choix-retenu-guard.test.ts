@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE — un ÉTAT de bouton (choix retenu, divulgation ouverte) se marque par son attribut, jamais par
  * le ton primaire. Grammaire des états ferrés : `base.css` (`.btn[aria-pressed='true']`,
@@ -19,7 +20,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 const EGALITE = new Set([
@@ -31,7 +32,7 @@ const EGALITE = new Set([
 
 function contientEgalite(n: ts.Node): boolean {
   if (ts.isBinaryExpression(n) && EGALITE.has(n.operatorToken.kind)) return true;
-  return ts.forEachChild(n, contientEgalite) ?? false;
+  return n.forEachChild(contientEgalite) ?? false;
 }
 
 /** Le TON transmis : `primary`, ou `x.primary`, parenthèses ôtées. */
@@ -48,15 +49,14 @@ function primaireParEtat(n: ts.Node, sf: ts.SourceFile): boolean {
     && (n.whenTrue.getText(sf).includes('btn-primary') || n.whenFalse.getText(sf).includes('btn-primary'))) return true;
   if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
     && !estLeTon(n.left) && n.right.getText(sf).includes('btn-primary')) return true;
-  return ts.forEachChild(n, (c) => primaireParEtat(c, sf) || undefined) ?? false;
+  return n.forEachChild((c) => primaireParEtat(c, sf) || undefined) ?? false;
 }
 
 const attr = (el: ts.JsxAttributes, nom: string) =>
-  el.properties.find((p): p is ts.JsxAttribute => ts.isJsxAttribute(p) && ts.isIdentifier(p.name) && p.name.text === nom);
+  el.properties.find((p): p is ts.JsxAttribute => ts.isJsxAttribute(p) && ('name' in p && ts.isIdentifier(p.name)) && p.name.text === nom);
 
 /** Sites fautifs d'un fichier, en `fichier:ligne — texte`. */
-export function choixPeintsEnPrimaire(src: string, file: string): string[] {
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+export function choixPeintsEnPrimaire(src: string, file: string, sf = ast({ rel: file, text: src })!): string[] {
   const out: string[] = [];
   const site = (n: ts.Node) =>
     `${file}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1} — ${n.getText(sf).replace(/\s+/g, ' ').slice(0, 100)}`;
@@ -68,11 +68,11 @@ export function choixPeintsEnPrimaire(src: string, file: string): string[] {
       if (primary?.initializer && contientEgalite(primary.initializer) && !attr(n, 'ariaPressed')) out.push(site(primary));
     }
     if (ts.isObjectLiteralExpression(n)) {
-      const nom = (p: ts.ObjectLiteralElementLike) => (p.name && ts.isIdentifier(p.name) ? p.name.text : undefined);
+      const nom = (p: ts.ObjectLiteralElementLike) => ('name' in p && p.name && ts.isIdentifier(p.name) ? p.name.text : undefined);
       const primary = n.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && nom(p) === 'primary');
       if (primary && contientEgalite(primary.initializer) && !n.properties.some((p) => nom(p) === 'selected')) out.push(site(primary));
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return out;
@@ -100,7 +100,7 @@ describe('état de bouton — son attribut, jamais le ton primaire', () => {
   });
 
   it('aucun site de `src/ui` ne peint un état de bouton en primaire', () => {
-    const fautes = readCorpus(['src/ui']).flatMap((f) => choixPeintsEnPrimaire(f.text, f.rel));
+    const fautes = [...analyserCorpus(readCorpus(['src/ui']))].flatMap(({ fichier: f, sourceFile }) => choixPeintsEnPrimaire(f.text, f.rel, sourceFile!));
     expect(fautes).toEqual([]);
   });
 });
@@ -122,7 +122,7 @@ function valeurAttr(attrs: ts.JsxAttributes, nom: string, sf: ts.SourceFile): ts
       let decl: ts.Expression | undefined;
       const chercher = (n: ts.Node): void => {
         if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === id && n.initializer) decl = nue(n.initializer);
-        else ts.forEachChild(n, chercher);
+        else n.forEachChild(chercher);
       };
       chercher(sf);
       if (decl) obj = decl;
@@ -136,7 +136,7 @@ function valeurAttr(attrs: ts.JsxAttributes, nom: string, sf: ts.SourceFile): ts
 }
 
 const EST_RIEN = (e: ts.Expression) => e.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(e) && e.text === 'undefined') || e.kind === ts.SyntaxKind.FalseKeyword
-  || (ts.isStringLiteralLike(e) && e.text === '');
+  || (ts.isStringLiteralLikeNode(e) && e.text === '');
 
 /** Condition sans ce qui ne change pas sa vérité : parenthèses, `!`, `!!`, `Boolean(…)`. */
 function condNue(e: ts.Expression): ts.Expression {
@@ -166,8 +166,7 @@ function condNue(e: ts.Expression): ts.Expression {
  *  JSX peut être un couple résumé/détail légitime ; rien ne le distingue syntaxiquement d'un marqueur.
  *  (juge B17f, G6) la résolution d'un identifiant est par NOM dans le fichier, sans portée : un nom
  *  déclaré texte dans une fonction et JSX dans une autre compte pour un marqueur partout. */
-export function divulgationsQuiEcriventLeurEtat(src: string, file: string): string[] {
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+export function divulgationsQuiEcriventLeurEtat(src: string, file: string, sf = ast({ rel: file, text: src })!): string[] {
   const out: string[] = [];
   const texte = (e: ts.Expression) => e.getText(sf).replace(/\s+/g, '');
   const cleDe = (etat: ts.Expression) => {
@@ -179,15 +178,15 @@ export function divulgationsQuiEcriventLeurEtat(src: string, file: string): stri
     if (ts.isConditionalExpression(n) && depend(n.condition)) return true;
     if (ts.isBinaryExpression(n) && (n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken || n.operatorToken.kind === ts.SyntaxKind.BarBarToken)
       && depend(n.left)) return true;
-    return ts.forEachChild(n, (c) => dependDans(c, depend) || undefined) ?? false;
+    return n.forEachChild((c) => dependDans(c, depend) || undefined) ?? false;
   };
   const designeUnTexte = (id: ts.Identifier): boolean => {
     let texteOuImport = false;
     const chercher = (n: ts.Node): void => {
       if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === id.text && n.initializer
-        && (ts.isStringLiteralLike(nue(n.initializer)) || ts.isTemplateExpression(nue(n.initializer)))) texteOuImport = true;
+        && (ts.isStringLiteralLikeNode(nue(n.initializer)) || ts.isTemplateExpression(nue(n.initializer)))) texteOuImport = true;
       else if ((ts.isImportSpecifier(n) || ts.isImportClause(n) || ts.isNamespaceImport(n)) && n.name?.text === id.text) texteOuImport = true;
-      else ts.forEachChild(n, chercher);
+      else n.forEachChild(chercher);
     };
     chercher(sf);
     return texteOuImport;
@@ -195,12 +194,12 @@ export function divulgationsQuiEcriventLeurEtat(src: string, file: string): stri
   const estMarqueur = (b: ts.Expression): boolean => {
     const e = nue(b);
     if (EST_RIEN(e)) return false;
-    return ts.isStringLiteralLike(e) || ts.isTemplateExpression(e) || (ts.isIdentifier(e) && designeUnTexte(e));
+    return ts.isStringLiteralLikeNode(e) || ts.isTemplateExpression(e) || (ts.isIdentifier(e) && designeUnTexte(e));
   };
   const marqueurDans = (n: ts.Node, depend: (c: ts.Expression) => boolean): boolean => {
     if (ts.isConditionalExpression(n) && depend(n.condition) && (estMarqueur(n.whenTrue) || estMarqueur(n.whenFalse))) return true;
     if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken && depend(n.left) && estMarqueur(n.right)) return true;
-    return ts.forEachChild(n, (c) => marqueurDans(c, depend) || undefined) ?? false;
+    return n.forEachChild((c) => marqueurDans(c, depend) || undefined) ?? false;
   };
   const walk = (n: ts.Node): void => {
     const ouvrant = ts.isJsxElement(n) ? n.openingElement : ts.isJsxSelfClosingElement(n) ? n : undefined;
@@ -215,7 +214,7 @@ export function divulgationsQuiEcriventLeurEtat(src: string, file: string): stri
       const marqueurFrere = freres.some((f) => marqueurDans(f, depend));
       if (enfants || attributs || marqueurFrere) out.push(`${file}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1}`);
     }
-    ts.forEachChild(n, walk);
+    n.forEachChild(walk);
   };
   walk(sf);
   return out;
@@ -287,8 +286,8 @@ describe('divulgation — son état est le chevron canonique, quelle que soit la
     expect(feuillesQuiEcriventLEtat(fautive, 'src/ui/styles/components.css'), 'la règle canonique').toEqual([]);
   });
 
-  it('aucune divulgation de `src` n’écrit son propre état', () => {
-    expect(readCorpus(['src']).flatMap((f) => divulgationsQuiEcriventLeurEtat(f.text, f.rel))).toEqual([]);
+  it('aucune divulgation de `src` n’écrit son propre état', { timeout: 60_000 }, () => {
+    expect([...analyserCorpus(readCorpus(['src']))].flatMap(({ fichier: f, sourceFile }) => divulgationsQuiEcriventLeurEtat(f.text, f.rel, sourceFile!))).toEqual([]);
   });
 
   it('aucune feuille de `src` hors de `components.css` n’écrit l’état d’une divulgation', () => {

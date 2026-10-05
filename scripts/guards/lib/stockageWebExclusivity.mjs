@@ -1,12 +1,13 @@
+import { ast } from './dialecte.mjs';
 // Garde d'EXCLUSIVITÉ du stockage web (#1897) : `stockageWeb(genre)` (`src/lib/stockageWeb.ts`) est
 // l'UNIQUE accès au `localStorage` et au `sessionStorage` du code de production sous `src/`. Mécanique
 // ICI, joué par `src/stockage-web-exclusivity-guard.test.ts` — patron
 // `rollSeamExclusivity.mjs` (scanner AST en lib, test qui le joue). Module ESM pur, exécutable par
 // `node` nu. Même module : l'unicité des clés de stockage (`scanClesDeStockage`).
 //
-// Détection par AST (`typescript`, `ts.createSourceFile`) : un site est une RÉFÉRENCE, jamais une
+// Détection par AST : un site est une RÉFÉRENCE, jamais une
 // occurrence textuelle — un commentaire ou une chaîne qui nomme le `localStorage` n'est pas un accès.
-import { typescript, scriptKindDe } from './dialecte.mjs';
+import { typescript } from './dialecte.mjs';
 
 /** Noms des deux stockages web, propriétés de l'objet global. @type {readonly string[]} */
 export const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
@@ -28,27 +29,27 @@ export const PROPRIETAIRE = 'src/lib/stockageWeb.ts';
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, forme: string }[]}
  */
-export function scanStockageWeb(relPath, contenu) {
+export function scanStockageWeb(relPath, contenu, sourceFile) {
   if (!STOCKAGE_WEB_RX.test(contenu)) return [];
   const ts = typescript();
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const noms = new Set(STOCKAGES_WEB);
   const out = [];
   const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   const estNomDeMembre = (n) => {
     const p = n.parent;
-    return (ts.isPropertySignature(p) || ts.isPropertyDeclaration(p) || ts.isPropertyAssignment(p)
-      || ts.isMethodDeclaration(p) || ts.isMethodSignature(p)) && p.name === n;
+    return (ts.isPropertySignatureDeclaration(p) || ts.isPropertyDeclaration(p) || ts.isPropertyAssignment(p)
+      || ts.isMethodDeclaration(p) || ts.isMethodSignatureDeclaration(p)) && p.name === n;
   };
   const visite = (n) => {
     if (ts.isTypeNode(n) && !ts.isExpressionWithTypeArguments(n)) return;
     if (ts.isIdentifier(n) && noms.has(n.text) && !estNomDeMembre(n)) {
       out.push({ line: ligne(n), forme: ts.isPropertyAccessExpression(n.parent) && n.parent.name === n ? `.${n.text}` : n.text });
     }
-    if (ts.isElementAccessExpression(n) && ts.isStringLiteralLike(n.argumentExpression) && noms.has(n.argumentExpression.text)) {
+    if (ts.isElementAccessExpression(n) && ts.isStringLiteralLikeNode(n.argumentExpression) && noms.has(n.argumentExpression.text)) {
       out.push({ line: ligne(n), forme: `['${n.argumentExpression.text}']` });
     }
-    ts.forEachChild(n, visite);
+    n.forEachChild(visite);
   };
   visite(sf);
   return out;
@@ -64,16 +65,16 @@ export const CLE_DE_STOCKAGE_RX = /^wfrp4?\.[\w.-]+$/;
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, cle: string }[]}
  */
-export function scanClesDeStockage(relPath, contenu) {
+export function scanClesDeStockage(relPath, contenu, sourceFile) {
   if (!/wfrp4?\./.test(contenu)) return [];
   const ts = typescript();
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const out = [];
   const visite = (n) => {
     if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && CLE_DE_STOCKAGE_RX.test(n.text)) {
       out.push({ line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, cle: n.text });
     }
-    ts.forEachChild(n, visite);
+    n.forEachChild(visite);
   };
   visite(sf);
   return out;

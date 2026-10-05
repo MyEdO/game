@@ -1,4 +1,4 @@
-/** Fabriques de base : `repoProgram`, `virtualProgram`, `parsedProgram`, les `create*Program`,
+/** Fabriques de base : `repoProgram`, `virtualProgram`, `analyserCorpus`, les `create*Program`,
  *  `createLanguageService`, `createSourceFile`. */
 export const FABRIQUES_D_ANALYSE: readonly string[];
 
@@ -18,10 +18,11 @@ export interface RetentionDAnalyse {
 export interface ExporteesDuCorpus {
   fabriques: Set<string>;
   corpus: Set<string>;
+  ressources?: Map<string, 'dispose' | 'close' | 'mixte'>;
 }
 
 /** Fabriques et sources de corpus EXPORTÉES, par point fixe à travers les imports. */
-export function fabriquesDuCorpus(fichiers: readonly { rel: string; text: string }[]): ExporteesDuCorpus;
+export function fabriquesDuCorpus(fichiers: readonly { rel: string; text: string }[]): Required<ExporteesDuCorpus>;
 
 /** Rétentions d'analyse du fichier `rel`. */
-export function retentionsDAnalyse(rel: string, texte: string, exporteesDuCorpus?: ExporteesDuCorpus): RetentionDAnalyse[];
+export function retentionsDAnalyse(rel: string, texte: string, exporteesDuCorpus?: ExporteesDuCorpus, sourceFile?: import('typescript/unstable/ast').SourceFile, checker?: import('typescript/unstable/sync').Checker): RetentionDAnalyse[];

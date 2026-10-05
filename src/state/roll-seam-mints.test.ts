@@ -9,7 +9,6 @@
  */
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import ts from 'typescript';
 import { virtualProgram } from '../../scripts/guards/lib/tsProgram.mjs';
 import { useGame } from './store';
 import {
@@ -525,7 +524,11 @@ displayStep({ id: 'x', kind: 'k', label: 'L'${decl} });
 `;
 
 function diagnosticsDisplay(code: string): number[] {
-  return ts.getPreEmitDiagnostics(virtualProgram({ 'sonde-display.ts': code })).map((d) => d.code);
+  const session = virtualProgram({ 'sonde-display.ts': code });
+  try {
+    return [...session.program.getConfigFileParsingDiagnostics(), ...session.program.getProgramDiagnostics(), ...session.program.getGlobalDiagnostics(), ...session.program.getSyntacticDiagnostics(), ...session.program.getSemanticDiagnostics()].map((d) => d.code);
+  } finally { session.dispose(); }
+
 }
 
 describe('#1262 V2 — la possession d’un AFFICHAGE est exclusive (négatif de type)', () => {

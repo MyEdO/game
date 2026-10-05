@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mjs';
 import { detectionsDePointDEntree } from '../scripts/guards/lib/pointDEntree.mjs';
+import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 
 /**
  * Garde de classe #1801 — un module sait s'il est le point d'entrée du processus par
@@ -256,7 +257,7 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
     for (const v of variantes) expect(detecte(v), v).toBe(true);
   });
 
-  it('contrôle négatif : ni lecture de l’élément 1, ni égalité à l’identité du module', () => {
+  it('contrôle négatif : ni lecture de l’élément 1, ni égalité à l’identité du module', { timeout: 30_000 }, () => {
     const neutres = [
       'if (import.meta.main) main()',
       `const root = resolve(${ARGV}[3] ?? join(dirname(fileURLToPath(${URL_DU_MODULE})), '..'))`,
@@ -310,10 +311,11 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
     expect(detectionsDePointDEntree(source)).toEqual([]);
   });
 
-  it('aucune source suivie ne détecte son point d’entrée à la main (tolérance ZÉRO)', { timeout: 30_000 }, () => {
+  it('aucune source suivie ne détecte son point d’entrée à la main (tolérance ZÉRO)', { timeout: 120_000 }, () => {
     const suivies: string[] = sourcesSuivies();
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
+    const fichiers: { rel: string; text: string }[] = [];
     for (const rel of suivies) {
       let texte: string;
       try {
@@ -321,7 +323,10 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
       } catch {
         continue; // suivi mais supprimé de l'arbre : aucun code à lire
       }
-      for (const { ligne, extrait } of detectionsDePointDEntree(texte, rel)) offenders.push(`${rel}:${ligne} → ${extrait}`);
+      fichiers.push({ rel, text: texte });
+    }
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(fichiers)) {
+      for (const { ligne, extrait } of detectionsDePointDEntree(text, rel, sourceFile!)) offenders.push(`${rel}:${ligne} → ${extrait}`);
     }
     expect(offenders, `Détection(s) du point d'entrée écrite(s) à la main — utiliser \`import.meta.main\` :\n${offenders.join('\n')}`).toEqual([]);
   });

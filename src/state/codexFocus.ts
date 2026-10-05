@@ -3,7 +3,7 @@
  *
  * Vit dans `src/state` (et non dans `src/ui/compendium/registry`) car le store (`compendiumFocus`/
  * `codexOverlay`, `store.ts`) ET la persistance (`saves.ts`) le manipulent : la couche `state` ne
- * peut pas importer `src/ui` (règle 3, police de pureté d'`eslint.config.js`). L'UI (`CompendiumScreen`) le consomme
+ * peut pas importer `src/ui` (règle 3, police de pureté d'`oxlint.config.mjs`). L'UI (`CompendiumScreen`) le consomme
  * en aval (ui → state, autorisé).
  *
  * `id` = identité STABLE de l'entrée (la clé de navigation, `codexItemKey`) ; `label` = affichage/

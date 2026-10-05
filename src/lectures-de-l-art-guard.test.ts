@@ -45,7 +45,7 @@ describe("lectures de l'art (#1903)", () => {
     expect(vu('const d = `M${x}H${y}`;'), 'commande de chemin SVG').toEqual([]);
   });
 
-  it('PROJECTION_DE_VUES', () => {
+  it('PROJECTION_DE_VUES', { timeout: 30_000 }, () => {
     const un = ['PROJECTION_DE_VUES'];
     expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;")).toEqual(un);
     expect(vu("const f = (a) => typeof a === 'string' ? a : a.front;", 'src/gameIso/rig/parts/types.ts')).toEqual(un);

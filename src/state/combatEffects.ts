@@ -407,10 +407,7 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
  * c'est une `Cloture`, différée avec la continuation.
  *
- * Ce nom existe parce que ni le type ni le lint ne savent le dire. Mesuré le 2026-09-05, sonde à deux
- * fichiers : `tsc --noEmit --strict` accepte une valeur rendue jetée en position d'instruction (sortie
- * 0), et `@typescript-eslint/no-unused-expressions` de même (sortie 0 — la règle laisse passer tout
- * appel de fonction, par construction).
+ * Le type et le lint acceptent un appel de fonction dont la valeur rendue est jetée.
  */
 export function jouerFlowEntier(_applique: Applique): void {
   // Rien : la valeur est CONSOMMÉE par le seul fait d'être nommée ici (cf. contrat ci-dessus).
@@ -611,9 +608,6 @@ export function ouvrirChute(set: SetFn, cible: Combatant, metres: number): void 
   }, revealPurpose('sequence', false));
 }
 
-/** APPLIER de la chute à hauteur connue (#1508) : le dé tombé part dans `applyFall`, qui décide seul
- *  des Blessures et de l'État À Terre (LDB 15 l.80/l.84). La ligne dit la perte et l'État POSÉ, lu par
- *  DIFFÉRENCE — elle ne nomme aucun État d'avance. La continuation confiée par le walker suit. */
 registerCascadeApplier('chuteDe', (get, set, step, hero) => {
   const metres = step.meta?.chuteMetres;
   // Le dé n'a pas encore de résultat : l'étape est ouverte, rien à appliquer — le goulot repassera.

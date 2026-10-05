@@ -112,7 +112,7 @@ function entreesDuTableau(ts, tableau) {
     if (!ts.isObjectLiteralExpression(el)) return null
     const e = {}
     for (const p of el.properties) {
-      if (!ts.isPropertyAssignment(p) || !(ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) return null
+      if (!ts.isPropertyAssignment(p) || !(('name' in p && ts.isIdentifier(p.name)) || ts.isStringLiteral(p.name))) return null
       const v = valeurLitterale(ts, p.initializer)
       if (v === undefined) return null
       e[p.name.text] = v

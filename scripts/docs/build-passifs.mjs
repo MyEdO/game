@@ -18,15 +18,30 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
-import { parUnitesDeCode, listerDossier } from '../guards/lib/lister.mjs'
-import ts from 'typescript'
+import { parUnitesDeCode, listerDossier, listerArbre } from '../guards/lib/lister.mjs'
+import * as ts from 'typescript/unstable/ast'
+import { SymbolFlags } from 'typescript/unstable/sync'
 import { loadSource, firstSentence, jsdocRole } from './lib/jsdocUnion.mjs'
 import { contexteImports, liaisonImportee } from '../guards/lib/canonUnique.mjs'
-import { resolveImport } from '../guards/lib/importGraph.mjs'
+import { resolveImport, estModule } from '../guards/lib/importGraph.mjs'
+import { virtualProgram, libererSessions } from '../guards/lib/tsProgram.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
+  const sources = Object.fromEntries(listerArbre(resolve('src'), { filtre: estModule })
+    .map((rel) => {
+      const chemin = resolve('src', rel)
+      return [chemin, readFileSync(chemin, 'utf8')]
+    }))
+  const session = virtualProgram(sources, { allowJs: true, jsx: 'preserve' })
+  const erreurs = []
+  try { return renduDuProgramme(session) }
+  catch (erreur) { erreurs.push(erreur) }
+  finally { libererSessions([session], erreurs) }
+}
+
+function renduDuProgramme(session) {
   const OUTIL = 'build-passifs'
   const OPS = 'src/engine/ops.ts'
   const TRAUMA = 'src/engine/trauma.ts'
@@ -34,8 +49,12 @@ function rendu() {
   const DATA = 'src/data'
 
   function abandon(msg) {
-    console.error(`${OUTIL} — ${msg}`)
-    process.exit(1)
+    throw new Error(`${OUTIL} — ${msg}`)
+  }
+  const charger = (chemin) => {
+    const sf = session.program.getSourceFile(resolve(chemin).replaceAll('\\', '/'))
+    if (!sf) abandon(`source native \`${chemin}\` introuvable dans le programme`)
+    return loadSource(chemin, sf)
   }
   const ancre = (p, quoi) => {
     if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
@@ -45,9 +64,9 @@ function rendu() {
 
   for (const p of [OPS, TRAUMA, DEFS, DATA]) ancre(p, 'source du générateur')
 
-  const { text: OPS_SRC, sf: OPS_SF } = loadSource(OPS)
-  const { text: TR_SRC, sf: TR_SF } = loadSource(TRAUMA)
-  const contexte = contexteImports(TR_SF)
+  const { text: OPS_SRC, sf: OPS_SF } = charger(OPS)
+  const { text: TR_SRC, sf: TR_SF } = charger(TRAUMA)
+  const contexte = contexteImports(TR_SF, session.checker)
   const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
   // ── `PassiveKind` : membres + commentaire de QUEUE (la forme réelle du fichier) ────────────────────
@@ -162,7 +181,7 @@ function rendu() {
       const appels = []
       const relever = (n) => {
         if (ts.isSpreadElement(n) && ts.isCallExpression(n.expression) && ts.isIdentifier(n.expression.expression)) appels.push(n.expression)
-        ts.forEachChild(n, relever)
+        n.forEachChild(relever)
       }
       relever(st)
       const producteurs = [...new Set(appels.map((appel) => appel.expression.text))]
@@ -200,8 +219,8 @@ function rendu() {
         if (!cible) abandon(`import du producteur \`${appele.text}\` : \`${origine.spec}\` introuvable depuis \`${TRAUMA}\``)
         const fichier = relative(process.cwd(), cible).split('\\').join('/')
         if (!sources.has(cible)) {
-          const source = loadSource(cible)
-          sources.set(cible, { ...source, contexte: contexteImports(source.sf) })
+          const source = charger(cible)
+          sources.set(cible, { ...source, contexte: contexteImports(source.sf, session.checker) })
         }
         const { text, sf, contexte: contexteSource } = sources.get(cible)
         let declarations
@@ -209,8 +228,8 @@ function rendu() {
           const checker = contexteSource.checker()
           const module = checker.getSymbolAtLocation(sf)
           let symbole = module && checker.getExportsOfModule(module).find((s) => s.name === nomExporte)
-          if (symbole?.flags & ts.SymbolFlags.Alias) symbole = checker.getAliasedSymbol(symbole)
-          declarations = symbole?.declarations ?? []
+          if (symbole?.flags & SymbolFlags.Alias) symbole = checker.getAliasedSymbol(symbole)
+          declarations = (symbole?.declarations ?? []).map((handle) => handle.resolve())
         } else {
           declarations = sf.statements.flatMap((n) => ts.isFunctionDeclaration(n) ? [n]
             : ts.isVariableStatement(n) ? [...n.declarationList.declarations] : [])
@@ -249,7 +268,7 @@ function rendu() {
     const out = []
     for (const f of listerDossier(DEFS).filter((f) => f.endsWith('.ts') && !f.includes('.test.'))) {
       const chemin = `${DEFS}/${f}`
-      const { text, sf } = loadSource(chemin)
+      const { text, sf } = charger(chemin)
       if (!/\bpassive\b/.test(text)) continue
       const fichierJson = text.match(/export const file = '([^']+)'/)?.[1]
       if (!fichierJson) continue

@@ -1,5 +1,6 @@
+import { ast, analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -13,8 +14,8 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * NOUVELLE déclaration hors BASELINE/ALLOWLIST.
  *
  * MÉCANIQUE — parseur AST réel (`typescript`, déjà une dépendance), pas un suivi de pile fait main :
- * `ts.createSourceFile` + walk `ts.forEachChild`. Un champ `name` compte SEULEMENT si :
- *   - `ts.PropertySignature` (membre d'`interface`/`TypeLiteral`, où qu'il apparaisse — membre direct,
+ * Un champ `name` compte SEULEMENT si :
+ *   - `ts.PropertySignatureDeclaration` (membre d'`interface`/`TypeLiteral`, où qu'il apparaisse — membre direct,
  *     type de retour, annotation de variable, type de propriété imbriqué) ;
  *   - `ts.PropertyDeclaration` d'une `class` ;
  *   - `ts.PropertyAssignment` d'un `ObjectLiteralExpression` dont la valeur est un appel `z.*` (schéma
@@ -51,11 +52,7 @@ function isZodObjectCall(call: ts.Node): boolean {
 
 /** Lignes portant une déclaration de champ `name`/`name?` — `PropertySignature`/`PropertyDeclaration`
  *  toujours, `PropertyAssignment` seulement dans un schéma zod (jamais un littéral d'appel/i18n). */
-function nameFieldLines(path: string, raw: string): number[] {
-  const sourceFile = ts.createSourceFile(
-    path, raw, ts.ScriptTarget.Latest, true,
-    path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+function nameFieldLines(path: string, raw: string, sourceFile = ast({ rel: path, text: raw })!): number[] {
   const found: number[] = [];
   const lineOf = (node: ts.Node) => sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
 
@@ -64,7 +61,7 @@ function nameFieldLines(path: string, raw: string): number[] {
   }
 
   function visit(node: ts.Node) {
-    if (ts.isPropertySignature(node) && isNameId(node.name)) {
+    if (ts.isPropertySignatureDeclaration(node) && isNameId(node.name)) {
       found.push(lineOf(node));
     } else if (ts.isPropertyDeclaration(node) && isNameId(node.name)) {
       found.push(lineOf(node));
@@ -78,17 +75,12 @@ function nameFieldLines(path: string, raw: string): number[] {
       }
       if (isZodField) found.push(lineOf(node));
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   }
   visit(sourceFile);
   return found;
 }
 
-/**
- * COÛT MESURÉ (2026-08-23, 1880 fichiers / 15,2 Mo) : 2,0 s par balayage, dont 1,6 s de
- * `ts.createSourceFile`. Les deux `it` de cliquet interrogent le MÊME corpus : balayage mémoïsé,
- * et PARESSEUX — au premier `it` qui le demande, jamais à la collecte de vitest.
- */
 let sitesMemo: string[] | undefined;
 function nameFieldSites(): string[] {
   return (sitesMemo ??= scanNameFieldSites());
@@ -96,8 +88,8 @@ function nameFieldSites(): string[] {
 
 function scanNameFieldSites(): string[] {
   const out: string[] = [];
-  for (const { abs, rel, text } of readCorpus(['src'])) {
-    for (const line of nameFieldLines(abs, text)) out.push(`${rel}:${line}`);
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src']))) {
+    for (const line of nameFieldLines(rel, text, sourceFile!)) out.push(`${rel}:${line}`);
   }
   return out;
 }

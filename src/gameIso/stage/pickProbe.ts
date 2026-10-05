@@ -11,7 +11,7 @@
  * stage dans le DOM, faute d'événement de pointeur qui le lui tende.
  *
  * Elle vit ICI, dans `gameIso`, et s'ENREGISTRE auprès de l'outillage de recette (`state/devtools`) :
- * `src/state` ne dépend JAMAIS de `src/gameIso` (règle 3, police de pureté d'`eslint.config.js`). Le sens est donc
+ * `src/state` ne dépend JAMAIS de `src/gameIso` (règle 3, police de pureté d'`oxlint.config.mjs`). Le sens est donc
  * celui du dépôt — le rendu se déclare au store, le store ne va jamais le chercher.
  */
 import { useGame } from '../../state/store';

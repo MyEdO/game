@@ -1,5 +1,6 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -69,8 +70,7 @@ const BOOK_REF = new RegExp(`\\b(${SIGLES})\\s+\\d+|\\((?:${SIGLES})\\)`);
 const AUTHORING_DIRS = ['src/ui/compendium/', 'src/ui/editor/'];
 
 /** Nœuds RENDUS uniquement — les commentaires (trivia) ne sont jamais visités. */
-function renderedBookRefs(file: string, src: string): { line: number; text: string }[] {
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text: src })!): { line: number; text: string }[] {
   const hits: { line: number; text: string }[] = [];
   const visit = (node: ts.Node): void => {
     let text: string | null = null;
@@ -80,7 +80,7 @@ function renderedBookRefs(file: string, src: string): { line: number; text: stri
     if (text && BOOK_REF.test(text)) {
       hits.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: text.trim().slice(0, 120) });
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(sf);
   return hits;
@@ -89,9 +89,9 @@ function renderedBookRefs(file: string, src: string): { line: number; text: stri
 describe('réfs de livre — réservées au Codex et aux surfaces d’authoring (#601)', () => {
   it('aucune surface de JEU de src/ui ne rend une référence de livre', () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus(['src/ui'])) {
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src/ui']))) {
       if (AUTHORING_DIRS.some((d) => rel.startsWith(d))) continue;
-      for (const h of renderedBookRefs(rel, text)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
+      for (const h of renderedBookRefs(rel, text, sourceFile!)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     expect(offenders, `Réf de livre rendue hors Codex (retirer la réf ; si la glose porte une RÈGLE, la relier par <CodexRef> à son entrée réelle) :\n${offenders.join('\n')}`).toEqual([]);
   });
@@ -103,22 +103,16 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
     // ce livre déplacerait la sonde avec lui.
     const sigle = REGISTRE_LIVRES.find((b) => b.abbr)!.abbr!;
     const probe = join(UI_DIR, '__probe.tsx');
-    const sf = ts.createSourceFile(
-      probe,
-      [
+    const sf = ast({ rel: probe, text: [
         `// glose en commentaire (${sigle} 23 l.141) — tolérée`,
         `export const a = "Refuser la Faveur (${sigle} 23 l.141)";`,
         `export const b = "la voie des sorciers (${sigle}).";`,
         `export const c = "un mot qui contient ${sigle} sans le citer";`,
-      ].join('\n'),
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    );
+      ].join('\n') })!;
     const hits: number[] = [];
     const visit = (n: ts.Node): void => {
       if (ts.isStringLiteral(n) && BOOK_REF.test(n.text)) hits.push(sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1);
-      ts.forEachChild(n, visit);
+      n.forEachChild(visit);
     };
     visit(sf);
     expect(hits).toEqual([2, 3]);
