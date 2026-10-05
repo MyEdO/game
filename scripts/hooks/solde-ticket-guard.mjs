@@ -98,23 +98,29 @@
 //     affectations `VAR=val` (relevées par nom, `affectationsDEnvironnement`), enrobeurs de tête (`ENROBEURS_TETE`) ;
 //   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
 //     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
-//     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k`,
-//     `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de `env -S`/`--split-string` suivie des
-//     arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
+//     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k` (ou
+//     `//c`/`//k`, graphie Git Bash), `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de
+//     `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
+//   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
+//     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
+//   - substitutions `$(…)`, `` `…` ``, `@(…)`, et de processus `<(…)`, `>(…)`, nues ou sous quote double
+//     (`$(…)` seule dans une here-string `@"…"@`) : leur contenu relu comme une commande exécutée, où
+//     qu'elles se trouvent dans le segment ;
 //   - commit DIRECT : `git [options globales] commit` en tête d'un segment ainsi lu ;
 //   - commit EMBARQUÉ : sous une tête qui n'est pas CITEUSE, un `git … commit` en argv, ou un argument
 //     à espace — la valeur d'un jeton `<clé>=<valeur>` comprise — relu comme une commande. CITEUSE :
 //     une tête de `CITEURS`, ou `git` sous une sous-commande hors `SOUS_COMMANDES_GIT_EXECUTANTES`
 //     (`rebase`, `bisect`, `submodule` : `rebase -x '…'`, `bisect run …`, `submodule foreach '…'`,
-//     `git -c sequence.editor='…' rebase -i` sont lus) ;
+//     `git -c sequence.editor='…' rebase -i` sont lus), ou une affectation PowerShell `$nom = ` dont la
+//     valeur est citée (`affectationPowerShell`) ;
 //   - aide : un commit, direct ou embarqué, qui porte `-h`/`--help` n'en est pas un (git rend l'aide) ;
 //   - profondeur : `PROFONDEUR_MAX_ENROBEURS` niveaux de porteurs et `SEGMENTS_MAX` segments relus ;
-//     au-delà, les gardes consommatrices n'en voient rien, la garde de commit présume un commit
-//     embarqué.
+//     au-delà, les gardes consommatrices refusent la commande (`REFUS_SATURE`), la garde de commit
+//     présume un commit embarqué.
 // Tout autre chemin par lequel un commit s'exécute n'est pas vu (#2071, qui le juge dans le hook git
 // `commit-msg`, où le vrai commit est visible). Témoins, figés par les bancs « #2071 NON COUVERT » du
-// fichier de tests : `out=$(git commit -a -m x)` ; `GIT_SEQUENCE_EDITOR="sh -c '…'" git rebase -i`,
+// fichier de tests : `GIT_SEQUENCE_EDITOR="sh -c '…'" git rebase -i`,
 // `GIT_PAGER=… git log`, `GIT_EDITOR=… git tag -a v9` (variable de tête consommée par git) ;
 // `git -c core.editor='git commit -a' tag -a v9`, `git -c alias.ci='!git commit -a' ci` (sous-commande
 // citeuse qui exécute) ; `gh alias set --shell ci 'git commit -a' && gh ci` (tête citeuse qui
@@ -263,10 +269,9 @@ function tokenizeCommand(command) {
   // saut de ligne, dans l'ordre d'ouverture.
   let heredocs = []
   // `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un mot réservé ou `time`) ouvre
-  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(`
-  // ouvre une SUBSTITUTION, dont le `)` reste dans le mot (le jeton reste non résolu).
+  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(` ouvre une SUBSTITUTION, qui reste
+  // dans le mot jusqu'à sa parenthèse fermante (`substitutions` du jeton).
   let sousShells = 0
-  let substitutions = 0
   while (i < n) {
     while (i < n && /\s/.test(command[i])) {
       // Un SAUT DE LIGNE hors quote termine la commande comme un `;` : sans lui, la ligne qui SUIT
@@ -290,15 +295,13 @@ function tokenizeCommand(command) {
       i += ouverture[0].length
       continue
     }
-    if (command[i] === '@' && (command[i + 1] === "'" || command[i + 1] === '"')) {
-      const quote = command[i + 1]
-      const closer = `${quote}@`
-      const end = command.indexOf(closer, i + 2)
-      if (end !== -1) {
-        tokens.push({ text: command.slice(i + 2, end), op: null, quote: quote === "'" ? 'simple' : 'double' })
-        i = end + closer.length
-        continue
-      }
+    const hereString = finDeHereString(command, i)
+    if (hereString !== -1) {
+      const corps = command.slice(i + 2, hereString - 2)
+      const double = command[i + 1] === '"'
+      tokens.push({ text: corps, op: null, quote: double ? 'double' : 'simple', substitutions: double ? substitutionsDeHereString(corps) : [] })
+      i = hereString
+      continue
     }
     const precedent = tokens.at(-1)
     if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && AVANT_SOUS_SHELL.has(precedent.text)))) {
@@ -307,7 +310,7 @@ function tokenizeCommand(command) {
       i += 1
       continue
     }
-    if (command[i] === ')' && sousShells > 0 && substitutions === 0) {
+    if (command[i] === ')' && sousShells > 0) {
       tokens.push({ text: ')', op: ')' })
       sousShells -= 1
       i += 1
@@ -317,7 +320,7 @@ function tokenizeCommand(command) {
     if (command.startsWith('||', i)) { tokens.push({ text: '||', op: '||' }); i += 2; continue }
     if (command[i] === ';') { tokens.push({ text: ';', op: ';' }); i += 1; continue }
     if (command[i] === '|') { tokens.push({ text: '|', op: '|' }); i += 1; continue }
-    const redirection = /^(?:\d*|&)>>?(?:&\d+)?/.exec(command.slice(i))
+    const redirection = command.startsWith('>(', i) ? null : /^(?:\d*|&)>[>|]?(?:&\d+)?/.exec(command.slice(i))
     if (redirection) { tokens.push({ text: redirection[0], raw: redirection[0], op: null }); i += redirection[0].length; continue }
     // MOT (bareword ± span(s) quoté(s) EMBARQUÉS) : le comportement shell réel colle une quote
     // rencontrée en PLEIN MILIEU d'un token à ce MÊME token (`-m"a b c"` → un seul token `-ma b c`,
@@ -327,7 +330,12 @@ function tokenizeCommand(command) {
     let buf = ''
     const quotes = new Set()
     let nu = false
-    let substitution = false
+    const substitutions = []
+    /** Retient la substitution `texte` (son ouvreur compris) au bout du mot, `interne` = la commande qu'elle exécute. */
+    const substitue = (texte, interne, expression = false) => {
+      substitutions.push({ debut: buf.length, fin: buf.length + texte.length, interne, expression })
+      buf += texte
+    }
     let j = i
     while (j < n) {
       const c = command[j]
@@ -336,6 +344,14 @@ function tokenizeCommand(command) {
       // Sans cela, `git commit --amend \` + saut + `-F msg.txt` perdait son `-F` (message jamais lu,
       // refus FAUX « SUBSTANCE sans ticket ») et le backtick devenait un pathspec.
       if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
+      // Substitution de commande `$(…)`, sous-expression `@(…)`, substitution de processus `<(…)`, `>(…)`.
+      if ('$@<>'.includes(c) && command[j + 1] === '(') {
+        const fermante = parentheseFermante(command, j + 1)
+        substitue(command.slice(j, fermante + 1), command.slice(j + 2, fermante), c === '@')
+        nu = true
+        j = fermante + 1
+        continue
+      }
       if (/\s/.test(c) || c === ';' || c === '|' || c === '>' || (c === '&' && (command[j + 1] === '&' || command[j + 1] === '>'))) break
       // ANSI-C quoting `$'…'` (bash) : span QUOTÉ au même titre que `'…'`. Sans lui le `$` restait
       // collé au mot suivant (`bash -c $'gh issue create …'` rendait un token `$gh`) et l'exécutable
@@ -351,27 +367,63 @@ function tokenizeCommand(command) {
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
+      const hereString = finDeHereString(command, j)
+      if (hereString !== -1) {
+        const corps = command.slice(j + 2, hereString - 2)
+        quotes.add(command[j + 1] === "'" ? 'simple' : 'double')
+        if (command[j + 1] === '"') substitutions.push(...substitutionsDeHereString(corps, buf.length))
+        buf += corps
+        j = hereString
+        continue
+      }
       if (c === '"' || c === "'") {
         const quote = c
         quotes.add(quote === "'" ? 'simple' : 'double')
         j++
+        // Sous quote double, `$(` s'ouvre et se ferme au solde de ses parenthèses, sans quitter la quote.
+        let ouverte = -1
+        let ouverteBuf = 0
+        let solde = 0
         while (j < n && command[j] !== quote) {
-          if (quote === '"' && (command.startsWith('$(', j) || command[j] === '`')) substitution = true
-          // Échappement réel `\"`/`\\` seulement — un backslash de chemin Windows (`C:\Program…`)
-          // n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins perdent leurs
-          // séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
-          if (quote === '"' && command[j] === '\\' && j + 1 < n && (command[j + 1] === '"' || command[j + 1] === '\\')) {
+          // Échappement réel `\"`, `\\`, `` \` `` et `\$` seulement (XCU 2.2.3) — un backslash de chemin
+          // Windows (`C:\Program…`) n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins
+          // perdent leurs séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
+          if (quote === '"' && command[j] === '\\' && j + 1 < n && '"\\`$'.includes(command[j + 1])) {
             buf += command[j + 1]; j += 2; continue
           }
+          if (quote === '"' && ouverte === -1 && command.startsWith('$(', j)) { ouverte = j; ouverteBuf = buf.length; solde = 0 }
+          if (ouverte !== -1 && command[j] === '(') solde += 1
+          else if (ouverte !== -1 && command[j] === ')' && --solde === 0) {
+            buf = buf.slice(0, ouverteBuf)
+            substitue(command.slice(ouverte, j + 1), command.slice(ouverte + 2, j))
+            ouverte = -1
+            j++
+            continue
+          }
+          const fermant = quote === '"' && ouverte === -1 && command[j] === '`' ? command.indexOf('`', j + 1) : -1
+          const finDeQuote = fermant === -1 ? -1 : command.indexOf('"', j + 1)
+          if (fermant !== -1 && (finDeQuote === -1 || fermant < finDeQuote)) {
+            substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
+            j = fermant + 1
+            continue
+          }
           buf += command[j]; j++
+        }
+        if (ouverte !== -1) {
+          buf = buf.slice(0, ouverteBuf)
+          substitue(command.slice(ouverte, j), command.slice(ouverte + 2, j))
         }
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
-      if (c === ')' && substitutions === 0 && sousShells > 0) break
-      if (c === '(' && command[j - 1] === '$') substitutions += 1
-      else if (c === ')' && substitutions > 0) substitutions -= 1
-      if (command.startsWith('$(', j) || c === '`') substitution = true
+      if (c === ')' && sousShells > 0) break
+      const fermant = c === '`' ? command.indexOf('`', j + 1) : -1
+      if (fermant !== -1) {
+        substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
+        nu = true
+        j = fermant + 1
+        continue
+      }
       buf += c
       nu = true
       j++
@@ -379,21 +431,60 @@ function tokenizeCommand(command) {
     // Un mot fait UNIQUEMENT de continuations n'est pas un token vide : il n'existe pas. Un vrai
     // argument vide (`''`) en reste un — c'est la quote qui le prouve.
     if (buf !== '' || quotes.size > 0) {
-      tokens.push({ text: buf, raw: command.slice(i, j), substitution, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
+      tokens.push({ text: buf, raw: command.slice(i, j), substitutions, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
     }
     i = j
   }
   return tokens
 }
 
+/** Index qui suit la here-string ouverte en `texte[k]` (`@'`/`@"` en fin de ligne, fermée par la marque
+ *  qui ouvre sa ligne, about_Quoting_Rules), ou `-1` si `texte[k]` n'en ouvre pas une refermée. */
+function finDeHereString(texte, k) {
+  const quote = texte[k + 1]
+  if (texte[k] !== '@' || (quote !== "'" && quote !== '"') || !/^\r?\n/.test(texte.slice(k + 2, k + 4))) return -1
+  const fin = texte.indexOf(`\n${quote}@`, k + 2)
+  return fin === -1 ? -1 : fin + 3
+}
+
+/** Les substitutions `$(…)` du corps d'une here-string `@"…"@` (about_Quoting_Rules), `decalage` = la position
+ *  du corps dans le mot ; un `$(` précédé du backtick d'échappement n'en ouvre pas. */
+function substitutionsDeHereString(corps, decalage = 0) {
+  const substitutions = []
+  for (let k = corps.indexOf('$('); k !== -1; k = corps.indexOf('$(', k + 1)) {
+    if (corps[k - 1] === '`') continue
+    const fermante = parentheseFermante(corps, k + 1)
+    substitutions.push({ debut: decalage + k, fin: decalage + Math.min(fermante + 1, corps.length), interne: corps.slice(k + 2, fermante), expression: false })
+    k = fermante
+  }
+  return substitutions
+}
+
+/** Index de la parenthèse qui ferme celle de `texte[k]`, hors quotes, ou `texte.length` si elle reste
+ *  ouverte. Seule lecture de la fin d'une substitution nue. */
+function parentheseFermante(texte, k) {
+  let solde = 0
+  for (let i = k; i < texte.length; i++) {
+    const c = texte[i]
+    if (c === "'" || c === '"') {
+      const fin = texte.indexOf(c, i + 1)
+      if (fin === -1) return texte.length
+      i = fin
+    } else if (c === '(') solde += 1
+    else if (c === ')' && --solde === 0) return i
+  }
+  return texte.length
+}
+
 /** Segments exécutables — leurs JETONS (`tokenizeCommand`, provenance quotée comprise) — AVEC
  *  l'opérateur qui les enchaîne (`&&`/`;`/`||`/`|`, `)` de fin de sous-shell, `null` pour le dernier). Source unique du
  *  découpage : `splitCommandSegments` et `pipelinesProfonds` en dérivent, le tube n'étant un
- *  séparateur QUE pour qui a besoin de le distinguer. */
-function segmentsAvecOperateur(command) {
+ *  séparateur QUE pour qui a besoin de le distinguer. `flux` = les jetons d'une commande, opérateurs compris
+ *  (`tokenizeCommand`, ou le corps d'un bloc). */
+function segmentsAvecOperateur(flux) {
   const segments = []
   let current = []
-  for (const tok of tokenizeCommand(command)) {
+  for (const tok of flux) {
     if (tok.op) {
       segments.push({ jetons: current, op: tok.op })
       current = []
@@ -409,7 +500,7 @@ function segmentsAvecOperateur(command) {
  *  niveau — les mêmes marqueurs À L'INTÉRIEUR d'une quote/here-string ont déjà été consommés comme
  *  contenu de token par `tokenizeCommand`, jamais comme séparateur). */
 export function splitCommandSegments(command) {
-  return segmentsAvecOperateur(command).map((s) => s.jetons.map((j) => j.text)).filter((s) => s.length > 0)
+  return segmentsAvecOperateur(tokenizeCommand(command)).map((s) => s.jetons.map((j) => j.text)).filter((s) => s.length > 0)
 }
 
 // ── Enrobeurs : voir DERRIÈRE les sous-shells et les préfixes de tête ───────────────────────────
@@ -427,10 +518,19 @@ export function splitCommandSegments(command) {
 //
 // HORS PORTÉE : tout ce que ne reconnaît pas le paragraphe LECTURE DE LA COMMANDE de l'en-tête.
 
-/** Nom d'exécutable d'un token : basename, sans extension `.exe`/`.cmd`, en minuscules. */
+/** Nom d'exécutable d'un token : basename, sans extension d'`EXTENSIONS_EXECUTABLES`, en minuscules. */
 export function basenameExecutable(token) {
-  return String(token ?? '').replace(/\\/g, '/').split('/').pop().replace(/\.(exe|cmd)$/i, '').toLowerCase()
+  const texte = typeof token === 'string' ? token : String(token ?? '')
+  const connu = NOMS_EXECUTABLES.get(texte)
+  if (connu !== undefined) return connu
+  const base = texte.slice(Math.max(texte.lastIndexOf('/'), texte.lastIndexOf('\\')) + 1).toLowerCase()
+  const nom = base.length >= 4 && base[base.length - 4] === '.' && EXTENSIONS_EXECUTABLES.has(base.slice(-3)) ? base.slice(0, -4) : base
+  if (NOMS_EXECUTABLES.size >= 4096) NOMS_EXECUTABLES.clear()
+  NOMS_EXECUTABLES.set(texte, nom)
+  return nom
 }
+const EXTENSIONS_EXECUTABLES = new Set(['exe', 'cmd', 'bat'])
+const NOMS_EXECUTABLES = new Map() // mémo-pur : jeton → son nom d'exécutable
 
 /** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU, OU par le nom
  *  EXACT, insensible à la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte
@@ -472,8 +572,11 @@ const FAMILLE_SH = {
 // espaces (`cmd /c`, `powershell -Command`, `eval`) ; `jetons` = les arguments restants passés tels
 // quels à la commande découpée (`env -S`), ajoutés comme JETONS, provenance comprise ; absente = rien
 // (`sh -c 'cmd' arg0` : ses positionnels).
+// `//c` et `//k` : graphie Git Bash (MSYS) de `/c` et `/k`, l'argument à double barre que MSYS rend à
+// une seule (#2173). Hors Git Bash, `cmd //c x` n'exécute rien : la lecture sur-approxime, et aucun
+// consommateur d'`argumentChaine` n'accorde de droit sur ce qu'elle déplie.
 const FAMILLE_CMD = {
-  porteurs: ['/c', '/k'],
+  porteurs: ['/c', '/k', '//c', '//k'],
   porteurInsensible: true,
   estFlag: (t) => t.startsWith('/'),
   aValeur: () => false,
@@ -483,8 +586,8 @@ const FAMILLE_POWERSHELL = {
   parametre: 'Command', parametreEncode: 'EncodedCommand', params: PARAMS_HOTE_POWERSHELL, porteurCourt: '-c',
   suite: 'reste',
 }
-const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste' }
-const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true }
+const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste', memeShell: true }
+const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true, memeShell: true }
 // `npx` est à la fois un enrobeur de TÊTE (`npx gh issue create`) et, avec `-c`/`--call`, un
 // interpréteur à argument-chaîne : `epluchageTete` interroge la table A à chaque cran, la forme
 // `-c` part donc en récursion au lieu d'être AVALÉE comme la valeur d'un flag (contournement mesuré).
@@ -521,11 +624,13 @@ function groupeCourt(t, suivant, { porteur, aValeur }) {
 
 /** Lecture portée : `chaine`, et ce que l'hôte lit après elle (`suite` de la famille) à partir de
  *  `args[debut]` — joint au texte pour `reste`, index de segment des jetons ajoutés pour `jetons`.
- *  `null` sans chaîne. */
+ *  `memeShell` : la famille exécute la chaîne dans le shell de l'hôte (`eval`, `Invoke-Expression`), pas dans un
+ *  processus neuf. `null` sans chaîne. */
 function portee(famille, chaine, args, debut) {
   if (chaine === null) return null
-  if (famille.suite === 'reste') return { commande: [chaine, ...args.slice(debut)].join(' '), suite: null }
-  return { commande: chaine, suite: famille.suite === 'jetons' ? debut + 1 : null }
+  const memeShell = famille.memeShell === true
+  if (famille.suite === 'reste') return { commande: [chaine, ...args.slice(debut)].join(' '), suite: null, memeShell }
+  return { commande: chaine, suite: famille.suite === 'jetons' ? debut + 1 : null, memeShell }
 }
 
 /** Commande portée par un `-EncodedCommand` PowerShell : base64 d'UTF-16LE (contrat de l'hôte).
@@ -606,9 +711,10 @@ const ENROBEURS_TETE = new Map([
   ['env', { flags: ['-u', '--unset'], affectations: true }],
   ['nohup', {}],
   ['command', { citeSous: ['-v', '-V'] }],
+  ['builtin', {}],
   ['winpty', {}],
   ['time', {}],
-  ['npx', { flags: ['-p', '--package'] }],
+  ['npx', { flags: ['-p', '--package', '--prefix'] }],
   ['sudo', { flags: ['-u', '--user', '-g', '--group', '-p', '--prompt'] }],
   ['setsid', { flags: [] }],
   ['timeout', { flags: ['-k', '--kill-after', '-s', '--signal'], positionnels: 1 }],
@@ -625,31 +731,162 @@ const TOKENS_TETE_NUS = new Set(['&', '{', '}', '(', '!', 'if', 'then', 'elif', 
 const AVANT_SOUS_SHELL = new Set([...TOKENS_TETE_NUS, 'time'])
 const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*[+]?=/
 
-/** Enrobeurs de TÊTE d'un segment, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
- *  `debut` = index du premier jeton exécuté (`segment.length` si le segment n'est fait que
- *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre,
- *  `affectations` = les noms des `VAR=val` épluchés, ceux d'un `env` compris. */
-function epluchageTete(segment) {
+// ── Blocs PowerShell : le contenu d'un `{ … }` s'exécute (#2173) ───────────────────────────────
+/** Têtes dont les blocs `{ … }` EXÉCUTENT leur contenu (about_ForEach-Object, about_Foreach, about_For,
+ *  about_Try_Catch_Finally, about_If, about_While, about_Switch, about_Trap, Where-Object). Sans parenthèse
+ *  collée, `if`, `else` et `while` sont des `TOKENS_TETE_NUS` : leur `{` s'épluche déjà en tête, comme celui de
+ *  `& { }`. */
+const TETES_DE_BLOC = new Set([
+  '%', 'foreach-object', 'foreach', 'for', 'try', 'catch', 'finally', 'if', 'else', 'while', 'switch', 'trap',
+  'where-object', 'where', '?',
+])
+/** Mots qui, juste après le `}` d'un bloc, en ouvrent un autre dans le même segment (`} else {`,
+ *  `} elseif (…) {`, `} catch [type] {`, `} finally {`). */
+const SUITES_DE_BLOC = new Set(['else', 'elseif', 'catch', 'finally'])
+const MOT_A_ENTETE_RE = /^(foreach|for|if|while|switch|elseif)(\(.*)$/i
+
+/** Un jeton NU : ni quoté, ni mêlé de quotes. */
+export const jetonNu = (j) => j.quote === undefined
+
+/** Morceaux `{ text, substitutions }` d'un texte nu à partir de `depart` : chaque `{` et `}` détaché,
+ *  `${nom}` et les `substitutions` du jeton (`tokenizeCommand`) gardés entiers. */
+function eclateAccolades(texte, substitutions, depart = 0) {
+  const morceaux = []
+  let buf = ''
+  let portees = []
+  const coupe = () => {
+    if (buf) morceaux.push({ text: buf, substitutions: portees })
+    buf = ''
+    portees = []
+  }
+  for (let i = depart; i < texte.length; i++) {
+    const c = texte[i]
+    const substitution = substitutions.find((s) => s.debut === i)
+    if (substitution) {
+      portees.push({ ...substitution, debut: buf.length, fin: buf.length + substitution.fin - substitution.debut })
+      buf += texte.slice(i, substitution.fin)
+      i = substitution.fin - 1
+    } else if (c === '$' && texte[i + 1] === '{') {
+      const fin = texte.indexOf('}', i)
+      const j = fin === -1 ? texte.length : fin + 1
+      buf += texte.slice(i, j)
+      i = j - 1
+    } else if (c === '{' || c === '}') {
+      coupe()
+      morceaux.push({ text: c, substitutions: [] })
+    } else {
+      buf += c
+    }
+  }
+  coupe()
+  return morceaux
+}
+
+/** Relecture des jetons d'un bloc : les accolades et la parenthèse d'en-tête collées à un jeton NU
+ *  (`%{kill`, `$_.Id}`, `foreach($p`, `bash){Stop-Process`) en sont détachées, `${nom}` et les substitutions
+ *  restent entiers. Un jeton quoté, ou qui porte une quote, reste tel quel. Rendue en `relus` par
+ *  `pipelinesDeJetons`. */
+function jetonsDeBloc(jetons) {
+  return jetons.flatMap((j) => {
+    if (!jetonNu(j) || !/[{}(]/.test(j.text) || /['"]/.test(j.raw ?? '')) return [j]
+    const substitutions = j.substitutions ?? []
+    const entete = MOT_A_ENTETE_RE.exec(j.text)
+    const morceaux = entete
+      ? [{ text: entete[1], substitutions: [] }, ...eclateAccolades(j.text, substitutions, entete[1].length)]
+      : eclateAccolades(j.text, substitutions)
+    return morceaux.length === 1 && morceaux[0].text === j.text ? [j] : morceaux.map((m) => ({ ...m, raw: m.text, op: null }))
+  })
+}
+
+/** `1` pour une accolade ouvrante NUE, `-1` pour une fermante, `0` sinon : seule lecture d'une accolade. */
+const accolade = (j) => (!jetonNu(j) ? 0 : j.text === '{' ? 1 : j.text === '}' ? -1 : 0)
+
+/** Index du `}` qui ferme le `{` de `jetons[k]` (jetons relus, `jetonsDeBloc`), ou `jetons.length` si le
+ *  bloc reste ouvert. Seule recherche de la fin d'un bloc. */
+export function finDuBloc(jetons, k) {
+  let profondeur = 0
+  for (let i = k + 1; i < jetons.length; i++) {
+    profondeur += accolade(jetons[i])
+    if (profondeur < 0) return i
+  }
+  return jetons.length
+}
+
+/** Les blocs qu'exécute ce segment (jetons relus) : `corps` = les jetons de chacun, `dehors` = ceux du
+ *  segment hors de ses blocs (accolades comprises) ; `suspens` = un bloc,
+ *  ou l'en-tête d'une tête de bloc, reste ouvert à la fin du segment (le tokeniseur le coupe au `;`, au `|`).
+ *  Une tête de `TETES_DE_BLOC` ouvre chaque `{` hors des parenthèses de son en-tête ; ailleurs, un `{`
+ *  s'ouvre après un `}` suivi d'un mot de `SUITES_DE_BLOC`. Les clauses d'un `switch` sont ses blocs. */
+function lectureDesBlocs(jetons, { toutes = false } = {}) {
+  const tete = basenameExecutable(jetons[0]?.text)
+  const ouvreTout = toutes || TETES_DE_BLOC.has(tete)
+  const corps = []
+  const dehors = toutes ? [] : jetons.slice(0, 1)
+  let porte = ouvreTout
+  let parens = 0
+  let suspens = false
+  for (let k = toutes ? 0 : 1; k < jetons.length; k++) {
+    const j = jetons[k]
+    dehors.push(j)
+    if (!jetonNu(j)) continue
+    if (jetons[k - 1]?.text === '}' && SUITES_DE_BLOC.has(j.text.toLowerCase())) { porte = true; continue }
+    if (/[()]/.test(j.text)) parens += soldeParentheses(j.text)
+    if (j.text !== '{' || !porte || parens > 0) continue
+    const fin = finDuBloc(jetons, k)
+    suspens ||= fin === jetons.length
+    corps.push(jetons.slice(k + 1, fin))
+    porte = ouvreTout
+    k = fin
+  }
+  const executes = tete === 'switch' ? corps.flatMap((c) => lectureDesBlocs(c, { toutes: true }).corps) : corps
+  return { corps: executes, dehors, suspens: suspens || (ouvreTout && !toutes && parens > 0) }
+}
+
+/** L'affectation `NOM=valeur` (`NOM+=valeur`) d'un jeton : `{ nom, valeur, jeton }`, la valeur DÉCITÉE
+ *  (le texte du jeton, ses quotes retirées), `jeton` celui qui porte ses substitutions. */
+function valeurDAffectation(jeton) {
+  const egal = jeton.text.indexOf('=')
+  return { nom: jeton.text.slice(0, egal).replace(/[+]$/, ''), valeur: jeton.text.slice(egal + 1), jeton }
+}
+
+/** Ouverture de substitution `$(` non refermée dans un texte : son solde de parenthèses. */
+export const soldeParentheses = (texte) => (texte.match(/\(/g)?.length ?? 0) - (texte.match(/\)/g)?.length ?? 0)
+
+/** Enrobeurs de TÊTE d'un segment (ses jetons), épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
+ *  `debut` = index du premier jeton exécuté (`jetons.length` si le segment n'est fait que d'enrobeurs),
+ *  `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre, `affectations` = les noms des
+ *  `VAR=val` épluchés, ceux d'un `env` compris, et `valeurs` = leurs `valeurDAffectation`. Un jeton QUOTÉ
+ *  n'est pas une affectation (`"PATH=x"`). */
+function epluchageTete(jetons) {
+  const segment = jetons.map((j) => j.text)
   const enrobeurs = []
   const affectations = []
-  const affecte = (t) => affectations.push(t.slice(0, t.indexOf('=')).replace(/[+]$/, ''))
+  const valeurs = []
+  const estAffectation = (i) => jetonNu(jetons[i]) && AFFECTATION_RE.test(segment[i])
+  /** Épluche l'affectation en `i` et rend l'index qui la suit. */
+  const affecte = (i) => {
+    const valeur = valeurDAffectation(jetons[i])
+    affectations.push(valeur.nom)
+    valeurs.push(valeur)
+    return i + 1
+  }
   let i = 0
   for (;;) {
     const t = segment[i]
-    if (t === undefined) return { debut: segment.length, enrobeurs, affectations }
-    if (AFFECTATION_RE.test(t)) affecte(t)
-    if (TOKENS_TETE_NUS.has(t) || AFFECTATION_RE.test(t)) { i += 1; continue }
+    if (t === undefined) return { debut: segment.length, enrobeurs, affectations, valeurs }
+    if (estAffectation(i)) { i = affecte(i); continue }
+    if (TOKENS_TETE_NUS.has(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
-    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations }
+    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations, valeurs }
     const nom = basenameExecutable(t)
     const enrobeur = ENROBEURS_TETE.get(nom)
-    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations }
+    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations, valeurs }
     enrobeurs.push(nom)
     i += 1
     if (enrobeur.flags) {
-      while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && AFFECTATION_RE.test(segment[i])))) {
-        if (enrobeur.affectations && AFFECTATION_RE.test(segment[i])) affecte(segment[i])
-        i += enrobeur.flags.includes(segment[i]) ? 2 : 1
+      while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && estAffectation(i)))) {
+        if (enrobeur.affectations && estAffectation(i)) i = affecte(i)
+        else i += enrobeur.flags.includes(segment[i]) ? 2 : 1
       }
     }
     i += enrobeur.positionnels ?? 0
@@ -713,43 +950,129 @@ export function commandeScriptNpm(segment, scripts) {
  *  donc ceux dont les sorties/entrées se CHAÎNENT (les enchaînements `&&`/`;`/`||` en ouvrent un
  *  nouveau). Les enrobeurs de tête sont épluchés, et l'ARGUMENT-CHAÎNE d'un interpréteur est
  *  re-tokenisé : les pipelines qu'il porte sont rendus À PART (ceux d'un `sh -c "a | b"` ne se
- *  mêlent pas au pipeline hôte), avant le pipeline enrobant. `segmentsProfonds` en est l'APLATI :
- *  une garde qui n'a pas besoin du tube ignore ce groupement. */
+ *  mêlent pas au pipeline hôte), avant le pipeline enrobant ; le corps d'un bloc PowerShell
+ *  (`lectureDesBlocs`) l'est de même, avant le pipeline qui l'ouvre. Un segment que l'épluchage vide
+ *  (`VAR=val`, `}`) n'y figure pas. `segmentsProfonds` en est l'APLATI : une garde qui n'a pas besoin
+ *  du tube ignore ce groupement. */
 export function pipelinesProfonds(command, profondeur = 0, options) {
-  return pipelinesDeJetons(command, profondeur, options).map((p) => p.map((s) => s.jetons.map((j) => j.text)))
+  return pipelinesDeJetons(command, profondeur, options)
+    .map((p) => p.filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text)))
+    .filter((p) => p.length > 0)
 }
 
-/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, enrobeurs, deploye }` :
- *  les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise), les ENROBEURS de tête
- *  épluchés devant eux (`epluchageTete`), et `deploye` quand la commande qu'il porte (argument-chaîne,
- *  script npm) est rendue à part. Qui lit un jeton comme un chemin a besoin des deux premiers : la
- *  quote dit si le shell le change, l'enrobeur s'il ajoute des arguments hors du texte. Au-delà de
- *  `PROFONDEUR_MAX_ENROBEURS`, l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par
- *  toute la récursion) le dit ; tous les segments en deçà sont rendus. `suite` = jetons ajoutés au
- *  DERNIER segment de `command` : les arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`),
- *  avec leur provenance d'origine. `affectations` reçoit les noms de variables d'environnement que
- *  chaque segment lu pose (`affectationsDuSegment`). */
-function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [], affectations = [] } = {}) {
+/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, enrobeurs, deploye, ouvreDesBlocs,
+ *  valeurs, deplies, bloc, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
+ *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), leur
+ *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les ENROBEURS de
+ *  tête épluchés devant eux, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
+ *  affectations de tête quand l'épluchage le VIDE, ses arguments `NOM=val` sous une tête d'`AFFECTEURS`),
+ *  `deploye` quand la commande qu'il porte (argument-chaîne, script npm, corps de bloc) est rendue à part,
+ *  `deplies` = pour chaque jeton à substitution, les pipelines qu'elle exécute (rendus à part eux aussi),
+ *  `bloc` = le segment dont un bloc le contient, `tube` = son pipeline, `shell` = le shell qui l'exécute : un
+ *  `{ parent }` par commande relue dans un processus neuf (argument-chaîne hors `eval`/`Invoke-Expression`, qui gardent
+ *  celui de l'hôte, script npm, substitution), par sous-shell
+ *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande.
+ *  Un segment que l'épluchage VIDE y
+ *  figure, `jetons` vide. Un bloc ouvert absorbe les segments qui le suivent, séparateurs compris, jusqu'à
+ *  sa fermeture : un bloc est UNE commande. Dans un bloc, ou une sous-expression `@(…)`, un énoncé dont le
+ *  premier jeton est quoté est une chaîne, pas une commande : il n'est pas rendu. Qui lit
+ *  un jeton comme un chemin a besoin des jetons et des enrobeurs : la quote dit si le shell le change,
+ *  l'enrobeur s'il ajoute des arguments hors du texte. Au-delà de `PROFONDEUR_MAX_ENROBEURS` porteurs,
+ *  l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par toute la récursion) le dit ; tous
+ *  les segments en deçà sont rendus. `suite` = jetons ajoutés au DERNIER segment de `command` : les
+ *  arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`), avec leur provenance d'origine.
+ *  `affectations` reçoit les noms de variables d'environnement que chaque segment lu pose
+ *  (`affectationsDuSegment`). Lecture PARTAGÉE avec `commande-piege-guard`. */
+export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
+  const budget = options.budget ?? nouveauBudget()
+  if (!command) return []
+  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return [] }
+  return pipelinesDuFlux(tokenizeCommand(command), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
+}
+
+/** Le séparateur qu'un bloc absorbe (`;`, `|`, `&&`, `||`, `)`), jeton de son segment. */
+const separateur = (op) => ({ text: op, raw: op, op: null, separateur: op })
+/** Le corps d'un bloc rendu au flux : ses séparateurs redeviennent des opérateurs. */
+const versFlux = (j) => (j.separateur ? { text: j.separateur, op: j.separateur } : j)
+/** Les `{ nom, valeur, jeton }` qu'un segment épluché déclare sous une tête d'`AFFECTEURS`
+ *  (`export p=…`, `local p=…`). */
+function declarationsDuSegment(jetons) {
+  const affecte = AFFECTEURS.get(basenameExecutable(jetons[0]?.text))
+  const args = jetons.slice(1)
+  if (!affecte || !affecte(args.map((j) => j.text))) return []
+  return args.filter((j) => jetonNu(j) && AFFECTATION_RE.test(j.text)).map(valeurDAffectation)
+}
+
+/** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
+ *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
+ *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
+function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false }) {
   const pipelines = []
-  if (!command) return pipelines
-  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return pipelines }
+  const lus = segmentsAvecOperateur(flux)
+  const avecSuite = (k) => (lus[k].op === null ? [...lus[k].jetons, ...suite] : lus[k].jetons)
   let courant = []
-  for (const { jetons: lus, op } of segmentsAvecOperateur(command)) {
-    const jetons = op === null ? [...lus, ...suite] : lus
-    const { debut, enrobeurs, affectations: deTete } = epluchageTete(jetons.map((j) => j.text))
+  const shells = [shell]
+  let precedent = null
+  for (let s = 0; s < lus.length; s++) {
+    const jetons = avecSuite(s)
+    let { op } = lus[s]
+    const { debut, enrobeurs, affectations: deTete, valeurs } = epluchageTete(jetons)
+    for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push({ parent: shells.at(-1) })
     const segment = jetons.slice(debut)
-    affectations.push(...deTete, ...affectationsDuSegment(segment.map((j) => j.text)))
-    if (segment.length > 0) {
-      const textes = segment.map((j) => j.text)
-      const porteur = lecturePorteur(textes)
-      const inner = porteur?.commande ?? commandeScriptNpm(textes, scripts)
-      if (inner !== null) {
-        const debutSuite = porteur?.suite ?? null
-        const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
-        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations })) pipelines.push(p)
-      }
-      courant.push({ jetons: segment, enrobeurs, deploye: inner !== null })
+    const relus = relu ? [...segment] : jetonsDeBloc(segment)
+    let lecture = lectureDesBlocs(relus)
+    while (op !== null && lecture.suspens) {
+      let solde = relus.reduce((d, j) => d + accolade(j), 0)
+      do {
+        const ajout = relu ? avecSuite(s + 1) : jetonsDeBloc(avecSuite(s + 1))
+        segment.push(separateur(op), ...avecSuite(s + 1))
+        relus.push(separateur(op), ...ajout)
+        solde = ajout.reduce((d, j) => d + accolade(j), solde)
+        s += 1
+        op = lus[s].op
+      } while (op !== null && solde > 0)
+      lecture = lectureDesBlocs(relus)
     }
+    const ouvreDesBlocs = lecture.corps.length > 0 && TETES_DE_BLOC.has(basenameExecutable(relus[0]?.text))
+    const ici = op === '|' || precedent === '|' ? { parent: shells.at(-1) } : shells.at(-1)
+    // Les substitutions s'exécutent avant le segment, la chaîne citée comprise ; celles d'un corps de bloc se
+    // déplient dans ce corps.
+    const deplies = new Map()
+    const deplie = (j) => {
+      if (!j.substitutions?.length) return
+      const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression }) =>
+        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, expression: sousExpression }))
+      for (const p of rendus) pipelines.push(p)
+      deplies.set(j, rendus)
+    }
+    for (let k = 0; k < debut; k++) deplie(jetons[k])
+    for (const j of lecture.dehors) deplie(j)
+    const chaine = (relu || expression) && courant.length === 0 && jetons.length > 0 && (!jetonNu(jetons[0]) || /^['"]/.test(jetons[0].raw ?? ''))
+    if (!chaine) {
+      // Une tête de bloc n'affecte rien et ne porte aucune chaîne : elle n'exécute que ses corps.
+      const textes = ouvreDesBlocs ? [] : segment.map((j) => j.text)
+      affectations.push(...deTete, ...affectationsDuSegment(textes))
+      const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
+      const lu = { jetons: segment, relus, enrobeurs, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
+      if (segment.length > 0) {
+        const porteur = ouvreDesBlocs ? null : lecturePorteur(textes)
+        const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(textes, scripts))
+        if (inner !== null) {
+          const debutSuite = porteur?.suite ?? null
+          const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
+          const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici }
+          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache })) pipelines.push(p)
+        }
+        const { corps } = lecture
+        for (const c of corps) {
+          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true })) pipelines.push(p)
+        }
+        lu.deploye = inner !== null || corps.length > 0
+      }
+      courant.push(lu)
+    }
+    if (op === ')' && shells.length > 1) shells.pop()
+    precedent = op
     if (op !== '|' && op !== ')' && courant.length > 0) {
       pipelines.push(courant)
       courant = []
@@ -867,7 +1190,8 @@ function partageDuSegment(jetons) {
   const motif = recherche ? motifDe(segment) : null
   const hors = []
   const messages = []
-  const range = (t, canal, k) => ((jetons[k].substitution ?? (jetons[k].quote !== 'simple' && /\$\(|`/.test(t))) ? hors.push(t) : messages.push({ jeton: t, canal }))
+  const substitue = (k, t) => (jetons[k].substitutions ? jetons[k].substitutions.length > 0 : jetons[k].quote !== 'simple' && /\$\(|`/.test(t))
+  const range = (t, canal, k) => (substitue(k, t) ? hors.push(t) : messages.push({ jeton: t, canal }))
   for (let k = 0; k < segment.length; k++) {
     const t = segment[k]
     if (tout && k > 0 && !REDIRECTION_RE.test(t) && !REDIRECTION_RE.test(segment[k - 1])) { range(t, tout.canal, k); continue }
@@ -1012,6 +1336,13 @@ const CITEURS = new Set([
  *  têtes : les alias `!`, `filter-branch` et les `-c core.pager=…` y échappent (NON COUVERT, #2071). */
 const SOUS_COMMANDES_GIT_EXECUTANTES = new Set(['rebase', 'bisect', 'submodule'])
 
+/** Affectation PowerShell `$nom = …` en tête d'un segment (ses jetons) : `{ nom, valeur }`, `valeur` = les
+ *  jetons qui suivent le `=`, ou `null`. */
+export function affectationPowerShell(jetons) {
+  const nom = /^\$(\w+)$/.exec(jetons[0]?.text ?? '')?.[1]
+  return nom && jetonNu(jetons[0]) && jetons[1]?.text === '=' ? { nom, valeur: jetons.slice(2) } : null
+}
+
 /** `true` si la tête du segment CITE ses arguments (`CITEURS`, ou `git` hors
  *  `SOUS_COMMANDES_GIT_EXECUTANTES`). */
 function estCiteur(segment) {
@@ -1071,7 +1402,17 @@ export function commandeDeLecture(command) {
  *  arguments (`collecterCommits`) peut encore lire, au plus `SEGMENTS_MAX` ; `sature` dit qu'une
  *  borne (ces segments, ou la profondeur de `pipelinesDeJetons`) a coupé l'analyse. */
 const SEGMENTS_MAX = 2000
-const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
+export const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
+
+/** Le refus d'une garde de commande dont la lecture a levé `budget.sature` : elle ne voit pas ce qui s'exécute
+ *  au-delà de ses bornes. */
+export const REFUS_SATURE = Object.freeze({
+  decision: 'deny',
+  reason:
+    `⛔ commande trop imbriquée pour être jugée : au-delà de ${PROFONDEUR_MAX_ENROBEURS} niveaux de porteurs, de ` +
+    `scripts npm ou de substitutions, la lecture s'arrête et ne voit pas ce que la commande exécute. Aplatir la ` +
+    `commande (variable intermédiaire, ou script dans un fichier).`,
+})
 
 /** Lecture MÉMOÏSÉE par commande : la garde interroge la même commande pour chaque évaluation. Clé =
  *  racine de résolution npm (`racineNpmCourante`) + chaîne ; chaque lecture garde ses `MEMO_MAX` dernières
@@ -1129,7 +1470,8 @@ function collecterCommits(command, profondeur, origine, budget, commits) {
       const textes = jetons.map((j) => j.text)
       const sub = gitCommitSubcommandIndex(textes)
       if (sub !== -1) { ajouterCommit(commits, { jetons, enrobeurs, sub, embarque: origine !== null, origine }); continue }
-      if (deploye || estCiteur(textes)) continue
+      const affectee = affectationPowerShell(jetons)?.valeur[0]
+      if (deploye || estCiteur(textes) || (affectee && !jetonNu(affectee))) continue
       for (let k = 1; k < textes.length; k++) {
         const t = textes[k]
         const idx = estGit(t) ? gitCommitSubcommandIndex(textes, k) : -1
@@ -1228,15 +1570,31 @@ export function finAvantOperateur(segment, depart = 0) {
   return k === -1 ? segment.length : k
 }
 
+/** Opérateur de redirection en tête d'un jeton (`>`, `>>`, `>|`, `2>`, `&>`, `<`, `2>&1`, `>&-`), hors substitution de
+ *  processus `<(…)`. */
+const REDIRECTION_EN_TETE_RE = /^(?:\d*(?:>[>|]?|<(?!\())|&>>?)(&(?:\d+|-))?/
+
+/** Les jetons d'un segment à partir de `depart`, sans ses redirections : chaque opérateur nu de redirection est retiré
+ *  avec sa cible, collée (`>f`, `<in`, `<<MOT`) ou séparée (`> f`) ; une duplication (`2>&1`) n'en a pas. Les arguments
+ *  qui suivent restent : la commande les reçoit (XCU 2.7). */
+export function sansRedirections(jetons, depart = 1) {
+  const gardes = jetons.slice(0, depart)
+  for (let i = depart; i < jetons.length; i++) {
+    const m = jetonNu(jetons[i]) ? REDIRECTION_EN_TETE_RE.exec(jetons[i].text) : null
+    if (!m) { gardes.push(jetons[i]); continue }
+    if (m[0] === jetons[i].text && !m[1]) i += 1
+  }
+  return gardes
+}
+
 /** Jeton de pathspec NON RÉSOLU, par PROVENANCE quotée (`tokenizeCommand`) : sa valeur n'est connue
  *  qu'après le shell ou git, et la garde ne réimplémente ni l'un ni l'autre.
  *  - GIT, quelle que soit la quote : joker de pathspec (`*`, `?`, `[`) et magie en tête (`:(glob)`,
  *    `:/`, `:!`) — git les reçoit tels quels et les interprète ;
  *  - SHELL, jeton nu : substitution de commande `$(…)`, `` `…` ``, expansion de variable `$NOM`,
  *    `${NOM}`, d'accolades `{a,b}`, tilde en tête `~`, antislash d'échappement (`a\ b.ts`).
- *    `tokenizeCommand` coupe une substitution aux espaces (`$(cat`, `/tmp/liste.txt)`) : le critère
- *    mord sur N'IMPORTE QUEL fragment — `$`, backtick, antislash, parenthèse ou accolade, ouvrante
- *    ou orpheline ;
+ *    le critère mord sur N'IMPORTE QUEL de ces caractères — `$`, backtick, antislash, parenthèse ou
+ *    accolade, ouvrante ou orpheline ;
  *  - SHELL, sous quote double : `$` et le backtick seuls ;
  *  - SHELL, sous quote simple : rien, le jeton est littéral. */
 const JOKER_GIT = String.raw`[*?[]|^:`
@@ -2270,11 +2628,13 @@ function valeursGitDashC(segment) {
   return valeurs
 }
 
-/** Commandes qui CHANGENT le répertoire courant, dans les deux shells où ce hook est câblé : POSIX
- *  (`cd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `pushd`). Ne lire que `cd` faisait
- *  juger un commit de worktree contre l'ARBRE PRINCIPAL dès que la session parlait PowerShell
- *  (#1729 sonde 5). `popd` n'est pas lu : il dépend d'une pile que la commande ne dit pas. */
-const CHANGEMENTS_DE_REPERTOIRE = new Set(['cd', 'chdir', 'pushd', 'set-location', 'sl'])
+/** Commandes qui NOMMENT le répertoire où elles mènent, dans les deux shells où ce hook est câblé : POSIX (`cd`,
+ *  `pushd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `Push-Location`). Ne lire que `cd` faisait juger un
+ *  commit de worktree contre l'ARBRE PRINCIPAL dès que la session parlait PowerShell (#1729 sonde 5). */
+const VERS_UN_CHEMIN = ['cd', 'chdir', 'pushd', 'set-location', 'sl', 'push-location']
+/** Commandes qui CHANGENT le répertoire courant : celles de `VERS_UN_CHEMIN`, et `popd`/`Pop-Location`, qui dépilent
+ *  un lieu que la commande ne dit pas. */
+export const CHANGEMENTS_DE_REPERTOIRE = new Set([...VERS_UN_CHEMIN, 'popd', 'pop-location'])
 
 /** Chemin de commande NON EXPANSÉ (`$M`, `${M}`, `%M%`) : la variable vit dans le shell, pas dans le
  *  hook — le texte ne désigne aucun répertoire. */
@@ -2294,7 +2654,7 @@ function cheminNommeParLaCommande(command, cwd, platform) {
   for (const segment of segmentsLus(command)) {
     const dashC = valeursGitDashC(segment)
     if (dashC.length) return dashC.reduce(pas, lieu)
-    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
+    if (VERS_UN_CHEMIN.includes(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
   }
   return lieu
 }

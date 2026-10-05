@@ -135,6 +135,30 @@ test('DRIVER : silence (aucune sortie) hors du cas visé, et jamais une sortie n
   assert.equal(sortieDriver('{pas du json').trim(), '', 'stdin illisible')
 })
 
+// #2173 (juge de diff, `cas3.json`) : la commande d'un bloc PowerShell est une gate ; une chaîne qui la cite n'en
+// est pas une.
+test('une gate DANS un bloc PowerShell est refusée ; la même gate CITÉE dans une chaîne passe', () => {
+  for (const cmd of ['1 | % { npx vitest run }', '1 | % { npx vitest run | tail -5 }', 'Get-ChildItem *.test.ts | % { npx vitest run $_.FullName }']) {
+    assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+  }
+  for (const cmd of [
+    "1 | % { 'npx vitest run' }", '1 | % { "vitest hors suite : PID $_" }', 'git worktree list | % { "npm test $_" }',
+    'foreach ($w in git worktree list) { Write-Output "npm run lint dans $w" }',
+  ]) assert.equal(pourCodeur(cmd), null, cmd)
+})
+
+test('une gate dans une substitution `$(…)` est refusée', () => {
+  for (const cmd of ['x=$(npx vitest run)', 'out=$(npx vitest run 2>&1 | tail -5)', 'x=$(npx tsc --noEmit)']) {
+    assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+  }
+})
+
+test('le corps d’un heredoc est une donnée : la gate qu’il cite passe, celle qui le suit est refusée', () => {
+  const ecrit = "cat > note.md <<'EOF'\nVerrou : `npm run gates` (suite (complète) ; types).\nEOF\n"
+  assert.equal(pourCodeur(`${ecrit}gh issue comment 1 --body-file note.md`), null)
+  assert.equal(pourCodeur(`${ecrit}npm run typecheck 2>&1 | tail -5`)?.decision, 'deny')
+})
+
 test('la liste est LUE dans ECRIT_LU (une gate ajoutée là est couverte sans toucher au hook)', () => {
   const lues = gatesDeLaCi()
   for (const gate of ['lint', 'docs:build', 'test:ops']) {
@@ -146,4 +170,75 @@ test('la liste est LUE dans ECRIT_LU (une gate ajoutée là est couverte sans to
     'deny',
     'sans liste injectée, le hook doit refuser en lisant la table réelle',
   )
+})
+
+// #2173 (juge de diff, 3e passe, `cas-amp2.json`) : la garde lit les segments profonds de la commande BRUTE ;
+// l'opérateur d'appel `&` devant un exécutable cité, dans un bloc, ne s'efface plus.
+test('une gate appelée par `&` sur un exécutable cité, dans un bloc PowerShell, est refusée', () => {
+  for (const cmd of [
+    "1 | % { & 'C:/Program Files/nodejs/npx.cmd' vitest run }",
+    '1 | % { & "$env:APPDATA/npm/npx.cmd" tsc --noEmit }',
+    "try { & 'npx' vitest run } catch {}",
+    "if ($true) { & 'npm' run gates }",
+  ]) assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+})
+
+test('la portée server/ suit le shell du `cd` : ses segments et les shells qu’il lance, jamais son hôte', () => {
+  for (const cmd of ['cd server && bash -c "npm run lint"', 'cd server && npx vitest run', '1 | % { cd server; npm run lint }']) {
+    assert.equal(pourCodeur(cmd), null, cmd)
+  }
+  for (const cmd of [
+    'bash -c "cd server && npm run typecheck" && npx tsc --noEmit',
+    'x=$(cd server && npm run lint); npx vitest run',
+    'cd server && cd .. && npm run lint',
+    'npm --prefix server run typecheck && npx tsc --noEmit',
+  ]) assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+})
+
+// #2173 (juge de diff, 4e passe, `cas-server.json`) : une redirection se retire avec sa cible, les arguments qui la
+// suivent restent.
+test('une redirection n’est pas un argument : elle se retire avec sa cible, les arguments qui la suivent restent', () => {
+  for (const cmd of [
+    'npx vitest run --minWorkers=1 2>&1 > C:/tmp/suite.log', 'npm test > /tmp/suite.log 2>&1', 'npx vitest run > out/x.txt',
+    'npx vitest run > out.txt', 'npx tsc >x.txt --noEmit', 'npx tsc 2>&1 --noEmit', 'npx vitest run <in.txt', 'npx eslint 2>e.txt .',
+    'npx tsc >|x.txt --noEmit',
+  ]) {
+    assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+  }
+  for (const cmd of [
+    'npx vitest run src/a.test.ts > C:/tmp/a.log 2>&1', 'npm test -- src/a.test.ts > /tmp/a.log',
+    'npx vitest run 2>err.txt src/x.test.ts', 'npx eslint 2>e.txt src/a.ts',
+  ]) {
+    assert.equal(pourCodeur(cmd), null, cmd)
+  }
+})
+
+test('la portée server/ est prudente : un shell enfant ne la porte pas au parent, tout autre changement de répertoire la rend à la racine', () => {
+  for (const cmd of [
+    '(cd server) && npx vitest run', 'cd server | true; npx vitest run', 'cd server; Set-Location ..; npx vitest run',
+    'cd server; popd; npx vitest run', '(cd server && npm test); npx vitest run', 'cd $D && npx vitest run', 'cd - && npx vitest run',
+    '1 | % { cd server }; npx vitest run',
+  ]) assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+  for (const cmd of ['cd server && npx vitest run', 'cd server 2>/dev/null && npx vitest run', 'cd ./server && npm run typecheck']) {
+    assert.equal(pourCodeur(cmd), null, cmd)
+  }
+})
+
+// #2173 (juge de diff, 5e passe) : `eval` relit sa chaîne dans le shell hôte ; `builtin` s'épluche ; un argument
+// qui remonte d'un cran (`..`) se juge à la racine.
+test('la portée server/ : `eval` et `builtin` agissent sur le shell hôte, un argument `..` se juge à la racine', () => {
+  for (const cmd of [
+    "cd server; eval 'cd ..'; npx vitest run", 'cd server; builtin cd ..; npx vitest run', "cd server; Invoke-Expression 'cd ..'; npx vitest run",
+    'cd server; npx vitest run --root ..', 'cd server; npx --prefix .. vitest run', 'cd server; npm --prefix .. test',
+    'cd server; npx tsc -p ../tsconfig.json --noEmit',
+  ]) assert.equal(pourCodeur(cmd)?.decision, 'deny', cmd)
+  for (const cmd of ["cd server; sh -c 'cd ..'; npx vitest run", 'cd server && npx vitest run src/x.test.ts', "eval 'cd server'; npx vitest run"]) {
+    assert.equal(pourCodeur(cmd), null, cmd)
+  }
+})
+
+test('une commande trop imbriquée pour être lue est refusée', () => {
+  const decision = pourCodeur('echo $($($($($(npx vitest run)))))')
+  assert.equal(decision?.decision, 'deny')
+  assert.match(decision.reason, /commande trop imbriquée pour être jugée/)
 })
