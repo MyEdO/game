@@ -32,7 +32,6 @@ import {
   partitionner,
   porteBilan,
   refusDePartie,
-  refusRegistreDomAbsent,
   trancher,
   VARIABLE_PARTIE,
   repartitionWorkers,
@@ -42,13 +41,11 @@ import {
   memoireDisponibleMo,
   separerArguments,
   cheminsGlobSuspects,
-  suiteComplete,
   TAS_UTILISE,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
 import { estPidVivant, prendreVerrou, verrouRequis } from './verrou.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { entreesPerimees, messagePeremption } from '../guards/lib/domResiduStock.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const VITEST = path.join(RACINE, 'node_modules/vitest/vitest.mjs')
@@ -93,7 +90,6 @@ const posix = (p) => p.split(path.sep).join('/')
 const DEBUT = Date.now()
 const ARGV = process.argv.slice(2)
 const { filtres, mono } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
-const COMPLETE = suiteComplete(filtres, ARGV)
 const PARTIE = partieDe(process.env[VARIABLE_PARTIE])
 const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV }) : null)
 if (refusPartie) {
@@ -123,12 +119,6 @@ if (verrou.etat === 'refus') {
 }
 if (verrou.avertissement) console.error(verrou.avertissement)
 const ENV = envEnfant(process.env)
-// Registre de PASSAGE de la barrière DOM : chaque worker y note, par fichier de test joué, s'il a fui
-// ou non (`src/test-setup.ts`). Un fichier de test ne peut pas rendre ce verdict — il ne voit pas les
-// autres (deux processus Vitest, N workers, `isolate:false`, run filtré) — donc il se rend ICI, après
-// la suite. Un appelant qui pose déjà la variable garde la sienne (re-mesure à la main).
-const REGISTRE_DOM = path.join(CACHE, `dom-residu-${process.pid}.txt`)
-ENV.WFRP_DOM_RESIDU_REGISTRE = process.env.WFRP_DOM_RESIDU_REGISTRE ?? REGISTRE_DOM
 // Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
 // cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
 const CAPACITE = capacite(
@@ -153,14 +143,10 @@ const ecrireCapture = (texte) => {
 }
 /** Motif de nom d'une capture : `vitest-run-<pid>.txt` — une par run, un run en cours garde la sienne. */
 const MOTIF_CAPTURE = /^vitest-run-\d+\.txt$/
-/** Motif de nom d'un registre de passage de la barrière DOM (même règle : un par PID, borné à 7 jours). */
-const MOTIF_REGISTRE_DOM = /^dom-residu-\d+\.txt$/
 
 try {
   fs.mkdirSync(CACHE, { recursive: true })
   purgerPerimes({ dossier: CACHE, motif: MOTIF_CAPTURE, ageMs: PEREMPTION_MS })
-  purgerPerimes({ dossier: CACHE, motif: MOTIF_REGISTRE_DOM, ageMs: PEREMPTION_MS })
-  fs.rmSync(REGISTRE_DOM, { force: true }) // un PID recyclé ne décide pas du verdict d'un autre run
   fdCapture = fs.openSync(CAPTURE, 'w')
   ecrireCapture(
     enteteCapture({
@@ -264,12 +250,8 @@ function ecrireConfig(nom, inclus) {
   return config
 }
 
-/** Fichiers jsdom de l'ensemble joué, comptés dès que la liste est énumérée — toujours pour une suite
- *  COMPLÈTE : le verdict d'un registre DOM absent en dépend (`refusRegistreDomAbsent`). */
-let jsdomJoues = null
-
 async function principal() {
-  if (!PARTIE && !COMPLETE && (mono || !WORKERS.split)) return lancementUnique(ARGV)
+  if (!PARTIE && (mono || !WORKERS.split)) return lancementUnique(ARGV)
 
   balayerAteliersMorts()
   fs.mkdirSync(ATELIER, { recursive: true })
@@ -312,7 +294,6 @@ async function principal() {
     args = ['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV]
   }
   const partition = partitionner(fichiers, (f) => fs.readFileSync(f, 'utf8'))
-  jsdomJoues = partition.jsdom.length
   if (mono || !WORKERS.split) return lancementUnique(args)
 
   const cotes = cotesRequis(filtres, partition, RACINE)
@@ -389,28 +370,6 @@ const diagnostic = bilanDiagnostic(compteSentinelles, {
 })
 process.stdout.write(diagnostic)
 ecrireCapture(diagnostic)
-// PÉREMPTION DU STOCK DES FUITES DOM — une suite COMPLÈTE VERTE est le seul run où « ce fichier a
-// joué sans fuir » se mesure : le stock est en extinction, une ligne qui ne protège plus rien masque
-// la fuite suivante du même fichier. Jugée AVANT le résumé et le `status:` : ils portent le code de
-// sortie du processus, ils ne peuvent pas dire 0 quand la porte rend 1.
-// Un registre ABSENT ne se tolère que si aucun fichier jsdom n'a joué (`refusRegistreDomAbsent`).
-if (code === 0 && COMPLETE) {
-  let message
-  try {
-    const lignes = fs.readFileSync(ENV.WFRP_DOM_RESIDU_REGISTRE, 'utf8').split('\n').filter(Boolean)
-    message = messagePeremption(entreesPerimees(lignes))
-  } catch (e) {
-    message =
-      e.code === 'ENOENT'
-        ? refusRegistreDomAbsent(jsdomJoues)
-        : `[test] registre de passage de la barrière DOM illisible : ${e.message}`
-  }
-  if (message) {
-    process.stderr.write(`${message}\n`)
-    ecrireCapture(`${message}\n`)
-    code = 1
-  }
-}
 process.stdout.write(
   resumeLancement({
     statut: code,

@@ -1,6 +1,5 @@
 // Le CLIQUET du contexte permanent : `PLAFOND_OCTETS` (scripts/guards/budget-contexte.mjs) est en
 // ÉGALITÉ avec la mesure de l'arbre — une accrétion est rouge, un allègement non reporté aussi.
-// Même forme que les cliquets voisins (`scripts/guards/lib/domResiduStock.test.mjs`).
 import test, { describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { dirname, resolve } from 'node:path'
