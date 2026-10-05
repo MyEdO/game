@@ -267,7 +267,8 @@ const TAVERN_DRINK_KIND = 'tavern-drink';
  * PARAMÈTRES DE SÉQUENCE d'un jeu — TOUS lus de son entrée de données : aucune valeur de règle n'est
  * écrite ici, aucun `if` par id de jeu. Un jeu N+1 à mécanismes connus n'est qu'une entrée de plus.
  */
-export function tavernParams(game: TavernGame, joueurs = 0): SequenceParams {
+export function tavernParams(jeu: TavernGame, joueurs = 0): SequenceParams {
+  const game = structuredClone(jeu); // #2097
   // BORNE : les familles dont la manche n'est QU'UN lancer (pot, volée) déclarent l'unité de la leur
   // — la borne effective en découle, et reste sous le plafond absolu du contrat.
   const pot = game.pot;

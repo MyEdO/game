@@ -108,10 +108,10 @@
 //   - tête d'un segment, épluchée jusqu'à stabilité : jetons nus et mots réservés (`TOKENS_TETE_NUS`),
 //     affectations `VAR=val` (relevées par nom, `affectationsDEnvironnement`), enrobeurs de tête (`ENROBEURS_TETE`) ;
 //   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
-//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
-//     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k` (ou
-//     `//c`/`//k`, graphie Git Bash), `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de
-//     `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
+//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression` ; tout le reste de la ligne, joint
+//     par des espaces, après `cmd /c`/`/k` (ou `//c`/`//k`, graphie Git Bash) et `eval` ; le texte
+//     qu'exécute l'hôte `powershell`/`pwsh`, lu selon SA grammaire (`GRAMMAIRES_HOTE_POWERSHELL`, #2292) ;
+//     la chaîne de `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
 //   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
 //     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
@@ -137,7 +137,9 @@
 // citeuse qui exécute) ; `gh alias set --shell ci 'git commit -a' && gh ci` (tête citeuse qui
 // exécute) ; `git merge --no-ff -m x autre`, `git cherry-pick <sha>` (porcelaine) ; `git ci -a` (alias
 // du `.gitconfig`) ; `echo 'git commit -a' | sh`, `bash <<'EOF'` (corps sur stdin) ;
-// `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`, `make release`,
+// `echo 'git commit -a' | pwsh -Command -`, `| pwsh -`, `| powershell` (l'hôte lit sa commande sur stdin,
+// `-ServerMode` y lit du PSRP) ; `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`,
+// `pwsh -File x.ps1`, `make release`,
 // `node --run c`, `yarn c`, `npm --prefix ../autre run c` (script hors du dépôt ancré) ;
 // `python3 -c "os.system('git commit -a')"` (interpréteur non shell).
 import { Buffer } from 'node:buffer'
@@ -539,34 +541,28 @@ export function basenameExecutable(token) {
 const EXTENSIONS_EXECUTABLES = new Set(['exe', 'cmd', 'bat'])
 const NOMS_EXECUTABLES = new Map() // mémo-pur : jeton → son nom d'exécutable
 
-/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU, OU par le nom
- *  EXACT, insensible à la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte
- *  tout préfixe qu'aucun AUTRE paramètre de la commande ne partage, et lie le nom exact en priorité
- *  (`-Query` à côté de `QueryDialect`). `noms` = tous ses paramètres. `-1` si absent. */
-function indexParametre(args, nom, noms = [nom]) {
+/** `true` si `c` est un tiret de PowerShell : `-`, U+2013, U+2014 ou U+2015 (`IsDash`, `CharTraits.cs:255-261`,
+ *  PowerShell v7.5.5). Le lieur de cmdlet (`valeurParametre`) et l'analyseur de l'hôte (`cleDeParametreHote`)
+ *  le partagent. */
+function estTiretPowerShell(c) {
+  return c === '-' || c === '\u2013' || c === '\u2014' || c === '\u2015'
+}
+
+/** Valeur d'un paramètre nommé d'une CMDLET (`''` si absent), selon le LIEUR DE CMDLET : le paramètre
+ *  s'ouvre par un tiret (`estTiretPowerShell`) et se nomme par son nom EXACT ou par un PRÉFIXE NON AMBIGU,
+ *  insensible à la casse — `-Command` s'écrit aussi bien `-com`, `-Comm`… : tout préfixe qu'aucun AUTRE
+ *  paramètre de la commande ne partage, le nom exact lié en priorité (`-Query` à côté de `QueryDialect`).
+ *  `noms` = tous ses paramètres. L'HÔTE `pwsh`/`powershell` suit une autre grammaire (`lireHotePowerShell`). */
+export function valeurParametre(args, nom, noms = [nom]) {
   const cible = nom.toLowerCase()
   const autres = noms.map((n) => n.toLowerCase()).filter((n) => n !== cible)
-  return args.findIndex((a) => {
-    if (a[0] !== '-') return false
+  const i = args.findIndex((a) => {
+    if (!estTiretPowerShell(a[0])) return false
     const p = a.slice(1).toLowerCase()
     return p !== '' && cible.startsWith(p) && (p === cible || !autres.some((n) => n.startsWith(p)))
   })
-}
-
-/** Valeur d'un paramètre PowerShell nommé (`''` si absent) — voir `indexParametre`. */
-export function valeurParametre(args, nom, noms = [nom]) {
-  const i = indexParametre(args, nom, noms)
   return i !== -1 ? (args[i + 1] ?? '') : ''
 }
-
-// Paramètres de l'hôte `powershell.exe`/`pwsh` : base d'ambiguïté des préfixes. `-c` y est traité à
-// part (`porteurCourt`) — l'hôte le résout en `-Command` bien qu'il préfixe aussi
-// `-ConfigurationName`.
-const PARAMS_HOTE_POWERSHELL = [
-  'Command', 'File', 'EncodedCommand', 'ExecutionPolicy', 'ConfigurationName', 'InputFormat',
-  'OutputFormat', 'NoProfile', 'NoLogo', 'NoExit', 'NonInteractive', 'Sta', 'Mta', 'Version',
-  'WindowStyle', 'WorkingDirectory',
-]
 
 // `-o` (isolé ou en fin de groupe court : `-euo pipefail`) et `--rcfile`/`--init-file` prennent le
 // token SUIVANT pour valeur : sans ce saut, `pipefail` passait pour la commande à exécuter.
@@ -589,9 +585,119 @@ const FAMILLE_CMD = {
   aValeur: () => false,
   suite: 'reste',
 }
-const FAMILLE_POWERSHELL = {
-  parametre: 'Command', parametreEncode: 'EncodedCommand', params: PARAMS_HOTE_POWERSHELL, porteurCourt: '-c',
-  suite: 'reste',
+
+// ── Analyseur de l'HÔTE PowerShell (#2292) ───────────────────────────────────────────────────────
+// `pwsh` et `powershell` ne lient pas leurs paramètres comme une cmdlet : ils les essaient dans l'ORDRE de
+// leur table, et le PREMIER couple `[nom, préfixe minimal]` qui correspond l'emporte (`MatchSwitch`,
+// `CLPP.cs:793-802` ; ordre de `ParseHelper`, `CLPP.cs:897-1257`). `CLPP.cs` =
+// `Microsoft.PowerShell.ConsoleHost/host/msh/CommandLineParameterParser.cs` du dépôt PowerShell, v7.5.5. La table de
+// `powershell` 5.1.26100.9444, sans source publique, est MESURÉE (`scripts/ops/sondes/hote-powershell.mjs`).
+// `lecture` : `commande` = la valeur et tout le reste de la ligne (`-CommandWithArgs` compris : ses `$args`
+// sont joints, car la commande peut les exécuter) ; `encodee` = la valeur, base64 d'UTF-16LE ; `valeur` = la
+// valeur est sautée ; `drapeau` = rien n'est sauté ; `fichier` = un script `.ps1` (ou stdin pour `-`), hors
+// portée ; `fin` = l'hôte n'exécute rien ; `commandeIncluse` = ce jeton et tout le reste de la ligne.
+// `nonReconnu` = la lecture d'un jeton qu'aucune entrée ne reconnaît, positionnel compris.
+const HOTE_PWSH = {
+  parametres: [
+    { alias: [['version', 'v']], lecture: 'fin' }, // CLPP.cs:897
+    { alias: [['help', 'h'], ['?', '?']], lecture: 'fin' }, // :908
+    { alias: [['login', 'l']], lecture: 'drapeau' }, // :915
+    { alias: [['noexit', 'noe']], lecture: 'drapeau' }, // :921
+    { alias: [['noprofile', 'nop']], lecture: 'drapeau' }, // :927
+    { alias: [['nologo', 'nol']], lecture: 'drapeau' }, // :932
+    { alias: [['noninteractive', 'noni']], lecture: 'drapeau' }, // :937
+    { alias: [['socketservermode', 'so']], lecture: 'drapeau' }, // :942
+    { alias: [['v2socketservermode', 'v2so']], lecture: 'drapeau' }, // :949
+    { alias: [['servermode', 's']], lecture: 'drapeau' }, // :956
+    { alias: [['namedpipeservermode', 'nam']], lecture: 'drapeau' }, // :962
+    { alias: [['sshservermode', 'sshs']], lecture: 'drapeau' }, // :968
+    { alias: [['noprofileloadtime', 'noprofileloadtime']], lecture: 'drapeau' }, // :974
+    { alias: [['interactive', 'i']], lecture: 'drapeau' }, // :979
+    { alias: [['configurationfile', 'configurationfile']], lecture: 'valeur' }, // :984
+    { alias: [['configurationname', 'config']], lecture: 'valeur' }, // :997
+    { alias: [['custompipename', 'cus']], lecture: 'valeur' }, // :1010
+    { alias: [['commandwithargs', 'commandwithargs'], ['cwa', 'cwa']], lecture: 'commande' }, // :1037
+    { alias: [['command', 'c']], lecture: 'commande' }, // :1050
+    { alias: [['windowstyle', 'w']], lecture: 'valeur' }, // :1059
+    { alias: [['file', 'f']], lecture: 'fichier' }, // :1088
+    { alias: [['outputformat', 'o'], ['of', 'o']], lecture: 'valeur' }, // :1103
+    { alias: [['inputformat', 'inp'], ['if', 'if']], lecture: 'valeur' }, // :1109
+    { alias: [['executionpolicy', 'ex'], ['ep', 'ep']], lecture: 'valeur' }, // :1114
+    { alias: [['encodedcommand', 'e'], ['ec', 'e']], lecture: 'encodee' }, // :1129
+    { alias: [['encodedarguments', 'encodeda'], ['ea', 'ea']], lecture: 'valeur' }, // :1139
+    { alias: [['settingsfile', 'settings']], lecture: 'valeur' }, // :1148
+    { alias: [['sta', 'sta']], lecture: 'drapeau' }, // :1158
+    { alias: [['mta', 'mta']], lecture: 'drapeau' }, // :1178
+    { alias: [['workingdirectory', 'wo'], ['wd', 'wd']], lecture: 'valeur' }, // :1198
+    { alias: [['removeworkingdirectorytrailingcharacter', 'removeworkingdirectorytrailingcharacter']], lecture: 'drapeau' }, // :1212
+    { alias: [['token', 'to']], lecture: 'valeur' }, // :1216
+    { alias: [['utctimestamp', 'utc']], lecture: 'valeur' }, // :1230
+  ],
+  nonReconnu: 'fichier', // :713-720, :1246-1253
+}
+// `powershell` 5.1 : la table de pwsh, à ses écarts MESURÉS (`hote-powershell.mjs`) près — paramètres absents (lus
+// comme non reconnus), préfixes minimaux qui diffèrent, jeton blanc sauté ; ce que la table ne reconnaît pas OUVRE
+// la commande, lui compris.
+const ABSENTS_DE_51 = new Set([
+  'version', 'login', 'sshservermode', 'noprofileloadtime', 'interactive', 'configurationfile', 'custompipename',
+  'commandwithargs', 'settingsfile', 'removeworkingdirectorytrailingcharacter',
+])
+const MINIMUMS_51 = { inputformat: 'i', sta: 'st' }
+const HOTE_POWERSHELL_51 = {
+  parametres: [
+    { alias: [['', '']], lecture: 'drapeau' },
+    ...HOTE_PWSH.parametres
+      .filter(({ alias: [[nom]] }) => !ABSENTS_DE_51.has(nom))
+      .map(({ alias: [[nom, min], ...autres], lecture }) => ({ alias: [[nom, MINIMUMS_51[nom] ?? min], ...autres], lecture })),
+  ],
+  nonReconnu: 'commandeIncluse',
+}
+/** Grammaire de l'hôte PowerShell, par exécutable. */
+export const GRAMMAIRES_HOTE_POWERSHELL = { pwsh: HOTE_PWSH, powershell: HOTE_POWERSHELL_51 }
+const FAMILLE_PWSH = { hote: HOTE_PWSH, suite: 'reste' }
+const FAMILLE_POWERSHELL_51 = { hote: HOTE_POWERSHELL_51, suite: 'reste' }
+
+/** Blancs de .NET, ceux que retire `String.Trim()` : `Char.IsWhiteSpace` (documentation .NET, « Remarques ») =
+ *  U+0009-000D, U+0020, U+0085, U+00A0, U+1680, U+2000-200A, U+2028, U+2029, U+202F, U+205F, U+3000. Le `trim()` de JS
+ *  n'est pas cet ensemble : il garde U+0085 et retire U+FEFF. */
+const BLANCS_DOTNET = '[\t-\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]'
+const BLANCS_DOTNET_AUX_BORDS = new RegExp(`^${BLANCS_DOTNET}+|${BLANCS_DOTNET}+$`, 'g')
+
+/** Nom de paramètre que l'hôte lit dans ce jeton, en minuscules (`GetSwitchKey`, `CLPP.cs:705-734`) : le jeton
+ *  privé des blancs de .NET à ses bords (`Trim()`, `BLANCS_DOTNET`), ouvert par un tiret (`estTiretPowerShell`) ou
+ *  `/`, le second tiret retiré s'il est IDENTIQUE au premier ; `//` est la graphie Git Bash de `/`, comme le `//c`
+ *  de `FAMILLE_CMD` (#2173). `''` pour un jeton blanc, `null` pour un positionnel. */
+function cleDeParametreHote(jeton) {
+  const t = jeton.replace(BLANCS_DOTNET_AUX_BORDS, '').replace(/^\/\//, '/')
+  if (t === '') return ''
+  if (!estTiretPowerShell(t[0]) && t[0] !== '/') return null
+  return (estTiretPowerShell(t[0]) && t[1] === t[0] ? t.slice(2) : t.slice(1)).toLowerCase()
+}
+
+/** Lecture de l'hôte qui tranche `jeton` : celle de la PREMIÈRE entrée dont un couple
+ *  `[nom, min]` correspond (`MatchSwitch` : au moins `min.length` caractères, préfixe de `nom`), sinon
+ *  `nonReconnu`. */
+function lectureDuJetonHote(jeton, { parametres, nonReconnu }) {
+  const cle = cleDeParametreHote(jeton)
+  if (cle === null) return nonReconnu
+  const entree = parametres.find(({ alias }) => alias.some(([nom, min]) => cle.length >= min.length && nom.startsWith(cle)))
+  return entree?.lecture ?? nonReconnu
+}
+
+/** Texte qu'exécute l'hôte PowerShell `famille.hote` sur `args`, lus de gauche à droite comme `ParseHelper`
+ *  (`CLPP.cs:877-1257`) — forme de `lecturePorteur` —, `null` quand il n'exécute aucun texte de la ligne. */
+function lireHotePowerShell(famille, args) {
+  for (let i = 0; i < args.length; i++) {
+    const lecture = lectureDuJetonHote(args[i], famille.hote)
+    if (lecture === 'valeur') i += 1
+    else if (lecture === 'commande') return portee(famille, args[i + 1] ?? null, args, i + 2)
+    else if (lecture === 'commandeIncluse') return portee(famille, args[i], args, i + 1)
+    else if (lecture === 'encodee') {
+      const decodee = decodeCommandeEncodee(args[i + 1])
+      return decodee === null ? null : { commande: decodee, suite: null, memeShell: false }
+    } else if (lecture !== 'drapeau') return null
+  }
+  return null
 }
 const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste', memeShell: true }
 const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true, memeShell: true }
@@ -651,7 +757,7 @@ function decodeCommandeEncodee(valeur) {
  *  interpréteur = une ligne de plus ici, jamais un chemin de reconnaissance parallèle. */
 const ENROBEURS_ARGUMENT = new Map([
   ['sh', FAMILLE_SH], ['bash', FAMILLE_SH], ['dash', FAMILLE_SH], ['zsh', FAMILLE_SH],
-  ['powershell', FAMILLE_POWERSHELL], ['pwsh', FAMILLE_POWERSHELL],
+  ['powershell', FAMILLE_POWERSHELL_51], ['pwsh', FAMILLE_PWSH],
   ['cmd', FAMILLE_CMD],
   ['eval', FAMILLE_EVAL], ['invoke-expression', FAMILLE_INVOKE_EXPRESSION],
   ['npx', FAMILLE_NPX],
@@ -682,14 +788,7 @@ function lecturePorteur(segment) {
     if (args[k] === '--') k += 1
     return portee(famille, args[k] ?? null, args, k + 1)
   }
-  if (famille.parametre) {
-    const court = args.findIndex((a) => a.toLowerCase() === famille.porteurCourt)
-    const i = court !== -1 ? court : indexParametre(args, famille.parametre, famille.params)
-    if (i !== -1) return portee(famille, args[i + 1] ?? null, args, i + 2)
-    const encode = indexParametre(args, famille.parametreEncode, famille.params)
-    const decodee = encode !== -1 ? decodeCommandeEncodee(args[encode + 1]) : null
-    return decodee === null ? null : { commande: decodee, suite: null }
-  }
+  if (famille.hote) return lireHotePowerShell(famille, args)
   const memeFlag = famille.porteurInsensible
     ? (a, b) => a.toLowerCase() === b.toLowerCase()
     : (a, b) => a === b

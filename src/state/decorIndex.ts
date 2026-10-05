@@ -39,7 +39,7 @@ interface IndexDecor {
   ancrees: ReadonlyMap<string, readonly SceneEntity[]>;
 }
 
-const AUCUNE: readonly SceneEntity[] = [];
+const AUCUNE: readonly SceneEntity[] = Object.freeze([]); // #2097
 
 function bati(entities: readonly SceneEntity[], mpt: number): IndexDecor {
   const parCase = new Map<string, SceneEntity>();
