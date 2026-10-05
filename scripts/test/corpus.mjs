@@ -78,7 +78,7 @@ export function lireArgumentsCorpus(args) {
   return { base, fichiers };
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   try {
     const { base, fichiers } = lireArgumentsCorpus(process.argv.slice(2));
     const observes = base ? fichiersDuCorpusDepuis(base) : { fichiers: [], imports: [] };
