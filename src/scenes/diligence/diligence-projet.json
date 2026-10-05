@@ -7661,17 +7661,27 @@
       "y": 19
      },
      "facing": "E"
+    },
+    {
+     "id": "diligence-remise-charrette",
+     "kind": "prop",
+     "ref": "charrette",
+     "pos": {
+      "x": 13,
+      "y": 32
+     },
+     "facing": "N"
     }
    ],
    "dialogues": [],
    "triggers": [
     {
-     "id": "edo-ch1-depart-cour",
+     "id": "edo-ch1-depart-remise",
      "rect": {
-      "x": 8,
-      "y": 0,
-      "w": 12,
-      "h": 1
+      "x": 12,
+      "y": 31,
+      "w": 4,
+      "h": 3
      },
      "once": true,
      "flow": {
@@ -39220,6 +39230,7 @@
      "y": 59
     },
     "scene": "route-principale-virage",
+    "icon": "scenario/travel",
     "when": {
      "kind": "flag",
      "expr": "edo-ch1-depart"
@@ -39233,6 +39244,7 @@
      "y": 51
     },
     "scene": "auberge-des-sept-rayons",
+    "icon": "scenario/hamlet",
     "when": {
      "kind": "flag",
      "expr": "edo-ch1-depart"

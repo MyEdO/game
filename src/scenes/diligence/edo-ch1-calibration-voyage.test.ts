@@ -21,10 +21,8 @@ import { baseHoursPerDay } from '../../state/travelFlow';
  * Les deux valeurs MAISON (règle 7), éditables en donnée :
  *  - maison 1, le croisement à 10 km du relais : départ `EDO 01 l.255`, allure `EDO 01 l.309`,
  *    borne au croisement `EDO 01 l.340` ;
- *  - maison 2, 15 km/h en diligence (`MapRoute.speed`) : le levier RAW `LDB 51 l.178` ouvre 5 à 7 km/h
- *    sur le Déplacement 6 de la diligence ; 15 km/h est HORS de ce levier, et c'est la valeur que la
- *    promesse `EDO 01 l.13` exige à 6 h de route par jour (`LDB 51 l.195`). La marche du groupe
- *    (`LDB 51 l.193`) ne porte AUCUNE surcharge de donnée.
+ *  - maison 2, 15 km/h en diligence (`MapRoute.speed`) : `LDB 51 l.178`, `EDO 01 l.13`, `LDB 51 l.195`.
+ *    La marche du groupe (`LDB 51 l.193`) ne porte AUCUNE surcharge de donnée.
  *
  * Si un auteur retouche `km` ou `speed` au studio, ce test dit si la promesse tient encore.
  */
