@@ -71,7 +71,7 @@ describe('spawnEnemy — arme d’AUTHORING (weapon:) vs arme de TRAIT : pas de 
 describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)', () => {
   const at = { x: 0, y: 0 };
 
-  it('« – » du livre = caractéristique INEXISTANTE → 0, pas 30 (Loup : CT –)', () => {
+  it('« – » imprimé → 0, pas 30 (Loup : CT –) — #2304', () => {
     const c = creatureToCombatant(findCreatureById('loup')!, 'e1', at);
     expect(c.characteristics['capacite-de-tir']).toBe(0);
   });

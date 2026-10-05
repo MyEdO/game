@@ -14,7 +14,7 @@
  * contribution du trait accordé) car des entrées peuvent venir d'ailleurs (mutations).
  */
 import { Combatant, type EffectSource } from './types';
-import { parsePsychTraits, type PsychType } from './psychology';
+import { parsePsychTraits, type PsychTrait, type PsychType } from './psychology';
 import type { TraitInstance } from './statEntry';
 
 /** Re-dérive les scalaires psy depuis les traits courants (Peur/Terreur/Immunité). */
@@ -25,19 +25,27 @@ function resyncPsychScalars(c: Combatant): void {
   c.psychImmune = p.psychImmune;
 }
 
+/** Deux PROVENANCES désignent-elles la même source ? Absente = aucune source (Trait natif). */
+const memeSource = (a: EffectSource | undefined, b: EffectSource | undefined): boolean =>
+  (a?.kind ?? '') === (b?.kind ?? '') && (a?.id ?? '') === (b?.id ?? '');
+
 /** Égalité STRUCTURELLE de deux `TraitInstance` (la même instance accordée doit être retrouvée). */
 const sameInstance = (a: TraitInstance, b: TraitInstance): boolean =>
   a.id === b.id && (a.value ?? null) === (b.value ?? null) && (a.arg ?? '') === (b.arg ?? '')
   && (a.count ?? null) === (b.count ?? null) && (a.range ?? null) === (b.range ?? null)
   // PROVENANCE comprise : deux instances identiques de sources différentes (Haine (Elfes) d'une
   // mutation et d'une prière) ne sont pas la même — sans elle, le retrait tirerait au hasard.
-  && (a.src?.kind ?? '') === (b.src?.kind ?? '') && (a.src?.id ?? '') === (b.src?.id ?? '');
+  && memeSource(a.src, b.src);
 
-/** Index de la DERNIÈRE occurrence de `t` dans `list` (celle posée par le sort), ou -1. */
-const lastIndexOfInstance = (list: TraitInstance[], t: TraitInstance): number => {
-  for (let k = list.length - 1; k >= 0; k--) if (sameInstance(list[k], t)) return k;
+/** Index du DERNIER élément de `list` qui satisfait `pred` (l'instance accordée suit la native), ou -1. */
+export function dernierIndex<T>(list: readonly T[], pred: (x: T) => boolean): number {
+  for (let k = list.length - 1; k >= 0; k--) if (pred(list[k])) return k;
   return -1;
-};
+}
+
+/** Traits psy que l'instance `t` contribue, chacun à la PROVENANCE de l'instance. */
+const contributionPsy = (t: TraitInstance): PsychTrait[] =>
+  (parsePsychTraits([t]).psychTraits ?? []).map((p) => (t.src ? { ...p, src: t.src } : p));
 
 /** Accorde le `TraitInstance` (structuré — `{ id:'vol', value:35 }`, `{ id:'haine', arg:'mort-vivant' }`) :
  *  posé tel quel, psychologie re-synchronisée. Mute `c`. */
@@ -45,29 +53,29 @@ export function grantTrait(c: Combatant, t: TraitInstance): void {
   c.traits = [...(c.traits ?? []), t];
   c.liveTraits = [...(c.liveTraits ?? []), t]; // modificateurs de PROFIL du trait accordé → appliqués en DIRECT (collecteur passif)
   resyncPsychScalars(c);
-  const contrib = parsePsychTraits([t]).psychTraits ?? [];
+  const contrib = contributionPsy(t);
   if (contrib.length) c.psychTraits = [...(c.psychTraits ?? []), ...contrib];
 }
 
 /** Accorde un Trait PSYCHOLOGIQUE (≠ état de combat) dans `c.psychTraits` — noyau PARTAGÉ par l'op
  *  `grantPsychTrait` (`ops.ts`, effet temporisé) et `attachMutation` (`corruption.ts`, permanent :
- *  Colère impie → Frénésie, mutation → Haine). Mute `c`. */
-export function grantPsychTrait(c: Combatant, type: PsychType, cible?: string): void {
-  c.psychTraits = [...(c.psychTraits ?? []), { type, ...(cible ? { cible } : {}) }];
+ *  Colère impie → Frénésie, mutation → Haine). `src` = PROVENANCE de l'instance, comme `TraitInstance.src`
+ *  de `grantTrait`. Mute `c`. */
+export function grantPsychTrait(c: Combatant, type: PsychType, cible?: string, src?: EffectSource): void {
+  c.psychTraits = [...(c.psychTraits ?? []), { type, ...(cible ? { cible } : {}), ...(src ? { src } : {}) }];
 }
 
 /** Retire UNE instance du trait accordé (jamais un natif en double : la dernière occurrence — celle
  *  posée par le sort) et synchronise la psychologie dérivée. Mute `c`. */
 export function removeGrantedTrait(c: Combatant, t: TraitInstance): void {
-  const i = lastIndexOfInstance(c.traits ?? [], t);
+  const i = dernierIndex(c.traits ?? [], (x) => sameInstance(x, t));
   if (i < 0) return;
   c.traits = [...c.traits!.slice(0, i), ...c.traits!.slice(i + 1)];
-  const li = lastIndexOfInstance(c.liveTraits ?? [], t); // retire l'occurrence accordée des modificateurs de profil en direct
+  const li = dernierIndex(c.liveTraits ?? [], (x) => sameInstance(x, t)); // retire l'occurrence accordée des modificateurs de profil en direct
   if (li >= 0) c.liveTraits = [...c.liveTraits!.slice(0, li), ...c.liveTraits!.slice(li + 1)];
   resyncPsychScalars(c);
-  const contrib = parsePsychTraits([t]).psychTraits ?? [];
-  for (const pt of contrib) {
-    const j = (c.psychTraits ?? []).findIndex((x) => x.type === pt.type && (x.cible ?? '') === (pt.cible ?? ''));
+  for (const pt of contributionPsy(t)) {
+    const j = dernierIndex(c.psychTraits ?? [], (x) => x.type === pt.type && (x.cible ?? '') === (pt.cible ?? '') && memeSource(x.src, pt.src));
     if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];
   }
   if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
