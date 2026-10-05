@@ -28,6 +28,7 @@ import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
 import { ECRIT_LU } from './toutes.mjs'
+import { gitDeLArbreReel, lancerGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const CLASSEUR = join(RACINE, 'scripts', 'gates', 'classerPush.mjs')
@@ -86,6 +87,24 @@ test('chaque gate porte la condition du classement SSI elle est sautable', () =>
       )
   }
   assert.deepEqual(ecarts, [])
+})
+
+test('un push qui ne touche qu’un mod est PRODUIT ; un skill `SKILL.md` reste documentaire (#2278)', () => {
+  const mods = ['.claude/skills/harnais/']
+  const verdict = classer(['.claude/skills/harnais/hooks/x.ts'], { mods })
+  assert.equal(verdict.produit, true)
+  assert.match(verdict.motifs[0], /racine de mod/)
+  assert.equal(classer(['.claude/skills/m/hooks/x.ts', '.claude/skills/m/.claude-plugin/plugin.json']).produit, true, 'un manifeste du diff fait la racine')
+  assert.equal(classer(['.claude/skills/orchestrer/SKILL.md'], { mods }).produit, false)
+  assert.equal(classer(['.claude/skills/harnais2/SKILL.md'], { mods }).produit, false, '`harnais2/` n’est pas sous `harnais/`')
+})
+
+test('le mur et la garde d’un mod jouent sur un push qui ne touche qu’un mod, en CI comme dans `npm run gates` (#2278)', () => {
+  for (const nom of ['lint', 'mods:check']) {
+    assert.ok(gates.some((g) => g.nom === nom), `${nom} absente de ci.yml, donc du rejeu local \`npm run gates\``)
+    assert.ok(ECRIT_LU[nom].lit.includes('.claude/skills/'), `${nom} : son \`lit\` couvre les mods`)
+    assert.equal(sautables.has(nom), false, `${nom} n’est jamais sautée`)
+  }
 })
 
 test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_PRODUIT', () => {
@@ -189,7 +208,7 @@ test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’ell
 
 /** Les sources de `src/` et `server/src/` SUIVIES par git, hors bancs de test. */
 function sourcesDeProduction() {
-  return execFileSync('git', ['ls-files', '--', 'src', 'server/src'], { cwd: RACINE, encoding: 'utf8' })
+  return gitDeLArbreReel(RACINE)('ls-files', '--', 'src', 'server/src')
     .split('\n')
     .map((l) => l.trim())
     .filter((f) => /\.(ts|tsx|mts|js|jsx)$/.test(f) && !f.includes('.test.'))
@@ -240,7 +259,7 @@ test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON'
 
 // (d) — le CLI, sur des dépôts JETABLES de `os.tmpdir()`.
 
-const gitDe = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+const gitDe = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
 /** Un dépôt jetable avec un `main` d'un commit, une branche de travail, et `origin` sur lui-même. */
 function depotJetable() {
@@ -299,6 +318,28 @@ test('CLI — une branche dont le seul commit touche une fiche sort `produit=fal
   }
 })
 
+test('CLI — une branche qui ne touche qu’un module de mod sort `produit=true` ; un `SKILL.md` seul, `produit=false`', () => {
+  const { racine, git } = depotJetable()
+  try {
+    ecrire(racine, '.claude/skills/m/.claude-plugin/plugin.json', '{}\n')
+    ecrire(racine, '.claude/skills/s/SKILL.md', 'skill\n')
+    git(['add', '.claude'])
+    git(['commit', '-q', '-m', 'mod et skill'])
+    git(['update-ref', 'refs/remotes/origin/main', 'HEAD'])
+    ecrire(racine, '.claude/skills/s/SKILL.md', 'skill retouché\n')
+    git(['commit', '-q', '-am', 'skill'])
+    assert.equal(jouerCli(racine, { SHA: 'HEAD' }).stdout.trim(), 'produit=false')
+    ecrire(racine, '.claude/skills/m/hooks/x.ts', 'export {}\n')
+    git(['add', '.claude'])
+    git(['commit', '-q', '-m', 'module de mod'])
+    const r = jouerCli(racine, { SHA: 'HEAD' })
+    assert.equal(r.code, 0)
+    assert.equal(r.stdout.trim(), 'produit=true')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('CLI — sur un commit de file, `BASE` (`merge_group.base_sha`) borne le diff, jamais le merge-base', () => {
   const { racine, git } = depotJetable()
   try {
@@ -328,19 +369,17 @@ test('CLI — un clone `--single-branch` VA CHERCHER `origin/main`, puis classe'
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
     // `--single-branch` sur la branche de TRAVAIL : le clone n'a aucune `refs/remotes/origin/main`.
-    execFileSync('git', ['clone', '-q', '--single-branch', '--branch', 'chantier/x', racine, clone], {
-      env: envDeDepotForge(), encoding: 'utf8',
-    })
+    lancerGit(['clone', '-q', '--single-branch', '--branch', 'chantier/x', racine, clone])
     assert.throws(
-      () => execFileSync('git', ['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge() }),
+      () => lancerGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone }),
       'le clone doit bien être SANS origin/main — sinon le cas ne mesure rien',
     )
     const r = jouerCli(clone, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=false')
     assert.equal(
-      execFileSync('git', ['rev-parse', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge(), encoding: 'utf8' }).trim(),
-      execFileSync('git', ['rev-parse', 'refs/heads/main'], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim(),
+      lancerGit(['rev-parse', 'refs/remotes/origin/main'], { cwd: clone }).trim(),
+      lancerGit(['rev-parse', 'refs/heads/main'], { cwd: racine }).trim(),
       'le fetch doit avoir RAPPORTÉ origin/main',
     )
   } finally {

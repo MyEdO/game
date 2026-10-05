@@ -6,7 +6,7 @@ import type { TenueDef } from '../types';
 // rouge et écusson vert à l'oiseau, épais col-étole de TOISON noire bouclée sur tunique et braies
 // de laine VERTE rapiécées, large ceinture de cuir à boucle de laiton, brassard tooling cerclé
 // d'or, sac de fourrage sur le dos (louche, poêlon, breloques), revers de braies crème et
-// PIEDS NUS de halfling. Dague/fronde/gourdin = arme en main (hors tenue).
+// PIEDS NUS de halfling. L’arme en main est hors tenue.
 export const tenue: TenueDef = {
   label: 'Gardechamps',
   id: "gardechamps",

@@ -101,7 +101,7 @@ const V1 = parseChapitre(CHAPITRE_V1);
 const adresse = (parts: unknown[]): DescRef => ({ book: LIVRE, ch: CH, parts } as DescRef);
 
 /** L'adresse de BLOCS du passage `P1`, bâtie sur le chapitre de fondation. */
-const REF_BLOCS = adresse(findRuns(V1, normText(P1)) ?? []);
+const REF_BLOCS = adresse([findRuns(V1, normText(P1))]);
 /** L'adresse de CELLULE de la case « Humain », bâtie sur le chapitre de fondation. */
 const REF_CELLULE = adresse([cellRefFor(V1, findCells(V1, normText('Humain'))[0])]);
 /** Une adresse qui ne résout NULLE PART, pas même au commit de fondation. */

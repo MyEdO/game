@@ -1,7 +1,8 @@
 /**
- * Galerie QC des ICÔNES d'objet (primitive ItemIcon — Sac / onglet Combat / hotbar) : tout le
- * registre d'armes + les boucliers + l'armure (matériau × emplacement). Vérifie que CHAQUE objet
- * produit une icône reconnaissable (pas de glyphe par défaut, pas de plantage).
+ * Galerie QC des ICÔNES d'objet (primitive ItemIcon — Sac / onglet Combat / hotbar) : toutes les
+ * possessions d'arme du catalogue (et les formes proposées d'une arme abstraite) + les boucliers +
+ * l'armure (matériau × emplacement). Vérifie que CHAQUE objet produit une icône reconnaissable (pas de
+ * glyphe par défaut, pas de plantage).
  * NB : le cadrage serré (getBBox) est appliqué EN JEU ; ce rendu SSR statique utilise le viewBox de
  * repli (donc moins serré). Lancer : npx tsx scripts/gen-item-icon-gallery.mts
  */
@@ -9,8 +10,10 @@ import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { ItemIcon } from '../src/ui/ItemIcon';
-import { WEAPON_DEFS } from '../src/gameIso/rig/parts/weapons/_registry.generated';
-import type { HitLocation, ItemInstance, Weapon } from '../src/engine/types';
+import { findTrappingById, trappingsInstanciables } from '../src/data';
+import { isShieldItem, itemFromTrappingById } from '../src/engine/items';
+import { formeResolue } from '../src/gameIso/rig/parts/equipment';
+import type { HitLocation, ItemInstance } from '../src/engine/types';
 
 const cell = (label: string, node: React.ReactElement) =>
   `<figure style="margin:0;text-align:center">${renderToStaticMarkup(node)}
@@ -18,16 +21,19 @@ const cell = (label: string, node: React.ReactElement) =>
 const grid = (cells: string[]) =>
   `<div style="display:grid;grid-template-columns:repeat(auto-fill,84px);gap:10px">${cells.join('')}</div>`;
 
-// Armes : tout le registre (1 fichier defs/ = 1 arme), via ItemIcon(Weapon).
-const weaponCells = WEAPON_DEFS.map((d) =>
-  cell(d.label, React.createElement(ItemIcon, { item: { label: d.label, type: d.type, damage: { plusBF: false, flat: 0 }, qualities: [] } as Weapon, size: 64 })),
-);
+// Armes et boucliers : les possessions d'arme du CATALOGUE (`trappingId`), comme au Sac — la forme se
+// résout au catalogue (`formeResolue`) ; un bouclier se reconnaît à la marque de son entrée (`isShieldItem`).
+const objets = trappingsInstanciables()
+  .filter((t) => t.categorie === 'melee' || t.categorie === 'ranged')
+  .map((t) => itemFromTrappingById(t.id)!);
+const icone = (label: string, item: ItemInstance) => cell(label, React.createElement(ItemIcon, { item, size: 64 }));
+const weaponCells = objets.filter((it) => !isShieldItem(it)).flatMap((it) => {
+  const choix = findTrappingById(it.trappingId!)?.formChoices ?? [];
+  return [icone(it.label, it), ...choix.filter((f) => f !== formeResolue(it)).map((f) => icone(`${it.label} · ${f}`, { ...it, formeChoisie: f }))];
+});
 
 // Boucliers (art dédié à dégradés → ItemIcon injecte ses <defs>).
-const SHIELDS = ['Bouclier', 'Bouclier (Grand)', 'Bouclier (Targe)'];
-const shieldCells = SHIELDS.map((name) =>
-  cell(name, React.createElement(ItemIcon, { item: { label: name, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'protectrice', value: 1 }] } as Weapon, size: 64 })),
-);
+const shieldCells = objets.filter(isShieldItem).map((it) => icone(it.label, it));
 
 // Armures : matériau × emplacement (ItemIcon choisit le slot réellement couvert par la pièce).
 const MATS = ['Rembourré', 'Cuir', 'Maille', 'Plaque'];

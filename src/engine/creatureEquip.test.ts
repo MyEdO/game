@@ -5,6 +5,7 @@ import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import type { TraitInstance } from './statEntry';
+import { formeResolue } from '../gameIso/rig/parts/equipment';
 
 const t = (o: { id: string; arg?: string; value?: number; range?: number; natural?: boolean }): TraitInstance => o as TraitInstance;
 
@@ -36,7 +37,8 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
     const w = weaponFromTrait(t({ id: 'a-distance', arg: 'arbalete', value: 9, range: 60 }));
     expect(w?.label).toBe('Arbalète'); // libellé du catalogue, jamais l'id brut
     expect(w?.type).toBe('ranged');
-    expect(w?.shape).toBe('arbalete');
+    expect(w?.trappingId).toBe('arbalete');
+    expect(formeResolue(w!)).toBe('arbalete'); // forme RÉSOLUE au catalogue, jamais recopiée
     expect(w?.reload).toBe(1); // Recharge 1 dérivée de la Qualité du trapping (LDB 62 l.333)
   });
 
@@ -44,7 +46,7 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
     const w = weaponFromTrait(t({ id: 'arme', arg: 'Griffes', value: 5, natural: true }));
     expect(w).not.toBeNull();
     expect(w?.label).toBe('Griffes');
-    expect(w?.shape).toBeUndefined();
+    expect(formeResolue(w!)).toBeUndefined();
   });
 
   it('trait non-armement (ex. Vol) → null', () => {
@@ -71,7 +73,7 @@ describe('creatureEquip — weaponFromId (canal d’authoring de scène `weapon`
     expect(w).not.toBeNull();
     expect(w!.label).toBe('Arc');
     expect(w!.type).toBe('ranged');
-    expect(w!.shape).toBe('arc');
+    expect(formeResolue(w!)).toBe('arc');
     expect(w!.damage).toEqual({ plusBF: true, flat: 3 });
     expect(w!.range).toBe(50);
     expect(w!.subType).toBe('arc'); // Groupe d'arme → Spécialisation de Projectiles (weaponGroupSkillMode)

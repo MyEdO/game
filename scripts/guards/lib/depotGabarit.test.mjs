@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEPOT } from './ticketsGh.mjs'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -14,8 +14,9 @@ import { listerDossier } from './lister.mjs'
 import { ast, typescript } from './dialecte.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
+import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 
-const git = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+const git = (cwd) => (args) => lancerGit(args, { cwd, net: true })
 
 const PARAMS = {
   fichiers: { 'src/a.ts': 'export const a = 1\n', 'lu/b.txt': 'b\n' },
@@ -107,7 +108,7 @@ test('`commit: false` : un dépôt initialisé, fichiers sur le disque, HORS ind
       ['?? lu/', '?? src/'],
       'les fichiers devraient être NON SUIVIS',
     )
-    assert.throws(() => git(racine)(['rev-parse', '--verify', 'HEAD']), /Command failed/, 'un dépôt sans commit ne doit résoudre AUCUN HEAD')
+    assert.throws(() => git(racine)(['rev-parse', '--verify', 'HEAD']), /git rev-parse --verify HEAD en échec/, 'un dépôt sans commit ne doit résoudre AUCUN HEAD')
   } finally {
     jeter(racine)
   }
@@ -167,6 +168,23 @@ test('A : une construction qui ÉCHOUE en vol efface son dossier avant de relanc
   assert.deepEqual(restes, [], 'le dossier du gabarit en échec est resté sous os.tmpdir()')
 })
 
+test('une copie qui ÉCHOUE dit, DANS son message, l’erreur d’origine et l’état mesuré des deux côtés (#2155)', () => {
+  const params = { fichiers: { 'a.txt': 'sonde copie\n' } }
+  const { racine: gabarit } = gabaritDeDepot(params)
+  jeter(gabarit)
+  assert.throws(() => instanceDeDepot(params), (e) => {
+    assert.equal(e.cause?.code, 'ENOENT')
+    assert.match(e.message, /code ENOENT/)
+    assert.ok(e.message.includes(`chemin ${e.cause.path}`), e.message)
+    assert.ok(e.message.includes(e.cause.message), e.message)
+    assert.match(e.message, /gabarit absent/)
+    assert.match(e.message, /objets du gabarit absent/)
+    assert.match(e.message, /objets de l’instance absent/)
+    assert.match(e.message, /contenu du \.git de l’instance aucun/)
+    return true
+  })
+})
+
 // ── Sonde B : l'instance porte l'HISTOIRE, pas une empreinte d'arbre ──────────────────────────────
 test('B : l’instance est un dépôt HISTORIQUE complet (objets, refs, graphe) et sain', () => {
   const { racine, sha } = instanceDeDepot(PARAMS)
@@ -178,7 +196,7 @@ test('B : l’instance est un dépôt HISTORIQUE complet (objets, refs, graphe) 
     assert.equal(g(['merge-base', 'HEAD', 'refs/remotes/origin/main']), sha, 'les deux refs ne partagent pas l’histoire')
     assert.equal(g(['log', '-1', '--format=%s']), PARAMS.message)
 
-    const fsck = spawnSync('git', ['fsck', '--no-progress'], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' })
+    const fsck = resultatDeGit(['fsck', '--no-progress'], { cwd: racine })
     assert.equal(fsck.status, 0, `git fsck a refusé l’instance : ${fsck.stderr}`)
     assert.doesNotMatch(fsck.stderr + fsck.stdout, /missing|broken|corrupt/i)
 
@@ -257,31 +275,6 @@ const SITE_GIT = /(?:execFileSync|spawnSync)\(\s*['"]git['"]/
 /** L'import qui adresse l'env isolé à la primitive. */
 const IMPORTE_L_ENV = /import\s*\{[^}]*\benvDeDepotForge\b[^}]*\}\s*from\s*['"][^'"]*depotGabarit\.mjs['"]/
 
-/**
- * Lanceurs qui visent l'arbre RÉEL du dépôt : leur env HÉRITÉ est ce qui les rend justes, et c'est
- * la raison pour laquelle ils sont hors de la règle. Nominatif AU SITE : `ancre` est un texte de la
- * fenêtre du site, `sites` son compte EXACT dans le fichier — une entrée qui n'atteint plus rien,
- * ou qui en atteint un de plus, fait rougir.
- */
-const LANCEURS_ARBRE_REEL = [
-  {
-    fichier: 'scripts/gates/classerPush.test.mjs', ancre: 'cwd: RACINE', sites: 1,
-    raison: 'lit les sources SUIVIES de l’arbre réel (`ls-files`) pour confronter la gate à la mesure',
-  },
-  {
-    fichier: 'scripts/gates/testsParGate.test.mjs', ancre: "['rev-parse', '--show-toplevel']", sites: 1,
-    raison: 'résout la RACINE de l’arbre réel, qui est le corpus que la couverture mesure',
-  },
-  {
-    fichier: 'scripts/hooks/solde-ticket-guard.test.mjs', ancre: '`HEAD:${chemin}`', sites: 1,
-    raison: 'lit les revues de palier dans le HEAD de l’arbre réel — le contrôle positif de la chaîne',
-  },
-  {
-    fichier: 'scripts/hooks/solde-ticket-guard.test.mjs', ancre: "'--is-shallow-repository'", sites: 2,
-    raison: 'mesure la profondeur de l’arbre réel, dont dépend la lecture d’histoire des deux cas',
-  },
-]
-
 /** Fichiers du corpus qui forgent un dépôt, hors la primitive. */
 function forgeurs() {
   const corpus = readCorpus(['scripts', 'src'], { exts: ['.mjs', '.mts', '.js', '.ts', '.tsx'], tests: true })
@@ -303,10 +296,8 @@ function fautesDe({ rel, text }) {
   if (!FORGE_UN_DEPOT.test(text) || !SITE_GIT.test(text)) return []
   const fautes = []
   if (!IMPORTE_L_ENV.test(text)) fautes.push(`${rel} : forge un dépôt sans importer \`envDeDepotForge\``)
-  const exempts = LANCEURS_ARBRE_REEL.filter((e) => e.fichier === rel)
   for (const site of sitesGit(text)) {
     if (ENV_ISOLE.test(site.fenetre)) continue
-    if (exempts.some((e) => site.fenetre.includes(e.ancre))) continue
     fautes.push(`${rel}:${site.ligne} : lanceur git sans \`env: envDeDepotForge()\` — ${site.texte}`)
   }
   return fautes
@@ -325,19 +316,6 @@ test('D : le détecteur MORD sur un forgeur à env hérité, à env quelconque, 
 
 test('D : tout fichier qui FORGE un dépôt passe l’env isolé à CHACUN de ses lanceurs git', () => {
   assert.deepEqual(forgeurs().flatMap(fautesDe), [])
-})
-
-test('D : le stock des lanceurs d’arbre RÉEL est nominatif, compté au site, et chaque entrée porte sa raison', () => {
-  const parRel = new Map(forgeurs().map((f) => [f.rel, f.text]))
-  const fautes = []
-  for (const e of LANCEURS_ARBRE_REEL) {
-    assert.ok(e.raison.length > 30, `« ${e.fichier} / ${e.ancre} » sans raison lisible`)
-    const texte = parRel.get(e.fichier)
-    if (!texte) { fautes.push(`${e.fichier} ne forge plus de dépôt : l’entrée « ${e.ancre} » est morte`); continue }
-    const vus = sitesGit(texte).filter((s) => s.fenetre.includes(e.ancre)).length
-    if (vus !== e.sites) fautes.push(`${e.fichier} « ${e.ancre} » : ${vus} site(s) atteint(s) pour ${e.sites} déclaré(s)`)
-  }
-  assert.deepEqual(fautes, [])
 })
 
 // #1806 (juge du lot #85, H2 point 5) : la forge est un ÉCRIVAIN ; l'identité qui
@@ -434,6 +412,10 @@ const SURCHARGES_HORS_CLASSE = [
   { fichier: 'scripts/lancer-local.test.mjs', ancre: 'const env = envIsole(', sites: 1, raison: 'mesure `envIsole`, qui recompose le PATH d’un enfant' },
   { fichier: 'scripts/lancer-local.test.mjs', ancre: "['sonde', '--', 'sonde', '3', 'suite']", sites: 2, raison: 'mesure que le lanceur local ignore un PATH étranger' },
   { fichier: 'scripts/test/run.test.mjs', ancre: 'const env = envEnfant(', sites: 1, raison: 'mesure `envEnfant`, qui transmet le PATH' },
+  { fichier: 'scripts/mods/verifier.mjs', ancre: "PATH: 'trouver `claude`", sites: 1, raison: 'clé de la liste blanche `ENV_HERITE` (#2278), qui transmet le PATH hérité' },
+  { fichier: 'scripts/mods/verifier.mjs', ancre: "Path: 'graphie win32 de PATH", sites: 1, raison: 'clé de la liste blanche `ENV_HERITE` (#2278), qui transmet le Path hérité sous win32' },
+  { fichier: 'scripts/mods/verifier.test.mjs', ancre: "PATH: '/bin', GARDEE_NON", sites: 1, raison: 'env de base du banc de `envBlanc` (#2278), qui mesure que le PATH passe' },
+  { fichier: 'scripts/mods/verifier.test.mjs', ancre: "npm_config_cache: '/cache', PATH: '/bin'", sites: 1, raison: 'env de base du banc de `envBlanc` (#2278), jamais passé à un processus' },
 ]
 
 test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pas une cale (#2114) : la panne de git passe par `envGitFeint` (#2225)', () => {

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 /**
  * « Exporter forme dépôt (dev) » (#680) : une campagne LIVRÉE ouverte à l'éditeur puis passée au geste
- * SANS modification rend, à l'octet, le fichier du dépôt ET son nom (`projetVersDepot`, `origineLivree`).
+ * SANS modification rend, à l'octet, le fichier du dépôt ET son nom (`projetVersDepot`, `origineLivree`) ;
+ * l'aller-retour d'une campagne MODIFIÉE garde l'ordre des scènes et la scène d'entrée (#1997).
  * Mesuré sur le chemin RÉEL : `<Editor>` monté, la campagne ouverte par la voie de recette
  * (`__wfrp.editorOpen`), menu Fichier déroulé, le Blob et le nom que `downloadText` fabrique interceptés.
  */
@@ -17,8 +18,10 @@ import { emptyScene } from '../../state/scene';
 import { __resetLibraryForTest } from '../../state/projectLibrary';
 import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, type BuiltinCampaign } from '../../scenes/campaign';
+import { campagnesLivrees } from '../../scenes/projetsLivres.testkit';
 import { proseNonMaterialisee } from '../../data/schemas/grammaire/prose';
+import { basculerSur, boutonParTitre } from './editeur.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -38,6 +41,7 @@ afterEach(async () => {
 });
 
 const ENTREE = 'Exporter forme dépôt (dev)';
+const EXPORT_PORTABLE = 'Exporter JSON';
 const DISQUE = readFileSync(join(__dirname, '../../scenes/diligence/diligence-projet.json'), 'utf8');
 
 function bouton(label: string): HTMLButtonElement | undefined {
@@ -56,9 +60,9 @@ async function monter(): Promise<void> {
   await act(async () => { root!.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'brouillon' }} />); });
 }
 
-async function ouvrirLaDiligence(): Promise<void> {
+async function ouvrir(campagne: BuiltinCampaign = diligenceCampaign): Promise<void> {
   let verdict: unknown = '';
-  await act(async () => { verdict = await buildApi().editorOpen(diligenceCampaign.id); });
+  await act(async () => { verdict = await buildApi().editorOpen(campagne.id); });
   expect(String(verdict), 'la campagne s’ouvre à l’éditeur').toMatch(/^✓/);
 }
 
@@ -87,10 +91,10 @@ async function renommer(nom: string): Promise<void> {
 }
 
 /**
- * Joue « Fichier → Exporter forme dépôt (dev) » et rend le NOM et le TEXTE que `downloadText`
- * télécharge. Surcharges PLATES, restaurées — jamais `vi.mock`/`vi.spyOn` (suite `isolate:false`).
+ * Joue « Fichier → `entree` » et rend le NOM et le TEXTE que `downloadText` télécharge. Surcharges
+ * PLATES, restaurées — jamais `vi.mock`/`vi.spyOn` (suite `isolate:false`).
  */
-async function telecharge(): Promise<{ nom: string; texte: string }> {
+async function telecharge(entree = ENTREE): Promise<{ nom: string; texte: string }> {
   const OrigBlob = globalThis.Blob;
   const OrigCreateObjectURL = URL.createObjectURL;
   const OrigRevokeObjectURL = URL.revokeObjectURL;
@@ -110,7 +114,7 @@ async function telecharge(): Promise<{ nom: string; texte: string }> {
   HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) { nom = this.download; };
   try {
     await act(async () => { exigeBouton('Fichier').click(); });
-    await act(async () => { exigeBouton(ENTREE).click(); });
+    await act(async () => { exigeBouton(entree).click(); });
   } finally {
     (globalThis as unknown as { Blob: unknown }).Blob = OrigBlob;
     URL.createObjectURL = OrigCreateObjectURL;
@@ -123,7 +127,7 @@ async function telecharge(): Promise<{ nom: string; texte: string }> {
 describe('Éditeur — « Exporter forme dépôt (dev) » rend le fichier du dépôt (#680)', () => {
   it('la Diligence ouverte puis exportée SANS modification : le fichier committé à l’octet, sous son nom', async () => {
     await monter();
-    await ouvrirLaDiligence();
+    await ouvrir();
     const { nom, texte } = await telecharge();
     expect(nom).toBe(diligenceCampaign.fichier);
     expect(texte).toBe(DISQUE);
@@ -135,17 +139,40 @@ describe('Éditeur — « Exporter forme dépôt (dev) » rend le fichier du dé
 
   it('renommée par l’auteur : le nom donné part TEL QUEL comme libellé', async () => {
     await monter();
-    await ouvrirLaDiligence();
+    await ouvrir();
     await renommer('Ma Diligence');
     const { nom, texte } = await telecharge();
     expect(nom).toBe(diligenceCampaign.fichier);
     expect(texte).toBe(`${JSON.stringify({ ...JSON.parse(DISQUE), label: 'Ma Diligence' }, null, 1)}\n`);
   });
 
+  it.each(campagnesLivrees)('%s : modifiée depuis une scène non-entrée, l’aller-retour garde l’ordre des scènes et l’entrée (#1997)', async (_rel, campagne, disque) => {
+    const origine = JSON.parse(disque) as { scenes: Array<{ id: string; label?: string }> };
+    const [entree] = origine.scenes;
+    await monter();
+    await ouvrir(campagne);
+    await act(async () => { boutonParTitre(container!, 'Dupliquer la scène active').click(); });
+    if (origine.scenes.length >= 2) await basculerSur(container!, origine.scenes[1].id);
+
+    const { nom, texte } = await telecharge();
+    expect(nom).toBe(campagne.fichier);
+    const exporte = JSON.parse(texte) as { scenes: Array<{ id: string; label?: string }> };
+    const copie = exporte.scenes[exporte.scenes.length - 1];
+    expect(origine.scenes.map((sc) => sc.id), 'id de la copie neuf').not.toContain(copie.id);
+    expect(copie.label).toBe(`${entree.label || entree.id} (copie)`);
+    const attendu = { ...origine, scenes: [...origine.scenes, { ...entree, id: copie.id, label: copie.label }] };
+    expect(texte).toBe(`${JSON.stringify(attendu, null, 1)}\n`);
+
+    const portable = await telecharge(EXPORT_PORTABLE);
+    expect(portable.nom).toBe(`${campagne.id}-projet.json`);
+    const doc = JSON.parse(portable.texte) as { scenes: Array<{ id: string }> };
+    expect(doc.scenes.map((sc) => sc.id)).toEqual([...origine.scenes.map((sc) => sc.id), copie.id]);
+  });
+
   it('un projet qui ne vient pas d’une campagne livrée n’offre pas le geste', async () => {
     await monter();
     expect(await offerte(), 'éditeur monté sur un brouillon').toBe(false);
-    await ouvrirLaDiligence();
+    await ouvrir();
     expect(await offerte(), 'campagne livrée ouverte').toBe(true);
     await act(async () => { exigeBouton('Fichier').click(); });
     await act(async () => { exigeBouton('Nouveau projet').click(); });

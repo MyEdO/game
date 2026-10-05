@@ -12,7 +12,7 @@ import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { adresseLue, type AdresseDeCreation } from '../engine/adresseDeCreation';
-import type { AdvancementRef } from '../data';
+import { findTrappingById, type AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
 
@@ -49,10 +49,10 @@ export function rosterLoad(): RosterEntry[] {
     // `remapSortsFusionnesDeep`) s'appliquent donc en repli IDEMPOTENT à chaque
     // lecture (aucun ancien token restant après un 1er passage → no-op), plutôt que via `migrateDoc`
     // (réservé au format `EXPORT_VERSION`). Les clés de `careerSlotChoices` en ids (#1924) et la
-    // graphie des ops de Talent (#1473) de même, héros par héros.
+    // graphie des ops de Talent (#1473) de même, héros par héros, et la forme d'objet (#2113).
     return (remapSortsFusionnesDeep(remapSkillIdDeep(remapNameToLabelDeep(remapCharKeysDeep(arr)))) as unknown[])
       .filter((e): e is EntreeLue => !!e && typeof e === 'object' && typeof (e as EntreeLue).hero?.id === 'string')
-      .map((e): RosterEntry => ({ ...e, hero: avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero)), draft: brouillonRelu(e.draft) }));
+      .map((e): RosterEntry => ({ ...e, hero: avecFormeChoisie(avecOpsDeTalentALaGraphie(avecClesDEmplacementEnIds(e.hero))), draft: brouillonRelu(e.draft) }));
   } catch {
     return [];
   }
@@ -133,6 +133,23 @@ function avecTalentsAcquisDAvantLeLot(m: Mutation, talents: TalentInstance[]): M
   return acquis.length && !m.talentsAcquis ? { ...m, talentsAcquis: acquis } : m;
 }
 
+/** Objets et armes du héros (`items`, `weapons`) à la forme CHOISIE (#2113) — idempotent. Le `shape` d'un
+ *  objet devient `formeChoisie` s'il est parmi les `formChoices` du trapping (`trappingId`) ET diffère de son
+ *  `shape` ; sinon il disparaît, porteur sans `trappingId` compris. */
+function avecFormeChoisie<T>(hero: T): T {
+  const h = (hero ?? {}) as { items?: unknown; weapons?: unknown };
+  const migrer = (liste: unknown) => (Array.isArray(liste) ? liste.map(formeChoisieDe) : liste);
+  return { ...hero, ...(h.items !== undefined && { items: migrer(h.items) }), ...(h.weapons !== undefined && { weapons: migrer(h.weapons) }) };
+}
+
+function formeChoisieDe(o: unknown): unknown {
+  if (!o || typeof o !== 'object' || !('shape' in o)) return o;
+  const { shape, ...reste } = o as { shape: unknown; trappingId?: unknown };
+  const t = typeof reste.trappingId === 'string' ? findTrappingById(reste.trappingId) : undefined;
+  const choix = typeof shape === 'string' && t?.formChoices?.includes(shape) && shape !== t.shape;
+  return choix ? { ...reste, formeChoisie: shape } : reste;
+}
+
 /** Une instance par Talent (id et spécialisation), les `times` des doublons additionnés. */
 function instancesFusionnees(talents: TalentInstance[]): TalentInstance[] {
   return talents.reduce<TalentInstance[]>((acc, x) => {
@@ -190,6 +207,10 @@ export const ROSTER_MIGRATIONS = {
   // `avecOpsDeTalentALaGraphie`. Sans elle, l'op importée n'a pas de `talent` et son application
   // lève (`engine/ops.ts`, `grantTalent`).
   6: (doc) => ({ ...doc, hero: avecOpsDeTalentALaGraphie(doc.hero) }),
+  // v7 → v8 (#2113) : le `shape` d'un objet ou d'une arme, copie du catalogue ou choix, devient
+  // `formeChoisie` (le choix seul) — `avecFormeChoisie`. Sans elle, l'Arme simple d'un héros importé
+  // perd la forme choisie.
+  7: (doc) => ({ ...doc, hero: avecFormeChoisie(doc.hero) }),
 } satisfies MigrationMap;
 
 export const EXPORT_VERSION = versionCourante(ROSTER_MIGRATIONS);

@@ -260,6 +260,7 @@
     "label": "Bouclier",
     "categorie": "melee",
     "subType": "base",
+    "shield": true,
     "enc": 1,
     "availability": "Commune",
     "reach": "Très courte",
@@ -298,6 +299,7 @@
     "label": "Bouclier (Grand)",
     "categorie": "melee",
     "subType": "base",
+    "shield": true,
     "enc": 3,
     "availability": "Commune",
     "reach": "Très courte",
@@ -336,6 +338,7 @@
     "label": "Bouclier (Targe)",
     "categorie": "melee",
     "subType": "base",
+    "shield": true,
     "enc": 0,
     "availability": "Commune",
     "reach": "Personnelle",
@@ -8074,6 +8077,7 @@
     "label": "Pavois",
     "categorie": "melee",
     "subType": "base",
+    "shield": true,
     "enc": 4,
     "availability": "Rare",
     "reach": null,
@@ -11056,6 +11060,7 @@
     "label": "Vision de Vie",
     "categorie": "melee",
     "subType": "base",
+    "shield": true,
     "availability": "Exotique",
     "price": {
       "gold": 0,
@@ -11066,7 +11071,7 @@
       "book": "zoo-imperial",
       "page": 116
     },
-    "desc": "Bouclier magique créé à partir de poudre de cadavres de revenant. Il confère à son porteur la capacité de voir les créatures mort-vivantes telles qu'elles étaient avant leur trépas, ce qui neutralise le Trait Peur du mort-vivant (sauf s'il le possédait déjà de son vivant). Ne permet ni de communiquer avec, ni de contrôler les morts-vivants.",
+    "desc": "Ce bouclier est créé à partir de la poudre de cadavres de revenant. Il confère à son porteur la capacité de voir les créatures mort-vivantes telles qu'elles étaient avant leur trépas. Cela neutralise le Trait Peur du mort-vivant, sauf si cette créature le possédait également de son vivant. Le bouclier ne permet pas de communiquer ou de contrôler les morts-vivants, seulement d'observer leur apparence juste avant de mourir.\n\nCependant, cette capacité a aussi l'inconvénient de compliquer l'identification des ennemis dans le feu de l'action. De nombreux contes parlent de guerriers équipés de ce bouclier qui se sont ensuite retournés contre leurs compagnons et criaient des encouragements à leurs propres victimes.",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -11087,7 +11092,7 @@
       }
     ],
     "enc": 1,
-    "shape": "vision_vie"
+    "shape": "rond"
   },
   {
     "id": "cape-du-loup",

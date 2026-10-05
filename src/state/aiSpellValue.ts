@@ -1,6 +1,6 @@
 /**
  * Évaluateur de SORT générique de l'IA — PUR et déterministe (module FEUILLE : importe seulement
- * `engine/*`, `./flow` (spellOps), `./spawn` (creatureToCombatant) et la donnée ; JAMAIS `ai.ts`,
+ * `engine/*`, `./flow` (spellOps), `./spawn` (spawnEnemy) et la donnée ; JAMAIS `ai.ts`,
  * `combatFlow` ou le store → pas de cycle).
  *
  * Principe (cf. plan « les casters jouent tout leur arsenal ») : la valeur d'un sort n'est PAS lue
@@ -22,8 +22,8 @@ import type { RNG } from '../engine/dice';
 import type { SizeCategory } from '../engine/size';
 import { groupMatch } from '../engine/groups';
 import { spellOps } from './flow';
-import { type SpellData, findCreatureById, findConditionById } from '../data';
-import { creatureToCombatant } from './spawn';
+import { type SpellData, findConditionById } from '../data';
+import { RefIrresoluble, spawnEnemy } from './spawn';
 
 /** DR moyen prudent injecté dans l'espérance d'une touche (l'espérance d'un DR ≥ 0 sur une réussite). */
 const AVG_DR = 1;
@@ -195,21 +195,17 @@ function marginalBuff(_caster: Combatant, subject: Combatant, op: GameOp, ctx: O
 }
 
 /** Valeur d'une INVOCATION alliée ≈ `count × (Blessures + ½ EV d'attaque)` de la créature invoquée
- *  (durabilité + sortie). `creatureToCombatant` (déterministe sans extras) si la créature existe,
- *  sinon proxy borné. */
+ *  (durabilité + sortie). Sa fiche sort de `spawnEnemy` (déterministe sans extras) ; une réf qui ne
+ *  se résout pas vaut un proxy borné. */
 function summonValue(op: Extract<GameOp, { op: 'summon' }>, caster: Combatant, ctx: OpEvalCtx): number {
   const count = Math.max(1, Math.round(finite(formulaExpectation(op.count, caster), 1)));
-  const creature = findCreatureById(op.ref);
-  let worth = 6;
-  if (creature) {
-    try {
-      const c = creatureToCombatant(creature, '__ai-eval__', { x: 0, y: 0 });
-      worth = (c.wounds?.max ?? 6) + 0.5 * bestAttackEV(c, ctx.refEnemy);
-    } catch {
-      worth = 6;
-    }
+  try {
+    const c = spawnEnemy({ ref: op.ref }, '__ai-eval__', { x: 0, y: 0 });
+    return count * ((c.wounds?.max ?? 6) + 0.5 * bestAttackEV(c, ctx.refEnemy));
+  } catch (e) {
+    if (e instanceof RefIrresoluble) return count * 6;
+    throw e;
   }
-  return count * worth;
 }
 
 /** Une op est-elle BÉNÉFIQUE ? (data-driven, par `op` — pas de nom de sort.) Couvre octrois, `charMod`/

@@ -8,7 +8,6 @@
 // l'entrée `tsx/esm` (l'exécutable `tsx` re-spawne un processus qui perd le préchargeur).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { installer } from './enregistreur-lectures.mjs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
@@ -19,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './chemin-mesure.mjs'
 import { mesurerEnRendu, refusSourcesInsuffisantes } from '../build-all.mjs'
+import { lancerGit } from '../../test/gitDeBanc.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
@@ -152,7 +152,7 @@ test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le list
   try {
     // Un fichier SUIVI qui répond pourtant à un motif de `.gitignore` : il reste dans le plan git.
     writeFileSync(path.join(racine, 'lib', 'suivi.log'), 'trace\n')
-    execFileSync('git', ['add', '-f', 'lib/suivi.log'], { cwd: racine, stdio: 'pipe' })
+    lancerGit(['add', '-f', 'lib/suivi.log'], { cwd: racine })
     const cache = path.join(racine, 'lib', '__pycache__')
     const mesurerLib = () => {
       const ignores = ignoresGit(racine)

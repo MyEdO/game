@@ -1,6 +1,6 @@
 ---
 name: creer-un-scenario-de-test
-description: À utiliser quand on doit vérifier une feature en jeu et qu'aucun scénario du menu « 🧪 Tests — scénarios » ne couvre le cas, ou quand on ajoute un fichier sous src/scenes/test-scenarios/. Un scénario = groupe fixé + scène adaptée + combat direct.
+description: À utiliser quand on doit vérifier une feature en jeu et qu'aucun scénario du menu « Scénarios de test » ne couvre le cas, ou quand on ajoute un fichier sous src/scenes/test-scenarios/. Un scénario = groupe fixé + scène adaptée + combat direct.
 ---
 
 # Créer un scénario de test

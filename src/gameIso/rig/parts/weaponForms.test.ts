@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { WEAPON_FORMS, SHIELD_FORMS } from './weaponForms';
-import { weaponFamily, shieldPart } from './equipment';
+import { weaponFamily, shieldPart, type FormeDArme } from './equipment';
 import { declaredView } from '../viewArt';
 import { trappings } from '../../../data';
-import type { Weapon } from '../../../engine/types';
+import { WEAPON_DEFS } from './weapons/_registry.generated';
+import { SHIELD_DEFS } from './shields/_registry.generated';
 
-/** Arme minimale routée PAR SHAPE (id stable) — plus aucun routage par libellé. */
-const byShape = (shape: string | undefined, type: 'melee' | 'ranged' = 'melee'): Weapon =>
-  ({ label: 'x', type, damage: { plusBF: false, flat: 4 }, qualities: [], shape } as Weapon);
+/** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé. */
+const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
 
 /** Sous-types NON tenus en main → hors contrat de silhouette : engins de siège servis par un équipage
  *  et munitions/projectiles. Le rig ne dessine pas d'arme portée pour eux. */
@@ -34,6 +34,13 @@ describe('weaponForms — shape catalogué sur les armes tenues en main', () => 
     expect(bad).toEqual([]);
   });
 
+  it('tout slug de WEAPON_DEFS et de SHIELD_DEFS est visé par une shape ou une formChoices du catalogue', () => {
+    const vises = new Set(trappings.flatMap((t) => [t.shape, ...(t.formChoices ?? [])]));
+    const defs = [...WEAPON_DEFS, ...SHIELD_DEFS].map((d) => d.slug);
+    expect(defs.some((s) => vises.has(s)), 'PRÉMISSE : le catalogue vise des défs du rig').toBe(true);
+    expect(defs.filter((s) => !vises.has(s))).toEqual([]);
+  });
+
   it('Mains nues n’a pas de shape (aucune arme dessinée)', () => {
     const mn = (trappings as { id: string; shape?: string }[]).find((t) => t.id === 'mains-nues');
     expect(mn?.shape).toBeUndefined();
@@ -43,11 +50,6 @@ describe('weaponForms — shape catalogué sur les armes tenues en main', () => 
     const slugs = WEAPON_FORMS.map((f) => f.slug);
     expect(slugs.every((s) => /^[a-z0-9_]+$/.test(s))).toBe(true);
     expect(new Set(slugs).size).toBe(slugs.length);
-  });
-
-  it('90 armes-arts + 4 boucliers', () => {
-    expect(WEAPON_FORMS).toHaveLength(90);
-    expect(SHIELD_FORMS).toHaveLength(4);
   });
 });
 
@@ -65,7 +67,7 @@ describe('routage de l’art PAR ID (shape) — plus aucun libellé', () => {
   });
 
   it('une attaque naturelle (natural:true) → aucune arme tenue', () => {
-    expect(weaponFamily({ label: 'Morsure', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], natural: true } as Weapon)).toBe('');
+    expect(weaponFamily({ type: 'melee', forme: undefined, natural: true })).toBe('');
   });
 
   it('un shape inconnu retombe sur le Groupe (pas de crash, pas de routage par nom)', () => {

@@ -257,7 +257,8 @@ function rendu() {
    adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
    et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
-   \`${script('ops:fermer')} <before>..<sha>\`.`,
+   \`${script('ops:fermer')} --rattraper <before>..<sha>\` : la base recule jusqu'à la dernière course
+   réussie de ce workflow (\`baseDeLaPlage\`, #2155).`,
     },
     {
       module: 'scripts/git-hooks/merge-docs.mjs',
@@ -391,6 +392,8 @@ PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par u
 dans la branche, une fois ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
+
+**Reprise serveur de file.** Le workflow \`reprise-file.yml\` reprend les PR ouvertes par le train de \`chantier/**\` vers \`main\` après une CI verte, même après la mort du train et un rerun. Leur corps porte la signature canonique écrite par le train. Il lit exclusivement le code de \`main\`, relit la tête avant la demande REST \`merge-async\`, suit une réponse \`pending\` pendant au plus 12 sondes espacées de 5 secondes et ne dit « en file » que sur \`enqueued\`. Une réconciliation toutes les 10 minutes couvre une PR ouverte après la CI ; GitHub peut retarder une course planifiée. Le résumé du run et les commentaires sur la PR et ses tickets cités portent le SHA, le run/attempt et le résultat ; les commentaires lient la course CI et la veille serveur. Un refus ou une indétermination donne la commande \`npm run ops:publier -- --detache\`. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit les candidates sans demander de fusion ni commenter.
 
 **Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
 \`.git/suivi/<N>.md\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit

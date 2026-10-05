@@ -204,8 +204,9 @@ export const secondarySourceRefSchema = sourceRefSchema.extend({
 export type SecondaryRef = z.infer<typeof secondarySourceRefSchema>;
 
 /**
- * FRAGMENT DE BLOCS d'une adresse de prose : la suite CONTIGUË `b0..b1` des blocs d'affichage d'une
- * section de chapitre, plus l'empreinte du texte normalisé qu'elle rend. Forme et sémantique du
+ * FRAGMENT DE BLOCS d'une adresse de prose : l'INTERVALLE du fil d'un chapitre qui va du bloc `b0` de
+ * la section `sec#secOcc` au bloc `b1` de la section `finSec#finSecOcc` — par défaut la section de
+ * départ, et alors ABSENTE —, plus l'empreinte du texte normalisé qu'il rend. Forme et sémantique du
  * parseur `src/data/source/decoupe.ts` (`FragmentBlocs`) — les deux définitions coïncident, et
  * `grammaire.test.ts` le vérifie AU TYPE.
  */
@@ -214,6 +215,8 @@ export const fragmentBlocsSchema = z.strictObject({
   sec: z.string(),
   secOcc: z.number().int().min(1),
   b0: z.number().int().min(0),
+  finSec: z.string().optional(),
+  finSecOcc: z.number().int().min(1).optional(),
   b1: z.number().int().min(0),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
 });
@@ -277,7 +280,20 @@ export const descRefSchema = z
   })
   .superRefine((v, ctx) => {
     v.parts.forEach((p, i) => {
-      if (p.kind === 'blocs' && p.b1 < p.b0) {
+      if (p.kind !== 'blocs') return;
+      if ((p.finSec == null) !== (p.finSecOcc == null)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['parts', i, p.finSec == null ? 'finSec' : 'finSecOcc'],
+          message: 'adresse de prose : `finSec` et `finSecOcc` désignent ensemble la section de fin — l’un ne va pas sans l’autre.',
+        });
+      } else if (p.finSec === p.sec && p.finSecOcc === p.secOcc) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['parts', i, 'finSec'],
+          message: 'adresse de prose : la section de fin est celle du départ — elle ne s’écrit pas (forme canonique unique).',
+        });
+      } else if (p.finSec == null && p.b1 < p.b0) {
         ctx.addIssue({
           code: 'custom',
           path: ['parts', i, 'b1'],
