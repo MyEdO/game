@@ -84,7 +84,7 @@ const ENTREE_CLE = "  'scripts/guards/lib/labelLogic.mjs': 'raison mesurée',"
 
 test('périmètre — les porteurs de stock, et eux seuls', () => {
   assert.equal(estPorteurDeStock('src/state/flowtest-derived-stake.test.ts'), true)
-  assert.equal(estPorteurDeStock('scripts/guards/lib/domResiduStock.mjs'), true)
+  assert.equal(estPorteurDeStock('scripts/guards/lib/folioRatchetStock.mjs'), true)
   assert.equal(estPorteurDeStock('scripts/hooks/fermetures-sans-solde.test.mjs'), true)
   assert.equal(estPorteurDeStock('scripts/hooks/ecrans-ui.json'), true)
   assert.equal(estPorteurDeStock('scripts/raw/reconciliation-stock.json'), true, 'stock nominatif de l\'Atlas RAW (#1709 D2)')
@@ -491,7 +491,7 @@ test('croissance — un stock qui NAÎT est une croissance nette, avec ses exemp
 })
 
 test('croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (#1806 D5″)', () => {
-  const porteur = 'scripts/guards/lib/domResiduStock.mjs'
+  const porteur = 'scripts/guards/lib/folioRatchetStock.mjs'
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [], [ENTREE_A, ENTREE_B]), REPLI), [])
   assert.deepEqual(
     croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), REPLI).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net, c.exemples]),
@@ -579,7 +579,7 @@ test('CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le ref
   assert.match(raisonDeRefus([c]), /annonce `\+1`, pas \+2/)
   const tampon = 'CLIQUET: src/state/flowtest-derived-stake.test.ts +2 — besoin'
   assert.equal(croissancesNonCouvertes({ diff, message: tampon }, REPLI).length, 1)
-  const autreFichier = 'CLIQUET: scripts/guards/lib/domResiduStock.mjs +2 — un motif assez long mais pour un autre fichier'
+  const autreFichier = 'CLIQUET: scripts/guards/lib/folioRatchetStock.mjs +2 — un motif assez long mais pour un autre fichier'
   assert.equal(croissancesNonCouvertes({ diff, message: autreFichier }, REPLI).length, 1)
 })
 
@@ -595,9 +595,9 @@ test('CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) 
 })
 
 test('refus — nomme le fichier, le compte et jusqu à trois exemples', () => {
-  const raison = raisonDeRefus(croissanceDesStocks(diffDe('scripts/guards/lib/domResiduStock.mjs', [ENTREE_A, ENTREE_B, ENTREE_CLE, ENTREE_A]), REPLI))
+  const raison = raisonDeRefus(croissanceDesStocks(diffDe('scripts/guards/lib/folioRatchetStock.mjs', [ENTREE_A, ENTREE_B, ENTREE_CLE, ENTREE_A]), REPLI))
   assert.match(raison, /STOCK NOMINATIF qui NAÎT ou GRANDIT/)
-  assert.match(raison, /scripts\/guards\/lib\/domResiduStock\.mjs : \+4 entrée\(s\) nette\(s\)/)
+  assert.match(raison, /scripts\/guards\/lib\/folioRatchetStock\.mjs : \+4 entrée\(s\) nette\(s\)/)
   assert.equal(raison.split(' · ').length, 3, 'trois exemples, pas la liste entière')
   assert.match(raison, /CLIQUET: <fichier> \+N/)
 })
@@ -998,9 +998,7 @@ test('stocks de `scripts/raw` — la porte voit CHAQUE entrée déclarée (corpu
 // `stock.d.mts`) : un tableau d'entrées à graphie autre (`{ file, ref }`…) n'est pas un stock
 // nominatif pour ce test et reste hors corpus, silencieusement.
 // Les stocks encore à CLÉ AVEUGLE n'ont rien à prouver ici tant qu'ils ne sont pas convertis — le
-// jour où ils le sont, ils tombent sous la mesure sans qu'on écrive une ligne. `domResiduStock.mjs`
-// n'y tombera PAS, et c'est cohérent : sa clé EST un chemin de fichier, la porte de plage le voit
-// déjà — lui inventer une `ref` serait une donnée sans mesure.
+// jour où ils le sont, ils tombent sous la mesure sans qu'on écrive une ligne.
 test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE entrée déclarée (corpus par GLOB)', async (t) => {
   const dossier = join(RACINE, 'scripts', 'guards', 'lib')
   /** Les entrées NOMINATIVES exportées par un module de stock, toutes collections confondues. */
