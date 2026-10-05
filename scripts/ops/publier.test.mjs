@@ -1301,7 +1301,7 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
       brancheDe: () => 'chantier/x',
       cheminsSales: () => [],
       origineDe: () => `https://github.com/${DEPOT}.git`,
-      verdictDesFusions: () => ({ ok: false, texte: '⛔ origin/main (base 0123456789 du 2026-10-05T10:00:00+02:00)..HEAD : 1 fusion(s) dont la RÉSOLUTION porte ≥10 insertions sous src/ sans juge qui la nomme' }),
+      verdictDesFusions: () => ({ ok: false, texte: '⛔ origin/main (base 0123456789 du 2026-10-05T10:00:00+02:00)..HEAD : 1 fusion(s) dont la RÉSOLUTION porte ≥10 lignes changées sous src/ sans juge qui la nomme' }),
       combienDe: () => assert.fail('aucune lecture après le refus'),
     },
   }
