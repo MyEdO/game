@@ -906,13 +906,29 @@ export function cheminsDesCommits(depot, commits) {
 /**
  * CE QUE FAIT LA FUSION EN COURS : ce qui change de la fusion automatique de ses `parents` (HEAD puis
  * `fusionnesEnCours`, `fusionAutomatique`) à l'image `apres` qui la conclut (`INDEX` ou `SUIVI`) — la
- * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe. Base `null` : tout est vide.
+ * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe.
  * @param {Depot} depot @param {string[]} parents @param {string} apres
- * @throws {GitIndisponible} propagée de `fusionAutomatique`.
+ * @throws {GitIndisponible} propagée de `fusionAutomatique`, ou aucune fusion automatique rendue : une
+ *   fusion que git ne rejoue pas n'apporte pas « rien » (#2328 D2).
  */
 export function ceQueFaitLaFusionEnCours(depot, parents, apres) {
   const base = fusionAutomatique(depot, parents, 'fusion en cours')
-  return base ? changeEntre(depot, base, apres) : RIEN
+  if (!base) throw new GitIndisponible(`fusion en cours de ${parents.map((p) => p.slice(0, 9)).join(', ')} : git ne rend aucune fusion automatique`)
+  return changeEntre(depot, base, apres)
+}
+
+/**
+ * L'APPORT PROPRE de la fusion EN COURS (#2328) : `parents` (HEAD puis `fusionnes`) et `change`, ce
+ * que `ceQueFaitLaFusionEnCours` lit de sa fusion automatique à l'image `apres` ; `null` hors fusion
+ * (`fusionnes` vide) ou sans HEAD.
+ * @param {Depot} depot @param {string} apres @param {string[]} [fusionnes]
+ * @throws {GitIndisponible} propagée de `ceQueFaitLaFusionEnCours`.
+ */
+export function apportDeLaFusionEnCours(depot, apres, fusionnes = fusionnesEnCours(depot)) {
+  const head = fusionnes.length ? shaDe(depot, 'HEAD') : null
+  if (!head) return null
+  const parents = [head, ...fusionnes]
+  return { parents, change: ceQueFaitLaFusionEnCours(depot, parents, apres) }
 }
 
 /**

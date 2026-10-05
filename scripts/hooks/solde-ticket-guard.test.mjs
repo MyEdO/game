@@ -76,7 +76,7 @@ import {
   revuesNeuves, shasDeSubstance,
 } from '../guards/lib/revuePalier.mjs'
 import { depotCompte, envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { gitDe, gitDeLArbreReel, lancerGit } from '../test/gitDeBanc.mjs'
+import { gitDe, gitDeLArbreReel, lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const TODAY = '2026-07-14'
 const VERIFIE_OK = 'VERIFIE: relu le diff complet, lancé npm test et vérifié les 3 fichiers touchés à la main.'
@@ -2637,7 +2637,7 @@ test('diffDuCommit : `diff()` rend en UN diff par côté tout ce que le commit e
   }
 })
 
-test('readChangedNames : le modifié NON stagé, ou le stagé sous `cached` — chemin non-ASCII et espace en clair', () => {
+test('readChangedNames : le modifié NON stagé, et `diffDuCommit(…).stages()` le stagé — chemin non-ASCII et espace en clair', () => {
   const E = 'src/ui/Écran.ts'
   const B = 'src/mon module.ts'
   const { racine: repo } = instanceDeDepot({ fichiers: { [E]: 'export const e = 1\n', [B]: 'export const b = 1\n', 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
@@ -2647,7 +2647,7 @@ test('readChangedNames : le modifié NON stagé, ou le stagé sous `cached` — 
     git('add', B)
     writeFileSync(join(repo, E), 'export const e = 2\n', 'utf8')
     assert.deepEqual(readChangedNames(repo), [E])
-    assert.deepEqual(readChangedNames(repo, { cached: true }), [B])
+    assert.deepEqual(diffDuCommit('git commit -m x', repo).stages(), [B])
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
@@ -3691,4 +3691,188 @@ test('valeurParametre : le nom EXACT gagne, un préfixe strict ambigu est refus�
   assert.equal(valeurParametre(args('-QueryD'), 'Query', noms), '')
   assert.equal(valeurParametre(args('-querydialect'), 'QueryDialect', noms), 'v')
   assert.equal(valeurParametre(args('-Fil'), 'Filter', noms), 'v')
+})
+
+// ── #2328 : une FUSION EN COURS se juge sur son APPORT PROPRE, sans trailers de livraison ──────────
+/** Un écran de `lignes` lignes numérotées. */
+const ecranDe = (lignes, marque = 'l') => `${Array.from({ length: lignes }, (_, i) => `export const ${marque}${i} = ${i}`).join('\n')}\n`
+
+/**
+ * Un dépôt forgé arrêté EN FUSION de main dans le chantier : `socle` commité, `main` sur la branche
+ * `amont`, `chantier` sur la branche courante (HEAD), puis `git merge --no-commit --no-ff amont` ; un
+ * conflit est laissé à l'appelant, qui résout et stage. Rend `{ racine, git, evaluer(commande) }`.
+ */
+function depotEnFusion({ socle, chantier, main }) {
+  const { racine } = instanceDeDepot({ fichiers: socle, message: 'socle' })
+  const git = gitDe(racine)
+  const courante = git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+  const poser = (fichiers, message) => {
+    for (const [chemin, texte] of Object.entries(fichiers)) {
+      mkdirSync(join(racine, chemin, '..'), { recursive: true })
+      writeFileSync(join(racine, chemin), texte)
+    }
+    git('add', '-A'); git('commit', '-q', '-m', message)
+  }
+  git('checkout', '-q', '-b', 'amont'); poser(main, 'main')
+  git('checkout', '-q', courante); poser(chantier, 'chantier')
+  const fusion = resultatDeGit(['merge', '--no-commit', '--no-ff', 'amont'], { cwd: racine })
+  assert.ok(existsSync(join(racine, '.git', 'MERGE_HEAD')), `témoin : fusion en cours — ${fusion.stdout}${fusion.stderr}`)
+  const evaluer = (command) => garde.evaluer(
+    { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } },
+    { dir: racine, cibleIgnoree: null, today: TODAY, pannes: [] },
+  )
+  return { racine, git, evaluer }
+}
+
+test('#2328 DoD 1 — une fusion en cours dont la RÉSOLUTION insère >10 lignes dans un écran passe en `refs #N` sans JUGE, REFUTATION ni JUGE-VISION ; le même diff en commit ordinaire est refusé', async () => {
+  const ecran = 'src/ui/Ecran.tsx'
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { [ecran]: ecranDe(3) },
+    chantier: { [ecran]: ecranDe(3).replace('= 0', '= 100') },
+    main: { [ecran]: ecranDe(3).replace('= 0', '= 200') },
+  })
+  try {
+    const resolu = `${ecranDe(3).replace('= 0', '= 300')}${ecranDe(12, 'r')}`
+    writeFileSync(join(racine, ecran), resolu); git('add', ecran)
+    const commande = 'git commit -m "merge: refs #42 — intègre main"'
+    const lu = analyzeDiffDuCommit(diffDuCommit(commande, racine).numstat())
+    assert.ok(lu.touchesUi && lu.totalLines >= 10, `témoin : la résolution est de la substance d'écran — ${JSON.stringify(lu)}`)
+    assert.equal(await evaluer(commande), null, 'sauver une fusion n’est pas une livraison')
+
+    const { racine: ordinaire } = instanceDeDepot({ fichiers: { [ecran]: ecranDe(3) }, message: 'socle' })
+    try {
+      writeFileSync(join(ordinaire, ecran), resolu); gitDe(ordinaire)('add', ecran)
+      const refus = await garde.evaluer(
+        { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'git commit -m "feat: refs #42 — écran"' } },
+        { dir: ordinaire, cibleIgnoree: null, today: TODAY, pannes: [] },
+      )
+      assert.equal(refus?.decision, 'deny', 'test opposé : hors fusion, le même diff exige ses trailers')
+      assert.match(refus.raison, /JUGE: /)
+      assert.match(refus.raison, /JUGE-VISION: /)
+      assert.match(refus.raison, /sans réfutation/)
+    } finally { rmSync(ordinaire, { recursive: true, force: true }) }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 — sous une fusion en cours, un commit de SOLDE reste soumis à sa section Réfutation', async () => {
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { 'src/a.ts': ecranDe(2) },
+    chantier: { 'src/b.ts': ecranDe(2) },
+    main: { 'notes/m.md': 'm\n' },
+  })
+  try {
+    mkdirSync(join(racine, '.claude', 'soldes'), { recursive: true })
+    writeFileSync(join(racine, '.claude', 'soldes', '42.md'), solde().replace(/## Réfutation[\s\S]*$/, ''))
+    git('add', '-A')
+    const refus = await evaluer('git commit -m "merge: corrige #42 — intègre main"')
+    assert.equal(refus?.decision, 'deny')
+    assert.match(refus.raison, /Réfutation/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 A5 — une fusion PROPRE n’apporte rien : la porte du ticket se tait, même quand main apporte `src/` et `scripts/`', async () => {
+  const { racine, evaluer } = depotEnFusion({
+    socle: { 'notes/a.md': 'a\n' },
+    chantier: { 'notes/c.md': 'c\n' },
+    main: { 'src/ui/Main.tsx': ecranDe(20), 'scripts/m.mjs': ecranDe(20) },
+  })
+  try {
+    const commande = 'git commit -m "merge: intègre main"'
+    const c = diffDuCommit(commande, racine)
+    assert.equal(c.enFusion(), true)
+    assert.deepEqual(analyzeDiffDuCommit(c.numstat()).fichiers, [], 'l’apport d’une fusion propre est vide')
+    assert.equal(await evaluer(commande), null)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 A5 — sous fusion, un écran ne compte que s’il GAGNE des lignes dans l’apport', () => {
+  const entree = (plus, moins) => [{ plus, moins, chemins: ['src/ui/E.tsx'] }]
+  assert.equal(analyzeDiffDuCommit(entree(0, 12)).touchesUi, true, 'hors fusion : toute touche compte')
+  assert.equal(analyzeDiffDuCommit(entree(0, 12), { ecranParInsertion: true }).touchesUi, false)
+  assert.equal(analyzeDiffDuCommit(entree(1, 12), { ecranParInsertion: true }).touchesUi, true)
+})
+
+test('#2328 A6 — un CLAUDE.md agrandi par main seul ne demande aucun CLIQUET ; la résolution qui le touche se mesure contre la fusion automatique', async () => {
+  const porteur = (plafond) => `export const PLAFOND_OCTETS = ${plafond}\n`
+  const contexte = (n) => `# contexte\n${'x'.repeat(n)}\n`
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { 'CLAUDE.md': contexte(50), 'scripts/guards/budget-contexte.mjs': porteur(100) },
+    chantier: { 'notes/c.md': 'c\n' },
+    main: { 'CLAUDE.md': contexte(400), 'scripts/guards/budget-contexte.mjs': porteur(500) },
+  })
+  try {
+    assert.equal(await evaluer('git commit -m "merge: refs #42 — intègre main"'), null, 'fusion propre : rien à mesurer')
+    writeFileSync(join(racine, 'CLAUDE.md'), contexte(390)); git('add', 'CLAUDE.md')
+    assert.equal(await evaluer('git commit -m "merge: refs #42 — intègre main"'), null, 'la résolution rétrécit le contexte sous le plafond de main')
+    writeFileSync(join(racine, 'CLAUDE.md'), contexte(600)); git('add', 'CLAUDE.md')
+    assert.match((await evaluer('git commit -m "merge: refs #42 — intègre main"'))?.raison ?? '', /CLIQUET/, 'témoin : la résolution qui dépasse le plafond de main est refusée')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 A2 — l’apport d’une fusion en cours se mesure depuis sa FUSION AUTOMATIQUE : ni HEAD, ni la base commune', () => {
+  const ecran = 'src/ui/E.tsx'
+  const { racine, git } = depotEnFusion({
+    socle: { [ecran]: ecranDe(10) },
+    chantier: { [ecran]: ecranDe(10).replace('= 0', '= 100') },
+    main: { [ecran]: ecranDe(10).replace('= 9', '= 900') },
+  })
+  try {
+    writeFileSync(join(racine, ecran), `${ecranDe(10).replace('= 0', '= 100').replace('= 9', '= 900')}export const resolu = 1\n`); git('add', ecran)
+    const c = diffDuCommit('git commit -m "merge: refs #42"', racine)
+    assert.deepEqual(c.numstat(), [{ plus: 1, moins: 0, chemins: [ecran] }], 'la seule ligne de la résolution')
+    assert.equal(c.apport().parents.length, 2)
+    assert.deepEqual(c.apport().change.numstat(), c.numstat(), 'une lecture : l’apport exposé est celui que la garde mesure')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 A5 — sous fusion, la Recette visuelle du solde suit l’écran que la RÉSOLUTION écrit, pas celui qu’elle ne fait que trancher', async () => {
+  const ecran = 'src/ui/Ecran.tsx'
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { [ecran]: ecranDe(6) },
+    chantier: { [ecran]: ecranDe(6).replace('= 0', '= 100') },
+    main: { [ecran]: ecranDe(6).replace('= 0', '= 200') },
+  })
+  try {
+    mkdirSync(join(racine, '.claude', 'soldes'), { recursive: true })
+    writeFileSync(join(racine, '.claude', 'soldes', '42.md'), solde())
+    const commande = 'git commit -m "merge: corrige #42 — intègre main"'
+    const raisonPour = async (resolu) => {
+      writeFileSync(join(racine, ecran), resolu); git('add', '-A')
+      return (await evaluer(commande))?.raison ?? ''
+    }
+    assert.doesNotMatch(await raisonPour(ecranDe(6).replace('= 0', '= 100')), /Recette visuelle/, 'la résolution ne fait que retirer : aucun écran écrit')
+    assert.match(await raisonPour(ecranDe(6).replace('= 0', '= 300')), /Recette visuelle/, 'témoin : la résolution écrit une ligne d’écran')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 D2 — une fusion en cours qu’aucune fusion automatique ne rejoue est un refus NOMMÉ, jamais le diff contre HEAD', async () => {
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { 'notes/a.md': 'a\n' },
+    chantier: { 'notes/c.md': 'c\n' },
+    main: { 'src/m.ts': ecranDe(20) },
+  })
+  try {
+    const mergeHead = join(racine, '.git', 'MERGE_HEAD')
+    writeFileSync(mergeHead, `${readFileSync(mergeHead, 'utf8')}${git('rev-parse', 'HEAD~1').trim()}\n`)
+    const refus = await evaluer('git commit -m "merge: intègre main"')
+    assert.equal(refus?.decision, 'deny')
+    assert.match(refus.raison, /⛔ lecture git indisponible : fusion en cours à 3 parents/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2328 — sous fusion, `evaluateHunksEmportes` lit le STAGÉ de l’apport : le fichier que main apporte seul n’est pas nommé, celui de la résolution l’est', async () => {
+  const { racine, git, evaluer } = depotEnFusion({
+    socle: { 'notes/a.md': 'a\n' },
+    chantier: { 'notes/c.md': 'c\n' },
+    main: { 'src/m.ts': 'export const m = 1\n' },
+  })
+  try {
+    writeFileSync(join(racine, 'src', 'r.ts'), 'export const r = 1\n'); git('add', 'src/r.ts')
+    writeFileSync(join(racine, 'src', 'm.ts'), 'export const m = 2\n')
+    writeFileSync(join(racine, 'src', 'r.ts'), 'export const r = 2\n')
+    const raison = (await evaluer('git commit -i -m "merge: refs #42" -- src/m.ts src/r.ts'))?.raison ?? ''
+    const hunks = raison.slice(raison.indexOf('⛔ `git commit -i <paths>`'))
+    assert.match(hunks, /^⛔ `git commit -i <paths>` .*src\/r\.ts porte\(nt\) À LA FOIS/, raison)
+    assert.doesNotMatch(hunks, /src\/m\.ts/, 'main l’a apporté : aucun hunk stagé par le geste')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
 })
