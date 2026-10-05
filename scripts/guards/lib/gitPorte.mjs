@@ -923,13 +923,11 @@ export function patchsParChemin(patch) {
   return parChemin
 }
 
-/** Ce qui change d'une base `null` : rien. */
+/** Les lectures de deux arbres IDENTIQUES (`changeEntre` sous `inchange`) : rien ne change. */
 const RIEN = Object.freeze({
-  base: null,
   chemins: () => [],
   numstat: () => [],
   diff: () => '',
-  lirePreImage: () => null,
   renommages: () => new Map(),
 })
 
@@ -939,14 +937,15 @@ const RIEN = Object.freeze({
  * lignes. L'unique lecture d'un commit POSÉ des portes : fichiers, diff, textes et renommages
  * viennent tous de la même base. `commit` : une révision, lue dans le graphe, ou un commit que
  * l'appelant tient déjà de `grapheDe` (aucune relecture). Une fusion dont l'ARBRE est celui de sa
- * fusion automatique ne change rien, sans lecture de différence. Une révision que git ne rend pas : tout
- * est vide.
+ * fusion automatique ne change rien, sans lecture de différence. Un commit que git ne rend pas n'a pas
+ * de base : il LÈVE, jamais « rien » (#2328).
  * @param {Depot} depot @param {string | CommitDuGraphe} commit
- * @throws {GitIndisponible} propagée de `baseDe`. {BorneAbsente} révision absente.
+ * @throws {GitIndisponible} commit que git ne rend pas, ou propagée de `baseDe`. {BorneAbsente}
+ *   révision absente.
  */
 export function ceQueFaitLeCommit(depot, commit) {
   const lu = typeof commit === 'string' ? commitDuGraphe(depot, commit) : commit
-  if (!lu) return RIEN
+  if (!lu) throw new GitIndisponible(`ce que fait ${String(commit).slice(0, 9)} : git ne rend pas le commit, sa base est inconnue`)
   const base = baseDe(depot, lu)
   return changeEntre(depot, base, lu.sha, { inchange: base === lu.arbre })
 }
@@ -1274,6 +1273,15 @@ export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').tr
 
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })
+
+// #2329
+export function shaPrecedentDeHead(depot) {
+  const existe = interroger(depot, ['reflog', 'exists', 'HEAD'])
+  if (!existe.disponible) return confier(depot, existe.raison)
+  if (sortieOuNull(existe) === null) return null
+  const brut = lire(depot, ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}'])
+  return brut?.trim() || null
+}
 
 /**
  * Le SHA du commit que `ref` nomme (`rev-parse --verify --quiet <ref>^{commit}`), abrégé sous

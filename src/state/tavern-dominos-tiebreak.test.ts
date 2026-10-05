@@ -14,10 +14,10 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
-import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds, type SequenceState } from './sequenceCore';
+import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds, type SequenceState, type MancheClose } from './sequenceCore';
 import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
-import type { PendingCascade, CascadeStep } from './pendings';
+import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
@@ -41,7 +41,7 @@ function partie(tieBreak: string | undefined, challengerId: string): SequenceSta
 
 /** Manche CLOSE : le jet du challenger et le jet adverse FIGÉ, tous deux à DR ÉGAL — seule reste
  *  l'égalité à départager (l.107). `roll` porte le dé d'unités. */
-function doneRound(actorId: string, playerRoll: number, opponentRoll: number, sl: number): PendingCascade {
+function doneRound(actorId: string, playerRoll: number, opponentRoll: number, sl: number): MancheClose {
   const step: CascadeStep = {
     id: `${TAVERN_ROUND_KIND}-1`, kind: TAVERN_ROUND_KIND, actorId,
     label: fixtureText('Les dominos'), rollLabel: 'Pari', difficulty: 'intermediaire',
@@ -52,7 +52,7 @@ function doneRound(actorId: string, playerRoll: number, opponentRoll: number, sl
       opposed: { aT: { roll: opponentRoll, target: 40, sl, success: true, isDouble: false, base: 40 }, attackerName: NOM_HABITUE },
     },
   };
-  return { title: 't', purpose: 'sequence', participants: [step], cursor: 1, log: [] };
+  return { participants: [step] };
 }
 
 describe('Les dominos — départage d’égalité au dé d’unités (NADJ 16 l.105)', () => {

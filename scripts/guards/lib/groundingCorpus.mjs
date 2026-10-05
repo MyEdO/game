@@ -35,13 +35,10 @@
 // deux agents. Les deux gardes se complètent ; en retirer une romprait une garantie que l'autre ne
 // couvre pas.
 //
-// 2026-07-27 — incident « vert à vide » sur ce même cas 1 : la première version cherchait le motif
-// dans TOUT le document, y compris le préambule narratif (« Pourquoi ce fichier », l.8-13) qui RACONTE
-// l'incident fondateur et mentionne donc `rollCareer` à côté de « carrière »/« aléatoire ». Retirer la
-// ligne de concept générée laissait le cas VERT — il ne testait plus rien de généré, seulement de la
-// prose qui parle d'elle-même. Fix : `resolves` scope désormais STRICTEMENT à la section structurelle
-// « ## Index par concept (français) » (`sectionSlice`), jamais le document entier — la scope EXCLUT
-// mécaniquement le préambule et la section « par fichier », qui ne peuvent donc plus sauver le cas.
+// `resolves` se borne STRICTEMENT à la section structurelle « ## Index par concept (français) »
+// (`sectionSlice`), jamais au document entier : le préambule narratif (« Pourquoi ce fichier ») cite
+// `rollCareer` à côté de « carrière »/« aléatoire », et la section « par fichier » nomme aussi le symbole —
+// l'un ou l'autre garderait le cas VERT sans la ligne de concept générée.
 import spellsJson from '../../../src/data/spells.json' with { type: 'json' };
 
 const WINDOW = 6;

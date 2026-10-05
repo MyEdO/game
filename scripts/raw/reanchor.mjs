@@ -1,7 +1,8 @@
 // Ré-ancrage des citations de l'Atlas RAW — garde déterministe rejouable.
 // Pour chaque réf `<ABRÉV> NN l.X[-Y]` ATTACHÉE à une citation verbatim « … », on relocalise la
 // citation par MATCH EXACT (normalisé, accents conservés) dans le `.md` source courant, et on
-// vérifie/répare le numéro de ligne (une ré-extraction Marker fait dériver les lignes).
+// vérifie/répare le numéro de ligne (une ré-extraction Marker fait dériver les lignes). La réf est
+// attachée APRÈS la citation (`« … » LDB 6 l.5`) ou EN TÊTE (`(l.24) : « … »`, `citationsEnTete`, #2199).
 //   node scripts/raw/reanchor.mjs            → rapport + GATE (exit 1 sur dérive/ambigu/hausse ❌)
 //   node scripts/raw/reanchor.mjs --apply    → réécrit en place les dérives HIGH (citation unique)
 //   node scripts/raw/reanchor.mjs --check    → même GATE, puis `ecrireOuVerifier` sur le rapport
@@ -33,6 +34,7 @@ import { fileURLToPath } from 'node:url'
 import { allAbbrAlternation, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, readText } from './_lib.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
+import { sansBr } from '../../src/data/source/normalize.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
@@ -77,7 +79,7 @@ export function buildIndex(rawLines) {
   let joined = ''
   for (let i = 0; i < rawLines.length; i++) {
     lineStartOffset.push(joined.length)
-    joined += normalize(rawLines[i])
+    joined += normalize(sansBr(rawLines[i]))
     if (i < rawLines.length - 1) joined += ' '   // le saut de ligne se replie en un espace
   }
   return { joined, lineStartOffset, count: rawLines.length }
@@ -170,6 +172,75 @@ function extractQuote(preceding) {
   return preceding.slice(open + 1, close)
 }
 
+// ---------- citation EN TÊTE : la réf PRÉCÈDE la citation (#2199) ----------
+// Forme `<réf>[, <réf>…][, *libellé*][)`] <lien> « … »`, le lien étant deux-points, tiret, `.** *` ou un
+// simple blanc — `> **Verbatim** (l.24) : « … »`, `LDB 05 l.345 — « … »`, `(l.184).** *« … »*`.
+// La i-ᵉ réf du groupe porte la i-ᵉ citation qui suit les deux-points. Une réf NUE (`l.X`) hérite du
+// chapitre de la réf à sigle qui la précède dans son groupe ; sans elle, `chapitre` vaut `null` et
+// l'appelant le cherche dans son paragraphe (`chapitreDuParagraphe`), puis dans l'en-tête « Sources
+// RAW » de la section (`chapitresDeLaSection`), puis dans le texte qui la précède depuis le titre qui
+// ouvre sa section. Un lien DÉDUIT — simple blanc entre réf et citation (`lienDeduit`), ou chapitre pris
+// à ce dernier repli — ne se répare jamais seul : sa dérive sort à trancher (🟡), hors de `--apply`. PUR.
+const REF_TETE = () => new RegExp(`(?:\\b(${ABBR_ALT}) (\\d+) )?\\bl\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
+const LIEN_DE_GROUPE = /^[\s`]*(?:,|·|et|→)[\s`]*$/
+const FIN_DE_TETE = /^(?:,\s*\*[^*«»]+\*)?[\s)`]*(:|[—–]|\.\*\*\s*\*)?\s*(?=«)/
+export function citationsEnTete(ligne, suite = []) {
+  const refs = [...ligne.matchAll(REF_TETE())].map((m) => ({
+    index: m.index, fin: m.index + m[0].length, ecrit: m[0], abbr: m[1] ?? null, ch: m[2] ?? null,
+    depart: Number(m[3]), suffix: m[4] ?? '',
+  }))
+  const out = []
+  for (let k = 0; k < refs.length;) {
+    let j = k
+    while (j + 1 < refs.length && LIEN_DE_GROUPE.test(ligne.slice(refs[j].fin, refs[j + 1].index))) j++
+    const groupe = refs.slice(k, j + 1)
+    k = j + 1
+    const fin = FIN_DE_TETE.exec(ligne.slice(groupe.at(-1).fin))
+    if (!fin) continue
+    const citations = citationsApres([ligne.slice(groupe.at(-1).fin + fin[0].length), ...suite.map(stripBQ)])
+    let hote = null
+    groupe.forEach((r, i) => {
+      if (r.abbr) hote = r
+      if (i < citations.length) out.push({ ...r, abbr: hote?.abbr ?? null, ch: hote?.ch ?? null, citation: citations[i], lienDeduit: !fin[1] })
+    })
+  }
+  return out
+}
+// Citations « … » successives d'un texte qui COMMENCE par un `«` ; une citation non fermée sur sa ligne
+// se poursuit sur les lignes de `suite`. Le `\|` d'une cellule de table Markdown est le `|` cité.
+function citationsApres(morceaux) {
+  const texte = morceaux.join(' ').replace(/\\\|/g, '|')
+  const out = []
+  const re = /«([^»]*)»/g
+  let m
+  while ((m = re.exec(texte))) out.push(m[1])
+  return out
+}
+// Chapitre `<ABRÉV> NN` de la DERNIÈRE réf à sigle qui précède la colonne `col` de la ligne `i` dans
+// son paragraphe (lignes non vides contiguës) — ou, `section` vrai, depuis le titre `#`/`##` qui ouvre
+// sa section — ou `null`. PUR.
+export function chapitreDuParagraphe(lines, i, col, section = false) {
+  let debut = i
+  while (debut > 0 && (section ? !/^#{1,2} /.test(lines[debut - 1]) : lines[debut - 1].trim() && !/^#/.test(lines[debut - 1]))) debut--
+  const texte = [...lines.slice(debut, i), lines[i].slice(0, col)].join(' ')
+  const refs = [...texte.matchAll(new RegExp(`\\b(${ABBR_ALT}) (\\d+) l\\.\\d`, 'g'))]
+  const m = refs.at(-1)
+  return m ? { abbr: m[1], ch: m[2] } : null
+}
+// Chapitres `<ABRÉV> NN` de l'en-tête « Sources RAW » de la section qui contient la ligne `i` (remontée
+// jusqu'au titre `#`/`##` qui l'ouvre). PUR.
+export function chapitresDeLaSection(lines, i) {
+  for (let j = i; j >= 0; j--) {
+    if (/\*\*Sources RAW\s*[:.]\*\*/.test(lines[j])) {
+      const vus = new Map()
+      for (const m of lines[j].matchAll(new RegExp(`\\b(${ABBR_ALT}) (\\d+)\\b`, 'g'))) vus.set(`${m[1]} ${m[2]}`, { abbr: m[1], ch: m[2] })
+      return [...vus.values()]
+    }
+    if (/^#{1,2} /.test(lines[j]) && j < i) return []
+  }
+  return []
+}
+
 // ---------- recherche cross-chapitre (suggestion manuelle sur LOW, jamais auto) ----------
 function crossChapter(abbr, head, excludeCh) {
   const dir = livreDuSigle(abbr)?.dir; if (!dir) return null
@@ -245,9 +316,62 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
+      const suite = []
+      for (let j = i + 1; j < lines.length && isBQ(line) && isBQ(lines[j]) && !line.slice(line.lastIndexOf('«')).includes('»') && suite.length < 4; j++) {
+        suite.push(lines[j])
+        if (lines[j].includes('»')) break
+      }
+      const enTete = citationsEnTete(line, suite)
+      const aSigleEnTete = new Set(enTete.filter((c) => c.ecrit !== `l.${c.depart}${c.suffix}`).map((c) => c.index))
+      if (enTete.length) consumed.add(i)
+      for (const c of enTete) {
+        totalRefs++
+        // Ancre trop courte pour être un verbatim discriminant (`headAnchor`) : la réf reste de synthèse.
+        if (normalize(c.citation).split(SENT)[0].trim().length < MIN_QUOTE_LEN) { tally.RANGE++; continue }
+        totalQuotes++
+        const deSection = chapitreDuParagraphe(lines, i, c.index, true)
+        const candidats = c.abbr ? [{ abbr: c.abbr, ch: c.ch }]
+          : [chapitreDuParagraphe(lines, i, c.index), ...chapitresDeLaSection(lines, i), deSection && { ...deSection, deduit: true }].filter(Boolean)
+              .filter((x, n, t) => t.findIndex((y) => y.abbr === x.abbr && y.ch === x.ch) === n)
+        const lu = c.abbr ? c.ecrit : `${c.ecrit} [${candidats.map((x) => `${x.abbr} ${x.ch}`).join(' | ') || '?'}]`
+        if (!candidats.length) { rows.push({ full: lu, status: 'NO-SOURCE', detail: 'réf nue sans chapitre : ni réf à sigle dans son paragraphe, ni en-tête « Sources RAW » dans sa section' }); tally['NO-SOURCE']++; continue }
+        const verdicts = candidats.map((x) => {
+          const li = lineIndex(x.abbr, x.ch)
+          return { ...(li ? classifyQuote(li, c.depart, c.citation, null) : { status: 'NO-SOURCE' }), deduit: c.lienDeduit || !!x.deduit }
+        })
+        const v = ['OK', 'DRIFT', 'MEDIUM', 'LOW'].map((st) => verdicts.find((w) => w.status === st)).find(Boolean) ?? verdicts[0]
+        const r = v.status === 'DRIFT' && v.deduit
+          ? { ...v, status: 'MEDIUM', candidates: [v.foundStart], aTrancher: true }
+          : v
+        const snippet = coupeAuMot(r.norm || normalize(c.citation), 46)
+        if (r.status === 'OK') { tally.OK++; continue }
+        tally[r.status]++
+        if (r.status === 'DRIFT') {
+          rows.push({ full: lu, status: 'DRIFT', cited: c.depart, found: r.foundStart, detail: `« ${snippet} » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '') })
+          if (apply) {
+            const rg = c.suffix.match(/^-(\d+)/)
+            const neuf = `l.${r.foundStart}` + (rg ? `-${r.foundStart + (Number(rg[1]) - c.depart)}` + c.suffix.slice(rg[0].length) : c.suffix)
+            if (!edits.has(i)) edits.set(i, [])
+            edits.get(i).push({ start: c.index, end: c.fin, replacement: c.ecrit.replace(`l.${c.depart}${c.suffix}`, neuf) })
+            appliedTotal++
+          }
+        } else if (r.status === 'MEDIUM') {
+          rows.push({ full: lu, status: 'MEDIUM', cited: c.depart, found: r.foundStart, detail: r.aTrancher
+            ? `« ${snippet} » → l.${r.foundStart} par un lien DÉDUIT (blanc seul ou chapitre de section) : à trancher au Source, jamais par --apply`
+            : `« ${snippet} » candidats l.${r.candidates.join('/')} → plus proche l.${r.foundStart}` })
+        } else if (r.status === 'LOW') {
+          const detail = `« ${snippet} » — ${r.reason}`
+          rows.push({ full: lu, status: 'LOW', cited: c.depart, detail })
+          lowRows.push({ doc: path.split('\\').join('/'), full: lu, detail })
+        } else {
+          rows.push({ full: lu, status: 'NO-SOURCE', detail: 'chapitre source introuvable' })
+          tally['NO-SOURCE']++
+        }
+      }
       const re = refRe(); let m
       while ((m = re.exec(line))) {
         const [full, abbr, ch, startStr, suffix] = m
+        if (aSigleEnTete.has(m.index)) continue
         const citedStart = Number(startStr)
         totalRefs++
         // texte précédant la réf (bloc blockquote replié, ou ligne courante)
@@ -386,6 +510,10 @@ function main() {
   let fail = false
   if (!APPLY && tally.DRIFT > 0) {
     console.log(`RÉGRESSION — ${tally.DRIFT} dérive(s) 🔧 non appliquée(s) : relancer --apply avant de committer.`)
+    fail = true
+  }
+  if (tally['NO-SOURCE'] > 0) {
+    console.log(`RÉGRESSION — ${tally['NO-SOURCE']} citation(s) ⚠️ sans chapitre source : la réf ne dit pas où lire le texte qu'elle cite.`)
     fail = true
   }
   if (tally.MEDIUM > 0) {

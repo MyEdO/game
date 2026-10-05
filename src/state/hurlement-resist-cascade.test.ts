@@ -13,6 +13,7 @@ import { testScene } from '../scenes/test-fixture';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
+import { cascadeDeTest } from './cascadeTestKit';
 
 describe('Hurlement fantomatique — Test de Résistance influençable (héros manuel)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });
@@ -104,7 +105,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
         mode: 'esquive', def: { roll: 30, target: 40, success: true, sl: 1, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       } as never,
-      pendingCascade: { title: 'Défense', purpose: 'combat', cursor: 0, log: [], participants: [{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H1.id }] } as never,
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H1.id }], { title: 'Défense', purpose: 'combat' }),
     });
     useGame.getState().defenseConfirm();
 

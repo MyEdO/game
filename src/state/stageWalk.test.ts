@@ -15,6 +15,7 @@ import { demarrerMarche, arreterMarche, resetStageWalk, marcheEnVol } from './st
 import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
+import { cascadeDeTest } from './cascadeTestKit';
 
 const get = useGame.getState;
 
@@ -264,7 +265,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     const t = traceur();
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS);
-    useGame.setState({ pendingCascade: { participants: [{ actorId: 'h1' }], cursor: 0 } } as never);
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]) });
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);
@@ -297,7 +298,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     const t = traceur();
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS);
-    useGame.setState({ pendingCascade: { participants: [{ jet: 'cast' }], cursor: 0 }, pendingCast: { pickingTargets: true } } as never);
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast' }]), pendingCast: { pickingTargets: true } as never });
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);

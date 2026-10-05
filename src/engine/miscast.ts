@@ -1,8 +1,8 @@
 /**
  * Incantations Imparfaites & Colère des dieux — Livre de base, « Les règles
  * magiques » (Tableaux des Incantations Imparfaites Mineures p.234 / Majeures
- * p.235, LDB 46 l.61-136) et « Les prières » (Tableau de la Colère des dieux
- * p.221, LDB 40 l.55-89).
+ * p.235, LDB 46 l.34-80) et « Les prières » (Tableau de la Colère des dieux
+ * p.221, LDB 40 l.52-89).
  *
  * Conception : table-driven et FIDÈLE. Le moteur tire la bonne table (d100, +10
  * par Point de Péché pour la Colère, relances « cascade » et « multiplication »),
