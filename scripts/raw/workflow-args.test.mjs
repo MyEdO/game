@@ -2,13 +2,17 @@
 // Les sigles et les clés de domaine des fixtures sont INVENTÉS : un banc qui en recopierait un réel
 // réintroduirait la table qu'on vient de sortir du code (#1825). Le seul contact avec les registres
 // RÉELS est une propriété de FORME, sans aucun nom de livre ni de domaine.
+// Le dossier de chapitre (#2290) — projection des familles de `ficheDeDossier`, args de la table,
+// écriture de la fiche rendue — se juge en fin de fichier, sur ses propres fixtures.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { REGISTRE_LIVRES } from './_lib.mjs'
-import { lireRendu, perimetreDeCoeur, valeurDeDrapeau } from './workflow-args.mjs'
+import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, famillesDeLaFiche, lireRendu, perimetreDeCoeur, valeurDeDrapeau } from './workflow-args.mjs'
+import { chargerDossiers } from './lib/dossiers.mjs'
+import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, STATUTS_DE_BEAT, ficheDeDossier } from '../../src/data/source/dossier.ts'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'
 
 /** Domaines de fixture : deux cœurs, clés et titres inventés. */
@@ -212,4 +216,97 @@ test('registre RÉEL : chaque cœur déclaré projette, sous les DEUX choix, un 
       if (!supplements) assert.deepEqual(livres.filter((l) => l.coeur !== coeur), [], 'un supplement a fui dans `--coeur-seul`')
     }
   }
+})
+
+// ── Dossier de chapitre (#2290) ─────────────────────────────────────────────────────────────────
+// Le sigle des fixtures est RÉEL (`EDO`) : la fiche passe les gardes du chargeur (`chargerDossiers`),
+// dont la graphie de réf (`refRe`) est celle du registre réel. Le `Source/` n'est jamais lu :
+// `fichierDe` est injecté.
+
+const COMMIT = 'f6e343dc8abf36a9d34cc3fd13de60af3d9ac894'
+const fichierDe = (abbr, nn) => `Source/${abbr}-${nn}.md`
+const OPTIONS_DOSSIER = { worktree: '/arbre-jete', date: '2026-10-05', commit: COMMIT, fichierDe }
+const vides = Object.fromEntries(FAMILLES_DE_DOSSIER.map((f) => [f, []]))
+/** Le rendu d'un run au verdict DOSSIER : la fiche, et ce qui juge le run. */
+const RUN = {
+  verdict: 'DOSSIER', livre: 'EDO', chapitre: '01',
+  lecture: { date: '2026-10-05', commit: COMMIT },
+  ...vides,
+  beats: [{ id: 'b1', titre: 'La route', statut: 'obligatoire', preuveDuStatut: 'EDO 01 l.1 le dit', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] }],
+  trous: { lentillesSansRendu: [], completudeSansRendu: [], anomaliesDeCorrection: [] },
+  corrections: [], synthese_markdown: 's', agents: { lecture: 3, completude: 1, total: 4 },
+}
+/** `corps(dir)` dans un dossier jetable, supprimé ensuite. */
+const dansUnJetable = (corps) => {
+  const dir = mkdtempSync(join(tmpdir(), 'dossiers-')).replace(/\\/g, '/')
+  try {
+    return corps(dir)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+test('famillesDeLaFiche : chaque famille de `ficheDeDossier`, dans son ordre, avec son préfixe, son minimum et la forme de ses attributs — sans `id`, que le script pose', () => {
+  const familles = famillesDeLaFiche()
+  assert.deepEqual(Object.keys(familles), FAMILLES_DE_DOSSIER)
+  for (const famille of FAMILLES_DE_DOSSIER) {
+    const { prefixe, minimum, entree } = familles[famille]
+    const attributs = Object.keys(ficheDeDossier.shape[famille].element.shape).filter((a) => a !== 'id')
+    assert.equal(prefixe, PREFIXES_D_ID[famille], famille)
+    assert.equal(minimum === 0, ficheDeDossier.shape[famille].safeParse([]).success, famille)
+    assert.deepEqual([Object.keys(entree.properties), entree.required, entree.additionalProperties], [attributs, attributs, false], famille)
+  }
+  assert.deepEqual(familles.beats.entree.properties.statut.enum, [...STATUTS_DE_BEAT], 'les enums viennent de la définition unique')
+  assert.equal(familles.beats.minimum, 1)
+  const medias = ficheDeDossier.shape.beats.element.shape.mediasCandidats
+  assert.equal(familles.beats.entree.properties.mediasCandidats.uniqueItems, true, 'l’unicité des médias se projette')
+  assert.equal(medias.safeParse(['dialogue', 'dialogue']).success, false, 'et zod refuse toujours le doublon')
+})
+
+test('argsDeDossierDeChapitre : les args du workflow — fichiers dérivés du chapitre, familles projetées ; toute entrée fautive LÈVE en se nommant', () => {
+  assert.deepEqual(argsDeDossierDeChapitre('EDO', '01', { ...OPTIONS_DOSSIER, compagnons: ['EDOC-03'] }), {
+    livre: 'EDO', chapitre: '01', fichiers: ['Source/EDO-01.md'], compagnons: ['Source/EDOC-03.md'],
+    worktree: '/arbre-jete', date: '2026-10-05', commit: COMMIT, familles: famillesDeLaFiche(),
+  })
+  const cas = [
+    [['XXX', '01', OPTIONS_DOSSIER], /« XXX » n'est le sigle d'aucun livre extrait/],
+    [['EDO', '1a', OPTIONS_DOSSIER], /chapitre « 1a » — un numéro de chapitre/],
+    [['EDO', '01', { ...OPTIONS_DOSSIER, worktree: 'arbre' }], /--worktree « arbre » — le chemin ABSOLU/],
+    [['EDO', '01', { ...OPTIONS_DOSSIER, date: '5 octobre' }], /--date « 5 octobre » — AAAA-MM-JJ/],
+    [['EDO', '01', { ...OPTIONS_DOSSIER, commit: 'abc' }], /commit « abc » — l'empreinte complète/],
+    [['EDO', '01', { ...OPTIONS_DOSSIER, compagnons: ['EDOC03'] }], /compagnon « EDOC03 » — attendu <ABBR>-<NN>/],
+    [['EDO', '01', { ...OPTIONS_DOSSIER, fichierDe: () => null }], /EDO 01 n'a aucun fichier chapitre \(chapterFile\)/],
+  ]
+  for (const [[livre, chapitre, options], attendu] of cas) assert.throws(() => argsDeDossierDeChapitre(livre, chapitre, options), attendu)
+})
+
+test('ecrireFiche : la fiche d’un run au verdict DOSSIER s’écrit à `<dir>/<livre>/<chapitre>.json`, sans rien de ce qui juge le run, et le chargeur la relit', () => {
+  dansUnJetable((dir) => {
+    assert.equal(ecrireFiche(RUN, { dir }), `${dir}/EDO/01.json`)
+    const ecrit = readFileSync(`${dir}/EDO/01.json`, 'utf8')
+    const fiche = Object.fromEntries(['lecture', ...FAMILLES_DE_DOSSIER].map((c) => [c, RUN[c]]))
+    assert.equal(ecrit, `${JSON.stringify(fiche, null, 2)}\n`)
+    assert.deepEqual(chargerDossiers(dir).map((d) => [d.chemin, d.ids]), [[`${dir}/EDO/01.json`, ['EDO-01#b1']]])
+    assert.deepEqual(argsDeTableSimulee('EDO', '01', { worktree: '/arbre-jete', date: '2026-10-05', seed: 'graine', dir, fichierDe }), {
+      livre: 'EDO', chapitre: '01', fichiers: ['Source/EDO-01.md'], dossier: fiche, seed: 'graine', worktree: '/arbre-jete', date: '2026-10-05',
+    }, '`args.dossier` de la table = l’OBJET de la fiche chargée')
+  })
+})
+
+test('ecrireFiche : un run hors verdict DOSSIER, une fiche hors schéma ou hors gardes du chargeur, un chapitre inconnu — REFUSÉS, rien n’est écrit', () => {
+  const cas = [
+    [{ ...RUN, verdict: 'LECTURE INCOMPLÈTE', trous: { ...RUN.trous, lentillesSansRendu: ['mecanique'] } }, /verdict « LECTURE INCOMPLÈTE » — seul un run au verdict DOSSIER porte une fiche ; trous : lentillesSansRendu \(mecanique\)/],
+    [{ ...RUN, beats: [] }, /fiche hors schéma \(ficheDeDossier, src\/data\/source\/dossier\.ts\)\n {2}beats/],
+    [{ ...RUN, lecture: undefined }, /fiche hors schéma[^\n]*\n {2}lecture/],
+    [{ ...RUN, beats: [{ ...RUN.beats[0], ref: ['EDO 01 ligne 1'] }] }, /réf hors graphie/],
+    [{ ...RUN, beats: [{ ...RUN.beats[0], preuveDuStatut: 'voir l.4' }] }, /ligne nue en prose/],
+    [{ ...RUN, livre: 'XXX' }, /« XXX » n'est le sigle d'aucun livre extrait/],
+  ]
+  dansUnJetable((dir) => {
+    for (const [rendu, attendu] of cas) {
+      assert.throws(() => ecrireFiche(rendu, { dir }), attendu)
+      assert.deepEqual(chargerDossiers(dir), [], `${attendu} : rien n'est écrit`)
+    }
+    assert.throws(() => argsDeTableSimulee('EDO', '01', { worktree: '/arbre-jete', date: '2026-10-05', seed: 'graine', dir, fichierDe }), /aucune fiche .*\/EDO\/01\.json — un dossier de chapitre se lit/)
+  })
 })

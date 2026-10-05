@@ -962,6 +962,13 @@ test('défaut 8 — une phase de JUGEMENT renommée et rétrogradée rougit la p
   assert.deepEqual(defautsDesTables(orpheline, contexteReel()), ['REGIMES : clé .claude/workflows/disparu.js, qui n’est pas un script de workflow reconnu']);
 });
 
+test('dossier-de-chapitre : la racine de chaque schéma reste LITTÉRALE, seule la forme d’une entrée vient de `args` — une famille prise dans `args` à la racine rougit la porte', () => {
+  const fichier = '.claude/workflows/dossier-de-chapitre.js';
+  assert.deepEqual(vus(sources.get(fichier), fichier), [], 'témoin : la source réelle');
+  const mute = muter(fichier, "    lieux: { type: 'array', minItems: MINIMA.lieux, items: ENTREES.lieux },", '    lieux: FAMILLES.lieux,');
+  assert.deepEqual(vus(mute, fichier), ['racine : racine non littérale — propriété racine « lieux » : PropertyAccessExpression `FAMILLES.lieux`']);
+});
+
 test('une phase de REGIMES n’est employée que par le `phase:` d’un SITE — un `phase(…)` de progression ne la couvre pas', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
   const mute = muter(fichier, "phase: 'Audit', agentType: 'juge', model: 'opus'", "phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet'");
