@@ -94,10 +94,6 @@ const ATTENDU = {
     'scripts/git-hooks/pre-commit.test.mjs',
     'scripts/git-hooks/pre-push.test.mjs',
     'scripts/git-hooks/three-way.mjs',
-    // +2 le 2026-09-05 (#1679 L3 T2) : les deux tests de l'hôte des lectures git et de la lecture des
-    // courses CI écrivent leurs fixtures (dépôts jetables, fichiers de stub) sous `os.tmpdir()` —
-    // l'arbre n'est jamais touché.
-    'scripts/guards/lib/coursesCi.test.mjs',
     // Le gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
     // jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
@@ -107,6 +103,8 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `git init` local) — le patch CRLF appliqué à
     // l'index ne peut pas se fabriquer autrement, et l'arbre du dépôt n'est jamais écrit.
     'scripts/guards/lib/eolStage.test.mjs',
+    // +1 le 2026-09-05 (#1679 L3 T2) : le test de l'hôte des lectures git écrit ses fixtures (dépôts
+    // jetables) sous `os.tmpdir()` — l'arbre n'est jamais touché.
     'scripts/guards/lib/gitPorte.test.mjs',
     'scripts/guards/lib/importGraph.test.mjs',
     'scripts/guards/lib/lintStage.test.mjs',
@@ -133,11 +131,6 @@ const ATTENDU = {
     // +1 le 2026-09-27 (#1903) : la commande de régénération des stocks de sites, exercée par son banc
     // (`stockDeSites.test.mjs`, morsure `--check`) sur des fixtures sous `os.tmpdir()`.
     'scripts/guards/lib/regenStock.mts',
-    // +1 le 2026-10-05 (#2294) : le banc du NOMBRE de processus git de la mesure du palier forge ses
-    // dépôts (`instanceDeDepot`, puis `mkdirSync` + `writeFileSync` des commits et des revues) sous
-    // `os.tmpdir()`, `rmSync` en finally — un compte de lancements contre git réel exige un vrai
-    // dépôt ; l'arbre n'est jamais écrit.
-    'scripts/guards/lib/revuePalier.test.mjs',
     // +1 le 2026-09-07 (#1709) : la porte de rôle du corpus source pose ses fixtures
     // (`mkdtempSync` + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — l'arbre versionné n'est
     // jamais écrit, et la lib mesurée (`sourceCorpus.mjs`) ne fait que LIRE.
@@ -220,8 +213,7 @@ const ATTENDU = {
   // l'histoire par git et rend son verdict.
   'livraison:plage': [],
   'test:ops': [
-    // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
-    // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
+    // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` prend ses dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
     //   sous os.tmpdir() (fixture partagée + mkdtemp), jetés en finally — aucune écriture DANS
     //   l'arbre. `chantier.mjs`/`worktrees.mjs` écrivent, eux, dans l'arbre PRINCIPAL en usage réel
@@ -273,11 +265,6 @@ const ATTENDU = {
     // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;
     // l'arbre n'est jamais écrit.
     'scripts/test/verrou.mjs',
-    // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
-    // défaut sous os.tmpdir()) pour qu'un workflow n'ait pas à le recopier dans chaque prompt, et son
-    // test fabrique un dépôt jetable sous os.tmpdir() — aucune écriture DANS l'arbre.
-    'scripts/ops/faits-de-palier.mjs',
-    'scripts/ops/faits-de-palier.test.mjs',
     'scripts/ops/knip-exports-ratchet.mjs',
     // +2 le 2026-09-16 (#1776) : le ruleset `main` (`scripts/ops/ruleset-main.mjs`).
     // · `ruleset-main.mjs` n'écrit QUE le corps du ruleset dans un fichier d'`os.tmpdir()`, pour le

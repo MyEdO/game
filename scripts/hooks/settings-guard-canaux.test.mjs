@@ -4,8 +4,7 @@
 // `Bash`/`PowerShell`.
 //
 // Défaut mesuré 2026-08-03 (#1052) : l'orchestrateur committe via l'outil MCP
-// `mcp__lean-ctx__ctx_shell`, hors matcher — le compteur de palier était à 32 pour un palier de 10,
-// la garde n'ayant jamais tiré.
+// `mcp__lean-ctx__ctx_shell`, hors matcher : la garde n'avait jamais tiré sur ces commits.
 //
 // `mcp__lean-ctx__ctx_execute` n'est pas un canal gardable en l'état : son `tool_input` (schéma
 // tools/list de lean-ctx 3.9.12, relevé 2026-08-03) n'expose aucun champ `command` — il porte
@@ -214,7 +213,7 @@ function decisionOf(script, command, outil = 'mcp__lean-ctx__ctx_shell') {
 
 test('DRIVER : les gardes de commande décident bien sur un payload ctx_shell (câblage de bout en bout)', () => {
   // Fermeture d'un ticket sans solde : deny quoi qu'il arrive (`.claude/soldes/999999.md` n'existe
-  // pas — et un palier atteint denierait tout autant).
+  // pas).
   assert.equal(decisionOf('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #999999)"'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'git show --stat -- 21d0153b7'), 'deny')
