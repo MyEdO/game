@@ -242,7 +242,7 @@ export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Ef
  *  strictement équivalent à applyEffects. Fenêtre déjà ouverte → le butin s'y AJOUTE. */
 export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): Applique {
   if (get().battle) return applyEffects(get, set, effects, sl);
-  const { gear, rest } = gearFromEffects(effects);
+  const { gear, rest } = gearFromEffects(structuredClone(effects)); // #2097
   // Un lot DIFFÉRÉ n'ouvre pas sa fenêtre de butin ICI : le butin fait partie de la suite qu'il a
   // confiée au dé (le `rest` non appliqué y est déjà), et l'ouvrir maintenant la montrerait AVANT la
   // conséquence qui l'a produite.
@@ -443,7 +443,8 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
  *  inconnue, coque absente au contexte) AVANT qu'aucune op de la feuille ne s'applique — une feuille
  *  qu'on ne sait pas annoncer entièrement ne s'applique pas à moitié. Même politique que le `case`
  *  correspondant du moteur, qui levait déjà au même endroit. */
-export function applyLeafOps(get: Get, set: SetFn, c: Combatant, e: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
+export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
+  const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
   const ctx = leafOpsCtx({ ...base, now }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
@@ -1053,7 +1054,7 @@ export function openSkillTest(
       support: def.support, easedBy,
       envMod: env?.mod, envLabel: env?.label,
       capriciousRoll, capriciousDR: capDR || undefined,
-      onSuccess, onFailure, after,
+      ...structuredClone({ onSuccess, onFailure, after }), // #2097
       candidates: candidates.length > 1 ? candidates : undefined,
       ...(opts?.noOwnTestFailed ? { noOwnTestFailed: true } : {}),
       ...(opts?.combatAdvantage ? { combatAdvantage: opts.combatAdvantage } : {}),
@@ -1088,7 +1089,7 @@ export function openSkillTest(
  * la conséquence aura produit).
  */
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
-  const stack: Flow[] = [flow];
+  const stack: Flow[] = [structuredClone(flow)]; // #2097
   const batch: Effect[] = [];
   const flush = (): Applique => (batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined);
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
@@ -2281,7 +2282,7 @@ registerCascadeApplier('waterExposure', (_get, _set, step, hero) => {
  */
 export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number): Applique {
   const env = makeEffectEnv(get, set, sl);
-  const file = [...effects];
+  const file = structuredClone(effects); // #2097
   let differe: Applique;
   while (file.length) {
     const e = file.shift()!;

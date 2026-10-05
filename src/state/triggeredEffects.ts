@@ -41,9 +41,9 @@ import { RNG, defaultRNG } from '../engine/dice';
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
  *  chose » (arbitrage user 2026-07-18). Cette identité voyage jusqu'à l'`OpsCtx` du dispatch, où
  *  `applyOps` la stampe sur les `ActiveEffect` posés : une pastille d'effet ouvre alors la fiche de son
- *  trait/talent/qualité/symptôme/État. Immuable (clone partiel), jamais authoré en JSON. */
+ *  trait/talent/qualité/symptôme/État. Rend une COPIE, jamais authorée en JSON. */
 function withSource(effects: TriggeredEffect[], source: EffectSource): TriggeredEffect[] {
-  return effects.map((e) => (e.source ? e : { ...e, source }));
+  return structuredClone(effects.map((e) => (e.source ? e : { ...e, source }))); // #2097
 }
 
 /** PARAMÈTRE un effet de trait par l'ARGUMENT d'instance du porteur : substitue la difficulté d'un Test

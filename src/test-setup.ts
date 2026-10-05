@@ -75,12 +75,17 @@
  *    courant, `unmount` le retire) : chaque fichier est jugé sur ce QU'IL a rendu, et la fuite se dit
  *    chez lui, jamais chez la victime qui lève « Should not already be working » plus loin (#1724).
  *
- * Les barrières §1 (art), §3 et §4 jouent en TROIS temps : elles LISENT toutes les fuites, REMETTENT
+ * 5. GARDE DE PARTAGE (`partagesDeLEtat`, `afterEach`, #2097) : l'état laissé par le test n'atteint
+ *    aucune donnée par identité. Racines et sources : `state/partage.testkit.ts`.
+ *
+ * Les barrières §1 (art), §3, §4 et §5 jouent en TROIS temps : elles LISENT toutes les fuites, REMETTENT
  * l'état partagé à vierge, puis JUGENT par un seul `throw` qui joint tous les verdicts. Aucune ne
  * masque l'autre, et aucun résidu ne survit à son verdict pour accuser la victime suivante (#2286).
  */
 import { afterEach, beforeEach, expect, vi } from 'vitest';
-import { useGame, resetSceneRegistry, type GameState } from './state/store';
+import { useGame, resetSceneRegistry, scenesDuRegistre, type GameState } from './state/store';
+import { partagesDeLEtat } from './state/partage.testkit';
+import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';
 import { cascadeAppliers } from './state/cascade';
 import { clearTrackedTimers } from './state/combatTimers';
@@ -378,6 +383,17 @@ export function messageActEnVol(fichier: string, enVol: boolean): string | null 
   );
 }
 
+/** Verdict de la garde de partage (§5) : les chemins de l'état vers une donnée, ou `null`. */
+export function messagePartage(partages: readonly string[]): string | null {
+  if (!partages.length) return null;
+  return (
+    `État mutable laissé PARTAGÉ avec une donnée par ce test (#2097), ${partages.length} chemin(s) :\n`
+    + `${partages.slice(0, 12).join('\n')}\n`
+    + `Copier à la COUTURE qui a stocké la donnée. Un test qui bâtit son état hors des coutures du jeu passe `
+    + `par leur porte (\`spawnEnemy\`…).`
+  );
+}
+
 // Compte des racines react-dom (cf. `instrumenterRacines`) : posé au premier test qui dispose d'un
 // DOM, une seule fois par worker. Hook à part, et ENREGISTRÉ EN PREMIER (les hooks jouent dans leur
 // ordre d'enregistrement) : le filet est en place avant le moindre montage, et la remise à plat des
@@ -428,6 +444,8 @@ afterEach(() => {
   const fileOuverte = fileAct !== null && fileAct.actQueue !== null;
   const fileNeuve = fileOuverte && fileAct!.actQueue !== fileActSignalee;
   if (fileOuverte) fileActSignalee = fileAct!.actQueue;
+  // PARTAGE (#2097) : lu AVANT le vidage du registre des scènes, qui en est une source.
+  const partages = partagesDeLEtat(useGame.getState(), scenesDuRegistre());
   // REGISTRE DES SCÈNES (`state/store`) : vidé APRÈS CHAQUE test —
   // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
   // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `state/scene-registry-isolation.test.ts`.
@@ -436,7 +454,7 @@ afterEach(() => {
   Object.assign(cascadeAppliers, cascadeSnapshot);
   vi.useRealTimers();
   clearTrackedTimers();
-  // Barrières §1 (art), §3 (nœuds) et §4 (racines, act) en trois temps — cf. fin de l'en-tête.
+  // Barrières §1 (art), §3 (nœuds), §4 (racines, act) et §5 (partage) en trois temps — cf. fin de l'en-tête.
   // Observées au hook le plus EXTERNE, donc APRÈS les `afterEach` du fichier (démontage, `cleanup()`).
   // 1. LIRE toutes les fuites de CE test.
   const fichier = cleFichierTest(expect.getState().testPath);
@@ -456,6 +474,7 @@ afterEach(() => {
     messageRacineMontee(racinesFuites),
     messageActEnVol(fichier, fileNeuve),
     messageDeriveArt(fichier, [...derivesArt.values()]),
+    messagePartage(partages),
   ].filter((m): m is string => m !== null);
   if (verdicts.length) throw new Error(verdicts.join('\n'));
 });

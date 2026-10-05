@@ -45,7 +45,7 @@ export function ouvrirDialogue(
   speakerId?: string,
 ): EtatDialogue {
   const session = etat.dialogueHistory.reduce((max, t) => Math.max(max, t.session), 0) + 1;
-  return { dialogue, nodeId: dialogue.start, ...(speakerId ? { speakerId } : {}), session };
+  return { dialogue: structuredClone(dialogue), nodeId: dialogue.start, ...(speakerId ? { speakerId } : {}), session }; // #2097
 }
 
 /**

@@ -5,7 +5,7 @@ import { applyAttackResult, resolveDeviation } from './combatFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { resetRule } from '../engine/policy';
 import { deviatableArmourAt } from '../engine/items';
-import { nonDeviatableMutationAP } from '../engine/corruption';
+import { attachMutation, nonDeviatableMutationAP } from '../engine/corruption';
 import { mutationById } from '../data/mutations';
 import type { Combatant, Weapon, ItemInstance } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
@@ -15,7 +15,11 @@ import { stepInteraction } from './cascade';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)
 // — la DONNÉE réelle de mutations.json, pour que ce test casse si le drapeau `noDeviation` disparaît.
-const ecailles = mutationById('ecailles-epineuses')!;
+// Posée par `attachMutation`, la couture du jeu (#2097).
+const avecEcailles = (c: Combatant): Combatant => {
+  attachMutation(c, mutationById('ecailles-epineuses')!);
+  return c;
+};
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -66,7 +70,7 @@ const wornPiece = (pa: number): ItemInstance =>
 // ── PA déviatable (LDB 63 l.30) : pur, sans flux ──────────────────────────────
 describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 63 l.30 + EDO App.2 l.196)', () => {
   it('Écailles épineuses (EDO App.2 l.196) : son PA est marqué hors-Déviation', () => {
-    const c = hero({ mutations: [ecailles] });
+    const c = avecEcailles(hero({}));
     expect(nonDeviatableMutationAP(c, 'corps')).toBe(1);
   });
 
@@ -87,12 +91,12 @@ describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 6
   });
 
   it('Écailles seule (PA = 1, noDeviation) → PA déviatable NUL (EDO App.2 l.196)', () => {
-    const c = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 }, mutations: [ecailles] });
+    const c = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 } }));
     expect(deviatableArmourAt(c, 'corps')).toBe(0);
   });
 
   it('armure portée (3) + Écailles (1) → seul le PA porté (3) est déviatable', () => {
-    const c = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, mutations: [ecailles] });
+    const c = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } }));
     expect(deviatableArmourAt(c, 'corps')).toBe(3);
   });
 });
@@ -226,7 +230,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
 
   it('PA uniquement issu d’Écailles (noDeviation) → PAS de Déviation, le Critique s’applique (EDO App.2 l.196)', () => {
     const h = hero({});
-    const e = enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 }, mutations: [ecailles], criticalWounds: 0 });
+    const e = avecEcailles(enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 }, criticalWounds: 0 }));
     setBattle([h, e]);
     applyAttackResult(useGame.getState, useGame.setState, h, e, critWeapon, critRes());
     // Aucun siège humain ne tient l'ennemi : le socle résout sa table D'OFFICE au rang du curseur et
@@ -239,7 +243,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
 
   it('héros : armure portée + Écailles → « Dévier » sacrifie la PIÈCE, le PA d’Écailles reste intact', () => {
     const e = enemy({});
-    const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], mutations: [ecailles], criticalWounds: 0 });
+    const h = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 }));
     setBattle([e, h]);
     const suspended = applyAttackResult(useGame.getState, useGame.setState, e, h, critWeapon, critRes());
     expect(suspended).toBe(true);

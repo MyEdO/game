@@ -1503,7 +1503,7 @@ interface DeDeclare<C extends string = string> {
 /** Le 1d10 de DÉGÂTS de toute chute (LDB 15 l.80) — une seule écriture, lue par la déclaration de l'op
  *  `fall`, par le repli headless de son `case`, et par la porte des chutes à hauteur CONNUE
  *  (`state/combatEffects.ouvrirChute`). */
-export const D10_CHUTE: DiceSpec = { n: 1, sides: 10 };
+export const D10_CHUTE: DiceSpec = Object.freeze({ n: 1, sides: 10 }); // #2097
 
 /**
  * HAUTEUR déclarée d'une chute d'op `fall` — LECTURE UNIQUE de (table × Taille de coque × station du
@@ -1520,7 +1520,7 @@ function hauteurDeChute(o: Extract<GameOp, { op: 'fall' }>, target: Combatant, c
   if (!taille) throw new Error(`op « fall » (« ${table.label} ») : aucune Taille de coque au contexte (ctx.hull) — la hauteur se lit par la Taille du bateau (MDG 12 l.122-129).`);
   const bande = table.bandes.find((b) => b.tailles.includes(taille));
   if (!bande) throw new Error(`op « fall » (« ${table.label} ») : aucune bande ne couvre la Taille « ${taille} ».`);
-  const hauteur = target.shipStation === undefined ? undefined : bande.hauteurs[target.shipStation];
+  const hauteur = target.shipStation === undefined ? undefined : structuredClone(bande.hauteurs[target.shipStation]); // #2097
   if (hauteur === undefined) throw new Error(`op « fall » (« ${table.label} ») : ${target.label} n'a pas de colonne de hauteur pour la station « ${target.shipStation ?? '—'} ».`);
   return { hauteur, table: table.label };
 }
@@ -1679,14 +1679,16 @@ export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: Op
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
  * historique de l'incantation). Renvoie les lignes de journal ; `ctx.surLigne` les reçoit avec leur rang.
  */
-export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): string[] {
+export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {}): string[] {
+  const ops = structuredClone(opsRecues); // #2097
+  const source = structuredClone(ctx.source); // #2097
   const rng = ctx.rng ?? defaultRNG;
   const ref = ctx.caster ?? target;
   const lines: string[] = [];
   const debuts: number[] = [];
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
   // en fin d'op, QUE ceux posés par CE sort source (robuste au dédoublonnage en place de `applyActiveEffect`).
-  const preEffects = (ctx.sourceSpell || ctx.sourceSpellId || ctx.effectId || ctx.source) ? new Set(target.activeEffects ?? []) : null;
+  const preEffects = (ctx.sourceSpell || ctx.sourceSpellId || ctx.effectId || source) ? new Set(target.activeEffects ?? []) : null;
   // Agrégation des charMod (une ligne par source, façon « Écorce (-10 Ag, -10 Dex, 6 rounds) »).
   const charParts: string[] = [];
   let charRounds: number | null = null;
@@ -1923,7 +1925,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         // Trait PSYCHOLOGIQUE conféré (≠ état de combat) : posé dans `c.psychTraits` (la DONNÉE persistée),
         // noyau PARTAGÉ `grantPsychTrait` (`grantedTraits.ts`) — même chemin qu'`attachMutation` (permanent).
         const cible = o.cible ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        grantPsychTrait(target, o.psychType as PsychType, cible, ctx.source);
+        grantPsychTrait(target, o.psychType as PsychType, cible, source);
         lines.push(t('op.grantPsychTrait', { name: target.label, psych: psychologyLabel(o.psychType), src: nomDeSource(ctx) }));
         break;
       }
@@ -2097,7 +2099,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
         const ind = o.indice != null ? resolveFormula(o.indice, ref, rng) + slBonus(ctx.sl, o.indicePerSL) : null;
         const arg = o.arg ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        const inst: TraitInstance = { id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}), ...(ctx.source ? { src: ctx.source } : {}) };
+        const inst: TraitInstance = { id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}), ...(source ? { src: source } : {}) };
         grantTrait(target, inst);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
@@ -2109,7 +2111,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         break;
       }
       case 'removeTrait': {
-        const gone = removeGrantedTraitsFrom(target, o.traitId, ctx.source);
+        const gone = removeGrantedTraitsFrom(target, o.traitId, source);
         if (!gone.length) break; // rien d'accordé par cette source — rien à dire
         if (target.activeEffects?.length) target.activeEffects = target.activeEffects.filter((e) => !gone.some((g) => e.grantedTrait && sameInstance(e.grantedTrait, g)));
         lines.push(t('op.removeTrait', { name: target.label, trait: formatTrait(gone[0]) }));
@@ -2136,7 +2138,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
             ...(o.addQualities?.length ? { addQualities: o.addQualities } : {}),
             ...(dmg ? { damageBonus: dmg } : {}),
             ...(o.bypass != null ? { bypass: o.bypass } : {}),
-            ...(o.onHitEffects?.length ? { onHitEffects: stampSource(o.onHitEffects, ctx.source) } : {}),
+            ...(o.onHitEffects?.length ? { onHitEffects: stampSource(o.onHitEffects, source) } : {}),
             ...(o.removeQualities?.length ? { removeQualities: o.removeQualities } : {}),
             ...(o.removeType != null ? { removeType: o.removeType } : {}),
             ...(o.suppressEnchants ? { suppressEnchants: true } : {}),
@@ -2463,7 +2465,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, ctx.source);
+          const it = itemFromGive(o, source);
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
@@ -2523,8 +2525,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         // propre flux de mutation). Durée du ctx par défaut → ActiveEffect porteur qui la détache à
         // l'expiration ; permanente (`duration:'permanent'` OU ctx sans durée) → aucun porteur (comme grantTrait).
         const dur = o.duration === 'permanent' ? { scale: 'permanent' as const } : durationFromCtx(ctx);
-        const m = rollMutation(o.table, rng);
-        attachMutation(target, m, rng);
+        const m = attachMutation(target, rollMutation(o.table, rng), rng);
         if (dur.scale !== 'permanent') {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx, 'mutation'), bonus: 0, duration: dur, grantedMutation: m });
@@ -2550,7 +2551,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
       }
       case 'grantNaturalWeapon': {
         const n = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
-        const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? { prefix: `nat-${norm(o.label)}` }, source: ctx.source });
+        const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? { prefix: `nat-${norm(o.label)}` }, source });
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: ctx.label ?? o.label, bonus: 0,
@@ -2583,14 +2584,14 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
           uid: { prefix: 'conjure' },
           ...(o.skin ? { skin: o.skin } : {}), // teinte magique unique (aethyrique/améthyste/ardente)
           ...(form ? { form: form.weapon } : o.form ? { form: o.form } : {}),
-          source: ctx.source,
+          source,
         });
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;
         // equipConjuredWeapon recompose le loadout → repliés dans l'arme active. Pas d'enchantRef :
         // l'objet est retiré en bloc à l'expiration (dropExpiredGrantedWeapons).
-        if (o.onHitEffects?.length) item.enchants = [{ id: newUid(), onHitEffects: stampSource(o.onHitEffects, ctx.source) }];
+        if (o.onHitEffects?.length) item.enchants = [{ id: newUid(), onHitEffects: stampSource(o.onHitEffects, source) }];
         const conjuredSet = equipConjuredWeapon(target, item);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
@@ -2836,10 +2837,10 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
         const hand: 'main' | 'off' = ctx.location === 'brasG' ? 'off' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'off';
         const tenue = (target.weapons ?? []).find((w) => estUneVraieArme(w) && w.derivedFromItem == null
           && (w.hands === 2 || (w.hand === 'off') === (hand === 'off')));
-        const source = tenue ? objetSourceDeLArme(target, tenue) : undefined;
-        if (source && itemCapability(source, 'disarmImmune')) {
+        const objet = tenue ? objetSourceDeLArme(target, tenue) : undefined;
+        if (objet && itemCapability(objet, 'disarmImmune')) {
           // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
-          lines.push(t('op.disarmImmune', { name: target.label, item: source.label }));
+          lines.push(t('op.disarmImmune', { name: target.label, item: objet.label }));
         } else if (tenue) {
           lacherLArme(target, tenue);
           lines.push(t('op.disarm', { name: target.label, item: tenue.label }));
@@ -2916,13 +2917,13 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
   // Marque les effets actifs POSÉS par ce sort source (durables) : identité + NI → Dissipation (Sorts
   // seulement, `sourceSpell`) ET id du sort → anti-spam IA (TOUT lancement, Prières comprises, `sourceSpellId`)
   // ET id STABLE de l'effet en cours (`effectId` — transform/chansons de marin…, retrait par IDENTITÉ).
-  if ((ctx.sourceSpell || ctx.sourceSpellId || ctx.effectId || ctx.source) && target.activeEffects) {
+  if ((ctx.sourceSpell || ctx.sourceSpellId || ctx.effectId || source) && target.activeEffects) {
     for (const e of target.activeEffects) {
       if (preEffects!.has(e)) continue;
       if (ctx.sourceSpell && !e.spell) e.spell = ctx.sourceSpell;
       if (ctx.sourceSpellId && !e.sourceSpellId) e.sourceSpellId = ctx.sourceSpellId;
       if (ctx.effectId && !e.effectId) e.effectId = ctx.effectId;
-      if (ctx.source && !e.source) e.source = ctx.source;
+      if (source && !e.source) e.source = source;
     }
   }
   // Toute op qui bouge un fait SOURCE d'État dérivé passe par ici (`aggravateSymptom`/`attenuateSymptom`/
