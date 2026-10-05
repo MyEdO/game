@@ -15,9 +15,9 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
-import { coursesCi } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { verdictDesRuns } from './etapesDuTrain.mjs'
+import { verdictDesJobs, verdictDesRuns } from './etapesDuTrain.mjs'
 import { cheminsDeJournal, etatDuTrain, lireJournal, sauverJournal } from './publier.mjs'
 
 /** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
@@ -143,16 +143,21 @@ function verteAuCache(chemin) {
  * union de `coursesCi`) et `verdictDesRuns` ; un `verte` neuf s'écrit au cache par l'écriture ATOMIQUE
  * `sauverJournal`, que huit sessions partagent sans lire un fichier à moitié écrit. Le cache ne garde
  * que le verdict : un sha vu `verte` n'appelle plus `gh`.
- * Une lecture indisponible LÈVE `CiIllisible`.
- * @param {{sha:string|null, dossier:string, lire:(sha:string) => object}} p @returns {string|null}
+ * Une course `rouge` se juge sur ses jobs (`jobs(id)`, `verdictDesJobs`) : sans job rouge et avec un job
+ * annulé, elle est `annulee` ; des jobs illisibles la laissent `rouge`. Une lecture de courses indisponible
+ * LÈVE `CiIllisible`.
+ * @param {{sha:string|null, dossier:string, lire:(sha:string) => object, jobs:(id:number, attempt:number|null) => object}} p
+ * @returns {string|null}
  */
-export function verdictDeCi({ sha, dossier, lire }) {
+export function verdictDeCi({ sha, dossier, lire, jobs }) {
   if (!sha) return null
   const chemin = fichierDuCache(dossier, sha)
   if (verteAuCache(chemin)) return 'verte'
   const vues = lire(sha)
   if (!vues.disponible) throw new CiIllisible(`courses de ${sha.slice(0, 9)} illisibles : ${vues.raison}`)
-  const vu = verdictDesRuns(vues.valeur, sha)
+  const lu = verdictDesRuns(vues.valeur, sha)
+  const lusJobs = lu.etat === 'rouge' ? jobs(lu.course.databaseId, lu.course.attempt ?? null) : null
+  const vu = lusJobs?.disponible ? verdictDesJobs(lu, lusJobs.valeur) : lu
   if (vu.etat === 'verte') {
     sauverJournal(chemin, { verdict: 'verte' })
     purgerPerimes({ dossier, motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })
@@ -164,7 +169,9 @@ export function verdictDeCi({ sha, dossier, lire }) {
  * Le TICK : mesure l'arbre `arbre`, puis rend `{ ligne, transitions, etat }` depuis l'état `depuis`.
  * @param {{arbre:string, depuis?:string|null, lire?:(sha:string) => object}} p
  */
-export function tick({ arbre, depuis = null, lire = (sha) => coursesCi({ cwd: arbre, commit: sha, limit: 30 }) }) {
+export function tick({
+  arbre, depuis = null, lire = (sha) => coursesCi({ cwd: arbre, commit: sha, limit: 30 }), jobs = (id, attempt) => jobsEnEchecDe({ cwd: arbre, id, attempt }),
+}) {
   const depot = depotDe(arbre)
   const principal = arbrePrincipal(depot)
   if (!principal.disponible) throw new GitIndisponible(principal.raison)
@@ -174,8 +181,8 @@ export function tick({ arbre, depuis = null, lire = (sha) => coursesCi({ cwd: ar
   const refs = [TRONC.branche, ...(nom && nom !== TRONC.nom ? [`refs/heads/${nom}`] : [])]
   const distants = shasDistants(depot, refs)
   if (!distants) throw new GitIndisponible(`ls-remote origin n’a rien rendu pour ${refs.join(', ')}`)
-  const main = { sha: distants.get(TRONC.branche), verdict: verdictDeCi({ sha: distants.get(TRONC.branche), dossier, lire }) }
-  const branche = refs[1] ? { nom, sha: distants.get(refs[1]), verdict: verdictDeCi({ sha: distants.get(refs[1]), dossier, lire }) } : null
+  const main = { sha: distants.get(TRONC.branche), verdict: verdictDeCi({ sha: distants.get(TRONC.branche), dossier, lire, jobs }) }
+  const branche = refs[1] ? { nom, sha: distants.get(refs[1]), verdict: verdictDeCi({ sha: distants.get(refs[1]), dossier, lire, jobs }) } : null
   const { json } = cheminsDeJournal(arbre, nom ?? 'HEAD')
   const train = etatDuTrain(existsSync(json) ? lireJournal(json, nom) : null, { teteVivante })
   const vu = { main, branche, train }

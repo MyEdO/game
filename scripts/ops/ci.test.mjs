@@ -135,12 +135,25 @@ test('echecsDeLaCourse : les jobs rouges (`gh run view --json jobs`) croisés av
     if (args.includes('--json')) return { status: 0, stderr: '', stdout: JSON.stringify({ jobs: [{ name: 'suite', conclusion: 'failure' }, { name: 'types', conclusion: 'success' }] }) }
     return { status: 0, stderr: '', stdout: 'suite\tUNKNOWN STEP\t2026-09-27T19:36:55.3049126Z not ok 1170 - un nom CITÉ À PLAT\n' }
   }
-  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn }), { disponible: true, valeur: ['  suite :', '    not ok 1170 - un nom CITÉ À PLAT'] })
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn }), { disponible: true, valeur: { rouges: ['suite'], annules: [], lignes: ['  suite :', '    not ok 1170 - un nom CITÉ À PLAT'] } })
   assert.deepEqual(vus, ['gh run view 9 --json jobs', 'gh run view 9 --log-failed'])
   assert.equal(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn: () => ({ status: 1, stdout: '', stderr: 'x' }) }).disponible, false)
 })
 
+test('echecsDeLaCourse : une course SANS job rouge nomme ses jobs annulés, sans lire le journal ; sans l’un ni l’autre, elle le DIT', () => {
+  const vus = []
+  const jobs = (liste) => (cmd, args) => {
+    vus.push(args.at(-1))
+    return { status: 0, stderr: '', stdout: JSON.stringify({ jobs: liste }) }
+  }
+  const annulee = [{ name: 'migrations', conclusion: 'success' }, { name: 'docs', conclusion: 'cancelled' }, { name: 'suite 1/3', conclusion: 'cancelled' }]
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 37371342026, spawn: jobs(annulee) }).valeur, { rouges: [], annules: ['docs', 'suite 1/3'], lignes: ['  docs : annulé', '  suite 1/3 : annulé'] })
+  assert.deepEqual(vus, ['jobs'], 'aucun journal en échec à lire')
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 1, spawn: jobs([{ name: 'types', conclusion: 'success' }]) }).valeur.lignes, ['  aucun job rouge ni annulé dans la course'])
+})
+
 test('ligneDeCi : la ligne finale `CI:` de chaque verdict', () => {
+  assert.equal(ligneDeCi({ etat: 'annulee', course: { databaseId: 41 } }, SHA), `CI: annulee ${SHA} ${urlDeCourse(41)} — personne n’a jugé ce contenu : relancer la course`)
   assert.equal(ligneDeCi({ etat: 'verte', course: { databaseId: 41 } }, SHA), `CI: verte ${SHA} ${urlDeCourse(41)}`)
   assert.equal(ligneDeCi({ etat: 'absente' }, SHA), `CI: absente ${SHA} — aucune course en ${BORNE_ABSENTE_MIN} min`)
   assert.equal(ligneDeCi({ etat: 'borne' }, SHA), `CI: borne de ${BORNE_ATTENTE_MIN} min dépassée sans verdict pour ${SHA}`)
@@ -154,7 +167,7 @@ test('câblage : `ci.mjs --attendre <sha>` lit les courses par `coursesCi` et SO
       writeFileSync(stub, JSON.stringify([course('completed', conclusion)]))
       const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', SHA], { encoding: 'utf8', env: { ...process.env, WFRP_GH_STUB: stub } })
       assert.equal(vu.status, CODES_DE_CI[etat], vu.stderr)
-      assert.equal(vu.stdout.trim().split('\n').at(-1), `CI: ${etat} ${SHA} ${urlDeCourse(41)}`)
+      assert.equal(vu.stdout.trim().split('\n').at(-1), ligneDeCi({ etat, course: { databaseId: 41 } }, SHA))
     }
     const refus = spawnSync(process.execPath, [fileURLToPath(new URL('./ci.mjs', import.meta.url)), '--attendre', 'court'], { encoding: 'utf8' })
     assert.equal(refus.status, CODE_PANNE)

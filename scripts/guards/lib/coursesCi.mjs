@@ -30,7 +30,7 @@ export const CHAMPS = 'attempt,conclusion,createdAt,databaseId,headBranch,headSh
 /** Les conclusions qui disent une course ÉCHOUÉE. `failure` n'est pas la seule : GitHub rend aussi
  *  `timed_out` (le job a dépassé sa borne) et `startup_failure` (le runner n'a pas démarré). Les
  *  omettre laissait passer une CI qui n'est PAS verte — mesuré : refus=0 sur les deux. Notion de
- *  COURSE, donc hôte des courses : la sonde de publication et `jobsRougesDe` la lisent. */
+ *  COURSE, donc hôte des courses : la sonde de publication et `jobsEnEchecDe` la lisent. */
 export const ROUGES = new Set(['failure', 'timed_out', 'startup_failure'])
 
 /** `cancelled` n'est ni vert ni rouge : personne n'a jugé ce contenu. */
@@ -100,13 +100,14 @@ export function coursesCi({
 }
 
 /**
- * Les noms des jobs ROUGES (`ROUGES`) de la course `id` (`gh run view <id> --json jobs`), en union à
- * trois issues. `WFRP_GH_STUB` n'y répond pas : un test injecte `spawn`.
- * @param {{cwd?:string, id:number, spawn?:Function}} p
- * @returns {{disponible:true, valeur:string[]}|{disponible:false, raison:string}}
+ * Les noms des jobs ROUGES (`ROUGES`) et ANNULÉS (`ANNULEE`) de la course `id` (`gh run view <id> --json
+ * jobs`), de l'essai `attempt` s'il est nommé (`vueDeCourse`), en union à trois issues. `WFRP_GH_STUB` n'y répond
+ * pas : un test injecte `spawn`.
+ * @param {{cwd?:string, id:number, attempt?:number|null, spawn?:Function}} p
+ * @returns {{disponible:true, valeur:{rouges:string[], annules:string[]}}|{disponible:false, raison:string}}
  */
-export function jobsRougesDe({ cwd = process.cwd(), id, spawn = spawnSync }) {
-  const vu = classer(spawn('gh', ['run', 'view', String(id), '--json', 'jobs'], {
+export function jobsEnEchecDe({ cwd = process.cwd(), id, attempt = null, spawn = spawnSync }) {
+  const vu = classer(spawn('gh', [...vueDeCourse(id, attempt), '--json', 'jobs'], {
     cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000,
   }))
   if (!vu.disponible) return vu
@@ -115,11 +116,16 @@ export function jobsRougesDe({ cwd = process.cwd(), id, spawn = spawnSync }) {
   try {
     const jobs = JSON.parse(vu.valeur.stdout)?.jobs
     if (!Array.isArray(jobs)) return indisponible('gh n’a pas rendu de `jobs`')
-    return fait(jobs.filter((j) => ROUGES.has(String(j?.conclusion ?? ''))).map((j) => String(j.name)))
+    const noms = (garde) => jobs.filter((j) => garde(String(j?.conclusion ?? ''))).map((j) => String(j.name))
+    return fait({ rouges: noms((c) => ROUGES.has(c)), annules: noms((c) => c === ANNULEE) })
   } catch (e) {
     return indisponible(e.message)
   }
 }
+
+/** L'argv `gh run view <id>` d'une course, sur l'ESSAI `attempt` quand il est nommé : sans lui, `gh` lit le
+ *  dernier essai, qu'une relance a pu remettre en vol (mesuré sur 37371342026 le 2026-10-05). PUR. */
+const vueDeCourse = (id, attempt) => ['run', 'view', String(id), ...(attempt ? ['--attempt', String(attempt)] : [])]
 
 /** Lignes de test en échec retenues par job (`echecsDuLog`) : valeur maison, assez pour nommer la
  *  panne sans recopier une suite entière. */
@@ -196,13 +202,13 @@ export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC, contexte = 
 }
 
 /**
- * Le journal des jobs en ÉCHEC de la course `id` (`gh run view <id> --log-failed`), en union à trois
- * issues. `WFRP_GH_STUB` n'y répond pas : un test injecte `spawn`.
- * @param {{cwd?:string, id:number, spawn?:Function}} p
+ * Le journal des jobs en ÉCHEC de la course `id` (`gh run view <id> --log-failed`), de l'essai `attempt` s'il
+ * est nommé, en union à trois issues. `WFRP_GH_STUB` n'y répond pas : un test injecte `spawn`.
+ * @param {{cwd?:string, id:number, attempt?:number|null, spawn?:Function}} p
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */
-export function journalEnEchecDe({ cwd = process.cwd(), id, spawn = spawnSync }) {
-  const vu = classer(spawn('gh', ['run', 'view', String(id), '--log-failed'], {
+export function journalEnEchecDe({ cwd = process.cwd(), id, attempt = null, spawn = spawnSync }) {
+  const vu = classer(spawn('gh', [...vueDeCourse(id, attempt), '--log-failed'], {
     cwd, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000,
   }))
   if (!vu.disponible) return vu

@@ -4,7 +4,7 @@
 // (`contexteDe`, `publier.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
-// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsRouges`, `lirePr`, `ouvrirPr`, `demanderFusion`,
+// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
 // `lireFusion`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
@@ -65,6 +65,25 @@ export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
   // `ROUGES` nomme les trois échecs connus ; toute AUTRE conclusion (`neutral`, `skipped`, une
   // valeur neuve de GitHub) n'est pas verte non plus — elle rougit, et le journal la porte.
   return { etat: 'rouge', course, inattendue: !ROUGES.has(conclusion) }
+}
+
+/**
+ * Le verdict d'une course `rouge` (`verdictDesRuns`) jugé sur ses JOBS (`jobsEnEchecDe`). PUR. Une course
+ * conclue en échec dont AUCUN job n'est rouge et dont un job au moins est annulé (panne d'Actions) est
+ * `annulee` : personne n'a jugé ce contenu, le geste est une relance. Sans job rouge ni annulé, elle reste
+ * `rouge`, marquée `sansJobEnEchec`, pour que son lecteur le dise. Tout autre verdict passe tel quel.
+ * @param {{etat:string, course?:object}} verdict @param {{rouges:string[], annules:string[]}} jobs
+ * @returns {{etat:string, course?:object, rouges:string[], annules:string[], sansJobEnEchec?:true}}
+ */
+export function verdictDesJobs(verdict, { rouges, annules }) {
+  if (verdict.etat !== 'rouge' || rouges.length) return { ...verdict, rouges, annules }
+  return annules.length ? { ...verdict, etat: 'annulee', rouges, annules } : { ...verdict, rouges, annules, sansJobEnEchec: true }
+}
+
+/** Ce que disent les jobs d'un verdict jugé (`verdictDesJobs`), en une phrase. PUR. */
+export function phraseDesJobs({ rouges, annules, sansJobEnEchec }) {
+  if (sansJobEnEchec) return 'aucun job rouge ni annulé dans la course'
+  return [rouges.length ? `jobs rouges : ${rouges.join(', ')}` : '', annules.length ? `jobs annulés : ${annules.join(', ')}` : ''].filter(Boolean).join(' ; ')
 }
 
 /**
@@ -301,12 +320,16 @@ export function synchroniserAgents(ctx) {
   return { ok: true }
 }
 
-/** Le refus nommé d'une course de BRANCHE rouge ou annulée sur la tête `tete` de la PR `pr`, ou `null`. */
+/** Le refus nommé d'une course de BRANCHE rouge ou annulée sur la tête `tete` de la PR `pr`, ou `null` ; une
+ *  course rouge se juge sur ses jobs (`verdictDesJobs`). */
 function rougeDeBranche(ctx, pr, tete) {
   const vues = ctx.coursesCi(tete)
-  const ci = vues.disponible ? verdictDesRuns(vues.valeur, tete) : null
-  if (!ci || (ci.etat !== 'rouge' && ci.etat !== 'annulee')) return null
-  return `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)} — la PR #${pr.numero} n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/${ci.course.databaseId}`
+  const lu = vues.disponible ? verdictDesRuns(vues.valeur, tete) : null
+  if (!lu || (lu.etat !== 'rouge' && lu.etat !== 'annulee')) return null
+  const jobs = lu.etat === 'rouge' ? ctx.jobsEnEchec(lu.course.databaseId, lu.course.attempt) : null
+  const ci = jobs?.disponible ? verdictDesJobs(lu, jobs.valeur) : lu
+  const dit = jobs ? ` (${jobs.disponible ? phraseDesJobs(ci) : `jobs illisibles : ${jobs.raison}`})` : ''
+  return `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)}${dit} — la PR #${pr.numero} n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/${ci.course.databaseId}`
 }
 
 /**
@@ -336,11 +359,12 @@ function causeDEjection(ctx, pr, tete) {
   const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
     return { attendre: true, dit: `course de file ${verdict.etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
-  const jobs = ctx.jobsRouges(course.databaseId)
+  const jobs = ctx.jobsEnEchec(course.databaseId, course.attempt)
   if (!jobs.disponible) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${jobs.raison}` }
+  const juge = verdictDesJobs(verdict, jobs.valeur)
   const derives = new Set(ctx.jobsDesDerives)
-  const reprendre = jobs.valeur.length > 0 && jobs.valeur.every((j) => derives.has(j))
-  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url} — jobs rouges : ${jobs.valeur.join(', ') || '(aucun nommé)'}` }
+  const reprendre = juge.etat === 'rouge' && juge.rouges.length > 0 && juge.rouges.every((j) => derives.has(j))
+  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url}${juge.etat === 'annulee' ? ' ANNULÉE' : ''} — ${phraseDesJobs(juge) || 'aucun job nommé'}` }
 }
 
 /**

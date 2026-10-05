@@ -62,6 +62,19 @@ test('transitionsDe : au PREMIER tick (sans `--depuis`), seuls un rouge et un tr
   assert.deepEqual(transitionsDe(null, mesure({ main: { sha: A, verdict: 'rouge' }, t: train('mort') })), ['CI main ROUGE (aaaaaaaaa)', 'train MORT à pr sans verdict'])
 })
 
+test('verdictDeCi : une course en échec SANS job rouge, un job annulé, est `annulee` (jamais ✗) ; des jobs illisibles la laissent rouge', () => {
+  const dossier = join(mkdtempSync(join(tmpdir(), 'vigie-cache-')), 'vigie')
+  const echec = () => ({ disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion: 'failure', databaseId: 37371342026 }] })
+  try {
+    const ids = []
+    const annules = (id) => { ids.push(id); return { disponible: true, valeur: { rouges: [], annules: ['docs', 'suite 1/3'] } } }
+    assert.equal(verdictDeCi({ sha: A, dossier, lire: echec, jobs: annules }), 'annulee')
+    assert.deepEqual(ids, [37371342026])
+    assert.equal(verdictDeCi({ sha: A, dossier, lire: echec, jobs: () => ({ disponible: false, raison: 'gh absent' }) }), 'rouge')
+    assert.equal(existsSync(dossier), false, 'une annulée ne se garde pas : sa relance se relit')
+  } finally { jeter(join(dossier, '..')) }
+})
+
 test('verdictDeCi : un cache VIDE ou illisible (écriture tronquée) est un cache absent — le verdict se relit et se réécrit, jamais une panne', () => {
   const dossier = join(mkdtempSync(join(tmpdir(), 'vigie-cache-')), 'vigie')
   try {
@@ -90,7 +103,8 @@ test('verdictDeCi : seul un `verte` se garde au cache ; rouge et en vol se relis
   const course = (conclusion, attempt = 1) => ({ disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion, databaseId: 5, attempt }] })
   try {
     let lus = 0
-    assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('failure') } }), 'rouge')
+    const rouges = () => ({ disponible: true, valeur: { rouges: ['suite'], annules: [] } })
+    assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('failure') }, jobs: rouges }), 'rouge')
     assert.equal(existsSync(dossier), false, 'un rouge ne s’écrit pas : sa relance le reverdit')
     assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('success', 2) } }), 'verte')
     assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { verdict: 'verte' })
@@ -125,7 +139,8 @@ test('câblage : `tick` lit l’origine par UN ls-remote, la CI par sha, le jour
       const conclusion = verdicts.get(sha)
       return { disponible: true, valeur: [{ headSha: sha, workflowName: 'CI', status: conclusion ? 'completed' : 'in_progress', conclusion, databaseId: 1, attempt: 1 }] }
     }
-    const premier = tick({ arbre: aval, lire })
+    const rougesDuTick = () => ({ disponible: true, valeur: { rouges: ['suite'], annules: [] } })
+    const premier = tick({ arbre: aval, lire, jobs: rougesDuTick })
     assert.equal(premier.ligne, 'CI main ✓ · chantier/9 … · train : —')
     assert.deepEqual(premier.transitions, [])
     assert.deepEqual(lus, [main, branche])
@@ -134,11 +149,11 @@ test('câblage : `tick` lit l’origine par UN ls-remote, la CI par sha, le jour
     const { json } = cheminsDeJournal(aval, 'chantier/9')
     sauverJournal(json, { ...journalVide('chantier/9'), tete: branche, run: `${process.pid}-1`, pid: process.pid, seq: 1, etapes: { preflight: { etat: 'en-vol', run: `${process.pid}-1`, seq: 1, tete: branche } } })
     verdicts.set(branche, 'failure')
-    const second = tick({ arbre: aval, depuis: premier.etat, lire })
+    const second = tick({ arbre: aval, depuis: premier.etat, lire, jobs: rougesDuTick })
     assert.deepEqual(lus, [main, branche, branche], 'main, verte au cache, ne se relit pas')
     assert.equal(second.ligne, 'CI main ✓ · chantier/9 ✗ · train : preflight 1/7', 'le pid du run vit : en vol')
     assert.equal(second.transitions[0], `CI chantier/9 ROUGE (${branche.slice(0, 9)})`)
-    assert.deepEqual(tick({ arbre: aval, depuis: second.etat, lire }).transitions.filter((t) => t.startsWith('CI')), [], 'le rouge rendu au `--depuis` ne se redit pas')
+    assert.deepEqual(tick({ arbre: aval, depuis: second.etat, lire, jobs: rougesDuTick }).transitions.filter((t) => t.startsWith('CI')), [], 'le rouge rendu au `--depuis` ne se redit pas')
   } finally {
     jeter(amont)
     jeter(aval)

@@ -32,7 +32,7 @@
 // FICHIERS, sous `--literal-pathspecs`),
 // `fusionner`, `abandonnerFusion`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
 // nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
-// sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
+// sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
 // numéro et un uuid), `lireTicket` et `commenter`
 // (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
@@ -54,7 +54,7 @@ import {
   estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
-import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
@@ -792,7 +792,7 @@ function numeroDeTicket(geste, numero) {
  * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
  * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
  * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
- * (un sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
+ * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireFusion` (un numéro de PR et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
  * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
@@ -850,9 +850,10 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
         return { ok: false, raison: e.message }
       }
     },
-    jobsRouges(id) {
-      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsRouges : un id de course — refusé : ${JSON.stringify(id)}`)
-      return jobsRougesDe({ cwd: racine, id })
+    jobsEnEchec(id, attempt = null) {
+      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsEnEchec : un id de course — refusé : ${JSON.stringify(id)}`)
+      if (attempt !== null && !(Number.isSafeInteger(attempt) && attempt > 0)) throw new Error(`ctx.jobsEnEchec : un essai de course — refusé : ${JSON.stringify(attempt)}`)
+      return jobsEnEchecDe({ cwd: racine, id, attempt })
     },
     lirePr: () => lirePr(racine, branche),
     ouvrirPr({ titre, corps }) {
