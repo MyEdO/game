@@ -46,25 +46,31 @@ import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux }
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { DEPOT } from './ticketsGh.mjs'
 
-/** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
+/** Borne de présentation de `raisonCourte`. */
 const RAISON_MAX = 200
 
 /** git a répondu. @param {*} valeur */
 export const fait = (valeur) => ({ disponible: true, valeur })
 
 /** L'objet demandé n'existe pas — un fait, pas une panne. */
-const absent = () => ({ disponible: true, absent: true })
+const absent = (diagnostic) => ({ disponible: true, absent: true, ...(diagnostic ? { diagnostic } : {}) })
 
-/** Ni git, ni le dépôt, ni le réseau : rien n'a été mesuré. */
-export const indisponible = (raison) => ({ disponible: false, raison: raisonCourte(raison) })
+/** Un échec de mesure ou de commande, avec son diagnostic lorsqu'un processus a répondu. */
+export const indisponible = (raison, { issue = 'mesure', diagnostic } = {}) => ({
+  disponible: false, raison: String(raison ?? 'raison non dite'), issue,
+  ...(diagnostic ? { diagnostic } : {}),
+})
 
 /** L'indisponibilité, JETÉE — la seule façon pour un prédicat BOOLÉEN de ne pas répondre « non »
  *  quand il n'a rien lu. Se rattrape par son type, et l'appelant NOMME ce qu'il ne peut pas juger. */
 export class GitIndisponible extends Error {
-  constructor(raison) {
-    super(`git indisponible : ${raison}`)
+  constructor(cause) {
+    const vu = typeof cause === 'string' ? indisponible(cause) : cause
+    super(`git ${vu.issue === 'refus' ? 'refusé' : 'indisponible'} : ${vu.raison}`)
     this.name = 'GitIndisponible'
-    this.raison = raison
+    this.raison = vu.raison
+    this.issue = vu.issue
+    this.diagnostic = vu.diagnostic
   }
 }
 
@@ -123,8 +129,20 @@ export function tenter(fn) {
   try {
     return fait(fn())
   } catch (e) {
-    const sortie = [e.stdout, e.stderr].filter(Boolean).map(String).join('\n').trim()
-    return { disponible: false, raison: `${e.message}${sortie ? ` — ${sortie.slice(0, 4000)}` : ''}` }
+    const stdout = String(e?.stdout ?? '')
+    const stderr = String(e?.stderr ?? '')
+    const sortie = [stdout, stderr].filter(Boolean).join('\n')
+    const diagnostic = e !== null && (typeof e === 'object' || typeof e === 'function') &&
+      ['stdout', 'stderr', 'status', 'signal'].some((cle) => cle in e)
+      ? {
+          status: typeof e.status === 'number' ? e.status : null,
+          stdout,
+          stderr,
+          error: e,
+          ...(e.signal ? { signal: e.signal } : {}),
+        }
+      : undefined
+    return indisponible(`${e?.message ?? String(e)}${sortie ? ` — ${sortie}` : ''}`, { diagnostic })
   }
 }
 
@@ -144,8 +162,7 @@ function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSyn
 /**
  * Ce qu'un chemin EST pour un `cwd` de sous-processus : `'repertoire'`, `'fichier'` (tout nœud qui
  * n'est pas un répertoire) ou `'absent'`. SOURCE UNIQUE de la question « ce chemin peut-il servir de
- * cwd ? » — les portes n'en tiennent pas une seconde définition (un `existsSync` répondait « oui »
- * pour un FICHIER, dont le spawn rend pourtant ENOENT/ENOTDIR).
+ * cwd ? ».
  * @param {string} chemin @returns {'repertoire'|'fichier'|'absent'}
  */
 export function natureDuChemin(chemin) {
@@ -164,11 +181,9 @@ export const estRepertoire = (chemin) => natureDuChemin(chemin) === 'repertoire'
  * binaire git manque au PATH.
  *
  * LE VERDICT PART DE LA NATURE DU `cwd`, JAMAIS DU CODE D'ERREUR : un cwd-FICHIER rend
- * `spawnSync git ENOENT` sur Windows et `spawnSync git ENOTDIR` sur POSIX (mesuré sur la CI Linux,
- * run 34815975288, #1729) — classer sur `ENOENT` seul rendait le message brut sur l'un des deux.
+ * `spawnSync git ENOENT` sur Windows et `spawnSync git ENOTDIR` sur POSIX (#1729).
  * « git introuvable » ne se dit donc que si le `cwd` est un RÉPERTOIRE existant : là, il ne reste que
- * le binaire. Sans cette sonde, une porte renvoie « rejouer depuis un arbre où git répond » alors que
- * git répondait, et que c'est le répertoire qui manquait.
+ * le binaire.
  * @param {string} message @param {string|undefined} cwd @param {(p:string)=>'repertoire'|'fichier'|'absent'} nature
  */
 function raisonDuSpawn(message, cwd, nature) {
@@ -185,19 +200,20 @@ function raisonDuSpawn(message, cwd, nature) {
  * Classement d'un résultat de `spawnSync` en union à trois issues. PURE hors la SONDE du `cwd`
  * (injectable par `nature`), qui distingue les trois causes d'un spawn qui n'a pas démarré.
  * @param {{cwd?:string, nature?:(p:string)=>'repertoire'|'fichier'|'absent'}} [opts]
- * @returns {{disponible:true, valeur:{status:number, stdout:string, stderr:string}}
- *   | {disponible:true, absent:true} | {disponible:false, raison:string}}
+ * @returns {import('./gitPorte.mjs').ResultatGit}
  */
 export function classer(vu, { cwd, nature = natureDuChemin } = {}) {
   if (!vu) return indisponible('aucun résultat de processus')
-  if (vu.error) return indisponible(raisonDuSpawn(vu.error.message, cwd, nature))
-  if (vu.signal) return indisponible(`processus tué par le signal ${vu.signal}`)
   const stderr = String(vu.stderr ?? '')
   const stdout = String(vu.stdout ?? '')
-  if (vu.status === 0) return fait({ status: 0, stdout, stderr })
-  if (ditAbsent(stderr)) return absent()
-  if (!stderr.trim()) return fait({ status: vu.status, stdout, stderr })
-  return indisponible(stderr)
+  const diagnostic = { status: vu.status ?? null, stdout, stderr,
+    ...(vu.error ? { error: vu.error } : {}), ...(vu.signal ? { signal: vu.signal } : {}) }
+  if (vu.signal) return indisponible(`processus tué par le signal ${vu.signal}`, { issue: 'interruption', diagnostic })
+  if (vu.error) return indisponible(raisonDuSpawn(vu.error.message, cwd, nature), { issue: 'lancement', diagnostic })
+  if (vu.status === 0) return fait(diagnostic)
+  if (ditAbsent(stderr)) return absent(diagnostic)
+  if (!stderr.trim()) return fait(diagnostic)
+  return indisponible(stderr, { issue: 'refus', diagnostic })
 }
 
 /**
@@ -314,17 +330,18 @@ const sortieOuNull = (union) =>
   union.disponible && !union.absent && union.valeur.status === 0 ? union.valeur.stdout : null
 
 /** Une INDISPONIBILITÉ de lecture : confiée à `enPanne`, qui fait rendre `null`, sinon JETÉE. */
-function confier(depot, raison) {
+function confier(depot, cause) {
+  const vu = typeof cause === 'string' ? indisponible(cause) : cause
   const { enPanne } = lanceurDe(depot)
-  if (!enPanne) throw new GitIndisponible(raison)
-  enPanne(raison)
+  if (!enPanne) throw new GitIndisponible(vu)
+  enPanne(vu.raison, vu)
   return null
 }
 
 /** La sortie d'une LECTURE (`sortieOuNull`) ; une indisponibilité va à `confier`. */
 function lire(depot, args, opts) {
   const vu = interroger(depot, args, opts)
-  return vu.disponible ? sortieOuNull(vu) : confier(depot, vu.raison)
+  return vu.disponible ? sortieOuNull(vu) : confier(depot, vu)
 }
 
 /** Une ÉCRITURE de l'hôte, en union : sans `OPTIONS_DE_L_HOTE`, la configuration de l'utilisateur
@@ -540,7 +557,8 @@ const GIT_NO_COMMIT_HEADER = Object.freeze([2, 33])
 function lireLeGraphe(depot, args) {
   const vu = interroger(depot, args)
   if (vu.disponible) return sortieOuNull(vu)
-  return confier(depot, versionManquante(depot, GIT_NO_COMMIT_HEADER, 'git rev-list --no-commit-header', 'le graphe des commits n’est pas lisible') ?? vu.raison)
+  const raison = versionManquante(depot, GIT_NO_COMMIT_HEADER, 'git rev-list --no-commit-header', 'le graphe des commits n’est pas lisible')
+  return confier(depot, raison ? { ...vu, raison } : vu)
 }
 
 /**
@@ -1022,7 +1040,7 @@ export function lireEnLot(depot, arbre, rels) {
   if (fautifs.length) throw new Error(`lireEnLot : un chemin tient sur une ligne du lot, sans caractère de contrôle — refusés : ${JSON.stringify(fautifs)}`)
   const vu = interroger(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
   if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
-    confier(depot, vu.disponible ? `\`git cat-file --batch\` sans lot (${vu.absent ? 'objet absent' : `status ${vu.valeur.status}`})` : vu.raison)
+    confier(depot, vu.disponible ? indisponible(`\`git cat-file --batch\` sans lot (${vu.absent ? 'objet absent' : `status ${vu.valeur.status}`})`, { diagnostic: vu.diagnostic ?? vu.valeur }) : vu)
     return new Map(rels.map((rel) => [rel, null]))
   }
   const sortie = Buffer.from(vu.valeur.stdout, 'utf8')
@@ -1058,7 +1076,7 @@ export function estAncetre(depot, ancetre, descendant) {
       return corrompu(depot, [ancetre, descendant]) ? indisponible('dépôt corrompu') : vu
     } catch (e) {
       if (!(e instanceof GitIndisponible)) throw e
-      return indisponible(e.raison)
+      return indisponible(e.raison, { issue: e.issue, diagnostic: e.diagnostic })
     }
   }
   return fait(vu.valeur.status === 0)
@@ -1074,14 +1092,13 @@ export function estAncetre(depot, ancetre, descendant) {
 export function estDansHead(depot, sha) {
   if (!sha) return false
   const vu = estAncetre(depot, sha, 'HEAD')
-  if (!vu.disponible) throw new GitIndisponible(vu.raison)
+  if (!vu.disponible) throw new GitIndisponible(vu)
   return !vu.absent && vu.valeur === true
 }
 
 /**
  * L'ARBRE PRINCIPAL du dépôt — la racine des GESTES git d'un outil, depuis n'importe quel worktree
- * (`ops:chantier`, `ops:worktrees`, le pre-commit). Source UNIQUE de cette résolution : trois copies
- * manuscrites la re-posaient, chacune avec son repli.
+ * (`ops:chantier`, `ops:worktrees`, le pre-commit).
  *
  * `git rev-parse --path-format=absolute --git-common-dir` rend le `.git` COMMUN — celui de l'arbre
  * principal, quel que soit le worktree d'où on demande (forme mesurée contre git réel :
@@ -1106,7 +1123,7 @@ export function arbrePrincipal(depot) {
   const { cwd } = depot
   const refus = (motif) => indisponible(`arbre principal non résolu : ${motif}${motif.includes(cwd) ? '' : ` (depuis ${cwd})`}`)
   const vu = interroger(depot, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
-  if (!vu.disponible) return refus(vu.raison)
+  if (!vu.disponible) return { ...vu, raison: refus(vu.raison).raison }
   if (vu.absent) return refus("git n'y connaît pas de dépôt")
   if (vu.valeur.status !== 0) return refus(`git rev-parse --git-common-dir rend ${vu.valeur.status}`)
   const brut = String(vu.valeur.stdout).trim()
@@ -1137,7 +1154,7 @@ export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', su
  */
 export function shaDe(depot, ref, { court = false } = {}) {
   const vu = interroger(depot, ['rev-parse', '--verify', '--quiet', ...(court ? ['--short'] : []), `${revisionsDe([ref])[0]}^{commit}`])
-  if (!vu.disponible) return corrompu(depot, [ref]) ? null : confier(depot, vu.raison)
+  if (!vu.disponible) return corrompu(depot, [ref]) ? null : confier(depot, vu)
   return sortieOuNull(vu)?.trim() || absentSaufCorrompu(depot, [ref])
 }
 
@@ -1151,7 +1168,7 @@ const HORS_ARBRE = /not a git repository|must be run in a work tree/i
 export function racineDe(depot) {
   const vu = interroger(depot, ['rev-parse', '--show-toplevel'])
   if (vu.disponible) return sortieOuNull(vu)?.trim() || null
-  return HORS_ARBRE.test(vu.raison) ? null : confier(depot, vu.raison)
+  return HORS_ARBRE.test(vu.raison) ? null : confier(depot, vu)
 }
 
 /** La BRANCHE de HEAD (`symbolic-ref --quiet --short HEAD`), `null` sous HEAD détaché.
@@ -1177,7 +1194,7 @@ export function fusionnesEnCours(depot) {
   if (!chemin) return []
   const complet = resolve(depot.cwd, chemin)
   const lu = tenter(() => (natureDuChemin(complet) === 'absent' ? '' : readFileSync(complet, 'utf8')))
-  if (!lu.disponible) return confier(depot, `MERGE_HEAD illisible : ${lu.raison}`) ?? []
+  if (!lu.disponible) return confier(depot, { ...lu, raison: `MERGE_HEAD illisible : ${lu.raison}` }) ?? []
   const lignes = lu.valeur.split('\n')
   if (lignes.at(-1) === '') lignes.pop()
   const corrompue = (ligne) => confier(depot, `dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`) ?? []
@@ -1300,7 +1317,7 @@ export function worktreesDe(depot) {
  */
 export function fusionDeTextes(depot, fichiers, labels) {
   const vu = interroger(depot, ['merge-file', '-p', '-L', labels.ours, '-L', labels.base, '-L', labels.theirs, '--', fichiers.ours, fichiers.base, fichiers.theirs])
-  if (!vu.disponible) throw new GitIndisponible(vu.raison)
+  if (!vu.disponible) throw new GitIndisponible(vu)
   if (vu.absent || vu.valeur.status >= 255) throw new Error(`git merge-file en échec (${vu.absent ? 'objet absent' : vu.valeur.status})`)
   return { texte: vu.valeur.stdout, conflit: vu.valeur.status > 0 }
 }
@@ -1375,7 +1392,7 @@ export const abandonnerFusion = (depot) => ecrire(depot, ['merge', '--abort'])
 
 /**
  * La fusion entamée, CONCLUE en retirant `chemins` de l'index (`rm --cached`, le fichier reste sur le
- * disque), puis commit de fusion sous `message`. FOSSILE #2203.
+ * disque), puis commit de fusion sous `message`.
  * @param {Depot} depot @param {{ chemins: string[], message: string }} p
  */
 export function conclureFusionSansChemins(depot, { chemins, message }) {

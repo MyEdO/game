@@ -51,7 +51,7 @@ import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe,
   conclureFusionSansChemins, depotDe,
-  estAncetre, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
+  estAncetre, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
@@ -61,7 +61,7 @@ import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { BORNE_EJECTIONS, ETAPES, attendre, issueDeFusion, prDeRest } from './etapesDuTrain.mjs'
+import { BORNE_EJECTIONS, ETAPES, attendre, issueDeFusion, prDeRest, refusDeGit } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -682,7 +682,7 @@ function gh(args, cwd, input) {
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
 /** Les modes de `scripts/docs/build-all.mjs` que joue le train : l'étape `docs`, et les cibles de code
- *  après une fusion conclue par le fossile de la reprise. */
+ *  après une fusion conclue sur les cibles pures. */
 const MODES_DES_DOCS = Object.freeze(['--mixtes', '--code'])
 
 /**
@@ -869,11 +869,12 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     /**
      * Le TRONC distant, fetché puis relu — la seule porte d'`origin/main` des étapes qui doivent le
      * mesurer À CHAUD (`push`), donc le seul point d'injection en test.
-     * @returns {{disponible:true, sha:string|null}|{disponible:false, raison:string}}
+     * @returns {{disponible:true, sha:string|null}|import('../guards/lib/gitPorte.mjs').EchecGit}
      */
     tronc() {
       const vu = fetchOrigin(depot)
-      if (!vu.disponible) return { disponible: false, raison: vu.raison }
+      if (!vu.disponible) return vu
+      if (!reussi(vu)) return indisponible(`git fetch refusé (status ${(vu.diagnostic ?? vu.valeur)?.status ?? '?'})`, { issue: 'refus', diagnostic: vu.diagnostic ?? vu.valeur })
       return { disponible: true, sha: shaDe(depot, TRONC.suivi) }
     },
     commit: ({ message, chemins }) => commitDe(depot, { message, chemins }),
@@ -882,7 +883,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return fusionner(depot, { de: TRONC.suivi, message })
     },
     abandonnerFusion: () => abandonnerFusion(depot),
-    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    // #2203
     conclureFusionSansCiblesPures({ chemins, message }) {
       if (typeof message !== 'string' || !message.trim()) throw new Error(`ctx.conclureFusionSansCiblesPures : un MESSAGE — refusé : ${JSON.stringify(message)}`)
       const autres = (chemins ?? []).filter((c) => !estCiblePure(c, GENERATORS))
@@ -1003,8 +1004,8 @@ function mainNomme() {
     return main()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    const verdict = { etat: 'rouge', etape: 'moteur', raison: `git indisponible : ${e.raison}` }
-    const ligne = `${ligneDePublication(verdict)}\n`
+    const verdict = { etat: 'rouge', etape: 'moteur', raison: refusDeGit(e) }
+    const ligne = `${verdict.raison}\n${ligneDePublication(verdict)}\n`
     if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) appendFileSync(process.env.WFRP_PUBLIER_LOG, ligne)
     else process.stderr.write(ligne)
     return codeDeVerdict(verdict)

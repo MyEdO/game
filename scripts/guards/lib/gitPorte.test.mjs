@@ -16,7 +16,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsDesCommits, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -215,7 +215,10 @@ test('les six ABSENCES de la porte sont des ABSENTS, jamais des pannes (dépôt 
       assert.equal(question(), null, `${nom} : le contrat des lecteurs d’image est \`null\``)
       assert.deepEqual(pannes, [], `${nom} : une absence n’est pas une panne`)
     }
-    assert.deepEqual(estAncetre(d, ZERO, 'HEAD'), { disponible: true, absent: true }, 'l’union le dit ABSENT')
+    const absent = estAncetre(d, ZERO, 'HEAD')
+    assert.equal(absent.disponible && absent.absent, true, 'l’union le dit ABSENT')
+    assert.equal(absent.diagnostic.status, 128)
+    assert.match(absent.diagnostic.stderr, /Not a valid commit name/i)
     assert.throws(() => ceQuiChange(d, ZERO, second), BorneAbsente, 'une BORNE inconnue n’est pas l’objet demandé : elle LÈVE')
     assert.deepEqual(pannes, [])
   } finally { jeter(racine) }
@@ -279,7 +282,9 @@ test('estAncetre : vrai, faux, et un sha inconnu qui rend ABSENT', () => {
   try {
     assert.deepEqual(estAncetre(forge(racine), premier, second), { disponible: true, valeur: true })
     assert.deepEqual(estAncetre(forge(racine), second, premier), { disponible: true, valeur: false })
-    assert.deepEqual(estAncetre(forge(racine), ZERO, 'HEAD'), { disponible: true, absent: true })
+    const absent = estAncetre(forge(racine), ZERO, 'HEAD')
+    assert.equal(absent.disponible && absent.absent, true)
+    assert.equal(absent.diagnostic.status, 128)
   } finally { jeter(racine) }
 })
 
@@ -404,18 +409,97 @@ test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINC
   } finally { jeter(racine) }
 })
 
-test('classer : la RAISON est la première ligne significative, coupée AU MOT sous 200 caractères', () => {
+test('#2285 classer : diagnostic multiligne intégral et flux distincts', () => {
   const ligne = `fatal: ${'mot '.repeat(100).trimEnd()}`
-  const vu = classer({ status: 128, stdout: '', stderr: `\n\n${ligne}\nune seconde ligne` })
+  const stderr = `\n\n${ligne}\nune seconde ligne\ncause concrète au-delà de quatre cents caractères`
+  const stdout = 'note sur stdout\nune autre note'
+  const vu = classer({ status: 128, stdout, stderr })
   assert.equal(vu.disponible, false)
-  assert.ok(vu.raison.length <= 200, vu.raison)
-  assert.ok(vu.raison.endsWith('mot…'), vu.raison)
-  assert.equal(ligne[vu.raison.length - 1], ' ', 'la coupe tombe à une espace')
-  assert.ok(!vu.raison.includes('une seconde ligne'))
+  assert.equal(vu.raison, stderr)
+  assert.equal(vu.issue, 'refus')
+  assert.deepEqual(vu.diagnostic, { status: 128, stdout, stderr })
+  assert.equal(reussi(vu), false)
+})
+
+test('#2285 lecture : exception et callback portent le même diagnostic complet', () => {
+  const resultat = { status: 128, stdout: 'notes stdout', stderr: `${'note\n'.repeat(110)}cause de refus` }
+  let diagnostic
+  assert.throws(() => racineDe(depotDe(tmpdir(), { spawn: () => resultat })), (e) => {
+    diagnostic = e.diagnostic
+    return e instanceof GitIndisponible && e.issue === 'refus' && e.raison === resultat.stderr
+  })
+  assert.deepEqual(diagnostic, resultat)
+  const pannes = []
+  assert.equal(racineDe(depotDe(tmpdir(), { spawn: () => resultat, enPanne: (raison, vu) => pannes.push({ raison, vu }) })), null)
+  assert.equal(pannes.length, 1)
+  assert.equal(pannes[0].raison, resultat.stderr)
+  assert.deepEqual(pannes[0].vu.diagnostic, diagnostic)
+})
+
+test('#2285 classer : lancement, interruption, mesure et absence conservent leur distinction', () => {
+  const error = Object.assign(new Error('spawnSync git ENOENT'), { code: 'ENOENT' })
+  const lancement = classer({ status: null, error, stdout: 'avant', stderr: 'détail' }, { cwd: tmpdir() })
+  assert.equal(lancement.issue, 'lancement')
+  assert.equal(lancement.diagnostic.error, error)
+  assert.equal(lancement.diagnostic.stdout, 'avant')
+  const interruption = classer({ status: null, signal: 'SIGTERM', stdout: 'sortie', stderr: 'erreur' })
+  assert.equal(interruption.issue, 'interruption')
+  assert.equal(interruption.diagnostic.signal, 'SIGTERM')
+  assert.equal(classer(null).issue, 'mesure')
+  const absence = classer({ status: 128, stdout: 'note', stderr: 'fatal: bad object abc' })
+  assert.equal(absence.absent, true)
+  assert.deepEqual(absence.diagnostic, { status: 128, stdout: 'note', stderr: 'fatal: bad object abc' })
+  assert.deepEqual(classer({ status: 1, stdout: '', stderr: '' }), { disponible: true, valeur: { status: 1, stdout: '', stderr: '' } })
+  assert.deepEqual(classer({ status: 0, stdout: 'ok', stderr: 'warning' }), { disponible: true, valeur: { status: 0, stdout: 'ok', stderr: 'warning' } })
+})
+
+test('raisonCourte : présentation explicitement abrégée', () => {
   assert.equal(raisonCourte('   \n  premier mot  \nsuite'), 'premier mot')
   const tient = `${'mot '.repeat(49)}motx`
   assert.equal(tient.length, 200)
   assert.equal(raisonCourte(tient), tient, 'une raison de 200 caractères se rend entière')
+})
+
+test('#2285 mesure : tenter conserve les sorties complètes et les détails réellement connus', () => {
+  const stdout = `${'note stdout\n'.repeat(420)}cause stdout tardive\n`
+  const stderr = `${'note stderr\n'.repeat(420)}cause stderr tardive\n`
+  const erreur = Object.assign(new Error('mesure levée'), { stdout: Buffer.from(stdout), stderr, status: 13 })
+  const vu = tenter(() => { throw erreur })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'mesure')
+  assert.equal(vu.raison, `mesure levée — ${stdout}\n${stderr}`)
+  assert.deepEqual(vu.diagnostic, { status: 13, stdout, stderr, error: erreur })
+  assert.deepEqual(tenter(() => 'mesuré'), { disponible: true, valeur: 'mesuré' })
+  assert.deepEqual(tenter(() => null), { disponible: true, valeur: null })
+})
+
+test('#2285 mesure fs : lecteur réel, exception et callback, sans processus inventé', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'mesure-fs-2285-'))
+  try {
+    const chemin = join(cwd, 'MERGE_HEAD')
+    mkdirSync(chemin)
+    let erreur
+    try { readFileSync(chemin, 'utf8') } catch (e) { erreur = e }
+    assert.ok(erreur instanceof Error)
+    const commandes = []
+    const repondre = (args) => {
+      commandes.push(args)
+      assert.deepEqual(args, ['rev-parse', '--git-path', 'MERGE_HEAD'])
+      return { status: 0, stdout: 'MERGE_HEAD\n', stderr: '' }
+    }
+    const raison = `MERGE_HEAD illisible : ${erreur.message}`
+    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) =>
+      e instanceof GitIndisponible && e.issue === 'mesure' && e.raison === raison && e.diagnostic === undefined)
+    const pannes = []
+    const d = depotFeint(cwd, repondre, (message, vu) => pannes.push({ message, vu }))
+    assert.deepEqual(fusionnesEnCours(d), [])
+    assert.equal(pannes.length, 1)
+    assert.equal(pannes[0].message, raison)
+    assert.equal(pannes[0].vu.issue, 'mesure')
+    assert.equal(pannes[0].vu.diagnostic, undefined)
+    assert.equal(commandes.length, 2)
+    assert.equal(tenter(() => natureDuChemin(join(cwd, 'absent'))).valeur, 'absent')
+  } finally { jeter(cwd) }
 })
 
 test('listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms', () => {
@@ -951,7 +1035,7 @@ test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le
   }
 })
 
-// FOSSILE #2203.
+// #2203
 test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés se conclut en les retirant de l’index — le disque les garde', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'gen.md': 'base\n', 'a.txt': 'a\n' }, message: 'socle' })
   try {
@@ -1191,7 +1275,11 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
     assert.equal(questions.length, 17)
     for (const [nom, question] of questions) {
-      if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
+      if (nom === 'estAncetre') {
+        const absent = question()
+        assert.equal(absent.disponible && absent.absent, true)
+        assert.equal(absent.diagnostic.status, 128)
+      } else if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
       else assert.throws(question, (e) => e instanceof BorneAbsente && e.bornes.includes(F), nom)
     }
     assert.deepEqual(pannes, [], 'une borne absente n’est pas une panne')
@@ -1367,11 +1455,11 @@ test('fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE req
       requetes.push(args.slice(0, 2))
       return args[1] === '--git-path' ? { status: 0, stdout: `${args[2]}\n`, stderr: '' } : { status: 128, stdout: '', stderr: 'fatal: boum\n' }
     }
-    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) => e instanceof GitIndisponible && e.raison === 'fatal: boum')
+    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) => e instanceof GitIndisponible && e.raison === 'fatal: boum\n')
     const pannes = []
     requetes.length = 0
     assert.deepEqual(fusionnesEnCours(depotFeint(cwd, repondre, (r) => pannes.push(r))), [])
-    assert.deepEqual(pannes, ['fatal: boum'])
+    assert.deepEqual(pannes, ['fatal: boum\n'])
     assert.deepEqual(requetes, [['rev-parse', '--git-path'], ['cat-file', '--batch-check']])
   } finally { jeter(cwd) }
 })
@@ -1425,7 +1513,7 @@ test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git ré
 test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {
   const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' })
   const illisible = (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' })
-  for (const [repondre, raison] of [[panne, /^fatal: boum$/], [illisible, /^rebase-merge illisible : .*without null bytes/]]) {
+  for (const [repondre, raison] of [[panne, /^fatal: boum\n$/], [illisible, /^rebase-merge illisible : .*without null bytes/]]) {
     assert.throws(() => rebaseEntame(depotFeint(tmpdir(), repondre)), (e) => e instanceof GitIndisponible && raison.test(e.raison), String(raison))
     const pannes = []
     assert.equal(rebaseEntame(depotFeint(tmpdir(), repondre, (r) => pannes.push(r))), null)

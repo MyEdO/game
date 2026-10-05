@@ -25,6 +25,7 @@ import {
   TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, retirerWorktree, reussi, supprimerBranche, worktreesDe,
 } from '../guards/lib/gitPorte.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
+import { refusDeGit } from './etapesDuTrain.mjs'
 
 /** Racine de l'arbre qui porte CE script (le dépôt commun répond pour tous ses worktrees). */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -177,9 +178,9 @@ export function inventaire({
 export function purger({ principal = RACINE, worktrees, gestes = GESTES_DE_LA_PURGE, nature = natureDuChemin }) {
   const depot = depotDe(principal)
   const joues = []
-  const rendu = (vu) => (vu.disponible
-    ? (vu.absent ? 'objet absent' : `code ${vu.valeur.status}${vu.valeur.stderr.trim() ? ` — ${vu.valeur.stderr.trim()}` : ''}`)
-    : `indisponible — ${vu.raison}`)
+  const rendu = (vu) => (reussi(vu)
+    ? `code ${vu.valeur.status}${vu.valeur.stderr.trim() ? ` — ${vu.valeur.stderr.trim()}` : ''}`
+    : refusDeGit(vu))
   const tentes = []
 
   for (const w of worktrees.filter((x) => x.classe === 'propre+fusionné')) {

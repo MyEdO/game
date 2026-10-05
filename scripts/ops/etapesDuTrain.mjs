@@ -225,23 +225,24 @@ export const finDeSortie = (texte, max = 400) => {
 
 /**
  * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
- * indisponibilité, puis `stderr`, puis `stdout` — chaque morceau retenu sur son CONTENU, jamais par
- * un repli `??` (une chaîne vide n'est pas nullish : `classer` rend `{status, stdout, stderr:''}`
- * quand git n'écrit que sur stdout). PURE.
- * @param {object} vu union git @param {number} [max] borne de `finDeSortie`
+ * indisponibilité, puis `stderr`, puis `stdout`, sans répéter la raison identique à stderr. PURE.
+ * @param {object} vu union git
  * @returns {string} '' quand git n'a rien imprimé
  */
-export const sortieDe = (vu, max = 400) =>
-  finDeSortie(
-    [vu?.raison, vu?.valeur?.stderr, vu?.valeur?.stdout]
-      .map((t) => String(t ?? '').trim())
-      .filter(Boolean)
-      .join('\n'),
-    max,
-  )
+export const sortieDe = (vu) => {
+  const diagnostic = vu?.diagnostic ?? vu?.valeur
+  return [vu?.raison === diagnostic?.stderr ? '' : vu?.raison, diagnostic?.stderr, diagnostic?.stdout]
+    .filter((texte) => typeof texte === 'string' && texte.trim())
+    .join('\n')
+}
 
 /** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
-export const refusDeGit = (vu, max = 400) => sortieDe(vu, max) || `(status ${vu?.valeur?.status ?? '?'}) — git n'a rien imprimé`
+export const refusDeGit = (vu) => {
+  const diagnostic = vu?.diagnostic ?? vu?.valeur
+  const issue = vu?.issue ?? (vu?.absent ? 'objet absent' : 'refus')
+  const code = diagnostic?.signal ? `signal ${diagnostic.signal}` : `status ${diagnostic?.status ?? '?'}`
+  return `${issue} (${code}) — ${sortieDe(vu) || "git n'a rien imprimé"}`
+}
 
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
 export const titreDeCommit = (message, max = 120) => {
@@ -354,7 +355,7 @@ function causeDEjection(ctx, pr, tete) {
   const url = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
   const base = ctx.parentsDe(course.headSha).parents?.[0]
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${vuTronc.raison}` }
+  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${refusDeGit(vuTronc)}` }
   const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
     return { attendre: true, dit: `course de file ${verdict.etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
@@ -376,13 +377,13 @@ function reprendreApresEjection(ctx, journal, cause) {
   if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
     return { ok: false, raison: `${cause.raison} — éjectée une ${journal.ejections + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS}) : la cause n’est pas le tronc` }
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${vuTronc.raison}` }
+  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${refusDeGit(vuTronc)}` }
   const numeros = numerosDeLaPlage(ctx.questions)
   if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
   const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${TRONC.suivi} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
   const vu = ctx.fusionner({ message })
   if (!reussi(vu)) {
-    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    // #2203
     const conflits = ctx.questions.cheminsEnConflit()
     const pures = conflits.length > 0 && conflits.every((c) => estCiblePure(c, ctx.generators))
     const conclue = pures ? ctx.conclureFusionSansCiblesPures({ chemins: conflits, message }) : null
@@ -390,7 +391,7 @@ function reprendreApresEjection(ctx, journal, cause) {
       if (conflits.length) ctx.abandonnerFusion()
       return {
         ok: false,
-        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
+        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ''} : ${refusDeGit(vu)}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
       }
     }
     const code = ctx.docs('--code')
@@ -441,7 +442,7 @@ export const ETAPES = [
       const origine = questions.origineDe()
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
       const vuFetch = ctx.tronc()
-      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${vuFetch.raison}` }
+      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuFetch)}` }
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
       if (outil.refus) return { ok: false, raison: outil.refus }
       // Une branche déjà fusionnée (étape `file` verte) n'a plus rien d'absent du tronc : sa reprise
@@ -636,7 +637,7 @@ export const ETAPES = [
       const fusion = file.fusion
       if (!fusion) return { ok: false, raison: 'aucun commit de fusion au journal de l’étape `file`' }
       const vuTronc = ctx.tronc()
-      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${vuTronc.raison}` }
+      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuTronc)}` }
       // Méthode MERGE (scripts/ops/ruleset-main.mjs) : `fusion^1` = `main` d'avant, `fusion^2` = la tête
       // de la PR. La plage est celle de la branche, jamais le commit de fusion (« Merge pull request #N »).
       const base = ctx.questions.shaDe(`${fusion}^1`)
