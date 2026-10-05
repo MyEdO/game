@@ -36,7 +36,7 @@ import { buildScene } from './mapSpec';
 import { setRule, resetRule } from '../engine/policy';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { WorldMap, MapRoute } from './worldMap';
+import type { WorldMap, MapRouteTrace } from './worldMap';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -171,7 +171,7 @@ describe('#1262 V2 — la décision d’Embrigadement est au siège du MENEUR', 
 
 const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
 
-function riverMap(extra: Partial<MapRoute> = {}): WorldMap {
+function riverMap(extra: Partial<MapRouteTrace> = {}): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [

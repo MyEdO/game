@@ -10,6 +10,8 @@ import type { CascadeStep } from './pendings';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { cascadeDeTest } from './cascadeTestKit';
+import { fixtureText } from '../i18n/fixtureText';
 
 /**
  * #1852 — LE COMBAT NE GÈLE PLUS. Invariant : à tout instant, au plus UNE étape hôte VIVANTE par slot
@@ -377,19 +379,16 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
     setup();
     useGame.setState({
       pendingDefense: null,
-      pendingCascade: {
-        title: 'Défense', purpose: 'combat', cursor: 0, log: [], seq: 2,
-        participants: [
-          { id: 'affichage', kind: 'display', actorId: 'h', label: 'X' },
-          { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
-        ],
-      } as never,
+      pendingCascade: cascadeDeTest([
+        { id: 'affichage', kind: 'display', actorId: 'h', label: fixtureText('X') },
+        { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
+      ], { title: 'Défense', purpose: 'combat' }),
     });
     expect(() => useGame.getState().cascadeNext()).toThrow(/orphelin/);
   });
 
   it('l’ARBITRE n’élit pas la cascade quand le corps de l’étape `cast` s’efface (ciblage carte)', () => {
-    const casc = { participants: [{ id: 'c', kind: 'castJet', jet: 'cast', actorId: 'h' }], cursor: 0 } as never;
+    const casc = cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast', actorId: 'h' }]);
     expect(pickActiveModalKey({ pendingCast: {} as never, pendingCascade: casc })).toBe('cascade');
     expect(pickActiveModalKey({ pendingCast: { pickingTargets: true } as never, pendingCascade: casc })).toBeNull();
   });

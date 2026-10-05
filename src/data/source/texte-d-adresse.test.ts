@@ -218,11 +218,18 @@ describe('4. forges : une adresse qui ne rend pas le texte porte sa `verificatio
   });
 });
 
-describe('5-6. verdicts du dépôt', () => {
-  it('Z1 : `regles:surincantation-des-sorts-d-augure` est un « sous-bloc »', () => {
-    expect(judge(entree('regles', 'surincantation-des-sorts-d-augure'))).toEqual(SOUS_BLOC);
+describe('Z1. sous-bloc : une partie stricte d’un bloc-table, reconstruite depuis le Source', () => {
+  it('le bloc-table adressé par `regles:surincantation-des-sorts-d-augure`, privé de sa dernière ligne, est un « sous-bloc »', () => {
+    const e = { ...entree('regles', 'surincantation-des-sorts-d-augure') };
+    const ref = e.descRef as DescRef;
+    const rendu = resoudreAdresse(lireChapitre(ref.book, ref.ch), ref);
+    if (estErreur(rendu)) throw new Error(rendu.detail);
+    delete e.descRef;
+    expect(judge({ ...e, desc: rendu.md.split('\n').slice(0, -1).join('\n') })).toEqual(SOUS_BLOC);
   });
+});
 
+describe('5-6. verdicts du dépôt', () => {
   it.each(['saltimbanque', 'chansonnier', 'ratisseur-de-plages'])('`careers:%s` reste un MONTAGE', (id) => {
     const j = judge(entree('careers', id));
     expect(j.verdict).toBe('MONTAGE');

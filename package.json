@@ -23,6 +23,7 @@
     "agents:sync": "node scripts/agents/compat-cli.mjs sync",
     "agents:check": "node scripts/agents/compat-cli.mjs check",
     "mods:check": "node scripts/mods/verifier.mjs",
+    "livraison:plage": "node scripts/guards/livraison-plage.mjs",
     "test:agents": "node scripts/test/node-tests.mjs test:agents",
     "test:hooks": "node scripts/test/node-tests.mjs test:hooks",
     "guard:budget-contexte": "node scripts/guards/budget-contexte.mjs",

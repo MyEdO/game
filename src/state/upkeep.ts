@@ -153,7 +153,7 @@ export interface DeferredUpkeepTest {
   target: number;
   /** Écrêtage RÉELLEMENT subi par la cible (`clampTarget`) — rendu « plafond 99 » sur la ligne. */
   clamped?: number;
-  meta?: Record<string, unknown>; // p.ex. { diseaseName, onFail: GameOp[] } — porté tel quel jusqu'à l'applier
+  meta?: Record<string, unknown>; // p.ex. { diseaseName, opsEchec: GameOp[] } — porté tel quel jusqu'à l'applier
 }
 
 export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; fedDaily?: boolean; onDeferTest: (t: DeferredUpkeepTest) => void }): string[] {

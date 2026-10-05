@@ -272,8 +272,8 @@ function foreCoatArt(p: QuadProps): string {
   const bl = p.bodyLen;
   const X = (n: number) => (n * bl).toFixed(1);
   // bord arrière : remonte du brisket (x≈21·bl) au garrot en dents de plumes — chaque dent
-  // descend PUIS remonte, x strictement décroissant (un contour simple, jamais croisé :
-  // la 1re version en Q non monotones s'auto-croisait et annulait son propre remplissage)
+  // descend PUIS remonte, x strictement décroissant (un contour simple, jamais croisé : des Q non
+  // monotones s'auto-croisent et annulent leur propre remplissage)
   const edge = Array.from({ length: 6 }, () => `l${X(-1)} 3.4 l${X(-1.8)} -9.3 `).join('');
   const coat = `<path d="M${X(4)} -20 Q${X(18)} -23 ${X(27)} -18.5 Q${X(33.8)} -9 ${X(32.8)} 1 Q${X(30)} 12 ${X(21)} 15.6 ${edge}Z" fill="@aile" stroke="@aileO" stroke-width="0.6"/>`;
   // ombre du bord de poitrail (rondeur) + hampes de plumes + mouchetures claires

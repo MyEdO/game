@@ -1589,6 +1589,9 @@ export interface CascadeStepMeta {
   onSuccess?: Flow;
   /** Branche d'échec d'une étape `triggeredTest`. */
   onFail?: Flow;
+  /** Ops d'échec d'un Test de cycle de maladie (`diseaseTick`, `engine/disease.ts`), appliquées à plat
+   *  par `applyOps` (`state/restFlow.ts`). */
+  opsEchec?: GameOp[];
   /** Branche OUI d'une étape `triggeredChoice` (décision opt-in acceptée — Frappe réactive « tenter »). */
   choiceYes?: Flow;
   /** Branche NON d'une étape `triggeredChoice` (décision refusée — défaut = renoncer). */
@@ -2139,7 +2142,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    * à chaque écriture du slot : le goulot ne le relit pas du store, qu'un pilote peut n'avoir pas encore
    * écrit — c'est ce qui le garde monotone sur les trois pilotes.
    */
-  seq?: number;
+  seq: number;
   /** Journal de la cascade (entretien, conséquences validées) — affiché sous l'étape courante. */
   log: string[];
   /** Finalisation : 'night' (bilan de repos), 'travel' (halte → reprise), 'travelDay' (jets du JOUR de

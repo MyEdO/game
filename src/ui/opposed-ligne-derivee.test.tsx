@@ -19,6 +19,7 @@ import { frozenOpposedBatchStep } from '../state/combat/triggeredTest';
 import { findQualityById } from '../data';
 import { EMPTY_FLOW } from '../state/flow';
 import type { Combatant } from '../engine/types';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -97,7 +98,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
     expect(step.meta!.opposed!.attackerLabel, 'l’alternative authorée voyage telle quelle').toBe('Force/Athlétisme');
 
     act(() => {
-      useGame.setState({ pendingCascade: { title: 'Déstabilisante', purpose: 'combat', participants: [step], cursor: 0, log: [] } });
+      useGame.setState({ pendingCascade: cascadeDeTest([step], { title: 'Déstabilisante', purpose: 'combat' }) });
       root.render(<CascadeBody />);
     });
     expect(texte()).toContain(`${b.label} — Force/Athlétisme`);

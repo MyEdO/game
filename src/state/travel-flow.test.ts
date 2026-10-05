@@ -15,7 +15,7 @@ import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
 import { emptyScene, Scene } from './scene';
 import { buildEncounter } from './encounterAuthoring';
-import { WorldMap } from './worldMap';
+import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
@@ -24,7 +24,7 @@ import { toDate } from '../engine/clock';
 import { creditBourse } from './bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
 import { cascadeAppliers, rollTableStep } from './cascade';
-import { inexplique, soutienDe, draineCascade, avanceEtapeCascade } from './cascadeTestKit';
+import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 
 const get = () => useGame.getState();
@@ -45,7 +45,7 @@ function sceneA(): Scene {
   return s;
 }
 function sceneB(): Scene { const s = emptyScene(10, 10); s.id = 'lieu-b-scene'; s.label = 'B'; return s; }
-function map(rp: Partial<WorldMap['routes'][0]> = {}): WorldMap {
+function map(rp: Partial<MapRouteTrace> = {}): WorldMap {
   return { id: 'c', label: 'c', places: [
     { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: 'lieu-a-scene' },
     { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: 'lieu-b-scene' },
@@ -409,7 +409,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     const steps = buildWeatherResistanceSteps(get, 'neige');
     // Jet FORCÉ en échec (déterministe) : la rangée est prête → cascadeNext commit → applier.
     steps[0].participants![0].result = { roll: 99, target: steps[0].participants![0].target, sl: -4, success: false };
-    set({ pendingCascade: { title: 'Traversée', icon: 'rest/cold', purpose: 'test', cursor: 0, log: [], participants: steps } as never });
+    set({ pendingCascade: cascadeDeTest(steps, { title: 'Traversée', icon: 'rest/cold' }) });
     get().cascadeNext();
     const st = get();
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);
