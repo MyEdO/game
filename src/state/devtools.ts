@@ -51,7 +51,7 @@ import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
 import { trappingsInstanciables, findCreatureById, findTraitById } from '../data';
-import { creatureToCombatant } from './spawn';
+import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
 import { ev } from './combatLog';
@@ -1557,7 +1557,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — VRAI
-     *  pipeline (`creatureToCombatant`, `src/state/spawn.ts` — MÊME dérivation que `spawnEnemy`/le
+     *  pipeline (`spawnEnemy`, `src/state/spawn.ts` — la porte du
      *  peuplement de scène : profil, armes/armure depuis les Traits, Psychologie, Groupes…), sans
      *  passer par une rencontre de scène. `spawn('gobelin')`, `spawn('gobelin', {x,y}, {side:'hero'})`.
      *  `pos` défaut : à côté du combattant ACTIF (ou, à défaut, le premier combattant positionné) —
@@ -1574,7 +1574,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       let id = opts?.id ?? `spawn-${creatureId}`;
       let n = 0;
       while (b.combatants.some((c) => c.id === id)) { n += 1; id = `${opts?.id ?? `spawn-${creatureId}`}-${n}`; }
-      const c = creatureToCombatant(creature, id, basePos);
+      const c = spawnEnemy({ ref: creatureId }, id, basePos);
       const side = opts?.side ?? 'enemy';
       if (side === 'hero') { c.kind = 'hero'; c.aiControlled = true; }
       else if (side === 'npc') c.kind = 'npc';

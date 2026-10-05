@@ -3,6 +3,8 @@ import { applySummon, purgeExpiredSummons } from './summonFlow';
 import type { Combatant } from '../engine/types';
 import type { Scene } from './scene';
 import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
+import { spells } from '../data';
+import { atteignables, cheminsVersLeCatalogue } from './partage.testkit';
 
 /**
  * Moteur d'invocation (SpellSpec.summon) : la créature entre en combat dans le camp du lanceur,
@@ -134,5 +136,26 @@ describe('summon — la créature est un id du bestiaire, tenu au parse (#1882)'
 
   it('l’op ne figure plus à l’inventaire des payloads non décrits', () => {
     expect(OPS_NON_TYPEES).not.toContain('summon');
+  });
+});
+
+describe('invocation à traits surchargés : aucun objet du catalogue partagé (#2097)', () => {
+  const invocations = [...atteignables(spells, 'sorts')]
+    .filter(([o]) => (o as { op?: string }).op === 'summon' && Array.isArray((o as { addTraits?: unknown }).addTraits))
+    .map(([o, chemin]) => ({ op: o as Parameters<typeof applySummon>[3], chemin }));
+
+  it('le catalogue porte des invocations à `addTraits`', () => {
+    expect(invocations.length).toBeGreaterThan(0);
+  });
+
+  it('la créature invoquée n’atteint aucun objet du catalogue par identité', () => {
+    const fautes = invocations.flatMap(({ op, chemin }) => {
+      const c = caster();
+      const h = harness(c, battle([c]));
+      applySummon(h.get, h.set, c, op, { rounds: null });
+      return h.state().battle.combatants.filter((x: Combatant) => x.summon)
+        .flatMap((x: Combatant) => cheminsVersLeCatalogue(x, `${chemin} → ${x.id}`));
+    });
+    expect(fautes).toEqual([]);
   });
 });
