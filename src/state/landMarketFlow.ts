@@ -122,7 +122,7 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
   const marcheDef = findLieuServiceById('marche');
   const hostLine = market.hostLine ?? marcheDef?.hostLine;
   const backdrop = market.backdrop ?? marcheDef?.backdrop;
-  set({ landMarket: { placeId: cur.placeId, label: cur.label, market, offers, hostLine, backdrop } });
+  set({ landMarket: { placeId: cur.placeId, label: cur.label, market: structuredClone(market), offers, hostLine, backdrop } }); // #2097
 }
 
 /** Ce qui SUIT l'étal : le Test de Ragot des rumeurs commerciales. Il ne s'ouvre qu'une fois l'étal

@@ -63,7 +63,7 @@ export function grantTrait(c: Combatant, accorde: TraitInstance): void {
  *  Colère impie → Frénésie, mutation → Haine). `src` = PROVENANCE de l'instance, comme `TraitInstance.src`
  *  de `grantTrait`. Mute `c`. */
 export function grantPsychTrait(c: Combatant, type: PsychType, cible?: string, src?: EffectSource): void {
-  c.psychTraits = [...(c.psychTraits ?? []), { type, ...(cible ? { cible } : {}), ...(src ? { src } : {}) }];
+  c.psychTraits = [...(c.psychTraits ?? []), { type, ...(cible ? { cible } : {}), ...(src ? { src: structuredClone(src) } : {}) }]; // #2097
 }
 
 /** Retire UNE instance du trait accordé (jamais un natif en double : la dernière occurrence — celle

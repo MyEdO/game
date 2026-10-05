@@ -498,7 +498,7 @@ Ce tableau est celui des cibles à **forme humanoïde** (bipède). Les créature
 **Voir aussi** : Toucher et Test opposé de Corps à corps · Dégâts et Points de Blessure (BE + PA de la zone) · Localisation visée / attaque Complexe · Tableaux de Localisation alternatifs (Bestiaire : serpentin, arachnéen, monture)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.133, l.135, l.137-145, l.147, l.153, l.159) → `localisation`, `useDefenseJetProps`, `engage`, `hitLocation`, `markAttacked`, `agressifEnvers`, `useAttackJetProps`, `toucheSauvee`, `Condition`, `resolvePsychAI`, +12 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, `src/engine/flowCore.ts`, `src/engine/psychology.ts`, +9 fichiers
+- `LDB 13` (l.133, l.135, l.137-145, l.147, l.153, l.159) → `localisation`, `useDefenseJetProps`, `engage`, `hitLocation`, `markAttacked`, `agressifEnvers`, `useAttackJetProps`, `toucheSauvee`, `resolvePsychAI`, `Condition`, +12 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/engine/engagement.ts`, `src/engine/flowCore.ts`, `src/engine/psychology.ts`, +9 fichiers
 
 ---
 

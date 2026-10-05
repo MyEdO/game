@@ -60,9 +60,9 @@ export type LectureDeCasse =
 export type DemandeDeCasse = DemandeDe & { lecture: LectureDeCasse };
 
 /** La qualité qui OFFRE la sauvegarde contre la cassure instantanée (`LDB 60 l.30`) — id STABLE. */
-export const SOURCE_SOLIDE: SourceDeSauvegarde = { kind: 'qualite', id: 'solide' };
+export const SOURCE_SOLIDE: SourceDeSauvegarde = Object.freeze({ kind: 'qualite', id: 'solide' }); // #2097
 
-const D10_SOLIDE: DiceSpec = { n: 1, sides: 10 };
+const D10_SOLIDE: DiceSpec = Object.freeze({ n: 1, sides: 10 }); // #2097
 
 /** Le SEUIL de la Sauvegarde Solide de l'arme TENUE (`LDB 60 l.30`), ou `null` quand aucun dé n'est à
  *  jouer : arme non Solide, Incassable (`LDB 62 l.262`), ou objet source DÉJÀ détruit. L'`ItemInstance`

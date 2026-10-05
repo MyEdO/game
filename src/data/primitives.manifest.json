@@ -1244,6 +1244,15 @@
     "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
   },
   {
+    "id": "gelerProfond",
+    "type": "primitives.manifest",
+    "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
+    "fichier": "src/lib/gelerProfond.ts",
+    "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`, `TRAMPLE_WEAPON`)",
+    "perimetre": "clés de `memoByRef` (`state/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
+    "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
+  },
+  {
     "id": "echapperRegex",
     "type": "primitives.manifest",
     "label": "echapperRegex",
