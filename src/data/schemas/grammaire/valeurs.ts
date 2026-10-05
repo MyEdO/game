@@ -255,6 +255,11 @@ export function adresseUnPassage(ref: unknown): boolean {
   return Array.isArray(parts) && parts.length >= MIN_FRAGMENTS;
 }
 
+/** Genres de fragment d'une adresse : le `kind` de `fragmentBlocsSchema` et de `fragmentCelluleSchema`. */
+export const GENRES_DE_FRAGMENT = [fragmentBlocsSchema.shape.kind.value, fragmentCelluleSchema.shape.kind.value] as const;
+/** Un genre de fragment. */
+export type GenreDeFragment = (typeof GENRES_DE_FRAGMENT)[number];
+
 /**
  * ADRESSE DE PROSE (#1389, épique #1388 §2.2) — ce qu'une entrée porte À LA PLACE de la prose
  * recopiée du livre : le livre, le chapitre, et jusqu'à `MAX_FRAGMENTS` fragments d'un même chapitre.
@@ -264,44 +269,59 @@ export function adresseUnPassage(ref: unknown): boolean {
  * chaque fragment porte son empreinte `sum` — sans elle, une ré-extraction du livre changerait le texte
  * rendu en silence. Les verrous de COHÉRENCE (exclusivité avec `desc`, résolubilité du livre,
  * accord avec `source`) vivent dans `grammaire/prose.ts`, avec le champ qui les porte.
+ *
+ * PARAMÈTRE `fragmentsAdmis` : les genres de fragment que les adresses d'un document admettent (défaut :
+ * tous, `GENRES_DE_FRAGMENT`). Un document le déclare par `options.fragmentsAdmis` (`document.ts`).
  */
-export const descRefSchema = z
-  .strictObject({
-    book: z.string().min(1),
-    /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
-     *  le prédicat de sa maison (`estGraphieDeChapitre`, `src/data/source/decoupe.ts`) : des
-     *  chiffres, deux au minimum, et un numéro de chapitre — `00` désigne l'index. La largeur JUSTE
-     *  pour le livre se juge contre le disque, là où le livre est connu
-     *  (`src/data/prose-resolution.test.ts`, volet F). */
-    ch: z.string().refine(estGraphieDeChapitre, {
-      message: 'adresse de prose : `ch` est la graphie d’un numéro de CHAPITRE — des chiffres, deux au minimum, et pas `00` (l’index n’est pas un chapitre).',
-    }),
-    parts: z.array(z.discriminatedUnion('kind', [fragmentBlocsSchema, fragmentCelluleSchema])).min(MIN_FRAGMENTS).max(MAX_FRAGMENTS),
-  })
-  .superRefine((v, ctx) => {
-    v.parts.forEach((p, i) => {
-      if (p.kind !== 'blocs') return;
-      if ((p.finSec == null) !== (p.finSecOcc == null)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['parts', i, p.finSec == null ? 'finSec' : 'finSecOcc'],
-          message: 'adresse de prose : `finSec` et `finSecOcc` désignent ensemble la section de fin — l’un ne va pas sans l’autre.',
-        });
-      } else if (p.finSec === p.sec && p.finSecOcc === p.secOcc) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['parts', i, 'finSec'],
-          message: 'adresse de prose : la section de fin est celle du départ — elle ne s’écrit pas (forme canonique unique).',
-        });
-      } else if (p.finSec == null && p.b1 < p.b0) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['parts', i, 'b1'],
-          message: `adresse de prose : bornes inversées (\`b1\` ${p.b1} < \`b0\` ${p.b0}) — un fragment de blocs est une suite contiguë.`,
-        });
-      }
+export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GENRES_DE_FRAGMENT) {
+  return z
+    .strictObject({
+      book: z.string().min(1),
+      /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
+       *  le prédicat de sa maison (`estGraphieDeChapitre`, `src/data/source/decoupe.ts`) : des
+       *  chiffres, deux au minimum, et un numéro de chapitre — `00` désigne l'index. La largeur JUSTE
+       *  pour le livre se juge contre le disque, là où le livre est connu
+       *  (`src/data/prose-resolution.test.ts`, volet F). */
+      ch: z.string().refine(estGraphieDeChapitre, {
+        message: 'adresse de prose : `ch` est la graphie d’un numéro de CHAPITRE — des chiffres, deux au minimum, et pas `00` (l’index n’est pas un chapitre).',
+      }),
+      parts: z.array(z.discriminatedUnion('kind', [fragmentBlocsSchema, fragmentCelluleSchema])).min(MIN_FRAGMENTS).max(MAX_FRAGMENTS),
+    })
+    .superRefine((v, ctx) => {
+      v.parts.forEach((p, i) => {
+        if (!fragmentsAdmis.includes(p.kind)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['parts', i, 'kind'],
+            message: `adresse de prose : fragment \`${p.kind}\` non admis par ce document (admis : ${fragmentsAdmis.join(', ')}).`,
+          });
+        }
+        if (p.kind !== 'blocs') return;
+        if ((p.finSec == null) !== (p.finSecOcc == null)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['parts', i, p.finSec == null ? 'finSec' : 'finSecOcc'],
+            message: 'adresse de prose : `finSec` et `finSecOcc` désignent ensemble la section de fin — l’un ne va pas sans l’autre.',
+          });
+        } else if (p.finSec === p.sec && p.finSecOcc === p.secOcc) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['parts', i, 'finSec'],
+            message: 'adresse de prose : la section de fin est celle du départ — elle ne s’écrit pas (forme canonique unique).',
+          });
+        } else if (p.finSec == null && p.b1 < p.b0) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['parts', i, 'b1'],
+            message: `adresse de prose : bornes inversées (\`b1\` ${p.b1} < \`b0\` ${p.b0}) — un fragment de blocs est une suite contiguë.`,
+          });
+        }
+      });
     });
-  });
+}
+
+/** L'adresse de prose qui admet tous les genres de fragment (`descRefSchemaDe`). */
+export const descRefSchema = descRefSchemaDe();
 
 /** Vue TS de `descRefSchema` — la MÊME forme que `DescRef` du parseur (`src/data/source/decoupe.ts`). */
 export type DescRef = z.infer<typeof descRefSchema>;
