@@ -8,11 +8,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
-import { instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { genererCode, mesurerEnRendu } from '../docs/build-all.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { planDuCheckout, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
-import { gitDe } from '../test/gitDeBanc.mjs'
+import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -129,6 +129,7 @@ test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checko
   const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
   assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
   for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
+  assert.match(lire('post-commit'), /docs-rebuild\.mjs" post-commit /)
 })
 
 test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans doc frère général', () => {
@@ -161,6 +162,88 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
     assert.equal(selection(['notes/a.txt']).complete, true)
   } finally {
     rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('post-commit réel : fusion automatique unique, conflit résolu, amend lock/message et reflog inconnu', () => {
+  const module = pathToFileURL(join(RACINE, 'scripts/git-hooks/docs-rebuild.mjs')).href
+  for (const conflit of [false, true]) {
+    const { racine } = instanceDeDepot({ fichiers: {
+      '.gitignore': 'hooks-fixture/\nnode_modules/\n', 'commun.txt': 'base\n', 'main.txt': 'base\n', 'package-lock.json': '{}\n',
+    } })
+    const git = gitDe(racine, { net: true })
+    const journal = join(racine, '.git', 'journal-fixture')
+    const lire = () => readFileSync(journal, 'utf8').trim().split('\n').filter(Boolean)
+    const vider = () => writeFileSync(journal, '')
+    const ecrireCommit = (fichier, contenu, message) => {
+      writeFileSync(join(racine, fichier), contenu)
+      git('add', fichier)
+      git('commit', '-q', '-m', message)
+    }
+    const amender = (message) => {
+      const vu = resultatDeGit(['commit', '--amend', '-m', message], { cwd: racine, env: { ...envDeDepotForge(), GIT_TRACE: '1' } })
+      assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
+      assert.match(vu.stderr, /post-rewrite.*amend/)
+      console.log(JSON.stringify({ banc2329: 'amend-trace', message, trace: vu.stderr.split('\n').filter((l) => /post-commit|post-rewrite/.test(l)) }))
+    }
+    try {
+      git('switch', '-c', 'cote')
+      ecrireCommit('commun.txt', 'cote\n', 'cote')
+      ecrireCommit('package-lock.json', '{"cote":true}\n', 'lock cote')
+      git('switch', 'main')
+      ecrireCommit(conflit ? 'commun.txt' : 'main.txt', 'main\n', 'main')
+      const ancien = git('rev-parse', 'HEAD')
+      mkdirSync(join(racine, 'hooks-fixture'))
+      for (const hook of ['post-merge', 'post-commit', 'post-rewrite']) writeFileSync(join(racine, 'hooks-fixture', hook), readFileSync(join(RACINE, 'scripts/git-hooks', hook)), { mode: 0o755 })
+      const harnais = join(racine, 'hooks-fixture', 'docs-rebuild.mjs')
+      writeFileSync(harnais, [
+        `import { reconstruireApresGit } from ${JSON.stringify(module)}`,
+        "import { appendFileSync, readFileSync } from 'node:fs'",
+        `const journal = ${JSON.stringify(journal)}`,
+        "const hook = process.argv[2]",
+        "appendFileSync(journal, hook + '\\n')",
+        `process.exitCode = reconstruireApresGit({cwd:${JSON.stringify(racine)}, hook, generateurs: [],`,
+        "npm: (_cmd,args) => { appendFileSync(journal, 'npm:' + args.join(' ') + '\\n'); let status=0; try {status=Number(readFileSync('.git/npm-status','utf8'))} catch {} return {status} },",
+        "code: () => { appendFileSync(journal,'code\\n'); return 0 }, docs: () => {appendFileSync(journal,'docs\\n')} })",
+      ].join('\n'))
+      git('config', 'core.hooksPath', 'hooks-fixture')
+      vider()
+      const merge = resultatDeGit(['merge', '--no-ff', 'cote', '-m', 'fusion'], { cwd: racine })
+      assert.equal(merge.status, conflit ? 1 : 0, `${merge.stdout}${merge.stderr}`)
+      if (conflit) {
+        assert.deepEqual(lire(), [])
+        ecrireCommit('commun.txt', 'resolu\n', 'fusion manuelle')
+      }
+      assert.deepEqual(lire(), [conflit ? 'post-commit' : 'post-merge', 'npm:ci --no-audit --no-fund'])
+      assert.deepEqual(touchedFiles(racine, { de: ancien, a: git('rev-parse', 'HEAD') }).includes('package-lock.json'), true)
+      vider()
+      const arbre = git('rev-parse', 'HEAD^{tree}')
+      amender('message seul')
+      assert.equal(git('rev-parse', 'HEAD^{tree}'), arbre)
+      assert.deepEqual(lire(), ['post-commit'])
+      vider()
+      writeFileSync(join(racine, 'package-lock.json'), '{"amend":true}\n')
+      git('add', 'package-lock.json')
+      amender('lock amende')
+      assert.deepEqual(lire(), ['post-commit', 'npm:ci --no-audit --no-fund'])
+      for (const panne of ['absent', 'reflog', 'parents']) {
+        vider()
+        writeFileSync(join(racine, '.git', 'npm-status'), '1')
+        if (panne === 'absent') rmSync(join(racine, '.git', 'logs', 'HEAD'))
+        const vu = spawnSync(process.execPath, [harnais, 'post-commit'], {
+          cwd: racine, encoding: 'utf8', env: { ...process.env, ...(panne !== 'absent' ? envGitFeint([{ si: panne === 'reflog' ? ['reflog'] : ['rev-parse', 'HEAD^@'], status: 128, stderr: `fatal: panne ${panne}` }]) : {}) },
+        })
+        assert.equal(vu.status, 1, vu.stderr)
+        assert.match(vu.stderr, /plage Git inconnue/)
+        assert.match(vu.stderr, /fusion effectuée, équipement incomplet.*npm ci/)
+        if (panne !== 'absent') assert.match(vu.stderr, new RegExp(`lecture Git indisponible.*panne ${panne}`))
+        assert.deepEqual(lire(), ['post-commit', 'npm:ci --no-audit --no-fund'])
+      }
+      vider()
+      ecrireCommit('package-lock.json', '{"ordinaire":true}\n', 'commit ordinaire lock')
+      assert.deepEqual(lire(), ['post-commit'])
+      console.log(JSON.stringify({ banc2329: 'post-commit-hooks-reels', conflit, ancien, nouveau: git('rev-parse', 'HEAD'), ordinaireSansEquipement: lire() }))
+    } finally { rmSync(racine, { recursive: true, force: true }) }
   }
 })
 

@@ -1,0 +1,4 @@
+#!/bin/sh
+# #2329
+"${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-commit || true
+exit 0

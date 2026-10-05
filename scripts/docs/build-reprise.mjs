@@ -252,7 +252,10 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
-    \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. Un lockfile modifié impose
+    \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
+    commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
+    un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
+    annoncée ; un commit ordinaire ne lance aucun équipement. Un lockfile modifié impose
     \`npm ci\` dans sa racine (racine ou \`server/\`) avant toute génération ; un échec nomme la
     réparation à rejouer et arrête les générations, sans annuler la fusion déjà effectuée. Les docs
     se régénèrent par sélection des sources mesurées, préalables et lecteurs aval ; une mesure

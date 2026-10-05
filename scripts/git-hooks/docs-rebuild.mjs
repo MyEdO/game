@@ -6,11 +6,11 @@ import { join } from 'node:path'
 import { ciblesSurDisque, GENERATORS, generateursDeCode, genererCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
-import { ceQuiChange, depotDe, etatDeLArbre, racineDe, shaDe } from '../guards/lib/gitPorte.mjs'
+import { ceQuiChange, depotDe, etatDeLArbre, parentsDe, racineDe, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
-/** Fichiers du lot que le hook vient de recevoir (`de`..`a`, ORIG_HEAD..HEAD par défaut). Sans `de`,
- *  ou git indisponible : `null` (= inconnu, on régénère). */
+/** Fichiers de `de`..`a` (ORIG_HEAD..HEAD par défaut, SHA capturés pour post-commit).
+ *  Borne absente ou git indisponible : `null`. */
 export function touchedFiles(cwd, { de = 'ORIG_HEAD', a = 'HEAD' } = {}) {
   let panne = false
   const depot = depotDe(cwd, { enPanne: () => { panne = true } })
@@ -50,18 +50,14 @@ function ancetresDe(chemin) {
 
 /**
  * Vrai si le lot peut avoir périmé un doc dérivé. La réponse se DÉRIVE de la mesure
- * (`docs/.sources-lues.json`), jamais d'une liste de préfixes écrite à la main : 49 sources mesurées
- * vivaient hors des quatre préfixes codés d'avant (src, scripts, docs, Source, plus package.json) —
- * les fiches `.claude/memory/user-…md` → `docs/doctrines.md`, les `SKILL.md` de `.claude/skills`,
- * `tsconfig.json`, et le dossier LISTÉ
- * `.github/workflows` (#1773). Quatre façons, pour un lot, de périmer un doc dérivé :
+ * (`docs/.sources-lues.json`, #1773). Quatre façons, pour un lot, de périmer un doc dérivé :
  *   1. le chemin EST une source lue, ou une cible ;
  *   2. un de ses ANCÊTRES est un dossier LISTÉ — un fichier posé dans un dossier NEUF change le
  *      listing du premier ancêtre qui existait (#2193) ;
  *   3. son dossier parent contient déjà une source lue — c'est le frère AJOUTÉ ou RETIRÉ d'une
  *      source, que la mesure d'un générateur qui énumère sans lister ne peut pas dire autrement ;
  *   4. sans restriction par générateur, il vit sous `docs/`.
- * FAIL-CLOSED : lot inconnu (pas d'ORIG_HEAD) ou mesure illisible → on régénère.
+ * Lot inconnu ou mesure illisible → régénération conservatrice.
  * `seulement` (des `script` de `GENERATORS`) restreint la mesure aux entrées de ces générateurs ; un
  * membre SANS entrée fait régénérer, comme une mesure illisible (#2193).
  */
@@ -118,7 +114,15 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
 }
 
 export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, code = genererCode, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
-  const lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres })) : touchedFiles(cwd)
+  let lot
+  if (hook === 'post-commit') {
+    const depot = depotDe(cwd, { enPanne: (raison) => annoncer(`[${hook}] lecture Git indisponible : ${raison}\n`) })
+    const parents = parentsDe(depot, 'HEAD')
+    if (parents !== null && parents.length < 2) return 0
+    const nouveau = shaDe(depot, 'HEAD')
+    const ancien = shaPrecedentDeHead(depot)
+    lot = parents === null || nouveau === null || ancien === null ? null : touchedFiles(cwd, { de: ancien, a: nouveau })
+  } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres })) : touchedFiles(cwd)
   const mesure = sourcesMesurees(cwd)
   const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge })
   if (hook === 'post-checkout' && avant === '0'.repeat(40) && mesure === null) {
