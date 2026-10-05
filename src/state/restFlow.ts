@@ -420,18 +420,18 @@ registerNightBandApplier('traumaFracture', (_get, _set, _band, row, hero) => {
 });
 
 registerNightBandApplier('diseaseTick', (_get, _set, _band, row, hero) => {
-  // Échec d'un Test de cycle quotidien → applique sa conséquence GameOp `onFail`, via applyOps. Couvre
+  // Échec d'un Test de cycle quotidien → applique ses ops d'échec (`meta.opsEchec`), via applyOps. Couvre
   // les DEUX porteurs de ce canal : le Test d'un SYMPTÔME (`onTick` — Blessé → contractDisease
   // 'blessure-purulente', Toxine, Vers) ET le Test porté par la MALADIE (`DiseaseDef.dailyTest` —
   // pneumonie, EDOC 08 l.104-108). Donnée-driven : aucun id n'est nommé ici.
   if (row.result!.success) return { consequences: [] };
-  const onFail = (row.meta?.onFail ?? []) as import('../engine/ops').GameOp[];
+  const opsEchec = row.meta?.opsEchec ?? [];
   // `sl` (DR négatif de l'échec) → alimente `rollTable{addNegativeSL}` (Vers de carie : « ajoutez le
-  // nombre de DR négatifs », MSRC 16 l.90) et les échelles `perSL` d'un `onFail`.
-  // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par `onFail` (Trait
+  // nombre de DR négatifs », MSRC 16 l.90) et les échelles `perSL` de ces ops.
+  // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
   // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
   const source = { kind: 'disease' as const, id: String(row.meta?.diseaseName ?? '') };
-  return { consequences: freeCons(applyOps(hero, onFail, { rng: battleRng(), sl: row.result!.sl, source })) };
+  return { consequences: freeCons(applyOps(hero, opsEchec, { rng: battleRng(), sl: row.result!.sl, source })) };
 });
 
 registerNightBandApplier('diseaseGangrene', (_get, _set, _band, row, hero) => {

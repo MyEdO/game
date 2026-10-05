@@ -8,10 +8,11 @@ import { moraleBand } from '../engine/crewMorale';
 import { voyageStepPending } from '../state/modalArbiter';
 import type { PendingCascade, CascadeStep } from '../state/pendings';
 import type { PendingRest } from '../state/store';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 const cascadeStep = (kind: string): CascadeStep => ({ id: kind, kind, result: null } as CascadeStep);
 const cascade = (participants: CascadeStep[], cursor: number, purpose: PendingCascade['purpose'] = 'travelDay'): PendingCascade =>
-  ({ title: 't', cursor, log: [], purpose, participants } as unknown as PendingCascade);
+  cascadeDeTest(participants, { title: 't', cursor, purpose });
 
 const hero = (id: string): Combatant => ({
   id, label: `Héros ${id}`, kind: 'hero',
@@ -154,7 +155,7 @@ describe('voyageStepPending — une ÉTAPE du hub attend (cascade OU nuit, #333 
     expect(voyageStepPending({})).toBe(false);
   });
   it('vrai avec une cascade en attente', () => {
-    expect(voyageStepPending({ pendingCascade: {} as never })).toBe(true);
+    expect(voyageStepPending({ pendingCascade: cascadeDeTest([]) })).toBe(true);
   });
   it('vrai avec une nuit de halte en attente (repos EMBARQUÉ au centre du hub)', () => {
     expect(voyageStepPending({ pendingRest: {} as never })).toBe(true);

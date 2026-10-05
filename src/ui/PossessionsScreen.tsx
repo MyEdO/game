@@ -1,16 +1,16 @@
 /**
- * Écran POSSESSIONS (#620 SOCLE POSSESSIONS T1-e, Lot 2) — PREMIÈRE version, composition PURE de
- * primitives existantes : `ScreenShell` + `MasterDetail` (liste des possessions du groupe groupées
- * PAR PROPRIÉTAIRE puis par nature, patron `PossessionsRegistry` #649) + `Tabs` (Aperçu/Inventaire) +
- * `CarrierInventory` (sac de la possession, #620 Lot 1a/1b) + `GatedAction` (Laisser/Reprendre/
- * Débarquer/Abandonner, raison visible reflétant l'état RÉEL) + `MediaSelect` (choix du navire de
- * destination pour Embarquer — même patron que le menu « Donner » de `CarrierInventory`, #620 Lot 2b).
- * Soute/Voyage = sous-lots suivants, non codés ici.
+ * Écran POSSESSIONS (#620), composition PURE de primitives existantes : `ScreenShell` + `MasterDetail`
+ * (liste des possessions du groupe groupées PAR PROPRIÉTAIRE puis par nature, patron
+ * `PossessionsRegistry` #649) + `Tabs` (Aperçu/Inventaire, Soute pour toute possession non bête à
+ * capacité, charrette comprise, Voyage pour une bête à profil d'allures) + `CarrierInventory` (sac de la
+ * possession) + `GatedAction`
+ * (Laisser/Reprendre/Débarquer/Abandonner, raison visible reflétant l'état RÉEL) + `MediaSelect` (choix
+ * du navire de destination pour Embarquer — même patron que le menu « Donner » de `CarrierInventory`).
  *
  * Libellé de la LISTE maître : texte SIMPLE (pas de `CodexRef` cliquable) — une rangée `PlaqueRow`
  * cliquable dont le libellé serait AUSSI un déclencheur (`role=button` imbriqué, `position:relative`)
  * double l'action au clic (sélection + ouverture Codex) ET fait déborder visuellement son contenu par-
- * dessus le badge de localisation voisin dans la colonne étroite du rail (#620 Lot 2, recette juge).
+ * dessus le badge de localisation voisin dans la colonne étroite du rail (#620).
  * Le `CodexRef` reste légitime dans l'onglet Aperçu (`DetailFrame`, pas de conflit de sélection).
  */
 import { useMemo, useState, type CSSProperties } from 'react';

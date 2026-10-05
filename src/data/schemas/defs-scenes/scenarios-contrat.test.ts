@@ -1,9 +1,9 @@
 /**
- * Contrat des SCÈNES CONSTRUITES par les scénarios de test (#1466 L1a T3-c).
+ * Contrat des SCÈNES et CARTES CONSTRUITES par les scénarios de test (#1466 L1a T3-c, #2199).
  *
  * Le corpus de `effets.test.ts` scanne les documents JSON ; celui-ci prend l'autre moitié du réel :
  * les scènes fabriquées EN TYPESCRIPT (`arena`/`buildScene`/littéraux) par les scénarios du menu
- * Tests. Même patron de contrat : registre GÉNÉRÉ parcouru en entier, PLANCHER de corpus asserté (un
+ * Tests, et leurs cartes du monde (`worldMap`, chargée par `poserScenario` sans autre parse). Même patron de contrat : registre GÉNÉRÉ parcouru en entier, PLANCHER de corpus asserté (un
  * vert vide reste impossible ; le compte RÉEL s'imprime en diagnostic — un cardinal vivant qu'un lot
  * ÉTRANGER fait croître ne rougit pas ce fichier), zéro KO, chaque refus NOMMANT le scénario et le
  * chemin zod.
@@ -21,6 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import { SCENARIOS } from '../../../scenes/test-scenarios/_registry.generated';
 import { sceneSchema } from './scene';
+import { worldMapSchema } from './worldmap';
 
 /** Toutes les scènes qu'un scénario apporte au projet : la scène d'entrée + ses destinations. */
 function scenesDe(s: (typeof SCENARIOS)[number]): { chemin: string; scene: unknown }[] {
@@ -45,5 +46,24 @@ describe('sceneSchema — les scènes CONSTRUITES par les scénarios de test', (
       .filter((x) => !x.r.success)
       .map((x) => `${x.chemin} — ${x.r.success ? '' : x.r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' ; ')}`);
     expect(ko, `Scène(s) de scénario que le schéma refuse :\n${ko.join('\n')}`).toEqual([]);
+  });
+});
+
+describe('worldMapSchema — les cartes CONSTRUITES par les scénarios de test', () => {
+  const cartes = SCENARIOS.flatMap((s) => {
+    const carte = s.construire().worldMap;
+    return carte ? [{ chemin: `${s.id}.worldMap`, carte: carte as unknown }] : [];
+  });
+
+  it('le contrat VOIT des cartes', () => {
+    expect(cartes.length, `cartes construites : ${cartes.length}`).toBeGreaterThanOrEqual(1);
+  });
+
+  it('CHAQUE carte construite parse — le refus NOMME le scénario et le chemin', () => {
+    const ko = cartes
+      .map(({ chemin, carte }) => ({ chemin, r: worldMapSchema.safeParse(carte) }))
+      .filter((x) => !x.r.success)
+      .map((x) => `${x.chemin} — ${x.r.success ? '' : x.r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' ; ')}`);
+    expect(ko, `Carte(s) de scénario que le schéma refuse :\n${ko.join('\n')}`).toEqual([]);
   });
 });
