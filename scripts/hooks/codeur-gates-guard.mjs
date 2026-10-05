@@ -18,9 +18,16 @@
 // hooks.md § Subagent Behavior) et n'existe pas depuis la session principale : l'orchestrateur n'est
 // jamais visé. Sous Codex (`.codex/hooks.json`, même point d'entrée `scripts/hooks/repartiteur.mjs`)
 // ces champs n'existent pas non plus : la garde s'y tait, par construction.
+//
+// Ce que la garde ne LIT pas :
+// - la commande qui suit un commentaire `#` porteur d'une apostrophe, sous PowerShell : l'apostrophe ouvre une quote (#2172) ;
+// - la sous-expression `$x = ( … )` (#2172) ;
+// - le contenu d'un script lancé par son chemin (`bash f.sh`), fût-il écrit par un heredoc de la même commande (#2172).
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { APPEL_VITEST, appelDe, appelleTscNu, appelleVitestNu, segmentsHorsServer, LECTEURS } from '../guards/lib/appelsRunners.mjs'
-import { segmentsProfonds, basenameExecutable } from './solde-ticket-guard.mjs'
+import { APPEL_VITEST, appelDe, appelleTscNu, appelleVitestNu, LECTEURS } from '../guards/lib/appelsRunners.mjs'
+import {
+  CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
+} from './solde-ticket-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 
 /** Types de sous-agent visés : seul le `codeur` reçoit des briefs porteurs de gates. */
@@ -51,6 +58,25 @@ const APPEL_ESLINT = appelDe('eslint')
 /** Le lanceur d'une gate entière : `node scripts/gates/…`, `node scripts/test/node-tests.mjs <gate>`. */
 const LANCEUR_DE_GATE = /^node\s+(?:\S*[\\/])?scripts[\\/]gates[\\/]/
 const LANCEUR_NODE_TESTS = /^node\s+(?:\S*[\\/])?scripts[\\/]test[\\/]node-tests\.mjs(?=\s|$)/
+
+// Le sous-projet `server/` a son propre tsconfig et ses propres scripts : le train de la racine n'y répond pas.
+// Les deux façons d'y entrer n'ont PAS la même portée. `cd server` change le répertoire de SON shell (`shell` des
+// segments de `pipelinesDeJetons`) : ce qui le suit dans ce shell, et dans les shells qu'il lance, est dans le
+// sous-projet ; un sous-shell `( … )` ou un membre de tube est un shell enfant, son `cd` ne remonte pas. Tout autre
+// changement de répertoire (`CHANGEMENTS_DE_REPERTOIRE`, ou un `cd` vers une cible non littérale) ramène la portée à
+// la RACINE, et un appel dont un argument remonte d'un cran (`REMONTE_RE`) s'y juge. `--prefix server` ne vaut que pour l'appel npm qui le porte : le segment suivant est à la RACINE.
+const EST_SERVER = /(?:^|[\\/])server[\\/]?$/
+const PREFIX_SERVER = /--prefix\s+server\b/
+/** Un composant de chemin `..` (`--root ..`, `--prefix=..`, `-p ../tsconfig.json`) : l'appel vise un lieu hors de
+ *  `server/`, il se juge à la RACINE (arbitrage d'ingénierie de l'orchestrateur, 2026-10-05). */
+const REMONTE_RE = /(?:^|[\\/=])\.\.(?:[\\/]|$)/
+/** Cible de `cd` écrite en toutes lettres : ni variable, ni substitution, ni `~`, ni joker. */
+const CIBLE_LITTERALE_RE = /^[^$%`~*?[\]]+$/
+
+/** `true` si ce `cd` (ses jetons, redirections retirées) entre dans `server/` par une cible littérale. */
+const entreDansServer = ([exe, cible, ...reste]) =>
+  basenameExecutable(exe.text) === 'cd' && reste.length === 0 && cible !== undefined && jetonNu(cible) &&
+  !cible.substitutions?.length && cible.text !== '-' && CIBLE_LITTERALE_RE.test(cible.text) && EST_SERVER.test(cible.text)
 
 /** Drapeaux qui CONSOMMENT le mot suivant : sa valeur n'est pas un chemin. */
 const DRAPEAUX_A_VALEUR = new Set(['-t', '--testNamePattern', '--reporter', '--project', '--config', '-c'])
@@ -93,7 +119,7 @@ function nomScriptNpm(tokens) {
   const debut = tokens[0] === '&' ? 1 : 0
   if (basenameExecutable(tokens[debut] ?? '') !== 'npm') return null
   const apresFlags = (i) => {
-    while (tokens[i] !== undefined && tokens[i].startsWith('-') && tokens[i] !== '--') i += 1
+    while (tokens[i] !== undefined && tokens[i].startsWith('-') && tokens[i] !== '--') i += tokens[i] === '--prefix' ? 2 : 1
     return i
   }
   const iSub = apresFlags(debut + 1)
@@ -139,19 +165,27 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
   const deLaCi = new Set(gates)
   const brute = String(commande)
 
-  // Le sous-projet `server/` est retiré AVANT la segmentation profonde : ses scripts se résoudraient
-  // sinon dans le `package.json` de la RACINE (`cd server && npm run typecheck` y deviendrait la gate
-  // du train, alors que c'est le périmètre d'un codeur dépêché sur `server/`). Portée = l'autorité
-  // unique de `segmentsHorsServer`. Le recollage par `&&` est sans perte pour la suite : le socle
-  // re-tokenise, et le groupement en tubes n'entre dans aucune de ces décisions.
-  const aAnalyser = segmentsHorsServer(brute).join(' && ')
-
   // Segmentation PROFONDE (socle partagé) : sous-shells, enrobeurs de tête, et RÉSOLUTION d'un
   // `npm run <x>` vers le corps lu dans `package.json` — c'est elle qui fait tomber `npm run gates`
-  // (résolu en `node scripts/gates/toutes.mjs`, le rejeu local) et les sept enrobages mesurés.
-  for (const tokens of segmentsProfonds(aAnalyser, 0, options)) {
+  // (résolu en `node scripts/gates/toutes.mjs`, le rejeu local) et les sept enrobages mesurés. Un script
+  // résolu sous `cd server` l'est dans un shell du sous-projet : il est écarté avec lui.
+  const budget = nouveauBudget()
+  const pipelines = pipelinesDeJetons(brute, 0, { ...options, budget })
+  if (budget.sature) return REFUS_SATURE
+  const repertoires = new Map() // shell → `true` dans `server/`, `false` à la racine, après son dernier `cd`
+  const dansServer = (shell) => (shell ? repertoires.get(shell) ?? dansServer(shell.parent) : false)
+  for (const { jetons, shell, enTete } of pipelines.flat()) {
+    // Une redirection n'est pas un argument : `npx tsc >x.txt --noEmit` reste la gate.
+    const lus = sansRedirections(jetons)
+    const tokens = lus.map((j) => j.text)
+    if (tokens.length === 0) continue
+    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(tokens[0]))) {
+      repertoires.set(shell, entreDansServer(lus))
+      continue
+    }
     const segment = tokens.join(' ')
-    if (!segment || LECTEURS.test(segment)) continue
+    const remonte = [...enTete, ...lus].some((j) => REMONTE_RE.test(j.text))
+    if ((dansServer(shell) && !remonte) || PREFIX_SERVER.test(segment) || LECTEURS.test(segment)) continue
 
     // 1. Un script npm que la CI joue, sous son nom.
     const script = nomScriptNpm(tokens)
