@@ -3,7 +3,7 @@
 // `livraison:plage`, #2328 A3).
 // Ticket #2328, Attendu, verbatim : « Ceux-ci restent exigés là où la livraison se juge : commit de
 // solde, porte de publication. » Une fusion se COMMITE sans eux (lot 1) ; la résolution qu'elle porte
-// se juge avant la publication, par un commit POSTÉRIEUR de la plage qui nomme son sha.
+// se juge avant la publication, par son propre message, ou par un commit POSTÉRIEUR de la plage qui nomme son sha.
 import { estFichierVitest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
 import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot } from './gitPorte.mjs'
@@ -17,7 +17,7 @@ export const SUBSTANTIVE_MIN_LINES = 10
  *  jamais `JUGE-VISION:` : le tiret casse le motif `JUGE\s*:`. */
 export const TRAILERS = Object.freeze({
   JUGE: Object.freeze({ ligne: /\bJUGE\s*:\s*(.+)/i, section: 'Juge', min: 40 }),
-  REFUTATION: Object.freeze({ ligne: /REFUTATION\s*:\s*(.+)/i, section: 'R[ée]futation', min: 40 }),
+  REFUTATION: Object.freeze({ ligne: /\bREFUTATION\s*:\s*(.+)/i, section: 'R[ée]futation', min: 40 }),
   'JUGE-VISION': Object.freeze({ ligne: /\bJUGE-VISION\s*:\s*(.+)/i, section: 'Juge-Vision', min: 40 }),
 })
 
@@ -55,11 +55,17 @@ const SHA_COURT_MIN = 9
 /** `true` si `texte` porte un sha d'au moins `SHA_COURT_MIN` caractères qui préfixe `sha`. PURE. */
 const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\b/gi)].some((m) => m[0].length >= SHA_COURT_MIN && sha.startsWith(m[0].toLowerCase()))
 
+/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE. PURE. */
+const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
+  .map((ligne) => TRAILERS[nom].ligne.exec(ligne)?.[1].trim())
+  .filter((texte) => texte !== undefined && texte.length >= TRAILERS[nom].min)
+
+/** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
+ *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */
+const messagePorte = (message, nom) => lignesDuTrailer(message, nom).length > 0
+
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue qui nomme `sha`. PURE. */
-const messageNomme = (message, nom, sha) => String(message ?? '').split('\n').some((ligne) => {
-  const m = TRAILERS[nom].ligne.exec(ligne)
-  return !!m && m[1].trim().length >= TRAILERS[nom].min && nommeLeSha(m[1], sha)
-})
+const messageNomme = (message, nom, sha) => lignesDuTrailer(message, nom).some((texte) => nommeLeSha(texte, sha))
 
 /** `true` si le SOLDE porte la section du trailer `nom`, assez longue, qui nomme `sha`. PURE. */
 const soldeNomme = (contenu, nom, sha) => {
@@ -105,9 +111,9 @@ function descendantsDe(commits, sha) {
 
 /**
  * Les FUSIONS de la plage `merge-base(base, tete)..tete` dont la résolution porte au moins
- * `SUBSTANTIVE_MIN_LINES` lignes changées sous `src/` (`apportDeLaResolution`) sans qu'un commit qui en DESCEND, dans la plage, les
- * NOMME (sha court de `SHA_COURT_MIN` caractères ou plus) dans son `JUGE:` et sa `REFUTATION:` — plus
- * `JUGE-VISION:` quand un écran en change. Un commit nomme par son message, ou par le
+ * `SUBSTANTIVE_MIN_LINES` lignes changées sous `src/` (`apportDeLaResolution`) sans `JUGE:` ni `REFUTATION:` — plus
+ * `JUGE-VISION:` quand un écran en change. Les porte le message de la fusion elle-même, ou un commit qui en DESCEND,
+ * dans la plage, et la NOMME (sha court de `SHA_COURT_MIN` caractères ou plus) par son message, ou par le
  * solde (`.claude/soldes/ref-<N>.md`, `<N>.md`, lus dans `tete`) d'un ticket que son message cite.
  * UNE lecture du graphe, UN lot pour l'apport des fusions (`ceQueFontLesCommits`), UN journal.
  * @param {import('./gitPorte.mjs').Depot} depot
@@ -146,7 +152,8 @@ export function fusionsNonJugees(depot, { base = TRONC.suivi, tete = 'HEAD' } = 
     const apres = posterieurs.get(f.sha)
     const textes = soldesCites(apres).map((c) => soldes.get(c)).filter((t) => typeof t === 'string')
     const exiges = ['JUGE', 'REFUTATION', ...(f.ecran ? ['JUGE-VISION'] : [])]
-    const manque = exiges.filter((nom) => ![...apres].some((s) => messageNomme(messages.get(s), nom, f.sha)) && !textes.some((t) => soldeNomme(t, nom, f.sha)))
+    const manque = exiges.filter((nom) => !messagePorte(messages.get(f.sha), nom)
+      && ![...apres].some((s) => messageNomme(messages.get(s), nom, f.sha)) && !textes.some((t) => soldeNomme(t, nom, f.sha)))
     return manque.length ? [{ sha: f.sha, lignesChangees: f.lignesChangees, manque }] : []
   })
   return { plage, borne, refus }
@@ -159,7 +166,7 @@ const plageEnClair = ({ base, sha, date, tete }) => `${base} (base ${sha.slice(0
 const raisonDeFusionsNonJugees = (borne, refus) =>
   `⛔ ${plageEnClair(borne)} : ${refus.length} fusion(s) dont la RÉSOLUTION porte ≥${SUBSTANTIVE_MIN_LINES} lignes changées sous src/ sans juge qui la nomme (#2328) :\n` +
   refus.map((r) => `  ${r.sha.slice(0, 9)} (${r.lignesChangees} lignes changées) : manque ${r.manque.map((m) => `\`${m}:\``).join(', ')}`).join('\n') +
-  `\nGeste : un commit postérieur de la plage (ou le solde \`.claude/soldes/ref-<N>.md\` d'un ticket qu'il cite) porte ces lignes, chacune nommant le sha court (${SHA_COURT_MIN} caractères ou plus) de la fusion.`
+  `\nGeste : le message de la fusion porte ces lignes ; sinon un commit postérieur de la plage (ou le solde \`.claude/soldes/ref-<N>.md\` d'un ticket qu'il cite) les porte, chacune nommant le sha court (${SHA_COURT_MIN} caractères ou plus) de la fusion.`
 
 /**
  * Le verdict de PUBLICATION (#2328 A3) de la plage `merge-base(base, tete)..tete` : `ok`, et son `texte`
