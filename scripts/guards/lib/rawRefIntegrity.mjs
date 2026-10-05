@@ -18,11 +18,11 @@
 // entre par `--lot <#N>`, et un solde total retire le fichier.
 //
 // Vocabulaire RÉUTILISÉ de `scripts/raw/_lib.mjs` (source unique) : `refRe`/`span`/
-// `bookOf`/`chapterFile`/`readText`. Périmètre : les CITANTS de `src/` (`fichiersCitants`,
+// `bookOf`/`chapterFile`/`readText`. Périmètre : les CITANTS (`RACINES_CITANTES`,
 // `scripts/raw/lib/fichiersCitants.mjs`), la même marche que `check-code-refs.mjs`.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { fichiersCitants } from '../../raw/lib/fichiersCitants.mjs'
+import { RACINES_CITANTES, fichiersCitants } from '../../raw/lib/fichiersCitants.mjs'
 import {
   refRe, span, refNums, isRangeSuffix, chapterFile, bookOf, readText, alternationDuRegistre, REGISTRE_LIVRES,
   estLivreExtrait, livreExtraitDe, sigleDe,
@@ -39,7 +39,6 @@ export {
   livreExtraitDe, sigleDe,
 }
 
-export const SRC_DIR = 'src'
 export const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture (cf. check-code-refs)
 export const WINDOW = 2
 export const MIN_WORD_LEN = 5
@@ -66,7 +65,7 @@ export const SITE_EXEMPTIONS = []
 export const STOCK_NOM = 'raw-blind-refs-stock.json'
 export const STOCK_PATH = new URL(`../${STOCK_NOM}`, import.meta.url)
 
-/** Sites aveugles observés → sites du stock : le fichier de `src/` et la réf citée. Jamais `row` :
+/** Sites aveugles observés → sites du stock : le fichier citant et la réf citée. Jamais `row` :
  *  la ligne du code citant dérive à chaque édition du fichier (c'est l'affaire des exemptions AU
  *  SITE, qui la nomment à dessein pour périmer au déplacement). */
 export const sitesAveugles = (blind) => blind.map((b) => ({ file: b.file, ref: b.ref }))
@@ -80,16 +79,16 @@ export function ecartDesRefsAveugles(blind, stock) {
 
 const QUOI =
   'Réfs RAW AVEUGLES du CODE (`scripts/guards/lib/rawRefIntegrity.mjs`, #1318) : une réf ' +
-  '`<ABRÉV> NN l.X` des citants de `src/**` dont la ou les lignes citées sont VIDES, et dont la fenêtre ' +
+  '`<ABRÉV> NN l.X` des citants (`RACINES_CITANTES`) dont la ou les lignes citées sont VIDES, et dont la fenêtre ' +
   '±`WINDOW` ne partage AUCUN mot signifiant avec le contexte du code qui cite. Une ENTRÉE par SITE, clé ' +
-  '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = le fichier de `src/` qui cite, `ref` = la ' +
+  '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = le fichier citant, `ref` = la ' +
   'réf. Une entrée se solde en lisant le `Source/` et en réancrant la réf sur la ligne qui porte le ' +
   'passage ; le fichier se régénère par ' +
   '`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/rawRefIntegrity.mjs`, et un solde total ' +
   'le retire.'
 
 /** La RÉGÉNÉRATION du stock des réfs aveugles (`RegenerationDeStock`, `stockDeSites.mjs`), sur des
- *  réfs aveugles (par défaut, celles de `src/**`). */
+ *  réfs aveugles (par défaut, celles des `RACINES_CITANTES`). */
 export const regenerations = (blind = scanBlindRefs()) => [{
   chemin: fileURLToPath(STOCK_PATH),
   politique: SOUS_LOT,
@@ -159,10 +158,10 @@ function chapterLinesOf(path) {
 
 const isExempt = (hit) => SITE_EXEMPTIONS.some((e) => e.file === hit.file && e.row === hit.row && e.ref === hit.ref)
 
-/** Scanne `srcDir` et retourne les réfs AVEUGLES : `{ file, row, ref, abbr, nn, lo, hi }`. */
-export function scanBlindRefs(srcDir = SRC_DIR) {
+/** Scanne `racines` et retourne les réfs AVEUGLES : `{ file, row, ref, abbr, nn, lo, hi }`. */
+export function scanBlindRefs(racines = RACINES_CITANTES) {
   const blind = []
-  for (const f of fichiersCitants(srcDir)) {
+  for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const src = readFileSync(f, 'utf8').split('\n')
@@ -181,9 +180,9 @@ export function scanBlindRefs(srcDir = SRC_DIR) {
 }
 
 /** File d'AUDIT (non gatée) : réfs pointant une ligne vide, groupées par réf, comptées par sites. */
-export function scanEmptyLineRefs(srcDir = SRC_DIR) {
+export function scanEmptyLineRefs(racines = RACINES_CITANTES) {
   const byRef = new Map()
-  for (const f of fichiersCitants(srcDir)) {
+  for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const src = readFileSync(f, 'utf8').split('\n')

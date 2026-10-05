@@ -3,22 +3,33 @@
 // lit la même liste de CITANTS.
 // - CITANTS : tout fichier qui peut porter une réf `<ABRÉV> <chap> l.<ligne>`. Sa FORME
 //   (`citation-graphy-guard.mjs`), ses BORNES (`check-code-refs.mjs`), sa ligne non aveugle
-//   (`rawRefIntegrity.mjs`) et sa présence à l'Atlas (`reconcile.mjs`) se vérifient partout où elle
-//   s'écrit : une réf qu'aucun scanner ne lit pourrit en silence au premier réancrage.
+//   (`rawRefIntegrity.mjs`) se vérifient partout où elle s'écrit, sa présence à l'Atlas
+//   (`reconcile.mjs`) dans le code : une réf qu'aucun scanner ne lit pourrit en silence au premier réancrage.
 // - IMPLÉMENTANTS : les citants dont une réf dit « ce code implémente ce passage » — ce que rend le
 //   champ `**Implémente :**` (`build-implemente.mjs`). Une feuille `.css` ou un dessin de rig `.mts`
 //   cite le passage qu'il habille, il ne l'implémente pas.
+// Deux jeux de RACINES, déclarés ici : `RACINES_CITANTES` (forme, bornes, ligne non aveugle) et
+// `RACINES_DU_CODE` (présence à l'Atlas, champ `Implémente`). Une fiche de dossier de chapitre
+// (`docs/dossiers/`, #2290) cite le livre et n'implémente rien : citante, hors du code.
 import { join } from 'node:path'
 import { listerArbre } from '../../guards/lib/lister.mjs'
+import { DOSSIERS_DIR } from './dossiers.mjs'
 
 export const EXTS_CITANTES = ['.ts', '.tsx', '.mts', '.mjs', '.json', '.css', '.md']
 export const EXTS_IMPLEMENTANTES = ['.ts', '.tsx', '.json']
 
-/** Fichiers de `dir` aux extensions `exts`, `node_modules` exclu, en ORDRE TOTAL (`listerArbre`) :
- *  l'ordre départage deux puces de même (livre, chapitre) au rendu du champ `Implémente` (#1244). */
-export function fichiersCitants(dir, exts = EXTS_CITANTES) {
-  return listerArbre(dir, {
+/** Les racines du CODE : lues par `reconcile.mjs` et `build-implemente.mjs`. */
+export const RACINES_DU_CODE = Object.freeze(['src'])
+/** Les racines CITANTES : le code, plus les fiches de dossier de chapitre (#2290). Lues par
+ *  `check-code-refs.mjs`, `citation-graphy-guard.mjs` et `rawRefIntegrity.mjs`. */
+export const RACINES_CITANTES = Object.freeze([...RACINES_DU_CODE, DOSSIERS_DIR])
+
+/** Fichiers de `racines` (un dossier ou une liste) aux extensions `exts`, `node_modules` exclu, racine
+ *  par racine en ORDRE TOTAL (`listerArbre`) : l'ordre départage deux puces de même (livre, chapitre)
+ *  au rendu du champ `Implémente` (#1244). */
+export function fichiersCitants(racines, exts = EXTS_CITANTES) {
+  return [racines].flat().flatMap((dir) => listerArbre(dir, {
     descendre: (rel) => !rel.split('/').includes('node_modules'),
     filtre: (rel) => exts.some((x) => rel.endsWith(x)),
-  }).map((rel) => join(dir, rel))
+  }).map((rel) => join(dir, rel)))
 }
