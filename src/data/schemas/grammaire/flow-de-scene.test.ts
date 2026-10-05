@@ -38,10 +38,12 @@ describe('grammaire — `flowSchema` (Flow<EffectOp>) ≠ Flow de scène (Flow<E
   it('le corpus de mesure est peuplé (les projets livrés portent des Flows authorés)', () => {
     // #684+#717 (343→346) : +3 feuilles `do` authorées dans « La Barge du Sel » — le `setFlag` du cap
     // pris au quai et son `journal`, plus le `setFlag` d'accostage ajouté au trigger d'arrivée.
-    expect(feuilles.length).toBe(346);
+    // #2219 (346→349, 2026-10-05) : +3 feuilles `do` `setFlag` authorées dans « La Diligence », les producteurs
+    // de `edo-ch1-depart`, `edo-ch1-corps-kastor-fouille` et `edo-ch1-clos`.
+    expect(feuilles.length).toBe(349);
   });
 
-  it('POSITIF — les 346 feuilles `do` réelles passent TOUTES `effectSchema` (le vocabulaire de scène)', () => {
+  it('POSITIF — les 349 feuilles `do` réelles passent TOUTES `effectSchema` (le vocabulaire de scène)', () => {
     const refusees = feuilles
       .map((e, i) => ({ i, e, r: effectSchema.safeParse(e) }))
       .filter((x) => !x.r.success)

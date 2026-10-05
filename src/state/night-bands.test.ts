@@ -32,6 +32,7 @@ import type { Combatant, Difficulty } from '../engine/types';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import { monoStep, type BuiltCascadeStep } from './rollSeam';
 import { nightStakeRef } from '../data';
+import { cascadeDeTest } from './cascadeTestKit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -237,7 +238,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
     expect(others!.groupOwner).toBeUndefined();
 
     // La fenêtre part au siège qui tient le dormeur, plus à l'hôte (assertion COOP, #1262 B7).
-    set({ pendingCascade: { title: 'T', purpose: 'test', cursor: 0, log: [], participants: [kept!] } } as never);
+    set({ pendingCascade: cascadeDeTest([kept!], { title: 'T' }) });
     set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
     expect(seatOwns(get(), 1, 'h1')).toBe(true);

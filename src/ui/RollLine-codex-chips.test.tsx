@@ -14,6 +14,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { RollShell } from './RollShell';
 import { buildRollRow } from './rollRowBuild';
 import { RULE_REF } from '../engine/ruleRefs';
+import { regles } from '../data';
+import { mdToText } from './Prose';
 import type { PendingRoll } from './RollLine';
 import { soutienMod, partyAssisted, supportSplit } from '../engine/skills';
 import { useGame } from '../state/store';
@@ -83,7 +85,8 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     expect(scroll!.contains(pop!)).toBe(false);
     expect(pop!.parentElement).toBe(document.body);
     // Et il porte bien le texte de la RÈGLE (la prose de sa fiche `regles`), pas un rappel maison.
-    expect(pop!.textContent).toContain('viser');
+    const regle = regles.find((r) => r.id === RULE_REF.viser.id)!;
+    expect(pop!.textContent).toContain(mdToText(regle.desc).slice(0, 40));
   });
 
   // ── PROVENANCE : arbitrage user 2026-08-05, verbatim « Normalement les informations de ce genre

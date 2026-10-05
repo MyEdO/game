@@ -24,6 +24,8 @@ import { AuContactModal } from './AuContactModal';
 import { DisengageModal } from './DisengageModal';
 import type { BattleState } from '../state/store';
 import type { Combatant, Weapon } from '../engine/types';
+import { cascadeDeTest } from '../state/cascadeTestKit';
+import { fixtureText } from '../i18n/fixtureText';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -200,7 +202,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     expect(dice()[0]).toBe(fmtD100(45));
     // Le lanceur voit son propre jet : son cycle d'influence reste SERVI (aucun masque).
     // Les verbes attendus sont ceux que la RÈGLE ouvre ici : 45 ≤ 50, le Test est RÉUSSI et seul le NI
-    // manque (`LDB 46 l.23-25` : « Succès mais DR < NI → tentative échoue »). Chance (LDB 17 l.23,
+    // manque (`LDB 46 l.22-24`). Chance (LDB 17 l.23,
     // « conclu par un échec ») et Résilience (LDB 17 l.68) n'ont donc rien à rattraper ; le Sombre
     // Pacte (LDB 19 l.17, sans « raté ») et le « +1 DR » (LDB 17 l.24, après le jet) restent offerts.
     const prow = host.querySelectorAll('.prow')[0]?.textContent ?? '';
@@ -335,10 +337,10 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
 describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de taverne)', () => {
   const step = (over: Record<string, unknown>) => ({
     id: 'opp-1', kind: 'triggeredTest', actorId: 'h', rollLabel: 'Résistance', base: 40, target: 40,
-    label: 'Assommante', ...over,
+    label: fixtureText('Assommante'), ...over,
   });
   const openCascade = (s: ReturnType<typeof step>) => useGame.setState({
-    pendingCascade: { title: 'Assommante', icon: 'nav/dice', purpose: 'combat', cursor: 0, log: [], participants: [s] } as never,
+    pendingCascade: cascadeDeTest([s], { title: 'Assommante', icon: 'nav/dice', purpose: 'combat' }),
   });
 
   it('Assommante (adversaire RÉEL) : « ? » avant mon jet, valeurs exactes après', () => {

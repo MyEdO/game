@@ -86,8 +86,12 @@ const MIGRATIONS_DE_SAVE = {
   59: '#1920 clé d’enjeu de modale en id',
   // #2113
   60: '#2113 forme d’objet choisie (`formeChoisie`), jamais recopiée du catalogue',
+  // #2206
+  61: '#2206 le porteur de fiche d’un preset nomme son preset (`presetId`)',
+  // #2199
+  62: '#2199 ops d’échec de maladie en `opsEchec`, unité achetée en `kind`, `pendingCampaign.id` obligatoire',
   // #679
-  61: '#679 l’Effect `document` désigne une entrée de `narratif.documents` (`{ documentId }`), projet au schéma 18',
+  63: '#679 l’Effect `document` désigne une entrée de `narratif.documents` (`{ documentId }`), projet au schéma 18',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

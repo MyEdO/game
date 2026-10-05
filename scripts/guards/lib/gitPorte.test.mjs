@@ -16,7 +16,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shaPrecedentDeHead, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -180,6 +180,60 @@ test('classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT 
   // Une erreur de spawn qui se nomme elle-même garde SON message : « git introuvable » serait faux.
   const acces = classer({ error: new Error('spawnSync git EACCES'), status: null }, { cwd: '/x', nature: sonde('repertoire') })
   assert.equal(acces.raison, 'spawnSync git EACCES')
+})
+
+test('shaPrecedentDeHead : HEAD index1 fixe, absence et panne distinctes, validateur inchangé', () => {
+  const { racine, premier } = depot()
+  const unique = instanceDeDepot({ fichiers: { 'unique.txt': 'une entrée' } })
+  try {
+    assert.equal(shaPrecedentDeHead(forge(unique.racine)), null)
+    assert.equal(shaPrecedentDeHead(forge(racine)), premier)
+    const vus = []
+    const ferme = depotFeint(racine, (args) => {
+      vus.push(args)
+      return { status: 0, stdout: `${premier}\n`, stderr: '' }
+    })
+    assert.equal(shaPrecedentDeHead(ferme), premier)
+    assert.deepEqual(vus, [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+    assert.throws(() => shaDe(ferme, 'HEAD@{1}'), /@\{/)
+    rmSync(join(racine, '.git', 'logs', 'HEAD'))
+    assert.equal(shaPrecedentDeHead(forge(racine)), null)
+    const repondre = () => ({ status: 128, stdout: '', stderr: 'fatal: panne reflog' })
+    assert.throws(() => shaPrecedentDeHead(depotFeint(racine, repondre)), GitIndisponible)
+    const pannes = []
+    assert.equal(shaPrecedentDeHead(depotFeint(racine, repondre, (r) => pannes.push(r))), null)
+    assert.match(pannes.join(''), /panne reflog/)
+  } finally { jeter(racine); jeter(unique.racine) }
+})
+
+test('shaPrecedentDeHead sous log.showSignature : SHA signé résolu sans présentation ni GPG', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'signé' } })
+  const gnupg = join(racine, '.git', 'gnupg-feint')
+  mkdirSync(gnupg)
+  const env = { ...envDeDepotForge(), GNUPGHOME: gnupg }
+  const git = gitDe(racine, { env, net: true })
+  const journal = join(racine, '.git', 'gpg-journal')
+  const programme = join(racine, '.git', 'gpg-feint.sh')
+  try {
+    writeFileSync(programme, "#!/bin/sh\nprintf 'verification\\n' >> .git/gpg-journal\nprintf '[GNUPG:] BADSIG 0123456789ABCDEF fixture\\n'\nprintf 'gpg: diagnostic fixture premier\\ngpg: diagnostic fixture deuxième\\n' >&2\nexit 1\n", { mode: 0o755 })
+    git('config', 'gpg.program', programme)
+    git('config', 'log.showSignature', 'true')
+    const arbre = git('rev-parse', 'HEAD^{tree}')
+    const parent = git('rev-parse', 'HEAD')
+    const commit = `tree ${arbre}\nparent ${parent}\nauthor fixture <fixture@example.invalid> 1791194400 +0000\ncommitter fixture <fixture@example.invalid> 1791194400 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n Zml4dHVyZQ==\n -----END PGP SIGNATURE-----\n\nentrée signée du banc\n`
+    const signe = lancerGit(['hash-object', '-t', 'commit', '-w', '--stdin'], { cwd: racine, env, input: commit, net: true })
+    git('update-ref', 'HEAD', signe)
+    git('commit', '--allow-empty', '-m', 'tête suivante')
+    const depot = depotDe(racine, { env })
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false, 'la résolution SHA ne lance pas GPG')
+    const presentation = git('reflog', 'show', '--format=%H', '--max-count=2', 'HEAD')
+    assert.match(presentation, /diagnostic fixture/)
+    assert.equal(readFileSync(journal, 'utf8'), 'verification\n')
+    rmSync(journal)
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false)
+  } finally { jeter(racine) }
 })
 
 test('status 0 rend un FAIT porteur de la sortie', () => {
@@ -695,7 +749,7 @@ test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION 
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas git merge-tree --write-tree --stdin \(git 2\.40 ou plus\)/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur(null, 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /version de git illisible/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /illisible/.test(e.raison), 'windows lu ; git muet : la fusion illisible se NOMME, jamais « sans apport »')
-  assert.deepEqual(ceQueFaitLeCommit(muet(), 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
+  assert.throws(() => ceQueFaitLeCommit(muet(), 'abc'), (e) => e instanceof GitIndisponible && /ce que fait abc : git ne rend pas le commit/.test(e.raison), 'un commit que git ne rend pas LÈVE, jamais « rien » (#2328)')
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.43.0', 'p1 p2 p3'), 'abc'), (e) => e instanceof GitIndisponible && /à 3 parents/.test(e.raison))
 })
 
@@ -1421,6 +1475,35 @@ test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git ré
       (e) => e instanceof GitIndisponible && e.raison === introuvable.raison && /^git introuvable/.test(e.raison), 'absent : la raison d’un git introuvable')
   } finally { process.stderr.write = ecrire }
   assert.equal(lances.length, 1, 'un binaire absent ne lance rien')
+})
+
+/** Un FAUX git (`process.execPath` sur un script du banc) qui sort en `code` avec `stderr` SANS lire son
+ *  entrée : `fn(depot)`, sous 8 Mo d'entrée, perd TOUJOURS la course de l'écriture (pas de course). */
+function sousUnGitQuiNeLitPas(code, stderr, fn) {
+  const dossier = mkdtempSync(join(tmpdir(), 'faux-git-'))
+  try {
+    const script = join(dossier, 'faux-git.mjs')
+    writeFileSync(script, `process.stderr.write(${JSON.stringify(stderr)})\nprocess.exit(${code})\n`)
+    const vus = []
+    const spawn = (_git, _args, options) => {
+      const vu = spawnSync(process.execPath, [script], options)
+      vus.push(vu.error?.code)
+      return vu
+    }
+    return fn(depotDe(dossier, { env: envDeDepotForge(), spawn }), vus)
+  } finally { jeter(dossier) }
+}
+
+test('une ENTRÉE que git ne lit pas (EPIPE, EOF) ne masque jamais son statut : sorti en 128, la cause est son stderr ; sorti en 0, l’entrée non lue se NOMME', () => {
+  const revisions = Array.from({ length: 100000 }, (_, i) => i.toString(16).padStart(40, 'a'))
+  sousUnGitQuiNeLitPas(128, 'fatal: not a git repository (faux git)\n', (d, vus) => {
+    assert.throws(() => commitsNommes(d, revisions), (e) => e instanceof GitIndisponible && /^fatal: not a git repository \(faux git\)/.test(e.raison), 'la cause est le stderr de git')
+    assert.ok(['EPIPE', 'EOF'].includes(vus[0]), `témoin : l'écriture de l'entrée a perdu la course (${vus[0]})`)
+  })
+  sousUnGitQuiNeLitPas(0, '', (d, vus) => {
+    assert.throws(() => commitsNommes(d, revisions), (e) => e instanceof GitIndisponible && /sorti en 0 sans lire son entrée en entier \((EPIPE|EOF)\)/.test(e.raison))
+    assert.ok(['EPIPE', 'EOF'].includes(vus[0]), `témoin : l'écriture de l'entrée a perdu la course (${vus[0]})`)
+  })
 })
 
 test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {

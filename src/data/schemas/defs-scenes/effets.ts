@@ -473,7 +473,7 @@ const sortSchema: z.ZodType<string, string> = idDe('spell');
  *  héros que son Talent de lanceur rend éligible, désigné ou non — sinon refus NOMMÉ au journal
  *  (`LDB 46 l.14`). Cible : héros désigné, sinon le premier dont un Talent rend le sort apprenable ;
  *  la garde est celle de l'achat (`spellCost`). L'apprentissage PAYANT passe par l'onglet Avancement
- *  (buySpell, `LDB 46 l.44-47`). */
+ *  (buySpell, `LDB 46 l.16-20`). */
 export const learnSpellSchema = z.strictObject({
   type: z.literal('learnSpell'),
   spell: sortSchema,

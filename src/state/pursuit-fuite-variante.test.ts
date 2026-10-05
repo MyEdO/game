@@ -9,11 +9,11 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { pursuedMovement, pursuitOf, PURSUIT_POLICY_DEFAUT } from './pursuitFlow';
-import { closeSequenceRound } from './sequenceCore';
+import { closeSequenceRound, type MancheClose } from './sequenceCore';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import type { PendingCascade, CascadeStep } from './pendings';
+import type { CascadeStep } from './pendings';
 
 const RULE = 'combat-aa-avantage-groupe';
 
@@ -29,7 +29,7 @@ function hero(withTalent: boolean): Combatant {
 
 /** Manche FIGÉE (la BANDE de la manche, une rangée) : le héros a roulé `sl`, l'adversaire roulera au
  *  RNG semé (identique d'un run à l'autre). */
-function doneRound(h: Combatant, sl: number): PendingCascade {
+function doneRound(h: Combatant, sl: number): MancheClose {
   const participants: CascadeStep[] = [{
     id: 'pursuit-1', kind: 'pursuitMove', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: [{
@@ -37,7 +37,7 @@ function doneRound(h: Combatant, sl: number): PendingCascade {
       result: { roll: 40, target: 40, sl, success: sl >= 0 },
     }],
   }];
-  return { title: 't', purpose: 'sequence', participants, cursor: 1, log: [] };
+  return { participants };
 }
 
 /** Distance obtenue au bout d'une manche, groupe POURSUIVI, héros et adversaire à Mouvement 4. */

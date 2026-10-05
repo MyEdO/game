@@ -43,14 +43,12 @@ import {
   readRefFile,
   restesItems,
   restesRoutants,
-  sectionDe,
   compteSections,
   lignesDeHunks,
   verifierCapture,
   verifierCaptures,
   soldesEmportes,
   revuesEmportees,
-  estFichierEcran,
   natureDeLArbre,
   cheminDEcriture,
   evaluateFermetureHorsCommit,
@@ -71,6 +69,7 @@ import {
   shasCitesDuSolde,
 } from './solde-ticket-guard.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
+import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, depotDe } from '../guards/lib/gitPorte.mjs'
 import {
@@ -1402,6 +1401,15 @@ test('argumentChaine : `env -S` suivi de ses arguments ; `cmd /c`, `-Command`, `
   assert.equal(argumentChaine(['sh', '-c', 'echo "$1"', '_', 'x']), 'echo "$1"', 'les arguments suivants de `sh -c` sont ses positionnels')
 })
 
+// #2173 : `//c`/`//k` est la graphie Git Bash (MSYS) de `/c`/`/k`.
+test('argumentChaine : `cmd //c` et `//k` portent leur chaîne comme `/c` et `/k` ; un chemin UNC n’est pas un porteur', () => {
+  assert.equal(argumentChaine(['cmd', '//c', 'taskkill', '//im', 'node.exe']), 'taskkill //im node.exe')
+  assert.equal(argumentChaine(['cmd', '//C', 'echo', 'x']), 'echo x')
+  assert.equal(argumentChaine(['cmd', '//q', '//k', 'echo']), 'echo')
+  assert.equal(argumentChaine(['cmd', '//serveur/partage']), null)
+  assert.equal(isGitCommitCommand('cmd //c git commit -a -m x'), true)
+})
+
 // 7e juge, GIT-H-1 : l'aide de git ne committe pas (#1801).
 test('isGitCommitCommand : `git commit -h`/`--help` rend l\'aide, aucun commit', () => {
   for (const commande of ['git commit -h', 'git commit --help', 'git commit -ah', 'git --version; git commit -h 2>&1 | head -60']) {
@@ -1412,19 +1420,29 @@ test('isGitCommitCommand : `git commit -h`/`--help` rend l\'aide, aucun commit',
   assert.deepEqual(formeDuCommit('git commit -a -x'), { forme: 'tout', pathspecs: [] })
 })
 
-// NON COUVERT (en-tête du garde) : ces formes se TAISENT aujourd'hui. #2071 les juge dans le hook git
-// `commit-msg`, qui voit le vrai commit ; il retourne ces bancs.
-test('#2071 NON COUVERT — un commit dans une substitution `$(…)`, backtick ou `<(…)` n\'est pas vu', () => {
+test('un commit dans une substitution `$(…)`, backtick, de processus `<(…)` ou de here-string double est vu : la substitution se déplie', () => {
   for (const commande of [
     'out=$(git commit -a -m "chore: x" 2>&1); echo "$out"',
     'echo "$(git commit -a -m x)"',
     'echo `git commit -a -m x`',
     'cat <(git commit -a -m x)',
+    '$t = @"\nfoo $(git commit -a)\n"@',
   ]) {
-    assert.equal(isGitCommitCommand(commande), false, commande)
+    assert.equal(isGitCommitCommand(commande), true, commande)
   }
 })
 
+// #2173 (juge de diff, 3e passe, `cas-hs-commit.json`) : l'affectation PowerShell d'une valeur citée n'exécute rien ;
+// une valeur nue est une commande.
+test('une affectation PowerShell `$nom = ` d’une valeur citée n’est pas un commit ; d’une valeur nue, si', () => {
+  for (const commande of ["$t = @'\nfoo `git commit -a`\n'@", "$t = 'foo git commit -a'", '$t = "foo git commit -a"', "$t = @'\nfoo git commit -a\n'@\nSet-Content x $t"]) {
+    assert.equal(isGitCommitCommand(commande), false, commande)
+  }
+  assert.equal(isGitCommitCommand('$x = git commit -a -m y'), true)
+})
+
+// NON COUVERT (en-tête du garde) : ces formes se TAISENT aujourd'hui. #2071 les juge dans le hook git
+// `commit-msg`, qui voit le vrai commit ; il retourne ces bancs.
 test('#2071 NON COUVERT — une sous-commande git lue comme citeuse qui exécute (alias `!`, filter-branch, `-c core.pager`)', () => {
   for (const commande of [
     "git -c alias.ci='!git commit -a -m x' ci",
@@ -3571,6 +3589,12 @@ test('cibleDeLaCommande : un chemin INEXISTANT ou NON EXPANSÉ n’est pas un cw
       'la CIBLE d’un `git worktree add` n’est jamais un cwd : la commande ne nomme aucun répertoire',
     )
     assert.equal(extractTargetDir('git worktree add -b w .wt-x HEAD', base), base)
+
+    // #2173 (juge de diff, 5e passe) : `popd`/`Pop-Location` dépilent un lieu que la commande ne nomme pas.
+    for (const cmd of ['Pop-Location -StackName x; git commit -m y', 'popd +1; git commit -m y']) {
+      assert.deepEqual(cibleDeLaCommande(cmd, base), { dir: null, ignore: null }, cmd)
+    }
+    assert.deepEqual(cibleDeLaCommande('Push-Location wt; git commit -m y', base), { dir: join(base, 'wt'), ignore: null })
   } finally {
     rmSync(base, { recursive: true, force: true })
   }

@@ -1533,13 +1533,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/guards/lib/groundingCorpus.mjs",
-    motif: "désormais",
-    ancre: "prose qui parle d'elle-même. Fix : `resolves` scope désormais STRICTEMENT à la section structurelle",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/guards/lib/progressionSchemas.mjs",
     motif: "désormais",
     ancre: "rapprochement par folio aurait apparié des Carrières entre elles. Ces écarts sont désormais NULS et",

@@ -12,6 +12,7 @@ import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
 import { armeDeDessin, armourPart, pieceDeDessin, weaponFamily } from './parts/equipment';
 import { spawnEnemy } from '../../state/spawn';
+import { isShieldTrapping } from '../../engine/items';
 import { hairstylesForSex } from './parts/hairstyles';
 import { COIFFURE_HORS_POOL } from './parts/cosmetic';
 import { resetDiagOnce, withDiagSubject } from './devDiag';
@@ -252,7 +253,7 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     // Entité SANS record de bestiaire (statbloc d'éditeur) : l'armure de statblock ne rend son art
     // QUE si l'authoring la déclare portée (`opts.armurePortee`, override, ex. `ent.appearance.armurePortee`).
     // L'arme du trait par un id de catalogue qui SE RÉSOUT (un libellé ne se résout pas, #1957).
-    const armeId = SPEC_SOURCES.weaponsMelee.pool().find((id) => findTrappingById(id)?.shape && !/bouclier/i.test(findTrappingById(id)!.label))!;
+    const armeId = SPEC_SOURCES.weaponsMelee.pool().find((id) => findTrappingById(id)?.shape && !isShieldTrapping(id))!;
     expect(SPEC_SOURCES.weaponsMelee.resolves(armeId)).toBe(true);
     const p = entityRigProfile('Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: armeId }] as never, armour: 2, armurePortee: true })!;
     expect(p.equip.weapons.map(weaponFamily)).toContain(findTrappingById(armeId)!.shape); // arme EXPLICITE tenue en main

@@ -12,7 +12,7 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { sourceRefSchema, secondarySourceRefSchema, variantOf } from './valeurs';
+import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe } from './descente';
 import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
@@ -203,6 +203,11 @@ export interface OptionsDocument {
    */
   readonly exiges?: readonly CleExigible[];
   /**
+   * Genres de fragment qu'une `descRef` de CE document admet (`descRefSchemaDe`, `grammaire/valeurs.ts`) — défaut :
+   * tous. Un genre absent est refusé au parse, à l'adresse de l'entrée.
+   */
+  readonly fragmentsAdmis?: readonly GenreDeFragment[];
+  /**
    * Raffinement de l'ENTRÉE, appliqué AVANT le sceau.
    * Mesuré (zod 4.4.3) : `superRefine`/`refine` rendent un `ZodObject` ENCORE extensible — l'ordre
    * entrée → affiner → `.pipe` est donc le seul qui scelle. Consommateurs cibles : `projet.ts`
@@ -289,7 +294,7 @@ function champEnveloppe<S extends z.ZodType>(optionnel: S, exige: boolean, nonVi
   return (exige ? nonVide : optionnel.optional()) as z.ZodOptional<S>;
 }
 
-function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonly CleExigible[] = []) {
+function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonly CleExigible[] = [], fragmentsAdmis?: readonly GenreDeFragment[]) {
   const requis = (k: CleExigible) => exiges.includes(k);
   return {
     id: (idDocument ?? z.string().min(1)) as z.ZodType<string>,
@@ -300,7 +305,7 @@ function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonl
      *  livre) — posés par `grammaire/prose.ts`, avec les verrous qui les gouvernent. Ni l'un ni
      *  l'autre n'est rendu requis ICI : l'EXIGENCE de prose se dit sur le texte, pas sur un porteur
      *  (`exiges: ['desc']` → refine V4). */
-    ...champsProse(),
+    ...champsProse(fragmentsAdmis),
     source: champEnveloppe(sourceRefSchema, requis('source')),
     alsoIn: champEnveloppe(z.array(secondarySourceRefSchema), requis('alsoIn'), z.array(secondarySourceRefSchema).min(1)),
     /**
@@ -391,7 +396,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   exposition: Exposition,
   options: OptionsDocument = {},
 ): DocumentHandle<T> {
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -455,7 +460,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   }
   verifieExposition(type, exposition);
   const entree = z.strictObject({
-    ...enveloppe(type, idDocument, exiges),
+    ...enveloppe(type, idDocument, exiges, fragmentsAdmis),
     ...(champs as Record<string, z.ZodType>),
   }) as z.ZodObject<z.ZodRawShape>;
   const declarees = [...(variantes ?? [])];

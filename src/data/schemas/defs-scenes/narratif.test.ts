@@ -53,7 +53,7 @@ describe('narratifSchema — cadre de campagne (#717)', () => {
   it('une clôture `flag` parse ; un kind INCONNU et un kind non évaluable hors combat sont refusés', () => {
     expect(narratifSchema.safeParse({
       ...vide,
-      cloture: { when: { kind: 'flag', expr: 'edo-ch1-altdorf-revelee' }, titre: 'Chapitre 1 — accompli' },
+      cloture: { when: { kind: 'flag', expr: 'chapitre-accompli' }, titre: 'Chapitre 1 — accompli' },
     }).success).toBe(true);
     expect(narratifSchema.safeParse({
       ...vide,

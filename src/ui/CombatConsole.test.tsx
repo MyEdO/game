@@ -17,6 +17,7 @@ import { itemFromTrappingById, recomputeLoadout, loadoutLabel, loadedAmmo, selec
 import { weaponLoaded } from '../engine/weaponLoad';
 import { t } from '../i18n';
 import { visibleFocusables } from './focus';
+import { nomAccessible } from './nomsAccessibles.testkit';
 import { sousLayoutJsdom } from './layoutJsdom.testkit';
 import { hotbar } from '../state/hotbarBridge';
 import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../data/index';
@@ -1235,7 +1236,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     expect(mot).toBe('VIDE');
     expect(mot, 'un mot abrégé/tronqué n’est pas du texte joueur').not.toMatch(/[.…]/);
     // Le SET est nommé accessiblement (le libellé ne tient pas dans la vignette) — jamais par un title.
-    expect(tir.getAttribute('aria-label')).toBe(loadoutLabel(h.loadouts![1], h));
+    expect(nomAccessible(tir as HTMLElement), 'le nom reprend l’état VU').toBe(`${loadoutLabel(h.loadouts![1], h)}, ${mot}`);
     expect(tir.getAttribute('title'), 'infobulle native proscrite sur une vignette').toBeNull();
     // Le set de MÊLÉE n'a pas de cycle de charge : aucune mention.
     expect(host.querySelector('[data-set="lo-melee"]')!.querySelector('.cc-set-load')).toBeNull();
@@ -1530,6 +1531,9 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
     const plaque = () => host.querySelector('.cc-end') as HTMLButtonElement;
+    // Le bouton se TROUVE par son rôle et par le texte qu'il affiche, dans ses deux états (WCAG 2.5.3).
+    const boutonsNommes = (nom: RegExp) => [...host.querySelectorAll<HTMLElement>('button, [role="button"]')].filter((b) => nom.test(nomAccessible(b)));
+    expect(boutonsNommes(/^Fin du tour/), 'repos : nommé par « Fin du tour »').toEqual([plaque()]);
     expect(useGame.getState().battle!.turn).toBe(0);
     expect(plaque().hasAttribute('data-armed')).toBe(false);
 
@@ -1538,6 +1542,8 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(plaque().hasAttribute('data-armed'), 'le 1ᵉʳ clic doit ARMER, pas finir').toBe(true);
     expect(host.querySelector('.cc-end .cc-key')!.textContent).toBe('Finir quand même ?');
     expect(host.querySelector('.cc-end .cc-lbl')!.textContent).toBe('Finir quand même');
+    expect(boutonsNommes(/^Finir quand même/), 'armé : nommé par « Finir quand même »').toEqual([plaque()]);
+    expect(nomAccessible(plaque()), 'armé : le texte vu UNE fois dans le nom').toBe('Finir quand même');
     expect(useGame.getState().battle!.turn).toBe(0);
 
     act(() => plaque().click());

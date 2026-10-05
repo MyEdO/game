@@ -142,12 +142,30 @@ export function tenter(fn) {
   }
 }
 
+/** Les codes d'une ÉCRITURE de l'entrée qui perd la course contre un processus sorti sans la lire :
+ *  `EPIPE` (POSIX), `EOF` (win32, mesuré : `spawnSync` d'un processus sorti en 128 sous 8 Mo d'entrée). */
+const ENTREE_NON_LUE = new Set(['EPIPE', 'EOF'])
+
+/**
+ * Le résultat de `spawnSync` dont l'entrée n'a pas été lue en entier (`ENTREE_NON_LUE`), dit par le
+ * processus lui-même : sorti en échec, sa cause est son statut et son `stderr` — l'erreur d'écriture
+ * de l'entrée, conséquence de sa sortie, est retirée ; sorti en 0, il a répondu sans lire toute sa
+ * question, et l'erreur se NOMME. Tout autre résultat est rendu tel quel. PUR.
+ * @param {any} vu @param {string} commande
+ */
+function sansEntreeNonLue(vu, commande) {
+  if (!ENTREE_NON_LUE.has(vu?.error?.code) || typeof vu.status !== 'number') return vu
+  if (vu.status !== 0) return { ...vu, error: undefined }
+  return { ...vu, error: new Error(`${commande} est sorti en 0 sans lire son entrée en entier (${vu.error.code})`) }
+}
+
 /** Lancement avec rejeu du processus qui n'a pas démarré. `spawn`/`attendre` injectables (mesure).
- *  `env` : l'environnement du processus (`envDeDepotForge`, `depotGabarit.mjs`), celui du parent par défaut. */
+ *  `env` : l'environnement du processus (`envDeDepotForge`, `depotGabarit.mjs`), celui du parent par défaut.
+ *  Une entrée que le processus n'a pas lue ne masque jamais son statut (`sansEntreeNonLue`). */
 function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSync, site = 'gitPorte', journal = process.stderr, timeout, entree, env } = {}) {
   for (let essai = 0; ; essai += 1) {
     const stdio = [entree === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe']
-    const vu = spawn(commande, args, { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28, stdio, timeout, input: entree })
+    const vu = sansEntreeNonLue(spawn(commande, args, { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28, stdio, timeout, input: entree }), commande)
     if (!estEchecDeChargement(vu?.status) || essai >= BACKOFFS_MS.length) return vu
     rejeux.total += 1
     journal.write(`${MARQUE_REJEU} : ${site} — ${commande} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
@@ -905,13 +923,11 @@ export function patchsParChemin(patch) {
   return parChemin
 }
 
-/** Ce qui change d'une base `null` : rien. */
+/** Les lectures de deux arbres IDENTIQUES (`changeEntre` sous `inchange`) : rien ne change. */
 const RIEN = Object.freeze({
-  base: null,
   chemins: () => [],
   numstat: () => [],
   diff: () => '',
-  lirePreImage: () => null,
   renommages: () => new Map(),
 })
 
@@ -921,14 +937,15 @@ const RIEN = Object.freeze({
  * lignes. L'unique lecture d'un commit POSÉ des portes : fichiers, diff, textes et renommages
  * viennent tous de la même base. `commit` : une révision, lue dans le graphe, ou un commit que
  * l'appelant tient déjà de `grapheDe` (aucune relecture). Une fusion dont l'ARBRE est celui de sa
- * fusion automatique ne change rien, sans lecture de différence. Une révision que git ne rend pas : tout
- * est vide.
+ * fusion automatique ne change rien, sans lecture de différence. Un commit que git ne rend pas n'a pas
+ * de base : il LÈVE, jamais « rien » (#2328).
  * @param {Depot} depot @param {string | CommitDuGraphe} commit
- * @throws {GitIndisponible} propagée de `baseDe`. {BorneAbsente} révision absente.
+ * @throws {GitIndisponible} commit que git ne rend pas, ou propagée de `baseDe`. {BorneAbsente}
+ *   révision absente.
  */
 export function ceQueFaitLeCommit(depot, commit) {
   const lu = typeof commit === 'string' ? commitDuGraphe(depot, commit) : commit
-  if (!lu) return RIEN
+  if (!lu) throw new GitIndisponible(`ce que fait ${String(commit).slice(0, 9)} : git ne rend pas le commit, sa base est inconnue`)
   const base = baseDe(depot, lu)
   return changeEntre(depot, base, lu.sha, { inchange: base === lu.arbre })
 }
@@ -1256,6 +1273,15 @@ export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').tr
 
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })
+
+// #2329
+export function shaPrecedentDeHead(depot) {
+  const existe = interroger(depot, ['reflog', 'exists', 'HEAD'])
+  if (!existe.disponible) return confier(depot, existe.raison)
+  if (sortieOuNull(existe) === null) return null
+  const brut = lire(depot, ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}'])
+  return brut?.trim() || null
+}
 
 /**
  * Le SHA du commit que `ref` nomme (`rev-parse --verify --quiet <ref>^{commit}`), abrégé sous

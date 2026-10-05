@@ -1,8 +1,15 @@
 /**
  * Nom ACCESSIBLE d'un contrôle, calculé comme le navigateur le calcule pour les formes de l'app :
  * `aria-label`, puis le `<label>` qui porte le contrôle (sans le texte des contrôles qu'il enveloppe)
- * ou le texte du bouton, puis `title`, puis `placeholder`. Partagé par les gardes de noms uniques.
+ * ou le texte du bouton hors sous-arbres `aria-hidden`, puis `title`, puis `placeholder`. Partagé par
+ * les gardes de noms uniques.
  */
+
+const texteVu = (el: Element): string => {
+  const copie = el.cloneNode(true) as Element;
+  copie.querySelectorAll('[aria-hidden="true"]').forEach((c) => c.remove());
+  return copie.textContent ?? '';
+};
 
 const texteSans = (label: Element): string => {
   const copie = label.cloneNode(true) as Element;
@@ -13,7 +20,7 @@ const texteSans = (label: Element): string => {
 export function nomAccessible(el: HTMLElement): string {
   const brut = el.getAttribute('aria-label')
     ?? (el instanceof HTMLButtonElement
-      ? el.textContent
+      ? texteVu(el)
       : [...((el as HTMLInputElement).labels ?? [])].map(texteSans).join(' '))
     ?? '';
   const nom = brut.replace(/\s+/g, ' ').trim();

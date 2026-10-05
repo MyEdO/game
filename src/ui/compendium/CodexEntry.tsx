@@ -75,7 +75,7 @@ function CodexRowView({ row, entree }: { row: CodexRow; entree?: { type: string;
 function CodexSectionView({ section, entree }: { section: CodexSection; entree?: { type: string; id: string } }) {
   return (
     <section className="codex-sec">
-      <h3 className="codex-sec-title section-label">{section.title}</h3>
+      {section.title && <h3 className="codex-sec-title section-label">{section.title}</h3>}
       <div className={`codex-sec-body codex-${section.layout ?? 'list'}`}>
         {section.rows.map((row, i) => (
           <CodexRowView key={i} row={row} entree={entree} />
