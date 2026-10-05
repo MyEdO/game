@@ -82,7 +82,7 @@ function violations(avant: Etat, ev: Evenement, après: Etat, occupants: readonl
   for (const o of occupants) if (montrés(après, o) > 1) v.push(`I1 ${o}`);
   const voulues = new Set(après.voulus.map((s) => s.identity));
   const entrants = après.boards.filter((b) => voulues.has(b.sub.identity));
-  // `montrables` exclut les rejetés : design-n11.md, « Amendements après le juge de diff v11 », A5.
+  // `montrables` exclut les rejetés (#2097).
   const montrables = new Set([...entrants.map((b) => b.sub), ...après.attente].flatMap(occupantsDe));
   if (!(ev.type === 'passe' && !ev.memeBase))
     for (const o of occupants) if (montrables.has(o) && montrés(avant, o) > 0 && montrés(après, o) === 0) v.push(`I2 ${o}`);

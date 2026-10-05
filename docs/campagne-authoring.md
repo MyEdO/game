@@ -10,11 +10,14 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 ## 1. Pipeline
 
 - **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
-  `user-doctrine-campagne-jamais-generee-par-script`), édité comme document JSON. À l'éditeur, « Ouvrir »
-  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> », et « Fichier → Exporter
-  JSON » passe la porte du document puis télécharge `<id de la scène COURANTE>-projet.json`, scène courante
-  en tête (donc scène d'entrée) : ce fichier ne remplace PAS le paquet commité tel quel, son label, son nom
-  et sa scène d'entrée ont changé (`src/ui/editor/Editor.tsx`, `exportJson` et `loadBuiltin` ; #1997). Tout paquet neuf se
+  `user-doctrine-campagne-jamais-generee-par-script`), édité à l'éditeur ou comme document JSON. « Ouvrir »
+  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> ». L'aller-retour vers le
+  paquet est « Fichier → Exporter forme dépôt (dev) » (offert en DEV pour une campagne livrée,
+  `origineLivree`) : le fichier `BuiltinCampaign.fichier`, au format du dépôt (`projetVersDepot`, §10ter),
+  libellé d'origine tant que le projet n'est pas renommé, ordre des scènes et scène d'entrée conservés
+  (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
+  « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
+  copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
   déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
   `src/scenes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
@@ -298,7 +301,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `src/data/schemas/defs-scenes/projet-schema.test.ts` cas (d bis)).
 - **Migration.** La forme courante du document est `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) ;
   un document d'une forme antérieure monte au format courant au chargement, un saut de forme par entrée
-  de `PROJECT_MIGRATIONS` (`src/state/worldMap.ts`). La fabrique UNIQUE du document est
+  de `PROJECT_MIGRATIONS` (`src/data/migrationsDeProjet.ts`). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
@@ -325,10 +328,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
   refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
   livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
-  `?raw`. L'export portable garde `desc` ET `descRef` ; l'éditeur offre en DEV, pour une campagne LIVRÉE
-  ouverte (`origineLivree`), « Exporter forme dépôt » (`projetVersDepot`, `src/state/worldMap.ts` : prose
-  ET ports par référence ramenés à leur forme canonique) : le fichier téléchargé sous son nom
-  (`BuiltinCampaign.fichier`), avec le libellé d'origine tant que le projet n'est pas renommé.
+  `?raw`. L'export portable garde `desc` ET `descRef` ; « Exporter forme dépôt » (§1) passe par
+  `projetVersDepot` (`src/state/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
+  canonique.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
 

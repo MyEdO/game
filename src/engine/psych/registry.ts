@@ -37,7 +37,7 @@ export function parsePsychTraits(traits: TraitList): PsychParse {
   for (const x of traits) {
     const caps = findTraitById(x.id)?.capabilities;
     if (!caps) continue;
-    if (caps.psychImmune) out.psychImmune = true;
+    if (caps.psychImmune || caps.swarm || caps.mindless) out.psychImmune = true; // Nuée LDB 85 l.253 ; Fabriqué LDB 85 l.142
     const pt = caps.psychType;
     if (pt === 'peur') {
       if (x.value != null) out.causesPeur = x.value;

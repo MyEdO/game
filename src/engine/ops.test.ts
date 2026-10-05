@@ -544,6 +544,11 @@ describe("op:'grantPsychTrait' / op:'removePsychTrait' — Traits psychologiques
     applyOps(c, [{ op: 'grantPsychTrait', psychType: 'frenesie' }]);
     expect(c.psychTraits).toEqual([{ type: 'frenesie' }]);
   });
+  it("grantPsychTrait porte la PROVENANCE de l'effet, comme l'op grantTrait (#1853)", () => {
+    const c = hero({ psychTraits: [] });
+    applyOps(c, [{ op: 'grantPsychTrait', psychType: 'frenesie' }], { label: 'Colère', source: { kind: 'spell', id: 'colere' } });
+    expect(c.psychTraits).toEqual([{ type: 'frenesie', src: { kind: 'spell', id: 'colere' } }]);
+  });
   it("removePsychTrait { psychType } retire le Trait correspondant (laisse les autres)", () => {
     const c = hero({ psychTraits: [{ type: 'phobie', cible: 'Araignées' }, { type: 'haine', cible: 'Skavens' }] });
     applyOps(c, [{ op: 'removePsychTrait', psychType: 'phobie' }]);

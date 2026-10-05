@@ -1,6 +1,5 @@
 // Garde du pilote de fusion des docs dérivés (scripts/git-hooks/merge-docs.mjs) et de la liste
 // UNIQUE des générateurs (scripts/docs/build-all.mjs). `npm run test:hooks`.
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
@@ -9,6 +8,7 @@ import { FAMILIES, mergeFicheRaw, restoreImplemente, sentinelFor, stripImplement
 import { threeWay } from './three-way.mjs'
 import { ciblesPures } from '../docs/build-all.mjs'
 import { pagesDeLAtlas } from '../raw/_lib.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -130,7 +130,7 @@ test('threeWay — délègue à git merge-file (aucun diff3 réimplémenté)', (
 
 /** `git check-attr merge` pour un lot de chemins → Map(chemin → famille). */
 function famillesDe(paths) {
-  const out = execFileSync('git', ['check-attr', 'merge', '--stdin'], { cwd: ROOT, input: paths.join('\n'), encoding: 'utf8' })
+  const out = gitDeLArbreReel(ROOT, { input: paths.join('\n') })('check-attr', 'merge', '--stdin')
   const map = new Map()
   for (const ln of out.split('\n').filter(Boolean)) {
     const m = /^(.*): merge: (.*)$/.exec(ln)

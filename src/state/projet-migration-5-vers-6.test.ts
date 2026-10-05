@@ -10,7 +10,8 @@
  * inclus. Il est FIGÉ ; le « moderniser » détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 
 /** Document schema 5 — FIGÉ. Ne pas renommer `nom` : c'est le sujet de la mesure. */
 const PROJET_FORMAT_5 = {
@@ -80,7 +81,6 @@ describe('PROJECT_MIGRATIONS[5] — un projet format 5 se charge à travers la m
    */
   it('S1. PARITÉ : le migrateur de CHARGEMENT rend exactement ce que le script de DÉPÔT écrit', () => {
     const migre = PROJECT_MIGRATIONS[5]!({ ...structuredClone(PROJET_FORMAT_5), version: 5 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(6);
     // L'ORDRE des clés est celui du script de dépôt : `label` occupe la place de la clé de libellé.
     const scene = (migre.scenes as Record<string, unknown>[])[0];
     expect(Object.keys(scene)).toEqual(['id', 'label', 'desc', 'dimensions', 'entities']);

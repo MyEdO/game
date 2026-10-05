@@ -11,7 +11,7 @@ import * as FS from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
   HEURES_PEREMPTION, LIGNES_D_UN_TICKET_FERME, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
@@ -19,6 +19,7 @@ import {
   suivre, texteDeLaListe, ticketsPrevus, zonesDe, JOURNAL, argumentsDuSuivi, editer, editionDuSuivi, etatDeSession,
   ESSAIS_D_EDITION, structureDuSuivi, ligneDeJournal, lignesDeSituation, lignesDuJournal,
 } from './suivi.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 const REEL = FS.readFileSync(new URL('./fixtures/suivi-1816.md', import.meta.url), 'utf8')
 const REEL_CRLF = REEL.replace(/\r?\n/g, '\r\n')
@@ -359,9 +360,9 @@ test('profil : chaque geste de GESTES_DU_BOARD, inv et issues chronométrés ; r
 
 test('portée sur dépôt FORGÉ : une ligne par ticket, dans SON ordre ; publié puis fermé conservé ; introuvable nommé', () => {
   const nu = FS.mkdtempSync(join(tmpdir(), 'origin-nu-'))
-  execFileSync('git', ['init', '--bare', '-q', '-b', 'main', nu], { env: envDeDepotForge(), encoding: 'utf8' })
+  lancerGit(['init', '--bare', '-q', '-b', 'main', nu])
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'fondation' })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+  const git = gitDe(racine, { net: true })
   try {
     git('remote', 'add', 'origin', nu)
     git('commit', '-q', '--allow-empty', '-m', 'feat(x): refs #1759 — publié')

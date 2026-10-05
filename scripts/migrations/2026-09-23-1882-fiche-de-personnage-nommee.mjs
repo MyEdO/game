@@ -15,7 +15,7 @@
  *
  * SANS PROFIL STANDARD (espèce absente, id de rig, espèce qui n'en porte pas) : ce script n'ÉCRIT RIEN
  * et sort « ARBITRAGE REQUIS » en nommant l'entité. Le migrateur de CHARGEMENT
- * (`PROJECT_MIGRATIONS[12]`, `src/state/worldMap.ts`), lui, est TOTAL : il y écrit le statbloc de la
+ * (`PROJECT_MIGRATIONS[12]`, `src/data/migrationsDeProjet.ts`), lui, est TOTAL : il y écrit le statbloc de la
  * branche `!ref` de `spawnEnemy` d'avant #1882 (`FICHE_DU_SPAWN_AVANT_1882`), en `statblock`
  * explicite — un projet de bibliothèque utilisateur ne peut pas attendre un arbitrage ; un projet du
  * dépôt, si.
@@ -31,7 +31,7 @@
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 1) + '\n'`, vérifié AVANT toute écriture : non
  * canonique = sortie 1, jamais un reflow silencieux.
  * POSITION : `ref` va en QUEUE de l'entité — la place que l'éditeur donne à un champ posé sur une
- * entité existante (`editEntity`), et celle que pose `poseSurChaqueEntite` (`src/state/worldMap.ts`).
+ * entité existante (`editEntity`), et celle que pose `poseSurChaqueEntite` (`src/data/migrationsDeProjet.ts`).
  * Parité avec `PROJECT_MIGRATIONS[12]` mesurée par `src/state/projet-migration-12-vers-13.test.ts`.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
  * BORNE HAUTE OUVERTE (`schema` ∈ {12, ≥ 13}) : la DERNIÈRE migration de la chaîne dans l'ordre

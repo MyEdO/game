@@ -48,16 +48,15 @@ const premiereLigne = (e) => String(e instanceof Error ? e.message : e).split('\
 
 /**
  * Emplacements du chapitre COURANT qui rendent `cible` (texte normalisé du fragment d'origine).
- * Un emplacement = la liste des fragments qui le composent (un run de blocs peut traverser deux
- * sections) ; leurs empreintes `sum` sont POSÉES par `empreinteDe` au fond de `findAllRuns` /
- * `cellRefFor`, jamais recopiées de l'ancienne adresse — c'est le texte d'AUJOURD'HUI qu'elles
- * scellent.
+ * Un emplacement = UN fragment (un run de blocs qui traverse des sections est UN intervalle) ; son
+ * empreinte `sum` est POSÉE par `empreinteDe` au fond de `findAllRuns` / `cellRefFor`, jamais
+ * recopiée de l'ancienne adresse — c'est le texte d'AUJOURD'HUI qu'elle scelle.
  *
  * `raisonVide` dit POURQUOI il n'y a aucun emplacement, et les deux causes ne se confondent pas : le
  * texte n'est plus là, ou il est là mais sa ligne de table n'offre aucune clé sûre (`cellRefFor`
  * refuse une clé ambiguë ou positionnelle) — dans ce second cas le passage existe, il n'est pas
  * ADRESSABLE, et c'est ce que l'humain doit lire.
- * @returns {{ emplacements: { fragments: object[], ou: string }[], raisonVide: string }}
+ * @returns {{ emplacements: { fragment: object, ou: string }[], raisonVide: string }}
  */
 function emplacementsDe(chapitre, frag, cible) {
   if (frag.kind === 'cellule') {
@@ -70,7 +69,7 @@ function emplacementsDe(chapitre, frag, cible) {
       const cle = ouDe(ref)
       if (vus.has(cle)) continue
       vus.add(cle)
-      emplacements.push({ fragments: [ref], ou: cle })
+      emplacements.push({ fragment: ref, ou: cle })
     }
     const raisonVide = hits.length
       ? `son texte d'origine est bien dans le chapitre (${hits.length} cellule(s)), mais aucune ligne ne porte de clé sûre — le passage n'est pas adressable en l'état`
@@ -78,7 +77,7 @@ function emplacementsDe(chapitre, frag, cible) {
     return { emplacements, raisonVide }
   }
   return {
-    emplacements: findAllRuns(chapitre, cible).map((run) => ({ fragments: run, ou: run.map(ouDe).join(' + ') })),
+    emplacements: findAllRuns(chapitre, cible).map((fragment) => ({ fragment, ou: ouDe(fragment) })),
     raisonVide: "son texte d'origine n'est plus dans le chapitre",
   }
 }
@@ -116,7 +115,7 @@ function relocaliser(courant, origine, ref, depuis) {
       )
       continue
     }
-    parts.push(...emplacements[0].fragments)
+    parts.push(emplacements[0].fragment)
   }
   if (verdict !== 'RECALÉE') return { verdict, raison: raisons.join(' ; ') }
 

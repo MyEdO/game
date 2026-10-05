@@ -1,0 +1,38 @@
+{
+  "commande": "npm run ops:faits-de-palier -- --base 5283567cc --tete 1d50eeebc --sans-chainage",
+  "date": "2026-10-02",
+  "exitCode": 0,
+  "rapport": "C:/Users/gauch/AppData/Local/Temp/wfrp-faits-de-palier/faits-5283567cc-1d50eeebc.json",
+  "stocks": {
+    "disponible": true,
+    "valeur": {
+      "refus": [
+        {
+          "sha": "b5a083158b50cb4e55245af31c7f8a788bab3fe3",
+          "fusion": false,
+          "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+          "net": 5,
+          "declare": null,
+          "exemples": ["'scripts/git-hooks/merge-stocks.mjs',", "'scripts/git-hooks/merge-stocks.test.mjs',", "'scripts/git-hooks/three-way.mjs',"]
+        },
+        {
+          "sha": "b5a083158b50cb4e55245af31c7f8a788bab3fe3",
+          "fusion": false,
+          "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+          "net": 7,
+          "declare": 7,
+          "exemples": [
+            "const ENTREE = { fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }",
+            "const ANCIEN = [{ famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurrence: 1, lot: '#1 X', date: '2026-01-01' }]",
+            "const CONNUE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurrence: 1 }"
+          ]
+        }
+      ],
+      "reclassements": [],
+      "notes": [],
+      "commits": 122,
+      "plage": "5283567cc..1d50eeebc",
+      "indisponible": null
+    }
+  }
+}

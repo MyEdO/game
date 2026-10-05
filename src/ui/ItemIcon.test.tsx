@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemIcon } from './ItemIcon';
 import { iconSvg } from './Icon';
-import { itemFromTrappingById } from '../engine/items';
+import { itemFromTrappingById, weaponFromItem } from '../engine/items';
+import { setDataset } from '../data/overrides';
+import { trappings } from '../data';
 import { tokensOf } from '../gameIso/rig/palette';
 import type { ItemInstance, Weapon } from '../engine/types';
 
@@ -55,9 +57,29 @@ describe('ItemIcon', () => {
   });
 
   it('objet sans porteur (coup-de-poing) : chair du porteur par défaut, aucun jeton `@` rendu (#1903)', () => {
-    const poing: Weapon = { label: 'Coup-de-poing', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape: 'poing' };
+    const poing: Weapon = { label: 'Coup-de-poing', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], trappingId: 'coup-de-poing' };
     const out = renderToStaticMarkup(<ItemIcon item={poing} />);
     expect(tokensOf(out)).toEqual([]);
     expect(out).toContain('url(#dg-v-ffd4a5-b08c6d)');
+  });
+});
+
+describe('ItemIcon — même forme que le pion (#2113)', () => {
+  const catalogueDOrigine = trappings.slice();
+  afterEach(() => setDataset('trappings', catalogueDOrigine));
+  const arme = (w: Weapon) => renderToStaticMarkup(<ItemIcon item={w} />);
+
+  it('la forme CHOISIE se dessine sur l’objet comme sur l’arme tenue', () => {
+    const it = { ...itemFromTrappingById('arme-simple')!, formeChoisie: 'hache' };
+    expect(html(it), 'la sonde mord : le choix change l’icône').not.toBe(html(itemFromTrappingById('arme-simple')!));
+    expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
+  });
+
+  it('une édition de la forme au catalogue repeint l’objet ET l’arme tenue', () => {
+    const it = itemFromTrappingById('arbalete')!;
+    const avant = html(it);
+    setDataset('trappings', trappings.map((t) => (t.id === 'arbalete' ? { ...t, shape: 'hache_lancer' } : t)));
+    expect(html(it)).not.toBe(avant);
+    expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
   });
 });

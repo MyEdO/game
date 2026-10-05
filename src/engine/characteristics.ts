@@ -141,7 +141,9 @@ export function effectiveMaxWounds(c: Combatant): number {
   // Modif. de Blessures PLATS d'effets actifs (op `attrMod{wounds}` exécutée — Bonnet de fou « +4
   // Blessures », LDB 71 l.20) : sommés au delta, repris/rendus par `refreshWounds` (pose + expiration).
   const flat = (c.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.wounds ?? 0), 0);
-  return base + (eff - raw) + flat;
+  // Nuée : LDB 85 l.253.
+  const parCreatureType = c.swarm ? 5 : 1;
+  return base + (eff - raw) * parCreatureType + flat;
 }
 
 /**

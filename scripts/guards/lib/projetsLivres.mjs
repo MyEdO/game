@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { listerArbre } from './lister.mjs';
 
 /** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
-const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
+const RACINE_DEPOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 /** Le corpus, en descripteur entier : dossier (relatif à la racine du dépôt), suffixe, récursivité. */
 export const PROJETS_LIVRES = Object.freeze({ dossier: 'src/scenes', suffixe: '-projet.json', recursif: true });

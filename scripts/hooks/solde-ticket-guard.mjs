@@ -63,14 +63,22 @@
 // stocks en 8,2-9,5 s (1 716 porteurs, dont un `git diff` de 0,96 s ; le reste est l'évaluation), plus
 // les reclassements (1,8-3,9 s), donc il expire. Lot réel de 10 fichiers (07d9f850d) : stocks 46-48 ms.
 // Le PALIER (`mesureDuPalier`) ne se mesure que pour un commit qui ferme un ticket ou ajoute une revue,
-// et son compte s'arrête à `PALIER`. Remesuré le 2026-09-24, `.wt-1806`, charge 9,6 à 10,9 : hook
-// entier sur un commit qui ne ferme rien 0,41-0,49 s (1,5-1,6 s quand le palier se mesurait à chaque
-// commit) ; mesure du palier 0,9-1,4 s, dont 1,1-1,2 s pour trouver la dernière revue parmi 31
-// archives (`derniereRevueArchivee`) et 0,14-0,33 s pour compter 10 commits de substance
-// (`shasDeSubstance`, 0,9-1,2 s sans arrêt sur la plus longue fenêtre observée, 66 commits). Une
-// fusion à trois parents dans la fenêtre, ou toute fusion sous un git plus ancien que 2.40
-// (`exigerMergeTree`, `gitPorte.mjs`), rend le palier INMESURABLE : toute fermeture est refusée
-// jusqu'à ce qu'une revue neuve porte la fenêtre au-delà de la fusion.
+// et son compte s'arrête à `PALIER`. Son nombre de processus git ne croît ni avec les revues
+// archivées ni avec la fenêtre (`scripts/guards/lib/revuePalier.test.mjs`) : la dernière revue se lit
+// sur UN graphe de HEAD (`grapheDe`) et UNE résolution des têtes (`commitsNommes`), les chemins des
+// commits à un parent en UN lot (`cheminsDesCommits`) ; seule une FUSION lue avant l'arrêt au seuil
+// coûte sa fusion automatique (`merge-tree`), plus un `diff-tree` quand son arbre en diffère. La lecture
+// du graphe croît avec l'HISTOIRE : 133 à 387 ms, 455 Ko et +9,7 Mo de tas à 5 480 commits. Mesuré le
+// 2026-10-05 sous win32 (16 cœurs ; démarrage d'un git 30 à 41 ms), commit de fermeture
+// `git commit -a -m "fix: corrige #2125"`, 38 archives, 5 fusions lues avant le seuil : mesure du
+// palier 0,72-1,18 s pour 15 processus ; hook entier 1,4-2,8 s pour 26 processus. La tête des
+// revues neuves se juge sur le MÊME graphe (`histoireDeHead`), les captures citées en UN lot
+// (`verifierCaptures`), chaque sha cité par « corrigé par » UNE fois (`histoireDesCitations`).
+// VERSION DE GIT : le graphe exige git 2.33 (`rev-list --no-commit-header`), même sans aucune fusion ;
+// une fusion lue exige git 2.40 (`merge-tree --write-tree --stdin`, `exigerMergeTree`). Sous un git
+// plus ancien, le palier est INMESURABLE et le refus NOMME la version requise (`versionManquante`,
+// `gitPorte.mjs`) ; une fusion à trois parents dans la fenêtre aussi. Toute fermeture est alors
+// refusée jusqu'à ce que git soit mis à jour, ou qu'une revue neuve porte la fenêtre au-delà de la fusion.
 // Ce qu'une expiration de l'étage 2 PERD :
 //   - le refus des stocks et des reclassements au commit. Restent, pour les STOCKS, le pre-push puis
 //     la CI, qui rejuge la plage poussée a posteriori (`scripts/hooks/stocks-nominatifs.test.mjs`,
@@ -127,7 +135,8 @@ import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { estPorteurDeStock, nonCouvertesDuBilan, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
+import { bilanDuCommit, entreeDeFusion, lecturesDeFusion } from '../guards/lib/plageStock.mjs'
 import {
   deplaceLaFrontiere, lignesDeReclassement, raisonDeRefusDeReclassement, reclassementsNonDeclares,
 } from '../guards/lib/reclassementCss.mjs'
@@ -136,15 +145,15 @@ import {
   PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, depotDe, enfantsDirects, estDansHead, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, imageDeHead, listerImage, shaDe,
+  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estDansHead, estIgnore,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
-  DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
+  DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, histoireDeHead, memeSha, mesureDuPalier,
   nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
@@ -431,16 +440,17 @@ export function basenameExecutable(token) {
   return String(token ?? '').replace(/\\/g, '/').split('/').pop().replace(/\.(exe|cmd)$/i, '').toLowerCase()
 }
 
-/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU et insensible à
- *  la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte tout préfixe
- *  qu'aucun AUTRE paramètre de la commande ne partage. `noms` = tous ses paramètres. `-1` si absent. */
+/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU, OU par le nom
+ *  EXACT, insensible à la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte
+ *  tout préfixe qu'aucun AUTRE paramètre de la commande ne partage, et lie le nom exact en priorité
+ *  (`-Query` à côté de `QueryDialect`). `noms` = tous ses paramètres. `-1` si absent. */
 function indexParametre(args, nom, noms = [nom]) {
   const cible = nom.toLowerCase()
   const autres = noms.map((n) => n.toLowerCase()).filter((n) => n !== cible)
   return args.findIndex((a) => {
     if (a[0] !== '-') return false
     const p = a.slice(1).toLowerCase()
-    return p !== '' && cible.startsWith(p) && !autres.some((n) => n.startsWith(p))
+    return p !== '' && cible.startsWith(p) && (p === cible || !autres.some((n) => n.startsWith(p)))
   })
 }
 
@@ -1519,10 +1529,31 @@ export function lignesDeHunks(diffU0) {
  * CE QUE CETTE PORTE PROUVE : qu'une image d'écran plausible existe et vient d'être produite —
  * garde-fou d'ÉTOURDERIE (chemin périmé, fichier vide, capture d'avant le geste), PAS de
  * CONTREFAÇON. Rien ici ne dit que l'image montre l'écran modifié : c'est la recette qui le juge.
+ * `verifierCaptures` d'une seule capture.
  */
-export function verifierCapture(chemin, { racine = process.cwd(), mtimeMin = 0, pannes = [] } = {}) {
+export const verifierCapture = (chemin, options) => verifierCaptures([chemin], options).get(chemin)
+
+/** Le chemin d'une capture tel que la porte le lit : séparateurs POSIX, sans `./` de tête. PUR. */
+const cheminDeCapture = (chemin) => String(chemin ?? '').replace(/\\/g, '/').replace(/^\.\//, '')
+
+/**
+ * Le contrôle de chacune des `chemins` (`verifierCapture`) : chemin ↦ `{ ok, problemes }`. Le sort
+ * de TOUTES au commit se lit en UN lot (`cheminsIgnores`) dans `depot` (celui de `racine` par
+ * défaut, ses pannes dans `pannes`), quel que soit leur nombre.
+ * @param {readonly string[]} chemins
+ * @param {{ racine?: string, mtimeMin?: number, pannes?: string[], depot?: import('../guards/lib/gitPorte.mjs').Depot }} [options]
+ * @returns {Map<string, { ok: boolean, problemes: string[] }>}
+ */
+export function verifierCaptures(chemins, { racine = process.cwd(), mtimeMin = 0, pannes = [], depot = depotDuHook(racine, pannes) } = {}) {
+  const sousLeDossier = chemins.map(cheminDeCapture).filter((norm) => norm.startsWith(DOSSIER_CAPTURES))
+  const ignorees = cheminsIgnores(depot, [...new Set(sousLeDossier)], { suivisCompris: true })
+  return new Map(chemins.map((chemin) => [chemin, jugerCapture(chemin, { racine, mtimeMin, ignorees })]))
+}
+
+/** Le contrôle d'UNE capture (`verifierCapture`), son sort au commit lu dans `ignorees`. */
+function jugerCapture(chemin, { racine, mtimeMin, ignorees }) {
   const problemes = []
-  const norm = String(chemin ?? '').replace(/\\/g, '/').replace(/^\.\//, '')
+  const norm = cheminDeCapture(chemin)
   if (!norm.startsWith(DOSSIER_CAPTURES)) {
     problemes.push(`capture "${chemin}" hors de ${DOSSIER_CAPTURES} (les captures de recette y vivent, cf. scripts/qc/capture-jeu.mjs)`)
     return { ok: false, problemes }
@@ -1531,7 +1562,7 @@ export function verifierCapture(chemin, { racine = process.cwd(), mtimeMin = 0, 
   // solde qui cite une preuve inouvrable. Le refus vient AVANT la lecture du disque — exister sur la
   // machine du geste ne la rend pas opposable. Hors dépôt, la porte ne juge que le disque : le banc
   // de `verifierCapture` travaille hors git.
-  if (estIgnore(depotDuHook(racine, pannes), norm, { suivisCompris: true })) {
+  if (ignorees.has(norm)) {
     problemes.push(`capture "${norm}" IGNORÉE par git (.gitignore) — un solde ne cite qu'une preuve versionnée : la poser sous public/qc/soldes/`)
     return { ok: false, problemes }
   }
@@ -1695,11 +1726,18 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
   if (section === null) {
     return ['section "## Recette visuelle" absente alors que le commit touche un écran (src/ui/** ou src/gameIso/**) — y porter "capture: public/qc/<fichier>.png"']
   }
-  const capture = CAPTURE_RE.exec(section)
+  const capture = captureDuSolde(content)
   if (!capture) {
     return ['"## Recette visuelle" sans ligne "capture: <chemin sous public/qc/>"']
   }
-  return verifierCaptureDe(capture[1]).problemes
+  return verifierCaptureDe(capture).problemes
+}
+
+/** La capture que cite la section « ## Recette visuelle » d'un solde, `null` sans section ni ligne
+ *  `capture:`. PUR. @param {string | null} content @returns {string | null} */
+function captureDuSolde(content) {
+  const section = content ? sectionDe(content, TITRE_RECETTE_VISUELLE) : null
+  return section === null ? null : CAPTURE_RE.exec(section)?.[1] ?? null
 }
 
 /**
@@ -1813,8 +1851,9 @@ export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHea
 }
 
 /**
- * Décision du hook (PURE, testable). `readSolde(n)` renvoie le contenu STAGÉ (index git du commit
- * en cours) de `.claude/soldes/<n>.md`, ou `null`/`''` s'il n'y est pas. `soldeOnDisk(n)` renvoie le
+ * Décision du hook (PURE, testable). `readSoldes(ns)` rend, dans l'ordre de `ns` et en UNE lecture
+ * pour tous les tickets fermés, le contenu que le commit EMPORTE de chaque `.claude/soldes/<n>.md`, ou
+ * `null`/`''` s'il n'y est pas. `soldeOnDisk(n)` renvoie le
  * contenu du même fichier sur le DISQUE : il ne sert qu'à distinguer « jamais écrit » de « écrit mais
  * non stagé » dans le message. `palier()` rend la MESURE de `mesureDuPalier` (scripts/guards/lib/revuePalier.mjs),
  * lue une fois et seulement par une revue neuve ou une fermeture : `compte` de commits de substance
@@ -1823,20 +1862,32 @@ export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHea
  * revues de palier AJOUTÉES par ce commit et EMPORTÉES par sa forme (`revuesDuCommit`) : ce sont
  * elles qui franchissent le palier, et une revue neuve non conforme refuse le commit même hors palier
  * — une revue fausse dans l'histoire fausse toutes les mesures suivantes. `omises()` rend les revues
- * stagées que la forme du commit laisse en rade : le refus les NOMME. `contexteSolde` = le contexte injecté de
- * `validateSolde` (diff stagé, hunks, écran touché, contrôle de capture) — `issuesFermees` y est posé
- * ICI, c'est cette décision qui connaît les tickets fermés.
+ * stagées que la forme du commit laisse en rade : le refus les NOMME. `tetesDansHead(tetes)` dit, pour
+ * chaque tête de fenêtre des revues neuves, si elle est dans l'histoire de HEAD : une question pour
+ * TOUTES (`histoireDeHead`, `dansHead`), posée une fois. `contexteSolde` = le contexte injecté de
+ * `validateSolde` (diff stagé, hunks, écran touché, histoire des citations), où
+ * `verifierCapturesDe(chemins)` contrôle d'un coup les captures de TOUS les soldes (`verifierCaptures`)
+ * — `issuesFermees` y est posé ICI, c'est cette décision qui connaît les tickets fermés.
  * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
 export function evaluate({
-  command, today, readSolde, soldeOnDisk = () => null,
+  command, today, readSoldes, soldeOnDisk = () => null,
   palier: mesurer = () => ({ compte: 0, tete: null, chemin: null }), neuves = () => [], omises = () => [],
-  dansHead,
+  tetesDansHead,
   contexteSolde = {},
 }) {
   let mesure = null
   const palier = () => (mesure ??= mesurer())
   const revues = neuves()
+  let dedans = null
+  const dansHead = tetesDansHead && ((tete) => {
+    if (!dedans) {
+      const tetes = [...new Set(revues.map((r) => fenetreDeRevue(r.contenu).tete).filter(Boolean))]
+      const vus = tetesDansHead(tetes)
+      dedans = new Set(tetes.filter((_, i) => vus[i]))
+    }
+    return dedans.has(tete)
+  })
   for (const revue of revues) {
     const problemes = problemesDeRevueNeuve(revue, { today, palier: palier(), dansHead })
     if (problemes.length) {
@@ -1892,9 +1943,17 @@ export function evaluate({
     }
   }
 
+  const lus = readSoldes(issues)
+  const emportes = new Map(issues.map((n, i) => [n, lus[i]]))
+  const { verifierCapturesDe, ...contexte } = contexteSolde
+  let captures = null
+  const verifierCaptureDe = verifierCapturesDe && ((chemin) => {
+    captures ??= verifierCapturesDe([...new Set([...emportes.values()].map(captureDuSolde).filter(Boolean))])
+    return captures.get(chemin)
+  })
   const failures = []
   for (const n of issues) {
-    const emporte = readSolde(n)
+    const emporte = emportes.get(n)
     if (!emporte && soldeOnDisk(n)) {
       failures.push({
         n,
@@ -1907,7 +1966,7 @@ export function evaluate({
       })
       continue
     }
-    const { ok, problems } = validateSolde(emporte, today, { ...contexteSolde, issuesFermees: issues })
+    const { ok, problems } = validateSolde(emporte, today, { ...contexte, verifierCaptureDe, issuesFermees: issues })
     if (!ok) failures.push({ n, problems })
   }
   if (failures.length === 0) return null
@@ -1937,7 +1996,24 @@ export function repoRoot(scriptUrl = import.meta.url) {
 /** Lecture du solde d'un ticket sur le DISQUE de `dir` — le répertoire où le commit s'exécute, comme
  *  tout ce que ce garde lit. `null` si absent/illisible. */
 export function readSoldeFile(n, dir = process.cwd()) {
-  try { return readFileSync(join(dir, '.claude/soldes', `${n}.md`), 'utf8') } catch { return null }
+  try { return readFileSync(join(dir, cheminDuSolde(n)), 'utf8') } catch { return null }
+}
+
+/** Le chemin du solde du ticket `n`, relatif à la racine du dépôt. */
+const cheminDuSolde = (n) => `.claude/soldes/${n}.md`
+
+/** Le solde de chacun des tickets `ns` que `commit` (`diffDuCommit`) EMPORTE, dans leur ordre, `null`
+ *  s'il n'y est pas : UNE lecture pour tous (`contenus`). @param {number[]} ns @returns {(string | null)[]} */
+export function soldesEmportes(commit, ns) {
+  const lus = commit.contenus(ns.map(cheminDuSolde))
+  return ns.map((n) => lus.get(cheminDuSolde(n)) ?? null)
+}
+
+/** Les revues `emportees` (`revuesDuCommit`), chacune avec le contenu que `commit` (`diffDuCommit`)
+ *  EMPORTE, le sien à défaut : UNE lecture pour toutes (`contenus`). */
+export function revuesEmportees(commit, emportees) {
+  const lus = commit.contenus(emportees.map((r) => r.chemin))
+  return emportees.map((r) => ({ ...r, contenu: lus.get(r.chemin) ?? r.contenu }))
 }
 
 // ── Porte du TICKET (option retenue par l'utilisateur le 2026-09-11) ──────────────────────────────
@@ -2527,7 +2603,7 @@ const refusDesPannes = (pannes) => (pannes.length
  * Lectures du contenu que `command` va committer dans `dir` : `numstat()` (les champs du `--numstat`,
  * `analyzeDiffDuCommit`), `diff(chemins)` (le `-U0` de ces chemins, de tout le commit sans argument,
  * en un `git diff` par côté de la forme), `contenu(f)`/`lirePreImage(f)` (le fichier APRÈS le commit, et dans sa BASE
- * — `sourceDeLaBase`), `images(chemins)` (les mêmes, lus par lot : `lireEnLot`). Diffs, chemins et renommages lus par `ceQuiChange` (plomberie), contre `base()` : l'image de HEAD
+ * — `sourceDeLaBase`), `contenus(rels)`/`preImages(rels)` puis `images(chemins)` (les mêmes, lus par lot : `lireEnLot`). Diffs, chemins et renommages lus par `ceQuiChange` (plomberie), contre `base()` : l'image de HEAD
  * (`imageDeHead`), l'arbre vide dans un dépôt sans premier commit, qui n'a que l'index.
  *
  * `contenu(f)` est la lecture de `sourceDuCommit`, qui suit la forme JUSQU'AU FICHIER, et c'est là que
@@ -2536,17 +2612,16 @@ const refusDesPannes = (pannes) => (pannes.length
  * une preuve que le commit ne portait pas (mesuré 2026-09-04). Donc : forme `index` → l'index ; forme
  * `pathspec` → l'arbre de travail pour un chemin DANS le pathspec, HEAD pour tous les autres
  * (`sourceMelee`) ; forme `inclus` → le même arbre, l'INDEX pour les autres ; forme `tout` → l'arbre
- * de travail des chemins suivis (`SUIVI`).
+ * de travail des chemins suivis (`SUIVI`). `depot` : celui de `dir` par défaut, ses pannes dans `pannes`.
  */
-export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {}) {
+export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot = depotDuHook(dir, pannes) } = {}) {
   const { forme, pathspecs } = formeDuCommit(command)
-  const depot = depotDuHook(dir, pannes)
   let head = null
   const aHead = () => (head ??= shaDe(depot, 'HEAD') !== null)
   const contreIndex = () => forme === 'index' || !aHead()
   let imageDeBase
   const base = () => (imageDeBase ??= imageDeHead(depot))
-  const vers = (apres) => ceQuiChange(depot, base(), apres)
+  const vers = (apres, avant = base()) => ceQuiChange(depot, avant, apres)
   const image = () => (contreIndex() ? INDEX : SUIVI)
   const dans = (f) => pathspecs.some((ps) => pathMatchesPathspec(f, ps))
   // Sous `inclus`, le commit emporte l'arbre des pathspecs ET l'index des autres chemins : chaque
@@ -2556,16 +2631,60 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
   // lectures `numstat` et `diff` : sans lui, `diff.renames=copies` de l'utilisateur fait d'une copie
   // une paire, et son bout extérieur se relit dans l'arbre au lieu de l'index (#1806 A6).
   const inclus = () => forme === 'inclus' && !contreIndex()
-  const unir = (lecture, chemins) => {
-    if (!inclus()) return lecture(vers(image()), pathspecs)
-    const index = lecture(vers(INDEX), [])
+  const unir = (lecture, chemins, avant = base()) => {
+    if (!inclus()) return lecture(vers(image(), avant), pathspecs)
+    const index = lecture(vers(INDEX, avant), [])
     const traverse = (e) => chemins(e).some(dans) && !chemins(e).every(dans)
     const bouts = [...new Set(index.filter(traverse).flatMap(chemins).filter((f) => !dans(f)))]
     const cote = (f) => dans(f) || bouts.includes(f)
-    return [...lecture(vers(SUIVI), [...pathspecs, ...bouts]), ...index.filter((e) => !chemins(e).some(cote))]
+    return [...lecture(vers(SUIVI, avant), [...pathspecs, ...bouts]), ...index.filter((e) => !chemins(e).some(cote))]
+  }
+  const lireDepuis = (avant) => {
+    if (!inclus()) return vers(image(), avant)
+    const chemins = (filtre = '', specs = []) => unir((change, ps) => change.chemins(filtre, ps), (f) => [f], avant)
+      .filter((f) => !specs.length || specs.some((ps) => ps.startsWith(':(literal)') ? f === ps.slice(10) : pathMatchesPathspec(f, ps)))
+    const lire = (lecture, specs = []) => {
+      const tous = chemins('', specs)
+      return [true, false].map((dedans) => {
+        const ps = tous.filter((f) => dans(f) === dedans).map((f) => `:(literal)${f}`)
+        return ps.length ? lecture(vers(dedans ? SUIVI : INDEX, avant), ps) : null
+      }).filter((x) => x !== null)
+    }
+    return {
+      base: avant,
+      chemins,
+      numstat: (ps) => lire((change, specs) => change.numstat(specs), ps).flat(),
+      diff: (ps, options) => lire((change, specs) => change.diff(specs, options), ps).join('\n'),
+      lirePreImage: (f) => vers(INDEX, avant).lirePreImage(f),
+      renommages: (ps) => new Map(lire((change, specs) => [...change.renommages(specs)], ps).flat()),
+    }
   }
   const sourceDeLaBase = () => sourceGit({ cwd: dir, arbre: base(), depot })
+  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours` : elle se lit
+  // comme la plage lit une fusion (`lecturesDeFusion`), son image étant ce que le commit emporte.
+  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  let enCours
+  const fusion = () => {
+    if (enCours !== undefined) return enCours
+    const fusionnes = aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []
+    if (!fusionnes.length) return (enCours = null)
+    const parents = [shaDe(depot, 'HEAD'), ...fusionnes]
+    try {
+      const fait = ceQueFaitLaFusionEnCours(depot, parents, image())
+      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() && fait.base ? lireDepuis(fait.base) : fait, lireDepuis })
+      return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
+    } catch (e) {
+      if (!(e instanceof GitIndisponible)) throw e
+      pannes.push(e.raison)
+      return (enCours = null)
+    }
+  }
+  const sourceA = (arbre) => sourceGit({ cwd: dir, arbre, depot })
   let source = null
+  /** Les textes de `rels` que le commit EMPORTE, en un lot. */
+  const contenus = (rels) => sourceDuCommit().lireTout(rels)
+  /** Les textes de `rels` dans sa BASE, en un lot ; aucun sans premier commit. */
+  const preImages = (rels) => (aHead() ? sourceDeLaBase().lireTout(rels) : new Map())
   const sourceDuCommit = () => (source ??= (() => {
     if (contreIndex()) return sourceGit({ cwd: dir, arbre: INDEX, depot })
     const suivi = sourceGit({ cwd: dir, arbre: SUIVI, depot })
@@ -2586,26 +2705,31 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
     },
     contenu: (f) => sourceDuCommit().lire(f),
     lirePreImage: (f) => (aHead() ? sourceDeLaBase().lire(f) : null),
+    contenus,
+    preImages,
     images: (chemins) => {
-      const post = sourceDuCommit().lireTout(chemins)
-      const pre = aHead() ? sourceDeLaBase().lireTout(chemins) : new Map()
+      const post = contenus(chemins)
+      const pre = preImages(chemins)
       return {
         lirePostImage: (f) => (post.has(f) ? post.get(f) : sourceDuCommit().lire(f)),
         lirePreImage: (f) => (pre.has(f) ? pre.get(f) : aHead() ? sourceDeLaBase().lire(f) : null),
       }
     },
     renommages: () => new Map(unir((change, ps) => [...change.renommages(ps)], (e) => e)),
-    deplaceLaFrontiereCss: (chemins) => deplaceLaFrontiere({
-      chemins,
-      nesOuMorts: () => unir((change, ps) => change.chemins('AD', ps), (e) => [e]),
-      base: sourceDeLaBase(),
-      commit: sourceDuCommit(),
-      racine: dir,
-    }),
-    cotesCss: () => ({
-      base: coteCss(sourceDeLaBase(), { racine: dir }),
-      commit: coteCss(sourceDuCommit(), { racine: dir }),
-    }),
+    fusion,
+    deplaceLaFrontiereCss: (chemins) => {
+      const f = fusion()
+      return deplaceLaFrontiere(f
+        ? { chemins: f.fait.chemins(), nesOuMorts: () => f.fait.chemins('AD'), base: sourceA(f.fusion.commune), commit: sourceDuCommit(), racine: dir }
+        : { chemins, nesOuMorts: () => unir((change, ps) => change.chemins('AD', ps), (e) => [e]), base: sourceDeLaBase(), commit: sourceDuCommit(), racine: dir })
+    },
+    cotesCss: () => {
+      const f = fusion()
+      const cote = (s) => coteCss(s, { racine: dir })
+      return f
+        ? { base: cote(sourceA(f.fusion.commune)), commit: cote(sourceDuCommit()), parents: f.fusion.parents.map((p) => cote(sourceA(p))) }
+        : { base: cote(sourceDeLaBase()), commit: cote(sourceDuCommit()) }
+    },
   }
 }
 
@@ -2649,18 +2773,34 @@ export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = fals
   }
 }
 
-/** Chemins que le commit `sha` touche dans `dir` (`ceQueFaitLeCommit`), `[]` quand sa base est `null`
- *  (`baseDuCommit`, gitPorte.mjs). Une panne de git y rend `null` elle aussi, et `refusDesPannes` la
- *  refuse au rendu ; `BorneAbsente` se lève là où `ceQueFaitLeCommit` la lève. */
-export function fichiersDuCommitGit(sha, dir = process.cwd(), { pannes = [] } = {}) {
-  return ceQueFaitLeCommit(depotDuHook(dir, pannes), sha).chemins()
-}
-
-/** Diff `-U0` de `fichier` dans le commit `sha` (`ceQueFaitLeCommit`), `''` si le commit ne touche pas
- *  le fichier ou si sa base est `null` (les cas de `fichiersDuCommitGit`) — le diff d'UN SHA DÉJÀ
- *  POSÉ, à ne pas confondre avec `diffDuCommit`, qui lit ce que la commande EN COURS va emporter. */
-export function diffDunSha(sha, fichier, dir = process.cwd(), { pannes = [] } = {}) {
-  return ceQueFaitLeCommit(depotDuHook(dir, pannes), sha).diff([fichier])
+/**
+ * L'HISTOIRE que lit « corrigé par <sha> <fichier>:<ligne> » (`problemesCorrigePar`) dans `depot` : le
+ * commit est-il dans HEAD (`estDansHead`), quels chemins touche-t-il, quelles lignes de `fichier` —
+ * lus sur CE QUE FAIT le commit (`ceQueFaitLeCommit`). Chaque lecture se fait UNE fois par sha et par
+ * histoire, quel que soit le nombre de citations du sha : l'ascendance, les chemins, et le patch de
+ * TOUS ses fichiers (`diffParChemin`), d'où se lisent les lignes de chacun. Une histoire vit le temps
+ * d'UNE évaluation : aucun cache ne survit d'un appel du hook au suivant. Le diff est celui d'UN SHA
+ * DÉJÀ POSÉ, à ne pas confondre avec `diffDuCommit`, qui lit ce que la commande EN COURS va emporter.
+ * Une base `null` rend `[]` ; sous `depotDuHook`, une panne de git y rend `[]` elle aussi, et
+ * `refusDesPannes` la refuse au rendu ; `BorneAbsente` se lève là où `ceQueFaitLeCommit` la lève.
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
+ */
+export function histoireDesCitations(depot) {
+  /** `lire(sha)`, lu une fois par sha. */
+  const parSha = (lire) => {
+    const lus = new Map()
+    return (sha) => {
+      if (!lus.has(sha)) lus.set(sha, lire(sha))
+      return lus.get(sha)
+    }
+  }
+  const fait = parSha((sha) => ceQueFaitLeCommit(depot, sha))
+  const patchs = parSha((sha) => fait(sha).diffParChemin())
+  return {
+    commitEstAncetre: parSha((sha) => estDansHead(depot, sha)),
+    fichiersDuCommit: parSha((sha) => fait(sha).chemins()),
+    lignesDuCommit: (sha, fichier) => lignesDeHunks(patchs(sha).get(fichier) ?? ''),
+  }
 }
 
 /** Date de dernière écriture la plus RÉCENTE parmi `fichiers` (ms, `0` si aucune lisible). */
@@ -2963,12 +3103,13 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
  * Décision « un stock nominatif a grossi sans que le message le dise ». `command` = texte du
  * message (comme les autres évaluateurs), `diff` = diff unifié de ce que le commit emporte
  * (les fichiers porteurs suffisent), `images` = les lecteurs de pré/post-image qui décident la
- * PORTÉE DE MODULE d'une entrée. Ne se prononce que sur un `git commit`.
+ * PORTÉE DE MODULE d'une entrée ; sous une fusion en cours, `fusion` (`entreeDeFusion`) remplace les
+ * deux : son APPORT est jugé (`bilanDuCommit`). Ne se prononce que sur un `git commit`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateStocksQuiGrandissent({ command, diff, images }) {
-  if (!command || !isGitCommitCommand(command) || !diff) return null
-  const restantes = croissancesNonCouvertes({ diff: diff, message: command ?? '' }, images)
+export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = null }) {
+  if (!command || !isGitCommitCommand(command) || (!fusion && !diff)) return null
+  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), command)
   return restantes.length ? { reason: raisonDeRefus(restantes) } : null
 }
 
@@ -3052,29 +3193,32 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // rattrapée et NOMMÉE au lieu d'emporter la garde.
   let revuesVues = null
   const revuesDuGeste = () => (revuesVues ??= revuesDuCommit(revuesNeuves(targetDir), fichiers))
+  // UNE histoire de HEAD pour l'évaluation : la mesure du palier et la tête des revues neuves
+  // partagent sa lecture du graphe.
+  const depot = depotDe(targetDir)
+  const histoire = histoireDeHead(depot)
   const decision = jugerOuNommerLIndisponible(() => evaluate({
     command: text,
     today,
-    // Le solde LU est celui que le commit EMPORTE (`commit.contenu`) : sous un commit par pathspec,
-    // un solde stagé hors pathspec reste à la version de HEAD et la preuve ne part pas.
-    readSolde: (n) => commit.contenu(`.claude/soldes/${n}.md`),
+    // Le solde LU est celui que le commit EMPORTE (`commit.contenus`, un lot pour tous les soldes) :
+    // sous un commit par pathspec, un solde stagé hors pathspec reste à la version de HEAD et la
+    // preuve ne part pas.
+    readSoldes: (ns) => soldesEmportes(commit, ns),
     soldeOnDisk: (n) => readSoldeFile(n, targetDir),
     // Le commit en cours compte par ce qu'il EMPORTE (`fichiers`), la liste de la porte du ticket.
-    palier: () => mesureDuPalier(targetDir, { emportes: fichiers, seuil: PALIER }),
+    palier: () => mesureDuPalier(targetDir, { emportes: fichiers, seuil: PALIER, depot, histoire }),
     // La revue qui franchit le palier est celle que ce commit AJOUTE **et** EMPORTE : elle naît sous
     // son nom d'archive. Une revue posée sur le disque sans être stagée, ou stagée hors des pathspecs
     // de la commande, ne part pas avec le commit — donc ne franchit rien. Même règle que le solde.
-    neuves: () => revuesDuGeste().emportees.map((r) => ({ ...r, contenu: commit.contenu(r.chemin) ?? r.contenu })),
+    neuves: () => revuesEmportees(commit, revuesDuGeste().emportees),
     omises: () => revuesDuGeste().omises,
-    dansHead: (sha) => estDansHead(depotDe(targetDir), sha),
+    tetesDansHead: (tetes) => histoire.dansHead(tetes),
     contexteSolde: {
       fichiersEmportes: fichiers,
       lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
       touchesUi,
-      verifierCaptureDe: (chemin) => verifierCapture(chemin, { racine: targetDir, mtimeMin: mtimeEcrans, pannes }),
-      commitEstAncetre: (sha) => estDansHead(depotDe(targetDir), sha),
-      fichiersDuCommit: (sha) => fichiersDuCommitGit(sha, targetDir, { pannes }),
-      lignesDuCommit: (sha, fichier) => lignesDeHunks(diffDunSha(sha, fichier, targetDir, { pannes })),
+      verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: targetDir, mtimeMin: mtimeEcrans, pannes }),
+      ...histoireDesCitations(depotDuHook(targetDir, pannes)),
     },
   }), { cwd: targetDir, horsDepot: natureDeLArbre(targetDir) === null })
   // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
@@ -3122,8 +3266,8 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // BUDGET DU CONTEXTE PERMANENT : mesuré seulement si le commit touche un chemin du périmètre —
   // sinon aucune lecture n'est payée au-delà de l'image de `CLAUDE.md`, qui dit les fichiers IMPORTÉS
   // (`@<chemin>`) et donc le périmètre lui-même : ce que le commit emporte s'il l'emporte, son texte de base sinon.
-  // La mesure porte sur ce que le commit EMPORTE (`commit.contenu`), la référence et le plafond sur son
-  // texte de BASE (`commit.lirePreImage`) : relever la ligne du plafond dans le même commit ne suffit donc pas à
+  // La mesure porte sur ce que le commit EMPORTE (`commit.contenus`), la référence et le plafond sur son
+  // texte de BASE (`commit.preImages`, `commit.lirePreImage`), chaque image lue par lot : relever la ligne du plafond dans le même commit ne suffit donc pas à
   // faire passer une accrétion. Le LISTAGE des skills/agents se lit PAR IMAGE lui aussi — l'index pour
   // ce que le commit emporte, sa BASE (`commit.base()`) pour la référence — sans quoi un poste SUPPRIMÉ par le commit
   // disparaîtrait des DEUX côtés et le refus dirait « aucun poste ne grossit ».
@@ -3131,8 +3275,8 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
     ? evaluateBudgetContexte({
       command: text,
-      mesure: mesurerBudget(targetDir, { lire: commit.contenu, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
-      reference: mesurerBudget(targetDir, { lire: commit.lirePreImage, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
+      mesure: mesurerBudget(targetDir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
+      reference: mesurerBudget(targetDir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
       plafond: plafondDeLaSource(commit.lirePreImage(PORTEUR_DU_PLAFOND)),
     })
     : null
@@ -3150,11 +3294,14 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   if (premier) return premier
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
   // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
-  const porteursDeStock = isGitCommitCommand(text) ? fichiers.filter(estPorteurDeStock) : []
+  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
+  const fusion = isGitCommitCommand(text) ? commit.fusion() : null
+  const porteursDeStock = isGitCommitCommand(text) ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
   const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
     command: text,
-    diff: commit.diff(),
-    images: { ...commit.images(porteursDeStock), renommages: commit.renommages() },
+    ...(fusion
+      ? { fusion: fusion.entree }
+      : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
   }) : null
   const reclassements = evaluateReclassementsCss({
     command: text,

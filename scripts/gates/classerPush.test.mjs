@@ -28,6 +28,7 @@ import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
 import { ECRIT_LU } from './toutes.mjs'
+import { gitDeLArbreReel, lancerGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const CLASSEUR = join(RACINE, 'scripts', 'gates', 'classerPush.mjs')
@@ -207,7 +208,7 @@ test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’ell
 
 /** Les sources de `src/` et `server/src/` SUIVIES par git, hors bancs de test. */
 function sourcesDeProduction() {
-  return execFileSync('git', ['ls-files', '--', 'src', 'server/src'], { cwd: RACINE, encoding: 'utf8' })
+  return gitDeLArbreReel(RACINE)('ls-files', '--', 'src', 'server/src')
     .split('\n')
     .map((l) => l.trim())
     .filter((f) => /\.(ts|tsx|mts|js|jsx)$/.test(f) && !f.includes('.test.'))
@@ -258,7 +259,7 @@ test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON'
 
 // (d) — le CLI, sur des dépôts JETABLES de `os.tmpdir()`.
 
-const gitDe = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+const gitDe = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
 /** Un dépôt jetable avec un `main` d'un commit, une branche de travail, et `origin` sur lui-même. */
 function depotJetable() {
@@ -368,19 +369,17 @@ test('CLI — un clone `--single-branch` VA CHERCHER `origin/main`, puis classe'
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
     // `--single-branch` sur la branche de TRAVAIL : le clone n'a aucune `refs/remotes/origin/main`.
-    execFileSync('git', ['clone', '-q', '--single-branch', '--branch', 'chantier/x', racine, clone], {
-      env: envDeDepotForge(), encoding: 'utf8',
-    })
+    lancerGit(['clone', '-q', '--single-branch', '--branch', 'chantier/x', racine, clone])
     assert.throws(
-      () => execFileSync('git', ['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge() }),
+      () => lancerGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone }),
       'le clone doit bien être SANS origin/main — sinon le cas ne mesure rien',
     )
     const r = jouerCli(clone, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=false')
     assert.equal(
-      execFileSync('git', ['rev-parse', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge(), encoding: 'utf8' }).trim(),
-      execFileSync('git', ['rev-parse', 'refs/heads/main'], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim(),
+      lancerGit(['rev-parse', 'refs/remotes/origin/main'], { cwd: clone }).trim(),
+      lancerGit(['rev-parse', 'refs/heads/main'], { cwd: racine }).trim(),
       'le fetch doit avoir RAPPORTÉ origin/main',
     )
   } finally {

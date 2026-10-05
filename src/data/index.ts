@@ -1212,7 +1212,8 @@ export interface TrappingData {
   siegeFootprint?: number;
   /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
    *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Propagé sur `ItemInstance.shape` puis `Weapon.shape`. */
+   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : le rig le résout par
+   *  `trappingId` (`formeResolue`, #2113). */
   shape?: string;
   /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
    *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
@@ -1223,8 +1224,8 @@ export interface TrappingData {
    *  l'état improvisé par l'usure (`LDB 62 l.135`). */
   improvised?: true;
   /** Formes choisibles (slugs `WeaponDef.slug`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
-   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.shape` ; défaut =
-   *  `shape` du trapping. Absent pour une arme à forme unique. */
+   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
+   *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
   /** Arme INHABITUELLE (ACE 12 l.17 « Entraînement avec une arme inhabituelle ») : exige la
    *  maîtrise (`Combatant.masteredWeapons`) pour être maniée avec la Compétence du Groupe. Flag

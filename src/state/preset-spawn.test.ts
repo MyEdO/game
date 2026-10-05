@@ -153,7 +153,7 @@ function auCombatant(c: Combatant, cle: string): unknown {
   return (c.characteristics as Record<string, number | undefined>)[cle];
 }
 
-/** Valeur attendue au Combatant : « - » imprimé (`null`) = caractéristique INEXISTANTE → 0 (LDB 76). */
+/** Valeur attendue au Combatant : « - » imprimé (`null`) → 0 (#2304). */
 const attendue = (cle: string, v: number | null): number | null => (v === null && cle !== 'M' && cle !== 'B' ? 0 : v);
 
 type PresetLivre = NarratifBlock['presetsPnj'][number];
