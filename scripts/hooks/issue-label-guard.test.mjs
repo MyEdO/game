@@ -119,6 +119,12 @@ test('CONTEXTE : les familles sev:/type:/domaine: manquantes sont NOMMÉES, sans
   assert.match(contexteEmission('gh issue create --title X --label sev:mineur,type:donnée'), /domaine:/)
 })
 
+// #2173 (juge de diff, `cas3.json`) : la création dans un bloc PowerShell s'exécute ; la chaîne qui la cite non.
+test('une création de ticket DANS un bloc PowerShell est jugée ; la même création CITÉE dans une chaîne passe', () => {
+  assert.ok(denies('1..3 | % { gh issue create --title x --body y }'))
+  assert.ok(allows('Get-ChildItem | % { "gh issue create $_" }'))
+})
+
 test('CONTEXTE : un titre au-delà de 200 caractères est signalé, jamais refusé', () => {
   const long = 'T'.repeat(201)
   const cmd = 'gh issue create --title "' + long + '" --label sev:mineur --label type:donnée --label domaine:combat'
@@ -132,4 +138,8 @@ test('CONTEXTE : aucune émission de ticket → aucun contexte', () => {
   assert.equal(contexteEmission('git status'), null)
   assert.equal(contexteEmission('gh issue list --label sev:majeur'), null)
   assert.equal(contexteEmission(''), null)
+})
+
+test('une commande trop imbriquée pour être jugée est refusée', () => {
+  assert.match(evaluate('echo $($($($($(gh issue create --title x)))))')?.reason ?? '', /commande trop imbriquée pour être jugée/)
 })

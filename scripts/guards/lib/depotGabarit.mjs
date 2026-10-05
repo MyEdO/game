@@ -7,13 +7,11 @@
 // 34 ms un `git init` nu.
 // Aucun état de départ n'est simulé : c'est le même arbre, aux mêmes octets, sous le même sha.
 
-import { spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { ENV_GIT_FEINT, ajouterOrigine, commitDe, depotDe, initialiserDepot, natureDuChemin, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
-import { estEchecDeChargement } from './spawnResilient.mjs'
 
 /** @typedef {{ fichiers?: Record<string, string>, branche?: string, origin?: string | null, message?: string, refs?: Record<string, string>, commit?: boolean }} ParamsDepot */
 /** @typedef {{ racine: string, sha: string | null }} DepotForge */
@@ -57,22 +55,13 @@ export function envDeDepotForge() {
 
 /**
  * Le dépôt `racine` sous l'environnement d'un dépôt forgé (`envDeDepotForge`), SANS git feinte
- * (`ENV_GIT_FEINT` répond sans processus), dont chaque processus git LANCÉ inscrit ses arguments dans
- * `lances` : la mesure du nombre de processus d'une lecture. Un lancement qui n'a pas démarré
- * (`estEchecDeChargement`), que `gitPorte.mjs` rejoue, ne s'y inscrit pas.
- * @param {string} racine
- * @returns {{ depot: import('./gitPorte.mjs').Depot, lances: string[][] }}
+ * (`ENV_GIT_FEINT` répond sans processus) : la lecture que mesure `lancesDeGit` (gitDeBanc.mjs).
+ * @param {string} racine @returns {import('./gitPorte.mjs').Depot}
  */
-export function depotCompte(racine) {
-  const lances = []
+export function depotReel(racine) {
   const env = envDeDepotForge()
   delete env[ENV_GIT_FEINT]
-  const spawn = (commande, args, options) => {
-    const vu = spawnSync(commande, args, options)
-    if (!estEchecDeChargement(vu.status)) lances.push(args)
-    return vu
-  }
-  return { depot: depotDe(racine, { env, spawn }), lances }
+  return depotDe(racine, { env })
 }
 
 /**
@@ -108,6 +97,9 @@ export function sousLEnvDeLUtilisatrice(globale, fn) {
  * @returns {Record<string, string>}
  */
 export const envGitFeint = (regles) => ({ [ENV_GIT_FEINT]: JSON.stringify(regles) })
+
+/** La variable d'une git FEINTE, pour le banc (`gitDeBanc.mjs`), qui n'importe pas l'hôte en import statique. */
+export { ENV_GIT_FEINT }
 
 /**
  * `fn()` sous une git FEINTE (`envGitFeint(regles)`) posée sur `process.env`, retirée à la sortie :

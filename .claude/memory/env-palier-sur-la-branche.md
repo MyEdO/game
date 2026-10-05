@@ -12,4 +12,8 @@ Le palier de `scripts/hooks/solde-ticket-guard.mjs` compte les commits de substa
 
 **Why :** `ops:faits-de-palier` refuse de même une base qui n'enchaîne pas la dernière revue visible.
 
-**How to apply :** avant le commit de clôture, `git fetch` puis `git merge origin/main` dans le worktree — jamais un rebase (#2178 : le train publie par FUSION) ; des fichiers STAGÉS bloquent (`git restore --staged` d'abord ; les non suivis ne gênent pas). Les docs régénérés par le hook `post-merge` restent non commités : l'étape `derives` de `ops:publier` les commet. Puis rejouer typecheck + périmètre, et jouer la revue sur la fenêtre enchaînée (`--base <tête de la dernière revue> --tete HEAD`). Voir [[env-revue-palier-tete-publiee-jamais-locale]] et [[env-cloture-de-commit]].
+**How to apply :**
+- Avant la clôture : `git fetch`, puis `git merge --no-commit origin/main` (jamais un rebase, #2178 ; `--no-commit` pour que la porte voie le commit, #2071). Des fichiers STAGÉS bloquent : `git restore --staged` d'abord.
+- La fusion résolue se commite SANS trailers de livraison : les gardes ne jugent que son apport propre (#2328).
+- Sous `--no-commit`, `post-merge` ne tourne pas : régénérer par `node scripts/git-hooks/docs-rebuild.mjs post-merge` ; l'étape `docs` d'`ops:publier` commet les dérivés.
+- Puis typecheck + périmètre, et la revue sur la fenêtre enchaînée (`--base <tête de la dernière revue> --tete HEAD`). Voir [[env-revue-palier-tete-publiee-jamais-locale]], [[env-cloture-de-commit]].

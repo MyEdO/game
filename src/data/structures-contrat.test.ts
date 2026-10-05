@@ -1065,7 +1065,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // #680 (2026-09-29) : 370 → 371 — UNE ligne de référence NEUVE, `diligence-projet.json › base` (id nu
       // scalaire imposé par `presetPnjSchema.base`, #671) ; MÊME graphie que ses sœurs `a`/`b`/`scene` du
       // même projet : même lot, même extinction.
-      'L3 #1463': 371,
+      // #2219 (2026-10-05) : 371 → 372 — UNE ligne de référence NEUVE, `diligence-projet.json › from` (id nu
+      // imposé par `mapRouteSchema.from`, sens unique des tronçons) ; MÊME graphie que ses sœurs `a`/`b`, et
+      // que `loup-et-saumure-projet.json › from` : même lot, même extinction.
+      'L3 #1463': 372,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en

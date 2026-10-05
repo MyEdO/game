@@ -86,7 +86,9 @@ export function empreinteDe(dossier, perimetre) {
     encoding: 'utf8',
     maxBuffer: 1 << 28,
   })
-  if (vu.status !== 0) throw new Error(`git hash-object a rendu ${vu.status} sur ${dossier} : ${(vu.stderr || '').trim()}`)
+  // Le statut de git prime : un EPIPE de l'entrée, conséquence de sa sortie, ne le masque pas ; à 0, il se nomme.
+  if (typeof vu.status === 'number' && vu.status !== 0) throw new Error(`git hash-object a rendu ${vu.status} sur ${dossier} : ${(vu.stderr || '').trim()}`)
+  if (vu.error || vu.status !== 0) throw new Error(`git hash-object sur ${dossier} en échec : ${vu.error?.message ?? `signal ${vu.signal}`}`)
   const shas = vu.stdout.trim().split(/\r?\n/)
   if (shas.length !== fichiers.length)
     throw new Error(`git hash-object a rendu ${shas.length} empreintes pour ${fichiers.length} fichiers de ${dossier}`)

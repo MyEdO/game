@@ -169,7 +169,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/crewedWeapon.ts': 1,
   'src/engine/drunkenness.ts': 1,
   'src/engine/engagement.ts': 2,
-  'src/engine/equipCompare.ts': 2,
+  'src/engine/equipCompare.ts': 1,
   // SAIN : lookup par id stable de la Compétence de soin, patron des jumeaux `careerSlots` ('focalisation')
   // et `critical` ('resistance') ci-dessus. Le littéral est factorisé en `HEAL_SKILL` (source unique des
   // sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout
