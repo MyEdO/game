@@ -298,10 +298,9 @@ test('closureOf : suit les imports DYNAMIQUES import(\'…\') (lazy) — #487 co
   writeFileSync(join(root, 'src', 'ui', 'CampaignView.tsx'), "import { WorldMapView } from './WorldMapView'\nexport const CampaignView = 1\n")
   writeFileSync(join(root, 'src', 'ui', 'WorldMapView.tsx'), 'export const WorldMapView = 1\n')
   try {
-    const clo = closureOf([join(root, 'src', 'main.tsx')])
-    const rels = [...clo].map((p) => p.split('/').slice(-1)[0])
-    assert.ok(rels.includes('CampaignView.tsx'), 'import dynamique suivi')
-    assert.ok(rels.includes('WorldMapView.tsx'), 'chaîne transitive via l\'import dynamique')
+    const clo = closureOf([join(root, 'src', 'main.tsx')], { racine: root })
+    assert.ok(clo.has('src/ui/CampaignView.tsx'), 'import dynamique suivi')
+    assert.ok(clo.has('src/ui/WorldMapView.tsx'), 'chaîne transitive via l\'import dynamique')
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 

@@ -4,7 +4,7 @@
  * registre du MÊME document de projet, qui passe en `schema: 18`.
  *
  * UN geste, par la primitive `souleveLesDocuments` (`src/data/documentsAuNarratif.ts`) — la MÊME que
- * celle du migrateur de chargement `PROJECT_MIGRATIONS[17]` (`src/state/worldMap.ts`), jamais un second
+ * celle du migrateur de chargement `PROJECT_MIGRATIONS[17]` (`src/data/migrationsDeProjet.ts`), jamais un second
  * calcul. La règle globale que ses ids évitent est lue ici aux catalogues `src/data/creatures.json` et
  * `src/data/trappings.json` (au chargement : `collisionneAvecLeGlobal`, le même périmètre
  * créature/possession). Parité mesurée par `src/state/projet-migration-17-vers-18.test.ts`, qui joue la

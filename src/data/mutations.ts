@@ -73,7 +73,7 @@ function tableOf(table: string): MutationTable {
 /** Libellé d'AUTHORING d'une table (tel qu'écrit en donnée : il PORTE la provenance — « Physique —
  *  Khorne (EDOC) » — parce que l'auteur en a besoin au Codex/à l'éditeur pour distinguer deux tables
  *  homonymes de livres différents). JAMAIS rendu au joueur : cf. `mutationTablePlayerLabel`. */
-export function mutationTableLabel(table: string): string {
+function mutationTableLabel(table: string): string {
   return tableOf(table).label;
 }
 

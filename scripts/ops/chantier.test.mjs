@@ -5,13 +5,13 @@
 // Lancé par `npm run test:ops`.
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, refusDeCreation, resumeDeChantier } from './chantier.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 test('un nom de chantier est un numéro de ticket, avec un slug optionnel en minuscules', () => {
   for (const bon of ['1736', '42', '1732-1734-outillage', '1736-publication', '12-a', '12-a1-b2']) {
@@ -72,9 +72,9 @@ test('nom invalide : refus NOMMÉ, et aucun git n’est joué', () => {
 /** Dépôt jetable + son `origin` NU, avec `origin/main` réellement posé. */
 function depotAvecOrigin() {
   const nu = mkdtempSync(join(tmpdir(), 'origin-nu-'))
-  execFileSync('git', ['init', '--bare', '-q', '-b', 'main', nu], { env: envDeDepotForge(), encoding: 'utf8' })
+  lancerGit(['init', '--bare', '-q', '-b', 'main', nu])
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'fondation' })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+  const git = gitDe(racine, { net: true })
   git('remote', 'add', 'origin', nu)
   git('push', '-q', 'origin', 'main')
   return { racine, nu, git, jeter: () => { for (const d of [racine, nu]) rmSync(d, { recursive: true, force: true }) } }
@@ -98,7 +98,7 @@ test('création RÉELLE : worktree .wt-42 sur chantier/42 issue d’ORIGIN/main,
     const cible = cibleDe(racine, '42')
     assert.equal(existsSync(cible), true, 'le worktree est posé sur le disque')
     assert.equal(vu.branche, 'chantier/42')
-    const gitLa = (cwd, ...args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+    const gitLa = (cwd, ...args) => lancerGit(args, { cwd }).trim()
     assert.equal(gitLa(cible, 'rev-parse', '--abbrev-ref', 'HEAD'), 'chantier/42')
     assert.equal(gitLa(cible, 'rev-parse', 'HEAD'),
       git('rev-parse', 'origin/main'), 'le chantier part d’origin/main')
@@ -142,10 +142,11 @@ describe('equipementsDesPrerequis', () => {
     'd:gate': { ecrit: [], lit: ['src/'] },
   }
 
-  test('sur la table RÉELLE : la racine, puis le seul prérequis déclaré (server/)', () => {
+  test('sur la table RÉELLE : la racine, puis le seul prérequis déclaré (server/), puis les docs dérivés', () => {
     assert.deepEqual(EQUIPEMENTS, [
       { args: ['ci', '--no-audit', '--no-fund'], ou: '', relance: 'npm ci' },
       { args: ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'], ou: ' dans server/', relance: 'npm --prefix server ci' },
+      { args: ['run', 'docs:build'], ou: ' (docs dérivés)', relance: 'npm run docs:build' },
     ])
   })
 
@@ -172,7 +173,7 @@ describe('equipementsDesPrerequis', () => {
 // (`prerequis` d'`ECRIT_LU`, scripts/gates/toutes.mjs) : un chantier équipé de la seule racine rend
 // cette gate ROUGE après la série entière (mesuré le 2026-09-14, 3ᵉ train réel). L'ordre est le
 // sujet : `npm --prefix server ci` ne peut pas précéder le `npm ci` de la racine.
-test('équipement : npm ci à la RACINE puis dans server/, dans cet ordre, tous deux DANS le worktree', () => {
+test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans cet ordre, tous DANS le worktree', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
     const appels = []
@@ -182,9 +183,20 @@ test('équipement : npm ci à la RACINE puis dans server/, dans cet ordre, tous 
     assert.deepEqual(appels.map((a) => a.args), [
       ['ci', '--no-audit', '--no-fund'],
       ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'],
+      ['run', 'docs:build'],
     ])
     assert.deepEqual([...new Set(appels.map((a) => a.cwd))], [cibleDe(racine, '47')],
-      'les deux se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
+      'tous se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
+  } finally { jeter() }
+})
+
+test('docs:build rouge : les npm ci restent faits, et le refus NOMME le geste qui le rejoue', () => {
+  const { racine, jeter } = depotAvecOrigin()
+  try {
+    const vu = creerChantier({ racine, nom: '49', npm: (cmd, args) => ({ status: args.includes('docs:build') ? 1 : 0 }) })
+    assert.equal(vu.ok, false)
+    assert.match(vu.refus, /worktree posé, npm run docs:build rouge \(docs dérivés\) — relancer `npm run docs:build`/)
+    assert.equal(existsSync(cibleDe(racine, '49')), true, 'un docs:build rouge ne défait pas le worktree')
   } finally { jeter() }
 })
 
@@ -220,7 +232,7 @@ test('lancé depuis un WORKTREE : la cible se pose sous l’ARBRE PRINCIPAL, à 
     assert.equal(vu.cible, cibleDe(racine, '45'), 'la cible est calculée sur l’arbre principal, pas sur le cwd')
     assert.equal(existsSync(cibleDe(racine, '45')), true, 'le worktree neuf est posé là')
     assert.equal(existsSync(join(depuisLeWorktree, '.wt-45')), false, 'rien n’est posé SOUS le worktree appelant')
-    const gitLa = (cwd, ...args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8' })
+    const gitLa = (cwd, ...args) => lancerGit(args, { cwd })
     assert.equal(gitLa(cibleDe(racine, '45'), 'rev-parse', '--abbrev-ref', 'HEAD').trim(), 'chantier/45')
     // Et git le compte comme un arbre du MÊME dépôt, à plat : trois worktrees, aucun imbriqué.
     const listes = gitLa(racine, 'worktree', 'list', '--porcelain')

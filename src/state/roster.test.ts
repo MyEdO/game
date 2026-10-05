@@ -100,7 +100,7 @@ describe('roster — persistance des personnages créés', () => {
 
   it('rosterLoad ÉCARTE un `draft` sans format (choix en libellés, #1923) : le héros reste, le brouillon ne se relit pas', () => {
     const ancien = { speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Ancien', careerTalent: 'Magie mineure', pettySpells: ['Putréfaction'] };
-    const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'] };
+    const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'], specChoices: {}, speciesTalentChoices: {}, randomSpecPicks: {}, talentRerolls: {} };
     const v2 = { ...actuel, v: 2, label: 'Tirages de Talents par id (#1897)' };
     localStorage.setItem(
       'wfrp4.roster.v1',
@@ -451,5 +451,48 @@ describe('roster — `talentsAcquis` d’une mutation attachée avant le lot (#1
   it('(f) des `mutations` mal formées ne font pas perdre le roster : l’entrée se relit', () => {
     localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: { ...heros('h-mal', []), mutations: {} }, wealth: { gold: 0, silver: 0, brass: 0 } }, { hero: heros('h-nul', [null]), wealth: { gold: 0, silver: 0, brass: 0 } }]));
     expect(rosterLoad().map((e) => e.hero.id)).toEqual(['h-mal', 'h-nul']);
+  });
+});
+
+/** #2113 : le `shape` d'un objet ou d'une arme devient `formeChoisie` s'il est parmi les `formChoices` et
+ *  diffère du `shape` du catalogue, sinon il disparaît. */
+describe('roster — forme d’objet CHOISIE, jamais recopiée (#2113, les DEUX canaux)', () => {
+  const ZONE = { op: 'zone', shape: 'disc', radiusMeters: 2 };
+  const heros = (id: string) => ({
+    id, label: 'Soldat', kind: 'hero', skills: [], talents: [],
+    items: [
+      { uid: 'i1', trappingId: 'arme-simple', label: 'Arme simple', kind: 'melee', shape: 'masse' },
+      { uid: 'i2', trappingId: 'arme-simple', label: 'Arme simple', kind: 'melee', shape: 'epee' },
+      { uid: 'i3', trappingId: 'arbalete', label: 'Arbalète', kind: 'ranged', shape: 'arbalete' },
+      { uid: 'i4', label: 'Vieille épée', kind: 'melee', shape: 'epee' }, // sans `trappingId`
+    ],
+    weapons: [{ uid: 'i1', trappingId: 'arme-simple', label: 'Arme simple', type: 'melee', shape: 'masse' }],
+    mutations: [{ id: 'm1', passive: [ZONE] }], // `shape` hors `items`/`weapons` : forme de zone, jamais migrée
+  });
+  const attendu = (h: Combatant) => [
+    ...(h.items ?? []).map((i) => [i.uid, 'shape' in i, i.formeChoisie]),
+    ...h.weapons.map((w) => [w.uid, 'shape' in w, w.formeChoisie]),
+  ];
+  const APRES = [['i1', false, 'masse'], ['i2', false, undefined], ['i3', false, undefined], ['i4', false, undefined], ['i1', false, 'masse']];
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('(a) un export v7 charge avec le seul choix du joueur', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 7, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(attendu(res.entry!.hero)).toEqual(APRES);
+    expect(res.entry!.hero.mutations?.[0].passive).toEqual([ZONE]);
+  });
+  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const une = rosterLoad();
+    expect(attendu(une[0].hero)).toEqual(APRES);
+    expect(une[0].hero.mutations?.[0].passive).toEqual([ZONE]);
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
+    expect(rosterLoad()).toEqual(une);
   });
 });

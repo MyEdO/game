@@ -1,19 +1,35 @@
-// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : REFUSE deux commandes shell qui
-// réussissent sans erreur et laissent un PIÈGE derrière elles.
+// Garde PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : REFUSE les commandes shell qui
+// réussissent sans erreur et dont l'effet DÉPASSE ce que le geste vise. Chaque piège se reconnaît à
+// un exécutable et aux paramètres qui désignent sa cible :
 //
-// - Un LIEN posé sur un `node_modules` (#1679 L1c) : sa suppression ultérieure suit le lien et vide le
+// - un LIEN posé sur un `node_modules` (#1679 L1c) : sa suppression ultérieure suit le lien et vide le
 //   `node_modules` PARTAGÉ qu'il vise, et l'arbre qui emprunte les dépendances d'un autre ne prouve
-//   rien de ses propres versions.
+//   rien de ses propres versions ;
 // - `git show ... -- <sha>` (le commit APRÈS le séparateur) : git y voit un pathspec et rend le même
 //   résultat pour tous les commits, sans erreur (fiche `env-git-show-ordre-commit-avant-paths`,
-//   mesuré le 2026-08-26).
+//   mesuré le 2026-08-26) ;
+// - une mise à mort de processus PAR NOM (#2173) : elle atteint les processus de ce nom de TOUTE la
+//   machine, ceux des autres sessions compris — un worktree isole des fichiers, pas des processus ;
+//   `kill -1` (#2173) les atteint TOUS.
 //
 // Détection STRUCTURELLE (jamais un grep de sous-chaîne sur la ligne entière) : on réutilise le
-// tokenizer quote-aware de `solde-ticket-guard` (`segmentsProfonds`/`gitSubcommand`, invariant
+// tokenizer quote-aware de `solde-ticket-guard` (`pipelinesProfonds`/`gitSubcommand`, invariant
 // partagé) — une commande qui CITE le geste (`Write-Output "ln -s ../node_modules"`, un message de
 // commit) n'exécute rien et ne se refuse pas.
+//
+// Ce que la détection par segments ne voit PAS :
+// - la substitution de commande POSIX (`kill $(pgrep node)`) : le tokeniseur ne la déploie pas (#2172) ;
+// - un appel en sous-expression PowerShell (`Stop-Process -InputObject (Get-Process node)`) : le
+//   tokeniseur rend `(Get-Process` et `node)` comme arguments (#2172) ;
+// - les expressions PowerShell (`(Get-Process node).Kill()`, `ForEach-Object { $_.Kill() }`) : une
+//   méthode appelée n'est pas un exécutable de segment ;
+// - le flux par variable (`$p = Get-Process node; Stop-Process $p`) : le contenu d'une variable n'est
+//   connu qu'à l'exécution ;
+// - la syntaxe `-Param:valeur` et l'alias `iex` : le tokeniseur ne les déplie pas (#2172) ;
+// - un lanceur indirect (`Start-Process taskkill -ArgumentList "/IM node.exe"`) : le tokeniseur ne déplie
+//   pas la commande qu'il lance (#2172).
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { argumentChaine, segmentsProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
+import { argumentChaine, pipelinesProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
 
 /** Nom d'exécutable d'un segment : basename sans extension, en minuscules (call-operator sauté) ;
  *  `commande` = le segment à partir de lui. */
@@ -24,11 +40,16 @@ function executableDe(segment) {
   return { exe, args: segment.slice(start + 1), commande: segment.slice(start) }
 }
 
+/** Paramètres COMMUNS de toute cmdlet PowerShell (about_CommonParameters). */
+const PARAMS_COMMUNS = [
+  'Verbose', 'Debug', 'ErrorAction', 'ErrorVariable', 'WarningAction', 'WarningVariable',
+  'InformationAction', 'InformationVariable', 'OutVariable', 'OutBuffer', 'PipelineVariable',
+]
+
 /** Paramètres de `New-Item` (propres + communs) avec lesquels un préfixe pourrait être AMBIGU. */
 const PARAMS_NEW_ITEM = [
   'ItemType', 'Path', 'Name', 'Value', 'Force', 'Credential', 'WhatIf', 'Confirm', 'UseTransaction',
-  'Verbose', 'Debug', 'ErrorAction', 'ErrorVariable', 'WarningAction', 'WarningVariable',
-  'InformationAction', 'InformationVariable', 'OutVariable', 'OutBuffer', 'PipelineVariable',
+  ...PARAMS_COMMUNS,
 ]
 
 /** `mklink` est un BUILTIN de `cmd` : derrière `cmd /c`, l'exécutable du segment est `cmd`, et la
@@ -77,14 +98,211 @@ function shaApresSeparateur({ sub, args }) {
   return args.slice(sep + 1).find((a) => /^[0-9a-f]{7,40}$/i.test(a)) ?? null
 }
 
+// ── Mise à mort de processus PAR NOM (#2173) ────────────────────────────────────────────────────
+// Sources : aide Microsoft de `taskkill` (`/pid`, `/im`, `/fi`), de `tasklist` (`/fi`), de `Stop-Process` et
+// `Get-Process` (jeux `Id`/`Name`/`InputObject`, alias `spps`, `kill`, `gps`, `ps`), de `Get-CimInstance`/`gcim`,
+// `Invoke-CimMethod`/`icim`, `Remove-CimInstance`/`rcim` (`-Query` WQL), `Get-WmiObject`/`gwmi`,
+// `Invoke-WmiMethod`/`iwmi`, `Remove-WmiObject`/`rwmi` (classe `Win32_Process`, méthode `Terminate`), de `wmic` (alias `process`, verbes `delete`,
+// `call terminate`), about_CommonParameters (`-WhatIf`) ; pages man `kill(1)`, `pkill(1)`,
+// `killall(1)`, bash `kill` (`-n sigspec`), POSIX `kill` (pid -1).
+
+/** Paramètres de `Stop-Process` et de `Get-Process` (propres, alias, communs) : base d'ambiguïté. */
+const PARAMS_STOP_PROCESS = ['Id', 'Name', 'ProcessName', 'InputObject', 'PassThru', 'Force', 'WhatIf', 'Confirm', ...PARAMS_COMMUNS]
+const PARAMS_GET_PROCESS = [
+  'Id', 'PID', 'Name', 'ProcessName', 'InputObject', 'IncludeUserName', 'Module', 'FileVersionInfo', 'ComputerName',
+  ...PARAMS_COMMUNS,
+]
+/** Paramètres de `Get-CimInstance`, `Invoke-CimMethod` et `Remove-CimInstance` (propres, communs). */
+const PARAMS_CIM = [
+  'ClassName', 'Filter', 'Query', 'QueryDialect', 'Namespace', 'ComputerName', 'CimSession', 'InputObject', 'KeyOnly',
+  'OperationTimeoutSec', 'Property', 'ResourceUri', 'Shallow', 'CimClass', 'MethodName', 'Arguments', 'WhatIf', 'Confirm',
+  ...PARAMS_COMMUNS,
+]
+const PARAMS_GET_WMI = [
+  'Class', 'Filter', 'Query', 'Property', 'Namespace', 'ComputerName', 'Credential', 'List', 'Recurse', 'Amended',
+  'DirectRead', 'Impersonation', 'Authentication', 'Locale', 'EnableAllPrivileges', 'Authority', 'AsJob',
+  'ThrottleLimit', ...PARAMS_COMMUNS,
+]
+/** Base d'ambiguïté de `-WhatIf`, paramètre commun des cmdlets qui modifient. */
+const PARAMS_SIMULATION = ['WhatIf', 'Confirm', ...PARAMS_COMMUNS]
+const PID_RE = /^-?\d+$/
+/** Nom de signal (bash `kill -l`, casse libre, `SIG` facultatif) : la valeur de `kill -n`. */
+const SIGNAL_RE = /^(sig)?(hup|int|quit|ill|trap|abrt|iot|emt|bus|fpe|kill|usr1|segv|usr2|pipe|alrm|term|stkflt|chld|cont|stop|tstp|ttin|ttou|urg|xcpu|xfsz|vtalrm|prof|winch|io|poll|pwr|sys|rtmin|rtmax)([+-]\d+)?$/i
+/** Filtre `taskkill /FI` qui désigne UN PID ; tout autre filtre sélectionne par critère. */
+const FILTRE_PID_RE = /^\s*pid\s+eq\s+\d+\s*$/i
+/** Clause `wmic process where`, filtre `-Filter` ou clause WHERE d'un `-Query` CIM/WMI qui désigne UN PID. */
+const WHERE_PID_RE = /^\(?\s*processid\s*=\s*['"]?\d+['"]?\s*\)?$/i
+
+/** Drapeaux `taskkill`/`tasklist` normalisés : `/x`, `//x` et `-x` → `/x`, en minuscules. */
+const drapeauxWindows = (args) => args.map((a) => a.replace(/^(\/+|-)/, '/').toLowerCase())
+/** Valeurs des occurrences du drapeau `nom` (`/pid`, `/fi`) : le jeton qui suit chacune. */
+const valeursDrapeau = (args, nom) => drapeauxWindows(args).flatMap((d, i) => (d === nom ? [args[i + 1] ?? ''] : []))
+/** `true` si ce `taskkill` ne vise que des PID LITTÉRAUX (`/PID <n>`, ou un `/FI "PID eq <n>"` : les filtres
+ *  se cumulent), sans `/IM`. */
+function taskkillParPid(args) {
+  const pids = valeursDrapeau(args, '/pid')
+  const filtres = valeursDrapeau(args, '/fi')
+  if (drapeauxWindows(args).includes('/im')) return false
+  return filtres.some((f) => FILTRE_PID_RE.test(f)) || (pids.length > 0 && pids.every((p) => PID_RE.test(p)))
+}
+
+/** `true` si le switch `nom` figure dans `args` : `valeurParametre` rend le jeton qui le SUIT, la
+ *  butée ajoutée garantit qu'il existe. */
+function switchPresent(args, nom, params) {
+  return valeurParametre([...args, '-'], nom, params) !== ''
+}
+
+/** `true` si l'arrêt nomme sa cible : un PID, un job `%N` ou une variable en argument positionnel —
+ *  `-N` n'en est un qu'après `--` (groupe de processus), avant il est le signal de `kill -9`. */
+function cibleExplicite(args) {
+  const sep = args.indexOf('--')
+  const positionnel = (a, i) => (sep !== -1 && i > sep) || !a.startsWith('-')
+  return args.some((a, i) => positionnel(a, i) && (PID_RE.test(a) || /^[%$]/.test(a)))
+}
+
+/** La famille `Stop-Process`, qui arrête par `-Name`, par `-Id` ou ce que le tube lui passe. */
+const STOP_PROCESS = ['stop-process', 'spps', 'kill']
+const avecTerminate = (args) => args.some((a) => /^terminate$/i.test(a))
+/** Exécutables qui arrêtent les processus que le tube leur passe → `true` si CE segment arrête sans
+ *  cible explicite. */
+const ARRETS = new Map([
+  ...STOP_PROCESS.map((e) => [e, (args) => !valeurParametre(args, 'Id', PARAMS_STOP_PROCESS) && !cibleExplicite(args)]),
+  ...['invoke-cimmethod', 'icim', 'invoke-wmimethod', 'iwmi'].map((e) => [e, avecTerminate]),
+  ...['remove-wmiobject', 'rwmi', 'remove-ciminstance', 'rcim'].map((e) => [e, () => true]),
+  ['taskkill', (args) => !taskkillParPid(args)],
+])
+/** Arrêts CIM qui portent leur PROPRE sélection (`-Query`) : jugés seuls, comme un listeur. */
+const ARRETS_CIM = ['invoke-cimmethod', 'icim', 'remove-ciminstance', 'rcim']
+
+const horsPidGetProcess = (args) =>
+  !valeurParametre(args, 'Id', PARAMS_GET_PROCESS) && !valeurParametre(args, 'PID', PARAMS_GET_PROCESS)
+/** La sélection CIM/WMI : la valeur de `-Filter`, ou la clause WHERE de la requête WQL `-Query`. */
+const selectionWql = (args, params) =>
+  (valeurParametre(args, 'Filter', params) || (/\bwhere\s+(.*)$/is.exec(valeurParametre(args, 'Query', params))?.[1] ?? '')).trim()
+const processusWin32 = (params) => (args) =>
+  args.some((a) => /win32_process/i.test(a)) && !WHERE_PID_RE.test(selectionWql(args, params))
+/** Exécutables qui LISTENT des processus → `true` si CE segment les choisit autrement que par PID. */
+const LISTEURS = new Map([
+  ...['get-process', 'gps'].map((e) => [e, horsPidGetProcess]),
+  ['ps', (args) => horsPidGetProcess(args) && !args.some((a) => a === '-p' || a === '--pid')],
+  ['pgrep', () => true],
+  ['pidof', () => true],
+  ['tasklist', (args) => !valeursDrapeau(args, '/fi').some((f) => FILTRE_PID_RE.test(f))],
+  ...['get-ciminstance', 'gcim'].map((e) => [e, processusWin32(PARAMS_CIM)]),
+  ...['get-wmiobject', 'gwmi'].map((e) => [e, processusWin32(PARAMS_GET_WMI)]),
+])
+
+/** Nom désigné par un paramètre `-Name`/`-ProcessName`, ou `''`. Sous bash, `kill -n` prend un
+ *  signal, par numéro ou par nom : cette valeur-là n'est pas un nom de processus. */
+function nomDesigne(exe, args) {
+  const nom = valeurParametre(args, 'Name', PARAMS_STOP_PROCESS) || valeurParametre(args, 'ProcessName', PARAMS_STOP_PROCESS)
+  if (!nom || PID_RE.test(nom)) return ''
+  return exe === 'kill' && SIGNAL_RE.test(nom) ? '' : nom
+}
+
+/** Valeur attachée d'un drapeau parent `pkill` (`-P`, `-P1`, `--parent`, `--parent=1`), ou `null`. */
+const parentAttache = (a) => {
+  const m = /^(?:-P(.*)|--parent(?:=(.*))?)$/.exec(a)
+  return m && (m[1] ?? m[2] ?? '')
+}
+
+/** `true` si `pkill` ne sélectionne que par PARENT (`-P <pid>`), sans motif. Le PID 1 n'en est pas
+ *  un : ses enfants sont tous les orphelins et démons de la machine. */
+function parParentSeul(args) {
+  const i = args.findIndex((a) => parentAttache(a) !== null)
+  if (i === -1) return false
+  const attache = parentAttache(args[i])
+  const valeur = attache || args[i + 1]
+  if (valeur === undefined || valeur.split(',').includes('1')) return false
+  const jetons = attache ? 1 : 2
+  return args.every((a, k) => (k >= i && k < i + jetons) || a.startsWith('-'))
+}
+
+/** Libellé de la mise à mort PAR NOM qu'exécute ce segment seul, ou `null`. */
+function arretParNom(segment) {
+  const { exe, args, commande } = executableDe(segment)
+  if (exe === 'pkill') return parParentSeul(args) ? null : exe
+  if (exe === 'killall') return exe
+  if (STOP_PROCESS.includes(exe)) {
+    if (switchPresent(args, 'WhatIf', PARAMS_SIMULATION)) return null
+    return nomDesigne(exe, args) ? `${commande[0]} -Name` : null
+  }
+  if (ARRETS_CIM.includes(exe)) {
+    const parSelection = ARRETS.get(exe)(args) && processusWin32(PARAMS_CIM)(args)
+    return parSelection && !switchPresent(args, 'WhatIf', PARAMS_SIMULATION) ? `${commande[0]} Win32_Process` : null
+  }
+  if (exe === 'taskkill') {
+    if (drapeauxWindows(args).includes('/im')) return 'taskkill /IM'
+    const filtres = valeursDrapeau(args, '/fi')
+    return filtres.length > 0 && !filtres.some((f) => FILTRE_PID_RE.test(f)) ? 'taskkill /FI' : null
+  }
+  if (exe === 'wmic') {
+    const bas = args.map((a) => a.toLowerCase())
+    const alias = bas.indexOf('process')
+    const verbe = bas.includes('delete') || bas.some((a, i) => a === 'call' && bas[i + 1] === 'terminate')
+    if (alias === -1 || !verbe) return null
+    const where = bas.indexOf('where')
+    const fin = bas.findIndex((a, i) => i > where && (a === 'delete' || a === 'call'))
+    const clause = args.slice(where + 1, fin).join(' ')
+    const parPid = where === -1 ? PID_RE.test(args[alias + 1] ?? '') : WHERE_PID_RE.test(clause)
+    return parPid ? null : 'wmic process … delete|call terminate'
+  }
+  return null
+}
+
+/** Libellé du tube qui passe à un arrêt SANS cible explicite les processus qu'un listeur a choisis
+ *  autrement que par PID (`Get-Process node | Stop-Process`, `pgrep x | xargs kill`,
+ *  `Get-CimInstance Win32_Process … | Invoke-CimMethod -MethodName Terminate`), ou `null`. */
+function arretParTube(pipeline) {
+  for (let k = 1; k < pipeline.length; k++) {
+    const { exe, args, commande } = executableDe(pipeline[k])
+    if (!ARRETS.get(exe)?.(args) || switchPresent(args, 'WhatIf', PARAMS_SIMULATION)) continue
+    const listeur = pipeline.slice(0, k).map(executableDe).find((s) => LISTEURS.get(s.exe)?.(s.args))
+    if (listeur) return `${listeur.commande[0]} … | ${commande[0]}`
+  }
+  return null
+}
+
+/** `true` si ce `kill` vise le PID -1 : TOUS les processus que l'utilisateur peut signaler. Le PID
+ *  suit un signal ou `--` ; seul, `-1` est aussi lu comme cible. */
+function tueTout(segment) {
+  const { exe, args } = executableDe(segment)
+  return exe === 'kill' && args.some((a, i) => a === '-1' && (i > 0 || args.length === 1))
+}
+
+const ARRET_PAR_PID =
+  `Arrêter SA tâche par son PID : \`taskkill //PID <pid>\`, \`kill <pid>\` ou \`Stop-Process -Id <pid>\` ; ` +
+  `une tâche d'arrière-plan du harnais : \`TaskStop\`.`
+
 /**
  * Décision du hook (PURE, testable). `null` = silence ; `{ decision: 'deny', reason }` sinon. Une
  * commande est visée si l'un de ses SEGMENTS PROFONDS (enchaînements, enrobeurs de tête, sous-shells)
- * l'exécute réellement.
+ * l'exécute réellement ; le tube qui les relie est lu pour la mise à mort par nom.
  */
 export function evaluate(command) {
   if (!command) return null
-  for (const segment of segmentsProfonds(command)) {
+  const pipelines = pipelinesProfonds(command)
+  for (const pipeline of pipelines) {
+    if (pipeline.some(tueTout)) {
+      return {
+        decision: 'deny',
+        reason:
+          `⛔ \`kill -1\` REFUSÉ (#2173) : le PID -1 désigne TOUS les processus que l'utilisateur peut ` +
+          `signaler, ceux des autres sessions compris. ${ARRET_PAR_PID}`,
+      }
+    }
+    const parNom = arretParTube(pipeline) ?? pipeline.map(arretParNom).find(Boolean)
+    if (parNom) {
+      return {
+        decision: 'deny',
+        reason:
+          `⛔ Mise à mort de processus PAR NOM REFUSÉE (${parNom}, #2173) : ce geste atteint les processus ` +
+          `de ce nom sur toute la MACHINE, ceux des autres sessions compris (un worktree isole des fichiers, ` +
+          `pas des processus). ${ARRET_PAR_PID}`,
+      }
+    }
+  }
+  for (const segment of pipelines.flat()) {
     const lien = lienNodeModules(segment)
     if (lien) {
       return {

@@ -7,10 +7,9 @@
  * (= BFM…) et l'Atout Magique sont surchargés par le Sort.
  */
 import { Combatant, ItemInstance, QualityInstance } from './types';
-import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmedTrapping, isImprovisedTrapping } from './items';
-import { isShieldItem } from './equipCompare';
+import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmedTrapping, isImprovisedTrapping, isShieldTrapping } from './items';
 import { hasQuality } from './qualities/dispatch';
-import { trappings, byId } from '../data';
+import { trappingsInstanciables, byId } from '../data';
 
 type ConjuredSet = NonNullable<NonNullable<Combatant['activeEffects']>[number]['conjuredSet']>;
 
@@ -64,16 +63,11 @@ export interface ConjureForm {
   group: string; // `id` du Groupe / Spé de Corps à corps appliquée par combatValue
 }
 
-/** Une arme de mêlée est-elle un objet À INVOQUER ? Exclut les boucliers, l'Arme improvisée, les Mains
- *  nues et les armes Inoffensives — PAS « Arme simple » (= épée/hache/marteau/masse/lance courte, l'arme
- *  de base la plus commune, cf. sa description). Détection par CHAMPS DÉCLARÉS sur l'entrée de catalogue
- *  (`TrappingData.unarmed`/`improvised`) et par Atouts (Protectrice = bouclier, Inoffensive) — le moteur
- *  ne nomme aucun id. Les deux marques déclarées sont aujourd'hui REDONDANTES avec l'Atout Inoffensive que
- *  ces mêmes entrées portent (leur retrait ne changerait aucun comportement mesurable) : elles gardent la
- *  règle d'une édition de qualité au Compendium, elles ne la portent pas seules. */
+/** Une arme de mêlée est-elle une forme d'Arme aethyrique ? Marques DÉCLARÉES sur l'entrée de catalogue
+ *  (`TrappingData.unarmed`/`improvised`/`shield`) et Atout Inoffensive — le moteur ne nomme aucun id.
+ *  Exclusion des boucliers et des Inoffensives : #2240. */
 function isConjurableWeapon(it: { trappingId?: string; qualities: QualityInstance[] }): boolean {
-  if (isUnarmedTrapping(it.trappingId) || isImprovisedTrapping(it.trappingId)) return false;
-  if (isShieldItem(it)) return false;
+  if (isUnarmedTrapping(it.trappingId) || isImprovisedTrapping(it.trappingId) || isShieldTrapping(it.trappingId)) return false;
   if (hasQuality(it, 'inoffensive')) return false;
   return true;
 }
@@ -93,8 +87,7 @@ export function conjureFormOptions(caster: Pick<Combatant, 'skills'>): ConjureFo
   }
   if (!groupAdv.size) groupAdv.set('base', 0); // mage sans Spé → armes de base
   const out: { weapon: string; group: string; adv: number }[] = [];
-  for (const t of trappings) {
-    if (t.service) continue; // tarif de service (LDB 66 l.12-14) — pas un objet, itemFromTrappingById refuse
+  for (const t of trappingsInstanciables()) {
     const it = itemFromTrappingById(t.id);
     if (it?.kind !== 'melee' || !it.subType || !isConjurableWeapon(it)) continue;
     // groupAdv est keyé par id de Groupe ; it.subType EST l'id de Groupe de l'arme → match direct.

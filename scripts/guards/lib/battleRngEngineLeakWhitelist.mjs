@@ -31,7 +31,7 @@
 //    la dette CHANGE de liste, elle ne disparaît pas. `shipwreck.ts`, sorti du même coup, ne produit
 //    AUCUN offender ici (mesuré) — pas d'entrée.
 
-import { ROLL_SEAM_FILE_WHITELIST } from './rollSeamWhitelist.mjs';
+import { RACINE_DU_SEAM, ROLL_SEAM_FILE_WHITELIST } from './rollSeamWhitelist.mjs';
 
 /** @type {Set<string>} */
 export const BATTLE_RNG_ENGINE_LEAK_WHITELIST = new Set([
@@ -42,5 +42,5 @@ export const BATTLE_RNG_ENGINE_LEAK_WHITELIST = new Set([
 
 /** @param {string} rel @returns {boolean} */
 export function battleRngEngineLeakExcluded(rel) {
-  return rel.startsWith('src/engine/') || BATTLE_RNG_ENGINE_LEAK_WHITELIST.has(rel);
+  return !rel.startsWith(`${RACINE_DU_SEAM}/`) || rel.startsWith('src/engine/') || BATTLE_RNG_ENGINE_LEAK_WHITELIST.has(rel);
 }

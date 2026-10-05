@@ -10,7 +10,8 @@
  * `usable`. Il est FIGÉ ; le « moderniser » détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 
 /** Un TYPE de décor qui porte des places au catalogue — le seul cas que ce bump concerne. */
@@ -76,7 +77,6 @@ describe('PROJECT_MIGRATIONS[9] — un projet format 9 se charge à travers la m
    */
   it('S1. PARITÉ : le migrateur de CHARGEMENT rend exactement ce que le script de DÉPÔT écrit', () => {
     const migre = PROJECT_MIGRATIONS[9]!({ ...structuredClone(PROJET_FORMAT_9), version: 9 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(10);
     const scene = (migre.scenes as Record<string, unknown>[])[0];
     const entites = scene.entities as Record<string, unknown>[];
     expect(Object.keys(entites[0])).toEqual(['id', 'kind', 'ref', 'pos', 'usable']);

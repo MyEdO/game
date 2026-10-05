@@ -6,7 +6,7 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { SPECIFIC_TENUES } from '../src/gameIso/rig/parts/tenues';
 import { assertTenueCatalogId } from './_lib-wardrobe';
@@ -27,7 +27,7 @@ function cell(career: string, view: View) {
     React.createElement('svg', { viewBox: '0 0 120 150', width: 92, height: 115 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: view === 'back' ? '#241a1a' : '#1b1f2b' }),
-      React.createElement(RigSprite, { appearance: app, equip: { weapons: [], armour: [] }, career, view }),
+      React.createElement(RigSprite, { comp: rigComposition(app, { weapons: [], armour: [] }, career, view) }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:#bcd;font:10px sans-serif">${view}</figcaption></figure>`;

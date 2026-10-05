@@ -1,8 +1,8 @@
 /**
  * Galerie ANIMÉE des animations par arme (SVG + CSS, pas de GIF) : pour chaque arme canonique
  * (une par CLASSE DE MANIEMENT), le rig joue en boucle « porté » (statique) · « attaque » ·
- * « parade ». 1 rig + @keyframes CSS par os mobile (cf. _lib-anim-rig). Famille résolue depuis
- * trappings.subType. Lancer : npx tsx scripts/gen-anim-gallery.mts → public/anim-gallery.html
+ * « parade ». 1 rig + @keyframes CSS par os mobile (cf. _lib-anim-rig). Forme résolue par
+ * `trappingId` (`formeResolue`), geste naturel par `attackKind`. Lancer : npx tsx scripts/gen-anim-gallery.mts → public/anim-gallery.html
  */
 import type { Pose } from '../src/gameIso/rig/poses';
 import { writeFileSync } from 'node:fs';
@@ -16,6 +16,9 @@ import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
+import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
+import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
+import { weaponFromTrait } from '../src/engine/creatureEquip';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -29,7 +32,11 @@ const N = 16;
 const styles: string[] = [];
 let uidN = 0;
 
-const wep = (name: string, type: 'melee' | 'ranged' = 'melee'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
+function wep(arme: ArmeDePlanche): Weapon {
+  const w = 'trappingId' in arme ? weaponFromItem(itemFromTrappingById(arme.trappingId)!) : weaponFromTrait({ id: arme.trait, value: 4 });
+  if (!w) throw new Error(`[anim-gallery] « ${arme.label} » ne s'arme pas`);
+  return w;
+}
 
 function svgTile(inner: string, label: string, css = '', bg = '#1d2230') {
   if (css) styles.push(css);
@@ -52,23 +59,31 @@ function anim(_w: Weapon, equip: EquipCtx, hold: Pose, clip: Clip, label: string
 
 // Une arme par CLASSE DE MANIEMENT (silhouette/clip distincts) — dont les armes NATURELLES
 // de mutation (Tentacule = classe fouet, Cornes = coup de tête).
-const WEAPONS: [string, 'melee' | 'ranged'][] = [
-  ['Dague', 'melee'], ['Rapière', 'melee'], ['Lance de cavalerie', 'melee'], ['Grande hache', 'melee'],
-  ['Hallebarde', 'melee'], ["Fléau d'armes", 'melee'], ['Main Gauche', 'melee'], ['Mains nues', 'melee'],
-  ['Arc long', 'ranged'], ['Arbalète', 'ranged'], ['Pistolet', 'ranged'], ['Fronde', 'ranged'],
-  ['Javelot', 'ranged'], ['Fouet', 'ranged'], ['Bombe', 'ranged'],
-  ['Tentacule', 'melee'], ['Cornes', 'melee'],
+/** Une Possession du catalogue (`trappingId`) ou un trait d'arme naturelle (`trait`), armés COMME EN JEU. */
+type ArmeDePlanche = { label: string; trappingId: string } | { label: string; trait: string };
+const WEAPONS: ArmeDePlanche[] = [
+  { label: 'Dague', trappingId: 'dague' }, { label: 'Rapière', trappingId: 'rapiere' },
+  { label: 'Lance de cavalerie', trappingId: 'lance-de-cavalerie' }, { label: 'Grande hache', trappingId: 'grande-hache' },
+  { label: 'Hallebarde', trappingId: 'hallebarde' }, { label: "Fléau d'armes", trappingId: 'fleau-d-armes' },
+  { label: 'Main Gauche', trappingId: 'main-gauche' }, { label: 'Mains nues', trappingId: 'mains-nues' },
+  { label: 'Arc long', trappingId: 'arc-long' }, { label: 'Arbalète', trappingId: 'arbalete' },
+  { label: 'Pistolet', trappingId: 'pistolet' }, { label: 'Fronde', trappingId: 'fronde' },
+  { label: 'Javelot', trappingId: 'javelot' }, { label: 'Fouet', trappingId: 'fouet' },
+  { label: 'Bombe', trappingId: 'bombe' },
+  { label: 'Tentacule', trait: 'tentacules' }, { label: 'Cornes', trait: 'cornes' },
 ];
 
 const rows: string[] = [];
-for (const [name, type] of WEAPONS) {
-  const w = wep(name, type);
-  const equip: EquipCtx = { weapons: [w], armour: [] };
-  const hold = weaponRest(w);
+for (const arme of WEAPONS) {
+  const name = arme.label;
+  const w = wep(arme);
+  const equip: EquipCtx = equipDe([w], []);
+  const dessin = armeDeDessin(w);
+  const hold = weaponRest(dessin);
   const cells = [
     still(w, equip, hold, 'porté'),
-    anim(w, equip, hold, weaponAttackClip(w), 'attaque', '#2a1d22'),
-    anim(w, equip, hold, weaponParryClip(w, false), 'parade', '#1d2a22'),
+    anim(w, equip, hold, weaponAttackClip(dessin), 'attaque', '#2a1d22'),
+    anim(w, equip, hold, weaponParryClip(dessin, false), 'parade', '#1d2a22'),
   ].join('');
   rows.push(`<div style="display:flex;align-items:center;gap:8px;margin:6px 0">
     <div style="width:130px;color:#eee;font:12px sans-serif">${name}</div>

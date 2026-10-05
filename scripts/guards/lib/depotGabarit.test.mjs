@@ -2,21 +2,26 @@
 // près celui du gabarit — c'est ce qui autorise à ne fabriquer l'état de départ qu'une fois.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { DEPOT } from './ticketsGh.mjs'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { isAbsolute, join, sep } from 'node:path'
-import { envDeDepotForge, gabaritDeDepot, instanceDeDepot } from './depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
+import { ENV_GIT_FEINT, GitIndisponible, TRAVAIL, depotDe, listerImage, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
+import { ast, typescript } from './dialecte.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
+import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 
-const git = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+const git = (cwd) => (args) => lancerGit(args, { cwd, net: true })
 
 const PARAMS = {
   fichiers: { 'src/a.ts': 'export const a = 1\n', 'lu/b.txt': 'b\n' },
   branche: 'principale',
-  origin: 'https://github.com/cgauche/game.git',
+  origin: `https://github.com/${DEPOT}.git`,
   message: 'fondation',
   refs: { 'refs/remotes/origin/main': 'HEAD' },
 }
@@ -103,7 +108,7 @@ test('`commit: false` : un dépôt initialisé, fichiers sur le disque, HORS ind
       ['?? lu/', '?? src/'],
       'les fichiers devraient être NON SUIVIS',
     )
-    assert.throws(() => git(racine)(['rev-parse', '--verify', 'HEAD']), /Command failed/, 'un dépôt sans commit ne doit résoudre AUCUN HEAD')
+    assert.throws(() => git(racine)(['rev-parse', '--verify', 'HEAD']), /git rev-parse --verify HEAD en échec/, 'un dépôt sans commit ne doit résoudre AUCUN HEAD')
   } finally {
     jeter(racine)
   }
@@ -163,6 +168,23 @@ test('A : une construction qui ÉCHOUE en vol efface son dossier avant de relanc
   assert.deepEqual(restes, [], 'le dossier du gabarit en échec est resté sous os.tmpdir()')
 })
 
+test('une copie qui ÉCHOUE dit, DANS son message, l’erreur d’origine et l’état mesuré des deux côtés (#2155)', () => {
+  const params = { fichiers: { 'a.txt': 'sonde copie\n' } }
+  const { racine: gabarit } = gabaritDeDepot(params)
+  jeter(gabarit)
+  assert.throws(() => instanceDeDepot(params), (e) => {
+    assert.equal(e.cause?.code, 'ENOENT')
+    assert.match(e.message, /code ENOENT/)
+    assert.ok(e.message.includes(`chemin ${e.cause.path}`), e.message)
+    assert.ok(e.message.includes(e.cause.message), e.message)
+    assert.match(e.message, /gabarit absent/)
+    assert.match(e.message, /objets du gabarit absent/)
+    assert.match(e.message, /objets de l’instance absent/)
+    assert.match(e.message, /contenu du \.git de l’instance aucun/)
+    return true
+  })
+})
+
 // ── Sonde B : l'instance porte l'HISTOIRE, pas une empreinte d'arbre ──────────────────────────────
 test('B : l’instance est un dépôt HISTORIQUE complet (objets, refs, graphe) et sain', () => {
   const { racine, sha } = instanceDeDepot(PARAMS)
@@ -174,7 +196,7 @@ test('B : l’instance est un dépôt HISTORIQUE complet (objets, refs, graphe) 
     assert.equal(g(['merge-base', 'HEAD', 'refs/remotes/origin/main']), sha, 'les deux refs ne partagent pas l’histoire')
     assert.equal(g(['log', '-1', '--format=%s']), PARAMS.message)
 
-    const fsck = spawnSync('git', ['fsck', '--no-progress'], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' })
+    const fsck = resultatDeGit(['fsck', '--no-progress'], { cwd: racine })
     assert.equal(fsck.status, 0, `git fsck a refusé l’instance : ${fsck.stderr}`)
     assert.doesNotMatch(fsck.stderr + fsck.stdout, /missing|broken|corrupt/i)
 
@@ -253,31 +275,6 @@ const SITE_GIT = /(?:execFileSync|spawnSync)\(\s*['"]git['"]/
 /** L'import qui adresse l'env isolé à la primitive. */
 const IMPORTE_L_ENV = /import\s*\{[^}]*\benvDeDepotForge\b[^}]*\}\s*from\s*['"][^'"]*depotGabarit\.mjs['"]/
 
-/**
- * Lanceurs qui visent l'arbre RÉEL du dépôt : leur env HÉRITÉ est ce qui les rend justes, et c'est
- * la raison pour laquelle ils sont hors de la règle. Nominatif AU SITE : `ancre` est un texte de la
- * fenêtre du site, `sites` son compte EXACT dans le fichier — une entrée qui n'atteint plus rien,
- * ou qui en atteint un de plus, fait rougir.
- */
-const LANCEURS_ARBRE_REEL = [
-  {
-    fichier: 'scripts/gates/classerPush.test.mjs', ancre: 'cwd: RACINE', sites: 1,
-    raison: 'lit les sources SUIVIES de l’arbre réel (`ls-files`) pour confronter la gate à la mesure',
-  },
-  {
-    fichier: 'scripts/gates/testsParGate.test.mjs', ancre: "['rev-parse', '--show-toplevel']", sites: 1,
-    raison: 'résout la RACINE de l’arbre réel, qui est le corpus que la couverture mesure',
-  },
-  {
-    fichier: 'scripts/hooks/solde-ticket-guard.test.mjs', ancre: '`HEAD:${chemin}`', sites: 1,
-    raison: 'lit les revues de palier dans le HEAD de l’arbre réel — le contrôle positif de la chaîne',
-  },
-  {
-    fichier: 'scripts/hooks/solde-ticket-guard.test.mjs', ancre: "'--is-shallow-repository'", sites: 2,
-    raison: 'mesure la profondeur de l’arbre réel, dont dépend la lecture d’histoire des deux cas',
-  },
-]
-
 /** Fichiers du corpus qui forgent un dépôt, hors la primitive. */
 function forgeurs() {
   const corpus = readCorpus(['scripts', 'src'], { exts: ['.mjs', '.mts', '.js', '.ts', '.tsx'], tests: true })
@@ -299,10 +296,8 @@ function fautesDe({ rel, text }) {
   if (!FORGE_UN_DEPOT.test(text) || !SITE_GIT.test(text)) return []
   const fautes = []
   if (!IMPORTE_L_ENV.test(text)) fautes.push(`${rel} : forge un dépôt sans importer \`envDeDepotForge\``)
-  const exempts = LANCEURS_ARBRE_REEL.filter((e) => e.fichier === rel)
   for (const site of sitesGit(text)) {
     if (ENV_ISOLE.test(site.fenetre)) continue
-    if (exempts.some((e) => site.fenetre.includes(e.ancre))) continue
     fautes.push(`${rel}:${site.ligne} : lanceur git sans \`env: envDeDepotForge()\` — ${site.texte}`)
   }
   return fautes
@@ -321,19 +316,6 @@ test('D : le détecteur MORD sur un forgeur à env hérité, à env quelconque, 
 
 test('D : tout fichier qui FORGE un dépôt passe l’env isolé à CHACUN de ses lanceurs git', () => {
   assert.deepEqual(forgeurs().flatMap(fautesDe), [])
-})
-
-test('D : le stock des lanceurs d’arbre RÉEL est nominatif, compté au site, et chaque entrée porte sa raison', () => {
-  const parRel = new Map(forgeurs().map((f) => [f.rel, f.text]))
-  const fautes = []
-  for (const e of LANCEURS_ARBRE_REEL) {
-    assert.ok(e.raison.length > 30, `« ${e.fichier} / ${e.ancre} » sans raison lisible`)
-    const texte = parRel.get(e.fichier)
-    if (!texte) { fautes.push(`${e.fichier} ne forge plus de dépôt : l’entrée « ${e.ancre} » est morte`); continue }
-    const vus = sitesGit(texte).filter((s) => s.fenetre.includes(e.ancre)).length
-    if (vus !== e.sites) fautes.push(`${e.fichier} « ${e.ancre} » : ${vus} site(s) atteint(s) pour ${e.sites} déclaré(s)`)
-  }
-  assert.deepEqual(fautes, [])
 })
 
 // #1806 (juge du lot #85, H2 point 5) : la forge est un ÉCRIVAIN ; l'identité qui
@@ -372,5 +354,113 @@ test('envDeDepotForge : aucune variable `GIT_*` du processus ne passe, hors les 
   } finally {
     if (avant === undefined) delete process.env.GIT_AUTHOR_NAME
     else process.env.GIT_AUTHOR_NAME = avant
+  }
+})
+
+// La SURCHARGE de `PATH` d'un banc : le moyen de caler un binaire, quel que soit le nom du fichier
+// calé. win32 ne lance pas une cale (#2114) ; la panne de git passe par `envGitFeint` (#2225).
+/** Les noms de la variable, dans la casse de chaque plateforme. */
+const NOMS_PATH = new Set(['PATH', 'Path'])
+/** Les appels qui posent une propriété par son nom en second argument. */
+const POSEURS = new Set(['Reflect.set', 'Reflect.defineProperty', 'Object.defineProperty'])
+
+/**
+ * Les surcharges de PATH d'une source, lues sur son AST (`ast`, `scripts/guards/lib/dialecte.mjs`) :
+ * clé d'un littéral objet (nommée, en chaîne, calculée, abrégée `{ PATH }`), affectation d'un membre
+ * (`x.PATH =`, `x['PATH'] =`, `x[cle] =`), pose par `Reflect.set` / `defineProperty`. Une clé calculée
+ * se résout par une `const` du fichier liée au littéral. PUR.
+ * @param {string} rel @param {string} texte @returns {{ ligne: number, texte: string }[]}
+ */
+function surchargesDe(rel, texte) {
+  if (![...NOMS_PATH].some((nom) => texte.includes(nom))) return []
+  const racine = ast({ rel, text: texte })
+  if (!racine) return []
+  const ts = typescript()
+  const litteral = (n) => !!n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && NOMS_PATH.has(n.text)
+  const alias = new Set()
+  const lierAlias = (n) => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && litteral(n.initializer)) alias.add(n.name.text)
+    ts.forEachChild(n, lierAlias)
+  }
+  lierAlias(racine)
+  const designe = (n) => litteral(n) || (!!n && ts.isIdentifier(n) && alias.has(n.text))
+  const cle = (nom) => (ts.isIdentifier(nom) && NOMS_PATH.has(nom.text)) || litteral(nom) || (ts.isComputedPropertyName(nom) && designe(nom.expression))
+  const cible = (n) =>
+    (ts.isPropertyAccessExpression(n) && NOMS_PATH.has(n.name.text)) || (ts.isElementAccessExpression(n) && designe(n.argumentExpression))
+  const lignes = texte.split('\n')
+  const sites = []
+  const visiter = (n) => {
+    const surcharge =
+      (ts.isPropertyAssignment(n) && ts.isObjectLiteralExpression(n.parent) && cle(n.name))
+      || (ts.isShorthandPropertyAssignment(n) && NOMS_PATH.has(n.name.text))
+      || (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && cible(n.left))
+      || (ts.isCallExpression(n) && POSEURS.has(n.expression.getText(racine)) && designe(n.arguments[1]))
+    if (surcharge) {
+      const ligne = racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1
+      sites.push({ ligne, texte: lignes[ligne - 1].trim() })
+    }
+    ts.forEachChild(n, visiter)
+  }
+  visiter(racine)
+  return sites
+}
+
+/** Les surcharges qui ne calent AUCUN binaire. Nominatif AU SITE : `ancre` est un texte de la ligne,
+ *  `sites` le compte EXACT de surcharges sur les lignes qui la portent — une entrée qui n'atteint plus
+ *  rien, ou qui en atteint une de plus, fait rougir. */
+const SURCHARGES_HORS_CLASSE = [
+  { fichier: 'scripts/lancer-local.test.mjs', ancre: 'const env = envIsole(', sites: 1, raison: 'mesure `envIsole`, qui recompose le PATH d’un enfant' },
+  { fichier: 'scripts/lancer-local.test.mjs', ancre: "['sonde', '--', 'sonde', '3', 'suite']", sites: 2, raison: 'mesure que le lanceur local ignore un PATH étranger' },
+  { fichier: 'scripts/test/run.test.mjs', ancre: 'const env = envEnfant(', sites: 1, raison: 'mesure `envEnfant`, qui transmet le PATH' },
+  { fichier: 'scripts/mods/verifier.mjs', ancre: "PATH: 'trouver `claude`", sites: 1, raison: 'clé de la liste blanche `ENV_HERITE` (#2278), qui transmet le PATH hérité' },
+  { fichier: 'scripts/mods/verifier.mjs', ancre: "Path: 'graphie win32 de PATH", sites: 1, raison: 'clé de la liste blanche `ENV_HERITE` (#2278), qui transmet le Path hérité sous win32' },
+  { fichier: 'scripts/mods/verifier.test.mjs', ancre: "PATH: '/bin', GARDEE_NON", sites: 1, raison: 'env de base du banc de `envBlanc` (#2278), qui mesure que le PATH passe' },
+  { fichier: 'scripts/mods/verifier.test.mjs', ancre: "npm_config_cache: '/cache', PATH: '/bin'", sites: 1, raison: 'env de base du banc de `envBlanc` (#2278), jamais passé à un processus' },
+]
+
+test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pas une cale (#2114) : la panne de git passe par `envGitFeint` (#2225)', () => {
+  for (const [forme, cale] of [
+    ['clé', "spawnSync('x', [], { env: { ...process.env, PATH: `${cale}:${process.env.PATH}` } })"],
+    ['clé seule sur sa ligne', "spawnSync('x', [], {\n  env: {\n    ...process.env,\n    PATH: cale,\n  },\n})"],
+    ['clé en chaîne', "const env = { ...process.env, 'Path': cale }"],
+    ['clé abrégée', "const PATH = `${cale}:${process.env.PATH}`\nspawnSync('x', [], { env: { ...process.env, PATH } })"],
+    ['clé calculée', "const cle = 'PATH'\nspawnSync('x', [], { env: { ...process.env, [cle]: cale } })"],
+    ['membre', 'process.env.PATH = `${cale}:${chemin}`'],
+    ['indice', "process.env['PATH'] = cale"],
+    ['indice calculé', "const cle = 'Path'\nenv[cle] = cale"],
+    ['Reflect.set', "Reflect.set(process.env, 'PATH', cale)"],
+    ['defineProperty', "Object.defineProperty(process.env, 'PATH', { value: cale })"],
+    ['Object.assign', "Object.assign(env, { PATH: resolve(cale, 'git') })"],
+  ]) assert.equal(surchargesDe('banc.test.mjs', cale).length, 1, `témoin (${forme}) : la surcharge est reconnue dans ${cale}`)
+  for (const lecture of ['if (env.PATH === x) f()', 'const p = process.env.PATH', 'assert.equal(env.PATH, undefined)', "const { PATH } = process.env", "const t = 'PATH: x'"]) {
+    assert.deepEqual(surchargesDe('banc.test.mjs', lecture), [], `témoin : une LECTURE de PATH n'est pas une surcharge — ${lecture}`)
+  }
+  const racine = fileURLToPath(new URL('../../..', import.meta.url))
+  const sites = listerImage(depotDe(racine), TRAVAIL, 'scripts')
+    .filter((f) => /\.[cm]?[jt]sx?$/.test(f))
+    .flatMap((f) => surchargesDe(f, readFileSync(join(racine, f), 'utf8')).map((s) => ({ fichier: f, ...s })))
+  const restants = sites.filter((s) => !SURCHARGES_HORS_CLASSE.some((e) => e.fichier === s.fichier && s.texte.includes(e.ancre)))
+  assert.deepEqual(restants.map((s) => `${s.fichier}:${s.ligne} ${s.texte}`), [])
+  for (const e of SURCHARGES_HORS_CLASSE) {
+    const vus = sites.filter((s) => s.fichier === e.fichier && s.texte.includes(e.ancre)).length
+    assert.equal(vus, e.sites, `exemption ${e.fichier} « ${e.ancre} » : ${vus} surcharge(s), ${e.sites} déclarée(s)`)
+  }
+})
+
+test('sousGitFeint : la feinte vaut dans CE processus pendant `fn`, et se retire même sur une levée', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  try {
+    const depot = depotDe(racine, { env: envDeDepotForge })
+    const avant = shaDe(depot, 'HEAD')
+    assert.match(avant, /^[0-9a-f]{40}$/)
+    assert.throws(() => sousGitFeint([{ si: ['rev-parse'], status: 128, stderr: 'fatal: panne simulée\n' }], () => shaDe(depot, 'HEAD')),
+      (e) => e instanceof GitIndisponible && e.raison === 'fatal: panne simulée')
+    assert.equal(process.env[ENV_GIT_FEINT], undefined)
+    assert.equal(shaDe(depot, 'HEAD'), avant)
+    assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })
+    assert.throws(() => sousGitFeint([], async () => shaDe(depot, 'HEAD')), /sousGitFeint : `fn` rend une promesse/)
+    assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée après le refus')
+  } finally {
+    jeter(racine)
   }
 })

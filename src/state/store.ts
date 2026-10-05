@@ -892,8 +892,8 @@ export interface GameState extends RollFlowActionsMap {
    *  Propagé à l'arme active via recomputeLoadout → le rendu se recolore (objet légendaire). */
   setItemSkin: (heroId: string, uid: string, patch: Record<string, string | undefined>) => void;
   /** Change la FORME (silhouette) d'une arme abstraite parmi ses `formChoices` (« Arme simple » →
-   *  épée/hache/masse/…). Pose `ItemInstance.shape` puis recompute → l'arme tenue change de silhouette. */
-  setItemShape: (heroId: string, uid: string, shape: string) => void;
+   *  épée/hache/masse/…). Pose `ItemInstance.formeChoisie` puis recompute → l'arme tenue change de silhouette. */
+  choisirForme: (heroId: string, uid: string, forme: string) => void;
   // ── Avancement par PX (LDB 07-Carrières) — câblage du moteur testé ──
   /** Octroie des PX à un héros. */
   grantXp: (heroId: string, amount: number) => void;
@@ -1830,8 +1830,6 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
 }
 
 export const useGame = create<GameState>((set, get) => ({
-  // Actions de combat inline — extraites dans `combatSlice.ts`, spreadées EN TÊTE (mêmes `get`/`set`).
-  // Surface IDENTIQUE : cette tranche ne porte que des ACTIONS ; l'état reste assemblé plus bas (forme à plat).
   ...createCombatSlice(get, set),
   screen: 'menu',
   compendiumFocus: null,
@@ -2147,7 +2145,7 @@ export const useGame = create<GameState>((set, get) => ({
   setLoadoutSlot: (heroId, id, slot, uid) => partyFlow.setLoadoutSlot(get, set, heroId, id, slot, uid),
   transferItem: (uid, fromHeroId, toHeroId) => partyFlow.transferItem(get, set, uid, fromHeroId, toHeroId),
   setItemSkin: (heroId, uid, patch) => partyFlow.setItemSkin(get, set, heroId, uid, patch),
-  setItemShape: (heroId, uid, shape) => partyFlow.setItemShape(get, set, heroId, uid, shape),
+  choisirForme: (heroId, uid, forme) => partyFlow.choisirForme(get, set, heroId, uid, forme),
   grantXp: (heroId, amount) => partyFlow.grantXp(get, set, heroId, amount),
   buyCharAdvance: (heroId, char) => partyFlow.buyCharAdvance(get, set, heroId, char),
   buySkillAdvance: (heroId, skillId, spec) => partyFlow.buySkillAdvance(get, set, heroId, skillId, spec),

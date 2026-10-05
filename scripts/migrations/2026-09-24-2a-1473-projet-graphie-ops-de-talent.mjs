@@ -6,7 +6,7 @@
  * primitive `graphieOpsDeTalentDeep` (`src/data/graphieOpsDeTalent.ts`) — la MÊME que celle du migrateur
  * de chargement, jamais un second calcul.
  *
- * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[16]` (`src/state/worldMap.ts`), qui
+ * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[16]` (`src/data/migrationsDeProjet.ts`), qui
  * rattrape les `.json` de bibliothèque utilisateur. Parité mesurée par
  * `src/state/projet-migration-16-vers-17.test.ts`, qui joue la MÊME fixture par les deux.
  *

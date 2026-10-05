@@ -5,7 +5,9 @@ metadata:
   type: user
 ---
 
-**Verbatim (AskUserQuestion, 2026-09-28)** : « Le tableau entier (Recommandé) », en réponse à « Certaines règles du registre sont une seule ligne d'un tableau du livre […] Que doit montrer la fiche d'une telle règle ? »
+**Verbatim (AskUserQuestion, 2026-09-28)** : « Le tableau entier (Recommandé) »
+
+*Question posée (non-verbatim utilisateur) : que montre la fiche d'une règle qui n'est qu'une ligne de tableau ?*
 
 Description de l'option choisie : « La fiche pointe vers l'endroit du livre, le tableau « Difficultés de Combat », et l'affiche en entier : la ligne de la règle y est, avec sa difficulté et son modificateur, au milieu des autres. Aucune nouvelle mécanique d'adresse. Le joueur doit repérer sa ligne parmi 35. »
 

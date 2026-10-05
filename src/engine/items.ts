@@ -19,6 +19,8 @@ import { t } from '../i18n';
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
 export type TrappingResolver = (id: string) => TrappingData | undefined;
 import { slugId } from '../data/slug';
+import { dansLaSousListe } from '../data/schemas/grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
@@ -107,8 +109,8 @@ export interface WeaponSpec {
   uid?: string | { prefix: string };
   skin?: Record<string, string>;
   form?: string;
-  /** Slug de FORME (routage de l'art rig) — propagé de l'ItemInstance/trait vers `Weapon.shape`. */
-  shape?: string;
+  /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
+  formeChoisie?: string;
   /** Attaque naturelle de corps (aucune arme dessinée) — propagé vers `Weapon.natural`. */
   natural?: boolean;
   /** Nature d'attaque naturelle STAMPÉE (morsure/cornes/caudale/tentacules/pietinement…) — pour la
@@ -150,7 +152,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
   if (spec.skin !== undefined) w.skin = spec.skin;
   if (spec.form !== undefined) w.form = spec.form;
-  if (spec.shape !== undefined) w.shape = spec.shape;
+  if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
   if (spec.builtinId !== undefined) w.builtinId = spec.builtinId;
@@ -183,6 +185,14 @@ export const isUnarmedTrapping = (id: string | undefined, resolveTrapping: Trapp
  *  ≠ `weaponDamage.isImprovised` (arme RÉDUITE à cet état par l'usure). */
 export const isImprovisedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
   !!(id && resolveTrapping(id)?.improvised);
+
+/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Bouclier » (`TrappingData.shield`) ? LDB 62 l.33-35 ;
+ *  AA 08 l.156 ; ZI 13 l.911. ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+export const isShieldTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
+  !!(id && resolveTrapping(id)?.shield);
+
+/** Arme ou objet reconnu bouclier par son IDENTITÉ de catalogue (`trappingId`). */
+export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTrapping(x.trappingId);
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
@@ -237,11 +247,13 @@ function kindOf(categorie: string): ItemKind {
 }
 
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
- *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). */
+ *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
+ *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
   const t = resolveTrapping(id);
   if (!t) return null;
-  if (t.service) throw new Error(`itemFromTrappingById: "${t.id}" est un tarif de service (LDB 66 l.12-14), pas un objet possédable.`);
+  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, t))
+    throw new Error(`itemFromTrappingById: "${t.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
   const kind = kindOf(t.categorie);
   const locs =
     t.loc != null
@@ -249,6 +261,9 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
           .split(',')
           .flatMap((p) => ARMOUR_LOC_BY_ID[slugId(p)] ?? [])
       : undefined;
+  // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
+  // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
+  // POSSÈDE, et une édition du catalogue ne les repeint pas.
   return {
     uid: newUid(),
     trappingId: t.id,
@@ -269,7 +284,6 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     enc: typeof t.enc === 'number' ? t.enc : 0, // 'ND' (ateliers) / 'Variable' (arme improvisée) → non-encombrant (0), jamais NaN
     ...(t.sizeFor ? { sizeFor: t.sizeFor } : {}), // taille prévue (ADE II 2 l.706-710) — version « taille ogre » d'une possession ordinaire
     equipped: false,
-    ...(t.shape ? { shape: t.shape } : {}), // slug de FORME (routage de l'art rig) — absent pour munitions/siège/Mains nues
     desc: t.desc,
     ...(t.consumable ? { consumable: t.consumable } : {}), // effet de consommable (Flow) copié du catalogue
     ...(t.consumableDuration ? { consumableDuration: t.consumableDuration } : {}), // durée d'horloge (LDB 71/72 « Durée : … »), résolue au boire
@@ -667,7 +681,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { 
     weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
     bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
     minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    skin: it.skin, form: it.form, shape: it.shape, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    skin: it.skin, form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
   }), it.enchants ?? []);
 }
@@ -1010,13 +1024,13 @@ export function damageScore(d?: WeaponDamageSpec): number {
 
 /** Construit l'inventaire d'un héros depuis des `TrappingRef[]` (possessions de Classe + niveau de
  *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; le `count` d'une munition
- *  donne sa quantité. Les refs `{text}` (flavor hors catalogue : « Réseau d'informateurs ») n'ont pas
- *  de stats → ignorées. */
+ *  donne sa quantité. Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
+ *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). */
 export function buildInventory(refs: TrappingRef[]): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
     if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
-    if (!('id' in ref)) continue; // {text} narratif : pas d'objet à stats
+    if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
     const it = itemFromTrappingRef(ref);
     if (it) items.push(it);
   }

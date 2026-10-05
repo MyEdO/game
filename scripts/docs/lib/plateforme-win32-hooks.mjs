@@ -3,7 +3,7 @@
 // sur le cwd POSIX) et `node:url` en un `fileURLToPath` qui rend la graphie Windows : c'est ce que ce
 // code reçoit d'un hôte win32.
 // Les modules de `node_modules` et node lui-même gardent leur `path` : ils ne sont pas jugés ici.
-// La RACINE du dépôt rendu est celle que `lancer()` (via `commandeDe`) donne au générateur
+// La RACINE du dépôt rendu est celle que la garde (`renduSousWin32`) donne au générateur
 // (`initialize`).
 //
 // Ce module est aussi importé depuis le thread principal (le `node:url` de remplacement y prend
@@ -28,6 +28,14 @@ export const versPosix = (chemin) => {
   const s = chemin.replaceAll('\\', '/')
   return /^[A-Za-z]:\//.test(s) ? s.slice(LECTEUR.length) : s
 }
+
+/** Le cwd rendu au code sous win32 quand la racine est DONNÉE par un lien (`racineDonnee`, cible
+ *  `racineReelle`) : le chemin donné, préfixe du cwd de l'hôte qu'il désigne ; tout autre cwd passe
+ *  tel quel. GetCurrentDirectory (win32) ; getcwd(3) (POSIX). PUR. */
+export const cwdDonne = (cwdHote, racineDonnee, racineReelle) =>
+  cwdHote === racineReelle || cwdHote.startsWith(`${racineReelle}/`)
+    ? `${racineDonnee.replace(/\/+$/, '')}${cwdHote.slice(racineReelle.length)}`
+    : cwdHote
 
 /** URL `file:` du dossier racine du dépôt rendu, barre finale comprise. Canonique, comme les URL de
  *  modules et le cwd du noyau : une racine par lien symbolique ne reconnaîtrait aucun module. */

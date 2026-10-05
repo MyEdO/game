@@ -70,7 +70,7 @@ test('le dépôt n’a AUCUN site de fermeture hors de la liste déclarée', () 
 test('les DEUX régimes de fermeture du dépôt sont nommés, chacun avec ce qu’il ferme', () => {
   const vu = recensementDesFermetures()
   const parFichier = new Map(vu.sites.map((s) => [s.fichier, s.formes]))
-  // Le job `fermetures` de ci.yml : les tickets SOLDÉS d'une plage poussée sur main.
+  // Le job `fermetures` de fermetures.yml : les tickets SOLDÉS d'une plage de main (`baseDeLaPlage`).
   assert.deepEqual(parFichier.get('scripts/ops/fermer-depuis-main.mjs'), ['gh api … state=closed'])
   // Le canari : la survivante d'un signalement rouge, quand la course repasse au vert.
   assert.deepEqual(parFichier.get('scripts/ops/signaler-rouge.mjs'), ['gh issue close'])

@@ -14,6 +14,7 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const GARDE = join(ICI, 'check-plans-anchors.mjs')
@@ -26,7 +27,7 @@ const CODE_DE_LA_GARDE = {
 }
 
 const git = (base, ...args) => {
-  const r = spawnSync('git', args, { cwd: base, encoding: 'utf8' })
+  const r = resultatDeGit(args, { cwd: base })
   assert.equal(r.status, 0, `git ${args.join(' ')} : ${r.stderr}`)
   return r.stdout
 }

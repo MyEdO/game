@@ -7,24 +7,24 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { combatantOverlays, combatantAppearance } from '../src/gameIso/rig/parts/combatantVisuals';
-import { creatureToCombatant } from '../src/state/spawn';
-import { findCreatureById } from '../src/data';
+import { spawnEnemy } from '../src/state/spawn';
 import { EYE_OPTIONS } from '../src/gameIso/rig/parts/eyes';
 import { idsPhysiques, mutationById } from '../src/data/mutations';
 import type { Mutation } from '../src/engine/corruption';
 import type { Combatant, Trauma } from '../src/engine/types';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
+import { equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import type { RigOverlay } from '../src/gameIso/rig/bones';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import type { ItemInstance, Weapon } from '../src/engine/types';
 import { assertWardrobeId } from './_lib-wardrobe';
 
-// `RigSprite.career` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
+// la tenue de `rigComposition` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
 // validés fail-fast : un id qui retombe sur « nu » masquerait la mutation sous un corps nu (#1338).
 const TENUE_DEFAUT = 'mendiant';
 const TENUE_SOLDAT = 'soldat';
@@ -32,7 +32,7 @@ for (const id of [TENUE_DEFAUT, TENUE_SOLDAT])
   assertWardrobeId(id, 'mutations-gallery');
 
 const APP: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 };
-const NU: EquipCtx = { weapons: [], armour: [] };
+const NU: EquipCtx = equipDe([], []);
 const mut = (id: string): Mutation => mutationById(id)!;
 
 function cell(label: string, app: Appearance, overlays: RigOverlay[], opts: { view?: View; equip?: EquipCtx; career?: string; bg?: string; tint?: string } = {}): string {
@@ -40,7 +40,7 @@ function cell(label: string, app: Appearance, overlays: RigOverlay[], opts: { vi
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: opts.bg ?? '#1d2230' }),
-      React.createElement(RigSprite, { appearance: app, equip: opts.equip ?? NU, career: opts.career ?? TENUE_DEFAUT, view: opts.view ?? 'front', overlays }),
+      React.createElement(RigSprite, { comp: rigComposition(app, opts.equip ?? NU, opts.career ?? TENUE_DEFAUT, opts.view ?? 'front', overlays) }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:${opts.tint ?? '#cdd'};font:11px sans-serif">${label}</figcaption></figure>`;
@@ -70,18 +70,16 @@ const piece = (uid: string, pa: number, locs: ItemInstance['locs']): ItemInstanc
   ({ uid, label: `Protection (${locs![0]})`, kind: 'armor', qualities: [], pa, locs, enc: 0, equipped: true });
 const ARMOUR: ItemInstance[] = [piece('a1', 3, ['corps']), piece('a2', 2, ['tete']), piece('a3', 1, ['brasG', 'brasD']), piece('a4', 1, ['jambeG', 'jambeD'])];
 const EPEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
-const SOLDAT: Parameters<typeof cell>[3] = { equip: { weapons: [EPEE], armour: ARMOUR }, career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
+const SOLDAT: Parameters<typeof cell>[3] = { equip: equipDe([EPEE], ARMOUR), career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
 section('Sur armure équipée (épée en main)', [
   'suintement-de-pus', 'bouche-supplementaire', 'ecailles-epineuses', 'plumes-eparses', 'peau-d-acier',
   'tentacule-epais', 'doigts-distendus', 'pattes-d-animaux', 'cornes-asymetriques',
 ].map((id) => mutCell(id, SOLDAT)));
 
 // 4) Mutants ennemis : visuels DATA-DRIVEN du bestiaire (trait « Mutation (Cornes asymétriques) » =
-// tell garanti + trait « Mutation » = tirage), chemin réel spawn→combatantOverlays. Plus de tirage
-// d'overlays dans le rendu (POC isMutant/randomMutationOverlays retiré).
-const mutantDef = findCreatureById('mutant')!;
+// tell garanti + trait « Mutation » = tirage), chemin réel spawn→combatantOverlays.
 section('Mutants ennemis — mutation DATA-DRIVEN (cornes garanties + tirage par id)', ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => {
-  const c = creatureToCombatant(mutantDef, `gal-mut-${k}`, { x: 0, y: 0 });
+  const c = spawnEnemy({ ref: 'mutant' }, `gal-mut-${k}`, { x: 0, y: 0 });
   return cell(`Mutant ${k}`, combatantAppearance(APP, c), combatantOverlays(c), { bg: '#2a1d22', tint: '#e9b' });
 }));
 

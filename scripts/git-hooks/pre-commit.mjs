@@ -1,33 +1,28 @@
 // Hook pre-commit : la porte AU COMMIT — gardes anti-poison diff-scopées sur les fichiers stagés.
 // Mécanique partagée : scripts/guards/lib/ (source unique avec les tests Vitest et le hook au stylo).
 // CE QUI EST JOUÉ ICI : les scanners de commentaires/code sur le contenu de l'INDEX, `validate-data`,
-// `docs:check` + `check-docs-vs-head` + `check-plans-anchors`, `raw:implemente`, `build-doctrines`,
+// `check-doc-refs` + `check-plans-anchors`, `raw:implemente`, `build-doctrines`,
 // `compile-dessin-quad`,
-// `test:raw`, `test:recette`, `agents:check`, et le LINT des fichiers stagés (≈ 4 s / 20 fichiers).
+// `test:raw`, `test:recette`, `agents:check` — chacun armé sur SES sources stagées —, et le LINT des
+// fichiers stagés (≈ 4 s / 20 fichiers).
+// Sous une fusion en cours, les fichiers « stagés » sont ceux de son APPORT PROPRE (`apport`, #2328).
 // CE QUI N'EST PAS JOUÉ ICI : ni typecheck, ni suite Vitest, ni les scanners de corpus entier — ils
 // coûtent des dizaines de secondes et restent à la CI. La durée totale est imprimée en fin de hook.
-// Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (tolérance zéro, arbre à zéro) ;
+// Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (dette neuve au-dessus du stock) ;
 // les excuses sans tag bloquent quand EXCUSE_GUARD_ACTIVE est vrai, sinon elles rejoignent le canal
 // non bloquant. Ce canal (affirmations RAW, revendications d'autorité, hardcode réactif) est trié par
 // la baseline nominative `scripts/guards/lib/decisions-baseline.json` : NOUVEAU en tête, sites déjà
-// tranchés en une ligne compacte. `docs:check` tourne si un docs/*.md à plat est stagé (racine ou
-// docs/raw/, les fiches régénérables — #487) ; sur le même déclencheur, `check-docs-vs-head.mjs`
-// confronte les docs GÉNÉRÉS stagés à l'INDEX (porte de COMMIT, jamais dans `docs:check`).
+// tranchés en une ligne compacte. `check-doc-refs` tourne si un docs/*.md à plat est stagé (racine ou
+// docs/raw/, les fiches régénérables — #487).
 // Testabilité : des chemins passés en arguments remplacent la liste stagée (aucun toucher à l'index).
+// Porte de version de Node en PREMIER import (`scripts/node-requis.mjs`) : la clôture STATIQUE ne porte
+// ni module TypeScript ni attribut d'import ; `commentPoison.mjs`, qui en porte, se charge après elle.
+import '../node-requis.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
-  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
-} from '../guards/lib/commentPoison.mjs';
-import {
-  scanLabelLogic, scanLabelAsIdArg, collectIdParamFnsAcrossDirs, effectiveIdParamFns,
-  scanLabelLiteralCompare, LABEL_LITERAL_STOCK,
-  scanCallResultLiteralCompare, LABEL_CALL_LITERAL_STOCK,
-  STRICT_DIRS, RATCHET_DIRS, RATCHET_EXCEPTIONS, ratchetShortKey,
-} from '../guards/lib/labelLogic.mjs';
+import { contexteDeLaGarde, corpusDeLaGarde, scanLabelLogicFichier, dettesParVolet, ecartsAuxDettesDeLibelle, clesInterditesAuStock } from '../guards/lib/labelLogic.mjs';
 import { emojisIn } from '../guards/lib/emojiAffordance.mjs';
 import { scanHardcode } from '../guards/lib/hardcode.mjs';
 import { scanRollSeamExclusivity } from '../guards/lib/rollSeamExclusivity.mjs';
@@ -37,14 +32,20 @@ import { battleRngEngineLeakExcluded } from '../guards/lib/battleRngEngineLeakWh
 import { scanNpmLockHoisted } from '../guards/lib/npmLockHoisted.mjs';
 import { scanArbresImbriques } from '../guards/lib/arbreImbrique.mjs';
 import { fichiersALinter, lancerLint } from '../guards/lib/lintStage.mjs';
-import { ciblesDesArmes, generateursArmes } from '../guards/lib/empreinteStage.mjs';
 import { codeDePanne, docsDePorte, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
-import { INDEX, arbrePrincipal, ceQuEmporteLIndex, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
+import { INDEX, apportDeLaFusionEnCours, arbrePrincipal, ceQuEmporteLIndex, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
+import { sourceDuCheck } from '../agents/compat-cli.mjs';
+import { journaliserLeHook } from './journal.mjs';
 
 const DEBUT_MS = Date.now();
+const journal = journaliserLeHook('pre-commit');
+const {
+  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
+  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
+} = await import('../guards/lib/commentPoison.mjs');
 
 // Deux racines DISTINCTES, jamais interchangeables. `core.hooksPath` vaut `scripts/git-hooks` RELATIF
 // (`git config --show-origin --get-all core.hooksPath` → `.git/config`, valeur relative), donc le
@@ -70,20 +71,32 @@ const depot = depotDe(ROOT);
 const tsxIn = (root) => join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 const TSX_CLI = existsSync(tsxIn(ROOT)) ? tsxIn(ROOT) : tsxIn(HOOK_TREE);
 
-// 5ᵉ forme du garde-fou #142 (`.label` passé où le paramètre de déclaration est `id`) : map GLOBALE
-// des déclarations id-param sur le MÊME périmètre que `label-logic-guard.test.ts` (déclaration et
-// appel peuvent vivre dans des fichiers différents, ex. `bodyShapeOf`) — composition PARTAGÉE
-// (`collectIdParamFnsAcrossDirs`, scripts/guards/lib/labelLogic.mjs), aucune copie ici.
-const ID_PARAM_FNS = collectIdParamFnsAcrossDirs(ROOT, [...STRICT_DIRS, ...RATCHET_DIRS]);
-const strictRe = new RegExp(`^(?:${STRICT_DIRS.join('|')})/`);
-const ratchetRe = new RegExp(`^(?:${RATCHET_DIRS.join('|')})/`);
+// Garde « logique par libellé » (#142, #909, #1988 §7) : le contexte INTER-FICHIERS (déclarations à
+// paramètre `id`, faces d'affichage, résolveurs par libellé) se collecte sur le corpus de la lib —
+// déclaration et appel vivent dans des fichiers différents —, même contexte que le test.
+const GARDE_LIBELLE = contexteDeLaGarde(corpusDeLaGarde());
+// Périmètre de `scanHardcode` : celui de `combat-hardcode-guard.test.ts` (`SCAN_DIRS`).
+const hardcodeRe = /^src\/(?:engine|state)\//;
 
 const argFiles = process.argv.slice(2);
+const offenders = [];
+/**
+ * Ce que le commit APPORTE : l'index contre HEAD (`ceQuEmporteLIndex`) ; sous une fusion en cours, son
+ * APPORT PROPRE (`apportDeLaFusionEnCours`, #2328 A7) — ce que main apporte a été jugé à son propre
+ * commit. Une fusion que git ne rejoue pas est un fautif NOMMÉ, jamais une retombée sur HEAD.
+ */
+const apport = (() => {
+  try {
+    return apportDeLaFusionEnCours(depot, INDEX)?.change ?? ceQuEmporteLIndex(depot);
+  } catch (e) {
+    offenders.push(`apport du commit illisible — ${raisonCourte(e?.message ?? e)}`);
+    return null;
+  }
+})();
 const staged = argFiles.length
   ? argFiles
-  : ceQuEmporteLIndex(depot).chemins('ACMR');
+  : apport?.chemins('ACMR') ?? [];
 
-const offenders = [];
 /**
  * Le texte à juger de `rel`, `null` s'il n'y en a pas : en mode `argFiles`, le fichier (illisible →
  * `null`) ; en mode stagé, le BLOB DE L'INDEX (`lireEnLot`) — sur l'arbre partagé, le fichier disque
@@ -101,17 +114,20 @@ function texteAJuger(rel) {
     return null;
   }
 }
-/** Le diff de l'INDEX (`ceQuEmporteLIndex`) ; une panne est un fautif NOMMÉ. */
-const diffDeLIndex = (() => {
+/** Le diff de l'APPORT (`apport`) ; une panne est un fautif NOMMÉ. */
+const diffDeLApport = (() => {
   try {
-    return ceQuEmporteLIndex(depot).diff();
+    return apport?.diff() ?? '';
   } catch (e) {
-    offenders.push(`diff de l'index illisible — ${raisonCourte(e?.message ?? e)}`);
+    offenders.push(`diff du lot illisible — ${raisonCourte(e?.message ?? e)}`);
     return '';
   }
 })();
 // #1679 L1c — le contenu d'un arbre de travail imbriqué n'appartient pas à un commit du dépôt hôte.
 for (const x of scanArbresImbriques(staged, { racine: ROOT })) offenders.push(x.detail);
+// Garde « logique par libellé » : un volet sans stock (`VOLETS_SANS_STOCK`) porté par une clé du stock
+// bloque, quel que soit le fichier stagé — même fonction que le test.
+offenders.push(...clesInterditesAuStock());
 // Signaux non bloquants, en OBJETS `{ file, line, detail }` : ils passent par la baseline
 // nominative (`decisions-baseline.json`) avant impression, qui les range en NOUVEAU / BASELINE.
 const warnings = [];
@@ -128,8 +144,8 @@ for (const f of staged) {
   // Familles de COMMENTAIRES (tombale / excuse / vocabulaire de l'ancien état / revendications RAW / revendications d'autorité) : tests compris,
   // « le poison écrit dans un test est du poison » (commentPoison.mjs). Familles CODE (label-logic,
   // hardcode, emoji, seam de jet, rng) : leur périmètre canonique EXCLUT les fichiers de test — ce
-  // sont eux qui plantent les FIXTURES littérales de ces gardes (label-logic-guard.test.ts EXCLUDED,
-  // combat-hardcode-guard.test.ts EXCLUDED, roll-seam-exclusivity-guard.test.ts EXCLUDED,
+  // sont eux qui plantent les FIXTURES littérales de ces gardes (corpus `estDansLeCorpus` de
+  // labelLogic.mjs, combat-hardcode-guard.test.ts EXCLUDED, roll-seam-exclusivity-guard.test.ts EXCLUDED,
   // no-emoji-affordance.test.ts EXCLUDED) — un fichier de test stagé ne doit PAS y rougir.
   const isTestFile = estFichierVitest(rel);
   const text = texteAJuger(rel);
@@ -148,37 +164,20 @@ for (const f of staged) {
     warnings.push({ file: rel, line: x.line, detail: `[affirmation RAW non ancrée] ${x.detail}` });
   for (const x of scanDecisionClaims(rel, text))
     warnings.push({ file: rel, line: x.line, detail: `[revendication d'autorité sans trace] ${x.detail}` });
-  if (!isTestFile && strictRe.test(rel)) {
-    for (const x of scanLabelLogic(rel, text)) offenders.push(`${rel}:${x.line} [logique par label] ${x.detail}`);
-    for (const x of scanLabelAsIdArg(rel, text, effectiveIdParamFns(text, ID_PARAM_FNS))) offenders.push(`${rel}:${x.line} [logique par label — id STABLE attendu] ${x.detail}`);
+  if (!isTestFile && hardcodeRe.test(rel)) {
     // hardcode.mjs porte des BASELINES par-fichier (policy dans combat-hardcode-guard.test.ts, PAS
     // dupliquée ici) — un nouveau site réactif par-nom peut rester SOUS une baseline tolérée : simple
     // signal, la CI (cliquet complet) reste la porte bloquante pour cette famille.
     for (const x of scanHardcode(rel, text)) warnings.push({ file: rel, line: x.line, detail: `[hardcode réactif par-nom] ${x.detail}` });
-  } else if (!isTestFile && ratchetRe.test(rel)) {
-    // MÊME périmètre RATCHET que `label-logic-guard.test.ts` (STRICT_DIRS/RATCHET_DIRS/RATCHET_EXCEPTIONS
-    // partagés via labelLogic.mjs) : un site nouveau dans src/gameIso|ui BLOQUE le commit sauf entrée
-    // JUSTIFIÉE dans la MÊME table d'exceptions que le test — jamais un périmètre plus étroit ici.
-    const idParamFns = effectiveIdParamFns(text, ID_PARAM_FNS);
-    for (const x of [...scanLabelLogic(rel, text), ...scanLabelAsIdArg(rel, text, idParamFns)]) {
-      if (!(ratchetShortKey({ rel, line: x.line }) in RATCHET_EXCEPTIONS))
-        offenders.push(`${rel}:${x.line} [logique par label — hors exception ratchet] ${x.detail}`);
-    }
   }
-  // #142 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
-  // stock PAR FICHIER que `label-logic-guard.test.ts` (`LABEL_LITERAL_STOCK`, partagé par la lib).
-  // Le hook ne voit qu'un fichier à la fois : seul un compte SUPÉRIEUR au stock y bloque — le volet
-  // « dette soldée non retirée » reste à la CI, qui scanne le corpus entier.
-  if (!isTestFile && (strictRe.test(rel) || ratchetRe.test(rel))) {
-    const n = scanLabelLiteralCompare(rel, text).length;
-    if (n > (LABEL_LITERAL_STOCK[rel] ?? 0)) offenders.push(`${rel} [logique par LIBELLÉ] ${n} site(s), stock = ${LABEL_LITERAL_STOCK[rel] ?? 0}`);
-  }
-  // #1694 — retour d'APPEL comparé à un littéral FR (`rangeBandName(…) === 'Bout portant'`), stock
-  // par fichier `LABEL_CALL_LITERAL_STOCK` : même double détente que ci-dessus, le volet « dette
-  // soldée » restant à la CI (`label-logic-guard.test.ts`), qui scanne le corpus entier.
-  if (!isTestFile && strictRe.test(rel)) {
-    const n = scanCallResultLiteralCompare(rel, text).length;
-    if (n > (LABEL_CALL_LITERAL_STOCK[rel] ?? 0)) offenders.push(`${rel} [retour d'appel comparé à un LIBELLÉ] ${n} site(s), stock = ${LABEL_CALL_LITERAL_STOCK[rel] ?? 0}`);
+  // Garde « logique par libellé » : TOUS ses volets par `scanLabelLogicFichier`, la composition de la
+  // lib que le test joue sur le corpus entier. Le hook ne voit que les fichiers stagés : seule la dette
+  // NEUVE (compte au-dessus du stock `DETTES_DE_LIBELLE`, par fichier et volet) y bloque — la dette soldée reste à la CI.
+  const sitesLibelle = scanLabelLogicFichier(rel, text, GARDE_LIBELLE);
+  const detteNeuve = ecartsAuxDettesDeLibelle(dettesParVolet({ fichiers: [rel], sites: sitesLibelle }), { hausseSeule: true });
+  if (detteNeuve.length > 0) {
+    offenders.push(...detteNeuve);
+    for (const x of sitesLibelle.filter((y) => y.statut !== 'couture')) offenders.push(`${rel}:${x.line} [logique par libellé — ${x.rule}] ${x.detail}`);
   }
   if (!isTestFile && /^src\/(ui|state|gameIso)\//.test(rel))
     for (const emoji of emojisIn(text)) offenders.push(`${rel} [emoji d'affordance] ${emoji}`);
@@ -226,7 +225,7 @@ if (dataStaged.length) {
 
 // Tag [entériné] NOUVELLEMENT introduit dans le diff stagé : visibilité systématique (le tag est
 // réservé à l'utilisateur, qui l'écrit lui-même ; ici on rend tout ajout VISIBLE).
-const ajoutees = diffDeLIndex.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
+const ajoutees = diffDeLApport.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
 const addedTags = ajoutees.filter((l) => /\[entériné[^\]]*\]/i.test(l));
 if (addedTags.length) {
   process.stderr.write(`pre-commit — tag(s) [entériné] AJOUTÉ(s) par ce commit (mot réservé à l'utilisateur — vérifier que CHAQUE site a reçu sa validation) :\n${addedTags.map((l) => `  ${l.slice(0, 160)}`).join('\n')}\n`);
@@ -240,10 +239,8 @@ if (staged.some((f) => f.replace(/\\/g, '/') === 'package-lock.json')) {
   }
 }
 
-// Les chemins passés au garde sont SA sélection (`docsDePorte`), jamais le diff entier : 32 k caractères
-// d'argv sous Windows, un gros renommage dépasse — `execFileSync` part alors en `ENAMETOOLONG` et le
-// `catch` rendrait un verdict de doc pour une porte qui n'a jamais tourné (classe nommée et mesurée dans
-// `scripts/guards/lib/porteSpawn.mjs`).
+// La porte des docs s'arme sur SA sélection (`docsDePorte`) ; une panne de lancement n'est pas un
+// verdict de doc (`codeDePanne`, scripts/guards/lib/porteSpawn.mjs).
 const docsPourLaPorte = docsDePorte(staged);
 if (docsPourLaPorte.length) {
   try {
@@ -253,50 +250,6 @@ if (docsPourLaPorte.length) {
     offenders.push(panne
       ? `docs:check — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué, pas le doc)`
       : 'docs:check en échec (référence vivante qui ment — corriger le doc ou le code, jamais commiter le mensonge)');
-  }
-  // Un doc GÉNÉRÉ stagé doit décrire l'arbre QUI PART au commit, pas le WIP d'une session voisine :
-  // ses `fichier:ligne` et ses comptes d'inventaire sont confrontés à l'INDEX. Cette garde reste HORS
-  // `docs:check` (qui tourne légitimement sur un arbre en vol) — c'est une porte de COMMIT.
-  try {
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'check-docs-vs-head.mjs'), ...docsPourLaPorte], { cwd: ROOT, stdio: 'inherit' });
-  } catch (e) {
-    const panne = codeDePanne(e);
-    offenders.push(panne
-      ? `docs-vs-commit — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué, pas le doc)`
-      : 'docs-vs-commit en échec (doc généré qui décrit un arbre absent du commit — régénérer sur l’arbre stagé, ou stager le code décrit)');
-  }
-}
-
-// #1679 L1b — EMPREINTE DE SOURCES des docs dérivés. UN déclencheur : un doc GÉNÉRÉ est stagé. Pour
-// ce doc-là, les blobs figés dans son pied doivent être ceux de l'INDEX — sinon il décrit un arbre
-// que ce commit n'embarque pas. Une SOURCE stagée sans régénération n'arme rien ici : le pied qu'elle
-// périme porte un doc qui ne part pas dans ce commit, et armer sur les sources coûterait un
-// `docs:build` à 59,3 % des commits (mesuré 2026-09-02) pour un pied re-signé UNE fois par train, à
-// l'étape docs de `ops:publier`. La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne
-// régénère RIEN (recalcul sur l'index, `git ls-files -s`), contre 49,8 s pour la régénération des 13
-// générateurs qu'un `src/data/*.json` arme (mesuré 2026-09-02).
-// CHAÎNE DE CONFIANCE : `docs/.sources-lues.json` est lu ici dans l'ARBRE (il ne sert qu'à CHOISIR
-// les générateurs), SANS être revérifié ; le VERDICT, lui, ne sort que de l'INDEX. Sa fraîcheur est
-// gatée en CI par `docs:check:tout`, qui rejoue chaque générateur et compare la mesure au committé. DÉFAUT CONNU : s'il
-// est illisible, la sélection rend une liste vide et la porte se tait ici — la CI reste le filet.
-const sourcesLues = (() => {
-  try { return JSON.parse(readFileSync(join(ROOT, 'docs', '.sources-lues.json'), 'utf8')); } catch { return {}; }
-})();
-const armes = (() => {
-  try { return generateursArmes(sourcesLues, staged); } catch { return []; }
-})();
-if (armes.length) {
-  try {
-    // `armes` est une liste de NOMS de générateurs (bornée par `docs/.sources-lues.json`), pas le diff :
-    // elle ne peut pas faire dépasser les 32 k caractères d'argv — le `catch` distingue quand même la
-    // PANNE de spawn du verdict, pour ne jamais accuser un doc à la place d'un lancement raté.
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'build-all.mjs'), '--empreinte', '--only', ...armes], { cwd: ROOT, stdio: 'inherit' });
-  } catch (e) {
-    const panne = codeDePanne(e);
-    const cibles = ciblesDesArmes(sourcesLues, armes);
-    offenders.push(panne
-      ? `empreinte de sources — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
-      : `empreinte de sources en échec — ${cibles.join(', ')} décrit un arbre ≠ index : \`npm run docs:build\`, puis stage le(s) doc(s) avec les sources nommées ci-dessus`);
   }
 }
 
@@ -348,20 +301,18 @@ if (rawFicheStaged) {
   }
 }
 
-// #1679 L1b — `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md` : le --check
-// tourne dès qu'une fiche user-* ou le doc lui-même est stagé (même patron borné que #487 ci-dessus).
-const doctrineStaged = staged.some((f) => {
-  const r = f.replace(/\\/g, '/');
-  return r === 'docs/doctrines.md' || /^\.claude\/memory\/user-[^/]+\.md$/.test(r);
-});
+// #1679 L1b — `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md`, jamais commité
+// (#2203) : dès qu'une fiche user-* est stagée, il se RÉGÉNÈRE, et un rouge de son générateur est un
+// rouge de la fiche (même patron borné que #487 ci-dessus).
+const doctrineStaged = staged.some((f) => /^\.claude\/memory\/user-[^/]+\.md$/.test(f.replace(/\\/g, '/')));
 if (doctrineStaged) {
   try {
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'build-doctrines.mjs'), '--check'], { cwd: ROOT, stdio: 'inherit' });
+    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'build-doctrines.mjs')], { cwd: ROOT, stdio: 'inherit' });
   } catch (e) {
     const panne = codeDePanne(e);
     offenders.push(panne
       ? `build-doctrines — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
-      : 'build-doctrines --check en échec (docs/doctrines.md périmé ou édité à la main — relancer `npm run docs:doctrines` et committer le résultat)');
+      : 'build-doctrines en échec (fiche user-* que le générateur de docs/doctrines.md refuse — corriger la fiche)');
   }
 }
 
@@ -454,17 +405,18 @@ if (aLinter.length) {
   for (const d of defauts) offenders.push(`${d.site} [lint ${d.gravite}] ${d.regle} — ${d.message}`);
 }
 
-try {
-  execFileSync('npm', ['run', 'agents:check'], {
-    cwd: ROOT,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
-} catch (e) {
-  const panne = codeDePanne(e);
-  offenders.push(panne
-    ? `agents:check — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
-    : 'agents:check en échec (adaptateurs Claude/Codex divergents — lancer `npm run agents:sync`)');
+// #2194 — `agents:check` s'arme sur SES sources (`sourceDuCheck`, scripts/agents/compat-cli.mjs) : ce
+// qu'il lit, son code, et `package.json` qui le déclare. Même patron diff-scopé que `test:recette`.
+const estSourceDuCheck = sourceDuCheck(ROOT);
+if (staged.some(estSourceDuCheck)) {
+  try {
+    execFileSync('npm', ['run', 'agents:check'], { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+  } catch (e) {
+    const panne = codeDePanne(e);
+    offenders.push(panne
+      ? `agents:check — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
+      : 'agents:check en échec (adaptateurs Claude/Codex divergents — lancer `npm run agents:sync`)');
+  }
 }
 
 // Canal non bloquant : la baseline nominative sépare le DÉJÀ TRANCHÉ (compact, une ligne par site)
@@ -477,6 +429,7 @@ if (rapport.length) {
 }
 process.stderr.write(`[pre-commit] ${staged.length} fichier(s) stagé(s), ${aLinter.length} linté(s) — ${((Date.now() - DEBUT_MS) / 1000).toFixed(1)} s\n`);
 if (offenders.length) {
+  journal.refuser(...offenders);
   process.stderr.write(`pre-commit REFUSÉ — poison détecté (mêmes gardes que la CI, cf. scripts/guards/lib/) :\n${offenders.map((o) => `  ${o}`).join('\n')}\n`);
   process.exit(1);
 }

@@ -8,7 +8,7 @@ import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import { effectSummary } from './EffectList';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 
-const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE };
+const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
 
 function dock(overrides: Partial<Parameters<typeof LogicDock>[0]>) {
   const scene = emptyScene(10, 10);

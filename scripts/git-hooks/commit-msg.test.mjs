@@ -8,14 +8,16 @@
 // chemin absolu : c'est bien ce code-ci que git exécute.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { SUJET_MAX, refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
+import { refusDeVersion } from '../node-requis.mjs'
 import { jugerFichierDeMessage } from './commit-msg.mjs'
+import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const DRIVER = join(ICI, 'commit-msg.mjs')
@@ -52,37 +54,66 @@ test('le driver appelé comme git l’appelle : exit 1 sur un sujet long, exit 0
   try {
     const fichier = join(dir, 'COMMIT_EDITMSG')
     writeFileSync(fichier, `${SUJET_LONG}\n\n# Please enter the commit message\n`, 'utf8')
-    const rouge = spawnSync(process.execPath, [DRIVER, fichier], { encoding: 'utf8' })
+    const rouge = spawnSync(process.execPath, [DRIVER, fichier], { cwd: dir, encoding: 'utf8' })
     assert.equal(rouge.status, 1)
     assert.match(rouge.stderr, /SUJET de commit de \d+ caractères/)
 
     writeFileSync(fichier, 'fix(x): refs #1728 — porte au message\n\ncorps très long ' + 'x'.repeat(500) + '\n', 'utf8')
-    assert.equal(spawnSync(process.execPath, [DRIVER, fichier], { encoding: 'utf8' }).status, 0)
+    assert.equal(spawnSync(process.execPath, [DRIVER, fichier], { cwd: dir, encoding: 'utf8' }).status, 0)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
 })
 
-/** Dossier de hooks jetable dont le `commit-msg` exécute le driver RÉEL de ce dépôt. */
 function dossierDeHooks() {
   const dir = mkdtempSync(join(tmpdir(), 'hooks-'))
   const relais = join(dir, 'commit-msg')
-  writeFileSync(relais, `#!/bin/sh\nexec node "${DRIVER.replace(/\\/g, '/')}" "$@"\n`, 'utf8')
+  const hook = readFileSync(join(ICI, 'commit-msg'), 'utf8')
+  const cible = '"$(dirname "$0")/commit-msg.mjs"'
+  assert.ok(hook.includes(cible))
+  writeFileSync(relais, hook.replace(cible, `"${DRIVER.replace(/\\/g, '/')}"`), 'utf8')
   chmodSync(relais, 0o755)
   return dir
 }
 
-test('un `git commit` RÉEL est refusé sur un sujet de plus de 100 caractères, et passe en dessous', () => {
+for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime ${runtimeExplicite ? 'npm explicite avec espaces' : 'node sans variable npm'}`, () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'v1\n' }, message: 'socle' })
   const hooks = dossierDeHooks()
   try {
-    const git = (...args) => spawnSync('git', args, { cwd: racine, encoding: 'utf8' })
-    execFileSync('git', ['config', 'core.hooksPath', hooks.replace(/\\/g, '/')], { cwd: racine })
+    const env = envDeDepotForge()
+    const traceRuntime = join(hooks, 'runtime.json')
+    delete env.npm_node_execpath
+    if (runtimeExplicite) {
+      const executable = join(hooks, process.platform === 'win32' ? 'node conforme.exe' : 'node conforme')
+      copyFileSync(process.execPath, executable)
+      chmodSync(executable, 0o755)
+      env.npm_node_execpath = executable.replace(/\\/g, '/')
+      const sonde = join(hooks, 'runtime.cjs')
+      writeFileSync(sonde, `require('node:fs').writeFileSync(${JSON.stringify(traceRuntime)}, JSON.stringify(process.execPath))`, 'utf8')
+      env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --require="${sonde.replace(/\\/g, '/')}"`.trim()
+    }
+    const git = (...args) => resultatDeGit(args, { cwd: racine, env })
+    lancerGit(['config', 'core.hooksPath', hooks.replace(/\\/g, '/')], { cwd: racine, env })
     writeFileSync(join(racine, 'a.txt'), 'v2\n', 'utf8')
-    execFileSync('git', ['add', 'a.txt'], { cwd: racine })
+    lancerGit(['add', 'a.txt'], { cwd: racine, env })
+
+    if (!runtimeExplicite) {
+      const sonde = spawnSync('sh', ['-c', 'node -p process.versions.node'], { cwd: racine, env, encoding: 'utf8' })
+      assert.equal(sonde.status, 0, sonde.stderr)
+      const { engines } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
+      const refus = refusDeVersion(engines.node, sonde.stdout.trim())
+      if (refus) {
+        const commit = git('commit', '-m', 'fix(a): refs #2258 — runtime requis')
+        assert.notEqual(commit.status, 0)
+        assert.ok(commit.stderr.includes(refus), commit.stderr)
+        assert.equal(git('log', '--oneline').stdout.trim().split('\n').length, 1)
+        return
+      }
+    }
 
     const refuse = git('commit', '-m', SUJET_LONG)
     assert.notEqual(refuse.status, 0, 'git a accepté un sujet trop long')
+    if (runtimeExplicite) assert.equal(JSON.parse(readFileSync(traceRuntime, 'utf8')).replace(/\\/g, '/'), env.npm_node_execpath)
     assert.match(refuse.stderr, /SUJET de commit de \d+ caractères/)
     assert.equal(git('log', '--oneline').stdout.trim().split('\n').length, 1, 'aucun commit n’a été posé')
 

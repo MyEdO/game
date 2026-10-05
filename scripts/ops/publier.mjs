@@ -6,21 +6,18 @@
 // "l'étape N+1 coûte une ligne" : ajouter une étape = une entrée dans la table `ETAPES` (nom,
 // `jouer(ctx)`, `dejaFaite(ctx)`), rien d'autre. » La table vit dans `etapesDuTrain.mjs`.
 //
-// RÉGIME (#1776) : commit FINAL → push de la BRANCHE → la CI juge → fast-forward de `main`. Aucune
-// gate ne se joue ici : `.github/workflows/ci.yml` les joue toutes sur la branche, et le ruleset
-// `main` (`scripts/ops/ruleset-main.mjs`) refuse côté SERVEUR tout ce qui n'est pas un fast-forward
-// d'une tête verte. NEUF étapes — preflight, derives, rebase, docs, push-branche, ci, ff-main,
-// pilotage, fin :
-// preflight (une saleté faite UNIQUEMENT de docs DÉRIVÉS ne refuse pas : l'étape `derives` la
-// commet), derives (les docs dérivés laissés non commités par le hook `post-rewrite` d'un rebase
-// MANUEL sont commis AVANT le rebase — mesuré le 2026-09-14 : `git rebase origin/main` refuse de
-// DÉMARRER sur un arbre sale, « cannot rebase: You have unstaged changes »), rebase sur
-// origin/main — sauté quand `origin/main` est déjà ancêtre de HEAD, REFUSÉ quand la branche porte des
-// fusions hors tronc : une publication ne réécrit jamais une histoire qui contient le tronc, ne
-// linéarise jamais des fusions (#1998) —, docs dérivés régénérés — la plage sans source de doc
-// saute la RÉGÉNÉRATION, jamais le COMMIT —, push de la branche, attente bornée du verdict CI de la
-// TÊTE, fast-forward de `main`, pilotage des tickets cités, fin. Un tronc qui a bougé pendant
-// l'attente RELANCE rebase → docs → push-branche → ci (#1751), borné par le compteur `reprises`.
+// RÉGIME (#2178) : commit FINAL → push de la BRANCHE → PR → course verte de la branche → demande de
+// fusion REST (`merge-async`) → la FILE DE FUSION du serveur sérialise, juge le commit de file et fusionne. Aucune gate ne se joue ici :
+// `.github/workflows/ci.yml` les joue toutes, et le ruleset `main` (`scripts/ops/ruleset-main.mjs`)
+// n'admet rien hors de la file. SEPT étapes — preflight, docs, push-branche, pr, file, pilotage, fin :
+// preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet), docs (`build-all.mjs
+// --mixtes`, puis commit des MIXTES et des miroirs d'agents sales — la plage sans source de mixte
+// saute la RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
+// bornée de la course verte de la tête, de sa demande de fusion (`sha` = la tête jugée) puis de la
+// fusion par la file, pilotage des tickets
+// cités, fin. Aucun client ne rebase sur un tronc mouvant : une PR ÉJECTÉE de la file pour un conflit
+// ou un dérivé périmé se reprend par une FUSION d'`origin/main` dans la branche, puis docs →
+// push-branche → pr → file, bornée par le compteur `ejections` (`BORNE_EJECTIONS`).
 //
 // CLÔTURE DES ÉTAPES, gardée contre une retouche de bonne foi — les étapes vivent dans
 // `etapesDuTrain.mjs`, et le test de clôture (`etapesDuTrain.test.mjs`) refuse à ce module toute
@@ -33,36 +30,50 @@
 // module de la clôture (#2073). Une étape passe par le contexte (`contexteDe`), qui porte des
 // QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux arguments validés — `commitDe` (des
 // FICHIERS, sous `--literal-pathspecs`),
-// `rebaser`, `abandonnerRebase`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
-// nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `lireTicket` et `commenter`
+// `fusionner`, `abandonnerFusion`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
+// nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
+// sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
+// numéro et un uuid), `lireTicket` et `commenter`
 // (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
 // ni `git add -A`, ni un commit de l'arbre ou de l'index entier, ni `git stash`, ni `push --force`,
-// ni `--force-with-lease` vers `main` (`pousser` le refuse), ni `reset --hard`, `branch -D`,
+// ni aucun push vers `main` (`pousser` le refuse), ni `reset --hard`, `branch -D`,
 // `worktree remove --force`, `checkout` ou `restore`.
 // Un rebase INTERROMPU trouvé sur disque à la préflight est NOMMÉ, jamais avorté d'office.
 //
-// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--ci-timeout-min <n>]
+// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>]]
+// `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer ; `--depuis <seq>`
+// la ré-arme après la dernière transition `#<seq>` lue.
 import { spawnSync, spawn } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerRebase, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, depotDe, estAncetre,
-  etatDeLArbre, fetchOrigin, origineDe, pousser, racineDe, rebaseEntame, rebaser, shaDe, shasDe,
+  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe,
+  conclureFusionSansChemins, depotDe,
+  estAncetre, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
-import { coursesCi } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
+import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
+import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
+import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
-import { GENERATORS } from '../docs/build-all.mjs'
+import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { ETAPES } from './etapesDuTrain.mjs'
+import { corpsDeFusion, fusionDe } from '../guards/lib/fusionPr.mjs'
+import { BORNE_EJECTIONS, ETAPES, attendre, prDeRest } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
-/** Délai par défaut, en minutes, de l'attente du verdict CI de la tête (#1776). */
-export const CI_TIMEOUT_MIN = 30
+/** Délai par défaut, en minutes, de l'attente de la fusion par la file (#2178) : deux délais de réponse
+ *  de la file (`DELAI_DE_REPONSE_MINUTES`) — les entrées qui la précèdent, puis la sienne. */
+export const FILE_TIMEOUT_MIN = 2 * DELAI_DE_REPONSE_MINUTES
+
+/** Les gates qui jugent les DÉRIVÉS commités : une course de file rouge sur leurs seuls jobs se
+ *  reprend (`causeDEjection`, etapesDuTrain.mjs), la régénération les guérit. */
+export const GATES_DES_DERIVES = Object.freeze(['docs:build', 'agents:check'])
 
 // ── Purs : options, journal, plan ──────────────────────────────────────────────────────
 
@@ -71,15 +82,33 @@ export const CI_TIMEOUT_MIN = 30
  * valeur) : `separerInvocation` lit `<positionnel> [--opt val]* -- reste`, une grammaire qui n'est
  * pas la nôtre.
  * @param {string[]} argv arguments APRÈS `node publier.mjs`
- * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, ciTimeoutMin:number, inconnus:string[]}}
+ * `--veiller <run>` prend un identifiant de run (`idDeRun`), `--depuis <seq>` un entier ≥ 0 ; toute autre
+ * valeur est rendue inconnue.
+ * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, fileTimeoutMin:number, veiller:string|null, depuis:number, inconnus:string[]}}
  */
 export function optionsDe(argv) {
   const args = (argv ?? []).map(String)
-  const connus = new Set(['--detache', '--reprendre', '--etapes', '--ci-timeout-min'])
-  const valeurs = { '--ci-timeout-min': CI_TIMEOUT_MIN }
+  const connus = new Set(['--detache', '--reprendre', '--etapes', '--file-timeout-min'])
+  const valeurs = { '--file-timeout-min': FILE_TIMEOUT_MIN }
   const inconnus = []
+  let veiller = null
+  let depuis = 0
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i]
+    if (a === '--depuis') {
+      const seq = args[i + 1]
+      if (/^\d+$/.test(String(seq ?? ''))) depuis = Number(seq)
+      else inconnus.push(`--depuis ${seq ?? ''}`.trim())
+      i += 1
+      continue
+    }
+    if (a === '--veiller') {
+      const run = args[i + 1]
+      if (pidDeRun(run) === null) inconnus.push(`--veiller ${run ?? ''}`.trim())
+      else veiller = run
+      i += 1
+      continue
+    }
     if (Object.hasOwn(valeurs, a)) {
       const n = Number(args[i + 1])
       if (Number.isFinite(n) && n > 0) valeurs[a] = n
@@ -92,9 +121,36 @@ export function optionsDe(argv) {
     detache: args.includes('--detache'),
     reprendre: args.includes('--reprendre'),
     etapes: args.includes('--etapes'),
-    ciTimeoutMin: valeurs['--ci-timeout-min'],
+    fileTimeoutMin: valeurs['--file-timeout-min'],
+    veiller,
+    depuis,
     inconnus,
   }
+}
+
+/** Identifiant d'un RUN du train : le pid de son processus et l'instant (ms) de son lancement, que le
+ *  parent de `--detache` choisit AVANT de détacher. PURE. */
+export const idDeRun = ({ pid, lancement }) => `${pid}-${lancement}`
+
+/** Le pid et le lancement d'un identifiant de run, `null` s'il n'en est pas un. PURE. */
+export function runDe(run) {
+  const vu = /^([1-9]\d*)-(\d+)$/.exec(String(run ?? ''))
+  return vu ? { pid: Number(vu[1]), lancement: Number(vu[2]) } : null
+}
+
+/** Le pid d'un identifiant de run, `null` s'il n'en est pas un. PURE. */
+export const pidDeRun = (run) => runDe(run)?.pid ?? null
+
+/** La variable d'environnement qui porte le lancement du parent de `--detache` à l'enfant. */
+export const ENV_LANCEMENT = 'WFRP_PUBLIER_LANCEMENT'
+
+/** L'environnement que le parent de `--detache` passe à l'enfant pour son lancement. PURE. */
+export const envDeLancement = (lancement) => ({ [ENV_LANCEMENT]: String(lancement) })
+
+/** Le lancement d'un run lu dans `env` (l'enfant de `--detache`), `maintenant()` sinon (run direct). PURE. */
+export function lancementDe(env, maintenant = Date.now) {
+  const brut = String(env?.[ENV_LANCEMENT] ?? '')
+  return /^\d+$/.test(brut) ? Number(brut) : maintenant()
 }
 
 /** Nom de fichier de journal d'une branche : tout ce qui n'est ni mot, ni point, ni tiret fond en
@@ -102,12 +158,12 @@ export function optionsDe(argv) {
 export const nomDeJournal = (branche) => String(branche ?? 'sans-branche').replace(/[^\w.-]+/g, '_')
 
 /** Journal neuf d'une branche. PURE. */
-export const journalVide = (branche) => ({ branche, base: null, tete: null, reprises: 0, etapes: {} })
+export const journalVide = (branche) => ({ branche, base: null, tete: null, ejections: 0, etapes: {} })
 
 /**
  * Le journal dont un run PART. PURE. Sans `--reprendre`, un run est un LOT NEUF : le journal du
- * disque ne le contamine pas. Sans cela, `reprises` survivait d'un lot à l'autre (un 2ᵉ lot
- * refuserait « origin/main a bougé DEUX fois » dès le premier mouvement) et les étapes vertes d'un
+ * disque ne le contamine pas. Sans cela, `ejections` survivait d'un lot à l'autre (un 2ᵉ lot
+ * refuserait sa première éjection comme une seconde) et les étapes vertes d'un
  * autre contenu décoreraient son pilotage.
  * @param {{reprendre:boolean, lu:object|null, branche:string}} p `lu` = journal du disque, ou `null`
  * @returns {{journal:object, repris:boolean, vertes:number}}
@@ -229,8 +285,8 @@ export function lancerDetache({
 /**
  * Le filet de l'enfant détaché (#1784). Détaché, le train n'a plus de stdio redirigé : sa console est
  * CACHÉE, donc tout ce qu'il écrit hors du journal est perdu, et un train né puis MORT avant
- * `ouvrirLog` serait invisible (pid annoncé, journal vide). Ce filet écrit la chute DANS le journal,
- * avec la ligne `PUBLICATION:` que les veilles attendent, puis sort en 1. Le script détaché étant
+ * `ouvrirLog` serait invisible (pid annoncé, journal vide). Ce filet écrit la chute DANS le log, avec
+ * sa ligne `PUBLICATION:`, puis sort en `CODE_ARRET_MOTEUR` ; la veille (`veillerLeTrain`) constate la mort du pid. Le script détaché étant
  * `fileURLToPath(import.meta.url)`, un « module introuvable » n'est atteignable que par un défaut de
  * citation du lancement (`citerArgv`).
  * @param {{chemin:string, processus?:NodeJS.Process, ecrire?:Function}} p
@@ -239,8 +295,9 @@ export function lancerDetache({
 export function filetDuTrainEnfant({ chemin, processus = process, ecrire = appendFileSync }) {
   const tomber = (e) => {
     const trace = e?.stack ?? String(e)
-    ecrire(chemin, `[publier] ARRÊT INATTENDU hors train : ${trace}\nPUBLICATION: rouge moteur — ${trace.split('\n')[0]}\n`)
-    processus.exit(1)
+    const verdict = { etat: 'rouge', etape: 'moteur', raison: trace }
+    ecrire(chemin, `[publier] ARRÊT INATTENDU hors train : ${trace}\n${ligneDePublication(verdict)}\n`)
+    processus.exit(codeDeVerdict(verdict))
   }
   processus.on('uncaughtException', tomber)
   processus.on('unhandledRejection', tomber)
@@ -266,8 +323,7 @@ export function motifDeRotation(chemin) {
 
 /**
  * ROTATION du log : un log NON VIDE est renommé (`nomDeRotation`) avant qu'un run neuf ne reparte —
- * la trace du run précédent survit, et le log courant repart vide, donc la veille `^PUBLICATION:`
- * reste valide sans offset. Le bornage est par PÉREMPTION d'ÂGE, par la source unique
+ * la trace du run précédent survit, et le log courant repart vide. Le bornage est par PÉREMPTION d'ÂGE, par la source unique
  * `purgerPerimes` — aucune constante de compte ici. Ce n'est PAS une archive :
  * `node_modules/.cache/` est effacé par le `npm ci` d'`ops:chantier` — le log est une trace de
  * travail, la PREUVE d'une publication est sa sortie collée au ticket.
@@ -305,19 +361,15 @@ function ouvrirLog(chemin, mode) {
   return openSync(chemin, 'a')
 }
 
-/** Secondes d'ATTENTE de la CI, telles que l'étape `ci` les a mesurées — le journal sépare le temps
- *  machine LOCALE du temps où l'on n'a fait qu'attendre GitHub (#1776). PURE. */
-export const attenteCiSecondes = (journal) => journal?.etapes?.ci?.detail?.attenteCiSecondes ?? null
-
 /**
  * Première étape NON VERTE du journal — le point de reprise. Une étape verte POUR UNE AUTRE TÊTE est
- * « à faire » : sans cela, un 2ᵉ lot sur la même branche sauterait la sonde CI et le pilotage et
+ * « à faire » : sans cela, un 2ᵉ lot sur la même branche sauterait l'attente de la file et le pilotage et
  * s'annoncerait vert. PURE.
  *
  * RÈGLE DE TÊTE, une seule : la comparaison porte sur la TÊTE VIVANTE (`git rev-parse HEAD` au
- * moment où l'on juge), jamais sur `journal.tete` (la tête PUBLIÉE, posée par `derives`/`rebase`), et
- * une étape SANS estampille est « à faire ». Sans cela, une étape estampillée `null` (`preflight` et
- * `derives` d'un journal d'avant cette règle) restait verte pour TOUTE tête, à jamais.
+ * moment où l'on juge), jamais sur `journal.tete` (la tête PUBLIÉE, posée par `preflight`/`docs`), et
+ * une étape SANS estampille est « à faire ». Sans cela, une étape estampillée `null` restait verte
+ * pour TOUTE tête, à jamais.
  * @param {{etapes?:object}} journal @param {string[]} noms ordre de `ETAPES`
  * @param {string|null} teteVivante `HEAD` mesuré maintenant
  * @returns {string|null} `null` = tout est vert pour cette tête
@@ -340,34 +392,106 @@ export const etatDeLEtape = (journal, nom, teteVivante) => {
   return vue.etat
 }
 
+// ── Purs : le run courant et sa veille (#2227) ────────────────────────────────────────────────
+
+/** Code de sortie d'un verdict indéterminé (la file n'a pas fusionné dans sa borne). */
+export const CODE_INDETERMINEE = 3
+
+/** Code de sortie d'un ARRÊT MOTEUR : verdict `rouge moteur`, ou train mort sans verdict au journal. */
+export const CODE_ARRET_MOTEUR = 4
+
+/** Code de sortie de la veille quand sa borne (`borneDeVeilleMin`) passe sans verdict. */
+export const CODE_BORNE_DEPASSEE = 5
+
+/**
+ * L'en-tête du run qui PART sur `journal` : son identifiant, son pid, sa borne de file, son compteur de
+ * transitions `seq` à 0 ; le verdict d'un run précédent (journal repris) s'efface. Le journal ainsi estampillé est sauvé AVANT la première
+ * étape : c'est lui qui dit à la veille que le run courant a démarré. MUTE `journal`, le rend.
+ * @param {object} journal @param {{run:string, pid:number, fileTimeoutMin:number}} p
+ */
+export function entameDuRun(journal, { run, pid, fileTimeoutMin }) {
+  return Object.assign(journal, { run, pid, fileTimeoutMin, seq: 0, verdict: null })
+}
+
+/** La ligne `PUBLICATION:` d'un verdict — la dernière du log du train, et celle de sa veille. PURE. */
+export function ligneDePublication(verdict, tete) {
+  if (verdict.etat === 'vert') return `PUBLICATION: vert ${tete}`
+  if (verdict.etat === 'indeterminee') return `PUBLICATION: indéterminée file ${tete}`
+  return `PUBLICATION: rouge ${verdict.etape} — ${String(verdict.raison).split('\n')[0]}`
+}
+
+/** Code de sortie d'un verdict, pour le train comme pour sa veille. PURE. */
+export function codeDeVerdict(verdict) {
+  if (verdict.etat === 'vert') return 0
+  if (verdict.etat === 'indeterminee') return CODE_INDETERMINEE
+  return verdict.etape === 'moteur' ? CODE_ARRET_MOTEUR : 1
+}
+
+/**
+ * Borne de la veille, en minutes, DÉRIVÉE de celle du train : l'étape `file` se joue au plus
+ * `BORNE_EJECTIONS + 1` fois, chacune bornée par `fileTimeoutMin`, et les étapes locales reçoivent une
+ * borne de file de plus. PURE.
+ */
+export const borneDeVeilleMin = (fileTimeoutMin) => (BORNE_EJECTIONS + 2) * fileTimeoutMin
+
+/** La commande de veille d'un run, que `--detache` imprime : `node` direct (aucun en-tête `npm` dans la
+ *  sortie suivie), chemin en `/`, lisible de Git Bash comme de PowerShell. PURE. */
+export const commandeDeVeille = ({ script, run }) => `node "${String(script).replace(/\\/g, '/')}" --veiller ${run}`
+
+/** Un `dit` en UNE ligne : la veille émet une ligne par transition. PURE. */
+const enUneLigne = (texte) => String(texte).split('\n').map((l) => l.trim()).filter(Boolean).join(' · ')
+
+/**
+ * Les TRANSITIONS du run `run` de `seq` supérieur à `depuis`, dans l'ordre des `seq`, et son verdict.
+ * Une étape ne compte que si le run courant l'a écrite (`run`) ; son `seq` est celui de sa dernière
+ * transition (`jouerLeTrain`), donc une étape en vol relue ne se répète pas, une étape rejouée après une
+ * relance s'émet à nouveau, et une veille RÉ-ARMÉE (`--depuis <seq>`) ne ré-émet rien. PURE.
+ * @param {object|null} journal @param {string} run @param {number} depuis
+ * @returns {{courant:boolean, lignes:string[], seq:number, verdict:object|null}}
+ */
+export function transitionsDuRun(journal, run, depuis) {
+  if (!journal || journal.run !== run) return { courant: false, lignes: [], seq: depuis, verdict: null }
+  const neuves = Object.entries(journal.etapes ?? {})
+    .filter(([, vue]) => vue?.run === run && Number.isInteger(vue.seq) && vue.seq > depuis)
+    .sort(([, a], [, b]) => a.seq - b.seq)
+  const lignes = neuves.map(([nom, vue]) => `#${vue.seq} ${nom} — ${vue.etat}${vue.dit ? ` — ${enUneLigne(vue.dit)}` : ''}`)
+  return { courant: true, lignes, seq: neuves.length ? neuves.at(-1)[1].seq : depuis, verdict: journal.verdict ?? null }
+}
+
 /**
  * Le MOTEUR du train : joue les étapes dans l'ordre, saute celles que `dejaFaite` déclare, arrête à
- * la première rouge, écrit le journal après CHAQUE étape. PUR hors des `jouer` qu'on lui donne —
+ * la première rouge, écrit le journal à l'ENTRÉE de chaque étape jouée (`en-vol`) et après son verdict ;
+ * chaque TRANSITION y porte le `run` qui l'a écrite, son `dit` (le `dit` d'un vert, la `raison` sinon)
+ * et le `seq` suivant du journal (`transition`). PUR hors des `jouer` qu'on lui donne —
  * testable avec des étapes factices.
  *
- * Une étape peut demander une RELANCE (`{ relancer: [<noms>] }`, cas « origin/main a bougé ») : les
- * étapes nommées repassent « à faire » et le train reprend du début. Une seule fois — le compteur
- * `reprises` du journal est la borne, et l'étape qui demande la relance la lit.
+ * Une étape peut demander une RELANCE (`{ relancer: [<noms>] }`, cas « PR éjectée de la file ») : les
+ * étapes nommées repassent « à faire » et le train reprend du début. Le compteur `ejections` du
+ * journal est la borne, et l'étape qui demande la relance la lit.
  * @returns {{etat:'vert'|'rouge'|'indeterminee', etape?:string, raison?:string}}
  */
 export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journaliser = () => {} } = {}) {
   const noms = etapes.map((e) => e.nom)
+  const transition = (nom, vue) => {
+    journal.seq = (journal.seq ?? 0) + 1
+    journal.etapes[nom] = { ...vue, run: journal.run ?? null, seq: journal.seq }
+  }
   for (let tour = 0; tour <= etapes.length; tour += 1) {
     let relance = null
     for (const etape of etapes) {
       if (etape.dejaFaite(ctx, journal)) {
         // Une étape déjà faite s'ENREGISTRE, estampillée comme une étape jouée : sans cela, le journal
         // d'un run repris ne portait AUCUNE trace machine des étapes constatées, et `--etapes` les
-        // rendait « à faire » après coup. Le détail précédent est CONSERVÉ : `ci.dejaFaite` (:800) le
-        // relit (`detail.etat === 'verte'`), l'écraser ferait resonder la course à chaque reprise.
+        // rendait « à faire » après coup. Le détail précédent est CONSERVÉ : `file.dejaFaite` le
+        // relit (`detail.fusion`), l'écraser referait attendre la file à chaque reprise.
+        // Une étape DÉJÀ verte n'est pas une TRANSITION : ses bornes, son `run` et son `seq` tiennent,
+        // la veille (`transitionsDuRun`) se tait ; toute autre devient une transition du run courant.
         const vu = journal.etapes[etape.nom]
-        const instant = new Date().toISOString()
-        journal.etapes[etape.nom] = {
-          etat: 'vert',
-          debut: instant,
-          fin: instant,
-          detail: { ...(vu?.detail ?? {}), dejaFaite: true },
-          tete: ctx.tete ?? null,
+        const detail = { ...(vu?.detail ?? {}), dejaFaite: true }
+        if (vu?.etat === 'vert') journal.etapes[etape.nom] = { ...vu, detail, tete: ctx.tete ?? null }
+        else {
+          const instant = new Date().toISOString()
+          transition(etape.nom, { etat: 'vert', debut: instant, fin: instant, detail, tete: ctx.tete ?? null, dit: 'déjà faite' })
         }
         sauver(journal)
         journaliser(`[publier] ${etape.nom} — déjà faite\n`)
@@ -375,15 +499,23 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
       }
       journaliser(`[publier] ${etape.nom} — début\n`)
       const debut = Date.now()
+      transition(etape.nom, {
+        etat: 'en-vol',
+        debut: new Date(debut).toISOString(),
+        detail: journal.etapes[etape.nom]?.detail ?? null,
+        tete: ctx.tete ?? null,
+      })
+      sauver(journal)
       const vu = etape.jouer(ctx, journal) ?? { ok: false, raison: 'aucun verdict rendu' }
       const secondes = (Date.now() - debut) / 1000
-      journal.etapes[etape.nom] = {
+      transition(etape.nom, {
         etat: vu.ok ? 'vert' : vu.indetermine ? 'indéterminée' : 'rouge',
         debut: new Date(debut).toISOString(),
         fin: new Date().toISOString(),
         detail: vu.detail ?? null,
         tete: ctx.tete ?? null,
-      }
+        dit: (vu.ok ? vu.dit : vu.raison) ?? null,
+      })
       sauver(journal)
       if (vu.ok) {
         journaliser(`[publier] ${etape.nom} — vert (${secondes.toFixed(1)} s)${vu.dit ? ` : ${vu.dit}` : ''}\n`)
@@ -401,32 +533,11 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
       return { etat: 'rouge', etape: etape.nom, raison: vu.raison }
     }
     if (!relance) return { etat: 'vert' }
-    for (const nom of relance) if (noms.includes(nom)) journal.etapes[nom] = { etat: 'à faire', tete: null }
+    for (const nom of relance) if (noms.includes(nom)) transition(nom, { etat: 'à faire', tete: null, dit: `relance depuis ${relance[0]}` })
     sauver(journal)
     journaliser(`[publier] relance du train depuis ${relance[0]}\n`)
   }
   return { etat: 'rouge', etape: 'moteur', raison: 'trop de relances du train' }
-}
-
-/**
- * La lecture git que `decisionDeRebase` juge : `origin/main` ancêtre de HEAD (`estAncetre`), et
- * sinon les fusions de `origin/main..HEAD` (`shasDe`).
- * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
- * @returns {{disponible:true, contenu:boolean, fusions:boolean}|{disponible:false, raison:string}}
- */
-export function relationAuTronc(depot) {
-  const vu = estAncetre(depot, TRONC.suivi, 'HEAD')
-  if (!vu.disponible) return { disponible: false, raison: vu.raison }
-  if (vu.absent) return { disponible: false, raison: 'origin/main ou HEAD introuvable' }
-  if (vu.valeur) return { disponible: true, contenu: true, fusions: false }
-  try {
-    const fusions = shasDe(depot, [`${TRONC.suivi}..HEAD`], { fusions: true })
-    if (fusions === null) return { disponible: false, raison: 'origin/main..HEAD illisible' }
-    return { disponible: true, contenu: false, fusions: fusions.length > 0 }
-  } catch (e) {
-    if (!(e instanceof GitIndisponible)) throw e
-    return { disponible: false, raison: e.raison }
-  }
 }
 
 // ── Impur : le train réel ──────────────────────────────────────────────────────────────
@@ -456,6 +567,77 @@ export function lireJournal(chemin, branche) {
   }
 }
 
+/** Période de relecture du journal par la veille, en millisecondes (un fichier local). */
+export const PERIODE_DE_VEILLE_MS = 5_000
+
+/** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
+function vivant(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (e) {
+    return e?.code === 'EPERM'
+  }
+}
+
+/**
+ * La VEILLE d'un run (`--veiller <run>`) : relit le JOURNAL toutes les `periodeMs`, émet une ligne par
+ * transition du run courant (`transitionsDuRun`), puis sa ligne `PUBLICATION:` et sort sur son code
+ * (`codeDeVerdict`). Tant que le journal porte un autre run (course d'ouverture : le run d'avant), elle
+ * se tait. Ré-armée (`depuis` = le dernier `#seq` lu), elle ne ré-émet aucune transition. Le train
+ * mort sans verdict au journal — relu une fois après le constat — sort en `CODE_ARRET_MOTEUR` ; la borne
+ * (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant qu'il n'a rien écrit),
+ * comptée depuis le LANCEMENT du run (`runDe`), jamais depuis le départ de la veille, passée sans
+ * verdict sort en `CODE_BORNE_DEPASSEE`.
+ * @param {{run:string, fileTimeoutMin:number, lire:() => object|null, ecrire:(ligne:string) => void,
+ *          depuis?:number, log?:string, vivant?:(pid:number) => boolean, maintenant?:() => number,
+ *          dormir?:(ms:number) => void, periodeMs?:number}} p
+ * @returns {number} code de sortie
+ */
+export function veillerLeTrain({
+  run,
+  fileTimeoutMin,
+  lire,
+  ecrire,
+  depuis = 0,
+  log = '',
+  vivant: estVivant = vivant,
+  maintenant = Date.now,
+  dormir = attendre,
+  periodeMs = PERIODE_DE_VEILLE_MS,
+}) {
+  const { pid, lancement } = runDe(run)
+  let seq = depuis
+  let borneMin = fileTimeoutMin
+  let mortConstatee = false
+  for (;;) {
+    const journal = lire()
+    const vu = transitionsDuRun(journal, run, seq)
+    for (const ligne of vu.lignes) ecrire(ligne)
+    seq = vu.seq
+    if (vu.courant && Number.isFinite(journal.fileTimeoutMin)) borneMin = journal.fileTimeoutMin
+    if (vu.verdict) {
+      ecrire(ligneDePublication(vu.verdict, journal.tete))
+      return codeDeVerdict(vu.verdict)
+    }
+    if (!estVivant(pid)) {
+      if (mortConstatee) {
+        const verdict = { etat: 'rouge', etape: 'moteur', raison: `train ${pid} mort sans verdict au journal${log ? ` — ${log}` : ''}` }
+        ecrire(ligneDePublication(verdict))
+        return codeDeVerdict(verdict)
+      }
+      mortConstatee = true
+      continue
+    }
+    const borneMs = borneDeVeilleMin(borneMin) * 60_000
+    if (maintenant() - lancement >= borneMs) {
+      ecrire(`[veille] borne de ${borneDeVeilleMin(borneMin)} min dépassée sans verdict du run ${run} — \`npm run ops:publier -- --etapes\``)
+      return CODE_BORNE_DEPASSEE
+    }
+    dormir(periodeMs)
+  }
+}
+
 /** Le dépôt du train dans `racine` : une panne de lecture y LÈVE `GitIndisponible`, et le train
  *  s'arrête ROUGE en la nommant (`main`) — lue `null`, elle passait pour un arbre propre ou pour
  *  l'absence d'un rebase entamé. */
@@ -469,7 +651,7 @@ const cheminsSales = (depot) => [...new Set(etatDeLArbre(depot).flatMap((e) => e
  * poignée, qui ouvrirait tout écrivain de l'hôte.
  * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
  */
-export const questionsDuTrain = (depot) => Object.freeze({
+const questionsDuTrain = (depot) => Object.freeze({
   shaDe: (ref) => shaDe(depot, ref),
   brancheDe: () => brancheDe(depot),
   origineDe: () => origineDe(depot),
@@ -477,13 +659,14 @@ export const questionsDuTrain = (depot) => Object.freeze({
   cheminsEnConflit: () => cheminsEnConflit(depot),
   combienDe: (revisions) => combienDe(depot, revisions),
   estAncetre: (ancetre, descendant) => estAncetre(depot, ancetre, descendant),
+  baseAuTronc: () => baseCommune(depot, TRONC.suivi, 'HEAD'),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
-  relationAuTronc: () => relationAuTronc(depot),
   cheminsSales: () => cheminsSales(depot),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
 })
 
-/** `gh <args>`, en union simple. Jamais `shell: true`. */
+/** `gh <args>`, en union simple. Jamais `shell: true`. Un refus garde `stdout` : sous `--include`, un 4xx
+ *  y porte son état et son corps (`reponseHttp`). */
 function gh(args, cwd, input) {
   const vu = spawnSync('gh', args, {
     cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 120_000,
@@ -491,7 +674,7 @@ function gh(args, cwd, input) {
     ...(input === undefined ? {} : { input }),
   })
   if (vu.error) return { ok: false, raison: vu.error.message }
-  if (vu.status !== 0) return { ok: false, raison: `gh a rendu ${vu.status} : ${String(vu.stderr ?? '').trim().slice(0, BORNE_RAISON)}` }
+  if (vu.status !== 0) return { ok: false, raison: `gh a rendu ${vu.status} : ${String(vu.stderr ?? '').trim().slice(0, BORNE_RAISON)}`, stdout: String(vu.stdout ?? '') }
   return { ok: true, stdout: String(vu.stdout ?? '') }
 }
 
@@ -499,8 +682,9 @@ function gh(args, cwd, input) {
  *  attend, adossée au `gh` du train — le seul enrobeur qui borne son spawn en TEMPS. */
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
-/** Les modes de `scripts/docs/build-all.mjs` que l'étape `docs` joue. */
-const MODES_DES_DOCS = Object.freeze(['--check', '--quiet'])
+/** Les modes de `scripts/docs/build-all.mjs` que joue le train : l'étape `docs`, et les cibles de code
+ *  après une fusion conclue par le fossile de la reprise. */
+const MODES_DES_DOCS = Object.freeze(['--mixtes', '--code'])
 
 /**
  * `npm run <script>` sous `platform` : l'exécutable, son argv et `shell`. PURE. `npm` est un `.cmd`
@@ -510,6 +694,45 @@ const MODES_DES_DOCS = Object.freeze(['--check', '--quiet'])
 export function lancementNpm(script, platform) {
   const win32 = platform === 'win32'
   return { executable: win32 ? 'npm.cmd' : 'npm', args: ['run', script], shell: win32 }
+}
+
+/** Un sha COMPLET, sinon levée. */
+function shaComplet(geste, sha) {
+  if (typeof sha === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) return sha
+  throw new Error(`ctx.${geste} : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
+}
+
+/** Les jobs de `ci.yml` qui portent une gate des dérivés (`GATES_DES_DERIVES`). */
+const jobsDesDerives = (racine) =>
+  Object.freeze([...new Set(gatesDeCi({ cwd: racine }).filter((g) => GATES_DES_DERIVES.includes(g.nom)).map((g) => g.job))])
+
+/**
+ * Les PR de `branche`, réduites (`prDeRest`), récentes d'abord, en union `{ ok, prs }` / `{ ok:false,
+ * raison }`. REST seul (#1804) : `GET /repos/{owner}/{repo}/pulls?head=`, puis `GET …/pulls/{n}` de
+ * l'OUVERTE, seule lecture qui rend `mergeable_state`.
+ */
+function lirePr(racine, branche) {
+  const proprietaire = DEPOT.split('/')[0]
+  const vu = gh(['api', `repos/${DEPOT}/pulls?head=${encodeURIComponent(`${proprietaire}:${branche}`)}&state=all&per_page=10`], racine)
+  if (!vu.ok) return vu
+  try {
+    const liste = JSON.parse(vu.stdout)
+    if (!Array.isArray(liste)) return { ok: false, raison: 'réponse REST sans tableau de PR' }
+    const ouverte = liste.find((pr) => pr?.state === 'open')
+    if (!ouverte) return { ok: true, prs: liste.map(prDeRest) }
+    const une = gh(['api', `repos/${DEPOT}/pulls/${ouverte.number}`], racine)
+    if (!une.ok) return une
+    const detail = JSON.parse(une.stdout)
+    return { ok: true, prs: liste.map((pr) => prDeRest(pr.number === detail.number ? detail : pr)) }
+  } catch (e) {
+    return { ok: false, raison: e.message }
+  }
+}
+
+/** Un uuid de demande de fusion, sinon levée. */
+function uuidDe(uuid) {
+  if (typeof uuid === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) return uuid
+  throw new Error(`ctx.lireFusion : un UUID de demande — refusé : ${JSON.stringify(uuid)}`)
 }
 
 /** Le numéro d'un ticket, sinon levée. */
@@ -523,14 +746,19 @@ function numeroDeTicket(geste, numero) {
  * (`etapesDuTrain.test.mjs`) refuse au module des étapes toute liaison qui atteint un lancement de
  * processus, contre une retouche de bonne foi (résidu : #2073) : chaque processus d'une étape passe
  * par un geste d'ici. Écrivains nommés de l'hôte :
- * `commit`, `rebaser`, `abandonnerRebase`, `pousser`, `tronc`. Hors git : `npm` (un NOM de script),
- * `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `lireTicket` (un numéro), `commenter`
- * (un numéro et un corps) ; chacun valide ses arguments avant tout spawn. Donnée : `generators`
- * (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit `estDocDerive`.
+ * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
+ * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
+ * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
+ * (un sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
+ * un sha), `lireFusion` (un numéro de PR et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
+ * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
+ * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
+ * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
 export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
   const depot = depotDuTrain(racine)
   const stdio = ['ignore', fdLog, fdLog]
+  const parentsVus = new Map()
   return {
     racine,
     questions: questionsDuTrain(depot),
@@ -539,6 +767,12 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     journaliser,
     fdLog,
     generators: GENERATORS,
+    get jobsDesDerives() {
+      return jobsDesDerives(racine)
+    },
+    get filtresDePush() {
+      return branchesDePush(texteDeCi({ cwd: racine }), `${DOSSIER}/${PORTE}`)
+    },
     npm(script) {
       if (typeof script !== 'string' || !/^[\w:.-]+$/.test(script)) throw new Error(`ctx.npm : un NOM de script \`npm run\`, jamais une commande — refusé : ${JSON.stringify(script)}`)
       const { executable, args, shell } = lancementNpm(script, process.platform)
@@ -553,8 +787,43 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return vu
     },
     coursesCi(sha) {
-      if (typeof sha !== 'string' || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) throw new Error(`ctx.coursesCi : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
-      return coursesCi({ cwd: racine, commit: sha, limit: 30 })
+      return coursesCi({ cwd: racine, commit: shaComplet('coursesCi', sha), limit: 30 })
+    },
+    coursesDeFile: () => coursesCi({ cwd: racine, branche: null, evenement: 'merge_group', limit: 30 }),
+    /** Les parents d'un commit (`GET /repos/{owner}/{repo}/commits/{ref}`), mémorisés : un commit ne
+     *  change jamais de parents. */
+    parentsDe(sha) {
+      const cle = shaComplet('parentsDe', sha)
+      if (parentsVus.has(cle)) return parentsVus.get(cle)
+      const vu = gh(['api', `repos/${DEPOT}/commits/${cle}`, '--jq', '[.parents[].sha]'], racine)
+      if (!vu.ok) return vu
+      try {
+        const parents = JSON.parse(vu.stdout)
+        if (!Array.isArray(parents)) return { ok: false, raison: 'réponse REST sans tableau de parents' }
+        const lu = { ok: true, parents }
+        parentsVus.set(cle, lu)
+        return lu
+      } catch (e) {
+        return { ok: false, raison: e.message }
+      }
+    },
+    jobsRouges(id) {
+      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsRouges : un id de course — refusé : ${JSON.stringify(id)}`)
+      return jobsRougesDe({ cwd: racine, id })
+    },
+    lirePr: () => lirePr(racine, branche),
+    ouvrirPr({ titre, corps }) {
+      if (typeof titre !== 'string' || !titre.trim() || typeof corps !== 'string') throw new Error(`ctx.ouvrirPr : un TITRE et un corps — refusé : ${JSON.stringify({ titre, corps })}`)
+      return gh(['api', '-X', 'POST', `repos/${DEPOT}/pulls`, '-f', `title=${titre}`, '-f', `head=${branche}`, '-f', `base=${TRONC.nom}`, '-f', `body=${corps}`], racine)
+    },
+    demanderFusion({ numero, sha } = {}) {
+      numeroDeTicket('demanderFusion', numero)
+      const corps = corpsDeFusion(shaComplet('demanderFusion', sha))
+      return fusionDe(gh(['api', '--include', '-X', 'PUT', `repos/${DEPOT}/pulls/${numero}/merge-async`, '--input', '-'], racine, corps))
+    },
+    lireFusion({ numero, uuid } = {}) {
+      numeroDeTicket('lireFusion', numero)
+      return fusionDe(gh(['api', '--include', `repos/${DEPOT}/pulls/${numero}/merge-async/${uuidDe(uuid)}`], racine))
     },
     lireTicket: (numero) => lireTicket({ depot: DEPOT, numero: numeroDeTicket('lireTicket', numero), appel: appelGh(racine) }),
     commenter(numero, corps) {
@@ -576,8 +845,18 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return { disponible: true, sha: shaDe(depot, TRONC.suivi) }
     },
     commit: ({ message, chemins }) => commitDe(depot, { message, chemins }),
-    rebaser: () => rebaser(depot, TRONC.suivi),
-    abandonnerRebase: () => abandonnerRebase(depot),
+    fusionner({ message }) {
+      if (typeof message !== 'string' || !message.trim()) throw new Error(`ctx.fusionner : un MESSAGE — refusé : ${JSON.stringify(message)}`)
+      return fusionner(depot, { de: TRONC.suivi, message })
+    },
+    abandonnerFusion: () => abandonnerFusion(depot),
+    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    conclureFusionSansCiblesPures({ chemins, message }) {
+      if (typeof message !== 'string' || !message.trim()) throw new Error(`ctx.conclureFusionSansCiblesPures : un MESSAGE — refusé : ${JSON.stringify(message)}`)
+      const autres = (chemins ?? []).filter((c) => !estCiblePure(c, GENERATORS))
+      if (!chemins?.length || autres.length) throw new Error(`ctx.conclureFusionSansCiblesPures : des cibles PURES seulement — refusé : ${JSON.stringify(autres)}`)
+      return conclureFusionSansChemins(depot, { chemins, message })
+    },
     pousser: ({ vers, bail }) => pousser(depot, { vers, bail }),
   }
 }
@@ -590,7 +869,7 @@ function main() {
   }
   const options = optionsDe(process.argv.slice(2))
   if (options.inconnus.length) {
-    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--ci-timeout-min <n>]\n`)
+    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>]]\n`)
     process.exit(1)
   }
   const depot = depotDuTrain(RACINE)
@@ -604,6 +883,17 @@ function main() {
   mkdirSync(chemins.dossier, { recursive: true })
   const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
 
+  if (options.veiller) {
+    return veillerLeTrain({
+      run: options.veiller,
+      fileTimeoutMin: options.fileTimeoutMin,
+      depuis: options.depuis,
+      lire: () => lireJournal(chemins.json, branche),
+      ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
+      log: chemins.log,
+    })
+  }
+
   // La TÊTE VIVANTE : la seule contre laquelle une étape verte se juge (`planDeReprise`).
   const teteVivante = shaDe(depot, 'HEAD')
 
@@ -612,7 +902,7 @@ function main() {
     const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), teteVivante)
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
-        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) reprises=${journal.reprises ?? 0}\n` +
+        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${journal.run ?? '—'}\n` +
         ETAPES.map((e) => `  ${e.nom.padEnd(10)} ${etatDeLEtape(journal, e.nom, teteVivante)}`).join('\n') +
         `\nreprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
     )
@@ -624,18 +914,20 @@ function main() {
     // TOUJOURS le sien en append.
     const fdLog = ouvrirLog(chemins.log, modeDuLog({ reprendre: options.reprendre }))
     const argsEnfant = process.argv.slice(2).filter((a) => a !== '--detache')
+    const lancement = Date.now()
+    const script = fileURLToPath(import.meta.url)
     const pid = lancerDetache({
-      script: fileURLToPath(import.meta.url),
+      script,
       args: argsEnfant,
       cwd: RACINE,
       fdLog,
-      envSupplementaire: { WFRP_PUBLIER_ENFANT: '1', WFRP_PUBLIER_LOG: chemins.log },
+      envSupplementaire: { WFRP_PUBLIER_ENFANT: '1', WFRP_PUBLIER_LOG: chemins.log, ...envDeLancement(lancement) },
     })
     // Le détachement est écrit DANS le log, par le parent : c'est la seule trace machine qu'un train
     // a été lancé détaché, et sur quels arguments.
     writeSync(fdLog, ligneDeDetachement({ pid, log: chemins.log, args: argsEnfant }))
     closeSync(fdLog)
-    process.stdout.write(`pid=${pid}\nlog=${chemins.log}\n`)
+    process.stdout.write(`pid=${pid}\nlog=${chemins.log}\nveille=${commandeDeVeille({ script, run: idDeRun({ pid, lancement }) })}\n`)
     return 0
   }
 
@@ -647,6 +939,9 @@ function main() {
   }
   const ctx = contexteDe({ racine: RACINE, branche, options, journaliser, fdLog })
   const { journal, repris, vertes } = journalInitial({ reprendre: options.reprendre, lu: surDisque, branche })
+  const lancement = lancementDe(process.env)
+  entameDuRun(journal, { run: idDeRun({ pid: process.pid, lancement }), pid: process.pid, fileTimeoutMin: options.fileTimeoutMin })
+  sauverJournal(chemins.json, journal)
   journaliser(`[publier] ${new Date().toISOString()} — branche ${branche}${options.reprendre ? ' (--reprendre)' : ''}\n`)
   journaliser(`[publier] ${repris ? `journal repris (${vertes} étape(s) verte(s))` : 'journal neuf'}\n`)
   let verdict
@@ -659,17 +954,11 @@ function main() {
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e?.stack ?? e}` }
   }
-  journal.etat = verdict.etat
+  journal.verdict = verdict
   sauverJournal(chemins.json, journal)
-  const derniere =
-    verdict.etat === 'vert'
-      ? `PUBLICATION: vert ${journal.tete}`
-      : verdict.etat === 'indeterminee'
-        ? `PUBLICATION: indéterminée ci ${journal.tete}`
-        : `PUBLICATION: rouge ${verdict.etape} — ${String(verdict.raison).split('\n')[0]}`
-  journaliser(`${derniere}\n`)
+  journaliser(`${ligneDePublication(verdict, journal.tete)}\n`)
   closeSync(fdLog)
-  return verdict.etat === 'vert' ? 0 : verdict.etat === 'indeterminee' ? 3 : 1
+  return codeDeVerdict(verdict)
 }
 
 /**
@@ -682,10 +971,11 @@ function mainNomme() {
     return main()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    const ligne = `PUBLICATION: rouge lecture — git indisponible : ${e.raison}\n`
+    const verdict = { etat: 'rouge', etape: 'moteur', raison: `git indisponible : ${e.raison}` }
+    const ligne = `${ligneDePublication(verdict)}\n`
     if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) appendFileSync(process.env.WFRP_PUBLIER_LOG, ligne)
     else process.stderr.write(ligne)
-    return 1
+    return codeDeVerdict(verdict)
   }
 }
 

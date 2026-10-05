@@ -1,6 +1,6 @@
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
-import { trappings, rigSpeciesId } from '../../data';
+import { rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../state/flow';
 import { buildScene } from '../../state/mapSpec';
@@ -40,25 +40,24 @@ function negociant(): Combatant {
 /** Maître d'armes : sac garni pour l'écran d'EMPLACEMENTS (couches d'armure LDB 63 + 2 sets d'armes + cape). */
 function maitreArmes(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', seed: 2606, id: 'test-equipement' });
-  const take = (label: string, equipped = false) => {
-    const id = trappings.find((t) => t.label === label)!.id; // libellé → id de catalogue
+  const take = (id: string, equipped = false) => {
     const it = itemFromTrappingById(id)!;
     it.equipped = equipped;
     return it;
   };
   h.items = [
-    take('Justaucorps de cuir', true), // la Veste (même couche) doit l'ÉCHANGER à l'équipement
-    take('Veste de cuir'),
-    take('Chemise de mailles'), // Flexible : se superpose au cuir souple ET à la plate
-    take('Plastron'), // couche extérieure rigide
-    take('Calotte de cuir'),
-    take('Jambières en cuir'),
-    take('Cape'), // emplacement cosmétique (visible dans le dos du rig)
-    take('Rapière', true), // Set I mêlée
-    take('Bouclier', true),
-    take('Épée bâtarde'), // 2M au sac → grisage du slot secondaire
-    take('Arc', true), // Set II distance
-    take('Flèche'),
+    take('justaucorps-de-cuir', true), // la Veste (même couche) doit l'ÉCHANGER à l'équipement
+    take('veste-de-cuir'),
+    take('chemise-de-mailles'), // Flexible : se superpose au cuir souple ET à la plate
+    take('plastron'), // couche extérieure rigide
+    take('calotte-de-cuir'),
+    take('jambieres-en-cuir'),
+    take('cape'), // emplacement cosmétique (visible dans le dos du rig)
+    take('rapiere', true), // Set I mêlée
+    take('bouclier', true),
+    take('epee-batarde'), // 2M au sac → grisage du slot secondaire
+    take('arc', true), // Set II distance
+    take('fleche'),
   ];
   h.loadouts = undefined; // inventaire de carrière REMPLACÉ → régénérer les sets par défaut
   h.activeLoadoutId = undefined;

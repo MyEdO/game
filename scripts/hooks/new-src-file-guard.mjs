@@ -18,8 +18,11 @@
 //     l'entrée porte donc la trace de cette validation, sans quoi la déclaration est refusée.
 //
 // COUVERTURE RÉELLE (à énoncer, pas à supposer) — la garde ne voit que les outils listés au matcher
-// `PreToolUse` des DEUX surfaces (`.claude/settings.json`, `.codex/hooks.json`) : `Write` et
-// `mcp__lean-ctx__ctx_patch` (dont `op: "create"`, qui porte le chemin en `path` et non `file_path`).
+// `PreToolUse` des DEUX surfaces (`.claude/settings.json`, `.codex/hooks.json`) : les canaux qui
+// créent un fichier, `OUTILS_CREATION` (`scripts/guards/lib/contratGarde.mjs`), lus par `ecrituresDe` ;
+// seule une écriture qui pose le fichier entier (`ecritLeFichierEntier` : `Write`, `ctx_patch` op
+// `create`) le crée (lean-ctx `LEAN_CTX_VERSION`, module `tools::ctx_patch` : « `create` short-circuits the
+// anchored pipeline », toute autre op lit la préimage).
 // LIMITE RÉSIDUELLE assumée : tout chemin d'écriture qui ne passe pas par un outil matché échappe à
 // la garde — redirection shell (`... > src/ui/X.tsx`, `tee`, `cp`), script Node lancé par un runner,
 // éditeur externe. Le cliquet (xvii)/(x) de `src/ui/ui-ratchets.test.ts` et la revue restent la
@@ -28,7 +31,7 @@
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
 import { existsSync, readFileSync } from 'node:fs'
-import { entreeDOutil } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_CREATION, cheminVise, ecritLeFichierEntier, ecrituresDe } from '../guards/lib/contratGarde.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
 
@@ -141,10 +144,8 @@ export const RAPPEL_SRC = (rel) =>
 
 /** Le verdict sur la création d'un fichier. `contexte.env` porte `SKIP_NEW_SRC_GUARD` et
  *  `WFRP_REGISTRE_ECRANS` ; la dérogation prise demande sa TRACE au journal. */
-function evaluer(entree, { env = process.env } = {}) {
-  // `Write` porte le chemin en `tool_input.file_path`, `ctx_patch` (op `create`) en `tool_input.path`.
-  const input = entreeDOutil(entree) ?? {}
-  const fp = String(input.file_path ?? input.path ?? '')
+function verdictsDe(ecrit, env) {
+  const fp = String(cheminVise(ecrit) ?? '')
   if (!fp || existsSync(fp)) return null
   const rel = relPath(fp)
   if (!rel || !rel.startsWith('src/')) return null // hors du dépôt, ou hors de src/
@@ -171,4 +172,7 @@ function evaluer(entree, { env = process.env } = {}) {
   return [...verdicts, { contexte: RAPPEL_SRC(rel) }]
 }
 
-export const garde = { nom: 'new-src-file', outils: ['Write', 'mcp__lean-ctx__ctx_patch'], evaluer }
+const evaluer = (entree, { env = process.env } = {}) =>
+  ecrituresDe(entree).filter(ecritLeFichierEntier).flatMap((ecrit) => verdictsDe(ecrit, env) ?? [])
+
+export const garde = { nom: 'new-src-file', outils: OUTILS_CREATION, evaluer }

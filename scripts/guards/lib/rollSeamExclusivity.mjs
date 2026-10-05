@@ -39,7 +39,7 @@
 import tsModule from 'typescript';
 import { parUnitesDeCode } from './lister.mjs'
 import { scriptKindDe } from './dialecte.mjs'
-import { estAppelDeclare, tableDesExports } from './canonUnique.mjs'
+import { contexteImports, estAppelDeclare, tableDesExports } from './canonUnique.mjs'
 
 // Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest ce module passe par
 // vite-node, et chaque `ts.x` d'un visiteur AST se relit alors sur l'objet d'import du runner. Même
@@ -392,11 +392,12 @@ export function scanDesHorsPorte(relPath, contenu, table) {
     relPath, contenu, ts.ScriptTarget.Latest, true,
     scriptKindDe(relPath),
   );
+  const contexte = contexteImports(sf);
   /** @type {Map<string, { line: number, name: string }>} */
   const vus = new Map();
   const visit = (node) => {
     if (ts.isCallExpression(node) && !inSpecCallback(node)) {
-      const nom = estAppelDeclare(node, sf, table) ?? (estAppelDeDe(node) ? 'rng.int' : null);
+      const nom = estAppelDeclare(node, sf, table, contexte) ?? (estAppelDeDe(node) ? 'rng.int' : null);
       if (nom) {
         const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
         vus.set(`${line}:${nom}`, { line, name: nom });
@@ -525,9 +526,10 @@ export function scanEngineDelegatedRoll(relPath, contenu, table) {
     relPath, contenu, ts.ScriptTarget.Latest, true,
     scriptKindDe(relPath),
   );
+  const contexte = contexteImports(sf);
   const findings = [];
   const visit = (node) => {
-    const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table) : null;
+    const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table, contexte) : null;
     if (name) findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
     ts.forEachChild(node, visit);
   };

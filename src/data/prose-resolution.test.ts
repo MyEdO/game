@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { RACINES_PAR_DEFAUT, adressesDuDepot, fichiersJsonDe } from '../../scripts/source/adresses.mjs';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
 import { cheminChapitre, resoudreProse } from '../../scripts/source/resoudre.mjs';
-import { empreinteDe, graphieDuFichier, parseChapitre, type ChapitreParse, type Fragment, type FragmentBlocs } from './source/decoupe';
+import { fragmentBlocs, fragmentCellule, graphieDuFichier, parseChapitre, type ChapitreParse, type Fragment, type FragmentBlocs } from './source/decoupe';
 // Le prédicat de la règle 5, là où il est DÉFINI (partagé avec `no-html-in-prose.test.ts`).
 import { HTML_TAG } from './source/normalize';
 
@@ -104,7 +104,7 @@ const graphieFautive = (ref: { book: string; ch: string }): boolean => prefixeRe
 /** Les trois volets, par le CODE que le résolveur rend — un code de plus sans volet est une omission
  *  visible (il tombe dans `A`, le volet de la résolution elle-même). */
 const CODES_B = new Set(['empreinte-divergente']);
-const CODES_D = new Set(['fragment-trop-court', 'fragment-ambigu', 'fragments-chevauchants', 'montage-hors-plafond']);
+const CODES_D = new Set(['fragment-trop-court', 'fragment-ambigu', 'fragments-chevauchants', 'fragments-contigus', 'montage-hors-plafond']);
 
 const ADRESSES: AdresseVue[] = adressesDuDepot();
 const ECHECS = ADRESSES.map((a) => ({ ...a, echec: echecDe(a.noeud) }));
@@ -149,7 +149,7 @@ describe('résolution de la prose ADRESSÉE — toute `descRef` rend son texte, 
     ).toEqual([]);
   });
 
-  it('D — un MONTAGE tient ses plafonds (fragments longs, uniques, trois au plus)', () => {
+  it('D — un MONTAGE tient ses plafonds (fragments longs, uniques, ni chevauchants ni contigus, trois au plus)', () => {
     const rouges = lignes((code) => CODES_D.has(code));
     expect(
       rouges,
@@ -252,13 +252,8 @@ const CHAPITRE: ChapitreParse = parseChapitre(TEXTE_FIXTURE);
 const LECTEUR = (book: string, ch: string): ChapitreParse | null =>
   book === 'livre-fixture' && ch === '01' ? CHAPITRE : null;
 
-/** Fragment de blocs de la fixture, empreinte POSÉE par le helper unique (jamais écrite à la main). */
-function fragment(sec: string, b0: number, b1: number): FragmentBlocs {
-  const brut: FragmentBlocs = { kind: 'blocs', sec, secOcc: 1, b0, b1, sum: '' };
-  const sum = empreinteDe(CHAPITRE, brut);
-  if (typeof sum !== 'string') throw new Error(`fixture illisible : ${JSON.stringify(sum)}`);
-  return { ...brut, sum };
-}
+/** Fragment de blocs de la fixture, empreinte POSÉE par son constructeur (jamais écrite à la main). */
+const fragment = (sec: string, b0: number, b1: number): FragmentBlocs => fragmentBlocs(CHAPITRE, { sec, secOcc: 1, b0, b1 });
 
 const adresse = (...parts: Fragment[]) => ({ descRef: { book: 'livre-fixture', ch: '01', parts } });
 
@@ -293,21 +288,20 @@ describe('les trois volets MORDENT — fixture synthétique', () => {
 
   it('D — un MONTAGE dont un fragment est trop court est REFUSÉ', () => {
     // Le 3ᵉ bloc de la fixture (« Bref. ») fait moins de 40 caractères normalisés.
-    expect(echecDe(adresse(fragment('terreur', 1, 1), fragment('terreur', 2, 2)), LECTEUR)?.code).toBe('fragment-trop-court');
+    expect(echecDe(adresse(fragment('terreur', 2, 2), fragment('terreur', 1, 1)), LECTEUR)?.code).toBe('fragment-trop-court');
   });
 
   it('D — une CELLULE d’un mot se monte : le plancher et l’unicité ne visent que les `blocs`', () => {
     // Une cellule est adressée EXACTEMENT (section, ligne, colonne) : rien à discriminer par le texte,
     // et aucune borne à étendre — lui opposer « étendez les bornes de blocs » était un remède
     // impossible (recette : « Humain », valide seul, refusé dès l’ajout d’un 2ᵉ fragment).
-    const cellule: Fragment = { kind: 'cellule', sec: 'terreur', secOcc: 1, row: 'Tete', col: 'Race', sum: '' };
-    const sum = empreinteDe(CHAPITRE, cellule);
-    expect(typeof sum, 'la cellule d’un mot doit résoudre SEULE').toBe('string');
-    const court = resoudreProse(adresse({ ...cellule, sum: sum as string }), LECTEUR);
+    const cellule = fragmentCellule(CHAPITRE, { sec: 'terreur', secOcc: 1, row: 'Tete', col: 'Race' });
+    expect(cellule.sum, 'la cellule d’un mot doit résoudre SEULE').not.toBe('');
+    const court = resoudreProse(adresse(cellule), LECTEUR);
     expect(court.md, 'la cellule rend bien un texte d’un mot').toBe('Humain');
 
-    const monte = resoudreProse(adresse({ ...cellule, sum: sum as string }, fragment('terreur', 1, 1)), LECTEUR);
-    expect(echecDe(adresse({ ...cellule, sum: sum as string }, fragment('terreur', 1, 1)), LECTEUR)?.code).toBeUndefined();
+    const monte = resoudreProse(adresse(cellule, fragment('terreur', 1, 1)), LECTEUR);
+    expect(echecDe(adresse(cellule, fragment('terreur', 1, 1)), LECTEUR)?.code).toBeUndefined();
     expect(monte.etat).toBe('resolue');
     expect(monte.md).toContain('Humain');
     expect(monte.md).toContain('Test de Psychologie');
@@ -333,10 +327,9 @@ describe('les trois volets MORDENT — fixture synthétique', () => {
     // Le verrou compare les BLOCS COUVERTS, pas les genres : une cellule est un morceau du bloc-table,
     // l'adresser après la table dirait deux fois la même chose.
     const table = fragment('terreur', 3, 3);
-    const cellule: Fragment = { kind: 'cellule', sec: 'terreur', secOcc: 1, row: 'Tete', col: 'Effet', sum: '' };
-    const sum = empreinteDe(CHAPITRE, cellule);
-    expect(typeof sum, 'la cellule de fixture doit résoudre').toBe('string');
-    expect(echecDe(adresse(table, { ...cellule, sum: sum as string }), LECTEUR)?.code).toBe('fragments-chevauchants');
+    const cellule = fragmentCellule(CHAPITRE, { sec: 'terreur', secOcc: 1, row: 'Tete', col: 'Effet' });
+    expect(cellule.sum, 'la cellule de fixture doit résoudre').not.toBe('');
+    expect(echecDe(adresse(table, cellule), LECTEUR)?.code).toBe('fragments-chevauchants');
   });
 
   it('D — un montage de plus de trois fragments est REFUSÉ', () => {
@@ -345,12 +338,7 @@ describe('les trois volets MORDENT — fixture synthétique', () => {
   });
 
   it('E — une balise HTML résolue est vue ; un `<br>` de cellule, lui, est ABSORBÉ en saut de ligne', () => {
-    const cellule = (row: string): Fragment => {
-      const brut: Fragment = { kind: 'cellule', sec: 'sequelle', secOcc: 1, row, col: 'Effet', sum: '' };
-      const sum = empreinteDe(CHAPITRE, brut);
-      if (typeof sum !== 'string') throw new Error(`fixture illisible : ${JSON.stringify(sum)}`);
-      return { ...brut, sum };
-    };
+    const cellule = (row: string) => fragmentCellule(CHAPITRE, { sec: 'sequelle', secOcc: 1, row, col: 'Effet' });
     // MORSURE du volet E, sur une balise que RIEN n'absorbe.
     const html = texteResolu(adresse(cellule('Torse')), LECTEUR);
     expect(html, 'la cellule de fixture rend bien sa balise `<b>`').toContain('<b>');

@@ -27,8 +27,9 @@ import { isBuiltin } from 'node:module'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { scriptKindDe, typescript } from '../guards/lib/dialecte.mjs'
-import { clotureDImports, resolveImport } from '../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule, resolveImport } from '../guards/lib/importGraph.mjs'
 
+const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const ETAPES = fileURLToPath(new URL('./etapesDuTrain.mjs', import.meta.url))
 const HOTE = fileURLToPath(new URL('../guards/lib/gitPorte.mjs', import.meta.url))
 const posix = (chemin) => chemin.split('\\').join('/')
@@ -289,14 +290,15 @@ function lanceursDeLaCloture(cloture, disque = DISQUE) {
   return { lectures, exportsLanceurs, locaux }
 }
 
-const clotureDesEtapes = () => [...clotureDImports([ETAPES])].map((rel) => resolve(rel)).filter((f) => /\.m?[jt]s$/.test(f))
+const clotureDesEtapes = () =>
+  [...clotureDImports([ETAPES], { racine: RACINE })].map((rel) => resolve(RACINE, rel)).filter(estModule)
 
 test('le point fixe voit les lanceurs de la clôture : questions et écrivains de l’hôte, `coursesCi`, `execFileResilient`, `appelGhRunner`', () => {
   const { exportsLanceurs, locaux } = lanceursDeLaCloture(clotureDesEtapes())
   const hote = exportsLanceurs.get(posix(HOTE))
   assert.ok(hote, 'la clôture lit bien l’hôte git : sinon ce test ne mesure rien')
   for (const nom of ['lancer', 'interroger', 'lire', 'ecrire']) assert.ok(locaux.get(posix(HOTE)).has(nom), `${nom} atteint un lancement`)
-  for (const nom of ['commitDe', 'pousser', 'rebaser', 'shaDe', 'ceQuiChange', 'listerImage', 'journalDe'])
+  for (const nom of ['commitDe', 'pousser', 'fusionner', 'shaDe', 'ceQuiChange', 'listerImage', 'journalDe'])
     assert.ok(hote.has(nom), `${nom} manque aux lanceurs de l’hôte : ${[...hote].join(', ')}`)
   for (const nom of ['TRONC', 'reussi', 'raisonCourte', 'urlOrigineAcceptee']) assert.ok(!hote.has(nom), `${nom} est un pur`)
   const de = (rel) => exportsLanceurs.get(posix(resolve(rel))) ?? new Set()
@@ -308,8 +310,8 @@ test('le point fixe voit les lanceurs de la clôture : questions et écrivains d
 
 test('le point fixe suit le RANGEMENT, le ré-export, l’espace de noms et le défaut, d’un module à l’autre ; une liaison intégrée hors de `INERTES` lance, un global lu hors de `AMBIANTS_INERTES` aussi', () => {
   const sources = new Map()
-  const ecrire = (nom, texte) => { sources.set(resolve('/banc', nom), texte); return resolve('/banc', nom) }
-  const disque = { lire: (chemin) => sources.get(chemin), existe: (chemin) => sources.has(chemin) }
+  const ecrire = (nom, texte) => { sources.set(posix(resolve('/banc', nom)), texte); return resolve('/banc', nom) }
+  const disque = { lire: (chemin) => sources.get(posix(chemin)), existe: (chemin) => sources.has(posix(chemin)) }
   const a = ecrire('a.mjs', [
     "import { spawnSync } from 'node:child_process'",
     'const REGISTRE = []',

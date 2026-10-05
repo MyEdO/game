@@ -164,7 +164,6 @@ export const CSS_IDENTITE_ECRAN_RATCHET = [
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-cell span :: color', occurrence: 1 },
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-cell span :: font-size', occurrence: 1 },
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-flags .ed-check span :: font-size', occurrence: 1 },
-  { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-invalid :: outline', occurrence: 1 },
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-msg :: color', occurrence: 1 },
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-msg :: font-size', occurrence: 1 },
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-ok :: color', occurrence: 1 },

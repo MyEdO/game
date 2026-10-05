@@ -6,6 +6,9 @@
 // split 97,8 s (−23 %), mêmes 1 451 fichiers. La parité porte sur les FICHIERS : sous
 // `isolate:false` le groupement change, et un flake d'ordre (`bascule-de-vue`) change de verdict.
 //
+// `WFRP_TEST_PARTIE=i/K` ne joue que la tranche `i` de la suite (`trancher`, partition.mjs), sous
+// le même choix partagé/mono : c'est le job matrice `suite` de `.github/workflows/ci.yml`.
+//
 // La sortie des enfants est relayée telle quelle ET tee-ée AU FIL DE L'EAU dans
 // `node_modules/.cache/vitest-run-<pid>.txt` : un run tué (timeout, coupure) laisse quand même son
 // début, et le fichier porte LUI-MÊME son `status:` — seul artefact hors du pont d'outillage.
@@ -25,8 +28,12 @@ import {
   compterSentinelles,
   enteteCapture,
   envEnfant,
+  partieDe,
   partitionner,
   porteBilan,
+  refusDePartie,
+  trancher,
+  VARIABLE_PARTIE,
   repartitionWorkers,
   resumeLancement,
   SENTINELLES,
@@ -34,13 +41,11 @@ import {
   memoireDisponibleMo,
   separerArguments,
   cheminsGlobSuspects,
-  suiteComplete,
   TAS_UTILISE,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
 import { estPidVivant, prendreVerrou, verrouRequis } from './verrou.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { entreesPerimees, messagePeremption } from '../guards/lib/domResiduStock.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const VITEST = path.join(RACINE, 'node_modules/vitest/vitest.mjs')
@@ -85,6 +90,12 @@ const posix = (p) => p.split(path.sep).join('/')
 const DEBUT = Date.now()
 const ARGV = process.argv.slice(2)
 const { filtres, mono } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
+const PARTIE = partieDe(process.env[VARIABLE_PARTIE])
+const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV }) : null)
+if (refusPartie) {
+  console.error(`[test] REFUS — ${refusPartie}`)
+  process.exit(2)
+}
 // Verrou de SUITE à l'échelle machine (#1679 L1c-M7) : deux suites COMPLÈTES concurrentes se volent
 // cœurs et mémoire. Un run FILTRÉ reste libre — il est court et ne sature rien — à condition que
 // CHAQUE filtre nomme un FICHIER : un filtre-DOSSIER (`npm test src`) est une suite déguisée.
@@ -108,12 +119,6 @@ if (verrou.etat === 'refus') {
 }
 if (verrou.avertissement) console.error(verrou.avertissement)
 const ENV = envEnfant(process.env)
-// Registre de PASSAGE de la barrière DOM : chaque worker y note, par fichier de test joué, s'il a fui
-// ou non (`src/test-setup.ts`). Un fichier de test ne peut pas rendre ce verdict — il ne voit pas les
-// autres (deux processus Vitest, N workers, `isolate:false`, run filtré) — donc il se rend ICI, après
-// la suite. Un appelant qui pose déjà la variable garde la sienne (re-mesure à la main).
-const REGISTRE_DOM = path.join(CACHE, `dom-residu-${process.pid}.txt`)
-ENV.WFRP_DOM_RESIDU_REGISTRE = process.env.WFRP_DOM_RESIDU_REGISTRE ?? REGISTRE_DOM
 // Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
 // cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
 const CAPACITE = capacite(
@@ -138,14 +143,10 @@ const ecrireCapture = (texte) => {
 }
 /** Motif de nom d'une capture : `vitest-run-<pid>.txt` — une par run, un run en cours garde la sienne. */
 const MOTIF_CAPTURE = /^vitest-run-\d+\.txt$/
-/** Motif de nom d'un registre de passage de la barrière DOM (même règle : un par PID, borné à 7 jours). */
-const MOTIF_REGISTRE_DOM = /^dom-residu-\d+\.txt$/
 
 try {
   fs.mkdirSync(CACHE, { recursive: true })
   purgerPerimes({ dossier: CACHE, motif: MOTIF_CAPTURE, ageMs: PEREMPTION_MS })
-  purgerPerimes({ dossier: CACHE, motif: MOTIF_REGISTRE_DOM, ageMs: PEREMPTION_MS })
-  fs.rmSync(REGISTRE_DOM, { force: true }) // un PID recyclé ne décide pas du verdict d'un autre run
   fdCapture = fs.openSync(CAPTURE, 'w')
   ecrireCapture(
     enteteCapture({
@@ -234,8 +235,23 @@ function lancementUnique(args) {
   })
 }
 
+/** Config Vitest générée dans l'atelier : celle de `vite.config.ts`, `include` REMPLACÉ par `inclus`. */
+function ecrireConfig(nom, inclus) {
+  const config = path.join(ATELIER, `vitest.${nom}.config.ts`)
+  fs.writeFileSync(
+    config,
+    `// Généré par scripts/test/run.mjs à chaque lancement — jamais édité, jamais committé.\n` +
+      `import base from ${JSON.stringify(posix(path.join(RACINE, 'vite.config.ts')))};\n` +
+      // `mergeConfig` CONCATÈNE les `include` (mesuré 2026-08-23) : l'étalement explicite est
+      // le seul moyen de REMPLACER la liste du fichier de base.
+      `export default { ...base, root: ${JSON.stringify(posix(RACINE))}, ` +
+      `test: { ...base.test, include: ${JSON.stringify(inclus)} } };\n`,
+  )
+  return config
+}
+
 async function principal() {
-  if (mono || !WORKERS.split) return lancementUnique(ARGV)
+  if (!PARTIE && (mono || !WORKERS.split)) return lancementUnique(ARGV)
 
   balayerAteliersMorts()
   fs.mkdirSync(ATELIER, { recursive: true })
@@ -255,8 +271,30 @@ async function principal() {
     for (const l of sortie.split('\n')) observer(l, true)
     return inventaire.status ?? 1
   }
-  const fichiers = JSON.parse(fs.readFileSync(liste, 'utf8')).map((e) => e.file)
+  const tous = JSON.parse(fs.readFileSync(liste, 'utf8')).map((e) => e.file)
+  let fichiers = tous
+  let args = ARGV
+  if (PARTIE) {
+    const tranche = trancher(tous.map((f) => posix(path.relative(RACINE, f))), PARTIE)
+    const ligne =
+      `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${tous.length}` +
+      ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
+    process.stdout.write(ligne)
+    ecrireCapture(ligne)
+    const suspects = cheminsGlobSuspects(tranche.fichiers)
+    if (suspects.length) {
+      const refus = `[partie] chemin à métacaractère de glob, tranche inexprimable en \`include\` : ${suspects[0]}`
+      process.stderr.write(`${refus}\n`)
+      ecrireCapture(`${refus}\n`)
+      observer(refus, true)
+      return 1
+    }
+    const garde = new Set(tranche.fichiers)
+    fichiers = tous.filter((f) => garde.has(posix(path.relative(RACINE, f))))
+    args = ['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV]
+  }
   const partition = partitionner(fichiers, (f) => fs.readFileSync(f, 'utf8'))
+  if (mono || !WORKERS.split) return lancementUnique(args)
 
   const cotes = cotesRequis(filtres, partition, RACINE)
   const suspects = cheminsGlobSuspects(fichiers)
@@ -266,7 +304,7 @@ async function principal() {
         `[split] chemin à métacaractère de glob, partage impossible : ${suspects[0]}\n`,
       )
     }
-    return lancementUnique(ARGV)
+    return lancementUnique(args)
   }
 
   partageEffectif = true
@@ -274,17 +312,7 @@ async function principal() {
   const enfants = []
 
   const lancer = (cote) => {
-    const inclus = partition[cote].map((f) => posix(path.relative(RACINE, f)))
-    const config = path.join(ATELIER, `vitest.${cote}.config.ts`)
-    fs.writeFileSync(
-      config,
-      `// Généré par scripts/test/run.mjs à chaque lancement — jamais édité, jamais committé.\n` +
-        `import base from ${JSON.stringify(posix(path.join(RACINE, 'vite.config.ts')))};\n` +
-        // `mergeConfig` CONCATÈNE les `include` (mesuré 2026-08-23) : l'étalement explicite est
-        // le seul moyen de REMPLACER la liste du fichier de base.
-        `export default { ...base, root: ${JSON.stringify(posix(RACINE))}, ` +
-        `test: { ...base.test, include: ${JSON.stringify(inclus)} } };\n`,
-    )
+    const config = ecrireConfig(cote, partition[cote].map((f) => posix(path.relative(RACINE, f))))
     const p = spawn(process.execPath, argumentsEnfant(VITEST, config, WORKERS[cote], ARGV), {
       cwd: RACINE,
       env: ENV,
@@ -342,23 +370,6 @@ const diagnostic = bilanDiagnostic(compteSentinelles, {
 })
 process.stdout.write(diagnostic)
 ecrireCapture(diagnostic)
-// PÉREMPTION DU STOCK DES FUITES DOM — une suite COMPLÈTE VERTE est le seul run où « ce fichier a
-// joué sans fuir » se mesure : le stock est en extinction, une ligne qui ne protège plus rien masque
-// la fuite suivante du même fichier. Jugée AVANT le résumé et le `status:` : ils portent le code de
-// sortie du processus, ils ne peuvent pas dire 0 quand la porte rend 1.
-if (code === 0 && suiteComplete(filtres, ARGV)) {
-  try {
-    const lignes = fs.readFileSync(ENV.WFRP_DOM_RESIDU_REGISTRE, 'utf8').split('\n').filter(Boolean)
-    const message = messagePeremption(entreesPerimees(lignes))
-    if (message) {
-      process.stderr.write(`${message}\n`)
-      ecrireCapture(`${message}\n`)
-      code = 1
-    }
-  } catch (e) {
-    process.stderr.write(`[test] péremption du stock des fuites DOM non jugée : ${e.message}\n`)
-  }
-}
 process.stdout.write(
   resumeLancement({
     statut: code,

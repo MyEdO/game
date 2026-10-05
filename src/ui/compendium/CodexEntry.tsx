@@ -1,7 +1,7 @@
 /** Rendu d'une fiche du Codex (détail) : en-tête + faits + prose + SECTIONS riches (statbloc,
  *  niveaux de carrière, bénédictions…) dont les entités citées sont des liens `CodexRef`. */
 import type { CodexItem, CodexRow, CodexSection } from './registry';
-import { EntityRef, ChoiceChips, PlainChip } from '../EntityChip';
+import { EntityRef, EntityChoice, PlainChip } from '../EntityChip';
 import { CodexRef } from './CodexRef';
 import { CreaturePreview } from './CreaturePreview';
 import { TabbedEntry, type EntryTab } from '../TabbedEntry';
@@ -57,8 +57,8 @@ function CodexRowView({ row, entree }: { row: CodexRow; entree?: { type: string;
     case 'ref':
       return <EntityRef category={row.category} id={row.id} label={row.label} show={row.show} instance={row.show} badge={row.badge} />;
     case 'choice':
-      // « A ou B » : rendu via la brique PARTAGÉE (identique partout — Codex et écrans).
-      return <ChoiceChips category={row.category} options={row.options} />;
+      // « A ou B » / « n parmi » : rendu via la brique PARTAGÉE (identique partout — Codex et écrans).
+      return <EntityChoice category={row.category} advancement={row.advancement} />;
     case 'fold':
       // Dépliable CANONIQUE (`.fold`, cf. components.css) : forme technique d'atelier sous la phrase humaine.
       return (

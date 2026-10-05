@@ -1,7 +1,7 @@
 import type { Slot } from './bones';
 import type { Combatant } from '../../engine/types';
 import { hashSeed } from '../../engine/dice';
-import { rigSpeciesId, species, raceAppearance, vehicles, trappings } from '../../data';
+import { rigSpeciesId, species, raceAppearance, vehicles, siegeEngines } from '../../data';
 import { creatureSpeciesOptions } from './creatures';
 import { SWARM_FORMS } from './swarm/forms';
 import type { MonsterParts } from './parts/monstrous';
@@ -26,7 +26,7 @@ export function rigSpeciesVocab(): Set<string> {
     ...raceAppearance.map((r) => r.id),
     ...Object.keys(SWARM_FORMS),
     ...vehicles.map((v) => v.id),
-    ...trappings.map((t) => t.siegeRig).filter((r): r is string => typeof r === 'string'),
+    ...siegeEngines().map((t) => t.siegeRig).filter((r): r is string => typeof r === 'string'),
   ]);
 }
 

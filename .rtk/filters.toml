@@ -1,5 +1,6 @@
 # Filtres RTK locaux au projet (précédence sur ~/.config/rtk et les filtres embarqués).
-# Contexte : le globalSetup vitest du repo (gen-registry) imprime ~100 lignes de pretest qui
+# Contexte : le `buildStart` du plugin Vite de `vite.config.ts` (gen-registry), que chaque run vitest
+# déclenche, imprime ~100 lignes de pretest qui
 # font échouer le parseur vitest embarqué de rtk → PASSTHROUGH tronqué EN TÊTE (le résumé
 # pass/fail — la seule chose qui compte — était perdu, cf. mémoire « RTK masque pass/fail »).
 schema_version = 1

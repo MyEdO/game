@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../Tabs';
 import { Icon } from '../Icon';
@@ -9,13 +9,14 @@ import { mergeCreatureProfile } from '../../state/campaignData';
 import { creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
-import { SourceRefField } from '../SourceRefField';
+import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
 import { LIBELLE_NARRATIF, RefNarrativeField } from '../compendium/RefField';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
-import { lieuxDesSites, referencesA, renommeRef, type CibleNarrative, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
+import { lieuDuSite, referencesA, renommeRef, type CibleNarrative, type LieuDeSite, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
 import type { Scene } from '../../state/scene';
 import type { WorldMap } from '../../state/worldMap';
 import type { CreatureData } from '../../data';
@@ -49,16 +50,62 @@ function idFrais(prefixe: string, depuis: readonly { id?: string }[], pris: read
 const entreesDuNarratif = (narratif: NarratifBlock): readonly { id?: string }[] =>
   REGISTRES_NARRATIFS.flatMap((r) => narratif[r.cle] as readonly { id?: string }[]);
 
-/** Un id candidat est déjà pris par une AUTRE entrée d'un registre narratif (`REGISTRES_NARRATIFS`),
- *  hors l'entrée elle-même. Collision inter-registres gardée ici ; collision avec un id global reste
- *  vérifiée par `narratifSchema` au parse. */
-function idUsedElsewhere(
+/** L'AUTRE entrée d'un registre narratif (`REGISTRES_NARRATIFS`) qui porte déjà l'id candidat, hors
+ *  l'entrée elle-même, nommée pour l'auteur (« l'affaire « titre » ») ; `null` s'il est libre. Collision
+ *  inter-registres gardée ici ; collision avec un id global reste vérifiée par `narratifSchema` au parse. */
+function porteurDeLId(
   narratif: NarratifBlock,
   candidate: string,
   self: { registre: CleDeRegistreNarratif; id: string },
-): boolean {
-  return REGISTRES_NARRATIFS.some((r) =>
-    (narratif[r.cle] as readonly { id: string }[]).some((e) => e.id === candidate && !(r.cle === self.registre && e.id === self.id)),
+): string | null {
+  for (const r of REGISTRES_NARRATIFS) {
+    const e = (narratif[r.cle] as readonly { id: string }[]).find((x) => x.id === candidate && !(r.cle === self.registre && x.id === self.id));
+    if (e) return `${r.nom} « ${(LIBELLE_NARRATIF[r.cle] as (x: { id: string }) => string)(e)} »`;
+  }
+  return null;
+}
+
+/** Id STABLE renommable, même règle que les clés d'un record du Codex : la saisie reste à l'écran telle
+ *  que tapée ; un id vide ou déjà porté n'est pas retenu, et le champ le dit (`aria-invalid` + message)
+ *  et le signale saisie en cours. Seul un id libre est émis. */
+function ChampIdStable({ libelle, className = 'ed-field', value, porteurDe, onRename }: {
+  libelle: string;
+  className?: string;
+  value: string;
+  /** Ce qui porte déjà `candidat` (hors l'entrée elle-même), nommé pour l'auteur ; `null` s'il est libre. */
+  porteurDe: (candidat: string) => string | null;
+  onRename: (id: string) => void;
+}) {
+  const [saisie, setSaisie] = useState(value);
+  const [retenu, setRetenu] = useState(value);
+  if (retenu !== value) {
+    setRetenu(value);
+    setSaisie(value);
+  }
+  const refusDe = (candidat: string): string | null => {
+    if (candidat === value) return null;
+    if (candidat === '') return 'Identifiant vide';
+    const porteur = porteurDe(candidat);
+    return porteur && `Identifiant « ${candidat} » déjà porté par ${porteur}`;
+  };
+  const candidat = saisie.trim();
+  const refus = refusDe(candidat);
+  // La saisie devenue libre est retenue, qu'elle vienne d'une frappe ou de l'id libéré par une autre entrée.
+  const aRetenir = candidat !== value && refus === null ? candidat : null;
+  useEffect(() => { if (aRetenir !== null) onRename(aRetenir); }, [aRetenir, onRename]);
+  useSaisieEnCours(refus !== null);
+  const messageId = useId();
+  return (
+    <>
+      <label className={className}>
+        {libelle}
+        <input
+          value={saisie} aria-invalid={refus ? true : undefined} aria-describedby={refus ? messageId : undefined}
+          onChange={(e) => setSaisie(e.target.value)}
+        />
+      </label>
+      {refus && <span id={messageId} className="hint" role="status">{`${refus} : non retenu. L'identifiant retenu reste « ${value} ».`}</span>}
+    </>
   );
 }
 
@@ -70,10 +117,14 @@ export interface ProjetEdite {
   narratif: NarratifBlock;
 }
 
-/** La raison qui refuse de retirer une entrée encore désignée : les lieux qui la désignent. */
+/** Un lieu de site, lisible par l'auteur : « scène « Le relais » », « carte du monde », « indice « L'affiche » ». */
+const lieuLisible = (l: LieuDeSite): string => (l.racine === 'carte' ? 'carte du monde' : `${l.racine === 'scene' ? 'scène' : 'indice'} « ${l.nom} »`);
+
+/** La raison qui refuse de retirer une entrée encore désignée : les lieux DISTINCTS qui la désignent. */
 function raisonDeRefus(projet: ProjetEdite, cible: CibleNarrative): string | undefined {
   const sites = referencesA(projet, cible);
-  return sites.length ? `Encore désigné par : ${lieuxDesSites(projet, sites)} — changez ou retirez ces références d'abord.` : undefined;
+  const lieux = [...new Set(sites.map((s) => lieuLisible(lieuDuSite(projet, s))))].join(', ');
+  return sites.length ? `Encore désigné par : ${lieux} — changez ou retirez ces références d'abord.` : undefined;
 }
 
 export function NarratifEditor({ projet, onChange, onClose }: {
@@ -93,17 +144,16 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
   const poserNarratif = (n: NarratifBlock) => onChange?.({ ...projet, narratif: n });
 
-  /** Renomme l'entrée `id` du `registre` et PROPAGE le renommage à toute référence du projet
-   *  (`renommeRef`) ; `suite` achève le narratif renommé (les `refs` d'indice). Rend le nouvel id, ou
-   *  `null` si refusé (vide, ou déjà porté par une entrée d'un registre). */
-  const renommeEntree = (registre: RegistreReference, id: string, nextId: string, suite = (n: NarratifBlock) => n): string | null => {
-    const trimmed = nextId.trim();
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre, id })) return null;
-    const p = renommeRef(projet, { registre, id }, trimmed);
-    const liste = (p.narratif[registre] as readonly { id: string }[]).map((e) => (e.id === id ? { ...e, id: trimmed } : e));
-    onChange?.({ ...p, narratif: suite({ ...p.narratif, [registre]: liste }) }, { cible: { registre, id }, nouveau: trimmed });
-    return trimmed;
+  /** Renomme l'entrée `id` du `registre` en `nextId` — un id LIBRE, que `ChampIdStable` seul émet — et
+   *  PROPAGE le renommage à toute référence du projet (`renommeRef`) ; `suite` achève le narratif renommé
+   *  (les `refs` d'indice). */
+  const renommeEntree = (registre: RegistreReference, id: string, nextId: string, suite = (n: NarratifBlock) => n) => {
+    const p = renommeRef(projet, { registre, id }, nextId);
+    const liste = (p.narratif[registre] as readonly { id: string }[]).map((e) => (e.id === id ? { ...e, id: nextId } : e));
+    onChange?.({ ...p, narratif: suite({ ...p.narratif, [registre]: liste }) }, { cible: { registre, id }, nouveau: nextId });
   };
+  /** Ce qui porte déjà `candidat` dans un registre, hors l'entrée `id` du `registre` (`ChampIdStable`). */
+  const porteurDe = (registre: RegistreReference, id: string) => (candidat: string) => porteurDeLId(narratif, candidat, { registre, id });
   /** Retire l'entrée `id` du `registre`. La seule porte du retrait est `BoutonRetirer` (`raisonDeRefus`). */
   const retireEntree = (registre: RegistreReference, id: string, suite = (n: NarratifBlock) => n) =>
     poserNarratif(suite({ ...narratif, [registre]: (narratif[registre] as readonly { id: string }[]).filter((e) => e.id !== id) }));
@@ -128,11 +178,15 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renamePreset = (id: string, nextId: string) => {
-    const nouveau = renommeEntree('presetsPnj', id, nextId);
-    if (nouveau && selId === id) setSelId(nouveau);
+    renommeEntree('presetsPnj', id, nextId);
+    if (selId === id) setSelId(nextId);
   };
 
   const selected = narratif.presetsPnj.find((p) => p.id === selId) ?? null;
+  // Clé STABLE d'un porteur : elle survit au renommage de son id, qui n'est pas un changement d'entité.
+  const clesPnj = useClesDeRangees(narratif.presetsPnj);
+  const clesIndices = useClesDeRangees(narratif.indices);
+  const clesDocuments = useClesDeRangees(narratif.documents);
 
   const setAffaires = (affaires: Affaire[]) => poserNarratif({ ...narratif, affaires });
 
@@ -152,8 +206,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renameAffaire = (id: string, nextId: string) => {
-    const nouveau = renommeEntree('affaires', id, nextId);
-    if (nouveau && selAffaireId === id) setSelAffaireId(nouveau);
+    renommeEntree('affaires', id, nextId);
+    if (selAffaireId === id) setSelAffaireId(nextId);
   };
 
   const selectedAffaire = narratif.affaires.find((a) => a.id === selAffaireId) ?? null;
@@ -195,19 +249,17 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renameIndice = (id: string, nextId: string) => {
-    const nouveau = renommeEntree('indices', id, nextId, refsVers(id, nextId.trim()));
-    if (nouveau && selIndiceId === id) setSelIndiceId(nouveau);
+    renommeEntree('indices', id, nextId, refsVers(id, nextId));
+    if (selIndiceId === id) setSelIndiceId(nextId);
   };
 
-  /** Renomme le stade `from` de l'indice `indiceId` et le propage aux Effects qui le désignent. */
+  /** Renomme le stade `from` de l'indice `indiceId` en `nextId` — un id libre DANS l'indice, que
+   *  `ChampIdStable` seul émet — et le propage aux Effects qui le désignent. */
   const renameStade = (indiceId: string, from: string, nextId: string) => {
-    const trimmed = nextId.trim();
-    const ind = narratif.indices.find((i) => i.id === indiceId);
-    if (!ind || !trimmed || ind.stades.some((s) => s.id !== from && s.id === trimmed)) return;
     const cible: CibleNarrative = { registre: 'indices', id: indiceId, stade: from };
-    const p = renommeRef(projet, cible, trimmed);
-    const indices = p.narratif.indices.map((i) => (i.id === indiceId ? { ...i, stades: i.stades.map((s) => (s.id === from ? { ...s, id: trimmed } : s)) } : i));
-    onChange?.({ ...p, narratif: { ...p.narratif, indices } }, { cible, nouveau: trimmed });
+    const p = renommeRef(projet, cible, nextId);
+    const indices = p.narratif.indices.map((i) => (i.id === indiceId ? { ...i, stades: i.stades.map((s) => (s.id === from ? { ...s, id: nextId } : s)) } : i));
+    onChange?.({ ...p, narratif: { ...p.narratif, indices } }, { cible, nouveau: nextId });
   };
 
   const selectedIndice = narratif.indices.find((i) => i.id === selIndiceId) ?? null;
@@ -230,8 +282,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   };
 
   const renameDocument = (id: string, nextId: string) => {
-    const nouveau = renommeEntree('documents', id, nextId);
-    if (nouveau && selDocumentId === id) setSelDocumentId(nouveau);
+    renommeEntree('documents', id, nextId);
+    if (selDocumentId === id) setSelDocumentId(nextId);
   };
 
   const selectedDocument = narratif.documents.find((d) => d.id === selDocumentId) ?? null;
@@ -287,6 +339,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
               ? <AffaireForm
                   affaire={selectedAffaire}
                   refus={raisonDeRefus(projet, { registre: 'affaires', id: selectedAffaire.id })}
+                  porteurDe={porteurDe('affaires', selectedAffaire.id)}
                   onRename={(nextId) => renameAffaire(selectedAffaire.id, nextId)}
                   onPatch={(patch) => updateAffaire(selectedAffaire.id, patch)}
                   onRemove={() => removeAffaire(selectedAffaire.id)}
@@ -324,10 +377,12 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           detail={
             selectedIndice
               ? <IndiceForm
+                  porteur={`indice:${clesIndices[narratif.indices.indexOf(selectedIndice)]}`}
                   indice={selectedIndice}
                   narratif={narratif}
                   affaires={narratif.affaires}
                   otherIndices={narratif.indices.filter((i) => i.id !== selectedIndice.id)}
+                  porteurDe={porteurDe('indices', selectedIndice.id)}
                   onRename={(nextId) => renameIndice(selectedIndice.id, nextId)}
                   onPatch={(patch) => updateIndice(selectedIndice.id, patch)}
                   onRenameStade={(from, nextId) => renameStade(selectedIndice.id, from, nextId)}
@@ -361,7 +416,9 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           detail={
             selectedDocument
               ? <DocumentForm
+                  porteur={`document:${clesDocuments[narratif.documents.indexOf(selectedDocument)]}`}
                   doc={selectedDocument}
+                  porteurDe={porteurDe('documents', selectedDocument.id)}
                   refus={raisonDeRefus(projet, { registre: 'documents', id: selectedDocument.id })}
                   onRename={(nextId) => renameDocument(selectedDocument.id, nextId)}
                   onPatch={(patch) => updateDocument(selectedDocument.id, patch)}
@@ -393,7 +450,9 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           detail={
             selected
               ? <PresetForm
+                  porteur={`pnj:${clesPnj[narratif.presetsPnj.indexOf(selected)]}`}
                   preset={selected}
+                  porteurDe={porteurDe('presetsPnj', selected.id)}
                   onRename={(nextId) => renamePreset(selected.id, nextId)}
                   onPatch={(patch) => updatePreset(selected.id, patch)}
                   refus={raisonDeRefus(projet, { registre: 'presetsPnj', id: selected.id })}
@@ -417,9 +476,8 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   );
 }
 
-/** CADRE du chapitre (#717) : l'ouverture cérémonielle et la clôture. Le `pitch` est un VERBATIM de
- *  source (règle stricte 5) — il se colle, il ne se rédige pas ici. La Condition de clôture est bornée
- *  aux kinds évaluables hors combat (`CONDITION_KINDS_CARTE`), comme un `when` de carte. */
+/** CADRE du chapitre (#717) : l'ouverture cérémonielle et la clôture. La Condition de clôture est
+ *  bornée aux kinds évaluables hors combat (`CONDITION_KINDS_CARTE`), comme un `when` de carte. */
 function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
   ouverture?: OuvertureBlock;
   cloture?: ClotureBlock;
@@ -457,7 +515,8 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
             Chapitre
             <input value={ouverture.chapitre ?? ''} onChange={(e) => patchOuv({ chapitre: e.target.value || undefined })} />
           </label>
-          <ProseField label="Pitch (verbatim de la source, Markdown)" value={ouverture.pitch} onChange={(pitch) => patchOuv({ pitch })} />
+          <ProseField label="Pitch (Markdown)" value={ouverture.pitch} onChange={(pitch) => patchOuv({ pitch })} />
+          <SourceRefField identite="ouverture" label="Source" facultative sujet="de l'ouverture" value={ouverture.source} onChange={(source) => patchOuv({ source })} />
           <label className="ed-field">
             Ambiance
             <select value={ouverture.ambiance ?? 'veillee'} onChange={(e) => patchOuv({ ambiance: e.target.value as AmbianceCadre })}>
@@ -499,19 +558,17 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
 }
 
 /** Formulaire d'une affaire : identité + titre + description, suppression bloquée si des indices y sont rattachés. */
-function AffaireForm({ affaire, refus, onRename, onPatch, onRemove }: {
+function AffaireForm({ affaire, refus, porteurDe, onRename, onPatch, onRemove }: {
   affaire: Affaire;
   refus: string | undefined;
+  porteurDe: (candidat: string) => string | null;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<Affaire>) => void;
   onRemove: () => void;
 }) {
   return (
     <div className="preset-form">
-      <label className="ed-field">
-        Identifiant (id stable)
-        <input value={affaire.id} onChange={(e) => onRename(e.target.value)} />
-      </label>
+      <ChampIdStable libelle="Identifiant (id stable)" value={affaire.id} porteurDe={porteurDe} onRename={onRename} />
       <label className="ed-field">
         Titre
         <input value={affaire.titre} onChange={(e) => onPatch({ titre: e.target.value })} />
@@ -524,8 +581,11 @@ function AffaireForm({ affaire, refus, onRename, onPatch, onRemove }: {
 
 /** Formulaire d'un document remis au joueur (#679) : identité + titre + prose Markdown VERBATIM + source,
  *  suppression bloquée tant qu'un stade d'indice le croise. */
-function DocumentForm({ doc, refus, onRename, onPatch, onRemove }: {
+function DocumentForm({ porteur, doc, porteurDe, refus, onRename, onPatch, onRemove }: {
+  /** Identité STABLE du document, tenue par `NarratifEditor` à travers ses renommages. */
+  porteur: string;
   doc: DocumentNarratif;
+  porteurDe: (candidat: string) => string | null;
   refus: string | undefined;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<DocumentNarratif>) => void;
@@ -533,16 +593,13 @@ function DocumentForm({ doc, refus, onRename, onPatch, onRemove }: {
 }) {
   return (
     <div className="preset-form">
-      <label className="ed-field">
-        Identifiant (id stable)
-        <input value={doc.id} onChange={(e) => onRename(e.target.value)} />
-      </label>
+      <ChampIdStable libelle="Identifiant (id stable)" value={doc.id} porteurDe={porteurDe} onRename={onRename} />
       <label className="ed-field">
         Titre
         <input value={doc.titre} onChange={(e) => onPatch({ titre: e.target.value })} />
       </label>
       <ProseField label="Texte (verbatim de la source, Markdown)" value={doc.prose} onChange={(prose) => onPatch({ prose })} />
-      <SourceRefField label="Source du document" value={doc.source} onChange={(source) => onPatch({ source })} />
+      <SourceRefField identite={porteur} label="Source" facultative sujet="du document" value={doc.source} onChange={(source) => onPatch({ source })} />
       <BoutonRetirer id={`supprimer-document-${doc.id}`} libelle="Supprimer ce document" refus={refus} onRemove={onRemove} />
     </div>
   );
@@ -565,11 +622,14 @@ function BoutonRetirer({ id, libelle, refus, onRemove }: { id: string; libelle: 
 }
 
 /** Formulaire d'un indice/rumeur : identité + affaire + nature + titre + recoupements + stades révélables. */
-function IndiceForm({ indice, narratif, affaires, otherIndices, onRename, onPatch, onRenameStade, refusDeStade, refus, onRemove }: {
+function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteurDe, onRename, onPatch, onRenameStade, refusDeStade, refus, onRemove }: {
+  /** Identité STABLE de l'indice, tenue par `NarratifEditor` à travers ses renommages. */
+  porteur: string;
   indice: Indice;
   narratif: NarratifBlock;
   affaires: Affaire[];
   otherIndices: Indice[];
+  porteurDe: (candidat: string) => string | null;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<Indice>) => void;
   /** Renomme un stade ET propage le renommage aux Effects qui le désignent. */
@@ -594,19 +654,22 @@ function IndiceForm({ indice, narratif, affaires, otherIndices, onRename, onPatc
   const updateStade = (id: string, patch: Partial<IndiceStade>) => {
     setStades(indice.stades.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   };
+  /** Le stade (hors `soi`) qui porte déjà `candidat` : `narratifSchema` exige l'unicité dans l'indice. */
+  const stadePorteur = (soi: string, candidat: string): string | null => {
+    const j = indice.stades.findIndex((s) => s.id !== soi && s.id === candidat);
+    return j >= 0 ? `le stade ${j + 1}` : null;
+  };
+  const clesStades = useClesDeRangees(indice.stades);
 
   return (
     <div className="preset-form">
-      <label className="ed-field">
-        Identifiant (id stable)
-        <input value={indice.id} onChange={(e) => onRename(e.target.value)} />
-      </label>
+      <ChampIdStable libelle="Identifiant (id stable)" value={indice.id} porteurDe={porteurDe} onRename={onRename} />
       <div className="ed-field">
         <span>Affaire</span>
         {affaires.length === 0
           ? <p className="empty">Créez d'abord une affaire pour pouvoir y rattacher un indice.</p>
           : (
-            <select value={indice.affaireId} onChange={(e) => onPatch({ affaireId: e.target.value })}>
+            <select aria-label="Affaire de l'indice" value={indice.affaireId} onChange={(e) => onPatch({ affaireId: e.target.value })}>
               {affaires.map((a) => (
                 <option key={a.id} value={a.id}>{a.titre}</option>
               ))}
@@ -631,18 +694,18 @@ function IndiceForm({ indice, narratif, affaires, otherIndices, onRename, onPatc
           : otherIndices.map((o) => (
               <label key={o.id} className="ed-subfield">
                 <input type="checkbox" checked={(indice.refs ?? []).includes(o.id)} onChange={() => toggleRef(o.id)} />
-                {o.titre}
+                {o.titre} <span className="chip">{o.id}</span>
               </label>
             ))}
       </div>
       <div className="ed-field">
         <span>Stades révélables</span>
         {indice.stades.map((s, idx) => (
-          <div key={s.id} className="preset-form">
-            <label className="ed-field">
-              Id du stade
-              <input value={s.id} onChange={(e) => onRenameStade(s.id, e.target.value)} />
-            </label>
+          <div key={clesStades[idx]} className="preset-form">
+            <ChampIdStable
+              libelle={`Id du stade ${idx + 1}`} className="ed-subfield" value={s.id}
+              porteurDe={(c) => stadePorteur(s.id, c)} onRename={(id) => onRenameStade(s.id, id)}
+            />
             {/* Au moins la prose ou le document (`raffineNarratif`). */}
             <ProseField
               label={`Prose (stade ${idx + 1}${s.documentId ? ', facultative : le stade croise un document' : ''})`}
@@ -652,13 +715,13 @@ function IndiceForm({ indice, narratif, affaires, otherIndices, onRename, onPatc
             <RefNarrativeField
               cle="documentId"
               narratif={narratif}
-              label="Document croisé"
+              label={`Document croisé du stade ${idx + 1}`}
               value={s.documentId}
               onChange={(documentId) => updateStade(s.id, { documentId, prose: documentId ? s.prose : (s.prose ?? '') })}
               nullable
             />
-            <SourceRefField label="Source du stade" value={s.source} onChange={(source) => updateStade(s.id, { source })} />
-            <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle="Supprimer ce stade" refus={refusDuRetrait(s.id)} onRemove={() => removeStade(s.id)} />
+            <SourceRefField identite={`${porteur}/stade:${clesStades[idx]}`} label="Source" facultative sujet={`du stade ${idx + 1}`} value={s.source} onChange={(source) => updateStade(s.id, { source })} />
+            <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle={`Supprimer le stade ${idx + 1}`} refus={refusDuRetrait(s.id)} onRemove={() => removeStade(s.id)} />
           </div>
         ))}
         <button type="button" className="btn small" onClick={addStade}>
@@ -671,8 +734,11 @@ function IndiceForm({ indice, narratif, affaires, otherIndices, onRename, onPatc
 }
 
 /** Formulaire d'un preset de PNJ : identité + base + surcharges de caracs + apparence + portrait + source. */
-function PresetForm({ preset, onRename, onPatch, refus, onRemove }: {
+function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRemove }: {
+  /** Identité STABLE du PNJ, tenue par `NarratifEditor` à travers ses renommages. */
+  porteur: string;
   preset: PresetPnj;
+  porteurDe: (candidat: string) => string | null;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<PresetPnj>) => void;
   refus: string | undefined;
@@ -699,10 +765,7 @@ function PresetForm({ preset, onRename, onPatch, refus, onRemove }: {
 
   return (
     <div className="preset-form">
-      <label className="ed-field">
-        Identifiant (id stable)
-        <input value={preset.id} onChange={(e) => onRename(e.target.value)} />
-      </label>
+      <ChampIdStable libelle="Identifiant (id stable)" value={preset.id} porteurDe={porteurDe} onRename={onRename} />
       <label className="ed-field">
         Créature de base (profil de combat)
         <select value={preset.base ?? ''} onChange={(e) => onPatch({ base: e.target.value || undefined })}>
@@ -752,7 +815,7 @@ function PresetForm({ preset, onRename, onPatch, refus, onRemove }: {
           onChange={(e) => onPatch({ portrait: e.target.value || undefined })}
         />
       </label>
-      <SourceRefField label="Source du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
+      <SourceRefField identite={porteur} label="Source" facultative sujet="du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
       <BoutonRetirer id={`supprimer-preset-${preset.id}`} libelle="Supprimer ce PNJ" refus={refus} onRemove={onRemove} />
     </div>
   );

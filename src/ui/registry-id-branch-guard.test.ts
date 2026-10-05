@@ -169,7 +169,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/crewedWeapon.ts': 1,
   'src/engine/drunkenness.ts': 1,
   'src/engine/engagement.ts': 2,
-  'src/engine/equipCompare.ts': 2,
+  'src/engine/equipCompare.ts': 1,
   // SAIN : lookup par id stable de la Compétence de soin, patron des jumeaux `careerSlots` ('focalisation')
   // et `critical` ('resistance') ci-dessus. Le littéral est factorisé en `HEAL_SKILL` (source unique des
   // sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout
@@ -198,7 +198,6 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/windsOfMagic.ts': 1,
   'src/gameIso/rig/mountedRig.ts': 1,
   'src/gameIso/rig/parts/career.ts': 3,
-  'src/gameIso/rig/parts/equipment.ts': 1,
   'src/gameIso/rig/parts/injuries.ts': 2, // reste le canal APPARENCE (œil remplacé en place), hors `rig` (calques)
   'src/gameIso/stage/Ambiance.tsx': 1,
   'src/gameIso/stage/CrewTooltip.tsx': 1,
@@ -538,7 +537,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     }
   });
 
-  it('CLIQUET : aucun site NOUVEAU, et tout site assaini abaisse le plafond', () => {
+  it('CLIQUET : aucun site NOUVEAU, et tout site assaini abaisse le plafond', { timeout: 30_000 }, () => {
     const findings = findingsIn(SCAN_DIRS);
     const perFile: Record<string, number> = {};
     for (const f of findings) perFile[f.rel] = (perFile[f.rel] ?? 0) + 1;

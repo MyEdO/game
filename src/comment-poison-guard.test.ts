@@ -50,8 +50,7 @@ const GARDE = {
   angleMort: [
     'Les commentaires HTML/JSX (`<!-- … -->`, `{/* … */}` hors TS), les `.css` et les `.md` ne sont pas scannés (#593).',
     'Un énoncé de règle qui n’emploie AUCUN mot des familles passe : la garde mesure un vocabulaire, pas une intention.',
-    'Une occurrence en CHAÎNE est invisible par construction (`extractComments` ne lit que les commentaires) — dont ' +
-      'les DONNÉES d’une garde : `scripts/guards/lib/labelLogic.mjs` porte un site de #1486 dans une valeur de `RATCHET_EXCEPTIONS`.',
+    'Une occurrence en CHAÎNE est invisible par construction (`extractComments` ne lit que les commentaires) — dont les DONNÉES d’une garde.',
     'Le cliquet des revendications d’autorité ne couvre que les tests de `src/**` : un test de `scripts/**` y échappe — ' +
       '12 sites mesurés le 2026-08-23 dans `scripts/**` (dont `structures-lexique.mts`, `registryIdBranch.mjs`, les ateliers `*.dessin.mts`) ne sont vus par AUCUN canal.',
     'La famille (e) ne mesure QUE le code de production : 17 sites vivent dans des tests le 2026-08-23, dont une dette ' +
@@ -86,7 +85,7 @@ const GARDE = {
     raison:
       'Le stock est le dénominateur des COMMENTAIRES de #1486 (credo règle 1) : chaque ligne se solde par la mort du site ' +
       'dans le commit de son lot. Il ne couvre PAS les sites de #1486 portés par du CODE — identifiants et chaînes : ' +
-      '`charKeyLegacy.mjs`, `LEGACY_KEY` (`saves.ts`), `labelLogic.mjs:874`, ' +
+      '`charKeyLegacy.mjs`, `LEGACY_KEY` (`saves.ts`), ' +
       '`scripts/agents/compat-core.mjs` — invisibles à `extractComments` par construction : ceux-là meurent avec leurs lots, ' +
       'listés au ticket, jamais par cette garde. Une ligne neuve est une dérive, jamais une exception à inscrire — seul le ' +
       'tag `[entériné AAAA-MM-JJ]` de l’utilisateur soustrait un commentaire à la famille.',
@@ -970,13 +969,6 @@ const TEST_DECISION_SITES: BaselineEntry[] = [
     motif: 'politique de version des saves (describe)',
     ancre: 'Arbitrage utilisateur 2026-08-17 : un changement de forme persistée',
     raison: 'même verbatim, même fiche mémoire (`user-arbitrage-saves-reset-pas-migration.md`) : c’est lui qui fixe le comportement mesuré par ce describe',
-    date: '2026-08-17',
-  },
-  {
-    fichier: 'src/ui/saveload-message-obsolete.test.tsx',
-    motif: 'message joueur d’une save jetée',
-    ancre: 'arbitrage utilisateur 2026-08-17 : une save',
-    raison: 'même verbatim, même fiche mémoire : l’écran doit DIRE le rejet que l’arbitrage ordonne',
     date: '2026-08-17',
   },
   {

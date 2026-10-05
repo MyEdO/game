@@ -17,9 +17,8 @@ describe('tokenBodyKind — view top', () => {
     expect(html).toContain('data-bone="tete"');
   });
 
-  it('iso (défaut) : flat=false', () => {
-    const r = tokenBodyKind({ kind: 'combatant', combatant: hero });
-    expect(r.flat).toBe(false);
+  it('iso (défaut) : un combattant de rig reste un disque-portrait — le monde volumique le dessine', () => {
+    expect(tokenBodyKind({ kind: 'combatant', combatant: hero })).toEqual(tokenBodyKind({ kind: 'combatant', combatant: hero }, 'top'));
   });
 
   it('décor (prop) : backend sprite, flat=false même en top', () => {

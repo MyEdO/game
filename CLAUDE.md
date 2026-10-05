@@ -8,10 +8,10 @@ geste vit derrière son déclencheur.
 ## Ce qu'est ce projet
 
 Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nights / Baldur's Gate*
-(tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay 4e** : 4 aventuriers
-à travers la campagne **L'Ennemi Intérieur**.
+(tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay** 4e ou 5e (au
+choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 
-Ce dossier EST un vrai projet logiciel (`cgauche/game`) : commits + push attendus, tronc `main`
+Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
 (trunk-based). Le `Foundry/CLAUDE.md` parent ne s'applique PAS ici.
 
 Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en session locale, à LIRE
@@ -19,8 +19,8 @@ en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
 
-Un `docs/x.md` GÉNÉRÉ (jamais édité à la main) se régénère par `npm run docs:x` ; quand le nom du
-script diffère du nom du doc, il est entre parenthèses.
+Un `docs/x.md` GÉNÉRÉ (jamais édité, ni commité) se produit par `npm run docs:x` ou `docs:build` ; un
+script au nom différent du doc est entre parenthèses.
 
 | Déclencheur | Lire |
 |---|---|
@@ -55,7 +55,7 @@ script diffère du nom du doc, il est entre parenthèses.
 | Absent à l'écran — gaté par une règle optionnelle ? | `docs/regles-optionnelles.md` |
 | Sprite/rig reconnaissable (QC) | `docs/qc-reconnaissabilite-sprites.md` |
 | Reprendre un chantier après pause | `docs/reprise-apres-pause.md` (`docs:reprise`) |
-| Sorts/miracles : état réel | `docs/sorts-implementation.md` (`npx tsx scripts/gen-sorts-doc.mts`) |
+| Sorts/miracles : état réel | `docs/sorts-implementation.md` (`docs:sorts`) |
 
 ## Règles strictes (NE PAS déroger)
 
@@ -74,7 +74,7 @@ script diffère du nom du doc, il est entre parenthèses.
    `scripts/recette/hauteur-reelle.mjs`.
 5. **Aucune retranscription des textes sources dans les `.json`** : toute prose est un copié/collé
    VERBATIM, en Markdown, jamais en HTML ni reformulée ; rendue par l'unique primitive `Prose`. Garde :
-   `src/data/no-html-in-prose.test.ts`.
+   `src/data/no-html-in-prose.test.ts`. Campagne : fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`.
 6. **Un commentaire porte une réf nue** — jamais une paraphrase de règle, une excuse ni une pierre
    tombale (voir le credo). Garde : `src/comment-poison-guard.test.ts`.
 7. **Pas de MJ — tout se modélise.** Ce que le RAW laisse « au MJ » reçoit un arbitrage EXPLICITE
@@ -82,7 +82,7 @@ script diffère du nom du doc, il est entre parenthèses.
    IMPLÉMENTÉE, jamais reportée. Hors source → CustomStatblock, ou omission documentée.
 
 > **Pour TOUT agent dépêché sur ce repo**, quel que soit son brief :
-> - Ne crois RIEN sans vérifier au `Source/` — ton brief et ton orchestrateur compris.
+> - Toute règle de jeu se vérifie au `Source/` — brief et orchestrateur compris.
 > - Le poison de ton périmètre se CORRIGE dans le geste ; hors périmètre, il va dans ton rendu avec
 >   `fichier:ligne`. Un test qui verrouille un comportement faux se réécrit depuis le RAW.
 > - Toute LOGIQUE est keyée par id STABLE, le `label` est de l'AFFICHAGE ; seule couture label→id :
@@ -93,9 +93,10 @@ script diffère du nom du doc, il est entre parenthèses.
 ## Sources VF
 
 Tout est en **français** sous `Source/`, dossiers préfixés `Warhammer v4 - ` / `WH - V4 - ` ; ceux
-SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exception unique** :
+SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exceptions** :
 `Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (**CRB**), livre VO AUTORISÉ, cœur de la 5e — fiche
-`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. Livres : **LDB** ·
+`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. La VO de L'Ennemi Intérieur se lit pour
+comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM**, chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au
@@ -115,7 +116,7 @@ npm run typecheck      # tsc --noEmit
 npm run typecheck:fast # typecheck incrémental (~7-10 s)
 npm run gates          # rejeu local de gates de ci.yml (--gates a,b, --serie)
 npm run galleries      # galeries QC -> public/galeries.html
-npm run ops:chantier -- <N> · ops:publier -- --detache · ops:worktrees · ops:board [-- --liste|--creer]   # ouvrir un chantier (.wt-<N>), publier le train détaché, inventorier, projeter l'état des chantiers sur le Project GitHub
+npm run ops:chantier -- <N> · ops:publier -- --detache · ops:worktrees · ops:board [-- --liste|--creer] · ops:suivi -- <N> [--creer]   # .wt-<N>, train détaché, inventaire, Project GitHub, .git/suivi/<N>.md
 npm run relay:dev      # relay coop local ; relay:deploy pour publier
 gh workflow run deploy.yml --ref main   # prod — sur demande explicite SEULEMENT
 ```

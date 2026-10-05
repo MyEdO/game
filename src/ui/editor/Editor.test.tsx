@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
 import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
 import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
@@ -21,6 +21,7 @@ import { useGame } from '../../state/store';
 import { useGameKeyboard } from '../useGameKeyboard';
 import { editeur } from '../../state/editeurBridge';
 import { emptyNarratif } from '../../state/campaignNarratif';
+import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from './editeur.testkit';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';
@@ -115,6 +116,43 @@ describe('Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367
 
     const h2 = container.querySelector('h2')!;
     expect(h2.getAttribute('title')).toBe(`Copie de ${first.label}`);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+});
+
+describe('Editor v2 — scènes du projet : la suppression garde l’ordre (#1997)', () => {
+  it('retirer l’active rend active la SUIVANTE, sinon la précédente, et jamais la dernière scène', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    await act(async () => {
+      root.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'a', label: 'A' }} />);
+    });
+    const dupliquer = () => boutonParTitre(container, 'Dupliquer la scène active');
+    const retirer = () => boutonParTitre(container, 'Retirer la scène active du projet');
+    await act(async () => { dupliquer().click(); });
+    await act(async () => { dupliquer().click(); });
+    const [a, b, c] = scenesDuSelecteur(container);
+    expect(scenesDuSelecteur(container)).toHaveLength(3);
+    expect(a).toBe('a');
+
+    await basculerSur(container, b);
+    expect(selecteurDeScene(container).value).toBe(b);
+    await act(async () => { retirer().click(); });
+    expect(selecteurDeScene(container).value, 'la suivante devient active').toBe(c);
+    expect(scenesDuSelecteur(container)).toEqual([a, c]);
+
+    await act(async () => { retirer().click(); });
+    expect(selecteurDeScene(container).value, 'sans suivante, la précédente').toBe(a);
+    expect(scenesDuSelecteur(container)).toEqual([a]);
+
+    expect(retirer().disabled).toBe(true);
+    await act(async () => { retirer().click(); });
+    expect(scenesDuSelecteur(container)).toEqual([a]);
 
     await act(async () => {
       root.unmount();
@@ -751,19 +789,13 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 });
 
 describe('Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur', () => {
-  let originalLocalStorage: Storage | undefined;
-
-  beforeEach(() => {
-    originalLocalStorage = (globalThis as { localStorage?: Storage }).localStorage;
-  });
-
   afterEach(() => {
     __setOuvertureIdbForTest(null);
-    (globalThis as { localStorage?: Storage }).localStorage = originalLocalStorage;
+    vi.unstubAllGlobals();
   });
 
   it('« Fichier → Enregistrer » dont projectSave échoue affiche l’échec à l’auteur (pas seulement journalisé)', async () => {
-    delete (globalThis as { localStorage?: Storage }).localStorage; // aucun filet miroir
+    vi.stubGlobal('localStorage', undefined);
     brancherBasesSimulees().base(BIBLIOTHEQUE).panne = (q) => (q.geste === 'put' ? new DOMException('put refusé (quota simulé)', 'QuotaExceededError') : null);
 
     const container = document.createElement('div');

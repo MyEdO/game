@@ -12,7 +12,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, dirname, relative, resolve } from 'node:path';
 import { createServer } from 'vite';
-import { parseChapitre, empreinteDe, type ChapitreParse, type FragmentBlocs } from './decoupe.ts';
+import { parseChapitre, fragmentBlocs, type ChapitreParse, type FragmentBlocs } from './decoupe.ts';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
 import { proseSource, titreDeChapitre } from '../../../scripts/source/prose-source-plugin.mjs';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
@@ -82,14 +82,11 @@ function corpusDe(chapitre: string) {
 }
 
 /** Adresse du premier bloc d'une section du chapitre de fixture, empreinte POSÉE. */
-function adresseDe(chapitre: string, titre: string): { book: string; ch: string; parts: FragmentBlocs[] } {
+function adresseDuTitre(chapitre: string, titre: string): { book: string; ch: string; parts: FragmentBlocs[] } {
   const parse = parseChapitre(readFileSync(chapitre, 'utf8'));
   const section = parse.sections.find((s) => s.title === titre);
   if (!section) throw new Error(`fixture sans section « ${titre} »`);
-  const frag: FragmentBlocs = { kind: 'blocs', sec: section.slug, secOcc: section.occ, b0: 0, b1: 0, sum: '' };
-  const sum = empreinteDe(parse, frag);
-  if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error} — ${sum.detail}`);
-  return { book: LIVRE, ch: CH, parts: [{ ...frag, sum }] };
+  return { book: LIVRE, ch: CH, parts: [fragmentBlocs(parse, { sec: section.slug, secOcc: section.occ, b0: 0, b1: 0 })] };
 }
 
 /** Le `this` que Rollup donne à un hook : `error` LÈVE (c'est ce qui rend le module rouge). */
@@ -112,7 +109,7 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   it('injecte le `desc` que l’adresse résout, et laisse `descRef` en place', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]);
+    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]);
     const out = plugin.transform.call(contexte().hook, code, ID);
     const entree = JSON.parse(out.code)[0];
     expect(entree.desc).toContain('La Terreur est une réaction à quelque chose d\'horrible');
@@ -129,14 +126,14 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   it('ne touche pas un id à QUERY : `?raw` sert la FORME DISQUE', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]);
+    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]);
     expect(plugin.transform.call(contexte().hook, code, `${ID}?raw`)).toBeNull();
   });
 
   it('FAIL-CLOSED : une empreinte divergente fait échouer le module, nommément', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const adresse = adresseDe(chapitre, 'Terreur');
+    const adresse = adresseDuTitre(chapitre, 'Terreur');
     adresse.parts[0].sum = '0000000000000000';
     const ctx = contexte();
     expect(() => plugin.transform.call(ctx.hook, JSON.stringify([{ id: 'terreur', descRef: adresse }]), ID)).toThrow();
@@ -147,10 +144,70 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   it('est BYTE-STABLE : deux passes rendent le même module', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]);
+    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]);
     const a = plugin.transform.call(contexte().hook, code, ID);
     const b = plugin.transform.call(contexte().hook, code, ID);
     expect(a.code).toBe(b.code);
+  });
+});
+
+describe('plugin `wfrp:prose-source` — projets de campagne LIVRÉS (#680)', () => {
+  /** Un projet dont un preset ADRESSE sa prose — `desc` en plus si donné (la paire interdite). */
+  const projetAdresse = (chapitre: string, desc?: string): string =>
+    JSON.stringify({
+      narratif: { presetsPnj: [{ id: 'p', profil: { ...(desc === undefined ? {} : { desc }), descRef: adresseDuTitre(chapitre, 'Terreur') } }] },
+    });
+
+  it('un `<x>-projet.json` de `src/scenes`, à toute profondeur, est matérialisé', () => {
+    const { chapitre } = fixture();
+    const plugin = proseSource({ corpus: corpusDe(chapitre) });
+    const out = plugin.transform.call(contexte().hook, projetAdresse(chapitre), '/depot/src/scenes/a/b/x-projet.json');
+    expect(JSON.parse(out.code).narratif.presetsPnj[0].profil.desc).toContain('La Terreur est une réaction');
+  });
+
+  it('`desc` ET `descRef` sur un nœud de projet : le module échoue en NOMMANT le chemin JSON du nœud', () => {
+    const { chapitre } = fixture();
+    const plugin = proseSource({ corpus: corpusDe(chapitre) });
+    const ctx = contexte();
+    expect(() => plugin.transform.call(ctx.hook, projetAdresse(chapitre, 'copie'), '/depot/src/scenes/x/x-projet.json')).toThrow();
+    expect(ctx.erreurs.join('\n')).toContain('desc-et-descRef : narratif.presetsPnj[0].profil');
+  });
+
+  it('hors des documents de prose (`?raw`, JSON de scène qui n’est pas un projet, sous-dossier de `src/data`) : rien n’est transformé', () => {
+    const { chapitre } = fixture();
+    const plugin = proseSource({ corpus: corpusDe(chapitre) });
+    const code = projetAdresse(chapitre);
+    for (const id of ['/depot/src/scenes/x/x-projet.json?raw', '/depot/src/scenes/x/foo.json', '/depot/src/data/sous/x.json']) {
+      expect(plugin.transform.call(contexte().hook, code, id), id).toBeNull();
+    }
+  });
+
+  it('serveur Vite RÉEL sur le dépôt : le preset de Gustav sort de la Diligence avec la prose de son adresse, à l’octet du `Source/`', async () => {
+    const rel = 'src/scenes/diligence/diligence-projet.json';
+    const disque = JSON.parse(readFileSync(join(RACINE_DEPOT, rel), 'utf8'));
+    type Preset = { id: string; profil: { desc?: string; descRef?: { book: string; ch: string } } };
+    const gustavDe = (doc: { narratif: { presetsPnj: Preset[] } }): Preset | undefined =>
+      doc.narratif.presetsPnj.find((p) => p.id === 'edo-gustav-fondleburger');
+    const surDisque = gustavDe(disque)!;
+    expect(surDisque.profil.desc, 'le DISQUE ne porte que l’adresse').toBeUndefined();
+    const ref = surDisque.profil.descRef!;
+    const attendu = (resoudreProse({ descRef: ref }) as { md: string }).md;
+    expect(readFileSync(join(RACINE_DEPOT, cheminChapitre(ref.book, ref.ch)), 'utf8'), 'le texte est celui du livre').toContain(attendu);
+
+    const server = await createServer({
+      configFile: false,
+      root: RACINE_DEPOT,
+      logLevel: 'silent',
+      server: { middlewareMode: true, watch: null },
+      optimizeDeps: { noDiscovery: true },
+      plugins: [proseSource()],
+    });
+    try {
+      const module = await server.ssrLoadModule(`/${rel}`);
+      expect(gustavDe(module.default)?.profil.desc).toBe(attendu);
+    } finally {
+      await server.close();
+    }
   });
 });
 
@@ -399,7 +456,7 @@ describe('plugin `wfrp:prose-source` — serveur de dev', () => {
   it('un chapitre RÉÉCRIT invalide les modules JSON qui en dépendent et fait recharger la page', async () => {
     const { racine, chapitre } = fixture();
     const fichierJson = join(racine, 'src', 'data', 'psychology.json');
-    writeFileSync(fichierJson, JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]), 'utf8');
+    writeFileSync(fichierJson, JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]), 'utf8');
 
     const server = await createServer({
       configFile: false,
@@ -462,7 +519,7 @@ describe('`materialiser` — pendant Node du transform', () => {
     // chaînes) : s'il était recopié, il écraserait la prose matérialisée — en silence, et seulement
     // quand il SUIT `descRef` dans l'ordre des clés.
     const { chapitre } = fixture();
-    const racine = [{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur'), desc: null }];
+    const racine = [{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur'), desc: null }];
     const res = materialiser(racine, { lecteur: corpusDe(chapitre).lire, chemin: () => null });
     expect(res.materialises).toBe(1);
     expect(res.racine[0].desc).toContain('La Terreur est une réaction à quelque chose d\'horrible');

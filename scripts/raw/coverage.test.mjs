@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   sectionsOf, refSpansFor, annotateSections, classifyHole, estCampagnePure,
-  markerSplitStub, chapterTitleOf,
+  markerSplitStub, chapterTitleOf, rendre,
 } from './coverage.mjs'
 import { BOOKS, chapterFile, coeurDe, niveauDeSectionDe, readText } from './_lib.mjs'
 
@@ -389,25 +389,25 @@ test('#604 recette (régression #453) : AA 09 « LES INTÉRIMAIRES DE L\'AVENTUR
 // Le défaut initial vivait dans le MAILLON entre `classifyHole` (déjà correct) et son consommateur
 // (`HOLE_MARK`/`HOLE_LABEL` sans clé `'hors-regle'`, boucle de comptage sans branche `'hors-regle'`) —
 // invisible des 22 tests PURS ci-dessus, qui n'exercent jamais ce maillon de rendu/comptage. Preuve par
-// un run RÉEL du script complet (`main()`, via sous-processus — le seul moyen d'exercer main() qui n'est
-// PAS exporté) sur `docs/raw/coverage.md` généré.
+// le rendu RÉEL du registre complet (`rendre()`), sans lire ni écrire `docs/raw/coverage.md`.
+let rendu
+const coverageRendu = () => (rendu ??= rendre().get('docs/raw/coverage.md'))
+
 test('#604 intégration (régression juge adversarial) : coverage.md régénéré ne contient AUCUNE ligne `undefined` (chapitre ✅/📖 par ailleurs hors-règle, ex. AA 02/EDOC 13/MDG 03)', async () => {
-  const { execFileSync } = await import('node:child_process')
-  execFileSync(process.execPath, ['scripts/raw/coverage.mjs'], { cwd: process.cwd(), stdio: 'pipe' })
-  const md = readText('docs/raw/coverage.md')
+  const md = coverageRendu()
   const undefinedLines = md.split('\n').filter((l) => l.includes('undefined'))
   assert.deepEqual(undefinedLines, [], `aucune ligne « undefined » ne doit apparaître (poison de rendu, #604 juge) — trouvé :\n${undefinedLines.join('\n')}`)
 })
 
 test('#604 intégration : une section 0-réf d\'un chapitre ✅/📖 hors-règle (ex. AA 02 « INTRODUCTION », front-matter) rend `➖` (mark hors-regle), jamais un fallback undefined', () => {
-  const md = readText('docs/raw/coverage.md')
+  const md = coverageRendu()
   const block = md.slice(md.indexOf('- **AA 02**'), md.indexOf('- **AA 02**') + 400)
   assert.ok(block.includes('➖ l.'), 'AA 02 doit porter au moins une section ➖ hors-règle détaillée')
   assert.ok(!block.includes('undefined'))
 })
 
 test('#604 intégration : le total ventilé (catalogue + hors-règle + scénario + trou) de la ligne de résumé est COHÉRENT avec la somme annoncée, jamais un total qui dérive du détail', () => {
-  const md = readText('docs/raw/coverage.md')
+  const md = coverageRendu()
   const summary = md.split('\n').find((l) => l.startsWith('Section-granulaire'))
   assert.ok(summary)
   const totalM = /sur (\d+) section\(s\) non couvertes par une fiche/.exec(summary)
@@ -424,7 +424,7 @@ test('#604 intégration : le total ventilé (catalogue + hors-règle + scénario
 // GROUPE (une par valeur de `coeur` rencontrée, une pour les livres sans cœur déclaré), chacune
 // avec SES comptes et SON dénominateur, et la réunion des dénominateurs couvre tous les chapitres.
 test('#1825 : le résumé de tête rend UNE ligne par groupe de livres, jamais un total confondu', () => {
-  const md = readText('docs/raw/coverage.md')
+  const md = coverageRendu()
   const lignes = md.split('\n').filter((l) => /^- \*\*(Cœur |Livres sans cœur déclaré)/.test(l))
   const coeurs = new Set(BOOKS.map(([a]) => coeurDe(a)).filter((c) => c))
   assert.equal(lignes.length, coeurs.size + 1, 'une ligne par cœur, plus celle des livres sans cœur')
@@ -438,7 +438,7 @@ test('#1825 : le résumé de tête rend UNE ligne par groupe de livres, jamais u
 // ACE/NADJ/ADE/MCLB/EDOC/MSRC/MDG ») n'était produite par AUCUNE table, et citait `ADE`, un sigle
 // qu'aucune entrée ne porte. Elle ne cite pas davantage un identifiant de CODE au lecteur.
 test('#1825 : les deux listes de la ventilation sont DÉRIVÉES du registre et le partitionnent', () => {
-  const md = readText('docs/raw/coverage.md')
+  const md = coverageRendu()
   const summary = md.split('\n').find((l) => l.startsWith('Section-granulaire'))
   assert.ok(summary)
   const pures = /bruit de scénario\*\* \(livres de teneur `scenario` ([^ ]+) :/.exec(summary)
@@ -487,7 +487,7 @@ test('chapterTitleOf : un nom de fichier ORDINAIRE n\'est jamais réécrit', () 
 // SOURCE par fusion dans son chapitre (#1279 S4-a), il n'existe donc plus comme ligne à surveiller ;
 // ce qui reste à surveiller, c'est la RÈGLE qui l'avait laissé passer.
 test('#1279 intégration (disque RÉEL) : aucun chapitre écarté en « artefact OCR » ne porte de contenu de source', () => {
-  const md = readText('docs/raw/coverage.md')
+  const md = coverageRendu()
   const menteurs = []
   let livre = null
   for (const l of md.split('\n')) {

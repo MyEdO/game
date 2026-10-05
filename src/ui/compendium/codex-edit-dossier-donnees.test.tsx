@@ -44,7 +44,7 @@ async function monter(): Promise<void> {
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
-    root.render(<CodexEdit categoryKey="seaShanties" label={cible.label} id={cible.id} onClose={() => {}} />);
+    root.render(<CodexEdit categoryKey="seaShanties" id={cible.id} onClose={() => {}} />);
   });
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 }

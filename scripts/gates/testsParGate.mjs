@@ -26,7 +26,7 @@ const SUFFIXE_TEST = '.test.mjs'
  * paramètre, il ne mute pas la source de vérité du dépôt.
  * Une racine `'scripts/x'` prend `scripts/x` ET tout ce qu'il contient ; une racine `'scripts/*'` ne
  * prend que les fichiers DIRECTS de `scripts/`.
- * Les tests `.test.ts` de `scripts/map/` ne sont pas ici : Vitest les joue (vite.config.ts).
+ * Les tests `.test.ts` des racines de la suite Vitest (`scripts/guards/lib/racinesDeLaSuite.mjs`) ne sont pas ici : Vitest les joue.
  * @type {Readonly<Record<string, readonly string[]>>}
  */
 export const RACINES = Object.freeze({
@@ -34,6 +34,8 @@ export const RACINES = Object.freeze({
   'test:agents': Object.freeze(['scripts/agents']),
   'test:hooks': Object.freeze([
     'scripts/hooks', 'scripts/git-hooks', 'scripts/guards', 'scripts/gates', 'scripts/migrations',
+    // Les bancs de la garde `mods:check` (lanceur factice) et du mur `murs/mod-sans-regle` (config ESLint résolue).
+    'scripts/mods',
   ]),
   'test:docs': Object.freeze(['scripts/docs']),
   'test:recette': Object.freeze(['scripts/recette']),

@@ -11,7 +11,8 @@
  * détruirait ce que la garde mesure.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { parseProject, migreSceneDeProjet, ProjetRefuse, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, migreSceneDeProjet, ProjetRefuse, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 import { autosaveLoad, __resetAutosaveForTest } from './editorAutosave';
 import { __setOuvertureIdbForTest } from '../lib/indexedDb';
@@ -113,9 +114,8 @@ describe('PROJECT_MIGRATIONS[17] — les documents en ligne passent au registre 
   it('un projet SANS Effect en ligne ressort INCHANGÉ, hormis `narratif.documents: []`', () => {
     const { dialogues: _d, triggers: _t, ...sceneMuette } = sceneFormat17();
     const sans = { ...structuredClone(PROJET_FORMAT_17), scenes: [sceneMuette], worldMap: undefined };
-    const { version: _v, schema, narratif, ...reste } = PROJECT_MIGRATIONS[17]!({ ...structuredClone(sans), version: 17 } as never) as Record<string, unknown>;
-    const { schema: _s, narratif: narratifAvant, ...resteAvant } = sans;
-    expect(schema).toBe(18);
+    const { version: _v, narratif, ...reste } = PROJECT_MIGRATIONS[17]!({ ...structuredClone(sans), version: 17 } as never) as Record<string, unknown>;
+    const { narratif: narratifAvant, ...resteAvant } = sans;
     expect(reste).toEqual(resteAvant);
     expect(narratif).toEqual({ ...narratifAvant, documents: [] });
   });
@@ -186,9 +186,11 @@ function parLeDepot(doc: unknown): { code: number | null; sortie: string; doc: u
   }
 }
 
+/** Le document joué par le migrateur de chargement seul, `version` de travail retirée, au `schema` que la
+ *  chaîne lui pose (`migreFormeDeProjet`, `worldMap.ts`). */
 function parLeChargement(doc: unknown): unknown {
   const { version: _travail, ...migre } = PROJECT_MIGRATIONS[17]!({ ...structuredClone(doc as object), version: 17 } as never) as Record<string, unknown>;
-  return migre;
+  return { ...migre, schema: 18 };
 }
 
 describe('PARITÉ dépôt ⇄ chargement du bump 17 → 18 — une fixture, deux pendants (#679)', () => {

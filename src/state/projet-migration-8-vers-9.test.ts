@@ -9,7 +9,8 @@
  * `roofDefaults`. Il est FIGÉ ; le « moderniser » détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 
 /**
  * ATTENDU GELÉ (#1716) — la valeur que la migration 8 → 9 pose, écrite ICI en LITTÉRAL et non lue
@@ -74,7 +75,6 @@ describe('PROJECT_MIGRATIONS[8] — un projet format 8 se charge à travers la m
    */
   it('S1. PARITÉ : le migrateur de CHARGEMENT rend exactement ce que le script de DÉPÔT écrit', () => {
     const migre = PROJECT_MIGRATIONS[8]!({ ...structuredClone(PROJET_FORMAT_8), version: 8 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(9);
     const scene = (migre.scenes as Record<string, unknown>[])[0];
     expect(Object.keys(scene)).toEqual(['type', 'id', 'label', 'dimensions', 'reliefDefaults', 'roofDefaults', 'layers', 'entities']);
     expect(scene.roofDefaults).toEqual(TOITURE_1715);

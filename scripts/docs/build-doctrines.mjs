@@ -6,16 +6,16 @@
  * (paraphrase, date perdue, ligne oubliée) ; le doc ment alors avec l'autorité du canon. La fiche
  * reste la SOURCE, ce doc n'en est que le reflet — une doctrine neuve s'écrit en fiche.
  *
- * CE QUE LE DOC EST : UN EXTRAIT par fiche, jamais tous ses verbatims (18 des 29 fiches en portent
+ * CE QUE LE DOC EST : UN EXTRAIT par fiche, jamais tous ses verbatims (une fiche en porte souvent
  * plusieurs ; les rendre tous ferait une page que personne ne lit). La ligne DIT combien la fiche en
  * porte, et le chapeau renvoie à la fiche, qui fait foi. L'extrait est un VERBATIM (texte entre « »
  * du corps), jamais un résumé : coupé à 240 caractères sur une FIN DE PHRASE quand la fiche en offre
  * une, sinon sur un mot — jamais sur un mot-outil, qui laisserait la phrase en suspens.
  *
- * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, famille
- * `merge=docs-generes`) : `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
+ * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, jamais commité, #2203) :
+ * `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`
  * et au pre-commit dès qu'une fiche `user-*` ou `docs/doctrines.md` est stagé.
  *
  *   node scripts/docs/build-doctrines.mjs [--check]
@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
 const OUTIL = 'build-doctrines'
@@ -50,7 +50,9 @@ const PERIMETRE = () =>
   'entre au commit qui la suit ; une doctrine qui vit ailleurs qu’en fiche `user-*` (ticket, fil de ' +
   'session) est invisible ici. Chaque ligne porte UN extrait, jamais tous les verbatims de la fiche ' +
   `— la citation la plus longue parmi les PRESCRIPTIVES, tronquée à ${MAX_VERBATIM} caractères sur une fin de ` +
-  `phrase, les citations de moins de ${MIN_VERBATIM} caractères étant écartées tant qu’une plus longue existe : ` +
+  `phrase, les citations de moins de ${MIN_VERBATIM} caractères étant écartées tant qu’une plus longue existe, ` +
+  'et une ligne marquée `non-verbatim utilisateur` comme un paragraphe `**Why**` ou `**How to apply**` — le ' +
+  'texte de l’assistant — n’en fournissant jamais : ' +
   'le compte de verbatims dit quand la fiche en porte d’autres, et la FICHE fait foi. La DATE est ' +
   'celle du paragraphe du verbatim, à défaut celle de l’en-tête, à défaut la date d’AJOUT git de la ' +
   'fiche — dite comme telle, parce qu’elle date le fichier et non la parole. Rien ici ne vérifie que ' +
@@ -80,20 +82,124 @@ function nettoyerFin(texte) {
   return out
 }
 
+/** Ouvrant → fermant : couper entre les deux laisserait une parenthèse ou une citation ouverte. */
+const PAIRES = { '(': ')', '[': ']', '«': '»' }
+const FERMANTS = new Set(Object.values(PAIRES))
+
+/** `"` ne fait paire que s'il est ÉQUILIBRÉ dans le texte entier : un guillemet droit isolé (pouce,
+ *  faute de frappe) ouvrirait sinon une citation jusqu'à la fin de la fenêtre. */
+const droitsEquilibres = (texte) => (texte.match(/"/g) ?? []).length % 2 === 0
+
+/** Pour chaque position de `fenetre` : `true` si elle est HORS de toute paire ouverte (`()`, `[]`,
+ *  `«»`, et `"…"` quand `droits` les compte) ; `fermants` = ce qui referme les paires encore
+ *  ouvertes en fin de fenêtre, de la plus intérieure à la plus extérieure. */
+function horsPaires(fenetre, { droits: compterDroits }) {
+  const libre = []
+  const pile = []
+  let droits = false
+  for (const c of fenetre) {
+    if (c === '"') { if (compterDroits) droits = !droits }
+    else if (PAIRES[c]) pile.push(PAIRES[c])
+    else if (FERMANTS.has(c) && pile.length) pile.pop()
+    libre.push(pile.length === 0 && !droits)
+  }
+  return { libre, fermants: `${droits ? '"' : ''}${[...pile].reverse().join('')}` }
+}
+
+/** `.`/`!`/`?`/`;` qui clôt une phrase : jamais un point de suspension (`...`, dont un point voisin). */
+function finDePhrase(texte, i) {
+  const c = texte[i]
+  if (c === '.') return texte[i - 1] !== '.' && texte[i + 1] !== '.'
+  return c === '!' || c === '?' || c === ';'
+}
+
 /**
- * Coupe à `max` caractères : d'abord à la dernière FIN DE PHRASE (`.`/`!`/`?`/`;`) de la fenêtre —
+ * Coupe à `max` caractères : d'abord à la dernière FIN DE PHRASE (`finDePhrase`) de la fenêtre —
  * l'extrait reste alors une phrase entière, et sa ponctuation dit qu'il s'arrête là ; à défaut, sur
- * une frontière de mot, mots-outils terminaux retirés, suivie de « … ».
+ * une frontière de mot, mots-outils terminaux retirés, suivie de « … ». Jamais dans une paire ouverte
+ * (`horsPaires`) : la dernière frontière de mot hors paire est celle qui précède l'ouvrant. Quand la
+ * paire s'ouvre en TÊTE (aucune frontière hors paire dans la seconde moitié de la fenêtre), la coupe
+ * tombe sur le dernier mot de la fenêtre, et « … » suivi des fermants DIT que la paire continue
+ * au-delà : un extrait ne laisse ni parenthèse ni citation ouverte, et ne se réduit pas aux mots qui
+ * précèdent l'ouvrant.
  */
 export function tronquer(texte, max = MAX_VERBATIM) {
   if (texte.length <= max) return texte
   const fenetre = texte.slice(0, max)
-  const phrase = Math.max(
-    fenetre.lastIndexOf('.'), fenetre.lastIndexOf('!'), fenetre.lastIndexOf('?'), fenetre.lastIndexOf(';'),
-  )
+  const { libre, fermants } = horsPaires(fenetre, { droits: droitsEquilibres(texte) })
+  const derniere = (ok) => {
+    for (let i = fenetre.length - 1; i >= 0; i--) if (libre[i] && ok(i)) return i
+    return -1
+  }
+  const phrase = derniere((i) => finDePhrase(texte, i))
   if (phrase > max / 3) return fenetre.slice(0, phrase + 1)
-  const espace = fenetre.lastIndexOf(' ')
-  return `${nettoyerFin(espace > max / 3 ? fenetre.slice(0, espace) : fenetre)} …`
+  const espace = derniere((i) => fenetre[i] === ' ')
+  if (espace >= max / 2) return `${nettoyerFin(fenetre.slice(0, espace))} …`
+  const mot = fenetre.lastIndexOf(' ')
+  return `${nettoyerFin(mot > 0 ? fenetre.slice(0, mot) : fenetre)} …${fermants}`
+}
+
+/** Le MARQUEUR unique du texte de l'ASSISTANT dans une fiche (question AskUserQuestion, option non
+ *  retenue, évaluation d'ingénierie) : jamais la parole de l'utilisateur. Une ligne qui le porte ne
+ *  fournit aucun extrait, et elle ne porte aucun « » (convention des fiches, #1993). */
+const MARQUEUR_ASSISTANT = /non-verbatim utilisateur/
+
+/** Une ligne telle que `ANNONCES_ASSISTANT` la lit : apostrophe typographique rendue droite, gras et
+ *  italique (`*`, `_`) retirés, casse basse. */
+const formeDAnnonce = (ligne) => ligne.replace(/[’‘]/g, "'").replace(/[*_]/g, '').toLowerCase()
+
+/** Les FORMES du texte de l'assistant, donc tenues de porter `MARQUEUR_ASSISTANT` (lues sur
+ *  `formeDAnnonce`) : une question posée — en tête de ligne, ou suivie de `(` ou `:` — ; une question
+ *  CITÉE (`« … ? »`) introduite par `réponse à` ou `question` ; une option ou proposition en tête de
+ *  ligne qui n'est ni retenue ni choisie ; une option ou proposition, ses titres entre « » ou non, puis
+ *  un qualificatif non retenu ou écarté, où qu'elle soit ; une évaluation d'ingénierie en tête de
+ *  ligne. La simple mention de l'outil `AskUserQuestion` n'en est pas une : l'option retenue ou
+ *  choisie est la parole de l'utilisateur, où qu'elle ait été posée. */
+const ANNONCES_ASSISTANT = [
+  /^[\s>-]*question posée/,
+  /question posée\s*[(:]/,
+  /\b(?:réponse à|question)\s*:?\s*«[^»]*\?\s*»/,
+  /^[\s>-]*(?:options?|propositions?)\b(?!\s+(?:retenue|choisie)s?\b)/,
+  /\b(?:options?|propositions?)(?:\s*«[^»]*»(?:\s*(?:,|et)\s*«[^»]*»)*)?\s+(?:(?:est|sont|a été|ont été)\s+)?(?:non retenues?|écartées?)/,
+  /^[\s>-]*[ée]valuation d'ingénierie/,
+]
+
+const texteAssistant = (ligne) => MARQUEUR_ASSISTANT.test(ligne)
+
+/** Ouvre un paragraphe de PROSE de l'assistant par construction : `**Why**` ou `**How to apply**` en
+ *  tête de ligne. Il court jusqu'à la ligne vide ou au libellé gras (`**…`) suivant. */
+const TETE_PROSE_ASSISTANT = /^\s*\*\*(?:why|how to apply)\b/i
+const TETE_LIBELLE = /^\s*\*\*/
+
+/** Le corps sans son texte de l'assistant — lignes marquées (`MARQUEUR_ASSISTANT`) et paragraphes
+ *  **Why** / **How to apply** : ce qui reste est la seule matière des extraits. */
+function horsAssistant(corps) {
+  let prose = false
+  return String(corps).split('\n').map((l) => {
+    if (!l.trim()) prose = false
+    else if (TETE_LIBELLE.test(l)) prose = TETE_PROSE_ASSISTANT.test(l)
+    return prose || texteAssistant(l) ? '' : l
+  }).join('\n')
+}
+
+/**
+ * Défauts de la convention du texte de l'assistant dans une fiche : une ligne marquée qui porte des
+ * « » range le texte de l'assistant là où un lecteur cherche la parole de l'utilisateur ; une ligne
+ * qui l'annonce (`ANNONCES_ASSISTANT`) sans le marqueur n'est pas écartée, et ses « » passeraient
+ * pour la parole de l'utilisateur. PUR.
+ * @returns {string[]} `fichier:ligne — …`, ligne du FICHIER (frontmatter compris).
+ */
+export function defautsDuTexteAssistant(fichier, texte) {
+  return String(texte).replace(/\r\n?/g, '\n').split('\n').flatMap((l, i) => {
+    if (texteAssistant(l)) {
+      return /[«»]/.test(l)
+        ? [`${fichier}:${i + 1} — texte de l'assistant (\`non-verbatim utilisateur\`) porteur de « » : il s'écrit sans guillemets français, réservés à la parole de l'utilisateur`]
+        : []
+    }
+    return ANNONCES_ASSISTANT.some((re) => re.test(formeDAnnonce(l)))
+      ? [`${fichier}:${i + 1} — texte de l'assistant (question, option non retenue, évaluation d'ingénierie) sans le marqueur \`non-verbatim utilisateur\` : la ligne n'est pas écartée, et ses « » passeraient pour la parole de l'utilisateur`]
+      : []
+  })
 }
 
 /** Marqueurs d'une doctrine PRESCRIPTIVE : entre deux verbatims d'une même fiche, celui qui POSE une
@@ -104,12 +210,14 @@ const PRESCRIPTIF = /\b(jamais|toujours|un seul|une seule|aucun|aucune|tout|tout
  * Verbatims d'une fiche : les citations du corps d'au moins `MIN_VERBATIM` caractères. Les
  * guillemets français font foi ; les guillemets droits ne servent que si le corps n'offre AUCUNE
  * citation française assez longue — l'inverse ferait élire un fragment `"…"` niché DANS un verbatim
- * français. Un corps sans citation longue rend les courtes, pour que l'appelant décide.
+ * français. Un corps sans citation longue rend les courtes, pour que l'appelant décide. Une ligne de
+ * texte de l'assistant (`MARQUEUR_ASSISTANT`) n'en fournit jamais.
  * @returns {string[]} dans l'ordre du corps.
  */
 export function verbatimsDe(corps) {
-  const francaises = [...String(corps).matchAll(/«([^»]+)»/g)].map((m) => compacter(m[1]))
-  const droites = [...String(corps).matchAll(/"([^"\n]+)"/g)].map((m) => compacter(m[1]))
+  const matiere = horsAssistant(corps)
+  const francaises = [...matiere.matchAll(/«([^»]+)»/g)].map((m) => compacter(m[1]))
+  const droites = [...matiere.matchAll(/"([^"\n]+)"/g)].map((m) => compacter(m[1]))
   const longues = (liste) => liste.filter((c) => c.length >= MIN_VERBATIM)
   if (longues(francaises).length) return longues(francaises)
   if (longues(droites).length) return longues(droites)
@@ -178,6 +286,8 @@ export function nomDe(entete, fichier) {
  * (un `git log` par fiche coûte, et ment sur la date de la parole).
  */
 export function ligneDe({ fichier, texte }, dateAjout = () => '') {
+  const defauts = defautsDuTexteAssistant(fichier, texte)
+  if (defauts.length) abandon(defauts.join('\n'))
   const { entete, corps } = decouperFiche(texte)
   const citation = citationDe(corps)
   if (!citation) abandon(`${fichier} — aucune citation verbatim (« … ») : une fiche user-* PORTE la parole de l'utilisateur`)
@@ -209,22 +319,34 @@ export function dateAjoutGit(fichier, cwd) {
   } catch { return '' }
 }
 
-function main() {
-  const check = process.argv.includes('--check')
-  const cwd = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+/** Le doc rendu depuis la racine git `cwd`, et le nombre de doctrines qu'il porte. */
+function rendu(cwd) {
   const chemins = fichesSuivies(cwd)
   if (chemins.length === 0) abandon('aucune fiche `.claude/memory/user-*.md` suivie par git — source vide, doc refusé')
   const fiches = chemins.map((fichier) => ({ fichier, texte: readFileSync(resolve(cwd, fichier), 'utf8') }))
-  const out = construireDoc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) })
+  return { out: construireDoc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) }), n: chemins.length }
+}
+
+const racineGit = () => execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(cwd = racineGit()) {
+  return new Map([[CIBLE, rendu(cwd).out]])
+}
+
+function main() {
+  const check = process.argv.includes('--check')
+  const cwd = racineGit()
+  const { out, n } = rendu(cwd)
   const poids = Buffer.byteLength(out, 'utf8')
   ecrireOuVerifier({
     out,
     path: resolve(cwd, CIBLE),
     check,
     staleMsg: `${OUTIL} — ${CIBLE} PÉRIMÉ (fiche ajoutée/éditée, ou doc édité à la main).`,
-    rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` et committer ${CIBLE}.`,
-    okMsg: `${OUTIL} — OK (${chemins.length} doctrines, ${poids} octets)`,
-    writeMsg: `${OUTIL} — ${CIBLE} écrit (${chemins.length} doctrines, ${poids} octets)`,
+    rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` (${CIBLE} jamais commité, #2203).`,
+    okMsg: `${OUTIL} — OK (${n} doctrines, ${poids} octets)`,
+    writeMsg: `${OUTIL} — ${CIBLE} écrit (${n} doctrines, ${poids} octets)`,
   })
 }
 

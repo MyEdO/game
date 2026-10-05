@@ -1,14 +1,13 @@
-// Contrat des LANES du REJEU LOCAL `npm run gates` (#1776) : les gates de `ci.yml` sont toutes
-// placées, aucune lane n'écrit ce qu'une autre lit, `--serie` joue les mêmes, `--gates a,b` n'en
-// joue que les nommées, un enfant qui dépasse son plafond tombe AVEC SON ARBRE, le refus du verrou
+// Contrat des LANES du REJEU LOCAL `npm run gates` (#1776) : les lanes sont les jobs de `ci.yml`
+// (`lanesDeCi`, #2178), aucune lane n'écrit ce qu'une autre lit, `--serie` joue les mêmes, `--gates a,b`
+// n'en joue que les nommées, un enfant qui dépasse son plafond tombe AVEC SON ARBRE, le refus du verrou
 // de suite se reconnaît à sa sortie — et la POLITIQUE D'ARRÊT comme le RÉSUMÉ se mesurent pour de
-// bon, sur un dépôt jetable à trois gates factices (c'est ce que
-// `principal({ racine, lanes, ecritLu, journal })` rend possible).
+// bon, sur un dépôt jetable à gates factices réparties en jobs (c'est ce que
+// `principal({ racine, ecritLu, journal })` rend possible).
 //   node --test scripts/gates/toutes.test.mjs
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
@@ -19,13 +18,14 @@ import {
   COEURS_SUITE_EN_LANES,
   lanesPortees,
   ECRIT_LU,
-  LANES,
+  PLAFOND_LANES,
   TIMEOUTS,
   conflitsEntreLanes,
   descendantsDe,
   estRefusDuVerrou,
   fichierDeSortie,
   lanesAJouer,
+  lanesDeCi,
   limiteDe,
   photoArbre,
   prerequisAbsents,
@@ -35,48 +35,74 @@ import {
   refusDeCouverture,
   tuerArbre,
 } from './toutes.mjs'
-import { gatesDeCi } from './gatesDeCi.mjs'
+import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import { refusVerrou } from '../test/verrou.mjs'
 import { coeurs, repartitionWorkers } from '../test/partition.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
-const NOMS = gatesDeCi({ cwd: RACINE }).map((g) => g.nom)
+const GATES = gatesDeCi({ cwd: RACINE })
+const NOMS = GATES.map((g) => g.nom)
+const LANES = lanesDeCi(GATES)
 const gate = (nom) => ({ nom, commande: `npm run ${nom}` })
 
-test('toute gate de ci.yml a une place — une lane', () => {
-  assert.deepEqual(refusDeCouverture(NOMS), [], 'LANES / ECRIT_LU ne couvrent pas ci.yml')
-  const placees = LANES.flatMap((l) => l.gates)
-  assert.equal(placees.length, NOMS.length, `${NOMS.length} gates dans ci.yml, ${placees.length} placées`)
-  assert.equal(new Set(placees).size, placees.length, 'une gate placée deux fois')
+/** Un `ci.yml` de fixture, un job par entrée `[job, [gates]]` — écrit sous os.tmpdir(). */
+function ciDeJobs(jobs) {
+  const fichier = join(mkdtempSync(join(tmpdir(), 'gates-ci-')), 'ci.yml')
+  writeFileSync(
+    fichier,
+    ['jobs:', ...jobs.flatMap(([job, noms]) => [`  ${job}:`, '    steps:', ...noms.map((n) => `      - run: npm run ${n}`)]), ''].join('\n'),
+  )
+  return fichier
+}
+
+test('les lanes SONT les jobs de ci.yml : chaque gate dans la lane de son job (ou celle que LANE_LOCALE_DE_JOB lui donne), une seule fois', () => {
+  assert.deepEqual(refusDeCouverture(NOMS), [], 'ECRIT_LU ne couvre pas ci.yml')
+  assert.deepEqual(LANES.flatMap((l) => l.gates).sort(), [...NOMS].sort())
+  for (const lane of LANES)
+    for (const nom of lane.gates) {
+      const { job } = GATES.find((g) => g.nom === nom)
+      assert.equal(LANE_LOCALE_DE_JOB[job]?.lane ?? job, lane.nom, `${nom} hors de la lane de son job ${job}`)
+    }
+  assert.deepEqual(LANES.map((l) => l.nom), ['docs', 'types', 'suite'])
+  for (const [job, { raison }] of Object.entries(LANE_LOCALE_DE_JOB)) {
+    assert.ok(GATES.some((g) => g.job === job), `LANE_LOCALE_DE_JOB nomme ${job}, qu’aucun job de gates de ci.yml ne porte`)
+    assert.ok(raison.length > 40, `${job} : raison absente ou creuse`)
+  }
 })
 
-test('la couverture est un DÉTECTEUR : une gate déplacée hors de toute place est nommée', () => {
-  const ampute = LANES.map((l) => (l.nom === 'types' ? { ...l, gates: l.gates.filter((g) => g !== 'lint') } : l))
-  const refus = refusDeCouverture(NOMS, ampute)
-  assert.equal(refus.length, 1, refus.join(' · '))
-  assert.match(refus[0], /^lint : gate de ci\.yml sans place/)
+test('LANE_LOCALE_DE_JOB rattache un job à la lane d’un AUTRE ; vers une lane qu’aucun job ne porte, REFUS nommé', () => {
+  const gates = gatesDeCi({ fichier: ciDeJobs([['a', ['x']], ['a-bis', ['y']], ['b', ['z']]]) })
+  const table = { 'a-bis': { lane: 'a', raison: 'r' } }
+  assert.deepEqual(lanesDeCi(gates, table), [{ nom: 'a', gates: ['x', 'y'] }, { nom: 'b', gates: ['z'] }])
+  assert.throws(() => lanesDeCi(gates, { 'a-bis': { lane: 'c', raison: 'r' } }), /le job a-bis rejoint la lane c .* qu’aucun job de gates de ci\.yml ne porte/)
+  assert.throws(() => lanesDeCi(gates, { 'a-bis': { lane: 'a-bis', raison: 'r' } }), /le job a-bis rejoint la lane a-bis/)
+})
 
-  const inconnue = [...LANES, { nom: 'neuve', gates: ['gate-qui-nexiste-pas'] }]
-  assert.match(refusDeCouverture(NOMS, inconnue).join('\n'), /gate-qui-nexiste-pas : nommée par la lane neuve/)
-  assert.match(
-    refusDeCouverture(['vigie'], [{ nom: 'seule', gates: ['vigie'] }], {}).join('\n'),
-    /vigie : aucune entrée ÉCRIT\/LU/,
-  )
+test('une gate jouée par DEUX jobs fait LEVER `gatesDeCi` — elle serait jouée deux fois', () => {
+  const fichier = ciDeJobs([['a', ['x', 'y']], ['b', ['x']]])
+  assert.throws(() => gatesDeCi({ fichier }), /gate x jouée par deux jobs de ci\.yml \(a ET b\)/)
+})
+
+test(`au-delà de ${PLAFOND_LANES} jobs de gates, \`lanesDeCi\` REFUSE en nommant les jobs`, () => {
+  const jobs = Array.from({ length: PLAFOND_LANES + 1 }, (_, i) => [`j${i}`, [`g${i}`]])
+  const gates = gatesDeCi({ fichier: ciDeJobs(jobs) })
+  assert.throws(() => lanesDeCi(gates), new RegExp(`${PLAFOND_LANES + 1} jobs de gates \\(j0, j1, j2, j3\\)`))
+  assert.deepEqual(lanesDeCi(gates.slice(0, PLAFOND_LANES)).map((l) => l.nom), ['j0', 'j1', 'j2'])
+})
+
+test('la couverture est un DÉTECTEUR : une gate sans ÉCRIT/LU, ou sans « lit », est nommée', () => {
+  assert.match(refusDeCouverture(['vigie'], {}).join('\n'), /vigie : aucune entrée ÉCRIT\/LU/)
   // `lit` VIDE est un refus à part : c'est `lit` qui décide si la gate est sautable sur un push
   // documentaire (`gatesSautables`, scripts/gates/classerPush.mjs).
   assert.match(
-    refusDeCouverture(['muette'], [{ nom: 'seule', gates: ['muette'] }], { muette: { ecrit: [], lit: [] } }).join('\n'),
+    refusDeCouverture(['muette'], { muette: { ecrit: [], lit: [] } }).join('\n'),
     /muette : entrée ÉCRIT\/LU sans « lit »/,
-  )
-  // Une gate dans deux lanes serait jouée deux fois.
-  assert.match(
-    refusDeCouverture(['x'], [{ nom: 'l', gates: ['x'] }, { nom: 'm', gates: ['x'] }], { x: { ecrit: [], lit: ['src/'] } }).join('\n'),
-    /x : placée deux fois \(la lane l ET la lane m\)/,
   )
 })
 
 test('aucune gate de ci.yml n’écrit dans l’arbre — aucune lane n’écrit ce qu’une AUTRE lit', () => {
-  assert.deepEqual(conflitsEntreLanes(), [])
+  assert.deepEqual(conflitsEntreLanes(LANES), [])
   for (const lane of LANES)
     for (const g of lane.gates)
       assert.deepEqual(ECRIT_LU[g].ecrit, [], `${g} écrit à chaque run : un dérivé se VÉRIFIE (\`--check\`), il ne se réécrit pas en gate`)
@@ -104,18 +130,18 @@ test('chaque gate porte une RAISON, et chaque écriture fermée porte SA porte',
 
 test('--serie joue EXACTEMENT les mêmes gates que les lanes, dans l’ordre de ci.yml', () => {
   const aJouer = NOMS.map(gate)
-  assert.deepEqual(lanesAJouer(aJouer, { serie: true })[0].gates, NOMS)
-  const sous = ['test', 'lint', 'docs:check:tout'].map(gate)
-  assert.deepEqual(lanesAJouer(sous, { serie: true })[0].gates, ['test', 'lint', 'docs:check:tout'])
-  assert.deepEqual(new Set(lanesAJouer(sous).flatMap((l) => l.gates)), new Set(['test', 'lint', 'docs:check:tout']))
-  assert.deepEqual(lanesAJouer(sous).map((l) => l.nom), ['suite', 'types', 'docs'], 'une lane vide ne se lance pas')
+  assert.deepEqual(lanesAJouer(aJouer, { serie: true, lanes: LANES })[0].gates, NOMS)
+  const sous = ['test', 'lint', 'docs:build'].map(gate)
+  assert.deepEqual(lanesAJouer(sous, { serie: true, lanes: LANES })[0].gates, ['test', 'lint', 'docs:build'])
+  assert.deepEqual(new Set(lanesAJouer(sous, { lanes: LANES }).flatMap((l) => l.gates)), new Set(['test', 'lint', 'docs:build']))
+  assert.deepEqual(lanesAJouer(sous, { lanes: LANES }).map((l) => l.nom), ['docs', 'types', 'suite'], 'une lane vide ne se lance pas')
 })
 
 test('un plafond par gate, jamais un défaut muet', () => {
   assert.equal(limiteDe('gate-inconnue'), TIMEOUTS.defaut * 1000)
   assert.equal(limiteDe('test'), TIMEOUTS.test * 1000)
   assert.ok(TIMEOUTS.test > TIMEOUTS.defaut)
-  assert.ok(limiteDe('docs:check:tout') >= 423 * 1000, 'docs:check:tout vaut 141 s au pire observé — ×3 = 423 s au moins')
+  assert.ok(limiteDe('docs:build') >= 759 * 1000, 'docs:build vaut 252,7 s au pire observé — ×3 = 759 s au moins')
 })
 
 test('un enfant qui dépasse son plafond est EXPIRÉ, et son ARBRE tombe avec lui', async () => {
@@ -287,7 +313,8 @@ test('une photo de l’arbre IMPOSSIBLE ne LÈVE pas : elle se rend', () => {
 })
 
 /**
- * Dépôt jetable : un `ci.yml` de gates FACTICES, un `package.json` qui les porte, un commit.
+ * Dépôt jetable : un `ci.yml` de gates FACTICES réparties en jobs (`job` de chaque gate, `a` par
+ * défaut ; un job = une lane, `lanesDeCi`), un `package.json` qui les porte, un commit.
  * `principal` y est joué pour de vrai — c'est la seule façon de mesurer la politique d'arrêt et le
  * résumé sans payer les vraies gates.
  */
@@ -295,11 +322,17 @@ function depotDeGates(gatesFactices) {
   // Le gabarit est VIDE (donc partagé par tous les cas : les gates factices diffèrent à chaque
   // appel) ; les fichiers du cas entrent dans le MÊME et unique commit `jetable`.
   const { racine } = instanceDeDepot({ commit: false })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, encoding: 'utf8' })
+  const git = gitDe(racine)
   mkdirSync(join(racine, '.github', 'workflows'), { recursive: true })
+  const jobs = Map.groupBy(gatesFactices, (g) => g.job ?? 'a')
   writeFileSync(
     join(racine, '.github', 'workflows', 'ci.yml'),
-    ['name: CI', 'jobs:', '  build:', '    steps:', ...gatesFactices.map((g) => `      - run: npm run ${g.nom}`), ''].join('\n'),
+    [
+      'name: CI',
+      'jobs:',
+      ...[...jobs].flatMap(([job, gates]) => [`  ${job}:`, '    steps:', ...gates.map((g) => `      - run: npm run ${g.nom}`)]),
+      '',
+    ].join('\n'),
   )
   // Le lanceur écrit ses sorties et ses durées sous `node_modules/.cache/gates/` (`dossierSorties` de toutes.mjs) :
   // sans cet ignore, tout run réel finirait sur « l'arbre a CHANGÉ », et le code du lanceur ne
@@ -327,11 +360,13 @@ const LENTE = "setTimeout(() => { console.log('fini'); process.exit(0) }, 2500)\
 const ROUGE = (mot, code) => `console.error(${JSON.stringify(mot)})\nprocess.exit(${code})\n`
 
 test('un ROUGE ne coupe RIEN : ce qui le suit dans sa lane est JOUÉ, et le résumé les nomme tous', async () => {
+  // `rouge` et `apres` dans la MÊME lane : la première tombe, la seconde lit le MÊME arbre propre
+  // et rend donc un verdict JUSTE — la payer maintenant évite un passage de plus (#1772).
   const { racine } = depotDeGates([
-    { nom: 'lente', corps: LENTE },
-    { nom: 'rouge', corps: ROUGE('ce rouge est le sujet', 4) },
-    { nom: 'apres', corps: LENTE },
-    { nom: 'lente2', corps: LENTE },
+    { nom: 'lente', job: 'a', corps: LENTE },
+    { nom: 'rouge', job: 'b', corps: ROUGE('ce rouge est le sujet', 4) },
+    { nom: 'apres', job: 'b', corps: LENTE },
+    { nom: 'lente2', job: 'c', corps: LENTE },
   ])
   try {
     const lignes = []
@@ -340,13 +375,6 @@ test('un ROUGE ne coupe RIEN : ce qui le suit dans sa lane est JOUÉ, et le rés
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      // `rouge` et `apres` dans la MÊME lane : la première tombe, la seconde lit le MÊME arbre propre
-      // et rend donc un verdict JUSTE — la payer maintenant évite un passage de plus (#1772).
-      lanes: [
-        { nom: 'a', gates: ['lente'] },
-        { nom: 'b', gates: ['rouge', 'apres'] },
-        { nom: 'c', gates: ['lente2'] },
-      ],
       ecritLu: tableTotale(['lente', 'rouge', 'apres', 'lente2'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
@@ -366,9 +394,9 @@ test('un ROUGE ne coupe RIEN : ce qui le suit dans sa lane est JOUÉ, et le rés
 
 test('DEUX rouges dans DEUX lanes distinctes sont rendus par UN SEUL run', async () => {
   const { racine } = depotDeGates([
-    { nom: 'rouge1', corps: ROUGE('premier rouge', 4) },
-    { nom: 'rouge2', corps: ROUGE('second rouge', 7) },
-    { nom: 'lente', corps: LENTE },
+    { nom: 'rouge1', job: 'a', corps: ROUGE('premier rouge', 4) },
+    { nom: 'rouge2', job: 'b', corps: ROUGE('second rouge', 7) },
+    { nom: 'lente', job: 'b', corps: LENTE },
   ])
   try {
     const lignes = []
@@ -377,10 +405,6 @@ test('DEUX rouges dans DEUX lanes distinctes sont rendus par UN SEUL run', async
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      lanes: [
-        { nom: 'a', gates: ['rouge1'] },
-        { nom: 'b', gates: ['lente', 'rouge2'] },
-      ],
       ecritLu: tableTotale(['rouge1', 'rouge2', 'lente'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
@@ -396,8 +420,8 @@ test('DEUX rouges dans DEUX lanes distinctes sont rendus par UN SEUL run', async
 
 test('une machine qui ne porte pas les lanes joue en SÉRIE, et le dit', async () => {
   const { racine } = depotDeGates([
-    { nom: 'alpha', corps: "console.log('alpha')\n" },
-    { nom: 'beta', corps: "console.log('beta')\n" },
+    { nom: 'alpha', job: 'a', corps: "console.log('alpha')\n" },
+    { nom: 'beta', job: 'b', corps: "console.log('beta')\n" },
   ])
   try {
     const jouer = async (machine) => {
@@ -407,10 +431,6 @@ test('une machine qui ne porte pas les lanes joue en SÉRIE, et le dit', async (
         machine,
         argv: ['node', 'toutes.mjs'],
         journal: (t) => lignes.push(t),
-        lanes: [
-          { nom: 'a', gates: ['alpha'] },
-          { nom: 'b', gates: ['beta'] },
-        ],
         ecritLu: { alpha: { ecrit: [], lit: ['src/'] }, beta: { ecrit: [], lit: ['src/'] } },
       })
       return { code, sortie: lignes.join('') }
@@ -429,13 +449,14 @@ test('une machine qui ne porte pas les lanes joue en SÉRIE, et le dit', async (
 })
 
 test('--serie rend les MÊMES verdicts que les lanes : deux rouges, deux lignes, exit 1', async () => {
-  // La morsure de `lanesAJouer` (l.104) ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
-  // rien des VERDICTS. Ici c'est `principal` entier qui est rejoué en `--serie` sur le même cas que
-  // le test des deux lanes distinctes : `--serie` ne change que la COMPOSITION des lanes.
+  // La morsure de `lanesAJouer` (« --serie joue EXACTEMENT les mêmes gates ») ne mesure que l'ensemble
+  // et l'ORDRE des gates ; elle ne dit rien des VERDICTS. Ici c'est `principal` entier qui est rejoué
+  // en `--serie` sur le même cas que le test des deux lanes distinctes : `--serie` ne change que la
+  // COMPOSITION des lanes.
   const { racine } = depotDeGates([
-    { nom: 'rouge1', corps: ROUGE('premier rouge', 4) },
-    { nom: 'rouge2', corps: ROUGE('second rouge', 7) },
-    { nom: 'lente', corps: LENTE },
+    { nom: 'rouge1', job: 'a', corps: ROUGE('premier rouge', 4) },
+    { nom: 'rouge2', job: 'b', corps: ROUGE('second rouge', 7) },
+    { nom: 'lente', job: 'b', corps: LENTE },
   ])
   try {
     const lignes = []
@@ -444,10 +465,6 @@ test('--serie rend les MÊMES verdicts que les lanes : deux rouges, deux lignes,
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs', '--serie'],
       journal: (t) => lignes.push(t),
-      lanes: [
-        { nom: 'a', gates: ['rouge1'] },
-        { nom: 'b', gates: ['lente', 'rouge2'] },
-      ],
       ecritLu: tableTotale(['rouge1', 'rouge2', 'lente'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
@@ -474,7 +491,6 @@ test('DEUX rouges dans la MÊME lane sont tous deux JOUÉS et rendus', async () 
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      lanes: [{ nom: 'a', gates: ['rouge1', 'rouge2'] }],
       ecritLu: tableTotale(['rouge1', 'rouge2'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
@@ -501,7 +517,6 @@ test('le RÉSUMÉ s’imprime même si la photo de fin devient impossible', asyn
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      lanes: [{ nom: 'a', gates: ['saborde'] }],
       ecritLu: { saborde: { ecrit: [], lit: ['src/'] } },
     })
     const sortie = lignes.join('')
@@ -521,15 +536,14 @@ test('une gate qui réécrit l’arbre fait REFUSER le run à la photo de fin', 
   ])
   try {
     writeFileSync(join(racine, 'rapport.md'), 'à jour\n')
-    execFileSync('git', ['add', '-A'], { cwd: racine })
-    execFileSync('git', ['commit', '-qm', 'rapport'], { cwd: racine })
+    lancerGit(['add', '-A'], { cwd: racine })
+    lancerGit(['commit', '-qm', 'rapport'], { cwd: racine })
     const lignes = []
     const code = await principal({
       racine,
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      lanes: [{ nom: 'a', gates: ['ecrivain', 'lecteur'] }],
       ecritLu: {
         ecrivain: { ecrit: [], lit: ['src/'] },
         lecteur: { ecrit: [], lit: ['rapport.md'] },
@@ -545,28 +559,26 @@ test('une gate qui réécrit l’arbre fait REFUSER le run à la photo de fin', 
   }
 })
 
-test('pré-vol : un registre périmé est un REFUS nommé, avant toute gate, et rien n’est écrit (#1801)', async () => {
+test('pré-vol : un `npm run gen` rouge est un REFUS nommé, avant toute gate (#1801, #2203)', async () => {
   const { racine, git } = depotDeGates([{ nom: 'lente', corps: LENTE }])
   try {
     writeFileSync(
       join(racine, 'gen.mjs'),
       "import { writeFileSync } from 'node:fs'\n" +
-        "if (process.argv.includes('--check')) { console.error('registre.generated.ts est PÉRIMÉ'); process.exit(2) }\n" +
-        "writeFileSync('registre.generated.ts', 'régénéré\\n')\n",
+        "console.error('registre.generated.ts : ÉCHEC du rendu'); process.exit(2)\n",
     )
-    git('commit', '-qam', 'registre périmé')
+    git('commit', '-qam', 'gen rouge')
     const lignes = []
     const code = await principal({
       racine,
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      lanes: [{ nom: 'a', gates: ['lente'] }],
       ecritLu: { lente: { ecrit: [], lit: ['src/'] } },
     })
     const sortie = lignes.join('')
     assert.equal(code, 1, sortie)
-    assert.match(sortie, /REFUS — « npm run gen -- --check » rouge \(exit 2\)[\s\S]*registre\.generated\.ts est PÉRIMÉ/)
+    assert.match(sortie, /REFUS — « npm run gen » rouge \(exit 2\)[\s\S]*registre\.generated\.ts : ÉCHEC du rendu/)
     assert.doesNotMatch(sortie, /\[gates\] lente — (?:vert|ROUGE)/, 'le refus du pré-vol précède toute gate')
     assert.equal(git('status', '--porcelain'), '', 'le pré-vol n’écrit rien dans l’arbre')
   } finally {
@@ -600,7 +612,6 @@ const jouerAvecPrerequis = (racine, prerequis, lignes, argv) =>
     argv,
     machine: MACHINE_A_LANES,
     journal: (t) => lignes.push(t),
-    lanes: [{ nom: 'a', gates: ['serveur'] }],
     ecritLu: { serveur: { ecrit: [], lit: ['deps/'], prerequis } },
   })
 
@@ -627,10 +638,11 @@ test('un PRÉREQUIS absent ne fait sauter AUCUNE gate — ni sa lane, ni les aut
   // #1772 : le refus de prérequis est un ROUGE comme un autre. Il ne concerne que la gate qui LIT ce
   // chemin — `prerequisAbsents` est appelé PAR GATE (toutes.mjs, `jouerUneFois`) — donc les autres
   // lisent le même arbre propre et leur verdict est JUSTE. Les faire sauter coûtait un passage entier.
+  // `serveur` (prérequis absent) et `suivante` dans la MÊME lane ; `voisine` dans une AUTRE.
   const { racine } = depotDeGates([
-    { nom: 'serveur', corps: "console.log('jamais spawnée')\nprocess.exit(0)\n" },
-    { nom: 'suivante', corps: LENTE },
-    { nom: 'voisine', corps: ROUGE('la voisine a son propre rouge', 9) },
+    { nom: 'serveur', job: 'a', corps: "console.log('jamais spawnée')\nprocess.exit(0)\n" },
+    { nom: 'suivante', job: 'a', corps: LENTE },
+    { nom: 'voisine', job: 'b', corps: ROUGE('la voisine a son propre rouge', 9) },
   ])
   try {
     const lignes = []
@@ -639,11 +651,6 @@ test('un PRÉREQUIS absent ne fait sauter AUCUNE gate — ni sa lane, ni les aut
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
-      // `serveur` (prérequis absent) et `suivante` dans la MÊME lane ; `voisine` dans une AUTRE.
-      lanes: [
-        { nom: 'a', gates: ['serveur', 'suivante'] },
-        { nom: 'b', gates: ['voisine'] },
-      ],
       ecritLu: {
         serveur: { ecrit: [], lit: ['deps/'], prerequis: [{ chemin: 'deps/absent', pose: 'cmd qui pose' }] },
         suivante: { ecrit: [], lit: ['src/'] },
@@ -652,7 +659,8 @@ test('un PRÉREQUIS absent ne fait sauter AUCUNE gate — ni sa lane, ni les aut
     })
     const sortie = lignes.join('')
     assert.equal(code, 1)
-    // Le refus NOMME encore le chemin et la commande : le sujet du test l.529 est intact.
+    // Le refus NOMME encore le chemin et la commande : le sujet du test « un PRÉREQUIS absent rend un
+    // ROUGE qui NOMME le chemin et la commande qui le pose » est intact.
     assert.match(sortie, /prérequis absent : `deps\/absent` \(le pose : `cmd qui pose`\)/)
     assert.match(sortie, /\[gates\] serveur — ROUGE \(exit 1\) — /)
     assert.match(sortie, /\[gates\] suivante — vert \(exit 0\) — /, 'la MÊME lane continue après un refus de prérequis')
@@ -744,7 +752,6 @@ const lanceParGates = async (racine, argv, lignes) =>
     argv,
     machine: MACHINE_A_LANES,
     journal: (t) => lignes.push(t),
-    lanes: [{ nom: 'a', gates: ['alpha', 'beta'] }],
     ecritLu: { alpha: { ecrit: [], lit: ['src/'] }, beta: { ecrit: [], lit: ['src/'] } },
   })
 
@@ -793,6 +800,7 @@ test('sans --gates, TOUTES les gates de ci.yml sont à jouer', async () => {
     await lanceParGates(racine, ['node', 'toutes.mjs', '--liste'], lignes)
     const sortie = lignes.join('')
     assert.match(sortie, /2 gate\(s\) lues dans ci\.yml\n/, 'sans restriction, aucun « (sur N) »')
+    assert.match(sortie, /\[gates\] lane a \(job de ci\.yml\) : alpha, beta\n/, '`--liste` montre les lanes DÉRIVÉES des jobs')
     assert.match(sortie, /\[gates\] alpha — à jouer : npm run alpha/)
     assert.match(sortie, /\[gates\] beta — à jouer : npm run beta/)
   } finally {

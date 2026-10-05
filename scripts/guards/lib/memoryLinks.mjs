@@ -26,7 +26,11 @@
 //
 // ANGLES MORTS DÉCLARÉS DE LA PORTÉE 2 :
 //   - un fichier IGNORÉ par git (`.gitignore`) n'est pas vu : l'énumération est
-//     `git ls-files --cached --others --exclude-standard` (suivi OU non suivi mais versionnable).
+//     `git ls-files --cached --others --exclude-standard` (suivi OU non suivi mais versionnable). Les
+//     cibles PURES de `GENERATORS` en sont (#2203) : leur texte se rend depuis des sources que cette
+//     portée scanne, ou depuis les fiches elles-mêmes (`docs/doctrines.md`).
+//   - le sens INVERSE, une fiche qui cite un doc (`docs/…`), n'est jugé ni ici ni par
+//     `scripts/docs/check-doc-refs.mjs`, qui exclut `.claude/memory/**`.
 //   - un `[[…]]` dont la cible n'a pas la FORME d'un nom de fiche (kebab minuscule, ≥ 5 caractères)
 //     n'est pas vu. Mesuré le 2026-09-13 : sans ce filtre, 200+ faux positifs de littéraux
 //     JS `[[a, b]]` (tableaux de paires) et de classes de regex `[[^\]]` noient le rapport.

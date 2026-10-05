@@ -8,7 +8,7 @@ export const FEUILLES: ReadonlyArray<{ module: string; bancs: readonly string[];
 export function sourcesSuivies(racine?: string): string[];
 
 /** Imports d'un fichier, résolus. */
-export function importsResolus(fichierAbsolu: string, texte: string): { specificateur: string; resolu: string }[];
+export function importsResolus(fichierAbsolu: string, texte: string): import('./importGraph.mjs').Arc[];
 
 /** Manquements à l'invariant des feuilles. */
 export function manquementsDeFeuilles(p?: {

@@ -6,12 +6,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import {
-  citationDe, dateDe, decouperFiche, fichesSuivies, ligneDe, construireDoc, tronquer, verbatimsDe,
+  citationDe, dateDe, decouperFiche, defautsDuTexteAssistant, fichesSuivies, ligneDe, construireDoc, tronquer, verbatimsDe,
 } from './build-doctrines.mjs'
+import { listerDossier } from '../guards/lib/lister.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -109,6 +111,54 @@ test('verbatim — aucune coupe ne laisse un MOT-OUTIL en fin (« face a … »)
   const coupe = tronquer(`${'x'.repeat(200)} devant un adversaire ou face a une maladie inconnue`)
   assert.ok(!/(\s|^)(un|une|le|la|les|de|des|du|à|a|tu|ca|ça|face a) …$/i.test(coupe), `coupe : …${coupe.slice(-24)}`)
   assert.ok(coupe.endsWith('adversaire …'), `coupe : …${coupe.slice(-24)}`)
+})
+
+test('verbatim — un POINT DE SUSPENSION n est jamais une fin de phrase', () => {
+  for (const suspension of ['etc...', 'etc ...', 'etc…']) {
+    const coupe = tronquer(`${'mot '.repeat(30)}${suspension} ${'mot '.repeat(60)}fin`)
+    assert.ok(coupe.endsWith(' …'), `${suspension} : …${coupe.slice(-24)}`)
+    assert.ok(coupe.length > 200, `${suspension} : coupé sur la suspension (${coupe.length} caractères)`)
+  }
+})
+
+/** Paires équilibrées : l'extrait ne laisse ni parenthèse ni citation ouverte. */
+const equilibre = (s) => [['(', ')'], ['«', '»']].every(([o, f]) => s.split(o).length === s.split(f).length)
+
+test('verbatim — jamais coupé dans une parenthèse ou une citation OUVERTE', () => {
+  const cas = {
+    'point dans une parenthèse': `${'a'.repeat(100)}. (b ${'c '.repeat(40)}etc. d ${'e '.repeat(60)})`,
+    'point dans une citation': `${'a'.repeat(100)}. « b ${'c '.repeat(40)}fin. d ${'e '.repeat(60)} »`,
+    'suspension dans une parenthèse': `${'a '.repeat(50)}(pnjs, lieux, etc ...) puis ${'b '.repeat(20)}(c ${'d '.repeat(80)})`,
+    'mot dans une parenthèse, sans ponctuation': `${'mot '.repeat(40)}(${'x '.repeat(100)})`,
+    'parenthèse ouverte en tête, jamais refermée': `(ouverte ${'mot '.repeat(80)}`,
+    'parenthèse ouverte au 5e caractère': `Oui (${'mot '.repeat(80)}) fin`,
+    'parenthèse ouverte au 85e caractère': `${'mot '.repeat(21)}(${'mot '.repeat(80)}) fin`,
+    'citation ouverte en tête, jamais refermée': `« ouverte ${'mot '.repeat(80)}`,
+  }
+  for (const [nom, texte] of Object.entries(cas)) {
+    const coupe = tronquer(texte)
+    assert.ok(coupe.length < texte.length, `${nom} : pas coupé`)
+    assert.ok(equilibre(coupe), `${nom} : …${coupe.slice(-40)}`)
+  }
+  assert.equal(tronquer(cas['point dans une parenthèse']), `${'a'.repeat(100)}.`)
+  const tete = tronquer(cas['parenthèse ouverte en tête, jamais refermée'])
+  assert.ok(tete.endsWith(' …)'), `la coupe ne dit pas que la paire continue : …${tete.slice(-24)}`)
+  assert.ok(tete.length > 200, `parenthèse en tête : effondré à ${tete.length} caractères`)
+  for (const nom of ['parenthèse ouverte au 5e caractère', 'parenthèse ouverte au 85e caractère']) {
+    const pres = tronquer(cas[nom])
+    assert.ok(pres.endsWith(' …)'), `${nom} : la coupe ne dit pas que la paire continue : …${pres.slice(-24)}`)
+    assert.ok(pres.length > 200, `${nom} : effondré à ${pres.length} caractères`)
+  }
+})
+
+test('verbatim — un guillemet droit ISOLÉ n ouvre aucune citation : la coupe ne s effondre pas', () => {
+  const texte = `il dit 12" de ${'mot '.repeat(80)}fin`
+  const coupe = tronquer(texte)
+  assert.ok(coupe.endsWith(' …'), `coupe : …${coupe.slice(-24)}`)
+  assert.ok(coupe.length > 200, `effondré à ${coupe.length} caractères : « ${coupe} »`)
+  const paire = tronquer(`${'a '.repeat(50)}"${'b '.repeat(100)}" fin`)
+  assert.ok((paire.match(/"/g) ?? []).length % 2 === 0, `une paire "…" ÉQUILIBRÉE reste une paire : …${paire.slice(-24)}`)
+  assert.ok(paire.length > 200, `paire "…" au 101e caractère : effondré à ${paire.length} caractères`)
 })
 
 test('date — le PARAGRAPHE du verbatim prime sur l en-tête', () => {
@@ -214,7 +264,7 @@ test('--check — un doc ÉDITÉ À LA MAIN diverge du doc régénéré', () => 
 // ── Au RÉEL : les fiches du dépôt, pas des fixtures ────────────────────────────────────────
 test('AU RÉEL — aucun extrait des fiches du dépôt ne se termine sur un mot-outil', () => {
   const dateAjoutGit = (f) =>
-    execFileSync('git', ['log', '--diff-filter=A', '--format=%as', '-1', '--', f], { cwd: RACINE, encoding: 'utf8' }).trim()
+    gitDeLArbreReel(RACINE, { net: true })('log', '--diff-filter=A', '--format=%as', '-1', '--', f)
   const suspendus = []
   for (const fichier of fichesSuivies(RACINE)) {
     const ligne = ligneDe({ fichier, texte: readFileSync(resolve(RACINE, fichier), 'utf8') }, dateAjoutGit)
@@ -234,6 +284,159 @@ test('AU RÉEL — la doctrine des JETS rend sa règle, pas un grief', () => {
   const ligne = ligneDe({ fichier, texte: readFileSync(resolve(RACINE, fichier), 'utf8') })
   assert.match(ligne, /forme canonique|demi-migration/)
   assert.match(ligne, /\(\d{4}-\d{2}-\d{2}, \d+ verbatims\)/)
+})
+
+// ── Convention : le texte de l'ASSISTANT porte le marqueur `non-verbatim utilisateur`, jamais extrait ─────
+const QUESTION_SANS_LE_MOT = "Jusqu'où le jeu doit-il toujours s'écarter des FAITS du livre, au-delà du choix de média pour chaque beat ?"
+const REPONSE = 'Adaptation libre, pour profiter du contenu des compagnons, et le MJ fait le reste'
+const OPTION = 'Le verbatim d abord, partout où il existe ; toute réplique absente du livre devient une donnée maison'
+
+test('assistant — une ligne marquée `non-verbatim utilisateur` ne fournit JAMAIS d extrait, quelle que soit sa forme', () => {
+  const cas = {
+    'question entre « », sans le mot « question » dans la question': [
+      `*Question posée (AskUserQuestion, non-verbatim utilisateur) : « ${QUESTION_SANS_LE_MOT} »*`,
+      '',
+      `**Verbatim —** réponse libre (2026-09-26) : « ${REPONSE} »`,
+    ],
+    'question entre guillemets droits, réponse courte': [
+      `*Question posée (AskUserQuestion, non-verbatim utilisateur) : "${QUESTION_SANS_LE_MOT}"*`,
+      '',
+      '**Verbatim —** réponse (2026-09-26) : « Libre. »',
+    ],
+    'option non retenue entre « »': [
+      `*Option non retenue (AskUserQuestion, non-verbatim utilisateur) : « ${QUESTION_SANS_LE_MOT} »*`,
+      `**Verbatim —** réponse libre (2026-09-26) : « ${REPONSE} »`,
+    ],
+    'évaluation d ingénierie, marqueur en milieu de ligne': [
+      `- Évaluation d'ingénierie révisable, non-verbatim utilisateur : "${QUESTION_SANS_LE_MOT}"`,
+      '**Verbatim —** réponse (2026-09-26) : « Libre. »',
+    ],
+  }
+  for (const [nom, lignes] of Object.entries(cas)) {
+    const corps = lignes.join('\n')
+    assert.ok(!verbatimsDe(corps).some((v) => v.includes("Jusqu'où")), `${nom} : le texte de l'assistant est un verbatim`)
+    assert.ok(!String(citationDe(corps)).includes("Jusqu'où"), `${nom} : le texte de l'assistant est l'extrait`)
+  }
+})
+
+/** Le GÉNÉRATEUR refuse (sortie 1, message nommé) : `ligneDe` est le chemin de `construireDoc`. */
+const genere = (fichier, texte) => spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import { ligneDe } from ${JSON.stringify(pathToFileURL(join(RACINE, 'scripts', 'docs', 'build-doctrines.mjs')).href)}
+    ligneDe(${JSON.stringify({ fichier, texte })})
+  `], { encoding: 'utf8' })
+
+test('assistant — une ligne marquée porteuse de « » est REFUSÉE, nommée fichier:ligne (question comme option non retenue)', () => {
+  for (const [marque, entre] of [['Question posée', QUESTION_SANS_LE_MOT], ['Option non retenue', OPTION]]) {
+    const fichier = '.claude/memory/user-doctrine-assistant-guillemete.md'
+    const texte = fiche('user-doctrine-assistant-guillemete', {
+      corps: [
+        'Arbitrage 1 du pilotage (2026-09-26).',
+        `*${marque} (AskUserQuestion, non-verbatim utilisateur) : « ${entre} »*`,
+        '',
+        `**Verbatim —** réponse libre (2026-09-26) : « ${REPONSE} »`,
+      ].join('\n'),
+    })
+    const defauts = defautsDuTexteAssistant(fichier, texte)
+    assert.equal(defauts.length, 1, marque)
+    assert.match(defauts[0], /^\.claude\/memory\/user-doctrine-assistant-guillemete\.md:9 — texte de l'assistant/, marque)
+    assert.deepEqual(defautsDuTexteAssistant(fichier, texte.replace(`« ${entre} »`, entre)), [], marque)
+    const run = genere(fichier, texte)
+    assert.equal(run.status, 1, `${marque} : sortie ${run.status} — stderr : ${run.stderr}`)
+    assert.match(run.stderr, /user-doctrine-assistant-guillemete\.md:9 — texte de l'assistant/, marque)
+  }
+})
+
+test('assistant — une annonce SANS le marqueur est REFUSÉE, nommée fichier:ligne ; parole de l’utilisateur, mention de l’outil et prose ne le sont pas', () => {
+  const fichier = '.claude/memory/user-doctrine-marqueur.md'
+  const annonces = [
+    '*Question posée (AskUserQuestion) : x', '  *Question posée : x', 'Question posée : x', '**Question posée** : x',
+    '- *Question posée : x', '> *Question posée : x', '_Question posée_ : x', 'Arbitrage 1 — *question posée* (AskUserQuestion) : x',
+    `*Option non retenue à laquelle elle renvoie (AskUserQuestion) : « ${OPTION} »*`, '- Option écartée : x',
+    '*Options proposées : x', "- Évaluation d'ingénierie révisable, pas l'arbitrage : x",
+    '- option écartée : x', '- Proposition non retenue : x', '- Évaluation d’ingénierie révisable : x',
+    '**Option** écartée : x', '- OPTION NON RETENUE : x', 'Arbitrage 2 — option **écartée** : x',
+  ]
+  for (const v of annonces) {
+    const defauts = defautsDuTexteAssistant(fichier, `a\n${v}\nb`)
+    assert.equal(defauts.length, 1, v)
+    assert.match(defauts[0], /^\.claude\/memory\/user-doctrine-marqueur\.md:2 — texte de l'assistant .* sans le marqueur `non-verbatim utilisateur`/, v)
+  }
+  const permises = [
+    '*Question posée (AskUserQuestion, non-verbatim utilisateur) : x',
+    '*Option non retenue (AskUserQuestion, non-verbatim utilisateur) : x',
+    "- Évaluation d'ingénierie révisable, non-verbatim utilisateur : x",
+    `**Verbatim —** option retenue (2026-09-26) : « ${REPONSE} »`,
+    `*Option retenue (2026-09-26) : « ${REPONSE} »*`,
+    '**How to apply :** toute garde porte dans SON fichier un en-tête structuré (question posée A→B→C, primitive employée)',
+    "qu'aucune décision ne remonte est une évaluation d'ingénierie révisable",
+    `**Verbatim —** option retenue (AskUserQuestion, 2026-09-26) : « ${REPONSE} »`,
+    `- Option choisie (2026-09-26) : « ${REPONSE} »`,
+    `- Option **retenue** (2026-09-26) : « ${REPONSE} »`,
+    `- OPTION RETENUE (2026-09-26) : « ${REPONSE} »`,
+    '### Arbitrages (utilisateur, 2026-09-26, AskUserQuestion — option retenue et sa description, verbatim)',
+    'Posée par AskUserQuestion : x',
+    'Voir la Question posée plus haut.',
+  ]
+  for (const p of permises) assert.deepEqual(defautsDuTexteAssistant(fichier, p), [], p)
+})
+
+test('assistant — les FORMES de la classe : question citée introduite par « réponse à », option titrée puis écartée', () => {
+  const fichier = '.claude/memory/user-doctrine-marqueur.md'
+  // Ligne de base de user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata.md avant sa migration.
+  const base =
+    '- Place de la 5e (2026-09-18, réponse à « Quelle place la 5e prend-elle dans le jeu ? ») : « Édition sélectionnable (Recommandé) » — 4e et 5e coexistent. L’option « Règles 5e à la carte sur base 4e » est ÉCARTÉE.'
+  const annonces = [
+    base,
+    '- Place (2026-09-18, réponse à « Quelle place ? ») : « x »',
+    '- Question : « Quelle place la 5e prend-elle ? »',
+    '- L’option « Règles à la carte » est écartée.',
+    '- La proposition « Tout en 5e » non retenue.',
+    '- Les options « A » et « B » ont été écartées.',
+  ]
+  for (const v of annonces) {
+    const defauts = defautsDuTexteAssistant(fichier, `a\n${v}\nb`)
+    assert.equal(defauts.length, 1, v)
+  }
+  const permises = [
+    `- Place de la 5e (2026-09-18) : « Tu veux dire quoi par « carte » ? »`,
+    `- L’option « ${REPONSE} » est retenue.`,
+    '- Réponse de l’utilisateur (2026-09-18) : « Édition sélectionnable »',
+  ]
+  for (const p of permises) assert.deepEqual(defautsDuTexteAssistant(fichier, p), [], p)
+})
+
+test('assistant — un paragraphe **Why** / **How to apply** est de la prose de l’assistant : jamais un verbatim, jusqu’à la ligne vide ou au libellé suivant', () => {
+  const WHY = 'si demain on change ce concept, combien de fichiers bougent dans tout le dépôt ?'
+  const corps = [
+    `**Verbatim (2026-09-04)** : « ${REPONSE} »`,
+    '',
+    `**Why :** le test est « ${WHY} »`,
+    `et la suite du paragraphe « ${WHY} (suite) »`,
+    `**How to apply:** « ${WHY} (application) »`,
+    `**Teinte :** « ${OPTION} »`,
+    '',
+    `Reprise : « ${QUESTION_SANS_LE_MOT} »`,
+  ].join('\n')
+  assert.deepEqual(verbatimsDe(corps), [REPONSE, OPTION, QUESTION_SANS_LE_MOT])
+})
+
+test("AU RÉEL — aucune fiche user-* ne range de « » dans le texte de l'assistant, ni n'en tire son extrait", () => {
+  // Fiches du DISQUE, pas de `git ls-files` : une fiche que git ne suit pas est lue elle aussi.
+  const defauts = []
+  const fautives = []
+  let marquees = 0
+  for (const nom of listerDossier(join(RACINE, '.claude', 'memory')).filter((f) => /^user-.*\.md$/.test(f))) {
+    const texte = readFileSync(join(RACINE, '.claude', 'memory', nom), 'utf8')
+    defauts.push(...defautsDuTexteAssistant(nom, texte))
+    const { corps } = decouperFiche(texte)
+    const assistant = corps.split('\n').filter((l) => l.includes('non-verbatim utilisateur')).map((l) => l.replace(/\s+/g, ' '))
+    marquees += assistant.length
+    const extrait = citationDe(corps)
+    if (extrait && assistant.some((q) => q.includes(extrait.slice(0, 30)))) fautives.push(`${nom} — « ${extrait} »`)
+  }
+  assert.deepEqual(defauts, [])
+  assert.deepEqual(fautives, [])
+  assert.ok(marquees > 0, "aucune ligne de texte de l'assistant sur le disque : ce test ne juge rien")
 })
 
 test('--check — une fiche user-* NEUVE non reflétée diverge (fraîcheur)', () => {

@@ -8,8 +8,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../state/store';
 import { Modal } from '../Modal';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexItemKey, useCodexVersion, type CodexCategory, type CodexGroup, type CodexItem } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexItemKey, type CodexCategory, type CodexGroup, type CodexItem } from './registry';
 import type { CodexFocus } from '../../state/codexFocus';
+import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { filterItems, facetValues, type FacetSelection } from './search';
 import { CodexEntry } from './CodexEntry';
 import { CodexEdit, isEditableCategory } from './CodexEdit';
@@ -64,8 +65,8 @@ export function CompendiumScreen({ focus: focusProp }: {
   }, [focus]);
 
   // Fraîcheur : re-rend (et invalide les memos sur `cat.items`) après un persist de `CodexEdit`
-  // (`invalidateCodexLookup` → les getters `items`/`facets` re-projettent la donnée persistée).
-  const version = useCodexVersion();
+  // (écriture au seam des datasets → les getters `items`/`facets` re-projettent la donnée persistée).
+  const version = useVersionDesDatasets();
   const cats = useMemo(() => categoriesIn(group), [group]);
   // Barre de catégories : pastilles À PLAT + sous-groupes repliables (`cluster`) — anti-avalanche
   // des familles touffues (Effets/Tables). Ordre de déclaration préservé (`clustersIn`).
@@ -268,9 +269,9 @@ export function CompendiumScreen({ focus: focusProp }: {
               </div>
             )}
             {creating && atelier && cat && isEditableCategory(cat.key)
-              ? <CodexEdit categoryKey={cat.key} label="" isNew onClose={() => setCreating(false)} />
+              ? <CodexEdit categoryKey={cat.key} isNew onClose={() => setCreating(false)} />
               : selected && editing && atelier && cat && isEditableCategory(cat.key)
-                ? <CodexEdit categoryKey={cat.key} label={selected.label} id={selected.id} onClose={() => setEditing(false)} />
+                ? <CodexEdit categoryKey={cat.key} id={selected.id} onClose={() => setEditing(false)} />
                 : selected && <CodexEntry item={selected} instance={instance} category={cat?.key} exergues={cat?.exergues} />}
           </section>
         }

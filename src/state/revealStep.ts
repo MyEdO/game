@@ -56,5 +56,6 @@ export function revealToStep(
     reveal: entry,
     ...(opts?.autoClose ? { autoCloseMs: REVEAL_AUTO_CLOSE_MS[opts.autoClose] } : {}),
     table: opts?.table,
+  // eslint-disable-next-line murs/marques -- #1262 : minteur `revealToStep` — forger l'étape de révélation est son corps de métier.
   } as BuiltCascadeStep;
 }

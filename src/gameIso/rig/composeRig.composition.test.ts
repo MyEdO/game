@@ -1,16 +1,15 @@
 /**
- * CONTRAT : la COMPOSITION d'un rig (parts, palette, squelette, échelles, profondeurs) ne dépend
- * que du PERSONNAGE ; seule la POSE dépend de l'instant. Deux volets, indissociables :
- *  1. la composition est RÉUTILISÉE d'une image à l'autre (elle ne se recalcule pas par image) ;
- *  2. réutilisée, elle rend le MÊME SVG que recomposée à neuf — sinon le gain serait un bug d'affichage.
- * Le volet 2 est la non-régression visuelle : il compare, pour une même pose, le chemin qui réutilise
- * la composition et le chemin qui la reconstruit (réf d'apparence neuve → aucune réutilisation possible).
+ * CONTRAT : la COMPOSITION d'un rig (parts, palette, squelette, échelles, profondeurs) ne dépend que du
+ * PERSONNAGE ; seule la POSE dépend de l'instant. Une composition RETENUE par son appelant (`RigToken`,
+ * sujets de `sceneMeshes`) et posée image après image rend le MÊME SVG qu'une composition faite à neuf
+ * pour la même pose — sinon la retenir serait un bug d'affichage.
  */
 import { describe, it, expect } from 'vitest';
 import { resolveRig, rigComposition, poseRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
 import type { Appearance } from './appearance';
 import { asRigSpeciesId } from './appearance';
+import { equipDe } from './parts/equipment';
 import type { EquipCtx } from './parts/equipment';
 import type { RigOverlay } from './bones';
 import type { View } from './facing';
@@ -18,8 +17,8 @@ import type { Pose } from './poses';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 const sword = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 4 }, qualities: [] };
-const equipNu: EquipCtx = { weapons: [], armour: [] };
-const equipArme: EquipCtx = { weapons: [sword], armour: [] };
+const equipNu: EquipCtx = equipDe([], []);
+const equipArme: EquipCtx = equipDe([sword], []);
 
 const app = (species: string, sex: Sexe, seed: number, extra: Partial<Appearance> = {}): Appearance =>
   ({ species: asRigSpeciesId(species), sex, build: 0.5, seed, ...extra });
@@ -60,41 +59,17 @@ const rendu = (c: Cas, pose: Pose, appearance: Appearance = c.appearance) =>
 describe('composition ⊥ pose — non-régression visuelle', () => {
   for (const c of CAS) {
     for (const [nomPose, pose] of Object.entries(POSES)) {
-      it(`${c.nom} / ${nomPose} : composition réutilisée ≡ composition reconstruite`, () => {
-        // Chemin RÉUTILISÉ : la même réf d'apparence a déjà servi (image précédente).
-        rendu(c, POSES.repos);
-        const reutilise = rendu(c, pose);
-        // Chemin RECONSTRUIT : réf d'apparence neuve → composition rebâtie de zéro pour cette image.
-        const reconstruit = rendu(c, pose, { ...c.appearance });
-        expect(reutilise).toBe(reconstruit);
+      it(`${c.nom} / ${nomPose} : composition retenue et déjà posée ≡ composition faite à neuf`, () => {
+        // Chemin RETENU : la composition a déjà servi à une image précédente (repos).
+        const retenue = rigComposition(c.appearance, c.equip, c.tenue, c.view, c.overlays, c.mirror ?? false);
+        poseRig(retenue, POSES.repos);
+        const reutilise = bonesToSvg(poseRig(retenue, pose));
+        const neuf = rendu(c, pose, { ...c.appearance });
+        expect(reutilise).toBe(neuf);
         expect(reutilise.length).toBeGreaterThan(0);
       });
     }
   }
-});
-
-describe('composition ⊥ pose — la composition ne se recalcule pas par image', () => {
-  it('deux images consécutives PARTAGENT les parts composées, et ne diffèrent que par les matrices', () => {
-    const c = CAS[0];
-    const a = resolveRig(c.appearance, c.equip, POSES.repos, c.tenue, c.view, c.overlays, false);
-    const b = resolveRig(c.appearance, c.equip, POSES.marche, c.tenue, c.view, c.overlays, false);
-    expect(b.length).toBe(a.length);
-    // Les parts (SVG résolu, palette appliquée) sont le MÊME objet : elles n'ont pas été refabriquées.
-    for (let i = 0; i < a.length; i++) {
-      expect(b[i].id).toBe(a[i].id);
-      expect(b[i].parts).toBe(a[i].parts);
-      expect(b[i].scale).toBe(a[i].scale);
-    }
-    // La POSE, elle, a bien bougé : au moins un os porte une matrice différente.
-    expect(a.some((bone, i) => bone.matrix.join() !== b[i].matrix.join())).toBe(true);
-  });
-
-  it('la composition d’un personnage inchangé est la MÊME d’une image à l’autre', () => {
-    const c = CAS[0];
-    const c1 = rigComposition(c.appearance, c.equip, c.tenue, c.view, c.overlays, false);
-    const c2 = rigComposition(c.appearance, c.equip, c.tenue, c.view, c.overlays, false);
-    expect(c2).toBe(c1);
-  });
 
   it('poseRig rend le même SVG que resolveRig pour la même pose', () => {
     const c = CAS[0];
@@ -103,30 +78,8 @@ describe('composition ⊥ pose — la composition ne se recalcule pas par image'
   });
 });
 
-describe('composition ⊥ pose — ce qui doit la RECOMPOSER', () => {
+describe('composition ⊥ pose — une apparence changée se dessine', () => {
   const base = CAS[0];
-  const comp = () => rigComposition(base.appearance, base.equip, base.tenue, base.view, base.overlays, false);
-
-  it('changer de TENUE recompose', () => {
-    expect(rigComposition(base.appearance, base.equip, 'noble', base.view, base.overlays, false)).not.toBe(comp());
-  });
-  it('changer de DIRECTION (vue) recompose', () => {
-    expect(rigComposition(base.appearance, base.equip, base.tenue, 'profile', base.overlays, false)).not.toBe(comp());
-  });
-  it('changer de SENS (miroir) recompose', () => {
-    expect(rigComposition(base.appearance, base.equip, base.tenue, base.view, base.overlays, true)).not.toBe(comp());
-  });
-  it('un calque d’ÉTAT (blessure) recompose', () => {
-    expect(rigComposition(base.appearance, base.equip, base.tenue, base.view, blessure, false)).not.toBe(comp());
-  });
-  it('changer d’ÉQUIPEMENT recompose', () => {
-    expect(rigComposition(base.appearance, equipNu, base.tenue, base.view, base.overlays, false)).not.toBe(comp());
-  });
-  it('changer d’APPARENCE recompose', () => {
-    const mute = app('humain', 'M', 7, { colors: { peau: '#4a7a3a' } });
-    expect(rigComposition(mute, base.equip, base.tenue, base.view, base.overlays, false)).not.toBe(comp());
-  });
-
   it('une apparence RECOMPOSÉE rend le SVG de son nouvel état, jamais celui de l’ancien', () => {
     const avant = rendu(base, POSES.repos);
     const apres = rendu({ ...base, appearance: app('humain', 'M', 7, { colors: { peau: '#4a7a3a' } }) }, POSES.repos);

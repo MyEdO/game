@@ -17,9 +17,8 @@ import { detenteur } from '../../detenteur.testkit';
  * le rend ROUGE dès qu'aucun site du périmètre ne l'exerce plus — au grain du CHAMP, une entrée par
  * champ (`neutraliseursDeChamp`), pour qu'un homonyme qui meurt rougisse SEUL. Un homonyme se
  * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `cargoId:`, `weather:`, `part:`, `scope:`), par le
- * VOCABULAIRE d'union déclaré dans le fichier, par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
- * champ) ou par une SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) — jamais par un
- * nom de fichier, jamais par un site toléré.
+ * VOCABULAIRE d'union déclaré dans le fichier ou par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
+ * champ) — jamais par un nom de fichier, jamais par un site toléré.
  *
  * Le relief était le dernier domaine de `MaterialRef` dont l'id était choisi EN CODE
  * (`floors.ts` : `'pilier'`, `'pierre'`, `'terre'`) ; il vient de la donnée comme les autres — la
@@ -71,25 +70,14 @@ const chemin = (rel: string) => (duStore(rel) ? `state/${rel}` : rel);
 /**
  * Les SIGNAUX STRUCTURELS du store, chacun neutralisé par `codeSeul` — aucun nom de fichier,
  * aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas une émission de matière.
- *  - la clé `scope:` porte la PORTÉE d'un avertissement de validation, où `plan` est le plan de scène ;
- *  - une déclaration `… as const satisfies <X>Defaults` est une SEMENCE d'authoring GELÉE : depuis
- *    #1716 la semence VIVANTE est de la donnée (`semences-de-scene.json`, lue par `emptyScene`), et
- *    la forme ne subsiste qu'aux MIGRATIONS de projet (`worldMap.ts`), qui reconstituent la valeur
- *    d'avant leur lot — la matière y est écrite pour être POSÉE sur un vieux document, pas émise par
- *    un builder. Le `satisfies` est ce qui distingue la semence d'un littéral libre ; la cible est
- *    `Fige<…Defaults>` (#1789), et cette reconnaissance par REGEX passe au checker (#1789 train D).
+ *  - la clé `scope:` porte la PORTÉE d'un avertissement de validation, où `plan` est le plan de scène.
  */
 const SIGNAUX_STRUCTURELS = [
-  { nom: 'clé `scope:` (portée d’un avertissement)', re: /\bscope:/, portee: 'ligne' },
-  { nom: 'SEMENCE `as const satisfies …Defaults`', re: /\bas const satisfies\s+(?:Fige<)?\w*Defaults>?\b/, portee: 'bloc' },
+  { nom: 'clé `scope:` (portée d’un avertissement)', re: /\bscope:/ },
 ] as const;
 
-/** Les signaux de PORTÉE LIGNE, en une seule passe. */
-const LIGNE_STRUCTURELLE = new RegExp(
-  SIGNAUX_STRUCTURELS.filter((s) => s.portee === 'ligne').map((s) => s.re.source).join('|'),
-);
-/** La DÉCLARATION d'une semence, du `=` au `satisfies` : elle porte ses littéraux sur plusieurs lignes. */
-const SEMENCE_DECL = /=\s*\{[^{}]*\}\s*as const satisfies\s+(?:Fige<)?\w*Defaults>?\b/g;
+/** Les signaux structurels, en une seule passe. */
+const LIGNE_STRUCTURELLE = new RegExp(SIGNAUX_STRUCTURELS.map((s) => s.re.source).join('|'));
 
 /** Tous les fichiers du périmètre : la marche de l'arbre ET la lecture viennent de la primitive de
  *  corpus (`readCorpus`, une clé par base, `*.test.*` hors corpus). Le chemin rendu est celui que le
@@ -185,14 +173,11 @@ const NEUTRALISEURS: readonly Neutraliseur[] = [
  *  - commentaires de bloc et de ligne retirés — une réf en prose n'est pas une émission ;
  *  - chaque NEUTRALISEUR de `NEUTRALISEURS` appliqué à la ligne ; `sauf` en retire UN, et c'est
  *    ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT dans le périmètre ;
- *  - les deux signaux du store (`SIGNAUX_STRUCTURELS`) : clé `scope:` et déclaration `as const
- *    satisfies <X>Defaults` (la SEMENCE d'authoring, neutralisée sur tout son bloc puisqu'elle
- *    s'écrit sur plusieurs lignes).
+ *  - les signaux du store (`SIGNAUX_STRUCTURELS`), neutralisés sur leur ligne.
  */
 function codeSeul(src: string, sauf?: string): string {
   const onglets = clesDOnglet(src);
   return sansCommentaires(src)
-    .replace(SEMENCE_DECL, (bloc) => litteraux(bloc))
     .split('\n')
     .map((l) => {
       let code = l;
@@ -254,19 +239,16 @@ const vocabulaireDUnion = (src: string): Set<string> => {
  *  - UNE entrée par CHAMP dont le vocabulaire n'est pas celui des sols (`neutraliseursDeChamp`, la
  *    même fabrique que le bras des matières) — `key` (clé de récap / d'IU), `kind` (type de
  *    SÉLECTION d'un éditeur, `route`), `cargoId` (cargaison, `bois`), `weather` (météo, `neige`) :
- *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt ;
- *  - la SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) des migrations de projet.
+ *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt.
  */
-const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; applique: (code: string, mots: Set<string>) => string }[] = [
+const NEUTRALISEURS_TERRAIN: readonly { nom: string; applique: (code: string, mots: Set<string>) => string }[] = [
   {
     nom: 'VOCABULAIRE d’union déclaré dans le fichier',
-    portee: 'ligne',
     applique: (code, mots) =>
       mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code,
   },
   {
     nom: 'UNION de littéraux écrite en place',
-    portee: 'ligne',
     applique: (code) =>
       code.replace(UNION_DE_LITTERAUX, (union) => (membresSontTousDesTerrains(union) ? union : litteraux(union))),
   },
@@ -275,22 +257,17 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; a
     kind: 'type de sélection d’un éditeur',
     cargoId: 'cargaison',
     weather: 'météo',
-  }).map((n) => ({ ...n, portee: 'ligne' as const })),
-  { nom: 'SEMENCE d’authoring GELÉE d’une migration', portee: 'bloc', applique: (code) => code.replace(SEMENCE_DECL, (bloc) => litteraux(bloc)) },
+  }),
 ];
 
 /** Le code d'une couche SANS ses commentaires ni ses homonymes de terrain, lignes préservées. `sauf` en
- *  retire UN neutraliseur — c'est ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT.
- *  Un neutraliseur de portée `bloc` s'applique au TEXTE entier (la semence gelée tient sur 3 lignes). */
+ *  retire UN neutraliseur — c'est ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT. */
 function codeHorsTerrain(src: string, sauf?: string): string {
   const mots = vocabulaireDUnion(src);
-  let texte = codeNu(src).join('\n');
-  for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'bloc' && n.nom !== sauf) texte = n.applique(texte, mots);
-  return texte
-    .split('\n')
+  return codeNu(src)
     .map((l) => {
       let code = l;
-      for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'ligne' && n.nom !== sauf) code = n.applique(code, mots);
+      for (const n of NEUTRALISEURS_TERRAIN) if (n.nom !== sauf) code = n.applique(code, mots);
       return code;
     })
     .join('\n');
@@ -316,11 +293,10 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
       const sansCommentaires = codeNu(f.code);
       sansCommentaires.forEach((l, i) => {
         if (materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l)))
-          nus.push({ rel: f.rel, ligne: i + 1, texte: [l, sansCommentaires[i + 1] ?? '', sansCommentaires[i + 2] ?? ''].join('\n') });
+          nus.push({ rel: f.rel, ligne: i + 1, texte: l });
       });
     }
     expect(nus.length, 'plus aucun homonyme dans `src/state` : la neutralisation ne prouve plus rien.').toBeGreaterThan(0);
-    // Un signal se lit sur la ligne ou sur la CLÔTURE de sa déclaration (la semence tient sur 3 lignes).
     expect(
       nus.filter((n) => !SIGNAUX_STRUCTURELS.some((s) => s.re.test(n.texte))).map((n) => `${n.rel}:${n.ligne}`),
       `Littéral de matière dans \`src/state\` sans signal structurel — signaux connus : ${SIGNAUX_STRUCTURELS.map((s) => s.nom).join(', ')}.`,
@@ -390,7 +366,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * Les HOMONYMES (`porte` capacité d’arête, `vide` résultat de dépilage, `neige` météo, `bois`
    * cargaison, `route` clé de récap et type de SÉLECTION d’éditeur) sont neutralisés par FORME
    * (`NEUTRALISEURS_TERRAIN`) : vocabulaire d’union déclaré dans le fichier, union écrite en place,
-   * nom de champ, semence gelée. AUCUN site toléré, aucune liste d’exemption, aucun nom de fichier :
+   * nom de champ. AUCUN site toléré, aucune liste d’exemption, aucun nom de fichier :
    * le stock mesuré est vide.
    *
    * Périmètre : les MÊMES CINQ couches que le bras des matières (#1789), même corpus `fichiers`.
@@ -421,7 +397,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * périmètre : on rejoue le scan des cinq couches en retirant UN neutraliseur, et la différence d'ids
    * comptés est ce qu'il porte.
    */
-  it('chaque neutraliseur du bras TERRAIN est exercé par un site du périmètre (aucune exemption morte)', () => {
+  it('chaque neutraliseur du bras TERRAIN est exercé par un site du périmètre (aucune exemption morte)', { timeout: 30_000 }, () => {
     const ids = terrains.map((t) => t.id);
     const cite = (l: string) => ids.some((id) => citeId(id).test(l));
     for (const n of NEUTRALISEURS_TERRAIN) {

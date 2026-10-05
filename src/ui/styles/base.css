@@ -326,6 +326,15 @@ textarea:focus {
   outline: none;
   border-color: var(--gold);
 }
+/* Charte : état INVALIDE de tout champ — `aria-invalid="true"` posé par la primitive qui refuse la
+   saisie (NumberField, RefField, SourceRefField…). Filet d'alerte `--danger`, doublé, qui tient au
+   survol et au focus : la marque ne s'efface jamais pendant qu'on corrige. Règle UNIQUE de l'app. */
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
 /* Charte : curseurs/barres teintés or (le natif convient pour le range). */
 input[type='range'],
 progress {

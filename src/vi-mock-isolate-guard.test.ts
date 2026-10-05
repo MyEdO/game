@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
+import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 
 /**
  * Garde-fou `isolate: false` × mock de MODULE — la suite tourne avec `test.isolate: false`
@@ -49,6 +50,12 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
       /restoreMocks\s*:\s*true/.test(VITE_CONFIG),
       "l'en-tête de ce fichier affirme que `spyOn` est fermé par construction : `test.restoreMocks: true` doit exister dans vite.config.ts",
     ).toBe(true);
+  });
+
+  it('chaque racine de la suite porte au moins une suite — la garde ne mesure pas le vide', () => {
+    const suites = fichiersDeLaSuite();
+    for (const { dir } of RACINES_DE_LA_SUITE)
+      expect(suites.some(({ rel }) => rel.startsWith(`${dir}/`)), `${dir} : aucune suite scannée`).toBe(true);
   });
 
   it('cas planté : un appel de mock de module est détecté avec son `fichier:ligne` (preuve TDD)', () => {

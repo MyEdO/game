@@ -32,7 +32,7 @@ import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { croitreDocuments, rejouerEnCroissance } from './lib/croissance.mjs';
-import { CHEMINS_EXPORTES, RACINE_DES_EXPORTS, effacerExport, exporter } from './replay-head.mjs';
+import { CHEMINS_EXPORTES, RACINE_DES_EXPORTS, effacerExport, exporter, preparerExport } from './replay-head.mjs';
 
 /**
  * Copie dans `dossier` les fichiers VERSIONNABLES de l'arbre de travail (suivis + non suivis non
@@ -59,6 +59,7 @@ export function copierArbreDeTravail({ depot, dossier }) {
     copyFileSync(source, cible);
     fichiers++;
   }
+  preparerExport(dossier);
   return { fichiers };
 }
 

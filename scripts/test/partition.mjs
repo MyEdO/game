@@ -1,12 +1,13 @@
 // Logique PURE du lanceur de suite `scripts/test/run.mjs` : partition des fichiers de test par
 // environnement, répartition des workers, routage des filtres. Aucun spawn ; le seul accès disque
 // est la mesure système `mesureMemoireDisponibleMo`.
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import { relative, isAbsolute, join } from 'node:path'
 
-/** Docblock d'environnement — copie VERBATIM de la regex que Vitest 2.1.9 applique lui-même dans
- *  `groupFilesByEnv` (node_modules/vitest/dist/chunks/resolveConfig.rBxzbVsl.js:6559). Vitest la
+/** Docblock d'environnement — copie VERBATIM de la regex que Vitest 5.0.3 applique lui-même dans
+ *  `detectCodeBlock` (node_modules/vitest/dist/chunks/index.DpLw24bj.js:6034). Vitest la
  *  cherche dans le fichier ENTIER (pas de borne de tête) et hors de tout parseur de commentaire :
  *  une occurrence dans une chaîne compte. La partition doit décider comme lui, sinon un fichier
  *  jsdom atterrit dans le processus node — d'où la copie plutôt qu'une variante « propre ». */
@@ -163,7 +164,7 @@ export function capacite(cpus, memoireMo) {
 }
 
 /** Filtrage positionnel de Vitest — reproduction de `filterFiles`
- *  (node_modules/vitest/dist/chunks/cli-api.DqsSTaIi.js:10044) : chemins relatifs à la racine,
+ *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:12279-12284) : chemins relatifs à la racine,
  *  comparaison insensible à la casse, filtres passés en `/` sous Windows. */
 export function filtrerFichiers(fichiers, filtres, racine, plateforme = process.platform) {
   if (!filtres.length) return fichiers
@@ -235,9 +236,6 @@ export function argumentsEnfant(vitest, config, workers, argv) {
     config,
     '--maxWorkers',
     String(workers),
-    // `--maxWorkers` sans `--minWorkers` découvre 0 fichier (mesuré 2026-08-23).
-    '--minWorkers',
-    '1',
     // Un filtre qui ne touche qu'un côté laisse l'autre sans fichier : ce n'est pas un échec.
     '--passWithNoTests',
     ...argv,
@@ -266,13 +264,11 @@ export function cheminsGlobSuspects(chemins) {
  *  (`argumentsEnfant`). */
 export const maxWorkersMono = (cpus) => Math.max(1, Math.min(4, cpus - 1))
 
-/** Bornes à injecter devant l'argv de l'appelant : rien si l'appelant borne DÉJÀ lui-même — un
- *  `--minWorkers` en double fait sortir cac en 148 ms (« Expected a single value », mesuré
- *  2026-08-30). Les deux graphies acceptées par cac (`--minWorkers`, `--min-workers`) comptent. */
+/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. */
 export function bornesWorkers(argv, cpus) {
   const nom = (a) => a.split('=')[0].toLowerCase().replace(/-/g, '')
-  const borne = argv.some((a) => a.startsWith('-') && ['minworkers', 'maxworkers'].includes(nom(a)))
-  return borne ? [] : ['--minWorkers=1', `--maxWorkers=${maxWorkersMono(cpus)}`]
+  const borne = argv.some((a) => a.startsWith('-') && nom(a) === 'maxworkers')
+  return borne ? [] : [`--maxWorkers=${maxWorkersMono(cpus)}`]
 }
 
 /** Environnement des processus Vitest : sortie SANS séquence ANSI. `FORCE_COLOR` est SUPPRIMÉ, pas
@@ -332,7 +328,7 @@ export const SENTINELLES = [
 ]
 
 /** Tas utilisé d'un worker en fin de fichier, en Mo — fragment VERBATIM du reporter sous
- *  `logHeapUsage` (node_modules/vitest/dist/chunks/index.DsZFoqi9.js:3452). */
+ *  `logHeapUsage` (node_modules/vitest/dist/chunks/index.DpLw24bj.js:16353). */
 export const TAS_UTILISE = /(\d+) MB heap used/
 
 /** Part de `TAS_WORKER_MO` dont le bloc `[diag]` alerte. Paramètre maison. */
@@ -397,6 +393,49 @@ export const DRAPEAUX_RESTRICTIFS = [
   '--exclude',
 ]
 
-/** Une suite est COMPLÈTE quand aucun fichier ne la filtre et qu'aucun drapeau ne la restreint. */
-export const suiteComplete = (filtres, argv) =>
-  filtres.length === 0 && !argv.some((a) => DRAPEAUX_RESTRICTIFS.includes(a.split('=')[0]))
+/** Variable d'environnement qui demande UNE partie de la suite, `i/K` — posée par le job matrice
+ *  `suite` de `.github/workflows/ci.yml`. */
+export const VARIABLE_PARTIE = 'WFRP_TEST_PARTIE'
+
+/** Partie demandée : `null` quand la variable est ABSENTE, `{ i, k }` pour `i/K` avec 1 ≤ i ≤ K, sinon
+ *  `{ refus }` nommé. Une valeur vide est MAL FORMÉE, jamais absente. */
+export function partieDe(valeur) {
+  if (valeur === undefined) return null
+  const m = /^([1-9]\d*)\/([1-9]\d*)$/.exec(valeur)
+  if (m && Number(m[1]) <= Number(m[2])) return { i: Number(m[1]), k: Number(m[2]) }
+  return { refus: `${VARIABLE_PARTIE} mal formée : « ${valeur} » — attendu i/K, deux entiers avec 1 ≤ i ≤ K` }
+}
+
+/** Refus de jouer une partie sous ces arguments, ou `null`. Une partie est COMPLÈTE sur sa tranche :
+ *  aucun filtre de fichier ni drapeau restrictif (`DRAPEAUX_RESTRICTIFS`), et aucun drapeau global à un seul
+ *  processus (`DRAPEAUX_MONO`), dont la config ou la racine contrediraient celle de la tranche. */
+export function refusDePartie({ filtres, argv }) {
+  if (filtres.length)
+    return `${VARIABLE_PARTIE} combinée à un filtre de fichier (${filtres.join(', ')}) : une partie se joue sur sa tranche ENTIÈRE`
+  const nom = (a) => a.split('=')[0]
+  const restrictif = argv.find((a) => DRAPEAUX_RESTRICTIFS.includes(nom(a)))
+  if (restrictif) return `${VARIABLE_PARTIE} combinée au drapeau restrictif ${restrictif} : une partie se joue sur sa tranche ENTIÈRE`
+  const global = argv.find((a) => a.startsWith('-') && DRAPEAUX_MONO.includes(nom(a)))
+  if (global) return `${VARIABLE_PARTIE} combinée au drapeau ${global}, global à un seul processus Vitest : la tranche porte sa propre config`
+  return null
+}
+
+/** Partie (1..K) d'un fichier de test : empreinte SHA-1 de son chemin relatif POSIX, modulo K. Elle ne
+ *  dépend que de CE chemin : un fichier ajouté n'en déplace aucun autre, quand une tranche contiguë de
+ *  la liste triée déplacerait ses frontières. */
+export function partieDuFichier(chemin, k) {
+  return (createHash('sha1').update(chemin).digest().readUInt32BE(0) % k) + 1
+}
+
+const parUniteDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
+/** Empreinte d'une liste de chemins TRIÉE : 12 hex de son SHA-1. */
+const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).digest('hex').slice(0, 12)
+
+/** Tranche de la partie `{ i, k }` : les chemins relatifs POSIX dont `partieDuFichier` vaut `i`, triés
+ *  par unité de code, l'empreinte de cette tranche, et celle de la liste ENTIÈRE (`empreinteListe`),
+ *  commune aux K parties d'une même énumération. */
+export function trancher(chemins, { i, k }) {
+  const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort(parUniteDeCode)
+  return { fichiers, empreinte: empreinteDe(fichiers), empreinteListe: empreinteDe([...chemins].sort(parUniteDeCode)) }
+}

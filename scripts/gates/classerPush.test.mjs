@@ -13,18 +13,22 @@ import { join, dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import {
+  ACTION_PROLOGUE,
   DOCUMENTAIRE,
   CI_SEULEMENT_PRODUIT,
   COMMANDE_CLASSER,
   CONDITION_PRODUIT,
+  ID_PROLOGUE,
   classer,
   classerPush,
   gatesSautables,
 } from './classerPush.mjs'
-import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
-import { gatesDeCi, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
+import { envDeDepotForge, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
+import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
 import { ECRIT_LU } from './toutes.mjs'
+import { gitDeLArbreReel, lancerGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const CLASSEUR = join(RACINE, 'scripts', 'gates', 'classerPush.mjs')
@@ -85,11 +89,28 @@ test('chaque gate porte la condition du classement SSI elle est sautable', () =>
   assert.deepEqual(ecarts, [])
 })
 
+test('un push qui ne touche qu’un mod est PRODUIT ; un skill `SKILL.md` reste documentaire (#2278)', () => {
+  const mods = ['.claude/skills/harnais/']
+  const verdict = classer(['.claude/skills/harnais/hooks/x.ts'], { mods })
+  assert.equal(verdict.produit, true)
+  assert.match(verdict.motifs[0], /racine de mod/)
+  assert.equal(classer(['.claude/skills/m/hooks/x.ts', '.claude/skills/m/.claude-plugin/plugin.json']).produit, true, 'un manifeste du diff fait la racine')
+  assert.equal(classer(['.claude/skills/orchestrer/SKILL.md'], { mods }).produit, false)
+  assert.equal(classer(['.claude/skills/harnais2/SKILL.md'], { mods }).produit, false, '`harnais2/` n’est pas sous `harnais/`')
+})
+
+test('le mur et la garde d’un mod jouent sur un push qui ne touche qu’un mod, en CI comme dans `npm run gates` (#2278)', () => {
+  for (const nom of ['lint', 'mods:check']) {
+    assert.ok(gates.some((g) => g.nom === nom), `${nom} absente de ci.yml, donc du rejeu local \`npm run gates\``)
+    assert.ok(ECRIT_LU[nom].lit.includes('.claude/skills/'), `${nom} : son \`lit\` couvre les mods`)
+    assert.equal(sautables.has(nom), false, `${nom} n’est jamais sautée`)
+  }
+})
+
 test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_PRODUIT', () => {
   const ecarts = []
   for (const { job, commande, si } of stepsCi({ cwd: RACINE })) {
     if (!(commande in CI_SEULEMENT)) continue
-    if (commande === COMMANDE_CLASSER) continue
     const conditionnee = (si ?? '').includes(CONDITION_PRODUIT)
     const produitSeulement = commande in CI_SEULEMENT_PRODUIT
     if (produitSeulement !== conditionnee)
@@ -101,15 +122,20 @@ test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_P
   assert.deepEqual(ecarts, [])
 })
 
-test('les deux jobs à checks requis portent le step de classement, et le rejeu des migrations sa condition', () => {
-  const steps = stepsCi({ cwd: RACINE })
-  for (const job of ['build', 'migrations']) {
-    assert.ok(
-      steps.some((s) => s.job === job && s.commande === COMMANDE_CLASSER),
-      `le job « ${job} » est un check REQUIS du ruleset : il doit classer le push lui-même`,
+test('chaque job à check requis ouvre sur le PROLOGUE, et le rejeu des migrations porte sa condition', () => {
+  const requis = jobsRequis({ cwd: RACINE })
+  assert.ok(requis.length >= 2, `jobs requis lus : ${requis.map((b) => b.job).join(', ')}`)
+  for (const { job, texte } of requis) {
+    const [checkout, prologue] = stepsDu(texte)
+    assert.match(checkout?.bloc ?? '', /uses: actions\/checkout@/, `${job} : le premier step n’est pas le checkout`)
+    assert.equal(prologue?.id, ID_PROLOGUE, `${job} : le second step n’est pas le prologue (id « ${ID_PROLOGUE} »)`)
+    assert.match(
+      prologue.bloc,
+      new RegExp(`uses: \\./${dirname(ACTION_PROLOGUE).replace(/[./]/g, '\\$&')}\\s*$`, 'm'),
+      `${job} est un check REQUIS du ruleset : il doit classer le push lui-même, par ${ACTION_PROLOGUE}`,
     )
   }
-  const rejeu = steps.find((s) => s.job === 'migrations' && s.commande === 'npm run migrations:replay')
+  const rejeu = stepsCi({ cwd: RACINE }).find((s) => s.job === 'migrations' && s.commande === 'npm run migrations:replay')
   assert.ok(rejeu, 'le job migrations ne rejoue plus les migrations')
   assert.ok(
     (rejeu.si ?? '').includes(CONDITION_PRODUIT),
@@ -117,26 +143,26 @@ test('les deux jobs à checks requis portent le step de classement, et le rejeu 
   )
 })
 
-test('le step de classement précède `npm ci` dans chaque job qui le porte', () => {
-  const steps = stepsCi({ cwd: RACINE })
-  for (const job of ['build', 'migrations']) {
-    const duJob = steps.filter((s) => s.job === job)
-    const iClasser = duJob.findIndex((s) => s.commande === COMMANDE_CLASSER)
-    const iInstall = duJob.findIndex((s) => s.commande === 'npm ci')
-    assert.ok(iClasser >= 0 && iInstall >= 0, `${job} : classement ou installation absents`)
-    assert.ok(
-      iClasser < iInstall,
-      `${job} : le classement doit précéder \`npm ci\` — ses imports n’atteignent aucun paquet, et c’est lui qui décide ` +
-        'de ce que le reste du job paie',
-    )
-  }
+test('le prologue classe le push AVANT `npm ci`, et expose ce classement en `produit`', () => {
+  const texte = readFileSync(join(RACINE, ACTION_PROLOGUE), 'utf8')
+  const commandes = stepsCi({ fichier: join(RACINE, ACTION_PROLOGUE) }).map((s) => s.commande)
+  const iClasser = commandes.indexOf(COMMANDE_CLASSER)
+  const iInstall = commandes.indexOf('npm ci')
+  assert.ok(iClasser >= 0 && iInstall >= 0, `${ACTION_PROLOGUE} : classement ou installation absents (${commandes.join(' · ')})`)
+  assert.ok(
+    iClasser < iInstall,
+    'le classement doit précéder `npm ci` — ses imports n’atteignent aucun paquet, et c’est lui qui décide ' +
+      'de ce que le reste du job paie',
+  )
+  assert.match(texte, /^ {2}produit:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.classer\.outputs\.produit \}\}$/m,
+    `${ACTION_PROLOGUE} n’expose plus le classement : « ${CONDITION_PRODUIT} » lirait un output vide et TOUT jouerait`)
 })
 
 // (c1) — chaque gate SAUTABLE confrontée à son CORPUS : la classe « `lit` sous-déclaré ».
 //
 // Le trou vécu (2026-09-16) : `ECRIT_LU['test:agents'].lit` disait `['scripts/agents/']` alors que
-// `scripts/agents/compat.test.mjs:176,177,182,193` lit `.claude/settings.json`, `.codex/hooks.json`,
-// `CLAUDE.md` et `AGENTS.md` sur l'arbre réel — la gate était donc SAUTÉE sur le push qui touche
+// `scripts/agents/compat.test.mjs` (ses tests « CONTRAT — … ») lit `.claude/settings.json`,
+// `.codex/hooks.json`, `CLAUDE.md` et `AGENTS.md` sur l'arbre réel — la gate était donc SAUTÉE sur le push qui touche
 // exactement ces fichiers. La mesure `lit` est déclarative ; ce cas la confronte au CODE ATTEINT.
 //
 // ANGLES MORTS, dits : le grain est la LIGNE d'un module local, et le corpus vient de la fermeture
@@ -182,7 +208,7 @@ test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’ell
 
 /** Les sources de `src/` et `server/src/` SUIVIES par git, hors bancs de test. */
 function sourcesDeProduction() {
-  return execFileSync('git', ['ls-files', '--', 'src', 'server/src'], { cwd: RACINE, encoding: 'utf8' })
+  return gitDeLArbreReel(RACINE)('ls-files', '--', 'src', 'server/src')
     .split('\n')
     .map((l) => l.trim())
     .filter((f) => /\.(ts|tsx|mts|js|jsx)$/.test(f) && !f.includes('.test.'))
@@ -233,7 +259,7 @@ test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON'
 
 // (d) — le CLI, sur des dépôts JETABLES de `os.tmpdir()`.
 
-const gitDe = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+const gitDe = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
 /** Un dépôt jetable avec un `main` d'un commit, une branche de travail, et `origin` sur lui-même. */
 function depotJetable() {
@@ -277,14 +303,14 @@ test('CLI — une branche dont le seul commit touche une fiche sort `produit=fal
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
-    const r = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const r = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=false')
 
     ecrire(racine, 'src/a.ts', 'export const a = 1\n')
     git(['add', 'src/a.ts'])
     git(['commit', '-q', '-m', 'code'])
-    const apres = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const apres = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(apres.code, 0)
     assert.equal(apres.stdout.trim(), 'produit=true')
   } finally {
@@ -292,22 +318,44 @@ test('CLI — une branche dont le seul commit touche une fiche sort `produit=fal
   }
 })
 
-test('CLI — sur `main`, un BEFORE fait de zéros se replie sur `SHA^`', () => {
+test('CLI — une branche qui ne touche qu’un module de mod sort `produit=true` ; un `SKILL.md` seul, `produit=false`', () => {
   const { racine, git } = depotJetable()
   try {
-    git(['checkout', '-q', 'main'])
+    ecrire(racine, '.claude/skills/m/.claude-plugin/plugin.json', '{}\n')
+    ecrire(racine, '.claude/skills/s/SKILL.md', 'skill\n')
+    git(['add', '.claude'])
+    git(['commit', '-q', '-m', 'mod et skill'])
+    git(['update-ref', 'refs/remotes/origin/main', 'HEAD'])
+    ecrire(racine, '.claude/skills/s/SKILL.md', 'skill retouché\n')
+    git(['commit', '-q', '-am', 'skill'])
+    assert.equal(jouerCli(racine, { SHA: 'HEAD' }).stdout.trim(), 'produit=false')
+    ecrire(racine, '.claude/skills/m/hooks/x.ts', 'export {}\n')
+    git(['add', '.claude'])
+    git(['commit', '-q', '-m', 'module de mod'])
+    const r = jouerCli(racine, { SHA: 'HEAD' })
+    assert.equal(r.code, 0)
+    assert.equal(r.stdout.trim(), 'produit=true')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('CLI — sur un commit de file, `BASE` (`merge_group.base_sha`) borne le diff, jamais le merge-base', () => {
+  const { racine, git } = depotJetable()
+  try {
+    ecrire(racine, 'src/a.ts', 'export const a = 1\n')
+    git(['add', 'src/a.ts'])
+    git(['commit', '-q', '-m', 'code'])
+    const base = git(['rev-parse', 'HEAD'])
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
-    const r = jouerCli(racine, {
-      REF: 'refs/heads/main',
-      BEFORE: '0000000000000000000000000000000000000000',
-      SHA: 'HEAD',
-    })
+    // Sans `BASE`, le merge-base avec origin/main voit `src/a.ts` : produit.
+    assert.equal(jouerCli(racine, { SHA: 'HEAD' }).stdout.trim(), 'produit=true')
+    const r = jouerCli(racine, { BASE: base, SHA: 'HEAD' })
     assert.equal(r.code, 0)
-    // Le repli sur `SHA^` ne voit QUE le dernier commit : la fiche, donc documentaire. Sans lui, le
-    // diff n'aurait pas de base et le classement serait conservateur.
     assert.equal(r.stdout.trim(), 'produit=false')
+    assert.equal(jouerCli(racine, { BASE: '', SHA: 'HEAD' }).stdout.trim(), 'produit=true', 'un `BASE` vide (hors merge_group) replie sur le merge-base')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -321,19 +369,17 @@ test('CLI — un clone `--single-branch` VA CHERCHER `origin/main`, puis classe'
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
     // `--single-branch` sur la branche de TRAVAIL : le clone n'a aucune `refs/remotes/origin/main`.
-    execFileSync('git', ['clone', '-q', '--single-branch', '--branch', 'chantier/x', racine, clone], {
-      env: envDeDepotForge(), encoding: 'utf8',
-    })
+    lancerGit(['clone', '-q', '--single-branch', '--branch', 'chantier/x', racine, clone])
     assert.throws(
-      () => execFileSync('git', ['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge() }),
+      () => lancerGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone }),
       'le clone doit bien être SANS origin/main — sinon le cas ne mesure rien',
     )
-    const r = jouerCli(clone, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const r = jouerCli(clone, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=false')
     assert.equal(
-      execFileSync('git', ['rev-parse', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge(), encoding: 'utf8' }).trim(),
-      execFileSync('git', ['rev-parse', 'refs/heads/main'], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim(),
+      lancerGit(['rev-parse', 'refs/remotes/origin/main'], { cwd: clone }).trim(),
+      lancerGit(['rev-parse', 'refs/heads/main'], { cwd: racine }).trim(),
       'le fetch doit avoir RAPPORTÉ origin/main',
     )
   } finally {
@@ -352,7 +398,7 @@ test('CLI — sans `origin`, le classement est CONSERVATEUR', () => {
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
-    const r = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const r = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=true')
   } finally {
@@ -365,7 +411,7 @@ test('CLI — sans `origin`, le classement est CONSERVATEUR', () => {
 /** Imports statiques, réexports, imports nus et `import()` dynamiques d'un source. */
 const IMPORTS = /(?:^|\n)\s*(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|(?:^|\n)\s*import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
 
-/** La fermeture transitive des imports de `depart` : `{ fichiers, paquets }` (chemins relatifs au dépôt). */
+/** La fermeture transitive des imports de `depart` : `{ fichiers, paquets }` (chemins relatifs au dépôt, graphie de l'hôte). */
 function fermetureDesImports(depart) {
   const fichiers = new Set()
   const paquets = []
@@ -388,7 +434,7 @@ function fermetureDesImports(depart) {
 
 test('le classement tourne AVANT `npm ci` : la fermeture de ses imports n’atteint aucun paquet', () => {
   const { fichiers, paquets } = fermetureDesImports(CLASSEUR)
-  assert.ok(fichiers.includes('scripts/guards/lib/gitPorte.mjs'), 'la fermeture lit bien l’hôte git : sinon ce test ne mesure rien')
+  assert.ok(fichiers.includes(join('scripts', 'guards', 'lib', 'gitPorte.mjs')), 'la fermeture lit bien l’hôte git : sinon ce test ne mesure rien')
   assert.deepEqual(paquets, [], `imports hors node:* et hors dépôt dans la fermeture de ${fichiers.join(', ')}`)
 })
 
@@ -402,7 +448,7 @@ test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classeme
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche orpheline'])
-    const v = classerPush({ ref: 'refs/heads/orpheline', sha: 'HEAD', cwd: racine })
+    const v = classerPush({ sha: 'HEAD', cwd: racine })
     assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec : conservateur']])
   } finally {
     rmSync(racine, { recursive: true, force: true })
@@ -411,27 +457,9 @@ test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classeme
 
 test('ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la panne est NOMMÉE', () => {
   const { racine } = depotJetable()
-  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
-  const chemin = process.env.PATH
   try {
-    const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-    writeFileSync(join(cale, 'git'), `#!/bin/sh\ncase " $* " in *" merge-base "*) echo 'fatal: panne simulée' >&2; exit 128;; esac\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-    process.env.PATH = `${cale}:${chemin}`
-    const v = classerPush({ ref: 'refs/heads/chantier/x', sha: 'HEAD', cwd: racine })
+    const v = sousGitFeint([{ si: ['merge-base'], status: 128, stderr: 'fatal: panne simulée\n' }], () => classerPush({ sha: 'HEAD', cwd: racine }))
     assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec — git indisponible : fatal: panne simulée : conservateur']])
-  } finally {
-    process.env.PATH = chemin
-    rmSync(racine, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
-  }
-})
-
-test('ÉCHEC — sur `main`, un commit RACINE sans `BEFORE` n’a pas de `SHA^` : classement CONSERVATEUR', () => {
-  const { racine, git } = depotJetable()
-  try {
-    const sha = git(['rev-parse', 'main'])
-    const v = classerPush({ ref: 'refs/heads/main', before: '0'.repeat(40), sha, cwd: racine })
-    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, [`main sans parent lisible pour ${sha} : conservateur`]])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -441,8 +469,8 @@ test('ÉCHEC — une borne du diff INCONNUE LÈVE `BorneAbsente`, et le CLI sort
   const { racine } = depotJetable()
   try {
     const faux = 'f'.repeat(40)
-    assert.throws(() => classerPush({ ref: 'refs/heads/main', before: faux, sha: 'HEAD', cwd: racine }), (e) => e.name === 'BorneAbsente' && e.bornes.includes(faux))
-    const r = jouerCli(racine, { REF: 'refs/heads/main', BEFORE: faux, SHA: 'HEAD' })
+    assert.throws(() => classerPush({ base: faux, sha: 'HEAD', cwd: racine }), (e) => e.name === 'BorneAbsente' && e.bornes.includes(faux))
+    const r = jouerCli(racine, { BASE: faux, SHA: 'HEAD' })
     assert.deepEqual([r.code, r.stdout], [1, ''])
   } finally {
     rmSync(racine, { recursive: true, force: true })

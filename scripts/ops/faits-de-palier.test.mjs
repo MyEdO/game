@@ -3,7 +3,6 @@
 // n'est pas testée ici — elle compose des hôtes qui portent déjà leurs propres tests.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { soldesSuivis } from './fermetures-non-citees.mjs';
@@ -13,9 +12,11 @@ import {
   commitDuJournal,
   fermeturesDesCommits,
   marquerSubstance,
+  coursesDeLaFenetre,
   coursesParCommit,
   sortieParDefaut,
 } from './faits-de-palier.mjs';
+import { lancerGit } from '../test/gitDeBanc.mjs'
 
 test('analyserArguments : la fenêtre se lit, elle ne se devine pas', () => {
   const lu = analyserArguments(['--base', 'aaaaaaaaa', '--tete', 'bbbbbbbbb', '--revue-precedente', 'x.md', '--hors-ligne']);
@@ -81,8 +82,27 @@ test('coursesParCommit : un commit sans course est rendu VIDE, jamais omis', () 
   assert.deepEqual(parSha[1].courses, []);
 });
 
-test('coursesParCommit : une liste absente ne fait pas tomber la mesure', () => {
-  assert.deepEqual(coursesParCommit(null, ['aaa']), [{ sha: 'aaa', courses: [] }]);
+test('coursesDeLaFenetre : une liste PÉRIMÉE (aucune course de la tête, la plus récente avant sa date) est INDISPONIBLE, jamais `courses: []`', () => {
+  const figee = [{ headSha: 'vvv', createdAt: '2026-09-27T19:48:17Z', conclusion: 'success', status: 'completed', workflowName: 'CI' }];
+  const vu = coursesDeLaFenetre({ disponible: true, valeur: figee }, { shas: ['aaa', 'ttt'], tete: 'ttt', dateTete: '2026-09-29T10:00:00+02:00' });
+  assert.equal(vu.disponible, false);
+  assert.match(vu.raison, /PÉRIMÉE/);
+  assert.match(vu.raison, /2026-09-27T19:48:17/);
+});
+
+test('coursesDeLaFenetre : une liste qui porte la tête, ou une course postérieure à sa date, est lue par commit', () => {
+  const tete = { headSha: 'ttt', createdAt: '2026-09-29T07:59:00Z', conclusion: 'success', status: 'completed', workflowName: 'CI' };
+  const avecTete = coursesDeLaFenetre({ disponible: true, valeur: [tete] }, { shas: ['aaa', 'ttt'], tete: 'ttt', dateTete: '2026-09-29T10:00:00+02:00' });
+  assert.equal(avecTete.disponible, true);
+  assert.deepEqual(avecTete.valeur.map((r) => r.courses.length), [0, 1]);
+  const posterieure = { headSha: 'zzz', createdAt: '2026-09-29T08:30:00Z', conclusion: 'success', status: 'completed', workflowName: 'CI' };
+  const vu = coursesDeLaFenetre({ disponible: true, valeur: [posterieure] }, { shas: ['ttt'], tete: 'ttt', dateTete: '2026-09-29T10:00:00+02:00' });
+  assert.deepEqual(vu, { disponible: true, valeur: [{ sha: 'ttt', courses: [] }] });
+});
+
+test('coursesDeLaFenetre : une lecture indisponible, ou vide, le reste', () => {
+  assert.deepEqual(coursesDeLaFenetre({ disponible: false, raison: 'gh a rendu 1' }, { shas: ['ttt'], tete: 'ttt', dateTete: '2026-09-29T10:00:00Z' }).disponible, false);
+  assert.equal(coursesDeLaFenetre({ disponible: true, valeur: [] }, { shas: ['ttt'], tete: 'ttt', dateTete: '2026-09-29T10:00:00Z' }).disponible, false);
 });
 
 test('soldesSuivis lit l’ARBRE qu’on lui donne (un objet de faits ne mélange pas deux arbres)', () => {
@@ -90,7 +110,7 @@ test('soldesSuivis lit l’ARBRE qu’on lui donne (un objet de faits ne mélang
   mkdirSync(join(depot, '.claude', 'soldes'), { recursive: true });
   writeFileSync(join(depot, '.claude', 'soldes', '4242.md'), 'solde de banc\n');
   writeFileSync(join(depot, '.claude', 'soldes', '4243.md'), 'jamais ajouté à l’index\n');
-  execFileSync('git', ['add', '.claude/soldes/4242.md'], { cwd: depot, stdio: ['ignore', 'ignore', 'ignore'] });
+  lancerGit(['add', '.claude/soldes/4242.md'], { cwd: depot });
   const suivis = soldesSuivis(depot);
   assert.equal(suivis.has('4242'), true, 'le solde SUIVI de cet arbre est vu');
   assert.equal(suivis.has('4243'), false, 'un fichier seulement présent sur le disque n’est pas un solde suivi');

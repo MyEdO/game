@@ -1,7 +1,7 @@
 # Authoring de campagne — la carte des coutures d'auteur
 
 Référence VIVANTE (maintenue au fil du code). Une **campagne** = un projet multi-scènes relié par une
-carte du monde (`{ schema: 3, scenes, worldMap, narratif }`), COMMITÉ, 100 % rééditable dans l'éditeur. Pour le
+carte du monde (`{ schema: SCHEMA_PROJET, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
 pas-à-pas « par où commencer », voir le skill `creer-une-campagne`. Ce document cartographie CHAQUE
 système qu'un auteur mobilise. Règle d'or transverse : **on n'authore que des IDS stables** (le libellé
 est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **personne ne lit le journal**
@@ -9,24 +9,31 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 
 ## 1. Pipeline
 
-- **Lib partagée** `scripts/campagne/lib.mjs` — helpers purs de TOUTE campagne (`scene`, `hero`, `NPC`,
-  `P`, `poste`, `flowOf`, `flagWhen`, `testNode`, `fightTrigger`, `resetIds`, `fouille`, `zoneVictory`).
-  Importée, jamais copiée ni dupliquée. L'étendre sur place si un helper manque à toutes les campagnes.
-- **Générateur** `scripts/<campagne>/generate.mjs` (modèles : `scripts/arene/generate.mjs`,
-  `scripts/loup-et-saumure/generate.mjs`, `scripts/barge-du-sel/generate.mjs` — ce dernier le plus récent,
-  CharKey canonique) — assemble les scènes + la `worldMap`, écrit le JSON. OUTIL d'auteur (`tsx`), PAS un
-  build : la sortie commitée est la source. **Contrat imposé** (garde `src/scenes/generateurs-byte-stables.test.ts`,
-  #1522) : le module exporte la construction PURE `build()` et le chemin `OUT` de son artefact, le CLI n'étant
-  qu'un shell d'écriture gardé par `import.meta.url` — la SOURCE possède 100 % de la donnée du JSON, et
-  relancer un générateur ne peut plus rien perdre en silence.
-- **Compilation** `scene()` construit un `MapSpec` déclaratif puis délègue à `buildScene()`
-  (`src/state/mapSpec.ts`) — MÊME compilateur headless-editor que l'éditeur. L'ASCII (`rows`/`legend`/
-  `base`) est parsé, les bâtiments composés par `addBuilding`, les rencontres terse expansées par
-  `buildEncounter()` (`src/state/encounterAuthoring.ts`). Jamais poser une tuile à la main. Une option
-  que `scene()` ne lit pas LÈVE en se nommant.
-- **Chargement** `parseProject()` (`src/state/worldMap.ts`) relit le JSON et résout les réfs sparse
-  (ports, cf. §5). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
-  `tenueId`/`weaponId`) FAIL-FAST à l'authoring — un libellé qui s'y glisse lève.
+- **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
+  `user-doctrine-campagne-jamais-generee-par-script`), édité à l'éditeur ou comme document JSON. « Ouvrir »
+  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> ». L'aller-retour vers le
+  paquet est « Fichier → Exporter forme dépôt (dev) » (offert en DEV pour une campagne livrée,
+  `origineLivree`) : le fichier `BuiltinCampaign.fichier`, au format du dépôt (`projetVersDepot`, §10ter),
+  libellé d'origine tant que le projet n'est pas renommé, ordre des scènes et scène d'entrée conservés
+  (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
+  « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
+  copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
+  déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
+  `src/scenes/diligence/`.
+- **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
+  le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
+  (`src/state/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
+  confrontent le contenu. Un bump de forme (`SCHEMA_PROJET`) migre les paquets par un script daté de
+  `scripts/migrations/` (banc `src/scenes/migrations-format-projet.test.ts`).
+- **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
+  (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
+  à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
+  `buildScene()` (`src/state/mapSpec.ts`), comme les scénarios de test, et une option que `scene()` ne lit pas
+  LÈVE en se nommant. Régime réservé au contenu CALCULÉ
+  non authorable à la main, jamais à un projet de campagne : `barge-du-sel` et `loup-et-saumure` sont la
+  dette #1601 (« Campagnes possédées par un GÉNÉRATEUR … statuer la migration vers MANUSCRIT »), `arene`
+  vit sous le même régime (#1601). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
+  `tenueId`/`weaponId`) FAIL-FAST pour ses seuls consommateurs.
 
 ## 2. Navire de campagne (`state.vessel`)
 
@@ -266,7 +273,7 @@ donne `executeAt <= now` : ce n'est PAS une erreur — l'effet/l'objectif tire a
 
 ## 10ter. Bloc narratif (`narratif`, paquet auto-suffisant #765)
 
-Un paquet de campagne schema 3 porte un bloc `narratif` (frère de `scenes`/`worldMap`, au NIVEAU
+Un paquet de campagne porte un bloc `narratif` (frère de `scenes`/`worldMap`, au NIVEAU
 projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarratif.ts`) :
 
 ```
@@ -276,7 +283,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
   rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
-  indices) ; un stade (`IndiceStade`) porte sa `prose` (verbatim source), un `documentId` (id d'un
+  indices) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
   (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
@@ -311,23 +318,23 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
   sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; la version de FORME du
-  document est `schema`. Identité pour la bibliothèque (#766), validée fail-fast SI présente ;
-  optionnelle au format (la migration 2→3 n'en injecte pas).
-- **Migration.** Un projet schema 2 legacy (localStorage éditeur d'avant #765) monte au format courant
-  au chargement (`PROJECT_MIGRATIONS[2]` injecte un narratif vide ; `[4]` aplatit la poche `meta` et
-  renomme sa `version` en `versionContenu` ; `[5]` donne au libellé de scène et de carte sa graphie
-  `label` et fait s'annoncer les statblocs embarqués ; `[17]` soulève chaque Effect `document` en
-  ligne `{ title, desc }` en entrée `narratif.documents` — id `document-<slug du titre>`, suffixé
-  `-2`, `-3`… s'il est pris (`src/data/documentsAuNarratif.ts`) — et l'Effect devient
-  `{ documentId }`). Une scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un
-  document est REFUSÉE nommément (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser. Les
-  **quatre projets committés sont au schéma courant** (`SCHEMA_PROJET`) : « L'Arène »
-  (`src/scenes/arene/arene-projet.json`), « La Barge du Sel »
-  (`src/scenes/barge-du-sel/barge-du-sel-projet.json`), « La Diligence »
-  (`src/scenes/diligence/diligence-projet.json`, sans `worldMap`) et « Le Loup et la Saumure »
-  (`src/scenes/loup-et-saumure/loup-et-saumure-projet.json`) — produits par `projectDoc`
-  (`scripts/campagne/lib.mjs`, fabrique UNIQUE du document de projet). Chacun a son def de schéma
-  (`src/data/schemas/defs-scenes/`) et parse `projetSchema` en CI.
+  document est `schema`. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
+  `id`, `label` ou `versionContenu` est refusé en nommant le champ (#1552,
+  `src/data/schemas/defs-scenes/projet-schema.test.ts` cas (d bis)).
+- **Migration.** La forme courante du document est `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) ;
+  un document d'une forme antérieure monte au format courant au chargement, un saut de forme par entrée
+  de `PROJECT_MIGRATIONS` (`src/data/migrationsDeProjet.ts`). La fabrique UNIQUE du document est
+  `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
+  `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
+  `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
+  `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
+  (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
+  tous passent `parseProject` en CI (`src/scenes/bundled-projects.test.ts`).
+  La montée 17→18 (`PROJECT_MIGRATIONS[17]`, #679) soulève chaque Effect `document` en ligne
+  `{ title, desc }` en entrée `narratif.documents` — id `document-<slug du titre>`, suffixé `-2`,
+  `-3`… s'il est pris (`src/data/documentsAuNarratif.ts`) — et l'Effect devient `{ documentId }`. Une
+  scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un document est REFUSÉE nommément
+  (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser.
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
   `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets). L'onglet
   **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les
@@ -366,9 +373,20 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
   passées à `spawnEnemy` (canal `presetCreature`) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
-  dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset absent → repli silencieux
-  sur `ref`/`statblock`. `parseProject` valide fail-fast (le visiteur des références narratives, ci-dessus)
-  que tout `presetId` de scène résout un preset déclaré.
+  dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
+  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
+  narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
+  partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
+  ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
+  `source`, jamais le texte recopié.
+- **Prose adressée : forme dépôt, forme servie.** Sur le disque, un nœud adressé ne porte que `descRef` ;
+  le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le
+  module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
+  refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
+  livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
+  `?raw`. L'export portable garde `desc` ET `descRef` ; « Exporter forme dépôt » (§1) passe par
+  `projetVersDepot` (`src/state/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
+  canonique.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
 
@@ -379,8 +397,8 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   `sousTitre?`, `chapitre?`, `pitch` (Markdown), `source?`, `ambiance?` (`veillee` | `parchemin`,
   défaut `veillee`). `loadProject` la pose dans `pendingOuverture` **après** `startScene` (qui remet
   l'état à l'init) ; `CampaignView` monte alors `CampaignOpeningScreen` par-dessus la vue. Le `pitch`
-  est un COPIÉ/COLLÉ verbatim de la source (règle stricte 5), rendu par `<Prose>` : il se vérifie au
-  fichier `Source/` — garde transverse sur tout paquet livré qui déclare un `source`
+  est verbatim quand `source` est posé (règle stricte 5) ; sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`) ;
+  rendu par `<Prose>`. Un pitch sourcé se vérifie au fichier `Source/` — garde transverse sur tout paquet livré qui déclare un `source`
   (`src/scenes/bundled-projects.test.ts`, livre résolu par `books.json`), jamais à l'œil.
 - **`cloture`** (`ClotureBlock`) : `when` (`Condition`), `titre`, `sousTitre?`. Le `when` est ÉVALUÉ
   au contexte HORS COMBAT (`condCtx`, `src/state/bourseFlow.ts`) — même sous-ensemble borné qu'un
@@ -404,7 +422,12 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
 - **Aucun texte technique dans un texte joueur** — un `node.desc`/`journal` est rendu VERBATIM par
   `Prose` (`src/ui/Prose.tsx`) : ni identifiant de code, ni tag d'auteur (`[INEXPRIMABLE]`), ni citation
   RAW brute (`MDG 14 l.45`). Les constats d'authoring vont dans un journal `docs/plans/`, jamais en jeu.
-- **Prose = verbatim source, Markdown** (CLAUDE.md règle 5) — jamais de reformulation ni de HTML.
+- **Prose = verbatim source, Markdown** (CLAUDE.md règle 5) — jamais de reformulation ni de HTML. Exception
+  du paquet de campagne : une réplique absente du livre s'authore maison, et une description destinée au MJ
+  se reformule en texte lu à l'écran même quand le livre la porte — l'une et l'autre SANS `source`, et
+  toutes deux passent devant un juge esprit (skill `adapter-une-campagne`, étape 8) ; le verbatim n'y
+  tient plus que pour les documents et les règles (fiche
+  `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
 
 ## 12. Tous les Effects de scène (carte générée)
 

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import ts from 'typescript';
 import { useGame } from './store';
 import { CLOTURE_VERBES, jouerLesClotures } from './combatEffects';
@@ -7,10 +8,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
-import { rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
+import { RACINE_DU_SEAM, rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
+import * as canon from '../../scripts/guards/lib/canonUnique.mjs';
+import * as programmes from '../../scripts/guards/lib/tsProgram.mjs';
+import { scanRegistryIdBranch } from '../../scripts/guards/lib/registryIdBranch.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -35,8 +39,10 @@ import { detenteur } from '../detenteur.testkit';
  *    vérifié plus bas (cf. `scripts/guards/lib/rollSeamWhitelist.mjs`).
  */
 
+/** `docs/registre-jets.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const DOC_REGISTRE = await rendreCible('docs/registre-jets.md');
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
-const SCAN_DIRS = ['src'];
+const SCAN_DIRS = [RACINE_DU_SEAM];
 
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || rollSeamExcluded(rel);
 
@@ -46,6 +52,62 @@ const EXCLUDED = (rel: string) => estFichierVitest(rel) || rollSeamExcluded(rel)
  *  ce fichier — et les autres fichiers de test du même worker — partagent une seule lecture, payée
  *  au 1ᵉʳ appel (jamais à la collecte Vitest). */
 const corpus = () => readCorpus(SCAN_DIRS, { tests: true });
+
+describe('contexte d’import des parcours manuels', () => {
+  const table = { 'src/engine/dice.ts': ['d100'] };
+  const texte = [
+    "import { d100, d100 as alias } from '../engine/dice';",
+    "import * as dice from '../engine/dice';",
+    'd100();', 'alias();', 'dice.d100();',
+    'function masque(d100, dice) { d100(); dice.d100(); }',
+  ].join('\n');
+  const rng = [
+    "import { battleRng } from './battleRng';",
+    "import { resolveMelee, resolveMelee as alias } from '../engine/combat';",
+    "import * as combat from '../engine/combat';",
+    'battleRng();', 'resolveMelee();', 'alias();', 'combat.resolveMelee();',
+    'function masque(resolveMelee, combat) { resolveMelee(); combat.resolveMelee(); }',
+  ].join('\n');
+  it.each([
+    ['dés hors porte', () => scanDesHorsPorte('src/state/probe.ts', texte, table)],
+    ['jets délégués', () => scanEngineDelegatedRoll('src/state/probe.ts', texte, table)],
+    ['rng vivant', () => scanBattleRngEngineLeak('src/state/probe.ts', rng, { resolveurs: { 'src/engine/combat.ts': ['resolveMelee'] } })],
+  ] as const)('%s partage un contexte et un programme entre occurrences, renouvelés au scan suivant', (_nom, scanner) => {
+    const contextes = vi.spyOn(canon, 'contexteImports');
+    const programmesCrees = vi.spyOn(programmes, 'parsedProgram');
+    try {
+      expect(scanner()).toHaveLength(3);
+      expect(contextes).toHaveBeenCalledTimes(1);
+      expect(programmesCrees).toHaveBeenCalledTimes(1);
+      const premier = contextes.mock.results[0].value as canon.ContexteImports;
+      expect(scanner()).toHaveLength(3);
+      expect(contextes).toHaveBeenCalledTimes(2);
+      expect(programmesCrees).toHaveBeenCalledTimes(2);
+      const second = contextes.mock.results[1].value as canon.ContexteImports;
+      expect(second).not.toBe(premier);
+      expect(second.source).not.toBe(premier.source);
+      expect(second.source.fileName).toBe(premier.source.fileName);
+    } finally {
+      contextes.mockRestore();
+      programmesCrees.mockRestore();
+    }
+  });
+
+  it('registre : le vocabulaire importé garde son origine sans construire de checker', () => {
+    const contextes = vi.spyOn(canon, 'contexteImports');
+    const programmesCrees = vi.spyOn(programmes, 'parsedProgram');
+    const corps = "const ids: Os[] = ['head', 'torso']; function f(entry) { return ids.includes(entry.id); }";
+    try {
+      expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './gameIso/rig/bones';" + corps)).toEqual([]);
+      expect(scanRegistryIdBranch('src/probe.ts', "import type { BoneId as Os } from './engine/types';" + corps)).toHaveLength(1);
+      expect(contextes).toHaveBeenCalledTimes(2);
+      expect(programmesCrees).not.toHaveBeenCalled();
+    } finally {
+      contextes.mockRestore();
+      programmesCrees.mockRestore();
+    }
+  });
+});
 
 /** Sites de roulage brut du corpus entier, mode `includeExcluded` — SUR-ENSEMBLE dont la forme NUE du
  *  garde est le sous-ensemble sans `excludedBy` (rollSeamExclusivity.mjs, `opts.includeExcluded`) :
@@ -89,6 +151,13 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
   it('fail-closed : le scanner détecte un TestOutcome.seal( hors seam SYNTHÉTIQUE', () => {
     const regressed = "return TestOutcome.seal({ roll: 1, target: 40, success: true, sl: 1, isDouble: false });";
     expect(scanRollSeamExclusivity('src/state/x.ts', regressed).length).toBe(1);
+  });
+
+  it('périmètre : le pre-commit juge ce que ce test balaie — un flux de `src/` y entre, un outil de `scripts/` non', () => {
+    expect(rollSeamExcluded('src/state/x.ts')).toBe(false);
+    expect(battleRngEngineLeakExcluded('src/state/x.ts')).toBe(false);
+    expect(rollSeamExcluded('scripts/ops/table-des.mts')).toBe(true);
+    expect(battleRngEngineLeakExcluded('scripts/ops/table-des.mts')).toBe(true);
   });
 
   it('le noyau du seam (rollSeam.ts, hors scan) porte bien TestOutcome.seal( — sinon le foyer a bougé', () => {
@@ -300,10 +369,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
  * second garde ferme le trou : un flux `state/**` qui appelle DIRECTEMENT un résolveur moteur `resolveXxx`
  * (convention du dépôt : « roule ET décide » une confrontation complète — Test opposé/étendu, gagnant/DR)
  * avec un rng VIVANT (`battleRng()`) au call-site contourne la policy M/V/I aussi sûrement qu'un
- * `rollTest(` inline. C'était EXACTEMENT le trou de `tavernFlow.playTavernGame` →
- * `resolveTavernGame(..., battleRng())` avant #370 (dorénavant décomposé en `resolveTavernRound`,
- * PUR — aucun rng — et `rollTavernTest`, primitive `roll*` à un seul jet, appelée en POST-COMMIT par
- * l'applier, patron `portFlow.ts`).
+ * `rollTest(` inline.
  */
 describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** ne peut plus appeler un resolveXxx(…) moteur avec battleRng() en direct (#370)', () => {
   it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', () => {
@@ -518,7 +584,7 @@ describe('REGISTRE des chemins de jet (#1070) — le tri de population est SOLD�
  * dans les DEUX états : la mesure décide, jamais une main.
  */
 describe('REGISTRE des chemins de jet (#1657) — la section « NON routés » suit la MESURE', () => {
-  const doc = () => readFileSync(join(ROOT, 'docs/registre-jets.md'), 'utf8');
+  const doc = () => DOC_REGISTRE;
   /** Cardinal MESURÉ des nœuds hors porte, lu sur le doc généré (jamais un littéral recopié). */
   const horsPorte = (): number => {
     const m = /\*\*(\d+) nœuds? authoré[s]? hors porte\*\*|\*\*(\d+) NON ROUTÉS\*\*/.exec(doc());

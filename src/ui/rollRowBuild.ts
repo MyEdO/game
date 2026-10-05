@@ -44,6 +44,7 @@ export type BuiltRollRow = RollRowData & { readonly [ROLL_ROW_BRAND]: true };
 
 /** La rangée porte-t-elle la marque ? (le post-traitement par spread la conserve). */
 export function isBuiltRollRow(row: RollRowData): boolean {
+  // eslint-disable-next-line murs/marques -- #1262 : LECTURE de la marque par le prédicat `isBuiltRollRow`, rien n'est forgé.
   return (row as BuiltRollRow)[ROLL_ROW_BRAND] === true;
 }
 

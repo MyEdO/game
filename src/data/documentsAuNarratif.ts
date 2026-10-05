@@ -13,7 +13,7 @@ import { slugId } from './slug.ts';
  * au script de dépôt). Deux titres identiques reçoivent donc deux ids.
  *
  * Primitive PARTAGÉE, chargée par Node nu (son seul import est `slug.ts`, sans import) :
- * `PROJECT_MIGRATIONS[17]` (`src/state/worldMap.ts`) et le script de dépôt
+ * `PROJECT_MIGRATIONS[17]` (`src/data/migrationsDeProjet.ts`) et le script de dépôt
  * `scripts/migrations/2026-09-29-679-documents-au-narratif.mjs`.
  *
  * Un document SANS bloc narratif lisible (une scène seule, `migreSceneDeProjet`) qui porterait un

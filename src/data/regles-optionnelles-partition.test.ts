@@ -55,6 +55,8 @@ const COEXISTENCE: Record<string, number> = {
   'activities.json': 9,
   'creatures.json': 1,
   'etats.json': 1,
+  // 0 → 2 (#680, 2026-09-29) : les 2 Groupes d'EDO 02 cités à leur folio ET portant la raison de leur appartenance hors canon
+  'groups.json': 2,
   // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
   // marchand) ET son `maison` (MSRC 07 l.94 gate le Critique dessus sans imprimer de Trait naval).
   'naval-traits.json': 2,

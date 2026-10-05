@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -64,6 +64,28 @@ test('un fichier scanné DANS un dépôt est jugé ; le même hors dépôt (scra
   } finally {
     rmSync(racine, { recursive: true, force: true })
     rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+// Garde « logique par libellé » : la composition de la lib (`scanLabelLogicFichier`) sur son corpus
+// (`estDansLeCorpus`, tout `src/`), sites `nu` seulement — un dossier hors moteur/store est jugé, un
+// fichier de test ne l'est pas.
+test('logique par libellé : un site nu de `src/scenes/` est signalé avec sa règle ; le même en `.test.ts` se tait', () => {
+  const faute = "export const a = (x: { label: string }) => x.label === 'Épée';\n"
+  const { racine } = instanceDeDepot()
+  try {
+    const poser = (rel) => {
+      const cible = join(racine, ...rel.split('/'))
+      mkdirSync(dirname(cible), { recursive: true })
+      writeFileSync(cible, faute)
+      return contexteDe({ file_path: cible, content: faute })
+    }
+    const ctx = poser('src/scenes/sonde.ts')
+    assert.match(ctx, /POISON logique par libellé .*\[label-logic\] — src\/scenes\/sonde\.ts:1/)
+    assert.match(ctx, /\[label-literal\] — src\/scenes\/sonde\.ts:1/)
+    assert.doesNotMatch(poser('src/scenes/sonde.test.ts'), /logique par libellé/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })
 
@@ -135,7 +157,7 @@ test('git INDISPONIBLE : une note que git ignorerait est jugée, le pointeur est
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '.claude/*\n' } })
   try {
     const note = { file_path: join(racine, '.claude', 'worktrees', 'agent-x', 'n.md'), old_string: '', new_string: 'voir #1591\n' }
-    const sansGit = { ...process.env, PATH: dirname(process.execPath), Path: dirname(process.execPath) }
+    const sansGit = { ...process.env, ...envGitFeint([{ si: [], absent: true }]) }
     assert.match(contexteDe(note, sansGit), /POINTEUR DÉRÉFÉRENCÉ/)
     assert.equal(contexteDe(note), '', 'git présent : ignorée, silence')
   } finally {
@@ -156,4 +178,36 @@ test('le périmètre se juge sur le chemin RELATIF à la racine du dépôt, jama
   assert.match(contexteDe({
     file_path: join(REPO, '.claude', 'memory', 'exemple.md'), old_string: '', new_string: 'voir #1591\n',
   }), /POINTEUR DÉRÉFÉRENCÉ/, 'la mémoire à la racine reste suivie')
+})
+
+test('DRIVER : ctx_patch (canal prescrit) est jugé comme Edit, op seule comme lot `ops`', () => {
+  const note = join(REPO, 'docs', 'plans', 'exemple.md')
+  const ligne = '- reste à traiter #1591 après la vague\n'
+  const edit = contexteDe({ file_path: note, old_string: '', new_string: ligne })
+  assert.match(edit, /POINTEUR DÉRÉFÉRENCÉ/)
+  const patch = (tool_input) => {
+    const run = lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch', 'PostToolUse'))
+    assert.equal(run.code, 0, run.err)
+    return run.specifique?.additionalContext ?? ''
+  }
+  assert.equal(patch({ op: 'insert_after', path: note, line: 1, new_text: ligne }), edit)
+  assert.equal(patch({ ops: [{ op: 'insert_after', path: note, line: 1, new_text: ligne }] }), edit)
+})
+
+test('DRIVER : une op ANCRÉE se juge contre l’INDEX — une ligne à pointeur réécrite telle quelle se tait, une ligne neuve est signalée', () => {
+  const ligne = '- reste à traiter #1591 après la vague'
+  const rel = ['docs', 'plans', 'note.md']
+  const { racine } = instanceDeDepot({ fichiers: { [rel.join('/')]: `titre\n${ligne}\n` } })
+  try {
+    const note = join(racine, ...rel)
+    const patch = (tool_input) => {
+      const run = lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch', 'PostToolUse'))
+      assert.equal(run.code, 0, run.err)
+      return run.specifique?.additionalContext ?? ''
+    }
+    assert.equal(patch({ op: 'set_line', path: note, line: 2, hash: '00', new_text: ligne }), '')
+    assert.match(patch({ op: 'set_line', path: note, line: 1, hash: '00', new_text: 'voir #1777' }), /POINTEUR DÉRÉFÉRENCÉ/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

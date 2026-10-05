@@ -25,7 +25,7 @@
 //   SENS 2 : tout fichier suivi d'extension `.md .mjs .mts .ts .tsx .js .json .yml .yaml .css .html`.
 //   SENS 3 : les mêmes fichiers que le SENS 2, moins les CORPUS HISTORIQUES (`CORPUS_HISTORIQUES`).
 // La citation se cherche dans le texte JOINT (lignes recollées, préfixes de commentaire retirés) :
-// une réf coupée en fin de ligne (src/engine/testOutcome.ts l.2-3) est un chemin comme un autre. Le
+// une réf coupée en fin de ligne (l'en-tête de src/engine/testOutcome.ts) est un chemin comme un autre. Le
 // jeton tolère les ESPACES (`docs/plans/Spec HUD Combat.dc.html`) et se valide par PRÉFIXES coupés
 // aux extensions connues — le recollage peut agglutiner la ligne suivante, jamais raccourcir un vrai chemin.
 //

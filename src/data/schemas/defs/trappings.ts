@@ -107,6 +107,9 @@ const doc = document(
      *  `isImprovisedTrapping` (engine/items). ≠ `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE
      *  à cet état par l'usure (`LDB 62 l.135`). */
     improvised: z.literal(true).optional(),
+    /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911) — marque lue par
+     *  `isShieldTrapping` (engine/items). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+    shield: z.literal(true).optional(),
     indirect: z.boolean().optional(),
     /** LDB 62 l.278 — approximation MAISON (le RAW ne liste pas les armes à lame), éditable. */
     bladed: z.boolean().optional(),
@@ -204,6 +207,7 @@ const doc = document(
       hint: 'Marque l’entrée « Mains nues » du catalogue — seule lue pour écarter les poings des armes tenues',
     },
     improvised: { label: 'Est l’arme improvisée', hint: 'Marque l’entrée « Arme improvisée » du catalogue' },
+    shield: { label: 'Est un bouclier', hint: 'Marque une entrée de bouclier du catalogue — seule lue pour reconnaître un bouclier' },
     indirect: { label: 'Tir indirect', hint: 'Tir en arc (mortier/catapulte) : vise une case, jamais une cible directe' },
     bladed: {
       label: 'Porte une lame (maison)',
@@ -227,7 +231,7 @@ const doc = document(
       label: 'Munition représentative',
       hint: 'Munition affichée par défaut pour cette arme de siège (indication au joueur)',
     },
-    shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur' },
+    shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur', renduPur: true },
     formChoices: {
       label: 'Formes proposées',
       hint: 'Formes visuelles alternatives que le joueur peut choisir pour cet objet',
@@ -287,7 +291,7 @@ const doc = document(
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
-  // `service` : exclu de `merchants.json › curated` (`defs/merchants.ts`, `idDe` `horsMarqueur`).
+  // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
   { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service'] } },
 );
 

@@ -7,11 +7,11 @@
  * donnent la monture « avec selle et harnais » (LDB 08 l.557, ADE I 07 l.48) ; aucune règle n'attache
  * la sellerie au fait d'être monté — d'où la donnée éditable, et le respect du nu explicite.
  *
- * Mesuré sur le chemin de PROD d'un record (`resolveById` + `mountedPlanOpts` + `plan.resolve`), et
+ * Mesuré sur le chemin de PROD d'un record (`resolveById` + `harnaisDeMonture(planOptsForRecord)` + `plan.resolve`), et
  * sur les DEUX issues du set : servi, ou REFUSÉ visiblement (espèce dont l'art n'est pas cuit).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mountedPlanOpts, mountedRest, riderBodyPose, seatedBodyPose, seatedRest, type SeatedBody } from './mountedRig';
+import { harnaisDeMonture, mountedRest, riderBodyPose, seatedBodyPose, seatedRest, type SeatedBody } from './mountedRig';
 import { baseSkeleton, groundSkeleton } from './skeletons';
 import { gabaritById } from './gabarits';
 import { xfOf } from './poses';
@@ -19,6 +19,7 @@ import { apply, worldTransforms } from './kinematics';
 import type { BoneId } from './bones';
 import { weaponRest } from './anim/weaponClips';
 import { buildWeapon } from '../../engine/items';
+import { armeDeDessin } from './parts/equipment';
 import { resolveById, planById, planOptsForRecord } from './bodyPlan';
 import { QUAD_HARNAIS, DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_REST } from './quadruped/quadPose';
@@ -30,7 +31,7 @@ import { VIEWS, type View } from './facing';
 /** Rendu d'un record par le chemin de PROD, PORTÉ (couture montée) ou LIBRE (pion de bête). */
 const svg = (id: string, porte: boolean, over?: Parameters<typeof planOptsForRecord>[1], vue: View = 'profile'): string => {
   const r = resolveById(id);
-  const opts = porte ? mountedPlanOpts(id, over) : planOptsForRecord(id, over);
+  const opts = porte ? harnaisDeMonture(planOptsForRecord(id, over)) : planOptsForRecord(id, over);
   return bonesToSvg(planById(r.plan).resolve(r.species, vue, QUAD_REST, opts));
 };
 
@@ -43,13 +44,13 @@ describe('le set par défaut du monté est une DONNÉE, servie par le registre',
 
   it('monture SANS harnais déclaré : le défaut arrive ; avec harnais déclaré : la donnée PRIME', () => {
     expect(findCreatureById('cheval')?.appearance?.harnais, 'le record `cheval` doit rester NU (L3)').toBeUndefined();
-    expect(mountedPlanOpts('cheval').harnais).toBe(DEFAUT_HARNAIS_MONTE);
+    expect(harnaisDeMonture(planOptsForRecord('cheval')).harnais).toBe(DEFAUT_HARNAIS_MONTE);
     expect(planOptsForRecord('cheval').harnais, 'monture LIBRE : aucun set').toBeUndefined();
-    expect(mountedPlanOpts('cheval-de-monte').harnais).toBe(findCreatureById('cheval-de-monte')!.appearance!.harnais);
+    expect(harnaisDeMonture(planOptsForRecord('cheval-de-monte')).harnais).toBe(findCreatureById('cheval-de-monte')!.appearance!.harnais);
   });
 
   it('`harnais: \'\'` (nu explicite d\'un override d\'instance) reste respecté, même monté', () => {
-    expect(mountedPlanOpts('cheval', { harnais: '' }).harnais).toBe('');
+    expect(harnaisDeMonture(planOptsForRecord('cheval', { harnais: '' })).harnais).toBe('');
   });
 });
 
@@ -98,7 +99,7 @@ describe('une monture dont l\'espèce n\'est pas cuite pour le set : ALARME visi
  * AU REPOS du fantassin, jamais une tenue montée ni un geste.
  */
 describe('seatedRest — un attablé n’est pas un cavalier', () => {
-  const HAMPE = buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] });
+  const HAMPE = armeDeDessin(buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] }));
   const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritById('humain'), 'M')), speciesPose: {}, viewPose: {}, };
   const ASSISE = 32; // unités de boîte — un tabouret, cf. `boxUnitsPerM`
 

@@ -4,7 +4,6 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,6 +12,7 @@ import { GitIndisponible, depotDe, worktreesDe } from '../guards/lib/gitPorte.mj
 import {
   CLASSES, GESTES_DE_L_INVENTAIRE, arbresTenus, classerWorktree, comptesParClasse, inventaire, ligneDInventaire, purger,
 } from './worktrees.mjs'
+import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 /** Les ÉCRIVAINS de la purge, factices : `vus` journalise chaque geste, `code(geste)` rend son code
  *  de sortie. */
@@ -149,9 +149,9 @@ test('purger : sans absent NI fusionné, aucun geste — la taille ne se joue pa
 /** Dépôt jetable + son `origin` NU, avec `origin/main` réellement posé. */
 function depotAvecOrigin() {
   const nu = mkdtempSync(join(tmpdir(), 'origin-nu-'))
-  execFileSync('git', ['init', '--bare', '-q', '-b', 'main', nu], { env: envDeDepotForge(), encoding: 'utf8' })
+  lancerGit(['init', '--bare', '-q', '-b', 'main', nu])
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'fondation' })
-  const git = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' }).trim()
+  const git = gitDe(racine, { net: true })
   git('remote', 'add', 'origin', nu)
   git('push', '-q', 'origin', 'main')
   return { racine, git, jeter: () => { for (const d of [racine, nu]) rmSync(d, { recursive: true, force: true }) } }
@@ -272,6 +272,28 @@ test('origin non lu : l’inventaire s’imprime SANS verdict de fusion, et rien
     assert.equal(propre.classe, 'propre+hors-main', 'sans origin/main lu, on ne purge pas sur rien')
     assert.deepEqual(purger({ principal: racine, worktrees: vu.worktrees }), [])
     assert.equal(existsSync(join(racine, '.wt-propre')), true)
+  } finally { jeter() }
+})
+
+test('inventaire : UN fetch par défaut (ops:worktrees), AUCUN sous sansFetch — le verdict se lit sur les refs PRÉSENTES', () => {
+  const { racine, git, jeter } = depotAvecOrigin()
+  try {
+    git('worktree', 'add', '-q', '-b', 'chantier/propre', join(racine, '.wt-propre'), 'origin/main')
+    let fetchs = 0
+    const gestes = {
+      ...GESTES_DE_L_INVENTAIRE,
+      fetchOrigin: (...args) => { fetchs += 1; return GESTES_DE_L_INVENTAIRE.fetchOrigin(...args) },
+    }
+    const defaut = inventaire({ racine, gestes })
+    assert.deepEqual([fetchs, defaut.fusionLue, parNom(defaut.worktrees, '.wt-propre').classe], [1, true, 'propre+fusionné'])
+    const sans = inventaire({ racine, gestes, sansFetch: true })
+    assert.deepEqual([fetchs, sans.fusionLue, parNom(sans.worktrees, '.wt-propre').classe], [1, true, 'propre+fusionné'])
+
+    git('update-ref', '-d', 'refs/remotes/origin/main')
+    const sansOrigin = inventaire({ racine, gestes, sansFetch: true })
+    const propre = parNom(sansOrigin.worktrees, '.wt-propre')
+    assert.deepEqual([fetchs, sansOrigin.fusionLue, propre.fusionne, propre.classe], [1, true, null, 'propre+hors-main'])
+    assert.match(ligneDInventaire(propre), /verdict de fusion indisponible — origin\/main non lu/)
   } finally { jeter() }
 })
 

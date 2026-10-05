@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { actorBillboards, collectBillboards, combatantRenderSignature } from './sceneMeshes';
+import { actorBillboards, actorRenderSignature, collectBillboards } from './sceneMeshes';
 import { buildTokens } from '../../builders/tokens';
 import { buildProps } from '../../builders/props';
 import { combatantTokenScale, footprintTokenScale, sizeTokenScale } from '../../sizeScale';
@@ -12,6 +10,7 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '..
 import { creatures } from '../../../data';
 import type { BattleState } from '../../../state/store';
 import type { Combatant } from '../../../engine/types';
+import { lireProjetLivre } from '../../../../scripts/source/projetLivre.mjs';
 
 /**
  * PARITÉ DES DEUX VOIES DE RENDU DU MONDE (#1176) : ce que le monde VOLUMIQUE dessine doit être ce que
@@ -23,7 +22,7 @@ import type { Combatant } from '../../../engine/types';
  *  - ÉCHELLE : elle jetait l'échelle d'ART de l'espèce (`resolveRender().scale`) pour ne garder que la
  *    catégorie de Taille.
  */
-const doc = parseProject(JSON.parse(readFileSync(join(__dirname, '../../../scenes/arene/arene-projet.json'), 'utf8')));
+const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 
 /**
  * Scène CONSTRUITE pour ce contrat : deux figurants VISIBLES et deux EMBUSQUÉS
@@ -111,11 +110,12 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
     const enrôlé = creatureToCombatant(creatures[0], ent.id, { x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 });
     const battle = { combatants: [enrôlé], order: [enrôlé.id], turn: 0 } as unknown as BattleState;
     const subs = collectBillboards(scene, mpt, elsDuStage(scene, battle));
-    const acteurs = actorBillboards([{ c: enrôlé, x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 }], scene, mpt);
+    const pose = { c: enrôlé, x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 };
+    const acteurs = actorBillboards([pose], scene, mpt);
     expect(persosBillboardés(subs)).not.toContain(ent.id);
     // Un seul acteur, ancré sur SON id — la suite de l'identité est la signature de dessin
-    // (`combatantRenderSignature`, cf. `actor-signature.test.ts`).
-    expect(acteurs.map((a) => a.identity)).toEqual([`acteur:${enrôlé.id}|${combatantRenderSignature(enrôlé)}`]);
+    // (`actorRenderSignature`, cf. `actor-signature.test.ts`).
+    expect(acteurs.map((a) => a.identity)).toEqual([`acteur:${enrôlé.id}|${actorRenderSignature(pose)}`]);
   });
 });
 

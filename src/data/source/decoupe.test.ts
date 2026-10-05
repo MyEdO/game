@@ -13,7 +13,8 @@ import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import {
   type ChapitreParse, type Fragment, type FragmentBlocs, type FragmentCellule, type Resolu,
   type Section, type TableParse,
-  blocsCouverts, blocsPlats, cellRefFor, empreinteDe, estErreur, estGraphieDeChapitre,
+  adresseDe, aligner, cellRefFor, couvertureDe, estErreur, estGraphieDeChapitre, estSeparateur, filDuChapitre,
+  findAllRuns, fragmentBlocs, fragmentCellule, intervalleDe, joinNorm, positionDuBloc, scelle, unitesDeLAdresse, unitesDuTexte,
   estNomDExtraction, estNumeroDeChapitre, fichierDuChapitre, findCells, graphieDeChapitre,
   graphieDuFichier, largeurDeChapitre, normText, numeroDuFichier, parseChapitre, parseTable,
   prefixesDeChapitres, resoudreAdresse, resoudreFragment, stripSpans, sumOf, tablesOf, titreDuFichier,
@@ -55,12 +56,9 @@ function chapitreDe(bookId: string, ch: string): ChapitreParse {
 const sectionOf = (ch: string, slug: string, occ = 1) =>
   chapitreDe(LDB, ch).sections.find((s) => s.slug === slug && s.occ === occ)!;
 
-/** Fragment estampillé de son empreinte RÉELLE (ce que fait un producteur d'adresse). */
-function estampille<T extends Fragment>(chapitre: ChapitreParse, frag: Omit<T, 'sum'>): T {
-  const brouillon = { ...frag, sum: '' } as T;
-  const sum = empreinteDe(chapitre, brouillon);
-  return { ...brouillon, sum: typeof sum === 'string' ? sum : '' };
-}
+/** Fragment forgé, estampillé de son empreinte RÉELLE (`scelle`). */
+const estampille = <T extends Fragment>(chapitre: ChapitreParse, frag: Omit<T, 'sum'>): T =>
+  scelle(chapitre, { ...frag, sum: '' } as T);
 
 /** Résout un fragment de blocs du LDB, empreinte posée à la volée. */
 function blocs(ch: string, sec: string, b0: number, b1: number, opts: { secOcc?: number; sum?: string } = {}) {
@@ -258,24 +256,24 @@ describe('resoudreFragment — cellules, empreinte, bornes', () => {
     expect((cellule({}, 'deadbeefcafe0000') as { error: string }).error).toBe('empreinte-divergente');
   });
 
-  it('bornes hors limites et section inconnue', () => {
+  it('bornes hors limites, fin avant départ et section inconnue', () => {
     const sec = sectionOf('21', 'prejuge-cible');
     const err = (r: unknown) => (r as { error: string }).error;
     expect(err(blocs('21', 'prejuge-cible', 0, sec.blocks.length))).toBe('bornes-hors-limites');
     expect(err(blocs('21', 'prejuge-cible', -1, 0))).toBe('bornes-hors-limites');
-    expect(err(blocs('21', 'prejuge-cible', 1, 0))).toBe('bornes-hors-limites');
+    expect(err(blocs('21', 'prejuge-cible', 1, 0))).toBe('fin-avant-depart');
     expect(err(blocs('21', 'prejuge-cible', 0, 1.5))).toBe('bornes-hors-limites');
     expect(err(blocs('21', 'section-qui-nexiste-pas', 0, 0))).toBe('section-inconnue');
   });
 });
 
-describe('blocsPlats — mémo par identité', () => {
-  it('le mémo de blocs plats tient par IDENTITÉ de chapitre', () => {
+describe('filDuChapitre — mémo par identité', () => {
+  it('le mémo du fil tient par IDENTITÉ de chapitre', () => {
     const chapitre = chapitreDe(LDB, '21');
-    expect(blocsPlats(chapitre)).toBe(blocsPlats(chapitre));
+    expect(filDuChapitre(chapitre)).toBe(filDuChapitre(chapitre));
     const jumeau = parseChapitre(readFileSync(cheminChapitre(LDB, '21'), 'utf8').replace(/\r\n|\r/g, '\n'));
-    expect(blocsPlats(jumeau)).not.toBe(blocsPlats(chapitre));
-    expect(blocsPlats(jumeau)).toEqual(blocsPlats(chapitre));
+    expect(filDuChapitre(jumeau)).not.toBe(filDuChapitre(chapitre));
+    expect(filDuChapitre(jumeau)).toEqual(filDuChapitre(chapitre));
   });
 });
 
@@ -351,8 +349,8 @@ describe('sumOf — empreinte 64 bits', () => {
     let blocsVus = 0;
     let collisions = 0;
     for (const { bookId, graphie } of chapitresDuCorpus()) {
-      for (const b of blocsPlats(chapitreDe(bookId, graphie))) {
-        if (!b.norm) continue;
+      for (const b of filDuChapitre(chapitreDe(bookId, graphie))) {
+        if (b.kind !== 'bloc' || !b.norm) continue;
         blocsVus++;
         const vu = parSum.get(sumOf(b.md));
         if (vu === undefined) parSum.set(sumOf(b.md), b.norm);
@@ -373,12 +371,14 @@ describe('resoudreAdresse — montage de fragments', () => {
   it('monte 2 fragments d\'un même chapitre, textes joints et folios en union', () => {
     const ref = {
       book: LDB, ch: '21',
-      parts: [fragment21('peur-indice', 0, 0), fragment21('peur-indice', 1, 1)],
+      // Dans l'ordre inverse du livre : à l'endroit, ces deux blocs s'écrivent en UN fragment
+      // (`fragments-contigus`).
+      parts: [fragment21('peur-indice', 1, 1), fragment21('peur-indice', 0, 0)],
     };
     const res = resoudreAdresse(chapitre21(), ref);
     expect(estErreur(res)).toBe(false);
     const sec = sectionOf('21', 'peur-indice');
-    expect((res as Resolu).md).toBe(`${sec.blocks[0].md}\n\n${sec.blocks[1].md}`);
+    expect((res as Resolu).md).toBe(`${sec.blocks[1].md}\n\n${sec.blocks[0].md}`);
   });
 
   it('refuse un montage de 4 fragments (plafond 3)', () => {
@@ -412,7 +412,7 @@ describe('resoudreAdresse — montage de fragments', () => {
   });
 });
 
-describe('blocsCouverts — ce qu’un fragment CITE DÉJÀ (prédicat unique du chevauchement)', () => {
+describe('couvertureDe — ce qu’un fragment CITE DÉJÀ (prédicat unique du chevauchement)', () => {
   // Une CELLULE couvre le bloc de SA table. Une section à DEUX tables est le cas qui distingue le
   // prédicat juste d'une recherche de lignes à travers la section ; banc réel à tables titrées :
   // CRB 070 (`FragmentCellule.table`, plus bas).
@@ -444,8 +444,9 @@ describe('blocsCouverts — ce qu’un fragment CITE DÉJÀ (prédicat unique du
     expect(section.blocks.filter((b) => b.md.startsWith('|')), 'la fixture doit porter DEUX tables').toHaveLength(2);
     expect((resoudreFragment(CHAPITRE, cellule('Tete', 'Effet')) as Resolu).md).toContain('Assommé');
     expect((resoudreFragment(CHAPITRE, cellule('Bras', 'Séquelle')) as Resolu).md).toContain('Fracture');
-    expect([...blocsCouverts(CHAPITRE, cellule('Bras', 'Séquelle'))]).toEqual([3]);
-    expect([...blocsCouverts(CHAPITRE, cellule('Tete', 'Effet'))]).toEqual([1]);
+    const position = (idx: number) => positionDuBloc(CHAPITRE, { sec: 'blessures', secOcc: 1, idx });
+    expect(couvertureDe(CHAPITRE, cellule('Bras', 'Séquelle'))).toEqual({ blocs: new Set([position(3)]), case: { rangee: 0, colonne: 1 } });
+    expect(couvertureDe(CHAPITRE, cellule('Tete', 'Effet'))).toEqual({ blocs: new Set([position(1)]), case: { rangee: 0, colonne: 1 } });
   });
 
   it('la table VOISINE et une cellule se montent ; SA table et elle se recouvrent', () => {
@@ -525,7 +526,7 @@ function pctAdressable(chapitre: ChapitreParse): number {
 }
 
 describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
-  it('`15 - Déplacement.md:18` : le bandeau `TABLEAU DES MOUVEMENTS` est absorbé, les en-têtes RÉELS remontent', () => {
+  it('`15 - Deplacement.md:18` : le bandeau `TABLEAU DES MOUVEMENTS` est absorbé, les en-têtes RÉELS remontent', () => {
     const t = tableAvec(LDB, '15', 'TABLEAU DES MOUVEMENTS');
     expect(t.titre).toBe('TABLEAU DES MOUVEMENTS');
     expect(t.headers).toEqual(['Mouvement', 'Marche (mètres)', 'Course (mètres)']);
@@ -555,7 +556,7 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
     expect(t.rows[0][0]).toContain('pique un sprint');
   });
 
-  it('`46 - Les règles magiques.md:34` : un bandeau devant une table SANS en-têtes n’est pas absorbé', () => {
+  it('`46 - Les regles magiques.md:34` : un bandeau devant une table SANS en-têtes n’est pas absorbé', () => {
     // La bannière est en MAJUSCULES et la table a des rangées : les deux premiers volets de la garde
     // l'absorberaient. Le troisième la refuse, parce que la ligne suivante est une DONNÉE (fourchette
     // d100) et non des en-têtes — l'absorber promouvrait `01-05` en en-tête et volerait une rangée.
@@ -566,11 +567,25 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
     expect(t.headers[0]).toBe('');
   });
 
+  it('tout titre absorbé du corpus a au moins 4 lettres', () => {
+    const lettres = (s: string) => [...s].filter((c) => /\p{L}/u.test(c)).length;
+    const titres = new Set<string>();
+    for (const { bookId, graphie } of chapitresDuCorpus()) {
+      for (const b of filDuChapitre(chapitreDe(bookId, graphie))) {
+        const titre = b.kind === 'bloc' ? parseTable(b.md)?.titre : undefined;
+        if (titre != null) titres.add(titre);
+      }
+    }
+    expect(titres.size, 'aucun titre absorbé lu : le corpus n’est pas parcouru').toBeGreaterThan(0);
+    const tropCourts = [...titres].filter((t) => lettres(t) < 4).sort();
+    expect(tropCourts, 'titres absorbés de moins de 4 lettres').toEqual([]);
+  });
+
   it('CONTRAT POSITIF : l’absorption rend adressables des cellules qui ne l’étaient pas', () => {
     // Chiffres MESURÉS sur l'arbre (#1384 B1 ; chapitre 61 : #1887 lot 6a), jamais un « ≥ 90 % »
     // complaisant : les deux lectures du même chapitre sont imprimées, et toutes deux épinglées.
     for (const m of [
-      { ch: '15', fichier: '15 - Déplacement.md', avant: 28, apres: 64 },
+      { ch: '15', fichier: '15 - Deplacement.md', avant: 28, apres: 64 },
       { ch: '61', fichier: '61 - Encombrement.md', avant: 72, apres: 100 },
     ]) {
       const chapitre = chapitreDe(LDB, m.ch);
@@ -580,6 +595,26 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
       expect(avant, `${m.fichier} : lecture d’AVANT l’absorption`).toBe(m.avant);
       expect(apres, `${m.fichier} : lecture COURANTE`).toBe(m.apres);
     }
+  });
+});
+
+describe('estSeparateur — la ligne délimiteuse de table, prédicat UNIQUE (#1887)', () => {
+  it.each([
+    ['|-|-|', true],
+    ['|:---:|--|', true],
+    ['| --- | :-: |', true],
+    ['|--||', false],
+    ['| a | - |', false],
+    ['--|--', false],
+  ])('%s → %s', (ligne, attendu) => {
+    expect(estSeparateur(ligne)).toBe(attendu);
+  });
+
+  it('parseTable lit une séparatrice à UN tiret par cellule comme une à trois tirets', () => {
+    const table = (sep: string) => parseTable(['| Clé | Valeur |', sep, '| a | 1 |', '| b | 2 |'].join('\n'));
+    const courte = table('|-|-|');
+    expect(courte).toEqual(table('|---|---|'));
+    expect(courte?.rows).toEqual([['a', '1'], ['b', '2']]);
   });
 });
 
@@ -688,5 +723,136 @@ describe('FragmentCellule.table (#1739) — une clé de ligne ambiguë entre tab
     expect(cellRefFor(chapitre(), hit)).toMatchObject({ row: '05 or less', col: 'Effect', table: 'major miscast table#1' });
     const [unique] = findCells(chapitreDe(LDB, '19'), normText('+1 Mouvement'));
     expect(cellRefFor(chapitreDe(LDB, '19'), unique)).not.toHaveProperty('table');
+  });
+});
+
+describe('constructeurs d’adresse (#1887) — `scelle`, `fragmentBlocs`, `fragmentCellule`, `adresseDe`', () => {
+  const chapitre = parseChapitre([
+    '# Titre', '', '## Vide', '', '## Avec table', '', 'Intro.', '', '**Tableau des tests**', '',
+    '| Clé | Valeur |', '|---|---|', '| a | 1 |', '| b | 2 |', '', 'Après.',
+  ].join('\n'));
+  const section = (slug: string) => chapitre.sections.find((s) => s.slug === slug)!;
+  const sumDe = (r: Resolu | { error: string }) => sumOf((r as Resolu).md);
+
+  it('`fragmentBlocs` scelle le fragment sur le texte qu’il résout ; vide quand il ne résout pas', () => {
+    const f = fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 0, b1: 1 });
+    expect(f).toEqual({ kind: 'blocs', sec: 'avec-table', secOcc: 1, b0: 0, b1: 1, sum: sumDe(resoudreFragment(chapitre, f)) });
+    expect((resoudreFragment(chapitre, f) as Resolu).md).toBe('Intro.\n\n**Tableau des tests**');
+    expect(fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 0, b1: 9 }).sum).toBe('');
+  });
+
+  it('`fragmentCellule` part d’un choix ; sans clé de table, il n’en porte aucune', () => {
+    const f = fragmentCellule(chapitre, { sec: 'avec-table', secOcc: 1, row: 'b', col: 'Valeur' });
+    expect(f).not.toHaveProperty('table');
+    expect((resoudreFragment(chapitre, f) as Resolu).md).toBe('2');
+    const t = fragmentCellule(chapitre, { sec: 'avec-table', secOcc: 1, row: 'b', col: 'Valeur', table: 'tableau des tests#1' });
+    expect(Object.keys(t)).toEqual(['kind', 'sec', 'secOcc', 'row', 'col', 'table', 'sum']);
+    expect(estErreur(resoudreFragment(chapitre, t))).toBe(false);
+  });
+
+  it('`scelle` repose l’empreinte d’un fragment au texte du jour', () => {
+    const f = fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 3, b1: 3 });
+    expect(scelle(chapitre, { ...f, sum: '0000000000000000' })).toEqual(f);
+  });
+
+  it('`adresseDe` : la section entière, ou la légende et le bloc de sa table', () => {
+    const s = section('avec-table');
+    const [table] = tablesOf(s);
+    const entiere = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: s });
+    expect(entiere).toEqual({ book: LDB, ch: '07', parts: [fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 0, b1: 3 })] });
+    const deTable = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: s, table });
+    expect(deTable).toEqual({ book: LDB, ch: '07', parts: [fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 1, b1: 2 })] });
+  });
+
+  it('`adresseDe` d’une section SANS bloc rend l’erreur de résolution, nommée, sans lever', () => {
+    const r = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: section('vide') });
+    expect(r).toMatchObject({ error: 'bornes-hors-limites' });
+    expect((r as { detail: string }).detail).toMatch(/§vide#1 .*\(section : 0 blocs\)/);
+  });
+});
+
+describe('fil titré et intervalle (#1887)', () => {
+  const A0 = 'Premier bloc de la section Alpha, assez long pour discriminer seul un passage.';
+  const A1 = 'Second bloc de la section Alpha, qui précède immédiatement le titre de Beta.';
+  const B0 = 'Unique bloc de la section Beta, encadré par deux titres de même niveau ici.';
+  const D0 = 'Premier bloc de la section Delta, après une section Gamma restée sans bloc.';
+  const D1 = 'Second bloc de la section Delta, le dernier passage de cette fixture complète.';
+  const chapitre = parseChapitre([
+    '# Chapitre', '', '## Alpha', '', A0, '', A1, '', '## Beta', '', B0, '', '### Gamma', '', '## Delta', '', D0, '', D1, '',
+  ].join('\n'));
+  const md = (r: unknown) => (r as Resolu).md;
+  const code = (r: unknown) => (r as { error: string }).error;
+  const monte = (...parts: Fragment[]) => resoudreAdresse(chapitre, { book: LDB, ch: '00', parts });
+  const bloc = (sec: string, idx: number) => ({ sec, secOcc: 1, idx });
+  const blocs = (sec: string, b0: number, b1: number) => fragmentBlocs(chapitre, { sec, secOcc: 1, b0, b1 });
+
+  it('le fil ouvre chaque section titrée sur son titre en gras, puis ses blocs', () => {
+    expect(filDuChapitre(chapitre).map((e) => (e.kind === 'titre' ? e.md : `${e.sec}:${e.idx}`))).toEqual([
+      '**Chapitre**', '**Alpha**', 'alpha:0', 'alpha:1', '**Beta**', 'beta:0', '**Gamma**', '**Delta**', 'delta:0', 'delta:1',
+    ]);
+  });
+
+  it('un intervalle rend les titres INTERMÉDIAIRES, jamais celui de sa section de départ', () => {
+    const f = intervalleDe(chapitre, bloc('alpha', 1), bloc('delta', 0));
+    expect(f).toMatchObject({ kind: 'blocs', sec: 'alpha', secOcc: 1, b0: 1, finSec: 'delta', finSecOcc: 1, b1: 0 });
+    expect(md(resoudreFragment(chapitre, f))).toBe([A1, '**Beta**', B0, '**Gamma**', '**Delta**', D0].join('\n\n'));
+    expect(f.sum).toBe(sumOf(md(resoudreFragment(chapitre, f))));
+  });
+
+  it('une fin dans la section de départ ne s’écrit pas : forme canonique unique', () => {
+    const f = intervalleDe(chapitre, bloc('alpha', 0), bloc('alpha', 1));
+    expect(Object.keys(f)).toEqual(['kind', 'sec', 'secOcc', 'b0', 'b1', 'sum']);
+    expect(f).toEqual(blocs('alpha', 0, 1));
+  });
+
+  it('`fin-avant-depart` : la fin précède le départ au fil, dans une autre section ou dans la même', () => {
+    expect(code(resoudreFragment(chapitre, intervalleDe(chapitre, bloc('delta', 0), bloc('alpha', 1))))).toBe('fin-avant-depart');
+    expect(code(resoudreFragment(chapitre, intervalleDe(chapitre, bloc('alpha', 1), bloc('alpha', 0))))).toBe('fin-avant-depart');
+  });
+
+  it('une section de fin inconnue, ou un bloc de fin hors d’elle, se nomment', () => {
+    expect(code(resoudreFragment(chapitre, intervalleDe(chapitre, bloc('alpha', 0), bloc('epsilon', 0))))).toBe('section-inconnue');
+    const horsFin = resoudreFragment(chapitre, intervalleDe(chapitre, bloc('alpha', 0), bloc('beta', 4)));
+    expect(horsFin).toMatchObject({ error: 'bornes-hors-limites' });
+    expect((horsFin as { detail: string }).detail).toMatch(/section de fin §beta#1 : 1 blocs/);
+  });
+
+  it('la couture entre fragments : la tête d’un fragment qui en suit un autre, intervalle compris, porte une ligne vide', () => {
+    const intervalle = intervalleDe(chapitre, bloc('alpha', 1), bloc('beta', 0));
+    const u = unitesDeLAdresse(chapitre, { book: LDB, ch: '00', parts: [blocs('delta', 1, 1), intervalle] });
+    expect(estErreur(u)).toBe(false);
+    const unites = (u as { unites: { md: string; sep: string; kind: string }[] }).unites;
+    expect(unites.map((x) => [x.sep, x.kind])).toEqual([['', 'bloc'], ['\n\n', 'bloc'], ['\n\n', 'titre'], ['\n\n', 'bloc']]);
+    expect(md(monte(blocs('delta', 1, 1), intervalle))).toBe([D1, A1, '**Beta**', B0].join('\n\n'));
+  });
+
+  it('`fragments-contigus` : deux fragments consécutifs DANS L’ORDRE DE L’ADRESSE qui se touchent s’écrivent en un intervalle', () => {
+    const dansLaSection = monte(blocs('alpha', 0, 0), blocs('alpha', 1, 1));
+    expect(dansLaSection).toMatchObject({ error: 'fragments-contigus', fragment: 1 });
+    // Le premier BLOC après la fin du premier est le départ du second, titre intermédiaire sauté.
+    expect(monte(blocs('alpha', 0, 1), blocs('beta', 0, 0))).toMatchObject({ error: 'fragments-contigus', fragment: 1 });
+    expect(monte(blocs('beta', 0, 0), intervalleDe(chapitre, bloc('delta', 0), bloc('delta', 1)))).toMatchObject({ error: 'fragments-contigus' });
+    // Contigus au FIL mais écrits à rebours : le montage réordonne le livre, aucun intervalle ne l'écrit.
+    expect(estErreur(monte(blocs('alpha', 1, 1), blocs('alpha', 0, 0)))).toBe(false);
+    expect(estErreur(monte(blocs('alpha', 0, 0), blocs('beta', 0, 0)))).toBe(false);
+  });
+
+  it('`fragments-chevauchants` sur les POSITIONS : un intervalle et un bloc d’une section qu’il traverse', () => {
+    const intervalle = intervalleDe(chapitre, bloc('alpha', 1), bloc('delta', 0));
+    expect(monte(intervalle, blocs('beta', 0, 0))).toMatchObject({ error: 'fragments-chevauchants', fragment: 1 });
+    expect(monte(blocs('beta', 0, 0), intervalle)).toMatchObject({ error: 'fragments-chevauchants', fragment: 1 });
+    expect([...couvertureDe(chapitre, intervalle).blocs]).toEqual([3, 5, 8]);
+  });
+
+  it('un run à cheval sur un titre est UN intervalle, et le texte qui recopie l’intertitre en `#` s’y aligne', () => {
+    const texte = [A1, '## Beta', B0].join('\n\n');
+    const unites = unitesDuTexte(texte);
+    expect(unites.map((x) => x.md)).toEqual([A1, '**Beta**', B0]);
+    const runs = findAllRuns(chapitre, joinNorm(unites.map((x) => x.norm)));
+    expect(runs).toEqual([intervalleDe(chapitre, bloc('alpha', 1), bloc('beta', 0))]);
+    const adresse = unitesDeLAdresse(chapitre, { book: LDB, ch: '00', parts: runs });
+    expect(aligner(unites, (adresse as { unites: Parameters<typeof aligner>[1] }).unites)?.ajoute).toEqual([]);
+    // Sans son intertitre, le texte n'est plus un run du fil.
+    expect(findAllRuns(chapitre, joinNorm(unitesDuTexte([A1, B0].join('\n\n')).map((x) => x.norm)))).toEqual([]);
   });
 });

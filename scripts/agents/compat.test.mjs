@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
   transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_MONO_SURFACE, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
+  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 
@@ -111,6 +111,16 @@ test('préserve le frontmatter, adapte le corps et copie les ressources', () => 
   assert.deepEqual(out.get('.agents/skills/demo/assets/icon.bin'), Buffer.from([0, 255, 1]));
 });
 
+test('un MOD (racine de `.claude/skills/` qui porte `.claude-plugin/plugin.json`) n’a pas de miroir ; un skill voisin, si (#2278)', () => {
+  const out = transformSkillTree(new Map([
+    ['.claude/skills/mod/.claude-plugin/plugin.json', Buffer.from('{ "name": "mod" }')],
+    ['.claude/skills/mod/hooks/register.ts', Buffer.from('export const register = () => {}')],
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nCorps\n')],
+    ['.claude/skills/demo/exemples/.claude-plugin/plugin.json', Buffer.from('{}')],
+  ]));
+  assert.deepEqual([...out.keys()].sort(), ['.agents/skills/demo/SKILL.md', '.agents/skills/demo/exemples/.claude-plugin/plugin.json']);
+});
+
 test('refuse orphelin manuel et accepte ressource sous skill marqué', () => {
   const expected = buildExpectedOutputs(new Map([
     ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
@@ -146,7 +156,7 @@ test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et p
     { phase: 'PreToolUse', matcher: 'Bash', script: 'solde-ticket-hook.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },
   ]);
-  assert.deepEqual(outil(codex), outil(claude), 'les deux surfaces dérivent de la même source');
+  assert.deepEqual(outil(codex), outil(claude).map((h) => ({ ...h, matcher: `^(?:${h.matcher})$` })), 'la même source, ANCRÉE pour le moteur regex de Codex (`MOTEUR_DE_SURFACE`)');
   assert.ok(codex.every((h) => h.command.startsWith('node scripts/hooks/') && h.args === undefined));
 });
 
@@ -166,11 +176,21 @@ test('CONTRAT — toute déclaration Claude est en forme EXEC : `command` = `nod
   }
 });
 
-test('CONTRAT — un hook mono-surface n’est porté QUE par son propriétaire', () => {
-  for (const { phase, script, surface } of HOOKS_MONO_SURFACE) {
+test('CONTRAT — un hook de session n’est porté QUE par ses surfaces', () => {
+  for (const { phase, script, surfaces } of HOOKS_DE_SESSION) {
     for (const cible of [SURFACE_CLAUDE, SURFACE_CODEX]) {
       const porte = aplatirHooks({ hooks: hooksAttendus(REGISTRES, cible) }, cible).some((h) => h.phase === phase && h.script === script);
-      assert.equal(porte, cible === surface, `${script} sur ${cible}`);
+      assert.equal(porte, surfaces.includes(cible), `${script} sur ${cible}`);
+    }
+  }
+});
+
+test('CÂBLAGE — le suivi de vague est injecté au SessionStart de Codex seul, généré et commité ; Claude le porte par le mod harnais (#2132, #2279)', async () => {
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
+    for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
+      const portes = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart' && h.script === 'inject-suivi.mjs');
+      assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
     }
   }
 });

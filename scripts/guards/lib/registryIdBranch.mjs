@@ -24,7 +24,7 @@ import tsModule from 'typescript';
 import { parUnitesDeCode } from './lister.mjs'
 import { scriptKindDe } from './dialecte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs';
-import { estTableTotale, origineImportee } from './canonUnique.mjs';
+import { contexteImports, estTableTotale, origineImportee } from './canonUnique.mjs';
 
 /** Liaison LOCALE du compilateur : sous le transformeur SSR de Vitest, chaque `ts.x` d'un import est
  *  une traversée de module (`__vite_ssr_import_N__.default.x`) — sur le visiteur d'AST, chaud, elle
@@ -140,9 +140,9 @@ export const VOCABULARY_TYPES = new Map([['BoneId', 'src/gameIso/rig/bones.ts']]
 /** Le nœud de type est-il une référence à un type de vocabulaire IMPORTÉ DE SON MODULE CANONIQUE ?
  *  Le nom EXPORTÉ fait foi (`origineImportee`) : un import renommé du type compte, un autre type
  *  importé sous son nom non. */
-function isVocabularyTypeRef(t, sf) {
+function isVocabularyTypeRef(t, sf, contexte) {
   if (!t || !ts.isTypeReferenceNode(t) || !ts.isIdentifier(t.typeName)) return false;
-  const origine = origineImportee(t.typeName.text, sf);
+  const origine = origineImportee(t.typeName.text, sf, contexte);
   return !!origine && VOCABULARY_TYPES.get(origine.nom) === origine.module;
 }
 
@@ -151,15 +151,15 @@ function isVocabularyTypeRef(t, sf) {
  * `Set<BoneId>`, ou `const X = new Set<BoneId>([…])` — l'argument de type porte la fermeture aussi
  * bien que l'annotation.
  */
-function isVocabularyCollectionDecl(decl, sf) {
+function isVocabularyCollectionDecl(decl, sf, contexte) {
   let t = decl.type;
   if (t && ts.isTypeOperatorNode(t) && t.operator === ts.SyntaxKind.ReadonlyKeyword) t = t.type;
-  if (t && ts.isArrayTypeNode(t)) return isVocabularyTypeRef(t.elementType, sf);
+  if (t && ts.isArrayTypeNode(t)) return isVocabularyTypeRef(t.elementType, sf, contexte);
   if (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName)
-    && ['Array', 'ReadonlyArray', 'Set', 'ReadonlySet'].includes(t.typeName.text)) return isVocabularyTypeRef(t.typeArguments?.[0], sf);
+    && ['Array', 'ReadonlyArray', 'Set', 'ReadonlySet'].includes(t.typeName.text)) return isVocabularyTypeRef(t.typeArguments?.[0], sf, contexte);
   const init = decl.initializer && unwrap(decl.initializer);
   if (init && ts.isNewExpression(init) && ts.isIdentifier(init.expression) && init.expression.text === 'Set') {
-    return isVocabularyTypeRef(init.typeArguments?.[0], sf);
+    return isVocabularyTypeRef(init.typeArguments?.[0], sf, contexte);
   }
   return false;
 }
@@ -216,6 +216,14 @@ export class Scopes {
   push() { this.stack.push(new Map()); }
   pop() { this.stack.pop(); }
   declare(name, kind) { this.stack[this.stack.length - 1].set(name, kind); }
+  /** Affectation `name = …` : la liaison change de valeur dans la portée qui la DÉCLARE (la plus
+   *  proche), ou naît dans la portée courante si aucune ne la connaît. */
+  assign(name, kind) {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      if (this.stack[i].has(name)) { this.stack[i].set(name, kind); return; }
+    }
+    this.declare(name, kind);
+  }
   kindOf(name) {
     for (let i = this.stack.length - 1; i >= 0; i--) {
       const k = this.stack[i].get(name);
@@ -292,7 +300,7 @@ function isLiteralRecord(node, literalRecords) {
  *  retiré des deux jeux : la garde ne peut pas prouver que le site indexé fige quoi que ce soit.
  *  Une collection de VOCABULAIRE FERMÉ (`const X: BoneId[]`, cf. `VOCABULARY_TYPES`) sort des jeux
  *  au même titre : elle ne fige pas un registre, son type le fait déjà. */
-function collectLiteralHolders(sf) {
+function collectLiteralHolders(sf, contexte) {
   const collections = new Set();
   const records = new Set();
   const computed = new Set(); // noms déclarés au moins une fois avec une valeur NON littérale
@@ -300,7 +308,7 @@ function collectLiteralHolders(sf) {
   const visit = (node) => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       const name = node.name.text;
-      if (isVocabularyCollectionDecl(node, sf)) vocabulary.add(name);
+      if (isVocabularyCollectionDecl(node, sf, contexte)) vocabulary.add(name);
       else if (isLiteralStringCollection(node.initializer, collections)) collections.add(name);
       else if (isLiteralRecord(node.initializer, records) && !estTableTotale(unwrap(node.initializer))) records.add(name);
       else computed.add(name);
@@ -353,7 +361,8 @@ function collectLiteralHolders(sf) {
  * @returns {{ line: number, detail: string, rule: 'id-equality'|'id-switch'|'id-membership'|'id-record' }[]}
  */
 export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, contenu)) {
-  const { collections, records } = collectLiteralHolders(sf);
+  const contexte = contexteImports(sf);
+  const { collections, records } = collectLiteralHolders(sf, contexte);
   const lines = contenu.split('\n');
   const findings = [];
   const scopes = new Scopes();

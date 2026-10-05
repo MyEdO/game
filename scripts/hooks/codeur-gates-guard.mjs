@@ -19,7 +19,7 @@
 // jamais visé. Sous Codex (`.codex/hooks.json`, même point d'entrée `scripts/hooks/repartiteur.mjs`)
 // ces champs n'existent pas non plus : la garde s'y tait, par construction.
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { appelleTscNu, appelleVitestNu, segmentsHorsServer, LECTEURS } from '../guards/lib/appelsRunners.mjs'
+import { APPEL_VITEST, appelDe, appelleTscNu, appelleVitestNu, segmentsHorsServer, LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { segmentsProfonds, basenameExecutable } from './solde-ticket-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 
@@ -46,9 +46,6 @@ const CIBLES_DE_GATE = new Set(['.', 'src', 'scripts', 'server', 'docs'])
 /** Sous-commandes de `npm` qui nomment leur script, et raccourcis qui portent leur nom pour nom. */
 const SOUS_COMMANDES_RUN = new Set(['run', 'run-script'])
 const RACCOURCIS_NPM = new Set(['test', 'start', 'stop', 'restart'])
-/** Appel d'un exécutable local, sous ses graphies `npx`/`node`/chemin. */
-const appelDe = (outil) =>
-  new RegExp(`^(?:npx\\s+|node\\s+)?(?:\\S*[\\\\/])?${outil}(?:\\.cmd|\\.js|\\.mjs)?(?=\\s|$)`)
 const APPEL_KNIP = appelDe('knip')
 const APPEL_ESLINT = appelDe('eslint')
 /** Le lanceur d'une gate entière : `node scripts/gates/…`, `node scripts/test/node-tests.mjs <gate>`. */
@@ -128,7 +125,7 @@ const gesteNomme = (segment, commande) => (commande.includes(segment) ? segment 
 const raisonDuRefus = (geste) =>
   `[codeur] « ${geste} » est une gate de la CI — le run de la branche la joue une fois sur la tête ` +
   `poussée, et c'est lui la porte. Joue le test de TON périmètre (\`node --test <fichier>\`, ` +
-  `\`npx vitest run <fichiers>\`, \`npm run typecheck:fast\`). Un brief qui te l'impose se REFUSE : ` +
+  `\`npm test -- <chemins>\`, \`npm run typecheck:fast\`). Un brief qui te l'impose se REFUSE : ` +
   `« BRIEF REFUSÉ : gates hors périmètre ».`
 
 /**
@@ -185,7 +182,7 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
 
     // 5. `vitest run` SANS chemin = la suite entière ; avec des chemins = le test du périmètre.
     if (appelleVitestNu(segment)) {
-      const cibles = argumentsPositionnels(segment, /^(?:npx\s+|node\s+)?(?:\S*[\\/])?vitest(?:\.cmd|\.mjs|\.js)?/)
+      const cibles = argumentsPositionnels(segment, APPEL_VITEST)
         .filter((cible) => cible !== 'run')
       if (!cibles.some(designeUnChemin)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
     }

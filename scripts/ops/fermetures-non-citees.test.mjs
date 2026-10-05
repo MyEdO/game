@@ -3,6 +3,7 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { readFileSync } from 'node:fs'
 import {
   comparerFermetures, rapportMarkdown, reculeDe, MARGE_CITATION_JOURS, CHEMIN_BASELINE,
@@ -143,8 +144,8 @@ test('la fenêtre des CITATIONS déborde celle des fermetures (faux rouge de bor
 test('la fenêtre se demande à la route des ISSUES du dépôt, jamais à `search/issues`', () => {
   // `search/issues` et `gh api --paginate` sont refusés HTTP 403 aux sessions agent
   // (« This GitHub API path is not available in agent sessions », mesuré 2026-09-18).
-  const chemin = cheminFermees('cgauche/game', '2026-09-01')
-  assert.equal(chemin, 'repos/cgauche/game/issues?state=closed&since=2026-09-01T00:00:00Z')
+  const chemin = cheminFermees(`${DEPOT}`, '2026-09-01')
+  assert.equal(chemin, `repos/${DEPOT}/issues?state=closed&since=2026-09-01T00:00:00Z`)
   assert.equal(/search\/issues|paginate/.test(chemin), false)
 })
 
@@ -198,7 +199,7 @@ test('fermeesDepuis : TOUT passe par la couture injectée — `closedBy` compris
   const vus = []
   const appel = (args) => {
     vus.push(args)
-    if (args[1].startsWith('repos/cgauche/game/issues?')) {
+    if (args[1].startsWith(`repos/${DEPOT}/issues?`)) {
       return { ok: true, stdout: JSON.stringify([issue(1700), issue(1701, { pull_request: { url: '…' } })]) }
     }
     return { ok: true, stdout: 'cgauche\n' }
@@ -207,8 +208,8 @@ test('fermeesDepuis : TOUT passe par la couture injectée — `closedBy` compris
   assert.deepEqual(f.map((x) => [x.numero, x.closedBy]), [[1700, 'cgauche']])
   // La liste, puis le seul ticket retenu : la pull request écartée ne coûte aucun appel.
   assert.deepEqual(vus.map((a) => a[1]), [
-    'repos/cgauche/game/issues?state=closed&since=2026-09-01T00:00:00Z&per_page=100&page=1',
-    'repos/cgauche/game/issues/1700',
+    `repos/${DEPOT}/issues?state=closed&since=2026-09-01T00:00:00Z&per_page=100&page=1`,
+    `repos/${DEPOT}/issues/1700`,
   ])
   assert.equal(vus.length, 2, 'aucun appel n’échappe au feint : une lecture hors couture partirait sur le réseau')
 })

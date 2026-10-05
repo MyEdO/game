@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Inspecteur v2 — volet droit DOCKÉ (fini la modale du POC qui masquait le canvas) :
  * la sélection s'édite EN PLACE, en sections repliables `.fold`, pendant que la carte reste
@@ -12,8 +13,10 @@ import {
   type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, isDescriptiveZone, sceneMetresPerTile,
 } from '../../state/scene';
 import { PARTS_RELIEF } from '../../data/materials.types';
+import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { NumberField } from '../NumberField';
 import { ProseField } from '../ProseField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
 import type { WorldMap } from '../../state/worldMap';
@@ -195,6 +198,9 @@ export function Inspector({
   const selT = sel?.type === 'trigger' ? scene.triggers.find((t) => t.id === sel.id) ?? null : null;
   const zone = sel?.type === 'restZone' ? scene.restZones?.[sel.idx] ?? null : null;
   const efz = sel?.type === 'effectZone' ? scene.effectZones?.[sel.idx] ?? null : null;
+  // Identité STABLE de la zone sélectionnée : elle survit au renommage de son id (`EntryRename`).
+  const clesZones = useClesDeRangees(scene.effectZones);
+  const cleZone = sel?.type === 'effectZone' ? clesZones[sel.idx] : undefined;
   const setEfz = (z: SceneEffectZone) => {
     if (sel?.type !== 'effectZone') return;
     setScene({ ...scene, effectZones: (scene.effectZones ?? []).map((x, i) => (i === sel.idx ? z : x)) });
@@ -1025,7 +1031,7 @@ export function Inspector({
                     qu'elle en porte un (`isDescriptiveZone`) : ce n'est pas un genre à choisir, c'est l'état
                     que l'appareil ci-dessous décrit. Il s'ouvre donc sur les zones qui agissent, et se
                     présente REPLIÉ — armable en un clic — sur celles qui ne font que nommer un lieu. */}
-                <Fold key={efz.id} title={<><Icon id="ui/warning" size="sm" /> Piège / zone d'effet</>} open={!isDescriptiveZone(efz)}>
+                <Fold key={cleZone} title={<><Icon id="ui/warning" size="sm" /> Piège / zone d'effet</>} open={!isDescriptiveZone(efz)}>
                   <p className="hint">
                     Tout combattant qui TRAVERSE ou STATIONNE dans la zone y subit ce qui suit (en combat). Une
                     pièce reste un simple nom de lieu tant que rien n'est posé ici.
@@ -1348,6 +1354,7 @@ function EntityPanel({
   updateSel: (patch: Partial<SceneEntity>) => void;
   removeSel: () => void;
 }) {
+  useVersionDesDatasets();
   return (
     <>
       <div className="ent-preview">
@@ -1585,6 +1592,7 @@ function EntityPanel({
             </>
           )}
           <UsableFields
+            key={ent.id}
             ent={ent}
             scene={scene}
             updateSel={updateSel}
@@ -1629,6 +1637,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
     const suivant = renameActionAuthoree(actions, from, to);
     if (suivant !== actions) poser({ actions: suivant });
   };
+  const cles = useClesDeRangees(actions);
   return (
     <>
       <label className="ed-check">
@@ -1640,7 +1649,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
         Assise (ouvre les places que le TYPE de décor porte)
       </label>
       {actions.map((a, i) => (
-        <div className="ed-field" key={a.id}>
+        <div className="ed-field" key={cles[i]}>
           <span className="mini-title">Action « {a.label ?? a.id} »</span>
           {/* L'id n'est écrit au document qu'au COMMIT (blur/Entrée) — la primitive du fichier, déjà
               servie par les points d'entrée et les zones d'effet. Frappé lettre à lettre, il posait

@@ -5,7 +5,7 @@
  * porte (`refsNarrativesPendantes`) aussi.
  */
 import { describe, it, expect } from 'vitest';
-import { fautesDeSites, lieuxDesSites, referencesA, refsNarrativesPendantes, renommeRef, sitesDuProjet } from './refs-narratives';
+import { fautesDeSites, lieuDuSite, referencesA, refsNarrativesPendantes, renommeRef, sitesDuProjet } from './refs-narratives';
 
 const narratif = () => ({
   affaires: [{ id: 'aff' }],
@@ -53,7 +53,7 @@ describe('referencesA — qui désigne une entrée', () => {
   it('un document : la scène ET le stade qui le portent, lieux nommés', () => {
     const p = projet();
     const sites = referencesA(p, { registre: 'documents', id: 'doc' });
-    expect(lieuxDesSites(p, sites)).toBe('scène « Le relais », indice « ind »');
+    expect(sites.map((s) => lieuDuSite(p, s))).toEqual([{ racine: 'scene', nom: 'Le relais' }, { racine: 'indice', nom: 'ind' }]);
   });
 
   it('un stade : seul le site `stade` de CET indice', () => {

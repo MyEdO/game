@@ -1,7 +1,7 @@
-// Rendu d'un générateur SOUS win32 (#1801) — module `node --import`, composé par `lancer()` (via
-// `commandeDe`) de `scripts/docs/build-all.mjs` dans `NODE_OPTIONS` (`--plateforme win32`, et chaque
-// générateur de `--check --tout`), seul : ce rendu se vérifie et ne se mesure pas, l'enregistreur de
-// lectures n'y est pas. Il se pose AVANT `tsx/esm`.
+// Rendu d'un générateur SOUS win32 (#1801) — module `node --import`, composé par la garde du rendu
+// sous win32 (`renduSousWin32` de `plateforme-win32.test.mjs`) devant `rendre-seul.mjs`, seul : ce
+// rendu se compare et ne se mesure pas, l'enregistreur de lectures n'y est pas. Il se pose AVANT
+// `tsx/esm`.
 //
 // Ce que voit le code du dépôt : `node:path` = `path.win32` et `fileURLToPath` en graphie Windows
 // (`plateforme-win32-hooks.mjs`), `process.cwd()` sous le lecteur `C:`. Le code de `node_modules`,
@@ -13,8 +13,8 @@
 // Ce qu'il touche : le disque POSIX — les ENTRÉES de `fs` (chemins en argument, `cwd` de `glob`) et
 // de `child_process` (exécutable, argv absolus, `cwd`, PATH de `env`) sont ramenées en POSIX. Chaque
 // fonction de `fs` et de `fs.promises` est enveloppée ou déclarée SANS CHEMIN (`SANS_CHEMIN_FS`). La
-// racine du dépôt rendu : `WFRP_PLATEFORME_RACINE`, posée par `commandeDe` comme la racine de
-// l'enregistreur, et lue canonique (`urlDuDepot`).
+// racine du dépôt rendu : `WFRP_PLATEFORME_RACINE`, posée par la garde, et lue canonique
+// (`urlDuDepot`).
 //
 // NON SIMULÉ — ce que le code du dépôt reçoit de l'hôte, et la garde qui le ferme quand il y en a une :
 //   · `import.meta.dirname`/`filename`, `__dirname`/`__filename` (chargeur CJS),
@@ -59,7 +59,7 @@ import cp from 'node:child_process'
 import fs from 'node:fs'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { estAbsoluWindows, estModuleDuDepot, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
+import { cwdDonne, estAbsoluWindows, estModuleDuDepot, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 /** Nom → nombre d'arguments-CHEMINS en tête, pour la forme synchrone, à rappel et `fs.promises`. */
 const ENTREES_FS = {
@@ -140,8 +140,9 @@ for (const nom of ['exec', 'execSync']) {
 syncBuiltinESMExports()
 
 const racine = process.env.WFRP_PLATEFORME_RACINE
-if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par lancer() (via commandeDe) de scripts/docs/build-all.mjs')
+if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par `renduSousWin32` de scripts/docs/lib/plateforme-win32.test.mjs')
 const depot = urlDuDepot(racine)
+const racineReelle = fs.realpathSync(racine)
 
 /** Adresse `file:` du module qui a appelé `fonction` : premier cadre de pile hors de node. */
 function moduleAppelant(fonction) {
@@ -166,7 +167,7 @@ function moduleAppelant(fonction) {
 const cwdHote = process.cwd.bind(process)
 const chdirHote = process.chdir.bind(process)
 function cwdSimule() {
-  return estModuleDuDepot(moduleAppelant(cwdSimule), depot) ? versWindows(cwdHote()) : cwdHote()
+  return estModuleDuDepot(moduleAppelant(cwdSimule), depot) ? versWindows(cwdDonne(cwdHote(), racine, racineReelle)) : cwdHote()
 }
 process.cwd = cwdSimule
 process.chdir = (dossier) => chdirHote(versPosix(dossier))

@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { refs } from '../grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
 
 export const file = 'merchants.json';
@@ -28,10 +29,9 @@ const doc = document(
     buyMarkup: z.number().optional(),
     bargainSkill: z.number(),
     restockDays: z.number().optional(),
-    /** Sélection d'objets proposés d'office — clés étrangères vers `trappings.json`, hors tarifs de
-     *  SERVICE (LDB 66 l.12-14) : `curated` ignore la Disponibilité et le filtre `!t.service` de
-     *  `computeFreshStockLines`. */
-    curated: refs('trapping', { sousListe: { horsMarqueur: 'service' } }).optional(),
+    /** Sélection d'objets proposés d'office — ids de la sous-liste `INSTANCIABLE_PAR_ID`
+     *  (`grammaire/sousListes.ts`) ; `curated` ignore la Disponibilité. */
+    curated: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
     boniment: z.string().optional(),
     unitKinds: z.array(z.enum(['bete', 'vehicule-terrestre'])).optional(), // 'navire' non géré à l'achat (payCart) -> #748
   },

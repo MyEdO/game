@@ -10,9 +10,9 @@ import {
   documentDeLEntree,
   campagneDeLEntree,
   playerEntryError,
-  upgradeBibliotheque,
+  MIGRATIONS_BIBLIOTHEQUE,
 } from './projectLibrary';
-import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
 import { baseSimulee, brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { Scene, emptyScene } from './scene';
 import { parseProject, CURRENT_PROJECT_SCHEMA, ProjetRefuse } from './worldMap';
@@ -460,7 +460,7 @@ describe('documentDeLEntree — le document d’une entrée de bibliothèque, lu
   });
 
   it('copie d’AVANT E5 au nom divergent : le nom de l’ENTRÉE prime, l’id et la version restent ceux du document', () => {
-    const { paquet: _pq, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
+    const { paquet: _pq, fichier: _fi, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
     const entree = {
       id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: { ...identiteDuPaquet, type: 'projet', schema: CURRENT_PROJECT_SCHEMA, label: 'Nom du paquet', versionContenu: 4, scenes: [scene], narratif },
@@ -563,10 +563,10 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
   });
 });
 
-describe('upgradeBibliotheque — montée de `wfrp4-library`', () => {
+describe('MIGRATIONS_BIBLIOTHEQUE — migration de `wfrp4-library`', () => {
   it('base neuve : crée `projects` keyé id', () => {
     const base = baseSimulee();
-    upgradeBibliotheque(base.db, 0);
+    migrerBase(MIGRATIONS_BIBLIOTHEQUE, base.db, 0);
     expect([...base.magasins.keys()]).toEqual(['projects']);
     expect(base.magasins.get('projects')?.keyPath).toBe('id');
   });

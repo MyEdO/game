@@ -59,7 +59,9 @@ function mountView() {
     mount: () => act(() => root.render(<Probe />)),
     api: () => api,
     teardown: async () => {
+      const wrap = api.wrapRef.current;
       await act(async () => root.unmount());
+      wrap?.remove();
       container.remove();
     },
   };

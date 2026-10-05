@@ -1,4 +1,7 @@
 import { Buffer } from 'node:buffer';
+import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
+import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
+import { racinesDeModsParmi } from '../mods/racines.mjs';
 
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
@@ -105,8 +108,10 @@ export function transformGuide(text) {
 
 export function transformSkillTree(sourceFiles) {
   const outputs = new Map();
+  // Un mod Claude Code (#2278) n'a pas de miroir Codex.
+  const mods = racinesDeModsParmi(sourceFiles.keys());
   for (const [source, bytes] of sourceFiles) {
-    if (!source.startsWith('.claude/skills/')) continue;
+    if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');
     if (!source.endsWith('/SKILL.md')) {
       outputs.set(destination, Buffer.from(bytes));
@@ -158,6 +163,29 @@ export const SURFACE_CLAUDE = '.claude/settings.json';
 export const SURFACE_CODEX = '.codex/hooks.json';
 
 /**
+ * Le moteur de matcher de chaque surface. Claude Code : noms exacts si le matcher ne porte que
+ * lettres, chiffres, `_`, `-`, espaces, `,` et `|`, sinon « JavaScript regex (unanchored) »
+ * (https://code.claude.com/docs/en/hooks, « Matcher patterns »). Codex 0.156.1 : crate Rust `regex`,
+ * sans lookaround (`codex.exe` : « look-around, including look-ahead and look-behind, is not
+ * supported » ; « invalid matcher ·· in ·· »).
+ */
+export const MOTEUR_DE_SURFACE = Object.freeze({
+  [SURFACE_CLAUDE]: { lookaround: true, listeExacte: /^[A-Za-z0-9_ ,|-]*$/ },
+  [SURFACE_CODEX]: { lookaround: false, listeExacte: null },
+});
+
+/** Le matcher `matcher` de `surface`, compilé comme la surface le lit : `(nomDOutil) => boolean`. */
+export function compilerMatcher(matcher, surface) {
+  const { listeExacte } = MOTEUR_DE_SURFACE[surface];
+  if (listeExacte?.test(matcher)) {
+    const noms = new Set(matcher.split(/[|,]/).map((n) => n.trim()));
+    return (nom) => noms.has(nom);
+  }
+  const regex = new RegExp(matcher);
+  return (nom) => regex.test(nom);
+}
+
+/**
  * Les points d'entrée des hooks d'APPEL D'OUTIL (#2125) : `script` de `scripts/hooks/`, le `module` qui
  * exporte son registre (`exporte` : événement → gardes), son `timeout` (s) et son message. Le
  * répartiteur porte toutes les gardes ; la porte de fermeture a le sien, parce qu'un commit de
@@ -170,7 +198,8 @@ export const ENTREES_OUTIL = [
 ];
 
 /**
- * Hooks dont le CONTRAT n'appartient qu'à UNE surface : la surface qui le porte, l'autre ne le porte pas.
+ * Hooks de SESSION (points d'entrée hors registre : `SessionStart` n'a pas de `tool_name`), chacun avec
+ * les SURFACES qui le portent ; une surface absente de `surfaces` ne le porte pas.
  *
  * Le credo de travail entre dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de
  * CLAUDE.md — un import n'est ni tronqué ni persisté à part. Codex n'a pas d'import : sa surface
@@ -179,10 +208,14 @@ export const ENTREES_OUTIL = [
  * La mise en conformité d'un conteneur distant se garde sur `CLAUDE_CODE_REMOTE`
  * (`scripts/hooks/bootstrap-conteneur.mjs`) : sur la surface Codex, ce hook ne pourrait que naître
  * et rendre une liste vide. Un spawn qui ne mesure rien n'est pas une parité, c'est un mort.
+ *
+ * Le suivi de vague (`scripts/hooks/inject-suivi.mjs`, #2132) : surface Codex seule. Côté Claude, le mod
+ * `harnais` (`.claude/skills/harnais/hooks/suivi.ts`, #2279) le porte : une seule injection par surface.
  */
-export const HOOKS_MONO_SURFACE = [
-  { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surface: SURFACE_CODEX, timeout: 10, statusMessage: 'Injection du credo de travail' },
-  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surface: SURFACE_CLAUDE, timeout: 300, statusMessage: 'Conformité du conteneur distant (hooks git, gh)' },
+export const HOOKS_DE_SESSION = [
+  { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
+  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
+  { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
 ];
 
 /**
@@ -201,7 +234,7 @@ export const PLACE_PROJET = '${CLAUDE_PROJECT_DIR}';
 /**
  * La valeur `hooks` ATTENDUE de `surface`, DÉRIVÉE des registres : pour chaque point d'entrée et
  * chaque événement de son registre, un hook dont le matcher est l'UNION des `outils` de ses gardes,
- * puis les hooks mono-surface de `surface`.
+ * puis les hooks de session que `surface` porte.
  * @param {ReadonlyMap<string, Record<string, Array<{ outils: string[] }>>>} registres script → registre
  * @param {string} surface
  */
@@ -212,12 +245,12 @@ export function hooksAttendus(registres, surface) {
     const registre = registres.get(script);
     if (!registre) throw new Error(`registre absent pour ${script}`);
     for (const [phase, gardes] of Object.entries(registre)) {
-      const matcher = [...new Set(gardes.flatMap((g) => g.outils))].join('|');
+      const matcher = matcherDOutils([...new Set(gardes.flatMap((g) => g.outils))], MOTEUR_DE_SURFACE[surface]);
       ajouter(phase, { matcher, hooks: [{ type: 'command', ...lancementDeHook(surface, script), timeout, statusMessage }] });
     }
   }
-  for (const { phase, script, arguments: args, surface: proprietaire, timeout, statusMessage } of HOOKS_MONO_SURFACE)
-    if (proprietaire === surface) ajouter(phase, { hooks: [{ type: 'command', ...lancementDeHook(surface, script, args), timeout, statusMessage }] });
+  for (const { phase, script, arguments: args, surfaces, timeout, statusMessage } of HOOKS_DE_SESSION)
+    if (surfaces.includes(surface)) ajouter(phase, { hooks: [{ type: 'command', ...lancementDeHook(surface, script, args), timeout, statusMessage }] });
   return hooks;
 }
 

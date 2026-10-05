@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { tokenBodyKind } from '../gameIso/tokenBodyKind';
 import type { Combatant } from '../engine/types';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 
 /**
  * Vignette-portrait d'un combattant : gros plan sur le VISAGE vu de FACE (pose neutre), bordure =
@@ -14,6 +15,7 @@ import type { Combatant } from '../engine/types';
  * (arbitrage A2 du 2026-09-18).
  */
 export function RigPortrait({ combatant, size = 42, ring }: { combatant: Combatant; size?: number; ring?: string }) {
+  useVersionDesDatasets();
   const r = tokenBodyKind({ kind: 'combatant', combatant }, 'top');
   // R9 (daltonisme) : la FORME du contour encode l'équipe en plus de la couleur — héros = plein, ennemi = tirets.
   const borderStyle = combatant.kind === 'hero' ? 'solid' : 'dashed';

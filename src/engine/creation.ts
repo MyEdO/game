@@ -18,8 +18,8 @@ import { RNG, defaultRNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money } from './money';
-import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, spells as allSpells } from '../data';
-import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
+import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById } from '../data';
+import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
 import { bonus } from './characteristics';
@@ -211,11 +211,11 @@ export function pettySpellQuotaFor(hero: Combatant): number {
 
 /** Complète une liste de Sorts de Magie mineure AUTHORÉS (ids) jusqu'au `quota` (LDB 10 l.714) —
  *  les ids authorés sont GARDÉS tels quels (identité), seul un manque est comblé par d'autres sorts
- *  de la famille `mineure` du catalogue, jamais un remplacement. `quota` nul renvoie `authoredIds`
+ *  de la sous-liste `mineure` (`idDe('spell', 'mineure')`, `idsDeLaSousListe`), jamais un remplacement. `quota` nul renvoie `authoredIds`
  *  inchangé (aucun Talent de Magie mineure). */
 export function fillPettySpellsToQuota(authoredIds: string[], quota: number): string[] {
   if (!quota || authoredIds.length >= quota) return authoredIds;
-  const minorIds = allSpells.filter((s) => s.family === 'mineure').map((s) => s.id);
+  const minorIds = idsDeLaSousListe('spell', 'mineure');
   const topUp = minorIds.filter((id) => !authoredIds.includes(id)).slice(0, quota - authoredIds.length);
   return [...authoredIds, ...topUp];
 }

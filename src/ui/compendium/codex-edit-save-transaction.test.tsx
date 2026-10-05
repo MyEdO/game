@@ -49,7 +49,7 @@ describe('atelier du Codex — la pose mémoire est TRANSACTIONNELLE (#1530)', (
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CodexEdit categoryKey="seaShanties" label={cible.label} id={cible.id} onClose={() => {}} />);
+      root.render(<CodexEdit categoryKey="seaShanties" id={cible.id} onClose={() => {}} />);
     });
 
     // Violation la plus simple du zod RÉEL : `desc` vidée (`src/data/schemas/defs/sea-shanties.ts`

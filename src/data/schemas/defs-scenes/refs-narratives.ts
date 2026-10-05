@@ -187,19 +187,17 @@ export function renommeRef<P extends ProjetAReferences>(projet: P, cible: CibleN
   } as P;
 }
 
-/** Le LIEU d'un site, lisible par l'auteur : « scène « Le relais » », « carte du monde »,
- *  « indice « L'affiche » ». */
-export function lieuDuSite(projet: ProjetAReferences, site: SiteDeRef): string {
+/** Le LIEU d'un site : la racine qui le porte et, pour une scène ou un indice, son nom (libellé de la
+ *  scène, titre de l'indice, sinon son id). La phrase se compose à l'affichage. */
+export type LieuDeSite = { racine: 'scene' | 'indice'; nom: string } | { racine: 'carte' };
+
+export function lieuDuSite(projet: ProjetAReferences, site: SiteDeRef): LieuDeSite {
   const [racine, , rang] = site.chemin;
   if (racine === 'scenes') {
     const sc = objet(projet.scenes[site.chemin[1] as number]);
-    return `scène « ${String(sc.label || sc.id)} »`;
+    return { racine: 'scene', nom: String(sc.label || sc.id) };
   }
-  if (racine === 'worldMap') return 'carte du monde';
+  if (racine === 'worldMap') return { racine: 'carte' };
   const ind = objet(liste(objet(projet.narratif).indices)[rang as number]);
-  return `indice « ${String(ind.titre || ind.id)} »`;
+  return { racine: 'indice', nom: String(ind.titre || ind.id) };
 }
-
-/** Les lieux DISTINCTS des `sites`, joints pour une phrase (« scène « A », indice « B » »). */
-export const lieuxDesSites = (projet: ProjetAReferences, sites: readonly SiteDeRef[]): string =>
-  [...new Set(sites.map((s) => lieuDuSite(projet, s)))].join(', ');

@@ -1,6 +1,6 @@
-// Applique les résultats du workflow d'intégration d'UN livre aux fiches + catalogues de l'Atlas.
+// Applique les résultats du workflow d'intégration d'UN livre aux fiches de l'Atlas.
 // Idempotent : un sentinel HTML `<!-- <ABRÉV>-INTEGRATION -->` marque le contenu ajouté ; relancer
-// ne duplique pas. C'est le MÊME marqueur que `build-catalogs.mjs` préserve, en générique.
+// ne duplique pas.
 // Usage : node scripts/raw/apply-livre.mjs <ABRÉV> <workflow-output.json>
 // Le livre n'est pas nommé ici (#1825) : son sigle ENTRE en argument, son libellé se lit au
 // registre `src/data/books.json`.
@@ -25,7 +25,7 @@ if (!livre) {
   process.exit(1)
 }
 
-// Marqueur : SOURCE UNIQUE `_lib.mjs`, celle que `build-catalogs`/`merge-docs` relisent.
+// Marqueur : SOURCE UNIQUE `_lib.mjs`.
 const SENT = marqueurIntegration(ABBR)
 const PUCE = `**${livre.label ?? ABBR} (${ABBR})**`
 const data = JSON.parse(readFileSync(OUTFILE, 'utf8')).result
@@ -55,15 +55,6 @@ for (const r of data) {
     f = appendTopics(f, r.ficheTopics)
     writeFileSync(r.fiche, f)
     console.log(`fiche  + ${r.domain.padEnd(11)} → ${r.fiche}  (+${r.ficheTopics.length} c.)`)
-  }
-  if (r.catalogue && r.catalogueEntries && r.catalogueEntries.trim()) {
-    const tag = `${SENT} ${r.domain}`
-    const c = readText(r.catalogue)
-    if (c.includes(tag)) { console.log('skip cat (déjà) :', r.catalogue) }
-    else {
-      writeFileSync(r.catalogue, c.replace(/\s*$/, '') + `\n\n---\n\n${tag}\n\n${r.catalogueEntries.trim()}\n`)
-      console.log(`catal. + ${r.domain.padEnd(11)} → ${r.catalogue}  (+${r.catalogueEntries.length} c.)`)
-    }
   }
 }
 console.log(`\nIntégration ${ABBR} appliquée.`)

@@ -1,4 +1,4 @@
-// ── Bloc NARRATIF d'un paquet de campagne (schema 3, #765) ──────────────────────────────────────
+// ── Bloc NARRATIF d'un paquet de campagne (#765) ────────────────────────────────────────────────
 // Frontière RÉFÉRENCE vs NARRATIF (doctrine `game-campagne-json-portable-frontiere-reference-narratif`) :
 // le narratif est EMBARQUÉ dans le JSON du projet (auto-suffisant, révélé seulement en jeu) et RÉFÉRENCE
 // la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée dans `src/data` global. Cet
@@ -16,7 +16,6 @@ import { REGISTRES_NARRATIFS } from '../data/schemas/defs-scenes/registres-narra
 export interface IndiceStade {
   /** id STABLE du stade, unique DANS l'indice. */
   id: string;
-  /** Prose révélée (verbatim source, règle stricte 5). */
   prose?: string;
   /** id d'un `DocumentNarratif` du même narratif (#679). */
   documentId?: string;
@@ -71,15 +70,15 @@ export interface PresetPnj {
  *  (`styles/base.css`), portée en `data-ambiance` par la coquille d'écran. */
 export type AmbianceCadre = 'veillee' | 'parchemin';
 
-/** Ouverture CÉRÉMONIELLE du chapitre (#717) — titre, pitch VERBATIM (règle 5, rendu par `<Prose>`),
- *  ambiance. Absente du narratif = la campagne démarre directement sur sa scène d'entrée. */
+/** Ouverture CÉRÉMONIELLE du chapitre (#717) — titre, pitch (rendu par `<Prose>`), ambiance. Absente
+ *  du narratif = la campagne démarre directement sur sa scène d'entrée. */
 export interface OuvertureBlock {
   surtitre?: string;
   titre: string;
   sousTitre?: string;
   /** Libellé d'AFFICHAGE du chapitre (doctrine du label) : aucune logique ne le lit, seul l'écran le rend. */
   chapitre?: string;
-  /** Markdown VERBATIM de la source (règle stricte 5) — jamais une paraphrase. */
+  /** Markdown (`ouvertureSchema`). */
   pitch: string;
   source?: SourceRef;
   /** Défaut `veillee`. */
@@ -108,8 +107,7 @@ export interface NarratifBlock {
   cloture?: ClotureBlock;
 }
 
-/** Narratif vide — posé par `newProject` et par la migration 2→3 (`worldMap.ts`, `PROJECT_MIGRATIONS`) :
- *  une liste vide par registre (`REGISTRES_NARRATIFS`). */
+/** Narratif vide — posé par `newProject` : une liste vide par registre (`REGISTRES_NARRATIFS`). */
 export function emptyNarratif(): NarratifBlock {
   return Object.fromEntries(REGISTRES_NARRATIFS.map((r) => [r.cle, []])) as unknown as NarratifBlock;
 }

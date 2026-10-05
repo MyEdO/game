@@ -2,10 +2,10 @@
  * Construction de Combattants depuis le bestiaire (réf.) ou un statblock
  * personnalisé d'une scène. Sert au combat tactique.
  */
-import { Combatant, Characteristics, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../engine/types';
+import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../engine/types';
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
-import { findCreatureById, byId, findTalentById, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
+import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
 import { vehicleCombatant } from '../engine/vehicle';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
@@ -17,12 +17,14 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche } from '../engine/statblock';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../engine/items';
-import { maxWounds, bonus } from '../engine/characteristics';
-import { parseSizeLabel, resizeBySteps, SIZE_ORDER, SizeCategory } from '../engine/size';
+import { maxWounds, bonus, refreshWounds } from '../engine/characteristics';
+import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../engine/size';
+import { appliquerAcquisitions } from '../engine/talentEffects';
 import { parsePsychTraits } from '../engine/psychology';
-import { traitCharMods, traitBonusWoundsBE, isMindless, mutationsAtSpawn, markMutationsAtSpawn, isSwarm, findResolvedTrait } from '../engine/traits/dispatch';
+import { traitCharMods, traitBonusWoundsBE, mutationsAtSpawn, markMutationsAtSpawn, isSwarm } from '../engine/traits/dispatch';
 import { rollMutation, mutationById } from '../data/mutations';
-import { makeRNG } from '../engine/dice';
+import { makeRNG, type RNG } from '../engine/dice';
+import { attachMutation, type Mutation } from '../engine/corruption';
 import { groupsFor } from '../engine/groups';
 import { weaponsFromTraits, armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import { hashSeed } from '../engine/dice';
@@ -76,20 +78,15 @@ function charsFrom(src: Partial<Record<string, number | null>>, fallback = 30): 
 // le RENDU d'exploration sans cycle de couches. Re-exportée pour les importeurs.
 export { weaponFromTrait } from '../engine/creatureEquip';
 
-/** Catégorie de Taille depuis le trait « Taille (X) » (LDB 85) — lue par le REGISTRE des Traits
- *  (`findResolvedTrait` → arg), jamais par une regex propre. Une plage (« Taille (de Petite à Énorme) ») est
- *  résolue à sa borne haute par `parseSizeLabel`. null si absent ou argument non reconnu. */
-export function sizeFromTraits(traits: TraitList): SizeCategory | null {
-  const arg = findResolvedTrait(traits, 'taille')?.arg;
-  return arg ? parseSizeLabel(arg) : null;
-}
-
 /** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
- *  dérivée des Traits (statbloc ou créature du bestiaire via `ref`). `undefined` ⇒ Moyenne au rendu. */
-export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): SizeCategory | undefined {
-  if (ent.statblock?.size) return ent.statblock.size;
-  const traits = ent.statblock?.traits ?? (ent.ref ? findCreatureById(ent.ref)?.traits : undefined); // tous TraitInstance[]
-  return (traits && sizeFromTraits(traits)) || undefined;
+ *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire via `ref`). */
+export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): SizeCategory {
+  const creature = ent.ref ? findCreatureById(ent.ref) : undefined;
+  return tailleDuProfil({
+    size: ent.statblock?.size,
+    traits: ent.statblock?.traits ?? creature?.traits,
+    talents: ent.statblock?.talents ?? creature?.talents,
+  });
 }
 
 /** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
@@ -106,15 +103,18 @@ function applySwarmBuild(chars: Characteristics, wounds: number): { chars: Chara
   return { chars, wounds: wounds * 5 };
 }
 
-/** Mutation / Corruption mentale (LDB 85 l.92/245) : tirage sur les Tableaux des Corruptions au
- *  spawn — graine STABLE dérivée de l'id (déterministe, rejouable). */
-function spawnMutations(traits: TraitList | undefined, id: string) {
+/** Mutation / Corruption mentale (LDB 85 l.92/245) : les mutations d'un statbloc, tirées sur les Tableaux
+ *  des Corruptions avec le `rng` SEEDÉ du porteur ; seul l'arg ABSENT tire. Un `arg` irrésolu LÈVE : le
+ *  schéma d'instance le refuse (`refusDArgHorsRegistre`, `data/schemas/grammaire/reference.ts`) — #1853. */
+function spawnMutations(traits: TraitList | undefined, rng: RNG): Mutation[] {
   const specs = mutationsAtSpawn(traits);
   const mark = markMutationsAtSpawn(traits);
-  if (!specs.length && !mark) return {};
-  const rng = makeRNG(hashSeed(`mut:${id}`));
-  // Mutation EXPLICITE (id, ex. « cornes-asymetriques » : tell figé en donnée) sinon tirage.
-  const mutations = specs.map((s) => (s.mutationId ? mutationById(s.mutationId) : null) ?? rollMutation(s.kind, rng));
+  const mutations = specs.map((s) => {
+    if (!s.mutationId) return rollMutation(s.kind, rng);
+    const m = mutationById(s.mutationId);
+    if (!m) throw new Error(`spawn : la mutation « ${s.mutationId} » d'un trait de statbloc ne résout aucune entrée (#1853).`);
+    return m;
+  });
   // Marque du Chaos (EDOC 13 l.522-524) : ⌈1d`countDie`/`countDivide`⌉ tirages, alternant `first` puis
   // l'autre nature, sur les tables `mentalTable`/`physTable` — MÊME rng seedé (ordre de tirage stable).
   if (mark) {
@@ -125,7 +125,19 @@ function spawnMutations(traits: TraitList | undefined, id: string) {
       mutations.push(rollMutation(kind === 'mentale' ? mark.mentalTable : mark.physTable, rng));
     }
   }
-  return { mutations };
+  return mutations;
+}
+
+/** Le porteur NÉ avec ses mutations les porte comme celui qui les a GAGNÉES en jeu : chaque instance est
+ *  attachée par `attachMutation` (`engine/corruption.ts`), graine STABLE dérivée de l'id (déterministe,
+ *  rejouable). Les armes se re-dérivent ensuite de `c.traits` par la dérivation `armes` du constructeur, et
+ *  les Blessures se recalent (`refreshWounds` : un porteur neuf reste à son maximum). LDB 85 l.245 ; #1853. */
+function attacherMutationsDeSpawn(c: Combatant, traits: TraitList | undefined, armes: (traits: TraitList) => Weapon[]): void {
+  const rng = makeRNG(hashSeed(`mut:${c.id}`));
+  const mutations = spawnMutations(traits, rng);
+  for (const m of mutations) attachMutation(c, m, rng);
+  c.weapons = armes(c.traits ?? []);
+  if (mutations.length) refreshWounds(c);
 }
 
 /** Compétences d'un statbloc au FORMAT LIVRE (« Langue (Magick) 63 », « Focalisation 65 ») : la
@@ -170,9 +182,8 @@ export function skillsFromBook(list: SkillRef[] | undefined, printedChars: Chara
   return out;
 }
 
-/** Talents d'une créature/statbloc → `TalentInstance[]` (libellés concrets : « Magie des Arcanes (Ghur) »,
- *  « Menaçant »). Refs STRUCTURÉES `TalentRef` (id stable + niveau/spec). Le nom RECONSTRUIT garde sa spec
- *  entre parenthèses : c'est la clé du registre combatFeatures (`featureKey`) et du grimoire. */
+/** Talents d'une créature/statbloc → `TalentInstance[]` (`talentId` + `spec` + `times`), depuis les refs
+ *  STRUCTURÉES `TalentRef` ; un id hors catalogue est écarté. */
 export function talentsFromBook(list: TalentRef[] | undefined): TalentInstance[] {
   const out: TalentInstance[] = [];
   for (const ref of list ?? []) {
@@ -234,8 +245,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // Traits APPRIS (dresse-* d'une Possession, LDB 23 l.130 → LDB 85) : ids seuls, unis aux traits de base.
   const learnedTraits: TraitInstance[] = (extras?.learnedTraits ?? []).map((traitId) => ({ id: traitId }));
   const traits = [...creature.traits, ...optTraits, ...learnedTraits].filter((t) => !removedBySwap.has(t.id));
-  // « – » du Schéma des Profils (LDB 76) = caractéristique INEXISTANTE → 0 (Int/FM nulles = Fabriqué,
-  // auto-réussite via isMindless ; CT nulle = pas d'arme à distance dans la donnée). Pas de 30 inventé.
+  // « – » imprimé (`null`) → 0 : #2304. Int/FM nulles d'un Fabriqué : LDB 85 l.142.
   let chars = charsFrom(creature.char, 0);
   // Bonus de caractéristique octroyé par une variante « swap » (Grand Loup +15 Soc, Griffon +20 Soc,
   // ZI) — appliqué sur la base (une carac. « – » = 0 devient la valeur du bonus).
@@ -259,7 +269,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // Traits facultatifs à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : le profil
   // imprimé est FINAL pour ses traits fixes (déjà cuits) ; un facultatif AJOUTÉ s'applique en DIRECT via
   // `liveTraits` (collecteur passif) → `characteristics` reste la base bestiaire, sans double-compte.
-  const baseSize = sizeFromTraits(creature.traits) ?? 'moyenne';
+  const baseSize = tailleDuProfil(creature);
   // Taille FACULTATIVE : trait « Taille (X) » choisi, OU catégorie posée par une variante « swap »
   // (bidirectionnel : Grand Loup Moyenne→Grande, Vouivre Énorme→Grande). PRIME sur celle du bestiaire
   // et applique « Utiliser les Tailles » (LDB 85 l.276-277 : ±10 F/E, ∓5 Ag par catégorie d'écart).
@@ -282,7 +292,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   const swarm = isSwarm(traits);
   if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // ×5 PB + 10 CC (la nuée = 5 créatures, LDB 85 l.253)
   const movement = typeof creature.char.M === 'number' ? creature.char.M : 4; // facultatifs → liveTraits (effectiveMovement)
-  return {
+  const combattant: Combatant = {
     id,
     label: creature.label,
     creatureId: creature.id, // identité bestiaire STABLE → le rig la résout par id (plus par `name`)
@@ -293,15 +303,14 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     wounds: { current: wounds, max: wounds, base: wounds },
     advantage: 0,
     conditions: [],
-    weapons: weaponsFromTraits(traits),
+    weapons: [],
     armour: armourFromTraits(traits),
     size,
     bodyShape: bodyShapeOf(creature.id), // Tableau de Localisation par forme du corps (LDB 76 l.15-29)
     ...(creature.followsCharacterRules ? { followsCharacterRules: true } : {}), // #152 : bestiaire HUMAIN rétro-flagué (CreatureData) — même prédicat unique que statblockToCombatant (#143)
-    ...parsePsychTraits(traits), // Peur/Terreur/Immunité + traits ciblés depuis les traits (LDB 21+85)
-    ...(swarm ? { swarm: true, psychImmune: true } : {}), // Nuée : ignore la Psychologie (LDB 85 l.253)
-    ...(isMindless(traits) ? { psychImmune: true } : {}), // Fabriqué : Tests d'Int/FM/Soc auto-réussis (LDB 85 l.142)
-    ...spawnMutations(traits, id), // Mutation / Corruption mentale : tirage au spawn (LDB 85)
+    ...(creature.corruption != null ? { corruption: creature.corruption } : {}), // EDO 01 l.504 ; LDB 19
+    ...parsePsychTraits(traits), // Peur/Terreur/Immunité (Nuée, Fabriqué compris) + traits ciblés depuis les traits (LDB 21+85)
+    ...(swarm ? { swarm: true } : {}), // LDB 85 l.253
     // Sorts : ceux de la DONNÉE (PNJ nommés — Eusapia en a 12), surchargés par le choix d'auteur.
     // Combatant.spells = IDS de sort, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à
     // `validateScene` pour une scène vivante de l'éditeur.
@@ -313,6 +322,9 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     movement,
     pos,
   };
+  attacherMutationsDeSpawn(combattant, traits, weaponsFromTraits);
+  appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
+  return combattant;
 }
 
 export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
@@ -333,7 +345,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
   // (collecteur passif). `characteristics` reste le profil de BASE saisi ; `effectiveChar` ajoute les traits.
-  const size = sb.size ?? sizeFromTraits(traits) ?? 'moyenne';
+  const size = tailleDuProfil({ size: sb.size, traits, talents: sb.talents });
   // Blessures : surcharge explicite `char.B` si fournie, sinon formule par Taille (vide ⇒ formule, LDB 85).
   // La formule reprend la main si les caractéristiques ont été tirées (le B saisi valait pour le profil rond).
   // Blessures sur le profil INCLUANT les traits (Coriace +E…) ; `characteristics` ne garde que la base saisie.
@@ -345,7 +357,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   const swarm = isSwarm(traits);
   if (swarm) ({ chars, wounds } = applySwarmBuild(chars, wounds)); // Nuée : ×5 PB + 10 CC (LDB 85 l.253)
   const movement = typeof sb.char.M === 'number' ? (sb.char.M as number) : 4; // traits → liveTraits (effectiveMovement)
-  return {
+  const combattant: Combatant = {
     id,
     label: sb.label,
     kind: 'enemy',
@@ -354,18 +366,14 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     wounds: { current: wounds, max: wounds, base: wounds },
     advantage: 0,
     conditions: [],
-    // Armes : depuis les Traits si fournis (« Arme (Épée) +7 », « À distance (Arbalète) +9 (60) »),
-    // sinon une arme générique au dégât indiqué.
-    weapons: traits.length ? weaponsFromTraits(traits) : [buildWeapon({ label: 'Arme', damage: { literal: sb.weaponDamage ?? '+BF' } })], // uid universel
+    weapons: [],
     armour: emptyArmour(sb.armour ?? 0),
     size,
     bodyShape: swarm ? 'humanoide' : bodyShapeForSpecies(appearance?.species), // Tableau de Localisation (LDB 76 l.15-29) — espèce AUTHORÉE (id, jamais sb.label), Nuée force 'humanoide' (#814 : divergence possible avec `bodyShapeOf` sur un preset de campagne fusionnant Nuée hors registre global)
     ...(sb.inert ? { inert: true } : {}), // affût inerte servi (AA/MDG 12) : ciblable, sans réaction de combat ni tour
     ...(sb.followsCharacterRules ? { followsCharacterRules: true } : {}), // #143 : PNJ humain hostile MODÉLISÉ (Corruption/composant/maladie de personnage)
-    ...parsePsychTraits(traits), // Peur/Terreur/Immunité + traits ciblés depuis les traits (LDB 21+85)
-    ...(swarm ? { swarm: true, psychImmune: true } : {}), // Nuée : ignore la Psychologie (LDB 85 l.253)
-    ...(isMindless(traits) ? { psychImmune: true } : {}), // Fabriqué : Tests d'Int/FM/Soc auto-réussis (LDB 85 l.142)
-    ...spawnMutations(traits, id), // Mutation / Corruption mentale : tirage au spawn (LDB 85)
+    ...parsePsychTraits(traits), // Peur/Terreur/Immunité (Nuée, Fabriqué compris) + traits ciblés depuis les traits (LDB 21+85)
+    ...(swarm ? { swarm: true } : {}), // LDB 85 l.253
     ...(sb.spells?.length ? { spells: sb.spells } : {}), // ids d'auteur, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à `validateScene` pour une scène vivante
     groups: groupsFor({ extras: sb.groups, traits, talents }), // extras manuels (déjà des ids) + traits (Mort-vivant…) + religieux (Talent Béni) — espèce/carrière non portées par le statbloc (P3)
     traits, // structurés → attaques gratuites + lecture sans re-parsing
@@ -374,6 +382,11 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     movement,
     pos,
   };
+  // Armes : depuis les Traits si fournis (« Arme (Épée) +7 », « À distance (Arbalète) +9 (60) »),
+  // sinon une arme générique au dégât indiqué.
+  attacherMutationsDeSpawn(combattant, traits, (t) => (t.length ? weaponsFromTraits(t) : [buildWeapon({ label: 'Arme', damage: { literal: sb.weaponDamage ?? '+BF' } })])); // uid universel
+  appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
+  return combattant;
 }
 
 /** Une réf hors du faisceau `refEntiteResolue` a franchi la porte (`sceneEntitySchema`, #1882) : bogue du jeu. */
@@ -416,7 +429,7 @@ export function spawnEnemy(
   opts?: { appearance?: EntityAppearance; weapon?: string } & SpawnExtras,
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
-    : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance)
+    : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
     : ficheDeRef(porteur.ref, id, pos, opts);
   c.porteurDeFiche = porteur;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
@@ -463,5 +476,5 @@ export function spawnEnemy(
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
   const spawnRanged = c.weapons.find((w) => w.type === 'ranged');
   if (spawnRanged) loadWeapon(c, spawnRanged);
-  return c;
+  return structuredClone(c); // #2097
 }

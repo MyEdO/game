@@ -9,11 +9,13 @@
  *    `source` : le rapport donne des COORDONNÉES de case et le dit (`check.mts`).
  */
 import { readFileSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Scene } from '../../src/state/scene';
 import type { ZoneSeed } from '../../src/state/asciiMap';
 import { parseProject } from '../../src/state/worldMap';
+import { dossierDesProjetsLivres, listerProjetsLivres } from '../guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../source/projetLivre.mjs';
 import { buildOperaFloorplan, operaZoneLayers, OPERA_ZONE_SEEDS } from '../../src/scenes/opera/floorplan';
 import { REZ_ASCII, ETAGE_ASCII } from '../../src/scenes/opera/floorplan.ascii';
 
@@ -77,11 +79,13 @@ export function findMap(key: string): MapEntry {
   return entry;
 }
 
-/** Scènes d'un PROJET exporté (`.json` de l'éditeur), une entrée par scène du document. La Scène est
- *  relue par `parseProject` (migrations de schéma + `normalizeScene`, le MÊME chemin que le jeu) : elle
- *  est déjà compilée dans le document, rien n'est rebâti. */
+/** Scènes d'un PROJET (`.json` exporté par l'éditeur, ou projet livré), une entrée par scène du document.
+ *  La Scène est relue par `parseProject` (migrations de schéma + `normalizeScene`, le MÊME chemin que le
+ *  jeu) : elle est déjà compilée dans le document, rien n'est rebâti. Un projet LIVRÉ est lu en forme
+ *  servie (`lireProjetLivre`) ; un export porte déjà la sienne. */
 export function loadProjectMaps(path: string): MapEntry[] {
-  const doc = parseProject(JSON.parse(readFileSync(path, 'utf8')));
+  const rel = relative(dossierDesProjetsLivres(), resolve(path)).split(sep).join('/');
+  const doc = parseProject(listerProjetsLivres().includes(rel) ? lireProjetLivre(rel) : JSON.parse(readFileSync(path, 'utf8')));
   const file = basename(path);
   return doc.scenes.map((scene) => ({
     key: `${path}#${scene.id}`,

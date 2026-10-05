@@ -106,9 +106,9 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "creatures.json", champ: "monster", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "optionals", occurrences: 649, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "remove", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "creatures.json", champ: "talents", occurrences: 1724, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "creatures.json", champ: "traits", occurrences: 3049, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "creatures.json", champ: "trappings", occurrences: 132, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "creatures.json", champ: "talents", occurrences: 1788, lot: "L2/L3 #1473", date: "2026-08-26" }, // 1724 → 1788 (#680, 2026-09-29) : +64, profils de presets de PNJ de la vague 1 (diligence-projet.json › presetsPnj[].profil) mesurés comme entrées partielles de creatures.json
+  { dataset: "creatures.json", champ: "traits", occurrences: 3116, lot: "L2/L3 #1473", date: "2026-08-26" }, // 3049 → 3116 (#680, 2026-09-29) : +67, profils de presets de PNJ de la vague 1 (diligence-projet.json › presetsPnj[].profil) mesurés comme entrées partielles de creatures.json
+  { dataset: "creatures.json", champ: "trappings", occurrences: 196, lot: "L2/L3 #1473", date: "2026-08-26" }, // 132 → 196 (#680, 2026-09-29) : +64, profils de presets de PNJ de la vague 1 (diligence-projet.json › presetsPnj[].profil) mesurés comme entrées partielles de creatures.json
   { dataset: "crew-test-types.json", champ: "essential", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "crew-test-types.json", champ: "roles", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "crew-test-types.json", champ: "rule", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -124,9 +124,9 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "diligence-projet.json", champ: "a", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
   { dataset: "diligence-projet.json", champ: "b", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
   { dataset: "diligence-projet.json", champ: "modes", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 38, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" }, // 38→76 : +38 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
   { dataset: "diligence-projet.json", champ: "scene", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "walls", occurrences: 668, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" }, // 668→1336 : +668 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
   { dataset: "domains.json", champ: "amount", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "castBonus", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "casterOps", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },

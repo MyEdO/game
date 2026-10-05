@@ -260,7 +260,7 @@ async function violationsCanal(code: string, filePath = SOUS_LA_REGLE): Promise<
 }
 
 describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULOTS (#1262 V3 Lj)', () => {
-  it('src/state RÉEL : aucun fichier ne compose d’issue hors goulot (la population EST le contrat)', async () => {
+  it('src/state RÉEL : aucun fichier ne compose d’issue hors goulot (la population EST le contrat)', { timeout: 30_000 }, async () => {
     // Pré-filtre par SOUS-CHAÎNE nue (« flowOutcomes ») — aucune forme d'import n'y échappe, et seuls
     // les candidats sont lintés (linter tout `src/state` coûte ~8 s à chaque run pour le même verdict).
     // La population EST le corpus réel de `src/state`, tests compris, lu par `readCorpus` — mémoïsé par
@@ -273,7 +273,7 @@ describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULO
       .filter((m) => m.ruleId === 'murs/canal-issue')
       .map(() => relative(ROOT, r.filePath).split('\\').join('/')));
     expect(offenders, 'Issue composée hors goulot — déclarer `spec.issue` et acquitter par `flow.apply` :').toEqual([]);
-  }, { timeout: 30_000 });
+  });
 
   it('les GOULOTS sont exemptés NOMMÉMENT (et eux seuls) : le même import y passe', async () => {
     for (const g of ISSUE_GOULOTS) {

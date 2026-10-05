@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { reverseGroups, bookContents, labelIndex, tokenizeLinks } from './relations';
-import { invalidateCodexLookup } from './registry';
 import { setDataset } from '../../data/overrides';
 import { replier } from '../../lib/ordre.mjs';
 import { creatures, traits, gods, trappings, skills, talents, careerLevels, etats, locations, characteristics, findCareerById, findLocationById } from '../../data';
@@ -256,10 +255,10 @@ describe('relations — graphe inverse id-based', () => {
     expect(link!.id).toBe(traitCorr.id);
   });
 
-  it('FRAÎCHEUR après persist : renommer une créature (mutation en place) + invalidate → graphe inverse ET index de libellés re-projetés', () => {
-    // Miroir de la fraîcheur du registre : les datasets sont mutés EN PLACE (`overrides.ts::setDataset`),
-    // puis `invalidateCodexLookup()` bump la version → les index (graphe, catalogue, labelIndex) se
-    // reconstruisent depuis la donnée live. Avant invalidation : figés (défensif).
+  it('FRAÎCHEUR après persist : renommer une créature (mutation en place) → graphe inverse ET index de libellés re-projetés', () => {
+    // Miroir de la fraîcheur du registre : les datasets sont mutés EN PLACE au seam
+    // (`overrides.ts::setDataset`), qui bumpe `versionDesDatasets` → les index (graphe, catalogue,
+    // labelIndex) se reconstruisent depuis la donnée live à la lecture suivante.
     // Créature au libellé UNIQUE parmi les créatures → l'ancien référant disparaît vraiment du groupe
     // inverse après renommage (pas d'homonyme qui le maintiendrait).
     const c = creatures.find((x) => x.traits.length > 0 && creatures.filter((y) => y.label === x.label).length === 1)!;
@@ -270,9 +269,6 @@ describe('relations — graphe inverse id-based', () => {
       // Index construits sur l'ancienne donnée.
       expect(groupHas(reverseGroups('traits', traitId), 'creatures', c.label)).toBe(true);
       setDataset('creatures', creatures.map((x) => (x.id === c.id ? { ...x, label: renamed } : x)));
-      // Figé tant que non invalidé (même comportement défensif que `codexLookup`).
-      expect(groupHas(reverseGroups('traits', traitId), 'creatures', c.label)).toBe(true);
-      invalidateCodexLookup();
       // Re-projection : le graphe inverse porte le nouveau libellé, plus l'ancien.
       const groups = reverseGroups('traits', traitId);
       expect(groupHas(groups, 'creatures', renamed)).toBe(true);
@@ -281,7 +277,6 @@ describe('relations — graphe inverse id-based', () => {
       expect(labelIndex().get(replier(renamed))?.label).toBe(renamed);
     } finally {
       setDataset('creatures', before);
-      invalidateCodexLookup();
     }
   });
 });

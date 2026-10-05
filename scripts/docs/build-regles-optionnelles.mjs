@@ -16,163 +16,165 @@
  *  - la clé de persistance `localStorage`, lue dans `src/state/houseRules.ts`.
  * La part ÉDITORIALE (comment activer, quoi faire avant de rapporter une absence) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-regles-optionnelles.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
-const OUTIL = 'build-regles-optionnelles'
-const DATA = 'src/data/reglesOptionnelles.json'
-const DEF = 'src/data/schemas/defs/reglesOptionnelles.ts'
-const TABS = 'src/ui/houseRuleTabs.ts'
-const STORE = 'src/state/houseRules.ts'
-const PANNEAU = 'src/ui/HouseRulesModal.tsx'
-const POLICY = 'src/engine/policy.ts'
-const RECETTE = 'docs/recette-navigateur.md'
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  const OUTIL = 'build-regles-optionnelles'
+  const DATA = 'src/data/reglesOptionnelles.json'
+  const DEF = 'src/data/schemas/defs/reglesOptionnelles.ts'
+  const TABS = 'src/ui/houseRuleTabs.ts'
+  const STORE = 'src/state/houseRules.ts'
+  const PANNEAU = 'src/ui/HouseRulesModal.tsx'
+  const POLICY = 'src/engine/policy.ts'
+  const RECETTE = 'docs/recette-navigateur.md'
 
-function abandon(msg) {
-  console.error(`${OUTIL} — ${msg}`)
-  process.exit(1)
-}
-
-function lire(p) {
-  if (!existsSync(p)) abandon(`fichier « ${p} » introuvable (déplacé/supprimé ?)`)
-  return readFileSync(p, 'utf8')
-}
-
-/** Première capture d'un motif, fail-fast (une constante déplacée casse ICI, pas dans le .md). */
-function capture(texte, motif, quoi, ou) {
-  const m = texte.match(motif)
-  if (!m) abandon(`${quoi} introuvable dans ${ou} (renommé/déplacé ?)`)
-  return m[1]
-}
-
-// ── Registre ─────────────────────────────────────────────────────────────────────────────────────
-
-const REGLES = JSON.parse(lire(DATA))
-if (!Array.isArray(REGLES) || !REGLES.length) abandon(`${DATA} est vide ou n'est pas un tableau`)
-for (const r of REGLES) {
-  for (const requis of ['id', 'label', 'group', 'kind', 'ref', 'hint']) {
-    if (r[requis] === undefined) abandon(`l'entrée « ${r.id ?? '?'} » de ${DATA} n'a pas de champ « ${requis} »`)
+  function abandon(msg) {
+    console.error(`${OUTIL} — ${msg}`)
+    process.exit(1)
   }
-  if (r.default === undefined) abandon(`l'entrée « ${r.id} » de ${DATA} n'a pas de champ « default »`)
-}
 
-// ── Clés déclarées par le schéma (support de l'angle mort annoncé) ───────────────────────────────
-
-const DEF_SRC = lire(DEF)
-// Le vocabulaire de `kind` est un enum NOMMÉ (`enumNomme`, `src/data/schemas/grammaire/valeurs.ts`) :
-// ses OPTIONS sont les clés de la table `{ option: 'Libellé FR' }` portée par le nœud (#1694).
-const KINDS_DECLARES = [
-  ...capture(DEF_SRC, /kind: enumNomme\(\{([^}]+)\}\)/, "l'énumération `kind`", DEF).matchAll(
-    /(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\s*:/g,
-  ),
-].map((m) => m[1] ?? m[2] ?? m[3])
-const KINDS_MESURES = [...new Set(REGLES.map((r) => r.kind))].sort()
-for (const k of KINDS_MESURES) {
-  if (!KINDS_DECLARES.includes(k)) abandon(`kind « ${k} » mesuré dans ${DATA} mais absent de l'énumération de ${DEF}`)
-}
-
-/** Clés de PRÉSENTATION déclarées par le def zod (bloc `meta`) — l'ordre est celui du fichier. */
-const CLES_META = [...capture(DEF_SRC, /\{\n(\s*ref: \{ label:[\s\S]*?)\n\s*\},\n\s*\{\n\s*codex:/, 'le bloc `meta` des libellés de champs', DEF).matchAll(/^\s{4}(\w+):/gm)].map((m) => m[1])
-if (!CLES_META.length) abandon(`aucun libellé de champ lisible dans le bloc \`meta\` de ${DEF}`)
-/** Clés d'ENVELOPPE mesurées en donnée mais posées par la fabrique (hors bloc `meta`). */
-const CLES_MESUREES = [...new Set(REGLES.flatMap((r) => Object.keys(r)))]
-
-// ── Panneau : onglets dérivés ────────────────────────────────────────────────────────────────────
-
-const TABS_SRC = lire(TABS)
-const OWN_TAB_MIN = Number(capture(TABS_SRC, /export const OWN_TAB_MIN = (\d+)/, 'la constante `OWN_TAB_MIN`', TABS))
-const MISC_LABEL = capture(TABS_SRC, /export const MISC_TAB_LABEL = '([^']+)'/, 'la constante `MISC_TAB_LABEL`', TABS)
-if (!Number.isFinite(OWN_TAB_MIN) || OWN_TAB_MIN < 1) abandon(`\`OWN_TAB_MIN\` illisible dans ${TABS}`)
-
-const CLE_PERSISTANCE = capture(lire(STORE), /export const HOUSE_RULES_STORAGE_KEY = '([^']+)'/, 'la clé de persistance `HOUSE_RULES_STORAGE_KEY`', STORE)
-
-for (const [f, sym] of [[POLICY, 'export function rule('], [POLICY, 'export function ruleDef(']]) {
-  if (!lire(f).includes(sym)) abandon(`« ${sym.trim()} » introuvable dans ${f} (renommé ?)`)
-}
-if (!lire(PANNEAU).includes('houseRuleTabs')) abandon(`${PANNEAU} ne compose plus \`houseRuleTabs\``)
-
-// ── Agrégats ─────────────────────────────────────────────────────────────────────────────────────
-
-const PAR_GROUPE = new Map()
-for (const r of REGLES) {
-  if (!PAR_GROUPE.has(r.group)) PAR_GROUPE.set(r.group, [])
-  PAR_GROUPE.get(r.group).push(r)
-}
-const GROUPES = [...PAR_GROUPE.keys()] // ordre du registre (= ordre de découverte du panneau)
-const MAISON = REGLES.filter((r) => r.maison !== undefined)
-const AVEC_SOURCE = REGLES.filter((r) => r.source !== undefined)
-const AVEC_ACTION = REGLES.filter((r) => r.action !== undefined)
-
-const cellule = (s) => String(s).replaceAll('|', '\\|').replace(/\s*\n\s*/g, ' ')
-const litteral = (v) => `\`${typeof v === 'string' ? v : JSON.stringify(v)}\``
-
-/** Colonne « Valeurs » : ce que le contrôle accepte, dérivé du `kind` et des bornes. */
-function valeurs(r) {
-  if (r.kind === 'mode') {
-    const opts = r.options ?? abandon(`la règle « ${r.id} » est de kind \`mode\` sans \`options\``)
-    return opts.map((o) => (o === r.default ? `**${litteral(o)}**` : litteral(o))).join(' · ')
+  function lire(p) {
+    if (!existsSync(p)) abandon(`fichier « ${p} » introuvable (déplacé/supprimé ?)`)
+    return readFileSync(p, 'utf8')
   }
-  if (r.kind === 'param') {
-    const borne = r.min !== undefined && r.max !== undefined ? `${r.min} → ${r.max}` : '—'
-    return `${borne}${r.step !== undefined ? `, pas ${r.step}` : ''}`
+
+  /** Première capture d'un motif, fail-fast (une constante déplacée casse ICI, pas dans le .md). */
+  function capture(texte, motif, quoi, ou) {
+    const m = texte.match(motif)
+    if (!m) abandon(`${quoi} introuvable dans ${ou} (renommé/déplacé ?)`)
+    return m[1]
   }
-  return `${litteral(false)} · ${litteral(true)}`
-}
 
-function referenceCell(r) {
-  const folio = r.source ? ` (${r.source.book} f.${r.source.page})` : ''
-  const maison = r.maison !== undefined ? ' · **maison**' : ''
-  return `${cellule(r.ref)}${folio}${maison}`
-}
+  // ── Registre ─────────────────────────────────────────────────────────────────────────────────────
 
-const tableGroupe = (list) =>
-  [
-    '| id | Libellé | Forme | Défaut | Valeurs | Référence | Ce que la règle change (`hint` verbatim) |',
-    '|---|---|---|---|---|---|---|',
-    ...list.map(
-      (r) =>
-        `| \`${r.id}\` | ${cellule(r.label)} | \`${r.kind}\` | ${litteral(r.default)} | ${valeurs(r)} | ${referenceCell(r)} | ${cellule(r.hint)}${r.action ? ` **Action liée** sous la rangée quand la valeur vaut ${litteral(r.action.when)} : « ${cellule(r.action.label)} ».` : ''} |`,
+  const REGLES = JSON.parse(lire(DATA))
+  if (!Array.isArray(REGLES) || !REGLES.length) abandon(`${DATA} est vide ou n'est pas un tableau`)
+  for (const r of REGLES) {
+    for (const requis of ['id', 'label', 'group', 'kind', 'ref', 'hint']) {
+      if (r[requis] === undefined) abandon(`l'entrée « ${r.id ?? '?'} » de ${DATA} n'a pas de champ « ${requis} »`)
+    }
+    if (r.default === undefined) abandon(`l'entrée « ${r.id} » de ${DATA} n'a pas de champ « default »`)
+  }
+
+  // ── Clés déclarées par le schéma (support de l'angle mort annoncé) ───────────────────────────────
+
+  const DEF_SRC = lire(DEF)
+  // Le vocabulaire de `kind` est un enum NOMMÉ (`enumNomme`, `src/data/schemas/grammaire/valeurs.ts`) :
+  // ses OPTIONS sont les clés de la table `{ option: 'Libellé FR' }` portée par le nœud (#1694).
+  const KINDS_DECLARES = [
+    ...capture(DEF_SRC, /kind: enumNomme\(\{([^}]+)\}\)/, "l'énumération `kind`", DEF).matchAll(
+      /(?:'([^']+)'|"([^"]+)"|([A-Za-z_$][\w$]*))\s*:/g,
     ),
+  ].map((m) => m[1] ?? m[2] ?? m[3])
+  const KINDS_MESURES = [...new Set(REGLES.map((r) => r.kind))].sort()
+  for (const k of KINDS_MESURES) {
+    if (!KINDS_DECLARES.includes(k)) abandon(`kind « ${k} » mesuré dans ${DATA} mais absent de l'énumération de ${DEF}`)
+  }
+
+  /** Clés de PRÉSENTATION déclarées par le def zod (bloc `meta`) — l'ordre est celui du fichier. */
+  const CLES_META = [...capture(DEF_SRC, /\{\n(\s*ref: \{ label:[\s\S]*?)\n\s*\},\n\s*\{\n\s*codex:/, 'le bloc `meta` des libellés de champs', DEF).matchAll(/^\s{4}(\w+):/gm)].map((m) => m[1])
+  if (!CLES_META.length) abandon(`aucun libellé de champ lisible dans le bloc \`meta\` de ${DEF}`)
+  /** Clés d'ENVELOPPE mesurées en donnée mais posées par la fabrique (hors bloc `meta`). */
+  const CLES_MESUREES = [...new Set(REGLES.flatMap((r) => Object.keys(r)))]
+
+  // ── Panneau : onglets dérivés ────────────────────────────────────────────────────────────────────
+
+  const TABS_SRC = lire(TABS)
+  const OWN_TAB_MIN = Number(capture(TABS_SRC, /export const OWN_TAB_MIN = (\d+)/, 'la constante `OWN_TAB_MIN`', TABS))
+  const MISC_LABEL = capture(TABS_SRC, /export const MISC_TAB_LABEL = '([^']+)'/, 'la constante `MISC_TAB_LABEL`', TABS)
+  if (!Number.isFinite(OWN_TAB_MIN) || OWN_TAB_MIN < 1) abandon(`\`OWN_TAB_MIN\` illisible dans ${TABS}`)
+
+  const CLE_PERSISTANCE = capture(lire(STORE), /export const HOUSE_RULES_STORAGE_KEY = '([^']+)'/, 'la clé de persistance `HOUSE_RULES_STORAGE_KEY`', STORE)
+
+  for (const [f, sym] of [[POLICY, 'export function rule('], [POLICY, 'export function ruleDef(']]) {
+    if (!lire(f).includes(sym)) abandon(`« ${sym.trim()} » introuvable dans ${f} (renommé ?)`)
+  }
+  if (!lire(PANNEAU).includes('houseRuleTabs')) abandon(`${PANNEAU} ne compose plus \`houseRuleTabs\``)
+
+  // ── Agrégats ─────────────────────────────────────────────────────────────────────────────────────
+
+  const PAR_GROUPE = new Map()
+  for (const r of REGLES) {
+    if (!PAR_GROUPE.has(r.group)) PAR_GROUPE.set(r.group, [])
+    PAR_GROUPE.get(r.group).push(r)
+  }
+  const GROUPES = [...PAR_GROUPE.keys()] // ordre du registre (= ordre de découverte du panneau)
+  const MAISON = REGLES.filter((r) => r.maison !== undefined)
+  const AVEC_SOURCE = REGLES.filter((r) => r.source !== undefined)
+  const AVEC_ACTION = REGLES.filter((r) => r.action !== undefined)
+
+  const cellule = (s) => String(s).replaceAll('|', '\\|').replace(/\s*\n\s*/g, ' ')
+  const litteral = (v) => `\`${typeof v === 'string' ? v : JSON.stringify(v)}\``
+
+  /** Colonne « Valeurs » : ce que le contrôle accepte, dérivé du `kind` et des bornes. */
+  function valeurs(r) {
+    if (r.kind === 'mode') {
+      const opts = r.options ?? abandon(`la règle « ${r.id} » est de kind \`mode\` sans \`options\``)
+      return opts.map((o) => (o === r.default ? `**${litteral(o)}**` : litteral(o))).join(' · ')
+    }
+    if (r.kind === 'param') {
+      const borne = r.min !== undefined && r.max !== undefined ? `${r.min} → ${r.max}` : '—'
+      return `${borne}${r.step !== undefined ? `, pas ${r.step}` : ''}`
+    }
+    return `${litteral(false)} · ${litteral(true)}`
+  }
+
+  function referenceCell(r) {
+    const folio = r.source ? ` (${r.source.book} f.${r.source.page})` : ''
+    const maison = r.maison !== undefined ? ' · **maison**' : ''
+    return `${cellule(r.ref)}${folio}${maison}`
+  }
+
+  const tableGroupe = (list) =>
+    [
+      '| id | Libellé | Forme | Défaut | Valeurs | Référence | Ce que la règle change (`hint` verbatim) |',
+      '|---|---|---|---|---|---|---|',
+      ...list.map(
+        (r) =>
+          `| \`${r.id}\` | ${cellule(r.label)} | \`${r.kind}\` | ${litteral(r.default)} | ${valeurs(r)} | ${referenceCell(r)} | ${cellule(r.hint)}${r.action ? ` **Action liée** sous la rangée quand la valeur vaut ${litteral(r.action.when)} : « ${cellule(r.action.label)} ».` : ''} |`,
+      ),
+    ].join('\n')
+
+  const sectionsGroupes = GROUPES.map((g) => {
+    const list = PAR_GROUPE.get(g)
+    const onglet = list.length >= OWN_TAB_MIN ? `onglet propre « ${g} »` : `onglet « ${MISC_LABEL} », intertitre « ${g} »`
+    return `### ${g} — ${list.length} règle${list.length > 1 ? 's' : ''}\n\nPanneau : ${onglet}.\n\n${tableGroupe(list)}`
+  }).join('\n\n')
+
+  const tableGroupesResume = [
+    '| Groupe | Règles | Onglet du panneau |',
+    '|---|---|---|',
+    ...GROUPES.map((g) => {
+      const n = PAR_GROUPE.get(g).length
+      return `| ${g} | ${n} | ${n >= OWN_TAB_MIN ? `propre` : MISC_LABEL} |`
+    }),
   ].join('\n')
 
-const sectionsGroupes = GROUPES.map((g) => {
-  const list = PAR_GROUPE.get(g)
-  const onglet = list.length >= OWN_TAB_MIN ? `onglet propre « ${g} »` : `onglet « ${MISC_LABEL} », intertitre « ${g} »`
-  return `### ${g} — ${list.length} règle${list.length > 1 ? 's' : ''}\n\nPanneau : ${onglet}.\n\n${tableGroupe(list)}`
-}).join('\n\n')
+  const tableKinds = [
+    '| `kind` | Entrées | Contrôle rendu | Forme de la valeur |',
+    '|---|---|---|---|',
+    ...KINDS_DECLARES.map((k) => {
+      const n = REGLES.filter((r) => r.kind === k).length
+      const forme =
+        k === 'flag'
+          ? 'booléen'
+          : k === 'param'
+            ? 'nombre borné (`min`/`max`, `step` optionnel)'
+            : 'chaîne prise dans `options`'
+      const controle = k === 'flag' ? 'interrupteur' : k === 'param' ? 'champ chiffré' : 'choix segmenté'
+      return `| \`${k}\` | ${n} | ${controle} | ${forme} |`
+    }),
+  ].join('\n')
 
-const tableGroupesResume = [
-  '| Groupe | Règles | Onglet du panneau |',
-  '|---|---|---|',
-  ...GROUPES.map((g) => {
-    const n = PAR_GROUPE.get(g).length
-    return `| ${g} | ${n} | ${n >= OWN_TAB_MIN ? `propre` : MISC_LABEL} |`
-  }),
-].join('\n')
+  // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
-const tableKinds = [
-  '| `kind` | Entrées | Contrôle rendu | Forme de la valeur |',
-  '|---|---|---|---|',
-  ...KINDS_DECLARES.map((k) => {
-    const n = REGLES.filter((r) => r.kind === k).length
-    const forme =
-      k === 'flag'
-        ? 'booléen'
-        : k === 'param'
-          ? 'nombre borné (`min`/`max`, `step` optionnel)'
-          : 'chaîne prise dans `options`'
-    const controle = k === 'flag' ? 'interrupteur' : k === 'param' ? 'champ chiffré' : 'choix segmenté'
-    return `| \`${k}\` | ${n} | ${controle} | ${forme} |`
-  }),
-].join('\n')
-
-// ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
-
-const out = `# Règles optionnelles — registre, et contenu qu'elles ouvrent
+  const out = `# Règles optionnelles — registre, et contenu qu'elles ouvrent
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-regles-optionnelles.mjs\`
 > (\`npm run docs:regles-optionnelles\`) — NE PAS ÉDITER À LA MAIN.
@@ -241,13 +243,20 @@ rangée quand la règle atteint sa valeur de déclenchement.
 
 ${sectionsGroupes}
 `
+  return {
+    out,
+    path: 'docs/regles-optionnelles.md',
+    staleMsg: `docs:regles-optionnelles — docs/regles-optionnelles.md est PÉRIMÉ (diverge de ${DATA}, ${DEF}, ${TABS}, ${STORE}, ou du script).`,
+    rerunMsg: '  → relancer `npm run docs:regles-optionnelles` (dérivé jamais commité, #2203).',
+    okMsg: 'docs:regles-optionnelles — OK (docs/regles-optionnelles.md à jour)',
+    writeMsg: `docs/regles-optionnelles.md — ${REGLES.length} règles, ${GROUPES.length} groupes, ${KINDS_DECLARES.length} formes de contrôle, ${MAISON.length} maison.`,
+  }
+}
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/regles-optionnelles.md',
-  check: process.argv.includes('--check'),
-  staleMsg: `docs:regles-optionnelles — docs/regles-optionnelles.md est PÉRIMÉ (diverge de ${DATA}, ${DEF}, ${TABS}, ${STORE}, ou du script).`,
-  rerunMsg: '  → relancer `npm run docs:regles-optionnelles` et committer le résultat.',
-  okMsg: 'docs:regles-optionnelles — OK (docs/regles-optionnelles.md à jour)',
-  writeMsg: `docs/regles-optionnelles.md — ${REGLES.length} règles, ${GROUPES.length} groupes, ${KINDS_DECLARES.length} formes de contrôle, ${MAISON.length} maison.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

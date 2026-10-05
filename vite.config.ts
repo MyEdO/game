@@ -1,8 +1,9 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, URL } from 'node:url';
 // @ts-expect-error - generateur ESM JS (pas de types)
-import { genAll, REGISTRIES } from './scripts/gen-registry.mjs';
+import { REGISTRIES } from './scripts/gen-registry.mjs';
 // @ts-expect-error - module ESM JS (pas de types)
 import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scripts/port-dev.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types)
@@ -10,17 +11,23 @@ import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
 import { RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 
-/** Auto-génération des registres « dépose un fichier → intégré » et de l'INDEX DES IDS (`genAll`,
- *  phases 1 et 2) au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère
- *  ensuite). */
+/** Les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs : registres « dépose un fichier →
+ *  intégré » et INDEX DES IDS) produites au démarrage et à chaque ajout/suppression dans un dossier
+ *  `defs/` (HMR récupère ensuite). Un rouge ARRÊTE le démarrage : le code ne compile pas sans elles. */
 function registryGen() {
   const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
   const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));
+  const produire = () => {
+    const r = spawnSync(process.execPath, ['scripts/docs/build-all.mjs', '--code', '--quiet'], {
+      cwd: fileURLToPath(new URL('.', import.meta.url)), stdio: 'inherit',
+    });
+    if (r.status !== 0) throw new Error(`registry-gen : cibles de code en échec (exit ${r.status ?? r.signal}) — npm run gen`);
+  };
   return {
     name: 'registry-gen',
-    buildStart() { genAll(); },
+    buildStart() { produire(); },
     configureServer(server: { watcher: { on(e: string, cb: (f: string) => void): void } }) {
-      const on = (f: string) => { if (touched(f)) genAll(); };
+      const on = (f: string) => { if (touched(f)) produire(); };
       server.watcher.on('add', on);
       server.watcher.on('unlink', on);
     },
@@ -51,20 +58,15 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Dépendances stables (React/Zustand…) → chunk vendor bien caché.
-        // L'éditeur et le rendu de jeu sortent déjà en chunks async (React.lazy, ui/App.tsx).
-        manualChunks(id) {
-          // `three` a son PROPRE chunk : `vendor` est préchargé par index.html (modulepreload), donc
-          // tout ce qui y entre est payé au MENU. Le moteur volumique n'est atteint que par les écrans
-          // async (CampaignView, Editor) — mesuré : sorti de `vendor`, il quitte le préchargement.
-          if (id.includes('node_modules/three/')) return 'three';
-          if (id.includes('node_modules')) return 'vendor';
-          // Tables de règles générées (~1 Mo) : chunk séparé, cacheable indépendamment du
-          // code applicatif (changer le code ne réinvalide pas les données). Encore chargées
-          // au démarrage (le moteur pur les importe) — le découplage paresseux reste à faire.
-          if (id.includes('/src/data/') && id.endsWith('.json')) return 'gamedata';
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [
+            { name: 'three', test: /node_modules[\\/]three[\\/]/, priority: 20 },
+            { name: 'vendor', test: /node_modules/, priority: 10 },
+            { name: 'gamedata', test: /[\\/]src[\\/]data[\\/].*\.json$/ },
+          ],
         },
       },
     },
@@ -87,10 +89,9 @@ export default defineConfig({
     restoreMocks: true,
     // Troisième effet : un worker garde ce que ses fichiers ont retenu, et V8 taille le tas de CHAQUE
     // processus sur la machine entière — plusieurs workers saturent alors la mémoire (#1801). La borne
-    // et ses mesures : `TAS_WORKER_MO` de scripts/test/partition.mjs. `pool: 'forks'` est le défaut de
-    // Vitest 2.1.9, déclaré parce que `poolOptions.forks` n'agit que sous lui.
+    // et ses mesures : `TAS_WORKER_MO` de scripts/test/partition.mjs.
     pool: 'forks',
-    poolOptions: { forks: { execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`] } },
+    execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`],
     // Tas de chaque worker en fin de fichier : relevé par le bloc `[diag]` du lanceur (scripts/test/run.mjs).
     logHeapUsage: true,
     // Paramètre de BANC calé sur le test volumique le plus lourd mesuré en CI (#1619) — le contrat des tests ne change pas.

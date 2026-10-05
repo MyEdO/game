@@ -4,11 +4,11 @@
  * structure intermédiaire — on édite les vrais objets de `src/data`. Consommé par `CodexEdit`.
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
-import { valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
+import { derouleEnum, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 
-export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select';
+export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
 
 export interface FieldDesc {
   key: string;
@@ -17,7 +17,8 @@ export interface FieldDesc {
   kind: FieldKind;
   /** Le champ est null/absent sur au moins une entrée (autorise le vide). */
   nullable: boolean;
-  /** Valeurs NOMMÉES d'un champ ÉNUMÉRÉ (`kind: 'select'`) — `valeur → libellé FR`, lues SUR LE NŒUD. */
+  /** Valeurs NOMMÉES d'un champ ÉNUMÉRÉ (`kind: 'select'`, ou `'selectList'` pour une LISTE de valeurs de
+   *  l'enum) — `valeur → libellé FR`, lues SUR LE NŒUD. */
   valeurs?: Readonly<Record<string, string>>;
   /** NŒUD zod du champ, quand l'appelant en tient un — ce que le sous-formulaire redescend pour
    *  retrouver les libellés de valeurs de SES propres champs (#1694). */
@@ -140,15 +141,15 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     // à vide, donc un premier échantillon `[]` (fréquent en tête de dataset) ne prouve RIEN sur la forme
     // des éléments — et une liste d'OBJETS ne peut jamais tomber en `stringList`/`numberList` (#1548).
     // DEUX cliquets : `editfields-union-elements.test.ts` tient l'ALGORITHME (union vs premier
-    // échantillon) sur des entrées forgées ; `editfields-listes-objets.test.ts` scanne la DONNÉE
-    // réelle de toutes les catégories éditables. Mesuré 2026-08-31 : le second reste VERT sous
-    // l'algorithme « premier échantillon » (les champs qui basculeraient sont tous filtrés par
-    // `dedicatedFieldKeys`/`refFieldCfg`) — seul le premier mord.
+    // échantillon) sur des entrées forgées ; `editfields-listes-objets.test.ts` confronte le kind
+    // inféré à la forme de la DONNÉE réelle de toutes les catégories éditables, en profondeur.
     const elements: unknown[] = [];
+    let tableaux = 0;
+    let scalaires = 0;
     for (const e of entries) {
       const v = e[key];
       if (v == null) { sawNull = true; continue; }
-      if (Array.isArray(v)) elements.push(...v);
+      if (Array.isArray(v)) { elements.push(...v); tableaux++; } else scalaires++;
       if (sample === undefined) sample = v;
     }
     const echantillon = Array.isArray(sample) ? elements : sample;
@@ -159,7 +160,10 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     const noeud = enfantsDe(regime.noeud).find((e) => e.cle === key)?.noeud;
     const valeurs = valeursDe(noeud);
     const nullable = sawNull || sample === undefined;
-    if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: 'select' as FieldKind, nullable, valeurs, noeud };
-    return { key, label: libelleDuChamp(key, regime), kind: kindOf(key, echantillon), nullable, noeud };
+    if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: (derouleEnum(noeud)?.liste ? 'selectList' : 'select') as FieldKind, nullable, valeurs, noeud };
+    // Un champ qui porte ici un tableau, là un scalaire (union `booléen | chaînes`) n'a aucun contrôle
+    // structuré qui rende ses deux formes : il s'édite en JSON.
+    const kind = tableaux && scalaires ? 'json' : kindOf(key, echantillon);
+    return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud };
   });
 }

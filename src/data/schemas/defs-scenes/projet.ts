@@ -1,7 +1,7 @@
 /**
  * Schéma zod d'un PROJET DE SCÈNE (`ProjectDoc`, `src/state/worldMap.ts`) — le paquet de campagne
- * auto-suffisant `{ type: 'projet', schema, id, label, versionContenu, narratif, scenes,
- * worldMap?, activeAxes? }`, `schema` étant la version de forme courante (`SCHEMA_PROJET`).
+ * auto-suffisant `{ type: 'projet', schema: SCHEMA_PROJET, id, label, versionContenu, narratif, scenes,
+ * worldMap?, activeAxes? }`, `schema` étant la version de forme courante.
  *
  * C'est la porte UNIQUE du seam `parseProject`. Le document ADOPTE la fabrique `document()`
  * (`../grammaire/document.ts`, #1552) en famille `config` — même code que les defs de configuration
@@ -27,9 +27,11 @@ import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
 import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
+import { PROJECT_MIGRATIONS } from '../../migrationsDeProjet';
+import { versionCourante } from '../../../lib/versionCourante';
 
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = 18;
+export const SCHEMA_PROJET = versionCourante(PROJECT_MIGRATIONS);
 
 /** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(

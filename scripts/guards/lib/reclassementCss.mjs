@@ -17,7 +17,7 @@ import {
 } from './cssCouches.mjs'
 import { RACINE_DES_SOURCES, importsDansLArbre, nomsDImport, nomsDImportDe } from './cssImages.mjs'
 import { CHEMIN_TSCONFIG, estModule } from './importGraph.mjs'
-import { MOTIF_MIN, declarationsDuMessage, mesuresNonCouvertes } from './stocksNominatifs.mjs'
+import { MOTIF_MIN, declarationsDuMessage, gesteSurLesCommitsFautifs, mesuresNonCouvertes } from './stocksNominatifs.mjs'
 
 /** Le mot-clé de la ligne de message. */
 const MOT_RECLASSEMENT = 'RECLASSEMENT'
@@ -94,12 +94,31 @@ export function ecartsDeReclassement(franchis, lignes) {
 }
 
 /**
- * Les écarts d'un COMMIT jugé contre sa base.
- * @param {{ message: string }} p
- * @param {{ base: Parameters<typeof franchisDesCotes>[0], commit: Parameters<typeof franchisDesCotes>[1] }} cotes
+ * Franchissements d'un commit, PUR : `franchisDesCotes(base, commit)` ; pour une FUSION (`parents` =
+ * les côtés de `^1` et `^2`, `base` = celui de leur base commune), à TROIS VOIES (#2223) : la fusion
+ * franchit les modules qu'elle exempte et que la fusion automatique de ses parents n'exempte pas — le
+ * côté qui a changé son exemption fait foi, l'autre sinon. Chacun se paie contre le parent qui l'a
+ * libéré : le premier qui ne l'exempte pas.
+ * @param {{ base: Parameters<typeof franchisDesCotes>[0], commit: Parameters<typeof franchisDesCotes>[1], parents?: Parameters<typeof franchisDesCotes>[0][] }} cotes
+ * @returns {ReturnType<typeof franchisDesCotes>}
  */
-export function reclassementsNonDeclares({ message }, { base, commit }) {
-  return ecartsDeReclassement(franchisDesCotes(base, commit), lignesDeReclassement(message))
+export function franchisDuCommit({ base, commit, parents = [] }) {
+  if (!parents.length) return franchisDesCotes(base, commit)
+  const [exB, ex1, ex2] = [base, ...parents].map(modulesExemptes)
+  const exempteALaFusionAutomatique = (m) => (ex1.has(m) === exB.has(m) ? ex2.has(m) : ex1.has(m))
+  const liberateur = (m) => (ex1.has(m) ? 1 : 0)
+  return parents
+    .flatMap((parent, i) => franchisDesCotes(parent, commit).filter((f) => !exempteALaFusionAutomatique(f.module) && liberateur(f.module) === i))
+    .sort((a, b) => (a.module < b.module ? -1 : a.module > b.module ? 1 : 0))
+}
+
+/**
+ * Les écarts d'un COMMIT jugé contre sa base, une fusion à trois voies (`franchisDuCommit`).
+ * @param {{ message: string }} p
+ * @param {Parameters<typeof franchisDuCommit>[0]} cotes
+ */
+export function reclassementsNonDeclares({ message }, cotes) {
+  return ecartsDeReclassement(franchisDuCommit(cotes), lignesDeReclassement(message))
 }
 
 /** Un écart, en clair. */
@@ -113,16 +132,17 @@ const ceQueDitLeModule = (e) => {
 /**
  * Refus lisible : où (commit ou rien), chaque écart, et le geste. Une image illisible (`illisible`)
  * est dite par son commit.
- * @param {({ sha?: string, ecarts: ReturnType<typeof ecartsDeReclassement> } | { sha: string, illisible: string })[]} refus
+ * @param {({ sha?: string, fusion?: boolean, ecarts: ReturnType<typeof ecartsDeReclassement> } | { sha: string, fusion: boolean, illisible: string })[]} refus
  */
 export function raisonDeRefusDeReclassement(refus) {
   const lignes = refus.map((r) => {
-    const ou = r.sha ? `${r.sha.slice(0, 9)} ` : ''
+    const ou = r.sha ? `${r.sha.slice(0, 9)}${r.fusion ? ' (fusion)' : ''} ` : ''
     if ('illisible' in r) return `${ou}injugeable : ${r.illisible}`
     return `${ou}${r.ecarts.map(ceQueDitLeModule).join(', ')}`
   })
-  const geste = refus.some((r) => r.sha)
-    ? '`git rebase -i` pour porter au message du commit fautif'
+  const desCommits = refus.filter((r) => r.sha)
+  const geste = desCommits.length
+    ? `porter au message du commit fautif — ${gesteSurLesCommitsFautifs(desCommits)} —`
     : 'porter au message'
   return (
     `⛔ RECLASSEMENT CSS : ${lignes.join(' || ')}. Un module FRANCHIT la frontière quand il devient ` +

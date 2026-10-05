@@ -139,4 +139,10 @@ describe('paquet de campagne schema 3 — bloc narratif', () => {
     expect(() => parseProject(doc(presetTalent('PAS-UN-ID')))).toThrow(/spécialisation inconnue « PAS-UN-ID » pour le Talent/);
     expect(parseProject(doc(presetTalent('Au choix'))).narratif.presetsPnj.length).toBe(2);
   });
+
+  it('(m) preset PNJ : un Talent SANS catalogue de spécs porte un texte d’instance, admis comme dans creatures.json (#1621)', () => {
+    const n = validNarratif();
+    n.presetsPnj.push({ id: 'pnj-promis', base: GLOBAL_CREATURE, profil: { talents: [{ id: 'destinee', spec: "L'escroc, le cerf et le loup dans la nuit" }] } as NarratifBlock['presetsPnj'][number]['profil'] });
+    expect(parseProject(doc(n)).narratif.presetsPnj.length).toBe(2);
+  });
 });

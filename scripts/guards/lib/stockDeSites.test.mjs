@@ -342,6 +342,6 @@ test('la commande refuse, code 2, un module sans `regenerations`, une valeur qui
   const horsMotif = module('hors-motif.mjs', `export function regenerations() { return [{ chemin: ${JSON.stringify(join(RACINE, nonSuivi))}, collections: [] }] }\n`)
   const r3 = commande([horsMotif])
   assert.equal(r3.status, 2)
-  assert.ok(r3.stderr.includes(nonSuivi), r3.stderr)
+  assert.ok(r3.stderr.includes(join(RACINE, nonSuivi)), r3.stderr)
   assert.equal(existsSync(join(RACINE, nonSuivi)), false)
 }))

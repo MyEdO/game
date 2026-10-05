@@ -623,7 +623,7 @@ Trois origines humaines norses (`MDG 07 l.228-246`) :
 **Sources RAW** : `MDG 07 l.222-260`
 **Voir aussi** : [Carrières norses (MDG)](#carrières-norses-mdg) · [Trait Marque de Khorne (MDG)](#trait-marque-de-khorne-mdg)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 5` (l.484) → `SPECIES_SKILLS_PLUS5`, `SPECIES_SKILLS_PLUS3`, `ChoixDeCreation`, `CreatorDraft`, `libreDEspece`, `speciesSkillDefaults`, `mouvement`, `rollRandomTalent`, `resolveSpeciesTalents`, `TalentDEspece`, +13 — `src/data/characteristics.json`, `src/data/schemas/defs/talents.ts`, `src/engine/character.ts`, `src/ui/creator/CharacterCreator.tsx`, `src/ui/creator/draft.ts`
+- `LDB 5` (l.484) → `SPECIES_SKILLS_PLUS5`, `SPECIES_SKILLS_PLUS3`, `ChoixDeCreation`, `CreatorDraft`, `libreDEspece`, `speciesSkillDefaults`, `rollRandomTalent`, `mouvement`, `resolveSpeciesTalents`, `TalentDEspece`, +13 — `src/data/characteristics.json`, `src/data/schemas/defs/talents.ts`, `src/engine/character.ts`, `src/ui/creator/CharacterCreator.tsx`, `src/ui/creator/draft.ts`
 - `MDG 7` (l.222-260) → `hiddenGroupsOf`, `TraitInstance`, `passiveCastPenalties`, `careerTalentAdditions`, `traitGrantedTalents`, `effectiveTalents`, `humains-bjornling-norse`, `humains-sarl-norse`, `humains-skaeling-norse`, `norsca`, +5 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/mutations.json`, `src/data/skills.json`, `src/data/species.json`, `src/data/talents.json`, +5 fichiers
 
 ---
@@ -843,6 +843,6 @@ Le Devin lit le passé au contact d'une personne, d'un objet ou d'un lieu (capac
   - ADE II / AA : 18 carrières supplémentaires (Mangeur d'Hommes, Boucher Ogre, + 16 militaires/ordres).
   - Middenheim : 1 carrière (Frère Loup), 3 origines humaines.
   - MDG : 9 carrières (8 Côtiers + Prêtre de Stromfels, MDG 11), 3 origines humaines norses + nains norses.
-- **Refs code couvertes** : `src/engine/careerSlots.ts` — accumulation de compétences (`skillSlots` l.153-156), talents du niveau courant uniquement (`talentSlots` l.158-162), emplacements Au choix (`parseEntry`, `wildcardSpecs`), maxi talent (`talentMaxById`).
+- **Refs code couvertes** : `src/engine/careerSlots.ts` — accumulation de compétences (`skillSlots` l.153-156), talents du niveau courant uniquement (`talentSlots` l.158-162), emplacements Au choix (`slotOptionsFromRef`, `wildcardSpecs`), maxi talent (`talentMaxById`).
 - **Détails par niveau des carrières (compétences/talents/possessions) = catalogue volumineux à transcrire séparément (présent dans `src/data/careerLevels.json`).**
 - **Anomalies données** : typo « Agent 1 » pour Nautonier N2 dans `careerLevels.json` (ligne 15499) ; Receleur N4 et Patrouilleur Fluvial N4 avec Argent 1 semblent inattendus — à vérifier contre la source LDB p. 101+.

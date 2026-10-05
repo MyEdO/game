@@ -2,6 +2,8 @@
 /** #367 : « Ouvrir » liste AUSSI les campagnes built-in (Arène + campagnes du jeu), dans une
  *  section distincte de « Mes projets » — ouvrir une built-in ouvre une COPIE de travail (jamais
  *  d'écriture sur le JSON commité), signalée à l'écran. */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -12,6 +14,7 @@ import { testScenarios } from '../../scenes/test-scenarios';
 import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 import { emptyScene } from '../../state/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
+import { IMPORT_FORME_DEPOT } from '../../state/projectLibrary';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -131,6 +134,12 @@ const GESTES: GesteDePorte[] = ['ouverture', 'enregistrement', 'export', 'import
 describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CHEMIN', () => {
   it('le document de base passe la porte (sans quoi aucun cas ne mesurerait rien)', () => {
     expect(() => parseProject(projet())).not.toThrow();
+  });
+
+  it('import du FICHIER DU DÉPÔT d’une campagne livrée : la phrase de l’import joueur, les nœuds nommés en détail', () => {
+    const r = rendu(JSON.parse(readFileSync(join(__dirname, '../../scenes/diligence/diligence-projet.json'), 'utf8')), 'import');
+    expect(r.message).toBe(`Import refusé : ce fichier ne peut pas être ouvert. ${IMPORT_FORME_DEPOT}`);
+    expect(r.detail).toMatch(/narratif\.presetsPnj\[\d+\]\.profil/);
   });
 
   it.each(GESTES)('%s — projet SANS NOM : mots d’auteur, rapport de la porte replié en détail', (geste) => {

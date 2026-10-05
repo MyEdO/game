@@ -12,13 +12,14 @@ import { addPose } from '../src/gameIso/rig/poses';
 import { CLIPS, sampleClip, clipDuration, type Clip } from '../src/gameIso/rig/anim/clips';
 import { spellCastClip } from '../src/gameIso/rig/anim/spellClips';
 import { weaponRest, mountedAttackClip, mountedParryClip, seatedClip } from '../src/gameIso/rig/anim/weaponClips';
-import { seatRiderOnMount, mountedRest, mountedPlanOpts } from '../src/gameIso/rig/mountedRig';
-import { planById, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
+import { seatRiderOnMount, mountedRest, harnaisDeMonture } from '../src/gameIso/rig/mountedRig';
+import { planById, planOptsForRecord, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
 import { sizeTokenScale } from '../src/gameIso/sizeScale';
 import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
+import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -45,21 +46,21 @@ function tile(label: string, clip: Clip, app: Appearance, equip: EquipCtx, caree
 
 const soldat: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
 const sorcier: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.45, seed: 5 };
-const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
-const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [] };
-const baton: Weapon = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 2 }, qualities: [] };
-const eqEpee: EquipCtx = { weapons: [epee], armour: [] };
-const eqArc: EquipCtx = { weapons: [arc], armour: [] };
-const eqBaton: EquipCtx = { weapons: [baton], armour: [] };
-const eqNu: EquipCtx = { weapons: [], armour: [] };
+const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: 'arme-simple' };
+const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: 'arc-long' };
+const baton: Weapon = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 2 }, qualities: [], trappingId: 'baton-de-combat' };
+const eqEpee: EquipCtx = equipDe([epee], []);
+const eqArc: EquipCtx = equipDe([arc], []);
+const eqBaton: EquipCtx = equipDe([baton], []);
+const eqNu: EquipCtx = equipDe([], []);
 
 const meleeClips: [string, Clip][] = [
   ['idle', CLIPS.idle], ['walk', CLIPS.walk], ['melee', CLIPS.melee],
   ['dodge', CLIPS.dodge], ['parry', CLIPS.parry], ['hit', CLIPS.hit],
 ];
-const rowSoldat = meleeClips.map(([l, c]) => tile(l, c, soldat, l === 'idle' || l === 'walk' ? eqEpee : eqEpee, TENUE_SOLDAT, weaponRest(epee))).join('');
-const rowArc = tile('ranged (arc)', CLIPS.ranged, soldat, eqArc, TENUE_SOLDAT, weaponRest(arc)).concat(
-  tile('cast', CLIPS.cast, sorcier, eqBaton, TENUE_SORCIER, weaponRest(baton)),
+const rowSoldat = meleeClips.map(([l, c]) => tile(l, c, soldat, l === 'idle' || l === 'walk' ? eqEpee : eqEpee, TENUE_SOLDAT, weaponRest(armeDeDessin(epee)))).join('');
+const rowArc = tile('ranged (arc)', CLIPS.ranged, soldat, eqArc, TENUE_SOLDAT, weaponRest(armeDeDessin(arc))).concat(
+  tile('cast', CLIPS.cast, sorcier, eqBaton, TENUE_SORCIER, weaponRest(armeDeDessin(baton))),
   tile('bolt (arcane)', spellCastClip('bolt'), sorcier, eqNu, TENUE_SORCIER, {}, '#231a30'),
   tile('blessing (divin)', spellCastClip('blessing'), sorcier, eqNu, TENUE_NONNE, {}, '#2a2618'),
 );
@@ -71,11 +72,11 @@ const quad = planById('quadruped');
 const horse = resolveSpecies('cheval').species; // id d'espèce quad canonique (data)
 function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
   const dur = Math.max(clipDuration(clip), 1);
-  const equip: EquipCtx = { weapons: weapon ? [weapon] : [], armour: [] };
+  const equip: EquipCtx = equipDe(weapon ? [weapon] : [], []);
   const samples = sampleTimes(dur, N).map((t) => {
     // Monture PORTÉE : le harnachement vient de la couture montée (canal DONNÉE), jamais réexprimé ici.
-    const mountBones = quad.resolve(horse, 'profile', quad.restPose(), mountedPlanOpts(undefined));
-    const riderPose = addPose(mountedRest('profile', weapon), sampleClip(clip, t).pose);
+    const mountBones = quad.resolve(horse, 'profile', quad.restPose(), harnaisDeMonture(planOptsForRecord(undefined)));
+    const riderPose = addPose(mountedRest('profile', weapon && armeDeDessin(weapon)), sampleClip(clip, t).pose);
     const riderBones = resolveRig(soldat, equip, riderPose, TENUE_SOLDAT, 'profile', [], false);
     // Ratio cavalier DÉRIVÉ comme en jeu (`backends/webgl/sceneMeshes`, couple monté) : cavalier ÷ (art monture × Taille).
     const rideK = 1 / (resolveSpecies(horse).scale * sizeTokenScale('grande'));
@@ -88,16 +89,16 @@ function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
     <svg viewBox="0 0 120 150" width="140" height="175"><defs>${defsGlobaux()}</defs><rect width="120" height="150" fill="#1d2230"/>${svg}</svg>
     <figcaption style="color:#bcd;font:11px sans-serif">${label}</figcaption></figure>`;
 }
-const wm = (name: string, type: 'melee' | 'ranged' = 'melee'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
+const wm = (trappingId: string, type: 'melee' | 'ranged' = 'melee'): Weapon => ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId });
 const rowMonte = [
-  mountedTile('charge (lance couchée)', wm('Lance de cavalerie'), mountedAttackClip(wm('Lance de cavalerie'))),
-  mountedTile('taille (épée)', wm('Épée'), mountedAttackClip(wm('Épée'))),
-  mountedTile('estoc (rapière)', wm('Rapière'), mountedAttackClip(wm('Rapière'))),
-  mountedTile('coup 2 mains (gr. hache)', wm('Grande hache'), mountedAttackClip(wm('Grande hache'))),
-  mountedTile('en joue (arbalète)', wm('Arbalète', 'ranged'), mountedAttackClip(wm('Arbalète', 'ranged'))),
-  mountedTile('en joue (pistolet)', wm('Pistolet', 'ranged'), mountedAttackClip(wm('Pistolet', 'ranged'))),
-  mountedTile('parade (épée)', wm('Épée'), mountedParryClip(wm('Épée'), false)),
-  mountedTile('dérobade (assis)', wm('Épée'), seatedClip(CLIPS.dodge)),
+  mountedTile('charge (lance couchée)', wm('lance-de-cavalerie'), mountedAttackClip(armeDeDessin(wm('lance-de-cavalerie')))),
+  mountedTile('taille (épée)', wm('arme-simple'), mountedAttackClip(armeDeDessin(wm('arme-simple')))),
+  mountedTile('estoc (rapière)', wm('rapiere'), mountedAttackClip(armeDeDessin(wm('rapiere')))),
+  mountedTile('coup 2 mains (gr. hache)', wm('grande-hache'), mountedAttackClip(armeDeDessin(wm('grande-hache')))),
+  mountedTile('en joue (arbalète)', wm('arbalete', 'ranged'), mountedAttackClip(armeDeDessin(wm('arbalete', 'ranged')))),
+  mountedTile('en joue (pistolet)', wm('pistolet', 'ranged'), mountedAttackClip(armeDeDessin(wm('pistolet', 'ranged')))),
+  mountedTile('parade (épée)', wm('arme-simple'), mountedParryClip(armeDeDessin(wm('arme-simple')), false)),
+  mountedTile('dérobade (assis)', wm('arme-simple'), seatedClip(CLIPS.dodge)),
 ].join('');
 
 const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Clips animés</title>

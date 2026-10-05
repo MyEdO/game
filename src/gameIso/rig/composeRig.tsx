@@ -1,5 +1,5 @@
+import type { JSX } from 'react';
 import { BONE_IDS, SLOT_BONES, SLOT_LAYER, splitPartBehind, type BoneId, type Skeleton, type Slot, type RigOverlay } from './bones';
-import { memoByRef } from '../../state/sceneMemo';
 import { baseSkeleton, applyBuild, referenceSkeleton, groundSkeleton, profileNarrow, baseSpeciesOf } from './skeletons';
 import { bipedDef } from './creatures';
 import { gabaritById } from './gabarits';
@@ -19,6 +19,8 @@ import { HEADS, ARMS, LEGS } from './parts/monster';
 import { buildTokenMap, applyTokenMap } from './palette';
 import { tenueOverlaysFor, couchesDuRig, coucheDEspece } from './parts/career';
 import type { EquipCtx } from './parts/equipment';
+import { useMemo } from 'react';
+import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { dorsalOverlays } from './parts/dorsal';
 import { CAPES } from './parts/capes';
 import type { View } from './facing';
@@ -132,16 +134,13 @@ export interface RigComposition {
   order: { id: BoneId; scale: [number, number]; z: number; parts: ResolvedBone['parts'] }[];
 }
 
-/** Aucun calque — réf STABLE : un `[]` frais par appel serait une clé de composition neuve à chaque image. */
-const NO_OVERLAYS: RigOverlay[] = [];
-
-function buildComposition(
+export function rigComposition(
   appearance: Appearance,
   equip: EquipCtx,
-  tenue: string | undefined,
-  view: View,
-  overlays: RigOverlay[],
-  mirror: boolean,
+  tenue?: string,
+  view: View = 'front',
+  overlays: RigOverlay[] = [],
+  mirror = false,
 ): RigComposition {
   const { sk: groundedSk, race, fm, bDef } = groundedBodySkeleton(appearance);
   const faceFlip = appearance.faceFlip || fm.faceFlip;
@@ -390,38 +389,9 @@ function buildComposition(
   return { sk, speciesPose, viewPose, order: order.sort((a, b) => a.z - b.z) };
 }
 
-/**
- * Composition MÉMOÏSÉE par identité de référence (`memoByRef`, le patron canonique du dépôt).
- * Clé = l'identité du PERSONNAGE : son apparence, son équipement et ses calques d'état (chacun une
- * réf — toute mutation réelle en produit une nouvelle, donc rien à invalider à la main), puis la
- * garde-robe, la vue et le sens, qui sont des scalaires. Une blessure, une mutation, un changement
- * de tenue, d'arme ou de direction change donc la clé et recompose ; une simple image d'animation,
- * non. Le sous-cache par variante meurt avec l'apparence qui le porte.
- */
-const compositionCache = memoByRef((_appearance: Appearance) =>
-  memoByRef((_equip: EquipCtx) =>
-    memoByRef((_overlays: RigOverlay[]) => new Map<string, RigComposition>())));
-
-export function rigComposition(
-  appearance: Appearance,
-  equip: EquipCtx,
-  tenue?: string,
-  view: View = 'front',
-  overlays: RigOverlay[] = NO_OVERLAYS,
-  mirror = false,
-): RigComposition {
-  const variants = compositionCache(appearance)(equip)(overlays);
-  const key = `${tenue ?? ''} ${view} ${mirror ? 1 : 0}`;
-  let comp = variants.get(key);
-  if (comp === undefined) {
-    comp = buildComposition(appearance, equip, tenue, view, overlays, mirror);
-    variants.set(key, comp);
-  }
-  return comp;
-}
-
-/** Une COMPOSITION + la pose de l'instant → os résolus, triés z croissant (peintre). PUR.
- *  Seul travail réellement par-image : la FK (`worldTransforms`) sur le squelette composé. */
+/** Une COMPOSITION + la pose de l'instant → os résolus, triés z croissant (peintre). PUR : la
+ *  composition n'est pas mutée. Seule la FK (`worldTransforms`) sur le squelette composé — le travail
+ *  d'une image pour un appelant qui RETIENT sa composition (`RigToken`, sujets de `sceneMeshes`). */
 export function poseRig(comp: RigComposition, pose: Pose): ResolvedBone[] {
   const world = worldTransforms(comp.sk, addPose(comp.speciesPose, addPose(comp.viewPose, pose)));
   return comp.order.map((b) => ({ id: b.id, matrix: world[b.id], scale: b.scale, z: b.z, parts: b.parts }));
@@ -434,25 +404,38 @@ export function resolveRig(
   pose: Pose,
   tenue?: string,
   view: View = 'front',
-  overlays: RigOverlay[] = NO_OVERLAYS,
+  overlays: RigOverlay[] = [],
   mirror = false,
 ): ResolvedBone[] {
   return poseRig(rigComposition(appearance, equip, tenue, view, overlays, mirror), pose);
 }
 
-/** Composant : un <g data-bone> par os, transformable individuellement (anim C / postures D). */
-export function RigSprite({ appearance, equip, pose = {}, career, view = 'front', overlays, mirror = false }: {
-  appearance: Appearance;
-  equip: EquipCtx;
-  pose?: Pose;
-  /** Id de garde-robe (tenue OU carrière) — la carrière de jeu d'un héros sert de tenue par défaut. */
-  career?: string;
-  view?: View;
-  overlays?: RigOverlay[];
-  /** Regarde à gauche (le pion applique le flip horizontal) → profondeur de profil inversée. */
-  mirror?: boolean;
-}): JSX.Element {
-  const bones = resolveRig(appearance, equip, pose, career, view, overlays ?? NO_OVERLAYS, mirror);
+const AUCUN_CALQUE: RigOverlay[] = [];
+
+/** COMPOSITION d'une surface React : retenue tant que le personnage, la vue, le sens et la version des
+ *  catalogues (`useVersionDesDatasets`) ne changent pas — une édition au
+ *  Codex re-rend la surface et recompose son rig. Seul chemin d'une surface `.tsx` vers
+ *  `rigComposition` (garde `composition-rig-garde.test.ts`). */
+export function useCompositionRig(
+  appearance: Appearance,
+  equip: EquipCtx,
+  tenue?: string,
+  view: View = 'front',
+  overlays: RigOverlay[] = AUCUN_CALQUE,
+  mirror = false,
+): RigComposition {
+  const version = useVersionDesDatasets();
+  return useMemo(
+    () => rigComposition(appearance, equip, tenue, view, overlays, mirror),
+    [appearance, equip, tenue, view, overlays, mirror, version],
+  );
+}
+
+/** Composant : un <g data-bone> par os, transformable individuellement (anim C / postures D). Reçoit
+ *  une COMPOSITION (`rigComposition`) que l'appelant retient tant que le personnage, la vue et le sens
+ *  ne changent pas : seule la pose se résout par rendu (`poseRig`). */
+export function RigSprite({ comp, pose = {} }: { comp: RigComposition; pose?: Pose }): JSX.Element {
+  const bones = poseRig(comp, pose);
   return (
     <g className="rig">
       {bones.map((b) => (

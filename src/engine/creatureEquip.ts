@@ -79,11 +79,11 @@ export function weaponFromTrait(t: TraitInstance): Weapon | null {
     if (t.value == null) return null; // « À distance » sans Indice de Dégâts : pas une arme jouable (RAW)
     const it = catalogItem(t.arg, source);
     if (it) return creatureWeapon(it, dmg, t.range);
-    // Arme naturelle/libre (arg hors catalogue, ou absent) : pas de shape (le rendu retombe sur le Groupe).
+    // Arme naturelle/libre (arg hors catalogue, ou absent) : aucun `trappingId`, aucune forme résolue (le rendu retombe sur le Groupe).
     return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'ranged', damage: dmg, range: t.range ?? undefined });
   }
   if (source === 'weaponsMelee') {
-    // Attaque naturelle de corps (flag DONNÉE `natural`) → aucune arme dessinée (pas de shape).
+    // Attaque naturelle de corps (flag DONNÉE `natural`) → aucune arme dessinée (aucune forme résolue).
     if (t.natural) return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, natural: true });
     const it = catalogItem(t.arg, source);
     if (it) return creatureWeapon(it, dmg, t.range);

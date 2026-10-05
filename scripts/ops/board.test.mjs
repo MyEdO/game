@@ -4,6 +4,7 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { readFileSync } from 'node:fs'
 import {
   CHAMPS, COULEURS_STATUT, JOURS_DORMANT, STATUTS, avanceDite,
@@ -11,6 +12,7 @@ import {
   lireItems, mesurer, mutationOptions, optionsAReecrire, optionsDuChamp, planDeSync, poserChamp,
   statutDe, statutLePlusVivant, synchroniser, ticketsCites, ticketsDe, valeursDeLigne,
 } from './board.mjs'
+import { GESTES_DE_L_INVENTAIRE, inventaire } from './worktrees.mjs'
 
 const MS_JOUR = 24 * 60 * 60 * 1000
 const MAINTENANT = new Date('2026-09-15T12:00:00Z')
@@ -264,7 +266,7 @@ test('indexerIssues : un numéro absent de la liste est une ANOMALIE nommée, pa
   const vu = indexerIssues([{ number: 1727, state: 'open', closed_at: null, title: 'T' }], [1727, 9999])
   assert.equal(vu.issues.get(1727).title, 'T')
   assert.equal(vu.issues.has(9999), false)
-  assert.deepEqual(vu.anomalies, ['ticket #9999 introuvable dans cgauche/game'])
+  assert.deepEqual(vu.anomalies, [`ticket #9999 introuvable dans ${DEPOT}`])
 })
 
 test('indexerIssues rend la forme que lisent les consommateurs : state MAJUSCULE, closedAt', () => {
@@ -284,7 +286,7 @@ test('indexerIssues ÉCARTE les pull requests : la route /issues les sert aussi'
     { number: 1813, state: 'open', closed_at: null, title: 'PR homonyme', pull_request: { url: '…' } },
   ], [1813])
   assert.equal(vu.issues.has(1813), false)
-  assert.deepEqual(vu.anomalies, ['ticket #1813 introuvable dans cgauche/game'])
+  assert.deepEqual(vu.anomalies, [`ticket #1813 introuvable dans ${DEPOT}`])
 })
 
 const issueFeinte = (number, reste = {}) => ({ number, state: 'open', closed_at: null, title: 'x', ...reste })
@@ -311,12 +313,12 @@ test('issuesDeGh lit la LISTE page par page — un seul chemin, jamais un GET pa
   ])
   const vu = issuesDeGh([1727, 2000, 4242], appel)
   assert.deepEqual(routes, [
-    'api repos/cgauche/game/issues?state=all&sort=created&direction=desc&per_page=100&page=1',
-    'api repos/cgauche/game/issues?state=all&sort=created&direction=desc&per_page=100&page=2',
+    `api repos/${DEPOT}/issues?state=all&sort=created&direction=desc&per_page=100&page=1`,
+    `api repos/${DEPOT}/issues?state=all&sort=created&direction=desc&per_page=100&page=2`,
   ])
   assert.equal(vu.issues.get(1727).state, 'CLOSED')
   assert.equal(vu.issues.get(2000).state, 'OPEN')
-  assert.deepEqual(vu.anomalies, ['ticket #4242 introuvable dans cgauche/game'])
+  assert.deepEqual(vu.anomalies, [`ticket #4242 introuvable dans ${DEPOT}`])
 })
 
 test('issuesDeGh s’arrête dès que TOUS les numéros demandés sont vus — l’ORDRE est DEMANDÉ', () => {
@@ -359,7 +361,7 @@ test('issuesDeGh : un numéro INTROUVABLE fait lire la liste entière, et le PLA
 
 test('issuesDeGh JETTE sur un refus REST : jamais une carte partielle', () => {
   const appel = () => ({ ok: false, raison: 'HTTP 403 quelque chose' })
-  assert.throws(() => issuesDeGh([1727], appel), /lecture des tickets de cgauche\/game refusée : HTTP 403/)
+  assert.throws(() => issuesDeGh([1727], appel), { message: `lecture des tickets de ${DEPOT} refusée : HTTP 403 quelque chose` })
 })
 
 test('lireChamps et lireItems ne lisent que ce qui est contractuel, par NOM normalisé', () => {
@@ -374,7 +376,7 @@ test('lireChamps et lireItems ne lisent que ce qui est contractuel, par NOM norm
 
   const items = lireItems({
     items: [
-      { id: 'PVTI_1', title: 'x', content: { type: 'Issue', number: 1727, repository: 'cgauche/game' }, statut: 'En cours', 'dernier commit': '2026-09-14' },
+      { id: 'PVTI_1', title: 'x', content: { type: 'Issue', number: 1727, repository: `${DEPOT}` }, statut: 'En cours', 'dernier commit': '2026-09-14' },
       { id: 'PVTI_2', content: { type: 'DraftIssue', title: 'note' } },
       { id: 'PVTI_3', content: { type: 'Issue', number: 12, repository: 'autre/depot' } },
     ],
@@ -460,6 +462,39 @@ test('la mesure REFUSE nommément quand origin n’est pas consultable', () => {
   })
   assert.equal(vu.ok, false)
   assert.match(vu.refus, /origin non consultable \(réseau coupé\)/)
+  assert.match(vu.refus, /`npm run ops:board -- --liste --sans-fetch` mesure sur les refs déjà là/)
+})
+
+test('UNE mesure = UN fetch, ZÉRO sous sansFetch : l’inventaire est toujours appelé sous `sansFetch: true`', () => {
+  for (const [sansFetch, attendus] of [[false, 1], [true, 0]]) {
+    let fetchs = 0
+    const fetchOrigin = () => { fetchs += 1; return fait('') }
+    const demandes = []
+    const inv = (params) => {
+      demandes.push(params.sansFetch)
+      return inventaire({
+        ...params,
+        gestes: { ...GESTES_DE_L_INVENTAIRE, fetchOrigin, worktreesDe: () => [{ chemin: '/dep', principal: true, branche: 'main' }] },
+      })
+    }
+    const vu = mesurer({ cwd: '/dep', sansFetch, gestes: gestesFactices({ fetchOrigin }), inv, issues: () => ({ issues: new Map(), anomalies: [] }) })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.equal(fetchs, attendus, `sansFetch=${sansFetch}`)
+    assert.deepEqual(demandes, [true])
+  }
+})
+
+test('etatIssue est posé sur TOUTE ligne ; sans portée, jamais de statut `Introuvable`', () => {
+  const lignes = construireLignes({
+    branches: [
+      { nom: 'chantier/1800', avance: 1, retard: 0, dernierCommitISO: ilYA(0), tickets: [1800], worktrees: [] },
+      { nom: 'chantier/1500', avance: 1, retard: 0, dernierCommitISO: ilYA(0), tickets: [1500], worktrees: [] },
+      { nom: 'chantier/1300', avance: 1, retard: 0, dernierCommitISO: ilYA(0), tickets: [1300], worktrees: [] },
+    ],
+    issues: new Map([[1800, { state: 'OPEN' }], [1500, { state: 'CLOSED' }]]),
+  }, { maintenant: MAINTENANT, joursDormant: JOURS_DORMANT })
+  assert.deepEqual(lignes.map((l) => [l.ticket, l.statut, l.etatIssue]),
+    [[1300, 'En cours', 'introuvable'], [1800, 'En cours', 'ouvert'], [1500, 'Fermé', 'fermé']])
 })
 
 test('une branche sans avance ET sans worktree est IGNORÉE ; avec worktree, `Fusionné` si la base la cite, sinon `Ouvert`', () => {
@@ -540,7 +575,7 @@ const LIGNE_VIDEE = {
 
 const ITEM_1700 = (champs) => ({
   id: 'PVTI_7',
-  content: { type: 'Issue', number: 1700, repository: 'cgauche/game' },
+  content: { type: 'Issue', number: 1700, repository: `${DEPOT}` },
   ...champs,
 })
 
@@ -583,7 +618,7 @@ test('synchroniser : le SECOND passage sur l’item déjà à jour ne fait AUCUN
 test('synchroniser ARCHIVE l’item d’un ticket non mesuré dont l’issue est CLOSED', () => {
   const appels = []
   const items = [ITEM_1700({ status: 'Fusionné', branche: '', worktree: '', avance: '' }), {
-    id: 'PVTI_9', content: { type: 'Issue', number: 1751, repository: 'cgauche/game' }, status: 'Fermé',
+    id: 'PVTI_9', content: { type: 'Issue', number: 1751, repository: `${DEPOT}` }, status: 'Fermé',
   }]
   const bilan = synchroniser({
     lignes: [LIGNE_VIDEE],

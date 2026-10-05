@@ -32,22 +32,13 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  estErreur, findAllRuns, findCells, cellRefFor, normText, parseChapitre,
+  estErreur, findAllRuns, findCells, cellRefFor, normText, ouDe, ouDeLAdresse, parseChapitre,
   resoudreAdresse, resoudreFragment,
 } from '../../src/data/source/decoupe.ts'
 import { RACINES_PAR_DEFAUT, RACINE_DEPOT, adressesDuDepot } from './adresses.mjs'
 import { lireChapitre } from './lecteur-fs.mjs'
 import { cheminChapitre } from './resoudre.mjs'
 import { ancresDObjet, jsonIndente, remplacerAncre } from './reecriture-ancree.mjs'
-
-/** Désignation lisible d'un fragment — même forme que les détails d'erreur du parseur. */
-const ouDe = (frag) =>
-  frag.kind === 'cellule'
-    ? `§${frag.sec}#${frag.secOcc} [${frag.row}]×[${frag.col}]`
-    : `§${frag.sec}#${frag.secOcc} blocs ${frag.b0}-${frag.b1}`
-
-/** Adresse entière en une ligne lisible. */
-const adresseLisible = (ref) => `${ref.book} ch.${ref.ch} ${ref.parts.map(ouDe).join(' + ')}`
 
 /** Chemin de chapitre en séparateurs POSIX : c'est la forme que `git show` attend. */
 const versPosix = (chemin) => String(chemin).split('\\').join('/')
@@ -57,16 +48,15 @@ const premiereLigne = (e) => String(e instanceof Error ? e.message : e).split('\
 
 /**
  * Emplacements du chapitre COURANT qui rendent `cible` (texte normalisé du fragment d'origine).
- * Un emplacement = la liste des fragments qui le composent (un run de blocs peut traverser deux
- * sections) ; leurs empreintes `sum` sont POSÉES par `empreinteDe` au fond de `findAllRuns` /
- * `cellRefFor`, jamais recopiées de l'ancienne adresse — c'est le texte d'AUJOURD'HUI qu'elles
- * scellent.
+ * Un emplacement = UN fragment (un run de blocs qui traverse des sections est UN intervalle) ; son
+ * empreinte `sum` est POSÉE par `empreinteDe` au fond de `findAllRuns` / `cellRefFor`, jamais
+ * recopiée de l'ancienne adresse — c'est le texte d'AUJOURD'HUI qu'elle scelle.
  *
  * `raisonVide` dit POURQUOI il n'y a aucun emplacement, et les deux causes ne se confondent pas : le
  * texte n'est plus là, ou il est là mais sa ligne de table n'offre aucune clé sûre (`cellRefFor`
  * refuse une clé ambiguë ou positionnelle) — dans ce second cas le passage existe, il n'est pas
  * ADRESSABLE, et c'est ce que l'humain doit lire.
- * @returns {{ emplacements: { fragments: object[], ou: string }[], raisonVide: string }}
+ * @returns {{ emplacements: { fragment: object, ou: string }[], raisonVide: string }}
  */
 function emplacementsDe(chapitre, frag, cible) {
   if (frag.kind === 'cellule') {
@@ -79,7 +69,7 @@ function emplacementsDe(chapitre, frag, cible) {
       const cle = ouDe(ref)
       if (vus.has(cle)) continue
       vus.add(cle)
-      emplacements.push({ fragments: [ref], ou: cle })
+      emplacements.push({ fragment: ref, ou: cle })
     }
     const raisonVide = hits.length
       ? `son texte d'origine est bien dans le chapitre (${hits.length} cellule(s)), mais aucune ligne ne porte de clé sûre — le passage n'est pas adressable en l'état`
@@ -87,7 +77,7 @@ function emplacementsDe(chapitre, frag, cible) {
     return { emplacements, raisonVide }
   }
   return {
-    emplacements: findAllRuns(chapitre, cible).map((run) => ({ fragments: run, ou: run.map(ouDe).join(' + ') })),
+    emplacements: findAllRuns(chapitre, cible).map((fragment) => ({ fragment, ou: ouDe(fragment) })),
     raisonVide: "son texte d'origine n'est plus dans le chapitre",
   }
 }
@@ -125,7 +115,7 @@ function relocaliser(courant, origine, ref, depuis) {
       )
       continue
     }
-    parts.push(...emplacements[0].fragments)
+    parts.push(emplacements[0].fragment)
   }
   if (verdict !== 'RECALÉE') return { verdict, raison: raisons.join(' ; ') }
 
@@ -138,7 +128,7 @@ function relocaliser(courant, origine, ref, depuis) {
   }
   const rendu = resoudreAdresse(courant, nouvelle)
   if (estErreur(rendu)) {
-    return { verdict: 'IRRÉCUPÉRABLE', raison: `l'adresse proposée (${adresseLisible(nouvelle)}) ne résout pas : ${rendu.error} — ${rendu.detail}` }
+    return { verdict: 'IRRÉCUPÉRABLE', raison: `l'adresse proposée (${ouDeLAdresse(nouvelle)}) ne résout pas : ${rendu.error} — ${rendu.detail}` }
   }
   if (rendu.md !== attendu.md) {
     return {
@@ -146,7 +136,7 @@ function relocaliser(courant, origine, ref, depuis) {
       raison: `l'adresse proposée rend un AUTRE texte que l'original (${attendu.md.length} car. attendus, ${rendu.md.length} rendus)`,
     }
   }
-  return { verdict: 'RECALÉE', nouvelle, proposition: adresseLisible(nouvelle) }
+  return { verdict: 'RECALÉE', nouvelle, proposition: ouDeLAdresse(nouvelle) }
 }
 
 /**

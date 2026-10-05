@@ -133,7 +133,7 @@ export const ANGLES_MORTS: readonly string[] = [
   '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `prixTireSchema` (#1463 L-gram-3) à donnée, def et signature INCHANGÉS.',
   'Les portes MOTEUR (`src/engine`, `src/state`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
   'Le concept `test` CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation` : clé de `CLES_IDENTITE`, ou clé en `RX_CLE_REFERENCE`) et passe APRÈS `plage` : 12 objets porteurs de `difficulty` restent classés `test` sans en être un — `tavernGames.json › volley.rows` 7 (rangées sans bornes authorées), `sea-events.json › params` 3 (le sujet du jet y vit sous `testType`) et `etats.json › difficultyBy` 2. Ce qui leur manque n’est pas TOUT discriminant structurel (`difficultyBy` porte `{cond, difficulty}`, et `cond` en est un) : c’est une clé de DÉSIGNATION, la seule que ce concept cède.',
-  'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 148 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 71, `scene.ts` 53, `worldmap.ts` 15, `narratif.ts` 7, `communs.ts` 2) en sont HORS PÉRIMÈTRE — un seul d’entre eux serait classé par le lexique s’il y entrait (`scene.ts:438` `wallClimbSchema`, concept `test` par le noyau `difficulty`). L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
+  'Le scan AST des redéclarations ne lit QUE `src/data/schemas/defs/` : les 148 littéraux zod de `src/data/schemas/defs-scenes/` (`effets.ts` 71, `scene.ts` 53, `worldmap.ts` 15, `narratif.ts` 7, `communs.ts` 2) en sont HORS PÉRIMÈTRE — un seul d’entre eux serait classé par le lexique s’il y entrait (`wallClimbSchema` de `scene.ts`, concept `test` par le noyau `difficulty`). L’autre cas mesuré du concept `test`, `extendedTestSchema`, vit en grammaire (`src/data/schemas/grammaire/mecanique.ts`), hors périmètre elle aussi (#1657).',
   'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de MÊME signature exacte — deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`, 482 après ce lot, 487 à `9739ee1f4`) bouge.',
 ];
 
@@ -171,7 +171,7 @@ export const TERMES_COLLECTION_A_CLE: readonly (readonly [terme: string, definit
   ],
   [
     'co-descente',
-    'la descente ENSEMBLE d’une donnée et de son schéma (`coDescendre`, `src/data/schemas/grammaire/descente.ts`) : chaque point de la donnée reçoit ses nœuds de schéma `ouverts` — enveloppes, côtés d’intersection, branches d’union (d’une union discriminée, celles qu’admet le discriminant de la donnée, toutes sans valeur lisible) — et un pas de donnée passe par `pasDeDonnee`. Elle ne valide pas : un arbre invalide garde ses collections. Seule lecture des collections à clé d’un document (`collectionsDuDocument`, `collectionALaCle`) et du lieu d’une faute (`lieuDe`, `src/data/schemas/validate.ts`). Faux ami : l’option `descendre` de `scripts/guards/lib/lister.mjs`.',
+    'la descente ENSEMBLE d’une donnée et de son schéma (`coDescendre`, `src/data/schemas/grammaire/descente.ts`) : chaque point de la donnée reçoit ses nœuds de schéma `ouverts` — enveloppes, côtés d’intersection, branches d’union (d’une union discriminée, celles qu’admet le discriminant de la donnée — absent d’un objet, il y vaut `undefined` quand une branche l’admet —, toutes sans valeur lisible) — et un pas de donnée passe par `pasDeDonnee`. Elle ne valide pas : un arbre invalide garde ses collections. Seule lecture des collections à clé d’un document (`collectionsDuDocument`, `collectionALaCle`) et du lieu d’une faute (`lieuDe`, `src/data/schemas/validate.ts`). Faux ami : l’option `descendre` de `scripts/guards/lib/lister.mjs`.',
   ],
   [
     'suite nichée',
@@ -295,7 +295,7 @@ export const CONCEPTS: readonly Concept[] = [
       // statbloc, la valeur IMPRIMÉE est un champ de la référence — `#1463` (« Faits tranchés au
       // Source ») : « `value` = le seul nom du NOMBRE IMPRIMÉ au statbloc », et sa clause de
       // composition « `value` requis sur un statbloc ». `advances` est le nom du RANG ACHETÉ en PX
-      // (Augmentation, `LDB 07`, `docs/raw/4e/avancement.md:27`), qui vit sur l'INSTANCE, pas ici.
+      // (Augmentation, `LDB 07`, `docs/raw/4e/avancement.md` § Vue d'ensemble), qui vit sur l'INSTANCE, pas ici.
       // RÉSERVE OUVERTE, dite et non tranchée (commit de préservation `772a217cc`, verbatim
       // utilisateur) : « la forme {id, spec|choix, value} n'est PAS le schéma final — #1463 tranche un
       // noyau générique de référence + compositions fermées ; `value`/`times`/avances = un seul rang
@@ -349,8 +349,8 @@ export const CONCEPTS: readonly Concept[] = [
     signatures: [
       { sig: 'brass,gold,silver', statut: 'cible' },
       // Les 6 sous-signatures NON VIDES d'un montant PARTIEL : `moneyPartialSchema`
-      // (`src/data/schemas/grammaire/valeurs.ts:300`) déclare les 3 dénominations OPTIONNELLES, et
-      // `toMoney` (`src/engine/money.ts:45`) complète à 0 celles qui manquent — un coût authoré
+      // (`src/data/schemas/grammaire/valeurs.ts`) déclare les 3 dénominations OPTIONNELLES, et
+      // `toMoney` (`src/engine/money.ts`) complète à 0 celles qui manquent — un coût authoré
       // n'écrit que ce qu'il chiffre. Ce sont des formes CIBLES, pas des graphies à éteindre.
       { sig: 'brass', statut: 'cible' },
       { sig: 'gold', statut: 'cible' },
@@ -406,7 +406,7 @@ export const CONCEPTS: readonly Concept[] = [
       // Le discriminant `kind` reste HORS du vocabulaire du concept (c'est lui, le `+…`) : `CLES_DE_VALEUR`
       // en dérive, et l'y verser retirerait `kind` de la charge utile des TELLS de document — 44 pions de
       // scène `{id, kind, label, pos, ref}` changeraient de tell (mesure de la sonde C, #1633).
-      { sig: 'b0,b1,sec,secOcc,sum+…', statut: 'cible', note: 'suite contiguë `b0..b1` des blocs d’une section (`FragmentBlocs`)' },
+      { sig: 'b0,b1,sec,secOcc,sum+…', statut: 'cible', note: 'intervalle du fil d’un chapitre, du bloc `b0` de `sec#secOcc` au bloc `b1` de `finSec#finSecOcc` (par défaut la section de départ), titres intermédiaires compris (`FragmentBlocs`)' },
       { sig: 'col,row,sec,secOcc,sum+…', statut: 'cible', note: 'case d’une table adressée par CLÉ de ligne × en-tête de colonne (`FragmentCellule`)' },
     ],
     noyau: ['sec', 'secOcc', 'sum'],
@@ -618,7 +618,7 @@ export const GRAPHIE_REFERENCE: ReadonlySet<string> = new Set(
 );
 
 /**
- * Clés de SPÉCIALISATION d'une référence (`RefASpecialisation`, `src/data/schemas/grammaire/ref.ts:215`) :
+ * Clés de SPÉCIALISATION d'une référence (`RefASpecialisation`, `src/data/schemas/grammaire/ref.ts`) :
  * membres de `GRAPHIE_REFERENCE` qui QUALIFIENT la référence posée à `id` sans en porter une. Le scan
  * ne les inscrit jamais comme CASE d'une occurrence (`inscrireReference`, #1473) : une valeur qui y
  * résout vers l'index par homonymie ne rend pas l'occurrence inatteignable.
@@ -683,7 +683,8 @@ export type RoleEnveloppe = {
   /**
    * Clé qui SATISFAIT le rôle à la place de la cible : le rôle est alors une ALTERNATIVE, et
    * l'absence de la cible n'est une divergence que si cette clé manque aussi. Cale le lexique sur
-   * la grammaire (`src/data/schemas/grammaire/document.ts:402-413` : `source` OU `maison`).
+   * la grammaire (refine de PROVENANCE de `document`, `src/data/schemas/grammaire/document.ts` :
+   * `source` OU `maison`).
    */
   alternative?: string;
   /**
@@ -721,13 +722,14 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   // `effect`, `rules` et `hint` ont été RETIRÉS des divergentes (#1467 L1b V-P2) : le détecteur
   // classait par NOM de clé, pas par TYPE, et ces trois-là ne portent pas de prose.
   //   `crew-morale.json › factors[].effect` = expression de dés lue par `rollExpr`
-  //     (`src/data/schemas/defs/crew-morale.ts:22-23`) ;
+  //     (`src/data/schemas/defs/crew-morale.ts`) ;
   //   `sea-events.json › manann.factors[].effect` = objet `{sign, flat, d10}`
-  //     (`src/data/schemas/defs/sea-events.ts:19-23`) ;
+  //     (`manannFactor` de `src/data/schemas/defs/sea-events.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
-  //     (`src/data/schemas/defs/land-cargo.ts:37-38`) et aide de saisie d'une règle optionnelle
-  //     (`src/data/schemas/defs/reglesOptionnelles.ts:42`) ;
-  //   `speciesRace.json › rules` = tableau de règles (`src/data/schemas/defs/speciesRace.ts:23`).
+  //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
+  //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`) ;
+  //   `speciesRace.json › rules` = tableau de règles (`speciesRuleSchema` de
+  //   `src/data/schemas/defs/speciesRace.ts`).
   // Les `effect` qui ÉTAIENT des issues ou une clé de registre ont, eux, été migrés (`outcome`,
   // `potEffectId`, `ops`) plutôt que retirés de la mesure.
   prose: { cible: 'desc', divergentes: ['text', 'description'] },
@@ -738,9 +740,10 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   // ligne naît pour que la première entrée adressée soit MESURÉE, pas découverte.
   'adresse de prose': { cible: 'descRef', divergentes: [], typeAttendu: 'object' },
   // Un document S'ANNONCE : `type` est posé par la fabrique sur tout document (`CLES_ENVELOPPE`,
-  // `src/data/schemas/grammaire/document.ts:24`), et les documents EMBARQUÉS qui le portent le
-  // portent sur TOUTES leurs entrées (`scene.ts:14-20` l'exige des 28 scènes, `communs.ts:45-46`
-  // du statbloc) — d'où `entiere`, qui met les portées embarquées au dénominateur.
+  // `src/data/schemas/grammaire/document.ts`), et les documents EMBARQUÉS qui le portent le
+  // portent sur TOUTES leurs entrées (`sceneSchema` de `defs-scenes/scene.ts` l'exige des 28 scènes,
+  // `customStatblockSchema` de `defs-scenes/communs.ts` du statbloc) — d'où `entiere`, qui met les
+  // portées embarquées au dénominateur.
   'type de document': { cible: 'type', divergentes: [], typeAttendu: 'string', requise: true, entiere: true },
   source: { cible: 'source', divergentes: [], typeAttendu: 'object', requise: true, alternative: 'maison' },
   maison: { cible: 'maison', divergentes: [], typeAttendu: 'string' },

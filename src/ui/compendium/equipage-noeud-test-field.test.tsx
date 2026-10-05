@@ -64,7 +64,7 @@ describe('atelier du Codex — le coup à l’équipage porte un nœud `test`, e
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CodexEdit categoryKey={CATEGORIE} label={cible.label} id={cible.id} onClose={() => {}} />);
+      root.render(<CodexEdit categoryKey={CATEGORIE} id={cible.id} onClose={() => {}} />);
     });
 
     // UNE seule branche rendue : celle de l'ÉCHEC (`applyCrewHit` n'applique que celle-là).
@@ -107,7 +107,7 @@ describe('atelier du Codex — la Caractéristique testée est ÉDITABLE (règle
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CodexEdit categoryKey={CATEGORIE} label={cible.label} id={cible.id} onClose={() => {}} />);
+      root.render(<CodexEdit categoryKey={CATEGORIE} id={cible.id} onClose={() => {}} />);
     });
 
     const carac = container.querySelector<HTMLSelectElement>('.codex-edit-form select[aria-label="Caractéristique testée"]');

@@ -17,7 +17,7 @@ import { sceneSchema } from '../defs-scenes/scene';
 import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../state/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
-import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, type MarqueDeCollection } from './collection-cle';
+import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, type MarqueDeCollection } from './collection-cle';
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';
@@ -260,5 +260,23 @@ describe('clé de collection — la co-descente re-dérive les racines, les cat�
     const def = { file: 'fixture.json', root: 'data', schema, famille: 'config' } as unknown as (typeof DEFS)[number];
     const [c] = collectionsDesDocuments([def], new Map([['fixture.json', { lots: [{ items: [{ id: 'a' }] }] }]]));
     expect([c.cle, c.ids]).toEqual(['fixture.json#lots[].items', ['a']]);
+  });
+});
+
+describe('élément d’un RECORD marqué — `noeudsDeLElement`', () => {
+  it('sans `sous`, l’élément est la valeur de la carte marquée', () => {
+    const val = z.strictObject({ a: z.string() });
+    const marque = marqueDeRecord();
+    const elements = noeudsDeLElement([marquerCollection(z.record(z.string(), val), marque)], marque);
+    expect(elements).toHaveLength(1);
+    expect(elements[0]).toBe(val);
+  });
+
+  it('avec `sous`, l’élément est la valeur de la carte portée par ce champ', () => {
+    const val = z.strictObject({ a: z.string() });
+    const marque = marqueDeRecord({ sous: 'entries' });
+    const elements = noeudsDeLElement([marquerCollection(z.strictObject({ entries: z.record(z.string(), val), autre: z.record(z.string(), z.number()) }), marque)], marque);
+    expect(elements).toHaveLength(1);
+    expect(elements[0]).toBe(val);
   });
 });

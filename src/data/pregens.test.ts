@@ -182,6 +182,14 @@ describe('Sélection de groupe — pregen / pregenParty', () => {
       .toMatch(/beni.*« choix ».*n'y est pas admis/);
   });
 
+  /** Une clé de choix est une ADRESSE d'emplacement (`adresseLue`, `engine/adresseDeCreation.ts`) : un libellé
+   *  y est refusé AU PARSE, nommément — le cast de chargement `pregens` (`data/index.ts`) ne lit rien. */
+  it('refuse au schéma une clé de choix qui n’est pas une adresse, en la nommant', () => {
+    const base = definitions.find((d) => d.seed === PREGEN.soldat)!;
+    expect(validateDataset('pregens.json', [...definitions, { ...base, id: 'essai-cle', seed: 90004, speciesTalentChoices: { 'Perspicace ou Affable': { id: 'perspicace' } } }]))
+      .toMatch(/Perspicace ou Affable.*n’est pas une adresse/);
+  });
+
   /** Un Talent de carrière sans spécialisation sur un emplacement « (Au choix) » fait écarter le pré-tiré
    *  en le NOMMANT (jamais un héros construit) — `LDB 10 l.17`. Base PRÊTRE : son Niveau 1 porte « Béni (Au choix) ». */
   it('écarte en le nommant un pré-tiré dont le Talent de carrière est sans spécialisation', () => {

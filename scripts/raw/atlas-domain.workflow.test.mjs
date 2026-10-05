@@ -28,6 +28,7 @@ import { lireRendu, perimetreDeCoeur } from './workflow-args.mjs'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'
 import { scanForbiddenCounts } from './check-atlas-counts.mjs'
 import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
+import { OUTILS_ECRITURE } from '../guards/lib/contratGarde.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 
 const SCRIPT = fileURLToPath(new URL('./atlas-domain.workflow.js', import.meta.url))
@@ -57,22 +58,21 @@ const PERIMETRE = () => perimetreDeCoeur('alpha', {
 /** Rendus d'agent valides ; `trous` fait passer le run par `applyGaps` et la re-vérification. */
 const repondreAvec = (trous) => {
   let audits = 0
-  return (prompt, opts) => {
+  return (_prompt, opts) => {
     switch (opts.phase) {
       case 'Cadrage': return { coverageRefs: [{ ab: 'BKA', nn: '05' }], sonnetBooks: ['SPG'] }
       case 'Cartographie': return { items: [{ item: 'Une regle de fixture', kind: 'table', ref: 'BKA 05 l.1-2', gist: 'un gist' }] }
       case 'Taxonomie': return { topics: [{ id: 'topic-un', t: 'Topic Un', hint: 'un hint', covers: ['Une regle de fixture'] }] }
       case 'Survey': return { hits: [{ topicId: 'topic-un', ref: 'BKA 05 l.1', gist: 'un gist' }] }
-      case 'Synthese': return { topicId: 'topic-un', title: 'Topic Un', markdown: '## Topic Un\n\nUn corps.', refs: ['BKA 05 l.1'], codeHint: '' }
+      case 'Synthese': return { fiche: { title: 'Topic Un', markdown: '## Topic Un\n\nUn corps.', refs: ['BKA 05 l.1'], codeHint: '' } }
+      case 'Correction': return { fiche: { title: 'Topic Un', markdown: '## Topic Un\n\nCorrige.', refs: ['BKA 05 l.1'], codeHint: '' } }
       case 'Audit':
-        // `augment` vit AUSSI dans la phase Audit : seule la demande d'AUDIT porte le schéma `dry`.
-        if (!/^AUDIT DE COMPLETUDE/.test(prompt)) return { topicId: 'topic-un', title: 'Topic Un', markdown: '## Topic Un\n\nCorrige.', refs: ['BKA 05 l.1'], codeHint: '' }
         audits += 1
         return (trous && audits === 1)
           ? { dry: false, gaps: [{ kind: 'survole', topicId: 'topic-un', what: 'une table aux bornes', ref: 'BKA 05 l.1' }] }
           : { dry: true, gaps: [] }
       // Une fidélité REFUSÉE ouvre la correction de fidélité puis la re-vérification.
-      case 'Verif': return { topicId: 'topic-un', faithful: !trous, issues: trous ? ['une valeur fausse'] : [] }
+      case 'Verif': return { faithful: !trous, issues: trous ? ['une valeur fausse'] : [] }
       default: throw new Error(`phase inattendue : ${opts.phase}`)
     }
   }
@@ -99,7 +99,7 @@ async function optionsDesDeuxRuns() {
 }
 
 /** Les fonctions de prompt du SOURCE, avec l'amorce littérale de ce qu'elles rendent. DÉRIVÉ. */
-const fonctionsDePrompt = [...SOURCE.matchAll(/function (\w+Prompt)\s*\([^)]*\)\s*\{[\s\S]*?return \[\s*'((?:[^'\\]|\\.){10,})'/g)]
+const fonctionsDePrompt = [...SOURCE.matchAll(/function (\w+Prompt)\s*\([^)]*\)\s*\{[\s\S]*?return\s+'((?:[^'\\]|\\.){10,})'/g)]
   .map((m) => ({ nom: m[1], amorce: m[2].slice(0, 20) }))
 
 /** Bordures UNICODE : `\w` laisserait passer « ZI, ÉAA, l'ACE. */
@@ -193,7 +193,7 @@ test('workflow Atlas : la consigne de CITATION suit la langue du livre cité', a
   // ÉCRIVENT. Une phase muette sur la langue rendrait un inventaire ou un verdict TRADUIT.
   const citation = [
     `Cartographie:${LOT[0]}:carto:BKA-05`, `Audit:${LOT[0]}:audit#1`,
-    `Synthese:${LOT[0]}:synth:topic-un`, `Audit:${LOT[0]}:augment:topic-un`,
+    `Synthese:${LOT[0]}:synth:topic-un`, `Correction:${LOT[0]}:augment:topic-un`,
   ]
   for (const cle of citation) {
     const p = prompts.get(cle)
@@ -201,7 +201,7 @@ test('workflow Atlas : la consigne de CITATION suit la langue du livre cité', a
     assert.match(p, /LANGUE DES CITATIONS : .*reste VERBATIM dans la langue de CE livre \(Langue-A, Langue-B selon le livre/)
   }
   // La clause de FICHE ne vaut que là où une SYNTHÈSE s'écrit.
-  for (const cle of [`Synthese:${LOT[0]}:synth:topic-un`, `Audit:${LOT[0]}:augment:topic-un`]) {
+  for (const cle of [`Synthese:${LOT[0]}:synth:topic-un`, `Correction:${LOT[0]}:augment:topic-un`]) {
     assert.match(prompts.get(cle), /LANGUE DE LA FICHE : la SYNTHESE que tu rediges est en FRANCAIS/)
   }
 })
@@ -239,7 +239,7 @@ test('workflow Atlas : un domaine SAUTÉ sort dans `sautes`, avec sa RAISON, pou
 test('workflow Atlas : la consigne de TRANSCRIPTION ne va qu’aux phases qui écrivent une table', async () => {
   const prompts = await promptsDesDeuxRuns()
   const TRANSCRIT = /TRANSCRIPTION DES TABLES : une table se transcrit ligne par ligne/
-  for (const cle of [`Audit:${LOT[0]}:audit#1`, `Synthese:${LOT[0]}:synth:topic-un`, `Audit:${LOT[0]}:augment:topic-un`]) {
+  for (const cle of [`Audit:${LOT[0]}:audit#1`, `Synthese:${LOT[0]}:synth:topic-un`, `Correction:${LOT[0]}:augment:topic-un`]) {
     assert.match(prompts.get(cle), TRANSCRIT)
   }
   const carto = prompts.get(`Cartographie:${LOT[0]}:carto:BKA-05`)
@@ -307,7 +307,8 @@ test('workflow Atlas : la grammaire dite au juge de FIDÉLITÉ désigne un FICHI
 
 /** Les types d'agent du dépôt qui n'ont AUCUN outil d'écriture — lus à `.claude/agents/`, jamais
  *  écrits en dur : un agent dont on ajouterait `Edit` sortirait de cette liste sans que rien ne mente. */
-const OUTILS_ECRIVANTS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit']
+/** Une liste d'outils d'agent n'écrit rien : aucun canal d'écriture (`OUTILS_ECRITURE`). */
+const enLectureSeule = (outils) => !outils.some((o) => OUTILS_ECRITURE.includes(o))
 const typesEnLectureSeule = () => {
   const dossier = fileURLToPath(new URL('../../.claude/agents/', import.meta.url))
   const types = []
@@ -318,10 +319,15 @@ const typesEnLectureSeule = () => {
     // Pas de `tools:` = l'agent hérite de TOUS les outils, écriture comprise : jamais lecture seule.
     if (!nom || !outils) continue
     const liste = outils[1].split(',').map((s) => s.trim())
-    if (!liste.some((o) => OUTILS_ECRIVANTS.includes(o))) types.push(nom[1])
+    if (enLectureSeule(liste)) types.push(nom[1])
   }
   return types
 }
+
+test('workflow Atlas : un agent muni du SEUL `ctx_patch` (canal d’édition prescrit) n’est pas en lecture seule', () => {
+  assert.equal(enLectureSeule(['mcp__lean-ctx__ctx_read', 'mcp__lean-ctx__ctx_patch']), false)
+  assert.equal(enLectureSeule(['mcp__lean-ctx__ctx_read', 'Bash']), true)
+})
 
 test('workflow Atlas : les types d’agent en lecture seule se lisent au dépôt (sinon le contrat est vide)', () => {
   const types = typesEnLectureSeule()
@@ -345,9 +351,9 @@ test('workflow Atlas : le type suit ce que la phase FAIT — `juge` là où l’
   const parType = { juge: [], lecteur: [] }
   for (const [cle, o] of options) (parType[o.agentType] ||= []).push(cle)
   // AUDIT de complétude et VÉRIF de fidélité confrontent une entrée à la source et REFUTENT ;
-  // l'augmentation, elle, RÉDIGE — elle reste un lecteur, sous le même label de phase `Audit`.
+  // l'augmentation, elle, RÉDIGE — elle reste un lecteur, dans sa phase `Correction`.
   assert.deepEqual(parType.juge.sort(), [`Audit:${LOT[0]}:audit#1`, `Audit:${LOT[0]}:audit#2`, `Verif:${LOT[0]}:reverif:topic-un`, `Verif:${LOT[0]}:verif:topic-un`].sort())
-  assert.ok(parType.lecteur.includes(`Audit:${LOT[0]}:augment:topic-un`), parType.lecteur.join(' · '))
+  assert.ok(parType.lecteur.includes(`Correction:${LOT[0]}:augment:topic-un`), parType.lecteur.join(' · '))
 })
 
 test('workflow Atlas : TOUT prompt porte la clause de LECTURE SEULE, avec le refus de RÉPARER la source', async () => {
@@ -376,7 +382,7 @@ test('workflow Atlas : un signalement de source ABÎMÉE remonte au rendu du dom
 test('workflow Atlas : une REPRISE ne PERD pas les signalements déjà rendus, et ajoute les siens', async () => {
   const { rendu } = await jouerWorkflow(SCRIPT, ARGS_DE_REPRISE(), (p, o) => {
     assert.equal(o.phase, 'Verif')
-    return { topicId: 'jamais-juge', faithful: true, issues: [], sourceAbimee: [{ ref: 'BKA 05 l.8', constat: 'table fusionnee' }] }
+    return { faithful: true, issues: [], sourceAbimee: [{ ref: 'BKA 05 l.8', constat: 'table fusionnee' }] }
   })
   assert.deepEqual(rendu.domains[0].sourceAbimee, [
     { phase: 'Synthese', ref: 'BKA 05 l.7', constat: 'phrase tronquee en fin de fichier' },
@@ -408,7 +414,7 @@ const DECOUVERTE = ['Cadrage', 'Cartographie', 'Taxonomie', 'Survey', 'Synthese'
 test('workflow Atlas : une REPRISE ne lance AUCUN agent de découverte, et ne rejoue pas un topic PROUVÉ', async () => {
   const { rendu, promptsParLabel } = await jouerWorkflow(SCRIPT, ARGS_DE_REPRISE(), (p, o) => {
     assert.equal(o.phase, 'Verif', `phase inattendue en reprise : ${o.phase}`)
-    return { topicId: 'jamais-juge', faithful: true, issues: [] }
+    return { faithful: true, issues: [] }
   })
   const labels = [...promptsParLabel.keys()]
   assert.deepEqual(labels.filter((l) => DECOUVERTE.some((ph) => l.startsWith(`${ph}:`))), [])
@@ -427,26 +433,27 @@ test('workflow Atlas : une REPRISE ne lance AUCUN agent de découverte, et ne re
 test('workflow Atlas : en REPRISE, une fidélité REFUSÉE ouvre la correction puis la re-vérif', async () => {
   let verifs = 0
   const { rendu, promptsParLabel } = await jouerWorkflow(SCRIPT, ARGS_DE_REPRISE(), (prompt, o) => {
-    if (o.phase === 'Audit') return { topicId: 'jamais-juge', title: 'Jamais Juge', markdown: '## Jamais Juge\n\nCorrige.', refs: ['BKA 05 l.2'], codeHint: '' }
+    if (o.phase === 'Correction') return { fiche: { title: 'Jamais Juge', markdown: '## Jamais Juge\n\nCorrige.', refs: ['BKA 05 l.2'], codeHint: '' } }
     verifs += 1
-    return { topicId: 'jamais-juge', faithful: verifs > 1, issues: verifs > 1 ? [] : ['une valeur fausse'] }
+    return { faithful: verifs > 1, issues: verifs > 1 ? [] : ['une valeur fausse'] }
   })
   const labels = [...promptsParLabel.keys()]
-  assert.ok(labels.includes(`Audit:${LOT[0]}:augment:jamais-juge`), `augmentation absente — ${labels.join(' · ')}`)
+  assert.ok(labels.includes(`Correction:${LOT[0]}:augment:jamais-juge`), `augmentation absente — ${labels.join(' · ')}`)
   assert.ok(labels.includes(`Verif:${LOT[0]}:reverif:jamais-juge`))
   const t = rendu.domains[0].topics.find((x) => x.topicId === 'jamais-juge')
   assert.equal(t.faithful, true)
   assert.match(t.markdown, /Corrige\./)
 })
 
-// Le verdict se keye sur l'ENTRÉE JUGÉE. Avec la clé de la RÉPONSE, un agent qui rebaptise son topic
-// inscrivait un fantôme : le topic réel restait `faithful:null`, et `assemble` refusait la fiche.
-test('workflow Atlas : un agent de vérif qui rend un AUTRE `topicId` ne keye plus de fantôme', async () => {
-  const { rendu } = await jouerWorkflow(SCRIPT, ARGS_DE_REPRISE(), () =>
-    ({ topicId: 'un-id-que-personne-n-a-demande', faithful: true, issues: [] }))
-  const topics = rendu.domains[0].topics
-  assert.deepEqual(topics.map((t) => t.topicId), ['deja-prouve', 'jamais-juge'])
-  assert.equal(topics.find((t) => t.topicId === 'jamais-juge').faithful, true)
+// Le verdict se keye sur l'ENTRÉE JUGÉE : la réponse d'un vérificateur ne porte aucun id, et chaque
+// verdict revient au topic dont le prompt a été envoyé, quel que soit l'ordre des rendus.
+test('workflow Atlas : chaque verdict de vérif revient au topic JUGÉ, jamais à un voisin', async () => {
+  const aReprendre = RENDU_A_REPRENDRE()
+  aReprendre.topics.push({ topicId: 'autre-jamais-juge', title: 'Autre Jamais Juge', markdown: '## Autre Jamais Juge\n\nUn corps.', refs: ['BKA 05 l.4'], codeHint: '', faithful: null, issues: [] })
+  const { rendu, promptsParLabel } = await jouerWorkflow(SCRIPT, ARGS_DE_REPRISE(aReprendre), (prompt) =>
+    (prompt.includes('TITRE : Autre Jamais Juge') ? { faithful: false, issues: [] } : { faithful: true, issues: [] }))
+  assert.deepEqual([...promptsParLabel.keys()], [`Verif:${LOT[0]}:verif:jamais-juge`, `Verif:${LOT[0]}:verif:autre-jamais-juge`])
+  assert.deepEqual(rendu.domains[0].topics.map((t) => [t.topicId, t.faithful]), [['deja-prouve', true], ['jamais-juge', true], ['autre-jamais-juge', false]])
 })
 
 // UNE RE-VÉRIF MUETTE NE DÉTRUIT PLUS UN VERDICT. Un topic entré `faithful:false` avec ses `issues`
@@ -503,7 +510,7 @@ test('reprise de BOUT EN BOUT : rendu du run → lireRendu → workflow → asse
     })
     const { rendu: apres, promptsParLabel } = await jouerWorkflow(SCRIPT, argsDeReprise, (p, o) => {
       assert.equal(o.phase, 'Verif', `phase de découverte rejouée en reprise : ${o.phase}`)
-      return { topicId: 'topic-un', faithful: true, issues: [] }
+      return { faithful: true, issues: [] }
     })
     assert.deepEqual([...promptsParLabel.keys()], [`Verif:${LOT[0]}:verif:topic-un`])
     assert.deepEqual(apres.domains[0].topics.map((t) => t.faithful), [true])

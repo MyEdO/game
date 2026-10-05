@@ -8,17 +8,18 @@
  *  - bas niveau : `appearance` (+ `equip`/`career`/`overlays`) — créateur/éditeur, avant qu'un
  *    Combatant n'existe ;
  *  - haut niveau : `hero` (Combatant) — tout est dérivé via les briques canoniques
- *    (combatantAppearance/combatantOverlays/equipFromCombatant).
+ *    (combatantAppearance/combatantOverlays/equipPorte).
  *
  * AUCUN `<defs>` local : les dégradés fixes du rig (`defsGlobaux()`) sont montés UNE fois au niveau App
  * (GlobalSvgDefs). Tailles et ambiances en CSS (`.charprev`, components.css).
  */
 import { memo, useMemo } from 'react';
 import type { Combatant } from '../engine/types';
-import { RigSprite, GROUND_Y, bodyHeight } from '../gameIso/rig/composeRig';
+import { RigSprite, GROUND_Y, bodyHeight, useCompositionRig } from '../gameIso/rig/composeRig';
 import { defaultAppearance, type Appearance } from '../gameIso/rig/appearance';
-import { equipFromCombatant, type EquipCtx } from '../gameIso/rig/parts/equipment';
+import { equipPorte, type EquipCtx } from '../gameIso/rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../gameIso/rig/parts/combatantVisuals';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { RigOverlay } from '../gameIso/rig/bones';
 import type { Pose } from '../gameIso/rig/poses';
 import type { View } from '../gameIso/rig/facing';
@@ -94,14 +95,15 @@ function CharacterPreviewBase(props: CharacterPreviewProps) {
     () => (hero ? combatantAppearance(hero.appearance ?? defaultAppearance(hero), hero) : props.appearance),
     [hero, props.appearance],
   );
-  const equip = useMemo(() => (hero ? equipFromCombatant(hero) : props.equip ?? EMPTY_EQUIP), [hero, props.equip]);
+  // La projection RÉSOUT la forme au catalogue (`formeResolue`) : sa version entre dans le mémo (#2113).
+  const versionDesDatasets = useVersionDesDatasets();
+  const equip = useMemo(() => (hero ? equipPorte(hero) : props.equip ?? EMPTY_EQUIP), [hero, props.equip, versionDesDatasets]);
   const overlays = useMemo(() => (hero ? combatantOverlays(hero) : props.overlays), [hero, props.overlays]);
   const career = hero ? hero.career : props.career; // id de garde-robe (carrière), jamais un libellé
-  // Résolution du rig mémoïsée (rendu en listes de 8-15) : mêmes entrées → même élément, React saute le sous-arbre.
-  const sprite = useMemo(
-    () => <RigSprite appearance={appearance} equip={equip} pose={pose} career={career} view={view} overlays={overlays} mirror={mirror} />,
-    [appearance, equip, pose, career, view, overlays, mirror],
-  );
+  // Composition retenue (`useCompositionRig`) ; l'élément sur la composition et la pose (rendu en
+  // listes de 8-15) : mêmes entrées → même élément, React saute le sous-arbre.
+  const comp = useCompositionRig(appearance, equip, career, view, overlays, mirror);
+  const sprite = useMemo(() => <RigSprite comp={comp} pose={pose} />, [comp, pose]);
   const cls = ['charprev', `charprev-${size}`, AMBIANCE_CLASS[ambiance], className].filter(Boolean).join(' ');
   // Cadre `fill` (tuile plein-champ, #430) : viewBox resserré autour du CORPS DE GABARIT (pur,
   // `bodyHeight` — squelette race/carrure, jamais les accessoires) — pieds toujours ancrés en bas

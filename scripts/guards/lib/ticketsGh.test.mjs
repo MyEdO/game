@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { codeSeul } from './commentPoison.mjs'
 import { formesDeFermeture } from './sitesDeFermeture.mjs'
 import {
-  BORNE_RAISON, PAR_PAGE, PLAFOND_PAGES, appelGhRunner, cheminTicket, corpsDeLaPage, lireTicket,
+  BORNE_RAISON, DEPOT, PAR_PAGE, PLAFOND_PAGES, appelGhRunner, cheminTicket, corpsDeLaPage, dernierEtatDe, lireTicket,
   pagesRest, poserCommentaire,
 } from './ticketsGh.mjs'
 
@@ -24,11 +24,11 @@ function ghFeint(reponses) {
 }
 
 const page = (n) => JSON.stringify(Array.from({ length: n }, (_, i) => ({ body: `c${i}` })))
-const TICKET = 'repos/cgauche/game/issues/1813'
+const TICKET = `repos/${DEPOT}/issues/1813`
 
 test('cheminTicket : la route REST d’un ticket, dépôt en paramètre', () => {
-  assert.equal(cheminTicket('cgauche/game', 1813), TICKET)
-  assert.equal(cheminTicket('cgauche/game', '1813'), TICKET)
+  assert.equal(cheminTicket(`${DEPOT}`, 1813), TICKET)
+  assert.equal(cheminTicket(`${DEPOT}`, '1813'), TICKET)
 })
 
 test('corpsDeLaPage : une PAGE est un TABLEAU ; une réponse d’erreur est un OBJET, et elle JETTE', () => {
@@ -164,15 +164,20 @@ test('pagesRest : jamais `--paginate`, jamais une sous-commande CLI — `gh api`
 
 // ── lireTicket ────────────────────────────────────────────────────────────────
 
-const REP = 'cgauche/game'
+const REP = `${DEPOT}`
 const lire = (appel) => lireTicket({ depot: REP, numero: '1813', appel })
 
-test('lireTicket : l’état et les corps de commentaires, par REST — aucune sous-commande `gh issue`', () => {
+test('lireTicket : l’état, les corps de commentaires et leurs DATES, par REST — aucune sous-commande `gh issue`', () => {
   const { appel, vus } = ghFeint({
     [`api ${TICKET}`]: { ok: true, stdout: '{"state":"open","comments":2}' },
-    [`api ${TICKET}/comments?per_page=100&page=1`]: { ok: true, stdout: '[{"body":"un"},{"body":"deux"}]' },
+    [`api ${TICKET}/comments?per_page=100&page=1`]: {
+      ok: true,
+      stdout: '[{"body":"un","created_at":"2026-01-01T00:00:00Z"},{"body":"deux","created_at":"2026-01-02T00:00:00Z"}]',
+    },
   })
-  assert.deepEqual(lire(appel), { ok: true, etat: 'open', corps: ['un', 'deux'] })
+  assert.deepEqual(lire(appel), {
+    ok: true, etat: 'open', corps: ['un', 'deux'], dates: ['2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z'],
+  })
   assert.deepEqual(vus.map((a) => a[0]), ['api', 'api'])
   // `gh issue view --json` est servi par GraphQL, refusé HTTP 403 aux sessions Claude Code.
   assert.equal(vus.some((a) => a.includes('issue')), false)
@@ -241,7 +246,7 @@ test('appelGhRunner : le motif d’un refus vient de STDERR — `err.message` n�
   // Mesuré : `err.message` d'`execFileSync` commence par « Command failed: gh api repos/… -X POST -F
   // body=@- », ~120 caractères avant le moindre motif. C'est stderr qui porte « gh: Not Found ».
   const echec = () => {
-    const err = new Error('Command failed: gh api repos/cgauche/game/issues/999999999 -X POST -F body=@-\n')
+    const err = new Error(`Command failed: gh api repos/${DEPOT}/issues/999999999 -X POST -F body=@-\n`)
     err.stderr = 'gh: Not Found (HTTP 404)\n'
     throw err
   }
@@ -300,4 +305,19 @@ test('la couture REST ne FERME rien, et ne PATCHE rien : elle LIT et elle COMMEN
   assert.deepEqual(formesDeFermeture(code), [], 'aucune graphie de fermeture dans la couture')
   // Les TROIS graphies de chaîne : un gabarit `PATCH` passerait sous une paire de quotes seule.
   assert.equal(/state=closed|issue\s+close|['"`]PATCH['"`]/.test(code), false)
+})
+
+test('dernierEtatDe : le DERNIER `closed`/`reopened` des événements et sa DATE, les autres ignorés ; un refus est NOMMÉ', () => {
+  const evenements = (...noms) => JSON.stringify(noms.map((event, i) => ({ event, created_at: `2026-01-0${i + 1}T00:00:00Z` })))
+  const { appel, vus } = ghFeint({
+    [`api ${TICKET}/events?per_page=100&page=1`]: { ok: true, stdout: evenements('labeled', 'closed', 'reopened', 'labeled') },
+  })
+  assert.deepEqual(dernierEtatDe({ depot: DEPOT, numero: 1813, appel }), { ok: true, evenement: 'reopened', date: '2026-01-03T00:00:00Z' })
+  assert.deepEqual(vus, [['api', `${TICKET}/events?per_page=100&page=1`]])
+  const ferme = ghFeint({ [`api ${TICKET}/events?per_page=100&page=1`]: { ok: true, stdout: evenements('reopened', 'closed') } })
+  assert.deepEqual(dernierEtatDe({ depot: DEPOT, numero: 1813, appel: ferme.appel }), { ok: true, evenement: 'closed', date: '2026-01-02T00:00:00Z' })
+  const aucun = ghFeint({ [`api ${TICKET}/events?per_page=100&page=1`]: { ok: true, stdout: evenements('labeled') } })
+  assert.deepEqual(dernierEtatDe({ depot: DEPOT, numero: 1813, appel: aucun.appel }), { ok: true, evenement: null, date: null })
+  const refus = ghFeint({ [`api ${TICKET}/events?per_page=100&page=1`]: { ok: false, raison: 'HTTP 502' } })
+  assert.deepEqual(dernierEtatDe({ depot: DEPOT, numero: 1813, appel: refus.appel }), { ok: false, raison: 'HTTP 502' })
 })

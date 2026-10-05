@@ -29,7 +29,6 @@ import { NumberField } from '../NumberField';
 import { SourceRefField } from '../SourceRefField';
 import { SourceBadge } from '../SourceBadge';
 import { ProseField } from '../ProseField';
-import type { SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
@@ -78,7 +77,7 @@ import { GameOpEditor } from '../editor/GameOpEditor';
 import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion } from '../../data';
+import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById } from '../../data';
 import { makePregens } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
@@ -394,19 +393,36 @@ function ProseFieldDemo() {
   return <ProseField label="Texte du document" value={texte} onChange={setTexte} />;
 }
 
+/** Réf de source RÉELLE d'un sort du registre, montrée par le spécimen de `SourceRefField`. */
+const sourceDeSort = memoParVersion('spells', () => spells.find((s) => s.source?.note)?.source ?? spells[0].source);
+
 function SourceRefFieldDemo() {
-  const [source, setSource] = useState<SourceRef | undefined>(undefined);
-  return <SourceRefField label="Source" avecNote value={source} onChange={setSource} />;
+  // Facultative puis exigée, chacune vide / incomplète / complète : un brouillon incomplet reste à
+  // l'écran et se dit incomplet, seule une réf complète remonte.
+  type Saisie = { book?: string; page?: number; note?: string } | undefined;
+  const reelle = sourceDeSort();
+  const [vide, setVide] = useState<Saisie>(undefined);
+  const [livreSeul, setLivreSeul] = useState<Saisie>({ book: reelle.book });
+  const [complete, setComplete] = useState<Saisie>(reelle);
+  const [exigeeVide, setExigeeVide] = useState<Saisie>(undefined);
+  const [exigeeIncomplete, setExigeeIncomplete] = useState<Saisie>({ book: reelle.book, note: reelle.note });
+  const [exigee, setExigee] = useState<Saisie>(reelle);
+  return (
+    <>
+      <SourceRefField identite="facultative-vide" label="Facultative — vide" facultative value={vide} onChange={setVide} />
+      <SourceRefField identite="facultative-livre-seul" label="Facultative — livre seul (incomplète)" facultative value={livreSeul} onChange={setLivreSeul} />
+      <SourceRefField identite="facultative-complete" label="Facultative — complète" facultative value={complete} onChange={setComplete} />
+      <SourceRefField identite="exigee-vide" label="Exigée — vide" value={exigeeVide} onChange={setExigeeVide} />
+      <SourceRefField identite="exigee-incomplete" label="Exigée — page manquante (incomplète)" value={exigeeIncomplete} onChange={setExigeeIncomplete} />
+      <SourceRefField identite="exigee-complete" label="Exigée — complète" value={exigee} onChange={setExigee} />
+    </>
+  );
 }
 
 function DescRefFieldDemo() {
-  // Adresse RÉELLE : LDB 21 § terreur-indice, premier bloc. Le chapitre arrive par son adresse-URL
-  // (assets émis par `wfrp:prose-source`) — hors serveur, le champ affiche son erreur nommée.
-  const [adresse, setAdresse] = useState<DescRef | undefined>({
-    book: 'livre-de-base',
-    ch: '21',
-    parts: [{ kind: 'blocs', sec: 'terreur-indice', secOcc: 1, b0: 0, b1: 0, sum: 'a919b4ef91a1dd3c' }],
-  });
+  // Adresse RÉELLE : celle que porte la Terreur (`psychology.json`). Le chapitre arrive par son
+  // adresse-URL (assets émis par `wfrp:prose-source`) — hors serveur, le champ affiche son erreur nommée.
+  const [adresse, setAdresse] = useState<DescRef | undefined>(() => findPsychologyById('terreur')?.descRef);
   return <DescRefField label="Adresse de la prose" value={adresse} onChange={setAdresse} />;
 }
 

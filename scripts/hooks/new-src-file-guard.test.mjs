@@ -7,7 +7,6 @@ import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'no
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
 import {
@@ -29,7 +28,7 @@ function lanceAvec(tool_input, env = {}) {
   const r = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_input.op ? 'mcp__lean-ctx__ctx_patch' : 'Write'), { env: { ...process.env, ...env } })
   return { ...r, decision: r.specifique?.permissionDecision, raison: r.specifique?.permissionDecisionReason ?? '', contexte: r.specifique?.additionalContext }
 }
-const lance = (file_path, env = {}) => lanceAvec({ file_path }, env)
+const lance = (file_path, env = {}) => lanceAvec({ file_path, content: 'export {}\n' }, env)
 
 /** Joue `fn` sur une COPIE du registre, posée sous `os.tmpdir()` et portant une entrée de plus.
  *  Le fichier committé `scripts/hooks/ecrans-ui.json` n'est jamais touché : le muter puis le remettre
@@ -168,16 +167,20 @@ test('ctx_patch op=create porte le chemin en `path` : même refus que Write', ()
   assert.match(r.raison, /NON DÉCLARÉ/)
 })
 
-test('la garde est au registre PreToolUse du répartiteur, et les DEUX surfaces matchent Write ET ctx_patch', () => {
-  assert.ok(REGISTRE.PreToolUse.includes(garde))
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
-    const matcher = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
-      .find((h) => h.phase === 'PreToolUse' && h.script === 'repartiteur.mjs')?.matcher ?? ''
-    for (const canal of ['Write', 'mcp__lean-ctx__ctx_patch']) {
-      assert.ok(garde.outils.includes(canal), `garde : canal ${canal}`)
-      assert.ok(matcher.split('|').includes(canal), `${surface} : canal ${canal} non matché`)
-    }
+test('seule l’op `create` de ctx_patch CRÉE : une op qui lit la préimage (`replace_unique`) sur un fichier absent ne reçoit ni refus ni rappel de création', () => {
+  const absent = join(REPO, 'src/state/fantome-garde-v5.ts')
+  const cree = lanceAvec({ op: 'create', path: absent, new_text: 'export {}' })
+  assert.match(cree.contexte ?? '', /CRÉE un nouveau fichier/)
+  for (const chemin of [absent, join(REPO, FANTOME)]) {
+    const r = lanceAvec({ op: 'replace_unique', path: chemin, old_text: 'a', new_text: 'b' })
+    assert.equal(r.code, 0, r.err)
+    assert.equal(r.decision, undefined, chemin)
+    assert.doesNotMatch(r.contexte ?? '', /CRÉE un nouveau fichier/, chemin)
   }
+})
+
+test('la garde est au registre PreToolUse du répartiteur (câblage des surfaces : garde de classe `settings-guard-canaux.test.mjs`)', () => {
+  assert.ok(REGISTRE.PreToolUse.includes(garde))
 })
 
 test('registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pas d’inscrire', () => {
@@ -228,4 +231,10 @@ test('le tri sur la clef normalisée MORD sur un registre mixte désordonné (ca
   assert.notDeepEqual(clefs, [...clefs].sort(), 'un objet mal placé doit être VU par le tri')
   const doublons = [{ fichier: 'src/ui/X.tsx', maquette: 'a' }, { fichier: 'src/ui/X.tsx', maquette: 'b' }].map(cheminEntree)
   assert.notEqual(new Set(doublons).size, doublons.length, 'deux entrées du MÊME fichier doivent être VUES')
+})
+
+test('ctx_patch `dry_run` n’écrit rien : aucun refus, même pour un fichier non déclaré', () => {
+  const r = lanceAvec({ op: 'create', path: join(REPO, FANTOME), new_text: 'export {}', dry_run: true })
+  assert.equal(r.code, 0)
+  assert.equal(r.decision, undefined)
 })

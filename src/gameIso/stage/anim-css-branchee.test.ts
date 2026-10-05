@@ -25,9 +25,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { arcsDe, sourceALExecution } from '../../../scripts/guards/lib/importGraph.mjs';
 
 const GAMEISO = fileURLToPath(new URL('../', import.meta.url)); // …/stage/ → …/gameIso/
 const SOUS_GAMEISO = 'src/gameIso/';
@@ -42,17 +43,10 @@ const MISES_EN_PAGE: readonly { classe: string; feuille: string; rendeurs: reado
   { classe: 'plaque-nom', feuille: 'src/gameIso/stage/plaque-nom.css', rendeurs: ['src/gameIso/stage/PlaquesDeNom.tsx'] },
 ];
 
-/** Le module IMPORTE-t-il la feuille ? Lecture LIGNE À LIGNE, commentaires écartés : un import mis en
- *  commentaire ne branche rien, et une regex posée sur le fichier entier le prendrait pour un import. */
-const SAUT = String.fromCharCode(10);
-
-export function importeFeuille(src: string, feuille: string): boolean {
-  const rx = new RegExp(`^import\\s+['"](?:[^'"]*/)?${feuille.replace('.', '\\.')}['"]\\s*;?`);
-  return src.split(SAUT).some((l) => {
-    const t = l.trim();
-    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return false;
-    return rx.test(t);
-  });
+export function importeFeuille(fichier: string, src: string, feuille: string, existe?: (abs: string) => boolean): boolean {
+  const cible = resolve(feuille).replace(/\\/g, '/');
+  return arcsDe(fichier, sourceALExecution(fichier, src), { existe })
+    .some((arc) => arc.nature === 'statique' && arc.cible === cible);
 }
 
 /** Les sources de `gameIso/`, hors tests — chemin DEPUIS `gameIso/`, la forme que porte le rapport. */
@@ -83,14 +77,14 @@ describe('keyframes du stage — la feuille est BRANCHÉE, et sur l’hôte du m
   it('`anim.css` est importée par l’hôte du monde (jamais par une surcouche, qui se démonte)', () => {
     const hote = readFileSync(HOTE, 'utf8');
     expect(
-      importeFeuille(hote, 'anim.css'),
+      importeFeuille(HOTE, hote, join(GAMEISO, 'anim.css')),
       '`stage/MondeDeCampagne` n’importe plus `gameIso/anim.css` : toutes les animations du stage sont mortes',
     ).toBe(true);
   });
 
   it('AUCUN autre module ne l’importe : une feuille globale a UN propriétaire', () => {
     const importeurs = sources()
-      .filter(({ code }) => importeFeuille(code, 'anim.css'))
+      .filter(({ chemin, code }) => importeFeuille(join(GAMEISO, chemin), code, join(GAMEISO, 'anim.css')))
       .map(({ chemin }) => chemin);
     expect(importeurs, `deux propriétaires pour une même feuille :\n${importeurs.join('\n')}`)
       .toEqual(['stage/MondeDeCampagne.tsx']);
@@ -106,7 +100,7 @@ describe('keyframes du stage — la feuille est BRANCHÉE, et sur l’hôte du m
     // PRÉMISSE — le scan MORD : les rendeurs connus rendent bien la classe.
     expect(rendeurs.map(({ rel }) => rel), `aucun rendeur de \`.${classe}\` : le scan ne voit rien`)
       .toEqual(expect.arrayContaining([...attendus]));
-    const sansFeuille = rendeurs.filter(({ text }) => !importeFeuille(text, nomFeuille)).map(({ rel }) => rel);
+    const sansFeuille = rendeurs.filter(({ rel, text }) => !importeFeuille(join(RACINE, rel), text, join(RACINE, feuille))).map(({ rel }) => rel);
     expect(sansFeuille, `rendent \`.${classe}\` sans importer \`${nomFeuille}\` :\n${sansFeuille.join('\n')}`).toEqual([]);
   });
 
@@ -114,13 +108,13 @@ describe('keyframes du stage — la feuille est BRANCHÉE, et sur l’hôte du m
     expect(classesReclamees('<g className="proj tourne" />', ['tourne'])).toEqual(['tourne']);
     expect(classesReclamees('<g className={`es-${k}`} />', ['es-mort'])).toEqual([]);
     expect(classesReclamees('<g className="tournevis" />', ['tourne'])).toEqual([]);
-    // …et un import MIS EN COMMENTAIRE ne branche rien (c'est exactement la panne mesurée).
-    expect(importeFeuille("import '../anim.css';", 'anim.css')).toBe(true);
-    expect(importeFeuille("// import '../anim.css';", 'anim.css')).toBe(false);
-    expect(importeFeuille(" * import '../anim.css';", 'anim.css')).toBe(false);
-    expect(importeFeuille("import './stage/iso-stage.css';", 'iso-stage.css')).toBe(true);
-    expect(importeFeuille("import './iso-stage.css';", 'iso-stage.css')).toBe(true);
-    expect(importeFeuille("import './faux-iso-stage.css';", 'iso-stage.css')).toBe(false);
+    const importe = (source: string) => importeFeuille(HOTE, source, join(GAMEISO, 'anim.css'), () => true);
+    expect(importe("import '../anim.css';")).toBe(true);
+    expect(importe("// import '../anim.css';")).toBe(false);
+    expect(importe("/* * import '../anim.css'; */")).toBe(false);
+    expect(importe("import type { A } from '../anim.css';")).toBe(false);
+    expect(importe("const x = import('../anim.css');")).toBe(false);
+    expect(importe("import './autre/anim.css';")).toBe(false);
     expect(classesReclamees('<svg className="iso-stage" />', ['iso-stage'])).toEqual(['iso-stage']);
     expect(classesReclamees("el.classList.add('muet', 'plaque-nom');", ['plaque-nom'])).toEqual(['plaque-nom']);
     expect(classesReclamees("el.setAttribute('class', 'plaque-nom halo-champ');", ['plaque-nom'])).toEqual(['plaque-nom']);

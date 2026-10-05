@@ -10,7 +10,8 @@
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { ajouterOrigine, commitDe, depotDe, initialiserDepot, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
+import { ENV_GIT_FEINT, ajouterOrigine, commitDe, depotDe, initialiserDepot, natureDuChemin, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
+import { listerDossier } from './lister.mjs'
 
 /** @typedef {{ fichiers?: Record<string, string>, branche?: string, origin?: string | null, message?: string, refs?: Record<string, string>, commit?: boolean }} ParamsDepot */
 /** @typedef {{ racine: string, sha: string | null }} DepotForge */
@@ -53,6 +54,17 @@ export function envDeDepotForge() {
 }
 
 /**
+ * Le dépôt `racine` sous l'environnement d'un dépôt forgé (`envDeDepotForge`), SANS git feinte
+ * (`ENV_GIT_FEINT` répond sans processus) : la lecture que mesure `lancesDeGit` (gitDeBanc.mjs).
+ * @param {string} racine @returns {import('./gitPorte.mjs').Depot}
+ */
+export function depotReel(racine) {
+  const env = envDeDepotForge()
+  delete env[ENV_GIT_FEINT]
+  return depotDe(racine, { env })
+}
+
+/**
  * L'environnement d'une UTILISATRICE dont la configuration globale est le fichier `globale` : celui
  * d'un dépôt forgé (`envDeDepotForge`), sous sa configuration. La mesure des ÉCRIVAINS : l'identité
  * qui signe est celle de sa configuration, ou aucune.
@@ -75,6 +87,34 @@ export function sousLEnvDeLUtilisatrice(globale, fn) {
   } finally {
     for (const nom of Object.keys(process.env)) if (!(nom in avant)) delete process.env[nom]
     Object.assign(process.env, avant)
+  }
+}
+
+/**
+ * L'environnement d'une git FEINTE (`ENV_GIT_FEINT`, gitPorte.mjs) : `regles` y répondent, git
+ * répond au reste. À joindre à l'`env` d'un processus enfant.
+ * @param {{ si: string[], status: number, stdout?: string, stderr?: string }[]} regles
+ * @returns {Record<string, string>}
+ */
+export const envGitFeint = (regles) => ({ [ENV_GIT_FEINT]: JSON.stringify(regles) })
+
+/** La variable d'une git FEINTE, pour le banc (`gitDeBanc.mjs`), qui n'importe pas l'hôte en import statique. */
+export { ENV_GIT_FEINT }
+
+/**
+ * `fn()` sous une git FEINTE (`envGitFeint(regles)`) posée sur `process.env`, retirée à la sortie :
+ * la panne de git d'une lecture faite dans CE processus. `fn` est SYNCHRONE : une promesse rendue
+ * LÈVE, la feinte serait retirée avant ses lectures.
+ * @template T @param {Parameters<typeof envGitFeint>[0]} regles @param {() => T} fn @returns {T}
+ */
+export function sousGitFeint(regles, fn) {
+  Object.assign(process.env, envGitFeint(regles))
+  try {
+    const vu = fn()
+    if (typeof vu?.then === 'function') throw new TypeError('sousGitFeint : `fn` rend une promesse — la feinte serait retirée en vol')
+    return vu
+  } finally {
+    delete process.env[ENV_GIT_FEINT]
   }
 }
 
@@ -135,7 +175,8 @@ export function gabaritDeDepot({ fichiers = {}, branche = 'main', origin = null,
     if (origin) exiger(ajouterOrigine(depot, origin), 'git remote add origin', racine)
     for (const [nom, cible] of Object.entries(refs)) exiger(poserRef(depot, nom, shaExige(depot, cible)), `git update-ref ${nom}`, racine)
   } catch (e) {
-    rmSync(racine, { recursive: true, force: true })
+    const effacement = effacer(racine)
+    if (effacement && e instanceof Error) e.message += effacement
     throw e
   }
 
@@ -153,6 +194,51 @@ export function gabaritDeDepot({ fichiers = {}, branche = 'main', origin = null,
 export function instanceDeDepot(params = {}) {
   const gabarit = gabaritDeDepot(params)
   const racine = mkdtempSync(join(tmpdir(), 'depot-'))
-  cpSync(gabarit.racine, racine, { recursive: true })
+  try {
+    cpSync(gabarit.racine, racine, { recursive: true })
+  } catch (e) {
+    let releve
+    try {
+      releve = etatDeLaCopie(gabarit.racine, racine)
+    } catch (s) {
+      releve = `relevé en échec — ${decrire(s)}`
+    }
+    throw new Error(`instanceDeDepot : copie de ${gabarit.racine} vers ${racine} en échec — ${decrire(e)} — ${releve}${effacer(racine)}`, { cause: e })
+  }
   return { racine, sha: gabarit.sha }
+}
+
+/** Une erreur système en une ligne : son message, son `code` et son `path` s'ils existent. Le
+ *  reporter TAP de `node --test` n'imprime pas la `cause` (#2155). @param {any} e @returns {string} */
+const decrire = (e) => [e?.message ?? String(e), e?.code && `code ${e.code}`, e?.path && `chemin ${e.path}`].filter(Boolean).join(' ; ')
+
+/** Efface `racine` ; son propre échec se rend en une ligne à ANNEXER, jamais à la place de l'erreur
+ *  en vol (#2155). @param {string} racine @returns {string} */
+function effacer(racine) {
+  try {
+    rmSync(racine, { recursive: true, force: true })
+    return ''
+  } catch (r) {
+    return ` ; effacement de ${racine} en échec — ${decrire(r)}`
+  }
+}
+
+/**
+ * L'état MESURÉ (`natureDuChemin`) des deux côtés d'une copie de gabarit, et le contenu du `.git`
+ * partiel de l'instance, au moment de son échec et avant tout effacement : l'erreur de `cpSync` ne
+ * dit pas quel côté manquait (#2155).
+ * @param {string} gabarit @param {string} instance @returns {string}
+ */
+function etatDeLaCopie(gabarit, instance) {
+  const gitPartiel = join(instance, '.git')
+  const sondes = [
+    ['gabarit', gabarit],
+    ['objets du gabarit', join(gabarit, '.git', 'objects')],
+    ['instance', instance],
+    ['.git de l’instance', gitPartiel],
+    ['objets de l’instance', join(gitPartiel, 'objects')],
+  ]
+  const natures = sondes.map(([nom, chemin]) => `${nom} ${natureDuChemin(chemin)} (${chemin})`)
+  const contenu = natureDuChemin(gitPartiel) === 'repertoire' ? `[${listerDossier(gitPartiel).join(', ')}]` : 'aucun'
+  return [...natures, `contenu du .git de l’instance ${contenu}`].join(' ; ')
 }

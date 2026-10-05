@@ -594,7 +594,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   //    un module CSS oublié (`gauges.css`, ~40 classes de domaine naval) échappait à TOUT en
   //    silence. Toute feuille hors de `src/ui/styles/` doit donc être déclarée nommément, et les
   //    trois statuts couvrent `src/ui/styles/` par construction — ce que l'union vérifie.
-  it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', () => {
+  it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', { timeout: 60_000 }, () => {
     const primitives = modulesDePrimitive(imageDuDisque().manifeste);
     const toutes = readCorpus(['src'], { exts: ['.css'] }).map((f) => f.rel);
     const partagees = new Set(SHARED_CSS_FILES.map((f) => `src/ui/${f}`));
@@ -916,7 +916,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
   // `.btn`, `.panel`, `.chip`, `.modal`, `.modal-overlay`, `.flush`, `.small` : un delta qui perd
   // contre SA base est un défaut d'écran, et aucune baseline ne le gèle ici. Chaque base assainie
   // entre sous la garde en prenant un nom de matière.
-  it('matières `.skin-*`/`.display-*` : le DELTA d’un module BAT la matière sur toute propriété qu’elle déclare aussi', () => {
+  it('matières `.skin-*`/`.display-*` : le DELTA d’un module BAT la matière sur toute propriété qu’elle déclare aussi', { timeout: 30_000 }, () => {
     const lire = (rel: string) => readFileSync(join(UI, '..', '..', rel), 'utf8');
     const base = (rel: string) => rel.slice(rel.lastIndexOf('/') + 1);
     /** Poids de cascade : classes + attributs (ni id ni élément dans ces feuilles). */

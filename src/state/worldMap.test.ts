@@ -4,8 +4,8 @@
  * amont : l'éditeur affiche « JSON invalide », pas un crash), jamais être parsé en silence.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, declutterPositions, resolvePortRef, placeServices, CURRENT_PROJECT_SCHEMA, type RenderPoint, type MapPlace } from './worldMap';
-import { lieuxServices } from '../data';
+import { parseProject, declutterPositions, resolvePortRef, portVersDepot, placeServices, CURRENT_PROJECT_SCHEMA, type RenderPoint, type MapPlace } from './worldMap';
+import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
 import type { Scene } from './scene';
 import { emptyNarratif } from './campaignNarratif';
@@ -144,6 +144,33 @@ describe('parseProject — validation du format projet v2', () => {
  * Rend lisibles les grandes cartes où les lieux se chevauchent au centre (ex. le Reik) sans jamais
  * toucher la donnée `pos` d'authoring.
  */
+describe('portVersDepot — forme canonique : une surcharge égale au catalogue disparaît (#680)', () => {
+  it('chaque port du catalogue : résolu puis rendu au dépôt, il redevient `{ ref }`, et se re-résout à l’identique', () => {
+    expect(navalPorts.length, 'catalogue vide — rien ne serait mesuré').toBeGreaterThan(0);
+    for (const { id } of navalPorts) {
+      const resolu = resolvePortRef({ ref: id });
+      expect(portVersDepot(resolu), id).toEqual({ ref: id });
+      expect(resolvePortRef(portVersDepot(resolu)), id).toEqual(resolu);
+      expect(portVersDepot(resolvePortRef({ ref: id, lighthouse: true })), `${id} + phare`).toEqual({ ref: id, lighthouse: true });
+    }
+  });
+
+  it('une SURCHARGE qui diffère du catalogue survit ; celle qui l’égale disparaît', () => {
+    const [{ id }] = navalPorts;
+    const def = resolvePortRef({ ref: id })!;
+    const autreTaille = def.taille === 1 ? 2 : 1;
+    const surcharge = { ref: id, taille: autreTaille, production: [...def.production, 'commerce-local'] };
+    expect(portVersDepot(resolvePortRef(surcharge))).toEqual(surcharge);
+    expect(portVersDepot(resolvePortRef({ ref: id, richesse: def.richesse }))).toEqual({ ref: id });
+  });
+
+  it('sans ref, le port est rendu TEL QUEL (même référence) ; ref inconnue → la même erreur que resolvePortRef', () => {
+    const port: MapPlace['port'] = { taille: 2, richesse: 2, production: [] };
+    expect(portVersDepot(port)).toBe(port);
+    expect(() => portVersDepot({ ref: 'port-fantome', taille: 1, richesse: 1, production: [] })).toThrow(/réf de port inconnue "port-fantome"/);
+  });
+});
+
 describe('declutterPositions — anti-chevauchement pur & déterministe', () => {
   const minPairDist = (m: Map<string, { x: number; y: number }>) => {
     const arr = [...m.values()];

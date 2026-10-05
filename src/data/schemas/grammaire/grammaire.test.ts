@@ -15,7 +15,7 @@ import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
-import { document, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
+import { document, documentDeLEntreePartielle, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, valeursDe } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -242,6 +242,14 @@ describe('document() — enveloppe posée par la fabrique', () => {
     const parse: z.infer<typeof fiche.entree> = fiche.entree.parse(DOC_COMPLET);
     expect((parse as { max: number }).max).toBe(2);
     expect(fiche.entree.safeParse({ ...DOC_COMPLET, max: 'deux' }).success).toBe(false);
+  });
+
+  it('marque l’entrée PARTIELLE de son document — et elle seule', () => {
+    expect(documentDeLEntreePartielle(fiche.entreePartielle)).toBe(fiche.schema);
+    expect(documentDeLEntreePartielle(fiche.entree)).toBeUndefined();
+    expect(documentDeLEntreePartielle(fiche.schema)).toBeUndefined();
+    expect(documentDeLEntreePartielle(z.object({}))).toBeUndefined();
+    expect(documentDeLEntreePartielle(undefined)).toBeUndefined();
   });
 });
 
@@ -1284,6 +1292,18 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
 
   it('la FORME de l’adresse est la MÊME que celle du parseur de découpe (aucune 2ᵉ définition)', () => {
     expectTypeOf<z.infer<typeof descRefSchema>>().toEqualTypeOf<DescRefParseur>();
+  });
+
+  it('un INTERVALLE porte sa section de fin, entière et distincte du départ (forme canonique unique)', () => {
+    const avec = (fin: Record<string, unknown>) => descRefSchema.safeParse({ ...ADRESSE, parts: [{ ...FRAGMENT, ...fin }] });
+    const chemins = (r: ReturnType<typeof avec>) => r.error?.issues.map((i) => i.path.join('.')) ?? [];
+    expect(avec({ finSec: 'la-suite', finSecOcc: 1, b1: 0 }).success, 'un intervalle dont la fin précède b0 en rang').toBe(true);
+    const egale = avec({ finSec: FRAGMENT.sec, finSecOcc: FRAGMENT.secOcc });
+    expect(egale.success).toBe(false);
+    expect(chemins(egale)).toEqual(['parts.0.finSec']);
+    expect(chemins(avec({ finSec: 'la-suite' }))).toEqual(['parts.0.finSecOcc']);
+    expect(chemins(avec({ finSecOcc: 2 }))).toEqual(['parts.0.finSec']);
+    expect(chemins(avec({ b0: 2, b1: 0 })), 'bornes inversées sans section de fin').toEqual(['parts.0.b1']);
   });
 
   it('une adresse VALIDE est acceptée, et son livre doit être un livre EXTRAIT (V2)', () => {

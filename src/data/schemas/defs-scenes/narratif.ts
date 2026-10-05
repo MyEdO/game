@@ -5,6 +5,9 @@
  * RÉFÉRENCE la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée. L'invariant
  * est gardé ICI : aucun id narratif ne collisionne avec un id de la règle globale
  * (créature/possession), et les registres (`REGISTRES_NARRATIFS`) n'ont aucun id en commun.
+ *
+ * Prose d'un stade d'indice et `pitch` d'ouverture : verbatim quand `source` est posé (règle stricte 5) ;
+ * sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
  */
 import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
@@ -13,13 +16,13 @@ import { idDe } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseDeScene } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle, type CreatureProfilPartiel } from '../defs/creatures';
-import { findCreatureById, findTrappingById, byId, findTalentById, specResolves } from '../../index';
+import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 
-/** Un stade RÉVÉLABLE d'un indice : la prose (verbatim source, règle 5) dévoilée à ce palier, le
- *  document qu'il croise (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
+/** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier, le document qu'il croise
+ *  (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
 export const indiceStadeSchema = z.strictObject({
   /** id STABLE du stade, unique DANS l'indice. */
   id: z.string().min(1, 'id vide.'),
@@ -70,8 +73,8 @@ export const presetPnjSchema = z.strictObject({
   source: sourceRefSchema.optional(),
 });
 
-/** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`) — le `pitch` est du VERBATIM de
- *  source (règle stricte 5), rendu par `<Prose>` : titre et pitch non vides sont la seule exigence. */
+/** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
+ *  pitch non vides sont la seule exigence. */
 export const ouvertureSchema = z.strictObject({
   surtitre: z.string().optional(),
   titre: z.string().min(1, 'titre vide.'),
@@ -146,10 +149,12 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
      *  `ref.ts#SENTINELLE_DE_SPEC` la refuse au parse) ; elle arrive ENCORE côté TALENT, où
      *  `talentRefSchema` (`grammaire/reference.ts`) n'a pas de régime `choix` — 12 sentinelles
      *  mesurées dans `creatures.json`, dont ces profils embarqués sont le patch partiel. Concept
-     *  loté L3 (#1463) : ce volet tombe quand le talent gagne son régime `choix`. */
+     *  loté L3 (#1463) : ce volet tombe quand le talent gagne son régime `choix`.
+     *  Talent sans catalogue (`porteCatalogueDeSpecs`) : texte d'instance, même régime que
+     *  `creatures.json` (#1621, `src/data/refs-migrated.test.ts`). */
     const specValide = (
       champ: 'skills' | 'talents',
-      kind: { indefini: string; defini: string },
+      kind: { indefini: string; defini: string; texteDInstance: boolean },
       find: (id: string) => Parameters<typeof specResolves>[0] | undefined,
       refs: { id: string; spec?: string }[],
     ): void => {
@@ -160,13 +165,14 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
           faute(['presetsPnj', i, 'profil', champ, j, 'id'], `${kind.indefini} inconnu(e) « ${r.id} ».`);
           return;
         }
+        if (kind.texteDInstance && !porteCatalogueDeSpecs(def)) return;
         if (!specResolves(def, r.spec)) {
           faute(['presetsPnj', i, 'profil', champ, j, 'spec'], `spécialisation inconnue « ${r.spec} » pour ${kind.defini} « ${r.id} ».`);
         }
       });
     };
-    specValide('skills', { indefini: 'une Compétence', defini: 'la Compétence' }, (id) => byId('skill', id), p.profil?.skills ?? []);
-    specValide('talents', { indefini: 'un Talent', defini: 'le Talent' }, findTalentById, p.profil?.talents ?? []);
+    specValide('skills', { indefini: 'une Compétence', defini: 'la Compétence', texteDInstance: false }, (id) => byId('skill', id), p.profil?.skills ?? []);
+    specValide('talents', { indefini: 'un Talent', defini: 'le Talent', texteDInstance: true }, findTalentById, p.profil?.talents ?? []);
   });
 }
 

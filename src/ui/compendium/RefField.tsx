@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Picker DEV de RÉFÉRENCE unifié au Codex — UN composant, 4 modes, configuré par (catégorie, champ) :
  *  - `liste`    : `Ref[]` = {id, value?} (sorts d'une créature, Bénédictions/Miracles d'un dieu, Qualités
@@ -6,40 +7,48 @@
  *                 sur un dataset OU sur des entrées fournies (`entrees` : registre du narratif d'un
  *                 projet, `RefNarrativeField`) ;
  *  - `freeText` : `single` + `<input list>`/`<datalist>` (au lieu d'un `<select>` strict) — pioche par
- *                 LIBELLÉ (id stocké) OU saisie libre hors catalogue (objet/outil CUSTOM, valeur brute
- *                 conservée, résolue côté runtime par un repli `name`) ;
+ *                 LIBELLÉ ou id (id stocké) OU saisie libre hors catalogue, émise telle quelle ;
  *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/refCareer/subType…)
  *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset).
- * On stocke partout l'`id` (ou la valeur de `valueKey`) — multilangue-safe (cf.
+ * On stocke partout l'`id` — multilangue-safe (cf.
  * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
-import { useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';
+import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
+import { estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
 import { creatureLabel } from '../../data';
-import { REFERENCES_NARRATIVES, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
+import { REFERENCES_NARRATIVES, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
 import { CATEGORY_DATASET_DERIVE } from '../../data/schemas/exposition-derivee';
 import { categoryByKey } from './registry';
 
+/** `filter` : un prédicat MOTEUR sur l'entrée (`Inspector.tsx`, portes/murs), jamais une sous-liste du
+ *  schéma — celle-ci se lit sur le NŒUD du champ (`noeud`, `refusDuNoeud`). */
+type RefDatasetCfg = { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean };
+/** Mode `liste` : une rangée par réf, aucun contrôle unique. */
+type ListeRefCfg = RefDatasetCfg & { value?: boolean; single?: false; freeText?: false };
+/** Mode `single` avec `spec` : le `<select>` ET l'`<input>` de spécialisation, aucun contrôle unique. */
+type SpecRefCfg = RefDatasetCfg & { single: true; freeText?: false; spec: true };
 /** Entrées FOURNIES par l'appelant (mode `single`) quand leur source n'est pas un dataset du catalogue :
- *  un registre du narratif d'un projet, les stades d'un indice. `nom` = la source, affichée en indice. */
-type CfgDEntrees = { entrees: readonly { id: string; label: string }[]; nom: string };
-type CfgDeDataset = { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name'; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean };
-
-/** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single), vocabulaire d'un champ, OU
- *  entrées fournies (`single`). */
-export type RefFieldCfg =
-  | (CfgDeDataset & { value?: boolean; single?: boolean; freeText?: boolean })
-  | { vocabFrom: string }
-  | CfgDEntrees;
+ *  un registre du narratif d'un projet, les stades d'un indice. `nom` = la source, affichée en indice ;
+ *  les entrées gardent leur ordre déclaré. */
+type EntreesCfg = { entrees: readonly { id: string; label: string }[]; nom: string };
+/** Config dont le rendu est UN contrôle : il porte le nom accessible, l'invalidité et la description. */
+export type RefFieldCfgUnique =
+  | (RefDatasetCfg & { single: true; freeText?: false; spec?: false })
+  | EntreesCfg
+  | (RefDatasetCfg & { freeText: true; single?: boolean })
+  | { vocabFrom: string };
+/** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
+export type RefFieldCfg = ListeRefCfg | SpecRefCfg | RefFieldCfgUnique;
 
 /**
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
- *  - listes (comportement existant conservé) : sorts/bénédictions/miracles, qualités (Indice), manœuvres ;
- *  - single (dataset réel) : sous-type d'arme, classe, carrière (niveau/pré-tiré), parent de lieu (par
- *    label), espèce d'un pré-tiré, compétence/talent ajouté par un talent (+ spec libre) ;
- *  - vocab : caracs/carrières de référence d'une espèce, sous-type d'une qualité.
+ *  Trois formes, lues sur l'entrée elle-même : une LISTE d'ids d'un dataset (`ds`), un id SEUL
+ *  (`single`), ou un vocabulaire tiré d'un champ (`vocabFrom`). `spec` et `freeText` sont posés par
+ *  les appelants directs du composant, jamais ici.
  */
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
@@ -53,7 +62,7 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   'trappings.subType': { ds: 'weaponGroups', single: true },
   'careers.class': { ds: 'classes', single: true },
   'careerLevels.career': { ds: 'careers', single: true },
-  'locations.parent': { ds: 'locations', single: true, valueKey: 'label' },
+  'locations.parent': { ds: 'locations', single: true },
   'pregens.species': { ds: 'species', single: true },
   'pregens.career': { ds: 'careers', single: true },
   // Caractéristique d'une compétence : SÉLECTEUR (pas d'input libre) — `skills.json` stocke l'`id` du
@@ -64,14 +73,11 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   // (`idDe('prop')` au schéma) — SÉLECTEUR dans le catalogue, jamais un champ texte où une faute de
   // frappe ne se verrait qu'au refus de parse. Facultatif : `nullable` ouvre le choix vide.
   'terrains.overlayProp': { ds: 'props', single: true },
-  // Matière des flancs d'un terrain à BLOC PLEIN (#1691) : le champ porte un id de `materials.json`
-  // du domaine `relief` (`idDe('material', 'relief')` au schéma) — le sélecteur n'offre donc QUE ce
-  // domaine, une couverture de toit ou une matière de décor n'ayant rien à faire sur une falaise.
-  'terrains.matiere': { ds: 'materials', single: true, filter: (e) => e.domain === 'relief' },
-  // Couverture par défaut d'un bâtiment (#1715) : le champ porte un id de `materials.json` du domaine
-  // `roof` (`idDe('material', 'roof')` au schéma) — le sélecteur n'offre donc QUE ce domaine, une
-  // matière de relief ou de décor n'ayant rien à faire sur une nappe de toit.
-  'buildings.roofMaterial': { ds: 'materials', single: true, filter: (e) => e.domain === 'roof' },
+  // Matière des flancs d'un terrain à BLOC PLEIN (#1691) et couverture par défaut d'un bâtiment
+  // (#1715) : ids de `materials.json`, restreints à la sous-liste que déclare la feuille du champ
+  // (`idDe('material', 'relief')`, `idDe('material', 'roof')`), lue sur le nœud.
+  'terrains.matiere': { ds: 'materials', single: true },
+  'buildings.roofMaterial': { ds: 'materials', single: true },
   // ── vocab (valeurs distinctes d'un champ) ───────────────────────────────────
   // refChar/refCareer n'existent QUE sur les espèces → repli global par nom (la catégorie Codex
   // d'`species.json` est `races`, pas `species` ; un nom de champ unique évite de la coder en dur).
@@ -87,13 +93,11 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
 }
 
 const isVocab = (cfg: RefFieldCfg): cfg is { vocabFrom: string } => 'vocabFrom' in cfg;
+const fournies = (cfg: RefFieldCfg): cfg is EntreesCfg => 'entrees' in cfg;
 
-/** Libellé d'affichage d'une entrée (maladies → `name`, sinon `label`). */
-const entryLabel = (e: Record<string, unknown>, labelOf: 'label' | 'name' = 'label'): string =>
-  String(e[labelOf] ?? e.label ?? e.id ?? '');
-/** Valeur stockée d'une entrée (lieux keyés par `label` → `label`, sinon `id`). */
-const valueOf = (e: Record<string, unknown>, valueKey: 'id' | 'label' | 'abr' = 'id'): string =>
-  String(e[valueKey] ?? '');
+/** Libellé d'affichage d'une entrée. */
+const entryLabel = (e: Record<string, unknown>): string =>
+  String(e.label ?? e.id ?? '');
 
 interface RefEntry { id: string; value?: number }
 interface SpecRef { id: string; spec?: string }
@@ -109,54 +113,109 @@ export function libelleDeDataset(ds: string): string | undefined {
 /** L'indication `(…)` d'un champ-réf, ou rien. */
 const indiceDe = (texte: string | undefined) => (texte ? <em className="ed-hint"> ({texte})</em> : null);
 
+/** `noeud` : le nœud de schéma du champ — sa feuille `idDe` restreint les options à sa sous-liste.
+ *  `entreesEnTete` : entrées hors dataset (objets du projet édité), résolues AVANT lui — à id égal, elles priment. */
+type RefFieldCommun = {
+  categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean;
+  noeud?: unknown; entreesEnTete?: readonly { readonly id: string }[];
+  /** Mode `single` + `nullable` : l'option « (aucun) » est montrée mais INÉLIGIBLE (le champ vide
+   *  laisserait le porteur sans ce qu'il exige, #1882). */
+  aucunIneligible?: boolean;
+};
+/** Nom accessible, invalidité et description du contrôle rendu. */
+type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: string };
+
+/** Un contrôle UNIQUE (`single` sans `spec`, `freeText`, `vocab`) porte `Accessibilite` ; la `liste` et le
+ *  `single` à `spec` n'en rendent aucun à qui la poser, et l'appel qui la passerait ne compile pas. */
+export function RefField(props: RefFieldCommun & Accessibilite & { cfg: RefFieldCfgUnique }): JSX.Element;
+export function RefField(props: RefFieldCommun & { cfg: RefFieldCfg; ariaLabel?: never; invalide?: never; describedBy?: never }): JSX.Element;
 export function RefField(
-  { cfg, fieldKey, label, value, onChange, nullable, aucunIneligible, nu }:
-  {
-    cfg: RefFieldCfg; categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean;
-    /** Mode `single` + `nullable` : l'option « (aucun) » est montrée mais INÉLIGIBLE (le champ vide
-     *  laisserait le porteur sans ce qu'il exige, #1882). */
-    aucunIneligible?: boolean;
-    /** Mode `single` : le CONTRÔLE NU, sans libellé visible (`label` devient son nom accessible) — pour
-     *  un champ composé qui porte déjà le sien (patron `NumberField variant="nu"`). */
-    nu?: boolean;
-  },
+  { cfg, fieldKey, label, ariaLabel, value, onChange, nullable, aucunIneligible, invalide, describedBy, noeud, entreesEnTete = SANS_ENTREE }:
+  RefFieldCommun & Accessibilite & { cfg: RefFieldCfg },
 ) {
   // `label` = AFFICHAGE (libellé FR du champ, #1466) ; `fieldKey`/`cfg` restent l'IDENTITé. Un appelant
   // qui ne connaît que la clé affiche la clé.
   const affiche = label ?? fieldKey;
-  if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} />;
-  const single = <SingleRefField label={affiche} cfg={cfg} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} nu={nu} />;
-  if ('entrees' in cfg) return single;
-  if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} value={value} onChange={onChange} />;
-  if (cfg.single) return single;
-  return <ListRefField label={affiche} cfg={cfg} value={value} onChange={onChange} />;
+  const a11y = { ariaLabel, invalide, describedBy };
+  const champ = { noeud, entreesEnTete };
+  if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
+  const single = (c: SingleCfg) => <SingleRefField label={affiche} cfg={c} champ={champ} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} {...a11y} />;
+  if (fournies(cfg)) return single(cfg);
+  if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} {...a11y} />;
+  if (cfg.single) return single(cfg);
+  return <ListRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} />;
 }
 
-/** Options d'un champ-réf (valeur stockée + libellé) : dataset trié par libellé, ou entrées fournies
- *  dans leur ordre déclaré. */
-function useOptions(cfg: CfgDeDataset | CfgDEntrees) {
-  const ds = 'ds' in cfg ? cfg : undefined;
-  const duDataset = useMemo(
-    () => ds
-      ? (datasetArray(ds.ds) as Record<string, unknown>[])
-        .filter((e) => (ds.filter ? ds.filter(e) : true))
-        .map((e) => ({ v: valueOf(e, ds.valueKey), label: entryLabel(e, ds.labelOf) }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-      : [],
-    [ds?.ds, ds?.valueKey, ds?.labelOf, ds?.filter],
-  );
-  return 'entrees' in cfg ? cfg.entrees.map((e) => ({ v: e.id, label: e.label })) : duDataset;
+/** Le nœud de schéma d'un champ-réf et ses entrées hors dataset (`RefFieldCommun`). */
+type Champ = { noeud: unknown; entreesEnTete: readonly { readonly id: string }[] };
+/** `entreesEnTete` absent : une référence STABLE, que les `useMemo` de l'univers ne voient pas changer. */
+const SANS_ENTREE: Champ['entreesEnTete'] = [];
+
+/** Les feuilles `idDe` du champ : celle du nœud, sinon celle de son élément pour un champ liste. */
+function feuillesDuNoeud(noeud: unknown): FeuilleDId[] {
+  if (noeud === undefined) return [];
+  const champ = ouverts([noeud]);
+  const direct = champ.filter(estFeuilleDId);
+  return (direct.length ? direct : ouverts(pasDeDonnee(champ, 0)).filter(estFeuilleDId)).flatMap((n) => declarationDeFeuilleDId(n) ?? []);
 }
+
+/**
+ * Le refus d'une ENTRÉE par la sous-liste des feuilles `idDe` du champ (`refusDeLEntree`) — `null` si
+ * l'une l'admet —, `undefined` si aucune ne déclare de sous-liste.
+ */
+export function refusDuNoeud(noeud: unknown): ((entree: { readonly id: string }) => string | null) | undefined {
+  const restreintes = feuillesDuNoeud(noeud).flatMap((f) => (f.sousListe === undefined ? [] : [{ type: f.type, sousListe: f.sousListe }]));
+  if (!restreintes.length) return undefined;
+  return (entree) => {
+    const refus = restreintes.map((f) => refusDeLEntree(f.type, f.sousListe, entree));
+    return refus.includes(null) ? null : refus[0];
+  };
+}
+
+/** Une entrée et son id (`String(e.id)`) : la forme que lisent univers, options et refus. */
+type Entree = { id: string; e: Record<string, unknown> };
+
+/** L'univers du champ : `entreesEnTete`, puis les entrées de la source (dataset `ds`, ou entrées
+ *  fournies) dont elles ne prennent pas l'id. */
+function useUnivers(source: DatasetKey | EntreesCfg['entrees'], entreesEnTete: Champ['entreesEnTete']): readonly Entree[] {
+  return useMemo(() => {
+    const enTete = entreesEnTete.map((e) => ({ id: e.id, e: e as Record<string, unknown> }));
+    const pris = new Set(enTete.map((x) => x.id));
+    const entrees = (typeof source === 'string' ? datasetArray(source) : source) as Record<string, unknown>[];
+    const deLaSource = entrees.map((e) => ({ id: String(e.id ?? ''), e })).filter((x) => !pris.has(x.id));
+    return [...enTete, ...deLaSource];
+  }, [source, entreesEnTete]);
+}
+
+/** Options de l'univers (valeur stockée + libellé) : les entrées que la sous-liste de la feuille du
+ *  champ admet (`refusDuNoeud`), puis le prédicat moteur `filter` — triées par libellé pour un dataset,
+ *  dans leur ordre déclaré pour des entrées fournies (`trier`). */
+function useOptions(cfg: { ds?: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean }, noeud: unknown, univers: readonly Entree[], trier = true) {
+  return useMemo(() => {
+    const refus = refusDuNoeud(noeud);
+    const options = univers
+      .filter(({ id, e }) => (!refus || refus({ ...e, id }) === null) && (cfg.filter ? cfg.filter(e) : true))
+      .map(({ id, e }) => ({ v: id, label: entryLabel(e) }));
+    return trier ? options.sort((a, b) => a.label.localeCompare(b.label)) : options;
+  }, [cfg.filter, noeud, univers, trier]);
+}
+
+/** Config d'un `SingleRefField` : un dataset (avec ou sans `spec`), ou des entrées fournies. */
+type SingleCfg = { ds: DatasetKey; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean } | EntreesCfg;
+/** Les entrées fournies d'une `SingleCfg` n'ont ni `filter` ni `spec`. */
+const SANS_FILTRE: { filter?: undefined } = {};
 
 /** Mode `single` : UN `<select>` (+ option « — (aucun) — » si nullable, option « (inconnu) » si hors liste).
  *  `spec` → un `<input>` texte à côté, on stocke `{ id, spec? }` (spec omis si vide) ; sinon la chaîne brute. */
 function SingleRefField(
-  { label, cfg, value, onChange, nullable, aucunIneligible, nu }:
-  { label?: string; cfg: CfgDeDataset | CfgDEntrees; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean; nu?: boolean },
+  { label, ariaLabel, cfg, champ, value, onChange, nullable, aucunIneligible, invalide, describedBy }:
+  Accessibilite & { label?: string; cfg: SingleCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean },
 ) {
-  const options = useOptions(cfg);
-  const nom = 'entrees' in cfg ? cfg.nom : libelleDeDataset(cfg.ds);
-  const avecSpec = 'spec' in cfg && !!cfg.spec;
+  const deDataset = 'ds' in cfg ? cfg : undefined;
+  const univers = useUnivers(deDataset ? deDataset.ds : (cfg as EntreesCfg).entrees, champ.entreesEnTete);
+  const options = useOptions(deDataset ?? SANS_FILTRE, champ.noeud, univers, deDataset !== undefined);
+  const nom = deDataset ? libelleDeDataset(deDataset.ds) : (cfg as EntreesCfg).nom;
+  const avecSpec = !!deDataset?.spec;
   const cur: SpecRef = avecSpec
     ? (value && typeof value === 'object' ? (value as SpecRef) : { id: typeof value === 'string' ? value : '' })
     : { id: typeof value === 'string' ? value : '' };
@@ -167,60 +226,84 @@ function SingleRefField(
     if (avecSpec) { const v: SpecRef = { id: nextId }; if (nextSpec) v.spec = nextSpec; onChange(v); }
     else onChange(nextId);
   };
-  const controle = (
-    <span className="de-reflrow">
-      <select aria-label={nu ? label : undefined} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
-        {nullable && <option value="" disabled={aucunIneligible}>— (aucun) —</option>}
-        {!nullable && id === '' && <option value="">{nom ? `— (choisir dans ${nom}) —` : '— (choisir) —'}</option>}
-        {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
-        {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
-      </select>
-      {avecSpec && (
-        <input placeholder="spec" style={{ width: 120 }} value={cur.spec ?? ''}
-          onChange={(e) => emit(id, e.target.value || undefined)} />
-      )}
-    </span>
-  );
-  if (nu) return controle;
+  // UN contrôle : le libellé visible le NOMME (`<label>`). Avec `spec`, deux contrôles : un `<div>`.
+  const Enveloppe = avecSpec ? 'div' : 'label';
   return (
-    <label className="ed-field">
+    <Enveloppe className="ed-field">
       <span>{label}{indiceDe(nom)}</span>
-      {controle}
-    </label>
+      <div className="de-reflrow">
+        <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
+          {nullable && <option value="" disabled={aucunIneligible}>— (aucun) —</option>}
+          {!nullable && id === '' && <option value="">{nom ? `— (choisir dans ${nom}) —` : '— (choisir) —'}</option>}
+          {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
+          {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+        </select>
+        {avecSpec && (
+          <input placeholder="spec" style={{ width: 120 }} value={cur.spec ?? ''}
+            onChange={(e) => emit(id, e.target.value || undefined)} />
+        )}
+      </div>
+    </Enveloppe>
   );
 }
 
-/** Mode `single` + `freeText` : `<input list>` + `<datalist>` du dataset — pioche par LIBELLÉ (id
- *  stocké) OU saisie libre hors catalogue (objet/outil CUSTOM, valeur brute conservée telle quelle,
- *  résolue côté runtime par un repli `name`). Calque le patron `hasItem`/`test.tool` existant. */
+/** Mode `single` + `freeText` : `<input list>` + `<datalist>` des options — la saisie se résout par id
+ *  puis par LIBELLÉ dans l'univers du champ (`useUnivers`, entrées refusées comprises) : une entrée
+ *  admise émet son id ; une entrée que la sous-liste refuse (`refusDuNoeud`) affiche le refus et
+ *  n'émet rien ; une saisie non résolue s'émet telle quelle. Une datalist par instance (`useId`).
+ *  Le texte saisi vit ICI : il ne se recale sur `value` que lorsqu'elle diffère de la dernière valeur
+ *  que le champ a émise, jamais à chaque frappe. */
 function FreeRefField(
-  { label, cfg, value, onChange }:
-  { label?: string; cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name' }; value: unknown; onChange: (v: unknown) => void },
+  { label, ariaLabel, invalide, describedBy, cfg, champ, value, onChange }:
+  Accessibilite & { label?: string; cfg: { ds: DatasetKey }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
 ) {
-  const options = useOptions(cfg);
+  const univers = useUnivers(cfg.ds, champ.entreesEnTete);
+  const options = useOptions(cfg, champ.noeud, univers);
+  const juger = useMemo(() => refusDuNoeud(champ.noeud), [champ.noeud]);
   const cur = typeof value === 'string' ? value : '';
-  const dlId = `dl-free-${cfg.ds}`;
-  const shown = options.find((o) => o.v === cur)?.label ?? cur;
+  const dlId = useId();
+  const idRefus = useId();
+  const libelleDe = (id: string) => entryLabel(univers.find((x) => x.id === id)?.e ?? { id });
+  const [texte, setTexte] = useState(() => libelleDe(cur));
+  const [connue, setConnue] = useState(cur);
+  const [refus, setRefus] = useState<string | null>(null);
+  if (cur !== connue) {
+    setConnue(cur);
+    setTexte(libelleDe(cur));
+    setRefus(null);
+  }
+  const resoudre = (v: string): Entree | undefined =>
+    univers.find((x) => x.id === v) ?? univers.find((x) => entryLabel(x.e).toLowerCase() === v.toLowerCase());
   return (
     <div className="ed-field">
       <span>{label}{indiceDe([libelleDeDataset(cfg.ds), 'ou saisie libre'].filter(Boolean).join(', '))}</span>
       <input
-        list={dlId} defaultValue={shown} key={cur}
+        list={dlId} value={texte}
+        aria-label={ariaLabel} aria-invalid={invalide || refus !== null || undefined}
+        aria-describedby={[describedBy, refus === null ? undefined : idRefus].filter(Boolean).join(' ') || undefined}
         onChange={(e) => {
-          const v = e.target.value.trim();
-          const match = options.find((o) => o.label.toLowerCase() === v.toLowerCase());
-          onChange(match ? match.v : v || undefined);
+          const brut = e.target.value;
+          const v = brut.trim();
+          const entree = v ? resoudre(v) : undefined;
+          const r = entree && juger ? juger({ ...entree.e, id: entree.id }) : null;
+          setTexte(brut);
+          setRefus(r);
+          if (r !== null) return;
+          const emise = entree ? entree.id : v || undefined;
+          setConnue(emise ?? '');
+          onChange(emise);
         }}
       />
       <datalist id={dlId}>{options.map((o) => <option key={o.v} value={o.label} />)}</datalist>
+      {refus !== null && <span id={idRefus} className="hint" role="status">{refus}</span>}
     </div>
   );
 }
 
 /** Mode `vocab` : `<input list>` + `<datalist>` des valeurs distinctes d'un champ `'<ds>.<champ>'`. */
 function VocabField(
-  { label, vocabFrom, value, onChange, nullable }:
-  { label?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label, ariaLabel, invalide, describedBy, vocabFrom, value, onChange, nullable }:
+  Accessibilite & { label?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
 ) {
   const [ds, field] = vocabFrom.split('.') as [DatasetKey, string];
   const dlId = `dl-vocab-${ds}-${field}`;
@@ -232,6 +315,7 @@ function VocabField(
     <div className="ed-field">
       <span>{label}{indiceDe('valeurs déjà saisies, ou saisie libre')}</span>
       <input list={dlId} value={(value as string) ?? ''}
+        aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
         onChange={(e) => onChange(e.target.value === '' && nullable ? null : e.target.value)} />
       <datalist id={dlId}>{values.map((v) => <option key={v} value={v} />)}</datalist>
     </div>
@@ -240,10 +324,10 @@ function VocabField(
 
 /** Mode `liste` (défaut) : `Ref[]` = {id, value?} — choix dans le dataset, +Ajouter / ✕, `value` (Indice) si `cfg.value`. */
 function ListRefField(
-  { label, cfg, value, onChange }:
-  { label?: string; cfg: { ds: DatasetKey; value?: boolean; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name' }; value: unknown; onChange: (v: unknown) => void },
+  { label, cfg, champ, value, onChange }:
+  { label?: string; cfg: { ds: DatasetKey; value?: boolean }; champ: Champ; value: unknown; onChange: (v: unknown) => void },
 ) {
-  const options = useOptions(cfg);
+  const options = useOptions(cfg, champ.noeud, useUnivers(cfg.ds, champ.entreesEnTete));
   const list = (value as RefEntry[]) ?? [];
   const set = (next: RefEntry[]) => onChange(next);
   return (
@@ -273,12 +357,13 @@ function ListRefField(
 /** Clé d'une référence narrative (`REFERENCES_NARRATIVES`). */
 export type CleDeReferenceNarrative = keyof typeof REFERENCES_NARRATIVES;
 
-/** Libellé d'AFFICHAGE d'une entrée de chaque registre désigné par une référence narrative ; l'id reste
- *  la valeur manipulée. Un registre désigné sans libellé ne compile pas. */
-export const LIBELLE_NARRATIF: { readonly [R in RegistreReference]: (e: NarratifBlock[R][number]) => string } = {
+/** Libellé d'AFFICHAGE d'une entrée de chaque registre du narratif ; l'id reste la valeur manipulée.
+ *  Un registre sans libellé ne compile pas. */
+export const LIBELLE_NARRATIF: { readonly [R in CleDeRegistreNarratif]: (e: NarratifBlock[R][number]) => string } = {
   affaires: (a) => a.titre,
   indices: (i) => i.titre,
   presetsPnj: (p) => p.profil?.label ?? (p.base ? creatureLabel(p.base) : p.id),
+  objets: (o) => o.label,
   documents: (d) => d.titre,
 };
 

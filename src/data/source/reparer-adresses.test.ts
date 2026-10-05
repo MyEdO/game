@@ -72,6 +72,16 @@ const CHAPITRE_DEPLACE = `${CHAPITRE_V1
 ${LIGNE_TETE}
 `;
 
+/** La table est légendée, et une seconde table légendée de la MÊME section porte la même rangée : la
+ *  case d'origine se lit dans les deux, à la même clé de ligne et au même en-tête. */
+const CHAPITRE_DEUX_TABLES = `${CHAPITRE_V1.replace('## Localisations\n\n', '## Localisations\n\n**Table des coups**\n\n')}
+**Table des rechutes**
+
+| Localisation | Effet | Race |
+| --- | --- | --- |
+${LIGNE_TETE}
+`;
+
 /** La page entière a disparu de l'extraction : la section n'a plus un seul bloc. */
 const CHAPITRE_SANS_TERREUR = CHAPITRE_V1.replace(`${P1}\n\n${P2}\n\n`, '');
 
@@ -91,7 +101,7 @@ const V1 = parseChapitre(CHAPITRE_V1);
 const adresse = (parts: unknown[]): DescRef => ({ book: LIVRE, ch: CH, parts } as DescRef);
 
 /** L'adresse de BLOCS du passage `P1`, bâtie sur le chapitre de fondation. */
-const REF_BLOCS = adresse(findRuns(V1, normText(P1)) ?? []);
+const REF_BLOCS = adresse([findRuns(V1, normText(P1))]);
 /** L'adresse de CELLULE de la case « Humain », bâtie sur le chapitre de fondation. */
 const REF_CELLULE = adresse([cellRefFor(V1, findCells(V1, normText('Humain'))[0])]);
 /** Une adresse qui ne résout NULLE PART, pas même au commit de fondation. */
@@ -233,6 +243,17 @@ describe('réparation d’adresse — un défaut d’extraction corrigé à la m
       expect(refSurDisque(racine, 'terreur')).toEqual(REF_BLOCS);
       expect(bilan.restantes.map((c) => c.id)).toEqual(['terreur']);
     });
+  });
+
+  it('AMBIGUË : deux tables, même rangée et même colonne — deux emplacements, que seule la table distingue', () => {
+    surCorrection(CHAPITRE_DEUX_TABLES, (jouer, racine) => {
+      const cellule = verdictDe(jouer(true), 'race-tete');
+      expect(cellule?.verdict).toBe('AMBIGUË');
+      expect(cellule?.raison).toContain('2 emplacements');
+      expect(cellule?.raison).toContain('table[table des coups#1]');
+      expect(cellule?.raison).toContain('table[table des rechutes#1]');
+      expect(refSurDisque(racine, 'race-tete')).toEqual(REF_CELLULE);
+    }, [ENTREES[1]]);
   });
 
   it('IRRÉCUPÉRABLE : une adresse déjà cassée à `--depuis` n’a aucun texte d’origine à relocaliser', () => {

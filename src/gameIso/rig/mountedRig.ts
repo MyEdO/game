@@ -15,9 +15,8 @@ import { apply, worldTransforms, type Matrix } from './kinematics';
 import type { BoneId } from './bones';
 import { handlingClass, type Handling } from './anim/handling';
 import { seatedPose, weaponRest } from './anim/weaponClips';
-import type { Weapon } from '../../engine/types';
-import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { planOptsForRecord, type ResolveOpts } from './bodyPlan';
+import type { FormeDArme } from './parts/equipment';
+import type { ResolveOpts } from './bodyPlan';
 import { DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_RIDER_Z } from './quadruped/quadZ';
 
@@ -176,7 +175,7 @@ function mountedWeaponHold(h: Handling, view: View): Pose {
 }
 
 /** Pose complète du cavalier au repos monté = corps en selle + tenue d'arme, par vue. */
-export function mountedRest(view: View, weapon?: Weapon): Pose {
+export function mountedRest(view: View, weapon?: FormeDArme): Pose {
   const h = weapon ? handlingClass(weapon) : 'lame1m';
   return addPose(riderBodyPose(view), mountedWeaponHold(h, view));
 }
@@ -186,7 +185,7 @@ export function mountedRest(view: View, weapon?: Weapon): Pose {
  * AU REPOS du fantassin (`weaponRest`) — jamais une tenue montée, jamais un geste. La prise passe par
  * `seatedPose` : les jambes restent celles de l'assise, l'arme ne peut pas redéplier le corps.
  */
-export function seatedRest(view: View, body: SeatedBody, drop: number, weapon?: Weapon): Pose {
+export function seatedRest(view: View, body: SeatedBody, drop: number, weapon?: FormeDArme): Pose {
   return addPose(seatedBodyPose(view, body, drop), seatedPose(weaponRest(weapon)));
 }
 
@@ -206,15 +205,14 @@ export interface SeatOpts {
 const SADDLE_LOCAL_Y = -15;
 
 /**
- * Opts de rendu de la MONTURE d'un couple monté : celles de son record (`planOptsForRecord` —
- * précédence par champ, override vivant → record), avec le set d'équipement par DÉFAUT quand la
- * donnée n'en déclare aucun. Ce défaut est une INFÉRENCE MAISON de rendu (#1128), tenue en donnée
+ * Opts de rendu de la MONTURE d'un couple monté : celles de son record, déjà résolues
+ * (`planOptsForRecord` — précédence par champ, override vivant → record), avec le set d'équipement
+ * par DÉFAUT quand la donnée n'en déclare aucun. Ce défaut est une INFÉRENCE MAISON de rendu (#1128), tenue en donnée
  * éditable (`src/data/renduMonte.json`) : les listes de Possessions de carrière donnent la monture
  * « avec selle et harnais » (LDB 08 l.557, ADE I 07 l.48) ; aucune règle n'attache la sellerie au
  * fait d'être monté. Un `harnais: ''` authoré (nu explicite) est donc respecté tel quel. PURE.
  */
-export function mountedPlanOpts(recordId: string | undefined, override?: EntityAppearance): ResolveOpts {
-  const opts = planOptsForRecord(recordId, override);
+export function harnaisDeMonture(opts: ResolveOpts): ResolveOpts {
   return { ...opts, harnais: opts.harnais ?? DEFAUT_HARNAIS_MONTE };
 }
 

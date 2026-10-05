@@ -52,6 +52,10 @@ scripts/data/.out/
 # Soldes de fermeture et revues de palier : VERSIONNÉS (les messages de commit les citent par chemin,
 # et le palier se mesure sur les revues que porte l'histoire — la preuve doit survivre).
 !.claude/soldes/
+# tsconfig d'un mod, posé par le moteur au chargement `--plugin-dir` (#2278, sonde S6 :
+# https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521) ; ses types `.claude-plugin/types/`
+# portent leur propre .gitignore.
+.claude/skills/*/tsconfig.json
 
 # Worktrees d'agents posés d'un niveau sous la racine (`.wt-<ticket>/`) : arbres de travail, jamais du
 # contenu du dépôt. Ceux de `.claude/worktrees/` sont déjà couverts par `.claude/*` ci-dessus. #1679 L1c
@@ -82,3 +86,39 @@ __pycache__/
 # Captures d'écran personnelles de l'utilisateur, hors contenu du dépôt
 /rogue trader/
 /tmp/
+
+# Cibles PURES de `GENERATORS` (scripts/docs/build-all.mjs, `ciblesPures`) : jamais commitées (#2203 A2).
+# Garde : scripts/docs/cibles-pures.test.mjs. Un doc absent se produit par `npm run docs:build`.
+/docs/.sources-lues.json
+/docs/ajouter-un-flux-de-jet.md
+/docs/ajouter-un-sort.md
+/docs/ajouter-une-donnee.md
+/docs/ajouter-une-icone.md
+/docs/ajouter-une-mecanique.md
+/docs/campagne-effects.md
+/docs/codex-relations.md
+/docs/consommateurs-de-champs.md
+/docs/doctrines.md
+/docs/donnees.md
+/docs/index-moteur.md
+/docs/map-authoring.md
+/docs/orphelines-donnees.md
+/docs/primitives.md
+/docs/raw/coverage.md
+/docs/raw/reanchor.md
+/docs/raw/reconciliation.md
+/docs/registre-jets.md
+/docs/regles-optionnelles.md
+/docs/rendu-pipeline.md
+/docs/reprise-apres-pause.md
+/docs/sorts-implementation.md
+/docs/sources-vf.md
+/docs/structures-donnees.md
+/docs/systeme-passifs.md
+/docs/systemes.md
+/docs/test-scenarios.md
+/docs/usages-jets.md
+/docs/vocabulaire-mecanique.md
+/docs/raw/**/catalogue-*.md
+/src/**/*.generated.ts
+# fin des cibles pures

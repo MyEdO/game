@@ -17,7 +17,7 @@ import { ambientClip } from './ambientClips';
 import { handlingClass } from './handling';
 import { mountedAttackClip, mountedParryClip, seatedClip, weaponAttackClip, weaponParryClip } from './weaponClips';
 import { isSupportiveCast, spellCastClip, spellCastStyle } from './spellClips';
-import { isShield } from '../parts/equipment';
+import { armeDeDessin, type FormeDArme } from '../parts/equipment';
 import type { BodyPlan, WingState } from '../bodyPlan';
 import { planGroundPose, rigGroundPose, type GroundState, type Pose } from '../../groundPose';
 import { lerpPose, scalePose } from '../poses';
@@ -119,7 +119,7 @@ const seat = (seated?: boolean) => (seated ? 'selle' : 'pied');
  * SUR-ensemble volontaire : deux armes de gestes identiques peuvent porter deux clés (une entrée
  * d'atlas de plus), jamais l'inverse (une collision rendrait le mauvais geste).
  */
-const weaponKey = (w?: Weapon) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:${w.attackKind ?? '-'}` : 'nu');
+const weaponKey = (w?: FormeDArme) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:${w.attackKind ?? '-'}` : 'nu');
 
 // ————————————————————————————————————————————————————————————————
 // 3. SÉLECTION — voie BIPÈDE
@@ -130,7 +130,7 @@ const weaponKey = (w?: Weapon) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:
 export interface RigSelectCtx {
   seated?: boolean;
   /** Arme principale équipée — repli quand l'événement ne porte pas l'arme employée. */
-  mainWeapon?: Weapon;
+  mainWeapon?: FormeDArme;
   /** Bouclier présent dans l'équipement (`hasShieldEquipped`). */
   shield?: boolean;
 }
@@ -142,7 +142,8 @@ export interface CastRelation {
   isSelf?: boolean;
 }
 
-/** Attaque émise par l'acteur : `kind` de l'événement, arme EMPLOYÉE, relation d'incantation. */
+/** Attaque émise par l'acteur : `kind` de l'événement, arme EMPLOYÉE (telle que l'événement la porte,
+ *  projetée par `armeDeDessin`), relation d'incantation. */
 export interface AttackSelect extends CastRelation {
   kind?: string;
   weapon?: Weapon;
@@ -164,7 +165,7 @@ export function rigAttackDef(ev: AttackSelect, ctx: RigSelectCtx): RigClipDef {
     const cast = spellCastClip(style);
     return rigDef(`rig:cast:${style}:${seat(ctx.seated)}`, ctx.seated ? seatedClip(cast) : cast);
   }
-  const w = ev.weapon ?? ctx.mainWeapon;
+  const w = ev.weapon ? armeDeDessin(ev.weapon) : ctx.mainWeapon;
   return rigDef(
     `rig:attack:${seat(ctx.seated)}:${weaponKey(w)}`,
     ctx.seated ? mountedAttackClip(w) : weaponAttackClip(w),
@@ -176,8 +177,9 @@ export function rigAttackDef(ev: AttackSelect, ctx: RigSelectCtx): RigClipDef {
 export function rigDefenseDef(ev: DefenseSelect, ctx: RigSelectCtx): RigClipDef | null {
   if (ev.kind === 'spell' && isSupportiveCast(ev.casterKind, ev.targetKind, ev.isSelf)) return null;
   if (ev.defense === 'parade') {
-    const w = ev.parryWeapon ?? ctx.mainWeapon;
-    const shield = ev.parryWeapon ? isShield(ev.parryWeapon) : !!ctx.shield;
+    const parade = ev.parryWeapon ? armeDeDessin(ev.parryWeapon) : undefined;
+    const w = parade ?? ctx.mainWeapon;
+    const shield = parade ? parade.bouclier : !!ctx.shield;
     return rigDef(
       `rig:parry:${seat(ctx.seated)}:${weaponKey(w)}:${shield ? 'bouclier' : 'nu'}`,
       ctx.seated ? mountedParryClip(w, shield) : weaponParryClip(w, shield),

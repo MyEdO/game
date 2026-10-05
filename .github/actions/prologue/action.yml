@@ -1,0 +1,30 @@
+name: Prologue
+description: >-
+  Prologue de chaque job vérifiant de ci.yml — Node, le classement du push (#1738), puis npm ci.
+  Posé APRÈS actions/checkout (une action locale se lit dans l'arbre du runner).
+
+outputs:
+  produit:
+    description: >-
+      Classement du push (scripts/gates/classerPush.mjs) — `false` sur un push documentaire ; toute
+      autre valeur, vide comprise, fait jouer les steps conditionnés (fail-closed).
+    value: ${{ steps.classer.outputs.produit }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+    # AVANT `npm ci` : la fermeture des imports du classement n'atteint aucun paquet (garde
+    # scripts/gates/classerPush.test.mjs).
+    - id: classer
+      shell: bash
+      env:
+        BASE: ${{ github.event.merge_group.base_sha }}
+        SHA: ${{ github.sha }}
+      run: node scripts/gates/classerPush.mjs >> "$GITHUB_OUTPUT"
+    - id: install
+      shell: bash
+      run: npm ci

@@ -17,10 +17,10 @@
 // test qu'il joue.
 //
 // CONDITION DE LICÉITÉ : l'arbre scanné est STATIQUE pendant un run. Sous vitest, l'unique écrivain
-// de `src/**` est `genAll()` du plugin `registryGen` (`vite.config.ts`, hook `buildStart`) : il
-// écrit `src/**/_registry.generated.ts`, `src/data/schemas/_art.generated.ts` et les sorties de sa
-// phase 2 (`scripts/gen-espaces.mts`) dans le processus vite-node PRINCIPAL, avant le démarrage des
-// workers, et seulement quand le contenu diffère (`ecrireDoc`, scripts/docs/lib/empreinte-sources.mjs).
+// de `src/**` est le plugin `registryGen` (`vite.config.ts`, hook `buildStart`), qui lance
+// `build-all.mjs --code` (`genererCode`) : les cibles de CODE s'écrivent depuis le processus vite-node
+// PRINCIPAL, avant le démarrage des workers, et seulement quand le contenu diffère (`ecrireDoc`,
+// scripts/docs/lib/ecriture-derives.mjs).
 // Aucune gate n'écrit dans l'arbre (`photoArbre`, `scripts/gates/toutes.mjs`). Une clé NEUVE ne relit
 // pas un chemin déjà lu : après une écriture, elle rendrait l'ancien texte des chemins connus et le
 // texte frais des chemins nouveaux. Un appelant qui écrirait dans un dossier scanné entre deux
@@ -43,8 +43,8 @@
 // mesurée) restent chez l'appelant : ils font partie de ce que la garde mesure (#2018, #2019).
 //
 // REFUS DU VIDE : une BASE qui rend 0 fichier LÈVE, en la nommant (dossier POSIX, extensions,
-// `tests`). PAR BASE et non sur le total : les clés multi-dossiers sont la norme (`STRICT_DIRS` /
-// `RATCHET_DIRS` de `labelLogic.mjs`, `['src','scripts']`) — sur un total agrégé, une moitié de
+// `tests`). PAR BASE et non sur le total : les clés multi-dossiers sont la norme
+// (`['src','scripts']`) — sur un total agrégé, une moitié de
 // corpus qui s'évapore reste MUETTE derrière l'autre. Un corpus vide rend toute garde de corpus
 // verte par vacuité — son assertion `offenders == []` est satisfaite sans que rien n'ait été lu, et
 // le rouge est MUET. `listerArbre` lève déjà sur un dossier ABSENT (`listerDossier`, `lister.mjs`) ; ce refus
@@ -153,7 +153,7 @@ export function readCorpus(dirs, { exts = ['.ts', '.tsx'], tests = false } = {})
 
 /** Relâche tous les corpus mémoïsés : la lecture suivante retourne au disque. C'est la PORTE de la
  *  condition de licéité du mémo (voir l'en-tête) — un appelant qui ÉCRIT dans un dossier scanné
- *  entre deux lectures la franchit. Aucune garde ne l'appelle : `genAll()` écrit avant les workers,
+ *  entre deux lectures la franchit. Aucune garde ne l'appelle : `genererCode` écrit avant les workers,
  *  et aucune gate de la CI n'écrit dans l'arbre. Les tests de cette lib l'appellent.
  *  PRIX : le relâchement est TOTAL (toutes les clés et toutes les entrées du worker, pas la sienne) :
  *  l'IDENTITÉ des tableaux et des entrées est perdue, et les corpus réels se relisent au disque. Une fixture `mkdtemp` supprimée ne

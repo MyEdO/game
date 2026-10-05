@@ -7,22 +7,30 @@ description: À utiliser dès qu'une tâche implique d'écrire ou modifier du co
 
 **Je ne code pas — même le trivial.** Un guard d'une ligne, une regex, un refacto « couplé » → un agent
 sous spec précise. Moi = décomposer, spécifier, vérifier, intégrer ; seul code de ma main :
-l'intégration triviale et les gates. Violer la lettre de cette règle EST violer son esprit.
+l'intégration triviale et les gates.
 
 ## Suivi
 
-- **La vague tient sa TODO dans le task-tracker** (`TaskCreate`/`TaskUpdate`/`TaskList`) : un dispatch
-  crée sa tâche, un retour la solde, une suite découverte devient une tâche avec ses `blockedBy` — **la
-  prochaine action se LIT dans la liste**, jamais dans ma mémoire ; une annonce en prose n'est pas une
-  ligne de suivi. Sans task tools, la liste vit au commentaire de PILOTAGE du ticket de vague, re-posté
-  à chaque transition — un ticket GitHub, jamais un fichier au scratchpad.
-- **Planification et pilotage vivent sur GitHub** : l'épique porte le design validé en commentaire daté
-  VERBATIM et un commentaire de PILOTAGE re-posté (jamais édité en silence) à chaque transition de lot
-  — fait / arbitrages / séquence des restes avec propriétaires ; un ticket par lot (gabarit #101+,
-  labels, Bloqué par / Débloque, DoD mesurable).
-- **Jamais `superpowers:writing-plans` / `executing-plans` / `subagent-driven-development`** ici ;
-  `brainstorming` sert l'altitude, sa sortie va au TICKET. Un brief de codeur est un commentaire DATÉ
-  du ticket du chantier, jamais un fichier sous `docs/`.
+- **Le suivi de vague `.git/suivi/<N>.md` est la SEULE source du plan et du prochain geste** — un
+  fichier par épique `<N>`, dans le répertoire git commun (utilisateur, 2026-09-28 : « Il faut
+  absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
+  Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
+  `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
+- **La zone écrite s'édite par l'outil `mcp__harnais__suivi`** (mod `harnais`), ou par
+  `node scripts/ops/suivi.mjs <N> --session <id> --json [--ticket <M>] --ajouter-item|--ajouter-etape|--cocher <texte>` :
+  une ligne par geste, sous verrou, et la session se lie au suivi.
+- **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
+  indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
+  branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
+- **À la FERMETURE d'un ticket** (issue fermée, liste « À condenser » de la zone mesurée), ses
+  arbitrages utilisateur partent au TICKET, verbatim et datés, PUIS sa section se réduit à une ligne :
+  le ticket, ce qui a été publié (sha) et les pointeurs utiles. Le suivi reste un PLAN.
+- **Le task-tracker n'est qu'un miroir de session**, jamais une source : ce qu'il porte et que le suivi
+  n'a pas est perdu à la reprise.
+- **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101+,
+  labels, Bloqué par / Débloque, DoD mesurable). Le commentaire de pilotage d'épique n'est qu'une
+  PROJECTION du suivi, postée à la publication — jamais relue comme état.
+- **Un brief de codeur est un commentaire DATÉ du ticket du chantier**, jamais un fichier sous `docs/`.
 
 ## Cycle
 
@@ -46,7 +54,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
 - **Socle → trois sections, le codeur REFUSE sinon** (`.claude/agents/codeur.md`) : `## Invariant`
   (verbatim + source + la QUESTION à laquelle il répondait), le CAS CANONIQUE déjà couvert
   (`fichier:ligne`) + la preuve que le nouveau cas en est une INSTANCE, pas une variante à branche,
-  `## Design jugé :` (rendu par le workflow `juge-design-socle`, run cité).
+  `## Design jugé :` (un agent `juge` dépêché juge le design, son rendu est cité au brief).
 - **Un brief POSE les questions, il ne les pré-répond pas** : toute classification que l'agent peut
   établir (provenance d'une règle, existence d'un consommateur, état d'un fichier) se demande en
   SORTIE, citation exigée. Le banni est l'affirmation NON citée ; citation verbatim, réf RAW nue, ligne
@@ -125,9 +133,10 @@ lancement.
 - **Outillage qui MENT** : `ctx_search` rend un faux « 0 match » quand il s'arrête au budget de temps
   (le message le dit) ou saute les gros fichiers — une absence se recoupe par `git grep` ;
   `Measure-Object -Line` (PowerShell) ne compte pas les lignes vides — `wc -l` ou `git grep -c ""` ;
-  `npm run typecheck` est incrémental et rend des
-  erreurs FANTÔMES après le commit d'une session voisine (confirmer par `npx tsc --noEmit
-  --incremental false`) ; le hook `read-dedup` rend un faux « unchanged since last read » sur un
+  `npm run typecheck:fast` est incrémental sur un tsbuildinfo PARTAGÉ entre sessions
+  (`scripts/typecheck-fast.mjs:37-38`) — au doute, la porte complète `npm run typecheck`
+  (script `typecheck` de `package.json`, `--incremental false`) ;
+  le hook `read-dedup` rend un faux « unchanged since last read » sur un
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
 
@@ -137,8 +146,10 @@ tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMEN
 push de branche, sonder son run** (`gh run list --branch chantier/<N> --json
 headSha,status,conclusion`) AVANT de dépêcher un juge ou d'entrer dans une attente longue ; un rouge de
 branche ne bloque que cette branche, et se rejoue localement gate par gate (`npm run gates -- --gates
-<noms>`). `main` n'entre que par le fast-forward d'`ops:publier` (étape `ff-main`) sur une tête dont le
-run est vert, et le ruleset serveur refuse tout le reste. Migrations : le job `migrations` de `ci.yml`
+<noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
+(étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Un train `--detache` se suit par la
+commande `veille=` qu'il imprime (`Monitor`, ré-armé par `--depuis <dernier #seq>`), jamais par un
+filtre de son log. Migrations : le job `migrations` de `ci.yml`
 les joue sur la branche, aucun rejeu local. Au retour de chaque agent, vérifier qu'il ne laisse aucun
 processus derrière lui.
 
@@ -171,16 +182,17 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 - **Validation utilisateur = ASYNCHRONE** : le lot en attente de goût se PARQUE (worktree conservé,
   capture prête, question consignée), la vague CONTINUE — jamais gelée entière. En ABSENCE, dispatcher
   ce qui n'appelle aucun goût (données, gardes, ré-instruction) ; écrans et arbitrages en PRÉSENCE.
-- **Checkpoint avant épuisement de quota** : carnet committé, todo à jour, tickets commentés.
+- **Checkpoint avant épuisement de quota** : suivi de vague à jour (`npm run ops:suivi -- <N>`),
+  tickets commentés.
 - **Revue de palier et réfutation de fermeture = UN juge**, nourri de `npm run ops:faits-de-palier --
   --base <sha> --tete <sha>` : le script mesure, le juge juge. Le texte s'écrit sous le nom d'archive
   qu'il donne (`nomDArchiveDeRevue`) et passe la porte de solde (`validateRevuePalier`).
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
-  à leur vague. Pas de checklist dans le corps (elle meurt toujours) : l'ÉTAT vit dans le commentaire
-  de pilotage, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
+  à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
+  suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
   Épique muette depuis 14 jours sans label `gelée` = anomalie à SIGNALER.
-- **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, posées au commentaire de
-  pilotage : delta net de tickets (cible ≤ 0), part des fermetures dépilant du stock de plus de 28
+- **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, écrites dans le suivi de
+  vague : delta net de tickets (cible ≤ 0), part des fermetures dépilant du stock de plus de 28
   jours (≥ 50 %), résorption des restes (≥ 60 % sous deux semaines). Deux semaines sans mesure =
   anomalie à signaler.
 
@@ -191,14 +203,15 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
 | Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
 | Code sous spec précise | `codeur` | opus | medium |
-| Jugement dur (réfutation, synthèse, archi) | `juge` | opus | medium |
+| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | medium |
+| Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
+| Joueur cloisonné de table simulée | `joueur` | sonnet | low |
 
-**Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**,
-pas l'art à l'aveugle. Déjà utilisés — audit de fidélité des règles (a trouvé 3 vrais bugs), extraction
-du Tome 1 en dossiers, génération des sprites de bestiaire depuis l'art officiel (lecture d'image par
-les agents).
+**Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**
+(audit de fidélité des règles, extraction d'un livre en dossiers, sprites depuis l'art officiel par
+lecture d'image), pas l'art à l'aveugle.
 
 Préférer ces types (modèle + effort épinglés) à `general-purpose`, qui hérite l'effort de session.
 **JAMAIS Sonnet en effort haut/xhigh** : plus cher qu'un Opus medium. La cérémonie se calibre à la

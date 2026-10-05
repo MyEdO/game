@@ -4,7 +4,7 @@ import { useGame } from '../state/store';
 import { useRigClip } from './rig/anim/useRigClip';
 import { weaponRest, hasShieldEquipped } from './rig/anim/weaponClips';
 import { rigAttackDef, rigDefenseDef, rigHitDef, rigWalkDef, type RigSelectCtx } from './rig/anim/actorAnimSelect';
-import { isShield, type EquipCtx } from './rig/parts/equipment';
+import { armePrincipale, type EquipCtx } from './rig/parts/equipment';
 import { project, type View } from './rig/facing';
 import type { Dir8 } from '../state/dir8';
 import type { Clip } from './rig/anim/clips';
@@ -15,7 +15,7 @@ import { walkMs } from '../geometry/walk';
  * Pilote l'ANIMATION d'un rig bipède (clips de repos/marche/attaque/parade/esquive/touché via
  * le bus, projeté en vue 8-dir selon la caméra) et renvoie les éléments à donner à resolveRig :
  * `pose` (clip courant), `holdPose` (prise d'arme toujours active), `view`+`mirror`. Consommé par
- * `RigToken` (lui-même monté par `AnimatedRigToken` et par `tokenBodyKind`) : le câblage bus vit ici,
+ * `RigToken` (monté par `tokenBodyKind`) : le câblage bus vit ici,
  * le token ne fait que dessiner. Le CHOIX du geste est pur (`rig/anim/actorAnimSelect`).
  */
 export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
@@ -34,7 +34,7 @@ export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
   const { pose, play, playClip, holdClip } = useRigClip(restClip, pos);
   const camRot = useGame((s) => s.camRot);
   const worldDir = useGame((s) => s.facing?.[id]) ?? facing;
-  const mainWeapon = equip.weapons?.find((w) => !isShield(w)) ?? equip.weapons?.[0];
+  const mainWeapon = armePrincipale(equip);
   const shield = hasShieldEquipped(equip.weapons, equip.shield);
   const holdPose = weaponRest(mainWeapon);
   // Contexte injecté aux sélecteurs PURS (`rig/anim/actorAnimSelect`) : rafraîchi à chaque rendu,

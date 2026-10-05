@@ -4,7 +4,8 @@
     "index.html",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
-    "scripts/**/*.{mjs,mts,ts}"
+    "scripts/**/*.{mjs,mts,ts}",
+    "src/**/*.generated.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
@@ -13,7 +14,9 @@
   "ignore": [
     "server/**",
     "dist/**",
-    "public/**"
+    "public/**",
+    ".claude/skills/*/{hooks,types,tests}/**"
   ],
+  "ignoreBinaries": ["lean-ctx"],
   "ignoreExportsUsedInFile": true
 }

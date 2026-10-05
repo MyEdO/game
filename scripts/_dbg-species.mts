@@ -1,13 +1,14 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
 import { raceAppearance } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
+import { equipDe } from '../src/gameIso/rig/parts/equipment';
 
 // Mannequin de la planche : ID de garde-robe (carrière ∪ classe ∪ tenue), validé fail-fast —
 // un id qui retombe sur « nu » fausserait l'ancrage mesuré ici (#1338).
@@ -23,7 +24,7 @@ function cell(label: string, app: Appearance, w?: Weapon) {
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: '#1b1f2b' }),
       React.createElement('line', { x1: 0, y1: 150, x2: 120, y2: 150, stroke: '#2ecc71', strokeWidth: 1, strokeDasharray: '3 3' }),
       React.createElement('line', { x1: 0, y1: 0, x2: 120, y2: 0, stroke: '#e74c3c', strokeWidth: 1 }),
-      React.createElement(RigSprite, { appearance: app, equip: { weapons: w ? [w] : [], armour: [] }, career: MANNEQUIN }),
+      React.createElement(RigSprite, { comp: rigComposition(app, equipDe(w ? [w] : [], []), MANNEQUIN) }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:#cdd;font:11px sans-serif">${label}</figcaption></figure>`;

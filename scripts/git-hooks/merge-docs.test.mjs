@@ -1,16 +1,14 @@
 // Garde du pilote de fusion des docs dérivés (scripts/git-hooks/merge-docs.mjs) et de la liste
 // UNIQUE des générateurs (scripts/docs/build-all.mjs). `npm run test:hooks`.
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { catalogueConflicts, mergeFicheRaw, restoreImplemente, sentinelFor, stripImplemente } from './merge-docs.mjs'
+import { FAMILIES, mergeFicheRaw, restoreImplemente, sentinelFor, stripImplemente } from './merge-docs.mjs'
 import { threeWay } from './three-way.mjs'
-import { GENERATORS, ciblesSignees } from '../docs/build-all.mjs'
-import { pagesDeLAtlas, RAWDOC_META_GENERATED } from '../raw/_lib.mjs'
+import { ciblesPures } from '../docs/build-all.mjs'
+import { pagesDeLAtlas } from '../raw/_lib.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -130,45 +128,9 @@ test('threeWay — délègue à git merge-file (aucun diff3 réimplémenté)', (
   assert.deepEqual(threeWay('a\nX\n', 'a\nb\n', 'a\nb\n'), { text: 'a\nX\n', conflict: false })
 })
 
-const BLOC = (tag, corps) => ['', '---', '', '<!-- ' + tag + ' -->', corps, '<!-- /' + tag + ' -->', ''].join('\n')
-const CAT = '# Catalogue' + '\n' + '\n' + 'Chapitres concatenes.' + '\n'
-
-/** Écrit les trois versions dans un dossier jetable, retourne les chemins pour `catalogueConflicts`. */
-function versions(base, ours, theirs) {
-  const dir = mkdtempSync(join(tmpdir(), 'merge-docs-test-'))
-  const put = (n, c) => { const f = join(dir, n); writeFileSync(f, c); return f }
-  return { base: put('o', base), ours: put('a', ours), theirs: put('b', theirs) }
-}
-
-test('catalogue — aucun bloc X-INTEGRATION : rien a perdre', () => {
-  assert.deepEqual(catalogueConflicts(versions(CAT, CAT + 'ours', CAT + 'theirs')), [])
-})
-
-test('catalogue — bloc IDENTIQUE des deux cotes : pas de conflit', () => {
-  const b = BLOC('MDG-INTEGRATION', 'correctif manuel')
-  assert.deepEqual(catalogueConflicts(versions(CAT + b, CAT + 'ours' + b, CAT + 'theirs' + b)), [])
-})
-
-test('catalogue — bloc NEUF cote entrant : conflit nomme', () => {
-  const b = BLOC('MDG-INTEGRATION', 'correctif manuel neuf')
-  assert.deepEqual(catalogueConflicts(versions(CAT, CAT, CAT + b)), ['MDG-INTEGRATION'])
-})
-
-test('catalogue — bloc MODIFIE cote courant SEUL : pas de conflit', () => {
-  const o = BLOC('ZI-INTEGRATION', 'version ancetre')
-  const a = BLOC('ZI-INTEGRATION', 'version courante')
-  assert.deepEqual(catalogueConflicts(versions(CAT + o, CAT + a, CAT + o)), [])
-})
-
-test('catalogue — bloc MODIFIE cote entrant seul : conflit nomme', () => {
-  const o = BLOC('ZI-INTEGRATION', 'version ancetre')
-  const b = BLOC('ZI-INTEGRATION', 'version entrante')
-  assert.deepEqual(catalogueConflicts(versions(CAT + o, CAT + o, CAT + b)), ['ZI-INTEGRATION'])
-})
-
 /** `git check-attr merge` pour un lot de chemins → Map(chemin → famille). */
 function famillesDe(paths) {
-  const out = execFileSync('git', ['check-attr', 'merge', '--stdin'], { cwd: ROOT, input: paths.join('\n'), encoding: 'utf8' })
+  const out = gitDeLArbreReel(ROOT, { input: paths.join('\n') })('check-attr', 'merge', '--stdin')
   const map = new Map()
   for (const ln of out.split('\n').filter(Boolean)) {
     const m = /^(.*): merge: (.*)$/.exec(ln)
@@ -177,18 +139,10 @@ function famillesDe(paths) {
   return map
 }
 
-test('taxonomie — tout DOC ecrit en entier par un generateur est genere ou catalogue', () => {
-  const paths = GENERATORS.flatMap((g) => ciblesSignees(g, ROOT))
-  assert.ok(paths.length >= 18, `cibles depliees : ${paths.length}`)
-  const fam = famillesDe(paths)
-  const hors = paths.filter((p) => !['docs-generes', 'docs-catalogue'].includes(fam.get(p)))
-  assert.deepEqual(hors, [])
-})
-
-test('taxonomie — les rapports RAWDOC_META_GENERATED sont en famille generee', () => {
-  const paths = [...RAWDOC_META_GENERATED].map((f) => 'docs/raw/' + f)
-  const fam = famillesDe(paths)
-  assert.deepEqual(paths.filter((p) => fam.get(p) !== 'docs-generes'), [])
+test('taxonomie — une seule famille, `fiche-raw` : une cible PURE n’est pas commitée, aucun pilote ne la fusionne (#2203)', () => {
+  assert.deepEqual(FAMILIES, ['fiche-raw'])
+  const fam = famillesDe(ciblesPures(ROOT))
+  assert.deepEqual([...fam].filter(([, f]) => f === 'docs-generes'), [])
 })
 
 test('taxonomie — toute FICHE énumérée par la couture de l’Atlas est en famille fiche-raw', () => {

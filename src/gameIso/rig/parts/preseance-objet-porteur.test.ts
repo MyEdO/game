@@ -11,17 +11,18 @@ import { buildTokenMap, tokensOf } from '../palette';
 import { declaredView, viewEntries } from '../viewArt';
 import { couchesDuRig } from './career';
 import { racePalette } from '../races';
-import { weaponPart, shieldPart, armourPart, objetSansPorteur } from './equipment';
+import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart, type ArmeDeDessin } from './equipment';
 import { ARMOUR } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { asRigSpeciesId } from '../appearance';
-import type { ItemInstance, Weapon } from '../../../engine/types';
+import type { ItemInstance } from '../../../engine/types';
 import type { PartArt } from './types';
 
 const HUMAIN = asRigSpeciesId('humain');
 const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
-const arme = (shape: string) => ({ label: shape, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape }) as unknown as Weapon;
+/** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
+const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', forme, bouclier: false });
 const plaque = (skin?: Record<string, string>) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** Vrai si le texte porte un jeton `@clé`. */
@@ -32,7 +33,7 @@ describe('préséance objet/porteur (#1903)', () => {
     const app = { species: HUMAIN, sex: 'M' as const, build: 0.5, seed: 1, colors: { peau: '#3a2a1a' } };
     const t = buildTokenMap(couchesDuRig(racePalette('humain', 'M'), 'nu'), app.colors);
     const id = `dg-v-${t.peauH.slice(1)}-${t.peauO.slice(1)}`;
-    const armeSvg = resolveRig(app, { weapons: [arme('poing')], armour: [] }, {}, 'nu', 'front').find((b) => b.id === 'arme')!.parts.map((p) => p.svg).join('');
+    const armeSvg = resolveRig(app, { ...equipDe([], []), weapons: [arme('poing')] }, {}, 'nu', 'front').find((b) => b.id === 'arme')!.parts.map((p) => p.svg).join('');
     expect(armeSvg).toContain(`url(#${id})`);
     expect(armeSvg).toContain(`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${t.peauH}"/><stop offset="100%" stop-color="${t.peauO}"/>`);
   });
@@ -44,9 +45,9 @@ describe('préséance objet/porteur (#1903)', () => {
   it('un objet rendu SANS porteur ne garde aucun `@` ni `dg-` à `@` (armes, boucliers, armures)', () => {
     const fautes: string[] = [];
     for (const d of WEAPON_DEFS) if (vues(objetSansPorteur(weaponPart(arme(d.slug)))).some(aUnJeton)) fautes.push(`arme:${d.slug}`);
-    for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ ...arme('bouclier'), shape: d.slug }))).some(aUnJeton)) fautes.push(`bouclier:${d.slug}`);
+    for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ forme: d.slug }))).some(aUnJeton)) fautes.push(`bouclier:${d.slug}`);
     for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
-      const p = armourPart(plaque(), slot);
+      const p = armourPart(pieceDeDessin(plaque()), slot);
       if (p && vues(objetSansPorteur(p)).some(aUnJeton)) fautes.push(`armure:plaque:${slot}`);
     }
     expect(fautes).toEqual([]);
@@ -63,7 +64,7 @@ describe('préséance objet/porteur (#1903)', () => {
       const dg = '<path d="M0 0h4v4z" fill="url(#dg-v3-@metalH-@metal-@metalO)" stroke="@peau"/>';
       ARMOUR.plaque.bras = dg + (declaredView(avant.bras, 'front') ?? '');
       ARMOUR.plaque.torse = dg + (declaredView(avant.torse, 'front') ?? '');
-      const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, { weapons: [], armour: [plaque({ metal: '#ff0000' })] }, {}, 'soldat', 'front');
+      const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, equipDe([], [plaque({ metal: '#ff0000' })]), {}, 'soldat', 'front');
       const contenus = new Map<string, Set<string>>();
       let vus = 0;
       for (const b of bones) for (const p of b.parts) {

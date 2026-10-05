@@ -3,14 +3,14 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { SPECIFIC_TENUES } from '../src/gameIso/rig/parts/tenues';
 import { assertTenueCatalogId } from './_lib-wardrobe';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 
-// Le rig s'habille par ID de garde-robe (`RigSprite.career` = id de carrière/tenue) : la galerie
+// Le rig s'habille par ID de garde-robe (tenue de `rigComposition` = id de carrière/tenue) : la galerie
 // itère les IDS du catalogue et n'affiche le `label` qu'en légende. Le résolveur VALIDE (fail-fast) :
 // un id qui ne résout pas à lui-même est une faute d'authoring, jamais un repli Nu silencieux.
 const tenues = SPECIFIC_TENUES.slice().sort((a, b) => a.label.localeCompare(b.label, 'fr'));
@@ -24,7 +24,7 @@ const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.
 
 const cells = tenues
   .map(({ id, label }) => {
-    const inner = renderToStaticMarkup(React.createElement(RigSprite, { appearance: app, equip: { weapons: [], armour: [] }, career: id }));
+    const inner = renderToStaticMarkup(React.createElement(RigSprite, { comp: rigComposition(app, { weapons: [], armour: [] }, id) }));
     return (
       `<figure class="cell"><svg viewBox="0 0 ${CW} ${CH}" width="${CW}" height="${CH}"><defs>${defsGlobaux()}</defs>` +
       `<ellipse cx="${CW / 2}" cy="${CH - 14}" rx="${Math.round(30 * SC)}" ry="${Math.round(8 * SC)}" fill="#000" opacity="0.35"/>` +

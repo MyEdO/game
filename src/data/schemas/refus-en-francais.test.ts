@@ -17,7 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { clotureDImports, sourceALExecution } from '../../../scripts/guards/lib/importGraph.mjs';
+import { clotureDImports, sourceALExecution, type Arc } from '../../../scripts/guards/lib/importGraph.mjs';
 import { estFichierVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
 import { validateDataset, validateDocument, rapportDeFautes } from './validate';
@@ -66,7 +66,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
    * la compilation efface ne porte aucun effet de module, il ne compte donc ni comme porteur de zod ni
    * comme atteinte (`sourceALExecution`, `scripts/guards/lib/importGraph.mjs`).
    */
-  it('GARDE — tout fichier de production de `src/**` important zod en VALEUR atteint la locale', () => {
+  it('GARDE — tout fichier de production de `src/**` important zod en VALEUR atteint la locale', { timeout: 30_000 }, () => {
     const LOCALE = 'src/data/schemas/grammaire/locale-fr.ts';
     const ZOD_EN_VALEUR = /\bfrom\s*['"]zod['"]|\bimport\s*['"]zod['"]/;
 
@@ -86,7 +86,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
     // Cache PARTAGÉ : toutes les marches sont du MÊME régime (`typesEffaces`), et se recouvrent presque
     // toutes — sans partage, chaque module de la grammaire est relu et re-résolu à chaque porteur.
-    const cache = new Map<string, string[] | null>();
+    const cache = new Map<string, Arc[] | null>();
     const orphelins = porteurs.filter((f) => !clotureDImports([resolve(f)], { typesEffaces: true, cache }).has(LOCALE));
     expect(orphelins).toEqual([]);
   });

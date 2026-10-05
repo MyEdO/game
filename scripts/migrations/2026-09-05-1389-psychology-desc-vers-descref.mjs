@@ -42,6 +42,7 @@ import { sigleDe } from '../raw/_lib.mjs';
 import { resoudreProse } from '../source/resoudre.mjs';
 import { judge } from '../source/derive-decoupes.mjs';
 import { jsonIndente, remplacerAncre } from '../source/reecriture-ancree.mjs';
+import { ouDeLAdresse } from '../../src/data/source/decoupe.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'src/data/psychology.json';
@@ -63,13 +64,6 @@ if (!Array.isArray(data)) {
   console.error(`${FICHIER} n'est pas un tableau d'entrées`);
   process.exit(1);
 }
-
-/** Adresse en une ligne lisible : `<livre> ch.<ch> §<sec>#<occ> b<b0>-<b1>`, un fragment par segment. */
-const ouDe = (ref) =>
-  `${ref.book} ch.${ref.ch} ` +
-  ref.parts
-    .map((p) => (p.kind === 'cellule' ? `§${p.sec}#${p.secOcc} [${p.row} × ${p.col}]` : `§${p.sec}#${p.secOcc} b${p.b0}-${p.b1}`))
-    .join(' + ');
 
 for (const [i, entree] of data.entries()) {
   const id = typeof entree?.id === 'string' ? entree.id : `[${i}]`;
@@ -132,7 +126,7 @@ for (const [i, entree] of data.entries()) {
     continue;
   }
 
-  gestes.push({ id, verdict: verdict.verdict, adresse: ouDe(ref), sums: ref.parts.map((p) => p.sum), desc: entree.desc, ref });
+  gestes.push({ id, verdict: verdict.verdict, adresse: ouDeLAdresse(ref), sums: ref.parts.map((p) => p.sum), desc: entree.desc, ref });
 }
 
 // ── Réécriture TEXTUELLE ancrée, compte textuel confronté au compte structurel ───────────────────

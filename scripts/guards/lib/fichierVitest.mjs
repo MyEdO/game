@@ -2,8 +2,8 @@
 // PRODUCTION ». Module ESM pur, exécutable par `node` nu, sans état ni lecture disque — même patron
 // que `codeSeul.mjs`.
 //
-// POURQUOI UN MODULE À LUI : l'instrument a DEUX formes — le `.test.` (`vitest run`, seul inclus
-// par `scripts/guards/lib/racinesDeLaSuite.mjs`) et le `.bench.` (`vitest bench`, `npm run bench`, hors suite et hors CI).
+// POURQUOI UN MODULE À LUI : l'instrument a DEUX formes — le `.test.` (`vitest run`, seul nommé
+// par `test.include`, tiré de `scripts/guards/lib/racinesDeLaSuite.mjs`) et le `.bench.` (`vitest bench`, `npm run bench`, hors suite et hors CI).
 // Une garde qui n'exclut que la première prend le banc pour de la production et rougit sur ce qu'il
 // fait À DESSEIN — l'index FIGÉ d'un banc est le témoin qu'il compare au vivant —, ce qui pousse à
 // l'exempter par son NOM : une garde qui valide des défauts. Le prédicat vit donc en UN exemplaire,
@@ -17,6 +17,10 @@
 // n'écrit un littéral `\.test\.` ni `\.bench\.` (garde de balayage, `fichierVitest.test.mjs`).
 //
 // La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans qu'on y revienne.
+//
+// SECOND CONCEPT, la LECTURE d'un glob de `test.include` : les racines de `npm test` vivent dans
+// `racinesDeLaSuite.mjs`, d'où `vite.config.ts` tire ses globs ; une garde qui confronte un glob au
+// prédicat de suite le DÉPLIE par `finsDuGlob`, jamais par une copie locale.
 
 /** Le SUFFIXE d'une SUITE, source de regex SANS ancre : `.test.` puis un dialecte du dépôt — `.ts`,
  *  `.tsx`, `.js`, `.jsx`, et les formes de module explicites `.mts`/`.cts`/`.mjs`/`.cjs`
@@ -51,3 +55,19 @@ export const EST_SUITE_VITEST = new RegExp(`${SUFFIXE_SUITE}$`);
  * @returns {boolean}
  */
 export const estSuiteVitest = (rel) => EST_SUITE_VITEST.test(rel);
+
+/** Le séparateur d'un glob d'`include` : ce qui précède est le DOSSIER, ce qui suit la FIN de nom. */
+export const SEPARATEUR_GLOB = '/**/*';
+
+/**
+ * Les FINS DE NOM qu'un glob d'`include` accepte, l'accolade dépliée en une fin par dialecte. Aucune
+ * forme de nom de suite n'est réécrite ici : c'est le glob qui la porte.
+ * @param {string} motif un glob d'`include`.
+ * @returns {string[]}
+ */
+export function finsDuGlob(motif) {
+  const [dir, suffixe] = motif.split(SEPARATEUR_GLOB);
+  if (!dir || !suffixe) throw new Error(`finsDuGlob : glob d'include non reconnu — ${motif}`);
+  const accolade = /\{([a-z,]+)\}$/.exec(suffixe);
+  return accolade ? accolade[1].split(',').map((d) => suffixe.replace(accolade[0], d)) : [suffixe];
+}

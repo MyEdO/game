@@ -3,9 +3,10 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT, lireTicket } from '../guards/lib/ticketsGh.mjs'
 import { readFileSync } from 'node:fs'
 import { FEUILLES, manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
-import { marqueDe } from '../guards/lib/plageFermante.mjs'
+import { fermeturesDeLaPlage, marqueDe } from '../guards/lib/plageFermante.mjs'
 import { fermerLeTicket, traiterUnTicket } from './fermer-depuis-main.mjs'
 
 // ── LE geste de fermeture, par REST (#1813) ───────────────────────────────────
@@ -20,10 +21,10 @@ test('fermerLeTicket : le solde POSTÉ puis l’état PATCHÉ — jamais `gh iss
   assert.equal(vus.length, 2)
   // Le corps ne passe NI par la liste d'arguments, NI par un fichier : `-F body=@-` le fait lire sur
   // l'ENTRÉE STANDARD (`gh api --help`, `cli/cli` 2.45.0).
-  assert.deepEqual(vus[0].args, ['api', 'repos/cgauche/game/issues/1813/comments', '-X', 'POST', '-F', 'body=@-'])
+  assert.deepEqual(vus[0].args, ['api', `repos/${DEPOT}/issues/1813/comments`, '-X', 'POST', '-F', 'body=@-'])
   assert.deepEqual(vus[0].o, { input: 'le solde' })
   assert.equal(vus.flatMap((v) => v.args).some((a) => a.includes('le solde') || a.startsWith('body=@/')), false)
-  assert.deepEqual(vus[1].args, ['api', 'repos/cgauche/game/issues/1813', '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
+  assert.deepEqual(vus[1].args, ['api', `repos/${DEPOT}/issues/1813`, '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
   for (const v of vus) assert.equal(v.args.includes('issue'), false)
 })
 
@@ -35,7 +36,7 @@ test('fermerLeTicket : `poser: false` rejoue le SEUL patch — un solde déjà a
   } })
   assert.deepEqual(vu, { ok: true })
   assert.equal(vus.length, 1)
-  assert.deepEqual(vus[0], ['api', 'repos/cgauche/game/issues/1813', '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
+  assert.deepEqual(vus[0], ['api', `repos/${DEPOT}/issues/1813`, '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
 })
 
 test('fermerLeTicket : la RAISON de fermeture est posée EXPLICITEMENT, et vaut `completed`', () => {
@@ -80,14 +81,24 @@ test('fermerLeTicket n’écrit RIEN sur le disque : aucune fabrique de fichier 
 
 // ── le CÂBLAGE de l’idempotence : la décision PURE devenue geste ──────────────
 
-/** `traiterUnTicket` avec ses trois coutures feintes ; `gestes` enregistre ce qui a été DEMANDÉ. */
-function traiter({ etat, commentaires, sha = 'aaa', emporte = 'VERIFIE: le solde' }) {
+/** Les dates des commentaires feints : un jour d'écart chacun, à partir du 2026-01-01. */
+const datesDe = (commentaires) => commentaires.map((_, i) => `2026-01-0${i + 1}T00:00:00Z`)
+/** Une date d'événement POSTÉRIEURE à tout commentaire feint, et une ANTÉRIEURE. */
+const APRES = '2026-02-01T00:00:00Z'
+const AVANT = '2025-12-01T00:00:00Z'
+
+/** `traiterUnTicket` avec ses quatre coutures feintes ; `gestes` enregistre ce qui a été DEMANDÉ. */
+function traiter({
+  etat, commentaires, sha = 'aaa', citants = [sha], emporte = 'VERIFIE: le solde', evenement = 'closed', date = APRES,
+}) {
   const gestes = []
   const vu = traiterUnTicket({
     numero: '1813',
     sha,
-    lire: () => ({ ok: true, etat, corps: commentaires }),
-    solde: () => emporte,
+    citants,
+    lire: () => ({ ok: true, etat, corps: commentaires, dates: datesDe(commentaires) }),
+    solde: (s) => (emporte === null ? null : `${emporte} de ${s}`),
+    evenements: () => ({ ok: true, evenement, date }),
     fermer: (p) => {
       gestes.push(p)
       return { ok: true }
@@ -118,7 +129,90 @@ test('ticket OUVERT qui porte DÉJÀ la marque : EXACTEMENT un geste, et il ne P
 test('ticket FERMÉ par ce sha : aucun geste du tout (rejeu du job)', () => {
   const { vu, gestes } = traiter({ etat: 'closed', commentaires: [marqueDe('aaa')] })
   assert.deepEqual(gestes, [])
-  assert.match(vu.dit, /déjà fermée par aaa/)
+  assert.match(vu.dit, /déjà fermée par un citant de la plage \(aaa\)/)
+})
+
+test('R3 : course de A annulée, `ops:fermer` manuel sur A, ticket ROUVERT, B le cite — il se ferme avec le solde de B', () => {
+  // La course suivante recule sa base sous A (`baseDeLaPlage`) : A et B citent le même ticket, qui
+  // porte la marque de A et un dernier événement `reopened`.
+  const [{ sha, citants }] = fermeturesDeLaPlage([
+    { sha: 'aaa', message: 'fix: corrige #1813' },
+    { sha: 'bbb', message: 'fix: corrige #1813 pour de bon' },
+  ])
+  const { vu, gestes } = traiter({ etat: 'open', commentaires: [marqueDe('aaa')], sha, citants, evenement: 'reopened' })
+  assert.equal(vu.ok, true)
+  assert.equal(gestes.length, 1, 'le ticket rouvert puis cité par B se ferme')
+  assert.equal(gestes[0].poser, true, 'le solde de B est POSTÉ')
+  assert.match(gestes[0].corps, /VERIFIE: le solde de bbb/)
+  assert.match(gestes[0].corps, new RegExp(marqueDe('bbb').replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&')))
+})
+
+test('R3 bis : marque du dernier citant présente, ticket ROUVERT → AVERTI, jamais refermé', () => {
+  const { vu, gestes } = traiter({ etat: 'open', commentaires: [marqueDe('aaa')], evenement: 'reopened' })
+  assert.deepEqual(gestes, [], 'un rejeu ne referme pas un ticket rouvert à la main')
+  assert.equal(vu.ok, true)
+  assert.match(vu.avertissement, /^::warning::\[fermetures\] #1813 ROUVERT/)
+})
+
+test('R3 bis, cas e : `reopened` ANTÉRIEUR à la marque → le PATCH raté est rejoué, sans second solde', () => {
+  const { vu, gestes } = traiter({ etat: 'open', commentaires: [marqueDe('aaa')], evenement: 'reopened', date: AVANT })
+  assert.equal(vu.ok, true)
+  assert.equal(gestes.length, 1, 'un ticket rouvert AVANT la pose du solde se ferme')
+  assert.equal(gestes[0].poser, false)
+})
+
+test('R3 bis, cas d : marque d’un citant NON dernier, PATCH raté → un seul solde, jamais un second', () => {
+  const { vu, gestes } = traiter({ etat: 'open', commentaires: [marqueDe('aaa')], sha: 'bbb', citants: ['aaa', 'bbb'] })
+  assert.equal(vu.ok, true)
+  assert.equal(gestes.length, 1)
+  assert.equal(gestes[0].poser, false, 'le solde de A est déjà au fil : B ne poste rien')
+})
+
+test('R3 bis : les événements ne se lisent QUE pour un ticket ouvert marqué, et leur refus rougit sans geste', () => {
+  let lus = 0
+  const base = {
+    numero: '1813', sha: 'aaa', solde: () => 'solde',
+    evenements: () => { lus += 1; return { ok: false, raison: 'HTTP 502' } },
+  }
+  const gestes = []
+  const fermer = (p) => { gestes.push(p); return { ok: true } }
+  traiterUnTicket({ ...base, fermer, lire: () => ({ ok: true, etat: 'open', corps: [], dates: [] }) })
+  traiterUnTicket({ ...base, fermer, lire: () => ({ ok: true, etat: 'closed', corps: [], dates: [] }) })
+  assert.equal(lus, 0, 'ni `fermer` ni `rapporter` ne paient la lecture des événements')
+  gestes.length = 0
+  const vu = traiterUnTicket({ ...base, fermer, lire: () => ({ ok: true, etat: 'open', corps: [marqueDe('aaa')], dates: datesDe([0]) }) })
+  assert.equal(lus, 1)
+  assert.equal(vu.ok, false)
+  assert.match(vu.raison, /événements illisibles — HTTP 502/)
+  assert.deepEqual(gestes, [])
+})
+
+test('R2 : une PR citée s’AVERTIT — la course reste verte, aucun geste', () => {
+  const gestes = []
+  const vu = traiterUnTicket({
+    numero: '2155', sha: 'aaa',
+    lire: (n) => lireTicket({ depot: DEPOT, numero: n, appel: () => ({ ok: true, stdout: '{"state":"open","pull_request":{}}' }) }),
+    fermer: (p) => { gestes.push(p); return { ok: true } },
+    solde: () => null,
+  })
+  assert.equal(vu.ok, true, 'un rejeu reproduirait l’échec : il ne rougit pas')
+  assert.match(vu.avertissement, /^::warning::\[fermetures\] #2155 intraitable — #2155 est une pull request/)
+  assert.deepEqual(gestes, [])
+})
+
+test('R2 : un ticket INEXISTANT (HTTP 404) ou SUPPRIMÉ (HTTP 410) s’AVERTIT, aucun geste', () => {
+  for (const raison of ['gh: Not Found (HTTP 404)', 'gh: This issue was deleted (HTTP 410)']) {
+    const gestes = []
+    const vu = traiterUnTicket({
+      numero: '999999', sha: 'aaa',
+      lire: (n) => lireTicket({ depot: DEPOT, numero: n, appel: () => ({ ok: false, raison }) }),
+      fermer: (p) => { gestes.push(p); return { ok: true } },
+      solde: () => null,
+    })
+    assert.equal(vu.ok, true, `${raison} : un rejeu reproduirait l’échec`)
+    assert.equal(vu.avertissement, `::warning::[fermetures] #999999 intraitable — ${raison} ; non fermé, à vérifier\n`)
+    assert.deepEqual(gestes, [])
+  }
 })
 
 test('ticket FERMÉ par un AUTRE geste : AVERTI, jamais refermé, aucun geste', () => {
@@ -128,16 +222,16 @@ test('ticket FERMÉ par un AUTRE geste : AVERTI, jamais refermé, aucun geste', 
   assert.equal(vu.ok, true, 'une publication saine ne rougit pas le job')
 })
 
-test('lecture impossible : NOMMÉE, aucun geste — et le ticket suivant n’en pâtit pas', () => {
+test('lecture impossible TRANSITOIRE : NOMMÉE, aucun geste — la course rougit et se rejoue', () => {
   const gestes = []
   const vu = traiterUnTicket({
     numero: '1813', sha: 'aaa',
-    lire: () => ({ ok: false, raison: 'gh: Not Found (HTTP 404)' }),
+    lire: () => ({ ok: false, raison: 'gh: Bad Gateway (HTTP 502)' }),
     fermer: (p) => { gestes.push(p); return { ok: true } },
     solde: () => null,
   })
   assert.equal(vu.ok, false)
-  assert.match(vu.raison, /lecture impossible — gh: Not Found/)
+  assert.match(vu.raison, /lecture impossible — gh: Bad Gateway/)
   assert.deepEqual(gestes, [])
 })
 

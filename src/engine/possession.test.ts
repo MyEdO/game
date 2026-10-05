@@ -3,6 +3,8 @@ import { possessionCapacity, possessionRideable, possessionLabel, possessionTota
 import { randomizeChars } from './statblock';
 import { CHAR_KEYS, type Characteristics } from './types';
 import { ruleDef } from './policy';
+import { SIZE_SHIPBOARD_ENC } from './size';
+import type { CustomStatblock } from './statblock';
 
 function baseChars(v = 30): Characteristics {
   const out = {} as Characteristics;
@@ -129,6 +131,33 @@ describe('possessionTotalEnc — scénario-étalon TERRESTRE (§5, T1-c2, #616)'
   it('récursion triviale : aucune embarquée sur ces deux porteurs terrestres → pas de double-compte', () => {
     const soloRegistry = [charrette]; // sans muleChargee dans le registre : même total, aucun enfant à sommer
     expect(possessionTotalEnc(charrette, soloRegistry)).toBe(27);
+  });
+});
+
+describe('possessionTotalEnc — Taille d’un statbloc CUSTOM à bord (MDG 12 l.25-33)', () => {
+  /** Une bête à fiche d'auteur, seule, sans charge : son total est son poids propre. */
+  const enc = (custom: Partial<CustomStatblock>): number => {
+    const bete: Possession = {
+      uid: 'pos-custom', ownerId: 'h1', location: { kind: 'avec-le-groupe' }, items: [],
+      nature: 'bete', ref: { custom: { type: 'statblock', label: 'Bête d’auteur', char: {}, ...custom } as CustomStatblock },
+    };
+    return possessionTotalEnc(bete, [bete]);
+  };
+
+  it('Trait Taille (Grande) → Enc d’une Grande créature', () => {
+    expect(enc({ traits: [{ id: 'taille', arg: 'Grande' }] } as Partial<CustomStatblock>)).toBe(SIZE_SHIPBOARD_ENC.grande);
+  });
+
+  it('Talent Petit → Enc d’une Petite créature', () => {
+    expect(enc({ talents: [{ id: 'petit' }] } as Partial<CustomStatblock>)).toBe(SIZE_SHIPBOARD_ENC.petite);
+  });
+
+  it('ni Trait ni Talent de Taille → Moyenne', () => {
+    expect(enc({})).toBe(SIZE_SHIPBOARD_ENC.moyenne);
+  });
+
+  it('un `size` explicite l’emporte sur le Trait', () => {
+    expect(enc({ size: 'enorme', traits: [{ id: 'taille', arg: 'Petite' }] } as Partial<CustomStatblock>)).toBe(SIZE_SHIPBOARD_ENC.enorme);
   });
 });
 

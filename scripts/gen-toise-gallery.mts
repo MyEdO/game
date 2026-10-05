@@ -14,14 +14,7 @@ import { entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { planById, resolveById, resolveSpecies, planOptsForRecord, type BodyPlanId, type RenderResolution } from '../src/gameIso/rig/bodyPlan';
 import { sizeTokenScale } from '../src/gameIso/sizeScale';
 import { SIZE_LABEL, SIZE_ORDER, type SizeCategory } from '../src/engine/size';
-import { sizeFromTraits } from '../src/state/spawn';
-import { creatures } from '../src/data/index';
-import type { TraitList } from '../src/engine/statEntry';
-
-/** Taille du statbloc — primitive UNIQUE `sizeFromTraits` (`src/state/spawn.ts`) ; défaut Moyenne. */
-function sizeOf(traits: TraitList | undefined): SizeCategory {
-  return sizeFromTraits(traits ?? []) ?? 'moyenne';
-}
+import { creatures, tailleDuProfil } from '../src/data/index';
 
 /** Os STATIQUES (repos) — bipède de face (rig), gabarit en profil. Résolution EXPLICITE :
  *  `r` (espèce/plan déjà résolus), `rigId` = id de record OU espèce pour le profil bipède,
@@ -59,7 +52,7 @@ const seen = new Set<string>();
 for (const c of creatures) {
   if (seen.has(c.label)) continue;
   seen.add(c.label);
-  const size = sizeOf(c.traits);
+  const size = tailleDuProfil(c);
   const r = resolveById(c.id); // résolution PAR ID (record → espèce explicite)
   rows.push({ label: c.label, size, k: r.scale * sizeTokenScale(size), r, rigId: c.id });
 }

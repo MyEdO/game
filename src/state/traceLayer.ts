@@ -1,5 +1,5 @@
 import type { TraceTransform } from './traceCalibration';
-import { accesBase, type BaseIdb } from '../lib/indexedDb';
+import { accesBase, type MigrationsIdb } from '../lib/indexedDb';
 
 /**
  * Persistance du CALQUE DE RÉFÉRENCE de l'éditeur (planche de livre décalquée, #830) — jamais de la
@@ -44,16 +44,18 @@ export interface TraceLayerRecord {
 const STORE = 'layers';
 const PANEL_STORE = 'panelExpanded';
 
-/** Montée de `wfrp4-trace-layers` (#830) : en v2, `layers` est keyé `(sceneId, z)`. */
-export const upgradeCalques: BaseIdb['upgrade'] = (db, ancienneVersion) => {
-  if (ancienneVersion < 2) {
+/** Migrations de `wfrp4-trace-layers` : la forme v1 ne survit pas à la migration v1 → v2 (#830), où `layers`
+ *  est keyé `(sceneId, z)`. */
+export const MIGRATIONS_CALQUES = {
+  0: () => {},
+  1: (db) => {
     if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
     db.createObjectStore(STORE, { keyPath: ['sceneId', 'z'] });
-  }
-  if (!db.objectStoreNames.contains(PANEL_STORE)) db.createObjectStore(PANEL_STORE, { keyPath: 'sceneId' });
-};
+    if (!db.objectStoreNames.contains(PANEL_STORE)) db.createObjectStore(PANEL_STORE, { keyPath: 'sceneId' });
+  },
+} satisfies MigrationsIdb;
 
-const base = accesBase({ nom: 'wfrp4-trace-layers', version: 2, upgrade: upgradeCalques });
+const base = accesBase({ nom: 'wfrp4-trace-layers', migrations: MIGRATIONS_CALQUES });
 const calques = base.magasin<TraceLayerRecord, [string, number]>(STORE);
 const panneaux = base.magasin<{ sceneId: string; expanded: boolean }, string>(PANEL_STORE);
 

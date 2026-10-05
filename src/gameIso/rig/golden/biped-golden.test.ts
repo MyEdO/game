@@ -21,7 +21,7 @@ import { slugId } from '../../../data/slug';
 import { VIEWS } from '../facing';
 import type { Appearance } from '../appearance';
 import { asRigSpeciesId } from '../appearance';
-import type { EquipCtx } from '../parts/equipment';
+import { bouclierDeDessin, equipDe, type EquipCtx } from '../parts/equipment';
 
 // Espèces bipèdes couvertes (LIBELLÉS canoniques) + rôles génériques. Comme un outil, on part d'un
 // libellé → on le slugue → espèce EXPLICITE (resolveSpecies(slug) : id de def, ou Humain si rôle
@@ -72,10 +72,7 @@ describe('golden master — rendu bipède (anti-régression migration gabarit/ra
 describe('golden master — héros équipés (anti-régression chemins arme/armure/couleur)', () => {
   // (a) Porteur d'arme de mêlée : chemin os `arme` + twist de pose profil mêlée
   const appSoldat: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 };
-  const equipSoldat: EquipCtx = {
-    weapons: [weaponFromId('arme-simple')!],
-    armour: [],
-  };
+  const equipSoldat: EquipCtx = equipDe([weaponFromId('arme-simple')!], []);
   for (const view of VIEWS) {
     it(`Humain-Soldat-épée / ${view} stable`, () => {
       const svg = bonesToSvg(resolveRig(appSoldat, equipSoldat, {}, 'soldat', view));
@@ -86,12 +83,11 @@ describe('golden master — héros équipés (anti-régression chemins arme/armu
   // (b) Bouclier + armure corporelle : chemin os `bouclier` + parts armure
   const appGuardien: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.6, seed: 11 };
   const equipGuardien: EquipCtx = {
-    weapons: [weaponFromId('grande-hache')!],
-    armour: [
+    ...equipDe([weaponFromId('grande-hache')!], [
       { uid: 'syn-corps', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true },
       { uid: 'syn-tete',  label: 'Heaume',            kind: 'armor', qualities: [], pa: 2, locs: ['tete'],  enc: 1, equipped: true },
-    ],
-    shield: { label: 'Bouclier rondache', type: 'melee' as const, damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'protectrice', value: 1 }] },
+    ]),
+    shield: bouclierDeDessin({ trappingId: 'bouclier' }), // rondache
   };
   for (const view of VIEWS) {
     it(`Humain-Noble-bouclier-armure / ${view} stable`, () => {
@@ -105,10 +101,7 @@ describe('golden master — héros équipés (anti-régression chemins arme/armu
     species: asRigSpeciesId('humain'), sex: 'M', build: 0.45, seed: 17,
     colors: { vet1: '#3a5a7a' },
   };
-  const equipMercenaire: EquipCtx = {
-    weapons: [weaponFromId('grande-hache')!],
-    armour: [],
-  };
+  const equipMercenaire: EquipCtx = equipDe([weaponFromId('grande-hache')!], []);
   for (const view of VIEWS) {
     it(`Humain-Voleur-couleur-override / ${view} stable`, () => {
       const svg = bonesToSvg(resolveRig(appMercenaire, equipMercenaire, {}, 'voleur', view));

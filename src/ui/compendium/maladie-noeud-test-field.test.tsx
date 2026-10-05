@@ -61,7 +61,7 @@ describe('atelier du Codex — le cycle d’un symptôme porte un nœud `test`, 
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CodexEdit categoryKey="symptoms" label={cible.label} id={cible.id} onClose={() => {}} />);
+      root.render(<CodexEdit categoryKey="symptoms" id={cible.id} onClose={() => {}} />);
     });
 
     // UNE seule branche rendue : celle de l'ÉCHEC (le canal `diseaseTick` n'applique que celle-là).

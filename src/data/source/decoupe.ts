@@ -1,8 +1,10 @@
 // Bibliothèque de DÉCOUPE des chapitres `Source/` : SOURCE UNIQUE du parsing et de la résolution.
 // Une adresse rend la prose VERBATIM du livre sans la dupliquer ailleurs : un fragment de BLOCS
-// — { sec, secOcc, b0, b1 } — désigne une suite contiguë de blocs d'une section ; sa sœur, le
-// fragment de CELLULE — { sec, secOcc, row, col } — rend une case de table par CLÉ (jamais par
-// indice). Une `DescRef` monte jusqu'à trois fragments d'un même chapitre.
+// — { sec, secOcc, b0, finSec?, finSecOcc?, b1 } — désigne une suite contiguë du FIL du chapitre
+// (`filDuChapitre`), du bloc `b0` de sa section au bloc `b1` de sa section de fin, titres
+// intermédiaires compris ; sa sœur, le fragment de CELLULE — { sec, secOcc, row, col } — rend une
+// case de table par CLÉ (jamais par indice). Une `DescRef` monte jusqu'à `MAX_FRAGMENTS` fragments
+// d'un même chapitre.
 //
 // Module PUR : aucune entrée/sortie, aucun registre de livres — le chapitre lui arrive déjà lu
 // (`scripts/source/lecteur-fs.mjs`). Il est chargé tel quel par Node nu (`scripts/source/*.mjs`) et
@@ -59,12 +61,16 @@ export interface Section {
 /** Chapitre parsé. */
 export interface ChapitreParse { sections: Section[] }
 
-/** Fragment de BLOCS : suite contiguë `b0..b1` des blocs d'une section, empreinte comprise. */
+/** Fragment de BLOCS : l'INTERVALLE du fil (`filDuChapitre`) qui va du bloc `b0` de `sec#secOcc` au
+ *  bloc `b1` de `finSec#finSecOcc` — par défaut la section de départ, et alors ABSENTE (forme
+ *  canonique, `fragmentBlocs`) —, empreinte comprise. */
 export interface FragmentBlocs {
   kind: 'blocs';
   sec: string;
   secOcc: number;
   b0: number;
+  finSec?: string;
+  finSecOcc?: number;
   b1: number;
   sum: string;
 }
@@ -83,7 +89,7 @@ export interface FragmentCellule {
 
 export type Fragment = FragmentBlocs | FragmentCellule;
 
-/** Adresse complète d'une prose : jusqu'à trois fragments d'un même chapitre d'un même livre. */
+/** Adresse complète d'une prose : jusqu'à `MAX_FRAGMENTS` fragments d'un même chapitre d'un même livre. */
 export interface DescRef { book: string; ch: string; parts: Fragment[] }
 
 /* ─── LE NUMÉRO DE CHAPITRE — sa maison UNIQUE (#1739) ───────────────────────────────────────
@@ -225,6 +231,8 @@ export type CodeErreur =
   | 'fragment-trop-court'
   | 'fragment-ambigu'
   | 'fragments-chevauchants'
+  | 'fragments-contigus'
+  | 'fin-avant-depart'
   | 'montage-hors-plafond';
 
 export interface ErreurResolution {
@@ -239,13 +247,13 @@ export interface ErreurResolution {
 
 export interface Resolu { md: string; folios: number[] }
 
-export const estErreur = (r: Resolu | ErreurResolution): r is ErreurResolution => 'error' in r;
+export const estErreur = <T extends object>(r: T | ErreurResolution): r is ErreurResolution => 'error' in r;
 
-/** Longueur normalisée minimale d'un fragment de BLOCS en montage (en deçà, l'adresse n'est pas
- *  discriminante). Une `cellule` n'y est pas soumise — voir la règle D, `resoudreAdresse`. */
-const MIN_FRAGMENT = 40;
+/** Longueur normalisée minimale d'un texte DISCRIMINANT (en deçà, l'adresse n'est pas discriminante).
+ *  Une `cellule` n'y est pas soumise — voir la règle D, `resoudreAdresse`. */
+export const MIN_FRAGMENT = 40;
 /** Nombre maximal de fragments d'une adresse. */
-const MAX_FRAGMENTS = 3;
+export const MAX_FRAGMENTS = 3;
 /** Longueur d'amorce testée avant de tenter un run complet (filtre bon marché). */
 const PROBE = 24;
 
@@ -280,6 +288,10 @@ function foliosIn(s: string): number[] {
 const cleanTitle = (s: string): string =>
   stripSpans(s).replace(/#+\s*$/, '').replace(/[*_`]/g, '').trim();
 
+/** Md d'un TITRE de section tel que le fil le rend (`filDuChapitre`) et que le texte libre le
+ *  traduit (`unitesDuTexte`) : son titre affichable (`cleanTitle`, `Section.title`) en gras. */
+const mdDuTitre = (titreAffichable: string): string => `**${titreAffichable}**`;
+
 /** Slugifie un titre : minuscules, accents TRANSLITTÉRÉS, tout le reste en tirets. */
 function slugify(titre: string): string {
   return cleanTitle(titre)
@@ -312,6 +324,103 @@ export function normText(s: string): string {
  */
 export const joinNorm = (parts: string[]): string =>
   parts.filter(Boolean).join(' ').replace(/\s*\|\s*/g, '|');
+
+/**
+ * Deux textes BRUTS sont-ils le même texte au sens de `normText` ? La comparaison « clé contre rendu »
+ * et « rendu contre rendu » ; le texte libre contre un rendu passe par `aligner`.
+ */
+export const memeTexte = (a: string, b: string): boolean => normText(a) === normText(b);
+
+/** Position d'une unité : section et rang du bloc (unité d'adresse ; `-1` pour le TITRE de la
+ *  section, qui précède son bloc 0) ou rang du paragraphe (unité de texte), rang de ligne dans un
+ *  bloc-table. */
+export interface PositionDUnite { sec?: string; secOcc?: number; rang: number; ligne?: number }
+
+/**
+ * Unité de texte : ce que produisent le rendu d'un fragment (`unitesDe`) et la préparation d'un texte
+ * libre (`unitesDuTexte`), et ce que compare `aligner`. Un rendu est la concaténation des `sep + md`.
+ */
+export interface Unite {
+  md: string;
+  /** Ce qui précède l'unité : rien pour la première, une ligne vide entre deux blocs ou deux
+   *  paragraphes, un saut de ligne entre deux lignes d'un bloc-table. */
+  sep: '' | '\n' | '\n\n';
+  norm: string;
+  pos: PositionDUnite;
+  /** Descriptif : aucune décision ne le lit. */
+  kind: 'titre' | 'bloc' | 'ligne' | 'cellule' | 'paragraphe';
+}
+
+/** Une unité, sa norme calculée. */
+const unite = (md: string, sep: Unite['sep'], pos: PositionDUnite, kind: Unite['kind']): Unite =>
+  ({ md, sep, norm: normText(md), pos, kind });
+
+/** Une ligne de titre markdown (`HEADING`) traduite en titre du fil (`mdDuTitre`) ; toute autre
+ *  ligne telle quelle. */
+const titreTraduit = (ligne: string): string => {
+  const m = HEADING.exec(ligne);
+  return m ? mdDuTitre(cleanTitle(m[2])) : ligne;
+};
+
+/**
+ * Unités d'un TEXTE LIBRE, sa seule préparation : ses paragraphes (séparés par une ligne vide), ceux
+ * de norme vide écartés ; une ligne de titre markdown y est traduite comme le fil rend un titre de
+ * section (`titreTraduit`).
+ */
+export function unitesDuTexte(md: string): Unite[] {
+  const out: Unite[] = [];
+  md.split(/\n\s*\n/).forEach((p, rang) => {
+    const u = unite(p.split('\n').map(titreTraduit).join('\n'), out.length ? '\n\n' : '', { rang }, 'paragraphe');
+    if (u.norm) out.push(u);
+  });
+  return out;
+}
+
+/** Une coupe d'`aligner` : l'indice d'une unité d'adresse et la position de la coupe dans son `norm`. */
+export interface Coupe { unite: number; coupe: number }
+
+/** Ce qu'une adresse ajoute au texte : une unité non couverte (`entiere`), ou le reste d'une unité
+ *  coupée, du côté où elle déborde. Nommé, jamais une chaîne. */
+export interface Ajout { unite: number; pos: PositionDUnite; kind: Unite['kind']; cote: 'entiere' | 'gauche' | 'droite' }
+
+/** Témoin d'`aligner` : la première et la dernière unité d'adresse touchées, avec leurs coupes (début
+ *  du texte dans la première, fin du texte dans la dernière), et ce que l'adresse ajoute. */
+export interface Alignement { couvertes: { premiere: Coupe; derniere: Coupe }; ajoute: Ajout[] }
+
+/**
+ * LA décision « texte libre contre rendu » : la chaîne du texte (`joinNorm` de ses unités) est-elle une
+ * sous-chaîne de celle de l'adresse (`joinNorm` de ses unités) ? `null` sinon. L'ÉGALITÉ est un
+ * alignement dont `ajoute` est vide, la PARTIE STRICTE un alignement dont `ajoute` ne l'est pas. Une
+ * unité d'adresse de norme vide n'est jamais un ajout. Un texte sans unité de contenu est refusé.
+ */
+export function aligner(texte: readonly Unite[], adresse: readonly Unite[]): Alignement | null {
+  const t = joinNorm(texte.map((u) => u.norm));
+  if (!t) throw new RangeError('aligner : texte sans unité de contenu');
+  const a = joinNorm(adresse.map((u) => u.norm));
+  const idx = a.indexOf(t);
+  if (idx < 0) return null;
+  const fin = idx + t.length;
+  const ajoute: Ajout[] = [];
+  let premiere: Coupe | null = null;
+  let derniere: Coupe | null = null;
+  let curseur = 0;
+  for (let k = 0; k < adresse.length; k++) {
+    const u = adresse[k];
+    if (!u.norm) continue;
+    const d = a.startsWith(u.norm, curseur) ? curseur : curseur + 1;
+    if (!a.startsWith(u.norm, d)) throw new Error(`aligner : l'unité ${k} n'est pas à sa place dans la chaîne de l'adresse`);
+    const f = d + u.norm.length;
+    curseur = f;
+    const nomme = (cote: Ajout['cote']): Ajout => ({ unite: k, pos: u.pos, kind: u.kind, cote });
+    if (f <= idx || d >= fin) { ajoute.push(nomme('entiere')); continue; }
+    premiere ??= { unite: k, coupe: Math.max(0, idx - d) };
+    derniere = { unite: k, coupe: Math.min(f, fin) - d };
+    if (d < idx) ajoute.push(nomme('gauche'));
+    if (f > fin) ajoute.push(nomme('droite'));
+  }
+  if (!premiere || !derniere) throw new Error('aligner : un texte trouvé ne touche aucune unité');
+  return { couvertes: { premiere, derniere }, ajoute };
+}
 
 /** Un entier 32 bits en 8 hex. */
 const hex8 = (n: number): string => n.toString(16).padStart(8, '0');
@@ -438,10 +547,10 @@ function checkSum(frag: Fragment, md: string, ou: string): ErreurResolution | nu
 export const cellulesDe = (l: string): string[] =>
   l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
 
-/** Une ligne de SÉPARATEUR de table Markdown (`| --- | --- |`, `|--|--|--|`). */
+/** Ligne DÉLIMITEUSE de table GFM : `|` initial, chaque cellule faite d'au moins un tiret, bordé ou
+ *  non de `:` (`| --- | :-: |`, `|-|-|`). Une cellule vide la refuse (`|--||`). */
 export function estSeparateur(ligne: string): boolean {
-  const t = ligne.trim().replace(/\s+/g, '');
-  return t.startsWith('|') && /^[|:-]+$/.test(t) && t.includes('--');
+  return /^\s*\|/.test(ligne) && cellulesDe(ligne).every((c) => /^:?-+:?$/.test(c));
 }
 
 /** Texte d'une rangée-BANNIÈRE — ≥ 2 cellules dont exactement UNE est non vide —, ou `null`. */
@@ -487,28 +596,26 @@ export interface TableParse {
  * Sans la garde, un folio capté (`| | | 159 | |`), un séparateur d'index (`| A | |`) et l'en-tête
  * RÉEL d'une table à une seule colonne (`| Effet | |`) seraient sautés à tort.
  * Le bandeau porte son PROPRE séparateur (`| | TABLEAU DES MOUVEMENTS | |` puis `|--|--|--|` puis
- * `| Mouvement | … |`, `15 - Déplacement.md:18-20`) : le saut passe donc la bannière ET les
+ * `| Mouvement | … |`, `15 - Deplacement.md:18-20`) : le saut passe donc la bannière ET les
  * séparateurs qui la suivent, sans quoi les en-têtes seraient la ligne de tirets.
  * TROISIÈME volet de la garde : une bannière suivie DIRECTEMENT de données, sans rangée d'en-têtes
- * (`46 - Les règles magiques.md:34-36`, « TABLEAU DES INCANTATIONS IMPARFAITES MINEURES » puis
+ * (`46 - Les regles magiques.md:34-36`, « TABLEAU DES INCANTATIONS IMPARFAITES MINEURES » puis
  * `| 01-05 | Signe de Sorcière… |`) n'est pas absorbable : la sauter promeut une FOURCHETTE en
  * en-tête et fait perdre à la table sa première rangée. `estCleDePlage` le reconnaît.
- * LATENCE CONNUE du seuil « ≥ 2 lettres » : un `II`, un `AI`, un `X-Y` de cellule serait pris pour
- * un titre. Aucun cas dans le corpus (le plus court titre absorbé mesuré est `URZO`) — à trancher
- * sur le premier cas réel, jamais en durcissant à l'aveugle un seuil que rien ne dément.
+ * Seuil « ≥ 2 lettres » : le plancher mesuré du corpus est épinglé par le test
+ * « tout titre absorbé du corpus a au moins 4 lettres » (`decoupe.test.ts`).
  */
 export function parseTable(md: string): TableParse | null {
   const lignes = md.split('\n').filter((l) => TABLE_LINE.test(l));
   if (lignes.length < 2) return null;
-  const isSeparator = (l: string) => cellulesDe(l).every((c) => /^:?-{2,}:?$/.test(c));
   const corps = (from: number) => ({
     headers: cellulesDe(lignes[from]),
-    rows: lignes.slice(from + 1).filter((l) => !isSeparator(l)).map(cellulesDe),
+    rows: lignes.slice(from + 1).filter((l) => !estSeparateur(l)).map(cellulesDe),
   });
   const banniere = texteDeBanniere(cellulesDe(lignes[0]));
   if (banniere == null) return corps(0);
   let apresBandeau = 1;
-  while (apresBandeau < lignes.length && isSeparator(lignes[apresBandeau])) apresBandeau++;
+  while (apresBandeau < lignes.length && estSeparateur(lignes[apresBandeau])) apresBandeau++;
   const apres = apresBandeau < lignes.length ? corps(apresBandeau) : null;
   if (apres && estMajuscule(banniere) && apres.rows.length >= 1 && !estCleDePlage(apres.headers[0] ?? '')) {
     return { ...apres, titre: banniere };
@@ -542,21 +649,26 @@ export function tablesOf(section: Section): TableDeSection[] {
   });
 }
 
-/** Ligne de table dont une cellule vaut la clé cherchée. */
-interface LigneTrouvee { block: Bloc; table?: string; headers: string[]; row: string[]; cols: number[] }
+/** Ligne de table dont une cellule vaut la clé cherchée, et son rang parmi les rangées de sa table. */
+interface LigneTrouvee { block: Bloc; table?: string; headers: string[]; row: string[]; rangee: number; cols: number[] }
+
+/** Recherche d'une CLÉ DÉJÀ NORMALISÉE : la case (ou l'en-tête) brute vaut-elle `cle` ? La clé ne se
+ *  renormalise pas à chaque case. Préfiltre par égalité de chaîne, #2253. */
+const caseVautCle = (brute: string, cle: string): boolean => normText(brute) === cle;
 
 /**
- * Lignes d'une section dont une cellule vaut `target` (déjà normalisé), dans la table de clé `table`
- * si elle est donnée. Une ligne qui répond dans plusieurs de ses colonnes ne compte qu'une fois.
+ * Lignes d'une section dont une cellule vaut `target` (déjà normalisé, `caseVautCle`), dans la table
+ * de clé `table` si elle est donnée. Une ligne qui répond dans plusieurs de ses colonnes ne compte
+ * qu'une fois. Préfiltre des chercheurs, #2253.
  */
 function rowsMatching(section: Section, target: string, table?: string): LigneTrouvee[] {
   const out: LigneTrouvee[] = [];
   for (const t of tablesOf(section)) {
     if (table != null && t.cle !== table) continue;
-    for (const row of t.table.rows) {
-      const cols = row.map((c, i) => (normText(c) === target ? i : -1)).filter((i) => i >= 0);
-      if (cols.length) out.push({ block: t.block, ...(t.cle == null ? {} : { table: t.cle }), headers: t.table.headers, row, cols });
-    }
+    t.table.rows.forEach((row, rangee) => {
+      const cols = row.map((c, i) => (caseVautCle(c, target) ? i : -1)).filter((i) => i >= 0);
+      if (cols.length) out.push({ block: t.block, ...(t.cle == null ? {} : { table: t.cle }), headers: t.table.headers, row, rangee, cols });
+    });
   }
   return out;
 }
@@ -573,11 +685,16 @@ export function tablesDeLaLigne(section: Section, row: string, table?: string): 
   return tablesOf(section).filter((t) => blocs.has(t.block));
 }
 
-/** Désignation lisible d'un fragment, portée par ses erreurs. */
-const ouDe = (frag: Fragment): string =>
+/** Désignation lisible d'un fragment, portée par ses erreurs et par les rapports de l'outillage. */
+export const ouDe = (frag: Fragment): string =>
   frag.kind === 'cellule'
     ? `§${frag.sec}#${frag.secOcc}${frag.table == null ? '' : ` table[${frag.table}]`} [${frag.row}]×[${frag.col}]`
-    : `§${frag.sec}#${frag.secOcc} blocs ${frag.b0}-${frag.b1}`;
+    : frag.finSec == null
+      ? `§${frag.sec}#${frag.secOcc} blocs ${frag.b0}-${frag.b1}`
+      : `§${frag.sec}#${frag.secOcc} bloc ${frag.b0} → §${frag.finSec}#${frag.finSecOcc} bloc ${frag.b1}`;
+
+/** Désignation lisible d'une adresse entière, ses fragments joints par ` + `. */
+export const ouDeLAdresse = (ref: DescRef): string => `${ref.book} ch.${ref.ch} ${ref.parts.map(ouDe).join(' + ')}`;
 
 /**
  * Md de BLOCS rendu AFFICHABLE : sur une ligne de TABLE seulement, le `<br>` compte pour une espace.
@@ -590,26 +707,141 @@ const ouDe = (frag: Fragment): string =>
 const mdAffichable = (md: string): string =>
   md.split('\n').map((l) => (TABLE_LINE.test(l) ? sansBr(l) : l)).join('\n');
 
-/** Résout un fragment de BLOCS (suite contiguë de blocs d'une section), empreinte NON vérifiée. */
-function blocsBruts(chapitre: ChapitreParse, frag: FragmentBlocs): Resolu | ErreurResolution {
-  const section = sectionDe(chapitre, frag);
-  if (!section) return { error: 'section-inconnue', detail: `§${frag.sec}#${frag.secOcc}` };
-  const { b0, b1 } = frag;
-  if (!Number.isInteger(b0) || !Number.isInteger(b1) || b0 < 0 || b1 < b0 || b1 >= section.blocks.length) {
-    return {
-      error: 'bornes-hors-limites',
-      detail: `${ouDe(frag)} (section : ${section.blocks.length} blocs)`,
-    };
+/** Unités d'un fragment : celles que son rendu assemble, et ses folios. */
+export interface UnitesResolues { unites: Unite[]; folios: number[] }
+
+/** Mémo par IDENTITÉ du bloc : ses unités ne dépendent que de lui et de sa place. Partagé par tous
+ *  les appelants, il est GELÉ (tableau, unités, positions). */
+const _unitesDuBloc = new WeakMap<Bloc, readonly Unite[]>();
+
+/** Une unité gelée, position comprise. */
+const gelee = (u: Unite): Unite => Object.freeze({ ...u, pos: Object.freeze(u.pos) });
+
+/** Unités du bloc `rang` d'une section : une par ligne d'un bloc-table (`parseTable`), une pour tout
+ *  autre bloc ; `md` affichable (`mdAffichable`), la première sans séparateur. Gelées (`_unitesDuBloc`). */
+export function unitesDuBloc(section: Section, rang: number): readonly Unite[] {
+  const b = section.blocks[rang];
+  const memo = _unitesDuBloc.get(b);
+  if (memo) return memo;
+  const pos = { sec: section.slug, secOcc: section.occ, rang };
+  const unites = Object.freeze((parseTable(b.md)
+    ? b.md.split('\n').map((l, ligne) => unite(mdAffichable(l), ligne ? '\n' : '', { ...pos, ligne }, 'ligne'))
+    : [unite(mdAffichable(b.md), '', pos, 'bloc')]).map(gelee));
+  _unitesDuBloc.set(b, unites);
+  return unites;
+}
+
+/** Élément du FIL d'un chapitre : le TITRE d'une section à son ouverture (`mdDuTitre`), puis chacun
+ *  de ses blocs à son rang `idx` ; `norm` est son texte normalisé. */
+export type ElementDuFil =
+  | { kind: 'titre'; sec: string; secOcc: number; md: string; norm: string }
+  | { kind: 'bloc'; sec: string; secOcc: number; idx: number; md: string; norm: string };
+
+/** Un bloc du fil désigné par sa section et son rang : le départ ou la fin d'un intervalle. */
+export type BlocDuFil = Pick<Extract<ElementDuFil, { kind: 'bloc' }>, 'sec' | 'secOcc' | 'idx'>;
+
+/** Le fil d'un chapitre, et la POSITION au fil du bloc 0 de chaque section (`cleSection`). */
+interface FilIndexe { fil: readonly ElementDuFil[]; premierBloc: ReadonlyMap<string, number>; sections: ReadonlyMap<string, Section> }
+
+/** Clé d'une section dans l'index du fil. */
+const cleSection = (sec: string, secOcc: number): string => `${sec}#${secOcc}`;
+
+/** Mémo par IDENTITÉ du chapitre parsé : la normalisation des ~1 300 blocs d'un chapitre est
+ *  refaite à chaque recherche sans lui (le balayage d'un dataset en fait des dizaines de milliers). */
+const _fils = new WeakMap<ChapitreParse, FilIndexe>();
+
+function filIndexe(chapitre: ChapitreParse): FilIndexe {
+  const memo = _fils.get(chapitre);
+  if (memo) return memo;
+  const fil: ElementDuFil[] = [];
+  const premierBloc = new Map<string, number>();
+  const sections = new Map<string, Section>();
+  for (const s of chapitre.sections) {
+    // Le préambule d'extraction (niveau 0) n'ouvre sur aucun titre.
+    if (s.level > 0) {
+      const md = mdDuTitre(s.title);
+      fil.push({ kind: 'titre', sec: s.slug, secOcc: s.occ, md, norm: normText(md) });
+    }
+    premierBloc.set(cleSection(s.slug, s.occ), fil.length);
+    sections.set(cleSection(s.slug, s.occ), s);
+    s.blocks.forEach((b, idx) => {
+      fil.push({ kind: 'bloc', sec: s.slug, secOcc: s.occ, idx, md: b.md, norm: normText(b.md) });
+    });
   }
-  const blocks = section.blocks.slice(b0, b1 + 1);
-  return { md: mdAffichable(blocks.map((b) => b.md).join('\n\n')), folios: foliosOf(blocks) };
+  const indexe = { fil, premierBloc, sections };
+  _fils.set(chapitre, indexe);
+  return indexe;
+}
+
+/** Le FIL d'un chapitre, en ordre de document : chaque section y ouvre sur son titre, puis ses blocs. */
+export const filDuChapitre = (chapitre: ChapitreParse): readonly ElementDuFil[] => filIndexe(chapitre).fil;
+
+/** POSITION au fil du bloc `idx` de la section `sec#secOcc`, ou `null` s'il n'existe pas. */
+export function positionDuBloc(chapitre: ChapitreParse, { sec, secOcc, idx }: BlocDuFil): number | null {
+  const { premierBloc, sections } = filIndexe(chapitre);
+  const section = sections.get(cleSection(sec, secOcc));
+  if (!section || !Number.isInteger(idx) || idx < 0 || idx >= section.blocks.length) return null;
+  return premierBloc.get(cleSection(sec, secOcc))! + idx;
+}
+
+/** Le départ et la fin d'un fragment de BLOCS. */
+const departDe = (frag: FragmentBlocs): BlocDuFil => ({ sec: frag.sec, secOcc: frag.secOcc, idx: frag.b0 });
+export const finDe = (frag: FragmentBlocs): BlocDuFil => ({ sec: frag.finSec ?? frag.sec, secOcc: frag.finSecOcc ?? frag.secOcc, idx: frag.b1 });
+
+/** Positions au fil du départ et de la fin d'un fragment de BLOCS, ou l'erreur qui l'en empêche. */
+function bornesAuFil(chapitre: ChapitreParse, frag: FragmentBlocs): { depart: number; fin: number } | ErreurResolution {
+  const { sections } = filIndexe(chapitre);
+  const bornes: number[] = [];
+  for (const [quelle, b] of [['départ', departDe(frag)], ['fin', finDe(frag)]] as const) {
+    const section = sections.get(cleSection(b.sec, b.secOcc));
+    if (!section) return { error: 'section-inconnue', detail: `§${b.sec}#${b.secOcc}` };
+    const p = positionDuBloc(chapitre, b);
+    if (p == null) {
+      const laquelle = frag.finSec == null ? 'section' : `section de ${quelle} §${b.sec}#${b.secOcc}`;
+      return { error: 'bornes-hors-limites', detail: `${ouDe(frag)} (${laquelle} : ${section.blocks.length} blocs)` };
+    }
+    bornes.push(p);
+  }
+  const [depart, fin] = bornes;
+  if (fin < depart) return { error: 'fin-avant-depart', detail: `${ouDe(frag)} : la fin précède le départ dans le chapitre` };
+  return { depart, fin };
 }
 
 /**
- * Résout un fragment de CELLULE (empreinte NON vérifiée) : la ligne dont une cellule vaut `row`
- * (recherche dans TOUTES les colonnes de la section), croisée avec l'en-tête `col`.
+ * Unités d'un fragment de BLOCS, empreinte NON vérifiée : les éléments du fil de son départ à sa fin,
+ * titres intermédiaires compris (le titre de la section de départ précède le départ : jamais rendu).
+ * Ses folios, dans l'ordre : le courant du départ, puis les marqueurs internes de chaque bloc rendu
+ * et le folio de chaque titre rendu (`Section.folio`, qui porte le marqueur de sa ligne).
  */
-function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): Resolu | ErreurResolution {
+function blocsBruts(chapitre: ChapitreParse, frag: FragmentBlocs): UnitesResolues | ErreurResolution {
+  const bornes = bornesAuFil(chapitre, frag);
+  if (estErreur(bornes)) return bornes;
+  const { fil, sections } = filIndexe(chapitre);
+  const unites: Unite[] = [];
+  const folios: (number | null)[] = [];
+  for (let p = bornes.depart; p <= bornes.fin; p++) {
+    const el = fil[p];
+    const section = sections.get(cleSection(el.sec, el.secOcc))!;
+    const sep = p === bornes.depart ? '' : '\n\n';
+    if (el.kind === 'titre') {
+      unites.push(unite(el.md, sep, { sec: el.sec, secOcc: el.secOcc, rang: -1 }, 'titre'));
+      folios.push(section.folio);
+      continue;
+    }
+    const bloc = section.blocks[el.idx];
+    if (!sep) folios.push(bloc.folio);
+    folios.push(...bloc.folios);
+    const [tete, ...reste] = unitesDuBloc(section, el.idx);
+    unites.push(sep ? { ...tete, sep } : tete, ...reste);
+  }
+  return { unites, folios: [...new Set(folios.filter((f): f is number => f != null))] };
+}
+
+/**
+ * Unité d'un fragment de CELLULE (empreinte NON vérifiée) : la case de la ligne dont une cellule vaut
+ * `row` (recherche dans TOUTES les colonnes de la section), croisée avec l'en-tête `col`.
+ */
+function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): UnitesResolues | ErreurResolution {
   const section = sectionDe(chapitre, frag);
   if (!section) return { error: 'section-inconnue', detail: `§${frag.sec}#${frag.secOcc}` };
   const ou = ouDe(frag);
@@ -618,23 +850,42 @@ function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): Resolu | 
   if (hits.length > 1) return { error: 'ligne-ambigue', detail: `${ou} : ${hits.length} lignes` };
   const hit = hits[0];
   if (!hit.headers.some((h) => normText(h))) return { error: 'table-sans-en-tetes', detail: ou };
-  const want = normText(String(frag.col ?? ''));
-  const c = hit.headers.findIndex((h) => normText(h) === want);
+  const col = normText(String(frag.col ?? ''));
+  const c = hit.headers.findIndex((h) => caseVautCle(h, col));
   if (c < 0) return { error: 'colonne-inconnue', detail: `${ou} : en-têtes = ${hit.headers.join(' / ')}` };
   // Le `<br>` de la cellule REDEVIENT le saut de ligne qu'il imprime (`brEnSaut`) : la chaîne
   // rendue garde la coupure du livre sans porter de HTML (règle 5).
-  return { md: brEnSaut(hit.row[c] ?? ''), folios: foliosOf([hit.block]) };
+  const pos = { sec: section.slug, secOcc: section.occ, rang: section.blocks.indexOf(hit.block) };
+  return { unites: [unite(brEnSaut(hit.row[c] ?? ''), '', pos, 'cellule')], folios: foliosOf([hit.block]) };
 }
 
-/** Texte d'un fragment, empreinte NON vérifiée. */
-const resoudreBrut = (chapitre: ChapitreParse, frag: Fragment): Resolu | ErreurResolution =>
+/** Unités d'un fragment, empreinte NON vérifiée : ce que son rendu assemble (`resoudreBrut`). */
+export const unitesDe = (chapitre: ChapitreParse, frag: Fragment): UnitesResolues | ErreurResolution =>
   frag.kind === 'cellule' ? celluleBrute(chapitre, frag) : blocsBruts(chapitre, frag);
+
+/** Le rendu d'unités : la concaténation de leurs `sep + md`, seul assemblage. */
+const assembler = (unites: readonly Unite[]): string => unites.map((x) => x.sep + x.md).join('');
+
+/** Le texte résolu que des unités assemblent. */
+const resolu = (u: UnitesResolues): Resolu => ({ md: assembler(u.unites), folios: u.folios });
+
+/** Texte d'un fragment, empreinte NON vérifiée : l'assemblage de ses unités (`unitesDe`), seul chemin. */
+function resoudreBrut(chapitre: ChapitreParse, frag: Fragment): Resolu | ErreurResolution {
+  const u = unitesDe(chapitre, frag);
+  return estErreur(u) ? u : resolu(u);
+}
+
+/** Unités d'UN fragment, empreinte comprise. */
+function unitesVerifiees(chapitre: ChapitreParse, frag: Fragment): UnitesResolues | ErreurResolution {
+  const u = unitesDe(chapitre, frag);
+  if (estErreur(u)) return u;
+  return checkSum(frag, assembler(u.unites), ouDe(frag)) ?? u;
+}
 
 /** Résout UN fragment d'un chapitre déjà parsé, empreinte comprise. */
 export function resoudreFragment(chapitre: ChapitreParse, frag: Fragment): Resolu | ErreurResolution {
-  const res = resoudreBrut(chapitre, frag);
-  if (estErreur(res)) return res;
-  return checkSum(frag, res.md, ouDe(frag)) ?? res;
+  const u = unitesVerifiees(chapitre, frag);
+  return estErreur(u) ? u : resolu(u);
 }
 
 /** Empreinte à POSER sur un fragment que l'on vient de bâtir (l'adresse n'en porte pas encore). */
@@ -643,90 +894,116 @@ export function empreinteDe(chapitre: ChapitreParse, frag: Fragment): string | E
   return estErreur(res) ? res : sumOf(res.md);
 }
 
-/** Bloc d'un chapitre vu à plat : son adresse de section, son rang, son texte normalisé. */
-export interface BlocPlat { sec: string; secOcc: number; idx: number; md: string; norm: string }
-
-/** Mémo par IDENTITÉ du chapitre parsé : la normalisation des ~1 300 blocs d'un chapitre est
- *  refaite à chaque recherche sans lui (le balayage d'un dataset en fait des dizaines de milliers). */
-const _plats = new WeakMap<ChapitreParse, BlocPlat[]>();
-
-/** Aplatit un chapitre en blocs adressables, en ordre de document. */
-export function blocsPlats(chapitre: ChapitreParse): BlocPlat[] {
-  const memo = _plats.get(chapitre);
-  if (memo) return memo;
-  const out: BlocPlat[] = [];
-  for (const s of chapitre.sections) {
-    s.blocks.forEach((b, idx) => {
-      out.push({ sec: s.slug, secOcc: s.occ, idx, md: b.md, norm: normText(b.md) });
-    });
-  }
-  _plats.set(chapitre, out);
-  return out;
+/** Le fragment scellé (`sum` posé par `empreinteDe`), ou l'erreur de sa résolution. */
+function scelleOuErreur<F extends Fragment>(chapitre: ChapitreParse, frag: F): F | ErreurResolution {
+  const sum = empreinteDe(chapitre, frag);
+  return typeof sum === 'string' ? { ...frag, sum } : sum;
 }
 
-/** Toutes les positions du chapitre où un run contigu de blocs vaut exactement `target`. */
-function runsBruts(blocks: BlocPlat[], target: string): { i: number; j: number }[] {
+/** SCELLE un fragment sur un chapitre : son `sum` est l'empreinte du texte qu'il résout, jamais une
+ *  saisie ; vide quand il ne résout pas, et `resoudreFragment` dit alors pourquoi. */
+export function scelle<F extends Fragment>(chapitre: ChapitreParse, frag: F): F {
+  const s = scelleOuErreur(chapitre, frag);
+  return estErreur(s) ? { ...frag, sum: '' } : s;
+}
+
+/** Ce que désigne un fragment de BLOCS : sa section et ses bornes, et sa section de fin quand elle
+ *  n'est pas celle du départ. */
+export type ChoixDeBlocs = Pick<FragmentBlocs, 'sec' | 'secOcc' | 'b0' | 'finSec' | 'finSecOcc' | 'b1'>;
+
+/** Ce que désigne un fragment de CELLULE : sa section, sa clé de ligne, son en-tête de colonne et,
+ *  posée, la clé de sa table. */
+export type ChoixDeCellule = Pick<FragmentCellule, 'sec' | 'secOcc' | 'row' | 'col' | 'table'>;
+
+/** Le fragment de BLOCS non scellé d'un choix, sous sa forme CANONIQUE : une section de fin égale à
+ *  celle du départ n'est pas écrite. */
+function blocsDe({ sec, secOcc, b0, finSec, finSecOcc, b1 }: ChoixDeBlocs): FragmentBlocs {
+  const fin = finSec ?? sec;
+  const finOcc = finSecOcc ?? secOcc;
+  return fin === sec && finOcc === secOcc
+    ? { kind: 'blocs', sec, secOcc, b0, b1, sum: '' }
+    : { kind: 'blocs', sec, secOcc, b0, finSec: fin, finSecOcc: finOcc, b1, sum: '' };
+}
+
+/** Le fragment de BLOCS d'un choix, scellé (`scelle`), sous sa forme canonique (`blocsDe`). */
+export const fragmentBlocs = (chapitre: ChapitreParse, choix: ChoixDeBlocs): FragmentBlocs =>
+  scelle(chapitre, blocsDe(choix));
+
+/** L'INTERVALLE du fil qui va du bloc `depart` au bloc `fin`, scellé (`fragmentBlocs`). */
+export const intervalleDe = (chapitre: ChapitreParse, depart: BlocDuFil, fin: BlocDuFil): FragmentBlocs =>
+  fragmentBlocs(chapitre, { sec: depart.sec, secOcc: depart.secOcc, b0: depart.idx, finSec: fin.sec, finSecOcc: fin.secOcc, b1: fin.idx });
+
+/** Le fragment de CELLULE d'un choix, scellé (`scelle`) ; sans clé de table, il n'en porte aucune. */
+export function fragmentCellule(chapitre: ChapitreParse, { sec, secOcc, row, col, table }: ChoixDeCellule): FragmentCellule {
+  return scelle(chapitre, { kind: 'cellule', sec, secOcc, row, col, ...(table == null ? {} : { table }), sum: '' });
+}
+
+/** Ce qu'adresse `adresseDe` : une section, ou une table de section. */
+export interface CibleDAdresse { section: Section; table?: TableDeSection }
+
+/** Adresse d'une cible — section entière, ou légende et bloc d'une table — dans le chapitre `ch` du
+ *  livre `book`, empreinte calculée au texte résolu ; l'erreur de résolution sinon (section sans bloc). */
+export function adresseDe(
+  { book, ch }: Pick<DescRef, 'book' | 'ch'>, chapitre: ChapitreParse, { section, table }: CibleDAdresse,
+): DescRef | ErreurResolution {
+  const b1 = table ? section.blocks.indexOf(table.block) : section.blocks.length - 1;
+  const b0 = table ? section.blocks.indexOf(table.legende ?? table.block) : 0;
+  const frag = scelleOuErreur(chapitre, blocsDe({ sec: section.slug, secOcc: section.occ, b0, b1 }));
+  return estErreur(frag) ? frag : { book, ch, parts: [frag] };
+}
+
+/**
+ * PRÉFILTRE des chercheurs de blocs : toutes les positions du fil où un run contigu, commencé et
+ * fini sur un élément `bloc` (titres intermédiaires compris), a une chaîne jointe (`joinNorm`) ÉGALE à
+ * `target`. Les `startsWith` sont ses coupes, l'égalité sa décision de candidat ; pour `judge`, la
+ * décision d'adresse reste `aligner`. Son COMPTE décide l'unicité d'un fragment de blocs
+ * (`occurrences`, règle D). #2253.
+ */
+function runsPrefiltre(fil: readonly ElementDuFil[], target: string): { i: number; j: number }[] {
   const probe = target.slice(0, PROBE);
   const out: { i: number; j: number }[] = [];
-  for (let i = 0; i < blocks.length; i++) {
-    if (!blocks[i].norm || !blocks[i].norm.startsWith(probe.slice(0, blocks[i].norm.length))) continue;
-    if (!target.startsWith(blocks[i].norm.slice(0, PROBE))) continue;
+  for (let i = 0; i < fil.length; i++) {
+    if (fil[i].kind !== 'bloc') continue;
+    if (!fil[i].norm || !fil[i].norm.startsWith(probe.slice(0, fil[i].norm.length))) continue;
+    if (!target.startsWith(fil[i].norm.slice(0, PROBE))) continue;
     const parts: string[] = [];
-    for (let j = i; j < blocks.length; j++) {
-      if (!blocks[j].norm) break;
-      parts.push(blocks[j].norm);
+    for (let j = i; j < fil.length; j++) {
+      if (!fil[j].norm) break;
+      parts.push(fil[j].norm);
       const acc = joinNorm(parts);
-      if (acc === target) { out.push({ i, j }); break; }
+      if (acc === target && fil[j].kind === 'bloc') { out.push({ i, j }); break; }
       if (!target.startsWith(acc)) break;
     }
   }
   return out;
 }
 
-/** Convertit un run de blocs en fragments (un par section traversée), empreintes calculées. */
-function runEnFragments(
-  chapitre: ChapitreParse,
-  blocks: BlocPlat[],
-  run: { i: number; j: number },
-): FragmentBlocs[] {
-  const frags: FragmentBlocs[] = [];
-  for (let k = run.i; k <= run.j; k++) {
-    const b = blocks[k];
-    const last = frags[frags.length - 1];
-    if (last && last.sec === b.sec && last.secOcc === b.secOcc && b.idx === last.b1 + 1) {
-      last.b1 = b.idx;
-    } else {
-      frags.push({ kind: 'blocs', sec: b.sec, secOcc: b.secOcc, b0: b.idx, b1: b.idx, sum: '' });
-    }
-  }
-  for (const f of frags) {
-    const sum = empreinteDe(chapitre, f);
-    if (typeof sum === 'string') f.sum = sum;
-  }
-  return frags;
+/** Le fragment d'un run du fil (`runsPrefiltre`) : UN intervalle de son premier à son dernier bloc. */
+function fragmentDuRun(chapitre: ChapitreParse, run: { i: number; j: number }): FragmentBlocs {
+  const fil = filDuChapitre(chapitre);
+  return intervalleDe(chapitre, fil[run.i] as BlocDuFil, fil[run.j] as BlocDuFil);
 }
 
 /**
- * TOUS les runs contigus de blocs du chapitre dont la concaténation normalisée vaut `targetNorm`,
- * chacun rendu en fragments prêts à adresser (un fragment par section traversée). `[]` si rien ne
- * correspond.
+ * TOUS les runs contigus du fil dont la chaîne jointe vaut `targetNorm` (`runsPrefiltre`), chacun
+ * rendu en UN fragment prêt à adresser (`fragmentDuRun`). `[]` si rien ne correspond. Des
+ * CANDIDATS : `judge` en décide par `aligner` (`verifier`), le relocaliseur par le rendu à l'octet de
+ * l'adresse proposée.
  *
  * L'ambiguïté d'un texte dans son chapitre devient ainsi OBSERVABLE : c'est ce que le relocaliseur
  * (`scripts/source/reparer-adresses.mjs`) doit voir pour refuser de poser au jugé — `findCells` rend
  * déjà tous ses hits, les blocs les rendent maintenant aussi.
  */
-export function findAllRuns(chapitre: ChapitreParse, targetNorm: string): FragmentBlocs[][] {
-  const blocks = blocsPlats(chapitre);
-  return runsBruts(blocks, targetNorm).map((run) => runEnFragments(chapitre, blocks, run));
+export function findAllRuns(chapitre: ChapitreParse, targetNorm: string): FragmentBlocs[] {
+  return runsPrefiltre(filDuChapitre(chapitre), targetNorm).map((run) => fragmentDuRun(chapitre, run));
 }
 
 /**
- * Cherche dans UN chapitre le PREMIER run contigu de blocs dont la concaténation normalisée vaut
- * `targetNorm`, et le rend en fragments prêts à adresser. `null` si rien ne correspond.
+ * Cherche dans UN chapitre le PREMIER run contigu du fil dont la chaîne jointe vaut `targetNorm`
+ * (`findAllRuns`), et le rend en fragment prêt à adresser. `null` si rien ne correspond.
  */
-export function findRuns(chapitre: ChapitreParse, targetNorm: string): FragmentBlocs[] | null {
-  const runs = findAllRuns(chapitre, targetNorm);
-  return runs.length ? runs[0] : null;
+export function findRuns(chapitre: ChapitreParse, targetNorm: string): FragmentBlocs | null {
+  return findAllRuns(chapitre, targetNorm)[0] ?? null;
 }
 
 /** Cellule d'un chapitre portant le texte cherché. */
@@ -748,15 +1025,15 @@ export function findCells(chapitre: ChapitreParse, targetNorm: string): CelluleT
 /**
  * Bâtit le fragment de cellule d'un `findCells` : clé de ligne = première cellule de la ligne qui la
  * désigne SANS AMBIGUÏTÉ dans sa section, les clés positionnelles (fourchette d100) passant en
- * dernier recours ; à défaut, dans SA table (`table`, #1739). Rend `null` si la ligne n'a pas de clé
- * sûre ou la table pas d'en-têtes.
+ * dernier recours ; à défaut, dans SA table (`table`, #1739). Le fragment retenu rend la même case
+ * (`memeTexte`). Rend `null` si la ligne n'a pas de clé sûre ou la table pas d'en-têtes.
  */
 export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): FragmentCellule | null {
   const col = hit.headers[hit.col];
   if (!col || !normText(col)) return null;
   const section = chapitre.sections.find((s) => s.slug === hit.sec && s.occ === hit.secOcc);
   if (!section) return null;
-  const vise = normText(hit.row[hit.col] ?? '');
+  const vise = hit.row[hit.col] ?? '';
   const candidates = hit.row
     .map((c, i) => ({ c: c.trim(), i }))
     .filter(({ c, i }) => c && i !== hit.col)
@@ -764,12 +1041,10 @@ export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): Fragme
   for (const table of hit.table == null ? [undefined] : [undefined, hit.table]) {
     for (const { c } of candidates) {
       if (rowsMatching(section, normText(c), table).length !== 1) continue;
-      const frag: FragmentCellule = { kind: 'cellule', sec: hit.sec, secOcc: hit.secOcc, row: c, col, ...(table == null ? {} : { table }), sum: '' };
-      const sum = empreinteDe(chapitre, frag);
-      if (typeof sum !== 'string') continue;
-      const res = resoudreFragment(chapitre, { ...frag, sum });
-      if (estErreur(res) || normText(res.md) !== vise) continue;
-      return { ...frag, sum };
+      const frag = fragmentCellule(chapitre, { sec: hit.sec, secOcc: hit.secOcc, row: c, col, table });
+      const res = resoudreFragment(chapitre, frag);
+      if (estErreur(res) || !memeTexte(res.md, vise)) continue;
+      return frag;
     }
   }
   return null;
@@ -778,76 +1053,116 @@ export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): Fragme
 /** Nombre de places du chapitre où le texte normalisé d'un fragment se retrouve à l'identique. */
 function occurrences(chapitre: ChapitreParse, frag: Fragment, texteNorm: string): number {
   if (frag.kind === 'cellule') return findCells(chapitre, texteNorm).length;
-  return runsBruts(blocsPlats(chapitre), texteNorm).length;
+  return runsPrefiltre(filDuChapitre(chapitre), texteNorm).length;
 }
 
+/** Ce qu'un fragment COUVRE : les positions au fil (`filDuChapitre`) des blocs qu'il rend et, pour une
+ *  CELLULE, sa case (rangée et colonne de sa table) dans le bloc-table qui la porte. */
+export interface Couverture { blocs: ReadonlySet<number>; case?: { rangee: number; colonne: number } }
+
+const AUCUNE_COUVERTURE: Couverture = Object.freeze({ blocs: new Set<number>() });
+
 /**
- * Indices des BLOCS d'une section que ce fragment couvre — prédicat de couverture UNIQUE, partagé par
- * le verrou de chevauchement et par tout ce qui doit savoir ce qui est déjà cité (l'éditeur d'adresse,
- * pour offrir un fragment neuf sur un passage LIBRE). Un fragment de CELLULE couvre UN seul bloc :
- * celui de SA table, c'est-à-dire celui où la clé de ligne la résout SANS AMBIGUÏTÉ — la même
- * condition que `celluleBrute`. Deux tables d'une même section qui partagent une clé de ligne ne
- * résolvent pas (`ligne-ambigue`) : la couverture est alors VIDE, pas double.
- * Rend un ensemble VIDE quand la section ou la table n'existe pas — l'erreur est dite ailleurs.
+ * Couverture d'un fragment — prédicat de couverture UNIQUE, partagé par le verrou de chevauchement et
+ * par tout ce qui doit savoir ce qui est déjà cité (l'éditeur d'adresse, pour offrir un fragment neuf
+ * sur un passage LIBRE). Un fragment de BLOCS couvre les positions des éléments `bloc` de son
+ * intervalle ; un fragment de CELLULE, la position du bloc de SA table, celui où la clé de ligne la
+ * résout SANS AMBIGUÏTÉ — la même condition que `celluleBrute` —, et sa case. Deux tables d'une même
+ * section qui partagent une clé de ligne ne résolvent pas (`ligne-ambigue`) : la couverture est alors
+ * VIDE, pas double. VIDE aussi quand le fragment ne résout pas — l'erreur est dite ailleurs.
  */
-export function blocsCouverts(chapitre: ChapitreParse, frag: Fragment): Set<number> {
-  const out = new Set<number>();
-  const section = sectionDe(chapitre, frag);
-  if (!section) return out;
+export function couvertureDe(chapitre: ChapitreParse, frag: Fragment): Couverture {
   if (frag.kind === 'blocs') {
-    for (let i = Math.max(0, frag.b0); i <= Math.min(frag.b1, section.blocks.length - 1); i++) out.add(i);
-    return out;
+    const bornes = bornesAuFil(chapitre, frag);
+    if (estErreur(bornes)) return AUCUNE_COUVERTURE;
+    const fil = filDuChapitre(chapitre);
+    const blocs = new Set<number>();
+    for (let p = bornes.depart; p <= bornes.fin; p++) if (fil[p].kind === 'bloc') blocs.add(p);
+    return { blocs };
   }
+  const section = sectionDe(chapitre, frag);
+  if (!section) return AUCUNE_COUVERTURE;
   const hits = rowsMatching(section, normText(String(frag.row ?? '')), frag.table);
-  if (hits.length !== 1) return out;
-  const idx = section.blocks.indexOf(hits[0].block);
-  if (idx >= 0) out.add(idx);
-  return out;
+  if (hits.length !== 1) return AUCUNE_COUVERTURE;
+  const [hit] = hits;
+  const col = normText(String(frag.col ?? ''));
+  const colonne = hit.headers.findIndex((h) => caseVautCle(h, col));
+  const p = positionDuBloc(chapitre, { sec: section.slug, secOcc: section.occ, idx: section.blocks.indexOf(hit.block) });
+  if (p == null || colonne < 0) return AUCUNE_COUVERTURE;
+  return { blocs: new Set([p]), case: { rangee: hit.rangee, colonne } };
+}
+
+/** Deux couvertures se recouvrent-elles ? Elles partagent une position de bloc, sauf deux CASES
+ *  distinctes d'un même bloc-table, qui citent bien deux textes. */
+function seRecouvrent(a: Couverture, b: Couverture): boolean {
+  if (![...b.blocs].some((p) => a.blocs.has(p))) return false;
+  return !(a.case && b.case) || (a.case.rangee === b.case.rangee && a.case.colonne === b.case.colonne);
 }
 
 /**
  * Deux fragments d'un MONTAGE se recouvrent-ils ? Un montage cite des passages DISTINCTS : deux
- * fragments d'une MÊME section dont les blocs couverts se croisent (le cas dégénéré étant le fragment
- * répété, et le cas mixte la table entière PUIS une de ses cellules) rendraient le même texte deux
- * fois, et l'adresse dirait plus que le livre. Verrou STRUCTUREL, au même étage que le plafond de
- * trois fragments : ni l'éditeur ni une migration ne peuvent le contourner.
+ * fragments dont les couvertures se recouvrent (`seRecouvrent` : le cas dégénéré étant le fragment
+ * répété, le cas mixte la table entière PUIS une de ses cellules, le cas à cheval un intervalle qui
+ * traverse la section d'un autre fragment) rendraient le même texte deux fois, et l'adresse dirait
+ * plus que le livre. Verrou STRUCTUREL, au même étage que le plafond `MAX_FRAGMENTS` : ni l'éditeur
+ * ni une migration ne peuvent le contourner.
  *
  * L'erreur DÉSIGNE LE SECOND des deux (`fragment: j`) : c'est celui qu'on vient d'ajouter ou de
  * déplacer dans la quasi-totalité des gestes d'édition, donc celui à corriger ; son détail nomme le
  * premier, pour que l'auteur sache LEQUEL il redit.
  *
- * CE QUE LE VERROU NE COUVRE PAS : deux fragments de SECTIONS DIFFÉRENTES qui citent le même texte.
+ * CE QUE LE VERROU NE COUVRE PAS : deux fragments à des POSITIONS différentes qui citent le même texte.
  * `fragment-ambigu` ne les attrape pas non plus quand chacun est unique DANS SON CHAPITRE au sens du
  * balayage de runs — un livre qui répète un encadré mot pour mot sous deux titres reste adressable
  * deux fois dans un même montage. Le juger demanderait de comparer les TEXTES résolus, pas les
  * positions : c'est une autre question, et elle n'a pas de cas mesuré.
  */
 function chevauchementDe(chapitre: ChapitreParse, ref: DescRef): ErreurResolution | null {
-  const memeSection = (a: Fragment, b: Fragment) => a.sec === b.sec && a.secOcc === b.secOcc;
+  const couvertures = ref.parts.map((f) => couvertureDe(chapitre, f));
   for (let i = 0; i < ref.parts.length; i++) {
     for (let j = i + 1; j < ref.parts.length; j++) {
-      const a = ref.parts[i];
-      const b = ref.parts[j];
-      if (!memeSection(a, b)) continue;
-      const couvertsA = blocsCouverts(chapitre, a);
-      const memeCellule = a.kind === 'cellule' && b.kind === 'cellule' && a.row === b.row && a.col === b.col && a.table === b.table;
-      const croise = memeCellule || [...blocsCouverts(chapitre, b)].some((k) => couvertsA.has(k));
-      // Deux CELLULES du même bloc-table qui ne désignent PAS la même case citent bien deux textes.
-      if (croise && !(a.kind === 'cellule' && b.kind === 'cellule' && !memeCellule)) {
-        return {
-          error: 'fragments-chevauchants',
-          fragment: j,
-          detail: `${ref.book} ch.${ref.ch} : ${ouDe(b)} cite le même passage que le fragment ${i + 1} (${ouDe(a)})`,
-        };
-      }
+      if (!seRecouvrent(couvertures[i], couvertures[j])) continue;
+      return {
+        error: 'fragments-chevauchants',
+        fragment: j,
+        detail: `${ref.book} ch.${ref.ch} : ${ouDe(ref.parts[j])} cite le même passage que le fragment ${i + 1} (${ouDe(ref.parts[i])})`,
+      };
     }
   }
   return null;
 }
 
 /**
+ * Deux fragments de BLOCS CONSÉCUTIFS DANS L'ORDRE DE L'ADRESSE se touchent-ils ? Ils se touchent si le
+ * premier élément `bloc` du fil après la fin du premier est le départ du second : un seul intervalle
+ * les écrit, titres intermédiaires compris (forme canonique UNIQUE d'un passage). L'erreur désigne le
+ * second. Deux fragments consécutifs au FIL mais écrits dans l'ordre inverse ne se touchent pas : le
+ * montage réordonne le livre, ce qu'aucun intervalle n'écrit.
+ */
+function contiguiteDe(chapitre: ChapitreParse, ref: DescRef): ErreurResolution | null {
+  const fil = filDuChapitre(chapitre);
+  for (let i = 0; i + 1 < ref.parts.length; i++) {
+    const a = ref.parts[i];
+    const b = ref.parts[i + 1];
+    if (a.kind !== 'blocs' || b.kind !== 'blocs') continue;
+    const ba = bornesAuFil(chapitre, a);
+    const bb = bornesAuFil(chapitre, b);
+    if (estErreur(ba) || estErreur(bb)) continue;
+    let suivant = ba.fin + 1;
+    while (suivant < fil.length && fil[suivant].kind !== 'bloc') suivant++;
+    if (suivant !== bb.depart) continue;
+    return {
+      error: 'fragments-contigus',
+      fragment: i + 1,
+      detail: `${ref.book} ch.${ref.ch} : ${ouDe(b)} reprend au bloc qui suit le fragment ${i + 1} (${ouDe(a)}) — un seul intervalle les écrit`,
+    };
+  }
+  return null;
+}
+
+/**
  * Résout une adresse complète : chaque fragment, joints par une ligne vide, folios en union
- * ordonnée. Un montage (2 fragments et plus) plafonne à trois fragments.
+ * ordonnée. Un montage (2 fragments et plus) plafonne à `MAX_FRAGMENTS`.
  *
  * RÈGLE D — le plancher de longueur et l'unicité ne valent que pour un fragment `blocs`. Un fragment
  * de blocs désigne son texte PAR CE TEXTE : trop court ou répété ailleurs, il retomberait sur un
@@ -860,23 +1175,33 @@ function chevauchementDe(chapitre: ChapitreParse, ref: DescRef): ErreurResolutio
  * fragment).
  */
 export function resoudreAdresse(chapitre: ChapitreParse, ref: DescRef): Resolu | ErreurResolution {
+  const u = unitesDeLAdresse(chapitre, ref);
+  return estErreur(u) ? u : resolu(u);
+}
+
+/**
+ * Unités d'une adresse complète : celles que `resoudreAdresse` assemble, sous les mêmes refus (plafond,
+ * chevauchement, contiguïté, empreintes, règle D) ; la première unité d'un fragment qui en suit un autre est
+ * précédée d'une ligne vide.
+ */
+export function unitesDeLAdresse(chapitre: ChapitreParse, ref: DescRef): UnitesResolues | ErreurResolution {
   if (ref.parts.length > MAX_FRAGMENTS) {
     return {
       error: 'montage-hors-plafond',
       detail: `${ref.book} ch.${ref.ch} : ${ref.parts.length} fragments (plafond ${MAX_FRAGMENTS})`,
     };
   }
-  const chevauchement = chevauchementDe(chapitre, ref);
-  if (chevauchement) return chevauchement;
-  const morceaux: string[] = [];
+  const structure = chevauchementDe(chapitre, ref) ?? contiguiteDe(chapitre, ref);
+  if (structure) return structure;
+  const unites: Unite[] = [];
   const folios: number[] = [];
   for (let i = 0; i < ref.parts.length; i++) {
     const frag = ref.parts[i];
-    const res = resoudreFragment(chapitre, frag);
+    const res = unitesVerifiees(chapitre, frag);
     if (estErreur(res)) return { ...res, fragment: i };
     if (ref.parts.length > 1 && frag.kind === 'blocs') {
-      const n = normText(res.md);
-      const ou = `${ref.book} ch.${ref.ch} §${frag.sec}#${frag.secOcc}`;
+      const n = normText(assembler(res.unites));
+      const ou = `${ref.book} ch.${ref.ch} ${ouDe(frag)}`;
       if (n.length < MIN_FRAGMENT) {
         return {
           error: 'fragment-trop-court',
@@ -889,8 +1214,9 @@ export function resoudreAdresse(chapitre: ChapitreParse, ref: DescRef): Resolu |
         return { error: 'fragment-ambigu', fragment: i, detail: `${ou} : ce texte apparaît ${vus} fois dans le chapitre` };
       }
     }
-    morceaux.push(res.md);
+    const [tete, ...reste] = res.unites;
+    unites.push(i ? { ...tete, sep: '\n\n' } : tete, ...reste);
     for (const f of res.folios) if (!folios.includes(f)) folios.push(f);
   }
-  return { md: morceaux.join('\n\n'), folios };
+  return { unites, folios };
 }

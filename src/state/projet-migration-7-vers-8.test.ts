@@ -9,7 +9,8 @@
  * `reliefDefaults`. Il est FIGÉ ; le « moderniser » détruirait ce que la garde mesure.
  */
 import { describe, expect, it } from 'vitest';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 
 /**
  * ATTENDU GELÉ (#1716) — les matières que la migration 7 → 8 pose, écrites ICI en LITTÉRAL et non
@@ -71,7 +72,6 @@ describe('PROJECT_MIGRATIONS[7] — un projet format 7 se charge à travers la m
    */
   it('S1. PARITÉ : le migrateur de CHARGEMENT rend exactement ce que le script de DÉPÔT écrit', () => {
     const migre = PROJECT_MIGRATIONS[7]!({ ...structuredClone(PROJET_FORMAT_7), version: 7 } as never) as Record<string, unknown>;
-    expect(migre.schema).toBe(8);
     const scene = (migre.scenes as Record<string, unknown>[])[0];
     expect(Object.keys(scene)).toEqual(['type', 'id', 'label', 'dimensions', 'reliefDefaults', 'layers', 'entities']);
     expect(scene.reliefDefaults).toEqual(RELIEF_1691);

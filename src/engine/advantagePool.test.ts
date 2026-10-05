@@ -120,7 +120,7 @@ describe('CombatFeature — variante AA lue selon le toggle (aucun code ne nomme
   });
 
   it('Porte-Bouclier : gain d’Avantage LDB, désactivé en mode groupe (variante AA)', () => {
-    const shield = { name: 'Bouclier', qualities: [{ id: 'protectrice', value: 1 }] } as unknown as Weapon;
+    const shield = { name: 'Bouclier', trappingId: 'bouclier-targe', qualities: [{ id: 'protectrice', value: 1 }] } as unknown as Weapon;
     const c = withTalent('porte-bouclier');
     expect(shieldAdvantageLevel(c, shield)).toBe(1);
     setRule('combat-aa-avantage-groupe', true);

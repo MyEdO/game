@@ -12,199 +12,201 @@
  *  - les GARDES : chemin ancré + intitulé de leur `describe(...)`.
  * La part ÉDITORIALE (étapes de la recette, interdits) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-flux-de-jet.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import ts from 'typescript'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
-const OUTIL = 'build-flux-de-jet'
-const VERBS = 'src/state/flowVerbs.ts'
-const SPECS = 'src/state/rollFlowSpecs.ts'
-const FACTORY = 'src/state/rollFlowFactory.ts'
-const ARBITER = 'src/state/modalArbiter.ts'
-const DRIFT = 'src/state/rollflow-no-drift.test.ts'
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  const OUTIL = 'build-flux-de-jet'
+  const VERBS = 'src/state/flowVerbs.ts'
+  const SPECS = 'src/state/rollFlowSpecs.ts'
+  const FACTORY = 'src/state/rollFlowFactory.ts'
+  const ARBITER = 'src/state/modalArbiter.ts'
+  const DRIFT = 'src/state/rollflow-no-drift.test.ts'
 
-function abandon(msg) {
-  console.error(`${OUTIL} — ${msg}`)
-  process.exit(1)
-}
-const ancre = (p, quoi) => {
-  if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
-  return p
-}
-const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-for (const p of [VERBS, SPECS, FACTORY, ARBITER, DRIFT]) ancre(p, 'source du générateur')
-
-const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
-
-const { text: V_SRC, sf: V_SF } = loadSource(VERBS)
-const { text: S_SRC, sf: S_SF } = loadSource(SPECS)
-const { text: F_SRC, sf: F_SF } = loadSource(FACTORY)
-
-// ── Le CYCLE : `RollVerb` + son JSDoc ────────────────────────────────────────────────────────────
-
-const CYCLE = (() => {
-  let alias
-  V_SF.forEachChild((n) => {
-    if (ts.isTypeAliasDeclaration(n) && n.name.text === 'RollVerb') alias = n
-  })
-  if (!alias || !ts.isUnionTypeNode(alias.type)) abandon(`\`RollVerb\` n'est plus une union nommée dans ${VERBS}`)
-  const doc = jsdocBody(V_SRC.slice(alias.getFullStart(), alias.getStart(V_SF)))
-  return {
-    verbes: alias.type.types.filter((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)).map((t) => t.literal.text),
-    note: doc ? plat(firstSentence(doc)) : null,
-    l: ligne(V_SF, alias.name.getStart(V_SF)),
+  function abandon(msg) {
+    console.error(`${OUTIL} — ${msg}`)
+    process.exit(1)
   }
-})()
-if (CYCLE.verbes.length < 5) abandon(`moins de 5 verbes lus dans \`RollVerb\` — le cycle a dérivé`)
+  const ancre = (p, quoi) => {
+    if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
+    return p
+  }
+  const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
+  for (const p of [VERBS, SPECS, FACTORY, ARBITER, DRIFT]) ancre(p, 'source du générateur')
 
-// ── Le REGISTRE : `FLOW_VERBS`, entrée par entrée ────────────────────────────────────────────────
+  const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
-/** Objet littéral d'un `export const NOM = { … }` (avec ou sans `as const`/`satisfies`). */
-function objetExporte(sf, nom, chemin) {
-  let init
-  sf.forEachChild((n) => {
-    if (!ts.isVariableStatement(n)) return
-    for (const d of n.declarationList.declarations) {
-      if (!ts.isIdentifier(d.name) || d.name.text !== nom) continue
-      let e = d.initializer
-      while (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression?.(e) || ts.isParenthesizedExpression(e))) e = e.expression
-      init = e
+  const { text: V_SRC, sf: V_SF } = loadSource(VERBS)
+  const { text: S_SRC, sf: S_SF } = loadSource(SPECS)
+  const { text: F_SRC, sf: F_SF } = loadSource(FACTORY)
+
+  // ── Le CYCLE : `RollVerb` + son JSDoc ────────────────────────────────────────────────────────────
+
+  const CYCLE = (() => {
+    let alias
+    V_SF.forEachChild((n) => {
+      if (ts.isTypeAliasDeclaration(n) && n.name.text === 'RollVerb') alias = n
+    })
+    if (!alias || !ts.isUnionTypeNode(alias.type)) abandon(`\`RollVerb\` n'est plus une union nommée dans ${VERBS}`)
+    const doc = jsdocBody(V_SRC.slice(alias.getFullStart(), alias.getStart(V_SF)))
+    return {
+      verbes: alias.type.types.filter((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)).map((t) => t.literal.text),
+      note: doc ? plat(firstSentence(doc)) : null,
+      l: ligne(V_SF, alias.name.getStart(V_SF)),
+    }
+  })()
+  if (CYCLE.verbes.length < 5) abandon(`moins de 5 verbes lus dans \`RollVerb\` — le cycle a dérivé`)
+
+  // ── Le REGISTRE : `FLOW_VERBS`, entrée par entrée ────────────────────────────────────────────────
+
+  /** Objet littéral d'un `export const NOM = { … }` (avec ou sans `as const`/`satisfies`). */
+  function objetExporte(sf, nom, chemin) {
+    let init
+    sf.forEachChild((n) => {
+      if (!ts.isVariableStatement(n)) return
+      for (const d of n.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || d.name.text !== nom) continue
+        let e = d.initializer
+        while (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression?.(e) || ts.isParenthesizedExpression(e))) e = e.expression
+        init = e
+      }
+    })
+    if (!init || !ts.isObjectLiteralExpression(init)) abandon(`\`${nom}\` n'est plus un objet littéral dans ${chemin}`)
+    return init
+  }
+
+  const FLUX = objetExporte(V_SF, 'FLOW_VERBS', VERBS).properties.filter(ts.isPropertyAssignment).map((p) => {
+    const src = p.initializer.getText(V_SF)
+    const lire = (re) => src.match(re)?.[1] ?? null
+    const liste = (cle) => {
+      const m = src.match(new RegExp(`${cle}:\\s*\\[([^\\]]*)\\]`))
+      return m ? [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : []
+    }
+    return {
+      cle: p.name.getText(V_SF).replace(/^['"]|['"]$/g, ''),
+      kind: lire(/kind:\s*'(\w+)'/),
+      verbes: liste('verbs'),
+      porteur: (() => {
+        const pend = lire(/pending:\s*'(\w+)'/)
+        const champ = lire(/field:\s*'(\w+)'/)
+        return pend && champ ? `\`${pend}.${champ}\`` : null
+      })(),
+      pidIsActor: lire(/pidIsActor:\s*(\w+)/),
+      coop: /coop:\s*true/.test(src),
+      resolution: liste('resolution'),
+      l: ligne(V_SF, p.getStart(V_SF)),
     }
   })
-  if (!init || !ts.isObjectLiteralExpression(init)) abandon(`\`${nom}\` n'est plus un objet littéral dans ${chemin}`)
-  return init
-}
+  if (FLUX.length < 10) abandon(`moins de 10 flux lus dans \`FLOW_VERBS\` (${VERBS}) — le registre a dérivé`)
 
-const FLUX = objetExporte(V_SF, 'FLOW_VERBS', VERBS).properties.filter(ts.isPropertyAssignment).map((p) => {
-  const src = p.initializer.getText(V_SF)
-  const lire = (re) => src.match(re)?.[1] ?? null
-  const liste = (cle) => {
-    const m = src.match(new RegExp(`${cle}:\\s*\\[([^\\]]*)\\]`))
-    return m ? [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]) : []
-  }
-  return {
-    cle: p.name.getText(V_SF).replace(/^['"]|['"]$/g, ''),
-    kind: lire(/kind:\s*'(\w+)'/),
-    verbes: liste('verbs'),
-    porteur: (() => {
-      const pend = lire(/pending:\s*'(\w+)'/)
-      const champ = lire(/field:\s*'(\w+)'/)
-      return pend && champ ? `\`${pend}.${champ}\`` : null
-    })(),
-    pidIsActor: lire(/pidIsActor:\s*(\w+)/),
-    coop: /coop:\s*true/.test(src),
-    resolution: liste('resolution'),
-    l: ligne(V_SF, p.getStart(V_SF)),
-  }
-})
-if (FLUX.length < 10) abandon(`moins de 10 flux lus dans \`FLOW_VERBS\` (${VERBS}) — le registre a dérivé`)
+  const CLES_FLOWS = new Set(objetExporte(S_SF, 'FLOWS', SPECS).properties.filter((p) => p.name).map((p) => p.name.getText(S_SF).replace(/^['"]|['"]$/g, '')))
+  const CLES_HANDLERS = new Set(objetExporte(S_SF, 'FLOW_HANDLERS', SPECS).properties.filter((p) => p.name).map((p) => p.name.getText(S_SF).replace(/^['"]|['"]$/g, '')))
+  const manquants = FLUX.filter((f) => !CLES_HANDLERS.has(f.cle)).map((f) => f.cle)
+  if (manquants.length) abandon(`flux sans handler dans \`FLOW_HANDLERS\` : ${manquants.join(', ')} — la garde d'exhaustivité a-t-elle sauté ?`)
 
-const CLES_FLOWS = new Set(objetExporte(S_SF, 'FLOWS', SPECS).properties.filter((p) => p.name).map((p) => p.name.getText(S_SF).replace(/^['"]|['"]$/g, '')))
-const CLES_HANDLERS = new Set(objetExporte(S_SF, 'FLOW_HANDLERS', SPECS).properties.filter((p) => p.name).map((p) => p.name.getText(S_SF).replace(/^['"]|['"]$/g, '')))
-const manquants = FLUX.filter((f) => !CLES_HANDLERS.has(f.cle)).map((f) => f.cle)
-if (manquants.length) abandon(`flux sans handler dans \`FLOW_HANDLERS\` : ${manquants.join(', ')} — la garde d'exhaustivité a-t-elle sauté ?`)
+  // ── Registre des MODALES : quelles clés y sont déclarées, et sous quelle politique de Cadence ─────
 
-// ── Registre des MODALES : quelles clés y sont déclarées, et sous quelle politique de Cadence ─────
-
-const { sf: A_SF } = loadSource(ARBITER)
-const MODAL_KEYS = (() => {
-  let arr
-  A_SF.forEachChild((n) => {
-    if (!ts.isVariableStatement(n)) return
-    for (const d of n.declarationList.declarations) {
-      if (!ts.isIdentifier(d.name) || d.name.text !== 'MODAL_DEFS') continue
-      let e = d.initializer
-      while (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression?.(e) || ts.isParenthesizedExpression(e))) e = e.expression
-      if (e && ts.isArrayLiteralExpression(e)) arr = e
+  const { sf: A_SF } = loadSource(ARBITER)
+  const MODAL_KEYS = (() => {
+    let arr
+    A_SF.forEachChild((n) => {
+      if (!ts.isVariableStatement(n)) return
+      for (const d of n.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || d.name.text !== 'MODAL_DEFS') continue
+        let e = d.initializer
+        while (e && (ts.isAsExpression(e) || ts.isSatisfiesExpression?.(e) || ts.isParenthesizedExpression(e))) e = e.expression
+        if (e && ts.isArrayLiteralExpression(e)) arr = e
+      }
+    })
+    if (!arr) abandon(`\`MODAL_DEFS\` n'est plus un tableau littéral dans ${ARBITER}`)
+    const m = new Map()
+    for (const el of arr.elements) {
+      if (!ts.isObjectLiteralExpression(el)) continue
+      const src = el.getText(A_SF)
+      const cle = src.match(/key:\s*'([^']+)'/)?.[1]
+      if (!cle) continue
+      m.set(cle, src.match(/mode:\s*'(\w+)'/)?.[1] ?? null)
     }
-  })
-  if (!arr) abandon(`\`MODAL_DEFS\` n'est plus un tableau littéral dans ${ARBITER}`)
-  const m = new Map()
-  for (const el of arr.elements) {
-    if (!ts.isObjectLiteralExpression(el)) continue
-    const src = el.getText(A_SF)
-    const cle = src.match(/key:\s*'([^']+)'/)?.[1]
-    if (!cle) continue
-    m.set(cle, src.match(/mode:\s*'(\w+)'/)?.[1] ?? null)
+    if (!m.size) abandon(`aucune modale lisible dans \`MODAL_DEFS\` (${ARBITER})`)
+    return m
+  })()
+
+  // ── Fabriques et LENTILLES partagées : leur site réel ─────────────────────────────────────────────
+
+  /** Déclaration nommée d'un fichier (exportée ou non) : site + 1re phrase de JSDoc. */
+  function site(chemin, text, sf, nom) {
+    let noeud
+    const visite = (n) => {
+      if ((ts.isFunctionDeclaration(n) || ts.isVariableDeclaration(n)) && n.name && ts.isIdentifier(n.name) && n.name.text === nom) noeud = n
+      n.forEachChild(visite)
+    }
+    sf.forEachChild(visite)
+    if (!noeud) return null
+    const porteur = ts.isVariableDeclaration(noeud) ? noeud.parent.parent : noeud
+    const doc = jsdocBody(text.slice(porteur.getFullStart(), porteur.getStart(sf)))
+    return { nom, site: `${chemin}:${ligne(sf, noeud.name.getStart(sf))}`, role: doc ? plat(firstSentence(doc)) : null }
   }
-  if (!m.size) abandon(`aucune modale lisible dans \`MODAL_DEFS\` (${ARBITER})`)
-  return m
-})()
 
-// ── Fabriques et LENTILLES partagées : leur site réel ─────────────────────────────────────────────
+  const PARTAGES = [
+    ['makeRollFlow', FACTORY, F_SRC, F_SF],
+    ['testOutcome', SPECS, S_SRC, S_SF],
+    ['cleanRollOutcome', SPECS, S_SRC, S_SF],
+    ['flatRollLens', SPECS, S_SRC, S_SF],
+    ['resultRollLens', SPECS, S_SRC, S_SF],
+    ['opposedBinaryFlow', SPECS, S_SRC, S_SF],
+    ['rollFlowActions', SPECS, S_SRC, S_SF],
+    ['rollFlowActionsMulti', SPECS, S_SRC, S_SF],
+    ['buildRollFlowActions', SPECS, S_SRC, S_SF],
+  ]
+    .map(([nom, chemin, text, sf]) => site(chemin, text, sf, nom))
+    .filter(Boolean)
+  if (PARTAGES.length < 5) abandon(`moins de 5 fabriques/lentilles partagées retrouvées — le socle du système de jet a changé de forme`)
 
-/** Déclaration nommée d'un fichier (exportée ou non) : site + 1re phrase de JSDoc. */
-function site(chemin, text, sf, nom) {
-  let noeud
-  const visite = (n) => {
-    if ((ts.isFunctionDeclaration(n) || ts.isVariableDeclaration(n)) && n.name && ts.isIdentifier(n.name) && n.name.text === nom) noeud = n
-    n.forEachChild(visite)
+  // ── ATOMES obligatoires : lus DANS la garde anti-dérive, pas recopiés ─────────────────────────────
+
+  const ATOMES = (() => {
+    const src = readFileSync(DRIFT, 'utf8')
+    const m = src.match(/for \(const atom of \[([^\]]*)\]\)/)
+    if (!m) abandon(`la liste d'atomes n'est plus lisible dans ${DRIFT} — l'ancrage de ce doc sur sa garde est rompu`)
+    const noms = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+    if (!noms.length) abandon(`liste d'atomes VIDE dans ${DRIFT}`)
+    // Chaque atome doit exister dans le module de Tests du moteur — sinon le doc nommerait un fantôme.
+    const MOTEUR = ancre('src/engine/tests.ts', 'module des Tests')
+    const { text, sf } = loadSource(MOTEUR)
+    return noms.map((nom) => site(MOTEUR, text, sf, nom) ?? abandon(`atome \`${nom}\` introuvable dans ${MOTEUR}`))
+  })()
+
+  // ── Gardes ───────────────────────────────────────────────────────────────────────────────────────
+
+  function intituleGarde(p) {
+    const m = readFileSync(p, 'utf8').match(/describe\(\s*(['"`])([\s\S]*?)\1/)
+    if (!m) abandon(`\`${p}\` n'expose plus de \`describe('…')\``)
+    return plat(m[2])
   }
-  sf.forEachChild(visite)
-  if (!noeud) return null
-  const porteur = ts.isVariableDeclaration(noeud) ? noeud.parent.parent : noeud
-  const doc = jsdocBody(text.slice(porteur.getFullStart(), porteur.getStart(sf)))
-  return { nom, site: `${chemin}:${ligne(sf, noeud.name.getStart(sf))}`, role: doc ? plat(firstSentence(doc)) : null }
-}
+  const GARDES = [
+    'src/state/rollFlowWiring.test.ts',
+    DRIFT,
+    'src/state/maneuver-defense-cascade.test.ts',
+    'src/state/jet-owner-vs-spec.test.ts',
+    'src/ui/active-modal.test.ts',
+  ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
+  const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
 
-const PARTAGES = [
-  ['makeRollFlow', FACTORY, F_SRC, F_SF],
-  ['testOutcome', SPECS, S_SRC, S_SF],
-  ['cleanRollOutcome', SPECS, S_SRC, S_SF],
-  ['flatRollLens', SPECS, S_SRC, S_SF],
-  ['resultRollLens', SPECS, S_SRC, S_SF],
-  ['opposedBinaryFlow', SPECS, S_SRC, S_SF],
-  ['rollFlowActions', SPECS, S_SRC, S_SF],
-  ['rollFlowActionsMulti', SPECS, S_SRC, S_SF],
-  ['buildRollFlowActions', SPECS, S_SRC, S_SF],
-]
-  .map(([nom, chemin, text, sf]) => site(chemin, text, sf, nom))
-  .filter(Boolean)
-if (PARTAGES.length < 5) abandon(`moins de 5 fabriques/lentilles partagées retrouvées — le socle du système de jet a changé de forme`)
+  // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
-// ── ATOMES obligatoires : lus DANS la garde anti-dérive, pas recopiés ─────────────────────────────
+  const table = (rows, entete, l) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(l).join('\n')}`
+  const MONO = FLUX.filter((f) => f.kind === 'mono')
+  const MULTI = FLUX.filter((f) => f.kind === 'multi')
+  const SANS_MODALE = FLUX.filter((f) => !MODAL_KEYS.has(f.cle)).map((f) => f.cle)
 
-const ATOMES = (() => {
-  const src = readFileSync(DRIFT, 'utf8')
-  const m = src.match(/for \(const atom of \[([^\]]*)\]\)/)
-  if (!m) abandon(`la liste d'atomes n'est plus lisible dans ${DRIFT} — l'ancrage de ce doc sur sa garde est rompu`)
-  const noms = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
-  if (!noms.length) abandon(`liste d'atomes VIDE dans ${DRIFT}`)
-  // Chaque atome doit exister dans le module de Tests du moteur — sinon le doc nommerait un fantôme.
-  const MOTEUR = ancre('src/engine/tests.ts', 'module des Tests')
-  const { text, sf } = loadSource(MOTEUR)
-  return noms.map((nom) => site(MOTEUR, text, sf, nom) ?? abandon(`atome \`${nom}\` introuvable dans ${MOTEUR}`))
-})()
-
-// ── Gardes ───────────────────────────────────────────────────────────────────────────────────────
-
-function intituleGarde(p) {
-  const m = readFileSync(p, 'utf8').match(/describe\(\s*(['"`])([\s\S]*?)\1/)
-  if (!m) abandon(`\`${p}\` n'expose plus de \`describe('…')\``)
-  return plat(m[2])
-}
-const GARDES = [
-  'src/state/rollFlowWiring.test.ts',
-  DRIFT,
-  'src/state/maneuver-defense-cascade.test.ts',
-  'src/state/jet-owner-vs-spec.test.ts',
-  'src/ui/active-modal.test.ts',
-].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
-const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
-
-// ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
-
-const table = (rows, entete, l) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(l).join('\n')}`
-const MONO = FLUX.filter((f) => f.kind === 'mono')
-const MULTI = FLUX.filter((f) => f.kind === 'multi')
-const SANS_MODALE = FLUX.filter((f) => !MODAL_KEYS.has(f.cle)).map((f) => f.cle)
-
-const out = `# Ajouter un flux de jet (« une situation = une modale »)
+  const out = `# Ajouter un flux de jet (« une situation = une modale »)
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-flux-de-jet.mjs\` (\`npm run docs:flux-de-jet\`) — NE PAS ÉDITER À LA MAIN.
 
@@ -319,14 +321,21 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
 \`npm run typecheck\` après tout ajout : le type dérivé de \`FLOW_VERBS\` casse immédiatement si le
 registre et les handlers divergent.
 `
+  return {
+    out,
+    path: 'docs/ajouter-un-flux-de-jet.md',
+    staleMsg:
+      'docs:flux-de-jet — docs/ajouter-un-flux-de-jet.md est PÉRIMÉ (diverge de src/state/flowVerbs.ts, rollFlowSpecs.ts, rollFlowFactory.ts, modalArbiter.ts, de la garde anti-dérive, ou du script).',
+    rerunMsg: '  → relancer `npm run docs:flux-de-jet` (dérivé jamais commité, #2203).',
+    okMsg: 'docs:flux-de-jet — OK (docs/ajouter-un-flux-de-jet.md à jour)',
+    writeMsg: `docs/ajouter-un-flux-de-jet.md — ${FLUX.length} flux (${MONO.length} mono, ${MULTI.length} multi), ${PARTAGES.length} primitives partagées, ${ATOMES.length} atomes, ${GARDES_MESUREES.length} gardes.`,
+  }
+}
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/ajouter-un-flux-de-jet.md',
-  check: process.argv.includes('--check'),
-  staleMsg:
-    'docs:flux-de-jet — docs/ajouter-un-flux-de-jet.md est PÉRIMÉ (diverge de src/state/flowVerbs.ts, rollFlowSpecs.ts, rollFlowFactory.ts, modalArbiter.ts, de la garde anti-dérive, ou du script).',
-  rerunMsg: '  → relancer `npm run docs:flux-de-jet` et committer le résultat.',
-  okMsg: 'docs:flux-de-jet — OK (docs/ajouter-un-flux-de-jet.md à jour)',
-  writeMsg: `docs/ajouter-un-flux-de-jet.md — ${FLUX.length} flux (${MONO.length} mono, ${MULTI.length} multi), ${PARTAGES.length} primitives partagées, ${ATOMES.length} atomes, ${GARDES_MESUREES.length} gardes.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

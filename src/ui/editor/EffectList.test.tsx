@@ -18,7 +18,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
 
 describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
   it('newEffect("setTime") crée un défaut phase nuit', () => {
@@ -41,7 +41,7 @@ describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
 describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('learnSpell : sorts de la base en optgroups (plus de « libellé exact »)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE }} />,
+      <EffectList effects={[{ type: 'learnSpell', spell: '', heroId: '' }]} onChange={() => {}} ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] }} />,
     );
     expect(html).toContain('<optgroup');
     expect(html).toContain('Fléchette');
@@ -50,7 +50,7 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('transition : scènes du projet + points d’entrée quand le contexte les fournit', () => {
     const ctx = {
-      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE,
+      encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [],
       scenes: [
         { id: 'sc-a', nom: 'Village', entries: [] },
         { id: 'sc-b', nom: 'Taverne', entries: ['porte', 'cave'] },
@@ -68,12 +68,12 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
   it('openMerchant : entités marchandes de la scène (ou explication si aucune)', () => {
     const withM = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
     );
     expect(withM).toContain('Maître armurier (armurier)');
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], merchants: [] }} />,
     );
     expect(without).toContain('Aucune entité marchande');
   });
@@ -113,13 +113,13 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
   it('openPort : lieux de la carte du monde (ou explication si aucun)', () => {
     const withP = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], places: [{ id: 'port-marienburg', label: 'Marienburg' }] }} />,
     );
     expect(withP).toContain('Marienburg (port-marienburg)');
     expect(withP).not.toMatch(/id du lieu/);
     const without = renderToStaticMarkup(
       <EffectList effects={[{ type: 'openPort', placeId: '' }]} onChange={() => {}}
-        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, places: [] }} />,
+        ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [], places: [] }} />,
     );
     expect(without).toContain('Aucun lieu sur la carte du monde');
   });

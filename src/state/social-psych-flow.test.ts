@@ -3,9 +3,10 @@ import { useGame } from './store';
 import { runFlow } from './combatFlow';
 import { testFlow, EMPTY_FLOW } from './flow';
 import { createHero } from '../engine/character';
+import { adresseDeCreation } from '../engine/adresseDeCreation';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
-const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
+const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
 
 describe('Test de Sociabilité vs groupe haï (dialogue) — malus psy appliqué (LDB 21, P3)', () => {
   beforeEach(() => {

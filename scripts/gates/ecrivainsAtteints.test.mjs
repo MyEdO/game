@@ -15,13 +15,14 @@
 // entrée est libre ; en ajouter une exige de dire ce que la gate écrit.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { corpusParGate, ecrivainsParGate, sansImportsDeType, transitif } from './ecrivainsAtteints.mjs'
-import { statSync } from 'node:fs'
+import { corpusParGate, ecrivainsParGate, transitif } from './ecrivainsAtteints.mjs'
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ECRIT_LU } from './toutes.mjs'
+import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
-const RACINE = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
 
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
@@ -29,13 +30,23 @@ const ATTENDU = {
   'test:agents': ['scripts/agents/compat-cli.mjs'],
   'test:hooks': [
     'scripts/docs/build-all.mjs',
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +2 le 2026-09-16 (#1738) : la garde du classement de push fabrique des dépôts JETABLES
     // (`mkdtempSync` + `git init` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) pour
-    // éprouver `merge-base` et le CLI ; la garde des liens de mémoire, venue de `src/` en node:test,
+    // éprouver `merge-base` et le CLI ; la garde des liens de mémoire
     // forge ses fiches sous un `mkdtempSync` de os.tmpdir() — l'arbre du dépôt n'est jamais écrit.
     'scripts/gates/classerPush.test.mjs',
+    // #1964 — +1 le 2026-10-01 : fixtures sous os.tmpdir(), supprimées en finally.
+    'scripts/gates/ecrivainsAtteints.test.mjs',
     'scripts/guards/lib/memoryLinks.test.mjs',
+    // +1 le 2026-10-01 (#2203) : `bootstrap-conteneur.mjs` lance `docs:build` détaché et ouvre son
+    // journal et son verrou sous `node_modules/.cache` ; son banc INJECTE ce geste (`GESTES_DU_CONTENEUR`)
+    // — l'arbre n'est jamais écrit.
+    'scripts/hooks/bootstrap-conteneur.mjs',
+    // +1 le 2026-10-01 (#2203) : le banc du VERROU de `docsBuildDetache` forge une racine JETABLE
+    // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
+    // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
+    'scripts/hooks/bootstrap-conteneur.test.mjs',
     // +1 le 2026-09-20 (#1825) : le banc de l'ENVELOPPE de jeu d'un workflow écrit ses
     // scripts JOUETS sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l'enveloppe
     // charge un FICHIER, un script jouet ne se fabrique pas autrement ; l'arbre n'est jamais écrit.
@@ -61,8 +72,13 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) — la lecture du lot doit
     // tomber pour prouver le FAIL-CLOSED ; l'arbre versionné n'est jamais écrit.
     'scripts/git-hooks/docs-rebuild.test.mjs',
+    // +1 le 2026-10-01 (#2194) : le journal des hooks git écrit sous `node_modules/.cache/hooks-git` du
+    // cwd du hook ; les bancs qui JOUENT un hook (pre-commit, commit-msg, node-requis) le lancent avec
+    // `cwd` = un dépôt ou un dossier JETABLE sous os.tmpdir(), et son banc INJECTE l'écriture. Mesure
+    // du 2026-10-01 : `git status --short --ignored` identique avant et après, sur ce worktree et sur
+    // l'arbre principal, et aucun `node_modules/.cache/hooks-git` créé.
+    'scripts/git-hooks/journal.mjs',
     'scripts/git-hooks/merge-docs.mjs',
-    'scripts/git-hooks/merge-docs.test.mjs',
     // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
     // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
     // la fusion 3-voies qu'ils partagent avec `merge-docs.mjs`) ; le banc des formats pose ses
@@ -75,16 +91,14 @@ const ATTENDU = {
     // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
     // `git status --short --ignored` identique avant et après, sur ce worktree et sur l'arbre principal.
     'scripts/git-hooks/pre-commit.test.mjs',
-    'scripts/git-hooks/pre-push.mjs',
     'scripts/git-hooks/pre-push.test.mjs',
     'scripts/git-hooks/three-way.mjs',
     // +2 le 2026-09-05 (#1679 L3 T2) : les deux tests de l'hôte des lectures git et de la lecture des
     // courses CI écrivent leurs fixtures (dépôts jetables, fichiers de stub) sous `os.tmpdir()` —
     // l'arbre n'est jamais touché.
     'scripts/guards/lib/coursesCi.test.mjs',
-    // +2 le 2026-09-07 (#1709) : la fixture de dépôt jetable est devenue une source unique ; le
-    // gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
-    // jamais écrit — même mesure que les fixtures qu'elle remplace.
+    // Le gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
+    // jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/guards/lib/depotGabarit.test.mjs',
     'scripts/guards/lib/enteteArbre.test.mjs',
@@ -113,16 +127,22 @@ const ATTENDU = {
     // +1 le 2026-09-27 (#1903) : la commande de régénération des stocks de sites, exercée par son banc
     // (`stockDeSites.test.mjs`, morsure `--check`) sur des fixtures sous `os.tmpdir()`.
     'scripts/guards/lib/regenStock.mts',
+    // +1 le 2026-10-05 (#2294) : le banc du NOMBRE de processus git de la mesure du palier forge ses
+    // dépôts (`instanceDeDepot`, puis `mkdirSync` + `writeFileSync` des commits et des revues) sous
+    // `os.tmpdir()`, `rmSync` en finally — un compte de lancements contre git réel exige un vrai
+    // dépôt ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/revuePalier.test.mjs',
     // +1 le 2026-09-07 (#1709) : la porte de rôle du corpus source pose ses fixtures
     // (`mkdtempSync` + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — l'arbre versionné n'est
     // jamais écrit, et la lib mesurée (`sourceCorpus.mjs`) ne fait que LIRE.
     'scripts/guards/lib/sourceCorpus.test.mjs',
-    // +1 le 2026-09-14 (#1759) : le banc du rejeu de spawn ENTRE dans la gate — il était né le
-    // 2026-09-04 hors de toute liste écrite à la main, donc jamais joué. Ses écritures sont ses
+    // Le banc du rejeu de spawn écrit ses
     // fixtures : des scripts jetables sous `os.tmpdir()` (`mkdtempSync` + `writeFileSync`, `rmSync`
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
     'scripts/guards/lib/stockDeSites.test.mjs',
+    // #2226
+    'scripts/guards/lib/versionsDerivees-collision.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
@@ -133,6 +153,12 @@ const ATTENDU = {
     'scripts/hooks/data-edit-guard.test.mjs',
     'scripts/hooks/exception-add-guard.test.mjs',
     'scripts/hooks/inject-project-credo.test.mjs',
+    // +3 le 2026-09-30 (#2132) : les bancs du suivi de vague forgent un dépôt JETABLE
+    // (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally) ; celui du hook de session y écrit
+    // `.git/suivi` (le suivi, le journal `.journal`). `ops/suivi.mjs`, que le lien de session importe,
+    // n'écrit que derrière sa porte `import.meta.main`. Mesuré le 2026-09-30 : `git status --porcelain --ignored`
+    // identique avant et après, sur ce worktree et sur l'arbre principal.
+    'scripts/hooks/inject-suivi.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',
@@ -145,6 +171,7 @@ const ATTENDU = {
     'scripts/hooks/segments-profonds.test.mjs',
     'scripts/hooks/solde-ticket-guard-driver.test.mjs',
     'scripts/hooks/solde-ticket-guard.test.mjs',
+    'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La
     // migration ÉCRIT (git mv, réécritures) UNIQUEMENT sous `--apply`, que le banc ne lui donne que
@@ -161,23 +188,28 @@ const ATTENDU = {
     'scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs',
     // +1 le 2026-09-22 (#1873) : `joue.mjs` COPIE la migration jouée dans le dépôt jetable que lui donne
     // chaque banc de migration (`copyFileSync`, sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
-    // −8 le 2026-09-23 (#1897) : les bancs de migration fabriquent leur dépôt jetable par `joue.mjs`
-    // (`depot`, `efface`), unique écrivain de la famille ; −2 le 2026-09-24 (#1897) : les bancs #877
-    // et #1882 de `main` passent au même régime à la fusion ; −1 le 2026-09-26 (#1897) : le banc
-    // `1882-refs-vivantes-portes` de `main` aussi. +1 le 2026-09-23 (#1897) : son banc
+    // Son banc
     // `joue.test.mjs` réécrit (`writeFileSync`) les fichiers du dépôt jetable de `depot()` pour faire
     // mordre `crees`/`rienTouche` ; ce dépôt vit sous `os.tmpdir()` (`efface` en `t.after`), l'arbre
     // n'est jamais écrit.
     'scripts/migrations/lib/joue.mjs',
     'scripts/migrations/lib/joue.test.mjs',
     'scripts/migrations/replay-head.mjs',
+    'scripts/ops/suivi.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
+    // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
+    // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
+    // de os.tmpdir(), effacé en finally.
+    'scripts/mods/verifier.mjs',
+    'scripts/mods/verifier.test.mjs',
   ],
+  // +1 le 2026-10-04 (#2278) : la garde copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
+  // finally ; l'arbre n'est jamais écrit.
+  'mods:check': ['scripts/mods/verifier.mjs'],
   'test:ops': [
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
-    // +8 le 2026-09-14 (#1736) : le train de publication entre dans `test:ops`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
     //   sous os.tmpdir() (fixture partagée + mkdtemp), jetés en finally — aucune écriture DANS
     //   l'arbre. `chantier.mjs`/`worktrees.mjs` écrivent, eux, dans l'arbre PRINCIPAL en usage réel
@@ -188,15 +220,19 @@ const ATTENDU = {
     //   Les écritures réelles de `publier.mjs` sont son journal `node_modules/.cache/publication/` et
     //   le commit des docs DÉRIVÉS — toutes deux derrière sa porte `import.meta.main` (scripts/ops/publier.mjs,
     //   dernière ligne), jamais depuis la gate.
-    // · `build-all.mjs`, `empreinte-sources.mjs` et `purgerPerimes.mjs` sont atteints PAR
+    // · `build-all.mjs`, `ecriture-derives.mjs` et `purgerPerimes.mjs` sont atteints PAR
     //   `publier.mjs`, qui n'en importe que des CONSTANTES et des fonctions pures (`GENERATORS`,
     //   `SOURCES_LUES`) ; leurs écritures vivent derrière leurs propres portes `import.meta.main`, ou sous
     //   `node_modules/.cache`.
     'scripts/docs/build-all.mjs',
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/gates/toutes.mjs',
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
+    // +1 le 2026-10-01 (#2194) : `etapesDuTrain.mjs` importe de `docs-rebuild.mjs` deux fonctions PURES
+    // (`sourcesMesurees`, `touchesDocSources`) ; le journal des hooks git n'y est armé que par `main`,
+    // derrière sa porte `import.meta.main` — jamais depuis la gate.
+    'scripts/git-hooks/journal.mjs',
     'scripts/ops/chantier.test.mjs',
     // +1 le 2026-09-27 (#1806) : le banc du point fixe de la CLÔTURE des étapes porte `writeFileSync(`
     // dans le TEXTE d'un module fictif, lu par un `disque` injecté EN MÉMOIRE (`sources`, une `Map`) ;
@@ -210,61 +246,86 @@ const ATTENDU = {
     'scripts/ops/plageFermante.test.mjs',
     'scripts/ops/publier.mjs',
     'scripts/ops/publier.test.mjs',
+    'scripts/ops/reprendre-file.mjs',
+    'scripts/ops/reprendre-file.test.mjs',
     'scripts/ops/worktrees.test.mjs',
+    // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.md` (temporaire voisin puis
+    // `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
+    // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
+    'scripts/ops/suivi.mjs',
+    'scripts/ops/suivi.test.mjs',
+    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
+    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
+    // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`
+    // (`reprendre`), `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
+    // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;
+    // l'arbre n'est jamais écrit.
     'scripts/test/verrou.mjs',
     // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
     // défaut sous os.tmpdir()) pour qu'un workflow n'ait pas à le recopier dans chaque prompt, et son
     // test fabrique un dépôt jetable sous os.tmpdir() — aucune écriture DANS l'arbre.
     'scripts/ops/faits-de-palier.mjs',
     'scripts/ops/faits-de-palier.test.mjs',
-    'scripts/ops/fermer-depuis-main.test.mjs',
     'scripts/ops/knip-exports-ratchet.mjs',
     // +2 le 2026-09-16 (#1776) : le ruleset `main` (`scripts/ops/ruleset-main.mjs`).
     // · `ruleset-main.mjs` n'écrit QUE le corps du ruleset dans un fichier d'`os.tmpdir()`, pour le
-    //   passer à `gh api --input` (`executer` de ruleset-main.mjs) — et seulement depuis `executer`, que
-    //   les tests n'appellent jamais : ils ne jouent que `corpsDuRuleset`, `contextesRequis` et
-    //   `refusGh`, tous PURS.
+    //   passer à `gh api --input` (`executer` de ruleset-main.mjs) ; les tests appellent `executer` avec
+    //   un `runner` et un `lireCi` injectés, et ce fichier naît et meurt sous `os.tmpdir()`.
     // · `ruleset-main.test.mjs` écrit ses fixtures `ci.yml` sous `os.tmpdir()` (`mkdtempSync`) ; sa
-    //   seule lecture de l'arbre réel est `jobsCi({ cwd: RACINE })` (ruleset-main.test.mjs:27), qui
-    //   ne fait que LIRE `.github/workflows/ci.yml`.
-    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (`ECRIT_LU`, scripts/gates/toutes.mjs).
+    //   seule lecture de l'arbre réel est `blocsDeJobs`/`jobsCi` (scripts/gates/gatesDeCi.mjs), qui
+    //   ne font que LIRE `.github/workflows/ci.yml`.
+    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (scripts/gates/toutes.mjs, `ECRIT_LU['test:ops']`).
     'scripts/ops/ruleset-main.mjs',
     'scripts/ops/ruleset-main.test.mjs',
     // +1 le 2026-09-16 (#1779) : le banc du signaleur pose le CORPS du rapport (`--body-file` de `gh`)
     // sous os.tmpdir() (`mkdtempSync` + `writeFileSync`, `rmSync` en finally) ; `signaler-rouge.mjs`
     // ne fait que LIRE ce fichier, et son `gh` est INJECTÉ — l'arbre n'est jamais écrit.
     'scripts/ops/signaler-rouge.test.mjs',
+    // +1 le 2026-09-28 (#1993) : le banc des workflows joués pose une copie PERMUTÉE de
+    // `dossier-de-chapitre.js` sous os.tmpdir() (`mkdtempSync` + `writeFileSync`, `rmSync` en finally)
+    // pour la rejouer par `jouerWorkflow` ; l'arbre n'est jamais écrit.
+    'scripts/ops/workflows-joues.test.mjs',
   ],
   'test:runner': [
+    // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts
+    // jetables à la primitive (`instanceDeDepot`, `rmSync` en finally) ; elle n'écrit que sous
+    // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/depotGabarit.mjs',
     'scripts/lancer-local.test.mjs',
     // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
     // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un
     // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
     'scripts/node-requis.test.mjs',
+    'scripts/test/gitDeBanc.test.mjs',
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
+    // +1 le 2026-10-05 (#2279 N0) : le banc de concurrence du verrou lance ses preneurs (processus réels)
+    // sous un `mkdtempSync` d'os.tmpdir() (`writeFileSync` du compteur, `rmSync` en finally) ; l'arbre
+    // n'est jamais écrit.
+    'scripts/test/verrou.test.mjs',
   ],
   'test:docs': [
     'scripts/docs/build-all-check.test.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/check-plans-anchors.test.mjs',
-    // +1 le 2026-09-14 (#1759) : `canauxMecaniques.test.mjs` ENTRE dans la gate — né le 2026-09-13
-    // hors de toute liste écrite à la main, donc jamais joué. Il forge ses sources (`mkdtempSync` +
+    // #1964
+    'scripts/docs/build-passifs.test.mjs',
+    // `canauxMecaniques.test.mjs` forge ses sources (`mkdtempSync` +
     // `writeFileSync`) sous `os.tmpdir()` ; l'arbre n'est jamais écrit.
     'scripts/docs/lib/canauxMecaniques.test.mjs',
     // +1 le 2026-09-26 (#1973) : le banc de `canoniser` pose deux dossiers (`mkdtempSync`,
     // `mkdirSync`) et une jonction (`symlinkSync`) sous `os.tmpdir()`, `rmSync` en finally ; l'arbre
     // n'est jamais écrit.
     'scripts/docs/lib/chemin-mesure.test.mjs',
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-23 (#1801) : le banc de `ecrireOuVerifier` joue la primitive sur un doc JETABLE
     // (`mkdtempSync` + `writeFileSync` sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
-    'scripts/docs/lib/empreinte-sources.test.mjs',
+    'scripts/docs/lib/ecriture-derives.test.mjs',
     // +2 le 2026-09-14 (#1759) : le test de contrat importe `installer` pour
     // monter l'enveloppe de `fs` à nu (la casse d'un chemin lu se juge sans sous-processus).
     // L'écriture de ce module est la sienne propre — `<WFRP_LECTURES_SORTIE>.<pid>.json`, derrière la
-    // porte d'environnement (enregistreur-lectures.mjs:160) —, et `build-all.mjs` pointe cette sortie
+    // porte d'environnement `SORTIE` (`WFRP_LECTURES_SORTIE`) —, et `build-all.mjs` pointe cette sortie
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
@@ -280,18 +341,18 @@ const ATTENDU = {
   'test:recette': ['scripts/recette/lib.mjs'],
   typecheck: [],
   lint: [],
-  // +1 le 2026-09-06 (#1679 L3b) : la purge des captures périmées du lanceur est passée en source
-  // unique — elle efface dans `node_modules/.cache`, jamais dans l'arbre versionné.
+  // La purge des captures périmées du lanceur efface dans `node_modules/.cache`, jamais dans l'arbre versionné.
   test: [
     'scripts/guards/lib/purgerPerimes.mjs',
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
   ],
-  build: [],
-  'docs:check:tout': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
-  'docs:empreinte': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
+  // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
+  // de CODE par `ecrireOuVerifier`.
+  build: ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
+  'docs:build': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
   'test:raw': [
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
     // l'acceptation déclarée par chaque lecteur, `croissance.mjs` compris — une ligne de contrat
     // qui nommerait ses lecteurs dans une CHAÎNE ne dirait rien de ce qu'ils déclarent. Le module
@@ -309,7 +370,6 @@ const ATTENDU = {
     // l'arbre : même classe que `scripts/guards/lib/depotGabarit.mjs` (test:docs) et les dépôts
     // jetables de `scripts/ops/`.
     'scripts/raw/check-source-format.test.mjs',
-    'scripts/raw/check-refs.test.mjs',
     'scripts/raw/citation-graphy-guard.test.mjs',
     'scripts/raw/folio-bootstrap.mjs',
     'scripts/raw/folio-bootstrap.test.mjs',
@@ -323,22 +383,21 @@ const ATTENDU = {
     // retirés par `rmSync`) pour éprouver `mdsDeMarker`/`mdsDeRestitutions` sur le disque. Aucune
     // écriture DANS l'arbre : même classe que `check-source-format.test.mjs` ci-dessus.
     'scripts/raw/lib/marker-pages.test.mjs',
-    // +1 le 2026-09-25 (#1739) : l'extraction pypdf quitte `anchor-fill.mjs` pour sa maison, importée
-    // par `empty-folios-stock.mjs` et `marker-pages.mjs`. `extractPages` n'écrit que la sortie de
+    // L'extraction pypdf est importée par `empty-folios-stock.mjs` et `marker-pages.mjs`.
+    // `extractPages` n'écrit que la sortie de
     // `pdf-extract.py` sous un `mkdtempSync` de os.tmpdir(), `rmSync` en finally : aucune écriture
     // DANS l'arbre, même classe que `anchor-fill.mjs` ci-dessus.
     'scripts/raw/lib/pdf-extract.mjs',
     'scripts/raw/reanchor-split.mjs',
     'scripts/raw/reanchor.mjs',
-    'scripts/raw/reanchor.test.mjs',
     'scripts/raw/reconcile.test.mjs',
     // +1 le 2026-09-21 (#1739 S1) : `recouper-source.test.mjs` importe le re-coupeur des `.md` en
     // service pour éprouver son cœur PUR (`recouper`, `planDe`, `contenuDe`, `indexDe`, `recalerStock`)
     // sur un livre FORGÉ en mémoire ; ses `writeFileSync`/`rmSync` vivent dans `main()`, sous sa porte
     // `import.meta.main` (`main` de recouper-source.mjs) — déclarés en `ecritFerme` de `test:raw` (ECRIT_LU).
     'scripts/raw/recouper-source.mjs',
-    // +3 le 2026-09-20 (#1825) : les deux bancs neufs posent leurs fixtures (catalogue à bloc
-    // préservé, fiche d'un autre cœur) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
+    // +3 le 2026-09-20 (#1825) : les deux bancs neufs posent leurs fixtures (fiche à intégrer,
+    // fiche d'un autre cœur) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
     // l'assembleur est ACQUIS parce que son banc l'importe. Mesure du 2026-09-21 (#1825 F1-0-C) :
     // `assemble()` ÉCRIT, et le banc l'APPELLE — il lui passe son `rawDir` (même couture que
     // `cheminDeFiche`), pointé sur un `mkdtempSync` de os.tmpdir() : l'arbre n'est jamais écrit, et
@@ -356,10 +415,8 @@ const ATTENDU = {
     'scripts/raw/atlasFixture.mjs',
     'scripts/raw/build-atlas-index.mjs',
     'scripts/raw/build-atlas-index.test.mjs',
-    // +1 le 2026-09-20 (#1825) : le banc de l'aiguillage des catalogues prend la fixture de
-    // dépôt jetable (`instanceDeDepot`) et son env isolé (`envDeDepotForge`). La primitive ne fabrique
-    // que sous `mkdtempSync` de os.tmpdir(), et jette ses gabarits à la sortie du process — aucune
-    // écriture DANS l'arbre : même classe que `marker-pages.test.mjs` ci-dessus.
+    // #2155 : les bancs de `test:raw` lancent git par `scripts/test/gitDeBanc.mjs`, qui tient son env isolé
+    // (`envDeDepotForge`) de la primitive ; elle n'écrit que sous `mkdtempSync` de os.tmpdir().
     'scripts/guards/lib/depotGabarit.mjs',
     // +1 le 2026-09-21 (#1825) : le banc de la PROJECTION écrit les rendus de fixture que
     // `lireRendu` relit (mode de reprise du workflow) sous `mkdtempSync` de os.tmpdir(), `rmSync` en
@@ -398,9 +455,7 @@ const ATTENDU = {
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  // `build-implemente.mjs` importe `declarerCorpsPerime` du socle d'empreinte (#1801), dont
-  // l'écrivain (`ecrireDoc`) n'est appelé que par un générateur — la gate n'en appelle aucun.
-  'raw:check-code-refs': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/build-implemente.mjs'],
+  'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
   // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
@@ -427,11 +482,24 @@ test('aucune gate n’acquiert un module ÉCRIVAIN sans que ÉCRIT/LU soit re-me
   }
 })
 
+test('aucune entrée PÉRIMÉE : chaque écrivain inscrit est encore atteint par sa gate, et encore écrivain', () => {
+  const mesure = ecrivainsParGate(RACINE)
+  const perimes = Object.entries(ATTENDU)
+    .map(([gate, inscrits]) => [gate, inscrits.filter((s) => !(mesure[gate] ?? []).includes(s))])
+    .filter(([, scripts]) => scripts.length)
+  assert.deepEqual(
+    perimes,
+    [],
+    perimes.map(([gate, scripts]) => `« ${gate} » n'atteint plus, ou n'a plus pour écrivain : ${scripts.join(', ')}`).join(' ; ') +
+      ' — retire chaque entrée, justifie le retrait dans le commit ou le solde, et relis ECRIT_LU.',
+  )
+})
+
 test('la sonde n’est pas AVEUGLE : elle voit les écrivains connus, et ignore les lecteurs purs', () => {
   const mesure = ecrivainsParGate(RACINE)
   // Trois vérités indépendantes, chacune vérifiable à la main.
   assert.ok(
-    mesure['docs:check:tout'].includes('scripts/docs/lib/empreinte-sources.mjs'),
+    mesure['docs:build'].includes('scripts/docs/lib/ecriture-derives.mjs'),
     '`ecrireOuVerifier` est le seam par lequel tout générateur écrit sa cible',
   )
   assert.ok(
@@ -468,14 +536,37 @@ test('le corpus de chaque gate ne compte que des FICHIERS', () => {
   }
 })
 
-test('un import de TYPE seul n’entre pas au corpus, un import mixte y entre', () => {
-  assert.equal(sansImportsDeType("import type { A } from './a'\n").trim(), '')
-  assert.equal(sansImportsDeType("export type { A } from './a'\n").trim(), '')
-  assert.equal(sansImportsDeType("import { type A, type B } from './a'\n").trim(), '')
-  assert.equal(sansImportsDeType("import { type A, b } from './a'"), "import { type A, b } from './a'")
-  assert.equal(sansImportsDeType("import { a } from './a'"), "import { a } from './a'")
+test('les imports effacés n’entrent pas au corpus réel', () => {
   // `renvoi.ts` n'importe `valeurs.ts` que pour le TYPE `SourceRef`, et `decoupe.ts` pour du code.
   const corpus = transitif(['src/data/source/renvoi.ts'], RACINE)
   assert.ok(corpus.includes('src/data/source/decoupe.ts'))
   assert.ok(!corpus.includes('src/data/schemas/grammaire/valeurs.ts'))
+})
+
+test('R3 : le corpus suit les acquisitions exécutées et ignore le texte inerte', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'ecrivains-imports-'))
+  try {
+    writeFileSync(join(racine, 'a.ts'), 'export const b = 1; export type A = number; export type B = string;')
+    const cas = [
+      ["import type { A } from './a';", false],
+      ["export type { A } from './a';", false],
+      ["import { type A, type B } from './a';", false],
+      ["import { type A, b } from './a';", false],
+      ["import { type A, b } from './a'; console.log(b);", true],
+      ["import './a';", true],
+      ["export { b } from './a';", true],
+      ["const p = import('./a');", true],
+      ["const p = require('./a');", true],
+      ["/* import './a'; */ const s = \"from './a'\";", false],
+    ]
+    for (const [source, atteint] of cas) {
+      writeFileSync(join(racine, 'entree.ts'), source)
+      assert.deepEqual(transitif(['entree.ts'], racine).sort(), atteint ? ['a.ts', 'entree.ts'] : ['entree.ts'], source)
+    }
+    assert.deepEqual(transitif(['absent.mjs'], racine), [])
+    writeFileSync(join(racine, 'invalide.mjs'), 'const = ;')
+    assert.throws(() => transitif(['invalide.mjs'], racine), /invalide\.mjs ne se parse pas/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

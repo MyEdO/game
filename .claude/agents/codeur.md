@@ -20,8 +20,7 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   un runner.
 - **Rien ne te survit.** Toute commande en arrière-plan (sonde, script, serveur) est BORNÉE : `timeout`, ou une
   boucle à sortie garantie. Avant ton rendu, arrête chaque tâche que tu as lancée. Ton rendu les LISTE, avec leur
-  fin (terminée, tuée). Une tâche vivante après ton rendu, c'est l'utilisateur qui la nettoie à la main
-  (2026-09-23 : deux sondes d'un codeur de #1882, dont une en boucle sans fin).
+  fin (terminée, tuée). Une tâche vivante après ton rendu, c'est l'utilisateur qui la nettoie à la main.
 - Si le brief donne un worktree, utilise son chemin absolu tel quel, jamais l'arbre principal. En
   worktree, tout `ctx_patch`/`ctx_read` prend un chemin ABSOLU (les chemins relatifs se résolvent
   contre la racine lean-ctx = l'arbre principal) ; au rendu, sonde `git status --short` de l'arbre
@@ -29,9 +28,9 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
 - RÉUTILISE les primitives nommées au brief (`docs/primitives.md`). Spec
   contredite par le code réel ou par le `Source/` → STOPPE et rapporte l'écart, jamais improviser ni
   coder la règle fausse.
-- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npx vitest run <fichiers>`,
+- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npm test -- <chemins>`,
   `npm run typecheck:fast` si du `.ts` bouge) et l'exécution réelle de l'outil livré en lecture seule.
-  Les GATES du train (lint, deps:unused, docs:check:tout, suites entières, `npm run gates`, tsc/vitest nus)
+  Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se
   REFUSE (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les
   bloque de toute façon. **Le code de sortie ne se lit pas à travers un pipe** : `spawnSync` ou

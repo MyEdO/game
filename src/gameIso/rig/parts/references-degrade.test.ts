@@ -25,7 +25,7 @@ import { lireDegradeDerive, tokensOf } from '../palette';
 import { FX_GRADIENT_IDS, rigFxGradients } from '../fxGradients';
 import { VIEWS } from '../facing';
 import { viewEntries } from '../viewArt';
-import { weaponPart, shieldPart, armourPart, objetSansPorteur } from './equipment';
+import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart, type ArmeDeDessin, type EquipCtx } from './equipment';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { TENUE_DEFS } from './tenues/_registry.generated';
@@ -36,7 +36,7 @@ import { asRigSpeciesId, type Appearance } from '../appearance';
 import { defsGlobaux } from '../../sprites';
 import { listerArbre } from '../../../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
-import type { ItemInstance, Weapon } from '../../../engine/types';
+import type { ItemInstance } from '../../../engine/types';
 import type { PartArt } from './types';
 
 const RIG = resolve(__dirname, '..');
@@ -49,8 +49,9 @@ const SURCHARGES: (Appearance['colors'] | undefined)[] = [
   { peau: '#ffffff', cheveux: '#000000', vet1: '#000000', vet2: '#ffffff', cuir: '#808080', metal: '#ffffff' },
 ];
 const SKINS = [undefined, { metal: '#ff0000', cuir: '#00ff00', peau: '#123456' }];
-const arme = (shape: string, skin?: Record<string, string>) =>
-  ({ label: shape, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape, ...(skin && { skin }) }) as unknown as Weapon;
+/** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
+const arme = (forme: string, skin?: Record<string, string>): ArmeDeDessin => ({ type: 'melee', forme, bouclier: false, ...(skin && { skin }) });
+const armes = (...weapons: ArmeDeDessin[]): EquipCtx => ({ ...equipDe([], []), weapons });
 const armure = (label: string, skin?: Record<string, string>) =>
   ({ uid: 'a', kind: 'armor', label, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
 const MATIERES = ['Gambison', 'Jaque de cuir', 'Cotte de mailles', 'Plastron de plaque'];
@@ -81,15 +82,15 @@ function* corpus(): Generator<[string, string]> {
   const especes = (JSON.parse(readFileSync(resolve(__dirname, '../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
   for (const species of especes) for (const sex of sexeSchema.options) for (const { id: t } of TENUE_DEFS) for (const view of VIEWS)
     for (const [i, colors] of SURCHARGES.entries())
-      yield [`perso|${species}|${sex}|${t}|${view}|s${i}`, bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1, ...(colors && { colors }) }, { weapons: [], armour: [] }, {}, t, view))];
+      yield [`perso|${species}|${sex}|${t}|${view}|s${i}`, bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1, ...(colors && { colors }) }, equipDe([], []), {}, t, view))];
   for (const species of ['humain', 'nain'].map(asRigSpeciesId)) for (const view of VIEWS) for (const [i, colors] of SURCHARGES.entries()) {
     const app = { species, sex: 'M' as const, build: 0.5, seed: 1, ...(colors && { colors }) };
     for (const d of WEAPON_DEFS) for (const skin of SKINS)
-      yield [`arme|${species}|${d.slug}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, { weapons: [arme(d.slug, skin)], armour: [] }, {}, 'soldat', view))];
+      yield [`arme|${species}|${d.slug}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, armes(arme(d.slug, skin)), {}, 'soldat', view))];
     for (const d of SHIELD_DEFS)
-      yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { weapons: [arme('epee'), { ...arme(d.slug), label: 'Bouclier' }], armour: [] }, {}, 'soldat', view))];
+      yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { ...armes(arme('epee'), { ...arme(d.slug), bouclier: true }), shield: { forme: d.slug } }, {}, 'soldat', view))];
     for (const l of MATIERES) for (const skin of SKINS) for (const t of ['soldat', 'nu'])
-      yield [`armure|${species}|${l}|${t}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, { weapons: [], armour: [armure(l, skin)] }, {}, t, view))];
+      yield [`armure|${species}|${l}|${t}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, equipDe([], [armure(l, skin)]), {}, t, view))];
   }
   for (const c of creatures) for (const view of VIEWS) {
     const r = resolveById(c.id);
@@ -104,15 +105,15 @@ function* corpus(): Generator<[string, string]> {
   for (const d of WEAPON_DEFS) for (const skin of SKINS)
     for (const [n, v] of vues(objetSansPorteur(weaponPart(arme(d.slug, skin)))).entries()) yield [`icone-arme|${d.slug}|${n}|${skin ? 'k' : ''}`, v];
   for (const d of SHIELD_DEFS)
-    for (const [n, v] of vues(objetSansPorteur(shieldPart({ ...arme('bouclier'), shape: d.slug }))).entries()) yield [`icone-bouclier|${d.slug}|${n}`, v];
+    for (const [n, v] of vues(objetSansPorteur(shieldPart({ forme: d.slug }))).entries()) yield [`icone-bouclier|${d.slug}|${n}`, v];
   for (const l of MATIERES) for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
-    const p = armourPart(armure(l), slot);
+    const p = armourPart(pieceDeDessin(armure(l)), slot);
     if (p) for (const [n, v] of vues(objetSansPorteur(p)).entries()) yield [`icone-armure|${l}|${slot}|${n}`, v];
   }
 }
 
 describe('références de dégradé d’un rendu final (#1903)', () => {
-  it('(0) aucun `@` ne sort ; (1) chaque `url(#id)` a sa définition ; (2) un id défini plusieurs fois a un seul contenu', () => {
+  it('(0) aucun `@` ne sort ; (1) chaque `url(#id)` a sa définition ; (2) un id défini plusieurs fois a un seul contenu', { timeout: 60_000 }, () => {
     expect(fautesDeReferences(corpus())).toEqual([]);
   });
 

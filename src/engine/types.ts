@@ -447,14 +447,13 @@ export interface Weapon {
   /** SKIN cosmétique (objets uniques/légendaires) : override de palette clé→hex appliqué au
    *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
   skin?: Record<string, string>;
-  /** Silhouette de RENDU forcée (libellé d'arme du catalogue, ex. arme invoquée affichée comme
-   *  « Bâton de combat » bien que nommée « Arme aethyrique ») — résolue par le rig (weaponFamily).
-   *  Donnée opaque côté moteur (un simple libellé). */
+  /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
+   *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par le rig (`formeResolue`).
+   *  Donnée opaque côté moteur. */
   form?: string;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art (rig `weaponFamily`/
-   *  `shieldPart`), ≠ libellé. Stampé au spawn/à la construction depuis `ItemInstance.shape` ou le trait.
-   *  Absent = attaque naturelle / arme générique (repli par Groupe au rendu). */
-  shape?: string;
+  /** Forme CHOISIE par le joueur (`ItemInstance.formeChoisie`), propagée par `weaponFromItem`. La forme
+   *  dessinée se RÉSOUT au rig (`formeResolue`, #2113) ; absent = celle du catalogue. */
+  formeChoisie?: string;
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
    *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
@@ -852,8 +851,8 @@ export interface ActiveEffect {
    *  `combatFeatures/dispatch.featuresOf` (capacités de combat) et par `effectGrantedTalents` →
    *  `effectiveTalents` (POSSESSION : fiche, chips, `hasTalent`). JAMAIS posé dans `c.talents` :
    *  l'acquisition et l'avancement restent hors de portée d'un octroi qui expire. Un octroi SANS
-   *  échéance ne passe pas par ici — il est structurel (`engine/ops.ts`, op `grantTalent`). Résolu en
-   *  libellé concret (clé du registre) par `talentConcrete`. */
+   *  échéance ne passe pas par ici — il est structurel (`engine/ops.ts`, op `grantTalent`). Rendu à
+   *  l'affichage par `talentConcrete`. */
   grantedTalent?: { talentId: string; spec?: string };
   /** DURÉE d'un enchantement d'arme (op `augmentWeapon`) : l'enchant vit sur l'OBJET
    *  (`ItemInstance.enchants`, replié dans l'arme par `recomputeLoadout`) ; cet effet ne porte que sa
@@ -1174,9 +1173,10 @@ export interface ItemInstance {
   /** PORTÉE MINIMALE de tir (bande, cf. `Weapon.minRangeBand`) — propagée à l'arme dérivée. Machines de
    *  siège à distance (ADE II 8 l.251/253). */
   minRangeBand?: RangeBandId;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art (rig), ≠ libellé.
-   *  Copié du catalogue (`TrappingData.shape`) par `itemFromTrappingById` ; propagé à `Weapon.shape`. */
-  shape?: string;
+  /** Forme CHOISIE par le joueur parmi les `formChoices` du trapping (`choisirForme`), slug
+   *  `WeaponDef.slug`. Jamais une copie du catalogue : la forme dessinée se RÉSOUT au rig
+   *  (`formeResolue`, #2113) ; absent = `TrappingData.shape`. */
+  formeChoisie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */

@@ -5,9 +5,9 @@
 .merchant-body { padding: 12px 16px 16px; overflow-y: auto; scroll-padding-top: 44px; }
 /* Négoce en écran plein-champ (`ScreenShell`) — cohérent avec les écrans Port/Marché : onglets et
  * corps centrés à largeur bornée, corps scrollable dans le voile en colonne. */
-.merchant-overlay .mp-tabnav { width: min(760px, 96vw); margin: 0 auto; }
+.merchant-overlay .mp-tabnav { width: min(760px, 100%); margin: 0 auto; }
 .merchant-overlay .merchant-body {
-  width: min(760px, 96vw);
+  width: min(760px, 100%);
   margin: 0 auto;
   flex: 1;
   min-height: 0;

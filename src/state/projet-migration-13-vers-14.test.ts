@@ -11,9 +11,11 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseProject, CURRENT_PROJECT_SCHEMA, PROJECT_MIGRATIONS } from './worldMap';
+import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS } from './scene';
 import { creatureSemee, vehiculeSeme, navireSeme, creatures, vehicles } from '../data';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 
 /** Document schema 13 — FIGÉ, porteur des trois graines vides d'avant. */
 const PROJET_FORMAT_13 = {
@@ -76,7 +78,7 @@ const PERIL_NAVIRE = { type: 'setVessel', vehicleId: '' };
 
 /** Un vrai projet du dépôt ramené au format 13, dont le 1er péril de route porte les graines vides. */
 function projetAPeril13(): Record<string, unknown> {
-  const doc = JSON.parse(readFileSync(join(RACINE, 'src/scenes/diligence/diligence-projet.json'), 'utf8'));
+  const doc = lireProjetLivre('diligence/diligence-projet.json') as Record<string, unknown> & { schema: number; worldMap: { routes: { perils: unknown[] }[] } };
   doc.schema = 13;
   doc.worldMap.routes[0].perils = [{ label: 'Péril', chancePct: 10, effects: [PERIL_POSSESSION, PERIL_POURSUITE, PERIL_NAVIRE] }];
   return doc;
@@ -107,7 +109,7 @@ describe('PROJECT_MIGRATIONS[13] — le DOCUMENT entier, péril de route compris
       const script = JSON.parse(readFileSync(cible, 'utf8'));
       const { version: _v, ...migre } = PROJECT_MIGRATIONS[13](structuredClone(doc)) as Record<string, unknown>;
       void _v;
-      expect(script).toEqual(migre);
+      expect(script).toEqual({ ...migre, schema: 14 });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
