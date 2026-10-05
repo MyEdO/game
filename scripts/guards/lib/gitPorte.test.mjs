@@ -1443,7 +1443,7 @@ test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE
 function depotDesBords() {
   const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'src/a.txt': 'a\n', README: 'r\n' }, message: 'racine' })
   const ecrire = (rel, texte) => { mkdirSync(join(racine, rel, '..'), { recursive: true }); writeFileSync(join(racine, rel), texte) }
-  const g = gitDe(racine, { net: true })
+  const g = gitDe(racine, { net: true }); g('config', 'core.fileMode', 'false') // le mode ne vit que dans l'index (`update-index --chmod`) : même banc sous win32 et Linux
   const commit = (message) => { g('add', '-A'); g('commit', '-q', '--no-verify', '-m', message); return g('rev-parse', 'HEAD') }
   const c = { racine: socle }
   g('mv', 'src/a.txt', 'src/b.txt'); c.renommage = commit('renommage')
