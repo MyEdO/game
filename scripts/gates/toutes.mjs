@@ -118,7 +118,11 @@ export const ECRIT_LU = {
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'le reste des fixtures vit sous os.tmpdir() ; LIT src/ massivement (3 888 chemins) — les gardes de la ' +
+      'le reste des fixtures vit sous os.tmpdir() ; `guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
+      'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
+      'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
+      'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
+      'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
       'scripts/git-hooks/, sélection de `docs-rebuild.mjs`) ; ' +
@@ -157,7 +161,31 @@ export const ECRIT_LU = {
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal',
+      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
+      '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally',
+  },
+  'mods:check': {
+    ecrit: [],
+    lit: ['.claude/skills/', 'scripts/mods/', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'src/lib/tableTotale.ts', 'src/lib/ordre.mjs'],
+    raison:
+      'découvre les mods sous .claude/skills/ (`racinesDeMods`, scripts/mods/racines.mjs, par `listerDossier` de ' +
+      'scripts/guards/lib/lister.mjs, qui réexporte src/lib/ordre.mjs), compose ses env par `tableTotale` (src/lib/tableTotale.ts) et lance par l’hôte ' +
+      'de processus (scripts/guards/lib/spawnResilient.mjs) ; chaque ' +
+      'mod est COPIÉ, sans les artefacts du moteur, sous `mkdtempSync` de os.tmpdir() : `claude plugin validate --strict`, ' +
+      '`claude -p` qui y pose ses types, `tsc --project <copie>` (noEmit du tsconfig posé par le moteur) et ' +
+      '`claude plugin test` portent sur la COPIE ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
+      'Le CLI vit hors de l’arbre (PATH, ou cache npm de `npx`)',
+  },
+  'livraison:plage': {
+    ecrit: [],
+    lit: ['.claude/soldes/', 'scripts/guards/livraison-plage.mjs', 'scripts/guards/lib/', 'scripts/node-requis.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'package.json'],
+    raison:
+      'aucune écriture : la porte de publication (#2328, scripts/guards/lib/livraison.mjs) lit l’HISTOIRE par git — ' +
+      'le graphe de `merge-base origin/main..HEAD`, le patch de chaque fusion contre sa fusion automatique ' +
+      '(`merge-tree --write-tree`, dont les objets inaccessibles vont à l’odb, jamais à l’arbre), le journal ' +
+      'des messages, et les soldes `.claude/soldes/ref-<N>.md`, `<N>.md` de HEAD ; LIT son code, la porte de ' +
+      'version de Node (`engines` de package.json) et ce qu’importe l’hôte git (scripts/port-dev.mjs, src/lib/coupeAuMot.mjs)',
   },
   'test:ops': {
     ecrit: [],
@@ -172,7 +200,13 @@ export const ECRIT_LU = {
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
       '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
       '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
-      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
+      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
+      '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
+      '`import.meta.main` ET si `GITHUB_STEP_SUMMARY` est défini ; ' +
+      'le runner fournit ce fichier hors du dépôt, et le banc CLI le remplace par un fichier de ' +
+      '`mkdtempSync` sous os.tmpdir(), avec événement CI rouge, configuration GitHub temporaire et tokens GitHub vides, sans API ni écriture dans l’arbre ; ' +
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
@@ -199,22 +233,28 @@ export const ECRIT_LU = {
       'LIT package.json (les scripts que le runner relaie) et .npmrc (copié par scripts/node-requis.test.mjs ' +
       'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
-      'le 2026-09-27, #1801)',
+      'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
+      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally)',
   },
   'test:docs': {
     ecrit: [],
     lit: [
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
+      'scripts/etape-profilee.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
     ],
     raison:
-      'fixtures sous os.tmpdir() ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
+      'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
+      'fixtures sous os.tmpdir() ; `build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
+      'os.tmpdir() hors racine canonique par `canoniser` et `relatifSousRacine`, puis exige l’instance hors ' +
+      'arbre ; son finally supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé ' +
+      'avant `instanceDeDepot` ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ depuis le 2026-09-14 (#1759) : ' +
-      '`enregistreur-lectures.test.mjs`, venu de test:hooks avec sa racine `scripts/docs`, joue de VRAIS ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ : ' +
+      '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
       'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
@@ -250,10 +290,12 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'eslint.config.js', 'package.json', 'kill-pid.mjs'],
+    lit: ['src/', 'scripts/', 'server/', 'eslint.config.js', 'package.json', 'kill-pid.mjs', '.claude/skills/'],
     raison:
       '`eslint .` sans `--fix` ni `--cache` ; LIT sa config à plat, package.json et le seul module de ' +
-      'racine qu’il ramène — aucune lecture sous docs/ ni .claude/ (sonde 2026-09-08, 4 009 lectures)',
+      'racine qu’il ramène — aucune lecture sous docs/ (sonde 2026-09-08, 4 009 lectures) ; sous .claude/, ' +
+      'le seul périmètre du mur des mods (`GLOBS_DE_MOD`, eslint.config.js, #2278), sous .claude/skills/ : ' +
+      'son `lit` chevauche `.claude/`, la gate n’est jamais sautée',
   },
   test: {
     ecrit: [],

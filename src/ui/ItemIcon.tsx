@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
-import { isCapeItem } from '../engine/items';
+import { isCapeItem, isShieldItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
-import { armourPart, isShield, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
+import { armeDeDessin, armourPart, bouclierDeDessin, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { viewOrFront } from '../gameIso/rig/parts/types';
 import type { Slot } from '../gameIso/rig/bones';
 import { defsGlobaux } from '../gameIso/sprites';
@@ -28,11 +28,10 @@ type Resolved = { art: string; geom: Geom } | { glyph: IconId };
 /** Ordre de préférence des emplacements pour l'aperçu d'une pièce d'armure (le torse = plus lisible). */
 const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
 
-/** Arme minimale pour le routage d'art (même recette que feu `ItemSkinPreview`) à partir d'un objet.
- *  Porte `shape` (id de FORME = routage de l'art), `skin`, `form` (+`subType`) — sans `shape` un
- *  ItemInstance retomberait sur l'art générique alors que l'arme dérivée (Weapon) l'a déjà. */
+/** Arme minimale pour le routage d'art à partir d'un objet : ce dont sa forme se résout (`trappingId`,
+ *  `form`, `formeChoisie`, cf. `formeResolue`), `skin` et `subType` — la MÊME forme que le pion. */
 function asWeapon(item: ItemInstance): Weapon {
-  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, shape: item.shape, subType: item.subType };
+  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, formeChoisie: item.formeChoisie, trappingId: item.trappingId, subType: item.subType };
 }
 
 function resolve(item: ItemInstance | Weapon): Resolved {
@@ -45,8 +44,8 @@ function resolve(item: ItemInstance | Weapon): Resolved {
       return { glyph: 'item/armour' };
     }
     if (item.kind === 'melee' || item.kind === 'ranged') {
-      if (isShield(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(item)), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-      const a = viewOrFront(objetSansPorteur(weaponPart(asWeapon(item))), 'front');
+      if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(asWeapon(item)))), 'front');
       return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
     }
     if (item.kind === 'ammo') return { glyph: 'item/ammo' };
@@ -55,8 +54,8 @@ function resolve(item: ItemInstance | Weapon): Resolved {
     return { glyph: 'item/misc' };
   }
   // `Weapon` (combat) : pas de champ `kind` — discriminant de l'union.
-  if (isShield(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(item)), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-  const a = viewOrFront(objetSansPorteur(weaponPart(item)), 'front');
+  if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+  const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(item))), 'front');
   return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
 }
 

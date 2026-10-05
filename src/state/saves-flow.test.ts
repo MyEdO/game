@@ -260,12 +260,12 @@ describe('parseSave — la version DOIT être la courante', () => {
     useGame.getState().transitionTo('arene-hub');
     expect(useGame.getState().scene?.id).toBe('arene-hub');
   });
-  it('MESURE du motif de bump 61 → 62 (#700) : une chute en cours d’avant le flux multi ne se dérive plus', () => {
-    // Une save de 61 porte `pendingFall` tel quel (`snapshotSave` recopie le `state`, et `saveGame` ne
+  it('MESURE du motif de bump 63 → 64 (#700) : une chute en cours d’avant le flux multi ne se dérive plus', () => {
+    // Une save de 63 porte `pendingFall` tel quel (`snapshotSave` recopie le `state`, et `saveGame` ne
     // refuse que le combat) : un tombant unique `combatantId`/`attempt`/`phase`, sans `participants`.
     const ancienne = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choice', result: null };
-    expect(SAVE_VERSION).toBeGreaterThanOrEqual(62);
-    expect(parseSave({ ...cur, version: 61, data: { pendingFall: ancienne } })).toBeNull();
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(64);
+    expect(parseSave({ ...cur, version: 63, data: { pendingFall: ancienne } })).toBeNull();
     // LE DÉFAUT, sur le chemin réel : `FallModal` dérive sa phase par `phaseDeChute` à l'ouverture.
     expect(() => phaseDeChute(ancienne as never)).toThrow(TypeError);
     const courante: PendingFall = { to: { x: 1, y: 1 }, metres: 4, initiateurId: 'h', participants: [{ id: 'h', attempt: null, result: null }] };

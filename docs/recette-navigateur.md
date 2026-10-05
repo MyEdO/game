@@ -6,7 +6,7 @@
 **Vérification** : après une feature UI, valider dans le navigateur (Playwright MCP) — charger
 l'app de CET arbre (`npm run dev` imprime son URL), dérouler le flux, vérifier `console` (0 erreur)
 et screenshoter. Le menu
-**« 🧪 Tests — scénarios »** ouvre un choix de scénarios de test (groupe fixé + scène adaptée,
+**« Scénarios de test »** (`menu.testScenarios`, `src/i18n/messages/fr.ts`) ouvre un choix de scénarios de test (groupe fixé + scène adaptée,
 combat direct) ; **passer par le scénario adapté, sinon en créer un** — un scénario = un fichier
 dans `src/scenes/test-scenarios/` (cf. `docs/test-scenarios.md`).
 
@@ -487,7 +487,7 @@ pas la cible d'UX.
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — VRAI pipeline `creatureToCombatant` (`src/state/spawn.ts`, MÊME dérivation que `spawnEnemy`), sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'hero'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup — `'hero'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
+| `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — par la porte `spawnEnemy` (`src/state/spawn.ts`) du peuplement de scène, sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'hero'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup — `'hero'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
 | `turn('id')` | donne le TOUR à un combattant (réinitialise Action/Mouvement) | saute les bornes de Round — mise en place, pas simulation de partie. **Ne DÉCLENCHE PAS l'IA** (mesuré #1135) : positionne l'index de tour SEULEMENT (`battle.turn`), aucune logique de début de tour n'est invoquée — un ennemi conduit par l'IA reste immobile. Enchaîner `fastForward()` pour qu'il agisse. **Ne purge PAS l'armement de fin de tour** (`battle.endTurnArmed`, deux temps « Finir quand même ? ») : rappeler `turn()` sur le MÊME combattant au même Round après un cycle armé→confirmé peut retrouver l'empreinte d'économie de l'armement et afficher « Finir quand même ? » d'emblée — prendre un combattant vierge ou changer de Round (mesuré recette P2-A) |
 | `place('id',{x,y})` | téléporte un combattant | **PIÈGE COMPOSITE (corrigé)** : cible une coque à postes (`postes` non vide) ou un membre de `ShipPoste.crewIds` → déplace la FORMATION ENTIÈRE (coque + tout l'équipage des postes) du même delta, MÊME sémantique que la poussée (`pushCommitTile`). Téléporter la coque SEULE désynchronisait aperçu (postes) et portée réelle (équipage resté en arrière) — 30 % du budget d'une recette perdu à débugger ce déphasage avant fix. Retourne `{msg, moved:[ids]}` en cas composite, une chaîne sinon (combattant simple inchangé). |
 | `turnShip('id','tribord'\|'babord'\|crans)` | vire le cap d'un navire (triche, sans jet) | ne déplace QUE le cap (`facing`), jamais la position — vérifier ensuite avec `aim()` |

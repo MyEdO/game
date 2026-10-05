@@ -435,18 +435,18 @@
   {
     "id": "texteDUneAdresse",
     "type": "primitives.manifest",
-    "label": "aligner/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte",
+    "label": "aligner/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte/filDuChapitre/positionDuBloc/couvertureDe",
     "fichier": "src/data/source/decoupe.ts",
-    "concept": "décideur de texte d'une adresse de prose : unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment, d'une adresse ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées), unitesDuTexte prépare un texte libre, aligner décide texte libre contre rendu (égalité = ajoute vide, partie stricte sinon, témoin nommé), memeTexte compare une clé ou un rendu à un rendu",
+    "concept": "décideur de texte d'une adresse de prose : filDuChapitre est le fil d'un chapitre (le titre de chaque section en gras à son ouverture, puis ses blocs) et positionDuBloc la position d'un bloc sur ce fil ; unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment (un intervalle du fil, titres intermédiaires compris), d'une adresse (la tête d'un fragment qui en suit un autre précédée d'une ligne vide) ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées) ; couvertureDe dit les positions qu'un fragment cite (et la case d'une cellule), que lisent le verrou de chevauchement et l'éditeur ; unitesDuTexte prépare un texte libre (une ligne de titre markdown traduite en titre du fil), aligner décide texte libre contre rendu (égalité = ajoute vide, partie stricte sinon, témoin nommé), memeTexte compare une clé ou un rendu à un rendu",
     "perimetre": "toute comparaison de deux textes au sens de normText : judge et verifier (scripts/source/derive-decoupes.mjs), résolution de cellule, éditeur d'adresse",
     "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts"
   },
   {
     "id": "constructeursDAdresse",
     "type": "primitives.manifest",
-    "label": "fragmentBlocs/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
+    "label": "fragmentBlocs/intervalleDe/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
     "fichier": "src/data/source/decoupe.ts",
-    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes ; section, clé de ligne, colonne, table), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
+    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes et section de fin d'un intervalle ; section, clé de ligne, colonne, table), intervalleDe l'intervalle du fil d'un bloc de départ à un bloc de fin, tous deux sous la forme canonique (une fin dans la section de départ ne s'écrit pas), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
     "perimetre": "toute construction d'un fragment ou d'une adresse : éditeur d'adresse, renvois, chercheurs de judge, CLI de découpe, relocaliseur, migrations",
     "verrou": "src/construction-de-fragment-guard.test.ts ; src/data/source/decoupe.test.ts"
   },
@@ -1047,9 +1047,9 @@
       "src/ui/editor/Inspector.tsx"
     ],
     "nature": "organisme",
-    "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, statbloc",
+    "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
     "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc rendu par le rendu PARTAGÉ du Codex (CodexSections)"
+    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/ui/compendium/registry.ts)"
   },
   {
     "id": "equipmentPanel",
@@ -1203,7 +1203,7 @@
     "type": "primitives.manifest",
     "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
+    "concept": "base locale IndexedDB `{ nom, migrations }`, sa version dérivée de ses migrations keyées par version de départ (`migrerBase`, `versionCourante`) : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1368,6 +1368,15 @@
     "concept": "table TOTALE keyée par les éléments d'une liste, clés dans l'ordre de la liste, rappel (clé, indice) ; le seul cast du concept",
     "perimetre": "toute couche, src/engine et .mjs compris",
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
+  },
+  {
+    "id": "versionCourante",
+    "type": "primitives.manifest",
+    "label": "versionCourante",
+    "fichier": "src/lib/versionCourante.ts",
+    "concept": "version courante d'une forme persistée, dérivée de sa table de migrations (littéral objet keyé par version de DÉPART, clés contiguës) : plus grande clé + 1, en valeur et en type littéral (#2226)",
+    "perimetre": "toute version de forme persistée : saves, export du roster, schéma de projet, format des choix de création, bases IndexedDB",
+    "verrou": "src/lib/versionCourante.test.ts"
   },
   {
     "id": "isDrawnView",
@@ -1579,9 +1588,9 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale/formeResolue",
     "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`, `CLES_BOUCLIER`) et les valeurs dérivées (`bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
+    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, l'UNIQUE résolution de forme au catalogue courant ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
     "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
     "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },

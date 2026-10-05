@@ -1,12 +1,15 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { __setOuvertureIdbForTest, accesBase, idbDisponible, type BaseIdb } from './indexedDb';
+import { __setOuvertureIdbForTest, accesBase, idbDisponible, migrerBase, type BaseIdb, type MigrationsIdb } from './indexedDb';
 import { baseSimulee, brancherBasesSimulees, ouvertureSimulee, type BaseSimulee, type OuvertureSimulee } from './indexedDb.testkit';
 
-const BASE: BaseIdb = {
-  nom: 'wfrp4-essai',
-  version: 3,
-  upgrade: (db) => { db.createObjectStore('choses', { keyPath: 'id' }); },
-};
+/** Trois migrations ; chacune note sa version de départ dans `vues`, la dernière crée `choses`. */
+const migrationsNotees = (vues: number[] = []) => ({
+  0: () => { vues.push(0); },
+  1: () => { vues.push(1); },
+  2: (db) => { vues.push(2); db.createObjectStore('choses', { keyPath: 'id' }); },
+}) satisfies MigrationsIdb;
+
+const BASE: BaseIdb = { nom: 'wfrp4-essai', migrations: migrationsNotees() };
 
 /** Branche l'ouverture sur `base` ; rend chaque ouverture demandée, avec son nom et sa version. */
 function brancher(base: BaseSimulee): { ouvertures: (OuvertureSimulee & { nom: string; version: number })[] } {
@@ -51,11 +54,11 @@ describe('ouverture d’une base, par la poignée — un seul règlement, jamais
   const lireChoses = (base: BaseIdb = BASE) => accesBase(base).magasin<{ id: string }, string>('choses').lireTout();
   const avecChoses = () => baseSimulee({ choses: { keyPath: 'id' } });
 
-  it('succès : l’opération joue sur la connexion ouverte au nom et à la version de la base, montée depuis l’ancienne version, puis refermée', async () => {
+  it('succès : l’opération joue sur la connexion ouverte au nom et à la version de la base, migrée depuis l’ancienne version, puis refermée', async () => {
     const base = baseSimulee();
     const vues: number[] = [];
     const { ouvertures } = brancher(base);
-    const p = lireChoses({ ...BASE, upgrade: (db, ancienne) => { vues.push(ancienne); BASE.upgrade(db, ancienne); } });
+    const p = lireChoses({ nom: BASE.nom, migrations: migrationsNotees(vues) });
     ouvertures[0].monter(2);
     base.magasins.get('choses')!.contenu.set('a', { id: 'a' });
     ouvertures[0].reussir();
@@ -147,8 +150,8 @@ describe('accesBase — un magasin par opération, sa connexion fermée à son r
 
   it('clé externe et clé composée passent telles quelles', async () => {
     const bases = brancherBasesSimulees();
-    const externe: BaseIdb = { nom: 'wfrp4-externe', version: 1, upgrade: (db) => { db.createObjectStore('poignees'); } };
-    const composee: BaseIdb = { nom: 'wfrp4-composee', version: 1, upgrade: (db) => { db.createObjectStore('couches', { keyPath: ['scene', 'z'] }); } };
+    const externe: BaseIdb = { nom: 'wfrp4-externe', migrations: { 0: (db) => { db.createObjectStore('poignees'); } } };
+    const composee: BaseIdb = { nom: 'wfrp4-composee', migrations: { 0: (db) => { db.createObjectStore('couches', { keyPath: ['scene', 'z'] }); } } };
     const poignees = accesBase(externe).magasin<{ kind: string }, string>('poignees');
     const couches = accesBase(composee).magasin<{ scene: string; z: number }, [string, number]>('couches');
     await poignees.ecrire({ kind: 'directory' }, 'dataDir');
@@ -199,8 +202,7 @@ describe('accesBase — un magasin par opération, sa connexion fermée à son r
   it('`vider` vide TOUS les magasins de la base dans UNE transaction ; en panne, il n’en vide aucun', async () => {
     const deux: BaseIdb = {
       nom: 'wfrp4-deux',
-      version: 1,
-      upgrade: (db) => { db.createObjectStore('a', { keyPath: 'id' }); db.createObjectStore('b', { keyPath: 'id' }); },
+      migrations: { 0: (db) => { db.createObjectStore('a', { keyPath: 'id' }); db.createObjectStore('b', { keyPath: 'id' }); } },
     };
     const bases = brancherBasesSimulees();
     const acces = accesBase(deux);
@@ -218,30 +220,41 @@ describe('accesBase — un magasin par opération, sa connexion fermée à son r
 });
 
 describe('brancherBasesSimulees — un branchement, une base par nom', () => {
-  it('deux bases ouvertes par le même branchement restent distinctes, chacune montée UNE fois', async () => {
+  it('deux bases ouvertes par le même branchement restent distinctes, chacune migrée UNE fois', async () => {
     const bases = brancherBasesSimulees();
-    const montees: string[] = [];
-    const autre: BaseIdb = { nom: 'wfrp4-autre', version: 1, upgrade: (db) => { montees.push('autre'); db.createObjectStore('choses', { keyPath: 'id' }); } };
-    const essai: BaseIdb = { ...BASE, upgrade: (db, v) => { montees.push('essai'); BASE.upgrade(db, v); } };
+    const migrations: string[] = [];
+    const autre: BaseIdb = { nom: 'wfrp4-autre', migrations: { 0: (db) => { migrations.push('autre'); db.createObjectStore('choses', { keyPath: 'id' }); } } };
+    const essai: BaseIdb = { nom: BASE.nom, migrations: { 0: (db) => { migrations.push('essai'); db.createObjectStore('choses', { keyPath: 'id' }); } } };
     await accesBase(essai).magasin('choses').ecrire({ id: 'e' });
     await accesBase(autre).magasin('choses').ecrire({ id: 'x' });
     await accesBase(essai).magasin('choses').ecrire({ id: 'f' });
     expect([...bases.contenu('wfrp4-essai', 'choses').keys()]).toEqual(['e', 'f']);
     expect([...bases.contenu('wfrp4-autre', 'choses').keys()]).toEqual(['x']);
-    expect(montees).toEqual(['essai', 'autre']);
+    expect(migrations).toEqual(['essai', 'autre']);
   });
 
   it('une base amorcée à une version antérieure monte depuis elle ; à la version courante, ne monte pas', async () => {
     const bases = brancherBasesSimulees();
     const vues: number[] = [];
     const amorcee = bases.amorcer(BASE.nom, 2, { vieux: {} });
-    await accesBase({ ...BASE, upgrade: (db, v) => { vues.push(v); BASE.upgrade(db, v); } }).magasin('choses').lireTout();
+    await accesBase({ nom: BASE.nom, migrations: migrationsNotees(vues) }).magasin('choses').lireTout();
     expect(vues).toEqual([2]);
     expect([...amorcee.magasins.keys()]).toEqual(['vieux', 'choses']);
 
     const aJour = bases.amorcer('wfrp4-a-jour', 1, { choses: { keyPath: 'id' } });
     aJour.magasins.get('choses')!.contenu.set('p', { id: 'p' });
-    await expect(accesBase({ ...BASE, nom: 'wfrp4-a-jour', version: 1, upgrade: () => { vues.push(-1); } }).magasin('choses').lire('p')).resolves.toEqual({ id: 'p' });
+    await expect(accesBase({ nom: 'wfrp4-a-jour', migrations: { 0: () => { vues.push(-1); } } }).magasin('choses').lire('p')).resolves.toEqual({ id: 'p' });
     expect(vues).toEqual([2]);
+  });
+});
+
+describe('migrerBase — les migrations d’une base, keyées par version de départ (#2226)', () => {
+  it('joue, dans l’ordre, chaque migration de l’ancienne version à la version courante', () => {
+    const depuisNeuve: number[] = [];
+    migrerBase(migrationsNotees(depuisNeuve), baseSimulee().db, 0);
+    expect(depuisNeuve).toEqual([0, 1, 2]);
+    const depuisUne: number[] = [];
+    migrerBase(migrationsNotees(depuisUne), baseSimulee().db, 1);
+    expect(depuisUne).toEqual([1, 2]);
   });
 });

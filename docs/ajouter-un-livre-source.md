@@ -633,6 +633,42 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
   d'un catalogue vivent dans le script — jamais une liste de livres. Un chapitre cité par un catalogue est crédité
   **au niveau chapitre** par `coverage.mjs`/`reconcile.mjs` (pas besoin de citation `l.X`).
 
+### Relevé d'un système de règles, paquet et tri (#1887)
+
+Pour un SYSTÈME de règles (ses termes), trois outils enchaînés, sans agent jusqu'au tri :
+
+- **Relevé** — `npm run raw:releve -- <id du livre> <terme>…` (`scripts/raw/releve.mjs`) : toute section
+  de règle qui porte un terme, par quatre ORIGINES (`index` imprimé, `titre`, `mention` dans le texte,
+  `renvoi` vers une section déjà relevée), chacune adressée par `adresseDe`. Les entités, ambigus et
+  introuvables sont nommés à part.
+- **Paquet** — `npm run raw:paquet -- <id du livre> [--sans-mention] <terme>…` (`scripts/raw/paquet.mjs`) :
+  le relevé de tous les termes en Markdown DÉTERMINISTE, texte résolu verbatim, en-tête
+  `### NNN l.X — titre [origines]`, tailles sur la sortie d'erreur. La forme **`--tri`** ne rend que
+  `## Règle`, sans aucune adresse : une section à origine `mention` SEULE y est réduite à ses passages
+  qui nomment un de ses termes (la phrase, bornée par `debutDePhrase`/`finDePhrase` de
+  `src/data/source/renvoi.ts` ; dans une table, ses lignes d'en-tête et celles qui nomment, jamais la
+  séparatrice), séparés par une ligne `[…]` là où du texte est élidé, par leur blanc d'origine sinon ;
+  toute autre section est rendue entière.
+  `--tri --consigne <système>` rend le prompt complet de l'agent de tri : la consigne
+  `scripts/raw/tri-consigne.md` (trous `{{systeme}}`, `{{termes}}`, `{{paquet}}`) remplie.
+- **Vérificateur du tri** — `npm run raw:tri -- <id du livre> <verdict.json> <terme>…`
+  (`scripts/raw/tri.mjs`) : le paquet est REJOUÉ depuis les termes. Le verdict est un tableau de lignes
+  `{ ref, role, preuve }` (`définit`, `modifie`, `déclenche`, `consomme`) ou `{ ref, role: 'hors-système' }`,
+  exclusive dans sa section. L'adresse de chaque preuve est DÉRIVÉE, jamais lue : l'unique bloc de sa
+  couverture (`couvertureDe`), section de fin comprise, où elle s'aligne (`aligner`) entre deux BORNES DE MOT, jugées sur la première occurrence,
+  adressé par `fragmentBlocs`. Quand le texte de la section nomme un de ses termes, la preuve doit en
+  nommer un (le prédicat de `passagesDe`). Refus nommés, avec leur ligne : `ref-hors-paquet`,
+  `section-sans-verdict`, `hors-systeme-non-exclusif`, `role-inconnu`, `preuve-introuvable`,
+  `preuve-ambigue`, `preuve-sans-terme` (sortie 1). **Limite connue** : dans une section dont le texte
+  ne nomme aucun terme (origine `index` ou `renvoi` seule), une preuve faite d'un mot court (« the »,
+  « a ») qui n'apparaît qu'à un seul bloc dérive encore une adresse ; aucun plancher de longueur ne
+  la refuse. Quand les termes sont ceux d'un système de
+  `scripts/raw/releve-rappel.json`, il imprime le SCORE : matrice (attendue, écartée, non étiquetée) ×
+  (retenue, rejetée), accord de rôle, cas nommés — un diagnostic, jamais une assertion.
+- **Garde de fuite** — `npm run raw:tri -- --fuite` : sortie 1 dès qu'un 6-gramme de mots (`normText`,
+  ponctuation écartée), ou le texte entier s'il a moins de six mots, d'une preuve attendue, d'une
+  raison ou d'un titre d'écartée du rappel figure dans la consigne de tri.
+
 ## 5. Curation de la donnée dans `src/data/*.json`
 
 > ⚠️ **AVANT de curer : inventaire de complétude par TYPE d'entité (garde anti-oubli, #734/#735).**

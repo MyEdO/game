@@ -5,7 +5,8 @@
 // rapport.
 //
 // Verdicts : EXACT (un run contigu de blocs d'une même section) · EXACT-MULTI-SECTIONS (un run
-// contigu à cheval sur plusieurs sections d'un même chapitre) · MONTAGE (2+ runs disjoints, découpe
+// contigu à cheval sur plusieurs sections d'un même chapitre, adressé par UN intervalle : `finSec`
+// posé, titres intermédiaires compris) · MONTAGE (2+ runs disjoints, découpe
 // gloutonne par paragraphes de la desc) · CELLULE (la desc EST une case de table, adressée par clé
 // de ligne × en-tête de colonne) · CELLULE-AMBIGUE (plusieurs cases du livre portent ce texte : pas
 // d'adresse, une adresse arbitraire mentirait) · ECHEC (rien de contigu — paraphrase probable ou
@@ -54,11 +55,11 @@ function montage(chapitre, unites) {
   while (pos < unites.length) {
     let hit = null
     for (let k = unites.length; k > pos; k--) {
-      const frags = findRuns(chapitre, chaineDe(unites.slice(pos, k)))
-      if (frags) { hit = { frags, next: k }; break }
+      const frag = findRuns(chapitre, chaineDe(unites.slice(pos, k)))
+      if (frag) { hit = { frag, next: k }; break }
     }
     if (!hit) return null
-    parts.push(...hit.frags)
+    parts.push(hit.frag)
     pos = hit.next
   }
   return parts
@@ -84,9 +85,8 @@ const partieStricteDuBloc = (s, b, unites) => (aligner(unites, unitesDuBloc(s, b
 
 /**
  * Juge une entrée : SEULE définition du verdict d'adressabilité du dépôt — le rapport de dérivation
- * ci-dessous et les migrations `scripts/migrations/2026-09-05-1389-psychology-desc-vers-descref.mjs`
- * et `scripts/migrations/2026-09-28-1887-regles-desc-vers-descref.mjs` en jugent par elle, jamais
- * par un second chemin.
+ * ci-dessous en juge par elle, jamais par un second chemin. Aucune migration datée ne l'importe
+ * (`scripts/guards/lib/migrationsVerdictVivant.mjs`).
  * @returns {{ verdict: string, ref?: object, reason?: string, verification?: string }}
  */
 export function judge(entry) {
@@ -100,12 +100,12 @@ export function judge(entry) {
   const texte = chaineDe(unites)
 
   for (const { ch, chapitre } of chapitres) {
-    const parts = findRuns(chapitre, texte)
-    if (!parts) continue
-    const ref = { book, ch, parts }
+    const frag = findRuns(chapitre, texte)
+    if (!frag) continue
+    const ref = { book, ch, parts: [frag] }
     const verification = verifier(chapitre, ref, unites)
     return {
-      verdict: parts.length > 1 ? 'EXACT-MULTI-SECTIONS' : 'EXACT',
+      verdict: frag.finSec == null ? 'EXACT' : 'EXACT-MULTI-SECTIONS',
       ref,
       ...(verification ? { verification } : {}),
     }

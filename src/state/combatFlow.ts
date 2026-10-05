@@ -316,7 +316,8 @@ export function attackWeaponOf(battle: BattleState, attacker: Combatant, target:
     ? freeAttackWeapon(pa.freeKind, creatureAttacks(attacker.traits ?? []).find((a) => a.kind === pa.freeKind)?.bonus ?? 0)
     : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
-  // peut donc être introuvable et rendre la main à l'auto-choix. Repli = pending d'avant le gel.
+  // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
+  // lancé (`openAttackCascade`, `cleaveAttack`) ou 2ᵉ frappe (`dualStrikeAttack`).
   return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants);
 }
 
@@ -600,7 +601,7 @@ export function stampEnvWeatherAtCombatStart(get: Get, set: SetFn): void {
  * Éclairs de la pluie diluvienne (EDOC 8 l.82, #341) : à l'OUVERTURE d'un combat pendant un jour de
  * voyage sous pluie diluvienne (`lightningNervous` en donnée `weather.json`), chaque créature au Trait
  * Nerveux est effrayée UNE fois (une seule ouverture de combat par embuscade). MÊME dispatcher que le coup
- * d'arme à feu (bruits forts, l.1936) : le tonnerre est un bruit fort → `startleCause:'noise'`, donc une
+ * d'arme à feu (bruits forts) : le tonnerre est un bruit fort → `startleCause:'noise'`, donc une
  * monture Dressée (Guerre) est exemptée par la donnée du Trait Nerveux (aucune branche par-nom ici).
  */
 export function startleOnStormAtCombatStart(get: Get, set: SetFn): void {
@@ -1050,7 +1051,7 @@ export function previewCast(
     ...(windsLine ? [windsLine] : []),
   ];
   return {
-    label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.155-156)
+    label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.101)
     base: castingBaseValue(caster, ci.skill, ci.spec),
     target: target + windsMod + (ctx?.total ?? 0),
     mods,
@@ -2757,10 +2758,7 @@ function appliquerLaTouche(
     if (!groupAdvantage()) attacker.advantage = 0; // l'attaquant a échoué au Test opposé (LDB ; pas de perte per-combattant en mode groupe)
   }
   if (res.hit && res.woundsLost && !groupAdvantage()) target.advantage = 0; // perdre une Blessure → perte de tout Avantage (LDB ; inerte en mode groupe)
-  // Porte-Bouclier (LDB 10 l.972, VERBATIM) : « vous gagnez [niveau] Avantages SI VOUS PERDEZ le Test opposé »
-  // en vous défendant au Bouclier — consolation d'une « situation désespérée », APRÈS la perte d'Avantage due
-  // à la Blessure / au Test perdu. Défense PERDUE = l'attaquant a gagné (`advantageTo === 'attacker'`) et le
-  // défenseur a paré au Bouclier (`res.parryWeapon`). Variante groupe AA → `shieldAdvantageLevel` = 0.
+  // Porte-Bouclier (LDB 10 l.972)
   if (res.advantageTo === 'attacker') {
     const shieldAdv = shieldAdvantageLevel(target, res.parryWeapon);
     if (shieldAdv) { campGain(get, target, shieldAdv); target.gainedAdvThisRound = true; }
@@ -3011,7 +3009,7 @@ export function runPreemptShots(get: Get, set: SetFn): void {
   for (const shooter of shooters) {
     if (isOutOfAction(shooter) || shooter.loseNextAction) continue; // tué / déjà tiré par un tir précédent de ce Round
     // Cible = ennemi valide le plus proche AVEC Ligne de Vue (LDB 10). La LdV se tranche ici (`losClear`,
-    // même `losTo` que `resolveAttack` l.470-472) AVANT le gate : un candidat plus proche mais masqué ne
+    // même `losTo` que `resolveAttack`) AVANT le gate : un candidat plus proche mais masqué ne
     // consomme aucun Test — le gate ne joue qu'UNE fois, sur la cible réellement tirée.
     const t0 = battle.combatants
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)
@@ -3391,10 +3389,11 @@ export function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, a
 
 /**
  * UNE DÉFENSE EST-ELLE EN COURS ? (#1852) — LE prédicat du slot `pendingDefense`, lu par la PORTE
- * d'ouverture (`maybeOpenDefense`) et par les trois FILES de frappes (`drainerLesGratuites`,
- * `runCleaveChain`, `resolveFreeAttacks`). LDB 85 l.41-43 : une attaque gratuite est un Test d'attaque
- * COMPLET, donc résolue entièrement — fenêtre du défenseur comprise — avant que la suivante soit
- * déclarée. Une file qui le lit s'ARRÊTE sans rien consommer : sa frappe est reprise à la fermeture.
+ * d'ouverture (`maybeOpenDefense`, par où passe `runCleaveChain`) et par les trois FILES de frappes
+ * (`drainerLesGratuites`, `resolveFreeAttacks`, `aiCreatureFreeAttacks`). LDB 85 l.41-43 : une attaque
+ * gratuite est un Test d'attaque COMPLET, donc résolue entièrement — fenêtre du défenseur comprise —
+ * avant que la suivante soit déclarée. Une file qui le lit s'ARRÊTE sans rien consommer : sa frappe
+ * est reprise à la fermeture.
  */
 export function defenseEnCours(s: Pick<GameState, 'pendingDefense'>): boolean {
   return s.pendingDefense != null;
@@ -4649,7 +4648,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   lines.push(...sorceryCorruptionLines(get, set, caster, ctx, m.tableRolls));
   // « Un jet = une modale » : le héros voit la conséquence (Colère/Imparfaite) INLINE dans la séquence
   // partagée (étape d'affichage). `suppressReveal` est un paramètre d'appel qu'AUCUN appelant ne pose
-  // aujourd'hui (Focalisation interrompue comprise, l.2197) — cf. #942, ticket de suite.
+  // aujourd'hui (Focalisation interrompue comprise) — cf. #942, ticket de suite.
   const affichee = caster.kind === 'hero' && !ctx.suppressReveal;
   if (affichee) {
     const colere = severity === 'colere';
@@ -5302,7 +5301,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
 }
 
 /** Contexte de visibilité OPTIONNEL pour filtrer des cibles de sort par Ligne de Vue (LDB 46
- *  l.170). Absent/null (hors combat, tests purs) : pas de filtre — comportement historique. */
+ *  l.121). Absent/null (hors combat, tests purs) : pas de filtre. */
 export type SpellSight = { scene: Scene; smoke?: Pt[] } | null;
 const spellSightBlocked = (sight: SpellSight | undefined, caster: Combatant, t: Combatant): boolean =>
   !!sight && !!caster.pos && !!t.pos && !losClear(sight.scene, caster.pos, t.pos, sight.smoke ?? []);
@@ -7970,7 +7969,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (!battle || !scene || battle.over) return;
   const enemy = inBattleId(battle, enemyId);
   if (!enemy || isOutOfAction(enemy)) return advanceTurn(get, set);
-  // Re-test du prédicat de contrôle À L'ENTRÉE : `maybeRunEnemyTurn` (l.5318) l'a évalué AVANT de
+  // Re-test du prédicat de contrôle À L'ENTRÉE : `maybeRunEnemyTurn` l'a évalué AVANT de
   // différer par `scheduleCombatTimer`, et `setGmSeat` (`netFlow.ts`) n'attend aucune fenêtre de combat —
   // un siège MJ pris entre la planification et le tir rend cet acteur conduit à la MAIN. On rend la main
   // sans jouer : le MJ le pilote via l'UI (`controlsCombatant`), l'IA n'a plus à décider pour lui.

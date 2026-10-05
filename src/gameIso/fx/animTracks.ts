@@ -18,7 +18,7 @@ import { useGame } from '../../state/store';
 import { inBattleId } from '../../state/combatants';
 import { combatantRender } from '../sizeScale';
 import { enemyRigProfile, rendersFromOwnInventory } from '../rig/enemyProfile';
-import { armePrincipale, equipPorte, type EquipCtx, type FormeDArme } from '../rig/parts/equipment';
+import { armePrincipale, equipPorte, type EquipCtx } from '../rig/parts/equipment';
 import { hasShieldEquipped } from '../rig/anim/weaponClips';
 import {
   clipTotalMs,
@@ -80,7 +80,7 @@ interface AttackEvent {
   to?: string;
   kind?: string;
   defense?: string;
-  weapon?: FormeDArme;
+  weapon?: Weapon;
   parryWeapon?: Weapon;
   creatureAttack?: string;
   result?: { hit?: boolean };

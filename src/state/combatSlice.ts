@@ -2110,9 +2110,8 @@ export function createCombatSlice(get: Get, set: Set) {
       a.aiming = false; // recharger est une autre action → la visée est perdue
       // ARME rechargée = celle du pending (chaque arme à distance a SON cycle — arbitrage utilisateur
       // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
-      // munition ») ;
-      // repli sur la 1re arme à distance pour un pending sans uid (état antérieur).
-      const rw = a.weapons.find((x) => x.uid === pr.weaponUid) ?? a.weapons.find((x) => x.type === 'ranged');
+      // munition »).
+      const rw = garanti(a.weapons.find((x) => x.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée');
       // Rechargement rapide / Artilleur (LDB 10) : +niveau DR au Test de rechargement (sur un jet réussi).
       const reloadTalent = pr.success ? reloadDRBonus(a, rw) : 0;
       // Cumul LDB 12 mutualisé (`extendedTestStep`, #273 Étape 1) : même arithmétique que le Test étendu
@@ -2120,14 +2119,13 @@ export function createCombatSlice(get: Get, set: Set) {
       const { total: progress, done } = extendedTestStep(pr.progressBefore, { success: pr.success, sl: pr.sl + reloadTalent }, pr.reload);
       if (done) {
         loadWeapon(a, rw); // couture UNIQUE : état de charge + munition capturée, sur CETTE arme
-      } else if (rw) {
+      } else {
         setReloadProgress(a, rw, progress);
       }
       if (pr.success && reloadGrantsAssessAdvantage(a)) campGain(get, a, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
       // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : `progress` inclut le bonus de
       // Talent (réalisé à l'application), le nom d'arme est résolu ici (uid → NOM d'affichage).
-      const reloadName = garanti(a.weapons.find((w) => w.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée').label;
-      const reloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: reloadName } });
+      const reloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
       set({ battle: { ...markActed(get, set, battle), action: null, log: [...battle.log, ...evLines(reloadIssue, 'reload', a.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       // Acteur PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (comme cast/défense).

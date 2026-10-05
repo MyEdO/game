@@ -10,13 +10,14 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
 
 ## Le chemin canonique en 6 étapes
 
-1. **Le paquet `src/scenes/<campagne>/<campagne>-projet.json`**, commité, MANUSCRIT. À
-   l'éditeur : « Ouvrir » une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> » ;
-   « Fichier → Exporter JSON » passe la porte UNIQUE du document (`parseProject`, garde
-   `src/ui/editor/export-passe-la-porte.test.tsx`) et télécharge `<id de la scène COURANTE>-projet.json`,
-   scène courante en tête (donc scène d'entrée). Ce fichier ne remplace PAS le paquet commité tel quel :
-   label, nom de fichier et scène d'entrée ont changé (`src/ui/editor/Editor.tsx`, `exportJson` et
-   `loadBuiltin` ; #1997). Le paquet commité s'édite donc comme document JSON. Tout paquet neuf se déclare dans
+1. **Le paquet `src/scenes/<campagne>/<campagne>-projet.json`**, commité, MANUSCRIT, édité à l'éditeur
+   ou comme document JSON. « Ouvrir » une campagne du jeu en fait une COPIE de travail libellée « Copie de
+   <label> » ; l'aller-retour vers le paquet est « Fichier → Exporter forme dépôt (dev) » : le fichier
+   `BuiltinCampaign.fichier`, au format du dépôt, libellé d'origine tant que le projet n'est pas renommé,
+   ordre des scènes et scène d'entrée conservés (garde `src/ui/editor/export-forme-depot.test.tsx`).
+   « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
+   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`, garde
+   `src/ui/editor/export-passe-la-porte.test.tsx`). Tout paquet neuf se déclare dans
    `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` : son volet couverture exige que tout
    `*-projet.json` soit produit par un générateur OU nommé manuscrit.
 2. **Scènes et cartes à l'éditeur** ; reproduire un plan de livre : skill `creer-une-map`.

@@ -447,14 +447,13 @@ export interface Weapon {
   /** SKIN cosmétique (objets uniques/légendaires) : override de palette clé→hex appliqué au
    *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
   skin?: Record<string, string>;
-  /** Silhouette de RENDU forcée (libellé d'arme du catalogue, ex. arme invoquée affichée comme
-   *  « Bâton de combat » bien que nommée « Arme aethyrique ») — résolue par le rig (weaponFamily).
-   *  Donnée opaque côté moteur (un simple libellé). */
+  /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
+   *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par le rig (`formeResolue`).
+   *  Donnée opaque côté moteur. */
   form?: string;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art (rig `weaponFamily`/
-   *  `shieldPart`), ≠ libellé. Stampé au spawn/à la construction depuis `ItemInstance.shape` ou le trait.
-   *  Absent = attaque naturelle / arme générique (repli par Groupe au rendu). */
-  shape?: string;
+  /** Forme CHOISIE par le joueur (`ItemInstance.formeChoisie`), propagée par `weaponFromItem`. La forme
+   *  dessinée se RÉSOUT au rig (`formeResolue`, #2113) ; absent = celle du catalogue. */
+  formeChoisie?: string;
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
    *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
@@ -652,7 +651,7 @@ export interface ConditionChange {
 export type ConditionEmit = (e: ConditionChange) => void;
 
 /** Pénalité/blocage d'incantation temporisé (contrecoups des tables d'Imparfaites /
- *  Colère des dieux — LDB 46 l.61-136, LDB 40 l.55-89). Une seule des deux durées :
+ *  Colère des dieux — LDB 46 l.34-80, LDB 40 l.52-89). Une seule des deux durées :
  *  `roundsLeft` (échelle tactique) ou `untilTime` (minutes d'horloge `gameTime`). */
 /** SENTINELLE de portée d'une `CastPenalty` RUNTIME : toute magie (Prière + Langue + Focalisation).
  *  C'est la projection de l'op `castPenalty` SANS référence de Compétence (`src/engine/ops.ts`). */
@@ -1174,9 +1173,10 @@ export interface ItemInstance {
   /** PORTÉE MINIMALE de tir (bande, cf. `Weapon.minRangeBand`) — propagée à l'arme dérivée. Machines de
    *  siège à distance (ADE II 8 l.251/253). */
   minRangeBand?: RangeBandId;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art (rig), ≠ libellé.
-   *  Copié du catalogue (`TrappingData.shape`) par `itemFromTrappingById` ; propagé à `Weapon.shape`. */
-  shape?: string;
+  /** Forme CHOISIE par le joueur parmi les `formChoices` du trapping (`choisirForme`), slug
+   *  `WeaponDef.slug`. Jamais une copie du catalogue : la forme dessinée se RÉSOUT au rig
+   *  (`formeResolue`, #2113) ; absent = `TrappingData.shape`. */
+  formeChoisie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */
@@ -1940,7 +1940,7 @@ export type UpkeepDeferTest = (spec: {
    *  scopés à la maladie). Couture GÉNÉRIQUE (16 `kind`) : rien n'y est codé en dur, un `kind` futur
    *  apporte SES règles ou n'affiche aucune chip. */
   mods?: ModLine[];
-  meta?: Record<string, unknown>; // p.ex. { diseaseName, onFail: GameOp[] } — porté tel quel par l'étape de cascade
+  meta?: Record<string, unknown>; // p.ex. { diseaseName, opsEchec: GameOp[] } — porté tel quel par l'étape de cascade
 } & (
   /** Le producteur NOMME les ids de son Test : la valeur est celle de la PORTE (`rollLine` →
    *  `testValue` : États, Encombrement, séquelles, passifs), décomposée en Niveau de Compétence NU +

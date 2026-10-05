@@ -1294,6 +1294,18 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     expectTypeOf<z.infer<typeof descRefSchema>>().toEqualTypeOf<DescRefParseur>();
   });
 
+  it('un INTERVALLE porte sa section de fin, entière et distincte du départ (forme canonique unique)', () => {
+    const avec = (fin: Record<string, unknown>) => descRefSchema.safeParse({ ...ADRESSE, parts: [{ ...FRAGMENT, ...fin }] });
+    const chemins = (r: ReturnType<typeof avec>) => r.error?.issues.map((i) => i.path.join('.')) ?? [];
+    expect(avec({ finSec: 'la-suite', finSecOcc: 1, b1: 0 }).success, 'un intervalle dont la fin précède b0 en rang').toBe(true);
+    const egale = avec({ finSec: FRAGMENT.sec, finSecOcc: FRAGMENT.secOcc });
+    expect(egale.success).toBe(false);
+    expect(chemins(egale)).toEqual(['parts.0.finSec']);
+    expect(chemins(avec({ finSec: 'la-suite' }))).toEqual(['parts.0.finSecOcc']);
+    expect(chemins(avec({ finSecOcc: 2 }))).toEqual(['parts.0.finSec']);
+    expect(chemins(avec({ b0: 2, b1: 0 })), 'bornes inversées sans section de fin').toEqual(['parts.0.b1']);
+  });
+
   it('une adresse VALIDE est acceptée, et son livre doit être un livre EXTRAIT (V2)', () => {
     const doc = jouet(HORS_STOCK);
     expect(doc.entree.safeParse({ ...ENV(HORS_STOCK), source: SOURCE_REELLE, descRef: ADRESSE }).success).toBe(true);

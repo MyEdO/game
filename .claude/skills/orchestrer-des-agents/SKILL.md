@@ -16,6 +16,9 @@ l'intégration triviale et les gates.
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
   Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
   `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
+- **La zone écrite s'édite par l'outil `mcp__harnais__suivi`** (mod `harnais`), ou par
+  `node scripts/ops/suivi.mjs <N> --session <id> --json [--ticket <M>] --ajouter-item|--ajouter-etape|--cocher <texte>` :
+  une ligne par geste, sous verrou, et la session se lie au suivi.
 - **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
   indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
   branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.

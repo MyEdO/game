@@ -1,11 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart } from '../equipment';
+import { weaponPart, type FormeDArme } from '../equipment';
 import { tokensOf } from '../../palette';
-import type { Weapon } from '../../../../engine/types';
 
-/** Arme routée PAR SHAPE (id de forme stable) — plus aucun routage par libellé. */
-const w = (shape: string, skin?: Record<string, string>): Weapon =>
-  ({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], shape, skin } as Weapon);
+/** Projection de forme déjà RÉSOLUE (id de forme stable) — plus aucun routage par libellé. */
+const w = (forme: string, skin?: Record<string, string>): FormeDArme => ({ type: 'melee', forme, skin });
 
 describe('skin d’arme — recolorisation par-objet (jetons de palette)', () => {
   it('au défaut, l’art est entièrement résolu (aucun jeton `@clé` résiduel)', () => {

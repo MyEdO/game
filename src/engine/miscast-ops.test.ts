@@ -1,5 +1,5 @@
 /**
- * Tables d'Imparfaites/Colère pleinement mécaniques (LDB 46 l.61-136, 40 l.58-138) :
+ * Tables d'Imparfaites/Colère pleinement mécaniques (LDB 46 l.34-80, 40 l.52-89) :
  * ops émises par les tables, pénalités/blocages d'incantation temporisés, plafond
  * de DR de Prière, Tests imbriqués à palier (« Purifier la chair »).
  */

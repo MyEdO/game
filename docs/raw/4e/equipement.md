@@ -41,7 +41,7 @@
 
 **Source : LDB 61 l.4-17**
 
-> Verbatim LDB 61 l.4 : « Le nombre de Points d'Encombrement que vous pouvez gérer sans pénalité est
+> Verbatim LDB 61 l.5 : « Le nombre de Points d'Encombrement que vous pouvez gérer sans pénalité est
 > déterminé par votre Bonus de Force + votre Bonus d'Endurance. »
 
 **Capacité sans pénalité** = **Bonus de Force (BF) + Bonus d'Endurance (BE)**
@@ -218,7 +218,7 @@ mais gagne 1 État *Exténué*.
 
 **Source : LDB 72 l.3-32**
 
-> LDB 72 l.25 : « Les herbes médicinales peuvent être achetées ou cueillies dans la nature (voir
+> LDB 72 l.5 : « Les herbes médicinales peuvent être achetées ou cueillies dans la nature (voir
 > Trouver de la nourriture et des herbes page 131). Une préparation avec des Outils de profession
 > (Herboriste) est en général nécessaire pour extraire les principes médicinaux des plantes et
 > concocter des cataplasmes. Les potions peuvent être brassées en utilisant la Compétence
@@ -269,7 +269,7 @@ Coagulant végétal appliqué sur une plaie.
 - **Dose** : 1 par rencontre.
 
 #### Potion de vitalité (18/–, Limitée)
-> Verbatim LDB 72 l.28 : « boire cette décoction retire instantanément tous les États *Exténué*. »
+> Verbatim LDB 72 l.26 : « boire cette décoction retire instantanément tous les États *Exténué*. »
 
 - Effet : retire **tous** les pions *Exténué*.
 
@@ -294,7 +294,7 @@ Branche écrasée maintenue sous le nez.
 
 **Source : LDB 73 l.4-29**
 
-> LDB 73 l.4 : « Que ce soit à cause d'une maladie, de la guerre ou de la malchance, il est assez
+> LDB 73 l.5 : « Que ce soit à cause d'une maladie, de la guerre ou de la malchance, il est assez
 > courant dans l'Empire de perdre une partie de son corps. »
 
 > LDB 73 l.5 : « Toutes les prothèses ont un Encombrement de 0 quand elles sont portées. »
@@ -360,7 +360,7 @@ Du bois au verre poli. Pas d'effet mécanique propre (cosmétique).
 
 **Source : LDB 67 l.3-63**
 
-> LDB 67 l.3 : « La majorité des outils sont considérés comme des armes Improvisées quand ils sont
+> LDB 67 l.5 : « La majorité des outils sont considérés comme des armes Improvisées quand ils sont
 > utilisés durant un combat. Cependant les MJ peuvent décider que des outils lourds ou tranchants
 > (par exemple les pieds-de-biche et les faucilles) comptent comme des Armes de poing. »
 
@@ -498,7 +498,7 @@ Les chapitres suivants contiennent essentiellement des **listes de prix** sans r
 | `LDB 63 l.18-21` | `src/engine/items.ts` l.481 / `damageArmour` | PA nette = PA − dégâts pris ; endommagement armure |
 | `LDB 72 l.5-6` (p.307) | `src/engine/consumables.ts` | Parsing desc `récupérer/Blessure` → soin (Bonus d'Endurance) ; parsing `retire … État` → retrait d'État |
 | `LDB 72 l.24` | `src/engine/consumables.ts` : `parseConsumable` | Potion de guérison : Bonus d'Endurance, garde-fou poison/drogue |
-| `LDB 72 l.28` | `src/engine/consumables.ts` + test | Potion de vitalité : retire tout *Exténué* |
+| `LDB 72 l.26` | `src/engine/consumables.ts` + test | Potion de vitalité : retire tout *Exténué* |
 | `LDB 74 l.41` | `src/engine/consumables.ts` : `removeStacks: 1` (Bandages) | +1 pion *Hémorragique* retiré (pas « tout ») |
 | `LDB 18 l.263` | `src/engine/items.ts` l.309 | Amputation → pas d'arme à 2 mains |
 

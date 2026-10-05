@@ -1,12 +1,12 @@
 /**
  * Évaluateur de SORT générique de l'IA — PUR et déterministe (module FEUILLE : importe seulement
- * `engine/*`, `./flow` (spellOps), `./spawn` (creatureToCombatant) et la donnée ; JAMAIS `ai.ts`,
+ * `engine/*`, `./flow` (spellOps), `./spawn` (spawnEnemy) et la donnée ; JAMAIS `ai.ts`,
  * `combatFlow` ou le store → pas de cycle).
  *
  * Principe (cf. plan « les casters jouent tout leur arsenal ») : la valeur d'un sort n'est PAS lue
  * dans une catégorie — c'est la Σ de la valeur de ses `GameOp` appliqués à l'endroit visé, × fiabilité
  * d'incantation (`landProb`, fourni par l'appelant) × opposition (Sorts de Contact/résistés, LDB 46
- * l.123-124). L'échelle est « Blessures-équivalent pour mon camp » (l'unité déjà employée par `ai.ts`).
+ * l.103-105). L'échelle est « Blessures-équivalent pour mon camp » (l'unité déjà employée par `ai.ts`).
  *
  * ZÉRO `battleRng()`/`rollTest`/`Math.random` : le planning doit rester déterministe (coop/tests
  * reproductibles). Les magnitudes de dés sont des MOYENNES (`formulaExpectation`), jamais tirées.
@@ -22,8 +22,8 @@ import type { RNG } from '../engine/dice';
 import type { SizeCategory } from '../engine/size';
 import { groupMatch } from '../engine/groups';
 import { spellOps } from './flow';
-import { type SpellData, findCreatureById, findConditionById } from '../data';
-import { creatureToCombatant } from './spawn';
+import { type SpellData, findConditionById } from '../data';
+import { RefIrresoluble, spawnEnemy } from './spawn';
 
 /** DR moyen prudent injecté dans l'espérance d'une touche (l'espérance d'un DR ≥ 0 sur une réussite). */
 const AVG_DR = 1;
@@ -111,7 +111,7 @@ const bodyPA = (target: Combatant): number => Math.max(0, target.armour?.corps ?
 const missingWounds = (c: Combatant): number => Math.max(0, c.wounds.max - c.wounds.current);
 
 /** Composante de Projectile magique (flag `missile`, hors `GameOp`) : `Dégâts + BFM + DR moyen`, mitigée
- *  BE/PA selon `ignoreBE/ignorePA` (LDB 46 l.101-105), plancher 0. 0 si non-missile (ou pas de cible). */
+ *  BE/PA selon `ignoreBE/ignorePA` (LDB 46 l.99-101), plancher 0. 0 si non-missile (ou pas de cible). */
 function missileComponent(caster: Combatant, target: Combatant | null, spell: SpellData): number {
   const md = missileDamage(spell);
   if (!md) return 0;
@@ -195,21 +195,17 @@ function marginalBuff(_caster: Combatant, subject: Combatant, op: GameOp, ctx: O
 }
 
 /** Valeur d'une INVOCATION alliée ≈ `count × (Blessures + ½ EV d'attaque)` de la créature invoquée
- *  (durabilité + sortie). `creatureToCombatant` (déterministe sans extras) si la créature existe,
- *  sinon proxy borné. */
+ *  (durabilité + sortie). Sa fiche sort de `spawnEnemy` (déterministe sans extras) ; une réf qui ne
+ *  se résout pas vaut un proxy borné. */
 function summonValue(op: Extract<GameOp, { op: 'summon' }>, caster: Combatant, ctx: OpEvalCtx): number {
   const count = Math.max(1, Math.round(finite(formulaExpectation(op.count, caster), 1)));
-  const creature = findCreatureById(op.ref);
-  let worth = 6;
-  if (creature) {
-    try {
-      const c = creatureToCombatant(creature, '__ai-eval__', { x: 0, y: 0 });
-      worth = (c.wounds?.max ?? 6) + 0.5 * bestAttackEV(c, ctx.refEnemy);
-    } catch {
-      worth = 6;
-    }
+  try {
+    const c = spawnEnemy({ ref: op.ref }, '__ai-eval__', { x: 0, y: 0 });
+    return count * ((c.wounds?.max ?? 6) + 0.5 * bestAttackEV(c, ctx.refEnemy));
+  } catch (e) {
+    if (e instanceof RefIrresoluble) return count * 6;
+    throw e;
   }
-  return count * worth;
 }
 
 /** Une op est-elle BÉNÉFIQUE ? (data-driven, par `op` — pas de nom de sort.) Couvre octrois, `charMod`/
@@ -314,7 +310,7 @@ export function spellIsOffensive(spell: SpellData): boolean {
   );
 }
 
-/** Escompte d'OPPOSITION (RAW Sorts de Contact/résistés, LDB 46 l.123-124), déterministe : un Sort de
+/** Escompte d'OPPOSITION (RAW Sorts de Contact/résistés, LDB 46 l.103-105), déterministe : un Sort de
  *  Contact frappe via un Test opposé (CC lanceur vs meilleure défense de la cible) ; un Sort résisté
  *  réussit ~½ ; un sort non opposé passe à coup sûr (×1). */
 export function oppositionDiscount(spell: SpellData, caster: Combatant, target: Combatant | null): number {

@@ -64,7 +64,7 @@ const declareSesEntrees = (texte) => /ENTR[ÉE]ES?\s*[:(]/i.test(enTete(texte));
  * Une migration se RECONNAÎT à son préfixe DATÉ (`<AAAA-MM-JJ>-….mjs`, la convention de nommage du
  * lot ci-dessus) — 88 des 90 `.mjs` du dossier.
  */
-const estUneMigration = (nom) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(nom);
+export const estUneMigration = (nom) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(nom);
 
 /**
  * Les seuls `.mjs` du dossier qui ne sont PAS des migrations : les modules de cette porte. Liste

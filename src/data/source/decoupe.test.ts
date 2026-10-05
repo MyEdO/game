@@ -13,8 +13,8 @@ import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import {
   type ChapitreParse, type Fragment, type FragmentBlocs, type FragmentCellule, type Resolu,
   type Section, type TableParse,
-  adresseDe, blocsCouverts, blocsPlats, cellRefFor, estErreur, estGraphieDeChapitre, estSeparateur,
-  fragmentBlocs, fragmentCellule, scelle,
+  adresseDe, aligner, cellRefFor, couvertureDe, estErreur, estGraphieDeChapitre, estSeparateur, filDuChapitre,
+  findAllRuns, fragmentBlocs, fragmentCellule, intervalleDe, joinNorm, positionDuBloc, scelle, unitesDeLAdresse, unitesDuTexte,
   estNomDExtraction, estNumeroDeChapitre, fichierDuChapitre, findCells, graphieDeChapitre,
   graphieDuFichier, largeurDeChapitre, normText, numeroDuFichier, parseChapitre, parseTable,
   prefixesDeChapitres, resoudreAdresse, resoudreFragment, stripSpans, sumOf, tablesOf, titreDuFichier,
@@ -256,24 +256,24 @@ describe('resoudreFragment — cellules, empreinte, bornes', () => {
     expect((cellule({}, 'deadbeefcafe0000') as { error: string }).error).toBe('empreinte-divergente');
   });
 
-  it('bornes hors limites et section inconnue', () => {
+  it('bornes hors limites, fin avant départ et section inconnue', () => {
     const sec = sectionOf('21', 'prejuge-cible');
     const err = (r: unknown) => (r as { error: string }).error;
     expect(err(blocs('21', 'prejuge-cible', 0, sec.blocks.length))).toBe('bornes-hors-limites');
     expect(err(blocs('21', 'prejuge-cible', -1, 0))).toBe('bornes-hors-limites');
-    expect(err(blocs('21', 'prejuge-cible', 1, 0))).toBe('bornes-hors-limites');
+    expect(err(blocs('21', 'prejuge-cible', 1, 0))).toBe('fin-avant-depart');
     expect(err(blocs('21', 'prejuge-cible', 0, 1.5))).toBe('bornes-hors-limites');
     expect(err(blocs('21', 'section-qui-nexiste-pas', 0, 0))).toBe('section-inconnue');
   });
 });
 
-describe('blocsPlats — mémo par identité', () => {
-  it('le mémo de blocs plats tient par IDENTITÉ de chapitre', () => {
+describe('filDuChapitre — mémo par identité', () => {
+  it('le mémo du fil tient par IDENTITÉ de chapitre', () => {
     const chapitre = chapitreDe(LDB, '21');
-    expect(blocsPlats(chapitre)).toBe(blocsPlats(chapitre));
+    expect(filDuChapitre(chapitre)).toBe(filDuChapitre(chapitre));
     const jumeau = parseChapitre(readFileSync(cheminChapitre(LDB, '21'), 'utf8').replace(/\r\n|\r/g, '\n'));
-    expect(blocsPlats(jumeau)).not.toBe(blocsPlats(chapitre));
-    expect(blocsPlats(jumeau)).toEqual(blocsPlats(chapitre));
+    expect(filDuChapitre(jumeau)).not.toBe(filDuChapitre(chapitre));
+    expect(filDuChapitre(jumeau)).toEqual(filDuChapitre(chapitre));
   });
 });
 
@@ -349,8 +349,8 @@ describe('sumOf — empreinte 64 bits', () => {
     let blocsVus = 0;
     let collisions = 0;
     for (const { bookId, graphie } of chapitresDuCorpus()) {
-      for (const b of blocsPlats(chapitreDe(bookId, graphie))) {
-        if (!b.norm) continue;
+      for (const b of filDuChapitre(chapitreDe(bookId, graphie))) {
+        if (b.kind !== 'bloc' || !b.norm) continue;
         blocsVus++;
         const vu = parSum.get(sumOf(b.md));
         if (vu === undefined) parSum.set(sumOf(b.md), b.norm);
@@ -371,12 +371,14 @@ describe('resoudreAdresse — montage de fragments', () => {
   it('monte 2 fragments d\'un même chapitre, textes joints et folios en union', () => {
     const ref = {
       book: LDB, ch: '21',
-      parts: [fragment21('peur-indice', 0, 0), fragment21('peur-indice', 1, 1)],
+      // Dans l'ordre inverse du livre : à l'endroit, ces deux blocs s'écrivent en UN fragment
+      // (`fragments-contigus`).
+      parts: [fragment21('peur-indice', 1, 1), fragment21('peur-indice', 0, 0)],
     };
     const res = resoudreAdresse(chapitre21(), ref);
     expect(estErreur(res)).toBe(false);
     const sec = sectionOf('21', 'peur-indice');
-    expect((res as Resolu).md).toBe(`${sec.blocks[0].md}\n\n${sec.blocks[1].md}`);
+    expect((res as Resolu).md).toBe(`${sec.blocks[1].md}\n\n${sec.blocks[0].md}`);
   });
 
   it('refuse un montage de 4 fragments (plafond 3)', () => {
@@ -410,7 +412,7 @@ describe('resoudreAdresse — montage de fragments', () => {
   });
 });
 
-describe('blocsCouverts — ce qu’un fragment CITE DÉJÀ (prédicat unique du chevauchement)', () => {
+describe('couvertureDe — ce qu’un fragment CITE DÉJÀ (prédicat unique du chevauchement)', () => {
   // Une CELLULE couvre le bloc de SA table. Une section à DEUX tables est le cas qui distingue le
   // prédicat juste d'une recherche de lignes à travers la section ; banc réel à tables titrées :
   // CRB 070 (`FragmentCellule.table`, plus bas).
@@ -442,8 +444,9 @@ describe('blocsCouverts — ce qu’un fragment CITE DÉJÀ (prédicat unique du
     expect(section.blocks.filter((b) => b.md.startsWith('|')), 'la fixture doit porter DEUX tables').toHaveLength(2);
     expect((resoudreFragment(CHAPITRE, cellule('Tete', 'Effet')) as Resolu).md).toContain('Assommé');
     expect((resoudreFragment(CHAPITRE, cellule('Bras', 'Séquelle')) as Resolu).md).toContain('Fracture');
-    expect([...blocsCouverts(CHAPITRE, cellule('Bras', 'Séquelle'))]).toEqual([3]);
-    expect([...blocsCouverts(CHAPITRE, cellule('Tete', 'Effet'))]).toEqual([1]);
+    const position = (idx: number) => positionDuBloc(CHAPITRE, { sec: 'blessures', secOcc: 1, idx });
+    expect(couvertureDe(CHAPITRE, cellule('Bras', 'Séquelle'))).toEqual({ blocs: new Set([position(3)]), case: { rangee: 0, colonne: 1 } });
+    expect(couvertureDe(CHAPITRE, cellule('Tete', 'Effet'))).toEqual({ blocs: new Set([position(1)]), case: { rangee: 0, colonne: 1 } });
   });
 
   it('la table VOISINE et une cellule se montent ; SA table et elle se recouvrent', () => {
@@ -568,8 +571,8 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
     const lettres = (s: string) => [...s].filter((c) => /\p{L}/u.test(c)).length;
     const titres = new Set<string>();
     for (const { bookId, graphie } of chapitresDuCorpus()) {
-      for (const b of blocsPlats(chapitreDe(bookId, graphie))) {
-        const titre = parseTable(b.md)?.titre;
+      for (const b of filDuChapitre(chapitreDe(bookId, graphie))) {
+        const titre = b.kind === 'bloc' ? parseTable(b.md)?.titre : undefined;
         if (titre != null) titres.add(titre);
       }
     }
@@ -765,5 +768,91 @@ describe('constructeurs d’adresse (#1887) — `scelle`, `fragmentBlocs`, `frag
     const r = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: section('vide') });
     expect(r).toMatchObject({ error: 'bornes-hors-limites' });
     expect((r as { detail: string }).detail).toMatch(/§vide#1 .*\(section : 0 blocs\)/);
+  });
+});
+
+describe('fil titré et intervalle (#1887)', () => {
+  const A0 = 'Premier bloc de la section Alpha, assez long pour discriminer seul un passage.';
+  const A1 = 'Second bloc de la section Alpha, qui précède immédiatement le titre de Beta.';
+  const B0 = 'Unique bloc de la section Beta, encadré par deux titres de même niveau ici.';
+  const D0 = 'Premier bloc de la section Delta, après une section Gamma restée sans bloc.';
+  const D1 = 'Second bloc de la section Delta, le dernier passage de cette fixture complète.';
+  const chapitre = parseChapitre([
+    '# Chapitre', '', '## Alpha', '', A0, '', A1, '', '## Beta', '', B0, '', '### Gamma', '', '## Delta', '', D0, '', D1, '',
+  ].join('\n'));
+  const md = (r: unknown) => (r as Resolu).md;
+  const code = (r: unknown) => (r as { error: string }).error;
+  const monte = (...parts: Fragment[]) => resoudreAdresse(chapitre, { book: LDB, ch: '00', parts });
+  const bloc = (sec: string, idx: number) => ({ sec, secOcc: 1, idx });
+  const blocs = (sec: string, b0: number, b1: number) => fragmentBlocs(chapitre, { sec, secOcc: 1, b0, b1 });
+
+  it('le fil ouvre chaque section titrée sur son titre en gras, puis ses blocs', () => {
+    expect(filDuChapitre(chapitre).map((e) => (e.kind === 'titre' ? e.md : `${e.sec}:${e.idx}`))).toEqual([
+      '**Chapitre**', '**Alpha**', 'alpha:0', 'alpha:1', '**Beta**', 'beta:0', '**Gamma**', '**Delta**', 'delta:0', 'delta:1',
+    ]);
+  });
+
+  it('un intervalle rend les titres INTERMÉDIAIRES, jamais celui de sa section de départ', () => {
+    const f = intervalleDe(chapitre, bloc('alpha', 1), bloc('delta', 0));
+    expect(f).toMatchObject({ kind: 'blocs', sec: 'alpha', secOcc: 1, b0: 1, finSec: 'delta', finSecOcc: 1, b1: 0 });
+    expect(md(resoudreFragment(chapitre, f))).toBe([A1, '**Beta**', B0, '**Gamma**', '**Delta**', D0].join('\n\n'));
+    expect(f.sum).toBe(sumOf(md(resoudreFragment(chapitre, f))));
+  });
+
+  it('une fin dans la section de départ ne s’écrit pas : forme canonique unique', () => {
+    const f = intervalleDe(chapitre, bloc('alpha', 0), bloc('alpha', 1));
+    expect(Object.keys(f)).toEqual(['kind', 'sec', 'secOcc', 'b0', 'b1', 'sum']);
+    expect(f).toEqual(blocs('alpha', 0, 1));
+  });
+
+  it('`fin-avant-depart` : la fin précède le départ au fil, dans une autre section ou dans la même', () => {
+    expect(code(resoudreFragment(chapitre, intervalleDe(chapitre, bloc('delta', 0), bloc('alpha', 1))))).toBe('fin-avant-depart');
+    expect(code(resoudreFragment(chapitre, intervalleDe(chapitre, bloc('alpha', 1), bloc('alpha', 0))))).toBe('fin-avant-depart');
+  });
+
+  it('une section de fin inconnue, ou un bloc de fin hors d’elle, se nomment', () => {
+    expect(code(resoudreFragment(chapitre, intervalleDe(chapitre, bloc('alpha', 0), bloc('epsilon', 0))))).toBe('section-inconnue');
+    const horsFin = resoudreFragment(chapitre, intervalleDe(chapitre, bloc('alpha', 0), bloc('beta', 4)));
+    expect(horsFin).toMatchObject({ error: 'bornes-hors-limites' });
+    expect((horsFin as { detail: string }).detail).toMatch(/section de fin §beta#1 : 1 blocs/);
+  });
+
+  it('la couture entre fragments : la tête d’un fragment qui en suit un autre, intervalle compris, porte une ligne vide', () => {
+    const intervalle = intervalleDe(chapitre, bloc('alpha', 1), bloc('beta', 0));
+    const u = unitesDeLAdresse(chapitre, { book: LDB, ch: '00', parts: [blocs('delta', 1, 1), intervalle] });
+    expect(estErreur(u)).toBe(false);
+    const unites = (u as { unites: { md: string; sep: string; kind: string }[] }).unites;
+    expect(unites.map((x) => [x.sep, x.kind])).toEqual([['', 'bloc'], ['\n\n', 'bloc'], ['\n\n', 'titre'], ['\n\n', 'bloc']]);
+    expect(md(monte(blocs('delta', 1, 1), intervalle))).toBe([D1, A1, '**Beta**', B0].join('\n\n'));
+  });
+
+  it('`fragments-contigus` : deux fragments consécutifs DANS L’ORDRE DE L’ADRESSE qui se touchent s’écrivent en un intervalle', () => {
+    const dansLaSection = monte(blocs('alpha', 0, 0), blocs('alpha', 1, 1));
+    expect(dansLaSection).toMatchObject({ error: 'fragments-contigus', fragment: 1 });
+    // Le premier BLOC après la fin du premier est le départ du second, titre intermédiaire sauté.
+    expect(monte(blocs('alpha', 0, 1), blocs('beta', 0, 0))).toMatchObject({ error: 'fragments-contigus', fragment: 1 });
+    expect(monte(blocs('beta', 0, 0), intervalleDe(chapitre, bloc('delta', 0), bloc('delta', 1)))).toMatchObject({ error: 'fragments-contigus' });
+    // Contigus au FIL mais écrits à rebours : le montage réordonne le livre, aucun intervalle ne l'écrit.
+    expect(estErreur(monte(blocs('alpha', 1, 1), blocs('alpha', 0, 0)))).toBe(false);
+    expect(estErreur(monte(blocs('alpha', 0, 0), blocs('beta', 0, 0)))).toBe(false);
+  });
+
+  it('`fragments-chevauchants` sur les POSITIONS : un intervalle et un bloc d’une section qu’il traverse', () => {
+    const intervalle = intervalleDe(chapitre, bloc('alpha', 1), bloc('delta', 0));
+    expect(monte(intervalle, blocs('beta', 0, 0))).toMatchObject({ error: 'fragments-chevauchants', fragment: 1 });
+    expect(monte(blocs('beta', 0, 0), intervalle)).toMatchObject({ error: 'fragments-chevauchants', fragment: 1 });
+    expect([...couvertureDe(chapitre, intervalle).blocs]).toEqual([3, 5, 8]);
+  });
+
+  it('un run à cheval sur un titre est UN intervalle, et le texte qui recopie l’intertitre en `#` s’y aligne', () => {
+    const texte = [A1, '## Beta', B0].join('\n\n');
+    const unites = unitesDuTexte(texte);
+    expect(unites.map((x) => x.md)).toEqual([A1, '**Beta**', B0]);
+    const runs = findAllRuns(chapitre, joinNorm(unites.map((x) => x.norm)));
+    expect(runs).toEqual([intervalleDe(chapitre, bloc('alpha', 1), bloc('beta', 0))]);
+    const adresse = unitesDeLAdresse(chapitre, { book: LDB, ch: '00', parts: runs });
+    expect(aligner(unites, (adresse as { unites: Parameters<typeof aligner>[1] }).unites)?.ajoute).toEqual([]);
+    // Sans son intertitre, le texte n'est plus un run du fil.
+    expect(findAllRuns(chapitre, joinNorm(unitesDuTexte([A1, B0].join('\n\n')).map((x) => x.norm)))).toEqual([]);
   });
 });
