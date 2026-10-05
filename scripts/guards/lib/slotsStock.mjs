@@ -121,13 +121,13 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "criticals.json", champ: "subject", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "criticals.json", champ: "traumas", occurrences: 48, lot: "L2/L3 #1473", date: "2026-09-02" },
   { dataset: "criticals.json", champ: "whenClear", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "diligence-projet.json", champ: "a", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" }, // 1→3 (#2219, 2026-10-05) : +2, worldMap en trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "b", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" }, // 1→3 (#2219, 2026-10-05) : +2, worldMap en trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "from", occurrences: 3, lot: "L2/L3 #1473", date: "2026-10-05" }, // 0→3 (#2219, 2026-10-05) : sens unique des trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "modes", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" }, // 1→3 (#2219, 2026-10-05) : +2, worldMap en trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" }, // 38→76 : +38 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
-  { dataset: "diligence-projet.json", champ: "scene", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-31" }, // 2→4 (#2219, 2026-10-05) : +2, lieux route-principale et auberge-des-sept-rayons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" }, // 668→1336 : +668 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
+  { dataset: "diligence-projet.json", champ: "a", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "b", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "from", occurrences: 3, lot: "L2/L3 #1473", date: "2026-10-05" },
+  { dataset: "diligence-projet.json", champ: "modes", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "diligence-projet.json", champ: "scene", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "amount", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "castBonus", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "casterOps", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
