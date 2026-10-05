@@ -58,8 +58,8 @@ Un personnage peut subir plusieurs fois le même État. Les pénalités s'accumu
 **Note RAW importante** : cette règle de non-cumul s'applique aux **pénalités aux Tests**. Les autres effets distincts (dégâts périodiques d'Hémorragique, contraintes de mouvement d'À Terre, etc.) s'appliquent bien simultanément.
 
 **Exceptions au cumul** : plusieurs États **ne se cumulent pas du tout** (un seul pion possible) :
-- **À Terre** (l.39 : « soit vous êtes _À Terre_, soit vous ne l'êtes pas »)
-- **Inconscient** (l.114 : même principe)
+- **À Terre** (LDB 16 l.37 : « soit vous êtes *À Terre*, soit vous ne l'êtes pas »)
+- **Inconscient** (LDB 16 l.115 : même principe)
 - **Surpris** (l.134 : même principe)
 
 **Sources RAW** :

@@ -20,6 +20,8 @@ import { GUEST_INTENTS } from '../net/intents';
 import { seedBattleRng } from './battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant, Weapon } from '../engine/types';
+import { cascadeDeTest } from './cascadeTestKit';
+import { fixtureText } from '../i18n/fixtureText';
 
 const NET0 = useGame.getState().net;
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 55, force: 35, endurance: 43, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 };
@@ -73,7 +75,7 @@ const reset = () => useGame.setState({ ...initialFields(), battle: null, net: NE
  *  (étape `groupOwner` → owner de modale '*'), la rangée d'opposition appartient à `h2`. */
 function ouvreOpposition() {
   useGame.setState({
-    pendingCascade: { participants: [{ id: 's0', jet: 'cast', groupOwner: true }], cursor: 0 } as never,
+    pendingCascade: cascadeDeTest([{ id: 's0', kind: 'castJet', jet: 'cast', groupOwner: true }]),
     pendingCast: {
       casterId: 'e1', targetId: 'h2', spellId: 'fauche-demon', missile: false, focused: false,
       result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
@@ -226,9 +228,9 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
   const cascadeMenace = () => {
     setup();
     useGame.setState({
-      pendingCascade: { cursor: 0, participants: [
-        { id: 'st0', kind: 'combatEndDisease', actorId: 'h2', groupOwner: true, menace: 'magie', label: 'Menace', target: 40, rollLabel: 'Résistance' },
-      ] } as never,
+      pendingCascade: cascadeDeTest([
+        { id: 'st0', kind: 'combatEndDisease', actorId: 'h2', groupOwner: true, menace: 'magie', label: fixtureText('Menace'), target: 40, rollLabel: 'Résistance' },
+      ]),
     });
   };
 

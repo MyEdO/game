@@ -88,6 +88,8 @@ const MIGRATIONS_DE_SAVE = {
   60: '#2113 forme d’objet choisie (`formeChoisie`), jamais recopiée du catalogue',
   // #2206
   61: '#2206 le porteur de fiche d’un preset nomme son preset (`presetId`)',
+  // #2199
+  62: '#2199 ops d’échec de maladie en `opsEchec`, unité achetée en `kind`, `pendingCampaign.id` obligatoire',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

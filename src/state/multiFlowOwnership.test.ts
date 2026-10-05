@@ -13,6 +13,7 @@ import { FLOW_VERBS, participantOwnedIntents, flowActionName } from './flowVerbs
 import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from '../net/intents';
 import type { GameState } from './store';
+import { cascadeDeTest } from './cascadeTestKit';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; pidIsActor?: boolean };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -36,10 +37,10 @@ const base = (over: Partial<GameState>): GameState =>
     ...over,
   }) as unknown as GameState;
 
-const parts = [{ id: H_HOST, result: null }, { id: H_OWNER, result: null }];
+const parts = [{ id: H_HOST, base: 40, target: 40, result: null }, { id: H_OWNER, base: 40, target: 40, result: null }];
 /** Cascade d'accueil des flux qui vivent en ÉTAPE (owner '*' : la modale ouvrirait TOUT à TOUS). */
 const groupCascade = {
-  pendingCascade: { participants: [{ id: 's0', kind: 'x', groupOwner: true }], cursor: 0 },
+  pendingCascade: cascadeDeTest([{ id: 's0', kind: 'x', groupOwner: true }]),
 } as unknown as Partial<GameState>;
 
 /** Un pending OUVERT par flux (les 2 héros en participants) — table totale, vérifiée ci-dessous. */
@@ -60,7 +61,7 @@ const FIXTURES: Record<string, Partial<GameState>> = {
   shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<GameState>,
   crewTest: { pendingCrewTest: { shipId: 'ship1', participants: parts } } as unknown as Partial<GameState>,
   cascadeBatch: {
-    pendingCascade: { participants: [{ id: 'batch', kind: 'stagePosteBatch', participants: parts }], cursor: 0 },
+    pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
   } as unknown as Partial<GameState>,
 };
 

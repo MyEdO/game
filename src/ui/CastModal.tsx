@@ -164,8 +164,8 @@ export function CastModal() {
   // ligne, et le cycle d'influence, DÉRIVÉ de cette ligne, s'éteint avec elle.
   const castRow: BuiltRollRow = maskOpposedRow(useGame.getState(), { ownerId: pc.casterId, responded }, buildRollRow({
     actor: caster,
-    // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.23-25` : « Succès mais DR < NI → tentative
-    // échoue » — la tentative échoue, le Test est RÉUSSI). Le « sort non lancé » se dit par le verdict
+    // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.22-24` : DR sous le NI, le Test est RÉUSSI et
+    // le sort n'est pas lancé). Le « sort non lancé » se dit par le verdict
     // du flux (issue/journal), jamais par le succès de la ligne : c'est aussi l'issue canonique du
     // seam (`cleanRollOutcome`, roll ≤ cible), dont dérivent Chance et Résilience.
     row: res

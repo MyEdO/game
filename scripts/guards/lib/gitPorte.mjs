@@ -1275,6 +1275,15 @@ export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').tr
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })
 
+// #2329
+export function shaPrecedentDeHead(depot) {
+  const existe = interroger(depot, ['reflog', 'exists', 'HEAD'])
+  if (!existe.disponible) return confier(depot, existe.raison)
+  if (sortieOuNull(existe) === null) return null
+  const brut = lire(depot, ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}'])
+  return brut?.trim() || null
+}
+
 /**
  * Le SHA du commit que `ref` nomme (`rev-parse --verify --quiet <ref>^{commit}`), abrégé sous
  * `court` ; `null` si `ref` ne nomme aucun commit. Une réponse INDISPONIBLE (git 2.55 écrit sur

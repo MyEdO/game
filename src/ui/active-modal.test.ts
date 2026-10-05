@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { pickActiveModalKey as pick } from './ActiveModal';
 import type { GameState } from '../state/store';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 /**
  * Arbitre de modales (R2, désormais REGISTRE state/modalArbiter) : une seule modale de combat à
@@ -24,7 +25,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // pendingDefense SEUL (sans cascade) → aucune entrée 'defense' → null. La SITUATION est portée
     // par la cascade-hôte ouverte par maybeOpenDefense (CascadeModal → useDefenseJetProps).
     expect(pickActiveModalKey({ pendingDefense: {} })).toBeNull();
-    const defCascade = { participants: [{ jet: 'defense', actorId: 'h1' }], cursor: 0 };
+    const defCascade = cascadeDeTest([{ id: 'd', kind: 'defenseJet', jet: 'defense', actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingDefense: {}, pendingCascade: defCascade })).toBe('cascade');
     // Défense réactive (cascade) l'emporte sur le jet d'attaque du joueur : `cascade` avant `attack` au registre.
     expect(pickActiveModalKey({ pendingDefense: {}, pendingCascade: defCascade, pendingAttack: {} })).toBe('cascade');
@@ -33,14 +34,14 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
   it('la révélation n’est PLUS une modale propre : c’est une ÉTAPE d’AFFICHAGE de la cascade', () => {
     // Elle ne PRÉEMPTE plus rien par l’ordre du registre (#942 L8) : servie à son rang dans la
     // séquence, la clé rendue reste 'cascade' — même quand un pendingDefense coexiste.
-    const revCascade = { participants: [{ kind: 'critical', reveal: { kind: 'critical' }, actorId: 'h1' }], cursor: 0 };
+    const revCascade = cascadeDeTest([{ id: 'r', kind: 'critical', reveal: { kind: 'critical', title: 'x', lines: [] }, actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingCascade: revCascade })).toBe('cascade');
     expect(pickActiveModalKey({ pendingDefense: {}, pendingCascade: revCascade })).toBe('cascade');
   });
 
   it('le sauvetage par Destin domine tout', () => {
     expect(
-      pickActiveModalKey({ pendingFateSave: {}, pendingDefense: {}, pendingCascade: { participants: [{ kind: 'round' }], cursor: 0 }, pendingAttack: {} }),
+      pickActiveModalKey({ pendingFateSave: {}, pendingDefense: {}, pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]), pendingAttack: {} }),
     ).toBe('fateSave');
   });
 
@@ -48,7 +49,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // Sans cascade fumble → la Corruption l'emporte (la Maladresse n'existe QUE comme étape de cascade).
     expect(pickActiveModalKey({ pendingCorruption: {} })).toBe('corruption');
     // Cascade portant une étape `jet:'fumble'` (donnée SUR l'étape `step.fumble`) → 'cascade' (avant 'corruption').
-    const fumbleCascade = { participants: [{ jet: 'fumble', actorId: 'h1', fumble: { weapon: {}, result: null } }], cursor: 0 };
+    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingCascade: fumbleCascade, pendingCorruption: {} })).toBe('cascade');
   });
 
@@ -61,7 +62,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // pendingAttack SEUL (sans cascade) → aucune entrée 'attack' → null. TOUS les chemins d'attaque
     // ouvrent une cascade (Charge incluse) ; cleave/dual réutilisent celle déjà ouverte.
     expect(pickActiveModalKey({ pendingAttack: {} })).toBeNull();
-    const atkCascade = { participants: [{ jet: 'attack', actorId: 'h1' }], cursor: 0 };
+    const atkCascade = cascadeDeTest([{ id: 'a', kind: 'attackJet', jet: 'attack', actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingAttack: {}, pendingCascade: atkCascade })).toBe('cascade');
     // Frappe Mortelle : la 2ᵉ frappe (pendingAttack) RÉUTILISE la cascade d'enchaînement → 'cascade'.
     expect(pickActiveModalKey({ pendingCleave: {}, pendingAttack: {}, pendingCascade: atkCascade })).toBe('cascade');
@@ -71,7 +72,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // pendingTrample SEUL (sans cascade) → aucune entrée 'trample' → null. `battleTrample`
     // ouvre une cascade `jet:'trample'` (comme l'attaque) → le Coup Critique se fold dans LA MÊME fenêtre.
     expect(pickActiveModalKey({ pendingTrample: {} })).toBeNull();
-    const trampleCascade = { participants: [{ jet: 'trample', actorId: 'h1' }], cursor: 0 };
+    const trampleCascade = cascadeDeTest([{ id: 't', kind: 'trampleJet', jet: 'trample', actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingTrample: {}, pendingCascade: trampleCascade })).toBe('cascade');
   });
 
@@ -80,7 +81,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // La SITUATION est désormais portée par la cascade-hôte ouverte à l'incantation (CascadeModal → CastModal).
     expect(pickActiveModalKey({ pendingCast: {} })).toBeNull();
     // pendingCast + cascade `jet:'cast'` → l'arbitre renvoie 'cascade' (qui rend CastModal via le host).
-    const castCascade = { participants: [{ jet: 'cast', actorId: 'h1' }], cursor: 0 };
+    const castCascade = cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast', actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingCast: {}, pendingCascade: castCascade })).toBe('cascade');
     // Ciblage CARTE (Surincantation / pose de zone) : la carte prend la main, la fenêtre s'efface —
     // et c'est l'ARBITRE qui ne l'élit pas (#1852). Il n'élit JAMAIS une modale au corps vide : le
@@ -93,7 +94,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
   it('le Contre-sort n’est PLUS une modale propre : la réaction est rendue DANS la cascade `cast` (Sort ennemi figé)', () => {
     // pendingCounterspell coexiste avec le pendingCast (+ cascade) du Sort ennemi → c'est la modale
     // `cascade` (→ CastModal) qui s'affiche (elle héberge les rangées de contre-lanceurs) : aucune entrée `counterspell`.
-    const enemyCast = { participants: [{ jet: 'cast', groupOwner: true }], cursor: 0 };
+    const enemyCast = cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast', groupOwner: true }]);
     expect(pickActiveModalKey({ pendingCast: {}, pendingCascade: enemyCast, pendingCounterspell: { participants: [] } })).toBe('cascade');
     // Un pendingCounterspell SANS pendingCast/cascade (impossible en pratique) ne déclenche aucune modale.
     expect(pickActiveModalKey({ pendingCounterspell: { participants: [] } })).toBeNull();

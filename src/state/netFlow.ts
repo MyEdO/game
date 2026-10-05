@@ -102,9 +102,10 @@ export function netSnapshot(get: Get): Record<string, unknown> {
     'net',
   );
   const pc = (data as { pendingCampaign?: GameState['pendingCampaign'] }).pendingCampaign;
-  (data as Record<string, unknown>).pendingCampaign = pc
-    ? { label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null }
+  const stub: GameState['pendingCampaign'] = pc
+    ? { id: pc.id, label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null }
     : null;
+  (data as Record<string, unknown>).pendingCampaign = stub;
   // L'INTENTION armée est un mode d'ÉCRAN, LOCAL au client (spec HUD zone 4) : elle ne voyage pas —
   // la case armée de l'hôte n'a rien à allumer chez ses invités.
   delete (data as Record<string, unknown>).localIntent;

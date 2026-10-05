@@ -114,7 +114,7 @@ Les Collèges de Magie (comme les elfes) enseignent que la magie se divise en **
 
 ## Seconde Vue
 
-**Sources RAW :** `LDB 46 l.7-10`
+**Sources RAW :** `LDB 46 l.5-9`
 
 Le Talent **Seconde vue** (LDB 10) permet de percevoir les Vents de Magie et leur influence sur le monde. Elle affecte tous les sens (manifestation dépend de l'expérience du lanceur). Avec la Seconde vue, on peut utiliser les compétences **Intuition**, **Perception** et **Pistage** avec les sens aethyriques. La Seconde vue ne se désactive pas : le MJ peut demander des Tests spontanés pour percevoir des détails magiques.
 
@@ -126,7 +126,7 @@ Le Talent **Seconde vue** (LDB 10) permet de percevoir les Vents de Magie et leu
 
 ## Types de sorts
 
-**Sources RAW :** `LDB 46 l.13-15`
+**Sources RAW :** `LDB 46 l.12-14`
 
 Quatre types de sorts :
 - **Sorts Mineurs** : tours utilisant des quantités négligeables de Magie.
@@ -143,11 +143,11 @@ Quatre types de sorts :
 
 ## Mémoriser des sorts
 
-**Sources RAW :** `LDB 46 l.17-21`
+**Sources RAW :** `LDB 46 l.16-20`
 
 Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémoriser** un sort (pouvoir le lancer sans grimoire), il faut dépenser le montant de PX indiqué dans le Talent de lanceur de sorts. Un sort mémorisé est connu de façon permanente, sauf circonstances particulières.
 
-> **Verbatim** (l.47-48) : « Une fois qu'un Sort a été mémorisé, un lanceur de Sorts le connaît de façon permanente, sauf circonstances particulières. »
+> **Verbatim** (l.20) : « Une fois qu'un Sort a été mémorisé, un lanceur de Sorts le connaît de façon permanente, sauf circonstances particulières. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.17-21) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +56 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/state/combatEffects.ts`, `src/state/combatFlow.ts`, +5 fichiers
@@ -156,7 +156,7 @@ Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémori
 
 ## Test d'incantation
 
-**Sources RAW :** `LDB 46 l.23-25`
+**Sources RAW :** `LDB 46 l.22-24`
 
 Pour lancer un sort : effectuer un **Test de Langue (Magick)** (compétence avancée, Caractéristique = Intelligence).
 
@@ -166,7 +166,7 @@ Pour lancer un sort : effectuer un **Test de Langue (Magick)** (compétence avan
 
 La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **compétences avancées** : sans au moins 1 Augmentation, le Test est impossible (pas de repli sur la Caractéristique seule). Exception : le Trait de créature **Lanceur de Sorts** (LDB 85 l.206-207) autorise l'incantation sans la compétence — Test sur la Caractéristique seule.
 
-> **Verbatim NI** (l.50) : « Si votre DR est égal ou supérieur au Niveau d'Incantation (NI) du Sort (indiqué dans sa description), il est lancé comme dans la description du Sort. »
+> **Verbatim** (l.24) : « Pour lancer un Sort, effectuez un Test de Langue (Magick). Sur un succès, comparez votre DR au Niveau d'Incantation (NI) du Sort (indiqué dans sa description). Si votre DR est égal ou supérieur au NI du Sort, il est lancé comme dans la description du Sort. Sur un échec, la tentative échoue et rien ne se produit. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.23-25) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +57 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/state/combatEffects.ts`, `src/state/combatFlow.ts`, +5 fichiers
@@ -194,11 +194,11 @@ Un **Critique** au Test d'incantation (double réussi) signifie que les Vents on
 
 ## Maladresse d'incantation → Incantation Imparfaite
 
-**Sources RAW :** `LDB 46 l.84-86`
+**Sources RAW :** `LDB 46 l.83-85`
 
 Un **double raté** au Test d'incantation entraîne une **Incantation Imparfaite**. Lancer 1d100 et consulter le Tableau des Incantations Imparfaites Mineures.
 
-> **Verbatim** (l.143-145) : « Si vous perdez le contrôle de l'énergie magique que vous focalisez, les choses se passent toujours mal. Si vous obtenez une Maladresse à votre Test d'Incantation, vous subissez une Incantation Imparfaite. Lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures. »
+> **Verbatim** (l.85) : « Si vous perdez le contrôle de l'énergie magique que vous focalisez, les choses se passent toujours mal. Si vous obtenez une Maladresse à votre Test d'Incantation, vous subissez une Incantation Imparfaite. Lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.84-86) → `combat-spell-plus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `lecture-au-grimoire`, `malevolentInfluenceSeverity`, `ALL_MAGIC`, `magic-composant`, `incantation-imparfaite`, `useSpellComponent`, +3 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +2 fichiers
@@ -239,14 +239,14 @@ cibles supplémentaires (`LDB 47 l.28`).
 
 ## Influences Malfaisantes (le « 8 »)
 
-**Sources RAW :** `LDB 46 l.88-90`
+**Sources RAW :** `LDB 46 l.87-89`
 
 Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le contrôle des Vents plus difficile. Lors d'un Test de Langue (Magick) ou de Focalisation à proximité d'une Influence corruptrice :
 
 - tout lancer dont le **dé des unités est 8** (symbole à huit pointes du Chaos) → **Incantation Imparfaite Mineure**.
 - Si une Incantation Imparfaite Mineure avait déjà été obtenue pour une autre raison lors de ce Test → elle devient **Majeure**.
 
-> **Verbatim** (l.147-148) : « tout lancer obtenant un 8 (représentant le symbole du Chaos à huit pointes) sur le dé des unités entraîne une Incantation Imparfaite Mineure, car la Magie s'emballe. »
+> **Verbatim** (l.89) : « tout lancer obtenant un 8 (représentant le symbole du Chaos à huit pointes) sur le dé des unités entraîne une Incantation Imparfaite Mineure, car la Magie s'emballe. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.88-90) → `combat-spell-plus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `lecture-au-grimoire`, `malevolentInfluenceSeverity`, `ALL_MAGIC`, `magic-composant`, `incantation-imparfaite`, `useSpellComponent`, +2 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +2 fichiers
@@ -255,7 +255,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 
 ## Tableau des Incantations Imparfaites Mineures (d100 verbatim)
 
-**Sources RAW :** `LDB 46 l.33-53`
+**Sources RAW :** `LDB 46 l.34-55`
 
 | d100 | Nom | Effet |
 |------|-----|-------|
@@ -287,7 +287,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 
 ## Tableau des Incantations Imparfaites Majeures (d100 verbatim)
 
-**Sources RAW :** `LDB 46 l.55-80`
+**Sources RAW :** `LDB 46 l.58-80`
 
 | d100 | Nom | Effet |
 |------|-----|-------|
@@ -321,7 +321,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 
 ## Focalisation (Test étendu)
 
-**Sources RAW :** `LDB 46 l.129-151`
+**Sources RAW :** `LDB 46 l.128-151`
 
 Certains sorts nécessitent plus de magie que disponible normalement. La **Focalisation** permet d'attirer les Vents et de les concentrer via la Compétence **Focalisation** (avancée, Caractéristique = Force Mentale, spécialisée par Domaine/Vent).
 
@@ -331,11 +331,11 @@ Certains sorts nécessitent plus de magie que disponible normalement. La **Focal
 3. Au **Round suivant**, lancer le sort avec les règles d'incantation normales, mais en considérant le NI du sort comme **0**.
 4. Si le Test d'incantation échoue après une Focalisation réussie : l'énergie focalisée est perdue + Incantation Imparfaite Mineure (l'énergie se libère de l'emprise aethyrique).
 
-> **Verbatim** (l.181-184) : « Quand votre DR atteint le NI du Sort choisi, vous avez réussi à focaliser suffisamment de magie pour le lancer. Pendant le prochain Round, vous pouvez lancer votre Sort en utilisant les règles d'Incantation normales, mais considérez le Niveau d'Incantation du Sort choisi comme étant de 0. »
+> **Verbatim** (l.132) : « Quand votre DR atteint le NI du Sort choisi, vous avez réussi à focaliser suffisamment de magie pour le lancer. Pendant le prochain Round, vous pouvez lancer votre Sort en utilisant les règles d'Incantation normales, mais considérez le Niveau d'Incantation du Sort choisi comme étant de 0. »
 
 Les Avantages **ne s'appliquent pas** aux Tests de Focalisation (contrairement aux Tests d'Incantation).
 
-> **Verbatim** (l.176) : « Les Avantages en combat s'appliquent aux Tests d'Incantation, pas aux Tests de Focalisation. »
+> **Verbatim** (l.125) : « Les Avantages en combat s'appliquent aux Tests d'Incantation, pas aux Tests de Focalisation. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.129-151) → `DispelModal`, `STEP_WINDOW_AUTO`, `combat-spell-plus`, `HoverTargeting`, `useHoverTargeting`, `CastableSpell`, `FocusInterruptHook`, `dispel-roll`, `castingBaseValue`, `castingValue`, +73 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +23 fichiers
@@ -344,11 +344,11 @@ Les Avantages **ne s'appliquent pas** aux Tests de Focalisation (contrairement a
 
 ## Focalisation Critique
 
-**Sources RAW :** `LDB 46 l.135-137`
+**Sources RAW :** `LDB 46 l.134-136`
 
 Un **Critique** (double réussi) lors de la Focalisation signifie qu'un flux puissant a été concentré : le sort peut être lancé au Round suivant **quel que soit le DR cumulé atteint jusqu'alors**. Cependant, tant de magie concentrée si rapidement entraîne un contrecoup : lancer 1d100 sur le Tableau des Incantations Imparfaites Mineures, **sauf** si le Talent **Harmonisation aethyrique** est possédé.
 
-> **Verbatim** (l.186-187) : « tant de magie concentrée si rapidement en un endroit entraîne un contrecoup magique : lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures (voir p.234), sauf si vous possédez le Talent Harmonisation aethyrique (voir p.138). »
+> **Verbatim** (l.136) : « tant de magie concentrée si rapidement en un endroit entraîne un contrecoup magique : lancez 1d100 et consultez le Tableau des Incantations Imparfaites Mineures (voir p.234), sauf si vous possédez le Talent Harmonisation aethyrique (voir p.138). »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.135-137) → `combat-spell-plus`, `FocusInterruptHook`, `dispel-roll`, `castingBaseValue`, `castingValue`, `miscast-table`, `miscast-row-test`, `BattleState`, `focalisation-etendue`, `dispel`, +22 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, +7 fichiers
@@ -357,11 +357,11 @@ Un **Critique** (double réussi) lors de la Focalisation signifie qu'un flux pui
 
 ## Maladresse de Focalisation
 
-**Sources RAW :** `LDB 46 l.139-141`
+**Sources RAW :** `LDB 46 l.138-140`
 
 La définition de **Maladresse est élargie** lors d'un Test de Focalisation : considérer comme Maladresse tout double **ou** tout résultat se terminant par un 0 au-delà de la Compétence : donc 00, 99, 90, 88, etc. Une Maladresse de Focalisation → Incantation Imparfaite **Majeure** (pas Mineure).
 
-> **Verbatim** (l.190-192) : « Concentrer les Vents de la Magie en un flux important est dangereux. Considérez comme Maladresse tout double ou tout résultat terminant par un 0 au-delà de votre Compétence, donc 00, 99, 90, 88, etc. Si vous obtenez une Maladresse à un Test de Focalisation, vous subissez une Incantation Imparfaite. Lancez 1d100 et consultez le Tableau des Incantations Imparfaites Majeures. »
+> **Verbatim** (l.140) : « Concentrer les Vents de la Magie en un flux important est dangereux. Considérez comme Maladresse tout double ou tout résultat terminant par un 0 au-delà de votre Compétence, donc 00, 99, 90, 88, etc. Si vous obtenez une Maladresse à un Test de Focalisation, vous subissez une Incantation Imparfaite. Lancez 1d100 et consultez le Tableau des Incantations Imparfaites Majeures. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.139-141) → `FocusInterruptHook`, `dispel-roll`, `armourCastDRPenalty`, `focalisation-etendue`, `dispel`, `dispel-spell`, `focus-interrupt`, `createCombatSlice`, `runCombatFlow`, `CastTestKind`, +13 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +7 fichiers
@@ -370,11 +370,11 @@ La définition de **Maladresse est élargie** lors d'un Test de Focalisation : c
 
 ## Interruptions de Focalisation
 
-**Sources RAW :** `LDB 46 l.143-145`
+**Sources RAW :** `LDB 46 l.142-144`
 
 La concentration est vitale pour focaliser. Si perturbé par quelque chose (bruits forts, Dégâts subis, lumières aveuglantes ou autres) : réussir un Test de **Calme Difficile (−20)** ou subir une **Incantation Imparfaite Mineure** et perdre **tous les DR accumulés** jusqu'alors au Test étendu de Focalisation.
 
-> **Verbatim** (l.193-195) : « Si vous êtes perturbé par quelque chose – bruits forts, Dégâts subis, lumières aveuglantes ou autres –, vous devrez réussir un Test de Calme Difficile (−20) ou subir une Incantation Imparfaite Mineure et perdre tous les DR accumulés jusque-là au Test étendu de Focalisation. »
+> **Verbatim** (l.144) : « Si vous êtes perturbé par quelque chose – bruits forts, Dégâts subis, lumières aveuglantes ou autres –, vous devrez réussir un Test de Calme Difficile (−20) ou subir une Incantation Imparfaite Mineure et perdre tous les DR accumulés jusque-là au Test étendu de Focalisation. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.143-145) → `FocusInterruptHook`, `dispel-roll`, `armourCastDRPenalty`, `focalisation-etendue`, `dispel`, `dispel-spell`, `focus-interrupt`, `createCombatSlice`, `runCombatFlow`, `CastTestModsContext`, +13 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +7 fichiers
@@ -434,7 +434,7 @@ Si un sort **vous cible** ou vise un point **visible** à une distance en mètre
 
 ## Dissiper des sorts permanents
 
-**Sources RAW :** `LDB 46 l.159-162`
+**Sources RAW :** `LDB 46 l.158-162`
 
 Pour dissiper un sort à **effet durable** déjà en place :
 - Action entière du dissipateur.
@@ -450,7 +450,7 @@ Pour dissiper un sort à **effet durable** déjà en place :
 
 ## Durée des sorts
 
-**Sources RAW :** `LDB 46 l.92-94`
+**Sources RAW :** `LDB 46 l.91-93`
 
 Un sort lancé avec succès reste actif pour sa **Durée** (indiquée dans la description du sort) à moins d'être dissipé. On **ne peut pas simplement mettre fin à ses sorts** déjà en jeu — il faut Dissiper.
 
@@ -460,7 +460,7 @@ Les durées se lisent :
 - **N minutes / heures / jours** (horloge de campagne).
 - **Jusqu'au lever du soleil** : durée jusqu'à la prochaine aube.
 
-> **Verbatim** (l.149-151) : « Si un Sort est lancé avec succès, il reste actif pour sa Durée à moins d'être dissipé. Vous ne pouvez pas simplement mettre fin à vos Sorts déjà en jeu, mais vous pouvez tenter de les Dissiper. »
+> **Verbatim** (l.93) : « Si un Sort est lancé avec succès, il reste actif pour sa Durée à moins d'être dissipé. Vous ne pouvez pas simplement mettre fin à vos Sorts déjà en jeu, mais vous pouvez tenter de les Dissiper. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.92-94) → `overcastAxes`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `lecture-au-grimoire`, `malevolentInfluenceSeverity`, `ALL_MAGIC`, +5 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +4 fichiers
@@ -469,11 +469,11 @@ Les durées se lisent :
 
 ## Grimoires (lancer depuis le livre)
 
-**Sources RAW :** `LDB 46 l.96-99`
+**Sources RAW :** `LDB 46 l.95-97`
 
 Un lanceur peut activer un sort depuis un **grimoire** si le sort appartient au Domaine qu'il possède, mais cela **double le Niveau d'Incantation** (NI × 2).
 
-> **Verbatim** (l.152-154) : « Un lanceur de Sorts peut en activer un depuis un grimoire si le Sort appartient au Domaine qu'il possède, mais cela double le Niveau d'Incantation. »
+> **Verbatim** (l.97) : « Un lanceur de Sorts peut en activer un depuis un grimoire si le Sort appartient au Domaine qu'il possède, mais cela double le Niveau d'Incantation. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.96-99) → `followsCharacterRules`, `overcastAxes`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `lecture-au-grimoire`, `SpellbookSection`, +11 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +8 fichiers
@@ -482,7 +482,7 @@ Un lanceur peut activer un sort depuis un **grimoire** si le sort appartient au 
 
 ## Projectiles Magiques
 
-**Sources RAW :** `LDB 46 l.101-105`
+**Sources RAW :** `LDB 46 l.99-101`
 
 Les sorts indiqués *Projectile magique* suivent des règles de résolution spécifiques :
 
@@ -490,7 +490,7 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 2. **Dégâts totaux** = Dégâts du sort + DR du Test de Langue (Magick) + Bonus de Force Mentale du lanceur.
 3. Ces Dégâts sont **réduits normalement** par le Bonus d'Endurance et les PA de la cible.
 
-> **Verbatim** (l.155-157) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
+> **Verbatim** (l.101) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `FLOWS`, `previewDefense`, `rangedDefenseModes`, `GameState`, `appliquerLaTouche`, +3 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +4 fichiers
@@ -515,7 +515,7 @@ Les lanceurs peuvent focaliser leur magie au moyen d'un **composant approprié**
 - **Magie Naturelle** : composants obligatoires pour tout lancement ; trouvables avec Savoir (Herboristerie) ou achetables 5 sous de cuivre chacun. (DR + 1 composants sur un jet réussi.)
 - **Sorcellerie** : coût en **sous de cuivre** (NI du sort en sc, pas en pa) ; trouvables par Survie en extérieur (1 + DR composants). Sans composant = jet obligatoire sur Imparfaites Mineures.
 
-> **Verbatim** (l.160-162) : « Si vous utilisez un composant quand vous incantez, toute Incantation Imparfaite Majeure devient une Incantation Imparfaite Mineure, et aucune Incantation Imparfaite Mineure n'a d'effet. Utilisé ainsi, le composant est consumé ou détruit par le processus, même si aucune Incantation Imparfaite n'a été obtenue. »
+> **Verbatim** (l.111) : « Si vous utilisez un composant quand vous incantez, toute Incantation Imparfaite Majeure devient une Incantation Imparfaite Mineure, et aucune Incantation Imparfaite Mineure n'a d'effet. Utilisé ainsi, le composant est consumé ou détruit par le processus, même si aucune Incantation Imparfaite n'a été obtenue. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.107-114) → `followsCharacterRules`, `overcastAxes`, `combat-spell-plus`, `useHoverTargeting`, `CastableSpell`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `castingBaseValue`, `castingValue`, +31 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +12 fichiers
@@ -531,13 +531,13 @@ Les lanceurs peuvent focaliser leur magie au moyen d'un **composant approprié**
 - **Non-cumul des bonus** : les sorts fournissant des bonus ou pénalités **ne se cumulent pas**. Le **meilleur bonus** et la **pire pénalité** sont appliqués.
 - **Ligne de vue** : sauf indication contraire, le lanceur doit **voir** sa cible.
 
-> **Verbatim** (l.168) : « les Sorts fournissant des bonus ou des pénalités ne se cumulent pas. Au lieu de cela, le meilleur bonus et la pire pénalité sont appliqués à chaque Sort lancé sur vous. »
+> **Verbatim** (l.119) : « les Sorts fournissant des bonus ou des pénalités ne se cumulent pas. Au lieu de cela, le meilleur bonus et la pire pénalité sont appliqués à chaque Sort lancé sur vous. »
 
 ---
 
 ## Sorts de Contact en Combat
 
-**Sources RAW :** `LDB 46 l.123-124`
+**Sources RAW :** `LDB 46 l.103-105`
 
 Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne veut pas être touchée) :
 1. Effectuer le Test d'Incantation.
@@ -551,7 +551,7 @@ Pour les sorts nécessitant de **toucher la cible** en combat (ou si la cible ne
 
 ## Avantages et Magie
 
-**Sources RAW :** `LDB 46 l.122-126`
+**Sources RAW :** `LDB 46 l.123-125`
 
 - Les Avantages en combat s'appliquent aux Tests d'**Incantation** (pas de Focalisation).
 - Gain d'Avantage spécifique pendant l'incantation : si la cible a déjà été visée par un sort **du même Domaine** durant ce Round → +1 Avantage (le renforcement du Vent aide à focaliser la magie).
@@ -687,7 +687,7 @@ Triple effet : (1) `+10` à Incanter/Focaliser en environnement rural/sauvage (b
 
 Les sorts marqués **ZdE** affectent tous les individus à l'intérieur de ce **diamètre** (pas d'un rayon). Diamètre typique : `(Bonus de Force Mentale) mètres`, valeur littérale, ou `Spécial`.
 
-> **Verbatim** (LDB 47 l.28) : « les Sorts marqués ZdE affectent tous les individus à l'intérieur de ce DIAMÈTRE ».
+> **Verbatim** (LDB 47 l.28) : « Les Sorts marqués ZdE (Zone d'Effet) affectent tous les individus à l'intérieur de ce diamètre. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 47` (l.28) → `CastingNumberRounding`, `SpellTarget`, `CastModal`, `DECLARATIONS_D_OPS`, `carriedGrimoire`, `SpellbookSection`, `zdeDiameterMeters`, `bestAreaCenter`, `overcastAffordance`, `TIER`, +18 — `src/data/index.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/castingNumber.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/ops.ts`, +11 fichiers
@@ -1705,29 +1705,29 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 | Règle | Source | Statut |
 |---|---|---|
 | Vents de Magie (8 couleurs, restriction 1 Vent) | LDB 44 l.3-39 | OK |
-| Types de sorts (Mineurs/Arcane/Domaine/Chaos) | LDB 46 l.13-15 | OK |
-| Mémoriser un sort (PX) | LDB 46 l.17-21 | OK |
-| Test d'incantation (Langue Magick, DR ≥ NI) | LDB 46 l.23-25 | OK |
+| Types de sorts (Mineurs/Arcane/Domaine/Chaos) | LDB 46 l.12-14 | OK |
+| Mémoriser un sort (PX) | LDB 46 l.16-20 | OK |
+| Test d'incantation (Langue Magick, DR ≥ NI) | LDB 46 l.22-24 | OK |
 | Compétence avancée (0 avance = pas de test) | LDB 09 | OK |
 | Incantation Critique (double réussi) | LDB 46 l.27-32 | OK |
-| Maladresse → Imparfaite Mineure | LDB 46 l.84-86 | OK |
-| Influence corruptrice → le 8 | LDB 46 l.88-90 | OK |
-| Tableau Imparfaites Mineures (20 entrées) | LDB 46 l.33-53 | OK — verbatim |
-| Tableau Imparfaites Majeures (20 entrées) | LDB 46 l.55-80 | OK — verbatim |
-| Focalisation (Test étendu, NI → 0) | LDB 46 l.129-133 | OK |
-| Focalisation Critique (Harmonisation aethyrique) | LDB 46 l.135-137 | OK |
-| Maladresse Focalisation élargie (0 terminal) | LDB 46 l.139-141 | OK |
-| Interruptions de Focalisation (Calme −20) | LDB 46 l.143-145 | OK |
-| Repousser les Vents (armure −1 DR/PA) | LDB 46 l.148-151 | OK |
+| Maladresse → Imparfaite Mineure | LDB 46 l.83-85 | OK |
+| Influence corruptrice → le 8 | LDB 46 l.87-89 | OK |
+| Tableau Imparfaites Mineures (20 entrées) | LDB 46 l.34-55 | OK — verbatim |
+| Tableau Imparfaites Majeures (20 entrées) | LDB 46 l.58-80 | OK — verbatim |
+| Focalisation (Test étendu, NI → 0) | LDB 46 l.128-132 | OK |
+| Focalisation Critique (Harmonisation aethyrique) | LDB 46 l.134-136 | OK |
+| Maladresse Focalisation élargie (0 terminal) | LDB 46 l.138-140 | OK |
+| Interruptions de Focalisation (Calme −20) | LDB 46 l.142-144 | OK |
+| Repousser les Vents (armure −1 DR/PA) | LDB 46 l.146-152 | OK |
 | Avantages → incantation (pas focalisation) | LDB 46 l.125 | OK |
 | Dissipation / Contre-sort (Test opposé) | LDB 46 l.154-156 | OK |
-| Dissiper sorts permanents (Test étendu) | LDB 46 l.159-162 | OK |
-| Durée (pas de fin volontaire) | LDB 46 l.92-94 | OK |
-| Grimoire (NI × 2) | LDB 46 l.96-99 | OK |
-| Projectile magique (localisation inversée, dégâts) | LDB 46 l.101-105 | OK |
+| Dissiper sorts permanents (Test étendu) | LDB 46 l.158-162 | OK |
+| Durée (pas de fin volontaire) | LDB 46 l.91-93 | OK |
+| Grimoire (NI × 2) | LDB 46 l.95-97 | OK |
+| Projectile magique (localisation inversée, dégâts) | LDB 46 l.99-101 | OK |
 | Composants (Majeure→Mineure, Mineure→annulée) | LDB 46 l.107-114 | OK |
 | Restrictions (parole, unicité, non-cumul, LoS) | LDB 46 l.116-121 | OK |
-| Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.123-124 | OK |
+| Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.103-105 | OK |
 | Attributs de Domaine — Bête (Peur 1 post-incantation) | LDB 48 l.7 | OK — `domainAfterCast` |
 | Attributs de Domaine — Cieux (bypass PA métal + AoE 2 m) | LDB 48 l.105 | OK — `domainMissileMods` / `domainOnHitEffects` |
 | Attributs de Domaine — Lumière (Aveuglé + frappe BInt vs Démons/Mort-vivants) | LDB 48 l.302 | OK — `domainOnHitEffects` |
@@ -1745,8 +1745,8 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 
 ### Tables d100 transcrites
 
-- Tableau des Incantations Imparfaites Mineures (20 entrées, 01–00) — verbatim LDB 46 l.33-53.
-- Tableau des Incantations Imparfaites Majeures (20 entrées, 01–00) — verbatim LDB 46 l.55-80.
+- Tableau des Incantations Imparfaites Mineures (20 entrées, 01–00) — verbatim LDB 46 l.34-55.
+- Tableau des Incantations Imparfaites Majeures (20 entrées, 01–00) — verbatim LDB 46 l.58-80.
 - Tableau de la Colère des dieux (LDB 40 l.52-101) → **non transcrit ici** — appartient à `religion.md` (à construire). Implémenté dans `WRATH` (`src/engine/miscast.ts` l.164-206).
 
 ### Refs-code couvertes

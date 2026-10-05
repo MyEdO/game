@@ -1,5 +1,8 @@
 import type { Settlement } from '../../engine/disponibilite';
 
+/** Catégorie d'unité ACHETABLE chez un marchand (#619) : le navire n'en est pas (#748). */
+export type UniteAchetable = 'bete' | 'vehicule-terrestre';
+
 /** Archétype de marchand (#2) — 1 fichier `defs/` = 1 entrée du registre généré. */
 export interface MerchantArchetypeDef {
   /** Clé unique (référencée par l'entité de scène `merchant.archetype`). */
@@ -36,5 +39,5 @@ export interface MerchantArchetypeDef {
    *  véhicules à `purchase` sans coque (`!ship`). (`'navire'` : achat non géré par `payCart` -> #748.)
    *  Achetée, une unité crée une POSSESSION au lieu d'un objet de sac (`catalogEntryOf`,
    *  `state/merchantFlow.ts`). */
-  unitKinds?: Array<'bete' | 'vehicule-terrestre'>;
+  unitKinds?: UniteAchetable[];
 }

@@ -350,7 +350,7 @@ describe('MSRC 16 — Vers de carie : phase active PERSISTANTE (dégénérescenc
     const steps: { meta?: Record<string, unknown> }[] = [];
     const defer = (s: { meta?: Record<string, unknown> }) => steps.push(s);
     for (let d = 0; d < 7; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    const table = steps.map((s) => s.meta?.onFail).find((o): o is import('./ops').GameOp[] => Array.isArray(o) && o[0]?.op === 'rollTable')!;
+    const table = steps.map((s) => s.meta?.opsEchec).find((o): o is import('./ops').GameOp[] => Array.isArray(o) && o[0]?.op === 'rollTable')!;
     const dead = fullSick();
     applyOps(dead, table, { rng: { int: () => 10 }, sl: -3 }); // d10=10 + |DR −3| = 13 → Mort
     expect(dead.dead).toBe(true);
