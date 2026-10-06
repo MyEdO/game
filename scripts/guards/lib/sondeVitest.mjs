@@ -24,7 +24,7 @@ export function estSondeVitest(jetons, contexte) {
   const i = args.indexOf('vitest')
   if (i < 0 || args[i + 1] !== 'run') return false
   const suite = jetons.slice(i + 2)
-  if (suite.length !== 2 || !['--config', '-c'].includes(suite[0].text) || suite.some(j => j.substitutions?.length) || /[$%`*?\[\]]/.test(suite[1].text)) return false
+  if (suite.length !== 2 || !['--config', '-c'].includes(suite[0].text) || suite.some(j => j.substitutions?.length) || /[$%`*?[\]]/.test(suite[1].text)) return false
   if (contexte.repertoireChange && !isAbsolute(suite[1].text)) return false
   try {
     const config = resolve(contexte.dir, suite[1].text)
@@ -90,7 +90,7 @@ export function estSondeVitest(jetons, contexte) {
     if (!include || !ts.isArrayLiteralExpression(include) || include.elements.length !== 1) return false
     const cible = texteStatique(include.elements[0])
     if (cible === undefined) return false
-    if (/[*?\[\]{}()]/.test(cible) || !estSuiteVitest(cible)) return false
+    if (/[*?[\]{}()]/.test(cible) || !estSuiteVitest(cible)) return false
     const root = configObjet.get('root')
     const racine = root && texteStatique(root)
     if (!isAbsolute(cible) && root && racine === undefined) return false
