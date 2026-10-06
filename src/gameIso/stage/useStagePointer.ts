@@ -15,14 +15,15 @@
  *    doigts = panoramique. Un seul pointeur garde strictement le comportement ci-dessus ;
  *  - `performClick` : sélection / cible / déplacement (combat et exploration) ;
  *  - `moveAlong` : marche pas-à-pas du groupe (sauts par-dessus les gouffres compris) ;
- *  - clic droit : attaque la plus PERTINENTE sur l'ennemi survolé (scoreur partagé avec l'IA) ;
+ *  - geste SECONDAIRE (clic droit à la souris, appui long au doigt ou au stylet) : INSPECTER la
+ *    fiche du jeton désigné (`ficheSous`) — le clic GAUCHE garde l'attaque et le ciblage ;
  *  - suivi du SURVOL borné aux changements de tuile (curseur main sur l'interactif).
  */
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
 import { toggleDoorIn } from '../../state/scene';
 import { entityBlockedAt } from '../../state/sceneRules';
-import { ficheDEntite } from '../../state/sceneNpc';
+import { ficheDEntite, sceneNpc } from '../../state/sceneNpc';
 import { chebyshev, walkNeighbors, type Pt } from '../../state/path';
 import { aPorteeDe, exploreMovePlan, exploreSeatPlan, mouvementDuGroupe, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../state/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../state/seating';
@@ -42,7 +43,7 @@ import { accordsPan, getStagePan, poserPan } from '../../state/stagePan';
 import { battreStageFrames } from './stageFrames';
 import { combatantClickActs } from '../../state/combatOrParty';
 import { hoverClickCommits } from '../../ui/pointerCaps';
-import { bestAttack } from '../../state/attackRelevance';
+import { useLongPress } from '../../ui/useLongPress';
 import { type Dims } from '../../geometry/iso';
 import { STEP_MS } from '../../geometry/walk';
 import { poseFromDims } from './projection';
@@ -57,12 +58,19 @@ import type { AreteProjetee } from './aretesProjetees';
 
 const PAN_THRESHOLD = 6; // px de glissement avant de passer en panoramique (sinon = clic)
 
+/** Le PIXEL d'un événement de pointeur ou de souris — tout ce que la résolution du verdict en lit. */
+type PixelDEvenement = Pick<React.MouseEvent, 'clientX' | 'clientY'>;
+
 export interface StagePointer {
   /** Tuile survolée (tooltip + réticule de visée ; suivie dans tous les modes de ciblage). */
   hover: Pt | null;
   /** L'ENTITÉ UTILISABLE sous le curseur (#1687), `null` sinon : celle que le clic traiterait
    *  (`entiteDuGeste` + `estUtilisable`), source unique du halo renforcé et de sa plaque de nom. */
   entiteSurvolee: string | null;
+  /** HORS COMBAT, l'entité À FICHE sous le curseur (`ficheSous`, la MÊME que le clic droit ouvrirait),
+   *  `null` sinon : l'entrée de `useHoverTargeting`, seul écrivain de `store.hovered`, que la touche
+   *  `inspecter` lit. */
+  ficheSurvolee: string | null;
   /** L'arête SURVOLÉE, quel qu'en soit le canal (pixel ou focus clavier) : source unique de l'accent
    *  du peintre et de l'armement du geste. */
   areteSurvolee: AreteUtilisable | null;
@@ -115,6 +123,7 @@ export function useStagePointer({
   // — le halo et la plaque de nom du survolé n'ont ainsi pas de second résolveur à tenir. État à part
   // de `hover` : une même tuile peut changer d'entité (décor épuisé), et l'id ne bouge pas à chaque pixel.
   const [entiteSurvolee, setEntiteSurvolee] = useState<string | null>(null);
+  const [ficheSurvolee, setFicheSurvolee] = useState<string | null>(null);
   const movingRef = useRef(false);
   // Glisser-caméra : on diffère l'action de clic au relâchement ; un glissement > seuil = panoramique.
   // La BASE du panoramique (`pan0` + le point de viewBox `vbX/vbY` + le zoom + le n° d'accord du
@@ -146,7 +155,9 @@ export function useStagePointer({
     const w = window as unknown as { __wfrpSetHover?: (t: Pt | null) => void };
     w.__wfrpSetHover = (t) => {
       setHover(t);
-      setEntiteSurvolee(utilisableSous({ tile: t ? { x: t.x, y: t.y, z: t.z ?? 0 } : null, cid: null, via: 'aucune', nature: 'case' }, t));
+      const v: Verdict = { tile: t ? { x: t.x, y: t.y, z: t.z ?? 0 } : null, cid: null, via: 'aucune', nature: 'case' };
+      setEntiteSurvolee(utilisableSous(v, t));
+      setFicheSurvolee(useGame.getState().mode === 'exploration' ? ficheSous(v) : null);
     };
     return () => { delete w.__wfrpSetHover; };
   }, []);
@@ -157,7 +168,7 @@ export function useStagePointer({
 
   /** Point de PROJECTION du stage sous le pixel de l'événement — l'inversion partagée
    *  (`pickResolve.ts:pointStageSousPixel`), à la caméra et au zoom du RENDU COURANT. */
-  const stagePointOf = (ev: React.PointerEvent): { x: number; y: number } | null =>
+  const stagePointOf = (ev: PixelDEvenement): { x: number; y: number } | null =>
     pointStageSousPixel(svgRef.current, ev.clientX, ev.clientY, camRef.current!, zoom);
 
   // Picking SPRITE-aware : si un TOKEN (ou un décor volumique) est réellement dessiné sous le curseur,
@@ -170,7 +181,7 @@ export function useStagePointer({
   // inter-étages, case marchable, sol cross-couche) vit en UN lieu : `stage/pickResolve.ts`, que la
   // sonde de recette (`stage/pickProbe.ts`) appelle aussi. Ce hook n'y apporte que les coordonnées de
   // l'événement et la caméra du rendu que son hôte lui tend.
-  const pickVerdict = (ev: React.PointerEvent): Verdict => {
+  const pickVerdict = (ev: PixelDEvenement): Verdict => {
     const st = useGame.getState();
     const visé = tireLeRayon(st) ? targetUnderPointer(ev.clientX, ev.clientY) : null;
     // Le point de stage est passé en THUNK : il n'est inversé que si un étage en a besoin, et jamais
@@ -295,14 +306,11 @@ export function useStagePointer({
     enjamber: (de, vers) => { useGame.getState().windowAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     // FRAPPER une structure : le MUR est un Combattant (`state/combatSlice.ts`, `cid`), son geste est
     // donc EXACTEMENT celui d'un jeton ennemi sous le rayon (`performClick` ci-dessous) — MÊME porte
-    // partagée (`state/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces) et même
-    // retombée : quand la porte refuse (Inspection ON), la structure s'INSPECTE comme un jeton.
-    // L'aperçu et le commit sont ceux du flux de combat (`state/targetingModes.ts`, `samePreview`),
-    // celui que lit déjà le réticule de visée.
+    // partagée (`state/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces). Elle
+    // s'inspecte, comme un jeton, au geste SECONDAIRE (`ficheSous`). L'aperçu et le commit sont ceux du
+    // flux de combat (`state/targetingModes.ts`, `samePreview`), celui que lit déjà le réticule de visée.
     frapper: (cid) => {
-      const st = useGame.getState();
-      if (combatantClickActs(useGame.getState, { id: cid })) st.battleClickEntity(cid, { confirm: hoverClickCommits() });
-      else if (st.inspectEnabled) st.setInspectId(cid);
+      if (combatantClickActs(useGame.getState, { id: cid })) useGame.getState().battleClickEntity(cid, { confirm: hoverClickCommits() });
     },
   };
 
@@ -327,6 +335,38 @@ export function useStagePointer({
     if ((areteSurvolee?.cle ?? null) !== (arete?.cle ?? null)) setAreteSurvolee(arete);
   };
 
+  /** L'entité À FICHE que ce verdict désigne, ou `null` : en combat le combattant de la case (ou la
+   *  structure de l'arête), hors combat le PNJ de scène dont la fiche se résout (`sceneNpc`) — un
+   *  geste qui n'ouvrirait rien n'est pas offert. Source unique du geste SECONDAIRE du plateau. */
+  const ficheSous = (v: Verdict | null): string | null => {
+    const st = useGame.getState();
+    const sc = st.scene;
+    const t = v ? tuileDe(v) : null;
+    if (!sc || !v || !t) return null;
+    if (st.mode === 'battle') {
+      if (!st.battle) return null;
+      if (v.nature === 'arete') return v.arete.cid ?? null;
+      return combatantAtTile(st.battle.combatants, t.x, t.y, t.z ?? 0)?.id ?? null;
+    }
+    const ent = entiteDuGeste(sc, v, t);
+    return ent && sceneNpc(sc, ent.id) ? ent.id : null;
+  };
+
+  /** LE geste SECONDAIRE du plateau — clic droit et appui long, un seul chemin : la fiche de ce que
+   *  désigne le verdict s'ouvre, en combat comme hors combat, quel que soit le camp. Lecture seule :
+   *  aucun tour ni siège coop ne le garde. */
+  const inspecter = (v: Verdict | null): void => {
+    const id = ficheSous(v);
+    if (id) useGame.getState().setInspectId(id);
+  };
+
+  // APPUI LONG au doigt et au stylet (`useLongPress`, la primitive des alvéoles ; la souris a le clic
+  // droit) : il n'est ARMÉ que sur une entité à fiche, pour qu'un appui lent sur le sol reste un clic. Le panoramique, lui, garde la CAPTURE du
+  // `<svg>` : l'appui ne reçoit aucune cible à capturer, et le hook le DÉSARME lui-même dès que le
+  // glisser démarre (`PAN_THRESHOLD` est plus fin que la tolérance de la primitive) ou qu'un second
+  // doigt pince.
+  const appuiLong = useLongPress(() => { inspecter(dragRef.current?.verdict ?? null); });
+
   // Action de clic (DIFFÉRÉE au relâchement, sautée si on a fait un panoramique) — sélection / cible / déplacement.
   const performClick = (v: Verdict | null) => {
     const st = useGame.getState();
@@ -343,11 +383,11 @@ export function useStagePointer({
       if (!controlsActive(st)) return; // coop : tour du héros d'un AUTRE joueur — clics inertes
       const occ = st.battle ? combatantAtTile(st.battle.combatants, x, y, tz) : undefined; // clic sur N'IMPORTE quelle tuile de l'empreinte, au bon étage
       // Décision PARTAGÉE avec le clic d'un portrait de frise (`combatantClickActs`) : un ennemi
-      // s'attaque en mode neutre, tout combattant se cible en mode sort / choix de cibles ; sinon
-      // (allié/soi non actionnable) on inspecte. Desktop (survol) : la visée a déjà tout montré → un
-      // clic COMMET ; tactile : deux-taps (tap 1 = aperçu) — cf. pointerCaps.
-      if (occ && combatantClickActs(useGame.getState, occ)) st.battleClickEntity(occ.id, { confirm: hoverClickCommits() });
-      else if (occ) { if (st.inspectEnabled) st.setInspectId(occ.id); } // allié/soi non-actionnable → inspecter
+      // s'attaque en mode neutre, tout combattant se cible en mode sort / choix de cibles ; un
+      // allié/soi non actionnable ne fait rien (son inspection est le geste SECONDAIRE). Desktop
+      // (survol) : la visée a déjà tout montré → un clic COMMET ; tactile : deux-taps (tap 1 =
+      // aperçu) — cf. pointerCaps.
+      if (occ) { if (combatantClickActs(useGame.getState, occ)) st.battleClickEntity(occ.id, { confirm: hoverClickCommits() }); }
       else st.battleClickTile(tz ? { x, y, z: tz } : { x, y }, { confirm: hoverClickCommits() }); // z-aware : escalier / case de rempart
       return;
     }
@@ -484,12 +524,15 @@ export function useStagePointer({
       const [a, b] = [...ptrs.current.values()];
       pinchRef.current = { dist: Math.hypot(b.x - a.x, b.y - a.y) || 1, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, accord0: accordsPan() };
       dragRef.current = null;
+      appuiLong.annuler();
       svgRef.current?.setPointerCapture?.(ev.pointerId);
       return;
     }
     const p = clientToSvg(ev);
-    dragRef.current = { sx: ev.clientX, sy: ev.clientY, vbX: p?.x ?? 0, vbY: p?.y ?? 0, panned: false, button: ev.button, verdict: pickVerdict(ev), yaw0: getStageYaw(), pan0: getStagePan(), zoom0: zoom, accord0: accordsPan() };
+    const verdict = pickVerdict(ev);
+    dragRef.current = { sx: ev.clientX, sy: ev.clientY, vbX: p?.x ?? 0, vbY: p?.y ?? 0, panned: false, button: ev.button, verdict, yaw0: getStageYaw(), pan0: getStagePan(), zoom0: zoom, accord0: accordsPan() };
     svgRef.current?.setPointerCapture?.(ev.pointerId);
+    if (ficheSous(verdict)) appuiLong.handlers.onPointerDown({ clientX: ev.clientX, clientY: ev.clientY, button: ev.button, pointerId: ev.pointerId, pointerType: ev.pointerType });
   };
 
   const onPointerMove = (ev: React.PointerEvent) => {
@@ -521,11 +564,14 @@ export function useStagePointer({
     }
     const d = dragRef.current;
     if (d) {
-      if (!d.panned && Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) > PAN_THRESHOLD) d.panned = true;
+      if (!d.panned && Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) > PAN_THRESHOLD) {
+        d.panned = true;
+        appuiLong.annuler();
+      }
       if (d.panned) {
-        // Bouton MILIEU = TOURNER (le principal déplace le groupe, le droit ouvre l'attaque la plus
-        // pertinente) : le lacet se pose ABSOLUMENT depuis l'angle du début de geste, la vue suit donc
-        // le doigt sans dériver au fil des images.
+        // Bouton MILIEU = TOURNER (le principal déplace le groupe, le droit inspecte) : le lacet se
+        // pose ABSOLUMENT depuis l'angle du début de geste, la vue suit donc le doigt sans dériver au
+        // fil des images.
         if (d.button === 1) {
           poserYaw(d.yaw0 + (ev.clientX - d.sx) * SENSIBILITE_DRAG_DEG_PX);
           (ev.currentTarget as SVGElement).style.cursor = 'grabbing';
@@ -562,6 +608,8 @@ export function useStagePointer({
     // un jeton de combat survolé, pour lequel cette ligne n'écrit rien non plus.
     const idSurvolé = utilisableSous(v, t);
     if (idSurvolé !== entiteSurvolee) setEntiteSurvolee(idSurvolé);
+    const fiche = st.mode === 'exploration' ? ficheSous(v) : null;
+    if (fiche !== ficheSurvolee) setFicheSurvolee(fiche);
     const overInteractive = !!idSurvolé && st.mode === 'exploration';
     (ev.currentTarget as SVGElement).style.cursor = overInteractive ? 'pointer' : '';
     // Survol suivi en COMBAT (visée) ET en EXPLORATION (halo renforcé du décor interactif + aperçu de
@@ -600,7 +648,8 @@ export function useStagePointer({
     // Un recentrage arrivé APRÈS le dernier mouvement a le dernier mot : il a déjà commis {0,0} et
     // ramené le vivant, il n'y a rien à écrire par-dessus.
     if (d.panned && d.button === 0 && accordsPan() === d.accord0) setCamPan(getStagePan().x, getStagePan().y);
-    if (!d.panned && d.button === 0) performClick(d.verdict); // tap (sans glisser) au bouton principal = clic
+    // Tap (sans glisser) au bouton principal = clic — sauf s'il a fini en APPUI LONG, déjà servi.
+    if (!d.panned && d.button === 0 && !appuiLong.consomme()) performClick(d.verdict);
   };
 
   const onPointerLeave = () => {
@@ -609,26 +658,30 @@ export function useStagePointer({
     if (hover) setHover(null);
     if (areteSurvolee) setAreteSurvolee(null);
     if (entiteSurvolee) setEntiteSurvolee(null);
+    if (ficheSurvolee) setFicheSurvolee(null);
   };
 
-  // Clic droit en combat = attaque la plus PERTINENTE sur l'ennemi survolé (scoreur partagé avec l'IA :
-  // poids éditable × dégâts/multi-cible), sans muter `selectedAttack`. Raccourci sur `availableAttacks`.
+  // Clic droit = INSPECTER le jeton sous le pixel. Le `contextmenu` que le navigateur dérive d'un
+  // appui long au doigt est AVALÉ (`consomme`) : l'appui a déjà ouvert la fiche. Quand ce
+  // `contextmenu` PRÉCÈDE le minuteur (Android) et qu'il inspecte, il TERMINE l'appui au bouton
+  // principal en cours : le `pointercancel` qui suit ne rejoue pas le clic. Le bouton DROIT n'est pas
+  // terminé — son `contextmenu` naît À L'APPUI (macOS, Linux), son relâchement ne clique rien.
   const onContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    const st = useGame.getState();
-    const b = st.battle;
-    if (st.mode !== 'battle' || !b || b.over || !controlsActive(st) || !hover) return;
-    const active = b.combatants.find((c) => c.id === b.order[b.turn]);
-    if (!active || active.kind !== 'hero') return;
-    const occ = combatantAtTile(b.combatants, hover.x, hover.y, hover.z ?? 0);
-    if (!occ || occ.kind !== 'enemy') return;
-    const best = bestAttack(useGame.getState, active, b, occ);
-    if (best) st.battleClickEntity(occ.id, { forceAttackId: best.id, confirm: true });
+    if (appuiLong.consomme() || useGame.getState().dialogue) return;
+    const id = ficheSous(pickVerdict(e));
+    if (!id) return;
+    useGame.getState().setInspectId(id);
+    if (dragRef.current?.button === 0) {
+      appuiLong.annuler();
+      dragRef.current = null;
+    }
   };
 
   return {
     hover,
     entiteSurvolee,
+    ficheSurvolee,
     areteSurvolee,
     activerArete,
     survolerArete,

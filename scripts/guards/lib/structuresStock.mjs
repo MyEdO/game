@@ -705,7 +705,6 @@ export const STRUCTURES_FORMES = [
 export const STRUCTURES_DEFAUT = [
   { dataset: "actions.json", cle: "blocked", date: "2026-08-26" },
   { dataset: "activities.json", cle: "char", date: "2026-08-26" },
-  { dataset: "maneuvers.json", cle: "priority", date: "2026-08-26" },
   { dataset: "merchants.json", cle: "buyMarkup", date: "2026-08-26" },
   { dataset: "merchants.json", cle: "restockDays", date: "2026-08-26" },
   { dataset: "pregens.json", cle: "age", date: "2026-08-26" },

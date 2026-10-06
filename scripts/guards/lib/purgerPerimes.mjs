@@ -1,6 +1,8 @@
-// Bornage d'un dossier de CACHE écrit un fichier par run (captures de suite, sorties de gate) :
-// sans borne, `node_modules/.cache` grossit indéfiniment. Source UNIQUE du geste, appelée par
-// `scripts/test/run.mjs` et `scripts/gates/toutes.mjs` avec leur dossier, leur motif et leur âge.
+// Bornage d'un dossier de CACHE écrit un fichier par run ou par mesure (captures de suite, sorties de
+// gate, logs tournés du train, verdicts gardés par la vigie) : sans borne, il grossit indéfiniment. Source
+// UNIQUE du geste, appelée avec leur dossier, leur motif et leur âge par `scripts/test/run.mjs`,
+// `scripts/gates/toutes.mjs`, `scripts/ops/publier.mjs` (`node_modules/.cache/publication`) et
+// `scripts/ops/vigie.mjs` (`<arbre principal>/.git/vigie`).
 //
 // Un effacement refusé ne change AUCUN verdict : sous Windows un fichier encore tenu par un enfant
 // fraîchement tué refuse `rmSync`, et le run suivant réessaiera. Le dossier absent est un no-op —

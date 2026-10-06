@@ -32,7 +32,7 @@
 // FICHIERS, sous `--literal-pathspecs`),
 // `fusionner`, `abandonnerFusion`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
 // nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
-// sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
+// sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
 // numéro et un uuid), `lireTicket` et `commenter`
 // (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
@@ -51,10 +51,10 @@ import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
   conclureFusionSansChemins, depotDe,
-  estAncetre, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
+  estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
-import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
@@ -393,6 +393,47 @@ export const etatDeLEtape = (journal, nom, teteVivante) => {
   return vue.etat
 }
 
+/** L'état d'un VERDICT au journal, sous le nom que porte l'état du train. */
+const ETAT_DU_VERDICT = Object.freeze({ vert: 'vert', indeterminee: 'indéterminée' })
+
+/**
+ * L'ÉTAT DU TRAIN lu dans son journal — l'unique lecteur du journal pour `--etapes` et la vigie
+ * (`scripts/ops/vigie.mjs`). PUR hors de `vivant`. `etat` :
+ *   · `aucun` : aucun run au journal ;
+ *   · `en-vol` : pas de verdict, le pid du run vit — quelle que soit la tête, que le train fait avancer ;
+ *   · `périmé` : un run fini (verdict) ou mort dont la tête publiée n'est plus `teteVivante` ;
+ *   · `vert`, `rouge`, `indéterminée` : le verdict du run, pour la tête vivante ;
+ *   · `mort` : pas de verdict, le pid ne vit pas, pour la tête vivante.
+ * `etape` est la dernière TRANSITION du run (`seq` le plus haut), `rang` sa place dans `noms` (1 à
+ * `total`, 0 sans transition). `etapes` et `reprise` suivent la règle de tête (`etatDeLEtape`, `planDeReprise`).
+ * @param {object|null} journal @param {{teteVivante:string|null, noms?:string[], vivant?:(pid:number) => boolean}} p `noms` : ceux d’`ETAPES`
+ * @returns {{etat:string, etape:string|null, rang:number, total:number, run:string|null, seq:number,
+ *            etapes:{nom:string, etat:string}[], reprise:string|null}}
+ */
+export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = vivant }) {
+  const run = journal?.run ?? null
+  const transitions = Object.entries(journal?.etapes ?? {})
+    .filter(([nom, vue]) => run && vue?.run === run && Number.isInteger(vue.seq) && noms.includes(nom))
+    .sort(([, a], [, b]) => b.seq - a.seq)
+  const etape = transitions[0]?.[0] ?? null
+  const verdict = journal?.verdict ?? null
+  const etat = !run ? 'aucun'
+    : !verdict && estVivant(journal.pid) ? 'en-vol'
+      : journal.tete && journal.tete !== teteVivante ? 'périmé'
+        : verdict ? ETAT_DU_VERDICT[verdict.etat] ?? 'rouge'
+          : 'mort'
+  return {
+    etat,
+    etape,
+    rang: etape ? noms.indexOf(etape) + 1 : 0,
+    total: noms.length,
+    run,
+    seq: journal?.seq ?? 0,
+    etapes: noms.map((nom) => ({ nom, etat: etatDeLEtape(journal, nom, teteVivante) })),
+    reprise: planDeReprise(journal, noms, teteVivante),
+  }
+}
+
 // ── Purs : le run courant et sa veille (#2227) ────────────────────────────────────────────────
 
 /** Code de sortie d'un verdict indéterminé (la file n'a pas fusionné dans sa borne). */
@@ -550,7 +591,8 @@ export const cheminsDeJournal = (racine, branche) => {
   return { dossier, json: join(dossier, `${nom}.json`), log: join(dossier, `${nom}.log`) }
 }
 
-/** Écriture ATOMIQUE du journal (temporaire + renommage). */
+/** Écriture ATOMIQUE d'une valeur JSON (temporaire propre au processus, puis renommage) : le journal du
+ *  train, et le cache de la vigie (`scripts/ops/vigie.mjs`), que plusieurs sessions partagent. */
 export function sauverJournal(chemin, journal) {
   mkdirSync(join(chemin, '..'), { recursive: true })
   const tmp = `${chemin}.${process.pid}.tmp`
@@ -572,7 +614,8 @@ export function lireJournal(chemin, branche) {
 export const PERIODE_DE_VEILLE_MS = 5_000
 
 /** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
-function vivant(pid) {
+export function vivant(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false
   try {
     process.kill(pid, 0)
     return true
@@ -700,7 +743,7 @@ export function lancementNpm(script, platform) {
 
 /** Un sha COMPLET, sinon levée. */
 function shaComplet(geste, sha) {
-  if (typeof sha === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) return sha
+  if (typeof sha === 'string' && estShaComplet(sha)) return sha
   throw new Error(`ctx.${geste} : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
 }
 
@@ -751,7 +794,7 @@ function numeroDeTicket(geste, numero) {
  * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
  * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
  * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
- * (un sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
+ * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireFusion` (un numéro de PR et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
  * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
@@ -809,9 +852,10 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
         return { ok: false, raison: e.message }
       }
     },
-    jobsRouges(id) {
-      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsRouges : un id de course — refusé : ${JSON.stringify(id)}`)
-      return jobsRougesDe({ cwd: racine, id })
+    jobsEnEchec(id, attempt = null) {
+      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsEnEchec : un id de course — refusé : ${JSON.stringify(id)}`)
+      if (attempt !== null && !(Number.isSafeInteger(attempt) && attempt > 0)) throw new Error(`ctx.jobsEnEchec : un essai de course — refusé : ${JSON.stringify(attempt)}`)
+      return jobsEnEchecDe({ cwd: racine, id, attempt })
     },
     lirePr: () => lirePr(racine, branche),
     ouvrirPr({ titre, corps }) {
@@ -902,12 +946,13 @@ function main() {
 
   if (options.etapes) {
     const journal = surDisque ?? journalVide(branche)
-    const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), teteVivante)
+    const train = etatDuTrain(journal, { teteVivante })
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
-        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${journal.run ?? '—'}\n` +
-        ETAPES.map((e) => `  ${e.nom.padEnd(10)} ${etatDeLEtape(journal, e.nom, teteVivante)}`).join('\n') +
-        `\nreprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
+        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${train.run ?? '—'}\n` +
+        `train : ${train.etat}${train.etape ? ` — ${train.etape} ${train.rang}/${train.total}` : ''}\n` +
+        train.etapes.map((e) => `  ${e.nom.padEnd(10)} ${e.etat}`).join('\n') +
+        `\nreprise : ${train.reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
     )
     return 0
   }

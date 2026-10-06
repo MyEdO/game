@@ -41,9 +41,9 @@ export interface VerbesArete {
   sauter: (de: Pt, vers: Pt) => void;
   enjamber: (de: Pt, vers: Pt) => void;
   /** Le clic du Combattant-structure `cid` — celui d'un jeton, rien d'autre : le porteur consulte la
-   *  porte partagée (`state/combatOrParty.ts:combatantClickActs`) et, si elle refuse, INSPECTE le
-   *  combattant au lieu de le frapper ; sinon l'aperçu puis le commit sont ceux du flux de combat
-   *  (`state/targetingModes.ts`, `samePreview`), jamais un armement propre à l'arête. */
+   *  porte partagée (`state/combatOrParty.ts:combatantClickActs`) ; si elle refuse, le clic ne fait
+   *  rien (l'inspection est le geste SECONDAIRE du jeton) ; sinon l'aperçu puis le commit sont ceux du
+   *  flux de combat (`state/targetingModes.ts`, `samePreview`), jamais un armement propre à l'arête. */
   frapper: (cid: string) => void;
 }
 

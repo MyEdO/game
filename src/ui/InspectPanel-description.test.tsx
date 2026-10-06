@@ -19,6 +19,7 @@ import { InspectPanel } from './InspectPanel';
 import { CampaignView } from './CampaignView';
 import { useGameKeyboard } from './useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
+import { DELAI_APPUI_LONG } from './useLongPress';
 import type { Combatant } from '../engine/types';
 import type { Scene } from '../state/scene';
 
@@ -87,29 +88,93 @@ const liens = (el: Element): string[] => [...el.querySelectorAll('.codex-ref')].
 const sceneAuPreset = (presetId: string): Scene =>
   ({ id: 'sc-preset', label: 'Preset', entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, presetId }] } as unknown as Scene);
 
-describe('InspectPanel — le mode Inspection ouvre la Description d’un preset (geste réel)', () => {
+describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, #1822)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
   });
 
-  it('touche I puis clic sur le portrait de Knud dans la frise : onglet « Description », la desc de SON profil, nue', () => {
+  const dialogue = (): HTMLElement => document.querySelector<HTMLElement>('[role="dialog"]')!;
+  const clicDroit = (el: HTMLElement) => act(() => { el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); });
+
+  it('clic droit sur le portrait de Knud dans la frise : onglet « Description », la desc de SON profil, nue', () => {
     const knud = combatKnud();
-    useGame.setState({ inspectEnabled: false, inspectId: null });
-    function Clavier() { useGameKeyboard(); return null; }
-    const el = monter(<><Clavier /><CampaignView /></>);
-    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI' })); });
-    expect(useGame.getState().inspectEnabled).toBe(true);
+    useGame.setState({ inspectId: null });
+    const el = monter(<CampaignView />);
     const portrait = [...el.querySelectorAll<HTMLElement>('.initiative-strip [title="Knud Cratinx"]')][0];
     expect(portrait, 'portrait de Knud absent de la frise').toBeTruthy();
-    act(() => { portrait.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    clicDroit(portrait);
     expect(useGame.getState().inspectId).toBe(knud.id);
-    const dlg = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    const dlg = dialogue();
     expect(dlg.textContent).toContain('Knud Cratinx');
     expect(onglet(dlg, 'Profil')).toBeTruthy();
     const pane = ouvrirDescription(dlg);
     expect(pane.textContent).toContain(extrait(DESC_KNUD()));
     expect(pane.querySelector('.codex-ref'), 'prose de profil : porteur projet absent, aucun lien').toBeNull();
+  });
+
+  it('la fiche ouverte : le pied du cadre est FRÈRE du corps, jamais dedans, et rien n’a défilé', () => {
+    combatKnud();
+    const el = monter(<CampaignView />);
+    clicDroit(el.querySelector<HTMLElement>('.initiative-strip [title="Knud Cratinx"]')!);
+    const modal = dialogue();
+    const corps = modal.querySelector<HTMLElement>(':scope > .modal-body')!;
+    const pied = modal.querySelector<HTMLElement>('.cadre-pied')!;
+    expect(corps, 'corps du cadre').toBeTruthy();
+    expect(pied, 'pied du cadre').toBeTruthy();
+    expect(pied.parentElement, 'le pied est un enfant direct de la boîte').toBe(modal);
+    expect(corps.contains(pied), 'le pied ne vit jamais dans le corps qui défile').toBe(false);
+    expect(modal.scrollTop).toBe(0);
+    expect(corps.scrollTop).toBe(0);
+  });
+
+  it('Maj+F10 sur le portrait de Knud FOCALISÉ : la même fiche', () => {
+    const knud = combatKnud();
+    const el = monter(<CampaignView />);
+    const portrait = el.querySelector<HTMLElement>('.initiative-strip [title="Knud Cratinx"]')!;
+    act(() => { portrait.focus(); portrait.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true, cancelable: true })); });
+    expect(useGame.getState().inspectId).toBe(knud.id);
+    expect(dialogue().textContent).toContain('Knud Cratinx');
+  });
+
+  it('appui long sur le portrait de Knud : la même fiche', () => {
+    const knud = combatKnud();
+    const el = monter(<CampaignView />);
+    const portrait = el.querySelector<HTMLElement>('.initiative-strip [title="Knud Cratinx"]')!;
+    act(() => { portrait.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 5, clientY: 5, pointerId: 1, pointerType: 'touch' })); });
+    act(() => { vi.advanceTimersByTime(DELAI_APPUI_LONG); });
+    expect(useGame.getState().inspectId).toBe(knud.id);
+  });
+
+  it('clic droit sur un portrait du BANDEAU de groupe : la fiche de ce héros — son clic gauche, lui, ouvre la fiche de personnage', () => {
+    combatKnud();
+    const heros = useGame.getState().party[0];
+    const el = monter(<CampaignView />);
+    const tuile = el.querySelector<HTMLElement>(`.party-dock [title="${heros.label} — fiche du personnage"]`)!;
+    expect(tuile, 'tuile du bandeau absente').toBeTruthy();
+    clicDroit(tuile);
+    expect(useGame.getState().inspectId).toBe(heros.id);
+    expect(dialogue().textContent).toContain(heros.label);
+    expect(useGame.getState().sheetId, 'le clic droit n’ouvre pas la fiche de personnage').toBeNull();
+  });
+
+  it('hors combat, touche I sur le PNJ survolé (`npc-phillipe`) : sa fiche, résolue sur la scène', () => {
+    poserScenario(useGame.getState, scenario);
+    useGame.setState({ inspectId: null, screen: 'campaign' });
+    function Clavier() { useGameKeyboard(); return null; }
+    monter(<><Clavier /><CampaignView /></>);
+    // Le rideau d'ouverture de la scène se lève d'abord, comme le joueur le lève.
+    const terminer = [...dialogue().querySelectorAll('button')].find((b) => b.textContent === 'Terminer')!;
+    act(() => { terminer.click(); });
+    expect(document.querySelector('[role="dialog"]'), 'rideau levé').toBeNull();
+    act(() => { useGame.setState({ hovered: 'npc-phillipe' }); });
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyI' })); });
+    expect(useGame.getState().inspectId).toBe('npc-phillipe');
+    const dlg = dialogue();
+    expect(dlg.textContent).toContain('Phillipe Descartes');
+    const prose = proseDeFiche(sceneNpc(useGame.getState().scene, 'npc-phillipe')!, presetPnjById);
+    expect(prose, 'Phillipe est un preset DÉCRIT').toBeTruthy();
+    expect(ouvrirDescription(dlg).textContent).toContain(extrait((prose!.section.rows[0] as { text: string }).text));
   });
 });
 

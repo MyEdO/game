@@ -164,7 +164,7 @@ export type TileTargetingMode = TargetingMode & Required<Pick<TargetingMode, 'ti
  *    premier clic. Le verdict voyage donc aussi DANS le pending, et revient par ici à la relance.
  * Absent = « non renseigné » : le site d'appel local le calcule alors depuis SON store.
  */
-export type BattleClickOpts = { confirm?: boolean; skipMountChoice?: boolean; forceAttackId?: string; wardCleared?: boolean; approche?: boolean };
+export type BattleClickOpts = { confirm?: boolean; skipMountChoice?: boolean; wardCleared?: boolean; approche?: boolean };
 
 /** Options du clic-CASE (parité `battleClickTile`). `courseArmee` = le pendant exact de `approche`
  *  pour la zone de Course (même voyage, mêmes deux raisons). */
@@ -508,9 +508,9 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const p = serveTargetPoste(active, target, battle.combatants);
     if (p) { get().battleManPoste({ hullId: target.id, posteUid: p.item.uid }); return; }
   }
-  // ATTAQUE unifiée : l'`AttackOption` armée (clic droit = première abordable via `forceAttackId` ; sinon
-  // `selectedAttack`, défaut 'arme' ; les anciens modes maneuver/tentacle/trample mappent sur leur option).
-  const option = selectedAttackOption(active, battle, opts?.forceAttackId);
+  // ATTAQUE unifiée : l'`AttackOption` armée (`selectedAttack`, défaut 'arme' ; les modes
+  // maneuver/tentacle/trample mappent sur leur option).
+  const option = selectedAttackOption(active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
   if (!canTakeAction(active) || hasCondition(active, COND.brise)) return; // Sonné/Brisé : pas d'attaque (parité boutons)

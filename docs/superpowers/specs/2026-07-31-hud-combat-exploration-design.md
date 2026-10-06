@@ -23,7 +23,7 @@ Un joueur doit pouvoir répondre immédiatement à quatre questions :
 | Haut, centre | Identité et santé du groupe | Acteur courant, ordre des tours |
 | Gauche | Temps du combat | Actions disponibles |
 | Bas, centre | Décisions de l’acteur courant | État global du groupe |
-| Haut, droite | Orientation, projection, zoom et inspection | Actions de combat |
+| Haut, droite | Aucune plaque : la caméra se pilote au geste et au clavier (§6) | Actions de combat |
 | Haut, gauche hors combat | Lieu, date et objectif courant | Initiative ou actions de tour |
 | Centre de la carte | Situation tactique et contexte immédiat | Informations persistantes déjà présentes dans le HUD |
 
@@ -71,20 +71,17 @@ Le courant porte `aria-current="step"`, la surbrillance existante et un marqueur
 
 Le toggle d’inspection quitte `InitiativeStrip`.
 
-## 6. Inspection et commandes de vue — `ViewControls`
+## 6. Inspection et commandes de vue — des gestes, aucune plaque
 
-L’inspection rejoint `ViewControls` par deux props optionnelles :
+Arbitrage du 2026-08-17 (`docs/plans/2026-08-16-spec-hud-combat.md`, « ARBITRAGE CAMÉRA ») : « gestes + clavier seuls — la plaque `ViewControls` QUITTE le jeu » ; l'éditeur la garde. Verrou : `src/ui/camera-sans-plaque.test.ts`.
 
-```ts
-inspectEnabled?: boolean;
-onToggleInspect?: () => void;
-```
+L'inspection n'est pas un mode à basculer : c'est le GESTE SECONDAIRE d'une entité (#1822, 2026-10-05 : « le clique gauche déclenche l'attaque et le clique droit inspecte »), en combat comme hors combat :
 
-Le bouton n’est rendu que si `onToggleInspect` est fourni. Il porte `aria-pressed={inspectEnabled === true}`, un nom accessible et une infobulle. Il compose le registre d’icônes et la même géométrie de contrôle que les groupes orientation, affichage et zoom.
+- sur un PORTRAIT (`PortraitTile.onInspect`, frise `InitiativeStrip` et bandeau `PartyDock`) : clic droit, appui long (`useLongPress`), touche Menu ou Maj+F10 sur la tuile focalisée — le patron de l'alvéole `ConsoleCell`, annoncé dans le nom accessible ;
+- sur un JETON du plateau (`useStagePointer`) : clic droit et appui long ; la fiche se résout par la case en combat, par l'entité de scène à fiche hors combat ;
+- au clavier, la liaison `inspecter` (touche I) du registre `keybindings.ts` : la case du curseur, sinon le survolé ; à la manette, R3 sur la carte.
 
-Le contrat de `EditorCanvas` reste inchangé : son appel actuel, sans props d’inspection ni de POV, continue de compiler et n’affiche aucun contrôle de jeu. `CampaignView` est le seul appelant qui fournit les props d’inspection.
-
-Les modes projection, POV et inspection portent `aria-pressed`. Une commande indisponible est réellement désactivée. Lorsqu’une modale bloque la scène, les commandes restent visibles comme contexte mais inactives.
+Le clic GAUCHE garde l'attaque, le ciblage et l'offre. `ViewControls` ne porte que l'orientation, la projection, le POV et le zoom ; projection et POV portent `aria-pressed`.
 
 ## 7. Flux de combat — `CombatBanner`
 
@@ -169,7 +166,7 @@ L’initiative, le round, `CombatBanner` et le dock de tour sont absents. `Party
 
 Les seuls breakpoints de largeur sont 900, 700 et 560 px. La validation à 360 px appartient à la tranche `<=560` et n’ajoute aucun breakpoint.
 
-| Largeur | Groupe | Initiative | Caméra / inspection | Dock et modales |
+| Largeur | Groupe | Initiative | Caméra (éditeur) | Dock et modales |
 |---|---|---|---|---|
 | `>900` | quatre cartes lisibles, nom et vie | colonne gauche, round intégré | groupes complets en haut droite | disposition de référence |
 | `701–900` | cartes compactes, nom et vie conservés | colonne réduite, courant entier | icônes et infobulles | dock sur deux rangées au besoin |
@@ -195,7 +192,7 @@ Les seuls breakpoints de largeur sont 900, 700 et 560 px. La validation à 360 p
 
 1. Le rendu de `PartyDock` ne reçoit plus `activeId`, ne transmet plus `active` et ne contient aucun caret, tout en gardant vie et états.
 2. `InitiativeStrip` affiche `round`, rend toutes les entrées `future` pour `turn=-1`, dérive `past/current/future` par index, ne marque aucun courant si `over=true` et classe un renfort selon son index actuel.
-3. `InitiativeStrip` ne rend plus l’inspection ; `ViewControls` rend son bouton optionnel avec `aria-pressed`, et l’appel inchangé d’`EditorCanvas` reste valide sans ce bouton.
+3. Aucune surface ne porte de bascule d’inspection ; le clic droit, l’appui long et Menu/Maj+F10 d’un portrait, le clic droit et l’appui long d’un jeton, la touche `inspecter` ouvrent `InspectPanel` sur l’entité désignée.
 4. En combat sans message, la région `CombatBanner` reste montée avec `role=status`, `aria-live=polite`, `aria-atomic=true` et aucun enfant ; avec message, un seul enfant est animé.
 5. Le dock conserve le loadout et les contrôles existants, affiche Action, Mouvement et Avantage en texte et rend l’aperçu avant → après depuis les deltas existants.
 6. Un test de store prouve que survol, premier tap et commit obtiennent la même résolution et que le commit ne contient aucun second appel à `pathTo` ; `MovementIntent` rend `reason` sans le fabriquer.

@@ -96,6 +96,8 @@ const MIGRATIONS_DE_SAVE = {
   64: '#700 chute volontaire en flux MULTI : une rangée par tombant (`participants`), axes `suspendu` et `allege`',
   // #1853 · EDO 11 l.190
   65: '#1853 plancher de `charMod` figé sur l’instance de mutation',
+  // #1822
+  66: '#1822 l’inspection est un geste, plus une préférence (`inspectEnabled`)',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);
