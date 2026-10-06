@@ -4,7 +4,7 @@
  * Frontière RÉFÉRENCE vs NARRATIF : le narratif est EMBARQUÉ dans le document de campagne et
  * RÉFÉRENCE la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée. L'invariant
  * est gardé ICI : aucun id narratif ne collisionne avec un id de la règle globale
- * (créature/possession), et les quatre registres n'ont aucun id en commun.
+ * (créature/possession), et les registres (`REGISTRES_NARRATIFS`) n'ont aucun id en commun.
  *
  * Prose d'un stade d'indice et `pitch` d'ouverture : verbatim quand `source` est posé (règle stricte 5) ;
  * sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
@@ -19,12 +19,26 @@ import { proseDeScene } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle, type CreatureProfilPartiel } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { TrappingData } from '../../index';
+import { REGISTRES_NARRATIFS } from './registres-narratifs';
+import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 
-/** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier. */
+/** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier, le document qu'il croise
+ *  (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
 export const indiceStadeSchema = z.strictObject({
   /** id STABLE du stade, unique DANS l'indice. */
   id: z.string().min(1, 'id vide.'),
-  prose: proseDeScene('narratif.indices[].stades[].prose'),
+  prose: proseDeScene('narratif.indices[].stades[].prose').optional(),
+  documentId: z.string().min(1, 'id de document vide.').optional(),
+  source: sourceRefSchema.optional(),
+});
+
+/** Un document remis au joueur (#679) — prose VERBATIM (règle 5, Markdown), servie par l'Effect
+ *  `document { documentId }`. */
+export const documentNarratifSchema = z.strictObject({
+  /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
+  id: z.string().min(1, 'id vide.'),
+  titre: z.string().min(1, 'titre vide.'),
+  prose: proseDeScene('narratif.documents[].prose').min(1, 'prose vide.'),
   source: sourceRefSchema.optional(),
 });
 
@@ -90,41 +104,49 @@ export const clotureSchema = z.strictObject({
 });
 
 /** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà comme créature OU possession. */
-const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
+export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
 
 /**
  * Sémantique du bloc narratif — unicité des ids INTER-registres (l'unicité DANS un registre est la
- * clé de sa liste, `listeCle`), anti-collision avec la règle globale, `indice.affaireId` croisé,
- * stades non vides, preset à `base` OU `profil` complet, et spécialisations RÉSOLUES au catalogue
+ * clé de sa liste, `listeCle`) et anti-collision avec la règle globale, pour chaque registre de
+ * `REGISTRES_NARRATIFS` ; `indice.affaireId` croisé, stades non vides, stade à prose OU document
+ * (`documentId` croisé), preset à `base` OU `profil` complet, et spécialisations RÉSOLUES au catalogue
  * global (`specResolves`). Attachée à `narratifSchema`, elle porte donc le chemin complet (`narratif.indices.3.affaireId`) quand le projet la compose.
  */
 function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx): void {
   const faute = (path: (string | number)[], message: string): void => ctx.addIssue({ code: 'custom', path, message });
 
-  const affaireIds = new Set<string>();
-  nb.affaires.forEach((a, i) => {
-    if (collisionneAvecLeGlobal(a.id)) faute(['affaires', i, 'id'], `l'id d'affaire « ${a.id} » collisionne avec un id de la règle globale (créature/possession).`);
-    affaireIds.add(a.id);
-  });
+  /** Registre qui a déclaré chaque id, dans l'ordre de la table. */
+  const registreDe = new Map<string, (typeof REGISTRES_NARRATIFS)[number]>();
+  for (const reg of REGISTRES_NARRATIFS) {
+    (nb[reg.cle] as readonly unknown[]).forEach((e, i) => {
+      const id = e && typeof e === 'object' ? (e as { id?: unknown }).id : undefined;
+      if (typeof id !== 'string' || id === '') {
+        if (!reg.idAuSchema) faute([reg.cle, i, 'id'], 'id absent.');
+        return;
+      }
+      const autre = registreDe.get(id);
+      if (autre && autre !== reg) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id ${autre.de}.`);
+      if (collisionneAvecLeGlobal(id)) faute([reg.cle, i, 'id'], `l'id ${reg.de} « ${id} » collisionne avec un id de la règle globale (créature/possession).`);
+      if (!autre) registreDe.set(id, reg);
+    });
+  }
 
-  const indiceIds = new Set<string>();
+  /** `affaireId` d'indice, `documentId` de stade : visiteur unique des références (`./refs-narratives.ts`). */
+  for (const f of fautesDeSites(sitesDuNarratif(nb), nb)) faute([...f.chemin], f.message);
+
+  const indiceIds = new Set(nb.indices.map((ind) => ind.id));
   nb.indices.forEach((ind, i) => {
-    if (affaireIds.has(ind.id)) faute(['indices', i, 'id'], `l'id d'indice « ${ind.id} » collisionne avec un id d'affaire.`);
-    if (collisionneAvecLeGlobal(ind.id)) faute(['indices', i, 'id'], `l'id d'indice « ${ind.id} » collisionne avec un id de la règle globale (créature/possession).`);
-    if (!affaireIds.has(ind.affaireId)) faute(['indices', i, 'affaireId'], `affaire inconnue « ${ind.affaireId} ».`);
     if (!ind.stades.length) faute(['indices', i, 'stades'], 'aucun stade : un indice en porte au moins un.');
-    indiceIds.add(ind.id);
-  });
-  nb.indices.forEach((ind, i) => {
+    ind.stades.forEach((st, j) => {
+      if (st.prose === undefined && st.documentId === undefined) faute(['indices', i, 'stades', j], 'ni prose ni document : un stade en porte au moins un.');
+    });
     (ind.refs ?? []).forEach((r, j) => {
       if (!indiceIds.has(r)) faute(['indices', i, 'refs', j], `indice inconnu « ${r} ».`);
     });
   });
 
-  const presetIds = new Set<string>();
   nb.presetsPnj.forEach((p, i) => {
-    if (affaireIds.has(p.id) || indiceIds.has(p.id)) faute(['presetsPnj', i, 'id'], `l'id de preset PNJ « ${p.id} » collisionne avec un autre id du narratif.`);
-    if (collisionneAvecLeGlobal(p.id)) faute(['presetsPnj', i, 'id'], `l'id de preset PNJ « ${p.id} » collisionne avec un id de la règle globale (créature/possession).`);
     if (p.base === undefined && p.profil === undefined) faute(['presetsPnj', i], "ni base ni profil (au moins l'un des deux est requis).");
     if (p.base === undefined && p.profil !== undefined) {
       if (!p.profil.char || typeof p.profil.char !== 'object') faute(['presetsPnj', i, 'profil', 'char'], '« char » absent d’un profil sans base.');
@@ -160,16 +182,6 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     };
     specValide('skills', { indefini: 'une Compétence', defini: 'la Compétence', texteDInstance: false }, (id) => byId('skill', id), p.profil?.skills ?? []);
     specValide('talents', { indefini: 'un Talent', defini: 'le Talent', texteDInstance: true }, findTalentById, p.profil?.talents ?? []);
-    presetIds.add(p.id);
-  });
-
-  nb.objets.forEach((o, i) => {
-    if (!o?.id) {
-      faute(['objets', i, 'id'], 'id absent.');
-      return;
-    }
-    if (affaireIds.has(o.id) || indiceIds.has(o.id) || presetIds.has(o.id)) faute(['objets', i, 'id'], `l'id d'objet « ${o.id} » collisionne avec un autre id du narratif.`);
-    if (collisionneAvecLeGlobal(o.id)) faute(['objets', i, 'id'], `l'id d'objet « ${o.id} » collisionne avec un id de la règle globale (créature/possession).`);
   });
 }
 
@@ -184,6 +196,7 @@ const formeNarratif = z.strictObject({
   indices: listeCle(indiceSchema, 'id'),
   presetsPnj: listeCle(presetPnjSchema, 'id'),
   objets: listeCle(z.custom<TrappingData>(), 'id'),
+  documents: listeCle(documentNarratifSchema, 'id'),
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
   ecartes: listeCle(ecartSchema, 'entree').optional(),

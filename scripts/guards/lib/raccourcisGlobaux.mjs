@@ -7,10 +7,10 @@
 // se résout depuis un littéral, un gabarit sans trou, une table (clés et valeurs d'un objet, éléments
 // d'un tableau), une constante du fichier ou importée d'un module du dépôt passé en `fichiers`, la
 // variable d'une boucle `for…of` ou d'un rappel `forEach` sur une table. Tout autre type est NON RÉSOLU.
-// Les arbres d'une passe vivent dans l'appel (`tsProgram.mjs`, en-tête).
+// Les arbres d'une passe vivent dans l'appel (`tsProgram.mjs`).
 
 import { posix } from 'node:path'
-import { ast, typescript } from './dialecte.mjs'
+import { analyserCorpus, typescript } from './dialecte.mjs'
 
 /** Types d'événement d'un CLAVIER. */
 const TYPE_CLAVIER = /^key(?:down|up)$/
@@ -32,23 +32,19 @@ const enTete = (text) => text.split('\n').slice(0, LIGNES_ENTETE).join('\n')
 function passe(fichiers) {
   const ts = typescript()
   const depot = new Map(fichiers.map((f) => [f.rel, f]))
-  const arbres = new Map()
-  const arbreDe = (f) => {
-    const cle = `${f.rel}\0${f.text}`
-    if (!arbres.has(cle)) arbres.set(cle, ast(f))
-    return arbres.get(cle)
-  }
+  const arbres = new Map([...analyserCorpus(fichiers)].map(({ fichier, sourceFile }) => [fichier, sourceFile]))
+  const arbreDe = (f) => arbres.get(f)
 
   /** Nom lié par une déclaration de variable ou un motif de déstructuration. */
   const lie = (nom, b) =>
-    ts.isIdentifier(b) ? b.text === nom : b.elements.some((e) => !ts.isOmittedExpression(e) && lie(nom, e.name))
+    ts.isIdentifier(b) ? b.text === nom : b.elements.some((e) => ts.isBindingElement(e) && e.name && lie(nom, e.name))
 
   /** Les chaînes que peut valoir une expression de type d'événement ; `null` : non résolue. */
   function valeurs(expr, sf, f, prof = 0) {
     if (prof > PROFONDEUR) return null
     const suite = (n) => valeurs(n, sf, f, prof + 1)
     if (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isSatisfiesExpression(expr)
-      || ts.isTypeAssertionExpression(expr) || ts.isNonNullExpression(expr)) return suite(expr.expression)
+      || ts.isTypeAssertion(expr) || ts.isNonNullExpression(expr)) return suite(expr.expression)
     if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return [expr.text]
     if (ts.isArrayLiteralExpression(expr)) {
       const vs = expr.elements.map((e) => suite(ts.isSpreadElement(e) ? e.expression : e))
@@ -57,7 +53,7 @@ function passe(fichiers) {
     if (ts.isObjectLiteralExpression(expr)) {
       const vs = []
       for (const p of expr.properties) {
-        if (p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) vs.push(p.name.text)
+        if ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) vs.push(p.name.text)
         if (ts.isPropertyAssignment(p)) vs.push(...(suite(p.initializer) ?? []))
       }
       return vs
@@ -73,7 +69,7 @@ function passe(fichiers) {
     for (let n = depuis; n; n = n.parent) {
       if (ts.isForOfStatement(n) && ts.isVariableDeclarationList(n.initializer)
         && n.initializer.declarations.some((d) => lie(nom, d.name))) return suite(n.expression)
-      if (ts.isFunctionLike(n) && n.parameters.some((p) => lie(nom, p.name))) {
+      if (ts.isFunctionLikeDeclaration(n) && n.parameters.some((p) => lie(nom, p.name))) {
         const appel = n.parent
         return appel && ts.isCallExpression(appel) && ts.isPropertyAccessExpression(appel.expression)
           && appel.expression.name.text === 'forEach' ? suite(appel.expression.expression) : null
@@ -117,7 +113,7 @@ function passe(fichiers) {
         if (types === null) verdict = 'non résolu'
         else if (types.some((t) => TYPE_CLAVIER.test(t))) verdict = 'clavier'
       }
-      ts.forEachChild(n, visite)
+      n.forEachChild(visite)
     }
     visite(sf)
     return verdict
@@ -150,7 +146,7 @@ function passe(fichiers) {
  * @param {readonly { rel: string, text: string }[]} [depot]
  * @returns {string | null}
  */
-export const verdictClavier = (fichier, depot = []) => passe(depot).verdict(fichier)
+export const verdictClavier = (fichier, depot = []) => passe([...new Set([...depot, fichier])]).verdict(fichier)
 
 /**
  * Fichiers de `fichiers` hors de la règle, imports résolus parmi eux.

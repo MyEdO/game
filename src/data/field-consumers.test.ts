@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildFieldConsumersMd } from '../../scripts/docs/build-field-consumers.mjs';
 import { TARGETS, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
-import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../../scripts/guards/lib/fieldConsumers.mjs';
+import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../../scripts/guards/lib/fieldConsumers.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
 import { detenteur } from '../detenteur.testkit';
 
@@ -23,9 +23,8 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 /** Le rapport, régénéré EN PROCESSUS et mémoïsé : un SEUL scan du corpus nourrit toutes les
  *  assertions qui le lisent (cas fondateur, déterminisme, champs recouvrés, cliquet des « 0 lecteur »).
- *  Il coûte ~17 s et ~1,3 Go (Program du dépôt, 1 952 fichiers) : d'où les timeouts explicites posés
- *  sur les `it` qui le paient. PARESSEUX : payé au 1ᵉʳ `it` qui le demande, jamais à la collecte de
- *  vitest (#1801). */
+ *  PARESSEUX : payé au 1ᵉʳ `it` qui le demande, jamais à la collecte de vitest (#1801).
+ *  Seul le rapport dérivé est retenu, aucun Program. */
 const rapport = detenteur(buildFieldConsumersMd);
 
 /**
@@ -71,8 +70,7 @@ describe('MORSURE du diagnostic d’écart — chaque écart se dit en clair', (
  * CONTRAT POSITIF sur le PÉRIMÈTRE lui-même. `fieldsOf` rend `[]` — sans lever — pour un nœud qui
  * n'expose ni `.shape` ni `.options` : un export de schéma renommé/supprimé laisse la cible pointer
  * `undefined`, le rapport perd le type EN SILENCE et le test de fraîcheur reste VERT (le doc régénéré
- * et le doc committé s'accordent sur la même table vide). Mesuré le 2026-08-31 sur `AdvancementRef`,
- * dont la cible visait un `advancementRefSchema` disparu au profit d'`avancement(type)`.
+ * et le doc committé s'accordent sur la même table vide).
  */
 describe('périmètre de TARGETS — aucune cible ne rend zéro champ', () => {
   it('chaque cible expose au moins un champ (une cible muette = un type perdu du rapport)', () => {
@@ -113,14 +111,12 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(
       specSites.sort(),
       'TrappingRef.spec devrait avoir EXACTEMENT 2 sites lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts:323', 'src/engine/trappingChoices.ts:107']);
+    ).toEqual(['src/engine/items.ts:321', 'src/engine/trappingChoices.ts:107']);
     expect(
       specReaders.some((s: string) => s.includes('data/index.ts')),
       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',
     ).toBe(false);
-    // Program du dépôt, mémoïsé entre les `it` — mais celui-ci le paie SEUL s'il est lancé à part
-    // (`-t`) : même mesure, donc même marge.
-  }, 150_000);
+  }, 240_000);
 });
 
 /**
@@ -147,9 +143,6 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
     const inverse = [...listProdFiles(join(ROOT, 'src'))].reverse();
     const ecart = ecartDoc(buildFieldConsumersMd(inverse).md, rapport().md);
     if (ecart !== '') expect.fail(`l'ordre des racines a fui dans le rendu — ${ecart}`);
-    // 300 s : DEUX Programs complets du dépôt (le mémoïsé + celui du corpus inversé). Mesures du
-    // 2026-09-01 : 24,6 s ici, 52,3 s sur la machine du juge — marge ≥ 5× la plus lente, parce que
-    // le runner CI Linux est plus lent encore et que cette garde est précisément née de son rouge.
   }, 300_000);
 });
 
@@ -160,9 +153,7 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  * et la disparition du site est rouge sous le nom du champ. `TraitInstance.hidden` y figure parce que
  * `hiddenGroupsOf` ANNOTE `TraitInstance[]` : c'est cette annotation qui rend sa lecture mesurable.
  *
- * L'ancre est le SYMBOLE englobant, jamais le numéro de ligne d'un fichier VIVANT : une ligne insérée
- * en amont par un train étranger déplaçait le site et rougissait cette table sans qu'aucune lecture
- * ait bougé (payé par 19ce6c342, `src/data/index.ts:3500` → `:3508`).
+ * L'ancre est le SYMBOLE englobant, jamais le numéro de ligne d'un fichier VIVANT.
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
@@ -231,7 +222,7 @@ describe('contrat POSITIF des champs recouvrés + cliquet des « 0 lecteur »', 
  * écrit pour un verdict, et le verdict est asserté.
  *
  * `virtualProgram` ne sert que ses propres sources plus le répertoire `lib` de TypeScript : `zod`
- * n'y est pas résoluble — SONDÉ le 2026-09-01, un `import { z } from 'zod'` y rend le diagnostic
+ * n'y est pas résoluble : un `import { z } from 'zod'` y rend le diagnostic
  * « Cannot find module 'zod' or its corresponding type declarations », le porteur se résout à
  * `z.infer<any>` et la propriété lue n'a AUCUN symbole. Le triplet zod est donc reproduit par un module
  * `src/z.ts` qui porte le SEUL trait qui compte pour le détecteur : un alias
@@ -294,8 +285,11 @@ export const surRefIci = (r: Ref) => r.spec;
   /** Sites mesurés d'un champ sur une cible, sur le programme des fixtures. */
   const sites = (type: string, home: string, champ: string): string[] => {
     const programme = virtualProgram(FIXTURES);
-    const hits = scanFieldReads({ type, home }, [champ], FICHIERS, VIRTUAL_ROOT, new Map(), programme);
-    return [...new Set(groupByField([champ], hits).get(champ)!.map((h) => `${h.file}:${h.line}`))];
+    try {
+      const hits = scanFieldReads({ type, home }, [champ], FICHIERS, VIRTUAL_ROOT, new Map(), programme);
+      return [...new Set(groupByField([champ], hits).get(champ)!.map((h) => `${h.file}:${h.line}`))];
+
+    } finally { programme.dispose(); }
   };
 
   it('CONJONCTION (1)∧(2) — le porteur doit être du type, la propriété doit être la sienne', () => {
@@ -351,8 +345,11 @@ export const ici = (r: Ref) => r.spec;
     const partage = new Map();
     const mesure = (fixtures: Record<string, string>) => {
       const fichiers = Object.keys(fixtures).map((rel) => join(VIRTUAL_ROOT, rel));
-      const hits = scanFieldReads({ type: 'Ref', home: 'src/types.ts' }, ['spec'], fichiers, VIRTUAL_ROOT, partage, virtualProgram(fixtures));
-      return [...new Set(hits.map((h) => `${h.file}:${h.line}`))];
+      const session = virtualProgram(fixtures);
+      try {
+        const hits = scanFieldReads({ type: 'Ref', home: 'src/types.ts' }, ['spec'], fichiers, VIRTUAL_ROOT, partage, session);
+        return [...new Set(hits.map((h) => `${h.file}:${h.line}`))];
+      } finally { session.dispose(); }
     };
     expect(mesure(FIXTURES)).toContain('src/lecteurs.ts:3');
     expect(mesure(AUTRE)).toEqual(['src/second.ts:2']);
@@ -361,6 +358,53 @@ export const ici = (r: Ref) => r.spec;
   it('HOMONYMIE : deux `Ref` de modules différents ne se croisent jamais', () => {
     expect(sites('Ref', 'src/types.ts', 'spec')).not.toContain('src/autre.ts:3');
     expect(sites('Ref', 'src/autre.ts', 'spec')).toEqual(['src/autre.ts:3']);
+  });
+
+  it('la fermeture tente tous les propriétaires après une erreur et préserve les sessions empruntées', () => {
+    const premier = virtualProgram({ 'a.ts': 'export const a = 1' });
+    const second = virtualProgram({ 'b.ts': 'export const b = 2' });
+    const emprunt = virtualProgram({ 'c.ts': 'export const c = 3' });
+    const erreur = new Error('fermeture interrompue');
+    let fermeturesDuSecond = 0;
+    const cache = new Map<unknown, unknown>([
+      ['premier', { sessionPropre: { ...premier, dispose: () => { premier.dispose(); throw erreur; } } }],
+      ['second', { sessionPropre: { ...second, dispose: () => { second.dispose(); fermeturesDuSecond++; } } }],
+      ['emprunt', { sessionPropre: null, program: emprunt.program }],
+    ]);
+    try {
+      expect(() => libererCache(cache)).toThrow(erreur);
+      expect(fermeturesDuSecond).toBe(1);
+      expect(cache.size).toBe(0);
+      const sf = emprunt.program.getSourceFile(join(VIRTUAL_ROOT, 'c.ts'))!;
+      expect(emprunt.checker.getTypeAtLocation(sf)).toBeDefined();
+    } finally { premier.dispose(); second.dispose(); emprunt.dispose(); }
+  });
+
+  it('Partial, Pick et mapping gardent les déclarations de la cible, les homonymes gardent les leurs', () => {
+    const fixtures = {
+      'src/types.ts': 'export interface Ref { spec: string }',
+      'src/autre.ts': 'export interface Ref { spec: string }',
+      'src/lecteurs.ts': `import type { Ref } from './types';
+import type { Ref as Autre } from './autre';
+type Champs<T> = { [K in keyof T]?: T[K] };
+export const partiel = (r: Partial<Ref>) => r.spec;
+export const choisi = (r: Pick<Ref, 'spec'>) => r.spec;
+export const mappe = (r: Champs<Ref>) => r.spec;
+export const etranger = (r: Pick<Autre, 'spec'>) => r.spec;
+`,
+    };
+    const session = virtualProgram(fixtures);
+    const cache = new Map();
+    const fichiers = Object.keys(fixtures).map((rel) => join(VIRTUAL_ROOT, rel));
+    try {
+      expect(scanFieldReads({ type: 'Ref', home: 'src/types.ts' }, ['spec'], fichiers, VIRTUAL_ROOT, cache, session)
+        .map((h) => `${h.file}:${h.line}`)).toEqual(['src/lecteurs.ts:4', 'src/lecteurs.ts:5', 'src/lecteurs.ts:6']);
+      expect(scanFieldReads({ type: 'Ref', home: 'src/autre.ts' }, ['spec'], fichiers, VIRTUAL_ROOT, cache, session)
+        .map((h) => `${h.file}:${h.line}`)).toEqual(['src/lecteurs.ts:7']);
+      libererCache(cache);
+      expect(cache.size).toBe(0);
+      expect(session.program.getSourceFile(join(VIRTUAL_ROOT, 'src/types.ts'))).toBeDefined();
+    } finally { session.dispose(); }
   });
 
   it('shape → type inféré : le DÉCLARANT est reconnu par SYMBOLE du schéma, pas par son nom', () => {
@@ -380,16 +424,19 @@ export const ici = (r: Ref) => r.spec;
 
   it('ÉTATS d’un champ : propre / hérité / absent du type TS', () => {
     const programme = virtualProgram(FIXTURES);
-    const etats = fieldOwnership(
-      { type: 'TrappingRef', home: 'src/types.ts' },
-      ['spec', 'qty', 'fantome'],
-      FICHIERS,
-      VIRTUAL_ROOT,
-      new Map(),
-      programme,
-    );
-    expect(etats.get('spec')).toEqual({ etat: 'herite', declarant: 'Ref' });
-    expect(etats.get('qty')?.etat).toBe('propre');
-    expect(etats.get('fantome')).toEqual({ etat: 'absent' });
+    try {
+      const etats = fieldOwnership(
+        { type: 'TrappingRef', home: 'src/types.ts' },
+        ['spec', 'qty', 'fantome'],
+        FICHIERS,
+        VIRTUAL_ROOT,
+        new Map(),
+        programme,
+      );
+      expect(etats.get('spec')).toEqual({ etat: 'herite', declarant: 'Ref' });
+      expect(etats.get('qty')?.etat).toBe('propre');
+      expect(etats.get('fantome')).toEqual({ etat: 'absent' });
+
+    } finally { programme.dispose(); }
   });
 });

@@ -321,8 +321,9 @@ function completerCompetenceDEspece(sp: SpeciesData, r: RefDesignee, autres: Ref
 }
 
 export function createHero(opts: CreateHeroOptions): Combatant {
-  const sp = findSpeciesById(opts.speciesId);
-  if (!sp) throw new Error(`Espèce inconnue : ${opts.speciesId}`);
+  const trouvee = findSpeciesById(opts.speciesId);
+  if (!trouvee) throw new Error(`Espèce inconnue : ${opts.speciesId}`);
+  const sp = structuredClone(trouvee); // #2097
   const levels = levelsForCareer(opts.careerId);
   const level = levels.find((l) => l.level === 1) ?? firstLevel(opts.careerId);
   const specChoices = opts.specChoices ?? {};

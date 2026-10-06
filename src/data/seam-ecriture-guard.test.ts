@@ -5,8 +5,7 @@
  * mutent un dataset : elles remplacent son contenu EN PLACE **et** versionnent l'écriture
  * (`bumperDataset`, `src/data/versionDataset.ts`). Un `push`/`splice` posé directement sur le binding
  * exporté change bien la donnée, mais AUCUN index mémoïsé ne l'apprend — le monde de la donnée et
- * celui des lecteurs divergent en silence (c'était le cas de deux tests, dont un qui se disait
- * « exactement ce que fait l'éditeur du Codex » alors que l'atelier passe par `setDataset`).
+ * celui des lecteurs divergent en silence.
  *
  * La cible surveillée est le dataset ET SES ENTRÉES (#1717) : `findConditionById('brise')` rend
  * l'objet même du tableau. Le muter écrit dans la donnée sans versionner l'écriture, et change
@@ -15,7 +14,7 @@
  * cet ordre, et le SEED de `resetData()` (capté à la première évaluation d'`overrides.ts`) fige la
  * forme qu'il trouve : dans un worker où la mutation précède, c'est la forme fautive qu'il restaure.
  *
- * Périmètre : tout `src/**` en `.ts(x)`, TESTS COMPRIS (c'est là que vivaient les écritures sauvages).
+ * Périmètre : tout `src/**` en `.ts(x)`, TESTS COMPRIS.
  * Vocabulaire IMPORTÉ du seam (`bindingsVivants`, dérivé des littéraux `ARRAYS` et `OBJECTS`
  * d'`overrides.ts`, des documents qui portent une clé de dataset — `documentsDesRacinesVivantes`, lus sur
  * le module généré `src/data/schemas/_racines-vivantes.generated.ts`, dont tout import direct est la
@@ -27,15 +26,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bindingsVivants, ecrituresHorsSeam, fichiersSources, fichiersDuSeam, RACINE } from '../../scripts/guards/lib/bindingsVivants.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 
 describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', () => {
   const parBinding = bindingsVivants();
   const seam = fichiersDuSeam();
 
-  it('aucun `push`/`splice`/`sort`… ni écriture PAR INDEX, ni mutation d’une ENTRÉE vivante, tests compris', { timeout: 60_000 }, () => {
-    const fautifs = fichiersSources()
-      .filter((f) => !seam.has(f))
-      .flatMap((f) => ecrituresHorsSeam(f, readFileSync(join(RACINE, f), 'utf8'), parBinding));
+  it('aucun `push`/`splice`/`sort`… ni écriture PAR INDEX, ni mutation d’une ENTRÉE vivante, tests compris', { timeout: 480_000 }, () => {
+    const fichiers = fichiersSources().filter((f) => !seam.has(f)).map((rel) => ({ rel, text: readFileSync(join(RACINE, rel), 'utf8') }));
+    const fautifs = [...analyserCorpus(fichiers)].flatMap(({ fichier: { rel, text }, sourceFile }) => ecrituresHorsSeam(rel, text, parBinding, undefined, sourceFile!));
     expect(fautifs, 'passer par `setDataset(clé, …)` : elle seule versionne l’écriture (les index mémoïsés ne verraient rien)').toEqual([]);
   });
 

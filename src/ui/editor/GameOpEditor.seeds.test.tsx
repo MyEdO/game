@@ -41,7 +41,7 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     // Le sélecteur porte SA sentinelle et ne pointe sur aucune entrée du registre.
     const select = Array.from(h.container.querySelectorAll('select')).find((s) => s.value === '');
     expect(select, 'sélecteur de talent sur la sentinelle vide').toBeTruthy();
-    expect(h.container.innerHTML).toContain('(choisir dans talents)');
+    expect(h.container.innerHTML).toContain('(choisir dans Talents)');
   });
 
   it('créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup »)', async () => {
@@ -62,7 +62,7 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     const op = h.opsOf()[0] as Extract<GameOp, { op: 'domeWard' }>;
     expect(Object.keys(op).sort(), 'la graine porte exactement ce que l’op déclare').toEqual(['indice', 'op', 'traitId']);
     expect(h.container.textContent ?? '', 'l’Indice de la sauvegarde s’édite').toContain('Indice');
-    expect(h.container.innerHTML, 'le Trait s’élit dans le registre').toContain('(choisir dans traits)');
+    expect(h.container.innerHTML, 'le Trait s’élit dans le registre').toContain('(choisir dans Traits)');
     expect(h.container.querySelectorAll('textarea').length, 'plus de trappe JSON quand le formulaire est complet').toBe(0);
   });
 

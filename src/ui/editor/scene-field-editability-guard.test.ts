@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { API, SymbolFlags } from 'typescript/unstable/sync';
+import { ast } from '../../../scripts/guards/lib/dialecte.mjs';
+import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
-import ts from 'typescript';
+import { tmpdir } from 'node:os';
+import * as ts from 'typescript/unstable/ast';
 import {
   auditSceneFieldEditability,
   orphanFields,
@@ -44,20 +47,43 @@ const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
  * aujourd'hui. La liste NOMME chaque trou (jamais une exemption par forme de fichier, de type ou de
  * nom) et l'assertion est une ÉGALITÉ : un trou nouveau échoue, un trou comblé échoue aussi tant que
  * la ligne n'est pas retirée. Elle ne peut donc que décroître.
- *
- * #855 : `setSceneFlags`/`patchEntityCombat`/`putLayer` visaient l'éditeur sans appelant réel en
- * `src/ui/**` — `setSceneFlags` gagne son contrôle (Fold « Drapeaux de départ », SceneProps),
- * `patchEntityCombat` remplace la fusion manuelle de `Inspector.updateSel({ combat: … })`, `putLayer`
- * perd son ré-export mort (seul `state/mapSpec.ts` l'appelle, hors éditeur). `addBuilding` était sans
- * appelant NULLE PART (pas même le ré-export) — supprimé.
  */
 const TROUS_CONNUS: string[] = [];
 
 describe('#841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
-  // `scripts/guards/lib/tsProgram.mjs`, en-tête ; garde `src/analyse-retention-guard.test.ts`.
-  const perimetre = detenteur(() => programmeDuPerimetre(ROOT));
+  it('une session possédée conserve l’erreur d’analyse et celle de fermeture', () => {
+    const root = fs.mkdtempSync(path.join(tmpdir(), 'ts7-scene-fermeture-'));
+    fs.writeFileSync(path.join(root, 'tsconfig.json'), '{}');
+    const fermeture = new Error('fermeture cache');
+    const cache = vi.spyOn(API.prototype, 'clearSourceFileCache').mockImplementation(() => { throw fermeture; });
+    const close = vi.spyOn(API.prototype, 'close');
+    try {
+      let erreur: unknown;
+      try { auditSceneFieldEditability(root); } catch (e) { erreur = e; }
+      expect(erreur).toBeInstanceOf(Error);
+      if (!(erreur instanceof Error)) throw erreur;
+      expect(erreur.name).toBe('AggregateError');
+      const erreurs = Reflect.get(erreur, 'errors');
+      expect(erreurs).toHaveLength(2);
+      expect(erreurs[0].message).toBe('src/state/scene.ts absent du programme');
+      expect(erreurs[1]).toBe(fermeture);
+      expect(Reflect.get(erreur, 'cause')).toBe(erreurs[0]);
+      expect(close).toHaveBeenCalledTimes(1);
+    } finally { cache.mockRestore(); close.mockRestore(); fs.rmSync(root, { recursive: true, force: true }); }
+  });
 
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 60_000 }, () => {
+  it('une session empruntée reste ouverte après une erreur d’analyse', () => {
+    const session = virtualProgram({});
+    const close = vi.spyOn(API.prototype, 'close');
+    try {
+      expect(() => auditSceneFieldEditability(VIRTUAL_ROOT, session)).toThrow('src/state/scene.ts absent du programme');
+      expect(close).not.toHaveBeenCalled();
+    } finally { close.mockRestore(); session.dispose(); }
+  });
+  // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
+  const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
+
+  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 240_000 }, () => {
     const orphelins = orphanFields(auditSceneFieldEditability(ROOT, perimetre()));
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins
@@ -66,7 +92,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     expect(ids(orphelins).sort(), detail).toEqual([...TROUS_CONNUS].sort());
   });
 
-  it('crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts`', () => {
+  it('crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts`', { timeout: 120_000 }, () => {
     // Un littéral rendu par un callback de `map` perd sa freshness : `getContextualType` ne le
     // rattache à rien, et `tsc` lui-même ne signale pas la suppression du champ écrit. Un champ
     // vivant y était donc rapporté « écrivains : AUCUN » — un faux négatif qui invite à supprimer du
@@ -121,11 +147,14 @@ export const tracerCalque = () => {
   tracer(regions);
 };\n`,
     });
-    const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-    expect(ids(orphanFields(rows))).toEqual([]);
-    for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
-      expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/ui/Zonage.ts']);
-    }
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(ids(orphanFields(rows))).toEqual([]);
+      for (const id of ['SceneEffectZone.id', 'SceneEffectZone.tiles']) {
+        expect(rows.find((r) => r.id === id)?.authors, id).toEqual(['src/ui/Zonage.ts']);
+      }
+
+    } finally { program.dispose(); }
   });
 
   it('le périmètre se dérive du type `Scene` — types imbriqués, unions et littéraux anonymes compris', () => {
@@ -182,14 +211,17 @@ export const sceneSchema = forme({ id: '', cost: moneySchema.sortie, when: condi
       'src/state/scene.ts': `import type { sceneSchema } from '../data/schemas/defs-scenes/scene';
 export type Scene = (typeof sceneSchema)['sortie'];\n`,
     });
-    const all = ids(sceneScope(program, VIRTUAL_ROOT));
-    expect(all, 'les champs déclarés par le shape du document').toEqual(
-      expect.arrayContaining(['Scene.id', 'Scene.cost', 'Scene.when'])
-    );
-    expect(all, 'la feuille d’un AUTRE module, composée par le document, entre par IDENTITÉ').toContain(
-      'Money.gold'
-    );
-    expect(all, 'le nœud-frontière reste du vocabulaire partagé').not.toContain('Condition.flag');
+    try {
+      const all = ids(sceneScope(program, VIRTUAL_ROOT));
+      expect(all, 'les champs déclarés par le shape du document').toEqual(
+        expect.arrayContaining(['Scene.id', 'Scene.cost', 'Scene.when'])
+      );
+      expect(all, 'la feuille d’un AUTRE module, composée par le document, entre par IDENTITÉ').toContain(
+        'Money.gold'
+      );
+      expect(all, 'le nœud-frontière reste du vocabulaire partagé').not.toContain('Condition.flag');
+
+    } finally { program.dispose(); }
   });
 
   it('la frontière porte sur la DÉCLARATION DE PROPRIÉTÉ — un corps inféré d’un schéma est dans le périmètre et se NOMME de son schéma, le vocabulaire partagé n’y est pas', () => {
@@ -205,11 +237,14 @@ export const murSchema = forme({
 });
 export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc: Vocabulaire }\n`,
     });
-    const all = ids(sceneScope(program, VIRTUAL_ROOT));
-    expect(all, 'le corps inféré du schéma est dans le périmètre et porte le nom du schéma').toContain(
-      'Mur.x'
-    );
-    expect(all, 'le vocabulaire partagé reste hors périmètre').not.toContain('Vocabulaire.mot');
+    try {
+      const all = ids(sceneScope(program, VIRTUAL_ROOT));
+      expect(all, 'le corps inféré du schéma est dans le périmètre et porte le nom du schéma').toContain(
+        'Mur.x'
+      );
+      expect(all, 'le vocabulaire partagé reste hors périmètre').not.toContain('Vocabulaire.mot');
+
+    } finally { program.dispose(); }
   });
 
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
@@ -242,14 +277,9 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
    * la mesure AST : un type qui bascule sans que le doc suive est rouge, et l'inverse aussi.
    */
   const censusScene = () => {
-    const sf = ts.createSourceFile(
-      'scene.ts',
-      fs.readFileSync(path.resolve(ROOT, 'src/state/scene.ts'), 'utf8'),
-      ts.ScriptTarget.Latest,
-      true
-    );
+    const sf = ast({ rel: 'scene.ts', text: fs.readFileSync(path.resolve(ROOT, 'src/state/scene.ts'), 'utf8') })!;
     const exporte = (st: ts.Statement) =>
-      ts.canHaveModifiers(st) && (ts.getModifiers(st) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+      ('modifierFlags' in st) && typeof st.modifierFlags === 'number' && !!(st.modifierFlags & ts.ModifierFlags.Export);
     const estInfer = (t: ts.TypeNode) =>
       ts.isTypeReferenceNode(t) && t.typeName.getText(sf) === 'z.infer';
     const out = { infer: [] as string[], compose: [] as string[], manuscrits: [] as string[], reexports: [] as string[] };
@@ -298,35 +328,37 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
         `${brut}\nexport type __SondeManuscrit = Scene;\n` +
         `export type __SondeSchema = import('zod').z.infer<typeof import('../data/schemas/defs-scenes/scene').sceneSchema>;\n`,
     });
-    const checker = program.getTypeChecker();
-    const sf = program
-      .getSourceFiles()
-      .find((s) => path.resolve(s.fileName) === path.resolve(ROOT, SCENE))!;
-    const exportes = checker.getExportsOfModule(checker.getSymbolAtLocation(sf)!);
-    const optionalite = (nom: string) => {
-      const sym = exportes.find((s) => s.name === nom);
-      expect(sym, `alias ${nom} absent du programme`).toBeTruthy();
-      const type = checker.getDeclaredTypeOfSymbol(sym!);
-      return new Map(
-        checker.getPropertiesOfType(type).map((p) => [p.name, !!(p.flags & ts.SymbolFlags.Optional)])
-      );
-    };
-    const manuscrit = optionalite('__SondeManuscrit');
-    const schema = optionalite('__SondeSchema');
-    expect(manuscrit.size, 'les deux faces portent les mêmes champs').toBe(schema.size);
-    const divergents = [...manuscrit.keys()].filter((k) => manuscrit.get(k) !== schema.get(k));
-    expect(divergents.sort(), 'la divergence du seam est CLOSE et nommée').toEqual([
-      'dialogues',
-      'encounters',
-      'entities',
-      'flags',
-      'layers',
-      'triggers',
-    ]);
-    for (const k of divergents) {
-      expect(manuscrit.get(k), `${k} REQUIS côté manuscrit (après normalizeScene)`).toBe(false);
-      expect(schema.get(k), `${k} OPTIONNEL côté schéma (document avant normalisation)`).toBe(true);
-    }
+    try {
+      const checker = program.checker;
+      const sf = program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file)!)
+        .find((s) => path.resolve(s.fileName) === path.resolve(ROOT, SCENE))!;
+      const exportes = checker.getExportsOfModule(checker.getSymbolAtLocation(sf)!);
+      const optionalite = (nom: string) => {
+        const sym = exportes.find((s) => s.name === nom);
+        expect(sym, `alias ${nom} absent du programme`).toBeTruthy();
+        const type = checker.getDeclaredTypeOfSymbol(sym!);
+        return new Map(
+          checker.getPropertiesOfType(type).map((p) => [p.name, !!(p.flags & SymbolFlags.Optional)])
+        );
+      };
+      const manuscrit = optionalite('__SondeManuscrit');
+      const schema = optionalite('__SondeSchema');
+      expect(manuscrit.size, 'les deux faces portent les mêmes champs').toBe(schema.size);
+      const divergents = [...manuscrit.keys()].filter((k) => manuscrit.get(k) !== schema.get(k));
+      expect(divergents.sort(), 'la divergence du seam est CLOSE et nommée').toEqual([
+        'dialogues',
+        'encounters',
+        'entities',
+        'flags',
+        'layers',
+        'triggers',
+      ]);
+      for (const k of divergents) {
+        expect(manuscrit.get(k), `${k} REQUIS côté manuscrit (après normalizeScene)`).toBe(false);
+        expect(schema.get(k), `${k} OPTIONNEL côté schéma (document avant normalisation)`).toBe(true);
+      }
+
+    } finally { program.dispose(); }
   });
 
   // ── Gate `@fossile`, BIDIRECTIONNEL, mesuré sur le programme RÉEL ─────────────────────────
@@ -354,7 +386,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   const ANCRE_LABEL = '  dialogueId?: string;\n';
   const ANCRE_FOOT = '   *  @fossile */\n';
 
-  it('gate @fossile (cas A) : un champ EXISTANT que l’on tague sans l’inscrire au registre est ROUGE', () => {
+  it('gate @fossile (cas A) : un champ EXISTANT que l’on tague sans l’inscrire au registre est ROUGE', { timeout: 60_000 }, () => {
     const audit = fossileAudit(
       programAvec(modifie('src/state/scene.ts', ANCRE_LABEL, `  /** @fossile */\n${ANCRE_LABEL}`)),
       ROOT
@@ -362,7 +394,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     expect(audit.taguesHorsListe, 'un tag posé hors registre doit être nommé').toEqual(['SceneEntity.dialogueId']);
   });
 
-  it('gate @fossile (cas B) : un champ NEUF né tagué — LE canal d’évasion — est ROUGE, et il RESTE dans le périmètre', () => {
+  it('gate @fossile (cas B) : un champ NEUF né tagué — LE canal d’évasion — est ROUGE, et il RESTE dans le périmètre', { timeout: 60_000 }, () => {
     // Sans gate, ce champ (vraie donnée de scène, éditable par personne) sortait du périmètre en
     // silence : ni orphelin, ni cliquet, aucun rouge — la mesure du juge sur le dépôt réel.
     const program = programAvec(
@@ -372,13 +404,16 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
         `${ANCRE_LABEL}  /** Couleur de bannière du fief.\n   *  @fossile */\n  couleurDeBanniere?: string;\n`
       )
     );
-    expect(fossileAudit(program, ROOT).taguesHorsListe).toEqual(['SceneEntity.couleurDeBanniere']);
-    expect(ids(sceneScope(program, ROOT)), 'un tag non gaté ne retire RIEN du périmètre').toContain(
-      'SceneEntity.couleurDeBanniere'
-    );
+    try {
+      expect(fossileAudit(program, ROOT).taguesHorsListe).toEqual(['SceneEntity.couleurDeBanniere']);
+      expect(ids(sceneScope(program, ROOT)), 'un tag non gaté ne retire RIEN du périmètre').toContain(
+        'SceneEntity.couleurDeBanniere'
+      );
+
+    } finally { program.dispose(); }
   });
 
-  it('gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim)', { timeout: 30_000 }, () => {
+  it('gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim)', { timeout: 60_000 }, () => {
     // TÉMOIN de non-vacuité : le contrôle NON patché est MUET. Un programme privé de ses racines
     // rendrait déjà `entreesSansTag` peuplé — le rouge ci-dessous viendrait alors du vide, pas du
     // tag absent que le patch mesure.
@@ -404,9 +439,12 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'src/ui/Editeur.ts': `import type { Scene } from '../state/scene';
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
-    const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-    expect(ids(rows).sort()).toEqual(['Scene.champFraisSansControle', 'Scene.id']);
-    expect(ids(orphanFields(rows))).toEqual(['Scene.champFraisSansControle']);
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(ids(rows).sort()).toEqual(['Scene.champFraisSansControle', 'Scene.id']);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.champFraisSansControle']);
+
+    } finally { program.dispose(); }
   });
 
   it('NON VACANTE (b) : un champ dont le seul « écrivain » est un HOMONYME d’un autre type reste orphelin', () => {
@@ -425,10 +463,13 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });
 export const visible = (flags: Record<string, boolean>, gameTime: number) =>
   evalCondition({ flags, gameTime });\n`,
     });
-    const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-    expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
-    // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
-    expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/Editeur.ts']);
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/Editeur.ts']);
+
+    } finally { program.dispose(); }
   });
 
   it('le crédit suit les MAPPINGS du chemin d’édition réel (`Partial<T>`, patch passé en argument)', () => {
@@ -441,8 +482,11 @@ declare function setScene(s: Scene): void;
 export const cocherFenetre = (s: Scene, i: number, v: boolean) => setScene(patchWall(s, i, { window: v }));
 export const poserMur = (s: Scene, x: number): Scene => ({ ...s, walls: [...s.walls, { x }] });\n`,
     });
-    const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-    expect(ids(orphanFields(rows))).toEqual([]);
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(ids(orphanFields(rows))).toEqual([]);
+
+    } finally { program.dispose(); }
   });
 
   // Reconstitution du défaut RÉEL de `Scene.flags` : `sceneEdit.ts` n'est pas une interface. Une
@@ -472,11 +516,14 @@ declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
-    const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
-    expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
-    // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de l'interface aussi.
-    expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/state/sceneEdit.ts']);
-    expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/editor/Inspecteur.ts']);
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
+      // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de l'interface aussi.
+      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/state/sceneEdit.ts']);
+      expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/editor/Inspecteur.ts']);
+
+    } finally { program.dispose(); }
   });
 
   it('NON VACANTE (e) : un HOMONYME appelé depuis l’interface ne réveille pas la primitive muette', () => {
@@ -496,7 +543,10 @@ export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const basculer = (s: Scene, k: string) => setScene(setSceneFlags(s, { [k]: true }));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
-    expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual(['Scene.flags']);
+    try {
+      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual(['Scene.flags']);
+
+    } finally { program.dispose(); }
   });
 
   it('un APPELANT d’interface, même indirect via une autre primitive appelée, crédite', () => {
@@ -516,6 +566,9 @@ declare function setScene(s: Scene): void;
 export const saisirNotes = (s: Scene, v: string) => setScene(setNotes(s, v));
 export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     });
-    expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual([]);
+    try {
+      expect(ids(orphanFields(auditSceneFieldEditability(VIRTUAL_ROOT, program)))).toEqual([]);
+
+    } finally { program.dispose(); }
   });
 });

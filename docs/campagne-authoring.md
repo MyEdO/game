@@ -278,20 +278,43 @@ projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarrati
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
-            ouverture?: OuvertureBlock; cloture?: ClotureBlock; ecartes?: EcartDeFiche[] }
+            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock;
+            ecartes?: EcartDeFiche[] }
 ```
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
-  rattachés à une affaire (`affaireId`), révélés par `stades` (`IndiceStade`, prose verbatim quand `source` est posé, maison sans) et
-  recoupés par `refs` (ids d'autres indices) ; **`presetsPnj`** (`PresetPnj`) — PNJ pré-composés (`base`
-  = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`** (`TrappingData`) —
-  possessions propres à la campagne.
+  rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
+  indices) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
+  `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
+  pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
+  (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
+  `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
+  (règle 5), non vide.
+- **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
+  (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
+  anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la
+  lisent. Un registre de plus = une ligne de cette table.
+- **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
+  `narratif.documents` ; `apply` la résout (`documentById`) et ouvre la modale `DocumentModal`
+  (`store.document`). Un id inconnu n'ouvre rien (avertissement console).
 - **Frontière RÉFÉRENCE vs NARRATIF.** Le narratif RÉFÉRENCE la règle globale (`src/data`) PAR ID
   (`base` → id de `creatures.json`), il ne la copie PAS et n'entre JAMAIS dans `src/data` global : c'est
   du contenu EMBARQUÉ dans le JSON, révélé seulement en jeu. `narratifSchema`
   (`src/data/schemas/defs-scenes/narratif.ts`, composé par `projetSchema`) garde cet invariant
   fail-fast au parse : aucun id narratif ne peut collisionner avec un id global (créature/possession),
-  `affaireId`/`refs`/`base` doivent résoudre, ids internes uniques.
+  `refs`/`base` doivent résoudre, ids internes uniques.
+- **Références narratives : UN visiteur.** `sitesDuProjet` (`src/data/schemas/defs-scenes/refs-narratives.ts`)
+  énumère chaque clé de `REFERENCES_NARRATIVES` (`affaireId`, `indiceId`, `presetId`, `documentId`) et
+  chaque `stade` d'un `indiceId`, à son chemin complet : entités de scène (`presetId`), toutes les
+  racines de Flow d'une scène (déclencheurs, actions d'entité, choix de dialogue, `onVictory`) et leurs
+  Flows portés, périls de route de `worldMap`, `indices[].affaireId` et `stades[].documentId` du
+  narratif. Tous ses lecteurs le partagent : la FK de `projetSchema` (`refsNarrativesPendantes`, scènes
+  et carte), le raffinage de `narratifSchema` (références internes au narratif), le contrat des
+  scénarios de test (`scenarios-contrat.test.ts`) et l'éditeur (`referencesA`, `renommeRef`). La faute
+  nomme son chemin : id vide chez un porteur qui EXIGE la référence (Effect, indice) → « aucun
+  document choisi » (« aucun indice », « aucune affaire » — `aucunDe`, `registres-narratifs.ts`) ; id
+  vide chez un porteur où elle est FACULTATIVE (entité, #1882 ; stade d'indice) → une absence, dont
+  le schéma du porteur juge seul la forme ; id inconnu → son registre ; stade inconnu → son indice.
 - **Identité (à plat).** Le paquet porte aussi son identité de campagne (`ProjectIdentite`,
   `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
@@ -308,8 +331,42 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
   tous passent `parseProject` en CI (`src/scenes/bundled-projects.test.ts`).
+  La montée 17→18 (`PROJECT_MIGRATIONS[17]`, #679) soulève chaque Effect `document` en ligne
+  `{ title, desc }` en entrée `narratif.documents` — id `document-<slug du titre>`, suffixé `-2`,
+  `-3`… s'il est pris (`src/data/documentsAuNarratif.ts`) — et l'Effect devient `{ documentId }`. Une
+  scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un document est REFUSÉE nommément
+  (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser.
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
-  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/PNJ/Objets/Écarts).
+  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets/Écarts). L'onglet
+  **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les
+  registres), le formulaire édite `titre`, le texte Markdown verbatim et la `source` (`SourceRefField`,
+  `src/ui/SourceRefField.tsx` : livre choisi dans `books`, page — le même éditeur sert la source d'un
+  stade, d'un PNJ et celles du Codex). Dans un stade d'indice, « Document croisé » choisit le
+  `documentId` ; la prose du stade devient alors facultative.
+- **Renommer, retirer une entrée.** L'éditeur reçoit le PROJET entier (`ProjetEdite` : scènes, carte,
+  narratif ; `Editor.poserProjet` ne repose que les racines changées). Renommer l'id d'une affaire, d'un
+  indice, d'un stade, d'un document ou d'un PNJ le PROPAGE à toute référence du projet (`renommeRef`,
+  copie des seules racines touchées) ET à tout l'historique d'annulation de la scène active
+  (`reecrireHistorique`, `useSceneHistory.ts`), sans poser d'instantané : annuler ne ramène jamais
+  l'ancien id. Retirer une entrée (ou un stade) que le projet désigne encore est
+  REFUSÉ (`GatedAction`) ; la raison nomme les lieux qui la désignent (« Encore désigné par : scène
+  « Le relais », indice « La lettre » — … »).
+- **Choisir une référence narrative.** Un seul sélecteur, `RefNarrativeField`
+  (`src/ui/compendium/RefField.tsx`, mode `single` de `RefField` sur des entrées fournies) : il lit à
+  `REFERENCES_NARRATIVES` le registre que désigne la clé, affiche le libellé de l'entrée (`titre` ; pour
+  un preset, le nom de son profil ou de sa créature de base) et écrit l'id. Il sert `document.documentId`,
+  `revealClue.indiceId` (puis son `stade`, parmi les stades de l'indice choisi), `discreditClue.indiceId`,
+  le `documentId` d'un stade et le `presetId` d'une entité (Inspecteur). Le narratif entre au contexte des
+  Effects par `effectCtxOf` (`src/ui/editor/EffectList.tsx`), pour les trois racines de projet : l'Inspecteur,
+  le dock Logique et les périls de route de la carte du monde. Un Effect neuf naît avec un id vide :
+  le sélecteur affiche « choisir dans documents de la campagne » (`SOURCE_NARRATIVE`), le résumé
+  « ? », et la porte du projet refuse l'enregistrement tant qu'aucune entrée n'est choisie. Une racine de CATALOGUE (Compendium,
+  `ctxDeCatalogue`) n'a pas de narratif : ses menus d'Effets (`menuDEffets`) ne proposent aucun Effect
+  dont la fabrique pose une clé de `REFERENCES_NARRATIVES`.
+- **Relire au Carnet.** Le Carnet d'enquête (`src/ui/CarnetScreen.tsx`) rend, sous la prose d'un stade
+  révélé (absente permise), le document qu'il croise : `ParchmentCard` titrée par le `titre`, `Prose`
+  et badge de source — au stade courant comme dans « Lectures précédentes ». Un document n'atteint le
+  Carnet qu'à travers un stade d'indice.
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
   terse) porte `presetId` = l'id d'un `narratif.presetsPnj`. Présent, l'entité est INSTANCIÉE
   « base globale + surcharges du preset » (jamais depuis `ref`/`statblock`) : `resolvePresetCreature`
@@ -318,8 +375,8 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
   passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
   dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
-  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (clause `presetId` de
-  `projetSchema`) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
+  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
+  narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.

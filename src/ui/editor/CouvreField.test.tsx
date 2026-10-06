@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CouvreField } from './CouvreField';
-import { NarratifEditor } from './NarratifEditor';
+import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { narratifSchema } from '../../data/schemas/defs-scenes/narratif';
 import { ficheDeDossier, idDEntree } from '../../data/source/dossier';
@@ -50,9 +50,9 @@ function HarnaisCouvre({ initial }: { initial?: string[] }) {
 }
 
 function HarnaisNarratif({ initial }: { initial: NarratifBlock }) {
-  const [n, setN] = useState<NarratifBlock>(initial);
-  narratif = n;
-  return <NarratifEditor narratif={n} onChange={setN} onClose={() => {}} />;
+  const [p, setP] = useState<ProjetEdite>({ scenes: [], worldMap: null, narratif: initial });
+  narratif = p.narratif;
+  return <NarratifEditor projet={p} onChange={setP} onClose={() => {}} />;
 }
 
 const parNom = (nom: string): HTMLElement => {

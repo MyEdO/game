@@ -30,7 +30,8 @@
 // - la syntaxe `-Param:valeur` et l'alias `iex` : le tokeniseur ne les déplie pas (#2172) ;
 // - un lanceur indirect (`Start-Process taskkill -ArgumentList "/IM node.exe"`, `Invoke-Command`, `Start-Job`,
 //   `. { }`, `start`, `exec`, `find -exec`) : le tokeniseur ne déplie pas la commande qu'il lance (#2172) ;
-// - l'abréviation `-co` de `pwsh -Command` (#2292) ;
+// - la commande que l'hôte PowerShell lit sur stdin (`… | pwsh -Command -`, `… | pwsh -`, `… | powershell`, #2172)
+//   ou dans un script (`pwsh -File x.ps1`) : ni l'une ni l'autre n'est dans la ligne ;
 // - la quote simple échappée hors quote de bash (`echo 'a'\''b' && pkill node`, #2172) ;
 // - la sous-expression PowerShell `( … )` hors tête de segment (`$x = (Stop-Process -Name node)`,
 //   `Write-Output (Stop-Process -Name node)`) : seul son listeur est lu, car en bash `arr=(pkill node)` est un

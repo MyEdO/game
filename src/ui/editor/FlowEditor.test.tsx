@@ -12,7 +12,7 @@ beforeAll(() => {
 });
 afterEach(demonterRacines);
 
-const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
+const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
 const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
   kind: 'test',
   test: { skill: { id: skill }, ...(vsGroups ? { vsGroups } : {}) },

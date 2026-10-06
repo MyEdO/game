@@ -1,7 +1,7 @@
 /**
  * LE VERROU DE FORGE se mesure (#1262) — la marque `BuiltCascadeStep` est REQUISE, donc le type seul
- * suffirait… si le cast n'existait pas. Le lint (murs `murs/marques` et `murs/conteneur`, `eslint.config.js`) mure les
- * routes de forge ; ce test les LANCE sur la config RÉELLE (API ESLint, pas une copie de règle) et
+ * suffirait… si le cast n'existait pas. Le lint (murs `murs/marques` et `murs/conteneur`, `oxlint.config.mjs`) mure les
+ * routes de forge ; ce test les LANCE sur la config RÉELLE (lanceur Oxlint, pas une copie de règle) et
  * exige le rouge. Sans lui, un sélecteur trop étroit laisse passer en silence : la sonde d'origine
  * (`TSAsExpression > TSTypeReference`, enfant DIRECT) rendait 0 erreur sur trois des quatre routes.
  *
@@ -9,22 +9,21 @@
  * `stepBrand.ts` : elle est ici en témoin explicite, jamais en oubli.
  */
 import { describe, it, expect } from 'vitest';
-import { ESLint } from 'eslint';
-import ts from 'typescript';
-import { virtualProgram } from '../../scripts/guards/lib/tsProgram.mjs';
+import { creerBancLint, selectionnerMessages } from '../../scripts/guards/lib/lint.testkit.mjs';
+import { virtualProgram, libererSessions } from '../../scripts/guards/lib/tsProgram.mjs';
 import { readFileSync } from 'node:fs';
 
 /** Fichier de test SOUS le périmètre de la règle (jamais un minteur, qui est exempté). */
 const SOUS_LA_REGLE = 'src/state/__sonde-verrou-marque.ts';
 
-const eslint = new ESLint({ cwd: process.cwd() });
+const eslint = creerBancLint();
 
-/** Les deux murs de la marque d'origine (`eslint.config.js`, plugin `murs`). */
+/** Les deux murs de la marque d'origine (`oxlint.config.mjs`, plugin `murs`). */
 const MURS_DE_MARQUE = new Set(['murs/marques', 'murs/conteneur']);
 
 async function messagesDeVerrou(code: string): Promise<string[]> {
   const [res] = await eslint.lintText(code, { filePath: SOUS_LA_REGLE });
-  return res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')).map((m) => `${m.line}:${m.column}`);
+  return selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')).map((m) => `${m.line}:${m.column}`);
 }
 
 const ENTETE = "import type { BuiltCascadeStep } from './stepBrand';\ndeclare const o: unknown;\n";
@@ -115,25 +114,18 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     ['src/i18n/index.ts', "export const forge = 'sonde' as PlayerText;"],
   ])('le minteur `%s` lint propre, et un SECOND cast y rougit', async (fichier, second) => {
     const [res] = await eslint.lintFiles([fichier]);
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
     const reel = readFileSync(fichier, 'utf8');
     const [cast] = await eslint.lintText(`${reel}\n${second}\n`, { filePath: fichier });
-    expect(cast.messages.filter((m) => m.ruleId === 'murs/marques'), 'un cast non justifié doit rougir').toHaveLength(1);
+    expect(selectionnerMessages(cast, (m) => m.ruleId === 'murs/marques'), 'un cast non justifié doit rougir').toHaveLength(1);
   });
 
-  /**
-   * `saves.ts` EST SOUS LA RÈGLE, et n'y forge PLUS RIEN : la réhydratation d'étapes venues du JSON a
-   * disparu avec la chaîne de migration (une save d'une autre version se jette au lieu d'être
-   * remontée), donc plus aucune marque n'y est postulée. Le contrat est POSITIF (zéro cast mesuré sur
-   * le fichier RÉEL), et le cas planté ci-dessous prouve que la règle mord toujours là-bas : aucune
-   * exemption au fichier ne dort dans la config.
-   */
-  it('`saves.ts` ne forge AUCUNE marque : zéro cast, zéro directive d’exemption, lint propre', async () => {
+  it('`saves.ts` ne contient aucun cast de marque ni directive d’exemption, et ne rend aucune erreur de lint', async () => {
     const reel = readFileSync('src/state/saves.ts', 'utf8');
-    expect(reel, 'plus aucun cast de marque dans ce fichier').not.toMatch(/as\s+Built(CascadeStep|RollRow)/);
-    expect(reel, 'et donc plus aucune directive qui l’exempterait').not.toMatch(/murs\/(marques|conteneur)/);
+    expect(reel, 'aucun cast de marque dans ce fichier').not.toMatch(/as\s+Built(CascadeStep|RollRow)/);
+    expect(reel, 'aucune directive qui l’exempte').not.toMatch(/murs\/(marques|conteneur)/);
     const [res] = await eslint.lintFiles(['src/state/saves.ts']);
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
     expect(res.errorCount, 'aucune autre erreur de lint sur le fichier').toBe(0);
   });
 
@@ -141,7 +133,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     const reel = readFileSync('src/state/saves.ts', 'utf8');
     const augmente = `${reel}\ndeclare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;\n`;
     const [res] = await eslint.lintText(augmente, { filePath: 'src/state/saves.ts' });
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un cast non justifié doit rougir').toHaveLength(1);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un cast non justifié doit rougir').toHaveLength(1);
   });
 
   it('la marque d’ADRESSE (`AdresseDeCreation`, #1988) : un cast hors de sa fabrique est refusé', async () => {
@@ -151,13 +143,13 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
 
   it('la fabrique `adresseDeCreation.ts` lint propre : son unique cast et ses fabriques portent leur exemption AU SITE', async () => {
     const [res] = await eslint.lintFiles(['src/engine/adresseDeCreation.ts']);
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
     expect(res.errorCount).toBe(0);
     const reel = readFileSync('src/engine/adresseDeCreation.ts', 'utf8');
     const [cast] = await eslint.lintText(`${reel}\nexport const forge = (s: string) => s as AdresseDeCreation;\n`, { filePath: 'src/engine/adresseDeCreation.ts' });
-    expect(cast.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
+    expect(selectionnerMessages(cast, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
     const [texte] = await eslint.lintText(`${reel}\nexport const ecrite = 'signe:3';\n`, { filePath: 'src/engine/adresseDeCreation.ts' });
-    expect(texte.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'une adresse écrite hors des fabriques doit rougir').toHaveLength(1);
+    expect(selectionnerMessages(texte, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'une adresse écrite hors des fabriques doit rougir').toHaveLength(1);
   });
 
   /** ENTRE deux fabriques : l'exemption est sur la ligne de chaque fabrique, aucun bloc ne couvre ses voisines. */
@@ -171,7 +163,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     expect(lignes[apres + 1], 'la fixture tombe entre `especeTirage` et la fabrique suivante').toMatch(/eslint-disable-next-line murs\/marques/);
     lignes.splice(apres + 1, 0, insere);
     const [res] = await eslint.lintText(lignes.join('\n'), { filePath: 'src/engine/adresseDeCreation.ts' });
-    expect(res.messages.filter((m) => m.ruleId === 'murs/marques').map((m) => m.line)).toEqual([apres + 2]);
+    expect(selectionnerMessages(res, (m) => m.ruleId === 'murs/marques').map((m) => m.line)).toEqual([apres + 2]);
   });
 
   /** L'adresse ÉCRITE en texte : tsc laisse un objet intermédiaire à clés littérales entrer dans un
@@ -225,7 +217,11 @@ pushCombatStep({ id: 'e', kind: 'k' });
 `;
 
 function codesDeDiagnostic(code: string): number[] {
-  return ts.getPreEmitDiagnostics(virtualProgram({ 'sonde-murage.ts': code })).map((d) => d.code);
+  const session = virtualProgram({ 'sonde-murage.ts': code });
+  const erreurs: unknown[] = [];
+  try { return [...session.program.getSyntacticDiagnostics(), ...session.program.getSemanticDiagnostics()].map((d) => d.code); }
+  catch (erreur) { erreurs.push(erreur); throw erreur; }
+  finally { libererSessions([session], erreurs); }
 }
 
 describe('#1262 B4 — la sonde de murage de `pushCombatStep` est TUEUSE', () => {
@@ -411,7 +407,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
    */
   it('le MINTEUR DE FIXTURE `i18n/fixtureText.ts` passe la règle : son unique cast porte sa directive AU SITE', async () => {
     const [res] = await eslint.lintFiles(['src/i18n/fixtureText.ts']);
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la directive posée couvre le cast du minteur de fixture').toHaveLength(0);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la directive posée couvre le cast du minteur de fixture').toHaveLength(0);
     expect(res.errorCount, 'aucune autre erreur de lint sur le minteur de fixture').toBe(0);
   });
 
@@ -419,7 +415,7 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
     const reel = readFileSync('src/i18n/fixtureText.ts', 'utf8');
     const second = `${reel}\ndeclare const sonde: unknown;\nexport const forge2 = sonde as PlayerText;\n`;
     const [res] = await eslint.lintText(second, { filePath: 'src/i18n/fixtureText.ts' });
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un 2ᵉ cast non justifié doit rougir').toHaveLength(1);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un 2ᵉ cast non justifié doit rougir').toHaveLength(1);
   });
 });
 
@@ -511,13 +507,13 @@ describe('#1318 V8a₀ T1/T2 — le lint mure les CONTENEURS qui blanchissent le
   it('T2 : `x as CascadeStep` est REFUSÉ dans un fichier de flux', async () => {
     const code = "import type { CascadeStep } from './pendings';\ndeclare const o: unknown;\nexport const a = o as CascadeStep;\n";
     const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.ts' });
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(1);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(1);
   });
 
   it('T2 : le même cast dans un fichier de TEST passe — le stock y est GELÉ au cliquet, pas muré', async () => {
     const code = "import type { CascadeStep } from './pendings';\ndeclare const o: unknown;\nexport const b = o as CascadeStep;\n";
     const [res] = await eslint.lintText(code, { filePath: 'src/state/__sonde-conteneur.test.ts' });
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la portée du sélecteur est un CHOIX mesuré, pas un oubli').toHaveLength(0);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'la portée du sélecteur est un CHOIX mesuré, pas un oubli').toHaveLength(0);
   });
 
 });

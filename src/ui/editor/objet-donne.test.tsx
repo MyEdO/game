@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * Effet `giveTrapping` à l'éditeur (#1988) : options = objets du PROJET édité (`Ctx.objets`) puis du
+ * Effet `giveTrapping` à l'éditeur (#1988) : options = objets du PROJET édité (`Ctx.narratif.objets`) puis du
  * catalogue qu'admet la feuille (`giveTrappingSchema.shape.trappingId`) ; la saisie, par id OU par
  * libellé, se résout dans ce même univers, entrées refusées comprises — jamais par la campagne jouée.
  * Résolue hors de `INSTANCIABLE_PAR_ID` : refus affiché, rien d'écrit ; non résolue : `custom`.
@@ -15,6 +15,7 @@ import { trappings, type TrappingData } from '../../data';
 import { dansLaSousListe, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
 import type { Effect } from '../../state/scene';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -22,7 +23,7 @@ beforeAll(() => {
 
 const OBJET_DU_PROJET: TrappingData = { ...trappings.find((t) => t.id === 'dague')!, id: 'projet-sceau-du-comte', label: 'Sceau du comte' };
 const SERVICE = trappings.find((t) => !dansLaSousListe(INSTANCIABLE_PAR_ID, t))!;
-const ctx = (objets: readonly TrappingData[]): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets });
+const ctx = (objets: readonly TrappingData[]): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, narratif: { ...emptyNarratif(), objets: [...objets] } });
 const effetVide = { type: 'giveTrapping', custom: '' } as Effect;
 
 /** Monte `rendu` le temps de `lire(host)` — démonté et retiré du document ensuite. */

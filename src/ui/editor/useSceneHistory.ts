@@ -27,6 +27,12 @@ export function useSceneHistory(initial: Scene | (() => Scene)) {
   }, []);
   /** Mutation SANS snapshot (pendant un geste) → 1 seul cran d'undo pour tout le geste. */
   const setSceneNoHistory = useCallback((next: Scene) => setSceneState(next), []);
+  /** Réécrit TOUT l'historique (passé et futur) par `f`, sans instantané : un renommage propagé reste
+   *  vrai dans chaque état qu'annuler/rétablir peut ramener. */
+  const reecrireHistorique = useCallback((f: (s: Scene) => Scene) => {
+    past.current = past.current.map(f);
+    future.current = future.current.map(f);
+  }, []);
   const undo = useCallback(() => {
     if (!past.current.length) return;
     future.current.push(sceneRef.current);
@@ -43,5 +49,5 @@ export function useSceneHistory(initial: Scene | (() => Scene)) {
     setSceneState(s);
   }, []);
 
-  return { scene, setScene, setSceneNoHistory, pushSnapshot, undo, redo, resetScene, canUndo: past.current.length > 0, canRedo: future.current.length > 0 };
+  return { scene, setScene, setSceneNoHistory, pushSnapshot, reecrireHistorique, undo, redo, resetScene, canUndo: past.current.length > 0, canRedo: future.current.length > 0 };
 }

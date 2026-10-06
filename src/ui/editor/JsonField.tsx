@@ -23,7 +23,7 @@ export function JsonField({ label, sujet, value, onChange, rows = 4 }: {
   const messageId = useId();
   return (
     <label className="ed-field">
-      <span>{label} <em className="de-hint">(JSON)</em></span>
+      <span>{label} <em className="ed-hint">(JSON)</em></span>
       <textarea
         aria-label={sujet ? `${label} ${sujet}` : label}
         aria-invalid={err || undefined}

@@ -97,7 +97,7 @@ export function rollShipCritical(location: ShipCritKey, rng: RNG = defaultRNG, f
     // La table de Localisation appariée à ce jeu ne produit jamais une Localisation absente du jeu ; garde-fou.
     return { location, id: 'aucun', label: '—', roll, ops: [], shrapnel: 0, extraHullCrits: 0, note: '', log: t('shipCrit.noTable', { loc: shipLocationLabel(location) }) };
   }
-  const entry = findTableEntry(table, roll);
+  const entry = structuredClone(findTableEntry(table, roll)); // #2097
   // Effets « État » : AUTHORÉS en donnée (`entry.ops`, GameOp) — le résolveur n'a plus aucun couplage nom-d'État.
   const ops: GameOp[] = entry.ops ?? [];
   const extraHullCrits = entry.hullCrits ? rollDice(parseDice(entry.hullCrits)!, rng) : 0;

@@ -1,7 +1,7 @@
 import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
-import type { NarratifBlock } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../state/scene';
 
@@ -12,6 +12,7 @@ import type { Scene } from '../../state/scene';
  * contenu de campagne livré) — sert de terrain à la recette navigateur du Carnet (autre lot).
  */
 const construireNarratif = (): NarratifBlock => ({
+  ...emptyNarratif(),
   affaires: [{ id: 'aff-marchand-disparu', titre: 'Le marchand disparu' }],
   indices: [
     {

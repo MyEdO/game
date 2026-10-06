@@ -9,7 +9,7 @@
      .parchment-card     carte-parchemin narrative + sceau d100 — primitive ParchmentCard.tsx
      .field              champ de formulaire (libellé au-dessus du contrôle)
      .stat-chip          cartouche « label + valeur » (PV, carac, ressource…)
-     .listrow            rangée de liste : nom (flex:1) + méta + action
+     .listrow            rangée de liste : nom + méta (sous le nom si la place manque) + action
      .chip               badge/pastille (alias de .tag) ; .count = pastille numérique
      .btn-ghost / .rm-influence  bouton discret ; rangée « influencer le jet » (le cadre de modale : modal.css)
      .charprev           aperçu « perso en pied » (CharacterPreview) : tailles + ambiances
@@ -237,7 +237,22 @@ label.radio {
 }
 .parchment-seal-roll { font-family: var(--font-display); font-size: 22px; line-height: 1; }
 .parchment-seal-label { font-size: 9px; letter-spacing: 1px; opacity: .78; text-transform: uppercase; }
-.parchment-card-body { min-width: 0; flex: 1; }
+/* Le corps du parchemin est CLAIR : il surcharge les JETONS d'encre qu'il hérite d'un fond sombre, pour
+   que TOUT texte posé dedans (badge de source, indication, filet) se lise à l'encre — jamais une règle
+   par composant invité. */
+.parchment-card-body {
+  min-width: 0;
+  flex: 1;
+  color: var(--ink);
+  --muted: color-mix(in srgb, var(--ink) 72%, transparent);
+  --border: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+/* Carte en RETRAIT (`ParchmentCard attenue`, lecture antérieure) : le bord et l'ombre s'effacent,
+   l'encre reste entière — jamais une `opacity` qui délave le texte. */
+.parchment-card[data-attenue] {
+  border-color: color-mix(in srgb, var(--gold) 12%, var(--border));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
 .parchment-card-title {
   font-family: var(--font-display);
   margin: 0 0 6px;
@@ -270,6 +285,20 @@ label.radio {
   margin-bottom: 10px;
 }
 .ed-hint { font-style: italic; color: var(--muted); font-size: 0.75rem; }
+
+/* ── CHAMP DE PROSE (primitive `ProseField`) : un texte VERBATIM de plusieurs paragraphes se saisit dans
+   une zone à sa mesure, que l'auteur agrandit encore à la verticale. */
+.prose-field { width: 100%; box-sizing: border-box; min-height: 12rem; resize: vertical; font-family: inherit; line-height: 1.45; }
+
+/* ── BADGE DE SOURCE (primitive `SourceBadge`) : « abréviation du livre p.page ». Encre et filet lus aux jetons du contexte. */
+.source-badge {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
 
 /* ── Bloc de champs « background » (Motivation + Ambitions) — primitive `BackgroundFields`, partagée
    créateur ⇄ fiche : empilement + contrôles pleine largeur. Les champs sont des `div.field` (≠ label)
@@ -313,8 +342,13 @@ label.radio {
 }
 
 /* ── RANGÉE de liste (nom + méta + action) ── */
+/* Quand la place manque, les puces de méta passent SOUS le nom (`flex-wrap`) et une puce trop longue se
+   coupe en ellipse — jamais un nom écrasé ni une puce qui le chevauche. La base du nom est son CONTENU
+   (`auto`) : la rangée ne passe à la ligne que si nom et puces ne tiennent pas, jamais par une largeur
+   réservée (un rail étroit d'inspecteur doublait ainsi la hauteur de chaque rangée). */
 .listrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   background: var(--bg2);
@@ -323,8 +357,15 @@ label.radio {
   padding: 7px 10px;
 }
 .listrow > .lr-name {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+}
+.listrow > .chip {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .listrow .lr-sub {
   display: block;
@@ -470,14 +511,14 @@ button.chip:hover {
   opacity: 0.6;
   text-decoration: line-through;
 }
-/* Lectures antérieures d'un indice (progression par stades) : en retrait, atténuées, sans barré
-   (elles restent des faits établis, pas une fausse piste). */
+/* Lectures antérieures d'un indice (progression par stades) : en retrait, sans barré (elles restent
+   des faits établis, pas une fausse piste). Leur prose passe à l'encre discrète ; un document y
+   reste un parchemin ENTIER, atténué par sa primitive (`ParchmentCard attenue`). */
 .clue-history {
   margin-top: 6px;
   padding-left: 12px;
   border-left: 2px solid var(--border);
-  opacity: 0.75;
-  font-size: 13px;
+  color: var(--muted);
 }
 .clue-history-entry + .clue-history-entry {
   margin-top: 6px;

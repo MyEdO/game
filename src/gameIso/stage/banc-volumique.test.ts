@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estSuiteVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { specificateursDe } from '../../../scripts/guards/lib/importGraph.mjs';
+import { analyserCorpus } from '../../../scripts/guards/lib/dialecte.mjs';
+import type { SourceFile } from 'typescript/unstable/ast';
+import type { Diagnostic } from 'typescript/unstable/sync';
 
 /**
  * LE HARNAIS DE BANC RESTE DANS LES BANCS — `stage/banc-volumique.ts` est le SEUL fichier non-`.test.`
- * de `src/gameIso` à importer `vitest` (précédent unique du dépôt : `src/test-setup.ts`). Quatre faits
+ * de `src/gameIso` à importer `vitest` (précédent unique du dépôt : `src/test-setup.ts`). Six faits
  * s'y tiennent, chacun réfutable seul :
  *  1. aucun fichier de PRODUCTION de `src/` n'importe le harnais — un renderer de banc, une
  *     rasterisation stubbée ou une purge de singletons embarqués dans le bundle de jeu, c'est du code
@@ -72,8 +75,8 @@ const texte = (rel: string): string => sources(SRC).find((f) => f.rel === rel)!.
 const production = (dir: string) => sources(dir).filter(({ rel }) => !estFichierVitest(rel) && rel !== HARNAIS);
 
 /** `fichier:ligne` de chaque import dont le spécifieur contient `motif`. */
-export function importeurs(source: string, label: string, motif: RegExp): string[] {
-  return specificateursDe(label, source)
+export function importeurs(source: string, label: string, motif: RegExp, sourceFile?: SourceFile, diagnostics?: readonly Diagnostic[]): string[] {
+  return specificateursDe(label, sourceFile ?? source, diagnostics)
     .filter(({ spec }) => motif.test(spec))
     .map(({ ligne, texte }) => `${label}:${ligne} → ${texte}`);
 }
@@ -138,7 +141,11 @@ export const monteLEcranVolumique = (source: string): boolean =>
 
 /** Les `.test.` de `src/**` qui importent le harnais, par chemin relatif à la racine. */
 function bancs(): { chemin: string; source: string }[] {
-  return testsDuDepot().filter(({ chemin, source }) => importeurs(source, chemin, SPEC_HARNAIS).length > 0);
+  const liste: { chemin: string; source: string }[] = [];
+  for (const { fichier: { rel, text }, sourceFile, diagnostics } of analyserCorpus(testsDuDepot().map(({ chemin, source }) => ({ rel: chemin, text: source })))) {
+    if (importeurs(text, rel, SPEC_HARNAIS, sourceFile!, diagnostics).length > 0) liste.push({ chemin: rel, source: text });
+  }
+  return liste;
 }
 
 /** Les `.test.` de `src/**` (ce banc excepté), par chemin relatif à la racine. */
@@ -179,16 +186,16 @@ describe('le harnais de banc volumique reste dans les bancs (#1401)', () => {
 
   it('AUCUN fichier de production de `src/` n’importe le harnais', () => {
     const fautifs: string[] = [];
-    for (const { rel, text } of production(SRC)) {
-      fautifs.push(...importeurs(text, rel, SPEC_HARNAIS));
+    for (const { fichier: { rel, text }, sourceFile, diagnostics } of analyserCorpus(production(SRC))) {
+      fautifs.push(...importeurs(text, rel, SPEC_HARNAIS, sourceFile!, diagnostics));
     }
     expect(fautifs, 'un harnais de banc embarqué dans le bundle de jeu').toEqual([]);
   });
 
   it('aucun non-`.test.` de `src/gameIso/**` hors le harnais n’importe `vitest`', () => {
     const fautifs: string[] = [];
-    for (const { rel, text } of production(GAME_ISO)) {
-      fautifs.push(...importeurs(text, rel, SPEC_VITEST));
+    for (const { fichier: { rel, text }, sourceFile, diagnostics } of analyserCorpus(production(GAME_ISO))) {
+      fautifs.push(...importeurs(text, rel, SPEC_VITEST, sourceFile!, diagnostics));
     }
     expect(fautifs, 'du code de test dans un fichier de production de `gameIso`').toEqual([]);
   });

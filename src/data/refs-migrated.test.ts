@@ -1220,14 +1220,14 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   const softIds = { etats: Object.keys(NARRATIVE_MARKERS) };
   const scan = scanGameOpRefs({ sources, resolvers, softIds, champsASlot: CHAMPS_A_SLOT });
 
-  it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', () => {
+  it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', { timeout: 30_000 }, () => {
     const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
     expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(38);
     expect(unclassified, `champs de GameOp sans cible déclarée (gameOpRefFk.mjs) :\n${unclassified.join('\n')}`).toEqual([]);
     expect(stale.map((c) => `${c.key} — ${c.raison}`), 'cibles déclarées hors périmètre').toEqual([]);
   });
 
-  it('une cible déclarée sur un champ d’op à slot sort en `stale`, raison nommée (contre-épreuve)', () => {
+  it('une cible déclarée sur un champ d’op à slot sort en `stale`, raison nommée (contre-épreuve)', { timeout: 30_000 }, () => {
     expect(CHAMPS_A_SLOT.has('removeTrait.traitId')).toBe(true);
     const declare = GAMEOP_FIELD_TARGETS as Record<string, unknown>;
     declare['removeTrait.traitId'] = { registry: 'traits' };

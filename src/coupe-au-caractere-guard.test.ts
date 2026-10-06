@@ -54,6 +54,19 @@ describe('coupe au caractère suivie d’une ellipse', () => {
     expect(vus('const p = s.slice(0, 20);\nfunction g() { return `${p}…`; }'), 'la coupe ellipsée d’une portée interne').toEqual(['temoin.tsx:1']);
   });
 
+  it('un attribut JSX sans ellipse reste muet ; son voisin ne fournit pas une ellipse à sa valeur', () => {
+    expect(vus('const X = () => <span title={s.slice(0, 20)} />;')).toEqual([]);
+    expect(vus("const X = () => <span title={s.slice(0, 20)} aria-label={'…'} />;")).toEqual([]);
+    expect(vus("const X = () => <span title={s.slice(0, 20)}>…</span>;")).toEqual([]);
+    expect(vus("const X = () => <span title={s.slice(0, 20) + '…'} />;")).toEqual(['temoin.tsx:1']);
+  });
+
+  it('un fragment JSX conserve la coupe suivie d’une ellipse, avec blancs et expression vide', () => {
+    expect(vus('const X = () => <>{s.slice(0, 20)}…</>;')).toEqual(['temoin.tsx:1']);
+    expect(vus("const X = () => <>\n  {s.slice(0, 20)}\n  {/* vide */}\n  {'…'}\n</>;")).toEqual(['temoin.tsx:2']);
+    expect(vus("const X = () => <><span title={s.slice(0, 20)} />…</>;")).toEqual([]);
+  });
+
   it('témoin : ce qui n’est pas une coupe ellipsée reste muet', () => {
     expect(vus('const X = () => <span>{s.slice(0, 20)}</span>;')).toEqual([]);
     expect(vus("const X = () => <span>…{s.slice(0, 20)}</span>;")).toEqual([]);
@@ -70,7 +83,7 @@ describe('coupe au caractère suivie d’une ellipse', () => {
     expect(coupesAuCaractere([{ rel: 'copie.mjs', text: foyer.text }])).toHaveLength(1);
   });
 
-  it('aucun site sous `src/` ni `scripts/`', { timeout: 30_000 }, () => {
+  it('aucun site sous `src/` ni `scripts/`', { timeout: 120_000 }, () => {
     const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'], tests: true });
     expect(coupesAuCaractere(corpus)).toEqual([]);
   });

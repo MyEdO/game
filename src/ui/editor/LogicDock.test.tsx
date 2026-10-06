@@ -2,12 +2,13 @@ import { flowFromEffects } from '../../state/flow';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { emptyScene } from '../../state/scene';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import { LogicDock } from './LogicDock';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import { effectSummary } from './EffectList';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 
-const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE, objets: [] };
+const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE };
 
 function dock(overrides: Partial<Parameters<typeof LogicDock>[0]>) {
   const scene = emptyScene(10, 10);
@@ -16,7 +17,7 @@ function dock(overrides: Partial<Parameters<typeof LogicDock>[0]>) {
       scene={scene}
       otherScenes={[]}
       worldMap={null}
-      objets={[]}
+      narratif={emptyNarratif()}
       setScene={vi.fn()}
       warnings={[]}
       onSelectWarning={vi.fn()}

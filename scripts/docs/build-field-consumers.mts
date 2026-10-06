@@ -82,7 +82,7 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
-import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../guards/lib/fieldConsumers.mjs'
+import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
 import { TARGETS, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url)).replace(/\/$/, '').replace(/\\/g, '/')
@@ -108,6 +108,7 @@ type Hit = { file: string; line: number; symbole: string }
 export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)): { md: string; byType: Map<string, Map<string, Hit[]>>; totalFields: number; totalUnread: number; zeros: string[] } {
   // Clés hétérogènes : le contexte de scan est clé par son Program (`fieldConsumers.mjs`).
   const cache = new Map<unknown, unknown>()
+  const erreurs: unknown[] = []
 
   let out = `# Consommateurs par champ — GÉNÉRÉ\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`npx tsx scripts/docs/build-field-consumers.mts\` (\`npm run docs:field-consumers\`) — NE PAS ÉDITER À LA MAIN.\n`
@@ -142,40 +143,43 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
 
   // Une cible porte SOIT son nœud zod (`schema`), SOIT ses clés déjà relevées (`cles` d'un handle
   // `document()`, dont le nœud est scellé et n'expose plus de `.shape`).
-  for (const { schema, cles, type, home } of TARGETS as readonly { schema?: unknown; cles?: readonly string[]; type: string; home: string }[]) {
-    const fields = fieldsOf(schema ?? cles)
-    const hits = scanFieldReads({ type, home }, fields, files, ROOT, cache)
-    const etats = fieldOwnership({ type, home }, fields, files, ROOT, cache)
-    const byField = groupByField(fields, hits)
-    byType.set(type, byField)
-    totalFields += fields.length
-    tables += `### \`${type}\` (${home})\n\n`
-    tables += `| Champ | Lecteurs | Exemple |\n|---|---|---|\n`
-    for (const f of fields) {
-      const list = byField.get(f) ?? []
-      const uniqSites = [...new Set(list.map((h: { file: string; line: number }) => `${h.file}:${h.line}`))]
-      if (type === 'TrappingRef' && f === 'spec') trappingRefSpecSites = uniqSites
-      const etat = etats.get(f)
-      // QUATRE états, jamais un « 0 » indifférencié : le champ ABSENT du type TS n'a rien à lire, le
-      // champ HÉRITÉ vit sous son déclarant (son « 0 » y est tautologique), et seul un champ PROPRE
-      // sans lecteur est une absence de lecture.
-      if (etat?.etat === 'absent') {
-        absents.push(`${type}.${f}`)
-        tables += `| \`${f}\` | — | *absent du type TS* |\n`
-      } else if (uniqSites.length > 0) {
-        totalRead++
-        tables += `| \`${f}\` | ${uniqSites.length} | \`${uniqSites[0]}\` |\n`
-      } else if (etat?.etat === 'herite') {
-        herites.push(`${type}.${f}`)
-        tables += `| \`${f}\` | 0 ici — hérité de \`${etat.declarant ?? '?'}\` | — |\n`
-      } else {
-        totalUnread++
-        zeros.push(`${type}.${f}`)
-        tables += `| \`${f}\` | **0 — JAMAIS LU** | — |\n`
+  try {
+    for (const { schema, cles, type, home } of TARGETS as readonly { schema?: unknown; cles?: readonly string[]; type: string; home: string }[]) {
+      const fields = fieldsOf(schema ?? cles)
+      const hits = scanFieldReads({ type, home }, fields, files, ROOT, cache)
+      const etats = fieldOwnership({ type, home }, fields, files, ROOT, cache)
+      const byField = groupByField(fields, hits)
+      byType.set(type, byField)
+      totalFields += fields.length
+      tables += `### \`${type}\` (${home})\n\n`
+      tables += `| Champ | Lecteurs | Exemple |\n|---|---|---|\n`
+      for (const f of fields) {
+        const list = byField.get(f) ?? []
+        const uniqSites = [...new Set(list.map((h: { file: string; line: number }) => `${h.file}:${h.line}`))]
+        if (type === 'TrappingRef' && f === 'spec') trappingRefSpecSites = uniqSites
+        const etat = etats.get(f)
+        // QUATRE états, jamais un « 0 » indifférencié : le champ ABSENT du type TS n'a rien à lire, le
+        // champ HÉRITÉ vit sous son déclarant (son « 0 » y est tautologique), et seul un champ PROPRE
+        // sans lecteur est une absence de lecture.
+        if (etat?.etat === 'absent') {
+          absents.push(`${type}.${f}`)
+          tables += `| \`${f}\` | — | *absent du type TS* |\n`
+        } else if (uniqSites.length > 0) {
+          totalRead++
+          tables += `| \`${f}\` | ${uniqSites.length} | \`${uniqSites[0]}\` |\n`
+        } else if (etat?.etat === 'herite') {
+          herites.push(`${type}.${f}`)
+          tables += `| \`${f}\` | 0 ici — hérité de \`${etat.declarant ?? '?'}\` | — |\n`
+        } else {
+          totalUnread++
+          zeros.push(`${type}.${f}`)
+          tables += `| \`${f}\` | **0 — JAMAIS LU** | — |\n`
+        }
       }
+      tables += `\n`
     }
-    tables += `\n`
-  }
+  } catch (erreur) { erreurs.push(erreur) }
+  finally { libererCache(cache, erreurs) }
 
   // Une classe d'état ne s'ÉNONCE que si elle a des membres : à 0, ni parenthèse vide ni glose
   // commentant une liste inexistante — le membre disparaît de la phrase, cardinal compris (la

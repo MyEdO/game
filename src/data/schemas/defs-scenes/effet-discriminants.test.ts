@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs';
 /**
  * VERROU D'UNION d'`Effect` (#1466 L1a T3bis-a) — jumeau de `condition-discriminants.test.ts`.
  *
@@ -34,7 +35,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { effectSchema } from './effets';
 import { defDe, enfantsDe, ouverts } from '../grammaire/descente';
 
@@ -48,11 +49,11 @@ type Module = { nom: string; texte: string };
 const contenusDesModules = (): Module[] => MODULES_DE_SCHEMAS.map((nom) => ({ nom, texte: readFileSync(nom, 'utf8') }));
 const FLOW_CORE = fileURLToPath(new URL('../../../engine/flowCore.ts', import.meta.url));
 
-const source = (f: string): ts.SourceFile => ts.createSourceFile(f, readFileSync(f, 'utf8'), ts.ScriptTarget.ESNext, true);
+const source = (f: string): ts.SourceFile => ast({ rel: f, text: readFileSync(f, 'utf8') })!;
 
 /** Texte d'un littéral de chaîne d'un nœud de TYPE (`type: 'ops'`), `null` sinon. */
 const litDeType = (t: ts.TypeNode | undefined): string | null =>
-  t && ts.isLiteralTypeNode(t) && ts.isStringLiteralLike(t.literal) ? t.literal.text : null;
+  t && ts.isLiteralTypeNode(t) && ts.isStringLiteralLikeNode(t.literal) ? t.literal.text : null;
 
 /** Discriminant `type` porté par un corps de type manuscrit (littéral, ou intersection qui en
  *  contient un — `DelayedEffect` = `{ type: 'delayedEffect'; … } & ScheduleSpec`). */
@@ -62,7 +63,7 @@ function typeDuCorps(n: ts.TypeNode | ts.InterfaceDeclaration): string | null {
     : ts.isTypeLiteralNode(n)
       ? n.members
       : [];
-  for (const m of membres) if (ts.isPropertySignature(m) && m.name.getText() === 'type') return litDeType(m.type);
+  for (const m of membres) if (ts.isPropertySignatureDeclaration(m) && m.name.getText() === 'type') return litDeType(m.type);
   if (!ts.isInterfaceDeclaration(n) && ts.isIntersectionTypeNode(n))
     for (const t of n.types) {
       const trouve = typeDuCorps(t);
@@ -88,7 +89,7 @@ function corpsManuscrits(f: string): Map<string, string | null> {
  *  @param modules le contenu des modules à lire, `{ nom, texte }` — injectable pour la preuve de câblage. */
 function litterauxDesSchemas(modules: readonly Module[] = contenusDesModules()): Map<string, string | null> {
   const out = new Map<string, string | null>();
-  for (const { nom: fichier, texte } of modules) ts.createSourceFile(fichier, texte, ts.ScriptTarget.ESNext, true).forEachChild((n) => {
+  for (const { fichier: { rel: fichier }, sourceFile } of analyserCorpus(modules.map(({ nom, texte }) => ({ rel: nom, text: texte })))) sourceFile!.forEachChild((n) => {
     if (!ts.isVariableStatement(n)) return;
     for (const d of n.declarationList.declarations) {
       if (!ts.isIdentifier(d.name) || !d.initializer) continue;
@@ -100,12 +101,12 @@ function litterauxDesSchemas(modules: readonly Module[] = contenusDesModules()):
           ts.isCallExpression(x.initializer) &&
           ts.isPropertyAccessExpression(x.initializer.expression) &&
           x.initializer.expression.name.text === 'literal' &&
-          ts.isStringLiteralLike(x.initializer.arguments[0])
+          ts.isStringLiteralLikeNode(x.initializer.arguments[0])
         ) {
           lit ??= (x.initializer.arguments[0] as ts.StringLiteral).text;
           return;
         }
-        ts.forEachChild(x, chercher);
+        x.forEachChild(chercher);
       };
       chercher(d.initializer);
       if (out.has(d.name.text))
@@ -121,7 +122,7 @@ function litterauxDesSchemas(modules: readonly Module[] = contenusDesModules()):
 function typesDuType(texteScene?: string): string[] {
   const schemas = litterauxDesSchemas();
   const manuscrits = new Map([...corpsManuscrits(SCENE), ...corpsManuscrits(FLOW_CORE)]);
-  const sf = texteScene ? ts.createSourceFile(SCENE, texteScene, ts.ScriptTarget.ESNext, true) : source(SCENE);
+  const sf = texteScene ? ast({ rel: SCENE, text: texteScene })! : source(SCENE);
   const types: string[] = [];
   sf.forEachChild((n) => {
     if (!ts.isTypeAliasDeclaration(n) || n.name.text !== 'Effect') return;
@@ -158,7 +159,12 @@ function typesDuSchema(): string[] {
   const union = ouverts([effectSchema]).find((n) => defDe(n)?.type === 'union');
   return enfantsDe(union)
     .filter((e) => e.segment.startsWith('|'))
-    .map(({ noeud }) => [...(defDe(enfantsDe(noeud).find((e) => e.cle === 'type')?.noeud)?.values as Iterable<string>)][0]);
+    .map(({ noeud }) => {
+      const valeurs = defDe(enfantsDe(noeud).find((e) => e.cle === 'type')?.noeud)?.values;
+      if (!Array.isArray(valeurs) || valeurs.length !== 1 || typeof valeurs[0] !== 'string')
+        throw new Error('Discriminant type absent ou non littéral de chaîne unique');
+      return valeurs[0];
+    });
 }
 
 describe('`effectSchema` — verrou d\'union : les discriminants du SCHÉMA == ceux du TYPE', () => {

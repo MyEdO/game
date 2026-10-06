@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme
 // #276). La porte déclarative
 // (`openRoll`, `src/state/rollSeam.ts`) + `TestOutcome.seal(...)` (`src/engine/testOutcome.ts`) sont
@@ -6,7 +7,7 @@
 // Décision 3) — exactement le trou que ce garde ferme. Module ESM pur, exécutable par `node` nu —
 // mécanique ICI, whitelist EN POLICY dans le test/pre-commit (même patron que `hardcode.mjs`).
 //
-// Détection par AST (`typescript`, `ts.createSourceFile` — MÊME socle que `battleRngEngineLeak.mjs`/
+// Détection par AST (MÊME socle que `battleRngEngineLeak.mjs`/
 // `registryIdBranch.mjs`, aucun second socle) : un site est un APPEL, jamais une occurrence textuelle.
 // Deux conséquences mesurées (#918) : les lignes rapportées sont EXACTES (le scan lexical
 // précédent supprimait commentaires bloc et imports multi-lignes sans conserver leurs retours-ligne —
@@ -36,15 +37,11 @@
 // Angle mort de CE scanner : un import RENOMMÉ (`import { d100 as des } from '../engine/dice'`) lui
 // échappe — il reconnaît le nom APPELÉ. La garde SŒUR (`scanDesHorsPorte`, #1508) reconnaît l'appel
 // par sa liaison d'import (`estAppelDeclare`) et le voit.
-import tsModule from 'typescript';
+import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs'
-import { scriptKindDe } from './dialecte.mjs'
 import { contexteImports, estAppelDeclare, tableDesExports } from './canonUnique.mjs'
 
-// Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest ce module passe par
-// vite-node, et chaque `ts.x` d'un visiteur AST se relit alors sur l'objet d'import du runner. Même
-// socle, même mesure qu'en tête de `sceneMutation.mjs` : à la seule liaison ci-dessous,
-// `scene-mutation-guard.test.ts` tombe de 7,46 s à 3,60 s.
+// #1801
 const ts = tsModule;
 
 /** Les 3 motifs de forgeage/roulage bruts d'un Test — PRÉ-FILTRE lexical bon marché (un fichier sans
@@ -134,7 +131,7 @@ function feedsTableLookup(scope, name) {
     if (found) return;
     if (ts.isCallExpression(n) && calleeName(n) === 'findTableEntry'
       && n.arguments.some((a) => ts.isIdentifier(a) && a.text === name)) { found = true; return; }
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   };
   visit(scope);
   return found;
@@ -143,7 +140,8 @@ function feedsTableLookup(scope, name) {
 /** (M) : dé de MONDE — cf. en-tête. Ne s'applique qu'à `d100`. */
 function isWorldDie(node, kind, sf) {
   if (kind !== 'd100') return false;
-  const stmt = ts.findAncestor(node, ts.isStatement);
+  let stmt = node;
+  while (stmt && !ts.isStatement(stmt)) stmt = stmt.parent;
   if (stmt && TEST_VALUE_STMT_RX.test(stmt.getText(sf))) return false;
   if (TEST_VALUE_BODY_RX.test(enclosingBody(node).getText(sf))) return false;
   const { self, parent } = unparenthesizedParent(node);
@@ -170,12 +168,9 @@ function isWorldDie(node, kind, sf) {
  * @param {string} relPath @param {string} contenu @param {{ includeExcluded?: boolean }} [opts]
  * @returns {{ line: number, detail: string, excludedBy?: 'S'|'M' }[]}
  */
-export function scanRollSeamExclusivity(relPath, contenu, opts = {}) {
+export function scanRollSeamExclusivity(relPath, contenu, opts = {}, sourceFile) {
   if (!ROLL_SEAM_RX.test(contenu)) return [];
-  const sf = ts.createSourceFile(
-    relPath, contenu, ts.ScriptTarget.Latest, true,
-    scriptKindDe(relPath),
-  );
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const findings = [];
   const visit = (node) => {
     const kind = siteKind(node);
@@ -189,9 +184,9 @@ export function scanRollSeamExclusivity(relPath, contenu, opts = {}) {
         });
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   findings.sort((a, b) => a.line - b.line);
   return findings;
 }
@@ -216,7 +211,7 @@ export const PENDING_JET_RX = /\bskillValue\s*:/;
 
 /** Le littéral porte-t-il `roll: null` (pending PAS ENCORE roulé) ? */
 function hasRollNull(obj) {
-  return obj.properties.some((p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name)
+  return obj.properties.some((p) => ts.isPropertyAssignment(p) && ('name' in p && ts.isIdentifier(p.name))
     && p.name.text === 'roll' && p.initializer.kind === ts.SyntaxKind.NullKeyword);
 }
 
@@ -229,16 +224,13 @@ function hasRollNull(obj) {
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string }[]}
  */
-export function scanPendingJetFabrication(relPath, contenu) {
+export function scanPendingJetFabrication(relPath, contenu, sourceFile) {
   if (!PENDING_JET_RX.test(contenu)) return [];
-  const sf = ts.createSourceFile(
-    relPath, contenu, ts.ScriptTarget.Latest, true,
-    scriptKindDe(relPath),
-  );
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const findings = [];
   const visit = (node) => {
     if (ts.isObjectLiteralExpression(node)) {
-      const names = new Set(node.properties.filter((p) => p.name && ts.isIdentifier(p.name)).map((p) => p.name.text));
+      const names = new Set(node.properties.filter((p) => 'name' in p && p.name && ts.isIdentifier(p.name)).map((p) => p.name.text));
       if (names.has('skillValue') && (names.has('target') || hasRollNull(node))) {
         findings.push({
           line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
@@ -246,15 +238,15 @@ export function scanPendingJetFabrication(relPath, contenu) {
         });
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   findings.sort((a, b) => a.line - b.line);
   return findings;
 }
 
 /** Fonction (déclaration ou `const f = (…) => …`) portée par ce nœud, sinon null.
- *  @returns {{ name: string, body: import('typescript').Node, exported: boolean }|null} */
+ *  @returns {{ name: string, body: import('typescript/unstable/ast').Node, exported: boolean }|null} */
 function functionOf(node) {
   if (ts.isFunctionDeclaration(node) && node.name && node.body) {
     return { name: node.name.text, body: node.body, exported: !!node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) };
@@ -294,11 +286,11 @@ export const DES_HORS_PORTE_RX = new RegExp(`\\b(?:${AMORCE_DES.join('|')}|int)\
  * `defs-scenes/worldmap.ts` 4, `defs/props.ts` 1, `defs/surincantation.ts` 6, `defs/vehicles.ts` 1,
  * `grammaire/avancement.ts` 1, `grammaire/ref.ts` 1, `grammaire/valeurs.ts` 4 ; et `git grep ".int("`
  * sur `src/` ne rend AUCUN `.int(` zod porteur d'argument, ni aucun dé `.int()` nu.
- * @param {import('typescript').CallExpression} node @returns {boolean} */
+ * @param {import('typescript/unstable/ast').CallExpression} node @returns {boolean} */
 function estAppelDeDe(node) {
   const e = node.expression;
   return ts.isPropertyAccessExpression(e) && e.name.text === 'int'
-    && node.arguments.length > 0 && !node.arguments.some(ts.isStringLiteralLike);
+    && node.arguments.length > 0 && !node.arguments.some(ts.isStringLiteralLikeNode);
 }
 
 /**
@@ -331,8 +323,7 @@ export function engineDiceRollers(engineFiles) {
   const amorce = new Set(AMORCE_DES);
   /** @type {Map<string, { exported: boolean, calls: Set<string>, direct: boolean }>} */
   const decls = new Map();
-  for (const { rel, text } of engineFiles) {
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true);
+  for (const { sourceFile: sf } of analyserCorpus(engineFiles)) {
     const visit = (node) => {
       const fn = functionOf(node);
       if (fn) {
@@ -344,14 +335,14 @@ export function engineDiceRollers(engineFiles) {
             if (ts.isIdentifier(e)) { calls.add(e.text); if (amorce.has(e.text)) direct = true; }
             if (estAppelDeDe(x)) direct = true;
           }
-          ts.forEachChild(x, cv);
+          x.forEachChild(cv);
         };
         cv(fn.body);
         decls.set(fn.name, { exported: fn.exported, calls, direct });
       }
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
     };
-    ts.forEachChild(sf, visit);
+    sf.forEachChild(visit);
   }
   const roule = new Set();
   for (let changed = true; changed;) {
@@ -386,13 +377,13 @@ export function engineDiceRollers(engineFiles) {
  * @param {Readonly<Record<string, readonly string[]>>} table `engineDiceRollers`
  * @returns {{ line: number, name: string }[]}
  */
-export function scanDesHorsPorte(relPath, contenu, table) {
+export function scanDesHorsPorte(relPath, contenu, table, sourceFile, checker) {
   if (!DES_HORS_PORTE_RX.test(contenu) && !rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
-  const sf = ts.createSourceFile(
-    relPath, contenu, ts.ScriptTarget.Latest, true,
-    scriptKindDe(relPath),
-  );
-  const contexte = contexteImports(sf);
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanDesHorsPorte(relPath, contenu, table, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   /** @type {Map<string, { line: number, name: string }>} */
   const vus = new Map();
   const visit = (node) => {
@@ -403,9 +394,9 @@ export function scanDesHorsPorte(relPath, contenu, table) {
         vus.set(`${line}:${nom}`, { line, name: nom });
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   return [...vus.values()].sort((a, b) => a.line - b.line || parUnitesDeCode(a.name, b.name));
 }
 
@@ -421,19 +412,18 @@ export function scanDesHorsPorte(relPath, contenu, table) {
 export function engineRollerExports(engineFiles, amorce = AMORCE_TEST) {
   /** @type {Map<string, { file: string, line: number, calls: Set<string>, exported: boolean }>} */
   const decls = new Map();
-  for (const { rel, text } of engineFiles) {
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true);
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(engineFiles)) {
     const visit = (node) => {
       const fn = functionOf(node);
       if (fn) {
         const calls = new Set();
-        const cv = (x) => { if (ts.isCallExpression(x) && ts.isIdentifier(x.expression)) calls.add(x.expression.text); ts.forEachChild(x, cv); };
+        const cv = (x) => { if (ts.isCallExpression(x) && ts.isIdentifier(x.expression)) calls.add(x.expression.text); x.forEachChild(cv); };
         cv(fn.body);
         decls.set(fn.name, { file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, calls, exported: fn.exported });
       }
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
     };
-    ts.forEachChild(sf, visit);
+    sf.forEachChild(visit);
   }
   const rollers = new Set();
   for (let changed = true; changed;) {
@@ -465,8 +455,7 @@ export function engineRollerExports(engineFiles, amorce = AMORCE_TEST) {
 export function engineHomonyms(engineFiles) {
   /** @type {Map<string, { files: Set<string>, rollsDirectly: boolean }>} */
   const byName = new Map();
-  for (const { rel, text } of engineFiles) {
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true);
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(engineFiles)) {
     const visit = (node) => {
       const fn = functionOf(node);
       if (fn) {
@@ -474,7 +463,7 @@ export function engineHomonyms(engineFiles) {
         const cv = (x) => {
           if (ts.isCallExpression(x) && ts.isIdentifier(x.expression)
             && (x.expression.text === 'rollTest' || x.expression.text === 'd100')) rolls = true;
-          ts.forEachChild(x, cv);
+          x.forEachChild(cv);
         };
         cv(fn.body);
         if (!byName.has(fn.name)) byName.set(fn.name, { files: new Set(), rollsDirectly: false });
@@ -482,9 +471,9 @@ export function engineHomonyms(engineFiles) {
         e.files.add(rel);
         e.rollsDirectly ||= rolls;
       }
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
     };
-    ts.forEachChild(sf, visit);
+    sf.forEachChild(visit);
   }
   const out = new Map();
   for (const [name, e] of byName) {
@@ -520,20 +509,20 @@ function rollerNameRx(names) {
  * @param {Readonly<Record<string, readonly string[]>>} table `tableDesExports(engineFiles, engineRollerExports(engineFiles).keys())`
  * @returns {{ line: number, name: string }[]}
  */
-export function scanEngineDelegatedRoll(relPath, contenu, table) {
+export function scanEngineDelegatedRoll(relPath, contenu, table, sourceFile, checker) {
   if (!rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
-  const sf = ts.createSourceFile(
-    relPath, contenu, ts.ScriptTarget.Latest, true,
-    scriptKindDe(relPath),
-  );
-  const contexte = contexteImports(sf);
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanEngineDelegatedRoll(relPath, contenu, table, analyse.sourceFile, analyse.checker);
+  }
+  const sf = sourceFile;
+  const contexte = contexteImports(sf, checker);
   const findings = [];
   const visit = (node) => {
     const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table, contexte) : null;
     if (name) findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   findings.sort((a, b) => a.line - b.line);
   return findings;
 }

@@ -11,11 +11,25 @@ import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { Condition } from '../engine/flowCore';
 import type { z } from 'zod';
 import type { ecartSchema } from '../data/schemas/defs-scenes/narratif';
+import { REGISTRES_NARRATIFS } from '../data/schemas/defs-scenes/registres-narratifs';
 
-/** Un stade RÉVÉLABLE d'un indice : la prose qui se dévoile à ce palier d'enquête (`indiceStadeSchema`). */
+/** Un stade RÉVÉLABLE d'un indice : ce qui se dévoile à ce palier d'enquête — sa prose, le document
+ *  qu'il croise, ou les deux (au moins l'un, `narratifSchema`). */
 export interface IndiceStade {
   /** id STABLE du stade, unique DANS l'indice. */
   id: string;
+  prose?: string;
+  /** id d'un `DocumentNarratif` du même narratif (#679). */
+  documentId?: string;
+  source?: SourceRef;
+}
+
+/** Un document remis au joueur (#679) : prose VERBATIM (règle stricte 5, Markdown), servie par l'Effect
+ *  `document { documentId }`. */
+export interface DocumentNarratif {
+  /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
+  id: string;
+  titre: string;
   prose: string;
   source?: SourceRef;
 }
@@ -95,6 +109,7 @@ export interface NarratifBlock {
   indices: Indice[];
   presetsPnj: PresetPnj[];
   objets: TrappingData[];
+  documents: DocumentNarratif[];
   /** Cadre de campagne (#717) — l'ouverture cérémonielle du chapitre. Absente = démarrage direct. */
   ouverture?: OuvertureBlock;
   /** Cadre de campagne (#717) — la clôture du chapitre. Absente = le chapitre ne se ferme jamais. */
@@ -103,7 +118,7 @@ export interface NarratifBlock {
   ecartes?: EcartDeFiche[];
 }
 
-/** Narratif vide — posé par `newProject`. */
+/** Narratif vide — posé par `newProject` : une liste vide par registre (`REGISTRES_NARRATIFS`). */
 export function emptyNarratif(): NarratifBlock {
-  return { affaires: [], indices: [], presetsPnj: [], objets: [] };
+  return Object.fromEntries(REGISTRES_NARRATIFS.map((r) => [r.cle, []])) as unknown as NarratifBlock;
 }

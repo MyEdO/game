@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ESLint } from 'eslint';
+import { creerBancLint, lintFixtures, selectionnerMessages } from '../scripts/guards/lib/lint.testkit.mjs';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
@@ -8,8 +8,8 @@ import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  * FILET DE PÉRIMÈTRE DE LA PURETÉ DE COUCHE (#1709 C3b-2 ; CLAUDE.md règle stricte 3, #8 et #161).
  *
  * La doctrine « `src/engine` est pur, `src/state` est en amont de `src/ui`/`src/gameIso` » se dit
- * UNE fois, dans `eslint.config.js`, et se joue par la gate `lint`. Ce banc ne recopie aucune
- * règle : il MESURE la config RÉSOLUE (API ESLint, `cwd` à la racine du dépôt).
+ * UNE fois, dans `oxlint.config.mjs`, et se joue par la gate `lint`. Ce banc ne recopie aucune
+ * règle : il MESURE la config RÉSOLUE (lanceur Oxlint, `cwd` à la racine du dépôt).
  *
  * Il existe parce qu'un bloc `files:` qui ne matcherait plus rien (dossier renommé, glob décalé)
  * serait MUET et VERT. Deux volets, donc :
@@ -17,7 +17,7 @@ import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  *     dur) est bien sous les deux règles de pureté ;
  *  2. TABLE DES 7 FORMES — sur ce même fichier réel, chaque forme d'import rend le verdict attendu.
  *
- * PIÈGE MESURÉ : sans `cwd` au dépôt, ESLint ne trouve pas la config, `ruleId` est `null` et tout
+ * PIÈGE MESURÉ : sans config explicite, un outil peut rendre `ruleId` nul et tout
  * paraît « pris » par vacuité — d'où l'assertion sur `ruleId` à chaque verdict.
  *
  * CE QUE LA POLICE NE VOIT PAS, et pourquoi : les formes ÉLIDÉES à la compilation (`import type
@@ -38,7 +38,7 @@ import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REF = '#1709';
-const eslint = new ESLint({ cwd: ROOT });
+const eslint = creerBancLint();
 
 /** Les couches gardées, et leurs avals interdits. */
 const COUCHES = [
@@ -60,12 +60,22 @@ const FORMES: { nom: string; code: (p: string) => string; regle: string | null }
 
 /** Règles qui ont pris ce code au titre de la PURETÉ (message porteur de la réf ticket). */
 async function pris(code: string, filePath: string): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
-  const purete = res.messages.filter((m) => m.message.includes(REF));
+  const [res] = await eslint.lintText(code, { filePath });
+  const purete = selectionnerMessages(res, (m) => m.message.includes(REF));
   for (const m of purete) {
     expect(m.ruleId, `${filePath} : ruleId nul — la config n’a pas été résolue (cwd hors dépôt ?), tout serait faussement « pris »`).toBeTruthy();
   }
   return purete.map((m) => m.ruleId!).sort();
+}
+
+function tableLint(formes: {nom: string; code: string; tsx?: boolean}[], chemin: string, filtre: (message: {message:string;ruleId:string|null}) => boolean): Record<string,string> {
+  const fixtures = formes.map((f,i)=>({code:f.code,filePath:cheminDe(chemin,f).replace(/(\.test)?(\.[^.]+)$/,`-parite-${i}$1$2`)}));
+  const resultats = lintFixtures(fixtures);
+  return Object.fromEntries(formes.map((f,i)=>{
+    const messages=selectionnerMessages(resultats[i], filtre);
+    for(const m of messages) expect(m.ruleId,fixtures[i].filePath).toBeTruthy();
+    return [f.nom,[...new Set(messages.map(m=>m.ruleId!))].sort().join('+')||'passe'];
+  }));
 }
 
 /** Deux fichiers RÉELS de la couche (ordre total de `readCorpus`, tests exclus, jamais un nom en
@@ -84,7 +94,7 @@ function specifieur(rel: string, aval: string): string {
   return `${'../'.repeat(rel.split('/').length - 2)}${aval}/x`;
 }
 
-describe('pureté de couche — la doctrine vit dans eslint.config.js, mesurée sur la config RÉSOLUE (#1709)', () => {
+describe('pureté de couche — la doctrine vit dans oxlint.config.mjs, mesurée sur la config RÉSOLUE (#1709)', () => {
   for (const { amont, avals } of COUCHES) {
     it(`${amont} : des fichiers RÉELS de la couche (racine ET sous-dossier) sont sous les deux règles`, { timeout: 30_000 }, async () => {
       for (const rel of sondes(amont)) {
@@ -105,8 +115,7 @@ describe('pureté de couche — la doctrine vit dans eslint.config.js, mesurée 
         for (const rel of sondes(amont)) {
           const chemin = `${ROOT}/${rel}`;
           const p = specifieur(rel, aval);
-          const table: Record<string, string> = {};
-          for (const forme of FORMES) table[forme.nom] = (await pris(forme.code(p), chemin)).join('+') || 'passe';
+          const table = tableLint(FORMES.map(f=>({...f,code:f.code(p)})),chemin,m=>m.message.includes(REF));
           expect(table, `${amont} → src/${aval} (sonde : ${rel}, spécificateur : ${p})`).toEqual(attendu);
         }
       });
@@ -155,7 +164,7 @@ function sondeTest(dir: string): string {
 }
 
 /** La table UNIQUE des formes d'écriture de la marche brute, pour un nom de fonction de `fs`
- *  (`readdirSync`) comme pour `glob`, et la ou les règles qui DOIVENT prendre chacune. `eslint.config.js`
+ *  (`readdirSync`) comme pour `glob`, et la ou les règles qui DOIVENT prendre chacune. `oxlint.config.mjs`
  *  s'y mesure : `murs/ordre-total-imports` seule prend l'import nommé et l'alias, les deux prennent le
  *  namespace, le mur `murs/ordre-total` seul prend tout le reste — membre (optionnel compris) sur tout
  *  receveur, clé littérale ou gabarit, déstructuration, alias d'import TypeScript, membre JSX (\`tsx\` :
@@ -221,8 +230,8 @@ const FORMES_LOCALE_NEUTRES: { nom: string; code: string }[] = [
 
 /** Règles qui ont pris ce code au titre de l'ORDRE TOTAL (message porteur de la réf du mur). */
 async function prisOrdreTotal(code: string, filePath: string): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
-  const mur = res.messages.filter((m) => m.message.includes('Ordre total'));
+  const [res] = await eslint.lintText(code, { filePath });
+  const mur = selectionnerMessages(res, (m) => m.message.includes('Ordre total'));
   for (const m of mur) {
     expect(m.ruleId, `${filePath} : ruleId nul — la config n’a pas été résolue, tout serait faussement « pris »`).toBeTruthy();
   }
@@ -233,11 +242,9 @@ describe('ordre total dans les tests de `src` — mur mesuré sur la config RÉS
   for (const dir of SOUS_LE_MUR) {
     it(`${dir} : les formes de marche brute sont prises, les formes neutres et \`readCorpus\` passent`, { timeout: 30_000 }, async () => {
       const chemin = `${ROOT}/${sondeTest(dir)}`;
-      const table: Record<string, string> = {};
-      for (const f of FORMES_MARCHE) table[f.nom] = (await prisOrdreTotal(f.code, cheminDe(chemin, f))).join('+') || 'passe';
+      const table = tableLint(FORMES_MARCHE,chemin,m=>m.message.includes('Ordre total'));
       expect(table, `sonde : ${chemin}`).toEqual(Object.fromEntries(FORMES_MARCHE.map((f) => [f.nom, f.regle])));
-      const neutres: Record<string, string> = {};
-      for (const f of FORMES_NEUTRES) neutres[f.nom] = (await prisOrdreTotal(f.code, chemin)).join('+') || 'passe';
+      const neutres = tableLint(FORMES_NEUTRES,chemin,m=>m.message.includes('Ordre total'));
       expect(neutres, `faux positif du mur — sonde : ${chemin}`).toEqual(Object.fromEntries(FORMES_NEUTRES.map((f) => [f.nom, 'passe'])));
       const parLaPorte = "import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';\nexport const a = readCorpus(['src']);\n";
       expect(await prisOrdreTotal(parLaPorte, chemin), 'la PORTE ne doit jamais mordre').toEqual([]);
@@ -246,8 +253,7 @@ describe('ordre total dans les tests de `src` — mur mesuré sur la config RÉS
 
   it('LOCALE : sur un générateur réel, les formes de la locale sont prises, les formes neutres passent', { timeout: 30_000 }, async () => {
     const chemin = `${ROOT}/scripts/docs/build-all.mjs`;
-    const table: Record<string, string> = {};
-    for (const f of [...FORMES_LOCALE, ...FORMES_LOCALE_NEUTRES]) table[f.nom] = (await prisOrdreTotal(f.code, chemin)).join('+') || 'passe';
+    const table = tableLint([...FORMES_LOCALE,...FORMES_LOCALE_NEUTRES],chemin,m=>m.message.includes('Ordre total'));
     expect(table, `sonde : ${chemin}`).toEqual({
       ...Object.fromEntries(FORMES_LOCALE.map((f) => [f.nom, 'murs/ordre-total-locale'])),
       ...Object.fromEntries(FORMES_LOCALE_NEUTRES.map((f) => [f.nom, 'passe'])),
@@ -276,14 +282,13 @@ describe('ordre total dans les tests de `src` — mur mesuré sur la config RÉS
       await selecteursDe(production),
       `le mur ne vise que les \`*.test.*\` : un fichier de PRODUCTION ne doit résoudre aucun de ses sélecteurs. Sonde : ${production}`,
     ).not.toContain('opendirSync');
-    // `src/data` est LU par ESLint (#1709 C3c-3b) : ni son test ni sa production n’est `isPathIgnored`.
-    // C’est ce fait qui porte les deux volets ci-dessus pour cette couche — un `ignores` de tête qui la
-    // reprendrait les rendrait MUETS et VERTS.
+    // #1709 C3c-3b
     for (const rel of [sondeTest('src/data'), sondes('src/data')[0]]) {
+      const [resultat] = await eslint.lintText('debugger;', { filePath: `${ROOT}/${rel}` });
       expect(
-        await eslint.isPathIgnored(`${ROOT}/${rel}`),
-        `src/data : ESLint doit le LIRE (aucun \`ignores\` ne le reprend) — sinon le mur et la pureté de couche y sont muets. Sonde : ${rel}`,
-      ).toBe(false);
+        selectionnerMessages(resultat, (message) => message.ruleId === 'no-debugger').map((message) => message.severity),
+        `src/data : Oxlint doit le LIRE (aucun \`ignores\` ne le reprend) — sinon le mur et la pureté de couche y sont muets. Sonde : ${rel}`,
+      ).toEqual([2]);
     }
   });
 

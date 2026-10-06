@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scanSceneMutation } from '../../scripts/guards/lib/sceneMutation.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { detenteur } from '../detenteur.testkit';
 
 /**
@@ -35,7 +36,7 @@ const AUTHORING_EXCLUDED = (rel: string) => rel.startsWith('src/scenes/test-scen
  *  les `.ts(x)` de `src/**` hors tests, rendus par la primitive de marche `readCorpus`, avec leurs
  *  sites de mutation, chemin RELATIF POSIX. Mémoïsation PARESSEUSE — la collecte Vitest ne paie
  *  rien, le premier `it` qui mesure paie le scan (#1801). */
-const sites = detenteur(() => readCorpus(['src']).map(({ rel, text }) => ({ rel, findings: scanSceneMutation(rel, text) })));
+const sites = detenteur(() => [...analyserCorpus(readCorpus(['src']))].map(({ fichier: { rel, text }, sourceFile }) => ({ rel, findings: scanSceneMutation(rel, text, sourceFile!) })));
 
 describe('garde-fou « immutabilité de la scène du store » (AST, tolérance zéro)', () => {
   it('aucun code de src/** (hors authoring de test-scenarios) ne mute un champ d’un porteur de `scene` en place', () => {
