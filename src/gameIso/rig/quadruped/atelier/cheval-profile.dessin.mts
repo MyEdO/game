@@ -8,7 +8,7 @@
  * registre `quadruped/harnais/`) : un cheval de labour n'est pas sellé, un destrier l'est.
  * C'est la SOURCE de l'art ; `chevalCompile.ts` en est la sortie.
  *
- *   npx tsx scripts/rig/compile-dessin-quad.mts cheval     (--check = porte)
+ *   npx tsx scripts/rig/compile-dessin-quad.mts cheval     (--check : quad-harnais.test.ts)
  *
  * REPÈRES DU SQUELETTE RÉEL (cheval, profil, repos — lus sur `resolveQuadFromProps`) :
  *   tronc (56, 68.8)  croupe (26.6, 66.8)  garrot/encolure (85.4, 56.8)  tête/nuque (111.1, 35.2)

@@ -119,7 +119,7 @@ const cadreAffine = (rot: Rot): StageFrame =>
 
 function écran(frame: StageFrame): JSX.Element {
   return (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}

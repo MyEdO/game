@@ -23,10 +23,11 @@ import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  MIN_FRAGMENT, aligner, cellRefFor, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse, unitesDuBloc,
-  unitesDuTexte,
+  MIN_FRAGMENT, aligner, cellRefFor, estDeContenu, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse,
+  unitesDuBloc, unitesDuTexte,
 } from '../../src/data/source/decoupe.ts'
 import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
+import { lieuxDe } from './lieux.mjs'
 import { sigleDe } from '../raw/_lib.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
@@ -80,6 +81,16 @@ export function verifier(chapitre, ref, unites) {
   return aligner(unites, adresse.unites)?.ajoute.length === 0 ? undefined : 'texte re-résolu != desc'
 }
 
+/** Raison d'un ECHEC sans ORPHELINE (la première unité de contenu de la desc qui ne s'aligne dans aucun
+ *  bloc du livre) ni LIEU (`lieuxDe`) : chaque unité s'aligne dans un bloc, la desc entière dans aucun —
+ *  ou elle est sous `MIN_FRAGMENT`, plancher de « sous-bloc ». */
+export const PRESENTE_AU_LIVRE = 'présente au livre, alignement refusé'
+
+/** Raison d'un ECHEC dont la desc a un LIEU au livre (`lieuxDe`) de `n` blocs, que les chercheurs ne
+ *  proposent pas (ils ne proposent que des égalités de chaîne brute, #2253). */
+export const contenueNonProposee = (n) =>
+  `contenue dans ${n === 1 ? 'un bloc' : `une suite de ${n} blocs`}, non proposée`
+
 /** Le bloc `b` de la section `s` contient-il la desc comme PARTIE STRICTE (`aligner`) ? */
 const partieStricteDuBloc = (s, b, unites) => (aligner(unites, unitesDuBloc(s, b))?.ajoute.length ?? 0) > 0
 
@@ -95,7 +106,7 @@ export function judge(entry) {
     return { verdict: 'SANS-SOURCE', reason: book ? `livre sans dir: ${book}` : 'source.book absent' }
   }
   const unites = unitesDuTexte(typeof entry.desc === 'string' ? entry.desc : '')
-  if (!unites.length) return { verdict: 'ECHEC', reason: 'desc-vide' }
+  if (!unites.some(estDeContenu)) return { verdict: 'ECHEC', reason: 'desc-vide' }
   const chapitres = chapitresDuLivre(book)
   const texte = chaineDe(unites)
 
@@ -141,11 +152,12 @@ export function judge(entry) {
 
   const sub = texte.length >= MIN_FRAGMENT && chapitres.some(({ chapitre }) =>
     chapitre.sections.some((s) => s.blocks.some((_, b) => partieStricteDuBloc(s, b, unites))))
-  const orpheline = unites.find((u) => !chapitres.some(({ chapitre }) => findRuns(chapitre, u.norm)))
-  return {
-    verdict: 'ECHEC',
-    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${coupeAuMot(orpheline?.norm ?? texte, 70)} »`,
-  }
+  if (sub) return { verdict: 'ECHEC', reason: 'sous-bloc (desc = fragment d\'un bloc)' }
+  const orpheline = unites.filter(estDeContenu).find((u) => !chapitres.some(({ chapitre }) =>
+    chapitre.sections.some((s) => s.blocks.some((_, b) => aligner([u], unitesDuBloc(s, b)) !== null))))
+  if (orpheline) return { verdict: 'ECHEC', reason: `introuvable: « ${coupeAuMot(orpheline.norm, 70)} »` }
+  const [lieu] = texte.length >= MIN_FRAGMENT ? lieuxDe(book, entry.desc) : []
+  return { verdict: 'ECHEC', reason: lieu ? contenueNonProposee(lieu.blocs) : PRESENTE_AU_LIVRE }
 }
 
 /** Rapport de dérivation d'un dataset, sur la sortie standard (JSON) et son résumé sur l'erreur. */
@@ -183,6 +195,6 @@ function main() {
   )
 }
 
-// Le module est IMPORTABLE (la migration du pilote monte `judge`) : le rapport ne part que si ce
-// fichier est le point d'entrée du process — patron de `scripts/migrations/replay.mjs`.
+// Le module est IMPORTABLE (les tests montent `judge`) : le rapport ne part que si ce fichier est le
+// point d'entrée du process — patron de `scripts/migrations/replay.mjs`.
 if (import.meta.main) main()

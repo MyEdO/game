@@ -31,7 +31,7 @@ Les bêtes (plans non équipables) ne s'assemblent pas pièce à pièce : chaque
 comme UNE illustration continue, en coordonnées monde, dans
 `src/gameIso/rig/quadruped/atelier/<espèce>-<vue>.dessin.mts`, `<vue>` parmi `front`, `profile`,
 `back` (étalon : `boeuf-profile`), puis compilée par os — coordonnées cuites dans le repère local de
-chaque os — par `scripts/rig/compile-dessin-quad.mts` (`--check` en porte de commit). La sortie,
+chaque os — par `scripts/rig/compile-dessin-quad.mts` (`--check` joué par `quad-harnais.test.ts`). La sortie,
 `<espèce>Compile.ts`, est une table keyée par vue des vues dessinées ; elle alimente le canal
 `QuadProps.viewArt`, et une vue non dessinée se compose au socle. Arbitrage utilisateur
 du 2026-08-06 (validation de l'étalon bovin — verbatim consigné au ticket #1082). L'assemblage par pièces reste aux **bipèdes équipables** (qui doivent recevoir

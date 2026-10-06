@@ -17,9 +17,9 @@ import { codeSeul } from '../guards/lib/commentPoison.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
-import { GitIndisponible, MARQUE_FEINTE } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, MARQUE_FEINTE, classer, depotDe, pousser, refusDeGit, sortieDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { envGitFeint, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
 import {
   CODE_ARRET_MOTEUR,
@@ -31,6 +31,7 @@ import {
   borneDeVeilleMin,
   codeDeVerdict,
   commandeDeVeille,
+  cheminsDeJournal,
   entameDuRun,
   envDeLancement,
   idDeRun,
@@ -75,8 +76,6 @@ import {
   prDeLaBranche,
   prDeRest,
   refusDeBranche,
-  refusDeGit,
-  sortieDe,
   synchroniserAgents,
   titreDeCommit,
   titreDePr,
@@ -428,10 +427,61 @@ test('git INDISPONIBLE avant le train (racine, branche, tête) : une ligne final
     encoding: 'utf8', env: { ...process.env, ...envGitFeint([{ si: [], status: 128, stderr: 'fatal: panne simulée\n' }]), WFRP_PUBLIER_ENFANT: '' },
   })
   assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
-  const lignes = vu.stderr.split('\n')
-  assert.equal(lignes.at(-2), 'PUBLICATION: rouge moteur — git indisponible : fatal: panne simulée', vu.stderr)
-  assert.deepEqual(lignes.slice(0, -2).filter((l) => !l.startsWith(MARQUE_FEINTE)), [], `hors marques de feinte, la ligne finale seule : ${vu.stderr}`)
+  const lignes = vu.stderr.split('\n').filter(Boolean)
+  assert.equal(lignes.at(-1), 'PUBLICATION: rouge moteur — refus (status 128) — fatal: panne simulée', vu.stderr)
+  assert.deepEqual(lignes.filter((l) => !l.startsWith(MARQUE_FEINTE)), [
+    'refus (status 128) — fatal: panne simulée',
+    'PUBLICATION: rouge moteur — refus (status 128) — fatal: panne simulée',
+  ])
   assert.ok(lignes.length > 2, `la panne est FEINTE, et se marque : ${vu.stderr}`)
+})
+
+test('#2285 avant train : processus réel, diagnostic complet puis ligne finale de présentation', () => {
+  const stderr = `${'notes avant train\n'.repeat(40)}cause concrète tardive`
+  const stdout = 'notes stdout distinctes'
+  const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
+    encoding: 'utf8', env: { ...process.env, ...envGitFeint([{ si: [], status: 19, stdout, stderr }]), WFRP_PUBLIER_ENFANT: '' },
+  })
+  assert.equal(vu.status, CODE_ARRET_MOTEUR)
+  assert.ok(vu.stderr.includes(stderr), vu.stderr)
+  assert.ok(vu.stderr.includes(stdout), vu.stderr)
+  assert.match(vu.stderr, /refus \(status 19\)/)
+  assert.equal(vu.stderr.trimEnd().split('\n').at(-1), 'PUBLICATION: rouge moteur — refus (status 19) — notes avant train')
+})
+
+test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
+  const branche = 'chantier/2285-consommateurs-' + process.pid + '-' + Date.now()
+  const chemins = cheminsDeJournal(RACINE, branche)
+  assert.equal(existsSync(chemins.json), false)
+  assert.equal(existsSync(chemins.log), false)
+  const stderr = 'note moteur\n'.repeat(45) + 'cause moteur tardive\n'
+  const stdout = 'stdout moteur distinct'
+  assert.ok(stderr.indexOf('cause moteur tardive') > 400)
+  assert.ok(stderr.endsWith('\n'))
+  try {
+    const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url))], {
+      encoding: 'utf8', env: { ...process.env, ...envGitFeint([
+        { si: ['--show-toplevel'], stdout: RACINE, status: 0 },
+        { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
+        { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
+        { si: ['rev-parse', '--git-path', 'rebase-merge'], stdout, stderr, status: 29 },
+        { si: [], status: 97, stderr: 'GARDE consommateurs : commande interdite\n' },
+      ]), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
+    })
+    assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
+    const journal = JSON.parse(readFileSync(chemins.json, 'utf8'))
+    const log = readFileSync(chemins.log, 'utf8')
+    for (const texte of [journal.verdict.raison, log]) {
+      assert.ok(texte.includes(stderr), texte)
+      assert.ok(texte.includes(stdout), texte)
+      assert.match(texte, /refus \(status 29\)/)
+      assert.equal(texte.includes('GARDE consommateurs'), false, texte)
+    }
+    assert.equal(log.trimEnd().split('\n').at(-1), 'PUBLICATION: rouge moteur — refus (status 29) — note moteur')
+  } finally {
+    rmSync(chemins.json, { force: true })
+    rmSync(chemins.log, { force: true })
+  }
 })
 
 test('`ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index', () => {
@@ -598,8 +648,6 @@ test('modeDuLog : l’ENFANT de `--detache` n’ouvre JAMAIS en troncature — l
   assert.equal(modeDuLog({ reprendre: true, enfant: true }), 'a')
   assert.equal(modeDuLog(), 'w')
 })
-
-// ── sonde du verrou ───────────────────────────────────────────────────────────────────
 
 // ── rotation du log ───────────────────────────────────────────────────────────────────
 
@@ -770,11 +818,11 @@ describe('synchroniserAgents', () => {
     assert.match(ctx.dits.join(''), /agents:check` rendu 1 : `npm run agents:sync`/)
   })
 
-  test('`agents:sync` ROUGE : refus qui NOMME le script, son code et ce que le pre-commit ferait', () => {
+  test('`agents:sync` ROUGE : refus qui NOMME le script, son code et ce que la CI ferait', () => {
     const ctx = ctxFactice({ 'agents:check': 1, 'agents:sync': 7 })
     const vu = synchroniserAgents(ctx)
     assert.equal(vu.ok, false)
-    assert.equal(vu.raison, '`npm run agents:sync` a rendu 7 : le pre-commit jouerait `agents:check` et refuserait le commit')
+    assert.equal(vu.raison, '`npm run agents:sync` a rendu 7 : la gate `agents:check` de la CI refuserait la plage')
     assert.deepEqual(ctx.joues, ['agents:check', 'agents:sync'])
   })
 })
@@ -1015,18 +1063,72 @@ test('push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui
   assert.match(vu.dit, /poussé sur chantier\/1776 — la CI de la branche juge/)
 })
 
-test('push-branche : un refus de git est ROUGE et porte ce que git a imprimé', () => {
+test('#2285 push-branche : écrivain injecté, diagnostic complet après classification', () => {
+  const stderr = `${'note pré-push\n'.repeat(60)}cause concrète sans marque de verdict`
+  const stdout = 'stdout distinct\nseconde note'
+  const commandes = []
+  const depot = depotDe(tmpdir(), { spawn: (_git, args) => {
+    commandes.push(args)
+    return { status: 17, stdout, stderr }
+  } })
   const ctx = {
     racine: RACINE,
     branche: 'chantier/1776',
     tete: 'ttttttttt',
     journaliser: () => {},
-    pousser: () => ({ disponible: true, valeur: { status: 1, stderr: '! [rejected] stale info', stdout: '' } }),
+    pousser: (geste) => pousser(depot, geste),
   }
   const vu = etapeBranche.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /push de la branche REFUSÉ/)
-  assert.match(vu.raison, /stale info/)
+  assert.ok(vu.raison.includes(stderr), vu.raison)
+  assert.ok(vu.raison.includes(stdout), vu.raison)
+  assert.match(vu.raison, /status 17/)
+  assert.deepEqual(commandes, [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/chantier/1776']])
+})
+
+test('#2285 rendu : conserve toutes les notes, les deux flux et la distinction des échecs', () => {
+  const stderr = `première note\n${'suite\n'.repeat(120)}cause finale`
+  const stdout = 'notes stdout'
+  const refus = classer({ status: 9, stdout, stderr })
+  assert.equal(sortieDe(refus), `${stderr}\n${stdout}`)
+  assert.match(refusDeGit(refus), /refus.*status 9/)
+  assert.ok(refusDeGit(refus).includes(stderr))
+  const tue = classer({ status: null, signal: 'SIGTERM', stdout: 'avant', stderr: '' })
+  assert.match(refusDeGit(tue), /interruption.*SIGTERM/)
+  const lancement = classer({ status: null, error: new Error('ENOENT'), stdout: '', stderr: '' })
+  assert.match(refusDeGit(lancement), /lancement.*ENOENT/)
+})
+
+test('#2285 tronc : le fetch conserve le diagnostic classé sans lecture supplémentaire', () => {
+  const stderr = `${'note fetch\n'.repeat(65)}cause distante`
+  const stdout = 'sortie distante'
+  const vu = sousGitFeint([{ si: ['fetch'], status: 23, stdout, stderr }], () => {
+    const ctx = contexteDe({ racine: tmpdir(), branche: 'chantier/2285', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    return ctx.tronc()
+  })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'refus')
+  assert.equal(vu.raison, stderr)
+  assert.deepEqual(vu.diagnostic, { status: 23, stdout, stderr })
+})
+
+test('#2285 tronc : fetch muet nonzero refuse avant le SHA, succès avec warning le lit', () => {
+  const contexte = () => contexteDe({ racine: tmpdir(), branche: 'chantier/2285', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  const refuse = sousGitFeint([
+    { si: ['fetch'], status: 31, stdout: '', stderr: '' },
+    { si: [], status: 128, stderr: 'lecture SHA interdite après fetch refusé' },
+  ], () => contexte().tronc())
+  assert.equal(refuse.disponible, false)
+  assert.equal(refuse.issue, 'refus')
+  assert.deepEqual(refuse.diagnostic, { status: 31, stdout: '', stderr: '' })
+  assert.match(refuse.raison, /status 31/)
+  const sha = 'a'.repeat(40)
+  const accepte = sousGitFeint([
+    { si: ['fetch'], status: 0, stdout: '', stderr: 'warning' },
+    { si: ['rev-parse'], status: 0, stdout: `${sha}\n` },
+  ], () => contexte().tronc())
+  assert.deepEqual(accepte, { disponible: true, sha })
 })
 
 // ── PR : lecture REST réduite, choix de la PR, état ──────────────────────────────────────────
@@ -1289,6 +1391,62 @@ test('preflight : une branche hors des filtres `push.branches` est ROUGE avant t
   assert.equal(preflight.jouer(ctxDe(new Error('ci.yml : filtre illisible')), journalVide('claude/x')).raison, 'ci.yml : filtre illisible')
 })
 
+
+test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le verdict', () => {
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  const stderr = `${'note fetch\n'.repeat(50)}fatal: cause tardive fetch\n`
+  const stdout = 'stdout fetch distinct\n'
+  const vuFetch = classer({ status: 128, stdout, stderr })
+  const ctx = {
+    branche: 'chantier/x',
+    filtresDePush: ['chantier/**'],
+    generators: GENERATORS,
+    tronc: () => vuFetch,
+    questions: {
+      rebaseEntame: () => null,
+      brancheDe: () => 'chantier/x',
+      cheminsSales: () => [],
+      origineDe: () => `https://github.com/${DEPOT}.git`,
+      verdictDesFusions: () => assert.fail('aucun verdict après fetch refusé'),
+      combienDe: () => assert.fail('aucune lecture après fetch refusé'),
+    },
+  }
+  assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), {
+    ok: false,
+    raison: `origin non consultable : refus (status 128) — ${stderr}\n${stdout}`,
+  })
+})
+
+test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', () => {
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  const appels = []
+  const base = 'b'.repeat(40)
+  const ctx = {
+    racine: RACINE,
+    branche: 'chantier/x',
+    tete: 'a'.repeat(40),
+    filtresDePush: ['chantier/**'],
+    generators: GENERATORS,
+    tronc: () => { appels.push('fetch'); return { disponible: true } },
+    questions: {
+      rebaseEntame: () => null,
+      brancheDe: () => 'chantier/x',
+      cheminsSales: () => [],
+      origineDe: () => `https://github.com/${DEPOT}.git`,
+      verdictDesFusions: () => { appels.push('verdict'); return { ok: true } },
+      combienDe: () => { appels.push('combien'); return 1 },
+      baseAuTronc: () => { appels.push('base'); return base },
+    },
+  }
+  const journal = journalVide('chantier/x')
+  const vu = preflight.jouer(ctx, journal)
+  assert.equal(vu.ok, true)
+  assert.deepEqual(vu.detail, { derivesSales: [], base })
+  assert.equal(journal.base, base)
+  assert.equal(journal.tete, ctx.tete)
+  assert.deepEqual(appels, ['fetch', 'verdict', 'combien', 'base'])
+})
+
 test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, avec le refus de la porte de publication (#2328)', () => {
   const preflight = ETAPES.find((e) => e.nom === 'preflight')
   const ctx = {
@@ -1344,17 +1502,22 @@ test(`file : une ÉJECTION au-delà de la borne (${BORNE_EJECTIONS}) est rouge, 
 })
 
 test('file : une fusion en CONFLIT est ABANDONNÉE et nomme ses fichiers — la main à l’humain, puis `--reprendre`', () => {
-  const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
+  const stdout = `${'note stdout\n'.repeat(50)}cause stdout tardive\n`
+  const stderr = `${'note stderr\n'.repeat(50)}cause stderr tardive\n`
+  const refus = classer({ status: 17, stdout, stderr })
   const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits: ['src/a.ts'] })
   const journal = journalPush()
   const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /fusion de origin\/main REFUSÉE \(CONFLIT, abandonnée\) — fichiers :\n {4}src\/a\.ts/)
+  assert.ok(vu.raison.includes(stdout))
+  assert.ok(vu.raison.includes(stderr))
+  assert.match(vu.raison, /refus \(status 17\)/)
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'abandonner'])
   assert.equal(journal.ejections, 0)
 })
 
-// FOSSILE #2203.
+// #2203
 test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT en les retirant de l’index, puis reprend à `docs`', () => {
   const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
   const conflits = ['docs/systemes.md', 'src/audio/_registry.generated.ts']
@@ -1368,12 +1531,20 @@ test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT 
   assert.equal(journal.ejections, 1)
 })
 
-// FOSSILE #2203.
+// #2203
 test('file : un conflit MIXTE (une cible pure ET un manuscrit) n’est jamais conclu — la fusion est abandonnée', () => {
-  const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
+  const stdout = `${'note stdout\n'.repeat(50)}cause stdout mixte tardive\n`
+  const stderr = `${'note stderr\n'.repeat(50)}cause stderr mixte tardive\n`
+  const refus = classer({ status: 17, stdout, stderr })
   const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits: ['docs/systemes.md', 'src/a.ts'] })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
+  assert.ok(vu.raison.includes(stdout))
+  assert.ok(vu.raison.includes(stderr))
+  assert.match(vu.raison, /refus \(status 17\)/)
+  assert.ok(vu.raison.includes('docs/systemes.md'))
+  assert.ok(vu.raison.includes('src/a.ts'))
+  assert.match(vu.raison, /CONFLIT, abandonnée/)
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'abandonner'])
 })
 

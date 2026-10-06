@@ -13,6 +13,8 @@ import {
   statutDe, statutLePlusVivant, synchroniser, ticketsCites, ticketsDe, valeursDeLigne,
 } from './board.mjs'
 import { GESTES_DE_L_INVENTAIRE, inventaire } from './worktrees.mjs'
+import { sousGitFeint } from '../guards/lib/depotGabarit.mjs'
+import { branchesDe } from '../guards/lib/gitPorte.mjs'
 
 const MS_JOUR = 24 * 60 * 60 * 1000
 const MAINTENANT = new Date('2026-09-15T12:00:00Z')
@@ -392,7 +394,7 @@ const fait = (valeur) => ({ disponible: true, valeur })
  * Les QUESTIONS du board, factices : chaque réponse est celle d'une question de l'hôte
  * (`GESTES_DU_BOARD`), jamais une sortie de git. `appels` journalise les questions posées.
  */
-function gestesFactices({ branches = [], divergence = () => ({ avance: 0, retard: 0 }), journal = () => [], fetchOrigin = () => fait(''), appels = [] } = {}) {
+function gestesFactices({ branches = [], divergence = () => ({ avance: 0, retard: 0 }), journal = () => [], fetchOrigin = () => fait({ status: 0, stdout: '', stderr: '' }), appels = [] } = {}) {
   return {
     arbrePrincipal: () => fait('/dep'),
     fetchOrigin,
@@ -408,6 +410,28 @@ function gestesFactices({ branches = [], divergence = () => ({ avance: 0, retard
   }
 }
 const branche = (nom, dernierCommitISO) => ({ nom, dernierCommitISO, sha: 'aaaaaaa' })
+
+const stderr2285 = `${'ligne diagnostique longue\n'.repeat(45)}CAUSE TARDIVE 2285`
+const panne2285 = { disponible: false, issue: 'refus', raison: 'raison distincte', diagnostic: { status: 37, stdout: 'stdout distinct 2285', stderr: stderr2285 } }
+const detail2285 = `refus (status 37) — raison distincte\n${stderr2285}\nstdout distinct 2285`
+
+test('#2285 board racine : diagnostic Git intégral', () => {
+  const vu = mesurer({ gestes: { ...gestesFactices(), arbrePrincipal: () => panne2285 } })
+  assert.equal(vu.refus, detail2285)
+})
+test('#2285 board fetch : diagnostic Git intégral', () => {
+  const vu = mesurer({ gestes: gestesFactices({ fetchOrigin: () => panne2285 }) })
+  assert.ok(vu.refus.includes(`origin non consultable (${detail2285})`), vu.refus)
+})
+test('#2285 board fetch : status non nul muet est refusé', () => {
+  const vu = mesurer({ gestes: gestesFactices({ fetchOrigin: () => fait({ status: 47, stdout: '', stderr: '' }) }), inv: () => ({ ok: true, worktrees: [] }), issues: () => ({ issues: new Map(), anomalies: [] }) })
+  assert.equal(vu.ok, false)
+  assert.ok(vu.refus.includes("refus (status 47) — git n'a rien imprimé"), vu.refus)
+})
+test('#2285 board callback : diagnostic Git intégral', () => {
+  const vu = sousGitFeint([{ si: ['for-each-ref'], status: 37, stdout: 'stdout distinct 2285', stderr: stderr2285 }], () => mesurer({ sansFetch: true, gestes: { ...gestesFactices(), branchesDe } }))
+  assert.equal(vu.refus, `git for-each-ref illisible : refus (status 37) — ${stderr2285}\nstdout distinct 2285`)
+})
 
 test('la MESURE reçoit sa BASE en paramètre : `main` local n’est jamais la base', () => {
   const appels = []
@@ -461,14 +485,14 @@ test('la mesure REFUSE nommément quand origin n’est pas consultable', () => {
     gestes: gestesFactices({ fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) }),
   })
   assert.equal(vu.ok, false)
-  assert.match(vu.refus, /origin non consultable \(réseau coupé\)/)
+  assert.match(vu.refus, /origin non consultable \(refus \(status \?\) — réseau coupé\)/)
   assert.match(vu.refus, /`npm run ops:board -- --liste --sans-fetch` mesure sur les refs déjà là/)
 })
 
 test('UNE mesure = UN fetch, ZÉRO sous sansFetch : l’inventaire est toujours appelé sous `sansFetch: true`', () => {
   for (const [sansFetch, attendus] of [[false, 1], [true, 0]]) {
     let fetchs = 0
-    const fetchOrigin = () => { fetchs += 1; return fait('') }
+    const fetchOrigin = () => { fetchs += 1; return fait({ status: 0, stdout: '', stderr: '' }) }
     const demandes = []
     const inv = (params) => {
       demandes.push(params.sansFetch)

@@ -26,6 +26,8 @@
     "livraison:plage": "node scripts/guards/livraison-plage.mjs",
     "test:agents": "node scripts/test/node-tests.mjs test:agents",
     "test:hooks": "node scripts/test/node-tests.mjs test:hooks",
+    "banc:pre-commit": "node scripts/test/banc-pre-commit.mjs",
+    "test:lies": "node scripts/test/lies.mjs",
     "guard:budget-contexte": "node scripts/guards/budget-contexte.mjs",
     "test:docs": "node scripts/test/node-tests.mjs test:docs",
     "test:recette": "node scripts/test/node-tests.mjs test:recette",

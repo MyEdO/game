@@ -4,7 +4,7 @@
 //    'hors-système' }` (`raison` facultative, ignorée), exclusive dans sa section.
 //  - ADRESSE DÉRIVÉE de la preuve, jamais lue : l'UNIQUE bloc de la section où la preuve s'aligne
 //    (`aligner`) entre deux BORNES DE MOT, adressé par `fragmentBlocs` et re-résolu par `resoudreAdresse`.
-//    La borne se juge sur la première occurrence, celle que rend le témoin d'`aligner`.
+//    La borne se juge sur l'occurrence que rend le témoin d'`aligner` (la plus étendue, puis la plus tôt).
 //  - Une preuve NOMME un terme de sa section (`nommeUnDeSesTermes`) dès que le texte de la section en
 //    nomme un.
 //  - Refus NOMMÉS (`REFUS`), chacun avec sa ligne fautive.
@@ -43,8 +43,11 @@ const DE_MOT = /[\p{L}\p{N}]/u
 /** Mots d'un texte au sens de `normText` : ses suites de caractères de mot, ponctuation écartée. */
 const mots = (s) => normText(s).match(/[\p{L}\p{N}]+/gu) ?? []
 
-/** L'alignement commence-t-il et finit-il à une borne de mot de l'adresse (`couvertes` d'`aligner`) ? */
-function entreBornesDeMot(unites, { couvertes: { premiere, derniere } }) {
+/** L'alignement LOCALISE-t-il la preuve (`couvertes` d'`aligner`, nul sur un habillage seul), et commence-t-il
+ *  et finit-il à une borne de mot de l'adresse ? */
+function entreBornesDeMot(unites, { couvertes }) {
+  if (!couvertes) return false
+  const { premiere, derniere } = couvertes
   const avant = unites[premiere.unite].norm[premiere.coupe - 1]
   const apres = unites[derniere.unite].norm[derniere.coupe]
   return !(avant && DE_MOT.test(avant)) && !(apres && DE_MOT.test(apres))

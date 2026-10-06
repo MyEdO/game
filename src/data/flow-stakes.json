@@ -336,6 +336,20 @@
     }
   },
   {
+    "id": "perception-detect",
+    "type": "flow-stakes",
+    "label": "Détection",
+    "template": "Réussi : un détail dissimulé des lieux est remarqué. Une seule tentative.",
+    "form": "descripteur",
+    "rule": "perception",
+    "ruleCategory": "skills",
+    "source": {
+      "book": "livre-de-base",
+      "page": 127,
+      "note": "LDB 09 l.399"
+    }
+  },
+  {
     "id": "heal-wounds",
     "type": "flow-stakes",
     "label": "Soin de Blessures",

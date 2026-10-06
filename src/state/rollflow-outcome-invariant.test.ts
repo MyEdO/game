@@ -123,7 +123,7 @@ const FIXTURES: Record<string, Fix> = {
   maneuver: { make: (win) => ({ battle: arena(), pendingManeuver: { attackerId: 'A', kind: 'souffle', result: win ? WIN : LOSE } }) },
   // ── Course / Frénésie / Approche / Bénédiction (Test binaire) ──
   run: { make: (win) => ({ battle: arena(), pendingRun: { combatantId: 'A', result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, bonusCases: win ? 1 : 0 } } }) },
-  fall: { make: (win) => ({ battle: arena(), pendingFall: { combatantId: 'A', to: { x: 0, y: 0 }, metres: 4, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } } }) },
+  fall: { pid: 'A', make: (win) => ({ battle: arena(), pendingFall: { to: { x: 0, y: 0 }, metres: 4, initiateurId: 'A', participants: [{ id: 'A', interactive: true, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } }] } }) },
   frenzy: { make: (win) => ({ battle: arena(), pendingFrenzy: { combatantId: 'A', result: win ? WIN : LOSE } }) },
   approach: { make: (win) => ({ battle: arena(), pendingApproach: { combatantId: 'A', result: win ? WIN : LOSE } }) },
   ward: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },

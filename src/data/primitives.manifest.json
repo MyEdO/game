@@ -453,20 +453,29 @@
   {
     "id": "texteDUneAdresse",
     "type": "primitives.manifest",
-    "label": "aligner/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte/filDuChapitre/positionDuBloc/couvertureDe",
+    "label": "aligner/estDeContenu/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte/filDuChapitre/positionDuBloc/couvertureDe",
     "fichier": "src/data/source/decoupe.ts",
-    "concept": "décideur de texte d'une adresse de prose : filDuChapitre est le fil d'un chapitre (le titre de chaque section en gras à son ouverture, puis ses blocs) et positionDuBloc la position d'un bloc sur ce fil ; unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment (un intervalle du fil, titres intermédiaires compris), d'une adresse (la tête d'un fragment qui en suit un autre précédée d'une ligne vide) ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées) ; couvertureDe dit les positions qu'un fragment cite (et la case d'une cellule), que lisent le verrou de chevauchement et l'éditeur ; unitesDuTexte prépare un texte libre (une ligne de titre markdown traduite en titre du fil), aligner décide texte libre contre rendu (égalité = ajoute vide, partie stricte sinon, témoin nommé), memeTexte compare une clé ou un rendu à un rendu",
+    "concept": "décideur de texte d'une adresse de prose : filDuChapitre est le fil d'un chapitre (le titre de chaque section en gras à son ouverture, puis ses blocs) et positionDuBloc la position d'un bloc sur ce fil ; unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment (un intervalle du fil, titres intermédiaires compris), d'une adresse (la tête d'un fragment qui en suit un autre précédée d'une ligne vide) ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées, la bannière absorbée et la légende d'une table marquées habillage) ; couvertureDe dit les positions qu'un fragment cite (et la case d'une cellule), que lisent le verrou de chevauchement et l'éditeur ; unitesDuTexte prépare un texte libre (un paragraphe découpé comme un bloc, une ligne de titre markdown traduite en titre du fil), aligner décide texte libre contre rendu sur le CONTENU des deux côtés (estDeContenu : la séparatrice de table est de la syntaxe), un habillage consommé entier ou sauté (égalité = ajoute vide, partie stricte sinon, témoin nommé, localisation jamais bornée par un habillage), memeTexte compare une clé ou un rendu à un rendu",
     "perimetre": "toute comparaison de deux textes au sens de normText : judge et verifier (scripts/source/derive-decoupes.mjs), résolution de cellule, éditeur d'adresse",
-    "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts"
+    "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts ; src/data/source/aligner-oracle.test.ts"
   },
   {
     "id": "constructeursDAdresse",
     "type": "primitives.manifest",
     "label": "fragmentBlocs/intervalleDe/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
     "fichier": "src/data/source/decoupe.ts",
-    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes et section de fin d'un intervalle ; section, clé de ligne, colonne, table), intervalleDe l'intervalle du fil d'un bloc de départ à un bloc de fin, tous deux sous la forme canonique (une fin dans la section de départ ne s'écrit pas), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
+    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes et section de fin d'un intervalle ; section, clé de ligne, colonne, table), intervalleDe l'intervalle du fil d'un bloc de départ à un bloc de fin, tous deux sous la forme canonique (une fin dans la section de départ ne s'écrit pas), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table — le tableau entier —, et, sa fin posée, l'intervalle qu'elles ouvrent (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
     "perimetre": "toute construction d'un fragment ou d'une adresse : éditeur d'adresse, renvois, chercheurs de judge, CLI de découpe, relocaliseur, migrations",
     "verrou": "src/construction-de-fragment-guard.test.ts ; src/data/source/decoupe.test.ts"
+  },
+  {
+    "id": "lieuxDUnTexte",
+    "type": "primitives.manifest",
+    "label": "lieuxDe/plusPetiteUnite/prouver",
+    "fichier": "scripts/source/lieux.mjs",
+    "concept": "lieux d'un texte dans son livre par la relation de texte (aligner) : les suites minimales de blocs contigus au fil qui le contiennent, un bloc seul compris ; plusPetiteUnite est l'adresse la plus petite qui contient un lieu (le tableau entier par adresseDe quand une table l'ouvre) ; prouver établit une adresse figée (résolution, contenance et ajoute consigné, unicité du lieu, plus petite unité)",
+    "perimetre": "raison d'un ECHEC de judge (scripts/source/derive-decoupes.mjs) et migrations qui adressent une prose par table figée (scripts/migrations/lib/adressesFigees.mjs)",
+    "verrou": "src/data/regles-adresses-prouvees.test.ts ; src/data/source/aligner-oracle.test.ts"
   },
   {
     "id": "menuCard",

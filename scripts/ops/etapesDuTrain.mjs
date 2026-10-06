@@ -13,7 +13,7 @@
 // lu hors de ses inertes), évaluation ; `import.meta` est inerte. Résidu que le test ne garde pas :
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
-import { TRONC, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -137,8 +137,7 @@ export function etatDeLaPr(pr, tete) {
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
  * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
  * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les sorties de `npm run agents:sync` (le pre-commit joue `agents:check` à
- * chaque commit). PURE.
+ * commités (#2203) —, et les sorties de `npm run agents:sync` (`synchroniserAgents`). PURE.
  */
 export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
@@ -200,26 +199,6 @@ export const finDeSortie = (texte, max = 400) => {
   if (refus.length) return refus.join('\n').slice(-max)
   return t.slice(-max)
 }
-
-/**
- * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
- * indisponibilité, puis `stderr`, puis `stdout` — chaque morceau retenu sur son CONTENU, jamais par
- * un repli `??` (une chaîne vide n'est pas nullish : `classer` rend `{status, stdout, stderr:''}`
- * quand git n'écrit que sur stdout). PURE.
- * @param {object} vu union git @param {number} [max] borne de `finDeSortie`
- * @returns {string} '' quand git n'a rien imprimé
- */
-export const sortieDe = (vu, max = 400) =>
-  finDeSortie(
-    [vu?.raison, vu?.valeur?.stderr, vu?.valeur?.stdout]
-      .map((t) => String(t ?? '').trim())
-      .filter(Boolean)
-      .join('\n'),
-    max,
-  )
-
-/** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
-export const refusDeGit = (vu, max = 400) => sortieDe(vu, max) || `(status ${vu?.valeur?.status ?? '?'}) — git n'a rien imprimé`
 
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
 export const titreDeCommit = (message, max = 120) => {
@@ -287,7 +266,7 @@ export function attendre(ms) {
  * Remet les miroirs d'agents en phase AVANT le commit des dérivés, par la porte `ctx.npm`.
  * `agents:sync` se déclenche sur un `agents:check` ROUGE, jamais sur la saleté de `CLAUDE.md` : un
  * commit de la plage qui touche `.claude/skills/**` ou `.claude/credo.md` sans resynchroniser laisse
- * `agents:check` rouge au pre-commit, et le commit des docs échouerait sans nommer la cause.
+ * `agents:check` rouge, et la gate `agents:check` de la CI refuserait la plage sans nommer la cause.
  * @param {{npm: Function, journaliser: Function}} ctx
  * @returns {{ok: true} | {ok: false, raison: string}}
  */
@@ -297,7 +276,7 @@ export function synchroniserAgents(ctx) {
   ctx.journaliser(`[publier] docs — \`agents:check\` rendu ${verif.status} : \`npm run agents:sync\`\n`)
   const sync = ctx.npm('agents:sync')
   if (sync.status !== 0)
-    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : le pre-commit jouerait \`agents:check\` et refuserait le commit` }
+    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : la gate \`agents:check\` de la CI refuserait la plage` }
   return { ok: true }
 }
 
@@ -332,7 +311,7 @@ function causeDEjection(ctx, pr, tete) {
   const url = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
   const base = ctx.parentsDe(course.headSha).parents?.[0]
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${vuTronc.raison}` }
+  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${refusDeGit(vuTronc)}` }
   const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
     return { attendre: true, dit: `course de file ${verdict.etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
@@ -354,13 +333,13 @@ function reprendreApresEjection(ctx, journal, cause) {
   if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
     return { ok: false, raison: `${cause.raison} — éjectée une ${journal.ejections + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS}) : la cause n’est pas le tronc` }
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${vuTronc.raison}` }
+  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${refusDeGit(vuTronc)}` }
   const numeros = numerosDeLaPlage(ctx.questions)
   if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
   const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${TRONC.suivi} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
   const vu = ctx.fusionner({ message })
   if (!reussi(vu)) {
-    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    // #2203
     const conflits = ctx.questions.cheminsEnConflit()
     const pures = conflits.length > 0 && conflits.every((c) => estCiblePure(c, ctx.generators))
     const conclue = pures ? ctx.conclureFusionSansCiblesPures({ chemins: conflits, message }) : null
@@ -368,7 +347,7 @@ function reprendreApresEjection(ctx, journal, cause) {
       if (conflits.length) ctx.abandonnerFusion()
       return {
         ok: false,
-        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
+        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ''} : ${refusDeGit(vu)}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
       }
     }
     const code = ctx.docs('--code')
@@ -419,8 +398,8 @@ export const ETAPES = [
       const origine = questions.origineDe()
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
       const vuFetch = ctx.tronc()
-      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${vuFetch.raison}` }
-      // #2328 A3 : la résolution substantielle d'une fusion de la plage se juge avant la publication.
+      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuFetch)}` }
+      // #2328 A3
       const fusions = questions.verdictDesFusions()
       if (!fusions.ok) return { ok: false, raison: fusions.texte }
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
@@ -617,7 +596,7 @@ export const ETAPES = [
       const fusion = file.fusion
       if (!fusion) return { ok: false, raison: 'aucun commit de fusion au journal de l’étape `file`' }
       const vuTronc = ctx.tronc()
-      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${vuTronc.raison}` }
+      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuTronc)}` }
       // Méthode MERGE (scripts/ops/ruleset-main.mjs) : `fusion^1` = `main` d'avant, `fusion^2` = la tête
       // de la PR. La plage est celle de la branche, jamais le commit de fusion (« Merge pull request #N »).
       const base = ctx.questions.shaDe(`${fusion}^1`)

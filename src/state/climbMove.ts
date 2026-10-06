@@ -1,5 +1,5 @@
 import { Scene, Effect, WallSeg, heightAt, climbEdgeBetween } from './scene';
-import { type Flow, EMPTY_FLOW, flowFromEffects, testFlow } from './flow';
+import { type Flow, EMPTY_FLOW, flowFromEffects } from './flow';
 import type { Pt } from './path';
 import { surfaceClimbImpossible } from '../engine/movement';
 import { combatStakeRef } from '../data';
@@ -8,7 +8,7 @@ import { combatStakeRef } from '../data';
  * Traduit une ESCALADE d'arête (LDB 15 l.53-57) — `from` (case basse) vers `to` (case haute, adjacente en
  * cardinal) à travers une arête `WallSeg.climb` — en plan jouable, SANS flux dédié, sur le patron de
  * `jumpMove.planJump` :
- *  - `ladder` (échelle / surface facile, LDB 15 l.53) → franchissement d'office SANS Test (`free`) ;
+ *  - `ladder` (échelle / surface facile, LDB 15 l.55) → franchissement d'office SANS Test (`free`) ;
  *  - `surface` exigeant le Talent Grimpeur, absent → `impossible` (LDB 15 l.57) ;
  *  - `surface` → l'Effet `test` existant (Escalade, difficulté ÉDITÉE sur l'arête) dont l'ÉCHEC déclenche
  *    `fall` : le grimpeur retombe au pied (`to`=`from`), sur la hauteur RÉELLE du décor (relief).
@@ -17,7 +17,7 @@ import { combatStakeRef } from '../data';
 export type ClimbPlan =
   | { kind: 'free'; auto?: boolean }
   | { kind: 'impossible' }
-  | { kind: 'test'; flow: Flow };
+  | { kind: 'test'; flow: Extract<Flow, { kind: 'test' }> };
 
 /**
  * `autoSucceed` (Grimpant, LDB 85 l.160-162 : « réussit automatiquement tous ses Tests d'Escalade ») :
@@ -29,7 +29,7 @@ export function planClimb(scene: Scene, from: Pt, to: Pt, hasGrimpeur: boolean, 
   const seg: WallSeg | undefined = climbEdgeBetween(scene, from, to);
   if (!seg?.climb) return null; // arête non grimpable → le geste ne s'applique pas
   const c = seg.climb;
-  if (c.kind === 'ladder') return { kind: 'free' }; // LDB 15 l.53 : échelle = pas de Test, ralentit seulement
+  if (c.kind === 'ladder') return { kind: 'free' }; // LDB 15 l.55 : échelle = pas de Test, ralentit seulement
   if (autoSucceed) return { kind: 'free', auto: true };
   if (surfaceClimbImpossible(!!c.requiresGrimpeur, hasGrimpeur)) return { kind: 'impossible' };
   // Chute sur échec = vraie hauteur métrique (relief) entre les deux surfaces — retombe au pied (`from`).
@@ -41,10 +41,11 @@ export function planClimb(scene: Scene, from: Pt, to: Pt, hasGrimpeur: boolean, 
     : { type: 'fall', target: 'party', metres, to: foot };
   return {
     kind: 'test',
-    flow: testFlow(
-      { skill: { id: 'escalade' }, difficulty: c.difficulty ?? 'intermediaire', label: 'Escalade', stake: combatStakeRef('climbTest', { values: { metres } }) },
-      EMPTY_FLOW,
-      flowFromEffects([fall]),
-    ),
+    flow: {
+      kind: 'test',
+      test: { skill: { id: 'escalade' }, difficulty: c.difficulty ?? 'intermediaire', label: 'Escalade', stake: combatStakeRef('climbTest', { values: { metres } }) },
+      success: EMPTY_FLOW,
+      fail: flowFromEffects([fall]),
+    },
   };
 }

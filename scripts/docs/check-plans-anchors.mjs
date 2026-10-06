@@ -120,12 +120,6 @@ function basenamesMorts() {
 }
 
 const MORTS = basenamesMorts()
-// `--registre` : le registre SEUL, un nom par ligne, sans payer les deux scans (0,45 s contre 4,8 s
-// pour le run complet, mesurés) — le pre-commit s'en sert pour décider s'il ARME la garde.
-if (process.argv.includes('--registre')) {
-  for (const nom of [...MORTS].sort()) console.log(nom)
-  process.exit(0)
-}
 
 const STATS = process.argv.includes('--stats')
 const problems = [] // { file, line, kind, detail }

@@ -130,6 +130,6 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
  * qu'un plan doit interdire. Ce n'est donc pas une incohérence avec C6, c'est sa frontière.
  */
 export function wallTraitObjs(scene: Scene, dims: Dims, z: number, visible?: ReadonlySet<string>): StageObj[] {
-  const objs = wallLayerObjs(buildWalls(scene, visible, { activeZ: z, viewZ: z }), dims, 0, TRAIT_LOD);
+  const objs = wallLayerObjs(buildWalls(scene, 'jeu', visible, { activeZ: z, viewZ: z }), dims, 0, TRAIT_LOD);
   return sortByDepth(objs.filter((o) => o.vis !== false), solidTileTraitObjs(scene, dims, z, visible));
 }

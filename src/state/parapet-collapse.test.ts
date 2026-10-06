@@ -24,12 +24,30 @@ function sceneWithParapet(): Scene {
   return s;
 }
 
+/** Tablier à 2 m (couche 1) sous une passerelle à 4 m (couche 2) ; la herse tient l'arête à la couche 1. */
+function sceneAvecTablier(): Scene {
+  const s = structuredClone(testScene());
+  const n = s.dimensions.w * s.dimensions.h;
+  s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, z: 1, structure: 'porte-de-ville' }];
+  s.layers = [...s.layers,
+    { z: 1, tiles: new Array(n).fill('herbe') as Terrain[], height: new Array(n).fill(2) as number[] },
+    { z: 2, tiles: new Array(n).fill('herbe') as Terrain[], height: new Array(n).fill(4) as number[] }];
+  return s;
+}
+
+/** La passerelle au-dessus d'un gouffre : la case (2,2) n'a rien de marchable au rez. */
+function sceneSurGouffre(): Scene {
+  const s = sceneWithParapet();
+  s.layers[0].tiles[EDGE.y * s.dimensions.w + EDGE.x] = 'vide';
+  return s;
+}
+
 /** Lance un combat sur la scène à herse + passerelle, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
-function start() {
+function start(scene: Scene = sceneWithParapet()) {
   useGame.getState().seedRng(1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(sceneWithParapet());
+  useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();
@@ -92,5 +110,29 @@ describe('Effondrement de passerelle quand la structure portante est abattue', (
     const after = useGame.getState();
     expect(isWalkable(after.scene!, EDGE.x, EDGE.y, 0)).toBe(true); // case d'ancrage au SOL : libre
     expect(tileCollapsed(after.scene!, EDGE.x, EDGE.y, 0)).toBe(false);
+  });
+
+  it('atterrit sur le tablier inférieur de la scène APRÈS l’effondrement (la scène d’avant rendrait 0 m sur la passerelle)', () => {
+    const { S, foes } = start(sceneAvecTablier());
+    foes[0].pos = { x: EDGE.x, y: EDGE.y, z: 2 };
+    useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants] } });
+    seedBattleRng(7);
+    collapseStructure(useGame.getState, useGame.setState, S);
+    draineCascade(useGame.getState);
+    const b = useGame.getState().battle!;
+    expect(b.combatants.find((c) => c.id === foes[0].id)!.pos).toMatchObject({ x: EDGE.x, y: EDGE.y, z: 1 });
+    expect(JSON.stringify(b.log)).toMatch(/chute de 2 m/);
+  });
+
+  it('aucune surface sous la passerelle : cas NOMMÉ au journal, le corps gît à la couche de base', () => {
+    const { S, foes } = start(sceneSurGouffre());
+    foes[0].pos = { x: EDGE.x, y: EDGE.y, z: 1 };
+    useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants] } });
+    seedBattleRng(7);
+    collapseStructure(useGame.getState, useGame.setState, S);
+    draineCascade(useGame.getState);
+    const b = useGame.getState().battle!;
+    expect(b.combatants.find((c) => c.id === foes[0].id)!.pos?.z ?? 0).toBe(0);
+    expect(JSON.stringify(b.log)).toMatch(/rien de praticable dessous/);
   });
 });

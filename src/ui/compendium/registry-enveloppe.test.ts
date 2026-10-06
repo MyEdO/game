@@ -74,7 +74,9 @@ const CLES: Record<string, string> = {
   "miscastWrath": '3da49a322927f1e7',
   "nightStakes": '54a15ad6883f8c31',
   "voyageStakes": '9ce6e042bf3b10d8',
-  "flowStakes": '82659cc46dc0ab9c', // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré
+  // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
+  // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.
+  "flowStakes": '92b8c08cdf35308e',
   "combatStakes": '3118d89c497c1439',
   "races": '0728d04812275962',
   "careers": '128ef2031ede96cd',
@@ -211,7 +213,9 @@ const CLES: Record<string, string> = {
   // #1599 : +`maladie-conscience-determination-minutes` (LDB 20 l.170, durée maison).
   // #1612 : +5 règles `param` de l'Activité Mendier (heures par journée, discours, apparence, chance
   // d'être surpris, amende des gardes) — LDB 09 l.97/l.99 n'en chiffre aucune.
-  "reglesOptionnelles": '80f7173eecab7256',
+  // #700 (2026-10-05) : +4 règles maison — `porte-secrete-rayon-m`, `chute-tombant-non-debout`,
+  // `fenetre-suspension`, `fouille-piece-minutes`.
+  "reglesOptionnelles": 'd62556c15e62cf7f',
   "surincantation": '561218369ab9cdfd',
   "structureCriticals": '84e0df29c1ae4e21',
   "artilleryMisfire": 'aa3ad3238b5356f8',
@@ -405,7 +409,8 @@ const T3_DELTAS: Record<string, Record<string, number>> = {
   // #1612 : 82 → 87 items, `source` INCHANGÉ à 54 — les 5 règles `param` de l'Activité Mendier sont
   // MAISON : `LDB 09 l.97/l.99` ne chiffre aucune de leurs valeurs (partition XOR de
   // `regles-optionnelles-partition.test.ts`), leur folio se lit dans `ref` et n'ancre rien.
-  "reglesOptionnelles": { desc: 87, source: 54 },
+  // #700 (2026-10-05) : 87 → 91 items, `source` INCHANGÉ à 54 — les 4 règles maison de #700, cf. `CLES`.
+  "reglesOptionnelles": { desc: 91, source: 54 },
   "landCargo": { source: 7 }, // 7 items — T3 : source +7
   "seaCargo": { source: 11 }, // 11 items — T3 : source +11
   "riverPerils": { source: 4 }, // 4 items — T3 : source +4

@@ -696,7 +696,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {isPassive && (
           <div className="ed-field">
             <span>modificateurs PASSIFS continus (mêmes ops que les sorts — sans déclencheur)</span>
-            <GameOpEditor ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            <GameOpEditor noeud={noeudDe('passive')} ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
           </div>
         )}
         {isOptionalRule && (

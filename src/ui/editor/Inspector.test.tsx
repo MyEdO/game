@@ -110,6 +110,112 @@ describe('Inspector — apparence visuelle des murs', () => {
   });
 });
 
+/** Monte l'`Inspector` sur l'arête E de (1,1) portant `wall` ; `sceneOf` rend la DERNIÈRE Scène écrite. */
+function mountWall(wall: NonNullable<Scene['walls']>[number]) {
+  const scene: Scene = { ...emptyScene(4, 4), walls: [wall] };
+  let latest = scene;
+  const montage = monterRacine(null);
+  const render = (next: Scene) => montage.rendre(
+    <Inspector
+      scene={next}
+      otherScenes={[]}
+      worldMap={null}
+      setScene={(updated) => {
+        latest = updated;
+        render(updated);
+      }}
+      sel={{ type: 'wall', x: 1, y: 1, side: 'E', z: 0 }}
+      setSel={() => undefined}
+      enemyCreatures={[]}
+      openLogic={() => undefined}
+      resizeScene={() => undefined}
+      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [], documents: [] }}
+      tool={{ mode: 'select' }}
+      armZoneTiles={() => undefined}
+      zoneFocusKey={null}
+    />,
+  );
+  return { container: montage.container, mount: () => act(() => render(scene)), wallOf: () => latest.walls?.[0] };
+}
+
+const caseDe = (container: HTMLElement, libelle: string): HTMLInputElement =>
+  Array.from(container.querySelectorAll('label.ed-check')).find((l) => l.textContent?.includes(libelle))!.querySelector('input') as HTMLInputElement;
+const selectDe = (container: HTMLElement, libelle: string): HTMLSelectElement =>
+  Array.from(container.querySelectorAll('.ed-field')).find((f) => f.querySelector('span')?.textContent === libelle)!.querySelector('select') as HTMLSelectElement;
+async function elire(select: HTMLSelectElement, valeur: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, valeur);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
+describe('Inspector — ce que le schéma exige de l’auteur ne se préremplit pas', () => {
+  it('porte secrète (LDB 12 l.137) : difficulté et face à CHOISIR, état NOMMÉ, rien d’écrit avant le choix complet', async () => {
+    const h = mountWall({ x: 1, y: 1, side: 'E', door: true });
+    await h.mount();
+    await act(async () => caseDe(h.container, 'Porte secrète').click());
+
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', door: true });
+    for (const libelle of ['Difficulté de Perception', 'Découvrable depuis']) {
+      const select = selectDe(h.container, libelle);
+      expect(select.options[select.selectedIndex].textContent, libelle).toBe('— à choisir —');
+      expect(select.options[select.selectedIndex].disabled, libelle).toBe(true);
+      expect(select.getAttribute('aria-invalid'), libelle).toBe('true');
+    }
+    expect(h.container.querySelector('[role="alert"]')?.textContent).toBe('Porte secrète incomplète — choisis sa difficulté de Perception et sa face découvrable');
+
+    await elire(selectDe(h.container, 'Difficulté de Perception'), 'complexe');
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', door: true });
+    expect(h.container.querySelector('[role="alert"]')).not.toBeNull();
+
+    await elire(selectDe(h.container, 'Découvrable depuis'), 'porteuse');
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', door: true, closed: true, secret: { difficulty: 'complexe', face: 'porteuse' } });
+    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('croisée franchissable (#700 issuecomment-5984719806) : l’allège est à SAISIR, état NOMMÉ, rien d’écrit avant la saisie', async () => {
+    const h = mountWall({ x: 1, y: 1, side: 'E', window: true });
+    await h.mount();
+    await act(async () => caseDe(h.container, 'Franchissable').click());
+
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true });
+    expect(caseDe(h.container, 'Franchissable').checked).toBe(true);
+    const champ = h.container.querySelector('#' + CSS.escape(Array.from(h.container.querySelectorAll('label.field')).find((l) => l.textContent?.includes('Hauteur d’allège'))!.getAttribute('for')!)) as HTMLInputElement;
+    expect(champ.value).toBe('');
+    expect(champ.getAttribute('aria-invalid')).toBe('true');
+    const alerte = h.container.querySelector('[role="alert"]') as HTMLElement;
+    expect(alerte.textContent).toBe('Croisée franchissable sans hauteur d’allège — saisis-la');
+    expect(champ.getAttribute('aria-describedby')).toBe(alerte.id);
+
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, '1.2');
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1.2 });
+    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('vider l’allège d’une croisée authorée reste au brouillon : la Scène garde la croisée et sa suspension, l’état est NOMMÉ', async () => {
+    const h = mountWall({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1, suspendu: 2 });
+    await h.mount();
+    const champ = h.container.querySelector('#' + CSS.escape(Array.from(h.container.querySelectorAll('label.field')).find((l) => l.textContent?.includes('Hauteur d’allège'))!.getAttribute('for')!)) as HTMLInputElement;
+    const taper = (v: string) => act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, v);
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await taper('');
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1, suspendu: 2 });
+    expect(champ.value).toBe('');
+    expect(champ.getAttribute('aria-invalid')).toBe('true');
+    expect(h.container.querySelector('[role="alert"]')?.textContent).toBe('Croisée franchissable sans hauteur d’allège — saisis-la');
+
+    await taper('1.5');
+    expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1.5, suspendu: 2 });
+    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+  });
+});
+
 describe('Inspector — l’empreinte d’un décor n’est plus une propriété d’instance', () => {
   it('l’empreinte est ANNONCÉE, jamais saisie ; changer de ref ne pose rien sur l’entité', async () => {
     const h = mount({ id: 'p', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau' });

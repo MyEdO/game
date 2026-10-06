@@ -261,7 +261,7 @@ describe('buildScene — murs d’arête explicites', () => {
 });
 
 describe('buildScene — diagonales (side \\\\/\\/) : attributs riches (#554)', () => {
-  it('`window` (décoratif pur) est PROPAGÉ sur une diagonale (patchWall après toggleDiagonalWall), pan adossé au coin NO fermé', () => {
+  it('`window` est PROPAGÉ sur une diagonale (patchWall après toggleDiagonalWall), pan adossé au coin NO fermé', () => {
     const s = buildScene({
       id: 'diag', label: 'Diag', size: [3, 3], terrain: 'pave',
       walls: [
@@ -280,7 +280,7 @@ describe('buildScene — diagonales (side \\\\/\\/) : attributs riches (#554)', 
         id: 'diag2', label: 'Diag2', size: [3, 3], terrain: 'pave',
         walls: [{ x: 1, y: 1, side: '\\', climb: { kind: 'ladder' } }],
       }),
-    ).toThrow(/WallSpec diagonal \(1,1\) ne peut pas porter climb\/structure/);
+    ).toThrow('cloison oblique (`\\`) avec `climb`');
   });
 
   it('`structure` sur une diagonale REFUSE explicitement (jamais bloquante : `wallBetween`/`vision` ignorent \\\\/\\/)', () => {
@@ -289,7 +289,7 @@ describe('buildScene — diagonales (side \\\\/\\/) : attributs riches (#554)', 
         id: 'diag3', label: 'Diag3', size: [3, 3], terrain: 'pave',
         walls: [{ x: 1, y: 1, side: '/', structure: 'porte-de-ville' }],
       }),
-    ).toThrow(/WallSpec diagonal \(1,1\) ne peut pas porter climb\/structure\/door/);
+    ).toThrow('cloison oblique (`/`) avec `structure`');
   });
 
   it('`door` sur une diagonale REFUSE explicitement (une porte qui ne barre jamais le passage = donnée mensongère)', () => {
@@ -298,7 +298,7 @@ describe('buildScene — diagonales (side \\\\/\\/) : attributs riches (#554)', 
         id: 'diag4', label: 'Diag4', size: [3, 3], terrain: 'pave',
         walls: [{ x: 1, y: 1, side: '\\', door: true }],
       }),
-    ).toThrow(/WallSpec diagonal \(1,1\) ne peut pas porter climb\/structure\/door/);
+    ).toThrow('cloison oblique (`\\`) avec `door`');
   });
 });
 

@@ -28,7 +28,7 @@ import { sceneMetresPerTile } from '../../../state/scene';
 const ORIGINE = new Map(BLOCS_PERCAGE.map(([nom, bloc]) => [nom, THREE.ShaderChunk[nom as keyof typeof THREE.ShaderChunk].replace(bloc, '')]));
 
 const scene = paquetDuJeu(diligenceCampaign).scenes[0];
-const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene));
+const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu');
 
 describe('PERÇABILITÉ cuite — le SOL ne se troue pas, et c’est structurel', () => {
   it('chaque sommet porte le verdict du `kind` de sa face : 0 pour un sol, 1 pour un mur ou un toit', () => {
@@ -61,7 +61,7 @@ describe('PERÇABILITÉ cuite — le SOL ne se troue pas, et c’est structurel'
   });
 
   it('le compte de sommets ne bouge pas : le canal n’ajoute pas un triangle', () => {
-    const nu = bakeWorldGeometry(scene, sceneMetresPerTile(scene));
+    const nu = bakeWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu');
     expect(nu.geometry.getAttribute('position').count).toBe(baked.geometry.getAttribute('position').count);
     expect(nu.geometry.getIndex()!.count).toBe(baked.geometry.getIndex()!.count);
   });

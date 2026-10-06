@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../../state/scene';
 import { aretesUtilisables, type AreteUtilisable, type ContexteAretes } from '../../state/aretes';
-import type { RoomPortal } from '../../state/roomPortals';
+import { cloisons, piece } from '../../state/pieces.fixture';
 import type { BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
@@ -19,7 +19,8 @@ const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
 
 /** Une scène qui porte les QUATRE capacités à la fois : une paroi grimpable en (1,1,E) avec la case
  *  d'en face 4 m plus haut (donc aussi des chutes depuis cette case haute), une fortification en
- *  (3,3,E), et un accès de pièce en (0,1,E). */
+ *  (3,3,E), et un accès de pièce en (0,1,E) — passage entre la pièce (1,1), murée au nord et au sud,
+ *  et la pièce (0,1). */
 function scèneAuxQuatreCapacités(): Scene {
   const s = emptyScene(dims.w, dims.h);
   const h = new Array(dims.w * dims.h).fill(0) as number[];
@@ -28,21 +29,11 @@ function scèneAuxQuatreCapacités(): Scene {
   s.walls = [
     { x: 1, y: 1, side: 'E', climb: { kind: 'surface' } },
     { x: 3, y: 3, side: 'E', structure: 'mur-a-ossature-en-bois' },
+    ...cloisons(1, 1, ['N', 'S']),
   ];
+  s.effectZones = [piece('room-a', 1, 1), piece('room-b', 0, 1)];
   return s;
 }
-
-const passage: RoomPortal = {
-  id: '0:0,1:E:room-a:room-b',
-  z: 0,
-  edge: { x: 0, y: 1, side: 'E' },
-  fromZoneId: 'room-a',
-  toZoneId: 'room-b',
-  kind: 'passage',
-  exterior: false,
-  from: { x: 0, y: 1 },
-  to: { x: 1, y: 1 },
-};
 
 const bataille: BattleState = ({
   combatants: [{ id: 'structure-3-3-E-0', label: 'Mur à ossature en bois' } as unknown as Combatant],
@@ -62,7 +53,6 @@ const contexte = (controleur: ContexteAretes['controleur']): ContexteAretes => (
   controleur,
   activeZ: 0,
   battle: bataille,
-  portails: [passage],
 });
 
 /** Les arêtes des trois postures de contrôleur qui font parler les quatre dériveurs : au pied de la

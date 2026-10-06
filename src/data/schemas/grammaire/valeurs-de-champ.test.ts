@@ -146,6 +146,8 @@ const NOMMES = [
   'all|metal|leather|nonMagic|nonMetal',
   'd10|d100',
   'disc|wall',
+  // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
+  'porteuse|voisine|les-deux',
 ].sort();
 
 /**

@@ -6,9 +6,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { routesEtat, routesFrom, visiblePlaces } from '../../state/worldMap';
-import { reachableCells, startOf } from '../../state/mapQC';
+import { reachableCells } from '../../state/mapQC';
 import { propFootTiles } from '../../state/footprint';
-import { sceneMetresPerTile } from '../../state/scene';
+import { sceneMetresPerTile, startOf } from '../../state/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';

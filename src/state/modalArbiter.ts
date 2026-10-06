@@ -103,7 +103,7 @@ export const MODAL_DEFS = [
   { key: 'run', when: (s) => !!s.pendingRun, owner: (s) => s.pendingRun?.combatantId, auto: { mode: 'self', drive: ['runRoll', 'runConfirm'] }, covers: ['pendingRun'] },
   // Chute VOLONTAIRE (LDB 15 l.82) : initiée par le JOUEUR (clic sur une arête de capacité `chute`, jamais l'IA, cf. `fallAcross`)
   // → vrai CHOIX (mode 'choice', comme `auContact`/`grapple`) : Rapide/Auto-combat ne la déclenchent jamais.
-  { key: 'fall', when: (s) => !!s.pendingFall, owner: (s) => s.pendingFall?.combatantId, auto: { mode: 'choice' }, covers: ['pendingFall'] },
+  { key: 'fall', when: (s) => !!s.pendingFall, owner: (s) => s.pendingFall?.initiateurId, auto: { mode: 'choice' }, covers: ['pendingFall'] },
   { key: 'shipManeuver', when: (s) => !!s.pendingShipManeuver, owner: (s) => s.pendingShipManeuver?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipManeuver'] }, // Test d'équipage MULTI : chaque PJ pilote SON jet (cf. RollRow), pas d'auto-drive mono
   { key: 'shipBattery', when: (s) => !!s.pendingShipBattery, owner: (s) => s.pendingShipBattery?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipBattery'] }, // Tir de batterie MULTI (Artilleurs) — idem manœuvre
   { key: 'crewTest', when: (s) => !!s.pendingCrewTest, owner: (s) => s.pendingCrewTest?.shipId, auto: { mode: 'choice' }, covers: ['pendingCrewTest'] }, // Test d'équipage GÉNÉRIQUE (Rude épreuve…) — idem manœuvre

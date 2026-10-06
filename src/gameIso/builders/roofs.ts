@@ -29,7 +29,6 @@
  * authorées (`edgeKey`/`facadeEdges`/`edgeAppearance`/`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
 import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
-import { sceneZoneTiles } from '../../state/zones';
 import { memoByRef } from '../../state/sceneMemo';
 import { aretesA } from '../../state/wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
@@ -38,7 +37,7 @@ import { buildingsMeta } from '../../state/buildings';
 import { facadeStructureAppearance, facadeWallFeatureAppearance } from '../catalog/facades';
 import { wallApp, type StructureAppearanceDef } from '../catalog/structures';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { interiorZoneTilesById, occupiedInteriorZoneIds } from '../stage/roomFocus';
+import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../state/rooms';
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
 import type { CellSide, Face, GP, RoofEl, RoofLine, RoofLineKind } from './types';
 import { viewedBuilder, type Viewed, type ViewRule } from './viewTruth';
@@ -944,10 +943,10 @@ export function massRoomZoneIds(scene: Scene, mass: BuildingMass, cells: Readonl
   const zMin = mass.z - mass.levels + 1;
   const ids = new Set<string>();
   for (const zone of scene.effectZones ?? []) {
-    if (zone.presentation !== 'interior') continue;
+    if (!isRoomZone(zone)) continue;
     const z = zone.z ?? 0;
     if (z < zMin || z > mass.z) continue;
-    if (sceneZoneTiles(zone).some((t) => cells.has(vk(t.x, t.y)) && (t.z ?? 0) === z)) ids.add(zone.id);
+    if (roomTiles(zone).some((t) => cells.has(vk(t.x, t.y)))) ids.add(zone.id);
   }
   return [...ids];
 }
@@ -1070,7 +1069,7 @@ export function clearedSpace(
     const x = Math.round(ally.x);
     const y = Math.round(ally.y);
     const z = ally.z ?? 0;
-    const rooms = occupiedInteriorZoneIds(scene, [{ x, y, z }]);
+    const rooms = occupiedRoomIds(scene, [{ x, y, z }]);
     for (const id of rooms) zoneIds.add(id);
     let dedans = rooms.size > 0;
     for (const { mass, cells } of masses) {
@@ -1083,7 +1082,7 @@ export function clearedSpace(
     }
     openSky ||= !dedans;
   }
-  const tilesById = interiorZoneTilesById(scene); // les cases d'une pièce : UNE dérivation (`stage/roomFocus`)
+  const tilesById = roomTilesById(scene); // les cases d'une pièce : UNE dérivation (`state/rooms`)
   for (const id of zoneIds) zoneCells.set(id, tilesById.get(id) ?? new Set<string>());
   const seenSections = sight
     ? new Set(openSky ? masses.filter(({ mass, cells }) => footInSight(mass.z, cells, sight)).map(({ mass }) => mass.id) : [])

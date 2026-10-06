@@ -32,6 +32,7 @@ import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from './stageY
 import { arreterMarche, demarrerMarche } from './stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from './combatTimers';
 import { t, type MsgKey } from '../i18n';
+import { roomFocusAt } from './rooms';
 
 /** Section d'affichage de l'écran Options (remap) — REGROUPE les raccourcis par contexte de jeu.
  *  Purement présentationnel (le `when` de chaque binding reste l'unique arbitre d'exécution). */
@@ -270,6 +271,13 @@ export const KEYBINDINGS: KeyBinding[] = [
     id: 'decor.reveler', codes: ['AltLeft', 'AltRight'], mods: [], labelKey: 'key.reveler', section: 'exploration',
     when: (s) => exploring(s) || inBattle(s),
     run: (g) => g().setReveler(true), runUp: (g) => g().setReveler(false),
+  },
+  // FOUILLER LA PIÈCE : geste d'exploration du GROUPE, offert là où l'offre du pont l'est — DANS une
+  // pièce (`roomFocusAt`) ; le verbe dit lui-même ses refus.
+  {
+    id: 'fouiller-piece', codes: ['KeyR'], labelKey: 'fouille.geste', section: 'exploration',
+    when: (s) => exploring(s) && !!s.scene && !!roomFocusAt(s.scene, s.partyPos),
+    run: (g) => g().fouillerLaPiece(),
   },
   // Inspection des combattants (option de jeu) : le clic sur un allié non actionnable ouvre son
   // statbloc. En combat seulement — hors combat aucun clic ne l'emprunte.

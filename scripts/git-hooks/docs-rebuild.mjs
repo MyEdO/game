@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { ciblesSurDisque, GENERATORS, generateursDeCode, genererCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
-import { ceQuiChange, depotDe, etatDeLArbre, parentsDe, racineDe, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
+import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, etatDeLArbre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
 /** Fichiers de `de`..`a` (ORIG_HEAD..HEAD par défaut, SHA capturés pour post-commit).
@@ -16,6 +16,24 @@ export function touchedFiles(cwd, { de = 'ORIG_HEAD', a = 'HEAD' } = {}) {
   const depot = depotDe(cwd, { enPanne: () => { panne = true } })
   const chemins = shaDe(depot, de) === null ? null : ceQuiChange(depot, de, a).chemins()
   return panne ? null : chemins
+}
+
+/** Lot de post-merge : squash (`squash`, 1er argument du hook `post-merge` = `1`) ou fusion NON COMMITÉE
+ *  (un `fusionnesEnCours` hors de l'histoire de HEAD) → `ceQuEmporteLIndex`, conflits compris ; sinon
+ *  `touchedFiles`. Git indisponible : `null`. #2327 */
+export function lotDuPostMerge(cwd, { squash = false } = {}) {
+  let panne = false
+  const depot = depotDe(cwd, { enPanne: () => { panne = true } })
+  const enCours = squash || fusionnesEnCours(depot).some((sha) => {
+    const vu = estAncetre(depot, sha, 'HEAD')
+    if (!vu.disponible || 'absent' in vu) {
+      panne = true
+      return false
+    }
+    return !vu.valeur
+  })
+  const lot = panne ? null : enCours ? ceQuEmporteLIndex(depot).chemins() : touchedFiles(cwd)
+  return panne ? null : lot
 }
 
 /** Consigne d'un arbre SANS mesure (worktree neuf) : ses docs purs sont absents, rien ne les a produits. */
@@ -116,13 +134,14 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
 export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, code = genererCode, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
   let lot
   if (hook === 'post-commit') {
-    const depot = depotDe(cwd, { enPanne: (raison) => annoncer(`[${hook}] lecture Git indisponible : ${raison}\n`) })
+    const depot = depotDe(cwd, { enPanne: (_raison, vu) => annoncer(`[${hook}] lecture Git indisponible : ${refusDeGit(vu)}\n`) })
     const parents = parentsDe(depot, 'HEAD')
     if (parents !== null && parents.length < 2) return 0
     const nouveau = shaDe(depot, 'HEAD')
     const ancien = shaPrecedentDeHead(depot)
     lot = parents === null || nouveau === null || ancien === null ? null : touchedFiles(cwd, { de: ancien, a: nouveau })
-  } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres })) : touchedFiles(cwd)
+  } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres }))
+    : hook === 'post-merge' ? lotDuPostMerge(cwd, { squash: avant === '1' }) : touchedFiles(cwd)
   const mesure = sourcesMesurees(cwd)
   const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge })
   if (hook === 'post-checkout' && avant === '0'.repeat(40) && mesure === null) {

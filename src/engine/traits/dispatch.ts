@@ -314,7 +314,7 @@ export function bellicosePsychImmune(c: Pick<Combatant, 'traits' | 'advantage'>,
   return traitCapability(c.traits, 'psychImmuneIfAhead') && (c.advantage ?? 0) > foesMaxAdvantage;
 }
 
-/** Fabriqué (LDB 85 l.142) : pas d'Int/FM/Soc → Tests psychologiques auto-réussis. */
+/** Fabriqué (LDB 85 l.142). */
 export function isMindless(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'mindless');
 }
@@ -378,7 +378,7 @@ export function hasAutoClimb(traits: TraitList | undefined): boolean {
 }
 
 /** Grimpant (LDB 85 l.160-162) : vitesse de Mouvement MAXIMALE (coût normal) sur les surfaces
- *  d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.53, joueur). */
+ *  d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.55, joueur). */
 export function hasClimbFullSpeed(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'climbFullSpeed');
 }

@@ -11,7 +11,7 @@ import type { Combatant } from '../../engine/types';
 import { structureCombatant } from '../../engine/structures';
 import { findStructureById } from '../../data';
 import { makePregens } from '../../data/pregens';
-import type { RoomPortal } from '../../state/roomPortals';
+import { cloisons, piece } from '../../state/pieces.fixture';
 import type { Pt } from '../../state/path';
 import { poseFromDims } from './projection';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
@@ -96,10 +96,9 @@ const offre = (
   battle: BattleState | null,
   controleur: Pt | null = FRAPPEUR,
   scene: Scene = scèneFortifiée(),
-  portails: readonly RoomPortal[] = [],
   lift: (p: Pt) => number = () => 0,
 ): readonly AreteProjetee[] => projeterAretes(
-  aretesUtilisables({ scene, visible: new Set(VU), controleur, activeZ: 0, battle, portails }),
+  aretesUtilisables({ scene, visible: new Set(VU), controleur, activeZ: 0, battle }),
   dims,
   lift,
 );
@@ -181,7 +180,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
   it('sur une couche haute, la prise colle au MUR : elle se projette à SON lift, jamais à celui du frappeur', () => {
     const LIFT_MUR = 48;
     const lift = (p: Pt) => (p.x === MUR.x && p.y === MUR.y ? LIFT_MUR : 0);
-    const aretes = offre(bataille([heros, mur]), FRAPPEUR, scèneFortifiée(), [], lift);
+    const aretes = offre(bataille([heros, mur]), FRAPPEUR, scèneFortifiée(), lift);
     const [a, b] = tileEdge(1, 1, 'E', dims, LIFT_MUR);
 
     expect([aretes[0].a, aretes[0].b]).toEqual([{ cx: a.cx, cy: a.cy }, { cx: b.cx, cy: b.cy }]);
@@ -316,13 +315,15 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
   });
 
   describe('SONDE D’INVARIANCE — ce que le PIXEL du centre de l’arête rend', () => {
-    /** La MÊME arête, percée d'une porte : en combat l'enceinte prime (`PRIORITE_ARETES`). */
-    const porte: RoomPortal = {
-      id: '0:1,1:E:a:b', z: 0, edge: { x: 1, y: 1, side: 'E' },
-      fromZoneId: 'a', toZoneId: 'b', kind: 'door-closed', exterior: false,
-      from: { x: 1, y: 1 }, to: { x: 2, y: 1 },
-    };
+    /** La MÊME arête, percée d'une porte : la fortification est une porte fermée, seul accès de la pièce
+     *  (2,1) — murée ailleurs — que le frappeur rejoint du dehors. En combat l'enceinte prime
+     *  (`PRIORITE_ARETES`). */
     const scene = scèneFortifiée();
+    scene.effectZones = [piece('b', 2, 1)];
+    scene.walls = [
+      { x: 1, y: 1, side: 'E', door: true, closed: true, structure: 'mur-a-ossature-en-bois' },
+      ...cloisons(2, 1, ['N', 'S', 'E']),
+    ];
     const pose = poseFromDims(dims);
     const etat = (battle: BattleState | null): EtatDePick =>
       ({ scene, mode: battle ? 'battle' : 'exploration', battle, partyPos: FRAPPEUR }) as EtatDePick;
@@ -331,8 +332,8 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
 
     it('en combat : `structure` et le `cid` ; hors combat, la même arête rend `porte`', () => {
       const battle = bataille([heros, mur]);
-      const enCombat = offre(battle, FRAPPEUR, scene, [porte]);
-      const horsCombat = offre(null, FRAPPEUR, scene, [porte]);
+      const enCombat = offre(battle, FRAPPEUR, scene);
+      const horsCombat = offre(null, FRAPPEUR, scene);
 
       const vCombat = verdictAu(enCombat, milieuPt(enCombat[0]), battle);
       expect(vCombat.nature).toBe('arete');

@@ -54,7 +54,7 @@ export interface LabelCallLiteralFinding {
   rule: 'label-call-literal';
 }
 export function scanCallResultLiteralCompare(relPath: string, contenu: string): LabelCallLiteralFinding[];
-export function ecartsAuxDettesDeLibelle(measured: Map<string, number> | Record<string, number>, options?: { hausseSeule?: boolean }): string[];
+export function ecartsAuxDettesDeLibelle(measured: Map<string, number> | Record<string, number>): string[];
 
 /** Finding d'index CONSTRUIT sur un champ d'affichage (#909). */
 export interface LabelKeyedIndexFinding {
