@@ -50,14 +50,14 @@
       "id": "imp7",
       "texte": "Le titre de propriété et 20 000 couronnes d'or sont conditionnés à une déclaration sous serment attestée par deux témoins confirmant l'identité de Kastor Aloysius Lieberung",
       "ref": [
-        "EDO 02 l.137"
+        "EDO 02 l.143"
       ]
     },
     {
       "id": "imp8",
       "texte": "Les patrouilleurs ne cherchent pas à identifier Kastor : seules les deux lettres l'identifient, il sera considéré comme inconnu",
       "ref": [
-        "EDO 02 l.164"
+        "EDO 02 l.176"
       ]
     },
     {
@@ -171,14 +171,14 @@
       "id": "b8",
       "titre": "Les chevaux de la diligence repris dans les bois (Test d'Esquive)",
       "statut": "non-qualifie",
-      "preuveDuStatut": "Non qualifié ; si échec, un patrouilleur intervient (EDO 02 l.156).",
+      "preuveDuStatut": "Non qualifié ; si échec, un patrouilleur intervient (EDO 02 l.168).",
       "mediasCandidats": [
         "scene-jouee",
         "resume",
         "coupe"
       ],
       "ref": [
-        "EDO 02 l.156"
+        "EDO 02 l.168"
       ]
     },
     {
@@ -192,28 +192,28 @@
         "coupe"
       ],
       "ref": [
-        "EDO 02 l.160"
+        "EDO 02 l.172"
       ]
     },
     {
       "id": "b10",
       "titre": "Trajet de nuit jusqu'à l'Auberge des Sept Rayons",
       "statut": "non-qualifie",
-      "preuveDuStatut": "'se déroule sans incident' ; rencontres en chemin 'ce que vous jugez approprié' (EDO 02 l.168).",
+      "preuveDuStatut": "'se déroule sans incident' ; rencontres en chemin 'ce que vous jugez approprié' (EDO 02 l.180).",
       "mediasCandidats": [
         "resume",
         "interlude",
         "coupe"
       ],
       "ref": [
-        "EDO 02 l.168"
+        "EDO 02 l.180"
       ]
     },
     {
       "id": "b11",
       "titre": "L'Auberge des Sept Rayons : halte, rumeurs, changement de diligence de Dame Isolde",
       "statut": "non-qualifie",
-      "preuveDuStatut": "'halte tranquille', interaction avec la clientèle seulement 'à moins que les Personnages ne souhaitent' (EDO 02 l.172).",
+      "preuveDuStatut": "'halte tranquille', interaction avec la clientèle seulement 'à moins que les Personnages ne souhaitent' (EDO 02 l.184).",
       "mediasCandidats": [
         "scene-jouee",
         "dialogue",
@@ -221,7 +221,7 @@
         "coupe"
       ],
       "ref": [
-        "EDO 02 l.172"
+        "EDO 02 l.184"
       ]
     },
     {
@@ -235,34 +235,34 @@
         "interlude"
       ],
       "ref": [
-        "EDO 02 l.177"
+        "EDO 02 l.189"
       ]
     },
     {
       "id": "b13",
       "titre": "Un médecin fort à propos : le Doktor Anida Pflaster",
       "statut": "non-qualifie",
-      "preuveDuStatut": "EDO 02 l.181 dit qu'Anida « se trouve sur place » aux Sept Rayons. L'« humeur miséricordieuse » ne conditionne que ses autres apparitions, ailleurs ; le livre ne qualifie pas la scène.",
+      "preuveDuStatut": "EDO 02 l.193 dit qu'Anida « se trouve sur place » aux Sept Rayons. L'« humeur miséricordieuse » ne conditionne que ses autres apparitions, ailleurs ; le livre ne qualifie pas la scène.",
       "mediasCandidats": [
         "scene-jouee",
         "dialogue",
         "coupe"
       ],
       "ref": [
-        "EDO 02 l.181"
+        "EDO 02 l.193"
       ]
     },
     {
       "id": "b14",
       "titre": "Conclusion : récompenses en PX",
       "statut": "non-qualifie",
-      "preuveDuStatut": "'vous devriez accorder les PX comme ceci' (EDO 02 l.187) ; pas de qualification de scène.",
+      "preuveDuStatut": "'vous devriez accorder les PX comme ceci' (EDO 02 l.199) ; pas de qualification de scène.",
       "mediasCandidats": [
         "resume",
         "coupe"
       ],
       "ref": [
-        "EDO 02 l.187"
+        "EDO 02 l.199"
       ]
     }
   ],
@@ -384,7 +384,7 @@
       "texte": "Les patrouilleurs remarquent la ressemblance du sosie sans suite si le cadavre n'a pas été déguisé ni défiguré",
       "type": "consequence-ouverte",
       "ref": [
-        "EDO 02 l.166"
+        "EDO 02 l.178"
       ]
     },
     {
@@ -392,7 +392,7 @@
       "texte": "Rencontres en chemin 'ce que vous jugez approprié'",
       "type": "encart-optionnel",
       "ref": [
-        "EDO 02 l.168"
+        "EDO 02 l.180"
       ]
     },
     {
@@ -400,7 +400,7 @@
       "texte": "Les clients de l'auberge n'ont rien de remarquable 'sauf si vous en décidez autrement' ; rumeurs disponibles (page 57)",
       "type": "veracite-rumeur",
       "ref": [
-        "EDO 02 l.172"
+        "EDO 02 l.184"
       ]
     },
     {
@@ -408,7 +408,7 @@
       "texte": "Rumeurs supplémentaires, unité de cavalerie ou colporteur pour le reste du trajet",
       "type": "veracite-rumeur",
       "ref": [
-        "EDO 02 l.177"
+        "EDO 02 l.189"
       ]
     },
     {
@@ -416,7 +416,7 @@
       "texte": "Le Doktor (ou équivalent) retrouvable ailleurs 'si vous vous sentez d'humeur miséricordieuse', avec parcimonie",
       "type": "rythme-deblocage",
       "ref": [
-        "EDO 02 l.181"
+        "EDO 02 l.193"
       ]
     },
     {
@@ -424,7 +424,7 @@
       "texte": "PX supplémentaires à discrétion du MJ",
       "type": "encart-optionnel",
       "ref": [
-        "EDO 02 l.194"
+        "EDO 02 l.206"
       ]
     },
     {
@@ -432,7 +432,7 @@
       "texte": "Les Personnages peuvent eux aussi abandonner leur diligence aux Sept Rayons et réserver des places dans une autre diligence des Quatre Saisons pour finir le voyage",
       "type": "consequence-ouverte",
       "ref": [
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     },
     {
@@ -477,14 +477,14 @@
       "id": "ind5",
       "texte": "Document 3 : lettre des notaires de Bögenhafen annonçant héritage (manoir de Lieberung, 20 000 CO) sous condition d'affidavit",
       "ref": [
-        "EDO 02 l.135-137"
+        "EDO 02 l.141-143"
       ]
     },
     {
       "id": "ind6",
       "texte": "Document 4 : affidavit attestant l'identité de Kastor Aloysius Lieberung (Ingrid Zicherman, Oskar Helmut, Julius Schwungrad, Nuln)",
       "ref": [
-        "EDO 02 l.148-154"
+        "EDO 02 l.154-166"
       ]
     },
     {
@@ -521,7 +521,7 @@
       "id": "sec3",
       "texte": "Les mutants sont tous blessés après leur rencontre avec Kastor (Terenz 3, Mikael 1, Johann 4, Erik 2 Blessures)",
       "ref": [
-        "EDO 02 l.235-239"
+        "EDO 02 l.247-251"
       ]
     },
     {
@@ -535,16 +535,16 @@
       "id": "sec5",
       "texte": "Pflaster poursuit sa sœur Anida qui se rend à Middenheim ; Anida veut l'éviter et accorde 1/- de remise si on a détourné son frère",
       "ref": [
-        "EDO 02 l.260",
-        "EDO 02 l.297",
-        "EDO 02 l.303"
+        "EDO 02 l.272",
+        "EDO 02 l.309",
+        "EDO 02 l.315"
       ]
     },
     {
       "id": "sec6",
       "texte": "Les patrouilleurs de la troupe dressent des amendes fabriquées et acceptent des pots-de-vin en l'absence de leur sergent",
       "ref": [
-        "EDO 02 l.277"
+        "EDO 02 l.289"
       ]
     },
     {
@@ -617,7 +617,7 @@
       "evenement": "Un patrouilleur routier intervient et calme les chevaux avec une facilité déconcertante",
       "condition": "Si les Personnages ne parviennent pas à maîtriser les chevaux",
       "ref": [
-        "EDO 02 l.156"
+        "EDO 02 l.168"
       ]
     },
     {
@@ -625,7 +625,7 @@
       "evenement": "Les patrouilleurs prennent la tête du cortège, escortent jusqu'à l'auberge-relais et prennent les dépositions des témoins",
       "condition": "Une fois le groupe de retour à sa diligence et les cadavres empilés dans l'autre",
       "ref": [
-        "EDO 02 l.160"
+        "EDO 02 l.172"
       ]
     },
     {
@@ -633,7 +633,7 @@
       "evenement": "Les patrouilleurs refusent de s'occuper des lettres : 'Au nom de Sigmar, occupez-vous de vos affaires et cessez de me déranger !'",
       "condition": "Si un aventurier mentionne les lettres par honnêteté",
       "ref": [
-        "EDO 02 l.164"
+        "EDO 02 l.176"
       ]
     },
     {
@@ -641,7 +641,7 @@
       "evenement": "Les patrouilleurs remarquent la ressemblance du cadavre avec un Personnage ('C'était votre jumeau ? Désolé mon gars') sans rien faire d'autre",
       "condition": "Si les Personnages n'ont pas déguisé le sosie ni défiguré son cadavre",
       "ref": [
-        "EDO 02 l.166"
+        "EDO 02 l.178"
       ]
     },
     {
@@ -649,7 +649,7 @@
       "evenement": "Dame Isolde, Janna et Marie quittent la diligence pour réserver une autre diligence de la compagnie des Quatre Saisons au matin",
       "condition": "Arrivée à l'Auberge des Sept Rayons",
       "ref": [
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     },
     {
@@ -657,7 +657,7 @@
       "evenement": "Les cochers boivent autant que la veille et ont la gueule de bois au petit matin",
       "condition": "À l'Auberge des Sept Rayons",
       "ref": [
-        "EDO 02 l.172"
+        "EDO 02 l.184"
       ]
     },
     {
@@ -681,7 +681,7 @@
       "evenement": "Le Doktor Anida Pflaster se trouve à l'auberge des Sept Rayons et soigne les blessés à 4/- par personne",
       "condition": "Elle prend un verre au bar pendant que sa diligence change de chevaux",
       "ref": [
-        "EDO 02 l.181"
+        "EDO 02 l.193"
       ]
     },
     {
@@ -727,7 +727,7 @@
         "EDO 02 l.13",
         "EDO 02 l.21-25",
         "EDO 02 l.27",
-        "EDO 02 l.202-218"
+        "EDO 02 l.214-230"
       ]
     },
     {
@@ -739,7 +739,7 @@
         "EDO 02 l.9",
         "EDO 02 l.81",
         "EDO 02 l.83-85",
-        "EDO 02 l.243-254"
+        "EDO 02 l.255-266"
       ]
     },
     {
@@ -750,8 +750,8 @@
       "ref": [
         "EDO 02 l.79",
         "EDO 02 l.83",
-        "EDO 02 l.222",
-        "EDO 02 l.227-237"
+        "EDO 02 l.234",
+        "EDO 02 l.239-249"
       ]
     },
     {
@@ -762,8 +762,8 @@
       "ref": [
         "EDO 02 l.81",
         "EDO 02 l.83",
-        "EDO 02 l.222",
-        "EDO 02 l.239"
+        "EDO 02 l.234",
+        "EDO 02 l.251"
       ]
     },
     {
@@ -774,8 +774,8 @@
       "ref": [
         "EDO 02 l.81",
         "EDO 02 l.83",
-        "EDO 02 l.224",
-        "EDO 02 l.239"
+        "EDO 02 l.236",
+        "EDO 02 l.251"
       ]
     },
     {
@@ -786,8 +786,8 @@
       "ref": [
         "EDO 02 l.81",
         "EDO 02 l.83",
-        "EDO 02 l.224",
-        "EDO 02 l.239"
+        "EDO 02 l.236",
+        "EDO 02 l.251"
       ]
     },
     {
@@ -839,7 +839,7 @@
       "motivation": "Protéger sa maîtresse, ne s'en éloigne que pour mieux écarter une menace pesant sur elle.",
       "ref": [
         "EDO 02 l.27",
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     },
     {
@@ -852,7 +852,7 @@
         "EDO 02 l.56",
         "EDO 02 l.75",
         "EDO 02 l.103",
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     },
     {
@@ -861,7 +861,7 @@
       "role": "Suit Dame Isolde ; réserve avec elle et Marie une place dans une autre diligence à l'Auberge des Sept Rayons.",
       "motivation": "Aucune donnée dans le chapitre.",
       "ref": [
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     },
     {
@@ -880,8 +880,8 @@
       "motivation": "Assurer la sécurité des routes, privilégie la fluidité de la circulation à la vie des individus ; parle vite, accent populaire, ton ferme ; hors de son secteur, veut rattraper sa sœur partie seule à Middenheim pour la dissuader.",
       "ref": [
         "EDO 02 l.99-103",
-        "EDO 02 l.160",
-        "EDO 02 l.260-272"
+        "EDO 02 l.172",
+        "EDO 02 l.272-284"
       ]
     },
     {
@@ -891,9 +891,9 @@
       "motivation": "Dresser des amendes inventées et accepter des pots-de-vin en l'absence du sergent (leur principal revenu, dépensé au Cheval Bai à Altdorf) ; accent d'Altdorf ; refusent d'enquêter sur détails.",
       "ref": [
         "EDO 02 l.99",
-        "EDO 02 l.156",
-        "EDO 02 l.160-166",
-        "EDO 02 l.277-291"
+        "EDO 02 l.168",
+        "EDO 02 l.172-178",
+        "EDO 02 l.289-303"
       ]
     },
     {
@@ -902,9 +902,9 @@
       "role": "Médecin à l'Auberge des Sept Rayons, Argent 5, soigne les blessés pour 4/- par personne (remise de 1/- si les PJ ont détourné son frère) ; recontrable ailleurs dans l'aventure.",
       "motivation": "Rester à l'écart de son frère surprotecteur ; se rend (ou revient) d'une conférence médicale au Collegium Theologica de Middenheim ; a fait serment d'aider les nécessiteux ; peu de patience pour les imprudents, refuse le bavardage inutile en travaillant.",
       "ref": [
-        "EDO 02 l.181",
-        "EDO 02 l.297-303",
-        "EDO 02 l.305-317"
+        "EDO 02 l.193",
+        "EDO 02 l.309-315",
+        "EDO 02 l.317-329"
       ]
     },
     {
@@ -913,7 +913,7 @@
       "role": "Attendu à l'auberge-relais pour préparer les corps ; cité seulement, renvoi au Compagnon.",
       "motivation": "Aucune donnée dans le chapitre (le culte de Morr note les détails sur les victimes et les transmet au culte de Verena).",
       "ref": [
-        "EDO 02 l.160-162"
+        "EDO 02 l.172-174"
       ]
     },
     {
@@ -958,7 +958,7 @@
       "role": "Exécuteur légal de feu le baronet Lieberung d'Ubersreik, auteur de la lettre d'héritage (Lock, Stock & Barl, Bögenhafen).",
       "motivation": "Remettre titre, manoir, terres et 20 000 couronnes d'or au bénéficiaire sur production de l'affidavit.",
       "ref": [
-        "EDO 02 l.131-143"
+        "EDO 02 l.131-149"
       ]
     },
     {
@@ -967,7 +967,7 @@
       "role": "Témoins de l'affidavit : prêtresse du Temple de Sigmar de Nuln, maître de la Guilde des marchands de Nuln, avocat (Honorable Société des Avocats, Nuln).",
       "motivation": "Aucune donnée : attestent l'identité de Kastor Aloysius Lieberung.",
       "ref": [
-        "EDO 02 l.148-154"
+        "EDO 02 l.154-166"
       ]
     }
   ],
@@ -986,7 +986,7 @@
       "ref": [
         "EDO 02 l.73-75",
         "EDO 02 l.83",
-        "EDO 02 l.166"
+        "EDO 02 l.178"
       ]
     },
     {
@@ -1007,7 +1007,7 @@
       "id": "lieu5",
       "texte": "Les bois où paissent les chevaux de la diligence des PJ (test d'Esquive pour les approcher).",
       "ref": [
-        "EDO 02 l.156"
+        "EDO 02 l.168"
       ]
     },
     {
@@ -1015,8 +1015,8 @@
       "texte": "Route vers Altdorf, rencontre avec la troupe de Pflaster ; cortège de deux diligences vers la prochaine auberge-relais ; croisement de diligences vers Delberz, caravane de marchands, cavalerie.",
       "ref": [
         "EDO 02 l.99-103",
-        "EDO 02 l.160",
-        "EDO 02 l.168"
+        "EDO 02 l.172",
+        "EDO 02 l.180"
       ]
     },
     {
@@ -1024,15 +1024,15 @@
       "texte": "Première auberge-relais (dépositions, préparation des corps pour l'augure de Morr) ; lieu d'interrogatoire en cas d'arrestation.",
       "ref": [
         "EDO 02 l.101",
-        "EDO 02 l.160"
+        "EDO 02 l.172"
       ]
     },
     {
       "id": "lieu8",
       "texte": "Auberge des Sept Rayons, dernier arrêt avant Altdorf : disposition proche de l'auberge La Diligence, trois diligences, bondée, rumeurs, nuit calme, bar où se trouve Anida, relais de chevaux.",
       "ref": [
-        "EDO 02 l.168-174",
-        "EDO 02 l.181"
+        "EDO 02 l.180-186",
+        "EDO 02 l.193"
       ]
     },
     {
@@ -1048,18 +1048,18 @@
       "texte": "Lieux cités hors scène : Bögenhafen (bureaux des notaires), Altdorf, Middenheim, Nuln, Ubersreik, Cheval Bai (taverne d'Altdorf), Collegium Theologica de Middenheim.",
       "ref": [
         "EDO 02 l.89",
-        "EDO 02 l.131",
-        "EDO 02 l.137",
-        "EDO 02 l.150",
-        "EDO 02 l.277",
-        "EDO 02 l.299"
+        "EDO 02 l.131-137",
+        "EDO 02 l.143",
+        "EDO 02 l.156-158",
+        "EDO 02 l.289",
+        "EDO 02 l.311"
       ]
     },
     {
       "id": "lieu11",
       "texte": "Lieux cités en chemin et par les variantes : Delberz (destination des diligences croisées) et le village le plus proche où les corps sont enterrés (variante Enquête officielle)",
       "ref": [
-        "EDO 02 l.168",
+        "EDO 02 l.180",
         "EDO 02 l.38"
       ]
     }
@@ -1078,7 +1078,7 @@
       "texte": "Messires Lock, Stock & Barl Notaires, Commissaires aux serments, etc. Garten Weg Bögenhafen\n\nCher Herr Lieberung,\n\nAprès de longues recherches, nous sommes portés à croire que vous êtes le dernier parent vivant de feu le baronet Lieberung, d'Ubersreik. Si cela s'avère exact, et si aucun autre élément inconnu de nous à ce jour ne venait à se présenter, je suis chargé de vous informer que vous êtes l'unique bénéficiaire des dernières volontés et du testament de feu le Baronet (ci-après dénommé la première partie), ainsi que du titre et de toutes les terres et propriétés s'y rattachant.\n\nJe, soussigné, agissant en ma qualité d'exécuteur légal du document de la première partie mentionné ci-dessus, vous prie de vous rendre avec toute la célérité voulue à mes bureaux situés à l'adresse indiquée dans la présente lettre. Dès lors, et sous réserve que vous puissiez produire une déclaration sous serment signée et attestée par deux témoins confirmant votre identité de Kastor Aloysius Lieberung, nous aurons le plaisir de vous remettre le titre de propriété du manoir de Lieberung et de toutes les terres et propriétés s'y rattachant, ainsi que la somme de vingt mille couronnes d'or impériales.\n\nVotre humble et dévoué serviteur,\n\nDietrich Barl. K.C., LL.B. (Alt)\n\nSigné en ce dixième jour de Nachhexen, dans la deux mille cinq cent douzième année de l'Empire.",
       "nature": "document-verbatim",
       "ref": [
-        "EDO 02 l.129-143"
+        "EDO 02 l.129-149"
       ]
     },
     {
@@ -1086,7 +1086,7 @@
       "texte": "Nous, soussignés, jurons solennellement que le porteur de ce document se nomme Kastor Aloysius Lieberung.\n\nIngrid Zicherman, prêtresse Temple de Sigmar, Nuln\n\nOskar Helmut, maître de guilde Guilde des marchands, Nuln\n\nSous le regard de Julius Schwungrad, Honorable Société des Avocats, Nuln",
       "nature": "document-verbatim",
       "ref": [
-        "EDO 02 l.146-154"
+        "EDO 02 l.152-166"
       ]
     },
     {
@@ -1102,7 +1102,7 @@
       "texte": "« Au nom de Sigmar, occupez-vous de vos affaires et cessez de me déranger ! » (patrouilleur routier, à qui mentionne les lettres)",
       "nature": "motivation-a-authorer",
       "ref": [
-        "EDO 02 l.164"
+        "EDO 02 l.176"
       ]
     },
     {
@@ -1110,7 +1110,7 @@
       "texte": "« C'était votre jumeau ? Désolé mon gars » (patrouilleur routier, devant la ressemblance avec Kastor)",
       "nature": "motivation-a-authorer",
       "ref": [
-        "EDO 02 l.166"
+        "EDO 02 l.178"
       ]
     },
     {
@@ -1118,7 +1118,7 @@
       "texte": "Rolf : grognement sourd et menaçant seulement (cordes vocales pourries).",
       "nature": "motivation-a-authorer",
       "ref": [
-        "EDO 02 l.202"
+        "EDO 02 l.214"
       ]
     },
     {
@@ -1126,8 +1126,8 @@
       "texte": "Knud : insultes, menaces, intimidation, zozotement sifflant avec accent d'Altdorf ; mutants : zozotement aigu ricanant (Terenz), aboiements/glapissements/gémissements (Mikael), gémissement de douleur (Johann), accent reiklander raffiné (Erik).",
       "nature": "motivation-a-authorer",
       "ref": [
-        "EDO 02 l.222-224",
-        "EDO 02 l.243"
+        "EDO 02 l.234-236",
+        "EDO 02 l.255"
       ]
     },
     {
@@ -1136,8 +1136,8 @@
       "nature": "motivation-a-authorer",
       "ref": [
         "EDO 02 l.101",
-        "EDO 02 l.260",
-        "EDO 02 l.277"
+        "EDO 02 l.272",
+        "EDO 02 l.289"
       ]
     },
     {
@@ -1145,7 +1145,7 @@
       "texte": "Anida : brusque, pas de bavardage en travaillant, insultes si on omet « Doktor », soupire puis soigne contre 4/- (remise de 1/- si le frère a été détourné) ; propos sur son frère surprotecteur.",
       "nature": "motivation-a-authorer",
       "ref": [
-        "EDO 02 l.297-303"
+        "EDO 02 l.309-315"
       ]
     },
     {
@@ -1220,7 +1220,7 @@
       "texte": "Les chevaux paissant dans les bois, harnais réparés ; cadavres empilés dans l'autre diligence ; cortège vers l'auberge-relais ; dépositions ; préparation des corps pour l'augure ; aucun effort d'identification ; arrivée de nuit à l'Auberge des Sept Rayons.",
       "nature": "narration-a-reformuler",
       "ref": [
-        "EDO 02 l.156-168"
+        "EDO 02 l.168-180"
       ]
     },
     {
@@ -1228,7 +1228,7 @@
       "texte": "Auberge des Sept Rayons : bondée, trois diligences, nuit calme, cochers ivres, Isolde/Janna/Marie prennent une autre diligence au matin ; rencontre fortuite du Doktor Anida au bar.",
       "nature": "narration-a-reformuler",
       "ref": [
-        "EDO 02 l.172-181"
+        "EDO 02 l.184-193"
       ]
     },
     {
@@ -1252,7 +1252,7 @@
       "texte": "Récompenses de PX : 10 pour Rolf, 20 chacun pour les mutants, 10 chacun pour la lettre d'héritage, 5 chacun pour ne pas éveiller les soupçons des patrouilleurs.",
       "nature": "narration-a-reformuler",
       "ref": [
-        "EDO 02 l.187-194"
+        "EDO 02 l.199-206"
       ]
     }
   ],
@@ -1272,7 +1272,7 @@
       "competence": "Esquive",
       "difficulte": "non précisée par le livre",
       "ref": [
-        "EDO 02 l.156"
+        "EDO 02 l.168"
       ]
     },
     {
@@ -1292,7 +1292,7 @@
       "ref": [
         "EDO 02 l.13",
         "EDO 02 l.27",
-        "EDO 02 l.204-218"
+        "EDO 02 l.216-230"
       ]
     },
     {
@@ -1300,8 +1300,8 @@
       "texte": "Quatre brigands mutants (Terenz, Mikael, Johann, Erik, bandit mutant Bronze 1) plus Knud Cratinx (hors-la-loi mutant Bronze 2, en retrait à l'arbalète) : les mutants sont Surpris s'ils sont attaqués ; si seules des armes à distance sont employées, Surpris pendant deux Rounds (deux tirs libres) ; fuite dès que deux d'entre eux sont tués ; piste suivie sur environ un demi-kilomètre puis perdue. Blessures restantes : Terenz 3, Mikael 1, Johann 4, Erik 2",
       "ref": [
         "EDO 02 l.79-83",
-        "EDO 02 l.227-239",
-        "EDO 02 l.241-254"
+        "EDO 02 l.239-251",
+        "EDO 02 l.253-266"
       ]
     },
     {
@@ -1316,7 +1316,7 @@
       "texte": "Patrouilleurs routiers : Sergent Magnus Pflaster (Argent 4) et quatre patrouilleurs (Baldwin, Leopold, Sunna, Willirun, Argent 2), soit cinq cavaliers ; méfiants, arrêtent et interrogent les Personnages s'ils les insultent ou les menacent",
       "ref": [
         "EDO 02 l.99-101",
-        "EDO 02 l.262-291"
+        "EDO 02 l.274-303"
       ]
     },
     {
@@ -1359,8 +1359,8 @@
       "id": "renc10",
       "texte": "Anida Pflaster, Doktor (Argent 5), PNJ de soin, pas de combat",
       "ref": [
-        "EDO 02 l.181",
-        "EDO 02 l.305-317"
+        "EDO 02 l.193",
+        "EDO 02 l.317-329"
       ]
     }
   ],
@@ -1369,30 +1369,30 @@
       "id": "rec1",
       "texte": "10 PX pour avoir vaincu Rolf Hurtsis",
       "ref": [
-        "EDO 02 l.189"
+        "EDO 02 l.201"
       ]
     },
     {
       "id": "rec2",
       "texte": "20 PX chacun pour avoir vaincu les mutants",
       "ref": [
-        "EDO 02 l.190"
+        "EDO 02 l.202"
       ]
     },
     {
       "id": "rec3",
       "texte": "10 PX chacun pour avoir découvert la lettre d'héritage",
       "ref": [
-        "EDO 02 l.191"
+        "EDO 02 l.203"
       ]
     },
     {
       "id": "rec4",
       "texte": "5 PX chacun pour ne pas avoir éveillé les soupçons des patrouilleurs routiers ; PX supplémentaires à discrétion, plus des points de fin de séance pour interprétation et idées",
       "ref": [
-        "EDO 02 l.192",
-        "EDO 02 l.187",
-        "EDO 02 l.194"
+        "EDO 02 l.204",
+        "EDO 02 l.199",
+        "EDO 02 l.206"
       ]
     },
     {
@@ -1400,7 +1400,7 @@
       "texte": "Butin de Knud : 2 CO 3/13, anneau (3 CO), médaillon d'argent (1 CO) avec portrait miniature d'un des artisans morts, arbalète, épée",
       "ref": [
         "EDO 02 l.85",
-        "EDO 02 l.252-254"
+        "EDO 02 l.264-266"
       ]
     },
     {
@@ -1416,8 +1416,8 @@
       "texte": "Document 3 (L'héritage : titre de propriété du manoir de Lieberung, terres et 20 000 couronnes d'or impériales, sous réserve de l'affidavit) et Document 4 (L'affidavit)",
       "ref": [
         "EDO 02 l.93-95",
-        "EDO 02 l.137",
-        "EDO 02 l.148"
+        "EDO 02 l.143",
+        "EDO 02 l.154"
       ]
     },
     {
@@ -1431,8 +1431,8 @@
       "id": "rec9",
       "texte": "Remise de 1/- sur les 4/- du Doktor si les Personnages disent avoir détourné son frère",
       "ref": [
-        "EDO 02 l.303",
-        "EDO 02 l.181"
+        "EDO 02 l.315",
+        "EDO 02 l.193"
       ]
     }
   ],
@@ -1456,7 +1456,7 @@
       "ref": [
         "EDO 02 l.93",
         "EDO 02 l.95",
-        "EDO 02 l.137"
+        "EDO 02 l.143"
       ]
     },
     {
@@ -1476,7 +1476,7 @@
       "portee": "chapitre",
       "ref": [
         "EDO 02 l.21-25",
-        "EDO 02 l.189"
+        "EDO 02 l.201"
       ]
     },
     {
@@ -1485,7 +1485,7 @@
       "sens": "produit",
       "portee": "campagne",
       "ref": [
-        "EDO 02 l.164-166"
+        "EDO 02 l.176-178"
       ]
     },
     {
@@ -1495,7 +1495,7 @@
       "portee": "chapitre",
       "ref": [
         "EDO 02 l.101",
-        "EDO 02 l.192"
+        "EDO 02 l.204"
       ]
     },
     {
@@ -1515,7 +1515,7 @@
       "portee": "chapitre",
       "ref": [
         "EDO 02 l.68",
-        "EDO 02 l.181"
+        "EDO 02 l.193"
       ]
     },
     {
@@ -1534,7 +1534,7 @@
       "portee": "campagne",
       "ref": [
         "EDO 02 l.75",
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     },
     {
@@ -1543,7 +1543,7 @@
       "sens": "lu",
       "portee": "campagne",
       "ref": [
-        "EDO 02 l.172"
+        "EDO 02 l.184"
       ]
     },
     {
@@ -1553,7 +1553,7 @@
       "portee": "chapitre",
       "ref": [
         "EDO 02 l.103",
-        "EDO 02 l.158"
+        "EDO 02 l.170"
       ]
     },
     {
@@ -1562,9 +1562,9 @@
       "sens": "produit",
       "portee": "campagne",
       "ref": [
-        "EDO 02 l.181",
-        "EDO 02 l.260",
-        "EDO 02 l.303"
+        "EDO 02 l.193",
+        "EDO 02 l.272",
+        "EDO 02 l.315"
       ]
     },
     {
@@ -1582,7 +1582,7 @@
       "sens": "produit",
       "portee": "chapitre",
       "ref": [
-        "EDO 02 l.174"
+        "EDO 02 l.186"
       ]
     }
   ],
@@ -1592,8 +1592,8 @@
       "texte": "Le livre ne donne aucune durée en séances ni en jours de jeu pour le chapitre. Repères : deux heures de voyage depuis le départ jusqu'à l'embuscade ; arrivée à l'Auberge des Sept Rayons à la tombée de la nuit ; voyage repris le lendemain",
       "ref": [
         "EDO 02 l.13",
-        "EDO 02 l.168",
-        "EDO 02 l.172"
+        "EDO 02 l.180",
+        "EDO 02 l.184"
       ]
     },
     {
@@ -1602,14 +1602,14 @@
       "ref": [
         "EDO 02 l.34",
         "EDO 02 l.83",
-        "EDO 02 l.235-239"
+        "EDO 02 l.247-251"
       ]
     },
     {
       "id": "dur3",
       "texte": "Les soins ne doivent pas être trop fréquents « pour ne pas que les joueurs se sentent trop en sécurité » ; le Doktor est disponible si le MJ est « d'humeur miséricordieuse »",
       "ref": [
-        "EDO 02 l.181"
+        "EDO 02 l.193"
       ]
     },
     {
@@ -1625,7 +1625,7 @@
       "id": "comp1",
       "texte": "Tableau Météo par saison (Temps sec, Beau temps, Pluie, Pluie diluvienne, Neige, Blizzard), jet au début de chaque étape ; effets : pluie visibilité 25 m et -10 armes à distance, diluvienne -10 tests physiques / -20 distance / poudre inutilisable, neige Résistance +20 sinon Exténué.",
       "categorie": "regle",
-      "pourCeChapitre": "Trajet en diligence jusqu'à l'Auberge des Sept Rayons (EDO 02 l.170) et reste du voyage vers Altdorf ; Hultz/chevaux emballés (EDO 02 l.27) et poursuite sous les arbres (EDO 02 l.77-85).",
+      "pourCeChapitre": "Trajet en diligence jusqu'à l'Auberge des Sept Rayons (EDO 02 l.182) et reste du voyage vers Altdorf ; Hultz/chevaux emballés (EDO 02 l.27) et poursuite sous les arbres (EDO 02 l.77-85).",
       "ref": [
         "EDOC 08 l.48-84"
       ]
@@ -1634,7 +1634,7 @@
       "id": "comp2",
       "texte": "Option Attraper froid : Test d'Exposition en fin d'étape sous pluie/neige sans manteau ni tente ; maladies Rhume commun et Pneumonie (contraction, incubation, durée, symptômes).",
       "categorie": "regle",
-      "pourCeChapitre": "Chevaux retrouvés dans les bois (EDO 02 l.156) et trajet jusqu'à la nuit aux Sept Rayons (EDO 02 l.168-172).",
+      "pourCeChapitre": "Chevaux retrouvés dans les bois (EDO 02 l.168) et trajet jusqu'à la nuit aux Sept Rayons (EDO 02 l.180-184).",
       "ref": [
         "EDOC 08 l.88-125"
       ]
@@ -1643,7 +1643,7 @@
       "id": "comp3",
       "texte": "Activités de voyage (une par étape ; échec = Exténué) : Plein air, Approvisionnement, Recueillir des informations (Ragot, DR = questions), Rester aux aguets (Perception : pas surpris), Établir des cartes, Pratiquer une Compétence, Récupérer, Monter un camp, Gagner sa vie.",
       "categorie": "regle",
-      "pourCeChapitre": "Étapes de route avant/après l'embuscade ; Rester aux aguets s'oppose à l'État Surpris de Gunnar et à la panique des chevaux (EDO 02 l.13-27) ; Recueillir des informations / rumeurs aux Sept Rayons (EDO 02 l.170-172).",
+      "pourCeChapitre": "Étapes de route avant/après l'embuscade ; Rester aux aguets s'oppose à l'État Surpris de Gunnar et à la panique des chevaux (EDO 02 l.13-27) ; Recueillir des informations / rumeurs aux Sept Rayons (EDO 02 l.182-184).",
       "ref": [
         "EDOC 08 l.129-180"
       ]
@@ -1652,7 +1652,7 @@
       "id": "comp4",
       "texte": "Étapes du voyage : nombre d'étapes modulé par le Mouvement le plus faible, réduction par Test d'Orientation/Savoir ; distances et exemple Altdorf-Middenheim.",
       "categorie": "regle",
-      "pourCeChapitre": "Découpage du trajet Bögenhafen/Altdorf du chapitre : Auberge des Sept Rayons = dernier arrêt avant Altdorf (EDO 02 l.168-170).",
+      "pourCeChapitre": "Découpage du trajet Bögenhafen/Altdorf du chapitre : Auberge des Sept Rayons = dernier arrêt avant Altdorf (EDO 02 l.180-182).",
       "ref": [
         "EDOC 08 l.21-42"
       ]
@@ -1661,7 +1661,7 @@
       "id": "comp5",
       "texte": "Rencontre fortuite Route à péage (66-75) : péage tenu par noble, intérêt commercial ou entreprise privée, frais selon le Statut social, renvoi aux Postes de péages (p.40 du compagnon).",
       "categorie": "peage",
-      "pourCeChapitre": "Tronçon de route entre la diligence renversée et les Sept Rayons (EDO 02 l.168-170), ou les patrouilleurs routiers de Pflaster qui amendent et acceptent des pots-de-vin (EDO 02 l.97-101, EDO 02 l.277).",
+      "pourCeChapitre": "Tronçon de route entre la diligence renversée et les Sept Rayons (EDO 02 l.180-182), ou les patrouilleurs routiers de Pflaster qui amendent et acceptent des pots-de-vin (EDO 02 l.97-101, EDO 02 l.289).",
       "ref": [
         "EDOC 08 l.213"
       ]
@@ -1670,7 +1670,7 @@
       "id": "comp6",
       "texte": "Rencontres fortuites : Environnement suspect (1-10), Champ de bataille (11-20), Déplacement de masse (21-30), Oh non pas eux (31-40, Delberz Trötte), Tentations sur la route (41-50), Mauvaise influence (51-65), La chose qui ne devrait pas être (76-80), La Providence (81-90), Un ami dans le besoin (91-00).",
       "categorie": "rencontre",
-      "pourCeChapitre": "Trajet avant l'embuscade (EDO 02 l.11) et trajet vers Sept Rayons où le chapitre invite à croiser diligences, caravane de marchands, cavalerie (EDO 02 l.168) ; Environnement suspect/Champ de bataille nourrissent l'option Rien à signaler (EDO 02 l.64) et la paranoïa.",
+      "pourCeChapitre": "Trajet avant l'embuscade (EDO 02 l.11) et trajet vers Sept Rayons où le chapitre invite à croiser diligences, caravane de marchands, cavalerie (EDO 02 l.180) ; Environnement suspect/Champ de bataille nourrissent l'option Rien à signaler (EDO 02 l.64) et la paranoïa.",
       "ref": [
         "EDOC 08 l.207-216"
       ]
@@ -1679,7 +1679,7 @@
       "id": "comp7",
       "texte": "Rencontres dangereuses : Voyage fatigant (1-10), Voleurs (11-20, Wolmar Rotte, Wilhelm Kind), Territoire hostile (21-30, embuscade/Discrétion Rural), Terre empoisonnée (31-40), Même la nature vous déteste (41-50), Très mauvais temps (51-70), Équipement essentiel endommagé (71-80), Conditions répugnantes / Vérole du Tanneur (81-90), Monture en fuite (91-00).",
       "categorie": "rencontre",
-      "pourCeChapitre": "Territoire hostile et Monture en fuite font écho à l'embuscade et aux chevaux emballés (EDO 02 l.27, EDO 02 l.73-75) puis retrouvés dans les bois (EDO 02 l.156) ; Conditions répugnantes pour l'auberge bondée (EDO 02 l.172).",
+      "pourCeChapitre": "Territoire hostile et Monture en fuite font écho à l'embuscade et aux chevaux emballés (EDO 02 l.27, EDO 02 l.73-75) puis retrouvés dans les bois (EDO 02 l.168) ; Conditions répugnantes pour l'auberge bondée (EDO 02 l.184).",
       "ref": [
         "EDOC 08 l.225-233"
       ]
@@ -1688,7 +1688,7 @@
       "id": "comp8",
       "texte": "Rencontres positives : Bonne compagnie, Voilà qui est utile, Un merveilleux hébergement (guérit tout État persistant), Temps libre, Un mot gentil, Raccourci, Voyage tranquille (guérit toutes Blessures).",
       "categorie": "rencontre",
-      "pourCeChapitre": "Récompense d'un Succès Impressionnant sur le trajet ; Un merveilleux hébergement / Voyage tranquille en substitut ou complément au médecin des Sept Rayons (EDO 02 l.179-181) et à la nuit d'auberge (EDO 02 l.170).",
+      "pourCeChapitre": "Récompense d'un Succès Impressionnant sur le trajet ; Un merveilleux hébergement / Voyage tranquille en substitut ou complément au médecin des Sept Rayons (EDO 02 l.191-193) et à la nuit d'auberge (EDO 02 l.182).",
       "ref": [
         "EDOC 08 l.186-198"
       ]
@@ -1697,7 +1697,7 @@
       "id": "comp9",
       "texte": "Improvisation : le MJ invente la réponse, le PNJ interrogé invente aussi ce qu'il croit vrai, Test d'Intuition possible.",
       "categorie": "regle",
-      "pourCeChapitre": "Rumeurs et clientèle de l'Auberge des Sept Rayons (EDO 02 l.172) ; patrouilleurs interrogés sur Kastor et les lettres (EDO 02 l.164-166).",
+      "pourCeChapitre": "Rumeurs et clientèle de l'Auberge des Sept Rayons (EDO 02 l.184) ; patrouilleurs interrogés sur Kastor et les lettres (EDO 02 l.176-178).",
       "ref": [
         "EDOC 08 l.147-153"
       ]
@@ -1706,7 +1706,7 @@
       "id": "comp10",
       "texte": "Mutants bandits et sauvages : ~trois quarts des attaques d'hommes-bêtes sur les routes sont des mutants ; familles qui déposent de la nourriture ; mutants tolérés par les hommes-bêtes, inférieurs aux ungors ; le texte cite explicitement la rencontre du chapitre 2 comme typique de leur mode opératoire.",
       "categorie": "lieu",
-      "pourCeChapitre": "Bande de Knud Cratinx (EDO 02 l.9, EDO 02 l.79-85), brigands mutants (EDO 02 l.220-239) et Knud (EDO 02 l.241-254) : contexte et sens de leur fuite en forêt après deux morts (EDO 02 l.83).",
+      "pourCeChapitre": "Bande de Knud Cratinx (EDO 02 l.9, EDO 02 l.79-85), brigands mutants (EDO 02 l.232-251) et Knud (EDO 02 l.253-266) : contexte et sens de leur fuite en forêt après deux morts (EDO 02 l.83).",
       "ref": [
         "EDOC 12 l.40-52"
       ]
@@ -1724,7 +1724,7 @@
       "id": "comp12",
       "texte": "Créer des mutants : une mutation suffit, rarement plus de quatre ; tableaux Mutations physiques (colonnes Toute Puissance/Khorne/Nurgle/Slaanesh/Tzeentch), Tête bestiale, Obsessions, Mutations mentales ; mutation visible = pénalités de Sociabilité, fuite, Garde, répurgateurs.",
       "categorie": "regle",
-      "pourCeChapitre": "Mutations des brigands (Terenz Crétin, Mikael Tête bestiale (Chien), Johann Tête pointue, Erik Pattes (Chèvre)) EDO 02 l.233-239, Rolf Chair putréfiée EDO 02 l.216-218, Knud Écailles épineuses EDO 02 l.252 ; EDO 02 l.224 renvoie à la p.147 pour leur description.",
+      "pourCeChapitre": "Mutations des brigands (Terenz Crétin, Mikael Tête bestiale (Chien), Johann Tête pointue, Erik Pattes (Chèvre)) EDO 02 l.245-251, Rolf Chair putréfiée EDO 02 l.228-230, Knud Écailles épineuses EDO 02 l.264 ; EDO 02 l.236 renvoie à la p.147 pour leur description.",
       "ref": [
         "EDOC 12 l.54-63",
         "EDOC 12 l.69-72",
@@ -1737,7 +1737,7 @@
       "id": "comp13",
       "texte": "Entrées de mutation correspondant aux PNJ de la rencontre : Crétin (-40 Int, Stupide), Tête pointue (Stupide, -5 Int, -10 Soc, +1 PA tête), Chair putréfiée (Peur 3, -20 Soc), Pattes (+1 Mouvement), Tête bestiale Chien (Morsure +5, Sens aiguisé Odorat).",
       "categorie": "regle",
-      "pourCeChapitre": "Fiches Terenz, Mikael, Johann, Erik, Rolf (EDO 02 l.200-250) : descriptions de mutation à reporter dans les traits de chaque brigand.",
+      "pourCeChapitre": "Fiches Terenz, Mikael, Johann, Erik, Rolf (EDO 02 l.212-262) : descriptions de mutation à reporter dans les traits de chaque brigand.",
       "ref": [
         "EDOC 12 l.69",
         "EDOC 12 l.72",
@@ -1769,7 +1769,7 @@
       "id": "comp16",
       "texte": "Organisation de la Main Pourpre : cellules de neuf, Ordo Impedimentae/Novitiae/Terribilis, Magistri, Triumvirat, Magister Magistri, Cercle intérieur ; symbole de la main violette ; méthodes ; rivaux (Couronne Rouge, répurgateurs du Marteau d'argent).",
       "categorie": "lieu",
-      "pourCeChapitre": "Kastor Lieberung, membre de longue date de la Main Pourpre venu de Middenheim (EDO 02 l.87-89) et le 'Magister impedimentae' (EDO 02 l.107-125) : explicite le rôle de l'Ordo Impedimentae.",
+      "pourCeChapitre": "Kastor Lieberung, membre de longue date de la Main Pourpre venu de Middenheim (EDO 02 l.87-89) et le 'Magister impedimentae' (EDO 02 l.108-125) : explicite le rôle de l'Ordo Impedimentae.",
       "ref": [
         "EDOC 13 l.30-79"
       ]
@@ -1788,7 +1788,7 @@
       "id": "comp18",
       "texte": "Nouveaux talents de cultiste de Tzeentch : Bénédiction de Tzeentch, Disciple du changement (relancer deux fois les mutations), Double vie (deuxième Carrière parallèle), Empreint de Magie.",
       "categorie": "regle",
-      "pourCeChapitre": "Équipement de PNJ cultiste ou Lieberung sorcier (EDO 02 l.50-56) ; identité secrète/double vie du sosie dont un PJ prend la place pour l'héritage (EDO 02 l.87-95, EDO 02 l.129-168).",
+      "pourCeChapitre": "Équipement de PNJ cultiste ou Lieberung sorcier (EDO 02 l.50-56) ; identité secrète/double vie du sosie dont un PJ prend la place pour l'héritage (EDO 02 l.87-95, EDO 02 l.129-180).",
       "ref": [
         "EDOC 13 l.85-101",
         "EDOC 13 l.254"
@@ -1817,7 +1817,7 @@
       "id": "comp21",
       "texte": "Emmaretta, chasseuse (Bronze 4) félin-garou voyageant seule vers la ville avec l'argent de la caution de son amoureux Klaus ; deux grands félins la suivent ; Test de Savoir (Astronomie/Astrologie) pour la pleine Mannslieb ; Métamorphe ; piste pour garde corrompu, bandits.",
       "categorie": "scenario-annexe",
-      "pourCeChapitre": "Voyageuse croisée sur la route avant l'embuscade ou entre l'auberge des Sept Rayons et Altdorf (EDO 02 l.168-170, EDO 02 l.11) ; variante loups-garous ou malédiction proposée par le compagnon (EDOC 14 l.65-67).",
+      "pourCeChapitre": "Voyageuse croisée sur la route avant l'embuscade ou entre l'auberge des Sept Rayons et Altdorf (EDO 02 l.180-182, EDO 02 l.11) ; variante loups-garous ou malédiction proposée par le compagnon (EDOC 14 l.65-67).",
       "ref": [
         "EDOC 14 l.7-67"
       ]
@@ -1826,7 +1826,7 @@
       "id": "comp22",
       "texte": "Trait Métamorphe (créature) et profil Grand félin (Frappe mortelle, Furtif, Perception -20 pour les repérer).",
       "categorie": "regle",
-      "pourCeChapitre": "Fiches de créatures associées à Emmaretta, rencontre annexe sur la route (EDO 02 l.168-170).",
+      "pourCeChapitre": "Fiches de créatures associées à Emmaretta, rencontre annexe sur la route (EDO 02 l.180-182).",
       "ref": [
         "EDOC 14 l.41-61"
       ]
@@ -1835,7 +1835,7 @@
       "id": "comp23",
       "texte": "Un ami dans le besoin : nuit pluvieuse sur la route de Helmgart, sanctuaire de Taal, fantôme de Johann Gespenst (Peur 2, Éthéré, Instable), restes à enterrer (2 CO la tombe), sœur Greta, quatre rubis de 15 CO.",
       "categorie": "scenario-annexe",
-      "pourCeChapitre": "Étape nocturne entre l'embuscade et les Sept Rayons si les PJ doivent voyager de nuit (EDO 02 l.168-170), l'aubergiste qui décourage le départ rappelle l'auberge de La Diligence/Sept Rayons (EDO 02 l.170-172) ; décors et rencontre sur patrouilleurs évités (EDO 02 l.97).",
+      "pourCeChapitre": "Étape nocturne entre l'embuscade et les Sept Rayons si les PJ doivent voyager de nuit (EDO 02 l.180-182), l'aubergiste qui décourage le départ rappelle l'auberge de La Diligence/Sept Rayons (EDO 02 l.182-184) ; décors et rencontre sur patrouilleurs évités (EDO 02 l.97).",
       "ref": [
         "EDOC 14 l.70-108"
       ]
@@ -1844,7 +1844,7 @@
       "id": "comp24",
       "texte": "Dans le scénario « Un ami dans le besoin » : la ville la plus proche a un cimetière entretenu par un prêtre de Morr, peut-être aussi une Guilde des Pleureuses ; une tombe individuelle avec pierre tombale coûte 2 CO, l'inhumation en fosse commune non marquée est gratuite.",
       "categorie": "lieu",
-      "pourCeChapitre": "Corps des victimes préparés à l'auberge-relais pour l'augure de Morr et archives de Verena (EDO 02 l.160-168).",
+      "pourCeChapitre": "Corps des victimes préparés à l'auberge-relais pour l'augure de Morr et archives de Verena (EDO 02 l.172-180).",
       "ref": [
         "EDOC 14 l.100"
       ]
