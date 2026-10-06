@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, type Scene, type Terrain } from './scene';
-import { pathTo, reachable, walkNeighbors } from './path';
+import { pathTo, reachable, walkNeighbors, tileKey, tileFromKey } from './path';
 
 /**
  * Pathfinding VERTICAL auto-dérivé du RELIEF (plus d'escaliers explicites) : la traversée d'une couche
@@ -102,5 +102,26 @@ describe('path — un pas qui change de couche ne voit que l’arête de la couc
     const s = avecMur(0);
     expect(pathTo(s, { x: 1, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { blocked: empty })).not.toBeNull(); // pas de mur en y3
     expect(walkNeighbors(s, { x: 1, y: 2, z: 0 }).some((n) => n.x === 2 && n.y === 2 && (n.z ?? 0) === 0)).toBe(false);
+  });
+});
+
+describe('path — tileFromKey, réciproque de tileKey', () => {
+  it('« x,y » rend la case au sol, sans z (convention de `Pt`)', () => {
+    expect(tileFromKey('3,4')).toEqual({ x: 3, y: 4 });
+    expect('z' in tileFromKey('3,4')).toBe(false);
+  });
+
+  it('« x,y,z » rend la case de l’étage, z compris', () => {
+    expect(tileFromKey('3,4,1')).toEqual({ x: 3, y: 4, z: 1 });
+  });
+
+  it('aller-retour : chaque clé de `reachable` à l’étage redonne sa case', () => {
+    const reach = reachable(twoLayer(true), { x: 0, y: 2, z: 0 }, 20, { blocked: new Set<string>() });
+    for (const k of reach.keys()) {
+      const t = tileFromKey(k);
+      expect(tileKey(t.x, t.y, t.z ?? 0)).toBe(k);
+    }
+    expect(tileFromKey('2,2,1').z).toBe(1);
+    expect(reach.has('2,2,1')).toBe(true);
   });
 });

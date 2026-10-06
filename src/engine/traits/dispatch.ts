@@ -378,7 +378,7 @@ export function hasAutoClimb(traits: TraitList | undefined): boolean {
 }
 
 /** Grimpant (LDB 85 l.160-162) : vitesse de Mouvement MAXIMALE (coût normal) sur les surfaces
- *  d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.53, joueur). */
+ *  d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.55, joueur). */
 export function hasClimbFullSpeed(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'climbFullSpeed');
 }

@@ -24,8 +24,8 @@
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
 import { Combatant, Weapon } from '../engine/types';
-import { Scene, sceneMetresPerTile } from './scene';
-import { reachable, flyReachable, manhattan, chebyshev, Pt, type TraverseCapability } from './path';
+import { Scene, sceneMetresPerTile, heightAt } from './scene';
+import { reachable, flyReachable, manhattan, chebyshev, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
 import { footprintChebyshev, footprintN, combatDistance } from './footprint';
 import { verticalTiles } from './relief';
 import { makeLosMemo, type LosMemo } from './lineOfSight';
@@ -539,11 +539,11 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const mr = meleeReachTiles(enemy.weapons);
   const mpt = sceneMetresPerTile(scene); // m/case de la scène (échelle RAW, défaut 2) → convertit la hauteur en cases
   // Z-AWARE (relief métrique) : la séparation VERTICALE réelle (Δhauteur ÷ m/case, `verticalTiles`) borne la
-  // portée par le bas — un ennemi au sol ne frappe pas un héros sur la muraille même 2D-adjacent. La hauteur de
-  // l'ennemi (`pos.h`) vaut pour la case candidate `a` (sur SA surface) ; `b` (une cible posée) porte la sienne.
-  // Même décompte vertical que `combatDistance`.
+  // portée par le bas — un ennemi au sol ne frappe pas un héros sur la muraille même 2D-adjacent. La case
+  // candidate `a` se mesure à SA surface (`heightAt`, comme `placeCombatant`) ; `b` (une cible posée) porte
+  // la sienne. Même décompte vertical que `combatDistance`.
   const withinMelee = (a: Pt, b: Pt & { h?: number }) =>
-    Math.max(chebyshev(a, b), verticalTiles(pos.h ?? 0, b.h ?? 0, mpt)) <= mr;
+    Math.max(chebyshev(a, b), verticalTiles(heightAt(scene, a.x, a.y, a.z ?? 0), b.h ?? 0, mpt)) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
   // `combatDistance` plie empreinte ET Δhauteur (même `mpt`) → s'aligne sur la grille d'engagement de la résolution.
   const inMelee = (h: Combatant) => combatDistance(enemy, h, mpt) <= mr;
@@ -608,6 +608,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Cases atteignables ce tour (inclut la case de départ à distance 0). Vol (LDB 85 l.433) :
   // ligne directe, seules les cases d'atterrissage doivent être praticables et libres.
   const reach = (flying ? flyReachable : reachable)(scene, pos, movement, { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse });
+  const hereKey = tileKey(pos.x, pos.y, pos.z ?? 0);
 
   // ANTI-IMMOBILISME (combat ENGAGÉ, fidélité LDB 13 l.114) : si la perception ne montre AUCUNE cible
   // (lumière/Ligne de Vue) mais que des adversaires EXISTENT, l'ennemi avance d'un cran vers le plus
@@ -623,10 +624,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     let to: Pt | null = null;
     let bestD: number | null = null;
     for (const k of reach.keys()) {
-      const [x, y] = k.split(',').map(Number);
-      if (x === pos.x && y === pos.y) continue;
-      const d = manhattan({ x, y }, closest.pos!);
-      if (bestD == null || d < bestD) { bestD = d; to = { x, y }; }
+      if (k === hereKey) continue;
+      const t = tileFromKey(k);
+      const d = manhattan(t, closest.pos!);
+      if (bestD == null || d < bestD) { bestD = d; to = t; }
     }
     return forced(to ? { kind: 'move', to, thenTargetId: closest.id } : { kind: 'end' });
   }
@@ -634,7 +635,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Fuite (Brisé / Bestial blessé). `preferHidden` (Brisé, LDB 16 l.52 « hors de vue de l'ennemi ») :
   // gagner une CACHETTE (case hors de vue de tout héros) prime sur la distance ; sinon, la plus éloignée.
   const fleeMove = (preferHidden = false): EnemyAction => {
-    const tiles = [...reach.keys()].map((k) => { const [x, y] = k.split(',').map(Number); return { x, y } as Pt; });
+    const tiles = [...reach.keys()].map(tileFromKey);
     const distOf = (t: Pt) => Math.min(...heroes.map((h) => chebyshev(t, h.pos!)));
     const vuePar = (t: Pt): boolean => heroes.some((h) => h.pos && los.clear(h.pos, t));
     const hidden = preferHidden ? tiles.filter((t) => !vuePar(t)) : [];
@@ -646,7 +647,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       const d = distOf(t);
       if (d > bestDist) { bestDist = d; best = t; }
     }
-    return best.x === pos.x && best.y === pos.y ? { kind: 'end' } : { kind: 'move', to: best, thenTargetId: heroes[0].id };
+    return tileKey(best.x, best.y, best.z ?? 0) === hereKey ? { kind: 'end' } : { kind: 'move', to: best, thenTargetId: heroes[0].id };
   };
   // Dépense PROACTIVE de Détermination (LDB 17 l.57-61) pour se RESSAISIR : un acteur VERROUILLÉ
   // (`restrictsAction`, ex. Brisé) peut dépenser 1 Détermination/pion pour RETIRER l'État (sans Test, même
@@ -660,7 +661,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const clearable = restrictingConditions(enemy).find((rc) => rc.stacks <= resolve);
     if (!clearable) return null;
     const reachableFoe = adjacentFoes.length > 0 || shootableHeroes.length > 0
-      || [...reach.keys()].some((k) => { const [x, y] = k.split(',').map(Number); return heroes.some((h) => withinMelee({ x, y }, h.pos!)); });
+      || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h.pos!)));
     if (!isEngaged(enemy) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
     return { kind: 'spendResource', resource: 'resolve', via: 'removeCondition', id: clearable.id };
   };
@@ -703,8 +704,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const meleeReachableNow = (h: Combatant): boolean => {
     if (withinMelee(pos, h.pos!)) return true;
     for (const k of reach.keys()) {
-      const [x, y] = k.split(',').map(Number);
-      if (withinMelee({ x, y }, h.pos!)) return true;
+      if (withinMelee(tileFromKey(k), h.pos!)) return true;
     }
     return false;
   };
@@ -893,9 +893,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const approachCandidates = (target: Combatant): { to: Pt; posV: number }[] => {
     const out: { to: Pt; posV: number }[] = [];
     for (const k of reach.keys()) {
-      const [x, y] = k.split(',').map(Number);
-      if (x === pos.x && y === pos.y) continue; // ne pas « bouger » sur place
-      const to = { x, y };
+      if (k === hereKey) continue; // ne pas « bouger » sur place
+      const to = tileFromKey(k);
       out.push({ to, posV: positionValue(to, target) });
     }
     return out;
@@ -1111,9 +1110,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     // portée/sécurité. C'est ce gain net qui fait kiter/se replier un lanceur exposé.
     const posHere = positionValue(pos, refEnemy);
     for (const k of reach.keys()) {
-      const [x, y] = k.split(',').map(Number);
-      if (x === pos.x && y === pos.y) continue;
-      const to = { x, y };
+      if (k === hereKey) continue;
+      const to = tileFromKey(k);
       const gain = positionValue(to, refEnemy) - posHere;
       if (gain > 0) candidates.push({ action: { kind: 'move', to, thenTargetId: refEnemy.id }, kind: 'move', utility: gain, targetId: refEnemy.id, coord: to });
     }

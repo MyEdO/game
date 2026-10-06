@@ -178,7 +178,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   );
   return (
     <>
-      <GameStage3D scene={scene} mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} percage={percage ?? null} pionsEnDisques={pionsEnDisques} onEntreeEnScene={setVoile} />
+      <GameStage3D scene={scene} lecture="jeu" mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} percage={percage ?? null} pionsEnDisques={pionsEnDisques} onEntreeEnScene={setVoile} />
       {/* Le chargement de l'app, RÉUTILISÉ tel quel (`.lazy-fallback`, repli de `Suspense` dans
           `ui/App.tsx`) : `role="status"` et le mot « Chargement… », rien de plus — aucune classe de
           domaine de plus (cliquet `ui-ratchets` xii). Ce qui lui est PROPRE tient en trois réglages

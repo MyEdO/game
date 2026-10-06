@@ -35,7 +35,7 @@ import type {
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
-  victoryConditionSchema, wallClimbSchema, wallSegSchema, zoneAreaSchema, PORTEURS_DU_TYPE,
+  victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, PORTEURS_DU_TYPE,
 } from '../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../data/schemas/defs-scenes/communs';
 // Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
@@ -46,7 +46,7 @@ import type { Dir8 } from './dir8';
 import type { Pt } from './path';
 import { terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
-import { type Grade, gradeBetween, metricToLift } from './relief';
+import { type Grade, gradeBetween, metricToLift, STEP_MAX_M } from './relief';
 import { aretesA } from './wallIndex';
 
 /** Un terrain est un id de catalogue (cf. src/state/terrain.ts). L'intersection vide garde l'alias
@@ -498,6 +498,13 @@ export function enrolledEntityIds(scene: Scene): Set<string> {
   return new Set(scene.encounters.flatMap((e) => (e.members ?? []).map((m) => m.entityId)));
 }
 
+/** Position du `heroStart` de la scène (départ par défaut du groupe), ou `null` si absent. */
+export function startOf(scene: Scene): Pt | null {
+  const e = scene.entities.find((e) => e.kind === 'heroStart');
+  if (!e) return null;
+  return e.z ? { x: e.pos.x, y: e.pos.y, z: e.z } : { x: e.pos.x, y: e.pos.y };
+}
+
 export function tileAt(scene: Scene, x: number, y: number, z = 0): Terrain {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainHorsGrille();
   // Aucun repli de tuile : le schéma exige `tiles.length === w×h` sur chaque couche (#1789), donc
@@ -549,6 +556,12 @@ export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolea
   return crenellatedAt(scene, x, y, z) !== null;
 }
 
+/** Le GROUPE peut-il être posé en `pt`, case de SON étage ? Seule lecture de cette question : le pas du
+ *  groupe (`moveParty`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
+export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: number }): boolean {
+  return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
+}
+
 export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
   if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
   if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement
@@ -579,6 +592,30 @@ export function surfaceLink(
   return { grade: gradeBetween(ha, hb), drop: hb - ha };
 }
 
+/** OÙ l'on atterrit en quittant une surface : la case d'arrivée AVEC sa couche, ou le refus nommé. */
+export type Atterrissage =
+  | { kind: 'surface'; to: Pt; hauteur: number }
+  | { kind: 'aucune-surface' };
+
+/**
+ * SURFACE D'ATTERRISSAGE en (x,y) pour qui part de `hauteurDepart` (m) : la plus HAUTE surface
+ * MARCHABLE (`isWalkable`, tuile effondrée exclue) dont la hauteur ne dépasse pas le départ d'un pas
+ * (`STEP_MAX_M`), sur TOUTES les couches, par hauteur MÉTRIQUE — l'index de couche ne départage
+ * qu'une égalité (cf. `hauteurDe`). Calque de la boucle de couches de `path.ts::neighborsOf`. Seule
+ * réponse à « où atterrit-on ? » : chute volontaire, croisée franchie (`state/fallMove.ts`),
+ * effondrement d'une passerelle (`collapseStructure`). `LDB 15 l.82`. PUR.
+ */
+export function surfaceDAtterrissage(scene: Scene, x: number, y: number, hauteurDepart: number): Atterrissage {
+  let best: { z: number; h: number } | null = null;
+  for (const layer of scene.layers) {
+    if (!isWalkable(scene, x, y, layer.z)) continue;
+    const h = heightAt(scene, x, y, layer.z);
+    if (h > hauteurDepart + STEP_MAX_M) continue;
+    if (!best || h > best.h || (h === best.h && layer.z > best.z)) best = { z: layer.z, h };
+  }
+  return best ? { kind: 'surface', to: { x, y, z: best.z }, hauteur: best.h } : { kind: 'aucune-surface' };
+}
+
 /** ARÊTE cardinale d'une case, côté MONDE (N = vers y−1, E = vers x+1…) : QUEL des quatre bords d'une
  *  case porte une chose (mur, porte, paroi de relief, wedge, pan de toit). Distinct de `Dir4`
  *  (`state/dir8.ts`), qui est un CAP — une direction de déplacement ou d'orientation. Même cardinal,
@@ -593,6 +630,18 @@ export type WallSide = z.infer<typeof wallSideSchema>;
 export type WallSeg = z.infer<typeof wallSegSchema>;
 
 export type WallClimb = z.infer<typeof wallClimbSchema>;
+export type WallSecret = z.infer<typeof wallSecretSchema>;
+/** Case(s) bordant une arête : `porteuse` `(x,y)`, `voisine` à travers `side`, ou `les-deux`. */
+export type FaceDArete = z.infer<typeof faceDAreteSchema>;
+
+/** Les cases de la FACE `face` d'une arête : `porteuse` = `(x,y)` ; `voisine` = à travers `side` (`N` →
+ *  `(x,y-1)`, `E` → `(x+1,y)`) ; `les-deux` = l'une puis l'autre. Une cloison oblique (`\\`, `/`) n'a pas
+ *  de voisine. PUR. */
+export function casesDeFace(seg: { x: number; y: number; side: WallSide }, face: FaceDArete): { x: number; y: number }[] {
+  const voisine = seg.side === 'N' ? [{ x: seg.x, y: seg.y - 1 }] : seg.side === 'E' ? [{ x: seg.x + 1, y: seg.y }] : [];
+  const porteuse = [{ x: seg.x, y: seg.y }];
+  return face === 'porteuse' ? porteuse : face === 'voisine' ? voisine : [...porteuse, ...voisine];
+}
 
 /** Les propriétés d'un `WallSeg` qu'un char de LÉGENDE d'arête peut ÉCRIRE (`MapSpec.wallLegend`) :
  *  la MATIÈRE mécanique (`structure`, id de `structures.json`) et/ou le LOOK pur (`appearance`, id de
@@ -643,9 +692,86 @@ export function doorIsOpen(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
   return f !== undefined ? f : !seg.closed;
 }
 
-/** Le segment de PORTE sur l'arête (x,y,side,z), ou undefined. */
-export function doorAt(scene: Pick<Scene, 'walls'>, x: number, y: number, side: WallSide, z = 0): WallSeg | undefined {
-  return aretesA(scene, x, y, side, z).find((w) => !!w.door);
+/** Clé de flag de RÉVÉLATION d'une porte secrète (`scene.flags`) — présent & `true` = révélée.
+ *  Absent = masquée (défaut authored de `WallSeg.secret`). `EDO 08 l.404`. */
+export function secretKey(x: number, y: number, side: WallSide, z = 0): string {
+  return `__secret_${x}_${y}_${side}_${z}`;
+}
+
+/** Clé de flag de TENTATIVE de découverte d'une porte secrète (`scene.flags`) — présent & `true` = le
+ *  Test de Perception a été tenté (arbitrage utilisateur #700, 2026-09-29 : « Une seule (Recommandé) —
+ *  Un échec est définitif pour cette porte »). Absent = jamais tentée. `EDO 08 l.404`. */
+export function secretTenteKey(x: number, y: number, side: WallSide, z = 0): string {
+  return `__secret_tente_${x}_${y}_${side}_${z}`;
+}
+
+/** La porte secrète de ce segment est-elle RÉVÉLÉE ? Flag runtime ; absent = masquée (false). */
+export function porteRevelee(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return scene.flags?.[secretKey(seg.x, seg.y, seg.side, seg.z ?? 0)] === true;
+}
+
+/** Porte AUTHORÉE — lecture du DOCUMENT (éditeur, compilation, export), sans état runtime. Seul lecteur
+ *  de `WallSeg.door` avec `secretAuteur` (garde `src/lecteurs-de-porte-guard.test.ts`) ; le JEU lit
+ *  `porteEnJeu`. */
+export function porteAuteur(seg: WallSeg): boolean {
+  return !!seg.door;
+}
+
+/** Porte SECRÈTE authorée — lecture du DOCUMENT : sa définition (`wallSecretSchema`), ou undefined.
+ *  Seul lecteur de `WallSeg.secret`. `EDO 08 l.404`. */
+export function secretAuteur(seg: WallSeg): WallSecret | undefined {
+  return seg.secret;
+}
+
+/** Porte secrète NON révélée : pour le JEU, l'arête n'est pas une porte (`porteEnJeu`). */
+export function porteMasquee(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return !!secretAuteur(seg) && !porteRevelee(scene, seg);
+}
+
+/** La découverte de cette porte secrète a-t-elle été TENTÉE ? Flag runtime (`secretTenteKey`) ; absent =
+ *  jamais tentée (false). */
+export function porteTentee(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return scene.flags?.[secretTenteKey(seg.x, seg.y, seg.side, seg.z ?? 0)] === true;
+}
+
+/** L'arête est-elle une PORTE pour le JEU ? Porte authorée ET (non secrète OU révélée). SEUL prédicat
+ *  RUNTIME de « porte ». */
+export function porteEnJeu(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
+  return porteAuteur(seg) && !porteMasquee(scene, seg);
+}
+
+/** Porte AUTHORÉE non secrète — lecture STATIQUE, sans état runtime (ancrages d'authoring dérivés du
+ *  plan : une porte secrète n'y est jamais une entrée). */
+export function porteNonSecrete(seg: WallSeg): boolean {
+  return porteAuteur(seg) && !secretAuteur(seg);
+}
+
+/** Lecture d'une arête : `auteur` = le document authoré (éditeur), `jeu` = l'état runtime (partie, POV). */
+export type LectureDArete = 'auteur' | 'jeu';
+
+/** L'arête se lit-elle en PORTE sous cette lecture ? `auteur` : `porteAuteur` ; `jeu` : `porteEnJeu`. */
+export function porteSelon(scene: Pick<Scene, 'flags'>, seg: WallSeg, lecture: LectureDArete): boolean {
+  return lecture === 'auteur' ? porteAuteur(seg) : porteEnJeu(scene, seg);
+}
+
+/** Le segment de PORTE EN JEU sur l'arête (x,y,side,z), ou undefined (`porteEnJeu` : une porte secrète
+ *  masquée n'en est pas une). */
+export function doorAt(scene: Pick<Scene, 'walls' | 'flags'>, x: number, y: number, side: WallSide, z = 0): WallSeg | undefined {
+  return aretesA(scene, x, y, side, z).find((w) => porteEnJeu(scene, w));
+}
+
+/** Pose l'état RÉVÉLÉ/MASQUÉ d'une porte secrète (flag runtime) — renvoie une NOUVELLE Scène. No-op
+ *  (même réf) si l'arête ne porte pas de porte `secret`. PUR. */
+export function setDoorRevealed<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z: number, revealed: boolean): S {
+  if (!aretesA(scene, x, y, side, z).some((w) => !!secretAuteur(w))) return scene;
+  return { ...scene, flags: { ...scene.flags, [secretKey(x, y, side, z)]: revealed } };
+}
+
+/** Pose la marque de TENTATIVE d'une porte secrète (flag runtime, `secretTenteKey`) — renvoie une
+ *  NOUVELLE Scène. No-op (même réf) si l'arête ne porte pas de porte `secret`. PUR. */
+export function setDoorTentee<S extends Pick<Scene, 'walls' | 'flags'>>(scene: S, x: number, y: number, side: WallSide, z: number, tentee: boolean): S {
+  if (!aretesA(scene, x, y, side, z).some((w) => !!secretAuteur(w))) return scene;
+  return { ...scene, flags: { ...scene.flags, [secretTenteKey(x, y, side, z)]: tentee } };
 }
 
 /** Pose l'état OUVERT/FERMÉ d'une porte (flag runtime) — renvoie une NOUVELLE Scène (réf changée →
@@ -689,10 +815,18 @@ export function setStructureDown<S extends Pick<Scene, 'walls' | 'flags'>>(scene
   return { ...scene, flags: { ...scene.flags, [structureDownKey(x, y, side, z)]: down } };
 }
 
+const PREFIXE_TUILE_EFFONDREE = '__tile_down_';
+
 /** Clé de flag d'effondrement d'une TUILE d'étage (`scene.flags`) — présent & `true` = la passerelle de
  *  la case (x,y,z) s'est effondrée (z>0). Absent = intacte. Calque le patron flag des portes/structures. */
 export function collapsedTileKey(x: number, y: number, z: number): string {
-  return `__tile_down_${x}_${y}_${z}`;
+  return `${PREFIXE_TUILE_EFFONDREE}${x}_${y}_${z}`;
+}
+
+/** Les tuiles EFFONDRÉES de la scène, en une chaîne (clés de flag triées) — ce que la marchabilité
+ *  d'étage (`isWalkable`, `tileCollapsed`) lit de `scene.flags`, et rien d'autre. */
+export function tuilesEffondreesSignature(scene: Pick<Scene, 'flags'>): string {
+  return Object.keys(scene.flags ?? {}).filter((k) => k.startsWith(PREFIXE_TUILE_EFFONDREE) && scene.flags![k] === true).sort().join(';');
 }
 
 /** La tuile (x,y,z) est-elle EFFONDRÉE ? (passerelle d'étage abattue après destruction de la structure
@@ -709,10 +843,10 @@ export function setTileCollapsed<S extends Pick<Scene, 'flags'>>(scene: S, x: nu
 
 /** Une arête est-elle OUVERTE (ne bloque NI passage NI vue) ? Prédicat CANONIQUE unique des deux modes
  *  d'ouverture : porte ouverte OU structure abattue. Sinon l'arête bloque (mur plein, porte fermée,
- *  structure intacte). `wallBetween` (franchissabilité) s'y branche directement ; la TRANSPARENCE passe
+ *  porte secrète masquée, structure intacte). `wallBetween` (franchissabilité) s'y branche directement ; la TRANSPARENCE passe
  *  par `areteOcculte`, qui compose ce prédicat avec l'opacité déclarée de la Structure. */
 export function wallIsOpen(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
-  return (!!seg.door && doorIsOpen(scene, seg)) || (!!seg.structure && structureIsDown(scene, seg));
+  return (porteEnJeu(scene, seg) && doorIsOpen(scene, seg)) || (!!seg.structure && structureIsDown(scene, seg));
 }
 
 /** La Structure `id` coupe-t-elle la Ligne de Vue ? Défaut OCCULTANT : une arête sans structure (mur nu
@@ -725,11 +859,12 @@ function structureOccultante(id?: string): boolean {
 
 /** Une arête coupe-t-elle la LIGNE DE VUE ? Frère de `wallIsOpen`, et SEUL prédicat d'opacité d'arête :
  *  une arête OUVERTE (porte ouverte, structure abattue) laisse voir, et parmi celles qui TIENNENT, seules
- *  les Structures déclarées `occulte: false` laissent voir (herse à barreaux, clôture d'enclos).
+ *  les Structures déclarées `occulte: false` (herse à barreaux, clôture d'enclos) et la croisée sans
+ *  `shuttered` (arbitrage #1712, 2026-09-08) laissent voir.
  *  L’opacité n’est PAS la franchissabilité : une arête non occultante reste infranchissable
  *  (`wallBetween` ne lit jamais ce prédicat — on voit à travers une herse, on ne la traverse pas). */
 export function areteOcculte(scene: Pick<Scene, 'flags'>, seg: WallSeg): boolean {
-  return !wallIsOpen(scene, seg) && structureOccultante(seg.structure);
+  return !wallIsOpen(scene, seg) && !(seg.window && !seg.shuttered) && structureOccultante(seg.structure);
 }
 
 /** Arête CANONIQUE (cellule + side N/E) séparant deux cases ADJACENTES en cardinal — null si non
@@ -769,17 +904,14 @@ export function areteOcculteEntre(scene: Scene, ax: number, ay: number, bx: numb
   return areteEntre(scene, ax, ay, bx, by, z, (w) => areteOcculte(scene, w));
 }
 
-/** Tuiles de PASSERELLE (z=1) marchables situées « au-dessus » d'une arête de structure de sol — la case
- *  porteuse `(seg.x,seg.y)` et sa voisine à travers l'arête (`N` → (x,y-1), `E` → (x+1,y)), prises à z=1
+/** Tuiles de PASSERELLE marchables de la couche AU-DESSUS de l'arête (`seg.z + 1`) — la case
+ *  porteuse `(seg.x,seg.y)` et sa voisine à travers l'arête (`casesDeFace` `les-deux`), prises à cette couche
  *  et filtrées sur la marchabilité du terrain (`terrainWalkable`/`tileAt`). Quand la structure portant la
  *  passerelle est abattue, ces tuiles s'effondrent (cf. `collapseStructure`). Ne renvoie QUE celles
  *  réellement praticables (la passerelle réelle) ; les arêtes obliques (`\\`,`/`) n'ont pas de voisine. */
 export function parapetTilesAbove(scene: Scene, seg: { x: number; y: number; side: WallSide; z?: number }): { x: number; y: number; z: number }[] {
-  const z = 1; // une passerelle au-dessus d'une structure de sol est au 1ᵉʳ étage
-  const cells = [{ x: seg.x, y: seg.y }];
-  if (seg.side === 'N') cells.push({ x: seg.x, y: seg.y - 1 });
-  else if (seg.side === 'E') cells.push({ x: seg.x + 1, y: seg.y });
-  return cells
+  const z = (seg.z ?? 0) + 1;
+  return casesDeFace(seg, 'les-deux')
     .filter((c) => terrainWalkable(tileAt(scene, c.x, c.y, z)))
     .map((c) => ({ x: c.x, y: c.y, z }));
 }

@@ -14,7 +14,7 @@ import type { GameState, BattleState, ShootingStanceKey } from './store';
 import type { BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup } from './pendings';
 import { fleeBackstab, fleeCalme, fleeNeedCalme } from './pendings';
-import { SceneEntity, structureIsDown } from './scene';
+import { SceneEntity, porteMasquee, structureIsDown } from './scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
@@ -25,7 +25,7 @@ import { battleRng } from './battleRng';
 import { defenseDodgeMod, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, resolveFreeAttacks, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, openRoundStartPsych, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, fireTurnStartTriggers, resolveActGates, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { losClear } from './lineOfSight';
-import { smokeOf, captureMoveSnapshot } from './combatGeometry';
+import { smokeOf, captureMoveSnapshot, formationDeCombat } from './combatGeometry';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { setTriggeredTestRouter, fireOwnTestFailed } from './triggeredEffects';
 import { emitCombatEvent } from './combatEvents';
@@ -113,7 +113,7 @@ import type {
   ConjureForm,
 } from '../engine/conjuredWeapons';
 import { findSpellById } from '../data/index';
-import { reachable, moveReachFor, chebyshev, Pt } from './path';
+import { reachable, moveReachFor, chebyshev, tileKey, Pt } from './path';
 import { combatDistance } from './footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './scene';
@@ -2776,11 +2776,16 @@ export function createCombatSlice(get: Get, set: Set) {
       // Carry-in : on n'instancie pas les morts/éjectés ; on ré-importe les États PERSISTANTS du
       // groupe (Hémorragique, Empoisonné…) et on réinitialise tout l'état de combat transitoire.
       const livingParty = party.filter((h) => !h.dead && !h.outOfRencontre);
+      // Les cases des membres de la rencontre ne reçoivent aucun héros (`formationDeCombat`).
+      const prises = new Set((enc.members ?? []).flatMap((m) => {
+        const ent = scene.entities.find((e) => e.id === m.entityId);
+        return ent?.pos ? [tileKey(ent.pos.x, ent.pos.y, ent.z ?? 0)] : [];
+      }));
+      const formation = formationDeCombat(scene, partyPos, livingParty.length, prises);
       const heroes = livingParty.map((h, i) => {
         const c = {
           ...structuredClone(h),
-          // z (étage) propagé depuis partyPos → Combatant.pos.z (omis au sol pour rester byte-identique, symétrique à #802 côté ennemis)
-          pos: { x: Math.max(0, partyPos.x - 1), y: Math.min(scene.dimensions.h - 1, partyPos.y + i), ...(partyPos.z ? { z: partyPos.z } : {}) },
+          pos: formation[i],
           advantage: 0,
           conditions: persistentConditions(h), // États persistants seuls (le transitoire est jeté)
           activeEffects: [],                    // buffs en Rounds : ne survivent pas entre combats
@@ -2843,9 +2848,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
       // un Combattant inerte à PV (kind 'npc' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
       // compte que les 'enemy'). Son `structureEdge` mémorise l'arête à ABATTRE (BRÈCHE) à sa destruction ;
-      // une structure déjà abattue n'est pas ré-instanciée. Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
+      // une structure déjà abattue n'est pas ré-instanciée, une porte secrète masquée (`porteMasquee`) non plus.
+      // Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
       const structures = (scene.walls ?? [])
-        .filter((w) => !!w.structure && !structureIsDown(scene, w))
+        .filter((w) => !!w.structure && !structureIsDown(scene, w) && !porteMasquee(scene, w))
         .map((w) => {
           const data = findStructureById(w.structure!);
           if (!data) return null;

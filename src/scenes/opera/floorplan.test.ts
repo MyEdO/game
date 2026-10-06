@@ -230,7 +230,7 @@ describe('plan de l’Opéra — corps architectural et loi de dégagement', () 
   it('chaque PIÈCE est d’UN SEUL TENANT : aucun pas de son aire ne traverse un mur', () => {
     // Le calque de zones est LIBRE, l'ASCII porte les murs : rien ne les tient ensemble sinon ce test.
     // Une pièce morcelée est une pièce fausse — la loi de dégagement dégage l'aire ENTIÈRE de la zone
-    // occupée (`clearedSpace` → `interiorZoneTilesById`), donc un allié enfermé dans l'îlot A ouvrirait
+    // occupée (`clearedSpace` → `roomTilesById`), donc un allié enfermé dans l'îlot A ouvrirait
     // aussi l'îlot B, de l'autre côté d'un mur qu'il n'a pas franchi.
     const morcelees: string[] = [];
     for (const zone of s.effectZones ?? []) {
@@ -287,7 +287,7 @@ describe('plan de l’Opéra — corps architectural et loi de dégagement', () 
  */
 describe('plan de l’Opéra — apparence des murs (#1180)', () => {
   const s = buildOperaFloorplan();
-  const murs = buildWalls(s);
+  const murs = buildWalls(s, 'jeu');
   const aretes = murs.filter((el) => el.key.startsWith('wall:'));
   const coutures = murs.filter((el) => el.key.startsWith('seam:'));
   const pignons = buildRoofs(s).flatMap((el) =>

@@ -76,14 +76,14 @@ describe('apparence de structure (JSON partagé iso/POV)', () => {
   });
 
   it('le pipeline murs (buildWalls + backend affine) consomme la donnée : la face du JSON apparaît dans le SVG', () => {
-    const wood = wallSvg(buildWalls(sceneWith({ x: 1, y: 1, side: 'E' }))[0], DIMS); // 'plain' bois
+    const wood = wallSvg(buildWalls(sceneWith({ x: 1, y: 1, side: 'E' }), 'jeu')[0], DIMS); // 'plain' bois
     expect(wood).toContain(structureAppearance('plain').face); // #6e5940 (face E = SIDE_LIT identité)
-    const stone = wallSvg(buildWalls(sceneWith({ x: 1, y: 1, side: 'E', structure: 'mur-en-pierre' }))[0], DIMS);
+    const stone = wallSvg(buildWalls(sceneWith({ x: 1, y: 1, side: 'E', structure: 'mur-en-pierre' }), 'jeu')[0], DIMS);
     expect(stone).toContain(structureAppearance('mur-en-pierre').face); // palette pierre UNIFIÉE (hex du JSON)
   });
 
   it('mur FENÊTRÉ : wallSvg pose la croisée (verre froid le jour) ; NUIT → ambre émissif + class="warm"', () => {
-    const el = buildWalls(sceneWith({ x: 1, y: 1, side: 'E', window: true }))[0];
+    const el = buildWalls(sceneWith({ x: 1, y: 1, side: 'E', window: true }), 'jeu')[0];
     const day = wallSvg(el, DIMS);
     expect(day).toContain(structureAppearance('plain').window!.glass); // verre froid du JOUR (hex de la def)
     expect(day).not.toContain('class="warm"');

@@ -39,7 +39,7 @@ const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view:
 /** L'écran, sur l'un ou l'autre regard — les deux seuls cadres que `dessiner` sait dériver. */
 function écran(pov: boolean): JSX.Element {
   return (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={pov

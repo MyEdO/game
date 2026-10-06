@@ -70,7 +70,7 @@ import { sizeFootprint } from '../../../state/footprint';
 import { VIEWS, type View } from '../../rig/facing';
 import type { Rot } from '../../../geometry/iso';
 import type { Dir8 } from '../../../state/dir8';
-import { heightAt, type Scene, type SceneEntity, type WallSide } from '../../../state/scene';
+import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type SceneEntity, type WallSide } from '../../../state/scene';
 import { memoByRef, memoByRefDeps } from '../../../state/sceneMemo';
 import { PERCABLE_ATTRIBUT } from './percageLocal';
 
@@ -89,11 +89,11 @@ export type KeepEl = (el: SceneEl) => boolean;
 
 /** Éléments à FACES de la scène, dans l'ordre de peinture des builders (toutes couches pleines, comme
  *  les planches QC jugent l'ENVIRONNEMENT, pas le brouillard de l'étage actif). */
-function faceEls(scene: Scene): SceneEl[] {
+function faceEls(scene: Scene, lecture: LectureDArete): SceneEl[] {
   const maxZ = Math.max(...scene.layers.map((l) => l.z));
   return [
     ...buildFloors(scene, undefined, { activeZ: maxZ }),
-    ...buildWalls(scene),
+    ...buildWalls(scene, lecture),
     ...buildRoofs(scene),
     ...buildProps(scene).filter(estPropVolumique),
   ];
@@ -118,9 +118,9 @@ export interface WorldFace {
   side?: WallSide | CellSide;
 }
 
-export function worldFaces(scene: Scene): WorldFace[] {
+export function worldFaces(scene: Scene, lecture: LectureDArete): WorldFace[] {
   const out: WorldFace[] = [];
-  for (const el of faceEls(scene)) {
+  for (const el of faceEls(scene, lecture)) {
     if (!('faces' in el)) continue;
     const cellKey = `${el.cell.x},${el.cell.y},${el.cell.z}`;
     const pitchM = (el as RoofEl).pitch;
@@ -321,7 +321,8 @@ export function shadeSousSoleil(shade: number, fade: number): number {
  * `scene.entities` n'y entre PAS par sa référence : le décor VOLUMIQUE y contribue par une SIGNATURE
  * (`propVolumeSignature`, une chaîne) et par les objets de recette/matériau qu'il fait lire
  * (`propRecipeDeps`) ; les matières des deux autres domaines cuits y entrent par `matiereDeps`, et
- * les TERRAINS par `terrainDeps`. Un
+ * les TERRAINS par `terrainDeps`. `scene.flags` n'y entre que par ses LECTURES de cuisson :
+ * `etatDesAretesSignature` (porte en jeu, battant, structure abattue) et `tuilesEffondreesSignature`. Un
  * tableau d'entités reforgé sans que le mobilier bouge — le cas COURANT du combat (despawn,
  * déplacement forcé) — ne recuit donc rien, et la garde discriminante vit dans `prop-picking.test.ts`.
  * `scene.effectZones` en est ABSENT sciemment : `buildRoofs` le lit (`massRoomZoneIds`), mais il
@@ -333,13 +334,26 @@ export function shadeSousSoleil(shade: number, fade: number): number {
  */
 export function worldBakeDeps(scene: Scene, mpt: number): readonly unknown[] {
   return [scene.layers, scene.dimensions, scene.walls, scene.architecture, scene.reliefDefaults, scene.roofDefaults, scene.metresPerTile, mpt,
-    propVolumeSignature(scene), ...propRecipeDeps(scene), ...matiereDeps(scene), ...terrainDeps()];
+    propVolumeSignature(scene), etatDesAretesSignature(scene), tuilesEffondreesSignature(scene),
+    ...propRecipeDeps(scene), ...matiereDeps(scene), ...terrainDeps()];
 }
 
 /** Ce qu'une identité de cache écrit à la place d'un type NON NOMMÉ (#877) — jeton de SIGNATURE,
  *  jamais un id : rien ne se résout sous ce nom, et il ne peut collider avec aucune entrée de
  *  `props.json` (les crochets n'appartiennent pas aux ids). */
 const REF_NON_NOMMEE = '[sans type]';
+
+/** Ce que la cuisson lit de `scene.flags` par les ARÊTES (`wallGeometry`) : porte en jeu (révélation
+ *  d'une secrète), battant ouvert, structure abattue — une chaîne, jamais `scene.flags` entier : un flag
+ *  sans lecteur de cuisson ne recuit rien. */
+function etatDesAretesSignature(scene: Scene): string {
+  const parts: string[] = [];
+  for (const w of scene.walls ?? []) {
+    const enJeu = porteEnJeu(scene, w), ouverte = porteAuteur(w) && doorIsOpen(scene, w), abattue = structureIsDown(scene, w);
+    if (enJeu || ouverte || abattue) parts.push(`${w.x},${w.y},${w.side},${w.z ?? 0}|${+enJeu}${+ouverte}${+abattue}`);
+  }
+  return parts.join(';');
+}
 
 /** Ce que la cuisson retient des ENTITÉS : la signature des seuls décors à recette — id, ref, case,
  *  couche, cap. `scene.entities` ENTIER n'entrerait pas ici : un despawn de combat ou un déplacement
@@ -453,7 +467,7 @@ function elCuit(el: SceneEl): SceneEl {
 const zonesVivesMemo = memoByRef((scene: Scene) => {
   const table = new Map<string, readonly string[]>();
   for (const el of buildRoofs(scene)) if (el.roomZoneIds?.length) table.set(el.key, el.roomZoneIds);
-  for (const el of buildWalls(scene)) if (el.roomZoneIds?.length) table.set(el.key, el.roomZoneIds);
+  for (const el of buildWalls(scene, 'jeu')) if (el.roomZoneIds?.length) table.set(el.key, el.roomZoneIds);
   for (const el of buildProps(scene))
     if (estPropVolumique(el) && el.roomZoneIds?.length) table.set(el.key, el.roomZoneIds);
   return table;
@@ -472,8 +486,8 @@ export function roomZonesByElKey(scene: Scene): ReadonlyMap<string, readonly str
  *  la scène ou à l'échelle.
  *  Un appelant = un bake (cf. `BakedWorld`) : `stage/GameStage3D`
  *  (l'écran de jeu) le sien — aucun des deux ne partage le bake de l'autre. */
-export function bakeWorldGeometry(scene: Scene, mpt: number): BakedWorld {
-  const listées = worldFaces(scene);
+export function bakeWorldGeometry(scene: Scene, mpt: number, lecture: LectureDArete): BakedWorld {
+  const listées = worldFaces(scene, lecture);
   const faces = listées.map((f) => f.face);
   // Le RANG coplanaire se calcule sur la liste ENTIÈRE de la scène (contrat de `coplanarRanks`).
   const geoms = facesGeometry(faces, mpt, faceDepthOf());
@@ -675,8 +689,8 @@ export function applyVisibilityTint(baked: BakedWorld, tintAt: TintAt, fade = 1)
 
 /** Monde cuit ET teinté en un geste — pour un appelant qui n'a pas de teinte à faire varier (gardes,
  *  cadrage). Un écran qui suit la visibilité garde le bake et ne rejoue que `applyVisibilityTint`. */
-export function buildWorldGeometry(scene: Scene, mpt: number, tintAt: TintAt, fade = 1): WorldGeometry {
-  return applyVisibilityTint(bakeWorldGeometry(scene, mpt), tintAt, fade).geometry;
+export function buildWorldGeometry(scene: Scene, mpt: number, lecture: LectureDArete, tintAt: TintAt, fade = 1): WorldGeometry {
+  return applyVisibilityTint(bakeWorldGeometry(scene, mpt, lecture), tintAt, fade).geometry;
 }
 
 /** Un sujet de billboard prêt à texturer : où il se pose, à quelle échelle, et comment il se dessine. */
@@ -1940,12 +1954,12 @@ export function worldShadowBox(
  *  `facesGeometry`, soit la passe de `buildWorldGeometry` une seconde fois (mesuré #1181 : 1633 ms sur
  *  `opera`, contre 1815 ms pour la géométrie du monde) — une rotation ou un zoom ne la repaie plus. */
 const builtFacesBoxMemo = memoByRefDeps<Scene, THREE.Box3 | null>();
-function builtFacesBox(scene: Scene, mpt: number): THREE.Box3 | null {
-  return builtFacesBoxMemo(scene, [mpt], () => computeBuiltFacesBox(scene, mpt));
+function builtFacesBox(scene: Scene, mpt: number, lecture: LectureDArete): THREE.Box3 | null {
+  return builtFacesBoxMemo(scene, [mpt, lecture], () => computeBuiltFacesBox(scene, mpt, lecture));
 }
 
-function computeBuiltFacesBox(scene: Scene, mpt: number): THREE.Box3 | null {
-  const faces = worldFaces(scene).map((f) => f.face);
+function computeBuiltFacesBox(scene: Scene, mpt: number, lecture: LectureDArete): THREE.Box3 | null {
+  const faces = worldFaces(scene, lecture).map((f) => f.face);
   const geoms = facesGeometry(faces, mpt, faceDepthOf());
   const box = new THREE.Box3();
   const p = new THREE.Vector3();
@@ -1964,11 +1978,12 @@ function computeBuiltFacesBox(scene: Scene, mpt: number): THREE.Box3 | null {
 export function contentBox(
   scene: Scene,
   mpt: number,
+  lecture: LectureDArete,
   subjects: readonly BillboardSubject[],
   quadOf: (sub: BillboardSubject) => { widthM: number; heightM: number },
   fallback: THREE.Box3,
 ): THREE.Box3 {
-  return worldShadowBox(builtFacesBox(scene, mpt) ?? fallback, subjects, quadOf);
+  return worldShadowBox(builtFacesBox(scene, mpt, lecture) ?? fallback, subjects, quadOf);
 }
 
 /** Le disque d'ombre de contact n'a lieu d'être qu'en couleur CUITE : en mode éclairé, le billboard

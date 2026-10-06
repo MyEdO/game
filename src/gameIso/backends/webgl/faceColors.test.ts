@@ -93,7 +93,7 @@ describe('faceSurface — chaque domaine résolu par SON catalogue, jamais un li
   });
 
   it('toutes les faces de siege-enceinte reçoivent une couleur (aucune indéfinie)', () => {
-    const faces = [...buildFloors(scene), ...buildWalls(scene), ...buildRoofs(scene)].flatMap((el) => el.faces);
+    const faces = [...buildFloors(scene), ...buildWalls(scene, 'jeu'), ...buildRoofs(scene)].flatMap((el) => el.faces);
     expect(faces.length).toBeGreaterThan(100);
     const bad = faces.filter((f) => typeof faceSurface(f).color !== 'string' || faceSurface(f).color.length === 0);
     expect(bad).toEqual([]);
@@ -150,7 +150,7 @@ describe('faceSurface — la RECETTE et l’échelle d’UV viennent de la même
   });
 
   it('toutes les faces de siege-enceinte reçoivent une clé de surface non vide', () => {
-    const faces = [...buildFloors(scene), ...buildWalls(scene), ...buildRoofs(scene)].flatMap((el) => el.faces);
+    const faces = [...buildFloors(scene), ...buildWalls(scene, 'jeu'), ...buildRoofs(scene)].flatMap((el) => el.faces);
     expect(faces.filter((f) => !faceSurface(f).surfaceKey)).toEqual([]);
   });
 });

@@ -280,3 +280,12 @@ describe('sceneToAscii — honnêteté de la portée (#énoncé)', () => {
       );
   });
 });
+
+describe('clés d’arête hors ASCII', () => {
+  it('une allège de 0 m est une donnée : l’export la déclare perdue, comme la croisée qui la porte', () => {
+    const scene = buildScene({ id: 'allege', label: 'allege', size: [3, 3], walls: [{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 0 }] });
+    const avertissements = sceneToAscii(scene).warnings.join(' | ');
+    expect(avertissements).toContain('1 croisée(s) franchissable(s) (`WallSeg.crossable`)');
+    expect(avertissements).toContain('1 hauteur(s) d’allège de croisée (`WallSeg.allege`)');
+  });
+});

@@ -17,7 +17,7 @@ import { exposedCrew } from '../engine/shipCritical';
 import { footprintN, footprintTiles } from './footprint';
 import { moveEnv } from './combatGeometry';
 import { rule } from '../engine/policy';
-import { reachable, tileKey } from './path';
+import { reachable, tileKey, tileFromKey } from './path';
 import { isWalkable, type Scene } from './scene';
 
 /** Le Combattant-affût qui PORTE `poste` (le poste vit sur `hull.postes`) — recherche par `uid` de la
@@ -134,7 +134,7 @@ export function pushReachable(battle: BattleState, scene: Scene, active: Combata
   const raw = reachable(scene, active.pos, pushMovement(), { blocked, foot: 1 });
   const out = new Map<string, number>();
   for (const [k, d] of raw) {
-    const [x, y] = k.split(',').map(Number);
+    const { x, y } = tileFromKey(k);
     if (hullFootFits(scene, x + delta.x, y + delta.y, n, blocked)) out.set(k, d);
   }
   return out;
