@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,10 +47,14 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  */
 
 const UI = fileURLToPath(new URL('.', import.meta.url)); // src/ui/
+/** L'image CSS de l'arbre de travail, lue UNE fois avant les `it` : chaque lecture rejoue tout le corpus
+ *  git, et un `it` qui la paierait dépasserait sa limite sous charge (#2349). */
+let image: ReturnType<typeof imageDuDisque>;
+beforeAll(() => { image = imageDuDisque(); }, 120_000);
 /** Les modules d'ÉCRAN de l'arbre de travail. */
-const ecransDuDisque = () => modulesDEcran(imageDuDisque());
+const ecransDuDisque = () => modulesDEcran(image);
 /** Les trois volets du stock CSS, mesurés sur l'arbre de travail. */
-const mesureDuDisque = () => mesureCssCouches(imageDuDisque(), composantsDuDisque());
+const mesureDuDisque = () => mesureCssCouches(image, composantsDuDisque());
 
 /** Un fichier du corpus tel que `readCorpus` le rend : chemin POSIX depuis la racine + texte. */
 type Fichier = { rel: string; text: string };
@@ -597,7 +601,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   //    silence. Toute feuille hors de `src/ui/styles/` doit donc être déclarée nommément, et les
   //    trois statuts couvrent `src/ui/styles/` par construction — ce que l'union vérifie.
   it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', { timeout: 60_000 }, () => {
-    const primitives = modulesDePrimitive(imageDuDisque().manifeste);
+    const primitives = modulesDePrimitive(image.manifeste);
     const toutes = readCorpus(['src'], { exts: ['.css'] }).map((f) => f.rel);
     const partagees = new Set(SHARED_CSS_FILES.map((f) => `src/ui/${f}`));
     const sansStatut = toutes.filter((f) => !partagees.has(f) && !primitives.has(f) && !f.startsWith('src/ui/styles/')).sort();
@@ -929,7 +933,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
     const orchestrateur = readFileSync(join(UI, 'styles.css'), 'utf8');
     const rang = (rel: string) => orchestrateur.indexOf(`/${base(rel)}'`);
     const rangPeau = Math.max(...FEUILLES_PARTAGEES.map(rang));
-    const modules = [...ecransDuDisque().map((f) => f.rel), ...modulesDePrimitive(imageDuDisque().manifeste)];
+    const modules = [...ecransDuDisque().map((f) => f.rel), ...modulesDePrimitive(image.manifeste)];
 
     // 0. Les MATIÈRES de la couche partagée, DÉRIVÉES de ses sélecteurs.
     const PEAUX = new Set<string>();
@@ -1492,7 +1496,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
 
   it('(xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée', () => {
     const fautes: string[] = [];
-    for (const css of modulesDePrimitive(imageDuDisque().manifeste)) {
+    for (const css of modulesDePrimitive(image.manifeste)) {
       if (!css.endsWith('.css')) fautes.push(`${css} — n’est pas une feuille CSS`);
       if (!existsSync(join(UI, '..', '..', css))) fautes.push(`${css} — absent du disque`);
       if (FEUILLES_PARTAGEES.includes(css)) fautes.push(`${css} — feuille PARTAGÉE, aucune primitive ne la possède`);
@@ -1504,7 +1508,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
     const ecrans = ecransDuDisque().map((f) => f.rel);
     expect(ecrans.length, 'aucun module d’ÉCRAN mesuré — le cliquet serait vert par vacuité').toBeGreaterThan(0);
     expect(ecrans.filter((f) => FEUILLES_PARTAGEES.includes(f))).toEqual([]);
-  }, 120_000);
+  });
 
   it('(xxi) preuve par mutation — une couleur dans une classe MAL NOMMÉE d’un module d’écran rougit', () => {
     const sites = sitesIdentiteEcran([fixture('src/ui/styles/faux.css', '.layout-truc { color: var(--gold) }')]);
