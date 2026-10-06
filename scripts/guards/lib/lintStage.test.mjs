@@ -13,6 +13,7 @@ import { installer } from '../../docs/lib/enregistreur-lectures.mjs'
 import { ignoresGit } from '../../docs/lib/chemin-mesure.mjs'
 import configurationLint from '../../../oxlint.config.mjs'
 import { gitDeLArbreReel, lancerGit } from '../../test/gitDeBanc.mjs'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const NBSP = String.fromCharCode(0x00a0)
@@ -165,7 +166,7 @@ const CASSE = `export const a =${NBSP}1\n`
 const FIXTURE = 'src/lint-index-fixture.ts'
 const CONFIG = readFileSync(join(RACINE, CONFIG_LINT), 'utf8')
 /** La fermeture de la config de CET arbre, chemin → texte du disque. */
-const FERMETURE = Object.fromEntries(fermetureDeConfig(RACINE).map((rel) => [rel, readFileSync(join(RACINE, rel), 'utf8')]))
+const FERMETURE = tableTotale(fermetureDeConfig(RACINE), (rel) => readFileSync(join(RACINE, rel), 'utf8'))
 
 /** Dépôt forgé : `index` (chemin → texte) posé dans l'INDEX seul — la fermeture de la config de CET
  *  arbre y est posée aussi, sauf `config: false` —, `disque` (chemin → texte) sur le disque seul. */
@@ -210,7 +211,7 @@ test('LIGNE DE PROD au-delà de 32 767 caractères de chemins : le lot est JUGÉ
   const fichiers = Array.from({ length: 2000 }, (_, i) => `src/lint-index-lot/fichier-${String(i).padStart(4, '0')}.ts`)
   assert.ok(fichiers.join(' ').length > 32767, 'le lot dépasse la ligne de commande que Windows sait créer')
   const dernier = fichiers.at(-1)
-  const vu = lintForge({ index: { ...Object.fromEntries(fichiers.map((f) => [f, PROPRE])), [dernier]: CASSE } }, fichiers)
+  const vu = lintForge({ index: { ...tableTotale(fichiers, () => PROPRE), [dernier]: CASSE } }, fichiers)
   assert.equal(vu.saut, null)
   assert.deepEqual(vu.defauts.map((d) => `${d.site} ${d.regle}`), [`${dernier}:1:17 no-irregular-whitespace`])
 })
