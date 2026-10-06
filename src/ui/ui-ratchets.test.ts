@@ -1153,7 +1153,6 @@ const REFUS_MUET_BASELINE: Record<string, number> = {
   'editor/FlowEditor.tsx': 2,
   'editor/GameOpEditor.tsx': 4,
   'editor/Inspector.tsx': 2,
-  'editor/NarratifEditor.tsx': 3,
   'editor/Palette.tsx': 1,
   'editor/StatblockEditor.tsx': 2,
   'editor/WorldMapEditor.tsx': 1,

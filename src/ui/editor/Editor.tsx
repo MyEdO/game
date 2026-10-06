@@ -16,7 +16,8 @@ import { Palette } from './Palette';
 import { Inspector } from './Inspector';
 import { LogicDock, LogicTab } from './LogicDock';
 import { WorldMapEditor } from './WorldMapEditor';
-import { NarratifEditor } from './NarratifEditor';
+import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
+import { renommeRef, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
 import { OpenProjectModal, SaveProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from './ProjectModals';
 import { projectSave, projectsLoad, documentDeLEntree, SavedProject } from '../../state/projectLibrary';
 import { downloadText } from '../../lib/fileIo';
@@ -26,6 +27,7 @@ import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../sce
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../../data/migrationsDeProjet';
 import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
+import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nextEntityId } from '../../state/entityId';
 import { publierEditeur } from '../../state/editeurBridge';
 import {
@@ -123,7 +125,7 @@ export function Editor({
   const loadProject = useGame((s) => s.loadProject);
   const party = useGame((s) => s.party);
 
-  const { scene, setScene, setSceneNoHistory, pushSnapshot, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
+  const { scene, setScene, setSceneNoHistory, pushSnapshot, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
   // Filet de crash : sauvegarde locale débattue de LA scène active, indépendante de
   // « Fichier → Enregistrer » — un crash de rendu (`SceneErrorBoundary`) ne perd plus le travail en
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
@@ -446,6 +448,22 @@ export function Editor({
   };
 
   // --- Projet multi-scènes : la scène éditée (avec historique) à SA place dans l'ordre du document. ---
+  /** Pose un projet écrit par `NarratifEditor` (`scenes` dans l'ordre du document) : chaque morceau
+   *  n'est reposé que s'il a changé d'identité. Le narratif ne réécrit une scène que par un RENOMMAGE :
+   *  il s'applique aussi à tout l'historique de la scène active, et la scène se pose sans instantané —
+   *  annuler ne ramène jamais l'ancien id. */
+  function poserProjet(p: ProjetEdite, renommage?: Renommage) {
+    const rang = voisines.avant.length;
+    const avant = p.scenes.slice(0, rang);
+    const active = p.scenes[rang];
+    const apres = p.scenes.slice(rang + 1);
+    const memes = (a: Scene[], b: Scene[]) => a.length === b.length && a.every((s, i) => s === b[i]);
+    if (renommage) reecrireHistorique((s) => renommeRef({ scenes: [s] }, renommage.cible, renommage.nouveau).scenes[0]);
+    if (active !== scene) setSceneNoHistory(active);
+    if (!memes(avant, voisines.avant) || !memes(apres, voisines.apres)) setVoisines({ avant, apres });
+    if (p.worldMap !== worldMap) setWorldMap(p.worldMap);
+    if (p.narratif !== narratif) setNarratif(p.narratif);
+  }
   function switchScene(id: string) {
     if (id === scene.id) return;
     const i = scenesDuProjet.findIndex((s) => s.id === id);
@@ -985,7 +1003,7 @@ export function Editor({
         onDeleteScene={deleteScene}
         worldCount={worldMap ? worldMap.places.length : null}
         onWorld={() => setWorldOpen(true)}
-        narratifCount={narratif.affaires.length + narratif.indices.length + narratif.presetsPnj.length + narratif.objets.length}
+        narratifCount={REGISTRES_NARRATIFS.reduce((n, r) => n + narratif[r.cle].length, 0)}
         onNarratif={() => setNarratifOpen(true)}
         onTest={test}
       />
@@ -1188,7 +1206,7 @@ export function Editor({
         scene={scene}
         otherScenes={otherScenes}
         worldMap={worldMap}
-        objets={narratif.objets}
+        narratif={narratif}
         setScene={setScene}
         warnings={warnings}
         onSelectWarning={selectWarning}
@@ -1254,10 +1272,10 @@ export function Editor({
         </Modal>
       )}
       {worldOpen && (
-        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={scenesDuProjet} objets={narratif.objets} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
+        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={scenesDuProjet} narratif={narratif} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
       )}
       {narratifOpen && (
-        <NarratifEditor narratif={narratif} onChange={setNarratif} onClose={() => setNarratifOpen(false)} />
+        <NarratifEditor projet={{ scenes: scenesDuProjet, worldMap, narratif }} onChange={poserProjet} onClose={() => setNarratifOpen(false)} />
       )}
       {openOpen && (
         <OpenProjectModal onScenario={loadScenario} onProject={loadSaved} onBuiltin={loadBuiltin} error={loadError} onClose={() => { setOpenOpen(false); setLoadError(null); }} />

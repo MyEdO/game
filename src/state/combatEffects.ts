@@ -26,7 +26,7 @@ import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { recomputeLoadout, itemFromGive, giveTrappingLabel, withGiveQualities, autoStowNewItem } from '../engine/items';
-import { trappingById, indiceById } from './campaignData';
+import { trappingById, indiceById, documentById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
@@ -1311,8 +1311,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   document: {
     group: 'Narration', label: 'Document (handout)', icon: 'file/document',
-    make: () => ({ type: 'document', title: '', desc: '' }),
-    apply: (e, env) => { env.set({ document: { title: e.title, text: e.desc } }); },
+    make: () => ({ type: 'document', documentId: '' }),
+    apply: (e, env) => {
+      const doc = documentById(e.documentId);
+      if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
+      env.set({ document: { title: doc.titre, text: doc.prose, ...(doc.source ? { source: structuredClone(doc.source) } : {}) } }); // #2097
+    },
   },
   revealClue: {
     group: 'Narration', label: 'Révéler un indice (carnet)', icon: 'ui/search',

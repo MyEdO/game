@@ -14,6 +14,7 @@ import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee } from '../../lib/indexedDb.testkit';
 import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import { Editor } from './Editor';
 import { allBuiltinCampaigns, paquetDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 
@@ -115,7 +116,7 @@ describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
   it('le document de la scène fautive est bien celui que la porte REFUSE (sans quoi on ne mesurerait rien)', () => {
     expect(() => parseProject({
       type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'p', label: 'P', versionContenu: 1,
-      maison: 'fixture de test', narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      maison: 'fixture de test', narratif: emptyNarratif(),
       scenes: [sceneAuDecorSansType()],
     })).toThrow(/« ref » absente/);
   });
@@ -146,7 +147,7 @@ function entreeAncienne(over: Partial<SavedProject> = {}): SavedProject {
     project: {
       schema: 6,
       scenes: [sceneMuette as Scene],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      narratif: emptyNarratif(),
     },
     ...over,
   } as SavedProject;
@@ -226,7 +227,7 @@ describe('Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE', ()
       schema: CURRENT_PROJECT_SCHEMA,
       label: 'L’Arène',
       scenes: [{ ...emptyScene(4, 4), id: 'scene-copie', label: 'Salle copiée' }],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      narratif: emptyNarratif(),
     };
     const copie = { ...entreeAncienne(), id: 'entree-copie', label: 'Mon nom', project: projet } as SavedProject;
     const { refus, ecrits, enregistre } = await ouvreLaPremiereEntree([copie]);
@@ -328,7 +329,7 @@ describe('Éditeur — un projet IMPORTÉ garde son identité jusqu’à la bibl
       versionContenu: 3,
       maison: 'fixture de test — aucun folio à citer',
       scenes: [{ ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée' }],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      narratif: emptyNarratif(),
     };
     const ecrits = await importePuisEnregistre(JSON.stringify(doc));
     expect(ecrits).toHaveLength(1);

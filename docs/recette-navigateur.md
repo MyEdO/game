@@ -843,6 +843,14 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Les modales du jeu sont des `<div role="dialog">`, jamais la balise `<dialog>`** (mesuré recette
   #1279 S2) : un sélecteur `dialog` ne trouve RIEN et fait conclure à tort qu'aucune fenêtre n'est
   ouverte. Cibler `[role="dialog"]` (ou `.modal-overlay` pour le voile).
+- **Deux `role="dialog"` SUPERPOSÉS : `querySelector` rend le PREMIER du DOM, pas celui du dessus**
+  (recette #679, 2026-09-30) : la conversation et la modale de document qu'elle ouvre sont deux
+  `Modal` (`src/ui/Modal.tsx`) — `querySelector('[role="dialog"]')` a rendu la conversation, sous la
+  modale. Mesuré ce jour-là : le DERNIER `.modal-overlay` de `querySelectorAll` était la modale du
+  dessus. Ce n'est pas une règle : l'ordre du document ne dit pas l'ordre de la pile (un portal ajouté en
+  fin de `body` a déjà menti, `Modal.tsx:97-98`) ; la pile fait foi (`dialogueDuDessus`,
+  `src/ui/useDismissLayer.ts:107`). RÈGLE : viser la fenêtre par son CONTENU (titre, bouton propre),
+  et vérifier ce contenu avant d'y cliquer.
 - **Occlusion de la carte du monde sur le panneau latéral** (vécu 2026-08-05, recette 3) : sous 901px
   de large, la mise en page EMPILE carte et panneau ; `.map-canvas-frame` porte un `aspect-ratio` et
   débordait de sa cellule, son SVG recouvrant les commandes du panneau (« Rythme normal / Forcer +1 M »
@@ -930,6 +938,12 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   POV et à l'éditeur, et elle vaut pour Q/E du monde de jeu. Le `keyboard.down`/`up` de Playwright
   s'est révélé fragile pour ce geste tenu (échec silencieux : aucune rotation, aucune erreur) ;
   vérifier l'angle obtenu entre chaque geste plutôt que de le supposer.
+- **Pas d'EXPLORATION : une touche `explore-*` MAINTENUE fait COURIR le groupe** (recette #679,
+  2026-09-30) : `realKeyDown` / 350 ms / `realKeyUp` a mené le groupe de (1,2) à (4,0). La touche
+  ARME une marche (`demarrerMarche`, `src/state/stageWalk.ts:90`) qui enchaîne un pas à chaque fin de
+  glissement tant qu'elle est tenue ; le relâchement la désarme (`arreterMarche`, `:99`). Un TAP
+  (appui suivi aussitôt du relâchement) fait UN pas. Même famille que le lacet caméra ci-dessus, mais
+  sans seuil : ici, toute durée d'appui compte.
 - **Le bouton de bascule de vue nomme sa DESTINATION, pas l'état courant** (même recette) :
   « Vue du dessus » affiché ⇒ on est en ISO (`src/ui/ViewControls.tsx`). L'état RÉEL est dans
   l'`aria-pressed` de SON bouton — jamais dans un `[aria-pressed]` NU : la barre de vues en porte

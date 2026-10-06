@@ -24,7 +24,7 @@ import { refLabel } from '../../data';
 import {
   EffectFields,
   Ctx,
-  EFFECT_MENU_GROUPS,
+  menuDEffets,
   EFFECT_ICON,
   newEffect,
   effectSummary,
@@ -220,7 +220,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
 }
 
 /** Menu « + Bloc » : un nœud logique (si/test) ou une feuille d'effet (do, par catégorie). */
-function FlowAddMenu({ onAdd }: { onAdd: (node: Flow) => void }) {
+function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) {
   return (
     <AddMenu
       label="+ Bloc"
@@ -240,7 +240,7 @@ function FlowAddMenu({ onAdd }: { onAdd: (node: Flow) => void }) {
             },
           ],
         },
-        ...pickable(EFFECT_MENU_GROUPS, (key) => onAdd({ kind: 'do', effect: newEffect(key as Effect['type']) })),
+        ...pickable(menuDEffets(ctx), (key) => onAdd({ kind: 'do', effect: newEffect(key as Effect['type']) })),
       ]}
     />
   );
@@ -310,7 +310,7 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
           )}
         </details>
       ))}
-      <FlowAddMenu onAdd={(node) => set([...steps, node])} />
+      <FlowAddMenu onAdd={(node) => set([...steps, node])} ctx={ctx} />
     </div>
   );
 }

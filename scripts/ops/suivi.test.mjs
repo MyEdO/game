@@ -268,7 +268,7 @@ function mesureFactice(compte, { fetchOrigin, issues } = {}) {
     cwd: '/dep',
     gestes: {
       arbrePrincipal: () => fait('/dep'),
-      fetchOrigin: fetchOrigin ?? (() => { compte.fetch += 1; return fait('') }),
+      fetchOrigin: fetchOrigin ?? (() => { compte.fetch += 1; return fait({ status: 0, signal: null, stdout: '', stderr: '' }) }),
       branchesDe: () => [],
       divergenceDe: () => ({ avance: 0, retard: 0 }),
       journalDe: () => [],
@@ -283,7 +283,7 @@ test('--creer annonce fetch et inventaire avant leurs gestes, conserve le profil
   const sorties = []
   const mesure = mesureFactice({ fetch: 0, issues: [] }, { fetchOrigin: () => {
     assert.equal(sorties.at(-1), '[suivi] fetchOrigin — début\n')
-    return { disponible: true, valeur: '' }
+    return { disponible: true, valeur: { status: 0, signal: null, stdout: '', stderr: '' } }
   } })
   const inv = mesure.inv
   mesure.inv = (...args) => {
@@ -355,11 +355,14 @@ test('suivre : une mesure REFUSÉE réécrit la zone avec son motif daté, code 
   const dossier = dossierJetable()
   try {
     FS.writeFileSync(join(dossier, '5.md'), '## En cours\n1. #1\n')
-    const mesure = mesureFactice({ fetch: 0, issues: [] }, { fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) })
+    const mesure = mesureFactice({ fetch: 0, issues: [] }, { fetchOrigin: () => ({
+      disponible: false, issue: 'refus', raison: 'réseau coupé',
+      diagnostic: { status: null, signal: null, stderr: 'stderr début\nCAUSE TARDIVE stderr', stdout: 'stdout début\nCAUSE TARDIVE stdout' },
+    }) })
     const vu = suivre({ numero: 5, dossier, maintenant: MAINTENANT, mesure })
     assert.equal(vu.code, 1)
     const texte = FS.readFileSync(join(dossier, '5.md'), 'utf8')
-    assert.match(texte, /\*\*Mesure refusée le 2026-09-29 14:03\*\* : origin non consultable \(réseau coupé\)/)
+    assert.ok(texte.includes('**Mesure refusée le 2026-09-29 14:03** : origin non consultable (refus (status ?) — réseau coupé stderr début CAUSE TARDIVE stderr stdout début CAUSE TARDIVE stdout) — la mesure contre origin/main serait fausse ; `npm run ops:suivi -- 5 --sans-fetch` mesure sur les refs déjà là\n'))
     assert.match(texte, /`npm run ops:suivi -- 5 --sans-fetch` mesure sur les refs déjà là/)
     const jette = mesureFactice({ fetch: 0, issues: [] }, { fetchOrigin: () => { throw new Error('git introuvable') } })
     assert.match(FS.readFileSync(join(dossier, '5.md'), 'utf8'), /origin non consultable/)
