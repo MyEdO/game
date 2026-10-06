@@ -17,6 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { allEngineExports, ENGINE_ROOT } from '../../scripts/docs/lib/engineExports.mjs';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /** `docs/index-moteur.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
 const INDEX_MOTEUR = await rendreCible('docs/index-moteur.md');
@@ -29,17 +30,14 @@ const INDEX_MOTEUR = await rendreCible('docs/index-moteur.md');
 const UNDOCUMENTED_ENGINE_EXPORTS_MAX = 301;
 
 describe('cliquet de la dette de JSDoc de src/engine (#903bis)', () => {
-  const rows = allEngineExports(ENGINE_ROOT);
-  const undocumented = rows.filter((r) => !r.role);
+  const undocumented = detenteur(() => allEngineExports(ENGINE_ROOT).filter((r) => !r.role));
 
-  it('le nombre d\'exports publics sans JSDoc ne dépasse pas le plafond cliqueté', () => {
-    expect(undocumented.length).toBeLessThanOrEqual(UNDOCUMENTED_ENGINE_EXPORTS_MAX);
+  it('le nombre d\'exports publics sans JSDoc ne dépasse pas le plafond cliqueté', { timeout: 30_000 }, () => {
+    expect(undocumented().length).toBeLessThanOrEqual(UNDOCUMENTED_ENGINE_EXPORTS_MAX);
   });
 
   it('le plafond cliqueté n\'est pas resté périmé au-dessus de la mesure réelle (resserrer en documentant)', () => {
-    // Écart volontairement large (marge de travail en cours) — seul un écart EXCESSIF (>50) signale
-    // un plafond qu'on a oublié de resserrer après un gros lot de documentation.
-    expect(UNDOCUMENTED_ENGINE_EXPORTS_MAX - undocumented.length).toBeLessThan(50);
+    expect(UNDOCUMENTED_ENGINE_EXPORTS_MAX - undocumented().length).toBeLessThan(50);
   });
 });
 

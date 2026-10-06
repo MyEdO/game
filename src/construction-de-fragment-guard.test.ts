@@ -51,7 +51,7 @@ const vu = (text: string, rel = 'src/ui/fixture.tsx') =>
 const VUE = [NOM];
 
 describe('construction d’un fragment d’adresse (#1887)', () => {
-  it('aucune construction de fragment hors du foyer dans le code de production', () => {
+  it('aucune construction de fragment hors du foyer dans le code de production', { timeout: 60_000 }, () => {
     expect(constructionsReserveesDuCorpus(corpusDesGardes(), FRAGMENT)).toEqual([]);
   });
 

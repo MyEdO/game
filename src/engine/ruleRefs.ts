@@ -9,6 +9,7 @@
  * Stock DÉNOMBRABLE : la garde `src/engine/rule-refs.test.ts` recense les producteurs de `ModLine`
  * SANS `ref` — toute règle nouvellement liée retire une ligne du cliquet.
  */
+import { gelerLaConstante } from '../lib/gelerProfond';
 
 /** Cible Codex en ids STABLES : `category` = clé de catégorie du registre, `id` = id de l'entrée. */
 export interface CodexTarget {
@@ -90,7 +91,7 @@ export type RuleId =
 /** La fiche Codex de chaque règle, en ids STABLES. Les producteurs de `ModLine` la consomment
  *  (`RULE_REF.viser`), l'affichage la résout en chip cliquable — jamais un `{category, id}` recopié
  *  au site de push. Garde d'intégrité : `src/engine/rule-refs.test.ts`. */
-export const RULE_REF: Record<RuleId, CodexTarget> = {
+export const RULE_REF: Record<RuleId, CodexTarget> = gelerLaConstante({
   viser: { category: 'regles', id: 'viser' },
   'viser-une-localisation': { category: 'regles', id: 'viser-une-localisation' },
   'main-secondaire': { category: 'regles', id: 'main-secondaire' },
@@ -139,4 +140,4 @@ export const RULE_REF: Record<RuleId, CodexTarget> = {
   statut: { category: 'regles', id: 'statut' },
   'exposition-hydrique': { category: 'regles', id: 'exposition-hydrique' },
   'meteo-maritime': { category: 'seaWeather', id: 'seaWeather' },
-};
+}); // #2097

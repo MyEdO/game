@@ -1,7 +1,5 @@
 // L'UNION À TROIS ISSUES, mesurée contre git RÉEL sur un dépôt jetable — jamais sur un double :
 // c'est le CLASSEMENT des sorties de git qui doit être juste, et git seul dit ce qu'il écrit.
-// Sonde d'origine (2026-09-05) : 13 cas, dont deux motifs que la première liste ne portait pas
-// (`bad object`, `Invalid revision range`) et qui auraient classé « git en panne » deux absences.
 import { after, test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
@@ -14,7 +12,7 @@ import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
@@ -47,6 +45,96 @@ const depotFeint = (cwd, repondre, enPanne) => depotDe(cwd, { enPanne, spawn: (_
 
 /** Un git MUET : code 1, rien sur aucun flux. */
 const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
+
+test('appliquerCorrectif garde ses arguments et distingue application et présence inverse', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'node_modules/paquet/fichier.js' }
+  for (const [statuses, attendu] of [[[0, 0], true], [[1, 0], false]]) {
+    const appels = []
+    const d = depotDe(tmpdir(), { env: {}, spawn: (commande, args, options) => {
+      appels.push({ commande, args, options })
+      return { status: statuses[appels.length - 1], stderr: 'diagnostic conservé', stdout: '' }
+    } })
+    assert.equal(appliquerCorrectif(d, cible), attendu)
+    assert.equal(appels.length, 2)
+    for (const appel of appels) {
+      assert.equal(appel.commande, 'git')
+      assert.equal(appel.options.cwd, tmpdir())
+      assert.deepEqual(appel.args.slice(0, 5), ['-c', 'core.autocrlf=false', 'apply', '--whitespace=error', `--include=${cible.include}`])
+      assert.deepEqual(appel.args.slice(-2), ['--', cible.patch])
+    }
+    assert.deepEqual(appels[0].args.slice(5, -2), ['--check'])
+    assert.deepEqual(appels[1].args.slice(5, -2), attendu ? [] : ['--reverse', '--check'])
+  }
+})
+
+test('appliquerCorrectif refuse incompatibilité, application échouée et statuts anormaux', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'paquet/fichier.js' }
+  for (const statuses of [[1, 1], [0, 1], [0, 2], [2], [128], [null], [undefined], [1, 128]]) {
+    let appels = 0
+    const d = depotDe(tmpdir(), { env: {}, spawn: () => ({ status: statuses[appels++], stderr: `diagnostic ${appels}`, stdout: `sortie ${appels}` }) })
+    assert.throws(() => appliquerCorrectif(d, cible), erreur => {
+      if (statuses[0] === 1 && statuses[1] === 1) {
+        assert.equal(erreur.name, 'AggregateError')
+        assert.deepEqual(erreur.errors.map(e => [e.status, e.stderr]), [[1, 'diagnostic 1'], [1, 'diagnostic 2']])
+        assert.equal(erreur.cause, erreur.errors[1])
+      } else {
+        assert.equal(erreur.name, 'CorrectifRefuse')
+        assert.equal(erreur.status, statuses[appels - 1])
+        assert.equal(erreur.stderr, `diagnostic ${appels}`)
+        assert.equal(erreur.stdout, `sortie ${appels}`)
+      }
+      return true
+    })
+    assert.equal(appels, statuses.length)
+  }
+})
+
+test('appliquerCorrectif nomme les échecs de démarrage et les signaux sans appliquer', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'paquet/fichier.js' }
+  for (const resultat of [{ error: new Error('spawnSync git ENOENT'), status: null }, { signal: 'SIGTERM', status: null }]) {
+    for (const statuses of [[], [0], [1]]) {
+      let appels = 0
+      const d = depotDe(tmpdir(), { env: {}, spawn: () => appels++ === statuses.length ? resultat : { status: statuses[appels - 1] }, enPanne: () => assert.fail('Une écriture ne confie pas son échec') })
+      assert.throws(() => appliquerCorrectif(d, cible), erreur => {
+        assert.equal(erreur.name, 'GitIndisponible')
+        assert.equal(erreur.status, null)
+        assert.equal(erreur.signal, resultat.signal)
+        assert.equal(erreur.cause, resultat.error)
+        return true
+      })
+      assert.equal(appels, statuses.length + 1)
+    }
+  }
+  const cause = new Error('spawnSync git EACCES')
+  const d = depotDe(tmpdir(), { env: {}, spawn: () => { throw cause } })
+  assert.throws(() => appliquerCorrectif(d, cible), erreur => erreur.name === 'GitIndisponible' && erreur.cause === cause && erreur.raison === cause.message)
+})
+
+test('appliquerCorrectif refuse les chemins hors portée et les motifs avant tout lancement', () => {
+  const d = depotDe(tmpdir(), { spawn: () => assert.fail('Chemin refusé avant Git') })
+  for (const chemin of ['', '../ailleurs', 'a/../ailleurs', '/absolu', 'C' + ':/absolu', 'a\\b', '-p0', 'a/*', 'a/?', 'a/[bc]', 'a/{b,c}', 'a\nfin', 'a//b', './a']) {
+    assert.throws(() => appliquerCorrectif(d, { patch: chemin, include: 'paquet/fichier.js' }), /chemins relatifs littéraux bornés/)
+    assert.throws(() => appliquerCorrectif(d, { patch: 'patches/correctif.patch', include: chemin }), /chemins relatifs littéraux bornés/)
+  }
+})
+
+test('appliquerCorrectif réel ne touche que le chemin inclus et reste idempotent', t => {
+  const racine = mkdtempSync(join(tmpdir(), 'git-correctif-'))
+  t.after(() => jeter(racine))
+  mkdirSync(join(racine, 'paquet'))
+  for (const nom of ['cible', 'autre']) writeFileSync(join(racine, `paquet/${nom}.txt`), 'avant\n')
+  const patch = ['cible', 'autre'].map(nom => `diff --git a/paquet/${nom}.txt b/paquet/${nom}.txt\n--- a/paquet/${nom}.txt\n+++ b/paquet/${nom}.txt\n@@ -1 +1 @@\n-avant\n+apres\n`).join('')
+  writeFileSync(join(racine, 'correctif.patch'), patch)
+  const d = forge(racine)
+  const cible = { patch: 'correctif.patch', include: 'paquet/cible.txt' }
+  assert.equal(appliquerCorrectif(d, cible), true)
+  assert.equal(readFileSync(join(racine, cible.include), 'utf8'), 'apres\n')
+  assert.equal(readFileSync(join(racine, 'paquet/autre.txt'), 'utf8'), 'avant\n')
+  assert.equal(appliquerCorrectif(d, cible), false)
+  writeFileSync(join(racine, cible.include), 'incompatible\n')
+  assert.throws(() => appliquerCorrectif(d, cible), /Correctif inapplicable/)
+  assert.equal(readFileSync(join(racine, cible.include), 'utf8'), 'incompatible\n')
+})
 
 test('env fournisseur : une résolution par interrogation, objet partagé avec les rejeux et la feinte', () => {
   let resolutions = 0
@@ -1026,7 +1114,6 @@ test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le
   }
 })
 
-// FOSSILE #2203.
 test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés se conclut en les retirant de l’index — le disque les garde', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'gen.md': 'base\n', 'a.txt': 'a\n' }, message: 'socle' })
   try {

@@ -128,7 +128,13 @@ Vous devriez donner au *Magister* une identité qui constitue un défi amusant p
 
 ## DOCUMENT 3 : L'HÉRITAGE
 
-*Messires Lock, Stock & Barl Notaires, Commissaires aux serments, etc. Garten Weg Bögenhafen*
+*Messires Lock, Stock & Barl*
+
+*Notaires, Commissaires aux serments, etc.*
+
+*Garten Weg*
+
+*Bögenhafen*
 
 *Cher Herr Lieberung,*
 
@@ -147,11 +153,17 @@ Vous devriez donner au *Magister* une identité qui constitue un défi amusant p
 
 Nous, soussignés, jurons solennellement que le porteur de ce document se nomme Kastor Aloysius Lieberung.
 
-Ingrid Zicherman, prêtresse Temple de Sigmar, Nuln
+Ingrid Zicherman, prêtresse
 
-Oskar Helmut, maître de guilde Guilde des marchands, Nuln
+Temple de Sigmar, Nuln
 
-Sous le regard de Julius Schwungrad, Honorable Société des Avocats, Nuln
+Oskar Helmut, maître de guilde
+
+Guilde des marchands, Nuln
+
+Sous le regard de
+
+Julius Schwungrad, Honorable Société des Avocats, Nuln
 
 Les chevaux de la diligence des Personnages paissent un peu plus loin dans les bois. S'ils sont approchés par quelqu'un n'ayant aucune Augmentation que ce soit en Chevaucher (Cheval), en Soin aux animaux ni en Emprise sur les animaux, ils renâcleront et ne se laisseront pas faire. La personne concernée devra effectuer un Test **d'Esquive** afin de s'approcher suffisamment pour saisir les restes de leur harnachement et les maîtriser. Si les Personnages n'y parviennent pas, l'un des patrouilleurs routiers intervient et calme les bêtes avec une facilité déconcertante.
 

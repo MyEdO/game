@@ -1,5 +1,6 @@
+import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -107,12 +108,12 @@ const litteral = (e: ts.Expression): boolean => {
 
 function sites(): { rel: string; ligne: number; texte: string }[] {
   const out: { rel: string; ligne: number; texte: string }[] = [];
-  for (const { rel, text } of readCorpus(['src'])) {
-    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(readCorpus(['src']))) {
+    if (!sf) continue;
     const visit = (node: ts.Node) => {
       if (ts.isBinaryExpression(node) && REPLI.includes(node.operatorToken.kind) && nomme(node.left) && litteral(node.right))
         out.push({ rel, ligne: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, texte: `${nu(node.left).getText().replace(/\s+/g, ' ')} ${node.operatorToken.getText()} ${node.right.getText()}` });
-      ts.forEachChild(node, visit);
+      node.forEachChild(visit);
     };
     visit(sf);
   }

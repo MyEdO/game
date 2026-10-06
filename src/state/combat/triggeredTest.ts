@@ -461,7 +461,7 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
  * sur `condCtxFor`. Le journal part dans la file différée (`pendingLogQueue`). Pas de boucle → termine.
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
-  const stack: Flow[] = [flow];
+  const stack: Flow[] = [structuredClone(flow)]; // #2097
   const label = ctx.label;
   const oc: OpsCtx = { rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
   while (stack.length) {

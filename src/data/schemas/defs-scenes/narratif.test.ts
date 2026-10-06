@@ -6,8 +6,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { narratifSchema } from './narratif';
+import { emptyNarratif } from '../../../state/campaignNarratif';
 
-const vide = { affaires: [], indices: [], presetsPnj: [], objets: [] };
+const vide = emptyNarratif();
 const ouverture = { titre: 'L’Ennemi Intérieur', pitch: 'Nos héros forment un groupe hétéroclite.' };
 
 describe('narratifSchema — cadre de campagne (#717)', () => {

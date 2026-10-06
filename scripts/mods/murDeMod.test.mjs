@@ -1,29 +1,27 @@
-// Banc du mur `murs/mod-sans-regle` (#2278, eslint.config.js) sur la config RÉSOLUE du dépôt, comme
-// src/eslint-ordre-total-et-purete.test.ts : aucun sélecteur n'est recopié ici, chaque forme est lintée
-// par `ESLint#lintText` au chemin d'un module de mod. Formes rouges : sondes du juge de diff du
-// 2026-10-04 (`a0351b8ec..84d6342d7`, F1 à F6) et du juge des corrections (`b55b5bb11..7e47a38a2`, N1 à
-// N6), https://github.com/MyEdO/game/issues/2278
+// #2278
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { ESLint } from 'eslint'
+import { creerBancLint } from '../guards/lib/lint.testkit.mjs'
+import { lancerLint } from '../guards/lib/lintStage.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const MUR = 'murs/mod-sans-regle'
-const eslint = new ESLint({ cwd: RACINE })
+const lint = creerBancLint()
 const HORS_COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'module.ts')
 const COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'ops.ts')
 
-/** Le corps `corps` dans une fonction de mod, `$` et les valeurs reçus en paramètres. */
+// #2278
 const module = (corps) => `import type { EngineInterface } from 'claude-code'\nimport { appel } from './ops'\nexport async function f($: EngineInterface, n: number, m: number, t: string, re: RegExp, q: unknown, lignes: string[], ids: string[], id: string, ms: number, i: number, nom: string, e: { at: string, test: string }) {\n${corps}\n}\n`
 
-/** Les messages du mur sur `source` au chemin `chemin` ; une erreur d'analyse fait échouer le banc. */
+// #2278
 async function messagesDuMur(source, chemin) {
-  const [r] = await eslint.lintText(source, { filePath: chemin })
+  const [r] = await lint.lintText(source, { filePath: chemin })
   const fatals = r.messages.filter((m) => m.fatal)
   assert.deepEqual(fatals, [], `analyse impossible : ${JSON.stringify(fatals)}`)
   return r.messages.filter((m) => m.ruleId === MUR)
@@ -68,10 +66,10 @@ const ROUGES = [
   ["const j = t.indexOf(':')", 'F4 indexOf'],
   ['const h = t.slice(0, i)', 'F4 slice'],
   ["const h = t['split'](':')", 'F4 méthode par clé littérale'],
-  ['const m = parseInt(t, 10)', 'F4 parseInt'],
-  ['const m = Number(t)', 'F4 Number'],
+  ['const valeur = parseInt(t, 10)', 'F4 parseInt'],
+  ['const valeur = Number(t)', 'F4 Number'],
   ["const ok = t.startsWith('#') && t.includes('x')", 'F4 startsWith/includes'],
-  ['const m = re.exec(t)', 'F4 exec'],
+  ['const valeur = re.exec(t)', 'F4 exec'],
   ["const titre = nom.replace('-', ' ')", 'F4 replace'],
   ['const r = /a+/', 'F4 littéral regex'],
   ["const r = new RegExp('x')", 'F4 RegExp'],
@@ -195,30 +193,83 @@ test('COUTURE `hooks/ops.ts` : `$`, `any`, seuil, égalité numérique, `Math`, 
 for (const ext of ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'])
   test(`ROUGE — un module \`.${ext}\` sous un mod est refusé, banc compris, et LU (non ignoré)`, async () => {
     for (const rel of [`hooks/vue.${ext}`, `hooks/vue.test.${ext}`, `types/vue.${ext}`, `tests/vue.${ext}`]) {
-      assert.equal(await eslint.isPathIgnored(`.claude/skills/m/${rel}`), false, `${rel} est ignoré`)
-      const msgs = await messagesDuMur('export const a = 1\n', join(RACINE, '.claude', 'skills', 'banc', ...rel.split('/')))
+      const source = ext === 'cjs' ? 'module.exports = 1\n' : 'export const a = 1\n'
+      const msgs = await messagesDuMur(source, join(RACINE, '.claude', 'skills', 'banc', ...rel.split('/')))
       assert.equal(msgs.length, 1, rel)
       assert.match(msgs[0].message, /#2278/)
       assert.match(msgs[0].message, /un mod s'écrit en `\.ts`/)
     }
   })
 
-test('PÉRIMÈTRE : l’`include` du moteur (hooks, types, tests) hors bancs ; le reste de `.claude/` reste ignoré', async () => {
+test('PÉRIMÈTRE natif : modules et workflows lus, bancs TS et reste de `.claude/` ignorés en chemins explicites et découverte', () => {
   const lus = ['hooks/a.ts', 'hooks/sous/a.mts', 'types/index.d.ts', 'tests/a.ts', 'hooks/ops.ts']
   const ignores = ['hooks/a.test.ts', 'hooks/hooks.json', 'a.ts', 'scripts/a.ts', 'SKILL.md']
-  for (const rel of lus) assert.equal(await eslint.isPathIgnored(`.claude/skills/m/${rel}`), false, rel)
-  for (const rel of ignores) assert.equal(await eslint.isPathIgnored(`.claude/skills/m/${rel}`), true, rel)
-  for (const chemin of ['.claude/hooks/a.ts', '.claude/memory/a.mjs', '.claude/agents/a.ts', '.claude/a.ts'])
-    assert.equal(await eslint.isPathIgnored(chemin), true, chemin)
+  const modules = lus.map((rel) => `.claude/skills/m/${rel}`)
+  for (const ext of ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'])
+    for (const rel of [`hooks/vue.${ext}`, `hooks/vue.test.${ext}`, `types/vue.${ext}`, `tests/vue.${ext}`])
+      modules.push(`.claude/skills/m/${rel}`)
+  const workflows = ['.claude/workflows/a.mjs', '.claude/workflows/sous/a.js']
+  const exclus = [
+    ...ignores.map((rel) => `.claude/skills/m/${rel}`),
+    '.claude/skills/m/hooks/sous/a.test.ts',
+    '.claude/skills/m/types/a.test.ts',
+    '.claude/skills/m/tests/a.test.ts',
+    '.claude/hooks/a.ts', '.claude/memory/a.mjs', '.claude/agents/a.ts', '.claude/a.ts',
+  ]
+  const cwd = mkdtempSync(join(tmpdir(), 'lint-mod-perimetre-'))
+  try {
+    const selectionnes = [...modules, ...workflows]
+    const fichiers = [...selectionnes, ...exclus]
+    for (const fichier of fichiers) {
+      const chemin = join(cwd, fichier)
+      mkdirSync(dirname(chemin), { recursive: true })
+      const source = fichier.endsWith('.d.ts') ? 'declare var a: number;' :
+        fichier.endsWith('.cjs') ? 'module.exports = 1; debugger;' : 'export const a = 1; debugger;'
+      writeFileSync(chemin, source)
+    }
+    for (const selection of [fichiers, ['.']]) {
+      const resultat = lancerLint(RACINE, selection, { cwd })
+      const rapport = JSON.parse(resultat.stdout)
+      assert.equal(rapport.number_of_files, selectionnes.length, resultat.brut)
+      assert.equal(resultat.codeSortie, 1, resultat.brut)
+      assert.ok(!resultat.defauts.some((defaut) => ['(outillage)', '(parse)'].includes(defaut.regle)), resultat.brut)
+      const debug = resultat.defauts.filter((defaut) => defaut.regle === 'no-debugger')
+      assert.equal(debug.length, selectionnes.filter((fichier) => !fichier.endsWith('.d.ts')).length, resultat.brut)
+      for (const fichier of selectionnes) {
+        const regle = fichier.endsWith('.d.ts') ? 'no-var' : 'no-debugger'
+        assert.equal(resultat.defauts.filter((defaut) => defaut.site.startsWith(`${fichier}:`) && defaut.regle === regle).length, 1, fichier)
+      }
+      for (const fichier of exclus) {
+        assert.ok(!resultat.defauts.some((defaut) => defaut.site.startsWith(`${fichier}:`)), fichier)
+      }
+      for (const fichier of modules.filter((fichier) => /\.(js|mjs|cjs|cts|jsx|tsx)$/.test(fichier))) {
+        const defauts = resultat.defauts.filter((defaut) => defaut.site.startsWith(`${fichier}:`) && defaut.regle === MUR)
+        assert.equal(defauts.length, 1, fichier)
+        assert.match(defauts[0].message, /#2278/)
+      }
+    }
+  } finally {
+    rmSync(cwd, { recursive: true, force: true })
+  }
 })
 
-test('les modules RÉELS du mod `harnais` passent le mur', async () => {
+test('les modules RÉELS du mod `harnais` et les workflows passent le lint natif', async () => {
   const hooks = join(RACINE, '.claude', 'skills', 'harnais', 'hooks')
   const modules = listerDossier(hooks).filter((nom) => nom.endsWith('.ts') && !estSuiteVitest(nom))
-  assert.ok(['suivi.ts', 'vigie.ts', 'ops.ts'].every((nom) => modules.includes(nom)), 'le corpus réel est lu')
-  for (const nom of modules) {
-    const chemin = join(hooks, nom)
-    const [r] = await eslint.lintText(readFileSync(chemin, 'utf8'), { filePath: chemin })
-    assert.deepEqual(r.messages, [], nom)
+  assert.ok(['suivi.ts', 'vigie.ts', 'ops.ts', 'register.ts'].every((nom) => modules.includes(nom)), 'le corpus réel est lu')
+  const types = join(RACINE, '.claude', 'skills', 'harnais', 'types')
+  const workflows = join(RACINE, '.claude', 'workflows')
+  const declarations = listerDossier(types).filter((nom) => nom.endsWith('.d.ts'))
+  const scripts = listerDossier(workflows).filter((nom) => nom.endsWith('.js'))
+  assert.ok(declarations.includes('index.d.ts'), 'le contrat réel du mod est lu')
+  assert.ok(scripts.includes('dossier-de-chapitre.js') && scripts.includes('table-simulee.js'), 'les workflows réels sont lus')
+  const chemins = [
+    ...modules.map((nom) => join(hooks, nom)),
+    ...declarations.map((nom) => join(types, nom)),
+    ...scripts.map((nom) => join(workflows, nom)),
+  ]
+  for (const chemin of chemins) {
+    const [r] = await lint.lintText(readFileSync(chemin, 'utf8'), { filePath: chemin })
+    assert.deepEqual(r.messages, [], chemin)
   }
 })

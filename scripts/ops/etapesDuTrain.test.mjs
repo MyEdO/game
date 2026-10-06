@@ -1,3 +1,4 @@
+import { ast } from '../guards/lib/dialecte.mjs';
 // CLÔTURE des ÉTAPES du train (#1806), gardée contre une retouche de bonne foi : une étape n'atteint
 // aucun LANCEMENT de processus hors de son contexte.
 //   node --test scripts/ops/etapesDuTrain.test.mjs   (chaîné dans `npm run test:ops`)
@@ -27,7 +28,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { isBuiltin } from 'node:module'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { scriptKindDe, typescript } from '../guards/lib/dialecte.mjs'
+import { typescript } from '../guards/lib/dialecte.mjs'
 import { clotureDImports, estModule, resolveImport } from '../guards/lib/importGraph.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -92,8 +93,7 @@ const AMBIANTS_INERTES = new Set([
 const DISQUE = Object.freeze({ lire: (chemin) => readFileSync(chemin, 'utf8'), existe: existsSync })
 
 const arbreDe = (chemin, disque = DISQUE) => {
-  const ts = typescript()
-  return ts.createSourceFile(chemin, disque.lire(chemin), ts.ScriptTarget.Latest, true, scriptKindDe(chemin))
+  return ast({ rel: chemin, text: disque.lire(chemin) })
 }
 
 /** Un nom qui n'est PAS une référence : propriété d'un accès membre, clé d'un littéral objet, nom de membre. */
@@ -101,7 +101,7 @@ function estNomDePropriete(n) {
   const ts = typescript()
   const p = n.parent
   return !!p && ((ts.isPropertyAccessExpression(p) && p.name === n)
-    || ((ts.isPropertyAssignment(p) || ts.isMethodDeclaration(p) || ts.isPropertyDeclaration(p) || ts.isGetAccessor(p) || ts.isSetAccessor(p)) && p.name === n)
+    || ((ts.isPropertyAssignment(p) || ts.isMethodDeclaration(p) || ts.isPropertyDeclaration(p) || ts.isGetAccessorDeclaration(p) || ts.isSetAccessorDeclaration(p)) && p.name === n)
     || (ts.isBindingElement(p) && p.propertyName === n))
 }
 
@@ -135,7 +135,7 @@ function nomsLiesPar(n) {
   const ts = typescript()
   if (ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n)) return nomsDeclares(n.statements)
   if (ts.isCaseBlock(n)) return nomsDeclares(n.clauses.flatMap((c) => c.statements))
-  if (ts.isFunctionLike(n)) return [...(n.parameters ?? []).flatMap((p) => identifiantsLies(p.name)),
+  if (ts.isFunctionLikeDeclaration(n)) return [...(n.parameters ?? []).flatMap((p) => identifiantsLies(p.name)),
     ...(ts.isFunctionExpression(n) && n.name ? [n.name.text] : [])]
   if (ts.isClassExpression(n) && n.name) return [n.name.text]
   if (ts.isCatchClause(n) && n.variableDeclaration) return identifiantsLies(n.variableDeclaration.name)
@@ -178,7 +178,7 @@ function lectureDe(chemin, disque = DISQUE) {
       const vus = new Set()
       const marcher = (n) => {
         if (ts.isIdentifier(n) && !estNomDePropriete(n)) vus.add(n.text)
-        ts.forEachChild(n, marcher)
+        n.forEachChild(marcher)
       }
       for (const n of noeuds) marcher(n)
       return vus
@@ -188,6 +188,7 @@ function lectureDe(chemin, disque = DISQUE) {
       if (ts.isIdentifier(r)) rangements.push({ cible: r.text, refs: refsDe(valeurs) })
     }
     const visiter = (n) => {
+      if (ts.isTypeNode(n)) return;
       if (ts.isBinaryExpression(n) && n.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && n.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ranger(n.left, [n.right])
       if (ts.isCallExpression(n) && (ts.isPropertyAccessExpression(n.expression) || ts.isElementAccessExpression(n.expression))) ranger(n.expression, n.arguments)
       if (ts.isIdentifier(n)) {
@@ -202,7 +203,7 @@ function lectureDe(chemin, disque = DISQUE) {
         racine = true
         lu.dynamiques.push(n.getText())
       }
-      ts.forEachChild(n, visiter)
+      n.forEachChild(visiter)
     }
     visiter(st)
     return { refs, rangements, racine }
@@ -227,7 +228,7 @@ function lectureDe(chemin, disque = DISQUE) {
       } else if (clause && ts.isNamedExports(clause)) for (const e of clause.elements) lu.exports.set(e.name.text, (e.propertyName ?? e.name).text)
       continue
     }
-    const modificateurs = (ts.canHaveModifiers(st) && ts.getModifiers(st)) || []
+    const modificateurs = (('modifiers' in st) && st.modifiers) || []
     const exporte = modificateurs.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
     const parDefaut = modificateurs.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)
     const noms = (ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name ? [st.name.text]

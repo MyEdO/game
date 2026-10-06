@@ -16,7 +16,7 @@
  * compile plus.
  *
  * LIMITES, les mêmes qu'au jumeau et pour la même raison — le lint (mur `murs/marques`,
- * `eslint.config.js`, mesuré par `state/built-brand-lint.test.ts`) mure les routes de FORGE
+ * `oxlint.config.mjs`, mesuré par `state/built-brand-lint.test.ts`) mure les routes de FORGE
  * (`x as PlayerText`, `<PlayerText>x`, sous tableau/`readonly`/générique, et l'ALIAS de type). Restent
  * hors portée : l'ANNOTATION d'une valeur déjà élargie, le RENOMMAGE à l'import, l'alias GÉNÉRIQUE ou
  * calculé. Tous les minteurs sont sous ce lint (#1709 C3c-3b, #1988), chacun par exemption AU SITE avec

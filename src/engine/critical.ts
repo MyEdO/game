@@ -317,7 +317,7 @@ export function resolveCritique(
   const be = bonus(effectiveChar(target, 'endurance'));
   const raw = forcedRoll ?? (twice ? Math.max(d100(rng), d100(rng)) : d100(rng));
   const roll = Math.max(1, raw + regime.severite(target, overkill));
-  const entry = findTableEntry(critiqueTable(jeu, location), roll); // repli Bras (LDB 76 l.21) si loc sans table dédiée
+  const entry = structuredClone(findTableEntry(critiqueTable(jeu, location), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];
   // Nœud `test` de la rangée : FABRIQUÉ à part (enjeu à la LIGNE), jamais roulé — il part par la porte.
   const rangee = noeudDeRangee(entry, jeu, location);

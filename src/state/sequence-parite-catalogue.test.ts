@@ -7,8 +7,8 @@
  * cliquets de la vague comptent des littéraux ; AUCUN ne compare des phrases — c'est le trou que ce
  * fichier ferme.
  *
- * Le côté « avant » est le littéral tel qu'il était écrit au site (relu au diff de migration), gardé
- * ICI comme oracle figé ; le côté « après » monte le CATALOGUE RÉEL (`fr.ts`) par les mêmes appels que
+ * Le côté « avant » est un oracle de phrase RENDUE avec des fixtures figées : fonctions et
+ * expressions constantes évaluées ; le côté « après » monte le CATALOGUE RÉEL (`fr.ts`) par les mêmes appels que
  * la production. Retoucher une de ces entrées de catalogue sans le vouloir rougit donc ici, à la
  * phrase près — y compris sur un tiret cadratin, une espace ou un exposant.
  *
@@ -216,13 +216,11 @@ const COMBAT: Site[] = [
 
 const HEROS3 = 'Sigrid', OBJET = 'Épée runique', ARGENT = '12 CO', ACTIVITE = 'Artisanat';
 
-/* eslint-disable no-constant-condition -- les fixtures REPRODUISENT le call-site à valeur figée :
-   `${3} semaine${3 > 1 ? 's' : ''}` est la forme de l'expression mesurée, pas une condition de code. */
 const V8C1: Site[] = [
   {
     site: 'interludeFlow.ts:195 — bandeau d’ouverture (pluriel porté par la variable)',
-    avant: `— Entre deux aventures : ${3} semaine${3 > 1 ? 's' : ''} —`,
-    apres: t('if.openBanner', { n: 3, s: 3 > 1 ? 's' : '' }),
+    avant: `— Entre deux aventures : ${3} semaine${'s'} —`,
+    apres: t('if.openBanner', { n: 3, s: 's' }),
   },
   {
     site: 'interludeFlow.ts:240 — ligne d’Événement du héros',
@@ -261,8 +259,8 @@ const V8C1: Site[] = [
   },
   {
     site: 'merchantFlow.ts:553 — panier payé (pluriel porté par la variable)',
-    avant: `Payé : ${ARGENT} (${1} article${1 > 1 ? 's' : ''}).`,
-    apres: t('mf.paid', { total: ARGENT, count: 1, s: 1 > 1 ? 's' : '' }),
+    avant: `Payé : ${ARGENT} (${1} article${''}).`,
+    apres: t('mf.paid', { total: ARGENT, count: 1, s: '' }),
   },
   {
     site: 'merchantFlow.ts:710 — troc conclu (ratio recomposé au call-site)',
@@ -347,8 +345,8 @@ const V8C2: Site[] = [
   },
   {
     site: 'combatEffects.ts:1450 — Humeur de Manann (le SIGNE est porté par l’appelant)',
-    avant: `Humeur de Manann : ${-3 >= 0 ? '+' : ''}${-3} (${'Tempête essuyée'}).`,
-    apres: t('eff.manannFactor', { delta: `${-3 >= 0 ? '+' : ''}${-3}`, factor: 'Tempête essuyée' }),
+    avant: `Humeur de Manann : ${''}${-3} (${'Tempête essuyée'}).`,
+    apres: t('eff.manannFactor', { delta: `${''}${-3}`, factor: 'Tempête essuyée' }),
   },
   {
     site: 'combatEffects.ts:1484 — ajustement du navire (fragments joints par l’appelant)',
@@ -367,22 +365,22 @@ const V8C2: Site[] = [
   },
   {
     site: 'store.ts:1673 — avance de coque (pluriel porté par la variable)',
-    avant: `${NAVIRE} avance de ${2} case${2 > 1 ? 's' : ''} (cap ${'NE'}).`,
-    apres: t('store.shipAdvance', { ship: NAVIRE, n: 2, s: 2 > 1 ? 's' : '', dir: 'NE' }),
+    avant: `${NAVIRE} avance de ${2} case${'s'} (cap ${'NE'}).`,
+    apres: t('store.shipAdvance', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
   },
   {
     site: 'store.ts:2265 — vol terrestre (issue + fragment « porteurs » optionnels)',
-    avant: `Vol terrestre — ${'le convoi fuit'} : ${12} Enc de cargaison pillée (${30} %${2 > 1 ? `, ${2} porteurs` : ''}).`,
+    avant: `Vol terrestre — ${'le convoi fuit'} : ${12} Enc de cargaison pillée (${30} %${`, ${2} porteurs`}).`,
     apres: t('store.cargoRaid', { issue: t('store.cargoRaidFled'), enc: 12, pct: 30, porteurs: t('store.fragCargoPorters', { n: 2 }) }),
   },
   {
     site: 'store.ts:2434 — la porte tient (DEUX pluriels dans la même phrase)',
-    avant: `${'Porte de chêne'} : ${3} dégât${3 > 1 ? 's' : ''}, reste ${1} Blessure${1 > 1 ? 's' : ''}.`,
-    apres: t('store.doorHolds', { label: 'Porte de chêne', n: 3, s: 3 > 1 ? 's' : '', left: 1, sB: 1 > 1 ? 's' : '' }),
+    avant: `${'Porte de chêne'} : ${3} dégât${'s'}, reste ${1} Blessure${''}.`,
+    apres: t('store.doorHolds', { label: 'Porte de chêne', n: 3, s: 's', left: 1, sB: '' }),
   },
   {
     site: 'store.ts:2391 — dissipation (clé `cs.*` REPRISE, fragment optionnel)',
-    avant: `${'Dard de feu'} est dissipé${3 > 1 ? ` (${3} cibles libérées)` : ''}.`,
+    avant: `${'Dard de feu'} est dissipé${` (${3} cibles libérées)`}.`,
     apres: t('cs.dispelDone', { spell: 'Dard de feu', extra: t('cs.fragDispelFreed', { n: 3 }) }),
   },
   {
@@ -392,7 +390,7 @@ const V8C2: Site[] = [
   },
   {
     site: 'travelFlow.ts:982 — attelage forcé en échec (fragment « STUPÉFIANT » soudé au mot ÉCHEC)',
-    avant: `${HEROS3} — Conduite d'attelage (allure forcée) : ÉCHEC${true ? ' STUPÉFIANT' : ''}, l'attelage repasse au pas.`,
+    avant: `${HEROS3} — Conduite d'attelage (allure forcée) : ÉCHEC${' STUPÉFIANT'}, l'attelage repasse au pas.`,
     apres: t('tf.forcedFail', { name: HEROS3, stupefiant: t('tf.fragStupefiant') }),
   },
   {
@@ -477,10 +475,9 @@ const V8C3: Site[] = [
     apres: t('heal.bleedResists', { name: HEROS3 }),
   },
   {
-    // CORRIGÉ : `${dz.id}` citait l'id de maladie entre guillemets français.
     site: 'rest.ts:112 — durée de maladie raccourcie (MALADIE lue à la donnée, « », pluriel)',
-    avant: `${HEROS3} : la durée de « ${MALADIE3} » est réduite de ${2} jour${2 > 1 ? 's' : ''} (reste ${5} j).`,
-    apres: t('rest.diseaseShortened', { name: HEROS3, disease: diseaseLabel('peste-noire'), days: 2, s: 2 > 1 ? 's' : '', left: 5 }),
+    avant: `${HEROS3} : la durée de « ${MALADIE3} » est réduite de ${2} jour${'s'} (reste ${5} j).`,
+    apres: t('rest.diseaseShortened', { name: HEROS3, disease: diseaseLabel('peste-noire'), days: 2, s: 's', left: 5 }),
   },
   {
     site: 'rest.ts:108 — aucune maladie à soulager (DEUX fragments optionnels enchaînés)',
@@ -525,8 +522,8 @@ const V8C3: Site[] = [
   },
   {
     site: 'seaVoyageFlow.ts:313 — vivres d’équipage (U+2212 + pluriel porté par la variable)',
-    avant: `Vivres d'équipage : −${4} (reste ${12} jour${12 > 1 ? 's' : ''}-homme).`,
-    apres: t('sv.crewFoodLeft', { need: 4, left: 12, s: 12 > 1 ? 's' : '' }),
+    avant: `Vivres d'équipage : −${4} (reste ${12} jour${'s'}-homme).`,
+    apres: t('sv.crewFoodLeft', { need: 4, left: 12, s: 's' }),
   },
   {
     site: 'seaVoyageFlow.ts:2539 — carénage (fragment de coût optionnel, deux valeurs)',
@@ -558,9 +555,9 @@ const V8C4: Site[] = [
     apres: t('prov.wasting', { name: HEROS3, dmg: 3 }),
   },
   {
-    // La Compétence lancée vient de `skills.json` : le gabarit ne la bake plus (règle de `mt.testOf`).
+    // La Compétence lancée est lue dans `skills.json`.
     site: 'provisions.ts:241 — libellé du Test de Faim (Compétence lue à la donnée, malus OPTIONNEL, U+2212)',
-    avant: `Faim : Test de Résistance${3 > 1 ? ` (−${(3 - 1) * 10})` : ''}`,
+    avant: `Faim : Test de Résistance${` (−${20})`}`,
     apres: t('prov.testLabel', { kind: t('prov.faim'), skill: refLabel('skills', { id: 'resistance' }), malus: t('prov.fragTestMalus', { n: 20 }) }),
   },
   {
@@ -616,8 +613,8 @@ const V8C4: Site[] = [
   },
   {
     site: 'upkeep.ts:220 — privation de sommeil (pluriel porté par la variable, deux-points final)',
-    avant: `${HEROS3} — privation de sommeil (${2} nuit${2 > 1 ? 's' : ''} sans dormir) :`,
-    apres: t('upkeep.sleepDeprived', { name: HEROS3, n: 2, s: 2 > 1 ? 's' : '' }),
+    avant: `${HEROS3} — privation de sommeil (${2} nuit${'s'} sans dormir) :`,
+    apres: t('upkeep.sleepDeprived', { name: HEROS3, n: 2, s: 's' }),
   },
   {
     site: 'medicFlow.ts:236 — passe de Chirurgie (signe du DR + suite conditionnelle)',
@@ -730,7 +727,7 @@ const V8C5: Site[] = [
     apres: traitArgSkeleton({ indice: { label: 'Indice' }, specsSource: 'damageTypes', range: true })!,
   },
   {
-    // La Compétence lancée vient de `skills.json` : le gabarit ne la bake plus (règle de `mt.testOf`).
+    // La Compétence lancée est lue dans `skills.json`.
     site: 'travel.ts:199 — libellé du Test de marche forcée (Compétence lue à la donnée)',
     avant: 'marche forcée : Test de Résistance',
     apres: t('trv.forcedMarchLabel', { skill: refLabel('skills', { id: 'resistance' }) }),
@@ -832,7 +829,6 @@ const V8C5: Site[] = [
   },
 ];
 
-/* eslint-enable no-constant-condition */
 
 const TOUS: Site[] = [...SEQUENCE, ...MARQUAGE, ...SIGNES, ...COMBAT, ...V8C1, ...V8C2, ...V8C3, ...V8C4, ...V8C5];
 
@@ -847,15 +843,11 @@ describe('#1318 V8b/V8b₂/V8c₀/V8c₁/V8c₂ — la migration au catalogue es
     expect(SIGNES.length, 'DR positif, nul, négatif — le signe ne vit pas dans le gabarit').toBe(3);
     expect(COMBAT.length, 'les littéraux de combatFlow rendus au catalogue (V8c₀)').toBe(6 + 1);
     expect(V8C1.length, 'échantillons des trois flux passés MIGRÉS par V8c₁ (interlude / bataille de masse / marchand)').toBe(17);
-    // 23 → 22 (#1657 B3-2) : le site « éclats du Critique » de `riverVoyageFlow` est MORT — le coup à
-    // l'équipage passe par la porte, sa ligne est celle du dériveur de jet, plus une phrase de flux.
     expect(V8C2.length, 'échantillons des cinq fichiers passés MIGRÉS par V8c₂ (effets / store / voyage terrestre / fluvial / maladies)').toBe(22);
-    // 19 → 18 (#1473) : le site « ASPECT du vent » de `seaVoyageFlow` est MORT — `effectiveSeaM` ne rend
-    // plus de libellé, aucun de ses appelants ne le lisait.
     expect(V8C3.length, 'échantillons des fichiers passés MIGRÉS par V8c₃ (mer / guérison / repos / nuit / équipage / séquelles)').toBe(18);
     expect(V8C4.length, 'échantillons des QUATORZE fichiers de la longue traîne passés MIGRÉS par V8c₄').toBe(19);
     expect(V8C5.length, 'échantillons de la TRANCHE FINALE (18 fichiers gelés + advancement/careerSlots)').toBe(29);
-    expect(TOUS.length).toBe(132); // 133 → 132 (#1473, même site mort que V8c₃)
+    expect(TOUS.length).toBe(132);
   });
 
   it('MUTATION : l’oracle est SENSIBLE — un tiret cadratin changé en tiret court diverge', () => {

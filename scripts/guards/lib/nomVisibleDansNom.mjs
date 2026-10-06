@@ -51,11 +51,12 @@ function litteraux(e) {
 /**
  * Sites `chemin:ligne` d'un fichier `.tsx` (chemin tel que fourni).
  * @param {{ rel: string, text: string }} f
+ * @param {import('typescript/unstable/ast').SourceFile} [sourceFile]
  * @returns {string[]}
  */
-export function sitesNomSansTexteVisible(f) {
+export function sitesNomSansTexteVisible(f, sourceFile) {
   const ts = typescript();
-  const sf = ast(f);
+  const sf = sourceFile ?? ast(f);
   if (!sf) return [];
   const sites = [];
   const attributs = (o) => new Map(o.attributes.properties.filter(ts.isJsxAttribute).map((a) => [a.name.getText(sf), a.initializer]));
@@ -83,7 +84,7 @@ export function sitesNomSansTexteVisible(f) {
         if (absents.length) sites.push(`${f.rel}:${sf.getLineAndCharacterOfPosition(o.getStart(sf)).line + 1}`);
       }
     }
-    ts.forEachChild(n, visite);
+    n.forEachChild(visite);
   };
   visite(sf);
   return sites;

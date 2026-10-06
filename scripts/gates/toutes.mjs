@@ -104,6 +104,14 @@ export const ECRIT_LU = {
   'test:hooks': {
     ecrit: [],
     ecritFerme: {
+      '.lint-':
+        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) sous la racine quand configuration est fournie ; ' +
+        'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
+      'node_modules/typescript/dist/api/node/wtf8.js':
+        'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +
+        'borne git apply à cet unique --include ; postinstall exécute verifierContratTypeScript avant les générateurs et hooks, donc le banc réel ' +
+        'rencontre le SDK déjà corrigé : --reverse --check puis return false sans écriture, éprouvé par le banc d’idempotence ; ' +
+        'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
       '.claude/logs/new-src-guard-skips.log':
         'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
         'scripts/hooks/repartiteur.mjs) : il est ' +
@@ -111,14 +119,19 @@ export const ECRIT_LU = {
         'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },
     lit: [
-      '.claude/', '.codex/', '.github/workflows/', 'docs/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
-      'CLAUDE.md', 'eslint.config.js', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
+      'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'le reste des fixtures vit sous os.tmpdir() ; `guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
+      'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
+      'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
+      'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
+      'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
+      '`guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
       'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
       'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
       'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
@@ -131,7 +144,7 @@ export const ECRIT_LU = {
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
       'sonde n’enregistre pas : la déclaration tient de la LECTURE du code, et une sur-déclaration ne peut ' +
       'que RESSERRER les lanes ; LIT .codex/hooks.json et .claude/settings.json ' +
-      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, eslint.config.js et package.json — ' +
+      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, oxlint.config.mjs et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
       '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
@@ -163,7 +176,10 @@ export const ECRIT_LU = {
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
       'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
       '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
-      '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally',
+      '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
+      '`mods/murDeMod.test.mjs` crée ses fichiers de sélection native par mkdirSync/writeFileSync ' +
+      'sous mkdtempSync(join(os.tmpdir(), "lint-mod-perimetre-")), puis rmSync en finally ; ' +
+      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally',
   },
   'mods:check': {
     ecrit: [],
@@ -189,7 +205,7 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'eslint.config.js', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison:
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
       '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
@@ -211,7 +227,7 @@ export const ECRIT_LU = {
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
-      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, eslint.config.js, ' +
+      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, oxlint.config.mjs, ' +
       'kill-pid.mjs), que la porte `workflows.test.mjs` parse pour y RECONNAÎTRE les scripts de workflow et ' +
       'les bancs qui importent `jouer-workflow.mjs` (`reconnaissanceDuDepot`, `bancsDeWorkflowDuDepot`), sans ' +
       'processus fils ; LIT .claude/agents/ (le cliquet d’EXCEPTIONS_MECANIQUES exige `.claude/agents/<type>.md`) ; ' +
@@ -246,7 +262,11 @@ export const ECRIT_LU = {
     ],
     raison:
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
-      'fixtures sous os.tmpdir() ; `build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
+      'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
+      '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
+      'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous os.tmpdir(), préfixe plateforme-win32-decodage-, ' +
+      'puis supprime chaque dossier par rmSync en finally ; ' +
+      '`build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
       'os.tmpdir() hors racine canonique par `canoniser` et `relatifSousRacine`, puis exige l’instance hors ' +
       'arbre ; son finally supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé ' +
       'avant `instanceDeDepot` ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
@@ -267,7 +287,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'src/', 'scripts/', 'server/', 'docs/', 'Source/', 'package.json', 'knip.json', 'knip-exports-baseline.json',
-      'tsconfig.json', 'vite.config.ts', 'eslint.config.js', 'index.html', '.gitignore', 'CLAUDE.md',
+      'tsconfig.json', 'vite.config.ts', 'oxlint.config.mjs', 'index.html', '.gitignore', 'CLAUDE.md',
     ],
     raison:
       'knip et le cliquet LISENT ; la baseline ne s’écrit que sous `--sync`, absent de la commande de ci.yml ; ' +
@@ -290,12 +310,12 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'eslint.config.js', 'package.json', 'kill-pid.mjs', '.claude/skills/'],
+    lit: ['src/', 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
     raison:
-      '`eslint .` sans `--fix` ni `--cache` ; LIT sa config à plat, package.json et le seul module de ' +
-      'racine qu’il ramène — aucune lecture sous docs/ (sonde 2026-09-08, 4 009 lectures) ; sous .claude/, ' +
-      'le seul périmètre du mur des mods (`GLOBS_DE_MOD`, eslint.config.js, #2278), sous .claude/skills/ : ' +
-      'son `lit` chevauche `.claude/`, la gate n’est jamais sautée',
+      'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et les ' +
+      'modules de code sélectionnés, dont .claude/workflows/ : lecture du code et découverte native ' +
+      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-10-05 ; les configurations imbriquées sont désactivées ; ' +
+      'le mur des mods (#2278) porte le périmètre hooks/types/tests sous .claude/skills/.',
   },
   test: {
     ecrit: [],

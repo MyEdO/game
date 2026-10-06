@@ -1,4 +1,5 @@
-import type ts from 'typescript';
+import type * as ts from 'typescript/unstable/ast';
+import type { Checker } from 'typescript/unstable/sync';
 import type { CorpusFile } from './sourceCorpus.mjs';
 import type { sitesDeModule, liaisonsDe } from './importGraph.mjs';
 
@@ -7,11 +8,11 @@ export interface ContexteImports {
   readonly sites: () => ReturnType<typeof sitesDeModule>;
   readonly liaisons: () => ReturnType<typeof liaisonsDe>;
   readonly liaisonsDuNom: (nom: string) => ReturnType<typeof liaisonsDe>;
-  readonly checker: () => ts.TypeChecker;
+  readonly checker: () => Checker;
   readonly module: (spec: string) => string | null;
 }
 
-export function contexteImports(sf: ts.SourceFile): ContexteImports;
+export function contexteImports(sf: ts.SourceFile, checker?: Checker): ContexteImports;
 
 /** Fichier lu, tel que rendu par `readCorpus` (`sourceCorpus.mjs`) ou fabriqué par une fixture. */
 type FichierLu = Pick<CorpusFile, 'rel' | 'text'>;
@@ -59,7 +60,7 @@ export function constructionDeFragment(p: {
   designationLiee?: readonly string[];
   constructeurs: Readonly<Record<string, readonly string[]>>;
 }): Construction & { readonly indice: (texte: string) => boolean };
-export function origineImportee(identifiant: string, sf: ts.SourceFile, contexte: ContexteImports): { module: string; nom: string } | null;
+export function origineImportee(identifiant: string | ts.Expression, sf: ts.SourceFile, contexte: ContexteImports): { module: string; nom: string } | null;
 export function liaisonImportee(occurrence: ts.Identifier, sf: ts.SourceFile, contexte: ContexteImports): { spec: string; nom: string } | null;
 export function estAppelDeclare(
   appel: ts.CallExpression,
@@ -98,7 +99,7 @@ export function comparaisonDAppel(p: {
   nom: string;
   fonctions: Readonly<Record<string, readonly string[]>>;
 }): Construction & { readonly indice: (texte: string) => boolean };
-export function scanConstructionsReservees(fichier: FichierLu, constructions: readonly ConstructionGardee[]): Trouvaille[];
+export function scanConstructionsReservees(fichier: FichierLu, constructions: readonly ConstructionGardee[], sourceFile?: ts.SourceFile, checker?: Checker): Trouvaille[];
 export function constructionsReserveesDuCorpus(
   corpus: readonly FichierLu[],
   constructions: Parameters<typeof scanConstructionsReservees>[1],

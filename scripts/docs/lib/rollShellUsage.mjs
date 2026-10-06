@@ -1,3 +1,4 @@
+import { ast } from '../../guards/lib/dialecte.mjs';
 // Scanner AST des USAGES de la coquille de jet `RollShell` (#1078 LOT C2) — le pendant CÔTÉ
 // AFFICHAGE du registre des producteurs (`docs/registre-jets.md`, qui mesure d'où PARTENT les jets).
 // Ici on mesure, par consommateur, QUELLES ZONES de la coquille il remplit.
@@ -10,13 +11,12 @@
 // Les ZONES elles-mêmes sont lues à la source : les props de `RollShell` (zones de coquille) et les
 // membres de `RollRowProps` (zones de rangée). Une prop ajoutée à la primitive apparaît donc au
 // prochain build ; aucune colonne n'est écrite à la main.
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { jsdocBody } from './jsdocUnion.mjs'
-import { scriptKindDe } from '../../guards/lib/dialecte.mjs'
 
 /** Source TypeScript parsée, JSX activé pour les `.tsx`. */
 export function parseSource(rel, text) {
-  return ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, scriptKindDe(rel))
+  return ast({ rel, text })
 }
 
 const lineOf = (sf, node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
@@ -37,9 +37,9 @@ function membersOf(text, sf, container, tool, what) {
   const out = []
   let prevEnd = container.members.pos
   for (const m of container.members) {
-    if (ts.isPropertySignature(m)) {
+    if (ts.isPropertySignatureDeclaration(m)) {
       const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
-      out.push({ name: m.name.getText(sf), optional: !!m.questionToken, zone: zoneIdOf(doc) })
+      out.push({ name: m.name.getText(sf), optional: m.postfixToken?.kind === ts.SyntaxKind.QuestionToken, zone: zoneIdOf(doc) })
     }
     prevEnd = m.getEnd()
   }
@@ -160,8 +160,8 @@ function enclosingSymbol(sf, node) {
  * son SYMBOLE englobant (`line` reste disponible pour un diagnostic, jamais pour la doc comparée) ;
  * `rowKeys` = les clés de zone de RANGÉE vues dans le fichier (littéraux d'objet ou props de `RollRow`).
  */
-export function scanRollShellUsage(rel, text, rowZoneNames) {
-  const sf = parseSource(rel, text)
+export function scanRollShellUsage(rel, text, rowZoneNames, sourceFile) {
+  const sf = sourceFile ?? parseSource(rel, text)
   const sites = []
   const rowKeys = new Set()
 

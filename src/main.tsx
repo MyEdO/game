@@ -30,6 +30,9 @@ if (import.meta.env.DEV) import('./state/devtools').then((m) => {
 // diverge de son schéma zod (SCHEMA_DEFS). En prod, le JSON a déjà passé la porte CI : zéro coût runtime.
 if (import.meta.env.DEV) import('./data/dev-validate').then((m) => m.validateDataOnLoad());
 
+// DEV uniquement : le seam des datasets GÈLE les entrées du catalogue à son chargement (#2097).
+if (import.meta.env.DEV) import('./data/overrides');
+
 initAudioWiring(); // sons CC0 branchés sur le bus (dés/impacts/pas/gong) — Jalon 8
 initCombatAuto(); // Cadence de combat (Rapide/Auto) : auto-résolution des modales pilotée par l'état
 

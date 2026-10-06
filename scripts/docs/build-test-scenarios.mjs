@@ -1,3 +1,4 @@
+import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 /**
  * Génère `docs/test-scenarios.md` — catalogue des scénarios de test navigateur.
  * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`).
@@ -15,14 +16,14 @@
  * (`tsx`/`node`, hors bundler Vite/Vitest) lève `ReferenceError: Cannot access 'testRouter' before
  * initialization` (cycle `store.ts` ⇄ `triggeredEffects.ts`, mesuré #903bis) : Vite/Vitest tolèrent
  * ce cycle (transform SSR à liaisons tardives), Node ESM natif l'interdit (TDZ stricte). On lit donc
- * chaque fichier de scénario par `ts.createSourceFile`, comme `jsdocUnion.mjs` lit les unions —
+ * chaque fichier de scénario par AST, comme `jsdocUnion.mjs` lit les unions —
  * source de vérité identique (le fichier `.ts` lui-même), zéro effet de bord runtime.
  *
  * Le reste du document (comment vérifier une feature, comment ajouter un scénario, les conventions)
  * est de l'INTENTION ÉDITORIALE non dérivable d'aucune donnée : elle vit ICI, en dur dans ce
  * générateur (même patron que les préambules de `build-systemes.mjs`), jamais dans le `.md` lui-même.
  */
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
@@ -86,10 +87,7 @@ function rendu() {
 
   const FIELDS = ['id', 'order', 'category', 'icon', 'title', 'tests', 'partyNote']
 
-  function readScenario(file) {
-    const path = join(DIR, file)
-    const text = readFileSync(path, 'utf8')
-    const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true)
+  function readScenario(path, sf) {
     const literal = scenarioLiteral(sf)
     if (!literal) {
       console.error(`build-test-scenarios — ${path} n'exporte pas de \`const scenario: TestScenario = { … }\` littéral`)
@@ -112,7 +110,8 @@ function rendu() {
     return row
   }
 
-  const scenarios = scenarioFiles().map(readScenario)
+  const fichiers = scenarioFiles().map((file) => ({ rel: join(DIR, file), text: readFileSync(join(DIR, file), 'utf8') }))
+  const scenarios = [...analyserCorpus(fichiers)].map(({ fichier, sourceFile }) => readScenario(fichier.rel, sourceFile))
   const ids = new Set()
   for (const s of scenarios) {
     if (ids.has(s.id)) {

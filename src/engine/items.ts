@@ -250,10 +250,11 @@ function kindOf(categorie: string): ItemKind {
  *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
  *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
-  const t = resolveTrapping(id);
-  if (!t) return null;
-  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, t))
-    throw new Error(`itemFromTrappingById: "${t.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
+  const resolu = resolveTrapping(id);
+  if (!resolu) return null;
+  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, resolu))
+    throw new Error(`itemFromTrappingById: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
+  const t = structuredClone(resolu); // #2097
   const kind = kindOf(t.categorie);
   const locs =
     t.loc != null
@@ -269,10 +270,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     trappingId: t.id,
     label: t.label,
     kind,
-    // Le spec de Dégâts est CLONÉ (jamais l'objet du catalogue) : une instance possède son profil, une
-    // mutation d'instance ne peut PAS corrompre la def de trapping partagée (aliasing → pollution cross-test
-    // sous isolate:false : un canon muté à 999 coulait toute coque, #379 #339).
-    damage: t.damage ? { ...t.damage } : undefined,
+    damage: t.damage ?? undefined, // #379 #339
     // Allonge (mêlée) ⊥ Portée (tir) — LDB 62. La donnée est NORMALISÉE : `reach` = string|null (Allonge
     // ou formule de jet « BFx3 »), `range` = Portée numérique (m) des armes à portée fixe → copie DIRECTE,
     // plus de `Number(t.reach)` (le « type menteur » d'avant la migration est éliminé).

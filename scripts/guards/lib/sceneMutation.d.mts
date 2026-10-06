@@ -4,4 +4,5 @@ export interface Finding {
 }
 
 export const MUTATING_ARRAY_METHODS: Set<string>;
-export function scanSceneMutation(relPath: string, contenu: string): Finding[];
+export function scanSceneMutation(relPath: string, contenu: string, sourceFile?: SourceFile): Finding[];
+import type { SourceFile } from 'typescript/unstable/ast';

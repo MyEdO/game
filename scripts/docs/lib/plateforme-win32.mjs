@@ -22,7 +22,7 @@
 //     `src/graphies-d-hote-guard.test.ts` ;
 //   · l'ORDRE des sorties de `readdir`/`opendir`/`glob` (NTFS trie sans casse, ext4 rend l'ordre d'un
 //     hash) et le séparateur des chemins qu'ils rendent (`glob`, `recursive: true`) — mur de l'ordre total
-//     d'`eslint.config.js` (seul `listerDossier`/`listerArbre` de `scripts/guards/lib/lister.mjs` liste
+//     d'`oxlint.config.mjs` (seul `listerDossier`/`listerArbre` de `scripts/guards/lib/lister.mjs` liste
 //     un dossier, `listerArbre` joint par `/`) ;
 //   · le même ORDRE quand le nom échappe au mur (le mur ferme membre, clé littérale ou gabarit,
 //     déstructuration, alias d'import TypeScript, membre JSX) : clé calculée non littérale (`fs[nom]`,
@@ -31,11 +31,11 @@
 //     par un processus enfant (`find`, `ls`) — rien ;
 //   · la casse des chemins — rien ;
 //   · locale et ICU : `localeCompare` et `toLocale*` sous toute forme de clé, toute référence à la
-//     valeur `Intl` — mur de l'ordre total d'`eslint.config.js` (globs de ses blocs et clôture des
+//     valeur `Intl` — mur de l'ordre total d'`oxlint.config.mjs` (globs de ses blocs et clôture des
 //     générateurs) ; `globalThis.Intl`, un nom calculé, la collation d'un module d'UI qu'aucun
 //     générateur n'atteint — rien ;
 //   · ce qui éteint le mur de l'ordre total (`murs/ordre-total`, `murs/ordre-total-imports`,
-//     `murs/ordre-total-locale`) — `scripts/guards/lib/lister.test.mjs` : un bloc d'`eslint.config.js`
+//     `murs/ordre-total-locale`) — `scripts/guards/lib/lister.test.mjs` : un bloc d'`oxlint.config.mjs`
 //     qui redéclare une de ces règles (UNICITÉ : chacune par UN bloc, en `error`, avec ses options) ; un
 //     ignore global qui couvre un fichier sous le mur (IGNORES) ; une directive `eslint-disable` ou un
 //     commentaire de configuration `/* eslint … */` qui la nomme — ou, pour la directive, ne nomme
@@ -57,9 +57,9 @@
 //   · un chemin ENCASTRÉ dans un argument de `child_process` (`--sortie=C:\…`), passé tel quel — rien.
 import cp from 'node:child_process'
 import fs from 'node:fs'
-import { register, syncBuiltinESMExports } from 'node:module'
+import { register, registerHooks, syncBuiltinESMExports } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { cwdDonne, estAbsoluWindows, estModuleDuDepot, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
+import { cwdDonne, estAbsoluWindows, estModuleDuDepot, hooksSdkSousWin32, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 /** Nom → nombre d'arguments-CHEMINS en tête, pour la forme synchrone, à rappel et `fs.promises`. */
 const ENTREES_FS = {
@@ -172,4 +172,5 @@ function cwdSimule() {
 process.cwd = cwdSimule
 process.chdir = (dossier) => chdirHote(versPosix(dossier))
 
+registerHooks(hooksSdkSousWin32(racine))
 register(new URL('plateforme-win32-hooks.mjs', import.meta.url).href, { data: { racine } })
