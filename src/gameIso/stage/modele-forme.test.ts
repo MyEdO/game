@@ -34,7 +34,7 @@ const areneConstruit = arene.construire();
  *  banc ; la passe LOURDE se paie une fois par scène, la teinte (`applyVisibilityTint`, en place) se
  *  recalcule à chaque appel. Une scène fabriquée sur place a une identité neuve, donc un bake frais. */
 const bakeRetenu = memoByRefDeps<Scene, BakedWorld>();
-const cuire = (s: Scene, m: number): BakedWorld => bakeRetenu(s, worldBakeDeps(s, m), () => bakeWorldGeometry(s, m));
+const cuire = (s: Scene, m: number): BakedWorld => bakeRetenu(s, worldBakeDeps(s, m), () => bakeWorldGeometry(s, m, 'jeu'));
 
 const N = {
   haut: { x: 0, y: 1, z: 0 },

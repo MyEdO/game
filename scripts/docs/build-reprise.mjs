@@ -257,7 +257,9 @@ function rendu() {
       porte: (c) => c === 'core.hooksPath',
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
-   \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
+   \`pre-commit\` REFUSE au nom de l'intégrité (arbre imbriqué, lock npm amputé, fins de ligne) et
+    AVERTIT sur la forme, que la CI refuse ; les tests liés au diff se jouent à la main
+    (\`npm run test:lies\`). \`post-checkout\`,
     \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
     commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
     un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
@@ -401,7 +403,11 @@ journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBL
 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
 veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
 \`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
-\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
+\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. La CI d'une
+branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<sha>]\` (\`${script('ops:ci')}\`)
+attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
+absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
+rend cette extraction pour une course nommée. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
 de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). Aucun rebase : une
 PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'\`origin/main\`
@@ -471,7 +477,7 @@ C'est le signal qu'un geste manuel a dévié de ce que \`npm install\` pose seul
 
 - \`${chemin('Source')}/\` — texte des livres en \`.md\`, **citable** (réfs \`LDB <chap> l.<ligne>\`).
 - \`src/data/\` — données app-owned (${NB_DATA_JSON} fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : \`${chemin('scripts/guards/validate-data.mts')}\` + ${NB_GUARD_LIBS} modules
+- Les gardes de données : ${NB_GUARD_LIBS} modules
   sous \`scripts/guards/lib/\` (dont \`scripts/guards/lib/commentPoison.mjs\`,
   \`scripts/guards/lib/emojiAffordance.mjs\`, \`scripts/guards/lib/hardcode.mjs\`,
   \`scripts/guards/lib/labelLogic.mjs\`).

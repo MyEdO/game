@@ -70,7 +70,7 @@ import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead } from '../guards/lib/gitPorte.mjs'
-import { depotReel, envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
 
 const TODAY = '2026-07-14'
@@ -2919,26 +2919,47 @@ test('histoireDeHead(…).commits HORS dépôt : JETTE une indisponibilité nomm
 })
 
 test('jugerOuConfier / refusDesPannes : une lecture indisponible va aux pannes, qui font UN refus NOMMÉ ; toute autre erreur remonte', () => {
-  const pannes = ['fatal: feinte cat-file']
+  const pannes = ['mesure (status ?) — fatal: feinte cat-file']
   assert.equal(jugerOuConfier(() => { throw new GitIndisponible('fatal: feinte cat-file') }, pannes), null)
   assert.equal(jugerOuConfier(() => { throw new GitIndisponible('not a git repository') }, pannes), null)
   const vu = refusDesPannes(pannes)
   assert.deepEqual(Object.keys(vu), ['reason'])
-  assert.equal(vu.reason, "⛔ lecture git indisponible : fatal: feinte cat-file ; not a git repository — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.",
+  assert.equal(vu.reason, "⛔ lecture git indisponible : mesure (status ?) — fatal: feinte cat-file ; mesure (status ?) — not a git repository — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.",
     'une cause vue deux fois est nommée une fois, en UN refus')
   assert.equal(refusDesPannes([]), null)
   assert.deepEqual(jugerOuConfier(() => ({ reason: 'r' }), []), { reason: 'r' })
   assert.throws(() => jugerOuConfier(() => { throw new TypeError('un vrai bug') }, []), TypeError)
 
-  // La CAUSE VRAIE prime sur ce que git a bredouillé : un répertoire hors dépôt n'est ni un git
-  // absent ni un cwd manquant, et « unknown option `cached' » ne désignait aucune correction.
   const hors = refusDesPannes(['error: unknown option `cached\''], { cwd: '/base/scratchpad', horsDepot: true })
   assert.match(hors.reason, /hors dépôt : \/base\/scratchpad/)
-  assert.doesNotMatch(hors.reason, /unknown option/)
+  assert.match(hors.reason, /unknown option/)
   assert.doesNotMatch(hors.reason, /où git répond/)
 })
 
 // ── Le garde ne juge que DEUX gestes — hors d'eux, il ne lit rien (#1729 sonde 3) ────────────
+const stderr2285 = `${'ligne diagnostique longue\n'.repeat(45)}CAUSE TARDIVE 2285`
+const detail2285 = `refus (status 37) — raison distincte\n${stderr2285}\nstdout distinct 2285`
+test('#2285 solde catch : diagnostic Git intégral et identité programme', () => {
+  const pannes = []
+  const erreur = new GitIndisponible({ disponible: false, issue: 'refus', raison: 'raison distincte', diagnostic: { status: 37, stdout: 'stdout distinct 2285', stderr: stderr2285 } })
+  assert.equal(jugerOuConfier(() => { throw erreur }, pannes), null)
+  assert.deepEqual(pannes, [detail2285])
+  const programme = new TypeError('programme distinct')
+  assert.throws(() => jugerOuConfier(() => { throw programme }, []), (e) => e === programme)
+})
+test('#2285 solde hors dépôt : contexte et causes dédupliquées', () => {
+  const vu = refusDesPannes([detail2285, detail2285], { cwd: '/destination/publique', horsDepot: true })
+  assert.equal(vu.reason, `⛔ lecture git indisponible : hors dépôt : /destination/publique ; ${detail2285} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).`)
+})
+test('#2285 solde callback : diagnostic Git intégral', () => {
+  const pannes = []
+  const { racine } = instanceDeDepot({ fichiers: { 'notes/a.md': 'a\n' } })
+  try {
+    sousGitFeint([{ si: ['diff-index'], status: 37, stdout: 'stdout distinct 2285', stderr: stderr2285 }], () => diffDuCommit('git commit -m x', racine, { pannes }).numstat())
+    assert.ok(pannes.some((p) => p.includes(`refus (status 37) — ${stderr2285}\nstdout distinct 2285`)), JSON.stringify(pannes))
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('gesteJuge : commit et fermeture `gh` ; toute autre commande est hors sujet', () => {
   assert.equal(gesteJuge('git commit -m "x"'), 'commit')
   assert.equal(gesteJuge('cd wt && git commit -F msg.txt'), 'commit')
@@ -3092,12 +3113,12 @@ test('hors dépôt, le listeur d’image rend [] — comme le listeur de disque 
 test('le budget qui grandit sans CLIQUET est refusé, avec CLIQUET il passe, et hors commit il se tait', () => {
   const reference = { postes: [{ nom: 'CLAUDE.md', octets: 9127 }], total: 9127 }
   const mesure = { postes: [{ nom: 'CLAUDE.md', octets: 10151 }], total: 10151 }
-  const sans = evaluateBudgetContexte({ command: 'git commit -m "docs: une ligne"', mesure, reference, plafond: 9127 })
+  const sans = evaluateBudgetContexte({ command: 'git commit -m "docs: une ligne"', mesure, reference })
   assert.equal(sans.decision, 'deny')
   assert.match(sans.reason, /CLAUDE\.md \+1024 octets/)
   const avec = 'git commit -m "docs: une ligne\n\nCLIQUET: scripts/guards/budget-contexte.mjs +1024 — une règle de routage neuve"'
-  assert.equal(evaluateBudgetContexte({ command: avec, mesure, reference, plafond: 9127 }), null)
-  assert.equal(evaluateBudgetContexte({ command: 'git status', mesure, reference, plafond: 9127 }), null)
+  assert.equal(evaluateBudgetContexte({ command: avec, mesure, reference }), null)
+  assert.equal(evaluateBudgetContexte({ command: 'git status', mesure, reference }), null)
 })
 
 // ── RECLASSEMENT CSS (#1806) ────────────────────────────────────────────────────────────────────
@@ -3326,12 +3347,11 @@ test('#2328 A5 — sous fusion, un écran ne compte que s’il GAGNE des lignes 
 })
 
 test('#2328 A6 — un CLAUDE.md agrandi par main seul ne demande aucun CLIQUET ; la résolution qui le touche se mesure contre la fusion automatique', async () => {
-  const porteur = (plafond) => `export const PLAFOND_OCTETS = ${plafond}\n`
   const contexte = (n) => `# contexte\n${'x'.repeat(n)}\n`
   const { racine, git, evaluer } = depotEnFusion({
-    socle: { 'CLAUDE.md': contexte(50), 'scripts/guards/budget-contexte.mjs': porteur(100) },
+    socle: { 'CLAUDE.md': contexte(50) },
     chantier: { 'notes/c.md': 'c\n' },
-    main: { 'CLAUDE.md': contexte(400), 'scripts/guards/budget-contexte.mjs': porteur(500) },
+    main: { 'CLAUDE.md': contexte(400) },
   })
   try {
     assert.equal(await evaluer('git commit -m "merge: refs #42 — intègre main"'), null, 'fusion propre : rien à mesurer')
@@ -3378,6 +3398,35 @@ test('#2328 A5 — sous fusion, la Recette visuelle du solde suit l’écran que
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
+test('#2285 garde evaluer : refus structurel de fusion intégral', async () => {
+  const { racine, evaluer } = depotEnFusion({ socle: { 'notes/a.md': 'a\n' }, chantier: { 'notes/c.md': 'c\n' }, main: { 'notes/m.md': 'm\n' } })
+  const stderr = `${'diagnostic structurel\n'.repeat(45)}fatal: cause tardive du merge-tree\n`
+  const stdout = 'stdout structurel distinct\n'
+  const ancienneFeinte = process.env[ENV_GIT_FEINT]
+  try {
+    Object.assign(process.env, envGitFeint([{ si: ['merge-tree'], status: 37, stdout, stderr }]))
+    const verdict = await evaluer('git commit -m merge')
+    assert.deepEqual(verdict, {
+      decision: 'deny',
+      raison: `⛔ lecture git indisponible : refus (status 37) — fusion automatique de fusion en cours illisible : ${stderr} — ${stdout}\n${stderr}\n${stdout} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.`,
+    })
+  } finally {
+    if (ancienneFeinte === undefined) delete process.env[ENV_GIT_FEINT]
+    else process.env[ENV_GIT_FEINT] = ancienneFeinte
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2285 solde fusion catch : diagnostic Git intégral', () => {
+  const { racine } = depotEnFusion({ socle: { 'notes/a.md': 'a\n' }, chantier: { 'notes/c.md': 'c\n' }, main: { 'notes/m.md': 'm\n' } })
+  try {
+    const pannes = []
+    const resultat = sousGitFeint([{ si: ['merge-tree'], status: 37, stdout: 'stdout distinct 2285', stderr: stderr2285 }], () => diffDuCommit('git commit -m merge', racine, { pannes }).fusion())
+    assert.equal(resultat, null)
+    assert.ok(pannes.some((p) => p.includes('status 37') && p.includes(stderr2285) && p.includes('stdout distinct 2285')), JSON.stringify(pannes))
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('#2328 D2 — une fusion en cours qu’aucune fusion automatique ne rejoue est un refus NOMMÉ, jamais le diff contre HEAD', async () => {
   const { racine, git, evaluer } = depotEnFusion({
     socle: { 'notes/a.md': 'a\n' },
@@ -3389,7 +3438,7 @@ test('#2328 D2 — une fusion en cours qu’aucune fusion automatique ne rejoue 
     writeFileSync(mergeHead, `${readFileSync(mergeHead, 'utf8')}${git('rev-parse', 'HEAD~1').trim()}\n`)
     const refus = await evaluer('git commit -m "merge: intègre main"')
     assert.equal(refus?.decision, 'deny')
-    assert.match(refus.raison, /⛔ lecture git indisponible : fusion en cours à 3 parents/)
+    assert.match(refus.raison, /⛔ lecture git indisponible : mesure \(status \?\) — fusion en cours à 3 parents/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 

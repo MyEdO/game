@@ -59,7 +59,11 @@
 }
 /* Grille dont les options portent leur NOTE d'enjeu (`note` de `RollGridOption`) : une RANGÉE par
    option (`.rm-option`), le verbe puis ce qu'il met en jeu, pleine largeur. La colonne des verbes est
-   commune à toutes les rangées (`subgrid`) ; ≤560 la rangée s'empile. */
+   commune à toutes les rangées (`subgrid`) ; ≤560 la rangée s'empile.
+   ≤560 encore, une rangée de SEGMENTS pose son libellé AU-DESSUS de sa barre : à côté, le mini-titre
+   (« Déclarer ») prenait la largeur et repliait les segments à 360px (#700). Une rangée à menu
+   déroulant garde son libellé à côté — son `select` rétrécit sans se replier. La rangée `[data-empile]`
+   porte cet empilement à toute largeur, hors de ce bloc. */
 .rm-loc-grid[data-notes] {
   grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--sp-md) var(--sp-lg);
@@ -78,12 +82,19 @@
   .rm-option {
     row-gap: var(--sp-xs);
   }
+  .rm-loc-inline:not([data-empile]):has(> .seg) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-xs);
+  }
 }
 /* DÉCLARATION de rangée (`declare` de `RollRow`) : la rangée de choix est un enfant de `.prow-act`
    (couche partagée, components.css) comme les autres contrôles — elle ne prend pas toute la largeur
-   et s'enroule avec eux, aucune classe de domaine de plus. */
+   et s'enroule avec eux, aucune classe de domaine de plus. Plus large que la rangée, elle RÉTRÉCIT : la
+   barre `.seg` s'enroule alors sur elle-même (#700). */
 .prow-act > .rm-loc-inline {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  max-width: 100%;
   margin: 0;
 }
 /* FOURCHETTE d'une ligne de tableau, sur la tuile (« Trahison ! 07-10 ») — c'est ce qui fait lire une

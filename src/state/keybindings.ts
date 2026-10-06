@@ -13,6 +13,8 @@
  *  • l'Entrée qui valide un champ de renommage (`ui/editor/Inspector.tsx`) ;
  *  • le geste secondaire de l'alvéole FOCALISÉE (`ui/CombatConsole.tsx`, `ContextMenu`/Shift+F10),
  *    jumelé au clic droit et à l'appui long ;
+ *  • le geste secondaire du PORTRAIT focalisé — inspecter (`ui/PortraitTile.tsx`, `ContextMenu`/Shift+F10),
+ *    jumelé au clic droit et à l'appui long ;
  *  • la CAPTURE de touche du panneau de remap lui-même (`ui/KeyBindingsPanel.tsx`).
  */
 import type { GameState } from './store';
@@ -28,10 +30,12 @@ import { TOUCHES_IMPRIMEES } from './dispositionConsole';
 import { runAction, currentInterludeAction, actionGate } from './actionRegistry';
 import { validTargets, preemptShooterIds } from './targeting';
 import type { ScreenDir } from './combatCursor';
+import { combatantAtTile } from './combatGeometry';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from './stageYaw';
 import { arreterMarche, demarrerMarche } from './stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from './combatTimers';
 import { t, type MsgKey } from '../i18n';
+import { roomFocusAt } from './rooms';
 
 /** Section d'affichage de l'écran Options (remap) — REGROUPE les raccourcis par contexte de jeu.
  *  Purement présentationnel (le `when` de chaque binding reste l'unique arbitre d'exécution). */
@@ -214,6 +218,17 @@ const exploring = (s: GameState) => s.screen === 'campaign' && s.mode === 'explo
 /** Contexte d'exploration en vue SUBJECTIVE (POV) : les ZQSD deviennent cap-relatifs et A/E pivotent le
  *  regard → shadow des raccourcis caméra/pas-iso (mêmes touches) tant que le POV est actif. */
 const exploringPov = (s: GameState) => exploring(s) && s.povActive;
+/** L'entité que désigne la touche `inspecter` : en combat l'occupant de la case du CURSEUR
+ *  clavier/manette, sinon le combattant survolé (portrait ou Tab, puis jeton) ; hors combat l'entité
+ *  survolée (`hovered`). `null` = rien à inspecter, la touche se tait. */
+export const cibleDInspection = (s: GameState): string | null => {
+  if (inBattle(s)) {
+    const t = s.combatCursor?.tile;
+    const sousCurseur = t ? combatantAtTile(s.battle!.combatants, t.x, t.y, t.z ?? 0)?.id : undefined;
+    return sousCurseur ?? s.hoverCombatantId ?? s.hovered;
+  }
+  return exploring(s) ? s.hovered : null;
+};
 /** Pas clavier d'exploration ISO (ZQSD) : code physique → direction ÉCRAN. Réservé à la vue iso (hors POV,
  *  où ces mêmes touches sont cap-relatives — cf. `exploringPov` ci-dessus, résolu AVANT par ordre de tableau). */
 const EXPLORE_STEP: { code: string; dir: ScreenDir; labelKey: MsgKey; povId: string }[] = [
@@ -271,9 +286,21 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => exploring(s) || inBattle(s),
     run: (g) => g().setReveler(true), runUp: (g) => g().setReveler(false),
   },
-  // Inspection des combattants (option de jeu) : le clic sur un allié non actionnable ouvre son
-  // statbloc. En combat seulement — hors combat aucun clic ne l'emprunte.
-  { id: 'toggle-inspect', codes: ['KeyI'], labelKey: 'key.toggleInspect', section: 'combat', when: inBattle, run: (g) => g().toggleInspectEnabled() },
+  // FOUILLER LA PIÈCE : geste d'exploration du GROUPE, offert là où l'offre du pont l'est — DANS une
+  // pièce (`roomFocusAt`) ; le verbe dit lui-même ses refus.
+  {
+    id: 'fouiller-piece', codes: ['KeyR'], labelKey: 'fouille.geste', section: 'exploration',
+    when: (s) => exploring(s) && !!s.scene && !!roomFocusAt(s.scene, s.partyPos),
+    run: (g) => g().fouillerLaPiece(),
+  },
+  // INSPECTER : la surface CLAVIER du geste secondaire d'une entité (clic droit, appui long, touche
+  // Menu sur un portrait) — elle ouvre la fiche de ce que le joueur désigne, en combat comme hors
+  // combat (`cibleDInspection`). La manette l'atteint par R3 (`ui/useGamepad`).
+  {
+    id: 'inspecter', codes: ['KeyI'], labelKey: 'key.inspecter', section: 'exploration',
+    when: (s) => !!cibleDInspection(s),
+    run: (g) => { const id = cibleDInspection(g()); if (id) g().setInspectId(id); },
+  },
   // Commuter le SET d'armes au poing (LDB 13 l.106 — Action gratuite ; plafond maison 1×/tour porté
   // par `battleSwitchLoadout`) : la touche FAIT TOURNER les sets de la colonne de la console, dans
   // l'ordre où ils y sont dessinés. Gardée sur ≥ 2 sets — un porteur d'un seul set n'a rien à commuter.

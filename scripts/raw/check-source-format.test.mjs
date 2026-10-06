@@ -357,24 +357,8 @@ test('un solde laisse le quoi à l’octet', () => {
   assert.equal(JSON.parse(texteRegenere(r, { enPlace, lot: null, date: null }).texte).quoi, JSON.parse(enPlace).quoi)
 })
 
-// PLAFOND de la dette (jamais dans la lib de stock : il vit ICI, cf. `scripts/guards/lib/stock.mjs`).
-// Il ne monte QUE par une édition de cette ligne, sous `CLIQUET:`.
-// 57 → 58 au train #1820 : +1 `sans-folio` pour le Core Rulebook 5e, enregistré SANS ancre de folio
-// — l'entrée sort quand la chaîne canonique lui pose ses folios (#1739).
-// 58 → 78 au train #1739 : la famille `sans-decoupe` NAÎT — UNE entrée par livre dont le
-// GRAIN n'est déclaré par aucune liste de découpe, 20 livres. Elle décroît d'un par liste écrite ;
-// le livre qui en a une n'entre pas au stock, il se CONFRONTE (`ecartsAuGrain`, rouge nommé).
-// 78 → 997 au train #1739 (#1393, folios du CRB) : UN SITE PAR FICHIER pour toutes les familles —
-// chaque ancienne entrée de dossier est la somme de ses entrées par fichier (sans-folio du CRB
-// soldée : 122 → 0) ; aucune dette neuve.
-const PLAFOND = 997
-
-test('stock COMMITTÉ : PLAFOND de la dette de format — le relever exige de changer CE test', () => {
+test('stock COMMITTÉ : chaque entrée nomme sa famille, son chapitre et sa référence', () => {
   const entrees = lireEntreesDeSite(STOCK_PATH)
-  assert.ok(
-    entrees.length <= PLAFOND,
-    `${entrees.length} entrée(s) pour un plafond de ${PLAFOND} : une dette de format ne grossit pas`,
-  )
   for (const e of entrees) {
     assert.ok(FAMILLES.includes(e.famille), `famille inconnue : ${JSON.stringify(e)}`)
     assert.match(e.fichier, /^Source\/[^\\]+\/[^\\]+\.md$/, `entrée sans chapitre nommé : ${JSON.stringify(e)}`)

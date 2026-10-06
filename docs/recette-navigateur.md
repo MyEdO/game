@@ -156,10 +156,13 @@ fait répondre `(pointer: coarse)`) et chaque commande vissée rendue offre 44px
 d'écran du rail n'est monté qu'avec un navire (`src/ui/CampaignView.tsx`) : la mise en place du combat
 pose un `vessel` de campagne.
 Cellules NON MESURÉES, et pourquoi :
-- **Caméra / inspection** `>900`, `701–900`, `561–700` : ces cellules décrivent `ViewControls`, monté
-  en jeu nulle part (#1822, « Inspection de combattant : aucun contrôle visible (ViewControls monté
-  nulle part, touche I seule)… ») — `grep -rn ViewControls src` ne le trouve qu'à
-  `src/ui/editor/EditorCanvas.tsx` et `src/ui/gallery/registry.tsx`.
+- **Caméra** `>900`, `701–900`, `561–700` : ces cellules décrivent `ViewControls`, la plaque de
+  l'ÉDITEUR — `grep -rn ViewControls src` ne la trouve qu'à `src/ui/editor/EditorCanvas.tsx` et
+  `src/ui/gallery/registry.tsx`. L'inspection n'a pas de plaque : c'est le GESTE SECONDAIRE d'un
+  jeton ou d'un portrait (clic droit, appui long ; Menu ou Maj+F10 sur un portrait focalisé ; touche
+  I, R3 à la manette — #1822), à recetter par ces gestes réels. Au tour d'un héros qui a une cible,
+  Tab est la liaison `target-next` (il pose le curseur de combat sur la cible, jamais le focus sur un
+  portrait) : le chemin clavier y est Tab puis I, qui inspecte la case du curseur.
 - **Dock** `701–900` « dock sur deux rangées au besoin » : conditionnel, aucun rendu ne le rend
   exigible.
 - **Dock** `561–700` « actions sur deux colonnes » : la grille du pont (`.cc-dock`) est réécrite sous
@@ -947,8 +950,8 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Le bouton de bascule de vue nomme sa DESTINATION, pas l'état courant** (même recette) :
   « Vue du dessus » affiché ⇒ on est en ISO (`src/ui/ViewControls.tsx`). L'état RÉEL est dans
   l'`aria-pressed` de SON bouton — jamais dans un `[aria-pressed]` NU : la barre de vues en porte
-  PLUSIEURS (projection, POV, inspection — `ViewControls.tsx:68`, `:79`, `:92`), et le premier trouvé
-  n'est pas forcément celui de la projection. Le désigner par l'`aria-label` de son bouton
+  PLUSIEURS (projection, POV — `ViewControls.tsx:63`, `:74`), et le premier trouvé n'est pas
+  forcément celui de la projection. Le désigner par l'`aria-label` de son bouton
   (`[aria-label="Vue du dessus"][aria-pressed]`), comme pour tout contrôle de cette barre.
 - **EN JEU, aucune barre de vues** (relevé en recette #1343, 2026-09-22) : `ViewControls` n'est monté
   qu'à l'éditeur (`src/ui/editor/EditorCanvas.tsx`). La bascule ISO ⇄ dessus du monde de jeu est un

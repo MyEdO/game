@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
 import { emptyScene, type Scene } from '../../state/scene';
-import type { RoomPortal } from '../../state/roomPortals';
+import { cloisons, piece } from '../../state/pieces.fixture';
 import { aretesUtilisables } from '../../state/aretes';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { AreteOverlay } from './AreteOverlay';
@@ -21,41 +21,25 @@ import { AreteOverlay } from './AreteOverlay';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
-const interior: RoomPortal = {
-  id: '0:1,1:E:room-a:room-b',
-  z: 0,
-  edge: { x: 1, y: 1, side: 'E' },
-  fromZoneId: 'room-a',
-  toZoneId: 'room-b',
-  kind: 'passage',
-  exterior: false,
-  from: { x: 1, y: 1 },
-  to: { x: 2, y: 1 },
-};
-const exterior: RoomPortal = {
-  ...interior,
-  id: '0:1,1:N:room-a:exterior',
-  edge: { x: 1, y: 1, side: 'N' },
-  toZoneId: null,
-  kind: 'door-open',
-  exterior: true,
-  to: { x: 1, y: 0 },
-};
-const closed: RoomPortal = {
-  ...interior,
-  id: '0:2,1:E:room-b:room-c',
-  edge: { x: 2, y: 1, side: 'E' },
-  fromZoneId: 'room-b',
-  toZoneId: 'room-c',
-  kind: 'door-closed',
-  from: { x: 2, y: 1 },
-  to: { x: 3, y: 1 },
-};
+/** Accès que la pièce (1,1) du contrôleur perce : un PASSAGE vers la pièce (2,1) à l'est, une SORTIE
+ *  extérieure ouverte au nord, une porte FERMÉE vers la pièce (0,1) à l'ouest. Un accès absent est muré,
+ *  comme le côté sud. */
+type Acces = 'passage' | 'sortie' | 'fermee';
+function scèneDePièces(acces: readonly Acces[]): Scene {
+  const s = emptyScene(dims.w, dims.h);
+  s.effectZones = [piece('room-a', 1, 1), piece('room-b', 2, 1), piece('room-c', 0, 1)];
+  s.walls = [
+    ...cloisons(1, 1, ['S', ...(acces.includes('passage') ? [] : ['E' as const])]),
+    acces.includes('sortie') ? { x: 1, y: 1, side: 'N', door: true, closed: false } : { x: 1, y: 1, side: 'N' },
+    acces.includes('fermee') ? { x: 0, y: 1, side: 'E', door: true, closed: true } : { x: 0, y: 1, side: 'E' },
+  ];
+  return s;
+}
 
 /** Ce que l'hôte tend au peintre : les arêtes du DÉRIVEUR, projetées par la MÊME fonction que le
  *  picking consulte — aucune géométrie n'est fabriquée pour le banc. */
-const projete = (portails: RoomPortal[], visible: string[]): readonly AreteProjetee[] => projeterAretes(
-  aretesUtilisables({ scene: emptyScene(dims.w, dims.h), visible: new Set(visible), controleur: null, activeZ: 0, portails }),
+const projete = (acces: readonly Acces[], visible: string[]): readonly AreteProjetee[] => projeterAretes(
+  aretesUtilisables({ scene: scèneDePièces(acces), visible: new Set(visible), controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 }),
   dims,
   () => 0,
 );
@@ -114,7 +98,7 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
     const html = renderToStaticMarkup(
       <svg>
         <AreteOverlay
-          aretes={projete([interior, exterior], ['1,1,0', '2,1,0', '1,0,0'])}
+          aretes={projete(['passage', 'sortie'], ['1,1,0', '2,1,0', '1,0,0'])}
           areteSurvolee={null}
           activerArete={() => undefined} onFocusArete={() => undefined} onBlurArete={() => undefined}
         />
@@ -133,7 +117,7 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
     // Le pixel est résolu par la chaîne, jamais par la cible — mais le nom au survol est ici une
     // infobulle NATIVE, que seul un élément hit-testable montre. Le trait de prise garde donc son
     // hit-test SANS handler : le `pointerdown` bulle jusqu'au SVG racine du stage.
-    for (const aretes of [projete([interior], ['1,1,0']), ESCALADE(), CHUTE()]) {
+    for (const aretes of [projete(['passage'], ['1,1,0']), ESCALADE(), CHUTE()]) {
       const capacite = aretes[0].arete.capacite;
       const activerArete = vi.fn();
       const aLaRacine = vi.fn();
@@ -170,7 +154,7 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
   });
 
   it('expose un bouton nommé et activable au clavier POUR CHAQUE capacité, qui appelle LE geste de l’arête', () => {
-    for (const aretes of [projete([interior], ['1,1,0']), ESCALADE(), CHUTE()]) {
+    for (const aretes of [projete(['passage'], ['1,1,0']), ESCALADE(), CHUTE()]) {
       const activerArete = vi.fn();
       const container = document.createElement('div');
       root = createRoot(container);
@@ -198,7 +182,7 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
     // L'arête est un trait TRANSPARENT sans contour de navigateur : son rendu de focus EST l'accent du
     // survol, posé par le même état que le pointeur (`areteSurvolee`, une CLÉ). Sans ce canal, le Tab
     // n'affiche rien et le geste n'est pas armé (deux Entrée sur un appareil sans survol).
-    const aretes = projete([interior, exterior], ['1,1,0', '1,0,0']);
+    const aretes = projete(['passage', 'sortie'], ['1,1,0', '1,0,0']);
     function Harnais() {
       const [survolee, setSurvolee] = useState<string | null>(null);
       return (
@@ -234,7 +218,7 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
   });
 
   it('trace l’arête à la LARGEUR DE PRISE du dériveur, et sur le segment qu’il a reçu', () => {
-    for (const aretes of [projete([interior], ['1,1,0']), ESCALADE(), CHUTE()]) {
+    for (const aretes of [projete(['passage'], ['1,1,0']), ESCALADE(), CHUTE()]) {
       const container = document.createElement('div');
       container.innerHTML = renderToStaticMarkup(
         <svg>
@@ -256,7 +240,7 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
     container.innerHTML = renderToStaticMarkup(
       <svg>
         <AreteOverlay
-          aretes={projete([interior, exterior, closed], ['1,1,0', '2,1,0', '3,1,0'])}
+          aretes={projete(['passage', 'sortie', 'fermee'], ['1,1,0', '2,1,0', '0,1,0'])}
           areteSurvolee={null}
           activerArete={() => undefined} onFocusArete={() => undefined} onBlurArete={() => undefined}
         />
@@ -278,8 +262,8 @@ describe('AreteOverlay — peintre unique des arêtes utilisables', () => {
   });
 
   it('ajoute au seul seuil survolé un accent local et modeste', () => {
-    const aretes = projete([interior, exterior], ['1,1,0']);
-    const survolee = aretes.find(({ arete }) => arete.portail?.id === exterior.id)!.arete.cle;
+    const aretes = projete(['passage', 'sortie'], ['1,1,0']);
+    const survolee = aretes.find(({ arete }) => arete.portail?.exterior)!.arete.cle;
     const container = document.createElement('div');
     container.innerHTML = renderToStaticMarkup(
       <svg>

@@ -224,12 +224,12 @@ test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’oxli
 
 test('IGNORES — aucun ignore global ne couvre un fichier sous le mur', () => {
   const fichiers = fichiersSousLeMur()
-  const resultat = lancerLint(RACINE_DEPOT,fichiers,{configuration:{overrides:[],rules:{},options:{reportUnusedDisableDirectives:'off'}}})
+  const resultat = lancerLint(RACINE_DEPOT,fichiers,{cwd:RACINE_DEPOT,configuration:{overrides:[],rules:{},options:{reportUnusedDisableDirectives:'off'}}})
   assert.deepEqual(resultat.defauts,[])
   assert.equal(JSON.parse(resultat.stdout).number_of_files,new Set(fichiers).size)
   const temoin='scripts/docs/build-all.mjs'
   for(const motif of [temoin,'scripts/docs/**']) {
-    const plante=lancerLint(RACINE_DEPOT,[temoin],{configuration:{overrides:[],rules:{},ignorePatterns:[...configurationLint.ignorePatterns,motif]}})
+    const plante=lancerLint(RACINE_DEPOT,[temoin],{cwd:RACINE_DEPOT,configuration:{overrides:[],rules:{},ignorePatterns:[...configurationLint.ignorePatterns,motif]}})
     assert.deepEqual(plante.defauts,[])
     assert.equal(JSON.parse(plante.stdout).number_of_files,0)
   }

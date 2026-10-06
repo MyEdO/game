@@ -59,8 +59,9 @@
 // jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
 // toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
 // Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
-// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent, d'un commit postérieur de la plage, `JUGE:` et
-// `REFUTATION:` (plus `JUGE-VISION:` sur un écran) qui nomment son sha.
+// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent `JUGE:` et `REFUTATION:` (plus `JUGE-VISION:`
+// sur un écran), portés par le message de la fusion elle-même, sinon par un commit postérieur de la plage
+// ou le solde d'un ticket qu'il cite, qui nomment son sha.
 //
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
 // reste à 10 s. Un hook tué au `timeout` n'émet RIEN, et le geste passe. D'où DEUX ÉTAGES : le premier
@@ -153,11 +154,11 @@ import {
 } from '../guards/lib/reclassementCss.mjs'
 import { coteCss, sourceGit, sourceMelee } from '../guards/lib/cssImages.mjs'
 import {
-  PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
+  estCheminDuBudget, importsDe, mesurerBudget, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
   GitIndisponible, INDEX, SUIVI, apportDeLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, listerImage, shaDe,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, listerImage, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
@@ -2900,7 +2901,7 @@ export function formeDuCommit(command) {
  *  ou un code de sortie non nul ; une PANNE de git rend `null` elle aussi, et `pannes` (celles du
  *  contexte de l'appel, `contexte.pannes`) la garde : un refus NOMMÉ au rendu (`refusDesPannes`),
  *  jamais « rien n'est emporté ». */
-const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.push(raison) })
+const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
 
 /**
  * Le refus UNIQUE de ce que git n'a pas lu : les `pannes` de lecture de l'appel, chacune nommée une
@@ -2912,7 +2913,7 @@ const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.
  */
 export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
   if (!pannes.length) return null
-  const cause = horsDepot ? `hors dépôt : ${cwd}` : [...new Set(pannes)].join(' ; ')
+  const cause = [horsDepot ? `hors dépôt : ${cwd}` : null, ...new Set(pannes)].filter(Boolean).join(' ; ')
   const geste = horsDepot
     ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
     : 'Geste : rejouer le commit depuis un arbre où git répond.'
@@ -3003,7 +3004,7 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
       return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
     } catch (e) {
       if (!(e instanceof GitIndisponible)) throw e
-      pannes.push(e.raison)
+      pannes.push(refusDeGit(e))
       return (enCours = null)
     }
   }
@@ -3091,7 +3092,7 @@ export function jugerOuConfier(juger, pannes) {
     return juger()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    pannes.push(e.raison)
+    pannes.push(refusDeGit(e))
     return null
   }
 }
@@ -3481,9 +3482,9 @@ export function evaluateReclassementsCss({ command, deplace, cotes }) {
  * pré-image : c'est la même discipline de lecture que `evaluateStocksQuiGrandissent`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateBudgetContexte({ command, mesure, reference, plafond }) {
+export function evaluateBudgetContexte({ command, mesure, reference }) {
   if (!command || !isGitCommitCommand(command)) return null
-  return refusDeBudget({ mesure, reference, plafond, message: command })
+  return refusDeBudget({ mesure, reference, message: command })
 }
 
 /**
@@ -3513,7 +3514,7 @@ async function evaluerSolde(entree, contexte) {
     // refus NOMMÉ des pannes, jamais une garde « en panne » qui laisse passer le commit.
     if (!(e instanceof GitIndisponible)) throw e
     const presume = motifDuCommitPresume(commandeDe(entree))
-    const refus = refusDesPannes([...contexte.pannes, e.raison], ouDeLaLecture(contexte.dir))
+    const refus = refusDesPannes([...contexte.pannes, refusDeGit(e)], ouDeLaLecture(contexte.dir))
     return verdictDe(avecCibleIgnoree({ reason: presume ? `${presume} || ${refus.reason}` : refus.reason }, contexte.cibleIgnoree))
   }
 }
@@ -3613,21 +3614,15 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
     fichiersModifies: readChangedNames(targetDir, { pannes }),
     fichiersStages: commit.stages(),
   })
-  // BUDGET DU CONTEXTE PERMANENT : mesuré seulement si le commit touche un chemin du périmètre —
-  // sinon aucune lecture n'est payée au-delà de l'image de `CLAUDE.md`, qui dit les fichiers IMPORTÉS
-  // (`@<chemin>`) et donc le périmètre lui-même : ce que le commit emporte s'il l'emporte, son texte de base sinon.
-  // La mesure porte sur ce que le commit EMPORTE (`commit.contenus`), la référence et le plafond sur son
-  // texte de BASE (`commit.preImages`, `commit.lirePreImage`), chaque image lue par lot : relever la ligne du plafond dans le même commit ne suffit donc pas à
-  // faire passer une accrétion. Le LISTAGE des skills/agents se lit PAR IMAGE lui aussi — l'index pour
-  // ce que le commit emporte, sa BASE (`commit.base()`) pour la référence — sans quoi un poste SUPPRIMÉ par le commit
-  // disparaîtrait des DEUX côtés et le refus dirait « aucun poste ne grossit ».
-  const importsDuContexte = importsDe(commit.contenu('CLAUDE.md') ?? commit.lirePreImage('CLAUDE.md'))
+  const importsDuContexte = [
+    ...importsDe(commit.contenu('CLAUDE.md')),
+    ...importsDe(commit.lirePreImage('CLAUDE.md')),
+  ]
   const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
     ? evaluateBudgetContexte({
       command: text,
       mesure: mesurerBudget(targetDir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
       reference: mesurerBudget(targetDir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
-      plafond: plafondDeLaSource(commit.lirePreImage(PORTEUR_DU_PLAFOND)),
     })
     : null
   // Voir COÛT (en-tête) : un refus qu'aucun autre étage ne rejuge sort ICI, avant les deux décisions

@@ -93,7 +93,7 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
     }
   });
 
-  it('« Scénarios de test » : la note d’équipe est un `.hint` sous le titre, jamais une `.chip`', () => {
+  it('« Scénarios de test » : la note d’équipe est la ligne secondaire (`subtitle`) sous le titre, jamais une `.chip`', () => {
     const container = document.createElement('div');
     container.innerHTML = renderToStaticMarkup(
       <OpenProjectModal onScenario={() => {}} onProject={() => {}} onBuiltin={() => {}} onClose={() => {}} />,
@@ -103,7 +103,7 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
       expect(row, sc.title).toBeTruthy();
       const chips = Array.from(row!.querySelectorAll('.chip'));
       expect(chips.some((c) => c.textContent?.includes(sc.partyNote)), sc.title).toBe(false);
-      expect(row!.querySelector('.lr-name > .hint')?.textContent, sc.title).toBe(sc.partyNote);
+      expect(row!.querySelector('.lr-name > .lr-sub')?.textContent, sc.title).toBe(sc.partyNote);
     }
   });
 });

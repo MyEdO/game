@@ -476,3 +476,40 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
     ]);
   });
 });
+
+/**
+ * `couvre` (#2290, `couvreSchema` de `./communs.ts`) — le lien d'un élément du paquet vers les entrées de
+ * fiche de dossier de chapitre, posé sur CHAQUE porteur du projet : une liste d'identifiants globaux
+ * `ID_D_ENTREE` (`src/data/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
+ */
+describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
+  const FLOW = { kind: 'seq', steps: [] };
+  const lieu = (id: string, over: Jouet = {}): Jouet => ({ id, label: id, pos: { x: 1, y: 2 }, scene: 'scene-1', ...over });
+  const carte = (over: { place?: Jouet; route?: Jouet }): Jouet => ({
+    worldMap: {
+      id: 'carte',
+      label: 'Le monde',
+      places: [lieu('lieu-1', over.place), lieu('lieu-2')],
+      routes: [{ id: 'route-1', a: 'lieu-1', b: 'lieu-2', km: 10, modes: ['pied'], ...over.route }],
+    },
+  });
+  const PORTEURS: Record<string, (couvre: unknown) => Jouet> = {
+    scène: (couvre) => projet({ scenes: [sceneMinimale({ couvre })] }),
+    entité: (couvre) => projet({ scenes: [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', couvre }] })] }),
+    déclencheur: (couvre) => projet({ scenes: [sceneMinimale({ triggers: [{ id: 'trig-1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: FLOW, couvre }] })] }),
+    dialogue: (couvre) => projet({ scenes: [sceneMinimale({ dialogues: [{ id: 'dlg-1', start: 'n1', nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [] }], couvre }] })] }),
+    rencontre: (couvre) => projet({ scenes: [sceneMinimale({ encounters: [{ id: 'enc-1', couvre }] })] }),
+    'zone d’effet': (couvre) => projet({ scenes: [sceneMinimale({ effectZones: [{ id: 'zone-1', label: 'Cour', area: { kind: 'rect', x: 0, y: 0, w: 1, h: 1 }, couvre }] })] }),
+    'lieu de carte': (couvre) => projet(carte({ place: { couvre } })),
+    'route de carte': (couvre) => projet(carte({ route: { couvre } })),
+  };
+
+  for (const [nom, doc] of Object.entries(PORTEURS)) {
+    it(`${nom} : des identifiants globaux passent ; hors format, puis en double, refusés au chemin`, () => {
+      const ok = projetSchema.safeParse(doc(['EDO-01#b3', 'EDO-02#pnj1']));
+      expect(ok.success, ok.success ? '' : JSON.stringify(ok.error.issues.slice(0, 3))).toBe(true);
+      expect(fautes(doc(['EDO-01-b3']))).toEqual([expect.stringMatching(/couvre « EDO-01-b3 » :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu\.$/)]);
+      expect(fautes(doc(['EDO-01#b3', 'EDO-01#b3']))).toEqual([expect.stringMatching(/couvre « EDO-01#b3 » :: « EDO-01#b3 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique\.$/)]);
+    });
+  }
+});

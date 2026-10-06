@@ -19,6 +19,8 @@ import type { WorldMap } from '../state/worldMap';
 import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import { testScene } from '../scenes/test-fixture';
 import { CampaignView } from './CampaignView';
+import { TIME_COST } from '../engine/timeCost';
+import { t } from '../i18n';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -135,6 +137,36 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
     // tient — `placeServices` offre au moins l'hébergement) : les deux conditions sont satisfaites
     // par la même donnée, l'attendu le dit tel quel.
     expect(ouvreurs()).toEqual(['Possessions du groupe', 'Carte du monde — voyager', 'Terrain de test — services du lieu']);
+  });
+});
+
+describe('Fouiller la pièce (#700) — un GESTE du groupe, dans son groupe nommé, offert DANS une pièce', () => {
+  const gestes = () => host.querySelector('.exploration-dock [role="group"][aria-label="Gestes du groupe"]');
+  /** Une pièce intérieure authorée sur les cases 0..3 × 0..3, étage 0. */
+  const avecPiece = () => {
+    const sc = testScene();
+    sc.effectZones = [...(sc.effectZones ?? []), { id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w: 4, h: 4 }, z: 0 }];
+    return sc;
+  };
+
+  it('hors de toute pièce : le geste n’est pas offert', () => {
+    useGame.setState({ scene: avecPiece(), partyPos: { x: 8, y: 8 } });
+    monter();
+    expect(gestes()).toBeNull();
+    expect(ouvreurs()).not.toContain(t('fouille.geste'));
+  });
+
+  it('DANS une pièce : offert dans « Gestes du groupe », jamais parmi les écrans de campagne ; le clic fouille', () => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    useGame.setState({ scene: avecPiece(), partyPos: { x: 1, y: 1 }, party: [h], dialogue: null });
+    const el = monter();
+    const bouton = gestes()?.querySelector('button');
+    expect(bouton?.getAttribute('title')).toBe(t('fouille.geste'));
+    expect(el.querySelector('[aria-label="Écrans de campagne"]')!.contains(bouton!)).toBe(false);
+    const avant = useGame.getState().gameTime;
+    act(() => { bouton!.click(); });
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(t('fouille.journal'));
+    expect(useGame.getState().gameTime).toBe(avant + TIME_COST.search);
   });
 });
 

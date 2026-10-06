@@ -309,6 +309,8 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // PHASE 1 du Contre-sort (#1042/#1059) : le choix de déclaration vit SUR la rangée, dans la modale
   // d'incantation ; « tout déclarer » est un verbe NULLAIRE du drive d'auto-cadence (aucun bouton).
   counterspellDeclare: { parUI: true },
+  // Déclaration d'une rangée de chute volontaire (#700) : option de la rangée dans `FallModal`.
+  fallChoose: { parUI: true },
   // « Laisser passer » : action de la barre de la modale d'incantation — routée depuis #1042 pour
   // porter la frontière de phase (elle tombait sur le repli universel avant).
   counterspellCancel: { parUI: true },

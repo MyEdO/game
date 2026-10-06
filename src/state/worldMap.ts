@@ -62,6 +62,8 @@ export interface MapPlace {
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */
   when?: Condition;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
@@ -159,6 +161,8 @@ export interface MapRouteTrace {
    *  portion de fleuve : `grande-ville-marais`, `aval-grande-ville-8km`…), `mode` = `ingestion` (boire l'eau
    *  du fleuve non bouillie, l.5) / `immersion` (chute\nage, blessures ouvertes, l.7-9). Data-driven, éditable. */
   riverExposure?: { source?: string; mode: import('../data').WaterExposureMode; chancePct: number };
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 export interface WorldMapParams {

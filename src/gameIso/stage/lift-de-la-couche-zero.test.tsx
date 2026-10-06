@@ -5,7 +5,7 @@ import { diamondPath, tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, hauteurDe, heightAt, liftDe, type Scene } from '../../state/scene';
 import { metricToLift } from '../../state/relief';
 import { aretesUtilisables, type ContexteAretes } from '../../state/aretes';
-import type { RoomPortal } from '../../state/roomPortals';
+import { piece } from '../../state/pieces.fixture';
 import type { BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
 import { buildFloors } from '../builders/floors';
@@ -38,7 +38,8 @@ const RELIEF = { x: 2, y: 1 } as const;
 const PLAT = { x: 0, y: 3 } as const;
 const RELIEF_M = 4;
 
-/** Une scène d'UNE seule couche, plate sauf le palier de 4 m qui porte la porte de son arête E. */
+/** Une scène d'UNE seule couche, plate sauf le palier de 4 m qui porte la porte de son arête E, entre
+ *  deux pièces : ce seuil est le seul accès de la pièce du palier, que la falaise isole ailleurs. */
 function scèneÀReliefDeCouche0(): Scene {
   const s = emptyScene(dims.w, dims.h);
   const h = new Array(dims.w * dims.h).fill(0) as number[];
@@ -46,20 +47,9 @@ function scèneÀReliefDeCouche0(): Scene {
   h[RELIEF.y * dims.w + RELIEF.x + 1] = RELIEF_M;
   s.layers[0].height = h;
   s.walls = [{ x: RELIEF.x, y: RELIEF.y, side: 'E', door: true }];
+  s.effectZones = [piece('room-a', RELIEF.x, RELIEF.y), piece('room-b', RELIEF.x + 1, RELIEF.y)];
   return s;
 }
-
-const porte: RoomPortal = {
-  id: `0:${RELIEF.x},${RELIEF.y}:E:room-a:room-b`,
-  z: 0,
-  edge: { x: RELIEF.x, y: RELIEF.y, side: 'E' },
-  fromZoneId: 'room-a',
-  toZoneId: 'room-b',
-  kind: 'door-closed',
-  exterior: false,
-  from: { x: RELIEF.x, y: RELIEF.y },
-  to: { x: RELIEF.x + 1, y: RELIEF.y },
-};
 
 const contexte = (scene: Scene): ContexteAretes => ({
   scene,
@@ -67,7 +57,6 @@ const contexte = (scene: Scene): ContexteAretes => ({
   controleur: { x: RELIEF.x, y: RELIEF.y },
   activeZ: 0,
   battle: null,
-  portails: [porte],
 });
 
 const héros = {

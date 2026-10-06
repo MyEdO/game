@@ -42,6 +42,9 @@ export function champsProse(fragmentsAdmis?: readonly GenreDeFragment[]) {
   };
 }
 
+/** Les deux PORTEURS d'une prose : écrite dans l'entrée (`desc`), ou adressée au livre (`descRef`). */
+export type PorteurDeProse = 'desc' | 'descRef';
+
 /** Ce que le refine doit savoir du site qu'il garde. Le SITE d'une faute se lit à son CHEMIN, que les
  *  rapports rendent en libellés (`cheminLisible`, `../validate.ts`) : le message dit la faute seule. */
 export interface ContexteProse {
@@ -49,6 +52,8 @@ export interface ContexteProse {
   readonly type: string;
   /** Ce site exige-t-il une prose (quel qu'en soit le porteur) ? */
   readonly exigeProse: boolean;
+  /** Porteurs que ce site ADMET (V5) — défaut : les deux. */
+  readonly porteurs?: readonly PorteurDeProse[];
 }
 
 /** Forme d'un nœud, du seul point de vue de la prose et de sa provenance. */
@@ -59,7 +64,7 @@ interface NoeudProse {
 }
 
 /**
- * Les quatre verrous de la prose, à poser en `superRefine` PRÉ-sceau sur le nœud qui la porte.
+ * Les cinq verrous de la prose, à poser en `superRefine` PRÉ-sceau sur le nœud qui la porte.
  *
  * V1 EXCLUSIVITÉ — `desc` et `descRef` ensemble : deux porteurs pour un texte.
  * V2 RÉSOLUBILITÉ — une adresse dans un livre sans extraction FR sur disque ne rend rien.
@@ -72,9 +77,11 @@ interface NoeudProse {
  *     (refine de provenance de `document.ts` : `source` ⊕ `maison`).
  * V4 OBLIGATION — un site qui exige la prose l'exige sous l'un des deux porteurs ; une `desc` VIDE est
  *     déjà la faute du `min(1)` de `champsProse` : une faute par défaut.
+ * V5 PORTEUR — un site qui n'admet pas `desc` (`porteurs`) refuse toute prose inline, quel que soit le
+ *     livre cité, extrait ou non.
  */
 export function refineProse(ctx: ContexteProse): (v: unknown, refine: z.RefinementCtx) => void {
-  const { type, exigeProse } = ctx;
+  const { type, exigeProse, porteurs } = ctx;
   return (v, refine) => {
     const n = (v ?? {}) as NoeudProse;
     const aDesc = typeof n.desc === 'string' && n.desc.length > 0;
@@ -108,6 +115,13 @@ export function refineProse(ctx: ContexteProse): (v: unknown, refine: z.Refineme
         code: 'custom',
         path: ['desc'],
         message: 'texte recopié d’un livre extrait : adresse le passage au lieu de le recopier.',
+      });
+    }
+    if (aDesc && porteurs !== undefined && !porteurs.includes('desc')) {
+      refine.addIssue({
+        code: 'custom',
+        path: ['desc'],
+        message: 'texte saisi refusé : ce document adresse sa prose au livre, jamais inline.',
       });
     }
     if (exigeProse && n.desc === undefined && adresse === undefined) {

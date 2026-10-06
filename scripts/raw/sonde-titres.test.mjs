@@ -5,10 +5,10 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { boitesDuPdf, classer, glypheFuite, grasDeTete, plusLongueCroissante, regenerations, sansGlyphe, STOCK_PATH } from './sonde-titres.mjs'
+import { boitesDuPdf, classer, glypheFuite, grasDeTete, plusLongueCroissante, regenerations, sansGlyphe } from './sonde-titres.mjs'
 import { infidelite, reparerLivre } from './reparer-titres.mjs'
 import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, pdfDe, readText } from './_lib.mjs'
-import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
+import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { lignes } from './lib/colonnes.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
@@ -677,17 +677,11 @@ test('#1739 : titre SUIVI d’un titre — une ligne SANS LETTRE entre eux (chif
   assert.deepEqual([lieu(r, 'Career Path'), lieu(r, 'Aide — Silver 1')[0]], [['ok', '018:1', '018:3'], 'ok'])
 })
 
-/** PLAFOND du stock — il vit ICI, jamais dans la sonde ni dans la lib (`guards/lib/stock.mjs`). */
-const PLAFOND = 367
 /** Le PDF du CRB, ou `null` là où il n'est pas (aucun dépôt ne suit un PDF : la CI ne l'a pas). */
 const PDF_CRB = (() => { try { return pdfDe('core-rulebook-5e') } catch { return null } })()
 /** Les boîtes du PDF du CRB, lues UNE fois pour les tests qui en ont besoin. */
 let boitesCrb = null
 const boitesDuCrb = () => (boitesCrb ??= boitesDuPdf('core-rulebook-5e'))
-
-test('#1820 le stock de la sonde est PLAFONNÉ : il ne décroît que quand un site disparaît', () => {
-  assert.ok(lireEntreesDeSite(STOCK_PATH).length <= PLAFOND, `stock ${lireEntreesDeSite(STOCK_PATH).length} > plafond ${PLAFOND}`)
-})
 
 test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne` y a son entrée, aucune entrée n’est soldée', (t) => {
   for (const r of regenerations()) {

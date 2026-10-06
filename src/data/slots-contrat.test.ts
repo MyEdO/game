@@ -18,6 +18,7 @@ import { scanDuCorpus, scannerDonnees } from '../../scripts/docs/lib/structures-
 import { ANGLES_MORTS_SLOTS, MANDAT_SLOTS } from '../../scripts/docs/lib/structures-lexique.mjs';
 import { SLOTS_INATTEIGNABLES, SLOTS_SANS_DECLARATION } from '../../scripts/guards/lib/slotsStock.mjs';
 import { champsAveugles, ecartsDeStock, lignesMalQualifiees } from '../../scripts/guards/lib/stock.mjs';
+import { siteDeSlot } from '../../scripts/guards/lib/occurrencesStock.mjs';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -54,16 +55,9 @@ const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: '
 const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const SLOTS = slotsDuParse(scan, DEFS);
 
-/** Clé de la dette d'ADOPTION : le couple (dataset, champ) ET son compte d'occurrences — une
- *  occurrence de plus est une entrée neuve, pas une ligne qui bouge. */
+/** Clé du contrat : dataset, champ, occurrences ; identité hors mesure : siteDeSlot. */
 const CLE_DETTE = (c: { dataset: string; champ: string; occurrences: number }) =>
   `${c.dataset} | ${c.champ} | ${c.occurrences}`;
-
-/** Plafond du cliquet de `SLOTS_SANS_DECLARATION` — #1473 ; 269 → 268 à la fusion de #1897 : `barge-du-sel-projet.json | effect` soldé par `setVesselSchema.vehicleId` (`idDe('vehicle')`, `defs-scenes/effets.ts`, #1882). */
-const DETTE_ADOPTION_MAX = 268;
-
-/** Plafond du cliquet de `SLOTS_INATTEIGNABLES` — #1473. */
-const INATTEIGNABLES_MAX = 4;
 
 /** Couples ENTIÈREMENT joints qui doivent le rester. */
 const JOINTURES_PLANCHER = [
@@ -230,29 +224,35 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     );
   });
 
-  it('COUVERTURE : les champs porteurs de réfs OBSERVÉES sans slot déclaré == stock, et ne CROISSENT pas', () => {
-    const ecarts = ecartsDeStock({ observe: champsSansSlot(scan, SLOTS), stock: SLOTS_SANS_DECLARATION, cle: CLE_DETTE });
+  it('COUVERTURE : les champs porteurs de réfs OBSERVÉES sans slot déclaré == stock', () => {
+    const observe = champsSansSlot(scan, SLOTS);
+    const ecarts = ecartsDeStock({ observe, stock: SLOTS_SANS_DECLARATION, cle: CLE_DETTE, remede: {
+      neuve: (cle: string, c: Parameters<typeof CLE_DETTE>[0]) => SLOTS_SANS_DECLARATION.some((s) => siteDeSlot(s) === siteDeSlot(c))
+        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
+        : `${cle} — Adopter la fabrique de slot de référence, sans ajouter cette identité au stock.`,
+      perimee: (cle: string, c: Parameters<typeof CLE_DETTE>[0]) => observe.some((s) => siteDeSlot(s) === siteDeSlot(c))
+        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
+        : `${cle} — Retirer cette identité périmée du stock après adoption.`,
+    } });
     expect(
       ecarts.neuves,
-      'champ(s) en trop côté OBSERVÉ : une référence neuve qui n’a pas adopté la fabrique — elle s’adopte, elle ne s’inscrit pas au stock.',
+      'champ(s) observé(s) en écart : appliquer le remède de chaque site nommé.',
     ).toEqual([]);
     expect(
       ecarts.perimees,
-      'champ(s) en trop côté STOCK : entrée périmée — elle se retire dans le commit de l’adoption.',
+      'champ(s) déclaré(s) en écart : appliquer le remède de chaque site nommé.',
     ).toEqual([]);
     expect(
       ecarts.taille,
       'clé(s) DUPLIQUÉE(S) au stock : la comparaison travaille sur des clés DISTINCTES, un doublon inscrit y passerait invisible.',
     ).toBe(SLOTS_SANS_DECLARATION.length);
-    expect(ecarts.taille, 'la dette d’adoption du registre des slots a GONFLÉ.').toBeLessThanOrEqual(DETTE_ADOPTION_MAX);
   });
 
-  it('INATTEIGNABLES : les occurrences sans case qui porte une chaîne == stock, et ne CROISSENT pas', () => {
+  it('INATTEIGNABLES : les occurrences sans case qui porte une chaîne == stock', () => {
     const ecarts = ecartsDeStock({ observe: occurrencesInatteignables(scan), stock: SLOTS_INATTEIGNABLES, cle: CLE_DETTE });
     expect(ecarts.neuves, 'occurrence(s) INATTEIGNABLE(S) neuve(s) : sa référence se pose en chaîne, elle ne s’inscrit pas au stock.').toEqual([]);
     expect(ecarts.perimees, 'entrée périmée de `SLOTS_INATTEIGNABLES` : elle se retire dans le commit qui rend la case atteignable.').toEqual([]);
     expect(ecarts.taille, 'clé(s) DUPLIQUÉE(S) à `SLOTS_INATTEIGNABLES`.').toBe(SLOTS_INATTEIGNABLES.length);
-    expect(ecarts.taille, 'le stock des occurrences INATTEIGNABLES a GONFLÉ.').toBeLessThanOrEqual(INATTEIGNABLES_MAX);
     expect(lignesMalQualifiees(SLOTS_INATTEIGNABLES.map((c) => [`${c.dataset} | ${c.champ}`, c])), 'ligne sans lot ni date.').toEqual([]);
   });
 

@@ -3,7 +3,7 @@
 // `.name.startsWith('Klein')` réinvente une résolution par AFFICHAGE (fragile au renommage) au lieu
 // de `pregen(PREGEN.<clé>)` / `pregenParty(...)` (`src/data/pregens.ts`), la SOURCE UNIQUE d'un
 // prégénéré par id STABLE. Module ESM pur, exécutable par `node` nu — consommé par
-// `src/data/pregen-by-label-guard.test.ts` ET par un futur hook pre-commit. Même patron que
+// `src/data/pregen-by-label-guard.test.ts`. Même patron que
 // `hardcode.mjs`/`inBattleFind.mjs` (mécanique de détection ici, policy dans le test).
 
 /** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.

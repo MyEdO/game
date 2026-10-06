@@ -18,8 +18,6 @@ export interface ViewControlsProps {
   /** Vue subjective (POV) : état + bascule. Optionnels — absents chez l'éditeur (jeu seulement). */
   pov?: boolean;
   onTogglePov?: () => void;
-  inspectEnabled?: boolean;
-  onToggleInspect?: () => void;
   /**
    * ÉCHELLE RÉELLEMENT RENDUE (1 = taille naturelle), quand l'hôte sait la mesurer. Le `zoom` ci-dessus
    * est celui du viewBox ; l'élément, lui, peut être rétréci par la mise en page (`.editor-iso` est à
@@ -30,15 +28,12 @@ export interface ViewControlsProps {
   renderedScale?: number;
 }
 
-export function ViewControls({ zoom, renderedScale, onZoomIn, onZoomOut, onZoomReset, onRotateLeft, onRotateRight, onRotateRelease, view, onToggleView, pov, onTogglePov, inspectEnabled, onToggleInspect }: ViewControlsProps) {
+export function ViewControls({ zoom, renderedScale, onZoomIn, onZoomOut, onZoomReset, onRotateLeft, onRotateRight, onRotateRelease, view, onToggleView, pov, onTogglePov }: ViewControlsProps) {
   const stop = (fn: () => void) => (e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
     fn();
   };
-  const inspectLabel = inspectEnabled
-    ? 'Désactiver l’inspection des combattants'
-    : 'Activer l’inspection des combattants';
   const projectionLabel = view === 'top' ? 'Vue isométrique' : 'Vue du dessus';
   const povLabel = pov ? 'Vue normale (au-dessus)' : 'Vue subjective (première personne)';
   // Fin d'appui d'un bouton d'orientation : relâchement, sortie du bouton et annulation du pointeur
@@ -81,18 +76,6 @@ export function ViewControls({ zoom, renderedScale, onZoomIn, onZoomOut, onZoomR
             onPointerDown={stop(onTogglePov)}
           >
             {pov ? <Icon id="nav/campaign" size="sm" /> : <Icon id="ui/eye" size="sm" />}
-          </button>
-        )}
-        {onToggleInspect && (
-          <button
-            type="button"
-            className="btn vc-btn skin-tole" data-ton="sombre"
-            title={inspectLabel}
-            aria-label={inspectLabel}
-            aria-pressed={!!inspectEnabled}
-            onPointerDown={stop(onToggleInspect)}
-          >
-            <Icon id="nav/identify" size="sm" />
           </button>
         )}
       </div>

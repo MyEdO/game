@@ -1,5 +1,5 @@
 // Ce qu'on PASSE à une porte lancée en sous-processus, et comment on LIT son échec (#1699 Lot G).
-// Mécanique PARTAGÉE entre `scripts/git-hooks/pre-commit.mjs` et son banc, jamais recopiée.
+// Mécanique PARTAGÉE des portes du pre-commit (`scripts/git-hooks/pre-commit.mjs`), jamais recopiée.
 //
 // CLASSE 1 — 32 k caractères d'argv sous Windows : un gros renommage dépasse. `CreateProcess` plafonne
 // la ligne de commande à ~32 767 caractères ; dérouler la liste STAGÉE entière en arguments part en
@@ -11,16 +11,6 @@
 // rien à voir : le processus a tourné et a rendu un code (`e.status`) — c'est le VERDICT du garde —, ou
 // il n'a même pas démarré (`e.code` = `ENAMETOOLONG`, `ENOENT`, `E2BIG`…) — c'est une porte EN PANNE.
 // Les confondre fait mentir la porte : elle accuse le doc alors que le garde ne s'est jamais exécuté.
-
-const ANTISLASH = String.fromCharCode(92)
-
-/** Un doc dont le stage arme la porte des docs du pre-commit : `docs/*.md|html`, y compris `raw/` et `plans/`. */
-export const estUnDocDePorte = (f) => /^docs\/(?:raw\/|plans\/)?[^/]+\.(?:md|html)$/.test(String(f).split(ANTISLASH).join('/'))
-
-/** Le sous-ensemble des chemins stagés qui arme la porte des docs. */
-export function docsDePorte(stages) {
-  return [...stages].filter(estUnDocDePorte)
-}
 
 /** Marge sous le plafond Windows (~32 767) : l'exécutable, le script et les autres arguments comptent aussi. */
 export const PLAFOND_SUR_ARGV = 30000

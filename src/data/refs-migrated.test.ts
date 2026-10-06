@@ -4,6 +4,9 @@
  * (un libellé qui se faufile, un id fantôme) casse ici. Cf. `CLAUDE.md` § Pour TOUT agent.
  */
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
+import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
 import {
   trappings, qualities, spells, creatures, classes, careers, careerLevels, species, gods, etats, maladies, weaponGroups,
   traits, stars, talents, maneuvers, skills, domains, crewRoles, groups,
@@ -44,7 +47,7 @@ import {
   GAMEOP_FIELD_TARGETS, auditFieldCoverage, scanGameOpRefs, formatOffender,
 } from '../../scripts/guards/lib/gameOpRefFk.mjs';
 import { champsDOpASlot, opsDuParse, slotsDOpNonJuges, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
-import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
+import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
 import { NARRATIVE_MARKERS } from '../engine/conditions';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 // @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
@@ -596,7 +599,52 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 type SpecDef = { specsSource?: SpecsSource; specs?: SpecEntry[] };
 /** Une spéc RENCONTRÉE qui ne résout pas, nommée par sa clé stable `fichier|porteur|refId|spec`.
  *  `catalogue` = la def PORTE un catalogue de spécs (`specs[]` non vide ou `specsSource`). */
-type SpecHors = { where: string; key: string; book: string; refId: string; spec: string; catalogue: boolean };
+type SpecHors = { where: string; key: string; book: string; refId: string; spec: string; catalogue: boolean; site: EntreeDeSite };
+
+const empreinteIntegrite = (texte: string): string => createHash('sha256').update(texte).digest('hex');
+const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = '') => ({ famille, file: fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
+const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT).map((d) => [d.nom, d.chemin]));
+function ecartIntegrite(observe: EntreeDeSite[], stock: readonly EntreeDeSite[], observation = false): void {
+  const normalise = sitesEnEntrees(observe.map((s) => ({ famille: s.famille, file: s.fichier, ref: s.ref })));
+  const ecart = ecartsDeStock({ observe: normalise, stock, cle: cleDeSite, remede: {
+    neuve: (cle, entree) => entree.famille === 'dotation-texte'
+      ? `${cle} — migrer la dotation en référence typée (#622).`
+      : entree.famille === 'talent-sentinelle'
+        ? `${cle} — poser la spécialisation ou le choix imprimé ; régime de choix à #1621.`
+        : `${cle} — déclarer l'identité observée dans scripts/guards/lib/integriteStock.mjs.`,
+  } });
+  expect(ecart.taille, 'Stock dupliqué : retirer les identités répétées').toBe(stock.length);
+  expect(ecart.neuves, `Entrées neuves :\n${ecart.neuves.join('\n')}`).toEqual([]);
+  if (observation) {
+    if (ecart.perimees.length) console.info(`Observations disparues : retirer de scripts/guards/lib/integriteStock.mjs :\n${ecart.perimees.join('\n')}`);
+  } else expect(ecart.perimees, `Entrées soldées : retirer de scripts/guards/lib/integriteStock.mjs :\n${ecart.perimees.join('\n')}`).toEqual([]);
+}
+
+describe('intégrité des collections nominatives', () => {
+  for (const [nom, famille, observation] of [
+    ['competences-nues', 'competence-nue', true],
+    ['talents-textes', 'talent-texte', true],
+    ['talents-sentinelles', 'talent-sentinelle', false],
+    ['dotations-textes', 'dotation-texte', false],
+  ] as const) {
+    const original = { famille, fichier: 'src/data/fixture.json', ref: JSON.stringify(['proprietaire-fixture', 'champ-fixture', 'reference-fixture', 'empreinte-fixture']), occurrence: 1 };
+    const stock = [original];
+    it(`${nom} : un échange d'identité à cardinal constant rougit`, () => {
+      const observe = [{ ...original, ref: `${original.ref}~mutation` }];
+      expect(() => ecartIntegrite(observe, [original], observation)).toThrow(/Entrées neuves/);
+    });
+    it(`${nom} : la baisse conserve son régime`, () => {
+      if (observation) {
+        expect(() => ecartIntegrite([], [stock[0]], true)).not.toThrow();
+        expect(() => ecartIntegrite([{ ...stock[0], ref: `${stock[0].ref}~mutation` }], [stock[0]], true)).toThrow(/Entrées neuves/);
+      }
+      else expect(() => ecartIntegrite([], [stock[0]])).toThrow(/Entrées soldées/);
+    });
+    it(`${nom} : une identité de stock répétée rougit`, () => {
+      expect(() => ecartIntegrite([original], [original, original], observation)).toThrow(/Stock dupliqué/);
+    });
+  }
+});
 
 type EntreeDeSpecs = { id?: string; label?: string; source?: { book?: string } };
 
@@ -607,7 +655,8 @@ const partiellesDeCreatures = (): [string, EntreeDeSpecs[]][] => {
   const parHote = new Map<string, EntreeDeSpecs[]>();
   for (const [objet, fiche] of CORPUS_SCANNE.scan.entreesPartielles) {
     if (fiche.document !== 'creatures.json') continue;
-    const entree = { ...(objet as object), id: fiche.id ?? '?', source: fiche.source as EntreeDeSpecs['source'] };
+    if (typeof fiche.id !== 'string') throw new Error(`${fiche.hote} : entrée partielle creatures sans id de propriétaire`);
+    const entree = { ...(objet as object), id: fiche.id, source: fiche.source as EntreeDeSpecs['source'] };
     parHote.set(fiche.hote, [...(parHote.get(fiche.hote) ?? []), entree]);
   }
   return [...parHote];
@@ -624,10 +673,10 @@ function collecteSpecs(
   arrName: 'skills' | 'talents',
   defOf: (id: string) => SpecDef | undefined,
   corpus?: [string, EntreeDeSpecs[]][],
-): { hors: SpecHors[]; nues: { where: string; book: string; refId: string }[]; seen: number; sentinelles: string[] } {
+): { hors: SpecHors[]; nues: { where: string; book: string; refId: string; site: EntreeDeSite }[]; seen: number; sentinelles: EntreeDeSite[] } {
   const hors: SpecHors[] = [];
-  const nues: { where: string; book: string; refId: string }[] = [];
-  const sentinelles: string[] = [];
+  const nues: { where: string; book: string; refId: string; site: EntreeDeSite }[] = [];
+  const sentinelles: EntreeDeSite[] = [];
   let seen = 0;
   const listes = corpus ?? ([
     ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(),
@@ -635,17 +684,21 @@ function collecteSpecs(
   for (const [file, list] of listes) {
     for (const entry of list) {
       const book = entry.source?.book ?? '(sans source)';
-      const owner = entry.id ?? entry.label ?? '?';
+      if (typeof entry.id !== 'string') throw new Error(`${file} : propriétaire sans id`);
+      const owner = entry.id;
+      const fichier = fichiersDeSpecs.get(file.endsWith('.json') ? file : `${file}.json`);
+      if (!fichier) throw new Error(`${file} : document absent du corpus`);
+      const site = (famille: string, node: { id: string; spec?: string }) => sitesEnEntrees([siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '')])[0];
       walkSkillRefs(entry, (node) => {
         const def = defOf(node.id);
         const catalogue = porteCatalogueDeSpecs(def);
         // Un nœud à `choix` PORTE un régime de spécialisation (borne ou libre) : ce n'est pas une réf NUE.
         if (node.choix != null) return;
-        if (node.spec == null) { if (catalogue) nues.push({ where: `${file}(${owner})`, book, refId: node.id }); return; }
-        if (isSentinel(node.spec)) { sentinelles.push(`${file}|${owner}|${node.id}|${node.spec}`); return; }
+        if (node.spec == null) { if (catalogue) nues.push({ where: `${file}(${owner})`, book, refId: node.id, site: site('competence-nue', node) }); return; }
+        if (isSentinel(node.spec)) { sentinelles.push(site('talent-sentinelle', node)); return; }
         seen++;
         if (def && specResolves(def, node.spec)) return;
-        hors.push({ where: `${file}(${owner})`, key: `${file}|${owner}|${node.id}|${node.spec}`, book, refId: node.id, spec: node.spec, catalogue });
+        hors.push({ where: `${file}(${owner})`, key: `${file}|${owner}|${node.id}|${node.spec}`, book, refId: node.id, spec: node.spec, catalogue, site: site('talent-texte', node) });
       }, arrName);
     }
   }
@@ -692,21 +745,10 @@ describe('spec de Compétence d’un livre EXTRAIT — résout au catalogue (#13
     expect(perimes, `dossier(s) désormais réclamé(s) — retirer de NON_RECLAMES :\n${perimes.join('\n')}`).toEqual([]);
   });
 
-  // Une `ref` de Compétence GROUPÉE SANS `spec` est une forme RAW LÉGITIME, mesurée : LDB 08 l.3325
-  // « Calme, Discrétion (Rurale), Escamotage, Focalisation, Intimidation … » (Ensorceleur) et LDB 08
-  // l.3749 « Focalisation, *Intuition*, Langue (Magick) … » (Apprenti Sorcier de Village) impriment
-  // Focalisation nue là où LDB 08 l.2448 imprime « Focalisation (Couleur au choix) » ; MCLB 07 l.238
-  // imprime « Charme 57, Discrétion 43, Escamotage 45 … ». Le contrat est donc un CLIQUET : le compte
-  // ne croît pas — c'est lui qui attrape une migration qui effacerait une `spec` sans retirer sa `ref`.
-  it('refs de Compétence groupée SANS spec : compte stable (forme RAW attestée, jamais un résidu de migration)', () => {
-    const BASELINE = 341;
-    const parFichier = new Map<string, number>();
-    for (const n of nues) parFichier.set(n.where.split('(')[0], (parFichier.get(n.where.split('(')[0]) ?? 0) + 1);
+  // LDB 08 l.3325 ; LDB 08 l.3749 ; LDB 08 l.2448
+  it('les compétences nues restent des observations nommées', () => {
     expect(nues.length).toBeGreaterThan(0);
-    expect(
-      nues.length,
-      `${[...parFichier.entries()].map(([f, n]) => `${f}:${n}`).join(', ')} — une ref nue de PLUS = une spec effacée sans sa ref`,
-    ).toBeLessThanOrEqual(BASELINE);
+    ecartIntegrite(nues.map((n) => n.site), COMPETENCES_NUES, true);
   });
 
   // CONTRAT POSITIF NOMINATIF — `humains-tileens` porte EXACTEMENT les 12 Compétences de AA 05 l.122 :
@@ -780,39 +822,18 @@ describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock no
     expect(perimes, `clé(s) du stock sans instance non résolue — RETIRER du stock :\n${perimes.join('\n')}`).toEqual([]);
   });
 
-  it('un Talent SANS catalogue de spécs (destinee, frenesie) porte un TEXTE d’instance : compté à part, jamais au stock de dette (#1621)', () => {
-    // #680 (2026-09-29) : 24 → 29 — prophéties imprimées des presets de la vague 1, graphie `spec` de
-    // creatures.json (#1621).
-    const PLAFOND = 29;
-    const parTalent = [...textesDInstance.reduce((m, h) => m.set(h.refId, (m.get(h.refId) ?? 0) + 1), new Map<string, number>())]
-      .sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id}:${n}`).join(', ');
-    // Cliquet UNIDIRECTIONNEL : PLAFOND, pas stock nominatif. Une 30e instance rougit (#1621) ; une
-    // chute de 29 vers 1 reste verte — le régime du champ texte d'instance se tranche à #1621.
+  // LDB 10 l.315
+  it('les textes de Talent sans catalogue restent des observations nommées', () => {
     expect(textesDInstance.length).toBeGreaterThan(0);
     const RACINES_DE_CORPUS = new Set(['creatures', 'careerLevels', 'species']);
-    expect(
-      textesDInstance.some((h) => !RACINES_DE_CORPUS.has(h.key.split('|')[0])),
-      'aucun texte d’instance vu sur une entrée partielle embarquée (`entreesPartiellesEmbarquees`) : le bras du corpus est débranché',
-    ).toBe(true);
-    expect(textesDInstance.length, `${parTalent} — un texte d'instance de PLUS : le régime du champ se tranche à #1621`).toBeLessThanOrEqual(PLAFOND);
-    const melanges = textesDInstance.filter((h) => SPECS_DE_TALENT_A_CREER.has(h.key)).map((h) => h.key);
-    expect(melanges, `texte d'instance stocké comme dette de spec :\n${melanges.join('\n')}`).toEqual([]);
+    expect(textesDInstance.some((h) => !RACINES_DE_CORPUS.has(h.key.split('|')[0])), 'aucune entrée partielle de texte de Talent').toBe(true);
+    ecartIntegrite(textesDInstance.map((h) => h.site), TALENTS_TEXTES, true);
+    expect(textesDInstance.filter((h) => SPECS_DE_TALENT_A_CREER.has(h.key))).toEqual([]);
   });
 
-  it('les sentinelles « Au choix » de talents[] sont ÉCARTÉES de la résolution mais COMPTÉES et BORNÉES (#1621)', () => {
-    const PLAFOND = 12;
-    // Même lecture que le PLAFOND des textes d'instance ci-dessus : cliquet UNIDIRECTIONNEL, pas
-    // stock nominatif. La sentinelle est un EMPLACEMENT de spéc, pas une spéc : elle ne peut pas
-    // résoudre au catalogue, donc `collecteSpecs` la saute avant `seen++` — sans ce compte, elle
-    // sortait de la mesure sans laisser de trace. Le régime `choix` des réfs de Talent (qui les
-    // éteindra en portant la borne imprimée) se tranche à #1621 ; d'ici là, une 13e rougit.
-    const parTalent = [...sentinelles.reduce((m, k) => m.set(k.split('|')[2], (m.get(k.split('|')[2]) ?? 0) + 1), new Map<string, number>())]
-      .sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id}:${n}`).join(', ');
-    expect(sentinelles.length).toBeGreaterThan(0);
-    expect(
-      sentinelles.length,
-      `${parTalent} — une sentinelle « Au choix » de PLUS sur un talents[] : poser la spéc imprimée, ou trancher le régime choix (#1621) :\n${sentinelles.join('\n')}`,
-    ).toBeLessThanOrEqual(PLAFOND);
+  // #1621
+  it('les sentinelles de Talent sont nommées et soldées', () => {
+    ecartIntegrite(sentinelles, TALENTS_SENTINELLES);
   });
 
   it('CONTRÔLE POSITIF — une spec de Talent inconnue posée sur une créature FIXTURE est ATTRAPÉE (mutation EN MÉMOIRE, jamais au disque)', () => {
@@ -857,60 +878,21 @@ describe('spec de Compétence GROUPÉE — corps-a-corps/projectiles ne portent 
   });
 });
 
-// ── CLIQUET anti-régression — dotations bête `{text}` de careerLevels.trappings (#622). Compte
-// RÉCURSIF (y compris branches `{choice}`) de tout `{text}` narratif restant, y compris ceux qui
-// resteront `{text}` (bateaux/véhicules sans entrée catalogue, bundles/choix, T3/T4, équipement).
-// cliquet décroissant — un nouveau {text} de dotation échoue la CI ; à migrer en ref typée, jamais
-// ajouter ; ABAISSER la baseline après chaque migration (#622).
-// 526 → 620 (#730, curation VDM) : les 10 Carrières des *Vents de Magie* apportent 94 dotations que
-// le catalogue `trappings.json` ne porte pas (Clefs des Secrets de l'Ordre Flamboyant, faucilles de
-// cuivre/argent/or de l'Ordre de Jade, laboratoire alchimique portatif, observatoire, conclave de
-// chamanes…) — 6 items (dague, justaucorps de cuir, licence de guilde, nécessaire d'écriture, pilon
-// et mortier, plastron) qui ONT une entrée de catalogue sont posées en `{id}`.
-// 620 → 628 (#730, Magister Vigilant + Umbramancien) : 2 Carrières manquantes du même corpus VDM
-// posent grimoire, bâton de combat, cheval de guerre léger, nécessaire de déguisement, cape,
-// capuchon et les 3 robes de sorcier (`robe-de-sorcier-fonctionnelle`/`-ordinaire`/`-elaboree`,
-// `passive: skillDRBonus focalisation`) en `{id}`/`{creatureId}`. Il reste 8 dotations en `{text}`
-// sur ces 2 Carrières : 7 hors catalogue (licence magique ×2, objet magique ×2, apprenti,
-// bibliothèque, cercle d'informateurs) ; `atelier` était un 8e cas distinct — `trappingRefSchema`
-// (`schemas/grammaire/reference.ts`) porte un champ `spec` optionnel sur la branche `{id}`, que
-// `trappingRefLabel` (SOURCE UNIQUE du libellé affiché, `data/index.ts`) n'affichait pas.
-// 628 → 605 (#622) : les 3 robes de sorcier et `filet` n'étaient posées en `{id}` que là où le
-// geste précédent les avait touchées (Magister Vigilant/Umbramancien, chasseur-de-primes/femme-du-
-// fleuve pour `filet`) ; leurs 7 Carrières sœurs du même corpus VDM (hierophante, alchimiste,
-// druide, astromancien, spirite, pyromancien, chamane — niveaux 2 à 4) portaient les mêmes libellés
-// en `{text}`, donc SANS `passive: skillDRBonus focalisation` en jeu pour ces Carrières. Les 23
-// occurrences (21 robes + 2 `filet`) mesurées à l'identique du catalogue sont posées en `{id}`.
-// 605 → 557 (#1463 L-ref-1) : les 48 dotations de `careerLevels` qui NOMMAIENT une possession du
-// catalogue sont liées — 32 `{id, spec}` (« Outils professionnels (Maréchal-ferrant) », `LDB 08
-// l.1130`), 1 `{choice}` (`alchimiste-4`, « Atelier (Ingénierie ou Magie) ») et 15 graphies non
-// littérales (« Cartes »→`carte`, « Carreaux »→`carreau`, « Haches de lancer »→`hache-de-lancer`…).
-// `trappingRefLabel` affiche la `spec` (par `refLabel`), ce qui lève la réserve notée
-// plus haut sur `atelier`. Ce qui reste est hors catalogue ou narratif ; le contrat POSITIF qui
-// l'atteste ligne à ligne vit dans `src/data/dotations-catalogue.test.ts` — trois portes (libellé
-// entier, singulier, tête de parenthèse) et 6 exclusions nominatives, chacune avec sa raison.
-describe('careerLevels.trappings — cliquet anti-régression {text} (#622)', () => {
-  const BASELINE = 557;
-
-  function countText(items: unknown[]): number {
-    let n = 0;
-    for (const raw of items) {
-      if (!isObj(raw)) continue;
-      const t = raw;
-      if ('text' in t) n += 1;
-      if (Array.isArray(t.choice)) n += countText(t.choice);
+// #622
+describe('careerLevels.trappings — dotations textuelles nommées', () => {
+  it('chaque dotation textuelle est déclarée et soldée', () => {
+    const sites: ReturnType<typeof siteIntegrite>[] = [];
+    for (const niveau of careerLevels) {
+      const walk = (items: unknown[]): void => {
+        for (const n of items) {
+          if (!isObj(n)) continue;
+          if ('text' in n) sites.push(siteIntegrite('dotation-texte', 'src/data/careerLevels.json', niveau.id, 'trappings.text', '', String(n.text)));
+          if (Array.isArray(n.choice)) walk(n.choice);
+        }
+      };
+      walk(niveau.trappings);
     }
-    return n;
-  }
-
-  it(`careerLevels.flatMap(trappings) : au plus ${BASELINE} {text} (baseline post-migration #622)`, () => {
-    const count = countText(careerLevels.flatMap((l) => l.trappings));
-    expect(
-      count,
-      count > BASELINE
-        ? `${count - BASELINE} nouvelle(s) dotation(s) {text} — migrer en ref typée ({creatureId}/{vehicleId}/{id}), jamais ajouter`
-        : undefined,
-    ).toBeLessThanOrEqual(BASELINE);
+    ecartIntegrite(sitesEnEntrees(sites), DOTATIONS_TEXTES);
   });
 });
 

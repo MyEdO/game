@@ -26,15 +26,10 @@ function iconMarkup(id: React.ComponentProps<typeof Icon>['id']) {
 }
 
 describe('ViewControls', () => {
-  it('omet l’inspection quand aucun callback ne la rend disponible', () => {
-    expect(renderControls()).not.toContain('Inspection des combattants');
-  });
-
-  it('rend l’inspection comme bouton pressé accessible', () => {
-    const html = renderControls({ inspectEnabled: true, onToggleInspect: noop });
-    expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain('aria-label="Désactiver l’inspection des combattants"');
-    expect(html).toContain('title="Désactiver l’inspection des combattants"');
+  it('ne porte aucune bascule d’inspection : l’inspection est un geste sur l’entité (#1822)', () => {
+    const html = renderControls({ onTogglePov: noop });
+    expect(html).not.toMatch(/inspection/i);
+    expect(html).not.toContain(iconMarkup('nav/identify'));
   });
 
   it('expose l’état pressé de la projection et du POV', () => {
@@ -44,7 +39,7 @@ describe('ViewControls', () => {
   });
 
   it('structure les commandes en trois groupes nommés', () => {
-    const html = renderControls({ onTogglePov: noop, onToggleInspect: noop });
+    const html = renderControls({ onTogglePov: noop });
     expect(html.match(/role="group"/g)?.length).toBe(3);
     expect(html).toContain('aria-label="Orientation"');
     expect(html).toContain('aria-label="Affichage"');
@@ -52,7 +47,7 @@ describe('ViewControls', () => {
   });
 
   it('remplace tous les glyphes locaux par les icônes attendues', () => {
-    const html = renderControls({ zoom: 1.25, onTogglePov: noop, onToggleInspect: noop });
+    const html = renderControls({ zoom: 1.25, onTogglePov: noop });
     for (const glyph of ['⟲', '⟳', '◇', '▦', '+', '−', '1×']) {
       expect(html).not.toContain(`>${glyph}<`);
     }
@@ -63,7 +58,6 @@ describe('ViewControls', () => {
       'ui/zoom-out',
       'ui/zoom-in',
       'ui/zoom-reset',
-      'nav/identify',
     ] as const) {
       expect(html).toContain(iconMarkup(id));
     }

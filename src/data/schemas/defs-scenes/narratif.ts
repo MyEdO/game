@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
+import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { listeCle } from '../grammaire/collection-cle';
 import { champAdapteDe, proseDeScene, refineAdapteDe } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
@@ -55,6 +56,7 @@ export const indiceSchema = z.strictObject({
   stades: listeCle(indiceStadeSchema, 'id'),
   /** Autres indices (ids) que celui-ci recoupe/débloque. */
   refs: z.array(z.string()).optional(),
+  couvre: couvreSchema.optional(),
 });
 
 /** Une affaire (fil d'enquête) de la campagne. */
@@ -77,6 +79,7 @@ export const presetPnjSchema = z.strictObject({
   /** id d'illustration (registre d'art), affichage seul. */
   portrait: z.string().optional(),
   source: sourceRefSchema.optional(),
+  couvre: couvreSchema.optional(),
   ...champAdapteDe(),
 })
   .superRefine(refineAdapteDe)
@@ -90,6 +93,12 @@ function refinePresetAdapte(v: unknown, ctx: z.RefinementCtx): void {
     ctx.addIssue({ code: 'custom', path: ['adapteDe'], message: 'texte adapté, alors que la description du profil est la copie adressée du livre.' });
   }
 }
+
+/** Une entrée de fiche de dossier de chapitre ÉCARTÉE par l'adaptation (#2290), avec son motif. */
+export const ecartSchema = z.strictObject({
+  entree: entreeDeFicheSchema,
+  motif: z.string().regex(/\S/, 'motif vide.'),
+});
 
 /** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
  *  pitch non vides sont la seule exigence. */
@@ -209,6 +218,7 @@ const formeNarratif = z.strictObject({
   documents: listeCle(documentNarratifSchema, 'id'),
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
+  ecartes: listeCle(ecartSchema, 'entree').optional(),
 });
 
 /** `NarratifBlock` (`state/campaignNarratif.ts`) — forme + sémantique. */

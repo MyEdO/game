@@ -121,13 +121,13 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "criticals.json", champ: "subject", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "criticals.json", champ: "traumas", occurrences: 48, lot: "L2/L3 #1473", date: "2026-09-02" },
   { dataset: "criticals.json", champ: "whenClear", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "diligence-projet.json", champ: "a", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" }, // 1→3 (#2219, 2026-10-05) : +2, worldMap en trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "b", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" }, // 1→3 (#2219, 2026-10-05) : +2, worldMap en trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "from", occurrences: 3, lot: "L2/L3 #1473", date: "2026-10-05" }, // 0→3 (#2219, 2026-10-05) : sens unique des trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "modes", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" }, // 1→3 (#2219, 2026-10-05) : +2, worldMap en trois tronçons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" }, // 38→76 : +38 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.184)
-  { dataset: "diligence-projet.json", champ: "scene", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-31" }, // 2→4 (#2219, 2026-10-05) : +2, lieux route-principale et auberge-des-sept-rayons — référence locale au document, sans slot possible, même dette que les autres paquets (#2337)
-  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" }, // 668→1336 : +668 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.184)
+  { dataset: "diligence-projet.json", champ: "a", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "b", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "from", occurrences: 3, lot: "L2/L3 #1473", date: "2026-10-05" },
+  { dataset: "diligence-projet.json", champ: "modes", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "diligence-projet.json", champ: "scene", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "amount", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "castBonus", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "casterOps", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -140,7 +140,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "etats.json", champ: "ops", occurrences: 14, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "etats.json", champ: "passive", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "etats.json", champ: "subject", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "flow-stakes.json", champ: "rule", occurrences: 35, lot: "L2/L3 #1473", date: "2026-08-26" }, // 33 → 35 (#1920, 2026-09-24) : +4, quatre enjeux neufs nomment leur foyer (B2..B12) ; −2, `recover-empetre`/`recover-en-flammes` passent sur `etats.json` (`recover.enjeu`, B14)
+  { dataset: "flow-stakes.json", champ: "rule", occurrences: 36, lot: "L2/L3 #1473", date: "2026-08-26" }, // 35 → 36 (#700, 2026-09-30) : +1, `perception-detect`, stock de transition tué par #1473 ; 33 → 35 (#1920, 2026-09-24) : +4, quatre enjeux neufs nomment leur foyer (B2..B12) ; −2, `recover-empetre`/`recover-en-flammes` passent sur `etats.json` (`recover.enjeu`, B14)
   { dataset: "gods.json", champ: "grantGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "grapple.json", champ: "amount", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "grapple.json", champ: "entangle", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },

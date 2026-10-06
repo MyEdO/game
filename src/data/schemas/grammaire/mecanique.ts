@@ -61,8 +61,23 @@ export function aChoix(cible: TypeEntite, extra?: Record<string, z.ZodType>): Ch
   return new ChampAChoixDeclare(cible, extra);
 }
 
-/** Payload déclaré par ses champs (au moins un champ à choix) : la famille le ferme en `z.strictObject`. */
-type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare>>;
+/**
+ * CHAMP RÉSERVÉ d'un payload d'op : admis par la seule famille dont le porteur le demande (régime `admis`),
+ * OMIS partout ailleurs — le `z.strictObject` du payload le refuse alors. Sœur de `ChampAChoixDeclare`,
+ * même clé `<op>.<champ>` calculée depuis la POSITION de la déclaration.
+ */
+class ChampReserveDeclare {
+  private declare readonly marqueReserve: true;
+  constructor(readonly noeud: z.ZodType) {}
+}
+
+/** Déclare un champ réservé au porteur, de forme `noeud`, à sa place dans un payload d'op. */
+export function reserve(noeud: z.ZodType): ChampReserveDeclare {
+  return new ChampReserveDeclare(noeud);
+}
+
+/** Payload déclaré par ses champs (au moins un champ à choix ou réservé) : la famille le ferme en `z.strictObject`. */
+type FormeDePayload = Readonly<Record<string, z.ZodType | ChampAChoixDeclare | ChampReserveDeclare>>;
 
 const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !== null && '_zod' in v;
 
@@ -81,6 +96,17 @@ const DECLARATIONS_D_OPS = {
     perSL: perSLSchema.optional(),
     align: chaosAlignSchema.optional(),
   }),
+  /** `min` : plancher d'une perte de mutation (EDO 11 l.190), réservé au `passive` de mutation —
+   *  seul `attachMutation` le résout (`engine/corruption.ts`). */
+  charMod: {
+    op: z.literal('charMod'),
+    char: charKeySchema,
+    mod: z.number(),
+    min: reserve(z.number().optional()),
+    durationRounds: formulaSchema.optional(),
+    durationMinutes: formulaSchema.optional(),
+    durationHours: formulaSchema.optional(),
+  },
   corruptionExposure: z.strictObject({
     op: z.literal('corruptionExposure'),
     level: exposureLevelSchema.optional(),
@@ -344,13 +370,29 @@ type ChampsAChoixDe<K extends string, D> = D extends z.ZodType
 /** `<op>.<champ>` de chaque champ à choix, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
 export type ChampAChoix = { [K in keyof DeclarationsDOps & string]: ChampsAChoixDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
 
-/** Les champs à choix, dérivés du MÊME parcours que le type `ChampAChoix`. */
-export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = Object.entries(DECLARATIONS_D_OPS).flatMap(([op, d]) =>
-  estNoeudZod(d) ? [] : Object.entries(d as FormeDePayload).flatMap(([champ, v]) => (v instanceof ChampAChoixDeclare ? [`${op}.${champ}` as ChampAChoix] : [])),
-);
+type ChampsReservesDe<K extends string, D> = D extends z.ZodType
+  ? never
+  : { [C in keyof D & string]: D[C] extends ChampReserveDeclare ? `${K}.${C}` : never }[keyof D & string];
 
-/** Régime de chaque champ à choix d'un porteur ; un champ absent est `specSeule`. */
-export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur>>>;
+/** `<op>.<champ>` de chaque champ réservé, DÉRIVÉ des déclarations d'`DECLARATIONS_D_OPS`. */
+export type ChampReserve = { [K in keyof DeclarationsDOps & string]: ChampsReservesDe<K, DeclarationsDOps[K]> }[keyof DeclarationsDOps & string];
+
+/** Les `<op>.<champ>` dont la déclaration est une instance de `classe`. */
+function champsDeclares<T extends string>(classe: abstract new (...a: never[]) => object): readonly T[] {
+  return Object.entries(DECLARATIONS_D_OPS).flatMap(([op, d]) =>
+    estNoeudZod(d) ? [] : Object.entries(d as FormeDePayload).flatMap(([champ, v]) => (v instanceof classe ? [`${op}.${champ}` as T] : [])),
+  );
+}
+
+/** Les champs à choix, dérivés du MÊME parcours que le type `ChampAChoix`. */
+export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = champsDeclares<ChampAChoix>(ChampAChoixDeclare);
+
+/** Les champs réservés, dérivés du MÊME parcours que le type `ChampReserve`. */
+export const CHAMPS_RESERVES: readonly ChampReserve[] = champsDeclares<ChampReserve>(ChampReserveDeclare);
+
+/** Régime de chaque champ d'un porteur : un champ à choix absent est `specSeule`, un champ réservé
+ *  absent est OMIS. */
+export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Record<ChampReserve, 'admis'>>>;
 
 /**
  * Ops du moteur DONT LE PAYLOAD RESTE À DÉCRIRE — liste NOMINATIVE datée (2026-08-24),
@@ -362,7 +404,7 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur>>>;
  */
 export const OPS_NON_TYPEES: readonly string[] = [
   'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'charMod', 'condition',
+  'beginPsych', 'breakBlade', 'castWard', 'chain', 'charDRBonus', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endPsych', 'endTransform', 'freeReroll', 'gainAdvantage', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
@@ -842,8 +884,10 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
   return Object.fromEntries(
     Object.entries(DECLARATIONS_D_OPS).map(([op, d]) => {
       if (estNoeudZod(d)) return [op, d];
-      const champs = Object.entries(d as FormeDePayload).map(([champ, v]) =>
-        v instanceof ChampAChoixDeclare ? [champ, refOuSpec(v.cible, v.extra, regimes[`${op}.${champ}` as ChampAChoix] ?? 'specSeule')] : [champ, v],
+      const champs = Object.entries(d as FormeDePayload).flatMap(([champ, v]) =>
+        v instanceof ChampAChoixDeclare ? [[champ, refOuSpec(v.cible, v.extra, regimes[`${op}.${champ}` as ChampAChoix] ?? 'specSeule')]]
+          : v instanceof ChampReserveDeclare ? (regimes[`${op}.${champ}` as ChampReserve] === 'admis' ? [[champ, v.noeud]] : [])
+            : [[champ, v]],
       );
       return [op, z.strictObject(Object.fromEntries(champs))];
     }),
@@ -1011,17 +1055,18 @@ export type FamilleMecanique = ReturnType<typeof construire>;
 const FAMILLES = new Map<string, FamilleMecanique>();
 
 /**
- * La famille mécanique d'un porteur, au régime de ses champs à choix. Mémoïsée par la forme canonique de
- * `regimes` (entrées triées, `specSeule` retiré) : `mecaniqueDe({})` est la famille FERMÉE, dont les
+ * La famille mécanique d'un porteur, au régime de ses champs à choix et réservés. Mémoïsée par la forme
+ * canonique de `regimes` (entrées triées, `specSeule` retiré) : `mecaniqueDe({})` est la famille FERMÉE, dont les
  * exports ci-dessous sont l'instance.
  */
 export function mecaniqueDe(regimes: Regimes): FamilleMecanique {
-  const entrees = (Object.entries(regimes) as [string, RegimeDePorteur | undefined][])
+  const entrees = (Object.entries(regimes) as [string, RegimeDePorteur | 'admis' | undefined][])
     .filter(([, r]) => r !== undefined && r !== 'specSeule')
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const declares: readonly string[] = [...CHAMPS_A_CHOIX, ...CHAMPS_RESERVES];
   for (const [champ] of entrees) {
-    if (!(CHAMPS_A_CHOIX as readonly string[]).includes(champ)) {
-      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun champ à choix déclaré (${CHAMPS_A_CHOIX.join(', ')}).`);
+    if (!declares.includes(champ)) {
+      throw new Error(`mecaniqueDe : « ${champ} » n'est aucun champ à choix ni réservé déclaré (${declares.join(', ')}).`);
     }
   }
   const cle = JSON.stringify(entrees);

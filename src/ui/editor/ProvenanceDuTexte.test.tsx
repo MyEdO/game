@@ -371,10 +371,16 @@ describe('ProvenanceDuTexte — disposition propre à la variante (#2001)', () =
     expect(container!.querySelector('.rm-loc-inline')?.hasAttribute('data-empile')).toBe(true);
   });
 
-  it('la feuille : la règle de la variante est portée par `[data-empile]`, aucune règle générique de `.rm-loc-inline` en @media', () => {
+  it('la feuille : la règle de la variante est portée par `[data-empile]`, à toute largeur — en @media, aucune règle ne vise la variante ni ne l’atteint', () => {
     const css = feuille();
     expect(css).toMatch(/\.rm-loc-inline\[data-empile\]\s*\{[^}]*flex-direction:\s*column/);
-    for (const bloc of blocsMedia(css)) expect(bloc).not.toMatch(/\.rm-loc-inline(?!\[)/);
+    const selecteursMedia = blocsMedia(css).flatMap((bloc) =>
+      [...bloc.matchAll(/([^{}]+)\{/g)].flatMap((m) => m[1].split(',').map((s) => s.trim())),
+    );
+    const fautifs = selecteursMedia.filter(
+      (s) => /(?<!:not\()\[data-empile\]/.test(s) || /\.rm-loc-inline(?!:not\(\[data-empile\]\))/.test(s),
+    );
+    expect(fautifs, '`.rm-loc-inline` en @media exclut la variante par `:not([data-empile])`').toEqual([]);
   });
 
   it('la feuille : le segment empilé suit son CONTENU, plafonné à l’hôte — rien ne l’étire ni ne le rembourre', () => {

@@ -16,7 +16,7 @@ import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragm
 import { defDe } from './descente';
 import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
-import { champsProse, refineProse } from './prose';
+import { champsProse, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
@@ -208,6 +208,11 @@ export interface OptionsDocument {
    */
   readonly fragmentsAdmis?: readonly GenreDeFragment[];
   /**
+   * Porteurs de prose que CE document admet (`refineProse`, V5, `grammaire/prose.ts`) — défaut : les deux.
+   * `['descRef']` refuse au parse toute `desc` inline, quel que soit le livre cité.
+   */
+  readonly porteursDeProse?: readonly PorteurDeProse[];
+  /**
    * Raffinement de l'ENTRÉE, appliqué AVANT le sceau.
    * Mesuré (zod 4.4.3) : `superRefine`/`refine` rendent un `ZodObject` ENCORE extensible — l'ordre
    * entrée → affiner → `.pipe` est donc le seul qui scelle. Consommateurs cibles : `projet.ts`
@@ -396,7 +401,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   exposition: Exposition,
   options: OptionsDocument = {},
 ): DocumentHandle<T> {
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -514,10 +519,10 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
           });
         }
       }) as z.ZodObject<z.ZodRawShape>);
-  // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V4), au même stade et
+  // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
-    refineProse({ type, exigeProse: exiges.includes('desc') }),
+    refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));

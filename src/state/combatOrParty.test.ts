@@ -34,7 +34,7 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
   });
 
   describe('combatantClickActs : décideur PARTAGÉ carte ⇄ frise/curseur — DÉRIVÉ du mode courant', () => {
-    beforeEach(() => { useGame.setState({ battle: null, party: [], inspectEnabled: false }); }); // mode ACTION (Inspection OFF) par défaut
+    beforeEach(() => { useGame.setState({ battle: null, party: [], inspectId: null }); });
     function combat(over: Record<string, unknown> = {}) {
       const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
       const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
@@ -52,13 +52,13 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
       const { enemy } = combat();
       expect(combatantClickActs(useGame.getState, enemy)).toBe(true);
     });
-    it('MODE INSPECTION (Inspection ON) → aucun combattant n’agit (cliquer inspecte, jamais attaquer)', () => {
+    it('aucun MODE d’inspection ne coupe le clic (#1822) : fiche de l’ennemi ouverte, il s’attaque toujours ; l’allié, jamais', () => {
       const { enemy, ally } = combat();
-      useGame.setState({ inspectEnabled: true });
-      expect(combatantClickActs(useGame.getState, enemy)).toBe(false); // même un ennemi attaquable
+      useGame.setState({ inspectId: enemy.id });
+      expect(combatantClickActs(useGame.getState, enemy)).toBe(true);
       expect(combatantClickActs(useGame.getState, ally)).toBe(false);
     });
-    it('allié en mode NEUTRE → pas d’action (→ inspection)', () => {
+    it('allié en mode NEUTRE → pas d’action (son inspection est le geste secondaire)', () => {
       const { ally } = combat();
       expect(combatantClickActs(useGame.getState, ally)).toBe(false);
     });
@@ -77,11 +77,13 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
       expect(combatantClickActs(useGame.getState, c('z'))).toBe(false);
     });
 
-    it('COQUE ennemie en mode INSPECTION (#240) → n’agit pas : le clic INSPECTE, jamais un ciblage', () => {
+    it('COQUE ennemie (#240) : le verdict du clic ne dépend pas de la fiche ouverte', () => {
       combat();
       const hull = { id: 'hull1', name: 'Le Serpent de Sel', kind: 'npc', bodyShape: 'vehicule' } as unknown as Combatant;
-      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants, hull] }, inspectEnabled: true });
-      expect(combatantClickActs(useGame.getState, hull)).toBe(false); // route vers setInspectId, pas battleClickEntity
+      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [...useGame.getState().battle!.combatants, hull] } });
+      const avant = combatantClickActs(useGame.getState, hull);
+      useGame.setState({ inspectId: hull.id });
+      expect(combatantClickActs(useGame.getState, hull)).toBe(avant);
     });
   });
 

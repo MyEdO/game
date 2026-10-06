@@ -5,7 +5,8 @@ import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { StatblockEditor } from './StatblockEditor';
 import type { CustomStatblock } from '../../state/scene';
-import { creatures } from '../../data';
+import { charAbr, creatures } from '../../data';
+import { CHAR_KEYS } from '../../engine/types';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -46,5 +47,17 @@ describe('StatblockEditor — cloner une créature de base ne décide JAMAIS par
     expect(latest.label).toBe('Profil personnalisé');
     act(() => { root.unmount(); });
     container.remove();
+  });
+});
+
+describe('StatblockEditor — une clé de Caractéristique ne se rend JAMAIS telle quelle (engine/types.ts CharKey)', () => {
+  it('la grille affiche l’abréviation dérivée de la donnée (charAbr), pas l’id stable', () => {
+    const stat: CustomStatblock = { type: 'statblock', label: 'X', char: { M: 4 } };
+    const container = document.createElement('div');
+    container.innerHTML = renderToStaticMarkup(<StatblockEditor stat={stat} onChange={() => {}} />);
+    const libelles = [...container.querySelectorAll('.statblock-grid > label.ed-subfield')].map((l) => l.firstChild?.textContent);
+    expect(libelles).toContain(charAbr('capacite-de-combat'));
+    expect(libelles).toContain(charAbr('force-mentale'));
+    for (const k of CHAR_KEYS) expect(libelles).not.toContain(k);
   });
 });

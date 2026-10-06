@@ -19,9 +19,11 @@ export type PartyDockProps = {
   heroes: Combatant[];
   targeting?: boolean;
   onOpen: (id: string) => void;
+  /** GESTE SECONDAIRE d'une tuile (`PortraitTile.onInspect`) : la fiche de ce héros, en combat comme hors combat. */
+  onInspect?: (id: string) => void;
 };
 
-export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
+export function PartyDock({ heroes, targeting, onOpen, onInspect }: PartyDockProps) {
   const sheetOpen = useGame((s) => s.sheetId != null);
   /** Bande DÉPLIÉE ? Seule la composition étroite (≤560px) la replie — au-dessus, la poignée est
    *  masquée en CSS et la piste toujours montée : l'état ne retire jamais de contenu du DOM. */
@@ -72,6 +74,7 @@ export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
             reserveStates
             maxStates={DOCK_STATE_CELLS}
             onClick={() => onOpen(c.id)}
+            onInspect={onInspect ? () => onInspect(c.id) : undefined}
             title={targeting ? `${c.label} — cibler` : `${c.label} — fiche du personnage`}
           />
           {/* NOM VISIBLE sous la tuile (planche 2026-08-17 : la bande nomme chaque héros en

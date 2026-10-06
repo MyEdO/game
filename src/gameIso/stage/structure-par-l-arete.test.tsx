@@ -11,7 +11,7 @@ import type { Combatant } from '../../engine/types';
 import { structureCombatant } from '../../engine/structures';
 import { findStructureById } from '../../data';
 import { makePregens } from '../../data/pregens';
-import type { RoomPortal } from '../../state/roomPortals';
+import { cloisons, piece } from '../../state/pieces.fixture';
 import type { Pt } from '../../state/path';
 import { poseFromDims } from './projection';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
@@ -96,10 +96,9 @@ const offre = (
   battle: BattleState | null,
   controleur: Pt | null = FRAPPEUR,
   scene: Scene = scèneFortifiée(),
-  portails: readonly RoomPortal[] = [],
   lift: (p: Pt) => number = () => 0,
 ): readonly AreteProjetee[] => projeterAretes(
-  aretesUtilisables({ scene, visible: new Set(VU), controleur, activeZ: 0, battle, portails }),
+  aretesUtilisables({ scene, visible: new Set(VU), controleur, activeZ: 0, battle }),
   dims,
   lift,
 );
@@ -161,7 +160,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     pointer = undefined;
     document.body.replaceChildren();
     useGame.setState({
-      battle: BATTLE_VRAI, mode: MODE_VRAI, scene: SCENE_VRAIE, inspectEnabled: false,
+      battle: BATTLE_VRAI, mode: MODE_VRAI, scene: SCENE_VRAIE,
       battleClickEntity: CLICK_ENTITY_VRAI, battleClickTile: CLICK_TILE_VRAI, setInspectId: SET_INSPECT_VRAI,
     });
   });
@@ -181,7 +180,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
   it('sur une couche haute, la prise colle au MUR : elle se projette à SON lift, jamais à celui du frappeur', () => {
     const LIFT_MUR = 48;
     const lift = (p: Pt) => (p.x === MUR.x && p.y === MUR.y ? LIFT_MUR : 0);
-    const aretes = offre(bataille([heros, mur]), FRAPPEUR, scèneFortifiée(), [], lift);
+    const aretes = offre(bataille([heros, mur]), FRAPPEUR, scèneFortifiée(), lift);
     const [a, b] = tileEdge(1, 1, 'E', dims, LIFT_MUR);
 
     expect([aretes[0].a, aretes[0].b]).toEqual([{ cx: a.cx, cy: a.cy }, { cx: b.cx, cy: b.cy }]);
@@ -211,33 +210,31 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     expect(battleClickTile).not.toHaveBeenCalled();
   });
 
-  it('le clic de l’arête passe par LA MÊME porte qu’un jeton : Inspection ON, l’enceinte s’INSPECTE au lieu de frapper', () => {
-    // `combatantClickActs` (`state/combatOrParty.ts`) est la source UNIQUE des 3 surfaces : sous
-    // Inspection ON un jeton ennemi s'inspecte (`useStagePointer.performClick`), donc l'arête aussi —
-    // sinon on ne pourrait pas REGARDER le profil d'un mur sans le pilonner.
+  it('le geste SECONDAIRE de l’arête est celui d’un jeton (#1822) : le clic droit INSPECTE l’enceinte sans la frapper, le clic gauche la frappe sans l’inspecter', () => {
+    // On REGARDE le profil d'un mur sans le pilonner : le clic droit résout la structure de l'arête
+    // (`useStagePointer.ficheSous`), jamais la porte d'action.
     const battleClickEntity = vi.fn();
     const battleClickTile = vi.fn();
     const setInspectId = vi.fn();
     const battle = bataille([heros, mur]);
     useGame.setState({
       scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle,
-      battleClickEntity, battleClickTile, setInspectId, inspectEnabled: true,
+      battleClickEntity, battleClickTile, setInspectId,
     });
     const aretes = offre(battle);
     monter(aretes);
+    const { x, y } = milieuPt(aretes[0]);
 
-    cliquer(aretes[0]);
+    act(() => pointer!.handlers.onContextMenu({ clientX: x, clientY: y, preventDefault: () => undefined } as unknown as React.MouseEvent));
 
     expect(setInspectId).toHaveBeenCalledWith(CID);
-    expect(battleClickEntity, 'la porte a refusé : aucune action de combat').not.toHaveBeenCalled();
+    expect(battleClickEntity, 'le clic droit ne frappe pas').not.toHaveBeenCalled();
     expect(battleClickTile).not.toHaveBeenCalled();
 
-    // Inspection OFF (le défaut) : la porte laisse passer, le geste redevient la frappe.
-    act(() => { useGame.setState({ inspectEnabled: false }); });
     cliquer(aretes[0]);
 
     expect(battleClickEntity).toHaveBeenCalledWith(CID, { confirm: true });
-    expect(setInspectId).toHaveBeenCalledTimes(1);
+    expect(setInspectId, 'le clic gauche n’inspecte pas').toHaveBeenCalledTimes(1);
   });
 
   it('la touche du peintre suit le MÊME chemin que le pixel', () => {
@@ -316,13 +313,15 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
   });
 
   describe('SONDE D’INVARIANCE — ce que le PIXEL du centre de l’arête rend', () => {
-    /** La MÊME arête, percée d'une porte : en combat l'enceinte prime (`PRIORITE_ARETES`). */
-    const porte: RoomPortal = {
-      id: '0:1,1:E:a:b', z: 0, edge: { x: 1, y: 1, side: 'E' },
-      fromZoneId: 'a', toZoneId: 'b', kind: 'door-closed', exterior: false,
-      from: { x: 1, y: 1 }, to: { x: 2, y: 1 },
-    };
+    /** La MÊME arête, percée d'une porte : la fortification est une porte fermée, seul accès de la pièce
+     *  (2,1) — murée ailleurs — que le frappeur rejoint du dehors. En combat l'enceinte prime
+     *  (`PRIORITE_ARETES`). */
     const scene = scèneFortifiée();
+    scene.effectZones = [piece('b', 2, 1)];
+    scene.walls = [
+      { x: 1, y: 1, side: 'E', door: true, closed: true, structure: 'mur-a-ossature-en-bois' },
+      ...cloisons(2, 1, ['N', 'S', 'E']),
+    ];
     const pose = poseFromDims(dims);
     const etat = (battle: BattleState | null): EtatDePick =>
       ({ scene, mode: battle ? 'battle' : 'exploration', battle, partyPos: FRAPPEUR }) as EtatDePick;
@@ -331,8 +330,8 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
 
     it('en combat : `structure` et le `cid` ; hors combat, la même arête rend `porte`', () => {
       const battle = bataille([heros, mur]);
-      const enCombat = offre(battle, FRAPPEUR, scene, [porte]);
-      const horsCombat = offre(null, FRAPPEUR, scene, [porte]);
+      const enCombat = offre(battle, FRAPPEUR, scene);
+      const horsCombat = offre(null, FRAPPEUR, scene);
 
       const vCombat = verdictAu(enCombat, milieuPt(enCombat[0]), battle);
       expect(vCombat.nature).toBe('arete');

@@ -85,3 +85,39 @@ describe('narratifSchema — cadre de campagne (#717)', () => {
     expect(JSON.stringify(r.error?.issues)).toContain('expr');
   });
 });
+
+/**
+ * Lien vers les fiches de dossier de chapitre (#2290) : `couvre` sur un preset PNJ et sur un indice
+ * (`couvreSchema`, `./communs.ts`), et le registre `ecartes` — une entrée de fiche écartée par
+ * l'adaptation, au format `ID_D_ENTREE` (`src/data/source/dossier.ts`), avec un motif non vide, une
+ * seule fois.
+ */
+describe('narratifSchema — `couvre` et `ecartes` (#2290)', () => {
+  const affaire = { id: 'affaire-a', titre: 'x' };
+  const indice = (over: Record<string, unknown> = {}) => ({ id: 'indice-1', affaireId: 'affaire-a', kind: 'indice', titre: 'x', stades: [{ id: 'stade-1', prose: '' }], ...over });
+  const issues = (r: { success: boolean; error?: { issues: { path: PropertyKey[]; message: string }[] } }) =>
+    (r.error?.issues ?? []).map((i) => `${i.path.join('.')} :: ${i.message}`);
+
+  it('`couvre` passe sur un preset PNJ et sur un indice ; hors format ou en double, refusé au chemin', () => {
+    expect(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: 'gobelin', couvre: ['EDO-01#pnj2'] }] }).success).toBe(true);
+    expect(narratifSchema.safeParse({ ...vide, affaires: [affaire], indices: [indice({ couvre: ['EDO-01#ind1', 'EDO-01#sec1'] })] }).success).toBe(true);
+    expect(issues(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: 'gobelin', couvre: ['pnj2'] }] })))
+      .toEqual(['presetsPnj.0.couvre.0 :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu.']);
+    expect(issues(narratifSchema.safeParse({ ...vide, affaires: [affaire], indices: [indice({ couvre: ['EDO-01#ind1', 'EDO-01#ind1'] })] })))
+      .toEqual(['indices.0.couvre.1 :: « EDO-01#ind1 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique.']);
+  });
+
+  it('`ecartes` : une entrée et son motif passent ; le registre est optionnel', () => {
+    expect(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01#b7', motif: 'Scène coupée : la diligence ne s’arrête pas au relais.' }] }).success).toBe(true);
+    expect(narratifSchema.safeParse({ ...vide, ecartes: [] }).success).toBe(true);
+  });
+
+  it('`ecartes` : entrée hors format, entrée en double, motif vide ou blanc, refusés au chemin', () => {
+    expect(issues(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01', motif: 'x' }] })))
+      .toEqual(['ecartes.0.entree :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu.']);
+    expect(issues(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01#b7', motif: 'x' }, { entree: 'EDO-01#b7', motif: 'y' }] })))
+      .toEqual(['ecartes.1 :: « EDO-01#b7 » dupliqué : « entree » identifie l’élément dans sa liste, il y est unique.']);
+    expect(issues(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01#b7', motif: '' }] }))).toEqual(['ecartes.0.motif :: motif vide.']);
+    expect(issues(narratifSchema.safeParse({ ...vide, ecartes: [{ entree: 'EDO-01#b7', motif: '   ' }] }))).toEqual(['ecartes.0.motif :: motif vide.']);
+  });
+});

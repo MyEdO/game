@@ -76,6 +76,10 @@ function monterNarratif(): HTMLElement {
     [...montage.container.querySelectorAll('button')].find((b) => (b.textContent ?? '').includes(texte))!;
   act(() => { bouton('PNJ').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   act(() => { bouton('Ajouter un PNJ').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  const ongletApparence = [...montage.container.querySelectorAll<HTMLElement>('[aria-label="Rubriques du PNJ"] [role="tab"]')]
+    .find((t) => t.textContent?.trim() === 'Apparence');
+  expect(ongletApparence, 'onglet « Apparence » du PNJ absent').toBeTruthy();
+  act(() => { ongletApparence!.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   return montage.container;
 }
 

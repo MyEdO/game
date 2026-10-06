@@ -15,6 +15,7 @@ import { type TravelMode, TRAVEL_DEFAULTS, travelVehicles, travelModeLabels, tra
 import { EffectList, type Ctx } from './EffectList';
 import { RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
+import { CouvreField } from './CouvreField';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
@@ -56,6 +57,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               <option value={route.b}>Depuis {placeById(map, route.b)?.label ?? route.b}</option>
             </select>
           </label>
+          <CouvreField value={route.couvre} sujet="de la route" onChange={(couvre) => updRoute(route.id, { couvre })} />
           <div className="mini-title" title="Le trajet n'est proposé que si la condition est vraie ; sinon il reste à l'écran, refusé, avec sa raison.">Praticable si</div>
           {/* Retirer la condition retire la raison AVEC elle : `refus` n'a pas d'objet sans `when`. */}
           <WhenEditor

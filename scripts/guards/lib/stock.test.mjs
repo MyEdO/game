@@ -84,6 +84,25 @@ test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE
   assert.match(perimees[0], /entrée SOLDÉE/)
 })
 
+test('ecartDuVolet : remède neuf optionnel reçoit clé intégrale et entrée, sans changer périmés ni accroissements', () => {
+  const sites = [{ file: 'src/fixture.ts', ref: 'flow — fixture' }]
+  const entree = sitesEnEntrees(sites)[0]
+  const cle = cleDeSite(entree)
+  const appele = []
+  const remede = { neuve: (k, e) => { appele.push([k, e]); return `${k} — remède spécifique` } }
+  const defaut = ecartDuVolet({ sites, stock: [], ou: 'fixture-stock.mjs' })
+  assert.deepEqual(defaut.neuves, [`${cle} — site NEUF : corriger la réf, ou déclarer une entrée dans fixture-stock.mjs et la porter au message par \`CLIQUET:\`.`])
+  assert.deepEqual(ecartDuVolet({ sites, stock: [], ou: 'fixture-stock.mjs', remede }).neuves, [`${cle} — remède spécifique`])
+  assert.deepEqual(appele, [[cle, entree]])
+  const stock = [{ fichier: 'src/fixture.ts', ref: 'flow — fixture', occurrence: 1, nombre: 3 }]
+  const accrus = [{ ...sites[0], nombre: 4 }]
+  assert.deepEqual(ecartDuVolet({ sites: accrus, stock, ou: 'fixture-stock.mjs', remede }),
+    ecartDuVolet({ sites: accrus, stock, ou: 'fixture-stock.mjs' }))
+  assert.match(ecartDuVolet({ sites: accrus, stock, remede }).neuves[0], /nombre 4 > 3/)
+  assert.deepEqual(ecartDuVolet({ sites: [], stock, ou: 'fixture-stock.mjs', remede }).perimees,
+    ecartDuVolet({ sites: [], stock, ou: 'fixture-stock.mjs' }).perimees)
+})
+
 // Une entrée dont AUCUN champ ne nomme (faute de saisie, champ renommé) rend une clé réduite à ses
 // séparateurs : le refus désigne alors une entrée que le lecteur ne peut pas retrouver dans son
 // fichier de stock. Le remède la CITE en JSON — le seul texte qui la localise.

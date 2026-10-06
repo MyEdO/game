@@ -2,35 +2,17 @@ import { readdir, readFile, mkdir, rename, rm, writeFile } from 'node:fs/promise
 import { randomUUID } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { clotureDImports } from '../guards/lib/importGraph.mjs';
 import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
 
 const CE_MODULE = fileURLToPath(import.meta.url);
 const RACINE_DU_DEPOT = join(dirname(CE_MODULE), '..', '..');
 const posix = (chemin) => chemin.replaceAll('\\', '/');
-/** Ce module et le dossier des registres (`chargerRegistres`), relatifs à la racine du dépôt. */
-const MODULE_REL = posix(relative(RACINE_DU_DEPOT, CE_MODULE));
+/** Le dossier des registres (`chargerRegistres`), relatif à la racine du dépôt. */
 const DOSSIER_DES_REGISTRES = posix(relative(RACINE_DU_DEPOT, join(dirname(CE_MODULE), '..', 'hooks')));
 
 /** Ce que `snapshot` lit : des fichiers, et des dossiers parcourus en entier. */
-export const FICHIERS_LUS = ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX];
-export const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents', '.codex/agents'];
-
-/**
- * Le prédicat « ce chemin peut changer le verdict de `check` » sous `racine` : ce que `snapshot` lit,
- * la clôture d'imports de ce module et des registres que `chargerRegistres` importe, et
- * `package.json`, qui déclare la commande `agents:check`.
- * @param {string} racine @returns {(rel: string) => boolean}
- */
-export function sourceDuCheck(racine) {
-  const racines = [MODULE_REL, ...ENTREES_OUTIL.map(({ module }) => `${DOSSIER_DES_REGISTRES}/${module}`)].map((rel) => join(racine, rel));
-  const code = clotureDImports(racines, { racine });
-  const fichiers = new Set([...FICHIERS_LUS, ...code, 'package.json']);
-  return (rel) => {
-    const chemin = posix(rel);
-    return fichiers.has(chemin) || DOSSIERS_LUS.some((dossier) => chemin.startsWith(`${dossier}/`));
-  };
-}
+const FICHIERS_LUS = ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX];
+const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents', '.codex/agents'];
 
 /** Les registres des points d'entrée (`ENTREES_OUTIL`), lus dans les modules de `scripts/hooks/`. */
 export async function chargerRegistres(dossierHooks = join(RACINE_DU_DEPOT, DOSSIER_DES_REGISTRES)) {

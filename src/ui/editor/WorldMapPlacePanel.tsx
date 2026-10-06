@@ -19,6 +19,7 @@ import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfil
 import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
+import { CouvreField } from './CouvreField';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
@@ -68,6 +69,7 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
           <label className="ed-field">Point d'entrée (optionnel)
             <input value={place.entry ?? ''} onChange={(e) => updPlace(place.id, { entry: e.target.value || undefined })} />
           </label>
+          <CouvreField value={place.couvre} sujet="du lieu" onChange={(couvre) => updPlace(place.id, { couvre })} />
 
           <div className="mini-title" title="Le lieu n'existe sur la carte qu'une fois la condition vraie : ni médaillon, ni route, ni voyage vers lui. « Toujours » = lieu toujours visible.">Visible si</div>
           <WhenEditor when={place.when} kinds={CONDITION_KINDS_CARTE} onChange={(when) => updPlace(place.id, { when })} />

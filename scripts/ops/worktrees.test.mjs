@@ -8,7 +8,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { GitIndisponible, depotDe, worktreesDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, classer, depotDe, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
   CLASSES, GESTES_DE_L_INVENTAIRE, arbresTenus, classerWorktree, comptesParClasse, inventaire, ligneDInventaire, purger,
 } from './worktrees.mjs'
@@ -131,13 +131,44 @@ test('comptesParClasse compte dans l’ordre des CLASSES, sans les classes vides
 
 test('purger : un worktree ABSENT seul suffit à jouer `git worktree prune` (écrivains injectés)', () => {
   const vus = []
-  // Aucun `propre+fusionné` : sans le déclencheur `absent`, la taille ne se jouait pas et
-  // l'inventaire répétait le worktree disparu à chaque passage.
   const gestes = purger({ principal: '/dep', worktrees: [{ classe: 'absent', chemin: '/dep/.wt-perdu', branche: 'chantier/perdu' }], gestes: gestesFactices(vus) })
   assert.deepEqual(vus, ['worktree prune'])
   assert.deepEqual(gestes.map((g) => g.geste), ['git worktree prune'])
   assert.equal(gestes[0].ok, true)
 })
+
+for (const nom of ['retirerWorktree', 'supprimerBranche', 'elaguerWorktrees']) {
+  test(`#2285 purger : ${nom} conserve le diagnostic complet de chaque échec`, () => {
+    const stdout = `${'note stdout\n'.repeat(50)}cause stdout tardive\n`
+    for (const resultat of [
+      { status: 17, stdout, stderr: '' },
+      { status: 128, stdout, stderr: 'fatal: bad object abc\n' },
+      { status: null, stdout, stderr: 'avant interruption\n', signal: 'SIGTERM' },
+      { status: 0, stdout: '', stderr: '' },
+    ]) {
+      const union = classer(resultat)
+      const gestes = {
+        ...gestesFactices(),
+        [nom]: () => union,
+      }
+      const joues = purger({
+        principal: '/dep',
+        worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-propre', branche: 'chantier/propre' }],
+        gestes,
+        nature: () => 'absent',
+      })
+      const prefixe = { retirerWorktree: 'git worktree remove', supprimerBranche: 'git branch -d', elaguerWorktrees: 'git worktree prune' }[nom]
+      const vu = joues.find((g) => g.geste.startsWith(prefixe))
+      assert.ok(vu)
+      assert.equal(vu.ok, resultat.status === 0)
+      if (resultat.status !== 0) {
+        assert.ok(vu.detail.includes(stdout), `${nom} : stdout intégral`)
+        if (resultat.stderr) assert.ok(vu.detail.includes(resultat.stderr), `${nom} : stderr intégral`)
+        assert.match(vu.detail, resultat.signal ? /signal SIGTERM/ : new RegExp(`status ${resultat.status}`))
+      }
+    }
+  })
+}
 
 test('purger : sans absent NI fusionné, aucun geste — la taille ne se joue pas sur rien', () => {
   const vus = []
@@ -297,9 +328,7 @@ test('inventaire : UN fetch par défaut (ops:worktrees), AUCUN sous sansFetch �
   } finally { jeter() }
 })
 
-// Le `remove` qui ÉCHOUE laisse un dossier sur le disque (EPERM d'un arbre tenu par un autre
-// processus, mesuré sur `.wt-1736`). Sans re-mesure, la sortie annonçait le retrait et personne ne
-// savait qu'il restait un dossier à retirer à la main. Les écrivains et la sonde de disque sont INJECTÉS.
+// #1736
 test('purger : un remove ROUGE dont le dossier RESTE se dit, avec le geste à la main et la branche', () => {
   const vus = []
   const gestes = purger({

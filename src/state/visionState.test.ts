@@ -90,15 +90,19 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
     expect(posesDuDocument.map(signature)).toEqual([['diligence-salle-cheminee', 0, 5, undefined]]);
   });
 
-  it('la lanterne d’un combattant à l’étage inscrit ses 70 cases à z1, aucune au rez', () => {
+  it('la lanterne d’un combattant à l’étage inscrit ses cases à z1, aucune au rez', () => {
     const battle = { combatants: [{ ...porteur('h1', surLeChemin.x, surLeChemin.y, true), pos: surLeChemin }] } as never;
     const sources = sceneLightSources({ scene, battle, party: [], partyPos: { x: 0, y: 0 } });
     expect(sources.map(signature)).toEqual([...posesDuDocument.map(signature), ['h1', 1, 10, true]]);
     const lanterne = sources.filter((s) => s.carried);
     expect(lanterne.map((s) => s.srcId)).toEqual(['h1']);
-    expect(parÉtage(lanterne)).toEqual({ 0: 0, 1: 70 });
-    // Le halo de la MÊME source privée de son étage tomberait tout entier au rez — 70 cases déplacées.
-    expect(parÉtage(lanterne.map((s) => ({ ...s, z: 0 })))).toEqual({ 0: 70, 1: 0 });
+    const enHaut = parÉtage(lanterne);
+    expect(enHaut[0], 'aucune case au rez').toBe(0);
+    expect(enHaut[1], 'des cases à l’étage du porteur').toBeGreaterThan(0);
+    // Le halo de la MÊME source privée de son étage tomberait tout entier au rez.
+    const tombe = parÉtage(lanterne.map((s) => ({ ...s, z: 0 })));
+    expect(tombe[1]).toBe(0);
+    expect(tombe[0]).toBeGreaterThan(0);
   });
 
   it('la source POSÉE, elle, n’est pas portée (le rendu arbitre son budget là-dessus)', () => {

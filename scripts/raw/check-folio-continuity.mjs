@@ -220,8 +220,7 @@ export const entreesDAncresVides = (vides) => sitesEnEntrees(vides.map((a) => ({
  * ferait charger à la garde CI le module d'extraction PDF (`anchor-fill.mjs`), alors que son contrat
  * est de ne lire que les JSON committés.
  * Il ne vit SURTOUT pas dans la donnée : une copie `"seuil"` au stock se relèverait dans le MÊME
- * geste que le reclassement qu'elle doit dénoncer (même raison que l'interdit du PLAFOND en tête de
- * `guards/lib/stock.mjs`).
+ * geste que le reclassement qu'elle doit dénoncer.
  */
 export const SEUIL_UTILE = 200
 

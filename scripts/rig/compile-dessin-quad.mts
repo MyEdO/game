@@ -38,7 +38,7 @@
  * approximation — un trait de 0,7 u y devient 0,64 u au lieu de varier avec son orientation.
  *
  * IDEMPOTENT : relancé sur les mêmes dessins, il réécrit le même octet. `--check` n'écrit rien et
- * sort en 1 si une sortie diverge de ses dessins (porte de commit).
+ * sort en 1 si une sortie diverge de ses dessins (`quad-harnais.test.ts`, racine réelle).
  */
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
