@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { TRONC } from '../guards/lib/gitPorte.mjs'
-import { corpsDeFusion, estPrDuTrain, fusionDe } from '../guards/lib/fusionPr.mjs'
+import { estPrDuTrain, fusionDePr } from '../guards/lib/fusionPr.mjs'
 
 export const BORNE_SONDES = 12
 export const PERIODE_MS = 5_000
@@ -55,8 +55,7 @@ async function reprendrePr(pr, course, { appel, attendre, borne }) {
   etat = actuelle()
   if (etat?.statut === 'merged') return etat
   if (!etat) return { statut: 'ignoree', raison: 'tête changée avant demande' }
-  let vue = fusionDe(appel(['api', '--include', '-X', 'PUT', route(`pulls/${pr.number}/merge-async`), '--input', '-'],
-    { input: corpsDeFusion(pr.head.sha) }))
+  let vue = fusionDePr({ depot: DEPOT, numero: pr.number, sha: pr.head.sha, appel })
   for (let sonde = 0; vue.ok && vue.statut === 'pending' && sonde < borne; sonde += 1) {
     if (vue.attendue !== pr.head.sha || !uuidValide(vue.uuid))
       return { statut: 'indeterminee', raison: 'demande pendante sans tête attendue ou UUID valide' }
@@ -64,7 +63,7 @@ async function reprendrePr(pr, course, { appel, attendre, borne }) {
     etat = actuelle()
     if (etat?.statut === 'merged') return etat
     if (!etat) return { statut: 'ignoree', raison: 'tête changée pendant suivi' }
-    vue = fusionDe(appel(['api', '--include', route(`pulls/${pr.number}/merge-async/${vue.uuid}`)]))
+    vue = fusionDePr({ depot: DEPOT, numero: pr.number, sha: pr.head.sha, uuid: vue.uuid, appel })
   }
   if (!vue.ok) return { statut: 'refusee', raison: vue.raison }
   if (vue.statut === 'failed') return { statut: 'refusee', raison: vue.message }

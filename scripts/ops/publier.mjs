@@ -6,18 +6,7 @@
 // "l'étape N+1 coûte une ligne" : ajouter une étape = une entrée dans la table `ETAPES` (nom,
 // `jouer(ctx)`, `dejaFaite(ctx)`), rien d'autre. » La table vit dans `etapesDuTrain.mjs`.
 //
-// RÉGIME (#2178) : commit FINAL → push de la BRANCHE → PR → course verte de la branche → demande de
-// fusion REST (`merge-async`) → la FILE DE FUSION du serveur sérialise, juge le commit de file et fusionne. Aucune gate ne se joue ici :
-// `.github/workflows/ci.yml` les joue toutes, et le ruleset `main` (`scripts/ops/ruleset-main.mjs`)
-// n'admet rien hors de la file. SEPT étapes — preflight, docs, push-branche, pr, file, pilotage, fin :
-// preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet), docs (`build-all.mjs
-// --mixtes`, puis commit des MIXTES et des miroirs d'agents sales — la plage sans source de mixte
-// saute la RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
-// bornée de la course verte de la tête, de sa demande de fusion (`sha` = la tête jugée) puis de la
-// fusion par la file, pilotage des tickets
-// cités, fin. Aucun client ne rebase sur un tronc mouvant : une PR ÉJECTÉE de la file pour un conflit
-// ou un dérivé périmé se reprend par une FUSION d'`origin/main` dans la branche, puis docs →
-// push-branche → pr → file, bornée par le compteur `ejections` (`BORNE_EJECTIONS`).
+// #2178 ; #2437 ; https://docs.github.com/en/graphql/reference/input-objects#enqueuepullrequestinput
 //
 // CLÔTURE DES ÉTAPES, gardée contre une retouche de bonne foi — les étapes vivent dans
 // `etapesDuTrain.mjs`, et le test de clôture (`etapesDuTrain.test.mjs`) refuse à ce module toute
@@ -33,7 +22,7 @@
 // `fusionner`, `abandonnerFusion`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
 // nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
 // sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
-// numéro et un uuid), `lireTicket` et `commenter`
+// numéro, un sha et un uuid), `lireTicket` et `commenter`
 // (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
 // ni `git add -A`, ni un commit de l'arbre ou de l'index entier, ni `git stash`, ni `push --force`,
@@ -62,7 +51,7 @@ import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { corpsDeFusion, fusionDe } from '../guards/lib/fusionPr.mjs'
+import { fusionDePr } from '../guards/lib/fusionPr.mjs'
 import { BORNE_EJECTIONS, ETAPES, attendre, prDeRest } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
@@ -795,7 +784,7 @@ function numeroDeTicket(geste, numero) {
  * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
  * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
  * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
- * un sha), `lireFusion` (un numéro de PR et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
+ * un sha), `lireFusion` (un numéro de PR, un sha et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
  * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
@@ -864,12 +853,12 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     },
     demanderFusion({ numero, sha } = {}) {
       numeroDeTicket('demanderFusion', numero)
-      const corps = corpsDeFusion(shaComplet('demanderFusion', sha))
-      return fusionDe(gh(['api', '--include', '-X', 'PUT', `repos/${DEPOT}/pulls/${numero}/merge-async`, '--input', '-'], racine, corps))
+      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('demanderFusion', sha), appel: appelGh(racine) })
     },
-    lireFusion({ numero, uuid } = {}) {
+    lireFusion({ numero, sha, uuid } = {}) {
       numeroDeTicket('lireFusion', numero)
-      return fusionDe(gh(['api', '--include', `repos/${DEPOT}/pulls/${numero}/merge-async/${uuidDe(uuid)}`], racine))
+      uuidDe(uuid)
+      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('lireFusion', sha), uuid, appel: appelGh(racine) })
     },
     lireTicket: (numero) => lireTicket({ depot: DEPOT, numero: numeroDeTicket('lireTicket', numero), appel: appelGh(racine) }),
     commenter(numero, corps) {
