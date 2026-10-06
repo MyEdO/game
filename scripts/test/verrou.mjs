@@ -1,27 +1,9 @@
-// Verrou de SUITE, à l'échelle de la MACHINE (#1679 L1c-M7) : deux suites complètes jouées en même
-// temps (deux arbres de travail, deux sessions) se disputent les cœurs et la mémoire, et la classe
-// « 245 rouges jsdom » en sort. Le verrou est CONSULTATIF : il refuse le second lanceur en NOMMANT
-// le premier (PID + commande), il ne tue personne. Opt-out EXPLICITE par `WFRP_SUITE_LOCK=0`.
-// PORTÉE : le chemin `npm test` (`scripts/test/run.mjs`) ET le lanceur de gates
-// (`scripts/gates/toutes.mjs`), qui le tient pour TOUTE sa durée — ses trois lanes chargent la machine
-// autant qu'une suite, et deux runs de gates concurrents se volaient cœurs et mémoire sans qu'aucune
-// porte ne le dise (mesuré : trois plages où deux clés de gate distinctes écrivent en même temps).
-// La suite lancée PAR les gates ne le reprend pas : le jeton `WFRP_SUITE_LOCK_TENU` la rend réentrante.
-// Restent hors porte : `npm run test:watch`, `npm run test:map` (scripts/map, court) et tout
-// `npx vitest run` tapé à la main — `scripts/lancer-local.mjs` leur sert au moins le vitest de CET arbre.
+// Verrou CONSULTATIF entre processus de la machine (#1679 L1c-M7, #2279 N0, #2187) : un fichier pris par
+// `linkSync` exclusif, qui porte son tenant `{ pid, commande, cwd, date }` dès qu'il existe. Il refuse le
+// second preneur en NOMMANT le premier, ou le fait attendre sous une échéance ; il ne tue personne.
 import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-
-/** Fichier de verrou partagé par tous les arbres de la machine. */
-export const CHEMIN_VERROU = path.join(os.tmpdir(), 'wfrp-suite.lock')
-
-/** Jeton de RÉENTRANCE : posé dans l'environnement par le processus qui TIENT déjà le verrou, il
- *  vaut le PID de ce tenant. Ses enfants (la suite lancée par les gates) ne le reprennent pas — sans
- *  quoi le lanceur se refuserait lui-même. Un jeton ne survit pas au processus qui le pose :
- *  l'environnement ne se propage qu'aux ENFANTS. */
-export const JETON_REENTRANCE = 'WFRP_SUITE_LOCK_TENU'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Ce PID tourne-t-il ? `process.kill(pid, 0)` ne tue rien : il teste l'existence. */
 export function estPidVivant(pid) {
@@ -33,55 +15,108 @@ export function estPidVivant(pid) {
   }
 }
 
-/** Message de refus : qui tient le verrou, et les DEUX sorties (attendre, ou tuer / opt-out). */
-export function refusVerrou({ chemin, tenant }) {
+/** Message de refus : ce que le verrou garde (`libelle`), qui le tient, et les deux sorties. */
+export function refusVerrou({ chemin, tenant, libelle }) {
   return [
-    `[verrou] une suite complète tourne déjà sur cette machine : PID ${tenant.pid}`,
+    `[verrou] ${libelle} : tenu par le PID ${tenant.pid}`,
     `[verrou] commande : ${tenant.commande ?? '(inconnue)'}`,
     `[verrou] arbre : ${tenant.cwd ?? '(inconnu)'}${tenant.date ? ` · depuis ${tenant.date}` : ''}`,
-    `[verrou] deux suites concurrentes se volent cœurs et mémoire — attendre la fin, ou tuer ce PID.`,
-    `[verrou] verrou : ${chemin} · opt-out explicite : WFRP_SUITE_LOCK=0`,
+    `[verrou] attendre la fin, ou tuer ce PID — verrou : ${chemin}`,
   ].join('\n')
 }
 
 /**
- * PREND le verrou. REND `{ etat }` :
- *  - `pris` (+ `liberer()`) : le fichier a été créé par CE processus ; il porte son tenant dès qu'il
- *    existe — écrit dans un temporaire voisin, puis lié à `chemin` par `linkSync`, exclusif ;
- *  - `refus` (+ `message`) : un PID VIVANT le tient ;
- *  - `reentrant` : un ANCÊTRE de ce processus le tient déjà (jeton `WFRP_SUITE_LOCK_TENU`) ;
- *  - `ignore` (+ `avertissement`) : opt-out `WFRP_SUITE_LOCK=0`.
- * Un verrou laissé par un PID MORT (machine éteinte, run tué), ou illisible, est REPRIS sous le verrou
- * de reprise `<chemin>.reprise` (`reprendre`) ; un verrou absent ou inaccessible à la lecture se retente.
- * `fs` et `estVivant` sont injectés pour la mesure ; par défaut, le disque et `process.kill(pid, 0)`.
+ * @typedef {{ pid: number, commande?: string, cwd?: string, date?: string }} Tenant
+ * @typedef {{ echeanceMs: number, pasMs: number, annoncer?: (tenant: Tenant | null) => void }} Attente
+ * @typedef {{ chemin: string, libelle: string, pid?: number, commande?: string, cwd?: string,
+ *   fs?: typeof fsReel, estVivant?: (pid: number) => boolean, maintenant?: () => string,
+ *   attente?: Attente, horloge?: () => number }} Prise
  */
-export function prendreVerrou({
-  chemin = CHEMIN_VERROU,
+
+/**
+ * PREND le verrou `chemin`. REND `{ etat: 'pris', liberer }` ou `{ etat: 'refus', message, tenant? }`.
+ * Sans `attente`, un seul essai. Avec `attente`, un refus se rejoue tous les `pasMs` après
+ * `annoncer(tenant)`, jusqu'à `echeanceMs` : à échéance, le dernier refus — jamais d'exception, jamais
+ * d'attente sans fin. Un verrou laissé par un PID MORT, ou illisible, est REPRIS sous le verrou de reprise
+ * `<chemin>.reprise` (`reprendre`). `fs`, `estVivant`, `maintenant`, `dormir` et `horloge` s'injectent
+ * (mesure). Sommeil BLOQUANT (`attendreSync`) : un appelant qui garde une boucle d'événements vivante
+ * prend `prendreVerrouAsync`.
+ * @param {Prise & { dormir?: (ms: number) => void }} p
+ */
+export function prendreVerrou({ dormir = attendreSync, ...prise }) {
+  return derouler(etapesDePrise(prise), dormir)
+}
+
+/** `prendreVerrou`, au sommeil NON bloquant (`dormir` rend une promesse). */
+export function prendreVerrouAsync({ dormir = (ms) => new Promise((fini) => setTimeout(fini, ms)), ...prise }) {
+  return deroulerAsync(etapesDePrise(prise), dormir)
+}
+
+/**
+ * ATTEND que le verrou `chemin` soit libre, sans le PRENDRE. REND `{ etat: 'libre' }` (absent, illisible,
+ * ou tenu par un PID mort) ou, à `echeanceMs`, `{ etat: 'occupe', tenant }`. Même pas, même annonce que
+ * `prendreVerrou`.
+ * @param {{ chemin: string, attente?: Attente, fs?: typeof fsReel, estVivant?: (pid: number) => boolean,
+ *   dormir?: (ms: number) => void, horloge?: () => number }} p
+ */
+export function attendreLibre({ chemin, attente, fs = fsReel, estVivant = estPidVivant, dormir = attendreSync, horloge = Date.now }) {
+  const essai = () => {
+    const tenant = tenantDe(lireBrut(fs, chemin))
+    return tenant && estVivant(tenant.pid) ? { etat: 'occupe', tenant } : { etat: 'libre' }
+  }
+  return derouler(sousEcheance({ attente, horloge, essai, abouti: (vu) => vu.etat === 'libre' }), dormir)
+}
+
+/** Les étapes d'une prise sous échéance (`sousEcheance`). */
+function etapesDePrise({
+  chemin,
+  libelle,
   pid = process.pid,
   commande = '',
   cwd = '',
-  env = process.env,
   fs = fsReel,
   estVivant = estPidVivant,
   maintenant = () => new Date().toISOString(),
-} = {}) {
-  if (env.WFRP_SUITE_LOCK === '0') {
-    return {
-      etat: 'ignore',
-      avertissement:
-        `[verrou] WFRP_SUITE_LOCK=0 : verrou de suite DÉSACTIVÉ — une suite concurrente sur cette ` +
-        `machine reste possible (cœurs et mémoire partagés).`,
-    }
+  attente,
+  horloge = Date.now,
+}) {
+  return sousEcheance({
+    attente, horloge,
+    essai: () => prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, estVivant, maintenant }),
+    abouti: (vu) => vu.etat === 'pris',
+  })
+}
+
+/** Rejoue `essai` jusqu'à `abouti` ou l'échéance de `attente` : CÈDE chaque sommeil, REND le dernier essai. */
+function* sousEcheance({ attente, horloge, essai, abouti }) {
+  const debut = horloge()
+  for (;;) {
+    const vu = essai()
+    const reste = attente ? attente.echeanceMs - (horloge() - debut) : 0
+    if (abouti(vu) || reste <= 0) return vu
+    attente.annoncer?.(vu.tenant ?? null)
+    yield Math.min(attente.pasMs, reste)
   }
-  // RÉENTRANCE : le jeton ne suffit PAS — il doit désigner le PID qui tient RÉELLEMENT le verrou.
-  // Un jeton ORPHELIN (gates tué par un signal, variable restée dans un shell) serait sinon un second
-  // opt-out SILENCIEUX : il ferait passer une suite pendant qu'une autre tourne, sans un mot.
-  const tenu = String(env[JETON_REENTRANCE] ?? '').trim()
-  if (tenu) {
-    const tenant = lireTenant(fs, chemin)
-    if (tenant && String(tenant.pid) === tenu) return { etat: 'reentrant', tenantPid: tenant.pid }
-    /* jeton orphelin : le verrou décide, comme pour n'importe quel appelant */
+}
+
+/** Joue les étapes, chaque sommeil par `dormir` (bloquant). */
+function derouler(etapes, dormir) {
+  for (let pas = etapes.next(); ; pas = etapes.next()) {
+    if (pas.done) return pas.value
+    dormir(pas.value)
   }
+}
+
+/** Joue les étapes, chaque sommeil attendu (`await dormir`). */
+async function deroulerAsync(etapes, dormir) {
+  for (let pas = etapes.next(); ; pas = etapes.next()) {
+    if (pas.done) return pas.value
+    await dormir(pas.value)
+  }
+}
+
+/** Un essai de prise : le tenant écrit dans un temporaire voisin, puis lié à `chemin`. */
+function prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, estVivant, maintenant }) {
   const liberer = () => {
     try {
       fs.rmSync(chemin, { force: true })
@@ -92,14 +127,14 @@ export function prendreVerrou({
   const temporaire = `${chemin}.${pid}.${randomUUID()}`
   fs.writeFileSync(temporaire, JSON.stringify({ pid, commande, cwd, date: maintenant() }), { flag: 'wx' })
   try {
-    return prendreDepuis({ chemin, temporaire, fs, estVivant, liberer })
+    return prendreDepuis({ chemin, libelle, temporaire, fs, estVivant, liberer })
   } finally {
     fs.rmSync(temporaire, { force: true })
   }
 }
 
-/** Le corps de `prendreVerrou`, le tenant déjà écrit dans `temporaire`. */
-function prendreDepuis({ chemin, temporaire, fs, estVivant, liberer }) {
+/** Le corps de `prendreUneFois`, le tenant déjà écrit dans `temporaire`. */
+function prendreDepuis({ chemin, libelle, temporaire, fs, estVivant, liberer }) {
   for (let essai = 0; essai < 3; essai += 1) {
     try {
       fs.linkSync(temporaire, chemin)
@@ -109,18 +144,16 @@ function prendreDepuis({ chemin, temporaire, fs, estVivant, liberer }) {
       if (brut === undefined) continue
       const tenant = tenantDe(brut)
       if (tenant && estVivant(tenant.pid)) {
-        return { etat: 'refus', message: refusVerrou({ chemin, tenant }), tenant }
+        return { etat: 'refus', message: refusVerrou({ chemin, tenant, libelle }), tenant }
       }
       reprendre({ chemin, mort: brut, temporaire, fs, estVivant })
       continue
     }
     return { etat: 'pris', liberer }
   }
-  // Trois reprises de suite : un autre lanceur recrée le verrou aussi vite qu'on le retire.
   return {
     etat: 'refus',
-    message:
-      `[verrou] verrou disputé (${chemin}) : un autre lanceur le reprend en boucle — relancer.`,
+    message: `[verrou] ${libelle} : verrou disputé (${chemin}), un autre preneur le reprend en boucle — relancer.`,
   }
 }
 
@@ -146,25 +179,6 @@ function reprendre({ chemin, mort, temporaire, fs, estVivant }) {
   }
 }
 
-/**
- * Le verrou est-il REQUIS pour ce run ? Un positionnel qui désigne un DOSSIER est une suite (`npm
- * test src` énumère 1 580 fichiers) : seul un run dont CHAQUE filtre nomme un FICHIER s'en passe.
- * `estFichier` est injecté pour la mesure ; le lanceur y met un `statSync().isFile()`.
- */
-export function verrouRequis(filtres, estFichier) {
-  return filtres.length === 0 || !filtres.every((f) => estFichier(f))
-}
-
-/**
- * Contenu du verrou, ou `null` s'il est absent, illisible ou sans PID exploitable. Le JSON
- * `{ pid, commande, cwd, date }` ne se lit que par `lireBrut` puis `tenantDe` : `prendreVerrou`, `tenantVivant`
- * et la sonde du verrou (`scripts/ops/publier.mjs`) passent tous par là.
- * @param {typeof fsReel} fs @param {string} chemin
- */
-export function lireTenant(fs = fsReel, chemin = CHEMIN_VERROU) {
-  return tenantDe(lireBrut(fs, chemin))
-}
-
 /** Le texte du verrou, ou `undefined` s'il est absent ou inaccessible à la lecture. */
 function lireBrut(fs, chemin) {
   try {
@@ -182,15 +196,4 @@ function tenantDe(brut) {
   } catch {
     return null
   }
-}
-
-/**
- * Le tenant du verrou s'il est VIVANT, sinon `null` — un verrou laissé par un PID mort ne tient
- * personne (`prendreVerrou` le reprend). Mêmes deux primitives que la prise : `lireTenant` pour le
- * contenu, `estPidVivant` pour la vie du PID.
- * @param {{chemin?:string, fs?:typeof fsReel, estVivant?:(pid:number)=>boolean}} p
- */
-export function tenantVivant({ chemin = CHEMIN_VERROU, fs = fsReel, estVivant = estPidVivant } = {}) {
-  const tenant = lireTenant(fs, chemin)
-  return tenant && estVivant(tenant.pid) ? tenant : null
 }

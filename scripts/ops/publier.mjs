@@ -52,7 +52,8 @@ import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { fusionDePr } from '../guards/lib/fusionPr.mjs'
-import { BORNE_EJECTIONS, ETAPES, attendre, prDeRest } from './etapesDuTrain.mjs'
+import { BORNE_EJECTIONS, ETAPES, prDeRest } from './etapesDuTrain.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -636,7 +637,7 @@ export function veillerLeTrain({
   log = '',
   vivant: estVivant = vivant,
   maintenant = Date.now,
-  dormir = attendre,
+  dormir = attendreSync,
   periodeMs = PERIODE_DE_VEILLE_MS,
 }) {
   const { pid, lancement } = runDe(run)

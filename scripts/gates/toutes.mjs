@@ -52,6 +52,8 @@ import {
   rejeux,
 } from '../guards/lib/spawnResilient.mjs'
 import { codeEnfant } from '../test/partition.mjs'
+import { prendreVerrouAsync } from '../test/verrou.mjs'
+import { OPT_OUT_SUITE, VERROU_SUITE, attenteDeSuite, prendreVerrouDeSuite } from '../test/verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -673,18 +675,6 @@ export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
 }
 
 /**
- * Le refus du VERROU DE SUITE (`scripts/test/verrou.mjs`) : quand une autre session joue déjà une
- * suite complète, `npm test` sort en 2 SANS avoir rien joué. Reconnu par sa SORTIE, jamais par le
- * code seul — un 2 est aussi ce que rend une invocation mal formée du lanceur.
- */
-export const estRefusDuVerrou = (code, sortie) =>
-  code === 2 && /^\[verrou\] (?:une suite complète tourne déjà|verrou disputé)/m.test(sortie)
-
-/** Pas et borne de l'attente du verrou de suite. Au-delà, c'est un rouge : une suite qui n'a pas
- *  tourné ne justifie rien, et attendre sans fin ne le dirait jamais. */
-export const ATTENTE_VERROU = { pasMs: 15_000, borneMs: 20 * 60 * 1000 }
-
-/**
  * Tue l'ARBRE d'un enfant. Un `kill` sur le seul PID laisse vivre `npm`, `vitest` et leurs workers :
  * ils garderaient le verrou de suite et les cœurs après un Ctrl-C.
  *
@@ -849,6 +839,12 @@ export function photoArbre(racine) {
 
 const secondesDepuis = (debut) => (Date.now() - debut) / 1000
 
+/** Le script de `package.json` que joue une gate (`npm test` → `test`, `npm run x` → `x`). */
+const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
+
+/** Ce script lance-t-il la suite complète (`scripts/test/run.mjs`, preneur du verrou de suite) ? */
+export const lanceLaSuite = (script) => /(?:^|\s)(?:\.\/)?scripts\/test\/run\.mjs(?:\s|$)/.test(script ?? '')
+
 /**
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
@@ -860,6 +856,7 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
+  verrouSuite = VERROU_SUITE,
 } = {}) {
   const LISTE = argv.includes('--liste')
   const SERIE = argv.includes('--serie') || !lanesPortees(machine)
@@ -948,39 +945,43 @@ export async function principal({
   // verdict. AUCUN verdict de gate n'arrête quoi que ce soit, pas même un refus de prérequis : les
   // autres gates lisent le même arbre propre, et chacune teste SES PROPRES prérequis
   // (`prerequisAbsents`), donc leur verdict est juste.
+  /** Verrous de suite tenus par ce run, libérés à l'arrêt sur signal. */
+  const verrousTenus = new Set()
   const arreterSurSignal = (signal) => {
     journal(
       `\n[gates] ${signal} — arrêt : l'ARBRE de chaque gate en cours est tué (un enfant survivant garderait ` +
         'le verrou de suite et des cœurs).\n',
     )
     for (const pid of vivants.values()) tuerArbre(pid)
+    for (const tenu of verrousTenus) tenu.liberer()
     process.exit(130)
   }
   process.on('SIGINT', () => arreterSurSignal('SIGINT'))
   process.on('SIGTERM', () => arreterSurSignal('SIGTERM'))
 
+  /** Un ROUGE de gate rendu SANS spawn : `sortie` écrite dans le fichier de la gate. */
+  const rougeSansSpawn = (gate, sortie, code = 1) => {
+    const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
+    writeFileSync(fichier, sortie)
+    return { code, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
+  }
+
   /** Joue UNE gate, sortie dans son fichier, bornée par son plafond, rejouée si elle n'a pas démarré. */
-  const jouerUneFois = async (gate, coeurs) => {
+  const jouerGate = async (gate, coeurs, envEnPlus) => {
     const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
     // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
     // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
     // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
     // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
     const absents = prerequisAbsents(ecritLu[gate.nom], racine)
-    if (absents.length) {
-      const sortie = refusDePrerequis(gate.nom, absents)
-      writeFileSync(fichier, sortie)
-      return { code: 1, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
-    }
+    if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
     // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.
     // Un script absent de `package.json` est un rouge NOMMÉ, pas un `npm` qui se plaint tout seul.
-    const script = gate.nom === 'test' ? 'test' : gate.nom
+    const script = scriptDeGate(gate)
     if (!scripts[script]) {
-      const sortie = `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`
-      writeFileSync(fichier, sortie)
-      return { code: 1, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
+      return rougeSansSpawn(gate, `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`)
     }
-    const env = { ...process.env }
+    const env = { ...process.env, ...envEnPlus }
     if (coeurs && !process.env.WFRP_TEST_COEURS) env.WFRP_TEST_COEURS = String(coeurs)
     const [commande, ...args] = gate.commande.split(' ')
     const r = await spawnBorne({
@@ -997,29 +998,6 @@ export async function principal({
     return r
   }
 
-  let attenteVerrouMs = 0
-  /** Joue une gate, en ATTENDANT quand le verrou de suite d'un autre arbre la refuse sans rien jouer. */
-  const jouerGate = async (gate, coeurs) => {
-    const debutAttente = Date.now()
-    for (;;) {
-      const r = await jouerUneFois(gate, coeurs)
-      if (!estRefusDuVerrou(r.code, r.sortie)) return r
-      attenteVerrouMs = Math.max(attenteVerrouMs, Date.now() - debutAttente)
-      if (Date.now() - debutAttente >= ATTENTE_VERROU.borneMs) {
-        journal(
-          `[gates] ${gate.nom} — verrou de suite tenu depuis ${(ATTENTE_VERROU.borneMs / 60000).toFixed(0)} min : ` +
-            'abandon (une suite qui n’a pas tourné ne justifie rien).\n',
-        )
-        return r
-      }
-      journal(
-        `[gates] ${gate.nom} — suite d'un autre arbre en cours : attente ` +
-          `${(ATTENTE_VERROU.pasMs / 1000).toFixed(0)} s (déjà ${((Date.now() - debutAttente) / 1000).toFixed(0)} s)\n`,
-      )
-      await new Promise((patienter) => setTimeout(patienter, ATTENTE_VERROU.pasMs))
-    }
-  }
-
   /** Pose le verdict d'une gate. Aucun verdict n'ARME quoi que ce soit : le résumé compte tout
    *  verdict non vert, et les lanes vont au bout. */
   const poser = (nom, r) => {
@@ -1033,11 +1011,34 @@ export async function principal({
   const jouerLane = async (lane) => {
     const debut = Date.now()
     for (const nom of lane.gates) {
+      const gate = aJouerParNom.get(nom)
+      // Le verrou de suite se prend ICI, hors du chronomètre de la gate et de son plafond (`TIMEOUTS`) ;
+      // l'enfant, qui l'aurait repris, part sous l'opt-out explicite.
+      const suite = lanceLaSuite(scripts[scriptDeGate(gate)])
+      const debutAttente = Date.now()
+      const verrou = suite
+        ? await prendreVerrouDeSuite({
+            verrou: verrouSuite,
+            prendre: prendreVerrouAsync,
+            commande: `${process.execPath} scripts/gates/toutes.mjs (gate ${nom})`,
+            cwd: racine,
+            annoncer: (tenant) => journal(`[gates] ${nom} — attente du verrou de suite : ${attenteDeSuite(tenant)}\n`),
+          })
+        : null
+      if (verrou?.liberer) verrousTenus.add(verrou)
+      if (suite) journal(`[gates] ${nom} — ${((Date.now() - debutAttente) / 1000).toFixed(1)} s d'attente du verrou de suite (hors chronomètre)\n`)
       const debutGate = Date.now()
-      // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
-      // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
-      const r = await jouerGate(aJouerParNom.get(nom), !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null)
-      poser(nom, { ...r, debut: debutGate })
+      try {
+        // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
+        // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
+        const r = verrou?.etat === 'refus'
+          ? rougeSansSpawn(gate, `${verrou.message}\n`, 2)
+          : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, suite ? { [OPT_OUT_SUITE]: '0' } : {})
+        poser(nom, { ...r, debut: debutGate })
+      } finally {
+        verrou?.liberer?.()
+        verrousTenus.delete(verrou)
+      }
     }
     return { nom: lane.nom, secondes: secondesDepuis(debut) }
   }
@@ -1076,7 +1077,6 @@ export async function principal({
       ? `[gates] ${totalRejeux} spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)\n`
       : '[gates] 0 spawn rejoué — aucune pression de chargement\n',
   )
-  if (attenteVerrouMs) journal(`[gates] dont ${(attenteVerrouMs / 1000).toFixed(0)} s d'attente du verrou de suite\n`)
 
   // Les durées de CE run sont la mesure des LANES et des TIMEOUTS — écriture au mieux, jamais un verdict.
   try {

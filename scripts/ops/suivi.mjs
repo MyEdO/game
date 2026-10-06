@@ -72,6 +72,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { BASE, GESTES_DU_BOARD, JOURS_FUSION_RECENTE, issuesDeGh, mesurer, urlDuTicket } from './board.mjs'
 import { inventaire } from './worktrees.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 export const MARQUE_DEBUT = '<!-- suivi:mesure:debut -->'
 export const MARQUE_FIN = '<!-- suivi:mesure:fin -->'
@@ -667,7 +668,7 @@ export function relire(cible, fs) {
 export function ecrireSuivi({ cible, contenu, attendu, geste, fs = FS, pid = process.pid }) {
   const dossier = join(cible, '..')
   const nom = cible.replace(/\\/g, '/').split('/').pop()
-  const verrou = prendreVerrou({ chemin: join(dossier, `.${nom}.verrou`), pid, commande: 'scripts/ops/suivi.mjs', cwd: dossier, env: {} })
+  const verrou = prendreVerrou({ chemin: join(dossier, `.${nom}.verrou`), libelle: `suivi ${nom} en cours d'écriture`, pid, commande: 'scripts/ops/suivi.mjs', cwd: dossier })
   if (verrou.etat !== 'pris') return { ok: false, refus: `${cible} est en cours d'écriture par un autre processus : rien n'est écrit`, rejouable: true }
   try {
     return ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom })
@@ -851,7 +852,7 @@ export function editer({ numero, dossier, session, geste, fs = FS, pid = process
     if (ecrit.ok) break
     if (!ecrit.rejouable) return refus(ecrit.refus)
     if (essai >= ESSAIS_D_EDITION) return refus(`${ecrit.refus} (${ESSAIS_D_EDITION} essais)`)
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, PAUSE_ENTRE_ESSAIS_MS)
+    attendreSync(PAUSE_ENTRE_ESSAIS_MS)
   }
   const journal = join(dossier, JOURNAL)
   const lien = ligneDeLien({ journal: relire(journal, fs) ?? '', session, epique: numero, iso: maintenant.toISOString() })

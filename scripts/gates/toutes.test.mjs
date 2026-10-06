@@ -8,21 +8,21 @@
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
-  ATTENTE_VERROU,
   COEURS_SUITE_EN_LANES,
   lanesPortees,
+  lanceLaSuite,
   ECRIT_LU,
   PLAFOND_LANES,
   TIMEOUTS,
   conflitsEntreLanes,
   descendantsDe,
-  estRefusDuVerrou,
   fichierDeSortie,
   lanesAJouer,
   lanesDeCi,
@@ -36,7 +36,6 @@ import {
   tuerArbre,
 } from './toutes.mjs'
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
-import { refusVerrou } from '../test/verrou.mjs'
 import { coeurs, repartitionWorkers } from '../test/partition.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
@@ -261,22 +260,6 @@ test('un enfant qui finit sous son plafond rend son code et sa sortie', async ()
   }
 })
 
-test('le refus du VERROU DE SUITE se reconnaît sur le message RÉEL, pas sur le code seul', () => {
-  const verrouFictif = join(tmpdir(), 'wfrp-suite.lock')
-  const message = refusVerrou({
-    chemin: verrouFictif,
-    tenant: { pid: 4242, commande: 'node scripts/test/run.mjs', cwd: join(tmpdir(), 'autre-arbre') },
-  })
-  assert.equal(estRefusDuVerrou(2, `${message}\n`), true, 'le message de scripts/test/verrou.mjs n’est pas reconnu')
-  assert.equal(estRefusDuVerrou(2, '[gates] usage : node scripts/gates/toutes.mjs [--gates a,b] [--serie]\n'), false)
-  assert.equal(estRefusDuVerrou(1, `${message}\n`), false, 'seul l’exit 2 du lanceur dit « rien joué »')
-  assert.equal(
-    estRefusDuVerrou(2, `[verrou] verrou disputé (${verrouFictif}) : un autre lanceur le reprend en boucle — relancer.\n`),
-    true,
-  )
-  assert.ok(ATTENTE_VERROU.borneMs > ATTENTE_VERROU.pasMs, 'une borne au-dessous du pas n’attendrait jamais')
-})
-
 test('la SUITE est bornée pendant les lanes, par la couture qui existe déjà', () => {
   assert.ok(COEURS_SUITE_EN_LANES > 0 && COEURS_SUITE_EN_LANES < 16)
   assert.equal(coeurs({ WFRP_TEST_COEURS: String(COEURS_SUITE_EN_LANES) }, () => 16), COEURS_SUITE_EN_LANES)
@@ -342,8 +325,9 @@ function depotDeGates(gatesFactices) {
   writeFileSync(join(racine, 'gen.mjs'), '\n')
   for (const g of gatesFactices) {
     // `:` sépare un flux de données alternatif sous NTFS : `docs:check.mjs` y est un nom illégal.
-    const fichier = `${g.nom.replace(/:/g, '-')}.mjs`
+    const fichier = g.fichier ?? `${g.nom.replace(/:/g, '-')}.mjs`
     scripts[g.nom] = `node ${fichier}`
+    mkdirSync(dirname(join(racine, fichier)), { recursive: true })
     writeFileSync(join(racine, fichier), g.corps)
   }
   writeFileSync(join(racine, 'package.json'), `${JSON.stringify({ name: 'jetable', version: '0.0.0', scripts }, null, 2)}\n`)
@@ -388,6 +372,48 @@ test('un ROUGE ne coupe RIEN : ce qui le suit dans sa lane est JOUÉ, et le rés
     assert.match(sortie, /ce rouge est le sujet/, 'la queue du rouge doit être imprimée')
     assert.match(sortie, /0 spawn rejoué/)
   } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2187 — `lanceLaSuite` reconnaît le lanceur de la suite, et lui seul', () => {
+  assert.equal(lanceLaSuite('node scripts/test/run.mjs'), true)
+  assert.equal(lanceLaSuite('node ./scripts/test/run.mjs src'), true)
+  assert.equal(lanceLaSuite('node scripts/test/node-tests.mjs test:runner'), false)
+  assert.equal(lanceLaSuite(undefined), false)
+})
+
+test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son chronomètre, et son enfant part sous l’opt-out', async () => {
+  const { racine } = depotDeGates([
+    { nom: 'suite', fichier: 'scripts/test/run.mjs', corps: "console.log(`opt-out=${process.env.WFRP_SUITE_LOCK}`)\n" },
+  ])
+  const dossier = mkdtempSync(join(tmpdir(), 'gates-verrou-suite-'))
+  const chemin = join(dossier, 'suite.lock')
+  // Un TENANT vivant ~1,5 s : un processus réel, dont le verrou se reprend à sa mort.
+  const tenant = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 1500)'], { stdio: 'ignore' })
+  try {
+    writeFileSync(chemin, JSON.stringify({ pid: tenant.pid, commande: 'tenant du banc', cwd: dossier }))
+    const lignes = []
+    const code = await principal({
+      racine,
+      machine: MACHINE_A_LANES,
+      argv: ['node', 'toutes.mjs'],
+      journal: (t) => lignes.push(t),
+      ecritLu: tableTotale(['suite'], () => ({ ecrit: [], lit: ['src/'] })),
+      verrouSuite: { chemin, libelle: 'suite du banc', attente: { pasMs: 100, echeanceMs: 20_000 } },
+    })
+    const sortie = lignes.join('')
+    assert.equal(code, 0, sortie)
+    assert.match(sortie, new RegExp(`\\[gates\\] suite — attente du verrou de suite : .*PID ${tenant.pid}`), 'l’attente annonce le tenant')
+    const attente = Number(/\[gates\] suite — ([\d.]+) s d'attente du verrou de suite \(hors chronomètre\)/.exec(sortie)?.[1])
+    const duree = Number(/\[gates\] suite — vert \(exit 0\) en ([\d.]+) s/.exec(sortie)?.[1])
+    assert.ok(attente >= 1, `attente mesurée : ${attente} s`)
+    assert.ok(duree < attente, `la durée de la gate (${duree} s) ne compte pas l’attente (${attente} s)`)
+    assert.match(readFileSync(/\[gates\] suite — vert \(exit 0\) en [\d.]+ s · (.+)\n/.exec(sortie)?.[1] ?? '', 'utf8'), /opt-out=0/, 'l’enfant part sous WFRP_SUITE_LOCK=0')
+    assert.equal(existsSync(chemin), false, 'le verrou est rendu après la gate')
+  } finally {
+    tenant.kill()
+    rmSync(dossier, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true })
   }
 })

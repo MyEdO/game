@@ -13,7 +13,8 @@ import { fileURLToPath } from 'node:url'
 import { GitIndisponible, brancheDe, depotDe, estShaComplet, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { coursesCi, echecsDuLog, jobsEnEchecDe, journalEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { PERIODE_SONDE_MS, attendre, phraseDesJobs, refusDeBranche, verdictDesJobs, verdictDesRuns } from './etapesDuTrain.mjs'
+import { PERIODE_SONDE_MS, phraseDesJobs, refusDeBranche, verdictDesJobs, verdictDesRuns } from './etapesDuTrain.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
@@ -60,7 +61,7 @@ export const urlDeCourse = (id) => `https://github.com/${DEPOT}/actions/runs/${i
  * @returns {{etat:'verte'|'rouge'|'annulee'|'absente'|'borne', course?:object}}
  */
 export function attendreLaCi({
-  sha, lire, ecrire, maintenant = Date.now, dormir = attendre,
+  sha, lire, ecrire, maintenant = Date.now, dormir = attendreSync,
   periodeMs = PERIODE_SONDE_MS, borneMs = BORNE_ATTENTE_MIN * 60_000, borneAbsenteMs = BORNE_ABSENTE_MIN * 60_000,
 }) {
   const debut = maintenant()
