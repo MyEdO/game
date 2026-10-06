@@ -19,7 +19,7 @@ import { applyOps } from './ops';
  * décide. Cette garde énumère les callsites `applyOps` dont les ops peuvent poser un effet actif et
  * dont le ctx n'apporte aucun ancrage.
  *
- * BASELINE : 21 callsites résiduels, listés NOMMÉMENT ci-dessous avec leur déclencheur (43 au relevé
+ * BASELINE : 20 callsites résiduels, listés NOMMÉMENT ci-dessous avec leur déclencheur (43 au relevé
  * initial du 2026-07-18 : les sorts, les activités de mer/voyage et TOUS les effets déclenchés — traits,
  * talents, qualités, symptômes, États, psychologie, via `effectSourcesOf` — sont désormais ancrés). La
  * garde échoue sur toute NOUVELLE source non ancrée, et AUSSI quand un callsite listé a été ancré sans
@@ -141,7 +141,6 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | crit.ops | { rng, crew }', // ops d'un critique de navire (équipage)
   'engine/shipCritical.ts | set.shrapnelHit! | { rng }', // éclats d'un critique de navire (le `!` tient l'anomalie NOMMÉE juste au-dessus : un jeu sans `shrapnelHit` ne peut pas porter d'Éclats)
   'engine/shipCritical.ts | extra.ops | { rng }', // ops d'un critique de navire supplémentaire
-  'state/aiSpellValue.ts | [op] | { caster: c, rng: STATIC_RNG }', // simulation d'IA sur un CLONE — jamais affichée au joueur
   'state/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
   'state/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
   'state/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre

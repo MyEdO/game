@@ -4,7 +4,7 @@
  * (exemptions de Magie des Arcanes, LDB 46 l.150-152 ; troisième exemption Sorcier du Chaos, VDM 02
  * l.169) — présent seulement sur `kind:'armour'`. `dessin` : matériau DESSINÉ d'une armure par le rig
  * (`gameIso/rig/parts/equipment.ts › armourMaterial`), fait de rendu distinct de `material` — REQUIS sur
- * `kind:'armour'`, absent ailleurs. `combat` : sous-ensemble melee/ranged (SOURCE des
+ * `kind:'armour'`. `combat` : sous-ensemble melee/ranged (SOURCE des
  * pools `weaponGroupsMelee`/`weaponGroupsRanged`) — présent seulement sur `kind:'weapon'`/`'ammo'`
  * combattants (absent sur les Groupes de siège/inventaire).
  */
@@ -22,7 +22,7 @@ const doc = document(
   {
     kind: enumNomme({ weapon: 'Groupe d’arme', ammo: 'Munitions', armour: 'Armure', inventory: 'Inventaire' }),
     material: z.enum(['metal', 'leather', 'chaos']).optional(),
-    dessin: z.enum(['rembourre', 'cuir', 'maille', 'plaque']).optional(),
+    dessin: enumNomme({ rembourre: 'Rembourré', cuir: 'Cuir', maille: 'Maille', plaque: 'Plaque' }).optional(),
     combat: z.enum(['melee', 'ranged']).optional(),
     /** Qualités COMMUNES à toute la famille, mergées par `resolveQualities` (LDB 62 l.137). */
     qualities: z.array(qualityRefSchema).optional(),
@@ -58,8 +58,6 @@ const doc = document(
         const { kind, dessin } = valeur as { kind: string; dessin?: string };
         if (kind === 'armour' && dessin === undefined)
           ctx.addIssue({ code: 'custom', path: ['dessin'], message: 'Groupe d’armure sans matériau dessiné : le rendu ne sait pas quelle matière peindre.' });
-        if (kind !== 'armour' && dessin !== undefined)
-          ctx.addIssue({ code: 'custom', path: ['dessin'], message: `matériau dessiné sur un Groupe « ${kind} » : il n’appartient qu’aux Groupes d’armure.` });
       }),
   },
 );

@@ -111,6 +111,8 @@ const NOMMES = [
   'scenario|mixte',
   'selfWound|weaponDamageActLast|actionPenalty|loseMovement|loseAction|trauma|hitAlly|misfire',
   'weapon|ammo|armour|inventory',
+  // `weaponGroups.dessin` (#1988) : le matériau que le rig peint sur une pièce d'armure.
+  'rembourre|cuir|maille|plaque',
   'arme|morsure|caudale|cornes|souffle|vomi|tentacules|etreinte|regard|langue|hurlement',
   'ally|enemy',
   'avirons|voile|mixte',

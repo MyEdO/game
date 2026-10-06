@@ -164,6 +164,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/travelTables.ts', 'Tables de voyage'],
   ['src/engine/types.ts', 'Types de base du moteur'],
   ['src/engine/upkeepPorte.testkit.ts', "Porte d'entretien : harnais de test (collecte des Tests différés + issue injectée)"],
+  ['src/engine/objetDeTest.testkit.ts', "Objet de test : fabrique d'instance désignée par trappingId (harnais de test)"],
   ['src/engine/variants.ts', 'Variantes de règles'],
   ['src/engine/vehicle.ts', 'Véhicule'],
   ['src/engine/volley.ts', 'Volée de tir'],
