@@ -151,6 +151,20 @@ test('#2328 — test opposé : `AUTOREFUTATION:` dans le message de la fusion ne
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
+test('#2328 — test opposé : une PROSE qui contient « juge : » ou un trailer préfixé ne juge pas la fusion', () => {
+  const nie = 'merge: intègre main\n\nAucun juge : personne n’a encore relu cette résolution, à faire\nPas de refutation : rien n’a été lancé sur cette fusion pour le moment'
+  const prefixe = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nCONTRE-REFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
+  const prose = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: nie })
+  const tiret = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: prefixe })
+  try {
+    assert.deepEqual(prose.juger().refus, [{ sha: prose.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual(tiret.juger().refus, [{ sha: tiret.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
+  } finally {
+    rmSync(prose.racine, { recursive: true, force: true })
+    rmSync(tiret.racine, { recursive: true, force: true })
+  }
+})
+
 test('#2328 — une fusion qui change un ÉCRAN : son message porte aussi `JUGE-VISION:`, sinon `manque` le nomme seul', () => {
   const trailers = 'JUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const avecVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}\nJUGE-VISION: captures de l’écran que touche cette fusion jugées conformes` })
