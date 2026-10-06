@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
+import { t } from '../i18n';
 import { influencesLocally } from '../state/netOwnership';
 import { overcastTargetCandidates, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../state/combatFlow';
 import type { CounterDeclaration } from '../state/pendings';
@@ -164,8 +165,8 @@ export function CastModal() {
   // ligne, et le cycle d'influence, DÉRIVÉ de cette ligne, s'éteint avec elle.
   const castRow: BuiltRollRow = maskOpposedRow(useGame.getState(), { ownerId: pc.casterId, responded }, buildRollRow({
     actor: caster,
-    // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.23-25` : « Succès mais DR < NI → tentative
-    // échoue » — la tentative échoue, le Test est RÉUSSI). Le « sort non lancé » se dit par le verdict
+    // Le ✓/✗ de la LIGNE est le verdict du TEST (`LDB 46 l.22-24` : DR sous le NI, le Test est RÉUSSI et
+    // le sort n'est pas lancé). Le « sort non lancé » se dit par le verdict
     // du flux (issue/journal), jamais par le succès de la ligne : c'est aussi l'issue canonique du
     // seam (`cleanRollOutcome`, roll ≤ cible), dont dérivent Chance et Résilience.
     row: res
@@ -517,7 +518,7 @@ export function CastModal() {
                 // reste jamais muette) ; en PHASE 2, chacune porte sa déclaration, un « passe » étant
                 // éteint mais motivé, jamais un vide inexpliqué.
                 const situation = !part.declared
-                  ? (!owned ? `en attente de la déclaration de ${actor.label}` : undefined)
+                  ? (!owned ? t('declaration.attente', { name: actor.label }) : undefined)
                   : part.declared === 'pass'
                     ? 'passe — ne tente pas la Dissipation ce Round'
                     : part.declared === 'soutenu' && grp
@@ -530,7 +531,7 @@ export function CastModal() {
                 const dissipateur = dejaDissipee && pool.find((c) => c.id === dejaDissipee.id);
                 if (dejaDissipee && !dissipateur) throw new Error(`[contre-sort] le participant « ${dejaDissipee.id} » a dissipé hors des combattants de la fenêtre`);
                 const rollBlocked = phase1
-                  ? 'En attente des déclarations de la fenêtre'
+                  ? t('declaration.attenteFenetre')
                   : dissipateur
                     ? `Déjà dissipé par ${dissipateur.label}`
                     : undefined;

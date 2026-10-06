@@ -56,7 +56,7 @@ function setupPort(party: Combatant[]): void {
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port: PORT }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
-    port: { placeId: 'P', label: 'Port', port: PORT, freeEnc: 300, maxLoadEnc: 450, offers: [{ cargoId: 'bois', label: 'Bois', enc: LOT_ENC, basePrice: 10, surplus: false }] },
+    port: { placeId: 'P', label: 'Port', port: structuredClone(PORT), freeEnc: 300, maxLoadEnc: 450, offers: [{ cargoId: 'bois', label: 'Bois', enc: LOT_ENC, basePrice: 10, surplus: false }] },
     journal: [],
     pendingCascade: null,
   } as never);

@@ -26,17 +26,18 @@
  * structure — seule l'assertion nominative la rattrape.
  */
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, jetOwnedIntents, flowActionName, type JetOwnerRef } from './flowVerbs';
+import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, flowActionName, type JetOwnerRef } from './flowVerbs';
 import { intentAllowedFor, modalOwnerOf, seatInfluences } from './netOwnership';
 import { GUEST_INTENTS } from '../net/intents';
 import type { GameState } from './store';
+import { cascadeDeTest } from './cascadeTestKit';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
 const JET_OWNED = ENTRIES.filter(([, w]) => w.kind === 'mono' && !!w.jetOwner);
 
 /**
- * INVENTAIRE NOMINATIF des 29 flux mono (#1015, étendu #1017) — par flux, la liste LITTÉRALE de ses
+ * INVENTAIRE NOMINATIF des 28 flux mono (#1015, étendu #1017) — par flux, la liste LITTÉRALE de ses
  * verbes, écrite à la main. Elle est confrontée à DEUX mesures qui, depuis #1017, doivent coïncider :
  *  - `jetOwnedIntents()` : les verbes dont la possession suit le porteur du jet — TOUS, `cancel`
  *    compris (fermer le jet d'autrui par une fenêtre partagée `'*'` était ouvert à tous les sièges) ;
@@ -58,7 +59,6 @@ const INVENTORY: Record<string, readonly string[]> = {
   distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   run:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'],
-  fall:       ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'],
   reload:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   handGate:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   recover:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
@@ -101,7 +101,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {})
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
       { id: H_HOST, kind: 'hero' }, { id: H_GUEST, kind: 'hero' }, { id: ENEMY, kind: 'enemy' },
     ] },
-    pendingCascade: { participants: [{ id: 's0', jet: 'cast', groupOwner: true }], cursor: 0 },
+    pendingCascade: cascadeDeTest([{ id: 's0', kind: 'castJet', jet: 'cast', groupOwner: true }]),
     [jet.pending]: { [jet.field]: ownerId, targetId: H_HOST, spellId: 'drain', result: null },
     ...over,
   }) as unknown as GameState;
@@ -131,6 +131,35 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
       const jet = (FLOW_VERBS as unknown as Record<string, Entry>)[prefix].jetOwner;
       for (const a of actions) expect(map[a], `${a} routée par le porteur de ${prefix}`).toEqual(jet);
     }
+  });
+
+  /**
+   * #700 — la CHUTE est un flux MULTI (`MultiPending<TombantParticipant>`) : ses verbes sortent de la
+   * route par porteur mono et passent par le TOMBANT de la rangée (`participantOwnedIntents`, 1ᵉʳ arg =
+   * son id) ; sa déclaration `fallChoose` suit la même possession (`seatInfluences`). Liste littérale.
+   */
+  it('#700 — la chute (multi) : ses intents suivent le TOMBANT de la rangée, jamais le porteur mono', () => {
+    const verbes = ['fallRoll', 'fallReroll', 'fallBonusSL', 'fallForceSuccess', 'fallSetForcedRoll', 'fallDarkPact'];
+    const mono = jetOwnedIntents();
+    const parTombant = new Set(participantOwnedIntents());
+    for (const i of verbes) {
+      expect(mono[i], `${i} hors route mono`).toBeUndefined();
+      expect(parTombant.has(i), `${i} routé par le tombant`).toBe(true);
+    }
+    const s = state(CAST_JET, H_HOST, {
+      pendingCascade: null,
+      pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: [
+        { id: H_HOST, interactive: true, attempt: true, result: null },
+        { id: H_GUEST, interactive: true, attempt: null, result: null },
+      ] },
+    } as unknown as Partial<GameState>);
+    for (const i of verbes) {
+      const args = i === 'fallSetForcedRoll' ? [H_GUEST, 42] : [H_GUEST];
+      expect(intentAllowedFor(s, 1, i, args), `${i} : le siège du tombant`).toBe(true);
+      expect(intentAllowedFor(s, 0, i, args), `${i} : l’initiateur ne joue pas la rangée d’un autre siège`).toBe(false);
+    }
+    expect(intentAllowedFor(s, 1, 'fallChoose', [H_GUEST, true]), 'le siège du tombant déclare sa rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'fallChoose', [H_GUEST, true]), 'l’hôte ne déclare pas pour le héros d’un autre siège').toBe(false);
   });
 
   it('(e) SURFACE RÉSEAU : chaque verbe d’un flux mono est atteignable par un INVITÉ (#1017)', () => {

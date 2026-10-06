@@ -5,12 +5,12 @@ import { CursorOverlay } from './MoveOverlays';
 import { AreteOverlay } from './AreteOverlay';
 import { projeterAretes } from './aretesProjetees';
 import { aretesUtilisables } from '../../state/aretes';
-import { emptyScene } from '../../state/scene';
+import { emptyScene, type Scene } from '../../state/scene';
+import { cloisons, piece } from '../../state/pieces.fixture';
 import { poseFromDims, screenToTileAtLift, worldToScreen } from './projection';
 import { LEVEL_H, screenToTileAtZ, tileCenter, type Dims, type Rot } from '../../geometry/iso';
 import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
 import { yawStep, yawTarget } from '../../state/stageYaw';
-import type { RoomPortal } from '../../state/roomPortals';
 import { chebyshev } from '../../engine/grid';
 
 /**
@@ -43,24 +43,21 @@ function sommetsSurbrillance(tile: { x: number; y: number }, dims: Dims): { x: n
     .map(([x, y]) => ({ x: Number(x), y: Number(y) }));
 }
 
-const PORTE: RoomPortal = {
-  id: '0:4,3:E:room-a:room-b',
-  z: 0,
-  edge: { x: 4, y: 3, side: 'E' },
-  fromZoneId: 'room-a',
-  toZoneId: 'room-b',
-  kind: 'door-closed',
-  exterior: false,
-  from: { x: 4, y: 3 },
-  to: { x: 5, y: 3 },
-};
+/** Deux pièces d'une case, (4,3) et (5,3), et la porte FERMÉE de leur arête (4,3,E) : le seul accès
+ *  de la première, murée ailleurs. */
+function scèneÀUnePorte(dims: Dims): Scene {
+  const s = emptyScene(dims.w, dims.h);
+  s.effectZones = [piece('room-a', 4, 3), piece('room-b', 5, 3)];
+  s.walls = [...cloisons(4, 3, ['N', 'S', 'O']), { x: 4, y: 3, side: 'E', door: true, closed: true }];
+  return s;
+}
 
 /** Les deux bouts de la CIBLE de clic d'une porte, LUS DU RENDU de `AreteOverlay`. */
 function boutsDePorte(dims: Dims): { x: number; y: number }[] {
   const html = renderToStaticMarkup(
     <AreteOverlay
       aretes={projeterAretes(
-        aretesUtilisables({ scene: emptyScene(dims.w, dims.h), visible: new Set(['4,3,0']), controleur: null, activeZ: 0, portails: [PORTE] }),
+        aretesUtilisables({ scene: scèneÀUnePorte(dims), visible: new Set(['4,3,0']), controleur: { x: 4, y: 3, z: 0 }, activeZ: 0 }),
         dims,
         () => 0,
       )}

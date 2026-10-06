@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, resetSceneRegistry } from './store';
 import { presetPnjById, trappingById } from './campaignData';
 import { emptyScene, type Scene } from './scene';
-import type { NarratifBlock } from './campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import type { WorldMap } from './worldMap';
 import { makePregens } from '../data/pregens';
 import { campagneALancer, lancerCampagne } from '../scenes/campaign';
@@ -40,6 +40,7 @@ function scene(id: string): Scene {
 
 const OBJET_ID = 'snap-lame-maudite';
 const narratif: NarratifBlock = {
+  ...emptyNarratif(),
   affaires: [{ id: 'snap-aff', titre: 'Le Corbeau noir' }],
   indices: [],
   presetsPnj: [{ id: 'snap-pnj', profil: {} }],

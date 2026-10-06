@@ -26,8 +26,10 @@ import { useInfobulle } from '../Infobulle';
 import { CodexRef } from '../compendium/CodexRef';
 import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
-import { DescRefField } from '../compendium/DescRefField';
 import { SourceRefField } from '../SourceRefField';
+import { SourceBadge } from '../SourceBadge';
+import { ProseField } from '../ProseField';
+import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
 import { ReadyRow } from '../ReadyRow';
@@ -372,6 +374,23 @@ function NumberFieldDemo() {
       </label>
     </>
   );
+}
+
+function SourceBadgeDemo() {
+  return (
+    <Stack>
+      <SourceBadge source={{ book: 'LDB', page: 181 }} />
+      <ParchmentCard title="Lettre scellée">
+        Badge posé sur le parchemin : encre et filet lus aux jetons de la carte.{' '}
+        <SourceBadge source={{ book: 'EDO', page: 42 }} />
+      </ParchmentCard>
+    </Stack>
+  );
+}
+
+function ProseFieldDemo() {
+  const [texte, setTexte] = useState('Premier paragraphe de la prose verbatim.\n\nSecond paragraphe.');
+  return <ProseField label="Texte du document" value={texte} onChange={setTexte} />;
 }
 
 /** Réf de source RÉELLE d'un sort du registre, montrée par le spécimen de `SourceRefField`. */
@@ -1492,7 +1511,7 @@ function CombatConsoleMock() {
                       <Icon id="item/weapon" size="sm" />
                       <span className="cc-key">X</span>
                     </button>
-                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse">
+                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse, VIDE">
                       <i className="cc-set-n">2</i>
                       <Icon id="item/weapon" size="sm" />
                       <i className="cc-set-load">VIDE</i>
@@ -1536,7 +1555,7 @@ function CombatConsoleMock() {
             </div>
           </div>
           <div className="cc-corner">
-            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end" aria-label="Finir le tour">
+            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end">
               <span className="cc-ico"><Icon id="ui/turn-end" /></span>
               <span className="cc-lbl">Fin du tour</span>
               <span className="cc-key">F</span>
@@ -1717,6 +1736,8 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
+  { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
+  { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },
   { id: 'metalstatus', label: 'MetalStatus', file: 'src/ui/MetalStatus.tsx', category: 'Atelier du scribe', render: MetalStatusDemo },
   { id: 'waxseal-sealedplaque', label: 'WaxSeal / SealedPlaque', file: 'src/ui/WaxSeal.tsx', category: 'Atelier du scribe', render: WaxSealDemo },

@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * GARDE — toute référence Codex écrite EN LITTÉRAL dans l'UI pointe une fiche qui EXISTE.
  *
@@ -30,7 +31,7 @@
  * popover muet à l'écran n'est jamais une exception légitime.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { codexLookupById } from './compendium/registry';
 import { ACTIONS } from '../data/index';
@@ -78,11 +79,7 @@ function attrLitteral(a: ts.JsxAttribute): string | null {
  * `dynamiques` = la catégorie est littérale mais l'id est calculé, ou l'inverse — l'angle mort du
  * scan, compté pour être DIT.
  */
-export function codexRefLiterals(file: string, src: string): { statiques: CodexRefLiteral[]; dynamiques: number } {
-  const sf = ts.createSourceFile(
-    file, src, ts.ScriptTarget.Latest, true,
-    file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+export function codexRefLiterals(file: string, src: string, sf = ast({ rel: file, text: src })!): { statiques: CodexRefLiteral[]; dynamiques: number } {
   const statiques: CodexRefLiteral[] = [];
   let dynamiques = 0;
   const ligne = (n: ts.Node) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
@@ -96,7 +93,7 @@ export function codexRefLiterals(file: string, src: string): { statiques: CodexR
 
   const visit = (node: ts.Node): void => {
     if (ts.isObjectLiteralExpression(node)) {
-      const names = node.properties.map((p) => (p.name && ts.isIdentifier(p.name) ? p.name.text : null));
+      const names = node.properties.map((p) => ('name' in p && p.name && ts.isIdentifier(p.name) ? p.name.text : null));
       const prop = (k: string) => node.properties.find((_, i) => names[i] === k);
       const c = prop('category');
       const i = prop('id');
@@ -110,13 +107,13 @@ export function codexRefLiterals(file: string, src: string): { statiques: CodexR
     }
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const attr = (k: string) => node.attributes.properties.find(
-        (p): p is ts.JsxAttribute => ts.isJsxAttribute(p) && ts.isIdentifier(p.name) && p.name.text === k,
+        (p): p is ts.JsxAttribute => ts.isJsxAttribute(p) && ('name' in p && ts.isIdentifier(p.name)) && p.name.text === k,
       );
       const c = attr('category');
       const i = attr('id');
       compter(node, 'jsx', c ? attrLitteral(c) : null, i ? attrLitteral(i) : null, !!c && !!i);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(sf);
   return { statiques, dynamiques };
@@ -130,8 +127,8 @@ interface Site extends CodexRefLiteral { rel: string }
 function corpus(): { sites: Site[]; dynamiques: number } {
   const sites: Site[] = [];
   let dynamiques = 0;
-  for (const { rel, text } of readCorpus(['src/ui'])) {
-    const r = codexRefLiterals(rel, text);
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src/ui']))) {
+    const r = codexRefLiterals(rel, text, sourceFile!);
     for (const s of r.statiques) sites.push({ rel, ...s });
     dynamiques += r.dynamiques;
   }

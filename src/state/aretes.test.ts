@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { edgeOf, emptyScene, type Scene } from './scene';
+import { edgeOf, emptyScene, type Scene, type WallSeg } from './scene';
 import type { RoomPortal } from './roomPortals';
+import { cloisons, piece } from './pieces.fixture';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 import {
@@ -57,7 +58,16 @@ const mur = { id: ID_MUR, label: 'Mur à ossature en bois' } as unknown as Comba
 const bataille = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: [], turn: 0 } as unknown as BattleState);
 
-/** Porte : un passage intérieur sur l'arête (1,1,E). */
+/** Deux pièces d'une case, (1,1) et (2,1), reliées par l'arête (1,1,E) — `seuil` absent = passage ;
+ *  les trois autres côtés de la première sont murés, son seul accès est donc celui-là. */
+function scèneÀDeuxPièces(seuil?: WallSeg): Scene {
+  const s = emptyScene(5, 4);
+  s.effectZones = [piece('room-a', 1, 1), piece('room-b', 2, 1)];
+  s.walls = [...cloisons(1, 1, ['N', 'S', 'O']), ...(seuil ? [seuil] : [])];
+  return s;
+}
+
+/** L'accès que `roomPortals` dérive de `scèneÀDeuxPièces()` depuis la pièce (1,1). */
 const passage: RoomPortal = {
   id: '0:1,1:E:room-a:room-b',
   z: 0,
@@ -94,7 +104,7 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
 
   it('ESCALADE : depuis la case HAUTE, le même geste descend — et le libellé le dit', () => {
     // Le haut de la paroi borde le vide de trois côtés : ces cardinaux descendants offrent une CHUTE
-    // (le quatrième, vers (1,1), porte l'arête grimpable — `planFall` s'y refuse). Gestes distincts
+    // (le quatrième, vers (1,1), porte l'arête grimpable — `planFranchissement` s'y refuse). Gestes distincts
     // sur arêtes distinctes : la priorité n'a rien à départager ici.
     const aretes = aretesUtilisables({
       scene: scèneGrimpable(),
@@ -170,13 +180,12 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
     ).toEqual([]);
   });
 
-  it('PORTE : l’accès de la couche active, ancré sur la case de départ', () => {
+  it('PORTE : l’accès de la pièce du contrôleur, ancré sur la case de départ', () => {
     const aretes = aretesUtilisables({
-      scene: scèneFortifiée(),
+      scene: scèneÀDeuxPièces(),
       visible: VU_11,
       controleur: { x: 1, y: 1, z: 0 },
       activeZ: 0,
-      portails: [passage],
     });
 
     expect(aretes).toEqual([{
@@ -191,13 +200,20 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
   });
 
   it('PORTE : un accès d’une AUTRE couche ne sort pas de la couche active', () => {
-    expect(aretesUtilisables({
-      scene: scèneFortifiée(),
-      visible: new Set(['1,1,1', '2,1,1']),
-      controleur: null,
-      activeZ: 0,
-      portails: [{ ...passage, z: 1 }],
-    })).toEqual([]);
+    const scene = scèneÀDeuxPièces();
+    scene.layers.push({ z: 1, tiles: new Array(20).fill('plancher') });
+    scene.effectZones!.push(piece('haut-a', 1, 1, 1, 1, 1), piece('haut-b', 2, 1, 1, 1, 1));
+    const ctx = { scene, visible: new Set(['1,1,1', '2,1,1']), controleur: { x: 1, y: 1, z: 1 } };
+
+    expect(aretesUtilisables({ ...ctx, activeZ: 0 })).toEqual([]);
+    expect(
+      aretesUtilisables({ ...ctx, activeZ: 1 }).filter((a) => a.capacite === 'porte').map((a) => a.cle),
+      'sur sa propre couche, le même accès est offert',
+    ).toContain('1,1,E,1');
+  });
+
+  it('PORTE : sans contrôleur, aucun accès', () => {
+    expect(aretesUtilisables({ scene: scèneÀDeuxPièces(), visible: VU_11, controleur: null, activeZ: 0 })).toEqual([]);
   });
 
   it('les six libellés d’accès, un par nature de portail', () => {
@@ -210,15 +226,15 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
   });
 
   it('PRIORITÉ : une arête à la fois porte et fortification enrôlée sort UNE fois, en structure', () => {
-    const aretes = aretesUtilisables({
-      scene: scèneFortifiée(),
+    const ctx = {
+      scene: scèneÀDeuxPièces({ x: 1, y: 1, side: 'E', door: true, closed: false, structure: 'mur-a-ossature-en-bois' }),
       visible: VU_11,
       controleur: { x: 1, y: 1, z: 0 },
       activeZ: 0,
-      battle: bataille([mur]),
-      portails: [passage],
-    });
+    };
+    expect(aretesUtilisables(ctx).map((a) => a.capacite), 'hors combat, la même arête est une porte').toEqual(['porte']);
 
+    const aretes = aretesUtilisables({ ...ctx, battle: bataille([mur]) });
     expect(aretes, 'la même arête ne peut offrir qu’un geste').toHaveLength(1);
     expect(aretes[0].capacite).toBe('structure');
     expect(aretes[0].cid).toBe(ID_MUR);
@@ -245,11 +261,11 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
     expect(aretesUtilisables({ scene: scèneGrimpable(), visible: rien, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 })).toEqual([]);
     expect(aretesUtilisables({ scene: scèneDeFalaise(), visible: rien, controleur: { x: 2, y: 0, z: 0 }, activeZ: 0 })).toEqual([]);
     expect(aretesUtilisables({ scene: scèneFortifiée(), visible: rien, controleur: null, activeZ: 0, battle: bataille([mur]) })).toEqual([]);
-    expect(aretesUtilisables({ scene: scèneFortifiée(), visible: rien, controleur: null, activeZ: 0, portails: [passage] })).toEqual([]);
+    expect(aretesUtilisables({ scene: scèneÀDeuxPièces(), visible: rien, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 })).toEqual([]);
   });
 
   it('la largeur de prise est PAR capacité — jamais un trait uniforme', () => {
-    expect(LARGEUR_PRISE_ARETE).toEqual({ structure: 16, chute: 9, escalade: 9, porte: 28 });
+    expect(LARGEUR_PRISE_ARETE).toEqual({ structure: 16, chute: 9, fenetre: 9, escalade: 9, porte: 28 });
     expect(new Set(Object.values(LARGEUR_PRISE_ARETE)).size, 'trois largeurs distinctes').toBe(3);
   });
 });
@@ -260,7 +276,7 @@ const CONTEXTES: ReadonlyArray<readonly [string, ContexteAretes]> = [
   ['escalade', { scene: scèneGrimpable(), visible: VU_11, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 }],
   ['chute', { scene: scèneDeFalaise(), visible: new Set(['2,0,0', '2,1,0']), controleur: { x: 2, y: 0, z: 0 }, activeZ: 0 }],
   ['structure', { scene: scèneFortifiée(), visible: VU_11, controleur: { x: 0, y: 1, z: 0 }, activeZ: 0, battle: bataille([mur]) }],
-  ['porte', { scene: scèneFortifiée(), visible: VU_11, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0, portails: [passage] }],
+  ['porte', { scene: scèneÀDeuxPièces(), visible: VU_11, controleur: { x: 1, y: 1, z: 0 }, activeZ: 0 }],
 ];
 
 describe('caseOpposee — l’ancrage BORDE l’arête, sur les quatre dériveurs', () => {

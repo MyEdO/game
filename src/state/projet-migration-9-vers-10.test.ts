@@ -100,7 +100,7 @@ describe('PROJECT_MIGRATIONS[9] — un projet format 9 se charge à travers la m
     // champ est optionnel) et c'est l'OFFRE qui disparaît. C'est le numéro de forme qui commande la
     // migration, et c'est `estUtilisable` qui dit ce que le joueur perd.
     const { estUtilisable } = await import('./usable');
-    const bricole = { ...structuredClone(PROJET_FORMAT_9), schema: CURRENT_PROJECT_SCHEMA };
+    const bricole = { ...structuredClone(PROJET_FORMAT_9), schema: CURRENT_PROJECT_SCHEMA, narratif: { ...PROJET_FORMAT_9.narratif, documents: [] } };
     const sansMigration = parseProject(bricole).scenes[0];
     expect(sansMigration.entities![0].usable).toBeUndefined();
     expect(estUtilisable(sansMigration, sansMigration.entities![0])).toBe(false);

@@ -23,7 +23,7 @@ describe('dispatch — hasQuality compare par ID de qualité (label/casse/Indice
   });
 });
 
-describe('dispatch — durcissement : un porteur au champ `qualities` absent (donnée corrompue / vieux save) ne fait pas tomber la chaîne', () => {
+describe('dispatch — durcissement : un porteur au champ `qualities` absent (donnée corrompue) ne fait pas tomber la chaîne', () => {
   const malformed = { name: 'X' } as unknown as Weapon; // aucun `qualities`
   it('resolveQualities tolère l’absence de `qualities` (→ liste vide, pas de throw)', () => {
     expect(resolveQualities(malformed)).toEqual([]);

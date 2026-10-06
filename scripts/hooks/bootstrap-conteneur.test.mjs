@@ -143,14 +143,28 @@ test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse auc
   assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes: [], depot }), [], 'hooks vivants : rien à poser')
 })
 
-test('une PANNE de git se NOMME, et le prérequis qu’elle empêche de mesurer n’est pas posé', () => {
+for (const [nom, stderr] of [
+  ['newline', 'fatal: dépôt illisible\n'],
+  ['cause tardive', `${'note de refus\n'.repeat(50)}fatal: cause tardive\n`],
+]) test(`une PANNE de git se NOMME, et le prérequis qu’elle empêche de mesurer n’est pas posé — ${nom}`, () => {
   const pannes = []
-  const depot = depotDe(REPO, { spawn: () => ({ status: 128, stdout: '', stderr: 'fatal: dépôt illisible\n' }), enPanne: (r) => pannes.push(r) })
+  const depot = depotDe(REPO, { spawn: () => ({ status: 128, stdout: '', stderr }), enPanne: (r) => pannes.push(r) })
   const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
-  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes, depot }), [
-    '[conteneur] histoire git complète : NON MESURÉ, git indisponible — fatal: dépôt illisible',
-    '[conteneur] hooks git du dépôt : NON MESURÉ, git indisponible — fatal: dépôt illisible',
-  ])
+  const rapports = mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes, depot })
+  assert.deepEqual(pannes, [stderr, stderr])
+  const prefixes = ['[conteneur] histoire git complète : NON MESURÉ, git indisponible — ', '[conteneur] hooks git du dépôt : NON MESURÉ, git indisponible — ']
+  assert.equal(rapports.length, prefixes.length)
+  for (const [i, prefixe] of prefixes.entries()) {
+    assert.ok(rapports[i].startsWith(prefixe))
+    const diagnosticPresente = rapports[i].slice(prefixe.length)
+    if (nom === 'newline') assert.equal(diagnosticPresente, stderr)
+    else {
+      assert.ok(diagnosticPresente.startsWith('…'))
+      assert.ok(diagnosticPresente.length <= 401)
+      assert.ok(diagnosticPresente.endsWith('fatal: cause tardive\n'))
+      assert.ok(diagnosticPresente.includes('note de refus\n'))
+    }
+  }
 })
 
 test('`lancer` rend ok:false sur un exécutable absent, en gardant le diagnostic', () => {
@@ -166,8 +180,6 @@ test('un rapport d’échec est BORNÉ avant d’entrer au contexte de la sessio
   assert.ok(vu.rapport.length <= 401, `rapport de ${vu.rapport.length} caractères — non borné`)
 })
 
-// #1803, réfutation du juge : un budget par commande recopié à la main ne disait rien du budget de
-// bout en bout, et le `timeout` déclaré à la surface était plus court que la somme des poses.
 test('BUDGET — le `timeout` déclaré couvre la table ENTIÈRE, constats et démarrage du hook compris', () => {
   const porte = aplatirHooks(JSON.parse(readFileSync(SETTINGS_CLAUDE, 'utf8')), SURFACE_CLAUDE)
     .filter((h) => h.phase === 'SessionStart' && h.script === 'bootstrap-conteneur.mjs')

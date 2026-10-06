@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { revealClue, discreditClue, togglePin, type ClueState } from './clues';
-import type { Indice, NarratifBlock } from './campaignNarratif';
+import { emptyNarratif, type Indice, type NarratifBlock } from './campaignNarratif';
 import { useGame } from './store';
 import { applyEffects } from './combatFlow';
 import { emptyScene } from './scene';
@@ -118,6 +118,7 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
 
 // ── Câblage store (#670) ────────────────────────────────────────────────────────────────────────
 const narratif: NarratifBlock = {
+  ...emptyNarratif(),
   affaires: [{ id: 'aff-corbeau', titre: 'Le Corbeau noir' }],
   indices: [IND, IND_MONO],
   presetsPnj: [],

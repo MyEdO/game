@@ -23,6 +23,7 @@
 export const CHAMPS_PROSE_DE_SCENE = [
   'narratif.ouverture.pitch',
   'narratif.indices[].stades[].prose',
+  'narratif.documents[].prose',
   'massBattle.terrain',
 ] as const;
 

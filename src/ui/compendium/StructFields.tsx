@@ -29,6 +29,7 @@ import { NoeudTestField, noeudTestNeuf, type NoeudTest } from '../editor/FlowEdi
 import type { GameOp } from '../../engine/ops';
 import type { CrewTarget } from '../../data/shipCriticals';
 import { NumberField } from '../NumberField';
+import { ProseField } from '../ProseField';
 import { PlageField } from '../PlageField';
 import { OptionChooser } from '../OptionChooser';
 import type { OptionalRule, RuleValue } from '../../engine/policy';
@@ -612,7 +613,7 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
       {list.map((s, i) => (
         <div key={i} className="de-reflrow">
           <input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} />
-          <em className="de-hint">{specEntryId(s)}</em>
+          <em className="ed-hint">{specEntryId(s)}</em>
           <OptionChooser
             layout="seg"
             options={[
@@ -711,7 +712,7 @@ export function TraitListField(
   const opts = suggestions ?? traitDatalistOptions();
   return (
     <div className="ed-field">
-      <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
+      <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
           <input list={dlId} value={formatTrait(t)} onChange={(e) => set(list.map((x, j) => (j === i ? parseTraitInstance(e.target.value) : x)))} />
@@ -737,7 +738,7 @@ export function OptionalsListField(
   const opts = traitDatalistOptions();
   return (
     <div className="ed-field">
-      <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
+      <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
           {isOptionalNote(t) ? (
@@ -784,9 +785,7 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
               </select>
             </label>
           </div>
-          <label className="ed-subfield">Usages (organes, parties prélevées)
-            <textarea rows={2} value={h.uses} onChange={(e) => onChange({ ...h, uses: e.target.value })} />
-          </label>
+          <ProseField label="Usages (organes, parties prélevées)" value={h.uses} onChange={(uses) => onChange({ ...h, uses })} />
         </>
       )}
     </div>

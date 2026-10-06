@@ -1,7 +1,5 @@
 // L'UNION À TROIS ISSUES, mesurée contre git RÉEL sur un dépôt jetable — jamais sur un double :
 // c'est le CLASSEMENT des sorties de git qui doit être juste, et git seul dit ce qu'il écrit.
-// Sonde d'origine (2026-09-05) : 13 cas, dont deux motifs que la première liste ne portait pas
-// (`bad object`, `Invalid revision range`) et qui auraient classé « git en panne » deux absences.
 import { after, test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
@@ -13,16 +11,16 @@ import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
-  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
-import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
-import { histoireDeHead } from './revuePalier.mjs'
+import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
+import { createHash } from 'node:crypto'
 
 const ZERO = '0'.repeat(40)
 
@@ -47,6 +45,142 @@ const depotFeint = (cwd, repondre, enPanne) => depotDe(cwd, { enPanne, spawn: (_
 
 /** Un git MUET : code 1, rien sur aucun flux. */
 const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
+
+test('appliquerCorrectif garde ses arguments et distingue application et présence inverse', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'node_modules/paquet/fichier.js' }
+  for (const [statuses, attendu] of [[[0, 0], true], [[1, 0], false]]) {
+    const appels = []
+    const d = depotDe(tmpdir(), { env: {}, spawn: (commande, args, options) => {
+      appels.push({ commande, args, options })
+      return { status: statuses[appels.length - 1], stderr: 'diagnostic conservé', stdout: '' }
+    } })
+    assert.equal(appliquerCorrectif(d, cible), attendu)
+    assert.equal(appels.length, 2)
+    for (const appel of appels) {
+      assert.equal(appel.commande, 'git')
+      assert.equal(appel.options.cwd, tmpdir())
+      assert.deepEqual(appel.args.slice(0, 5), ['-c', 'core.autocrlf=false', 'apply', '--whitespace=error', `--include=${cible.include}`])
+      assert.deepEqual(appel.args.slice(-2), ['--', cible.patch])
+    }
+    assert.deepEqual(appels[0].args.slice(5, -2), ['--check'])
+    assert.deepEqual(appels[1].args.slice(5, -2), attendu ? [] : ['--reverse', '--check'])
+  }
+})
+
+test('appliquerCorrectif refuse incompatibilité, application échouée et statuts anormaux', () => {
+  const cible = { patch: 'patches/correctif.patch', include: 'paquet/fichier.js' }
+  for (const statuses of [[1, 1], [0, 1], [0, 2], [2], [128], [null], [undefined], [1, 128]]) {
+    let appels = 0
+    const d = depotDe(tmpdir(), { env: {}, spawn: () => ({ status: statuses[appels++], stderr: `diagnostic ${appels}`, stdout: `sortie ${appels}` }) })
+    assert.throws(() => appliquerCorrectif(d, cible), erreur => {
+      if (statuses[0] === 1 && statuses[1] === 1) {
+        assert.equal(erreur.name, 'AggregateError')
+        assert.deepEqual(erreur.errors.map(e => [e.status, e.stderr]), [[1, 'diagnostic 1'], [1, 'diagnostic 2']])
+        assert.equal(erreur.cause, erreur.errors[1])
+      } else {
+        assert.equal(erreur.name, 'CorrectifRefuse')
+        assert.equal(erreur.status, statuses[appels - 1])
+        assert.equal(erreur.stderr, `diagnostic ${appels}`)
+        assert.equal(erreur.stdout, `sortie ${appels}`)
+      }
+      return true
+    })
+    assert.equal(appels, statuses.length)
+  }
+})
+
+test('appliquerCorrectif nomme les échecs de démarrage et les signaux sans appliquer', t => {
+  const cible = { patch: 'patches/correctif.patch', include: 'paquet/fichier.js' }
+  for (const resultat of [{ error: new Error('spawnSync git ENOENT'), status: null }, { signal: 'SIGTERM', status: null }]) {
+    for (const statuses of [[], [0], [1]]) {
+      let appels = 0
+      const d = depotDe(tmpdir(), { env: {}, spawn: () => appels++ === statuses.length ? resultat : { status: statuses[appels - 1] }, enPanne: () => assert.fail('Une écriture ne confie pas son échec') })
+      assert.throws(() => appliquerCorrectif(d, cible), erreur => {
+        assert.equal(erreur.name, 'GitIndisponible')
+        assert.equal(erreur.status, null)
+        assert.equal(erreur.signal, resultat.signal)
+        assert.equal(erreur.cause, resultat.error)
+        return true
+      })
+      assert.equal(appels, statuses.length + 1)
+    }
+  }
+  const racine = mkdtempSync(join(tmpdir(), 'correctif-demarrage-'))
+  t.after(() => jeter(racine))
+  const cause = spawnSync(join(racine, 'git-absent.exe'), [], { encoding: 'utf8' }).error
+  assert.equal(cause.code, 'ENOENT')
+  const d = depotDe(tmpdir(), { env: {}, spawn: () => { throw cause } })
+  assert.throws(() => appliquerCorrectif(d, cible), erreur => erreur.name === 'GitIndisponible' && erreur.cause === cause && erreur.raison.endsWith(cause.message))
+})
+
+test('#2285 appliquerCorrectif transporte lancement et interruption complets', t => {
+  const racine = mkdtempSync(join(tmpdir(), 'correctif-diagnostic-'))
+  t.after(() => jeter(racine))
+  const stdout = `${'note stdout\n'.repeat(50)}cause stdout tardive\n`
+  const stderr = `${'note stderr\n'.repeat(50)}cause stderr tardive\n`
+  const lancement = spawnSync(join(racine, 'git-absent.exe'), [], { encoding: 'utf8' })
+  const interruption = spawnSync(process.execPath, ['-e', `const fs=require('node:fs');fs.writeFileSync(1,${JSON.stringify(stdout)});fs.writeFileSync(2,${JSON.stringify(stderr)});Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);`], { encoding: 'utf8', timeout:1500, killSignal:'SIGTERM' })
+  assert.equal(lancement.error.code, 'ENOENT')
+  assert.equal(interruption.signal, 'SIGTERM')
+  assert.equal(interruption.stdout, stdout)
+  assert.equal(interruption.stderr, stderr)
+  for (const [nom, vu] of [['lancement', lancement], ['interruption', interruption]]) {
+    t.diagnostic(JSON.stringify({ nom, ...vu, error: vu.error && { name:vu.error.name,message:vu.error.message,code:vu.error.code,errno:vu.error.errno,syscall:vu.error.syscall,path:vu.error.path,spawnargs:vu.error.spawnargs } }))
+  }
+  for (const [vu, issue, raison] of [[lancement,'lancement',`git introuvable (binaire absent du PATH) — ${lancement.error.message}`],[interruption,'interruption',`processus tué par le signal ${interruption.signal}`]]) {
+    let appels = 0
+    const d = depotDe(racine, { env:{}, spawn:()=>{appels+=1;return vu} })
+    assert.throws(()=>appliquerCorrectif(d,{patch:'correctif.patch',include:'cible.js'}), e=>{
+      assert.equal(e.issue, issue)
+      assert.equal(e.phase, 'vérification')
+      assert.equal(e.cause, vu.error)
+      assert.equal(e.status, vu.status)
+      assert.equal(e.signal, vu.signal)
+      assert.equal(e.stdout, vu.stdout ?? '')
+      assert.equal(e.stderr, vu.stderr ?? '')
+      assert.deepEqual(e.diagnostic, {status:vu.status ?? null,stdout:vu.stdout ?? '',stderr:vu.stderr ?? '',error:vu.error,...(vu.signal?{signal:vu.signal}:{})})
+      assert.equal(refusDeGit(e), `${issue} (${vu.signal?`signal ${vu.signal}`:'status ?'}) — ${raison}${vu.stderr?`\n${vu.stderr}`:''}${vu.stdout?`\n${vu.stdout}`:''}`)
+      return true
+    })
+    assert.equal(appels, 1)
+  }
+})
+
+test('#2285 appliquerCorrectif conserve identité programme', () => {
+  let interne
+  try { Buffer.from(123) } catch(e) { interne=e }
+  assert.equal(interne.code, 'ERR_INVALID_ARG_TYPE')
+  for(const erreur of [new TypeError('programme correctif'),interne]) {
+    const d=depotDe(tmpdir(),{env:{},spawn:()=>{throw erreur}})
+    assert.throws(()=>appliquerCorrectif(d,{patch:'correctif.patch',include:'cible.js'}),e=>e===erreur)
+  }
+})
+
+test('appliquerCorrectif refuse les chemins hors portée et les motifs avant tout lancement', () => {
+  const d = depotDe(tmpdir(), { spawn: () => assert.fail('Chemin refusé avant Git') })
+  for (const chemin of ['', '../ailleurs', 'a/../ailleurs', '/absolu', 'C' + ':/absolu', 'a\\b', '-p0', 'a/*', 'a/?', 'a/[bc]', 'a/{b,c}', 'a\nfin', 'a//b', './a']) {
+    assert.throws(() => appliquerCorrectif(d, { patch: chemin, include: 'paquet/fichier.js' }), /chemins relatifs littéraux bornés/)
+    assert.throws(() => appliquerCorrectif(d, { patch: 'patches/correctif.patch', include: chemin }), /chemins relatifs littéraux bornés/)
+  }
+})
+
+test('appliquerCorrectif réel ne touche que le chemin inclus et reste idempotent', t => {
+  const racine = mkdtempSync(join(tmpdir(), 'git-correctif-'))
+  t.after(() => jeter(racine))
+  mkdirSync(join(racine, 'paquet'))
+  for (const nom of ['cible', 'autre']) writeFileSync(join(racine, `paquet/${nom}.txt`), 'avant\n')
+  const patch = ['cible', 'autre'].map(nom => `diff --git a/paquet/${nom}.txt b/paquet/${nom}.txt\n--- a/paquet/${nom}.txt\n+++ b/paquet/${nom}.txt\n@@ -1 +1 @@\n-avant\n+apres\n`).join('')
+  writeFileSync(join(racine, 'correctif.patch'), patch)
+  const d = forge(racine)
+  const cible = { patch: 'correctif.patch', include: 'paquet/cible.txt' }
+  assert.equal(appliquerCorrectif(d, cible), true)
+  assert.equal(readFileSync(join(racine, cible.include), 'utf8'), 'apres\n')
+  assert.equal(readFileSync(join(racine, 'paquet/autre.txt'), 'utf8'), 'avant\n')
+  assert.equal(appliquerCorrectif(d, cible), false)
+  writeFileSync(join(racine, cible.include), 'incompatible\n')
+  assert.throws(() => appliquerCorrectif(d, cible), /Correctif inapplicable/)
+  assert.equal(readFileSync(join(racine, cible.include), 'utf8'), 'incompatible\n')
+})
 
 test('env fournisseur : une résolution par interrogation, objet partagé avec les rejeux et la feinte', () => {
   let resolutions = 0
@@ -182,6 +316,112 @@ test('classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT 
   assert.equal(acces.raison, 'spawnSync git EACCES')
 })
 
+test('shaPrecedentDeHead : HEAD index1 fixe, absence et panne distinctes, validateur inchangé', () => {
+  const { racine, premier } = depot()
+  const unique = instanceDeDepot({ fichiers: { 'unique.txt': 'une entrée' } })
+  try {
+    assert.equal(shaPrecedentDeHead(forge(unique.racine)), null)
+    assert.equal(shaPrecedentDeHead(forge(racine)), premier)
+    const vus = []
+    const ferme = depotFeint(racine, (args) => {
+      vus.push(args)
+      return { status: 0, stdout: `${premier}\n`, stderr: '' }
+    })
+    assert.equal(shaPrecedentDeHead(ferme), premier)
+    assert.deepEqual(vus, [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+    assert.throws(() => shaDe(ferme, 'HEAD@{1}'), /@\{/)
+    rmSync(join(racine, '.git', 'logs', 'HEAD'))
+    assert.equal(shaPrecedentDeHead(forge(racine)), null)
+    const repondre = () => ({ status: 128, stdout: '', stderr: 'fatal: panne reflog' })
+    assert.throws(() => shaPrecedentDeHead(depotFeint(racine, repondre)), GitIndisponible)
+    const pannes = []
+    assert.equal(shaPrecedentDeHead(depotFeint(racine, repondre, (r) => pannes.push(r))), null)
+    assert.match(pannes.join(''), /panne reflog/)
+  } finally { jeter(racine); jeter(unique.racine) }
+})
+
+
+for (const commande of ['reflog', 'rev-parse']) for (const issue of ['refus', 'interruption', 'lancement']) for (const callback of [false, true]) test(`shaPrecedentDeHead #2285 fc1 : ${commande} — ${issue} — ${callback ? 'callback' : 'exception'}`, () => {
+  const error = new Error('spawnSync git EACCES')
+  const reponse = {
+    status: issue === 'refus' ? 128 : null,
+    stdout: 'stdout distinct avant arrêt\n',
+    stderr: issue === 'refus' ? `${'note de refus\n'.repeat(50)}fatal: cause tardive\n` : 'stderr partiel\n',
+    ...(issue === 'interruption' ? { signal: 'SIGTERM' } : {}),
+    ...(issue === 'lancement' ? { error } : {}),
+  }
+  const raison = issue === 'refus' ? reponse.stderr : issue === 'interruption' ? 'processus tué par le signal SIGTERM' : error.message
+  const appels = []
+  const pannes = []
+  const d = depotFeint(tmpdir(), (args) => {
+    appels.push(args)
+    return args[0] === commande ? reponse : { status: 0, stdout: '', stderr: '' }
+  }, callback ? (r, vu) => pannes.push({ r, vu }) : undefined)
+  const verifier = (vu) => {
+    assert.equal(vu.issue, issue)
+    assert.equal(vu.raison, raison)
+    assert.equal(vu.diagnostic.status, reponse.status)
+    assert.equal(vu.diagnostic.stdout, reponse.stdout)
+    assert.equal(vu.diagnostic.stderr, reponse.stderr)
+    if (reponse.signal) assert.equal(vu.diagnostic.signal, reponse.signal)
+    if (reponse.error) assert.equal(vu.diagnostic.error, error)
+  }
+  if (callback) {
+    assert.equal(shaPrecedentDeHead(d), null)
+    assert.equal(pannes.length, 1)
+    assert.equal(pannes[0].r, raison)
+    verifier(pannes[0].vu)
+  } else assert.throws(() => shaPrecedentDeHead(d), (e) => {
+    assert.ok(e instanceof GitIndisponible)
+    verifier(e)
+    return true
+  })
+  assert.deepEqual(appels, commande === 'reflog' ? [['reflog', 'exists', 'HEAD']] : [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']])
+})
+
+for (const nom of ['reflog absent', 'reflog code1 muet', 'HEAD index1 absent']) test(`shaPrecedentDeHead #2285 fc1 : ${nom}`, () => {
+  const appels = []
+  const pannes = []
+  const d = depotFeint(tmpdir(), (args) => {
+    appels.push(args)
+    if (args[0] === 'reflog' && nom === 'HEAD index1 absent') return { status: 0, stdout: '', stderr: '' }
+    return { status: nom === 'reflog absent' ? 128 : 1, stdout: '', stderr: nom === 'reflog absent' ? 'fatal: bad object HEAD\n' : '' }
+  }, (r, vu) => pannes.push({ r, vu }))
+  assert.equal(shaPrecedentDeHead(d), null)
+  assert.deepEqual(pannes, [])
+  assert.deepEqual(appels, nom === 'HEAD index1 absent' ? [['reflog', 'exists', 'HEAD'], ['rev-parse', '--verify', '--quiet', 'HEAD@{1}^{commit}']] : [['reflog', 'exists', 'HEAD']])
+})
+
+test('shaPrecedentDeHead sous log.showSignature : SHA signé résolu sans présentation ni GPG', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'signé' } })
+  const gnupg = join(racine, '.git', 'gnupg-feint')
+  mkdirSync(gnupg)
+  const env = { ...envDeDepotForge(), GNUPGHOME: gnupg }
+  const git = gitDe(racine, { env, net: true })
+  const journal = join(racine, '.git', 'gpg-journal')
+  const programme = join(racine, '.git', 'gpg-feint.sh')
+  try {
+    writeFileSync(programme, "#!/bin/sh\nprintf 'verification\\n' >> .git/gpg-journal\nprintf '[GNUPG:] BADSIG 0123456789ABCDEF fixture\\n'\nprintf 'gpg: diagnostic fixture premier\\ngpg: diagnostic fixture deuxième\\n' >&2\nexit 1\n", { mode: 0o755 })
+    git('config', 'gpg.program', programme)
+    git('config', 'log.showSignature', 'true')
+    const arbre = git('rev-parse', 'HEAD^{tree}')
+    const parent = git('rev-parse', 'HEAD')
+    const commit = `tree ${arbre}\nparent ${parent}\nauthor fixture <fixture@example.invalid> 1791194400 +0000\ncommitter fixture <fixture@example.invalid> 1791194400 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n Zml4dHVyZQ==\n -----END PGP SIGNATURE-----\n\nentrée signée du banc\n`
+    const signe = lancerGit(['hash-object', '-t', 'commit', '-w', '--stdin'], { cwd: racine, env, input: commit, net: true })
+    git('update-ref', 'HEAD', signe)
+    git('commit', '--allow-empty', '-m', 'tête suivante')
+    const depot = depotDe(racine, { env })
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false, 'la résolution SHA ne lance pas GPG')
+    const presentation = git('reflog', 'show', '--format=%H', '--max-count=2', 'HEAD')
+    assert.match(presentation, /diagnostic fixture/)
+    assert.equal(readFileSync(journal, 'utf8'), 'verification\n')
+    rmSync(journal)
+    assert.equal(shaPrecedentDeHead(depot), signe)
+    assert.equal(existsSync(journal), false)
+  } finally { jeter(racine) }
+})
+
 test('status 0 rend un FAIT porteur de la sortie', () => {
   const { racine, second } = depot()
   try {
@@ -216,7 +456,10 @@ test('les six ABSENCES de la porte sont des ABSENTS, jamais des pannes (dépôt 
       assert.equal(question(), null, `${nom} : le contrat des lecteurs d’image est \`null\``)
       assert.deepEqual(pannes, [], `${nom} : une absence n’est pas une panne`)
     }
-    assert.deepEqual(estAncetre(d, ZERO, 'HEAD'), { disponible: true, absent: true }, 'l’union le dit ABSENT')
+    const absent = estAncetre(d, ZERO, 'HEAD')
+    assert.equal(absent.disponible && absent.absent, true, 'l’union le dit ABSENT')
+    assert.equal(absent.diagnostic.status, 128)
+    assert.match(absent.diagnostic.stderr, /Not a valid commit name/i)
     assert.throws(() => ceQuiChange(d, ZERO, second), BorneAbsente, 'une BORNE inconnue n’est pas l’objet demandé : elle LÈVE')
     assert.deepEqual(pannes, [])
   } finally { jeter(racine) }
@@ -280,7 +523,9 @@ test('estAncetre : vrai, faux, et un sha inconnu qui rend ABSENT', () => {
   try {
     assert.deepEqual(estAncetre(forge(racine), premier, second), { disponible: true, valeur: true })
     assert.deepEqual(estAncetre(forge(racine), second, premier), { disponible: true, valeur: false })
-    assert.deepEqual(estAncetre(forge(racine), ZERO, 'HEAD'), { disponible: true, absent: true })
+    const absent = estAncetre(forge(racine), ZERO, 'HEAD')
+    assert.equal(absent.disponible && absent.absent, true)
+    assert.equal(absent.diagnostic.status, 128)
   } finally { jeter(racine) }
 })
 
@@ -369,6 +614,35 @@ test('arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd', () => {
   assert.match(code.raison, /rend 128/)
 })
 
+for (const [nom, reponse, issue, motif] of [
+  ['objet absent', { status: 128, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: `${'note stderr\n'.repeat(50)}fatal: bad revision — cause stderr tardive` }, 'refus', "git n'y connaît pas de dépôt"],
+  ['code nonzero et stderr vide', { status: 17, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: '' }, 'refus', 'rend 17'],
+  ['lancement', { status: null, stdout: 'flux de lancement', stderr: 'cause de lancement', error: new Error('spawnSync git ENOENT') }, 'lancement', 'git introuvable'],
+  ['interruption', { status: null, stdout: 'flux interrompu', stderr: 'cause interruption', signal: 'SIGTERM' }, 'interruption', 'SIGTERM'],
+]) test(`arbrePrincipal : diagnostic complet — ${nom}`, () => {
+  const vu = arbrePrincipal(depotFeint(tmpdir(), () => reponse))
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, issue)
+  assert.ok(vu.raison.startsWith('arbre principal non résolu :'))
+  assert.ok(vu.raison.includes(motif))
+  assert.equal(vu.diagnostic.status, reponse.status)
+  for (const flux of ['stdout', 'stderr']) {
+    assert.equal(vu.diagnostic[flux], reponse[flux])
+    if (reponse[flux]) assert.ok(vu.raison.includes(reponse[flux]), `${flux} intégral dans le refus`)
+  }
+  if (reponse.error) assert.equal(vu.diagnostic.error, reponse.error)
+  if (reponse.signal) assert.equal(vu.diagnostic.signal, reponse.signal)
+})
+
+test('arbrePrincipal : refus structurel sans fait de processus inventé', () => {
+  for (const reponse of [undefined, { status: 0, stdout: '', stderr: '' }, { status: 0, stdout: '/depot.git', stderr: '' }]) {
+    const vu = arbrePrincipal(depotFeint(tmpdir(), () => reponse))
+    assert.equal(vu.disponible, false)
+    assert.equal(vu.issue, 'mesure')
+    assert.equal(Object.hasOwn(vu, 'diagnostic'), false)
+  }
+})
+
 test('arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde son MOTIF (git réel)', () => {
   const base = mkdtempSync(join(tmpdir(), 'profond-'))
   // 210 : au-delà de RAISON_MAX (gitPorte.mjs), en deçà de MAX_PATH (win32) avec les fichiers d'un `git init --bare`.
@@ -405,18 +679,177 @@ test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINC
   } finally { jeter(racine) }
 })
 
-test('classer : la RAISON est la première ligne significative, coupée AU MOT sous 200 caractères', () => {
+test('#2285 classer : diagnostic multiligne intégral et flux distincts', () => {
   const ligne = `fatal: ${'mot '.repeat(100).trimEnd()}`
-  const vu = classer({ status: 128, stdout: '', stderr: `\n\n${ligne}\nune seconde ligne` })
+  const stderr = `\n\n${ligne}\nune seconde ligne\ncause concrète au-delà de quatre cents caractères`
+  const stdout = 'note sur stdout\nune autre note'
+  const vu = classer({ status: 128, stdout, stderr })
   assert.equal(vu.disponible, false)
-  assert.ok(vu.raison.length <= 200, vu.raison)
-  assert.ok(vu.raison.endsWith('mot…'), vu.raison)
-  assert.equal(ligne[vu.raison.length - 1], ' ', 'la coupe tombe à une espace')
-  assert.ok(!vu.raison.includes('une seconde ligne'))
+  assert.equal(vu.raison, stderr)
+  assert.equal(vu.issue, 'refus')
+  assert.deepEqual(vu.diagnostic, { status: 128, stdout, stderr })
+  assert.equal(reussi(vu), false)
+})
+
+test('#2285 lecture : exception et callback portent le même diagnostic complet', () => {
+  const resultat = { status: 128, stdout: 'notes stdout', stderr: `${'note\n'.repeat(110)}cause de refus` }
+  let diagnostic
+  assert.throws(() => racineDe(depotDe(tmpdir(), { spawn: () => resultat })), (e) => {
+    diagnostic = e.diagnostic
+    return e instanceof GitIndisponible && e.issue === 'refus' && e.raison === resultat.stderr
+  })
+  assert.deepEqual(diagnostic, resultat)
+  const pannes = []
+  assert.equal(racineDe(depotDe(tmpdir(), { spawn: () => resultat, enPanne: (raison, vu) => pannes.push({ raison, vu }) })), null)
+  assert.equal(pannes.length, 1)
+  assert.equal(pannes[0].raison, resultat.stderr)
+  assert.deepEqual(pannes[0].vu.diagnostic, diagnostic)
+})
+
+test('#2285 classer : lancement, interruption, mesure et absence conservent leur distinction', () => {
+  const error = Object.assign(new Error('spawnSync git ENOENT'), { code: 'ENOENT' })
+  const lancement = classer({ status: null, error, stdout: 'avant', stderr: 'détail' }, { cwd: tmpdir() })
+  assert.equal(lancement.issue, 'lancement')
+  assert.equal(lancement.diagnostic.error, error)
+  assert.equal(lancement.diagnostic.stdout, 'avant')
+  const interruption = classer({ status: null, signal: 'SIGTERM', stdout: 'sortie', stderr: 'erreur' })
+  assert.equal(interruption.issue, 'interruption')
+  assert.equal(interruption.diagnostic.signal, 'SIGTERM')
+  assert.equal(classer(null).issue, 'mesure')
+  const absence = classer({ status: 128, stdout: 'note', stderr: 'fatal: bad object abc' })
+  assert.equal(absence.absent, true)
+  assert.deepEqual(absence.diagnostic, { status: 128, stdout: 'note', stderr: 'fatal: bad object abc' })
+  assert.deepEqual(classer({ status: 1, stdout: '', stderr: '' }), { disponible: true, valeur: { status: 1, stdout: '', stderr: '' } })
+  assert.deepEqual(classer({ status: 0, stdout: 'ok', stderr: 'warning' }), { disponible: true, valeur: { status: 0, stdout: 'ok', stderr: 'warning' } })
+})
+
+test('raisonCourte : présentation explicitement abrégée', () => {
   assert.equal(raisonCourte('   \n  premier mot  \nsuite'), 'premier mot')
   const tient = `${'mot '.repeat(49)}motx`
   assert.equal(tient.length, 200)
   assert.equal(raisonCourte(tient), tient, 'une raison de 200 caractères se rend entière')
+})
+
+test('#2285 mesure : tenter conserve les sorties complètes et les détails réellement connus', () => {
+  const stdout = `${'note stdout\n'.repeat(420)}cause stdout tardive\n`
+  const stderr = `${'note stderr\n'.repeat(420)}cause stderr tardive\n`
+  const erreur = Object.assign(new Error('mesure levée'), { stdout: Buffer.from(stdout), stderr, status: 13 })
+  const vu = tenter(() => { throw erreur })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'mesure')
+  assert.equal(vu.raison, `mesure levée — ${stdout}\n${stderr}`)
+  assert.deepEqual(vu.diagnostic, { status: 13, stdout, stderr, error: erreur })
+  assert.deepEqual(tenter(() => 'mesuré'), { disponible: true, valeur: 'mesuré' })
+  assert.deepEqual(tenter(() => null), { disponible: true, valeur: null })
+})
+
+for (const issue of ['refus', 'lancement', 'interruption']) test(`#2285 intégration tenter : GitIndisponible structurée — ${issue}`, () => {
+  const diagnostic = { status: issue === 'refus' ? 17 : null, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: `${'note stderr\n'.repeat(50)}cause stderr tardive\n`, ...(issue === 'interruption' ? { signal: 'SIGTERM' } : {}) }
+  const erreur = new GitIndisponible({ disponible: false, raison: 'lecture refusée', issue, diagnostic })
+  const vu = tenter(() => { throw erreur })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, issue)
+  assert.equal(vu.diagnostic, diagnostic)
+  assert.ok(vu.raison.includes(diagnostic.stdout))
+  assert.ok(vu.raison.includes(diagnostic.stderr))
+})
+
+test('#2285 intégration tenter : consommation réelle histoireDeHead commits', () => {
+  const stderr = `${'note stderr\n'.repeat(50)}fatal: cause tardive\n`
+  const stdout = 'flux distinct complet\n'
+  const sha = 'a'.repeat(40)
+  const d = depotFeint(tmpdir(), (args) => args.includes('cat-file')
+    ? { status: 0, stdout: `${sha} commit 1\n${sha} commit 1\n`, stderr: '' }
+    : args.includes('version') ? { status: 0, stdout: 'git version 2.45.1\n', stderr: '' }
+      : { status: 17, stdout, stderr })
+  const vu = tenter(() => histoireDeHead(d).commits(['HEAD']))
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'refus')
+  assert.equal(vu.diagnostic.status, 17)
+  assert.equal(vu.diagnostic.stdout, stdout)
+  assert.equal(vu.diagnostic.stderr, stderr)
+  assert.ok(vu.raison.includes(stdout))
+  assert.ok(vu.raison.includes(stderr))
+})
+
+test('#2285 intégration tenter : erreur système sans processus inventé', () => {
+  const erreur = Object.assign(new Error('lecture système refusée'), { errno: -13, syscall: 'read', code: 'EACCES' })
+  const vu = tenter(() => { throw erreur })
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, 'mesure')
+  assert.equal(vu.raison, erreur.message)
+  assert.equal(Object.hasOwn(vu, 'diagnostic'), false)
+})
+
+test('#2285 intégration tenter : erreur de programme remontée par identité', () => {
+  for (const erreur of [new TypeError('programme'), Object.assign(new Error('interne'), { code: 'ERR_INTERNE' })]) {
+    assert.throws(() => tenter(() => { throw erreur }), (e) => e === erreur)
+  }
+})
+
+for (const [lecteur, commande, jouer] of [
+  ['commits', 'diff-tree', (d) => ceQueFontLesCommits(d, [{ sha: 'a'.repeat(40), arbre: 'b'.repeat(40), parents: [] }]).chemins()],
+  ['fusion en cours', 'merge-tree', (d) => ceQueFaitLaFusionEnCours(d, ['a'.repeat(40), 'b'.repeat(40)], INDEX)],
+]) for (const [nom, reponse, issue] of [
+  ['absence', { status: 128, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: `${'note stderr\n'.repeat(50)}fatal: bad object — cause tardive\n` }, 'mesure'],
+  ['nonzero', { status: 17, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: '' }, 'refus'],
+  ['panne', { status: 17, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive\n`, stderr: `${'note stderr\n'.repeat(50)}fatal: cause tardive\n` }, 'refus'],
+  ['interruption', { status: null, stdout: 'avant interruption\n', stderr: 'cause interruption\n', signal: 'SIGTERM' }, 'interruption'],
+]) test(`#2285 intégration lot : ${lecteur} — ${nom}`, () => {
+  const pannes = []
+  const d = depotFeint(tmpdir(), (args) => args.includes(commande) ? reponse : { status: 0, stdout: args.includes('version') ? 'git version 2.45.1\n' : args.includes('hash-object') ? `${ZERO}\n` : '', stderr: '' }, (r) => pannes.push(r))
+  assert.throws(() => jouer(d), (e) => {
+    assert.ok(e instanceof GitIndisponible)
+    assert.equal(e.issue, issue)
+    assert.ok(e.raison.includes('illisible'))
+    assert.equal(e.diagnostic.status, reponse.status)
+    for (const flux of ['stdout', 'stderr']) {
+      assert.equal(e.diagnostic[flux], reponse[flux])
+      if (reponse[flux]) assert.ok(e.raison.includes(reponse[flux]))
+    }
+    if (reponse.signal) assert.equal(e.diagnostic.signal, reponse.signal)
+    return true
+  })
+  assert.deepEqual(pannes, [], 'un lot lève même avec enPanne')
+})
+
+test('#2285 intégration lot : succès et conflit amont gardent leur arbre', () => {
+  for (const propre of ['0', '1']) {
+    const d = depotFeint(tmpdir(), (args) => ({ status: 0, stdout: args.includes('version') ? 'git version 2.45.1\n' : args.includes('hash-object') ? `${ZERO}\n` : args.includes('merge-tree') ? `${propre}\0${'b'.repeat(40)}\0\0` : '', stderr: '' }))
+    const change = ceQueFaitLaFusionEnCours(d, ['a'.repeat(40), 'c'.repeat(40)], INDEX)
+    assert.equal(change.base, 'b'.repeat(40))
+    assert.deepEqual(change.chemins(), [])
+    assert.deepEqual([...ceQueFontLesCommits(d, []).chemins()], [])
+  }
+})
+
+test('#2285 mesure fs : lecteur réel, exception et callback, sans processus inventé', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'mesure-fs-2285-'))
+  try {
+    const chemin = join(cwd, 'MERGE_HEAD')
+    mkdirSync(chemin)
+    let erreur
+    try { readFileSync(chemin, 'utf8') } catch (e) { erreur = e }
+    assert.ok(erreur instanceof Error)
+    const commandes = []
+    const repondre = (args) => {
+      commandes.push(args)
+      assert.deepEqual(args, ['rev-parse', '--git-path', 'MERGE_HEAD'])
+      return { status: 0, stdout: 'MERGE_HEAD\n', stderr: '' }
+    }
+    const raison = `MERGE_HEAD illisible : ${erreur.message}`
+    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) =>
+      e instanceof GitIndisponible && e.issue === 'mesure' && e.raison === raison && e.diagnostic === undefined)
+    const pannes = []
+    const d = depotFeint(cwd, repondre, (message, vu) => pannes.push({ message, vu }))
+    assert.deepEqual(fusionnesEnCours(d), [])
+    assert.equal(pannes.length, 1)
+    assert.equal(pannes[0].message, raison)
+    assert.equal(pannes[0].vu.issue, 'mesure')
+    assert.equal(pannes[0].vu.diagnostic, undefined)
+    assert.equal(commandes.length, 2)
+    assert.equal(tenter(() => natureDuChemin(join(cwd, 'absent'))).valeur, 'absent')
+  } finally { jeter(cwd) }
 })
 
 test('listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms', () => {
@@ -686,6 +1119,55 @@ test('ceQueFaitLeCommit : un commit à un parent se lit contre lui — chemins, 
   }
 })
 
+
+for (const strict of [true, false]) test('#2285 graphe : ' + (strict ? 'lecture obligatoire' : 'lecture optionnelle') + ', refus, versions et programme', () => {
+  const sha = 'a'.repeat(40)
+  const stdout = 'stdout distinct du graphe\n'
+  const stderr = 'note de refus\n'.repeat(50) + 'fatal: cause tardive du graphe\n'
+  assert.equal(stderr.includes(String.fromCharCode(10)), true)
+  assert.equal(stderr.endsWith(String.fromCharCode(10)), true)
+  assert.ok(stderr.length > 400)
+  for (const [version, raison] of [
+    ['git version 2.45.1\n', stderr],
+    ['git version 2.32.0\n', 'git 2.32 ne sait pas git rev-list --no-commit-header (git 2.33 ou plus) : le graphe des commits n’est pas lisible'],
+    ['étrange\n', 'version de git illisible (« étrange ») : git rev-list --no-commit-header exige git 2.33'],
+  ]) {
+    const appels = []
+    const pannes = []
+    const d = depotFeint(tmpdir(), (args) => {
+      appels.push(args[0])
+      if (args[0] === 'rev-list') return { status: 128, stdout, stderr }
+      if (args[0] === 'version') return { status: 0, stdout: version, stderr: '' }
+      if (args[0] === 'cat-file') return { status: 0, stdout: sha + ' commit 1\n', stderr: '' }
+      assert.fail('commande inattendue : ' + args.join(' '))
+    }, (r, vu) => pannes.push({ r, vu }))
+    const verifier = (vu) => {
+      assert.equal(vu.issue, 'refus')
+      assert.equal(vu.raison, raison)
+      assert.equal(vu.diagnostic.status, 128)
+      assert.equal(vu.diagnostic.stdout, stdout)
+      assert.equal(vu.diagnostic.stderr, stderr)
+    }
+    if (strict) {
+      assert.throws(() => ceQueFaitLeCommit(d, sha), (e) => {
+        assert.ok(e instanceof GitIndisponible)
+        verifier(e)
+        return true
+      })
+      assert.deepEqual(pannes, [])
+    } else {
+      assert.equal(grapheDe(d, [sha]), null)
+      assert.equal(pannes.length, 1)
+      assert.equal(pannes[0].r, raison)
+      verifier(pannes[0].vu)
+    }
+    assert.deepEqual(appels, ['rev-list', 'version'])
+  }
+  const programme = new TypeError('programme du lecteur de graphe')
+  const d = depotFeint(tmpdir(), () => { throw programme }, () => assert.fail('pas de callback pour une erreur de programme'))
+  assert.throws(() => strict ? ceQueFaitLeCommit(d, sha) : grapheDe(d, [sha]), (e) => e === programme)
+})
+
 test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION lève une raison NOMMÉE', () => {
   const lecteur = (version, parents) => depotFeint(tmpdir(), (args) => {
     const stdout = args[0] === 'version' ? version : args[0] === 'rev-list' ? `abc arbre-de-abc ${parents}\n` : args[0] === 'diff-tree' ? '1\t0\ta.txt\0' : null
@@ -695,11 +1177,11 @@ test('ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION 
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.39.0\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas git merge-tree --write-tree --stdin \(git 2\.40 ou plus\)/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur(null, 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /version de git illisible/.test(e.raison))
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.45.1.windows.1\n', 'p1 p2'), 'abc'), (e) => e instanceof GitIndisponible && /illisible/.test(e.raison), 'windows lu ; git muet : la fusion illisible se NOMME, jamais « sans apport »')
-  assert.deepEqual(ceQueFaitLeCommit(muet(), 'abc').chemins(), [], 'sha inconnu : rien, sans lire la version')
+  assert.throws(() => ceQueFaitLeCommit(muet(), 'abc'), (e) => e instanceof GitIndisponible && /ce que fait abc : git ne rend pas le commit/.test(e.raison), 'un commit que git ne rend pas LÈVE, jamais « rien » (#2328)')
   assert.throws(() => ceQueFaitLeCommit(lecteur('git version 2.43.0', 'p1 p2 p3'), 'abc'), (e) => e instanceof GitIndisponible && /à 3 parents/.test(e.raison))
 })
 
-// ── Les lecteurs nommés sur leurs formes rares (#1806, juge des commits 8 et 9, Q7) ─────────────
+// #1806
 
 test('ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null` (git réel)', () => {
   const T = 'src/f\tg.test.ts'
@@ -952,7 +1434,6 @@ test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le
   }
 })
 
-// FOSSILE #2203.
 test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés se conclut en les retirant de l’index — le disque les garde', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'gen.md': 'base\n', 'a.txt': 'a\n' }, message: 'socle' })
   try {
@@ -981,6 +1462,35 @@ test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés 
 test('pousser : tout push vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms, bail ou non', () => {
   const d = depotDe(tmpdir(), { spawn: () => assert.fail('aucun git ne doit partir') })
   for (const vers of ['main', 'refs/heads/main']) for (const bail of [true, false]) assert.throws(() => pousser(d, { vers, bail }), /main n’avance que par la file de fusion/)
+})
+
+for (const [nom, reponse, issue, motif] of [
+  ['objet absent', { status: 128, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: `${'note stderr\n'.repeat(50)}fatal: bad object — cause stderr tardive` }, 'refus', 'objet absent'],
+  ['255 et stderr vide', { status: 255, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: '' }, 'refus', '255'],
+  ['256 avec stderr', { status: 256, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: `${'note stderr\n'.repeat(50)}cause stderr tardive` }, 'refus', 'cause stderr tardive'],
+  ['interruption', { status: null, stdout: 'flux interrompu', stderr: 'cause interruption', signal: 'SIGTERM' }, 'interruption', 'SIGTERM'],
+]) test(`fusionDeTextes : diagnostic complet — ${nom}`, () => {
+  const d = depotFeint(tmpdir(), () => reponse)
+  assert.throws(() => fusionDeTextes(d, { ours: 'o', base: 'b', theirs: 't' }, { ours: 'nous', base: 'base', theirs: 'eux' }), (e) => {
+    assert.ok(e instanceof Error)
+    assert.ok(e instanceof GitIndisponible)
+    assert.equal(e.issue, issue)
+    assert.ok(e.message.includes(motif))
+    assert.equal(e.diagnostic.status, reponse.status)
+    for (const flux of ['stdout', 'stderr']) {
+      assert.equal(e.diagnostic[flux], reponse[flux])
+      if (reponse[flux]) assert.ok(e.message.includes(reponse[flux]), `${flux} intégral dans l'erreur`)
+    }
+    if (reponse.signal) assert.equal(e.diagnostic.signal, reponse.signal)
+    return true
+  })
+})
+
+test('fusionDeTextes : codes propre et conflictuels inchangés', () => {
+  for (const status of [0, 1, 254]) {
+    const d = depotFeint(tmpdir(), () => ({ status, stdout: 'texte fusionné complet', stderr: '' }))
+    assert.deepEqual(fusionDeTextes(d, { ours: 'o', base: 'b', theirs: 't' }, { ours: 'nous', base: 'base', theirs: 'eux' }), { texte: 'texte fusionné complet', conflit: status > 0 })
+  }
 })
 
 test('fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le code de sortie, style `merge`', () => {
@@ -1029,7 +1539,7 @@ const gestesALaBorne = (d, b) => ({
   baseCommune: () => baseCommune(d, b, 'HEAD'),
   shaDe: () => shaDe(d, b),
   estAncetre: () => estAncetre(d, b, 'HEAD'),
-  'histoireDeHead dansHead': () => histoireDeHead(d).dansHead([b])[0],
+  'histoireDeHead commits': () => histoireDeHead(d).commits([b])[0],
   'ceQuiChange avant': () => ceQuiChange(d, b, 'HEAD'),
   'ceQuiChange apres': () => ceQuiChange(d, 'HEAD', b),
   'ceQuiChange INDEX': () => ceQuiChange(d, b, INDEX),
@@ -1124,7 +1634,7 @@ test('un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndis
           combienDe: () => combienDe(d, [`${premier}..main`]),
           shasDe: () => shasDe(d, [`${premier}..main`]),
           journalDe: () => journalDe(d, [`${premier}..main`]),
-          'histoireDeHead dansHead': () => histoireDeHead(d).dansHead([premier]),
+          'histoireDeHead commits': () => histoireDeHead(d).commits([premier]),
         } : {}),
       }
       for (const [nom, question] of Object.entries(questions))
@@ -1187,12 +1697,16 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const F = 'f'.repeat(40)
     const attendus = {
       shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, parentsDe: null,
-      estAncetre: { disponible: true, absent: true }, 'histoireDeHead dansHead': false,
+      estAncetre: { disponible: true, absent: true }, 'histoireDeHead commits': null,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
     assert.equal(questions.length, 17)
     for (const [nom, question] of questions) {
-      if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
+      if (nom === 'estAncetre') {
+        const absent = question()
+        assert.equal(absent.disponible && absent.absent, true)
+        assert.equal(absent.diagnostic.status, 128)
+      } else if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
       else assert.throws(question, (e) => e instanceof BorneAbsente && e.bornes.includes(F), nom)
     }
     assert.deepEqual(pannes, [], 'une borne absente n’est pas une panne')
@@ -1368,11 +1882,11 @@ test('fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE req
       requetes.push(args.slice(0, 2))
       return args[1] === '--git-path' ? { status: 0, stdout: `${args[2]}\n`, stderr: '' } : { status: 128, stdout: '', stderr: 'fatal: boum\n' }
     }
-    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) => e instanceof GitIndisponible && e.raison === 'fatal: boum')
+    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) => e instanceof GitIndisponible && e.raison === 'fatal: boum\n')
     const pannes = []
     requetes.length = 0
     assert.deepEqual(fusionnesEnCours(depotFeint(cwd, repondre, (r) => pannes.push(r))), [])
-    assert.deepEqual(pannes, ['fatal: boum'])
+    assert.deepEqual(pannes, ['fatal: boum\n'])
     assert.deepEqual(requetes, [['rev-parse', '--git-path'], ['cat-file', '--batch-check']])
   } finally { jeter(cwd) }
 })
@@ -1452,22 +1966,20 @@ test('une ENTRÉE que git ne lit pas (EPIPE, EOF) ne masque jamais son statut : 
   })
 })
 
-test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {
-  const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' })
-  const illisible = (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' })
-  for (const [repondre, raison] of [[panne, /^fatal: boum$/], [illisible, /^rebase-merge illisible : octet nul dans le chemin que git rend/]]) {
+for (const [nom, repondre, raison] of [
+  ['panne newline', () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' }), /^fatal: boum\n$/],
+  ['panne cause tardive', () => ({ status: 128, stdout: '', stderr: `${'note de refus\n'.repeat(50)}fatal: cause tardive\n` }), /^note de refus\n(?:note de refus\n){49}fatal: cause tardive\n$/],
+  ['NUL', (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' }), /^rebase-merge illisible : octet nul dans le chemin que git rend/],
+]) test(`rebaseEntame : git en panne ou chemin d’état ILLISIBLE — ${nom}`, () => {
     assert.throws(() => rebaseEntame(depotFeint(tmpdir(), repondre)), (e) => e instanceof GitIndisponible && raison.test(e.raison), String(raison))
     const pannes = []
     assert.equal(rebaseEntame(depotFeint(tmpdir(), repondre, (r) => pannes.push(r))), null)
     assert.equal(pannes.length, 1, JSON.stringify(pannes))
     assert.match(pannes[0], raison)
-  }
 })
 
 
-// ── LES CAS BORDS du graphe et des chemins en lot (#2294) : grapheDe, commitsNommes,
-// ceQueFontLesCommits, contre git RÉEL. Sondes d'origine du juge de diff : gitlink, mode seul, espaces et
-// non-ASCII, octopus, clone superficiel, fusion sans ancêtre commun, fusion retouchée.
+// #2294
 
 /** Le dépôt des cas bords, et chaque commit nommé. */
 function depotDesBords() {
@@ -1599,4 +2111,156 @@ test('clone SUPERFICIEL : la borne se lit comme une racine (#2294)', () => {
     const tout = lancerGit(['ls-tree', '-r', '-z', '--name-only', borne.sha], { cwd: join(clone, 'c') }).split('\0').filter(Boolean).sort(parUnitesDeCode)
     assert.deepEqual([...ceQueFontLesCommits(d, [borne]).chemins().get(borne.sha)].sort(parUnitesDeCode), tout, 'la borne apporte tout son arbre')
   } finally { jeter(clone) }
+})
+
+// ── L'HISTOIRE DE HEAD (`histoireDeHead`) : une liste de révisions résolue en UN lot, comme git la
+// résout (#2294). ─────────────────────────────────────
+
+/** Un dépôt forgé à racine `scripts/racine.txt`, et ses gestes. */
+function depotDHistoire() {
+  const { racine: dossier, sha: racine } = instanceDeDepot({ fichiers: { 'scripts/racine.txt': 'racine\n' }, message: 'racine' })
+  const git = gitDe(dossier, { net: true })
+  const commit = (marque) => {
+    writeFileSync(join(dossier, 'scripts', `${marque}.txt`), `${marque}\n`)
+    git('add', '-A')
+    git('commit', '-q', '-m', marque)
+    return git('rev-parse', 'HEAD')
+  }
+  return { dossier, racine, git, commit, depot: () => depotDe(dossier, { env: envDeDepotForge() }), jeter: () => jeter(dossier) }
+}
+
+/**
+ * Deux commits de même parent `racine` dont les shas partagent leurs 7 premiers caractères au moins :
+ * l'un dans HEAD, l'autre hors de HEAD. Parmi les seuls commits du graphe de HEAD, un préfixe de 7
+ * est unique ; git le résout parmi TOUS les objets du dépôt (`commitsNommes`) et le dit ambigu.
+ * Rend le commit de HEAD et la longueur du préfixe COMMUN de la paire.
+ */
+function poserUnePaireAmbigue(d, racine) {
+  const arbre = d.git('rev-parse', 'HEAD^{tree}')
+  const signature = 'mesure <mesure@example.invalid> 1700000000 +0000'
+  const shaDuCommit = (message) => {
+    const corps = `tree ${arbre}\nparent ${racine}\nauthor ${signature}\ncommitter ${signature}\n\n${message}\n`
+    return createHash('sha1').update(`commit ${Buffer.byteLength(corps)}\0${corps}`).digest('hex')
+  }
+  const vus = new Map()
+  let paire = null
+  for (let i = 0; !paire; i += 1) {
+    const sha = shaDuCommit(`m${i}`)
+    const autre = vus.get(sha.slice(0, 7))
+    if (autre !== undefined) paire = [autre, i]
+    else vus.set(sha.slice(0, 7), i)
+  }
+  const env = { ...envDeDepotForge(), GIT_AUTHOR_DATE: '1700000000 +0000', GIT_COMMITTER_DATE: '1700000000 +0000' }
+  const poser = (i) => gitDe(d.dossier, { env, net: true })('commit-tree', arbre, '-p', racine, '-m', `m${i}`)
+  const [dansHead, horsHead] = paire.map(poser)
+  assert.equal(dansHead, shaDuCommit(`m${paire[0]}`), 'témoin : le sha forgé est celui que git écrit')
+  let commun = 0
+  while (dansHead[commun] === horsHead[commun]) commun += 1
+  assert.ok(commun >= 7, `témoin : les deux commits partagent ${commun} caractères`)
+  d.git('update-ref', 'refs/heads/cote', horsHead)
+  d.git('reset', '-q', '--hard', dansHead)
+  return { dansHead, commun }
+}
+
+test('histoireDeHead : un préfixe que git dit AMBIGU n’est pas dans HEAD, même unique parmi ses commits ; un préfixe plus long que le commun l’est', () => {
+  const d = depotDHistoire()
+  try {
+    const { dansHead, commun } = poserUnePaireAmbigue(d, d.racine)
+    const depot = d.depot()
+    assert.equal((grapheDe(depot, ['HEAD']) ?? []).filter((c) => c.sha.startsWith(dansHead.slice(0, 7))).length, 1, 'témoin : unique parmi les commits de HEAD')
+    assert.deepEqual(histoireDeHead(depot).commits([dansHead.slice(0, 7), dansHead.slice(0, commun + 1)]).map((c) => c?.sha ?? null), [null, dansHead])
+  } finally { d.jeter() }
+})
+
+test('histoireDeHead : une paire qui partage 9 caractères laisse le préfixe de 9 AMBIGU', () => {
+  const d = depotDHistoire()
+  try {
+    // La racine de date 1600000164 donne une paire qui partage 9 caractères.
+    const identite = { GIT_AUTHOR_NAME: 'mesure', GIT_AUTHOR_EMAIL: 'mesure@example.invalid', GIT_COMMITTER_NAME: 'mesure', GIT_COMMITTER_EMAIL: 'mesure@example.invalid' }
+    const env = { ...envDeDepotForge(), ...identite, GIT_AUTHOR_DATE: '1600000164 +0000', GIT_COMMITTER_DATE: '1600000164 +0000' }
+    const racine = gitDe(d.dossier, { env, net: true })('commit-tree', d.git('rev-parse', 'HEAD^{tree}'), '-m', 'racine')
+    const { dansHead, commun } = poserUnePaireAmbigue(d, racine)
+    assert.equal(commun, 9, 'témoin : la paire partage 9 caractères')
+    assert.deepEqual(histoireDeHead(d.depot()).commits([dansHead.slice(0, 9), dansHead.slice(0, commun + 1)]).map((c) => c?.sha ?? null), [null, dansHead])
+  } finally { d.jeter() }
+})
+
+test('histoireDeHead : 1 ou 3 révisions se jugent dans HEAD en autant de processus git', () => {
+  const d = depotDHistoire()
+  try {
+    const tetes = ['a', 'b'].map((m) => d.commit(m))
+    d.git('checkout', '-q', '-b', 'cote', d.racine)
+    const horsHead = d.commit('cote')
+    d.git('checkout', '-q', 'main')
+    const juger = (shas) => {
+      const { valeur, lances } = lancesDeGit(() => histoireDeHead(d.depot()).commits(shas))
+      assert.ok(lances.length > 0, 'témoin : le compte voit les processus du jugement')
+      return { lances: lances.map(sousCommande), dedans: valeur.map((c) => c !== null) }
+    }
+    const une = juger([tetes[0]])
+    const trois = juger([tetes[1].slice(0, 9), horsHead, 'deadbee'])
+    assert.deepEqual(une.dedans, [true])
+    assert.deepEqual(trois.dedans, [true, false, false], 'témoin : dans HEAD, hors de HEAD, inconnu')
+    assert.deepEqual(trois.lances, une.lances, `1 révision : ${une.lances.length} processus ; 3 : ${trois.lances.length}`)
+  } finally { d.jeter() }
+})
+
+test('histoireDeHead : un git plus ancien que 2.33 ne lit pas le graphe — la question NOMME la version requise', () => {
+  const d = depotDHistoire()
+  try {
+    const tete = d.commit('a')
+    // git 2.30 ne connaît pas `rev-list --no-commit-header` : il rend son usage, code 129.
+    const spawn = (commande, args, options) => (args.includes('--no-commit-header')
+      ? { status: 129, stdout: '', stderr: 'usage: git rev-list [<options>] <commit>... [--] [<path>...]\n' }
+      : args.includes('version') ? { status: 0, stdout: 'git version 2.30.2\n', stderr: '' }
+        : spawnSync(commande, args, options))
+    const depot = depotDe(d.dossier, { env: envDeDepotForge(), spawn })
+    assert.throws(() => histoireDeHead(depot).commits([tete]),
+      (e) => e instanceof GitIndisponible && /^git 2\.30 ne sait pas git rev-list --no-commit-header \(git 2\.33 ou plus\)/.test(e.raison))
+  } finally { d.jeter() }
+})
+
+test('GARDE DE CLASSE : ceQueFontLesCommits lit K=2 et K=8 fusions propres en autant de processus git', () => {
+  const lancesSur = (k) => {
+    const d = depotDHistoire()
+    try {
+      const socle = d.commit('socle')
+      for (let i = 0; i < k; i += 1) {
+        d.git('checkout', '-q', '-b', `b${i}`)
+        d.commit(`b${i}`)
+        d.git('checkout', '-q', 'main')
+        d.commit(`m${i}`)
+        d.git('merge', '-q', '--no-ff', '-m', `fusion ${i}`, `b${i}`)
+      }
+      const depot = d.depot()
+      const commits = grapheDe(depot, [`${socle}..HEAD`])
+      const fusions = commits.filter((c) => c.parents.length === 2)
+      assert.equal(fusions.length, k, 'témoin : K fusions dans la plage')
+      const { valeur, lances } = lancesDeGit(() => ceQueFontLesCommits(depot, commits).chemins())
+      assert.deepEqual(fusions.map((c) => valeur.get(c.sha)), fusions.map(() => []), 'témoin : une fusion propre n’apporte rien')
+      assert.equal(lances.filter((x) => sousCommande(x) === 'merge-tree').length, 1, `${k} fusions propres : une seule fusion automatique, en lot`)
+      return lances.map(sousCommande)
+    } finally { d.jeter() }
+  }
+  const deux = lancesSur(2)
+  const huit = lancesSur(8)
+  assert.deepEqual(huit, deux, `K=2 : ${deux.length} processus ; K=8 : ${huit.length}`)
+})
+
+/** L'erreur que lève `fn`. */
+const erreurDe = (fn) => {
+  try { fn() } catch (e) { return e }
+  throw new Error('erreurDe : fn n’a rien levé')
+}
+
+test('tenter : une erreur SYSTÈME ou de lecture git est une indisponibilité ; une erreur de PROGRAMME remonte', () => {
+  assert.throws(() => tenter(() => { throw new TypeError('bug injecté') }), (e) => e instanceof TypeError && e.message === 'bug injecté')
+  // Une erreur INTERNE de Node porte un `code` (`ERR_INVALID_ARG_TYPE`) : c'est une erreur de programme.
+  const interne = erreurDe(() => Buffer.from(123))
+  assert.equal(interne.code, 'ERR_INVALID_ARG_TYPE', 'témoin : une vraie erreur interne de Node')
+  assert.throws(() => tenter(() => { throw interne }), (e) => e === interne)
+  const systeme = erreurDe(() => readFileSync(join(tmpdir(), 'jamais-la-2365.txt')))
+  assert.equal(systeme.code, 'ENOENT', 'témoin : une vraie erreur système')
+  assert.match(tenter(() => { throw systeme }).raison, /ENOENT/)
+  assert.deepEqual(tenter(() => { throw new GitIndisponible('fatal: panne simulée') }).disponible, false)
 })

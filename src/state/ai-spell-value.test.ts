@@ -93,7 +93,7 @@ describe('opValue — DÉFAUT signé (longue traîne) : jamais de faux 0 silenci
   });
 });
 
-describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.123-124)', () => {
+describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105)', () => {
   const caster = () => combatant({ characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
   const target = () => combatant({ id: 'h', characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 } });
   const spell = (opposed?: SpellData['opposed']): SpellData => ({ id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', opposed, source: { book: 'LDB', page: 0 } } as SpellData);

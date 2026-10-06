@@ -197,3 +197,58 @@ describe('détachement PAR PROVENANCE (#1853)', () => {
     expect(c.traits?.filter((t) => t.id === 'tentacules')).toEqual([{ id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } }]);
   });
 });
+
+describe('plancher d’un charMod, figé à l’attache (EDO 11 l.190 ; #1853)', () => {
+  const cretin = () => mutationById('cretin')!;
+  const charModsInt = (c: Combatant) => (c.mutations ?? []).flatMap((m) => m.passive ?? []).filter((o) => o.op === 'charMod' && o.char === 'intelligence');
+
+  it('Int 30 : l’instance porte le delta résolu, sans plancher ; le catalogue reste intact', () => {
+    const c = hero();
+    attachMutation(c, cretin());
+    expect(effectiveChar(c, 'intelligence')).toBe(10);
+    expect(charModsInt(c)).toEqual([{ op: 'charMod', char: 'intelligence', mod: -20 }]);
+    expect(cretin().passive).toContainEqual({ op: 'charMod', char: 'intelligence', mod: -40, min: 10 });
+  });
+
+  it('une Augmentation POSTÉRIEURE s’ajoute au delta figé : 10 + 5 = 15', () => {
+    const c = hero();
+    attachMutation(c, cretin());
+    c.characteristics.intelligence += 5;
+    expect(effectiveChar(c, 'intelligence')).toBe(15);
+  });
+
+  it('sous le plancher, ou dessus, le delta est nul — jamais positif', () => {
+    for (const v of [6, 10]) {
+      const c = hero({ characteristics: { ...hero().characteristics, intelligence: v } });
+      attachMutation(c, cretin());
+      expect(effectiveChar(c, 'intelligence'), `Int ${v}`).toBe(v);
+      expect(charModsInt(c), `Int ${v}`).toEqual([{ op: 'charMod', char: 'intelligence', mod: 0 }]);
+    }
+  });
+
+  it('au-dessus de plancher + perte, la perte entière : Int 60 → 20', () => {
+    const c = hero({ characteristics: { ...hero().characteristics, intelligence: 60 } });
+    attachMutation(c, cretin());
+    expect(effectiveChar(c, 'intelligence')).toBe(20);
+  });
+
+  it('la référence est la base PERMANENTE : un charMod permanent compte, un sort temporaire non', () => {
+    const c = hero();
+    attachMutation(c, { id: 'esprit-vif', label: 'Esprit vif', desc: '', kind: 'mentale', roll: 1, passive: [{ op: 'charMod', char: 'intelligence', mod: 5 }] });
+    c.activeEffects = [{ label: 'Sagesse', char: 'intelligence', bonus: 20, duration: { scale: 'rounds', left: 3 } }];
+    attachMutation(c, cretin());
+    expect(effectiveChar(c, 'intelligence')).toBe(10 + 20);
+    c.activeEffects = [];
+    expect(effectiveChar(c, 'intelligence')).toBe(10);
+  });
+
+  it('attacher, détacher, ré-attacher : retour exact à la base', () => {
+    const c = hero();
+    attachMutation(c, cretin());
+    detachMutation(c, cretin());
+    expect(effectiveChar(c, 'intelligence')).toBe(30);
+    expect(c.mutations).toEqual([]);
+    attachMutation(c, cretin());
+    expect(effectiveChar(c, 'intelligence')).toBe(10);
+  });
+});

@@ -1,3 +1,4 @@
+import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * CLIQUET AST DES ÉTAPES DE SÉQUENCE (#1279) — une étape de manche qui LANCE dit son ENJEU, et c'est
  * mesuré sur la FORME du programme, pas sur une baseline nominative. Jumeau structurel de
@@ -19,7 +20,7 @@
  * est mesurée plus bas, elle n'est pas supposée.
  */
 import { describe, it, expect } from 'vitest';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { join, sep } from 'node:path';
 import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -53,8 +54,7 @@ export interface AppelDeMonteur {
 }
 
 /** Tous les appels de monteur d'un source, avec ce que leur déclaration DIT de leur enjeu. */
-export function appelsDeMonteur(src: string, nom = 'sonde.ts'): AppelDeMonteur[] {
-  const sf = ts.createSourceFile(nom, src, ts.ScriptTarget.Latest, true);
+export function appelsDeMonteur(src: string, nom = 'sonde.ts', sf = ast({ rel: nom, text: src })!): AppelDeMonteur[] {
   const out: AppelDeMonteur[] = [];
   const visite = (n: ts.Node): void => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && TOUS.includes(n.expression.text)) {
@@ -66,11 +66,11 @@ export function appelsDeMonteur(src: string, nom = 'sonde.ts'): AppelDeMonteur[]
         ligne: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1,
         litteral: !!obj,
         stake: props.some((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))
-          && !!p.name && ts.isIdentifier(p.name) && p.name.text === 'stake'),
+          && ts.isIdentifier(p.name) && p.name.text === 'stake'),
         epandage: props.some((p) => ts.isSpreadAssignment(p)),
       });
     }
-    ts.forEachChild(n, visite);
+    n.forEachChild(visite);
   };
   visite(sf);
   return out;
@@ -78,7 +78,7 @@ export function appelsDeMonteur(src: string, nom = 'sonde.ts'): AppelDeMonteur[]
 
 describe('cliquet AST — une étape de SÉQUENCE qui lance dit son enjeu (#1279)', () => {
   const mesure = detenteur(() =>
-    fichiersDeSequence().map(({ abs, text }) => ({ f: abs, appels: appelsDeMonteur(text, abs) })),
+    [...analyserCorpus(fichiersDeSequence().map(({ abs, text }) => ({ rel: abs, text })))].map(({ fichier: { rel, text }, sourceFile }) => ({ f: rel, appels: appelsDeMonteur(text, rel, sourceFile!) })),
   );
 
   it('la COUVERTURE est peuplée : les familles de séquence sont bien vues', () => {

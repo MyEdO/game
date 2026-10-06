@@ -4,6 +4,7 @@ import { seedBattleRng } from './battleRng';
 import { FLOW_VERBS, FLOW_HANDLERS } from './rollFlowSpecs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { cascadeDeTest } from './cascadeTestKit';
 
 /**
  * GARDE BEHAVIORAL de l'ISSUE CANONIQUE (`spec.outcome`) — VERROUILLE la classe de bugs « le prédicat
@@ -54,7 +55,7 @@ const fortuneOfA = (): number | undefined => {
 /**
  * `make(win)` : les deux issues nominales (perdante / gagnante), consommées par les DEUX volets.
  * `composite` (optionnel) : l'état où le d100 est PROPREMENT RÉUSSI mais où l'issue MÉTIER est
- * défavorable — DR sous le NI d'un sort (`LDB 46 l.23-25`), seuil `requireSL` manqué. C'est là, et
+ * défavorable — DR sous le NI d'un sort (`LDB 46 l.22-24`), seuil `requireSL` manqué. C'est là, et
  * seulement là, que « issue composée » et « d100 propre » peuvent DIVERGER : sans cet état, le volet
  * structurel ne mesure rien (mutation mesurée verte sur les seules fixtures nominales).
  */
@@ -91,7 +92,7 @@ const FIXTURES: Record<string, Fix> = {
       battle: arena(),
       pendingCast: { casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
     }),
-    // « Succès mais DR < NI → tentative échoue » (`LDB 46 l.23-25`) : le TEST est réussi (8 ≤ 45), le
+    // DR sous le NI (`LDB 46 l.22-24`) : le TEST est réussi (8 ≤ 45), le
     // sort n'est pas lancé (`cast: false`). L'issue canonique doit rester celle du TEST.
     composite: () => ({
       battle: arena(),
@@ -122,7 +123,7 @@ const FIXTURES: Record<string, Fix> = {
   maneuver: { make: (win) => ({ battle: arena(), pendingManeuver: { attackerId: 'A', kind: 'souffle', result: win ? WIN : LOSE } }) },
   // ── Course / Frénésie / Approche / Bénédiction (Test binaire) ──
   run: { make: (win) => ({ battle: arena(), pendingRun: { combatantId: 'A', result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, bonusCases: win ? 1 : 0 } } }) },
-  fall: { make: (win) => ({ battle: arena(), pendingFall: { combatantId: 'A', to: { x: 0, y: 0 }, metres: 4, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } } }) },
+  fall: { pid: 'A', make: (win) => ({ battle: arena(), pendingFall: { to: { x: 0, y: 0 }, metres: 4, initiateurId: 'A', participants: [{ id: 'A', interactive: true, attempt: true, result: { success: win, roll: win ? 8 : 95, target: 40, dr: win ? 3 : 0, effectiveMetres: win ? 1 : 4 } }] } }) },
   frenzy: { make: (win) => ({ battle: arena(), pendingFrenzy: { combatantId: 'A', result: win ? WIN : LOSE } }) },
   approach: { make: (win) => ({ battle: arena(), pendingApproach: { combatantId: 'A', result: win ? WIN : LOSE } }) },
   ward: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },
@@ -158,7 +159,7 @@ const FIXTURES: Record<string, Fix> = {
   }) },
   cascade: { pid: 'st1', make: (win) => ({
     battle: arena(),
-    pendingCascade: { purpose: 'combat', cursor: 0, participants: [{ id: 'st1', actorId: 'A', target: 40, result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
+    pendingCascade: cascadeDeTest([{ id: 'st1', kind: 'test', actorId: 'A', target: 40, rollLabel: 'Test', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }], { purpose: 'combat' }),
   }) },
   extendedTest: { pid: 'r1', make: (win) => ({
     battle: arena(),
@@ -174,11 +175,11 @@ const FIXTURES: Record<string, Fix> = {
   // l'emporte au DR), exactement le cas où une issue dérivée du d100 mentirait à la Chance.
   cascadeBatch: { pid: 'A', make: (win) => ({
     battle: arena(),
-    pendingCascade: { purpose: 'combat', cursor: 0, participants: [{
+    pendingCascade: cascadeDeTest([{
       id: 'b1', kind: 'triggeredBatchTest', aggregate: 'none',
-      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 } } },
+      meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: 'B' } },
       participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
-    }] },
+    }], { purpose: 'combat' }),
   }) },
 };
 

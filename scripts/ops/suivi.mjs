@@ -61,6 +61,7 @@
 // `--session <id> --json [--depuis <cle>]` : l'état de la session, en lecture seule · `<N> --session <id> --json
 // [--ticket <M>] --ajouter-item <#M libellé…> | --ajouter-etape <texte…> | --cocher <début du texte…>` : l'édition.
 import * as FS from 'node:fs'
+import { etapeProfilee } from '../etape-profilee.mjs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
@@ -617,15 +618,10 @@ export function editionDuSuivi(texte, geste) {
  *   horloge?: () => number} & Record<string, unknown>} [params] le reste va à `mesurer`
  * @returns {{vu: ReturnType<typeof mesurer>, profil: {durees: Record<string, number>, total: number, reste: number}}}
  */
-export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), ...params } = {}) {
+export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), annoncer = (texte) => process.stderr.write(texte), ...params } = {}) {
   const durees = tableTotale([...Object.keys(GESTES_DU_BOARD), 'inv', 'issues'], () => 0)
   const envelopper = (nom, geste) => (...args) => {
-    const depart = horloge()
-    try {
-      return geste(...args)
-    } finally {
-      durees[nom] += horloge() - depart
-    }
+    return etapeProfilee(`[suivi] ${nom}`, () => geste(...args), { horloge, annoncer, mesurer: (ms) => { durees[nom] += ms } })
   }
   const enveloppes = tableTotale(Object.keys(GESTES_DU_BOARD), (nom) => envelopper(nom, gestes[nom]))
   const depart = horloge()
@@ -865,7 +861,7 @@ export function editer({ numero, dossier, session, geste, fs = FS, pid = process
 
 /**
  * Le geste entier sur un suivi : `--creer` éventuel, portée, mesure profilée, relecture, écriture
- * atomique. Rend le code de sortie et les deux flux, sans rien imprimer.
+ * atomique. Rend le code de sortie et les deux flux ; la mesure annonce ses gestes sur stderr.
  * @param {{numero: number, dossier: string, creer?: boolean, sansFetch?: boolean, fs?: typeof FS,
  *   pid?: number, maintenant?: Date, mesure?: Record<string, unknown>}} params `mesure` va à `mesureProfilee`
  * @returns {{code: number, stdout: string, stderr: string}}

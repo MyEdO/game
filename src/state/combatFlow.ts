@@ -149,6 +149,7 @@ import { actorIn, inBattleId, garanti } from './combatants';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { norm } from '../lib/normalize';
+import { gelerLaConstante } from '../lib/gelerProfond';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, buildWeapon, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
@@ -188,7 +189,7 @@ import { findSpell, findSpellById } from '../data/index';
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
-import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, structureIsDown, climbEdgeBetween, type VictoryCondition } from './scene';
+import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './scene';
 import { STEP_MAX_M } from './relief';
 import { placeCombatant } from './spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
@@ -211,7 +212,7 @@ import {
   type Weather,
 } from '../engine/travelStages';
 import { weaponGroupKey } from '../engine/weaponGroup';
-import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, Pt, climbTraverseFor } from './path';
+import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, tileFromKey, Pt, climbTraverseFor } from './path';
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
 import { resolveRun, chargeReach } from '../engine/movement';
 import type { RNG } from '../engine/dice';
@@ -316,7 +317,8 @@ export function attackWeaponOf(battle: BattleState, attacker: Combatant, target:
     ? freeAttackWeapon(pa.freeKind, creatureAttacks(attacker.traits ?? []).find((a) => a.kind === pa.freeKind)?.bonus ?? 0)
     : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
-  // peut donc être introuvable et rendre la main à l'auto-choix. Repli = pending d'avant le gel.
+  // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
+  // lancé (`openAttackCascade`, `cleaveAttack`) ou 2ᵉ frappe (`dualStrikeAttack`).
   return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants);
 }
 
@@ -1050,7 +1052,7 @@ export function previewCast(
     ...(windsLine ? [windsLine] : []),
   ];
   return {
-    label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.155-156)
+    label: isPrayer ? tr('cf.prayerLabel') : tr('cf.castLabel', { ni }), // le test reste Langue (Magick) — « Projectile magique » ne change QUE Localisation/Dégâts après réussite (LDB 46 l.101)
     base: castingBaseValue(caster, ci.skill, ci.spec),
     target: target + windsMod + (ctx?.total ?? 0),
     mods,
@@ -1152,18 +1154,35 @@ export type MovementResolution =
   | { status: 'ok'; kind: 'move' | 'run'; path: Pt[]; cost: number }
   | { status: 'blocked'; reason: MovementBlockReason };
 
+/** Les refus du PRÉFIXE commun à tout déplacement de combat (`mobileDuTour`). */
+export type RefusDuTour = Extract<MovementBlockReason, 'combat-over' | 'targeting' | 'no-active' | 'not-controlled' | 'engaged' | 'movement-spent'>;
+
+/**
+ * PRÉFIXE de tout déplacement de combat : le combattant actif, piloté à la main par ce siège, peut-il
+ * quitter sa case maintenant ? Partagé par le clic-sol (`resolveMovement`) et les gestes d'arête
+ * (`state/gesteDArete.ts`). Engagé : LDB 15 l.43-49. `mobile` accompagne le refus dès qu'il existe.
+ */
+export function mobileDuTour(s: GameState, battle: BattleState):
+  | { mobile: Combatant; case: Pt }
+  | { refus: RefusDuTour; mobile?: Combatant } {
+  if (battle.over) return { refus: 'combat-over' };
+  if (battle.action !== null) return { refus: 'targeting' };
+  const active = activeCombatant(battle);
+  if (!active?.pos) return { refus: 'no-active' };
+  if (!controlsCombatant(s, active)) return { refus: 'not-controlled', mobile: active };
+  if (isEngaged(active)) return { refus: 'engaged', mobile: active };
+  if (!canMove(battle, active)) return { refus: 'movement-spent', mobile: active };
+  return { mobile: active, case: active.pos };
+}
+
 export function resolveMovement(get: Get, pt: Pt): MovementResolution {
   const battle = get().battle;
   const scene = get().scene;
   if (!battle) return { status: 'blocked', reason: 'no-battle' };
   if (!scene) return { status: 'blocked', reason: 'no-scene' };
-  if (battle.over) return { status: 'blocked', reason: 'combat-over' };
-  if (battle.action !== null) return { status: 'blocked', reason: 'targeting' };
-  const active = activeCombatant(battle);
-  if (!active?.pos) return { status: 'blocked', reason: 'no-active' };
-  if (!controlsCombatant(get(), active)) return { status: 'blocked', reason: 'not-controlled' };
-  if (isEngaged(active)) return { status: 'blocked', reason: 'engaged' };
-  if (!canMove(battle, active)) return { status: 'blocked', reason: 'movement-spent' };
+  const tour = mobileDuTour(get(), battle);
+  if ('refus' in tour) return { status: 'blocked', reason: tour.refus };
+  const active = tour.mobile;
   const k = tileKey(pt.x, pt.y, pt.z ?? 0); // z-aware : une case de rempart (z1) ne matche plus la clé « x,y » du sol
   const reach = displayedReach(get);
   const inWalk = reach.has(k);
@@ -1175,7 +1194,7 @@ export function resolveMovement(get: Get, pt: Pt): MovementResolution {
     return { status: 'ok', kind: preview.kind, path: preview.path, cost: preview.cost };
   }
   const geom = mountOf(battle, active) ?? active;
-  const path = pathTo(scene, active.pos, pt, moveEnv(battle, geom));
+  const path = pathTo(scene, tour.case, pt, moveEnv(battle, geom));
   if (!path || path.length < 2) return { status: 'blocked', reason: 'no-path' };
   return { status: 'ok', kind: inWalk ? 'move' : 'run', path, cost: (inWalk ? reach.get(k) : runReach!.get(k)) ?? 0 };
 }
@@ -1366,31 +1385,31 @@ export function bestAdjacentReachable(reach: Map<string, number>, target: Pt, ta
   let best: Pt | null = null;
   let bestD = Infinity;
   for (const k of reach.keys()) {
-    const [x, y] = k.split(',').map(Number);
+    const t = tileFromKey(k);
     // Adjacent à l'EMPREINTE de la cible (toute case du bloc N×N, pas seulement l'ancre) → un grand (créature,
     // navire) s'attaque depuis N'IMPORTE quel côté. `footprintChebyshev` coïncide avec `chebyshev` pour deux 1×1.
-    if (footprintChebyshev({ x, y }, moverN, target, targetN) !== 1) continue;
+    if (footprintChebyshev(t, moverN, target, targetN) !== 1) continue;
     const d = reach.get(k)!;
     if (d < bestD) {
       bestD = d;
-      best = { x, y };
+      best = t;
     }
   }
   return best;
 }
 
-/** Cases de Mouvement LIBRE cliquables MAINTENANT (héros actif, mode neutre) : Marche restante
+/** Cases de Mouvement LIBRE cliquables MAINTENANT (préfixe `mobileDuTour`) : Marche restante
  *  (mouvement décomposable), géométrie de la monture, règle M-A-M, filtre Brisé. Vide si Engagé
  *  (le déplacement passe par le Désengagement — LDB 15 l.45). Source unique pour l'affichage ET la
  *  validation des clics de déplacement. */
 export function computeMoveReach(get: Get): Map<string, number> {
   const { battle, scene } = get();
-  if (!battle || !scene || battle.over) return new Map();
-  const active = activeCombatant(battle);
-  if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
-  if (isEngaged(active) || !canMove(battle, active)) return new Map();
+  if (!battle || !scene) return new Map();
+  const tour = mobileDuTour(get(), battle);
+  if ('refus' in tour) return new Map();
+  const active = tour.mobile;
   const geom = mountOf(battle, active) ?? active;
-  const reach = moveReachFor(geom, scene, active.pos, movementRemaining(battle, active), moveEnv(battle, geom));
+  const reach = moveReachFor(geom, scene, tour.case, movementRemaining(battle, active), moveEnv(battle, geom));
   return briseFleeFilter(scene, battle, active, reach);
 }
 
@@ -1403,14 +1422,13 @@ function briseFleeFilter(scene: Scene, battle: BattleState, active: Combatant, r
   if (!foes.length) return reach;
   const smoke = smokeOf(battle);
   const hiddenTiles = new Map([...reach].filter(([k]) => {
-    const [x, y] = k.split(',').map(Number);
-    return !tileSeenByFoe(scene, foes, { x, y }, smoke);
+    return !tileSeenByFoe(scene, foes, tileFromKey(k), smoke);
   }));
   if (hiddenTiles.size) return hiddenTiles; // une cachette atteignable → s'y mettre à l'abri (RAW)
   const distNow = Math.min(...foes.map((e) => chebyshev(active.pos!, e.pos!)));
   return new Map([...reach].filter(([k]) => {
-    const [x, y] = k.split(',').map(Number);
-    return Math.min(...foes.map((e) => chebyshev({ x, y }, e.pos!))) >= distNow;
+    const t = tileFromKey(k);
+    return Math.min(...foes.map((e) => chebyshev(t, e.pos!))) >= distNow;
   }));
 }
 
@@ -1480,7 +1498,7 @@ export function aiApproachPlan(
   const M = effectiveMovement(geom);
   if (M <= 0) return none;
   const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'move' && combatDistance({ ...enemy, pos: a.to } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0]) <= meleeReachTiles(enemy.weapons);
+    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
   if (atContact(action)) return none; // la Marche suffit déjà
   // Charge (portée de Course, sans Test — LDB 15 l.35-37).
   const courseBudget = chargeReach(M, runMultiplier(geom.traits));
@@ -1495,7 +1513,7 @@ export function aiApproachPlan(
   const r = resolveRun(testValue(enemy, enemy.mountId ? 'chevaucher' : 'athletisme'), M, rng);
   const runBudget = M + r.bonusCases;
   const run = runBudget > input.movement ? chooseEnemyAction({ ...inp, movement: runBudget }) : action;
-  if (run.kind === 'move' && (run.to.x !== action.to.x || run.to.y !== action.to.y))
+  if (run.kind === 'move' && tileKey(run.to.x, run.to.y, run.to.z ?? 0) !== tileKey(action.to.x, action.to.y, action.to.z ?? 0))
     return { plan: run, ran: { roll: r.roll, budget: runBudget } };
   // La Course ne porte pas plus loin que le plan de Marche : marcher normalement (pas d'Action gâchée).
   return none;
@@ -1959,36 +1977,33 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
   // être rejoué). Le 1d10 des Dégâts est un dé comme un autre et part à la porte APRÈS (#1508,
   // `ouvrirChute`) — la transaction ci-dessous ne fait que la brèche, le déplacement et le journal.
   const avant = get();
-  const tombants = !e || !avant.scene ? [] : parapetTilesAbove(avant.scene, e).flatMap((tl) => {
-    const sc = avant.scene!;
-    // Hauteur de chute = vraie hauteur métrique (relief) de la passerelle (z=tl.z) au-dessus du sol (z=0).
-    const metres = Math.abs(heightAt(sc, tl.x, tl.y, tl.z) - heightAt(sc, tl.x, tl.y, 0));
+  // La scène APRÈS l'effondrement (brèche + tuiles de passerelle effondrées), puis, SUR ELLE, l'atterrissage
+  // de chaque occupant (`surfaceDAtterrissage`) : la tuile effondrée n'est plus une surface.
+  const tuiles = e && avant.scene ? parapetTilesAbove(avant.scene, e) : [];
+  let sceneApres = e && avant.scene ? setStructureDown(avant.scene, e.x, e.y, e.side, e.z ?? 0, true) : avant.scene;
+  for (const tl of tuiles) sceneApres = setTileCollapsed(sceneApres!, tl.x, tl.y, tl.z);
+  const tombants = !avant.scene ? [] : tuiles.flatMap((tl) => {
+    const hDepart = heightAt(avant.scene!, tl.x, tl.y, tl.z);
+    const sol = surfaceDAtterrissage(sceneApres!, tl.x, tl.y, hDepart);
+    // Cas nommé `aucune-surface` (AA 10 l.125 → LDB 15 l.80, muets sur le lieu) : couche de base de la case.
+    const sansSurface = sol.kind === 'aucune-surface';
+    const to: Pt = sol.kind === 'surface' ? sol.to : { x: tl.x, y: tl.y, z: 0 };
+    const metres = Math.max(0, hDepart - (sol.kind === 'surface' ? sol.hauteur : heightAt(sceneApres!, tl.x, tl.y, 0)));
     return (avant.battle?.combatants ?? [])
-      .filter((c) => c.id !== target.id && c.pos?.x === tl.x && c.pos?.y === tl.y && (c.pos?.z ?? 0) === 1)
-      .map((c) => ({ id: c.id, metres }));
+      .filter((c) => c.id !== target.id && c.pos?.x === tl.x && c.pos?.y === tl.y && (c.pos?.z ?? 0) === tl.z)
+      .map((c) => ({ id: c.id, to, metres, sansSurface }));
   });
   set((s: GameState) => {
     const log = [...(s.battle?.log ?? []), ev('death', structureCollapseLog(target.label), target.id)];
-    let combatants = s.battle?.combatants.filter((c) => c.id !== target.id) ?? [];
-    let scene = s.scene;
-    if (e && scene) {
-      // Brèche : pose le flag `structureDown` sur l'arête (le Combattant-structure inerte est déjà retiré).
-      scene = setStructureDown(scene, e.x, e.y, e.side, e.z ?? 0, true);
-      // Effondrement de la PASSERELLE (z=1) portée par la structure abattue : ses occupants CHUTENT au
-      // sol (dégâts de chute, LDB 15) et les tuiles deviennent infranchissables (`setTileCollapsed`).
-      for (const tl of parapetTilesAbove(scene, e)) {
-        const sc = scene; // réf non-null capturée pour les closures (scene est un `let` réassigné plus bas)
-        combatants = combatants.map((c) => {
-          if (c.pos?.x !== tl.x || c.pos?.y !== tl.y || (c.pos?.z ?? 0) !== 1) return c;
-          const fallen = { ...c, wounds: { ...c.wounds }, conditions: c.conditions.map((x) => ({ ...x })) };
-          placeCombatant(fallen, sc, { x: tl.x, y: tl.y }); // chute au sol (z=0, omis) + hauteur rafraîchie
-          log.push(ev('damage', tr('cf.gangwayCollapse', { name: c.label }), c.id));
-          return fallen;
-        });
-        scene = setTileCollapsed(scene, tl.x, tl.y, tl.z);
-      }
-    }
-    return { scene, battle: s.battle ? { ...s.battle, combatants, log } : s.battle };
+    const combatants = (s.battle?.combatants.filter((c) => c.id !== target.id) ?? []).map((c) => {
+      const tb = tombants.find((x) => x.id === c.id);
+      if (!tb) return c;
+      const fallen = { ...c, wounds: { ...c.wounds }, conditions: c.conditions.map((x) => ({ ...x })) };
+      placeCombatant(fallen, sceneApres, tb.to); // atterrit sur la surface d'en dessous + hauteur rafraîchie
+      log.push(ev('damage', tr(tb.sansSurface ? 'cf.gangwayCollapseSansSurface' : 'cf.gangwayCollapse', { name: c.label }), c.id));
+      return fallen;
+    });
+    return { scene: sceneApres, battle: s.battle ? { ...s.battle, combatants, log } : s.battle };
   });
   for (const tb of tombants) {
     const c = inBattleId(get().battle, tb.id);
@@ -3866,7 +3881,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
 // ---------------------------------------------------------------------------
 
 /** Arme abstraite du Piétinement : Corps à corps (Bagarre), Dégâts = Bonus de Force (+0). */
-export const TRAMPLE_WEAPON: Weapon = buildWeapon({ label: 'Piétinement', attackKind: 'pietinement', damage: { plusBF: true, flat: 0, bare: true } });
+export const TRAMPLE_WEAPON: Weapon = gelerLaConstante(buildWeapon({ label: 'Piétinement', attackKind: 'pietinement', damage: { plusBF: true, flat: 0, bare: true } })); // #2097
 
 /** La voie GRATUITE du Piétinement est-elle ouverte ? « Se cabrer » (LDB 85 l.314) paie le Piétinement
  *  d'une Action de MOUVEMENT : elle exige donc que cette Action soit ENTIÈRE (aucun Mouvement dépensé
@@ -5287,7 +5302,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
 }
 
 /** Contexte de visibilité OPTIONNEL pour filtrer des cibles de sort par Ligne de Vue (LDB 46
- *  l.170). Absent/null (hors combat, tests purs) : pas de filtre — comportement historique. */
+ *  l.121). Absent/null (hors combat, tests purs) : pas de filtre. */
 export type SpellSight = { scene: Scene; smoke?: Pt[] } | null;
 const spellSightBlocked = (sight: SpellSight | undefined, caster: Combatant, t: Combatant): boolean =>
   !!sight && !!caster.pos && !!t.pos && !losClear(sight.scene, caster.pos, t.pos, sight.smoke ?? []);
@@ -5978,7 +5993,7 @@ export function applyCast(
     /** LA TOUCHE telle qu'elle voyage — bâtie ICI pour les trois sites de cible (initiale, cible
      *  supplémentaire de Surincantation, maillon de rebond), jamais recomposée à la reprise. */
     const toucheDe = (t: Combatant, mres: CastResult & Partial<MissileResult>, rebond?: RebondDeChaine): ToucheDeProjectile => ({
-      casterId: caster.id, targetId: t.id, spell, mres, zoneTalentMod: zoneMod(t),
+      casterId: caster.id, targetId: t.id, spell: structuredClone(spell), mres, zoneTalentMod: zoneMod(t), // #2097
       // `crit` = double d'Incantation, `choice` = Incantation Critique (LDB 46 l.30).
       critWound: !!(crit && choice === 'critique'),
       overcastDamageSteps, overcastDurationSteps,
@@ -6262,7 +6277,8 @@ function placeSpellZone(
  *  sort les tire de sa durée/ZdE ; un trigger fournit des défauts). `target.pos` = centre du disque.
  *  `source` = l'ENTITÉ qui pose la zone (ids) : elle voyage SUR la zone, et le Test de TRAVERSÉE
  *  (`crossTest`) en dérive son enjeu — ce qui se joue est le sort qui barre le passage (#1262 V2 L6d). */
-function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, pz: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], source?: EffectSource): void {
+function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZone: Extract<GameOp, { op: 'zone' }>, label: string, rounds: number, sl: number, fallbackRadiusM: number, logLines: string[], sourceRecue?: EffectSource): void {
+  const { pz, source } = structuredClone({ pz: opDeZone, source: sourceRecue }); // #2097
   const battle = get().battle;
   if (!battle || !target.pos || !caster.pos) { logLines.push(tr('cf.zonePersists', { spell: label })); return; }
   const discRadiusM = pz.radiusMeters != null ? Math.max(0, resolveFormula(pz.radiusMeters, caster, battleRng())) : fallbackRadiusM;

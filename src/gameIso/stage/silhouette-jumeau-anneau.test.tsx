@@ -63,7 +63,7 @@ function monter(): void {
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   act(() => root!.render(
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={sceneMetresPerTile(SCENE)}
       frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
@@ -144,7 +144,7 @@ describe('Anneau d’équipe à travers les murs — jumeau de POOL (#1297 LOT A
 
     // Population qui retombe à zéro : le jumeau ne garde pas la frame précédente à l'écran.
     act(() => root!.render(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}

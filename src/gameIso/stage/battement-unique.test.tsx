@@ -69,7 +69,7 @@ let commitsReact = 0;
  *  (`ui/editor/EditorCanvas`), qui monte le même écran sans aucune prop d'animation. */
 const écran = (yawDeg = 0, avecAnim = true): JSX.Element => (
   <Profiler id="stage" onRender={() => { commitsReact += 1; }}>
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={{ mode: 'plateau', dims: dimsDe(yawDeg), cam: { x: 0, y: 0 }, zoom: 1 }}

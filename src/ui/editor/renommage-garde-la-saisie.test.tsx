@@ -16,6 +16,7 @@ import { Inspector } from './Inspector';
 import { LogicDock, type LogicTab } from './LogicDock';
 import type { Sel } from './editorState';
 import { emptyScene, type Scene, type SceneEntity, type Effect } from '../../state/scene';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import type { Flow } from '../../state/flow';
 import type { GameOp } from '../../engine/ops';
 
@@ -95,7 +96,7 @@ function Inspecteur({ initiale, sel0 }: { initiale: Scene; sel0: Sel }) {
       enemyCreatures={[]}
       openLogic={() => undefined}
       resizeScene={() => undefined}
-      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+      narratif={emptyNarratif()}
       tool={{ mode: 'select' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
@@ -155,7 +156,7 @@ function Dock({ initiale, onglet, trig0 = null, dlg0 = null }: { initiale: Scene
   sceneVue = scene;
   return (
     <LogicDock
-      scene={scene} otherScenes={[]} worldMap={null} objets={[]} setScene={setScene}
+      scene={scene} otherScenes={[]} worldMap={null} narratif={emptyNarratif()} setScene={setScene}
       warnings={[]} onSelectWarning={() => undefined}
       tab={onglet} setTab={() => undefined} height={400} setHeight={() => undefined}
       trigSel={trigSel} setTrigSel={setTrigSel} dlgSel={dlgSel} setDlgSel={setDlgSel} encSel={encSel} setEncSel={setEncSel}

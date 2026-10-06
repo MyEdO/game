@@ -48,17 +48,15 @@ describe('bâtiment COMPOSÉ — cloisons d’arête (wallBetween) + terrain', (
 });
 
 /**
- * INVARIANT COMBAT de la FENÊTRE. Une croisée est une OUVERTURE dans une Structure qui tient : le
- * canon en connaît l'effet, c'est celui d'une Percée (`AA 10 l.122`) — le couvert descend d'un cran,
- * la Structure ne devient PAS transparente ni franchissable. La fenêtre est donc lue par EXACTEMENT
- * une règle, le cran de couvert (`couvertDArete`, `state/lineOfSight.ts`) ; passage, marchabilité et
- * occultation restent ceux d'un mur plein.
+ * INVARIANT COMBAT de la FENÊTRE — arbitrage #1712 (2026-09-08) : la vue passe (`areteOcculte`), le
+ * couvert descend d'un cran (`couvertDArete`, `AA 10 l.122`, maison) ; passage et marchabilité restent
+ * ceux d'un mur plein. La vue : `state/vision.test.ts` (croisée #1712).
  */
-describe('INVARIANT COMBAT — la fenêtre n’ouvre RIEN sauf un cran de couvert', () => {
+describe('INVARIANT COMBAT — la fenêtre n’ouvre pas le passage, coûte un cran de couvert', () => {
   const plain = () => { const s = emptyScene(6, 6); s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-de-chateau' }]; return s; };
   const win = () => { const s = emptyScene(6, 6); s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-de-chateau', window: true }]; return s; };
 
-  it('passage et occultation : IDENTIQUES à un mur plein (wallIsOpen, wallBetween, isWalkable)', () => {
+  it('passage : IDENTIQUE à un mur plein (wallIsOpen, wallBetween, isWalkable)', () => {
     const [p, w] = [plain(), win()];
     expect(wallIsOpen(w, w.walls![0])).toBe(false);
     expect(wallIsOpen(w, w.walls![0])).toBe(wallIsOpen(p, p.walls![0]));

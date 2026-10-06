@@ -1174,7 +1174,7 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
     const centre = nappeOf(scene, 'centre').field;
     const bloc = nappeOf(scene, 'bloc').field;
     expect(nappeOf(scene, 'centre').groupId).not.toBe(nappeOf(scene, 'bloc').groupId);
-    const seams = buildWalls(scene).filter((el) => el.key.includes('centre') && el.key.includes('bloc'));
+    const seams = buildWalls(scene, 'jeu').filter((el) => el.key.includes('centre') && el.key.includes('bloc'));
     expect(seams.length).toBeGreaterThan(0);
     let mesures = 0;
     let auDessusEgout = 0;
@@ -1257,7 +1257,7 @@ describe('La Diligence — les nappes de l’étage se REJOIGNENT (#1186)', () =
     expect(coins).toBeGreaterThan(0);
     expect(auDessusEgout).toBeGreaterThan(coins * 0.8); // seuls les BOUTS du joint touchent encore l'égout
     // Nappes continues au joint : aucun mur de raccord (`walls.ts`) n'a de marche à combler.
-    expect(buildWalls(scene).filter((el) => el.key.startsWith('seam:') && el.cell.z === 1)).toEqual([]);
+    expect(buildWalls(scene, 'jeu').filter((el) => el.key.startsWith('seam:') && el.cell.z === 1)).toEqual([]);
   });
 
   it('chaque corps en `gable` ferme DEUX pignons, les croupes n’en ferment aucun', () => {

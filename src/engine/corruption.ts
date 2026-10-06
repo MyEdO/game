@@ -24,6 +24,7 @@ import { findTableEntry } from './tables';
 import { mutationBodyMaxForSpecies } from '../data';
 import { rollObsession } from '../data/obsessions';
 import { acquerirTalent, retirerTalent } from './careerSlots';
+import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import type { PsychType } from './psychology';
 import type { GameOp } from './ops';
@@ -189,13 +190,25 @@ export function mutationLimitExceeded(c: Combatant): boolean {
   return phys > bonus(effectiveChar(c, 'endurance')) || ment > bonus(effectiveChar(c, 'force-mentale'));
 }
 
+/** `charMod` à plancher résolu en delta FIGÉ sur la base PERMANENTE du porteur (`characteristics` +
+ *  `passiveCharSum`, hors pool volatil) : `max(mod, min(0, plancher − base))`, jamais positif. EDO 11 l.190 ; #1853. */
+function resoudrePlancher(c: Combatant, op: GameOp): GameOp {
+  if (op.op !== 'charMod' || op.min == null) return op;
+  const { min, ...fige } = op;
+  const base = c.characteristics[op.char] + passiveCharSum(c, op.char);
+  return { ...fige, mod: Math.max(op.mod, Math.min(0, min - base)) };
+}
+
 /** Attache une mutation au personnage : donnée + traits dérivés (créature/psychologie). RNG seedable
  *  pour les Cibles TIRÉES (`argFrom:'obsessions'` — Haine sporadique / Terribles phobies, EDOC 12).
+ *  Un `charMod` à plancher (`min`) est FIGÉ sur l'instance en son delta (`resoudrePlancher`).
  *  `grantTrait`/`grantPsychTrait` (noyau PARTAGÉ `grantedTraits.ts`, ci-dessus importé) : MÊME chemin
  *  que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect` porteur — une mutation n'expire
  *  jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les passifs d'une mutation ne passant
- *  pas par `applyOps`. */
-export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG): void {
+ *  pas par `applyOps`. Rend l'instance attachée. */
+export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG = defaultRNG): Mutation {
+  const m = structuredClone(tiree); // #2097
+  if (m.passive) m.passive = m.passive.map((op) => resoudrePlancher(c, op));
   const talentsAcquis: RefDesignee[] = [];
   const src: EffectSource = { kind: 'mutation', id: m.id };
   for (const op of m.passive ?? []) {
@@ -215,10 +228,10 @@ export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG)
       if (acquerirTalent(c, op.talent)) talentsAcquis.push(op.talent);
     }
   }
-  const attachee: Mutation = { ...m };
-  delete attachee.talentsAcquis;
-  if (talentsAcquis.length) attachee.talentsAcquis = talentsAcquis;
-  c.mutations = [...(c.mutations ?? []), attachee];
+  delete m.talentsAcquis;
+  if (talentsAcquis.length) m.talentsAcquis = talentsAcquis;
+  c.mutations = [...(c.mutations ?? []), m];
+  return m;
 }
 
 /** INVERSE structurel d'`attachMutation` : retire l'instance de `c.mutations` (ses passifs charMod/moveMod/

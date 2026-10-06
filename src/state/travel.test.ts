@@ -7,7 +7,7 @@ import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { emptyScene, Scene } from './scene';
 import { buildEncounter } from './encounterAuthoring';
-import { WorldMap } from './worldMap';
+import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
@@ -49,7 +49,7 @@ function sceneB(): Scene {
   return s;
 }
 
-function map(routePatch: Partial<WorldMap['routes'][0]> = {}): WorldMap {
+function map(routePatch: Partial<MapRouteTrace> = {}): WorldMap {
   return {
     id: 'carte-test', label: 'Carte de test',
     places: [

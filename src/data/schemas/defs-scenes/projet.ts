@@ -7,8 +7,8 @@
  * (`../grammaire/document.ts`, #1552) en famille `config` — même code que les defs de configuration
  * sur objet unique (patron `defs/crew-morale.ts`) : l'enveloppe pose `type`, `id`, `label`, `desc`,
  * `icon` et la provenance (`source` ∨ `maison`), la fabrique scelle, et les sémantiques restantes du
- * seam passent par `options.affinerEntree` — FK intra-document `entity.presetId` →
- * `narratif.presetsPnj`. `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
+ * seam passent par `options.affinerEntree` — FK intra-document des références narratives
+ * (`refsNarrativesPendantes` : `entity.presetId`, Effects). `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine` :
  * jamais des `ref()` (une référence intra-document n'entre pas au registre global).
  *
@@ -26,6 +26,7 @@ import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
+import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
 import { PROJECT_MIGRATIONS } from '../../migrationsDeProjet';
 import { versionCourante } from '../../../lib/versionCourante';
 
@@ -79,22 +80,11 @@ export const projetDoc = document(
   {
     affinerEntree: (entree) =>
       entree.superRefine((valeur, ctx) => {
-        const doc = valeur as {
-          scenes: { entities?: { presetId?: string }[] }[];
-          narratif: { presetsPnj: { id: string }[] };
-        };
-        /** FK INTRA-document (#671) : tout `presetId` d'entité de scène résout un preset déclaré. */
-        const presets = new Set(doc.narratif.presetsPnj.map((p) => p.id));
-        doc.scenes.forEach((s, is) => {
-          (s.entities ?? []).forEach((e, ie) => {
-            if (!e.presetId || presets.has(e.presetId)) return;
-            ctx.addIssue({
-              code: 'custom',
-              path: ['scenes', is, 'entities', ie, 'presetId'],
-              message: `preset de PNJ inconnu « ${e.presetId} » (narratif.presetsPnj).`,
-            });
-          });
-        });
+        const doc = valeur as { scenes: unknown[]; worldMap?: unknown; narratif: NarratifAReferences };
+        /** FK INTRA-document (#671, #679) : toute référence narrative des scènes (`presetId` d'entité,
+         *  `documentId`/`indiceId`/`stade` d'Effect, Flows portés compris) et de la carte du monde résout
+         *  au narratif du document — visiteur unique `./refs-narratives.ts`. */
+        for (const f of refsNarrativesPendantes(doc, doc.narratif)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
       }),
   },
 );

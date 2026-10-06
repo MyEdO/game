@@ -33,11 +33,13 @@ export const entiteDuGeste = (sc: Scene, v: Verdict, t: Pt): SceneEntity | undef
 };
 
 /** Les verbes que le porteur du geste tend à la table : franchir un seuil (marche différée, ouverture
- *  d'un battant — il vit dans le hook, qui tient le survol et le pas à pas), grimper, sauter, frapper. */
+ *  d'un battant — il vit dans le hook, qui tient le survol et le pas à pas), grimper, sauter, enjamber,
+ *  frapper. */
 export interface VerbesArete {
   franchir: (portail: RoomPortal) => void;
   grimper: (de: Pt, vers: Pt) => void;
   sauter: (de: Pt, vers: Pt) => void;
+  enjamber: (de: Pt, vers: Pt) => void;
   /** Le clic du Combattant-structure `cid` — celui d'un jeton, rien d'autre : le porteur consulte la
    *  porte partagée (`state/combatOrParty.ts:combatantClickActs`) ; si elle refuse, le clic ne fait
    *  rien (l'inspection est le geste SECONDAIRE du jeton) ; sinon l'aperçu puis le commit sont ceux du
@@ -71,6 +73,7 @@ const GESTES: Readonly<Record<CapaciteArete, GesteArete>> = {
   porte: { armeParSurvol: true, jouer: (arete, { franchir }) => { if (arete.portail) franchir(arete.portail); } },
   escalade: { armeParSurvol: true, jouer: (arete, { grimper }) => traverser(arete, grimper) },
   chute: { armeParSurvol: true, jouer: (arete, { sauter }) => traverser(arete, sauter) },
+  fenetre: { armeParSurvol: true, jouer: (arete, { enjamber }) => traverser(arete, enjamber) },
   structure: { armeParSurvol: false, jouer: (arete, { frapper }) => { if (arete.cid) frapper(arete.cid); } },
 };
 

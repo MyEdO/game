@@ -1771,9 +1771,9 @@ export interface TraitCapabilities {
   mindless?: boolean;
   /** Blessures calculées avec le Bonus de FORCE au lieu du Bonus de Force Mentale (Fabriqué, LDB 85
    *  l.142 : « au lieu d'utiliser son bonus de Force Mentale, utilisez son bonus de Force »). Lu par
-   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (qui porte l'auto-réussite
-   *  des Tests d'Int/FM/Soc et le profil IA « horde »), un autre trait pourrait un jour substituer la
-   *  même formule sans être Fabriqué. */
+   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (immunité psychologique,
+   *  `engine/psych/registry.ts` ; profil IA « horde », `state/ai.ts` — LDB 85 l.142), un autre trait
+   *  pourrait un jour substituer la même formule sans être Fabriqué. */
   woundsUseForce?: boolean;
   bestial?: boolean;
   coldBlooded?: boolean;
@@ -1797,7 +1797,7 @@ export interface TraitCapabilities {
   autoClimb?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « avance à sa vitesse maximale de Mouvement sur toutes les surfaces
    *  appropriées » — coût de Mouvement NORMAL (1 case) au lieu de la ½ vitesse du Talent Grimpeur
-   *  (`climbMovementCost`, joueur, LDB 15 l.53). Orthogonal à `autoClimb` (accueille une future capacité
+   *  (`climbMovementCost`, joueur, LDB 15 l.55). Orthogonal à `autoClimb` (accueille une future capacité
    *  qui réussirait automatiquement sans pour autant grimper à pleine vitesse). */
   climbFullSpeed?: boolean;
   /** Rampant (MSRC 15) : la créature ne peut PAS réaliser d'Action de Course (budget de Course nul). */

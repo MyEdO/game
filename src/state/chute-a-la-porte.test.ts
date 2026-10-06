@@ -8,6 +8,7 @@ import { SEA_PERIL_INTERRUPT } from './seaVoyageFlow';
 import type { MapRoute } from './worldMap';
 import type { Cloture, PendingCascade } from './pendings';
 import { emptyScene, type Dialogue } from './scene';
+import { ouvrirDialogue } from './dialogue';
 import { runCombatFlow, bandeTriggeredTest } from './combat/triggeredTest';
 import { seedBattleRng } from './battleRng';
 import './combatFlow'; // injecte le walker de COMBAT dans la porte des dés (registerSuiteCombat)
@@ -554,7 +555,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
-      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
     expect(useGame.getState().pendingCascade, 'le saut a ouvert son dé de chute').not.toBeNull();
@@ -578,7 +579,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       scheduledEffects: [{ executeAt: 1003, flow: DIT('événement programmé') }],
-      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
     expect(useGame.getState().gameTime, 'l’horloge attend le dé').toBe(1000);
@@ -620,7 +621,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
-      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
     poseLeDe(8);
@@ -652,7 +653,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
       scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
-      screen: 'campaign', dialogue: { dialogue: d, nodeId: 'n1' } as never,
+      screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
     poseLeDe(8);

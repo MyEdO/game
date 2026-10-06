@@ -19,7 +19,7 @@
  *   node scripts/docs/build-sort.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, renderFields, jsdocRole } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 

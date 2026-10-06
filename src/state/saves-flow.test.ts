@@ -28,6 +28,8 @@ import { pruneSeatAssignments } from './seating';
 import { capDuGroupe, poserCapDuGroupe } from './combatants';
 import type { Dir8 } from './dir8';
 import { entityBlockedAt } from './sceneRules';
+import { phaseDeChute } from './fallMove';
+import type { PendingFall } from './pendings';
 import { findPropById, findSpellById } from '../data/index';
 import { spellEffectOps } from './flow';
 import { applyOps } from '../engine/ops';
@@ -257,6 +259,17 @@ describe('parseSave — la version DOIT être la courante', () => {
     expect(useGame.getState().importGame(json)).toBe(true);
     useGame.getState().transitionTo('arene-hub');
     expect(useGame.getState().scene?.id).toBe('arene-hub');
+  });
+  it('MESURE du motif de bump 64 → 65 (#700) : une chute en cours d’avant le flux multi ne se dérive plus', () => {
+    // Une save de 64 porte `pendingFall` tel quel (`snapshotSave` recopie le `state`, et `saveGame` ne
+    // refuse que le combat) : un tombant unique `combatantId`/`attempt`/`phase`, sans `participants`.
+    const ancienne = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choice', result: null };
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(65);
+    expect(parseSave({ ...cur, version: 64, data: { pendingFall: ancienne } })).toBeNull();
+    // LE DÉFAUT, sur le chemin réel : `FallModal` dérive sa phase par `phaseDeChute` à l'ouverture.
+    expect(() => phaseDeChute(ancienne as never)).toThrow(TypeError);
+    const courante: PendingFall = { to: { x: 1, y: 1 }, metres: 4, initiateurId: 'h', participants: [{ id: 'h', attempt: null, result: null }] };
+    expect(phaseDeChute(courante)).toBe('choice');
   });
   it('MESURE du motif de bump 41 → 42 (#1509) : l’empreinte d’un décor à recette TOURNE avec son cap', () => {
     // La scène ÉDITÉE du joueur est PERSISTÉE telle quelle (`snapshotSave` recopie `state.scene`). Rien

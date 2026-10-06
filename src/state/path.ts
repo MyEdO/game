@@ -25,6 +25,11 @@ const key = (x: number, y: number, z = 0) => (z ? `${x},${y},${z}` : `${x},${y}`
  *  d'ensembles `blocked` côté combat (`occupied`/`cannotStopOn`), qui doivent suivre EXACTEMENT ce
  *  schéma (z=0 → « x,y », z>0 → « x,y,z ») pour rester comparables au `footFits` du BFS. */
 export { key as tileKey };
+/** Réciproque de `tileKey` : « x,y » → `{x,y}`, « x,y,z » → `{x,y,z}` (même convention que `pt`). */
+export const tileFromKey = (k: string): Pt => {
+  const [x, y, z = 0] = k.split(',').map(Number);
+  return pt(x, y, z);
+};
 /** 4-cardinaux — SAUTS en ligne droite (Saut LDB 15 : on franchit un gouffre tout droit). */
 const CARDINALS = [
   [1, 0],
@@ -202,8 +207,7 @@ export function walkReachableFrom(scene: Scene, from: Pt): Pt[] {
   const startKey = key(from.x, from.y, z);
   for (const [k, id] of walkComponentsOf(scene)) {
     if (!ids.has(id) || k === startKey) continue;
-    const [cx, cy, cz = 0] = k.split(',').map(Number);
-    out.push(pt(cx, cy, cz));
+    out.push(tileFromKey(k));
   }
   return out;
 }
@@ -400,8 +404,7 @@ export function fleeReachable(scene: Scene, from: Pt, foe: Pt, range: number, en
   const here = chebyshev(from, foe);
   const out = new Map<string, number>();
   for (const [k, v] of reachable(scene, from, range, env)) {
-    const [x, y] = k.split(',').map(Number);
-    if (chebyshev({ x, y }, foe) >= here) out.set(k, v);
+    if (chebyshev(tileFromKey(k), foe) >= here) out.set(k, v);
   }
   return out;
 }
@@ -420,8 +423,7 @@ export function pathTo(scene: Scene, start: Pt, goal: Pt, env: MoveEnv): Pt[] | 
       const path: Pt[] = [];
       let cur: string | null = key(p.x, p.y, pz(p));
       while (cur) {
-        const [x, y, z = 0] = cur.split(',').map(Number);
-        path.unshift(pt(x, y, z));
+        path.unshift(tileFromKey(cur));
         cur = came.get(cur) ?? null;
       }
       return path;

@@ -17,7 +17,7 @@
 // GARDE D'EXHAUSTIVITÉ (exit 1) : toute entrée d'union sans JSDoc exploitable, et toute op qui ne
 // tombe dans AUCUN concept, font échouer la génération — donc la CI (docs:check). Le lexique est
 // forcé de croître avec le vocabulaire.
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
@@ -88,9 +88,9 @@ function rendu() {
     let fn
     const findFn = (n) => {
       if (ts.isFunctionDeclaration(n) && n.name?.text === 'applyOps') fn = n
-      else ts.forEachChild(n, findFn)
+      else n.forEachChild(findFn)
     }
-    ts.forEachChild(sf, findFn)
+    sf.forEachChild(findFn)
     if (!fn) {
       console.error(`${TOOL} — fonction « applyOps » introuvable dans ${path} (la mesure de pureté ne peut pas être dérivée).`)
       process.exit(1)
@@ -99,9 +99,9 @@ function rendu() {
     const findSwitch = (n) => {
       if (sw) return
       if (ts.isSwitchStatement(n)) { sw = n; return }
-      ts.forEachChild(n, findSwitch)
+      n.forEachChild(findSwitch)
     }
-    ts.forEachChild(fn, findSwitch)
+    fn.forEachChild(findSwitch)
     if (!sw) {
       console.error(`${TOOL} — aucun switch dans « applyOps » (${path}).`)
       process.exit(1)

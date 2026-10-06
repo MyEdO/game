@@ -17,7 +17,7 @@
  *   node scripts/docs/build-flux-de-jet.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 

@@ -22,7 +22,7 @@
 // Usage : `npm run ops:worktrees` (inventaire seul) ou `npm run ops:worktrees -- --purger`.
 import { fileURLToPath } from 'node:url'
 import {
-  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, retirerWorktree, reussi, supprimerBranche, worktreesDe,
+  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, refusDeGit, retirerWorktree, reussi, supprimerBranche, worktreesDe,
 } from '../guards/lib/gitPorte.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
 
@@ -177,9 +177,9 @@ export function inventaire({
 export function purger({ principal = RACINE, worktrees, gestes = GESTES_DE_LA_PURGE, nature = natureDuChemin }) {
   const depot = depotDe(principal)
   const joues = []
-  const rendu = (vu) => (vu.disponible
-    ? (vu.absent ? 'objet absent' : `code ${vu.valeur.status}${vu.valeur.stderr.trim() ? ` — ${vu.valeur.stderr.trim()}` : ''}`)
-    : `indisponible — ${vu.raison}`)
+  const rendu = (vu) => (reussi(vu)
+    ? `code ${vu.valeur.status}${vu.valeur.stderr.trim() ? ` — ${vu.valeur.stderr.trim()}` : ''}`
+    : refusDeGit(vu))
   const tentes = []
 
   for (const w of worktrees.filter((x) => x.classe === 'propre+fusionné')) {

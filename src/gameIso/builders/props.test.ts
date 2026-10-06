@@ -240,6 +240,16 @@ describe('buildProps — ornements de bâtiment (data-driven par ArchitectureBod
     expect(poseA(o, { x: 1, y: 3 }, 'S')).toBe(true); // plaqué sur la case sortante, sans saillie
   });
 
+  it('une porte SECRÈTE n’est jamais l’entrée : l’ornement suit la porte publique (EDO 08 l.404)', () => {
+    const s = withRoof('taverne', { x: 1, y: 1, w: 3, h: 3 }, [
+      { x: 3, y: 2, side: 'E', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' } },
+      { x: 0, y: 2, side: 'E', door: true },
+    ]);
+    const [o] = orns(s);
+    expect(o.cell).toEqual({ x: 0, y: 2, z: 0 });
+    expect(o.facing).toBe('O');
+  });
+
   it('repli sans porte : façade SUD sous le centre bas de l’empreinte', () => {
     const s = withRoof('taverne', { x: 2, y: 2, w: 4, h: 2 }); // aucun mur → repli
     const [o] = orns(s);
@@ -487,7 +497,7 @@ describe('buildProps — features de façade authorées', () => {
     expect(volume(enseignes[0]).faces.length).toBeGreaterThan(0);
     expect(poseA(enseignes[0], { x: 3, y: 4.5 }, 'N')).toBe(true);
     expect(socleM(enseignes[0])).toBe(2.2); // `features.sign.liftM` de l'auberge
-    expect(buildWalls(scene).flatMap((wall) => wall.faces)
+    expect(buildWalls(scene, 'jeu').flatMap((wall) => wall.faces)
       .filter((face) => face.architectureFeatureKind === 'sign')).toEqual([]);
   });
 
@@ -507,7 +517,7 @@ describe('buildProps — features de façade authorées', () => {
       id: 'enseigne-de-rue', kind: 'sign', edge: { x: 3, y: 5, side: 'N' }, offset: 0.5,
       ...(appearance ? { appearance } : {}),
     });
-    expect(buildWalls(scene).flatMap((wall) => wall.faces)
+    expect(buildWalls(scene, 'jeu').flatMap((wall) => wall.faces)
       .filter((face) => face.architectureFeatureKind === 'sign')).toEqual([]);
     // ... et le décor, lui, sort bien UNE fois — le verrou ne doit pas avaler la représentation qui reste.
     expect(clesDeFeature(scene).filter((cle) => cle.endsWith(':enseigne-de-rue'))).toHaveLength(1);

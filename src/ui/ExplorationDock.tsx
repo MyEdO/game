@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
+import { t } from '../i18n';
 import type { IconIdInput } from './icons';
 
 /**
@@ -12,6 +13,10 @@ import type { IconIdInput } from './icons';
  * jamais des éléments épars — hors combat le rail d'outils ne se rend pas). Les ÉTATS d'ouverture
  * (dossier, carnet, hub…) restent chez `CampaignView` : ici, une entrée est OFFERTE quand son rappel
  * est fourni — la condition d'apparition vit au call site, jamais dupliquée.
+ *
+ * Extrémité GAUCHE = les GESTES du groupe (« Fouiller la pièce »), un groupe NOMMÉ distinct des écrans :
+ * le pont est la barre d'ACTION hors combat (spec § « LE PONT UNIFIÉ », 2026-08-17 — les ouvreurs
+ * d'écrans restent l'extrémité droite), et un geste qui joue le monde n'ouvre aucun écran.
  *
  * Les entrées portent la peau PARTAGÉE « tôle vissée » (`skin-tole` + `data-ton="laiton"`,
  * components.css) : le pont est une plaque, pas une barre de panneaux — et aucune propriété de
@@ -32,29 +37,38 @@ export type ExplorationDockProps = {
   hub?: { label: string; icon: IconIdInput; onOpen: () => void };
   /** Dormir/camper hors lieu — le `title` porte la nuance (auberge / chez soi / belle étoile). */
   rest?: { title: string; onOpen: () => void };
+  /** Fouiller la pièce où se tient le groupe (`fouillerLaPiece`) — offert DANS une pièce. */
+  onFouiller?: () => void;
   /** Tiroir-journal (`LogDrawer`) : DERNIÈRE entrée de la rangée hors combat. */
   journal?: ReactNode;
 };
 
-export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoyage, worldMap, hub, rest, journal }: ExplorationDockProps) {
+export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoyage, worldMap, hub, rest, onFouiller, journal }: ExplorationDockProps) {
   return (
     <div className="exploration-dock skin-pont" data-deck="exploration">
-      <div className="xd-openers" aria-label="Écrans de campagne">
-        <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title="Possessions du groupe">
+      {onFouiller && (
+        <div className="xd-openers" data-bord="gauche" role="group" aria-label={t('pont.gestes')}>
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onFouiller} title={t('fouille.geste')}>
+            <Icon id="ui/search" size="lg" />
+          </button>
+        </div>
+      )}
+      <div className="xd-openers" aria-label={t('pont.ecrans')}>
+        <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title={t('pont.possessions')}>
           <Icon id="travel/mount" size="lg" />
         </button>
         {onCarnet && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onCarnet} title="Carnet d’enquête">
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onCarnet} title={t('pont.carnet')}>
             <Icon id="nav/compendium" size="lg" />
           </button>
         )}
         {onShipDossier && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onShipDossier} title="Dossier du navire — état, cargaison, équipage">
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onShipDossier} title={t('pont.dossierNavire')}>
             <Icon id="travel/sail-ship" size="lg" />
           </button>
         )}
         {onVoyage && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onVoyage} title="Rouvrir l’écran de voyage">
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onVoyage} title={t('pont.voyage')}>
             <Icon id="travel/sail-ship" size="lg" />
           </button>
         )}
@@ -64,13 +78,13 @@ export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoya
             className={`worldmap-btn skin-tole ${worldMap.interrupted ? 'attention' : ''}`}
             data-ton="laiton"
             onClick={worldMap.onOpen}
-            title={worldMap.interrupted ? 'Carte du monde — voyage interrompu (reprendre)' : 'Carte du monde — voyager'}
+            title={t(worldMap.interrupted ? 'pont.carteInterrompue' : 'pont.carte')}
           >
             <Icon id="nav/campaign" size="lg" />
           </button>
         )}
         {hub && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={hub.onOpen} title={`${hub.label} — services du lieu`}>
+          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={hub.onOpen} title={t('pont.hub', { lieu: hub.label })}>
             <Icon id={hub.icon} size="lg" />
           </button>
         )}

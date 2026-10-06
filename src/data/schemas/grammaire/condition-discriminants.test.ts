@@ -1,3 +1,4 @@
+import { ast } from '../../../../scripts/guards/lib/dialecte.mjs';
 /**
  * VERROU D'UNION de `Condition` (#1466 L1a T3-c, sonde du juge promue en garde).
  *
@@ -17,7 +18,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import { conditionSchema } from './mecanique';
 import { defDe, enfantsDe, ouverts } from './descente';
 
@@ -26,7 +27,7 @@ const FLOW_CORE = fileURLToPath(new URL('../../../engine/flowCore.ts', import.me
 /** Les `kind` de l'union manuscrite `Condition`, lus à l'AST. Un membre sans littéral `kind` sort
  *  sous une clé `<…>` PARLANTE : il ferait rougir l'égalité au lieu de disparaître en silence. */
 function kindsDuType(): string[] {
-  const sf = ts.createSourceFile(FLOW_CORE, readFileSync(FLOW_CORE, 'utf8'), ts.ScriptTarget.ESNext, true);
+  const sf = ast({ rel: FLOW_CORE, text: readFileSync(FLOW_CORE, 'utf8') })!;
   const kinds: string[] = [];
   sf.forEachChild((n) => {
     if (!ts.isTypeAliasDeclaration(n) || n.name.text !== 'Condition') return;
@@ -36,8 +37,8 @@ function kindsDuType(): string[] {
         kinds.push(`<non-literal: ${m.getText().slice(0, 40)}>`);
         continue;
       }
-      const k = m.members.find((mm) => ts.isPropertySignature(mm) && mm.name?.getText() === 'kind') as
-        | ts.PropertySignature
+      const k = m.members.find((mm) => ts.isPropertySignatureDeclaration(mm) && mm.name?.getText() === 'kind') as
+        | ts.PropertySignatureDeclaration
         | undefined;
       kinds.push(
         k?.type && ts.isLiteralTypeNode(k.type)
@@ -55,7 +56,12 @@ function kindsDuSchema(): string[] {
   const union = ouverts([conditionSchema]).find((n) => defDe(n)?.type === 'union');
   return enfantsDe(union)
     .filter((e) => e.segment.startsWith('|'))
-    .map(({ noeud }) => [...(defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values as Iterable<string>)][0]);
+    .map(({ noeud }) => {
+      const valeurs = defDe(enfantsDe(noeud).find((e) => e.cle === 'kind')?.noeud)?.values;
+      if (!Array.isArray(valeurs) || valeurs.length !== 1 || typeof valeurs[0] !== 'string')
+        throw new Error('Discriminant kind absent ou non littéral de chaîne unique');
+      return valeurs[0];
+    });
 }
 
 describe('`conditionSchema` — verrou d\'union : les discriminants du SCHÉMA == ceux du TYPE', () => {

@@ -1,10 +1,9 @@
-import { type Scene, type SceneEntity, isDescriptiveZone, isWalkable } from './scene';
+import { type Scene, type SceneEntity, isWalkable } from './scene';
 import { entityBlockedAt } from './sceneRules';
 import { pathTo, walkNeighbors, type MoveEnv, type Pt } from './path';
 import { portalsForParty } from './roomPortals';
 import { memeCase, placesJouables, seatSlotsOf } from './seating';
 import { estUtilisable } from './usable';
-import { sceneZoneTiles } from './zones';
 import { screenStepDot, type ScreenDir } from './combatCursor';
 import { type Dims } from '../geometry/iso';
 import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from './dir8';
@@ -154,20 +153,7 @@ export function exploreMovePlan(
   if (!dest) return null;
   const path = pathTo(scene, partyPos, dest, opts);
   if (!path || path.length < 2) return null;
-  const z = partyPos.z ?? 0;
-  const occupiedZoneIds = new Set(
-    (scene.effectZones ?? [])
-      .filter((zone) =>
-        isDescriptiveZone(zone)
-        && zone.presentation === 'interior'
-        && (zone.z ?? 0) === z
-        && sceneZoneTiles(zone).some((point) =>
-          point.x === partyPos.x
-          && point.y === partyPos.y
-          && (point.z ?? zone.z ?? 0) === z))
-      .map((zone) => zone.id),
-  );
-  const portal = portalsForParty(scene, partyPos, occupiedZoneIds).find((candidate) =>
+  const portal = portalsForParty(scene, partyPos).find((candidate) =>
     candidate.to.x === tile.x
     && candidate.to.y === tile.y
     && (candidate.to.z ?? 0) === (tile.z ?? 0));

@@ -15,7 +15,7 @@ import {
   type PursuitPayload,
 } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type SequenceState } from './sequenceCore';
+import { closeSequenceRound, type SequenceState, type MancheClose } from './sequenceCore';
 import { startCascade } from './cascade';
 import { monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { combatStakeRef } from '../data';
@@ -25,7 +25,7 @@ import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import type { PendingCascade, CascadeStep } from './pendings';
+import type { CascadeStep } from './pendings';
 
 function heroes() {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
@@ -36,7 +36,7 @@ function heroes() {
 
 /** Cascade FIGÉE de manche : la BANDE de la manche, une rangée par coureur ayant roulé son Test de
  *  Mouvement (`sl` imposé) — sert à tester la clôture de manche (`closeSequenceRound`) sans UI. */
-function doneRound(party: { id: string }[], sl: number): PendingCascade {
+function doneRound(party: { id: string }[], sl: number): MancheClose {
   const participants: CascadeStep[] = [{
     id: 'pursuit-1', kind: 'pursuitMove', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: party.map((h) => ({
@@ -44,7 +44,7 @@ function doneRound(party: { id: string }[], sl: number): PendingCascade {
       result: { roll: 40, target: 40, sl, success: sl >= 0 },
     })),
   }];
-  return { title: 't', purpose: 'sequence', participants, cursor: participants.length, log: [] };
+  return { participants };
 }
 
 /** SÉQUENCE de poursuite EN COURS — l'état vit dans le socle (`sequence`), la poursuite en est la
@@ -98,7 +98,7 @@ describe('Poursuite terrestre (#95)', () => {
   });
 
   it('PORTE : une référence de créature cassée est REFUSÉE à la validation (aucune stat à lire)', () => {
-    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true };
+    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set<string>(), npcSheet: () => undefined, within: () => true, walkable: () => true };
     const eff = (creatureId: string) => ({
       type: 'startPursuit' as const, partyRole: 'fleeing' as const, distance: 4, skill: { id: 'athletisme' },
       foes: [{ ref: { creatureId } }],

@@ -5,8 +5,8 @@
 //   1. `origin` ne pointe pas `github.com/<DEPOT>` (`scripts/guards/lib/ticketsGh.mjs`) ;
 //   2. un STOCK NOMINATIF qui grandit quelque part dans la PLAGE poussée, sans que le message de SON
 //      commit le dise (`scripts/guards/lib/plageStock.mjs`) : les portes de stock du commit et du
-//      DERNIER commit ne voient qu'une tête, et un commit intermédiaire leur échappe (revue de
-//      palier n°2, 2026-09-03 — `429b9a1a2` a traversé les deux, six heures après leur pose) — et,
+//      DERNIER commit ne voient qu'une tête, et un commit intermédiaire leur échappe (revue du
+//      2026-09-03 — `429b9a1a2` a traversé les deux, six heures après leur pose) — et,
 //      par la même lecture, un RECLASSEMENT CSS non déclaré, chaque commit contre sa base
 //      (`reclassementsDeLaPlage`, même fichier) ;
 //   3. un push NON fast-forward vers une ref distante EXISTANTE. Une ref neuve ne peut écraser aucune
@@ -30,7 +30,7 @@
 import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, depotDe, estAncetre, origineDe, refusDeGit, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
@@ -68,7 +68,7 @@ export function jugerPush({ cwd, stdin }) {
   // Les lectures git passent par les questions de l'hôte unique : `null` dit « l'objet n'existe pas »,
   // et une INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const refus = []
   const notes = []
 
@@ -93,7 +93,7 @@ export function jugerPush({ cwd, stdin }) {
     } else {
       const ancetre = estAncetre(depot, shaDistant, shaLocal)
       if (!ancetre.disponible)
-        refus.push(`${refLocale} → ${refDistante} : ascendance illisible — ${ancetre.raison}`)
+        refus.push(`${refLocale} → ${refDistante} : ascendance illisible — ${refusDeGit(ancetre)}`)
       else if (ancetre.absent)
         refus.push(
           `push vers ${refDistante} non jugé : ${shaDistant.slice(0, 7)} est inconnu de ce dépôt — `

@@ -203,10 +203,12 @@ export const startDialogueSchema = z.strictObject({
 
 export const journalSchema = z.strictObject({ type: z.literal('journal'), desc: z.string() });
 
-export const documentSchema = z.strictObject({ type: z.literal('document'), title: z.string(), desc: z.string() });
+/** Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse
+ *  du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). */
+export const documentSchema = z.strictObject({ type: z.literal('document'), documentId: z.string() });
 
 /** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
- *  `campaignNarratif`. `stade` omis → premier stade si l'indice est encore caché, sinon no-op. */
+ *  `campaignNarratif`. `stade` omis → `revealClue` (`state/clues.ts`). */
 export const revealClueSchema = z.strictObject({
   type: z.literal('revealClue'),
   indiceId: z.string(),
@@ -398,15 +400,23 @@ export const fallSchema = z.strictObject({
  *  tout intérieur (donjon, salle, théâtre). null implicite = auto (horloge/ambiance) tant qu'aucun setLight. */
 export const setLightSchema = z.strictObject({ type: z.literal('setLight'), level: z.number() });
 
-/** Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side) — une porte
- *  fermée bloque vue ET passage. Pour un levier/piège/scripted authored. */
+/** Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side), et/ou RÉVÈLE
+ *  une porte secrète (`setDoorRevealed`, `EDO 08 l.404`) — `revealed` s'applique AVANT `open` —, et/ou
+ *  pose la marque de TENTATIVE de sa découverte (`attempted`, `setDoorTentee` ; arbitrage #700,
+ *  2026-09-29). Une porte fermée bloque vue ET passage. Pour un levier/piège/scripted authored. */
 export const setDoorSchema = z.strictObject({
   type: z.literal('setDoor'),
   x: z.number(),
   y: z.number(),
   side: wallSideSchema,
   z: z.number().optional(),
-  open: z.boolean(),
+  open: z.boolean().optional(),
+  revealed: z.boolean().optional(),
+  attempted: z.boolean().optional(),
+}).superRefine((v, ctx) => {
+  if (v.open === undefined && v.revealed === undefined && v.attempted === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['open'], message: "setDoor : au moins l'un de `open`, `revealed` ou `attempted`" });
+  }
 });
 
 /** Repositionne (ANIMÉ) ou RETIRE une entité de scène posée — mise en scène scriptée (#701 : fuite,
@@ -471,7 +481,7 @@ const sortSchema: z.ZodType<string, string> = idDe('spell');
  *  héros que son Talent de lanceur rend éligible, désigné ou non — sinon refus NOMMÉ au journal
  *  (`LDB 46 l.14`). Cible : héros désigné, sinon le premier dont un Talent rend le sort apprenable ;
  *  la garde est celle de l'achat (`spellCost`). L'apprentissage PAYANT passe par l'onglet Avancement
- *  (buySpell, `LDB 46 l.44-47`). */
+ *  (buySpell, `LDB 46 l.16-20`). */
 export const learnSpellSchema = z.strictObject({
   type: z.literal('learnSpell'),
   spell: sortSchema,

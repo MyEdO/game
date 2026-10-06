@@ -31,7 +31,7 @@ interface Segment {
 }
 
 /** Ce qu'une capacité peint SUR son segment : les classes de son groupe, ses marques et le CURSEUR de
- *  sa prise. Le trait de PRISE (transparent, a11y) est commun aux quatre et vit hors de la table. */
+ *  sa prise. Le trait de PRISE (transparent, a11y) est commun à toutes et vit hors de la table. */
 interface Matiere {
   classes: (arete: AreteUtilisable, accentuee: boolean) => string;
   marques: (arete: AreteUtilisable, seg: Segment, accentuee: boolean) => ReactNode;
@@ -41,7 +41,7 @@ interface Matiere {
   cursor: string;
 }
 
-/** Trait de DÉNIVELÉ (escalade, chute) : le même pointillé sobre pour les deux gestes, à l'encre
+/** Trait de DÉNIVELÉ (escalade, chute, fenêtre) : le même pointillé sobre pour ces gestes, à l'encre
  *  `--iso-climb`, sur toute l'arête ; l'armement (survol, focus, tap-1) le rend franc. */
 const denivele: Matiere = {
   cursor: 'pointer',
@@ -156,13 +156,15 @@ const fortification: Matiere = {
   marques: () => null,
 };
 
-/** LA table : une capacité, une matière. Les deux gestes de DÉNIVELÉ partagent la leur — même trait,
- *  même encre, même largeur (verdict de design du 2026-09-10) ; ce qui les distingue est leur SOURCE
- *  (deux dériveurs) et leur libellé, tous deux déjà tranchés en amont. */
+/** LA table : une capacité, une matière. Les gestes de DÉNIVELÉ partagent la leur — même trait,
+ *  même encre, même largeur (verdict de design du 2026-09-10) ; la fenêtre la reprend, une même
+ *  croisée portant la chute à l'étage et l'enjambement de plain-pied. Ce qui les distingue est leur
+ *  SOURCE (leur dériveur) et leur libellé, déjà tranchés en amont. */
 const MATIERE: Readonly<Record<CapaciteArete, Matiere>> = {
   porte: seuil,
   escalade: denivele,
   chute: denivele,
+  fenetre: denivele,
   structure: fortification,
 };
 

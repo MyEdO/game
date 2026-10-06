@@ -6,7 +6,7 @@
  * exploré, teinte, lumières, éléments (jetons/décors), marche, dégagement, perçage, cadre de regard.
  * Ça vit ICI, et une feuille n'en recalcule aucune. Le reste est de l'OVERLAY : la surcouche de
  * plateau dérive bel et bien sa propre géométrie d'affordance (grille, murs au trait `wallTraitObjs`,
- * accès de pièce `portalsForParty`, réticules, FX) — rien de tout cela n'atteint le canevas, et un
+ * arêtes utilisables `aretesUtilisables`, réticules, FX) — rien de tout cela n'atteint le canevas, et un
  * regard qui ne les montre pas ne les paie pas.
  *
  * CE QUI DÉPEND DU REGARD SE PARAMÈTRE, et se compte : SIX branches, plus le slot de surcouche.
@@ -26,7 +26,8 @@ import { heightAt, isIndoor, liftDe, sceneMetresPerTile } from '../../state/scen
 import { computeStateVisibleAndLight, sceneLightSources } from '../../state/visionState';
 import { capDuGroupe, meneurDuMonde } from '../../state/combatants';
 import { placingZoneOf } from '../../state/combatFlow';
-import { controlsActive } from '../../state/netOwnership';
+import { controlsActive, controlsCombatant } from '../../state/netOwnership';
+import { GESTES_DEPLACANTS, gestesDeplacantsOuverts } from '../../state/gesteDArete';
 import { Dims, capsuleCenter } from '../../geometry/iso';
 import { etageActif, getViewZ, subscribeViewZ } from '../../state/viewLevel';
 import { setStageFrame } from './spritePicker';
@@ -57,15 +58,13 @@ import { visibilityField } from '../backends/webgl/visibilityTint';
 import { useExploreCourant } from './exploreCourant';
 import { roomZonesByElKey, type KeepEl, type TintAt } from '../backends/webgl/sceneMeshes';
 import { stageCamTransform, stageYawCorrection } from './stageCam';
-import { roomCutawayAllies, roomFocusAt } from './roomFocus';
 import { NO_CLEARED_SPACE, frontFacadeCutaway, cutawayForSection, cutawayOverhead, spaceCellKey } from './architectureVisibility';
 import { clePercage } from './percage';
 import { useStageCamera, cameraTargeting, stageFocus, computeViewBounds, adoucirFocal, DUREE_FOCALE_MS, VW, VH, type LissageFocal } from './useStageCamera';
 import { useStagePointer } from './useStagePointer';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { aretesUtilisables } from '../../state/aretes';
-import { portalsForParty } from '../../state/roomPortals';
-import { occupiedInteriorZoneIds } from './roomFocus';
+import { roomFocusAt } from '../../state/rooms';
 import type { Pt } from '../../state/path';
 import { inBattleId } from '../../state/combatants';
 import { useHoverTargeting } from './useHoverTargeting';
@@ -115,6 +114,8 @@ function CorpsDuMonde() {
   const actorAim = useGame((s) => s.actorAim);
   // COOP : le tour du héros d'un AUTRE joueur s'affiche comme un tour ennemi — AUCUNE affordance.
   const myTurn = useGame(controlsActive);
+  // Gestes d'arête que le mobile peut accomplir MAINTENANT — le verdict même de l'action (`state/gesteDArete.ts`).
+  const gestesOuverts = useGame(gestesDeplacantsOuverts);
   const planView = useGame((s) => s.pendingRoundStart?.round === 1); // ouverture : cadrer tout le champ
   const pendingAttack = useGame((s) => s.pendingAttack);
   const pendingCast = useGame((s) => s.pendingCast);
@@ -171,6 +172,9 @@ function CorpsDuMonde() {
   // Étages rendus = l'ACTIF + ceux du DESSOUS (sélection des builders). Override DEBUG viewLevel(z).
   const viewZ = useSyncExternalStore(subscribeViewZ, getViewZ, getViewZ);
   const activeC = mode === 'battle' && battle ? inBattleId(battle, battle.order[battle.turn]) : undefined;
+  // Le siège local MÈNE-t-il l'actif ? (`controlsCombatant`, pas le camp : un ennemi mené par le siège MJ
+  // en est, un héros en Auto-combat non.)
+  const meneLActif = useGame((s) => !!activeC && controlsCombatant(s, activeC));
   // L'étage actif se DÉDUIT (`state/viewLevel.ts:etageActif`), il ne se recalcule pas ici : le
   // picking résout sur le MÊME étage que celui-ci montre, sinon la sonde de recette et le clic
   // désignent des couches différentes.
@@ -365,7 +369,7 @@ function CorpsDuMonde() {
     () => scene ? roomFocusAt(scene, { x: Math.round(visualPartyPos.x), y: Math.round(visualPartyPos.y), z: visualPartyPos.z }) : null,
     [scene, visualPartyPos.x, visualPartyPos.y, visualPartyPos.z],
   );
-  const cutawayAllies = debugRoofCut ? roomCutawayAllies(roomFocus, visualAllies) : undefined;
+  const cutawayAllies = debugRoofCut && roomFocus ? visualAllies : undefined;
   // Le monde glisse dans la boucle de rendu et React ne rend plus rien entre deux pas — ni pendant un
   // glisser-caméra, ni pendant l'approche d'une focale. Ce que l'hôte écrit HORS de React suit donc
   // le BATTEMENT (`stage/stageFrames`) : la caméra que lisent les handlers du pointeur (`camRef` —
@@ -579,39 +583,38 @@ function CorpsDuMonde() {
   // incantation (tooltip + gabarit ZdE), et flux différés (Frappe Mortelle / 2ᵉ frappe / Surincantation).
   const hoverTracking =
     mode === 'battle' && !!battle && !battle.over &&
-    (((battle.action === null || battle.action === 'cast') && activeC?.kind === 'hero') ||
+    (((battle.action === null || battle.action === 'cast') && meneLActif) ||
       !!preemptAiming || // Tir rapide armé pendant la pause : on suit le survol (réticule + trait de visée) alors qu'il n'y a AUCUN actif
       !!pendingCleave || !!pendingDualStrike || !!pendingCast?.pickingTargets || !!placingZoneOf({ pendingCast, pendingSiegeAim, battle }));
   // Le picking inverse la projection COMMISE : exacte à chaque commit du lacet (cran, départ, arrêt,
   // pose au pointeur). PENDANT un maintien entre deux crans, elle retarde du lacet parcouru depuis le
   // dernier commit — jusqu'à un demi-cran, le temps du geste (#1403).
-  // ── Accès de PIÈCE et ARÊTES UTILISABLES ──────────────────────────────────────────────
-  // `portalsForParty` lit les accès de la scène (mémoïsés) et, hors zone intérieure, ne garde que les
-  // sorties de la COMPOSANTE marchable du groupe (`walkComponentAt`, étiquetage bâti une fois par
-  // scène — #1416). Ses seules vraies entrées sont la SCÈNE (réf neuve dès qu'une porte s'ouvre —
-  // `wallEdges`/`doorIsOpen` lisent `scene.flags`) et la case de CONTRÔLE arrondie ; le glissement
-  // visuel d'une marche n'en fait pas partie, donc une image d'animation ne recalcule aucun accès (#817).
+  // ── ARÊTES UTILISABLES ──────────────────────────────────────────────
+  // Les accès de pièce en font partie : `aretesUtilisables` les dérive du CONTRÔLEUR
+  // (`portalsForParty`). La case de CONTRÔLE est retenue sur sa clé : le glissement visuel
+  // d'une marche n'en fait pas partie, donc une image d'animation ne recalcule aucun accès (#817).
   const doorCtrlKey = combatBattle
-    ? (myTurn && activeC?.kind === 'hero' && activeC.pos ? `${activeC.id}@${activeC.pos.x},${activeC.pos.y},${activeC.pos.z ?? 0}` : '')
+    ? (meneLActif && activeC?.pos ? `${activeC.id}@${activeC.pos.x},${activeC.pos.y},${activeC.pos.z ?? 0}` : '')
     : `party@${partyPos.x},${partyPos.y},${partyPos.z ?? 0}`;
   const doorCtrls = useMemo<Pt[]>(
-    () => (combatBattle ? (myTurn && activeC?.kind === 'hero' && activeC.pos ? [activeC.pos] : []) : [partyPos]),
+    () => (combatBattle ? (meneLActif && activeC?.pos ? [activeC.pos] : []) : [partyPos]),
     [doorCtrlKey],
-  );
-  const portals = useMemo(
-    () => (scene && doorCtrls.length ? portalsForParty(scene, doorCtrls[0], occupiedInteriorZoneIds(scene, doorCtrls)) : []),
-    [scene, doorCtrls],
   );
   // Les ARÊTES que le picking consulte AVANT le rayon, et que le peintre unique rend : UNE population,
   // dérivée ici (`state/aretes.ts`) et projetée là (`stage/aretesProjetees.ts`). Le CONTRÔLEUR est le
   // même pour les quatre capacités — celui qui borde les seuils et qui FRAPPE : le groupe hors combat,
-  // le héros actif quand c'est mon tour, personne sinon. Le COMBAT entre avec lui : une fortification
+  // l'actif que ce siège mène, personne sinon. Le COMBAT entre avec lui : une fortification
   // d'arête n'est une cible que tant qu'un Combattant la tient (`state/combatSlice.ts` l'enrôle), et
   // une arête qui porte un seuil ET une fortification sort en structure — `PRIORITE_ARETES` tranche, pas l'ordre
   // de peinture.
+  // Un geste d'arête que l'action refuserait (`gesteDArete`) n'est pas offert : afficher = agir.
   const aretes = useMemo(
-    () => (scene ? aretesUtilisables({ scene, visible, controleur: doorCtrls[0] ?? null, activeZ, battle: combatBattle, portails: portals }) : []),
-    [scene, visible, activeZ, portals, doorCtrls, combatBattle],
+    () => {
+      if (!scene) return [];
+      return aretesUtilisables({ scene, visible, controleur: doorCtrls[0] ?? null, activeZ, battle: combatBattle })
+        .filter((a) => gestesOuverts || !(GESTES_DEPLACANTS as readonly string[]).includes(a.capacite));
+    },
+    [scene, visible, activeZ, doorCtrls, combatBattle, gestesOuverts],
   );
   const aretesEcran = projeterAretes(aretes, dimsVue, liftOf);
   // La réf ne se pose qu'au COMMIT, comme celle de la caméra : un rendu jeté avant commit publierait

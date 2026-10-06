@@ -155,9 +155,8 @@ export function PartyScreen() {
 }
 
 /** Modale de choix de la campagne : l'Arène (intégrée) + les projets PUBLIÉS de l'éditeur.
- *  `currentId` = id de la campagne active (`'arene'` pour l'intégrée, `undefined` si une vieille
- *  save persistée sans id — aucun surlignage, pas de crash, #608 Lot B). */
-function CampaignSelect({ currentId, onClose }: { currentId: string | undefined; onClose: () => void }) {
+ *  `currentId` = id de la campagne active (`'arene'` pour l'intégrée, #608 Lot B). */
+function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: () => void }) {
   const setPendingCampaign = useGame((s) => s.setPendingCampaign);
   const published = useState(() => publishedProjects())[0];
   const [refusEntree, setRefusEntree] = useState<string | null>(null);

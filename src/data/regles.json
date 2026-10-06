@@ -101,7 +101,20 @@
     "id": "main-secondaire",
     "type": "regles",
     "label": "Attaque de la main secondaire",
-    "desc": "Vous pouvez utiliser n'importe quelle main pour effectuer une attaque. Les attaques effectuées avec votre main secondaire subissent une pénalité de -20 sur tous les Tests applicables (voir Difficulté de Combat pour plus d'informations.)",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "combat-sup-a-sup-deux-armes",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "357bff58dadb3123"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 163,
@@ -112,7 +125,20 @@
     "id": "viser-une-localisation",
     "type": "regles",
     "label": "Viser une Localisation",
-    "desc": "Une attaque ou un tir qui cherche à atteindre une Localisation particulière. Sur un succès, vous touchez à l'endroit désiré.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
@@ -123,7 +149,20 @@
     "id": "viser",
     "type": "regles",
     "label": "Viser",
-    "desc": "Tirer alors que vous avez passé votre dernière action à viser (pas de Test exigé pour viser).",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
@@ -158,7 +197,20 @@
     "id": "tir-en-mouvement",
     "type": "regles",
     "label": "Tirer en se déplaçant",
-    "desc": "Tirer pendant un Round où vous utilisez aussi votre Mouvement.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
@@ -289,7 +341,20 @@
     "id": "ragot-au-marche",
     "type": "regles",
     "label": "Ragot au marché (bonus de Disponibilité)",
-    "desc": "Les pourcentages de Disponibilité peuvent être augmentés de +10 % ou +20 % si un Personnage est particulièrement assidu, appartient à une Carrière cohérente telle que Marchand ou Receleur, ou passe une journée entière à effectuer des achats et des Tests de Ragot.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "59",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "interpreter-les-seances-d-achats",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "d3d2e1ff88bbadf6"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 291,
@@ -396,7 +461,20 @@
     "id": "surincantation-des-sorts-d-augure",
     "type": "regles",
     "label": "Surincantation des Sorts d'Augure",
-    "desc": "| DR         | Effet                                                    |  |\n|------------|----------------------------------------------------------|--|\n| 1          | Effectuez un lancer sur le Tableau des Symboles.      |  |\n| 2          | Effectuez un lancer sur le Tableau des Symboles.      |  |\n| 3          | Choisissez un symbole sur le Tableau des Symboles.    |  |\n| 5          | Choisissez un symbole sur le Tableau des Symboles.    |  |\n| 8          | Effectuez deux lancers sur le Tableau des Symboles.   |  |\n| 13         | Effectuez deux lancers sur le Tableau des Symboles.   |  |\n| 21 ou plus | Choisissez deux symboles sur le Tableau des Symboles. |  |",
+    "descRef": {
+      "book": "vents-de-la-magie",
+      "ch": "03",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "table-de-surincantation-des-sorts-d-augure",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "274ba0789190a9a7"
+        }
+      ]
+    },
     "source": {
       "book": "vents-de-la-magie",
       "page": 46,
@@ -481,7 +559,20 @@
     "id": "maladresse-tableau-des-oups",
     "type": "regles",
     "label": "Maladresse (Tableau des Oups !)",
-    "desc": "Vous avez mal négocié votre manœuvre, ce qui vous met en mauvaise posture, ou vous perdez la prise de votre arme à distance. Au cours du prochain Round, votre Action subira une pénalité de -10.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maladresses",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "c2f31897ecdfda00"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 160,
@@ -616,7 +707,20 @@
     "id": "attaque-de-flanc-ou-de-dos",
     "type": "regles",
     "label": "Attaquer de flanc ou de dos",
-    "desc": "Attaquer un adversaire Engagé dans le dos ou sur les côtés.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
@@ -627,7 +731,20 @@
     "id": "cible-en-contrebas",
     "type": "regles",
     "label": "Attaquer en contrebas de la cible",
-    "desc": "Attaquer alors que vous êtes À Terre (voir page 168) ou en-dessous de votre cible.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
@@ -662,7 +779,20 @@
     "id": "cible-dissimulee",
     "type": "regles",
     "label": "Cible dissimulée (brouillard, brume, obscurité)",
-    "desc": "La cible du tir est dissimulée par le brouillard, la brume ou l'obscurité.",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
     "source": {
       "book": "livre-de-base",
       "page": 161,
@@ -769,7 +899,20 @@
     "id": "navigation-derive",
     "type": "regles",
     "label": "Navigation — Dérive",
-    "desc": "- 2. Le bateau dérive en aval à 25 % de sa vitesse de mouvement normale ; les Tests de **Navigation** subissent un malus de –10.",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "notes",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "07984432152a722d"
+        }
+      ]
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 28,
@@ -780,7 +923,20 @@
     "id": "navigation-louvoyage",
     "type": "regles",
     "label": "Navigation — Louvoyage",
-    "desc": "- 3. Cette augmentation de la vitesse n'est possible qu'en faisant louvoyer le bateau ; pour cela, un Test de **Navigation Accessible (+20)** est nécessaire.",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "notes",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "07984432152a722d"
+        }
+      ]
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 28,
@@ -791,7 +947,20 @@
     "id": "navigation-chavirage",
     "type": "regles",
     "label": "Navigation — Chavirage et redressement",
-    "desc": "- 4. Un Test de **Navigation Accessible (+20)** doit être effectué pour retirer la voile avant que le bateau ne soit renversé. Si le Test échoue, la voile et le gréement tombent, le bateau se renverse et commence à prendre l'eau. Les Personnages peuvent faire un seul Test de **Navigation Accessible (+20)** par Round pour essayer de redresser le bateau ; chaque Test échoué ajoute un malus de -5 au Test suivant. S'il n'est pas redressé, le bateau coule en un nombre de tours égal à son Bonus d'Endurance.",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "notes",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "07984432152a722d"
+        }
+      ]
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 28,
@@ -802,7 +971,20 @@
     "id": "navigation-greement",
     "type": "regles",
     "label": "Navigation — Avarie de gréement",
-    "desc": "- 5. Un Test de **Navigation Accessible (+20)** est nécessaire pour éviter que la voile et le gréement subissent des dégâts. Si le Test échoue, traitez le résultat comme un Coup Critique au gréement (voir plus bas). Le bateau dérive, hors de contrôle, à 25 % de sa vitesse normale, sans compter la force et la direction du vent qu'il faudra aussi ajouter. Les Tests de **Navigation** pour tenter de diriger le bateau subissent un malus de -20.",
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "notes",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 0,
+          "sum": "07984432152a722d"
+        }
+      ]
+    },
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 28,
@@ -1105,7 +1287,7 @@
     "source": {
       "book": "mer-des-griffes",
       "page": 104,
-      "note": "MDG 13 l.66-75 — transcription DÉCLARÉE du tableau PROGRESSION : l'extraction le rend malformé (deux colonnes vides, en-tête scindé sur deux lignes, sauts de ligne en balises que la règle 5 interdit en prose). Bandes et libellés vérifiés un à un ; la phrase d'introduction (l.66) est verbatim."
+      "note": "MDG 13 l.66-75 — transcription DÉCLARÉE du tableau PROGRESSION : le Source (l.68-75) est conforme au PDF (folio 104) ; la desc omet la bannière PROGRESSION (l.68) et promeut la ligne DR / Effet (l.70) en en-tête GFM. Bandes et libellés vérifiés un à un ; la phrase d'introduction (l.66) est verbatim."
     }
   },
   {

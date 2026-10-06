@@ -4,6 +4,7 @@ import { FLOW_HANDLERS, FLOW_VERBS } from './rollFlowSpecs';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { rowForcedDie, type FlowKey } from '../ui/forcedDieRow';
 import type { Combatant } from '../engine/types';
+import { cascadeDeTest } from './cascadeTestKit';
 
 /**
  * GARDE EXHAUSTIVE de l'option « Dés fixés » — le socle, pas 36 copies.
@@ -113,7 +114,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     }),
   },
   cascade: {
-    state: { pendingCascade: { cursor: 0, participants: [{ id: 's1', actorId: 'H', target: T, result: { roll: 88, target: T, sl: -4, success: false } }] } },
+    state: { pendingCascade: cascadeDeTest([{ id: 's1', kind: 'test', actorId: 'H', target: T, rollLabel: 'Test', result: { roll: 88, target: T, sl: -4, success: false } }]) },
     pid: 's1',
     read: () => ({ roll: P<{ participants: { result: { roll: number } }[] }>('pendingCascade').participants[0].result.roll, success: P<{ participants: { result: { success: boolean } }[] }>('pendingCascade').participants[0].result.success }),
   },
@@ -121,7 +122,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   // d100 (`roll ≤ cible`, cf. `partRead`) reviendrait à se fournir la valeur qu'on prétend mesurer :
   // la garde resterait verte alors même que l'accesseur de dé n'écrirait aucune issue.
   cascadeBatch: {
-    state: { pendingCascade: { cursor: 0, participants: [{ id: 'b1', kind: 'batch', aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }] } },
+    state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: 'batch', aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
     pid: 'H',
     read: () => {
       const r = P<{ participants: { participants: { result: { roll: number; success: boolean } }[] }[] }>('pendingCascade').participants[0].participants[0].result;
@@ -188,8 +189,9 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: resultRead('pendingRun'),
   },
   fall: {
-    state: { pendingFall: { combatantId: 'H', metres: 6, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } } },
-    read: resultRead('pendingFall'),
+    state: { pendingFall: { to: { x: 0, y: 1 }, metres: 6, initiateurId: 'H', participants: [{ id: 'H', interactive: true, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } }] } },
+    pid: 'H',
+    read: () => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>('pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },
   extendedTest: {
     state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, targetDR: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },

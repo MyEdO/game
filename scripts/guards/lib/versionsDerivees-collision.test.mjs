@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path'
 import { canoniser, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs'
 import { resultatDeGit } from '../../test/gitDeBanc.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
-import { repoProgram } from './tsProgram.mjs'
+import { repoProgram, libererSessions } from './tsProgram.mjs'
 
 const RACINE = resolve(import.meta.dirname, '../../..')
 const FICHIER = 'src/collision.ts'
@@ -34,7 +34,13 @@ const texteDe = (ajout) => [
 const collisionsDe = (texte) => {
   const virtuel = resolve(RACINE, FICHIER)
   const programme = repoProgram(RACINE, () => [virtuel], { [FICHIER]: texte })
-  return programme.getSemanticDiagnostics(programme.getSourceFile(virtuel)).filter((d) => d.code === 1117)
+  const erreurs = []
+  let collisions
+  try {
+    collisions = programme.program.getSemanticDiagnostics(virtuel).filter((d) => d.code === 1117)
+  } catch (erreur) { erreurs.push(erreur) }
+  finally { libererSessions([programme], erreurs) }
+  return collisions
 }
 
 for (const cas of [

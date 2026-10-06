@@ -11,6 +11,7 @@ export function accesseursDuFichier(src: string, vivants: Set<string>): Set<stri
 export function declarationsDeNiveauModule(src: string): { ligne: number; texte: string; boucle?: boolean }[];
 export function indexFiges(chemin: string, src: string, parBinding: Map<string, string>, vivants?: Set<string>): string[];
 export function resolveursDentree(): Set<string>;
-export function ecrituresHorsSeam(chemin: string, src: string, parBinding: Map<string, string>, resolveurs?: Set<string>): string[];
+export function ecrituresHorsSeam(chemin: string, src: string, parBinding: Map<string, string>, resolveurs?: Set<string>, sourceFile?: SourceFile): string[];
 export function fichiersSources(): string[];
 export function fichiersDuSeam(): Set<string>;
+import type { SourceFile } from 'typescript/unstable/ast';

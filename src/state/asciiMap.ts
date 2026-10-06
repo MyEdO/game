@@ -118,9 +118,7 @@ export function parseWalledAscii(
   const tiles: Terrain[] = [];
   const walls: WallSeg[] = [];
   const wall = (x: number, y: number, side: 'N' | 'E', ch: string) => {
-    const seg: WallSeg = { x, y, side };
-    if (ch === DOOR_EDGE) seg.door = true;
-    if (ch === WINDOW_EDGE) seg.window = true;
+    const seg: WallSeg = { x, y, side, ...(ch === DOOR_EDGE ? { door: true } : {}), ...(ch === WINDOW_EDGE ? { window: true } : {}) };
     if (wallLegend[ch]) Object.assign(seg, wallOverlayOf(wallLegend[ch]));
     walls.push(seg);
   };

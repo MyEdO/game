@@ -14,7 +14,7 @@ import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RACINE } from './bindingsVivants.mjs';
-import { attributDe, depotDe } from './gitPorte.mjs';
+import { attributDe, depotDe, refusDeGit } from './gitPorte.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
@@ -122,7 +122,7 @@ async function main(): Promise<number> {
     return 2;
   }
   const pannes: string[] = [];
-  const depot = depotDe(RACINE, { enPanne: (raison) => pannes.push(raison) });
+  const depot = depotDe(RACINE, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) });
   for (const r of liste as RegenerationDeStock[]) {
     const attribut = attributDe(depot, relative(RACINE, resolve(r.chemin)), 'merge');
     if (attribut !== 'stocks') {

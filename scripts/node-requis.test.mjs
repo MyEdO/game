@@ -1,3 +1,4 @@
+import { ast } from './guards/lib/dialecte.mjs';
 // Porte de version de Node (#1801) : la règle PURE, puis son CÂBLAGE dans chaque point d'entrée qui
 // rend un verdict, tel que `package.json` le déclare, joué sur un FAUX ARBRE en dossier temporaire
 // dont `engines.node` exige un Node inexistant :
@@ -16,7 +17,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from './agents/compat-core.mjs'
-import { scriptKindDe, typescript } from './guards/lib/dialecte.mjs'
+import { typescript } from './guards/lib/dialecte.mjs'
 import { clotureDImports, estModule } from './guards/lib/importGraph.mjs'
 import { listerDossier } from './guards/lib/lister.mjs'
 import { CODE_DE_REFUS, refusDeVersion } from './node-requis.mjs'
@@ -200,7 +201,7 @@ test('clôture STATIQUE de `npm run gates`, des `.mjs` des hooks shell, des pilo
       }
       if (!estModule(rel)) continue
       const chemin = join(RACINE, rel)
-      const source = ts.createSourceFile(chemin, readFileSync(chemin, 'utf8'), ts.ScriptTarget.Latest, true, scriptKindDe(chemin))
+      const source = ast({ rel: chemin, text: readFileSync(chemin, 'utf8') })
       for (const s of source.statements) {
         if ((ts.isImportDeclaration(s) || ts.isExportDeclaration(s)) && s.attributes) {
           fautes.push(`${module} > ${rel}:${source.getLineAndCharacterOfPosition(s.getStart()).line + 1} : attribut d’import`)
@@ -216,7 +217,7 @@ test('câblage de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fu
   const ts = typescript()
   for (const module of MODULES_LANCES) {
     const chemin = join(RACINE, module)
-    const source = ts.createSourceFile(chemin, readFileSync(chemin, 'utf8'), ts.ScriptTarget.Latest, true, scriptKindDe(chemin))
+    const source = ast({ rel: chemin, text: readFileSync(chemin, 'utf8') })
     const premiere = source.statements.find((s) => (ts.isImportDeclaration(s) || ts.isExportDeclaration(s)) && s.moduleSpecifier)
     const porte = relative(dirname(chemin), join(RACINE, 'scripts', 'node-requis.mjs')).replaceAll('\\', '/')
     assert.equal(premiere?.moduleSpecifier.text, porte.startsWith('.') ? porte : `./${porte}`, module)

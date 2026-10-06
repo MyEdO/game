@@ -145,10 +145,9 @@ function aretesAbritantes(from: Pt, to: Pt): { x: number; y: number; side: 'N' |
  * ignore déjà les arêtes (plus bas) : la cible serait couverte à travers des murs qu'on ne voit pas.
  * Le couvert du défenseur perché attend donc la donnée qui le porte, il ne s'extrapole pas ici.
  *
- * FENÊTRE : un cran de moins (`cranDeCouvertEnMoins`). Référence `AA 10 l.122` ; l'application à une
- * croisée est MAISON — extrapolation de Percée : une fenêtre est une ouverture permanente de même
- * nature que la petite brèche que ce critique ouvre, et le canon y dégrade le couvert d'exactement un
- * cran, sans toucher à l'opacité : celle-ci se lit sur la Structure (`occulte`), jamais sur la croisée.
+ * FENÊTRE : un cran de moins (`cranDeCouvertEnMoins`). Référence `AA 10 l.122`, application à une
+ * croisée MAISON ; arbitrage #1712 (2026-09-08) : la croisée laisse passer la vue et le tir
+ * (`areteOcculte`), le couvert se dégrade ici.
  */
 export function couvertDArete(scene: Scene, from: Pt, to: Pt): CoverClass {
   const z = to.z ?? 0;

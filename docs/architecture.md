@@ -235,18 +235,20 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
 src/state/
-  scene.ts                  SCÈNE : 35 fonctions PURES (tuiles, murs, portes, relief) + 39 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
+  scene.ts                  SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
+                            dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
                             (55 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 58 membres). Restent 12 MANUSCRITS : `Scene`, `SceneEntity`,
+                            `EffectOp` = 58 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
                             (annotations du `z.lazy`), `Layer` (l'infer du schéma dont `tiles` est
                             ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et
                             l'authoring TS n'est pas parsé), `WallOverlay` (ce qu'un char de légende
-                            d'arête ÉCRIT sur une arête : `structure`/`appearance`),
+                            d'arête ÉCRIT sur une arête : `structure`/`appearance`), `LectureDArete`
+                            (lecture `auteur`/`jeu` d'une arête, `porteSelon`), `Atterrissage` (où l'on
+                            atterrit en quittant une surface, `surfaceDAtterrissage`),
                             `Terrain`, `CellSide` (alias primitifs), `Fige` (marque de type d'une
                             valeur GELÉE : ce qu'une migration rejoue, jamais la semence du jour).
                             Comptes
@@ -265,11 +267,12 @@ src/state/
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
   campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
-                            = `{affaires, indices, presetsPnj, objets}`, EMBARQUÉ dans le JSON du projet, jamais
-                            copié dans `src/data` global (`narratifSchema` refuse toute collision d'id).
+                            = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
+                            `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
+                            global (`narratifSchema` refuse toute collision d'id).
   campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
                             `campaignNarratif` (posé par `loadProject`) par id STABLE. `presetPnjById`/`affaireById`/
-                            `indiceById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
+                            `indiceById`/`documentById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
                             campagne-D'ABORD puis règle globale (`findTrappingById`). Maps mémoïsées par référence du
                             bloc. Le moteur reste PUR : `engine/items` reçoit ce `trappingById` en résolveur injecté
                             (défaut = global) aux sites d'état `giveTrapping` — il n'importe jamais le store.

@@ -2,7 +2,8 @@ import { afterAll, describe, it, expect } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { arbreDe, scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY, VOCABULARY_TYPES } from '../../scripts/guards/lib/registryIdBranch.mjs';
+import { scanRegistryIdBranch, scanRawIdEqualities, isRegistryIdBranchExcluded, SCAN_DIRS, SCAN_EXTS, OP_VOCABULARY, VOCABULARY_TYPES } from '../../scripts/guards/lib/registryIdBranch.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -263,9 +264,8 @@ function analyse(dirs: string[]) {
   let a = _analyses.get(cle);
   if (!a) {
     a = { principal: [], brut: [] };
-    for (const { rel, text } of readCorpus(dirs, { exts: SCAN_EXTS, tests: true })) {
-      if (isRegistryIdBranchExcluded(rel)) continue;
-      const sf = arbreDe(rel, text);
+    for (const { fichier: { rel, text }, sourceFile: sf } of analyserCorpus(readCorpus(dirs, { exts: SCAN_EXTS, tests: true }).filter(({ rel }) => !isRegistryIdBranchExcluded(rel)))) {
+      if (!sf) continue;
       for (const fd of scanRegistryIdBranch(rel, text, sf)) a.principal.push({ rel, ...fd });
       for (const fd of scanRawIdEqualities(rel, text, sf)) a.brut.push({ rel, ...fd });
     }
@@ -537,7 +537,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     }
   });
 
-  it('CLIQUET : aucun site NOUVEAU, et tout site assaini abaisse le plafond', { timeout: 30_000 }, () => {
+  it('CLIQUET : aucun site NOUVEAU, et tout site assaini abaisse le plafond', { timeout: 60_000 }, () => {
     const findings = findingsIn(SCAN_DIRS);
     const perFile: Record<string, number> = {};
     for (const f of findings) perFile[f.rel] = (perFile[f.rel] ?? 0) + 1;

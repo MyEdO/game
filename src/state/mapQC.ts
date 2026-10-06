@@ -4,7 +4,7 @@
  * Node-safe (ZÉRO import ui/gameIso). RÉFUTE (échoue si une pièce est murée) plutôt que certifier.
  */
 import { walkReachableFrom } from './path';
-import { isDescriptiveZone, isWalkable, type Scene, type SceneEffectZone } from './scene';
+import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './scene';
 import { zoneAreaTiles } from './zones';
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
@@ -28,11 +28,20 @@ export function zoneWalkableCells(scene: Scene, zone: SceneEffectZone): { x: num
     .map((p) => ({ x: p.x, y: p.y, z }));
 }
 
+/** La scène telle que l'AUTEUR la lit : chaque porte authorée (`porteAuteur`) est un PASSAGE — révélée si
+ *  elle est secrète (`EDO 08 l.404`), ouverte si elle est fermée. PUR. */
+function sceneSelonAuteur(scene: Scene): Scene {
+  return (scene.walls ?? []).filter(porteAuteur).reduce((s, w) => {
+    const z = w.z ?? 0;
+    return setDoorOpen(setDoorRevealed(s, w.x, w.y, w.side, z, true), w.x, w.y, w.side, z, true);
+  }, scene);
+}
+
 /** Zones descriptives (pièces nommées, `isDescriptiveZone`) dont AUCUNE case marchable n'est atteignable
- *  depuis `start` — vide = toutes les pièces nommées sont accessibles. Une zone SANS aucune case
- *  marchable (posée sur du vide) est aussi « inatteignable ». */
+ *  depuis `start`, toute porte authorée comprise (`sceneSelonAuteur`) — vide = toutes les pièces nommées sont
+ *  accessibles. Une zone SANS aucune case marchable (posée sur du vide) est aussi « inatteignable ». */
 export function unreachableDescriptiveZones(scene: Scene, start: { x: number; y: number; z?: number }): SceneEffectZone[] {
-  const reached = reachableCells(scene, start);
+  const reached = reachableCells(sceneSelonAuteur(scene), start);
   return (scene.effectZones ?? []).filter(isDescriptiveZone).filter((zone) => {
     const walkable = zoneWalkableCells(scene, zone);
     return !walkable.some((p) => reached.has(key(p.x, p.y, p.z)));
@@ -45,11 +54,4 @@ export function reachedFloors(scene: Scene, start: { x: number; y: number; z?: n
   const out = new Set<number>();
   for (const k of reachableCells(scene, start)) out.add(Number(k.split(',')[2]));
   return out;
-}
-
-/** Position du `heroStart` de la scène (départ par défaut du groupe), ou `null` si absent. */
-export function startOf(scene: Scene): { x: number; y: number; z: number } | null {
-  const e = scene.entities.find((e) => e.kind === 'heroStart');
-  if (!e) return null;
-  return { x: e.pos.x, y: e.pos.y, z: e.z ?? 0 };
 }

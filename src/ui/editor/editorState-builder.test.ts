@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, layerTiles, type Scene, type Terrain } from '../../state/scene';
+import { isRoomZone } from '../../state/rooms';
 import {
   setMetresPerTile,
   setAmbientLight,
@@ -69,8 +70,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
     expect(zone.crossTest).toBeUndefined();
     expect(zone.barrier).toBeUndefined();
     expect(zone.blocksLoS).toBeUndefined();
-    // Prédicat EXACT de `RoomZoneSelect`/`roomZones` (Inspector.tsx:166-170) et de `roomFocus.ts`.
-    expect(zone.presentation === 'interior' && isDescriptiveZone(zone)).toBe(true);
+    expect(isRoomZone(zone)).toBe(true);
     expect(JSON.parse(JSON.stringify(scene)).effectZones[idx].presentation).toBe('interior'); // survit au JSON
   });
 

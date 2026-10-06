@@ -9,17 +9,12 @@
 .prow {
   text-align: left;
 }
-/* Ligne de rangée : le panneau et le SUFFIXE de provenance sur la MÊME ligne (la marque appartient
-   à sa ligne — flottante, elle ne désignait plus rien dans un récap à plusieurs lignes). */
 .prow-line {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  flex-wrap: nowrap; /* pas de repli : replié, le suffixe revenait au bord du CONTENEUR (pas à la
-                        colonne de texte) et se lisait comme l'en-tête de la rangée SUIVANTE */
+  flex-wrap: nowrap;
 }
-/* Le panneau prend la place et se COMPRIME (360px) ; la marque, elle, garde sa largeur — c'est un
-   suffixe de 3 mots, pas un bloc. */
 .prow-line > :first-child { flex: 1 1 auto; min-width: 0; }
 /* MARQUE de provenance « ce jet a été fixé » — distincte de l'étiquette du champ qui l'OFFRE. */
 .prow-fixed-mark {
@@ -33,4 +28,16 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--muted);
+}
+@media (max-width: 560px) {
+  .prow-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prow-line > :first-child {
+    width: 100%;
+  }
+  .prow-line > .prow-fixed-mark {
+    justify-self: end;
+  }
 }
