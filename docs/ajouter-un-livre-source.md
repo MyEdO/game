@@ -655,7 +655,7 @@ Pour un SYSTÈME de règles (ses termes), trois outils enchaînés, sans agent j
   (`scripts/raw/tri.mjs`) : le paquet est REJOUÉ depuis les termes. Le verdict est un tableau de lignes
   `{ ref, role, preuve }` (`définit`, `modifie`, `déclenche`, `consomme`) ou `{ ref, role: 'hors-système' }`,
   exclusive dans sa section. L'adresse de chaque preuve est DÉRIVÉE, jamais lue : l'unique bloc de sa
-  couverture (`couvertureDe`), section de fin comprise, où elle s'aligne (`aligner`) entre deux BORNES DE MOT, jugées sur la première occurrence,
+  couverture (`couvertureDe`), section de fin comprise, où elle s'aligne (`aligner`) entre deux BORNES DE MOT, jugées sur l'occurrence que rend son témoin,
   adressé par `fragmentBlocs`. Quand le texte de la section nomme un de ses termes, la preuve doit en
   nommer un (le prédicat de `passagesDe`). Refus nommés, avec leur ligne : `ref-hors-paquet`,
   `section-sans-verdict`, `hors-systeme-non-exclusif`, `role-inconnu`, `preuve-introuvable`,

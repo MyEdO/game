@@ -87,6 +87,24 @@ test('#1887 : refus `preuve-introuvable` — une preuve qui coupe un mot n’est
   assert.deepEqual(refusDe([...valide, { ref: COMBAT, role: 'modifie', preuve: 'blade carries poi' }]).map(sans), [{ refus: 'preuve-introuvable', ligne: 3, blocs: [] }])
 })
 
+test('#1887 : refus `preuve-introuvable` — une preuve qui ne touche que la LÉGENDE d’une table ne localise rien (`couvertes` nul)', () => {
+  const livre = preparerLivre({
+    book: 'fixture-legende',
+    langue: 'VO',
+    chapitres: [chapitre('01 - Rules.md', [
+      '# **Poisons**', '',
+      '**Poison Table**', '',
+      '| Poison | Effect |', '|---|---|', '| Lethal poison | Death |',
+    ])],
+    indexMd: null,
+    horsRegle: () => false,
+    plages: [],
+  })
+  const [it] = sectionsDuPaquet(livre, TERMES)
+  assert.deepEqual(adresseDeLaPreuve(livre, it, 'Poison Table'), { refus: 'preuve-introuvable', blocs: [] })
+  assert.equal(adresseDeLaPreuve(livre, it, 'Lethal poison').adresse?.parts[0].b0, 1)
+})
+
 test('#1887 : refus `preuve-sans-terme` — la section nomme un terme, la preuve aucun', () => {
   assert.deepEqual(refusDe([...valide, { ref: POISONS, role: 'modifie', preuve: 'kills within the hour' }]).map(sans), [{ refus: 'preuve-sans-terme', ligne: 3, blocs: [bloc(1)] }])
 })

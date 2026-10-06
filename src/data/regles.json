@@ -1283,11 +1283,24 @@
     "id": "navigation-progression",
     "type": "regles",
     "label": "Navigation — Tableau de progression",
-    "desc": "Les résultats du Test de Navigation peuvent ensuite être comparés au tableau de progression qui suit.\n\n| DR          | Effet                                                                                     |\n|-------------|-------------------------------------------------------------------------------------------|\n| 4 ou plus   | Le bateau progresse à sa vitesse maximale. Il se déplace de son score de M+2.              |\n| 1 à 3       | Le navire progresse bien. Il se déplace de son score de M+1.                               |\n| –2 à 0      | Le vaisseau progresse normalement. Il se déplace de son score de M.                        |\n| –3 à –4     | Le bateau progresse lentement. Il se déplace de son score de M–1.                          |\n| –5 ou moins | Le navire lutte pour avancer. Il se déplace de la moitié de son score de M (arrondie à l'inférieur). |",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "irregularites-numeriques",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 5,
+          "sum": "7e426b81a25a4392"
+        }
+      ]
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 104,
-      "note": "MDG 13 l.66-75 — transcription DÉCLARÉE du tableau PROGRESSION : le Source (l.68-75) est conforme au PDF (folio 104) ; la desc omet la bannière PROGRESSION (l.68) et promeut la ligne DR / Effet (l.70) en en-tête GFM. Bandes et libellés vérifiés un à un ; la phrase d'introduction (l.66) est verbatim."
+      "note": "MDG 13 l.66-75 — phrase d'introduction (l.66) et tableau PROGRESSION, bannière comprise (l.68-75) ; Source conforme au PDF (folio 104)"
     }
   },
   {
