@@ -154,7 +154,7 @@ import {
 } from '../guards/lib/reclassementCss.mjs'
 import { coteCss, sourceGit, sourceMelee } from '../guards/lib/cssImages.mjs'
 import {
-  PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
+  estCheminDuBudget, importsDe, mesurerBudget, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
   GitIndisponible, INDEX, SUIVI, apportDeLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
@@ -3482,9 +3482,9 @@ export function evaluateReclassementsCss({ command, deplace, cotes }) {
  * pré-image : c'est la même discipline de lecture que `evaluateStocksQuiGrandissent`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateBudgetContexte({ command, mesure, reference, plafond }) {
+export function evaluateBudgetContexte({ command, mesure, reference }) {
   if (!command || !isGitCommitCommand(command)) return null
-  return refusDeBudget({ mesure, reference, plafond, message: command })
+  return refusDeBudget({ mesure, reference, message: command })
 }
 
 /**
@@ -3614,21 +3614,15 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
     fichiersModifies: readChangedNames(targetDir, { pannes }),
     fichiersStages: commit.stages(),
   })
-  // BUDGET DU CONTEXTE PERMANENT : mesuré seulement si le commit touche un chemin du périmètre —
-  // sinon aucune lecture n'est payée au-delà de l'image de `CLAUDE.md`, qui dit les fichiers IMPORTÉS
-  // (`@<chemin>`) et donc le périmètre lui-même : ce que le commit emporte s'il l'emporte, son texte de base sinon.
-  // La mesure porte sur ce que le commit EMPORTE (`commit.contenus`), la référence et le plafond sur son
-  // texte de BASE (`commit.preImages`, `commit.lirePreImage`), chaque image lue par lot : relever la ligne du plafond dans le même commit ne suffit donc pas à
-  // faire passer une accrétion. Le LISTAGE des skills/agents se lit PAR IMAGE lui aussi — l'index pour
-  // ce que le commit emporte, sa BASE (`commit.base()`) pour la référence — sans quoi un poste SUPPRIMÉ par le commit
-  // disparaîtrait des DEUX côtés et le refus dirait « aucun poste ne grossit ».
-  const importsDuContexte = importsDe(commit.contenu('CLAUDE.md') ?? commit.lirePreImage('CLAUDE.md'))
+  const importsDuContexte = [
+    ...importsDe(commit.contenu('CLAUDE.md')),
+    ...importsDe(commit.lirePreImage('CLAUDE.md')),
+  ]
   const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
     ? evaluateBudgetContexte({
       command: text,
       mesure: mesurerBudget(targetDir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
       reference: mesurerBudget(targetDir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
-      plafond: plafondDeLaSource(commit.lirePreImage(PORTEUR_DU_PLAFOND)),
     })
     : null
   // Voir COÛT (en-tête) : un refus qu'aucun autre étage ne rejuge sort ICI, avant les deux décisions

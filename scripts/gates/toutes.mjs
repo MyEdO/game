@@ -177,6 +177,8 @@ export const ECRIT_LU = {
       'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
       '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
       '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
+      '`scripts/guards/budget-contexte.test.mjs` forge ses fixtures avec instanceDeDepot sous os.tmpdir(), ' +
+      'écrit son evenement.json sous cette racine temporaire et la nettoie par rmSync en finally ; ' +
       '`mods/murDeMod.test.mjs` crée ses fichiers de sélection native par mkdirSync/writeFileSync ' +
       'sous mkdtempSync(join(os.tmpdir(), "lint-mod-perimetre-")), puis rmSync en finally ; ' +
       'lancerLint y crée sa configuration temporaire .lint- et la retire en finally',
@@ -250,7 +252,8 @@ export const ECRIT_LU = {
       'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
       'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
-      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally)',
+      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) ; ' +
+      '`scripts/test/corpus.test.mjs` forge ses fixtures avec mkdtempSync(tmpdir()) et les nettoie par t.after',
   },
   'test:docs': {
     ecrit: [],

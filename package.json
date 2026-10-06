@@ -17,6 +17,7 @@
     "build": "npm run gen && node scripts/lancer-local.mjs vite -- vite build",
     "preview": "node scripts/lancer-local.mjs vite -- vite preview",
     "test": "node scripts/test/run.mjs",
+    "test:corpus": "node scripts/test/corpus.mjs",
     "test:runner": "node scripts/test/node-tests.mjs test:runner",
     "test:watch": "node scripts/lancer-local.mjs vitest -- vitest",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",

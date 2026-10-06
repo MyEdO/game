@@ -182,20 +182,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/maison-sans-source.test.ts",
-    motif: "désormais",
-    ancre: "désormais `maison`. Ce n'est pas une dérive, c'est un angle mort qui devient un compte. Les axes",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/data/maison-sans-source.test.ts",
-    motif: "désormais",
-    ancre: "sont désormais écrites (`scripts/migrations/2026-09-02-1680-props-provenance.mjs`) et EXIGÉES par",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/migrations-type-enveloppe.test.ts",
     motif: "désormais",
     ancre: "ressuscité (« arbitrage requis » sur toutes les entrées, rejeu ROUGE). Ils distinguent désormais",

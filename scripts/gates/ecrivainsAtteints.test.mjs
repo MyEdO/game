@@ -29,6 +29,7 @@ const ATTENDU = {
   'agents:check': ['scripts/agents/compat-cli.mjs'],
   'test:agents': ['scripts/agents/compat-cli.mjs'],
   'test:hooks': [
+    'scripts/guards/budget-contexte.test.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/guards/contrat-typescript.test.mjs',
     'scripts/guards/lib/lint-parite.test.mjs',
@@ -312,6 +313,7 @@ const ATTENDU = {
     // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/lancer-local.test.mjs',
+    'scripts/test/corpus.test.mjs',
     // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
     // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un
     // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
