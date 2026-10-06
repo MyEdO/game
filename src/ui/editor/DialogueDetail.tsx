@@ -18,6 +18,7 @@ import { ProseField } from '../ProseField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { CouvreField } from './CouvreField';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -63,6 +64,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
           </select>
         </label>
       </Row>
+      <CouvreField value={dialogue.couvre} sujet="du dialogue" onChange={(couvre) => onChange({ ...dialogue, couvre })} />
 
       <div className="dlg-split">
         <div className="dlg-nodes">

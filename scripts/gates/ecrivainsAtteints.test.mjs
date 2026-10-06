@@ -289,8 +289,13 @@ const ATTENDU = {
     'scripts/ops/signaler-rouge.test.mjs',
     // +1 le 2026-09-28 (#1993) : le banc des workflows joués pose une copie PERMUTÉE de
     // `dossier-de-chapitre.js` sous os.tmpdir() (`mkdtempSync` + `writeFileSync`, `rmSync` en finally)
-    // pour la rejouer par `jouerWorkflow` ; l'arbre n'est jamais écrit.
+    // pour la rejouer par `jouerWorkflow`, et (#2290) y fait écrire la fiche rendue par le lanceur
+    // (`ecrireFiche`, `dir` jetable) qui arme la table ; l'arbre n'est jamais écrit.
     'scripts/ops/workflows-joues.test.mjs',
+    // +1 le 2026-10-05 (#2290) : le lanceur `workflow-args.mjs`, IMPORTÉ par le banc des workflows joués
+    // pour projeter les args ; son écriture sous `docs/dossiers/` vit dans sa seule CLI `ecrire-fiche`,
+    // que la gate ne lance pas — le banc lui passe un `dir` jetable d'os.tmpdir().
+    'scripts/raw/workflow-args.mjs',
     // +2 le 2026-10-05 (#2280) : `vigie.mjs` garde les verdicts `verte` sous `<arbre principal>/.git/vigie/`
     // par `sauverJournal` (`publier.mjs`, écrivain déjà inscrit), dans le répertoire git COMMUN et non dans
     // l'arbre ; son banc `vigie.test.mjs` écrit lui-même (`mkdirSync` + `writeFileSync` d'un cache tronqué) et
@@ -442,8 +447,17 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
     // +1 le 2026-09-21 (#1825) : le banc de la PROJECTION écrit les rendus de fixture que
     // `lireRendu` relit (mode de reprise du workflow) sous `mkdtempSync` de os.tmpdir(), `rmSync` en
-    // finally ; le module mesuré (`workflow-args.mjs`) ne fait que LIRE.
+    // finally ; depuis #2290 il y fait aussi écrire les fiches de dossier par `ecrireFiche`.
     'scripts/raw/workflow-args.test.mjs',
+    // +1 le 2026-10-05 (#2290) : le lanceur ÉCRIT la fiche d'un run de `dossier-de-chapitre`
+    // (`ecrireFiche`) — sous `docs/dossiers/` par sa seule CLI `ecrire-fiche`, que la gate ne lance
+    // pas ; ses bancs lui passent un `dir` sous `mkdtempSync` de os.tmpdir(), et sa copie de garde
+    // (`chargerDossiers` avant écriture) naît et meurt sous os.tmpdir(). L'arbre n'est jamais écrit.
+    'scripts/raw/workflow-args.mjs',
+    // +2 le 2026-10-05 (#2290) : les bancs du chargeur des fiches de dossier et de la population
+    // CITANTS forgent leurs fiches sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally.
+    'scripts/raw/dossiers.test.mjs',
+    'scripts/raw/lib/fichiersCitants.test.mjs',
     // +1 le 2026-09-21 (#1825) : le banc du WORKFLOW joue la reprise de BOUT EN BOUT —
     // rendu du run → fichier → `lireRendu` → workflow → fichier → `assemble`. Il écrit ses deux
     // rendus et son Atlas de sortie sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;

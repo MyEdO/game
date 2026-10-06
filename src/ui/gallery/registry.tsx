@@ -75,6 +75,8 @@ import { MenuCard, MenuSection, MenuButton, MenuToggle } from '../MenuCard';
 import { CreatorDice } from '../creator/CreatorDice';
 import { GameOpEditor } from '../editor/GameOpEditor';
 import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
+import { CouvreField } from '../editor/CouvreField';
+import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
 import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById } from '../../data';
@@ -1125,6 +1127,20 @@ function GameOpEditorDemo() {
   return <GameOpEditor ops={ops} onChange={setOps} />;
 }
 
+/** Trois états : deux entrées RÉELLES des fiches commitées, liste vide, entrée introuvable. */
+function CouvreFieldDemo() {
+  const [connues, setConnues] = useState<string[] | undefined>(ENTREES_DE_DOSSIER.slice(0, 2).map((e) => e.id));
+  const [vide, setVide] = useState<string[] | undefined>(undefined);
+  const [introuvable, setIntrouvable] = useState<string[] | undefined>(['EDO-99#b1']);
+  return (
+    <>
+      <CouvreField value={connues} onChange={setConnues} sujet="du spécimen connu" />
+      <CouvreField value={vide} onChange={setVide} sujet="du spécimen vide" />
+      <CouvreField value={introuvable} onChange={setIntrouvable} sujet="du spécimen introuvable" />
+    </>
+  );
+}
+
 function ReglagesApparenceDemo() {
   const [a, setA] = useState<EntityAppearance>({ sex: 'F', build: 0.4 });
   return (
@@ -1733,6 +1749,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'parchmentcard', label: 'ParchmentCard', file: 'src/ui/ParchmentCard.tsx', category: 'Négoce & activités', render: ParchmentCardDemo },
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
+  { id: 'couvrefield', label: 'CouvreField', file: 'src/ui/editor/CouvreField.tsx', category: 'Éditeur', render: CouvreFieldDemo },
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },

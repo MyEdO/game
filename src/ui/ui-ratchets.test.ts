@@ -120,10 +120,8 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // -1 (#1834) : l'enroulement du titre de section suit `.panel h3` en couche PARTAGÉE
   // (`components.css`, hors cliquet) — une base et sa tranche dans la MÊME feuille.
   'styles/base.css': 3,
-  // +1 (#1388) : `.de-reflrow` (rangée dense de réfs de l'atelier Codex) s'enroule dès 360 px —
-  // motif `.bar` non composable ici (c'est une rangée de CHAMPS d'un formulaire d'édition, pas un
-  // bandeau d'écran) ; le `flex-wrap` seul ne suffisait pas, il va de pair avec `min-width: 0`.
-  'styles/codex-edit.css': 2,
+  // -1 (#2290) : la rangée de champs `.fieldrow` est une primitive de `components.css`, hors cliquet.
+  'styles/codex-edit.css': 1,
   'styles/gear-assign-list.css': 1,
   'styles/compendium.css': 3,
   // +1 : `.creator-race-lineages` (#393, correction structurelle Race) — rangée de chips de
@@ -1044,10 +1042,10 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
   // Une DÉCLARATION, pas une mesure : l'enroulement réel dépend des largeurs intrinsèques, que seul
   // un navigateur calcule (`docs/recette-navigateur.md`). Ce contrat tient la condition NÉCESSAIRE —
   // un enfant de la rangée qui ne peut pas rétrécir la fait déborder même enroulée.
-  it('≤360 : tout ENFANT de `.de-reflrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
-    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'codex-edit.css'), 'utf8'))
-      .filter((r) => !r.media && r.selecteurs.includes('.de-reflrow > *'));
-    expect(enfants.length, '`.de-reflrow > *` a sa règle dans `codex-edit.css`').toBe(1);
+  it('≤360 : tout ENFANT de `.fieldrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
+    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'components.css'), 'utf8'))
+      .filter((r) => !r.media && r.selecteurs.includes('.fieldrow > *'));
+    expect(enfants.length, '`.fieldrow > *` a sa règle dans `components.css`').toBe(1);
     expect(enfants[0].corps).toMatch(/min-width:\s*0\b/);
     expect(enfants[0].corps).toMatch(/max-width:\s*100%/);
   });

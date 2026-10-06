@@ -8,8 +8,10 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
+import { listeCle } from '../grammaire/collection-cle';
 import type { SkillRef } from '../../index';
 import { charStatKeySchema, sizeCategorySchema } from '../grammaire/valeurs';
+import { ID_D_ENTREE } from '../../source/dossier';
 
 /** `Pt` (`state/path.ts`) — case, `z` = couche d'empilement (absent = base). */
 export const ptSchema = z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() });
@@ -23,6 +25,14 @@ export type WallSide = z.infer<typeof wallSideSchema>;
  *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
  *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
 export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: z.number() }) as z.ZodType<SkillRef>;
+
+/** Identifiant GLOBAL d'une entrée de fiche de dossier de chapitre (#2290) : format `ID_D_ENTREE`
+ *  (`src/data/source/dossier.ts`). Feuille de `couvre` et de `narratif.ecartes[].entree`. */
+export const entreeDeFicheSchema = z.string().regex(ID_D_ENTREE, 'entrée de fiche : « <ABBR>-<NN>#<id> » attendu.');
+
+/** `couvre` (#2290) — les entrées de fiche de dossier de chapitre qu'un élément du paquet de campagne
+ *  couvre, sans doublon. Posé par l'éditeur (`CouvreField`, `src/ui/editor/CouvreField.tsx`). */
+export const couvreSchema = listeCle(entreeDeFicheSchema, { nom: 'entrée de fiche', scalaire: true });
 
 /** `CustomStatblock.spells` — ids de `spells.json` : la porte est la fabrique canonique (`refs('spell')`),
  *  la FORME DE SORTIE est DÉCLARÉE nue (patron `couvertureSchema`, `./scene.ts`) — le type moteur

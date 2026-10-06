@@ -357,7 +357,7 @@ describe('`DescRefField` — l’empreinte est RECALCULÉE, jamais saisie', () =
     // L'aperçu reste RENDU, avec le fragment fautif MARQUÉ à sa place — l'auteur ne perd pas le texte.
     expect(container?.querySelector('.panel')?.textContent).toContain('[fragment 1 : non résolu]');
     // L'erreur vit DANS la rangée du fragment fautif, pas en pied de champ.
-    expect(container?.querySelector('.de-reflrow .de-warn'), 'le message doit désigner SA rangée').toBeTruthy();
+    expect(container?.querySelector('.fieldrow .de-warn'), 'le message doit désigner SA rangée').toBeTruthy();
   });
 });
 
@@ -740,7 +740,7 @@ describe('AMORCE et APERÇU — un chapitre choisi n’attend pas', () => {
   it('une erreur de MONTAGE DÉSIGNE sa rangée (2ᵉ fragment trop court)', async () => {
     // Le 3ᵉ bloc de § terreur (« Bref. ») fait moins de 40 caractères normalisés.
     await monter(adresse(frag('terreur', 0, 0), frag('terreur', 2, 2)), () => {});
-    const rangees = [...(container?.querySelectorAll('.de-reflrow') ?? [])];
+    const rangees = [...(container?.querySelectorAll('.fieldrow') ?? [])];
     const avec = rangees.filter((r) => r.querySelector('.de-warn'));
     expect(avec, 'une seule rangée doit porter le refus').toHaveLength(1);
     expect(avec[0].textContent).toContain(PHRASE_REFUS['fragment-trop-court']);
@@ -781,7 +781,7 @@ describe('INTERVALLE — un fragment de blocs finit dans une section suivante (#
 
   it('une fin AVANT le départ dit sa phrase dans la rangée', async () => {
     await monter(adresse(intervalleDe(PARSE, { sec: 'peur', secOcc: 1, idx: 0 }, { sec: 'terreur', secOcc: 1, idx: 0 })), () => {});
-    expect(container?.querySelector('.de-reflrow .de-warn')?.textContent).toBe(PHRASE_REFUS['fin-avant-depart']);
+    expect(container?.querySelector('.fieldrow .de-warn')?.textContent).toBe(PHRASE_REFUS['fin-avant-depart']);
     expect(container?.querySelector('details.fold')?.textContent).toContain('fin-avant-depart');
   });
 

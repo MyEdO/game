@@ -28,10 +28,12 @@ import { baseDe, cleDesSpecs, cleNichee, estPrefixeDeSuite, idsDeCollection, lir
 import { estFeuilleDId } from './ref';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 
-/** Clé d'un élément : un CHAMP de l'élément, ou une clé COMPOSÉE nommée (`walls` : `x,y,side,z`). */
+/** Clé d'un élément : un CHAMP de l'élément, une clé COMPOSÉE nommée (`walls` : `x,y,side,z`), ou
+ *  l'élément SCALAIRE lui-même (`scalaire` : `couvre`, liste de chaînes). */
 export type CleDElement<T> =
   | Extract<keyof T, string>
-  | { readonly nom: string; readonly de: (element: T) => string | undefined };
+  | { readonly nom: string; readonly de: (element: T) => string | undefined }
+  | { readonly nom: string; readonly scalaire: true };
 
 /**
  * Paramètres d'un ESPACE DE NOMS — une collection marquée `espace` en ouvre un, et chaque paramètre
@@ -73,10 +75,14 @@ const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typ
 
 /** Marque d'une LISTE dont `cle` identifie les éléments. */
 export function marqueDeListe<T>(cle: CleDElement<T>, espace?: EspaceDeNoms): MarqueDeCollection {
+  if (espace && typeof cle === 'object' && 'scalaire' in cle)
+    throw new Error('marqueDeListe : `espace` refusé — une liste de scalaires est une liste de RÉFÉRENCES.');
   const lecture =
     typeof cle === 'string'
       ? { nom: cle, de: (el: unknown) => (estObjet(el) ? texteDeCle(el[cle]) : undefined) }
-      : { nom: cle.nom, de: (el: unknown) => (estObjet(el) ? cle.de(el as T) : undefined) };
+      : 'scalaire' in cle
+        ? { nom: cle.nom, de: texteDeCle }
+        : { nom: cle.nom, de: (el: unknown) => (estObjet(el) ? cle.de(el as T) : undefined) };
   return espace ? { forme: 'liste', ...lecture, espace } : { forme: 'liste', ...lecture };
 }
 

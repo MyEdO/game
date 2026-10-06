@@ -186,6 +186,8 @@ export interface SceneEntity {
      *  qui devient hostile au déclenchement. */
     hiddenUntilCombat?: boolean;
   };
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Un porteur de fiche d'entité PRÉSENT au moins — dérivé de `PORTEURS_DU_TYPE.personnage` (#1882),
@@ -361,6 +363,8 @@ export interface SceneEffectZone {
   /** Étage de la zone — défaut 0 (plan de combat). Les zones DESCRIPTIVES de pièce portent le z de leur
    *  étage pour l'affichage/atteignabilité par niveau ; le combat (2D) l'ignore. */
   z?: number;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Une zone d'effet est DESCRIPTIVE (nom de pièce) quand elle ne porte AUCUN champ mécanique — filtre
@@ -472,6 +476,8 @@ export interface Scene {
   entryPoints?: Record<string, { x: number; y: number; z?: number }>;
   /** Scène de départ pour la campagne enchaînée. */
   startMessage?: string;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;

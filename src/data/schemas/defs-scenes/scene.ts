@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
-import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
@@ -179,6 +179,7 @@ const baseDEntiteSchema = z.strictObject({
       hiddenUntilCombat: z.boolean().optional(),
     })
     .optional(),
+  couvre: couvreSchema.optional(),
 });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
@@ -489,6 +490,7 @@ export const dialogueSchema = z.strictObject({
   id: z.string(),
   start: z.string(),
   nodes: listeCle(dialogueNodeSchema, 'id'),
+  couvre: couvreSchema.optional(),
 });
 
 // ── Déclencheur ─────────────────────────────────────────────────────────────────────────────────
@@ -506,6 +508,7 @@ export const triggerSchema = z.strictObject({
   when: conditionSchema.optional(),
   /** LOGIQUE exécutée à l'entrée : séquence d'effets + branches `if`/`test` (exécutée par `runFlow`). */
   flow: sceneFlowSchema,
+  couvre: couvreSchema.optional(),
 });
 
 // ── Rencontre ───────────────────────────────────────────────────────────────────────────────────
@@ -616,6 +619,7 @@ export const encounterDefSchema = z.strictObject({
    *  coop, `state/netOwnership.ts`), le décor `siege` (fauteuil), l'Atout d'arme `siege`
    *  (`ADE II 08 l.292`). */
   siege: z.boolean().optional(),
+  couvre: couvreSchema.optional(),
 });
 
 // ── Couches, zones, murs ────────────────────────────────────────────────────────────────────────
@@ -661,6 +665,7 @@ export const sceneEffectZoneSchema = z.strictObject({
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
   barrier: z.strictObject({ blockGroups: z.array(z.string()).optional() }).optional(),
   z: z.number().optional(),
+  couvre: couvreSchema.optional(),
 }).superRefine((zone, ctx) => {
   // Une PIÈCE vit à l'étage `zone.z` (`state/rooms.ts`, `roomTiles`) : une case d'un autre étage est refusée.
   if (zone.presentation !== 'interior') return;
@@ -855,6 +860,7 @@ export const sceneSchema = z.strictObject({
   /** Points d'arrivée nommés — `z` = étage visé (défaut 0, #835 FU-5). */
   entryPoints: z.record(z.string(), z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() })).optional(),
   startMessage: z.string().optional(),
+  couvre: couvreSchema.optional(),
 }).superRefine((scene, ctx) => {
   // CARDINAL de la grille (#1789) : chaque tableau PARALLÈLE d'une couche porte EXACTEMENT `w×h`
   // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`

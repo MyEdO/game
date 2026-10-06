@@ -91,6 +91,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
   flags: (s) => ({ ...s, flags: { ...s.flags, neuf: true } }),
   entryPoints: (s) => ({ ...s, entryPoints: { ...(s.entryPoints ?? {}), porte: { x: 1, y: 1 } } }),
   startMessage: (s) => ({ ...s, startMessage: 'Autre message' }),
+  couvre: (s) => ({ ...s, couvre: ['EDO-01#b1'] }),
 };
 
 /** Le read-set DÉCLARÉ, champ par champ — la liste que la garde confronte à la réalité. */

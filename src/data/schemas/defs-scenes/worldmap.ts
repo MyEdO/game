@@ -12,6 +12,7 @@ import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
+import { couvreSchema } from './communs';
 import type { Condition } from '../../../engine/flowCore';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
@@ -172,6 +173,7 @@ export const mapPlaceSchema = z.strictObject({
   /** EXISTENCE du lieu sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
+  couvre: couvreSchema.optional(),
 });
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. */
@@ -224,6 +226,7 @@ export const mapRouteSchema = z.strictObject({
       chancePct: z.number(),
     })
     .optional(),
+  couvre: couvreSchema.optional(),
 })
   .superRefine((route, ctx) => {
     if (route.when !== undefined && !route.refus?.trim()) {

@@ -16,11 +16,11 @@
 // (prompt ET options de chaque appel, copiés à l'appel : schéma, type d'agent, modèle, effort),
 // contraint-elle PAR LE SCHÉMA de chaque appel toute désignation d'un ensemble fermé (PJ, déclencheur
 // en attente, beat, persona, secret, échange, sosie), tient-elle un état par déclencheur et fait-elle
-// d'une fuite de secret une anomalie ; `dossier-de-chapitre` keye-t-il chaque lecture au label de sa
-// lentille, refuse-t-il des ids de lecture confondus, confronte-t-il chaque besoin, dit-il celui qui ne l'est
-// pas, APPLIQUE-t-il les corrections de son juge de complétude et reconfronte-t-il ce qu'elles font
-// naître ou changer ; tout agent de tout workflow exécute-t-il une commande simple ; un verdict de
-// SUCCÈS se rend-il jamais sur un trou.
+// d'une fuite de secret une anomalie ; `dossier-de-chapitre` rend-il une fiche au schéma `ficheDeDossier`
+// sur des formes PROJETÉES par le lanceur (`scripts/raw/workflow-args.mjs`), keye-t-il chaque lecture au
+// label de sa lentille, APPLIQUE-t-il les corrections de son juge de complétude, et sa fiche s'écrit-elle
+// par le lanceur pour armer la table ; tout agent de tout workflow exécute-t-il une commande simple ; un
+// verdict de SUCCÈS se rend-il jamais sur un trou.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -31,6 +31,8 @@ import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs';
 import { lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs';
 import { jouerWorkflow, scriptsDeWorkflowDuDepot } from '../guards/lib/jouer-workflow.mjs';
 import { tableTotale } from '../../src/lib/tableTotale.ts';
+import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts';
+import { argsDeDossierDeChapitre, argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 const DOSSIER = join(RACINE, '.claude', 'workflows');
@@ -39,6 +41,7 @@ const DATE = '2026-09-04';
 // s'écrivent sans lettre de lecteur — une fixture ne nomme aucune machine
 // (`src/portable-paths-guard.test.ts`).
 const ARBRE = '/arbre-jete';
+const COMMIT = 'f6e343dc8abf36a9d34cc3fd13de60af3d9ac894';
 
 /** Joue un script de `.claude/workflows/` — l'enveloppe vit dans `scripts/guards/lib/jouer-workflow.mjs`. */
 const jouer = (nomDuScript, argsDuRun, repondre) => jouerWorkflow(join(DOSSIER, nomDuScript), argsDuRun, repondre);
@@ -46,19 +49,15 @@ const jouer = (nomDuScript, argsDuRun, repondre) => jouerWorkflow(join(DOSSIER, 
 // ── `table-simulee.js` ───────────────────────────────────────────────────────────────────────────
 
 const SECRET = 'SECRET-DU-MJ-QUE-LES-JOUEURS-IGNORENT';
-const D1 = { id: 'd1', evenement: 'Le PNJ approche la table des PJ', condition: 'les PJ l’ignorent une demi-heure', ref: 'EDO 01 l.200' };
-/** Le RENDU d'un `dossier-de-chapitre` au verdict DOSSIER : ce que la table consomme. */
+const D1 = { id: 'd1', evenement: 'Le PNJ approche la table des PJ', condition: 'les PJ l’ignorent une demi-heure', ref: ['EDO 01 l.200'] };
+/** La FICHE commitée d'un chapitre (`ficheDeDossier`) : ce que la table consomme. */
 const DOSSIER_DU_CHAPITRE = {
-  verdict: 'DOSSIER',
-  livre: 'EDO', chapitre: '01',
-  imperatifs: [{ texte: 'le corps doit être trouvé', ref: 'EDO 02 l.34' }],
-  beats: [{ id: 'b1', titre: 'La route', ref: 'EDO 01 l.1', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'] }, { id: 'b2', titre: 'Le relais', ref: 'EDO 01 l.10', statut: 'optionnel', preuveDuStatut: 'p', mediasCandidats: ['resume'] }],
-  pointsAuMJ: [], indices: [{ id: 'ind1', texte: 'une plume noire sur le rebord', ref: 'EDO 01 l.6' }], secrets: [{ id: 'sec1', texte: SECRET, ref: 'EDO 01 l.5' }], declencheurs: [D1],
-  pnj: [{ nom: 'Phillipe', role: 'r', motivation: 'm', ref: 'EDO 01 l.199' }],
-  besoins: [], etats: [], dureeEtDifficulte: [], matiereCompagnons: [], commitsConfrontes: ['abc'],
-  trous: { anomaliesDeLecture: [], lentillesSansRendu: [], completudeSansRendu: [], anomaliesDeCorrection: [], lotsSansRendu: [], besoinsNonConfrontes: [] },
-  corrections: [{ type: 'ref-fausse', champ: 'beats', id: 'b2', avant: 'EDO 01 l.9', apres: 'EDO 01 l.10', motif: 'TRACE-DE-CORRECTION' }], synthese_markdown: 's',
-  agents: { lecture: 3, confrontation: 1, completude: 1, total: 5 }, date: DATE,
+  lecture: { date: DATE, commit: COMMIT },
+  imperatifs: [{ id: 'imp1', texte: 'le corps doit être trouvé', ref: ['EDO 02 l.34'] }],
+  beats: [{ id: 'b1', titre: 'La route', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] }, { id: 'b2', titre: 'Le relais', statut: 'optionnel', preuveDuStatut: 'p', mediasCandidats: ['resume'], ref: ['EDO 01 l.10'] }],
+  pointsAuMJ: [], indices: [{ id: 'ind1', texte: 'une plume noire sur le rebord', ref: ['EDO 01 l.6'] }], secrets: [{ id: 'sec1', texte: SECRET, ref: ['EDO 01 l.5'] }], declencheurs: [D1],
+  pnj: [{ id: 'pnj1', nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }],
+  lieux: [], textes: [], tests: [], rencontres: [], recompenses: [], etats: [], dureeEtDifficulte: [], matiereCompagnons: [],
 };
 const ARGS_TABLE = {
   livre: 'EDO', chapitre: '01', fichiers: ['Source/chapitre-01.md'], dossier: DOSSIER_DU_CHAPITRE, seed: 'graine', maxEchanges: 3,
@@ -89,7 +88,7 @@ const clesDe = (objet) => [objet.additionalProperties, objet.required, Object.ke
  */
 const analyseCouvrante = (classeDe = () => 'prevu', besoins = [], retouche = (a) => a) => (prompt, opts) => {
   const { intentions, declencheurs } = opts.schema.properties;
-  const refDe = new Map(declencheursEnvoyes(prompt).map((d) => [d.id, d.ref]));
+  const refDe = new Map(declencheursEnvoyes(prompt).map((d) => [d.id, d.ref[0]]));
   return retouche({
     intentions: tableTotale(intentions.required, (numero) => tableTotale(intentions.properties[numero].required, (persona) => ({ classe: classeDe(persona, Number(numero)), ref: '', categorie: '' }))),
     tempsMorts: [], pistesRatees: [],
@@ -142,31 +141,24 @@ test('table-simulee : les joueurs sont CLOISONNÉS — aucun prompt de joueur ne
   assert.ok(promptsParLabel.get('Partie:mj:1').includes(SECRET), 'le MJ, lui, reçoit sa fiche');
 });
 
-test('table-simulee : la fiche du MJ est TIRÉE du dossier CORRIGÉ, jamais de la trace de ses corrections, sans agent qui la ré-extrait', async () => {
+test('table-simulee : la fixture est une fiche au schéma, et la fiche du MJ en est TIRÉE, sans agent qui la ré-extrait', async () => {
+  assert.deepEqual(ficheDeDossier.parse(DOSSIER_DU_CHAPITRE), DOSSIER_DU_CHAPITRE, 'la fixture est une fiche commitable');
   const { promptsParLabel, rendu } = await jouerTable(mjSansFin);
   assert.deepEqual([...promptsParLabel.keys()].filter((c) => c.startsWith('Préparation:')), ['Préparation:fiches-pj', 'Préparation:sosie']);
   const mj = promptsParLabel.get('Partie:mj:1');
-  const fiche = jsonEntre(mj, 'corrigé) :\n', '\n\nDÉCLENCHEURS DU LIVRE');
+  const fiche = jsonEntre(mj, 'dossier du chapitre) :\n', '\n\nDÉCLENCHEURS DU LIVRE');
   assert.deepEqual(fiche, {
     imperatifs: DOSSIER_DU_CHAPITRE.imperatifs, beats: DOSSIER_DU_CHAPITRE.beats, pnj: DOSSIER_DU_CHAPITRE.pnj, indices: DOSSIER_DU_CHAPITRE.indices,
     secrets: DOSSIER_DU_CHAPITRE.secrets, pointsAuMJ: [],
   });
   assert.deepEqual(rendu.journal.preparation.ficheMJ.declencheurs, [D1]);
-  for (const [cle, prompt] of promptsParLabel) assert.ok(!prompt.includes('TRACE-DE-CORRECTION'), `${cle} lit la trace des corrections`);
 });
 
-test('table-simulee : un dossier absent, incomplet ou d’un autre contrat ARRÊTE avant tout agent, et se nomme', async () => {
+test('table-simulee : un dossier absent ou incomplet ARRÊTE avant tout agent, et se nomme', async () => {
   const cas = [
-    [undefined, /^args\.dossier — le rendu de `dossier-de-chapitre`/],
-    [{ ...DOSSIER_DU_CHAPITRE, verdict: 'DOSSIER SANS COMPLÉTUDE' }, /^args\.dossier — verdict « DOSSIER SANS COMPLÉTUDE » : seul un dossier au verdict DOSSIER/],
-    [{ ...DOSSIER_DU_CHAPITRE, verdict: 'ARRÊT' }, /^args\.dossier — verdict « ARRÊT »/],
-    [{ ...DOSSIER_DU_CHAPITRE, trous: { ...DOSSIER_DU_CHAPITRE.trous, lentillesSansRendu: ['mecanique'] } }, /^args\.dossier\.trous\.lentillesSansRendu : mecanique — un dossier troué n'arme pas une table$/],
-    [{ ...DOSSIER_DU_CHAPITRE, trous: undefined }, /^args\.dossier\.trous absent — dossier antérieur au contrat/],
-    [{ ...DOSSIER_DU_CHAPITRE, declencheurs: undefined }, /^args\.dossier\.declencheurs absent/],
+    [undefined, /^args\.dossier — l'objet de la fiche commitée du chapitre \(docs\/dossiers\/<livre>\/<chapitre>\.json, la fiche du MJ en est tirée\) : node scripts\/raw\/workflow-args\.mjs table-simulee /],
+    [{ ...DOSSIER_DU_CHAPITRE, declencheurs: undefined }, /^args\.dossier\.declencheurs absent — la fiche du chapitre vient du lanceur : node scripts\/raw\/workflow-args\.mjs table-simulee /],
     [{ ...DOSSIER_DU_CHAPITRE, beats: [] }, /^args\.dossier\.beats vide/],
-    [{ ...DOSSIER_DU_CHAPITRE, chapitre: '02' }, /^args\.dossier — dossier de « EDO 02 », table de « EDO 01 » : un dossier n'arme que la table de SON chapitre/],
-    [{ ...DOSSIER_DU_CHAPITRE, livre: 'ADE' }, /^args\.dossier — dossier de « ADE 01 », table de « EDO 01 »/],
-    [{ ...DOSSIER_DU_CHAPITRE, livre: undefined, chapitre: undefined }, /^args\.dossier — dossier de « \? \? », table de « EDO 01 »/],
   ];
   for (const [dossier, attendu] of cas) {
     const { rendu, promptsParLabel } = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier });
@@ -439,7 +431,7 @@ test('table-simulee : chaque déclencheur a UN état — non-échu reste en atte
   const ecarte = await jouerTable(mjAuxSorts(() => ({ statut: 'ecarte', motif: 'Phillipe est mort' })));
   assert.match(ecarte.promptsParLabel.get('Partie:mj:2'), /- d1 — [^\n]* — ÉCARTÉ à l'échange 1 — Phillipe est mort\n/);
   assert.deepEqual(clesDe(ecarte.optionsParLabel.get('Partie:mj:2').schema.properties.tour.properties.declencheurs), [false, [], []], 'un déclencheur ÉCARTÉ ne reçoit plus de sort');
-  assert.deepEqual(ecarte.rendu.declencheursEcartes, [{ id: 'd1', evenement: D1.evenement, ref: 'EDO 01 l.200', echange: 1, motif: 'Phillipe est mort' }]);
+  assert.deepEqual(ecarte.rendu.declencheursEcartes, [{ id: 'd1', evenement: D1.evenement, ref: ['EDO 01 l.200'], echange: 1, motif: 'Phillipe est mort' }]);
   assert.deepEqual(ecarte.rendu.declencheursNonJoues, []);
 
   const sansMotif = await jouerTable(mjAuxSorts((n) => (n === 1 ? { statut: 'non-echu', motif: ' ' } : { statut: 'ecarte', motif: '' })));
@@ -452,13 +444,13 @@ test('table-simulee : chaque déclencheur a UN état — non-échu reste en atte
 
 test('table-simulee : un déclencheur JAMAIS joué ou ÉCARTÉ est rendu, journalisé et soumis au juge d’analyse, sous son id', async () => {
   const { rendu, journal, promptsParLabel, optionsParLabel } = await jouerTable(mjSansFin);
-  assert.deepEqual(rendu.declencheursNonJoues, [{ id: 'd1', evenement: D1.evenement, ref: 'EDO 01 l.200', dernierStatut: 'non-echu', motif: 'la demi-heure court' }]);
+  assert.deepEqual(rendu.declencheursNonJoues, [{ id: 'd1', evenement: D1.evenement, ref: ['EDO 01 l.200'], dernierStatut: 'non-echu', motif: 'la demi-heure court' }]);
   assert.ok(journal.some((l) => /^Analyse : THÉÂTRE — .*déclencheurs : 1 NON JOUÉ\(S\) \(d1 EDO 01 l\.200, dernier sort non-echu\), 0 ÉCARTÉ\(S\), dont 0 MANQUÉ\(S\) par le MJ/.test(l)), journal.join('\n'));
   assert.deepEqual(declencheursEnvoyes(promptsParLabel.get('Analyse:analyse')).map((d) => d.id), ['d1']);
   assert.ok(optionsParLabel.get('Analyse:analyse').schema.required.includes('declencheurs'), 'une rubrique DÉDIÉE du juge');
   assert.deepEqual(rendu.analyse.declencheurs, [{ id: 'd1', manque: false, constat: 'c', ref: 'EDO 01 l.200' }]);
 
-  const incendie = { ...D1, id: 'd2', evenement: 'Le relais brûle', ref: 'EDO 01 l.300' };
+  const incendie = { ...D1, id: 'd2', evenement: 'Le relais brûle', ref: ['EDO 01 l.300'] };
   const sortDe = (numero, id) => (id === 'd2' ? { statut: 'ecarte', motif: 'le relais est déjà en cendres' } : { statut: 'non-echu', motif: 'la demi-heure court' });
   const avecEcarte = await jouerTable(mjAuxSorts(sortDe), analyseCouvrante(), { ...ARGS_TABLE, dossier: { ...DOSSIER_DU_CHAPITRE, declencheurs: [D1, incendie] } });
   assert.deepEqual([avecEcarte.rendu.declencheursNonJoues.map((d) => d.id), avecEcarte.rendu.declencheursEcartes.map((d) => d.id)], [['d1'], ['d2']], 'témoin : un non joué, un écarté');
@@ -474,7 +466,7 @@ test('table-simulee : une FUITE de secret rendue par le juge fait PARTIE ANOMALE
   const fuite = await jouerTable(mjSansFin, analyseCouvrante((p) => (p === 'saboteur' ? 'refuse' : 'prevu'), [], (a) => ({ ...a, fuites: [FUITE] })));
   assert.equal(fuite.rendu.verdict, 'PARTIE ANOMALE');
   assert.deepEqual(fuite.rendu.trous.fuites, ['échange 2 : secret « sec1 » — la narration nomme le secret, aucun indice trouvé n’y mène (EDO 01 l.5)']);
-  assert.deepEqual(fuite.rendu.analyse.fuites, [{ ...FUITE, ref: 'EDO 01 l.5' }], 'la réf de la fuite est celle du secret au dossier');
+  assert.deepEqual(fuite.rendu.analyse.fuites, [{ ...FUITE, ref: ['EDO 01 l.5'] }], 'la réf de la fuite est celle du secret au dossier');
   assert.ok(fuite.journal.some((l) => /^Verdict PARTIE ANOMALE — trous : fuites \(échange 2 : secret « sec1 »/.test(l)), fuite.journal.join('\n'));
   const auJuge = fuite.promptsParLabel.get('Analyse:analyse');
   const fiche = journalEnvoye(auJuge).preparation.ficheMJ;
@@ -542,307 +534,257 @@ test('table-simulee : un argument manquant ARRÊTE avant tout agent, et se nomme
 
 // ── `dossier-de-chapitre.js` ─────────────────────────────────────────────────────────────────────
 
-const ARGS_DOSSIER = { livre: 'EDO', chapitre: '01', fichiers: ['Source/chapitre-01.md'], worktree: ARBRE, date: DATE };
-/** Le lot de besoins qu'un prompt de confrontation porte : il ferme le prompt. */
-const lotEnvoye = (prompt) => JSON.parse(prompt.slice(prompt.indexOf('[\n')));
+/** Le fichier `Source/` d'un chapitre de FIXTURE : la projection ne lit pas le `Source/` réel. */
+const fichierDeFixture = (abbr, nn) => `Source/${abbr}-${nn}.md`;
+/** Les args du workflow, PROJETÉS par le lanceur réel (`argsDeDossierDeChapitre`, `scripts/raw/workflow-args.mjs`) :
+ *  familles, préfixes et formes d'entrée viennent de `ficheDeDossier`, jamais d'une recopie du banc. */
+const argsDossier = (compagnons = []) => argsDeDossierDeChapitre('EDO', '01', { worktree: ARBRE, date: DATE, commit: COMMIT, compagnons, fichierDe: fichierDeFixture });
+const ARGS_DOSSIER = argsDossier();
+const AVEC_COMPAGNON = argsDossier(['EDOC-03']);
+/** Ce que les lentilles rendent : des entrées SANS id, le script les numérote. */
+const ENTREE_BEAT = { titre: 't', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'], ref: ['EDO 01 l.1'] };
+const { id: _idDeD1, ...ENTREE_D1 } = D1;
+const ENTREE_D2 = { evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: ['EDO 01 l.300'] };
+const LECTURES = {
+  'imperatifs-et-beats': { imperatifs: [], beats: [ENTREE_BEAT], pointsAuMJ: [], indices: [{ texte: 'la lettre', ref: ['EDO 01 l.3'] }], secrets: [{ texte: 's', ref: ['EDO 01 l.4'] }], declencheurs: [ENTREE_D1] },
+  'pnj-lieux-textes': { pnj: [{ nom: 'Kastor', role: 'r', motivation: 'm', ref: ['EDO 01 l.2'] }, { nom: 'Phillipe', role: 'r', motivation: 'm', ref: ['EDO 01 l.199'] }], lieux: [], textes: [] },
+  mecanique: { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [{ texte: 'Kastor est mort', sens: 'lu', portee: 'chapitre', ref: ['EDO 01 l.8'] }] },
+  'matiere-compagnons': { matiereCompagnons: [{ texte: 'péage', categorie: 'peage', pourCeChapitre: 'b1', ref: ['EDOC 03 l.4'] }] },
+};
 
 /** Le rendu d'un juge de complétude qui ne corrige rien, à la forme du schéma qu'il REÇOIT ; `corrige` y verse ses corrections. */
 const completude = (opts, corrige = {}) => ({
   oublis: { ...tableTotale(opts.schema.properties.oublis.required, () => []), ...corrige.oublis },
   refsFausses: corrige.refsFausses ?? [],
   contenusFaux: corrige.contenusFaux ?? [],
-  classementsFaux: { ...tableTotale(opts.schema.properties.classementsFaux.required, () => []), ...corrige.classementsFaux },
   synthese: { markdown: 's' },
 });
-
-/** Trente PNJ : deux lots de confrontation. `statutDe(besoin)` rend un statut, ou `null` pour un verdict absent ;
- *  `corrige` = les corrections du juge de complétude. */
-const repondreAuDossier = (statutDe = () => 'manque', corrige = {}) => (prompt, opts) => {
-  if (opts.label === 'imperatifs-et-beats') return { imperatifs: [], beats: [{ id: 'b1', titre: 't', ref: 'EDO 01 l.1', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'] }], pointsAuMJ: [], indices: [{ texte: 'la lettre', ref: 'EDO 01 l.3' }], secrets: [{ texte: 's', ref: 'EDO 01 l.4' }], declencheurs: [D1] };
-  if (opts.label === 'pnj-lieux-textes') return { pnj: Array.from({ length: 30 }, (_, i) => ({ nom: `pnj${i}`, role: 'r', motivation: 'm', ref: 'EDO 01 l.2' })), lieux: [], textes: [] };
-  if (opts.label === 'mecanique') return { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [] };
-  if (opts.label === 'matiere-compagnons') return { matiere: [{ texte: 'péage', categorie: 'peage', pourCeChapitre: 'b1', ref: 'EDOC 03 l.4' }] };
-  if (opts.phase === 'Confrontation') {
-    const lot = lotEnvoye(prompt);
-    return { origine: { commit: 'abc' }, verdicts: lot.map((b) => ({ id: b.id, statut: statutDe(b), preuve: 'sonde' })).filter((v) => v.statut) };
+const repondreAuDossier = (corrige = {}) => (prompt, opts) => (opts.phase === 'Lecture' ? LECTURES[opts.label] : completude(opts, corrige));
+const jouerDossier = (argsDuRun = ARGS_DOSSIER, corrige = {}) => jouer('dossier-de-chapitre.js', argsDuRun, repondreAuDossier(corrige));
+/** `corps(dir)` dans un dossier jetable, supprimé ensuite. */
+const dansUnJetable = async (corps) => {
+  const dir = mkdtempSync(join(tmpdir(), 'dossiers-'));
+  try {
+    return await corps(dir.replace(/\\/g, '/'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-  return completude(opts, corrige);
 };
-const jouerDossier = (argsDuRun, statutDe = () => 'manque', corrige = {}) => jouer('dossier-de-chapitre.js', argsDuRun, repondreAuDossier(statutDe, corrige));
+
+test('dossier-de-chapitre : le rendu porte une FICHE au schéma `ficheDeDossier` — `lecture`, puis chaque famille en premier niveau, chaque id posé par le script', async () => {
+  const { rendu } = await jouerDossier(AVEC_COMPAGNON);
+  assert.equal(rendu.verdict, 'DOSSIER');
+  assert.deepEqual(ficheDeDossier.parse(ficheDuRun(rendu)), ficheDuRun(rendu), 'la fiche passe le schéma telle quelle');
+  assert.deepEqual(rendu.lecture, { date: DATE, commit: COMMIT });
+  assert.deepEqual(
+    [rendu.beats.map((b) => b.id), rendu.pnj.map((p) => p.id), rendu.declencheurs, rendu.etats.map((e) => e.id), rendu.matiereCompagnons.map((m) => m.id)],
+    [['b1'], ['pnj1', 'pnj2'], [D1], ['etat1'], ['comp1']],
+  );
+  const horsFiche = Object.keys(rendu).filter((cle) => !Object.hasOwn(ficheDuRun(rendu), cle)).sort();
+  assert.deepEqual(horsFiche, ['agents', 'chapitre', 'corrections', 'livre', 'synthese_markdown', 'trous', 'verdict'], 'hors de la fiche : ce qui juge le run, et le chapitre qui la situe');
+});
 
 test('dossier-de-chapitre : la lentille des compagnons ne joue que si des compagnons sont fournis', async () => {
-  const sans = await jouerDossier(ARGS_DOSSIER);
+  const sans = await jouerDossier();
   assert.equal(sans.rendu.agents.lecture, 3);
   assert.ok(!sans.promptsParLabel.has('Lecture:matiere-compagnons'));
-  const avec = await jouerDossier({ ...ARGS_DOSSIER, compagnons: ['Source/compagnon-03.md'] });
+  assert.deepEqual(sans.rendu.matiereCompagnons, []);
+  const avec = await jouerDossier(AVEC_COMPAGNON);
   assert.equal(avec.rendu.agents.lecture, 4);
-  assert.deepEqual(avec.rendu.matiereCompagnons.map((m) => m.ref), ['EDOC 03 l.4']);
-  assert.ok(avec.rendu.besoins.some((b) => b.famille === 'compagnon:peage'));
+  assert.deepEqual(avec.rendu.matiereCompagnons.map((m) => m.ref), [['EDOC 03 l.4']]);
 });
 
-test('dossier-de-chapitre : chaque besoin est confronté par lots, un verdict absent se DIT', async () => {
-  const { rendu, journal } = await jouerDossier(ARGS_DOSSIER, (b) => (b.id === 'B7' ? null : 'existe'));
-  assert.equal(rendu.agents.confrontation, 2, '31 besoins, lots de 25');
-  assert.equal(rendu.besoins.length, 31, '30 PNJ et un déclencheur');
-  assert.deepEqual(rendu.besoins.filter((b) => b.statut === 'non-confronte').map((b) => b.id), ['B7']);
-  assert.ok(journal.some((l) => /1 besoin\(s\) NON CONFRONTÉ\(S\).*B7/.test(l)));
-  assert.deepEqual([rendu.verdict, rendu.trous.lotsSansRendu, rendu.trous.besoinsNonConfrontes], ['CONFRONTATION INCOMPLÈTE', [], ['B7']], 'un verdict absent d’un lot rendu fait tomber le verdict');
-});
-
-test('dossier-de-chapitre : un lot de confrontation ou de reconfrontation SANS RENDU donne CONFRONTATION INCOMPLÈTE, qui nomme ses lots, et la table le refuse', async () => {
-  const lotMort = (label) => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => {
-    if (opts.label === label) return null;
-    if (opts.label === 'imperatifs-et-beats') return { imperatifs: [], beats: [{ id: 'b1', titre: 't', ref: 'EDO 01 l.1', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'] }], pointsAuMJ: [], indices: [], secrets: [], declencheurs: [D1] };
-    if (opts.label === 'pnj-lieux-textes') return { pnj: Array.from({ length: 30 }, (_, i) => ({ nom: `pnj${i}`, role: 'r', motivation: 'm', ref: 'EDO 01 l.2' })), lieux: [], textes: [] };
-    if (opts.label === 'mecanique') return { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [] };
-    if (opts.phase === 'Confrontation') return { origine: { commit: 'abc' }, verdicts: lotEnvoye(prompt).map((b) => ({ id: b.id, statut: 'manque', preuve: 'sonde' })) };
-    return completude(opts, { oublis: { declencheurs: [D2] } });
-  });
-  const temoin = await lotMort('aucun');
-  assert.deepEqual([temoin.rendu.verdict, temoin.rendu.trous.lotsSansRendu], ['DOSSIER', []], 'témoin : tout lot rendu');
-  for (const [label, nonConfrontes] of [['confrontation:2', 6], ['reconfrontation:1', 1]]) {
-    const { rendu, journal } = await lotMort(label);
-    assert.equal(rendu.verdict, 'CONFRONTATION INCOMPLÈTE', label);
-    assert.deepEqual(rendu.trous.lotsSansRendu, [label]);
-    assert.equal(rendu.besoins.filter((b) => b.statut === 'non-confronte').length, nonConfrontes, label);
-    assert.ok(journal.some((l) => l.startsWith('Dossier : CONFRONTATION INCOMPLÈTE') && l.includes(`lot(s) sans rendu : ${label}`)), journal.join('\n'));
-    const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: rendu });
-    assert.equal(table.rendu.verdict, 'ARRÊT', label);
-    assert.match(table.rendu.manques[0], /verdict « CONFRONTATION INCOMPLÈTE »/);
+test('dossier-de-chapitre : chaque forme de lecture VIENT des args projetés de `ficheDeDossier` — le script n’en recopie aucune, et ses lentilles lisent toutes les familles', async () => {
+  const { optionsParLabel } = await jouerDossier(AVEC_COMPAGNON);
+  const lectures = [...optionsParLabel].filter(([cle]) => cle.startsWith('Lecture:'));
+  for (const [cle, { schema }] of lectures) {
+    for (const [famille, forme] of Object.entries(schema.properties)) {
+      assert.deepEqual(forme, { type: 'array', minItems: AVEC_COMPAGNON.familles[famille].minimum, items: AVEC_COMPAGNON.familles[famille].entree }, `${cle} ${famille}`);
+    }
   }
+  assert.deepEqual(lectures.flatMap(([, { schema }]) => schema.required).sort(), [...FAMILLES_DE_DOSSIER].sort());
+  const { familles } = ARGS_DOSSIER;
+  assert.ok(!familles.pointsAuMJ.entree.properties.type.enum.includes('hors-livre'), 'un point au MJ n’est jamais hors livre');
+  assert.ok(familles.beats.entree.properties.statut.enum.includes('non-qualifie'), 'un beat peut être non qualifié');
+  assert.ok(familles.textes.entree.properties.nature.enum.includes('narration-a-reformuler'), 'une narration au MJ se reformule');
+  const autre = structuredClone(ARGS_DOSSIER);
+  autre.familles.pointsAuMJ.entree.properties.type.enum = ['type-de-fixture'];
+  const { optionsParLabel: options, promptsParLabel: prompts } = await jouerDossier(autre);
+  assert.deepEqual(options.get('Lecture:imperatifs-et-beats').schema.properties.pointsAuMJ.items.properties.type.enum, ['type-de-fixture'], 'l’agent reçoit la forme projetée');
+  assert.match(prompts.get('Lecture:imperatifs-et-beats'), /typé parmi type-de-fixture\./, 'la consigne dit les valeurs projetées');
 });
 
-test('dossier-de-chapitre : un point au MJ n’est jamais hors livre, un beat peut être non qualifié, une narration au MJ se reformule', async () => {
-  const { optionsParLabel } = await jouerDossier(ARGS_DOSSIER);
-  const schema = optionsParLabel.get('Lecture:imperatifs-et-beats').schema.properties;
-  assert.ok(!schema.pointsAuMJ.items.properties.type.enum.includes('hors-livre'));
-  assert.deepEqual(schema.beats.items.properties.statut.enum, ['obligatoire', 'optionnel', 'non-qualifie']);
-  const natures = optionsParLabel.get('Lecture:pnj-lieux-textes').schema.properties.textes.items.properties.nature.enum;
-  assert.ok(natures.includes('narration-a-reformuler'));
-});
-
-test('dossier-de-chapitre : les DÉCLENCHEURS (EDO 01 l.200) sont lus par une lentille, UNE définition, et deviennent des besoins confrontés au code', async () => {
-  const { rendu, optionsParLabel, promptsParLabel } = await jouerDossier(ARGS_DOSSIER);
-  const lentille = optionsParLabel.get('Lecture:imperatifs-et-beats').schema;
-  assert.ok(lentille.required.includes('declencheurs'));
-  assert.deepEqual(lentille.properties.declencheurs.items.required, ['id', 'evenement', 'condition', 'ref']);
-  assert.match(promptsParLabel.get('Lecture:imperatifs-et-beats'), /declencheurs : chaque événement que le livre fait arriver à l'INITIATIVE d'un PNJ ou du monde/);
-  assert.deepEqual(rendu.besoins.filter((b) => b.famille === 'declencheur').map((b) => [b.texte, b.ref]), [[`${D1.evenement} — condition : ${D1.condition}`, 'EDO 01 l.200']]);
-  assert.deepEqual([rendu.declencheurs, rendu.indices.map((x) => x.ref), rendu.secrets.map((x) => x.ref), rendu.pnj.length], [[D1], ['EDO 01 l.3'], ['EDO 01 l.4'], 30], 'le dossier porte ce que la fiche du MJ en tire');
-  const { optionsParLabel: table } = await jouerTable(mjSansFin);
-  assert.ok(![...table.values()].some((o) => JSON.stringify(o.schema).includes('"evenement"')), 'la table ne re-déclare pas le sous-schéma du dossier');
-});
-
-test('dossier-de-chapitre : un ARRÊT rend les MÊMES clés que le dossier nominal, vides', async () => {
-  const nominal = await jouerDossier(ARGS_DOSSIER);
-  const arret = await jouerDossier({ ...ARGS_DOSSIER, fichiers: [] });
-  assert.equal(arret.rendu.verdict, 'ARRÊT');
-  assert.equal(arret.promptsParLabel.size, 0);
-  assert.deepEqual([nominal.rendu.livre, nominal.rendu.chapitre], ['EDO', '01'], 'le dossier dit de quel chapitre il est : la table le confronte à ses args');
-  const { manques, ...formeDeLArret } = arret.rendu;
-  assert.deepEqual(manques, ['args.fichiers — chemins Source/ du chapitre']);
-  assert.deepEqual(Object.keys(formeDeLArret).sort(), Object.keys(nominal.rendu).sort());
-  for (const [cle, valeur] of Object.entries(formeDeLArret)) {
-    if (Array.isArray(valeur)) assert.deepEqual(valeur, [], cle);
+test('dossier-de-chapitre : un argument manquant, une famille sans projection ou qu’aucune lentille ne lit, ARRÊTE avant tout agent, et se nomme', async () => {
+  const { familles } = ARGS_DOSSIER;
+  const sansFamille = (nom) => Object.fromEntries(Object.entries(familles).filter(([f]) => f !== nom));
+  const cas = [
+    [{ ...ARGS_DOSSIER, fichiers: [] }, ['args.fichiers — chemins Source/ du chapitre']],
+    [{ ...ARGS_DOSSIER, commit: '' }, ['args.commit — la tête de l’arbre lu (`lecture.commit` de la fiche)']],
+    [{ ...ARGS_DOSSIER, familles: sansFamille('lieux') }, ['args.familles.lieux — famille lue par une lentille, sans projection { prefixe, minimum, entree } de `ficheDeDossier`']],
+    [{ ...ARGS_DOSSIER, familles: { ...familles, rumeurs: familles.indices } }, ['args.familles.rumeurs — famille de la fiche qu’aucune lentille ne lit']],
+  ];
+  for (const [argsDuRun, manques] of cas) {
+    const { rendu, promptsParLabel } = await jouerDossier(argsDuRun);
+    assert.equal(rendu.verdict, 'ARRÊT', manques[0]);
+    assert.equal(promptsParLabel.size, 0, manques[0]);
+    assert.deepEqual(rendu.manques, manques);
+    assert.deepEqual(FAMILLES_DE_DOSSIER.filter((f) => Object.hasOwn(rendu, f)), [], 'un ARRÊT ne porte aucune fiche');
   }
+  const { familles: _f, ...sansProjection } = ARGS_DOSSIER;
+  assert.equal((await jouerDossier(sansProjection)).rendu.manques.length, FAMILLES_DE_DOSSIER.length, 'sans projection, chaque famille lue se nomme');
 });
 
-const D2 = { id: 'd2', evenement: 'Kastor attaque à minuit', condition: 'minuit sonne', ref: 'EDO 01 l.300' };
-
-test('dossier-de-chapitre : un OUBLI de déclencheur entre au dossier, son besoin est confronté APRÈS application, et la table le suit — bloc DÉCLENCHEURS du MJ, non joués rendus', async () => {
-  const dossier = await jouerDossier(ARGS_DOSSIER, () => 'manque', { oublis: { declencheurs: [D2] } });
+test('dossier-de-chapitre : un OUBLI entre à la fiche sous l’id que le script pose ; la fiche s’ÉCRIT par le lanceur, et la table la consomme — bloc DÉCLENCHEURS du MJ, non joués rendus', async () => {
+  const dossier = await jouerDossier(ARGS_DOSSIER, { oublis: { declencheurs: [ENTREE_D2] } });
+  const D2 = { id: 'd2', ...ENTREE_D2 };
   assert.equal(dossier.rendu.verdict, 'DOSSIER');
   assert.deepEqual(dossier.rendu.declencheurs, [D1, D2]);
-  assert.deepEqual(dossier.rendu.corrections, [{ type: 'oubli', champ: 'declencheurs', id: 'd2', entree: D2 }]);
-  assert.deepEqual(lotEnvoye(dossier.promptsParLabel.get('Confrontation:reconfrontation:1')).map((b) => b.origine), ['declencheurs:d2'], 'seul le besoin né de l’oubli se confronte après application');
-  assert.deepEqual(dossier.rendu.besoins.filter((b) => b.origine === 'declencheurs:d2').map((b) => [b.famille, b.ref, b.statut, b.preuve]), [['declencheur', 'EDO 01 l.300', 'manque', 'sonde']], 'son besoin se dérive et se CONFRONTE');
-  assert.equal(dossier.rendu.agents.confrontation, 3, 'deux lots à la lecture, un après application');
-  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: dossier.rendu });
-  assert.match(table.promptsParLabel.get('Partie:mj:1'), /^- d2 — Kastor attaque à minuit — condition : minuit sonne \(EDO 01 l\.300\) — en attente$/m);
-  assert.deepEqual(table.rendu.declencheursNonJoues.map((d) => [d.id, d.ref]), [['d1', 'EDO 01 l.200'], ['d2', 'EDO 01 l.300']]);
+  assert.deepEqual(dossier.rendu.corrections, [{ type: 'oubli', famille: 'declencheurs', id: 'd2', entree: D2 }]);
+  await dansUnJetable(async (dir) => {
+    assert.equal(ecrireFiche({ result: dossier.rendu }, { dir }), `${dir}/EDO/01.json`, 'le rendu emballé par le lanceur s’écrit aussi');
+    assert.deepEqual(JSON.parse(readFileSync(`${dir}/EDO/01.json`, 'utf8')), ficheDuRun(dossier.rendu), 'la fiche écrite est celle du rendu, sans rien de ce qui juge le run');
+    const argsTable = argsDeTableSimulee('EDO', '01', { worktree: ARBRE, date: DATE, seed: 'graine', maxEchanges: 3, dir, fichierDe: fichierDeFixture });
+    assert.deepEqual(argsTable.dossier, ficheDuRun(dossier.rendu), '`args.dossier` = l’OBJET de la fiche chargée');
+    const table = await jouerTable(mjSansFin, analyseCouvrante(), argsTable);
+    assert.match(table.promptsParLabel.get('Partie:mj:1'), /^- d2 — Kastor attaque à minuit — condition : minuit sonne \(EDO 01 l\.300\) — en attente$/m);
+    assert.deepEqual(table.rendu.declencheursNonJoues.map((d) => [d.id, d.ref]), [['d1', ['EDO 01 l.200']], ['d2', ['EDO 01 l.300']]]);
+  });
 });
 
-test('dossier-de-chapitre : une RÉF FAUSSE se corrige à l’entrée, son besoin la suit, et le MJ lit la réf corrigée', async () => {
-  const dossier = await jouerDossier(ARGS_DOSSIER, () => 'manque', { refsFausses: [{ champ: 'declencheurs', id: 'd1', ref: 'EDO 01 l.201', motif: 'la l.200 ne dit pas la demi-heure' }, { champ: 'pnj', id: 'pnj3', ref: 'EDO 01 l.7', motif: 'm' }] });
+test('dossier-de-chapitre : une RÉF FAUSSE se corrige à l’entrée, à la forme d’une réf de la fiche, et le MJ lit la réf corrigée', async () => {
+  const dossier = await jouerDossier(ARGS_DOSSIER, { refsFausses: [
+    { famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.201'], motif: 'la l.200 ne dit pas la demi-heure' },
+    { famille: 'pnj', id: 'pnj2', ref: ['EDO 01 l.7', 'EDO 01 l.9'], motif: 'm' },
+  ] });
   assert.equal(dossier.rendu.verdict, 'DOSSIER');
-  assert.deepEqual(dossier.rendu.declencheurs.map((d) => d.ref), ['EDO 01 l.201']);
-  assert.deepEqual([dossier.rendu.pnj[2].ref, dossier.rendu.besoins.find((b) => b.origine === 'pnj:pnj3').ref], ['EDO 01 l.7', 'EDO 01 l.7']);
-  assert.deepEqual(dossier.rendu.corrections.map((c) => [c.type, c.champ, c.id, c.avant, c.apres]), [['ref-fausse', 'declencheurs', 'd1', 'EDO 01 l.200', 'EDO 01 l.201'], ['ref-fausse', 'pnj', 'pnj3', 'EDO 01 l.2', 'EDO 01 l.7']]);
-  assert.deepEqual(lotEnvoye(dossier.promptsParLabel.get('Confrontation:reconfrontation:1')).map((b) => [b.origine, b.ref]), [['pnj:pnj3', 'EDO 01 l.7'], ['declencheurs:d1', 'EDO 01 l.201']], 'un besoin dont la réf change se confronte à nouveau, sur sa réf corrigée');
-  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: dossier.rendu });
+  assert.deepEqual([dossier.rendu.declencheurs[0].ref, dossier.rendu.pnj[1].ref], [['EDO 01 l.201'], ['EDO 01 l.7', 'EDO 01 l.9']]);
+  assert.deepEqual(dossier.rendu.corrections.map((c) => [c.type, c.famille, c.id, c.avant, c.apres]), [
+    ['ref-fausse', 'declencheurs', 'd1', ['EDO 01 l.200'], ['EDO 01 l.201']],
+    ['ref-fausse', 'pnj', 'pnj2', ['EDO 01 l.199'], ['EDO 01 l.7', 'EDO 01 l.9']],
+  ]);
+  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: ficheDuRun(dossier.rendu) });
   assert.match(table.promptsParLabel.get('Partie:mj:1'), /^- d1 — [^\n]* \(EDO 01 l\.201\) — en attente$/m);
   assert.doesNotMatch(table.promptsParLabel.get('Partie:mj:1'), /EDO 01 l\.200/);
+  const horsForme = await jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: [], motif: 'm' }] });
+  assert.equal(horsForme.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
+  assert.match(horsForme.rendu.trous.anomaliesDeCorrection[0], /^réf fausse « declencheurs:d1 » : réf \[\] hors de la forme /);
+  assert.deepEqual(horsForme.rendu.declencheurs, [D1]);
 });
 
-test('dossier-de-chapitre : un CLASSEMENT FAUX se corrige à l’entrée — beat, état et sa famille de besoin, reconfrontée ; un verdict classé par le juge ne se reconfronte pas', async () => {
-  const mecanique = { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [{ texte: 'Kastor est mort', sens: 'lu', portee: 'chapitre', ref: 'EDO 01 l.8' }] };
-  const { rendu, promptsParLabel } = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => {
-    if (opts.label === 'mecanique') return mecanique;
-    if (opts.label === 'imperatifs-et-beats') return { imperatifs: [], beats: [{ id: 'b1', titre: 't', ref: 'EDO 01 l.1', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'] }], pointsAuMJ: [], indices: [], secrets: [], declencheurs: [D1] };
-    if (opts.label === 'pnj-lieux-textes') return { pnj: [], lieux: [], textes: [] };
-    if (opts.phase === 'Confrontation') {
-      const apres = opts.label.startsWith('reconfrontation:');
-      return { origine: { commit: 'abc' }, verdicts: lotEnvoye(prompt).map((b) => ({ id: b.id, statut: apres ? 'partiel' : 'manque', preuve: apres ? 'reconfronté' : 'sonde' })) };
-    }
-    return completude(opts, { refsFausses: [{ champ: 'declencheurs', id: 'd1', ref: 'EDO 01 l.201', motif: 'm' }], classementsFaux: {
-      beats: [{ id: 'b1', statut: 'optionnel', preuveDuStatut: 'EDO 01 l.1 dit « si vous le désirez »', ref: 'EDO 01 l.1' }],
-      etats: [{ id: 'etat1', sens: 'produit', portee: 'campagne', ref: 'EDO 01 l.8' }],
-      besoins: [{ id: 'B2', statut: 'existe', preuve: 'origin/main:src/x.ts:3', ref: 'origin/main:src/x.ts:3' }],
-    } });
-  });
-  assert.equal(rendu.verdict, 'DOSSIER');
-  assert.deepEqual([rendu.beats[0].statut, rendu.beats[0].preuveDuStatut], ['optionnel', 'EDO 01 l.1 dit « si vous le désirez »']);
-  assert.deepEqual([rendu.etats[0].sens, rendu.etats[0].portee], ['produit', 'campagne']);
-  assert.deepEqual(lotEnvoye(promptsParLabel.get('Confrontation:reconfrontation:1')).map((b) => [b.id, b.famille]), [['B1', 'etat:produit:campagne']], 'la famille changée se reconfronte ; le besoin classé par le juge, non');
-  assert.deepEqual(rendu.besoins.map((b) => [b.id, b.origine, b.famille, b.statut, b.preuve]), [['B1', 'etats:etat1', 'etat:produit:campagne', 'partiel', 'reconfronté'], ['B2', 'declencheurs:d1', 'declencheur', 'existe', 'origin/main:src/x.ts:3']]);
-  assert.deepEqual(rendu.corrections.map((c) => [c.champ, c.id, c.avant, c.apres]), [
-    ['declencheurs', 'd1', 'EDO 01 l.200', 'EDO 01 l.201'],
-    ['beats', 'b1', { statut: 'obligatoire', preuveDuStatut: 'p' }, { statut: 'optionnel', preuveDuStatut: 'EDO 01 l.1 dit « si vous le désirez »' }],
-    ['etats', 'etat1', { sens: 'lu', portee: 'chapitre' }, { sens: 'produit', portee: 'campagne' }],
-    ['besoins', 'B2', { statut: 'manque', preuve: 'sonde' }, { statut: 'existe', preuve: 'origin/main:src/x.ts:3' }],
-  ]);
-});
-
-test('dossier-de-chapitre : une correction INAPPLICABLE est une anomalie nommée, le verdict le dit, et la table refuse ce dossier', async () => {
-  const { rendu, journal } = await jouerDossier(ARGS_DOSSIER, () => 'manque', {
-    oublis: { declencheurs: [{ ...D2, id: 'd1' }], beats: [{ id: '', titre: 't', ref: 'EDO 01 l.2', statut: 'optionnel', preuveDuStatut: 'p', mediasCandidats: ['resume'] }] },
-    refsFausses: [{ champ: 'declencheurs', id: 'd9', ref: 'EDO 01 l.9', motif: 'm' }],
-    classementsFaux: { besoins: [{ id: 'B99', statut: 'existe', preuve: 'p', ref: 'r' }] },
-  });
-  assert.equal(rendu.verdict, 'CORRECTIONS INAPPLICABLES');
-  assert.deepEqual(rendu.trous.anomaliesDeCorrection, [
-    'réf fausse « declencheurs:d9 » : cible inconnue',
-    'classement faux « besoins:B99 » : cible inconnue',
-    'oubli « beats » sans id',
-    'oubli « declencheurs:d1 » : id déjà porté par une entrée du dossier',
-  ]);
-  assert.deepEqual([rendu.declencheurs, rendu.corrections], [[D1], []], 'rien d’inapplicable n’est appliqué');
-  assert.ok(journal.some((l) => /^Complétude : 4 correction\(s\) INAPPLICABLE\(S\) — réf fausse « declencheurs:d9 » : cible inconnue/.test(l)), journal.join('\n'));
-  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: rendu });
-  assert.equal(table.rendu.verdict, 'ARRÊT');
-  assert.match(table.rendu.manques[0], /verdict « CORRECTIONS INAPPLICABLES »/);
-});
-
-test('dossier-de-chapitre : une seconde correction de la MÊME cible se nomme « cible déjà corrigée » et ne s’applique pas', async () => {
-  const { rendu } = await jouerDossier(ARGS_DOSSIER, () => 'partiel', {
-    refsFausses: [{ champ: 'declencheurs', id: 'd1', ref: 'EDO 01 l.201', motif: 'm' }, { champ: 'declencheurs', id: 'd1', ref: 'EDO 01 l.999', motif: 'm' }],
-    contenusFaux: [
-      { champ: 'declencheurs', id: 'd1', attribut: 'condition', valeur: 'c1', ref: 'EDO 01 l.201' },
-      { champ: 'declencheurs', id: 'd1', attribut: 'condition', valeur: 'c2', ref: 'EDO 01 l.201' },
-      { champ: 'declencheurs', id: 'd1', attribut: 'evenement', valeur: 'e1', ref: 'EDO 01 l.201' },
-    ],
-    classementsFaux: { besoins: [{ id: 'B1', statut: 'existe', preuve: 'p1', ref: 'r' }, { id: 'B1', statut: 'manque', preuve: 'p2', ref: 'r' }] },
-  });
-  assert.equal(rendu.verdict, 'CORRECTIONS INAPPLICABLES');
-  assert.deepEqual(rendu.trous.anomaliesDeCorrection, [
-    'réf fausse « declencheurs:d1 » : cible déjà corrigée',
-    'contenu faux « declencheurs:d1.condition » : cible déjà corrigée',
-    'classement faux « besoins:B1 » : cible déjà corrigée',
-  ]);
-  assert.deepEqual([rendu.declencheurs[0].ref, rendu.declencheurs[0].condition, rendu.declencheurs[0].evenement], ['EDO 01 l.201', 'c1', 'e1'], 'seule la première correction d’une cible s’applique ; un autre attribut est une autre cible');
-  assert.deepEqual([rendu.besoins[0].statut, rendu.besoins[0].preuve], ['existe', 'p1']);
-  assert.deepEqual(rendu.corrections.map((c) => c.type), ['ref-fausse', 'contenu-faux', 'contenu-faux', 'classement-faux']);
-});
-
-test('dossier-de-chapitre : un CONTENU FAUX se corrige à un attribut de son champ, son besoin le suit et se reconfronte ; attribut hors champ ou cible inconnue = anomalie', async () => {
+test('dossier-de-chapitre : un CONTENU FAUX corrige tout attribut de sa famille, classement compris ; attribut hors famille ou cible inconnue = anomalie', async () => {
   const condition = 'les PJ l’ignorent une heure';
-  const { rendu, promptsParLabel, optionsParLabel } = await jouerDossier({ ...ARGS_DOSSIER, compagnons: ['Source/compagnon-03.md'] }, () => 'manque', {
-    contenusFaux: [{ champ: 'declencheurs', id: 'd1', attribut: 'condition', valeur: condition, ref: 'EDO 01 l.201' }],
-  });
+  const { rendu, promptsParLabel, optionsParLabel } = await jouerDossier(AVEC_COMPAGNON, { contenusFaux: [
+    { famille: 'declencheurs', id: 'd1', attribut: 'condition', valeur: condition, ref: 'EDO 01 l.201' },
+    { famille: 'beats', id: 'b1', attribut: 'statut', valeur: 'optionnel', ref: 'EDO 01 l.1' },
+    { famille: 'etats', id: 'etat1', attribut: 'portee', valeur: 'campagne', ref: 'EDO 01 l.8' },
+  ] });
   assert.equal(rendu.verdict, 'DOSSIER');
-  assert.deepEqual(rendu.declencheurs, [{ ...D1, condition }]);
-  assert.deepEqual(rendu.corrections, [{ type: 'contenu-faux', champ: 'declencheurs', id: 'd1', attribut: 'condition', avant: D1.condition, apres: condition, ref: 'EDO 01 l.201' }]);
-  assert.deepEqual(lotEnvoye(promptsParLabel.get('Confrontation:reconfrontation:1')).map((b) => b.texte), [`${D1.evenement} — condition : ${condition}`], 'le besoin dont le texte change se reconfronte');
+  assert.deepEqual([rendu.declencheurs, rendu.beats[0].statut, rendu.etats[0].portee], [[{ ...D1, condition }], 'optionnel', 'campagne']);
+  assert.deepEqual(rendu.corrections[0], { type: 'contenu-faux', famille: 'declencheurs', id: 'd1', attribut: 'condition', avant: D1.condition, apres: condition, ref: 'EDO 01 l.201' });
   const juge = optionsParLabel.get('Complétude:completude').schema.properties;
-  const classants = new Set(Object.values(juge.classementsFaux.properties).flatMap((s) => Object.keys(s.items.properties)));
   const mesures = [...new Set([...optionsParLabel].filter(([cle]) => cle.startsWith('Lecture:'))
-    .flatMap(([, o]) => Object.values(o.schema.properties).filter((s) => s.items?.properties).flatMap((s) => Object.keys(s.items.properties)))
-    .filter((nom) => !classants.has(nom)))].sort();
-  assert.deepEqual([...juge.contenusFaux.items.properties.attribut.enum].sort(), mesures, 'tout attribut d’entrée hors id, réf et classement, mesuré sur les schémas de lecture');
-  assert.ok(mesures.includes('mediasCandidats'), 'un attribut NON textuel est corrigeable');
+    .flatMap(([, o]) => Object.values(o.schema.properties).flatMap((s) => Object.keys(s.items.properties)))
+    .filter((nom) => nom !== 'ref'))].sort();
+  assert.deepEqual([...juge.contenusFaux.items.properties.attribut.enum].sort(), mesures, 'tout attribut d’entrée hors réf, mesuré sur les schémas de lecture');
+  assert.ok(mesures.includes('mediasCandidats') && mesures.includes('statut'), 'un attribut NON textuel, et un classement, sont corrigeables');
   assert.match(promptsParLabel.get('Complétude:completude'), /declencheurs : evenement, condition ; pnj : nom, role, motivation/);
 
-  const fautif = await jouerDossier(ARGS_DOSSIER, () => 'manque', { contenusFaux: [
-    { champ: 'declencheurs', id: 'd1', attribut: 'nom', valeur: 'x', ref: 'r' },
-    { champ: 'pnj', id: 'pnj99', attribut: 'nom', valeur: 'x', ref: 'r' },
+  const fautif = await jouerDossier(ARGS_DOSSIER, { contenusFaux: [
+    { famille: 'declencheurs', id: 'd1', attribut: 'nom', valeur: 'x', ref: 'r' },
+    { famille: 'pnj', id: 'pnj99', attribut: 'nom', valeur: 'x', ref: 'r' },
   ] });
   assert.equal(fautif.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
   assert.deepEqual(fautif.rendu.trous.anomaliesDeCorrection, [
-    'contenu faux « declencheurs:d1 » : attribut « nom » hors des attributs corrigeables du champ (evenement, condition)',
+    'contenu faux « declencheurs:d1 » : attribut « nom » hors des attributs corrigeables de la famille (evenement, condition)',
     'contenu faux « pnj:pnj99 » : cible inconnue',
   ]);
   assert.deepEqual([fautif.rendu.declencheurs, fautif.rendu.corrections], [[D1], []]);
 });
 
-test('dossier-de-chapitre : un CONTENU FAUX se valide contre la forme de son attribut ; hors forme, doublon d’enum, texte vide ou blanc = anomalie, rien ne s’efface', async () => {
-  const { rendu } = await jouerDossier(ARGS_DOSSIER, () => 'manque', { contenusFaux: [{ champ: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['resume', 'coupe'], ref: 'EDO 01 l.1' }] });
+test('dossier-de-chapitre : un CONTENU FAUX se valide contre la forme projetée de son attribut ; hors forme, doublon d’enum, texte vide ou blanc = anomalie, rien ne s’efface', async () => {
+  const { rendu } = await jouerDossier(ARGS_DOSSIER, { contenusFaux: [{ famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['resume', 'coupe'], ref: 'EDO 01 l.1' }] });
   assert.equal(rendu.verdict, 'DOSSIER');
   assert.deepEqual(rendu.beats[0].mediasCandidats, ['resume', 'coupe']);
-  assert.deepEqual(rendu.corrections, [{ type: 'contenu-faux', champ: 'beats', id: 'b1', attribut: 'mediasCandidats', avant: ['dialogue'], apres: ['resume', 'coupe'], ref: 'EDO 01 l.1' }]);
-  const fautif = await jouerDossier(ARGS_DOSSIER, () => 'manque', { contenusFaux: [
-    { champ: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['inconnu'], ref: 'r' },
-    { champ: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: [], ref: 'r' },
-    { champ: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: 'resume', ref: 'r' },
-    { champ: 'beats', id: 'b1', attribut: 'titre', valeur: ['x'], ref: 'r' },
-    { champ: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['dialogue', 'dialogue'], ref: 'r' },
-    { champ: 'pnj', id: 'pnj1', attribut: 'nom', valeur: '', ref: 'r' },
-    { champ: 'declencheurs', id: 'd1', attribut: 'evenement', valeur: '   ', ref: 'r' },
+  const fautif = await jouerDossier(ARGS_DOSSIER, { contenusFaux: [
+    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['inconnu'], ref: 'r' },
+    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: [], ref: 'r' },
+    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: 'resume', ref: 'r' },
+    { famille: 'beats', id: 'b1', attribut: 'mediasCandidats', valeur: ['dialogue', 'dialogue'], ref: 'r' },
+    { famille: 'beats', id: 'b1', attribut: 'statut', valeur: 'capital', ref: 'r' },
+    { famille: 'beats', id: 'b1', attribut: 'titre', valeur: ['x'], ref: 'r' },
+    { famille: 'pnj', id: 'pnj1', attribut: 'nom', valeur: '', ref: 'r' },
+    { famille: 'declencheurs', id: 'd1', attribut: 'evenement', valeur: '   ', ref: 'r' },
   ] });
   assert.equal(fautif.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
   assert.deepEqual(fautif.rendu.trous.anomaliesDeCorrection.map((a) => a.slice(0, a.indexOf(' hors de la forme'))), [
     'contenu faux « beats:b1.mediasCandidats » : valeur ["inconnu"]',
     'contenu faux « beats:b1.mediasCandidats » : valeur []',
     'contenu faux « beats:b1.mediasCandidats » : valeur "resume"',
-    'contenu faux « beats:b1.titre » : valeur ["x"]',
     'contenu faux « beats:b1.mediasCandidats » : valeur ["dialogue","dialogue"]',
+    'contenu faux « beats:b1.statut » : valeur "capital"',
+    'contenu faux « beats:b1.titre » : valeur ["x"]',
     'contenu faux « pnj:pnj1.nom » : valeur ""',
     'contenu faux « declencheurs:d1.evenement » : valeur "   "',
   ]);
   assert.deepEqual(
-    [fautif.rendu.beats[0].mediasCandidats, fautif.rendu.beats[0].titre, fautif.rendu.pnj[0].nom, fautif.rendu.declencheurs[0].evenement, fautif.rendu.corrections],
-    [['dialogue'], 't', 'pnj0', D1.evenement, []],
+    [fautif.rendu.beats[0], fautif.rendu.pnj[0].nom, fautif.rendu.declencheurs[0].evenement, fautif.rendu.corrections],
+    [{ id: 'b1', ...ENTREE_BEAT }, 'Kastor', D1.evenement, []],
   );
-  const forme = fautif.optionsParLabel.get('Lecture:imperatifs-et-beats').schema.properties.beats.items.properties.mediasCandidats;
-  assert.equal(forme.uniqueItems, true, 'le schéma porte l’unicité qu’il exige');
 });
 
-test('dossier-de-chapitre : un id de beat ou de déclencheur vide ou en double à la LECTURE rend LECTURE INVALIDE, et la table refuse ce dossier', async () => {
-  const beat = { titre: 't', ref: 'EDO 01 l.1', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'] };
-  const { rendu, journal } = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, (prompt, opts) => {
-    if (opts.label === 'imperatifs-et-beats') return { imperatifs: [], beats: [{ ...beat, id: '' }, { ...beat, id: 'b2' }, { ...beat, id: 'b2' }], pointsAuMJ: [], indices: [], secrets: [], declencheurs: [D1, { ...D1, evenement: 'autre' }] };
-    if (opts.label === 'pnj-lieux-textes') return { pnj: [], lieux: [], textes: [] };
-    if (opts.label === 'mecanique') return { tests: [], rencontres: [], dureeEtDifficulte: [], recompenses: [], etats: [] };
-    if (opts.phase === 'Confrontation') return { origine: { commit: 'abc' }, verdicts: lotEnvoye(prompt).map((b) => ({ id: b.id, statut: 'manque', preuve: 'sonde' })) };
-    return completude(opts);
+test('dossier-de-chapitre : une seconde correction de la MÊME cible se nomme « cible déjà corrigée » et ne s’applique pas', async () => {
+  const { rendu } = await jouerDossier(ARGS_DOSSIER, {
+    refsFausses: [{ famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.201'], motif: 'm' }, { famille: 'declencheurs', id: 'd1', ref: ['EDO 01 l.999'], motif: 'm' }],
+    contenusFaux: [
+      { famille: 'declencheurs', id: 'd1', attribut: 'condition', valeur: 'c1', ref: 'EDO 01 l.201' },
+      { famille: 'declencheurs', id: 'd1', attribut: 'condition', valeur: 'c2', ref: 'EDO 01 l.201' },
+      { famille: 'declencheurs', id: 'd1', attribut: 'evenement', valeur: 'e1', ref: 'EDO 01 l.201' },
+    ],
   });
-  assert.equal(rendu.verdict, 'LECTURE INVALIDE');
-  assert.deepEqual(rendu.trous.anomaliesDeLecture, ['beats : 1 entrée(s) sans id', 'beats : id « b2 » en double', 'declencheurs : id « d1 » en double']);
-  assert.ok(journal.some((l) => /^Lecture : 3 anomalie\(s\) d’id/.test(l)), journal.join('\n'));
-  assert.deepEqual((await jouerDossier(ARGS_DOSSIER)).rendu.trous.anomaliesDeLecture, [], 'témoin : des ids uniques et non vides n’ont aucune anomalie');
-  const table = await jouerTable(mjSansFin, analyseCouvrante(), { ...ARGS_TABLE, dossier: rendu });
-  assert.equal(table.rendu.verdict, 'ARRÊT');
-  assert.match(table.rendu.manques[0], /verdict « LECTURE INVALIDE »/);
+  assert.equal(rendu.verdict, 'CORRECTIONS INAPPLICABLES');
+  assert.deepEqual(rendu.trous.anomaliesDeCorrection, [
+    'réf fausse « declencheurs:d1 » : cible déjà corrigée',
+    'contenu faux « declencheurs:d1.condition » : cible déjà corrigée',
+  ]);
+  assert.deepEqual([rendu.declencheurs[0].ref, rendu.declencheurs[0].condition, rendu.declencheurs[0].evenement], [['EDO 01 l.201'], 'c1', 'e1'], 'seule la première correction d’une cible s’applique ; un autre attribut est une autre cible');
+  assert.deepEqual(rendu.corrections.map((c) => c.type), ['ref-fausse', 'contenu-faux', 'contenu-faux']);
 });
 
-test('dossier-de-chapitre : une lentille SANS RENDU donne LECTURE INCOMPLÈTE, qui la nomme — jamais DOSSIER — et la table refuse ce dossier', async () => {
-  const { rendu } = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique'));
-  assert.deepEqual([rendu.verdict, rendu.trous.lentillesSansRendu], ['LECTURE INCOMPLÈTE', ['mecanique']]);
-  const table = await jouerTable(mjSansFin, analyseSignal(), { ...ARGS_TABLE, dossier: rendu });
-  assert.equal(table.rendu.verdict, 'ARRÊT');
-  assert.deepEqual(table.rendu.manques, ['args.dossier — verdict « LECTURE INCOMPLÈTE » : seul un dossier au verdict DOSSIER (relu par son juge de complétude) arme une table']);
+test('dossier-de-chapitre : un run qui n’est pas au verdict DOSSIER ne s’écrit pas — le lanceur le refuse en nommant ses trous, rien n’est écrit', async () => {
+  const lentilleMorte = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique'));
+  assert.deepEqual([lentilleMorte.rendu.verdict, lentilleMorte.rendu.trous.lentillesSansRendu], ['LECTURE INCOMPLÈTE', ['mecanique']]);
+  assert.deepEqual([lentilleMorte.rendu.etats, lentilleMorte.rendu.tests], [[], []], 'une lentille morte laisse ses familles vides');
+  const inapplicable = await jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd9', ref: ['EDO 01 l.9'], motif: 'm' }] });
+  assert.equal(inapplicable.rendu.verdict, 'CORRECTIONS INAPPLICABLES');
+  await dansUnJetable(async (dir) => {
+    assert.throws(() => ecrireFiche(lentilleMorte.rendu, { dir }), /^Error: workflow-args: verdict « LECTURE INCOMPLÈTE » — seul un run au verdict DOSSIER porte une fiche ; trous : lentillesSansRendu \(mecanique\)$/);
+    assert.throws(() => ecrireFiche(inapplicable.rendu, { dir }), /verdict « CORRECTIONS INAPPLICABLES » .* trous : anomaliesDeCorrection \(réf fausse « declencheurs:d9 » : cible inconnue\)/);
+    assert.throws(() => argsDeTableSimulee('EDO', '01', { worktree: ARBRE, date: DATE, seed: 'graine', dir, fichierDe: fichierDeFixture }), /aucune fiche .*\/EDO\/01\.json/, 'rien n’a été écrit');
+  });
 });
 
-test('table-simulee : un dossier dont `trous` omet une espèce MESURÉE au dossier réel est antérieur au contrat — ARRÊT qui la nomme', async () => {
-  const { rendu } = await jouerDossier(ARGS_DOSSIER);
-  const especes = Object.keys(rendu.trous);
-  assert.deepEqual(Object.keys(DOSSIER_DU_CHAPITRE.trous).sort(), [...especes].sort(), 'la fixture porte les espèces du dossier réel');
-  for (const espece of especes) {
-    const sans = Object.fromEntries(Object.entries(DOSSIER_DU_CHAPITRE.trous).filter(([e]) => e !== espece));
-    const table = await jouerTable(mjSansFin, analyseSignal(), { ...ARGS_TABLE, dossier: { ...DOSSIER_DU_CHAPITRE, trous: sans } });
-    assert.equal(table.rendu.verdict, 'ARRÊT', espece);
-    assert.equal(table.promptsParLabel.size, 0, espece);
-    assert.deepEqual(table.rendu.manques, [`args.dossier.trous.${espece} absent — dossier antérieur au contrat de la table, à refaire`]);
-  }
+test('dossier-de-chapitre : chaque rendu de LECTURE se keye au label de sa lentille — réordonner les lecteurs ne change pas la fiche', async () => {
+  const source = readFileSync(join(DOSSIER, 'dossier-de-chapitre.js'), 'utf8');
+  const lecteur = (lentille) => source.indexOf(`  () => agent(promptDeLecture(${lentille}),`);
+  const [a, b, c] = ['LENTILLE_IMPERATIFS_ET_BEATS', 'LENTILLE_PNJ_LIEUX_TEXTES', 'LENTILLE_MECANIQUE'].map(lecteur);
+  assert.ok(a >= 0 && a < b && b < c, 'les trois premiers lecteurs, dans cet ordre');
+  const permute = source.slice(0, a) + source.slice(b, c) + source.slice(a, b) + source.slice(c);
+  assert.notEqual(permute, source, 'la mutation s’applique — sinon ce test ne prouve rien');
+  const repondre = (prompt, opts) => {
+    if (opts.phase === 'Lecture') {
+      const vide = tableTotale(opts.schema.required, () => []);
+      return opts.label === 'pnj-lieux-textes' ? { ...vide, pnj: [{ nom: 'Kastor', role: 'r', motivation: 'm', ref: ['EDO 01 l.2'] }] } : vide;
+    }
+    return completude(opts);
+  };
+  await dansUnJetable(async (dir) => {
+    const chemin = join(dir, 'dossier-de-chapitre.js');
+    writeFileSync(chemin, permute, 'utf8');
+    const nominal = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, repondre);
+    const reordonne = await jouerWorkflow(chemin, ARGS_DOSSIER, repondre);
+    assert.deepEqual(nominal.rendu.pnj.map((p) => p.nom), ['Kastor'], 'témoin : le PNJ de sa lentille entre à la fiche');
+    assert.deepEqual(reordonne.rendu, nominal.rendu);
+  });
 });
 
 // ── CLASSES : tout workflow du dépôt ───────────────────────────────────────────────────────────────
@@ -871,7 +813,7 @@ const repondreALAtlas = (fidele) => (prompt, opts) => ({
 
 /** Par script de workflow du dépôt : des runs qui atteignent ses agents. */
 const RUNS_COUVRANTS = {
-  'dossier-de-chapitre.js': () => [jouerDossier({ ...ARGS_DOSSIER, compagnons: ['Source/compagnon-03.md'] }, () => 'manque', { oublis: { declencheurs: [D2] } })],
+  'dossier-de-chapitre.js': () => [jouerDossier(AVEC_COMPAGNON, { oublis: { declencheurs: [ENTREE_D2] } })],
   'table-simulee.js': () => [jouerTable(mjSansFin)],
   'atlas-domain.workflow.js': () => [jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(true)), jouerWorkflow(ATLAS, ARGS_ATLAS, repondreALAtlas(false))],
 };
@@ -900,7 +842,6 @@ test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de 
 
 /** Par workflow qui rend un verdict : ses verdicts de SUCCÈS, un run témoin qui en rend un, et UNE injection
  *  par espèce de trou, qui la produit. Les espèces se MESURENT aux `trous` que le témoin rend. */
-const BEAT = { id: 'b1', titre: 't', ref: 'EDO 01 l.1', statut: 'obligatoire', preuveDuStatut: 'p', mediasCandidats: ['dialogue'] };
 const VERDICTS_DE_SUCCES = {
   'table-simulee.js': {
     succes: ['SIGNAL', 'THÉÂTRE'],
@@ -917,14 +858,11 @@ const VERDICTS_DE_SUCCES = {
   },
   'dossier-de-chapitre.js': {
     succes: ['DOSSIER'],
-    temoin: () => jouerDossier(ARGS_DOSSIER),
+    temoin: () => jouerDossier(),
     trous: {
-      anomaliesDeLecture: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'imperatifs-et-beats', { imperatifs: [], beats: [BEAT], pointsAuMJ: [], indices: [], secrets: [], declencheurs: [D1, D1] })),
       lentillesSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'mecanique')),
       completudeSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'completude')),
-      anomaliesDeCorrection: () => jouerDossier(ARGS_DOSSIER, () => 'manque', { refsFausses: [{ champ: 'declencheurs', id: 'd9', ref: 'r', motif: 'm' }] }),
-      lotsSansRendu: () => jouer('dossier-de-chapitre.js', ARGS_DOSSIER, sauf(repondreAuDossier(), 'confrontation:2')),
-      besoinsNonConfrontes: () => jouerDossier(ARGS_DOSSIER, (b) => (b.id === 'B7' ? null : 'manque')),
+      anomaliesDeCorrection: () => jouerDossier(ARGS_DOSSIER, { refsFausses: [{ famille: 'declencheurs', id: 'd9', ref: ['EDO 01 l.9'], motif: 'm' }] }),
     },
   },
 };
@@ -956,7 +894,7 @@ test('table-simulee : la commande de dés est SIMPLE, lancée par `ctx_shell` ; 
 
 test('les deux workflows : tout agent qui cite le livre prend ses lignes sur une lecture BRUTE et relit la ligne citée', async () => {
   const table = await jouerTable(mjSansFin);
-  const dossier = await jouerDossier({ ...ARGS_DOSSIER, compagnons: ['Source/compagnon-03.md'] });
+  const dossier = await jouerDossier(AVEC_COMPAGNON);
   const citants = [...table.promptsParLabel, ...dossier.promptsParLabel].filter(([cle]) => !cle.startsWith('Partie:joueur:') && cle !== 'Préparation:fiches-pj');
   assert.ok(citants.length >= 8);
   for (const [cle, prompt] of citants) {
@@ -973,32 +911,4 @@ test('RECONNAISSANCE : l’AST reconnaît les workflows, jamais un générateur 
   const scripts = scriptsDeWorkflowDuDepot(RACINE);
   assert.ok(scripts.includes(join(RACINE, 'scripts', 'raw', 'atlas-domain.workflow.js')), 'un workflow HORS de .claude/workflows/ est vu');
   assert.deepEqual(scripts.filter(estSuiteVitest), [], 'aucun test n’est pris pour un workflow');
-});
-
-test('dossier-de-chapitre : chaque rendu de LECTURE se keye au label de sa lentille — réordonner les lecteurs ne change pas le dossier', async () => {
-  const source = readFileSync(join(DOSSIER, 'dossier-de-chapitre.js'), 'utf8');
-  const lecteur = (lentille) => source.indexOf(`  () => agent(promptDeLecture(${lentille}),`);
-  const [a, b, c] = ['LENTILLE_IMPERATIFS_ET_BEATS', 'LENTILLE_PNJ_LIEUX_TEXTES', 'LENTILLE_MECANIQUE'].map(lecteur);
-  assert.ok(a >= 0 && a < b && b < c, 'les trois premiers lecteurs, dans cet ordre');
-  const permute = source.slice(0, a) + source.slice(b, c) + source.slice(a, b) + source.slice(c);
-  assert.notEqual(permute, source, 'la mutation s’applique — sinon ce test ne prouve rien');
-  const repondre = (prompt, opts) => {
-    if (opts.phase === 'Lecture') {
-      const vide = tableTotale(opts.schema.required, () => []);
-      return opts.label === 'pnj-lieux-textes' ? { ...vide, pnj: [{ nom: 'Kastor', role: 'r', motivation: 'm', ref: 'EDO 01 l.2' }] } : vide;
-    }
-    if (opts.phase === 'Confrontation') return { origine: { commit: 'abc' }, verdicts: lotEnvoye(prompt).map((x) => ({ id: x.id, statut: 'manque', preuve: 'sonde' })) };
-    return completude(opts);
-  };
-  const dir = mkdtempSync(join(tmpdir(), 'dossier-permute-'));
-  try {
-    const chemin = join(dir, 'dossier-de-chapitre.js');
-    writeFileSync(chemin, permute, 'utf8');
-    const nominal = await jouer('dossier-de-chapitre.js', ARGS_DOSSIER, repondre);
-    const reordonne = await jouerWorkflow(chemin, ARGS_DOSSIER, repondre);
-    assert.deepEqual(nominal.rendu.pnj.map((p) => p.nom), ['Kastor'], 'témoin : le PNJ de sa lentille entre au dossier');
-    assert.deepEqual(reordonne.rendu, nominal.rendu);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 });

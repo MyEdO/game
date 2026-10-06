@@ -1,5 +1,5 @@
 // Garde de graphie des citations RAW (#487, #585, #454 DoD, #1898).
-// Dans les CITANTS de `src/**` (`lib/fichiersCitants.mjs`), une réf au livre s'écrit
+// Dans les CITANTS (`RACINES_CITANTES`, `lib/fichiersCitants.mjs`), une réf au livre s'écrit
 // `<ABRÉV> <chap> l.<ligne>` (CLAUDE.md règle 1). Deux classes y lisent TOUTE ligne — commentaire en
 // tête ou en fin de ligne de code, titre de test, chaîne affichée, champ JSON :
 // - (a′) graphie chapitre-relative `NN-Nom l.X` (ex. `18-Traumatisme l.417-422`) : INVISIBLE de
@@ -17,10 +17,9 @@ import { fileURLToPath } from 'node:url'
 import { fieldBlockMask } from './build-implemente.mjs'
 import { allAbbrAlternation, bookOf, chapterBoundaryRiskFor, folioRange, pagesDeLAtlas, readText, refFolioRe } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { EXTS_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
+import { EXTS_CITANTES, RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 
-export const SRC_DIR = 'src'
 export const RAWDIR = 'docs/raw'
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'graphy-stock.json')
 
@@ -71,10 +70,10 @@ export const NONIMPL_RE = () => new RegExp(
 
 // (e) `ch.` cosmétique devant un numéro de chapitre — TOLÉRÉ par `refRe` (#434 défaut 3),
 // mais graphie DÉVIANTE au sens de #585 (le numéro de fichier n'a pas besoin du préfixe `ch.` depuis
-// la convention 2ed2acff/a5eddf80) : cliqueté par site, `src/**` et fiches.
+// la convention 2ed2acff/a5eddf80) : cliqueté par site, citants (`RACINES_CITANTES`) et fiches.
 export const CH_DOT_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) ch\\.\\d+`, 'g')
 // (f) Folio NU sans chapitre en fiche : `<ABRÉV> p.<n>` (chapitre absent → invérifiable contre les
-// data-folio bakés). Toute ligne des fiches scannées ; en `src/**`, la classe (j) le voit.
+// data-folio bakés). Toute ligne des fiches scannées ; chez les citants, la classe (j) le voit.
 export const BARE_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) p\\.\\d+`, 'g')
 // (g) Réf `ABRÉV NN l.X` / `ABRÉV NN p.X` dont l'abréviation N'EST PAS un livre connu de `_lib.mjs`
 // (`bookOf` couvre BOOKS + les variantes tolérantes) — inversion : l'inconnu échoue NOMINATIVEMENT,
@@ -86,7 +85,7 @@ export const UNKNOWN_ABBR_RE = () => /\b[A-Z]{2,6}(?:\s+I{1,2})? \d+ [lp]\.\d+/g
 // juge adversarial) : `<ABRÉV> NN p.X` suivi d'un ou plusieurs folios supplémentaires (`/Y`, `-Y`,
 // `,Z`). Un seul chapitre N est écrit dans la réf — si un des folios listés ne résout PAS dans CE
 // chapitre (`folioRange(abbr, folio).ch !== N`), le folio appartient à un AUTRE chapitre, jamais
-// écrit : violation. Zéro tolérance, PAS de stock. Remède : une réf par chapitre. En `src/**`, la
+// écrit : violation. Zéro tolérance, PAS de stock. Remède : une réf par chapitre. Chez les citants, la
 // classe (j) voit toute réf au folio.
 export const MULTI_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\d+) p\\.(\\d+)((?:[/,-]\\d+)+)`, 'g')
 
@@ -95,7 +94,7 @@ export const MULTI_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\
 // `chapterBoundaryRisk`, _lib.mjs). Négation `(?![/,-]\d)` : un folio suivi d'un autre (`p.X/Y`,
 // `p.X-Y`, `p.X,Y`) n'est pas un folio simple : la classe (h) le juge. AVERTISSEMENT cliqueté (jamais bloquant à l'aveugle) :
 // la position structurelle rend le débordement PLAUSIBLE, mais seule une relecture verbatim tranche
-// si le sujet cité vit réellement en N ou en N+1 — non automatisable ici. En `src/**`, la classe (j)
+// si le sujet cité vit réellement en N ou en N+1 — non automatisable ici. Chez les citants, la classe (j)
 // voit toute réf au folio, en fin de chapitre ou non.
 export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternation()}) (\\d+) p\\.(\\d+)(?![/,-]\\d)`, 'g')
 
@@ -228,12 +227,12 @@ const memoise = (cle, calcul) => {
   return fait
 }
 
-/** Passe unique sur `src/**` : chaque fichier lu UNE fois, chaque ligne ENTIÈRE offerte à tous les
+/** Passe unique sur les citants (`RACINES_CITANTES`) : chaque fichier lu UNE fois, chaque ligne ENTIÈRE offerte à tous les
  *  détecteurs dont la classe couvre ce corpus — (a′), (b), (e), (g), (j). Pur. */
-function passeSrc(srcDir, exts) {
-  return memoise(JSON.stringify(['src', resolve(srcDir), exts]), () => {
+function passeSrc(racines, exts) {
+  return memoise(JSON.stringify(['src', [racines].flat().map((r) => resolve(r)), exts]), () => {
     const out = vide()
-    for (const f of fichiersCitants(srcDir, exts)) {
+    for (const f of fichiersCitants(racines, exts)) {
       const file = f.replace(/\\/g, '/')
       readText(f).split('\n').forEach((ln, i) => {
         const row = i + 1
@@ -273,10 +272,10 @@ function passeFiches(rawDir) {
   })
 }
 
-/** Les dix familles du garde, corpus `src/**` PUIS fiches `docs/raw/*.md` (l'ordre des deux passes
+/** Les dix familles du garde, citants (`RACINES_CITANTES`) PUIS fiches `docs/raw/*.md` (l'ordre des deux passes
  *  décide de l'ordre du rapport). Pur (aucune écriture). */
-export function scanTout(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR) {
-  const src = passeSrc(srcDir, exts)
+export function scanTout(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
+  const src = passeSrc(racines, exts)
   const fiches = passeFiches(rawDir)
   return geler(tableTotale(FAMILLES, (f) => [...src[f], ...fiches[f]]))
 }
@@ -295,16 +294,16 @@ export function scanChapterBoundaryFolioViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).chapterBoundaryFolio
 }
 
-/** Scan (j) : réfs au FOLIO de `srcDir` (défaut `src/`), toute ligne. Retourne
+/** Scan (j) : réfs au FOLIO de `racines` (défaut `RACINES_CITANTES`), toute ligne. Retourne
  *  `{ file, row, ref, text }[]`, UNE entrée par correspondance — `ref` = le texte de la réf. */
-export function scanFolioSrcViolations(srcDir = SRC_DIR, exts = EXTS_CITANTES) {
-  return passeSrc(srcDir, exts).folioSrc
+export function scanFolioSrcViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES) {
+  return passeSrc(racines, exts).folioSrc
 }
 
-/** Scan (a′) : graphie chapitre-relative de `srcDir` (défaut `src/`). Retourne `{ file, row, text }[]`
+/** Scan (a′) : graphie chapitre-relative de `racines` (défaut `RACINES_CITANTES`). Retourne `{ file, row, text }[]`
  *  — `text` = la ligne tronquée (160c) pour le diagnostic. */
-export function scanGraphyViolations(srcDir = SRC_DIR, exts = EXTS_CITANTES) {
-  return passeSrc(srcDir, exts).graphy
+export function scanGraphyViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES) {
+  return passeSrc(racines, exts).graphy
 }
 
 /** Scans (a)/(b)/(c) des fiches `docs/raw/*.md` (hors rapports/épreuves) : plage à tiret cadratin,
@@ -320,10 +319,10 @@ export function scanImplProseViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).implProse
 }
 
-/** Scan (e) : `ch.` cosmétique — les citants de src/** ET docs/raw/*.md (mêmes fiches que (b)/(c)).
+/** Scan (e) : `ch.` cosmétique — les citants (`RACINES_CITANTES`) ET docs/raw/*.md (mêmes fiches que (b)/(c)).
  *  Retourne `{ file, row, text }[]`, UNE entrée par OCCURRENCE — cliquet par SITE (cf. `ecartDuVolet`). */
-export function scanChDotViolations(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR) {
-  return scanTout(srcDir, exts, rawDir).chDot
+export function scanChDotViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
+  return scanTout(racines, exts, rawDir).chDot
 }
 
 /** Scan (f) : folio NU `<ABRÉV> p.X` sans chapitre des fiches scannées, toute ligne.
@@ -332,16 +331,16 @@ export function scanBareFolioViolations(rawDir = RAWDIR) {
   return passeFiches(rawDir).bareFolio
 }
 
-/** Scan (b) étendu à src/** ET docs/raw/*.md (fiches scannées, patron `chDot`) — réf de livre sans
+/** Scan (b) étendu aux citants (`RACINES_CITANTES`) ET docs/raw/*.md (fiches scannées, patron `chDot`) — réf de livre sans
  *  chapitre `<ABRÉV> l.<n>` (`BOOK_NO_CHAPTER_RE`). Retourne `{ file, row, text }[]`. */
-export function scanBookNoChapterSrcViolations(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR) {
-  return scanTout(srcDir, exts, rawDir).bookNoChapterSrc
+export function scanBookNoChapterSrcViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
+  return scanTout(racines, exts, rawDir).bookNoChapterSrc
 }
 
 /** Scan (g) : réf `ABRÉV NN l.X`/`ABRÉV NN p.X` dont l'abréviation est INCONNUE de `_lib.mjs`
  *  (`bookOf` retourne null). Zéro tolérance, PAS de baseline. Retourne `{ file, row, abbr, text }[]`. */
-export function scanUnknownAbbrViolations(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR) {
-  return scanTout(srcDir, exts, rawDir).unknownAbbr
+export function scanUnknownAbbrViolations(racines = RACINES_CITANTES, exts = EXTS_CITANTES, rawDir = RAWDIR) {
+  return scanTout(racines, exts, rawDir).unknownAbbr
 }
 
 /** RÉF NOMINATIVE d'un site, par famille : ce qui identifie la citation fautive indépendamment de sa
@@ -358,10 +357,10 @@ const REF_DU_SITE = {
 /** Les familles CLIQUETÉES dans `graphy-stock.json`, dans l'ordre du rapport. `avertissement` : le
  *  rapport liste aussi chaque candidat (famille non bloquante sur ses sites déclarés). */
 export const FAMILLES_CLIQUETEES = Object.freeze([
-  { famille: 'chDot', label: 'ch. cosmétique (src+docs/raw)' },
-  { famille: 'folioSrc', label: 'réf au folio (src/)' },
+  { famille: 'chDot', label: 'ch. cosmétique (citants+docs/raw)' },
+  { famille: 'folioSrc', label: 'réf au folio (citants)' },
   { famille: 'bareFolio', label: 'folio nu (docs/raw)' },
-  { famille: 'bookNoChapterSrc', label: 'réf sans chapitre (src+docs/raw)' },
+  { famille: 'bookNoChapterSrc', label: 'réf sans chapitre (citants+docs/raw)' },
   { famille: 'chapterBoundaryFolio', label: 'folio en fin de chapitre (docs/raw, AVERTISSEMENT)', avertissement: true },
 ])
 
@@ -382,9 +381,9 @@ export function cliquets(passe, stock) {
 const QUOI =
   "STOCK NOMINATIF des graphies de citation cliquetées par scripts/raw/citation-graphy-guard.mjs " +
   "(FAMILLES_CLIQUETEES) : une DETTE à drainer vers ZÉRO. Familles : `folioSrc` = réf au folio " +
-  "`<ABRÉV> [<chap>] p.<folio>` sur TOUTE ligne des citants de src/** " +
+  "`<ABRÉV> [<chap>] p.<folio>` sur TOUTE ligne des citants (RACINES_CITANTES) " +
   "(scripts/raw/lib/fichiersCitants.mjs), invariant zéro, le stock ne porte que des sites DIFFÉRÉS ; " +
-  "`chDot` et `bookNoChapterSrc` = src/** et fiches docs/raw ; `bareFolio` et `chapterBoundaryFolio` " +
+  "`chDot` et `bookNoChapterSrc` = citants (RACINES_CITANTES) et fiches docs/raw ; `bareFolio` et `chapterBoundaryFolio` " +
   "(AVERTISSEMENT) = fiches docs/raw seules. Une entrée = un SITE (famille de graphie, fichier, réf " +
   "ou texte de la citation, occurrence dans ce fichier) — jamais un numéro de ligne, qui dérive à " +
   "chaque édition. La FAMILLE est un champ de l'entrée, jamais une rubrique : une famille vidée " +
@@ -421,10 +420,10 @@ function main() {
   const { juges, neuves, perimees } = cliquets(passe, lireEntreesDeSite(STOCK_PATH))
 
   if (src.length) {
-    console.log(`citation-graphy-guard : ${src.length} graphie(s) chapitre-relative(s) (src/) :`)
+    console.log(`citation-graphy-guard : ${src.length} graphie(s) chapitre-relative(s) (citants) :`)
     for (const { file, row, text } of src) console.log(`  ${file}:${row}  ${text}`)
   } else {
-    console.log('citation-graphy-guard : 0 graphie chapitre-relative (src/) — classe verrouillée à zéro.')
+    console.log('citation-graphy-guard : 0 graphie chapitre-relative (citants) — classe verrouillée à zéro.')
   }
   if (docs.length) {
     console.log(`citation-graphy-guard : ${docs.length} graphie(s) de fiche (docs/raw/) :`)

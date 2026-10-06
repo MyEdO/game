@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../Modal';
 import { GatedAction } from '../GatedAction';
 import { Icon } from '../Icon';
+import { ListRow } from '../ListRow';
 import { Scene } from '../../state/scene';
 import { testScenarios, TestScenario } from '../../scenes/test-scenarios';
 import { projectsLoad, projectRemove, nomDeProjet, SavedProject, IMPORT_FORME_DEPOT } from '../../state/projectLibrary';
@@ -173,8 +174,7 @@ export function OpenProjectModal({
           <div className="mini-title">Mes projets</div>
           <Stack>
             {projects.map((p) => (
-              <div className="listrow" key={p.id}>
-                <span className="lr-name">{nomDeProjet(p.label)}</span>
+              <ListRow key={p.id} label={nomDeProjet(p.label)}>
                 {p.published && <span className="chip">publiée</span>}
                 <button className="btn small btn-primary" onClick={() => onProject(p)}>
                   Ouvrir
@@ -182,7 +182,7 @@ export function OpenProjectModal({
                 <button className="btn small danger" onClick={() => del(p.id)}>
                   Suppr.
                 </button>
-              </div>
+              </ListRow>
             ))}
           </Stack>
         </>
@@ -190,29 +190,22 @@ export function OpenProjectModal({
       <div className="mini-title">Campagnes du jeu</div>
       <Stack>
         {allBuiltinCampaigns.map((bc) => (
-          <div className="listrow" key={bc.id}>
-            <span className="lr-name">
-              <Icon id={bc.icon} size="sm" /> {bc.label}
-            </span>
+          <ListRow key={bc.id} label={<><Icon id={bc.icon} size="sm" /> {bc.label}</>}>
             <span className="chip">s’ouvre en copie</span>
             <button className="btn small btn-primary" onClick={() => onBuiltin(bc)}>
               Ouvrir
             </button>
-          </div>
+          </ListRow>
         ))}
       </Stack>
       <div className="mini-title">Scénarios de test</div>
       <Stack>
         {testScenarios.map((sc) => (
-          <div className="listrow" key={sc.id}>
-            <div className="lr-name">
-              <Icon id={sc.icon} size="sm" /> {sc.title}
-              <div className="hint">{sc.partyNote}</div>
-            </div>
+          <ListRow key={sc.id} label={<><Icon id={sc.icon} size="sm" /> {sc.title}</>} subtitle={sc.partyNote}>
             <button className="btn small" onClick={() => onScenario(sc)}>
               Ouvrir
             </button>
-          </div>
+          </ListRow>
         ))}
       </Stack>
     </Modal>

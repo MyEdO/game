@@ -278,7 +278,8 @@ projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarrati
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
-            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock }
+            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock;
+            ecartes?: EcartDeFiche[] }
 ```
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
@@ -336,7 +337,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un document est REFUSÉE nommément
   (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser.
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
-  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets). L'onglet
+  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets/Écarts). L'onglet
   **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les
   registres), le formulaire édite `titre`, le texte Markdown verbatim et la `source` (`SourceRefField`,
   `src/ui/SourceRefField.tsx` : livre choisi dans `books`, page — le même éditeur sert la source d'un
@@ -412,6 +413,30 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   système). Aucun journal parallèle n'est écrit.
 - **Édition.** Onglet « Cadre » du `NarratifEditor` (champs texte, pitch, ambiance, `ConditionEditor`
   pour la clôture) — le cadre est de la DONNÉE de campagne, jamais du texte au catalogue i18n.
+
+## 10quinquies. Lien aux fiches de dossier de chapitre (`couvre` / `narratif.ecartes`, #2290)
+
+Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `ficheDeDossier` de
+`src/data/source/dossier.ts`) nomme chaque entrée par un identifiant GLOBAL `<ABBR>-<NN>#<id>`
+(`ID_D_ENTREE`). Le paquet de campagne CITE ces entrées ; la fiche ne connaît pas le paquet.
+
+- **`couvre?: string[]`** (`couvreSchema`, `src/data/schemas/defs-scenes/communs.ts`) — les entrées de
+  fiche que l'élément couvre, sans doublon. Porteurs : `Scene`, `SceneEntity`, `SceneEffectZone`,
+  `Trigger`, `Dialogue`, `EncounterDef`, `MapPlace`, `MapRoute`, `PresetPnj`, `Indice`.
+- **`narratif.ecartes?: EcartDeFiche[]`** (`ecartSchema`, `src/data/schemas/defs-scenes/narratif.ts`) —
+  `{ entree, motif }` : une entrée de fiche que l'adaptation écarte, une fois, motif non vide.
+- **Édition.** La primitive `CouvreField` (`src/ui/editor/CouvreField.tsx`) pose `couvre` dans chaque
+  inspecteur porteur : pli « Identité » de l'entité et de la scène, pli de la zone d'effet, panneau
+  Logique (déclencheur, dialogue, rencontre), panneaux de lieu et de route de la carte, formulaires
+  d'indice et de PNJ du `NarratifEditor`. Les écarts s'éditent à l'onglet « Écarts » du
+  `NarratifEditor`. Les entrées offertes sont celles des fiches commitées.
+- **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
+  famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
+  Il lit le paquet commité sous `src/scenes/` : un lien posé à l'éditeur ne l'atteint qu'après « Fichier →
+  Exporter forme dépôt (dev) » et le remplacement du fichier du paquet par l'export (§1) — « Enregistrer… »
+  n'écrit qu'une copie locale (localStorage).
+  Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
+  entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 
 ## 11. Règles d'or
 

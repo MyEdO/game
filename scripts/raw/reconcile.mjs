@@ -40,7 +40,7 @@ import {
 } from './_lib.mjs'
 import { alternationDe } from '../../src/lib/regex.ts'
 import { lireStockJson } from '../guards/lib/stockDeSites.mjs'
-import { fichiersCitants } from './lib/fichiersCitants.mjs'
+import { RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
   stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH,
@@ -109,12 +109,12 @@ const setDe = (table, book) => table.get(book) || new Set()
 /** Calcule la réconciliation CODE↔ATLAS. Pur vis-à-vis de l'écriture de fichier (aucun writeFileSync ici).
  *  `registre` = le registre des livres (`books.json` par défaut), `manifestPath` = la dette éditoriale :
  *  les tests en injectent des fixtures, comme la source de catalogues (`catalogues`, `pagesDeLAtlasRendues`). */
-export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH, catalogues } = {}) {
+export function computeReconciliation({ racines = RACINES_DU_CODE, rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH, catalogues } = {}) {
   const books = booksDe(registre)
   const coeurs = coeursDe(registre)
   const ALT = alternationDe(books.map(([a]) => a))
   const bookOf = bookOfDe(books)
-  const SRC = fichiersCitants(srcDir)
+  const SRC = fichiersCitants(racines)
   const DOCS = pagesDeLAtlasRendues(rawDir, { classes: CLASSES, registre }, catalogues)
 
   // --- regex de réfs (source unique : _lib.mjs ; instances stateful /g locales) ---
