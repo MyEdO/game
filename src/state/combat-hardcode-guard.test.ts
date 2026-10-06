@@ -30,7 +30,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * `state/combatFlow.ts` (les 3 cibles historiques du Lot 0, migrées aux Lots 4/4bis/6) y restent.
  *
  * Mécanique de détection (marqueurs réactifs par-nom, exclusion des imports) :
- * `scripts/guards/lib/hardcode.mjs` (module .mjs pur, partagé avec un futur hook pre-commit).
+ * `scripts/guards/lib/hardcode.mjs` (module .mjs pur, partagé avec le hook pre-commit).
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet

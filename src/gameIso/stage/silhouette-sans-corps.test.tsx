@@ -105,7 +105,7 @@ async function dérouler(attendus: number, quand: string): Promise<number[]> {
 function rendre(actors: ActorPose[]): Promise<void> {
   return act(async () => {
     root!.render(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={AFFINE}

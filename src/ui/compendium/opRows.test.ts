@@ -223,7 +223,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       expect(persistante.badge).toBe('regagné à chaque fin de Round · 3 Rounds');
     }
     expect(humanizeOp({ op: 'condition', id: etat.id, perRound: true, unlessCondition: etat.id, durationRounds: 3 }))
-      .toBe(`gagne l'État *${etat.label}*, regagné à chaque fin de Round pendant 3 Round(s)`);
+      .toBe(`gagne l'État *${etat.label}*, regagné à chaque fin de Round pendant 3 Rounds`);
   });
 
   /** #1224 écart 4 — LDB 21 l.19 : « Sur un succès […] vous ne subirez qu'une pénalité de -20 à vos
@@ -284,5 +284,29 @@ describe('opRow — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => 
     const row = opRow({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } });
     expect(row.t).toBe('ref');
     if (row.t === 'ref') { expect(row.show).toBe('Vol'); expect(row.badge).toBe(humanizeFormula({ charOf: 'agilite' })); }
+  });
+});
+
+describe('pastille `charMod` — plancher et durée propre dits au producteur (EDO 11 l.190 ; #1853)', () => {
+  const badge = (o: GameOp) => { const r = opRow(o); return r.t === 'ref' ? r.badge : undefined; };
+  const CRETIN: GameOp = { op: 'charMod', char: 'intelligence', mod: -40 };
+
+  it('le plancher est porté quand il est présent', () => {
+    expect(badge({ ...CRETIN, min: 10 })).toBe('-40 · min 10');
+  });
+
+  it('sans plancher, aucune mention', () => {
+    expect(badge(CRETIN)).toBe('-40');
+  });
+
+  it('les trois échelles de durée propre, accordées au réel', () => {
+    expect(badge({ ...CRETIN, durationHours: 3 })).toBe('-40 · 3 heures');
+    expect(badge({ ...CRETIN, durationMinutes: 1 })).toBe('-40 · 1 minute');
+    expect(badge({ ...CRETIN, durationRounds: 2 })).toBe('-40 · 2 Rounds');
+  });
+
+  it('`condition` lit la même durée propre', () => {
+    const r = opRow({ op: 'condition', id: 'etourdi', durationHours: 2 });
+    expect(r.t === 'ref' ? r.badge : undefined).toBe('2 heures');
   });
 });

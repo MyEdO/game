@@ -576,6 +576,43 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
     expect(untaggedExcuseMatch('// `dominos` tient la place en attendant, et ce n’est PAS le même Test.')).toBeNull();
   });
 
+  it.each([
+    '// La fonction est conservée jusqu’à la suppression de ses anciens appels.',
+    "// Les modules sont maintenus jusqu'au remplacement des anciens usages.",
+    '// Les méthodes sont gardées en attendant le retrait des anciennes branches.',
+    '/** La méthode est maintenue\n * jusqu’au retrait des anciens appelants. */',
+    '// Les fonctions sont conservées\n// jusqu’à la disparition de leurs anciens appels.',
+    `// La fonction est conservée ${'avec sa liaison explicite '.repeat(12)}jusqu’à la suppression des anciens appels.`,
+  ])('#2285 maintien transitoire détecté : %s', (source) => {
+    const trouve = scanExcuses('scripts/ops/temoin.mjs', source);
+    expect(trouve).toHaveLength(1);
+    expect(trouve[0].line).toBe(1);
+  });
+
+  it.each([
+    '// Le personnage est conservé jusqu’au retrait des anciens appels.',
+    '// La durée de vie de cet objet est maintenue jusqu’au retrait des anciens usages.',
+    '// La fonction est conservée jusqu’au prochain appel.',
+    '// La branche de cet algorithme est gardée jusqu’au résultat du calcul.',
+    '// La fonction est conservée pour ses appels courants.',
+    '// La fonction est conservée. Le retrait des anciens appels appartient à une autre phrase.',
+    '// La fonction est conservée jusqu’au prochain appel. Les anciens usages sont décrits ici.',
+    '// La fonction est conservée ; jusqu’au retrait des anciens appels.',
+    '// FOSSILE #2203 — mort quand aucune branche chantier ne reste.',
+    '// La branche est morte quand la condition vaut faux.',
+    '// #2203',
+    'const texte = "La fonction est conservée jusqu’au retrait des anciens appels";',
+  ])('#2285 maintien transitoire : opposé innocent : %s', (source) => {
+    expect(scanExcuses('scripts/ops/temoin.mjs', source)).toEqual([]);
+  });
+
+  it('#2285 phrase partagée : aucun seuil ni contamination de la phrase suivante', () => {
+    const suite = 'avec sa liaison explicite '.repeat(12);
+    expect(scanExcuses('x.ts', `// Affichage en attendant ${suite}la primitive partagée.`)).toHaveLength(1);
+    expect(scanExcuses('x.ts', `// Le héros attend son tour en attendant ${suite}son résultat. La primitive partagée existe.`)).toEqual([]);
+    expect(scanExcuses('x.ts', 'const texte = "Affichage en attendant la primitive partagée";')).toEqual([]);
+  });
+
   it('faux positif écarté : une phrase de DONNÉE qui dit « séparément »/« ailleurs » décrit le découpage RÉEL', () => {
     expect(untaggedExcuseMatch('// les entrées de racine et les documents embarqués se comptent SÉPARÉMENT.')).toBeNull();
     expect(untaggedExcuseMatch('// la QUANTITÉ perdue est portée par la ligne de Critique, pas ici.')).toBeNull();

@@ -3,6 +3,7 @@ import { tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, liftDe, type Scene } from '../../state/scene';
 import { roomPortals, type RoomPortal } from '../../state/roomPortals';
 import { aretesUtilisables } from '../../state/aretes';
+import { cloisons, piece } from '../../state/pieces.fixture';
 import { METRES_PER_LEVEL, STEP_MAX_M } from '../../state/relief';
 import { buildScene } from '../../state/mapSpec';
 import type { Combatant } from '../../engine/types';
@@ -134,18 +135,15 @@ const FIXTURE: Scene = buildScene({
   },
 });
 
-/** Une salle 6×6 dont l'arête (2,2,E) porte une porte, et l'accès de pièce qui va avec. */
+/** Une salle 6×6 : deux pièces d'une case, (2,2) et (3,2), et la porte de leur arête (2,2,E) — le seul
+ *  accès de la première, murée ailleurs ; `portail` est celui que la scène en dérive. */
 function scèneÀUnePorte(): { scene: Scene; portail: RoomPortal } {
   const scene = emptyScene(6, 6);
-  scene.walls = [{ x: 2, y: 2, side: 'E', door: true }];
-  return {
-    scene,
-    portail: {
-      id: '0:2,2:E:a:b', z: 0, edge: { x: 2, y: 2, side: 'E' },
-      fromZoneId: 'a', toZoneId: 'b', kind: 'door-closed', exterior: false,
-      from: { x: 2, y: 2 }, to: { x: 3, y: 2 },
-    },
-  };
+  scene.effectZones = [piece('a', 2, 2), piece('b', 3, 2)];
+  scene.walls = [...cloisons(2, 2, ['N', 'S', 'O']), { x: 2, y: 2, side: 'E', door: true }];
+  const portail = roomPortals(scene).find((p) => p.fromZoneId === 'a' && p.toZoneId === 'b');
+  if (!portail) throw new Error('la scène ne dérive pas la porte (2,2,E)');
+  return { scene, portail };
 }
 
 describe('l’étage `arete` et le rayon : qui tranche, et à quel prix', () => {
@@ -160,7 +158,7 @@ describe('l’étage `arete` et le rayon : qui tranche, et à quel prix', () => 
   };
   const [a, b] = tileEdge(2, 2, 'E', dims, 0);
   const aretes = projeterAretes(
-    aretesUtilisables({ scene, visible: new Set(['2,2,0', '3,2,0']), controleur: null, activeZ: 0, portails: [portail] }),
+    aretesUtilisables({ scene, visible: new Set(['2,2,0', '3,2,0']), controleur: { x: 2, y: 2, z: 0 }, activeZ: 0 }),
     dims,
     () => 0,
   );

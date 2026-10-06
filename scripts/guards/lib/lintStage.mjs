@@ -1,7 +1,24 @@
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+// LINT Oxlint (`oxlint.config.mjs`) : `lancerLint` joue l'oxlint de CET arbre (`scripts/lancer-local.mjs`)
+// sur les fichiers d'un dossier `cwd`, sous une config posée dans ce dossier qui importe celle de la
+// racine ; `lintDeLIndex` est la porte du pre-commit (#2327 A5).
+//
+// `lintDeLIndex` :
+//   · le texte jugé est le blob de l'INDEX (`lireEnLot`), matérialisé sous un dossier temporaire aux
+//     mêmes chemins relatifs et jugé par `lancerLint` (`cwd`) : sur l'arbre partagé, le disque porte le
+//     WIP d'une autre session que le commit n'embarque pas ;
+//   · la config est celle du DISQUE, confrontée à TOUT lancement à celle de l'INDEX fichier par fichier
+//     sur sa FERMETURE (`fermetureDeConfig`) : si l'un d'eux diffère (stagé ou disque modifié), SAUT
+//     déclaré qui le nomme, jamais un verdict rendu sous une autre config que celle du commit ;
+//   · une panne (oxlint absent de l'arbre, config ou index illisible, rapport illisible) est un défaut
+//     d'outillage NOMMÉ ; le pre-commit l'AVERTIT comme tout défaut de lint (#2327 A8), la gate `lint` rejuge.
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, unlinkSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { INDEX, lireEnLot } from './gitPorte.mjs'
+import { clotureDImports } from './importGraph.mjs'
 
 const EXTS_LINT = ['.ts', '.tsx', '.mjs', '.mts', '.js', '.jsx', '.cts', '.cjs']
 export const BUDGET_DE_LIGNE = 16000
@@ -14,9 +31,6 @@ export function lotsDeLigne(fichiers, budget = BUDGET_DE_LIGNE) {
   }
   if (lot.length) lots.push(lot)
   return lots
-}
-export function fichiersALinter(chemins, racine) {
-  return chemins.map(f => String(f).replace(/\\/g, '/')).filter(rel => EXTS_LINT.some(e => rel.endsWith(e)) && existsSync(join(racine, rel)))
 }
 const defautOutillage = message => ({ site: '(lint)', gravite: 'erreur', regle: '(outillage)', message })
 export function nomDeRegle(code) {
@@ -53,21 +67,85 @@ export function defautsDeRapport(sortieJson, cwd, lire) {
   }
   return defauts
 }
-/** @param {string} racine @param {string[]} fichiers @param {{cwd?: string, budget?:number, configuration?:object}} options */
-export function lancerLint(racine, fichiers, { cwd = racine, budget = BUDGET_DE_LIGNE, configuration } = {}) {
+/** @param {string} racine @param {string[]} fichiers @param {{cwd: string, budget?:number, configuration?:object}} options */
+export function lancerLint(racine, fichiers, { cwd, budget = BUDGET_DE_LIGNE, configuration }) {
   if (!fichiers.length) return { defauts: [], brut: '', stdout: '', codeSortie: 0 }
-  let config = join(racine, 'oxlint.config.mjs')
-  const temporaire = resolve(cwd) !== resolve(racine) || configuration
-  if (temporaire) {
-    config = join(cwd, `.lint-${process.pid}-${Math.random().toString(36).slice(2)}.config.mjs`)
-    writeFileSync(config, `import config from ${JSON.stringify(pathToFileURL(join(racine, 'oxlint.config.mjs')).href)};\nexport default {...config,...${JSON.stringify(configuration ?? {})}};\n`)
-  }
+  const config = join(cwd, `.lint-${process.pid}-${Math.random().toString(36).slice(2)}.config.mjs`)
+  writeFileSync(config, `import config from ${JSON.stringify(pathToFileURL(join(racine, CONFIG_LINT)).href)};\nexport default {...config,...${JSON.stringify(configuration ?? {})}};\n`)
   try {
     const lancements = lotsDeLigne(fichiers, budget).map(lot => lancerUnLot(racine, lot, cwd, config))
     const rapports = lancements.map(l => { try { return JSON.parse(l.stdout) } catch { return {} } })
     return { defauts: lancements.flatMap(l => l.defauts), brut: lancements.map(l => l.brut).join('\n'), codeSortie:Math.max(...lancements.map(l=>l.codeSortie)), stdout: JSON.stringify({diagnostics:rapports.flatMap(r=>r.diagnostics??[]),number_of_files:rapports.reduce((n,r)=>n+(r.number_of_files??0),0)}) }
-  } finally { if (temporaire) unlinkSync(config) }
+  } finally { unlinkSync(config) }
 }
+/** La config du dépôt, relative à sa racine. */
+export const CONFIG_LINT = 'oxlint.config.mjs'
+
+/**
+ * La FERMETURE de `oxlint.config.mjs` sous `racine`, en chemins POSIX relatifs : la config, ses
+ * `jsPlugins` locaux lus sur l'objet CHARGÉ, et leurs imports relatifs transitifs (`clotureDImports`).
+ * Config absente du disque : elle seule.
+ * @param {string} racine @returns {string[]}
+ */
+export function fermetureDeConfig(racine) {
+  const abs = join(racine, CONFIG_LINT)
+  if (texteDuDisque(abs) === null) return [CONFIG_LINT]
+  const { default: config } = createRequire(abs)(abs)
+  const plugins = (config.jsPlugins ?? [])
+    .map((p) => (typeof p === 'string' ? p : p.specifier))
+    .filter((spec) => spec.startsWith('.') || isAbsolute(spec))
+    .map((spec) => resolve(racine, spec))
+  return [...new Set([CONFIG_LINT, ...clotureDImports([CONFIG_LINT, ...plugins], { racine })])]
+}
+
+/**
+ * Lint des `chemins` stagés de `racine`, lus dans l'index de `depot`. REND `{ defauts, saut }` :
+ * `saut` NOMME pourquoi rien n'a été jugé (un fichier de `fermetureDeConfig` dont l'index diffère du disque), sinon
+ * `null`. Une panne est un défaut d'outillage NOMMÉ.
+ * @param {string} racine @param {import('./gitPorte.mjs').Depot} depot @param {readonly string[]} chemins
+ * @returns {{ defauts: ReturnType<typeof defautsDeRapport>, saut: string | null }}
+ */
+export function lintDeLIndex(racine, depot, chemins) {
+  const aJuger = chemins.map((c) => String(c).replace(/\\/g, '/')).filter((rel) => EXTS_LINT.some((e) => rel.endsWith(e)))
+  if (!aJuger.length) return { defauts: [], saut: null }
+  let fermeture
+  try {
+    fermeture = fermetureDeConfig(racine)
+  } catch (e) {
+    return { defauts: [defautOutillage(`config illisible — ${String(e?.message ?? e).trim().split('\n')[0]}`)], saut: null }
+  }
+  let textes
+  try {
+    textes = lireEnLot(depot, INDEX, [...aJuger, ...fermeture])
+  } catch (e) {
+    return { defauts: [defautOutillage(`index illisible — ${String(e?.message ?? e).trim().split('\n')[0]}`)], saut: null }
+  }
+  const ecart = fermeture.find((rel) => textes.get(rel) !== texteDuDisque(join(racine, rel)))
+  if (ecart !== undefined)
+    return { defauts: [], saut: `${ecart} de l'index diffère du disque : aucun verdict sous une autre config que celle du commit` }
+  const presents = aJuger.filter((rel) => textes.get(rel) != null)
+  if (!presents.length) return { defauts: [], saut: null }
+  const dossier = mkdtempSync(join(tmpdir(), 'lint-index-'))
+  try {
+    for (const rel of presents) {
+      mkdirSync(dirname(join(dossier, rel)), { recursive: true })
+      writeFileSync(join(dossier, rel), textes.get(rel))
+    }
+    return { defauts: lancerLint(racine, presents, { cwd: dossier }).defauts, saut: null }
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+}
+
+/** Le texte d'un fichier du disque, `null` s'il est absent. @param {string} chemin */
+function texteDuDisque(chemin) {
+  try {
+    return readFileSync(chemin, 'utf8')
+  } catch {
+    return null
+  }
+}
+
 function lancerUnLot(racine, lot, cwd, config) {
   const args = [join(racine, 'scripts', 'lancer-local.mjs'), 'oxlint', '--cwd', cwd, '--', 'oxlint', '--max-warnings', '0', '--format', 'json', '--no-error-on-unmatched-pattern', '--disable-nested-config', '--config', config, ...lot]
   let stdout, stderr = '', lancement = '', echec = false, codeSortie = 0

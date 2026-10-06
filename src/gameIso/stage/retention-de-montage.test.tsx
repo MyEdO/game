@@ -97,7 +97,7 @@ function planchesDuCouple(espion: Parameters<typeof clésServies>[0]): string[] 
 function rendre(actors: ActorPose[], percage?: PercageEntrees): void {
   act(() => {
     root!.render(
-      <GameStage3D scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
+      <GameStage3D lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
         actors={actors} gameTime={720} lightLevel={1} lights={[]} anim={anim} percage={percage} />,
     );
   });

@@ -21,6 +21,7 @@ import { constructionsReserveesDuCorpus, scanConstructionsReservees, ECRITURE_DE
 import { listerDossier } from './lister.mjs'
 import { corpusDesGardes } from './commentPoison.mjs'
 import { RACINE } from './bindingsVivants.mjs'
+import { envGitFeint } from './depotGabarit.mjs'
 
 const ICI = fileURLToPath(new URL('.', import.meta.url))
 const REGEN = join(ICI, 'regenStock.mts')
@@ -314,7 +315,22 @@ test('regenererStock --amorce : l’avertissement nomme chaque stock et sa polit
 }))
 
 /** La commande sur `args`, par le même `tsx` que `npx tsx`. */
-const commande = (args) => spawnSync(process.execPath, ['--import', 'tsx', REGEN, ...args], { cwd: RACINE, encoding: 'utf8' })
+const commande = (args, env = {}) => spawnSync(process.execPath, ['--import', 'tsx', REGEN, ...args], { cwd: RACINE, encoding: 'utf8', env: { ...process.env, ...env }, timeout: 10000 })
+
+test('#2285 famille regen callback : CLI refuse avant écriture', () => withTempDir((dir) => {
+  const stock = join(dir, 'x-stock.json')
+  writeFileSync(stock, 'sentinelle\n')
+  const module = join(dir, 'mesure.mjs')
+  writeFileSync(module, 'export function regenerations() { return [{ chemin: ' + JSON.stringify(stock) + ', collections: [] }] }\n')
+  const stderr = 'note attribut\n'.repeat(45) + 'cause attribut tardive\n'
+  const stdout = 'stdout attribut distinct'
+  assert.ok(stderr.indexOf('cause attribut tardive') > 400)
+  const vu = commande([module], envGitFeint([{ si: ['check-attr'], status: 35, stdout, stderr }, { si: [], status: 97, stderr: 'GARDE regen\n' }]))
+  assert.equal(vu.status, 2, vu.stderr)
+  const quote = String.fromCharCode(96)
+  assert.ok(vu.stderr.includes(stock + ' : l\'attribut git merge vaut (git check-attr en échec : refus (status 35) — ' + stderr + '\n' + stdout + '), pas ' + quote + 'stocks' + quote + ' (.gitattributes) : rien n\'est écrit.\n'), vu.stderr)
+  assert.equal(readFileSync(stock, 'utf8'), 'sentinelle\n')
+}))
 
 test('la commande sans module, avec deux modules ou un drapeau inconnu rend l’usage et le code 2', () => {
   for (const args of [[], ['a.mjs', 'b.mjs'], ['a.mjs', '--ecrire-stock']]) {

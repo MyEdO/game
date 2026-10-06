@@ -6,7 +6,7 @@
  * D'ÉQUIPEMENT : il s'ajoute à la bête (canal `deco`), il ne la remplace pas — le cheval est
  * dessiné NU dans `atelier/cheval-profile.dessin.mts`, robe, crinière et anatomie comprises.
  *
- *   npx tsx scripts/rig/compile-dessin-quad.mts sellerie-imperiale     (--check = porte)
+ *   npx tsx scripts/rig/compile-dessin-quad.mts sellerie-imperiale     (--check : quad-harnais.test.ts)
  *
  * FIT-PAR-GABARIT : les coordonnées MONDE (canevas 120×150, sol y=150, bête tournée à DROITE) sont
  * celles du squelette du CHEVAL (`bodyLen` 1,05 / `neckLen` 1,12 cuits dans l'art de tronc et de

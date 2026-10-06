@@ -2,7 +2,7 @@
  * Validation d'un document authoré contre son schéma zod — SOURCE UNIQUE, DEUX portes :
  *  - `validateDataset(file, value)` : porte par FICHIER, pour qui connaît le nom du document —
  *    contrat CI (`schema-contract.test.ts`), sauvegarde éditeur/Compendium (`CodexEdit.save`),
- *    chargement DEV (`dev-validate.ts`), garde de pré-commit (`scripts/guards/validate-data.mts`).
+ *    chargement DEV (`dev-validate.ts`).
  *    Le registre couvre les DEUX racines (`src/data` par basename, `src/scenes` par chemin relatif).
  *  - `validateDocument(schema, value)` : porte par SCHÉMA, pour un seam qui n'a PAS de nom de
  *    fichier — `parseProject` sert du JSON committé, du localStorage et de l'import utilisateur.
@@ -20,6 +20,7 @@ import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collectio
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, type MetaChamp } from './grammaire/meta';
 import { versDisque } from './grammaire/prose';
+import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
 export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
@@ -137,6 +138,22 @@ export function noeudObjet(schema: unknown, accepte: (noeud: unknown) => boolean
     return 'arreter';
   });
   return trouve;
+}
+
+/**
+ * PAYLOAD de l'op `op` dans la FAMILLE mécanique (`mecaniqueDe`) qui a construit la liste `liste` — ses
+ * champs réservés y figurent au régime du porteur (`charMod.min`). La famille est le premier nœud marqué
+ * (`regimesDuNoeud`) au-dessus de tout nœud objet ; `undefined` hors famille, ou pour une op encore loose
+ * (`OPS_NON_TYPEES`).
+ */
+export function payloadDeFamille(liste: unknown, op: string): unknown {
+  let regimes: Regimes | undefined;
+  descendre([liste], ({ noeud, def }) => {
+    regimes = regimesDuNoeud(noeud);
+    if (regimes) return 'arreter';
+    if (def.type === 'object') return 'elaguer';
+  });
+  return regimes && mecaniqueDe(regimes).opDefs[op];
 }
 
 /**

@@ -36,7 +36,7 @@ export interface StructureAppearanceDef {
     leaf?: string; plank?: string; handle?: string;
     herse?: { bars: number; topFrac: number; traverseFracs: number[]; traverseColor: string };
   };
-  /** FENÊTRE (croisée décorative sertie dans le mur) : `glass` = verre froid du JOUR, `lit` = verre AMBRÉ
+  /** FENÊTRE (croisée sertie dans le mur) : `glass` = verre froid du JOUR, `lit` = verre AMBRÉ
    *  ÉMISSIF de la NUIT (halo chaud), `frame` = cadre/dormant, `mullion` = meneau + traverse (croisillon). */
   window?: { glass: string; lit: string; frame: string; mullion: string };
   /** RELIEF MINCE (m) des parties, consommé par le backend VOLUMIQUE qui en fait une BOÎTE centrée sur

@@ -298,9 +298,9 @@ Pour votre **Action**, vous pouvez vous mettre **Sur la Défensive** : choisisse
 **Voir aussi** : Structure d'un Round et Initiative ; Surprise et État Surpris ; Attaquer (toucher, localisation, dégâts) ; Avantage en combat ; Déplacement détaillé (Saut, Escalade, Fuite, Poursuite) ; Engagé et Corps à corps.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.14-15, l.74-88, l.90, l.93-98, l.105-107, l.108-110, l.117-119, l.170-171) → `localisation`, `CombatStartSplash`, `ClimbPlan`, `useDefenseJetProps`, `GrappleModal`, `AuContactModal`, `engage`, `secondsPerRound`, `useHoverTargeting`, `markAttacked`, +57 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +32 fichiers
+- `LDB 13` (l.14-15, l.74-88, l.90, l.93-98, l.105-107, l.108-110, l.117-119, l.170-171) → `localisation`, `CombatStartSplash`, `ClimbPlan`, `useDefenseJetProps`, `GrappleModal`, `AuContactModal`, `engage`, `secondsPerRound`, `useHoverTargeting`, `markAttacked`, +58 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +33 fichiers
 - `LDB 14` (l.205-215) → `advantageCap`, `advantageCapFor`, `gainAdvantage`, `ADVANTAGE_COLLARS`, `doc`, `TavernGame`, `combat-advantage-cap`, `combat-advantage-cap-bi`, `avantageSurLaCible`, `avantage`, +4 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/advantage.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +4 fichiers
-- `LDB 15` (l.12-16, l.18-31, l.35-41, l.45-53) → `METRES_PER_LEVEL`, `ClimbPlan`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `planClimb`, `DisengageModal`, `charge`, `occupied`, +66 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs-scenes/scene.ts`, +33 fichiers
+- `LDB 15` (l.12-16, l.18-31, l.35-41, l.45-53) → `METRES_PER_LEVEL`, `ClimbPlan`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `planClimb`, `DisengageModal`, `charge`, `occupied`, +70 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +35 fichiers
 
 ---
 
@@ -719,7 +719,7 @@ Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête
 - `LDB 14` (l.3, l.4, l.6-7, l.9) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `isFumble`, `10-a-votre-action-au-prochain-round`, `vous-trebuchez-vous-perdez-votre-prochain-mouvement`, `vous-lachez-ou-ratez-vous-perdez-votre-prochaine-action`, `vous-vous-tordez-la-cheville-dechirure-musculaire-mineure-compte-comme-blessure-critique`, `vous-touchez-un-allie-au-hasard-ou-vous-meme-sonne`, `incident-de-tir-l-arme-explose-dans-votre-main-degats-au-bras-principal-arme-detruite`, `combat-frappe-mortelle`, +21 — `src/data/oups.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/oups.ts`, `src/state/combatFlow.ts`, +4 fichiers
 - `LDB 18` (l.17, l.30, l.53-55, l.56-187) → `criticals-ldb-tete`, `CritEntry`, `dechirure-jambe-mineure`, `isHealable`, `blessure-spectaculaire`, `HealMode`, `actBlockReason`, `MedicState`, `availableHealModes`, `critEscalationSchema`, +169 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, +32 fichiers
 - `LDB 63` (l.29-32) → `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `GameOp`, `PendingDeviation`, `ActiveEffect`, `RebondDeChaine`, `flexible`, `impenetrable`, +26 — `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, `src/engine/items.ts`, `src/engine/ops.ts`, +3 fichiers
-- `AA 7` (l.25-79, l.82-104) → `StructureCritEntry`, `CritEntry`, `pendantRounds`, `useAttackJetProps`, `CritEscalation`, `Formula`, `aaCriticalOffset`, `retenir-ses-coups`, `critiqueTriviale`, `aaDeathByCriticalCount`, +51 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +9 fichiers
+- `AA 7` (l.25-79, l.82-104) → `StructureCritEntry`, `CritEntry`, `pendant`, `useAttackJetProps`, `CritEscalation`, `Formula`, `aaCriticalOffset`, `retenir-ses-coups`, `critiqueTriviale`, `aaDeathByCriticalCount`, +51 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +9 fichiers
 - `EDO 11` (l.237-240) → `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, `dedoublement`, `absorption`, `amorphe`, `contagieux`, +3 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/traits.json`, `src/data/trappings.json`
 - sans code : `AU1 4` (l.18), `NADJ 8` (l.263)
 
@@ -977,7 +977,7 @@ Sur un **échec à un Test de Projectiles (Lancer)**, l'arme dévie : lancer 1d1
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.114, l.125, l.133, l.137-145) → `localisation`, `useDefenseJetProps`, `GrappleModal`, `AuContactModal`, `useHoverTargeting`, `hitLocation`, `entityBlockedAt`, `useAttackJetProps`, `toucheSauvee`, `cleFeuilleRamassee`, +29 — `src/data/actions.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/localisation.ts`, +19 fichiers
 - `LDB 14` (l.40, l.41, l.43, l.44, l.53, l.68-131, l.135, l.137-138, l.142-151) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `GrappleModal`, `SceneCombatMods`, `OupsMisfireEntry`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `areGrappling`, `decorCover`, `woundsFromHit`, `fr`, +125 — `src/data/actions.json`, `src/data/grapple.json`, `src/data/index.ts`, `src/data/oups.json`, `src/data/oups.ts`, `src/data/props.json`, +51 fichiers
-- `LDB 16` (l.113) → `jsonOpSchema`, `unstable`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, `useAttackJetProps`, `toucheSauvee`, +34 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +20 fichiers
+- `LDB 16` (l.113) → `jsonOpSchema`, `unstable`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, `useAttackJetProps`, `toucheSauvee`, +33 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +20 fichiers
 - `LDB 62` (l.198-215, l.283-285, l.295-296) → `a-enroulement`, `a-poudre-noire`, `TraceRow`, `protectrice`, `a-repetition`, `InitiativeStripProps`, `canActFirst`, `freeActFirst`, `doc`, `resolveQualities`, +94 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/qualities.json`, `src/data/regles.json`, +30 fichiers
 
 ---
@@ -1198,7 +1198,7 @@ Notes mécaniques par arme (`AA 08 l.228-260`) :
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 10` (l.773) → `useAttackJetProps`, `PendingAttack`, `dualAffordance`, `PendingDualStrike`, `resolveDualSecond`, `defenseModifiers`, `dualStrikeTargets`, `SuiteDeCoup`, `GameState`, `Combatant`, +12 — `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/types.ts`, `src/state/combat/roundHooks.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +4 fichiers
-- `LDB 14` (l.101-115, l.134-140, l.142-151, l.153-169, l.171-173) → `GrappleModal`, `areGrappling`, `woundsFromHit`, `fr`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `combatOrder`, `grappleTierMod`, +92 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +40 fichiers
+- `LDB 14` (l.101-115, l.134-140, l.142-151, l.153-169, l.171-173) → `GrappleModal`, `areGrappling`, `woundsFromHit`, `fr`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `REFUS_MONTE`, `combatOrder`, +93 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +41 fichiers
 - `AA 8` (l.224-261) → `immobilisante-fixe`, `filet-leste`, `gantelet-verrouille`, `cape-2` — `src/data/qualities.json`, `src/data/trappings.json`
 
 ---
@@ -1278,7 +1278,7 @@ L'Empoignade fonctionne entièrement via l'État _Empêtré_ infligé. Sa défin
 
 **Voir aussi** : Combat à mains nues (Bagarre), État Empêtré, Avantage, Tests opposés et Degrés de Réussite (DR), Localisation (dé inversé), Combat monté, Trait Constriction.
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 14` (l.153-155, l.159, l.161, l.163, l.165, l.167, l.169, l.171-173) → `GrappleModal`, `areGrappling`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `combatOrder`, `grappleTierMod`, `grapple`, `grappleEnvMod`, +55 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, `src/engine/combatFeatures/dispatch.ts`, +25 fichiers
+- `LDB 14` (l.153-155, l.159, l.161, l.163, l.165, l.167, l.169, l.171-173) → `GrappleModal`, `areGrappling`, `setGrapple`, `RunModal`, `isControlledMount`, `scatter`, `REFUS_MONTE`, `combatOrder`, `grappleTierMod`, `grapple`, +56 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, `src/engine/combatFeatures/dispatch.ts`, +26 fichiers
 - `LDB 16` (l.60-66) → `combat-fatigue`, `doc`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `brise`, `Condition`, `aaBleedUnconsciousDue`, `describeStateRecovery`, `tileSeenByFoe`, +25 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, +16 fichiers
 
 ---
@@ -1357,7 +1357,7 @@ Aptitudes d'entraînement des animaux (LDB 85 l.110) qui neutralisent ce Trait :
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 10` (l.24-30, l.152-154) → `talent-aleatoire`, `restoreFortune`, `acrobaties-equestres`, `affable`, `affinite-avec-les-animaux`, `buyTalent`, `ambidextre`, `ame-pure`, `artilleur`, `slotCovers`, +40 — `src/data/actions.json`, `src/data/flow-stakes.json`, `src/data/schemas/grammaire/ref.ts`, `src/data/talents.json`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, +8 fichiers
-- `LDB 14` (l.118-131, l.175-177, l.179, l.180, l.181, l.182, l.183, l.184, l.187) → `advantageCapFor`, `woundsFromHit`, `RunModal`, `isControlledMount`, `combatOrder`, `grappleTierMod`, `grapple`, `grappleEnvMod`, `effectiveSize`, `isPassengerInBattle`, +54 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +26 fichiers
+- `LDB 14` (l.118-131, l.175-177, l.179, l.180, l.181, l.182, l.183, l.184, l.187) → `advantageCapFor`, `woundsFromHit`, `RunModal`, `isControlledMount`, `REFUS_MONTE`, `combatOrder`, `grappleTierMod`, `grapple`, `grappleEnvMod`, `effectiveSize`, +55 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/data/schemas/defs/sizes.ts`, +27 fichiers
 - `LDB 85` (l.110, l.248-250, l.357-362) → `TraitDef`, `morsure`, `parsePsychTraits`, `SIZE_LABEL`, `cannotStopOn`, `applySwarmBuild`, `sizeDamageMultiplier`, `spawnMutations`, `sizeGrantedQualities`, `doc`, +97 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/traits.ts`, `src/data/traits.json`, +19 fichiers
 
 ---
@@ -1433,7 +1433,7 @@ Le **Bras de fer** est un Test opposé **étendu** de **Force Intermédiaire (+0
 **Voir aussi** : Charge et déplacement en combat ; Se désengager (Esquive / Fuir) ; Surprise et embuscade ; Tests opposés et Degrés de Réussite ; Psychologie (Peur, Terreur, Calme) ; Traits de créature (Redoutable, Rage, Instable).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 14` (l.189-191, l.193-198, l.200-211, l.213-215, l.217-221) → `advantageCap`, `advantageCapFor`, `gainAdvantage`, `RunModal`, `isControlledMount`, `combatOrder`, `grapple`, `ADVANTAGE_COLLARS`, `isPassengerInBattle`, `doc`, +41 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/advantage.ts`, +20 fichiers
+- `LDB 14` (l.189-191, l.193-198, l.200-211, l.213-215, l.217-221) → `advantageCap`, `advantageCapFor`, `gainAdvantage`, `RunModal`, `isControlledMount`, `REFUS_MONTE`, `combatOrder`, `grapple`, `ADVANTAGE_COLLARS`, `isPassengerInBattle`, +42 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/advantage.ts`, +21 fichiers
 - `ZI 14` (l.1016-1017, l.1024-1026) → `fouissement` — `src/data/traits.json`
 - `NADJ 16` (l.34) → `SequenceRoundOps`, `SequenceParams`, `alvatafl`, `SequenceVolleyRow`, `tavern-game`, `bete-tailleurs`, `SequenceSide`, `registerSequenceThrow`, `boules`, `sequenceRoundOps`, +6 — `src/data/combat-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, `src/state/sequenceContract.ts`, `src/state/sequenceCore.ts`, +1 fichiers
 
@@ -1514,7 +1514,7 @@ On observe que **Marche = 2 × M mètres** (soit M cases) et **Course = 4 × M m
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 14` (l.205) → `advantageCap`, `advantageCapFor`, `ADVANTAGE_COLLARS`, `doc`, `TavernGame`, `combat-advantage-cap`, `combat-advantage-cap-bi`, `avantageSurLaCible`, `avantage`, `conditionModLines`, +1 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/engine/advantage.ts`, `src/engine/combat.ts`, `src/engine/tavernGame.ts`, +2 fichiers
-- `LDB 15` (l.12, l.16, l.18-31, l.35-37, l.39-41) → `METRES_PER_LEVEL`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `DisengageModal`, `charge`, `occupied`, `run-roll`, `sizeFootprintSide`, +49 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/sizes.ts`, +28 fichiers
+- `LDB 15` (l.12, l.16, l.18-31, l.35-37, l.39-41) → `METRES_PER_LEVEL`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `DisengageModal`, `charge`, `occupied`, `run-roll`, `sizeFootprintSide`, +50 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/sizes.ts`, +28 fichiers
 
 ---
 
@@ -1602,7 +1602,7 @@ La **Fuite** consiste à faire demi-tour et à utiliser son Mouvement pour fuir.
 **Voir aussi** : Avantage (combat) ; Engagement et portée de mêlée ; Test opposé et DR ; Compétence Esquive ; Psychologie — Terreur ; État Brisé ; Charge ; Course.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 15` (l.18-31, l.45-49, l.61-68) → `METRES_PER_LEVEL`, `ClimbPlan`, `fall-choice`, `planJump`, `RunModal`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `fall-roll`, `planClimb`, +83 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs-scenes/scene.ts`, +35 fichiers
+- `LDB 15` (l.18-31, l.45-49, l.61-68) → `METRES_PER_LEVEL`, `ClimbPlan`, `fall-choice`, `RunModal`, `planJump`, `reachTiles`, `hasMeaningfulOption`, `resolveRun`, `fall-roll`, `planClimb`, +87 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +37 fichiers
 - `LDB 21` (l.54) → `nightmare`, `terreur`, `resolvePsychRow`, `endEncounterPsych`, `resolvePsychAI`, `humanizePerSL`, `amour`, `camaraderie`, `phobie`, `failConditionAmount`, +6 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/psychology.ts`, +4 fichiers
 
 ---
@@ -1660,7 +1660,7 @@ Note (LDB 15 l.72) : dans la plupart des cas un simple Test d'**Athlétisme** (o
 **Voir aussi** : Mouvement & Course · Désengagement & Fuite · États (À Terre) · Athlétisme / Escalade (compétences) · Talent Grimpeur
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 15` (l.53-57, l.72-76, l.80-84) → `FallPlan`, `ClimbPlan`, `construireScene`, `fall-choice`, `planJump`, `FallModal`, `hasMeaningfulOption`, `fall-roll`, `planClimb`, `DisengageModal`, +78 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +32 fichiers
+- `LDB 15` (l.53-57, l.72-76, l.80-84) → `ClimbPlan`, `construireScene`, `RefusFranchissement`, `fall-choice`, `planJump`, `hasMeaningfulOption`, `fall-roll`, `planClimb`, `DisengageModal`, `charge`, +86 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +34 fichiers
 
 ---
 
@@ -1750,7 +1750,7 @@ Un participant dont la **Caractéristique de Mouvement (M)** est supérieure gag
 **Voir aussi** : Désengagement et fuite (Attaque gratuite, +1 Avantage, Calme / Brisé) ; Mouvement & Course (Tableau des Mouvements, M en mètres) ; Saut et Chute ; Tests opposés & Degrés de Réussite (DR).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 15` (l.88, l.90, l.92, l.93, l.94, l.96, l.98-102, l.104-106, l.108) → `FallPlan`, `assourdi`, `construireScene`, `fall-choice`, `FallModal`, `fall-roll`, `planJump`, `a-terre`, `pursuitFoeSchema`, `PursuitFoeRef`, +36 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +20 fichiers
+- `LDB 15` (l.88, l.90, l.92, l.93, l.94, l.96, l.98-102, l.104-106, l.108) → `assourdi`, `construireScene`, `RefusFranchissement`, `fall-choice`, `fall-roll`, `planJump`, `FallModal`, `a-terre`, `pursuitFoeSchema`, `PursuitFoeRef`, +42 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
 - sans code : `NADJ 6` (l.150)
 
 ---
@@ -2633,7 +2633,7 @@ Certaines sources naturelles de PA **ne peuvent pas servir à la Déviation Crit
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 62` (l.307) → `InitiativeStripProps`, `canActFirst`, `freeActFirst`, `resolveQualities`, `defensive`, `useAttackJetProps`, `devastatrice`, `empaleuse`, `CampaignView`, `rapideParryMod`, +34 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, +8 fichiers
 - `LDB 63` (l.7-15, l.18-27, l.29-32, l.38-61, l.63-66, l.73-74, l.77-78, l.85-86, l.89-90, l.92) → `itemRepairCostBrass`, `doc`, `repairCost`, `cuir-souple`, `cuir-bouilli`, `mailles`, `plate`, `sacs-et-contenants`, `GameOp`, `repairItem`, +46 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/qualities.ts`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +10 fichiers
-- `EDO 11` (l.192-196) → `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, `absorption`, `amorphe`, `contagieux` — `src/data/etats.json`, `src/data/mutations.json`, `src/data/traits.json`
+- `EDO 11` (l.192-196) → `plancher`, `MIGRATIONS_DE_SAVE`, `DECLARATIONS_D_OPS`, `resoudrePlancher`, `GameOp`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +5 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/corruption.ts`, `src/engine/ops.ts`, +3 fichiers
 
 ---
 
@@ -3026,9 +3026,9 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 - `LDB 77` (l.7-68) → `ESPECE`, `PorteurDeFiche`, `ChoixDeProfil`, `doc`, `humain`, `pnjAuProfil`, `TavernGameModal`, `TavernOpponent`, `nain`, `Palette`, +7 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/migrationsDeProjet.ts`, `src/data/schemas/defs/species.ts`, `src/engine/statblock.ts`, `src/scenes/test-scenarios/taverne-profil-standard.ts`, +4 fichiers
 - `LDB 85` (l.9-447) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `polymorphOps`, +236 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +46 fichiers
 - `ZI 14` (l.1013-1035, l.1037-1087) → `ethere`, `fouissement` — `src/data/traits.json`
-- `MSRC 15` (l.119-128, l.133-135, l.138-163) → `placeCombatant`, `useTestJetProps`, `capriciousDR`, `effectiveMovement`, `DECLARATIONS_D_OPS`, `PendingTest`, `PerSL`, `offTerrainOps`, `offTerrainMoveCap`, `hasNoRun`, +12 — `src/data/creatures.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/encumbrance.ts`, `src/engine/ops.ts`, `src/engine/social.ts`, +6 fichiers
+- `MSRC 15` (l.119-128, l.133-135, l.138-163) → `placeCombatant`, `useTestJetProps`, `capriciousDR`, `effectiveMovement`, `PendingTest`, `DECLARATIONS_D_OPS`, `PerSL`, `offTerrainOps`, `offTerrainMoveCap`, `hasNoRun`, +12 — `src/data/creatures.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/encumbrance.ts`, `src/engine/ops.ts`, `src/engine/social.ts`, +6 fichiers
 - `EDO 1` (l.271-290) → `edo-fhluger-dagh`, `edo-lukas` — `src/scenes/diligence/diligence-projet.json`
-- `EDO 11` (l.172-243) → `Formula`, `Condition`, `engagedAdvantageLead`, `gonflement`, `EffectTargeting`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +10 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/symptoms.json`, `src/data/traits.json`, `src/data/trappings.json`, `src/engine/flowCore.ts`, +3 fichiers
+- `EDO 11` (l.172-243) → `plancher`, `MIGRATIONS_DE_SAVE`, `DECLARATIONS_D_OPS`, `Formula`, `Condition`, `resoudrePlancher`, `engagedAdvantageLead`, `gonflement`, `GameOp`, `EffectTargeting`, +16 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/symptoms.json`, `src/data/traits.json`, `src/data/trappings.json`, +8 fichiers
 - sans code : `EDO 7` (l.320-348), `EDO 9` (l.517-574)
 
 ---
@@ -3556,7 +3556,7 @@ La créature est **porteuse de la maladie _Type_**. **Les autres doivent faire u
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 19` (l.34-58) → `CorruptionModal`, `combat-end-corruption`, `EXPOSURE_LADDER`, `NATURE_INFLUENCE`, `testDeCorruption`, `sombre-pacte`, `MANUAL_COMBAT_INTENTS`, `physique`, `exposureLevelSchema`, `corruption-mineure`, +22 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/mutationTables.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +14 fichiers
-- `LDB 21` (l.9, l.19-21, l.23-25, l.27, l.29-35, l.37-39, l.41, l.43-50, l.54-56) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `nightmare`, `PsychAffliction`, `openEncounterPsych`, `opRow`, `fearSourceFor`, `psychImmuneToFrom`, `terreur`, +58 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, +26 fichiers
+- `LDB 21` (l.9, l.19-21, l.23-25, l.27, l.29-35, l.37-39, l.41, l.43-50, l.54-56) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `nightmare`, `PsychAffliction`, `opRow`, `openEncounterPsych`, `fearSourceFor`, `psychImmuneToFrom`, `terreur`, +58 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, +26 fichiers
 - `LDB 85` (l.5, l.13, l.17, l.25, l.51, l.59, l.71, l.87, l.92, l.110, l.142, l.150, l.166, l.179, l.185, l.221, l.225, l.249, l.253, l.262, l.264, l.274, l.282, l.335, l.383, l.411) → `TraitDef`, `construireScene`, `a-distance`, `arme`, `weaponGroup`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `parsePsychTraits`, +208 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +41 fichiers
 
 ---
@@ -4075,7 +4075,7 @@ Le système redéfinit l'État _Hémorragique_ :
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `AA 6` (l.554-558) → `combat-aa-bleed`, `combat-aa-blessures`, `commander-la-legion`, `terrifier-l-ennemi`, `en-bon-ordre`, `connais-ton-ennemi`, `en-terrain-dangereux`, `frappe-rapide`, `devotion-de-la-vierge-guerriere`, `prouesses-martiales`, +1 — `src/data/combat-stakes.json`, `src/data/reglesOptionnelles.json`, `src/data/spells.json`
-- `AA 7` (l.4-10, l.17-21, l.23-25, l.28-32, l.35-36, l.39-42, l.48-57, l.58-61, l.64-67, l.69-75, l.78-79, l.82-104, l.105-131, l.132-159, l.160-185) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `healDifficulty`, `pendantRounds`, `CritEscalation`, `amputationSchema`, `attackHandGate`, `useAttackJetProps`, `Formula`, +117 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +21 fichiers
+- `AA 7` (l.4-10, l.17-21, l.23-25, l.28-32, l.35-36, l.39-42, l.48-57, l.58-61, l.64-67, l.69-75, l.78-79, l.82-104, l.105-131, l.132-159, l.160-185) → `StructureCritEntry`, `CritEntry`, `critEscalationSchema`, `healDifficulty`, `pendant`, `CritEscalation`, `amputationSchema`, `attackHandGate`, `useAttackJetProps`, `Formula`, +117 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +21 fichiers
 - sans code : `ADE II 4` (l.147)
 
 ---
@@ -6229,8 +6229,9 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - INFO — Le texte dit « la colonne Course n'est pas une Action de Course 'pleine' mais le Mouvement de Course servant de base à la Course et à la Charge ». Cette distinction éditoriale n'est pas dans le RAW : le tableau nomme simplement « Course (mètres) ». La formulation peut prêter à confusion mais ne contredit pas le RAW.
 - INFO — Le markdown parle d'« Avantage +10/pion » dans le renvoi final. LDB 14 l.215 confirme : « Chaque Avantage ajoute +10 à un Test de Combat ou de Psychologie appropriés ». Correct mais c'est hors-scope du chapitre 15.
 
-### Escalade, Saut et Chute ⚠
-- Code implementation (non-doc issue): combatEffects.ts l.693 — `if (lost > be) addCondition(c, 'a-terre')` où `lost = max(0, 3*m + d10 - be)`. Le RAW (l.84) dit À Terre si les Blessures subies > BE ; 'lost' étant déjà réduit par BE, la condition effective est `raw > 2×BE`, plus restrictive que le RAW. Ce bug est dans le code, pas dans la doc (la doc cite le RAW correctement). Signal pour un agent de correction ultérieure.
+### Escalade, Saut et Chute
+- CONFORME — `applyFall` (`src/engine/movement.ts`) : Blessures perdues = `max(0, 3×m + 1d10 − BE)`, État *À Terre* si elles dépassent le BE. LDB 15 l.80 (« Ces Dégâts sont réduits par votre Bonus d'Endurance ») et l.84 (« Si vous subissez plus de Points de Blessure à cause de la chute que votre Bonus d'Endurance ») comparent au BE les Points de Blessure SUBIS, donc après réduction ; EDO 01 l.231 le confirme (« Si les Blessures encaissées excèdent son Bonus d'Endurance »). Aucun écart.
+- COLLISION — LDB 15 l.82 : « Pour chaque DR, considérez que vous tombez de 1m de moins » ; EDO 01 l.229 : « il diminue la hauteur de sa chute d'un total égal à 1+DR ». APPLICATION du livre de règles, qui définit la chute (LDB 15 l.80-84) ; précision utilisateur du 2026-10-04 (#700, issuecomment-5984760399), verbatim : « Il n'y a pas vraiment d'arbitrage a suivre les régles du LDB, si ? ». `fallFromTest` (`src/engine/movement.ts`) suit LDB 15 l.82.
 
 ### Poursuite (procédure de base) ⚠
 - LDB 15 l.88 — intro : le markdown ajoute « fuite à cheval » comme troisième exemple de poursuite ; la source ne mentionne que « marché bondé » et « chariot lancé à grande vitesse » dans ces lignes. La poursuite à cheval n'apparaît qu'à l'exemple l.146. Ajout éditorial mineur, non faux (la procédure couvre les montures), mais non sourcé dans ces lignes précises.

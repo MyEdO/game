@@ -352,7 +352,7 @@ interface OptsVue { actors?: ActorPose[]; els?: SceneBillboardEls; frame?: Stage
 
 function vue(opts: OptsVue): JSX.Element {
   return (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={sceneMetresPerTile(SCENE)}
       frame={opts.frame ?? AFFINE}
@@ -528,7 +528,7 @@ describe('Boucle volumique — une image joue une frame, elle n’en cuit aucune
     root = createRoot(hôte);
     await act(async () => {
       root!.render(
-        <GameStage3D
+        <GameStage3D lecture="jeu"
           scene={SCENE}
           mpt={sceneMetresPerTile(SCENE)}
           frame={AFFINE}

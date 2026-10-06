@@ -59,8 +59,9 @@
 // jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
 // toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
 // Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
-// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent, d'un commit postérieur de la plage, `JUGE:` et
-// `REFUTATION:` (plus `JUGE-VISION:` sur un écran) qui nomment son sha.
+// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent `JUGE:` et `REFUTATION:` (plus `JUGE-VISION:`
+// sur un écran), portés par le message de la fusion elle-même, sinon par un commit postérieur de la plage
+// ou le solde d'un ticket qu'il cite, qui nomment son sha.
 //
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
 // reste à 10 s. Un hook tué au `timeout` n'émet RIEN, et le geste passe. D'où DEUX ÉTAGES : le premier
@@ -157,7 +158,7 @@ import {
 } from '../guards/budget-contexte.mjs'
 import {
   GitIndisponible, INDEX, SUIVI, apportDeLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, listerImage, shaDe,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, listerImage, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
@@ -2900,7 +2901,7 @@ export function formeDuCommit(command) {
  *  ou un code de sortie non nul ; une PANNE de git rend `null` elle aussi, et `pannes` (celles du
  *  contexte de l'appel, `contexte.pannes`) la garde : un refus NOMMÉ au rendu (`refusDesPannes`),
  *  jamais « rien n'est emporté ». */
-const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.push(raison) })
+const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
 
 /**
  * Le refus UNIQUE de ce que git n'a pas lu : les `pannes` de lecture de l'appel, chacune nommée une
@@ -2912,7 +2913,7 @@ const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.
  */
 export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
   if (!pannes.length) return null
-  const cause = horsDepot ? `hors dépôt : ${cwd}` : [...new Set(pannes)].join(' ; ')
+  const cause = [horsDepot ? `hors dépôt : ${cwd}` : null, ...new Set(pannes)].filter(Boolean).join(' ; ')
   const geste = horsDepot
     ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
     : 'Geste : rejouer le commit depuis un arbre où git répond.'
@@ -3003,7 +3004,7 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot 
       return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
     } catch (e) {
       if (!(e instanceof GitIndisponible)) throw e
-      pannes.push(e.raison)
+      pannes.push(refusDeGit(e))
       return (enCours = null)
     }
   }
@@ -3091,7 +3092,7 @@ export function jugerOuConfier(juger, pannes) {
     return juger()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    pannes.push(e.raison)
+    pannes.push(refusDeGit(e))
     return null
   }
 }
@@ -3513,7 +3514,7 @@ async function evaluerSolde(entree, contexte) {
     // refus NOMMÉ des pannes, jamais une garde « en panne » qui laisse passer le commit.
     if (!(e instanceof GitIndisponible)) throw e
     const presume = motifDuCommitPresume(commandeDe(entree))
-    const refus = refusDesPannes([...contexte.pannes, e.raison], ouDeLaLecture(contexte.dir))
+    const refus = refusDesPannes([...contexte.pannes, refusDeGit(e)], ouDeLaLecture(contexte.dir))
     return verdictDe(avecCibleIgnoree({ reason: presume ? `${presume} || ${refus.reason}` : refus.reason }, contexte.cibleIgnoree))
   }
 }

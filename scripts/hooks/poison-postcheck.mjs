@@ -64,13 +64,13 @@ async function voletPoison(rel, reel) {
   lines.push(...formatBaselineReport({ ...verdict, connus: [] }));
   const rappelBaseline = formatBaselineReport({ nouveaux: [], connus: verdict.connus, perimees: [] });
   // Garde « logique par libellé » : la composition de la lib (`scanLabelLogicFichier`, corpus
-  // `estDansLeCorpus`), celle du test et du pre-commit ; seuls les sites `nu` (ni couture, ni dette
+  // `estDansLeCorpus`), celle du test ; seuls les sites `nu` (ni couture, ni dette
   // au stock) sont signalés. Le contexte inter-fichiers ne se lit que pour un fichier du corpus.
   if (estDansLeCorpus(rel))
     for (const f of scanLabelLogicFichier(rel, text, contexteDeLaGarde(corpusDeLaGarde())).filter((s) => s.statut === 'nu'))
       lines.push(`POISON logique par libellé (#142, id STABLE seulement) [${f.rule}] — ${rel}:${f.line} ${f.detail}`);
   if (lines.length)
-    lines.push('→ Corrige AVANT de poursuivre : le pre-commit et la CI portent les MÊMES gardes et refuseront.');
+    lines.push('→ Corrige AVANT de poursuivre : la CI porte les MÊMES gardes et refusera.');
   return [...lines, ...rappelBaseline];
 }
 

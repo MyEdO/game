@@ -1,7 +1,7 @@
 // Mécanique de scan du garde-fou « tout migrer » — réactions de combat hardcodées PAR-NOM
 // (État/trait/talent/atout d'arme) plutôt que par DONNÉE (TriggeredEffect/passive). Module ESM
-// pur, exécutable par `node` nu — consommé par src/state/combat-hardcode-guard.test.ts ET par un
-// futur hook pre-commit. Les BASELINES (nombre de sites tolérés par fichier, gelées au recensement)
+// pur, exécutable par `node` nu — consommé par src/state/combat-hardcode-guard.test.ts ET par le
+// hook pre-commit (scripts/git-hooks/pre-commit.mjs). Les BASELINES (nombre de sites tolérés par fichier, gelées au recensement)
 // restent DONNÉES DE POLICY dans le test — ici ne vit QUE la mécanique de détection, généralisée à
 // TOUT src/engine + src/state (cf. docs/combat-events-coherence.md, Lot 8).
 

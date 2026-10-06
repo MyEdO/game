@@ -90,10 +90,10 @@ function monter(scene: Scene, zoom: number): void {
   hôte = document.createElement('div');
   document.body.appendChild(hôte);
   root = createRoot(hôte);
-  act(() => root!.render(<GameStage3D {...props(scene, zoom)} />));
+  act(() => root!.render(<GameStage3D lecture="jeu" {...props(scene, zoom)} />));
 }
 
-const rendre = (scene: Scene, zoom: number) => act(() => root!.render(<GameStage3D {...props(scene, zoom)} />));
+const rendre = (scene: Scene, zoom: number) => act(() => root!.render(<GameStage3D lecture="jeu" {...props(scene, zoom)} />));
 
 const derniere = (): Frame | undefined => frames[frames.length - 1];
 /** Le semis MONTÉ dans la scène three de la dernière frame (`null` = rien ne tombe). */

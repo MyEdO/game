@@ -35,7 +35,7 @@ describe('climbAcross — aucun grimpeur (#1906)', () => {
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
       expect(() => useGame.getState().climbAcross(foot, top)).not.toThrow();
-      expect(useGame.getState().journal.slice(-1)[0]).toBe(t('climb.personne'));
+      expect(useGame.getState().journal.slice(-1)[0]).toBe(t('geste.refus.personne'));
       expect(useGame.getState().partyPos).toEqual(foot);
     }
   });
@@ -59,12 +59,13 @@ describe('climbAcross — exploration', () => {
     expect(useGame.getState().partyPos).toEqual(foot);
   });
 
-  it('arête non grimpable : aucun effet', () => {
+  it('arête non grimpable : refus NOMMÉ, aucun effet', () => {
     const s = cliffScene({ kind: 'ladder' });
     s.walls = [{ x: 2, y: 1, side: 'N' }];
-    useGame.setState({ scene: s, partyPos: foot });
+    useGame.setState({ scene: s, partyPos: foot, journal: [] });
     useGame.getState().climbAcross(foot, top);
     expect(useGame.getState().partyPos).toEqual(foot);
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(t('climb.pasGrimpable'));
   });
 });
 
@@ -100,7 +101,7 @@ describe('climbAcross — combat', () => {
     useGame.getState().climbAcross(foot, top);
     const b = useGame.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 0 });
-    expect(b.movementUsed).toBeGreaterThan(0); // ½ vitesse sur 4 m (LDB 15 l.53)
+    expect(b.movementUsed).toBeGreaterThan(0); // ½ vitesse sur 4 m (LDB 15 l.55)
     expect(b.acted).toBe(false);
   });
 

@@ -16,7 +16,7 @@ plusieurs livres. Les rapports transverses et le routeur des cœurs sont à
   code de `src/` citant les réfs du topic (même livre+chapitre, spans à **±10 lignes** — du bruit de
   voisinage est possible sur les pages denses), symboles remontés, `⚠sans-appelant`/`⚠hors-app` sur
   le code mort détecté, `(non implémenté)` sinon. Source éditoriale (dettes/blocages) :
-  `src/data/raw.manifest.json` ; fraîcheur gardée par `npm run docs:check` (CI + pre-commit).
+  `src/data/raw.manifest.json` ; fraîcheur gardée par `npm run docs:check` (CI).
 - Convention de réf : `<ABRÉV> <NN> l.<début>-<fin>` — `NN` = préfixe du fichier de chapitre,
   `l.` = numéros de ligne du `.md` source. Table des abréviations → [`sources.md`](../sources.md).
 

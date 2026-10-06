@@ -189,8 +189,9 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: resultRead('pendingRun'),
   },
   fall: {
-    state: { pendingFall: { combatantId: 'H', metres: 6, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } } },
-    read: resultRead('pendingFall'),
+    state: { pendingFall: { to: { x: 0, y: 1 }, metres: 6, initiateurId: 'H', participants: [{ id: 'H', interactive: true, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } }] } },
+    pid: 'H',
+    read: () => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>('pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },
   extendedTest: {
     state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, targetDR: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },

@@ -56,7 +56,7 @@ const sceneDuProjet = (id: string): Scene => {
 
 /** Compteurs MESURÉS au bake — la sortie EXACTE que la table ci-dessous fige. */
 function compteursDe(scene: Scene): { sommets: number; triangles: number; spans: number } {
-  const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene));
+  const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu');
   const sommets = baked.geometry.getAttribute('position').count;
   return { sommets, triangles: sommets / 3, spans: baked.spans.length };
 }

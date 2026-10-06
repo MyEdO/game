@@ -105,7 +105,7 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       '.lint-':
-        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) sous la racine quand configuration est fournie ; ' +
+        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) dans son cwd, la racine quand un test la lui passe ; ' +
         'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
       'node_modules/typescript/dist/api/node/wtf8.js':
         'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +

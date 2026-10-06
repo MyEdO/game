@@ -46,7 +46,7 @@ describe('Cuisson d’un décor volumique — une seule voie, et son id de picki
     const scene = sceneWith(volumeEntity('table-1'), legacyEntity('billboard-1'));
     const els = wholeSceneBillboardEls(scene);
     expect(els.props.map((p) => p.entId)).toEqual(['billboard-1']);
-    const world = buildWorldGeometry(scene, 2, () => 1);
+    const world = buildWorldGeometry(scene, 2, 'jeu', () => 1);
     expect(world.userData.propVertexRanges).toEqual(expect.arrayContaining([
       expect.objectContaining({ entId: 'table-1', vertexStart: expect.any(Number), vertexCount: expect.any(Number) }),
     ]));
@@ -115,7 +115,7 @@ describe('Cuisson d’un décor volumique — une seule voie, et son id de picki
 describe('Le picking lit le monde que l’écran monte VRAIMENT', () => {
   /** Le maillage monde tel que `GameStage3D` l'assemble : géométrie cuite + matériaux de surface. */
   function mondeDeLEcran(scene: Scene) {
-    const geometry = buildWorldGeometry(scene, sceneMetresPerTile(scene), () => 1);
+    const geometry = buildWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu', () => 1);
     const { materials } = worldSurfaceMaterials(geometry, 1, { enFile: true });
     const mesh = new Mesh(geometry, materials);
     mesh.userData.emprunte = true; // …et RIEN d'autre : le montage ne recopie aucune plage

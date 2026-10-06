@@ -9,7 +9,7 @@
  */
 import { slBonus, estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes } from './humanize';
+import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes, plural, dureePropre, plancher } from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import { formatTrait, traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
@@ -21,9 +21,6 @@ import {
 
 const textRow = (o: GameOp): CodexRow => ({ t: 'text', text: humanizeOp(o) });
 
-/** Accord réel singulier/pluriel d'un compte — `Formula` non littérale (dé, bonus…) accorde au
- *  pluriel (jamais garanti « un » à l'affichage). Jamais le pluriel-code « (s) ». */
-const plural = (n: unknown, singular: string, pluralForm: string): string => (n === 1 ? singular : pluralForm);
 
 /**
  * CONTEXTE DE RÉSOLUTION d'un rendu d'ops : ce que le jet a TRANCHÉ et que l'op seule ne dit pas.
@@ -47,7 +44,7 @@ function resolvedCount(value: Formula | undefined, perSL: PerSL | undefined, sl:
 export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
   switch (o.op) {
     case 'charMod':
-      return { t: 'ref', category: 'characteristics', id: o.char, label: CHAR_LABELS[o.char], show: CHAR_LABELS[o.char], badge: `${o.mod >= 0 ? '+' : ''}${o.mod}` };
+      return { t: 'ref', category: 'characteristics', id: o.char, label: CHAR_LABELS[o.char], show: CHAR_LABELS[o.char], badge: [`${o.mod >= 0 ? '+' : ''}${o.mod}`, plancher(o), dureePropre(o)].filter((s): s is string => !!s).join(' · ') };
     case 'charDRBonus':
       return { t: 'ref', category: 'characteristics', id: o.char, label: CHAR_LABELS[o.char], show: CHAR_LABELS[o.char], badge: `+${humanizeFormula(o.bonus)} DR` };
     // Mouvement voyage par sa propre famille d'ops (`moveMod`/`moveScale`, hors `CharKey`) mais
@@ -125,7 +122,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op ne pose pas un État DE PLUS par Round — elle maintient
       // celui-ci. La chip reste UNE, la persistance est dite au badge, du même mot que le journal.
       const persistante = estCausePersistante(o);
-      const duree = o.durationRounds != null ? `${humanizeFormula(o.durationRounds)} ${plural(o.durationRounds, 'Round', 'Rounds')}` : undefined;
+      const duree = dureePropre(o);
       const badge = [
         persistante ? CAUSE_PERSISTANTE : undefined,
         duree ?? (!persistante && o.perRound ? 'par Round' : undefined),

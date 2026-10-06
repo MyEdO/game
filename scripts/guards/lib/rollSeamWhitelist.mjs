@@ -1,6 +1,6 @@
 // Whitelist PARTAGÉE du garde « exclusivité du seam de jet » (#274) — SOURCE UNIQUE consommée par
-// `src/state/roll-seam-exclusivity-guard.test.ts` (Vitest) ET `scripts/git-hooks/pre-commit.mjs`
-// (double détente). Deux listes DISJOINTES, de nature différente :
+// `src/state/roll-seam-exclusivity-guard.test.ts` (Vitest, refus) ET `scripts/git-hooks/pre-commit.mjs`
+// (avertissement au commit). Deux listes DISJOINTES, de nature différente :
 //
 //  1. `ROLL_SEAM_CORE` — exclusion de PRINCIPE : ces fichiers SONT le seam (la porte, la fabrique, le
 //     séquenceur, les résolveurs de spec, le pont de Test déclenché en combat). Leur `rollTest(`/
@@ -87,7 +87,7 @@ export const WORLD_DIE_SUBTRACTED_STOCK = new Map([
 /** @type {Set<string>} */
 export const ROLL_SEAM_FILE_WHITELIST = new Set([...ROLL_SEAM_CORE, ...ROLL_SEAM_PHASE2_STOCK.keys()]);
 
-/** Racine du JEU que balaient les gardes du seam (#274) et du rng vivant (#370), Vitest et pre-commit :
+/** Racine du JEU que balaient les gardes du seam (#274) et du rng vivant (#370) :
  *  l'outillage hors d'elle (`scripts/**`) ne joue aucun jet de partie, il n'a pas de policy de surfaçage. */
 export const RACINE_DU_SEAM = 'src';
 

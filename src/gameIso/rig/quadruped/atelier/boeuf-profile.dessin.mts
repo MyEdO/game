@@ -4,7 +4,7 @@
  * illustration : la ligne de dos, l'épaule, la cuisse et la gorge sont tracées d'un trait, PUIS
  * réparties en groupes d'os. C'est la SOURCE de l'art ; `boeufCompile.ts` en est la sortie.
  *
- *   npx tsx scripts/rig/compile-dessin-quad.mts        (relance la compilation ; --check = porte)
+ *   npx tsx scripts/rig/compile-dessin-quad.mts        (relance la compilation ; --check : quad-harnais.test.ts)
  *
  * REPÈRES DU SQUELETTE RÉEL (boeuf, profil, repos — lus sur `resolveQuadFromProps`) :
  *   tronc (56, 89.4)  croupe (26.9, 87.4)  garrot/encolure (85.1, 77.4)  tête (93.2, 67.8)

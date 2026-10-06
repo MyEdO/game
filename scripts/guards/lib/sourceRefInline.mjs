@@ -1,7 +1,7 @@
 // Mécanique de scan du garde-fou « réf de source `{book,page}` réinventée » (#281, F20/V10 du
 // programme structurel #276). `z.strictObject({ book: z.string(), page: z.number() })` réinvente
 // `sourceRefSchema` (`src/data/schemas/grammaire/valeurs.ts`). Module ESM pur, exécutable par `node`
-// nu — consommé par `src/data/source-ref-inline-guard.test.ts` ET par un futur hook pre-commit.
+// nu — consommé par `src/data/source-ref-inline-guard.test.ts`.
 // Même patron que `labelLogic.mjs` (fenêtre stripée de commentaires, motif bloquant tolérance ZÉRO).
 // Le motif exige la paire `book:`/`page:` DANS CET ORDRE, comme `sourceRefSchema`.
 

@@ -4,8 +4,10 @@
  * ET par `validateScene` (donc par l'éditeur de scène) — une seule implémentation, un seul verdict,
  * un seul texte de message.
  */
-import { heightAt, isDescriptiveZone, type Scene, type SceneEffectZone } from './scene';
+import { heightAt, isDescriptiveZone, isWalkable, porteAuteur, type Scene, type SceneEffectZone } from './scene';
+import { defautDeSuspension, type DefautDeSuspension } from './fallMove';
 import { sceneZoneTiles } from './zones';
+import { isRoomZone, roomTiles } from './rooms';
 import { estAbsent, terrainAbsent, terrainWalkable, tousLesTerrains } from './terrain';
 import { gradeBetween, METRES_PER_LEVEL } from './relief';
 import { memoByRef, memoByRefDeps } from './sceneMemo';
@@ -69,7 +71,7 @@ export type PlanDefectFamily =
   | 'facade-decalee' | 'mur-manquant' | 'etage-sur-exterior'
   | 'case-sans-zone' | 'etage-sans-appui'
   | 'zone-hors-bati' | 'zone-debordante'
-  | 'enceinte-au-bord' | 'mur-arrete-au-bord' | 'mur-en-impasse' | 'porte-orpheline';
+  | 'enceinte-au-bord' | 'mur-arrete-au-bord' | 'mur-en-impasse' | 'porte-orpheline' | 'suspension-hors-saut';
 
 /** OÙ se corrige le défaut — l'éditeur en fait une sélection, le CLI une coordonnée. */
 export type PlanDefectAt =
@@ -118,11 +120,12 @@ export const PLAN_DEFECT_FAMILIES: readonly PlanDefectFamilyDef[] = [
   { id: 'mur-arrete-au-bord', title: 'Mur arrêté sur le bord de la carte', scope: 'floor' },
   { id: 'mur-en-impasse', title: 'Mur en impasse à l’intérieur de la carte', scope: 'floor' },
   { id: 'porte-orpheline', title: 'Porte posée sur une arête isolée', scope: 'floor' },
+  { id: 'suspension-hors-saut', title: 'Hauteur de suspension qu’aucun saut n’offre', scope: 'floor' },
 ];
 
 /** Familles scannées par PAIRE d'étages (`floorPairs`) — les familles de zone et celles de grille de
  *  murs en sont exclues : une scène de plain-pied a des zones et des murs, donc un sujet. */
-export type FloorPairFamily = Exclude<PlanDefectFamily, 'zone-hors-bati' | 'zone-debordante' | 'enceinte-au-bord' | 'mur-arrete-au-bord' | 'mur-en-impasse' | 'porte-orpheline'>;
+export type FloorPairFamily = Exclude<PlanDefectFamily, 'zone-hors-bati' | 'zone-debordante' | 'enceinte-au-bord' | 'mur-arrete-au-bord' | 'mur-en-impasse' | 'porte-orpheline' | 'suspension-hors-saut'>;
 
 export interface Defect {
   family: FloorPairFamily;
@@ -530,8 +533,8 @@ export function zoneOutsideBuildingTiles(
   outdoor: (x: number, y: number, z: number) => boolean = outdoorLookup(scene),
 ): { x: number; y: number; z: number }[] {
   const z = zone.z ?? 0;
-  return sceneZoneTiles(zone)
-    .map((t) => ({ x: t.x, y: t.y, z: t.z ?? z }))
+  return roomTiles(zone)
+    .map((t) => ({ x: t.x, y: t.y, z }))
     .filter((t) => outdoor(t.x, t.y, t.z) || !isFloor(scene, t.x, t.y, t.z));
 }
 
@@ -543,9 +546,9 @@ export function zoneOutsideBuildingTiles(
 export function auditZoneFootprint(scene: Scene): PlanDefect[] {
   const out: PlanDefect[] = [];
   const outdoor = outdoorLookup(scene); // un seul remplissage par étage, partagé par toutes les zones
-  for (const zone of descriptiveZones(scene)) {
-    if (zone.presentation !== 'interior') continue;
-    const tiles = sceneZoneTiles(zone);
+  for (const zone of scene.effectZones ?? []) {
+    if (!isRoomZone(zone)) continue;
+    const tiles = roomTiles(zone);
     if (!tiles.length) continue;
     const z = zone.z ?? 0;
     const off = zoneOutsideBuildingTiles(scene, zone, outdoor);
@@ -686,7 +689,7 @@ export function auditOrphanDoors(scene: Scene, z: number): PlanDefect[] {
   const { degree } = wallGraph(scene, z);
   const out: PlanDefect[] = [];
   for (const wall of scene.walls ?? []) {
-    if (!wall.door || (wall.z ?? 0) !== z || (wall.side !== 'N' && wall.side !== 'E')) continue;
+    if (!porteAuteur(wall) || (wall.z ?? 0) !== z || (wall.side !== 'N' && wall.side !== 'E')) continue;
     const seg = { x: wall.x, y: wall.y, side: wall.side };
     if (wallVertices(seg).some((v) => (degree.get(v) ?? 0) > 1)) continue;
     out.push({
@@ -736,6 +739,35 @@ export function auditWallDeadEndsInside(scene: Scene, z: number): PlanDefect[] {
   return out;
 }
 
+const SUSPENSION_FAUTIVE: Readonly<Record<DefautDeSuspension, string>> = {
+  'trop-haute': 'elle n’est pas inférieure à la hauteur réelle du saut par cette croisée',
+  'plain-pied': 'la croisée est de plain-pied : on l’enjambe, on ne saute pas',
+};
+
+/** Famille 12 (#700) — hauteur de suspension d'une croisée (`WallSeg.suspendu`, `EDO 01 l.231`) que le
+ *  saut n'offre jamais : `defautDeSuspension` (`state/fallMove.ts`) juge chaque pas qui traverse
+ *  l'arête depuis une case où l'on se tient. */
+export function auditSuspensions(scene: Scene, z: number): PlanDefect[] {
+  const out: PlanDefect[] = [];
+  for (const wall of scene.walls ?? []) {
+    if (wall.suspendu === undefined || (wall.z ?? 0) !== z || (wall.side !== 'N' && wall.side !== 'E')) continue;
+    const ici = { x: wall.x, y: wall.y, z };
+    const la = wall.side === 'N' ? { x: wall.x, y: wall.y - 1, z } : { x: wall.x + 1, y: wall.y, z };
+    const defauts = [[ici, la], [la, ici]]
+      .filter(([from]) => isWalkable(scene, from.x, from.y, z))
+      .flatMap(([from, to]) => defautDeSuspension(scene, from, to) ?? []);
+    for (const d of new Set(defauts)) {
+      out.push({
+        family: 'suspension-hors-saut',
+        at: { kind: 'edge', x: wall.x, y: wall.y, side: wall.side, z },
+        grid: 'walled',
+        message: `Hauteur de suspension jamais offerte — la croisée ${wall.side} de (${wall.x},${wall.y}) à l'étage ${z} porte \`suspendu: ${wall.suspendu}\` m, mais ${SUSPENSION_FAUTIVE[d]}. Corrige la hauteur, ou retire-la.`,
+      });
+    }
+  }
+  return out;
+}
+
 /** Position d'un défaut d'étage, dans le vocabulaire partagé `PlanDefectAt`. */
 function defectAt(d: Defect | ZoneDefect): PlanDefectAt {
   return 'side' in d && d.side
@@ -769,6 +801,6 @@ function buildPlanDefects(scene: Scene): PlanDefect[] {
     for (const d of perFloor) out.push({ family: d.family, at: defectAt(d), grid: d.grid, message: d.message });
   }
   out.push(...auditZoneFootprint(scene));
-  for (const z of scenesZ(scene)) out.push(...auditEnclosureAtBorder(scene, z), ...auditWallDeadEndsAtBorder(scene, z), ...auditWallDeadEndsInside(scene, z), ...auditOrphanDoors(scene, z));
+  for (const z of scenesZ(scene)) out.push(...auditEnclosureAtBorder(scene, z), ...auditWallDeadEndsAtBorder(scene, z), ...auditWallDeadEndsInside(scene, z), ...auditOrphanDoors(scene, z), ...auditSuspensions(scene, z));
   return out;
 }

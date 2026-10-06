@@ -541,8 +541,9 @@ plus `"ticket": "#N"` — la dette d'EXTRACTION, due par le chantier qui extrait
 `ticket` de `src/data/raw.manifest.json`, qui porte, lui, la dette d'IMPLÉMENTATION d'une fiche déjà
 écrite). L'index du cœur la rend alors SANS lien, avec son ticket : lier une fiche absente serait un
 lien mort. La marque se RETIRE dans le commit qui publie la fiche — une entrée qui a sa fiche ET un
-`ticket` est refusée, comme une entrée sans fiche ni `ticket`. Tant qu'une aire porte `#N`, le
-pre-commit REFUSE de fermer `#N` (même garde que pour le manifeste : `registres-porteurs.json`).
+`ticket` est refusée, comme une entrée sans fiche ni `ticket`. Tant qu'une aire porte `#N`, la
+garde de solde (`scripts/hooks/solde-ticket-guard.mjs`, PreToolUse) REFUSE de fermer `#N` (même
+garde que pour le manifeste : `registres-porteurs.json`).
 
 Un `titre` d'aire ne porte **aucun `#`** : le hook de fermeture scanne les registres porteurs à la
 recherche de `#N`, et y lirait un ticket que ce registre ne doit rien (`scripts/raw/domaines.test.mjs`).

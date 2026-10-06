@@ -34,8 +34,6 @@ const OPS_ACQUISITION = ['grantTrait', 'grantPsychTrait', 'grantTalent'] as cons
 const OPS_LECTURE_VIVE = ['charMod', 'moveMod', 'testMod', 'skillMod'] as const; // lus sur `c.mutations` : (b) borne l'application à une fois
 /** Hors garde, #1853 L2 : PA (`ap`, et son drapeau `noDeviation`) et armes naturelles en lecture vive. */
 const OPS_RESTE_L2 = ['ap', 'grantNaturalWeapon'] as const;
-/** Hors garde, #1853 L3 : plancher d'un `charMod` (EDO 11 l.190, « jusqu'à un minimum de 10 »). */
-const RESTE_L3 = 'plancher de charMod';
 /** Op-kinds des `effects` d'une mutation : joués par leur Trigger, jamais au spawn ; le re-ciblage par
  *  `removeTrait` retire par provenance (`removeGrantedTraitsFrom`, `corruption.test.ts`). */
 const OPS_DECLENCHES = ['removeTrait', 'grantTrait'] as const;
@@ -149,6 +147,10 @@ function fautesDuPorteur(p: Porteur): string[] {
     const w = weaponFromTrait(t);
     if (w && !c.weapons.some((x) => x.label === w.label)) fautes.push(`${p.ou} : (d) arme « ${w.label} » du trait « ${t.id} » absente de weapons`);
   }
+  // (g) un plancher de `charMod` est résolu à l'attache : aucune instance ne le porte (EDO 11 l.190).
+  for (const m of mutations) for (const op of m.passive ?? []) {
+    if (op.op === 'charMod' && op.min != null) fautes.push(`${p.ou} : (g) charMod « ${op.char} » de « ${m.id} » porte encore son plancher`);
+  }
   // (e) Blessures dérivées.
   if (c.wounds.max !== effectiveMaxWounds(c)) fautes.push(`${p.ou} : (e) wounds.max ${c.wounds.max} ≠ effectiveMaxWounds ${effectiveMaxWounds(c)}`);
   if (c.wounds.current !== c.wounds.max) fautes.push(`${p.ou} : (e) né à ${c.wounds.current}/${c.wounds.max}`);
@@ -176,7 +178,7 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
   it('chaque op-kind de mutation est CLASSÉ : couvert, ou reste nommé (#1853 L2/L3)', () => {
     const classes = new Set<string>([...OPS_ACQUISITION, ...OPS_LECTURE_VIVE, ...OPS_RESTE_L2]);
     const kinds = new Set((mutationsJson as { passive?: { op: string }[] }[]).flatMap((m) => (m.passive ?? []).map((o) => o.op)));
-    expect([...kinds].filter((k) => !classes.has(k)), `op-kinds hors classement (${RESTE_L3} : #1853 L3)`).toEqual([]);
+    expect([...kinds].filter((k) => !classes.has(k)), 'op-kinds hors classement').toEqual([]);
     const declenches = new Set<string>(OPS_DECLENCHES);
     const kindsDEffet = new Set((mutationsJson as { effects?: unknown }[]).flatMap((m) => opsDe(m.effects)));
     expect([...kindsDEffet].filter((k) => !declenches.has(k)), 'op-kinds d’`effects` hors classement').toEqual([]);
@@ -215,6 +217,13 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
     expect(golem.psychImmune).toBe(true);
     expect(nuee.causesPeur).toBe(3);
     expect(nuee.psychImmune).toBe(true);
+  });
+
+  it('Terenz, Crétin : Int 30 − 40, jusqu’à un minimum de 10 (EDO 11 l.190 ; arbitrage #1853 du 2026-10-04)', () => {
+    const cretins = porteurs.filter((p) => p.traits.some((t) => t.id === 'mutation' && t.arg === 'cretin'));
+    expect(cretins.some((p) => p.ou.includes('preset edo-mutant-terenz'))).toBe(true);
+    expect(cretins.some((p) => p.ou.startsWith('scénario embuscade'))).toBe(true);
+    for (const p of cretins) expect(effectiveChar(p.spawn(), 'intelligence'), p.ou).toBe(10);
   });
 
   it('déterminisme : même id, même résultat', () => {
