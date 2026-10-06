@@ -148,6 +148,32 @@ describe('CarnetScreen — rendu (#670)', () => {
     expect(txt).toContain(abbr); // abréviation résolue (ex. « LDB »)
     expect(txt).not.toContain('livre-de-base'); // jamais l'id interne au joueur
   });
+
+  it('un stade ADAPTÉ (`adapteDe`, #2001) rend sa prose sans badge de citation : ce n’est pas une copie du livre', async () => {
+    const abbr = bookAbr('ennemi-dans-l-ombre');
+    expect(abbr).not.toBe('ennemi-dans-l-ombre');
+    const narratifAdapté: NarratifBlock = {
+      ...emptyNarratif(),
+      affaires: [{ id: 'affaire-1', titre: 'La route d’Altdorf' }],
+      indices: [
+        {
+          id: 'ind-adapte',
+          affaireId: 'affaire-1',
+          kind: 'indice',
+          titre: 'Le cocher bavard',
+          stades: [{ id: 's1', prose: 'Le cocher se souvient d’un cavalier pressé.', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } }],
+        },
+      ],
+    };
+    useGame.setState({
+      campaignNarratif: narratifAdapté,
+      clues: { 'ind-adapte': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] } },
+    });
+    await mount();
+    const txt = container.textContent ?? '';
+    expect(txt).toContain('Le cocher se souvient d’un cavalier pressé.');
+    expect(txt).not.toContain(abbr);
+  });
 });
 
 describe('CarnetScreen — le document qu’un stade croise (#679)', () => {

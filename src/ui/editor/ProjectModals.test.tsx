@@ -189,6 +189,34 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     expect(rendu(decorSansType(projet()), 'import').detail).toBeUndefined();
   });
 
+  /** Une scène dont l'unique dialogue porte le nœud donné. */
+  const avecNoeud = (noeud: Record<string, unknown>) => {
+    const doc = projet();
+    const [sc] = doc.scenes as Record<string, unknown>[];
+    return { ...doc, scenes: [{ ...sc, dialogues: [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] }] };
+  };
+
+  const OUVERTURE = 'Ouverture refusée : ce projet ne peut pas être ouvert. Faute : Scènes « Salle du banc » › dialogues « dlg » › nodes « n1 » › ';
+  const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
+
+  /** Mêmes documents refusés qu'avant la réécriture des messages (#2001) : seuls le NOMBRE de fautes
+   *  (une par défaut) et leur TEXTE (la faute seule, le site au chemin) changent. */
+  it.each([
+    ['réplique VIDE', { desc: '' }, 'desc — texte vide.'],
+    ['réplique SANS TEXTE', {}, 'desc — texte obligatoire.'],
+    ['réplique adaptée SANS TEXTE', { adapteDe: ADAPTE }, 'desc — texte obligatoire.'],
+    ['réplique adaptée VIDE', { desc: '', adapteDe: ADAPTE }, 'desc — texte vide.'],
+  ])('%s (#2001) : refusée, UNE faute, dite en français, le nœud au chemin', (_cas, noeud, faute) => {
+    expect(rendu(avecNoeud(noeud), 'ouverture').message).toBe(`${OUVERTURE}${faute}`);
+  });
+
+  it.each([
+    ['réplique maison', { desc: 'Bonjour.' }],
+    ['réplique adaptée', { desc: 'Bonjour.', adapteDe: ADAPTE }],
+  ])('%s (#2001) : ouverte', (_cas, noeud) => {
+    expect(parseProject(avecNoeud(noeud)).scenes[0].dialogues[0].nodes[0].desc).toBe('Bonjour.');
+  });
+
   it('version sans migration : en mots d’AUTEUR, le rapport technique en détail seulement', () => {
     const r = rendu({ ...projet(), schema: 999 }, 'import');
     expect(r.message).toBe('Import refusé : ce fichier ne peut pas être ouvert. Ce projet vient d’une version du jeu que celle-ci ne sait pas lire.');

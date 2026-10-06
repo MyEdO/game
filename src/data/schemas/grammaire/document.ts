@@ -510,14 +510,14 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
           ctx.addIssue({
             code: 'custom',
             path: ['source'],
-            message: `document('${type}') : entrée sans \`source\` — un document sans folio porte \`maison\` (la raison de l'arbitrage).`,
+            message: 'provenance manquante : cite le livre et la page, ou dis la raison maison de l’entrée.',
           });
         }
       }) as z.ZodObject<z.ZodRawShape>);
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V4), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
-    refineProse({ type, site: type, exigeProse: exiges.includes('desc') }),
+    refineProse({ type, exigeProse: exiges.includes('desc') }),
   ) as z.ZodObject<z.ZodRawShape>;
   const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));

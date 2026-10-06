@@ -6986,7 +6986,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   // conservées) au lieu d'aller d'office au 1er héros — même brique que la fenêtre de loot
   // (gearFromEffects). Un giveTrapping ciblé (heroId d'auteur) s'applique directement.
   const { gear, rest: immediate } = gearFromEffects(all.filter((e) => !CONTEXT.has(e.type)));
-  const messages = immediate.filter((e) => e.type === 'journal').map((e) => (e as { desc: string }).desc);
+  const messages = immediate.flatMap((e) => (e.type === 'journal' && e.desc ? [e.desc] : []));
   const issue = immediate.length ? applyEffects(get, set, immediate) : undefined;
   const counts = new Map<string, { label: string; count: number; creatureId?: string }>();
   for (const c of battle.combatants) if (c.kind === 'enemy') {

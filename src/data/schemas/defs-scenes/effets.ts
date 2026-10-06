@@ -13,7 +13,7 @@
  * `test` vient de la fabrique `noeudTest` de la grammaire, aucune structure n'est recopiée.
  */
 import { z } from 'zod';
-import { proseDeScene } from '../grammaire/prose';
+import { champAdapteDe, champsProse, proseDeScene, refineAdapteDe, refineProse } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
@@ -32,7 +32,7 @@ export const dayPhaseIdSchema = z.enum(['aube', 'matin', 'midi', 'apresmidi', 'c
 export const effectTargetSchema = z.enum(['party', 'hero']);
 /** `LivingRef` (`engine/possession.ts`) — bestiaire (édition Codex vivante) OU statbloc custom
  *  d'éditeur (le snapshot EST son identité). */
-const idDeCreature: z.ZodType<string, string> = idDe('creature');
+export const idDeCreature: z.ZodType<string, string> = idDe('creature');
 export const livingRefSchema = z.union([
   z.strictObject({ creatureId: idDeCreature }),
   z.strictObject({ custom: customStatblockSchema }),
@@ -201,7 +201,11 @@ export const startDialogueSchema = z.strictObject({
   speakerId: z.string().optional(),
 });
 
-export const journalSchema = z.strictObject({ type: z.literal('journal'), desc: z.string() });
+/** Ligne de journal : `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
+export const journalSchema = z
+  .strictObject({ type: z.literal('journal'), ...champsProse(), ...champAdapteDe() })
+  .superRefine(refineProse({ type: 'projet', exigeProse: true }))
+  .superRefine(refineAdapteDe);
 
 /** Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse
  *  du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). */

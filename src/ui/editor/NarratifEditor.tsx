@@ -6,12 +6,14 @@ import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { mergeCreatureProfile } from '../../state/campaignData';
-import { creatures, findCreatureById, memoParVersion } from '../../data';
+import { charAbr, creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { estDerive } from '../compendium/editFields';
 import { LIBELLE_NARRATIF, RefNarrativeField } from '../compendium/RefField';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
@@ -516,7 +518,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
             <input value={ouverture.chapitre ?? ''} onChange={(e) => patchOuv({ chapitre: e.target.value || undefined })} />
           </label>
           <ProseField label="Pitch (Markdown)" value={ouverture.pitch} onChange={(pitch) => patchOuv({ pitch })} />
-          <SourceRefField identite="ouverture" label="Source" facultative sujet="de l'ouverture" value={ouverture.source} onChange={(source) => patchOuv({ source })} />
+          <ProvenanceDuTexte identite="ouverture" copie sujet="de l'ouverture" value={ouverture} onChange={patchOuv} />
           <label className="ed-field">
             Ambiance
             <select value={ouverture.ambiance ?? 'veillee'} onChange={(e) => patchOuv({ ambiance: e.target.value as AmbianceCadre })}>
@@ -720,7 +722,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
               onChange={(documentId) => updateStade(s.id, { documentId, prose: documentId ? s.prose : (s.prose ?? '') })}
               nullable
             />
-            <SourceRefField identite={`${porteur}/stade:${clesStades[idx]}`} label="Source" facultative sujet={`du stade ${idx + 1}`} value={s.source} onChange={(source) => updateStade(s.id, { source })} />
+            <ProvenanceDuTexte identite={`${porteur}/stade:${clesStades[idx]}`} copie sujet={`du stade ${idx + 1}`} value={s} onChange={(p) => updateStade(s.id, p)} />
             <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle={`Supprimer le stade ${idx + 1}`} refus={refusDuRetrait(s.id)} onRemove={() => removeStade(s.id)} />
           </div>
         ))}
@@ -788,7 +790,7 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
         <div className="statblock-grid">
           {CHAR_KEYS.map((k) => (
             <label key={k} className="ed-subfield" title={CHAR_LABELS[k]}>
-              {k}
+              {charAbr(k)}
               <NumberField
                 variant="nu"
                 label={CHAR_LABELS[k]}
@@ -815,7 +817,10 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
           onChange={(e) => onPatch({ portrait: e.target.value || undefined })}
         />
       </label>
-      <SourceRefField identite={porteur} label="Source" facultative sujet="du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
+      <ProvenanceDuTexte
+        identite={porteur} copie sujet="du PNJ" value={preset} onChange={onPatch}
+        adapteRefuse={estDerive({ ...preset.profil }, 'desc') ? 'La description du profil est la copie adressée du livre.' : undefined}
+      />
       <BoutonRetirer id={`supprimer-preset-${preset.id}`} libelle="Supprimer ce PNJ" refus={refus} onRemove={onRemove} />
     </div>
   );

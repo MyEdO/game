@@ -9,6 +9,25 @@
   gap: 8px;
   margin-bottom: 10px;
 }
+/* Rangée EMPILÉE (`empile` de `OptionChooser`) : le libellé au-dessus du segment, le segment à la
+   largeur de son CONTENU, plafonnée à celle de son hôte ; ses boutons ne se resserrent que dans un hôte
+   plus étroit que le contenu — aucune largeur d'hôte ne le rogne (`.seg { overflow: hidden }`, #2001),
+   aucune ne l'étire. Le rembourrage reste celui de `.seg button` (components.css), et le conteneur d'un
+   segment refusé n'apporte aucune boîte. */
+.rm-loc-inline[data-empile] {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-xs);
+}
+.rm-loc-inline[data-empile] .seg {
+  max-width: 100%;
+}
+.rm-loc-inline[data-empile] .seg button,
+.rm-loc-inline[data-empile] .seg .btn.btn-nu,
+.rm-loc-inline[data-empile] .seg > .gated-action {
+  flex: 0 1 auto;
+  min-width: 0;
+}
 /* Rangée-BASCULE (maniement de deux armes, LDB 10 l.767-773) : toute la ligne est cliquable. */
 .rm-loc-inline[data-bascule],
 .rm-loc-inline[data-bascule] input {

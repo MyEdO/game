@@ -11,7 +11,8 @@
  * def, seraient la porte ouverte qu'on ferme ici.
  */
 import { z } from 'zod';
-import { descRefSchemaDe, type GenreDeFragment } from './valeurs';
+import { descRefSchemaDe, sourceRefSchema, type GenreDeFragment } from './valeurs';
+import { auPlusProcheAncetre, type PointDeDonnee } from './descente';
 import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import type { CheminProseDeScene } from './champs-prose-de-scene';
@@ -36,17 +37,16 @@ export function proseDeScene(_chemin: CheminProseDeScene) {
  */
 export function champsProse(fragmentsAdmis?: readonly GenreDeFragment[]) {
   return {
-    desc: z.string().min(1).optional(),
+    desc: z.string().min(1, 'texte vide.').optional(),
     descRef: descRefSchemaDe(fragmentsAdmis).optional(),
   };
 }
 
-/** Ce que le refine doit savoir du site qu'il garde. */
+/** Ce que le refine doit savoir du site qu'il garde. Le SITE d'une faute se lit à son CHEMIN, que les
+ *  rapports rendent en libellés (`cheminLisible`, `../validate.ts`) : le message dit la faute seule. */
 export interface ContexteProse {
   /** `type` du document — la clé que le stock de prose inline consulte. */
   readonly type: string;
-  /** Nom du SITE gardé, pour un message qui distingue l'entrée de sa rangée (`criticals>rangee`). */
-  readonly site: string;
   /** Ce site exige-t-il une prose (quel qu'en soit le porteur) ? */
   readonly exigeProse: boolean;
 }
@@ -70,10 +70,11 @@ interface NoeudProse {
  *     le champ `maison` et une prose verbatim du livre COEXISTENT dans la donnée (mesuré 2026-09-05 :
  *     32 nœuds sur les deux racines) ; une prose sans folio, elle, n'a pas de `source` du tout
  *     (refine de provenance de `document.ts` : `source` ⊕ `maison`).
- * V4 OBLIGATION — un site qui exige la prose l'exige sous l'un des deux porteurs.
+ * V4 OBLIGATION — un site qui exige la prose l'exige sous l'un des deux porteurs ; une `desc` VIDE est
+ *     déjà la faute du `min(1)` de `champsProse` : une faute par défaut.
  */
 export function refineProse(ctx: ContexteProse): (v: unknown, refine: z.RefinementCtx) => void {
-  const { type, site, exigeProse } = ctx;
+  const { type, exigeProse } = ctx;
   return (v, refine) => {
     const n = (v ?? {}) as NoeudProse;
     const aDesc = typeof n.desc === 'string' && n.desc.length > 0;
@@ -85,38 +86,84 @@ export function refineProse(ctx: ContexteProse): (v: unknown, refine: z.Refineme
       refine.addIssue({
         code: 'custom',
         path: ['descRef'],
-        message: `document('${type}') · ${site} : \`desc\` ET \`descRef\` — un texte, un porteur (#1388 §2.2).`,
+        message: 'texte en double : saisi ici et adressé au livre — garde l’un ou l’autre.',
       });
     }
     if (adresse !== undefined && !estExtrait(livreAdresse)) {
       refine.addIssue({
         code: 'custom',
         path: ['descRef', 'book'],
-        message: `document('${type}') · ${site} : adresse dans un livre sans extraction : irrésoluble (« ${String(livreAdresse)} » n'a pas de \`dir\` dans \`books.json\`).`,
+        message: `passage introuvable : le livre « ${String(livreAdresse)} » n’est pas extrait.`,
       });
     }
     if (adresse !== undefined && livreSource !== undefined && livreSource !== livreAdresse) {
       refine.addIssue({
         code: 'custom',
         path: ['descRef', 'book'],
-        message: `document('${type}') · ${site} : la source cite un autre livre que l'adresse (« ${livreSource} » ≠ « ${String(livreAdresse)} ») — une localisation secondaire vit dans \`alsoIn\`.`,
+        message: `la source cite « ${livreSource} », le passage adressé « ${String(livreAdresse)} » : une autre localisation va aux emplacements secondaires.`,
       });
     }
     if (aDesc && estExtrait(livreSource) && !(type in PROSE_INLINE_TOLEREE)) {
       refine.addIssue({
         code: 'custom',
         path: ['desc'],
-        message: `document('${type}') · ${site} : prose recopiée d'un livre extrait : l'entrée l'ADRESSE (\`descRef\`).`,
+        message: 'texte recopié d’un livre extrait : adresse le passage au lieu de le recopier.',
       });
     }
-    if (exigeProse && !aDesc && adresse === undefined) {
+    if (exigeProse && n.desc === undefined && adresse === undefined) {
       refine.addIssue({
         code: 'custom',
         path: ['desc'],
-        message: `document('${type}') · ${site} : prose obligatoire pour ce document — \`desc\` ou \`descRef\`.`,
+        message: 'texte obligatoire.',
       });
     }
   };
+}
+
+/**
+ * Le texte ADAPTÉ d'un passage (#2001) : une prose maison qui en dérive sans en être la copie, avec la
+ * référence de ce passage — fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`. Ni
+ * `maison` de l'enveloppe (la RAISON d'un arbitrage, qui coexiste avec une prose verbatim, V3), ni
+ * `source` (le folio dont la prose est la copie).
+ */
+export function champAdapteDe() {
+  return { adapteDe: sourceRefSchema.optional() };
+}
+
+/** Forme d'un nœud, du seul point de vue de sa provenance verbatim ou adaptée. */
+interface NoeudAdapte {
+  adapteDe?: unknown;
+  source?: unknown;
+  descRef?: unknown;
+}
+
+/**
+ * EXCLUSIVITÉ de `adapteDe`, à poser en `superRefine` sur le nœud qui le porte : son texte est le
+ * verbatim d'un passage — `source` (le folio de la copie), `descRef` (l'adresse du passage) — OU il en
+ * est adapté, jamais les deux. Le site se lit au chemin de la faute (`ContexteProse`).
+ */
+export function refineAdapteDe(v: unknown, refine: z.RefinementCtx): void {
+  const n = (v ?? {}) as NoeudAdapte;
+  if (n.adapteDe === undefined || (n.source === undefined && n.descRef === undefined)) return;
+  refine.addIssue({
+    code: 'custom',
+    path: ['adapteDe'],
+    message: 'texte à la fois copié et adapté d’un passage : garde l’un ou l’autre.',
+  });
+}
+
+const estObjetSimple = (v: unknown): v is Record<string | number, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * `source` HÉRITÉE d'un point de donnée : celle du plus proche ANCÊTRE qui en porte une, le point exclu
+ * (`auPlusProcheAncetre`). Un ancêtre qui porte `adapteDe` COUPE l'héritage : ce qu'il contient est
+ * adapté, jamais la copie du livre d'un ancêtre plus haut.
+ */
+export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown> | undefined {
+  const lue = auPlusProcheAncetre<Record<string | number, unknown> | null>(p, (o) =>
+    o.adapteDe !== undefined ? null : estObjetSimple(o.source) ? o.source : undefined,
+  );
+  return lue ?? undefined;
 }
 
 /**
@@ -151,7 +198,7 @@ export function versDisque<T>(racine: T): T {
 }
 
 /**
- * Chemins des nœuds ADRESSÉS dont la prose n'est PAS matérialisée (`descRef` sans `desc` chaîne), à
+ * Chemins des nœuds ADRESSÉS dont la prose n'est PAS matérialisée (`descRef` sans `desc` chaîne non vide), à
  * toute profondeur, tableaux compris : la FORME DISQUE d'un document, que seule la lecture servie
  * (`materialiser`, `scripts/source/resoudre.mjs`) complète. Réciproque de `versDisque`. Fonction PURE.
  */
@@ -164,7 +211,7 @@ export function proseNonMaterialisee(racine: unknown): (string | number)[][] {
     }
     if (!v || typeof v !== 'object') return;
     const noeud = v as Record<string, unknown>;
-    if (noeud.descRef !== undefined && typeof noeud.desc !== 'string') out.push(chemin);
+    if (noeud.descRef !== undefined && (typeof noeud.desc !== 'string' || noeud.desc === '')) out.push(chemin);
     for (const [k, x] of Object.entries(noeud)) marche(x, [...chemin, k]);
   };
   marche(racine, []);

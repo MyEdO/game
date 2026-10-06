@@ -33,6 +33,7 @@ import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/col
 import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
+import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import * as ts from 'typescript/unstable/ast';
 import {
@@ -446,8 +447,8 @@ export type EntreePartielleEmbarquee = {
   readonly document: string;
   /** Nom du document hôte. */
   readonly hote: string;
-  /** Plus proche ANCÊTRE (l'objet exclu) portant un `id` chaîne, resp. un `source` objet
-   *  (`auPlusProcheAncetre`, `grammaire/descente.ts`). */
+  /** Plus proche ANCÊTRE (l'objet exclu) portant un `id` chaîne (`auPlusProcheAncetre`,
+   *  `grammaire/descente.ts`), resp. la `source` héritée (`sourceHeritee`, `grammaire/prose.ts`). */
   readonly id?: string;
   readonly source?: Readonly<Record<string, unknown>>;
 };
@@ -488,7 +489,7 @@ export function entreesPartiellesEmbarquees(
         const deja = reperes.get(p.valeur)?.document;
         if (deja !== undefined && deja !== cible) throw new Error(`${lieu} — entrée partielle de DEUX documents : ${deja}, ${cible}.`);
         const id = auPlusProcheAncetre(p, (o) => (typeof o.id === 'string' ? o.id : undefined));
-        const source = auPlusProcheAncetre(p, (o) => (estObjet(o.source) ? o.source : undefined));
+        const source = sourceHeritee(p);
         reperes.set(p.valeur, { document: cible, hote: d.file, ...(id !== undefined ? { id } : {}), ...(source !== undefined ? { source } : {}) });
       }
     });

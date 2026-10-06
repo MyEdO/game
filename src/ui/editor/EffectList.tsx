@@ -17,7 +17,7 @@ import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCa
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
@@ -42,6 +42,9 @@ import { sceneKindSchema } from '../../data/schemas/defs/activities';
 import { activitiesFor } from '../../engine/activities';
 import { formatMoney, toMoney } from '../../engine/money';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 
 /** Noms des maladies câblées (LDB 20) proposés dans l'éditeur. */
 const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));
@@ -328,6 +331,8 @@ function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
   const upd = (patch: any) => onChange({ ...e, ...patch });
+  // L'instance vit autant que sa rangée (`key` = `useClesDeRangees` chez `EffectList` et `FlowEditor`).
+  const identite = useId();
   return (
     <div className="eff-body">
       <TypeMenu
@@ -339,7 +344,12 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         onChange={onChange}
       />
       <div className="eff-fields">
-        {effect.type === 'journal' && <input placeholder="Texte du journal" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />}
+        {effect.type === 'journal' && (
+          <>
+            <ProseField label="Texte du journal" lecture={adresseUnPassage(effect.descRef)} value={e.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={identite} sujet="de la ligne de journal" value={effect} onChange={upd} />
+          </>
+        )}
         {effect.type === 'setFlag' && (
           <>
             <input placeholder="nom_du_flag" value={e.flag ?? ''} onChange={(ev) => upd({ flag: ev.target.value })} />

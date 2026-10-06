@@ -7,7 +7,8 @@
  *
  * MASQUE de la mesure, mot à mot : « nœud portant un `desc` chaîne non vide dont la source EFFECTIVE
  * — son `source.book` propre, sinon le `source.book` de l'ancêtre le plus proche qui en porte un —
- * désigne un livre à `dir` dans `books.json`, `maison` ou pas, à toute profondeur », sur les deux
+ * désigne un livre à `dir` dans `books.json`, `maison` ou pas, à toute profondeur », un nœud qui porte
+ * `adapteDe` coupant l'héritage (`champAdapteDe`, `./prose.ts`), sur les deux
  * racines de documents (les `.json` de `src/data`, les `-projet.json` de `src/scenes`). La mesure vit dans
  * `scripts/guards/lib/proseInline.mjs` et s'imprime par `node scripts/source/mesurer-prose-inline.mjs` :
  * les comptes ci-dessous en SORTENT, ils ne se tapent pas.
