@@ -582,12 +582,15 @@ function bornesDe(depot, question, revisions, type) {
   return revisions
 }
 
+/** Un sha COMPLET (SHA-1 ou SHA-256), jamais abrégé. PUR. @param {unknown} texte @returns {boolean} */
+export const estShaComplet = (texte) => /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(String(texte ?? ''))
+
 /** Les NOMS aux extrémités d'une révision (`git help revisions` : `^<r>`, `<a>..<b>`, `<a>...<b>`,
  *  `<r>^!`, `<r>^@`, `<r>^-<n>`, `<r>^{<type>}`, `<r>~<n>`, `<r>^<n>`) ; un sha complet ne nomme que
  *  lui-même, il n'en est pas. */
 const nomsDe = (revision) => revision.replace(/^\^/, '').split(/\.{2,3}/)
   .map((r) => r.replace(/(?:\^\{[^}]*\}|~\d*|\^(?:\d*|[!@]|-\d*))+$/, ''))
-  .filter((r) => r && !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(r))
+  .filter((r) => r && !estShaComplet(r))
 
 /**
  * Une révision lue ABSENTE dont un NOM se résout (`rev-parse --verify --quiet`, sans pelage) vers un
@@ -1514,6 +1517,25 @@ export const dossierDesHooks = (depot) => lire(depot, ['config', '--get', 'core.
  *  @param {Depot} depot @returns {string | null} */
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
+/** Borne d'un `ls-remote` (`shasDistants`), en millisecondes : celle de `fetchOrigin`. */
+const TIMEOUT_DU_DISTANT_MS = 60000
+
+/**
+ * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
+ * `ls-remote origin` (`git help ls-remote`), une LECTURE : aucune ref locale n'est posée, à l'inverse
+ * de l'écrivain `fetchOrigin`. Une `Map` dont chaque ref de `refs` est une clé, dans leur ordre ; `null`
+ * pour une ref que l'origine ne porte pas. `null` en entier quand git ne répond pas 0 ; une indisponibilité
+ * (réseau, origine illisible) va à `confier`. Une `Map`, jamais `tableTotale` (`src/lib/tableTotale.ts`) :
+ * l'hôte est dans la clôture sans TypeScript de `scripts/node-requis.mjs` (#1801).
+ * @param {Depot} depot @param {readonly string[]} refs @returns {Map<string, string | null> | null}
+ */
+export function shasDistants(depot, refs) {
+  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(refs)], { timeout: TIMEOUT_DU_DISTANT_MS })
+  if (brut === null) return null
+  const lus = new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+  return new Map(refs.map((ref) => [ref, lus.get(ref) ?? null]))
+}
+
 /**
  * Les `chemins` IGNORÉS, en UN lot (`check-ignore --stdin -z`, qui rend chacun tel qu'il lui est
  * donné) : un chemin SUIVI qu'un motif couvre ne l'est pas, sauf sous `suivisCompris` (`--no-index`).
@@ -1605,7 +1627,7 @@ export const reussi = (union) => union.disponible && !union.absent && union.vale
  * @param {Depot} depot @param {{ branche?: string }} [opts]
  */
 export const fetchOrigin = (depot, { branche = TRONC.nom } = {}) =>
-  ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: 60000 })
+  ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: TIMEOUT_DU_DISTANT_MS })
 
 /** L'histoire complète d'un clone superficiel (`fetch --unshallow origin`). @param {Depot} depot @param {{ timeout?: number }} [opts] */
 export const approfondir = (depot, { timeout } = {}) => ecrire(depot, ['fetch', '--unshallow', 'origin'], { timeout })

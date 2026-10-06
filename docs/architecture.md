@@ -489,15 +489,16 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
   régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
   puis réécrit le suivi.
-- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`eslint.config.js`, joué par la garde `lint`, banc
+- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`oxlint.config.mjs`, joué par la garde `lint`, banc
   `scripts/mods/murDeMod.test.mjs` sur la config résolue) : son périmètre est l'`include` du tsconfig
   que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
   hors bancs `*.test.ts` ; le reste de `.claude/` reste ignoré, et tout module hors `.ts` (`.js`, `.mjs`,
   `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
   Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
   Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
-  (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
-  `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
+  (`ui.resolve`, `ui.log`, `ui.invalidate`, `ui.status`, `ui.toast`, `state.*`, `session.id`,
+  `session.append`, `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
+  fonction appelée par son nom,
   paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
   une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
   sans déstructuration ; le tsconfig posé par le moteur est `strict`, donc `tsc` refuse un paramètre

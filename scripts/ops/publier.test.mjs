@@ -44,6 +44,7 @@ import {
   citerArgv,
   contexteDe,
   etatDeLEtape,
+  etatDuTrain,
   filetDuTrainEnfant,
   jouerLeTrain,
   journalInitial,
@@ -58,6 +59,7 @@ import {
   optionsDe,
   planDeReprise,
   rotationnerLog,
+  vivant,
 } from './publier.mjs'
 import {
   BORNE_EJECTIONS,
@@ -122,6 +124,62 @@ test('nomDeJournal : une branche devient un NOM DE FICHIER légal', () => {
   // `\w` est ASCII : un accent tombe avec le reste — le nom de fichier reste ASCII, par construction.
   assert.equal(nomDeJournal('feat/ét é:x'), 'feat_t_x')
   assert.equal(nomDeJournal(undefined), 'sans-branche')
+})
+
+// ── etatDuTrain : l'unique lecteur du journal (#2280, V2) ─────────────────────────────────────
+
+/** Un journal du run `r` (pid 7) dont les étapes `faites` sont vertes pour `tete`, la suivante `en` à l'état donné. */
+function journalDuRun({ faites = 2, en = 'en-vol', verdict = null, tete = 'aaa' } = {}) {
+  const etapes = {}
+  NOMS.slice(0, faites).forEach((nom, i) => { etapes[nom] = { etat: 'vert', tete, run: '7-1', seq: i + 1 } })
+  if (en) etapes[NOMS[faites]] = { etat: en, tete, run: '7-1', seq: faites + 1 }
+  return { ...journalVide('b'), tete, run: '7-1', pid: 7, seq: faites + (en ? 1 : 0), verdict, etapes }
+}
+
+test('etatDuTrain : aucun run au journal → `aucun`, rang 0 ; la reprise et les étapes suivent la règle de tête', () => {
+  for (const journal of [null, journalVide('b')]) {
+    const vu = etatDuTrain(journal, { teteVivante: 'aaa', vivant: () => assert.fail('aucun pid à sonder') })
+    assert.deepEqual({ etat: vu.etat, etape: vu.etape, rang: vu.rang, total: vu.total, run: vu.run, seq: vu.seq, reprise: vu.reprise },
+      { etat: 'aucun', etape: null, rang: 0, total: NOMS.length, run: null, seq: 0, reprise: NOMS[0] })
+    assert.deepEqual(vu.etapes, NOMS.map((nom) => ({ nom, etat: 'à faire' })))
+  }
+})
+
+test('etatDuTrain : sans verdict, le pid VIVANT dit `en-vol` et le pid MORT dit `mort`, à l’étape de la dernière transition', () => {
+  const journal = journalDuRun({ faites: 2 })
+  const enVol = etatDuTrain(journal, { teteVivante: 'aaa', vivant: (pid) => pid === 7 })
+  assert.deepEqual([enVol.etat, enVol.etape, enVol.rang, enVol.seq], ['en-vol', NOMS[2], 3, 3])
+  assert.equal(etatDuTrain(journal, { teteVivante: 'aaa', vivant: () => false }).etat, 'mort')
+  assert.equal(etatDuTrain({ ...journal, pid: undefined }, { teteVivante: 'aaa' }).etat, 'mort', 'un run sans pid au journal ne vit pas')
+  const autreRun = { ...journal, etapes: { ...journal.etapes, [NOMS[5]]: { etat: 'vert', tete: 'aaa', run: '3-0', seq: 99 } } }
+  assert.equal(etatDuTrain(autreRun, { teteVivante: 'aaa', vivant: () => true }).etape, NOMS[2], 'une transition d’un AUTRE run ne compte pas')
+})
+
+test('etatDuTrain : le VERDICT pour la tête vivante — vert, rouge, indéterminée ; rouge moteur reste rouge', () => {
+  const total = NOMS.length
+  const vert = etatDuTrain(journalDuRun({ faites: total, en: null, verdict: { etat: 'vert' } }), { teteVivante: 'aaa', vivant: () => assert.fail('un verdict ne sonde pas le pid') })
+  assert.deepEqual([vert.etat, vert.etape, vert.rang, vert.reprise], ['vert', NOMS.at(-1), total, null])
+  assert.equal(etatDuTrain(journalDuRun({ en: 'rouge', verdict: { etat: 'rouge', etape: NOMS[2] } }), { teteVivante: 'aaa' }).etat, 'rouge')
+  assert.equal(etatDuTrain(journalDuRun({ en: 'indéterminée', verdict: { etat: 'indeterminee' } }), { teteVivante: 'aaa' }).etat, 'indéterminée')
+  assert.equal(etatDuTrain(journalDuRun({ verdict: { etat: 'rouge', etape: 'moteur' } }), { teteVivante: 'aaa' }).etat, 'rouge')
+})
+
+test('etatDuTrain : un train MORT sur une tête qui n’est plus HEAD est `périmé`, jamais `mort` à vie', () => {
+  const journal = journalDuRun({ faites: 2 })
+  assert.equal(etatDuTrain(journal, { teteVivante: 'bbb', vivant: () => false }).etat, 'périmé')
+  assert.equal(etatDuTrain(journal, { teteVivante: 'aaa', vivant: () => false }).etat, 'mort', 'témoin : sur la tête vivante, il reste mort')
+})
+
+test('etatDuTrain : un verdict posé pour une AUTRE tête que HEAD est `périmé` ; en vol, la tête ne périme rien', () => {
+  const perime = etatDuTrain(journalDuRun({ faites: NOMS.length, en: null, verdict: { etat: 'vert' } }), { teteVivante: 'bbb' })
+  assert.deepEqual([perime.etat, perime.reprise], ['périmé', NOMS[0]])
+  assert.equal(etatDuTrain(journalDuRun({ en: 'rouge', verdict: { etat: 'rouge', etape: 'x' } }), { teteVivante: 'bbb' }).etat, 'périmé')
+  assert.equal(etatDuTrain(journalDuRun(), { teteVivante: 'bbb', vivant: () => true }).etat, 'en-vol', 'le train commite ses dérivés : HEAD bouge pendant le vol')
+})
+
+test('vivant : le processus courant vit ; un pid qui n’est pas un entier positif ne vit pas, sans sonde', () => {
+  assert.equal(vivant(process.pid), true)
+  for (const pid of [undefined, null, 0, -1, 1.5, '7']) assert.equal(vivant(pid), false, String(pid))
 })
 
 // ── planDeReprise / etatDeLEtape ───────────────────────────────────────────────────────
@@ -377,7 +435,7 @@ describe('estDocDerive', () => {
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsRouges', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
@@ -396,7 +454,8 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   for (const uuid of ['x', '630b9d5e-3f2a-4f7e-8b0c-2d5f9a8c1e42/../..', undefined])
     assert.throws(() => ctx.lireFusion({ numero: 7, uuid }), /ctx\.lireFusion : un UUID de demande/, JSON.stringify(uuid))
   for (const id of ['1', 0, -3, 1.5, undefined])
-    assert.throws(() => ctx.jobsRouges(id), /ctx\.jobsRouges : un id de course/, JSON.stringify(id))
+    assert.throws(() => ctx.jobsEnEchec(id), /ctx\.jobsEnEchec : un id de course/, JSON.stringify(id))
+  for (const essai of [0, -1, 1.5, '2']) assert.throws(() => ctx.jobsEnEchec(1, essai), /ctx\.jobsEnEchec : un essai de course/, String(essai))
   for (const message of ['', '  ', undefined, ['m']])
     assert.throws(() => ctx.fusionner({ message }), /ctx\.fusionner : un MESSAGE/, JSON.stringify(message))
   for (const titre of ['', undefined])
@@ -1255,7 +1314,7 @@ const courseDeBrancheVerte = { headSha: 'ttttttttt', status: 'completed', conclu
 
 /** Le contexte de l'étape `file` : la PR lue, les courses de branche et de file, les jobs rouges, et
  *  les réponses de la demande de fusion (`demande` au PUT, `suivis` aux GET successifs). */
-const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
+const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], annules = [], fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
   const gestes = []
   let suivi = 0
   const ctx = {
@@ -1269,7 +1328,7 @@ const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], f
     coursesCi: () => ({ disponible: true, valeur: branche }),
     coursesDeFile: () => ({ disponible: true, valeur: file }),
     parentsDe: () => ({ ok: true, parents }),
-    jobsRouges: (id) => { gestes.push(['jobs', id]); return { disponible: true, valeur: jobs } },
+    jobsEnEchec: (id) => { gestes.push(['jobs', id]); return { disponible: true, valeur: { rouges: jobs, annules } } },
     demanderFusion: (p) => { gestes.push(['demander', p]); return demande },
     lireFusion: (p) => { gestes.push(['suivre', p]); return suivis[Math.min(suivi++, suivis.length - 1)] },
     tronc: () => { gestes.push(['tronc']); return { disponible: true, sha: 'm'.repeat(40) } },
@@ -1296,12 +1355,19 @@ test('file : une PR FUSIONNÉE rend vert, avec le commit de fusion et le temps d
   assert.equal(typeof vu.detail.attenteSecondes, 'number', 'le temps d’attente de GitHub se compte à part du temps machine locale')
 })
 
-test('file : une course de BRANCHE rouge — aucune demande de fusion, et le train le NOMME', () => {
-  const { ctx, gestes } = ctxFile({ pr: REST(), branche: [{ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, workflowName: 'CI' }] })
+test('file : une course de BRANCHE rouge — aucune demande de fusion, et le train la NOMME par ses jobs rouges', () => {
+  const { ctx, gestes } = ctxFile({ pr: REST(), jobs: ['suite'], branche: [{ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, workflowName: 'CI' }] })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
-  assert.ok(vu.raison.includes(`course CI rouge de la branche sur ttttttttt — la PR #7 n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/41`), vu.raison)
-  assert.deepEqual(gestes, [])
+  assert.ok(vu.raison.includes(`course CI rouge de la branche sur ttttttttt (jobs rouges : suite) — la PR #7 n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/41`), vu.raison)
+  assert.deepEqual(gestes, [['jobs', 41]], 'aucune demande de fusion')
+})
+
+test('file : une course de BRANCHE en échec SANS job rouge, des jobs ANNULÉS — le train la dit ANNULÉE, jamais rouge', () => {
+  const { ctx } = ctxFile({ pr: REST(), annules: ['docs', 'suite 1/3'], branche: [{ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, workflowName: 'CI' }] })
+  const vu = etapeFile.jouer(ctx, journalPush())
+  assert.equal(vu.ok, false)
+  assert.ok(vu.raison.includes('course CI annulee de la branche sur ttttttttt (jobs annulés : docs, suite 1/3)'), vu.raison)
 })
 
 test('file : course de branche VERTE → `merge-async` sur la TÊTE JUGÉE ; `merged` rend vert avec le commit de fusion', () => {
@@ -1474,6 +1540,14 @@ test('file : ÉJECTÉE par une course de file rouge HORS des dérivés — rouge
   assert.equal(vu.ok, false)
   assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : suite`)
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'], 'aucune reprise sur un rouge que le tronc n’explique pas')
+})
+
+test('file : course de file en échec SANS job rouge, un job ANNULÉ — annulée NOMMÉE (jobs annulés), aucune reprise', () => {
+  const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs: [], annules: ['docs', 'suite 1/3'] })
+  const vu = etapeFile.jouer(ctx, journalPush())
+  assert.equal(vu.ok, false)
+  assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 ANNULÉE — jobs annulés : docs, suite 1/3`)
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'])
 })
 
 test('file : ÉJECTÉE par un CONFLIT — reprise BORNÉE : FUSION d’origin/main (jamais rebase), relance docs → push → pr → file', () => {
