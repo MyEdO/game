@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildScene } from './mapSpec';
 import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-pieces';
-import { reachableCells, unreachableDescriptiveZones, reachedFloors, startOf } from './mapQC';
+import { reachableCells, unreachableDescriptiveZones, reachedFloors } from './mapQC';
 import { walkNeighbors, type Pt } from './path';
-import type { Scene } from './scene';
+import { startOf, type Scene } from './scene';
 import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire();
 
@@ -31,7 +31,7 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
       zoneLegend: { R: { label: 'Foyer' }, S: { label: 'Galerie' } },
     });
     const start = startOf(scene);
-    expect(start).toEqual({ x: 0, y: 1, z: 0 });
+    expect(start).toEqual({ x: 0, y: 1 });
     const floors = reachedFloors(scene, start!);
     expect(floors.has(0)).toBe(true);
     expect(floors.has(1)).toBe(true);
@@ -55,7 +55,7 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
       zoneLegend: { X: { label: 'Cellule scellée' } },
     });
     const start = startOf(scene);
-    expect(start).toEqual({ x: 1, y: 1, z: 0 });
+    expect(start).toEqual({ x: 1, y: 1 });
     const unreachable = unreachableDescriptiveZones(scene, start!);
     expect(unreachable.map((z) => z.label)).toEqual(['Cellule scellée']);
   });
@@ -78,7 +78,7 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
     const scene = zonesPiecesScenarioConstruit.scene;
     const start = startOf(scene)!;
     const cells = reachableCells(scene, start);
-    expect(cells.has(`${start.x},${start.y},${start.z}`)).toBe(true);
+    expect(cells.has(`${start.x},${start.y},${start.z ?? 0}`)).toBe(true);
   });
 });
 

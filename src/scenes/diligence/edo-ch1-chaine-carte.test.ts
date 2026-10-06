@@ -6,9 +6,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { routesEtat, routesFrom, visiblePlaces } from '../../state/worldMap';
-import { reachableCells, startOf } from '../../state/mapQC';
+import { reachableCells } from '../../state/mapQC';
 import { propFootTiles } from '../../state/footprint';
-import { sceneMetresPerTile } from '../../state/scene';
+import { sceneMetresPerTile, startOf } from '../../state/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
@@ -18,7 +18,7 @@ const map = paquet.worldMap!;
 const DEPART = 'edo-ch1-depart';
 const CORPS = 'edo-ch1-corps-kastor-fouille';
 const CLOS = 'edo-ch1-clos';
-/** Ordre AVAL de la chaîne : `EDO 01 l.340`, `EDO 02 l.13`, `EDO 02 l.168`. */
+/** Ordre AVAL de la chaîne : `EDO 01 l.340`, `EDO 02 l.13`, `EDO 02 l.180`. */
 const AVAL = ['la-diligence', 'route-principale', 'auberge-des-sept-rayons', 'altdorf'];
 const T1 = 'route-la-diligence-route-principale';
 const T2 = 'route-route-principale-sept-rayons';

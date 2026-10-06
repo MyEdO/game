@@ -146,7 +146,7 @@ const AVALS_STATE = [
   ['gameIso', 'extraire la géométrie/simulation partagée vers `src/geometry` (ou le module neutre pertinent) — c’est le geste de l’audit #161.'],
 ];
 
-// #2278
+// #2278, #2280
 const GLOBS_DE_MOD = ['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/**/*.ts`, `.claude/skills/*/${d}/**/*.mts`]);
 const DOSSIERS_DE_MOD = ['.claude/skills/', '.claude/skills/*/', ...['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/`, `.claude/skills/*/${d}/**/`])];
 const EXTENSIONS_HORS_TS = ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'];
@@ -164,9 +164,9 @@ const IDIOME = [
   '[arguments.0.argument.callee.type="Identifier"][arguments.0.argument.callee.name="appel"]',
 ].join('');
 const PLACES_DE_DOLLAR = [
-  DOLLAR_DE('"ui"', '/^(resolve|log|invalidate)$/'),
+  DOLLAR_DE('"ui"', '/^(resolve|log|invalidate|status|toast)$/'),
   `MemberExpression[computed=false][optional=false] > MemberExpression.object${ACCES('"state"')} > Identifier.object`,
-  DOLLAR_DE('"session"', '/^(id|append)$/'),
+  DOLLAR_DE('"session"', '/^(id|append|root)$/'),
   DOLLAR_DE('"tool"', '"register"'),
   DOLLAR_DE('"clock"', '"every"'),
   `CallExpression${IDIOME} > MemberExpression.callee > MemberExpression.object > Identifier.object`,

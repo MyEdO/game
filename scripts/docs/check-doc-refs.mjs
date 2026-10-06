@@ -265,6 +265,7 @@ const DOC_REF_SITES_EXEMPTS = new Set([
   'scripts/git-hooks/docs-rebuild.test.mjs|docs/a.md', // cible d'une MESURE forgée (`touchesDocSources`, #1773) : aucun doc à exister
   'scripts/docs/rendre-cible.test.mjs|docs/raw/4e/catalogue-nexiste-pas.md', // chemin INVENTÉ que le motif des catalogues atteint (#2203)
   'scripts/docs/rendre-cible.test.mjs|docs/raw/9e/sous/catalogue-typo.md', // chemin INVENTÉ que le motif des catalogues atteint (#2203)
+  'scripts/guards/lib/coursesCi.test.mjs|docs/x.md', // ligne VERBATIM d'un journal de CI réel (course 37323572830, #2280) : la panne qu'il nomme
 ])
 // Ce fichier-ci est hors du sens 5 : il ÉNONCE les jetons exemptés ci-dessus (même patron que
 // `FICHIERS_DE_LA_GARDE` dans check-plans-anchors.mjs), il ne les cite pas comme documentation.

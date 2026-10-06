@@ -235,18 +235,20 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
 src/state/
-  scene.ts                  SCÈNE : 35 fonctions PURES (tuiles, murs, portes, relief) + 39 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
+  scene.ts                  SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
+                            dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
                             (55 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 58 membres). Restent 12 MANUSCRITS : `Scene`, `SceneEntity`,
+                            `EffectOp` = 58 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
                             (annotations du `z.lazy`), `Layer` (l'infer du schéma dont `tiles` est
                             ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et
                             l'authoring TS n'est pas parsé), `WallOverlay` (ce qu'un char de légende
-                            d'arête ÉCRIT sur une arête : `structure`/`appearance`),
+                            d'arête ÉCRIT sur une arête : `structure`/`appearance`), `LectureDArete`
+                            (lecture `auteur`/`jeu` d'une arête, `porteSelon`), `Atterrissage` (où l'on
+                            atterrit en quittant une surface, `surfaceDAtterrissage`),
                             `Terrain`, `CellSide` (alias primitifs), `Fige` (marque de type d'une
                             valeur GELÉE : ce qu'une migration rejoue, jamais la semence du jour).
                             Comptes
@@ -487,15 +489,16 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
   régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
   puis réécrit le suivi.
-- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`eslint.config.js`, joué par la garde `lint`, banc
+- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`oxlint.config.mjs`, joué par la garde `lint`, banc
   `scripts/mods/murDeMod.test.mjs` sur la config résolue) : son périmètre est l'`include` du tsconfig
   que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
   hors bancs `*.test.ts` ; le reste de `.claude/` reste ignoré, et tout module hors `.ts` (`.js`, `.mjs`,
   `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
   Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
   Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
-  (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
-  `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
+  (`ui.resolve`, `ui.log`, `ui.invalidate`, `ui.status`, `ui.toast`, `state.*`, `session.id`,
+  `session.append`, `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
+  fonction appelée par son nom,
   paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
   une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
   sans déstructuration ; le tsconfig posé par le moteur est `strict`, donc `tsc` refuse un paramètre

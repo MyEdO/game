@@ -116,11 +116,22 @@ describe('humanize — registre JOUEUR', () => {
   it('une op à durée propre DIT sa durée, borne comprise (AA 07 l.113, LDB 18 l.88)', () => {
     const DUREE: Formula = { minimum: 1, of: { sum: [{ dice: { n: 1, sides: 10 } }, { times: { of: { bonusOf: 'endurance' }, factor: -1 } }] } };
     expect(humanizeOp({ op: 'maxWeaponHands', hands: 1, durationRounds: DUREE } as GameOp))
-      .toBe('ne peut manier que des armes à 1 main(s) pendant 1d10 + le Bonus de Endurance × -1 (minimum de 1) Round(s)');
+      .toBe('ne peut manier que des armes à 1 main(s) pendant 1d10 + le Bonus de Endurance × -1 (minimum de 1) Rounds');
     expect(humanizeOp({ op: 'moveScale', num: 1, den: 2, durationRounds: DUREE } as GameOp))
-      .toBe('voit son Mouvement réduit de moitié pendant 1d10 + le Bonus de Endurance × -1 (minimum de 1) Round(s)');
+      .toBe('voit son Mouvement réduit de moitié pendant 1d10 + le Bonus de Endurance × -1 (minimum de 1) Rounds');
     // Sans durée propre (celle du contexte) : aucune phrase inventée.
     expect(humanizeOp({ op: 'maxWeaponHands', hands: 1 } as GameOp)).toBe('ne peut manier que des armes à 1 main(s)');
+  });
+
+  it('`condition` et `charMod` disent leur durée propre à ses trois échelles, accordée au réel', () => {
+    expect(humanizeOp({ op: 'condition', id: 'sonne', durationHours: 2 } as GameOp)).toBe("gagne l'État *Sonné* pendant 2 heures");
+    expect(humanizeOp({ op: 'condition', id: 'sonne', durationRounds: 1 } as GameOp)).toBe("gagne l'État *Sonné* pendant 1 Round");
+    expect(humanizeOp({ op: 'charMod', char: 'intelligence', mod: -40, durationMinutes: 30 } as GameOp)).toBe('subit -40 en Intelligence pendant 30 minutes');
+  });
+
+  it('`charMod` dit son plancher, et rien sans lui (EDO 11 l.190)', () => {
+    expect(humanizeOp({ op: 'charMod', char: 'intelligence', mod: -40, min: 10 } as GameOp)).toBe('subit -40 en Intelligence, min 10');
+    expect(humanizeOp({ op: 'charMod', char: 'intelligence', mod: -40 } as GameOp)).toBe('subit -40 en Intelligence');
   });
 
   it('humanizeOp : État en libellé italique, jamais l’id', () => {

@@ -359,7 +359,7 @@ test('PASSE : les formes que la détection ne voit pas (en-tête du garde), chac
   for (const cmd of [
     'Stop-Process -Name:node', // #2172
     'iex "Stop-Process -Name node"', // #2172
-    'Stop-Process $p', // affectation hors de la commande
+    'Stop-Process $p', // affectation hors de la commande, #2332
     "echo 'a'\\''b' && pkill node", // #2172
     '$x = (Stop-Process -Name node)', // #2172
     'Write-Output (Stop-Process -Name node)', // #2172

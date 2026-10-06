@@ -6,7 +6,7 @@
 // se juge avant la publication, par son propre message, ou par un commit POSTÉRIEUR de la plage qui nomme son sha.
 import { estFichierVitest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
-import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
 
 /** Le seuil de SUBSTANCE d'un commit : au commit, ses lignes de diff sous `src/` ; à la publication,
  *  les lignes CHANGÉES (ajoutées ou supprimées) sous `src/` de la résolution d'une fusion (#2328 A4). */
@@ -55,10 +55,14 @@ const SHA_COURT_MIN = 9
 /** `true` si `texte` porte un sha d'au moins `SHA_COURT_MIN` caractères qui préfixe `sha`. PURE. */
 const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\b/gi)].some((m) => m[0].length >= SHA_COURT_MIN && sha.startsWith(m[0].toLowerCase()))
 
-/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE. PURE. */
+/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE : la clé ouvre la ligne,
+ *  comme un trailer git (`git interpret-trailers`) — « Aucun juge : … » ou `CONTRE-REFUTATION:` ne
+ *  jugent rien. PURE. */
 const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
-  .map((ligne) => TRAILERS[nom].ligne.exec(ligne)?.[1].trim())
-  .filter((texte) => texte !== undefined && texte.length >= TRAILERS[nom].min)
+  .map((ligne) => TRAILERS[nom].ligne.exec(ligne))
+  .filter((m) => m !== null && m.input.slice(0, m.index).trim() === '')
+  .map((m) => m[1].trim())
+  .filter((texte) => texte.length >= TRAILERS[nom].min)
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
  *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */
@@ -184,6 +188,6 @@ export function verdictDePublication(depot, bornes) {
       : { ok: true, texte: `${plageEnClair(borne)} : toute résolution substantielle de fusion est jugée` }
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    return { ok: false, texte: `⛔ lecture git indisponible : ${e.raison} — la porte de publication ne juge pas ce que git n'a pas lu.` }
+    return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte de publication ne juge pas ce que git n'a pas lu.` }
   }
 }

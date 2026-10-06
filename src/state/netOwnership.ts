@@ -618,6 +618,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // (`influencesLocally`), routé par l'id porté en 1ᵉʳ argument. Le verbe NULLAIRE « tout déclarer »
     // suit la règle de « tout lancer » : possède qui tient une rangée encore vierge.
     ['counterspellDeclare', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
+    // DÉCLARATION d'un TOMBANT de chute volontaire (#700, EDO 01 l.231) : chaque rangée appartient au
+    // siège de SON héros, patron `counterspellDeclare`.
+    ['fallChoose', { rule: (s, seat, args) => seatInfluences(s, seat, idArg(args[0])) }],
     // PORTE UNIQUE en phase 1 (#1042/#1059) : « Laisser passer » ferme la fenêtre de TOUS — refusé à
     // TOUT siège tant qu'une rangée n'a pas déclaré (2ᵉ bout de la garde d'effet, `counterspellCancel`
     // dans `combatSlice`) ; phase close → `null`, le repli universel décide comme avant. Prédicat

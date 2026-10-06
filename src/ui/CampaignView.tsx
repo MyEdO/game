@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useGame } from '../state/store';
 import { canActFirst, freeActFirst } from '../state/turnEconomy';
 import { preemptShooterIds } from '../state/targeting';
 import { findActionById } from '../data/index';
 import { actionGate, runAction } from '../state/actionRegistry';
-import { inBattleId } from '../state/combatants';
+import { actorIn, inBattleId } from '../state/combatants';
+import { sceneNpc } from '../state/sceneNpc';
 import type { IconIdInput } from './icons';
 import { ciblageEntiteArme } from '../state/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
@@ -56,6 +57,7 @@ import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../state/modalArbiter';
 import { placeOfScene, atLocationPlace, placeServices } from '../state/worldMap';
 import { restPlacesHere } from '../state/restFlow';
+import { roomFocusAt } from '../state/rooms';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive, controlsCombatant } from '../state/netOwnership';
 import { combatantClickActs } from '../state/combatOrParty';
@@ -111,7 +113,6 @@ export function CampaignView() {
   const merchant = useGame((s) => s.merchant);
   const sessionEndOpen = useGame((s) => s.sessionEndOpen); // Effet `sessionEnd` (#83) : ouvre la même modale
   const closeSessionEnd = useGame((s) => s.closeSessionEnd);
-  const inspectEnabled = useGame((s) => s.inspectEnabled); // option de jeu : inspection des combattants
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
   const roundStartPromote = useGame((s) => s.roundStartPromote);
   const gameTime = useGame((s) => s.gameTime);
@@ -136,12 +137,15 @@ export function CampaignView() {
   const partyPos = useGame((s) => s.partyPos);
   // Offre de repos LÀ OÙ SE TIENT le groupe (zone d'auteur > scène > camp ; null = interdit).
   const restHere = mode === 'exploration' && scene ? restPlacesHere({ scene, partyPos } as Parameters<typeof restPlacesHere>[0]) : null;
+  const fouillerLaPiece = useGame((s) => s.fouillerLaPiece);
+  // Fouiller : offert DANS une pièce (`roomFocusAt`), sans rien dire de ce qu'elle cache.
+  const dansUnePiece = !!scene && !!roomFocusAt(scene, partyPos);
   // Fiche de personnage/poste : héros au STORE (`sheetId`, patron `inspectId`) — partagé avec
   // PartyScreen pour que la fiche survive au switch de héros entre les deux hôtes.
   const sheetId = useGame((s) => s.sheetId);
   const setSheetId = useGame((s) => s.setSheetId);
   const openPossessionsScreen = useGame((s) => s.openPossessionsScreen);
-  const inspectId = useGame((s) => s.inspectId); // statbloc inspecté (store : frise ET token l'ouvrent)
+  const inspectId = useGame((s) => s.inspectId); // fiche inspectée (store : jeton, portrait ET touche l'ouvrent)
   const setInspectId = useGame((s) => s.setInspectId);
   const setHoverCombatant = useGame((s) => s.setHoverCombatant);
   const hovered = useGame((s) => s.hovered);
@@ -170,7 +174,12 @@ export function CampaignView() {
   const voyageStepUp = voyageStepPending({ pendingCascade, pendingRest, pendingShoreLeave });
   const showVoyage = voyageHub && (!voyageMin || voyageStepUp);
   const [sessionOpen, setSessionOpen] = useState(false); // écran de fin de séance (Ambitions/Détermination)
-  const inspected = inspectEnabled && inspectId ? battle?.combatants.find((c) => c.id === inspectId) ?? null : null;
+  // La fiche INSPECTÉE : le combattant en combat, hors combat le héros du groupe (`actorIn`) ou le PNJ de
+  // scène (`sceneNpc`) — le geste secondaire d'un jeton hors combat n'est offert que là où elle se résout.
+  const inspected = useMemo(
+    () => (inspectId ? actorIn(useGame.getState(), inspectId) ?? (battle ? undefined : sceneNpc(scene, inspectId)) ?? null : null),
+    [inspectId, battle, party, scene],
+  );
   // Dock : version « vivante » des héros en combat (PB/effets à jour), sinon la party.
   // Le dock (portraits du haut) liste les héros PUIS les navires alliés (couche Mer) : cliquer un navire ouvre SA
   // fiche (état + équipage), comme une fiche héros. Le navire n'apparaît qu'en combat naval (sinon le filtre est vide).
@@ -229,13 +238,9 @@ export function CampaignView() {
     // l'interruption sur un adversaire valide, même pendant la pause où il n'y a pas de combattant actif.
     if (preemptAiming) { battleClickEntity(id); return; }
     // MÊME comportement que cliquer le token sur la carte (IsoStage) : action de combat si la cible est
-    // actionnable ET qu'on contrôle l'actif (coop : ton tour), sinon inspection (read-only, tout joueur).
-    // `combatantClickActs` = condition PARTAGÉE carte ⇄ frise — elles ne peuvent plus diverger.
-    if (c && controls && combatantClickActs(useGame.getState, c)) {
-      battleClickEntity(id, { confirm: hoverClickCommits() }); // desktop : un clic commet (cf. pointerCaps)
-      return;
-    }
-    if (inspectEnabled) setInspectId(id);
+    // actionnable ET qu'on contrôle l'actif (coop : ton tour) ; l'inspection est le geste SECONDAIRE du
+    // portrait (`onInspect`). `combatantClickActs` = condition PARTAGÉE carte ⇄ frise.
+    if (c && controls && combatantClickActs(useGame.getState, c)) battleClickEntity(id, { confirm: hoverClickCommits() }); // desktop : un clic commet (cf. pointerCaps)
   };
   const onDockPortrait = (id: string) => {
     if (isTargeting) { battleClickEntity(id, { confirm: hoverClickCommits() }); return; }
@@ -307,6 +312,7 @@ export function CampaignView() {
                   onOpen: () => openRest({ places: restHere.places, quality: restHere.quality }),
                 }
               : undefined}
+            onFouiller={dansUnePiece ? fouillerLaPiece : undefined}
             /* Le tiroir-journal REJOINT la rangée d'ouvreurs : hors combat le pont est la SEULE plaque
                du bas, le rail d'outils ne se rend pas (§1c-ter). */
             journal={<LogDrawer battle={null} journal={journal} onOpenHistory={dialogueHistory.length > 0 ? () => setHistoryOpen(true) : undefined} />}
@@ -317,7 +323,7 @@ export function CampaignView() {
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
         {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
-        <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} />
+        <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} onInspect={setInspectId} />
         {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
             vit ICI, dans la rangée du plateau qui s'arrête au bord haut du pont. Aucune de ces
             surfaces ne connaît plus de hauteur de pont : `bottom: 0` y signifie « juste au-dessus
@@ -337,6 +343,7 @@ export function CampaignView() {
               freeFirstIds={freeFirstIds}
               targeting={isTargeting || !!preemptAiming}
               onActivate={onStripPortrait}
+              onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
               onPromote={roundStartPromote}

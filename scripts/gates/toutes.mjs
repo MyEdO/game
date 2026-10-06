@@ -105,7 +105,7 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       '.lint-':
-        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) sous la racine quand configuration est fournie ; ' +
+        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) dans son cwd, la racine quand un test la lui passe ; ' +
         'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
       'node_modules/typescript/dist/api/node/wtf8.js':
         'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +
@@ -219,7 +219,9 @@ export const ECRIT_LU = {
       '`suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
       'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
-      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
+      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `publier.mjs` encore, par `sauverJournal`, ' +
+      'pour `vigie.mjs` (#2280 : le cache des verdicts `verte` sous `<arbre principal>/.git/vigie/`, répertoire git ' +
+      'COMMUN, hors de l’arbre ; ses bancs `vigie.test.mjs` et `ci.test.mjs` n’écrivent que sous `mkdtempSync`) ; ' +
       '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
       '`import.meta.main` ET si `GITHUB_STEP_SUMMARY` est défini ; ' +
       'le runner fournit ce fichier hors du dépôt, et le banc CLI le remplace par un fichier de ' +

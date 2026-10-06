@@ -237,7 +237,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'zoneBlast': return `Souffle ${(e.ops ?? []).length} op(s) rayon ${e.radius ?? 0} @(${e.center?.x ?? 0},${e.center?.y ?? 0})`;
     case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
     case 'setLight': return `Lumière ${Math.round((e.level ?? 1) * 100)} %`;
-    case 'setDoor': return `Porte (${e.x ?? 0},${e.y ?? 0},${e.side ?? 'N'}) ${e.open ? 'ouverte' : 'fermée'}`;
+    case 'setDoor': return `Porte (${e.x ?? 0},${e.y ?? 0},${e.side ?? 'N'})${e.attempted === undefined ? '' : e.attempted ? ' tentée' : ' non tentée'}${e.revealed === undefined ? '' : e.revealed ? ' révélée' : ' masquée'}${e.open === undefined ? '' : e.open ? ' ouverte' : ' fermée'}`;
     case 'moveEntity': return e.remove
       ? (e.to ? `Déplacer ${e.id || '?'} → (${e.to.x},${e.to.y}) puis retirer` : `Retirer ${e.id || '?'}`)
       : `Déplacer ${e.id || '?'} → (${e.to?.x ?? '?'},${e.to?.y ?? '?'})`;
@@ -819,7 +819,22 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <option value="N">arête N</option>
               <option value="E">arête E</option>
             </select>
-            <label className="dr"><input type="checkbox" checked={e.open !== false} onChange={(ev) => upd({ open: ev.target.checked })} /> Ouverte</label>
+            <select aria-label="Battant" value={e.open === undefined ? '' : e.open ? 'ouvrir' : 'fermer'} onChange={(ev) => upd({ open: ev.target.value === '' ? undefined : ev.target.value === 'ouvrir' })}>
+              {/* `setDoorSchema` refuse les trois « inchangé » : patron `Inspector.tsx` (preset seul porteur). */}
+              <option value="" disabled={e.revealed === undefined && e.attempted === undefined}>battant inchangé</option>
+              <option value="ouvrir">ouvrir</option>
+              <option value="fermer">fermer</option>
+            </select>
+            <select aria-label="Porte secrète" value={e.revealed === undefined ? '' : e.revealed ? 'reveler' : 'masquer'} onChange={(ev) => upd({ revealed: ev.target.value === '' ? undefined : ev.target.value === 'reveler' })}>
+              <option value="" disabled={e.open === undefined && e.attempted === undefined}>porte secrète inchangée</option>
+              <option value="reveler">révéler</option>
+              <option value="masquer">masquer</option>
+            </select>
+            <select aria-label="Tentative de découverte" value={e.attempted === undefined ? '' : e.attempted ? 'tentee' : 'effacer'} onChange={(ev) => upd({ attempted: ev.target.value === '' ? undefined : ev.target.value === 'tentee' })}>
+              <option value="" disabled={e.open === undefined && e.revealed === undefined}>tentative inchangée</option>
+              <option value="tentee">marquer tentée</option>
+              <option value="effacer">effacer la tentative</option>
+            </select>
           </div>
         )}
         {effect.type === 'zoneBlast' && (
@@ -1060,7 +1075,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
   return (
     <div>
       {list.map((id, i) => (
-        <div key={i} className="de-reflrow">
+        <div key={i} className="fieldrow">
           <select value={id} onChange={(ev) => set(list.map((s, j) => (j === i ? ev.target.value : s)))}>
             {!BATTLE_SCENES().some((o) => o.id === id) && <option value={id}>{id} (inconnu)</option>}
             {BATTLE_SCENES().map((o) => <option key={o.id} value={o.id}>{o.label} · {libelleDeValeur(sceneKindSchema, o.sceneKind ?? '')}</option>)}
@@ -1123,7 +1138,7 @@ function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; o
       <div className="branch">
         <span className="branch-label">Rencontres des Scènes de combat / menace (rencontre de la scène courante ; vide = rencontre par défaut de la Scène).</span>
         {combatScenes.length ? combatScenes.map((id) => (
-          <div key={id} className="de-reflrow">
+          <div key={id} className="fieldrow">
             <span className="dr" style={{ minWidth: 140 }}>{battleSceneById(id)?.label ?? id}</span>
             <select
               value={b.sceneEncounters?.[id] ?? ''}

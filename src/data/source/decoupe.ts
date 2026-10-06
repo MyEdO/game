@@ -349,11 +349,29 @@ export interface Unite {
   pos: PositionDUnite;
   /** Descriptif : aucune décision ne le lit. */
   kind: 'titre' | 'bloc' | 'ligne' | 'cellule' | 'paragraphe';
+  /** HABILLAGE d'adresse : la bannière absorbée par `parseTable` (`TableParse.titre`), la légende posée
+   *  par `tablesOf` (`TableDeSection.legende`). `aligner` la consomme entière ou la saute ; une unité de
+   *  texte n'en porte jamais. */
+  habillage?: true;
 }
 
 /** Une unité, sa norme calculée. */
-const unite = (md: string, sep: Unite['sep'], pos: PositionDUnite, kind: Unite['kind']): Unite =>
-  ({ md, sep, norm: normText(md), pos, kind });
+const unite = (md: string, sep: Unite['sep'], pos: PositionDUnite, kind: Unite['kind'], habillage = false): Unite =>
+  ({ md, sep, norm: normText(md), pos, kind, ...(habillage ? { habillage: true as const } : {}) });
+
+/** Une unité de CONTENU : de norme non vide, et pas une ligne délimiteuse de table (`estSeparateur`),
+ *  qui est de la SYNTAXE. `aligner` ne compare que le contenu, des deux côtés. */
+export const estDeContenu = (u: Unite): boolean => u.norm !== '' && !estSeparateur(u.md);
+
+/**
+ * LA découpe d'un paragraphe en morceaux d'unités, commune au rendu (`unitesDuBloc`) et au texte libre
+ * (`unitesDuTexte`) : une unité par ligne si `parseTable` le lit comme une table, une seule sinon. Rend
+ * aussi la lecture de table, dont le rendu tire sa bannière.
+ */
+function decoupeDuParagraphe(md: string): { lue: TableParse | null; morceaux: string[] } {
+  const lue = parseTable(md);
+  return { lue, morceaux: lue ? md.split('\n') : [md] };
+}
 
 /** Une ligne de titre markdown (`HEADING`) traduite en titre du fil (`mdDuTitre`) ; toute autre
  *  ligne telle quelle. */
@@ -363,15 +381,20 @@ const titreTraduit = (ligne: string): string => {
 };
 
 /**
- * Unités d'un TEXTE LIBRE, sa seule préparation : ses paragraphes (séparés par une ligne vide), ceux
- * de norme vide écartés ; une ligne de titre markdown y est traduite comme le fil rend un titre de
- * section (`titreTraduit`).
+ * Unités d'un TEXTE LIBRE, sa seule préparation : ses paragraphes (séparés par une ligne vide), découpés
+ * comme un bloc (`decoupeDuParagraphe`), ceux de norme vide écartés ; une ligne de titre markdown y est
+ * traduite comme le fil rend un titre de section (`titreTraduit`).
  */
 export function unitesDuTexte(md: string): Unite[] {
   const out: Unite[] = [];
   md.split(/\n\s*\n/).forEach((p, rang) => {
-    const u = unite(p.split('\n').map(titreTraduit).join('\n'), out.length ? '\n\n' : '', { rang }, 'paragraphe');
-    if (u.norm) out.push(u);
+    const { lue, morceaux } = decoupeDuParagraphe(p);
+    morceaux.forEach((m, ligne) => {
+      const pos = lue ? { rang, ligne } : { rang };
+      const sep = !out.length ? '' : lue && ligne ? '\n' : '\n\n';
+      const u = unite(m.split('\n').map(titreTraduit).join('\n'), sep, pos, lue ? 'ligne' : 'paragraphe');
+      if (u.norm) out.push(u);
+    });
   });
   return out;
 }
@@ -380,46 +403,120 @@ export function unitesDuTexte(md: string): Unite[] {
 export interface Coupe { unite: number; coupe: number }
 
 /** Ce qu'une adresse ajoute au texte : une unité non couverte (`entiere`), ou le reste d'une unité
- *  coupée, du côté où elle déborde. Nommé, jamais une chaîne. */
-export interface Ajout { unite: number; pos: PositionDUnite; kind: Unite['kind']; cote: 'entiere' | 'gauche' | 'droite' }
+ *  coupée, du côté où elle déborde. Nommé, jamais une chaîne ; un habillage sauté est `entiere`. */
+export interface Ajout {
+  unite: number;
+  pos: PositionDUnite;
+  kind: Unite['kind'];
+  habillage?: true;
+  cote: 'entiere' | 'gauche' | 'droite';
+}
 
-/** Témoin d'`aligner` : la première et la dernière unité d'adresse touchées, avec leurs coupes (début
- *  du texte dans la première, fin du texte dans la dernière), et ce que l'adresse ajoute. */
-export interface Alignement { couvertes: { premiere: Coupe; derniere: Coupe }; ajoute: Ajout[] }
+/** Témoin d'`aligner` : la LOCALISATION — la première et la dernière unité d'adresse touchées qui ne sont
+ *  pas d'habillage, avec leurs coupes (début du texte dans la première, fin du texte dans la dernière),
+ *  `null` quand le texte ne touche que de l'habillage —, et ce que l'adresse ajoute. */
+export interface Alignement { couvertes: { premiere: Coupe; derniere: Coupe } | null; ajoute: Ajout[] }
+
+/** Unités de contenu d'une adresse (`estDeContenu`), avec leur indice, et ce qu'`aligner` en tire. */
+interface AdressePreparee { contenu: readonly { k: number; u: Unite }[]; chaine: string; habillee: boolean }
+
+/** Mémo par IDENTITÉ d'une adresse GELÉE (`unitesDuBloc`) : sa préparation ne dépend que d'elle. */
+const _preparees = new WeakMap<readonly Unite[], AdressePreparee>();
+
+function preparee(adresse: readonly Unite[]): AdressePreparee {
+  const memo = _preparees.get(adresse);
+  if (memo) return memo;
+  const contenu = adresse.flatMap((u, k) => (estDeContenu(u) ? [{ k, u }] : []));
+  const p = { contenu, chaine: joinNorm(contenu.map((x) => x.u.norm)), habillee: contenu.some((x) => x.u.habillage) };
+  if (Object.isFrozen(adresse)) _preparees.set(adresse, p);
+  return p;
+}
+
+/** Ce qui sépare deux normes dans une chaîne jointe (`joinNorm`) : rien au contact d'un `|`. */
+const jonction = (a: string, b: string): string => (a.endsWith('|') || b.startsWith('|') ? '' : ' ');
+
+/** Un alignement candidat : les indices de contenu touchés, la coupe dans le premier, la fin dans le dernier. */
+interface Chemin { touchees: number[]; coupe: number; fin: number }
+
+/** `c` est-il préférable à `m` : plus d'unités touchées, puis la position la plus tôt ? */
+const prefere = (c: Chemin, m: Chemin | null): boolean =>
+  !m || c.touchees.length > m.touchees.length
+  || (c.touchees.length === m.touchees.length && (c.touchees[0] < m.touchees[0] || (c.touchees[0] === m.touchees[0] && c.coupe < m.coupe)));
 
 /**
- * LA décision « texte libre contre rendu » : la chaîne du texte (`joinNorm` de ses unités) est-elle une
- * sous-chaîne de celle de l'adresse (`joinNorm` de ses unités) ? `null` sinon. L'ÉGALITÉ est un
- * alignement dont `ajoute` est vide, la PARTIE STRICTE un alignement dont `ajoute` ne l'est pas. Une
- * unité d'adresse de norme vide n'est jamais un ajout. Un texte sans unité de contenu est refusé.
+ * Les alignements de `t` sur le contenu d'une adresse, le préféré (`prefere`) retenu : `t` y commence
+ * dans une unité, se poursuit unité après unité — un habillage se saute —, et un habillage touché l'est
+ * en entier.
+ */
+function meilleurChemin(t: string, contenu: AdressePreparee['contenu']): Chemin | null {
+  let meilleur: Chemin | null = null;
+  const retenir = (c: Chemin) => { if (prefere(c, meilleur)) meilleur = c; };
+  const prolonger = (i: number, lu: number, chemin: number[], coupe: number) => {
+    for (let q = i + 1; q < contenu.length; q++) {
+      const u = contenu[q].u;
+      const j = jonction(contenu[i].u.norm, u.norm);
+      if (t.startsWith(j, lu)) {
+        const m = lu + j.length;
+        if (u.norm.startsWith(t.slice(m))) {
+          if (!u.habillage || u.norm.length === t.length - m) retenir({ touchees: [...chemin, q], coupe, fin: t.length - m });
+        } else if (t.startsWith(u.norm, m)) {
+          prolonger(q, m + u.norm.length, [...chemin, q], coupe);
+        }
+      }
+      if (!u.habillage) break;
+    }
+  };
+  contenu.forEach(({ u }, p) => {
+    for (let o = u.norm.indexOf(t[0]); o >= 0 && (!u.habillage || o === 0); o = u.norm.indexOf(t[0], o + 1)) {
+      if (u.norm.startsWith(t, o)) {
+        if (!u.habillage || u.norm.length === t.length) retenir({ touchees: [p], coupe: o, fin: o + t.length });
+      } else if (t.startsWith(u.norm.slice(o))) {
+        prolonger(p, u.norm.length - o, [p], o);
+      }
+    }
+  });
+  return meilleur;
+}
+
+/**
+ * LA décision « texte libre contre rendu », sur le CONTENU des deux côtés (`estDeContenu` : la syntaxe
+ * n'est ni comparée ni un ajout) : la chaîne du texte (`joinNorm` de ses unités) est-elle une sous-chaîne
+ * de celle de l'adresse, dont chaque unité d'HABILLAGE est soit CONSOMMÉE ENTIÈRE, soit SAUTÉE — jamais
+ * consommée en partie ? Entre deux alignements, le plus d'unités touchées, puis la position la plus tôt
+ * (`meilleurChemin`). `null` sinon. L'ÉGALITÉ est un alignement dont `ajoute` est vide, la PARTIE STRICTE
+ * un alignement dont `ajoute` ne l'est pas ; un habillage sauté est un ajout. Un texte sans unité de
+ * contenu est refusé.
  */
 export function aligner(texte: readonly Unite[], adresse: readonly Unite[]): Alignement | null {
-  const t = joinNorm(texte.map((u) => u.norm));
+  const t = joinNorm(texte.filter(estDeContenu).map((u) => u.norm));
   if (!t) throw new RangeError('aligner : texte sans unité de contenu');
-  const a = joinNorm(adresse.map((u) => u.norm));
-  const idx = a.indexOf(t);
-  if (idx < 0) return null;
-  const fin = idx + t.length;
+  const { contenu, chaine, habillee } = preparee(adresse);
+  if (!habillee && !chaine.includes(t)) return null;
+  const choisi = meilleurChemin(t, contenu);
+  if (!choisi) return null;
+
+  const touchees = new Set(choisi.touchees);
+  const tete = choisi.touchees[0];
+  const queue = choisi.touchees[choisi.touchees.length - 1];
   const ajoute: Ajout[] = [];
-  let premiere: Coupe | null = null;
-  let derniere: Coupe | null = null;
-  let curseur = 0;
-  for (let k = 0; k < adresse.length; k++) {
-    const u = adresse[k];
-    if (!u.norm) continue;
-    const d = a.startsWith(u.norm, curseur) ? curseur : curseur + 1;
-    if (!a.startsWith(u.norm, d)) throw new Error(`aligner : l'unité ${k} n'est pas à sa place dans la chaîne de l'adresse`);
-    const f = d + u.norm.length;
-    curseur = f;
-    const nomme = (cote: Ajout['cote']): Ajout => ({ unite: k, pos: u.pos, kind: u.kind, cote });
-    if (f <= idx || d >= fin) { ajoute.push(nomme('entiere')); continue; }
-    premiere ??= { unite: k, coupe: Math.max(0, idx - d) };
-    derniere = { unite: k, coupe: Math.min(f, fin) - d };
-    if (d < idx) ajoute.push(nomme('gauche'));
-    if (f > fin) ajoute.push(nomme('droite'));
-  }
-  if (!premiere || !derniere) throw new Error('aligner : un texte trouvé ne touche aucune unité');
-  return { couvertes: { premiere, derniere }, ajoute };
+  contenu.forEach(({ k, u }, i) => {
+    const nomme = (cote: Ajout['cote']): Ajout =>
+      ({ unite: k, pos: u.pos, kind: u.kind, ...(u.habillage ? { habillage: true as const } : {}), cote });
+    if (!touchees.has(i)) { ajoute.push(nomme('entiere')); return; }
+    if (i === tete && choisi.coupe > 0) ajoute.push(nomme('gauche'));
+    if (i === queue && choisi.fin < u.norm.length) ajoute.push(nomme('droite'));
+  });
+  const localisees = choisi.touchees.filter((i) => !contenu[i].u.habillage);
+  if (!localisees.length) return { couvertes: null, ajoute };
+  const premiere = localisees[0];
+  const derniere = localisees[localisees.length - 1];
+  return {
+    couvertes: {
+      premiere: { unite: contenu[premiere].k, coupe: premiere === tete ? choisi.coupe : 0 },
+      derniere: { unite: contenu[derniere].k, coupe: derniere === queue ? choisi.fin : contenu[derniere].u.norm.length },
+    },
+    ajoute,
+  };
 }
 
 /** Un entier 32 bits en 8 hex. */
@@ -717,16 +814,21 @@ const _unitesDuBloc = new WeakMap<Bloc, readonly Unite[]>();
 /** Une unité gelée, position comprise. */
 const gelee = (u: Unite): Unite => Object.freeze({ ...u, pos: Object.freeze(u.pos) });
 
-/** Unités du bloc `rang` d'une section : une par ligne d'un bloc-table (`parseTable`), une pour tout
- *  autre bloc ; `md` affichable (`mdAffichable`), la première sans séparateur. Gelées (`_unitesDuBloc`). */
+/** Unités du bloc `rang` d'une section, découpé comme un paragraphe (`decoupeDuParagraphe`) : une par
+ *  ligne d'un bloc-table, une pour tout autre bloc ; `md` affichable (`mdAffichable`), la première sans
+ *  séparateur. HABILLAGE : la ligne de la bannière absorbée (`TableParse.titre`, première ligne de table),
+ *  le bloc légende d'une table de la section (`tablesOf`). Gelées (`_unitesDuBloc`). */
 export function unitesDuBloc(section: Section, rang: number): readonly Unite[] {
   const b = section.blocks[rang];
   const memo = _unitesDuBloc.get(b);
   if (memo) return memo;
   const pos = { sec: section.slug, secOcc: section.occ, rang };
-  const unites = Object.freeze((parseTable(b.md)
-    ? b.md.split('\n').map((l, ligne) => unite(mdAffichable(l), ligne ? '\n' : '', { ...pos, ligne }, 'ligne'))
-    : [unite(mdAffichable(b.md), '', pos, 'bloc')]).map(gelee));
+  const { lue, morceaux } = decoupeDuParagraphe(b.md);
+  const banniere = lue?.titre == null ? -1 : morceaux.findIndex((l) => TABLE_LINE.test(l));
+  const legende = !lue && LEGENDE.test(b.md) && tablesOf(section).some((t) => t.legende === b);
+  const unites = Object.freeze((lue
+    ? morceaux.map((l, ligne) => unite(mdAffichable(l), ligne ? '\n' : '', { ...pos, ligne }, 'ligne', ligne === banniere))
+    : [unite(mdAffichable(b.md), '', pos, 'bloc', legende)]).map(gelee));
   _unitesDuBloc.set(b, unites);
   return unites;
 }
@@ -938,17 +1040,21 @@ export function fragmentCellule(chapitre: ChapitreParse, { sec, secOcc, row, col
   return scelle(chapitre, { kind: 'cellule', sec, secOcc, row, col, ...(table == null ? {} : { table }), sum: '' });
 }
 
-/** Ce qu'adresse `adresseDe` : une section, ou une table de section. */
-export interface CibleDAdresse { section: Section; table?: TableDeSection }
+/** Ce qu'adresse `adresseDe` : une section, ou une table de section — et, `fin` posée, l'INTERVALLE du fil
+ *  qu'elle ouvre jusqu'à ce bloc. */
+export interface CibleDAdresse { section: Section; table?: TableDeSection; fin?: BlocDuFil }
 
-/** Adresse d'une cible — section entière, ou légende et bloc d'une table — dans le chapitre `ch` du
- *  livre `book`, empreinte calculée au texte résolu ; l'erreur de résolution sinon (section sans bloc). */
+/** Adresse d'une cible — section entière, ou légende et bloc d'une table (le tableau ENTIER) ; avec `fin`,
+ *  de ce même départ jusqu'au bloc `fin` — dans le chapitre `ch` du livre `book`, empreinte calculée au
+ *  texte résolu ; l'erreur de résolution sinon (section sans bloc, fin avant le départ). */
 export function adresseDe(
-  { book, ch }: Pick<DescRef, 'book' | 'ch'>, chapitre: ChapitreParse, { section, table }: CibleDAdresse,
+  { book, ch }: Pick<DescRef, 'book' | 'ch'>, chapitre: ChapitreParse, { section, table, fin }: CibleDAdresse,
 ): DescRef | ErreurResolution {
-  const b1 = table ? section.blocks.indexOf(table.block) : section.blocks.length - 1;
   const b0 = table ? section.blocks.indexOf(table.legende ?? table.block) : 0;
-  const frag = scelleOuErreur(chapitre, blocsDe({ sec: section.slug, secOcc: section.occ, b0, b1 }));
+  const arrivee = fin ?? { sec: section.slug, secOcc: section.occ, idx: table ? section.blocks.indexOf(table.block) : section.blocks.length - 1 };
+  const frag = scelleOuErreur(chapitre, blocsDe({
+    sec: section.slug, secOcc: section.occ, b0, finSec: arrivee.sec, finSecOcc: arrivee.secOcc, b1: arrivee.idx,
+  }));
   return estErreur(frag) ? frag : { book, ch, parts: [frag] };
 }
 

@@ -15,7 +15,7 @@ import { adressesDuDepot } from '../../../scripts/source/adresses.mjs';
 // @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
 import { chapitresDe, lireChapitre } from '../../../scripts/source/lecteur-fs.mjs';
 // @ts-expect-error - dérivation ESM JS (pas de types) — même convention que `vite.config.ts`
-import { judge, verifier } from '../../../scripts/source/derive-decoupes.mjs';
+import { PRESENTE_AU_LIVRE, judge, verifier } from '../../../scripts/source/derive-decoupes.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const LDB = 'livre-de-base';
@@ -245,12 +245,12 @@ describe('8. plancher de « sous-bloc » : `MIN_FRAGMENT` caractères au moins',
     expect(judge(entree('trappings', 'malepierre-brute'))).toEqual(SOUS_BLOC);
   });
 
-  it('un caractère de moins, inclus dans un bloc : « introuvable »', () => {
+  it('un caractère de moins, inclus dans un bloc : pas « sous-bloc », et sans orpheline (B3)', () => {
     const cible = normText(MALEPIERRE);
     const court = [0, 1, 2, 3, 4].map((k) => cible.slice(k, k + MIN_FRAGMENT - 1))
       .find((t) => normText(t).length === MIN_FRAGMENT - 1) ?? '';
     expect(normText(court)).toHaveLength(MIN_FRAGMENT - 1);
-    expect(judge({ source: { book: LDB }, desc: court }).reason).toBe(`introuvable: « ${normText(court)} »`);
+    expect(judge({ source: { book: LDB }, desc: court }).reason).toBe(PRESENTE_AU_LIVRE);
   });
 });
 

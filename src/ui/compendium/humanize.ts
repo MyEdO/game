@@ -68,10 +68,29 @@ export function deFormule(f: Formula): string {
   return `de ${mots}`;
 }
 
-/** Fragment de DURÉE en Rounds d'une op qui en porte une (`durationFromOp`, engine/ops) — vide si
- *  l'op n'en porte pas (elle prend alors celle du contexte). SOURCE UNIQUE de la phrase : la borne
- *  d'une entrée s'y dit d'elle-même (« … (minimum de 1) », AA 07 l.113 / LDB 18 l.88). */
-const pendantRounds = (f: Formula | undefined): string => (f != null ? ` pendant ${humanizeFormula(f)} Round(s)` : '');
+/** Accord réel singulier/pluriel d'un compte — `Formula` non littérale (dé, bonus…) accorde au
+ *  pluriel (jamais garanti « un » à l'affichage). Jamais le pluriel-code « (s) ». */
+export const plural = (n: unknown, singular: string, pluralForm: string): string => (n === 1 ? singular : pluralForm);
+
+/** DURÉE PROPRE d'une op à trois échelles exclusives (`condition`, `charMod` — `durationFromOp`,
+ *  engine/ops) : « 3 heures », « 1 minute », « 2 Rounds » ; `undefined` sans durée propre (celle du
+ *  contexte). SOURCE UNIQUE de la pastille (`opRows`) et du résumé d'atelier (`opSummary`). */
+export function dureePropre(o: { durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }): string | undefined {
+  const echelle = (f: Formula | undefined, un: string, plusieurs: string) => (f != null ? `${humanizeFormula(f)} ${plural(f, un, plusieurs)}` : undefined);
+  return echelle(o.durationRounds, 'Round', 'Rounds') ?? echelle(o.durationMinutes, 'minute', 'minutes') ?? echelle(o.durationHours, 'heure', 'heures');
+}
+
+/** PLANCHER d'un `charMod` (EDO 11 l.190) : « min 10 », `undefined` sans plancher. SOURCE UNIQUE de la
+ *  pastille (`opRows`) et du résumé d'atelier (`opSummary`). */
+export const plancher = (o: { min?: number }): string | undefined => (o.min != null ? `min ${o.min}` : undefined);
+
+/** Fragment « pendant <durée propre> » d'une op qui en porte une (`dureePropre`) — vide si l'op n'en
+ *  porte pas (elle prend alors celle du contexte). La borne d'une entrée s'y dit d'elle-même
+ *  (« … (minimum de 1) », AA 07 l.113 / LDB 18 l.88). */
+const pendant = (o: Parameters<typeof dureePropre>[0]): string => {
+  const duree = dureePropre(o);
+  return duree ? ` pendant ${duree}` : '';
+};
 
 /** La MÊME quantité, mais la note de règle SORTIE du nombre — pour les phrases où une UNITÉ suit le
  *  nombre (« 12 sou(s) de cuivre », « 5 minute(s) ») : la note se pose APRÈS l'unité, jamais entre. */
@@ -346,10 +365,10 @@ export function humanizeResolveWindow(w: ResolveWindow | undefined): string | un
   if (w.scale === 'rounds') {
     return w.left === 1
       ? 'la Détermination le suspend jusqu’à la fin du Round'
-      : `la Détermination le suspend ${humanizeFormula(w.left)} Round(s)`;
+      : `la Détermination le suspend ${humanizeFormula(w.left)} ${plural(w.left, 'Round', 'Rounds')}`;
   }
   const { valeur, note } = humanizeQuantite(w.minutes);
-  return `la Détermination le suspend ${valeur} minute(s)${note}`;
+  return `la Détermination le suspend ${valeur} ${plural(w.minutes, 'minute', 'minutes')}${note}`;
 }
 
 export function humanizeOp(o: GameOp): string {
@@ -359,7 +378,7 @@ export function humanizeOp(o: GameOp): string {
     case 'healCaster': return `le lanceur récupère ${humanizeFormula(o.amount)} PB`;
     case 'condition': {
       const perSL = o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : '';
-      const duree = o.durationRounds ? ` pendant ${humanizeFormula(o.durationRounds)} Round(s)` : '';
+      const duree = pendant(o);
       const fenetre = humanizeResolveWindow(o.resolveWindow);
       const determination = fenetre ? ` — ${fenetre}` : '';
       if (estCausePersistante(o)) return `gagne l'État ${stateItal(o.id)}${perSL}, ${CAUSE_PERSISTANTE}${duree}${determination}`;
@@ -368,7 +387,7 @@ export function humanizeOp(o: GameOp): string {
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
     case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type)}`;
     case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${o.cible})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
-    case 'charMod': return `${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`;
+    case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;
     case 'corruption': return `gagne ${o.amount >= 0 ? '+' : ''}${o.amount} point(s) de Corruption`;
     case 'sinMod': return `${o.amount >= 0 ? 'gagne' : 'perd'} ${Math.abs(o.amount)} point(s) de Péché`;
@@ -385,7 +404,7 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'statusMod': return `${typeof o.amount === 'number' && o.amount < 0 ? 'perd' : 'gagne'} ${humanizeFormula(o.amount)} Standing pour la prochaine aventure`;
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
-    case 'grantTrait': return `gagne le Trait ${formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range })}${o.indice != null && typeof o.indice !== 'number' ? ` ${humanizeFormula(o.indice)}` : ''}${pendantRounds(o.durationRounds)}`;
+    case 'grantTrait': return `gagne le Trait ${formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range })}${o.indice != null && typeof o.indice !== 'number' ? ` ${humanizeFormula(o.indice)}` : ''}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${formatTrait({ id: o.traitId })}`;
     case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${o.cible})` : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
@@ -461,11 +480,11 @@ export function humanizeOp(o: GameOp): string {
     case 'sbBonus': return `gagne +${o.amount} au Bonus de Force pour ses Dégâts`;
     case 'attackKeyword': return `voit ses attaques comptées comme magiques`;
     case 'mitigateIncoming': return `annule les Dégâts qu'il subit${o.unlessKeyword === 'magic' ? ' (sauf attaques magiques)' : ''}`;
-    case 'moveScale': return `voit son Mouvement ${o.num === 1 && o.den === 2 ? 'réduit de moitié' : `multiplié par ${o.num}/${o.den}`}${pendantRounds(o.durationRounds)}`;
+    case 'moveScale': return `voit son Mouvement ${o.num === 1 && o.den === 2 ? 'réduit de moitié' : `multiplié par ${o.num}/${o.den}`}${pendant(o)}`;
     case 'moveMod': return `${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en Mouvement`;
     case 'offTerrainMod': return `est diminué hors de son terrain d'élection`;
     case 'attrMod': return `gagne +${humanizeFormula(o.mod)} ${ATTR_LABEL[o.attr]} (maximum)`;
-    case 'maxWeaponHands': return `ne peut manier que des armes à ${o.hands} main(s)${pendantRounds(o.durationRounds)}`;
+    case 'maxWeaponHands': return `ne peut manier que des armes à ${o.hands} main(s)${pendant(o)}`;
     case 'disarm': return `lâche l'objet tenu dans une main`;
     case 'handGate': return `doit réussir un Test avant d'agir de cette main`;
     case 'senseLoss': return `perd ${libelleDeValeur(senseSchema, o.sense)}`;

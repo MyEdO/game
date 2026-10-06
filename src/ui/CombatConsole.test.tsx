@@ -3254,7 +3254,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
   });
 
   it('modale DISTANTE ouverte pendant un tour distant : toujours UNE puce (l’arbitre parle, la bande se tait)', () => {
-    coop(1, { pendingFall: { actorId: 'h2', from: { x: 1, y: 1 }, to: { x: 1, y: 3 }, height: 2 } });
+    coop(1, { pendingFall: { to: { x: 1, y: 3 }, metres: 2, initiateurId: 'h2', participants: [{ id: 'h2', interactive: true, attempt: null, result: null }] } });
     expect(useGame.getState().pendingFall, 'témoin : la modale distante doit être ouverte').not.toBeNull();
     expect(puces(), 'deux puces (arbitre + bande) ou aucune').toBe(1);
   });
@@ -3317,6 +3317,42 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       expect(useGame.getState().pendingFocus?.spellId, 'l’appui tenu ouvre la Focalisation').toBe('carreau');
       act(() => { cellule.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       expect(useGame.getState().battle!.action, 'le clic de relâchement ne doit PAS armer l’incantation').toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('appui TENU 1300 ms : le clic du relâchement reste AVALÉ ; 800 ms après le relâchement, l’activation n’est plus avalée (#1822)', () => {
+    monter(mage(['carreau']));
+    const cellule = alveole('carreau');
+    vi.useFakeTimers();
+    try {
+      act(() => { cellule.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 10, clientY: 10 })); });
+      act(() => { vi.advanceTimersByTime(1300); });
+      expect(useGame.getState().pendingFocus?.spellId, 'témoin : l’appui tenu ouvre la Focalisation').toBe('carreau');
+      // La Focalisation refermée, l'alvéole est de nouveau libre : seul l'avalement peut taire le clic.
+      act(() => { useGame.setState({ pendingFocus: null }); });
+      act(() => { window.dispatchEvent(new MouseEvent('pointerup', { clientX: 10, clientY: 10 })); });
+      act(() => { cellule.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(useGame.getState().battle!.action, 'le clic du relâchement, 850 ms après le seuil, reste avalé').toBeNull();
+      act(() => { vi.advanceTimersByTime(800); });
+      act(() => { cellule.click(); });
+      expect(useGame.getState().battle!.action, 'une activation ULTÉRIEURE redevient le geste primaire').not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('SOURIS : le bouton gauche tenu n’arme AUCUN geste secondaire — la souris a le clic droit', () => {
+    monter(mage(['carreau']));
+    const cellule = alveole('carreau');
+    vi.useFakeTimers();
+    try {
+      const appui = new MouseEvent('pointerdown', { bubbles: true, clientX: 10, clientY: 10 });
+      Object.defineProperty(appui, 'pointerType', { value: 'mouse' });
+      act(() => { cellule.dispatchEvent(appui); });
+      act(() => { vi.advanceTimersByTime(900); });
+      expect(useGame.getState().pendingFocus, 'aucune Focalisation au bout du délai').toBeNull();
     } finally {
       vi.useRealTimers();
     }

@@ -39,7 +39,7 @@ const mpt = sceneMetresPerTile(scene);
 const bakeRetenu = memoByRefDeps<Scene, BakedWorld>();
 const cuire = (scn: Scene): BakedWorld => {
   const m = sceneMetresPerTile(scn);
-  return bakeRetenu(scn, worldBakeDeps(scn, m), () => bakeWorldGeometry(scn, m));
+  return bakeRetenu(scn, worldBakeDeps(scn, m), () => bakeWorldGeometry(scn, m, 'jeu'));
 };
 
 /** Trois lois de dégagement DÉTERMINISTES — elles ne singent pas `cutawayForSection`, elles la
@@ -121,7 +121,7 @@ const empreinte = (baked: BakedWorld) => empreinteDe(facesRendues(baked));
  *  (`worldFaces` → `facesGeometry` → `surfaceGrouping`), sans passer par le masque qu'il juge. */
 function empreinteBakeFiltré(scn: Scene, keepEl: KeepEl): { groupes: number; faces: number; digest: string } {
   const m = sceneMetresPerTile(scn);
-  const listées = worldFaces(scn).filter((wf) => keepEl(wf.el));
+  const listées = worldFaces(scn, 'jeu').filter((wf) => keepEl(wf.el));
   const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthOf());
   const { groups, faceIndices } = surfaceGrouping(listées, m);
   const parGroupe = new Map<string, string[]>();
@@ -268,7 +268,7 @@ describe('IDEMPOTENCE — le masque se relit du bake, jamais de l’état préc�
 
 describe('ACCENTS DE SOL — une nappe dégagée n’emporte pas que ses faces', () => {
   it('les touffes de la nappe retirée disparaissent, celles des autres restent', () => {
-    const accents = sceneGroundAccents(scene, mpt);
+    const accents = sceneGroundAccents(scene, mpt, 'jeu');
     expect(accents.length).toBeGreaterThan(100);
     // La nappe la plus SEMÉE de l'arène : la retirer doit se voir.
     const parEl = new Map<SceneEl, number>();
@@ -283,6 +283,6 @@ describe('ACCENTS DE SOL — une nappe dégagée n’emporte pas que ses faces',
     for (const lot of lots)
       expect(lot.retenus.some((r) => lot.accents[r].el === cible)).toBe(false);
     // Le semis lui-même n'a pas bougé : c'est l'APPLICATION qui filtre (le bake reste invariant).
-    expect(accents.length).toBe(sceneGroundAccents(scene, mpt).length);
+    expect(accents.length).toBe(sceneGroundAccents(scene, mpt, 'jeu').length);
   });
 });

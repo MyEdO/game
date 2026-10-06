@@ -403,6 +403,40 @@ label.radio {
   background: var(--panel2);
 }
 
+/* ── RANGÉE DE CHAMPS (`.fieldrow`) ── contrôles d'un formulaire d'édition posés sur une ligne qui
+   s'enroule (sélecteur + saisie + retrait ✕), et sa tenue à 360 px (règle stricte 4) :
+   - `flex-wrap` fait passer la rangée à la ligne quand elle déborde ; il ne suffit pas, un `<select>`
+     refusant de rétrécir sous sa largeur intrinsèque tant que son `min-width` vaut `auto` ;
+   - sur les CONTRÔLES, `flex: 0 1 auto; min-width: 0; max-width: 100%`. La base `auto` garde la
+     largeur INTRINSÈQUE quand la place existe ; `min-width: 0` lève le plancher intrinsèque et
+     `max-width: 100%` borne au parent, donc le bord droit tombe sur l'hôte, sans débordement.
+   Le plancher se lève sur les ÉLÉMENTS de la rangée (`> *`) et sur les contrôles qu'ils enveloppent,
+   jamais sur la rangée : `min-width: auto` n'est un plancher que sur l'axe PRINCIPAL du flex, et la
+   rangée est un élément d'une COLONNE (`.ed-field`). */
+.fieldrow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; }
+.fieldrow > *, .fieldrow input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+/* Un `<select>` prend la largeur de son option courante : sa largeur NATURELLE reste la bonne. Le
+   PLANCHER `min(14rem, 100%)` évite le libellé tronqué sans plafonner, et se replie à la largeur de
+   la rangée sous 360 px. */
+.fieldrow select { flex: 0 1 auto; min-width: min(14rem, 100%); max-width: 100%; }
+/* VARIANTE `texte-dessous` : le `<textarea>` de la rangée prend SA ligne, pleine largeur, sous les
+   contrôles — un texte libre long reste lisible à 360 px, là où un champ en ligne se réduit au reste
+   de la rangée.
+   - Le `<select>` et le ✕ partagent la PREMIÈRE ligne à toute largeur : l'enroulement se décide sur
+     la base flex, donc une base `auto` (largeur de l'option la plus longue) pousse le ✕ à la ligne
+     avant tout rétrécissement. Base `0` + `flex-grow: 1` : le sélecteur prend le reste de la ligne,
+     le ✕ garde sa taille ; `min-width: 0` lève le plancher de `.fieldrow select` dans CETTE variante.
+   - Le `<textarea>` grandit avec son contenu (`field-sizing: content`), plancher de 2 lignes (`2lh`
+     + padding et filet de la peau de champ, `base.css`). Navigateur sans `field-sizing` (Firefox) :
+     le plancher fixe la hauteur à 2 lignes, avec défilement interne et poignée `resize`. */
+.fieldrow[data-variant='texte-dessous'] > select { flex: 1 1 0; min-width: 0; }
+.fieldrow[data-variant='texte-dessous'] > textarea {
+  flex: 1 0 100%;
+  resize: vertical;
+  field-sizing: content;
+  min-height: calc(2lh + 18px);
+}
+
 /* ── PASTILLE PEINTE (`.swatch`) ── Carré/bande peint à une couleur de DONNÉE (posée en style inline
    par l'appelant) : rangée `couleur` d'une fiche du Codex, bande de jeton de la galerie. Toujours
    DÉCORATIVE (`aria-hidden`) — le hex ou le nom du jeton est écrit à côté. La FORME se règle par
@@ -1166,13 +1200,29 @@ button.chip:hover {
 
 /* ── CONTRÔLE SEGMENTÉ (`.seg`) ── Choix exclusif rendu en barre de segments (Parade/Esquive, main
    qui tient l'arme, allure de marche). Aucun composant ne le possède : 22 sites le posent, dont la
-   primitive `OptionChooser` (layout `seg`) — couche PARTAGÉE. Le segment ÉLU se dit `aria-pressed`. */
+   primitive `OptionChooser` (layout `seg`) — couche PARTAGÉE. Le segment ÉLU se dit `aria-pressed`.
+   Une barre plus large que sa place S'ENROULE (jamais de défilement ni de segment rogné, #700) ;
+   chaque ligne enroulée se remplit (`flex-grow`).
+   SÉPARATEUR : chaque segment PORTE le sien, sur toute ligne (#700) — un filet `--border` de
+   l'épaisseur du cadre, tracé dans l'interstice (`gap`) à sa droite et sous lui ; celui qui touche
+   le cadre est rogné par `overflow: hidden`. Sur une seule ligne, l'interstice occupe la place de
+   l'ancienne bordure droite : la barre garde sa géométrie au pixel. */
 .seg {
   display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   width: fit-content;
+}
+/* `.seg > .btn.btn-nu` : le bouton NU d'un refus `refusId` (sans enveloppe) ; `.btn.btn-nu` (0,2,0)
+   lui retirerait son séparateur (`box-shadow: none`, base.css). */
+.seg > *,
+.seg > .btn.btn-nu {
+  flex-grow: 1;
+  box-shadow: 1px 0 0 var(--border), 0 1px 0 var(--border), 1px 1px 0 var(--border);
 }
 /* La MATIÈRE du segment, y compris quand il compose `GatedAction bare` : `.btn.btn-nu` (deux classes)
    l'emporterait sur `.seg button` (une classe + un type) et lui retirerait sa boîte — le segment
@@ -1182,19 +1232,11 @@ button.chip:hover {
 .seg .btn.btn-nu {
   background: var(--panel2);
   border: none;
-  border-right: 1px solid var(--border);
   padding: 6px 14px;
   font: inherit;
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
-}
-/* Le dernier segment n'a pas de bordure droite — y compris quand il est porté par le conteneur
-   `.gated-action` de son refus (le bouton n'y est plus l'enfant direct du `.seg`). */
-.seg button:last-child,
-.seg > :last-child button,
-.seg > :last-child .btn.btn-nu {
-  border-right: none;
 }
 /* Un segment REFUSÉ compose `GatedAction bare` : son conteneur ne doit apporter AUCUNE boîte, le
    `.seg` portant déjà la géométrie de la barre. `display: flex` (et non `contents`) : l'infobulle

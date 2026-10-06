@@ -5,7 +5,7 @@
  * du garrot. C'est un SET D'ÉQUIPEMENT : il s'ajoute à la bête (canal `deco`), il ne la remplace
  * pas — le cheval est dessiné NU par le gabarit, robe et anatomie comprises.
  *
- *   npx tsx scripts/rig/compile-dessin-quad.mts sellerie-imperiale     (--check = porte)
+ *   npx tsx scripts/rig/compile-dessin-quad.mts sellerie-imperiale     (--check : quad-harnais.test.ts)
  *
  * FIT-PAR-GABARIT : coordonnées MONDE (canevas 120×150, sol y=150), squelette du CHEVAL en vue
  * `front` — d'où le suffixe `@cheval` que le compilateur lit pour choisir le gabarit.

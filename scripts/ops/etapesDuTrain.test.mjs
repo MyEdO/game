@@ -23,6 +23,7 @@ import { ast } from '../guards/lib/dialecte.mjs';
 // chargement d'un module de la clôture (#2073).
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { verdictDesJobs, phraseDesJobs } from './etapesDuTrain.mjs'
 import { existsSync, readFileSync } from 'node:fs'
 import { isBuiltin } from 'node:module'
 import { resolve } from 'node:path'
@@ -376,4 +377,15 @@ test('le module des ÉTAPES n’acquiert aucune liaison qui atteint un lancement
 test('le module des ÉTAPES ne mentionne aucun accès qui ouvre un module intégré, ni aucun accès ambiant', () => {
   const { mentions, ambiants } = lectureDe(ETAPES)
   assert.deepEqual({ mentions, ambiants }, { mentions: [], ambiants: [] })
+})
+
+test('verdictDesJobs : une course en ÉCHEC sans job rouge et avec un job ANNULÉ est `annulee` (course 37371342026) ; sans l’un ni l’autre, rouge MARQUÉE', () => {
+  const rouge = { etat: 'rouge', course: { databaseId: 37371342026 } }
+  assert.deepEqual(verdictDesJobs(rouge, { rouges: [], annules: ['docs-tests', 'docs', 'suite 1/3'] }), { ...rouge, etat: 'annulee', rouges: [], annules: ['docs-tests', 'docs', 'suite 1/3'] })
+  assert.deepEqual(verdictDesJobs(rouge, { rouges: ['suite'], annules: ['docs'] }).etat, 'rouge', 'un job rouge garde la course rouge')
+  const muette = verdictDesJobs(rouge, { rouges: [], annules: [] })
+  assert.deepEqual([muette.etat, muette.sansJobEnEchec], ['rouge', true])
+  assert.equal(phraseDesJobs(muette), 'aucun job rouge ni annulé dans la course')
+  assert.equal(phraseDesJobs(verdictDesJobs(rouge, { rouges: ['suite'], annules: ['docs'] })), 'jobs rouges : suite ; jobs annulés : docs')
+  for (const etat of ['verte', 'annulee', 'en-vol', 'absente']) assert.equal(verdictDesJobs({ etat }, { rouges: [], annules: ['x'] }).etat, etat, etat)
 })

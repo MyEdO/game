@@ -15,9 +15,9 @@
  */
 import type { NarratifBlock } from '../../../state/campaignNarratif';
 
-/** Clés de `NarratifBlock` dont la valeur est une liste d'entrées. */
-type ClesDeListe<T> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly unknown[] ? K : never }[keyof T];
-export type CleDeRegistreNarratif = ClesDeListe<NarratifBlock>;
+/** Clés de `NarratifBlock` dont la valeur est une liste d'entrées à `id` (`ecartes` se clé par `entree`). */
+type ClesDeListeAId<T> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly { id: string }[] ? K : never }[keyof T];
+export type CleDeRegistreNarratif = ClesDeListeAId<NarratifBlock>;
 
 /** Une ligne de registre : sa clé dans `NarratifBlock`, le complément de nom de ses messages de faute
  *  (« l'id d'affaire »), le nom d'une de ses entrées pour l'auteur (« l'affaire »), le sujet d'une

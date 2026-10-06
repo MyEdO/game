@@ -44,6 +44,8 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   'spendResolveCondition',
   // Escalade d'une arête (capacité `escalade`) : jumeau de `fallAcross`, même possession (l'actif).
   'climbAcross',
+  // Enjambement d'une croisée (capacité `fenetre`, #700) : même possession (l'actif), aucun jet.
+  'windowAcross',
   // attaque : paramètres de la modale différée + jet/appliquer propres au flux d'attaque
   'attackSetLocation', 'attackSetWeapon', 'attackSetDualMode',
   'attackSetWithhold', 'attackSetHarpoonRopeCut', 'attackSetGrapple',
@@ -98,8 +100,9 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   // ses verbes d'influence sont dérivés de `FLOW_VERBS` (mono → routés par le porteur).
   'battleBattement', 'battementSetFoe', 'battementConfirm', 'battementCancel',
   'battleDistraire', 'distraireSetFoe', 'distraireConfirm', 'distraireCancel',
-  // Chute volontaire (ouverte par `battleClickTile`) : trajet, choix d'issue, résolution.
-  'fallAcross', 'fallChoose', 'fallConfirm', 'fallCancel',
+  // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
+  // du tombant, `netOwnership`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
+  'fallAcross', 'fallChoose',
   // Approche d'une source de Peur (ouverte par `battleClickTile`/`battleClickEntity`) : résolution.
   'approachConfirm', 'approachCancel',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse) + résolution du jet de dissipation.

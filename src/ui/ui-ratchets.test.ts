@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,10 +47,14 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  */
 
 const UI = fileURLToPath(new URL('.', import.meta.url)); // src/ui/
+/** L'image CSS de l'arbre de travail, lue UNE fois avant les `it` : chaque lecture rejoue tout le corpus
+ *  git, et un `it` qui la paierait dépasserait sa limite sous charge (#2349). */
+let image: ReturnType<typeof imageDuDisque>;
+beforeAll(() => { image = imageDuDisque(); }, 120_000);
 /** Les modules d'ÉCRAN de l'arbre de travail. */
-const ecransDuDisque = () => modulesDEcran(imageDuDisque());
+const ecransDuDisque = () => modulesDEcran(image);
 /** Les trois volets du stock CSS, mesurés sur l'arbre de travail. */
-const mesureDuDisque = () => mesureCssCouches(imageDuDisque(), composantsDuDisque());
+const mesureDuDisque = () => mesureCssCouches(image, composantsDuDisque());
 
 /** Un fichier du corpus tel que `readCorpus` le rend : chemin POSIX depuis la racine + texte. */
 type Fichier = { rel: string; text: string };
@@ -116,10 +120,8 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // -1 (#1834) : l'enroulement du titre de section suit `.panel h3` en couche PARTAGÉE
   // (`components.css`, hors cliquet) — une base et sa tranche dans la MÊME feuille.
   'styles/base.css': 3,
-  // +1 (#1388) : `.de-reflrow` (rangée dense de réfs de l'atelier Codex) s'enroule dès 360 px —
-  // motif `.bar` non composable ici (c'est une rangée de CHAMPS d'un formulaire d'édition, pas un
-  // bandeau d'écran) ; le `flex-wrap` seul ne suffisait pas, il va de pair avec `min-width: 0`.
-  'styles/codex-edit.css': 2,
+  // -1 (#2290) : la rangée de champs `.fieldrow` est une primitive de `components.css`, hors cliquet.
+  'styles/codex-edit.css': 1,
   'styles/gear-assign-list.css': 1,
   'styles/compendium.css': 3,
   // +1 : `.creator-race-lineages` (#393, correction structurelle Race) — rangée de chips de
@@ -597,7 +599,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   //    silence. Toute feuille hors de `src/ui/styles/` doit donc être déclarée nommément, et les
   //    trois statuts couvrent `src/ui/styles/` par construction — ce que l'union vérifie.
   it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', { timeout: 60_000 }, () => {
-    const primitives = modulesDePrimitive(imageDuDisque().manifeste);
+    const primitives = modulesDePrimitive(image.manifeste);
     const toutes = readCorpus(['src'], { exts: ['.css'] }).map((f) => f.rel);
     const partagees = new Set(SHARED_CSS_FILES.map((f) => `src/ui/${f}`));
     const sansStatut = toutes.filter((f) => !partagees.has(f) && !primitives.has(f) && !f.startsWith('src/ui/styles/')).sort();
@@ -929,7 +931,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
     const orchestrateur = readFileSync(join(UI, 'styles.css'), 'utf8');
     const rang = (rel: string) => orchestrateur.indexOf(`/${base(rel)}'`);
     const rangPeau = Math.max(...FEUILLES_PARTAGEES.map(rang));
-    const modules = [...ecransDuDisque().map((f) => f.rel), ...modulesDePrimitive(imageDuDisque().manifeste)];
+    const modules = [...ecransDuDisque().map((f) => f.rel), ...modulesDePrimitive(image.manifeste)];
 
     // 0. Les MATIÈRES de la couche partagée, DÉRIVÉES de ses sélecteurs.
     const PEAUX = new Set<string>();
@@ -1040,10 +1042,10 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
   // Une DÉCLARATION, pas une mesure : l'enroulement réel dépend des largeurs intrinsèques, que seul
   // un navigateur calcule (`docs/recette-navigateur.md`). Ce contrat tient la condition NÉCESSAIRE —
   // un enfant de la rangée qui ne peut pas rétrécir la fait déborder même enroulée.
-  it('≤360 : tout ENFANT de `.de-reflrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
-    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'codex-edit.css'), 'utf8'))
-      .filter((r) => !r.media && r.selecteurs.includes('.de-reflrow > *'));
-    expect(enfants.length, '`.de-reflrow > *` a sa règle dans `codex-edit.css`').toBe(1);
+  it('≤360 : tout ENFANT de `.fieldrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
+    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'components.css'), 'utf8'))
+      .filter((r) => !r.media && r.selecteurs.includes('.fieldrow > *'));
+    expect(enfants.length, '`.fieldrow > *` a sa règle dans `components.css`').toBe(1);
     expect(enfants[0].corps).toMatch(/min-width:\s*0\b/);
     expect(enfants[0].corps).toMatch(/max-width:\s*100%/);
   });
@@ -1492,7 +1494,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
 
   it('(xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée', () => {
     const fautes: string[] = [];
-    for (const css of modulesDePrimitive(imageDuDisque().manifeste)) {
+    for (const css of modulesDePrimitive(image.manifeste)) {
       if (!css.endsWith('.css')) fautes.push(`${css} — n’est pas une feuille CSS`);
       if (!existsSync(join(UI, '..', '..', css))) fautes.push(`${css} — absent du disque`);
       if (FEUILLES_PARTAGEES.includes(css)) fautes.push(`${css} — feuille PARTAGÉE, aucune primitive ne la possède`);
@@ -1504,7 +1506,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
     const ecrans = ecransDuDisque().map((f) => f.rel);
     expect(ecrans.length, 'aucun module d’ÉCRAN mesuré — le cliquet serait vert par vacuité').toBeGreaterThan(0);
     expect(ecrans.filter((f) => FEUILLES_PARTAGEES.includes(f))).toEqual([]);
-  }, 120_000);
+  });
 
   it('(xxi) preuve par mutation — une couleur dans une classe MAL NOMMÉE d’un module d’écran rougit', () => {
     const sites = sitesIdentiteEcran([fixture('src/ui/styles/faux.css', '.layout-truc { color: var(--gold) }')]);

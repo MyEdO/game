@@ -82,6 +82,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   dismissTravelRecap: MIROIR('bilan de voyage'),
   setVoyageCadence: MIROIR('cadence de voyage'),
   transitionTo: MIROIR('transition de lieu'),
+  fouillerLaPiece: MIROIR('fouille de la pièce'),
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   buyCharAdvance: HOTE('progression (PX)'),
   buySkillAdvance: HOTE('progression (PX)'),

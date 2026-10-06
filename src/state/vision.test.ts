@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { computeVisible, computeLightField, ambientScalar, baseSightTiles, combatantLights, darkSightTiles, mapLights, rayonEnCases, type LightField } from './vision';
-import { Scene, WallSeg, emptyScene, sceneMetresPerTile } from './scene';
+import { Scene, WallSeg, emptyScene, sceneMetresPerTile, wallBetween } from './scene';
+import { couvertDArete, losClear } from './lineOfSight';
+import { pathTo } from './path';
+import { structures } from '../data';
+import { couvertDepuisDifficulte, cranDeCouvertEnMoins } from '../engine/cover';
 import { METRES_PER_LEVEL } from './relief';
 import { computeStateVisible } from './visionState';
 import { parseWalledAscii } from './asciiMap';
@@ -362,15 +366,15 @@ describe('computeVisible — vue INCHANGÉE sur un plan complet (carte-fixture)'
   };
 
   /** Les postes : un dans chaque aile, sur le SEUIL de la porte, contre la FENÊTRE, aux quatre coins,
-   *  et deux à l'ÉTAGE. Empreintes MESURÉES sur la fixture. */
+   *  et deux à l'ÉTAGE. Empreintes MESURÉES sur la fixture (croisée transparente : #1712). */
   const POSTES: [number, number, number, string][] = [
-    [0, 0, 0, '43:a82fec0c'],
-    [2, 3, 0, '50:62ae7b45'],
+    [0, 0, 0, '48:5186005a'],
+    [2, 3, 0, '60:88116a2'],
     [5, 3, 0, '54:bf797db4'],
-    [6, 5, 0, '21:b4c6100e'],
-    [4, 5, 0, '44:6d312895'],
-    [9, 7, 0, '27:27361b03'],
-    [0, 7, 0, '57:bdf9b34e'],
+    [6, 5, 0, '41:4288d460'],
+    [4, 5, 0, '64:eebb8a15'],
+    [9, 7, 0, '39:f8f6b6c1'],
+    [0, 7, 0, '64:1ef3e600'],
     [6, 1, 1, '114:3fde5310'],
     [8, 2, 1, '111:5240e8ea'],
   ];
@@ -395,17 +399,66 @@ describe('computeVisible — vue INCHANGÉE sur un plan complet (carte-fixture)'
       .toEqual(POSTES.map(([x, y, z, attendue]) => `${x},${y},${z} → ${attendue}`));
   });
 
-  /**
-   * Attentes DÉRIVÉES, sans valeur figée — ce que le SOCLE dit de l'opacité d'une arête
-   * (`areteOcculte`, `state/scene.ts:643`) : seules une arête OUVERTE (porte ouverte, structure
-   * abattue) et une Structure déclarée `occulte: false` laissent voir. Une FENÊTRE n'est pas de
-   * celles-là : `wallIsOpen` ne lit que `door`/`structure`, la fenêtre ne perce que le rendu.
-   */
-  it('la refend pleine coupe, la porte et le clayonnage laissent voir, la fenêtre non', () => {
+  /** Attentes DÉRIVÉES du prédicat d'opacité d'arête (`areteOcculte`, `state/scene.ts`). */
+  it('la refend pleine coupe ; la porte, la croisée et le clayonnage laissent voir', () => {
     const carte = carteTemoin();
     expect(vueAu(carte, 4, 1, 0).has('5,1,0'), 'à travers la refend PLEINE').toBe(false);
     expect(vueAu(carte, 4, 3, 0).has('5,3,0'), 'à travers la PORTE').toBe(true);
-    expect(vueAu(carte, 4, 5, 0).has('5,5,0'), 'à travers la FENÊTRE').toBe(false);
+    expect(vueAu(carte, 4, 5, 0).has('5,5,0'), 'à travers la CROISÉE (#1712)').toBe(true);
     expect(vueAu(carte, 4, 7, 0).has('5,7,0'), 'à travers le CLAYONNAGE').toBe(true);
+  });
+});
+
+/**
+ * CROISÉE — arbitrage #1712 (2026-09-08), verbatim : « Fenêtre = on voit et on tire — la ligne de vue
+ * passe, le tir passe avec le couvert dégradé, le déplacement reste bloqué […] Paramétrable par croisée
+ * (volets fermés = opaque) ». Fixture MINIMALE : un couloir 4×1 coupé d'une croisée `o` entre (1,0) et
+ * (2,0).
+ */
+describe('croisée (#1712) — la vue et le tir passent, le pas non ; volets clos = opaque', () => {
+  const COULOIR = ['+-+-+-+-+', '|. .o. .|', '+-+-+-+-+'];
+  const couloir = (croisee: Partial<WallSeg> = {}): Scene => {
+    const { w, h, tiles, walls } = parseWalledAscii(COULOIR, 'plancher', {});
+    return {
+      ...emptyScene(w, h),
+      layers: [{ z: 0, tiles }],
+      walls: walls.map((m) => (m.window ? { ...m, ...croisee } : m)),
+    } as unknown as Scene;
+  };
+  const A = { x: 0, y: 0 };
+  const B = { x: 3, y: 0 };
+  /** Une Structure OCCULTANTE dont le couvert perd un cran sous `cranDeCouvertEnMoins` — lue au dataset. */
+  const porteuse = structures.find((s) => {
+    if (!s.couvertPenalty || s.occulte === false) return false;
+    const brut = couvertDepuisDifficulte(s.couvertPenalty);
+    return cranDeCouvertEnMoins(brut) !== brut;
+  })!;
+
+  it('la fixture porte UNE croisée, entre (1,0) et (2,0)', () => {
+    expect(couloir().walls!.filter((m) => m.window)).toEqual([{ x: 1, y: 0, side: 'E', window: true }]);
+  });
+
+  it('la LIGNE DE VUE passe la croisée', () => {
+    expect(losClear(couloir(), A, B)).toBe(true);
+  });
+
+  it('le DÉPLACEMENT reste bloqué : `wallBetween` barre l’arête, `pathTo` ne trouve aucun chemin', () => {
+    const s = couloir();
+    expect(wallBetween(s, 1, 0, 2, 0)).toBe(true);
+    expect(pathTo(s, A, B, { blocked: new Set<string>() })).toBeNull();
+  });
+
+  it('VOLETS CLOS (`shuttered`) : la croisée coupe la vue', () => {
+    expect(losClear(couloir({ shuttered: true }), A, B)).toBe(false);
+  });
+
+  it('croisée portée par une Structure : le couvert descend d’UN cran', () => {
+    expect(porteuse, 'une Structure à couvert dégradable existe au dataset').toBeTruthy();
+    const brut = couvertDepuisDifficulte(porteuse.couvertPenalty!);
+    expect(couvertDArete(couloir({ structure: porteuse.id }), A, { x: 2, y: 0 })).toBe(cranDeCouvertEnMoins(brut));
+  });
+
+  it('croisée sur MUR NU (sans `structure`) : aucun couvert', () => {
+    expect(couvertDArete(couloir(), A, { x: 2, y: 0 })).toBe('none');
   });
 });

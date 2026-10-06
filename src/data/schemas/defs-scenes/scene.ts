@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
-import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
@@ -179,6 +179,7 @@ const baseDEntiteSchema = z.strictObject({
       hiddenUntilCombat: z.boolean().optional(),
     })
     .optional(),
+  couvre: couvreSchema.optional(),
 });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
@@ -489,6 +490,7 @@ export const dialogueSchema = z.strictObject({
   id: z.string(),
   start: z.string(),
   nodes: listeCle(dialogueNodeSchema, 'id'),
+  couvre: couvreSchema.optional(),
 });
 
 // ── Déclencheur ─────────────────────────────────────────────────────────────────────────────────
@@ -506,6 +508,7 @@ export const triggerSchema = z.strictObject({
   when: conditionSchema.optional(),
   /** LOGIQUE exécutée à l'entrée : séquence d'effets + branches `if`/`test` (exécutée par `runFlow`). */
   flow: sceneFlowSchema,
+  couvre: couvreSchema.optional(),
 });
 
 // ── Rencontre ───────────────────────────────────────────────────────────────────────────────────
@@ -616,6 +619,7 @@ export const encounterDefSchema = z.strictObject({
    *  coop, `state/netOwnership.ts`), le décor `siege` (fauteuil), l'Atout d'arme `siege`
    *  (`ADE II 08 l.292`). */
   siege: z.boolean().optional(),
+  couvre: couvreSchema.optional(),
 });
 
 // ── Couches, zones, murs ────────────────────────────────────────────────────────────────────────
@@ -661,11 +665,19 @@ export const sceneEffectZoneSchema = z.strictObject({
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
   barrier: z.strictObject({ blockGroups: z.array(z.string()).optional() }).optional(),
   z: z.number().optional(),
+  couvre: couvreSchema.optional(),
+}).superRefine((zone, ctx) => {
+  // Une PIÈCE vit à l'étage `zone.z` (`state/rooms.ts`, `roomTiles`) : une case d'un autre étage est refusée.
+  if (zone.presentation !== 'interior') return;
+  const etage = zone.z ?? 0;
+  (zone.tiles ?? []).forEach((t, i) => {
+    if (t.z !== undefined && t.z !== etage) ctx.addIssue({ code: 'custom', path: ['tiles', i, 'z'], message: `zone intérieure « ${zone.id} » : la case (${t.x},${t.y}) est à l'étage ${t.z}, la pièce à l'étage ${etage} (\`z\`) — une pièce vit à un seul étage` });
+  });
 });
 
 /** Nature d'une arête grimpable (`WallSeg.climb`). */
 export const wallClimbSchema = z.strictObject({
-  /** `ladder` = échelle ou surface facile (pas de Test, `LDB 15 l.53`) ; `surface` = paroi à prises
+  /** `ladder` = échelle ou surface facile (pas de Test, `LDB 15 l.55`) ; `surface` = paroi à prises
    *  (Test d'Escalade, `l.57`). */
   kind: z.enum(['ladder', 'surface']),
   /** Surface uniquement — difficulté du Test d'Escalade. `LDB 15 l.57` la laisse « définie par le MJ » ;
@@ -674,6 +686,27 @@ export const wallClimbSchema = z.strictObject({
   /** Surface uniquement — paroi « bien trop compliquée » sans le Talent Grimpeur (`LDB 15 l.57`). */
   requiresGrimpeur: z.boolean().optional(),
 });
+
+/** Case(s) bordant une arête : la case PORTEUSE `(x,y)`, sa VOISINE à travers `side`, ou LES DEUX
+ *  (`parapetTilesAbove`, `structureFaceCells`). */
+export const faceDAreteSchema = enumNomme({
+  porteuse: 'Case porteuse (x,y)',
+  voisine: 'Case voisine (à travers l’arête)',
+  'les-deux': 'Les deux faces',
+});
+
+/** Porte SECRÈTE (`WallSeg.secret`) — `EDO 08 l.404`, `LDB 09 l.399`. */
+export const wallSecretSchema = z.strictObject({
+  /** Difficulté du Test de Perception qui la découvre — `LDB 12 l.137`, fixée par l'auteur (règle 7). */
+  difficulty: difficultySchema,
+  /** Face(s) depuis laquelle la porte peut être découverte — `EDO 07 l.263`. */
+  face: faceDAreteSchema,
+});
+
+/** Ce qu'une cloison OBLIQUE (`\\`, `/`) ne porte jamais : elle est purement visuelle — déplacement,
+ *  vision et grimpe ne résolvent que les arêtes cardinales (`edgeOf`, `state/scene.ts`). `window`,
+ *  `shuttered` et `appearance` y restent admis : ils ne sont que du rendu. */
+const MUET_SUR_OBLIQUE = ['door', 'secret', 'crossable', 'allege', 'suspendu', 'climb', 'structure'] as const;
 
 /** `WallSeg` — cloison sur ARÊTE. `door` = franchissable (porte) ; `z` = étage. */
 export const wallSegSchema = z.strictObject({
@@ -692,18 +725,42 @@ export const wallSegSchema = z.strictObject({
   /** Apparence de rendu (`structureAppearance.json`) indépendante de `structure`. N'affecte ni
    *  résistance, ni couvert, ni collision : absent = apparence dérivée de la structure/façade. */
   appearance: z.string().optional(),
-  /** L'arête porte une FENÊTRE (croisée vitrée). Un mur fenêtré reste un mur PLEIN pour le passage,
-   *  la vue, la vision et la marchabilité (vitre SERTIE, pas une ouverture) : ni `wallIsOpen`, ni
-   *  `vision`, ni `isWalkable` ne la lisent. La SEULE règle qui la lit est le COUVERT (`couvertDArete`,
-   *  `state/lineOfSight.ts`) : la croisée coûte un cran à la Pénalité de Couvert de la Structure qui la
-   *  porte — extrapolation MAISON du critique Percée (`AA 10 l.122`), qui dégrade d'un cran sans rendre
-   *  transparent ; le canon ne chiffre pas la croisée. Côté rendu, apparence iso + POV (vitre ambrée). */
+  /** L'arête porte une FENÊTRE (croisée) — arbitrage #1712 (2026-09-08). Lecteurs : `areteOcculte`
+   *  (vue), `couvertDArete` (couvert, `AA 10 l.122`, maison) ; `wallIsOpen` ne la lit pas (passage). */
   window: z.boolean().optional(),
+  /** Croisée aux VOLETS CLOS — arbitrage #1712 (2026-09-08). Exige `window`. */
+  shuttered: z.boolean().optional(),
+  /** Croisée FRANCHISSABLE — #700 ; `LDB 15 l.82`, `LDB 15 l.55` (maison). Exige `window`. Geste
+   *  explicite (`state/fallMove.ts`), jamais un pas de pathfinding (arbitrage #1712, 2026-09-08). */
+  crossable: z.boolean().optional(),
+  /** Hauteur d'ALLÈGE (m) de la croisée, enjambée à mi-vitesse sans Test — `LDB 15 l.55` ; arbitrage #700
+   *  (2026-10-04). Exigée par `crossable`, et l'exige. Lue par `state/fallMove.ts`. */
+  allege: z.number().min(0).optional(),
+  /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée — `EDO 01 l.231`. Exige `crossable`.
+   *  Offerte par `state/fallMove.ts` seulement sous la hauteur géométrique du saut. */
+  suspendu: z.number().positive().optional(),
+  /** Porte SECRÈTE — `EDO 08 l.404`. Exige `door` ET `closed`. Masquée tant que non révélée
+   *  (`porteEnJeu`, `setDoorRevealed`, `state/scene.ts`). */
+  secret: wallSecretSchema.optional(),
   /** ESCALADABLE (`LDB 15 l.53-57`) : l'arête sépare deux surfaces de hauteurs différentes (une FALAISE au
    *  sens `surfaceLink` — infranchissable à pied) qu'un Personnage peut GRIMPER.
    *  Bloque toujours passage+vue comme un mur PLEIN (une falaise n'est pas une ouverture) : la grimpe est
    *  un geste EXPLICITE, pas un franchissement de pathfinding. Résolu par `state/climbMove`. */
   climb: wallClimbSchema.optional(),
+}).superRefine((w, ctx) => {
+  if (w.secret && !w.door) ctx.addIssue({ code: 'custom', path: ['secret'], message: 'porte secrète (`secret`) sans `door: true` — seule une porte peut être secrète' });
+  if (w.secret && !w.closed) ctx.addIssue({ code: 'custom', path: ['secret'], message: 'porte secrète (`secret`) sans `closed: true` — une porte secrète est fermée au départ' });
+  if (w.shuttered && !w.window) ctx.addIssue({ code: 'custom', path: ['shuttered'], message: 'volets clos (`shuttered`) sans `window: true` — seule une croisée a des volets' });
+  if (w.crossable && !w.window) ctx.addIssue({ code: 'custom', path: ['crossable'], message: 'croisée franchissable (`crossable`) sans `window: true` — seule une croisée se franchit' });
+  if (w.crossable && w.allege === undefined) ctx.addIssue({ code: 'custom', path: ['allege'], message: 'croisée franchissable (`crossable`) sans hauteur d’allège (`allege`) — chaque croisée franchissable porte la sienne' });
+  if (w.allege !== undefined && !w.crossable) ctx.addIssue({ code: 'custom', path: ['allege'], message: 'hauteur d’allège (`allege`) sans `crossable: true` — seule une croisée franchissable s’enjambe' });
+  if (w.suspendu !== undefined && !w.crossable) ctx.addIssue({ code: 'custom', path: ['suspendu'], message: 'hauteur de suspension (`suspendu`) sans `crossable: true` — on ne se suspend qu’à une croisée franchissable' });
+  if (w.window && w.door) ctx.addIssue({ code: 'custom', path: ['window'], message: 'fenêtre (`window`) sur une porte (`door: true`) — une arête est porte OU croisée' });
+  if (w.side === '\\' || w.side === '/') {
+    for (const k of MUET_SUR_OBLIQUE) {
+      if (w[k]) ctx.addIssue({ code: 'custom', path: [k], message: `cloison oblique (\`${w.side}\`) avec \`${k}\` — une arête oblique est purement visuelle, déplacement, vision et grimpe restent cardinaux` });
+    }
+  }
 });
 
 /**
@@ -803,6 +860,7 @@ export const sceneSchema = z.strictObject({
   /** Points d'arrivée nommés — `z` = étage visé (défaut 0, #835 FU-5). */
   entryPoints: z.record(z.string(), z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() })).optional(),
   startMessage: z.string().optional(),
+  couvre: couvreSchema.optional(),
 }).superRefine((scene, ctx) => {
   // CARDINAL de la grille (#1789) : chaque tableau PARALLÈLE d'une couche porte EXACTEMENT `w×h`
   // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`

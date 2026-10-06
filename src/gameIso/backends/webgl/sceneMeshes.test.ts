@@ -89,7 +89,7 @@ const sceneDe = memoByRef((faire: () => Scene) => faire());
 /** Le bake d'une scène, RETENU par son read-set réel — le patron de l'écran (`stage/GameStage3D.tsx`,
  *  `memoByRefDeps`), ici pour les bancs qui recuisent la MÊME scène d'un `it` à l'autre. */
 const bakeRetenu = memoByRefDeps<Scene, BakedWorld>();
-const cuire = (s: Scene, m: number): BakedWorld => bakeRetenu(s, worldBakeDeps(s, m), () => bakeWorldGeometry(s, m));
+const cuire = (s: Scene, m: number): BakedWorld => bakeRetenu(s, worldBakeDeps(s, m), () => bakeWorldGeometry(s, m, 'jeu'));
 /** `buildWorldGeometry` sur un bake RETENU : mêmes sommets, mêmes couleurs — la teinte se recalcule en
  *  place à chaque appel. À n'employer que là où UNE géométrie est lue à la fois : deux appels rendent
  *  LE MÊME objet (contrat de propriété de `BakedWorld`), donc un banc qui compare deux teintes
@@ -157,8 +157,8 @@ describe('FUSION — toute la scène en UNE géométrie', () => {
   });
 
   it('la teinte de visibilité MULTIPLIE la couleur de face (case explorée = plus sombre)', () => {
-    const clair = buildWorldGeometry(scene, mpt, plein).getAttribute('color').array as Float32Array;
-    const sombre = buildWorldGeometry(scene, mpt, () => tintOf('explored')).getAttribute('color').array as Float32Array;
+    const clair = buildWorldGeometry(scene, mpt, 'jeu', plein).getAttribute('color').array as Float32Array;
+    const sombre = buildWorldGeometry(scene, mpt, 'jeu', () => tintOf('explored')).getAttribute('color').array as Float32Array;
     expect(sombre.length).toBe(clair.length);
     const somme = (a: Float32Array) => a.reduce((s, v) => s + v, 0);
     expect(somme(sombre)).toBeCloseTo(somme(clair) * tintOf('explored'), 1);
@@ -174,7 +174,7 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
    *  l'y projeter ne mesurerait que du bruit de virgule flottante. */
   function bilan(scn: Scene) {
     const m = sceneMetresPerTile(scn);
-    const listées = worldFaces(scn);
+    const listées = worldFaces(scn, 'jeu');
     const pos = monde(scn, m).getAttribute('position').array as Float32Array;
     const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthOf());
     // La fusion émet les faces GROUPÉES par surface (un groupe = un dessin) : le bilan les parcourt
@@ -263,14 +263,14 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
       const m = sceneMetresPerTile(scn);
       const geoBox = monde(scn, m).boundingBox!;
       const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
-      const box = contentBox(scn, m, subs, quadDe, geoBox);
+      const box = contentBox(scn, m, 'jeu', subs, quadDe, geoBox);
       const englobante = worldShadowBox(geoBox, subs, quadDe);
       // La boîte englobante vient de l'attribut de position, en FLOAT32 : elle arrondit d'un ULP là où
       // la boîte de contenu lit les sommets en double. La marge est millimétrique, jamais métrique.
       expect(englobante.clone().expandByScalar(1e-3).containsBox(box)).toBe(true);
       // Toute face NON-TERRAIN (relief, structure, toiture) tient dans la boîte de contenu. Les rangs
       // coplanaires se mesurent sur la liste ENTIÈRE (contrat de `coplanarRanks`) : on filtre APRÈS.
-      const toutes = worldFaces(scn).map((f) => f.face);
+      const toutes = worldFaces(scn, 'jeu').map((f) => f.face);
       const geoms = facesGeometry(toutes, m, faceDepthOf());
       let bati = 0;
       let dehors = 0;
@@ -289,7 +289,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
     const m = sceneMetresPerTile(scn);
     const geoBox = monde(scn, m).boundingBox!;
     const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
-    const box = contentBox(scn, m, subs, quadDe, geoBox);
+    const box = contentBox(scn, m, 'jeu', subs, quadDe, geoBox);
     const t = (b: THREE.Box3) => b.getSize(new THREE.Vector3());
     // Mesuré #1176 : 60×48 m de géométrie pour 51,4×37,1 m de contenu.
     expect(t(box).x).toBeLessThan(t(geoBox).x - 5);
@@ -306,9 +306,9 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
       entities: [],
     };
     const m = sceneMetresPerTile(plaine);
-    expect(worldFaces(plaine).every((f) => f.face.material.domain === 'terrain')).toBe(true);
+    expect(worldFaces(plaine, 'jeu').every((f) => f.face.material.domain === 'terrain')).toBe(true);
     const repli = new THREE.Box3(new THREE.Vector3(-3, 0, -4), new THREE.Vector3(3, 2, 4));
-    expect(contentBox(plaine, m, [], quadDe, repli).equals(repli)).toBe(true);
+    expect(contentBox(plaine, m, 'jeu', [], quadDe, repli).equals(repli)).toBe(true);
   });
 });
 
@@ -846,30 +846,30 @@ describe('TEINTE de sommet — la variance par case est CUITE dans `color`', () 
   it('la nappe témoin porte bien de l’herbe à variance (sinon la mesure ne pèserait rien)', () => {
     const herbe = tousLesTerrains().find((t) => t.id === 'herbe')!;
     expect(herbe.detail?.tintVar).toBeGreaterThan(0);
-    expect(worldFaces(nappe).filter((f) => f.face.material.id === 'herbe').length).toBeGreaterThan(50);
+    expect(worldFaces(nappe, 'jeu').filter((f) => f.face.material.id === 'herbe').length).toBeGreaterThan(50);
   });
 
   it('un sol à variance ne rend PAS un aplat : la nappe porte plusieurs nuances du MÊME albédo', () => {
-    const g = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), plein);
-    const albédos = new Set(worldFaces(nappe).map((f) => faceSurface(f.face).color));
+    const g = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), 'jeu', plein);
+    const albédos = new Set(worldFaces(nappe, 'jeu').map((f) => faceSurface(f.face).color));
     expect(teintes(g).size).toBeGreaterThan(albédos.size);
   });
 
   it('la teinte d’un sommet est EXACTEMENT albédo × variance de sa case (jamais une couleur inventée)', () => {
-    const g = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), plein);
-    expect(teintes(g)).toEqual(new Set(worldFaces(nappe).map(attendue)));
+    const g = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), 'jeu', plein);
+    expect(teintes(g)).toEqual(new Set(worldFaces(nappe, 'jeu').map(attendue)));
   });
 
   it('la variance se COMPOSE avec la teinte de visibilité, elle ne l’écrase pas', () => {
-    const vue = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), plein).getAttribute('color').array as Float32Array;
-    const explorée = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), () => tintOf('explored')).getAttribute('color')
+    const vue = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), 'jeu', plein).getAttribute('color').array as Float32Array;
+    const explorée = buildWorldGeometry(nappe, sceneMetresPerTile(nappe), 'jeu', () => tintOf('explored')).getAttribute('color')
       .array as Float32Array;
     for (let k = 0; k < vue.length; k += 997) expect(explorée[k]).toBeCloseTo(vue[k] * tintOf('explored'), 5);
   });
 
   it('la nuance est STABLE : deux constructions de la même scène donnent les mêmes couleurs', () => {
-    const a = buildWorldGeometry(scene, mpt, plein).getAttribute('color').array as Float32Array;
-    const b = buildWorldGeometry(scene, mpt, plein).getAttribute('color').array as Float32Array;
+    const a = buildWorldGeometry(scene, mpt, 'jeu', plein).getAttribute('color').array as Float32Array;
+    const b = buildWorldGeometry(scene, mpt, 'jeu', plein).getAttribute('color').array as Float32Array;
     expect(Array.from(a)).toEqual(Array.from(b));
   });
 });
@@ -936,9 +936,9 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
   });
 
   it('PARITÉ avec l’affine : la variante d’une face de MUR est celle de son CÔTÉ D’ARÊTE, jamais de sa `part`', () => {
-    const murs = buildWalls(scene).filter((el) => el.faces.length);
+    const murs = buildWalls(scene, 'jeu').filter((el) => el.faces.length);
     expect(murs.length).toBeGreaterThan(10);
-    const parFace = new Map(worldFaces(scene).map((w) => [w.face, w]));
+    const parFace = new Map(worldFaces(scene, 'jeu').map((w) => [w.face, w]));
     let vérifiées = 0;
     const parts = new Set<string>();
     for (const el of murs) {
@@ -966,7 +966,7 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
     for (const [nom, faire] of TEMOINS) {
       const scn = sceneDe(faire);
       const m = sceneMetresPerTile(scn);
-      const wfs = worldFaces(scn);
+      const wfs = worldFaces(scn, 'jeu');
       const { groups, faceIndices } = surfaceGrouping(wfs, m);
       const cellules = new Set<string>();
       groups.forEach((g, i) => {
@@ -999,7 +999,7 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
     let cuits = 0;
     for (const [nom, faire] of TEMOINS) {
       const scn = sceneDe(faire);
-      const wfs = worldFaces(scn);
+      const wfs = worldFaces(scn, 'jeu');
       const { groups, faceIndices } = surfaceGrouping(wfs, sceneMetresPerTile(scn));
       groups.forEach((g, i) => {
         if (!g.bake) return;
@@ -1021,7 +1021,7 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
     let mesurés = 0;
     for (const [nom, faire] of TEMOINS) {
       const scn = sceneDe(faire);
-      const { groups } = surfaceGrouping(worldFaces(scn), sceneMetresPerTile(scn));
+      const { groups } = surfaceGrouping(worldFaces(scn, 'jeu'), sceneMetresPerTile(scn));
       for (const g of groups) {
         if (!g.bake) continue;
         const b = faceBakeData({ color: g.color!, recipe: g.recipe, part: g.part }, g.bake.wM, g.bake.hM, FACE_PX_PER_M, g.variant ?? 0);
@@ -1106,14 +1106,14 @@ describe('GROUPES DE SURFACE — un décor à recette se groupe par MATÉRIAU', 
   };
 
   it('les faces du décor entrent dans `worldFaces`, chacune porteuse de son entité', () => {
-    const facesProp = worldFaces(scèneMeuble()).filter((wf) => wf.face.material.domain === 'prop');
+    const facesProp = worldFaces(scèneMeuble(), 'jeu').filter((wf) => wf.face.material.domain === 'prop');
     expect(facesProp.length).toBeGreaterThan(0);
     expect(facesProp.every((wf) => wf.face.entId === 'table-1')).toBe(true);
     expect(facesProp.every((wf) => wf.el.kind === 'prop')).toBe(true);
   });
 
   it('un groupe par matériau de recette, porteur de la réponse à la lumière AUTHORÉE', () => {
-    const listées = worldFaces(scèneMeuble());
+    const listées = worldFaces(scèneMeuble(), 'jeu');
     const { groups } = surfaceGrouping(listées, 2);
     const groupesProp = groups.filter((g) => g.key.startsWith('prop|'));
     expect(groupesProp.map((g) => g.key).sort()).toEqual(['prop|bois-chene', 'prop|fer-noirci']);
@@ -1127,7 +1127,7 @@ describe('GROUPES DE SURFACE — un décor à recette se groupe par MATÉRIAU', 
   });
 
   it('deux matériaux ⇒ le décor occupe DEUX plages de picking disjointes dans la géométrie cuite', () => {
-    const world = buildWorldGeometry(scèneMeuble(), 2, () => 1);
+    const world = buildWorldGeometry(scèneMeuble(), 2, 'jeu', () => 1);
     const plages = world.userData.propVertexRanges.filter((r) => r.entId === 'table-1');
     expect(plages.length).toBe(2);
     const [a, b] = [...plages].sort((x, y) => x.vertexStart - y.vertexStart);
