@@ -924,7 +924,11 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // traitId}` de `tables.json` — la Langue préhensile de l'Allure démoniaque de Slaanesh porte sa
       // Portée en `range` (`LDB 85` l.209) et non plus en `arg`. Même op, une ligne de plus
       // (`arg,indice,op,traitId` 3 → 2 dans ce dataset), aucune occurrence en plus.
-      'L1c #1468': 394,
+      // … puis 394 → 395 (#1853, 2026-10-05) : la signature `charMod {char, min, mod, op}` de
+      // `mutations.json` — le Crétin porte son plancher de perte (`EDO 11 l.190`), champ réservé au
+      // `passive` de mutation. Même op, une ligne de plus (`char,mod,op` 55 → 54 dans ce dataset),
+      // aucune occurrence en plus.
+      'L1c #1468': 395,
       // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
       // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
       // sa ligne « source | clé absente » est SOLDÉE.

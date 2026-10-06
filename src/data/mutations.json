@@ -882,7 +882,8 @@
       {
         "op": "charMod",
         "char": "intelligence",
-        "mod": -40
+        "mod": -40,
+        "min": 10
       },
       {
         "op": "grantTrait",

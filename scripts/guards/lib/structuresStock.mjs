@@ -1053,7 +1053,7 @@ export const STRUCTURES_OPS = [
   { op: "charDRBonus", signature: "bonus,char,op", dataset: "tables.json", occurrences: 8, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charDRBonus", signature: "bonus,char,op", dataset: "trappings.json", occurrences: 8, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charDRBonus", signature: "bonus,char,op", dataset: "sea-shanties.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "charMod", signature: "char,mod,op", dataset: "mutations.json", occurrences: 55, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "charMod", signature: "char,mod,op", dataset: "mutations.json", occurrences: 54, lot: "L1c #1468", date: "2026-08-23" }, // −1 : Crétin passe à `char,min,mod,op`, EDO 11 l.190 (#1853, 2026-10-05)
   { op: "charMod", signature: "char,mod,op", dataset: "stars.json", occurrences: 42, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charMod", signature: "char,mod,op", dataset: "spells.json", occurrences: 32, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charMod", signature: "char,mod,op", dataset: "symptoms.json", occurrences: 30, lot: "L1c #1468", date: "2026-08-23" }, // INCHANGÉ par #1599 : le palier S'AJOUTE à `passive` au lieu de le remplacer (LDB 20 l.157/l.170), donc aucune liste ne se recopie — la migration ne fait que déplacer les 6 op(s) de `severePassive` vers `passiveBySeverity.moderee`
@@ -1068,6 +1068,7 @@ export const STRUCTURES_OPS = [
   { op: "charMod", signature: "char,durationHours,mod,op", dataset: "criticals.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charMod", signature: "char,durationHours,mod,op", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "charMod", signature: "char,durationRounds,mod,op", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "charMod", signature: "char,min,mod,op", dataset: "mutations.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" }, // Crétin, plancher de perte, EDO 11 l.190 (#1853, 2026-10-05)
   { op: "condition", signature: "id,op,value", dataset: "criticals.json", occurrences: 190, lot: "L1c #1468", date: "2026-08-23" },
   { op: "condition", signature: "id,op", dataset: "spells.json", occurrences: 58, lot: "L1c #1468", date: "2026-08-23" },
   { op: "condition", signature: "id,op,value", dataset: "miscast.json", occurrences: 40, lot: "L1c #1468", date: "2026-08-23" },

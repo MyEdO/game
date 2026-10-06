@@ -314,7 +314,7 @@ export function bellicosePsychImmune(c: Pick<Combatant, 'traits' | 'advantage'>,
   return traitCapability(c.traits, 'psychImmuneIfAhead') && (c.advantage ?? 0) > foesMaxAdvantage;
 }
 
-/** Fabriqué (LDB 85 l.142) : pas d'Int/FM/Soc → Tests psychologiques auto-réussis. */
+/** Fabriqué (LDB 85 l.142). */
 export function isMindless(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'mindless');
 }

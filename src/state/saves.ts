@@ -94,6 +94,8 @@ const MIGRATIONS_DE_SAVE = {
   63: '#679 l’Effect `document` désigne une entrée de `narratif.documents` (`{ documentId }`), projet au schéma 18',
   // #700
   64: '#700 chute volontaire en flux MULTI : une rangée par tombant (`participants`), axes `suspendu` et `allege`',
+  // #1853 · EDO 11 l.190
+  65: '#1853 plancher de `charMod` figé sur l’instance de mutation',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

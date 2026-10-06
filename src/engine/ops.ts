@@ -502,8 +502,10 @@ export type GameOp =
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
    *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque (Aux Armes « −10 Agilité pendant
    *  1d10 jours », `durationHours` = jours×24) — même patron que `condition.durationHours`, résolue
-   *  MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`. Exclusif de `durationRounds`. */
-  | { op: 'charMod'; char: CharKey; mod: number; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+   *  MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`. Exclusif de `durationRounds`.
+   *  `min` : plancher d'une PERTE de mutation (EDO 11 l.190), résolu en `mod` figé par `attachMutation`
+   *  (`engine/corruption.ts`) ; aucune instance attachée ne le porte, aucun autre lecteur ne le voit. */
+  | { op: 'charMod'; char: CharKey; mod: number; min?: number; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** PA à une Localisation (`loc`) ou à TOUTES (`loc` absent — Armure Aethyrique « +1 PA à toutes les
    *  Localisations »). Flow de sort → `ActiveEffect` temporisé (apAll/apAt) lu par effectiveArmourAt ;
    *  `passive` de mutation/trait → armure naturelle permanente lue par mutationArmourBonus.
