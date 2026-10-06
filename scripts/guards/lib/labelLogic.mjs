@@ -1,11 +1,11 @@
 import { ast, analyserCorpus } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
-// src/state/label-logic-guard.test.ts, le hook pre-commit (scripts/git-hooks/pre-commit.mjs) ET le
-// hook au stylo (scripts/hooks/poison-postcheck.mjs) — SOURCE UNIQUE du corpus (`estDansLeCorpus`),
+// src/state/label-logic-guard.test.ts ET le hook au stylo (scripts/hooks/poison-postcheck.mjs) —
+// SOURCE UNIQUE du corpus (`estDansLeCorpus`),
 // du contexte inter-fichiers (`contexteDeLaGarde`), de la composition des volets
 // (`scanLabelLogicFichier`, en fin de fichier) et des volets sans stock (`clesInterditesAuStock`),
-// pour que les trois consommateurs ne divergent jamais.
+// pour que les deux consommateurs ne divergent jamais.
 import { parUnitesDeCode } from './lister.mjs';
 import * as tsModule from 'typescript/unstable/ast';
 
@@ -549,7 +549,7 @@ export function stockDe(cle) {
 }
 
 /** Clés du stock qui portent un volet sans stock, en phrases prêtes à afficher — la porte que le
- *  test ET le hook pre-commit jouent. @param {Record<string, number>} [stock] @returns {string[]} */
+ *  test joue. @param {Record<string, number>} [stock] @returns {string[]} */
 export function clesInterditesAuStock(stock = DETTES_DE_LIBELLE) {
   return Object.keys(stock)
     .filter((cle) => VOLETS_SANS_STOCK.has(regleDeDette(cle)))
@@ -574,17 +574,16 @@ function regleDeDette(cle) {
 /** Écarts aux dettes pour un jeu de comptes MESURÉS (`fichier#règle` → nombre, `dettesParVolet`) :
  *  chaque écart est une phrase prête à afficher. Le cliquet ne juge que ce qui lui est PRÉSENTÉ : ce qui
  *  manque à `measured` ne rend aucun écart — c'est `couvertureDuBalayage` (`stock.mjs`) qui NOMME ce
- *  manque (gisement muet, entrée de stock hors corpus), et l'appelant qui joue les deux. `hausseSeule` :
- *  le hook pre-commit, qui ne voit que les fichiers stagés, ne juge que la dette NEUVE.
- *  @param {Map<string, number>|Record<string, number>} measured @param {{ hausseSeule?: boolean }} [options]
+ *  manque (gisement muet, entrée de stock hors corpus), et l'appelant qui joue les deux.
+ *  @param {Map<string, number>|Record<string, number>} measured
  *  @returns {string[]} */
-export function ecartsAuxDettesDeLibelle(measured, { hausseSeule = false } = {}) {
+export function ecartsAuxDettesDeLibelle(measured) {
   const entries = measured instanceof Map ? [...measured] : Object.entries(measured);
   const out = [];
   for (const [cle, n] of entries) {
     const stock = stockDe(cle);
     if (n > stock) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — migrer vers un id STABLE (le libellé est de l'AFFICHAGE).`);
-    else if (n < stock && !hausseSeule) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — dette SOLDÉE, mettre DETTES_DE_LIBELLE à jour dans le même geste.`);
+    else if (n < stock) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — dette SOLDÉE, mettre DETTES_DE_LIBELLE à jour dans le même geste.`);
   }
   return out;
 }
@@ -1023,7 +1022,7 @@ export const RATCHET_EXCEPTIONS = {
 };
 
 /** Résout le `shortKey` (`fichier:ligne` relatif à `src/`) d'un finding porté par un chemin `src/…`
- *  — même calcul que `label-logic-guard.test.ts` (ratchet) et le hook pre-commit.
+ *  — même calcul que `label-logic-guard.test.ts` (ratchet).
  *  @param {{ rel: string, line: number }} finding @returns {string} */
 export function ratchetShortKey(finding) {
   return `${finding.rel.replace(/^src\//, '')}:${finding.line}`;
@@ -1476,7 +1475,7 @@ export function scanLiantsLitterauxDesFaces(relPath, contenu, sourceFile) {
 }
 
 /** Le corpus de la garde, lu sur le disque : `readCorpus` de `src/` (sans instruments Vitest ni `.d.ts`,
- *  soit `estDansLeCorpus`) — la lecture du test, du hook pre-commit et du hook au stylo.
+ *  soit `estDansLeCorpus`) — la lecture du test et du hook au stylo.
  *  @returns {readonly { rel: string, text: string }[]} */
 export function corpusDeLaGarde() {
   return readCorpus([CORPUS_RACINE]);
@@ -1496,7 +1495,7 @@ export function contexteDeLaGarde(fichiers) {
 
 /**
  * TOUS les volets de la garde sur UN fichier — la seule composition, appelée par le test (corpus
- * entier, `scanLabelLogicCorpus`) et par le hook pre-commit (fichiers stagés). Chaque site porte son
+ * entier, `scanLabelLogicCorpus`) et par le hook au stylo (fichier écrit). Chaque site porte son
  * statut : `couture` (`RATCHET_EXCEPTIONS`), `dette` (clé `fichier#règle` au stock `DETTES_DE_LIBELLE`,
  * que `ecartsAuxDettesDeLibelle` juge en compte), ou `nu`. Hors corpus : aucun site.
  * @param {string} rel @param {string} text @param {GardeContexte} ctx

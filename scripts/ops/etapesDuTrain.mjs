@@ -137,8 +137,7 @@ export function etatDeLaPr(pr, tete) {
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
  * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
  * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les sorties de `npm run agents:sync` (le pre-commit joue `agents:check` à
- * chaque commit). PURE.
+ * commités (#2203) —, et les sorties de `npm run agents:sync` (`synchroniserAgents`). PURE.
  */
 export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
@@ -267,7 +266,7 @@ export function attendre(ms) {
  * Remet les miroirs d'agents en phase AVANT le commit des dérivés, par la porte `ctx.npm`.
  * `agents:sync` se déclenche sur un `agents:check` ROUGE, jamais sur la saleté de `CLAUDE.md` : un
  * commit de la plage qui touche `.claude/skills/**` ou `.claude/credo.md` sans resynchroniser laisse
- * `agents:check` rouge au pre-commit, et le commit des docs échouerait sans nommer la cause.
+ * `agents:check` rouge, et la gate `agents:check` de la CI refuserait la plage sans nommer la cause.
  * @param {{npm: Function, journaliser: Function}} ctx
  * @returns {{ok: true} | {ok: false, raison: string}}
  */
@@ -277,7 +276,7 @@ export function synchroniserAgents(ctx) {
   ctx.journaliser(`[publier] docs — \`agents:check\` rendu ${verif.status} : \`npm run agents:sync\`\n`)
   const sync = ctx.npm('agents:sync')
   if (sync.status !== 0)
-    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : le pre-commit jouerait \`agents:check\` et refuserait le commit` }
+    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : la gate \`agents:check\` de la CI refuserait la plage` }
   return { ok: true }
 }
 

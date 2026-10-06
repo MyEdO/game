@@ -2,7 +2,7 @@
  * Validation d'un document authoré contre son schéma zod — SOURCE UNIQUE, DEUX portes :
  *  - `validateDataset(file, value)` : porte par FICHIER, pour qui connaît le nom du document —
  *    contrat CI (`schema-contract.test.ts`), sauvegarde éditeur/Compendium (`CodexEdit.save`),
- *    chargement DEV (`dev-validate.ts`), garde de pré-commit (`scripts/guards/validate-data.mts`).
+ *    chargement DEV (`dev-validate.ts`).
  *    Le registre couvre les DEUX racines (`src/data` par basename, `src/scenes` par chemin relatif).
  *  - `validateDocument(schema, value)` : porte par SCHÉMA, pour un seam qui n'a PAS de nom de
  *    fichier — `parseProject` sert du JSON committé, du localStorage et de l'import utilisateur.

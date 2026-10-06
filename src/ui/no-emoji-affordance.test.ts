@@ -12,7 +12,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * EXCLUSIONS explicites et justifiées existent (ci-dessous), chacune par NATURE, jamais par état de
  * migration.
  * Mécanique de détection (plages Unicode, glyphes tolérés `✓ ☰ …`, `emojisIn`) :
- * `scripts/guards/lib/emojiAffordance.mjs` (module .mjs pur, partagé avec un futur hook pre-commit).
+ * `scripts/guards/lib/emojiAffordance.mjs` (module .mjs pur, partagé avec le hook pre-commit).
  */
 
 const SRC = 'src';

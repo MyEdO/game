@@ -303,6 +303,10 @@ const ATTENDU = {
     // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
     'scripts/node-requis.test.mjs',
     'scripts/test/gitDeBanc.test.mjs',
+    // +1 le 2026-10-05 (#2327 A7) : le banc de `test:lies` forge ses dépôts (`instanceDeDepot`, sous
+    // os.tmpdir()) et les retire (`rmSync` en finally) — l'index d'un dépôt jetable ne se fabrique pas
+    // autrement ; l'arbre n'est jamais écrit.
+    'scripts/test/lies.test.mjs',
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
@@ -516,7 +520,7 @@ test('la sonde n’est pas AVEUGLE : elle voit les écrivains connus, et ignore 
     'le cas fondateur (un test qui écrit un registre de garde) doit rester visible',
   )
   assert.deepEqual(mesure.typecheck, [], '`tsc --noEmit` n’atteint aucun module écrivain')
-  assert.deepEqual(mesure.lint, [], '`eslint` sans `--fix` n’atteint aucun module écrivain')
+  assert.deepEqual(mesure.lint, [], '`oxlint` sans `--fix` n’atteint aucun module écrivain')
 })
 
 test('toute gate qui atteint un écrivain a une entrée ÉCRIT/LU qui en parle', () => {

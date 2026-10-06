@@ -1199,6 +1199,14 @@ export function apportDeLaFusionEnCours(depot, apres, fusionnes = fusionnesEnCou
  */
 export const ceQuEmporteLIndex = (depot) => changeEntre(depot, imageDeHead(depot), INDEX)
 
+/**
+ * CE QU'APPORTE LE COMMIT EN PRÉPARATION : sous une fusion en cours, son APPORT PROPRE
+ * (`apportDeLaFusionEnCours`, #2328 A7) ; sinon l'index contre HEAD (`ceQuEmporteLIndex`).
+ * @param {Depot} depot
+ * @throws {GitIndisponible} propagée de `apportDeLaFusionEnCours`.
+ */
+export const ceQuApporteLeCommit = (depot) => apportDeLaFusionEnCours(depot, INDEX)?.change ?? ceQuEmporteLIndex(depot)
+
 /** Colonnes d'un enregistrement `git ls-files --eol` : `i/<eol>`, `w/<eol>`, `attr/<attributs>`
  *  séparés par des ESPACES (la valeur d'`attr/` en contient), puis une TABULATION et le chemin. */
 const COLONNES_EOL = /^i\/(\S*)\s+w\/(\S*)\s+attr\/(.*?)\s*\t(.*)$/s
@@ -1340,7 +1348,7 @@ export function estAncetre(depot, ancetre, descendant) {
 
 /**
  * L'ARBRE PRINCIPAL du dépôt — la racine des GESTES git d'un outil, depuis n'importe quel worktree
- * (`ops:chantier`, `ops:worktrees`, le pre-commit).
+ * (`ops:chantier`, `ops:worktrees`).
  *
  * `git rev-parse --path-format=absolute --git-common-dir` rend le `.git` COMMUN — celui de l'arbre
  * principal, quel que soit le worktree d'où on demande (forme mesurée contre git réel :
