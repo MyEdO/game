@@ -109,7 +109,7 @@ describe('Effet startMassBattle — sans catalogue ni situations (tirage aléato
 
 describe('Effet startMassBattle — validation des rencontres (refs)', () => {
   const ctx = (ids: string[]): EffectRefCtx => ({
-    sceneIds: new Set(), dialogueIds: new Set(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true,
+    sceneIds: new Set(), dialogueIds: new Set(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true, walkable: () => true,
   });
   it('signale une rencontre mappée inexistante et valide celles présentes', () => {
     const eff = battleEffect({ sceneEncounters: { charge: 'enc-charge', intrus: 'enc-absent' } });

@@ -673,7 +673,7 @@ Bypass systématique de **tous les PA non magiques** (cuir, métal ordinaire —
 Triple effet : (1) `+10` à Incanter/Focaliser en environnement rural/sauvage (bonus du lanceur) ; (2) toutes les cibles **vivantes** voient retirer leurs états `Exténué` et `Hémorragique` après application des effets ; (3) toutes les cibles `Mort-vivant` subissent `+BFM` dégâts ignorant BE+PA.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 48` (l.679-689) → `domainEnvironmentBonus`, `Scene`, `setEnvironment`, `sceneSchema`, `FLOWS`, `GameOp`, `DomainData`, `castContextMods`, `destrier-d-ombre`, `illusion`, +11 — `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, +3 fichiers
+- `LDB 48` (l.679-689) → `domainEnvironmentBonus`, `Scene`, `setEnvironment`, `FLOWS`, `sceneSchema`, `GameOp`, `DomainData`, `castContextMods`, `destrier-d-ombre`, `illusion`, +11 — `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, +3 fichiers
 
 ---
 

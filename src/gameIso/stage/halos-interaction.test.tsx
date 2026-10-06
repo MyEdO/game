@@ -237,7 +237,7 @@ describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-
     document.body.appendChild(conteneur);
     root = createRoot(conteneur);
     act(() => root!.render(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE_NUE}
         mpt={sceneMetresPerTile(SCENE_NUE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
@@ -300,7 +300,7 @@ describe('Halos d’interaction — la pulsation se prend à la FRAME (#1176 P3-
     document.body.appendChild(conteneur);
     root = createRoot(conteneur);
     const écran = (halos: readonly InteractHalo[] | undefined) => (
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE_NUE}
         mpt={sceneMetresPerTile(SCENE_NUE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}

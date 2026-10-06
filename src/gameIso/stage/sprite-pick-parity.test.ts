@@ -103,7 +103,7 @@ describe('Un jeton derrière un mur qui le COUVRE — le volumique le rend quand
   const [hero] = makeShowcaseParty();
 
   it('PRÉMISSE écran-espace : le panneau couvre bien la capsule du jeton (sinon la garde ne mesure rien)', () => {
-    const murs = buildWalls(scene);
+    const murs = buildWalls(scene, 'jeu');
     const capsule = actorCapsuleOf({ x: 0, y: 0, h: 0 }, dims);
     const panneau = projectOccluder(
       { polygons: murs[0].faces.map((face) => face.poly.map((p) => ({ x: p.x, y: p.y, lift: metricToLift(p.h) }))) },
@@ -114,7 +114,7 @@ describe('Un jeton derrière un mur qui le COUVRE — le volumique le rend quand
 
   it('VOLUMIQUE : la masse intercepte le rayon AVANT le jeton, et le jeton rend quand même son id', () => {
     const camera = cameraVolumique(dims, mpt);
-    const baked = bakeWorldGeometry(scene, mpt);
+    const baked = bakeWorldGeometry(scene, mpt, 'jeu');
     const monde = new Mesh(baked.geometry, new MeshBasicMaterial());
     monde.updateMatrixWorld(true);
     const sub = sujet(scene, mpt, hero, 0, 0);
@@ -153,7 +153,7 @@ describe('Les QUATRE arêtes de la case du jeton (#1176 P2-3, #1297 lot B)', () 
 
     it(`arête ${arete.nom} — VOLUMIQUE : la masse ${arete.murParDessus ? 'intercepte' : 'n’intercepte pas'} le rayon, et l’id est rendu`, () => {
       const camera = cameraVolumique(dims, mpt);
-      const monde = new Mesh(bakeWorldGeometry(scene, mpt).geometry, new MeshBasicMaterial());
+      const monde = new Mesh(bakeWorldGeometry(scene, mpt, 'jeu').geometry, new MeshBasicMaterial());
       monde.updateMatrixWorld(true);
       const quad = quadDe(sujet(scene, mpt, hero, 1, 1), camera);
       expect(intercepteAvantLeQuad(camera, monde, quad, quad.position)).toBe(arete.murParDessus);

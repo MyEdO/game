@@ -140,7 +140,7 @@ export function renderPlanSnapshot(args: {
   // un échec en cours de cuisson laisserait sinon un contexte de plus au compteur du navigateur.
   try {
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, view: 'top' };
-    const baked = bakeWorldGeometry(scene, mpt);
+    const baked = bakeWorldGeometry(scene, mpt, 'jeu');
     const lumière = planLights(scene);
     applyCutawayMask(baked, planKeepEl(z));
     // `fade` = la part de soleil allumée (0 ici) : le modelé de forme reste PLEIN, comme sous un ciel

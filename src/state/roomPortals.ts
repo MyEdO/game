@@ -1,7 +1,7 @@
 import {
   edgeOf,
-  isDescriptiveZone,
   isWalkable,
+  porteEnJeu,
   structureIsDown,
   wallIsOpen,
   type Scene,
@@ -9,7 +9,7 @@ import {
 } from './scene';
 import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
-import { sceneZoneTiles } from './zones';
+import { occupiedRoomIds, roomsByTile } from './rooms';
 import { parUnitesDeCode } from '../lib/ordre.mjs';
 
 export type RoomPortalKind = 'passage' | 'door-open' | 'door-closed';
@@ -24,11 +24,6 @@ export interface RoomPortal {
   exterior: boolean;
   from: Pt;
   to: Pt;
-}
-
-interface IndexedTile {
-  point: Pt;
-  zoneIds: string[];
 }
 
 const pointAt = (x: number, y: number, z: number): Pt => (z ? { x, y, z } : { x, y });
@@ -48,21 +43,6 @@ const wallsByEdge = memoByRef((scene: Scene): ReadonlyMap<string, WallSeg> => {
   return index;
 });
 
-function interiorTiles(scene: Scene): Map<string, IndexedTile> {
-  const indexed = new Map<string, IndexedTile>();
-  for (const zone of scene.effectZones ?? []) {
-    if (!isDescriptiveZone(zone) || zone.presentation !== 'interior') continue;
-    for (const tile of sceneZoneTiles(zone)) {
-      const z = tile.z ?? zone.z ?? 0;
-      const key = tileKey(tile.x, tile.y, z);
-      const current = indexed.get(key);
-      if (current) current.zoneIds.push(zone.id);
-      else indexed.set(key, { point: pointAt(tile.x, tile.y, z), zoneIds: [zone.id] });
-    }
-  }
-  return indexed;
-}
-
 function wallAt(scene: Scene, edge: RoomPortal['edge'], z: number): WallSeg | undefined {
   return wallsByEdge(scene).get(edgeKey(edge.x, edge.y, edge.side, z));
 }
@@ -71,12 +51,13 @@ function wallAt(scene: Scene, edge: RoomPortal['edge'], z: number): WallSeg | un
  *  (`wallIsOpen` — porte ouverte OU structure abattue, `scene.ts`) et non sur le MATÉRIAU : une arête
  *  `door` reste une porte quelle que soit sa `structure`, qui n'ajoute que la destructibilité (même
  *  doctrine que les arêtes barrières du BFS, `path.ts`). Une porte dont la structure est ABATTUE n'est
- *  plus une porte mais une brèche — on la franchit, on ne l'ouvre pas. `null` = l'arête barre : aucun
+ *  plus une porte mais une brèche — on la franchit, on ne l'ouvre pas. Une porte secrète masquée n'est
+ *  pas une porte (`porteEnJeu`). `null` = l'arête barre : aucun
  *  accès à signaler. */
 function portalKind(scene: Scene, wall: WallSeg | undefined): RoomPortalKind | null {
   if (!wall) return 'passage';
-  if (wallIsOpen(scene, wall)) return wall.door && !structureIsDown(scene, wall) ? 'door-open' : 'passage';
-  return wall.door ? 'door-closed' : null;
+  if (wallIsOpen(scene, wall)) return porteEnJeu(scene, wall) && !structureIsDown(scene, wall) ? 'door-open' : 'passage';
+  return porteEnJeu(scene, wall) ? 'door-closed' : null;
 }
 
 function connected(scene: Scene, from: Pt, to: Pt): boolean {
@@ -87,7 +68,7 @@ function connected(scene: Scene, from: Pt, to: Pt): boolean {
 }
 
 function roomPortalsUncached(scene: Scene): RoomPortal[] {
-  const indexed = interiorTiles(scene);
+  const indexed = roomsByTile(scene);
   const portals = new Map<string, RoomPortal>();
   const directions = [[1, 0], [0, 1], [-1, 0], [0, -1]] as const;
 
@@ -161,11 +142,10 @@ function reachedOnFootFrom(scene: Scene, from: Pt): (p: Pt) => boolean {
   };
 }
 
-export function portalsForParty(
-  scene: Scene,
-  partyPos: Pt,
-  occupiedZoneIds: ReadonlySet<string>,
-): RoomPortal[] {
+/** Accès de pièce qu'un mobile posé en `partyPos` peut emprunter : ceux des pièces qu'il occupe
+ *  (`occupiedRoomIds`), et hors de toute pièce, les entrées que sa composante marchable rejoint. */
+export function portalsForParty(scene: Scene, partyPos: Pt): RoomPortal[] {
+  const occupiedZoneIds = occupiedRoomIds(scene, [partyPos]);
   if (occupiedZoneIds.size) return portalsFromRooms(scene, occupiedZoneIds);
   // Sorties ACCESSIBLES au groupe. L'environnement de traversée est FIXE ici — aucune case bloquée,
   // empreinte 1×1, aucun saut, aucune capacité de nage/escalade : « il existe un chemin jusqu'à cette

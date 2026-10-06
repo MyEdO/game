@@ -55,10 +55,14 @@ const SHA_COURT_MIN = 9
 /** `true` si `texte` porte un sha d'au moins `SHA_COURT_MIN` caractères qui préfixe `sha`. PURE. */
 const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\b/gi)].some((m) => m[0].length >= SHA_COURT_MIN && sha.startsWith(m[0].toLowerCase()))
 
-/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE. PURE. */
+/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE : la clé ouvre la ligne,
+ *  comme un trailer git (`git interpret-trailers`) — « Aucun juge : … » ou `CONTRE-REFUTATION:` ne
+ *  jugent rien. PURE. */
 const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
-  .map((ligne) => TRAILERS[nom].ligne.exec(ligne)?.[1].trim())
-  .filter((texte) => texte !== undefined && texte.length >= TRAILERS[nom].min)
+  .map((ligne) => TRAILERS[nom].ligne.exec(ligne))
+  .filter((m) => m !== null && m.input.slice(0, m.index).trim() === '')
+  .map((m) => m[1].trim())
+  .filter((texte) => texte.length >= TRAILERS[nom].min)
 
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
  *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */

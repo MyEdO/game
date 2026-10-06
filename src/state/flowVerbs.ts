@@ -91,7 +91,7 @@ export const FLOW_VERBS = {
   maneuver:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingManeuver', field: 'attackerId' } },
   run:          { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'], jetOwner: { pending: 'pendingRun', field: 'combatantId' } },
   // Chute VOLONTAIRE (clic sur une arête de capacité `chute`, ouverte par `battleClickTile`).
-  fall:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'], jetOwner: { pending: 'pendingFall', field: 'combatantId' } },
+  fall:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'], coop: true, resolution: ['fallConfirm', 'fallCancel'] },
   reload:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingReload', field: 'actorId' } },
   handGate:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingHandGate', field: 'attackerId' } },
   recover:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingStateRecovery', field: 'actorId' } },

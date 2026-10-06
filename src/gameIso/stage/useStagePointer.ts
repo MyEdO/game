@@ -31,6 +31,7 @@ import { meneurDuMonde } from '../../state/combatants';
 // rôle, sans rebaptiser trente sites de pointeur.
 import { t as message } from '../../i18n';
 import { planJump } from '../../state/jumpMove';
+import { refuserGeste } from '../../state/refusVisible';
 import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../state/bus';
@@ -223,6 +224,11 @@ export function useStagePointer({
           else break;
         }
         const jumpPlan = planJump(currentScene, prev, cur, mouvementDuGroupe(st.party), runUp);
+        if (jumpPlan.kind === 'none') {
+          refuserGeste(useGame.getState, useGame.setState, message('saut.aucuneSurface'));
+          movingRef.current = false;
+          return;
+        }
         if (partyLeader) bus.emit(EVT.ANIM_MOVE, { id: partyLeader.id, path: [prev, cur] });
         st.moveParty(cur);
         if (jumpPlan.kind === 'test') {
@@ -286,6 +292,7 @@ export function useStagePointer({
     franchir: activatePortal,
     grimper: (de, vers) => { useGame.getState().climbAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     sauter: (de, vers) => { useGame.getState().fallAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
+    enjamber: (de, vers) => { useGame.getState().windowAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     // FRAPPER une structure : le MUR est un Combattant (`state/combatSlice.ts`, `cid`), son geste est
     // donc EXACTEMENT celui d'un jeton ennemi sous le rayon (`performClick` ci-dessous) — MÊME porte
     // partagée (`state/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces) et même

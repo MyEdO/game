@@ -10,6 +10,7 @@ import { buildWalls } from '../builders/walls';
 import { buildFloors } from '../builders/floors';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { sceneZoneTiles } from '../../state/zones';
+import { isRoomZone } from '../../state/rooms';
 import { computeStateVisible } from '../../state/visionState';
 
 /** Un allié dans une PIÈCE : la pièce dégagée, et les cases qu'elle couvre. */
@@ -78,7 +79,7 @@ const cut = (scene: Scene, allies: { x: number; y: number; z: number }[]) => {
   const z = allies[0].z;
   const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0 } as const;
   const pans = buildRoofs(scene, { allies }).filter((el) => el.states.roofOccupied);
-  const facades = buildWalls(scene, undefined, { activeZ: z, viewZ: z })
+  const facades = buildWalls(scene, 'jeu', undefined, { activeZ: z, viewZ: z })
     .filter((panel) => frontFacadeCutaway({ ...panel, x: panel.cell.x, y: panel.cell.y, z: panel.cell.z }, cleared, dims));
   return { cleared, pans, facades, cases: new Set(pans.flatMap((el) => el.cells.map((c) => `${c.x},${c.y}`))) };
 };
@@ -140,7 +141,7 @@ describe('dégagement — chemin réel (La Diligence)', () => {
   it('entrer dans une pièce ouvre l’espace ENTIER de la pièce, pas la travée où l’on pose le pied', () => {
     // La pièce que le plus de travées de charpente traversent : c'est là que la confusion « travée
     // piétinée » vs « espace habité » se voit. Le découpage en travées est une vérité de SILHOUETTE.
-    const pieces = (scene.effectZones ?? []).filter((zone) => zone.presentation === 'interior');
+    const pieces = (scene.effectZones ?? []).filter(isRoomZone);
     const [piece] = [...pieces].sort((a, b) => travees(b.id).length - travees(a.id).length);
     const couverture = new Set(travees(piece.id).flatMap(({ cells }) => [...cells]));
     const [tuile] = sceneZoneTiles(piece);
@@ -185,7 +186,7 @@ describe('dégagement — le couvercle au-dessus du groupe (La Diligence)', () =
       .filter((el) => surplomb.cells.has(`${el.cell.x},${el.cell.y}`) && el.cell.z === surplomb.masse.z);
     expect(dalles.length).toBeGreaterThan(0);
     for (const el of dalles) expect(cutawayOverhead(el.cell, cleared)).toBe(true);
-    const murs = buildWalls(scene, undefined, { activeZ: surplomb.masse.z, viewZ: null })
+    const murs = buildWalls(scene, 'jeu', undefined, { activeZ: surplomb.masse.z, viewZ: null })
       .filter((el) => surplomb.cells.has(`${el.cell.x},${el.cell.y}`) && el.cell.z === surplomb.masse.z);
     expect(murs.length).toBeGreaterThan(0);
     for (const el of murs) expect(cutawayOverhead(el.cell, cleared)).toBe(true);

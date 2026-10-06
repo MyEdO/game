@@ -562,7 +562,7 @@ describe('décor volumique — chaque face regarde le DEHORS, de la recette au m
         const a = amas.find((c) => dist(c.g, g) < 0.01) ?? (amas.push({ g, attendu: [], cuit: [] }), amas[amas.length - 1]);
         a.attendu.push(dir(polyNormal(tri)!));
       }
-    const { geometry } = bakeWorldGeometry(scene, METRES_PAR_CASE);
+    const { geometry } = bakeWorldGeometry(scene, METRES_PAR_CASE, 'jeu');
     const pos = geometry.getAttribute('position');
     const sommet = (i: number) => ({ x: pos.getX(i), y: pos.getY(i), z: pos.getZ(i) });
     let cuits = 0;

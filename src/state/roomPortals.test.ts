@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { emptyScene, isDescriptiveZone, isWalkable, setDoorOpen, setStructureDown, type Scene, type WallSeg } from './scene';
+import { emptyScene, isWalkable, setDoorOpen, setStructureDown, type Scene, type WallSeg } from './scene';
 import { portalsForParty, portalsFromRooms, roomPortals, type RoomPortal } from './roomPortals';
 import { pathTo, walkNeighbors, tileKey, type Pt } from './path';
-import { sceneZoneTiles } from './zones';
 import { effectiveArchitecture } from './sceneEdit';
 import { massFootprintCells } from '../gameIso/builders/roofs';
-import { occupiedInteriorZoneIds } from '../gameIso/stage/roomFocus';
+import { isRoomZone, occupiedRoomIds, roomsByTile } from './rooms';
 import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 
 function sceneWithRooms(
@@ -223,7 +222,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
   });
 
   it('réoriente vers l’intérieur le portail extérieur atteignable quand aucune pièce n’est occupée', () => {
-    const portals = portalsForParty(sceneWithExteriorDoors(), { x: 0, y: 1 }, new Set());
+    const portals = portalsForParty(sceneWithExteriorDoors(), { x: 0, y: 1 });
 
     expect(portals).toEqual([expect.objectContaining({
       id: '0:0,1:E:exterior:room-a',
@@ -236,7 +235,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
   });
 
   it('expose une porte extérieure fermée depuis sa composante sans dupliquer le seuil', () => {
-    const portals = portalsForParty(sceneWithExteriorDoors(true), { x: 0, y: 1 }, new Set());
+    const portals = portalsForParty(sceneWithExteriorDoors(true), { x: 0, y: 1 });
 
     expect(portals).toEqual([expect.objectContaining({
       id: '0:0,1:E:exterior:room-a',
@@ -289,11 +288,6 @@ describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La 
       .map((portal) => ({ ...portal, fromZoneId: null, toZoneId: portal.fromZoneId, from: portal.to, to: portal.from }));
   };
 
-  const zoneKeys = new Set<string>();
-  for (const zone of scene.effectZones ?? []) {
-    if (!isDescriptiveZone(zone) || zone.presentation !== 'interior') continue;
-    for (const tile of sceneZoneTiles(zone)) zoneKeys.add(`${tile.x},${tile.y},${tile.z ?? zone.z ?? 0}`);
-  }
   const couvertes = new Set<string>();
   for (const body of effectiveArchitecture(scene))
     for (const mass of body.masses)
@@ -309,7 +303,7 @@ describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La 
         if (isWalkable(scene, x, y, z) && garde(x, y, z)) out.push(z ? { x, y, z } : { x, y });
     return out;
   };
-  const zonee = (x: number, y: number, z: number) => zoneKeys.has(`${x},${y},${z}`);
+  const zonee = (x: number, y: number, z: number) => roomsByTile(scene).has(tileKey(x, y, z));
   const couverte = (x: number, y: number, z: number) => couvertes.has(`${x},${y},${z}`);
 
   // Les quatre situations MESURÉES sur cette carte (mesure : 1216 cases marchables au rez, 422 à
@@ -331,7 +325,7 @@ describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La 
       .map((portal) => portal.fromZoneId)
       .filter((id): id is string => id !== null));
     const pieces = (scene.effectZones ?? [])
-      .filter((zone) => isDescriptiveZone(zone) && zone.presentation === 'interior');
+      .filter(isRoomZone);
 
     expect(pieces.length, 'la carte doit porter ses pièces intérieures').toBeGreaterThan(20);
     expect(pieces.filter((zone) => !desservies.has(zone.id)).map((zone) => zone.id)).toEqual([]);
@@ -346,9 +340,9 @@ describe('portalsForParty — mêmes sorties que la recherche de chemin, sur La 
   it('rend exactement les mêmes accès que la recherche de chemin, case par case', () => {
     for (const [situation, cases] of echantillon) {
       for (const pos of cases) {
-        const occupees = occupiedInteriorZoneIds(scene, [pos]);
+        const occupees = occupiedRoomIds(scene, [pos]);
         const attendu = parCheminJusquACheque(pos, occupees).map(sig).sort();
-        const obtenu = portalsForParty(scene, pos, occupees).map(sig).sort();
+        const obtenu = portalsForParty(scene, pos).map(sig).sort();
         expect(obtenu, `${situation} — case ${pos.x},${pos.y},${pos.z ?? 0}`).toEqual(attendu);
       }
     }
@@ -457,10 +451,10 @@ describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur
     expect(cases.length, `${nom} : échantillon vide`).toBeGreaterThan(12);
     let horsPiece = 0;
     for (const pos of cases) {
-      const occupees = occupiedInteriorZoneIds(scene, [pos]);
+      const occupees = occupiedRoomIds(scene, [pos]);
       if (!occupees.size) horsPiece++;
       const attendu = parExplorationEnLargeur(scene, pos, occupees).map(signature);
-      const obtenu = portalsForParty(scene, pos, occupees).map(signature);
+      const obtenu = portalsForParty(scene, pos).map(signature);
       expect(obtenu, `${nom} — case ${pos.x},${pos.y},${pos.z ?? 0}`).toEqual(attendu);
     }
     // Sans cases HORS pièce, l'échantillon ne prouverait rien : la branche mesurée serait le
@@ -472,9 +466,9 @@ describe('portalsForParty — mêmes sorties que l’exploration en largeur, sur
     const scene = sceneDe('arene-exp-village');
     const rendus = new Set<number>();
     for (const pos of positions(scene, 24)) {
-      const occupees = occupiedInteriorZoneIds(scene, [pos]);
+      const occupees = occupiedRoomIds(scene, [pos]);
       if (occupees.size) continue;
-      rendus.add(portalsForParty(scene, pos, occupees).length);
+      rendus.add(portalsForParty(scene, pos).length);
     }
     const total = roomPortals(scene).filter((p) => p.exterior && p.toZoneId === null).length;
 
@@ -498,13 +492,15 @@ describe('portalsForParty — le coût vit dans la scène, plus dans le pas (#14
     }) as Scene;
     const { w, h } = brute.dimensions;
     const cases: Pt[] = [];
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (isWalkable(brute, x, y, 0)) cases.push({ x, y });
-    const horsPiece = new Set<string>();
+    // Cases HORS pièce : la branche mesurée est l'accessibilité à pied, pas le raccourci des pièces.
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++)
+        if (isWalkable(brute, x, y, 0) && !roomsByTile(brute).has(tileKey(x, y, 0))) cases.push({ x, y });
 
-    portalsForParty(scene, cases[0], horsPiece);
+    portalsForParty(scene, cases[0]);
     const premier = lectures;
     lectures = 0;
-    for (let i = 0; i < 40; i++) portalsForParty(scene, cases[(i * 17) % cases.length], horsPiece);
+    for (let i = 0; i < 40; i++) portalsForParty(scene, cases[(i * 17) % cases.length]);
     const quaranteS = lectures;
 
     expect(premier, 'le premier calcul fouille bien la carte').toBeGreaterThan(10000);

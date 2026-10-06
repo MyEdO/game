@@ -49,4 +49,15 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
       .filter(([, v]) => /\{(roll|sl|drow)\}/.test(v) || (/\{target\}/.test(v) && /\{roll\}/.test(v)));
     expect(offenders).toEqual([]);
   });
+
+  it('chute (#700) : une longueur ne se sépare jamais de son unité — espace INSÉCABLE entre la valeur et « m »', () => {
+    // Juge-vision de #700, modale « Chute volontaire » à 360px : « (chute de 2 » / « m) ». Chaque clé
+    // de chute est RENDUE (tous ses trous remplis par une longueur) : aucune valeur suivie d'une espace
+    // ordinaire puis de « m », et celles qui disent une longueur la collent par U+00A0.
+    const cles = (Object.keys(fr) as (keyof typeof fr)[]).filter((k) => /^fall\.(modale|situation|option)\.|^eff\.fallOuverte$/.test(k));
+    const rendus = cles.map((k) => [k, interpolate(fr[k], new Proxy({}, { get: () => 2, has: () => true }) as Record<string, number>)] as const);
+    expect(rendus.filter(([, v]) => /\d[ \t]m\b/.test(v)).map(([k]) => k), 'unité orpheline possible : espace ordinaire avant « m »').toEqual([]);
+    const colles = rendus.filter(([, v]) => /\d\u00a0m\b/.test(v)).map(([k]) => k);
+    expect(colles).toEqual(expect.arrayContaining(['fall.option.sauter', 'fall.option.suspendreSauter', 'fall.option.suspendreTenter', 'fall.modale.denivele', 'eff.fallOuverte']));
+  });
 });

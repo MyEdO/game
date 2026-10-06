@@ -26,7 +26,7 @@ const sceneAvecDecor = (): Scene => ({
   entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' } as SceneEntity],
 });
 
-const mondeCuit = (scene: Scene): WorldGeometry => buildWorldGeometry(scene, sceneMetresPerTile(scene), () => 1);
+const mondeCuit = (scene: Scene): WorldGeometry => buildWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu', () => 1);
 
 /** Boîte des sommets du DÉCOR, relevée sur les plages de picking — l'index indépendant des groupes. */
 function boiteDuDecor(geometry: WorldGeometry): THREE.Box3 {

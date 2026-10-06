@@ -1801,7 +1801,7 @@ export interface TraitCapabilities {
   autoClimb?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « avance à sa vitesse maximale de Mouvement sur toutes les surfaces
    *  appropriées » — coût de Mouvement NORMAL (1 case) au lieu de la ½ vitesse du Talent Grimpeur
-   *  (`climbMovementCost`, joueur, LDB 15 l.53). Orthogonal à `autoClimb` (accueille une future capacité
+   *  (`climbMovementCost`, joueur, LDB 15 l.55). Orthogonal à `autoClimb` (accueille une future capacité
    *  qui réussirait automatiquement sans pour autant grimper à pleine vitesse). */
   climbFullSpeed?: boolean;
   /** Rampant (MSRC 15) : la créature ne peut PAS réaliser d'Action de Course (budget de Course nul). */

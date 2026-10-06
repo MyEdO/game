@@ -88,16 +88,21 @@ const dansSousArbre = (node, racine) => {
   return false
 }
 
-/** SYMBOLE du `const` dont le shape porte cette déclaration de propriété (`z.strictObject({ … })`) —
- *  chaînes `.optional()`/`.array()`/`.extend()` et spreads traversés. Un `const` d'un autre module
- *  n'est pas le même symbole : c'est ce qui remplace toute comparaison de nom. */
-function constDuShape(checker, decl) {
+/** DÉCLARATION `const` dont le shape porte cette déclaration de propriété (`z.strictObject({ … })`) —
+ *  chaînes `.optional()`/`.array()`/`.extend()`/`.superRefine()` et spreads traversés. */
+function declarationDuShape(decl) {
   const shape = decl.parent
   if (!shape || !ts.isObjectLiteralExpression(shape)) return undefined
   let n = shape.parent
   while (n && (ts.isCallExpression(n) || ts.isPropertyAccessExpression(n) || ts.isSpreadAssignment(n) || ts.isObjectLiteralExpression(n))) n = n.parent
-  if (!n || !ts.isVariableDeclaration(n) || !ts.isIdentifier(n.name)) return undefined
-  return checker.getSymbolAtLocation(n.name)
+  return n && ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) ? n : undefined
+}
+
+/** SYMBOLE du `const` dont le shape porte cette déclaration de propriété. Un `const` d'un autre module
+ *  n'est pas le même symbole : c'est ce qui remplace toute comparaison de nom. */
+function constDuShape(checker, decl) {
+  const n = declarationDuShape(decl)
+  return n && checker.getSymbolAtLocation(n.name)
 }
 
 /** Symboles des schémas dont la déclaration de la cible INFÈRE son corps : les `typeof S` que porte
@@ -328,8 +333,9 @@ function symboleEnglobant(node) {
 
 /**
  * Sites de lecture de `fields` sur la cible `{ type, home }` (`fieldConsumerTargets.mjs`), à travers
- * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole }]` — `file` relatif à
- * `rootDir`. Le `cache` porte le Program et l'index : le fournir une fois pour toutes les cibles
+ * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole, auDeclarant }]` — `file`
+ * relatif à `rootDir` ; `auDeclarant` : le site est DANS la déclaration qui déclare la propriété (le
+ * `superRefine` du schéma qui valide son propre champ, identité par nœud). Le `cache` porte le Program et l'index : le fournir une fois pour toutes les cibles
  * d'un rapport, et le laisser mourir avec l'appel. `programme` INJECTE le Program (fixtures en
  * mémoire de `virtualProgram`) — absent, il est bâti sur `files`.
  */
@@ -354,17 +360,16 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, progra
       // jamais sur celle qu'un `Set` d'ordre TS rendrait la première.
       let resolue = false
       let propreAuSite = false
+      let auDeclarant = false
       for (const d of attendues) {
         if (!site.props.has(d)) continue
         resolue = true
-        if (propre.has(d)) {
-          propreAuSite = true
-          break
-        }
+        auDeclarant ||= dansSousArbre(site.node, declarationDuShape(d) ?? d.parent)
+        if (propre.has(d)) propreAuSite = true
       }
       if (!resolue) continue
       if (!propreAuSite && !porteurDe(ctx, site).has(decl)) continue
-      hits.push({ field, file: site.file, line: site.line, symbole: symboleEnglobant(site.node) })
+      hits.push({ field, file: site.file, line: site.line, symbole: symboleEnglobant(site.node), auDeclarant })
     }
   }
   // ORDRE TOTAL du résultat : (fichier en unités de code, ligne NUMÉRIQUE). L'ordre de récolte est

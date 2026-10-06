@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
+import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { hasCondition } from '../engine/conditions';
-import type { Effect } from './scene';
+import { emptyScene, isWalkable, type Effect, type Scene, type Terrain } from './scene';
+import { validateScene } from './validateScene';
+import { flowFromEffects } from './flow';
 import { draineCascade } from './cascadeTestKit';
+import { t } from '../i18n';
 
 /**
  * Effet `fall` — Chute (LDB 15 l.78-84) : 3 Dégâts par mètre + 1d10, réduits par le Bonus
@@ -36,10 +39,57 @@ describe('Effet fall — chute', () => {
     expect(hasCondition(useGame.getState().party[0], 'a-terre')).toBe(true); // 12−BE+1d10 ≫ BE
   });
 
-  it('`to` repositionne le groupe (balcon → parterre)', () => {
+  /** Balcon (couche 1, 4 m) sur la seule case (5,5) d'un parterre 10×10 au sol (couche 0). */
+  function balconScene(): Scene {
+    const s = emptyScene(10, 10);
+    const tiles = new Array(100).fill('vide') as Terrain[];
+    tiles[5 * 10 + 5] = s.layers[0].tiles[0];
+    const height = new Array(100).fill(0) as number[];
+    height[5 * 10 + 5] = 4;
+    s.layers.push({ z: 1, tiles, height });
+    return s;
+  }
+
+  it('l’atterrissage est un PAS du groupe : il arrive sur `to` (balcon → parterre)', () => {
     loneHero();
-    useGame.setState({ partyPos: { x: 5, y: 5, z: 1 } });
+    useGame.setState({ mode: 'exploration', scene: balconScene(), partyPos: { x: 5, y: 5, z: 1 } });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 0 } }] as Effect[]);
     expect(useGame.getState().partyPos).toEqual({ x: 5, y: 8, z: 0 });
+  });
+
+  it('`to` où le groupe ne se pose pas : l’Effet entier est REFUSÉ en le disant — ni pas, ni dé, ni Dégâts', () => {
+    const before = loneHero().wounds.current;
+    useGame.setState({ mode: 'exploration', scene: balconScene(), partyPos: { x: 5, y: 5, z: 1 }, journal: [], pendingCascade: null });
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 1 } }] as Effect[]);
+    expect(useGame.getState().partyPos).toEqual({ x: 5, y: 5, z: 1 });
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(t('eff.fallAtterrissageRefuse'));
+    expect(t('eff.fallAtterrissageRefuse')).not.toMatch(/[0-9]/);
+    expect(useGame.getState().pendingCascade, 'aucun dé de chute ouvert').toBeNull();
+    draineCascade(useGame.getState);
+    expect(useGame.getState().party[0].wounds.current).toBe(before);
+  });
+
+  it('authoring : un `to` hors de la carte, ou sur une case non marchable À SON ÉTAGE, est une ERREUR ; marchable, rien', () => {
+    const balcon = balconScene();
+    const ctx = {
+      within: (x: number, y: number) => x >= 0 && y >= 0 && x < 10 && y < 10,
+      walkable: (x: number, y: number, z: number) => isWalkable(balcon, x, y, z),
+    } as EffectRefCtx;
+    const refs = EFFECT_HANDLERS.fall.refs!;
+    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 12, y: 3 } }, ctx)).toEqual([{ level: 'error', message: 'Chute : atterrissage (12,3) hors de la carte' }]);
+    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 1 } }, ctx)).toEqual([{ level: 'error', message: 'Chute : atterrissage (5,8, étage 1) sur une case non marchable' }]);
+    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 0 } }, ctx)).toEqual([]);
+    expect(refs({ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 5, z: 1 } }, ctx)).toEqual([]);
+    expect(refs({ type: 'fall', target: 'party', metres: 4 }, ctx)).toEqual([]);
+  });
+
+  it('authoring : `validateScene` branche la marchabilité de LA scène — le `to` non marchable remonte à l’auteur', () => {
+    const sautVers = (to: { x: number; y: number; z: number }): Scene => ({
+      ...balconScene(),
+      triggers: [{ id: 'saut', rect: { x: 5, y: 5, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'party', metres: 4, to }] as Effect[]) }],
+    });
+    const chutes = (sc: Scene) => validateScene([sc]).filter((w) => w.refId === 'saut' && w.message.startsWith('Chute')).map((w) => [w.level, w.message]);
+    expect(chutes(sautVers({ x: 5, y: 8, z: 1 }))).toEqual([['error', 'Chute : atterrissage (5,8, étage 1) sur une case non marchable']]);
+    expect(chutes(sautVers({ x: 5, y: 8, z: 0 }))).toEqual([]);
   });
 });

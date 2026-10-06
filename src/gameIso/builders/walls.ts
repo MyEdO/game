@@ -8,7 +8,9 @@
  * SOURCE UNIQUE de l'assemblage pour les DEUX backends (iso et POV) — ils dessinent ces mêmes faces,
  * chacun à sa résolution.
  */
-import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../state/scene';
+import { findStructureById } from '../../data';
+import { isWallEdgeStructure } from '../../engine/structures';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
@@ -105,8 +107,9 @@ export function crownFaces(app: StructureAppearanceDef, A: GXY, B: GXY, baseH: n
  *  PORTE/courtine de rempart passe le DROP de sa zone pour monter jusqu'au chemin de ronde). Les hauteurs
  *  px des defs passent par `isoPxToM` (une seule vérité px⇔m). Un montant (poteau/jambage) = 2 points
  *  [haut, bas] — le backend lui donne sa largeur. `capped` = un ÉTAGE repose sur ce mur (`storeyAbove`) :
- *  la lèvre débordante du couronnement est alors omise, elle percerait le plancher du dessus. */
-function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: boolean, wallHeightM = WALL_H_M, open = false, capped = false): Face[] {
+ *  la lèvre débordante du couronnement est alors omise, elle percerait le plancher du dessus. `porte` =
+ *  l'arête se lit en PORTE sous la lecture du rendu (`porteSelon`). */
+function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: boolean, wallHeightM = WALL_H_M, porte = false, open = false, capped = false): Face[] {
   const [A, B] = wallEnds(seg);
   const at = (t: number): GXY => ({ x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t });
   const mat = (part: WallPart) => ({ domain: 'structure' as const, id: app.id, part });
@@ -166,7 +169,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
 
   // MUR ORDINAIRE (bois) : panneau encadré + moulures + plinthe, ou porte ajourée (routée par le SEG).
   if (down) return breach();
-  if (seg.door) {
+  if (porte) {
     const op = wallHeightM * (app.door?.openingFrac ?? DOOR_FRAC);
     // OUVERTE → l'ouverture est un TROU : AUCUNE face ne la remplit (jambages et chambranle la bordent
     // déjà, et les joues du mur se voient de part et d'autre) — on voit la pièce derrière, comme par une
@@ -191,8 +194,8 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
   }
   if (seg.window) {
     // FENÊTRE : vraie OUVERTURE — le mur est un CADRE de `face` (trumeau bas + linteau haut + 2 jambages)
-    // autour du vide vitré, et la vitre est TRANSPARENTE → on VOIT l'intérieur derrière (le mur reste
-    // opaque à la MÉCANIQUE — vision/passage inchangés). Croisée : cadre → vitre → meneau + traverse.
+    // autour du vide vitré, et la vitre est TRANSPARENTE → on VOIT l'intérieur derrière (mécanique :
+    // `areteOcculte`, arbitrage #1712). Croisée : cadre → vitre → meneau + traverse.
     const winLo = b + wallHeightM * WIN_LO, winHi = b + wallHeightM * WIN_HI;
     const midT = (WIN_T0 + WIN_T1) / 2, midV = (winLo + winHi) / 2;
     const mpx = isoPxToM(MULLION_HALF_PX);
@@ -566,19 +569,33 @@ function roofSeamGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
   return out;
 }
 
+/** Une porte secrète MASQUÉE se rend, en JEU, comme un MUR de son arête (`porteMasquee`,
+ *  `state/scene.ts`) : son `appearance` authorée est CONSERVÉE (déguisement), sa `structure` aussi si
+ *  c'est une structure de MUR (`isWallEdgeStructure`), écartée si c'est une structure de PORTE. */
+function murNu(w: WallSeg): WallSeg {
+  const structure = w.structure ? findStructureById(w.structure) : undefined;
+  return {
+    x: w.x, y: w.y, side: w.side, ...(w.z ? { z: w.z } : {}),
+    ...(w.appearance ? { appearance: w.appearance } : {}),
+    ...(structure && isWallEdgeStructure(structure) ? { structure: w.structure } : {}),
+  };
+}
+
 /** GÉOMÉTRIE des murs + la RÈGLE de vue de chacun (ses `visKeys`) — dérivée UNE fois par scène ×
- *  étage rendu, jamais au pas (#808). `view` ABSENT ⇒ toutes les couches (éditeur/QC/POV) ; sinon
+ *  lecture × étage rendu, jamais au pas (#808). `lecture` EXPLICITE : `auteur` (éditeur) dessine le
+ *  document authoré, `jeu` (partie, POV, plans de jeu) l'état runtime. `view` ABSENT ⇒ toutes les couches ; sinon
  *  `viewZ` isole un étage (debug), sinon z ≤ activeZ (le jeu ne dresse pas les cloisons AU-DESSUS de
  *  la zone active). La hauteur de BASE est MÉTRIQUE (`heightAt`, la vérité POV — un niveau vaut 4·z).
  *  Les CRÊTES crénelées (décoration de rendu pur, `crestGeometry`) sont AJOUTÉES en fin — elles ne
  *  coupent ni passage ni LdV. */
-function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
+function wallGeometry(scene: Scene, lecture: LectureDArete, view?: FloorView): Viewed<WallEl>[] {
   const activeZ = view?.activeZ ?? 0;
   const viewZ = view?.viewZ ?? null;
   const out: Viewed<WallEl>[] = [];
   const authoredEdges = facadeEdges(scene);
   const envelope = envelopeEdgesOf(scene);
-  for (const w of scene.walls ?? []) {
+  for (const authored of scene.walls ?? []) {
+    const w = lecture === 'jeu' && porteMasquee(scene, authored) ? murNu(authored) : authored;
     const z = w.z ?? 0;
     if (view && (viewZ != null ? z !== viewZ : z > activeZ)) continue;
     const baseH = heightAt(scene, w.x, w.y, z);
@@ -586,10 +603,11 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
     const app = edgeAppearance(facade, w);
     const wallHeightM = app.wallHeightM ?? WALL_H_M;
     const down = !!w.structure && structureIsDown(scene, w);
-    const open = !!w.door && doorIsOpen(scene, w);
+    const porte = porteSelon(scene, w, lecture);
+    const open = porte && doorIsOpen(scene, w);
     const [nx, ny] = NB[w.side];
     const [A, B] = wallEnds(w);
-    const physicalFaces = wallFaces(w, app, baseH, down, wallHeightM, open, storeyAbove(scene, w, z, baseH + wallHeightM));
+    const physicalFaces = wallFaces(w, app, baseH, down, wallHeightM, porte, open, storeyAbove(scene, w, z, baseH + wallHeightM));
     out.push({
       off: {
         kind: 'wall',
@@ -602,7 +620,7 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
           ...(facade.roomZoneIds ? { roomZoneIds: [...facade.roomZoneIds] } : {}),
         } : {}),
         side: w.side,
-        door: !!w.door,
+        door: porte,
         appearance: app.id,
         ends: [{ ...A, h: baseH }, { ...B, h: baseH }],
         faces: [
@@ -625,11 +643,15 @@ function wallGeometry(scene: Scene, view?: FloorView): Viewed<WallEl>[] {
  *  AU-DESSUS du voile de brouillard) si l'une des DEUX cases bordant son arête est en vue, OU si
  *  l'arête est de l'ENVELOPPE du bâtiment (`envelopeEdgesOf`, #818 — la façade n'est pas un secret,
  *  seul l'intérieur se cache). La GÉOMÉTRIE est mémoïsée (`viewedBuilder`) : un pas qui ne change que
- *  le brouillard ne re-dérive AUCUNE face — il ne bascule que la vérité de vue des murs concernés. */
-export const buildWalls: (scene: Scene, visible?: ReadonlySet<string>, view?: FloorView) => WallEl[] =
-  viewedBuilder<WallEl, FloorView>({
-    derive: wallGeometry,
-    // `view` ABSENT (toutes les couches) ≠ `view` fourni à activeZ 0 (une seule) : la clé les sépare.
-    key: (view) => `${view ? 1 : 0}|${view?.activeZ ?? 0}|${view?.viewZ ?? null}`,
-    withTruth: (off) => ({ ...off, states: { ...off.states, visible: true } }),
-  });
+ *  le brouillard ne re-dérive AUCUNE face — il ne bascule que la vérité de vue des murs concernés.
+ *  `lecture` EXPLICITE (cf. `wallGeometry`) : aucune déduction depuis `view`. */
+export function buildWalls(scene: Scene, lecture: LectureDArete, visible?: ReadonlySet<string>, view?: FloorView): WallEl[] {
+  return murs(scene, visible, { lecture, view });
+}
+
+const murs = viewedBuilder<WallEl, { lecture: LectureDArete; view?: FloorView }>({
+  derive: (scene, v) => wallGeometry(scene, v!.lecture, v!.view),
+  // `view` ABSENT (toutes les couches) ≠ `view` fourni à activeZ 0 (une seule) : la clé les sépare.
+  key: (v) => `${v!.lecture}|${v!.view ? 1 : 0}|${v!.view?.activeZ ?? 0}|${v!.view?.viewZ ?? null}`,
+  withTruth: (off) => ({ ...off, states: { ...off.states, visible: true } }),
+});
