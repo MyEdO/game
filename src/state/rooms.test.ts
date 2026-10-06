@@ -1,19 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { emptyScene } from '../../state/scene';
-import { occupiedInteriorZoneIds, roomCutawayAllies, roomFocusAt } from './roomFocus';
-
-describe('roomCutawayAllies', () => {
-  const allies = [{ x: 2, y: 2, z: 0 }];
-
-  it('ne fournit aucun occupant de cutaway hors d’un intérieur focalisé', () => {
-    expect(roomCutawayAllies(null, allies)).toBeUndefined();
-  });
-
-  it('conserve les alliés et leur référence dans un intérieur focalisé', () => {
-    const focus = { id: 'salle', z: 0, tiles: new Set(['2,2,0']) };
-    expect(roomCutawayAllies(focus, allies)).toBe(allies);
-  });
-});
+import { emptyScene } from './scene';
+import { roomTilesById, occupiedRoomIds, roomFocusAt, roomsByTile } from './rooms';
+import { sceneEffectZoneSchema } from '../data/schemas/defs-scenes/scene';
 
 describe('roomFocusAt', () => {
   it('active uniquement une zone descriptive intérieure contenant exactement la position au même étage', () => {
@@ -61,7 +49,7 @@ describe('roomFocusAt', () => {
   });
 });
 
-describe('occupiedInteriorZoneIds', () => {
+describe('occupiedRoomIds', () => {
   it('réunit les pièces occupées par plusieurs héros à leurs étages respectifs', () => {
     const scene = emptyScene(10, 4);
     scene.effectZones = [
@@ -69,7 +57,7 @@ describe('occupiedInteriorZoneIds', () => {
       { id: 'cuisine', label: 'Cuisine', presentation: 'interior', area: { kind: 'rect', x: 7, y: 1, w: 2, h: 2 }, z: 1 },
     ];
 
-    expect(occupiedInteriorZoneIds(scene, [{ x: 2.75, y: 1.2, z: 0 }, { x: 7.1, y: 1.8, z: 1 }]))
+    expect(occupiedRoomIds(scene, [{ x: 2.75, y: 1.2, z: 0 }, { x: 7.1, y: 1.8, z: 1 }]))
       .toEqual(new Set(['salle', 'cuisine']));
   });
 
@@ -80,7 +68,7 @@ describe('occupiedInteriorZoneIds', () => {
       { id: 'haut', label: 'Haut', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 2, h: 2 }, z: 1 },
     ];
 
-    expect(occupiedInteriorZoneIds(scene, [{ x: 1.5, y: 1.5, z: 1 }])).toEqual(new Set(['haut']));
+    expect(occupiedRoomIds(scene, [{ x: 1.5, y: 1.5, z: 1 }])).toEqual(new Set(['haut']));
   });
 
   it.each([
@@ -95,6 +83,48 @@ describe('occupiedInteriorZoneIds', () => {
       { id: 'droite', label: 'Droite', presentation: 'interior', area: { kind: 'rect', x: 3, y: 0, w: 1, h: 1 }, z: 0 },
     ];
 
-    expect(occupiedInteriorZoneIds(scene, [{ x, y: 0, z: 0 }])).toEqual(new Set([id]));
+    expect(occupiedRoomIds(scene, [{ x, y: 0, z: 0 }])).toEqual(new Set([id]));
+  });
+});
+
+describe('chevauchement de pièces', () => {
+  const scene = emptyScene(6, 3);
+  scene.effectZones = [
+    { id: 'nef', label: 'Nef', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w: 4, h: 3 }, z: 0 },
+    { id: 'choeur', label: 'Chœur', presentation: 'interior', area: { kind: 'rect', x: 3, y: 0, w: 3, h: 3 }, z: 0 },
+  ];
+
+  it('une case couverte par deux pièces appartient aux deux, dans l’ordre de `scene.effectZones`', () => {
+    expect(roomsByTile(scene).get('3,1')?.zoneIds).toEqual(['nef', 'choeur']);
+    expect(occupiedRoomIds(scene, [{ x: 3, y: 1, z: 0 }])).toEqual(new Set(['nef', 'choeur']));
+  });
+
+  it('le focus rend la première pièce de cet ordre, avec toutes ses cases', () => {
+    expect(roomFocusAt(scene, { x: 3, y: 1, z: 0 })).toEqual({
+      id: 'nef',
+      z: 0,
+      tiles: roomTilesById(scene).get('nef'),
+    });
+    expect(roomFocusAt(scene, { x: 5, y: 1, z: 0 })?.id).toBe('choeur');
+  });
+});
+
+describe('ÉTAGE — une pièce vit à `zone.z`', () => {
+  const zone = (presentation: 'interior' | 'exterior', tileZ: number) => ({
+    id: 'salle', label: 'Salle', presentation, area: { kind: 'rect', x: 0, y: 0, w: 2, h: 1 },
+    tiles: [{ x: 0, y: 0, z: 1 }, { x: 1, y: 0, z: tileZ }], z: 1,
+  });
+
+  it('une case de zone intérieure à un autre étage que `zone.z` est refusée au parse, nommément', () => {
+    const r = sceneEffectZoneSchema.safeParse(zone('interior', 0));
+    expect(r.success).toBe(false);
+    expect(r.error!.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['tiles.1.z', "zone intérieure « salle » : la case (1,0) est à l'étage 0, la pièce à l'étage 1 (`z`) — une pièce vit à un seul étage"],
+    ]);
+  });
+
+  it('au même étage, ou hors d’une pièce (zone extérieure), la zone est acceptée', () => {
+    expect(sceneEffectZoneSchema.safeParse(zone('interior', 1)).success).toBe(true);
+    expect(sceneEffectZoneSchema.safeParse(zone('exterior', 0)).success).toBe(true);
   });
 });

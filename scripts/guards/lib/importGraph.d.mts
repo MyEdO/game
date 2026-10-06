@@ -1,4 +1,5 @@
-import type { Node, SourceFile } from 'typescript';
+import type { Diagnostic } from 'typescript/unstable/sync';
+import type { Node, SourceFile } from 'typescript/unstable/ast';
 
 export type NatureDeModule = 'statique' | 'dynamique' | 'type' | 'require';
 export type GenreDeModule = 'import' | 'export' | 'importEquals' | 'importType' | 'appel' | 'fournisseur';
@@ -30,9 +31,11 @@ export interface SiteDeModule extends PositionDeModule {
   liaisons: LiaisonDeModule[];
 }
 export type LiaisonSituee = Omit<SiteDeModule, 'liaisons'> & LiaisonDeModule;
-export function sitesDeModule(fichier: string, source: string | SourceFile): SiteDeModule[];
-export function liaisonsDe(fichier: string, source: string | SourceFile): LiaisonSituee[];
-export function chargementsDe(fichier: string, source: string | SourceFile): SiteDeModule[];
+/** Une chaîne est analysée et validée ; un SourceFile est réutilisé sans reparsage,
+ * avec contrôle des seuls diagnostics fournis. Sans diagnostics, sa syntaxe n'est pas validée ici. */
+export function sitesDeModule(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): SiteDeModule[];
+export function liaisonsDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): LiaisonSituee[];
+export function chargementsDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): SiteDeModule[];
 
 /** Un spécificateur qu'un module écrit, et la nature de l'acquisition. */
 export interface Specificateur {
@@ -43,19 +46,19 @@ export interface Specificateur {
   fin: number;
   texte: string;
 }
-export function specificateursDe(fichier: string, source: string | SourceFile): Specificateur[];
+export function specificateursDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): Specificateur[];
 /** Un arc résolu : le spécificateur écrit, sa nature, et le fichier absolu POSIX qu'il désigne. */
 export interface Arc extends Specificateur {
   cible: string;
 }
 export function arcsDe(
   abs: string,
-  texte: string,
-  options?: { existe?: (abs: string) => boolean; alias?: readonly Alias[] },
+  texte: string | SourceFile,
+  options?: { diagnostics?: readonly Diagnostic[]; existe?: (abs: string) => boolean; alias?: readonly Alias[] },
 ): Arc[];
 export function estModule(chemin: string): boolean;
 export function pathspecsDeModules(dossier: string): string[];
-export function sourceALExecution(fichier: string, texte: string): string;
+export function sourceALExecution(fichier: string, texte: string, options?: { racine?: string }): string;
 /** Un alias de chemin : préfixe du spécificateur → dossier cible absolu. */
 export interface Alias {
   prefixe: string;
@@ -80,8 +83,8 @@ export function clotureDImports(
 export function closureOf(roots: string[], options?: { racine?: string; cache?: Map<string, Arc[] | null> }): Set<string>;
 export function directImportsOf(
   fromFile: string,
-  contenu: string,
-  options?: { racine?: string; existe?: (abs: string) => boolean; alias?: readonly Alias[] },
+  contenu: string | SourceFile,
+  options?: { racine?: string; existe?: (abs: string) => boolean; alias?: readonly Alias[]; diagnostics?: readonly Diagnostic[] },
 ): string[];
 export const CHEMIN_TSCONFIG: string;
 /** Les alias que déclare le texte d'un `tsconfig.json`, cibles posées sous `racine`. */

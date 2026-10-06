@@ -2,7 +2,7 @@
 //
 // Un ticket se ferme quand son correctif est PUBLIÉ, pas quand un commit existe sur une machine :
 // #1685 a été fermé par 8b52f3a55 avant que ce commit n'atteigne `main`, et un commit rebasé au loin
-// ou jamais poussé laisse un ticket fermé sans code (revue de palier n°3, 2026-09-04, écart 10).
+// ou jamais poussé laisse un ticket fermé sans code (revue du 2026-09-04, écart 10).
 // Aucun hook local ne ferme donc de ticket : c'est le job `fermetures` de `fermetures.yml` qui appelle ce
 // script, après lecture des checks requis verts du sha poussé (`scripts/ops/checks-requis.mjs`), sur la
 // plage qui part du dernier commit où ce workflow a RÉUSSI (`baseDeLaPlage`, #2155) : une course rouge,
@@ -126,7 +126,7 @@ function plageRattrapee(plage) {
   // `gh run list --commit` ne reconnaît qu'un sha COMPLET : la base est résolue avant toute lecture.
   const depart = /^0+$/.test(avant) ? parent(tete) : shaDe(depot, avant)
   if (!depart) throw new Error(`base de ${plage} inconnue de ce dépôt`)
-  const courses = (sha) => coursesCi({ cwd: RACINE, workflow: WORKFLOW_FERMETURES, commit: sha, branche: null, limit: 5 })
+  const courses = (sha) => coursesCi({ cwd: RACINE, workflow: WORKFLOW_FERMETURES, commit: sha, limit: 5 })
   const vu = baseDeLaPlage({ avant: depart, parent, courses })
   if (!vu.base) throw new Error(vu.raison)
   if (vu.message) process.stderr.write(vu.message)

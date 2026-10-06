@@ -122,7 +122,7 @@ export function sceneZoneTiles(zone: SceneEffectZone): Pt[] {
  *  jamais peintes comme un pavé de danger en combat (#782). `dims` borne les cases à la carte (même
  *  invariant d'écriture que les zones posées au runtime — une aire authorée peut déborder du cadre). */
 export function sceneZonesToBattle(zones: SceneEffectZone[] | undefined, dims?: MapDims): BattleZone[] {
-  return (zones ?? []).filter((z) => !isDescriptiveZone(z)).map((z) => ({
+  return structuredClone((zones ?? []).filter((z) => !isDescriptiveZone(z))).map((z) => ({ // #2097
     id: z.id,
     label: z.label,
     tiles: clampZoneTiles(sceneZoneTiles(z), dims),

@@ -5,6 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { evaluate } from './commande-piege-guard.mjs'
+import { CAS_HOTE_POWERSHELL, argumentsDuCas } from './hote-powershell-cas.mjs'
 
 const silent = (cmd) => evaluate(cmd) === null
 const refuse = (cmd) => evaluate(cmd)?.decision === 'deny'
@@ -124,6 +125,40 @@ test('DENY : chaque graphie de mise à mort par nom, et le refus nomme la graphi
     assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
     assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
   }
+})
+
+/** Ligne de commande d'un segment : chaque argument blanc ou à espace entre quotes simples (doubles s'il en porte). */
+const ligneDe = (segment) => segment.map((a) => (a.trim() === a && a !== '' && !a.includes(' ') ? a : a.includes("'") ? `"${a}"` : `'${a}'`)).join(' ')
+
+test('DENY : chaque forme que l\'hôte PowerShell EXÉCUTE porte une mise à mort par nom refusée (#2292, hote-powershell-cas.mjs)', () => {
+  const executees = CAS_HOTE_POWERSHELL.filter((cas) => cas.classe === 'execute')
+  assert.ok(executees.length > 0)
+  for (const cas of executees) {
+    const cmd = ligneDe([cas.exe, ...argumentsDuCas(cas, 'Stop-Process -Name node')])
+    assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  }
+})
+
+test('DENY : la mise à mort par nom que lit l\'hôte 5.1 (positionnel, inconnu) et le tiret typographique du lieur (#2292)', () => {
+  for (const cmd of [
+    'powershell "-zz; Stop-Process -Name node"',
+    'powershell -NoProfile Stop-Process -Name node',
+    'powershell.exe -ExecutionPolicy Bypass Stop-Process -Name node',
+    'pwsh -NoProfile \u2013c "Stop-Process -Name node"',
+    'Stop-Process \u2013Name node',
+    'Stop-Process \u2014Name node',
+    'Stop-Process \u2015Name node',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+})
+
+test('PASSE : l\'hôte PowerShell qui n\'exécute aucun texte de la ligne (#2292)', () => {
+  for (const cmd of [
+    'pwsh -NoProfile Stop-Process -Name node',
+    'pwsh -NoProfile -zz "Stop-Process -Name node"',
+    'pwsh -NoProfile -h -c "Stop-Process -Name node"',
+    'powershell -NoProfile -File x.ps1 -c "Stop-Process -Name node"',
+    'Stop-Process /Name node',
+  ]) assert.equal(evaluate(cmd), null, cmd)
 })
 
 test('DENY : la mise à mort par nom derrière cmd /c, powershell -Command, bash -c, un enrobeur de tête', () => {
@@ -324,7 +359,7 @@ test('PASSE : les formes que la détection ne voit pas (en-tête du garde), chac
   for (const cmd of [
     'Stop-Process -Name:node', // #2172
     'iex "Stop-Process -Name node"', // #2172
-    'Stop-Process $p', // affectation hors de la commande
+    'Stop-Process $p', // affectation hors de la commande, #2332
     "echo 'a'\\''b' && pkill node", // #2172
     '$x = (Stop-Process -Name node)', // #2172
     'Write-Output (Stop-Process -Name node)', // #2172
@@ -333,8 +368,10 @@ test('PASSE : les formes que la détection ne voit pas (en-tête du garde), chac
     'Start-Job { Stop-Process -Name node }', // #2172
     '. { Stop-Process -Name node }', // #2172
     'cmd /c start taskkill /im node.exe', // #2172
+    "Write-Output 'Stop-Process -Name node' | pwsh -NoProfile -Command -", // #2172
+    "Write-Output 'Stop-Process -Name node' | powershell -NoProfile", // #2172
+    'pwsh -NoProfile -File arrete.ps1', // un script : hors de la ligne
     'exec pkill node', // #2172
-    'pwsh -co "Stop-Process -Name node"', // #2292
   ]) assert.equal(evaluate(cmd), null, cmd)
 })
 

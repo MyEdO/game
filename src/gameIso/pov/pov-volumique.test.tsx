@@ -193,7 +193,7 @@ describe('POV volumique — ce que la première personne ne porte PAS (#1176 P3-
     // quand le groupe entre sous un toit).
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' };
     monter(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={{ mode: 'plateau', dims, cam: { x: 0, y: 0 }, zoom: 1 }}
@@ -219,7 +219,7 @@ describe('POV volumique — ce que la première personne ne porte PAS (#1176 P3-
 
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' };
     monter(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={{ mode: 'plateau', dims, cam: { x: 0, y: 0 }, zoom: 1 }}

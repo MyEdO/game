@@ -49,7 +49,7 @@ describe('Chute volontaire — la Compétence et le « +20 » sont à la LIGNE',
     const hero = mk('Aldo');
     useGame.setState({
       battle: null, party: [hero],
-      pendingFall: { combatantId: hero.id, metres: 6, attempt: true, phase: 'roll', result: null },
+      pendingFall: { to: { x: 0, y: 1 }, metres: 6, initiateurId: hero.id, participants: [{ id: hero.id, interactive: true, attempt: true, result: null }] },
     } as never);
     act(() => root.render(<FallModal />));
     expect(rollLabel(), 'la Compétence est le label de la ligne').toContain('Athlétisme');

@@ -14,6 +14,7 @@ import { FlowEditor } from './FlowEditor';
 import { WhenEditor, condSummary } from './ConditionEditor';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
+import { ProseField } from '../ProseField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
@@ -125,7 +126,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                 ✕ nœud
               </button>
             </Row>
-            <textarea className="node-text" value={node.desc} onChange={(e) => updNode({ desc: e.target.value })} placeholder="Texte de la réplique" />
+            <ProseField label="Texte de la réplique" value={node.desc} onChange={(desc) => updNode({ desc })} />
 
             <div className="mini-title">Choix ({node.choices.length})</div>
             <Stack>

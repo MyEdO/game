@@ -171,12 +171,12 @@ describe('groundAccents — semis de SCÈNE et montage instancié', () => {
   const mpt = sceneMetresPerTile(scene);
 
   it('la scène de siège porte un semis MESURABLE', () => {
-    const c = accentCounts(sceneGroundAccents(scene, mpt));
+    const c = accentCounts(sceneGroundAccents(scene, mpt, 'jeu'));
     expect(c.tufts).toBeGreaterThan(0);
   });
 
   it('la teinte de visibilité de la case voyage sur la couleur des instances, JAMAIS sur le semis', () => {
-    const accents = sceneGroundAccents(scene, mpt);
+    const accents = sceneGroundAccents(scene, mpt, 'jeu');
     expect(accents.length).toBeGreaterThan(0);
     for (const a of accents) expect([a.cell.x, a.cell.y, a.cell.z].every(Number.isInteger)).toBe(true);
     const mesh = reposé(accents.slice(0, 200), { tintAt: () => 0.25 })[0].mesh;
@@ -189,8 +189,8 @@ describe('groundAccents — semis de SCÈNE et montage instancié', () => {
   });
 
   it('le semis est INVARIANT à la visibilité : deux teintes, un seul et même tirage', () => {
-    const a = sceneGroundAccents(scene, mpt);
-    const b = sceneGroundAccents(scene, mpt);
+    const a = sceneGroundAccents(scene, mpt, 'jeu');
+    const b = sceneGroundAccents(scene, mpt, 'jeu');
     const trace = (x: (typeof a)[number]) => `${x.cell.x},${x.cell.y},${x.cell.z}|${x.kind}|${x.pos.x}|${x.pos.z}|${x.sizeM}`;
     expect(b.map(trace)).toEqual(a.map(trace));
     // La teinte n'entre PAS dans le lot (elle varie par case, `instanceColor` la porte).
@@ -203,7 +203,7 @@ describe('groundAccents — semis de SCÈNE et montage instancié', () => {
   });
 
   it('un lot par (type × couleur), chaque instance à sa pose monde', () => {
-    const accents = sceneGroundAccents(scene, mpt);
+    const accents = sceneGroundAccents(scene, mpt, 'jeu');
     const lots = groupAccents(accents);
     expect(lots.size).toBeGreaterThan(1);
     const meshes = reposé(accents).map((l) => l.mesh);
@@ -252,7 +252,7 @@ describe('groundAccents — semis de SCÈNE et montage instancié', () => {
 describe('groundAccents — REPOSE en place, jamais de reconstruction', () => {
   const scene = buildScene(siegeSpec());
   const mpt = sceneMetresPerTile(scene);
-  const accents = sceneGroundAccents(scene, mpt);
+  const accents = sceneGroundAccents(scene, mpt, 'jeu');
   /** Teinte STABLE, comme celle que l'hôte du monde mémorise (`stage/MondeDeCampagne`) : elle ne se reforge qu'au
    *  changement de visibilité, jamais au franchissement d'un cran. */
   const TEINTE_PLEINE: TintAt = () => 1;
@@ -350,7 +350,7 @@ describe('groundAccents — REPOSE en place, jamais de reconstruction', () => {
       }
     }
     // Le semis lui-même n'a pas bougé : c'est l'APPLICATION qui filtre.
-    expect(sceneGroundAccents(scene, mpt).length).toBe(accents.length);
+    expect(sceneGroundAccents(scene, mpt, 'jeu').length).toBe(accents.length);
   });
 
   /**
@@ -443,7 +443,7 @@ function nappesSemees() {
     const c = sc.construire();
     for (const scene of [c.scene, ...(c.extraScenes ?? [])]) {
       const m2t = sceneMetresPerTile(scene);
-      const wfs = worldFaces(scene);
+      const wfs = worldFaces(scene, 'jeu');
       const rangs = coplanarRanks(wfs.map((w) => facePoly(w.face, m2t)));
       wfs.forEach((wf, i) => {
         const mat = wf.face.material;

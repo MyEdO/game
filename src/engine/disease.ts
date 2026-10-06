@@ -345,7 +345,7 @@ export type CycleQuotidien =
  * `afterDays`/`once` cadencent le cycle sur la phase active (Vers de carie / Vers du Reik, MSRC 16).
  */
 export function symptomOnTick(inst: DiseaseSymptom, severite: 'moderee' | 'grave' | undefined = inst.severity): CycleQuotidien | undefined {
-  const tick = findSymptomById(inst.symptomId)?.onTick;
+  const tick = structuredClone(findSymptomById(inst.symptomId)?.onTick); // #2097
   if (!tick) return undefined;
   const cadence = {
     ...(tick.afterDays !== undefined ? { afterDays: tick.afterDays } : {}),
@@ -362,7 +362,7 @@ export function symptomOnTick(inst: DiseaseSymptom, severite: 'moderee' | 'grave
 /** Ce que testent les deux jets du cycle que la DONNÉE ne porte pas en nœud (la machinerie stateful les
  *  fabrique) : la Gangrène (`LDB 20 l.176`) et la fin de Durée d'une infection persistante
  *  (`LDB 20 l.200`) — tous deux « Test de Résistance ». */
-const TEST_RESISTANCE: TestIds = { skill: 'resistance' };
+const TEST_RESISTANCE: TestIds = Object.freeze({ skill: 'resistance' }); // #2097
 
 /** Ce que le nœud NOMME comme testé — la forme que le producteur DIT à la porte (`UpkeepDeferTest.test`),
  *  qui en tire la valeur (`testValue`). MSRC 16 l.90 : le ver de carie teste l'Endurance NUE, LDB 20
@@ -737,7 +737,7 @@ export function tickDisease(c: Combatant, minutes: number, rng: RNG, defer: Upke
         // signal, le Test tombe à CHAQUE journée d'entretien : régime plus dur que celui de la source.
         // La suspension du symptôme NOMMÉ gate ce Test comme elle gate les `onTick` (l.565) — arbitrage
         // d'ingénierie #674, hors source (`LDB 72 l.28` ne porte que sur les effets du symptôme).
-        const daily = diseaseDefs()[dz.id]?.dailyTest;
+        const daily = structuredClone(diseaseDefs()[dz.id]?.dailyTest); // #2097
         if (daily && !symptomSuppressed(c, daily.symptomId)) {
           // `difficulty` REQUISE au schéma du porteur (`noeudTest(…, { difficulteRequise: true })`,
           // `defs/maladies.ts`) — `FlowTest` la laisse optionnelle pour les jets dont elle vient d'ailleurs.

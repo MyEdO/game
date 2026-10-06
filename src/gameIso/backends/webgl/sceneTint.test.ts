@@ -38,7 +38,7 @@ const mpt = sceneMetresPerTile(scene);
  *  Le contrat de NON-RETRIANGULATION ci-dessous, dont le SUJET est la géométrie cuite elle-même, cuit
  *  la sienne et ne passe pas par ici. */
 const bakeRetenu = memoByRefDeps<Scene, BakedWorld>();
-const cuire = (s: Scene, m: number): BakedWorld => bakeRetenu(s, worldBakeDeps(s, m), () => bakeWorldGeometry(s, m));
+const cuire = (s: Scene, m: number): BakedWorld => bakeRetenu(s, worldBakeDeps(s, m), () => bakeWorldGeometry(s, m, 'jeu'));
 
 /** Teinte de VISIBILITÉ non triviale : les trois états de la politique se répartissent sur la carte —
  *  une teinte constante ne prouverait rien d'un index sommet → monde. */
@@ -62,7 +62,7 @@ describe('BAKE ⇄ TEINTE — la visibilité ne retriangule rien', () => {
     // deux mesures d'horloge, et la CI est une machine partagée au débit variable.
     // Cuisson FRAÎCHE, jamais `cuire` : le SUJET est CE bake, que les passes de teinte ne doivent pas
     // toucher — un bake retenu ferait dépendre l'empreinte d'avant d'un `it` voisin.
-    const baked = bakeWorldGeometry(scene, mpt);
+    const baked = bakeWorldGeometry(scene, mpt, 'jeu');
     const g = baked.geometry;
     /** Tout ce que la cuisson a posé sur la géométrie — relevé par LECTURE de la géométrie, jamais
      *  d'une liste écrite ici : un attribut ajouté au bake entre de lui-même sous le contrat. */
@@ -129,7 +129,7 @@ describe('BAKE ⇄ TEINTE — la visibilité ne retriangule rien', () => {
   });
 
   it('`buildWorldGeometry` reste la composition des deux (mêmes couleurs, même compte)', () => {
-    const compose = couleurs(buildWorldGeometry(scene, mpt, tintA));
+    const compose = couleurs(buildWorldGeometry(scene, mpt, 'jeu', tintA));
     const enDeuxTemps = couleurs(applyVisibilityTint(cuire(scene, mpt), tintA).geometry);
     expect(compose).toEqual(enDeuxTemps);
   });

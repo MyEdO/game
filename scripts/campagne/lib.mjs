@@ -244,6 +244,11 @@ export function poste(trappingId, side, crewIds = []) {
 export function flowOf(effects) {
   return { kind: 'seq', steps: effects.map((effect) => ({ kind: 'do', effect })) };
 }
+/** Effect `document` (#679) qui remet au joueur l'entrée `doc` (`{ id, titre, prose }`) du registre
+ *  `narratif.documents` du paquet — le générateur la déclare à ce registre et la désigne par son id. */
+export function remetLeDocument(doc) {
+  return { type: 'document', documentId: doc.id };
+}
 /** Condition d'entrée de flag (`Trigger.when`) à partir d'une expr « flag,!flag ». */
 export function flagWhen(expr) {
   return { kind: 'flag', expr };

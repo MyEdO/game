@@ -380,7 +380,7 @@ function surchargesDe(rel, texte) {
   const alias = new Set()
   const lierAlias = (n) => {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && litteral(n.initializer)) alias.add(n.name.text)
-    ts.forEachChild(n, lierAlias)
+    n.forEachChild(lierAlias)
   }
   lierAlias(racine)
   const designe = (n) => litteral(n) || (!!n && ts.isIdentifier(n) && alias.has(n.text))
@@ -399,7 +399,7 @@ function surchargesDe(rel, texte) {
       const ligne = racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1
       sites.push({ ligne, texte: lignes[ligne - 1].trim() })
     }
-    ts.forEachChild(n, visiter)
+    n.forEachChild(visiter)
   }
   visiter(racine)
   return sites
@@ -447,14 +447,17 @@ test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pa
   }
 })
 
-test('sousGitFeint : la feinte vaut dans CE processus pendant `fn`, et se retire même sur une levée', () => {
+for (const [nom, stderr] of [
+  ['newline', 'fatal: panne simulée\n'],
+  ['cause tardive', `${'note de refus\n'.repeat(50)}fatal: cause tardive\n`],
+]) test(`sousGitFeint : la feinte vaut dans CE processus pendant \`fn\`, et se retire même sur une levée — ${nom}`, () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
   try {
     const depot = depotDe(racine, { env: envDeDepotForge })
     const avant = shaDe(depot, 'HEAD')
     assert.match(avant, /^[0-9a-f]{40}$/)
-    assert.throws(() => sousGitFeint([{ si: ['rev-parse'], status: 128, stderr: 'fatal: panne simulée\n' }], () => shaDe(depot, 'HEAD')),
-      (e) => e instanceof GitIndisponible && e.raison === 'fatal: panne simulée')
+    assert.throws(() => sousGitFeint([{ si: ['rev-parse'], status: 128, stderr }], () => shaDe(depot, 'HEAD')),
+      (e) => e instanceof GitIndisponible && e.raison === stderr)
     assert.equal(process.env[ENV_GIT_FEINT], undefined)
     assert.equal(shaDe(depot, 'HEAD'), avant)
     assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })

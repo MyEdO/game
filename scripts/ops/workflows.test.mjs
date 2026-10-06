@@ -1,3 +1,4 @@
+import { ast } from '../guards/lib/dialecte.mjs';
 // PORTE DE FORME DES SCRIPTS DE WORKFLOW DU DÉPÔT — reconnus à leur CONTENU par l'AST
 // (`lireWorkflow`, scripts/guards/lib/formeDeWorkflow.mjs : `export const meta` de premier niveau),
 // jamais à leur dossier. Chaque table ci-dessous se keye sur le chemin RELATIF à la racine.
@@ -21,8 +22,8 @@
 //
 // CE QUE LA PORTE VOIT DES PROMPTS (mesuré : le seul texte du site d'appel ne couvrait que 388 des
 // 74 000 caractères réels d'un prompt, et aucun de ceux d'un prompt rendu par une fonction) :
-//   · la SYNTAXE — `createSourceFile` ne lève jamais : ses `parseDiagnostics` sont lus et rendus
-//     (`node --check` refuse ces scripts à cause du `return` de premier niveau, et eslint ignore
+//   · la SYNTAXE — les diagnostics natifs sont lus et rendus
+//     (`node --check` refuse ces scripts à cause du `return` de premier niveau, et le lint ignore
 //     `.claude/**` : cette porte est le SEUL lecteur de leur syntaxe) ;
 //   · le PROMPT RÉSOLU : le littéral du site d'appel, ses `${IDENT}` remplacés par la valeur des
 //     constantes de premier niveau du même fichier, récursivement ;
@@ -36,7 +37,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scriptKindDe, typescript } from '../guards/lib/dialecte.mjs';
+import { typescript } from '../guards/lib/dialecte.mjs';
 import {
   declarationsDuFichier, defautsDeRacine, estReference, exportDeMeta, lireWorkflow, referencesLibres,
 } from '../guards/lib/formeDeWorkflow.mjs';
@@ -88,7 +89,7 @@ const TABLES = {
 };
 
 const estTexte = (n) => Boolean(n) && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n));
-const nomDe = (p) => (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name) ? p.name.text : null);
+const nomDe = (p) => (('name' in p && ts.isIdentifier(p.name)) || ts.isStringLiteral(p.name) ? p.name.text : null);
 const propriete = (obj, nom) => obj.properties.find((p) => ts.isPropertyAssignment(p) && nomDe(p) === nom);
 const sansParentheses = (n) => (n && ts.isParenthesizedExpression(n) ? sansParentheses(n.expression) : n);
 const apercu = (n, sf) => n.getText(sf).replace(/\s+/g, ' ').slice(0, 60);
@@ -124,7 +125,7 @@ function fermer(obj, sf) {
  *   `deSites` = les phases d'au moins un SITE `agent(` — un `phase(…)` de progression n'en est pas un
  */
 function analyser(source, fichier, tables = TABLES) {
-  const sf = ts.createSourceFile(fichier, String(source), ts.ScriptTarget.Latest, true, scriptKindDe(fichier));
+  const sf = ast({ rel: fichier, text: String(source) });
   const defauts = [];
   const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   const ligneDePosition = (pos) => sf.getLineAndCharacterOfPosition(Math.min(pos, String(source).length)).line + 1;
@@ -193,9 +194,9 @@ function analyser(source, fichier, tables = TABLES) {
         if (n !== fn) return; // les fonctions imbriquées ne sont pas le retour de celle-ci
       }
       if (ts.isReturnStatement(n) && n.expression) retours.push(n.expression);
-      ts.forEachChild(n, chercher);
+      n.forEachChild(chercher);
     };
-    if (fn.body) ts.forEachChild(fn.body, chercher);
+    if (fn.body) fn.body.forEachChild(chercher);
     const textuels = retours.filter(estTexteur);
     return textuels.length === 1 ? textuels[0] : null;
   }
@@ -331,7 +332,7 @@ function analyser(source, fichier, tables = TABLES) {
   const collecterAcces = (racine, nom, dans) => {
     const marcher = (x) => {
       if (ts.isPropertyAccessExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === nom && ts.isIdentifier(x.name)) dans.add(x.name.text);
-      ts.forEachChild(x, marcher);
+      x.forEachChild(marcher);
     };
     marcher(racine);
   };
@@ -450,7 +451,7 @@ function analyser(source, fichier, tables = TABLES) {
   const evalsLibres = new Set(referencesLibres(sf, 'eval'));
   /** `arguments` que seule l'enveloppe lie : aucune fonction NON fléchée ne l'englobe (une flèche n'en a pas). */
   const argumentsDeLEnveloppe = new Set(referencesLibres(sf, 'arguments').filter((id) => {
-    for (let a = id.parent; a; a = a.parent) if (ts.isFunctionLike(a) && !ts.isArrowFunction(a)) return false;
+    for (let a = id.parent; a; a = a.parent) if (ts.isFunctionLikeDeclaration(a) && !ts.isArrowFunction(a)) return false;
     return true;
   }));
   for (const id of declarations.get('agent') ?? []) {
@@ -484,16 +485,16 @@ function analyser(source, fichier, tables = TABLES) {
       else phasesEmployees.add(arg.text);
     }
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'agent') visiterSite(n);
-    ts.forEachChild(n, visiter);
+    n.forEachChild(visiter);
   };
-  ts.forEachChild(sf, visiter);
+  sf.forEachChild(visiter);
 
   // B5 — un maillon n'est lu qu'en position de maillon.
   const marcherMaillons = (x) => {
     if (ts.isIdentifier(x) && maillons.has(x.text) && estReference(x) && !enPositionDeMaillon.has(x)) {
       dire('maillon', x, `\`${x.text}\` : maillon de racine atteignable par le code (${ts.SyntaxKind[x.parent.kind]}) — un maillon n'est lu que comme valeur de \`schema:\` ou d'un autre maillon`);
     }
-    ts.forEachChild(x, marcherMaillons);
+    x.forEachChild(marcherMaillons);
   };
   marcherMaillons(sf);
 
@@ -563,10 +564,10 @@ export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
 export function scriptsSansBanc(scripts, bancs) {
   const nommes = new Set();
   for (const { fichier, source } of bancs) {
-    const sf = ts.createSourceFile(fichier, source, ts.ScriptTarget.Latest, true, scriptKindDe(fichier));
+    const sf = ast({ rel: fichier, text: source });
     const marcher = (n) => {
       if (estTexte(n)) nommes.add(n.text.split(/[\\/]/).pop());
-      ts.forEachChild(n, marcher);
+      n.forEachChild(marcher);
     };
     marcher(sf);
   }

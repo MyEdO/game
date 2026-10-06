@@ -17,6 +17,7 @@ import { rosterAdd } from '../state/roster';
 import { initialNet, type NetState } from '../state/netFlow';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { emptyNarratif } from '../state/campaignNarratif';
 
 /** Storage isolé pour chaque fixture. */
 function fakeStorage(): Storage {
@@ -308,7 +309,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
   it('un projet PUBLIÉ que la porte refuse : alerte générique DANS la modale, qui reste ouverte, aucune campagne posée', async () => {
     const fautive = {
       id: 'proj-fautif', label: 'Campagne fautive', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { schema: 999 as typeof CURRENT_PROJECT_SCHEMA, scenes: [], narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] } },
+      project: { schema: 999 as typeof CURRENT_PROJECT_SCHEMA, scenes: [], narratif: emptyNarratif() },
     } as unknown as SavedProject;
     await projectSave(fautive);
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -351,7 +352,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
       project: {
         type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-axes', label: 'Campagne à axes', versionContenu: 1,
         maison: 'fixture de test', scenes: [{ ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' }],
-        narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] }, activeAxes: axes.map((a) => a.id),
+        narratif: emptyNarratif(), activeAxes: axes.map((a) => a.id),
       },
     } as unknown as SavedProject;
     await projectSave(publie);

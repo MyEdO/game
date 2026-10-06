@@ -167,7 +167,7 @@ describe('#1318 V4 — issue métier défavorable sur un TEST réussi : rien d�
   });
 
   afterEach(() => {
-    useGame.setState({ battle: null, pendingCast: null, pendingTest: null, pendingCascade: null } as never);
+    act(() => { useGame.setState({ battle: null, pendingCast: null, pendingTest: null, pendingCascade: null } as never); });
   });
 
   it('incantation — DR sous le NI (LDB 46 l.22-24) : ni Relancer ni Résilience', () => {

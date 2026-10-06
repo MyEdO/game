@@ -205,9 +205,10 @@ function resoudrePlancher(c: Combatant, op: GameOp): GameOp {
  *  `grantTrait`/`grantPsychTrait` (noyau PARTAGÉ `grantedTraits.ts`, ci-dessus importé) : MÊME chemin
  *  que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect` porteur — une mutation n'expire
  *  jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les passifs d'une mutation ne passant
- *  pas par `applyOps`. */
-export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG): void {
-  const passive = m.passive?.map((op) => resoudrePlancher(c, op));
+ *  pas par `applyOps`. Rend l'instance attachée. */
+export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG = defaultRNG): Mutation {
+  const m = structuredClone(tiree); // #2097
+  if (m.passive) m.passive = m.passive.map((op) => resoudrePlancher(c, op));
   const talentsAcquis: RefDesignee[] = [];
   const src: EffectSource = { kind: 'mutation', id: m.id };
   for (const op of m.passive ?? []) {
@@ -227,10 +228,10 @@ export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG)
       if (acquerirTalent(c, op.talent)) talentsAcquis.push(op.talent);
     }
   }
-  const attachee: Mutation = { ...m, ...(passive ? { passive } : {}) };
-  delete attachee.talentsAcquis;
-  if (talentsAcquis.length) attachee.talentsAcquis = talentsAcquis;
-  c.mutations = [...(c.mutations ?? []), attachee];
+  delete m.talentsAcquis;
+  if (talentsAcquis.length) m.talentsAcquis = talentsAcquis;
+  c.mutations = [...(c.mutations ?? []), m];
+  return m;
 }
 
 /** INVERSE structurel d'`attachMutation` : retire l'instance de `c.mutations` (ses passifs charMod/moveMod/

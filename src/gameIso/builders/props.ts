@@ -12,7 +12,7 @@
  * Consommé par l'hôte du monde de campagne (`stage/MondeDeCampagne`, qui le sert à SES DEUX regards)
  * et par l'éditeur — mêmes décors partout.
  */
-import { Scene, tileAt, heightAt, sceneMetresPerTile, type ArchitectureRect } from '../../state/scene';
+import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, type ArchitectureRect } from '../../state/scene';
 import { roofHidden, massFootBBox } from '../../state/buildings';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { decorAncre, decorFootGeometry } from '../../state/footprint';
@@ -347,7 +347,8 @@ const cellsOf = (cells: ReadonlySet<string>): { x: number; y: number }[] =>
 
 /** Ancrage EXTÉRIEUR de la PORTE d'un bâtiment (résolu depuis `scene.walls`) : case juste À L'EXTÉRIEUR de
  *  la porte + cap cardinal SORTANT. Robuste à la canonisation N/E des arêtes (une porte 'S'/'O' est
- *  stockée sur la case voisine). Repli : façade SUD, sous le centre bas de l'empreinte. */
+ *  stockée sur la case voisine). Une porte SECRÈTE n'est jamais l'entrée (`porteNonSecrete`). Repli :
+ *  façade SUD, sous le centre bas de l'empreinte. */
 interface DoorAnchor {
   frontCell: { x: number; y: number };
   facing: Dir4;
@@ -355,7 +356,7 @@ interface DoorAnchor {
 function buildingDoor(scene: Scene, f: ArchitectureRect, z: number): DoorAnchor {
   const x0 = f.x, y0 = f.y, x1 = f.x + f.w - 1, y1 = f.y + f.h - 1;
   for (const w of scene.walls ?? []) {
-    if (!w.door || (w.z ?? 0) !== z) continue;
+    if (!porteNonSecrete(w) || (w.z ?? 0) !== z) continue;
     if (w.side === 'N') {
       if (w.x >= x0 && w.x <= x1 && w.y === y0) return { frontCell: { x: w.x, y: y0 - 1 }, facing: 'N' };
       if (w.x >= x0 && w.x <= x1 && w.y === y1 + 1) return { frontCell: { x: w.x, y: y1 + 1 }, facing: 'S' };

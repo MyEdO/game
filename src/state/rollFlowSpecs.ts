@@ -11,7 +11,7 @@
  */
 import type {
   GameState,
-  PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard,
+  PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard,
   PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery,
   PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple,
   PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound,
@@ -43,6 +43,7 @@ import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, mountedDodgePenalty } from './mount';
 import { sceneCombatModifiers } from './sceneRules';
 import { sceneMetresPerTile } from './scene';
+import { metresRetenus, phaseDeChute } from './fallMove';
 import { REDERIVATIONS, resolveTrample, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR } from '../engine/tests';
@@ -1419,37 +1420,40 @@ export const FLOWS = {
   }),
 
   /** Chute VOLONTAIRE (LDB 15 l.82) : Athlétisme Accessible (+20) — DR-driven comme `run` (Chance « +1 DR »
-   *  = 1 m de chute en moins, pas binaire). `p.attempt` (choix pré-jet, `fallChoose`) gate le jet : `false`
-   *  = saut direct SANS Test, résolu immédiatement par `fallChoose` (jamais de `roll`) ; ce flux ne roule
-   *  QUE la branche « Tenter » (`attempt===true`). */
-  fall: makeRollFlow<PendingFall>({
+   *  = 1 m de chute en moins, pas binaire). Flux MULTI (EDO 01 l.231) : une rangée par TOMBANT, sa hauteur
+   *  lue par `metresRetenus`. `part.attempt` (déclaration pré-jet, `fallChoose`) gate le jet : `false` =
+   *  chute pleine SANS Test (jamais de `roll`) ; aucune rangée ne roule tant qu'une autre n'a pas déclaré
+   *  (`phaseDeChute`). */
+  fall: makeRollFlow<PendingFall, TombantParticipant>({
     key: 'pendingFall',
+    multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     die: {
-      read: (p) => (p.result?.target != null ? { roll: p.result.roll, target: p.result.target, critable: false } : null),
-      write: (_s, p, _a, _g, tr) => ({ result: fallFromTest(tr, p.metres) }),
+      read: (part) => (part.result?.target != null ? { roll: part.result.roll, target: part.result.target, critable: false } : null),
+      write: (_s, part, _a, _g, tr, p) => ({ result: fallFromTest(tr, metresRetenus(p, part)) }),
     },
-    rolled: (p) => !!p.result,
-    actor: (s, p) => actorIn(s, p.combatantId),
+    rolled: (part) => !!part.result,
+    actor: (s, part) => actorIn(s, part.id),
     caps: { forced: true },
-    resolve: (_s, p, actor, _get, forced) => {
-      if (!actor || !p.attempt) return null;
+    resolve: (_s, part, actor, _get, forced, p) => {
+      if (!actor || !p || part.attempt !== true || phaseDeChute(p) !== 'roll') return null;
+      const metres = metresRetenus(p, part);
       if (forced) {
-        if (p.result?.success) return null; // rien à forcer si déjà réussi
-        const base = p.result;
+        if (part.result?.success) return null; // rien à forcer si déjà réussi
+        const base = part.result;
         const dr = Math.max(0, base?.dr ?? 0);
-        return { result: { success: true, roll: base?.roll ?? 1, target: base?.target, dr, effectiveMetres: Math.max(0, p.metres - dr) } };
+        return { result: { success: true, roll: base?.roll ?? 1, target: base?.target, dr, effectiveMetres: Math.max(0, metres - dr) } };
       }
-      return { result: resolveDeliberateFall(testValue(actor, 'athletisme'), p.metres, battleRng()) };
+      return { result: resolveDeliberateFall(testValue(actor, 'athletisme'), metres, battleRng()) };
     },
-    outcome: (p) => sealOutcome(!!p.result?.success, p.result?.dr ?? 0, p.result?.roll ?? 0, p.result?.target ?? 0),
+    outcome: (part) => sealOutcome(!!part.result?.success, part.result?.dr ?? 0, part.result?.roll ?? 0, part.result?.target ?? 0),
     // Chance « +1 DR » (LDB 17 l.24) réduit la chute d'1 m de plus (LDB 15 l.82 : « pour chaque DR, 1 m
     // de moins ») — porteur BESPOKE `dr`/`effectiveMetres` (comme `run`/`bonusCases`), pas `sl`.
     bonus: {
-      guard: (p) => !!p.result,
-      derive: (_s, p) => {
-        if (!p.result) return null;
-        const dr = p.result.dr + 1;
-        return { result: { ...p.result, dr, effectiveMetres: Math.max(0, p.metres - Math.max(0, dr)) } };
+      guard: (part) => !!part.result,
+      derive: (_s, part, _actor, p) => {
+        if (!part.result || !p) return null;
+        const dr = part.result.dr + 1;
+        return { result: { ...part.result, dr, effectiveMetres: Math.max(0, metresRetenus(p, part) - Math.max(0, dr)) } };
       },
     },
   }),

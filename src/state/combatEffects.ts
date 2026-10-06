@@ -26,7 +26,7 @@ import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { recomputeLoadout, itemFromGive, giveTrappingLabel, withGiveQualities, autoStowNewItem } from '../engine/items';
-import { trappingById, indiceById } from './campaignData';
+import { trappingById, indiceById, documentById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
@@ -51,8 +51,11 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney } from '../engine/money';
 import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
-import { Effect, setDoorOpen, type Trigger } from './scene';
+import { Effect, groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './scene';
+import { triggersEnJeu } from './decouvertePorteSecrete';
+import { computeStateVisible } from './visionState';
 import { placeCombatant } from './spawn';
+import { refuserGeste } from './refusVisible';
 import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowHasOpADe, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from './flow';
 import { inRect, combatantsWithinRadius } from './combatGeometry';
 import { removeEntity } from './combatGeometry';
@@ -186,10 +189,13 @@ export function flowRestant(entId: string, action: { id: string; flow: Flow }, f
   return action.flow.kind === 'do' && pris(0) ? EMPTY_FLOW : action.flow;
 }
 
+/** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
+ *  vient d'ENTRER. Seul appelant : le pas d'exploration (`moveParty`) — ni le combat, ni l'entrée de scène
+ *  (`transitionTo`/`startScene`) sans premier pas ne jouent un déclencheur. */
 export function checkTriggers(get: Get, set: SetFn) {
   const { scene, partyPos, flags } = get();
   if (!scene) return;
-  const dansLaZone = scene.triggers.filter((trig) => !flags[`__trigger_${trig.id}`]
+  const dansLaZone = triggersEnJeu(scene, () => computeStateVisible(get())).filter((trig) => !flags[`__trigger_${trig.id}`]
     && inRect(partyPos, trig.rect) && (trig.rect.z ?? 0) === (partyPos.z ?? 0));
   for (let i = 0; i < dansLaZone.length; i++) {
     const trig = dansLaZone[i];
@@ -242,7 +248,7 @@ export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Ef
  *  strictement équivalent à applyEffects. Fenêtre déjà ouverte → le butin s'y AJOUTE. */
 export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): Applique {
   if (get().battle) return applyEffects(get, set, effects, sl);
-  const { gear, rest } = gearFromEffects(effects);
+  const { gear, rest } = gearFromEffects(structuredClone(effects)); // #2097
   // Un lot DIFFÉRÉ n'ouvre pas sa fenêtre de butin ICI : le butin fait partie de la suite qu'il a
   // confiée au dé (le `rest` non appliqué y est déjà), et l'ouvrir maintenant la montrerait AVANT la
   // conséquence qui l'a produite.
@@ -407,10 +413,7 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
  * c'est une `Cloture`, différée avec la continuation.
  *
- * Ce nom existe parce que ni le type ni le lint ne savent le dire. Mesuré le 2026-09-05, sonde à deux
- * fichiers : `tsc --noEmit --strict` accepte une valeur rendue jetée en position d'instruction (sortie
- * 0), et `@typescript-eslint/no-unused-expressions` de même (sortie 0 — la règle laisse passer tout
- * appel de fonction, par construction).
+ * Le type et le lint acceptent un appel de fonction dont la valeur rendue est jetée.
  */
 export function jouerFlowEntier(_applique: Applique): void {
   // Rien : la valeur est CONSOMMÉE par le seul fait d'être nommée ici (cf. contrat ci-dessus).
@@ -443,7 +446,8 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
  *  inconnue, coque absente au contexte) AVANT qu'aucune op de la feuille ne s'applique — une feuille
  *  qu'on ne sait pas annoncer entièrement ne s'applique pas à moitié. Même politique que le `case`
  *  correspondant du moteur, qui levait déjà au même endroit. */
-export function applyLeafOps(get: Get, set: SetFn, c: Combatant, e: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
+export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof OPS_DIFFEREES {
+  const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
   const ctx = leafOpsCtx({ ...base, now }, e);
   for (const o of e.ops) if (o.op === 'delayed') scheduleDelayedOps(get, set, c, o, { now, untilTime: ctx.defaultUntilTime, label: ctx.label });
@@ -610,9 +614,6 @@ export function ouvrirChute(set: SetFn, cible: Combatant, metres: number): void 
   }, revealPurpose('sequence', false));
 }
 
-/** APPLIER de la chute à hauteur connue (#1508) : le dé tombé part dans `applyFall`, qui décide seul
- *  des Blessures et de l'État À Terre (LDB 15 l.80/l.84). La ligne dit la perte et l'État POSÉ, lu par
- *  DIFFÉRENCE — elle ne nomme aucun État d'avance. La continuation confiée par le walker suit. */
 registerCascadeApplier('chuteDe', (get, set, step, hero) => {
   const metres = step.meta?.chuteMetres;
   // Le dé n'a pas encore de résultat : l'étape est ouverte, rien à appliquer — le goulot repassera.
@@ -830,7 +831,7 @@ registerCloture('effetsProgrammes', (get, set, c) => jouerEffetsProgrammes(get, 
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
  *  dans le bon ensemble (file de combat si en combat, sinon le groupe). `hero` = celui désigné par
  *  `heroId` (défaut : 1er vivant) ; `party` = tous les héros vivants. SOURCE UNIQUE (pas de dup). */
-function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Combatant[] {
+export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Combatant[] {
   const pool = get().battle?.combatants ?? get().party;
   if (target === 'hero') {
     const id = heroId || pool.find((c) => c.kind === 'hero' && !c.dead)?.id;
@@ -959,9 +960,11 @@ export function openSkillTest(
   };
   // `opts.actorId` RESTREINT le Test à UN acteur précis (ex. le Personnage qui prend l'Action « Diriger
   //  l'équipe » — le porteur du Talent, pas le meilleur du groupe) ; sinon le meilleur PJ (partyBest).
+  // L'acteur imposé est un COMBATTANT (`actorIn`) : en combat, un ennemi mené par le siège MJ en est un.
   const restrictId = opts?.actorId;
+  const imposed = restrictId ? actorIn(get(), restrictId) : undefined;
   const best = restrictId
-    ? (() => { const a = get().party.find((c) => c.id === restrictId && !c.dead); return a ? { actor: a } : null; })()
+    ? (imposed && !imposed.dead ? { actor: imposed } : null)
     : partyBest(get().party, spec.skill?.id, spec.characteristic, socialMod, spec.skill?.spec);
   if (!best) return false;
   const baseDifficulty = spec.difficulty ?? 'intermediaire';
@@ -993,12 +996,13 @@ export function openSkillTest(
   const pool = battle?.combatants ?? get().party;
   // Deux populations DISTINCTES (elles l'étaient sous un seul filtre, ce qui annulait le Soutien dès
   // qu'un acteur était imposé) : `living` = qui peut SOUTENIR (LDB 12 l.187-200 — le meneur imposé ou
-  // non, les autres membres capables l'assistent) ; `runners` = qui peut LANCER (restreint par
+  // non, les autres membres capables de SON camp l'assistent) ; `runners` = qui peut LANCER (restreint par
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
-  const living = pool.filter((c) => c.kind === 'hero' && !c.dead);
-  const runners = restrictId ? living.filter((c) => c.id === restrictId) : living;
+  const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && !c.dead);
   const candidates = runners.map((actor) => {
+    const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
@@ -1053,7 +1057,7 @@ export function openSkillTest(
       support: def.support, easedBy,
       envMod: env?.mod, envLabel: env?.label,
       capriciousRoll, capriciousDR: capDR || undefined,
-      onSuccess, onFailure, after,
+      ...structuredClone({ onSuccess, onFailure, after }), // #2097
       candidates: candidates.length > 1 ? candidates : undefined,
       ...(opts?.noOwnTestFailed ? { noOwnTestFailed: true } : {}),
       ...(opts?.combatAdvantage ? { combatAdvantage: opts.combatAdvantage } : {}),
@@ -1088,7 +1092,7 @@ export function openSkillTest(
  * la conséquence aura produit).
  */
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
-  const stack: Flow[] = [flow];
+  const stack: Flow[] = [structuredClone(flow)]; // #2097
   const batch: Effect[] = [];
   const flush = (): Applique => (batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined);
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
@@ -1242,6 +1246,8 @@ export interface EffectRefCtx {
    *  comme `within` : une fonction du contexte, jamais un canal parallèle vers la scène. */
   npcSheet(id: string): Combatant | undefined;
   within(x: number, y: number): boolean;
+  /** Le groupe peut-il être posé en (x,y), étage `z` — `groupePosable` de la scène, comme `within`. Lue sur une case `within`. */
+  walkable(x: number, y: number, z: number): boolean;
 }
 export interface EffectRefIssue {
   level: 'error' | 'warn';
@@ -1316,8 +1322,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   document: {
     group: 'Narration', label: 'Document (handout)', icon: 'file/document',
-    make: () => ({ type: 'document', title: '', desc: '' }),
-    apply: (e, env) => { env.set({ document: { title: e.title, text: e.desc } }); },
+    make: () => ({ type: 'document', documentId: '' }),
+    apply: (e, env) => {
+      const doc = documentById(e.documentId);
+      if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
+      env.set({ document: { title: doc.titre, text: doc.prose, ...(doc.source ? { source: structuredClone(doc.source) } : {}) } }); // #2097
+    },
   },
   revealClue: {
     group: 'Narration', label: 'Révéler un indice (carnet)', icon: 'ui/search',
@@ -1409,9 +1419,17 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => { env.set({ lightLevel: Math.max(0, Math.min(1, e.level)) }); }, // mise en scène (Lot L) : niveau borné [0,1]
   },
   setDoor: {
-    group: 'Narration', label: 'Porte (ouvrir / fermer — bloque vue et passage)', icon: 'map-tool/door',
+    group: 'Narration', label: 'Porte (ouvrir / fermer / révéler une porte secrète)', icon: 'map-tool/door',
     make: () => ({ type: 'setDoor', x: 0, y: 0, side: 'N', open: true }),
-    apply: (e, env) => { env.set((s: GameState) => (s.scene ? { scene: setDoorOpen(s.scene, e.x, e.y, e.side, e.z ?? 0, e.open) } : {})); },
+    apply: (e, env) => {
+      env.set((s: GameState) => {
+        if (!s.scene) return {};
+        const z = e.z ?? 0;
+        const tentee = e.attempted === undefined ? s.scene : setDoorTentee(s.scene, e.x, e.y, e.side, z, e.attempted);
+        const revelee = e.revealed === undefined ? tentee : setDoorRevealed(tentee, e.x, e.y, e.side, z, e.revealed);
+        return { scene: e.open === undefined ? revelee : setDoorOpen(revelee, e.x, e.y, e.side, z, e.open) };
+      });
+    },
   },
   moveEntity: {
     group: 'Narration', label: 'Déplacer / retirer une entité (mise en scène : fuite, entrée, disparition)', icon: 'travel/foot',
@@ -1678,13 +1696,23 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const m = Math.max(0, e.metres);
       // `to` ramène le faller au PIED (chute → il retombe en bas, LDB 15) : le GROUPE hors combat, ou
       // les combattants nommés en combat (escalade ratée → hisse annulée par `placeCombatant`).
+      // Hors combat, l'atterrissage du groupe est un PAS : `moveParty` (déclencheurs, cap du groupe).
+      // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
       const sc = env.get().scene;
+      if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.fallAtterrissageRefuse'));
       if (e.to && env.get().battle && sc) for (const c of targets) placeCombatant(c, sc, e.to);
+      if (e.to && !env.get().battle) env.get().moveParty(e.to);
       if (targets.length) {
-        env.set({ ...touchActors(env.get()), ...(e.to && !env.get().battle ? { partyPos: e.to } : {}) });
+        env.set(touchActors(env.get()));
         env.log(t('eff.fallOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
         for (const c of targets) ouvrirChute(env.set, c, m);
-      } else if (e.to && !env.get().battle) env.set({ partyPos: e.to });
+      }
+    },
+    refs: (e, ctx) => {
+      if (!e.to) return [];
+      if (!ctx.within(e.to.x, e.to.y)) return [{ level: 'error', message: `Chute : atterrissage (${e.to.x},${e.to.y}) hors de la carte` }];
+      const z = e.to.z ?? 0;
+      return ctx.walkable(e.to.x, e.to.y, z) ? [] : [{ level: 'error', message: `Chute : atterrissage (${e.to.x},${e.to.y}, étage ${z}) sur une case non marchable` }];
     },
   },
   inflictDisease: {
@@ -2281,7 +2309,7 @@ registerCascadeApplier('waterExposure', (_get, _set, step, hero) => {
  */
 export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number): Applique {
   const env = makeEffectEnv(get, set, sl);
-  const file = [...effects];
+  const file = structuredClone(effects); // #2097
   let differe: Applique;
   while (file.length) {
     const e = file.shift()!;

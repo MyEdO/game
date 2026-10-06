@@ -109,7 +109,7 @@ function survol(dataCell: string) {
     body: pop.querySelector('.codex-pop-body')?.textContent ?? null,
     /** La PORTE vers la fiche complète (l’infobulle borne son corps : `coupeAuMot`, `BORNE_DU_CORPS`). */
     porte: pop.querySelector('.codex-pop-open')?.textContent ?? null,
-    source: pop.querySelector('.codex-src')?.textContent ?? null,
+    source: pop.querySelector('.source-badge')?.textContent ?? null,
     /** La RAISON DU REFUS, quand la case est fermée : elle vit ICI et nulle part ailleurs à l'écran. */
     refus: pop.querySelector("[data-refus]")?.textContent ?? null,
   };
@@ -3254,7 +3254,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
   });
 
   it('modale DISTANTE ouverte pendant un tour distant : toujours UNE puce (l’arbitre parle, la bande se tait)', () => {
-    coop(1, { pendingFall: { actorId: 'h2', from: { x: 1, y: 1 }, to: { x: 1, y: 3 }, height: 2 } });
+    coop(1, { pendingFall: { to: { x: 1, y: 3 }, metres: 2, initiateurId: 'h2', participants: [{ id: 'h2', interactive: true, attempt: null, result: null }] } });
     expect(useGame.getState().pendingFall, 'témoin : la modale distante doit être ouverte').not.toBeNull();
     expect(puces(), 'deux puces (arbitre + bande) ou aucune').toBe(1);
   });

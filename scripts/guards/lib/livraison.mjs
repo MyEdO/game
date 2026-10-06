@@ -3,13 +3,13 @@
 // `livraison:plage`, #2328 A3).
 // Ticket #2328, Attendu, verbatim : « Ceux-ci restent exigés là où la livraison se juge : commit de
 // solde, porte de publication. » Une fusion se COMMITE sans eux (lot 1) ; la résolution qu'elle porte
-// se juge avant la publication, par un commit POSTÉRIEUR de la plage qui nomme son sha.
+// se juge avant la publication, par son propre message, ou par un commit POSTÉRIEUR de la plage qui nomme son sha.
 import { estFichierVitest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
-import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
 
 /** Le seuil de SUBSTANCE d'un commit : au commit, ses lignes de diff sous `src/` ; à la publication,
- *  les INSERTIONS sous `src/` de la résolution d'une fusion (#2328 A4). */
+ *  les lignes CHANGÉES (ajoutées ou supprimées) sous `src/` de la résolution d'une fusion (#2328 A4). */
 export const SUBSTANTIVE_MIN_LINES = 10
 
 /** Les trailers de livraison : la ligne du message, le titre de la section d'un solde
@@ -17,7 +17,7 @@ export const SUBSTANTIVE_MIN_LINES = 10
  *  jamais `JUGE-VISION:` : le tiret casse le motif `JUGE\s*:`. */
 export const TRAILERS = Object.freeze({
   JUGE: Object.freeze({ ligne: /\bJUGE\s*:\s*(.+)/i, section: 'Juge', min: 40 }),
-  REFUTATION: Object.freeze({ ligne: /REFUTATION\s*:\s*(.+)/i, section: 'R[ée]futation', min: 40 }),
+  REFUTATION: Object.freeze({ ligne: /\bREFUTATION\s*:\s*(.+)/i, section: 'R[ée]futation', min: 40 }),
   'JUGE-VISION': Object.freeze({ ligne: /\bJUGE-VISION\s*:\s*(.+)/i, section: 'Juge-Vision', min: 40 }),
 })
 
@@ -55,11 +55,17 @@ const SHA_COURT_MIN = 9
 /** `true` si `texte` porte un sha d'au moins `SHA_COURT_MIN` caractères qui préfixe `sha`. PURE. */
 const nommeLeSha = (texte, sha) => [...String(texte).matchAll(/\b[0-9a-f]{9,40}\b/gi)].some((m) => m[0].length >= SHA_COURT_MIN && sha.startsWith(m[0].toLowerCase()))
 
+/** Les textes des lignes du trailer `nom` assez longues que porte le MESSAGE. PURE. */
+const lignesDuTrailer = (message, nom) => String(message ?? '').split('\n')
+  .map((ligne) => TRAILERS[nom].ligne.exec(ligne)?.[1].trim())
+  .filter((texte) => texte !== undefined && texte.length >= TRAILERS[nom].min)
+
+/** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue : le message d'une fusion la juge
+ *  elle-même, sans son sha qu'il ne peut pas connaître. PURE. */
+const messagePorte = (message, nom) => lignesDuTrailer(message, nom).length > 0
+
 /** `true` si le MESSAGE porte une ligne du trailer `nom` assez longue qui nomme `sha`. PURE. */
-const messageNomme = (message, nom, sha) => String(message ?? '').split('\n').some((ligne) => {
-  const m = TRAILERS[nom].ligne.exec(ligne)
-  return !!m && m[1].trim().length >= TRAILERS[nom].min && nommeLeSha(m[1], sha)
-})
+const messageNomme = (message, nom, sha) => lignesDuTrailer(message, nom).some((texte) => nommeLeSha(texte, sha))
 
 /** `true` si le SOLDE porte la section du trailer `nom`, assez longue, qui nomme `sha`. PURE. */
 const soldeNomme = (contenu, nom, sha) => {
@@ -67,25 +73,29 @@ const soldeNomme = (contenu, nom, sha) => {
   return corps !== null && corps.length >= TRAILERS[nom].min && nommeLeSha(corps, sha)
 }
 
+/** Une ligne de MARQUEUR de conflit telle que `merge-tree` l'écrit (git help merge-file). */
+const MARQUEUR_DE_CONFLIT = /^(?:<{7}|\|{7}|>{7})(?: |$)|^={7}$/
+
 /** Ce qu'une fusion APPORTE d'après ses patchs `-U0` (chemin ↦ patch, `ceQueFontLesCommits`) : ses
- *  insertions sous `src/`, et si un écran en reçoit (#2328 A4). Les lignes `+` comptent après le
- *  premier `@@` d'une section : l'en-tête `+++` n'en est pas une. PURE. */
+ *  lignes changées sous `src/`, ajoutées ou supprimées contre sa fusion automatique, hors marqueurs de
+ *  conflit, et si un écran en change (#2328 A4). Les lignes `+`/`-` comptent après le premier `@@`
+ *  d'une section : les en-têtes `+++`/`---` n'en sont pas. PURE. */
 export function apportDeLaResolution(patchs) {
-  let insertions = 0
+  let lignesChangees = 0
   let ecran = false
   for (const [chemin, patch] of patchs) {
     if (!chemin.startsWith('src/')) continue
     let dansUnHunk = false
-    let plus = 0
+    let changees = 0
     for (const ligne of patch.split('\n')) {
       if (ligne.startsWith('diff --git ')) dansUnHunk = false
       else if (ligne.startsWith('@@')) dansUnHunk = true
-      else if (dansUnHunk && ligne.startsWith('+')) plus += 1
+      else if (dansUnHunk && /^[+-]/.test(ligne) && !MARQUEUR_DE_CONFLIT.test(ligne.slice(1))) changees += 1
     }
-    insertions += plus
-    if (plus > 0 && estFichierEcran(chemin)) ecran = true
+    lignesChangees += changees
+    if (changees > 0 && estFichierEcran(chemin)) ecran = true
   }
-  return { insertions, ecran }
+  return { lignesChangees, ecran }
 }
 
 /** Les commits de `commits` (`grapheDe`) qui DESCENDENT de `sha`, lui exclu. PURE. */
@@ -101,16 +111,16 @@ function descendantsDe(commits, sha) {
 
 /**
  * Les FUSIONS de la plage `merge-base(base, tete)..tete` dont la résolution porte au moins
- * `SUBSTANTIVE_MIN_LINES` insertions sous `src/` sans qu'un commit qui en DESCEND, dans la plage, les
- * NOMME (sha court de `SHA_COURT_MIN` caractères ou plus) dans son `JUGE:` et sa `REFUTATION:` — plus
- * `JUGE-VISION:` quand un écran reçoit des insertions. Un commit nomme par son message, ou par le
+ * `SUBSTANTIVE_MIN_LINES` lignes changées sous `src/` (`apportDeLaResolution`) sans `JUGE:` ni `REFUTATION:` — plus
+ * `JUGE-VISION:` quand un écran en change. Les porte le message de la fusion elle-même, ou un commit qui en DESCEND,
+ * dans la plage, et la NOMME (sha court de `SHA_COURT_MIN` caractères ou plus) par son message, ou par le
  * solde (`.claude/soldes/ref-<N>.md`, `<N>.md`, lus dans `tete`) d'un ticket que son message cite.
  * UNE lecture du graphe, UN lot pour l'apport des fusions (`ceQueFontLesCommits`), UN journal.
  * @param {import('./gitPorte.mjs').Depot} depot
  * @param {{ base?: string, tete?: string }} [bornes]
  * `borne` : le `merge-base` et sa date de commit — le verdict dépend de la fraîcheur de `base`, et la
  * borne le DIT (#2328 L3).
- * @returns {{ plage: string, borne: { base: string, sha: string, date: string, tete: string }, refus: { sha: string, insertions: number, manque: string[] }[] }}
+ * @returns {{ plage: string, borne: { base: string, sha: string, date: string, tete: string }, refus: { sha: string, lignesChangees: number, manque: string[] }[] }}
  * @throws {GitIndisponible} aucune base commune, plage ou journal que git ne rend pas, ou fusion
  *   illisible (`ceQueFontLesCommits`).
  */
@@ -128,7 +138,7 @@ export function fusionsNonJugees(depot, { base = TRONC.suivi, tete = 'HEAD' } = 
   const patchs = ceQueFontLesCommits(depot, fusions).patchs()
   const aJuger = fusions
     .map((f) => ({ sha: f.sha, ...apportDeLaResolution(patchs.get(f.sha)) }))
-    .filter((f) => f.insertions >= SUBSTANTIVE_MIN_LINES)
+    .filter((f) => f.lignesChangees >= SUBSTANTIVE_MIN_LINES)
   if (!aJuger.length) return { plage, borne, refus: [] }
   const journal = journalDe(depot, [plage])
   if (!journal) throw new GitIndisponible(`journal de ${plage} illisible`)
@@ -142,8 +152,9 @@ export function fusionsNonJugees(depot, { base = TRONC.suivi, tete = 'HEAD' } = 
     const apres = posterieurs.get(f.sha)
     const textes = soldesCites(apres).map((c) => soldes.get(c)).filter((t) => typeof t === 'string')
     const exiges = ['JUGE', 'REFUTATION', ...(f.ecran ? ['JUGE-VISION'] : [])]
-    const manque = exiges.filter((nom) => ![...apres].some((s) => messageNomme(messages.get(s), nom, f.sha)) && !textes.some((t) => soldeNomme(t, nom, f.sha)))
-    return manque.length ? [{ sha: f.sha, insertions: f.insertions, manque }] : []
+    const manque = exiges.filter((nom) => !messagePorte(messages.get(f.sha), nom)
+      && ![...apres].some((s) => messageNomme(messages.get(s), nom, f.sha)) && !textes.some((t) => soldeNomme(t, nom, f.sha)))
+    return manque.length ? [{ sha: f.sha, lignesChangees: f.lignesChangees, manque }] : []
   })
   return { plage, borne, refus }
 }
@@ -153,9 +164,9 @@ const plageEnClair = ({ base, sha, date, tete }) => `${base} (base ${sha.slice(0
 
 /** Le refus de publication des `refus` de `fusionsNonJugees`, une ligne par fusion. PURE. */
 const raisonDeFusionsNonJugees = (borne, refus) =>
-  `⛔ ${plageEnClair(borne)} : ${refus.length} fusion(s) dont la RÉSOLUTION porte ≥${SUBSTANTIVE_MIN_LINES} insertions sous src/ sans juge qui la nomme (#2328) :\n` +
-  refus.map((r) => `  ${r.sha.slice(0, 9)} (${r.insertions} insertions) : manque ${r.manque.map((m) => `\`${m}:\``).join(', ')}`).join('\n') +
-  `\nGeste : un commit postérieur de la plage (ou le solde \`.claude/soldes/ref-<N>.md\` d'un ticket qu'il cite) porte ces lignes, chacune nommant le sha court (${SHA_COURT_MIN} caractères ou plus) de la fusion.`
+  `⛔ ${plageEnClair(borne)} : ${refus.length} fusion(s) dont la RÉSOLUTION porte ≥${SUBSTANTIVE_MIN_LINES} lignes changées sous src/ sans juge qui la nomme (#2328) :\n` +
+  refus.map((r) => `  ${r.sha.slice(0, 9)} (${r.lignesChangees} lignes changées) : manque ${r.manque.map((m) => `\`${m}:\``).join(', ')}`).join('\n') +
+  `\nGeste : le message de la fusion porte ces lignes ; sinon un commit postérieur de la plage (ou le solde \`.claude/soldes/ref-<N>.md\` d'un ticket qu'il cite) les porte, chacune nommant le sha court (${SHA_COURT_MIN} caractères ou plus) de la fusion.`
 
 /**
  * Le verdict de PUBLICATION (#2328 A3) de la plage `merge-base(base, tete)..tete` : `ok`, et son `texte`
@@ -173,6 +184,6 @@ export function verdictDePublication(depot, bornes) {
       : { ok: true, texte: `${plageEnClair(borne)} : toute résolution substantielle de fusion est jugée` }
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    return { ok: false, texte: `⛔ lecture git indisponible : ${e.raison} — la porte de publication ne juge pas ce que git n'a pas lu.` }
+    return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte de publication ne juge pas ce que git n'a pas lu.` }
   }
 }

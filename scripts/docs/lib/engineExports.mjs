@@ -1,10 +1,11 @@
+import { ast, analyserCorpus } from '../../guards/lib/dialecte.mjs';
 // Énumération des EXPORTS PUBLICS de `src/engine`, par AST TypeScript (jamais de regex sur `export`
 // — un littéral `'export'` dans une chaîne ou un commentaire fausserait le compte). Socle PARTAGÉ de
 // `scripts/docs/build-index-moteur.mjs` (génère `docs/index-moteur.md`) et de
 // `src/data/index-moteur-ratchet.test.ts` (cliquet de la dette de JSDoc) — UNE seule mesure, jamais
 // deux comptages qui pourraient diverger. Même socle JSDoc que `lib/jsdocUnion.mjs` (`jsdocBody`/
 // `firstSentence`), réutilisé tel quel (générique, pas spécifique aux unions).
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { listerArbre } from '../../guards/lib/lister.mjs'
 import { jsdocBody, firstSentence } from './jsdocUnion.mjs'
@@ -26,8 +27,8 @@ const EXPORT_KINDS = new Set([
 ])
 
 function hasExportModifier(node) {
-  if (!ts.canHaveModifiers(node)) return false
-  return (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
+  if (!('modifiers' in node)) return false
+  return (node.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
 }
 
 /**
@@ -38,9 +39,13 @@ function hasExportModifier(node) {
  * `export * from …`) et les exports par défaut anonymes sont HORS mesure — un export public sans
  * déclaration nommée directe n'a ni ligne ni JSDoc à rapporter honnêtement.
  */
-export function fileExports(path) {
+export function fileExports(path, sourceFile) {
   const text = readFileSync(path, 'utf8')
-  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true)
+  const sf = sourceFile ?? ast({ rel: path, text: text })
+  return exportsDe(path, text, sf)
+}
+
+function exportsDe(path, text, sf) {
   const rows = []
   const roleOf = (node) => firstSentenceOrNull(jsdocBody(text.slice(node.getFullStart(), node.getStart(sf))))
   const lineOf = (node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
@@ -67,5 +72,6 @@ function firstSentenceOrNull(body) {
 
 /** Tous les exports publics de `src/engine` (production, hors tests). */
 export function allEngineExports(root = ENGINE_ROOT) {
-  return fichiersMoteur(root).flatMap((f) => fileExports(f))
+  const fichiers = fichiersMoteur(root).map((rel) => ({ rel, text: readFileSync(rel, 'utf8') }))
+  return [...analyserCorpus(fichiers)].flatMap(({ fichier, sourceFile }) => exportsDe(fichier.rel, fichier.text, sourceFile))
 }

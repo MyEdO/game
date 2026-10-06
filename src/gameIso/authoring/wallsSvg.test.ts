@@ -20,7 +20,7 @@ function el(seg: WallSeg, edit?: (s: Scene) => Scene): WallEl {
   let s = emptyScene(6, 6);
   s.walls = [seg];
   if (edit) s = edit(s);
-  return buildWalls(s)[0];
+  return buildWalls(s, 'jeu')[0];
 }
 
 describe('wallSvg — parité de géométrie avec tileEdge (arête historique)', () => {
@@ -152,7 +152,7 @@ describe('wallSvg — apparence de façade authorée', () => {
       }],
       masses: [],
     }];
-    return buildWalls(s)[0];
+    return buildWalls(s, 'jeu')[0];
   };
 
   it.each([0, 1, 2, 3] as const)('cran %s : résout le matériau partagé et conserve la même arête', (rot) => {
@@ -181,7 +181,7 @@ describe('wallSvg — apparence de façade authorée', () => {
         ],
       }],
     }];
-    const svg = wallSvg(buildWalls(s)[0], { ...dims, rot });
+    const svg = wallSvg(buildWalls(s, 'jeu')[0], { ...dims, rot });
     for (const id of ['fenetres', 'entree', 'pignon'])
       expect(svg).toContain(`data-architecture-feature="corps:rue:${id}"`);
   });
@@ -196,7 +196,7 @@ describe('wallSvg — apparence de façade authorée', () => {
         features: [{ id: 'pignon', kind: 'gable', edge: { x: 2, y: 2, side: 'N' }, width: 0.8 }],
       }],
     }];
-    const outputs = ([0, 1, 2, 3] as const).map((rot) => wallSvg(buildWalls(s)[0], { ...dims, rot }));
+    const outputs = ([0, 1, 2, 3] as const).map((rot) => wallSvg(buildWalls(s, 'jeu')[0], { ...dims, rot }));
     expect(new Set(outputs).size).toBe(4);
     expect(outputs.every((svg) => !svg.includes('NaN') && !svg.includes('Infinity'))).toBe(true);
   });

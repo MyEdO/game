@@ -13,6 +13,7 @@ import { allBuiltinCampaigns } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 import { emptyScene } from '../../state/scene';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import { IMPORT_FORME_DEPOT } from '../../state/projectLibrary';
 
 beforeAll(() => {
@@ -110,7 +111,7 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
 /** Un document courant, sain, dont un décor NOMME son type — les cas ci-dessous le cassent un à un. */
 const projet = (): Record<string, unknown> => ({
   type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj', label: 'Projet', versionContenu: 1,
-  maison: 'fixture de test', narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+  maison: 'fixture de test', narratif: emptyNarratif(),
   scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle du banc', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le tonneau', ref: 'tonneau' }] }],
 });
 const decorSansType = (doc: Record<string, unknown>) => ({

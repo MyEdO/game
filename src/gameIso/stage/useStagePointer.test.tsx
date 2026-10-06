@@ -6,9 +6,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screenToTileAtZ, tileCenter, type Dims } from '../../geometry/iso';
-import { emptyScene, isWalkable, setDoorOpen } from '../../state/scene';
+import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../state/scene';
+import { piece } from '../../state/pieces.fixture';
 import { metricToLift } from '../../state/relief';
-import { walkNeighbors } from '../../state/path';
+import { walkNeighbors, type Pt } from '../../state/path';
 import { chebyshev } from '../../engine/grid';
 import { resolveCursorZ } from '../../state/combatCursor';
 import { placesJouables, seatPoseOf, seatSlotsOf } from '../../state/seating';
@@ -22,7 +23,6 @@ import { props } from '../../data';
 import { bus, EVT } from '../../state/bus';
 import { STEP_MS } from '../../geometry/walk';
 import type { Combatant } from '../../engine/types';
-import type { RoomPortal } from '../../state/roomPortals';
 import { aretesUtilisables, type AreteUtilisable } from '../../state/aretes';
 import { projeterAretes } from './aretesProjetees';
 import { VH, VW } from './useStageCamera';
@@ -59,38 +59,24 @@ function stageEl(): SVGSVGElement {
   } as unknown as SVGSVGElement;
 }
 
-const portal: RoomPortal = {
-  id: '0:2,2:N:room-a:room-b',
-  z: 0,
-  edge: { x: 2, y: 2, side: 'N' },
-  fromZoneId: 'room-a',
-  toZoneId: 'room-b',
-  kind: 'passage',
-  exterior: false,
-  from: { x: 2, y: 1 },
-  to: { x: 2, y: 2 },
-};
-const closedExteriorPortal: RoomPortal = {
-  id: '0:0,1:E:exterior:room-a',
-  z: 0,
-  edge: { x: 0, y: 1, side: 'E' },
-  fromZoneId: null,
-  toZoneId: 'room-a',
-  kind: 'door-closed',
-  exterior: true,
-  from: { x: 0, y: 1 },
-  to: { x: 1, y: 1 },
-};
+/** Pièces en colonne x=2 : la pièce A de (2,1) à (2,yB-1), la pièce B en (2,yB), reliées par le
+ *  passage (2,yB,N) — l'accès que le groupe, posé dans A, emprunte. */
+function scèneÀSeuil(yB: number): Scene {
+  const scene = emptyScene(8, 8);
+  scene.effectZones = [piece('room-a', 2, 1, 1, yB - 1), piece('room-b', 2, yB)];
+  return scene;
+}
 
-/** L'ARÊTE d'un accès, dérivée comme l'hôte la dérive (`state/aretes.ts`) : le verdict de pixel et la
- *  touche Entrée du peintre passent tous deux par elle, jamais par le `RoomPortal` nu. */
-const areteDe = (p: RoomPortal): AreteUtilisable => aretesUtilisables({
-  scene: emptyScene(1, 1),
-  visible: new Set([`${p.from.x},${p.from.y},${p.z}`]),
-  controleur: null,
-  activeZ: p.z,
-  portails: [p],
-})[0];
+/** L'ARÊTE d'un accès de `scene`, dérivée comme l'hôte la dérive (`state/aretes.ts`) depuis le
+ *  contrôleur : le verdict de pixel et la touche Entrée du peintre passent tous deux par elle. */
+function areteDe(scene: Scene, controleur: Pt, cle: string): AreteUtilisable {
+  const visible = new Set<string>();
+  for (let x = 0; x < scene.dimensions.w; x += 1) for (let y = 0; y < scene.dimensions.h; y += 1) visible.add(`${x},${y},0`);
+  const arete = aretesUtilisables({ scene, visible, controleur, activeZ: 0 })
+    .find((a) => a.capacite === 'porte' && a.cle === cle);
+  if (!arete) throw new Error(`aucun accès offert en ${cle}`);
+  return arete;
+}
 
 function pointerEvent(x: number, y: number) {
   return {
@@ -367,7 +353,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('continue sans rollback après un remplacement immutable de la même scène', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = scèneÀSeuil(4);
     const positions: { x: number; y: number; z?: number }[] = [];
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => {
       positions.push(pos);
@@ -403,7 +389,7 @@ describe('useStagePointer — picking exploration', () => {
     };
     renderToStaticMarkup(<Probe />);
 
-    pointer!.activerArete(areteDe({ ...portal, to: { x: 2, y: 4 } }));
+    pointer!.activerArete(areteDe(scene, { x: 2, y: 1 }, '2,4,N,0'));
     vi.runAllTimers();
 
     expect(positions).toEqual([{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 2, y: 4 }]);
@@ -412,7 +398,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('s’arrête avant un seuil refermé entre deux pas sans restaurer une ancienne position', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = scèneÀSeuil(4);
     scene.walls = [{ x: 2, y: 3, side: 'N', door: true }];
     const positions: { x: number; y: number; z?: number }[] = [];
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => {
@@ -451,7 +437,7 @@ describe('useStagePointer — picking exploration', () => {
     };
     renderToStaticMarkup(<Probe />);
 
-    pointer!.activerArete(areteDe({ ...portal, to: { x: 2, y: 4 } }));
+    pointer!.activerArete(areteDe(scene, { x: 2, y: 1 }, '2,4,N,0'));
     vi.runAllTimers();
 
     expect(positions).toEqual([{ x: 2, y: 2 }]);
@@ -460,7 +446,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('le CLIC sur le pixel d’un seuil passe par le VERDICT et joue LE geste de l’arête', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = scèneÀSeuil(2);
     const positions: { x: number; y: number; z?: number }[] = [];
     useGame.setState({
       scene,
@@ -474,7 +460,7 @@ describe('useStagePointer — picking exploration', () => {
       },
     });
     // L'offre que l'hôte projette, à la géométrie du peintre : un seul accès, l'arête N de (2,2).
-    const aretes = projeterAretes([areteDe(portal)], dims, () => 0);
+    const aretes = projeterAretes([areteDe(scene, { x: 2, y: 1 }, '2,2,N,0')], dims, () => 0);
     const [a, b] = [aretes[0].a, aretes[0].b];
     const pixel = pointerEvent((a.cx + b.cx) / 2, (a.cy + b.cy) / 2);
 
@@ -508,7 +494,7 @@ describe('useStagePointer — picking exploration', () => {
   it('réutilise la confirmation tactile : premier tap aperçu, second tap déplacement exact du portail', () => {
     vi.useFakeTimers();
     vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as unknown as MediaQueryList);
-    const scene = emptyScene(8, 8);
+    const scene = scèneÀSeuil(2);
     const positions: { x: number; y: number; z?: number }[] = [];
     useGame.setState({
       scene,
@@ -542,11 +528,12 @@ describe('useStagePointer — picking exploration', () => {
     root = createRoot(container);
     act(() => root!.render(<Probe />));
 
-    act(() => pointer!.activerArete(areteDe(portal)));
+    const seuil = areteDe(scene, { x: 2, y: 1 }, '2,2,N,0');
+    act(() => pointer!.activerArete(seuil));
     expect(positions).toEqual([]);
-    expect(pointer!.areteSurvolee?.portail).toEqual(portal);
+    expect(pointer!.areteSurvolee?.portail).toEqual(expect.objectContaining({ edge: { x: 2, y: 2, side: 'N' }, to: { x: 2, y: 2 } }));
 
-    act(() => pointer!.activerArete(areteDe(portal)));
+    act(() => pointer!.activerArete(seuil));
     act(() => vi.runAllTimers());
 
     expect(positions).toEqual([{ x: 2, y: 2 }]);
@@ -593,11 +580,15 @@ describe('useStagePointer — picking exploration', () => {
     };
     renderToStaticMarkup(<Probe />);
 
-    pointer!.activerArete(areteDe(closedExteriorPortal));
+    const fermee = areteDe(scene, { x: 0, y: 1 }, '0,1,E,0');
+    expect(fermee.portail?.kind).toBe('door-closed');
+    pointer!.activerArete(fermee);
     vi.runAllTimers();
     expect(positions).toEqual([]);
 
-    pointer!.activerArete(areteDe({ ...closedExteriorPortal, kind: 'door-open' }));
+    const ouverte = areteDe(useGame.getState().scene!, { x: 0, y: 1 }, '0,1,E,0');
+    expect(ouverte.portail?.kind, 'la porte ouverte par le premier clic').toBe('door-open');
+    pointer!.activerArete(ouverte);
     vi.runAllTimers();
     expect(positions).toEqual([{ x: 1, y: 1 }]);
   });

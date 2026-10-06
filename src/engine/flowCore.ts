@@ -32,6 +32,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
 import { statusOf, statusMeets } from './social';
+import { gelerLaConstante } from '../lib/gelerProfond';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
  *  ouverte ; objet vide = toujours vrai. Aucune dépendance — type structurel pur. */
@@ -526,8 +527,9 @@ export type ArgTemplate = typeof ARG_TEMPLATE;
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
 export type FlowTestNode<E = EffectOp> = Extract<Flow<E>, { kind: 'test' }>;
 
-/** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. */
-export const EMPTY_FLOW: Flow = { kind: 'seq', steps: [] };
+/** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
+ *  par la donnée comme par l'état : gelé à sa définition (#2097). */
+export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'seq', steps: [] });
 
 /** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
  *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
@@ -910,28 +912,75 @@ export function isFlowNode(v: unknown): v is Flow<unknown> {
  * Le parcours descend dans les objets et tableaux de la feuille, s'arrête au PREMIER nœud rencontré
  * (l'arbre sous lui est celui de `walkFlow`, qui le reprendra), et se protège des cycles. PURE.
  */
-export function carriedFlows<E>(effect: E): Flow<E>[] {
-  const out: Flow<E>[] = [];
+export function carriedFlows<E>(effect: E): { flow: Flow<E>; chemin: CheminDeFlow }[] {
+  const out: { flow: Flow<E>; chemin: CheminDeFlow }[] = [];
   const seen = new Set<object>();
-  const walk = (v: unknown) => {
+  const walk = (v: unknown, chemin: CheminDeFlow) => {
     if (v == null || typeof v !== 'object' || seen.has(v as object)) return;
     seen.add(v as object);
-    if (Array.isArray(v)) { for (const x of v) walk(x); return; }
-    if (isFlowNode(v)) { out.push(v as Flow<E>); return; }
-    for (const x of Object.values(v as Record<string, unknown>)) walk(x);
+    if (Array.isArray(v)) { v.forEach((x, i) => walk(x, [...chemin, i])); return; }
+    if (isFlowNode(v)) { out.push({ flow: v as Flow<E>, chemin }); return; }
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) walk(x, [...chemin, k]);
   };
-  walk(effect);
+  walk(effect, []);
+  return out;
+}
+/** Chemin d'un nœud depuis la racine qu'on parcourt (clés et rangs), ex. `['steps', 1, 'then']`. */
+export type CheminDeFlow = readonly (string | number)[];
+
+/** Genre du porteur d'une racine de Flow de scène — les portées de `Warning` de `validateScene`. */
+export type GenreDeRacineDeFlow = 'trigger' | 'entity' | 'dialogue' | 'encounter';
+
+/** Une racine de Flow d'une scène : l'arbre (non vérifié), son chemin depuis la scène, son porteur. */
+export interface RacineDeFlow {
+  readonly flow: unknown;
+  readonly chemin: CheminDeFlow;
+  readonly porteur: { readonly genre: GenreDeRacineDeFlow; readonly id: string };
+}
+
+const listeDe = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const objetDe = (v: unknown): Record<string, unknown> =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+const idDe = (v: Record<string, unknown>): string => (typeof v.id === 'string' ? v.id : '?');
+
+/**
+ * Les RACINES de Flow authoré d'une scène, dans l'ordre du document : déclencheurs, actions d'entité
+ * (`usable.actions`), choix de dialogue, `onVictory` de rencontre. Une racine absente n'est pas rendue.
+ * Tolère un document brut (avant `normalizeScene`, collections optionnelles) ; la FORME de chaque
+ * `flow` rendu n'est pas vérifiée. Les Flows PORTÉS par une feuille sont ceux de `carriedFlows`. PURE.
+ */
+export function racinesDeFlow(scene: unknown): RacineDeFlow[] {
+  const sc = objetDe(scene);
+  const out: RacineDeFlow[] = [];
+  const pousse = (flow: unknown, chemin: CheminDeFlow, genre: GenreDeRacineDeFlow, id: string) => {
+    if (flow !== undefined) out.push({ flow, chemin, porteur: { genre, id } });
+  };
+  listeDe(sc.triggers).forEach((t, i) => pousse(objetDe(t).flow, ['triggers', i, 'flow'], 'trigger', idDe(objetDe(t))));
+  listeDe(sc.entities).forEach((e, i) =>
+    listeDe(objetDe(objetDe(e).usable).actions).forEach((a, j) =>
+      pousse(objetDe(a).flow, ['entities', i, 'usable', 'actions', j, 'flow'], 'entity', `${idDe(objetDe(e))}›${idDe(objetDe(a))}`),
+    ),
+  );
+  listeDe(sc.dialogues).forEach((d, i) =>
+    listeDe(objetDe(d).nodes).forEach((n, j) =>
+      listeDe(objetDe(n).choices).forEach((c, k) =>
+        pousse(objetDe(c).flow, ['dialogues', i, 'nodes', j, 'choices', k, 'flow'], 'dialogue', idDe(objetDe(d))),
+      ),
+    ),
+  );
+  listeDe(sc.encounters).forEach((e, i) => pousse(objetDe(e).onVictory, ['encounters', i, 'onVictory'], 'encounter', idDe(objetDe(e))));
   return out;
 }
 /** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `if`/`test` comprises) — pour la validation
- *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau. */
-export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>) => void): void {
-  visit(flow);
+ *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau.
+ *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif. */
+export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, chemin: CheminDeFlow) => void, chemin: CheminDeFlow = []): void {
+  visit(flow, chemin);
   switch (flow.kind) {
-    case 'seq': flow.steps.forEach((s) => walkFlow(s, visit)); break;
-    case 'if': walkFlow(flow.then, visit); if (flow.else) walkFlow(flow.else, visit); break;
-    case 'test': walkFlow(flow.success, visit); walkFlow(flow.fail, visit); break;
-    case 'choice': walkFlow(flow.yes, visit); if (flow.no) walkFlow(flow.no, visit); break;
+    case 'seq': flow.steps.forEach((s, i) => walkFlow(s, visit, [...chemin, 'steps', i])); break;
+    case 'if': walkFlow(flow.then, visit, [...chemin, 'then']); if (flow.else) walkFlow(flow.else, visit, [...chemin, 'else']); break;
+    case 'test': walkFlow(flow.success, visit, [...chemin, 'success']); walkFlow(flow.fail, visit, [...chemin, 'fail']); break;
+    case 'choice': walkFlow(flow.yes, visit, [...chemin, 'yes']); if (flow.no) walkFlow(flow.no, visit, [...chemin, 'no']); break;
     case 'do': break;
   }
 }

@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 /**
  * Valeur ABSTRAITE des expressions d'une source parmi les globales et modules intégrés de Node que lisent
  * les gardes de #1801 (`pointDEntree.mjs`, `graphiesDHote.mjs`), sur l'AST TypeScript : un commentaire
@@ -34,11 +35,8 @@
  * littérale (`process[cle]`) ; `.at(-i)`, `.pop()` ; la copie (`[...argv]`, `Array.from(argv)`) ;
  * `&&` ; une valeur terminale liée puis relue par son nom ; `import x = require(…)`.
  */
-import typescript from 'typescript'
-// Liaison LOCALE : sous Vitest, l'import transformé relit `.default` à chaque accès — mesuré sur le
-// balayage de `src/point-d-entree-guard.test.ts`, 4,7 s par l'import nu, 2,4 s par la liaison.
+import * as typescript from 'typescript/unstable/ast'
 const ts = typescript
-import { scriptKindDe } from './dialecte.mjs'
 
 /**
  * Borne des décalages et indices d'`argv` : aucune règle ne lit au-delà de l'élément 1, et
@@ -90,7 +88,7 @@ const nu = (e) => {
     ts.isNonNullExpression(e) ||
     ts.isAsExpression(e) ||
     ts.isSatisfiesExpression(e) ||
-    ts.isTypeAssertionExpression(e)
+    ts.isTypeAssertion(e)
   )
     e = e.expression
   return e
@@ -101,7 +99,7 @@ function cleDe(n) {
   if (!n) return null
   if (ts.isComputedPropertyName(n)) return cleDe(n.expression)
   n = nu(n)
-  if (ts.isIdentifier(n) || ts.isPrivateIdentifier(n) || ts.isStringLiteralLike(n)) return n.text
+  if (ts.isIdentifier(n) || ts.isPrivateIdentifier(n) || ts.isStringLiteralLikeNode(n)) return n.text
   if (ts.isNumericLiteral(n)) return String(Number(n.text))
   return null
 }
@@ -115,7 +113,7 @@ function entierDe(argument) {
   if (!argument) return 0
   const n = nu(argument)
   let v = null
-  if (ts.isNumericLiteral(n) || ts.isStringLiteralLike(n)) v = Number(n.text)
+  if (ts.isNumericLiteral(n) || ts.isStringLiteralLikeNode(n)) v = Number(n.text)
   else if (ts.isPrefixUnaryExpression(n) && n.operator === ts.SyntaxKind.MinusToken && ts.isNumericLiteral(n.operand)) v = -Number(n.operand.text)
   if (v === null) return null
   const entier = Number.isNaN(v) ? 0 : Math.trunc(v) + 0
@@ -125,7 +123,7 @@ function entierDe(argument) {
 /** Nom de module intégré, sans préfixe `node:`, d'un premier argument littéral. `null` sinon. */
 function moduleDe(argument) {
   const n = argument && nu(argument)
-  return n && ts.isStringLiteralLike(n) ? n.text.replace(/^node:/, '') : null
+  return n && ts.isStringLiteralLikeNode(n) ? n.text.replace(/^node:/, '') : null
 }
 
 /**
@@ -257,11 +255,11 @@ function lier(cible, vals, liaisons, sites) {
   }
   if (ts.isObjectBindingPattern(cible)) {
     for (const el of cible.elements) {
-      sous(el, el.name, el.dotDotDotToken ? vals : membre(vals, cleDe(el.propertyName ?? el.name)))
+      if (el.name) sous(el, el.name, el.dotDotDotToken ? vals : membre(vals, cleDe(el.propertyName ?? el.name)))
     }
   } else if (ts.isArrayBindingPattern(cible)) {
     cible.elements.forEach((el, j) => {
-      if (ts.isBindingElement(el)) sous(el, el.name, element(vals, j, Boolean(el.dotDotDotToken)))
+      if (ts.isBindingElement(el) && el.name) sous(el, el.name, element(vals, j, Boolean(el.dotDotDotToken)))
     })
   } else if (ts.isObjectLiteralExpression(cible)) {
     for (const p of cible.properties) {
@@ -349,18 +347,18 @@ const aParser = (source, termes) =>
  *   règle de la garde ne conclut (préfiltre `aParser`), et le prédicat des sites retenus
  * @returns {{ ligne: number, extrait: string }[]}
  */
-export function sitesDeGlobalesNode(source, chemin, { termes, retenir }) {
+export function sitesDeGlobalesNode(source, chemin, { termes, retenir }, sourceFile) {
   if (!aParser(source, termes)) return []
-  const sf = ts.createSourceFile(chemin, source, ts.ScriptTarget.Latest, true, scriptKindDe(chemin))
+  const sf = sourceFile ?? ast({ rel: chemin, text: source })
   const liens = []
   const imports = []
   const expressions = []
   const parcourir = (n) => {
     if (ts.isImportDeclaration(n)) imports.push(n)
-    else if ((ts.isVariableDeclaration(n) || ts.isParameter(n)) && n.initializer) liens.push([n.name, n.initializer])
+    else if ((ts.isVariableDeclaration(n) || ts.isParameterDeclaration(n)) && n.initializer) liens.push([n.name, n.initializer])
     else if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken) liens.push([n.left, n.right])
     if (produitTerminal(n)) expressions.push(n)
-    ts.forEachChild(n, parcourir)
+    n.forEachChild(parcourir)
   }
   parcourir(sf)
 

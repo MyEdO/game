@@ -1,6 +1,13 @@
 /** Expéditions de la carte du monde (#T2) — on y VOYAGE depuis le Bourg (rations, péripéties,
  *  embuscades), on en revient par la carte. Pas de retour-hub automatique : la route est le retour. */
-import { scene, P, hero, resetIds, fouille, fightTrigger, testNode, flowOf } from '../campagne/lib.mjs';
+import { scene, P, hero, resetIds, fouille, fightTrigger, testNode, flowOf, remetLeDocument } from '../campagne/lib.mjs';
+
+/** Document du paquet (`narratif.documents`, #679) trouvé dans la maison du prévôt de Felsbach. */
+export const DOC_JOURNAL_DU_PREVOT = {
+  id: 'document-journal-du-prevot-de-felsbach',
+  titre: 'Journal du prévôt de Felsbach',
+  prose: '« 12 Sigmarzeit — Le colporteur est reparti vers le marais, fiévreux. 15 — Trois foyers touchés, on a muré la maison Brenner. 19 — L’eau du puits a un goût. TOUT LE MONDE a bu. 22 — Que Morr nous ouvre. Ne buvez pas l’e— » (la plume a traversé la page)',
+};
 
 // ── La Vieille Futaie (40×28) : harde en lisière + camp de Bella la Noire (PNJ nommée) ──────
 
@@ -353,11 +360,7 @@ export function makeVillage() {
       P(27, 16, 'lettre', {
         label: 'Journal du prévôt',
         ...fouille([
-          {
-            type: 'document',
-            title: 'Journal du prévôt de Felsbach',
-            desc: '« 12 Sigmarzeit — Le colporteur est reparti vers le marais, fiévreux. 15 — Trois foyers touchés, on a muré la maison Brenner. 19 — L’eau du puits a un goût. TOUT LE MONDE a bu. 22 — Que Morr nous ouvre. Ne buvez pas l’e— » (la plume a traversé la page)',
-          },
+          remetLeDocument(DOC_JOURNAL_DU_PREVOT),
           { type: 'journal', desc: 'Le journal du prévôt : la peste est venue du PUITS. Le Maître voudra lire ça.' },
         ]),
       }),

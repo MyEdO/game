@@ -193,6 +193,13 @@ function scenePorteOrpheline(): Scene {
   return makeScene(w, h, [{ z: 0, tiles: new Array(w * h).fill('plancher') }], [], [{ x: 5, y: 5, side: 'N', door: true }]);
 }
 
+/** Plain-pied 8×8 de plancher, une croisée franchissable ISOLÉE qui porte une hauteur de suspension
+ *  (`WallSeg.suspendu`, EDO 01 l.231) : de plain-pied, on l'enjambe, aucun saut ne l'offre. */
+function sceneSuspensionHorsSaut(): Scene {
+  const w = 8, h = 8;
+  return makeScene(w, h, [{ z: 0, tiles: new Array(w * h).fill('plancher') }], [], [{ x: 5, y: 5, side: 'N', window: true, crossable: true, allege: 1, suspendu: 2 }]);
+}
+
 /** Plain-pied 9×9 entier de plancher, une pièce 5×5 CLOSE en (1,1), et dedans un refend qui part du
  *  mur ouest et s'arrête en plein plancher au coin (4,3) : l'impasse, et rien d'autre. */
 function sceneCloisonEnImpasse(): Scene {
@@ -202,7 +209,7 @@ function sceneCloisonEnImpasse(): Scene {
 }
 
 describe('validateScene — AUCUNE famille ne peut cesser d’atteindre l’éditeur', () => {
-  const warnings = [scenePerFamily(), sceneEnceinteAuRas(), scenePorteOrpheline(), sceneCloisonEnImpasse()]
+  const warnings = [scenePerFamily(), sceneEnceinteAuRas(), scenePorteOrpheline(), sceneCloisonEnImpasse(), sceneSuspensionHorsSaut()]
     .flatMap((scene) => validateScene([scene]))
     .filter((wa) => wa.scope === 'plan');
 

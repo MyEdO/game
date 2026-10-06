@@ -266,19 +266,7 @@ const CODE_TOMBSTONE_RETIRE_RX = new RegExp(
   '(ancien\\w*|' + BT + '[^' + BT + ']+' + BT + '|«[^»]+»)[\\s\\S]{0,200}?a été (retiré|supprimé|renommé)',
   'i',
 );
-// ANGLE MORT MESURÉ (#1728, 2026-09-14) : le PARTICIPE NU derrière un artefact back-tiqué
-// (« `x` retiré », sans « a été ») n'entre PAS dans la famille. Mesure sur `src/**`+`scripts/**` :
-// 132 sites, dont la quasi-totalité décrit une OPÉRATION COURANTE (« `type` retiré des deux côtés »,
-// « `usable` retiré de chaque entité à places », « `«` `»` SUPPRIMÉS avec l'espace adjacent ») — du
-// contrat au présent, pas du code disparu. Aucun discriminant syntaxique ne sépare les deux sens, et
-// une famille qui exigerait 130 exemptions serait un stock nominatif : la forme reste hors garde.
-// ANGLE MORT MESURÉ (#1759, 2026-09-14) : le DÉPLACEMENT « X est passé à/vers Y » n'entre PAS dans
-// les familles. Mesure sur `src/**`+`scripts/**` : 98 sites pour la forme nue, 14 en exigeant
-// l'auxiliaire — et la MAJORITÉ des deux populations dit le PASSAGE D'UN ARGUMENT au présent
-// (« la valeur passée à `buildScene` », « l'acteur est passé à `InfluenceRow` », « les lookups sont
-// passés à `findTableEntry` »), soit le contrat COURANT du site. Les deux discriminants essayés
-// échouent : l'artefact back-tiqué est présent des DEUX côtés, et l'auxiliaire laisse 8 contrats au
-// présent sur 14. Aucune forme propre ne sépare les deux sens : la famille n'est pas posée.
+// #1728 · #1759
 
 // Apostrophe (droite ou typographique), bâtie par ÉCHAPPEMENT : aucun caractère apostrophe littéral
 // dans les motifs de ce fichier, qui déséquilibrerait le balayage de chaînes d'`extractComments`.
@@ -306,27 +294,13 @@ const NO_MORE_ARTIFACT_RX = new RegExp(
 // aucune restriction de vocabulaire n'est nécessaire ici (locution sans emploi de jeu).
 const OF_YORE_RX = new RegExp('\\bd' + APOS + 'antan\\b', 'i');
 
-// La NATURE révolue d'un site : la négation temporelle dont le complément est le mot `code` lui-même.
-// Le lecteur ne peut pas ouvrir ce qui a disparu, et le contrat courant se dit au présent. Forme
-// ÉTROITE, complément FERMÉ à ce seul mot — population mesurée 2026-09-05 sur `src/**`+`scripts/**`
-// (4253 fichiers) : UN site, reformulé du même geste. Les LITTÉRAUX (formes couvertes, faux positifs
-// écartés) vivent dans `src/comment-poison-guard.test.ts` — jamais ici : le fichier de la garde est
-// lui-même scanné. ANGLE MORT, déclaré à l'en-tête du test : la même cessation devant un
-// artefact BACK-TICKÉ n'entre PAS dans la famille (48 sites au même relevé, en majorité des prédicats
-// VIVANTS sur une clé de donnée ou un nœud zod scellé — plus de faux positifs que de sites).
+// #2057
 const NO_MORE_CODE_RX = new RegExp(
   '\\bn(?:' + APOS + '|e' + GAP + ')(?:est|sont)' + GAP + 'plus' + GAP + 'du' + GAP + 'code\\b',
   'i',
 );
 
-// Le SITE quitté : la négation temporelle dont le complément est l'adverbe de lieu qui désigne CE
-// fichier. Le lecteur y cherche le contrat courant, pas ce qu'un autre module a repris. Forme
-// ÉTROITE — quatre verbes (état et résidence), complément FERMÉ à l'adverbe de PROXIMITÉ.
-// Population mesurée 2026-09-05 sur `src/**`+`scripts/**` (4278 fichiers, tests compris) : 2 sites,
-// reformulés du même geste. L'adverbe de DISTANCE est exclu par construction : au même relevé, ses
-// 5 sites décrivent tous une absence À L'EXÉCUTION (une entrée de cache libérée, un héros sorti du
-// groupe, un composant démonté) — un état de partie VIVANT, jamais du code disparu.
-// Formes couvertes et faux positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts`.
+// #2057
 const NO_MORE_HERE_RX = new RegExp(
   '\\bn(?:' + APOS + '|e' + GAP + ')(?:est|sont|vit|vivent)' + GAP + 'plus' + GAP + 'ici\\b',
   'i',
@@ -542,7 +516,7 @@ const GAME_STATE_PARTICIPLE =
 const VERBES_REPARATION =
   '(corriger|traiter|régler|migrer|nettoyer|purger|réparer|reprendre|refaire|supprimer|instruire)';
 const REPORT_AILLEURS = 'à ' + VERBES_REPARATION + ' (séparément|ailleurs|plus tard|à part|au propre)';
-// Deux formes mesurées MUETTES le 2026-08-29 (sonde de revue de palier), toutes deux relevées sur un
+// Deux formes mesurées MUETTES le 2026-08-29 (sonde de revue), toutes deux relevées sur un
 // site réel de `src/engine/travelStages.ts` : (i) la dette laissée EN ATTENTE, sans renvoi explicite —
 // un verbe d'état suivi de l'infinitif de réparation ; (ii) l'alibi de PÉRIMÈTRE daté, qui justifie
 // l'omission par l'état du chantier au moment du geste. Les deux sont des excuses au sens de 6b : une
@@ -563,7 +537,7 @@ const ALIBI_PERIMETRE = '(était|étaient) hors périmètre|hors périmètre le 
 // écrite ici (elle mordrait sur ce commentaire même) : elle est plantée dans le test (#828).
 const ATTENTE_ARBITRAGE = 'en attente d' + APOS + '\\s*(un )?arbitrage';
 // Dette laissée à une LOCUTION D'ATTENTE qui NOMME la chose future (#1732, site
-// `src/gameIso/stage/AreteOverlay.tsx`, muet pendant deux paliers) : le commentaire décrit un état à
+// `src/gameIso/stage/AreteOverlay.tsx`, muet pendant deux revues) : le commentaire décrit un état à
 // venir au lieu de ce que le code rend — excuse au sens de 6b.
 // CE QUE LE MOTIF FAIT, exactement : une des trois locutions d'attente (plantées en littéral dans le
 // test, #828 — ce module est scanné par sa propre garde) suivie, DANS LA MÊME PHRASE, d'un MARQUEUR DE
@@ -583,26 +557,20 @@ const ATTENTE_ARBITRAGE = 'en attente d' + APOS + '\\s*(un )?arbitrage';
 // dès le prochain commit).
 // ANGLE MORT (1) : une dette dont la chose future n'est PAS nommée avec ces mots (un renvoi à un nom
 // propre de module, une périphrase) passe — le motif ne mesure qu'un vocabulaire.
-// ANGLE MORT (2) : la frontière de phrase est LEXICALE, donc toute ponctuation de CODE rencontrée entre
-// la locution et le marqueur ferme la fenêtre — le point d'un chemin de fichier ou d'une abréviation, le
-// point d'un décimal, le point-virgule qui sépare deux propositions d'une même phrase. Une dette qui
-// nomme son artefact APRÈS une telle ponctuation passe : mesuré le 2026-09-14, 4 dettes forgées sur 7.
-// La frontière de phrase SYNTAXIQUE est un geste de design à part, qui a son ticket dédié.
 const MARQUEUR_ATTENTE =
   '(primitives?|partagée?s?|mutualis\\w*|canoniqu\\w*|factoris\\w*|lots?\\s+\\d|#\\d+|migration|refonte)';
 const LOCUTION_ATTENTE = '(en attendant|dans l' + APOS + 'attente d|en attente d)';
-// Fenêtre-PHRASE : tout sauf une ponctuation forte, et le saut de ligne n'est franchi qu'avec son
-// préfixe de continuation de commentaire.
-const SUITE_DE_PHRASE = '(?:[^.;!?\\n]|\\n[ \\t]*(?:\\*|//)?[ \\t]*){0,80}?';
+const SUITE_DE_PHRASE = '[^.;!?]*?';
 const ATTENTE_DE_X = LOCUTION_ATTENTE + SUITE_DE_PHRASE + MARQUEUR_ATTENTE;
-// #2199 : le commentaire déclare son propre site INACHEVÉ — une négation, le participe d'un geste de
-// réalisation, puis l'adverbe de lieu qui désigne le site. Le participe qui décrit une DÉLÉGATION
-// (« fait ailleurs », « porté par X ») n'a pas l'adverbe de lieu et reste hors motif.
+const CONSERVATION_ANCIENS_APPELS =
+  CODE_ARTIFACT_NOUN + 's?(?![\\wÀ-ÿ-])' + SUITE_DE_PHRASE +
+  '(?:conserv[ée]e?s?|maintenue?s?|gard[ée]e?s?)(?![\\wÀ-ÿ-])' + SUITE_DE_PHRASE +
+  '(?:jusqu' + APOS + '(?:à|au)|en attendant)' + SUITE_DE_PHRASE +
+  '(?:retrait|remplacement|suppression|disparition)' + SUITE_DE_PHRASE +
+  'ancien(?:ne)?s?' + SUITE_DE_PHRASE + '(?:appels?|appelants?|branches?|usages?)(?![\\wÀ-ÿ-])';
+// #2199
 const INACHEVE_ICI = String.raw`\b(?:non|pas)\s+(?:encore\s+)?(?:codée?s?|implémentée?s?|câblée?s?|branchée?s?|gérée?s?|traitée?s?|supportée?s?)\s+ici(?![\wÀ-ÿ])`;
-// #2199 : la chose renvoyée à un LOT À VENIR, posée en ATTRIBUT (signe égal) ou en INCISE parenthésée.
-// Soustractions par la forme, mesurées le 2026-10-05 : le lot SUJET d'une hypothèse de mécanique (« un
-// lot … ne sait pas », « nettoyé par un lot … ») n'est ni attribut ni incise ; l'incise qui suit un
-// numéro de ticket NOMME où vit la dette (stock daté) — le ticket est la trace, pas une excuse.
+// #2199
 const LOT_A_VENIR = String.raw`(?:(?<!#\d+\s*)\(|=\s*)(?:sous-)?lots?\s+(?:suivants?|ultérieurs?|futurs?|à\s+venir)(?![\wÀ-ÿ])`;
 export const EXCUSE_RX = new RegExp(
   "(assume|épargn[ée]\\w*(?!\\w)(?!\\s+(par|pour)\\s)|pour l'instant|" +
@@ -615,6 +583,8 @@ export const EXCUSE_RX = new RegExp(
     ATTENTE_ARBITRAGE +
     '|' +
     ATTENTE_DE_X +
+    '|' +
+    CONSERVATION_ANCIENS_APPELS +
     '|' +
     INACHEVE_ICI +
     '|' +
@@ -790,8 +760,6 @@ export const LEGACY_VOCAB_EXCLUSIONS = [
     rx: new RegExp(NB_AVANT + 'n' + APOS + 'est' + GAP + 'plus' + GAP + 'que' + GAP + 'temps' + NB_APRES, 'gi'),
     label: 'locution « il n’est plus que temps »',
   },
-  // Une citation n'est VERBATIM que portée par sa réf nue (réf de livre, `BOOK_REF_RX`) ou, pour un
-  // arbitrage utilisateur, par sa date — à courte portée derrière le guillemet fermant.
   {
     rx: new RegExp('«[^»]*»' + '[\\s*/,:;.()`—–-]{0,12}' + '(?:' + BOOK_REF_RX.source + '|\\d{4}-\\d{2}-\\d{2})', 'gi'),
     label: 'citation VERBATIM suivie de sa réf',

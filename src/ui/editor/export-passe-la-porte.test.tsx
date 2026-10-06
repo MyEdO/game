@@ -18,6 +18,7 @@ import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
 import { useGame } from '../../state/store';
 import { makeShowcaseParty } from '../../data/pregens';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -168,7 +169,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
     const fautif = JSON.stringify({
       type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-fautif', label: 'Campagne fautive',
       versionContenu: 1, maison: 'fixture de test',
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      narratif: emptyNarratif(),
       scenes: [{
         ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée',
         entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le ponton' }],
@@ -204,7 +205,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
     const sain = JSON.stringify({
       type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-sain', label: 'Campagne saine',
       versionContenu: 1, maison: 'fixture de test',
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      narratif: emptyNarratif(),
       scenes: [{ ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée', entities: [] }],
     });
     const { refus, scenesChargees } = await importe(sain);

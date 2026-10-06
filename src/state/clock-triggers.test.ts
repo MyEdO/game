@@ -38,7 +38,7 @@ const HAINE_SPORADIQUE = 'haine-sporadique';
 const mutInstance = (id: string, over: Partial<Mutation> = {}): Mutation =>
   ({ id, label: id, desc: '', kind: 'mentale', roll: 1, ...over }) as Mutation;
 
-/** Instance TIRÉE du catalogue — ce que pose le chemin de Corruption (copie gelée de la fiche). */
+/** Fiche TIRÉE du catalogue, telle que le chemin de Corruption la passe à `attachMutation`, qui en pose la copie (#2097). */
 const mutFromCatalog = (id: string): Mutation => ({ ...findMutationById(id)!, roll: 1 }) as Mutation;
 
 const hero = (label = 'H', seed = 1): Combatant =>
@@ -200,7 +200,7 @@ describe('n nuits DORMÍES = n réveils (`sleepParty`)', () => {
   });
 });
 
-describe('Effets de mutation lus AU REGISTRE (jamais sur l’instance gelée)', () => {
+describe('Effets de mutation lus AU REGISTRE (jamais sur l’instance)', () => {
   it('une instance SANS `effects` déclenche quand même (la fiche `mutations.json` fait foi)', () => {
     const h = hero('Registre');
     h.mutations = [mutInstance(HAINE_SPORADIQUE)]; // instance nue : aucun `effects` porté
@@ -214,9 +214,9 @@ describe('Effets de mutation lus AU REGISTRE (jamais sur l’instance gelée)', 
 
   it('une mutation MAISON (hors catalogue) qui porte des `effects` sur l’instance n’en déclenche aucun', () => {
     const h = hero('Maison');
-    h.mutations = [mutInstance('mutation-maison-sans-fiche', {
+    attachMutation(h, mutInstance('mutation-maison-sans-fiche', {
       effects: findMutationById(HAINE_SPORADIQUE)!.effects,
-    })];
+    }), makeRNG(1));
     set({ party: [h] });
 
     expect(fireClockTriggers(get, 'onDayStart')).toEqual([]);

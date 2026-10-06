@@ -7,7 +7,7 @@
  *
  * La propriété est REQUISE : un littéral nu n'est plus assignable à `BuiltCascadeStep`, et le SEUL
  * moyen d'en produire une est le cast interne d'un minteur (lint `murs/marques`,
- * `eslint.config.js` : `as BuiltCascadeStep` hors des minteurs échoue ; `saves.ts` est SOUS la règle,
+ * `oxlint.config.mjs` : `as BuiltCascadeStep` hors des minteurs échoue ; `saves.ts` est SOUS la règle,
  * exempté AU SITE — chaque cast de réhydratation porte sa directive avec sa raison).
  *
  * TROIS LIMITES, dites ensemble — ce que NI le type NI le lint ne couvrent :

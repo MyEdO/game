@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mjs';
 import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
+import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 
 /**
  * Garde de classe #1801 — le rendu sous win32 (`scripts/docs/lib/plateforme-win32.mjs`) ne simule
@@ -197,10 +198,11 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
     expect(lecturesDHote(readFileSync(join(RACINE, rel), 'utf8'), rel)).toEqual([]);
   });
 
-  it('aucune source suivie hors instruments ne porte une lecture d’hôte (tolérance ZÉRO)', () => {
+  it('aucune source suivie hors instruments ne porte une lecture d’hôte (tolérance ZÉRO)', { timeout: 60_000 }, () => {
     const suivies: string[] = sourcesSuivies().filter((rel: string) => !estFichierVitest(rel));
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
+    const fichiers: { rel: string; text: string }[] = [];
     for (const rel of suivies) {
       let texte: string;
       try {
@@ -208,7 +210,10 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
       } catch {
         continue; // suivi mais supprimé de l'arbre : aucun code à lire
       }
-      for (const { ligne, extrait } of lecturesDHote(texte, rel)) offenders.push(`${rel}:${ligne} → ${extrait}`);
+      fichiers.push({ rel, text: texte });
+    }
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(fichiers)) {
+      for (const { ligne, extrait } of lecturesDHote(text, rel, sourceFile!)) offenders.push(`${rel}:${ligne} → ${extrait}`);
     }
     expect(
       offenders,

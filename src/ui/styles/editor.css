@@ -540,10 +540,6 @@
 .node-speaker {
   flex: 1;
 }
-.node-text {
-  width: 100%;
-  height: 54px;
-}
 .choice-text {
   width: 100%;
 }

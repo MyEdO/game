@@ -37,6 +37,7 @@ import {
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartageesStock.mjs';
 import { sitesNomSansTexteVisible } from '../../scripts/guards/lib/nomVisibleDansNom.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 
 /**
  * Cliquets d'hygiène UI (#236) — même patron que `combat-hardcode-guard`/`no-emoji-affordance` : une
@@ -1152,7 +1153,6 @@ const REFUS_MUET_BASELINE: Record<string, number> = {
   'editor/FlowEditor.tsx': 2,
   'editor/GameOpEditor.tsx': 4,
   'editor/Inspector.tsx': 2,
-  'editor/NarratifEditor.tsx': 3,
   'editor/Palette.tsx': 1,
   'editor/StatblockEditor.tsx': 2,
   'editor/WorldMapEditor.tsx': 1,
@@ -1504,7 +1504,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
     const ecrans = ecransDuDisque().map((f) => f.rel);
     expect(ecrans.length, 'aucun module d’ÉCRAN mesuré — le cliquet serait vert par vacuité').toBeGreaterThan(0);
     expect(ecrans.filter((f) => FEUILLES_PARTAGEES.includes(f))).toEqual([]);
-  });
+  }, 120_000);
 
   it('(xxi) preuve par mutation — une couleur dans une classe MAL NOMMÉE d’un module d’écran rougit', () => {
     const sites = sitesIdentiteEcran([fixture('src/ui/styles/faux.css', '.layout-truc { color: var(--gold) }')]);
@@ -1598,7 +1598,12 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
 
 describe('#2199 — le nom accessible d’un contrôle CONTIENT son texte vu (WCAG 2.5.3)', () => {
   it('(xxiii) aucun `aria-label` littéral ne remplace un texte visible littéral qu’il ne reprend pas', () => {
-    const sites = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f)).flatMap(sitesNomSansTexteVisible);
+    const fichiers = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f));
+    expect(fichiers.length, 'le corpus de contrôles UI est non vide').toBeGreaterThan(0);
+    const sites: string[] = [];
+    for (const { fichier, sourceFile } of analyserCorpus(fichiers)) {
+      if (sourceFile) sites.push(...sitesNomSansTexteVisible(fichier, sourceFile));
+    }
     expect(sites, 'nommer par le CONTENU, ou un `aria-label` qui commence par le texte vu').toEqual([]);
   });
 

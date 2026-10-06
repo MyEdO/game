@@ -1,11 +1,12 @@
 // La LECTURE des images CSS (`cssImages.mjs`, #1806) : le côté d'un arbre se résout contre les SEULS
 // fichiers de cet arbre. Source en mémoire, racine = ce dépôt, dont le disque porte le composant cité.
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
+import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CHEMIN_MANIFESTE } from './cssCouches.mjs'
-import { COLLECTIONS_VENTILEES, coteCss, sourceMelee, stockCssDe } from './cssImages.mjs'
+import { COLLECTIONS_VENTILEES, coteCss, importsDansLArbre, sourceMelee, stockCssDe } from './cssImages.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -30,6 +31,26 @@ const sourceDe = (textes, fichiers = [...IMPORTEURS, COMPOSANT]) => {
 }
 const importeursDe = (...textes) => tableTotale(IMPORTEURS, (_f, i) => textes[i])
 const reutilises = (source) => [...coteCss(source, { racine: RACINE }).reutilises]
+
+test('importsDansLArbre : un batch conserve ordre, doublons, chemins absents et non-modules', () => {
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    const source = sourceDe({
+      ...importeursDe("import { RollShell } from './RollShell'\n", "import './RollShell'\n"),
+      'src/ui/NOTES.md': "import './RollShell'\n",
+    })
+    const rels = [IMPORTEURS[0], 'src/ui/absent.ts', IMPORTEURS[0], 'src/ui/NOTES.md', IMPORTEURS[1]]
+    assert.deepEqual(importsDansLArbre(source, rels, { racine: RACINE }), [
+      [IMPORTEURS[0], [COMPOSANT]], ['src/ui/absent.ts', []], [IMPORTEURS[0], [COMPOSANT]], ['src/ui/NOTES.md', []], [IMPORTEURS[1], [COMPOSANT]],
+    ])
+    assert.equal(spy.mock.callCount(), 1)
+    assert.deepEqual(importsDansLArbre(source, ['src/ui/NOTES.md'], { racine: RACINE }), [['src/ui/NOTES.md', []]])
+    assert.equal(spy.mock.callCount(), 1)
+    assert.throws(() => importsDansLArbre(sourceDe(importeursDe('const x = ;', "import './RollShell'")), IMPORTEURS, { racine: RACINE }), /ne se parse pas/)
+    assert.equal(spy.mock.callCount(), 2)
+  } finally { spy.mock.restore() }
+})
 
 test('coteCss : un composant présent sur le DISQUE mais absent de l’arbre jugé n’est pas réutilisé', () => {
   assert.ok(existsSync(`${RACINE}/${COMPOSANT}`), `${COMPOSANT} doit exister sur le disque pour que le cas morde`)
