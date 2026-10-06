@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { genererCode, mesurerEnRendu } from '../docs/build-all.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { planDuCheckout, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { lotDuPostMerge, planDuCheckout, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -157,6 +157,91 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
   }
 })
 
+// #2327
+test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’index, conflits et lockfile compris ; hors fusion, ORIG_HEAD..HEAD', () => {
+  const { racine } = instanceDeDepot({ fichiers: {
+    'commun.txt': 'base\n', 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n',
+  } })
+  const git = gitDe(racine, { net: true })
+  const commit = (fichiers, message) => {
+    for (const [f, contenu] of Object.entries(fichiers)) writeFileSync(join(racine, f), contenu)
+    git('add', ...Object.keys(fichiers))
+    git('commit', '-q', '-m', message)
+  }
+  const generateurs = [{ script: 'g/a.mjs', targets: ['docs/a.md'] }]
+  const mesure = { 'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: [], cibles: ['docs/a.md'] } }
+  try {
+    git('switch', '-q', '-c', 'cote')
+    commit({ 'commun.txt': 'cote\n', 'notes/a.txt': 'cote\n' }, 'cote')
+    git('switch', '-q', '-c', 'lock', 'main')
+    commit({ 'package-lock.json': '{"lock":true}\n' }, 'lock')
+    git('switch', '-q', 'main')
+    commit({ 'commun.txt': 'main\n' }, 'main')
+    const avant = git('rev-parse', 'HEAD')
+    const fusion = resultatDeGit(['merge', '--no-commit', '--no-ff', 'cote'], { cwd: racine })
+    assert.equal(fusion.status, 1, `${fusion.stdout}${fusion.stderr}`)
+    assert.deepEqual(touchedFiles(racine), [], 'ORIG_HEAD..HEAD est vide pendant la fusion')
+    const lot = lotDuPostMerge(racine)
+    assert.deepEqual(lot, ['commun.txt', 'notes/a.txt'], 'témoin : la source mesurée et le chemin en conflit')
+    assert.deepEqual(selectionDesGenerateurs({ lot, mesure, cwd: racine, generateurs }), { scripts: ['g/a.mjs'], complete: false, raison: 'sources mesurées et préalables' })
+    assert.equal(sousGitFeint([{ si: ['diff-index'], status: 128, stderr: 'fatal: panne simulée\n' }], () => lotDuPostMerge(racine)), null, 'panne git : lot inconnu')
+    git('merge', '--abort')
+    assert.equal(resultatDeGit(['merge', '--no-commit', '--no-ff', 'lock'], { cwd: racine }).status, 0)
+    const npm = []
+    const rendu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {},
+      npm: (_cmd, args) => { npm.push(args.join(' ')); return { status: 0 } }, code: () => 0, docs: () => {} })
+    assert.equal(rendu, 0)
+    assert.deepEqual(npm, ['ci --no-audit --no-fund'], 'le lockfile apporté par la fusion en cours relance npm ci')
+    git('commit', '-q', '-m', 'fusion lock')
+    assert.deepEqual(lotDuPostMerge(racine), ['package-lock.json'], 'contre-témoin : hors fusion, ORIG_HEAD..HEAD')
+    assert.deepEqual(lotDuPostMerge(racine), touchedFiles(racine))
+    writeFileSync(join(racine, '.git', 'MERGE_HEAD'), `${git('rev-parse', 'lock')}\n`)
+    assert.deepEqual(lotDuPostMerge(racine), ['package-lock.json'], 'contre-témoin : MERGE_HEAD que git garde pendant le hook d’une fusion commitée')
+    assert.equal(git('rev-parse', 'ORIG_HEAD'), avant)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2327
+test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’emporte l’index ; argument 0 : ORIG_HEAD..HEAD', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n' } })
+  const git = gitDe(racine, { net: true })
+  const commit = (fichiers, message) => {
+    for (const [f, contenu] of Object.entries(fichiers)) writeFileSync(join(racine, f), contenu)
+    git('add', ...Object.keys(fichiers))
+    git('commit', '-q', '-m', message)
+  }
+  const generateurs = [{ script: 'g/a.mjs', targets: ['docs/a.md'] }]
+  const mesure = { 'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: [], cibles: ['docs/a.md'] } }
+  const npm = []
+  const posterieur = (avant) => reconstruireApresGit({ cwd: racine, hook: 'post-merge', avant, generateurs, annoncer: () => {},
+    npm: (_cmd, args) => { npm.push(args.join(' ')); return { status: 0 } }, code: () => 0, docs: () => {} })
+  try {
+    git('switch', '-q', '-c', 'cote')
+    commit({ 'notes/a.txt': 'cote\n', 'package-lock.json': '{"cote":true}\n' }, 'cote')
+    git('switch', '-q', '-c', 'normale', 'main')
+    commit({ 'notes/b.txt': 'b\n' }, 'normale')
+    git('switch', '-q', 'main')
+    git('merge', '-q', '--squash', 'cote')
+    assert.deepEqual(touchedFiles(racine), [], 'ORIG_HEAD..HEAD est vide après un squash')
+    const lot = lotDuPostMerge(racine, { squash: true })
+    assert.deepEqual(lot, ['notes/a.txt', 'package-lock.json'], 'témoin : l’apport du squash')
+    assert.deepEqual(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs }).scripts, ['g/a.mjs'])
+    assert.equal(posterieur('1'), 0)
+    assert.deepEqual(npm, ['ci --no-audit --no-fund'], 'témoin : le lockfile du squash relance npm ci')
+    git('commit', '-q', '-m', 'squash')
+    npm.length = 0
+    git('merge', '-q', '--no-ff', '-m', 'fusion', 'normale')
+    assert.deepEqual(lotDuPostMerge(racine, { squash: false }), ['notes/b.txt'], 'contre-témoin : argument 0, ORIG_HEAD..HEAD')
+    assert.equal(posterieur('0'), 0)
+    assert.deepEqual(npm, [], 'contre-témoin : le lockfile de l’index d’avant ne compte plus')
+    assert.deepEqual(lotDuPostMerge(racine, { squash: true }), [], 'l’index d’une fusion commitée n’emporte rien')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 // post-checkout (#2203) : un changement de branche régénère les docs purs dont une source a bougé ;
 // un worktree NEUF (aucune mesure) ne bloque jamais sur un `docs:build` complet, il dit la commande.
 test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon la sélection de post-merge', () => {
@@ -169,9 +254,10 @@ test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon 
   assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: null }), 'regenerer', 'lot inconnu : on régénère')
 })
 
-test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout aussi ses deux HEAD', () => {
+test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout ses deux HEAD, post-merge son drapeau squash', () => {
   const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
   assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
+  assert.match(lire('post-merge'), /docs-rebuild\.mjs" post-merge "\$1" /)
   for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
   assert.match(lire('post-commit'), /docs-rebuild\.mjs" post-commit /)
 })
