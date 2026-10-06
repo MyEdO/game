@@ -261,7 +261,7 @@ Tes corrections, le script les APPLIQUE à la fiche — chacune vise une famille
 - \`contenusFaux\` : l'entrée (\`famille\`, \`id\`) dont un attribut dit autre chose que le livre, classement compris (statut d'un beat, type d'un point au MJ, nature d'un texte, sens et portée d'un état) ; \`attribut\` parmi ceux de sa famille — ${Object.entries(ATTRIBUTS_CORRIGEABLES).map(([famille, attributs]) => `${famille} : ${Object.keys(attributs).join(', ')}`).join(' ; ')} —, \`valeur\` = la valeur CORRIGÉE, entière et à la forme de l'attribut dans la fiche, \`ref\` = la réf nue qui la prouve.
 Une correction dont la cible n'existe pas, dont l'attribut n'est pas celui de sa famille ou dont la valeur n'a pas sa forme, ou qui corrige une seconde fois la même cible, ne s'applique pas : elle rend la fiche INAPPLICABLE.
 Rends \`synthese.markdown\` : la fiche en une page — impératifs, beats et leurs médias candidats, états produits et lus, corrections.`,
-  { label: 'completude', phase: 'Complétude', schema: COMPLETUDE, agentType: 'juge', model: 'opus', effort: 'medium' })
+  { label: 'completude', phase: 'Complétude', schema: COMPLETUDE, agentType: 'juge', model: 'opus', effort: 'high' })
 
 // ── Application des corrections ──────────────────────────────────────────────────────────────
 const corrections = []

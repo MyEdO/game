@@ -201,7 +201,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
 | Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
 | Code sous spec précise | `codeur` | opus | medium |
-| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | medium |
+| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |

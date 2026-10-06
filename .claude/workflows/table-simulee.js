@@ -493,7 +493,7 @@ Rends :
 - synthese.markdown : une synthèse courte.
 Un jet du journal se vérifie en rejouant sa commande : l'outil est déterministe.`,
   {
-    label: 'analyse', phase: 'Analyse', agentType: 'juge', model: 'opus', effort: 'medium',
+    label: 'analyse', phase: 'Analyse', agentType: 'juge', model: 'opus', effort: 'high',
     schema: {
       type: 'object', additionalProperties: false,
       properties: {

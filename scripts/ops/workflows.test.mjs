@@ -58,7 +58,7 @@ const ts = typescript();
  *  progression n'en est pas un : une phase de jugement renommée ou rétrogradée ne retombe pas en
  *  silence dans le régime MÉCANIQUE. */
 const ETAGES = {
-  jugement: { nom: 'JUGEMENT', type: 'juge', modele: 'opus', effort: 'medium' },
+  jugement: { nom: 'JUGEMENT', type: 'juge', modele: 'opus', effort: 'high' },
   redaction: { nom: 'RÉDACTION', type: 'lecteur', modele: 'opus', effort: 'medium' },
 };
 const REGIMES = {
@@ -710,7 +710,7 @@ const verdicts = await parallel(trouvees.filter(Boolean).flatMap((r) => r.findin
     ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })
     : null
   return lue && lue.citationPresente
-    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'medium' })
+    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' })
     : null
 }))
 return { verdict: 'AUDIT', verdicts, stats: STATS_VIDES }
@@ -735,7 +735,7 @@ const LIST_DOCS = "docs: { type: 'array', items: { type: 'string' } } },";
 const LIST_REQUIS = "  required: ['rawFiles', 'docs'],\n}";
 const SCOUT = "{ label: 'scout', phase: 'Scout', schema: LIST,";
 const STATS = 'const STATS_VIDES = ';
-const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'medium' }";
+const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' }";
 const NON_UNIQUE = (n) => `racine : racine non littérale — \`schema\` : \`LIST\` ne se résout pas en \`const\` de premier niveau, UNIQUE, initialisée d’un objet littéral (${n} déclaration(s) du nom)`;
 const ATTEIGNABLE = (parent) => `maillon : \`LIST\` : maillon de racine atteignable par le code (${parent}) — un maillon n'est lu que comme valeur de \`schema:\` ou d'un autre maillon`;
 const NON_DIRECT = (parent) => `agent-direct : \`agent\` non appelé directement (${parent}) — seul un appel \`agent(…)\` est un site que la porte lit`;
@@ -935,11 +935,11 @@ test('défaut 28 — l’effort est LITTÉRAL et présent à chaque site, et vau
   );
   assert.deepEqual(
     vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus' }")),
-    ["agent : phase de JUGEMENT `Jugement` : `effort: 'medium'` exigé AUSSI (lu : absent)"],
+    ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : absent)"],
   );
   assert.deepEqual(
     vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'low' }")),
-    ["agent : phase de JUGEMENT `Jugement` : `effort: 'medium'` exigé AUSSI (lu : `low`)"],
+    ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : `low`)"],
   );
   assert.deepEqual(
     vus(muter(TEMOIN, "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' }", "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku' }")),
