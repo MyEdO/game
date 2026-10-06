@@ -2309,7 +2309,7 @@ export const fr = {
   'key.camRight': 'Caméra : tourner à droite',
   'key.camRecenter': 'Caméra : recentrer (position et zoom)',
   'key.toggleView': 'Basculer la vue (isométrique / du dessus)',
-  'key.toggleInspect': 'Inspection des combattants (activer / désactiver)',
+  'key.inspecter': 'Inspecter (fiche de l’entité désignée)',
   'key.reveler': 'Révéler les utilisables (maintenir)',
   'key.switchLoadout': 'Changer de set d’armes (fait tourner les sets)',
   'key.roundStart': 'Commencer le round',
@@ -2549,6 +2549,8 @@ export const fr = {
   // GESTE SECONDAIRE d'une alvéole de la console (spec HUD §1d) — les QUATRE surfaces qui l'ouvrent
   // se disent en UNE phrase, ici : le nom accessible de l'alvéole la compose, aucune recopie.
   'cc.geste2eSurfaces': 'geste secondaire (clic droit, appui long, touche Menu, RB à la manette) : {gestes}',
+  // Le GESTE SECONDAIRE d'un portrait (`PortraitTile.onInspect`) : ses trois surfaces, dans son nom accessible.
+  'ptile.geste2eInspecter': 'geste secondaire (clic droit, appui long, touche Menu) : inspecter',
   'cc.geste2eIndisponible': 'geste secondaire : {geste} — indisponible : {raison}',
   // Alvéole VIDE : rien ne s'y écrit à l'écran (arbitrage user 2026-08-24) — ce nom n'existe que pour
   // le lecteur d'écran, qui ne voit pas le creux.

@@ -18,7 +18,8 @@ import { Icon } from './Icon';
 import { WoundsBadge } from './WoundsBadge';
 
 /**
- * Panneau d'INSPECTION d'un combattant (mode Inspection : clic sur token/frise) : tête VIVANTE (portrait,
+ * Panneau d'INSPECTION d'une entité (geste secondaire d'un jeton ou d'un portrait, touche `inspecter`) — un
+ * combattant en combat, un héros ou un PNJ de scène hors combat : tête VIVANTE (portrait,
  * PB exacts, psychologie au coup d'œil, États) + le STATBLOC COMPLET rendu par le MÊME composant
  * que la fiche Codex (`CodexSections`, alimenté par les valeurs réelles via `combatantSections`).
  * Plus de panneau recopié ni de sous-ensemble de caractéristiques — une seule vérité de rendu.
@@ -28,7 +29,7 @@ import { WoundsBadge } from './WoundsBadge';
  *
  * COQUE (navire/engin, #240) : le statbloc-personnage n'a aucun sens (caracs nulles) → on inspecte l'objet
  * visible via `ShipInspectBody` (Coque, cap, postes, Traits/Améliorations dont la Proue-idole #221) — même
- * geste (mode Inspection), une coque ENNEMIE y répond comme un combattant, en LECTURE.
+ * geste, une coque ENNEMIE y répond comme un combattant, en LECTURE.
  */
 export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onClose: () => void }) {
   const c = combatant;

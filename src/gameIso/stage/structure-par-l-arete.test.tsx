@@ -160,7 +160,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     pointer = undefined;
     document.body.replaceChildren();
     useGame.setState({
-      battle: BATTLE_VRAI, mode: MODE_VRAI, scene: SCENE_VRAIE, inspectEnabled: false,
+      battle: BATTLE_VRAI, mode: MODE_VRAI, scene: SCENE_VRAIE,
       battleClickEntity: CLICK_ENTITY_VRAI, battleClickTile: CLICK_TILE_VRAI, setInspectId: SET_INSPECT_VRAI,
     });
   });
@@ -210,33 +210,31 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     expect(battleClickTile).not.toHaveBeenCalled();
   });
 
-  it('le clic de l’arête passe par LA MÊME porte qu’un jeton : Inspection ON, l’enceinte s’INSPECTE au lieu de frapper', () => {
-    // `combatantClickActs` (`state/combatOrParty.ts`) est la source UNIQUE des 3 surfaces : sous
-    // Inspection ON un jeton ennemi s'inspecte (`useStagePointer.performClick`), donc l'arête aussi —
-    // sinon on ne pourrait pas REGARDER le profil d'un mur sans le pilonner.
+  it('le geste SECONDAIRE de l’arête est celui d’un jeton (#1822) : le clic droit INSPECTE l’enceinte sans la frapper, le clic gauche la frappe sans l’inspecter', () => {
+    // On REGARDE le profil d'un mur sans le pilonner : le clic droit résout la structure de l'arête
+    // (`useStagePointer.ficheSous`), jamais la porte d'action.
     const battleClickEntity = vi.fn();
     const battleClickTile = vi.fn();
     const setInspectId = vi.fn();
     const battle = bataille([heros, mur]);
     useGame.setState({
       scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle,
-      battleClickEntity, battleClickTile, setInspectId, inspectEnabled: true,
+      battleClickEntity, battleClickTile, setInspectId,
     });
     const aretes = offre(battle);
     monter(aretes);
+    const { x, y } = milieuPt(aretes[0]);
 
-    cliquer(aretes[0]);
+    act(() => pointer!.handlers.onContextMenu({ clientX: x, clientY: y, preventDefault: () => undefined } as unknown as React.MouseEvent));
 
     expect(setInspectId).toHaveBeenCalledWith(CID);
-    expect(battleClickEntity, 'la porte a refusé : aucune action de combat').not.toHaveBeenCalled();
+    expect(battleClickEntity, 'le clic droit ne frappe pas').not.toHaveBeenCalled();
     expect(battleClickTile).not.toHaveBeenCalled();
 
-    // Inspection OFF (le défaut) : la porte laisse passer, le geste redevient la frappe.
-    act(() => { useGame.setState({ inspectEnabled: false }); });
     cliquer(aretes[0]);
 
     expect(battleClickEntity).toHaveBeenCalledWith(CID, { confirm: true });
-    expect(setInspectId).toHaveBeenCalledTimes(1);
+    expect(setInspectId, 'le clic gauche n’inspecte pas').toHaveBeenCalledTimes(1);
   });
 
   it('la touche du peintre suit le MÊME chemin que le pixel', () => {

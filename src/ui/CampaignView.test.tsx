@@ -9,6 +9,7 @@ import { areneCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import { makePregens } from '../data/pregens';
 import { CampaignView } from './CampaignView';
+import { t } from '../i18n';
 import { useGameKeyboard } from './useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, getStageYaw, resetStageYaw } from '../state/stageYaw';
@@ -202,7 +203,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
   it('mode Dissiper ARMÉ : le portrait de l’allié porteur ÉLIT le porteur (comme son jeton)', () => {
     const { h2 } = combatDissipation('dispel');
     const b = portraitDock(h2.label);
-    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — cibler`);
+    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — cibler — ${t('ptile.geste2eInspecter')}`);
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().dispelCarrierId, 'le porteur est élu — le SORT reste à choisir').toBe('h2');
     expect(useGame.getState().sheetId, 'le clic ne doit pas ouvrir la fiche pendant un ciblage').toBeNull();
@@ -211,7 +212,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
   it('TÉMOIN — aucun ciblage armé : le même portrait ouvre la fiche du personnage', () => {
     const { h2 } = combatDissipation(null);
     const b = portraitDock(h2.label);
-    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — fiche du personnage`);
+    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — fiche du personnage — ${t('ptile.geste2eInspecter')}`);
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().sheetId).toBe('h2');
     expect(useGame.getState().dispelCarrierId).toBeNull();

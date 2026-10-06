@@ -2,8 +2,8 @@
  * Ciblage au SURVOL du stage (memoïsé — previewAttack/LdV/pathTo ne tournent pas à 60 Hz pendant les
  * glissements de token) : réticule + carte de jet du FAISABLE (`hoverAim` — une cible que le mode
  * courant refuse ne rend RIEN, arbitrage 2026-08-24 ; son refus se dit AU CLIC), combattant
- * SOUS le focus (`hoveredId`, miroir frise), aperçus de déplacement (combat `hoverMove` / exploration
- * `explorePath`), grisage hors-LdV (`ghostIds`) et jauges EN DIRECT (hoverDelta).
+ * SOUS le focus (`hoveredId`, miroir frise ; hors combat la fiche que le pointeur désigne), aperçus
+ * de déplacement (combat `hoverMove` / exploration `explorePath`), grisage hors-LdV (`ghostIds`) et jauges EN DIRECT (hoverDelta).
  * Le curseur clavier/manette (combatCursor) PRIME sur la souris locale (hover) ET sur le survol de
  * frise (hoverCombatantId) — un seul réticule/aperçu à la fois.
  */
@@ -43,6 +43,9 @@ export function useHoverTargeting(
   hover: Pt | null,
   myTurn: boolean,
   hoveredPortal: RoomPortal | null = null,
+  /** HORS COMBAT, l'entité à fiche sous le pointeur, résolue par le pointeur lui-même
+   *  (`useStagePointer.ficheSurvolee`) depuis le VRAI verdict de pixel. */
+  ficheSurvolee: string | null = null,
 ) {
   const mode = useGame((s) => s.mode);
   const battle = useGame((s) => s.battle);
@@ -138,13 +141,16 @@ export function useHoverTargeting(
   // Combattant SOUS le focus (tuile survolée OU portrait de frise/Tab) — INDÉPENDANT du ciblage
   // (hoverAim exige Mon Tour + cible valide). Pilote le halo de focus du token ET, synchronisé au
   // store (`hovered`), le miroir réciproque sur la frise. Source unique du « qui est mis en évidence ».
+  // Hors combat : la fiche que le POINTEUR désigne (`ficheSurvolee`, le résolveur du clic droit), celle
+  // que la touche `inspecter` ouvre — aucun jeton d'exploration n'en peint de halo.
   const hoveredId = useMemo<string | null>(() => {
+    if (mode === 'exploration') return ficheSurvolee;
     if (mode !== 'battle' || !battle) return null;
     const occ = effFocusId
       ? battle.combatants.find((c) => c.id === effFocusId && c.pos && !isOutOfAction(c))
       : effHover ? combatantAtTile(battle.combatants, effHover.x, effHover.y, effHover.z ?? 0) : null;
     return occ?.id ?? null;
-  }, [combatCursor, mode, battle, hover, hoverCombatantId]);
+  }, [combatCursor, mode, battle, hover, hoverCombatantId, ficheSurvolee]);
   useEffect(() => { setHovered(hoveredId); }, [hoveredId, setHovered]);
 
   // Aperçu de DÉPLACEMENT au SURVOL (desktop) ET au curseur clavier/manette (effHover) : le chemin + le

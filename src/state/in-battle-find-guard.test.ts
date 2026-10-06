@@ -44,7 +44,7 @@ const BASELINES: Record<string, number> = {
   'src/ui/ApproachModal.tsx': 1,
   'src/ui/AuContactModal.tsx': 2,
   'src/ui/BattementModal.tsx': 2,
-  'src/ui/CampaignView.tsx': 6,
+  'src/ui/CampaignView.tsx': 5,
   'src/ui/CharacterSheet.tsx': 1,
   'src/ui/CrewTestModal.tsx': 1,
   'src/ui/DisengageModal.tsx': 2,
@@ -83,9 +83,6 @@ const BASELINES: Record<string, number> = {
   'src/gameIso/stage/highlightLayer.tsx': 3,
   'src/gameIso/stage/useHoverTargeting.ts': 5,
   'src/gameIso/stage/useStageCamera.ts': 8,
-  // -1 (2 → 1) : la chaîne de picking descend en `stage/pickResolve.ts`, dont la branche `combatant`
-  // passe par `inBattleId`.
-  'src/gameIso/stage/useStagePointer.ts': 1,
   'src/gameIso/stage/ZdeTemplate.tsx': 1,
   'src/gameIso/usePlanAnim.ts': 1,
 };
