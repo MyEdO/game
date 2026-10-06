@@ -145,6 +145,17 @@ describe('possession réseau (netOwnership)', () => {
     expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h2'])).toBe(true);  // h2 = siège 1
     expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h1'])).toBe(false); // h1 = hôte
   });
+
+  it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
+    const vu = [{ id: 'ind', étapes: 1, statut: 'révélé', stadeCourant: 's1' }];
+    const horsCombat = base({ battle: null } as unknown as Partial<GameState>);
+    expect(intentAllowedFor(horsCombat, 1, 'toggleCluePin', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'markCluesSeen', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'partyRemoveHero', ['h1']), 'opposé : un geste de groupe POSSÉDÉ reste refusé').toBe(false);
+    const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
+    expect(intentAllowedFor(enCombat, 1, 'toggleCluePin', ['ind'])).toBe(true);
+    expect(intentAllowedFor(enCombat, 1, 'markCluesSeen', [vu])).toBe(true);
+  });
 });
 
 describe('controlsActive — gating d’affichage : le tour d’un héros distant est inerte (comme un tour ennemi)', () => {

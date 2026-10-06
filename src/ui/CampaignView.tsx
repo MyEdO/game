@@ -62,6 +62,7 @@ import { controlsActive, controlsCombatant } from '../state/netOwnership';
 import { combatantClickActs } from '../state/combatOrParty';
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
+import { estNouveauPour } from '../state/clues';
 
 /** Défaite : dans une bataille de masse ou une scène, `dismissDefeat` ; sans scène, l'Arène se
  *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
@@ -157,6 +158,7 @@ export function CampaignView() {
   const [historyOpen, setHistoryOpen] = useState(false); // relecture des conversations (#718 dernier lot) — s'ouvre depuis le tiroir-journal
   const dialogueHistory = useGame((s) => s.dialogueHistory);
   const campaignNarratif = useGame((s) => s.campaignNarratif);
+  const carnetNouveau = useGame((s) => Object.values(s.clues).some((c) => estNouveauPour(c, s.net.mySeat)));
   // Cadre de campagne (#717) : le rideau d'ouverture et le récap de fin de chapitre — montés comme
   // `pendingVictory`, par-dessus la vue, chacun sur son slot de donnée.
   const pendingOuverture = useGame((s) => s.pendingOuverture);
@@ -294,7 +296,7 @@ export function CampaignView() {
             onPossessions={() => openPossessionsScreen()}
             /* Carnet d'enquête (#670) : seulement si la campagne embarque une enquête (au moins un
                indice authoré au narratif) — arène/scènes de test n'en ont pas. */
-            onCarnet={(campaignNarratif?.indices.length ?? 0) > 0 ? () => setCarnetOpen(true) : undefined}
+            carnet={(campaignNarratif?.indices.length ?? 0) > 0 ? { onOpen: () => setCarnetOpen(true), nouveau: carnetNouveau } : undefined}
             onShipDossier={vessel ? () => setDossierOpen(true) : undefined}
             /* Écran-hub de voyage RÉDUIT (#333) : caché tant qu'une étape attend (le hub est alors
                forcé ouvert). */

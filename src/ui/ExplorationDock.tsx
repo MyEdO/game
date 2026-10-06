@@ -25,8 +25,8 @@ import type { IconIdInput } from './icons';
 export type ExplorationDockProps = {
   /** Possessions du groupe (#762) — gestion des bêtes/véhicules/navires/serviteurs. */
   onPossessions: () => void;
-  /** Carnet d'enquête (#670). */
-  onCarnet?: () => void;
+  /** Carnet d'enquête (#670) — `nouveau` : un indice a changé depuis le dernier affichage (#2415). */
+  carnet?: { onOpen: () => void; nouveau: boolean };
   /** Dossier du navire (#227). */
   onShipDossier?: () => void;
   /** Écran-hub de voyage RÉDUIT (#333) : le rouvrir. */
@@ -43,7 +43,7 @@ export type ExplorationDockProps = {
   journal?: ReactNode;
 };
 
-export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoyage, worldMap, hub, rest, onFouiller, journal }: ExplorationDockProps) {
+export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage, worldMap, hub, rest, onFouiller, journal }: ExplorationDockProps) {
   return (
     <div className="exploration-dock skin-pont" data-deck="exploration">
       {onFouiller && (
@@ -57,9 +57,15 @@ export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoya
         <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title={t('pont.possessions')}>
           <Icon id="travel/mount" size="lg" />
         </button>
-        {onCarnet && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onCarnet} title={t('pont.carnet')}>
-            <Icon id="nav/compendium" size="lg" />
+        {carnet && (
+          <button
+            type="button"
+            className={`worldmap-btn skin-tole ${carnet.nouveau ? 'attention' : ''}`}
+            data-ton="laiton"
+            onClick={carnet.onOpen}
+            title={t(carnet.nouveau ? 'pont.carnetNouveau' : 'pont.carnet')}
+          >
+            <Icon id="nav/carnet" size="lg" />
           </button>
         )}
         {onShipDossier && (

@@ -506,6 +506,7 @@ export const fr = {
   'eff.clueAdvance': '« {titre} » — l\'indice se précise.',
   'eff.clueDiscredit': '« {titre} » — fausse piste écartée.',
   'eff.clueReactivate': '« {titre} » — la piste écartée refait surface.',
+  'carnet.nouveau': 'Nouveau',
   // ── Compte à rebours d'objectif (deadline, #668) — bandeau d'objectif courant. ──
   'countdown.days': 'J-{n}',
   'countdown.hours': 'dans {n} h',
@@ -1447,6 +1448,7 @@ export const fr = {
   'pont.ecrans': 'Écrans de campagne',
   'pont.possessions': 'Possessions du groupe',
   'pont.carnet': 'Carnet d’enquête',
+  'pont.carnetNouveau': 'Carnet d’enquête — nouvelles entrées',
   'pont.dossierNavire': 'Dossier du navire — état, cargaison, équipage',
   'pont.voyage': 'Rouvrir l’écran de voyage',
   'pont.carte': 'Carte du monde — voyager',

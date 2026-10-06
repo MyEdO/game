@@ -9,7 +9,8 @@ import { CarnetScreen } from './CarnetScreen';
 import { useGame } from '../state/store';
 import { bookAbr } from '../data';
 import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
-import type { ClueState } from '../state/clues';
+import { revealClue, type ClueState } from '../state/clues';
+import { t } from '../i18n';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -190,5 +191,84 @@ describe('CarnetScreen — le document qu’un stade croise (#679)', () => {
     expect(parchemins().map((p) => p.titre)).toEqual(['Affiche de la diligence', 'Lettre de Kastor']);
     const précédente = container.querySelector('.clue-history .parchment-card');
     expect(précédente?.textContent).toContain('Mon cher cousin');
+  });
+});
+
+describe('CarnetScreen — nouveautés (#2415)', () => {
+  /** Le siège local est le 0 (`net.mySeat`) : `lu` l'a affiché, `neuf` n'a été affiché par personne. */
+  const neuf: ClueState = { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] };
+  const lu: ClueState = { ...neuf, vuParSiège: { 0: true } };
+  /** Pastilles « Nouveau » des bandes d'indice (hors rangées de liste). */
+  const pastillesDeBande = () => [...container.querySelectorAll('.chip.tone-warn')]
+    .filter((c) => !c.closest('.listrow'))
+    .map((c) => c.textContent);
+  const rangée = (titre: string) => [...container.querySelectorAll('button.listrow')].find((el) => el.textContent?.includes(titre))!;
+
+  it('un indice nouveau pour CE siège porte la pastille « Nouveau » sur sa bande ; l’indice lu voisin, non', async () => {
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': neuf, 'ind-2': lu } });
+    await mount();
+    expect(container.querySelectorAll('.creator-band')).toHaveLength(2);
+    expect(pastillesDeBande()).toEqual([t('carnet.nouveau')]);
+    const bandeNeuve = [...container.querySelectorAll('.creator-band')].find((b) => b.textContent?.includes('Traces de boue fraîche'))!;
+    expect(bandeNeuve.querySelector('.chip.tone-warn')?.textContent).toBe(t('carnet.nouveau'));
+  });
+
+  it('la rangée d’affaire compte ses nouveautés dans un `.count` ; une affaire sans nouveauté n’en porte pas', async () => {
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': lu, 'ind-3': neuf } });
+    await mount();
+    expect(rangée('Le sceau maudit').querySelector('.chip.tone-warn .count')?.textContent).toBe('1');
+    expect(rangée('La disparition du meunier').querySelector('.chip.tone-warn')).toBeNull();
+  });
+
+  it('la rangée « Épinglés » compte les nouveautés de ses indices', async () => {
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': neuf, 'ind-3': { ...neuf, épinglé: true } } });
+    await mount();
+    expect(rangée('Épinglés').querySelector('.chip.tone-warn .count')?.textContent).toBe('1');
+  });
+
+  it('AFFICHER une affaire marque ses indices vus par CE siège au store, et leur pastille reste lisible tant que le carnet est ouvert', async () => {
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': neuf, 'ind-3': neuf } });
+    await mount();
+    // L'affaire affichée par défaut (le meunier) passe vue ; celle du sceau, jamais affichée, reste nouvelle.
+    expect(useGame.getState().clues['ind-1'].vuParSiège).toEqual({ 0: true });
+    expect(useGame.getState().clues['ind-3'].vuParSiège).toBeUndefined();
+    expect(pastillesDeBande()).toEqual([t('carnet.nouveau')]);
+    await act(async () => (rangée('Le sceau maudit') as HTMLButtonElement).click());
+    expect(useGame.getState().clues['ind-3'].vuParSiège).toEqual({ 0: true });
+    expect(pastillesDeBande()).toEqual([t('carnet.nouveau')]);
+  });
+
+  it('un indice vu par le siège 0 reste NOUVEAU au Carnet du siège 1, qui le marque pour lui seul', async () => {
+    const net = useGame.getState().net;
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': lu }, net: { ...net, mySeat: 1 } });
+    try {
+      await mount();
+      expect(pastillesDeBande()).toEqual([t('carnet.nouveau')]);
+      expect(useGame.getState().clues['ind-1'].vuParSiège).toEqual({ 0: true, 1: true });
+    } finally {
+      useGame.setState({ net });
+    }
+  });
+
+  it('FERMER puis rouvrir le carnet : plus aucune pastille — la mémoire du montage repart à zéro', async () => {
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': neuf } });
+    await mount();
+    expect(pastillesDeBande(), 'témoin : la nouveauté levée reste lisible au premier montage').toEqual([t('carnet.nouveau')]);
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await mount();
+    expect(container.textContent).toContain('Traces de boue fraîche');
+    expect(pastillesDeBande()).toEqual([]);
+  });
+
+  it('un indice révélé PENDANT que son affaire est affichée : marqué vu aussitôt, pastille gardée dans ce montage', async () => {
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': lu } });
+    await mount();
+    expect(pastillesDeBande(), 'témoin : rien de nouveau avant la révélation').toEqual([]);
+    await act(async () => useGame.setState((s) => ({ clues: revealClue(s.clues, narratif.indices[1], 0) })));
+    expect(useGame.getState().clues['ind-2']).toBeDefined();
+    expect(useGame.getState().clues['ind-2'].vuParSiège).toEqual({ 0: true });
+    const bande = [...container.querySelectorAll('.creator-band')].find((b) => b.textContent?.includes('Second indice caché'))!;
+    expect(bande.querySelector('.chip.tone-warn')?.textContent).toBe(t('carnet.nouveau'));
   });
 });

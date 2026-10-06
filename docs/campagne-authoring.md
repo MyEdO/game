@@ -283,7 +283,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
   rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
-  indices) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
+  indices) ; l'ORDRE de `stades` fait sens — des paliers : le stade courant d'un indice est le plus
+  avancé atteint, jamais un recul, et un stade antérieur lu après coup s'ajoute à son historique
+  (`revealClue`, `src/state/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
   (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,

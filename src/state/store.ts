@@ -65,8 +65,8 @@ import { initialFields, resetFields } from './stateFields';
 import { captureMutation, applyMutation as applySceneMutation, type SceneMutation } from './sceneInstance';
 import { assignSeat, memeCase, placesJouables, pruneSeatAssignments, RANG_MENEUR, releaseRecomposedRanks, releaseSeat, seatPoseOf, type SeatPose } from './seating';
 import { actionsDe, actionsAuthorees, cleActionJouee, estCapacite, type CapaciteId } from './usable';
-import type { ClueState } from './clues';
-import { togglePin } from './clues';
+import type { ClueState, IndiceAffiché } from './clues';
+import { togglePin, marquerVus } from './clues';
 import type { CodexFocus } from './codexFocus';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
@@ -543,6 +543,8 @@ export interface GameState extends RollFlowActionsMap {
   clues: Record<string, ClueState>;
   /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
   toggleCluePin: (indiceId: string) => void;
+  /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
+  markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
   /** Brouillard de guerre : cases déjà explorées par scène (`sceneId` → clés "x,y,z"). PERSISTE entre
    *  transitions (hors manifeste de reset `stateFields`) ; vidé en nouvelle partie (`startScene`). */
   explored: Record<string, string[]>;
@@ -2061,6 +2063,14 @@ export const useGame = create<GameState>((set, get) => ({
   ajournerChapterRecap: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null })),
   clues: {},
   toggleCluePin: (indiceId) => set((s) => ({ clues: togglePin(s.clues, indiceId) })),
+  /** NOUVEAUTÉ VUE, MARQUÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le siège agissant quand
+   *  l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — un siège ne
+   *  marque vu que pour lui-même. */
+  markCluesSeen: (affichés) => {
+    const s = get();
+    const clues = marquerVus(s.clues, affichés, decidingSeat(s));
+    if (clues !== s.clues) set({ clues });
+  },
   explored: {},
   markExplored: (keys) => visionStateMod.recordExplored(get, set, keys),
   journal: [],
