@@ -511,11 +511,11 @@ export function declutterPositions(
 import { migrateDoc, type RaisonDeRefus } from './migrateDoc';
 import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import { type NarratifBlock } from './campaignNarratif';
-import { validateDocument, rapportDeFautes, type Faute } from '../data/schemas/validate';
+import { validerFormeVivante, rapportDeFautes, type Faute, type RefusDeFormeVivante } from '../data/schemas/validate';
 import { projetSchema, SCHEMA_PROJET } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
-import { proseNonMaterialisee, versDisque } from '../data/schemas/grammaire/prose';
+import { versDisque } from '../data/schemas/grammaire/prose';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
@@ -682,16 +682,23 @@ function migreFormeDeProjet(data: unknown): Record<string, unknown> {
  *  suit le schéma est une faute du jeu, et se propage. */
 export function migreSceneDeProjet(scene: unknown, schema: unknown): Scene {
   const monte = (migreFormeDeProjet({ schema, scenes: [scene] }).scenes as unknown[])[0];
-  const fautes = validateDocument(sceneSchema, monte);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Scène', fautes));
+  const refus = validerFormeVivante(sceneSchema, monte);
+  if (refus) throw refusDeFormeVivante('Scène', refus);
   return normalizeScene(monte as Scene);
+}
+
+/** Le refus de `validerFormeVivante` en `ProjetRefuse`, sous sa cause ; le rapport technique de la
+ *  complétude nomme chaque nœud par son chemin JSON. */
+function refusDeFormeVivante(sujet: string, { cause, fautes }: RefusDeFormeVivante): ProjetRefuse {
+  if (cause === 'schema') return new ProjetRefuse(cause, fautes, rapportDeFautes(sujet, fautes));
+  return new ProjetRefuse(cause, fautes, `${sujet} invalide : ${fautes.map((f) => cheminJson(f.chemin)).join(', ')} — ${fautes[0].message}`);
 }
 
 /** Parse un document de projet, migrant au besoin via `migrateDoc`. Refus EXPLICITE (`ProjetRefuse`,
  *  jamais un throw sec sans espoir de migration), dont la cause se LIT : la raison d'un refus de
  *  migration est celle que `migrateDoc` nomme (`REFUS_DE_MIGRATION`) ; puis forme finale invalide
- *  (`scenes` absent/non-tableau), schéma enfreint, ou prose adressée sans son texte (la forme
- *  disque d'un projet livré : un lecteur Node passe par `lireProjetLivre`). Les anciens formats (tableau de scènes nu,
+ *  (`scenes` absent/non-tableau), puis `validerFormeVivante` : schéma enfreint sur la forme disque, ou
+ *  prose adressée sans son texte (un lecteur Node passe par `lireProjetLivre`). Les anciens formats (tableau de scènes nu,
  *  scène unique) restent refusés : ils n'ont jamais porté de `schema`. Chaque scène ressort passée
  *  par `normalizeScene` (`scene.ts`) : les collections requises absentes d'un document ancien (même
  *  schema 2) sont complétées ici, au SEUL point d'entrée, jamais par un `?? []` dispersé côté
@@ -706,23 +713,12 @@ export function parseProject(data: unknown): Omit<ProjectDoc, 'schema'> {
   // Porte UNIQUE du document (#1466) : `projetSchema` porte la FORME et les sémantiques du seam —
   // FK `activeAxes` → `axes.json`, FK `worldMap.places[].port.ref` → `naval-ports.json`, invariants
   // du bloc narratif, FK intra-document `entity.presetId` → `narratif.presetsPnj`, invariant
-  // d'identité. Validé AVANT `resolvePortRef` et `normalizeScene` : le schéma voit le document tel
-  // qu'il est authoré. `version` est la clé de travail de `migrateDoc`, pas un champ du document :
-  // elle ne lui est pas soumise.
+  // d'identité. Validé AVANT `resolvePortRef` et `normalizeScene`, sur la forme disque, la complétude
+  // de la prose sur le reçu (`validerFormeVivante`, #2001). `version` est la clé de travail de
+  // `migrateDoc`, pas un champ du document : elle ne lui est pas soumise.
   const { version: _version, ...doc } = migrated;
-  const fautes = validateDocument(projetSchema, doc);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Projet', fautes));
-  // Un nœud ADRESSÉ sans son texte est la forme disque : le lire tel quel perdrait la prose en silence.
-  const nus = proseNonMaterialisee(doc);
-  if (nus.length > 0) {
-    const cause = 'prose-non-materialisee';
-    const message = 'prose adressée (`descRef`) sans son texte (`desc`)';
-    throw new ProjetRefuse(
-      cause,
-      nus.map((chemin) => ({ chemin, lieu: chemin, message, code: cause })),
-      `Projet invalide : ${message} — ${nus.map(cheminJson).join(', ')}.`,
-    );
-  }
+  const refus = validerFormeVivante(projetSchema, doc);
+  if (refus) throw refusDeFormeVivante('Projet', refus);
 
   // Carte et lieux NEUFS : les ports se résolvent sur la copie, jamais sur le document reçu.
   const carteRecue = migrated.worldMap as WorldMap | undefined;

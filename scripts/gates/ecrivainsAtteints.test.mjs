@@ -129,6 +129,10 @@ const ATTENDU = {
     // 2026-09-18, `git status --porcelain` identique avant/après, et `/tmp` sans résidu.
     'scripts/guards/lib/modulesFeuilles.test.mjs',
     'scripts/guards/lib/plageStock.test.mjs',
+    // +1 le 2026-10-07 (#2001) : le banc de `mesurerProseInline` pose son projet de fixture sous un
+    // `mkdtempSync` d'os.tmpdir() (`mkdirSync`/`writeFileSync`, `rmSync` en finally) — la mesure balaie
+    // des FICHIERS sous une racine ; l'arbre du dépôt n'est jamais écrit.
+    'scripts/guards/lib/proseInline.test.mjs',
     // +2 le 2026-09-06 (#1679 L3b) : la purge des dossiers de CACHE (`node_modules/.cache`,
     // `node_modules/.cache/gates`) est une source unique — elle EFFACE, par construction ; son test
     // pose et efface ses fichiers sous `os.tmpdir()`. Ni l'une ni l'autre ne touche l'arbre versionné.

@@ -1538,6 +1538,25 @@ Le libellé de l'entrée est cité COMPLET (`src/state/combatEffects.ts:1535`) :
 mécaniques » en `{ exact: true }` rate (piège du suffixe ci-dessus) — soit le texte entier, soit
 `exact: false`.
 
+Un effet **Journal** (texte et provenance, #2001) suit le même chemin, mesuré au code :
+
+Éditeur → onglet **Triggers** (`src/ui/editor/LogicDock.tsx:85`) → **+ Nouveau trigger** (`:174`, qui
+sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:226`) →
+**Journal** (`src/state/combatEffects.ts:1308`).
+
+- « + Bloc » est le `<summary>` d'un `<details>` (`AddMenu`, `src/ui/editor/AddMenu.tsx`) : le cliquer
+  ouvre le menu, aucun bouton ne porte ce texte. Le menu s'ouvre avec TOUTES ses sections dépliées
+  (`AddMenu.tsx`, un `mini-title` par groupe, jamais cliquable) : « Narration » n'est qu'un titre, on
+  clique « Journal » directement.
+- La ligne d'effet posée est un `<details class="eff-row flow-node">` REPLIÉ (`open` n'est posé que pour
+  un nœud `if`/`test`, `FlowEditor.tsx:263`) : ouvrir son `<summary>` avant de viser la zone de texte.
+- Depuis la CARTE, un trigger sélectionné ouvre le même détail par le bouton **Effets (n)…** de
+  l'inspecteur (`src/ui/editor/Inspector.tsx:910`).
+
+**Mesurer un rognage** : sur le CONTENEUR qui clippe (celui qui porte `overflow: hidden`, ex. `.seg`),
+jamais sur l'élément clippé. Comparer `scrollWidth` à `clientWidth` du conteneur ; la largeur de
+l'élément rogné reste la sienne et ne dit rien du masquage.
+
 ## Chemins canoniques du Codex (niches ouvertes récemment)
 
 Une recette ne doit pas redécouvrir l'arborescence du Compendium à l'aveugle : les niches nichées sous

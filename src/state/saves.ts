@@ -98,6 +98,8 @@ const MIGRATIONS_DE_SAVE = {
   65: '#1853 plancher de `charMod` figé sur l’instance de mutation',
   // #1822
   66: '#1822 l’inspection est un geste, plus une préférence (`inspectEnabled`)',
+  // #2001
+  67: '#2001 texte de campagne : `desc` optionnel, `adapteDe` exclusif de `source`/`descRef`, `nodeText` optionnel',
 } as const;
 
 export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);

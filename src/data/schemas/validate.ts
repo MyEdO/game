@@ -19,7 +19,7 @@ import { coDescendre, defDe, descendre, enfantsDe, ouverts } from './grammaire/d
 import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, type MetaChamp } from './grammaire/meta';
-import { versDisque } from './grammaire/prose';
+import { proseNonMaterialisee, versDisque } from './grammaire/prose';
 import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
@@ -185,7 +185,7 @@ export function noeudDeLEntree(dataset: string, entree: object): unknown {
     const discriminants = [...new Set(ouverts(noeuds).map((n) => defDe(n)?.discriminator).filter((d): d is string => d !== undefined))];
     const valeurs = discriminants.map((d) => `« ${d} » = ${String(JSON.stringify((entree as Record<string, unknown>)[d]))}`).join(', ');
     const message = `${lieu} — la rangée porte ${objets.length} nœuds objets, pas un${valeurs ? ` (discriminant ${valeurs})` : ''}.`;
-    const refus = noeuds.map((n) => validateDocument(n as z.ZodType, versDisque(entree)));
+    const refus = noeuds.map((n) => validerFormeVivante(n as z.ZodType, entree)?.fautes ?? null);
     if (refus.length > 0 && refus.every((f): f is readonly Faute[] => f !== null)) throw new RangeeSansNoeud(message, refus.flat());
     throw new Error(message);
   }
@@ -285,4 +285,24 @@ export function validateDataset(file: string, value: unknown): string | null {
 export function validateDocument(schema: z.ZodType, value: unknown): readonly Faute[] | null {
   const result = schema.safeParse(value);
   return result.success ? null : fautesDe(schema, value, result.error);
+}
+
+/** Refus d'une forme VIVANTE (`validerFormeVivante`) : la cause dit laquelle des deux portes refuse. */
+export type RefusDeFormeVivante = { readonly cause: 'schema' | 'prose-non-materialisee'; readonly fautes: readonly Faute[] };
+
+/**
+ * Porte d'une forme VIVANTE (prose adressée matérialisée) : le schéma sur `versDisque(value)`, puis
+ * la complétude (`proseNonMaterialisee`) sur `value` reçue. Sites : `parseProject` et
+ * `migreSceneDeProjet` (`state/worldMap.ts`), `validateScene` (`state/validateScene.ts`).
+ */
+export function validerFormeVivante(schema: z.ZodType, value: unknown): RefusDeFormeVivante | null {
+  const fautes = validateDocument(schema, versDisque(value));
+  if (fautes) return { cause: 'schema', fautes };
+  const nus = proseNonMaterialisee(value);
+  if (nus.length === 0) return null;
+  const cause = 'prose-non-materialisee';
+  return {
+    cause,
+    fautes: nus.map((chemin) => ({ chemin, lieu: lieuDe(schema, value, chemin), message: 'passage adressé sans son texte.', code: cause })),
+  };
 }

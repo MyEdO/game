@@ -28,6 +28,7 @@ import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
+import { champAdapteDe, champsProse, refineAdapteDe, refineProse } from '../grammaire/prose';
 import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
@@ -475,16 +476,20 @@ export const dialogueChoiceSchema = z.strictObject({
   /** Id du nœud suivant. */
   next: z.string().optional(),
 });
-/** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. */
+/** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
+ *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
 export const dialogueNodeSchema = z.strictObject({
   id: z.string(),
   /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
    *  SESSION (`state.dialogue.speakerId`, posé par `interactEntity` ou `startDialogue.speakerId`). */
   speakerId: z.string().optional(),
-  desc: z.string(),
+  ...champsProse(),
+  ...champAdapteDe(),
   choices: z.array(dialogueChoiceSchema),
-});
+})
+  .superRefine(refineProse({ type: 'projet', exigeProse: true }))
+  .superRefine(refineAdapteDe);
 /** `Dialogue` — arbre de nœuds, `start` = id du nœud d'entrée. */
 export const dialogueSchema = z.strictObject({
   id: z.string(),

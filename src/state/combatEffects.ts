@@ -258,7 +258,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
     .filter((e): e is Extract<Effect, { type: 'giveMoney' }> => e.type === 'giveMoney')
     .reduce((m, e) => m + toBrass(toMoney(e.montant)), 0);
   if (!gear.length && found <= 0) return undefined; // dépense (giveMoney négatif) ou simple récit : pas de fenêtre
-  const messages = effects.filter((e): e is Extract<Effect, { type: 'journal' }> => e.type === 'journal').map((e) => e.desc);
+  const messages = effects.flatMap((e) => (e.type === 'journal' && e.desc ? [e.desc] : []));
   set((s: GameState) => {
     const prev = s.pendingLoot;
     if (!prev) return { pendingLoot: { title, messages: messages.length ? messages : undefined, gold: found > 0 ? fromBrass(found) : undefined, gear } };
@@ -1317,8 +1317,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Narration ──────────────────────────────────────────────────────────
   journal: {
     group: 'Narration', label: 'Journal', icon: 'journal/detail',
-    make: () => ({ type: 'journal', desc: '' }),
-    apply: (e, env) => { env.log(e.desc); },
+    make: () => ({ type: 'journal', desc: undefined, descRef: undefined, adapteDe: undefined }), // les clés déclarent les champs au report de type (`convertTo`, `ui/editor/AddMenu.tsx`)
+    apply: (e, env) => { if (e.desc) env.log(e.desc); },
   },
   document: {
     group: 'Narration', label: 'Document (handout)', icon: 'file/document',
