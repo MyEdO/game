@@ -22,15 +22,21 @@ const http = (status, details = {}, code = 202) => ({ ok: code < 400,
   stdout: `HTTP/2.0 ${code}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ status, details })}`,
   ...(code >= 400 ? { raison: `HTTP ${code}` } : {}) })
 function banc({ prs = [PR], courses = [CI], relectures = [], fusions = [http('enqueued')], ci = CI,
-  commentaires = [], commits = [], refusPage = null, totalCommits = commits.length } = {}) {
+  commentaires = [], commits = [], refusPage = null, totalCommits = commits.length, identites = [], mutation = null } = {}) {
   const appels = [], poses = new Map()
-  let relu = 0, fusion = 0
+  let relu = 0, fusion = 0, identite = 0
   const appel = (args, options = {}) => {
     appels.push({ args, options })
     const chemin = args.find((a) => a.startsWith('repos/'))
     const page = Number(/[?&]page=(\d+)/.exec(chemin)?.[1] ?? 1)
     const tranche = (liste) => liste.slice((page - 1) * 100, page * 100)
     const json = (value) => ({ ok: true, stdout: JSON.stringify(value) })
+    if (args.includes('graphql')) {
+      const payload = JSON.parse(options.input)
+      if (payload.query.startsWith('mutation')) return mutation ?? json({ data: { enqueuePullRequest: { mergeQueueEntry: { id: 'ENTRY', headCommit: { oid: SHA } } } } })
+      return json({ data: { repository: { pullRequest: identites[Math.min(identite++, identites.length - 1)]
+        ?? { id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null, isInMergeQueue: false } } } })
+    }
     if (chemin === refusPage) return { ok: false, raison: 'lecture refusée' }
     if (chemin.includes('merge-async')) return fusions[Math.min(fusion++, fusions.length - 1)]
     if (chemin.includes('/comments')) {
@@ -62,7 +68,23 @@ test('rerun vert reprend sans train avec REST, SHA et signal PR/ticket', async (
   assert.match(b.poses.get('42')[0], /run 9\/attempt 2/)
   assert.ok(b.poses.get('42')[0].includes('https://github.com/MyEdO/game/actions/runs/9/attempts/2'))
   assert.ok(b.poses.get('42')[0].includes('https://github.com/MyEdO/game/actions/runs/88'))
-  assert.ok(b.appels.every((c) => !c.args.includes('graphql') && !c.args.includes('--paginate')))
+  assert.ok(b.appels.every((c) => !c.args.includes('--paginate')))
+})
+
+for (const suivi of [false, true]) test(`#2437 reprise serveur repli ${suivi ? 'pending puis failed GET' : 'refus PUT'}`, async () => {
+  const refus = http('failed', { message: 'Enqueuer is not authorized to merge' }, 400)
+  const b = banc({ fusions: suivi ? [http('pending', { uuid: UUID, expected_head_sha: SHA }), refus] : [refus] })
+  assert.equal((await b.jouer())[0].statut, 'enqueued')
+  const mutations = b.appels.filter((c) => c.args.includes('graphql') && JSON.parse(c.options.input).query.startsWith('mutation'))
+  assert.equal(mutations.length, 1)
+  assert.deepEqual(JSON.parse(mutations[0].options.input).variables, { input: { pullRequestId: 'PR42', expectedHeadOid: SHA } })
+})
+
+test('#2437 reprise serveur PR déjà en file ne demande rien', async () => {
+  const b = banc({ identites: [{ id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, isInMergeQueue: true }] })
+  assert.equal((await b.jouer())[0].statut, 'enqueued')
+  assert.equal(b.demandes().length, 0)
+  assert.equal(b.appels.filter((c) => c.args.includes('graphql') && JSON.parse(c.options.input).query.startsWith('mutation')).length, 0)
 })
 
 test('rouge ignoré, même si ancien run vert', async () => {

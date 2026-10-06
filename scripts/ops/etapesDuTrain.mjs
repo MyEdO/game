@@ -526,14 +526,7 @@ export const ETAPES = [
     },
   },
   {
-    // ATTENTE BORNÉE (`--file-timeout-min`), en trois temps : la course VERTE de la branche sur la tête
-    // (managing-a-merge-queue.md : « Once a pull request has passed all required branch protection
-    // checks, a user with write access to the repository can add the pull request to the queue »),
-    // puis `PUT …/pulls/{n}/merge-async` sur cette tête (`merge_action: default` : la file si elle
-    // est configurée, la fusion directe sinon), puis le suivi de la demande (`GET …/merge-async/{uuid}`)
-    // et, mise en file, de la PR jusqu'à sa fusion. Le serveur sérialise : aucun rebase, aucun
-    // fast-forward client. Une éjection se NOMME, et se reprend une fois (`reprendreApresEjection`)
-    // quand sa cause est le tronc. Le temps passé ici est du temps d'ATTENTE (`attenteSecondes`).
+    // #2178 ; #2437 ; https://docs.github.com/en/graphql/reference/input-objects#enqueuepullrequestinput
     nom: 'file',
     dejaFaite(ctx, journal) {
       const vue = journal.etapes.file
@@ -574,14 +567,14 @@ export const ETAPES = [
             if (ci?.etat !== 'verte') ctx.journaliser(`[publier] file — course de la branche ${ci?.etat ?? `illisible : ${vues.raison}`}\n`)
             else {
               issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
-              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `\`PUT …/pulls/${pr.numero}/merge-async\` REFUSÉ : ${issue.raison}` })
+              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} REFUSÉE : ${issue.raison}` })
               if (issue.statut === 'pending' && issue.deja && issue.attendue !== journal.tete)
                 return attendu({ ok: false, detail: { pr: pr.numero }, raison: `une demande de fusion de la PR #${pr.numero} est DÉJÀ pendante (409, ${issue.uuid}) sur ${String(issue.attendue).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : GitHub l’annule (schéma de \`merge-async\`, \`sha\`) — \`--reprendre\` après son échec` })
               if (issue.statut === 'pending' && issue.deja)
                 ctx.journaliser(`[publier] file — demande DÉJÀ pendante (409) ${issue.uuid} sur la tête publiée : elle est suivie\n`)
             }
           } else if (demande.uuid) {
-            issue = ctx.lireFusion({ numero: pr.numero, uuid: demande.uuid })
+            issue = ctx.lireFusion({ numero: pr.numero, sha: journal.tete, uuid: demande.uuid })
             if (!issue.ok) {
               ctx.journaliser(`[publier] file — demande ${demande.uuid} illisible : ${issue.raison}\n`)
               issue = null

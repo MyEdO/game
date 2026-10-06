@@ -6,7 +6,9 @@
 // les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué.
 import { corpsDeFusion, fusionDe, issueDeFusion, reponseHttp } from '../guards/lib/fusionPr.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import test, { after, describe } from 'node:test'
+import test, { after, describe, mock } from 'node:test'
+import childProcess from 'node:child_process'
+import { syncBuiltinESMExports } from 'node:module'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
@@ -14,6 +16,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { codeSeul } from '../guards/lib/commentPoison.mjs'
+import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
@@ -447,6 +450,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   {
     assert.throws(() => ctx.coursesCi(sha), /ctx\.coursesCi : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.demanderFusion({ numero: 7, sha }), /ctx\.demanderFusion : un sha COMPLET/, JSON.stringify(sha))
+    assert.throws(() => ctx.lireFusion({ numero: 7, sha, uuid: '12345678-1234-1234-1234-123456789abc' }), /ctx\.lireFusion : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.parentsDe(sha), /ctx\.parentsDe : un sha COMPLET/, JSON.stringify(sha))
   }
   for (const numero of ['0', '7a', undefined])
@@ -587,9 +591,49 @@ function argvDesAppelsGh(code) {
 
 // La SOURCE `gh` du train : le train, ses étapes (#1806) et la couture REST qu'il partage avec les
 // autres `ops` (#1813). En lire une partie seulement rendrait le cliquet aveugle.
-const SOURCES_GH_DU_TRAIN = ['./publier.mjs', './etapesDuTrain.mjs', '../guards/lib/ticketsGh.mjs']
+const SOURCES_GH_DU_TRAIN = ['./publier.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
 
-test('la SOURCE du train : `gh api` en GET, POST, ou PUT sur `merge-async` — aucune route GraphQL, aucun geste de FERMETURE', () => {
+const DOCUMENTS_GRAPHQL_DU_TRAIN = new Set([
+  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } isInMergeQueue } } }',
+  'mutation EnfilerFusion($input: EnqueuePullRequestInput!) { enqueuePullRequest(input: $input) { mergeQueueEntry { id headCommit { oid } } } }',
+])
+
+function verifierGraphqlDuTrain(code) {
+  const ts = typescript()
+  const sf = ast({ rel: fileURLToPath(import.meta.url), text: code })
+  const nue = (n) => {
+    while (n && ts.isParenthesizedExpression(n)) n = n.expression
+    return n
+  }
+  const texteLitteral = (n) => {
+    const lu = nue(n)
+    return lu && (ts.isStringLiteral(lu) || ts.isNoSubstitutionTemplateLiteral(lu)) ? lu.text : null
+  }
+  const propriete = (objet, nom) => ts.isObjectLiteralExpression(objet)
+    ? objet.properties.find((p) => ts.isPropertyAssignment(p) && p.name.getText(sf) === nom)?.initializer : undefined
+  let lus = 0
+  function visiter(n) {
+    if (ts.isCallExpression(n) && ['gh', 'appel'].includes(nue(n.expression).getText(sf))
+      && n.arguments[0] && ts.isArrayLiteralExpression(nue(n.arguments[0]))) {
+      const args = nue(n.arguments[0]).elements
+      if (args.some((a) => texteLitteral(a) === 'graphql')) {
+        assert.ok(args.every((a) => ts.isStringLiteral(a)), 'argv GraphQL canonique')
+        assert.deepEqual(args.map((a) => ts.isStringLiteral(a) ? a.text : null), ['api', 'graphql', '--input', '-'])
+        const input = propriete(n.arguments[1], 'input')
+        assert.ok(input && ts.isCallExpression(input) && input.expression.getText(sf) === 'JSON.stringify', 'GraphQL stdin structuré')
+        const query = propriete(input.arguments[0], 'query')
+        assert.ok(query && ts.isStringLiteral(query) && DOCUMENTS_GRAPHQL_DU_TRAIN.has(query.text), 'document GraphQL interdit')
+        assert.ok(propriete(input.arguments[0], 'variables'), 'GraphQL variables structurées')
+        lus++
+      }
+    }
+    n.forEachChild(visiter)
+  }
+  visiter(sf)
+  return lus
+}
+
+test('la SOURCE du train : REST et deux documents GraphQL fixes, aucun geste de FERMETURE', () => {
   const code = SOURCES_GH_DU_TRAIN
     .map((f) => codeSeul(readFileSync(new URL(f, import.meta.url), 'utf8')))
     .join('\n')
@@ -598,10 +642,9 @@ test('la SOURCE du train : `gh api` en GET, POST, ou PUT sur `merge-async` — a
   assert.ok(argvs.length >= 3, `le cliquet ne lit plus les appels du train (${argvs.length})`)
   for (const argv of argvs) {
     const dit = `gh ${argv.join(' ')}`
-    // Contrat POSITIF : toute sous-commande CLI (`issue`, `pr`, `label`, `project`…) et `api graphql`
-    // sont servis par GraphQL, refusé HTTP 403 aux sessions Claude Code où le train tourne (#1804).
+    // #1804 ; #2437
     assert.equal(argv[0], 'api', `route hors REST : ${dit}`)
-    assert.notEqual(argv[1], 'graphql', `route GraphQL : ${dit}`)
+    if (argv[1] === 'graphql') continue
     // La CI ferme (job `fermetures`), jamais le train — ni `gh issue close`, ni son équivalent REST
     // `-X PATCH -f state=closed`, que l'ancienne rédaction de ce cliquet ne voyait pas.
     // `PUT …/pulls/{n}/merge-async` : la demande de fusion REST (#2178), seule route PUT du train.
@@ -614,6 +657,54 @@ test('la SOURCE du train : `gh api` en GET, POST, ou PUT sur `merge-async` — a
     assert.equal(argv.some((a) => /state=closed/.test(a)), false, `geste de fermeture : ${dit}`)
   }
   assert.equal(/issue\s+close|state=closed/.test(code), false, 'aucun geste de fermeture dans le train')
+  assert.equal(verifierGraphqlDuTrain(code), 2)
+})
+
+test('#2437 garde AST refuse une mutation étrangère et un document dynamique', () => {
+  const source = readFileSync(new URL('../guards/lib/fusionPr.mjs', import.meta.url), 'utf8')
+  assert.equal(verifierGraphqlDuTrain(source), 2)
+  assert.throws(() => verifierGraphqlDuTrain(source.replace('enqueuePullRequest(input: $input)', 'closePullRequest(input: $input)')), /document GraphQL interdit/)
+  assert.throws(() => verifierGraphqlDuTrain("appel(['api', 'graphql', '--input', '-'], { input: JSON.stringify({ query: libre, variables: {} }) })"), /document GraphQL interdit/)
+})
+
+test('#2437 garde AST détecte les routes template et parenthésées et refuse les queries non canoniques', () => {
+  const source = readFileSync(new URL('../guards/lib/fusionPr.mjs', import.meta.url), 'utf8')
+  const etranger = "{ input: JSON.stringify({ query: 'mutation Foreign { closePullRequest(input: $input) { clientMutationId } }', variables: {} }) }"
+  for (const route of ['`graphql`', "('graphql')", '((`graphql`))'])
+    assert.throws(() => verifierGraphqlDuTrain(source + `\nappel(['api', ${route}, '--input', '-'], ${etranger})`), /argv GraphQL canonique/)
+  for (const appel of ["(appel)(['api', 'graphql', '--input', '-']", "appel((['api', 'graphql', '--input', '-'])"])
+    assert.throws(() => verifierGraphqlDuTrain(source + `\n${appel}, ${etranger})`), /document GraphQL interdit/)
+  const query = [...DOCUMENTS_GRAPHQL_DU_TRAIN][0]
+  for (const document of ['`' + query + '`', '(' + JSON.stringify(query) + ')', '`query ${libre}`'])
+    assert.throws(() => verifierGraphqlDuTrain(source + `\nappel(['api', 'graphql', '--input', '-'], { input: JSON.stringify({ query: ${document}, variables: {} }) })`), /document GraphQL interdit/)
+})
+
+for (const suivi of [false, true]) test(`#2437 contexte du train repli ${suivi ? 'failed GET' : 'refus PUT'} conserve la tête`, () => {
+  const sha = 'a'.repeat(40)
+  const uuid = '12345678-1234-1234-1234-123456789abc'
+  const appels = []
+  const feinte = mock.method(childProcess, 'spawnSync', (executable, args, options) => {
+    assert.equal(executable, 'gh')
+    appels.push({ args, options })
+    if (args.includes('graphql')) {
+      const payload = JSON.parse(options.input)
+      const data = payload.query.startsWith('mutation')
+        ? { enqueuePullRequest: { mergeQueueEntry: { id: 'ENTRY', headCommit: { oid: sha } } } }
+        : { repository: { pullRequest: { id: 'PR7', headRefOid: sha, state: 'OPEN', merged: false, isInMergeQueue: false } } }
+      return { status: 0, stdout: JSON.stringify({ data }), stderr: '' }
+    }
+    return { status: 1, stdout: `HTTP/2.0 400\r\n\r\n${JSON.stringify({ status: 'failed', details: { message: 'Enqueuer is not authorized to merge' } })}`, stderr: 'refus Enqueuer' }
+  })
+  syncBuiltinESMExports()
+  try {
+    const ctx = contexteDe({ racine: RACINE, branche: 'chantier/2437', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const vu = suivi ? ctx.lireFusion({ numero: 7, sha, uuid }) : ctx.demanderFusion({ numero: 7, sha })
+    assert.deepEqual(vu, { ok: true, statut: 'enqueued' })
+    const mutation = appels.find((a) => a.args.includes('graphql') && JSON.parse(a.options.input).query.startsWith('mutation'))
+    assert.deepEqual(JSON.parse(mutation.options.input).variables, { input: { pullRequestId: 'PR7', expectedHeadOid: sha } })
+    assert.equal(appels.filter((a) => a.args.includes('PUT')).length, suivi ? 0 : 1)
+    if (suivi) assert.ok(appels.some((a) => a.args.some((arg) => arg.endsWith(uuid))))
+  } finally { feinte.mock.restore(); syncBuiltinESMExports() }
 })
 
 test('le train n’IMPORTE pas le module qui FERME — l’invariant tient sur les imports, pas sur les argv', () => {
@@ -1387,7 +1478,7 @@ test('file : une demande PENDANTE (202, ou 409 déjà pendante) se SUIT par son 
     const vu = etapeFile.jouer(ctx, journalPush())
     assert.deepEqual([vu.ok, vu.detail.fusion], [true, 'f'.repeat(40)], `deja=${deja}`)
     assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'suivre'])
-    assert.deepEqual(gestes[1][1], { numero: 7, uuid: 'u-1' })
+    assert.deepEqual(gestes[1][1], { numero: 7, sha: 'ttttttttt', uuid: 'u-1' })
   }
 })
 
@@ -1395,7 +1486,7 @@ test('file : une demande en ÉCHEC (`failed`, 400) ou REFUSÉE est ROUGE et nomm
   const echec = ctxFile({ pr: REST(), demande: { ok: true, statut: 'failed', message: 'Pull request is closed.' } })
   assert.equal(etapeFile.jouer(echec.ctx, journalPush()).raison, 'demande de fusion de la PR #7 en ÉCHEC : Pull request is closed.')
   const refus = ctxFile({ pr: REST(), demande: { ok: false, raison: 'HTTP 403 : Resource not accessible' } })
-  assert.equal(etapeFile.jouer(refus.ctx, journalPush()).raison, '`PUT …/pulls/7/merge-async` REFUSÉ : HTTP 403 : Resource not accessible')
+  assert.equal(etapeFile.jouer(refus.ctx, journalPush()).raison, 'demande de fusion de la PR #7 REFUSÉE : HTTP 403 : Resource not accessible')
 })
 
 test('file : un 409 « déjà pendante » sur une AUTRE tête est REFUSÉ d’emblée, nommé, sans suivi (« the merge will be cancelled »)', () => {
