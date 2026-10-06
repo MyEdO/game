@@ -27,6 +27,10 @@ const doc = document(
      *  `user-doctrine-regle-ligne-de-tableau-adresse-le-tableau-entier`, utilisateur, 2026-09-28 :
      *  « Le tableau entier (Recommandé) ». */
     fragmentsAdmis: ['blocs'],
+    /** Un registre de RENVOIS au livre, sans prose : #1887, utilisateur, 2026-09-22 : « régles a pour but de
+     *  faire référence aux endroits dans le livre qui concerne le modification/enjeu via un lien et non un
+     *  texte verbatine comme aujourd'hui ». */
+    porteursDeProse: ['descRef'],
   },
 );
 

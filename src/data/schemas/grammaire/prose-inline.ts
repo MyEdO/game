@@ -76,7 +76,6 @@ export const PROSE_INLINE_TOLEREE: Readonly<Record<string, LigneProseInline>> = 
   stars: { entrees: 23, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   characteristics: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée (19) et de rangée (2 : `[].options[]`), à adresser au Lot C' },
   etats: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
-  regles: { entrees: 1, lot: '#1887 lot 6a-2c', date: '2026-10-05', motif: 'prose du livre recopiée en `desc` d’entrée (`navigation-progression`, MDG 13) que la migration `2026-10-05-1887-regles-adresses-prouvees` ne prouve pas : la bannière `PROGRESSION` de la table et sa séparatrice s’interposent dans le rendu, à solder par #1887' },
   'land-cargo': { entrees: 20, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`rumours[]`) — refus au parse à la migration de la famille, Lot C' },
   structures: { entrees: 19, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   maladies: { entrees: 18, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
