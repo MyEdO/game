@@ -130,7 +130,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                 ✕ nœud
               </button>
             </Row>
-            <ProseField label="Texte de la réplique" lecture={adresseUnPassage(node.descRef)} value={node.desc ?? ''} onChange={(desc) => updNode({ desc: desc || undefined })} />
+            <ProseField label="Texte de la réplique" lecture={adresseUnPassage(node.descRef) ? node.desc ?? '' : undefined} value={node.desc ?? ''} onChange={(desc) => updNode({ desc: desc || undefined })} />
             <ProvenanceDuTexte identite={`noeud:${clesDesNoeuds[dialogue.nodes.indexOf(node)]}`} sujet="de la réplique" value={node} onChange={updNode} />
 
             <div className="mini-title">Choix ({node.choices.length})</div>

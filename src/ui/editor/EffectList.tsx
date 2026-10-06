@@ -346,7 +346,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
       <div className="eff-fields">
         {effect.type === 'journal' && (
           <>
-            <ProseField label="Texte du journal" lecture={adresseUnPassage(effect.descRef)} value={e.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProseField label="Texte du journal" lecture={adresseUnPassage(effect.descRef) ? e.desc ?? '' : undefined} value={e.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
             <ProvenanceDuTexte identite={identite} sujet="de la ligne de journal" value={effect} onChange={upd} />
           </>
         )}

@@ -458,7 +458,7 @@ function ProvenanceDuTexteDemo() {
       <Stack className="panel sunken" gap="sm">
         <strong>Réplique adressée</strong>
         {/* Composée comme `DialogueDetail` : le texte se lit, puis s'édite une fois détaché. */}
-        <ProseField label="Texte de la réplique" lecture={adresseUnPassage(adressee.descRef)} value={adressee.desc ?? ''} onChange={(desc) => setAdressee((v) => ({ ...v, desc: desc || undefined }))} />
+        <ProseField label="Texte de la réplique" lecture={adresseUnPassage(adressee.descRef) ? adressee.desc ?? '' : undefined} value={adressee.desc ?? ''} onChange={(desc) => setAdressee((v) => ({ ...v, desc: desc || undefined }))} />
         <ProvenanceDuTexte identite="adressee" sujet="de la réplique adressée" value={adressee} onChange={poser(setAdressee)} />
       </Stack>
     </Grid>

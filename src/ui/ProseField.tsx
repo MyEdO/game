@@ -15,15 +15,18 @@ export function ProseField({ label, value, onChange, nu, ariaLabel, lecture }: {
   /** Nom accessible POSITIONNÉ (« Description de la variante 2 ») quand le libellé visible se répète
    *  d'une rangée à l'autre. */
   ariaLabel?: string;
-  /** Texte LU (adresse d'un passage, `descRef`) : la prose rendue à la place de la zone, sous le même
-   *  libellé — le champ garde sa place quand le texte redevient saisissable. */
-  lecture?: boolean;
+  /** Prose LUE (adresse d'un passage, `descRef`) : rendue à la place de la zone, sous le même
+   *  libellé — le champ garde sa place quand le texte redevient saisissable. Prop de markdown du
+   *  porteur `ProseField{lecture}` : chaque site qui la passe se déclare dans `SITES_PROSE`
+   *  (`src/ui/liage.ts`) ; `value` n'est que la valeur de la zone de saisie. */
+  lecture?: string;
 }) {
-  const zone = lecture ? <Prose md={value} /> : (
+  const lue = lecture !== undefined;
+  const zone = lue ? <Prose md={lecture} /> : (
     <textarea className="prose-field" aria-label={nu ? label : ariaLabel} value={value} onChange={(e) => onChange(e.target.value)} />
   );
   if (nu) return zone;
-  const Champ = lecture ? 'div' : 'label';
+  const Champ = lue ? 'div' : 'label';
   return (
     <Champ className="ed-field">
       <span>{label}</span>
