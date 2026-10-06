@@ -220,7 +220,7 @@ function franchissements(
       cle: cleArete(e.x, e.y, e.side, activeZ),
       x: e.x, y: e.y, side: e.side, z: activeZ,
       capacite,
-      ancrage: controleur,
+      ancrage: { ...controleur },
       largeurPrise: LARGEUR_PRISE_ARETE[capacite],
       libelle: texte,
     });
