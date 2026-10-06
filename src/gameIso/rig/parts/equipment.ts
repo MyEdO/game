@@ -1,5 +1,5 @@
 import type { Combatant, Weapon, ItemInstance, HitLocation, QualityInstance } from '../../../engine/types';
-import { isCapeItem } from '../../../engine/items';
+import { isCapeItem, resoudreObjet } from '../../../engine/items';
 import { isShieldItem } from '../../../engine/equipCompare';
 import type { Slot } from '../bones';
 import type { PartArt } from './types';
@@ -7,7 +7,7 @@ import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
-import { findTrappingById, findWeaponGroupById, type MateriauDessine } from '../../../data';
+import { findWeaponGroupById, type MateriauDessine } from '../../../data';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
 /** Clés d'une arme que le rig LIT (#2097) : le type `FormeDArme` et le sélecteur `armeDeDessin` en
@@ -106,7 +106,7 @@ const ART_BY_GROUP: Record<string, string> = {
 export function weaponFamily(w: FormeDArme): string {
   if (w.natural) return ''; // attaque naturelle (corps) : la part du rig fait foi, rien en main
   if (w.form) { // arme invoquée : `form` porte un id de trapping → résolu par id vers son shape
-    const s = findTrappingById(w.form)?.shape;
+    const s = resoudreObjet(w.form)?.shape;
     if (s && ART_BY_SLUG.has(s)) return s;
   }
   if (w.shape && ART_BY_SLUG.has(w.shape)) return w.shape;

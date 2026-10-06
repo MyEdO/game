@@ -7,8 +7,8 @@ import type { BattleState } from '../../state/store';
 import { Combatant } from '../../engine/types';
 import { serveTargetPoste, isPosteManned, servingCrewPresent, posteCrewSplit, isCrewQualified } from '../../state/shipPostes';
 import { weaponGroupLabel } from '../../data';
-import { libelleDObjet } from '../../state/campaignData';
 import { GOLD_TINT, ENEMY_CUE_TINT, RING_ALLY_TINT } from '../highlightTints';
+import { itemLabel } from '../../engine/items';
 
 export function CrewTooltip({ battle, hoveredId, myTurn, anchor }: {
   battle: BattleState;
@@ -35,7 +35,7 @@ export function CrewTooltip({ battle, hoveredId, myTurn, anchor }: {
     const aideNames = aides.filter((c) => c.id !== chefId).map((c) => c.label);
     const present = chef ? servingCrewPresent(chef, battle.combatants) : undefined;
     const groupLabel = p.item.weaponGroup ? weaponGroupLabel(p.item.weaponGroup) : '';
-    lines.push({ text: indice > 0 ? `${libelleDObjet(p.item)} · Arme d’équipe ${indice}` : libelleDObjet(p.item), color: GOLD_TINT, bold: true });
+    lines.push({ text: indice > 0 ? `${itemLabel(p.item)} · Arme d’équipe ${indice}` : itemLabel(p.item), color: GOLD_TINT, bold: true });
     lines.push({ text: `Chef : ${manned && chef ? chef.label : 'aucun'}`, color: 'var(--tooltip-fg)' });
     if (renforts.length) lines.push({ text: `Renforts : ${renforts.join(', ')}`, color: 'var(--tooltip-muted)' });
     if (aideNames.length) lines.push({ text: `Aides (non qual.) : ${aideNames.join(', ')}`, color: 'var(--tooltip-dim)' });

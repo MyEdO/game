@@ -16,7 +16,7 @@
  * `src/data/schemas/defs/*.ts` dont le `schema` d'entrée est ANONYME (`z.array(z.strictObject({…}))`)
  * ONT pour la plupart un alias TS : `src/data/index.ts` porte 41 interfaces au patron `XData`
  * (mesure 2026-09-01), dont `export interface TrappingData`, annotée par de vrais consommateurs
- * (`TrappingResolver` de `src/engine/items.ts` ; `craftSpecOf`, `orderBlockOf` de
+ * (`ObjetsDeCampagne` de `src/engine/items.ts` ; `craftSpecOf`, `orderBlockOf` de
  * `src/engine/activities.ts`) ; et la
  * liste des champs d'une entrée anonyme est dérivable sans nommage manuel
  * (`scripts/docs/lib/zod-introspect.mts#introspecterDefs`, qui descend le sceau `document()`). Les
@@ -122,7 +122,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `**${TARGETS.length} retenus** (voir en-tête du générateur pour les raisons d'exclusion). Les catalogues `
   out += `\`src/data/schemas/defs/*.ts\` à schéma d'entrée ANONYME restent HORS PÉRIMÈTRE — non par absence de `
   out += `nom TS : l'alias existe pour la plupart (41 interfaces \`XData\` dans `
-  out += `\`src/data/index.ts\`, mesure 2026-09-01 — ex. \`TrappingData\`, annotée par \`TrappingResolver\` de `
+  out += `\`src/data/index.ts\`, mesure 2026-09-01 — ex. \`TrappingData\`, annotée par \`ObjetsDeCampagne\` de `
   out += `\`src/engine/items.ts\` et \`craftSpecOf\` de \`src/engine/activities.ts\`) et les champs d'une entrée anonyme sont `
   out += `dérivables (\`scripts/docs/lib/zod-introspect.mts#introspecterDefs\`) —, mais parce que la DÉRIVATION `
   out += `de \`TARGETS\` (jointure \`type\`↔\`XData\`) est un geste distinct, encore à faire (#1620) ; à l'unité, `

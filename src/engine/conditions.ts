@@ -6,7 +6,7 @@ import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, ty
 import { evalCondition } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
-import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
+import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, skills } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { slugId } from '../data/slug';
 import { t } from '../i18n';
@@ -23,7 +23,7 @@ import { dropExpiredGrantedTraits } from './grantedTraits';
 import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
 import { dropExpiredGrantedMutations } from './corruption';
-import { recomputeLoadout } from './items';
+import { recomputeLoadout, libelleDeRef } from './items';
 import { refreshWounds } from './characteristics';
 import { restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
@@ -336,7 +336,7 @@ export function raisonRefusDetermination(c: Combatant, conditionId: string): str
   }
   const src = inst?.derivedFrom?.src;
   if (!src || opPorteuseDEtat(c, conditionId)?.resolveWindow !== 'none') return undefined;
-  return t('cond.refusDeterminationVerrou', { cond: conditionLabel(conditionId), src: refLabel(src.category, { id: src.id }) });
+  return t('cond.refusDeterminationVerrou', { cond: conditionLabel(conditionId), src: libelleDeRef(src.category, { id: src.id }) });
 }
 
 /** RE-ENTRANCE : la pose d'un État déclenche `onGainCondition` (store), qui peut appliquer des ops — dont
@@ -407,7 +407,7 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
     // Le porteur du NOM à l'écran : l'émetteur courant s'il y en a un (pose), sinon celui MÉMORISÉ par
     // l'instance (retrait — le fait vient de disparaître, il ne peut plus se nommer lui-même).
     const src = voulu?.src ?? porte?.src;
-    const source = src ? refLabel(src.category, { id: src.id }) : t('cond.derivedSrcFallback');
+    const source = src ? libelleDeRef(src.category, { id: src.id }) : t('cond.derivedSrcFallback');
     if (cibleN > porteN) {
       c.conditions = portees; // la liste EXISTE dès qu'on y pose (porteur forgé sans `conditions`)
       addCondition(c, id, cibleN - porteN);
@@ -495,7 +495,7 @@ function poolWinner(cand: PoolCandidate[]): PoolCandidate | undefined {
  *  propage pas toujours le trait émetteur) — « Aura » y est un nom de famille assumé, verrouillé par
  *  `etat-test-penalty.test.ts`. Ajouter une famille ici = un ARBITRAGE, pas un défaut technique. */
 function srcLabel(src: CodexTarget | undefined, nature: string): string {
-  return src ? refLabel(src.category, { id: src.id }) : nature;
+  return src ? libelleDeRef(src.category, { id: src.id }) : nature;
 }
 
 // Le convertisseur UNIQUE `PassiveMod` → composante nommée (`passivePartLine`) vit dans `trauma.ts`,

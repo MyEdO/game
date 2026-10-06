@@ -22,12 +22,12 @@ import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema
 import { AUCUN_OBJET_DE_PROJET, ConditionEditor } from './ConditionEditor';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion } from '../../data';
+import { etats, qualityRefLabel, refLabel, findCrewTestTypeById, charAbr, effectTables, mutationTables, conditionLabel, lightTones, memoParVersion, type TrappingData } from '../../data';
 import { findFallTable, fallTables } from '../../data/shipCriticals';
 import { terrainLabel, terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
 import type { DatasetKey } from '../../data/overrides';
-import { libelleDuDon } from '../../engine/items';
+import { libelleDuDonDuProjet, libelleDeRef } from '../../engine/items';
 import { parseTraitInstance, formatTrait, formatWardSave } from '../../engine/traits/dispatch';
 import { traumaLabelOf } from '../../engine/trauma';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
@@ -732,10 +732,10 @@ export function opsMissingRefs(value: unknown): string[] {
 /** Libellé d'une réf PRÉSENTE dans une op : id vide = choix non fait, jamais un libellé vide. Le sens
  *  d'une réf ABSENTE appartient à l'op, testé par l'appelant. Précédent : `fall`, « — table à choisir — ». */
 function refOuChoix(category: DatasetKey, ref: { id: string; spec?: string }, quoi: string): string {
-  return ref.id ? refLabel(category, ref) : `— ${quoi} à choisir —`;
+  return ref.id ? libelleDeRef(category, ref) : `— ${quoi} à choisir —`;
 }
 
-export function opSummary(o: GameOp): string {
+export function opSummary(o: GameOp, objets: readonly TrappingData[]): string {
   // Une op dont la réf REQUISE n'est pas élue n'a pas de résumé à donner : elle porte son état, et la
   // rangée affiche la raison détaillée (`opsMissingRefs`).
   if (opMissingRefs(o).length) return '(à compléter)';
@@ -814,7 +814,7 @@ export function opSummary(o: GameOp): string {
     case 'reduceToZero': return 'Blessures à 0';
     case 'banish': return 'retirée du jeu';
     case 'martyr': return 'reçoit les Dégâts';
-    case 'giveTrapping': return libelleDuDon(o);
+    case 'giveTrapping': return libelleDuDonDuProjet(o, objets);
     case 'perRound': return `${o.ops.length} op(s) chaque Round`;
     case 'summon': return `${formulaSummary(o.count)}× ${o.ref}${o.allyOfCaster === false ? ' (hostile)' : ''}`;
     case 'scheduleRespawn': return `${o.ref} dans ${formulaSummary(o.delayDays)} j${o.cancelFlag ? ` (sauf « ${o.cancelFlag} »)` : ''}`;
@@ -865,7 +865,7 @@ function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined;
 /** Rangées d'une op `rollTable` (Vers de carie, MSRC 16 l.90) : `[min,max]` (source unique de fourchette,
  *  cf. `OutcomeBandsField`/`MutationRange`) → `ops` de la rangée, éditées par le MÊME `GameOpEditor`
  *  (récursif) que toute autre liste de `GameOp[]` — jamais un widget parallèle. */
-function RollTableRowsField({ rows, onChange, sansSource }: { rows: { min: number; max: number; ops: GameOp[] }[]; onChange: (rows: { min: number; max: number; ops: GameOp[] }[]) => void; sansSource: boolean }) {
+function RollTableRowsField({ rows, onChange, sansSource, objets }: { rows: { min: number; max: number; ops: GameOp[] }[]; onChange: (rows: { min: number; max: number; ops: GameOp[] }[]) => void; sansSource: boolean; objets: readonly TrappingData[] }) {
   const set = (i: number, patch: Partial<{ min: number; max: number; ops: GameOp[] }>) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= rows.length) return;
@@ -886,7 +886,7 @@ function RollTableRowsField({ rows, onChange, sansSource }: { rows: { min: numbe
             <button className="btn small" title="Descendre" disabled={i === rows.length - 1} onClick={() => swap(i, i + 1)}>↓</button>
             <button className="btn small danger" title="Supprimer la rangée" onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <GameOpEditor ops={r.ops} sansSource={sansSource} onChange={(ops) => set(i, { ops })} />
+          <GameOpEditor ops={r.ops} sansSource={sansSource} objets={objets} onChange={(ops) => set(i, { ops })} />
         </div>
       ))}
       <button className="btn small" onClick={() => onChange([...rows, { min: 1, max: 1, ops: [] }])}>+ Rangée</button>
@@ -900,7 +900,7 @@ function sansClesVides<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 }
 
-function OpFields({ op, onChange, noeudListe, sansSource }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown; sansSource: boolean }) {
+function OpFields({ op, onChange, noeudListe, sansSource, objets }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown; sansSource: boolean; objets: readonly TrappingData[] }) {
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
   // Le payload d'une op est STRICT : un champ VIDÉ ôte sa clé, jamais une clé à `undefined` (une option
@@ -1294,7 +1294,7 @@ function OpFields({ op, onChange, noeudListe, sansSource }: { op: GameOp; onChan
                     ))}
                   </select>
                 </label>
-                <RollTableRowsField rows={o.rows ?? []} sansSource={sansSource} onChange={(rows) => upd({ rows })} />
+                <RollTableRowsField rows={o.rows ?? []} sansSource={sansSource} objets={objets} onChange={(rows) => upd({ rows })} />
               </>
             )}
           </>
@@ -1324,9 +1324,10 @@ function OpFields({ op, onChange, noeudListe, sansSource }: { op: GameOp; onChan
 
 /** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
  *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `formulaSchema` partout.
- *  `sansSource` : la liste vit dans un document de projet, sans entité du Codex (`opsOffertes`) — SANS
- *  défaut, chaque site dit le sien. */
-export function GameOpEditor({ ops, onChange, noeud, sansSource }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown; sansSource: boolean }) {
+ *  `sansSource` : la liste vit dans un document de projet, sans entité du Codex (`opsOffertes`).
+ *  `objets` : les objets du projet édité (`narratif.objets`), qui nomment ses dons (`libelleDuDonDuProjet`).
+ *  SANS défaut, chaque site dit les siens. */
+export function GameOpEditor({ ops, onChange, noeud, sansSource, objets }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown; sansSource: boolean; objets: readonly TrappingData[] }) {
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];
@@ -1339,7 +1340,7 @@ export function GameOpEditor({ ops, onChange, noeud, sansSource }: { ops: GameOp
       {ops.map((o, i) => (
         <details className="eff-row" key={cles[i]}>
           <summary>
-            <span className="eff-summary"><Icon id={OP_ICON[o.op] ?? 'journal/detail'} size="sm" /> {opSummary(o)}</span>
+            <span className="eff-summary"><Icon id={OP_ICON[o.op] ?? 'journal/detail'} size="sm" /> {opSummary(o, objets)}</span>
             {opsMissingRefs(o).length > 0 && <span className="de-warn">{opsMissingRefs(o).join(' · ')}</span>}
             <span className="eff-actions" onClick={(e) => e.preventDefault()}>
               <button className="btn small" title="Monter" disabled={i === 0} onClick={() => swap(i, i - 1)}>↑</button>
@@ -1347,7 +1348,7 @@ export function GameOpEditor({ ops, onChange, noeud, sansSource }: { ops: GameOp
               <button className="btn small danger" title="Supprimer l'op" onClick={() => onChange(ops.filter((_, j) => j !== i))}>✕</button>
             </span>
           </summary>
-          <OpFields noeudListe={noeud} op={o} sansSource={sansSource} onChange={(no) => onChange(ops.map((x, j) => (j === i ? no : x)))} />
+          <OpFields noeudListe={noeud} op={o} sansSource={sansSource} objets={objets} onChange={(no) => onChange(ops.map((x, j) => (j === i ? no : x)))} />
         </details>
       ))}
       <AddMenu

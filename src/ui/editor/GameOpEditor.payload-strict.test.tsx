@@ -23,7 +23,7 @@ function monter(ops: GameOp[], vus: GameOp[][]) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<GameOpEditor sansSource={false} ops={ops} onChange={(next) => vus.push(next)} />); });
+  act(() => { root.render(<GameOpEditor objets={[]} sansSource={false} ops={ops} onChange={(next) => vus.push(next)} />); });
 }
 
 afterEach(() => {

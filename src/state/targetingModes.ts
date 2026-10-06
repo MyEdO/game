@@ -62,7 +62,7 @@ import {
   cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade,
   captureMoveSnapshot, firedWeapon, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackOption,
 } from './combatFlow';
-import { libelleDObjet } from './campaignData';
+import { itemLabel } from '../engine/items';
 
 export type HoverTargeting =
   | { kind: 'none' }
@@ -348,7 +348,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     const p = serveTargetPoste(active, target, battle.combatants);
     if (!p) return { kind: 'none' };
     const join = isPosteManned(p, battle.combatants);
-    return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${libelleDObjet(p.item)}`, targetName: target.label, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null, preview: { kind: 'attack', targetId: target.id } };
+    return { kind: 'ok', line: 'solid', title: `${join ? 'Renfort' : 'Servir'} : ${itemLabel(p.item)}`, targetName: target.label, skill: join ? "Renfort d'équipe" : 'Chef de pièce', base: 0, mod: 0, dmg: null, preview: { kind: 'attack', targetId: target.id } };
   }
   const option = selectedAttackOption(active, battle);
   if (!option) return { kind: 'none' }; // mode non-attaque (cast/heal/…) ou aucune attaque abordable

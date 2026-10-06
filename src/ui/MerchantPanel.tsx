@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
-import { findTrappingById, findVehicleById, weaponGroupLabel, merchantFamilies, type QualityRef } from '../data/index';
+import { findVehicleById, weaponGroupLabel, merchantFamilies, type QualityRef } from '../data/index';
 import { priceToMoney, fromBrass, toBrass, canAfford, add as moneyAdd, type Money } from '../engine/money';
 import { craftPriceFactor } from '../engine/qualities/craftEconomy';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { Row } from './Layout';
 import { bargainBuyFactor } from '../engine/bargain';
 import { compareEquip, isShieldItem } from '../engine/equipCompare';
-import { itemFromTrappingById, isWeaponActive, damageString } from '../engine/items';
+import { itemFromTrappingById, isWeaponActive, damageString, resoudreObjet, itemLabel } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
 import { rangeSpecLabel, ammoRangeModLabel } from './weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
@@ -33,7 +33,6 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
 import { AVAILABILITIES } from '../engine/types';
-import { libelleDObjet } from '../state/campaignData';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -52,7 +51,7 @@ const DASH = '—';
 const dmg = (t: TrapRow) => (t.damage ? damageString(t.damage) : DASH);
 /** Colonne de trapping — résout la ligne PUIS applique `fn` (DASH si la ligne n'est pas un trapping). */
 function trapCol(fn: (t: TrapRow) => string): (id: string) => string {
-  return (id) => { const t = findTrappingById(id); return t ? fn(t) : DASH; };
+  return (id) => { const t = resoudreObjet(id); return t ? fn(t) : DASH; };
 }
 /** Capacité de PORT d'une unité (#619 Lot A) — Enc portée EDOC 07 (monture) ou Chargement LDB 70/EDOC 07
  *  (véhicule terrestre) ; DASH si non chiffré (navire — hors Lot A). */
@@ -94,7 +93,7 @@ const FAMILY_BY_TRAPPING_CATEGORIE = new Map(merchantFamilies.filter((f) => f.ma
  *  de SPÉCIFICITÉ (dérivée de `merchantFamilies.json:match`) : unit → shield → categorie → fallback. */
 function familyOf(id: string): string {
   if (catalogEntryOf(id)?.unit) return UNIT_FAMILY;
-  const t = findTrappingById(id);
+  const t = resoudreObjet(id);
   if (!t) return FALLBACK_FAMILY;
   if (isShieldItem({ qualities: t.qualities })) return SHIELD_FAMILY;
   return FAMILY_BY_TRAPPING_CATEGORIE.get(t.categorie) ?? FALLBACK_FAMILY;
@@ -112,7 +111,7 @@ function lineCost(id: string, factor: number): Money | null {
 
 /** Coût de réparation d'un objet endommagé — armure (LDB 63 l.64) ou arme (LDB 62 l.135). */
 function repairCost(item: ItemInstance): Money {
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = item.trappingId ? resoudreObjet(item.trappingId) : undefined;
   const base = t ? toBrass(priceToMoney(t.price)) : 0;
   return fromBrass(itemRepairCostBrass(item, base));
 }
@@ -245,9 +244,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       .sort((a, b) => (a.info.polarite === 'defaut' ? 1 : 0) - (b.info.polarite === 'defaut' ? 1 : 0));
     const canCompare = item.kind === 'melee' || item.kind === 'ranged' || item.kind === 'armor';
     return (
-      <div className="merch-compare preview" role="region" aria-label={`Détails ${libelleDObjet(item)}`}>
+      <div className="merch-compare preview" role="region" aria-label={`Détails ${itemLabel(item)}`}>
         <div className="mc-head">
-          <strong>{libelleDObjet(item)}</strong>
+          <strong>{itemLabel(item)}</strong>
           <button className="btn small" onClick={() => setDetails(null)}>Fermer</button>
         </div>
         {quals.length > 0 && (
@@ -289,7 +288,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         {(dist ?? []).map((d, i) => (
           <div className="dist-row" key={i}>
             <span className="merch-name">
-              {'item' in d ? libelleDObjet(d.item) : (catalogEntryOf(d.unit.id)?.label ?? d.unit.id)}
+              {'item' in d ? itemLabel(d.item) : (catalogEntryOf(d.unit.id)?.label ?? d.unit.id)}
               {'unit' in d && <span className="hint"> (monture/véhicule)</span>}
             </span>
             <Row gap="sm" align="start">
@@ -415,7 +414,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 // trapping (toujours absent d'une ligne unité — `catalogEntryOf`).
                 const g = isUnitCat
                   ? (catalogEntryOf(l.id)?.unit?.nature === 'bete' ? 'montures' : 'vehicules')
-                  : (findTrappingById(l.id)?.subType ?? 'autres');
+                  : (resoudreObjet(l.id)?.subType ?? 'autres');
                 let bucket = groups.find((x) => x.key === g);
                 if (!bucket) {
                   const label = isUnitCat ? (g === 'montures' ? 'Montures' : 'Véhicules') : (weaponGroupLabel(g) || 'Autres');
@@ -452,7 +451,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                       </button>
                     )
                   )}
-                  enc={isUnitCat ? undefined : (l) => findTrappingById(l.id)?.enc ?? 0}
+                  enc={isUnitCat ? undefined : (l) => resoudreObjet(l.id)?.enc ?? 0}
                   price={(l) => lineCost(l.id, buyFactor)}
                   disabled={(l) => { const unit = lineCost(l.id, buyFactor); return unit ? !canAfford(money, unit) : true; }}
                   open={(l) => details === l.id}
@@ -521,7 +520,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           return (
           <div className="merch-row sell" key={it.uid}>
             <span className="merch-name">
-              {libelleDObjet(it)}
+              {itemLabel(it)}
               {isEquippedForSell(it) && <span className="equipped-tag" title="Actuellement équipé">✓ équipé</span>}
               {it.identified === false ? ' (non identifié)' : ''}
             </span>
@@ -579,7 +578,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             <tbody>
               {sellCartItems.map(({ hero, it }) => (
                 <tr key={it.uid}>
-                  <td className="cart-name">{libelleDObjet(it)}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
+                  <td className="cart-name">{itemLabel(it)}<span className="cart-owner" title={hero.label}><TeamPortrait combatant={hero} size={18} /></span></td>
                   <td className="cart-sub"><Coins money={sellPriceMoney(it)} /></td>
                   <td className="cart-rm"><button className="btn-step" onClick={() => onRemoveSellCart(it.uid)} aria-label="Retirer">✕</button></td>
                 </tr>
@@ -605,7 +604,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       const byTrap = new Map<string, number>();
       for (const it of h.items ?? []) if (it.trappingId && !it.equipped) byTrap.set(it.trappingId, (byTrap.get(it.trappingId) ?? 0) + 1);
       for (const [tid, count] of byTrap) {
-        const t = findTrappingById(tid);
+        const t = resoudreObjet(tid);
         if (t && toBrass(priceToMoney(t.price)) > 0) giveOpts.push({ key: `${h.id}|${tid}`, heroId: h.id, trappingId: tid, label: `${t.label} ×${count} (${h.label})`, count });
       }
     }
@@ -636,7 +635,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             </label>
             {quote && give && (
               <p className="tavern-detail">
-                Ratio {quote.giveAv} <b>{quote.ratio.give}:{quote.ratio.get}</b> {quote.getAv} → céder <b>{quote.giveCount}</b> × {findTrappingById(give.trappingId)?.label} contre <b>{count}</b> × {labelOf(getId)}.
+                Ratio {quote.giveAv} <b>{quote.ratio.give}:{quote.ratio.get}</b> {quote.getAv} → céder <b>{quote.giveCount}</b> × {itemLabel({ trappingId: give.trappingId })} contre <b>{count}</b> × {labelOf(getId)}.
                 {give.count < quote.giveCount && <span className="cart-warn"> Exemplaires insuffisants ({give.count}/{quote.giveCount}).</span>}
                 {getStockQty < count && <span className="cart-warn"> Stock insuffisant.</span>}
               </p>
@@ -700,7 +699,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             <div className="merch-tab">
               {damaged.map(({ h, it }) => (
                 <div className="merch-row repair" key={it.uid}>
-                  <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {libelleDObjet(it)}</span>
+                  <span className="merch-name" title={h.label}><TeamPortrait combatant={h} size={20} /> {itemLabel(it)}</span>
                   <span className="merch-price"><Coins money={repairCost(it)} /></span>
                   <button className="btn small" onClick={() => onRepair(it.uid, h.id)}>Réparer</button>
                 </div>

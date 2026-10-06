@@ -15,15 +15,16 @@
  *    intacts — `hasCapability` les RÉUTILISE, il ne les remplace pas.
  */
 import type { Combatant, ItemInstance } from './types';
-import { findTrappingById, type ItemCapabilities } from '../data';
+import type { ItemCapabilities } from '../data';
 import { traitCapability } from './traits/dispatch';
 import { resolveQualities } from './qualities/dispatch';
 import { hasActiveCapability } from './disease';
+import { resoudreObjet } from './items';
 
 /** Lecture par-OBJET (catalogue, NON gatée) : cet objet porte-t-il la capacité `cap` ? Lue PAR ID dans
  *  `TrappingData.capabilities` — une arme invoquée (`DesignationParSource`) n'en a aucune. */
 export function itemCapability(it: ItemInstance, cap: keyof ItemCapabilities): boolean {
-  return !!(it.trappingId && findTrappingById(it.trappingId)?.capabilities?.[cap]);
+  return !!(it.trappingId && resoudreObjet(it.trappingId)?.capabilities?.[cap]);
 }
 
 /** Un objet est-il PORTÉ (equipped) ou TENU (arme du loadout actif `c.weapons`) ? Même garde que le

@@ -2,7 +2,7 @@
  * Prix de la nuit de repos (`restFlow.restCost`, LDB 66 l.12-16) VS le catalogue `trappings.json`
  * (`chambre-commune-nuit`/`chambre-privee-nuit`/`repas-auberge`, tarifs de SERVICE — cf.
  * `src/state/merchants/service-trappings.test.ts`). Convergence #343 : `restCost` RÉSOUT désormais ces
- * ids au catalogue (`PRICE_BRASS` dérivé de `findTrappingById`, restFlow.ts) — SOURCE UNIQUE partagée
+ * ids au catalogue (`serviceBrass` sur `resoudreObjet`, restFlow.ts) — SOURCE UNIQUE partagée
  * avec le hub de ville (`restServicePrice`). Ce test verrouille l'égalité pour qu'une dérive du tarif
  * RAW dans le catalogue reste répercutée partout (et casse la CI si un chemin la contournait).
  */

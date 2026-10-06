@@ -15,7 +15,7 @@ import { targetingModeLabel, dispellableOnCarrier } from '../state/targetingMode
 import { CodexRef } from './compendium/CodexRef';
 import { isConsumable } from '../engine/consumables';
 import { t } from '../i18n';
-import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, weaponFromItem, isUnarmed } from '../engine/items';
+import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, weaponFromItem, isUnarmed, itemLabel } from '../engine/items';
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire, knownShanties } from '../engine/combatFeatures/dispatch';
@@ -48,7 +48,6 @@ import { LifeBar } from './LifeBar';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 import type { IconIdInput } from './icons';
-import { libelleDObjet } from '../state/campaignData';
 
 /** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (arbitrage utilisateur 2026-08-16 :
  *  « je ne veux pas que la taille de l'interface ou les boutons bougent »). Le contenu varie,
@@ -789,13 +788,13 @@ export function CombatConsole() {
       ? choix.map((a) => {
           const cell = cellFor('select-ammo', 'arme', {
             key: `munition-${w.uid}-${a.uid}`,
-            label: libelleDObjet(a),
+            label: itemLabel(a),
             args: { ammoUid: a.uid, weaponUid: w.uid },
           });
           const enChambre = ammo.uid === a.uid;
           return {
             key: `munition-${w.uid}-${a.uid}`,
-            label: libelleDObjet(a),
+            label: itemLabel(a),
             meta: `×${a.qty ?? 0}`,
             // La CONSÉQUENCE est RENDUE sur le candidat (jamais un `title`) : elle se mesure aux mêmes
             // prédicats que le dispatcher, et ne s'affiche donc que là où il déchargera vraiment.
@@ -838,7 +837,7 @@ export function CombatConsole() {
   const consumableGroups = Object.values(
     consumables.reduce<Record<string, { key: string; label: string; uids: string[] }>>((acc, it) => {
       const cle = it.trappingId ?? it.uid;
-      (acc[cle] ??= { key: cle, label: libelleDObjet(it), uids: [] }).uids.push(it.uid);
+      (acc[cle] ??= { key: cle, label: itemLabel(it), uids: [] }).uids.push(it.uid);
       return acc;
     }, {}),
   );
@@ -1253,7 +1252,7 @@ export function CombatConsole() {
                 {munitions.map((m) => (
                   <Fragment key={m.w.uid}>
                     {' · '}
-                    <CodexRef category="trappings" id={m.ammo.trappingId ?? ''} label={libelleDObjet(m.ammo)} refus={m.raison} wrap sourdine={ciblageArme || ammoOuvert === m.w.uid}>
+                    <CodexRef category="trappings" id={m.ammo.trappingId ?? ''} label={itemLabel(m.ammo)} refus={m.raison} wrap sourdine={ciblageArme || ammoOuvert === m.w.uid}>
                       {m.choisissable || m.raison ? (
                         <button
                           ref={(el) => { if (el) ammoChipRefs.current.set(m.w.uid!, el); else ammoChipRefs.current.delete(m.w.uid!); }}
@@ -1263,15 +1262,15 @@ export function CombatConsole() {
                           data-gated={m.raison ? '' : undefined}
                           aria-haspopup="dialog"
                           aria-expanded={ammoOuvert === m.w.uid}
-                          aria-label={`Munition de ${m.w.label} : ${libelleDObjet(m.ammo)} — choisir parmi ${m.choix.length}`}
+                          aria-label={`Munition de ${m.w.label} : ${itemLabel(m.ammo)} — choisir parmi ${m.choix.length}`}
                           aria-describedby={m.raison ? `cc-ammo-gate-${m.w.uid}` : undefined}
                           aria-disabled={m.raison ? true : undefined}
                           onClick={() => { if (m.raison) return; setAmmoOuvert((v) => (v === m.w.uid ? null : m.w.uid!)); }}
                         >
-                          {libelleDObjet(m.ammo)}{m.ammo.qty ? ` ×${m.ammo.qty}` : ''}
+                          {itemLabel(m.ammo)}{m.ammo.qty ? ` ×${m.ammo.qty}` : ''}
                         </button>
                       ) : (
-                        <span data-ammo={m.w.uid}>{libelleDObjet(m.ammo)}{m.ammo.qty ? ` ×${m.ammo.qty}` : ''}</span>
+                        <span data-ammo={m.w.uid}>{itemLabel(m.ammo)}{m.ammo.qty ? ` ×${m.ammo.qty}` : ''}</span>
                       )}
                     </CodexRef>
                     {/* RAISON du refus : au SURVOL/FOCUS du chip (`CodexRef refus`) ; ici, sa copie

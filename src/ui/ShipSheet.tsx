@@ -21,7 +21,7 @@ import { Tabs } from './Tabs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { rigSchema, posteSideSchema } from '../data/schemas/defs/vehicles';
 import { dir8Schema } from '../data/schemas/grammaire/valeurs';
-import { libelleDObjet } from '../state/campaignData';
+import { itemLabel } from '../engine/items';
 
 /** État du navire (lecture seule, dérivé) — mêmes `stat-chip` que les vitaux d'une fiche héros. PUR. */
 export function ShipStateBlock({ ship, cap, morale, crew }: { ship: Combatant; cap?: Dir8; morale: number; crew: Combatant[] }) {
@@ -50,10 +50,10 @@ export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Comba
   const loadedAmmoItem = poste.loaded !== false ? stock.find((a) => a.uid === poste.loadedAmmoUid) : undefined;
   return (
     <div className="panel sunken">
-      <b><Icon id="action/aim" size="sm" /> {poste.side ? libelleDeValeur(posteSideSchema, poste.side) : 'Omni'} · {libelleDObjet(poste.item)}</b>
+      <b><Icon id="action/aim" size="sm" /> {poste.side ? libelleDeValeur(posteSideSchema, poste.side) : 'Omni'} · {itemLabel(poste.item)}</b>
       {stock.length > 0 && (readOnly ? (
         // Inspection (#240) : munition chargée VISIBLE mais non modifiable (pas de sélecteur sur la pièce d'autrui).
-        <span className="ship-poste-ammo"><span aria-hidden><Icon id="fire/blast" size="sm" /></span> {loadedAmmoItem ? libelleDObjet(loadedAmmoItem) : 'pièce déchargée'}</span>
+        <span className="ship-poste-ammo"><span aria-hidden><Icon id="fire/blast" size="sm" /></span> {loadedAmmoItem ? itemLabel(loadedAmmoItem) : 'pièce déchargée'}</span>
       ) : (
         <label className="ship-poste-ammo">
           <span aria-hidden><Icon id="fire/blast" size="sm" /></span>
@@ -64,7 +64,7 @@ export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Comba
             value={poste.ammoUid ?? stock[0].uid}
             onChange={(e) => setPosteAmmo(hull.id, poste.item.uid, e.target.value)}
           >
-            {stock.map((a) => <option key={a.uid} value={a.uid}>{libelleDObjet(a)} × {a.qty ?? 0}</option>)}
+            {stock.map((a) => <option key={a.uid} value={a.uid}>{itemLabel(a)} × {a.qty ?? 0}</option>)}
           </select>
         </label>
       ))}

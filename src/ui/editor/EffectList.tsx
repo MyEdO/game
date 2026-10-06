@@ -20,7 +20,7 @@ import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, veh
 import { useMemo } from 'react';
 import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
-import { libelleDuDon } from '../../engine/items';
+import { libelleDuDonDuProjet } from '../../engine/items';
 import { lEntreePorte } from '../../data/schemas/grammaire/ref';
 import { EXIGE_UNE_CREATURE } from '../../data/schemas/grammaire/sousListes';
 import { FlowEditor } from './FlowEditor';
@@ -183,7 +183,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'document': return `Document : ${e.title || '(sans titre)'}`;
     case 'revealClue': return `Indice : ${e.indiceId || '?'}${e.stade ? ` → stade ${e.stade}` : ''}`;
     case 'discreditClue': return `Fausse piste : ${e.indiceId || '?'}`;
-    case 'giveTrapping': return `Objet : ${libelleDuDon(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(ctx.objets.map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
+    case 'giveTrapping': return `Objet : ${libelleDuDonDuProjet(e, ctx.objets) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
     case 'givePossession': {
       const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
       const refLabelStr = e.nature === 'vehicule'
@@ -209,7 +209,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const cible = ctx.cibles.find((c) => c.on === on);
       const who = !cible ? `« on: ${on} » hors du vocabulaire de cette racine`
         : on === 'hero' ? `${cible.label} (${e.heroId || '1ᵉʳ'})` : cible.label;
-      return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}`;
+      return `${who} : ${(e.ops ?? []).map((o: Parameters<typeof opSummary>[0]) => opSummary(o, ctx.objets)).join(', ') || '(aucune op)'}`;
     }
     case 'zoneBlast': return `Souffle ${(e.ops ?? []).length} op(s) rayon ${e.radius ?? 0} @(${e.center?.x ?? 0},${e.center?.y ?? 0})`;
     case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
@@ -759,7 +759,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 )}
               </div>
             )}
-            <GameOpEditor ops={e.ops ?? []} sansSource={ctx.sansSource} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor ops={e.ops ?? []} sansSource={ctx.sansSource} objets={ctx.objets} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'setLight' && (
@@ -804,7 +804,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <label className="dr">Centre <NumberField variant="nu" label="Centre — X" value={e.center?.x ?? 0} onChange={(x) => upd({ center: { x, y: e.center?.y ?? 0 } })} />,<NumberField variant="nu" label="Centre — Y" value={e.center?.y ?? 0} onChange={(y) => upd({ center: { x: e.center?.x ?? 0, y } })} /></label>
               <label className="dr">Rayon <NumberField variant="nu" label="Rayon" min={0} value={e.radius ?? 0} onChange={(radius) => upd({ radius })} /></label>
             </div>
-            <GameOpEditor ops={e.ops ?? []} sansSource={ctx.sansSource} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor ops={e.ops ?? []} sansSource={ctx.sansSource} objets={ctx.objets} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'startCombat' && (

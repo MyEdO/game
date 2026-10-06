@@ -26,7 +26,7 @@ import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { recomputeLoadout, instancesDeDon, libelleDuDon, autoStowNewItem } from '../engine/items';
-import { trappingById, indiceById } from './campaignData';
+import { indiceById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, objetSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
@@ -156,7 +156,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux = {}): { key: 
   for (const a of actionsAuthorees(ent, flags))
     flowEffects(a.flow).forEach((e, i) => {
       if (flags[cleFeuilleRamassee(ent.id, a.id, i)]) return; // déjà pris, un objet à la fois
-      if (e.type === 'giveTrapping') out.push({ key: `${a.id}:eff:${i}`, label: libelleDuDon(e, trappingById) });
+      if (e.type === 'giveTrapping') out.push({ key: `${a.id}:eff:${i}`, label: libelleDuDon(e) });
       else if (e.type === 'giveMoney') out.push({ key: `${a.id}:eff:${i}`, label: 'Argent' });
     });
   return out;
@@ -229,7 +229,7 @@ export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Ef
   const gear: LootGear[] = [];
   const rest: Effect[] = [];
   for (const e of effects) {
-    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: libelleDuDon(e, trappingById), magic: !!e.qualities?.length || e.identified === false, effect: e });
+    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: libelleDuDon(e), magic: !!e.qualities?.length || e.identified === false, effect: e });
     else rest.push(e);
   }
   return { gear, rest };
@@ -1436,8 +1436,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: 'Donner un objet (équipement, potion, objet de la campagne)', icon: 'item/misc',
     make: () => ({ type: 'giveTrapping', trappingId: objetSeme() }),
     apply: (e, env) => {
-      // Résolveur campagne-D'ABORD (`campaignData.trappingById`) : un objet de `narratif.objets` gagne (#767).
-      const its = instancesDeDon(e, e.count ?? 1, { resoudre: trappingById });
+      const its = instancesDeDon(e, e.count ?? 1);
       const who = env.mutateHero(e.heroId, (h) => {
         const clone: Combatant = structuredClone(h);
         for (const it of its) {
@@ -1447,7 +1446,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         recomputeLoadout(clone); // met à jour l'encombrement
         return clone;
       });
-      const item = libelleDuDon(e, trappingById);
+      const item = libelleDuDon(e);
       env.log(who ? t('eff.recover', { name: who.label, item }) : t('eff.recoverSansHeros', { item }));
     },
   },

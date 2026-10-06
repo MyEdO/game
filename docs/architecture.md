@@ -263,10 +263,13 @@ src/state/
                             copié dans `src/data` global (`narratifSchema` refuse toute collision d'id).
   campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
                             `campaignNarratif` (posé par `loadProject`) par id STABLE. `presetPnjById`/`affaireById`/
-                            `indiceById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
-                            campagne-D'ABORD puis règle globale (`findTrappingById`). Maps mémoïsées par référence du
-                            bloc. Le moteur reste PUR : `engine/items` reçoit ce `trappingById` en résolveur injecté
-                            (défaut = global) aux sites d'état `giveTrapping` — il n'importe jamais le store.
+                            `indiceById` = COUCHE-SEULEMENT (n'existent pas au global) ; ses `objets` sont VUS par le
+                            résolveur du moteur : `campaignData` branche `brancherObjetsDeCampagne(() => maps().objets)`,
+                            et `resoudreObjet` (`engine/items`) chaîne campagne-D'ABORD puis catalogue (#2324). Maps
+                            mémoïsées par référence du bloc. Le moteur reste PUR : il lit un fournisseur branché UNE fois
+                            (patron `policy.rule`), il n'importe jamais le store. Hors `src/data/`, `findTrappingById`
+                            (catalogue seul) est interdit (`scripts/guards/lib/resolutionDObjet.mjs`) ; l'éditeur nomme
+                            les objets du projet ÉDITÉ par `libelleDObjetDuProjet` ; une réf à catégorie dynamique par `libelleDeRef`.
                             PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
                             (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
                             spawn de rencontre (`combatSlice` → `spawnEnemy` canal `presetCreature`, `spawn.ts` reste sans

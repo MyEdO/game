@@ -21,7 +21,7 @@ import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
 import { partyMoneyTotal, bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse, debitBourse } from './bourseFlow';
-import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, buildWeapon, autoStowNewItem, resoudreObjet, itemLabel } from '../engine/items';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
 import { resetInterruptedFavorProgress } from './favorFlow';
@@ -54,7 +54,7 @@ import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuyS
 import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
 import { applyTalentAcquisition, fortuneMax, resolveMax, heroMaxWounds } from '../engine/talentEffects';
-import { findCareerById, levelsForCareer, findTrappingById, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
+import { findCareerById, levelsForCareer, findTalentById, findSpellById, refLabel, skillInstanceLabel, advancementBaseId, qualityRefLabel, qualities, combatStakeRef, type ActivitySkill, libelleOuAbsence } from '../data';
 import { findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
 import { CHAR_LABELS, type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
@@ -66,7 +66,6 @@ import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
-import { libelleDObjet } from './campaignData';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -440,8 +439,8 @@ function refusedBeforeDraw(get: Get, who: string): boolean {
 
 /** Engage un Artisanat (ch.23 l.66) : exige une Compétence Métier (≥1 avance) ; les matériaux
  *  coûtent ¼ du prix listé, payés AVANT (« devront être achetées avant le début de l'Activité »). */
-/** Libellé d'affichage d'un trapping de catalogue par id (repli sur l'id). */
-const trappingLabelOf = (id: string): string => findTrappingById(id)?.label ?? id;
+/** Libellé d'affichage d'un objet par id (`itemLabel`). */
+const trappingLabelOf = (id: string): string => itemLabel({ trappingId: id });
 /** Libellé d'affichage d'une qualité runtime (id → label, ex. « solide » → « Solide »). */
 const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 
@@ -459,7 +458,7 @@ export function craftStart(get: Get, set: Set, heroId: string, trappingId: strin
     get().log(msg('if.craftNoSkill', { name: h.label }));
     return;
   }
-  const t = findTrappingById(trappingId);
+  const t = resoudreObjet(trappingId);
   if (!t) {
     get().log(msg('if.trappingUnknown', { id: trappingId }));
     return;
@@ -657,7 +656,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     // Spé du Groupe si possédée). L'arme synthétique n'a pas d'uid retrouvable → le gate de
     // maîtrise est inerte pour le TEST d'entraînement (c'est l'arme qui est inhabituelle, pas la Spé).
     const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
-    skillValue = combatValue(h, kind, buildWeapon({ label: libelleDObjet(item), type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+    skillValue = combatValue(h, kind, buildWeapon({ label: itemLabel(item), type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
     skillLabel = refLabel('skills', { id: kind === 'melee' ? 'corps-a-corps' : 'projectiles' });
   } else if (def.resolver === 'identify') {
     // Identifier un artefact (ADE II 4 l.41) : « Pour d'autres sorciers » (sans le Talent Détection
@@ -671,7 +670,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
     }
     skillValue = testValue(h, savoir.id, undefined, savoir.spec);
     skillLabel = skillInstanceLabel(savoir);
-    extra.label = stepDetail(dataLabel(def.label), dataLabel(libelleDObjet(item)));
+    extra.label = stepDetail(dataLabel(def.label), dataLabel(itemLabel(item)));
   } else if (def.resolver === 'combatTraining') {
     // Entraînement au Combat (LDB 23 l.205-209) : « une Compétence de Corps à corps ou Projectiles »
     // au choix du joueur — approximée par `bestActivitySkill` (convention partagée avec la branche
@@ -920,32 +919,32 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
           // +4 ou plus : sait s'il a des Particularités — le Stupéfiant (+6) les révèle TOUTES.
           it.magicKnown = true;
           delete it.suspectedQualities;
-          return { lines: [msg(isAstoundingSuccess(pa.success, pa.sl) ? 'if.identifyAstounding' : 'if.identifyImpressive', { name: h.label, item: libelleDObjet(it) })] };
+          return { lines: [msg(isAstoundingSuccess(pa.success, pa.sl) ? 'if.identifyAstounding' : 'if.identifyImpressive', { name: h.label, item: itemLabel(it) })] };
         }
         if (pa.sl <= 1) {
           // 0 à +1 (Succès Minime) : identifie l'objet ET découvre UNE Particularité cachée (RAW).
           it.magicKnown = true;
           delete it.suspectedQualities;
-          return { lines: [msg('if.identifyMinimal', { name: h.label, item: libelleDObjet(it) })] };
+          return { lines: [msg('if.identifyMinimal', { name: h.label, item: itemLabel(it) })] };
         }
         // +2 à +3 : identifie l'objet, connaît les Particularités visibles, pas les cachées.
-        return { lines: [msg('if.identifySuccess', { name: h.label, item: libelleDObjet(it) })] };
+        return { lines: [msg('if.identifySuccess', { name: h.label, item: itemLabel(it) })] };
       }
       // Échec : les rangs Impressionnant/Stupéfiant ancrent 1 / au moins 2 FAUSSES Particularités.
       if (isImpressiveFailure(pa.success, pa.sl)) {
         const fakes = falseQualities(it, isAstoundingFailure(pa.success, pa.sl) ? 2 : 1);
         if (fakes.length) {
           it.suspectedQualities = [...new Set([...(it.suspectedQualities ?? []), ...fakes])];
-          return { lines: [msg('if.identifyFakes', { name: h.label, item: libelleDObjet(it), fakes: fakes.join(msg('if.fakesJoin')) })] };
+          return { lines: [msg('if.identifyFakes', { name: h.label, item: itemLabel(it), fakes: fakes.join(msg('if.fakesJoin')) })] };
         }
-        return { lines: [msg('if.identifyConfusedWeek', { name: h.label, item: libelleDObjet(it) })] };
+        return { lines: [msg('if.identifyConfusedWeek', { name: h.label, item: itemLabel(it) })] };
       }
       // -2 à -3 (Échec, l.50) : confond l'artefact avec un type d'objet SIMILAIRE (méprise sur sa nature ; pas de fausse Particularité).
       if (pa.sl <= -2) {
-        return { lines: [msg('if.identifyConfusedType', { name: h.label, item: libelleDObjet(it) })] };
+        return { lines: [msg('if.identifyConfusedType', { name: h.label, item: itemLabel(it) })] };
       }
       // 0 à -1 (Échec Minime, l.49) : incapable d'identifier, mais conscient de son échec, sans se tromper sur la nature.
-      return { lines: [msg('if.identifyFailAware', { name: h.label, item: libelleDObjet(it) })] };
+      return { lines: [msg('if.identifyFailAware', { name: h.label, item: itemLabel(it) })] };
     }
     case 'wrathOfTheGods':
       // « réalisez un Test sur le Tableau de la Colère des Dieux […] à la place » (ACE 12 l.15) —
@@ -955,7 +954,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const it = (h.items ?? []).find((i) => i.uid === pa.itemUid);
       if (!it?.trappingId) return { lines: [] };
       h.masteredWeapons = [...new Set([...(h.masteredWeapons ?? []), it.trappingId])];
-      return { lines: [msg('if.masterWeapon', { name: h.label, item: libelleDObjet(it) })] };
+      return { lines: [msg('if.masterWeapon', { name: h.label, item: itemLabel(it) })] };
     }
     case 'identifyByResearch': {
       // ACE 12 l.33-42 : ≥ +4 DR = étude en profondeur (plein potentiel + dangers) ; succès ≤ +3 =
@@ -966,11 +965,11 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         it.identified = true;
         it.magicKnown = true;
         delete it.suspectedQualities;
-        return { lines: [msg('if.researchDeep', { name: h.label, item: libelleDObjet(it) })] };
+        return { lines: [msg('if.researchDeep', { name: h.label, item: itemLabel(it) })] };
       }
       if (pa.success) {
         it.magicKnown = true;
-        return { lines: [msg('if.researchMain', { name: h.label, item: libelleDObjet(it) })] };
+        return { lines: [msg('if.researchMain', { name: h.label, item: itemLabel(it) })] };
       }
       return { lines: [] };
     }
@@ -1098,7 +1097,7 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h || st.left <= 0) return;
   if (refusedBeforeDraw(get, h.label)) return;
-  const t = findTrappingById(trappingId);
+  const t = resoudreObjet(trappingId);
   if (!t) {
     get().log(msg('if.trappingUnknown', { id: trappingId }));
     return;

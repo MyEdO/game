@@ -12,7 +12,7 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from './dir8';
 import { EMPTY_FLOW } from './flow';
 import { nextEntityId } from './entityId';
-import { findTrappingById, findCreatureById, creatureLabel } from '../data';
+import { findCreatureById, creatureLabel, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';
 import { estAbsent, terrainAbsent } from './terrain';
@@ -364,8 +364,8 @@ export function setPosteSide(scene: Scene, entityId: string, side: FireArc | und
  *  La base est HYDRATÉE au spawn (#222 — plus d'`ItemInstance` matérialisée ici). Équipage conservé. No-op si
  *  l'engin est inconnu ou sans art d'affût (`siegeRig`). */
 export function setPosteEngine(scene: Scene, entityId: string, trappingId: string): Scene {
-  const t = findTrappingById(trappingId);
-  if (!t?.siegeRig) return scene;
+  const t = siegeEngines().find((e) => e.id === trappingId);
+  if (!t) return scene;
   const ent = scene.entities.find((e) => e.id === entityId && e.postes?.length);
   if (!ent) return scene;
   return editEntity(scene, entityId, {

@@ -19,12 +19,13 @@
  */
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
-import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
+import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, CareerLevelData, type AdvancementRef } from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
 import { t } from '../i18n';
+import { libelleDeRef } from './items';
 
 // `splitLabel` (split nom↔spécialisation) est la primitive UNIQUE de `statEntry` — ré-exportée ici
 // pour ses nombreux importeurs historiques (advancement/talentEffects/draft…) : aucune copie locale.
@@ -94,7 +95,7 @@ export function parseRefKey(key: string): { id: string; spec?: string } {
  *  jamais de re-parse de prose). `label` reste un LIBELLÉ d'affichage. */
 export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOption[] {
   if ('id' in a) {
-    const label = refLabel(category, { id: a.id });
+    const label = libelleDeRef(category, { id: a.id });
     if (a.choix == null) return [{ label, optionId: a.id, ...(a.spec ? { spec: a.spec } : {}), wildcard: false }];
     return [{ label, optionId: a.id, wildcard: true, ...(Array.isArray(a.choix) ? { specOptions: a.choix } : {}) }];
   }

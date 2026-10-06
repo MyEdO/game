@@ -5,7 +5,7 @@ import { addCondition, COND, passivePartLine } from './conditions';
 import { talentPassiveMods } from './talentEffects';
 import { etats, findMutationById, qualities, refLabel, skills, spells, talents, trappings, traits } from '../data';
 import type { Combatant, CharKey, SkillInstance } from './types';
-import { objetDeTest } from './objetDeTest.testkit';
+import { avecObjetsDeCampagne, objetDeTest } from './objetDeTest.testkit';
 
 /**
  * GARDE DE CLÔTURE du décomposeur de `testValue` (#1153). L'écran n'a le droit d'annoncer une base NUE
@@ -78,6 +78,16 @@ function withArmureLourde(): Combatant {
   return hero({
     skills: [{ id: 'discretion', advances: 15 }] as SkillInstance[],
     items: [objetDeTest({ uid: 'i2', trappingId: 'cotte-de-mailles', kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] })] as Combatant['items'],
+  });
+}
+
+/** Pièce d'armure d'un objet de CAMPAGNE (`narratif.objets`, #767) : absente du catalogue, nommée par
+ *  son entrée de campagne, que voit `resoudreObjet` (#2324). */
+const HARNOIS = { ...trappings.find((t) => t.id === 'cotte-de-mailles')!, id: 'campagne-harnois-du-forgeron', label: 'Harnois du forgeron' };
+function withArmureDeCampagne(): Combatant {
+  return hero({
+    skills: [{ id: 'discretion', advances: 15 }] as SkillInstance[],
+    items: [objetDeTest({ uid: 'i3', trappingId: HARNOIS.id, kind: 'armor', equipped: true, qualities: [{ id: 'en-discretion', value: -10 }] })] as Combatant['items'],
   });
 }
 
@@ -247,6 +257,14 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
     expect(part.label).toBe(SORT.label);
     expect(part.ref).toEqual({ category: 'spells', id: SORT.id }); // lien Codex VERS LE SORT
     expect(part.value).toBe(-20);
+  });
+
+  it('(C) armure de CAMPAGNE : NOMMÉE par son entrée de campagne — ni « Passif », ni un id brut', () => {
+    const [part, ...reste] = avecObjetsDeCampagne([HARNOIS], () => testValueParts(withArmureDeCampagne(), 'discretion'));
+    expect(reste).toEqual([]);
+    expect(part.label).toBe('Harnois du forgeron');
+    expect(part.label).not.toBe(HARNOIS.id);
+    expect(part.value).toBe(-10);
   });
 
   it('(C bis) mutation d’une sauvegarde périmée : le NOM tient (objet complet), seul le LIEN manque', () => {

@@ -14,9 +14,10 @@ import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { adresseLue, type AdresseDeCreation } from '../engine/adresseDeCreation';
-import { findTrappingById, resolveursDeDon, type AdvancementRef } from '../data';
+import { resolveursDeDon, type AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
+import { itemLabel } from '../engine/items';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
  *  Snapshot À LA CRÉATION : le héros tel que sorti de `buildHero`, plus sa
@@ -141,7 +142,7 @@ function motifJoueur(err: unknown): string {
 const nomHerite = (it: unknown): string => {
   const { label, trappingId, uid } = (it ?? {}) as { label?: unknown; trappingId?: unknown; uid?: unknown };
   if (typeof label === 'string') return label;
-  if (typeof trappingId === 'string') return findTrappingById(trappingId)?.label ?? trappingId;
+  if (typeof trappingId === 'string') return itemLabel({ trappingId: trappingId });
   return String(uid);
 };
 

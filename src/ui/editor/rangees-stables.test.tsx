@@ -59,7 +59,7 @@ function ouvrirLaSecondeRetirerLaPremiere(titreDuRetrait: string, resumeDeLaSeco
 describe('listes d’édition — l’état d’une rangée la suit au retrait d’une voisine (#1993)', () => {
   it('GameOpEditor', () => {
     const ops: GameOp[] = [{ op: 'maxWeaponHands', hands: 1, durationRounds: 1 }, { op: 'maxWeaponHands', hands: 2, durationRounds: 7 }];
-    monter(<Controle initial={ops} rendu={(v, poser) => <GameOpEditor sansSource={false} ops={v} onChange={poser} />} />);
+    monter(<Controle initial={ops} rendu={(v, poser) => <GameOpEditor objets={[]} sansSource={false} ops={v} onChange={poser} />} />);
     const resume = rangees()[1].querySelector('summary')!.textContent!;
     ouvrirLaSecondeRetirerLaPremiere("Supprimer l'op", resume);
   });

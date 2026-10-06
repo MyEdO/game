@@ -3305,8 +3305,8 @@ export function findTrappingById(id: string): TrappingData | undefined {
   return possessionParId(id);
 }
 /** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
- *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`trappingById`,
- *  `state/campaignData.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
+ *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`resoudreObjet`,
+ *  `engine/items.ts`) et par l'éditeur (objets du projet édité, `libelleDObjetDuProjet`, `ui/editor/`). */
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }

@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme, weaponIdentity } from './items';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandName } from './combat';
 import { trappings, type TrappingRef } from '../data';
+import { setDataset } from '../data/overrides';
 import { Combatant, ItemInstance, Weapon } from './types';
 import { objetDeTest, type SurchargeDObjet } from './objetDeTest.testkit';
 
@@ -818,17 +819,19 @@ describe('axe d’ALLONGE — ids STABLES (LDB 62 l.156-164)', () => {
 
 /**
  * Test de CÂBLAGE — les Mains nues sont LUES dans l'entrée `mains-nues` de `trappings.json`
- * (LDB 62 l.28), pas recopiées en dur : un résolveur injecté portant d'autres valeurs déplace l'arme
- * rendue. Et l'entrée absente est bruyante : aucun repli deviné ne la couvre.
+ * (LDB 62 l.28), pas recopiées en dur : l'entrée `mains-nues` ÉDITÉE au catalogue (`setDataset`, la couture
+ * du Compendium) déplace l'arme rendue. Et l'entrée absente ou sans profil est bruyante : aucun repli
+ * deviné ne la couvre.
  */
 describe('unarmedWeapon — arme LUE dans la donnée (`mains-nues`)', () => {
-  const fakeTrapping = (over: Record<string, unknown>) =>
-    ({ id: 'mains-nues', label: 'Mains nues', type: 'melee', qualities: [], ...over }) as never;
+  const LIVRES = [...trappings];
+  afterEach(() => setDataset('trappings', LIVRES));
+  const editer = (over: Record<string, unknown>) =>
+    setDataset('trappings', LIVRES.map((t) => (t.id === 'mains-nues' ? { ...t, ...over } : t)));
 
   it('suit la donnée : dégâts, Allonge, Atouts et Groupe viennent de l’entrée résolue', () => {
-    const w = unarmedWeapon(() => fakeTrapping({
-      label: 'Poings', damage: { plusBF: true, flat: 3 }, reach: 'Courte', qualities: [{ id: 'assommante' }], subType: 'parade',
-    }));
+    editer({ label: 'Poings', damage: { plusBF: true, flat: 3 }, reach: 'Courte', qualities: [{ id: 'assommante' }], subType: 'parade' });
+    const w = unarmedWeapon();
     expect(w.label).toBe('Poings');
     expect(w.damage).toEqual({ plusBF: true, flat: 3 });
     expect(w.reach).toBe('Courte');
@@ -843,8 +846,14 @@ describe('unarmedWeapon — arme LUE dans la donnée (`mains-nues`)', () => {
     expect(w.qualities.some((q) => q.id === 'inoffensive')).toBe(true);
   });
 
-  it('entrée absente = donnée cassée, BRUYANTE — plus aucun repli codé en dur', () => {
-    expect(() => unarmedWeapon(() => undefined)).toThrow(/mains-nues/);
+  it('entrée sans profil d’arme = donnée cassée, BRUYANTE — plus aucun repli codé en dur', () => {
+    editer({ damage: undefined });
+    expect(() => unarmedWeapon()).toThrow(/mains-nues/);
+  });
+
+  it('entrée absente du catalogue = donnée cassée, BRUYANTE', () => {
+    setDataset('trappings', LIVRES.filter((t) => t.id !== 'mains-nues'));
+    expect(() => unarmedWeapon()).toThrow(/mains-nues/);
   });
 });
 

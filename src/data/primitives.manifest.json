@@ -447,7 +447,7 @@
     "label": "trappingsInstanciables/trappingDesObjetsPuisDuCatalogue",
     "fichier": "src/data/index.ts",
     "concept": "vue des trappings instanciables par id (`INSTANCIABLE_PAR_ID`) que lit tout producteur d'ids d'objet ; chaîne de résolution « objets d'abord, puis catalogue », paramétrée par la liste d'objets (campagne jouée, projet édité)",
-    "perimetre": "fabrication, commande, stock marchand, conjuration, armes choisissables, galeries, `trappingById` (jeu), Effet `giveTrapping` (éditeur)",
+    "perimetre": "fabrication, commande, stock marchand, conjuration, armes choisissables, galeries, `resoudreObjet` (jeu, `engine/items.ts`), `libelleDObjetDuProjet` et Effet `giveTrapping` (éditeur)",
     "verrou": "src/data/trappings-vue-guard.test.ts (construction `lectureBruteDeCollection`)"
   },
   {

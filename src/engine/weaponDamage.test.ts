@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
 import { recomputeLoadout, damageString } from './items';
 import type { Weapon, Combatant } from './types';
 import { objetDeTest } from './objetDeTest.testkit';
+import { trappings } from '../data';
+import { setDataset } from '../data/overrides';
 
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
 const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
@@ -149,18 +151,18 @@ describe('effectiveWeapon — Lance-harpon, corde séparée (ADE II 02 l.677, mo
 /**
  * Test de CÂBLAGE — le profil d'Arme improvisée est LU dans l'entrée `arme-improvisee` de
  * `trappings.json` (LDB 62 l.31), pas recopié en dur. La preuve n'est pas l'égalité des valeurs (elle
- * passerait aussi avec des littéraux) : c'est qu'un RÉSOLVEUR injecté portant d'AUTRES valeurs déplace
- * le profil rendu. Débrancher la lecture fait échouer ce test.
+ * passerait aussi avec des littéraux) : c'est que l'entrée `arme-improvisee` ÉDITÉE au catalogue
+ * (`setDataset`, la couture du Compendium) déplace le profil rendu. Débrancher la lecture fait échouer ce test.
  */
 describe('improvisedProfile — profil LU dans la donnée (`arme-improvisee`)', () => {
-  const fakeTrapping = (over: Record<string, unknown>) =>
-    ({ id: 'arme-improvisee', label: 'Arme improvisée', type: 'melee', qualities: [], ...over }) as never;
+  const LIVRES = [...trappings];
+  afterEach(() => setDataset('trappings', LIVRES));
+  const editer = (over: Record<string, unknown>) =>
+    setDataset('trappings', LIVRES.map((t) => (t.id === 'arme-improvisee' ? { ...t, ...over } : t)));
 
   it('suit la donnée : dégâts, Atouts et Allonge viennent de l’entrée résolue', () => {
-    const resolver = () => fakeTrapping({
-      damage: { plusBF: true, flat: 7 }, qualities: [{ id: 'assommante' }], reach: 'Longue',
-    });
-    const eff = improvisedProfile(sword(), resolver);
+    editer({ damage: { plusBF: true, flat: 7 }, qualities: [{ id: 'assommante' }], reach: 'Longue' });
+    const eff = improvisedProfile(sword());
     expect(eff.damage).toEqual({ plusBF: true, flat: 7 });
     expect(eff.qualities).toEqual([{ id: 'assommante' }]);
     expect(eff.reach).toBe('Longue');
@@ -180,8 +182,14 @@ describe('improvisedProfile — profil LU dans la donnée (`arme-improvisee`)', 
     expect(eff.noFamilyQualities).toBe(true);
   });
 
-  it('entrée absente = donnée cassée, BRUYANTE — jamais un profil deviné', () => {
-    expect(() => improvisedProfile(sword(), () => undefined)).toThrow(/arme-improvisee/);
+  it('entrée sans profil d’arme = donnée cassée, BRUYANTE — jamais un profil deviné', () => {
+    editer({ damage: undefined });
+    expect(() => improvisedProfile(sword())).toThrow(/arme-improvisee/);
+  });
+
+  it('entrée absente du catalogue = donnée cassée, BRUYANTE', () => {
+    setDataset('trappings', LIVRES.filter((t) => t.id !== 'arme-improvisee'));
+    expect(() => improvisedProfile(sword())).toThrow(/arme-improvisee/);
   });
 
   it('les 4 branches improvisées d’`effectiveWeapon` rendent TOUTES ce même profil de donnée', () => {

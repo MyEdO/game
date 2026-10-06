@@ -109,7 +109,7 @@ describe('GameOpEditor › `maxWeaponHands` — l’op qui porte la clause s’�
   /** Monte l'éditeur sur UNE op et rend le dernier état rendu par `onChange`. */
   function editeur(op: GameOp): { dernier: () => GameOp } {
     let dernier = op;
-    mount(<GameOpEditor sansSource={false} ops={[op]} onChange={(ops) => { dernier = ops[0]; }} />);
+    mount(<GameOpEditor objets={[]} sansSource={false} ops={[op]} onChange={(ops) => { dernier = ops[0]; }} />);
     return { dernier: () => dernier };
   }
 

@@ -20,7 +20,7 @@ import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEta
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied } from '../engine/psychology';
 import { isVehicle } from '../engine/vehicle';
-import { compatibleAmmo } from '../engine/items';
+import { compatibleAmmo, itemLabel } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, selfManeuversOf, selfManeuverApplicable, battementFoes, distraireFoes } from './combatManeuvers';
 import { inBattleId } from './combatants';
@@ -37,7 +37,6 @@ import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../da
 import { isArcaneSpell, castBlockedBy, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './exploreNav';
-import { libelleDObjet } from './campaignData';
 
 /** Verdict d'un gate : l'indisponibilité PORTE SA RAISON (patron `GatedAction`, charte UI). */
 export interface ActionGate {
@@ -364,11 +363,11 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
   },
   'pieces-servables': (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
-    return { porteurId: sp.hull.id, args: { shipId: sp.hull.id, posteUid: sp.poste.item.uid }, label: libelleDObjet(sp.poste.item) };
+    return { porteurId: sp.hull.id, args: { shipId: sp.hull.id, posteUid: sp.poste.item.uid }, label: itemLabel(sp.poste.item) };
   },
   'piece-poussable': (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
-    return { porteurId: sp.hull.id, args: {}, label: libelleDObjet(sp.poste.item) };
+    return { porteurId: sp.hull.id, args: {}, label: itemLabel(sp.poste.item) };
   },
   'objets-au-sol': (c) => {
     const o = c as { entityId: string; key: string; label: string };

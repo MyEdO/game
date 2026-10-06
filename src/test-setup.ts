@@ -41,6 +41,10 @@
  *      sommet reproduit le rouge à l'identique, et le TEMPS n'y change rien (la fermeture est synchrone).
  *      Les bancs de la couture gardent en plus leur propre `resetDismissLayers` en `beforeEach` — ils
  *      posent leur décor de pile, ils ne dépendent pas de ce filet.
+ *    - le FOURNISSEUR DES OBJETS DE CAMPAGNE (`engine/items › brancherObjetsDeCampagne`, #2324) : celui
+ *      que `state/campaignData.ts` branche à l'import, capturé au chargement. La remise du store vide la
+ *      couche qu'il lit ; un test qui branche le sien le remet lui-même (`avecObjetsDeCampagne`). On
+ *      DÉTECTE la dérive après chaque test, on échoue AU SITE qui l'a laissée, puis on remet l'origine.
  *    - les REGISTRES D'ART du rig (cf. `rigArtRegistrySignatures` plus bas) : objets de module, donc
  *      partagés par tous les fichiers du worker. Un test qui en pose un le remet lui-même : on DÉTECTE
  *      leur dérive après chaque test, on échoue AU SITE qui l'a laissée, puis on remet EN PLACE la
@@ -89,11 +93,24 @@ import { resetDesFixes } from './engine/fixedDie';
 import { seedBattleRng } from './state/battleRng';
 import { reinitWebglRefusé } from './gameIso/stage/webglSupport';
 import { resetDismissLayers } from './ui/useDismissLayer';
+import { brancherObjetsDeCampagne } from './engine/items';
 
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
 // immunisé à toute mutation du gabarit) ; chaque test n'en `parse` qu'une copie fraîche.
 const PRISTINE_STATE = JSON.stringify(useGame.getInitialState());
 let cascadeSnapshot: Record<string, (typeof cascadeAppliers)[string]> = {};
+/** Fournisseur des objets de campagne branché par `state/campaignData.ts`, lu sans le remplacer. */
+const FOURNISSEUR_D_ORIGINE = brancherObjetsDeCampagne(() => new Map());
+brancherObjetsDeCampagne(FOURNISSEUR_D_ORIGINE);
+
+/** Verdict de la barrière du fournisseur des objets de campagne : message nommant le fichier, ou `null`. */
+export function messageFournisseurDObjets(fichier: string, derive: boolean): string | null {
+  if (!derive) return null;
+  return (
+    `Fournisseur des objets de campagne laissé BRANCHÉ par ${fichier} (brancherObjetsDeCampagne est un singleton du worker).\n`
+    + `Remettre le fournisseur rendu par brancherObjetsDeCampagne (avecObjetsDeCampagne de src/engine/objetDeTest.testkit.ts).`
+  );
+}
 
 /**
  * Modules d'art des parts du rig, énumérés STRUCTURELLEMENT (`import.meta.glob` eager) : une famille
@@ -445,6 +462,7 @@ afterEach(() => {
   const derivesArt = deriveArtRig();
   // 2. REMETTRE l'état partagé à vierge : aucun résidu ne survit à son verdict.
   remettreArtRig(derivesArt.keys());
+  const fournisseurDerive = brancherObjetsDeCampagne(FOURNISSEUR_D_ORIGINE) !== FOURNISSEUR_D_ORIGINE;
   if (typeof document !== 'undefined') {
     document.body.replaceChildren();
     document.head.replaceChildren();
@@ -456,6 +474,7 @@ afterEach(() => {
     messageRacineMontee(racinesFuites),
     messageActEnVol(fichier, fileNeuve),
     messageDeriveArt(fichier, [...derivesArt.values()]),
+    messageFournisseurDObjets(fichier, fournisseurDerive),
   ].filter((m): m is string => m !== null);
   if (verdicts.length) throw new Error(verdicts.join('\n'));
 });

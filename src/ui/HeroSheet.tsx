@@ -18,7 +18,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { axisDataFor, heroRoseAxes, heroStatusLabel, heroSubtitle } from './CharCard';
 import { t } from '../i18n';
 import { Row } from './Layout';
-import { libelleDObjet } from '../state/campaignData';
+import { itemLabel } from '../engine/items';
 
 /** Rubriques du corps `HeroSheet`, dans l'ordre canonique du détail candidat (#417). Toutes par
  *  défaut — un appelant restreint via `sections` (ex. l'onglet Compétences & Talents de la fiche,
@@ -209,7 +209,7 @@ export function HeroSheet({
           <h4>{t('present.possessions')}</h4>
           <div className="skill-tags">
             {pending?.possessions ?? (possessions.length
-              ? possessions.map((it) => <EntityRef key={it.uid} category="trappings" id={it.trappingId} label={libelleDObjet(it)} />)
+              ? possessions.map((it) => <EntityRef key={it.uid} category="trappings" id={it.trappingId} label={itemLabel(it)} />)
               : <span className="hint">—</span>)}
           </div>
         </section>

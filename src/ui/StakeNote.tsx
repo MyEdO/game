@@ -13,13 +13,14 @@
  * libellé du pas COURANT ; dérivé de la MÊME entrée d'enjeu.
  */
 import { createContext, isValidElement, useContext, type ReactNode } from 'react';
-import { resolveStake, refLabel, type StakeRef } from '../data';
+import { resolveStake, type StakeRef } from '../data';
 import { CodexRef } from './compendium/CodexRef';
 import { Icon } from './Icon';
 import { Prose } from './Prose';
 import { GameOpChips } from './GameOpChips';
 import { EntityRef } from './EntityChip';
 import type { GameOp } from '../engine/ops';
+import { libelleDeRef } from '../engine/items';
 
 /** La note est celle d'une RANGÉE (`OptionChooser`, verbe | conséquence) : le verbe porte l'icône,
  *  la note n'en porte pas (juge B12, Q9, #1920). Posé par la rangée, lu par la note. */
@@ -81,7 +82,7 @@ export function OutcomeNote({ onSuccess, onFail, onSuccessBy, onFailBy, realized
   if (!succ && !fail && !succBy && !failBy) return null;
   const ligne = (ops: GameOp[] | undefined, by: { category: string; id: string } | undefined) =>
     ops ? (ops.length ? <GameOpChips ops={ops} {...(sl != null ? { sl } : {})} /> : 'rien.')
-      : <EntityRef category={by!.category} id={by!.id} label={refLabel(by!.category, { id: by!.id })} />;
+      : <EntityRef category={by!.category} id={by!.id} label={libelleDeRef(by!.category, { id: by!.id })} />;
   return (
     <div className="rm-stake">
       <Icon id="journal/info" size="sm" />

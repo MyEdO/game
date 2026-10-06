@@ -5,7 +5,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './Tabs';
-import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
+import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, resoudreObjet, itemLabel } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -25,7 +25,7 @@ import { canAfford, toMoney, formatMoney } from '../engine/money';
 import { bourseOf } from '../state/bourseFlow';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
 import { spellSupportOf } from '../engine/spellspec';
-import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, findTrappingById, libelleOuAbsence } from '../data';
+import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
@@ -51,7 +51,6 @@ import { corruptionThresholdExceeded } from '../engine/corruption';
 import { locationLabel } from '../engine/combat';
 import { CarrierInventory } from './CarrierInventory';
 import { Row } from './Layout';
-import { libelleDObjet } from '../state/campaignData';
 
 /** Badges de zone de l'onglet Possessions (lot « corps-index », #492) : PA cumulé des 6 Localisations
  *  RÉELLES (`hero.armour`, couches rigide+Flexible+mutations déjà cumulées) — `sang` si une pièce
@@ -536,7 +535,7 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
  *  copie de bataille, pas du groupe muté). Réutilise la primitive `MediaSelect`. */
 function FormPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   const setItemShape = useGame((s) => s.setItemShape);
-  const trapping = it.trappingId ? findTrappingById(it.trappingId) : undefined;
+  const trapping = it.trappingId ? resoudreObjet(it.trappingId) : undefined;
   const choices = trapping?.formChoices;
   if (!choices || choices.length < 2) return null;
   const current = it.shape ?? trapping?.shape ?? choices[0];
@@ -848,7 +847,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
           if (!tier) continue;
           rows.push({
             key: `${it.uid}-${it.prosthesisReduced ?? 0}-${tier.grants ?? 'palier'}`,
-            label: `${libelleDObjet(it)} — ${tier.label}`, // libellé du palier : DONNÉE éditable, jamais un texte d'écran
+            label: `${itemLabel(it)} — ${tier.label}`, // libellé du palier : DONNÉE éditable, jamais un texte d'écran
             cost: tier.px,
             onBuy: () => trainProsthesis(hero.id, it.uid),
           });

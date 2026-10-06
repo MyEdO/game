@@ -5,7 +5,7 @@
 import { Combatant, Characteristics, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../engine/types';
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
-import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
+import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
 import { vehicleCombatant } from '../engine/vehicle';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
@@ -16,7 +16,7 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche } from '../engine/statblock';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../engine/items';
+import { emptyArmour, buildWeapon, hydratePoste, loadWeapon, resoudreObjet } from '../engine/items';
 import { maxWounds, bonus } from '../engine/characteristics';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../engine/size';
 import { appliquerAcquisitions } from '../engine/talentEffects';
@@ -400,7 +400,7 @@ function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: nu
     // équipage. Neutralisé en tuant l'équipage, pas en le détruisant. Son espèce de rendu est DÉRIVÉE de la
     // `ref` (l'art d'affût `siegeRig` du trapping) → plus aucun `appearance.species` forcé à l'authoring.
     // Dernière branche du faisceau : `refEntiteResolue` a déjà écarté créature et coque au-dessus.
-    const t = findTrappingById(ref)!;
+    const t = resoudreObjet(ref)!;
     c = inanimateCombatant({ id, label: t.label, refId: ref, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint });
     c.kind = 'enemy';
     c.pos = { ...pos };

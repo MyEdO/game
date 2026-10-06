@@ -11,7 +11,7 @@ import { planById } from './rig/bodyPlan';
 import { diagOnce, withDiagSubject } from './rig/devDiag';
 import { structureAppearance } from './catalog/structures';
 import { isStructure } from '../engine/structures';
-import { findCreatureById, findTrappingById, findVehicleById } from '../data';
+import { findCreatureById, findVehicleById } from '../data';
 import { combatantRender, entityRender, sceneEntityForRender } from './sizeScale';
 import { useGame } from '../state/store';
 import { entitySprite } from './sprites';
@@ -21,6 +21,7 @@ import { equipPorte, type EquipCtx } from './rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from './rig/parts/combatantVisuals';
 import { groundStateOf } from './groundPose';
 import type { RigOverlay } from './rig/bones';
+import { resoudreObjet } from '../engine/items';
 
 /**
  * Sujet à rendre comme token. Discriminé : combattant (combat), entité de scène
@@ -172,7 +173,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   // Un engin de siège (ref = trapping à art d'affût `siegeRig`) est résolu via la ref → pas un défaut perdu.
   // Une coque de véhicule (ref = id `vehicles.json` à facette `hull`, ex. navire) est résolue via la
   // même ref (`resolveRender`, branche véhicule ci-dessus l.117) → pas non plus un défaut perdu (#224).
-  if (import.meta.env.DEV && ent.kind === 'personnage' && ent.ref && !ent.appearance?.species && !findCreatureById(ent.ref) && !findTrappingById(ent.ref)?.siegeRig && !findVehicleById(ent.ref)?.hull)
+  if (import.meta.env.DEV && ent.kind === 'personnage' && ent.ref && !ent.appearance?.species && !findCreatureById(ent.ref) && !resoudreObjet(ent.ref)?.siegeRig && !findVehicleById(ent.ref)?.hull)
     diagOnce(`tokenBodyKind:ref:${sujet}`, () => console.warn(`[tokenBodyKind] entité « ${ent.id} » : ref « ${ent.ref} » non résolue (pas un id de créature) et sans Espèce → bipède Humain par défaut. Choisis une Espèce ou une réf de créature valide.`));
   const prof = ent.kind === 'personnage' ? withDiagSubject(sujet, () => entityRigProfileFor(ent, subject.enrolled)) : null;
   if (prof) {

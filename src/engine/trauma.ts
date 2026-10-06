@@ -17,7 +17,7 @@ import type { CritEscalation } from '../data/criticals';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
 import type { StakeRef } from '../data';
 import { isPainless, traitPassiveMods } from './traits/dispatch';
-import { findById, findConditionById, findPsychologyById, findTrappingById, refLabel } from '../data';
+import { findById, findConditionById, findPsychologyById, refLabel } from '../data';
 import type { CodexTarget } from './ruleRefs';
 import { talentPassiveMods } from './talentEffects';
 import { diseasePassiveOps } from './disease';
@@ -28,7 +28,7 @@ import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
 import { normalizePassiveKind, resolveFormula } from './ops';
-import { itemLabel } from './items';
+import { itemLabel, resoudreObjet, libelleDeRef } from './items';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
@@ -826,7 +826,7 @@ function tierAcquis(it: ItemInstance, tier: ProsthesisTier, cumul: number): bool
  *  SOURCE UNIQUE partagée par l'écran d'Avancement et `trainProsthesis` (state/partyFlow.ts). */
 export function nextProsthesisTier(it: ItemInstance): ProsthesisTier | undefined {
   if (!it.equipped || !it.trappingId) return undefined;
-  const tiers = findTrappingById(it.trappingId)?.prosthesisTraining ?? [];
+  const tiers = resoudreObjet(it.trappingId)?.prosthesisTraining ?? [];
   let cumul = 0;
   for (const tier of tiers) {
     cumul += tier.reduces ?? 0;
@@ -1034,7 +1034,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   for (const it of c.items ?? []) {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
     if (!held || !it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: itemLabel(it) });
+    for (const op of resoudreObjet(it.trappingId)?.passive ?? []) out.push({ op, kind: 'intrinseque', src: { category: 'trappings', id: it.trappingId }, label: itemLabel(it) });
   }
   // Traits à modificateur de PROFIL appliqués en DIRECT (LDB 85 : Élite/Coriace/Brutal/Rapide… facultatifs,
   // statbloc d'éditeur, traits accordés) — leurs `PassiveMod` (vocab GameOp unifié, `TraitData.passive`) émis
@@ -1158,7 +1158,7 @@ export function passiveGlobalTestMod(c: Combatant): number {
  */
 export function passivePartLine(m: PassiveMod, amount: number): { label: string; value: number; famille: ModFamille; ref?: CodexTarget } {
   const ref = m.src && findById(m.src.category, m.src.id) ? m.src : undefined;
-  return { label: m.label ?? (m.src ? refLabel(m.src.category, { id: m.src.id }) : ''), value: amount, famille: 'jet', ref };
+  return { label: m.label ?? (m.src ? libelleDeRef(m.src.category, { id: m.src.id }) : ''), value: amount, famille: 'jet', ref };
 }
 
 /** Familles SANS entité émettrice — les SEULES à mériter un repli de famille : la Faim/Soif et

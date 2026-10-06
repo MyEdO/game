@@ -1,9 +1,10 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { findTrappingById, type SkillRef } from '../../data';
+import type { SkillRef } from '../../data';
 import type { SceneEntity } from '../../state/scene';
 import type { Combatant } from '../../engine/types';
 import { buildScene, type MapSpec } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import { resoudreObjet } from '../../engine/items';
 
 /**
  * SIÈGE COMPLET — défendre l'enceinte, entièrement DÉCLARÉ en UN `MapSpec` (plus aucune plomberie bespoke :
@@ -37,7 +38,7 @@ import type { TestScenario } from './_shared';
 // QUE s'il la possède (sinon « n'est pas considéré comme un membre de l'équipe », AA 10 l.253). Dérivée de la pièce
 // (`weaponGroup` du trapping) → la Spé = id du Groupe (arbalete/poudre-noire/catapulte). Test ~40.
 const projForPiece = (trappingId: string): SkillRef[] => {
-  const g = findTrappingById(trappingId)?.weaponGroup;
+  const g = resoudreObjet(trappingId)?.weaponGroup;
   return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
 };
 

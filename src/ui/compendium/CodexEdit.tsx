@@ -37,6 +37,7 @@ import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFie
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
 import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
+import { AUCUN_OBJET_DE_PROJET } from '../editor/ConditionEditor';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
@@ -694,7 +695,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {isPassive && (
           <div className="ed-field">
             <span>modificateurs PASSIFS continus (mêmes ops que les sorts — sans déclencheur)</span>
-            <GameOpEditor sansSource={false} ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            <GameOpEditor sansSource={false} objets={AUCUN_OBJET_DE_PROJET} ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
           </div>
         )}
         {isOptionalRule && (
@@ -720,6 +721,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
               <span>modificateurs PASSIFS du palier {libelleDeValeur(symptomSeveritySchema, cle)} — ils S’AJOUTENT aux « Effets passifs » dès que l’instance atteint ce palier ; une pénalité s’y écrit en valeur ABSOLUE, la pire l’emporte (LDB 20 l.157, l.170)</span>
               <GameOpEditor
                 sansSource={false}
+                objets={AUCUN_OBJET_DE_PROJET}
                 ops={parPalier[cle] ?? []}
                 onChange={(ops) => {
                   const suivant = { ...parPalier, [cle]: ops.length ? ops : undefined };
@@ -733,7 +735,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {isSymptom && (
           <div className="ed-field">
             <span>passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik −10 Soc si visible, MSRC 16 l.140) — actifs seulement si la localisation tirée est cochée ci-dessous</span>
-            <GameOpEditor sansSource={false} ops={(entry.visiblePassive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('visiblePassive', ops.length ? ops : undefined)} />
+            <GameOpEditor sansSource={false} objets={AUCUN_OBJET_DE_PROJET} ops={(entry.visiblePassive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('visiblePassive', ops.length ? ops : undefined)} />
             <EnsembleDeCases nom="Localisations visibles" options={(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const).map((loc) => [loc, HIT_LOCATION_LABELS[loc]] as const)}
               value={entry.visibleLocations as string[] | undefined} facultatif={admetLAbsence(noeudDe('visibleLocations')) ?? true}
               onChange={(next) => edit('visibleLocations', next)} />
@@ -878,7 +880,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {opsFields.map((fieldKey) => (
           <div className="ed-field" key={fieldKey}>
             <span>{fieldKey} — effet (GameOp[], même éditeur que les modificateurs passifs)</span>
-            <GameOpEditor sansSource={false} noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
+            <GameOpEditor sansSource={false} objets={AUCUN_OBJET_DE_PROJET} noeud={noeudDe(fieldKey)} ops={(entry[fieldKey] as GameOp[] | undefined) ?? []} onChange={(ops) => edit(fieldKey, ops)} />
           </div>
         ))}
         {fields.map((f) => {
@@ -1644,7 +1646,7 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
           </div>
           <div className="ed-subfield">
             <span>effet mécanique sur le Personnage (GameOp[])</span>
-            <GameOpEditor sansSource={false} ops={b.ops ?? []} onChange={(ops) => set(i, { ops: ops.length ? ops : undefined })} />
+            <GameOpEditor sansSource={false} objets={AUCUN_OBJET_DE_PROJET} ops={b.ops ?? []} onChange={(ops) => set(i, { ops: ops.length ? ops : undefined })} />
           </div>
           <BattleOutcomeListField value={b.battle} onChange={(v) => set(i, { battle: v.length ? v : undefined })} />
           <ChainsField value={b.chains} onChange={(v) => set(i, { chains: v.length ? v : undefined })} />

@@ -25,7 +25,7 @@ import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
 import { reverseRoll, hitLocationByShape } from './combat';
-import { deviatableArmourAt } from './items';
+import { deviatableArmourAt, resoudreObjet } from './items';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
@@ -40,7 +40,7 @@ import type { CastingNumberMod, CastingNumberSubject } from './castingNumber';
 import { armourMaterialOf } from './armourBypass';
 import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
 import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, DIFFICULTY_MODIFIERS, type ItemInstance } from './types';
-import { findTraitById, findTalentById, findDomainById, findGodById, findTrappingById, type TestMatch } from '../data';
+import { findTraitById, findTalentById, findDomainById, findGodById, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
 import { ritualReduction, type RitualReduced } from './grimoire';
@@ -1216,7 +1216,7 @@ export function malepierreCharge(chargesRemaining: number, dr: number, ratePerDR
 export function malepierreItemOf(c: Combatant): ItemInstance | undefined {
   return (c.items ?? []).find((it) => {
     if (it.destroyed) return false;
-    const reserve = it.niReserve ?? findTrappingById(it.trappingId ?? '')?.niPerGram;
+    const reserve = it.niReserve ?? resoudreObjet(it.trappingId ?? '')?.niPerGram;
     return reserve != null && reserve > 0;
   });
 }
@@ -1230,7 +1230,7 @@ export function malepierreReserveOf(c: Combatant): number {
   const it = malepierreItemOf(c);
   if (!it) return 0;
   if (rule('magic-vdm-incantation') !== true) return Infinity;
-  return it.niReserve ?? findTrappingById(it.trappingId ?? '')?.niPerGram ?? 0;
+  return it.niReserve ?? resoudreObjet(it.trappingId ?? '')?.niPerGram ?? 0;
 }
 
 /** Décrémente la réserve de NI de l'objet malepierre porté par `c`, du DR consommé CE Test/Round
@@ -1243,7 +1243,7 @@ export function consumeMalepierre(c: Combatant, drConsumed: number | undefined):
   if (rule('magic-vdm-incantation') !== true) return;
   const it = malepierreItemOf(c);
   if (!it) return;
-  const trap = findTrappingById(it.trappingId ?? '');
+  const trap = resoudreObjet(it.trappingId ?? '');
   const before = it.niReserve ?? trap?.niPerGram ?? 0;
   it.niReserve = malepierreCharge(before, drConsumed, trap?.niConsumedPerDR ?? 1);
 }

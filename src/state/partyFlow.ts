@@ -5,7 +5,7 @@
  * Refacto pure — comportement préservé.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
-import { recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
+import { recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow, resoudreObjet, itemLabel, libelleDeRef } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, carriersCoLocated } from './carrier';
@@ -38,7 +38,7 @@ import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost } from '../engine/grimoire';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
+import { levelsForCareer, byId, findCareerById, findSpellById, findTalentById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
 import { seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX } from './combatants';
@@ -49,7 +49,6 @@ import { ensureBourse, creditBourse, bourseOf, payWithAllocation, soloPayer } fr
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
-import { libelleDObjet } from './campaignData';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
  *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
@@ -101,7 +100,7 @@ function applyToggleEquip(items: ItemInstance[], uid: string, label: string): st
     it.inside = undefined; // on ne porte pas un objet rangé dans un sac : il en sort d'abord
     const out = equipConflicts({ items }, it);
     for (const o of out) o.equipped = false;
-    if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => libelleDObjet(o)).join(' + '), item: libelleDObjet(it) });
+    if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => itemLabel(o)).join(' + '), item: itemLabel(it) });
   }
   it.equipped = !it.equipped;
   return msg;
@@ -147,17 +146,17 @@ function applyStow(items: ItemInstance[], uid: string, containerUid: string | nu
   if (!it) return { msg: '', moved: false };
   if (containerUid) {
     if (!canStow({ items }, it, containerUid)) {
-      const msg = t('pf.stowTooBig', { name: label, item: libelleDObjet(it) });
+      const msg = t('pf.stowTooBig', { name: label, item: itemLabel(it) });
       return { msg, moved: false };
     }
     const bag = items.find((i) => i.uid === containerUid);
     it.inside = containerUid; // rangé : ni porté ni tenu
     it.equipped = false;
-    const msg = t('pf.stow', { name: label, item: libelleDObjet(it), bag: bag ? t('pf.fragInBag', { bag: libelleDObjet(bag) }) : '' });
+    const msg = t('pf.stow', { name: label, item: itemLabel(it), bag: bag ? t('pf.fragInBag', { bag: itemLabel(bag) }) : '' });
     return { msg, moved: true };
   }
   it.inside = undefined; // sorti du sac (remis en vrac)
-  const msg = t('pf.unstow', { name: label, item: libelleDObjet(it) });
+  const msg = t('pf.unstow', { name: label, item: itemLabel(it) });
   return { msg, moved: true };
 }
 
@@ -287,7 +286,7 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
     }
     return patch;
   });
-  get().log(t('pf.give', { from: fromLabel, item: libelleDObjet(item), to: toLabel }));
+  get().log(t('pf.give', { from: fromLabel, item: itemLabel(item), to: toLabel }));
 }
 
 function applySkinPatch(it: ItemInstance, patch: Record<string, string | undefined>): void {
@@ -336,7 +335,7 @@ export function setItemShape(_get: Get, set: Set, heroId: string, uid: string, s
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
-    const choices = findTrappingById(it.trappingId)?.formChoices;
+    const choices = resoudreObjet(it.trappingId)?.formChoices;
     if (!choices?.includes(shape)) return; // forme hors `formChoices` → ignorée
     it.shape = shape;
   });
@@ -451,7 +450,7 @@ export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey:
         msg = t('pf.designateRefused', { name: clone.label, reason: r.reason ?? '' });
         return h;
       }
-      const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', { id: optionId, spec }); // AFFICHAGE seul
+      const label = libelleDeRef(slot.kind === 'skill' ? 'skills' : 'talents', { id: optionId, spec }); // AFFICHAGE seul
       msg = t('pf.designated', { name: clone.label, label });
       return clone;
     }),
@@ -655,14 +654,14 @@ export function trainProsthesis(get: Get, set: Set, heroId: string, uid: string)
       const tier = nextProsthesisTier(it);
       if (!tier) {
         // Prothèse non entraînable (aucun palier déclaré / non portée) vs. déjà entièrement maîtrisée.
-        const done = it.equipped && !!it.trappingId && (findTrappingById(it.trappingId)?.prosthesisTraining?.length ?? 0) > 0;
-        msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: libelleDObjet(it) }) : t('pf.prosthesisNotTrainable', { name: clone.label });
+        const done = it.equipped && !!it.trappingId && (resoudreObjet(it.trappingId)?.prosthesisTraining?.length ?? 0) > 0;
+        msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: itemLabel(it) }) : t('pf.prosthesisNotTrainable', { name: clone.label });
         return h;
       }
       if ((clone.xp ?? 0) < tier.px) { msg = t('pf.notEnoughXp', { name: clone.label, cost: tier.px }); return h; }
       clone.xp = (clone.xp ?? 0) - tier.px;
       grantProsthesisTier(it, tier);
-      msg = t('pf.prosthesisTierBought', { name: clone.label, item: libelleDObjet(it), tier: tier.label, cost: tier.px });
+      msg = t('pf.prosthesisTierBought', { name: clone.label, item: itemLabel(it), tier: tier.label, cost: tier.px });
       return clone;
     }),
   }));

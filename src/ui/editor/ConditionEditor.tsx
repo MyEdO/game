@@ -13,7 +13,8 @@ import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, objetDeSceneSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
-import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../data';
+import type { TrappingData } from '../../data';
+import { libelleDObjetDuProjet } from '../../engine/items';
 import { formatMoney } from '../../engine/money';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
@@ -77,7 +78,7 @@ const winSummary = (w: TemporalCondition) => {
   return a && b ? `${a}–${b}` : a ? `dès ${a}` : b ? `avant ${b}` : 'créneau';
 };
 /** Résumé HUMAIN compact d'une Condition (rangées repliées, listes). `objets` : objets du projet
- *  (`narratif.objets`), nommés avant le catalogue (`trappingDesObjetsPuisDuCatalogue`). */
+ *  (`narratif.objets`), qui nomment ses objets (`libelleDObjetDuProjet`). */
 export function condSummary(c: Condition | undefined, objets: readonly TrappingData[]): string {
   if (!c) return '';
   const resume = (x: Condition) => condSummary(x, objets);
@@ -86,7 +87,7 @@ export function condSummary(c: Condition | undefined, objets: readonly TrappingD
     case 'flag': return c.expr || '(flag ?)';
     case 'time': return winSummary(c.window);
     case 'hasItem': {
-      const nom = c.trappingId ? trappingDesObjetsPuisDuCatalogue(new Map(objets.map((o) => [o.id, o])), c.trappingId)?.label ?? c.trappingId : '?';
+      const nom = c.trappingId ? libelleDObjetDuProjet({ trappingId: c.trappingId }, objets) : '?';
       return `a « ${nom} »${c.count && c.count > 1 ? ` ×${c.count}` : ''}`;
     }
     case 'money': return `bourse ≥ ${formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 })}`;

@@ -12,7 +12,7 @@
 import type { SceneEntity } from './scene';
 import type { Dir8 } from './dir8';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
-import { findTrappingById } from '../data';
+import { resoudreObjet } from '../engine/items';
 
 export interface SiegeEmplacementOpts {
   /** Équipage du poste (ORDRE = chef de pièce en tête → `crewIds[0]`). Vide par défaut (assigné ensuite). */
@@ -35,7 +35,7 @@ export function siegeEmplacementEntity(
   pos: { x: number; y: number },
   opts: SiegeEmplacementOpts = {},
 ): SceneEntity | null {
-  const t = findTrappingById(trappingId);
+  const t = resoudreObjet(trappingId);
   if (!t?.siegeRig) return null; // posable ⇔ a un art d'affût (`siegeRig`)
   // #222 — réf catalogue AUTHORÉE (base hydratée au spawn), jamais une `ItemInstance` de base matérialisée.
   const poste: AuthoredShipPoste = { trappingId, crewIds: opts.crewIds ?? [], ...(opts.side ? { side: opts.side } : {}) };

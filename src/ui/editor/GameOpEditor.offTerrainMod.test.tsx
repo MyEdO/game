@@ -23,7 +23,7 @@ function monter(ops: GameOp[], vus: GameOp[][]) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<GameOpEditor sansSource={false} ops={ops} onChange={(next) => vus.push(next)} />); });
+  act(() => { root.render(<GameOpEditor objets={[]} sansSource={false} ops={ops} onChange={(next) => vus.push(next)} />); });
 }
 
 afterEach(() => {
@@ -83,8 +83,8 @@ describe('GameOpEditor — offTerrainMod a un éditeur DÉDIÉ', () => {
    *  rendent la même ligne à l'atelier. */
   it('le résumé dit la SUFFOCATION, et ne la dit pas quand la clause est absente', () => {
     const base = newOp('offTerrainMod') as Extract<GameOp, { op: 'offTerrainMod' }>;
-    expect(opSummary(base)).not.toContain('suffoque');
-    expect(opSummary({ ...base, suffocates: true })).toContain('suffoque');
+    expect(opSummary(base, [])).not.toContain('suffoque');
+    expect(opSummary({ ...base, suffocates: true }, [])).toContain('suffoque');
   });
 
   it('élire une autre entrée écrit son ID au payload, et le résumé en montre le LIBELLÉ', () => {
@@ -97,8 +97,8 @@ describe('GameOpEditor — offTerrainMod a un éditeur DÉDIÉ', () => {
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
     expect(dernierVu(vus)?.[0]).toMatchObject({ op: 'offTerrainMod', terrain: autre.id });
-    expect(opSummary(dernierVu(vus)![0])).toContain(autre.label);
-    expect(opSummary(dernierVu(vus)![0]), 'un id nu s’affiche là où le libellé est dû').not.toContain(`hors ${autre.id}`);
+    expect(opSummary(dernierVu(vus)![0], [])).toContain(autre.label);
+    expect(opSummary(dernierVu(vus)![0], []), 'un id nu s’affiche là où le libellé est dû').not.toContain(`hors ${autre.id}`);
   });
 
   it('vider « M imposé » ÔTE la clé du payload — jamais une clé à `undefined`', () => {

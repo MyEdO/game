@@ -11,7 +11,8 @@ import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
 import { compteDObjetsSchema, gameOpSchema, OP_DEFS } from '../data/schemas/grammaire/mecanique';
 import { fr } from '../i18n/messages/fr';
 import type { MsgKey } from '../i18n';
-import { instancesDeDon, itemFromTrappingById, itemLabel, itemsEncumbrance, pieceDeCreature, type TrappingResolver } from './items';
+import { instancesDeDon, itemFromTrappingById, itemLabel, itemsEncumbrance, pieceDeCreature } from './items';
+import { avecObjetsDeCampagne } from './objetDeTest.testkit';
 import { applyOps } from './ops';
 import { conjureFormOptions } from './conjuredWeapons';
 import { orderCatalog } from './activities';
@@ -140,8 +141,7 @@ describe('fabrique : `pieceDeCreature` et `instancesDeDon`', () => {
 
   it('le marqueur CLASSE : toute entrée qui porte `exigeUneCreature` naît en pièce de sa créature', () => {
     const autre = { ...findTrappingById(PIECES_DE_CREATURE_TRAPPING_ID)!, id: 'autre-piece' };
-    const resoudre: TrappingResolver = (id) => (id === autre.id ? autre : findTrappingById(id));
-    const [it] = instancesDeDon({ trappingId: autre.id, creatureId: GRIFFON }, 1, { resoudre });
+    const [it] = avecObjetsDeCampagne([autre], () => instancesDeDon({ trappingId: autre.id, creatureId: GRIFFON }, 1));
     expect(it.trappingId).toBe(autre.id);
     expect(it.creatureId).toBe(GRIFFON);
   });

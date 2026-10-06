@@ -29,7 +29,6 @@ import {
   byId,
   findTalentById,
   refLabel,
-  findTrappingById,
   trappingRefLabel,
   qualityRefLabel,
   findQualityById,
@@ -63,7 +62,7 @@ import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../../engine/types';
-import { damageString, itemFromTrappingById, itemLabel } from '../../engine/items';
+import { damageString, itemFromTrappingById, itemLabel, resoudreObjet } from '../../engine/items';
 import { skillBaseValue } from '../../engine/skills';
 import { effectiveChar } from '../../engine/characteristics';
 import { rangeSpecLabel, ammoRangeModLabel } from '../weaponStats';
@@ -2007,7 +2006,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
 
 /** Détail d'un objet d'équipement (trappings.json) par `id` : dégâts / PA / encombrement / qualités. */
 function trappingMeta(id: string): string {
-  const t = findTrappingById(id);
+  const t = resoudreObjet(id);
   if (!t) return '';
   const bits: string[] = [];
   if (t.damage) bits.push(`Dégâts ${damageString(t.damage)}`);

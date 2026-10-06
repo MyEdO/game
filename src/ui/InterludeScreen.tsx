@@ -22,8 +22,8 @@ import { effectiveChar } from '../engine/characteristics';
 import { testValue } from '../engine/skills';
 import { combatValue } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
-import { buildWeapon } from '../engine/items';
-import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake, libelleOuAbsence } from '../data';
+import { buildWeapon, itemLabel } from '../engine/items';
+import { findTalentById, skillInstanceLabel, qualities, refLabel, activityStakeRef, hasActivityStake, libelleOuAbsence } from '../data';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
@@ -55,7 +55,6 @@ import { MasterDetail } from './MasterDetail';
 import { Tabs } from './Tabs';
 import { t } from '../i18n';
 import { GatedAction, lieeA, type PropsDeRaison } from './GatedAction';
-import { libelleDObjet } from '../state/campaignData';
 
 /** Repli NOMMÉ d'une Activité fermée. Jamais une chaîne VIDE : `GatedAction` ne tient `aria-disabled`
  *  que s'il a une raison à faire atteindre — sans texte il rendrait un `disabled` natif, donc un
@@ -562,7 +561,7 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, none, own
   const core = [
     item('revenus', <><Icon id={PANE_ICON.revenus} size="sm" /> Revenus</>, 'Revenus'),
     item('craft', hero.craft
-      ? <><Icon id={PANE_ICON.craft} size="sm" /> Artisanat — {findTrappingById(hero.craft.trappingId)?.label ?? hero.craft.trappingId} ({hero.craft.drDone}/{hero.craft.drTarget})</>
+      ? <><Icon id={PANE_ICON.craft} size="sm" /> Artisanat — {itemLabel({ trappingId: hero.craft.trappingId })} ({hero.craft.drDone}/{hero.craft.drTarget})</>
       : <><Icon id={PANE_ICON.craft} size="sm" /> Artisanat</>, 'Artisanat'),
     item('learn', <><Icon id={PANE_ICON.learn} size="sm" /> Apprentissage</>, 'Apprentissage'),
     item('order', <><Icon id={PANE_ICON.order} size="sm" /> Commande</>, 'Commande'),
@@ -638,7 +637,7 @@ function CraftProgressPane({ hero, craft, refus, desc, porteur }: {
 }) {
   const activity = useGame((s) => s.interludeActivity);
   const metier = hero.skills.find((k) => k.id === 'metier');
-  const label = findTrappingById(craft.trappingId)?.label ?? craft.trappingId;
+  const label = itemLabel({ trappingId: craft.trappingId });
   const chip = metier
     ? <SkillChip skillId={metier.id} show={skillInstanceLabel(metier)} />
     : <b>Métier</b>;
@@ -1072,7 +1071,7 @@ function IdentifyPane({ hero, refus, desc, porteur }: { hero: Combatant; refus?:
         <select className="interlude-select" value={uid} onChange={(e) => setUid(e.target.value)} aria-label="Artefact à étudier">
           {items.map((i) => (
             <option key={i.uid} value={i.uid}>
-              {libelleDObjet(i)}{i.magicKnown ? ' ★' : ''}{i.suspectedQualities?.length ? ' (certitudes douteuses)' : ''}
+              {itemLabel(i)}{i.magicKnown ? ' ★' : ''}{i.suspectedQualities?.length ? ' (certitudes douteuses)' : ''}
             </option>
           ))}
         </select>
@@ -1127,7 +1126,7 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
     const item = weapons.find((i) => i.uid === uid);
     if (item) {
       const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
-      const base = combatValue(hero, kind, buildWeapon({ label: libelleDObjet(item), type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+      const base = combatValue(hero, kind, buildWeapon({ label: itemLabel(item), type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
       prejet = withStake(testPending(<SkillChip skillId={kind === 'melee' ? 'corps-a-corps' : 'projectiles'} />, base, undefined, diff, modsSituation), def.id);
     }
   } else if (def.skills?.length) {
@@ -1167,12 +1166,12 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
     >
       {weapons.length > 0 && (
         <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Arme à maîtriser">
-          {weapons.map((i) => <option key={i.uid} value={i.uid}>{libelleDObjet(i)}</option>)}
+          {weapons.map((i) => <option key={i.uid} value={i.uid}>{itemLabel(i)}</option>)}
         </select>
       )}
       {artefacts.length > 0 && (
         <select className="interlude-select" value={uid} onChange={(e) => setTargetUid(e.target.value)} aria-label="Objet magique à tester">
-          {artefacts.map((i) => <option key={i.uid} value={i.uid}>{libelleDObjet(i)}{i.magicKnown ? ' ★' : ''}</option>)}
+          {artefacts.map((i) => <option key={i.uid} value={i.uid}>{itemLabel(i)}{i.magicKnown ? ' ★' : ''}</option>)}
         </select>
       )}
       {spellOptions.length > 0 && (
@@ -1326,10 +1325,10 @@ function CloseRecap({ heroes, interlude, money, bank, pendingOrders, onCancel }:
         <li><Icon id="resource/gold-purse" size="sm" /> Revenus crédités à la reprise : <b>{revenue > 0 ? <CoinsB brass={revenue} /> : 'aucun'}</b>.</li>
         {kept > 0 && <li><Icon id="resource/gold-purse" size="sm" /> Dépôts conservés : <b><CoinsB brass={kept} /></b> (récupérables à un prochain interlude).</li>}
         {pendingOrders.length > 0 && (
-          <li><Icon id="scenario/market" size="sm" /> Commandes en cours : {pendingOrders.map((o) => findTrappingById(o.trappingId)?.label ?? o.trappingId).join(', ')} — livrées au prochain interlude.</li>
+          <li><Icon id="scenario/market" size="sm" /> Commandes en cours : {pendingOrders.map((o) => itemLabel({ trappingId: o.trappingId })).join(', ')} — livrées au prochain interlude.</li>
         )}
         {crafts.length > 0 && (
-          <li><Icon id="item/misc" size="sm" /> Ouvrages inachevés conservés : {crafts.map((h) => `${h.label} (${findTrappingById(h.craft!.trappingId)?.label ?? h.craft!.trappingId})`).join(', ')}.</li>
+          <li><Icon id="item/misc" size="sm" /> Ouvrages inachevés conservés : {crafts.map((h) => `${h.label} (${itemLabel({ trappingId: h.craft!.trappingId })})`).join(', ')}.</li>
         )}
         {demoted.map((h) => (
           <li key={h.id} className="interlude-blocked">

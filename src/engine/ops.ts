@@ -16,7 +16,7 @@
 import { RNG, defaultRNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
-import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
+import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
 import { findTableEntry } from './tables';
@@ -39,7 +39,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, instancesDeDon, libelleDuDon, recomputeLoadout, armeInvoquee, itemLabel, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
+import { damageLeatherArmour, itemFromTrappingById, instancesDeDon, libelleDuDon, recomputeLoadout, armeInvoquee, itemLabel, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, resoudreObjet } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { weaponMatchesFamily } from './weaponDamage';
@@ -271,7 +271,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // gatés porté/tenu via `passiveMods`.
   for (const it of c.items ?? []) {
     if (!it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += resolveFormula(op.bonus, c);
+    for (const op of resoudreObjet(it.trappingId)?.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += resolveFormula(op.bonus, c);
   }
   return n;
 }
@@ -795,7 +795,7 @@ export type GameOp =
        *  propagé à `Weapon.skin` par recomputeLoadout, l'arme se rend recolorée (système d'objet unique). */
       skin?: Record<string, string>;
       /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
-       *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`,
+       *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`resoudreObjet`,
        *  `gameIso/rig/parts/equipment.ts`). `chooseForm` la prend du choix du lanceur. */
       form?: string;
       /** Forme LIBRE (Arme aethyrique) : le lanceur choisit l'arme → `ctx.conjureForm` clone le profil
@@ -2581,7 +2581,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
           uid: { prefix: 'conjure' },
           ...(o.skin ? { skin: o.skin } : {}), // teinte magique unique (aethyrique/améthyste/ardente)
           ...(form ? { form: form.weapon } : {}),
-          ...(!form && o.form ? { shape: findTrappingById(o.form)?.shape } : {}),
+          ...(!form && o.form ? { shape: resoudreObjet(o.form)?.shape } : {}),
           source: ctx.source,
         });
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses

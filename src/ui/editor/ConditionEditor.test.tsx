@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConditionEditor, WhenEditor, condSummary, recast } from './ConditionEditor';
 import type { Condition } from '../../state/flow';
-import type { TrappingData } from '../../data';
+import { findTrappingById, type TrappingData } from '../../data';
+import { avecObjetsDeCampagne } from '../../engine/objetDeTest.testkit';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import { readFileSync } from 'node:fs';
@@ -154,5 +155,19 @@ describe('#1318 E1 — la largeur des champs nombre du bloc Condition vit dans l
   it('editor.css borne `.cond-time input[type=number]` à la largeur compacte d’atelier', () => {
     const css = readFileSync(fileURLToPath(new URL('../styles/editor.css', import.meta.url)), 'utf8');
     expect(css).toMatch(/\.cond-time input\[type='number'\][^{]*\{[^}]*width:\s*44px/);
+  });
+});
+
+describe('#2324 — `hasItem` nomme l’objet par le PROJET ÉDITÉ (`libelleDObjetDuProjet`), jamais par la campagne jouée', () => {
+  const DU_PROJET: TrappingData = { ...findTrappingById('corde')!, id: 'projet-clef-du-beffroi', label: 'Clef du beffroi' };
+  const JOUE: TrappingData = { ...DU_PROJET, label: 'Clef de la campagne jouée' };
+  const cond = { kind: 'hasItem', trappingId: DU_PROJET.id } as const;
+
+  it('l’objet du projet nomme la condition, même quand une campagne jouée porte le même id', () => {
+    expect(avecObjetsDeCampagne([JOUE], () => condSummary(cond, [DU_PROJET]))).toBe('a « Clef du beffroi »');
+  });
+
+  it('sans objet du projet, l’id reste nu : la campagne jouée n’est pas lue', () => {
+    expect(avecObjetsDeCampagne([JOUE], () => condSummary(cond, []))).toBe(`a « ${DU_PROJET.id} »`);
   });
 });

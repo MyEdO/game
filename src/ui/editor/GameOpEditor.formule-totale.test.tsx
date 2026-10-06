@@ -182,12 +182,12 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
       { op: 'condition', id: 'empetre', value: 1, escapeStrength: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } } },
       { op: 'wounds', amount: { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] } },
     ] as unknown as GameOp[];
-    mount(<GameOpEditor sansSource={false} noeud={opsDeMiscast()} ops={ops} onChange={() => {}} />);
+    mount(<GameOpEditor objets={[]} sansSource={false} noeud={opsDeMiscast()} ops={ops} onChange={() => {}} />);
     expect(formesDuChamp('Intensité'), 'Péché absent de `value`').toContain('peche');
     expect(formesDuChamp('Quantité'), 'Péché absent de `amount`').toContain('peche');
     expect(formesDuChamp('Force'), 'Péché offert sur `escapeStrength`').not.toContain('peche');
     demonter();
-    mount(<GameOpEditor sansSource={false} ops={ops} onChange={() => {}} />);
+    mount(<GameOpEditor objets={[]} sansSource={false} ops={ops} onChange={() => {}} />);
     expect(formesDuChamp('Intensité'), 'Péché offert sur une op ordinaire').not.toContain('peche');
   });
 
@@ -201,13 +201,13 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
     const noeud = champDOpDeMiscast('escapeStrength');
     const depart = { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } };
     const op = { op: 'condition', id: 'empetre', value: 1, escapeStrength: depart } as unknown as GameOp;
-    mount(<GameOpEditor sansSource={false} noeud={opsDeMiscast()} ops={[op]} onChange={() => {}} />);
+    mount(<GameOpEditor objets={[]} sansSource={false} noeud={opsDeMiscast()} ops={[op]} onChange={() => {}} />);
     const formes = formesDuChamp('Force');
     demonter();
     expect(formes.length).toBeGreaterThan(1);
     const refusees = formes.flatMap((s) => {
       let emis: unknown = depart;
-      mount(<GameOpEditor sansSource={false} noeud={opsDeMiscast()} ops={[op]} onChange={(next) => { emis = (next[0] as { escapeStrength?: unknown }).escapeStrength; }} />);
+      mount(<GameOpEditor objets={[]} sansSource={false} noeud={opsDeMiscast()} ops={[op]} onChange={(next) => { emis = (next[0] as { escapeStrength?: unknown }).escapeStrength; }} />);
       const champ = [...container!.querySelectorAll('label.fml-field')].find((l) => l.firstChild?.textContent === 'Force')!;
       const racine = champ.querySelector<HTMLSelectElement>(':scope > .fml-row > select.fml-shape')!;
       act(() => {

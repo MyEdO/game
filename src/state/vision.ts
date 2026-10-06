@@ -19,10 +19,11 @@ import { METRES_PER_LEVEL } from './relief';
 import { sceneIsDark } from './sceneRules';
 import { propFootTiles, decorAncre } from './footprint';
 import { Pt, chebyshev } from './path';
-import { findLightLevelById, findTraitById, findPropById, findTrappingById } from '../data';
+import { findLightLevelById, findTraitById, findPropById } from '../data';
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../data/props.types';
 import type { Dir8 } from './dir8';
 import { memoByRef } from './sceneMemo';
+import { resoudreObjet } from '../engine/items';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
  *  vision nocturne (cases qu'il distingue même dans le noir). */
@@ -253,7 +254,7 @@ export function combatantLights(c: {
   for (const it of c.items ?? []) {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
     if (!held || !it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) {
+    for (const op of resoudreObjet(it.trappingId)?.passive ?? []) {
       if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone; }
     }
   }

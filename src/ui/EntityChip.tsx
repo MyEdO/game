@@ -7,12 +7,13 @@
  */
 import { Fragment, type ReactNode } from 'react';
 import { CodexRef } from './compendium/CodexRef';
-import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel, refLabel, advancementLabel, type AdvancementRef } from '../data';
+import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel, advancementLabel, type AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { refKey } from '../engine/careerSlots';
 import { formatTrait } from '../engine/traits/dispatch';
 import type { SkillInstance, TalentInstance, QualityInstance } from '../engine/types';
 import type { TraitInstance } from '../engine/statEntry';
+import { libelleDeRef } from '../engine/items';
 
 /** Un chip : boîte `.entity-chip` + déclencheur `CodexRef` (`label` = clé de résolution) + badge
  *  optionnel en fin (carac/valeur, `+avancées`, `×N`…). */
@@ -89,7 +90,7 @@ export function EntityChoice({ category, advancement }: { category: 'skills' | '
     );
   }
   if ('id' in advancement) {
-    return <EntityRef category={category} id={advancement.id} label={refLabel(category, { id: advancement.id })} show={advancementLabel(category, advancement)} />;
+    return <EntityRef category={category} id={advancement.id} label={libelleDeRef(category, { id: advancement.id })} show={advancementLabel(category, advancement)} />;
   }
   return <PlainChip label={advancementLabel(category, advancement)} />;
 }

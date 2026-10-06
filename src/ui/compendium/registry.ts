@@ -66,7 +66,7 @@ import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTa
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
-import { damageString } from '../../engine/items';
+import { damageString, libelleDeRef } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { talentMaxLabel } from '../../engine/careerSlots';
@@ -339,7 +339,7 @@ const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
 /** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé : `label` =
  *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
 const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
-  const label = refLabel(category, { id, spec });
+  const label = libelleDeRef(category, { id, spec });
   return { t: 'ref', category, id, label, show: show ?? label };
 };
 /** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */

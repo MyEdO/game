@@ -4,12 +4,13 @@
  * (l.310) exempte de tout dégât/corrosion/destruction. Réparation = hors combat (Jalon 5).
  */
 import { Weapon, WeaponEnchant, ArmourBypass, WeaponRangeSpec, AmmoRangeMod } from './types';
-import { findTrappingById, qualityInstance, type TrappingData } from '../data';
+import { qualityInstance } from '../data';
 import type { TriggeredEffect } from './flowCore';
 import type { GameOp } from './ops';
 import { isAtoutQuality, isUnbreakable, qualityIndice, resolveQualities } from './qualities/dispatch';
 import { longerThanShort } from './engagement';
 import { norm } from '../lib/normalize';
+import { resoudreObjet } from './items';
 
 /** L'arme matche-t-elle la FAMILLE requise par un enchantement (mot-clé sur nom/sous-type — « épée »,
  *  « hache », « lance ») ? Pas de famille requise → toujours vrai. Sert à CHOISIR l'arme tenue à
@@ -117,15 +118,12 @@ export function isImprovised(w: Weapon): boolean {
   return flat >= 0 && flat - effectiveDamageTaken(w) <= 0;
 }
 
-/** Résolveur d'une Possession par id STABLE — même signature que `TrappingResolver` (engine/items). */
-type ResolveTrapping = (id: string) => TrappingData | undefined;
-
 /** Profil d'**Arme improvisée** LU DANS LA DONNÉE (entrée `arme-improvisee`, LDB 62 l.31) : Dégâts,
  *  Atouts et Allonge viennent du catalogue, comme `unarmedWeapon` le fait pour `mains-nues` — aucune
  *  valeur de table en dur. SOURCE UNIQUE partagée par l'usure (Dégâts à +0), la Lance de cavalerie hors
  *  Charge et le Bélier hors-porte (`effectiveWeapon`). Entrée absente = donnée cassée, BRUYANTE. */
-export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = findTrappingById): Weapon {
-  const t = resolveTrapping('arme-improvisee');
+export function improvisedProfile(w: Weapon): Weapon {
+  const t = resoudreObjet('arme-improvisee');
   if (!t?.damage) throw new Error('improvisedProfile : entrée de catalogue « arme-improvisee » absente ou sans profil d’arme (src/data/trappings.json).');
   // `damageTaken`/`noFamilyQualities` sont des MÉCANIQUES de dérivation, pas des colonnes de la table :
   // elles restent au code. `noFamilyQualities` porte « aucun autre Atout » (l.31) — sans lui,

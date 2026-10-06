@@ -4,9 +4,10 @@
  * lue par tout producteur d'ids d'objet.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { trappings, trappingsInstanciables, armesChoisissables, trappingDesObjetsPuisDuCatalogue, type TrappingData } from './index';
+import { trappings, trappingsInstanciables, armesChoisissables, type TrappingData } from './index';
 import { setDataset } from './overrides';
 import { itemFromTrappingById, itemLabel } from '../engine/items';
+import { avecObjetsDeCampagne } from '../engine/objetDeTest.testkit';
 import { craftCatalog, orderCatalog } from '../engine/activities';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import { idsDeLaSousListe } from './schemas/grammaire/ref';
@@ -78,19 +79,18 @@ describe('régime vivant — le marqueur posé au seam déplace l’entrée part
 
 describe('objet de campagne — jugé sur l’entrée résolue', () => {
   const OBJET: TrappingData = { ...trappings.find((t) => t.id === 'dague')!, id: 'campagne-sceau-du-comte', label: 'Sceau du comte' };
-  const resoudre = (objets: readonly TrappingData[]) => {
-    const parId = new Map(objets.map((o) => [o.id, o]));
-    return (id: string) => trappingDesObjetsPuisDuCatalogue(parId, id);
-  };
-
-  it('sans marqueur, il s’instancie par le résolveur de campagne', () => {
-    const it = itemFromTrappingById(OBJET.id, resoudre([OBJET]))!;
-    expect(it.trappingId).toBe(OBJET.id);
-    expect(itemLabel(it, resoudre([OBJET]))).toBe('Sceau du comte');
+  it('sans marqueur, il s’instancie par la couche de campagne', () => {
+    avecObjetsDeCampagne([OBJET], () => {
+      const it = itemFromTrappingById(OBJET.id)!;
+      expect(it.trappingId).toBe(OBJET.id);
+      expect(itemLabel(it)).toBe('Sceau du comte');
+    });
   });
 
   it('marqué `service`, il lève', () => {
-    expect(() => itemFromTrappingById(OBJET.id, resoudre([{ ...OBJET, service: true }]))).toThrow(/INSTANCIABLE_PAR_ID/);
+    avecObjetsDeCampagne([{ ...OBJET, service: true }], () => {
+      expect(() => itemFromTrappingById(OBJET.id)).toThrow(/INSTANCIABLE_PAR_ID/);
+    });
   });
 
   it('l’Effet qui le cite passe le parse : la feuille est OUVERTE aux ids absents du catalogue', () => {

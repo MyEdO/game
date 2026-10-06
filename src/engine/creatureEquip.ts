@@ -6,20 +6,20 @@
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem } from './items';
+import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem, resoudreObjet } from './items';
 import type { ItemInstance, WeaponDamageSpec } from './types';
 import { findResolvedTrait, traitLabelById } from './traits/dispatch';
-import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
+import { findTraitById, SPEC_SOURCES } from '../data/index';
 
 /** Arme depuis un `trappingId` d'authoring de scène (`SceneEntity.weapon`) : lookup EXACT au catalogue
- *  (`findTrappingById`) puis PROJECTION UNIQUE `weaponFromItem` (engine/items) — Dégâts, Portée (y compris
+ *  (`resoudreObjet`) puis PROJECTION UNIQUE `weaponFromItem` (engine/items) — Dégâts, Portée (y compris
  *  la spec `{bf}` des armes de JET), Groupe (`subType`/`weaponGroup`), qualités, Recharge, mains, Allonge,
  *  forme, Taille prévue, effets à la touche et bande de portée MINIMALE viennent TOUS du catalogue, jamais
  *  d'un littéral : cette arme est jouable (bandes de tir `effectiveWeaponRange`, Spécialisation
  *  `weaponGroupSkillMode`) autant que dessinée. Id introuvable OU trapping qui n'est pas une arme → `null`
  *  + `console.error` : l'entité reste désarmée, rien d'inventé (aucune arme devinée depuis un id mort). */
 export function weaponFromId(trappingId: string): Weapon | null {
-  const trapping = findTrappingById(trappingId);
+  const trapping = resoudreObjet(trappingId);
   if (!trapping) {
     console.error(`[weapon] trappingId « ${trappingId} » introuvable au catalogue d'armes (#223) — entité désarmée, rien d'inventé.`);
     return null;

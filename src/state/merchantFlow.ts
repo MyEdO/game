@@ -6,7 +6,7 @@
 import type { GameState } from './store';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
-import { recomputeLoadout, itemFromTrappingById, addItemToHero, autoStowNewItem } from '../engine/items';
+import { recomputeLoadout, itemFromTrappingById, addItemToHero, autoStowNewItem, resoudreObjet, itemLabel } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor } from '../engine/bargain';
 import { SL_ASTOUNDING } from '../engine/tests';
@@ -25,7 +25,7 @@ import { harvestProfileFor, valeurDUnePiece } from '../engine/harvest';
 import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
+import { trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
 import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
 import { FLOWS } from './rollFlowSpecs';
@@ -39,7 +39,6 @@ import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
-import { libelleDObjet } from './campaignData';
 
 /** Issue d'un Marchandage conclu (achat OU vente) — module les prix de la visite. */
 export interface BargainOutcome {
@@ -118,7 +117,7 @@ export function catalogEntryOf(id: string): CatalogEntry | undefined {
   // Même couture pour le PRIX : la colonne Prix porte aussi une marque (`'ND'`, LDB 62 l.28/l.31,
   // LDB 68 l.11) — elle n'est pas un montant, donc elle n'entre pas dans une ligne de commerce.
   const moneyOf = (p: TrappingData['price']): CatalogEntry['price'] => (typeof p === 'object' ? p : null);
-  const t = findTrappingById(id);
+  const t = resoudreObjet(id);
   if (t) return { label: t.label, price: moneyOf(t.price), availability: classOf(t.availability), qualities: t.qualities };
   const veh = findVehicleById(id);
   if (veh?.purchase) return { label: veh.label, price: veh.purchase.price, availability: classOf(veh.purchase.availability), unit: { nature: veh.ship ? 'navire' : 'vehicule', id } };
@@ -608,17 +607,17 @@ export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeo
   const propre = valeurPropre(item);
   // #2137 constat 5.
   if (propre !== null) return fromBrass(halve(Math.round(toBrass(propre) * (sellFactor / 0.5))));
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = item.trappingId ? resoudreObjet(item.trappingId) : undefined;
   const base = t ? toBrass(priceToMoney(t.price)) * craftPriceFactor(item) : 0;
   return fromBrass(halve(Math.round(base * m.resaleRate * sellFactor)));
 }
 
 /** Refus de VENTE d'une instance, avec sa RAISON (null = vendable) — LDB 59 l.54, `isTradable`. Vendables
- *  hors Disponibilité : l'instance sans ligne au catalogue des objets (objet de la campagne, arme
- *  invoquée) et l'instance à valeur propre (`valeurPropre` ; carte marine MDG 15 l.290). */
+ *  hors Disponibilité : l'instance que `resoudreObjet` ne résout pas (arme invoquée) et l'instance à
+ *  valeur propre (`valeurPropre` ; carte marine MDG 15 l.290). */
 export function sellRefusal(item: ItemInstance): string | null {
   if (valeurPropre(item) !== null) return null;
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = item.trappingId ? resoudreObjet(item.trappingId) : undefined;
   if (!t || isTradable(t.availability)) return null;
   return outOfTradeReason(t.label);
 }
@@ -628,7 +627,7 @@ export function sellRefusal(item: ItemInstance): string | null {
  *  bon, plus un acheteur se trouve vite). `null` = objet sans Disponibilité : aucun cran à afficher,
  *  aucune classe inventée — le refus se lit par `sellRefusal`. */
 export function sellBuyerAvailability(item: ItemInstance, halvings: number): Availability | null {
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = item.trappingId ? resoudreObjet(item.trappingId) : undefined;
   const av = t?.availability;
   if (!isTradable(av)) return null;
   return availabilityAfterHalvings(av, halvings);
@@ -648,7 +647,7 @@ export function setSellHalving(get: Get, set: Set, uid: string, delta: number): 
  *  Disponibilité des objets échangés avec celle des objets en cours d'acquisition » — sans Disponibilité,
  *  la comparaison n'a pas de terme et le RATIO n'existe pas. */
 function barterRefusal(id: string): string | null {
-  const t = findTrappingById(id);
+  const t = resoudreObjet(id);
   if (!t) return null;
   return isTradable(t.availability) ? null : outOfTradeReason(t.label);
 }
@@ -667,7 +666,7 @@ export interface BarterQuote {
  *  listés, l.66) puis applique le RATIO de rareté (`barterRatio`). null si un prix manque OU si l'un des
  *  deux biens est hors du commerce ordinaire (`barterRefusal`). */
 export function barterQuote(giveId: string, getId: string, getCount = 1): BarterQuote | null {
-  const giveT = findTrappingById(giveId), getT = findTrappingById(getId);
+  const giveT = resoudreObjet(giveId), getT = resoudreObjet(getId);
   if (!giveT || !getT) return null;
   const givePrice = listedBrassOf(giveT), getPrice = listedBrassOf(getT);
   if (givePrice <= 0 || getPrice <= 0) return null;
@@ -689,8 +688,8 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   if (refused) { get().log(t('trade.barterRefused', { reason: refused })); return; }
   const quote = barterQuote(opts.giveTrappingId, opts.getStockId, getCount);
   if (!quote) { get().log(t('mf.barterNoPrice')); return; }
-  const donne = garanti(findTrappingById(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
-  const recu = garanti(findTrappingById(opts.getStockId), opts.getStockId, 'troc — objet reçu').label;
+  const donne = garanti(resoudreObjet(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
+  const recu = garanti(resoudreObjet(opts.getStockId), opts.getStockId, 'troc — objet reçu').label;
   const hero = get().party.find((h) => h.id === opts.giveHeroId);
   const stockLine = m.stock.find((l) => l.id === opts.getStockId);
   if (!hero || !stockLine) return;
@@ -773,7 +772,7 @@ export function confirmSell(get: Get, set: Set): void {
     const g = sellGain(item, m);
     gainByHero[c.heroId] = moneyAdd(gainByHero[c.heroId] ?? fromBrass(0), g);
     total = moneyAdd(total, g);
-    names.push(libelleDObjet(item));
+    names.push(itemLabel(item));
     sold.push(c);
   }
   if (!names.length) return;
@@ -792,10 +791,10 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
   const hero = get().party.find((h) => h.id === heroId);
   const item = hero?.items?.find((i) => i.uid === uid);
   if (!item || !isRepairable(item)) return;
-  const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
+  const t = item.trappingId ? resoudreObjet(item.trappingId) : undefined;
   const base = t ? toBrass(priceToMoney(t.price)) : 0;
   const cost = fromBrass(itemRepairCostBrass(item, base));
-  if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: libelleDObjet(item) })); return; }
+  if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: itemLabel(item) })); return; }
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
   set((s) => ({
     party: s.party.map((h) => {
@@ -806,7 +805,7 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
       return clone;
     }),
   }));
-  get().log(msg('mf.repairDone', { label: libelleDObjet(item) }));
+  get().log(msg('mf.repairDone', { label: itemLabel(item) }));
 }
 
 export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
@@ -884,7 +883,7 @@ function openAppraise(
 ): void {
   const best = mode === 'detect' ? bestDetector(get().party) : partyAssisted(get().party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic); // Soutien (LDB 12)
   if (!best) return;
-  const t = trappingId ? findTrappingById(trappingId) : undefined;
+  const t = trappingId ? resoudreObjet(trappingId) : undefined;
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
@@ -905,10 +904,10 @@ export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mo
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get)) {
-    get().log(t('mf.appraiseSameDay', { label: libelleDObjet(item) }));
+    get().log(t('mf.appraiseSameDay', { label: itemLabel(item) }));
     return;
   }
-  openAppraise(get, set, { itemUid: uid }, libelleDObjet(item), mode, item.trappingId);
+  openAppraise(get, set, { itemUid: uid }, itemLabel(item), mode, item.trappingId);
 }
 
 /** Évaluation/Détection d'une ligne de butin ENCORE en fenêtre (loot ou victoire) — révéler AVANT

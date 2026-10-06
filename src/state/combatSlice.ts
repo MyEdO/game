@@ -58,8 +58,7 @@ import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
-import { recomputeLoadout, instancesDeDon, libelleDuDon, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, autoStowNewItem } from '../engine/items';
-import { libelleDObjet, trappingById } from './campaignData';
+import { recomputeLoadout, instancesDeDon, libelleDuDon, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, autoStowNewItem, itemLabel } from '../engine/items';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, canPreemptRanged, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './commandTeam';
@@ -1690,7 +1689,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const joining = isPosteManned(chosen.poste, battle.combatants); // pièce déjà servie → on REJOINT en renfort
       serveAtPoste(active, chosen.poste, battle.combatants);
       recomputeLoadout(active);
-      set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t(joining ? 'cs.joinPoste' : 'cs.manPoste', { name: active.label, weapon: libelleDObjet(chosen.poste.item) }), active.id)] } });
+      set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t(joining ? 'cs.joinPoste' : 'cs.manPoste', { name: active.label, weapon: itemLabel(chosen.poste.item) }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Quitter la pièce » (release) : le héros actif lâche le poste qu'il sert → il redevient servable par un autre.
@@ -1705,7 +1704,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active || aiDriven(get(), active)) return;
       const poste = active.mannedPoste;
       if (!poste) return;
-      const weapon = libelleDObjet(poste.item);
+      const weapon = itemLabel(poste.item);
       leaveChef(active, poste, battle.combatants);
       recomputeLoadout(active);
       set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t('cs.leavePoste', { name: active.label, weapon }), active.id)] } });
@@ -2320,8 +2319,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!eff) return;
       let label: string; // assigné dans chaque branche atteignant l'usage (le cas `else` renvoie)
       if (eff.type === 'giveTrapping') {
-        const its = instancesDeDon(eff, eff.count ?? 1, { resoudre: trappingById }); // campagne-d'abord (#767)
-        label = libelleDuDon(eff, trappingById);
+        const its = instancesDeDon(eff, eff.count ?? 1);
+        label = libelleDuDon(eff);
         // ajout NON équipé au combattant actif (clone battle) ET au membre party (persiste post-combat).
         for (const it of its) {
           active.items = [...(active.items ?? []), it];

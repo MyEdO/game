@@ -11,13 +11,29 @@ import { applyEnchants } from './weaponDamage';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type QualityRef, type TrappingRef, type TrappingData } from '../data';
+import { dataLabel, findCreatureById, findTraitById, qualityInstance, refLabel, trappingDesObjetsPuisDuCatalogue, type QualityRef, type TrappingRef, type TrappingData } from '../data';
+import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
+import type { PlayerText } from '../i18n/playerText';
 
-/** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
- *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`campaignData.ts`,
- *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
-export type TrappingResolver = (id: string) => TrappingData | undefined;
+/** Les objets de la campagne JOUÉE (`narratif.objets`), par id. */
+export type ObjetsDeCampagne = ReadonlyMap<string, TrappingData>;
+const AUCUN_OBJET_DE_CAMPAGNE: ObjetsDeCampagne = new Map();
+let objetsDeCampagne: () => ObjetsDeCampagne = () => AUCUN_OBJET_DE_CAMPAGNE;
+
+/** Branche le fournisseur des objets de la campagne jouée, lu par `resoudreObjet` ; rend le précédent.
+ *  Couture UNIQUE : `state/campaignData.ts`. Patron `policy.rule`, `setConditionGainedHook`. #2324 */
+export function brancherObjetsDeCampagne(f: () => ObjetsDeCampagne): () => ObjetsDeCampagne {
+  const precedent = objetsDeCampagne;
+  objetsDeCampagne = f;
+  return precedent;
+}
+
+/** Possession résolue par id STABLE : objets de la campagne jouée d'abord, puis le catalogue. La SEULE
+ *  résolution d'une instance hors `src/data/`, celle qui l'a créée. #2324 */
+export function resoudreObjet(id: string): TrappingData | undefined {
+  return trappingDesObjetsPuisDuCatalogue(objetsDeCampagne(), id);
+}
 import { slugId } from '../data/slug';
 import { lEntreePorte, refusDeLEntree } from '../data/schemas/grammaire/ref';
 import { EXIGE_UNE_CREATURE, INSTANCIABLE_PAR_ID, RECOLTABLE } from '../data/schemas/grammaire/sousListes';
@@ -176,16 +192,16 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   return w;
 }
 
-/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Mains nues » (`TrappingData.unarmed`) ? Le catalogue
+/** L'objet `id` (`resoudreObjet`) est-il DÉCLARÉ « Mains nues » (`TrappingData.unarmed`) ? L'entrée
  *  porte la marque, le moteur ne connaît aucun id — une seconde entrée « poings » (espèce, prothèse)
- *  coûte une ligne de `trappings.json`. Résolveur INJECTABLE comme partout ailleurs (couche campagne). */
-export const isUnarmedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
-  !!(id && resolveTrapping(id)?.unarmed);
+ *  coûte une ligne de `trappings.json`. */
+export const isUnarmedTrapping = (id: string | undefined): boolean =>
+  !!(id && resoudreObjet(id)?.unarmed);
 
-/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Arme improvisée » (`TrappingData.improvised`) ?
+/** L'objet `id` (`resoudreObjet`) est-il DÉCLARÉ « Arme improvisée » (`TrappingData.improvised`) ?
  *  ≠ `weaponDamage.isImprovised` (arme RÉDUITE à cet état par l'usure). */
-export const isImprovisedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
-  !!(id && resolveTrapping(id)?.improvised);
+export const isImprovisedTrapping = (id: string | undefined): boolean =>
+  !!(id && resoudreObjet(id)?.improvised);
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
@@ -235,8 +251,8 @@ function kindOf(categorie: string): ItemKind {
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
  *  de re-dérivation). Id inconnu → null. L'entrée RÉSOLUE hors de `INSTANCIABLE_PAR_ID` lève
  *  (`refusDeLEntree`) ; une pièce de créature naît par `pieceDeCreature`. */
-export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
-  const t = resolveTrapping(id);
+export function itemFromTrappingById(id: string): ItemInstance | null {
+  const t = resoudreObjet(id);
   return t ? instanceInstanciable(t) : null;
 }
 
@@ -311,9 +327,8 @@ function instanceDeLEntree(t: TrappingData): Extract<ItemInstance, { trappingId:
  */
 export function itemFromTrappingRef(
   ref: Extract<TrappingRef, { id: string }>,
-  resolveTrapping: TrappingResolver = findTrappingById,
 ): ItemInstance | null {
-  const it = itemFromTrappingById(ref.id, resolveTrapping);
+  const it = itemFromTrappingById(ref.id);
   if (!it) return null;
   if (ref.spec) it.spec = ref.spec;
   if (it.kind === 'ammo' && ref.count && 'fixed' in ref.count) it.qty = ref.count.fixed; // quantité de la carrière
@@ -337,8 +352,8 @@ function pieceDe(t: TrappingData, creatureId: string): ItemInstance {
 }
 
 /** ZI 13 l.282, l.294 — UNE pièce de créature brute (`PIECES_DE_CREATURE_TRAPPING_ID`) de `creatureId`. */
-export function pieceDeCreature(creatureId: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
-  const t = resolveTrapping(PIECES_DE_CREATURE_TRAPPING_ID);
+export function pieceDeCreature(creatureId: string): ItemInstance {
+  const t = resoudreObjet(PIECES_DE_CREATURE_TRAPPING_ID);
   if (!t || !lEntreePorte(t)(EXIGE_UNE_CREATURE))
     throw new Error(`pieceDeCreature: l'entrée « ${PIECES_DE_CREATURE_TRAPPING_ID} » ${t ? `ne porte pas \`${EXIGE_UNE_CREATURE}\`` : 'est absente du catalogue'}.`);
   return pieceDe(t, creatureId);
@@ -358,10 +373,10 @@ interface DonDObjet {
 }
 
 /** L'instance d'UN don, branchée sur le MARQUEUR de l'entrée résolue : une entrée `EXIGE_UNE_CREATURE`
- *  naît par `pieceDe`, toute autre par le catalogue. Un id que `resoudre` ne résout pas, et toute
+ *  naît par `pieceDe`, toute autre par le catalogue. Un id que `resoudreObjet` ne résout pas, et toute
  *  discordance entre l'entrée et `creatureId` (régime vivant du Compendium), lèvent avec leur nom. */
-function instanceDuDon(don: DonDObjet, resoudre: TrappingResolver): ItemInstance {
-  const t = resoudre(don.trappingId);
+function instanceDuDon(don: DonDObjet): ItemInstance {
+  const t = resoudreObjet(don.trappingId);
   if (!t) throw new Error(`instancesDeDon: « ${don.trappingId} » n'est ni un objet de la campagne ni une entrée du catalogue des objets.`);
   if (lEntreePorte(t)(EXIGE_UNE_CREATURE)) {
     if (!don.creatureId) throw new Error(`instancesDeDon: « ${t.id} » porte \`${EXIGE_UNE_CREATURE}\` et le don n'a pas de \`creatureId\`.`);
@@ -374,16 +389,16 @@ function instanceDuDon(don: DonDObjet, resoudre: TrappingResolver): ItemInstance
 /** Les `n` instances d'un DON d'objet — SOURCE UNIQUE : l'apply de l'Effet `giveTrapping`
  *  (`state/combatEffects.ts`), le ramassage en combat (`state/combatSlice.ts › battlePickup`), l'op
  *  `giveTrapping` (`ops.ts`) et l'affichage du butin (`giveTrappingQualities`). `source` = entité
- *  déclenchante, stampée sur chaque instance (`ItemInstance.source`) ; `resoudre` = résolveur
- *  campagne-d'abord du state (`campaignData.trappingById`, #767). Les champs de butin du don (qualités
+ *  déclenchante, stampée sur chaque instance (`ItemInstance.source`). L'objet se résout par
+ *  `resoudreObjet` (#767, #2324). Les champs de butin du don (qualités
  *  ajoutées, identification, skin, aura, tentatives) sont portés par chaque instance. */
 export function instancesDeDon(
   don: DonDObjet,
   n: number,
-  { source, resoudre = findTrappingById }: { source?: EffectSource; resoudre?: TrappingResolver } = {},
+  { source }: { source?: EffectSource } = {},
 ): ItemInstance[] {
   return Array.from({ length: n }, () => {
-    const it = instanceDuDon(don, resoudre);
+    const it = instanceDuDon(don);
     if (source) it.source = source;
     it.qualities = withGiveQualities(it.qualities, don);
     if (don.identified === false) it.identified = false;
@@ -403,22 +418,22 @@ function withGiveQualities(base: QualityInstance[], give: { qualities?: readonly
 
 /** Qualités RÉSOLUES de l'objet qu'un don remet (`instancesDeDon`) — l'affichage des chips de butin
  *  (`GearAssignList`) lit la même instance que l'apply. */
-export function giveTrappingQualities(give: DonDObjet, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  const [it] = instancesDeDon(give, 1, { resoudre: resolveTrapping });
+export function giveTrappingQualities(give: DonDObjet): QualityInstance[] {
+  const [it] = instancesDeDon(give, 1);
   return resolveQualities(it).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
 }
 
-/** Libellé D'AFFICHAGE d'une instance d'objet ou d'un don `giveTrapping`, DÉRIVÉ de sa DÉSIGNATION
- *  (`DesignationDObjet`) — id = logique, label = affichage. SOURCE UNIQUE du nom d'un objet (fiche, sac,
- *  pickers, journal, butin) :
- *  - catalogue : l'entrée que `resoudre` rend (objet de la campagne d'abord, `campaignData.trappingById`),
- *    « Base (spec) » ; la spécialisation d'une pièce est sa créature (ZI 13 l.294, l.319) ;
+/** Libellé D'AFFICHAGE d'une désignation (`DesignationDObjet`) dont les objets se résolvent par
+ *  `resoudre` — id = logique, label = affichage :
+ *  - catalogue : l'entrée résolue, « Base (spec) » ; la spécialisation d'une pièce est sa créature
+ *    (ZI 13 l.294, l.319) ;
  *  - source : l'Effet producteur (`sourceRef`, la couture des pastilles), plus « (forme) » pour la forme
- *    CHOISIE (`grantWeapon.chooseForm`). */
-export function itemLabel(it: DesignationDObjet, resoudre: TrappingResolver = findTrappingById): string {
+ *    CHOISIE (`grantWeapon.chooseForm`).
+ *  Corps commun de `itemLabel` (la partie) et `libelleDObjetDuProjet` (l’éditeur). */
+function libelleSelon(it: DesignationDObjet, resoudre: (id: string) => TrappingData | undefined): string {
   if (it.conjured) {
     const { category, id } = sourceRef(it.source);
-    const base = refLabel(category, { id });
+    const base = libelleDeRef(category, { id });
     return it.form ? `${base} (${resoudre(it.form)?.label ?? it.form})` : base;
   }
   const base = resoudre(it.trappingId)?.label ?? it.trappingId;
@@ -426,11 +441,40 @@ export function itemLabel(it: DesignationDObjet, resoudre: TrappingResolver = fi
   return it.spec ? `${base} (${it.spec})` : base;
 }
 
-/** Libellé d'un DON `giveTrapping` (Effet ou op) : « N× » au-delà d'un objet, puis `itemLabel` —
- *  SOURCE UNIQUE du journal, du butin, du ramassage, du résumé de l'éditeur et de l'op. */
-export function libelleDuDon(don: { trappingId: string; creatureId?: string; count?: number }, resoudre: TrappingResolver = findTrappingById): string {
-  const n = don.count ?? 1;
-  return `${n > 1 ? `${n}× ` : ''}${itemLabel(don, resoudre)}`;
+/** Libellé D'AFFICHAGE d'une instance d'objet ou d'un don `giveTrapping` en PARTIE, résolu par
+ *  `resoudreObjet` — SOURCE UNIQUE du nom d'un objet (fiche, sac, pickers, journal, butin). */
+export function itemLabel(it: DesignationDObjet): string {
+  return libelleSelon(it, resoudreObjet);
+}
+
+/** Libellé d'une réf de catégorie Codex (`refLabel`), hors `src/data/` : la catégorie `trappings` se
+ *  nomme par `itemLabel`, qui voit la couche de campagne ; toute autre par `refLabel`. COUTURE UNIQUE
+ *  du nom d'une cible à catégorie DYNAMIQUE (source d'un État, d'une pastille, d'un passif). #2324 */
+export function libelleDeRef(category: string, ref: RefASpecialisation): PlayerText {
+  if (category !== 'trappings' || ref.choix != null) return refLabel(category, ref);
+  return dataLabel(itemLabel({ trappingId: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }));
+}
+
+/** Un don `giveTrapping` (Effet ou op), tel que son libellé le lit. */
+type DonNomme = { trappingId: string; creatureId?: string; count?: number };
+const prefixeDeCompte = (don: DonNomme): string => ((don.count ?? 1) > 1 ? `${don.count}× ` : '');
+
+/** Libellé d'un DON `giveTrapping` en PARTIE : « N× » au-delà d'un objet, puis `itemLabel` — journal,
+ *  butin, ramassage, op, Codex. */
+export function libelleDuDon(don: DonNomme): string {
+  return `${prefixeDeCompte(don)}${itemLabel(don)}`;
+}
+
+/** Libellé d'un objet dans le PROJET ÉDITÉ, hors partie : ses objets (`narratif.objets`) d'abord, puis
+ *  le catalogue — jamais la campagne jouée. VOIE UNIQUE de l'éditeur. #2324 */
+export function libelleDObjetDuProjet(it: DesignationDObjet, objetsDuProjet: readonly TrappingData[]): string {
+  const parId: ObjetsDeCampagne = new Map(objetsDuProjet.map((o) => [o.id, o]));
+  return libelleSelon(it, (id) => trappingDesObjetsPuisDuCatalogue(parId, id));
+}
+
+/** Libellé d'un DON `giveTrapping` dans le PROJET ÉDITÉ : « N× », puis `libelleDObjetDuProjet`. */
+export function libelleDuDonDuProjet(don: DonNomme, objetsDuProjet: readonly TrappingData[]): string {
+  return `${prefixeDeCompte(don)}${libelleDObjetDuProjet(don, objetsDuProjet)}`;
 }
 
 /** Limite d'Encombrement = (Bonus de Force + Bonus d'Endurance) × facteur (ogre ADE II 2 l.708 :
@@ -595,20 +639,20 @@ export function equipConflicts(c: Pick<Combatant, 'items'>, it: ItemInstance): I
   return [];
 }
 
-let _unarmed: Weapon | null = null;
+let _unarmed: { entree: TrappingData; arme: Weapon } | null = null;
 /** Arme « Mains nues » canonique, DÉRIVÉE de l'entrée de catalogue `mains-nues` (LDB 62 l.28) : Dégâts,
  *  Allonge, Atouts et Groupe viennent tous de la donnée. Entrée absente ou sans profil d'arme = donnée
- *  cassée, BRUYANTE — jamais un profil deviné. Lazy + mémoïsé sur le résolveur par défaut ; un résolveur
- *  INJECTÉ (campagne, test de câblage) est lu à chaque appel. Copie fraîche à chaque appel. */
-export function unarmedWeapon(resolveTrapping: TrappingResolver = findTrappingById): Weapon {
-  const build = (): Weapon => {
-    const it = itemFromTrappingById('mains-nues', resolveTrapping);
-    if (!it?.damage) throw new Error('unarmedWeapon : entrée de catalogue « mains-nues » absente ou sans profil d’arme (src/data/trappings.json).');
-    return buildWeapon({ label: itemLabel(it, resolveTrapping), damage: it.damage, reach: it.reach, qualities: it.qualities, subType: it.subType, builtinId: 'mains-nues' });
-  };
-  if (resolveTrapping !== findTrappingById) return { ...build(), hand: 'main' };
-  if (!_unarmed) _unarmed = build();
-  return { ..._unarmed, hand: 'main' };
+ *  cassée, BRUYANTE — jamais un profil deviné. Mémoïsé par RÉFÉRENCE de l'entrée résolue (`resoudreObjet`).
+ *  Copie fraîche à chaque appel. */
+export function unarmedWeapon(): Weapon {
+  const entree = resoudreObjet('mains-nues');
+  let memo = _unarmed;
+  if (!memo || memo.entree !== entree) {
+    const it = entree ? instanceInstanciable(entree) : null;
+    if (!entree || !it?.damage) throw new Error('unarmedWeapon : entrée de catalogue « mains-nues » absente ou sans profil d’arme (src/data/trappings.json).');
+    memo = _unarmed = { entree, arme: buildWeapon({ label: itemLabel(it), damage: it.damage, reach: it.reach, qualities: it.qualities, subType: it.subType, builtinId: 'mains-nues' }) };
+  }
+  return { ...memo.arme, hand: 'main' };
 }
 
 /** L'arme NATURELLE (`Weapon.natural`) d'un op `grantNaturalWeapon`, pour ses deux sources : passive
@@ -796,7 +840,7 @@ export function recomputeLoadout(c: Combatant): void {
   // Armes DÉRIVÉES d'un objet ÉQUIPÉ (prothèse-arme, LDB 73 : le Crochet « est considéré comme une
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
-    const dw = i.equipped && !i.destroyed && i.trappingId ? findTrappingById(i.trappingId)?.derivedWeapon : undefined;
+    const dw = i.equipped && !i.destroyed && i.trappingId ? resoudreObjet(i.trappingId)?.derivedWeapon : undefined;
     if (dw) weapons.push({ hand: 'main', ...dw, derivedFromItem: i.uid });
   }
   // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 l.405) ou
@@ -1126,10 +1170,7 @@ export function ammoFamily(subType?: string): string {
  *  `armes-de-siege` seul ne discrimine pas pierrier/canon/baliste/mortier (MDG 12 l.410-424), d'où le
  *  besoin du `defaultAmmo` par arme. Affichage FR pur (aide de saisie), jamais un id de logique. */
 export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string {
-  if (defaultAmmo) {
-    const label = findTrappingById(defaultAmmo)?.label;
-    if (label) return label;
-  }
+  if (defaultAmmo && resoudreObjet(defaultAmmo)) return itemLabel({ trappingId: defaultAmmo });
   switch (ammoFamily(subType)) {
     case 'artillerie': return t('ammo.artillerie');
     case 'poudre-ingenierie': return t('ammo.poudreIngenierie');

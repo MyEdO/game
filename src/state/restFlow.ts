@@ -47,7 +47,7 @@ import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
-import { findTrappingById, nightStakeRef, refLabel, type StakeRef } from '../data';
+import { nightStakeRef, refLabel, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
 import { minutesUntilNext, dawnMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { runDailyUpkeep, dayIndex } from './upkeep';
@@ -131,7 +131,7 @@ import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
 import { stepPrecision } from './rollSeam';
-import { libelleDObjet } from './campaignData';
+import { resoudreObjet, itemLabel } from '../engine/items';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -344,14 +344,14 @@ for (const kindExposition of EXPOSURE_BAND_KINDS) registerNightBandApplier(kindE
   const drop = heavy ? choiceStep({
     id: `${band.id}-${row.id}-drop`, kind: 'exposure-heat-drop', actorId: hero.id, icon: 'item/misc',
     label: t('step.possessionLourde'),
-    options: [{ key: 'jeter', label: t('opt.jeter', { quoi: libelleDObjet(heavy) }) }, { key: 'garder', label: t('opt.garderPaquetage') }],
+    options: [{ key: 'jeter', label: t('opt.jeter', { quoi: itemLabel(heavy) }) }, { key: 'garder', label: t('opt.garderPaquetage') }],
     defaultChoice: 'garder', // consommé par `runCascadeImmediate` (repos multi-jours) — `resolveRemainingCascade`
     // (« Tout résoudre ») s'arrête TOUJOURS sur ce choix depuis 249e931f, n'applique plus JAMAIS de défaut
     meta: { failNumber: priorFails + 1, cancelsRowId: nightRowId(band, row) },
   }) : undefined;
   if (heavy && drop) {
     return {
-      consequences: freeCons([t('rf.heatFailDrop', { name: hero.label, item: libelleDObjet(heavy) })]),
+      consequences: freeCons([t('rf.heatFailDrop', { name: hero.label, item: itemLabel(heavy) })]),
       insert: [drop],
     };
   }
@@ -613,20 +613,20 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
  *  `trappings.json` (ids de service), plus AUCUNE constante dupliquée : le hub de ville (#343) et
  *  `restCost` lisent le MÊME tarif. Piètre = ½ (appliqué par `restCost`). */
 function serviceBrass(id: string): number {
-  const t = findTrappingById(id);
+  const t = resoudreObjet(id);
   if (!t) throw new Error(`restCost : tarif de service introuvable au catalogue "${id}" (trappings.json).`);
   return toBrass(priceToMoney(t.price));
 }
-const PRICE_BRASS = {
-  commune: serviceBrass('chambre-commune-nuit'),
-  privee: serviceBrass('chambre-privee-nuit'),
-  repas: serviceBrass('repas-auberge'),
+const SERVICE_ID = {
+  commune: 'chambre-commune-nuit',
+  privee: 'chambre-privee-nuit',
+  repas: 'repas-auberge',
 } as const;
 
 /** Tarif d'un service d'auberge en monnaie (LDB 66 l.12-16, source unique catalogue) — affiché par le
  *  panneau d'auberge du hub de ville (#343), aligné au débit de `restCost`. */
-export function restServicePrice(kind: keyof typeof PRICE_BRASS): Money {
-  return fromBrass(PRICE_BRASS[kind]);
+export function restServicePrice(kind: keyof typeof SERVICE_ID): Money {
+  return fromBrass(serviceBrass(SERVICE_ID[kind]));
 }
 
 /** Couchages proposés par l'offre du lieu — PAR HÉROS ensuite (choix personnels). */
@@ -658,9 +658,9 @@ export function restCost(p: PendingRest, party: Combatant[]): Money {
   const nPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee').length;
   const nCommune = heroes.filter((h) => p.perHero[h.id].lodging === 'commune').length;
   const nRepas = heroes.filter((h) => p.perHero[h.id].food === 'repas').length;
-  brass += Math.ceil(nPrivee / 2) * PRICE_BRASS.privee; // chambre pour 2 (grande pour 4 = ×2, équivalent)
-  brass += nCommune * PRICE_BRASS.commune;
-  brass += nRepas * PRICE_BRASS.repas;
+  brass += Math.ceil(nPrivee / 2) * serviceBrass(SERVICE_ID.privee); // chambre pour 2 (grande pour 4 = ×2, équivalent)
+  brass += nCommune * serviceBrass(SERVICE_ID.commune);
+  brass += nRepas * serviceBrass(SERVICE_ID.repas);
   return fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
 }
 

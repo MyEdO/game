@@ -6,8 +6,8 @@
 import { CHAR_LABELS, sourceRef, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
 import type { IconId } from '../ui/icons';
 import {
-  conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
-  creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
+  conditionLabel, findConditionById, findPsychologyById, findSpellById,
+  creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, trappings, traits,
 } from '../data';
 import { ACTIVITIES } from '../engine/activities';
 import { MISCAST_TABLES } from '../engine/miscast';
@@ -15,6 +15,7 @@ import { slugId } from '../data/slug';
 import { isFrenzied } from '../engine/psychology';
 import { NARRATIVE_MARKERS, conditionSeverity } from '../engine/conditions';
 import { roundsLabel } from '../engine/duration';
+import { libelleDeRef } from '../engine/items';
 
 /** Clés STABLES des états-drapeaux (`EffectFlags`) — vocabulaire d'identité partagé par `flagChips`
  *  (production) et `chipCodex` (routage Codex). `calmeApproche` est produit hors `combatantFlags` :
@@ -98,7 +99,7 @@ function malusChips(conditions: ConditionInstance[]): EffectChip[] {
     .map((c): EffectChip => {
       const m = conditionMeta(c.id);
       const src = c.derivedFrom?.src;
-      return { key: `c-${c.id}`, condId: c.id, icon: m.icon, label: conditionLabel(c.id), kind: 'malus', severity: m.severity, count: c.value > 1 ? c.value : undefined, indice: c.value, ...(src ? { sourceLabel: refLabel(src.category, { id: src.id }) } : {}) };
+      return { key: `c-${c.id}`, condId: c.id, icon: m.icon, label: conditionLabel(c.id), kind: 'malus', severity: m.severity, count: c.value > 1 ? c.value : undefined, indice: c.value, ...(src ? { sourceLabel: libelleDeRef(src.category, { id: src.id }) } : {}) };
     })
     .sort((a, b) => b.severity - a.severity);
 }
@@ -200,7 +201,7 @@ const CATALOGUE_HAS: Record<string, (id: string) => boolean> = {
   regles: byId(regles),
   talents: byId(talents),
   traits: byId(traits),
-  trappings: (id) => findTrappingById(id) !== undefined,
+  trappings: byId(trappings),
   qualities: byId(qualities),
   maladies: byId(maladies),
   symptoms: byId(symptoms),

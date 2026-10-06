@@ -14,12 +14,13 @@ import { asRigSpeciesId, type Appearance, type RigSpeciesId } from './appearance
 import type { EquipCtx } from './parts/equipment';
 import { PLAN_LIST } from './plans/_registry.generated';
 import { defById, speciesScale } from './creatures';
-import { findCreatureById, findTrappingById, findVehicleById, DEFAULT_RACE_ID } from '../../data';
+import { findCreatureById, findVehicleById, DEFAULT_RACE_ID } from '../../data';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { diagOnce, diagSubject } from './devDiag';
 import { eyesArtFromKeys } from './parts/eyes';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { fauteDEspece, estFormeDeNuee } from '../../data/schemas/grammaire/art';
+import { resoudreObjet } from '../../engine/items';
 
 /** Identifiant de gabarit — chaîne libre dérivée des `plans/defs/` (data-driven : chaque plan
  *  déclare son `id`). Le monolithique n'est PAS un BodyPlan (repli hors registre). */
@@ -193,7 +194,7 @@ export function resolveRender(species: string | undefined, traits: import('../..
   // 'baliste'/'canon-petit') → ce rig pilote la silhouette (plan 'engin'). L'apparence est DÉRIVÉE de la
   // ref : un emplacement servi (éditeur/scène) ou un affût-combattant n'a plus besoin d'`appearance.species`.
   if (!rec) {
-    const siegeRig = idOrName ? findTrappingById(idOrName)?.siegeRig : undefined;
+    const siegeRig = idOrName ? resoudreObjet(idOrName)?.siegeRig : undefined;
     if (siegeRig) {
       const d = defById(siegeRig);
       if (d && d.plan !== 'biped') return { kind: 'plan', plan: d.plan, species: siegeRig, scale: speciesScale(siegeRig) };
