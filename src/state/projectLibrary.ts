@@ -1,37 +1,52 @@
+import { z } from 'zod';
 import { parseProject, exigerUnRefus, refusDeForme, type ProjectDoc } from './worldMap';
-import type { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
-import type { NarratifBlock } from './campaignNarratif';
 import type { GameState } from './store';
 import { accesBase, idbDisponible, type MigrationsIdb } from '../lib/indexedDb';
 import { stockageWeb } from '../lib/stockageWeb';
 
-/** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
- *  de projet, jamais un littéral `schema`/champs dupliqués), mais RELÂCHÉE pour le stock legacy : un
- *  projet enregistré à un format antérieur peut manquer de `narratif`, de `type` ou d'identité. Son
- *  `schema` est le courant ou tout format que `PROJECT_MIGRATIONS` sait migrer. La migration au format
- *  courant se fait au CHARGEMENT via `parseProject`, jamais dans ce module — et c'est là, pas ici,
- *  que l'absence d'identité se fait REFUSER. */
-export type StoredProject = Omit<ProjectDoc, 'schema' | 'narratif' | 'type' | 'id' | 'label' | 'versionContenu'> & {
-  schema: ProjectDoc['schema'] | keyof typeof PROJECT_MIGRATIONS;
-  narratif?: NarratifBlock;
-  type?: 'projet';
-  id?: string;
-  label?: string;
-  versionContenu?: number;
+/** Ce qu'un écran LIT d'un projet de la bibliothèque SANS l'ouvrir (liste, détail, dédup d'import).
+ *  Le document entier passe la porte `parseProject` au GESTE (ouvrir, jouer, exporter) : un projet
+ *  d'un autre format reste ainsi listé, son refus affiché au geste, et sa suppression reste un geste
+ *  de l'auteur (#2404). */
+const apercuDeProjetSchema = z.looseObject({
+  scenes: z.array(z.unknown()),
+  versionContenu: z.number().optional(),
+  desc: z.string().optional(),
+  auteur: z.string().optional(),
+});
+
+/** Une entrée de la bibliothèque de projets (localStorage, IndexedDB). `published` = jouable depuis le
+ *  menu ; `startSceneId` = scène de départ quand on JOUE la campagne. */
+export const savedProjectSchema = z.strictObject({
+  id: z.string().min(1),
+  label: z.string(),
+  startSceneId: z.string(),
+  savedAt: z.number(),
+  published: z.boolean(),
+  project: apercuDeProjetSchema,
+});
+
+/** Une entrée PROUVÉE par `savedProjectSchema`. */
+export type SavedProject = Omit<z.infer<typeof savedProjectSchema>, 'project'> & {
+  project: z.infer<typeof apercuDeProjetSchema> | ProjectDoc;
 };
 
-/** Une entrée de la bibliothèque de projets (localStorage). `published` = jouable depuis le menu. */
-export interface SavedProject {
-  id: string;
-  label: string;
-  startSceneId: string; // scène de départ quand on JOUE la campagne
-  savedAt: number;
-  published: boolean;
-  project: StoredProject;
+/** L'entrée que l'application ÉCRIT : son projet est un `ProjectDoc` entier. */
+export type EntreeEcrite = SavedProject & { project: ProjectDoc };
+
+/** Les entrées PROUVÉES d'une liste relue du stockage ; une entrée que l'enveloppe refuse (sans `id`,
+ *  rien à désigner) est journalisée et non listée. */
+function entreesProuvees(liste: readonly unknown[]): SavedProject[] {
+  return liste.flatMap((brut) => {
+    const lu = savedProjectSchema.safeParse(brut);
+    if (lu.success) return [lu.data as SavedProject];
+    console.error('[projectLibrary] entrée de bibliothèque refusée par son enveloppe :', lu.error.message);
+    return [];
+  });
 }
 
-/** Repli d'AFFICHAGE du nom d'un projet : une entrée dont le nom manque (stock d'avant #1552, entrée
- *  fabriquée hors éditeur) se rend NOMMÉE « (sans nom) » plutôt qu'en rangée muette — le geste de
+/** Repli d'AFFICHAGE du nom d'un projet : une entrée dont le nom est vide (entrée fabriquée hors
+ *  éditeur) se rend NOMMÉE « (sans nom) » plutôt qu'en rangée muette — le geste de
  *  suppression/ouverture reste ainsi désignable. SOURCE UNIQUE des deux écrans qui listent des
  *  projets (« Ouvrir » de l'éditeur, bibliothèque de campagnes). */
 export const NOM_DE_PROJET_ABSENT = '(sans nom)';
@@ -39,33 +54,13 @@ export function nomDeProjet(label: string | undefined | null): string {
   return label?.trim() || NOM_DE_PROJET_ABSENT;
 }
 
-/** Le document de projet d'une entrée de bibliothèque, SOURCE UNIQUE de tout écran qui la lit
- *  (ouverture de l'éditeur, « Jouer » et « Exporter » de la bibliothèque de campagnes), rendu
- *  `unknown` : la porte `parseProject` décide, et refuse nommément ce qui reste sans identité.
- *  - `id` : celui du document ; à défaut (stock d'avant #1552), la clé de l'entrée.
- *  - `label` : le nom de l'entrée dès qu'il n'est pas vide — c'est lui que listent les deux écrans
- *    (`nomDeProjet`) ; à défaut, celui du document (#1343).
- *  - `versionContenu` : 0 quand le document n'en porte pas (dédup #766).
- *  Le `type` et la provenance d'un document antérieur viennent de la migration 6→7
- *  (`PROJECT_MIGRATIONS`), pas d'ici. */
-export function documentDeLEntree(p: SavedProject): unknown {
-  const doc = p.project as Record<string, unknown>;
-  return {
-    ...doc,
-    id: doc.id ?? p.id,
-    label: p.label?.trim() ? p.label : doc.label,
-    ...(doc.versionContenu === undefined ? { versionContenu: 0 } : {}),
-  };
-}
-
 /** La campagne LANCÉE depuis une entrée de bibliothèque (`setPendingCampaign`), SOURCE UNIQUE de tout
  *  écran qui la joue (« Jouer » de la bibliothèque, « Choisir » du picker de `PartyScreen`) : le
- *  document passe la porte `parseProject(documentDeLEntree(p))` — migré, validé — et un refus lève
- *  `ProjetRefuse`, laissé à l'appelant. Le `label` est celui du document PARSÉ, donc déjà celui de
- *  `documentDeLEntree` ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du picker), et une
- *  scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
+ *  document passe la porte `parseProject` et un refus lève `ProjetRefuse`, laissé à l'appelant. Le
+ *  `label` est celui du document PARSÉ ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du
+ *  picker), et une scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
 export function campagneDeLEntree(p: SavedProject): NonNullable<GameState['pendingCampaign']> {
-  const { label, scenes, worldMap, activeAxes, narratif } = parseProject(documentDeLEntree(p));
+  const { label, scenes, worldMap, activeAxes, narratif } = parseProject(p.project);
   // #1627
   if (!scenes.some((s) => s.id === p.startSceneId)) {
     throw refusDeForme('entree', ['startSceneId'], `scène de départ « ${p.startSceneId} » absente du projet`);
@@ -149,43 +144,6 @@ const projets = bibliotheque.magasin<SavedProject, string>(STORE);
 /** Cache mémoire = source SYNC servie au picker/éditeur/tests. `null` tant qu'`initLibrary` n'a rien chargé. */
 let cache: SavedProject[] | null = null;
 
-/** `SavedProject` : nom du projet (top-level, discriminant `startSceneId`+`published`+`project`). */
-function isProjectLike(o: Record<string, unknown>): boolean {
-  return typeof o.id === 'string' && typeof o.startSceneId === 'string'
-    && typeof o.published === 'boolean' && !!o.project;
-}
-
-/** `CustomStatblock` (`state/scene.ts`) embarqué dans `project.scenes[].entities[].statblock` — même
- *  discriminant que le formulaire d'édition (`char` structuré, aucun autre porteur de ce dépôt n'a ce
- *  champ). Distinct des `SceneOp` `setVessel`/`adjustVessel` (`name?` d'AUTEUR, hors renommage — leur
- *  forme n'a pas de `char`, jamais reconnue ici). */
-function isStatblockLike(o: Record<string, unknown>): boolean {
-  return typeof o.char === 'object' && o.char !== null && !Array.isArray(o.char);
-}
-
-/** Renommage `name` → `label` (#608) des DEUX porteurs authorés d'un projet éditeur sérialisé —
- *  l'entrée de bibliothèque elle-même (`SavedProject.name`) et tout `CustomStatblock` embarqué dans ses
- *  scènes. `projectLibrary.ts` n'a AUCUN axe de version (liste nue en localStorage) : repli IDEMPOTENT
- *  à chaque lecture, patron
- *  `roster.ts`/`remapNameToLabelDeep` — un projet déjà migré (ou jamais affecté) traverse en no-op. */
-export function remapProjectNamesDeep(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(remapProjectNamesDeep);
-  if (!node || typeof node !== 'object') return node;
-  const o = node as Record<string, unknown>;
-  const bearer = isProjectLike(o) || isStatblockLike(o);
-  if (bearer && typeof o.name === 'string' && !('label' in o)) {
-    const { name, ...rest } = o;
-    return Object.fromEntries(
-      Object.entries({ label: name, ...rest }).map(([k, v]) => [k, remapProjectNamesDeep(v)]),
-    );
-  }
-  if (bearer && o.label !== undefined && 'name' in o) {
-    const { name: _drop, ...rest } = o;
-    return Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, remapProjectNamesDeep(v)]));
-  }
-  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, remapProjectNamesDeep(v)]));
-}
-
 /** Lecture SYNC de secours (localStorage) : sert tant que `cache` vaut `null`, et reste le MIROIR
  *  réconcilié avec IndexedDB à chaque `initLibrary`. Filtre aussi les tombes (`readTombstones`) — ce
  *  filtrage est la SEULE garantie contre la résurrection d'un projet supprimé, pour TOUTE lecture qui
@@ -200,9 +158,7 @@ function readLocalStorage(): SavedProject[] {
     const arr: unknown = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
     const tombstones = readTombstones();
-    return (remapProjectNamesDeep(arr) as unknown[])
-      .filter(isSavedProject)
-      .filter((e) => !tombstones.has(e.id));
+    return entreesProuvees(arr).filter((e) => !tombstones.has(e.id));
   } catch {
     return [];
   }
@@ -306,15 +262,6 @@ function writeTombstones(ids: Set<string>): boolean {
   }
 }
 
-function isSavedProject(e: unknown): e is SavedProject {
-  return (
-    !!e &&
-    typeof e === 'object' &&
-    typeof (e as SavedProject).id === 'string' &&
-    Array.isArray((e as SavedProject).project?.scenes)
-  );
-}
-
 /**
  * Charge la bibliothèque en `cache` depuis IndexedDB (source de vérité) réconciliée avec le miroir
  * localStorage. À AWAITER une fois au démarrage (`main.tsx`) AVANT le premier rendu. NE REJETTE JAMAIS :
@@ -331,8 +278,7 @@ export async function initLibrary(): Promise<void> {
       return;
     }
     const tombstones = readTombstones();
-    const stored = (remapProjectNamesDeep(await projets.lireTout()) as unknown[])
-      .filter(isSavedProject) as SavedProject[];
+    const stored = entreesProuvees(await projets.lireTout());
     const legacy = readLocalStorage();
     const storedIds = new Set(stored.map((e) => e.id));
     const toMigrate = legacy.filter((e) => !storedIds.has(e.id) && !tombstones.has(e.id));

@@ -90,9 +90,8 @@ export interface ActionAuthoree {
 }
 
 /** RESTE MANUSCRIT (les 22 autres formes de la scène sont des `z.infer` de
- *  `data/schemas/defs-scenes/scene.ts`) — deux écarts MESURÉS avec `sceneEntitySchema` :
- *  `foot` n'existe QUE sur le schéma (fossile toléré au parse, dépouillé par `stripLegacyFoot`,
- *  gaté `@fossile` — il n'a jamais eu de champ ici) ; `appearance` porte ici `EntityAppearance`
+ *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` :
+ *  `appearance` porte ici `EntityAppearance`
  *  (`engine/authoringAppearance`) là où le schéma compose `entityAppearanceSchema`, nœud-FRONTIÈRE
  *  du vocabulaire partagé. */
 export interface SceneEntity {
@@ -986,30 +985,21 @@ function sanitizeSceneFlow(flow: Flow | undefined): Flow | undefined {
   return flow == null ? flow : sanitizeFlow(flow, sanitizeEffectLeaf);
 }
 
-/** Un projet sauvegardé avant la migration porte une empreinte D'INSTANCE (`foot`) : elle est
- *  DÉPOUILLÉE au chargement, jamais recopiée ni interprétée — la physique d'un décor vient du
- *  catalogue courant (`PropData.foot`), vérité unique de ses dimensions. */
-function stripLegacyFoot(e: SceneEntity): SceneEntity {
-  if (!('foot' in e)) return e;
-  const { foot: _legacy, ...reste } = e as SceneEntity & { foot?: unknown };
-  return reste;
-}
-
 /**
  * Complète les COLLECTIONS qu'une Scène PROUVÉE peut omettre (optionnelles à `sceneSchema`, requises
  * sur `Scene`), et assainit les FLOWS portés (triggers/dialogues/rencontres/entités) — purge des nœuds
  * `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement absent reste
  * rapportée par `validateScene`, jamais réparée en silence. Appelée APRÈS la porte du schéma, par
- * `parseProject` (`projetSchema`) et `migreSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais
+ * `parseProject` (`projetSchema`) et `parseSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais
  * un `?? []` saupoudré côté consommateur. PUR — ne mute pas `s`. */
 export function normalizeScene(s: Scene): Scene {
   return {
     ...s,
     layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
-    entities: (s.entities ?? []).map((e) => stripLegacyFoot(
+    entities: (s.entities ?? []).map((e) => (
       e.usable?.actions
-      ? { ...e, usable: { ...e.usable, actions: e.usable.actions.map((a) => ({ ...a, flow: sanitizeSceneFlow(a.flow) as Flow })) } }
-      : e)),
+        ? { ...e, usable: { ...e.usable, actions: e.usable.actions.map((a) => ({ ...a, flow: sanitizeSceneFlow(a.flow) as Flow })) } }
+        : e)),
     dialogues: (s.dialogues ?? []).map((d) => ({
       ...d,
       nodes: d.nodes.map((n) => ({

@@ -62,7 +62,7 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
 
 /**
  * LE FILET DE CRASH NE CONTOURNE PLUS RIEN — la relecture de l'autosave passe par le schéma de scène
- * (`migreSceneDeProjet`) : une scène qui porte un décor volumique au cap refusé est ÉCARTÉE, la
+ * (`parseSceneDeProjet`) : une scène qui porte un décor volumique au cap refusé est ÉCARTÉE, la
  * modale de reprise nomme la faute et son lieu, et rien n'entre dans l'éditeur.
  */
 describe('Éditeur — une sauvegarde locale fautive est écartée', () => {

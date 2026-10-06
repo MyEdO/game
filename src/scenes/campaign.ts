@@ -1,5 +1,4 @@
-/** Les campagnes du jeu : chacune est un paquet commité (`{schema: SCHEMA_PROJET, <identité>, scenes,
- *  worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
+/** Les campagnes du jeu : chacune est un paquet commité (`{<identité>, scenes, worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
  *  — celui de l'Arène est l'octet du `build()` de `scripts/arene/generate.mjs` (#1522, #1601) —, que
  *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, une campagne du jeu n'est que son IDENTITÉ, lue
  *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter

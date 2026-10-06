@@ -1,5 +1,5 @@
 /**
- * Paquet de campagne schema 3 (#765) — le bloc NARRATIF parse et VALIDE au bon format, et
+ * Paquet de campagne (#765) — le bloc NARRATIF parse et VALIDE au bon format, et
  * `parseProject` LÈVE fail-fast sur chaque violation d'invariant (collision id narratif ↔ règle
  * globale, référence par id morte, id interne dupliqué) — invariants portés par `narratifSchema`
  * (`src/data/schemas/defs-scenes/narratif.ts`), qui NOMME le chemin fautif dans le message. Contrat
@@ -8,18 +8,20 @@
 import { describe, it, expect } from 'vitest';
 import { parseProject } from './worldMap';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
+import { emptyScene } from './scene';
 
 // ids RÉELS de la règle globale (`src/data`) — base de preset valide + cible de collision.
 const GLOBAL_CREATURE = 'humain';
 
-const scene = { id: 's1', label: 'Le quai', dimensions: { w: 3, h: 3 } };
+const scene = { ...emptyScene(3, 3), id: 's1', label: 'Le quai' };
 
-function doc(narratif: NarratifBlock, meta?: unknown) {
-  // L'identité vit dans la poche `meta` d'un document schema 3 (aplatie par la migration 4→5) et
-  // elle est REQUISE depuis #1552 : sans elle la porte refuse, et ce n'est plus le narratif qu'on
-  // mesurerait. Un `meta` d'appelant la REMPLACE (les cas d'identité de ce fichier).
-  const identite = { id: 'fixture', label: 'Fixture', version: 1 };
-  return { schema: 3, scenes: [scene], narratif, meta: meta !== undefined ? meta : identite };
+/** L'identité est REQUISE depuis #1552 : sans elle la porte refuse, et ce n'est plus le narratif qu'on
+ *  mesurerait. Une `identite` d'appelant la REMPLACE (les cas d'identité de ce fichier). */
+function enveloppe(identite: Record<string, unknown> = { id: 'fixture', label: 'Fixture', versionContenu: 1 }) {
+  return { type: 'projet', ...identite, maison: 'fixture de test', scenes: [scene] };
+}
+function doc(narratif: NarratifBlock, identite?: Record<string, unknown>) {
+  return { ...enveloppe(identite), narratif };
 }
 
 const validNarratif = (): NarratifBlock => ({
@@ -33,22 +35,17 @@ const validNarratif = (): NarratifBlock => ({
   objets: [{ id: 'obj-lettre', label: 'Lettre cachetée', categorie: 'trapping', subType: null } as NarratifBlock['objets'][number]],
 });
 
-describe('paquet de campagne schema 3 — bloc narratif', () => {
-  it('doc schema 3 minimal (narratif vide) parse et restitue son narratif', () => {
+describe('paquet de campagne — bloc narratif', () => {
+  it('doc minimal (narratif vide) parse et restitue son narratif', () => {
     const res = parseProject(doc(emptyNarratif()));
     expect(res.scenes.map((s) => s.id)).toEqual(['s1']);
     expect(res.narratif).toEqual(emptyNarratif());
   });
 
-  it('doc schema 3 peuplé valide restitue son narratif', () => {
+  it('doc peuplé valide restitue son narratif', () => {
     const res = parseProject(doc(validNarratif()));
     expect(res.narratif.affaires.map((a) => a.id)).toEqual(['af-sel']);
     expect(res.narratif.presetsPnj[0].base).toBe(GLOBAL_CREATURE);
-  });
-
-  it('projet schema 2 legacy migre en injectant un narratif vide', () => {
-    const res = parseProject({ schema: 2, meta: { id: 'fixture', label: 'Fixture', version: 1 }, scenes: [scene] });
-    expect(res.narratif).toEqual(emptyNarratif());
   });
 
   it('(a) LÈVE si un id narratif collisionne avec un id de la règle globale', () => {
@@ -93,23 +90,22 @@ describe('paquet de campagne schema 3 — bloc narratif', () => {
     expect(() => parseProject(doc(n))).toThrow(/narratif › affaires « af-sel »: « af-sel » dupliqué/);
   });
 
-  it('(f) LÈVE (message clair NOMMANT le champ, pas TypeError) si un doc schema 3 natif n\'a pas de bloc narratif', () => {
-    expect(() => parseProject({ schema: 3, meta: { id: 'fixture', label: 'Fixture', version: 1 }, scenes: [scene] })).toThrow(/narratif: Entrée invalide : objet attendu/);
+  it('(f) LÈVE (message clair NOMMANT le champ, pas TypeError) si un doc n\'a pas de bloc narratif', () => {
+    expect(() => parseProject(enveloppe())).toThrow(/narratif: Entrée invalide : objet attendu/);
   });
 
   it('(g) LÈVE si un registre du narratif n\'est pas un tableau', () => {
-    expect(() => parseProject({ schema: 3, meta: { id: 'fixture', label: 'Fixture', version: 1 }, scenes: [scene], narratif: { affaires: [], indices: [] } })).toThrow(/narratif\.presetsPnj: Entrée invalide : tableau attendu/);
+    expect(() => parseProject({ ...enveloppe(), narratif: { affaires: [], indices: [] } })).toThrow(/narratif\.presetsPnj: Entrée invalide : tableau attendu/);
   });
 
-  it('(h) doc schema 3 avec un meta valide parse et restitue l’id, APLATI à la racine', () => {
-    const res = parseProject(doc(emptyNarratif(), { id: 'camp-x', label: 'Campagne X', version: 1 }));
+  it('(h) doc à identité valide parse et restitue l’id, à la racine', () => {
+    const res = parseProject(doc(emptyNarratif(), { id: 'camp-x', label: 'Campagne X', versionContenu: 1 }));
     expect(res.id).toBe('camp-x');
     expect(res.versionContenu).toBe(1);
-    expect('meta' in (res as Record<string, unknown>)).toBe(false);
   });
 
-  it('(i) LÈVE si l’identité est malformée (id vide) — chemin APLATI à la racine', () => {
-    expect(() => parseProject(doc(emptyNarratif(), { id: '', label: 'X', version: 1 }))).toThrow(/\bid\b/i);
+  it('(i) LÈVE si l’identité est malformée (id vide) — chemin à la racine', () => {
+    expect(() => parseProject(doc(emptyNarratif(), { id: '', label: 'X', versionContenu: 1 }))).toThrow(/\bid\b/i);
   });
 
   // ── #1342 L3 : la référence PAR ID va jusqu'à la spécialisation d'une Compétence de profil.

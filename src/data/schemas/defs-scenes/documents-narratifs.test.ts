@@ -9,7 +9,7 @@
  * du monde — la faute NOMME son chemin.
  */
 import { describe, it, expect } from 'vitest';
-import { projetSchema, SCHEMA_PROJET } from './projet';
+import { projetSchema } from './projet';
 import { narratifSchema } from './narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from './registres-narratifs';
 import { cheminLisible, validateDocument } from '../validate';
@@ -48,7 +48,6 @@ const scene = (over: Jouet = {}): Jouet => ({
 
 const projet = (over: Jouet = {}): Jouet => ({
   type: 'projet',
-  schema: SCHEMA_PROJET,
   id: 'projet-jouet',
   label: 'Projet jouet',
   versionContenu: 1,

@@ -86,10 +86,6 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
-  migrationsDeProjet.ts       `PROJECT_MIGRATIONS` : les migrations de forme du document de projet,
-                              keyées par `schema` de départ, et leurs aides ; `SCHEMA_PROJET`
-                              (`schemas/defs-scenes/projet.ts`) en dérive (#2226). Une valeur que
-                              la migration tenait de `src/state` y est figée à son commit
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
@@ -255,8 +251,9 @@ src/state/
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
                             `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
                             au foyer des caps (`state/dir8.ts`)
-  worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet v2
-                            (`ProjectDoc`, `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
+  worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet
+                            (`ProjectDoc`, porte `parseProject` : `projetSchema` SEUL contrôle de forme, aucun
+                            numéro de version, toute autre forme REFUSÉE — #2404 ; `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
                             la campagne, ids de `data/axes.json`, défaut `coreAxisIds` via `resolveActiveAxes`).
                             DONNÉES DE LIEU (#343) : le nœud `MapPlace` est LA source des services d'un lieu —
                             `port` (schéma riche + catalogue `naval-ports.json`), `market` (LandMarketProfile) et
@@ -329,8 +326,8 @@ src/state/
   migrateDoc.ts                PRIMITIVE GÉNÉRIQUE de migration séquentielle de document versionné
                               (`{version, ...}` → `MigrationMap` chaînée jusqu'à sa `versionCourante` ;
                               refuse net — jamais ne corrompt — objet malformé/version future/trou
-                              dans la chaîne). Consommée par `roster.ts` (`ROSTER_MIGRATIONS`) et
-                              `worldMap.ts` (`PROJECT_MIGRATIONS`) ; PAS par les saves de partie
+                              dans la chaîne). Consommée par `roster.ts` (`ROSTER_MIGRATIONS`) ; PAS
+                              par les saves de partie ni par les projets de l'éditeur
   saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
                               JSON). POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17) : un
                               changement de forme persistée bump `SAVE_VERSION` et RIEN d'autre —
@@ -365,7 +362,17 @@ src/state/
                               chargé une fois par `initLibrary()` (awaité dans `main.tsx` avant le
                               premier rendu). Réconciliation localStorage⇄IndexedDB PAR ID à CHAQUE
                               `initLibrary` (jamais un flag one-shot, #776) ; `indexedDB` absent
-                              (test/SSR) → repli localStorage.
+                              (test/SSR) → repli localStorage. L'enveloppe d'une entrée est prouvée
+                              par `savedProjectSchema` ; son projet passe `parseProject` au GESTE
+                              (ouvrir, jouer, exporter) : un projet d'un autre format reste LISTÉ, son
+                              refus affiché, et sa suppression reste un geste de l'auteur (#2404).
+                              FORMATS PERSISTÉS (#2404) : aucun ne porte de chaîne de migration de
+                              chargement ni de numéro écrit à la main ; une donnée d'une autre forme
+                              est REFUSÉE à la lecture, avec un message clair, et le contenu commité
+                              (`src/scenes/**`) se réécrit dans le MÊME commit que le changement de
+                              forme. Un changement de SENS à forme égale RENOMME sa clé (précédent
+                              #1507 : `light.radiusTiles` devenu `light.radiusM`, le rayon du folio en mètres) : sans
+                              renommage, l'ancienne valeur passerait le schéma et serait lue faux.
 src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE three.js ; les surcouches
                             de jeu sont du SVG posé sur son canevas. Pipeline détaillé (pivot, peintres,
                             matériaux, QC) : docs/rendu-pipeline.md

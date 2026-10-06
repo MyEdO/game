@@ -1,5 +1,4 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
 import { buildScene } from '../../state/mapSpec';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { setEncounters } from './_shared';
@@ -77,7 +76,7 @@ function construireScene(): Scene {
         // `siegeRig`), orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
         {
           ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
-          postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+          postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
         // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
         // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais

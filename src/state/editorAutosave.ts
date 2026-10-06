@@ -1,6 +1,6 @@
 import type { Scene } from './scene';
 import { accesBase, type MigrationsIdb } from '../lib/indexedDb';
-import { CURRENT_PROJECT_SCHEMA, migreSceneDeProjet, exigerUnRefus, type ProjetRefuse, type ProjectDoc } from './worldMap';
+import { parseSceneDeProjet, exigerUnRefus, type ProjetRefuse } from './worldMap';
 
 /**
  * Sauvegarde locale AUTOMATIQUE de la scène en cours d'édition : filet du crash de rendu de
@@ -14,14 +14,13 @@ import { CURRENT_PROJECT_SCHEMA, migreSceneDeProjet, exigerUnRefus, type ProjetR
 export interface EditorAutosaveRecord {
   sceneId: string;
   scene: Scene;
-  /** Marqueur de FORME : le `schema` de projet de l'application qui a écrit la scène. */
-  schema: ProjectDoc['schema'];
   savedAt: number;
 }
 
-/** Ce que l'éditeur peut faire d'un enregistrement relu : le reprendre, sa scène migrée au format
- *  courant, ou l'ÉCARTER sur le refus MESURÉ de la porte (cause, fautes et leur lieu), que l'écran
- *  traduit (`refusDeLaPorteDuProjet`, `ui/editor/ProjectModals.tsx`). */
+/** Ce que l'éditeur peut faire d'un enregistrement relu : le reprendre, sa scène prouvée par
+ *  `sceneSchema`, ou l'AFFICHER refusé avec le refus MESURÉ de la porte (cause, fautes et leur lieu),
+ *  que l'écran traduit (`refusDeLaPorteDuProjet`, `ui/editor/ProjectModals.tsx`). Un enregistrement
+ *  refusé n'est jamais retiré par la relecture : l'écarter reste un geste de l'auteur. */
 export type RepriseLocale =
   | { readonly ok: true; readonly record: EditorAutosaveRecord }
   | { readonly ok: false; readonly sceneId: string; readonly savedAt: number; readonly refus: ProjetRefuse };
@@ -51,12 +50,11 @@ export async function autosaveLoad(sceneId: string): Promise<RepriseLocale | nul
   return brut && relire(brut);
 }
 
-/** Un enregistrement du magasin est une donnée PERSISTÉE d'une version antérieure de l'application :
- *  il monte par la chaîne de forme du projet (`migreSceneDeProjet`), au `schema` qu'il porte. Sans
- *  marqueur de format, il est ÉCARTÉ, jamais migré sur une version supposée. */
+/** Un enregistrement du magasin est une donnée PERSISTÉE, peut-être d'une autre version de
+ *  l'application : sa scène passe `parseSceneDeProjet` (`sceneSchema`), jamais une migration (#2404). */
 function relire(brut: EditorAutosaveRecord): RepriseLocale {
   try {
-    return { ok: true, record: { ...brut, scene: migreSceneDeProjet(brut.scene, brut.schema), schema: CURRENT_PROJECT_SCHEMA } };
+    return { ok: true, record: { ...brut, scene: parseSceneDeProjet(brut.scene) } };
   } catch (e) {
     exigerUnRefus(e);
     return { ok: false, sceneId: brut.sceneId, savedAt: brut.savedAt, refus: e };
@@ -65,9 +63,9 @@ function relire(brut: EditorAutosaveRecord): RepriseLocale {
 
 /** Écriture best-effort : un échec (quota dépassé, accès refusé…) ne doit jamais faire planter
  *  l'éditeur — seul le filet disque est perdu, la session en mémoire n'est pas affectée. */
-export async function autosaveSave(entry: Omit<EditorAutosaveRecord, 'schema'>): Promise<void> {
+export async function autosaveSave(entry: EditorAutosaveRecord): Promise<void> {
   try {
-    await sauvegardes.ecrire({ ...entry, schema: CURRENT_PROJECT_SCHEMA });
+    await sauvegardes.ecrire(entry);
   } catch (err) {
     console.error(`[editorAutosave] sauvegarde automatique de « ${entry.sceneId} » en échec (session non affectée).`, err);
   }

@@ -7,8 +7,9 @@ import { useGame } from '../state/store';
 import { downloadText, fileSlug } from '../lib/fileIo';
 import { parseProject, documentDeProjet, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import {
-  projectsLoad, projectSave, projectRemove, nomDeProjet, documentDeLEntree, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
+  projectsLoad, projectSave, projectRemove, nomDeProjet, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
   type SavedProject,
+  type EntreeEcrite,
 } from '../state/projectLibrary';
 import { allBuiltinCampaigns, campagneDuJeu, documentDuJeu, type BuiltinCampaign } from '../scenes/campaign';
 import { Row, Stack } from './Layout';
@@ -30,7 +31,7 @@ export class PlayerFacingImportError extends Error {}
  *  invalidité passe par la validation `parseProject` (#765, message d'authoring, jamais affiché tel
  *  quel — voir `playerImportError`). L'id et le libellé de l'entrée sont ceux du DOCUMENT (dédup
  *  portable, #766) : l'enveloppe les EXIGE (#1552). */
-export function buildImportedProject(text: string): SavedProject {
+export function buildImportedProject(text: string): EntreeEcrite {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -55,7 +56,7 @@ export function buildImportedProject(text: string): SavedProject {
 }
 
 /** Message d'échec d'import à afficher au JOUEUR (jamais le langage de schéma/authoring de
- *  `parseProject`/`projetSchema`, qui parle de champs — `versionContenu`, `schema=`, noms d'id).
+ *  `parseProject`/`projetSchema`, qui parle de champs — `versionContenu`, noms d’id).
  *  Le tri est STRUCTUREL : `PlayerFacingImportError` porte un message déjà écrit pour le joueur
  *  (JSON illisible) — jamais une comparaison de TEXTE (une reformulation FR ne doit jamais changer
  *  le comportement). Un refus de la porte (`ProjetRefuse`) est journalisé
@@ -89,12 +90,12 @@ export function importDecision(
   return vNew > vExist ? 'replace-newer' : 'replace-older-or-equal';
 }
 
-/** Document de projet PORTABLE (schema courant) reconstruit pour l'export d'une entrée. */
+/** Document de projet PORTABLE reconstruit pour l'export d'une entrée. */
 function toProjectDoc(e: Entry): ProjectDoc {
   if (e.kind === 'builtin') return documentDuJeu(e.bc);
   // `activeAxes` NOMMÉ et RECONDUIT (même raison qu'à `buildImportedProject`) : un export de
   // bibliothèque qui le perdrait rendrait un document PORTABLE amputé de ses axes (#409).
-  const { scenes, worldMap, activeAxes, narratif, ...identite } = parseProject(documentDeLEntree(e.sp));
+  const { scenes, worldMap, activeAxes, narratif, ...identite } = parseProject(e.sp.project);
   return documentDeProjet(identite, scenes, { worldMap, activeAxes, narratif });
 }
 

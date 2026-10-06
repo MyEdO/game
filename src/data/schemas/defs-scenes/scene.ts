@@ -16,8 +16,7 @@
  * positionnelle : mesuré sur les 2 racines de `src/scenes` (4 projets, 28 scènes), 28/28 portent
  * `id` ET `label`, et le jeu résout une scène PAR ID — `sceneRegistry` (`src/state/store.ts:182-183`,
  * `registerScene`), le delta d'instance persisté par `sceneId` (`src/state/sceneInstance.ts:9`),
- * l'effet `transition: { scene }` et `worldMap.places[].scene`. Le `type` est posé sur la donnée
- * existante par `PROJECT_MIGRATIONS[6]` (`src/data/migrationsDeProjet.ts`, `schema` 6 → 7).
+ * l'effet `transition: { scene }` et `worldMap.places[].scene`.
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
@@ -130,13 +129,6 @@ const baseDEntiteSchema = z.strictObject({
   anim: z.string().optional(),
   /** Arme ÉQUIPÉE — `trappingId` STABLE du catalogue d'armes, résolue par `weaponFromId`. */
   weapon: z.string().optional(),
-  /** Empreinte D'INSTANCE d'un projet pré-migration : fossile TOLÉRÉ au parse, DÉPOUILLÉ au
-   *  chargement par `stripLegacyFoot` (`src/state/scene.ts`) — jamais une donnée de scène, jamais
-   *  lue par le moteur (la physique d'un décor vient de `PropData.foot`). Meurt au reset des saves.
-   *  La garde #841 lit ce tag, GATÉ par sa liste nominative (`FOSSILES`, `sceneFieldEditability.mjs`) :
-   *  le champ est hors périmètre éditable, et un tag posé sans entrée au registre est ROUGE.
-   *  @fossile */
-  foot: z.strictObject({ w: z.number(), h: z.number() }).optional(),
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
   light: z.strictObject({ radiusM: z.number(), tone: z.string().optional() }).optional(),
@@ -796,7 +788,7 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
  * `Scene` (`state/scene.ts:370`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
  * `triggers`/`encounters`/`flags`, requises sur le type manuscrit, sont OPTIONNELLES ici : le
  * schéma voit le document AVANT `normalizeScene`, qui les comble aux portes (`parseProject`,
- * `migreSceneDeProjet`).
+ * `parseSceneDeProjet`).
  */
 export const sceneSchema = z.strictObject({
   type: z.literal('scene'),

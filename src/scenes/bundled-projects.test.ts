@@ -8,6 +8,7 @@ import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { parseProject, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import { validateScene } from '../state/validateScene';
 import { emptyScene } from '../state/scene';
+import { emptyNarratif } from '../state/campaignNarratif';
 import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
 import { MERCHANTS } from '../state/merchants';
@@ -23,10 +24,9 @@ import { projetSchema } from '../data/schemas/defs-scenes/projet';
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
  * le modèle COURANT — `parseProject` sans lever, avec une IDENTITÉ valide (`id`/`label`/
  * `versionContenu`, plats à la racine depuis #1467 L1b). Couvre TOUT paquet présent OU futur (glob
- * récursif de `src/scenes`, jamais une liste de noms en dur) : `scripts/arene/generate.mjs` était le
- * DERNIER générateur à écrire un littéral `schema: 2` sans identité (au lieu de `projectDoc()`,
- * `scripts/campagne/lib.mjs`) — cette garde empêche cette classe de dérive de revenir, pour ce
- * paquet comme pour tout futur paquet de campagne.
+ * récursif de `src/scenes`, jamais une liste de noms en dur), puis `validateScene` sans erreur. C'est
+ * la garde du contenu COMMITÉ au format courant (#2404) : aucun chargement ne migre, un paquet d'une
+ * autre forme rougit ici avant d'atteindre un joueur.
  */
 const bundledFiles = listerProjetsLivres();
 
@@ -87,8 +87,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(typeof doc.label).toBe('string');
     expect(doc.label!.length).toBeGreaterThan(0);
     expect(typeof doc.versionContenu).toBe('number');
-    // L'identité est PLATE : la poche `meta` d'avant #1467 L1b ne survit nulle part.
-    expect('meta' in (doc as Record<string, unknown>)).toBe(false);
   });
 
   /**
@@ -280,17 +278,34 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(erreurs.some((m) => m.includes(sceneId) && m.includes(entityId) && m.includes('creature-qui-n-existe-pas'))).toBe(true);
   });
 
+  it('CONTRE-PREUVE : une transition vers une scène inconnue glissée dans une COPIE d’un paquet livré rougit `validateScene`, en NOMMANT la cible', () => {
+    // ⚠ copie EN MÉMOIRE — aucun fichier touché. Le schéma ne lit pas la cible d'une transition : seule
+    // cette garde la juge.
+    const CIBLE = 'scene-qui-n-existe-pas';
+    const trouve = bundledFiles
+      .map((file) => parseProject(lireProjetLivre(file)))
+      .flatMap((doc) => effetsDuProjet(doc).filter(({ eff }) => eff.type === 'transition').map(({ eff }) => ({ doc, eff })))[0];
+    expect(trouve, 'aucun paquet livré ne porte de transition — la contre-preuve n’a plus de sujet').toBeTruthy();
+    const { doc, eff } = trouve!;
+    (eff as Extract<Effect, { type: 'transition' }>).scene = CIBLE;
+    expect(erreursDe(doc).some((m) => m.includes(CIBLE)), 'la transition pendante n’est pas rapportée').toBe(true);
+  });
+
   /**
    * CONTRE-PREUVE de la PORTE d'identité (`parseProject`, `src/state/worldMap.ts`), sur une enveloppe
-   * CONSTRUITE — aucun paquet livré n'en est le sujet. La scène est dépouillée de son `type` : au
-   * format 2 une scène ne s'annonçait pas, c'est `PROJECT_MIGRATIONS[6]` qui le pose (#1552).
-   * L'enveloppe est COMPLÈTE par ailleurs (`label`, `versionContenu`) : seule l'identité manque, et le
-   * refus porte une faute au chemin `id` — lue dans ses FAUTES, jamais dans le texte du rapport.
+   * CONSTRUITE — aucun paquet livré n'en est le sujet. L'enveloppe est COMPLÈTE par ailleurs (`label`,
+   * `versionContenu`, provenance, narratif) : seule l'identité manque, et le refus porte une faute au
+   * chemin `id` — lue dans ses FAUTES, jamais dans le texte du rapport.
    */
-  const ENVELOPPE_SCHEMA_2 = (identite: Record<string, unknown>) => {
-    const { type: _type, ...sceneSansType } = emptyScene(4, 4) as unknown as Record<string, unknown>;
-    return { schema: 2, scenes: [{ ...sceneSansType, id: 'fixture-scene', label: 'Fixture' }], label: 'Fixture', versionContenu: 1, ...identite };
-  };
+  const ENVELOPPE = (identite: Record<string, unknown>) => ({
+    type: 'projet',
+    label: 'Fixture',
+    versionContenu: 1,
+    maison: 'fixture de test',
+    narratif: emptyNarratif(),
+    scenes: [{ ...emptyScene(4, 4), id: 'fixture-scene', label: 'Fixture' }],
+    ...identite,
+  });
   /** Le refus de la porte pour ce document, ou `null` s'il passe. */
   const refusDe = (doc: unknown): ProjetRefuse | null => {
     try {
@@ -303,12 +318,11 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   };
 
   it('la même enveloppe AVEC son identité passe la porte — la contre-preuve ci-dessous ne mesure que l’identité', () => {
-    expect(() => parseProject(ENVELOPPE_SCHEMA_2({ id: 'fixture-schema-2' }))).not.toThrow();
+    expect(() => parseProject(ENVELOPPE({ id: 'fixture-enveloppe' }))).not.toThrow();
   });
 
-  it('CONTRE-PREUVE : un paquet ramené au format PRÉCÉDENT (schema 2, sans identité) est REFUSÉ À LA PORTE, qui NOMME `id`', () => {
-    // La migration monte la forme 2→7 mais n'INVENTE aucune identité : la porte refuse, en la nommant.
-    const refus = refusDe(ENVELOPPE_SCHEMA_2({}));
+  it('CONTRE-PREUVE : un paquet SANS identité est REFUSÉ À LA PORTE, qui NOMME `id`', () => {
+    const refus = refusDe(ENVELOPPE({}));
     expect(refus?.cause).toBe('schema');
     expect(refus?.fautes.some((f) => f.chemin.join('.') === 'id'), 'une faute au chemin `id`').toBe(true);
     expect(refus?.message, 'le rapport des scripts nomme toujours le champ').toMatch(/^\s*- id: /m);
@@ -321,14 +335,10 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * ce test laisse intacte — la contre-preuve porte sur une fixture, jamais sur `diligence-projet.json`.
    */
   const PAQUET_ARCHITECTURE = (styles: (string | undefined)[]) => {
-    const { type: _type, ...sceneSansType } = emptyScene(6, 6) as unknown as Record<string, unknown>;
     return {
-      schema: 2,
-      id: 'fixture-architecture',
-      label: 'Fixture',
-      versionContenu: 1,
+      ...ENVELOPPE({ id: 'fixture-architecture' }),
       scenes: [{
-        ...sceneSansType,
+        ...emptyScene(6, 6),
         id: 'fixture-scene',
         label: 'Fixture',
         architecture: styles.map((style, i) => ({

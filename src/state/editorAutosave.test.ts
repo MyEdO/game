@@ -12,16 +12,18 @@ import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
 import { baseSimulee, brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
 import { cheminLisible } from '../data/schemas/validate';
 import { emptyScene, type Scene } from './scene';
-import { CURRENT_PROJECT_SCHEMA } from './worldMap';
-import { editEntity } from './sceneEdit';
-import { findSpeciesById } from '../data';
 
-/** La scène d’une reprise relue — l’enregistrement monté au format courant, donc repris. */
+/** La scène d’une reprise relue — l’enregistrement prouvé par le schéma de scène, donc repris. */
 const repris = async (sceneId: string) => {
   const lu = await autosaveLoad(sceneId);
   if (!lu?.ok) throw new Error(`reprise attendue pour « ${sceneId} »`);
   return lu.record;
 };
+
+/** Rend la main après un tour de la file des macrotâches : les ouvertures, transactions et requêtes
+ *  du testkit se règlent en microtâches, toutes achevées à ce tour — y compris celles qu'une
+ *  opération aurait lancées sans les attendre. */
+const operationsAchevees = () => new Promise<void>((fin) => setTimeout(fin, 0));
 
 const NOM = 'wfrp4-editor-autosave';
 let bases: BasesSimulees;
@@ -81,7 +83,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
     const fautesLues = (lu: RepriseLocale | null) => (lu && !lu.ok ? lu.refus.fautes.map((f) => `${cheminLisible(f.lieu)} : ${f.message}`) : null);
     /** Ce que rend la relecture d'une scène au format COURANT portant `scene`. */
     const relu = async (scene: object) => {
-      sauvegardes().set('s', { sceneId: 's', scene: { ...emptyScene(), id: 's', ...scene }, schema: CURRENT_PROJECT_SCHEMA, savedAt: 7 });
+      sauvegardes().set('s', { sceneId: 's', scene: { ...emptyScene(), id: 's', ...scene }, savedAt: 7 });
       return autosaveLoad('s');
     };
 
@@ -119,21 +121,24 @@ describe('MIGRATIONS_AUTOSAVE — migration de `wfrp4-editor-autosave`', () => {
   });
 });
 
-describe('editorAutosave — la lecture traverse la chaîne de migrations CANONIQUE (#1882)', () => {
+describe('editorAutosave — un enregistrement d’une autre forme est REFUSÉ, jamais migré ni retiré (#2404)', () => {
   beforeEach(async () => {
     await __resetAutosaveForTest();
   });
 
-  it('l’écriture porte le schéma courant', async () => {
+  it('l’écriture ne porte aucun numéro de forme', async () => {
     await autosaveSave({ sceneId: 's', scene: { ...emptyScene(), id: 's' }, savedAt: 1 });
-    expect((sauvegardes().get('s') as EditorAutosaveRecord).schema).toBe(CURRENT_PROJECT_SCHEMA);
+    expect(Object.keys(sauvegardes().get('s') as EditorAutosaveRecord).sort()).toEqual(['savedAt', 'scene', 'sceneId']);
   });
 
-  it('un autosave au format 12 est restauré TYPÉ par la migration, et un patch de cap passe', async () => {
-    const ancienne = { ...emptyScene(), id: 's12', entities: [{ id: 'villageois', kind: 'personnage', pos: { x: 0, y: 0 }, appearance: { species: 'humains-reiklander' } }] };
-    sauvegardes().set('s12', { sceneId: 's12', scene: ancienne as Scene, savedAt: 1, schema: 12 });
-    const scene = (await repris('s12')).scene;
-    expect(scene.entities[0].ref).toBe(findSpeciesById('humains-reiklander')!.profilStandard!.id);
-    expect(editEntity(scene, 'villageois', { facing: 'E' }).entities[0].facing).toBe('E');
+  it('une scène d’une forme antérieure (`nom` pour `label`) : refus `schema` AFFICHÉ, l’enregistrement reste au magasin', async () => {
+    const { label: _l, ...sansLabel } = { ...emptyScene(), id: 'ancienne', label: 'Salle' };
+    const brut = { sceneId: 'ancienne', scene: { ...sansLabel, nom: 'Salle' } as unknown as Scene, savedAt: 3 };
+    sauvegardes().set('ancienne', brut);
+    const lu = await autosaveLoad('ancienne');
+    await operationsAchevees();
+    expect(lu && !lu.ok && { cause: lu.refus.cause, sceneId: lu.sceneId, savedAt: lu.savedAt }).toEqual({ cause: 'schema', sceneId: 'ancienne', savedAt: 3 });
+    expect(lu && !lu.ok && lu.refus.message).toMatch(/^Scène d’un autre format, ou mal formée — JSON invalide contre son schéma :/);
+    expect(sauvegardes().get('ancienne'), 'la relecture ne retire rien : l’écarter reste un geste de l’auteur').toEqual(brut);
   });
 });

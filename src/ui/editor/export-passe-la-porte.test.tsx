@@ -14,7 +14,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Editor } from './Editor';
 import { buildApi } from '../../state/devtools';
-import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
+import { parseProject } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
 import { useGame } from '../../state/store';
 import { makeShowcaseParty } from '../../data/pregens';
@@ -167,7 +167,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
   it('JSON que la PORTE refuse (décor sans type) : le refus NOMME la scène et l’entité, rien n’est chargé', async () => {
     await monter(sceneSaine());
     const fautif = JSON.stringify({
-      type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-fautif', label: 'Campagne fautive',
+      type: 'projet', id: 'proj-fautif', label: 'Campagne fautive',
       versionContenu: 1, maison: 'fixture de test',
       narratif: emptyNarratif(),
       scenes: [{
@@ -192,18 +192,18 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
   it.each([
     ['scènes nulles', { schema: 2, id: 'x', label: 'X', versionContenu: 1, scenes: [null] }],
     ['scène en chaîne', { schema: 2, id: 'x', label: 'X', scenes: ['a'] }],
-  ])('JSON que la MIGRATION ne traverse pas (%s) : le refus se LIT, jamais un rejet muet', async (_nom, doc) => {
+  ])('JSON d’un AUTRE format (%s) : le refus se LIT, jamais un rejet muet', async (_nom, doc) => {
     await monter(sceneSaine());
     const { refus, scenesChargees } = await importe(JSON.stringify(doc));
-    expect(refus).toContain('Import refusé : ce fichier ne peut pas être ouvert. Ce document n’est pas un projet lisible.');
-    expect(refus, 'le rapport de la porte reste consultable en détail').toContain('Projet invalide : document mal formé');
+    expect(refus).toContain('Import refusé : ce fichier ne peut pas être ouvert. Ce document est d’un autre format, ou mal formé.');
+    expect(refus, 'le rapport de la porte reste consultable en détail').toContain('Projet d’un autre format, ou mal formé');
     expect(scenesChargees).toContain('Salle d’export');
   });
 
   it('document SAIN : il charge, et aucun refus ne s’affiche', async () => {
     await monter(sceneSaine());
     const sain = JSON.stringify({
-      type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-sain', label: 'Campagne saine',
+      type: 'projet', id: 'proj-sain', label: 'Campagne saine',
       versionContenu: 1, maison: 'fixture de test',
       narratif: emptyNarratif(),
       scenes: [{ ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée', entities: [] }],

@@ -94,8 +94,8 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     };
   }, []);
 
-  /** La scène proposée est DÉJÀ montée au format courant par `autosaveLoad` (chaîne de forme du
-   *  projet) : un enregistrement écarté n'a rien à restaurer. */
+  /** La scène proposée est DÉJÀ prouvée par `autosaveLoad` (`sceneSchema`) : un enregistrement
+   *  refusé n'a rien à restaurer. */
   function restore(): void {
     if (!recovery?.ok) return;
     applyRecovered(recovery.record.scene);

@@ -11,7 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OpenProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte } from './ProjectModals';
 import { allBuiltinCampaigns } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
-import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
+import { parseProject } from '../../state/worldMap';
 import { emptyScene } from '../../state/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { IMPORT_FORME_DEPOT } from '../../state/projectLibrary';
@@ -110,7 +110,7 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
 
 /** Un document courant, sain, dont un décor NOMME son type — les cas ci-dessous le cassent un à un. */
 const projet = (): Record<string, unknown> => ({
-  type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj', label: 'Projet', versionContenu: 1,
+  type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(),
   scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle du banc', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le tonneau', ref: 'tonneau' }] }],
 });
@@ -189,26 +189,21 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     expect(rendu(decorSansType(projet()), 'import').detail).toBeUndefined();
   });
 
-  it('version sans migration : en mots d’AUTEUR, le rapport technique en détail seulement', () => {
+  it('un numéro de forme `schema` (autre format) : en mots d’AUTEUR, le rapport technique en détail seulement', () => {
     const r = rendu({ ...projet(), schema: 999 }, 'import');
-    expect(r.message).toBe('Import refusé : ce fichier ne peut pas être ouvert. Ce projet vient d’une version du jeu que celle-ci ne sait pas lire.');
-    expect(r.detail).toMatch(/schema=999/);
-  });
-
-  it('document mal formé (racine, ou intraversable par la migration) : en mots d’AUTEUR, jamais « (racine) »', () => {
-    for (const doc of [null, { schema: 2, id: 'x', label: 'X', versionContenu: 1, scenes: [null] }]) {
-      const r = rendu(doc, 'ouverture');
-      expect(r.message).toBe('Ouverture refusée : ce projet ne peut pas être ouvert. Ce document n’est pas un projet lisible.');
-      expect(r.detail).toMatch(/^Projet invalide : /);
-    }
+    expect(r.message).toBe('Import refusé : ce fichier ne peut pas être ouvert. Ce document est d’un autre format, ou mal formé.');
+    expect(r.detail).toMatch(/\(racine\): Clé non reconnue : "schema"/);
   });
 
   it.each([
-    ['JSON quelconque', { foo: 1 }, 'Import refusé : ce fichier ne peut pas être ouvert. Ce document n’est pas un projet lisible.'],
-    ['schema texte', { schema: '12', scenes: [] }, 'Import refusé : ce fichier ne peut pas être ouvert. Ce document n’est pas un projet lisible.'],
-    ['schema futur', { schema: 99, scenes: [] }, 'Import refusé : ce fichier ne peut pas être ouvert. Ce projet vient d’une version du jeu que celle-ci ne sait pas lire.'],
-  ])('%s : le texte d’écran suit la cause LUE', (_nom, doc, texte) => {
-    expect(rendu(doc, 'import').message).toBe(texte);
+    ['document absent', null],
+    ['tableau nu', []],
+    ['JSON quelconque', { foo: 1 }],
+    ['schema texte', { schema: '12', scenes: [] }],
+  ])('%s : fautif à sa RACINE, en mots d’AUTEUR, jamais « (racine) »', (_nom, doc) => {
+    const r = rendu(doc, 'ouverture');
+    expect(r.message).toBe('Ouverture refusée : ce projet ne peut pas être ouvert. Ce document est d’un autre format, ou mal formé.');
+    expect(r.detail).toMatch(/^Projet d’un autre format, ou mal formé — /);
   });
 
   it('une erreur qui n’est PAS un refus de la porte remonte telle quelle', () => {

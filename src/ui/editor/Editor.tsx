@@ -19,13 +19,13 @@ import { WorldMapEditor } from './WorldMapEditor';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { renommeRef, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
 import { OpenProjectModal, SaveProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from './ProjectModals';
-import { projectSave, projectsLoad, documentDeLEntree, SavedProject } from '../../state/projectLibrary';
+import { projectSave, projectsLoad, SavedProject } from '../../state/projectLibrary';
 import { downloadText } from '../../lib/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
-import { MAISON_PROJET_AUTHORE } from '../../data/migrationsDeProjet';
+import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
 import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nextEntityId } from '../../state/entityId';
@@ -850,9 +850,8 @@ export function Editor({
     let na: NarratifBlock;
     let label: string;
     let ident: Omit<ProjectIdentite, 'label'>;
-    const doc = documentDeLEntree(p);
     try {
-      ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = parseProject(doc)); // même validation/migration que l'import JSON
+      ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = parseProject(p.project)); // même porte que l'import JSON
     } catch (e) {
       const refus = refusDeLaPorteDuProjet(e, 'ouverture');
       setLoadError(refus);

@@ -36,7 +36,7 @@ export function ChipDeRefus({ refus }: { refus: RefusRendu }) {
 
 /**
  * Les gestes qui font passer un document par la porte du projet (`parseProject`, et
- * `migreSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
+ * `parseSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
  * refus, la CONSÉQUENCE qu'il ÉNONCE, et ce qu'il dit d'un projet SANS NOM. UNE table : ces chaînes
  * ne sont pas libres, un appelant ne peut pas les désaccorder — « Import refusé : ce projet ne
  * pourrait plus être rouvert » serait faux, rien n'ayant jamais été ouvert ni écrit.
@@ -91,18 +91,21 @@ function lieuDAuteur(lieu: readonly SegmentDeLieu[]): string {
   return cheminLisible(tete === undefined ? [] : [tete, ...suite], (element) => element.libelle ?? element.cle);
 }
 
+/** Ce qu'un refus dit à l'auteur quand une faute porte sur la RACINE du document (clé inconnue, valeur qui
+ *  n'est pas un objet) : sans numéro de version, c'est un document d'un autre format ou mal formé (#2404). */
+const AUTRE_FORMAT = 'Ce document est d’un autre format, ou mal formé.';
+
 /** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE : le rapport technique reste en détail. */
 const PHRASE_DE_CAUSE: Record<Exclude<ProjetRefuse['cause'], 'schema'>, string> = {
-  version: 'Ce projet vient d’une version du jeu que celle-ci ne sait pas lire.',
-  'mal-forme': 'Ce document n’est pas un projet lisible.',
   'prose-non-materialisee': IMPORT_FORME_DEPOT,
   entree: 'Sa scène de départ n’existe pas dans le projet.',
 };
 
 /**
  * Traduit en refus d'ÉCRAN le refus que la porte oppose à un geste — UN traducteur pour tous les
- * gestes, qui lit la CAUSE et les fautes (`ProjetRefuse`), jamais le texte du rapport. Une version
- * illisible ou un document mal formé se disent en mots d'auteur ; un projet SANS NOM aussi. Sinon,
+ * gestes, qui lit la CAUSE et les fautes (`ProjetRefuse`), jamais le texte du rapport. Un document
+ * fautif à sa RACINE (d'un autre format, ou mal formé) et un projet SANS NOM se disent en mots
+ * d'auteur. Sinon,
  * ce que l'auteur doit savoir tient en deux faits : la CONSÉQUENCE du refus, et OÙ est la première
  * faute ; les suivantes sont COMPTÉES. Le rapport de la porte reste en `detail` dès que le message
  * ne le reprend pas. Toute autre erreur n'est pas un refus de la porte : elle remonte telle quelle.
@@ -113,6 +116,7 @@ export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): Re
   if (erreur.cause !== 'schema') {
     return { message: `${verbe} : ${consequence}. ${PHRASE_DE_CAUSE[erreur.cause]}`, detail: erreur.message };
   }
+  if (erreur.fautes.some((f) => f.chemin.length === 0)) return { message: `${verbe} : ${consequence}. ${AUTRE_FORMAT}`, detail: erreur.message };
   if (erreur.fautes.some(estSansNom)) return { message: sansNom, detail: erreur.message };
   const [premiere, ...autres] = erreur.fautes;
   const suite = autres.length > 0 ? ` (et ${autres.length} autre${autres.length > 1 ? 's' : ''} à corriger)` : '';

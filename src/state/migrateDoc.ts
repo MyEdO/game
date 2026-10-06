@@ -1,13 +1,12 @@
 /**
  * Primitive GÉNÉRIQUE de migration séquentielle de document versionné.
- * Consommée par `roster.ts` (`ROSTER_MIGRATIONS`, export de héros) et `worldMap.ts`
- * (`PROJECT_MIGRATIONS` de `data/migrationsDeProjet.ts`, documents de campagne authorés) — des documents PORTABLES, produits par un
- * auteur ou exportés vers une autre machine.
+ * Consommée par `roster.ts` (`ROSTER_MIGRATIONS`, export de héros) — un document PORTABLE, exporté vers
+ * une autre machine.
  *
  * Les sauvegardes de PARTIE ne migrent pas (2026-08-17,
  * `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`) : au changement de forme persistée,
- * `SAVE_VERSION` monte et les saves antérieures se JETTENT (`saves.ts`). Ne pas purger le roster ni
- * les projets par imitation : ce sont d'autres axes persistants, avec leurs consommateurs.
+ * `SAVE_VERSION` monte et les saves antérieures se JETTENT (`saves.ts`). Les projets de l'éditeur non plus
+ * (2026-10-05, même fiche) : `parseProject` refuse toute autre forme (#2404).
  *
  * Sémantique : un doc `vN` traverse `migrations[N]`, `[N+1]`… jusqu'à la version courante de la table
  * (`versionCourante`, #2226) ; chaque pas pose lui-même `version` à N+1. Refus explicite et NOMMÉ

@@ -1832,7 +1832,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
           <p className="hint">Pièce d'artillerie servie par un équipage. Enrôlez l'emplacement ET ses servants dans une rencontre (fold <Icon id="action/attack" size="sm" /> Combat) ; au combat, le chef (1ᵉʳ servant) sert la pièce et tire.</p>
           <label className="ed-field">
             Engin
-            <select value={poste.trappingId ?? poste.item?.trappingId ?? ''} onChange={(e) => setScene(setPosteEngine(scene, ent.id, e.target.value))}>
+            <select value={poste.trappingId} onChange={(e) => setScene(setPosteEngine(scene, ent.id, e.target.value))}>
               {siegeEngines().map((t) => (
                 <option key={t.id} value={t.id}>{t.label}</option>
               ))}

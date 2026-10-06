@@ -34,9 +34,8 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    le confronte à son schéma. `src/scenes/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
    au GLOB : `parseProject` sans lever, identité valide, apparence et nom résolus, aucune `error` de
    `validateScene` (`src/state/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus
-   du jargon technique dans un texte joueur. Un bump de forme (`SCHEMA_PROJET`) migre les paquets par un
-   script daté de `scripts/migrations/` (banc `src/scenes/migrations-format-projet.test.ts`), jamais à la
-   main. Une MÉCANIQUE à prouver se prouve sur une scène de FIXTURE (skill `creer-un-scenario-de-test`),
+   du jargon technique dans un texte joueur. Un changement de forme réécrit les paquets commités dans le MÊME
+   commit (#2404) : par leur générateur, ou par un script one-shot non commité pour un paquet manuscrit. Une MÉCANIQUE à prouver se prouve sur une scène de FIXTURE (skill `creer-un-scenario-de-test`),
    jamais sur la carte livrée.
 6. **Recette navigateur** — `loadProject(doc.scenes, startId, doc.worldMap, doc.narratif)` puis flux
    complet déroulé : skill `recette-navigateur`.
