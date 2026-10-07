@@ -247,7 +247,7 @@ test('POINT FIXE introuvable : une récursion qui CREUSE aux mêmes arguments se
   assert.equal(deG[2].at(-1), '{"non":"cycle d\'appels g sans point fixe"}')
 })
 
-test('un RELAIS jugé sous une lecture COUPÉE (profondeur) ne se mémoïse pas : le relais appelé plus haut garde ses racines, quel que soit l’ordre', () => {
+test('une lecture COUPÉE (profondeur) ne tranche pas le relais : le site qui l’appelle porte la coupe nommée, jamais disparu ; non mémoïsée, le relais appelé plus haut garde ses racines, quel que soit l’ordre', () => {
   const chaine = Array.from({ length: 17 }, (_, i) => `export function f${i + 1}(d) { f${i + 2}(d) }\n`).join('')
   const modules = {
     'scripts/lib/m.mjs': "import { readdirSync } from 'node:fs'\n" + chaine + 'export function f18(d) { readdirSync(d) }\n',
@@ -255,6 +255,28 @@ test('un RELAIS jugé sous une lecture COUPÉE (profondeur) ne se mémoïse pas 
     'scripts/t5.test.mjs': "import { f5 } from './lib/m.mjs'\nf5('b')\n",
   }
   for (const ordre of [['scripts/t1.test.mjs', 'scripts/t5.test.mjs'], ['scripts/t5.test.mjs', 'scripts/t1.test.mjs']]) {
-    assert.deepEqual(sitesDansLOrdre(modules, ordre).filter(([s]) => s.endsWith(' f5')), [['scripts/t5.test.mjs:2 f5', false, ['{"chemin":"b"}']]], ordre.join(' puis '))
+    assert.deepEqual(Object.fromEntries(sitesDansLOrdre(modules, ordre).map(([s, , v]) => [s, v])), {
+      'scripts/t1.test.mjs:2 f1': ['{"non":"profondeur d\'appels > 16 (f17)"}'],
+      'scripts/t5.test.mjs:2 f5': ['{"chemin":"b"}'],
+    }, ordre.join(' puis '))
   }
+})
+
+test('une lecture COUPÉE par un CYCLE à d’autres arguments ne tranche pas le relais : le site porte le cycle nommé (cas réel minimisé : analyseRetenue.mjs, `rendTeinte` et `teinte`)', () => {
+  const modules = {
+    'scripts/guards/lib/analyseRetenue.mjs':
+    "function rendTeinte(fn, ctx) {\n" +
+    "  if (!ts.isBlock(fn.body)) return teinte(fn.body, ctx)\n" +
+    "}\n" +
+    "function teinte(e, ctx) {\n" +
+    "  e = sansEnveloppe(e)\n" +
+    "  if (ts.isCallExpression(e)) {\n" +
+    "      return (DERIVATIONS.has(appele.name.text) && corpusDe(appele.expression, ctx)) || teinte(appele.expression, ctx)\n" +
+    "  }\n" +
+    "  if (ts.isConditionalExpression(e)) return teinte(e.whenTrue, ctx) || teinte(e.whenFalse, ctx)\n" +
+    "}\n",
+  }
+  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/guards/lib/analyseRetenue.mjs']), [
+    ['scripts/guards/lib/analyseRetenue.mjs:2 teinte', false, [JSON.stringify({ non: "cycle d'appels teinte" })]],
+  ])
 })

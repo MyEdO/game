@@ -50,6 +50,8 @@ const PROFONDEUR_D_APPELS = 16
 /** Les ré-entrées d'une fonction déjà en cours, à d'autres arguments (`sousPile`) : une enveloppe qui se rappelle
  *  sans son option (`fraicheur-docs.mjs`, `cheminSous`) s'évalue ; une récursion qui creuse est un cycle nommé. */
 const REENTREES = 1
+/** Les raisons d'une lecture COUPÉE par les bornes de `sousPile` : sans elles, la lecture aurait pu continuer. */
+const COUPE = /^(cycle|profondeur) d'appels/
 /** Les passes d'un appel récursif aux mêmes arguments vers son point fixe (`sousPile`) ; au-delà, `non` nommé. */
 const ITERATIONS = 8
 
@@ -625,7 +627,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   }
 
   /** La fonction est-elle un RELAIS : un de ses paramètres alimente-t-il une lecture ? Une fonction déjà en
-   *  cours d'évaluation est supposée relais : ses lectures liées s'évaluent, et une boucle s'y nomme (`sousPile`). */
+   *  cours d'évaluation est supposée relais : ses lectures liées s'évaluent, et une boucle s'y nomme (`sousPile`).
+   *  Une lecture COUPÉE (`COUPE`) ne tranche pas : supposée relais, la coupe se nomme au site qui l'appelle. */
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
     const deja = relais.get(cle)
@@ -637,7 +640,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     if (!peutLire(fn.f)) return false
     enCours.add(cle)
     try {
-      const { resultat: { resultat: oui, stable }, requetes } = tracer(() => memoisable(() => lecturesDe(fn, null).some((v) => 'relais' in v)))
+      const { resultat: { resultat: oui, stable }, requetes } = tracer(() => memoisable(() => lecturesDe(fn, null).some((v) => 'relais' in v || ('non' in v && COUPE.test(v.non)))))
       if (stable) relais.set(cle, { oui, requetes })
       return oui
     } finally { enCours.delete(cle) }
