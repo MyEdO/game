@@ -103,7 +103,7 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
     const onglet = (nom: string) => [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((b) => b.textContent === nom)!;
     const avantLaListe = () => {
       const [temoin] = temoins();
-      const onglets = host.querySelector('[role="tablist"]')!;
+      const onglets = host.querySelector('.tabs')!;
       const liste = host.querySelector('.candidate-master-detail')!;
       return !!(onglets.compareDocumentPosition(temoin) & Node.DOCUMENT_POSITION_FOLLOWING)
         && !!(temoin.compareDocumentPosition(liste) & Node.DOCUMENT_POSITION_FOLLOWING);

@@ -141,9 +141,7 @@ export function OpenProjectModal({
               <ListRow key={p.id} label={nomDeProjet(p.label)}>
                 {estRefusee(p) && <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>}
                 {p.published && <span className="chip">publiée</span>}
-                <button className={estRefusee(p) ? 'btn small' : 'btn small btn-primary'} onClick={() => onProject(p)}>
-                  Ouvrir
-                </button>
+                <GatedAction id={`ouvrir-${p.id}`} label="Ouvrir" enabled primary={!estRefusee(p)} btnClassName="small" onClick={() => onProject(p)} />
                 <button className="btn small danger" onClick={() => del(p.id)}>
                   Suppr.
                 </button>

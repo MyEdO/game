@@ -23,6 +23,7 @@ import type { CombatCursor, ScreenDir } from './combatCursor';
 import type { LocalIntent } from './localIntent';
 import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
+import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
@@ -642,7 +643,7 @@ export interface GameState extends RollFlowActionsMap {
    *  jusqu'à une issue — poursuite terrestre (LDB 15), jeu de taverne opposé (NADJ 16), demain les
    *  crises de mer. État GÉNÉRIQUE (id de définition, rang de manche, cumuls par camp, paramètres
    *  d'auteur) + la charge utile du domaine ; persisté entre les manches. `null` hors séquence. */
-  sequence: import('./sequenceCore').EtatDeSequence | null;
+  sequence: EtatDeSequence | null;
   /** Abandon de la poursuite terrestre (le groupe renonce à fuir/traquer). */
   pursuitAbandon: () => void;
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation

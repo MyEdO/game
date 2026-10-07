@@ -119,16 +119,16 @@ export function ruleOverrides(): Record<string, RuleValue> {
   return Object.fromEntries(overrides);
 }
 
-/** `v` est-elle une valeur de la forme `kind` que déclare `def` : `flag` booléen, `param` nombre dans ses
+/** `v` est-elle une valeur de la forme `kind` que déclare `regle` : `flag` booléen, `param` nombre dans ses
  *  bornes, `mode` l'une de ses `options` ? */
-export function valeurConforme(def: Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max'>, v: unknown): v is RuleValue {
-  switch (def.kind) {
+export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max'>, v: unknown): v is RuleValue {
+  switch (regle.kind) {
     case 'flag':
       return typeof v === 'boolean';
     case 'param':
-      return typeof v === 'number' && Number.isFinite(v) && (def.min === undefined || v >= def.min) && (def.max === undefined || v <= def.max);
+      return typeof v === 'number' && Number.isFinite(v) && (regle.min === undefined || v >= regle.min) && (regle.max === undefined || v <= regle.max);
     case 'mode':
-      return typeof v === 'string' && (def.options ?? []).includes(v);
+      return typeof v === 'string' && (regle.options ?? []).includes(v);
   }
 }
 
@@ -137,7 +137,7 @@ export function valeurConforme(def: Pick<OptionalRule, 'kind' | 'options' | 'min
 export function loadRuleOverrides(o: Readonly<Record<string, unknown>>): void {
   overrides.clear();
   for (const [k, v] of Object.entries(o)) {
-    const def = regleParId(k);
-    if (def && valeurConforme(def, v)) overrides.set(k, v);
+    const regle = regleParId(k);
+    if (regle && valeurConforme(regle, v)) overrides.set(k, v);
   }
 }
