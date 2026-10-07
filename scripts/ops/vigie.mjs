@@ -18,7 +18,8 @@ import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, shas
 import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { verdictDesJobs, verdictDesRuns } from './etapesDuTrain.mjs'
-import { cheminsDeJournal, etatDuTrain, lireJournal, sauverJournal } from './publier.mjs'
+import { cheminsDeJournal, etatDuTrain, lireJournal } from './publier.mjs'
+import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 
 /** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
 export const SYMBOLES_DE_CI = Object.freeze({ verte: '✓', rouge: '✗', annulee: '⊘', 'en-vol': '…', absente: '∅' })
@@ -123,7 +124,7 @@ export class CiIllisible extends Error {}
 /** Le fichier de cache d'un sha. */
 const fichierDuCache = (dossier, sha) => join(dossier, `${sha}.json`)
 
-/** Motif des fichiers du cache, pour la péremption : le verdict d'un sha, et le temporaire de `sauverJournal`
+/** Motif des fichiers du cache, pour la péremption : le verdict d'un sha, et le temporaire de `ecrireJsonAtomique`
  *  qu'un tick tué entre l'écriture et le renommage laisse derrière lui. */
 const MOTIF_DU_CACHE = /^[0-9a-f]{40,64}\.json(?:\.\d+\.tmp)?$/
 
@@ -141,7 +142,7 @@ function verteAuCache(chemin) {
 /**
  * Le verdict de CI de `sha` : lu au CACHE s'il y est `verte` (`verteAuCache`), sinon par `lire(sha)` (une
  * union de `coursesCi`) et `verdictDesRuns` ; un `verte` neuf s'écrit au cache par l'écriture ATOMIQUE
- * `sauverJournal`, que huit sessions partagent sans lire un fichier à moitié écrit. Le cache ne garde
+ * `ecrireJsonAtomique`, que huit sessions partagent sans lire un fichier à moitié écrit. Le cache ne garde
  * que le verdict : un sha vu `verte` n'appelle plus `gh`.
  * Une course `rouge` se juge sur ses jobs (`jobs(id)`, `verdictDesJobs`) : sans job rouge et avec un job
  * annulé, elle est `annulee` ; des jobs illisibles la laissent `rouge`. Une lecture de courses indisponible
@@ -159,7 +160,7 @@ export function verdictDeCi({ sha, dossier, lire, jobs }) {
   const lusJobs = lu.etat === 'rouge' ? jobs(lu.course.databaseId, lu.course.attempt ?? null) : null
   const vu = lusJobs?.disponible ? verdictDesJobs(lu, lusJobs.valeur) : lu
   if (vu.etat === 'verte') {
-    sauverJournal(chemin, { verdict: 'verte' })
+    ecrireJsonAtomique(chemin, { verdict: 'verte' })
     purgerPerimes({ dossier, motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })
   }
   return vu.etat

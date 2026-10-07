@@ -1,5 +1,5 @@
 {
-  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 54, paramètre non lié 298, appel non suivi 280, forme non évaluée 55, déstructuration de tableau 68, variable sans valeur initiale 70, import non suivi 46, URL 32, environnement de processus 23, identifiant introuvable 5, chemin absolu 9, propriété non suivie 3, autre 0. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
+  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 61, paramètre non lié 284, appel non suivi 360, forme non évaluée 59, déstructuration de tableau 69, variable sans valeur initiale 0, import non suivi 107, URL 32, environnement de processus 23, identifiant introuvable 5, chemin absolu 11, propriété non suivie 3, autre 87. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
   "entrees": [
     {
       "famille": "URL",
@@ -495,6 +495,18 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/guards/lib/sourceCorpus.test.mjs",
       "ref": "readCorpus : appel relative",
       "occurrence": 1
@@ -592,6 +604,12 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : appel cheminsIgnores(depot, [chemin], opts).has",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
       "ref": "voletPointeurs : appel fs.realpathSync.native",
       "occurrence": 1
     },
@@ -599,6 +617,12 @@
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/poison-postcheck.mjs",
       "ref": "voletPointeurs : appel m[1].toUpperCase",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPoison : appel cheminsIgnores(depot, [chemin], opts).has",
       "occurrence": 1
     },
     {
@@ -707,6 +731,12 @@
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/repartition.mjs",
       "ref": "canoniser : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "construireContexte : appel JSON.parse",
       "occurrence": 1
     },
     {
@@ -1179,6 +1209,192 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/raw/_lib.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "pdfDuSigle : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "runBook : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/audit-refs-chapitre.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-catalogue-complete.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "chapterLinesOf : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "lineCount : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "chapterTextOf : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanAll : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanAll : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanAll : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : appel _chapterCache.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "lineCount : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : appel _chapterCache.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/raw/check-source-format.mjs",
       "ref": "dossiersFR : appel String",
       "occurrence": 1
@@ -1293,6 +1509,96 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "rendre : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "pdfDuSigle : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "runBook : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/raw/lib/carte-lignes.mjs",
       "ref": "lireEnLot : appel String",
       "occurrence": 1
@@ -1301,6 +1607,18 @@
       "famille": "appel non suivi",
       "fichier": "scripts/raw/lib/carte-lignes.mjs",
       "ref": "readFileSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
+      "ref": "mesurerLivre : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
+      "ref": "pdfDuSigle : appel refus",
       "occurrence": 1
     },
     {
@@ -1401,6 +1719,18 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/raw/reanchor.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/releve.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/raw/reparer-mobilier.mjs",
       "ref": "sitesDuLivre : appel String",
       "occurrence": 1
@@ -1444,6 +1774,12 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/raw/sonde-titres.test.mjs",
+      "ref": "pdfDe : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/sonde-titres.test.mjs",
       "ref": "readText : appel String",
       "occurrence": 1
     },
@@ -1470,6 +1806,12 @@
       "fichier": "scripts/raw/workflow-args.test.mjs",
       "ref": "lireRendu : appel ecrire",
       "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -1533,8 +1875,26 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "src/data/night-stake-form.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/night-stakes-rules.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "src/data/refs-migrated.test.ts",
       "ref": "readFileSync : appel RACINES.flatMap",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/regles-soudures.test.ts",
+      "ref": "readText : appel _chapterCache.get",
       "occurrence": 1
     },
     {
@@ -1602,6 +1962,42 @@
       "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
       "ref": "lireDefs : appel dossierDe",
       "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : appel _chapterCache.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : appel _chapterCache.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : appel _chapterCache.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/index-imprime.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -1749,6 +2145,18 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readFileSync : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "src/data/structures-contrat.test.ts",
       "ref": "readFileSync : appel jsons",
       "occurrence": 1
@@ -1758,6 +2166,24 @@
       "fichier": "src/raw-ref-integrity.test.ts",
       "ref": "readFileSync : appel JSON.parse",
       "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 3
     },
     {
       "famille": "appel non suivi",
@@ -1840,8 +2266,56 @@
     {
       "famille": "appel non suivi",
       "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fs.realpathSync.native",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fs.realpathSync.native",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fs.realpathSync.native",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fs.realpathSync.native",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fs.realpathSync.native",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
       "ref": "cheminCanonique : appel fichier",
       "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : appel fs.realpathSync.native",
+      "occurrence": 2
     },
     {
       "famille": "appel non suivi",
@@ -1880,6 +2354,528 @@
       "occurrence": 2
     },
     {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/chemin-mesure.mjs",
+      "ref": "ancetreExistant : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/chemin-mesure.mjs",
+      "ref": "existsSync : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/chemin-mesure.test.mjs",
+      "ref": "ancetreExistant : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/chemin-mesure.test.mjs",
+      "ref": "ancetreExistant : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/chemin-mesure.test.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "installer : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/data-edit-guard.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/data-edit-guard.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/data-edit-guard.mjs",
+      "ref": "rappel : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/data-edit-guard.mjs",
+      "ref": "rappel : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "avertissement : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "avertissement : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/memoire-tombale-guard.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/memoire-tombale-guard.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/memoire-tombale-guard.mjs",
+      "ref": "refus : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/memoire-tombale-guard.mjs",
+      "ref": "refus : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 8
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 9
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 10
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 11
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 12
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "baseDeLAppel : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "construireContexte : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "evaluateGates : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "ancetreExistant : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "existsSync : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "jugerLeSolde : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "natureDeLArbre : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "racineDeLArbre : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "racineDeLArbre : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "statSync : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "natureDeLArbre : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "natureDeLArbre : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "natureDeLArbre : courant réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : cible réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : cible réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : cible réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : cible réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : cible réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : cible réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : depuis réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : depuis réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : depuis réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : depuis réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : depuis réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : depuis réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : cible réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : depuis réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
       "famille": "chemin absolu",
       "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
       "ref": "readFile : chemin absolu C:\\depot\\src\\é.ts",
@@ -1895,6 +2891,18 @@
       "famille": "chemin absolu",
       "fichier": "scripts/guards/lib/livraison.test.mjs",
       "ref": "verdictDePublication : chemin absolu /fixture-consommateurs",
+      "occurrence": 2
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/guards/lib/reclassementCss.test.mjs",
+      "ref": "deplaceLaFrontiere : chemin absolu /r/tsconfig.json",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/guards/lib/reclassementCss.test.mjs",
+      "ref": "deplaceLaFrontiere : chemin absolu /r/tsconfig.json",
       "occurrence": 2
     },
     {
@@ -2058,6 +3066,12 @@
       "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
       "ref": "regenererStock : déstructuration de tableau b",
       "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : déstructuration de tableau extra",
+      "occurrence": 1
     },
     {
       "famille": "déstructuration de tableau",
@@ -2595,6 +3609,18 @@
     },
     {
       "famille": "forme non évaluée",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : forme BinaryExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPoison : forme BinaryExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "evaluateGates : forme ElementAccessExpression",
       "occurrence": 1
@@ -2681,6 +3707,12 @@
       "famille": "forme non évaluée",
       "fichier": "scripts/ops/synchroniser.test.mjs",
       "ref": "readFileSync : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "tick : forme ElementAccessExpression",
       "occurrence": 1
     },
     {
@@ -2877,6 +3909,18 @@
     },
     {
       "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
       "fichier": "scripts/guards/lib/tsProgram.test.mjs",
       "ref": "existsSync : import par défaut ou espace path",
       "occurrence": 1
@@ -2898,6 +3942,12 @@
       "fichier": "scripts/raw/_lib.mjs",
       "ref": "readText : import par défaut ou espace booksData",
       "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/_lib.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
     },
     {
       "famille": "import non suivi",
@@ -2931,6 +3981,114 @@
     },
     {
       "famille": "import non suivi",
+      "fichier": "scripts/raw/audit-refs-chapitre.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-catalogue-complete.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "chapterLinesOf : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "lineCount : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "chapterTextOf : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanAll : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanAll : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanAll : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 4
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 5
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : import par défaut ou espace booksData",
+      "occurrence": 6
+    },
+    {
+      "famille": "import non suivi",
       "fichier": "scripts/raw/check-folio-continuity.test.mjs",
       "ref": "readFileSync : import par défaut ou espace booksData",
       "occurrence": 1
@@ -2946,6 +4104,66 @@
       "fichier": "scripts/raw/check-folio-continuity.test.mjs",
       "ref": "scanEmptyFoliosInBook : import par défaut ou espace booksData",
       "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "lineCount : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 4
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 5
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 6
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : import par défaut ou espace booksData",
+      "occurrence": 7
     },
     {
       "famille": "import non suivi",
@@ -3009,6 +4227,84 @@
     },
     {
       "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 4
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 5
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 6
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 7
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "rendre : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
       "fichier": "scripts/raw/folio-bootstrap.mjs",
       "ref": "buildFolioToc : import par défaut ou espace booksData",
       "occurrence": 1
@@ -3035,6 +4331,12 @@
       "famille": "import non suivi",
       "fichier": "scripts/raw/reanchor.mjs",
       "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/reanchor.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
       "occurrence": 1
     },
     {
@@ -3087,8 +4389,32 @@
     },
     {
       "famille": "import non suivi",
+      "fichier": "scripts/raw/releve.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
       "fichier": "scripts/source/lecteur-fs.mjs",
       "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/night-stake-form.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/night-stakes-rules.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
       "occurrence": 1
     },
     {
@@ -3111,9 +4437,81 @@
     },
     {
       "famille": "import non suivi",
+      "fichier": "src/data/regles-soudures.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
       "fichier": "src/data/source/decoupe.test.ts",
       "ref": "listerDossier : import par défaut ou espace booksData",
       "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 4
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 5
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/index-imprime.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 3
     },
     {
       "famille": "import non suivi",
@@ -3570,6 +4968,12 @@
       "fichier": "scripts/hooks/repartiteur.test.mjs",
       "ref": "construireContexte : paramètre racine",
       "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : paramètre entree",
+      "occurrence": 1
     },
     {
       "famille": "paramètre non lié",
@@ -4437,6 +5841,84 @@
     },
     {
       "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 17
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 18
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 19
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 20
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 21
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 22
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 23
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 24
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 25
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 26
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 27
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 28
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 29
+    },
+    {
+      "famille": "paramètre non lié",
       "fichier": "scripts/raw/reparer-ancres.test.mjs",
       "ref": "readFileSync : paramètre rawDir",
       "occurrence": 1
@@ -5037,6 +6519,48 @@
     },
     {
       "famille": "sortie de processus",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "pdfDuSigle : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "runBook : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "pdfDuSigle : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "runBook : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
+      "ref": "mesurerLivre : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
+      "ref": "pdfDuSigle : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/raw/sonde-titres.test.mjs",
+      "ref": "pdfDe : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
       "fichier": "src/data/schemas/grammaire/collection-cle.test.ts",
       "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
       "occurrence": 1
@@ -5082,426 +6606,6 @@
       "fichier": "src/data/structures-contrat.test.ts",
       "ref": "scannerRedeclarations : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
       "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
-      "ref": "chapterLinesOf : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
-      "ref": "chapterLinesOf : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/hooks/poison-postcheck.mjs",
-      "ref": "voletPointeurs : horsContenu sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/hooks/poison-postcheck.mjs",
-      "ref": "voletPoison : horsContenu sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/hooks/repartition.mjs",
-      "ref": "construireContexte : entree sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/_lib.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/audit-refs-chapitre.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/build-catalogs.mjs",
-      "ref": "ecrireOuVerifier : catalogues sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/build-catalogs.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-catalogue-complete.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-code-refs.mjs",
-      "ref": "chapterLinesOf : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-code-refs.mjs",
-      "ref": "lineCount : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
-      "ref": "chapterTextOf : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
-      "ref": "scanAll : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
-      "ref": "scanAll : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanAll : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 3
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 4
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 5
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
-      "ref": "scanMissingEntities : res sans valeur initiale",
-      "occurrence": 6
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.mjs",
-      "ref": "lineCount : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 3
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 4
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 5
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 6
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/check-refs.test.mjs",
-      "ref": "scanDeadRefs : res sans valeur initiale",
-      "occurrence": 7
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 3
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.mjs",
-      "ref": "rendu : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.mjs",
-      "ref": "rendu : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 3
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 4
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 5
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 6
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 7
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/coverage.test.mjs",
-      "ref": "rendre : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/reanchor.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/raw/releve.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "scripts/source/lecteur-fs.mjs",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/night-stake-form.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/night-stakes-rules.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/prop-art-labels-failfast.test.ts",
-      "ref": "labelDArt : racine sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/prop-art-labels-failfast.test.ts",
-      "ref": "labelDArt : racine sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/prop-art-labels-failfast.test.ts",
-      "ref": "labelDArt : racine sans valeur initiale",
-      "occurrence": 3
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/prop-art-labels-failfast.test.ts",
-      "ref": "labelDArt : racine sans valeur initiale",
-      "occurrence": 4
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/prop-art-labels-failfast.test.ts",
-      "ref": "labelDArt : racine sans valeur initiale",
-      "occurrence": 5
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/regles-soudures.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/decoupe.test.ts",
-      "ref": "readFileSync : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/decoupe.test.ts",
-      "ref": "readFileSync : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/decoupe.test.ts",
-      "ref": "readFileSync : res sans valeur initiale",
-      "occurrence": 3
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/decoupe.test.ts",
-      "ref": "readFileSync : res sans valeur initiale",
-      "occurrence": 4
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/decoupe.test.ts",
-      "ref": "readFileSync : res sans valeur initiale",
-      "occurrence": 5
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/index-imprime.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/prose-source.test.ts",
-      "ref": "readFileSync : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/data/source/prose-source.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/raw-ref-integrity.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 1
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/raw-ref-integrity.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 2
-    },
-    {
-      "famille": "variable sans valeur initiale",
-      "fichier": "src/raw-ref-integrity.test.ts",
-      "ref": "readText : res sans valeur initiale",
-      "occurrence": 3
     }
   ]
 }

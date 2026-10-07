@@ -1,11 +1,11 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { apprendre, estimationsDe, exportsTouches, lintDesTouches, lireArguments, memosDe, murEstime, paliersDe, perimetreDuDepot, planDExecution, signalDe, surcoutObserve, versionDesMemos } from './perimetre.mjs'
+import { apprendre, dossierDesMesures, estimationsDe, exportsTouches, lintDesTouches, lireArguments, memosDe, mesuresDe, murEstime, paliersDe, perimetreDuDepot, planDExecution, signalDe, surcoutObserve, versionDesMemos } from './perimetre.mjs'
 
 const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
 
@@ -226,7 +226,7 @@ test('planDExecution : sous budget, tout est lancé ; seul le touché est hors b
   assert.deepEqual(planDExecution(RETENUS, { budget: 31, estimations: ESTIMATIONS }).aLaCI, ['z.test.mjs'], 'la racine balayée compte au budget')
 })
 
-test('planDExecution : la coupe passe À L’INTÉRIEUR d’un rang, le moins cher d’abord, et tout ce qui suit part à la CI', () => {
+test('planDExecution : la coupe passe À L’INTÉRIEUR d’un rang, le moins cher d’abord ; ce qui ne tient plus part à la CI', () => {
   const plan = planDExecution(RETENUS, { budget: 12, estimations: ESTIMATIONS })
   assert.deepEqual([plan.lances, plan.aLaCI], [['t.test.mjs', 'r.test.mjs', 'b.test.mjs'], ['a.test.mjs', 'z.test.mjs']])
   assert.deepEqual(plan.rangs.map((r) => [r.rang, r.murMs, r.lances, r.aLaCI]),
@@ -236,7 +236,14 @@ test('planDExecution : la coupe passe À L’INTÉRIEUR d’un rang, le moins ch
 test('planDExecution : budget 0 = touché seul, hors budget ; la racine balayée part à la CI', () => {
   assert.deepEqual(planDExecution(RETENUS, { budget: 0, estimations: ESTIMATIONS }).lances, ['t.test.mjs'])
   assert.deepEqual(planDExecution(RETENUS, { budget: 0 }).lances, ['t.test.mjs'])
-  assert.deepEqual(planDExecution(RETENUS, { budget: 5, estimations: ESTIMATIONS }).aLaCI, ['r.test.mjs', 'b.test.mjs', 'a.test.mjs', 'z.test.mjs'])
+  assert.deepEqual(planDExecution(RETENUS, { budget: 5, estimations: ESTIMATIONS }).aLaCI, ['r.test.mjs', 'a.test.mjs', 'z.test.mjs'])
+})
+
+test('planDExecution : le SAC se remplit — A tient, B déborde et part à la CI, C tient dans le reste et est lancé (#2474)', () => {
+  const retenus = new Map([['a.test.mjs', { rang: 1, specificite: 1 }], ['b.test.mjs', { rang: 1, specificite: 2 }], ['c.test.mjs', { rang: 1, specificite: 3 }]])
+  const estimations = new Map([['a.test.mjs', { ms: 4000 }], ['b.test.mjs', { ms: 9000 }], ['c.test.mjs', { ms: 2000 }]])
+  const plan = planDExecution(retenus, { budget: 10, estimations, workers: { node: 1 } })
+  assert.deepEqual([plan.lances, plan.aLaCI], [['a.test.mjs', 'c.test.mjs'], ['b.test.mjs']])
 })
 
 test('planDExecution : dans un rang, le SIGNAL passe avant le prix', () => {
@@ -262,29 +269,38 @@ test('planDExecution : le budget porte sur le MUR, la somme répartie sur les wo
     'le surcoût de lancement compte au mur')
 })
 
-test('murEstime : Σ durées / workers effectifs (au plus un par fichier) + surcoût, par famille lancée ; les familles s’additionnent', () => {
+test('murEstime : max(Σ durées / workers effectifs (au plus un par fichier), plus long fichier) + surcoût, par famille lancée ; les familles s’additionnent', () => {
   const estimations = new Map([['src/a.test.ts', { ms: 4000 }], ['src/b.test.ts', { ms: 2000 }], ['scripts/n.test.mjs', { ms: 3000 }]])
   const workers = { vitest: 4, node: 8 }
-  assert.equal(murEstime(['src/a.test.ts', 'src/b.test.ts'], { estimations, workers }), 3000)
+  assert.equal(murEstime(['src/a.test.ts', 'src/b.test.ts'], { estimations, workers }), 4000, 'le plus long fichier borne le mur')
   assert.equal(murEstime(['src/a.test.ts', 'src/b.test.ts'], { estimations, workers: { vitest: 1 } }), 6000)
-  assert.equal(murEstime(['src/a.test.ts', 'src/b.test.ts', 'scripts/n.test.mjs'], { estimations, workers, surcouts: { vitest: 500, node: 700 } }), 3000 + 500 + 3000 + 700)
+  assert.equal(murEstime(['src/a.test.ts', 'src/b.test.ts', 'scripts/n.test.mjs'], { estimations, workers, surcouts: { vitest: 500, node: 700 } }), 4000 + 500 + 3000 + 700)
   assert.equal(murEstime(['scripts/n.test.mjs'], { estimations, workers, surcouts: { vitest: 500, node: 700 } }), 3700, 'une famille non lancée ne paie pas son surcoût')
   assert.equal(murEstime([], { estimations, workers, surcouts: { vitest: 500 } }), 0)
 })
 
-test('surcoutObserve : mur réel − Σ durées / workers effectifs, plancher 0', () => {
+test('surcoutObserve : mur réel − max(Σ durées / workers effectifs, plus long fichier), plancher 0', () => {
+  assert.equal(surcoutObserve('node', 52_500, [50_000, 500, 500], { node: 15 }), 2500, 'le plus long fichier n’est pas du surcoût')
   assert.equal(surcoutObserve('node', 10_000, [4000, 4000], { node: 4 }), 6000)
   assert.equal(surcoutObserve('vitest', 10_000, [4000, 4000], { vitest: 1, node: 4 }), 2000)
   assert.equal(surcoutObserve('vitest', 1000, [4000, 4000], { vitest: 1 }), 0)
 })
 
-test('estimationsDe : durée apprise, sinon médiane de la famille, sinon repli de la famille', () => {
+test('estimationsDe : durée apprise, sinon INCONNUE — aucune durée devinée', () => {
   const durees = { 'scripts/a.test.mjs': 100, 'scripts/b.test.mjs': 300, 'scripts/c.test.mjs': 900 }
-  assert.deepEqual([...estimationsDe(['scripts/a.test.mjs', 'scripts/z.test.mjs', 'src/v.test.ts'], durees, { vitest: 7, node: 5 })], [
+  assert.deepEqual([...estimationsDe(['scripts/a.test.mjs', 'scripts/z.test.mjs', 'src/v.test.ts'], durees)], [
     ['scripts/a.test.mjs', { ms: 100, source: 'apprise' }],
-    ['scripts/z.test.mjs', { ms: 300, source: 'médiane' }],
-    ['src/v.test.ts', { ms: 7, source: 'repli' }],
+    ['scripts/z.test.mjs', { ms: null, source: 'inconnue' }],
+    ['src/v.test.ts', { ms: null, source: 'inconnue' }],
   ])
+})
+
+test('planDExecution : une durée INCONNUE part à la CI hors du rang touché, sans couper les suivants ; touchée, elle est lancée hors estimation', () => {
+  const retenus = new Map([['t.test.mjs', { rang: 0 }], ['u.test.mjs', { rang: 0 }], ['a.test.mjs', { rang: 1 }], ['i.test.mjs', { rang: 1 }], ['b.test.mjs', { rang: 2 }]])
+  const estimations = estimationsDe([...retenus.keys()], { 't.test.mjs': 1000, 'a.test.mjs': 2000, 'b.test.mjs': 3000 })
+  const plan = planDExecution(retenus, { budget: 10, estimations })
+  assert.deepEqual([plan.lances, plan.aLaCI], [['u.test.mjs', 't.test.mjs', 'a.test.mjs', 'b.test.mjs'], ['i.test.mjs']])
+  assert.deepEqual(plan.rangs.map((r) => [r.rang, r.lances, r.aLaCI, r.inconnues]), [['touché', 2, 0, 1], ['racine balayée', 1, 1, 1], ['import d=1', 1, 0, 0]])
 })
 
 test('exportsTouches : modifié, ajouté, supprimé, renommé ; inchangé exclu ; module neuf = tout', () => {
@@ -332,6 +348,15 @@ test('mémos signés par le tsconfig : le même blob sous deux tsconfig ne parta
   assert.deepEqual(memosDe(dossier, versionDesMemos(c)).lire('specificateurs', '.ts:blob'), [])
 })
 
+test('mémos signés par le texte de `perimetre.mjs`, qui calcule les mémos `declarations` et `liaisons` (C2)', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-versionnant-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const meme = () => 'texte'
+  const autre = (f) => f === 'scripts/test/perimetre.mjs' ? 'autre texte' : 'texte'
+  assert.equal(versionDesMemos(racine, meme), versionDesMemos(racine, meme))
+  assert.notEqual(versionDesMemos(racine, autre), versionDesMemos(racine, meme))
+})
+
 test('lint : lancé sur les fichiers touchés PRÉSENTS à extension lintée, son code de sortie compte', () => {
   const appels = []
   const lancer = (racine, fichiers, { cwd }) => { appels.push([racine, fichiers, cwd]); return { defauts: [], codeSortie: 1 } }
@@ -346,16 +371,52 @@ test('lireArguments : --tete exige --base, --budget exige un entier de secondes'
   assert.throws(() => lireArguments(['--budget', 'beaucoup']), /--budget attend un entier/)
 })
 
-test('apprendre : les rapports Vitest et node (arrondis) se fusionnent dans durees.json, chemins relatifs, puis s’effacent', (t) => {
+test('apprendre : les rapports Vitest et node (arrondis) se fusionnent dans les mesures, chemins relatifs, puis s’effacent', (t) => {
   const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-'))
   t.after(() => rmSync(racine, { recursive: true, force: true }))
   const cache = join(racine, 'cache')
+  const commun = join(racine, 'commun')
   mkdirSync(cache)
   const rapport = (famille) => join(cache, `${famille}-1.json`)
-  writeFileSync(join(cache, 'durees.json'), JSON.stringify({ 'src/ancien.test.ts': 7, 'src/v.test.ts': 1 }))
+  mesuresDe(commun).ecrire('durees.json', { 'src/ancien.test.ts': 7, 'src/v.test.ts': 1 })
   writeFileSync(rapport('vitest'), JSON.stringify({ [join(racine, 'src', 'v.test.ts')]: 250.2 }))
   writeFileSync(rapport('node'), JSON.stringify({ [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }))
-  assert.deepEqual(apprendre(racine, cache, rapport), { 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
-  assert.deepEqual(JSON.parse(readFileSync(join(cache, 'durees.json'), 'utf8')), { 'src/ancien.test.ts': 7, 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
+  assert.deepEqual(apprendre(racine, rapport, mesuresDe(commun)), { 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
+  assert.deepEqual(mesuresDe(commun).lire('durees.json'), { 'src/ancien.test.ts': 7, 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
   assert.deepEqual([existsSync(rapport('vitest')), existsSync(rapport('node'))], [false, false])
+})
+
+test('mesures : sous le répertoire git COMMUN, le même depuis un worktree lié', (t) => {
+  const racine = forger(t, {}, {}, { commiter: false })
+  const lie = mkdtempSync(join(tmpdir(), 'perimetre-lie-'))
+  rmSync(lie, { recursive: true, force: true })
+  t.after(() => rmSync(lie, { recursive: true, force: true }))
+  gitDe(racine)('worktree', 'add', '-q', lie)
+  assert.equal(dossierDesMesures(lie), dossierDesMesures(racine))
+  assert.equal(dossierDesMesures(racine).split(/[\\/]/).slice(-2).join('/'), '.git/perimetre')
+})
+
+test('mesures : un mémo JSON valide qui n’est pas un objet (null, tableau, nombre) se lit vide et se fusionne sans lever', (t) => {
+  const commun = mkdtempSync(join(tmpdir(), 'perimetre-memo-forme-'))
+  t.after(() => rmSync(commun, { recursive: true, force: true }))
+  for (const texte of ['null', '[1, 2]', '42']) {
+    writeFileSync(join(commun, 'durees.json'), texte)
+    assert.deepEqual(mesuresDe(commun).lire('durees.json'), {}, texte)
+    mesuresDe(commun).ecrire('durees.json', { 'src/v.test.ts': 250 })
+    assert.deepEqual(mesuresDe(commun).lire('durees.json'), { 'src/v.test.ts': 250 }, texte)
+  }
+})
+
+test('mesures : des écrivains CONCURRENTS ne perdent aucune écriture', async (t) => {
+  const commun = mkdtempSync(join(tmpdir(), 'perimetre-concurrents-'))
+  t.after(() => rmSync(commun, { recursive: true, force: true }))
+  const module = new URL('./perimetre.mjs', import.meta.url).href
+  const ecrivain = (i) => `const { mesuresDe } = await import(${JSON.stringify(module)})
+const m = mesuresDe(${JSON.stringify(commun)})
+for (let k = 0; k < 15; k += 1) m.ecrire('durees.json', { ['e${i}-' + k]: k })`
+  const { spawn } = await import('node:child_process')
+  const codes = await Promise.all([0, 1, 2, 3, 4, 5].map((i) => new Promise((fini) =>
+    spawn(process.execPath, ['--input-type=module', '-e', ecrivain(i)], { stdio: 'inherit' }).on('exit', fini))))
+  assert.deepEqual(codes, [0, 0, 0, 0, 0, 0])
+  assert.equal(Object.keys(mesuresDe(commun).lire('durees.json')).length, 6 * 15)
 })

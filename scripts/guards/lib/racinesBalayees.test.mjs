@@ -120,3 +120,52 @@ test('rien n’est deviné : paramètre d’une fonction locale, appel inconnu',
 test('evaluer : une expression sans module', () => {
   assert.deepEqual(evaluer({ k: 'join', v: [{ k: 'chemin', v: '' }, { k: 'lit', v: 'src' }] }), [{ chemin: 'src' }])
 })
+
+test('INVARIANT : aucune branche perdue — un site non littéralement `null` ne rend jamais pour seules valeurs des formes nulles (folioLineAlign.mjs:189-192)', () => {
+  const modules = {
+    'scripts/raw/lib.mjs': "import { join } from 'node:path'\nlet sourcePrincipale = null\nexport function sourceDe() {\n  if (sourcePrincipale) return sourcePrincipale\n" +
+      "  sourcePrincipale = join(calculer(), 'Source')\n  return sourcePrincipale\n}\nexport const livreDuSigle = (abbr, registre) => registre.find((b) => b.abbr === abbr) ?? null\n",
+    'scripts/guards/folio.mjs': "import { readdirSync, readFileSync } from 'node:fs'\nimport { join } from 'node:path'\nimport { livreDuSigle, sourceDe } from '../raw/lib.mjs'\n" +
+      "export function lecteurDeChapitres(books) {\n  return (abbr) => {\n    const dir = livreDuSigle(abbr, books)?.dir\n    return dir ? readdirSync(dir) : null\n  }\n}\n" +
+      "readFileSync(join(sourceDe(), 'livre.pdf'))\nconst env = () => ({ ...process.env, AUTRE: 'x' })\nreadFileSync(env().CONFIG)\n" +
+      "function lireSous(dir = 'docs') { return readdirSync(dir) }\nlireSous({}.dir)\n",
+    'scripts/guards/folio.test.mjs': "import { readFileSync } from 'node:fs'\nimport { lecteurDeChapitres } from './folio.mjs'\n" +
+      "lecteurDeChapitres(JSON.parse(readFileSync('src/data/books.json', 'utf8')))\n",
+  }
+  const evaluateur = evaluateurDe(modules)
+  const sites = Object.keys(modules).flatMap((f) => evaluateur.sitesDe(f).map((s) => ({ ...s, f })))
+  const nul = (v) => v.non === 'forme NullKeyword'
+  assert.deepEqual(sites.filter((s) => !s.relais && s.valeurs.every(nul)).map((s) => `${s.f}:${s.ligne}`), [])
+  assert.deepEqual(sites.map((s) => [`${s.f}:${s.ligne} ${s.appel}`, s.relais, s.valeurs]), [
+    ['scripts/guards/folio.mjs:7 readdirSync', true, [{ non: 'forme NullKeyword' }]],
+    ['scripts/guards/folio.mjs:10 readFileSync', false, [{ non: 'forme NullKeyword' }, { non: 'appel calculer' }]],
+    ['scripts/guards/folio.mjs:12 readFileSync', false, [{ non: 'process introuvable' }]],
+    ['scripts/guards/folio.mjs:13 readdirSync', true, []],
+    ['scripts/guards/folio.mjs:14 lireSous', false, [{ chemin: 'docs' }]],
+    ['scripts/guards/folio.test.mjs:3 lecteurDeChapitres', false, [{ non: 'appel JSON.parse' }, { non: 'forme NullKeyword' }]],
+    ['scripts/guards/folio.test.mjs:3 readFileSync', false, [{ chemin: 'src/data/books.json' }]],
+  ])
+})
+
+test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit qui la vise ; la récurrence se nomme', () => {
+  const modules = {
+    // `scripts/raw/_lib.mjs:437-446` : `let res` sans valeur initiale, posé par branches.
+    'scripts/raw/lib.mjs': "import { join } from 'node:path'\nconst cache = new Map()\nexport function chapitre(abbr) {\n  let res\n" +
+      "  if (cache.has(abbr)) {\n    res = cache.get(abbr)\n  } else {\n    const dir = 'Source/livre'\n    res = null\n" +
+      "    if (dir) res = { path: join(dir, 'ch.md') }\n  }\n  return res\n}\n",
+    // `src/data/prop-art-labels-failfast.test.ts:16-19` : `let racine` posé dans `beforeAll`.
+    // `scripts/docs/lib/chemin-mesure.mjs:19-24` : `ancetre = parent`, parent = `dirname(ancetre)`.
+    'scripts/x/garde.test.mjs': "import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs'\nimport { tmpdir } from 'node:os'\n" +
+      "import path, { join } from 'node:path'\nimport { chapitre } from '../raw/lib.mjs'\nreadFileSync(chapitre('LDB').path)\n" +
+      "let racine\nbeforeAll(() => { racine = mkdtempSync(join(tmpdir(), 'x-')) })\nit('lit', () => readdirSync(join(racine, 'defs')))\n" +
+      "export function ancetreExistant(abs) {\n  let ancetre = abs\n  while (!existsSync(ancetre)) {\n    const parent = path.dirname(ancetre)\n" +
+      "    if (parent === ancetre) return null\n    ancetre = parent\n  }\n  return ancetre\n}\nlet n = 'a.json'\nn += '.bak'\nreadFileSync(n)\n",
+  }
+  const sites = evaluateurDe(modules).sitesDe('scripts/x/garde.test.mjs')
+  assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.relais, s.valeurs]), [
+    ['5 readFileSync', false, [{ non: 'appel cache.get' }, { non: 'forme NullKeyword' }, { chemin: 'Source/livre/ch.md' }]],
+    ['8 readdirSync', false, [{ hors: true }]],
+    ['11 existsSync', true, [{ non: 'ancetre réaffectée en récurrence' }]],
+    ['20 readFileSync', false, [{ chemin: 'a.json' }, { non: 'n réaffectée' }]],
+  ])
+})

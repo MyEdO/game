@@ -8,7 +8,11 @@
 //   · VALEUR DE RETOUR : l'appel d'une fonction du dépôt s'évalue sur ses `return`, paramètres liés ; un
 //     objet rendu s'évalue champ par champ (déstructuration, accès de propriété, défaut d'un champ
 //     absent) ; `map`/`flatMap` rendent les valeurs de leur rappel (`PROJECTIONS`) ; une boucle `for…of`,
-//     déstructurée ou non, parcourt les valeurs de son tableau.
+//     déstructurée ou non, parcourt les valeurs de son tableau ; le champ absent d'un objet étalé se lit
+//     dans ses étalements, l'argument absent prend le défaut de son paramètre.
+//   · Une liaison RÉAFFECTÉE vaut sa valeur initiale et le membre droit de chaque `=` (`??=`, `||=`, `&&=`)
+//     qui la vise ; une réaffectation illisible rend `<nom> réaffectée`, un membre droit qui revient à la
+//     liaison `<nom> réaffectée en récurrence`.
 // L'arbre syntaxique se lit une fois par module (`lectureDeModule`, sérialisable, mémoïsable) ;
 // l'évaluation attend la résolution des imports (`evaluateurDuDepot`), et `tracer` rend les REQUÊTES dont
 // elle dépend (`requeteDe`). Ce qui ne se lit pas ainsi n'est pas deviné : il rend `{ non: raison }`, et
@@ -155,40 +159,107 @@ export function lecteurDExpressions(rel, arbre) {
     return index
   }
 
-  const lier = (id, profondeur) => {
-    if (id.text === '__dirname') return { k: 'chemin', v: dossier }
+  /** Le nœud qui LIE l'identifiant `id` : la fonction dont il est paramètre (`parametre`), la boucle qui le
+   *  déclare (`boucle`), ou la liste d'instructions qui le déclare (`decl`) ; `null` s'il est introuvable. */
+  const liaisonDe = (id) => {
     const texte = id.text
     for (let n = parents.get(id), enfant = id; n; enfant = n, n = parents.get(n)) {
-      if (estFonction(n) && parametresDe(n).some((noms) => noms.has(texte))) {
-        const index = parametresDe(n).findIndex((noms) => noms.has(texte))
-        const appel = parents.get(n)
-        if (appel && ts.isCallExpression(appel) && appel.arguments[0] === n && ts.isPropertyAccessExpression(appel.expression) &&
-          ITERATEURS.has(appel.expression.name.text) && index === 0)
-          return parChamps(expr(appel.expression.expression, profondeur), champsVers(n.parameters[0].name, id.text), id.text, n.parameters[0].name, profondeur)
-        if (!idDe.has(n)) return non(`paramètre ${id.text}`)
-        const motif = n.parameters[index].name
-        return parChamps({ k: 'param', fn: idDe.get(n), index, nom: id.text }, champsVers(motif, id.text), id.text, motif, profondeur)
-      }
+      if (estFonction(n) && parametresDe(n).some((noms) => noms.has(texte))) return { n, parametre: true }
       if ((ts.isForOfStatement(n) || ts.isForInStatement(n)) && enfant !== n.initializer && ts.isVariableDeclarationList(n.initializer) &&
-        n.initializer.declarations.some((d) => lie(d.name, id.text))) {
-        const [d] = n.initializer.declarations
-        return ts.isForOfStatement(n) ? parChamps(expr(n.expression, profondeur), champsVers(d.name, id.text), id.text, d.name, profondeur)
-          : non(`variable de boucle ${id.text}`)
-      }
+        n.initializer.declarations.some((d) => lie(d.name, texte))) return { n, boucle: true }
       const instructions = ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n) || ts.isCaseClause(n) || ts.isDefaultClause(n) ? n.statements : null
-      if (!instructions) continue
-      const decl = declarationsDuBloc(instructions).get(texte)
-      if (!decl) continue
-      if (decl.fonction) return idDe.has(decl.fonction) ? { k: 'fn', id: texte } : non(`fonction locale ${texte}`)
-      if (decl.variable) {
-        const d = decl.variable
-        return !d.initializer ? non(`${texte} sans valeur initiale`)
-          : parChamps(expr(d.initializer, profondeur), champsVers(d.name, texte), texte, d.name, profondeur)
-      }
-      if (decl.importe) return { k: 'importe', spec: decl.importe, nom: decl.nom }
-      return non(`import par défaut ou espace ${texte}`)
+      const decl = instructions && declarationsDuBloc(instructions).get(texte)
+      if (decl) return { n, decl }
     }
-    return non(`${texte} introuvable`)
+    return null
+  }
+
+  /** Les AFFECTATIONS de chaque nœud liant (`liaisonDe`), nom par nom : `droits`, les membres droits qui se lisent
+   *  (`=`, `??=`, `||=`, `&&=` : la valeur devient l'ancienne ou le membre droit) ; `opaque`, une cible qui ne se
+   *  lit pas (affectation arithmétique, `++`/`--`, motif d'affectation, boucle `for…of`/`for…in` sans
+   *  déclaration). Calculées une fois par module. */
+  let affectations = null
+  const LISIBLES = new Set([ts.SyntaxKind.EqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken, ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken])
+  const affectationsDe = () => {
+    if (affectations) return affectations
+    affectations = new Map()
+    const poser = (cible, droit) => {
+      if (!cible) return
+      if (ts.isParenthesizedExpression(cible) || ts.isSpreadElement(cible) || ts.isSpreadAssignment(cible)) return poser(cible.expression, null)
+      if (ts.isIdentifier(cible)) {
+        const liaison = liaisonDe(cible)
+        if (!liaison) return
+        const noms = affectations.get(liaison.n) ?? affectations.set(liaison.n, new Map()).get(liaison.n)
+        const fiche = noms.get(cible.text) ?? noms.set(cible.text, { droits: [], opaque: false }).get(cible.text)
+        if (droit) fiche.droits.push(droit)
+        else fiche.opaque = true
+        return
+      }
+      if (ts.isArrayLiteralExpression(cible)) for (const e of cible.elements) poser(e, null)
+      if (ts.isObjectLiteralExpression(cible))
+        for (const p of cible.properties) poser(ts.isShorthandPropertyAssignment(p) ? p.name : ts.isPropertyAssignment(p) ? p.initializer : p, null)
+    }
+    const visiter = (x) => {
+      if (ts.isBinaryExpression(x) && x.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && x.operatorToken.kind <= ts.SyntaxKind.LastAssignment)
+        poser(x.left, LISIBLES.has(x.operatorToken.kind) && ts.isIdentifier(x.left) ? x.right : null)
+      if ((ts.isPrefixUnaryExpression(x) || ts.isPostfixUnaryExpression(x)) &&
+        (x.operator === ts.SyntaxKind.PlusPlusToken || x.operator === ts.SyntaxKind.MinusMinusToken)) poser(x.operand, null)
+      if ((ts.isForOfStatement(x) || ts.isForInStatement(x)) && !ts.isVariableDeclarationList(x.initializer)) poser(x.initializer, null)
+      x.forEachChild(visiter)
+    }
+    visiter(arbre)
+    return affectations
+  }
+
+  /** La valeur de l'identifiant `id`, lié par `liaison` (`liaisonDe`), à sa liaison seule. */
+  const valeurDeLiaison = (id, { n, parametre, boucle, decl }, profondeur) => {
+    const texte = id.text
+    if (parametre) {
+      const index = parametresDe(n).findIndex((noms) => noms.has(texte))
+      const appel = parents.get(n)
+      if (appel && ts.isCallExpression(appel) && appel.arguments[0] === n && ts.isPropertyAccessExpression(appel.expression) &&
+        ITERATEURS.has(appel.expression.name.text) && index === 0)
+        return parChamps(expr(appel.expression.expression, profondeur), champsVers(n.parameters[0].name, texte), texte, n.parameters[0].name, profondeur)
+      if (!idDe.has(n)) return non(`paramètre ${texte}`)
+      const motif = n.parameters[index].name
+      return parChamps({ k: 'param', fn: idDe.get(n), index, nom: texte }, champsVers(motif, texte), texte, motif, profondeur)
+    }
+    if (boucle) {
+      const [d] = n.initializer.declarations
+      return ts.isForOfStatement(n) ? parChamps(expr(n.expression, profondeur), champsVers(d.name, texte), texte, d.name, profondeur)
+        : non(`variable de boucle ${texte}`)
+    }
+    if (decl.fonction) return idDe.has(decl.fonction) ? { k: 'fn', id: texte } : non(`fonction locale ${texte}`)
+    if (decl.variable) {
+      const d = decl.variable
+      return !d.initializer ? non(`${texte} sans valeur initiale`)
+        : parChamps(expr(d.initializer, profondeur), champsVers(d.name, texte), texte, d.name, profondeur)
+    }
+    if (decl.importe) return { k: 'importe', spec: decl.importe, nom: decl.nom }
+    return non(`import par défaut ou espace ${texte}`)
+  }
+
+  /** Les liaisons réaffectées dont la lecture est EN COURS : un membre droit qui y revient est une récurrence. */
+  const enLecture = []
+  /** La valeur de l'identifiant `id` : celle de sa liaison et, s'il est RÉAFFECTÉ (`affectationsDe`), celle de
+   *  chaque membre droit qui le vise ; ce qui ne se lit pas rend `<nom> réaffectée`, le membre droit qui
+   *  dépend de la liaison elle-même `<nom> réaffectée en récurrence`. */
+  const lier = (id, profondeur) => {
+    if (id.text === '__dirname') return { k: 'chemin', v: dossier }
+    const liaison = liaisonDe(id)
+    if (!liaison) return non(`${id.text} introuvable`)
+    const fiche = affectationsDe().get(liaison.n)?.get(id.text)
+    if (!fiche) return valeurDeLiaison(id, liaison, profondeur)
+    if (enLecture.some(([n, texte]) => n === liaison.n && texte === id.text)) return non(`${id.text} réaffectée en récurrence`)
+    enLecture.push([liaison.n, id.text])
+    try {
+      const sansInitiale = liaison.decl?.variable && !liaison.decl.variable.initializer && fiche.droits.length
+      return { k: 'union', v: [
+        ...(sansInitiale ? [] : [valeurDeLiaison(id, liaison, profondeur)]),
+        ...fiche.droits.map((droit) => expr(droit, profondeur)),
+        ...(fiche.opaque ? [non(`${id.text} réaffectée`)] : []),
+      ] }
+    } finally { enLecture.pop() }
   }
 
   const expr = (n, profondeur = 0) => {
@@ -211,11 +282,14 @@ export function lecteurDExpressions(rel, arbre) {
     }
     if (ts.isObjectLiteralExpression(n)) {
       const v = {}
+      const etales = []
       for (const prop of n.properties) {
         if (ts.isPropertyAssignment(prop) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) v[prop.name.text] = expr(prop.initializer, p)
         else if (ts.isShorthandPropertyAssignment(prop)) v[prop.name.text] = lier(prop.name, p)
+        else if (ts.isSpreadAssignment(prop)) etales.push(expr(prop.expression, p))
+        else if (ts.isPropertyAssignment(prop)) etales.push(non(`propriété calculée ${prop.name.getText(arbre)}`))
       }
-      return { k: 'objet', v }
+      return { k: 'objet', v, ...(etales.length ? { etales } : {}) }
     }
     if (ts.isPropertyAccessExpression(n)) {
       if (estImportMeta(n.expression) && n.name.text === 'dirname') return { k: 'chemin', v: dossier }
@@ -398,17 +472,19 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       case 'liste': case 'union': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
       case 'importe': return importe(ctx.f, e.spec, e.nom)
       case 'fn': return [{ fn: { f: ctx.f, id: e.id } }]
-      case 'objet': return [{ objet: e.v, ctx }]
+      case 'objet': return [{ objet: e.v, ctx, ...(e.etales ? { etales: e.etales } : {}) }]
       case 'param': {
         if (ctx.env?.fn !== e.fn) return [{ non: `paramètre ${e.nom}` }]
         if (!ctx.env.args) return [{ relais: `${ctx.f}#${e.fn}` }]
         const decl = lecture(ctx.f)?.fonctions[e.fn]?.params[e.index]
         if (decl?.reste) return ctx.env.args.slice(e.index).flat()
+        const defaut = () => decl?.defaut ? valeurs(decl.defaut, ctx) : [{ absent: true }]
         const arg = ctx.env.args[e.index]
-        if (arg) return arg
-        return decl?.defaut ? valeurs(decl.defaut, ctx) : [{ absent: true }]
+        return arg ? uniques(arg.flatMap((v) => 'absent' in v ? defaut() : [v])) : defaut()
       }
       case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
+        : 'objet' in o && o.etales ? uniques(o.etales.flatMap((x) => valeurs({ k: 'champ', de: x, nom: e.nom, texte: e.texte }, o.ctx))
+          .flatMap((v) => 'absent' in v && e.defaut ? valeurs(e.defaut, ctx) : [v]))
         : 'objet' in o || 'absent' in o ? (e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }])
         : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {

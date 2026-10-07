@@ -120,8 +120,9 @@ test('la raison NOMME la commande refusée et le geste de remplacement', () => {
   const { reason } = pourCodeur('npm run lint')
   assert.match(reason, /« npm run lint »/)
   assert.match(reason, /pousser la branche/)
-  assert.match(reason, /`npm run test:perimetre`/)
+  assert.match(reason, /Avant de rendre ou de committer : `npm run test:perimetre`/)
   assert.match(reason, /typecheck:fast/)
+  assert.doesNotMatch(reason, /\b(?:te|tu|joue)\b/, 'la raison vaut pour tout appelant, jamais adressée au seul codeur')
 })
 
 test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)', () => {

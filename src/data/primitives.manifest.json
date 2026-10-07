@@ -1595,6 +1595,33 @@
     "verrou": "racinesBalayees.test.mjs"
   },
   {
+    "id": "ecritureJsonAtomique",
+    "type": "primitives.manifest",
+    "label": "ecrireJsonAtomique",
+    "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
+    "concept": "écriture d'une valeur JSON en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
+    "perimetre": "journal du train (`publier.mjs`), cache de la vigie (`vigie.mjs`), mesures du périmètre de tests (`perimetre.mjs`)",
+    "verrou": "ecritureJsonAtomique.test.mjs"
+  },
+  {
+    "id": "capaciteDuLanceur",
+    "type": "primitives.manifest",
+    "label": "capaciteDuLanceur",
+    "fichier": "scripts/test/partition.mjs",
+    "concept": "capacité servie par le lanceur de tests sous un environnement : cœurs et mémoire disponible",
+    "perimetre": "workers de `run.mjs` et mur estimé de `perimetre.mjs`",
+    "verrou": "—"
+  },
+  {
+    "id": "ancetresDe",
+    "type": "primitives.manifest",
+    "label": "ancetresDe/LECTURES_DES_DEPENDANCES",
+    "fichier": "scripts/git-hooks/docs-rebuild.mjs",
+    "concept": "dossiers qui contiennent un chemin, du parent à la racine du dépôt ; manifestes de dépendances dont les lectures ne sont pas mesurées",
+    "perimetre": "sélection des docs dérivés par lectures (`docs-rebuild.mjs`) et périmètre de tests (`perimetre.mjs`)",
+    "verrou": "docs-rebuild.test.mjs"
+  },
+  {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
     "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports",
