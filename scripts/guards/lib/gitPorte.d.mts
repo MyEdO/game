@@ -6,6 +6,11 @@ declare const MARQUE_DEPOT: unique symbol;
 /** Le DÉPÔT git d'un `cwd` (`depotDe`) : une poignée opaque et MARQUÉE, premier paramètre de chaque
  *  question ; un `{ cwd }` écrit à la main n'en est pas une. */
 export type Depot = Readonly<{ cwd: string; [MARQUE_DEPOT]: true }>;
+export type RequeteMesuree = { args: string[]; cwd: string; canal?: 'stdout'; status: number | null; stdout: string; stderr: string };
+export const MARQUE_RACINE_MESUREE: '<RACINE>';
+export function verifierRequeteMesuree(requete: RequeteMesuree): true;
+export function normaliserRequeteMesuree(racine: string, requete: RequeteMesuree): RequeteMesuree;
+export function relireRequeteMesuree(depot: Depot, requete: RequeteMesuree): RequeteMesuree;
 
 export type DiagnosticGit = {
   status: number | null;

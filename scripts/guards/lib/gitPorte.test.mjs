@@ -21,6 +21,26 @@ import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
 import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 import { createHash } from 'node:crypto'
+import { relireRequeteMesuree, normaliserRequeteMesuree } from './gitPorte.mjs'
+
+test('mesure 2456 : requêtes de cache hostiles refusées avant tout processus', () => {
+  let appels = 0
+  const d = depotDe(tmpdir(), { spawn: () => { appels++; return { status: 0, stdout: '', stderr: '' } } })
+  for (const args of [['add', 'a'], ['log', '--output=sortie'], ['ls-files', '--with-tree=HEAD'], ['-c', 'alias.x=!echo danger', 'x'], ['log', '--ext-diff'], ['rev-parse', '--git-path', '../x']]) {
+    assert.throws(() => relireRequeteMesuree(d, { args, cwd: '', status: 0, stdout: '', stderr: '' }), /non certifiable/)
+  }
+  for (const cwd of ['../dehors', '/dehors', '..\\dehors']) assert.throws(() => relireRequeteMesuree(d, { args: ['ls-files'], cwd, status: 0, stdout: '', stderr: '' }), /non certifiable/)
+  assert.equal(appels, 0)
+})
+
+test('mesure 2456 : les racines dans arguments et résultats sont relatives au dépôt', () => {
+  const q = (racine) => normaliserRequeteMesuree(racine, { args: ['ls-files', '--', `${racine}/a.md`], cwd: '', status: 0, stdout: `${racine}/a.md\n`, stderr: '' })
+  assert.deepEqual(q(join(tmpdir(), 'un')), q(join(tmpdir(), 'deux')))
+  const d = depotDe(tmpdir(), { spawn: () => ({ status: 0, stdout: 'lu', stderr: 'avertissement jamais lu' }) })
+  const stdoutSeul = { args: ['ls-files'], cwd: '', canal: 'stdout', status: 0, stdout: 'lu', stderr: '' }
+  assert.deepEqual(relireRequeteMesuree(d, stdoutSeul), stdoutSeul)
+  assert.equal(relireRequeteMesuree(d, { ...stdoutSeul, canal: undefined }).stderr, 'avertissement jamais lu')
+})
 
 const ZERO = '0'.repeat(40)
 

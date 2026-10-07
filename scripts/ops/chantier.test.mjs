@@ -337,3 +337,52 @@ test('origin injoignable : refus qui NOMME la raison, et aucun worktree posé', 
     assert.equal(existsSync(cibleDe(racine, '46')), false)
   } finally { jeter() }
 })
+
+test('docs ciblés : copie puis docs:build --only, ordre et cwd conservés', () => {
+  const { racine, jeter } = depotAvecOrigin()
+  try {
+    const appels = []
+    const scripts = ['scripts/docs/build-primitives.mjs', 'scripts/docs/build-doctrines.mjs']
+    const vu = creerChantier({
+      racine, nom: '2456-selection',
+      npm: (_cmd, args, opts) => { appels.push({ args, cwd: opts.cwd }); return { status: 0 } },
+      copierDocs: () => ({ ok: true, copies: 30, scriptsARegenerer: scripts }),
+    })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.equal(appels.length, 3)
+    assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--only', ...scripts], cwd: cibleDe(racine, '2456-selection') })
+  } finally { jeter() }
+})
+
+test('docs frais : copie équipée après npm ci, aucun npm docs:build ; repli rouge conserve son diagnostic', () => {
+  for (const frais of [true, false]) {
+    const { racine, jeter } = depotAvecOrigin()
+    try {
+      const appels = []
+      const annonces = []
+      let copieVue
+      const vu = creerChantier({
+        racine, nom: '2456-banc', annoncer: (texte) => annonces.push(texte),
+        npm: (_cmd, args) => {
+          appels.push(args)
+          return { status: args.includes('docs:build') ? 9 : 0 }
+        },
+        copierDocs: (params) => {
+          assert.equal(appels.length, 2)
+          copieVue = params
+          return frais ? { ok: true, copies: 12 } : { ok: false, raison: 'docs absents' }
+        },
+      })
+      assert.equal(copieVue.principal.replaceAll('\\', '/'), racine.replaceAll('\\', '/'))
+      assert.equal(copieVue.cible, cibleDe(racine, '2456-banc'))
+      assert.equal(typeof copieVue.ciblesPures, 'function')
+      assert.equal(vu.ok, frais)
+      assert.equal(appels.length, frais ? 2 : 3)
+      if (frais) assert.match(annonces.join(''), /docs dérivés copiés : 12/)
+      else {
+        assert.match(annonces.join(''), /repli docs:build : docs absents/)
+        assert.match(vu.refus, /docs:build rouge.*code 9/)
+      }
+    } finally { jeter() }
+  }
+})
