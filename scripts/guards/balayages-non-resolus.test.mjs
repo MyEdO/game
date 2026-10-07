@@ -37,7 +37,7 @@ test('une SUBSTITUTION à compte constant rougit des deux côtés', () => {
 
 test('classifieur : valeur nulle et module qui balaie la racine exemptés par règle, chaque autre raison prend sa classe, la ref porte helper et raison', () => {
   const { sites: classes, exemptes } = classer([
-    { fichier: 'a.mjs', helper: 'readFileSync', raison: 'forme NullKeyword' },
+    { fichier: 'a.mjs', helper: 'readFileSync', raison: 'valeur nulle' },
     { fichier: 'r.mjs', helper: 'readFileSync', raison: 'paramètre rels', moduleBalaieLeDepot: true },
     { fichier: 'a.mjs', helper: 'lire', raison: 'appel String(vu.valeur.stdout).trim' },
     { fichier: 'a.mjs', helper: 'lire', raison: 'appel relative' },

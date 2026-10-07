@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `trappings.json` — vocabulaire UNIFIÉ des objets (armes/armures/munitions/possessions/
  * consommables/véhicules-marqueur). Dérivé de l'interface `TrappingData` EXISTANTE
@@ -28,21 +29,24 @@ export const trappingCategorieSchema = enumNomme({
   trapping: 'Équipement',
 });
 
-/** `WeaponDamageSpec` (`src/engine/types.ts`) : `{literal}` OU `{plusBF,flat,bare?}` (`plusBF`
- *  toujours explicite — cf. `filet`/`lance-harpon`/`piege-a-chaines`, ZI). */
+/** ZI */
 const weaponDamageSpecSchema = z.union([
-  z.strictObject({ literal: z.string() }),
-  z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }),
+  nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
+  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }), {
+    plusBF: { label: 'Ajouter le Bonus de Force' },
+    flat: { label: 'Valeur fixe' },
+    bare: { label: 'Mains nues' },
+  }),
 ]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
-const weaponRangeSpecSchema = z.union([z.number(), z.strictObject({ bf: z.number() })]);
+const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);
 
 /** `AmmoRangeMod` : fraction de la Portée de l'arme, ou ± mètres. */
-const ammoRangeModSchema = z.union([z.strictObject({ mult: z.number() }), z.strictObject({ add: z.number() })]);
+const ammoRangeModSchema = z.union([nommerChamps(z.strictObject({ mult: z.number() }), { mult: { label: 'Multiplicateur' } }), nommerChamps(z.strictObject({ add: z.number() }), { add: { label: 'Ajout' } })]);
 
 /** `ItemCapabilities` (`src/data/index.ts`) — sac de drapeaux IRRÉDUCTIBLES, tous optionnels. */
-const itemCapabilitiesSchema = z.strictObject({
+const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   preventForcedDrop: z.boolean().optional(),
   weatherProtection: z.boolean().optional(),
   isShelter: z.boolean().optional(),
@@ -55,12 +59,23 @@ const itemCapabilitiesSchema = z.strictObject({
   disarmImmune: z.boolean().optional(),
   ropeMode: z.boolean().optional(),
   waterContainer: z.boolean().optional(),
+}), {
+  preventForcedDrop: { label: 'Empêche la perte forcée' },
+  weatherProtection: { label: 'Protection contre les intempéries' },
+  isShelter: { label: 'Abri' },
+  isRations: { label: 'Rations' },
+  isGrimoire: { label: 'Grimoire' },
+  lockpicks: { label: 'Crochets' },
+  scurvyGuard: { label: 'Protection contre le scorbut' },
+  sealskin: { label: 'Peau de phoque' },
+  shipParts: { label: 'Pièces de navire' },
+  disarmImmune: { label: 'Immunité au désarmement' },
+  ropeMode: { label: 'Usage de la corde' },
+  waterContainer: { label: 'Récipient d’eau' },
 });
 
-/** `Weapon` (`src/engine/types.ts`) — reflet des seuls champs pertinents en DONNÉE `derivedWeapon`
- *  (prothèse-arme, LDB 73 : « le Crochet est considéré comme une Dague »). `Weapon` porte aussi des
- *  champs runtime-only (`uid`, `hand`…) absents de la donnée d'auteur — non repris ici (jamais observés). */
-const weaponSchema = z.strictObject({
+/** LDB 73 */
+const weaponSchema = nommerChamps(z.strictObject({
   label: z.string(),
   type: z.enum(['melee', 'ranged']),
   damage: weaponDamageSpecSchema,
@@ -71,19 +86,33 @@ const weaponSchema = z.strictObject({
   weaponGroup: z.string().optional(),
   soloSimple: z.boolean().optional(),
   indirect: z.boolean().optional(),
-  /** LDB 62 l.278 — approximation MAISON (le RAW ne liste pas les armes à lame), éditable. */
+  /** LDB 62 l.278 */
   bladed: z.boolean().optional(),
-  /** LDB 47 — approximation MAISON (matière du projectile, non tabulée par le RAW), éditable. */
+  /** LDB 47 */
   organicProjectile: z.boolean().optional(),
   hands: z.union([z.literal(1), z.literal(2)]).optional(),
+}), {
+  label: { label: 'Libellé' },
+  type: { label: 'Type' },
+  damage: { label: 'Dégâts' },
+  reach: { label: 'Allonge' },
+  range: { label: 'Portée' },
+  qualities: { label: 'Qualités' },
+  subType: { label: 'Sous-type' },
+  weaponGroup: { label: 'Groupe d’armes' },
+  soloSimple: { label: 'Simple à manier seul' },
+  indirect: { label: 'Tir indirect' },
+  bladed: { label: 'Arme à lame' },
+  organicProjectile: { label: 'Projectile organique' },
+  hands: { label: 'Mains' },
 });
 
 /** `ConsumableDuration` (`src/engine/consumables.ts`) — UNE durée par objet (minutes/heures/jours). */
-const consumableDurationSchema = z.strictObject({
+const consumableDurationSchema = nommerChamps(z.strictObject({
   minutes: formulaSchema.optional(),
   hours: formulaSchema.optional(),
   days: formulaSchema.optional(),
-});
+}), { minutes: { label: 'Minutes' }, hours: { label: 'Heures' }, days: { label: 'Jours' } });
 
 const doc = document(
   'trappings',
@@ -99,25 +128,20 @@ const doc = document(
     subType: z.union([z.string(), z.null()]),
     weaponGroup: z.string().optional(),
     soloSimple: z.boolean().optional(),
-    /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : la SEULE marque lue par
-     *  `isUnarmed`/`isUnarmedTrapping` (engine/items) pour écarter les poings des armes tenues,
-     *  choisissables et invocables. */
+    /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
-    /** Cette entrée EST l'« Arme improvisée » du catalogue (`LDB 62 l.31`) — marque lue par
-     *  `isImprovisedTrapping` (engine/items). ≠ `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE
-     *  à cet état par l'usure (`LDB 62 l.135`). */
+    /** LDB 62 l.31 ; LDB 62 l.135 */
     improvised: z.literal(true).optional(),
-    /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911) — marque lue par
-     *  `isShieldTrapping` (engine/items). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+    /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.613 */
     shield: z.literal(true).optional(),
     indirect: z.boolean().optional(),
-    /** LDB 62 l.278 — approximation MAISON (le RAW ne liste pas les armes à lame), éditable. */
+    /** LDB 62 l.278 */
     bladed: z.boolean().optional(),
-    /** LDB 47 — approximation MAISON (matière du projectile, non tabulée par le RAW), éditable. */
+    /** LDB 47 */
     organicProjectile: z.boolean().optional(),
-    /** Effets « à la touche » en DONNÉE (`TriggeredEffect[]`) — Canon à flammes nain (ADE II 8 l.243). */
+    /** ADE II 8 l.243 */
     onHitEffects: z.array(triggeredEffectSchema).optional(),
-    /** PORTÉE MINIMALE de tir (bande) — machines de siège à distance (ADE II 8 l.251/253). */
+    /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(['bout-portant', 'courte', 'moyenne', 'longue', 'extreme']).optional(),
     siegeRig: z.string().optional(),
     siegeFootprint: z.number().optional(),
@@ -128,27 +152,20 @@ const doc = document(
     shape: z.string().optional(),
     formChoices: z.array(z.string()).optional(),
     requiresMastery: z.boolean().optional(),
-    /** Paliers d'entraînement d'une PROTHÈSE (LDB 73 l.19/23), dans l'ordre d'achat — cf.
-     *  `TrappingData.prosthesisTraining` : `reduces` = tranche de pénalité rachetée, `grants` = aspect
-     *  entièrement levé, `label` = libellé joueur du palier (éditable, aucun texte en dur à l'écran). */
+    /** LDB 73 l.19/23 */
     prosthesisTraining: z
-      .array(z.strictObject({ px: z.number(), label: z.string(), reduces: z.number().optional(), grants: z.enum(['movement', 'all']).optional() }))
+      .array(nommerChamps(z.strictObject({ px: z.number(), label: z.string(), reduces: z.number().optional(), grants: z.enum(['movement', 'all']).optional() }), {
+        px: { label: 'Points d’Expérience' },
+        label: { label: 'Libellé' },
+        reduces: { label: 'Réductions' },
+        grants: { label: 'Accorde' },
+      }))
       .optional(),
     /** Absent (pas seulement `null`) sur 5 entrées — reflet du contenu réel. */
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable'), z.null()]).optional(),
-    /** Taille PRÉVUE (ADE II 2 l.706-710) — version « taille ogre » d'une possession ordinaire. */
+    /** ADE II 2 l.706-710 */
     sizeFor: sizeCategorySchema.optional(),
-    /** Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast). Deux formes, telles que le livre les
-     *  imprime — mesure sur tout le corpus FR : `\bND\b` y a EXACTEMENT 4 occurrences, toutes en
-     *  cellule de tableau, sans aucune légende ni définition (LDB 62 l.28 Prix, l.31 Prix + Disponibilité,
-     *  LDB 68 l.11 Prix + Disponibilité, LDB 69 l.9 Enc).
-     *  - une des 4 classes (LDB 59 l.15 : « Toutes les Possessions possèdent une Disponibilité :
-     *    Commune, Limitée, Rare ou Exotique. ») ;
-     *  - `'ND'` — la MARQUE imprimée par le livre (LDB 62 l.31, LDB 68 l.11). Son sigle n'est développé
-     *    nulle part dans le corpus FR : son sigle porte sur le COMPORTEMENT seul (champ `maison`), jamais sur
-     *    le sens du mot — hors du commerce ordinaire (`isTradable`, engine/disponibilite) ;
-     *  - `null` — le livre n'imprime AUCUNE valeur : tiret en Disponibilité (LDB 62 l.28, Mains nues) ou
-     *    entrée hors table d'équipement (malepierre LDB 44 l.113-119, sel sacré MDG 10 l.112). */
+    /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 69 l.9 ; LDB 59 l.15 ; LDB 62 l.31 ; LDB 44 l.113-119 ; MDG 10 l.112 */
     availability: z.union([availabilitySchema, z.literal('ND'), z.null()]),
     /** `reach`/`loc`/`pa`/`damage` : portés par les armes/armures — ABSENTS (pas seulement `null`) sur
      *  les consommables/potions sans profil d'arme (`optional()` en plus de `null`, contenu réel). */
@@ -161,29 +178,17 @@ const doc = document(
     qualities: z.array(qualityRefSchema),
     consumable: flowSchema.optional(),
     consumableDuration: consumableDurationSchema.optional(),
-    container: z.strictObject({ capacity: z.number() }).optional(),
-    /** NI d'énergie magique qu'UN GRAMME de cet objet apporte à un Test d'Incantation/Focalisation en
-     *  malepierre (`VDM 02 l.165` : « 1 gramme de malepierre équivaut à 20 NI »). Éditable — jamais une
-     *  constante de code. Absent = objet non consommable comme réserve de NI. */
+    container: nommerChamps(z.strictObject({ capacity: z.number() }), { capacity: { label: 'Capacité' } }).optional(),
+    /** VDM 02 l.165 */
     niPerGram: z.number().optional(),
-    /** Taux de consommation de la réserve de NI par point de DR bonus accordé (`VDM 02 l.163-165` ne
-     *  fixe aucune formule de consommation) — arbitrage documenté par l'entrée elle-même (`maison`
-     *  ci-dessous). Éditable. Absent = 1 (défaut). */
+    /** VDM 02 l.163-165 */
     niConsumedPerDR: z.number().optional(),
-    /** Vocabulaire FERMÉ, validé au CHARGEMENT (fail-fast). Trois formes, telles que le livre les
-     *  imprime en colonne « Prix »/« Coût » — MÊME traitement que `enc`, qui porte déjà ses marques :
-     *  - un montant chiffré (`moneySchema`) ;
-     *  - `'ND'` — la MARQUE imprimée par le livre (LDB 62 l.28 Mains nues, l.31 Arme improvisée,
-     *    LDB 68 l.11 Licence de Guilde). Son sigle n'est développé nulle part dans le corpus FR :
-     *    aucune expansion n'est déclarée ici. COMPORTEMENT seul — zéro sou au calcul monétaire
-     *    (`priceToMoney`, engine/money), marque rendue telle quelle au Compendium ;
-     *  - `null` — le livre n'imprime AUCUNE valeur : entrée hors table d'équipement (malepierre
-     *    LDB 44 l.113-119, sel sacré MDG 10 l.112, carte marine MDG 15 l.290). */
+    /** LDB 62 l.28 ; LDB 68 l.11 ; LDB 44 l.113-119 ; MDG 10 l.112 ; MDG 15 l.290 */
     price: z.union([moneySchema, z.literal('ND'), z.null()]),
     derivedWeapon: weaponSchema.optional(),
     capabilities: itemCapabilitiesSchema.optional(),
     passive: z.array(gameOpSchema).optional(),
-    /** Tarif de SERVICE (LDB 66 l.12-14 : chambre/écurie) — pas un objet possédable, cf. `TrappingData.service`. */
+    /** LDB 66 l.12-14 */
     service: z.boolean().optional(),
   },
   {

@@ -1,9 +1,5 @@
-/**
- * Schéma de `crew-morale.json` — MORAL d'un équipage (MDG 14). Consommé par
- * `src/engine/crewMorale.ts` : `base` (score de départ), `factors` (MODIFICATEURS DE MORAL — `effect`
- * = dés signés texte, ex. « +2d10 », « -3d10 », lus par `rollExpr`), `bands` (EFFETS DU MORAL — bornes
- * de bande, ±DR de Commandement/Tests d'équipage, seuil de désertion optionnel).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** MDG 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -18,33 +14,46 @@ const doc = document(
   {
   base: z.number(),
   factors: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       /** Dés signés texte (ex. « +2d10 », « -3d10 ») — lu par `rollExpr` (`src/engine/dice.ts`). */
       effect: z.string(),
-      /** Multiplicateur de SOLDE du choix de paie hebdomadaire (Conseil de bord) — MDG 14 ne chiffre
-       *  que l'effet de Moral des lignes « La paie … », jamais le montant : valeur MAISON éditable.
-       *  Présent = ce facteur est un CHOIX de paie ; absent = facteur circonstanciel. */
+      /** MDG 14. */
       wageMul: z.number().optional(),
-      /** Choix de paie PROÉMINENT du Conseil de bord (bouton principal) — valeur MAISON, au même
-       *  titre que `wageMul` (le tableau MDG 14 ne hiérarchise pas les lignes « La paie … »). */
+      /** MDG 14. */
       recommendedPay: z.boolean().optional(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'identifiant' },
+      label: { label: 'libellé' },
+      effect: { label: 'effet' },
+      wageMul: { label: 'multiplicateur de paie' },
+      recommendedPay: { label: 'paie recommandée' },
+      source: { label: 'source' },
     }),
     'id',
   ),
   bands: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       ...plageSchema.shape,
       id: z.string(),
       label: z.string(),
       captainCmdDR: z.number(),
       crewTestDR: z.number(),
-      /** Absent si aucune désertion pour cette bande (« Mené de main de maître ! », « Un excellent équipage »). */
+
       desertionRoll: z.number().optional(),
       desc: z.string(),
       source: sourceRefSchema,
+    }), {
+      ...metaDesChamps(plageSchema, { exigees: true }),
+      id: { label: 'identifiant' },
+      label: { label: 'libellé' },
+      captainCmdDR: { label: 'DR de commandement du capitaine' },
+      crewTestDR: { label: 'DR du Test d’équipage' },
+      desertionRoll: { label: 'jet de désertion' },
+      desc: { label: 'texte' },
+      source: { label: 'source' },
     }),
     'id',
   ),

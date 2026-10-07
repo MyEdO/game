@@ -137,15 +137,15 @@ test('INVARIANT : aucune branche perdue — un site non littéralement `null` ne
   }
   const evaluateur = evaluateurDe(modules)
   const sites = Object.keys(modules).flatMap((f) => evaluateur.sitesDe(f).map((s) => ({ ...s, f })))
-  const nul = (v) => v.non === 'forme NullKeyword'
+  const nul = (v) => v.non === 'valeur nulle'
   assert.deepEqual(sites.filter((s) => !s.relais && s.valeurs.every(nul)).map((s) => `${s.f}:${s.ligne}`), [])
   assert.deepEqual(sites.map((s) => [`${s.f}:${s.ligne} ${s.appel}`, s.relais, s.valeurs]), [
-    ['scripts/guards/folio.mjs:7 readdirSync', true, [{ non: 'forme NullKeyword' }]],
-    ['scripts/guards/folio.mjs:10 readFileSync', false, [{ non: 'forme NullKeyword' }, { non: 'appel calculer' }]],
+    ['scripts/guards/folio.mjs:7 readdirSync', true, [{ non: 'valeur nulle' }]],
+    ['scripts/guards/folio.mjs:10 readFileSync', false, [{ non: 'valeur nulle' }, { non: 'appel calculer' }]],
     ['scripts/guards/folio.mjs:12 readFileSync', false, [{ non: 'process introuvable' }]],
     ['scripts/guards/folio.mjs:13 readdirSync', true, []],
     ['scripts/guards/folio.mjs:14 lireSous', false, [{ chemin: 'docs' }]],
-    ['scripts/guards/folio.test.mjs:3 lecteurDeChapitres', false, [{ non: 'appel JSON.parse' }, { non: 'forme NullKeyword' }]],
+    ['scripts/guards/folio.test.mjs:3 lecteurDeChapitres', false, [{ non: 'appel JSON.parse' }, { non: 'valeur nulle' }]],
     ['scripts/guards/folio.test.mjs:3 readFileSync', false, [{ chemin: 'src/data/books.json' }]],
   ])
 })
@@ -166,7 +166,7 @@ test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit
   }
   const sites = evaluateurDe(modules).sitesDe('scripts/x/garde.test.mjs')
   assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.relais, s.valeurs]), [
-    ['5 readFileSync', false, [{ non: 'appel cache.get' }, { non: 'forme NullKeyword' }, { chemin: 'Source/livre/ch.md' }]],
+    ['5 readFileSync', false, [{ non: 'appel cache.get' }, { non: 'valeur nulle' }, { chemin: 'Source/livre/ch.md' }]],
     ['8 readdirSync', false, [{ hors: true }]],
     ['11 existsSync', true, [{ non: 'ancetre réaffectée en récurrence' }]],
     ['20 readFileSync', false, [{ chemin: 'a.json' }, { non: 'n réaffectée' }]],
@@ -291,4 +291,11 @@ test('une lecture COUPÉE par un CYCLE ne tranche pas le relais : le site porte 
   assert.deepEqual(sitesDansLOrdre(modules, ['scripts/guards/lib/analyseRetenue.mjs']), [
     ...[2, 7, 9, 9].map((ligne) => [`scripts/guards/lib/analyseRetenue.mjs:${ligne} teinte`, false, [JSON.stringify({ non: "cycle d'appels teinte" })]]),
   ])
+})
+
+test('lectures de la refusion de main : `undefined` est une VALEUR NULLE, `await x` vaut `x`, un import RENOMMÉ du module de chemin se lit sous son nom exporté (recette/lib.test.mjs, ops/session.mjs)', () => {
+  const texte = "import { existsSync, readFileSync } from 'node:fs'\nimport { join as joinPath } from 'node:path'\n" +
+    "async function shot() { return 'captures/a.png' }\nexistsSync(joinPath('donnees', 'b.json'))\nexistsSync(await shot())\nreadFileSync(undefined)\n"
+  assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'),
+    [[{ chemin: 'donnees/b.json' }], [{ chemin: 'captures/a.png' }], [{ non: 'valeur nulle' }]])
 })

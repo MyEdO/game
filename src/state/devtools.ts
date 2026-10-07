@@ -32,6 +32,12 @@ export function setPickProbe(p: PickProbe | null): void {
   sondeDePicking = p;
 }
 
+/** Le geste attendu SUR LA CARTE (`__wfrp.gesteCarteAttendu`) : une pose de zone (`PlacingZone` sans sa
+ *  `source`, rendue en `kind`) ou un choix de cibles d'incantation. */
+export type GesteCarteAttendu =
+  | ({ kind: 'zone' | 'siege' } & Omit<PlacingZone, 'source'>)
+  | { kind: 'cibles'; label: string; casterId: string; cibles: string[] };
+
 /** Une IMAGE RENDUE, que le rendu déclare juste après `renderer.render` (`gameIso/stage/GameStage3D`) :
  *  son canevas, son numéro (`canvas.dataset.rendus`) et la lecture de ses corps d'acteur
  *  (`gameIso/stage/corpsActeur.ts:corpsDeLActeur`). Forme ÉCRITE ici, conformité tenue côté rendu
@@ -67,7 +73,13 @@ import { startCascade } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
 import { actorIn, ecrireActeur, inBattleId } from './combatants';
 import { touchActors } from './combatOrParty';
-import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget } from './combatFlow';
+import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, type PlacingZone } from './combatFlow';
+import { defenseSurfaced } from './netOwnership';
+import { combatDistance } from './footprint';
+import { reachTiles } from '../engine/engagement';
+import { canonEdge } from './sceneEdit';
+import type { CellSide } from './scene';
+import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation } from '../engine/combat';
 import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
@@ -79,7 +91,7 @@ import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
 import { ev } from './combatLog';
-import { isOutOfAction, syncDerivedConditions } from '../engine/conditions';
+import { isOutOfAction, syncDerivedConditions, cannotDefend } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
@@ -105,12 +117,14 @@ import { pickActiveModalKey, autoPolicyOf } from './modalArbiter';
 import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import { endTurnArmed } from './endTurnGuard';
+import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
+import { bestDefenseMode } from './combatManeuvers';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
 import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t } from '../i18n';
-import { diamondCorners, type Dims } from '../geometry/iso';
+import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
 import { actionsDe } from './usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
@@ -155,6 +169,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           seule (`getBoundingClientRect`), `null` si absent du DOM
  *   __wfrp.tileScreenPos({x,y,z?}) → même bounding box ÉCRAN pour une CASE (vide comprise), là où
  *                           `screenPos` exige un token `data-cid` — viser un déplacement au clic réel
+ *   __wfrp.areteScreenPos(x,y,z,dir) → centre ÉCRAN du trait de chaque geste d'arête offert sur ce côté
+ *                           de case (`[{x,y,libelle,capacite}]`) — viser un geste d'arête au clic réel
  *   __wfrp.pickTileAt({x,y}) → l'INVERSE : ce que le PICKING RÉEL résoudrait sous ce pixel écran
  *                           ({tile, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune',
  *                           nature, geste:{entId?}} — `geste.entId` = l'entité qu'un clic traiterait)
@@ -180,12 +196,14 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.aim('id')      → vérité state du ciblage (ok/invalid + raison, compétence, dégâts)
  *   __wfrp.pad('A'|'B'|…) → simule un BOUTON de manette (Playwright n'a pas l'API Gamepad) — MÊME chemin
  *                           que le pad réel ; __wfrp.padDir('up'|'down'|'left'|'right') → croix/stick
- *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun)
+ *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun, armes
+ *                           tenues par `trappingId`/`formeChoisie`/`formeResolue`)
  *   __wfrp.lastRoll()     → DERNIER Test résolu {actorId,success,sl,roll,target} (observation pure,
  *                           lecture seule, `null` si aucun depuis le chargement) — jamais une regex sur `innerText`
  *   __wfrp.log(n)         → queue lisible des journaux (exploration + feed de combat)
  *   __wfrp.aiLog(n)       → DIAGNOSTIC IA : action choisie + classement des candidats (intention) par tour
  *   __wfrp.turn('id')     → TRICHE : donne le tour à un combattant ; __wfrp.place('id',{x,y}) → téléporte
+ *   __wfrp.attaque(a, d)  → SETUP : pose l'attaque de l'IA `a` sur `d` et OUVRE la modale de Défense de `d`
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
  *                           (convention <flux>Roll/Confirm/Cancel ; reveals/Round ont leur verbe propre)
@@ -197,6 +215,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           Corruption) puis termine le combat en LAISSANT la cascade ouverte (influençable)
  *   __wfrp.healParty()    → groupe à neuf (PB max, états/critiques/maladies purgés)
  *   __wfrp.give(co)       → crédite la bourse (couronnes d'or) ; __wfrp.xp(n) → +PX au groupe
+ *   __wfrp.faim(id, etat?) / soif(id, etat?) / chance(id, n?) → sans valeur : OBSERVE ; avec : pose
+ *                           faim, soif ou points de Chance (`ecrireActeur`), puis lit
  *   __wfrp.giveTrapping(heroId, trappingId, qty?) → donne un objet de catalogue à un héros (VRAI
  *                           pipeline giveTrapping : item bien formé, qualités comprises)
  *   __wfrp.disease(heroId, maladieId, { phase? }) → contracte une maladie par l'effet `inflictDisease`
@@ -341,7 +361,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
     const tick = () => {
       try {
         const s = useGame.getState();
-        if (s.battle) { resolve('✗ combat en cours (issu du voyage) — voir __wfrp.battle()'); return; }
+        if (s.battle) { resolve('✓ voyage interrompu par un combat — voir __wfrp.battle()'); return; }
         const plan = s.travelPlan;
         // Mer OU fleuve : même machinerie de cascade du JOUR (`purpose:'travelDay'`), même halte, même
         // reprise — `advanceRiverDay` réutilise ce pilote (le fleuve enchaîne en plus la cascade
@@ -506,6 +526,41 @@ async function attendreCommandeEditeur(helper: string, commande: keyof Commandes
 export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
   const g = () => useGame.getState();
   const find = (id: string) => g().scene?.entities.find((e) => e.id === id);
+  /** La projection du stage lue au store (dimensions, rotation, vue, lacet) et le groupe caméra qui la
+   *  porte au DOM : la source de `tileScreenPos` et d'`areteScreenPos`. `null` hors scène ou stage non monté. */
+  const projectionDuStage = (): { dims: Dims; camGroup: SVGGraphicsElement } | null => {
+    const st = g();
+    if (!st.scene) return null;
+    const camGroup = document.querySelector('svg.iso-stage > g') as SVGGraphicsElement | null;
+    if (!camGroup) return null;
+    return { dims: { ...st.scene.dimensions, rot: st.camRot, view: st.viewMode, edge: st.camEdge, yawDeg: viewYawDeg(st.camRot, st.camEdge) }, camGroup };
+  };
+  /** Faim ou soif d'un combattant (`faim`, `soif`) : pose l'état par `ecrireActeur` s'il est donné
+   *  (`null` = champ absent), puis le lit au combattant (`actorIn`). */
+  const besoin = (id: string, cle: 'hunger' | 'thirst', etat: Partial<HungerState> | Partial<ThirstState> | null | undefined) => {
+    if (!actorIn(g(), id)) return `✗ combattant « ${id} » introuvable`;
+    if (etat !== undefined) {
+      const cles: readonly string[] = cle === 'hunger' ? ['days', 'tests', 'failures', 'coveredDay'] : ['days', 'tests', 'failures'];
+      const inconnue = etat && Object.keys(etat).find((k) => !cles.includes(k));
+      if (inconnue) return `✗ ${cle} : clé « ${inconnue} » inconnue — clés : ${cles.join(', ')}`;
+      const compte = etat && (['days', 'tests', 'failures'] as const).find((k) => etat[k] !== undefined && (!Number.isInteger(etat[k]) || etat[k]! < 0));
+      if (compte) return `✗ ${cle}.${compte} « ${etat![compte]} » : un entier positif ou nul`;
+      useGame.setState((s) => ecrireActeur(s, id, (c) => {
+        const pose = { ...c };
+        if (etat === null) delete pose[cle];
+        else pose[cle] = { days: 0, tests: 0, failures: 0, ...etat };
+        return pose;
+      }));
+    }
+    return actorIn(g(), id)![cle] ?? null;
+  };
+  /** Donne le TOUR à un combattant de l'ordre d'initiative (Action/Mouvement du tour remis à zéro). */
+  const donnerLeTour = (b: NonNullable<ReturnType<typeof g>['battle']>, idx: number) => {
+    useGame.setState({
+      battle: { ...b, turn: idx, acted: false, movementUsed: 0, movedPreAction: false, action: null, selectedSpellId: null, preview: null, reachable: new Map(), moveSnapshot: null },
+    });
+    bus.emit(EVT.SCENE_DIRTY);
+  };
 
   const runScenario = (id?: string, seed?: number) => {
     if (!id) return scenarios.map((sc) => `${sc.id} — ${sc.title}`);
@@ -619,17 +674,40 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  viennent donc du DOM, pas d'un second calcul à tenir à jour. `z` = étage visé (défaut 0).
      *  `null` hors scène ou tant que le stage n'est pas monté. Zéro action — ne pilote rien. */
     tileScreenPos: (tile: { x: number; y: number; z?: number }): { x: number; y: number; width: number; height: number } | null => {
-      const st = useGame.getState();
-      if (!st.scene) return null;
-      const camGroup = document.querySelector('svg.iso-stage > g') as SVGGraphicsElement | null;
-      const ctm = camGroup?.getScreenCTM();
-      if (!ctm) return null;
-      const dims: Dims = { ...st.scene.dimensions, rot: st.camRot, view: st.viewMode, edge: st.camEdge, yawDeg: viewYawDeg(st.camRot, st.camEdge) };
-      const c = diamondCorners(tile.x, tile.y, dims, tile.z ?? 0);
+      const proj = projectionDuStage();
+      const ctm = proj?.camGroup.getScreenCTM();
+      if (!proj || !ctm) return null;
+      const c = diamondCorners(tile.x, tile.y, proj.dims, tile.z ?? 0);
       const pts = [c.top, c.right, c.bot, c.left].map(([x, y]) => new DOMPoint(x, y).matrixTransform(ctm));
       const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
       const x = Math.min(...xs), y = Math.min(...ys);
       return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+    },
+
+    /** OBSERVATION seule : position ÉCRAN (centre) du marqueur de l'arête `dir` de la case (x, y) à
+     *  l'étage `z` — le trait de prise `line[data-arete-cible]` du peintre (`gameIso/stage/AreteOverlay`),
+     *  celui qu'un clic réel vise. L'arête se ramène à sa forme canonique (`canonEdge`), se projette par
+     *  `tileEdge` (`geometry/iso`, la géométrie du peintre) sur la projection de `tileScreenPos`, et le
+     *  traits retenus sont ceux du MÊME segment au DOM (le relief ne décale que la hauteur d'écran), du
+     *  plus proche au plus éloigné de l'étage `z`. Rend un élément PAR geste offert sur cette arête :
+     *  `{ x, y, libelle, capacite }`, `libelle` = l'`aria-label` du trait. Refus NOMMÉS : hors scène,
+     *  stage non monté, aucune arête utilisable à cet endroit. */
+    areteScreenPos: (x: number, y: number, z: number, dir: CellSide): { x: number; y: number; libelle: string; capacite: string }[] | string => {
+      if (!g().scene) return '✗ aucune scène';
+      const proj = projectionDuStage();
+      if (!proj) return '✗ stage non monté (svg.iso-stage absent du DOM)';
+      const e = canonEdge(x, y, dir);
+      const [a, b] = tileEdge(e.x, e.y, e.side, proj.dims, z);
+      const attr = (l: Element, k: string) => Number(l.getAttribute(k));
+      const proche = (u: number, v: number) => Math.abs(u - v) < 0.5;
+      const memeSegment = Array.from(proj.camGroup.querySelectorAll('line[data-arete-cible]')).filter((l) =>
+        proche(attr(l, 'x1'), a.cx) && proche(attr(l, 'x2'), b.cx) && proche(attr(l, 'y2') - attr(l, 'y1'), b.cy - a.cy));
+      if (!memeSegment.length) return `✗ aucune arête utilisable en (${x},${y},z${z}) côté ${dir} — aucun geste offert ici dans l'état courant (brouillard, contrôleur, étage actif)`;
+      const ecart = (l: Element) => Math.abs(attr(l, 'y1') - a.cy);
+      return memeSegment.sort((l, m) => ecart(l) - ecart(m)).map((l) => {
+        const r = l.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2, libelle: l.getAttribute('aria-label') ?? '', capacite: l.getAttribute('data-arete-cible') ?? '' };
+      });
     },
 
     /** OBSERVATION seule : CE QUE LE PICKING RÉEL RÉSOUDRAIT sous un pixel d'écran — l'INVERSE exact de
@@ -978,12 +1056,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur (#877) : patch PARTIEL, une clé à
-     *  `undefined` vaut ABSENTE — c'est ainsi qu'on fabrique l'état fautif (« décor sans type ») qu'une
-     *  porte doit refuser. SETUP seulement : le patch passe par le pont d'INTENTION
-     *  (`state/editeurBridge`, commande `patcherEntite`) — la MÊME voie qu'`editorOpen`, jamais un
-     *  accès direct à l'état React d'un panneau. Trois refus NOMMÉS : éditeur non monté (rejet,
-     *  borne `montageMs`), entité inconnue (`✗ …` portant les ids de la scène), clé d'IDENTITÉ
-     *  (`id`, `kind`) qu'aucun patch ne touche. */
+     *  `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`state/sceneEdit.ts:editEntity`) :
+     *  l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue
+     *  (`{ ref: 'decor-absent' }`), jamais en retirant le type (#1882). SETUP seulement : le patch passe
+     *  par le pont d'INTENTION (`state/editeurBridge`, commande `patcherEntite`) — la MÊME voie
+     *  qu'`editorOpen`, jamais un accès direct à l'état React d'un panneau. Quatre refus NOMMÉS :
+     *  éditeur non monté (rejet, borne `montageMs`), entité inconnue (`✗ …` portant les ids de la
+     *  scène), clé d'IDENTITÉ (`id`, `kind`) qu'aucun patch ne touche, type retiré (`✗ …` nommant le
+     *  porteur absent). */
     editorPatchEntity: async (entityId: string, patch: Record<string, unknown>, montageMs = 3000) => {
       await attendreCommandeEditeur('editorPatchEntity', 'patcherEntite', montageMs);
       return editeur.patcherEntite!(entityId, patch);
@@ -997,6 +1077,25 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     editorEntities: async (montageMs = 3000) => {
       await attendreCommandeEditeur('editorEntities', 'listerEntites', montageMs);
       return editeur.listerEntites!();
+    },
+
+    /** LECTURE SEULE du BROUILLON de carte du monde ouvert à l'éditeur (#2306) : `{ id, label, lieux,
+     *  routes }` — lieux `{ id, label, scene, pos, when? }`, routes `{ id, a, b, km, when?, refus? }` —,
+     *  `null` si le projet n'en porte aucune. ATTENTION : `__wfrp.routes()` lit la carte du STORE DE JEU,
+     *  pas le brouillon. Même voie et même attente qu'`editorEntities` ; rejet NOMMÉ si l'éditeur ne se
+     *  monte pas. */
+    editorWorldMap: async (montageMs = 3000) => {
+      await attendreCommandeEditeur('editorWorldMap', 'lireCarteDuMonde', montageMs);
+      return editeur.lireCarteDuMonde!();
+    },
+
+    /** OBSERVATION : point ÉCRAN du milieu de l'arête `dir` de la case (x, y) à l'étage `z` dans le
+     *  canevas de l'ÉDITEUR, par la projection de sa vue (rotation, plan/iso, zoom, panoramique) — là où
+     *  un VRAI clic de l'outil murs résout cette arête. Symétrique éditeur d'`areteScreenPos`. Même voie
+     *  et même attente qu'`editorEntities` ; refus NOMMÉ si le canevas n'est pas monté. */
+    editorAreteScreenPos: async (x: number, y: number, z: number, dir: CellSide, montageMs = 3000) => {
+      await attendreCommandeEditeur('editorAreteScreenPos', 'positionEcranArete', montageMs);
+      return editeur.positionEcranArete!(x, y, z, dir) ?? '✗ canevas de l\'éditeur non monté (aucune CTM)';
     },
 
     /** Entrée de BIBLIOTHÈQUE DE PROJETS minimale et VALIDE (#1343) : une scène vide (`emptyScene`)
@@ -1078,7 +1177,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ interlude ouvert (${weeks} sem., ${after.party.length} héros, ${budget} Activité(s) max/héros) — catalogue réel, écran 'interlude' (à conduire à la main)`;
     },
 
-    /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne. */
+    /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne
+     *  (armes tenues comprises : `trappingId`, `formeChoisie`, `formeResolue`). */
     battle: () => {
       const s = g();
       const b = s.battle;
@@ -1101,6 +1201,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
           id: c.id, name: c.label, kind: c.kind, pos: c.pos,
           pb: `${c.wounds.current}/${c.wounds.max}`,
           états: (c.conditions ?? []).map((x) => `${x.id}${x.value > 1 ? ` ×${x.value}` : ''}`),
+          // Armes TENUES (`weapons`, dérivées) : id de catalogue, forme CHOISIE, forme RÉSOLUE (`formeResolue`).
+          armes: (c.weapons ?? []).map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, formeChoisie: w.formeChoisie ?? null, formeResolue: formeResolue(w) ?? null })),
         })),
       };
     },
@@ -1120,11 +1222,50 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = inBattleId(b, id);
       if (idx < 0 || !c) return `✗ « ${id} » absent de l'ordre d'initiative`;
       if (isOutOfAction(c)) return `✗ ${c.label} est hors de combat`;
-      useGame.setState({
-        battle: { ...b, turn: idx, acted: false, movementUsed: 0, movedPreAction: false, action: null, selectedSpellId: null, preview: null, reachable: new Map(), moveSnapshot: null },
-      });
-      bus.emit(EVT.SCENE_DIRTY);
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      donnerLeTour(b, idx);
       return `✓ au tour de ${c.label}`;
+    },
+
+    /** SETUP de recette : POSE l'attaque de `attaquantId` (piloté par l'IA) sur `defenseurId` et OUVRE la
+     *  modale de Défense — c'est son CONTENU qu'on recette. La fenêtre s'ouvre par la couture de la
+     *  déclaration d'attaque de l'IA (`combatFlow.ts:maybeOpenDefense`, appelée par `doAttack`), au tour de
+     *  l'attaquant, qui lui est donné si besoin : sa fermeture reprend ce tour comme après une attaque
+     *  d'IA. Elle SAUTE les portes préalables de `doAttack` (Bénédiction de Protection `attackWardGate`,
+     *  Main ensanglantée `aiHandGate`), qui jettent des dés et peuvent faire renoncer au coup : la
+     *  recette porte sur la fenêtre de Défense, pas sur ces Tests. Refus NOMMÉS, sans rien toucher : pas
+     *  de combat, pause de début de Round (la pause n'a aucun actif), tour d'un combattant piloté par
+     *  l'IA (ses minuteurs de tour sont en vol, `maybeRunEnemyTurn`), combattant introuvable ou hors de
+     *  combat, attaquant hors de l'ordre d'initiative ou piloté par un joueur, Défense déjà ouverte ;
+     *  puis, si la couture ne l'ouvre pas, la raison : défenseur non surfacé, pas au contact, défenseur
+     *  incapable de se défendre, tir sans Défense opposable. */
+    attaque: (attaquantId: string, defenseurId: string) => {
+      const b = g().battle;
+      if (!b || b.over) return '✗ pas de combat en cours';
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      const actif = inBattleId(b, b.order[b.turn]);
+      if (actif && aiDriven(g(), actif)) return `✗ tour de ${actif.label}, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward())`;
+      const att = inBattleId(b, attaquantId);
+      const def = inBattleId(b, defenseurId);
+      if (!att || !def) return `✗ attaquant/défenseur introuvable (${attaquantId}/${defenseurId}) — voir __wfrp.battle()`;
+      const horsDeCombat = [att, def].find(isOutOfAction);
+      if (horsDeCombat) return `✗ ${horsDeCombat.label} est hors de combat`;
+      const idx = b.order.indexOf(att.id);
+      if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
+      if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : son attaque passe par la modale d'attaque`;
+      if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
+      if (maybeOpenDefense(() => useGame.getState(), useGame.setState, att, def, undefined, undefined, att.chargedThisTurn)) {
+        const apres = g().battle!;
+        if (apres.turn !== idx) donnerLeTour(apres, idx);
+        return `✓ ${att.label} attaque ${def.label} — modale de Défense ouverte`;
+      }
+      const arme = att.weapons[0];
+      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (arme?.type === 'melee' && combatDistance(att, def) > reachTiles(arme)) {
+        return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      }
+      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
 
     /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée). Cible une
@@ -1185,7 +1326,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!r) return '✗ manœuvre impossible';
       return r.success
         ? `✓ ${ship.label} vire (DR ${r.dr}, barreur ${r.helmsman ?? '—'}) : ${before} → ${g().facing[shipId]}`
-        : `✗ ${ship.label} rate la manœuvre (DR ${r.dr}) — cap ${before} inchangé`;
+        : `✓ Test joué : ${ship.label} rate la manœuvre (DR ${r.dr}) — cap ${before} inchangé`;
     },
 
     /** Queue LISIBLE des journaux : les `n` dernières lignes du journal d'exploration ET du
@@ -1213,6 +1354,23 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const flux = devFluxOf(open);
       const names = flux ? ['Roll', 'Confirm', 'Cancel'].map((v) => flux + v).filter((n) => typeof s[n] === 'function') : [];
       return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ['confirmRoundStart'] : [] };
+    },
+
+    /** OBSERVATION : le GESTE que la partie attend SUR LA CARTE, fenêtre masquée — `null` s'il n'y en a
+     *  aucun. Lu aux prédicats du jeu : la pose de zone d'un sort ou d'un pilonnage (`placingZoneOf`,
+     *  `kind` = `'zone'` ou `'siege'`, rayon et portée en cases depuis l'ancre `casterId`) puis le
+     *  choix des cibles supplémentaires d'une incantation (`pendingCast.pickingTargets`, `kind:'cibles'`,
+     *  cibles déjà retenues `extraTargetIds`). */
+    gesteCarteAttendu: (): GesteCarteAttendu | null => {
+      const s = g();
+      const zone = placingZoneOf(s);
+      if (zone) {
+        const { source, ...pose } = zone;
+        return { kind: source === 'siege' ? 'siege' : 'zone', ...pose };
+      }
+      const pc = s.pendingCast;
+      if (pc?.pickingTargets) return { kind: 'cibles', label: effectiveSpellOf(pc)?.label ?? pc.spellId, casterId: pc.casterId, cibles: [...(pc.extraTargetIds ?? [])] };
+      return null;
     },
 
     /** Lance le jet de LA modale ouverte (convention <flux>Roll) */
@@ -1431,10 +1589,54 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
 
-    /** RECETTE : +PX à tout le groupe, par l'effet `giveXp`. */
-    xp: (amount = 100) => {
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveXp', amount }]), 'devtools.xp');
-      return g().party.map((h) => `${h.label} : ${actorIn(g(), h.id)?.xp ?? h.xp} PX`);
+    /** PX du groupe, LUS là où le jeu lit (`actorIn`) : `xp()` OBSERVE ; `xp(n)` donne d'abord n PX à
+     *  tout le groupe par l'effet `giveXp` (mise en place), puis lit. */
+    xp: (amount?: number) => {
+      if (amount !== undefined) nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveXp', amount }]), 'devtools.xp');
+      return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));
+    },
+
+    /** OBSERVATION du set d'armes d'un héros, lu là où le jeu lit (`actorIn`) : le set actif
+     *  (`activeLoadout`, `loadoutLabel`), son arme principale et sa seconde main (bouclier ou non,
+     *  `isShieldItem`), les armes TENUES (`weapons`, dérivées), l'arme qui pare par défaut (la première
+     *  tenue, `resolveMelee`) et la défense que le défenseur choisirait (`bestDefenseMode`). */
+    loadout: (heroId: string) => {
+      const c = actorIn(g(), heroId);
+      if (!c) return `✗ combattant « ${heroId} » introuvable`;
+      const lo = activeLoadout(c);
+      const objet = (uid?: string) => {
+        const it = uid ? (c.items ?? []).find((i) => i.uid === uid) : undefined;
+        return it ? { uid: it.uid, trappingId: it.trappingId ?? null, label: it.label, bouclier: isShieldItem(it) } : null;
+      };
+      return {
+        set: lo ? loadoutLabel(lo, c) : null,
+        principale: objet(lo?.main),
+        seconde: objet(lo?.off),
+        tenues: (c.weapons ?? []).map((w) => ({ uid: w.uid ?? null, label: w.label, type: w.type })),
+        armeDeParade: c.weapons?.[0]?.label ?? null,
+        defense: bestDefenseMode(c),
+      };
+    },
+
+    /** FAIM d'un combattant (`Combatant.hunger`), lue là où le jeu lit (`actorIn`) : `faim(id)` OBSERVE ;
+     *  `faim(id, etat)` pose d'abord l'état par `ecrireActeur` (mise en place, en combat comme hors
+     *  combat), puis lit. `etat` partiel, complété à zéro ; `null` = champ absent (nourri). */
+    faim: (id: string, etat?: Partial<HungerState> | null) => besoin(id, 'hunger', etat),
+
+    /** SOIF d'un combattant (`Combatant.thirst`) : même contrat que `faim` ; `null` = désaltéré. */
+    soif: (id: string, etat?: Partial<ThirstState> | null) => besoin(id, 'thirst', etat),
+
+    /** Points de CHANCE d'un combattant (`Combatant.fortune`), lus au combattant (`actorIn`) avec son
+     *  Destin (`fate`) : `chance(id)` OBSERVE ; `chance(id, n)` pose d'abord n points par `ecrireActeur`
+     *  (mise en place, en combat comme hors combat), puis lit. */
+    chance: (id: string, n?: number) => {
+      if (!actorIn(g(), id)) return `✗ combattant « ${id} » introuvable`;
+      if (n !== undefined) {
+        if (!Number.isInteger(n) || n < 0) return `✗ Chance « ${n} » : un entier positif ou nul`;
+        useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, fortune: n })));
+      }
+      const c = actorIn(g(), id)!;
+      return { id, label: c.label, fortune: c.fortune ?? 0, fate: c.fate ?? 0 };
     },
 
     /** RECETTE : drapeaux de scénario (portes de l'arène, etc.). */
@@ -2021,42 +2223,37 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const route = map.routes.find((r) => r.id === routeId);
       if (!route) return `✗ route « ${routeId} » introuvable — ids : ${map.routes.map((r) => r.id).join(', ')}`;
       const here = placeOfScene(map, s.scene.id);
-      // Seules les routes RENDUES portent un tracé de hit-test (`WorldMapView.tsx`) — MÊMES prédicats,
-      // MÊME ordre : extrémités révélées + offerte depuis ici. Une route qui part vers un lieu caché
-      // n'a pas de tracé : la compter décalerait l'index et cliquerait une AUTRE route (#684).
-      const clickable = routesRendues(map, s.scene.id);
-      const idx = clickable.findIndex((e) => e.route.id === routeId);
-      if (idx < 0) return `✗ route « ${routeId} » non cliquable depuis ici (${here?.label ?? '?'})`;
-      // La bande CLIQUABLE d'une route est le `path` de HIT de `MapCanvas` (`stroke="transparent"`,
-      // `pointer-events: stroke`) — sélecteur RE-MESURÉ au rendu réel en recette #1117 : l'ancien
-      // `path[stroke-opacity="0"]` ne correspondait à rien et rendait le helper muet.
-      const paths = Array.from(document.querySelectorAll<SVGPathElement>('svg.wm-map path[stroke="transparent"][pointer-events="stroke"]'));
-      const path = paths[idx];
+      // Seules les routes RENDUES portent un tracé de hit-test (`WorldMapView.tsx`) : extrémités
+      // révélées + offerte depuis ici, ouverte OU fermée-consultable (`routesRendues`).
+      const rendue = routesRendues(map, s.scene.id).find((e) => e.route.id === routeId);
+      if (!rendue) return `✗ route « ${routeId} » non cliquable depuis ici (${here?.label ?? '?'})`;
+      const etat = rendue.ouverte ? 'ouverte' : 'fermee-consultable';
+      // La bande CLIQUABLE d'une route est le `path` de HIT de `MapCanvas`, qui porte l'id de son tracé
+      // (`data-path-id`) : aucun index à recompter.
+      const path = document.querySelector<SVGPathElement>(`svg.wm-map path[data-path-id="${CSS.escape(routeId)}"]`);
       if (!path) return `✗ tracé SVG introuvable pour « ${routeId} » (carte du monde fermée à l'écran ?)`;
+      const tracé = path.parentElement;
       const ctm = path.getScreenCTM();
       if (!ctm) return '✗ getScreenCTM indisponible (carte hors DOM)';
       const total = path.getTotalLength();
       const toScreen = (pt: DOMPoint) => ({ x: Math.round(pt.x * ctm.a + pt.y * ctm.c + ctm.e), y: Math.round(pt.x * ctm.b + pt.y * ctm.d + ctm.f) });
-      // Un point est CLIQUABLE si l'élément sous le curseur (ou un de ses ancêtres) porte `cursor:pointer`
-      // — la route (ou la couche interactive) le déclare ; un décor transparent interposé ne l'a pas.
-      const clickableAt = (x: number, y: number): boolean => {
-        let el: Element | null = document.elementFromPoint(x, y);
-        while (el) {
-          if (getComputedStyle(el).cursor === 'pointer') return true;
-          el = el.parentElement;
-        }
-        return false;
+      // Un point est CLIQUABLE si l'élément sous le curseur appartient au groupe du tracé (bande de hit
+      // ou trait dessiné) : c'est lui qui porte le `onClick` de la route — un décor interposé, non.
+      const atteint = (x: number, y: number): boolean => {
+        const el = document.elementFromPoint(x, y);
+        return !!el && !!tracé && tracé.contains(el);
       };
-      // Milieu d'abord (comportement historique), puis fractions balayées de part et d'autre.
+      // Milieu d'abord, puis fractions balayées de part et d'autre.
       const fractions = [0.5, 0.45, 0.55, 0.4, 0.6, 0.35, 0.65, 0.3, 0.7, 0.25, 0.75, 0.2, 0.8];
       for (const f of fractions) {
         const pt = toScreen(path.getPointAtLength(total * f));
-        if (clickableAt(pt.x, pt.y)) {
-          return { ...pt, note: `point ON-PATH cliquable (fraction ${f} — chaîne d'ancêtres porte cursor:pointer) : cliquer ces coordonnées ÉCRAN avec un VRAI clic souris (page.mouse.click)` };
+        if (atteint(pt.x, pt.y)) {
+          return { ...pt, etat, note: `point du tracé (fraction ${f}) : cliquer ces coordonnées ÉCRAN avec un VRAI clic souris — route ${etat === 'ouverte' ? 'OUVERTE (le clic la sélectionne, départ offert)' : 'FERMÉE (le clic la sélectionne pour la CONSULTER, départ refusé)'}` };
         }
       }
       const mid = toScreen(path.getPointAtLength(total / 2));
-      return { ...mid, note: 'AUCUNE fraction du tracé ne teste cliquable (elementFromPoint sans cursor:pointer) — la carte est peut-être masquée/hors premier plan ; milieu renvoyé par défaut' };
+      const dessus = document.elementFromPoint(mid.x, mid.y);
+      return `✗ route « ${routeId} » : aucun point du tracé n'est atteignable — au milieu (${mid.x}, ${mid.y}), « ${dessus ? dessus.tagName.toLowerCase() + (dessus.getAttribute('class') ? '.' + dessus.getAttribute('class') : '') : 'rien'} » le recouvre (carte masquée, ou décor interposé)`;
     },
 
     /** RECETTE #518 : remplit le brouillon du créateur de personnage OUVERT avec des défauts VALIDES

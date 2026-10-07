@@ -4,16 +4,16 @@
 //
 // `--attendre [<sha>]` attend la course `CI` du sha (défaut : le sha POUSSÉ de la branche de son
 // arbre, `shasDistants`), relue toutes les `PERIODE_SONDE_MS`, et sort sur un verdict, un code par
-// verdict (`CODES_DE_CI`). Une course rouge se juge sur ses jobs (`verdictDesJobs`) : sans job rouge et avec un
+// verdict (`CODES_DE_CI`). Une course rouge se juge sur ses jobs (`verdictJuge`) : sans job rouge et avec un
 // job annulé, elle est annulée ; rouge, elle nomme, par job rouge (`jobsEnEchecDe`), ses lignes de test
 // en échec (`echecsDuLog`). `--echecs <run>` rend la même extraction pour une course nommée.
 //
 // Usage : node scripts/ops/ci.mjs --attendre [<sha>] | --echecs <run>
 import { fileURLToPath } from 'node:url'
 import { GitIndisponible, brancheDe, depotDe, estShaComplet, shasDistants } from '../guards/lib/gitPorte.mjs'
-import { coursesCi, echecsDuLog, jobsEnEchecDe, journalEnEchecDe } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, echecsDuLog, jobsEnEchecDe, journalEnEchecDe, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { PERIODE_SONDE_MS, phraseDesJobs, refusDeBranche, verdictDesJobs, verdictDesRuns } from './etapesDuTrain.mjs'
+import { PERIODE_SONDE_MS, refusDeBranche } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
@@ -54,8 +54,9 @@ export const urlDeCourse = (id) => `https://github.com/${DEPOT}/actions/runs/${i
 /**
  * L'ATTENTE de la course `CI` de `sha` : relit les courses (`lire`, une union de `coursesCi`) toutes les
  * `periodeMs`, émet une ligne par changement d'état, et rend le verdict qui la termine. PURE hors des
- * fonctions qu'on lui donne. `absente` passé `borneAbsenteMs` sans course, `borne` passé `borneMs` sans
- * verdict ; une lecture indisponible se dit, et l'attente continue.
+ * fonctions qu'on lui donne. `absente` passé `borneAbsenteMs` sans qu'AUCUNE course n'ait été vue, `borne`
+ * passé `borneMs` sans verdict ; une course vue puis absente de la liste, ou une lecture indisponible, se
+ * dit, et l'attente continue (#2392).
  * @param {{sha:string, lire:() => {disponible:boolean, valeur?:object[], raison?:string}, ecrire:(ligne:string) => void,
  *          maintenant?:() => number, dormir?:(ms:number) => void, periodeMs?:number, borneMs?:number, borneAbsenteMs?:number}} p
  * @returns {{etat:'verte'|'rouge'|'annulee'|'absente'|'borne', course?:object}}
@@ -66,17 +67,20 @@ export function attendreLaCi({
 }) {
   const debut = maintenant()
   let dit = null
+  let vue = false
   for (;;) {
     const vues = lire()
     const verdict = vues.disponible ? verdictDesRuns(vues.valeur, sha) : null
+    vue ||= Boolean(verdict?.course)
+    const etat = verdict?.etat === 'absente' && vue ? 'course vue puis absente de la liste' : verdict?.etat
     const ligne = verdict
-      ? `[ci] ${sha.slice(0, 9)} ${verdict.etat}${verdict.course ? ` — ${urlDeCourse(verdict.course.databaseId)} (essai ${verdict.course.attempt ?? 1})` : ''}`
+      ? `[ci] ${sha.slice(0, 9)} ${etat}${verdict.course ? ` — ${urlDeCourse(verdict.course.databaseId)} (essai ${verdict.course.attempt ?? 1})` : ''}`
       : `[ci] ${sha.slice(0, 9)} courses illisibles : ${vues.raison}`
     if (ligne !== dit) ecrire(ligne)
     dit = ligne
     if (verdict && ['verte', 'rouge', 'annulee'].includes(verdict.etat)) return verdict
     const ecoule = maintenant() - debut
-    if (verdict?.etat === 'absente' && ecoule >= borneAbsenteMs) return { etat: 'absente' }
+    if (verdict?.etat === 'absente' && !vue && ecoule >= borneAbsenteMs) return { etat: 'absente' }
     if (ecoule >= borneMs) return { etat: 'borne' }
     dormir(Math.max(0, Math.min(periodeMs, borneMs - ecoule)))
   }
@@ -102,24 +106,24 @@ export function lignesDuRouge({ jobs, echecs }) {
 
 /**
  * Les jobs en échec de la course `id` (`jobsEnEchecDe`) et leurs `lignes` : par job rouge, ses lignes
- * d'échec (`journalEnEchecDe`, `lignesDuRouge`, lu seulement s'il y a un job rouge) ; par job annulé, son nom ;
- * sans l'un ni l'autre, la phrase qui le dit (`phraseDesJobs`). En union.
+ * d'échec (`journalEnEchecDe`, `lignesDuRouge`, lu seulement s'il y a un job rouge) ; par job annulé, son nom,
+ * puis le motif de l'annulation ; sans l'un ni l'autre, la phrase qui le dit (`phraseDesJobs`). En union.
  * @param {{cwd:string, id:number, attempt?:number|null, spawn?:Function}} p `attempt` : l'essai jugé, sinon le
  *   dernier ; `spawn` va aux deux lectures `gh`
- * @returns {{disponible:true, valeur:{rouges:string[], annules:string[], lignes:string[]}}|{disponible:false, raison:string}}
+ * @returns {{disponible:true, valeur:{rouges:string[], annules:string[], motif:string|null, lignes:string[]}}|{disponible:false, raison:string}}
  */
 export function echecsDeLaCourse({ cwd, id, attempt = null, spawn }) {
   const jobs = jobsEnEchecDe({ cwd, id, attempt, spawn })
   if (!jobs.disponible) return jobs
-  const { rouges, annules } = jobs.valeur
+  const { rouges, annules, motif } = jobs.valeur
   let rougesNommes = []
   if (rouges.length) {
     const journal = journalEnEchecDe({ cwd, id, attempt, spawn })
     if (!journal.disponible) return journal
     rougesNommes = lignesDuRouge({ jobs: rouges, echecs: echecsDuLog(journal.valeur) })
   }
-  const lignes = [...rougesNommes, ...annules.map((job) => `  ${job} : annulé`)]
-  return { disponible: true, valeur: { rouges, annules, lignes: lignes.length ? lignes : [`  ${phraseDesJobs({ ...jobs.valeur, sansJobEnEchec: true })}`] } }
+  const lignes = [...rougesNommes, ...annules.map((job) => `  ${job} : annulé`), ...(motif ? [`  motif : ${motif}`] : [])]
+  return { disponible: true, valeur: { rouges, annules, motif, lignes: lignes.length ? lignes : [`  ${phraseDesJobs({ ...jobs.valeur, sansJobEnEchec: true })}`] } }
 }
 
 /** La ligne finale `CI:` d'un verdict. PURE. */
@@ -173,19 +177,13 @@ function principal({ argv, ecrire, panne, lire, echecs, pousse }) {
     sha = vu.sha
   }
   const verdict = attendreLaCi({ sha, lire: () => lire(sha), ecrire })
-  if (verdict.etat !== 'rouge') {
-    ecrire(ligneDeCi(verdict, sha))
-    return CODES_DE_CI[verdict.etat]
-  }
-  const vu = echecs({ id: verdict.course.databaseId, attempt: verdict.course.attempt ?? null })
-  if (!vu.disponible) {
-    ecrire(ligneDeCi(verdict, sha))
-    ecrire(`  jobs illisibles : ${vu.raison} — \`node scripts/ops/ci.mjs --echecs ${verdict.course.databaseId}\``)
+  const juge = verdict.course ? verdictJuge([verdict.course], sha, (id, attempt) => echecs({ id, attempt })) : verdict
+  ecrire(ligneDeCi(juge, sha))
+  if (juge.jobsIllisibles) {
+    ecrire(`  jobs illisibles : ${juge.jobsIllisibles} — \`node scripts/ops/ci.mjs --echecs ${juge.course.databaseId}\``)
     return CODES_DE_CI.rouge
   }
-  const juge = verdictDesJobs(verdict, vu.valeur)
-  ecrire(ligneDeCi(juge, sha))
-  vu.valeur.lignes.forEach(ecrire)
+  for (const ligne of juge.lignes ?? []) ecrire(ligne)
   return CODES_DE_CI[juge.etat]
 }
 

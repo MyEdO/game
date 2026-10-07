@@ -1,12 +1,5 @@
-/**
- * Schéma de `naval-traits.json` — Traits/Améliorations navals (MDG 12, MSRC 12), catalogue par id
- * STABLE (`NavalTraitRef.id`). Dérivé de l'interface `NavalTraitData` (`src/data/index.ts`, +
- * `NavalInstall`/`InstallBand` co-localisées — bandes par PALIER DE LONGUEUR, #277) et du contenu RÉEL
- * (26 entrées : `id`/`label`/`kind`/`desc`
- * toujours présents ; `source` 25/26 (#221 : Proue-idole de Stromfels = `maison`, pas de folio RAW) ;
- * `install` 20/26 ; `ranked` 4/26 ; `passive` 8/26 ; `ram` 1/26 ; `deckCover` 3/26 ; `navTestMod` 2/26 ; `maison` 1/26).
- * `source`/`alsoIn`/`maison` sont des clés d'ENVELOPPE, posées par la fabrique.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MDG 12 ; MSRC 12 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { gameOpSchema } from '../grammaire/mecanique';
@@ -14,21 +7,25 @@ import { gameOpSchema } from '../grammaire/mecanique';
 export const file = 'naval-traits.json';
 export const famille = 'entite';
 
-const installBandSchema = z.strictObject({
+const installBandSchema = nommerChamps(z.strictObject({
   maxLengthM: z.number().nullable(),
   value: z.number(),
   maison: z.string().optional(),
+}), {
+  maxLengthM: { label: 'Longueur maximale (m)' },
+  value: { label: 'Valeur' },
+  maison: { label: 'Arbitrage maison' },
 });
 
 const installBaremeSchema = z.union([
-  z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }),
+  nommerChamps(z.strictObject({ bands: z.array(installBandSchema), per: z.enum(['5m', '10m', 'unite']).optional() }), { bands: { label: 'Bandes' }, per: { label: 'Unité de calcul' } }),
   z.literal('modele'),
 ]);
 
-const navalInstallSchema = z.strictObject({
+const navalInstallSchema = nommerChamps(z.strictObject({
   installation: installBaremeSchema,
   weightEnc: installBaremeSchema.optional(),
-});
+}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' } });
 
 const doc = document(
   'naval-traits',
@@ -38,12 +35,11 @@ const doc = document(
     install: navalInstallSchema.optional(),
     ranked: z.boolean().optional(),
     passive: z.array(gameOpSchema).optional(),
-    /** Bélier (MDG 12 l.221) : bonus de collision — sous-système navire hors vocabulaire combattant. */
-    ram: z.strictObject({ ic: z.number(), ap: z.number() }).optional(),
+    /** MDG 12 l.221 */
+    ram: nommerChamps(z.strictObject({ ic: z.number(), ap: z.number() }), { ic: { label: 'Indice de Critique' }, ap: { label: 'Points d’Armure' } }).optional(),
     /** Couvert de pont GRADUÉ (`DeckCoverClass`) : `totale` (Sabord/Murs blindés) ou `moyenne` (Plat-bord). */
     deckCover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
-    /** Modificateur (points) au Test de Navigation POUR DIRIGER le bateau (MSRC 12 l.66 Bouteur +20 ;
-     *  l.137 Gréement de course −10) — sous-système manœuvre hors vocabulaire combattant (`navalNavTestDR`). */
+    /** MSRC 12 l.66 */
     navTestMod: z.number().optional(),
   },
   {

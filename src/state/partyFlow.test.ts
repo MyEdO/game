@@ -1,8 +1,7 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { choisirForme, transferItem, toggleEquip, stowItem, setLoadoutSlot } from './partyFlow';
-import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
-import { formeResolue } from '../gameIso/rig/parts/equipment';
 import { setDataset } from '../data/overrides';
 import { trappings } from '../data';
 import type { Possession } from '../engine/possession';

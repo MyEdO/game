@@ -10,16 +10,14 @@
  *    borné) ;
  *  - `pick(type, [tirage])` — « n parmi » (`{ pick, of: [...] }`), dont une branche peut être un
  *    tirage ;
- *  - `tirage` — `{ random: n }` : « n Talents aléatoires » d'une liste d'espèce. Cette forme SURVIT
- *    au lot : sa cible de grammaire est le `{ pick, table }`
- *    de `pick()`, dont la table d100 des Talents aléatoires est une donnée du lot L4 (#1463).
- *    21 occurrences (`species.json` : 19 à la racine du champ, 2 en branche de `pick`).
+ *  - `tirage` — `{ random: n }`.
  */
 import { z } from 'zod';
+import { nommerChamps } from './meta';
 import { pick, refOuSpec, type TypeEntite } from './ref';
 
 /** « n Talents aléatoires » — la seule graphie d'avancement encore hors des fabriques (cf. en-tête). */
-const tirage = z.strictObject({ random: z.number().int().positive() });
+const tirage = nommerChamps(z.strictObject({ random: z.number().int().positive() }), { random: { label: 'nombre de tirages' } });
 
 /** Emplacement d'avancement de `type` — composition FERMÉE, écrite UNE fois pour les deux defs. */
 export function avancement<T extends TypeEntite>(type: T): z.ZodType<unknown> {

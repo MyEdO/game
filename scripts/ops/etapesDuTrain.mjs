@@ -16,7 +16,7 @@
 import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { corpsDePr } from '../guards/lib/fusionPr.mjs'
-import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
+import { PLAFOND_RELANCES, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
@@ -31,9 +31,6 @@ import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 /** Période des sondes de la PR et des courses, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
 
-/** Nom du workflow que la sonde reconnaît (`.github/workflows/ci.yml`, `name: CI`). */
-export const WORKFLOW = 'CI'
-
 /** Éjections de la file qu'un lot reprend (FUSION d'`origin/main`, `docs`, push, nouvelle demande de
  *  fusion) avant de rendre la main : au-delà, la cause n'est pas le tronc. */
 export const BORNE_EJECTIONS = 1
@@ -47,45 +44,6 @@ export const titreDePr = (branche) => `publication ${branche}`
 
 
 // ── Purs : verdicts et mise en forme ───────────────────────────────────────────────────
-
-/**
- * Verdict de la CI pour un sha, lu dans les courses TRIÉES (`coursesCi` trie `createdAt`
- * décroissant). PUR. Une conclusion inconnue n'est PAS verte : elle rougit, et se nomme.
- * @returns {{etat:'absente'|'en-vol'|'verte'|'rouge'|'annulee', course?:object}}
- */
-export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
-  const notres = (courses ?? []).filter(
-    (c) => String(c?.headSha ?? '') === String(sha) && (!c?.workflowName || String(c.workflowName) === workflow),
-  )
-  if (!notres.length) return { etat: 'absente' }
-  const course = notres[0]
-  if (String(course.status ?? 'completed') !== 'completed') return { etat: 'en-vol', course }
-  const conclusion = String(course.conclusion ?? '')
-  if (conclusion === ANNULEE) return { etat: 'annulee', course }
-  if (conclusion === 'success') return { etat: 'verte', course }
-  // `ROUGES` nomme les trois échecs connus ; toute AUTRE conclusion (`neutral`, `skipped`, une
-  // valeur neuve de GitHub) n'est pas verte non plus — elle rougit, et le journal la porte.
-  return { etat: 'rouge', course, inattendue: !ROUGES.has(conclusion) }
-}
-
-/**
- * Le verdict d'une course `rouge` (`verdictDesRuns`) jugé sur ses JOBS (`jobsEnEchecDe`). PUR. Une course
- * conclue en échec dont AUCUN job n'est rouge et dont un job au moins est annulé (panne d'Actions) est
- * `annulee` : personne n'a jugé ce contenu, le geste est une relance. Sans job rouge ni annulé, elle reste
- * `rouge`, marquée `sansJobEnEchec`, pour que son lecteur le dise. Tout autre verdict passe tel quel.
- * @param {{etat:string, course?:object}} verdict @param {{rouges:string[], annules:string[]}} jobs
- * @returns {{etat:string, course?:object, rouges:string[], annules:string[], sansJobEnEchec?:true}}
- */
-export function verdictDesJobs(verdict, { rouges, annules }) {
-  if (verdict.etat !== 'rouge' || rouges.length) return { ...verdict, rouges, annules }
-  return annules.length ? { ...verdict, etat: 'annulee', rouges, annules } : { ...verdict, rouges, annules, sansJobEnEchec: true }
-}
-
-/** Ce que disent les jobs d'un verdict jugé (`verdictDesJobs`), en une phrase. PUR. */
-export function phraseDesJobs({ rouges, annules, sansJobEnEchec }) {
-  if (sansJobEnEchec) return 'aucun job rouge ni annulé dans la course'
-  return [rouges.length ? `jobs rouges : ${rouges.join(', ')}` : '', annules.length ? `jobs annulés : ${annules.join(', ')}` : ''].filter(Boolean).join(' ; ')
-}
 
 /**
  * Le refus d'une branche qu'aucun filtre `push.branches` de `ci.yml` (`branchesDePush`,
@@ -106,14 +64,20 @@ export const prefixeDeFile = (numero) => `gh-readonly-queue/${TRONC.nom}/pr-${nu
  * La course de file la plus récente de la PR `numero` sur la tête `tete`, ou `null`. `courses`
  * triées ; `parentsDe(sha)` rend `{ok, parents}`. Méthode MERGE (scripts/ops/ruleset-main.mjs) : le
  * commit de file de la tête a `tete` pour parent — la course d'une entrée antérieure de la même PR,
- * éjectée, n'est pas celle de la tête.
+ * éjectée, n'est pas celle de la tête. Une course d'`ecartees` (`coursesDeFileTerminees`) non plus (#2392).
  */
-export const courseDeFile = (courses, numero, { tete, parentsDe }) =>
+export const courseDeFile = (courses, numero, { tete, parentsDe, ecartees = new Set() }) =>
   (courses ?? []).find((c) => {
-    if (!String(c?.headBranch ?? '').startsWith(prefixeDeFile(numero))) return false
+    if (!String(c?.headBranch ?? '').startsWith(prefixeDeFile(numero)) || ecartees.has(c.databaseId)) return false
     const vu = parentsDe(String(c.headSha ?? ''))
     return vu.ok && vu.parents.includes(tete)
   }) ?? null
+
+/** Les `databaseId` des courses de file TERMINÉES de la PR `numero`, relevés à l'accusé d'une demande de
+ *  fusion : aucune ne juge cette demande (#2392). PUR. */
+export const coursesDeFileTerminees = (courses, numero) => (courses ?? [])
+  .filter((c) => String(c?.headBranch ?? '').startsWith(prefixeDeFile(numero)) && String(c.status ?? 'completed') === 'completed')
+  .map((c) => c.databaseId)
 
 /**
  * Une PR de l'API REST (`GET /repos/{owner}/{repo}/pulls`), réduite à ce que le train lit. PUR.
@@ -294,16 +258,29 @@ export function synchroniserAgents(ctx) {
   return { ok: true }
 }
 
-/** Le refus nommé d'une course de BRANCHE rouge ou annulée sur la tête `tete` de la PR `pr`, ou `null` ; une
- *  course rouge se juge sur ses jobs (`verdictDesJobs`). */
-function rougeDeBranche(ctx, pr, tete) {
+/** La course de BRANCHE de la tête `tete`, jugée (`verdictJuge`) ; une lecture indisponible est `illisible`. */
+function brancheJugee(ctx, tete) {
   const vues = ctx.coursesCi(tete)
-  const lu = vues.disponible ? verdictDesRuns(vues.valeur, tete) : null
-  if (!lu || (lu.etat !== 'rouge' && lu.etat !== 'annulee')) return null
-  const jobs = lu.etat === 'rouge' ? ctx.jobsEnEchec(lu.course.databaseId, lu.course.attempt) : null
-  const ci = jobs?.disponible ? verdictDesJobs(lu, jobs.valeur) : lu
-  const dit = jobs ? ` (${jobs.disponible ? phraseDesJobs(ci) : `jobs illisibles : ${jobs.raison}`})` : ''
-  return `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)}${dit} — la PR #${pr.numero} n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/${ci.course.databaseId}`
+  return vues.disponible ? verdictJuge(vues.valeur, tete, ctx.jobsEnEchec) : { etat: 'illisible', raison: vues.raison }
+}
+
+/**
+ * Ce que la course de branche jugée `ci` (`brancheJugee`) dit de la PR `pr` sur la tête `tete`. PUR. `null` :
+ * verte. `{raison}` : rouge, ou annulée à son `PLAFOND_RELANCES`ᵉ essai. `{dit}` : on attend — en vol,
+ * absente, illisible, ou annulée sous le plafond (#2392).
+ */
+function issueDeBranche(ci, pr, tete) {
+  if (ci.etat === 'verte') return null
+  if (ci.etat !== 'rouge' && ci.etat !== 'annulee')
+    return { dit: `course de la branche ${ci.etat === 'illisible' ? `illisible : ${ci.raison}` : ci.etat}` }
+  const id = ci.course.databaseId
+  const essai = ci.course.attempt ?? 1
+  const jobs = ci.jobsIllisibles ? ` (jobs illisibles : ${ci.jobsIllisibles})` : ci.rouges ? ` (${phraseDesJobs(ci)})` : ''
+  const course = `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)}${jobs}`
+  const url = `https://github.com/${DEPOT}/actions/runs/${id}`
+  if (ci.etat === 'rouge') return { raison: `${course} — la PR #${pr.numero} n’entre pas dans la file : ${url}` }
+  if (essai < PLAFOND_RELANCES) return { dit: `${course}, essai ${essai}/${PLAFOND_RELANCES} : ${url}` }
+  return { raison: `${course}, essai ${essai}/${PLAFOND_RELANCES} — \`gh run rerun ${id} --failed\` puis \`npm run ops:publier -- --reprendre\` — la PR #${pr.numero} n’entre pas dans la file : ${url}` }
 }
 
 /**
@@ -314,32 +291,39 @@ function rougeDeBranche(ctx, pr, tete) {
  * Sans course de file terminée rouge ni conflit, la PR est dans la file : on attend. Une course rouge
  * n'est ATTRIBUÉE à la PR que si `G^1`, le premier parent de son commit de file, est dans `origin/main` :
  * sinon elle juge un GROUPE dont une entrée précédente a pu casser, et GitHub reconstruit l'entrée
- * (`managing-a-merge-queue.md` l.104-109) — on attend.
- * @returns {{attendre:true, dit:string}|{reprendre:boolean, raison:string}}
+ * (`managing-a-merge-queue.md` l.104-109) — on attend. Une course de file ANNULÉE se redemande sur la même
+ * tête (#2392) ; `ecartees` : les courses terminées avant la demande (`coursesDeFileTerminees`).
+ * @returns {{attendre:true, dit:string}|{redemander:true, raison:string}|{reprendre:boolean, raison:string}}
  */
-function causeDEjection(ctx, pr, tete) {
-  const rouge = rougeDeBranche(ctx, pr, tete)
-  if (rouge) return { reprendre: false, raison: rouge }
+function causeDEjection(ctx, pr, tete, ecartees) {
+  const branche = issueDeBranche(brancheJugee(ctx, tete), pr, tete)
+  if (branche?.raison) return { reprendre: false, raison: branche.raison }
   if (pr.conflit) return { reprendre: true, raison: `PR #${pr.numero} en CONFLIT avec la base de la file` }
   const vues = ctx.coursesDeFile()
   if (!vues.disponible) return { attendre: true, dit: `courses de file illisibles : ${vues.raison}` }
-  const course = courseDeFile(vues.valeur, pr.numero, { tete, parentsDe: ctx.parentsDe })
-  const verdict = course ? verdictDesRuns([course], course.headSha) : null
-  if (!verdict || !['rouge', 'annulee'].includes(verdict.etat)) return { attendre: true, dit: `course de file ${verdict?.etat ?? 'absente'}` }
+  const course = courseDeFile(vues.valeur, pr.numero, { tete, parentsDe: ctx.parentsDe, ecartees })
+  const etat = course ? verdictDesRuns([course], course.headSha).etat : 'absente'
+  if (!['rouge', 'annulee'].includes(etat)) return { attendre: true, dit: `course de file ${etat}` }
   const url = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
   const base = ctx.parentsDe(course.headSha).parents?.[0]
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${refusDeGit(vuTronc)}` }
+  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${etat} ${url}, origin non consultable : ${refusDeGit(vuTronc)}` }
   const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
-    return { attendre: true, dit: `course de file ${verdict.etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
-  const jobs = ctx.jobsEnEchec(course.databaseId, course.attempt)
-  if (!jobs.disponible) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${jobs.raison}` }
-  const juge = verdictDesJobs(verdict, jobs.valeur)
+    return { attendre: true, dit: `course de file ${etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
+  const juge = verdictJuge([course], course.headSha, ctx.jobsEnEchec)
+  if (juge.jobsIllisibles) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${juge.jobsIllisibles}` }
+  const jobs = phraseDesJobs(juge) || 'aucun job nommé'
+  if (juge.etat === 'annulee') return { redemander: true, raison: `PR #${pr.numero} éjectée par la course ${url} ANNULÉE — ${jobs}` }
   const derives = new Set(ctx.jobsDesDerives)
-  const reprendre = juge.etat === 'rouge' && juge.rouges.length > 0 && juge.rouges.every((j) => derives.has(j))
-  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url}${juge.etat === 'annulee' ? ' ANNULÉE' : ''} — ${phraseDesJobs(juge) || 'aucun job nommé'}` }
+  const reprendre = juge.rouges.length > 0 && juge.rouges.every((j) => derives.has(j))
+  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url} — ${jobs}` }
 }
+
+/** Le refus d'une éjection au-delà de `BORNE_EJECTIONS`, ou `null`. PUR. */
+const ejectionHorsBorne = (journal, cause) => (journal.ejections ?? 0) >= BORNE_EJECTIONS
+  ? `${cause.raison} — éjectée une ${(journal.ejections ?? 0) + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`
+  : null
 
 /**
  * Reprise BORNÉE d'une PR éjectée (#2178, design v3) : FUSION d'`origin/main` dans la branche — jamais
@@ -349,8 +333,8 @@ function causeDEjection(ctx, pr, tete) {
  * tout autre conflit abandonne la fusion.
  */
 function reprendreApresEjection(ctx, journal, cause) {
-  if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
-    return { ok: false, raison: `${cause.raison} — éjectée une ${journal.ejections + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS}) : la cause n’est pas le tronc` }
+  const horsBorne = ejectionHorsBorne(journal, cause)
+  if (horsBorne) return { ok: false, raison: `${horsBorne} : la cause n’est pas le tronc` }
   const vuTronc = ctx.tronc()
   if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${refusDeGit(vuTronc)}` }
   const numeros = numerosDeLaPlage(ctx.questions)
@@ -521,7 +505,7 @@ export const ETAPES = [
     },
   },
   {
-    // #2178 ; #2437 ; https://docs.github.com/en/graphql/reference/input-objects#enqueuepullrequestinput
+    // #2178 ; #2437 ; #2392 ; https://docs.github.com/en/graphql/reference/input-objects#enqueuepullrequestinput
     nom: 'file',
     dejaFaite(ctx, journal) {
       const vue = journal.etapes.file
@@ -530,11 +514,22 @@ export const ETAPES = [
     jouer(ctx, journal) {
       const debut = Date.now()
       const fin = debut + ctx.options.fileTimeoutMin * 60_000
-      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), attenteSecondes: (Date.now() - debut) / 1000 } })
+      // Le compte de la PREMIÈRE issue qui le porte (`fusionDePr`).
+      let compte = null
+      const attendu = (v) => ({ ...v, detail: { ...(v.detail ?? {}), ...(compte ? { compte } : {}), attenteSecondes: (Date.now() - debut) / 1000 } })
+      const sousLeCompte = (issue) => (issue.compte ? ` sous le compte « ${issue.compte} »` : '')
+      const noterLeCompte = (issue) => {
+        if (compte || !issue.compte) return
+        compte = issue.compte
+        ctx.journaliser(issue.deja && issue.statut === 'enqueued'
+          ? `[publier] file — déjà en file, constaté sous le compte « ${compte} »\n`
+          : `[publier] file — demande de fusion sous le compte « ${compte} »\n`)
+      }
       const fusionnee = (pr, fusion) =>
         attendu({ ok: true, detail: { pr: pr.numero, fusion }, dit: `PR #${pr.numero} fusionnée en ${String(fusion ?? '?').slice(0, 9)}` })
       // `null` : aucune demande ; `{uuid}` : demande PENDANTE ; `{enFile:true}` : PR mise en file.
       let demande = null
+      const ecartees = new Set()
       const patienter = () => attendreSync(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
       while (Date.now() < fin) {
         const lu = ctx.lirePr()
@@ -555,14 +550,13 @@ export const ETAPES = [
           }
           let issue = null
           if (!demande) {
-            const vues = ctx.coursesCi(journal.tete)
-            const ci = vues.disponible ? verdictDesRuns(vues.valeur, journal.tete) : null
-            if (ci?.etat === 'rouge' || ci?.etat === 'annulee')
-              return attendu({ ok: false, detail: { pr: pr.numero }, raison: rougeDeBranche(ctx, pr, journal.tete) ?? `course CI ${ci.etat} de la branche sur ${journal.tete.slice(0, 9)}` })
-            if (ci?.etat !== 'verte') ctx.journaliser(`[publier] file — course de la branche ${ci?.etat ?? `illisible : ${vues.raison}`}\n`)
+            const branche = issueDeBranche(brancheJugee(ctx, journal.tete), pr, journal.tete)
+            if (branche?.raison) return attendu({ ok: false, detail: { pr: pr.numero }, raison: branche.raison })
+            if (branche) ctx.journaliser(`[publier] file — ${branche.dit}\n`)
             else {
               issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
-              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} REFUSÉE : ${issue.raison}` })
+              noterLeCompte(issue)
+              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} REFUSÉE${sousLeCompte(issue)} : ${issue.raison}` })
               if (issue.statut === 'pending' && issue.deja && issue.attendue !== journal.tete)
                 return attendu({ ok: false, detail: { pr: pr.numero }, raison: `une demande de fusion de la PR #${pr.numero} est DÉJÀ pendante (409, ${issue.uuid}) sur ${String(issue.attendue).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : GitHub l’annule (schéma de \`merge-async\`, \`sha\`) — \`--reprendre\` après son échec` })
               if (issue.statut === 'pending' && issue.deja)
@@ -570,6 +564,7 @@ export const ETAPES = [
             }
           } else if (demande.uuid) {
             issue = ctx.lireFusion({ numero: pr.numero, sha: journal.tete, uuid: demande.uuid })
+            noterLeCompte(issue)
             if (!issue.ok) {
               ctx.journaliser(`[publier] file — demande ${demande.uuid} illisible : ${issue.raison}\n`)
               issue = null
@@ -577,13 +572,25 @@ export const ETAPES = [
           }
           if (issue?.statut === 'merged') return fusionnee(pr, issue.fusion)
           if (issue?.statut === 'failed')
-            return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} en ÉCHEC : ${issue.message}` })
+            return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} en ÉCHEC${sousLeCompte(issue)} : ${issue.message}` })
+          if (!demande && (issue?.statut === 'pending' || issue?.statut === 'enqueued')) {
+            const vues = ctx.coursesDeFile()
+            if (vues.disponible) for (const id of coursesDeFileTerminees(vues.valeur, pr.numero)) ecartees.add(id)
+            else ctx.journaliser(`[publier] file — courses de file illisibles à la demande : ${vues.raison}\n`)
+          }
           if (issue?.statut === 'pending') demande = { uuid: issue.uuid }
           if (issue?.statut === 'enqueued') demande = { enFile: true }
           if (demande?.enFile) {
-            const cause = causeDEjection(ctx, pr, journal.tete)
+            const cause = causeDEjection(ctx, pr, journal.tete, ecartees)
             if (cause.attendre) ctx.journaliser(`[publier] file — PR #${pr.numero} dans la file : ${cause.dit}\n`)
-            else if (!cause.reprendre) return attendu({ ok: false, detail: { pr: pr.numero }, raison: cause.raison })
+            else if (cause.redemander) {
+              const horsBorne = ejectionHorsBorne(journal, cause)
+              if (horsBorne) return attendu({ ok: false, detail: { pr: pr.numero }, raison: horsBorne })
+              journal.ejections = (journal.ejections ?? 0) + 1
+              ctx.journaliser(`[publier] file — ${cause.raison} : nouvelle demande de fusion sur ${journal.tete.slice(0, 9)}\n`)
+              demande = null
+              continue
+            } else if (!cause.reprendre) return attendu({ ok: false, detail: { pr: pr.numero }, raison: cause.raison })
             else return attendu(reprendreApresEjection(ctx, journal, cause))
           }
         }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { nommerChamps } from './meta';
 import { PROSES_NOMMEES } from './champs-prose-de-scene';
 import { declarationProseNommee, proseNommee } from './prose';
 import { indiceStadeSchema, documentNarratifSchema, ouvertureSchema } from '../defs-scenes/narratif';
@@ -42,7 +43,7 @@ describe('prose nommée — déclaration et provenance locales', () => {
   }
 
   it('un nouvel objet narratif reçoit automatiquement l’exclusivité', () => {
-    const schema = proseNommee(z.strictObject({ id: z.literal('fixture') }), 'massBattle.terrain');
+    const schema = proseNommee(nommerChamps(z.strictObject({ id: z.literal('fixture') }), { id: { label: 'identifiant' } }), 'massBattle.terrain');
     const r = schema.safeParse({ id: 'fixture', terrain: 'Texte.', source: SOURCE, adapteDe: ADAPTE });
     expect(r.error?.issues.map((i) => i.path)).toEqual([['adapteDe']]);
   });

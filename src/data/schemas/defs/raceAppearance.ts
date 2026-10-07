@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `raceAppearance.json` — apparence de base d'une espèce de rig (Humain, Ogre, Skaven…),
  * consommée comme `RaceAppearanceData[]` (`src/data/index.ts`). PAR RÉFÉRENCE : `featureKeys`
@@ -31,9 +32,9 @@ const doc = document(
     tenue: z.string().optional(),
     colors: surchargePaletteSchema.optional(),
     sex: sexeSchema.optional(),
-    parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
+    parts: nommerChamps(z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }), { cheveux: { label: 'Cheveux' }, visage: { label: 'Visage' } }).optional(),
     scale: z.number().optional(),
-    eyes: z.strictObject({ G: z.string().optional(), D: z.string().optional() }).optional(),
+    eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: 'Gauche' }, D: { label: 'Droit' } }).optional(),
     extremites: z.enum(['lisses', 'griffues']).optional(),
   },
   {

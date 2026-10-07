@@ -258,10 +258,10 @@ describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seu
     const choisirType = (libelle: string) => choisirDansMenu(menuDe(rangee, /^Type :/), libelle);
 
     try {
-      await choisirType('Objectif courant (« je fais quoi maintenant ? »)');
+      await choisirType('Objectif courant');
       expect(dernier[0]).toEqual({ type: 'setObjective', id: '', desc: 'Le plancher gemit' });
 
-      await choisirType('Définir un flag');
+      await choisirType('Définir un indicateur');
       expect(dernier[0].type).toBe('setFlag');
       expect(dernier[0]).not.toHaveProperty('desc'); // le flag ne porte que les champs de SON type
 

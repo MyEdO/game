@@ -247,6 +247,9 @@ const ATTENDU = {
   // l'histoire par git et rend son verdict.
   'livraison:plage': [],
   'test:ops': [
+    // #2461
+    'scripts/ops/session-runtime.mjs',
+    'scripts/ops/session.test.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` prend ses dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
@@ -434,7 +437,12 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
   ],
   'deps:unused': [],
-  'test:recette': ['scripts/recette/lib.mjs'],
+  'test:recette': [
+    'scripts/recette/lib.mjs',
+    // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
+    // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
+    'scripts/recette/lib.test.mjs',
+  ],
   typecheck: [],
   lint: [],
   // La purge des captures périmées du lanceur efface dans `node_modules/.cache`, jamais dans l'arbre versionné.

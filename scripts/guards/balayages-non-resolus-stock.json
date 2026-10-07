@@ -1,5 +1,5 @@
 {
-  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 114, paramètre non lié 298, appel non suivi 868, forme non évaluée 61, déstructuration de tableau 69, variable sans valeur initiale 0, import non suivi 107, URL 32, environnement de processus 24, identifiant introuvable 5, chemin absolu 11, propriété non suivie 3, cycle d'appels 3361, profondeur d'appels 200, autre 311. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
+  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 123, paramètre non lié 321, appel non suivi 879, forme non évaluée 57, déstructuration de tableau 69, variable sans valeur initiale 0, import non suivi 107, URL 33, environnement de processus 28, identifiant introuvable 2, chemin absolu 11, propriété non suivie 3, cycle d'appels 3378, profondeur d'appels 200, autre 311. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
   "entrees": [
     {
       "famille": "URL",
@@ -53,6 +53,12 @@
       "famille": "URL",
       "fichier": "scripts/docs/lib/plateforme-win32-hooks.mjs",
       "ref": "existsSync : URL new URL('./.wfrp-win32-sdk-bridge.mjs', reel.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/guards/lib/stocksNominatifs.test.mjs",
+      "ref": "readFileSync : URL new URL('./fixtures/2472-' + ref + '.json.gz.b64', import.meta.url)",
       "occurrence": 1
     },
     {
@@ -1251,6 +1257,12 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "readFileSync : appel import",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/git-hooks/commit-msg.test.mjs",
       "ref": "commitDe : appel lanceurs.get",
       "occurrence": 1
@@ -1512,6 +1524,12 @@
       "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
       "ref": "chapterLinesOf : appel _chapterCache.get",
       "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/regenStock.mts",
+      "ref": "regenererStock : appel M.regenerations",
+      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -3442,68 +3460,68 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateGates : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 1
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 2
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 3
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 4
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 5
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 6
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 7
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 8
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 9
     },
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : appel portee.getStore",
+      "ref": "evaluate : appel portee.getStore",
       "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "evaluate : appel portee.getStore",
+      "occurrence": 11
     },
     {
       "famille": "appel non suivi",
@@ -4200,6 +4218,54 @@
       "fichier": "scripts/ops/ruleset-main.test.mjs",
       "ref": "ciALaRef : appel GABARITS.get",
       "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session-runtime.mjs",
+      "ref": "controleur : appel sessions.lire",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session-runtime.mjs",
+      "ref": "readFileSync : appel sessions.lire",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "commandeSession : appel argumentsAction.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "lancerSession : appel argumentsAction.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "commandeSession : appel argumentsAction.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "commandeSession : appel argumentsAction.shift",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : appel argumentsAction.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : appel argumentsAction.shift",
+      "occurrence": 2
     },
     {
       "famille": "appel non suivi",
@@ -5262,6 +5328,12 @@
       "fichier": "src/raw-ref-integrity.test.ts",
       "ref": "readText : appel _chapterCache.get",
       "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/scenes/generateurs-byte-stables.test.ts",
+      "ref": "readFileSync : appel import",
+      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -7078,7 +7150,7 @@
     {
       "famille": "autre",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateGates : ancetre réaffectée en récurrence",
+      "ref": "evaluate : ancetre réaffectée en récurrence",
       "occurrence": 1
     },
     {
@@ -10714,6 +10786,24 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/docs/lib/jsdocUnion.mjs",
+      "ref": "estOptionnel : cycle d'appels estOptionnel",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.mjs",
+      "ref": "estOptionnel : cycle d'appels estOptionnel",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.mjs",
+      "ref": "estOptionnel : cycle d'appels estOptionnel",
+      "occurrence": 3
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.mjs",
       "ref": "noyauZod : cycle d'appels noyauZod",
       "occurrence": 1
     },
@@ -10749,9 +10839,75 @@
     },
     {
       "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 7
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "estOptionnel : cycle d'appels estOptionnel",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 3
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 4
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 5
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "noyauZod : cycle d'appels noyauZod",
+      "occurrence": 6
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "readZodUnionMembers : cycle d'appels estOptionnel",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "readZodUnionMembers : cycle d'appels estOptionnel",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
       "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
       "ref": "readZodUnionMembers : cycle d'appels noyauZod",
       "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/docs/lib/jsdocUnion.test.mjs",
+      "ref": "readZodUnionMembers : cycle d'appels noyauZod",
+      "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
@@ -13458,6 +13614,12 @@
       "fichier": "scripts/guards/lib/canonUnique.mjs",
       "ref": "origineConstruction : cycle d'appels origineConstruction",
       "occurrence": 5
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/guards/lib/canonUnique.mjs",
+      "ref": "sansDeclarationsDeMetadonnees : cycle d'appels sansDeclarationsDeMetadonnees",
+      "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
@@ -18604,200 +18766,200 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateGates : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateGates : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
-      "occurrence": 1
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateGates : cycle d'appels pipelinesDuFlux",
-      "occurrence": 1
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
-      "occurrence": 1
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 4
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 5
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 6
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 7
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 8
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 9
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels lectureDesBlocs",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
       "occurrence": 10
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels lectureDesBlocs",
+      "occurrence": 11
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 4
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 5
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 6
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 7
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 8
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 9
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 10
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 11
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 4
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 5
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 6
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 7
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 8
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 9
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateLabel : cycle d'appels pipelinesDuFlux",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
       "occurrence": 10
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "evaluate : cycle d'appels pipelinesDuFlux",
+      "occurrence": 11
     },
     {
       "famille": "cycle d'appels",
@@ -25269,6 +25431,18 @@
     },
     {
       "famille": "cycle d'appels",
+      "fichier": "src/state/couture-de-retour.test.ts",
+      "ref": "sansDeclarationsDeMetadonnees : cycle d'appels sansDeclarationsDeMetadonnees",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/state/couture-de-retour.test.ts",
+      "ref": "sansDeclarationsDeMetadonnees : cycle d'appels sansDeclarationsDeMetadonnees",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
       "fichier": "src/state/flowtest-derived-stake.test.ts",
       "ref": "noeudsDuFlow : cycle d'appels noeudsDuFlow",
       "occurrence": 1
@@ -28058,6 +28232,30 @@
       "occurrence": 1
     },
     {
+      "famille": "environnement de processus",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "existsSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "profilTerminal : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "profilTerminal : process introuvable",
+      "occurrence": 2
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "profilTerminal : process introuvable",
+      "occurrence": 3
+    },
+    {
       "famille": "forme non évaluée",
       "fichier": "scripts/gates/classerPush.test.mjs",
       "ref": "readFileSync : forme ElementAccessExpression",
@@ -28067,12 +28265,6 @@
       "famille": "forme non évaluée",
       "fichier": "scripts/gates/toutes.mjs",
       "ref": "principal : forme ElementAccessExpression",
-      "occurrence": 1
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/gen-espaces.mts",
-      "ref": "readFileSync : forme AwaitExpression",
       "occurrence": 1
     },
     {
@@ -28161,12 +28353,6 @@
     },
     {
       "famille": "forme non évaluée",
-      "fichier": "scripts/guards/lib/regenStock.mts",
-      "ref": "regenererStock : forme AwaitExpression",
-      "occurrence": 1
-    },
-    {
-      "famille": "forme non évaluée",
       "fichier": "scripts/hooks/inject-project-credo.mjs",
       "ref": "injectProjectCredo : forme ElementAccessExpression",
       "occurrence": 1
@@ -28186,7 +28372,7 @@
     {
       "famille": "forme non évaluée",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
-      "ref": "evaluateGates : forme ElementAccessExpression",
+      "ref": "evaluate : forme ElementAccessExpression",
       "occurrence": 1
     },
     {
@@ -28233,6 +28419,36 @@
     },
     {
       "famille": "forme non évaluée",
+      "fichier": "scripts/ops/session-runtime.mjs",
+      "ref": "controleur : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "profilTerminal : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "profilTerminal : forme ElementAccessExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "profilTerminal : forme ElementAccessExpression",
+      "occurrence": 3
+    },
+    {
+      "famille": "forme non évaluée",
       "fichier": "scripts/ops/suivi.test.mjs",
       "ref": "etatDeSession : forme ElementAccessExpression",
       "occurrence": 1
@@ -28240,37 +28456,7 @@
     {
       "famille": "forme non évaluée",
       "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : forme AwaitExpression",
-      "occurrence": 1
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : forme AwaitExpression",
-      "occurrence": 2
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : forme AwaitExpression",
-      "occurrence": 3
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : forme AwaitExpression",
-      "occurrence": 4
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
       "ref": "existsSync : forme ElementAccessExpression",
-      "occurrence": 1
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "readFileSync : forme AwaitExpression",
       "occurrence": 1
     },
     {
@@ -28383,18 +28569,6 @@
     },
     {
       "famille": "forme non évaluée",
-      "fichier": "src/gameIso/rig/palettes-declarees.test.ts",
-      "ref": "readFileSync : forme AwaitExpression",
-      "occurrence": 1
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "src/scenes/generateurs-byte-stables.test.ts",
-      "ref": "readFileSync : forme AwaitExpression",
-      "occurrence": 1
-    },
-    {
-      "famille": "forme non évaluée",
       "fichier": "src/ui/css-modules-guard.test.ts",
       "ref": "classesDefinies : forme NewExpression",
       "occurrence": 1
@@ -28434,24 +28608,6 @@
       "fichier": "scripts/guards/lib/racineNpm.mjs",
       "ref": "existsSync : courant introuvable",
       "occurrence": 2
-    },
-    {
-      "famille": "identifiant introuvable",
-      "fichier": "scripts/hooks/poison-postcheck.mjs",
-      "ref": "cheminDEcriture : undefined introuvable",
-      "occurrence": 1
-    },
-    {
-      "famille": "identifiant introuvable",
-      "fichier": "scripts/hooks/poison-postcheck.mjs",
-      "ref": "voletPointeurs : undefined introuvable",
-      "occurrence": 1
-    },
-    {
-      "famille": "identifiant introuvable",
-      "fichier": "scripts/hooks/poison-postcheck.mjs",
-      "ref": "voletPoison : undefined introuvable",
-      "occurrence": 1
     },
     {
       "famille": "import non suivi",
@@ -29793,8 +29949,134 @@
     },
     {
       "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "commandeSession : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "creerSessions : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "creerSessions : paramètre dossier",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "commandeSession : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "commandeSession : paramètre dossier",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 7
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 8
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 9
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "lancerSession : paramètre dossier",
+      "occurrence": 10
+    },
+    {
+      "famille": "paramètre non lié",
       "fichier": "scripts/ops/suivi.test.mjs",
       "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : paramètre resultat",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : paramètre resultat",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : paramètre resultat",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : paramètre resultat",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "readFileSync : paramètre resultat",
       "occurrence": 1
     },
     {
@@ -30646,7 +30928,13 @@
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/recette/lib.mjs",
-      "ref": "readdirSync : paramètre chemin",
+      "ref": "readFileSync : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "readFileSync : paramètre chemin",
       "occurrence": 1
     },
     {
@@ -30654,6 +30942,12 @@
       "fichier": "scripts/recette/lib.mjs",
       "ref": "statSync : paramètre chemin",
       "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "statSync : paramètre chemin",
+      "occurrence": 2
     },
     {
       "famille": "paramètre non lié",
@@ -32637,6 +32931,30 @@
     },
     {
       "famille": "sortie de processus",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "commandeSession : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/session.mjs",
+      "ref": "lancerSession : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "commandeSession : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/session.test.mjs",
+      "ref": "commandeSession : appel String(vu.valeur.stdout).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
       "fichier": "scripts/ops/suivi.mjs",
       "ref": "editer : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
@@ -32657,6 +32975,36 @@
       "famille": "sortie de processus",
       "fichier": "scripts/ops/suivi.mjs",
       "ref": "suivre : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
+      "occurrence": 3
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
+      "occurrence": 4
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "readFileSync : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
     },
     {

@@ -1,10 +1,4 @@
-/**
- * Schéma de `pregens.json` — `PregenDef` (`src/data/pregens.ts`). Personnages pré-tirés APP-OWNED (flavor :
- * motivation, ambitions LDB 05 l.730-736) ; la fabrique (`src/data/pregens.ts`, #421) construit par
- * `createHero`, le moteur de création du créateur joueur. L'auteur tranche `species`/`career` et les choix
- * de création qu’il porte (`CHOIX_DES_PRETIRES`, pris dans `champsDeChoix`) ; un choix absent prend le défaut de
- * `createHero`, un tirage suit la graine `seed`.
- */
+/** LDB 05 l.730-736 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
@@ -32,10 +26,10 @@ const doc = document(
     career: idDe('career'),
     ...desPretires(champsDeChoix),
     motivation: z.string(),
-    /** Ambitions à court/long terme (LDB 05 l.730-736) — flavor du pré-tiré. */
+    /** LDB 05 l.730-736 */
     ambitionShort: z.string().optional(),
     ambitionLong: z.string().optional(),
-    /** Âge (LDB 05 étape 6) — absent sur toutes les entrées observées (pas de tirage moteur côté pré-tiré). */
+    /** LDB 05 */
     age: z.number().optional(),
     /** Sexe visuel (cosmétique). Défaut 'M'. */
     sex: sexeSchema.optional(),

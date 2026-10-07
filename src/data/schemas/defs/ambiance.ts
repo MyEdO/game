@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `ambiance.json` — AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/
  * filtre d'étage), consommée comme `AmbianceDef` (objet RACINE unique, PAS un tableau) —
@@ -10,16 +11,23 @@ import { couleurHexSchema } from '../grammaire/valeurs';
 export const file = 'ambiance.json';
 export const famille = 'config';
 
-const radialVeilSchema = z.strictObject({
+const radialVeilSchema = nommerChamps(z.strictObject({
   cx: z.string(),
   cy: z.string(),
   r: z.string(),
   color: z.string(),
   alpha: z.number(),
   innerOff: z.string().optional(),
+}), {
+  cx: { label: 'centre horizontal' },
+  cy: { label: 'centre vertical' },
+  r: { label: 'rayon' },
+  color: { label: 'couleur' },
+  alpha: { label: 'opacité' },
+  innerOff: { label: 'décalage intérieur' },
 });
 
-const povFogSchema = z.strictObject({
+const povFogSchema = nommerChamps(z.strictObject({
   farTiles: z.number(),
   fogStartT: z.number(),
   /** Exposant de la courbe de brume (`fogAt`, `pov/camera.ts`), porté au shader comme LITTÉRAL GLSL à
@@ -27,20 +35,24 @@ const povFogSchema = z.strictObject({
    *  littéral : sous 0,00005 il s'écrirait « 0.0000 », donc `pow(x, 0) = 1` — une brume PLEINE partout,
    *  sans un mot. 0,1 le tient à distance (données actuelles : 2 dehors, 1,2 dedans). #1176 P3-1c */
   fogGamma: z.number().positive().min(0.1),
+}), {
+  farTiles: { label: 'portée en cases' },
+  fogStartT: { label: 'début de la brume' },
+  fogGamma: { label: 'exposant de brume' },
 });
 
 /** #1176 P2-6 — PRÉCIPITATION MONDE d'un type de météo : le semis de particules qui tombe dans le
  *  volume de la voie volumique. Toutes les bornes sont des bornes de PLAUSIBILITÉ physique et de
  *  BUDGET : une donnée hors bornes ne fait pas une météo étrange, elle fait un semis qui ne tombe
  *  pas (vitesse nulle), qui remonte (négative) ou qui noie la frame (densité). */
-const precipSchema = z
+const precipSchema = nommerChamps(z
   .strictObject({
     /** Particules par m² de SOL couvert — c'est elle qui fixe le budget d'instances de la scène. */
     density: z.number().gt(0).max(2),
     /** Vitesse de CHUTE (m/s). */
     fallMs: z.number().gt(0).max(40),
     /** Dérive du VENT (m/s) dans le plan du sol (`x` = est, `z` = sud). */
-    windMs: z.strictObject({ x: z.number().min(-30).max(30), z: z.number().min(-30).max(30) }),
+    windMs: nommerChamps(z.strictObject({ x: z.number().min(-30).max(30), z: z.number().min(-30).max(30) }), { x: { label: 'abscisse' }, z: { label: 'axe sud' } }),
     /** Largeur et longueur (m) d'une particule — la longueur court dans le sens de la chute. */
     widthM: z.number().gt(0).max(1),
     lengthM: z.number().gt(0).max(4),
@@ -54,7 +66,16 @@ const precipSchema = z
   })
   .refine((p) => Math.hypot(p.windMs.x, p.windMs.z) < p.fallMs, {
     message: 'precip : la dérive du vent doit rester SOUS la vitesse de chute — au-delà, la précipitation file à l’horizontale et ne touche plus le sol',
-  });
+  }), {
+  density: { label: 'densité' },
+  fallMs: { label: 'vitesse de chute en mètres par seconde' },
+  windMs: { label: 'vent en mètres par seconde' },
+  widthM: { label: 'largeur en mètres' },
+  lengthM: { label: 'longueur en mètres' },
+  ceilingM: { label: 'plafond en mètres' },
+  color: { label: 'couleur' },
+  opacity: { label: 'opacité' },
+});
 
 /** #1247 — BRUME MONDE d'un type de météo : des nappes horizontales translucides posées à des cotes
  *  fixes au-dessus du sol, dans le volume de la voie volumique (`backends/webgl/weatherSheets.ts`).
@@ -69,16 +90,16 @@ const precipSchema = z
  *  plein), des cotes STRICTEMENT croissantes (deux nappes à la même cote ne se trient pas — leur
  *  ordre de mélange dépendrait de l'ordre de montage), et un alpha non nul (une nappe invisible se
  *  supprime, elle ne s'écrit pas `alpha: 0`). */
-const brumeSchema = z
+const brumeSchema = nommerChamps(z
   .strictObject({
     color: couleurHexSchema,
     layers: z
       .array(
-        z.strictObject({
+        nommerChamps(z.strictObject({
           /** Cote (m) de la nappe au-dessus du sol le plus BAS de la carte. */
           hM: z.number().min(0).max(60),
           alpha: z.number().gt(0).max(1),
-        }),
+        }), { hM: { label: 'hauteur en mètres' }, alpha: { label: 'opacité' } }),
       )
       .min(1)
       .max(4),
@@ -89,10 +110,14 @@ const brumeSchema = z
   })
   .refine((b) => b.layers.every((l, i) => i === 0 || l.hM > b.layers[i - 1].hM), {
     message: 'brume : les cotes `hM` doivent croître STRICTEMENT — deux nappes à la même cote ne se trient pas',
-  });
+  }), {
+  color: { label: 'couleur' },
+  layers: { label: 'couches' },
+  povTightenK: { label: 'facteur de réduction de portée' },
+});
 
 // #239 — FX de météo AUTHORÉE de scène (`scene.weather`), par type.
-const weatherFxSchema = z.strictObject({
+const weatherFxSchema = nommerChamps(z.strictObject({
   tint: z.string(),
   alpha: z.number(),
   particles: z.enum(['pluie', 'averse', 'neige']).optional(),
@@ -103,6 +128,14 @@ const weatherFxSchema = z.strictObject({
   /** Absent = ce type ne pose AUCUNE nappe de brume (la pluie et la neige n'en posent pas : leur
    *  expression volumique est le semis plus la teinte dérivée de `tint`/`alpha`). */
   brume: brumeSchema.optional(),
+}), {
+  tint: { label: 'teinte' },
+  alpha: { label: 'opacité' },
+  particles: { label: 'particules' },
+  pcolor: { label: 'couleur des particules' },
+  density: { label: 'densité' },
+  precip: { label: 'précipitations' },
+  brume: { label: 'brume' },
 });
 
 /** Facteur multiplicatif de teinte : 0 = éteint, 1 = pleine matière — hors de [0,1] il n'éclaircit
@@ -129,7 +162,7 @@ const tintFactor = z.number().min(0).max(1);
  *  chaque face porte son propre dehors jusqu'à la cuisson. Les murs, eux, n'en produisent aucun —
  *  `wallBoxPolys` (`gameIso/backends/webgl/worldTris.ts`) omet le dessous d'un mur, et un sol présente
  *  toujours sa normale vers le haut (`gameIso/stage/modele-forme.test.ts`). */
-const faceShadeSchema = z
+const faceShadeSchema = nommerChamps(z
   .strictObject({
     haut: z.number().gt(0).max(1),
     verticales: z.array(z.number().gt(0).max(1)).length(4),
@@ -145,7 +178,11 @@ const faceShadeSchema = z
   })
   .refine((s) => Math.max(...s.verticales) / Math.min(...s.verticales) <= 2, {
     message: 'faceShade.verticales : rapport max/min ≤ 2 — au-delà, la famille la plus sombre passe sous le plancher de luminance',
-  });
+  }), {
+  haut: { label: 'face supérieure' },
+  verticales: { label: 'faces verticales' },
+  bas: { label: 'face inférieure' },
+});
 
 const doc = document(
   'ambiance',
@@ -157,14 +194,18 @@ const doc = document(
   // dans [0,1] ; l'ordre des états ne s'inverse pas (une case jamais vue ne peut pas être plus lumineuse
   // qu'un souvenir, ni un souvenir plus lumineux que le vu) ; `explored` est le DÉNOMINATEUR du cran
   // d'ambiance de la première personne, donc strictement positif.
-  fogTint: z
+  fogTint: nommerChamps(z
     .strictObject({ visible: tintFactor, explored: tintFactor, unknown: tintFactor })
     .refine((t) => t.explored > 0, {
       message: 'fogTint.explored doit être > 0 : il divise le cran d’ambiance POV (`POV_AMBIENT.unknown`)',
     })
     .refine((t) => t.visible >= t.explored && t.explored >= t.unknown, {
       message: 'fogTint doit décroître visible ≥ explored ≥ unknown : une case moins connue ne peut pas être plus lumineuse',
-    }),
+    }), {
+    visible: { label: 'visible' },
+    explored: { label: 'exploré' },
+    unknown: { label: 'inconnu' },
+  }),
   faceShade: faceShadeSchema,
   /** #1372 — ENTRÉE EN SCÈNE : le voile bref que l'écran tient pendant que les sujets PROCHES du
    *  groupe reçoivent leur texture (`stage/GameStage3D.tsx`). Valeurs MAISON (rendu, hors RAW).
@@ -174,7 +215,7 @@ const doc = document(
    *  même profondeur de décor sous le même chiffre. `plafondMs` est la borne de SÉCURITÉ : un SVG
    *  qui ne se charge jamais tiendrait sinon le voile pour toute la session. Les bornes sont des
    *  bornes d'usage — un rayon nul ne voile rien, un plafond de dix secondes n'est plus un plafond. */
-  entreeEnScene: z.strictObject({
+  entreeEnScene: nommerChamps(z.strictObject({
     rayonM: z
       .number()
       .gt(0, 'entreeEnScene.rayonM : le rayon doit être > 0 — à zéro aucun sujet n’est « proche », et le voile tombe sans avoir rien couvert')
@@ -183,29 +224,49 @@ const doc = document(
       .number()
       .gt(0, 'entreeEnScene.plafondMs : le plafond doit être > 0 — à zéro le voile tombe avant la première texture')
       .max(10000, 'entreeEnScene.plafondMs : le plafond doit rester ≤ 10000 ms — au-delà ce n’est plus une borne de sécurité, l’écran reste voilé'),
-  }),
-  iso: z.strictObject({
+  }), { rayonM: { label: 'rayon en mètres' }, plafondMs: { label: 'délai maximal en millisecondes' } }),
+  iso: nommerChamps(z.strictObject({
     warm: radialVeilSchema,
     vignette: radialVeilSchema,
-    lowerFloorDim: z.strictObject({ saturate: z.number(), slope: z.number() }),
+    lowerFloorDim: nommerChamps(z.strictObject({ saturate: z.number(), slope: z.number() }), { saturate: { label: 'saturation' }, slope: { label: 'pente' } }),
     stageBg: z.string(),
     nightVeil: z.string(),
     nightVeilMax: z.number(),
     dayVignetteFloor: z.number(),
-    edgeDepth: z.strictObject({
+    edgeDepth: nommerChamps(z.strictObject({
       color: z.string(),
       alpha: z.number(),
       topFrac: z.number(),
       bottomFrac: z.number(),
+    }), {
+      color: { label: 'couleur' },
+      alpha: { label: 'opacité' },
+      topFrac: { label: 'fraction supérieure' },
+      bottomFrac: { label: 'fraction inférieure' },
     }),
-    weather: z.strictObject({
+    weather: nommerChamps(z.strictObject({
       pluie: weatherFxSchema.optional(),
       brouillard: weatherFxSchema.optional(),
       neige: weatherFxSchema.optional(),
       tempete: weatherFxSchema.optional(),
+    }), {
+      pluie: { label: 'pluie' },
+      brouillard: { label: 'brouillard' },
+      neige: { label: 'neige' },
+      tempete: { label: 'tempête' },
     }),
+  }), {
+    warm: { label: 'voile chaud' },
+    vignette: { label: 'vignette' },
+    lowerFloorDim: { label: 'atténuation de l’étage inférieur' },
+    stageBg: { label: 'fond de scène' },
+    nightVeil: { label: 'voile nocturne' },
+    nightVeilMax: { label: 'opacité maximale du voile nocturne' },
+    dayVignetteFloor: { label: 'plancher de vignette diurne' },
+    edgeDepth: { label: 'profondeur des bords' },
+    weather: { label: 'météo' },
   }),
-  pov: z.strictObject({
+  pov: nommerChamps(z.strictObject({
     skyTop: z.string(),
     fogIndoor: z.string(),
     fogOutdoor: z.string(),
@@ -213,10 +274,10 @@ const doc = document(
     ambientUnseen: z.number(),
     warm: radialVeilSchema,
     floorOcclusion: z.number(),
-    depth: z.strictObject({
+    depth: nommerChamps(z.strictObject({
       outdoor: povFogSchema,
       indoor: povFogSchema,
-      lod: z.strictObject({
+      lod: nommerChamps(z.strictObject({
         blocksT: z.number(),
         fadeT: z.number(),
         minJointSpacingPx: z.number(),
@@ -224,9 +285,31 @@ const doc = document(
         meshFadeT: z.number(),
         meshShade: z.number(),
         meshJointWM: z.number(),
+      }), {
+        blocksT: { label: 'distance des volumes simplifiés' },
+        fadeT: { label: 'distance de disparition' },
+        minJointSpacingPx: { label: 'espacement minimal des joints en pixels' },
+        meshStartT: { label: 'apparition des maillages' },
+        meshFadeT: { label: 'disparition des maillages' },
+        meshShade: { label: 'ombrage des maillages' },
+        meshJointWM: { label: 'largeur des joints en mètres' },
       }),
+    }), {
+      outdoor: { label: 'extérieur' },
+      indoor: { label: 'intérieur' },
+      lod: { label: 'niveau de détail' },
     }),
     vignette: radialVeilSchema,
+  }), {
+    skyTop: { label: 'haut du ciel' },
+    fogIndoor: { label: 'brume intérieure' },
+    fogOutdoor: { label: 'brume extérieure' },
+    fogOutdoorSurface: { label: 'brume extérieure au sol' },
+    ambientUnseen: { label: 'lumière ambiante hors de vue' },
+    warm: { label: 'voile chaud' },
+    floorOcclusion: { label: 'occlusion du sol' },
+    depth: { label: 'profondeur' },
+    vignette: { label: 'vignette' },
   }),
   },
   {

@@ -1,14 +1,10 @@
-/**
- * Schéma de `sea-weather.json` — MÉTÉO DE LA MER DES GRIFFES (MDG 13 l.162-306). Consommé par
- * `src/engine/seaWeather.ts` (`DATA as unknown as { ... }`, cast inline reflété ICI 1:1) : tirage
- * quotidien (table 4 aspects), modificateur saisonnier, catalogues d'aspect (Précipitations /
- * Température / Visibilité / Vents), rose des vents, effet du vent (standard + Clinfoc), Affaler les
- * voiles, Encalminé.
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** MDG 13 l.162-306 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
+import { seasonLabel } from '../../index';
 
 export const file = 'sea-weather.json';
 export const famille = 'config';
@@ -21,56 +17,82 @@ const windForce = z.enum([
   'vent-violent',
   'violente-tempete',
 ]);
-/** Aspect du vent relatif au cap (MDG 13 l.267-270). */
+/** MDG 13 l.267-270 */
 export const windAspectSchema = enumNomme({ arriere: 'vent arrière', lateral: 'vent latéral', face: 'vent de face' });
-const windEffectCell = z.strictObject({
+const windEffectCell = nommerChamps(z.strictObject({
   pctSail: z.number().optional(),
   pctOther: z.number().optional(),
   encalmine: z.boolean().optional(),
   affaler: z.boolean().optional(),
   virement: z.boolean().optional(),
+}), {
+  pctSail: { label: 'Vitesse à la voile (%)' },
+  pctOther: { label: 'Autres vitesses (%)' },
+  encalmine: { label: 'Encalminé' },
+  affaler: { label: 'Amener les voiles' },
+  virement: { label: 'Virement' },
 });
 const windEffectTable = z.record(windForce, z.record(windAspectSchema, windEffectCell));
 
 const champs = {
   table: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       ...plageSchema.shape,
       precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
       temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
       visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
       vent: windForce,
       source: sourceRefSchema,
+    }), {
+      ...metaDesChamps(plageSchema, { exigees: true }),
+      precipitations: { label: 'Précipitations' },
+      temperature: { label: 'Température' },
+      visibilite: { label: 'Visibilité' },
+      vent: { label: 'Vent' },
+      source: { label: 'Source' },
     }),
   ),
-  seasonMod: z.strictObject({
+  seasonMod: nommerChamps(z.strictObject({
     ete: z.number(),
     automne: z.number(),
     printemps: z.number(),
     hiver: z.number(),
     source: sourceRefSchema,
+  }), {
+    ete: { get label() { return seasonLabel('ete'); } },
+    automne: { get label() { return seasonLabel('automne'); } },
+    printemps: { get label() { return seasonLabel('printemps'); } },
+    hiver: { get label() { return seasonLabel('hiver'); } },
+    source: { label: 'Source' },
   }),
   warmSeaMod: z.number(),
   precipitations: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       desc: z.string().optional(),
       skillMods: z
         .array(
-          z.strictObject({
-            /** MDG 13 l.187-201. */
+          nommerChamps(z.strictObject({
+            /** MDG 13 l.187-201 */
             skills: z.array(refOuSpec('skill')),
             mod: z.number(),
-          }),
+          }), { skills: { label: 'Compétences' }, mod: { label: 'Modificateur' } }),
         )
         .optional(),
       otherMod: z.number().optional(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      desc: { label: 'Description' },
+      skillMods: { label: 'Modificateurs de Compétence' },
+      otherMod: { label: 'Autre modificateur' },
+      source: { label: 'Source' },
     }),
   ),
   temperatures: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       testEveryHours: z.number().optional(),
@@ -78,37 +100,59 @@ const champs = {
       exposure: z.enum(['chaleur', 'froid']).optional(),
       litresParJour: z.number().optional(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      testEveryHours: { label: 'Périodicité du Test (heures)' },
+      difficulty: { label: 'Difficulté' },
+      exposure: { label: 'Exposition' },
+      litresParJour: { label: 'Litres par jour' },
+      source: { label: 'Source' },
     }),
   ),
   visibilites: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       drPenalty: z.number().optional(),
       beyondM: z.number().optional(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      drPenalty: { label: 'Pénalité de DR' },
+      beyondM: { label: 'Au-delà de la portée (m)' },
+      source: { label: 'Source' },
     }),
   ),
-  vents: z.array(z.strictObject({ id: z.string(), label: z.string(), source: sourceRefSchema })),
+  vents: z.array(nommerChamps(z.strictObject({ id: z.string(), label: z.string(), source: sourceRefSchema }), { id: { label: 'Identifiant' }, label: { label: 'Libellé' }, source: { label: 'Source' } })),
   windTickThreshold: z.number(),
   windTicksPerDay: z.number(),
   roseDesVents: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       ...plageSchema.shape,
       direction: z.enum(['dominant', 'nord', 'sud', 'ouest', 'est']),
       source: sourceRefSchema,
-    }),
+    }), { ...metaDesChamps(plageSchema, { exigees: true }), direction: { label: 'Direction' }, source: { label: 'Source' } }),
   ),
   effetDuVent: windEffectTable,
   effetDuVentClinfoc: windEffectTable,
-  /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
+  /** MSRC 12 l.137 */
   effetDuVentGreementDelta: z.record(windAspectSchema, z.number()),
-  affaler: z.strictObject({
+  affaler: nommerChamps(z.strictObject({
     difficulty: difficultySchema,
     failCritLocation: z.string(),
     driftPctOfSpeed: z.number(),
+  }), {
+    difficulty: { label: 'Difficulté' },
+    failCritLocation: { label: 'Localisation du critique à l’échec' },
+    driftPctOfSpeed: { label: 'Dérive (% de vitesse)' },
   }),
-  encalmine: z.strictObject({ currentM: z.number(), towM: z.number(), towManDR: z.number() }),
+  encalmine: nommerChamps(z.strictObject({ currentM: z.number(), towM: z.number(), towManDR: z.number() }), {
+    currentM: { label: 'Mouvement du courant' },
+    towM: { label: 'Mouvement de remorquage' },
+    towManDR: { label: 'DR de manœuvre en remorquage' },
+  }),
 };
 
 const doc = document(

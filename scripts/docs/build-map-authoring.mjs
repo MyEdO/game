@@ -17,7 +17,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes } from './lib/jsdocUnion.mjs'
+import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes, noyauZod, estOptionnel } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
@@ -93,18 +93,6 @@ function rendu() {
     return cles
   }
 
-  /** Déballe `X.optional()`, `X.superRefine(…)`… jusqu'à l'appel `z.strictObject`/`z.object`. */
-  function objetZod(node) {
-    if (ts.isCallExpression(node)) {
-      const cible = node.expression
-      if (ts.isPropertyAccessExpression(cible)) {
-        if (/^(strictObject|object|looseObject)$/.test(cible.name.text)) return node
-        return objetZod(cible.expression)
-      }
-    }
-    return undefined
-  }
-
   /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`) — au-delà, on casse bruyamment
    *  plutôt que d'écrire un type faux dans la doc. */
   function typeZod(init, cle, schema) {
@@ -126,8 +114,8 @@ function rendu() {
   function proprietesZod(nomSchema) {
     const entree = SCHEMAS.get(nomSchema)
     if (!entree) abandon(`schéma \`${nomSchema}\` introuvable dans ${SCENE_SCHEMA} (déplacé ?)`)
-    const objet = objetZod(entree.decl.initializer)
-    if (!objet || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
+    const objet = noyauZod(entree.decl.initializer, entree)
+    if (!ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
     const props = new Map()
     let prevEnd = objet.arguments[0].properties.pos
     for (const p of objet.arguments[0].properties) {
@@ -174,10 +162,12 @@ function rendu() {
     return rows.flatMap((r) => {
       const nomSchema = /^[A-Z][A-Za-z0-9_$]*$/.test(r.type) ? schemaInfere(SF_SCENE, r.type) : undefined
       const init = nomSchema && SCHEMAS.get(nomSchema)?.decl.initializer
-      if (!init || !objetZod(init)) return [r]
+      const entree = nomSchema && SCHEMAS.get(nomSchema)
+      const objet = init && noyauZod(init, entree)
+      if (!objet || !ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) return [r]
       const parent = r.nom.replace(/\?$/, '')
       const sous = [...proprietesZod(nomSchema)].map(([cle, p]) => ({
-        nom: `${parent}.${cle}${/\.optional\(\)/.test(p.init.getText()) ? '?' : ''}`,
+        nom: `${parent}.${cle}${estOptionnel(p.init, entree) ? '?' : ''}`,
         type: typeSousChamp(p.init, cle, nomSchema),
         role: p.role,
       }))

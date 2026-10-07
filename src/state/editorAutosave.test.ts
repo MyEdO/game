@@ -91,7 +91,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
     });
 
     it('une forme que le normaliseur ne sait pas lire : ÉCARTÉE par le schéma, jamais une exception', async () => {
-      expect(fautesLues(await relu({ entities: 5 }))).toEqual(['entities : Entrée invalide : tableau attendu, nombre reçu']);
+      expect(fautesLues(await relu({ entities: 5 }))).toEqual(['entités : Entrée invalide : tableau attendu, nombre reçu']);
     });
 
     it('un `presetId` sans narratif à qui le résoudre : REPRIS, la FK reste à la porte du projet', async () => {

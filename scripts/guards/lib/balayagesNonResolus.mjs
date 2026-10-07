@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { phraseDeNaissance } from './stock.mjs'
 import { DECROISSANT, comptesParFamille, naissanceEnPlace } from './stockDeSites.mjs'
 import { balayagesNonResolus } from '../../test/perimetre.mjs'
+import { VALEUR_NULLE } from './racinesBalayees.mjs'
 
 /** Le stock, relatif au dépôt. */
 export const STOCK = 'scripts/guards/balayages-non-resolus-stock.json'
@@ -21,8 +22,8 @@ const CHEMIN_DU_STOCK = join(RACINE, STOCK)
 export const EXEMPTIONS = Object.freeze([
   Object.freeze({
     classe: 'valeur nulle',
-    exempte: (_valeur, texte) => texte === 'forme NullKeyword',
-    justification: "`null` ne désigne aucun chemin : une primitive de lecture le refuse, et l'autre branche d'une union `x ?? null` s'évalue et se classe pour elle-même.",
+    exempte: (_valeur, texte) => texte === VALEUR_NULLE,
+    justification: "`null` (ou `undefined`) ne désigne aucun chemin : une primitive de lecture le refuse, et l'autre branche d'une union `x ?? null` s'évalue et se classe pour elle-même.",
   }),
   Object.freeze({
     classe: 'module qui balaie la racine du dépôt',

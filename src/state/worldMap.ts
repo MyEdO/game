@@ -508,7 +508,7 @@ export function declutterPositions(
 // auto-suffisant, #765 ; enveloppe PLATE depuis #1467 L1b, posée par la fabrique `document()` depuis
 // #1552). Aucun numéro de forme : `projetSchema` est le contrôle de format (#2404).
 import { type NarratifBlock } from './campaignNarratif';
-import { validerFormeVivante, rapportDeFautes, type Faute, type RefusDeFormeVivante } from '../data/schemas/validate';
+import { validerFormeVivante, rapportDeFautes, lieuDe, cheminLisible, type Faute, type RefusDeFormeVivante } from '../data/schemas/validate';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -602,10 +602,6 @@ export type CauseDeRefus = 'schema' | 'prose-non-materialisee' | 'entree';
 export const PROJET_AUTRE_FORMAT = 'Projet d’un autre format, ou mal formé';
 export const SCENE_AUTRE_FORMAT = 'Scène d’un autre format, ou mal formée';
 
-/** Un chemin brut en notation JSON (`narratif.presetsPnj[3].profil`). */
-const cheminJson = (chemin: readonly (string | number)[]): string =>
-  chemin.map((s, i) => (typeof s === 'number' ? `[${s}]` : i === 0 ? s : `.${s}`)).join('') || '(racine)';
-
 /** Refus de la porte `parseProject`, MESURÉ : la cause et les fautes (chemin + message), à charge de
  *  l'appelant de les dire à sa surface. Le `message` reste le rapport TECHNIQUE de la porte. Patron :
  *  `EntreeEnSceneNonAtteinte` (`entreeEnScene.ts`). */
@@ -629,7 +625,7 @@ export function exigerUnRefus(err: unknown): asserts err is ProjetRefuse {
 
 /** Refus hors schéma : une seule faute, rapportée `Projet invalide : <faute>.` */
 export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | number)[], faute: string): ProjetRefuse {
-  return new ProjetRefuse(cause, [{ chemin, lieu: chemin, message: faute, code: cause }], `Projet invalide : ${faute}.`);
+  return new ProjetRefuse(cause, [{ chemin, lieu: lieuDe(projetSchema, undefined, chemin), message: faute, code: cause }], `Projet invalide : ${faute}.`);
 }
 
 /** Une scène persistée HORS de son projet (filet de crash de l'éditeur, `editorAutosave.ts`), PROUVÉE
@@ -643,12 +639,9 @@ export function parseSceneDeProjet(scene: unknown): Scene {
   return normalizeScene(scene as Scene);
 }
 
-/** Le refus de `validerFormeVivante` en `ProjetRefuse`, sous sa cause : le schéma enfreint se rapporte
- *  sous le terme de l'autre format (`PROJET_AUTRE_FORMAT`, `SCENE_AUTRE_FORMAT`), la prose adressée sans
- *  son texte nomme chaque nœud par son chemin JSON. */
 function refusDeFormeVivante(sujet: 'Projet' | 'Scène', { cause, fautes }: RefusDeFormeVivante): ProjetRefuse {
   if (cause === 'schema') return new ProjetRefuse(cause, fautes, rapportDeFautes(sujet === 'Projet' ? PROJET_AUTRE_FORMAT : SCENE_AUTRE_FORMAT, fautes));
-  return new ProjetRefuse(cause, fautes, `${sujet} invalide : ${fautes.map((f) => cheminJson(f.chemin)).join(', ')} — ${fautes[0].message}`);
+  return new ProjetRefuse(cause, fautes, `${sujet} invalide : ${fautes.map((f) => cheminLisible(f.lieu)).join(', ')} — ${fautes[0].message}`);
 }
 
 /** Parse un document de projet. `validerFormeVivante` (`projetSchema` sur la forme disque, puis la

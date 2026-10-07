@@ -23,6 +23,8 @@ import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import { readFileSync } from 'node:fs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { sansDeclarationsDeMetadonnees } from '../../scripts/guards/lib/canonUnique.mjs';
 import { join, posix } from 'node:path';
 import { buildAdvancementView } from './advancement';
 import { learnableSpells } from '../engine/grimoire';
@@ -275,7 +277,8 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/engine/persistence.ts | xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,': 'type',
     'src/state/advancement.ts | xp: hero.xp ?? 0,': 'lecture',
     'src/state/combatFlow.ts | xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),': 'lecture',
-    'src/state/devtools.ts | xp: (amount = 100) => {': 'lecture',
+    'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
+    'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
     'src/scenes/test-scenarios/magie.ts | sorc.xp = 300;': 'fixture',
     'src/scenes/test-scenarios/voyage.ts | aldric.xp = 300;': 'fixture',
@@ -289,12 +292,21 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/state/interludeFlow.ts | depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) }));': 'depense',
   };
 
+  it('les clés PX de métadonnées ne cachent aucune écriture exécutée', () => {
+    const text = `import { nommerChamps as nommer } from '../data/schemas/grammaire/meta';
+      nommer(schema, { xp: { label: 'PX' }, autre: { label: (hero.xp -= 2) }, exemple: donne({ xp: 3 }) });`;
+    const code = sansDeclarationsDeMetadonnees({ rel: 'src/state/probe.ts', text });
+    expect([...code.matchAll(/\.xp\s*[-+]?=(?!=)|\bxp:\s/g)].map((m) => m[0])).toEqual(['.xp -=', 'xp: ']);
+  });
+
   it('toute écriture de PX de src est classée, et chaque dépense vit dans un appel depenserPx', () => {
     const ecriture = /\.xp\s*[-+]?=(?!=)|\bxp:\s/;
-    const sites = readCorpus(['src']).flatMap(({ rel, text }) => {
-      const lignes = text.split('\n');
-      return lignes.flatMap((l, i) => (ecriture.test(l) ? [{ cle: `${rel} | ${sansCommentaire(l)}`, site: `${rel}:${i + 1}`, couture: dansLaCouture(lignes, i) }] : []));
-    });
+    const sites: Array<{ cle: string; site: string; couture: boolean }> = [];
+    for (const { fichier, sourceFile, checker } of analyserCorpus(readCorpus(['src']).filter(({ text }) => ecriture.test(text)))) {
+      const lignes = fichier.text.split('\n');
+      const code = sansDeclarationsDeMetadonnees(fichier, sourceFile ?? undefined, checker).split('\n');
+      sites.push(...lignes.flatMap((l, i) => (ecriture.test(code[i]) ? [{ cle: `${fichier.rel} | ${sansCommentaire(l)}`, site: `${fichier.rel}:${i + 1}`, couture: dansLaCouture(lignes, i) }] : [])));
+    }
     expect(sites.filter((x) => !(x.cle in ECRITURES_XP)).map((x) => `${x.site} — ${x.cle}`)).toEqual([]);
     expect(sites.filter((x) => ECRITURES_XP[x.cle] === 'depense' && !x.couture).map((x) => x.site)).toEqual([]);
     expect(Object.keys(ECRITURES_XP).filter((cle) => !sites.some((x) => x.cle === cle))).toEqual([]);

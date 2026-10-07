@@ -16,7 +16,7 @@ import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
 import { document, documentDeLEntreePartielle, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
-import { libelleDeValeur, valeursDe } from './meta';
+import { libelleDeValeur, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
@@ -1028,7 +1028,7 @@ describe('ref() — id validé AU PARSE contre le registre généré', () => {
   });
 
   it('compose FERMÉ avec les champs du porteur (`extra`) et refuse le reste', () => {
-    const possede = ref('skill', { advances: z.number() });
+    const possede = ref('skill', { advances: nommerNoeud(z.number(), { nom: 'avancées' }) });
     expect(possede.safeParse({ id: UNE_COMPETENCE.id, advances: 3 }).success).toBe(true);
     expect(possede.safeParse({ id: UNE_COMPETENCE.id, advances: 3, value: 40 }).success).toBe(false);
   });

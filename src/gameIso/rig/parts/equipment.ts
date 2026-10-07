@@ -1,5 +1,5 @@
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
-import { isCapeItem, isShieldItem } from '../../../engine/items';
+import { formeResolue, isCapeItem, isShieldItem, type SourceDeForme } from '../../../engine/items';
 import type { Slot } from '../bones';
 import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
@@ -7,7 +7,6 @@ import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
 import { norm as wnorm } from './weaponForms';
-import { findTrappingById } from '../../../data';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
 /** Clés d'une arme que le rig LIT telles quelles (#2097) : le type `FormeDArme` et le sélecteur
@@ -16,10 +15,6 @@ import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 const CLES_ARME = ['attackKind', 'hand', 'natural', 'skin', 'subType', 'type'] as const;
 /** Clés d'une pièce d'armure que le rig LIT (#2097). */
 const CLES_PIECE = ['locs', 'skin'] as const;
-
-/** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
- *  invoquée, le choix du joueur. */
-export type SourceDeForme = Pick<Weapon, 'form' | 'formeChoisie' | 'natural' | 'trappingId'>;
 
 /** Ce que le rig lit d'une arme : ses clés lues telles quelles, et sa forme RÉSOLUE (`formeResolue`).
  *  `forme` n'existe pas sur `Weapon` : une arme brute ne s'y substitue pas (#2113). */
@@ -43,24 +38,6 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
   const out = {} as Pick<T, K>;
   for (const k of cles) if (src[k] !== undefined) out[k] = structuredClone(src[k]);
   return out;
-}
-
-/**
- * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
- * d'inventaire et sélecteur de forme la lisent. Routage PAR ID STABLE :
- *  1. attaque naturelle → aucune forme ;
- *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
- *  3. choix du joueur, s'il est parmi les `formChoices` du catalogue ;
- *  4. `shape` du catalogue, par `trappingId`.
- * `undefined` : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
- */
-export function formeResolue(x: SourceDeForme): string | undefined {
-  if (x.natural) return undefined;
-  const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
-  if (invoquee) return invoquee;
-  const t = x.trappingId ? findTrappingById(x.trappingId) : undefined;
-  if (x.formeChoisie && t?.formChoices?.includes(x.formeChoisie)) return x.formeChoisie;
-  return t?.shape;
 }
 
 export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), forme: formeResolue(w), bouclier: isShieldItem(w) });

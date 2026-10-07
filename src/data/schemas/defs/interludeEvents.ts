@@ -1,10 +1,5 @@
-/**
- * Schéma de `interludeEvents.json` — Tableau des Événements « Entre deux aventures » (LDB `22 -
- * Événements.md`, d100), miroir strict de `InterludeEvent`/`InterludeEventFx`
- * (`src/data/interludeEvents.ts`).
- *
- * `desc` (clé d'ENVELOPPE) est EXIGÉE : c'est le résumé fidèle du texte, affiché au joueur.
- */
+import { nommerChamps } from '../grammaire/meta';
+
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema } from '../grammaire/valeurs';
@@ -12,7 +7,7 @@ import { plageSchema } from '../grammaire/valeurs';
 export const file = 'interludeEvents.json';
 export const famille = 'entite';
 
-const fxSchema = z.strictObject({
+const fxSchema = nommerChamps(z.strictObject({
   moneyPct: z.number().optional(),
   revenuePct: z.number().optional(),
   revenueClasses: z.array(z.string()).optional(),
@@ -22,6 +17,16 @@ const fxSchema = z.strictObject({
   loseActivity: z.boolean().optional(),
   stashRaided: z.boolean().optional(),
   bankCrashCheck: z.boolean().optional(),
+}), {
+  moneyPct: { label: 'variation de la bourse en pourcentage' },
+  revenuePct: { label: 'variation du revenu en pourcentage' },
+  revenueClasses: { label: 'classes concernées par le revenu' },
+  revenueBlockedClasses: { label: 'classes sans revenu' },
+  bankPct: { label: 'variation de l’épargne en pourcentage' },
+  fortuneMaxDelta: { label: 'variation du maximum de Fortune' },
+  loseActivity: { label: 'activité perdue' },
+  stashRaided: { label: 'cache pillée' },
+  bankCrashCheck: { label: 'vérification de faillite bancaire' },
 });
 
 const doc = document(

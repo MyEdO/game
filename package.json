@@ -72,6 +72,7 @@
     "ops:fermer": "node scripts/ops/fermer-depuis-main.mjs",
     "ops:ruleset": "node scripts/ops/ruleset-main.mjs",
     "ops:chantier": "node scripts/ops/chantier.mjs",
+    "ops:session": "node scripts/ops/session.mjs",
     "ops:worktrees": "node scripts/ops/worktrees.mjs",
     "ops:publier": "node scripts/ops/publier.mjs",
     "ops:ci": "node scripts/ops/ci.mjs",

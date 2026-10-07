@@ -1,16 +1,5 @@
-/**
- * Schéma de `miscast.json` — DIALECTE compilé (PAS des `GameOp` standard), cf. en-tête de
- * `src/data/data-wellformed.test.ts` et `src/engine/miscast.ts::expandOp`. Modélise
- * `JsonRow`/`JsonNestedTest`/`JsonOp` TELS QU'ILS SONT LUS par `miscast.ts` (miroir du `GameOp`
- * runtime, mais `Formula` → `formulaSinSchema` — la formule générale plus le terme de Péché —, +
- * `durationRounds` propre au dialecte).
- *
- * Le fichier porte une LISTE de 5 documents à rangées — un par jeu de rangées tirable :
- * `miscast-mineure`/`miscast-majeure` (LDB 46 folio 234), leurs révisions `-vdm` (VDM 02 folios
- * 24/25, sélectionnées par la règle optionnelle `magic-vdm-incantation`) et `miscast-colere`
- * (LDB 40 folio 218). Chaque document porte SON identité, SA provenance et SES rangées : le
- * pointeur `rows` d'une méta séparée a disparu avec ce lot (#1467 L1b V-FLIP-TABLE, #309 phase 3).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { formulaSchema, formulaSinSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -30,22 +19,19 @@ const difficultySchemaLocal = z.enum([
  * `escapeStrength` porte la `Formula` générale (`formulaSchema`) : `expandOp` la recopie telle quelle
  * dans le `GameOp`, que `applyOps` résout par `resolveFormula` (`engine/ops.ts`).
  */
-const jsonOpSchema = z.strictObject({
+const jsonOpSchema = nommerChamps(z.strictObject({
   op: z.string(),
   id: z.string().optional(),
   value: formulaSinSchema.optional(),
   durationRounds: formulaSinSchema.optional(),
-  /** État RÉCURRENT (`GameOp['condition'].perRound`) : l'op est RE-JOUÉE à chaque fin de Round tant
-   *  que l'effet porteur dure (`durationRounds` en dit la durée). `LDB 40 l.75`, `LDB 16 l.117`. */
+  /** LDB 40 l.75 ; LDB 16 l.117. */
   perRound: z.literal(true).optional(),
   /** Gate d'État de l'op `condition`, recopiée littéralement par `expandOp` (`engine/miscast.ts`) :
    *  une RÉFÉRENCE à `etats.json`, donc posée par la fabrique. (`id` reste `z.string()` : polymorphe
    *  dans ce dialecte plat — État, Compétence ou table selon l'`op` de la ligne.) */
   unlessCondition: idDe('etat').optional(),
   amount: formulaSinSchema.optional(),
-  /** Mitigation DÉCLARÉE du `wounds` (garde `wounds-mitigation-declaree`) — recopiée telle quelle
-   *  par `expandOp` : « qui ignorent les PA » seuls (Poupée de chiffon, LDB 46) ≠ « qui ignorent le
-   *  Bonus d'Endurance et les PA » (Choc aethyrique, LDB 46). */
+  /** LDB 46. */
   ignoreTB: z.boolean().optional(),
   ignoreAP: z.boolean().optional(),
   skill: refOuSpec('skill').optional(),
@@ -57,19 +43,44 @@ const jsonOpSchema = z.strictObject({
   minutes: formulaSinSchema.optional(),
   days: formulaSinSchema.optional(),
   escapeStrength: formulaSchema.optional(),
+}), {
+  op: { label: 'opération' },
+  id: { label: 'identifiant' },
+  value: { label: 'valeur' },
+  durationRounds: { label: 'durée en Rounds' },
+  perRound: { label: 'par Round' },
+  unlessCondition: { label: 'État empêchant l’effet' },
+  amount: { label: 'quantité' },
+  ignoreTB: { label: 'Bonus d’Endurance ignoré' },
+  ignoreAP: { label: 'PA ignorés' },
+  skill: { label: 'Compétence' },
+  mod: { label: 'modificateur' },
+  blocked: { label: 'bloqué' },
+  maxZeroDR: { label: 'plafond de zéro DR' },
+  rounds: { label: 'Rounds' },
+  hours: { label: 'heures' },
+  minutes: { label: 'minutes' },
+  days: { label: 'jours' },
+  escapeStrength: { label: 'Force pour s’échapper' },
 });
 
 /** `JsonNestedTest` (`engine/miscast.ts`). */
-const jsonNestedTestSchema = z.strictObject({
+const jsonNestedTestSchema = nommerChamps(z.strictObject({
   skill: refOuSpec('skill').optional(),
   characteristic: z.string().optional(),
   difficulty: difficultySchemaLocal,
   onFail: z.array(jsonOpSchema),
-  onFailHard: z.strictObject({ dr: z.number(), ops: z.array(jsonOpSchema) }).optional(),
+  onFailHard: nommerChamps(z.strictObject({ dr: z.number(), ops: z.array(jsonOpSchema) }), { dr: { label: 'DR' }, ops: { label: 'opérations' } }).optional(),
+}), {
+  skill: { label: 'Compétence' },
+  characteristic: { label: 'caractéristique' },
+  difficulty: { label: 'difficulté' },
+  onFail: { label: 'échec' },
+  onFailHard: { label: 'échec aggravé' },
 });
 
 /** `JsonRow` (`engine/miscast.ts`) — entrée de table d100 (`min`/`max` inclusifs). */
-const jsonRowSchema = z.strictObject({
+const jsonRowSchema = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   /** Identité STABLE (#422, exposition Codex) — slug préfixé par table (`mineure-`/`majeure-`/`colere-`)
    *  pour éviter toute collision inter-tables ; consommée par le Codex, jamais par `engine/miscast.ts`. */
@@ -78,11 +89,18 @@ const jsonRowSchema = z.strictObject({
   ops: z.array(jsonOpSchema).optional(),
   test: jsonNestedTestSchema.optional(),
   reroll: z.enum(['majeure', 'mineure-x2']).optional(),
-  /** CLÉ d'une table déclarée par le Domaine du lanceur (`domains.json` → `tables`) : la rangée tire
-   *  sur la table de SON Vent (`arcaneMark` = Marques Arcaniques, `VDM 02 l.238`). Résolue en op
-   *  `rollTable`/`tableId` par `engine/miscast.ts` ; Domaine sans cette clé = relance sur le Majeur. */
+  /** VDM 02 l.238. */
   domainTable: z.string().optional(),
   source: sourceRefSchema.optional(),
+}), {
+  ...metaDesChamps(plageSchema, { exigees: true }),
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  ops: { label: 'opérations' },
+  test: { label: 'Test' },
+  reroll: { label: 'relance' },
+  domainTable: { label: 'table du domaine' },
+  source: { label: 'source' },
 });
 
 const doc = document(

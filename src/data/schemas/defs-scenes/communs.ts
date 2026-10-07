@@ -1,3 +1,4 @@
+import { nommerChamps, nommerNoeud, libelleDeValeur } from '../grammaire/meta';
 /**
  * Vocabulaire FEUILLE partagé par les schémas d'une racine `src/scenes` — les formes que la SCÈNE
  * (`./scene.ts`) et les EFFETS (`./effets.ts`) posent l'une comme l'autre. Un concept = une
@@ -14,7 +15,7 @@ import { charStatKeySchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
 
 /** `Pt` (`state/path.ts`) — case, `z` = couche d'empilement (absent = base). */
-export const ptSchema = z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() });
+export const ptSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } });
 /** CANON de l'arête de mur — arête cardinale N/E, diagonales `\` (NO→SE) et `/` (NE→SO). Source
  *  UNIQUE de l'union : `state/scene.ts` (`WallSide`) et `engine/types.ts` (`WallEdgeSide`) en
  *  DÉRIVENT, l'éditeur en dérive ses options (`wallSideSchema.options`). Garde : `unions-canon.test.ts`. */
@@ -24,7 +25,7 @@ export type WallSide = z.infer<typeof wallSideSchema>;
  *  la réf de la grammaire (`spec` XOR `choix`) + la valeur de Test IMPRIMÉE. La FORME de sortie est
  *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
  *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
-export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: z.number() }) as z.ZodType<SkillRef>;
+export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }) as z.ZodType<SkillRef>;
 
 /** Identifiant GLOBAL d'une entrée de fiche de dossier de chapitre (#2290) : format `ID_D_ENTREE`
  *  (`src/data/source/dossier.ts`). Feuille de `couvre` et de `narratif.ecartes[].entree`. */
@@ -43,9 +44,9 @@ const sortsConnusSchema: z.ZodType<string[], string[]> = refs('spell');
  *  FERMÉES et chacune est facultative (un profil n'imprime que ce que le livre imprime). Écrit en objet
  *  à champs optionnels, jamais en `z.record` : `z.record(z.enum, …)` est EXHAUSTIF en zod 4 (il
  *  EXIGERAIT les 12 clés), et un `z.record(z.string(), …)` accepterait n'importe quelle clé. */
-export const charStatsSchema = z.strictObject(
+export const charStatsSchema = nommerChamps(z.strictObject(
   tableTotale(charStatKeySchema.options, () => z.number().optional()),
-);
+), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) })));
 
 /**
  * `CustomStatblock` (`engine/statblock.ts`) — profil PNJ/bête custom d'éditeur, DOCUMENT EMBARQUÉ du
@@ -53,7 +54,7 @@ export const charStatsSchema = z.strictObject(
  * déclarés UN À UN, calés sur l'interface TS (aucun champ n'y est plus large qu'elle — `char` compris,
  * dont les clés sont FERMÉES sur `charStatKeySchema`).
  */
-export const customStatblockSchema = z.strictObject({
+export const customStatblockSchema = nommerChamps(z.strictObject({
   type: z.literal('statblock'),
   label: z.string(),
   char: charStatsSchema,
@@ -68,4 +69,4 @@ export const customStatblockSchema = z.strictObject({
   randomChars: z.boolean().optional(),
   inert: z.boolean().optional(),
   followsCharacterRules: z.boolean().optional(),
-});
+}), { type: { label: "type" }, label: { label: "libellé" }, char: { label: "caractéristiques" }, weaponDamage: { label: "dégâts d’arme" }, armour: { label: "armure" }, traits: { label: "Traits" }, size: { label: "Taille" }, groups: { label: "groupes" }, spells: { label: "sorts" }, skills: { label: "Compétences" }, talents: { label: "Talents" }, randomChars: { label: "caractéristiques aléatoires" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });

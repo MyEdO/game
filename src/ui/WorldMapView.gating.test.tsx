@@ -181,6 +181,42 @@ describe('recette — `__wfrp.routes()` décrit EXACTEMENT les tracés cliquable
   });
 });
 
+describe('recette — `__wfrp.clickRoute(id)` vise le tracé PAR SON ID, et refuse en le disant', () => {
+  /** jsdom ne mesure pas le SVG : un tracé de 100 unités, une transformée identité, et `elementFromPoint`
+   *  qui rend ce que la recette pose au point. */
+  let auPoint: () => Element | null = () => null;
+  beforeEach(() => {
+    const proto = window.SVGElement.prototype as unknown as Record<string, unknown>;
+    proto.getTotalLength = () => 100;
+    proto.getPointAtLength = (l: number) => ({ x: l, y: 10 });
+    proto.getScreenCTM = () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+    document.elementFromPoint = () => auPoint();
+  });
+  afterEach(() => {
+    const proto = window.SVGElement.prototype as unknown as Record<string, unknown>;
+    for (const k of ['getTotalLength', 'getPointAtLength', 'getScreenCTM']) delete proto[k];
+    delete (document as { elementFromPoint?: unknown }).elementFromPoint;
+  });
+
+  it('route FERMÉE consultable : le point est rendu avec son état, sur le tracé qui porte son id', async () => {
+    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
+    await monter({ hereSceneId: 's-auberge' });
+    const trace = container.querySelector<SVGPathElement>('path[data-path-id="auberge-ferme"]')!;
+    auPoint = () => trace;
+    const r = buildApi().clickRoute('auberge-ferme') as { x: number; y: number; etat: string };
+    expect(r).toMatchObject({ x: 50, y: 10, etat: 'fermee-consultable' });
+  });
+
+  it('aucun point du tracé atteignable : REFUS qui nomme ce qui recouvre, jamais un point muet', async () => {
+    useGame.setState({ worldMap: carte, flags: { 'chapitre-clos': true }, scene: scenePlate('s-auberge') });
+    await monter({ hereSceneId: 's-auberge' });
+    const voile = document.createElement('div');
+    voile.className = 'decor-voile';
+    auPoint = () => voile;
+    expect(buildApi().clickRoute('auberge-ferme')).toMatch(/^✗ route « auberge-ferme » : aucun point du tracé n'est atteignable .*div\.decor-voile/);
+  });
+});
+
 /** Carte minimale : un SEUL voisin, non révélé, posé LOIN du lieu courant. */
 const carteMuette: WorldMap = {
   id: 'ch1',

@@ -1,8 +1,5 @@
-/**
- * Schéma de `obsessions.json` — Tableau des Obsessions (EDOC 12 l.170, folio 69). Document UNIQUE
- * de famille `config`, dérivé de `ObsessionTableFile`/`ObsessionEntry` (`src/data/obsessions.ts`) :
- * son enveloppe (identité + `source`) est posée par la fabrique, sa charge est `entries`.
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** EDOC 12 l.170 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema } from '../grammaire/valeurs';
@@ -11,11 +8,11 @@ export const file = 'obsessions.json';
 export const famille = 'config';
 
 /** Une rangée du 2d10. */
-const obsessionEntrySchema = z.strictObject({
+const obsessionEntrySchema = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
-});
+}), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: 'Identifiant' }, label: { label: 'Libellé' } });
 
 const doc = document(
   'obsessions',

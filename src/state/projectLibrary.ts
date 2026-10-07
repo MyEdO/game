@@ -4,28 +4,29 @@ import { validateDocument, rapportDeFautes } from '../data/schemas/validate';
 import type { GameState } from './store';
 import { accesBase, idbDisponible } from '../lib/indexedDb';
 import { stockageWeb } from '../lib/stockageWeb';
+import { nommerChamps } from '../data/schemas/grammaire/meta';
 
 /** Ce qu'un écran LIT d'un projet de la bibliothèque SANS l'ouvrir (liste, détail, dédup d'import).
  *  Le document entier passe la porte `parseProject` au GESTE (ouvrir, jouer, exporter) : un projet
  *  d'un autre format reste ainsi listé, son refus affiché au geste, et sa suppression reste un geste
  *  de l'auteur (#2404). */
-const apercuDeProjetSchema = z.looseObject({
+const apercuDeProjetSchema = nommerChamps(z.looseObject({
   scenes: z.array(z.unknown()),
   versionContenu: z.number().optional(),
   desc: z.string().optional(),
   auteur: z.string().optional(),
-});
+}), { scenes: { label: 'scènes' }, versionContenu: { label: 'version du contenu' }, desc: { label: 'description' }, auteur: { label: 'auteur' } });
 
 /** Une entrée de la bibliothèque de projets (localStorage, IndexedDB). `published` = jouable depuis le
  *  menu ; `startSceneId` = scène de départ quand on JOUE la campagne. */
-export const savedProjectSchema = z.strictObject({
+export const savedProjectSchema = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string(),
   startSceneId: z.string(),
   savedAt: z.number(),
   published: z.boolean(),
   project: apercuDeProjetSchema,
-});
+}), { id: { label: 'identifiant' }, label: { label: 'libellé' }, startSceneId: { label: 'scène de départ' }, savedAt: { label: 'date de sauvegarde' }, published: { label: 'publié' }, project: { label: 'projet' } });
 
 /** Une entrée PROUVÉE par `savedProjectSchema`. */
 export type SavedProject = Omit<z.infer<typeof savedProjectSchema>, 'project'> & {

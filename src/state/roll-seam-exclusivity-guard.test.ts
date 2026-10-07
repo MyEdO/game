@@ -917,7 +917,8 @@ const LITTERAL_RX = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gs;
  *  `...(cond ? { mods } : {})` est justement ce qui échappe à `LITTERAL_RX`). */
 const MONTEE_FORGEE_RX = /montee:\s*\{/g;
 
-function etapesALaMain(src: string): number {
+function etapesALaMain(src: string, rel = 'src/state/probe.ts'): number {
+  src = canon.sansDeclarationsDeMetadonnees({ rel, text: src });
   let n = (src.match(MONTEE_FORGEE_RX) ?? []).length;
   for (const m of src.matchAll(LITTERAL_RX)) {
     const lit = m[0];
@@ -930,6 +931,20 @@ function etapesALaMain(src: string): number {
 }
 
 describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans arithmétique (#1153)', () => {
+
+  it('les métadonnées canoniques ne sont pas des étapes, leurs expressions exécutées restent mesurées', () => {
+    const importeur = `import { nommerChamps as nommer } from '../data/schemas/grammaire/meta';`;
+    expect(etapesALaMain(`${importeur} nommer(schema, { kind: { label: 'Type' }, target: { label: 'Cible' }, montee: { label: 'Montée' } });`)).toBe(0);
+    expect(etapesALaMain(`${importeur} nommer({ kind: 'test', target: 1 }, {});`)).toBe(1);
+    expect(etapesALaMain(`${importeur} nommer(schema, { exemple: donne({ kind: 'test', target: 1 }) });`)).toBe(1);
+    expect(etapesALaMain(`${importeur} function f(nommer) { nommer(schema, { kind: 'test', target: 1 }); }`)).toBe(1);
+    expect(etapesALaMain(`import { nommerChamps as nommer } from './etranger'; nommer(schema, { kind: 'test', target: 1 });`)).toBe(1);
+    expect(etapesALaMain(`import * as noms from '../data/schemas/grammaire/meta'; noms.nommerNoeud(schema, { kind: { label: 'Type' }, target: { label: 'Cible' } });`)).toBe(0);
+    const physique = `{ target: z.number(), opposed: z.strictObject({ kind: z.literal('resist') }) }`;
+    const nomme = `${importeur} const s = { target: z.number(), opposed: nommer(z.strictObject({ kind: z.literal('resist') }), { kind: { label: 'Type' } }) };`;
+    expect(etapesALaMain(physique)).toBe(1);
+    expect(etapesALaMain(nomme)).toBe(etapesALaMain(physique));
+  });
 
   it('le scanner VOIT bien la famille qu’il prétend mesurer (les 5 sites de restFlow d’avant migration)', () => {
     // Preuve de couverture sur PIÈCE : le montage à base FONDUE tel qu'il s'écrivait (abri de fortune,
@@ -976,7 +991,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
     for (const { rel, text } of prodFiles('src')) {
       if (rel === 'src/state/rollSeam.ts') continue; // le monteur lui-même
       if (HORS_PERIMETRE_COMBAT.some((p) => rel.startsWith(p))) continue; // frontière déclarée, lot dédié
-      const n = etapesALaMain(text);
+      const n = etapesALaMain(text, rel);
       if (n > 0) mesure[rel] = n;
     }
     const ecarts: string[] = [];
@@ -994,7 +1009,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
     for (const [file, attendu] of Object.entries(ETAPE_A_LA_MAIN_STOCK)) {
       const abs = join(ROOT, file);
       if (!existsSync(abs)) { perimees.push(`${file} : fichier absent — retirer du stock`); continue; }
-      const n = etapesALaMain(readFileSync(abs, 'utf8'));
+      const n = etapesALaMain(readFileSync(abs, 'utf8'), file);
       if (n < attendu) perimees.push(`${file} : baseline ${attendu}, réel ${n} — ABAISSER`);
     }
     expect(perimees, `Stock périmé (dette déjà résorbée, à refléter) :\n${perimees.join('\n')}`).toEqual([]);

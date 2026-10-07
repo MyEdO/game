@@ -41,6 +41,8 @@ const CHEMINS = new Set(['join', 'resolve'])
 const MODULES_DE_CHEMIN = new Set(['path', 'posix', 'win32'])
 const ITERATEURS = new Set(['map', 'flatMap', 'forEach', 'filter', 'some', 'every', 'find'])
 /** Ce qui rend une PARTIE de son receveur : la valeur du receveur la couvre. */
+/** La raison d'une VALEUR NULLE (`null`, l'identifiant global `undefined`) : elle ne désigne aucun chemin. */
+export const VALEUR_NULLE = 'valeur nulle'
 const SOUS_ENSEMBLES = new Set(['filter', 'sort', 'toSorted', 'slice', 'find'])
 /** Ce qui rend les valeurs rendues par son rappel, élément du receveur lié à son premier paramètre. */
 const PROJECTIONS = new Set(['map', 'flatMap'])
@@ -65,7 +67,7 @@ export function lecteurDExpressions(rel, arbre) {
   const marquer = (n) => n.forEachChild((e) => { parents.set(e, n); marquer(e) })
   marquer(arbre)
   const dossier = posix.dirname(rel)
-  const nomAppele = (appel) => ts.isIdentifier(appel.expression) ? appel.expression.text
+  const nomAppele = (appel) => ts.isIdentifier(appel.expression) ? nomExporte(appel.expression)
     : ts.isPropertyAccessExpression(appel.expression) ? appel.expression.name.text : null
   const estImportMeta = (n) => ts.isMetaProperty(n) && n.keywordToken === ts.SyntaxKind.ImportKeyword
   const non = (raison) => ({ k: 'non', raison })
@@ -168,6 +170,9 @@ export function lecteurDExpressions(rel, arbre) {
 
   /** Le nœud qui LIE l'identifiant `id` : la fonction dont il est paramètre (`parametre`), la boucle qui le
    *  déclare (`boucle`), ou la liste d'instructions qui le déclare (`decl`) ; `null` s'il est introuvable. */
+  /** Le nom d'un identifiant appelé : celui que son module EXPORTE s'il est importé sous un autre nom
+   *  (`join as joinPath`), sinon le sien. */
+  const nomExporte = (id) => liaisonDe(id)?.decl?.nom ?? id.text
   const liaisonDe = (id) => {
     const texte = id.text
     for (let n = parents.get(id), enfant = id; n; enfant = n, n = parents.get(n)) {
@@ -254,7 +259,7 @@ export function lecteurDExpressions(rel, arbre) {
   const lier = (id, profondeur) => {
     if (id.text === '__dirname') return { k: 'chemin', v: dossier }
     const liaison = liaisonDe(id)
-    if (!liaison) return non(`${id.text} introuvable`)
+    if (!liaison) return non(id.text === 'undefined' ? VALEUR_NULLE : `${id.text} introuvable`)
     const fiche = affectationsDe().get(liaison.n)?.get(id.text)
     if (!fiche) return valeurDeLiaison(id, liaison, profondeur)
     if (enLecture.some(([n, texte]) => n === liaison.n && texte === id.text)) return non(`${id.text} réaffectée en récurrence`)
@@ -276,7 +281,9 @@ export function lecteurDExpressions(rel, arbre) {
     if (profondeur > PROFONDEUR) return non('expression trop profonde')
     const p = profondeur + 1
     if (ts.isStringLiteralLikeNode(n)) return { k: 'lit', v: n.text }
-    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n) || ts.isSpreadElement(n))
+    if (n.kind === ts.SyntaxKind.NullKeyword) return non(VALEUR_NULLE)
+    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n) || ts.isSpreadElement(n) ||
+      ts.isAwaitExpression(n))
       return expr(n.expression, p)
     if (ts.isArrayLiteralExpression(n)) return { k: 'liste', v: n.elements.map((e) => expr(e, p)) }
     if (ts.isIdentifier(n)) return lier(n, p)

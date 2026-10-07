@@ -1,3 +1,4 @@
+import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
 /**
  * VALEURS de la grammaire de document (#1466 L1a) — les types de VALEUR partagés par tout document
  * de l'application : source, dés, formule, difficulté, caractéristique, localisation, apparence,
@@ -6,7 +7,8 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { AVAILABILITIES, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+
+import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs } from './ref';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
@@ -14,6 +16,10 @@ import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
+
+export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
+  ticket: { label: 'ticket' }, raison: { label: 'raison' },
+});
 
 /**
  * ENUM NOMMÉ (#1694) — la FABRIQUE d'un univers fermé dont chaque valeur porte son libellé FR SUR LE
@@ -166,7 +172,7 @@ export const stakeFormSchema = z.enum(STAKE_FORMS);
  * IMPRIMÉ du livre, JAMAIS l'index de la ré-extraction Marker (piège prouvé par la garde
  * `scripts/guards/lib/folioIntegrity.mjs`, qui recoupe la `desc` verbatim et les `data-folio`).
  */
-export const sourceRefSchema = z.strictObject({
+export const sourceRefSchema = nommerChamps(z.strictObject({
   book: z.string(),
   page: z.number(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
@@ -175,7 +181,7 @@ export const sourceRefSchema = z.strictObject({
    *  ligne — `page` et `note` doivent désigner le même endroit (#1318). Toute autre forme est
    *  ignorée par la garde (aucune contrainte de saisie ajoutée). */
   note: z.string().optional(),
-});
+}), { book: { label: "livre" }, page: { label: "page" }, note: { label: "note" } });
 
 /** Vue TS de `sourceRefSchema` — SEULE forme à importer côté `src/data/index.ts` (jamais `{ book:
  *  string; page: number }` inline, F20). Réf de source UNIQUE du repo (#278) : posée par ENTRÉE sur
@@ -194,11 +200,11 @@ export type SourceRef = z.infer<typeof sourceRefSchema>;
  * où le `label` de l'entrée n'apparaît pas tel quel dans ce span (ex. une TABLE imprime un nom
  * différent — `zweihander-flamberge`) : charge de la preuve sur l'auteur, comme `desc` pour l'ancre.
  */
-export const secondarySourceRefSchema = sourceRefSchema.extend({
+export const secondarySourceRefSchema = nommerChamps(sourceRefSchema.extend({
   /** Preuve verbatim authorée que l'entrée est bien à cet emplacement (ligne de stats d'une table,
    *  phrase distinctive…) — distinct de `note` (display-only, jamais vérifié). */
   quote: z.string().optional(),
-});
+}), { ...metaDesChamps(sourceRefSchema, { exigees: true }), quote: { label: 'citation' } });
 /** Vue TS de `secondarySourceRefSchema` — porté par le champ `alsoIn?: SecondaryRef[]` de toute
  *  entrée multi-emplacement. Accesseurs `allLocations`/`sourceBooks` (`src/data/index.ts`). */
 export type SecondaryRef = z.infer<typeof secondarySourceRefSchema>;
@@ -210,7 +216,7 @@ export type SecondaryRef = z.infer<typeof secondarySourceRefSchema>;
  * parseur `src/data/source/decoupe.ts` (`FragmentBlocs`) — les deux définitions coïncident, et
  * `grammaire.test.ts` le vérifie AU TYPE.
  */
-export const fragmentBlocsSchema = z.strictObject({
+export const fragmentBlocsSchema = nommerChamps(z.strictObject({
   kind: z.literal('blocs'),
   sec: z.string(),
   secOcc: z.number().int().min(1),
@@ -219,14 +225,14 @@ export const fragmentBlocsSchema = z.strictObject({
   finSecOcc: z.number().int().min(1).optional(),
   b1: z.number().int().min(0),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-});
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } });
 
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
  * par indices, qu'une ré-extraction déplacerait. `row`/`col` sont des CHAÎNES : la clé de ligne d'une
  * table de d100 (`01-10`) n'est pas un nombre. `table` : `TableDeSection.cle` (`decoupe.ts`).
  */
-export const fragmentCelluleSchema = z.strictObject({
+export const fragmentCelluleSchema = nommerChamps(z.strictObject({
   kind: z.literal('cellule'),
   sec: z.string(),
   secOcc: z.number().int().min(1),
@@ -234,7 +240,7 @@ export const fragmentCelluleSchema = z.strictObject({
   col: z.string().min(1),
   table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-});
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } });
 
 /**
  * Nombre de fragments qu'une adresse doit porter pour ADRESSER quelque chose. En dessous, il n'y a
@@ -274,7 +280,7 @@ export type GenreDeFragment = (typeof GENRES_DE_FRAGMENT)[number];
  * tous, `GENRES_DE_FRAGMENT`). Un document le déclare par `options.fragmentsAdmis` (`document.ts`).
  */
 export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GENRES_DE_FRAGMENT) {
-  return z
+  return nommerChamps(z
     .strictObject({
       book: z.string().min(1),
       /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
@@ -317,7 +323,7 @@ export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GEN
           });
         }
       });
-    });
+    }), { book: { label: "livre" }, ch: { label: "chapitre" }, parts: { label: "parties" } });
 }
 
 /** L'adresse de prose qui admet tous les genres de fragment (`descRefSchemaDe`). */
@@ -334,13 +340,13 @@ export type DescRef = z.infer<typeof descRefSchema>;
  * `specsSchema` la compose — c'est le catalogue que `specRef`/`refOuSpec` confrontent
  * (`grammaire/ref.ts`, espace `<fichier>#[<id>].specs` de l'INDEX DES IDS).
  */
-const specEntrySchema = z.strictObject({
+const specEntrySchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   source: sourceRefSchema.optional(),
   alsoIn: z.array(secondarySourceRefSchema).optional(),
   pool: z.literal(false).optional(),
-});
+}), { id: { label: "identifiant" }, label: { label: "libellé" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, pool: { label: "réserve" } });
 
 /**
  * CATALOGUE DE SPÉCIALISATIONS d'une entrée (`specs[]`) : un ESPACE DE NOMS, clé `id`, désigné par
@@ -361,8 +367,8 @@ export const specsSchema = listeCle(specEntrySchema, 'id', { espace: {} });
 export const castingKindSchema = z.enum(['mineure', 'arcane', 'invocation', 'beni', 'chaos']);
 
 export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.strictObject({
-    offHandPenalty: z.strictObject({ perLevel: z.number(), zeroAt: z.number() }).optional(),
+  nommerChamps(z.strictObject({
+    offHandPenalty: nommerChamps(z.strictObject({ perLevel: z.number(), zeroAt: z.number() }), { perLevel: { label: "par niveau" }, zeroAt: { label: "seuil de zéro" } }).optional(),
     attackModes: z.array(z.string()).optional(),
     meleeDamageBonus: z.boolean().optional(),
     rangedDamageBonus: z.boolean().optional(),
@@ -384,7 +390,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     fleeBonus: z.boolean().optional(),
     pursuitTargetBonus: z.boolean().optional(),
     shieldAdvantage: z.boolean().optional(),
-    advantageDefenseReaction: z.strictObject({ avantage: z.number() }).optional(),
+    advantageDefenseReaction: nommerChamps(z.strictObject({ avantage: z.number() }), { avantage: { label: "Avantage" } }).optional(),
     counterOnDefenseWin: z.boolean().optional(),
     counterRequiresFastParry: z.boolean().optional(),
     stealAdvantage: z.boolean().optional(),
@@ -404,7 +410,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     focusNoMiscastOnDouble: z.boolean().optional(),
     castNoMiscastOnDouble: z.boolean().optional(),
     causesFear: z.boolean().optional(),
-    reverseFailed: z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional() }).optional(),
+    reverseFailed: nommerChamps(z.strictObject({ skills: z.array(refOuSpec('skill')).min(1), capDR: z.number().optional() }), { skills: { label: "Compétences" }, capDR: { label: "limite de DR" } }).optional(),
     bargainBonus: z.boolean().optional(),
     encumbranceBonus: z.boolean().optional(),
     corruptionThreshold: z.boolean().optional(),
@@ -413,7 +419,7 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
     commandTeam: z.boolean().optional(),
     seaShanty: z.boolean().optional(),
     critRollTwice: z.boolean().optional(),
-  }),
+  }), { offHandPenalty: { label: "malus de main secondaire" }, attackModes: { label: "modes d’attaque" }, meleeDamageBonus: { label: "bonus de dégâts au contact" }, rangedDamageBonus: { label: "bonus de dégâts au tir" }, brawlDamageBonus: { label: "bonus de dégâts de bagarre" }, chargeDamageBonus: { label: "bonus de dégâts de charge" }, slayer: { label: "tueur" }, damageReduction: { label: "réduction des dégâts" }, critExtraWounds: { label: "Blessures critiques supplémentaires" }, rangedAPIgnore: { label: "armure ignorée au tir" }, ignoreCalledShotHead: { label: "ignorer la visée à la tête" }, ignoreCalledShotRanged: { label: "ignorer la visée à distance" }, ignoreSizeRangedMods: { label: "ignorer les modificateurs de Taille au tir" }, sniper: { label: "tireur d’élite" }, initiativeBonus: { label: "bonus d’Initiative" }, strikeFirstRanged: { label: "tirer le premier" }, surpriseSave: { label: "sauvegarde de surprise" }, reloadDR: { label: "DR de rechargement" }, runBonus: { label: "bonus de course" }, fleeBonus: { label: "bonus de fuite" }, pursuitTargetBonus: { label: "bonus de poursuite" }, shieldAdvantage: { label: "Avantage du bouclier" }, advantageDefenseReaction: { label: "réaction défensive avec Avantage" }, counterOnDefenseWin: { label: "riposte après défense réussie" }, counterRequiresFastParry: { label: "riposte avec parade rapide" }, stealAdvantage: { label: "vol d’Avantage" }, stealOne: { label: "voler un point" }, transferWeight: { label: "poids transféré" }, reloadAssessAdvantage: { label: "Avantage d’évaluation au rechargement" }, fearSizeAsMount: { label: "Taille de la monture pour la Peur" }, retreatCost: { label: "coût de retraite" }, keepAdvantageOnDisengage: { label: "conserver l’Avantage au désengagement" }, disengageWithLessAdvantage: { label: "désengagement avec moins d’Avantage" }, battement: { label: "battement" }, distraire: { label: "distraction" }, outnumberCount: { label: "nombre pour la supériorité numérique" }, braveheart: { label: "courage" }, fearImmune: { label: "immunité à la Peur" }, bleedIgnore: { label: "ignorer le saignement" }, focusNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi de Focalisation" }, castNoMiscastOnDouble: { label: "aucune Imparfaite sur un double réussi d’incantation" }, causesFear: { label: "Peur provoquée" }, reverseFailed: { label: "inverser les échecs" }, bargainBonus: { label: "bonus de marchandage" }, encumbranceBonus: { label: "bonus d’encombrement" }, corruptionThreshold: { label: "seuil de Corruption" }, surgery: { label: "chirurgie" }, castingKind: { label: "type d’incantation" }, commandTeam: { label: "équipe commandée" }, seaShanty: { label: "chant de marin" }, critRollTwice: { label: "double jet de Critique" } }),
 );
 
 /**
@@ -426,7 +432,7 @@ export const ruleValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 /** Garde d'une variante RÉGLÉE : la règle optionnelle visée et la valeur attendue. `rule` DOIT être
  *  un id du registre `OPTIONAL_RULES` (`src/engine/policy.ts:43`), jamais un label ni un flag
  *  parallèle (gardes `src/data/variants-integrity.test.ts`) ; `equals` défaut `true`. */
-export const variantWhenSchema = z.strictObject({ rule: z.string(), equals: ruleValueSchema.optional() });
+export const variantWhenSchema = nommerChamps(z.strictObject({ rule: z.string(), equals: ruleValueSchema.optional() }), { rule: { label: "règle" }, equals: { label: "égalité" } });
 
 /**
  * Fabrique de VARIANTE d'un dataset (#563/#564 — ex. « Aux Armes, Annexe I : Avantage de groupe »).
@@ -449,7 +455,12 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
 ) {
   const mask = tableTotale(resolved, () => true);
   const picked = entrySchema.pick(mask as Parameters<typeof entrySchema.pick>[0]) as unknown as z.ZodObject<Pick<T, K>>;
-  return picked.partial().extend({ when: variantWhenSchema });
+  const noms = metaDesChamps(entrySchema, { exigees: true });
+  const final = picked.partial().extend({ when: variantWhenSchema });
+  return nommerChamps(final, {
+    ...tableTotale(resolved, cle => noms[cle]),
+    when: { label: 'condition' },
+  } as MetaDesChamps<typeof final.shape>);
 }
 
 /** Vue TS COMMUNE d'une variante — le contrat de FORME (runtime) est celui de `variantOf` par dataset ;
@@ -468,8 +479,8 @@ export type Variant = {
  * optionnel `detail` de 2 datasets d'apparence (`materials.json` — domaines `roof` et `relief` — et
  * `structureAppearance.json`). Reflet STRICT de l'interface TS (mêmes sous-objets/champs requis).
  */
-export const detailRecipeSchema = z.strictObject({
-  courses: z
+export const detailRecipeSchema = nommerChamps(z.strictObject({
+  courses: nommerChamps(z
     .strictObject({
       hM: z.number(),
       joint: z.string(),
@@ -478,35 +489,35 @@ export const detailRecipeSchema = z.strictObject({
       blockWM: z.tuple([z.number(), z.number()]).optional(),
       edgeWobble: z.number().optional(),
       paletteVar: z.number().optional(),
-    })
+    }), { hM: { label: "hauteur en mètres" }, joint: { label: "joint" }, jointW: { label: "largeur du joint" }, stagger: { label: "décalage des rangs" }, blockWM: { label: "bloquer la carte du monde" }, edgeWobble: { label: "irrégularité des arêtes" }, paletteVar: { label: "variation de palette" } })
     .optional(),
-  bands: z.array(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() })).optional(),
-  timber: z
+  bands: z.array(nommerChamps(z.strictObject({ atV: z.number(), hM: z.number(), color: z.string() }), { atV: { label: "position verticale" }, hM: { label: "hauteur en mètres" }, color: { label: "couleur" } })).optional(),
+  timber: nommerChamps(z
     .strictObject({
       postEveryM: z.number(),
       braces: z.enum(['X', 'V']).optional(),
       wM: z.number(),
       color: z.string(),
-    })
+    }), { postEveryM: { label: "espacement des poteaux" }, braces: { label: "consoles" }, wM: { label: "largeur en mètres" }, color: { label: "couleur" } })
     .optional(),
-  speckle: z
+  speckle: nommerChamps(z
     .strictObject({
       perM2: z.number(),
       rM: z.tuple([z.number(), z.number()]),
       colors: z.array(z.string()),
       vBias: z.number().optional(),
-    })
+    }), { perM2: { label: "par mètre carré" }, rM: { label: "rayon en mètres" }, colors: { label: "couleurs" }, vBias: { label: "biais vertical" } })
     .optional(),
-  tufts: z
+  tufts: nommerChamps(z
     .strictObject({
       perM2: z.number(),
       hM: z.tuple([z.number(), z.number()]),
       colors: z.array(z.string()),
-    })
+    }), { perM2: { label: "par mètre carré" }, hM: { label: "hauteur en mètres" }, colors: { label: "couleurs" } })
     .optional(),
   tintVar: z.number().optional(),
   seedScope: z.enum(['edge', 'tile', 'instance']),
-});
+}), { courses: { label: "rangs" }, bands: { label: "bandes" }, timber: { label: "charpente" }, speckle: { label: "mouchetures" }, tufts: { label: "touffes" }, tintVar: { label: "variation de teinte" }, seedScope: { label: "portée de la graine" } });
 
 /**
  * Niveau de `Difficulty` (`src/engine/types.ts`) tel qu'il apparaît en DONNÉE — vu sur plusieurs
@@ -553,7 +564,7 @@ export const charKeySchema = z.enum([
  * ne sont pas des Caractéristiques à jet : ils n'entrent donc pas dans `charKeySchema`, dont ils
  * fausseraient toutes les autres portes (Conditions, `Formula.bonusOf`, `FlowTest`…).
  */
-export const charStatKeySchema = z.enum([...charKeySchema.options, 'M', 'B']);
+export const charStatKeySchema = enumNomme({ ...CHAR_LABELS, M: 'Mouvement', B: 'Blessures' });
 
 /** `SizeCategory` (`src/engine/size.ts:14`) — CANON de la Taille (LDB 85), porte UNIQUE des defs qui
  *  nomment une catégorie (`trappings.sizeFor`, `CustomStatblock.size`). */
@@ -589,14 +600,14 @@ export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS
 
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
-export const moneySchema = z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() });
+export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
 /** Montant PARTIEL authoré (coût d'un choix, mise minimale, octroi) — mêmes 3 dénominations, chacune
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */
-export const moneyPartialSchema = z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() });
+export const moneyPartialSchema = nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
 
 /** `DiceSpec` (`src/engine/dice.ts`) — jet `{n, sides, plus?}`, partagé par `CountSpec.roll` et `Formula.dice`. */
-export const diceSpecSchema = z.strictObject({ n: z.number(), sides: z.number(), plus: z.number().optional() });
+export const diceSpecSchema = nommerChamps(z.strictObject({ n: z.number(), sides: z.number(), plus: z.number().optional() }), { n: { label: "nombre" }, sides: { label: "faces" }, plus: { label: "ajout" } });
 
 /** `ShipSize` (`src/data/index.ts`) — les sept Tailles de bateau du tableau standard (`MDG 12 l.122-129`),
  *  dérivées de la LONGUEUR par `shipSizeOfLength` (`src/engine/shipBuild.ts`). Déclarées ICI une fois :
@@ -619,10 +630,10 @@ export const shipLocationSchema = z.enum(['cargaison', 'greement', 'coque', 'avi
 /** Localisation qui encaisse un coup à l'Équipage quand PERSONNE n'est exposé (`MDG 13 l.584` RAW ;
  *  `MSRC 07 l.70`, arbitrage `maison` du choix que le livre laissait au MJ) — déclarée ICI une fois :
  *  `ship-criticals` et `river-criticals` la LISENT, aucun ne la réécrit. */
-export const replisSansExposeSchema = z.strictObject({
+export const replisSansExposeSchema = nommerChamps(z.strictObject({
   cible: shipLocationSchema,
   maison: z.string().optional(),
-});
+}), { cible: { label: "cible" }, maison: { label: "arbitrage maison" } });
 
 /**
  * UNE VALEUR PAR SAISON — les deux livres de commerce impriment leurs tableaux en quatre colonnes
@@ -631,7 +642,7 @@ export const replisSansExposeSchema = z.strictObject({
  * une seule fois pour le dépôt ; ce que la colonne CONTIENT reste au porteur.
  */
 export const parSaison = <T extends z.ZodType>(valeur: T) =>
-  z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur });
+  nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), { printemps: { label: "printemps" }, ete: { label: "été" }, automne: { label: "automne" }, hiver: { label: "hiver" } });
 
 /**
  * PRIX DE BASE d'une cargaison par SAISON (MDG 15 l.422-434, MSRC 13 l.80-90) : le résolveur y lit la
@@ -649,11 +660,11 @@ export const prixSaisonnierSchema = parSaison(z.number());
  * prix qui n'a pas de saisons (`trappings.price`) ne doit pas hériter des colonnes par une union
  * fourre-tout.
  */
-export const prixTireSchema = z.strictObject({ dice: diceSpecSchema });
+export const prixTireSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
 
 /** `{x,y}` en CASES de grille — position d'un poste de pont (`vehicles.json`) comme case d'ABORD
  *  d'une place assise (`props.json`). */
-export const cell2Schema = z.strictObject({ x: z.number().finite(), y: z.number().finite() });
+export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`
@@ -680,21 +691,21 @@ export type RefCareerId = z.infer<typeof refCareerIdSchema>;
  * par un objet, un lieu, un support de lecture ou une Activité. Partagé par tous les datasets qui
  * en portent (`arcane-phenomena.json`, `rituals.json`).
  */
-export const castingNumberModSchema = z
+export const castingNumberModSchema = nommerChamps(z
   .strictObject({
     multiply: z.number().optional(),
     divide: z.number().optional(),
     round: z.enum(['inferieur', 'superieur']).optional(),
     delta: z.number().optional(),
     min: z.number().optional(),
-    scope: z
+    scope: nommerChamps(z
       .strictObject({
         domains: z.array(z.string()).min(1).optional(),
         domainsExcept: z.array(z.string()).min(1).optional(),
         chaosMagic: z.boolean().optional(),
         spellIds: refs('spell', { min: 1 }).optional(),
         kinds: z.array(z.enum(['sort', 'rituel'])).min(1).optional(),
-      })
+      }), { domains: { label: "domaines" }, domainsExcept: { label: "domaines exclus" }, chaosMagic: { label: "magie du Chaos" }, spellIds: { label: "sorts" }, kinds: { label: "types" } })
       .optional(),
     /** Valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
      *  (sens d'arrondi non imprimé…) — CLAUDE.md règle 7. */
@@ -708,13 +719,13 @@ export const castingNumberModSchema = z
   })
   .refine((m) => m.multiply != null || m.divide != null || m.delta != null, {
     message: 'castingNumberMod : un modificateur sans `multiply`/`divide`/`delta` ne modifie rien',
-  });
+  }), { multiply: { label: "multiplier" }, divide: { label: "diviser" }, round: { label: "arrondi" }, delta: { label: "variation" }, min: { label: "minimum" }, scope: { label: "portée" }, maison: { label: "arbitrage maison" }, source: { label: "source" }, desc: { label: "texte" } });
 
 /** `CountSpec` (`src/data/index.ts`) — quantité fixe ou tirage de dés. Dupliqué dans `careerLevels`/
  *  `classes`/`creatures`. */
 export const countSpecSchema = z.union([
-  z.strictObject({ fixed: z.number() }),
-  z.strictObject({ roll: diceSpecSchema }),
+  nommerChamps(z.strictObject({ fixed: z.number() }), { fixed: { label: "fixé" } }),
+  nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
 ]);
 
 /** Sexe d'une apparence — UNE déclaration pour les trois nœuds qui le portent : `entityAppearanceSchema`
@@ -736,9 +747,9 @@ function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | nul
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
-export const entityAppearanceSchema = z.strictObject({
+export const entityAppearanceSchema = nommerChamps(z.strictObject({
   seed: z.number().optional(),
-  monster: z
+  monster: nommerChamps(z
     .strictObject({
       tete: z.string().optional(),
       brasG: z.string().optional(),
@@ -747,10 +758,10 @@ export const entityAppearanceSchema = z.strictObject({
       cornes: z.boolean().optional(),
       queue: z.boolean().optional(),
       ailes: z.boolean().optional(),
-    })
+    }), { tete: { label: "tête" }, brasG: { label: "bras gauche" }, brasD: { label: "bras droit" }, jambes: { label: "jambes" }, cornes: { label: "cornes" }, queue: { label: "queue" }, ailes: { label: "ailes" } })
     .optional(),
   colors: surchargePaletteSchema.optional(),
-  parts: z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }).optional(),
+  parts: nommerChamps(z.strictObject({ cheveux: z.number().optional(), visage: z.number().optional() }), { cheveux: { label: "cheveux" }, visage: { label: "visage" } }).optional(),
   sex: sexeSchema.optional(),
   build: z.number().optional(),
   /** Espèce du corps affiché — espèce jouable (`idDe('species')`) ou espèce dessinée (`grammaire/art.ts`). */
@@ -768,12 +779,12 @@ export const entityAppearanceSchema = z.strictObject({
   armurePortee: z.boolean().optional(),
   /** Coiffure IMPOSÉE — id stable d'une coiffure du rig (`gameIso/rig/parts/hairstyles/defs`, #637). */
   hairstyle: z.string().optional(),
-  eyes: z.strictObject({ G: z.string().optional(), D: z.string().optional() }).optional(),
+  eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: "gauche" }, D: { label: "droit" } }).optional(),
   features: z.array(z.string()).optional(),
 }).superRefine((a, ctx) => {
   const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle, a.sex);
   if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle'], message: faute });
-});
+}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
@@ -791,40 +802,36 @@ const refRegleOptionnelle = idDe('regleOptionnelle');
 export const formulaSchema: z.ZodType<unknown> = z.lazy(() =>
   z.union([
     z.number(),
-    z.strictObject({ bonusOf: charKeySchema }),
-    z.strictObject({ charOf: charKeySchema }),
-    z.strictObject({ dice: diceSpecSchema }),
-    z.strictObject({ rolled: z.literal(true) }),
-    z.strictObject({ indiceOf: z.literal(true) }),
-    z.strictObject({ stacks: z.literal('self') }),
-    z.strictObject({ engagedAdvantageGap: z.literal(true) }),
-    z.strictObject({ woundsDealt: z.literal(true) }),
-    // DR du Test COURANT (`ctx.sl`) — échelle MULTIPLICATIVE de la marge (LDB 09 l.97 : « Bonus de
-    // Sociabilité x DR »), là où `perSL` n'exprime qu'un pas linéaire ajouté à un socle.
-    z.strictObject({ sl: z.literal(true) }),
-    // Valeur d'une RÈGLE OPTIONNELLE du registre : référence de la grammaire (`idDe`), donc résolue AU
-    // PARSE. Sa forme NUMÉRIQUE (`kind: 'param'`) est gardée sur la donnée par `data-wellformed.test`.
-    z.strictObject({ rule: refRegleOptionnelle }),
-    z.strictObject({ sum: z.array(formulaSchema) }),
-    // `factor` est une Formula (PRODUIT de deux formules — « (Force Mentale) × 1d10 minutes », VDM 05).
-    z.strictObject({ times: z.strictObject({ of: formulaSchema, factor: formulaSchema }) }),
-    // BORNE BASSE d'un terme — « 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) » (AA 07 l.113,
-    // LDB 18 l.88) : le minimum vit dans la formule de l'entrée, jamais au moteur. Récursif.
-    z.strictObject({ minimum: z.number().int().nonnegative(), of: formulaSchema }),
+    nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } }),
+    nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }),
+    nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }),
+    nommerChamps(z.strictObject({ rolled: z.literal(true) }), { rolled: { label: "résultat du jet" } }),
+    nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }),
+    nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }),
+    nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }),
+    nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }),
+    // LDB 09 l.97.
+    nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }),
+    nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }),
+    nommerChamps(z.strictObject({ sum: z.array(formulaSchema) }), { sum: { label: "somme" } }),
+    // VDM 05.
+    nommerChamps(z.strictObject({ times: nommerChamps(z.strictObject({ of: formulaSchema, factor: formulaSchema }), { of: { label: "contenu" }, factor: { label: "facteur" } }) }), { times: { label: "multiplicateur" } }),
+    // AA 07 l.113 ; LDB 18 l.88.
+    nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: formulaSchema }), { minimum: { label: "minimum" }, of: { label: "contenu" } }),
   ]),
 );
 
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
  *  l'application de l'op : le Péché est expié AVANT `applyOps` (`state/combatFlow.ts`). */
-export const sinPointsSchema = z.strictObject({ sinPoints: z.literal(true) });
+export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
 /** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
  *  SOMME — la seule composition que le livre imprime (« 1d10 + (Points de Péché) »). */
 export const formulaSinSchema: z.ZodType<unknown> = z.union([
   formulaSchema,
   sinPointsSchema,
-  z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }),
+  nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
 
 const PORTE_LE_PECHE = new WeakMap<object, boolean>();
@@ -859,7 +866,7 @@ export type TestDeCorruption = (typeof TESTS_DE_CORRUPTION)[number];
  *  `corruptionExposure.skill` (`LDB 19 l.23-75`). La feuille `idDe('skill')` (`grammaire/ref.ts`) porte
  *  la référence ; la borne se compose EN SORTIE de la feuille (`transform`), sans cloner la feuille. */
 const estTestDeCorruption = (v: unknown): v is TestDeCorruption => (TESTS_DE_CORRUPTION as readonly unknown[]).includes(v);
-export const refTestDeCorruption = z.strictObject({
+export const refTestDeCorruption = nommerChamps(z.strictObject({
   id: idDe('skill').transform((v, ctx): TestDeCorruption => {
     if (estTestDeCorruption(v)) return v;
     ctx.addIssue({
@@ -869,7 +876,7 @@ export const refTestDeCorruption = z.strictObject({
     });
     return z.NEVER;
   }),
-});
+}), { id: { label: "identifiant" } });
 
 /**
  * FOURCHETTE d'une rangée de table de tirage — forme CANONIQUE du concept `plage`
@@ -889,7 +896,7 @@ export const refTestDeCorruption = z.strictObject({
  * ou sur une expression de dé authorée (`structure-criticals.die`). La couverture EXACTE du domaine
  * se vérifie, elle, par `ecartsDeCouverture` ci-dessous.
  */
-export const plageSchema = z.strictObject({ min: z.number(), max: z.number() });
+export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "minimum" }, max: { label: "maximum" } });
 
 /**
  * FOURCHETTE À BORNE HAUTE OUVERTE — même concept `plage`, une seule divergence : la DERNIÈRE bande
@@ -901,7 +908,7 @@ export const plageSchema = z.strictObject({ min: z.number(), max: z.number() });
  * `src/data/plage-bornes-contrat.test.ts` (volet E). La couverture d'une suite de telles bandes se vérifie
  * par `ecartsDeCouverture(…, 'ouverte')` ci-dessous.
  */
-export const plageOuverteSchema = z.strictObject({ ...plageSchema.shape, max: z.number().nullable() });
+export const plageOuverteSchema = nommerChamps(z.strictObject({ ...plageSchema.shape, max: z.number().nullable() }), { ...metaDesChamps(plageSchema, { exigees: true }), max: { label: "maximum" } });
 
 /**
  * BORNES DE DOMAINE d'un RÉGLAGE chiffré — concept `bornes` du lexique
@@ -918,12 +925,12 @@ export const plageOuverteSchema = z.strictObject({ ...plageSchema.shape, max: z.
  * `ecartDeCoPresenceDesBornes` — c'est le PORTEUR réel (`defs/reglesOptionnelles.ts`) que les gates
  * mesurent, jamais ce nœud seul.
  */
-export const bornesSchema = z
+export const bornesSchema = nommerChamps(z
   .strictObject({ min: z.number().optional(), max: z.number().optional(), step: z.number().optional() })
   .superRefine((v, ctx) => {
     const ecart = ecartDeCoPresenceDesBornes(v);
     if (ecart) ctx.addIssue({ code: 'custom', path: [ecart.borne], message: ecart.message });
-  });
+  }), { min: { label: "minimum" }, max: { label: "maximum" }, step: { label: "pas" } });
 
 /**
  * Co-présence des deux bornes d'un RÉGLAGE : rend l'écart (vide = conforme), à verser dans le refus

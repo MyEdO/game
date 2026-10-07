@@ -84,13 +84,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-08-23",
   },
   {
-    fichier: "src/data/schemas/defs-scenes/effets.ts",
-    motif: "legacy",
-    ancre: "= ½ prix mais nourriture à risque (Courante galopante 10 %, ch.66 l.51). LEGACY : sans",
-    lot: "L1b #1467 / L5",
-    date: "2026-08-23",
-  },
-  {
     fichier: "src/state/shipwreck.ts",
     motif: "legacy",
     ancre: "MDG 13 l.674 « corps et biens ») ; sans correspondance, la purge legacy `vessel:null` ci-dessus reste",

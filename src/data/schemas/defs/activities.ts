@@ -1,3 +1,4 @@
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `activities.json` — catalogue UNIQUE des Activités (LDB 23, EDOC 8, MDG 15,
  * ADE II 8 Bataille de masse), miroir strict de `ActivityDef` (`src/engine/activities.ts`,
@@ -7,7 +8,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { difficultySchema, enumNomme, formulaSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { blocageDeLivraison, difficultySchema, enumNomme, formulaSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { conditionSchema, gameOpSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -16,7 +17,7 @@ export const famille = 'entite';
 
 // `difficulty?` = Difficulté PROPRE à cette voie quand le RAW en attache une différente par
 // Compétence (Punchausen, AA 12 l.45-49) — absente, la voie retombe sur `difficulty` de l'Activité.
-const voieDeCompetenceSchema = refOuSpec('skill', { difficulty: difficultySchema.optional() });
+const voieDeCompetenceSchema = refOuSpec('skill', { difficulty: nommerNoeud(difficultySchema.optional(), { nom: 'difficulté' }) });
 
 /** Termes de `Formula` dont la valeur ne se connaît QU'AU jet. Un modificateur de Test d'Activité est
  *  affiché AVANT l'engagement (`activityTestMod` → volet d'Activité, ligne de pré-jet) : la valeur
@@ -66,12 +67,12 @@ export const battleOutcomeScaleSchema = enumNomme({
   perKill: '× ennemis tués',
 });
 
-const battleOutcomeSchema = z.strictObject({
+const battleOutcomeSchema = nommerChamps(z.strictObject({
   side: battleSideSchema.optional(),
   target: battleOutcomeTargetSchema,
   scale: battleOutcomeScaleSchema,
   amount: z.number(),
-});
+}), { side: { label: "côté" }, target: { label: "cible" }, scale: { label: "échelle" }, amount: { label: "quantité" } });
 
 export const battleCondSchema = enumNomme({
   generalDown: 'Général ennemi tombé',
@@ -108,7 +109,7 @@ export const sceneKindSchema = enumNomme({
 /** Issue du Test qui ouvre une bande (absente = toute issue). */
 export const outcomeOnSchema = enumNomme({ success: 'Succès', failure: 'Échec', fumble: 'Maladresse' });
 
-const outcomeBandSchema = z.strictObject({
+const outcomeBandSchema = nommerChamps(z.strictObject({
   on: outcomeOnSchema.optional(),
   minSL: z.number().optional(),
   maxSL: z.number().optional(),
@@ -119,7 +120,7 @@ const outcomeBandSchema = z.strictObject({
   battle: z.array(battleOutcomeSchema).optional(),
   when: battleCondSchema.optional(),
   chains: z.array(z.string()).optional(),
-});
+}), { on: { label: "issue du Test" }, minSL: { label: "DR minimum" }, maxSL: { label: "DR maximum" }, ops: { label: "opérations" }, resolver: { label: "résolveur" }, payoutPct: { label: "pourcentage de paiement" }, note: { label: "note" }, battle: { label: "bataille" }, when: { label: "condition" }, chains: { label: "enchaînements" } });
 
 const doc = document(
   'activities',
@@ -133,23 +134,23 @@ const doc = document(
     combined: z.boolean().optional(),
     // ── ActivityDef propre ──
     freeSkill: z.boolean().optional(),
-    extended: z.strictObject({ drPerStage: z.number() }).optional(),
+    extended: nommerChamps(z.strictObject({ drPerStage: z.number() }), { drPerStage: { label: "DR par étape" } }).optional(),
     failExtenue: z.boolean().optional(),
     /** Modificateurs de SITUATION du Test (miroir de `ActivityDef.testMods`) : quantité `Formula` — donc
      *  un `{rule}` éditable — éventuellement gatée par une `Condition` sur l'acteur. */
-    testMods: z.array(z.strictObject({
+    testMods: z.array(nommerChamps(z.strictObject({
       when: conditionSchema.optional(),
       mod: formulaSchema,
       label: z.string().optional(),
-    })).optional(),
+    }), { when: { label: "condition" }, mod: { label: "modificateur" }, label: { label: "nom" } })).optional(),
     /** Dés de MONDE après le Test (miroir de `ActivityDef.worldRolls`). */
-    worldRolls: z.array(z.strictObject({
+    worldRolls: z.array(nommerChamps(z.strictObject({
       id: z.string().min(1),
       label: z.string().min(1),
       cible: formulaSchema,
       ops: z.array(gameOpSchema),
       unless: conditionSchema.optional(),
-    })).optional(),
+    }), { id: { label: "identifiant" }, label: { label: "nom" }, cible: { label: "cible" }, ops: { label: "opérations" }, unless: { label: "sauf si" } })).optional(),
     weatherMod: z.record(z.string(), z.number()).optional(),
     resolver: activityResolverSchema.optional(),
     onSuccess: z.array(gameOpSchema).optional(),
@@ -167,28 +168,28 @@ const doc = document(
     testModFrom: z.enum(['allyTestMod', 'firstRoundBonus', 'planningBonus']).optional(),
     /** Difficulté DÉRIVÉE d'un écart de mesure d'armée (miroir de `ActivityDef.difficultyFrom`) —
      *  Discours inspirant : écart de Puissance arrondi à la dizaine (ADE II 8 l.71). */
-    difficultyFrom: z.strictObject({
+    difficultyFrom: nommerChamps(z.strictObject({
       gap: z.enum(['armyMight']),
       roundTo: z.number().optional(),
-    }).optional(),
+    }), { gap: { label: "écart" }, roundTo: { label: "arrondi" } }).optional(),
     sceneKind: sceneKindSchema.optional(),
     encounter: z.string().optional(),
     rounds: z.number().optional(),
-    hold: z.strictObject({
+    hold: nommerChamps(z.strictObject({
       breakpoint: z.number(),
       maxRounds: z.number(),
       enemyBonusPerHold: z.number(),
-    }).optional(),
-    threat: z.strictObject({ penalty: z.number() }).optional(),
+    }), { breakpoint: { label: "seuil de rupture" }, maxRounds: { label: "Rounds maximum" }, enemyBonusPerHold: { label: "bonus ennemi par tenue" } }).optional(),
+    threat: nommerChamps(z.strictObject({ penalty: z.number() }), { penalty: { label: "pénalité" } }).optional(),
     generalDownOn: z.enum(['success', 'stupefying']).optional(),
-    classGate: z.strictObject({
+    classGate: nommerChamps(z.strictObject({
       classes: z.array(z.string()),
       outsidePenalty: z.number(),
       scope: z.enum(['current', 'ever']).optional(),
-    }).optional(),
+    }), { classes: { label: "classes" }, outsidePenalty: { label: "pénalité hors classe" }, scope: { label: "portée" } }).optional(),
     // `blocked` = dette bloquante d'une Activité curée dont l'issue n'a aucun support moteur
     // (`ActivityDef.blocked`) : retirée des catalogues jouables par `activitiesFor`.
-    blocked: z.strictObject({ ticket: z.string(), raison: z.string() }).optional(),
+    blocked: blocageDeLivraison.optional(),
     // ── ENJEU du jet (#1117 L3) — `activities` est le 5ᵉ dataset d'enjeux, porté par l'ENTITÉ
     //    elle-même (pas de fichier tiers) : une Activité qui LANCE dit ce que son jet met en jeu.
     /** Texte d'enjeu — descripteur mécanique de ce que le résolveur applique, et/ou verbatim court. */

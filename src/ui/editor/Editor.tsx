@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
-import { Scene, emptyScene, tileAt } from '../../state/scene';
+import { Scene, emptyScene, tileAt, type CellSide } from '../../state/scene';
 import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
 import { validateScene, type Warning } from '../../state/validateScene';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../state/planDefects';
@@ -46,13 +46,14 @@ import { advanceCalibration, identityTransform, nearestNode, type CalibProgress 
 import {
   traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';
-import { Dims, tileCenter, screenToTileF } from '../../geometry/iso';
+import { Dims, tileCenter, tileEdge, screenToTileF } from '../../geometry/iso';
 import { useLowerLayerOpacity, setLowerLayerOpacity, useLowerLayerMode, setLowerLayerMode } from './lowerLayerGabarit';
 import { useEditorLayers } from './editorLayers';
 import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
 import { z } from 'zod';
-import { dialoguesSchema, triggersSchema, encountersSchema } from '../../data/schemas/defs-scenes/scene';
+import { dialoguesSchema, triggersSchema, encountersSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
+import { nommerChamps, metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
@@ -79,11 +80,11 @@ export function ouCaCasse(erreur: unknown): string {
  *  conteneur est réécrit parce que `sceneSchema.pick()` est refusé par zod sur un objet PORTANT DES
  *  RAFFINEMENTS, et un sous-ensemble de trois clés n'en hérite aucun.
  *  La porte de cette modale est `lireBlocsAvances`, ci-dessous. */
-export const SCHEMA_BLOCS_AVANCES = z.strictObject({
+export const SCHEMA_BLOCS_AVANCES = nommerChamps(z.strictObject({
   dialogues: dialoguesSchema.optional(),
   triggers: triggersSchema.optional(),
   encounters: encountersSchema.optional(),
-});
+}), { dialogues: metaDesChamps(sceneSchema, { exigees: true }).dialogues, triggers: metaDesChamps(sceneSchema, { exigees: true }).triggers, encounters: metaDesChamps(sceneSchema, { exigees: true }).encounters });
 
 /** Porte de la modale « Avancé » (`saveAdvanced`), EXPORTÉE pour être mesurable hors montage : c'est
  *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le
@@ -582,6 +583,29 @@ export function Editor({
         listerEntites: () => scene.entities.map((e) => ({
           id: e.id, kind: e.kind, ...(e.ref !== undefined ? { ref: e.ref } : {}), pos: { ...e.pos },
         })),
+        // Recette #2306 : lecture du brouillon de carte du monde, COPIÉE (`when` cloné).
+        lireCarteDuMonde: () => worldMap && {
+          id: worldMap.id,
+          label: worldMap.label,
+          lieux: worldMap.places.map((p) => ({
+            id: p.id, label: p.label, scene: p.scene, pos: { ...p.pos },
+            ...(p.when !== undefined ? { when: structuredClone(p.when) } : {}),
+          })),
+          routes: worldMap.routes.map((r) => ({
+            id: r.id, a: r.a, b: r.b, km: r.km,
+            ...(r.when !== undefined ? { when: structuredClone(r.when) } : {}),
+            ...(r.refus !== undefined ? { refus: r.refus } : {}),
+          })),
+        },
+        // Recette #2404 : point ÉCRAN du milieu d'une arête, par la projection de la vue (`tileEdge` sur les
+        // dims du canevas, puis la CTM du SVG du canevas) — là où l'outil murs la résout (`nearestEdge`).
+        positionEcranArete: (x: number, y: number, z: number, dir: CellSide) => {
+          const ctm = view.canvasRef.current?.getScreenCTM();
+          if (!ctm) return null;
+          const [a, b] = tileEdge(x, y, dir, { ...scene.dimensions, rot: view.rot, view: view.viewMode }, z);
+          const mx = (a.cx + b.cx) / 2, my = (a.cy + b.cy) / 2;
+          return { x: ctm.a * mx + ctm.c * my + ctm.e, y: ctm.b * mx + ctm.d * my + ctm.f };
+        },
         // Recette #877 : patch PARTIEL d'une entité par le seam d'assise de l'éditeur — même voie
         // qu'une édition d'auteur, donc normalisée et annulable.
         patcherEntite: (entityId: string, patch: Record<string, unknown>) => {
@@ -611,7 +635,7 @@ export function Editor({
           return `✓ entité « ${entityId} » patchée — posé : ${nommer(true)} | retiré : ${nommer(false)}`;
         },
       }),
-    [scene, sel, clip, undo, redo, setScene],
+    [scene, sel, clip, undo, redo, setScene, worldMap, view.canvasRef, view.rot, view.viewMode],
   );
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.

@@ -177,13 +177,13 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   it('import du FICHIER DU DÉPÔT d’une campagne livrée : la phrase de l’import joueur, les nœuds nommés en détail', () => {
     const r = rendu(JSON.parse(readFileSync(join(__dirname, '../../scenes/diligence/diligence-projet.json'), 'utf8')), 'import');
     expect(r.message).toBe(`Import refusé : ${IMPORT_FORME_DEPOT.charAt(0).toLowerCase()}${IMPORT_FORME_DEPOT.slice(1)}`);
-    expect(r.detail).toMatch(/narratif\.presetsPnj\[\d+\]\.profil/);
+    expect(r.detail).toMatch(/Bloc narratif › PNJ « [^»]+ » › profil/);
   });
 
   it.each(GESTES)('%s — projet SANS NOM : mots d’auteur, rapport de la porte replié en détail', (geste) => {
     const r = rendu({ ...projet(), label: '' }, geste);
     expect(r.message).toMatch(/^.+ : ce projet n’a pas de nom\.$/);
-    expect(r.detail).toContain('  - label: ');
+    expect(r.detail).toContain('  - Libellé: ');
   });
 
   it('ouverture SANS NOM : le verbe du geste et la cause, en une phrase', () => {
@@ -206,13 +206,13 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   it('ouverture d’un projet enregistré au contenu fautif : le message dit l’autre format, la faute vit au détail seulement (#2404)', () => {
     const r = rendu(decorSansType(projet()), 'ouverture');
     expect(r.message).toBe('Ouverture refusée : projet d’un autre format, ou mal formé.');
-    expect(r.detail).toMatch(/^ {2}- scenes « s1 » › entities « p0 » › ref: /m);
+    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › référence: /m);
   });
 
   it('enregistrement d’un contenu fautif : la scène et l’entité NOMMÉES par leur libellé, le décor UNE fois', () => {
     const r = rendu(decorSansType(projet()), 'enregistrement');
     expect(r.message).toBe(
-      'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : Scènes « Salle du banc » › entities « Le tonneau » › ref — « ref » absente — un décor NOMME son type au catalogue (props.json)',
+      'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : scène « Salle du banc » › entité « Le tonneau » › référence — « ref » absente — un décor NOMME son type au catalogue (props.json)',
     );
   });
 
@@ -225,8 +225,8 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   it('fautes COMPTÉES : le rapport de la porte, qui les liste TOUTES, est replié en détail', () => {
     const doc = { ...decorSansType(projet()), versionContenu: 'un' };
     const r = rendu(doc, 'enregistrement');
-    expect(r.detail).toMatch(/^ {2}- versionContenu: /m);
-    expect(r.detail).toMatch(/^ {2}- scenes « s1 » › entities « p0 » › ref: /m);
+    expect(r.detail).toMatch(/^ {2}- Version de contenu: /m);
+    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › référence: /m);
   });
 
   it('une SEULE faute : le message la reprend entière, aucun détail', () => {
@@ -240,16 +240,16 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     return { ...doc, scenes: [{ ...sc, dialogues: [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] }] };
   };
 
-  const ENREGISTREMENT = 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : Scènes « Salle du banc » › dialogues « dlg » › nodes « n1 » › ';
+  const ENREGISTREMENT = 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : scène « Salle du banc » › dialogue « dlg » › nœud « n1 » › ';
   const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
 
   /** Mêmes documents refusés qu'avant la réécriture des messages (#2001) : seuls le NOMBRE de fautes
    *  (une par défaut) et leur TEXTE (la faute seule, le site au chemin) changent. */
   it.each([
-    ['réplique VIDE', { desc: '' }, 'desc — texte vide.'],
-    ['réplique SANS TEXTE', {}, 'desc — texte obligatoire.'],
-    ['réplique adaptée SANS TEXTE', { adapteDe: ADAPTE }, 'desc — texte obligatoire.'],
-    ['réplique adaptée VIDE', { desc: '', adapteDe: ADAPTE }, 'desc — texte vide.'],
+    ['réplique VIDE', { desc: '' }, 'texte — texte vide.'],
+    ['réplique SANS TEXTE', {}, 'texte — texte obligatoire.'],
+    ['réplique adaptée SANS TEXTE', { adapteDe: ADAPTE }, 'texte — texte obligatoire.'],
+    ['réplique adaptée VIDE', { desc: '', adapteDe: ADAPTE }, 'texte — texte vide.'],
   ])('%s (#2001) : refusée, UNE faute, dite en français, le nœud au chemin', (_cas, noeud, faute) => {
     expect(rendu(avecNoeud(noeud), 'enregistrement').message).toBe(`${ENREGISTREMENT}${faute}`);
   });
@@ -267,7 +267,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   ] as const)('%s, geste qui RELIT une donnée persistée : le titre dit l’autre format, la faute vit au détail seulement (#2404)', (geste, tete) => {
     const r = rendu(decorSansType(projet()), geste);
     expect(r.message).toBe(`${tete} projet d’un autre format, ou mal formé.`);
-    expect(r.detail).toMatch(/^ {2}- scenes « s1 » › entities « p0 » › ref: /m);
+    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › référence: /m);
   });
 
   it('reprise d’une sauvegarde locale au contenu fautif : le titre dit la scène d’un autre format, la faute vit au détail seulement (#2404)', () => {
@@ -279,7 +279,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     }
     const r = refusDeLaPorteDuProjet(erreur, 'reprise');
     expect(r.message).toBe('Restauration refusée : scène d’un autre format, ou mal formée.');
-    expect(r.detail).toMatch(/^ {2}- entities « p0 » › ref: /m);
+    expect(r.detail).toMatch(/^ {2}- entité « p0 » › référence: /m);
   });
 
   it.each(Object.entries(PHRASE_VRAIE) as [GesteDePorte, Record<CauseDeRefus, string>][])(
@@ -306,7 +306,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     expect((erreur as ProjetRefuse).cause).toBe('prose-non-materialisee');
     const r = refusDeLaPorteDuProjet(erreur, 'reprise');
     expect(r.message).toBe(PHRASE_VRAIE.reprise['prose-non-materialisee']);
-    expect(r.detail).toMatch(/dialogues\[0\]\.nodes\[0\]/);
+    expect(r.detail).toMatch(/dialogue « dlg » › nœud « n1 »/);
   });
 
   it('un numéro de forme `schema` (autre format) : en mots d’AUTEUR, le rapport technique en détail seulement', () => {
@@ -339,12 +339,12 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
 
 describe('ChipDeRefus — le détail replié par la primitive `.fold`, une ligne du rapport par bloc', () => {
   it('compose `.fold` / `.fold-title` / `.fold-body`, et garde les retours à la ligne du rapport', () => {
-    const html = renderToStaticMarkup(<ChipDeRefus refus={{ message: 'M', detail: 'Projet — entête\n  - id: a\n  - label: b' }} />);
+    const html = renderToStaticMarkup(<ChipDeRefus refus={{ message: 'M', detail: 'Projet — entête\n  - id: a\n  - Libellé: b' }} />);
     expect(html).toContain('role="alert"');
     expect(html).toContain('<p class="chip tone-danger chip-phrase">M</p>');
     expect(html).toContain('<details class="fold">');
     expect(html).toContain('class="fold-title"');
-    expect(html).toContain('<div>  - id: a</div><div>  - label: b</div>');
+    expect(html).toContain('<div>  - id: a</div><div>  - Libellé: b</div>');
   });
 
   it('sans détail, aucun repli', () => {

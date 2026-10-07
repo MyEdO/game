@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { validateDataset, validateDocument, schemaForFile, rapportDeFautes, cheminLisible } from './validate';
 import { listeCle } from './grammaire/collection-cle';
+import { nommerChamps } from './grammaire/meta';
 import { schema as characteristicsSchema } from './defs/characteristics';
 import { projetSchema } from './defs-scenes/projet';
 import areneProjet from '../../scenes/arene/arene-projet.json';
@@ -42,7 +43,7 @@ describe('validateDataset — point de validation partagé (#176)', () => {
     const bad = [{ abr: 'CC', label: 'x', nature: 'roll', desc: 'x' }]; // pas de `source`
     const err = validateDataset('characteristics.json', bad);
     expect(err).not.toBeNull();
-    expect(err).toContain('0.source');
+    expect(err).toContain('Source');
   });
 
   it('un fichier NON registré → erreur NOMMANT le fichier et le registre à peupler', () => {
@@ -86,36 +87,36 @@ describe('validateDataset — point de validation partagé (#176)', () => {
 });
 
 describe('le LIEU d’une faute — un élément de liste à clé se nomme par sa clé, lue sur la valeur (#1897)', () => {
-  const element = z.strictObject({ id: z.string(), label: z.string().optional(), n: z.number() });
-  const doc = z.strictObject({ items: listeCle(element, 'id').optional(), bruts: z.array(element).optional() });
+  const element = nommerChamps(z.strictObject({ id: z.string(), label: z.string().optional(), n: z.number() }), { id: { label: 'identifiant' }, label: { label: 'libellé' }, n: { label: 'nombre' } });
+  const doc = nommerChamps(z.strictObject({ items: listeCle(element, 'id').optional(), bruts: z.array(element).optional() }), { items: { label: 'objets' }, bruts: { label: 'bruts' } });
 
   it('un rang dans une liste à clé devient `liste « clé »`, le champ fautif suit ; le chemin reste BRUT', () => {
     const [faute] = validateDocument(doc, { items: [{ id: 'a', n: 1 }, { id: 'b', label: 'Bé', n: 'x' }] })!;
     expect(faute.chemin).toEqual(['items', 1, 'n']);
-    expect(faute.lieu).toEqual([{ liste: 'items', cle: 'b', libelle: 'Bé' }, 'n']);
-    expect(cheminLisible(faute.lieu)).toBe('items « b » › n');
-    expect(cheminLisible(faute.lieu, (e) => e.libelle ?? e.cle)).toBe('items « Bé » › n');
+    expect(faute.lieu).toEqual([{ genre: 'element', liste: 'items', cle: 'b', nom: 'objets', libelle: 'Bé' }, { genre: 'champ', cle: 'n', nom: 'nombre', transparent: false }]);
+    expect(cheminLisible(faute.lieu)).toBe('objets « b » › nombre');
+    expect(cheminLisible(faute.lieu, (e) => e.libelle ?? e.cle)).toBe('objets « Bé » › nombre');
   });
 
   it('une liste SANS clé déclarée garde son rang : la clé ne se devine pas sur un champ `id`', () => {
     const [faute] = validateDocument(doc, { bruts: [{ id: 'a', n: 'x' }] })!;
-    expect(cheminLisible(faute.lieu)).toBe('bruts.0.n');
+    expect(cheminLisible(faute.lieu)).toBe('bruts 1 › nombre');
   });
 
   it('la clé DUPLIQUÉE est le SUJET du message ; le lieu nomme l’élément répété', () => {
     const fautes = validateDocument(doc, { items: [{ id: 'a', n: 1 }, { id: 'a', n: 2 }] })!;
     expect(fautes.map((f) => [f.chemin, cheminLisible(f.lieu), f.message])).toEqual([
-      [['items', 1], 'items « a »', '« a » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.'],
+      [['items', 1], 'objets « a »', '« a » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.'],
     ]);
   });
 
   it('une clé COMPOSÉE nomme l’élément par sa graphie', () => {
-    const arete = z.strictObject({ x: z.number(), y: z.number(), door: z.boolean().optional() });
-    const murs = z.strictObject({ walls: listeCle(arete, { nom: 'x,y', de: (w) => `${w.x},${w.y}` }) });
+    const arete = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), door: z.boolean().optional() }), { x: { label: 'abscisse' }, y: { label: 'ordonnée' }, door: { label: 'porte' } });
+    const murs = nommerChamps(z.strictObject({ walls: listeCle(arete, { nom: 'x,y', de: (w) => `${w.x},${w.y}` }) }), { walls: { label: 'murs' } });
     const lus = (walls: unknown[]) => validateDocument(murs, { walls })!.map((f) => `${cheminLisible(f.lieu)}: ${f.message}`);
-    expect(lus([{ x: 1, y: 2 }, { x: 3, y: 4, door: 'oui' }])).toEqual(['walls « 3,4 » › door: Entrée invalide : booléen attendu, chaîne de caractères reçu']);
+    expect(lus([{ x: 1, y: 2 }, { x: 3, y: 4, door: 'oui' }])).toEqual(['murs « 3,4 » › porte: Entrée invalide : booléen attendu, chaîne de caractères reçu']);
     expect(lus([{ x: 1, y: 2 }, { x: 1, y: 2, door: true }])).toEqual([
-      'walls « 1,2 »: « 1,2 » dupliqué : « x,y » identifie l’élément dans sa liste, il y est unique.',
+      'murs « 1,2 »: « 1,2 » dupliqué : « x,y » identifie l’élément dans sa liste, il y est unique.',
     ]);
   });
 
@@ -124,7 +125,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
     const rang = brut.scenes[0].entities.length;
     brut.scenes[0].entities.push({ id: 'p-1', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Tonneau' });
     const rapport = rapportDeFautes('Projet', validateDocument(projetSchema, brut)!);
-    expect(rapport).toContain(`  - scenes « ${brut.scenes[0].id} » › entities « p-1 » › ref: « ref » absente`);
+    expect(rapport).toContain(`  - scène « ${brut.scenes[0].id} » › entité « p-1 » › référence: « ref » absente`);
     expect(rapport).not.toContain(`entities.${rang}`);
   });
 });
