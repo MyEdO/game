@@ -1,0 +1,5 @@
+{
+  "timestamp": "2026-10-07T18:02:29.111Z",
+  "commande": "gh api 'repos/MyEdO/game/actions/runs?head_sha=d5957de933e5396c63e70196b299e37d2d3607bd&per_page=100' --jq '{total_count, runs: [.workflow_runs[] | {id,event,head_sha,status,conclusion}]}'",
+  "ligne": 431
+}

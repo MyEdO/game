@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-10-07T19:11:08.713Z",
+  "commande": [
+    "gh",
+    "api",
+    "repos/MyEdO/game/actions/workflows/ci.yml/runs?head_sha=d5957de933e5396c63e70196b299e37d2d3607bd&event=merge_group&per_page=100"
+  ]
+}
