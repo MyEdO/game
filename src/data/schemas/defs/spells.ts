@@ -67,22 +67,19 @@ const spellDurationSchema = z.discriminatedUnion('kind', [
 
 /** VDM 02 l.377-393 */
 const ritualSchema = nommerChamps(z.strictObject({
-  /** Rubrique **Type** (`l.381`) VERBATIM — l'énoncé imprimé de qui peut y prendre part. */
+  /** VDM 02 l.381 */
   type: z.string(),
   /** VDM 02 l.414 ; LDB 50 ; LDB 47 l.309 */
   domains: z.array(z.string()),
-  /** Rubrique **NI** (`l.379`) lorsqu'elle n'imprime PAS un nombre mais une formule sur la CIBLE
-   *  (« Force Mentale du démon ») : `cn` reste `null`, et la fiche Codex affiche ce texte au lieu
-   *  d'un NI muet. VERBATIM. */
+  /** VDM 02 l.620 */
   cnFrom: z.string().optional(),
-  /** Rubrique **PX d'apprentissage** (`l.383`). */
+  /** VDM 02 l.383 */
   xp: z.number(),
   /** VDM 02 l.398 */
   reduced: nommerChamps(z.strictObject({
     /** Ids de `domains.json` dont la pratique ouvre la valeur réduite. */
     domains: z.array(z.string()),
-    /** Le Talent Magie du Chaos y ouvre aussi — `domains.json` ne porte pas le Chaos (c'est une
-     *  `family`), il se lit donc sur le lanceur comme pour `CastingNumberScope.chaosMagic`. */
+    /** VDM 02 l.398 */
     chaosMagic: z.literal(true).optional(),
     cn: z.number(),
     xp: z.number(),

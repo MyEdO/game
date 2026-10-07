@@ -35,7 +35,7 @@ export function declarationProseNommee(noeud: unknown): ProseNommee | undefined 
   return declaration ? PROSES_NOMMEES[declaration.chemin] : undefined;
 }
 
-export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScene>(schema: z.ZodObject<S>, chemin: C) {
+export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScene>(schema: z.ZodObject<S>, chemin: C): z.ZodObject<z.util.Extend<S, z.util.Writeable<ChampsNommes<C>>>> {
   const definition = PROSES_NOMMEES[chemin];
   const texte = definition.presence === 'requis' ? z.string().min(1, `${definition.champ} vide.`) : z.string().optional();
   const champs = {

@@ -11,7 +11,9 @@ import {
   playerEntryError,
   estRefusee,
   projetDeLEntree,
+  savedProjectSchema,
 } from './projectLibrary';
+import { mesurerCheminsNommes } from '../../scripts/guards/lib/cheminsNommes.mts';
 import { __setFabriqueIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees, brancherOuvertures } from '../lib/indexedDb.testkit';
 import { Scene, emptyScene } from './scene';
@@ -74,6 +76,12 @@ const bigProj = (id: string, label = 'Grosse campagne'): SavedProject => ({
 });
 
 describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', () => {
+  it('nomme tous les champs des objets propriétaires de la bibliothèque', () => {
+    const mesure = mesurerCheminsNommes([savedProjectSchema]);
+    expect(mesure.objets).toBeGreaterThanOrEqual(2);
+    expect(mesure.champs).toBeGreaterThanOrEqual(10);
+    expect(mesure.fautes).toEqual([]);
+  });
   beforeEach(() => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
   });

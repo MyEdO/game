@@ -85,7 +85,7 @@ describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
       'Restauration refusée : scène d’un autre format, ou mal formée.',
     );
     expect(container.querySelector('[role="alert"] .fold-body')?.textContent).toContain(
-      "entities « p3 » › facing: décor volumique « tonneau » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+      "entité « p3 » › orientation: décor volumique « tonneau » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     );
     expect(editeur.listerEntites!().find((e) => e.id === 'p3'), 'la scène fautive n’entre pas').toBeUndefined();
   });

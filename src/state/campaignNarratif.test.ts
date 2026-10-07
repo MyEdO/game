@@ -6,7 +6,7 @@
  * POSITIF : un doc minimal valide restitue son narratif.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject } from './worldMap';
+import { exigerUnRefus, parseProject } from './worldMap';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import { emptyScene } from './scene';
 
@@ -57,7 +57,7 @@ describe('paquet de campagne — bloc narratif', () => {
   it('(b) LÈVE si indice.affaireId ne résout aucune affaire', () => {
     const n = validNarratif();
     n.indices[0].affaireId = 'af-fantome';
-    expect(() => parseProject(doc(n))).toThrow(/narratif › indices « in-quai » › affaireId: affaire inconnue « af-fantome »/);
+    expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › indice « in-quai » › affaire: affaire inconnue « af-fantome »/);
   });
 
   it('(c) LÈVE si preset.base ne résout aucune créature globale (FK `creatures.json`)', () => {
@@ -69,33 +69,33 @@ describe('paquet de campagne — bloc narratif', () => {
   it('(c2) LÈVE si un preset PNJ sans base a un profil sans « char »', () => {
     const n = validNarratif();
     n.presetsPnj.push({ id: 'pnj-adhoc', profil: { label: 'Sans base' } as NarratifBlock['presetsPnj'][number]['profil'] });
-    expect(() => parseProject(doc(n))).toThrow(/narratif › presetsPnj « pnj-adhoc » › profil\.char: « char » absent d’un profil sans base/);
+    expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › PNJ « pnj-adhoc » › profil › Caractéristiques: « char » absent d’un profil sans base/);
   });
 
   it('(c3) LÈVE si un preset PNJ n\'a ni base ni profil', () => {
     const n = validNarratif();
     n.presetsPnj.push({ id: 'pnj-vide' });
-    expect(() => parseProject(doc(n))).toThrow(/narratif › presetsPnj « pnj-vide »: ni base ni profil/);
+    expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › PNJ « pnj-vide »: ni base ni profil/);
   });
 
   it('(d) LÈVE si indice.refs pointe un indice inconnu', () => {
     const n = validNarratif();
     n.indices[1].refs = ['in-fantome'];
-    expect(() => parseProject(doc(n))).toThrow(/narratif › indices « ru-taverne » › refs\.0: indice inconnu « in-fantome »/);
+    expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › indice « ru-taverne » › renvois 1: indice inconnu « in-fantome »/);
   });
 
   it('(e) LÈVE si deux entrées du narratif partagent le même id', () => {
     const n = validNarratif();
     n.affaires.push({ id: 'af-sel', titre: 'Doublon' });
-    expect(() => parseProject(doc(n))).toThrow(/narratif › affaires « af-sel »: « af-sel » dupliqué/);
+    expect(() => parseProject(doc(n))).toThrow(/Bloc narratif › affaires « af-sel »: « af-sel » dupliqué/);
   });
 
   it('(f) LÈVE (message clair NOMMANT le champ, pas TypeError) si un doc n\'a pas de bloc narratif', () => {
-    expect(() => parseProject(enveloppe())).toThrow(/narratif: Entrée invalide : objet attendu/);
+    expect(() => parseProject(enveloppe())).toThrow(/Bloc narratif: Entrée invalide : objet attendu/);
   });
 
   it('(g) LÈVE si un registre du narratif n\'est pas un tableau', () => {
-    expect(() => parseProject({ ...enveloppe(), narratif: { affaires: [], indices: [] } })).toThrow(/narratif\.presetsPnj: Entrée invalide : tableau attendu/);
+    expect(() => parseProject({ ...enveloppe(), narratif: { affaires: [], indices: [] } })).toThrow(/Bloc narratif › PNJ précomposés: Entrée invalide : tableau attendu/);
   });
 
   it('(h) doc à identité valide parse et restitue l’id, à la racine', () => {
@@ -105,7 +105,14 @@ describe('paquet de campagne — bloc narratif', () => {
   });
 
   it('(i) LÈVE si l’identité est malformée (id vide) — chemin à la racine', () => {
-    expect(() => parseProject(doc(emptyNarratif(), { id: '', label: 'X', versionContenu: 1 }))).toThrow(/\bid\b/i);
+    let refus: unknown;
+    try { parseProject(doc(emptyNarratif(), { id: '', label: 'X', versionContenu: 1 })); }
+    catch (erreur) { refus = erreur; }
+    expect(refus).toBeDefined();
+    exigerUnRefus(refus);
+    expect(refus.cause).toBe('schema');
+    expect(refus.message).toMatch(/Identifiant:/);
+    expect(refus.fautes.map((faute) => faute.chemin)).toContainEqual(['id']);
   });
 
   // ── #1342 L3 : la référence PAR ID va jusqu'à la spécialisation d'une Compétence de profil.

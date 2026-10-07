@@ -5,6 +5,7 @@
  */
 import { defDe, enfantsDe } from './descente';
 import { z } from 'zod';
+import './locale-fr';
 
 /** Méta d'édition d'UN champ de premier niveau d'un document. */
 export interface MetaChamp {

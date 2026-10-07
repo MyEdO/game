@@ -62,6 +62,7 @@ export function constructionDeFragment(p: {
 }): Construction & { readonly indice: (texte: string) => boolean };
 export function origineImportee(identifiant: string | ts.Expression, sf: ts.SourceFile, contexte: ContexteImports): { module: string; nom: string } | null;
 export function liaisonImportee(occurrence: ts.Identifier, sf: ts.SourceFile, contexte: ContexteImports): { spec: string; nom: string } | null;
+export function sansDeclarationsDeMetadonnees(fichier: FichierLu, sourceFile?: ts.SourceFile, checker?: Checker): string;
 export function estAppelDeclare(
   appel: ts.CallExpression,
   sf: ts.SourceFile,

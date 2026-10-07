@@ -806,7 +806,7 @@ describe('buildScene — architecture authorée', () => {
       levels: { z0: '..\n..', z1: '..\n..' },
       zoneMap: { z0: 'A.\n..', z1: 'B.\n..' },
       zoneLegend: { A: { id: 'salle', label: 'Salle' }, B: { id: 'salle', label: 'Chambre' } },
-    })).toThrow(/effectZones « salle ».*« salle » dupliqué/);
+    })).toThrow(/zones d’effet « salle ».*« salle » dupliqué/);
   });
 });
 

@@ -25,6 +25,8 @@ import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { Effect } from '../../../state/scene';
 import type { Flow } from '../../../engine/flowCore';
+import { dataLabel } from '../../index';
+import type { PlayerText } from '../../../i18n/playerText';
 
 // ── Vocabulaire des effets ──────────────────────────────────────────────────────────────────────
 
@@ -45,7 +47,7 @@ export { chaosAlignSchema };
 /** `WaterExposureMode` (`src/data/index.ts`) — `MSRC 16` : boire, ou être immergé. MÊME vocabulaire
  *  que `waterExposure.modifiers[].appliesTo` : la const NOMMÉE du def de règle est partagée (#1694). */
 export const waterExposureModeSchema = waterAppliesToSchema;
-/** `FavorLevel` (`engine/favor.ts`) — Niveau d'une Faveur due (`LDB 23 l.145-151`). */
+/** LDB 23 l.145-151 */
 export const favorLevelSchema = enumNomme({
   mineure: 'Faveur Mineure',
   majeure: 'Faveur Majeure',
@@ -57,7 +59,8 @@ export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), 
  *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
  *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
  *  (`state/pursuitFlow`). `id` est posé à l'ouverture quand l'auteur n'en écrit pas — il sert aux
- *  décisions de camp (`LDB 15 l.94`, `PursuitPolicy.prioritaires`). */
+ *  décisions de camp (`PursuitPolicy.prioritaires`). */
+/** LDB 15 l.94 */
 export const pursuitFoeSchema = nommerChamps(z.strictObject({
   id: z.string().optional(),
   ref: livingRefSchema,
@@ -146,9 +149,10 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   qualities: z.array(z.string()).optional(),
   identified: z.boolean().optional(),
   skin: surchargePaletteSchema.optional(),
-  /** Aura détectée / Détection déjà tentée (Talent Détection d'artefact, `LDB 10`) / jour de la
+  /** Aura détectée / Détection déjà tentée / jour de la
    *  dernière Évaluation ratée — posés par la fenêtre de loot AVANT attribution, propagés sur
    *  l'ItemInstance à la remise. */
+  /** LDB 10 l.332-336 */
   magicKnown: z.boolean().optional(),
   detectTried: z.boolean().optional(),
   appraiseTriedDay: z.number().optional(),
@@ -183,9 +187,10 @@ export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveX
 
 export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type" }, encounter: { label: "rencontre" } });
 
-/** Combat de masse / Puissance de Bataille (`ADE II 8`) : ouvre l'écran de bataille sur le
+/** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
  *  Scènes de combat, modificateur permanent). Appliqué par le store `startMassBattle` (state/massBattleFlow). */
+/** ADE II 8 */
 export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type" }, battle: { label: "bataille" } });
 
 export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('transition'), scene: z.string(), entry: z.string().optional() }), { type: { label: "type" }, scene: { label: "scène" }, entry: { label: "entrée" } });
@@ -262,19 +267,14 @@ export const setTimeSchema = nommerChamps(z
  *  dialogue (ex. choix « Montrez-moi vos marchandises »). L'entité doit porter `merchant` (#2). */
 export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: z.string() }), { type: { label: "type" }, entityId: { label: "entité" } });
 
-/** Ouvre le PORT d'un lieu de la carte du monde (`MDG 15`) — SCRIPTÉ (arrivée mise en scène, cinématique
+/** Ouvre le PORT d'un lieu de la carte du monde — SCRIPTÉ (arrivée mise en scène, cinématique
  *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, state/seaVoyageFlow) : avec profil
  *  de port → relâche à terre en attente de décision (`pendingShoreLeave`) ; sans profil → transition
  *  directe. `placeId` = id d'un `MapPlace` de `state.worldMap`. */
+/** MDG 15 l.127-129 */
 export const openPortSchema = nommerChamps(z.strictObject({ type: z.literal('openPort'), placeId: z.string() }), { type: { label: "type" }, placeId: { label: "lieu" } });
 
-/** Soins PAYANTS d'un PNJ (médecin/guérisseur/temple — `LDB 75` « Docteur en médecine », l'aide
- *  médicale se paie À L'ACTE, 4-6 pistoles) : ouvre l'INFIRMERIE du PNJ (modale persistante,
- *  state/medicFlow) avec ses actes et leurs tarifs — `acts` liste {act, cost?} ; le débit a lieu
- *  au lancement de chaque acte (remboursé si annulé avant le jet). `entityId` = LE soigneur : une
- *  entité `personnage` de la scène, PORTEUSE UNIQUE de son nom ET de ses stats (sa réf de bestiaire ou
- *  son statbloc) — sa Guérison et son Bonus d'Intelligence se LISENT sur cette fiche (`state/medicFlow`
- *  applique le RAW Guérison/Chirurgie existant). Le joueur choisit les patients dans la modale. */
+/** LDB 75 l.19 */
 export const medicalAidSchema = nommerChamps(z.strictObject({
   type: z.literal('medicalAid'),
   acts: z
@@ -283,16 +283,10 @@ export const medicalAidSchema = nommerChamps(z.strictObject({
   entityId: z.string(),
 }), { type: { label: "type" }, acts: { label: "actes" }, entityId: { label: "entité" } });
 
-/** Début de session (`LDB 17 l.41`) : chaque héros regagne tous ses Points de Chance,
- *  jusqu'à un maximum égal à son Destin actuel. Exposé dans l'éditeur (pas de hook caché). */
+/** LDB 17 l.41 */
 export const restoreFortuneSchema = nommerChamps(z.strictObject({ type: z.literal('restoreFortune') }), { type: { label: "type" } });
 
-/** Repos (`LDB 16/18/21`) : ouvre la MODALE DE NUIT (state/restFlow) — par héros : couchage +
- *  pitance, prix RAW calculés (`LDB 66` : commune 10 sc, privée 10 pa pour 2, repas 1 pa —
- *  débit dans la modale), puis bilan globalisé (Exposition dehors, récupération, cauchemars,
- *  contagion). `lodging` : contexte du lieu (auberge/chez soi/campement) ; `quality: 'pietre'`
- *  = ½ prix mais nourriture à risque (Courante galopante 10 %, ch.66 l.51). LEGACY : sans
- *  `lodging`, contexte « maison » (gratuit — prix porté par le choix de dialogue). */
+/** LDB 18 l.296 ; LDB 66 ; LDB 21 l.95 */
 export const restSchema = nommerChamps(z.strictObject({
   type: z.literal('rest'),
   days: z.number().optional(),
@@ -300,26 +294,16 @@ export const restSchema = nommerChamps(z.strictObject({
   quality: z.enum(['normale', 'pietre']).optional(),
 }), { type: { label: "type" }, days: { label: "jours" }, lodging: { label: "couchage" }, quality: { label: "qualité" } });
 
-/** Repas (#T2 — auberge, hôte généreux…) : nourrit TOUT le groupe pour la journée SANS consommer de
- *  ration — remet les compteurs/malus de Faim à zéro (`LDB 18 l.337-343`). Le prix éventuel (« Repas,
- *  auberge », `LDB 66` p.302) est porté par le CHOIX de dialogue (`DialogueChoice.cost`), pas par l'effet. */
+/** LDB 18 l.338 */
 export const mealPartySchema = nommerChamps(z.strictObject({ type: z.literal('mealParty') }), { type: { label: "type" } });
 
-/** Inflige le trauma « Cauchemars » (`LDB 21 l.95`) à un héros (défaut : le premier) après une scène
- *  marquante : chaque nuit, Test de Calme Facile (+40) ou Exténué. L'auteur l'assigne (pas inventé). */
+/** LDB 21 l.95 */
 export const inflictNightmaresSchema = nommerChamps(z.strictObject({ type: z.literal('inflictNightmares'), heroId: z.string().optional() }), { type: { label: "type" }, heroId: { label: "héros" } });
 
-/** Trauma (`ADE II Annexe I` « Troubles psychologiques », règle facultative `psych-acquisition-optional`) :
- *  un héros TÉMOIN d'un événement rendant une de ses Ambitions complètement irréalisable → Test de Calme
- *  Accessible (+20) ; échec → Trait psychologique *Trauma*. Déclencheur NARRATIF (aucun hook mécanique),
- *  donc posé par l'auteur (défaut : le premier héros). Inerte si la règle facultative est éteinte. */
+/** ADE II 9 l.21 */
 export const ambitionLostSchema = nommerChamps(z.strictObject({ type: z.literal('ambitionLost'), heroId: z.string().optional() }), { type: { label: "type" }, heroId: { label: "héros" } });
 
-/** Source de PEUR/TERREUR scénique (`LDB 21`) — une apparition, un présage, une vision d'horreur mise en
- *  scène par l'auteur (PAS un PNJ de la scène : hors combat, la Peur/Terreur de créature ne se teste QUE
- *  scriptée, cf. `engine/encounterPsych`). Ouvre la MÊME cascade de Tests de Calme que la Psychologie de
- *  rencontre (`openScriptedPsych`, applier `'encounterPsych'` partagé) — jamais un jet silencieux. Cible :
- *  `party` ou `hero` (+`heroId`, défaut le premier). */
+/** LDB 21 l.25-27, l.54-56 */
 export const inflictPsychologySchema = nommerChamps(z.strictObject({
   type: z.literal('inflictPsychology'),
   kind: z.enum(['peur', 'terreur']),
@@ -329,17 +313,16 @@ export const inflictPsychologySchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
 }), { type: { label: "type" }, kind: { label: "type" }, indice: { label: "indice" }, label: { label: "libellé" }, target: { label: "cible" }, heroId: { label: "héros" } });
 
-/** Inflige une Maladie (`LDB 20`) à un héros (défaut : le premier) — nourriture avariée, contact infecté,
+/** Inflige une Maladie à un héros (défaut : le premier) — nourriture avariée, contact infecté,
  *  morsure… L'auteur choisit la maladie (diseaseDefs()) ; incubation/durée sont tirées à la contraction. */
+/** LDB 20 */
 export const inflictDiseaseSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictDisease'),
   disease: z.string(),
   heroId: z.string().optional(),
 }), { type: { label: "type" }, disease: { label: "maladie" }, heroId: { label: "héros" } });
 
-/** Impose la Faim (`LDB 18 l.337-343`) : `days` échecs de Test de Faim déjà encaissés — 1ᵉʳ → −10 F/E ;
- *  2ᵉ+ → −10 aux autres Caractéristiques + 1d10 Dégâts (ignore les PA, min 1). Pour scénariser un groupe
- *  affamé (siège, cachot, traversée sans vivres). Cible : `party` ou `hero` (+`heroId`, défaut le premier). */
+/** LDB 18 l.338-343 */
 export const inflictHungerSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictHunger'),
   days: z.number().optional(),
@@ -347,10 +330,7 @@ export const inflictHungerSchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
 }), { type: { label: "type" }, days: { label: "jours" }, target: { label: "cible" }, heroId: { label: "héros" } });
 
-/** Impose la Soif (`LDB 18 l.340`, miroir de la Faim) : `days` échecs de Test de Soif déjà encaissés —
- *  1ᵉʳ → −10 Int/FM/Soc ; 2ᵉ+ → −10 aux autres Caractéristiques + 1d10 Dégâts (ignore les PA, min 1).
- *  Moteur partagé `applySoifTest` (engine/provisions), zéro logique nouvelle. Cible : `party` ou `hero`
- *  (+`heroId`, défaut le premier). */
+/** LDB 18 l.338-343 */
 export const inflictThirstSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictThirst'),
   days: z.number().optional(),
@@ -358,10 +338,7 @@ export const inflictThirstSchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
 }), { type: { label: "type" }, days: { label: "jours" }, target: { label: "cible" }, heroId: { label: "héros" } });
 
-/** Exposition au froid ou à la chaleur (`LDB 18 l.326-334`) : `count` Tests de Résistance (Intermédiaire),
- *  échecs en cascade (froid : −10 CT/Ag/Dex, puis −10 le reste, puis 1d10 Dégâts ignorant les PA, Inconscient
- *  à 0 PB ; chaleur : −10 Int/FM + Exténué, puis −10 le reste + Exténué, puis 1d10). Pour une nuit glaciale,
- *  un désert, une tempête. Cible : `party` ou `hero` (+`heroId`, défaut le premier). */
+/** LDB 18 l.326-334 */
 export const exposureNightSchema = nommerChamps(z.strictObject({
   type: z.literal('exposureNight'),
   kind: z.enum(['froid', 'chaleur']),
@@ -389,9 +366,7 @@ export const zoneBlastSchema = nommerChamps(z.strictObject({
   ops: z.array(gameOpSchema),
 }), { type: { label: "type" }, center: { label: "centre" }, radius: { label: "rayon" }, ops: { label: "opérations" } });
 
-/** Chute (`LDB 15 l.80-84`) : la cible tombe de `metres` mètres → 3 Dégâts/mètre + 1d10, réduits par
- *  le Bonus d'Endurance mais PAS par les PA ; si les Blessures subies dépassent le BE → État À Terre.
- *  `to` (optionnel) repositionne le GROUPE à l'arrivée (balcon→parterre, plancher de loge effondré). */
+/** LDB 15 l.80-84 */
 export const fallSchema = nommerChamps(z.strictObject({
   type: z.literal('fall'),
   target: effectTargetSchema,
@@ -437,25 +412,14 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
 /** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
 export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: z.string() }), { type: { label: "type" }, id: { label: "identifiant" } });
 
-/** Points de Péché (`LDB 40 l.30-36`) : l'auteur/MJ sanctionne une infraction aux commandements du dieu
- *  d'un Bienheureux — 1 à 3 selon la gravité (l.36). Défaut : le premier héros sachant Prier. Le dé des
- *  unités d'un Test de Prière ≤ Péchés déclenche la Colère des dieux même sur Test réussi (l.45) ;
- *  chaque jet de Colère en expie 1 (l.53). */
+/** LDB 40 l.25-29, l.36, l.46 */
 export const giveSinSchema = nommerChamps(z.strictObject({
   type: z.literal('giveSin'),
   amount: z.number().optional(),
   heroId: z.string().optional(),
 }), { type: { label: "type" }, amount: { label: "quantité" }, heroId: { label: "héros" } });
 
-/** Exposition à une Influence corruptrice (`LDB 19 l.23-75`) : Test de Résistance (Influence physique)
- *  ou de Calme (spirituelle) par MODALE ; Points de Corruption selon le niveau et le DR. Cible : héros
- *  désigné, sinon le premier vivant. Au-delà de BFM+BE : Test de Résistance ou MUTATION.
- *
- *  `skill` ABSENT = le RAW laisse le choix ouvert — « comme déterminé par le MJ » (`LDB 19 l.29`) — et
- *  ici c'est le joueur qui tranche Résistance/Calme dans la modale ; PRÉSENT = déterminé en amont →
- *  verrouillé (pas de choix). `align` (Puissance du Chaos)
- *  facultatif : si la mutation survient, force la table `EDOC` alignée (sinon la règle globale décide).
- *  C'est à l'éditeur de niveau de le poser quand la source est dédiée. */
+/** LDB 19 l.25-75 */
 export const corruptionExposureSchema = nommerChamps(z.strictObject({
   type: z.literal('corruptionExposure'),
   level: exposureLevelSchema,
@@ -482,11 +446,7 @@ export const waterExposureSchema = nommerChamps(z.strictObject({
  *  `./scene.ts`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
 const sortSchema: z.ZodType<string, string> = idDe('spell');
 
-/** Enseigne un sort SANS coût en PX (trouvaille de campagne : grimoire d'un maître, parchemin…) au
- *  héros que son Talent de lanceur rend éligible, désigné ou non — sinon refus NOMMÉ au journal
- *  (`LDB 46 l.14`). Cible : héros désigné, sinon le premier dont un Talent rend le sort apprenable ;
- *  la garde est celle de l'achat (`spellCost`). L'apprentissage PAYANT passe par l'onglet Avancement
- *  (buySpell, `LDB 46 l.16-20`). */
+/** LDB 46 l.14-20 */
 export const learnSpellSchema = nommerChamps(z.strictObject({
   type: z.literal('learnSpell'),
   spell: sortSchema,
@@ -510,10 +470,7 @@ export const castSpellSchema = nommerChamps(z.strictObject({
   mode: z.enum(['jet', 'forceSuccess']).optional(),
 }), { type: { label: "type" }, casterId: { label: "lanceur" }, spellId: { label: "sort" }, targetId: { label: "cible" }, mode: { label: "mode" } });
 
-/** FIN DE SÉANCE (`LDB 05` Ambitions l.793-841 + Détermination `LDB 17 l.81`) : ouvre l'écran de fin de
- *  séance EXISTANT (`SessionEndModal`) où le MJ/les joueurs cochent les Ambitions accomplies et les
- *  Motivations suivies — l'octroi (PX +50/+500, Détermination, Chance restaurée) passe par `endSession`
- *  (state/partyFlow), déjà câblé derrière cette modale. À poser en fin de chapitre par l'auteur (#83). */
+/** LDB 05 l.793-841 ; LDB 17 l.81 */
 export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('sessionEnd') }), { type: { label: "type" } });
 
 /** CRÉATION DE PERSONNAGE (#83) : ouvre l'assistant EXISTANT (`src/ui/creator/`) pour un NOUVEAU héros
@@ -521,15 +478,10 @@ export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('s
  *  Navigue vers l'écran `creator` (`setEditingHero(null)` + `setScreen('creator')`). */
 export const openCharacterCreatorSchema = nommerChamps(z.strictObject({ type: z.literal('openCharacterCreator') }), { type: { label: "type" } });
 
-/** « Entre deux aventures » (`LDB 22-23`, Jalon 5) : ouvre l'interlude — Événement d100 par héros,
- *  min(3, semaines) Activités chacun, puis Argent à gaspiller et le temps passe. À poser en fin
- *  de chapitre par l'auteur de campagne. */
+/** LDB 22 l.5 ; LDB 23 l.5-19 */
 export const interludeSchema = nommerChamps(z.strictObject({ type: z.literal('interlude'), weeks: z.number().optional() }), { type: { label: "type" }, weeks: { label: "semaines" } });
 
-/** Faveur (`LDB 23 l.139-153`, #509) : contrepartie future acceptée en échange d'une aide
- *  immédiate — Faveur de départ de campagne, ou octroi narratif hors flux d'Activité. Cible :
- *  héros désigné, sinon le premier héros vivant du groupe (la source parle au singulier « vous »,
- *  l.141 « votre Niveau » : la Faveur est due par UN héros, pas le groupe). */
+/** LDB 23 l.139-153 */
 export const grantFavorSchema = nommerChamps(z.strictObject({
   type: z.literal('grantFavor'),
   heroId: z.string().optional(),
@@ -538,13 +490,7 @@ export const grantFavorSchema = nommerChamps(z.strictObject({
   desc: z.string(),
 }), { type: { label: "type" }, heroId: { label: "héros" }, level: { label: "niveau" }, owedTo: { label: "bénéficiaire" }, desc: { label: "texte" } });
 
-/** Poursuite TERRESTRE jouable (`LDB 15 l.88-108`) — à poser sur un trigger/dialogue (« ils prennent la
- *  fuite », « rattrapez-les ! »). `partyRole` : le groupe FUIT (défaut) ou POURSUIT ; l'autre camp est
- *  décrit par `foes` (Mouvement + valeur de Test de Mouvement de chaque adversaire). `distance` de départ
- *  (1-8, l.500-504), `escapeAt` = seuil d'évasion (défaut 10, l.520). `skill` = Compétence de Mouvement
- *  testée (id : Athlétisme à pied / Chevaucher / Conduite d'attelages). `encounter` = rencontre ouverte au
- *  RATTRAPAGE (Distance ≤ 0 → combat). Jouée manche par manche par la cascade influençable (state/pursuitFlow),
- *  MÊME dramaturgie que la poursuite navale (`MDG 13`). */
+/** LDB 15 l.88-108 */
 export const startPursuitSchema = nommerChamps(z.strictObject({
   type: z.literal('startPursuit'),
   partyRole: z.enum(['fleeing', 'pursuing']).optional(),
@@ -629,10 +575,7 @@ export const delayedEffectSchema = z.strictObject({
   ...scheduleShape,
 });
 
-/** « Petites Prières » (`LDB 25 l.22-24`, option `prayer-petites`) : posé sur un SITE SACRÉ (autel,
- *  sanctuaire). Un personnage NON Béni y prie : 1d100 secret, exaucé sur 01 (pourcentage relevé s'il
- *  possède la Compétence Prière). Exaucée → le `reward` (Flow authoré : bonus, don, flag…) s'applique ;
- *  sinon rien. Cible : `heroId`, sinon le premier héros vivant non Béni. Sans effet hors du toggle. */
+/** LDB 25 l.22-24 */
 export const petitePriereSchema = z.strictObject({
   type: z.literal('petitePriere'),
   heroId: z.string().optional(),
@@ -796,10 +739,10 @@ nommerEffet(medicalAidSchema, "Acte de soin payant");
 nommerEffet(castSpellSchema, "Incanter un sort ou une prière");
 nommerEffet(extendedTestSchema, "Test Étendu");
 nommerEffet(forceDoorSchema, "Enfoncer une porte");
-export function libelleEffet(type: Effect['type']): string {
+export function libelleEffet(type: Effect['type']): PlayerText {
   const noms = [...new Set(ouverts([effectSchema], { type }).map(nomDeNoeud).map(n => n?.label).filter((n): n is string => !!n))];
   if (noms.length !== 1) throw new Error('effet sans nom : ' + type);
-  return noms[0];
+  return dataLabel(noms[0]);
 }
 
 nommerChamps(delayedEffectSchema, { type: { label: "type" }, flow: { label: "enchaînement", transparent: true }, cancelFlag: { label: "drapeau d’annulation" }, ...scheduleMeta });

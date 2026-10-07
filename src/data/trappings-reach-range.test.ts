@@ -99,7 +99,7 @@ describe('trappings — vocabulaire d’Allonge FERMÉ au CHARGEMENT (fail-fast)
   it('une Allonge HORS axe est REFUSÉE au chargement (elle ne se normalise pas en silence)', () => {
     const err = validateDataset('trappings.json', entry('Gigantesque'));
     expect(err).not.toBeNull();
-    expect(err).toContain('reach');
+    expect(err).toContain('élément « hallebarde » › Allonge');
   });
 });
 
@@ -127,7 +127,7 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
     expect(validateDataset('trappings.json', gabarit('ND'))).toBeNull();
     const err = validateDataset('trappings.json', gabarit('Introuvable'));
     expect(err).not.toBeNull();
-    expect(err).toContain('availability');
+    expect(err).toContain('élément « hallebarde » › Disponibilité');
   });
 
   it('les 2 lignes « ND » du livre portent la marque, et elles seules (LDB 62 l.31, LDB 68 l.11)', () => {
@@ -193,7 +193,7 @@ describe('trappings — Prix : un montant, la marque « ND », ou rien', () => {
     expect(validateDataset('trappings.json', gabarit('ND'))).toBeNull();
     const err = validateDataset('trappings.json', gabarit('Variable'));
     expect(err).not.toBeNull();
-    expect(err).toContain('price');
+    expect(err).toContain('élément « hallebarde » › Prix');
   });
 
   it('la marque ne se dégrade pas en gratuité : zéro sou au calcul, mais RENDUE telle quelle', () => {

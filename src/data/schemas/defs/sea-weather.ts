@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
+import { seasonLabel } from '../../index';
 
 export const file = 'sea-weather.json';
 export const famille = 'config';
@@ -58,10 +59,10 @@ const champs = {
     hiver: z.number(),
     source: sourceRefSchema,
   }), {
-    ete: { label: 'Été' },
-    automne: { label: 'Automne' },
-    printemps: { label: 'Printemps' },
-    hiver: { label: 'Hiver' },
+    ete: { get label() { return seasonLabel('ete'); } },
+    automne: { get label() { return seasonLabel('automne'); } },
+    printemps: { get label() { return seasonLabel('printemps'); } },
+    hiver: { get label() { return seasonLabel('hiver'); } },
     source: { label: 'Source' },
   }),
   warmSeaMod: z.number(),

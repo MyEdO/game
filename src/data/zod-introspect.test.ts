@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { choixDeclares, introspecterDefs } from '../../scripts/docs/lib/zod-introspect.mjs';
 import type { SchemaDef } from './schemas/types';
+import { declarerEnfants } from './schemas/grammaire/descente';
 
 /** Schéma récursif par les SEULS nœuds que traversent les relevés par valeur (`array`, `union`,
  *  `lazy`), sans `object` sur la boucle. */
@@ -26,5 +27,18 @@ describe('zod-introspect — coupe de CYCLE des relevés par valeur (#1473)', ()
     expect(def.cles).toEqual({ x: 'array<enum(2)>', y: 'array<enum(2)>' });
     const choix = choixDeclares(temoin(z.object({ x: z.array(partage), y: z.array(partage) })));
     expect([...(choix.get('temoin.json')?.get('y') ?? [])]).toEqual(['a', 'b']);
+  });
+
+  it('les payloads virtuels d’op ne changent pas les choix physiques du document porteur', () => {
+    const physique = z.object({ kind: z.literal('document'), direct: z.enum(['a', 'b']) });
+    const virtuel = z.unknown();
+    const schema = z.object({ physique, op: virtuel });
+    const avant = choixDeclares(temoin(schema));
+    declarerEnfants(virtuel, [{ noeud: z.object({ kind: z.literal('op'), target: z.literal('fantome') }), segment: '|op' }], () => [], 'payloads-op');
+    const apres = choixDeclares(temoin(schema));
+    expect(apres).toEqual(avant);
+    expect([...(apres.get('temoin.json')?.get('direct') ?? [])]).toEqual(['a', 'b']);
+    expect([...(apres.get('temoin.json')?.get('kind') ?? [])]).toEqual(['document']);
+    expect(apres.get('temoin.json')?.has('target')).toBe(false);
   });
 });
