@@ -19,10 +19,10 @@ import { corpusParGate, ecrivainsParGate, transitif } from './ecrivainsAtteints.
 import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from './toutes.mjs'
-import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
-const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
+const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
@@ -225,6 +225,15 @@ const ATTENDU = {
     // sous la porte `import.meta.main` de `suivi.mjs` et dans les dépôts jetables des bancs.
     'scripts/ops/suiviFichiers.mjs',
     'scripts/raw/build-implemente.mjs',
+    // +1 le 2026-10-07 (#2400) : la garde des balayages non résolus (`scripts/guards/balayages-non-resolus.test.mjs`)
+    // dérive par `balayagesNonResolus` de `perimetre.mjs`, qui sauve ses mémos sous `node_modules/.cache/perimetre/`,
+    // hors de l'arbre ; l'arbre n'est jamais écrit.
+    'scripts/test/perimetre.mjs',
+    // +2 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
+    // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI), et son banc, qui n'écrit que sous un
+    // `mkdtempSync` d'os.tmpdir() (`rmSync` par t.after) — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.test.mjs',
     'scripts/test/verrou.mjs',
     // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
     // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
@@ -336,7 +345,7 @@ const ATTENDU = {
     // que la gate ne lance pas — le banc lui passe un `dir` jetable d'os.tmpdir().
     'scripts/raw/workflow-args.mjs',
     // +2 le 2026-10-05 (#2280) : `vigie.mjs` garde les verdicts `verte` sous `<arbre principal>/.git/vigie/`
-    // par `sauverJournal` (`publier.mjs`, écrivain déjà inscrit), dans le répertoire git COMMUN et non dans
+    // par `ecrireJsonAtomique` (`scripts/guards/lib/ecritureJsonAtomique.mjs`), dans le répertoire git COMMUN et non dans
     // l'arbre ; son banc `vigie.test.mjs` écrit lui-même (`mkdirSync` + `writeFileSync` d'un cache tronqué) et
     // fait écrire `vigie.mjs` dans les `.git` de dépôts jetables (`instanceDeDepot` et un clone sous
     // `mkdtempSync` d'os.tmpdir(), `rmSync` en finally) ; `ci.test.mjs` jette (`rmSync`) les dépôts jetables de
@@ -344,28 +353,52 @@ const ATTENDU = {
     // avant/après les deux bancs.
     'scripts/ops/ci.test.mjs',
     'scripts/ops/vigie.test.mjs',
+    // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
+    // qu'atteignent `publier.mjs` (journal du train) et `vigie.mjs` (cache des verdicts) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
+    // dans les bancs — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
   ],
   'test:runner': [
+    // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
+    // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
+    // dans les bancs — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    // +2 le 2026-10-07 (#2400) : `perimetre.mjs` importe `selectionDesGenerateurs` et `ancetresDe` de
+    // `scripts/git-hooks/docs-rebuild.mjs`, qui atteint `build-all.mjs` et `journal.mjs` ; leurs écritures vivent
+    // derrière `reconstruireApresGit`, `genererCode` et les `main` sous `import.meta.main`, que le banc n'appelle
+    // pas. Il atteint aussi `ecriture-derives.mjs`, déjà là le 2026-10-07 (#2404) par `scripts/gen-formats.test.mjs`, qui
+    // importe le générateur dont seule la porte `import.meta.main` écrit (`ecrireOuVerifier`) ; le banc calcule
+    // les formats en mémoire, recouvrement virtuel compris — l'arbre n'est jamais écrit.
+    'scripts/docs/build-all.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
-    // +1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` importe le générateur, dont seule la
-    // porte `import.meta.main` écrit (`ecrireOuVerifier`) ; le banc calcule les formats en mémoire,
-    // recouvrement virtuel compris — l'arbre n'est jamais écrit.
     'scripts/docs/lib/ecriture-derives.mjs',
+    // +1 le 2026-10-07 (#2400, fusion de #2456) : `fraicheur-docs.mjs`, atteint par le même chemin (`perimetre.mjs` →
+    // `docs-rebuild.mjs` → `build-all.mjs`) ; ses écritures (`ecrirePreuve` et `copierDocsFrais`, fraicheur-docs.mjs)
+    // ne partent que d'`executer` (build-all.mjs, sous sa porte `import.meta.main`), du `main` de docs-rebuild.mjs et
+    // de `creerChantier` (ops/chantier.mjs), qu'aucun banc de la gate n'appelle — l'arbre n'est jamais écrit.
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/git-hooks/journal.mjs',
     // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts
     // jetables à la primitive (`instanceDeDepot`, `rmSync` en finally) ; elle n'écrit que sous
     // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
+    // +1 le 2026-10-07 (#2400) : `perimetre.mjs` lint ses fichiers touchés par `lancerLint`, qui pose sa config
+    // jetable dans `cwd` ; seule la CLI l'appelle, le banc injecte son lanceur (`lintDesTouches`).
+    'scripts/guards/lib/lintStage.mjs',
     'scripts/lancer-local.test.mjs',
-    'scripts/test/corpus.test.mjs',
     // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
     // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un
     // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
     'scripts/node-requis.test.mjs',
     'scripts/test/gitDeBanc.test.mjs',
-    // +1 le 2026-10-05 (#2327 A7) : le banc de `test:lies` forge ses dépôts (`instanceDeDepot`, sous
-    // os.tmpdir()) et les retire (`rmSync` en finally) — l'index d'un dépôt jetable ne se fabrique pas
-    // autrement ; l'arbre n'est jamais écrit.
-    'scripts/test/lies.test.mjs',
+    // +2 le 2026-10-07 (#2400) : `perimetre.mjs` écrit ses mémos sous `node_modules/.cache/perimetre/` par sa
+    // seule CLI ; son banc lui passe un dossier de mémos et des dépôts forgés sous `mkdtempSync` d'os.tmpdir()
+    // (`rmSync` par t.after) — l'arbre n'est jamais écrit. +1 le 2026-10-07 (#2400) : le reporter Vitest
+    // `dureesVitest.mjs` écrit son rapport sous le `--outputFile.durees` que lui passe la CLI de `perimetre.mjs`
+    // (`node_modules/.cache/perimetre/`) ; son banc n'en appelle que la fonction pure `dureesDesModules`.
+    'scripts/test/dureesVitest.mjs',
+    'scripts/test/perimetre.mjs',
+    'scripts/test/perimetre.test.mjs',
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',

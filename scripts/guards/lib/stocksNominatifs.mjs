@@ -801,9 +801,8 @@ function texteDEntree(touchees, entrees) {
 
 /**
  * Croissance des stocks nominatifs d'un diff unifié (`-U0` ou non : seuls les `+`/`-` comptent), PAR
- * CLÉ (#1806 D5″) : la clé d'une entrée est le fichier qu'elle nomme (`fichierNommePar`), et la
- * croissance d'un porteur est la somme des croissances nettes POSITIVES de ses clés — un retrait sous
- * une clé ne paie pas un ajout sous une autre. Les clés RETIRÉES sont d'abord reportées par
+ * PORTEUR (#2472) : la clé d'une entrée est le fichier qu'elle nomme (`fichierNommePar`), et la
+ * croissance d'un porteur est la somme signée de ses clés. Les clés RETIRÉES sont d'abord reportées par
  * `images.renommages` (chemin au parent ↦ chemin au commit, la carte `-M`, FOURNIE par l'appelant) : un
  * renommage pur coûte 0. Un porteur n'est rendu que si cette somme est positive.
  *
@@ -821,7 +820,7 @@ function texteDEntree(touchees, entrees) {
  *           lirePreImage?: (chemin: string) => string | null,
  *           renommages?: ReadonlyMap<string, string> }} images
  * @returns {{ fichier: string, ajoutees: number, retirees: number, net: number, exemples: string[] }[]}
- *   trié par fichier ; `net` = la croissance par clé ; `exemples` = jusqu'à 3 entrées ajoutées sous
+ *   trié par fichier ; `net` = ajoutées moins retirées par porteur ; `exemples` = jusqu'à 3 entrées ajoutées sous
  *   une clé qui croît, citées par leur ligne NOMMANTE (`texteDEntree`) telle qu'écrite.
  * @throws {TypeError} si le diff n'est pas une chaîne.
  * @throws {Error} si `images.lirePostImage` n'est pas une fonction : sans image, une entrée que le
@@ -950,8 +949,8 @@ export function bilanDesStocks(diffU0, images) {
   return lus.map(({ fichier, retenues, perdues }) => bilanDuPorteur(fichier, retenues, perdues, renommages));
 }
 
-/** Croissance d'un porteur lue sur ses clés : la somme des nets POSITIFS (#1806 D5″). */
-export const croissanceDesCles = (parCle) => [...parCle.values()].reduce((s, n) => s + Math.max(0, n), 0);
+/** #2472 */
+export const croissanceDesCles = (parCle) => [...parCle.values()].reduce((s, n) => s + n, 0);
 
 /** La lecture POSITIVE d'un bilan : les porteurs qui croissent, trois exemples sous une clé qui croît. */
 function croissancesDuBilan(bilan) {
