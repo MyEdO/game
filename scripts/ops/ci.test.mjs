@@ -82,6 +82,24 @@ test('attendreLaCi : sans course, `absente` à BORNE_ABSENTE_MIN ; en vol sans f
   assert.equal(borne.sommeils.reduce((a, b) => a + b, 0), BORNE_ATTENTE_MIN * 60_000, 'le dernier sommeil s’arrête à la borne')
 })
 
+test('#2392 attendreLaCi : une course VUE puis absente de la liste se dit une fois, l’attente continue jusqu’au verdict', () => {
+  const enVol = Array.from({ length: 12 }, () => lu(course('in_progress')))
+  const { verdict, lignes } = joue([...enVol, lu(), lu(course('completed', 'failure'))])
+  assert.equal(verdict.etat, 'rouge')
+  assert.deepEqual(lignes, [
+    `[ci] ${SHA.slice(0, 9)} en-vol — ${urlDeCourse(41)} (essai 1)`,
+    `[ci] ${SHA.slice(0, 9)} course vue puis absente de la liste`,
+    `[ci] ${SHA.slice(0, 9)} rouge — ${urlDeCourse(41)} (essai 1)`,
+  ])
+})
+
+test('#2392 attendreLaCi : une course vue puis absente pour toujours atteint la BORNE, jamais `absente`', () => {
+  const { verdict, sommeils, lignes } = joue([lu(course('in_progress')), lu()])
+  assert.equal(verdict.etat, 'borne')
+  assert.equal(sommeils.reduce((a, b) => a + b, 0), BORNE_ATTENTE_MIN * 60_000)
+  assert.equal(lignes.filter((l) => l.endsWith('course vue puis absente de la liste')).length, 1)
+})
+
 test('attendreLaCi : une lecture INDISPONIBLE se dit et l’attente continue — jamais un verdict sur rien', () => {
   const { verdict, lignes } = joue([{ disponible: false, raison: 'gh: jeton expiré' }, lu(course('completed', 'success'))])
   assert.equal(verdict.etat, 'verte')
@@ -135,20 +153,21 @@ test('echecsDeLaCourse : les jobs rouges (`gh run view --json jobs`) croisés av
     if (args.includes('--json')) return { status: 0, stderr: '', stdout: JSON.stringify({ jobs: [{ name: 'suite', conclusion: 'failure' }, { name: 'types', conclusion: 'success' }] }) }
     return { status: 0, stderr: '', stdout: 'suite\tUNKNOWN STEP\t2026-09-27T19:36:55.3049126Z not ok 1170 - un nom CITÉ À PLAT\n' }
   }
-  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn }), { disponible: true, valeur: { rouges: ['suite'], annules: [], lignes: ['  suite :', '    not ok 1170 - un nom CITÉ À PLAT'] } })
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn }), { disponible: true, valeur: { rouges: ['suite'], annules: [], motif: null, lignes: ['  suite :', '    not ok 1170 - un nom CITÉ À PLAT'] } })
   assert.deepEqual(vus, ['gh run view 9 --json jobs', 'gh run view 9 --log-failed'])
   assert.equal(echecsDeLaCourse({ cwd: tmpdir(), id: 9, spawn: () => ({ status: 1, stdout: '', stderr: 'x' }) }).disponible, false)
 })
 
-test('echecsDeLaCourse : une course SANS job rouge nomme ses jobs annulés, sans lire le journal ; sans l’un ni l’autre, elle le DIT', () => {
+test('echecsDeLaCourse : une course SANS job rouge nomme ses jobs annulés et le MOTIF, sans lire le journal ; sans l’un ni l’autre, elle le DIT', () => {
   const vus = []
+  const motif = 'The job was not acquired by Runner of type hosted even after multiple attempts'
   const jobs = (liste) => (cmd, args) => {
     vus.push(args.at(-1))
-    return { status: 0, stderr: '', stdout: JSON.stringify({ jobs: liste }) }
+    return { status: 0, stderr: '', stdout: JSON.stringify(args[0] === 'api' ? [{ annotation_level: 'failure', message: motif }] : { jobs: liste }) }
   }
-  const annulee = [{ name: 'migrations', conclusion: 'success' }, { name: 'docs', conclusion: 'cancelled' }, { name: 'suite 1/3', conclusion: 'cancelled' }]
-  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 37371342026, spawn: jobs(annulee) }).valeur, { rouges: [], annules: ['docs', 'suite 1/3'], lignes: ['  docs : annulé', '  suite 1/3 : annulé'] })
-  assert.deepEqual(vus, ['jobs'], 'aucun journal en échec à lire')
+  const annulee = [{ name: 'migrations', conclusion: 'success', databaseId: 1 }, { name: 'docs', conclusion: 'cancelled', databaseId: 2 }, { name: 'suite 1/3', conclusion: 'cancelled', databaseId: 3 }]
+  assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 37371342026, spawn: jobs(annulee) }).valeur, { rouges: [], annules: ['docs', 'suite 1/3'], motif, lignes: ['  docs : annulé', '  suite 1/3 : annulé', `  motif : ${motif}`] })
+  assert.deepEqual(vus, ['jobs', 'repos/MyEdO/game/check-runs/2/annotations'], 'aucun journal en échec à lire')
   assert.deepEqual(echecsDeLaCourse({ cwd: tmpdir(), id: 1, spawn: jobs([{ name: 'types', conclusion: 'success' }]) }).valeur.lignes, ['  aucun job rouge ni annulé dans la course'])
 })
 

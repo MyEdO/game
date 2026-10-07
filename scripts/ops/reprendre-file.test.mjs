@@ -5,24 +5,33 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
-import { reprendreFile } from './reprendre-file.mjs'
+import { DELAI_RELANCE_MS, reprendreFile } from './reprendre-file.mjs'
 import { appelGhRunner } from '../guards/lib/ticketsGh.mjs'
 import { mesurerEtat, stepsDu } from '../gates/workflowsDuDepot.mjs'
-import { corpsDePr } from '../guards/lib/fusionPr.mjs'
+import { corpsDePr, refusDEnfileur } from '../guards/lib/fusionPr.mjs'
+import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
+import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
 
 const SHA = 'a'.repeat(40)
 const UUID = '12345678-1234-1234-1234-123456789abc'
 const depot = { full_name: 'MyEdO/game' }
 const PR = { number: 42, state: 'open', draft: false, title: 'corrige #2330', body: `Train de publication (\`npm run ops:publier\`), tête ${SHA}.`,
   head: { sha: SHA, ref: 'chantier/2330', repo: depot }, base: { ref: 'main', repo: depot } }
-const CI = { id: 9, name: 'CI', run_attempt: 2, status: 'completed', conclusion: 'success',
+const CI = { id: 9, name: 'CI', run_attempt: 2, status: 'completed', conclusion: 'success', updated_at: '2026-10-07T10:00:00Z',
   head_sha: SHA, head_branch: PR.head.ref, repository: depot, event: 'push' }
+const COMPTE = 'github-actions[bot]'
+const MOTIF = 'The job was not acquired by Runner of type hosted even after multiple attempts'
+const ANNOTATIONS = [{ annotation_level: 'warning', message: 'sans rapport' }, { annotation_level: 'failure', message: MOTIF }]
+/** Les jobs REST d'un essai annulé par le runner (forme de la course 37365832262, #1853). */
+const JOBS_ANNULES = [{ id: 501, name: 'suite 1/3', status: 'completed', conclusion: 'cancelled' }, { id: 502, name: 'docs', status: 'completed', conclusion: 'success' }]
+const VIEILLE = Date.parse(CI.updated_at) + DELAI_RELANCE_MS
 const event = { workflow_run: CI }
 const http = (status, details = {}, code = 202) => ({ ok: code < 400,
   stdout: `HTTP/2.0 ${code}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({ status, details })}`,
   ...(code >= 400 ? { raison: `HTTP ${code}` } : {}) })
 function banc({ prs = [PR], courses = [CI], relectures = [], fusions = [http('enqueued')], ci = CI,
-  commentaires = [], commits = [], refusPage = null, totalCommits = commits.length, identites = [], mutation = null } = {}) {
+  commentaires = [], commits = [], refusPage = null, totalCommits = commits.length, identites = [], mutation = null,
+  jobs = JOBS_ANNULES, totalJobs = jobs.length, annotations = ANNOTATIONS, relance = { ok: true, stdout: '' } } = {}) {
   const appels = [], poses = new Map()
   let relu = 0, fusion = 0, identite = 0
   const appel = (args, options = {}) => {
@@ -35,7 +44,7 @@ function banc({ prs = [PR], courses = [CI], relectures = [], fusions = [http('en
       const payload = JSON.parse(options.input)
       if (payload.query.startsWith('mutation')) return mutation ?? json({ data: { enqueuePullRequest: { mergeQueueEntry: { id: 'ENTRY', headCommit: { oid: SHA } } } } })
       return json({ data: { repository: { pullRequest: identites[Math.min(identite++, identites.length - 1)]
-        ?? { id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null, isInMergeQueue: false } } } })
+        ?? { id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null, isInMergeQueue: false } }, viewer: { login: COMPTE } } })
     }
     if (chemin === refusPage) return { ok: false, raison: 'lecture refusée' }
     if (chemin.includes('merge-async')) return fusions[Math.min(fusion++, fusions.length - 1)]
@@ -48,12 +57,16 @@ function banc({ prs = [PR], courses = [CI], relectures = [], fusions = [http('en
     }
     if (chemin.includes('/commits')) return json(tranche(commits))
     if (chemin.includes('/actions/workflows/')) return json({ total_count: courses.length, workflow_runs: tranche(courses) })
+    if (/\/attempts\/\d+\/jobs\?per_page=100$/.test(chemin)) return json({ total_count: totalJobs, jobs })
+    if (/\/check-runs\/\d+\/annotations$/.test(chemin)) return json(annotations)
+    if (chemin.endsWith('/rerun-failed-jobs') && args.includes('POST')) return relance
     if (chemin.includes('/actions/runs/')) return json(ci)
     if (/\/pulls\/42$/.test(chemin)) return json({ ...(relectures[Math.min(relu++, relectures.length - 1)] ?? prs[0]), commits: totalCommits })
     if (chemin.includes('/pulls?')) return json(tranche(prs))
     throw new Error(`appel inattendu ${args.join(' ')}`)
   }
   return { appel, appels, poses, demandes: () => appels.filter((c) => c.args.includes('PUT')),
+    relances: () => appels.filter((c) => c.args.includes('POST') && c.args.some((a) => a.endsWith('/rerun-failed-jobs'))),
     jouer: (options = {}) => reprendreFile({ appel, evenement: event, veille: { serveur: 'https://github.com', depot: 'MyEdO/game', id: '88' }, attendre: async () => {}, borne: 2, ...options }) }
 }
 
@@ -71,27 +84,77 @@ test('rerun vert reprend sans train avec REST, SHA et signal PR/ticket', async (
   assert.ok(b.appels.every((c) => !c.args.includes('--paginate')))
 })
 
-for (const suivi of [false, true]) test(`#2437 reprise serveur repli ${suivi ? 'pending puis failed GET' : 'refus PUT'}`, async () => {
-  const refus = http('failed', { message: 'Enqueuer is not authorized to merge' }, 400)
+for (const suivi of [false, true]) test(`#2392 reprise serveur repli sur le refus RÉEL ${suivi ? 'pending puis failed GET' : 'refus PUT'}`, async () => {
+  const refus = http('failed', { message: REFUS_DE_FILE.prefixe }, 400)
   const b = banc({ fusions: suivi ? [http('pending', { uuid: UUID, expected_head_sha: SHA }), refus] : [refus] })
-  assert.equal((await b.jouer())[0].statut, 'enqueued')
+  const [r] = await b.jouer()
+  assert.deepEqual([r.statut, r.raison], ['enqueued', `entrée en file confirmée (compte « ${COMPTE} »)`])
   const mutations = b.appels.filter((c) => c.args.includes('graphql') && JSON.parse(c.options.input).query.startsWith('mutation'))
   assert.equal(mutations.length, 1)
   assert.deepEqual(JSON.parse(mutations[0].options.input).variables, { input: { pullRequestId: 'PR42', expectedHeadOid: SHA } })
 })
 
-test('#2437 reprise serveur PR déjà en file ne demande rien', async () => {
+test('#2392 reprise serveur PR déjà en file ne demande rien et nomme le compte qui le constate', async () => {
   const b = banc({ identites: [{ id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, isInMergeQueue: true }] })
-  assert.equal((await b.jouer())[0].statut, 'enqueued')
+  const [r] = await b.jouer()
+  assert.deepEqual([r.statut, r.raison], ['enqueued', `déjà en file (compte « ${COMPTE} »)`])
+  assert.ok(!b.poses.get('42')[0].includes('entrée en file confirmée'))
   assert.equal(b.demandes().length, 0)
   assert.equal(b.appels.filter((c) => c.args.includes('graphql') && JSON.parse(c.options.input).query.startsWith('mutation')).length, 0)
 })
 
-test('rouge ignoré, même si ancien run vert', async () => {
-  const b = banc({ courses: [CI, { ...CI, id: 10, conclusion: 'failure' }] })
-  assert.deepEqual(await b.jouer(), [])
+test('rouge ignoré (un job rouge), même si ancien run vert', async () => {
+  const b = banc({ courses: [CI, { ...CI, id: 10, conclusion: 'failure' }], jobs: [...JOBS_ANNULES, { id: 503, name: 'types', conclusion: 'failure' }] })
+  assert.deepEqual(await b.jouer({ maintenant: () => VIEILLE }), [])
   assert.equal(b.demandes().length, 0)
+  assert.equal(b.relances().length, 0)
   assert.deepEqual(await b.jouer({ evenement: { workflow_run: { ...CI, conclusion: 'failure' } } }), [])
+})
+
+const ANNULEE = { ...CI, id: 10, run_attempt: 1, conclusion: 'failure' }
+
+for (const [nom, course, jobs, dit] of [
+  ['jobs mixtes `success`/`cancelled`', ANNULEE, JOBS_ANNULES, `jobs annulés : suite 1/3 ; motif : ${MOTIF}`],
+  ['tous les jobs `cancelled`', ANNULEE, JOBS_ANNULES.map((j) => ({ ...j, conclusion: 'cancelled' })), `jobs annulés : suite 1/3, docs ; motif : ${MOTIF}`],
+  ['conclusion `cancelled`', { ...ANNULEE, conclusion: 'cancelled' }, JOBS_ANNULES, 'conclusion cancelled'],
+]) test(`#2392 course de branche ANNULÉE (${nom}), vieille de ${DELAI_RELANCE_MS / 60_000} min : UNE relance des jobs en échec, signalée sans geste`, async () => {
+  const b = banc({ courses: [CI, course], jobs })
+  const [r] = await b.jouer({ evenement: {}, maintenant: () => VIEILLE })
+  assert.deepEqual([r.statut, r.raison, r.run], ['relancee', `course annulée — ${dit} ; relance 2/${PLAFOND_RELANCES}`, 10])
+  assert.deepEqual(b.relances().map((c) => c.args), [['api', '-X', 'POST', 'repos/MyEdO/game/actions/runs/10/rerun-failed-jobs']])
+  assert.equal(b.demandes().length, 0)
+  assert.match(b.poses.get('42')[0], /\*\*relancee\*\*/)
+  assert.doesNotMatch(b.poses.get('42')[0], /Reprise :/)
+})
+
+test(`#2392 course de branche ANNULÉE depuis moins de ${DELAI_RELANCE_MS / 60_000} min : rien, ni relance ni signal`, async () => {
+  const b = banc({ courses: [ANNULEE] })
+  assert.deepEqual(await b.jouer({ evenement: {}, maintenant: () => VIEILLE - 1 }), [])
+  assert.equal(b.relances().length, 0)
+  assert.equal(b.poses.size, 0)
+})
+
+test(`#2392 course de branche ANNULÉE à son ${PLAFOND_RELANCES}ᵉ essai : plafond signalé avec le geste humain, aucune relance`, async () => {
+  const b = banc({ courses: [{ ...ANNULEE, run_attempt: PLAFOND_RELANCES }] })
+  const [r] = await b.jouer({ evenement: {}, maintenant: () => VIEILLE })
+  assert.deepEqual([r.statut, r.raison], ['plafond', `course annulée — jobs annulés : suite 1/3 ; motif : ${MOTIF} ; essai ${PLAFOND_RELANCES}/${PLAFOND_RELANCES}, plafond de relances atteint : \`gh run rerun 10 --failed\``])
+  assert.equal(b.relances().length, 0)
+  assert.ok(b.poses.get('42')[0].endsWith('Reprise : `gh run rerun 10 --failed`.'))
+})
+
+test('#2392 jobs d’essai NON exhaustifs : la course reste rouge, ignorée, jamais relancée', async () => {
+  const b = banc({ courses: [ANNULEE], totalJobs: JOBS_ANNULES.length + 1 })
+  assert.deepEqual(await b.jouer({ evenement: {}, maintenant: () => VIEILLE }), [])
+  assert.equal(b.relances().length, 0)
+})
+
+test('#2392 refus d’enfileur persistant (message concaténé, repli refusé) : le compte refusé et le bouton, reprise du train', async () => {
+  const b = banc({ fusions: [http('failed', { message: REFUS_DE_FILE.concatene }, 400)], mutation: { ok: false, raison: 'HTTP 403' } })
+  const [r] = await b.jouer()
+  const raison = `${refusDEnfileur({ depot: 'MyEdO/game', numero: 42, compte: COMPTE, message: REFUS_DE_FILE.concatene })} (repli GraphQL : HTTP 403)`
+  assert.deepEqual([r.statut, r.raison], ['refusee', raison])
+  assert.ok(b.poses.get('42')[0].includes(`${raison}.`))
+  assert.match(b.poses.get('42')[0], /npm run ops:publier -- --detache/)
 })
 
 for (const [nom, pr] of [
@@ -288,6 +351,7 @@ test('garde positive reprise serveur : main seul, bornes, signal, pas de code PR
   assert.match(yaml, /cron: '\*\/10 \* \* \* \*'/)
   verifierCheckoutMain(yaml)
   assert.match(yaml, /contents: write/)
+  assert.match(yaml, /actions: write/)
   assert.match(yaml, /cancel-in-progress: false/)
   assert.match(yaml, /run: node scripts\/ops\/reprendre-file.mjs/)
   assert.doesNotMatch(yaml, /head_sha|head_branch|pull_request_target|download-artifact|github\.event.*\}\}.*run:/)
