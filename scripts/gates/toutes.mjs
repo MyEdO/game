@@ -125,12 +125,14 @@ export const ECRIT_LU = {
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
       'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
+      '.lint-',
     ],
     raison:
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
       'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'le balayage des lectures PDF peut lire cette configuration .lint- pendant son existence ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
@@ -277,9 +279,12 @@ export const ECRIT_LU = {
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
-      'scripts/git-hooks/docs-rebuild.mjs', 'scripts/git-hooks/journal.mjs', 'scripts/hooks/barriere-outil.mjs',
+      'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/node-requis.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
+      'scripts/gates/', 'scripts/ops/reprendre-file.mjs', 'scripts/ops/ruleset-main.mjs',
+      'scripts/art-ref/',
+      '.claude/settings.json', '.github/workflows/', '.gitignore', 'package.json', 'patches/',
     ],
     raison:
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
@@ -304,7 +309,12 @@ export const ECRIT_LU = {
       '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
       'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
-      'l’Atlas et Source/ — rien n’est écrit',
+      'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
+      'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
+      '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
+      'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +
+      'derrière `import.meta.main` : `reprendreFile` et appendFileSync sous GITHUB_STEP_SUMMARY ne sont pas appelés. ' +
+      'Les seules sorties de la sonde de lectures sont archivées hors arbre',
   },
   'deps:unused': {
     ecrit: [],

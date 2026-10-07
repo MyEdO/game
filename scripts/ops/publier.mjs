@@ -51,7 +51,7 @@ import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { fusionDePr } from '../guards/lib/fusionPr.mjs'
+import { etatFileDePr, fusionDePr } from '../guards/lib/fusionPr.mjs'
 import { BORNE_EJECTIONS, ETAPES, prDeRest } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
@@ -784,7 +784,7 @@ function numeroDeTicket(geste, numero) {
  * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
-export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
+export function contexteDe({ racine, branche, options, journaliser, fdLog, maintenant = Date.now }) {
   const depot = depotDuTrain(racine)
   const stdio = ['ignore', fdLog, fdLog]
   const parentsVus = new Map()
@@ -848,12 +848,16 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     },
     demanderFusion({ numero, sha } = {}) {
       numeroDeTicket('demanderFusion', numero)
-      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('demanderFusion', sha), appel: appelGh(racine) })
+      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('demanderFusion', sha), appel: appelGh(racine), maintenant })
+    },
+    etatFileDePr({ numero, sha } = {}) {
+      numeroDeTicket('etatFileDePr', numero)
+      return etatFileDePr({ depot: DEPOT, numero, sha: shaComplet('etatFileDePr', sha), appel: appelGh(racine), maintenant })
     },
     lireFusion({ numero, sha, uuid } = {}) {
       numeroDeTicket('lireFusion', numero)
       uuidDe(uuid)
-      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('lireFusion', sha), uuid, appel: appelGh(racine) })
+      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('lireFusion', sha), uuid, appel: appelGh(racine), maintenant })
     },
     lireTicket: (numero) => lireTicket({ depot: DEPOT, numero: numeroDeTicket('lireTicket', numero), appel: appelGh(racine) }),
     commenter(numero, corps) {

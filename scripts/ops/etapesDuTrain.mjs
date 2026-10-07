@@ -288,14 +288,13 @@ function issueDeBranche(ci, pr, tete) {
  * failed required status checks or conflicts with the base branch, the pull request will be removed
  * from the queue ». Un CONFLIT avec la base (`mergeable_state: dirty`), ou une course de file rouge
  * sur les seuls jobs des DÉRIVÉS (`ctx.jobsDesDerives`), se reprennent ; tout autre rouge se NOMME.
- * Sans course de file terminée rouge ni conflit, la PR est dans la file : on attend. Une course rouge
- * n'est ATTRIBUÉE à la PR que si `G^1`, le premier parent de son commit de file, est dans `origin/main` :
+ * Une course rouge n'est ATTRIBUÉE à la PR que si `G^1`, le premier parent de son commit de file, est dans `origin/main` :
  * sinon elle juge un GROUPE dont une entrée précédente a pu casser, et GitHub reconstruit l'entrée
  * (`managing-a-merge-queue.md` l.104-109) — on attend. Une course de file ANNULÉE se redemande sur la même
  * tête (#2392) ; `ecartees` : les courses terminées avant la demande (`coursesDeFileTerminees`).
  * @returns {{attendre:true, dit:string}|{redemander:true, raison:string}|{reprendre:boolean, raison:string}}
  */
-function causeDEjection(ctx, pr, tete, ecartees) {
+function causeDEjection(ctx, pr, tete, ecartees, enFile) {
   const branche = issueDeBranche(brancheJugee(ctx, tete), pr, tete)
   if (branche?.raison) return { reprendre: false, raison: branche.raison }
   if (pr.conflit) return { reprendre: true, raison: `PR #${pr.numero} en CONFLIT avec la base de la file` }
@@ -303,7 +302,9 @@ function causeDEjection(ctx, pr, tete, ecartees) {
   if (!vues.disponible) return { attendre: true, dit: `courses de file illisibles : ${vues.raison}` }
   const course = courseDeFile(vues.valeur, pr.numero, { tete, parentsDe: ctx.parentsDe, ecartees })
   const etat = course ? verdictDesRuns([course], course.headSha).etat : 'absente'
-  if (!['rouge', 'annulee'].includes(etat)) return { attendre: true, dit: `course de file ${etat}` }
+  if (!['rouge', 'annulee'].includes(etat)) return enFile
+    ? { attendre: true, dit: `course de file ${etat}` }
+    : { redemander: true, raison: `PR #${pr.numero} sortie de la file sans course en échec (course de file ${etat})` }
   const url = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
   const base = ctx.parentsDe(course.headSha).parents?.[0]
   const vuTronc = ctx.tronc()
@@ -581,8 +582,13 @@ export const ETAPES = [
           if (issue?.statut === 'pending') demande = { uuid: issue.uuid }
           if (issue?.statut === 'enqueued') demande = { enFile: true }
           if (demande?.enFile) {
-            const cause = causeDEjection(ctx, pr, journal.tete, ecartees)
-            if (cause.attendre) ctx.journaliser(`[publier] file — PR #${pr.numero} dans la file : ${cause.dit}\n`)
+            const file = ctx.etatFileDePr({ numero: pr.numero, sha: journal.tete })
+            noterLeCompte(file)
+            if (!file.ok || file.statut === 'anomalie')
+              return attendu({ ok: false, detail: { pr: pr.numero }, raison: `lecture de file de la PR #${pr.numero} REFUSÉE${sousLeCompte(file)} : ${file.raison}` })
+            if (file.statut === 'merged') return fusionnee(pr, file.fusion)
+            const cause = causeDEjection(ctx, pr, journal.tete, ecartees, file.statut === 'enqueued')
+            if (cause.attendre) ctx.journaliser(`[publier] file — PR #${pr.numero} : ${cause.dit}\n`)
             else if (cause.redemander) {
               const horsBorne = ejectionHorsBorne(journal, cause)
               if (horsBorne) return attendu({ ok: false, detail: { pr: pr.numero }, raison: horsBorne })
