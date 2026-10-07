@@ -35,7 +35,7 @@ function evaluer(entree, contexte) {
     } else {
       const horsSchema = clesNonAdmises(entreeDOutil(entree))
       if (horsSchema.length) return refus(`clé hors du schéma MCP de son op (${outil} : ${horsSchema.join(', ')})`)
-      if (lotAmbigu(entreeDOutil(entree))) return refus(`écriture non jugeable (${outil}) : lot \`ops\` ambigu (non-tableau, élément non-objet ou plus d'un \`path\`)`)
+      if (lotAmbigu(entreeDOutil(entree))) return refus(`écriture non jugeable (${outil}) : lot \`ops\` ambigu (non-tableau, élément non-objet, plus d'un \`path\` ou op ancrée après une op déléguée)`)
     }
   }
   if (contexte?.nonJugeable) return { decision: 'deny', raison: `⛔ appel non jugeable (${outil}) : ${contexte.nonJugeable.raison} — canal prescrit : ${contexte.nonJugeable.canal}.` }

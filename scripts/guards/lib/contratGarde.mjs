@@ -33,7 +33,7 @@ const L = classe(LECTURE)
 
 /** La version de lean-ctx, et son tag, aux sources de laquelle `FAMILLES_LEAN_CTX` et `OPS_CTX_PATCH` sont
  *  audités ; le binaire de l'hôte y est confronté (`scripts/hooks/canal-outil-guard.test.mjs`). */
-export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.2', tag: 'd4f9beb3f' })
+export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.5', tag: '516c76e96' })
 
 /**
  * CLASSEMENT des outils de lean-ctx `LEAN_CTX_VERSION`, par nom nu :
@@ -154,17 +154,6 @@ export function ecrituresDe(entree) {
   return input.ops.filter((op) => op && typeof op === 'object').map((op) => ({ path: input.path, ...op }))
 }
 
-/** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, si l'un de ses éléments
- *  n'est pas un objet, ou s'il nomme plus d'un `path` (le sien, celui de tête à défaut) : lean-ctx groupe
- *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.428, `group_ops_by_path`) et applique chaque
- *  groupe à l'état laissé par le précédent (l.148-166, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
- *  fichier y font deux préimages. */
-export const lotAmbigu = (input) =>
-  input?.ops !== undefined &&
-  (!Array.isArray(input.ops) ||
-    input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)) ||
-    new Set(input.ops.map((op) => op.path ?? input.path)).size > 1)
-
 /** Les clés du schéma MCP de la famille SHELL que les gardes de commande savent juger, lean-ctx
  *  `LEAN_CTX_VERSION` (schéma de `ctx_shell`) : la seule déclaration. Toute autre clé est refusée
  *  (`scripts/hooks/canal-outil-guard.mjs`), `env` compris, comme toute clé d'une version future. */
@@ -174,28 +163,28 @@ export const CLES_SHELL = Object.freeze(['command', 'cwd', 'raw', 'inline', 'tim
 export const clesHorsSchemaShell = (input) =>
   input !== null && typeof input === 'object' ? Object.keys(input).filter((cle) => !CLES_SHELL.includes(cle)) : []
 
-const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true } = {}) =>
-  Object.freeze({ formes: Object.freeze(formes.map((forme) => Object.freeze(forme))), neuf, remplace, enLot })
+const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true, deleguee = false } = {}) =>
+  Object.freeze({ formes: Object.freeze(formes.map((forme) => Object.freeze(forme))), neuf, remplace, enLot, deleguee })
 
 /**
  * Les ops de `ctx_patch`, lean-ctx `LEAN_CTX_VERSION` : la seule déclaration de ses clés. `formes` :
  * les jeux de clés que l'op CONSOMME, hors `path` — une entrée porte les clés d'UNE forme ; `neuf`,
- * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`, où
- * seule une op ANCRÉE se juge contre la préimage que lean-ctx lui présente (`ctx_patch/apply.rs` l.127).
+ * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`
+ * (`registered/ctx_patch.rs` l.196-200 pour les refusées) ; `deleguee` : appliquée à l'état laissé par
+ * les ops qui la précèdent (l.183-187, l.228-255), là où une op ANCRÉE se juge contre la préimage de son
+ * run (`ctx_patch/apply.rs` l.127).
  * - schéma MCP, `registered/ctx_patch.rs` l.58-69 (`if`/`then`) ;
  * - set_line, replace_lines, insert_after, delete, create : `ctx_patch/anchors.rs` l.94-180 ;
  * - replace_symbol : `ctx_patch/symbol.rs` l.35-58 ;
- * - replace_unique : `registered/ctx_patch.rs` l.348-366 ; replace_all : l.599-623 ;
- * - hors lot : l.196-200 ; déléguées, appliquées à l'état laissé par les ops qui les précèdent :
- *   l.183-187, l.228-255.
+ * - replace_unique : `registered/ctx_patch.rs` l.348-366 ; replace_all : l.599-623.
  */
 export const OPS_CTX_PATCH = Object.freeze({
   set_line: opCtxPatch([['line', 'hash', 'new_text']]),
   replace_lines: opCtxPatch([['start_line', 'start_hash', 'end_line', 'end_hash', 'new_text']]),
   insert_after: opCtxPatch([['line', 'hash', 'new_text']]),
   delete: opCtxPatch([['line', 'hash'], ['start_line', 'start_hash', 'end_line', 'end_hash']], { neuf: null }),
-  replace_unique: opCtxPatch([['old_text', 'new_text']], { remplace: 'old_text', enLot: false }),
-  replace_symbol: opCtxPatch([['name', 'line', 'end_line', 'new_text']], { enLot: false }),
+  replace_unique: opCtxPatch([['old_text', 'new_text']], { remplace: 'old_text', deleguee: true }),
+  replace_symbol: opCtxPatch([['name', 'line', 'end_line', 'new_text']], { deleguee: true }),
   create: opCtxPatch([['new_text']], { enLot: false }),
   replace_all: opCtxPatch([['find', 'replace']], { neuf: 'replace', remplace: 'find', enLot: false }),
 })
@@ -207,15 +196,39 @@ const COMMUNES_TETE = ['path', 'dry_run']
 
 const opDe = (objet) => (typeof objet?.op === 'string' && Object.hasOwn(OPS_CTX_PATCH, objet.op) ? OPS_CTX_PATCH[objet.op] : null)
 
+/** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, si l'un de ses éléments
+ *  n'est pas un objet, s'il nomme plus d'un `path` (le sien, celui de tête à défaut) : lean-ctx groupe
+ *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.428, `group_ops_by_path`) et applique chaque
+ *  groupe à l'état laissé par le précédent (l.148-166, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
+ *  fichier y font deux préimages ; ou si une op NON déléguée suit une op déléguée (l.228-255). */
+export const lotAmbigu = (input) =>
+  input?.ops !== undefined &&
+  (!Array.isArray(input.ops) ||
+    input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)) ||
+    new Set(input.ops.map((op) => op.path ?? input.path)).size > 1 ||
+    input.ops.some((op, i) => !opDe(op)?.deleguee && input.ops.slice(0, i).some((precedente) => opDe(precedente)?.deleguee)))
+
+/** Les clés de texte (`remplace`, `neuf`) d'une op DÉLÉGUÉE de `ops[]` qui la font échouer après l'écriture
+ *  du run ancré qui la précède (`registered/ctx_patch.rs` l.236-251, l.349-357) : absente, non-chaîne,
+ *  ou `remplace` vide. */
+const textesInvalides = (objet, spec) =>
+  [spec.remplace, spec.neuf].filter(Boolean).flatMap((cle) => {
+    if (objet[cle] === undefined) return [`${cle} absente`]
+    if (typeof objet[cle] !== 'string') return [`${cle} non-chaîne`]
+    return cle === spec.remplace && objet[cle] === '' ? [`${cle} vide`] : []
+  })
+
 /** Les clés d'une op que sa déclaration ne consomme pas, hors `communes` : celles hors de la forme la plus
- *  proche ; `op` qualifiée si l'op est absente, inconnue, ou hors lot (`enLot` faux dans `ops[]`). */
+ *  proche ; `op` qualifiée si l'op est absente, inconnue, ou hors lot (`enLot` faux dans `ops[]`) ; pour une
+ *  op déléguée de `ops[]`, ses `textesInvalides`. */
 function clesNonConsommees(objet, communes, dansUnLot) {
   const propres = Object.keys(objet).filter((cle) => cle !== 'op' && !communes.includes(cle))
   const spec = opDe(objet)
   if (spec === null) return [objet.op === undefined ? 'op absente' : `op ${JSON.stringify(objet.op)} inconnue`]
   if (dansUnLot && !spec.enLot) return [`op ${objet.op} hors lot`]
   const horsDe = (forme) => propres.filter((cle) => !forme.includes(cle))
-  return spec.formes.map(horsDe).reduce((a, b) => (b.length < a.length ? b : a))
+  const horsForme = spec.formes.map(horsDe).reduce((a, b) => (b.length < a.length ? b : a))
+  return dansUnLot && spec.deleguee ? [...horsForme, ...textesInvalides(objet, spec)] : horsForme
 }
 
 /** Les clés de l'entrée `ctx_patch` qu'aucune op ne consomme (`OPS_CTX_PATCH`), préfixées `ops[i].` pour

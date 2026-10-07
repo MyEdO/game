@@ -89,7 +89,7 @@ const CANAL_CWD = 'passer `cwd` ABSOLU, dans l’arbre principal (ses `.wt-*` co
  * le `cwd` de l'entrée de hook, sinon celui du processus. Shell lean-ctx sans `command` (`job_id`,
  * `background_action`) : rien ne s'exécute, sa base est celle du hook. Avec : son `cwd`, qui doit être
  * absolu, exister tel que lean-ctx le lit (sans conversion MSYS : `/c/x` y est le `c/x` du disque courant, #2224), et
- * tenir dans l'arbre principal (`arbrePrincipal`) — absent, il vaut le dernier `cwd` passé (lean-ctx 3.10.2 : « Working dir
+ * tenir dans l'arbre principal (`arbrePrincipal`) — absent, il vaut le dernier `cwd` passé (lean-ctx `LEAN_CTX_VERSION` : « Working dir
  * (persists across calls) ») ; relatif, il se résout contre la racine de lean-ctx ; hors de cet arbre,
  * lean-ctx l'exécute à sa racine (#2224). Écriture lean-ctx : un `path` relatif se résout contre la
  * racine de lean-ctx, jamais contre celle du hook.
