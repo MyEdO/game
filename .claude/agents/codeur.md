@@ -28,8 +28,12 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
 - RÉUTILISE les primitives nommées au brief (`docs/primitives.md`). Spec
   contredite par le code réel ou par le `Source/` → STOPPE et rapporte l'écart, jamais improviser ni
   coder la règle fausse.
-- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npm test -- <chemins>`,
-  `npm run typecheck:fast` si du `.ts` bouge) et l'exécution réelle de l'outil livré en lecture seule.
+- **Auto-contrôle = `npm run test:perimetre`** avant le rendu, après `npm run typecheck:fast` si du `.ts`
+  bouge, plus l'exécution réelle de l'outil livré en lecture seule. Il DÉRIVE les tests du périmètre des
+  fichiers touchés et les lance, lint des fichiers touchés compris (politique et options :
+  `scripts/test/perimetre.mjs`) ; aucune liste écrite à la main, la tienne comme celle du brief. Pendant
+  l'itération, `node --test <fichier>` et `npm test -- <chemins>` sur le fichier en cours restent admis.
+  Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget, ce qui part à la CI).
   Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se
   REFUSE (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les

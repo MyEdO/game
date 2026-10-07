@@ -1,12 +1,16 @@
-// Fonction `suivi` du mod `harnais` (#2279) : le suivi de vague `.git/suivi/<N>.md` sous les yeux pendant
+// Fonction `suivi` du mod `harnais` (#2279) : le suivi de vague `.git/suivi/<N>.json` sous les yeux pendant
 // toute la session ; au démarrage, elle synchronise d'abord le principal (`synchroniser.mjs --json`, #2187).
 // Elle REND l'état de session que calcule le lecteur `scripts/ops/suivi.mjs --session
-// <id> --json [--depuis <cle>]` (`etatDeSession`) et confie l'édition à `suivi.mjs <N> --session <id>
-// --json [--ticket <M>] --<geste> <texte>` (`editer`). Porteurs :
+// <id> --json [--depuis <cle>]` (`etatDeSession`), enregistre l'outil que décrit `suivi.mjs --outil --json`
+// (son schéma est dérivé de la donnée, #2460) et lui confie chaque lot par `suivi.mjs <N> --session <id>
+// --json --lot <json>` (`editer`). Le lecteur ne mesure jamais : pour chaque épique de son `aMesurer`, la
+// relecture lance `suivi.mjs <N> --mesurer --sans-fetch --json` ; le verrou de mesure de
+// `scripts/ops/suiviMesure.mjs`, pris sans attente, dédoublonne — le mod n'en décide rien (#2460, design §5).
+// Porteurs :
 // https://github.com/MyEdO/game/issues/2278#issuecomment-5983942497
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, RenderElement } from 'claude-code'
-import type { HarnaisEtatDeSession, HarnaisSuivi, HarnaisSynchro, HarnaisSynchroEnAttente } from '../types'
+import type { HarnaisEtatDeSession, HarnaisOutil, HarnaisSuivi, HarnaisSynchro, HarnaisSynchroEnAttente } from '../types'
 import { appel, lire } from './ops'
 import type { Lu } from './ops'
 
@@ -14,37 +18,15 @@ const DEPART: HarnaisSuivi = { etat: null, cle: null, enAttente: null, generatio
 const atome = atom({ plugin: 'harnais', key: 'suivi' } as const, DEPART)
 
 /**
- * Période (ms) de relecture. Une édition par l'outil relit aussitôt ; une écriture hors outil (à la main,
- * `ops:suivi -- N`) est vue en une minute au plus, pour un `node` de moins d'une seconde par minute
+ * Période (ms) de relecture. Un lot par l'outil relit aussitôt ; un lot par le CLI (`ops:suivi -- N`) est vu
+ * en une minute au plus, pour un `node` de moins d'une seconde par minute
  * (#2278, sonde P1). Valeur maison.
  */
 const PERIODE_MS = 60 * 1000
 
-/** L'outil d'édition, listé `mcp__harnais__suivi`. */
-const OUTIL = {
-  name: 'suivi',
-  description: 'Édite la zone écrite du suivi de vague `.git/suivi/<epique>.md` et lie cette session à l’épique : '
-    + '`ajouter-item` (texte `#M libellé`), `ajouter-etape` (à l’item `ticket`), `cocher` (l’étape ouverte de l’item '
-    + '`ticket` dont le texte commence par `texte`). Rend la situation du suivi. La zone mesurée ne s’édite pas.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      epique: { type: 'integer', minimum: 1, description: 'Le numéro N du suivi `.git/suivi/<N>.md`.' },
-      geste: { type: 'string', enum: ['ajouter-item', 'ajouter-etape', 'cocher'] },
-      ticket: { type: 'integer', minimum: 1, description: 'Le ticket de l’item visé (`ajouter-etape`, `cocher`).' },
-      texte: {
-        type: 'string', minLength: 1, pattern: '^[^\\r\\n]+$',
-        description: 'Le libellé, le texte de l’étape, ou le début de l’étape à cocher ; une seule ligne.',
-      },
-    },
-    required: ['epique', 'geste', 'texte'],
-    additionalProperties: false,
-  },
-}
-
 /** `scripts/ops/suivi.mjs` lancé avec `args` ; un échec va au journal de débogage. */
-async function suiviMjs($: EngineInterface, args: readonly string[]): Promise<Lu<HarnaisEtatDeSession>> {
-  let lu: Lu<HarnaisEtatDeSession>
+async function suiviMjs<T>($: EngineInterface, args: readonly string[]): Promise<Lu<T>> {
+  let lu: Lu<T>
   try {
     lu = lire(await $.process.run(...appel($.plugin.root, 'suivi', args)))
   } catch (erreur) {
@@ -56,17 +38,36 @@ async function suiviMjs($: EngineInterface, args: readonly string[]): Promise<Lu
 
 /**
  * Relit l'état de session depuis la clé retenue. Ignorée si une transition qui retient une clé a eu lieu
- * depuis son lancement ; un échec garde le dernier état valide.
+ * depuis son lancement ; un échec garde le dernier état valide. Chaque épique de son `aMesurer` est mesurée
+ * (`mesurer`), sans attendre.
  */
 async function relire($: EngineInterface) {
   const lancee = await read($, atome)
-  const lu = await suiviMjs($, ['--session', await $.session.id(), '--json', ...(lancee.cle ? ['--depuis', lancee.cle] : [])])
+  const lu = await suiviMjs<HarnaisEtatDeSession>($, ['--session', await $.session.id(), '--json', ...(lancee.cle ? ['--depuis', lancee.cle] : [])])
   if (!lu.ok) return
   await update($, atome, (s) => (s.generation !== lancee.generation ? s : {
     ...s,
     etat: lu.valeur,
     enAttente: lu.valeur.ajout ? { ajout: lu.valeur.ajout, cle: lu.valeur.cle } : s.enAttente,
   }))
+  for (const epique of lu.valeur.aMesurer) void mesurer($, epique)
+}
+
+/** Borne (ms) d'une mesure : `gh` sur la portée, les branches et les worktrees. Valeur maison. */
+const BORNE_MESURE_MS = 300 * 1000
+
+/**
+ * La mesure de l'épique `epique` (`suivi.mjs <N> --mesurer --sans-fetch --json`) ; la relecture suivante en lit
+ * le résultat. Un échec va au journal de débogage.
+ */
+async function mesurer($: EngineInterface, epique: number) {
+  const args = [String(epique), '--mesurer', '--sans-fetch', '--json']
+  try {
+    const lu = lire(await $.process.run(...appel($.plugin.root, 'suivi', args, { borneMs: BORNE_MESURE_MS })))
+    if (!lu.ok) $.ui.log(`harnais, suivi.mjs ${args.join(' ')} : ${lu.motif}`, { to: 'debug' })
+  } catch (erreur) {
+    $.ui.log(`harnais, suivi.mjs ${args.join(' ')} : non lancé (${String(erreur)})`, { to: 'debug' })
+  }
 }
 
 const atomeSynchro = atom({ plugin: 'harnais', key: 'synchro' } as const, { texte: null } as HarnaisSynchroEnAttente)
@@ -119,13 +120,14 @@ export function suivi(on: On) {
     $.clock.every(PERIODE_MS, () => {
       void relire($)
     })
-    await $.tool.register(OUTIL)
+    const outil = await suiviMjs<HarnaisOutil>($, ['--outil', '--json'])
+    if (outil.ok) await $.tool.register(outil.valeur)
     return next(e)
   })
 
   on('tool.call', { tool: 'mcp__harnais__suivi' }, async ($, e) => {
-    const ticket = e.ticket ? ['--ticket', String(e.ticket)] : []
-    const lu = await suiviMjs($, [String(e.epique), '--session', await $.session.id(), '--json', ...ticket, `--${String(e.geste)}`, String(e.texte)])
+    const lot = JSON.stringify({ epique: e.epique, mutations: e.mutations })
+    const lu = await suiviMjs<HarnaisEtatDeSession>($, [String(e.epique), '--session', await $.session.id(), '--json', '--lot', lot])
     if (!lu.ok) return { deny: lu.motif }
     await update($, atome, (s) => retenir(s, lu.valeur.cle, lu.valeur))
     return { result: lu.valeur.ajout }

@@ -26,17 +26,23 @@ import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
 import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
-import { BORNE_SONDES, DELAI_RELANCE_MS, PERIODE_MS } from '../ops/reprendre-file.mjs'
+import { DELAI_RELANCE_MS } from '../ops/reprendre-file.mjs'
+import { DELAI_FILE_MS } from '../guards/lib/fusionPr.mjs'
+
+const OUTIL = 'build-reprise'
+
+function abandon(msg) {
+  console.error(`${OUTIL} — ${msg}`)
+  process.exit(1)
+}
+
+function chemin(p) {
+  if (!existsSync(p)) abandon(`chemin « ${p} » introuvable (déplacé/supprimé ?)`)
+  return p
+}
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
-  const OUTIL = 'build-reprise'
-
-  function abandon(msg) {
-    console.error(`${OUTIL} — ${msg}`)
-    process.exit(1)
-  }
-
   // ── Sources FACTUELLES ───────────────────────────────────────────────────────────────────────────
 
   const PKG = JSON.parse(readFileSync('package.json', 'utf8'))
@@ -46,12 +52,6 @@ function rendu() {
     const v = PKG.scripts?.[nom]
     if (!v) abandon(`script npm « ${nom} » absent de package.json (renommé/supprimé ?)`)
     return v
-  }
-
-  /** Chemin qui doit exister sur disque (fail-fast). */
-  function chemin(p) {
-    if (!existsSync(p)) abandon(`chemin « ${p} » introuvable (déplacé/supprimé ?)`)
-    return p
   }
 
   // Clés `git config` posées par `postinstall` — dédupliquées sur leur préfixe `<section>.<nom>`.
@@ -260,8 +260,8 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` REFUSE au nom de l'intégrité (arbre imbriqué, lock npm amputé, fins de ligne) et
-    AVERTIT sur la forme, que la CI refuse ; les tests liés au diff se jouent à la main
-    (\`npm run test:lies\`). \`post-checkout\`,
+    AVERTIT sur la forme, que la CI refuse ; les tests du périmètre se jouent à la main
+    (\`npm run test:perimetre\`). \`post-checkout\`,
     \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
     commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
     un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
@@ -432,17 +432,21 @@ ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un 
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
 
-**Reprise serveur de file.** Le workflow \`reprise-file.yml\` reprend les PR ouvertes par le train de \`chantier/**\` vers \`main\`, même après la mort du train. Leur corps porte la signature canonique écrite par le train. Il lit exclusivement le code de \`main\`. Sur une CI de branche verte, la couture commune au train local et à la reprise serveur lit par GraphQL l'identité, la tête publiée, la présence en file et le compte qui demande (\`viewer.login\`) avant toute demande REST \`merge-async\` ; une PR déjà en file ne reçoit aucune nouvelle demande et se dit « déjà en file » sous ce compte. Un refus qui CONTIENT « Enqueuer is not authorized to merge » (GitHub le préfixe, et le concatène parfois à d'autres causes), au PUT ou pendant le suivi GET, déclenche une relecture puis \`enqueuePullRequest\` avec \`expectedHeadOid\` égal à la tête publiée ; si ce repli échoue aussi, le refus nomme le compte refusé et le geste humain, le bouton « Merge when ready » de la PR. Une tête différente, des erreurs GraphQL ou une entrée de file absente refusent le succès. Une réponse \`pending\` se suit pendant au plus ${BORNE_SONDES} sondes espacées de ${PERIODE_MS / 1000} secondes ; « en file » exige \`enqueued\` ou une entrée GraphQL confirmée sur la même tête. Une course de branche terminée sans succès, sans job rouge et avec un job annulé (ou conclue \`cancelled\`), est ANNULÉE : ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour, la reprise relance ses jobs en échec (\`rerun-failed-jobs\`) ; à son ${PLAFOND_RELANCES}ᵉ essai, elle signale le geste \`gh run rerun <id> --failed\` au lieu de relancer. Une course rouge n'est jamais relancée. Une réconciliation toutes les 10 minutes couvre une PR ouverte après la CI et les courses annulées ; GitHub peut retarder une course planifiée. Le résumé du run et les commentaires sur la PR et ses tickets cités portent le SHA, le run/attempt et le résultat ; les commentaires lient la course CI et la veille serveur. Un refus ou une indétermination donne la commande \`npm run ops:publier -- --detache\`. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit les candidates sans demander de fusion, ni relancer, ni commenter.
+**Reprise serveur de file.** Le workflow \`reprise-file.yml\` lit exclusivement le code de \`main\`. Il ne met jamais de PR en file : sous \`GITHUB_TOKEN\`, une entrée ne déclenche pas de workflow \`merge_group\` ([documentation GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). Une PR verte du train est nommée avec le geste \`npm run ops:publier -- --detache\`, une seule fois par PR et tête. Le lecteur partagé avec le train local contrôle la tête publiée et l’entrée GraphQL ; une entrée \`AWAITING_CHECKS\` âgée de ${DELAI_FILE_MS / 60_000} minutes sans course CI \`merge_group\` pour sa tête de groupe est nommée après relecture de la même entrée. Une lecture refusée ou non exhaustive reste indéterminée. Une course de branche annulée, sans job rouge, est relancée par \`rerun-failed-jobs\` ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour ; à son ${PLAFOND_RELANCES}ᵉ essai, le geste devient \`gh run rerun <id> --failed\`. Une course rouge reste ignorée. Les commentaires sur la PR et ses tickets cités portent le SHA et le run/attempt ; les relances sont dédupliquées par course et essai. La réconciliation toutes les 10 minutes couvre les PR ouvertes après la CI et les courses annulées. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit ces états sans relancer ni commenter.
 
 **Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
-\`.git/suivi/<N>.md\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
-dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas.
-\`npm run ops:suivi -- <N>\` (\`${script('ops:suivi')}\`) en rafraîchit la zone mesurée (branche,
-avance, état d'issue de chaque ticket prévu) et l'imprime ; \`-- <N> --creer\` pose le suivi d'une
-vague neuve, et sans \`<N>\` il liste les suivis présents.
+\`.git/suivi/<N>.json\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
+dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas. Il ne s'écrit que par
+\`npm run ops:suivi -- <N> --<geste> …\` (\`${script('ops:suivi')}\`) ou l'outil du mod \`harnais\` ;
+\`-- <N>\` en imprime la situation, \`-- <N> --rendu\` le suivi entier, \`-- <N> --mesurer\` mesure
+branche, avance et état d'issue de chaque ticket dans \`<N>.mesure.json\`, \`-- <N> --creer <titre>\` pose le
+suivi d'une vague neuve, et sans \`<N>\` il liste les suivis présents. À la relecture, le suivi est CONFRONTÉ à
+sa mesure : une mesure absente, périmée ou d'une autre portée, et chaque anomalie (ticket fermé, chantier
+qu'aucun suivi ne nomme…), se disent en tête ; sous Claude, le mod relance la mesure, sous Codex
+\`-- <N> --mesurer\` le fait à la main.
 
 \`ops:chantier\` annonce le fetch, la création du worktree et chaque équipement avant de les
-lancer ; \`ops:suivi\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces
+lancer ; \`ops:suivi -- <N> --mesurer\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces
 annonces portent début, fin et durée sur stderr ; la sortie des équipements reste visible.
 Lors du \`post-checkout\` initial d'un worktree (ancien SHA de quarante zéros et mesure absente),
 le hook annonce cet équipement requis et laisse \`ops:chantier\` le jouer une seule fois.

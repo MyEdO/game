@@ -26,6 +26,9 @@ import {
   affectationsDEnvironnement,
   versCheminNatif,
   scriptsNpm,
+  citeArgument,
+  ciblesDeRedirection,
+  commandeDeLecture,
   argumentChaine,
   cibleDeLaCommande,
   gitSubcommand,
@@ -186,6 +189,34 @@ test('npm run <x> : les trois graphies, les arguments de la ligne, et un script 
     ['node', 'scripts/test/run.mjs', '--reporter=dot'],
   )
   assert.deepEqual(segmentsProfonds('npm run inconnu', 0, options), [['npm', 'run', 'inconnu']])
+})
+
+test('npm run <x> : chaque argument recollé GARDE ses citations — le tokeniseur UNIQUE relit le segment déplié au MÊME argv, depuis des citations doubles comme simples ; une redirection reste un opérateur', () => {
+  const options = { scripts: { suivi: 'node scripts/ops/suivi.mjs' } }
+  const argv = ['665', '--ajouter-etape', '2400', 'tour 10 publié', '--signaler', 'a "b" \\c `d` $(e) $f', '']
+  const deplie = (cmd) => pipelinesDeJetons(cmd, 0, options).flat().find((s) => s.jetons[0]?.text === 'node')
+  for (const cmd of [
+    'npm run suivi -- 665 --ajouter-etape 2400 "tour 10 publié" --signaler \'a "b" \\c `d` $(e) $f\' ""',
+    "npm run suivi -- 665 --ajouter-etape 2400 'tour 10 publié' --signaler 'a \"b\" \\c `d` $(e) $f' ''",
+  ]) assert.deepEqual(deplie(cmd).jetons.map((j) => j.text), ['node', 'scripts/ops/suivi.mjs', ...argv], cmd)
+  assert.equal(citeArgument('tour 10 publié'), '"tour 10 publié"')
+  assert.equal(citeArgument('--lot'), '--lot', 'un mot nu reste nu')
+  const redirige = deplie('npm run suivi -- 665 "a b" > sortie.txt')
+  assert.deepEqual(redirige.jetons.map((j) => j.text), ['node', 'scripts/ops/suivi.mjs', '665', 'a b', '>', 'sortie.txt'])
+  assert.equal(finAvantOperateur(redirige.jetons.map((j) => j.text)), 4, 'la redirection reste un opérateur du segment déplié')
+})
+
+test('commandeDeLecture : les lecteurs PowerShell (`Get-Content`/`gc`, `Select-String`/`sls`, `Test-Path`, `Get-Item`/`gi`) LISENT comme `cat` ; un écrivain PowerShell n’est pas une lecture', () => {
+  for (const cmd of ['Get-Content .git/suivi/665.json', 'gc a.txt', 'Select-String juge a.txt', 'sls x a.txt', 'Test-Path a.txt', 'Get-Item a.txt', 'gi a.txt', 'cat a.txt']) {
+    assert.equal(commandeDeLecture(cmd), true, cmd)
+  }
+  for (const cmd of ['Set-Content -Path a.txt -Value x', 'Get-Content a.txt > b.txt', 'Out-File a.txt']) assert.equal(commandeDeLecture(cmd), false, cmd)
+})
+
+test('ciblesDeRedirection : le complément de `sansRedirections` — les fichiers ouverts en ÉCRITURE, collés ou séparés ; ni duplication, ni entrée, ni argument CITÉ', () => {
+  const cibles = (cmd) => ciblesDeRedirection(pipelinesDeJetons(cmd).flat()[0].jetons)
+  assert.deepEqual(cibles('echo x > a.txt 2>err.txt >>b.txt 2>&1'), ['a.txt', 'err.txt', 'b.txt'])
+  assert.deepEqual(cibles('node s.mjs < entree.txt ">x" --rendu'), [])
 })
 
 test('npm run <x> : la résolution suit le dépôt ANCRÉ, pas celui du hook', () => {

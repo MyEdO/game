@@ -11,20 +11,39 @@ l'intégration triviale et les gates.
 
 ## Suivi
 
-- **Le suivi de vague `.git/suivi/<N>.md` est la SEULE source du plan et du prochain geste** — un
+- **Le suivi de vague `.git/suivi/<N>.json` est la SEULE source du plan et du prochain geste** — un
   fichier par épique `<N>`, dans le répertoire git commun (utilisateur, 2026-09-28 : « Il faut
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
-  Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
-  `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
-- **La zone écrite s'édite par l'outil `mcp__harnais__suivi`** (mod `harnais`), ou par
-  `node scripts/ops/suivi.mjs <N> --session <id> --json [--ticket <M>] --ajouter-item|--ajouter-etape|--cocher <texte>` :
-  une ligne par geste, sous verrou, et la session se lie au suivi.
-- **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
-  indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
-  branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
-- **À la FERMETURE d'un ticket** (issue fermée, liste « À condenser » de la zone mesurée), ses
-  arbitrages utilisateur partent au TICKET, verbatim et datés, PUIS sa section se réduit à une ligne :
-  le ticket, ce qui a été publié (sha) et les pointeurs utiles. Le suivi reste un PLAN.
+  Il se relit EN PREMIER à toute reprise (compaction, lendemain) : `npm run ops:suivi -- <N>` (la
+  situation), `-- <N> --rendu` (le suivi entier), `-- <N> --mesurer [--sans-fetch]` (la mesure).
+- **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
+  modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
+  l'outil `mcp__harnais__suivi` (mod `harnais`) ou `npm run ops:suivi -- <N> --<geste> <args>…` (table
+  des gestes de `scripts/ops/suiviDonnee.mjs`, arité fixe : un texte se cite en UN argument), plusieurs gestes
+  par appel ou `--lot <json>`, appliqués TOUT OU RIEN, sous verrou ; `--creer <titre>` ouvre une vague
+  neuve. La garde `suivi-ecriture` refuse toute autre écriture, et un suivi édité à la main se relit
+  « écrit hors de l'outil » : seul `--reconnaitre <motif>`, EN TÊTE de lot, le re-scelle, et il pose
+  d'office un signalement « écrit hors de l'outil, reconnu le <date> » ; un suivi hors schéma reste illisible.
+- **Il tient dans son BUDGET** (`BUDGET_DU_SUIVI` = `PLAFOND_INJECTION`, sur le plan complet) : un lot qui
+  le dépasse ET grossit est refusé avec ses gestes de condensation candidats (`--retirer-item`,
+  `--retirer-etape`, `--retirer-signalement`) ; un lot qui réduit, ou qui condense puis ajoute, passe.
+- **Il est CONFRONTÉ à la mesure à chaque lecture** (`confronter`, `scripts/ops/suiviDonnee.mjs`) : en
+  ligne 1 du bandeau, ⚠ suivi illisible ou hors outil, mesure absente, PÉRIMÉE ou portée changée — le
+  lecteur ne mesure jamais, il demande la re-mesure (`aMesurer`), que le mod `harnais` lance
+  (`--mesurer --sans-fetch`, verrou de mesure : une seule à la fois) ; côté Codex, `ops:suivi -- <N>
+  --mesurer` à la main. Puis « anomalies : k — … » : ticket fermé d'un item ouvert (ou item clos, ticket
+  ouvert), chantier vivant qu'aucun suivi ne nomme, prochain geste « à revalider », hors budget,
+  anomalies de la mesure (les récurrentes en une ligne), disposition sans objet. Une anomalie ACCEPTÉE se
+  tait par `--ignorer-anomalie <genre> <clé> <motif>` (`--lever-disposition` la rend) ; les autres se
+  corrigent. La ligne d'item dit « lot publié le <date>, ticket ouvert » ou « clos » selon la mesure.
+- **Un ticket prévu = un item** (`--ajouter-item <ticket> <libellé>`, ou `--enfiler` en file puis
+  `--demarrer`), d'état `actif | attente | gare | clos` ; ses étapes (`--ajouter-etape <ticket> <texte>`,
+  `--cocher <ticket>.<n>`) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication — et se
+  rendent numérotées `#<ticket>.<n>`. Aucun état de branche, d'issue ou de publication n'y est saisi :
+  la mesure (`<N>.mesure.json`) le porte.
+- **À la FERMETURE d'un ticket**, ses arbitrages utilisateur partent au TICKET, verbatim et datés, PUIS
+  son item passe `clos` et se condense (`--condenser <ticket> <résumé>` : ce qui a été publié, sha et
+  pointeurs). Le suivi reste un PLAN.
 - **Le task-tracker n'est qu'un miroir de session**, jamais une source : ce qu'il porte et que le suivi
   n'a pas est perdu à la reprise.
 - **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101+,
@@ -55,6 +74,8 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
   (verbatim + source + la QUESTION à laquelle il répondait), le CAS CANONIQUE déjà couvert
   (`fichier:ligne`) + la preuve que le nouveau cas en est une INSTANCE, pas une variante à branche,
   `## Design jugé :` (un agent `juge` dépêché juge le design, son rendu est cité au brief).
+- **Le brief ne liste PLUS les tests du périmètre** : il prescrit `npm run test:perimetre`, qui les
+  dérive des fichiers touchés (#2400).
 - **Un brief POSE les questions, il ne les pré-répond pas** : toute classification que l'agent peut
   établir (provenance d'une règle, existence d'un consommateur, état d'un fichier) se demande en
   SORTIE, citation exigée. Le banni est l'affirmation NON citée ; citation verbatim, réf RAW nue, ligne
@@ -107,10 +128,10 @@ lire ni tester son WIP. Avant de relancer un agent mort, vérifier le CONTENU du
 la garde, le slot existe-t-il ?), jamais `git status` — un arbre propre confond « rien fait », « déjà
 committé » et « fait dans un autre worktree » ; le brief de relance porte l'état VÉRIFIÉ et daté et dit
 « si le livrable existe déjà, PIVOTE en revue ». Tout geste POSTÉRIEUR à une mesure la périme : le
-rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue les tests du
-périmètre avant de committer.
+rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue
+`npm run test:perimetre` avant de committer.
 
-**6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et tests du PÉRIMÈTRE
+**6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et `npm run test:perimetre`
 avant commit — la suite complète est jouée UNE fois par le run CI de la branche, jamais en local avant
 commit ; revue du diff, UI → skill `recette-navigateur`. Deux suites complètes simultanées sur la
 machine = effondrement de contention : les suites lourdes se SÉRIALISENT, ping inter-session avant

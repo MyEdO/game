@@ -7,6 +7,7 @@
 import { corpsDeFusion, fusionDe, issueDeFusion, refusDEnfileur, reponseHttp } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
+import { ENTREE_2495, JEUNE_2495, PR_2495 } from './fixtures/github-2495-file.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe, mock } from 'node:test'
 import childProcess from 'node:child_process'
@@ -408,7 +409,7 @@ describe('estDocDerive', () => {
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
@@ -420,6 +421,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   {
     assert.throws(() => ctx.coursesCi(sha), /ctx\.coursesCi : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.demanderFusion({ numero: 7, sha }), /ctx\.demanderFusion : un sha COMPLET/, JSON.stringify(sha))
+    assert.throws(() => ctx.etatFileDePr({ numero: 7, sha }), /ctx\.etatFileDePr : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.lireFusion({ numero: 7, sha, uuid: '12345678-1234-1234-1234-123456789abc' }), /ctx\.lireFusion : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.parentsDe(sha), /ctx\.parentsDe : un sha COMPLET/, JSON.stringify(sha))
   }
@@ -564,7 +566,7 @@ function argvDesAppelsGh(code) {
 const SOURCES_GH_DU_TRAIN = ['./publier.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
 
 const DOCUMENTS_GRAPHQL_DU_TRAIN = new Set([
-  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } isInMergeQueue } } viewer { login } }',
+  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } isInMergeQueue mergeQueueEntry { id state enqueuedAt enqueuer { login } headCommit { oid } } } } viewer { login } }',
   'mutation EnfilerFusion($input: EnqueuePullRequestInput!) { enqueuePullRequest(input: $input) { mergeQueueEntry { id headCommit { oid } } } }',
 ])
 
@@ -653,23 +655,28 @@ for (const suivi of [false, true]) test(`#2437 contexte du train repli ${suivi ?
   const sha = 'a'.repeat(40)
   const uuid = '12345678-1234-1234-1234-123456789abc'
   const appels = []
+  const entree = ENTREE_2495
+  let enfilee = false
   const feinte = mock.method(childProcess, 'spawnSync', (executable, args, options) => {
     assert.equal(executable, 'gh')
     appels.push({ args, options })
     if (args.includes('graphql')) {
       const payload = JSON.parse(options.input)
-      const data = payload.query.startsWith('mutation')
-        ? { enqueuePullRequest: { mergeQueueEntry: { id: 'ENTRY', headCommit: { oid: sha } } } }
-        : { repository: { pullRequest: { id: 'PR7', headRefOid: sha, state: 'OPEN', merged: false, isInMergeQueue: false } }, viewer: { login: 'cgauche' } }
+      let data
+      if (payload.query.startsWith('mutation')) {
+        enfilee = true
+        data = { enqueuePullRequest: { mergeQueueEntry: { id: entree.id, headCommit: entree.headCommit } } }
+      } else data = { repository: { pullRequest: { id: 'PR7', headRefOid: sha, state: 'OPEN', merged: false,
+        isInMergeQueue: enfilee, mergeQueueEntry: enfilee ? entree : null } }, viewer: { login: 'cgauche' } }
       return { status: 0, stdout: JSON.stringify({ data }), stderr: '' }
     }
     return { status: 1, stdout: `HTTP/2.0 400\r\n\r\n${JSON.stringify({ status: 'failed', details: { message: REFUS_DE_FILE.prefixe } })}`, stderr: 'refus Enqueuer' }
   })
   syncBuiltinESMExports()
   try {
-    const ctx = contexteDe({ racine: RACINE, branche: 'chantier/2437', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const ctx = contexteDe({ racine: RACINE, branche: 'chantier/2437', options: {}, journaliser: () => {}, fdLog: 'ignore', maintenant: () => JEUNE_2495 })
     const vu = suivi ? ctx.lireFusion({ numero: 7, sha, uuid }) : ctx.demanderFusion({ numero: 7, sha })
-    assert.deepEqual(vu, { ok: true, statut: 'enqueued', compte: 'cgauche' })
+    assert.deepEqual(vu, { ok: true, statut: 'enqueued', deja: true, compte: 'cgauche', entree })
     const mutation = appels.find((a) => a.args.includes('graphql') && JSON.parse(a.options.input).query.startsWith('mutation'))
     assert.deepEqual(JSON.parse(mutation.options.input).variables, { input: { pullRequestId: 'PR7', expectedHeadOid: sha } })
     assert.equal(appels.filter((a) => a.args.includes('PUT')).length, suivi ? 0 : 1)
@@ -1414,6 +1421,7 @@ const ctxFile = ({ pr, branche = [courseDeBrancheVerte], branches = [branche], f
     parentsDe: () => ({ ok: true, parents }),
     jobsEnEchec: (id) => { gestes.push(['jobs', id]); return { disponible: true, valeur: { rouges: jobs, annules, motif } } },
     demanderFusion: (p) => { gestes.push(['demander', p]); return demande },
+    etatFileDePr: () => ({ ok: true, statut: 'enqueued' }),
     lireFusion: (p) => { gestes.push(['suivre', p]); return suivis[Math.min(suivi++, suivis.length - 1)] },
     tronc: () => { gestes.push(['tronc']); return { disponible: true, sha: 'm'.repeat(40) } },
     fusionner: ({ message }) => { gestes.push(['fusionner', message]); return fusion },
@@ -1430,6 +1438,74 @@ const ctxFile = ({ pr, branche = [courseDeBrancheVerte], branches = [branche], f
   return { ctx, gestes, lignes }
 }
 const courseDeFileRouge = { headBranch: 'gh-readonly-queue/main/pr-7-abc', headSha: 'g'.repeat(40), status: 'completed', conclusion: 'failure', databaseId: 99, workflowName: 'CI' }
+
+for (const variante of ['redemande', 'plafond', 'courses illisibles']) test(`#2499 sortie de file sans course rouge : ${variante}`, () => {
+  const { ctx, lignes } = ctxFile({ pr: REST(), fileTimeoutMin: 0.001 })
+  let demandes = 0, tick = 0
+  const montre = mock.method(Date, 'now', () => JEUNE_2495 + tick++)
+  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
+  ctx.demanderFusion = () => (++demandes === 2 && variante === 'redemande')
+    ? { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
+    : { ok: true, statut: 'enqueued', compte: 'cgauche', entree: ENTREE_2495 }
+  ctx.etatFileDePr = () => ({ ok: true, id: 'PR7', compte: 'cgauche' })
+  if (variante === 'courses illisibles') ctx.coursesDeFile = () => ({ disponible: false, raison: 'HTTP 403' })
+  try {
+    const journal = journalPush()
+    const vu = etapeFile.jouer(ctx, journal)
+    if (variante === 'redemande') {
+      assert.equal(vu.ok, true)
+      assert.equal(vu.detail.fusion, 'f'.repeat(40))
+      assert.equal(demandes, 2)
+      assert.equal(journal.ejections, 1)
+      assert.ok(lignes.some((l) => /PR #7 sortie de la file sans course en échec.*nouvelle demande/.test(l)))
+    } else if (variante === 'plafond') {
+      assert.equal(vu.ok, false)
+      assert.match(vu.raison, /sortie de la file sans course en échec.*au-delà de la borne/)
+      assert.equal(demandes, BORNE_EJECTIONS + 1)
+    } else {
+      assert.equal(vu.indetermine, true)
+      assert.equal(demandes, 1)
+      assert.ok(lignes.some((l) => l.includes('courses de file illisibles : HTTP 403')))
+      assert.ok(lignes.includes('[publier] file — PR #7 : courses de file illisibles : HTTP 403\n'))
+    }
+  } finally { montre.mock.restore(); sommeil.mock.restore() }
+})
+
+test('#2499 train composé : entrée jeune puis absence de groupe nommée sans nouvelle demande', () => {
+  const sha = PR_2495.headRefOid
+  let horloge = JEUNE_2495, lectures = 0, demandes = 0
+  const api = mock.method(childProcess, 'spawnSync', (executable, args, options) => {
+    assert.equal(executable, 'gh')
+    if (args.includes('graphql')) {
+      const payload = JSON.parse(options.input)
+      assert.ok(!payload.query.startsWith('mutation'))
+      const data = { repository: { pullRequest: { ...PR_2495, id: 'PR7', merged: false,
+        mergeCommit: null, mergeQueueEntry: ENTREE_2495 } }, viewer: { login: 'cgauche' } }
+      if (lectures++ === 2) horloge += 10 * 60_000
+      return { status: 0, stdout: JSON.stringify({ data }), stderr: '' }
+    }
+    assert.ok(!args.includes('PUT'))
+    assert.ok(args.some((a) => a.includes(`head_sha=${ENTREE_2495.headCommit.oid}`)))
+    return { status: 0, stdout: readFileSync(new URL('./fixtures/github-2495-absence.json', import.meta.url), 'utf8'), stderr: '' }
+  })
+  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
+  let tick = 0
+  const montre = mock.method(Date, 'now', () => JEUNE_2495 + tick++)
+  syncBuiltinESMExports()
+  try {
+    const reel = contexteDe({ racine: RACINE, branche: 'chantier/2499', options: {}, journaliser: () => {}, fdLog: 'ignore', maintenant: () => horloge })
+    const { ctx } = ctxFile({ pr: REST({ head: { sha } }), branche: [{ ...courseDeBrancheVerte, headSha: sha }], fileTimeoutMin: 0.001 })
+    ctx.demanderFusion = (p) => { demandes++; return reel.demanderFusion(p) }
+    ctx.etatFileDePr = reel.etatFileDePr
+    const vu = etapeFile.jouer(ctx, { ...journalPush(), tete: sha })
+    assert.equal(vu.ok, false)
+    assert.match(vu.raison, /PR #7.*REFUSÉE.*cgauche.*aucun run CI merge_group/)
+    assert.match(vu.raison, /retirer cette entrée/)
+    assert.equal(vu.detail.compte, 'cgauche')
+    assert.equal(demandes, 1)
+    assert.ok(lectures >= 4)
+  } finally { api.mock.restore(); sommeil.mock.restore(); montre.mock.restore(); syncBuiltinESMExports() }
+})
 
 test('file : une PR FUSIONNÉE rend vert, avec le commit de fusion et le temps d’ATTENTE', () => {
   const { ctx } = ctxFile({ pr: REST({ state: 'closed', merged_at: 'x', merge_commit_sha: 'f'.repeat(40) }) })
@@ -1672,7 +1748,7 @@ test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, 
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'demander'])
   assert.equal(journal.ejections, 1)
   assert.ok(lignes.includes(`[publier] file — PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 ANNULÉE — jobs annulés : docs, suite 1/3 : nouvelle demande de fusion sur ttttttttt\n`), lignes.join(''))
-  assert.ok(lignes.includes('[publier] file — PR #7 dans la file : course de file absente\n'), 'la course 99, terminée avant la 2ᵉ demande, ne la juge pas')
+  assert.ok(lignes.includes('[publier] file — PR #7 : course de file absente\n'), 'la course 99, terminée avant la 2ᵉ demande, ne la juge pas')
 })
 
 test(`#2392 file : une course de file ANNULÉE au-delà de la borne (${BORNE_EJECTIONS}) est ROUGE et nommée`, () => {

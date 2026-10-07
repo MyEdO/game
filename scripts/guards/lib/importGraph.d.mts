@@ -48,7 +48,9 @@ export interface Specificateur {
 }
 export function specificateursDe(fichier: string, source: string | SourceFile, diagnostics?: readonly Diagnostic[]): Specificateur[];
 /** Un arc résolu : le spécificateur écrit, sa nature, et le fichier absolu POSIX qu'il désigne. */
-export interface Arc extends Specificateur {
+export interface Arc extends Omit<Specificateur, 'nature'> {
+  nature: NatureDeModule | 'glob';
+  motifs?: string[];
   cible: string;
 }
 export function arcsDe(
@@ -78,8 +80,26 @@ export function clotureDImports(
     cache?: Map<string, Arc[] | null>;
     typesEffaces?: boolean;
     dynamiques?: boolean;
+    arbre?: EnsembleDeFichiers;
+    specificateurs?: MemoDeSpecificateurs;
   },
 ): Set<string>;
+/** L'ensemble de fichiers contre lequel une marche résout et lit (chemins absolus POSIX). */
+export interface EnsembleDeFichiers {
+  existe: (abs: string) => boolean;
+  lire: (abss: string[]) => Map<string, string | null>;
+  fichiers?: readonly string[];
+}
+/** Un spécificateur, ou un motif d'`import.meta.glob`, avant résolution. */
+export type SiteNonResolu = Omit<Specificateur, 'nature' | 'debut' | 'fin' | 'texte'> & Partial<Pick<Specificateur, 'debut' | 'fin' | 'texte'>> & { nature: NatureDeModule | 'glob'; motifs?: string[] };
+export interface MemoDeSpecificateurs {
+  lire: (abs: string, texte: string) => SiteNonResolu[] | undefined;
+  ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void;
+}
+/** Les motifs littéraux des `import.meta.glob(…)` d'un arbre. */
+export function globsDe(arbre: SourceFile): { motifs: string[]; ligne: number }[];
+/** Chaque cible d'un cache de marche ↦ les arcs qui l'atteignent. */
+export function grapheInverse(cache: Map<string, Arc[] | null>): Map<string, (Arc & { importeur: string })[]>;
 export function closureOf(roots: string[], options?: { racine?: string; cache?: Map<string, Arc[] | null> }): Set<string>;
 export function directImportsOf(
   fromFile: string,
