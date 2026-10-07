@@ -38,7 +38,9 @@ export function listerDossier(dir, { absent = 'lever' } = {}) {
  * MOTIF de chemin de dépôt → expression régulière, aux règles de `.gitattributes` :
  *   · `*` ne traverse JAMAIS `/` ;
  *   · `**` entre deux `/` vaut ZÉRO ou PLUSIEURS dossiers : le motif atteint la page posée à la
- *     racine comme celle posée sous un dossier de cœur.
+ *     racine comme celle posée sous un dossier de cœur ;
+ *   · `{a,b}` dans un segment vaut l'une de ses alternatives, sans imbrication (motif d'`import.meta.glob`
+ *     de Vite, `src/test-setup.ts`).
  * C'est la grammaire que ce dépôt ÉCRIT (le motif des catalogues de l'Atlas,
  * `scripts/raw/motif-catalogues.mjs`, en aiguillage de fusion et en cible de générateur). Le PATHSPEC
  * git nu ne la partage PAS — il est en `fnmatch` sans `FNM_PATHNAME`, où `*` traverse `/` et où
@@ -54,10 +56,15 @@ export function motifDeGlob(motif) {
     // `**` MÉDIAN consomme son propre `/` (d'où zéro dossier possible) ; FINAL, il prend tout le
     // reste du chemin, dossiers compris.
     if (seg === '**') { corps += suivi ? '(?:[^/]+/)*' : '.*'; return }
-    corps += seg.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*') + (suivi ? '/' : '')
+    corps += seg.split(/(\{[^{}/]*\})/).map((morceau) => /^\{.*\}$/.test(morceau)
+      ? `(?:${morceau.slice(1, -1).split(',').map(litteralDeMotif).join('|')})`
+      : litteralDeMotif(morceau)).join('') + (suivi ? '/' : '')
   })
   return new RegExp(`^${corps}$`)
 }
+
+/** Un morceau de segment sans alternative : `*` ne franchit pas `/`, le reste est littéral. */
+const litteralDeMotif = (morceau) => morceau.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')
 
 /** Ce chemin est-il visé par ce motif ? Séparateurs POSIX, quelle que soit la plateforme. */
 export const correspondGlob = (chemin, motif) => motifDeGlob(motif).test(String(chemin ?? '').replace(/\\/g, '/'))

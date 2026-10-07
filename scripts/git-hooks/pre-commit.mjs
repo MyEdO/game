@@ -9,8 +9,8 @@
 // Contenu jugé : l'INDEX seul, baseline nominative comprise. Trois lectures du DISQUE, nommées : le
 // `.git` des dossiers parents des chemins stagés (`arbreImbrique.mjs`), la config et l'oxlint de CET
 // arbre (`lintStage.mjs`, un écart de config est un saut déclaré). Corpus, contrats de donnée,
-// docs dérivés et suites restent à la CI (#2327 §0, §1) ; les tests liés au diff se jouent à la main,
-// `npm run test:lies` (A7). La durée totale est imprimée en fin de hook.
+// docs dérivés et suites restent à la CI (#2327 §0, §1) ; les tests du périmètre se jouent à la main,
+// `npm run test:perimetre` (#2400). La durée totale est imprimée en fin de hook.
 // Porte de version de Node en PREMIER import (`scripts/node-requis.mjs`) : la clôture STATIQUE ne porte
 // ni module TypeScript ni attribut d'import ; `commentPoison.mjs`, qui en porte, se charge après elle.
 import '../node-requis.mjs';

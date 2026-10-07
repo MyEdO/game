@@ -20,7 +20,7 @@ import { execFileSync } from 'node:child_process'
 import { INDEX, lireEnLot } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
 
-const EXTS_LINT = ['.ts', '.tsx', '.mjs', '.mts', '.js', '.jsx', '.cts', '.cjs']
+export const EXTS_LINT = ['.ts', '.tsx', '.mjs', '.mts', '.js', '.jsx', '.cts', '.cjs']
 export const BUDGET_DE_LIGNE = 16000
 export function lotsDeLigne(fichiers, budget = BUDGET_DE_LIGNE) {
   const lots = []

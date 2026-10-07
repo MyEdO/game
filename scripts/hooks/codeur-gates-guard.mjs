@@ -135,15 +135,17 @@ export const gatesDeLaCi = (ecritLu = ECRIT_LU) =>
 const gesteNomme = (segment, commande) => (commande.includes(segment) ? segment : commande.trim())
 
 /**
- * La raison du refus, en une phrase : ce qui est refusé, qui le porte, et ce que le codeur joue
- * à la place — y compris le geste à faire quand c'est le BRIEF qui impose la gate.
+ * La raison du refus, en une phrase : ce qui est refusé, qui le porte, et ce que l'appelant joue
+ * à la place — y compris le geste à faire quand c'est un BRIEF qui impose la gate.
  * @param {string} geste la commande refusée, telle qu'écrite
  * @returns {string}
  */
 const raisonDuRefus = (geste) =>
   `[gates-ci] « ${geste} » est une gate de la CI : pousser la branche, puis \`gh run watch\` ` +
-  `ou \`gh run view --log-failed\`. En local : \`node --test <fichier>\`, \`npm test -- <chemins>\`, ` +
-  `\`npm run typecheck:fast\`. Une sonde dont la configuration ne peut être vérifiée exige un filtre de fichier explicite.`
+  `ou \`gh run view --log-failed\`. Avant de rendre ou de committer : \`npm run test:perimetre\` (après ` +
+  `\`npm run typecheck:fast\` si du \`.ts\` bouge) ; pendant l'itération, \`node --test <fichier>\` et ` +
+  `\`npm test -- <chemins>\` restent admis. Un brief qui impose une gate de la CI se refuse : ` +
+  `« BRIEF REFUSÉ : gates hors périmètre ». Une sonde dont la configuration ne peut être vérifiée exige un filtre de fichier explicite.`
 
 /**
  * Décision PURE du hook.
