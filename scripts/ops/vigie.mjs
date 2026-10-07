@@ -4,7 +4,7 @@
 // train de publication (`ops:publier`) se MESURENT une fois, à un seul endroit. »
 //
 // Un tick compose les lecteurs canoniques : `shasDistants` (UN `ls-remote` pour `main` et la branche),
-// `coursesCi` + `verdictDesRuns` par sha (la CI de `main` au sha d'`origin/main`, celle de la branche au
+// `coursesCi` + `verdictJuge` par sha (la CI de `main` au sha d'`origin/main`, celle de la branche au
 // sha POUSSÉ), `etatDuTrain` sur le journal du train. Un verdict `verte` est gardé
 // sous `<.git commun>/vigie/` (partagé entre worktrees, hors de `node_modules`) ; tout autre verdict se
 // relit. La sortie `--json` est `{ ligne, transitions, etat }` : `etat`, opaque, se repasse en
@@ -15,9 +15,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
-import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, jobsEnEchecDe, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { verdictDesJobs, verdictDesRuns } from './etapesDuTrain.mjs'
 import { cheminsDeJournal, etatDuTrain, lireJournal, sauverJournal } from './publier.mjs'
 
 /** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
@@ -140,10 +139,10 @@ function verteAuCache(chemin) {
 
 /**
  * Le verdict de CI de `sha` : lu au CACHE s'il y est `verte` (`verteAuCache`), sinon par `lire(sha)` (une
- * union de `coursesCi`) et `verdictDesRuns` ; un `verte` neuf s'écrit au cache par l'écriture ATOMIQUE
+ * union de `coursesCi`) et `verdictJuge` ; un `verte` neuf s'écrit au cache par l'écriture ATOMIQUE
  * `sauverJournal`, que huit sessions partagent sans lire un fichier à moitié écrit. Le cache ne garde
  * que le verdict : un sha vu `verte` n'appelle plus `gh`.
- * Une course `rouge` se juge sur ses jobs (`jobs(id)`, `verdictDesJobs`) : sans job rouge et avec un job
+ * Une course `rouge` se juge sur ses jobs (`jobs(id, attempt)`, `verdictJuge`) : sans job rouge et avec un job
  * annulé, elle est `annulee` ; des jobs illisibles la laissent `rouge`. Une lecture de courses indisponible
  * LÈVE `CiIllisible`.
  * @param {{sha:string|null, dossier:string, lire:(sha:string) => object, jobs:(id:number, attempt:number|null) => object}} p
@@ -155,9 +154,7 @@ export function verdictDeCi({ sha, dossier, lire, jobs }) {
   if (verteAuCache(chemin)) return 'verte'
   const vues = lire(sha)
   if (!vues.disponible) throw new CiIllisible(`courses de ${sha.slice(0, 9)} illisibles : ${vues.raison}`)
-  const lu = verdictDesRuns(vues.valeur, sha)
-  const lusJobs = lu.etat === 'rouge' ? jobs(lu.course.databaseId, lu.course.attempt ?? null) : null
-  const vu = lusJobs?.disponible ? verdictDesJobs(lu, lusJobs.valeur) : lu
+  const vu = verdictJuge(vues.valeur, sha, jobs)
   if (vu.etat === 'verte') {
     sauverJournal(chemin, { verdict: 'verte' })
     purgerPerimes({ dossier, motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })

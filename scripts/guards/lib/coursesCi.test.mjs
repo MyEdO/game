@@ -1,7 +1,10 @@
 // La lecture des courses CI d'un commit ou d'un événement : une union, un tri.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalEnEchecDe, jobsEnEchecDe, triees } from './coursesCi.mjs'
+import {
+  BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalEnEchecDe, jobsEnEchecDe, jobsJuges, motifDAnnulation,
+  phraseDesJobs, triees, verdictDesJobs, verdictDesRuns, verdictJuge,
+} from './coursesCi.mjs'
 
 const SHA = 'a'.repeat(40)
 
@@ -70,16 +73,30 @@ test('`evenement` filtre les courses par événement (`--event`) — les commits
   assert.ok(CHAMPS.split(',').includes('headBranch'), 'la ref d’entrée de file nomme la PR : sans `headBranch`, la course de file ne se rattache à rien')
 })
 
-test('`jobsEnEchecDe` rend les noms des jobs ROUGES et ANNULÉS d’une course, en union — jamais un rouge avalé', () => {
-  let vus = null
-  const jobs = [{ name: 'docs', conclusion: 'failure' }, { name: 'types', conclusion: 'success' }, { name: 'suite', conclusion: 'timed_out' }, { name: 'migrations', conclusion: 'cancelled' }]
-  const lu = jobsEnEchecDe({ id: 99, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JSON.stringify({ jobs }), stderr: '' } } })
-  assert.deepEqual(vus, ['gh', 'run', 'view', '99', '--json', 'jobs'])
-  assert.deepEqual(lu, { disponible: true, valeur: { rouges: ['docs', 'suite'], annules: ['migrations'] } })
-  jobsEnEchecDe({ id: 37371342026, attempt: 1, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: '{"jobs":[]}', stderr: '' } } })
-  assert.deepEqual(vus, ['gh', 'run', 'view', '37371342026', '--attempt', '1', '--json', 'jobs'], 'l’essai JUGÉ, jamais le dernier qu’une relance remet en vol')
-  journalEnEchecDe({ id: 7, attempt: 2, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: '', stderr: '' } } })
-  assert.deepEqual(vus, ['gh', 'run', 'view', '7', '--attempt', '2', '--log-failed'])
+/** Les annotations d'un job annulé de la course 37365832262 (#1853), lues par `check-runs/{id}/annotations`. */
+const ANNOTATIONS_D_ANNULATION = [
+  { annotation_level: 'warning', message: 'avertissement sans rapport' },
+  { annotation_level: 'failure', message: 'The job was not acquired by Runner of type hosted even after multiple attempts' },
+]
+
+test('`jobsEnEchecDe` rend les noms des jobs ROUGES et ANNULÉS d’une course, et le MOTIF du premier annulé, en union — jamais un rouge avalé', () => {
+  const vus = []
+  const jobs = [{ name: 'docs', conclusion: 'failure', databaseId: 1 }, { name: 'types', conclusion: 'success', databaseId: 2 }, { name: 'suite', conclusion: 'timed_out', databaseId: 3 }, { name: 'migrations', conclusion: 'cancelled', databaseId: 4 }]
+  const lu = jobsEnEchecDe({ id: 99, spawn: (cmd, args) => {
+    vus.push([cmd, ...args])
+    return { status: 0, stdout: JSON.stringify(args[0] === 'api' ? ANNOTATIONS_D_ANNULATION : { jobs }), stderr: '' }
+  } })
+  assert.deepEqual(vus, [['gh', 'run', 'view', '99', '--json', 'jobs'], ['gh', 'api', 'repos/MyEdO/game/check-runs/4/annotations']])
+  assert.deepEqual(lu, { disponible: true, valeur: { rouges: ['docs', 'suite'], annules: ['migrations'], motif: 'The job was not acquired by Runner of type hosted even after multiple attempts' } })
+  const sansAnnule = jobsEnEchecDe({ id: 99, spawn: (cmd, args) => (args[0] === 'api' ? assert.fail('aucun motif sans job annulé') : { status: 0, stdout: JSON.stringify({ jobs: jobs.slice(0, 3) }), stderr: '' }) })
+  assert.deepEqual(sansAnnule.valeur, { rouges: ['docs', 'suite'], annules: [], motif: null })
+  const motifRefuse = jobsEnEchecDe({ id: 99, spawn: (cmd, args) => (args[0] === 'api' ? { status: 1, stdout: '', stderr: 'HTTP 403' } : { status: 0, stdout: JSON.stringify({ jobs }), stderr: '' }) })
+  assert.deepEqual(motifRefuse.valeur, { rouges: ['docs', 'suite'], annules: ['migrations'], motif: 'motif illisible : HTTP 403' }, 'un motif illisible se dit, il ne rend pas les jobs illisibles')
+  let vu = null
+  jobsEnEchecDe({ id: 37371342026, attempt: 1, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '{"jobs":[]}', stderr: '' } } })
+  assert.deepEqual(vu, ['gh', 'run', 'view', '37371342026', '--attempt', '1', '--json', 'jobs'], 'l’essai JUGÉ, jamais le dernier qu’une relance remet en vol')
+  journalEnEchecDe({ id: 7, attempt: 2, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '', stderr: '' } } })
+  assert.deepEqual(vu, ['gh', 'run', 'view', '7', '--attempt', '2', '--log-failed'])
   assert.equal(jobsEnEchecDe({ id: 1, spawn: () => ({ status: 4, stdout: '', stderr: 'x' }) }).disponible, false)
   assert.equal(jobsEnEchecDe({ id: 1, spawn: () => ({ status: 0, stdout: '{}', stderr: '' }) }).disponible, false)
 })
@@ -295,4 +312,89 @@ test('journalEnEchecDe : `gh run view <id> --log-failed`, en union — jamais un
   assert.deepEqual(vus, ['gh', 'run', 'view', '7', '--log-failed'])
   assert.deepEqual(lu, { disponible: true, valeur: JOURNAL_TSC })
   assert.equal(journalEnEchecDe({ id: 7, spawn: () => ({ status: 1, stdout: '', stderr: 'run 7 introuvable' }) }).disponible, false)
+})
+
+// ── Verdicts : `verdictDesRuns`, `verdictDesJobs`, `verdictJuge` ───────────────────────────────
+
+const course = (o) => ({ headSha: 'aaa', status: 'completed', workflowName: 'CI', databaseId: 1, createdAt: '2026-09-14T00:00:00Z', ...o })
+
+test('verdictDesRuns : absente, en vol, verte, rouges, annulée', () => {
+  assert.equal(verdictDesRuns([], 'aaa').etat, 'absente')
+  assert.equal(verdictDesRuns([course({ status: 'in_progress' })], 'aaa').etat, 'en-vol')
+  assert.equal(verdictDesRuns([course({ conclusion: 'success' })], 'aaa').etat, 'verte')
+  assert.equal(verdictDesRuns([course({ conclusion: 'failure' })], 'aaa').etat, 'rouge')
+  assert.equal(verdictDesRuns([course({ conclusion: 'timed_out' })], 'aaa').etat, 'rouge')
+  assert.equal(verdictDesRuns([course({ conclusion: 'startup_failure' })], 'aaa').etat, 'rouge')
+  assert.equal(verdictDesRuns([course({ conclusion: 'cancelled' })], 'aaa').etat, 'annulee')
+})
+
+test('verdictDesRuns : un sha ABSENT de la liste, et une course d’un AUTRE workflow, ne disent rien', () => {
+  assert.equal(verdictDesRuns([course({ conclusion: 'success' })], 'bbb').etat, 'absente')
+  assert.equal(verdictDesRuns([course({ conclusion: 'success', workflowName: 'Déploiement prod' })], 'aaa').etat, 'absente')
+})
+
+test('verdictDesRuns : une conclusion INCONNUE n’est pas verte, et se dit inattendue', () => {
+  const vu = verdictDesRuns([course({ conclusion: 'neutral' })], 'aaa')
+  assert.equal(vu.etat, 'rouge')
+  assert.equal(vu.inattendue, true)
+})
+
+test('verdictDesRuns : la PREMIÈRE course de la liste triée gouverne', () => {
+  const vu = verdictDesRuns([course({ conclusion: 'success', databaseId: 2 }), course({ conclusion: 'failure', databaseId: 1 })], 'aaa')
+  assert.equal(vu.etat, 'verte')
+  assert.equal(vu.course.databaseId, 2)
+})
+
+test('verdictDesJobs : une course en ÉCHEC sans job rouge et avec un job ANNULÉ est `annulee` (course 37371342026) ; sans l’un ni l’autre, rouge MARQUÉE', () => {
+  const rouge = { etat: 'rouge', course: { databaseId: 37371342026 } }
+  assert.deepEqual(verdictDesJobs(rouge, { rouges: [], annules: ['docs-tests', 'docs', 'suite 1/3'] }), { ...rouge, etat: 'annulee', rouges: [], annules: ['docs-tests', 'docs', 'suite 1/3'] })
+  assert.deepEqual(verdictDesJobs(rouge, { rouges: ['suite'], annules: ['docs'] }).etat, 'rouge', 'un job rouge garde la course rouge')
+  const muette = verdictDesJobs(rouge, { rouges: [], annules: [] })
+  assert.deepEqual([muette.etat, muette.sansJobEnEchec], ['rouge', true])
+  assert.equal(phraseDesJobs(muette), 'aucun job rouge ni annulé dans la course')
+  assert.equal(phraseDesJobs(verdictDesJobs(rouge, { rouges: ['suite'], annules: ['docs'] })), 'jobs rouges : suite ; jobs annulés : docs')
+  for (const etat of ['verte', 'annulee', 'en-vol', 'absente']) assert.equal(verdictDesJobs({ etat }, { rouges: [], annules: ['x'] }).etat, etat, etat)
+})
+
+test('verdictDesJobs : le MOTIF d’une annulation est porté par le verdict, et sa phrase le dit', () => {
+  const motif = ANNOTATIONS_D_ANNULATION[1].message
+  const annulee = verdictDesJobs({ etat: 'rouge', course: { databaseId: 37365832262 } }, { rouges: [], annules: ['suite 2/3'], motif })
+  assert.deepEqual([annulee.etat, annulee.motif], ['annulee', motif])
+  assert.equal(phraseDesJobs(annulee), `jobs annulés : suite 2/3 ; motif : ${motif}`)
+  assert.equal(phraseDesJobs({ etat: 'annulee' }), '', 'une course annulée par sa conclusion, jobs non lus, ne dit aucun job')
+})
+
+test('jobsJuges : les jobs ROUGES (`failure`, `timed_out`, `startup_failure`) et ANNULÉS d’une liste, la forme REST comme celle de `gh`', () => {
+  const jobs = [
+    { name: 'docs', conclusion: 'failure' }, { name: 'types', conclusion: 'success' }, { name: 'suite', conclusion: 'timed_out' },
+    { name: 'deps', conclusion: 'startup_failure' }, { name: 'migrations', conclusion: 'cancelled' }, { name: 'en vol', conclusion: null },
+  ]
+  assert.deepEqual(jobsJuges(jobs), { rouges: ['docs', 'suite', 'deps'], annules: ['migrations'] })
+  assert.deepEqual(jobsJuges(undefined), { rouges: [], annules: [] })
+})
+
+test('motifDAnnulation : le message de la PREMIÈRE annotation `failure`, sinon `null`', () => {
+  assert.equal(motifDAnnulation(ANNOTATIONS_D_ANNULATION), 'The job was not acquired by Runner of type hosted even after multiple attempts')
+  assert.equal(motifDAnnulation([ANNOTATIONS_D_ANNULATION[0]]), null)
+  assert.equal(motifDAnnulation([]), null)
+  assert.equal(motifDAnnulation({ message: 'pas une liste' }), null)
+})
+
+test('verdictJuge : les jobs ne se lisent que sur une course ROUGE, sur son ESSAI ; illisibles, elle reste rouge et le dit', () => {
+  const lus = []
+  const lire = (valeur) => (id, attempt) => { lus.push([id, attempt]); return valeur }
+  for (const conclusion of ['success', 'cancelled']) {
+    assert.equal(verdictJuge([course({ conclusion })], 'aaa', lire(null)).etat, conclusion === 'success' ? 'verte' : 'annulee')
+  }
+  assert.equal(verdictJuge([course({ status: 'in_progress' })], 'aaa', lire(null)).etat, 'en-vol')
+  assert.deepEqual(lus, [], 'aucune lecture de jobs hors d’une course rouge')
+  const annulee = verdictJuge([course({ conclusion: 'failure', databaseId: 37365832262, attempt: 2 })], 'aaa',
+    lire({ disponible: true, valeur: { rouges: [], annules: ['suite 2/3'], motif: 'm' } }))
+  assert.deepEqual([annulee.etat, annulee.annules, annulee.motif], ['annulee', ['suite 2/3'], 'm'])
+  assert.deepEqual(lus, [[37365832262, 2]])
+  const rouge = verdictJuge([course({ conclusion: 'failure' })], 'aaa', lire({ disponible: true, valeur: { rouges: ['suite'], annules: [], motif: null } }))
+  assert.deepEqual([rouge.etat, rouge.rouges], ['rouge', ['suite']])
+  assert.deepEqual(lus.at(-1), [1, null], 'sans essai nommé, `null`')
+  const illisible = verdictJuge([course({ conclusion: 'failure' })], 'aaa', lire({ disponible: false, raison: 'gh a rendu 1' }))
+  assert.deepEqual([illisible.etat, illisible.jobsIllisibles], ['rouge', 'gh a rendu 1'])
 })
