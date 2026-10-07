@@ -91,7 +91,7 @@ test('TOUT OU RIEN — `cocher` + `ajouter-etape` + `etat` passent ENSEMBLE ; un
     const octets = FS.readFileSync(cible)
     const vu = editer({ numero: 665, dossier, mutations: [{ geste: 'cocher', ticket: 2400, n: 3 }, { geste: 'etat', ticket: 9999, etat: 'clos' }], maintenant: MAINTENANT })
     assert.equal(vu.code, 1)
-    assert.match(vu.stderr, /mutation 2 \(etat\) : item #9999 absent — rien n'est écrit/)
+    assert.match(vu.stderr, /mutation 2\/2 \(etat\) : item #9999 absent — 1 s'appliquait, aucune après ; rien n'est écrit$/m)
     assert.deepEqual(FS.readFileSync(cible), octets, 'à l’octet')
     assert.deepEqual(restes(dossier), [])
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
@@ -109,7 +109,7 @@ test('DOUBLON — refusé à l’ÉCRITURE (item ∪ file) ET à la LECTURE', ()
 
 test('BORNES — libellé, étape, têtes de liste `[ ]`/`-`/`1.`, texte qui porte 64 caractères hexadécimaux', () => {
   const s = exemple()
-  assert.match(refusDe(s, [{ geste: 'ajouter-item', ticket: 1, libelle: 'x'.repeat(LONGUEUR_LIBELLE + 1) }]), /mutation 1 \(ajouter-item\) : hors schéma : libelle : /)
+  assert.match(refusDe(s, [{ geste: 'ajouter-item', ticket: 1, libelle: 'x'.repeat(LONGUEUR_LIBELLE + 1) }]), /mutation 1\/1 \(ajouter-item\) : hors schéma : libelle : /)
   assert.ok(appliquer(s, [{ geste: 'ajouter-item', ticket: 1, libelle: 'x'.repeat(LONGUEUR_LIBELLE) }], { maintenant: MAINTENANT }).ok)
   assert.match(refusDe(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'y'.repeat(LONGUEUR_ETAPE + 1) }]), /hors schéma : texte/)
   for (const tete of ['[ ] grounding', '[x] fait', '- puce', '1. numéro', 'deux\nlignes']) {
@@ -242,7 +242,20 @@ test('ÉTAT FINAL — le schéma valide l’état FINAL du lot : ajouter une 6e 
   assert.equal(ajouterPuisCocher.items[0].etapes.filter((e) => !e.faite).length, ETAPES_OUVERTES_PAR_ITEM)
   assert.equal(apres(s, [{ geste: 'cocher', ticket: 2400, n: 2 }, { geste: 'ajouter-etape', ticket: 2400, texte: 'sixième' }]).items[0].etapes.length, 7)
   assert.match(refusDe(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'sixième' }]), /^lot refusé : l'état final est hors schéma : .*6 étapes ouvertes, 5 au plus — rien n'est écrit$/)
-  assert.match(refusDe(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'x' }, { geste: 'cocher', ticket: 2400, n: 1 }]), /^mutation 2 \(cocher\) : étape #2400\.1 déjà faite/)
+  assert.match(refusDe(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'x' }, { geste: 'cocher', ticket: 2400, n: 1 }]), /^mutation 2\/2 \(cocher\) : étape #2400\.1 déjà faite/)
+})
+
+test('REFUS D’UN GESTE — le rang sur le lot, les précédentes appliquées, les suivantes NON évaluées, rien d’écrit', () => {
+  const s = exemple()
+  const ok = { geste: 'friction', texte: 'x' }
+  const ko = { geste: 'etat', ticket: 9999, etat: 'clos' }
+  const absent = "item #9999 absent"
+  assert.equal(refusDe(s, [ko, ok, ok, ok]), `mutation 1/4 (etat) : ${absent} — aucune avant, 2 à 4 non évaluées ; rien n'est écrit`)
+  assert.equal(refusDe(s, [ok, ok, ko, ok]), `mutation 3/4 (etat) : ${absent} — 1 à 2 s'appliquaient, 4 non évaluée ; rien n'est écrit`)
+  assert.equal(refusDe(s, [ok, ko, ok]), `mutation 2/3 (etat) : ${absent} — 1 s'appliquait, 3 non évaluée ; rien n'est écrit`)
+  assert.equal(refusDe(s, [ok, ok, ok, ko]), `mutation 4/4 (etat) : ${absent} — 1 à 3 s'appliquaient, aucune après ; rien n'est écrit`)
+  assert.equal(refusDe(s, [ko]), `mutation 1/1 (etat) : ${absent} — seule du lot ; rien n'est écrit`)
+  assert.equal(refusDe(s, [ok, ko, { geste: 'inconnu' }]), `mutation 2/3 (etat) : ${absent} — 1 s'appliquait, 3 non évaluée ; rien n'est écrit`, 'la suivante, même hors schéma, n’est pas évaluée')
 })
 
 // ————————————————————————————————————— l'écriture —————————————————————————————————————
@@ -806,7 +819,7 @@ test('RECONNAÎTRE — un suivi écrit hors de l’outil n’accepte que `reconn
     FS.writeFileSync(cible, texte.replace('juge du diff', 'juge du diff édité'))
     assert.match(lireLeSuivi({ dossier, epique: 665 }).alerte, /`npm run ops:suivi -- 665 --reconnaitre <motif>` le re-scelle en le signalant$/)
     const sansReconnaitre = editer({ numero: 665, dossier, mutations: [{ geste: 'cocher', ticket: 2400, n: 2 }], maintenant: MAINTENANT })
-    assert.match(sansReconnaitre.stderr, /mutation 1 \(cocher\) : suivi écrit hors de l'outil : `reconnaitre` \(`--reconnaitre <motif>`\), en tête de lot/)
+    assert.match(sansReconnaitre.stderr, /mutation 1\/1 \(cocher\) : suivi écrit hors de l'outil : `reconnaitre` \(`--reconnaitre <motif>`\), en tête de lot/)
     const enSecond = editer({ numero: 665, dossier, mutations: [{ geste: 'friction', texte: 'x' }, { geste: 'reconnaitre', motif: 'm' }], maintenant: MAINTENANT })
     assert.equal(enSecond.code, 1)
     const reconnu = editer({ numero: 665, dossier, mutations: [{ geste: 'reconnaitre', motif: 'sed de game-11' }, { geste: 'cocher', ticket: 2400, n: 2 }], maintenant: MAINTENANT })
