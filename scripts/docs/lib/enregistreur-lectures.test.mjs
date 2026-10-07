@@ -18,9 +18,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './chemin-mesure.mjs'
 import { mesurerEnRendu, refusSourcesInsuffisantes } from '../build-all.mjs'
-import { lancerGit } from '../../test/gitDeBanc.mjs'
+import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import fs from 'node:fs'
-import childProcess, { execFileSync, spawnSync } from 'node:child_process'
+import childProcess, { spawnSync } from 'node:child_process'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
@@ -74,10 +74,10 @@ test('mesure 2456 : Git réel, échec préservé, racines normalisées et fichie
   const { racine } = instanceDeDepot({ fichiers: { '.claude/memory/user-a.md': 'a' } })
   const c = installer({ racine, ignores: new Set() })
   try {
-    execFileSync('git', ['ls-files', '.claude/memory/user-*.md'], { cwd: racine, encoding: 'utf8' })
-    spawnSync('git', ['log', '--diff-filter=A', '--format=%as', '-1', '--', '.claude/memory/user-a.md'], { cwd: racine, encoding: 'utf8' })
-    execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: racine, encoding: 'utf8' })
-    assert.throws(() => execFileSync('git', ['rev-parse', '--verify', 'inexistante'], { cwd: racine, stdio: 'pipe' }), (e) => e.status === 128)
+    lancerGit(['ls-files', '.claude/memory/user-*.md'], { cwd: racine, env: process.env })
+    resultatDeGit(['log', '--diff-filter=A', '--format=%as', '-1', '--', '.claude/memory/user-a.md'], { cwd: racine, env: process.env })
+    lancerGit(['rev-parse', '--show-toplevel'], { cwd: racine, env: process.env })
+    assert.throws(() => lancerGit(['rev-parse', '--verify', 'inexistante'], { cwd: racine, env: process.env }), (e) => e.status === 128)
   } finally { c.restaurer() }
   try {
     const mesure = c.rendu()
@@ -96,7 +96,7 @@ test('mesure 2456 : les requêtes non rejouables rendent la mesure incomplète',
   const { racine } = instanceDeDepot({ fichiers: { 'a.md': 'a' } })
   const c = installer({ racine, ignores: new Set() })
   try {
-    spawnSync('git', ['status', '--short'], { cwd: racine, encoding: 'utf8' })
+    resultatDeGit(['status', '--short'], { cwd: racine, env: process.env })
     assert.match(c.rendu().incomplet.join('\n'), /commande status/)
     assert.deepEqual(c.rendu().git, [])
   } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }

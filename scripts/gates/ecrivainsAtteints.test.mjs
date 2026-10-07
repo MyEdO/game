@@ -29,6 +29,7 @@ const ATTENDU = {
   'agents:check': ['scripts/agents/compat-cli.mjs'],
   'test:agents': ['scripts/agents/compat-cli.mjs'],
   'test:hooks': [
+    'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/budget-contexte.test.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/guards/contrat-typescript.test.mjs',
@@ -231,6 +232,7 @@ const ATTENDU = {
   // l'histoire par git et rend son verdict.
   'livraison:plage': [],
   'test:ops': [
+    'scripts/docs/lib/fraicheur-docs.mjs',
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` prend ses dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
     //   sous os.tmpdir() (fixture partagée + mkdtemp), jetés en finally — aucune écriture DANS
@@ -325,6 +327,7 @@ const ATTENDU = {
     'scripts/ops/vigie.test.mjs',
   ],
   'test:runner': [
+    'scripts/docs/lib/enregistreur-lectures.mjs',
     // +1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` importe le générateur, dont seule la
     // porte `import.meta.main` écrit (`ecrireOuVerifier`) ; le banc calcule les formats en mémoire,
     // recouvrement virtuel compris — l'arbre n'est jamais écrit.
@@ -376,6 +379,10 @@ const ATTENDU = {
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/docs/lib/fraicheur-docs.test.mjs',
+    'scripts/git-hooks/journal.mjs',
+    'scripts/test/verrou.mjs',
     // `scripts/docs/lib/jsdocUnion.test.mjs`
     'scripts/docs/lib/jsdocUnion.test.mjs',
     'scripts/docs/lib/plateforme-win32-fs.test.mjs',
@@ -399,8 +406,16 @@ const ATTENDU = {
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
   // de CODE par `ecrireOuVerifier`.
-  build: ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
-  'docs:build': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
+  build: [
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+  ],
+  'docs:build': [
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+  ],
   'test:raw': [
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE

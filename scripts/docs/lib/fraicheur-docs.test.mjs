@@ -7,7 +7,8 @@ import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 import { ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, SOURCES_LUES } from '../build-all.mjs'
 import { selectionDesGenerateurs } from '../../git-hooks/docs-rebuild.mjs'
-import { CACHE_FRAICHEUR, avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, preparerPreuves, preuveValide } from './fraicheur-docs.mjs'
+import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
+import { avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, preparerPreuves, preuveValide } from './fraicheur-docs.mjs'
 
 const doc = (nom) => ['docs', `${nom}.md`].join('/')
 const code = ['src', 'banc.generated.ts'].join('/')

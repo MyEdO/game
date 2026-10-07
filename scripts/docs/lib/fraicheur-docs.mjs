@@ -6,7 +6,7 @@ import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import { canoniser, dansLaMesure, ignoresGit, relatifSousRacine } from './chemin-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 
-export const CACHE_FRAICHEUR = 'node_modules/.cache/docs-fraicheur.json'
+import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 

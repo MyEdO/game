@@ -16,7 +16,8 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
-import { CACHE_FRAICHEUR, chargerPreuve, preuveValide } from './lib/fraicheur-docs.mjs'
+import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
+import { chargerPreuve, preuveValide } from './lib/fraicheur-docs.mjs'
 import { ciblesPures, ciblesSurDisque, SOURCES_LUES } from './build-all.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
@@ -325,12 +326,12 @@ test('premier baseline : CODE généré lu, requête Git et sonde stat sont rée
   const code = ['src', 'banc.generated.mjs'].join('/')
   const generateurs = [{ runner: 'node', script: 'g/code.mjs', targets: [code] }, ...GENERATEURS_REELS]
   const a = generateurReel('a') + '\n' + [
-    "import { execFileSync } from 'node:child_process'",
+    `import { lancerGit } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../test/gitDeBanc.mjs')).href)}`,
     "import { statSync } from 'node:fs'",
     `import { depotDe, listerImage, INDEX } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../guards/lib/gitPorte.mjs')).href)}`,
     "listerImage(depotDe(process.cwd()), INDEX)",
     `import { valeur } from '../${code}'`,
-    "const noms = execFileSync('git', ['ls-files', '--cached', '--', 'src/*.ts'], { encoding: 'utf8' })",
+    "const noms = lancerGit(['ls-files', '--cached', '--', 'src/*.ts'], { env: process.env })",
     "statSync('src/absent.txt', { throwIfNoEntry: false })",
     "if (valeur !== 1 || !noms.includes('src/a.ts')) throw new Error('fixture')",
   ].join('\n')
