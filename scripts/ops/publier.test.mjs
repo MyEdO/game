@@ -438,7 +438,7 @@ describe('estDocDerive', () => {
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
@@ -722,6 +722,26 @@ test('la table des ÉTAPES nomme les sept étapes, dans l’ordre du régime —
   // `push-branche` → `pr` → `file` : le push de la branche DÉCLENCHE la CI de la tête, la PR armée
   // entre dans la file, et le SERVEUR sérialise et fusionne (#2178).
   assert.deepEqual(NOMS, ['preflight', 'docs', 'push-branche', 'pr', 'file', 'pilotage', 'fin'])
+})
+
+test('#2187 `fin` : le principal synchronisé par `ctx.synchroniserPrincipal()`, son état au `dit`, un refus ne rougit jamais le train', () => {
+  const fin = ETAPES.find((e) => e.nom === 'fin')
+  const journal = { tete: 'a'.repeat(40), etapes: { file: { detail: { fusion: 'b'.repeat(40) } } } }
+  const appels = []
+  const jouer = (rendu) => fin.jouer({ synchroniserPrincipal: () => { appels.push(rendu); return rendu } }, journal)
+  const avance = { ok: true, vu: { etat: 'avance', de: 'c', vers: 'd', configurationClientChangee: [] } }
+  assert.deepEqual(jouer(avance), { ok: true, detail: { principal: avance }, dit: `publication complète de aaaaaaaaa en bbbbbbbbb ; principal : ${JSON.stringify(avance.vu)}` })
+  const refus = { ok: true, vu: { etat: 'branche-etrangere', branche: 'x' } }
+  assert.equal(jouer(refus).ok, true)
+  assert.match(jouer(refus).dit, /principal : \{"etat":"branche-etrangere","branche":"x"\}$/)
+  const illisible = { ok: false, raison: 'aucun état lisible (code 1)' }
+  assert.equal(jouer(illisible).ok, true)
+  assert.match(jouer(illisible).dit, /publication complète .* ; principal non synchronisé : aucun état lisible \(code 1\)$/)
+  assert.equal(appels.length, 5)
+  const ctx = contexteDe({ racine: mkdtempSync(join(tmpdir(), 'sans-synchro-')), branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  const vu = ctx.synchroniserPrincipal()
+  assert.equal(vu.ok, false, 'aucun synchroniseur sous cette racine : aucun état, et aucune exception')
+  assert.match(vu.raison, /aucun état lisible \(code 1\)/)
 })
 
 // ── messageDuTrain / PLAGE_DE_CITATIONS ──────────────────────────────────────────

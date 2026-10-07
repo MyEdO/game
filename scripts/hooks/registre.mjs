@@ -12,6 +12,7 @@ import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as poison } from './poison-postcheck.mjs'
 import { garde as suiviLien } from './suivi-lien-guard.mjs'
+import { garde as solde } from './solde-ticket-guard.mjs'
 
 export const REGISTRE = {
   PreToolUse: [
@@ -20,3 +21,6 @@ export const REGISTRE = {
   ],
   PostToolUse: [poison],
 }
+
+/** Le registre de la porte de fermeture (`solde-ticket-hook.mjs`), lu aussi par `scripts/agents/compat-core.mjs`. */
+export const REGISTRE_SOLDE = { PreToolUse: [solde] }

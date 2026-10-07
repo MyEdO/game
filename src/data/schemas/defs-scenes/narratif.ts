@@ -1,24 +1,26 @@
 /**
- * Schéma zod du bloc NARRATIF embarqué d'un projet (`src/state/campaignNarratif.ts`, #765).
+ * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : `src/state/campaignNarratif.ts`
+ * en dérive ses types par `z.infer`.
  *
  * Frontière RÉFÉRENCE vs NARRATIF : le narratif est EMBARQUÉ dans le document de campagne et
  * RÉFÉRENCE la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée. L'invariant
  * est gardé ICI : aucun id narratif ne collisionne avec un id de la règle globale
  * (créature/possession), et les registres (`REGISTRES_NARRATIFS`) n'ont aucun id en commun.
  *
- * Prose d'un stade d'indice et `pitch` d'ouverture : verbatim quand `source` est posé (règle stricte 5) ;
- * sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
+ * Stade d'indice, preset PNJ, ouverture : `source` (règle stricte 5) ⊕ `adapteDe` (`champAdapteDe`,
+ * `grammaire/prose.ts` ; fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`). Document :
+ * `source` seul.
  */
 import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
+import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
-import { idDe } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
-import { proseDeScene } from '../grammaire/prose';
-import { entreePartielle as creatureEntreePartielle, type CreatureProfilPartiel } from '../defs/creatures';
+import { champAdapteDe, proseDeScene, refineAdapteDe } from '../grammaire/prose';
+import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
-import type { TrappingData } from '../../index';
+import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 
@@ -30,7 +32,8 @@ export const indiceStadeSchema = z.strictObject({
   prose: proseDeScene('narratif.indices[].stades[].prose').optional(),
   documentId: z.string().min(1, 'id de document vide.').optional(),
   source: sourceRefSchema.optional(),
-});
+  ...champAdapteDe(),
+}).superRefine(refineAdapteDe);
 
 /** Un document remis au joueur (#679) — prose VERBATIM (règle 5, Markdown), servie par l'Effect
  *  `document { documentId }`. */
@@ -63,18 +66,33 @@ export const affaireSchema = z.strictObject({
   desc: z.string().optional(),
 });
 
+
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
- *  même forme qu'une entrée de `creatures.json`, partielle). */
+ *  même forme qu'une entrée de `creatures.json`, partielle). Le nœud de l'entrée partielle est SCELLÉ
+ *  (`z.infer` y vaut `unknown`) : sa vue TS est celle que le runtime consomme, `Partial<CreatureData>`
+ *  (`state/campaignData.ts`), même régime que `objets` ci-dessous. */
 export const presetPnjSchema = z.strictObject({
   id: z.string().min(1, 'id vide.'),
-  base: idDe('creature').optional(),
-  profil: (creatureEntreePartielle as z.ZodType<CreatureProfilPartiel>).optional(),
+  base: idDeCreature.optional(),
+  profil: (creatureEntreePartielle as z.ZodType<Partial<CreatureData>>).optional(),
   apparence: entityAppearanceSchema.optional(),
   /** id d'illustration (registre d'art), affichage seul. */
   portrait: z.string().optional(),
   source: sourceRefSchema.optional(),
   couvre: couvreSchema.optional(),
-});
+  ...champAdapteDe(),
+})
+  .superRefine(refineAdapteDe)
+  .superRefine(refinePresetAdapte);
+
+/** Un preset ADAPTÉ (`adapteDe`) ne porte pas de prose ADRESSÉE : la prose d'un preset est `profil.desc`,
+ *  et `profil.descRef` en fait la copie du livre (#2001). */
+function refinePresetAdapte(v: unknown, ctx: z.RefinementCtx): void {
+  const p = (v ?? {}) as { adapteDe?: unknown; profil?: { descRef?: unknown } };
+  if (p.adapteDe !== undefined && p.profil?.descRef !== undefined) {
+    ctx.addIssue({ code: 'custom', path: ['adapteDe'], message: 'texte adapté, alors que la description du profil est la copie adressée du livre.' });
+  }
+}
 
 /** Une entrée de fiche de dossier de chapitre ÉCARTÉE par l'adaptation (#2290), avec son motif. */
 export const ecartSchema = z.strictObject({
@@ -91,8 +109,9 @@ export const ouvertureSchema = z.strictObject({
   chapitre: z.string().optional(),
   pitch: proseDeScene('narratif.ouverture.pitch').min(1, 'pitch vide.'),
   source: sourceRefSchema.optional(),
+  ...champAdapteDe(),
   ambiance: z.enum(['veillee', 'parchemin']).optional(),
-});
+}).superRefine(refineAdapteDe);
 
 /** CLÔTURE du chapitre (#717, `ClotureBlock`) — `when` évalué au contexte HORS COMBAT (`condCtx`),
  *  d'où le MÊME schéma borné que le `when` d'un lieu de carte (un kind non évaluable serait FAUX
@@ -202,5 +221,5 @@ const formeNarratif = z.strictObject({
   ecartes: listeCle(ecartSchema, 'entree').optional(),
 });
 
-/** `NarratifBlock` (`state/campaignNarratif.ts:58`) — forme + sémantique. */
+/** `NarratifBlock` (`state/campaignNarratif.ts`) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);

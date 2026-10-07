@@ -125,7 +125,7 @@ function rendu() {
 
   /** La PROVENANCE est un invariant de la fabrique (`source` ∨ `maison`) : sa présence est MESURÉE
    *  dans le corps de `document()` plutôt qu'affirmée — si le refine disparaît, la phrase tombe. */
-  if (!/entrée sans .{1,2}source.{1,2} — un document sans folio porte .{1,2}maison.{1,2}/.test(DOC_SRC)) {
+  if (!/provenance manquante : cite le livre et la page, ou dis la raison maison/.test(DOC_SRC)) {
     abandon(`le refine de PROVENANCE (\`source\` ∨ \`maison\`) n'est plus lisible dans ${DOC} — la règle a bougé`)
   }
 

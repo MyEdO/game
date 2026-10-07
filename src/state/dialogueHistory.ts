@@ -3,8 +3,8 @@
 export interface DialogueTurn {
   /** Nom AFFICHÉ du locuteur (label d'entité résolu), absent si le dialogue n'a pas de speaker. */
   speaker?: string;
-  /** Texte du nœud (ce qui a été dit au joueur). */
-  nodeText: string;
+  /** Texte du nœud (ce qui a été dit au joueur) — `DialogueNode.desc`, absent quand le nœud n'en porte pas. */
+  nodeText?: string;
   /** Texte du choix retenu par le joueur (sa réponse). */
   choiceText: string;
   /** gameTime (minutes) du tour. */

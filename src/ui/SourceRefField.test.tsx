@@ -4,7 +4,7 @@
  * Codex (champ `source`, emplacements secondaires, variantes) et éditeur narratif (ouverture, stade,
  * PNJ). Contrat : seule une réf COMPLÈTE (livre du registre, page ≥ 1) est émise ; une saisie
  * incomplète n'est jamais perdue : elle n'émet rien, la source retenue reste la précédente et le champ
- * se dit incomplet ; facultative, seul un brouillon VIDE (livre, page et note vides) émet `undefined`.
+ * se dit incomplet — une `value` reçue incomplète (livre amorcé), elle, ne se signale qu'à la première saisie ; facultative, seul un brouillon VIDE (livre, page et note vides) émet `undefined`.
  * Les clés du porteur (`quote` d'un `SecondaryRef`) gardent leur place.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
@@ -225,6 +225,18 @@ describe('SourceRefField — seule une réf complète est émise, la saisie ne s
     valider(page);
     expect(emissions).toBe(1);
     expect(secondaire).toEqual({ book: 'aux-armes', page: 8, quote: 'Cimeterre' });
+  });
+
+  it('valeur reçue INCOMPLÈTE (livre amorcé), non touchée : aucun signal ; la première saisie le fait paraître', () => {
+    emissions = 0;
+    monter(<Facultative initiale={{ book: 'livre-de-base' } as SourceRef} />);
+    expect(livre('Livre de la source du témoin').value, 'le livre amorcé s’affiche').toBe('livre-de-base');
+    expect(incomplet(), 'un champ amorcé que l’auteur n’a pas touché se dit incomplet').toBeNull();
+    expect(champ('Page de la source du témoin').getAttribute('aria-invalid')).toBeNull();
+    saisir(champ('Note de la source du témoin'), 'ch. 2');
+    expect(incomplet(), 'la première saisie ne signale pas le brouillon incomplet').toContain('incomplète');
+    expect(champ('Page de la source du témoin').getAttribute('aria-invalid')).toBe('true');
+    expect(emissions).toBe(0);
   });
 
   it('page vidée puis validée : la page retenue revient à l’écran, rien n’est émis', () => {

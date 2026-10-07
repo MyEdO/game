@@ -5,7 +5,7 @@
  * ci-dessus suit le fichier, il ne le fige pas.
  */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
+import { document } from '../grammaire/document';
 import { availabilitySchema, harvestRaritySchema, entityAppearanceSchema, moneySchema } from '../grammaire/valeurs';
 import { talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
@@ -88,11 +88,6 @@ const champs = {
       availability: availabilitySchema.optional(),
     }).optional(),
 };
-
-/** VUE TS d'un profil de créature EMBARQUÉ (patch PARTIEL de l'entrée, `defs-scenes/narratif.ts`) :
- *  le nœud rendu par la fabrique est SCELLÉ, donc `z.infer` y vaut `unknown` — la vue se recompose
- *  ici, sans jamais rouvrir le nœud (patron `axes.ts`). */
-export type CreatureProfilPartiel = Partial<EnveloppeDocument & z.infer<z.ZodObject<typeof champs>>>;
 
 const doc = document(
   'creatures',

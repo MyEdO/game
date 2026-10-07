@@ -4,7 +4,7 @@
 //   - `{ decision: 'deny', raison }` — un refus, dont la raison dit quoi faire à la place ;
 //   - `{ contexte }` — du contexte transmis à l'agent ;
 //   - `{ trace: { fichier, ligne } }` — une ligne que le répartiteur AJOUTE au fichier.
-// Le répartiteur (`scripts/hooks/repartiteur.mjs`) lit, construit le contexte, évalue et cumule.
+// Le répartiteur (`scripts/hooks/repartition.mjs`) lit, construit le contexte, évalue et cumule.
 // Aucune garde ne DEMANDE (`ask`) : doctrine `user-doctrine-gardes-jamais-de-ask` (2026-09-28).
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */

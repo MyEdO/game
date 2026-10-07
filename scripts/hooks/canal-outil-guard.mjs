@@ -5,7 +5,7 @@
 // tout autre outil s'appelle DIRECTEMENT ; une écriture que les gardes d'écriture ne sauraient juger
 // (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE, comme une entrée `ctx_patch` qui
 // porte une clé que son op ne consomme pas (`OPS_CTX_PATCH`), ou un shell lean-ctx qui porte une clé hors de
-// `CLES_SHELL` ; un appel dont le contexte (`construireContexte`, `scripts/hooks/repartiteur.mjs`) dit le
+// `CLES_SHELL` ; un appel dont le contexte (`construireContexte`, `scripts/hooks/repartition.mjs`) dit le
 // lieu NON JUGEABLE (#2224) est refusé avec le canal que ce contexte prescrit. Canal prescrit :
 // `~/.claude/CLAUDE.md` (« Project edits: `ctx_read(mode="anchored")` → `ctx_patch` »).
 import {

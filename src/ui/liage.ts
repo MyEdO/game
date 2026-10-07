@@ -52,7 +52,8 @@ export type OrigineProse =
 
 /**
  * Un SITE TERMINAL qui rend du markdown : un élément JSX d'un composant porteur de prose
- * (`Prose{md}`, `ActivityPane{desc}`, `DetailFrame{prose}`, `LoreText{md}`, les volets d'interlude)
+ * (`Prose{md}`, `ActivityPane{desc}`, `DetailFrame{prose}`, `LoreText{md}`, `ProseField{lecture}`, les volets
+ * d'interlude)
  * dont la valeur n'est PAS la simple transmission d'une prop du composant courant.
  *
  * `cle` = `fichier#Balise.prop#n` (`n` = rang de ce couple balise/prop DANS le fichier, en ordre de
@@ -128,11 +129,14 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', note: 'RESTE T0 : idem (lectures précédentes)' },
   { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `store.document.text` — la prose de `narratif.documents[].prose` que pose l’effet `document` (`src/state/combatEffects.ts`), même blocage d’identité de projet ; la même surface rend aussi le rapport de naufrage, texte RUNTIME (`src/state/shipwreck.ts`)' },
   { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `massBattle.terrain`, authoré dans l’effet de scène — même blocage d’identité de projet' },
+  { cle: 'src/ui/editor/DialogueDetail.tsx#ProseField.lecture#1', origine: 'S', note: 'RESTE T0 : réplique d’un nœud de dialogue lue tant qu’elle adresse un passage (`descRef`) — prose de scène, même blocage d’identité de projet' },
+  { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#1', origine: 'S', note: 'RESTE T0 : ligne de l’effet `journal` lue tant qu’elle adresse un passage (`descRef`) — prose de scène, même blocage d’identité de projet' },
 
   // ── Galerie DEV (montée vivante : des sites réels, pas des fixtures) ──────────────────────────
   { cle: 'src/ui/gallery/registry.tsx#DetailFrame.prose#1', origine: 'S', porteur: 'careers.desc' },
   { cle: 'src/ui/gallery/registry.tsx#DetailFrame.prose#2', origine: 'S', porteur: 'careers.desc' },
   { cle: 'src/ui/gallery/registry.tsx#ActivityPane.desc#1', origine: 'UI', note: 'démo : chaîne de galerie' },
+  { cle: 'src/ui/gallery/registry.tsx#ProseField.lecture#1', origine: 'S', note: 'démo de la réplique adressée, composée comme `DialogueDetail` et amorcée de `psychology.json#terreur` (`desc` + `descRef`) : nue comme le site qu’elle montre' },
 ];
 
 /**

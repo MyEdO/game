@@ -21,8 +21,11 @@
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
 import { spawn, spawnSync } from 'node:child_process'
-import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { verrouOutillageDe } from './barriere-outil.mjs'
+import { attendreLibre, prendreVerrou } from '../test/verrou.mjs'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { BUDGET_CONSTAT, JOURNAL_DOCS, PREREQUIS } from './bootstrap-prerequis.mjs'
@@ -54,131 +57,76 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** VERROU du `docs:build` détaché, relatif à la racine : créé exclusif (`wx`), il porte le pid du build. */
-export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.pid'
+/** VERROU du `docs:build` détaché, relatif à la racine (`scripts/test/verrou.mjs`) : tenu par le
+ *  constructeur détaché lui-même (`construireDocs`), le temps du build. */
+export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.verrou'
 
-/** Délai au-delà duquel un verrou sans pid lisible est ABANDONNÉ (hook tué entre création et écriture). */
-const ABANDON_VERROU_MS = 10_000
-
-/**
- * Âge au-delà duquel un verrou est PÉRIMÉ quel que soit son pid. Le verrou n'est jamais retiré à la fin
- * du build : un pid recyclé par un processus étranger dans cette fenêtre fait sauter le build JUSQU'À
- * cette borne — borné, pas fermé. Un `docs:build` CI dure ~80 s (job docs du run 36803856342).
- */
-export const AGE_MAX_VERROU_MS = 30 * 60 * 1000
-
-/** `pid` désigne-t-il un processus vivant ? Un refus de signal (`EPERM`) prouve qu'il existe. */
-const pidVivant = (pid) => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return e.code === 'EPERM'
-  }
-}
-
-/** Essais de prise du verrou : une prise perdue contre une autre session se rejoue, bornée. */
-const ESSAIS_VERROU = 3
+/** Le module de CE hook, que le constructeur détaché relance en mode `--docs-build`. */
+const MODULE = fileURLToPath(import.meta.url)
 
 /**
- * Le pid du build qui TIENT le verrou, ou `null` s'il est périmé : absent, plus vieux que
- * `AGE_MAX_VERROU_MS`, pid mort, ou illisible et abandonné.
+ * Le CONSTRUCTEUR détaché : il PREND `VERROU_DOCS` à son propre PID, puis seulement ouvre `JOURNAL_DOCS`
+ * et joue `docs:build` ; un constructeur qui perd la prise sort sans toucher au journal. REND le code du
+ * build, `null` sans prise. `lancer` s'injecte (mesure).
  */
-function tenantDuVerrou(verrou) {
-  let mtimeMs
-  let texte
+export function construireDocs(racine, { lancer = spawnSync } = {}) {
+  const prise = prendreVerrou({ chemin: join(racine, VERROU_DOCS), libelle: 'docs:build détaché', commande: 'bootstrap-conteneur --docs-build', cwd: racine })
+  if (prise.etat !== 'pris') return null
   try {
-    ;({ mtimeMs } = statSync(verrou))
-    texte = readFileSync(verrou, 'utf8')
-  } catch (e) {
-    if (e.code === 'ENOENT') return null
-    throw e
-  }
-  if (Date.now() - mtimeMs > AGE_MAX_VERROU_MS) return null
-  const pid = Number(texte.trim())
-  if (Number.isInteger(pid) && pid > 0) return pidVivant(pid) ? pid : null
-  return Date.now() - mtimeMs < ABANDON_VERROU_MS ? 0 : null
-}
-
-/**
- * Écarte le verrou jugé périmé par un RENOMMAGE vers un nom propre à ce processus : de deux sessions
- * qui l'ont jugé périmé, une seule le renomme, l'autre reçoit `ENOENT`. Le fichier écarté se rejuge :
- * entre le constat et le renommage, une autre session a pu reprendre le verrou, et ce verrou VIVANT se
- * repose (`linkSync`, qui refuse d'écraser).
- */
-function ecarterVerrouPerime(verrou) {
-  const ecarte = `${verrou}.${process.pid}.${Date.now()}.perime`
-  try {
-    renameSync(verrou, ecarte)
-  } catch (e) {
-    if (e.code === 'ENOENT') return
-    throw e
-  }
-  try {
-    if (tenantDuVerrou(ecarte) !== null) linkSync(ecarte, verrou)
-  } catch (e) {
-    if (e.code !== 'EEXIST') throw e
-  } finally {
-    rmSync(ecarte, { force: true })
-  }
-}
-
-/**
- * Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook), sortie dans `JOURNAL_DOCS` ; rend la
- * forme de `lancer`, `valeur` = le pid. Deux sessions ouvertes avant la fin du build : le verrou
- * `VERROU_DOCS` tenu par un build VIVANT, il n'est ni relancé ni son journal tronqué — `valeur` est le
- * pid du build en cours. Un verrou périmé s'écarte (`ecarterVerrouPerime`), puis se reprend.
- * `entreConstatEtEcart` (appelé entre le constat d'un verrou périmé et son écart) s'injecte (mesure).
- */
-export function docsBuildDetache(racine, { entreConstatEtEcart = () => {} } = {}) {
-  const journal = join(racine, JOURNAL_DOCS)
-  const verrou = join(racine, VERROU_DOCS)
-  mkdirSync(dirname(journal), { recursive: true })
-  let tenu
-  for (let essai = 0; tenu === undefined; essai++) {
+    const fd = openSync(join(racine, JOURNAL_DOCS), 'w')
     try {
-      tenu = openSync(verrou, 'wx')
-    } catch (e) {
-      if (e.code !== 'EEXIST' || essai >= ESSAIS_VERROU) return { ok: false, valeur: '', rapport: borner(e.message) }
-      const tenant = tenantDuVerrou(verrou)
-      if (tenant !== null) return { ok: true, valeur: tenant ? String(tenant) : '', rapport: '' }
-      entreConstatEtEcart()
-      try {
-        ecarterVerrouPerime(verrou)
-      } catch (ecart) {
-        return { ok: false, valeur: '', rapport: borner(ecart.message) }
-      }
-    }
-  }
-  let pid
-  try {
-    const fd = openSync(journal, 'w')
-    try {
-      const enfant = spawn(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], {
-        cwd: racine, detached: true, stdio: ['ignore', fd, fd], windowsHide: true,
-      })
-      enfant.unref()
-      pid = String(enfant.pid ?? '')
-      writeSync(tenu, pid)
+      return lancer(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], { cwd: racine, stdio: ['ignore', fd, fd], windowsHide: true }).status
     } finally {
       closeSync(fd)
     }
-  } catch (e) {
-    closeSync(tenu)
-    rmSync(verrou, { force: true })
-    return { ok: false, valeur: '', rapport: borner(e.message) }
+  } finally {
+    prise.liberer()
   }
-  closeSync(tenu)
-  return { ok: true, valeur: pid, rapport: '' }
 }
 
-/** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés et
- *  leur `docs:build` détaché : injectables (mesure). Une pose rend la forme de `lancer`. */
+/**
+ * Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook) : le constructeur (`construireDocs`), si
+ * `VERROU_DOCS` est libre au premier essai ; rend la forme de `lancer`, `valeur` = son pid. Verrou tenu
+ * par un vivant : rien n'est lancé, `valeur` = le pid du constructeur en cours.
+ */
+export function docsBuildDetache(racine) {
+  const verrou = join(racine, VERROU_DOCS)
+  const vu = attendreLibre({ chemin: verrou })
+  if (vu.etat !== 'libre') return { ok: true, valeur: String(vu.tenant.pid), rapport: '' }
+  try {
+    mkdirSync(dirname(verrou), { recursive: true })
+    const enfant = spawn(process.execPath, [MODULE, '--docs-build', racine], { cwd: racine, detached: true, stdio: 'ignore', windowsHide: true })
+    enfant.unref()
+    return { ok: true, valeur: String(enfant.pid ?? ''), rapport: '' }
+  } catch (e) {
+    return { ok: false, valeur: '', rapport: borner(e.message) }
+  }
+}
+
+/**
+ * `geste()` joué sous le verrou d'outillage de `racine` (`verrouOutillageDe`, #2187), pris au premier essai ;
+ * tenu par un vivant : rien n'est joué, le refus est rendu dans la forme de `lancer`.
+ */
+export function sousOutillage(racine, geste) {
+  const chemin = verrouOutillageDe(racine)
+  if (chemin === null) return geste()
+  const prise = prendreVerrou({ chemin, libelle: 'outillage de l’arbre', commande: 'bootstrap-conteneur npm install', cwd: racine })
+  if (prise.etat !== 'pris') return { ok: false, valeur: '', rapport: borner(prise.message) }
+  try {
+    return geste()
+  } finally {
+    prise.liberer()
+  }
+}
+
+/** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés,
+ *  leur `docs:build` détaché et le verrou d'outillage : injectables (mesure). Une pose rend la forme de `lancer`. */
 export const GESTES_DU_CONTENEUR = Object.freeze({
   estSuperficiel, dossierDesHooks,
   approfondir: (depot, options) => renduDeGit(approfondir(depot, options)),
   docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
   docsBuildDetache,
+  sousOutillage,
 })
 
 /** L'union d'un écrivain de l'hôte, rendue dans la forme de `lancer`. */
@@ -221,7 +169,8 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
-if (import.meta.main) {
+if (import.meta.main && process.argv[2] === '--docs-build') process.exitCode = construireDocs(process.argv[3]) ?? 0
+else if (import.meta.main) {
   const lignes = bootstrap(process.env, process.env.CLAUDE_PROJECT_DIR || process.cwd())
   if (lignes.length) process.stdout.write(`${lignes.join('\n')}\n`)
 }

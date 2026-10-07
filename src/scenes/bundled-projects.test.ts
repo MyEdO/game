@@ -14,7 +14,8 @@ import { MERCHANTS } from '../state/merchants';
 import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../state/scene';
-import { carriedFlows, racinesDeFlow, walkFlow, type Flow } from '../state/flow';
+import { carriedFlows, flowFromEffects, racinesDeFlow, walkFlow, type Flow } from '../state/flow';
+import { emptyNarratif } from '../state/campaignNarratif';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { auPlusProcheAncetre, coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
@@ -244,11 +245,11 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     for (const sc of doc.scenes)
       for (const d of sc.dialogues)
         for (const n of d.nodes) {
-          if (jargon.test(n.desc)) fautifs.push(`${sc.id}/${d.id}/${n.id} : node.desc`);
+          if (n.desc && jargon.test(n.desc)) fautifs.push(`${sc.id}/${d.id}/${n.id} : node.desc`);
           for (const c of n.choices) if (jargon.test(c.label)) fautifs.push(`${sc.id}/${d.id}/${n.id} : choix « ${c.label} »`);
         }
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
-      if (eff.type === 'journal' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : journal « ${eff.desc} »`);
+      if (eff.type === 'journal' && eff.desc && jargon.test(eff.desc)) fautifs.push(`${sceneId} : journal « ${eff.desc} »`);
       if (eff.type === 'setObjective' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : objectif « ${eff.desc} »`);
     }
     // Les modales document lisent le registre (#679) : tout document du paquet, remis ou non.
@@ -470,5 +471,84 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
         .map((paragraphe) => `${p.chemin} → ${p.source.book} : « ${coupeAuMot(paragraphe, 60)} » absent du livre (reformulation ou typographie « corrigée »)`);
     });
     expect(introuvables).toEqual([]);
+  });
+});
+
+type DocDeProvenance = Pick<ProjectDoc, 'source' | 'scenes' | 'narratif'>;
+
+/**
+ * Obligation de provenance d'un paquet ADAPTÉ d'un livre (racine `source`) — évaluation d'ingénierie
+ * révisable (#2001, design issuecomment-5984347165) : chaque stade d'indice, preset PNJ et ouverture
+ * porte son verbatim (`source`) OU `adapteDe` ; chaque nœud de dialogue et effet `journal`, son adresse
+ * (`descRef`) OU `adapteDe`. Tout `adapteDe.book` de tout paquet résout `books.json`. Gardée ICI, pas au
+ * parse : un stade neuf s'enregistre avant sa réf.
+ */
+function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
+  const livres = new Set(books.map((b) => b.id));
+  const fautes: string[] = [];
+  const marche = (v: unknown, chemin: string): void => {
+    if (Array.isArray(v)) return v.forEach((x, i) => marche(x, `${chemin}[${i}]`));
+    if (v == null || typeof v !== 'object') return;
+    const adapte = (v as { adapteDe?: { book?: unknown } }).adapteDe;
+    if (adapte !== undefined && !(typeof adapte.book === 'string' && livres.has(adapte.book))) {
+      fautes.push(`${fichier}${chemin}.adapteDe : book « ${String(adapte.book)} » absent de books.json`);
+    }
+    for (const [k, x] of Object.entries(v)) marche(x, `${chemin}.${k}`);
+  };
+  marche(doc, '');
+  if (!doc.source) return fautes;
+
+  const exige = (chemin: string, n: { source?: unknown; descRef?: unknown; adapteDe?: unknown }, verbatim: 'source' | 'descRef'): void => {
+    if (n[verbatim] === undefined && n.adapteDe === undefined) fautes.push(`${fichier}${chemin} : ni \`${verbatim}\` ni \`adapteDe\` dans un paquet adapté d’un livre`);
+  };
+  const { narratif } = doc;
+  narratif.indices.forEach((ind) => ind.stades.forEach((st) => exige(`.narratif.indices[${ind.id}].stades[${st.id}]`, st, 'source')));
+  narratif.presetsPnj.forEach((p) => exige(`.narratif.presetsPnj[${p.id}]`, p, 'source'));
+  if (narratif.ouverture) exige('.narratif.ouverture', narratif.ouverture, 'source');
+  for (const sc of doc.scenes) for (const dlg of sc.dialogues) for (const n of dlg.nodes) exige(`.scenes[${sc.id}].dialogues[${dlg.id}].nodes[${n.id}]`, n, 'descRef');
+  effetsDuProjet(doc).forEach(({ sceneId, eff }, i) => {
+    if (eff.type === 'journal') exige(`.scenes[${sceneId}] journal #${i}`, eff, 'descRef');
+  });
+  return fautes;
+}
+
+describe('provenance d’un paquet adapté d’un livre — verbatim OU `adapteDe` (#2001)', () => {
+  it.each(bundledFiles.map((f) => [f] as const))('%s : chaque site porte son verbatim ou `adapteDe`, et tout `adapteDe` résout son livre', (file) => {
+    expect(fautesDeProvenance(parseProject(lireProjetLivre(file)), file)).toEqual([]);
+  });
+
+  const SOURCE = { book: 'ennemi-dans-l-ombre', page: 12 };
+  const ADAPTE = { adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } };
+  const NU = { desc: 'Réplique maison.' };
+  const paquet = (node: Record<string, unknown>, journal: Record<string, unknown>, source: typeof SOURCE | null = SOURCE): DocDeProvenance => {
+    const sc = emptyScene(4, 4);
+    sc.id = 'sc';
+    sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...node }] }];
+    sc.triggers = [{ id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'journal', ...journal }]) }];
+    return { ...(source ? { source } : {}), scenes: [sc], narratif: emptyNarratif() };
+  };
+
+  it('un nœud et un journal NUS sous une racine `source` sont nommés', () => {
+    expect(fautesDeProvenance(paquet(NU, NU), 'f')).toEqual([
+      'f.scenes[sc].dialogues[dlg].nodes[n1] : ni `descRef` ni `adapteDe` dans un paquet adapté d’un livre',
+      'f.scenes[sc] journal #0 : ni `descRef` ni `adapteDe` dans un paquet adapté d’un livre',
+    ]);
+  });
+
+  it('les mêmes, ADRESSÉS (`descRef`), passent : l’adresse est leur verbatim', () => {
+    const ADRESSE = { descRef: { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] } };
+    expect(fautesDeProvenance(paquet({ ...NU, ...ADRESSE }, { ...NU, ...ADRESSE }), 'f')).toEqual([]);
+  });
+
+  it('les mêmes, `adapteDe`, passent ; un paquet sans racine `source` n’exige rien', () => {
+    expect(fautesDeProvenance(paquet({ ...NU, ...ADAPTE }, { ...NU, ...ADAPTE }), 'f')).toEqual([]);
+    expect(fautesDeProvenance(paquet(NU, NU, null), 'f')).toEqual([]);
+  });
+
+  it('un `adapteDe.book` inconnu est nommé, même hors racine `source`', () => {
+    const inconnu = { ...NU, adapteDe: { book: 'livre-fantome', page: 1 } };
+    expect(fautesDeProvenance(paquet(inconnu, { ...NU, ...ADAPTE }, null), 'f')).toEqual([
+      'f.scenes[0].dialogues[0].nodes[0].adapteDe : book « livre-fantome » absent de books.json',
+    ]);
   });
 });

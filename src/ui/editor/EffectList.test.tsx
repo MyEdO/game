@@ -7,7 +7,8 @@ import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS,
 import { FlowEditor } from './FlowEditor';
 import { EMPTY_FLOW } from '../../state/flow';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
-import { convertTo } from './AddMenu';
+import { convertTo, memoriser } from './AddMenu';
+import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import type { Effect } from '../../state/scene';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
@@ -131,6 +132,35 @@ describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seu
     expect(convertTo(newEffect('setObjective'), memoire, 'type')).toEqual({
       type: 'setObjective', id: '', desc: 'Le plancher gemit',
     });
+  });
+
+  /** Un changement de type de `TypeMenu` : la mémoire retient `value` (`memoriser`), puis le type visé la lit (`convertTo`). */
+  const changeDeType = (memoire: Record<string, unknown>, value: object, vise: Effect['type']) => {
+    const retenue = memoriser(memoire, value);
+    return { memoire: retenue, bloc: convertTo(newEffect(vise), retenue, 'type') };
+  };
+
+  it('la PROVENANCE d’un journal survit à l’aller-retour journal → objectif → journal (#2001)', () => {
+    const journal = { type: 'journal', desc: 'Réplique adaptée.', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } };
+    const aller = changeDeType({}, journal, 'setObjective');
+    expect(changeDeType(aller.memoire, aller.bloc, 'journal').bloc).toEqual({ type: 'journal', desc: 'Réplique adaptée.', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } });
+  });
+
+  it('journal ADRESSÉ → objectif → journal : ni texte du livre sans son adresse, ni adresse sans son texte (#2001)', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    expect(adresseUnPassage(descRef)).toBe(true);
+    const aller = changeDeType({}, { type: 'journal', desc: 'Texte du livre.', descRef }, 'setObjective');
+    expect(aller.bloc).toEqual({ type: 'setObjective', id: '', desc: '' });
+    expect(changeDeType(aller.memoire, aller.bloc, 'journal').bloc).toEqual({ type: 'journal', desc: 'Texte du livre.', descRef });
+  });
+
+  it('journal ADRESSÉ → objectif où l’auteur ÉCRIT → journal → objectif : son texte l’emporte sur l’adresse (#2001)', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    const aller = changeDeType({}, { type: 'journal', desc: 'Texte du livre.', descRef }, 'setObjective');
+    const retour = changeDeType(aller.memoire, { ...aller.bloc, desc: 'X' }, 'journal');
+    expect(retour.bloc).toEqual({ type: 'journal', desc: 'X' });
+    expect((retour.bloc as { descRef?: unknown }).descRef).toBeUndefined();
+    expect(changeDeType(retour.memoire, retour.bloc, 'setObjective').bloc).toEqual({ type: 'setObjective', id: '', desc: 'X' });
   });
 
   it('ajouter et changer le type proposent EXACTEMENT le même vocabulaire', () => {

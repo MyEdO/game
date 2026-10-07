@@ -8,6 +8,19 @@ import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, etatDeLArbre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
 import { journaliserLeHook } from './journal.mjs'
+import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
+
+/** L'attente du verrou d'outillage avant un `npm ci`. Valeur maison. */
+export const ATTENTE_OUTILLAGE = Object.freeze({ echeanceMs: 120_000, pasMs: 200 })
+
+/** Le verrou d'outillage de l'arbre `cwd` (`verrouOutillageDe`, #2187) pris pour ses `npm ci` ; `pris` sans
+ *  verrou hors dépôt. */
+function prendreOutillage(cwd, hook) {
+  const chemin = verrouOutillageDe(cwd)
+  if (chemin === null) return { etat: 'pris', liberer: () => {} }
+  return prendreVerrou({ chemin, libelle: 'outillage de l’arbre', commande: `docs-rebuild ${hook}`, cwd, attente: ATTENTE_OUTILLAGE })
+}
 
 /** Fichiers de `de`..`a` (ORIG_HEAD..HEAD par défaut, SHA capturés pour post-commit).
  *  Borne absente ou git indisponible : `null`. */
@@ -153,23 +166,33 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
   if (selection.scripts.length) annoncer(`[${hook}] docs : ${selection.complete ? 'génération complète' : 'sélection'} (${selection.scripts.length}/${generateurs.length}) — ${selection.raison}\n`)
   if (lot === null) annoncer(`[${hook}] plage Git inconnue : npm ci racine et server requis avant génération\n`)
   let codeProduit = false
-  for (const prefixe of ['', 'server/']) {
-    if (lot !== null && !lot.includes(`${prefixe}package-lock.json`)) continue
-    if (!existsSync(join(cwd, `${prefixe}package-lock.json`))) {
-      if (lot?.includes(`${prefixe}package-lock.json`)) {
-        annoncer(`[${hook}] lockfile ${prefixe}package-lock.json absent : réparer puis relancer \`npm ${prefixe ? '--prefix server ' : ''}ci\` ; générations arrêtées\n`)
+  let outillage = null
+  try {
+    for (const prefixe of ['', 'server/']) {
+      if (lot !== null && !lot.includes(`${prefixe}package-lock.json`)) continue
+      if (!existsSync(join(cwd, `${prefixe}package-lock.json`))) {
+        if (lot?.includes(`${prefixe}package-lock.json`)) {
+          annoncer(`[${hook}] lockfile ${prefixe}package-lock.json absent : réparer puis relancer \`npm ${prefixe ? '--prefix server ' : ''}ci\` ; générations arrêtées\n`)
+          return 1
+        }
+        continue
+      }
+      const relance = prefixe ? 'npm --prefix server ci' : 'npm ci'
+      outillage ??= prendreOutillage(cwd, hook)
+      if (outillage.etat !== 'pris') {
+        annoncer(`[${hook}] fusion effectuée, \`${relance}\` non lancé : ${outillage.message} ; générations arrêtées\n`)
         return 1
       }
-      continue
+      const args = [...(prefixe ? ['--prefix', 'server'] : []), 'ci', '--no-audit', '--no-fund']
+      const vu = etape(relance, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, { cwd, stdio: 'inherit', shell: true }))
+      if (vu?.error || vu?.status !== 0) {
+        annoncer(`[${hook}] fusion effectuée, équipement incomplet : relancer \`${relance}\` dans ${cwd} (${vu?.error?.message ?? `code ${vu?.status}`}) ; générations arrêtées\n`)
+        return 1
+      }
+      if (!prefixe) codeProduit = true
     }
-    const relance = prefixe ? 'npm --prefix server ci' : 'npm ci'
-    const args = [...(prefixe ? ['--prefix', 'server'] : []), 'ci', '--no-audit', '--no-fund']
-    const vu = etape(relance, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, { cwd, stdio: 'inherit', shell: true }))
-    if (vu?.error || vu?.status !== 0) {
-      annoncer(`[${hook}] fusion effectuée, équipement incomplet : relancer \`${relance}\` dans ${cwd} (${vu?.error?.message ?? `code ${vu?.status}`}) ; générations arrêtées\n`)
-      return 1
-    }
-    if (!prefixe) codeProduit = true
+  } finally {
+    outillage?.liberer?.()
   }
   if (!codeProduit && generateursDeCode(selectionnes).length > 0 && etape('cibles de code', () => code({ cwd, quiet: false, generateurs: selectionnes })) !== 0) {
     annoncer(`[${hook}] génération de code interrompue : docs non régénérés\n`)

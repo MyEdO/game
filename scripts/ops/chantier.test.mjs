@@ -8,9 +8,13 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, refusDeCreation, resumeDeChantier } from './chantier.mjs'
+import {
+  EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, ouvrirChantier, refusDeCreation,
+  relancerChantier, resumeDeChantier,
+} from './chantier.mjs'
+import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
 test('un nom de chantier est un numéro de ticket, avec un slug optionnel en minuscules', () => {
@@ -79,6 +83,70 @@ function depotAvecOrigin() {
   git('push', '-q', 'origin', 'main')
   return { racine, nu, git, jeter: () => { for (const d of [racine, nu]) rmSync(d, { recursive: true, force: true }) } }
 }
+
+describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `avance`', () => {
+  const ARGS = { nom: '18', sansCi: true }
+  const pas = (nom) => () => { throw new Error(`${nom} ne doit pas être appelé`) }
+
+  test('relance RÉELLE : principal en retard → avance, une relance aux mêmes arguments, la seconde exécution mesure a-jour et crée', async () => {
+    const { racine, nu, jeter } = depotAvecOrigin()
+    const autre = mkdtempSync(join(tmpdir(), 'autre-clone-'))
+    try {
+      lancerGit(['clone', '-q', nu, autre])
+      writeFileSync(join(autre, 'b.txt'), 'b')
+      const gitAutre = gitDe(autre)
+      gitAutre('add', 'b.txt'); gitAutre('-c', 'user.name=banc', '-c', 'user.email=banc@banc.invalid', 'commit', '-q', '-m', 'amont'); gitAutre('push', '-q', 'origin', 'main')
+      const synchroniser = () => synchroniserPrincipal({ depuis: racine, env: envDeDepotForge() })
+      const creer = (args) => creerChantier({ racine, ...args })
+      const relances = []
+      const dits = []
+      const code = await ouvrirChantier(ARGS, {
+        synchroniser, creer: pas('creer avant la relance'), dire: (t) => dits.push(t), imprimer: () => {},
+        relancer: (args) => {
+          relances.push(args)
+          return ouvrirChantier(args, { synchroniser, creer, relancer: pas('une seconde relance'), dire: (t) => dits.push(t), imprimer: () => {} })
+        },
+      })
+      assert.deepEqual(relances, [ARGS])
+      assert.equal(await code, 0, dits.join(''))
+      assert.equal(existsSync(join(racine, 'b.txt')), true, 'le principal a avancé')
+      assert.equal(existsSync(cibleDe(racine, '18')), true, 'la seconde exécution crée le chantier')
+      assert.match(dits.join(''), /principal avancé .*relance `npm run ops:chantier -- 18 --sans-ci`/)
+    } finally {
+      rmSync(autre, { recursive: true, force: true })
+      jeter()
+    }
+  })
+
+  test('refus nommé (divergent) : annoncé tel quel, le chantier se crée depuis origin, aucune relance', async () => {
+    const dits = []
+    const refus = { etat: 'divergent', de: 'a', vers: 'b', cerise: [] }
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => refus, relancer: pas('relancer'), dire: (t) => dits.push(t), imprimer: () => {},
+      creer: () => ({ ok: true, resume: 'worktree=x' }),
+    })
+    assert.equal(code, 0)
+    assert.equal(dits.join(''), `[chantier] principal : ${JSON.stringify(refus)} ; le chantier part d’origin/main\n`)
+  })
+
+  test('exception de la synchronisation : dite à part, aucun état fabriqué ; le chantier se crée depuis origin (#2187 commentaire 6029118597, C5)', async () => {
+    const dits = []
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => { throw new Error('boum') }, relancer: pas('relancer'), dire: (t) => dits.push(t), imprimer: () => {},
+      creer: () => ({ ok: true, resume: 'worktree=x' }),
+    })
+    assert.equal(code, 0)
+    assert.equal(dits.join(''), '[chantier] synchronisation du principal en exception : boum ; le chantier part d’origin/main\n')
+  })
+
+  test('nom invalide : rien n’est synchronisé ; relance = `npm run ops:chantier -- <args>` depuis la racine, son code rendu', async () => {
+    assert.equal(await ouvrirChantier({ nom: 'X', sansCi: false }, { synchroniser: pas('synchroniser'), dire: () => {} }), 1)
+    const vus = []
+    assert.equal(relancerChantier(ARGS, { cwd: '/r', npm: (...a) => { vus.push(a); return { status: 3 } } }), 3)
+    assert.deepEqual(vus[0][1], ['run', 'ops:chantier', '--', '18', '--sans-ci'])
+    assert.equal(vus[0][2].cwd, '/r')
+  })
+})
 
 test('progression avant fetch, création et chaque équipement ; durée après leurs retours', () => {
   const { racine, jeter } = depotAvecOrigin()
