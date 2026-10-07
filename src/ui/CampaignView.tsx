@@ -35,6 +35,7 @@ import { CombatStartSplash } from './CombatStartSplash';
 import { PartyDock } from './PartyDock';
 import { LogDrawer } from './LogDrawer';
 import { Row, Stack } from './Layout';
+import { ChipDeRefus } from './ChipDeRefus';
 import { CodexTitre } from './compendium/CodexRef';
 import { Icon } from './Icon';
 import { GameMenu } from './GameMenu';
@@ -99,7 +100,7 @@ function ModaleDeDefaite() {
         </>
       }
     >
-      {refus && <p className="chip tone-danger" role="alert">{refus}</p>}
+      {refus && <ChipDeRefus refus={{ message: refus }} />}
     </Modal>
   );
 }

@@ -496,38 +496,6 @@ describe('validateScene', () => {
   });
 });
 
-describe('validateScene — Flow corrompu (crash n°2 éditeur, document ANCIEN)', () => {
-  it("trigger avec un flow ENTIÈREMENT ABSENT (document pré-migration Flow) → warning « corrompu », ne throw pas", () => {
-    const s = base();
-    // `flow` est requis par le type `Trigger` mais un document ANCIEN peut ne pas le porter — reproduit
-    // sans passer par normalizeScene (le crash rapporté se produit malgré ce garde-fou).
-    s.triggers.push({ id: 't-corrompu', rect: { x: 0, y: 0, w: 1, h: 1 } } as unknown as (typeof s.triggers)[number]);
-    let w: Warning[] = [];
-    expect(() => { w = validateScene([s]); }).not.toThrow();
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-corrompu' && /corrompu/.test(x.message))).toBe(true);
-  });
-
-  it('un flow avec un nœud `null` (JSON sérialise `undefined` en `null`) → warning « corrompu », ne throw pas', () => {
-    const s = base();
-    const corrupted = { kind: 'seq', steps: [null, { kind: 'do', effect: { type: 'ops', ops: [] } }] };
-    s.triggers.push({ id: 't-null', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: corrupted as unknown as (typeof s.triggers)[number]['flow'] });
-    let w: Warning[] = [];
-    expect(() => { w = validateScene([s]); }).not.toThrow();
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-null' && /corrompu/.test(x.message))).toBe(true);
-  });
-
-  it('un flow avec une réf PENDANTE (nœud `test` sans branche `success`) → warning « corrompu », les AUTRES flows restent validés', () => {
-    const s = base();
-    const dangling = { kind: 'test', test: { skill: 'perception' }, fail: EMPTY_FLOW } as unknown as ReturnType<typeof testFlow>;
-    s.triggers.push({ id: 't-pendant', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: dangling });
-    s.triggers.push({ id: 't-sain', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'transition', scene: 'nope' }]) });
-    let w: Warning[] = [];
-    expect(() => { w = validateScene([s]); }).not.toThrow();
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-pendant' && /corrompu/.test(x.message))).toBe(true);
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-sain' && /scène inexistante/.test(x.message))).toBe(true);
-  });
-});
-
 describe('validateScene — POI de plan (#345 phase 5)', () => {
   // `services` : le lieu doit RÉSOUDRE (`placeServices`) la cible d'un POI de service (#360 — un POI
   // peut aussi cibler le port/marché AUTOMATIQUES du lieu, `'port'`/`'marche'`, pas que le catalogue).

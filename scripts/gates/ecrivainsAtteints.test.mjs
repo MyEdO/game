@@ -158,8 +158,6 @@ const ATTENDU = {
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
     'scripts/guards/lib/stockDeSites.test.mjs',
-    // #2226
-    'scripts/guards/lib/versionsDerivees-collision.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
@@ -327,6 +325,10 @@ const ATTENDU = {
     'scripts/ops/vigie.test.mjs',
   ],
   'test:runner': [
+    // +1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` importe le générateur, dont seule la
+    // porte `import.meta.main` écrit (`ecrireOuVerifier`) ; le banc calcule les formats en mémoire,
+    // recouvrement virtuel compris — l'arbre n'est jamais écrit.
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts
     // jetables à la primitive (`instanceDeDepot`, `rmSync` en finally) ; elle n'écrit que sous
     // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.

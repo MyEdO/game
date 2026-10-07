@@ -856,39 +856,6 @@ export function poserEnjeu(test: FlowTest, stake: StakeRef | undefined): FlowTes
   return { ...test, stake };
 }
 
-/** Assainit un Flow chargé depuis un document ANCIEN : purge les entrées `null` (JSON n'a pas
- *  `undefined` — un pas d'étape non-écrit sérialise en `null`) des tableaux `seq.steps`, structurellement
- *  INEXPRIMABLES dans l'éditeur (une étape ne peut pas être « vide »). Ne touche à RIEN d'autre — pas
- *  d'invention de branche manquante (`if.then`, `test.success/fail`…) : une réf pendante ou un nœud
- *  malformé reste la charge de la VALIDATION (`checkFlow`), jamais d'une purge silencieuse de données
- *  (un jet de contenu authoré serait un jet silencieux). `sanitizeLeaf` recurse dans une feuille `do`
- *  (ex. le Flow imbriqué d'un `delayedEffect`, propre à la couche `state`). `flow` absent (`null`/
- *  `undefined`) est renvoyé tel quel — la validation le rapportera. */
-export function sanitizeFlow<E = EffectOp>(flow: Flow<E>, sanitizeLeaf?: (e: E) => E): Flow<E>;
-export function sanitizeFlow<E = EffectOp>(flow: Flow<E> | null | undefined, sanitizeLeaf?: (e: E) => E): Flow<E> | null | undefined;
-export function sanitizeFlow<E = EffectOp>(flow: Flow<E> | null | undefined, sanitizeLeaf?: (e: E) => E): Flow<E> | null | undefined {
-  if (flow == null) return flow;
-  switch (flow.kind) {
-    case 'seq':
-      return {
-        ...flow,
-        steps: (flow.steps ?? [])
-          .filter((s): s is Flow<E> => s != null)
-          .map((s) => sanitizeFlow(s, sanitizeLeaf)),
-      };
-    case 'do':
-      return sanitizeLeaf ? { ...flow, effect: sanitizeLeaf(flow.effect) } : flow;
-    case 'if':
-      return { ...flow, then: sanitizeFlow(flow.then, sanitizeLeaf), ...(flow.else != null ? { else: sanitizeFlow(flow.else, sanitizeLeaf) } : {}) };
-    case 'test':
-      return { ...flow, success: sanitizeFlow(flow.success, sanitizeLeaf), fail: sanitizeFlow(flow.fail, sanitizeLeaf) };
-    case 'choice':
-      return { ...flow, yes: sanitizeFlow(flow.yes, sanitizeLeaf), ...(flow.no != null ? { no: sanitizeFlow(flow.no, sanitizeLeaf) } : {}) };
-    default:
-      return flow;
-  }
-}
-
 /** Champ COMPAGNON obligatoire de chaque forme de nœud (`Flow`) — le second critère de reconnaissance :
  *  un `kind` seul ne suffit pas (l'algèbre des `Condition` en porte un aussi, et rien n'interdit à une
  *  donnée future de nommer un champ `kind`). Un objet qui a LES DEUX est un nœud de Flow. */

@@ -26,7 +26,7 @@ function parseChoices(raw: string): LayerChoices {
   }
 }
 
-export const layerChoicesAtom = persistedAtom<LayerChoices>('wfrp4.editor.layers.v1', {}, parseChoices, (v) => JSON.stringify(v));
+export const layerChoicesAtom = persistedAtom<LayerChoices>('wfrp4.editor.layers', {}, parseChoices, (v) => JSON.stringify(v));
 
 /** Calques EFFECTIFS : défaut, surchargé par l'auteur. */
 export function effectiveLayers(choices: LayerChoices): Layers {

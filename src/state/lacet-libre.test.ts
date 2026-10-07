@@ -12,21 +12,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { relacherCamera, tournerCamera } from './keybindings';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, avancerLacet, getStageYaw, resetStageYaw, rotAtYaw } from './stageYaw';
-import { readSlot, deleteSlot } from './saves';
 import { testScene } from '../scenes/test-fixture';
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
 
 /** Joue le BATTEMENT à la main (#1403) : c'est l'image qui AVANCE le lacet (`avancerLacet`, appelé en
  *  production par l'hôte du stage), le module n'ayant plus d'horloge à lui. Le `requestAnimationFrame`
@@ -131,20 +117,6 @@ describe('rotateCam — la rotation par CRAN de l’éditeur et des bancs', () =
 });
 
 describe('ANGLE INITIAL — une partie arrivée en vue de face repart d’un cran diagonal', () => {
-  it('une sauvegarde qui PORTE la vue de face (camEdge sérialisé) se recharge en vue de coin', () => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
-    deleteSlot(1);
-    g().startScene(testScene());
-    useGame.setState({ camEdge: true, battle: null });
-    expect(g().saveGame(1)).toBe(true);
-    expect((readSlot(1)!.data as { camEdge?: boolean }).camEdge).toBe(true); // la save porte bien la vue de face
-
-    useGame.setState({ camEdge: true });
-    expect(g().loadGame(1)).toBe(true);
-    expect(g().camEdge).toBe(false);
-    deleteSlot(1);
-  });
-
   it("l'entrée de scène (transitionTo) ramène la vue au cran diagonal", () => {
     g().startScene(testScene());
     useGame.setState({ camEdge: true });

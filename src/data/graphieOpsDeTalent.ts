@@ -4,9 +4,8 @@
  * Une op qui porte déjà `talent` traverse intacte ; tout le reste du document aussi. Une op qui porte À LA
  * FOIS `talentId` et `talent` LÈVE : aucune des deux graphies ne se choisit à l'aveugle.
  *
- * Primitive PARTAGÉE, chargée par Node nu (aucun import) : migration de dépôt
- * `scripts/migrations/2026-09-24-1473-graphie-ops-de-talent.mjs`, `PROJECT_MIGRATIONS[16]`
- * (`src/data/migrationsDeProjet.ts`), `ROSTER_MIGRATIONS[6]` et le repli de `rosterLoad` (`src/state/roster.ts`).
+ * Chargée par Node nu (aucun import) : migration de dépôt
+ * `scripts/migrations/2026-09-24-1473-graphie-ops-de-talent.mjs`.
  */
 const OPS_DE_TALENT: ReadonlySet<string> = new Set(['grantTalent', 'grantCareerTalent']);
 

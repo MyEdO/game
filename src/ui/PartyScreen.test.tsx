@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroSelector, PartyScreen, PartyScreenView, slotKeyNav } from './PartyScreen';
-import { projectSave, __resetLibraryForTest, type SavedProject } from '../state/projectLibrary';
+import { projectSave, type SavedProject } from '../state/projectLibrary';
 import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { datasetArray, setDataset } from '../data/overrides';
-import { CURRENT_PROJECT_SCHEMA, resolveActiveAxes } from '../state/worldMap';
+import { resolveActiveAxes } from '../state/worldMap';
 import { emptyScene } from '../state/scene';
 import { allAxes } from '../data';
 import { useGame } from '../state/store';
@@ -77,6 +77,45 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
     expect(html).toContain('Remplacer Aventurière Sauvegardée'); // titre du mode remplacement
     expect(html).toContain('candidate-remplacement');
     expect(html).toContain('Déjà choisi');
+  });
+});
+
+describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    vi.stubGlobal('localStorage', fakeStorage());
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    host.remove();
+    vi.unstubAllGlobals();
+  });
+
+  it('rendu UNE fois, sous les onglets et AVANT la liste, sur chacun des deux onglets', () => {
+    localStorage.setItem('wfrp4.roster', JSON.stringify({ version: 'autre-format', heros: [] }));
+    act(() => root.render(<StrictMode><HeroSelector party={[]} mode="recruit" onPick={noop} onClose={noop} /></StrictMode>));
+    const temoins = () => [...host.querySelectorAll('[role="alert"]')].filter((n) => n.textContent === t('picker.roster.retire'));
+    const onglet = (nom: string) => [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((b) => b.textContent === nom)!;
+    const avantLaListe = () => {
+      const [temoin] = temoins();
+      const onglets = host.querySelector('.tabs')!;
+      const liste = host.querySelector('.candidate-master-detail')!;
+      return !!(onglets.compareDocumentPosition(temoin) & Node.DOCUMENT_POSITION_FOLLOWING)
+        && !!(temoin.compareDocumentPosition(liste) & Node.DOCUMENT_POSITION_FOLLOWING);
+    };
+    expect(onglet(t('picker.tab.pregens')).getAttribute('aria-selected')).toBe('true');
+    expect(temoins()).toHaveLength(1);
+    expect(temoins()[0].querySelector('p.chip.tone-danger.chip-phrase'), 'rendu par `ChipDeRefus`').not.toBeNull();
+    expect(avantLaListe()).toBe(true);
+    act(() => onglet(t('picker.tab.roster')).click());
+    expect(onglet(t('picker.tab.roster')).getAttribute('aria-selected')).toBe('true');
+    expect(temoins()).toHaveLength(1);
+    expect(avantLaListe()).toBe(true);
   });
 });
 
@@ -282,7 +321,6 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
 
   beforeEach(async () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    await __resetLibraryForTest();
     useGame.setState({ pendingCampaign: null, scene: null, net: initialNet() });
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -309,7 +347,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
   it('un projet PUBLIÉ que la porte refuse : alerte générique DANS la modale, qui reste ouverte, aucune campagne posée', async () => {
     const fautive = {
       id: 'proj-fautif', label: 'Campagne fautive', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { schema: 999 as typeof CURRENT_PROJECT_SCHEMA, scenes: [], narratif: emptyNarratif() },
+      project: { schema: 999, scenes: [], narratif: emptyNarratif() },
     } as unknown as SavedProject;
     await projectSave(fautive);
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -320,9 +358,9 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     expect(alertes).toHaveLength(1);
     const alerte = alertes[0];
     expect(modaleDeChoix()?.contains(alerte), 'dans la modale de choix').toBe(true);
-    expect(alerte.classList.contains('chip') && alerte.classList.contains('tone-danger')).toBe(true);
+    expect(alerte.querySelector('p.chip.tone-danger.chip-phrase'), 'rendu par `ChipDeRefus`').not.toBeNull();
     const txt = alerte.textContent ?? '';
-    expect(txt).toBe('Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.');
+    expect(txt).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.');
     expect(txt.toLowerCase()).not.toMatch(/schema|migration/);
     expect(consoleErr).toHaveBeenCalled();
     expect(useGame.getState().pendingCampaign, 'aucune campagne posée').toBeNull();
@@ -350,7 +388,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
     const publie = {
       id: 'proj-axes', label: 'Campagne à axes', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: {
-        type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-axes', label: 'Campagne à axes', versionContenu: 1,
+        type: 'projet', id: 'proj-axes', label: 'Campagne à axes', versionContenu: 1,
         maison: 'fixture de test', scenes: [{ ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' }],
         narratif: emptyNarratif(), activeAxes: axes.map((a) => a.id),
       },
@@ -407,7 +445,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
     try {
       await lancer();
       expect(document.querySelector('[role="alert"]')?.textContent).toBe(
-        'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.',
+        'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.',
       );
       expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
       expect(useGame.getState().screen).toBe('party');

@@ -16,6 +16,7 @@ import {
   arcaneDomainGate,
   wildcardSpecs,
   prisParLesAutres,
+  talentSlotsUpTo,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
 
@@ -335,5 +336,13 @@ describe('portée de l\'exclusion : les emplacements du MÊME niveau (LDB 05 l.5
     const glad = skillSlots(levelsForCareer('gladiateur'), 1);
     const joker1 = glad.find((s) => s.needsChoice)!;
     expect(designateSlot(hero({ career: 'gladiateur', careerSlotChoices: {} }), 'gladiateur', joker1, 'corps-a-corps', 'bagarre', glad).ok).toBe(false);
+  });
+});
+
+describe('emplacements de carrière — la clé résume l’emplacement en ids (#1924)', () => {
+  it('Soldat, Niveau 1, 7e Compétence : « Musicien » se résume en ids, jamais en libellés', () => {
+    const levels = levelsForCareer('soldat');
+    const cle = [...skillSlots(levels, 4), ...talentSlotsUpTo(levels, 4)].find((s) => s.key.startsWith('1:skill:6:'))!.key;
+    expect(cle).toBe('1:skill:6:musicien*');
   });
 });

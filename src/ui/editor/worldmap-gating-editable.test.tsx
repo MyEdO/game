@@ -98,7 +98,7 @@ function refusInput(): HTMLInputElement | null {
   return (wrap?.querySelector('input') ?? null) as HTMLInputElement | null;
 }
 function alerte(): string | null {
-  return container.querySelector('[role="alert"]')?.textContent ?? null;
+  return container.querySelector('[role="status"]')?.textContent ?? null;
 }
 
 describe('#684 L3 — panneau LIEU : « Visible si » (MapPlace.when)', () => {
@@ -130,6 +130,7 @@ describe('#684 L3 — panneau ROUTE : « Praticable si » + raison du refus (Map
 
     // L'exigence du schéma est dite À L'ÉCRAN, avant toute sauvegarde.
     expect(alerte()).toMatch(/[Rr]aison du refus/);
+    expect(container.querySelector('[role="status"] .fold'), 'aucun pli : le refus ne porte aucune faute de la porte à détailler').toBeNull();
 
     setValue(refusInput()!, 'Le pont est coupé par la crue.');
     expect(lastMap!.routes[0].refus).toBe('Le pont est coupé par la crue.');

@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveSave, __resetAutosaveForTest, type EditorAutosaveRecord, type RepriseLocale } from '../../state/editorAutosave';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 import { emptyScene, type Scene } from '../../state/scene';
-import { CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -49,7 +48,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
 
   beforeEach(async () => {
     sauvegardes = brancherBasesSimulees()
-      .amorcer('wfrp4-editor-autosave', 1, { autosave: { keyPath: 'sceneId' } })
+      .amorcer('wfrp4-editor-autosave', { autosave: { keyPath: 'sceneId' } })
       .magasins.get('autosave')!.contenu as Map<string, EditorAutosaveRecord>;
     await __resetAutosaveForTest();
     container = document.createElement('div');
@@ -60,7 +59,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     container.remove();
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     delete (window as unknown as { __probe?: Probe }).__probe;
   });
 
@@ -137,7 +136,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     process.on('unhandledRejection', capter);
     // Un enregistrement dont la LECTURE lève autre chose qu'un `ProjetRefuse` : la relecture rejette.
     // Posé dans la base simulée du test, jamais par mock de module (`src/vi-mock-isolate-guard.test.ts`).
-    const piege = { sceneId: 'scene-faute', schema: CURRENT_PROJECT_SCHEMA, savedAt: 1 } as unknown as EditorAutosaveRecord;
+    const piege = { sceneId: 'scene-faute', savedAt: 1 } as unknown as EditorAutosaveRecord;
     Object.defineProperty(piege, 'scene', { enumerable: true, get() { throw new Error('faute du jeu'); } });
     sauvegardes.set('scene-faute', piege);
     try {
@@ -167,46 +166,55 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     }
   });
 
-  it('un enregistrement au format 15 qui cite un sort FUSIONNÉ (#1897) est restauré remappé, par la chaîne du projet', async () => {
-    const scene15 = {
-      ...emptyScene(), id: 'scene-15', label: 'crypte',
-      entities: [
-        { id: 'sorcier', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme', 'flamme'] }, combat: { spells: ['alarme'] } },
-        { id: 'autel', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, usable: { actions: [{ id: 'prier', flow: { kind: 'seq', steps: [
-          { kind: 'do', effect: { type: 'learnSpell', spell: 'alarme' } },
-          { kind: 'do', effect: { type: 'castSpell', casterId: 'sorcier', spellId: 'projectile' } },
-        ] } }] } },
-      ],
+  it('une scène qui cite un sort FUSIONNÉ (« alarme », #1897) est REFUSÉE, jamais remappée : rien à restaurer (#2404)', async () => {
+    const ancienne = {
+      ...emptyScene(), id: 'scene-alarme', label: 'crypte',
+      entities: [{ id: 'sorcier', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme'] } }],
     } as unknown as Scene;
-    sauvegardes.set('scene-15', { sceneId: 'scene-15', scene: scene15, schema: 15, savedAt: 999 } as unknown as EditorAutosaveRecord);
+    sauvegardes.set('scene-alarme', { sceneId: 'scene-alarme', scene: ancienne, savedAt: 999 });
     let recovered: Scene | null = null;
     await act(async () => {
-      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-15', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
-    });
-    await act(async () => { await flush(); });
-    await act(async () => { probe().restore(); });
-    const [sorcier, autel] = (recovered as unknown as { entities: Record<string, any>[] }).entities;
-    expect(sorcier.statblock.spells).toEqual(['alerte', 'flamme-magique']);
-    expect(sorcier.combat.spells).toEqual(['alerte']);
-    expect(autel.usable.actions[0].flow.steps.map((st: { effect: unknown }) => st.effect)).toEqual([
-      { type: 'learnSpell', spell: 'alerte' },
-      { type: 'castSpell', casterId: 'sorcier', spellId: 'carreau' },
-    ]);
-  });
-
-  it('un enregistrement SANS marqueur de format est ÉCARTÉ et nommé : rien à restaurer, l’auteur le supprime', async () => {
-    sauvegardes.set('scene-sans-format', { sceneId: 'scene-sans-format', scene: { ...emptyScene(), id: 'scene-sans-format', label: 'ancienne' }, savedAt: 999 } as unknown as EditorAutosaveRecord);
-    let recovered: Scene | null = null;
-    await act(async () => {
-      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-sans-format', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-alarme', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
     });
     await act(async () => { await flush(); });
     const r = probe().recovery;
-    expect(r && !r.ok ? r.refus.fautes.map((f) => [f.chemin, f.message]) : null).toEqual([[['schema'], '« schema » absent ou non numérique (schema=undefined)']]);
+    expect(r && !r.ok ? r.refus.cause : null).toBe('schema');
     await act(async () => { probe().restore(); });
     expect(recovered).toBeNull();
+  });
+
+  it('un enregistrement d’un AUTRE format est AFFICHÉ refusé et reste au magasin : seul « Ignorer et supprimer » le retire', async () => {
+    const { label: _l, ...sansLabel } = { ...emptyScene(), id: 'scene-ancienne', label: 'ancienne' };
+    sauvegardes.set('scene-ancienne', { sceneId: 'scene-ancienne', scene: { ...sansLabel, nom: 'ancienne' } as unknown as Scene, savedAt: 999 });
+    let recovered: Scene | null = null;
+    await act(async () => {
+      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-ancienne', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+    });
+    await act(async () => { await flush(); });
+    const r = probe().recovery;
+    expect(r && !r.ok ? r.refus.cause : null).toBe('schema');
+    await act(async () => { probe().restore(); });
+    expect(recovered).toBeNull();
+    expect(sauvegardes.has('scene-ancienne'), 'la relecture refusée ne retire rien').toBe(true);
     await act(async () => { probe().dismiss(); });
-    expect(sauvegardes.has('scene-sans-format')).toBe(false);
+    expect(sauvegardes.has('scene-ancienne')).toBe(false);
+  });
+
+  it('sous StrictMode (le montage RÉEL, `src/main.tsx`) : la reprise de la scène chargée au montage est PROPOSÉE, et l’écriture débattue reprend une fois tranchée', async () => {
+    await autosaveSave({ sceneId: 'scene-strict', scene: { ...emptyScene(), id: 'scene-strict', label: 'récupérée' }, savedAt: 999 });
+    const scene = { ...emptyScene(), id: 'scene-strict', label: 'chargée' };
+    await act(async () => {
+      root.render(<StrictMode><Harness scene={scene} onRecovered={() => {}} /></StrictMode>);
+    });
+    await act(async () => { await flush(); });
+    expect(proposee()?.label, 'le cycle setup→cleanup→setup jeté ne doit pas avaler la vérification').toBe('récupérée');
+
+    await act(async () => { probe().dismiss(); });
+    await act(async () => {
+      root.render(<StrictMode><Harness scene={{ ...scene, label: 'éditée' }} onRecovered={() => {}} /></StrictMode>);
+    });
+    await act(async () => { await new Promise((r) => setTimeout(r, 1700)); });
+    expect(sauvegardes.get('scene-strict')?.scene.label, 'la vérification a conclu : l’écriture n’est pas gelée').toBe('éditée');
   });
 
   it('ignorer une reprise proposée supprime la sauvegarde locale et ne restaure rien', async () => {

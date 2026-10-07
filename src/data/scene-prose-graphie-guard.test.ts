@@ -40,16 +40,12 @@ const EXTS = ['.ts', '.tsx', '.mjs', '.mts', '.js'];
  * EXEMPTIONS au SITE, nominatives et MESURÉES :
  *  - CE fichier — il PORTE les formes surveillées (motifs et texte forgé du contrôle de morsure) :
  *    s'auto-mesurer le rendrait rouge par construction ;
- *  - `src/state/projet-migration-3-vers-4.test.ts` — sa fixture est GELÉE au format antérieur À
- *    DESSEIN : c'est le document que `PROJECT_MIGRATIONS[3]` doit savoir charger. La migrer viderait
- *    cette garde-là de son sujet ;
  *  - `scripts/ops/board.mjs` et son test — `description` y est le champ OBLIGATOIRE de
  *    `ProjectV2SingleSelectFieldOptionInput` (API GraphQL GitHub, forme introspectée le 2026-09-15) :
  *    l'outil projette l'état des chantiers sur un Project, il ne produit aucun document de scène.
  */
 const NOMS_EXEMPTS = new Set([
   'src/data/scene-prose-graphie-guard.test.ts',
-  'src/state/projet-migration-3-vers-4.test.ts',
   'scripts/ops/board.mjs',
   'scripts/ops/board.test.mjs',
 ]);

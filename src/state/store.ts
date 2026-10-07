@@ -23,6 +23,7 @@ import type { CombatCursor, ScreenDir } from './combatCursor';
 import type { LocalIntent } from './localIntent';
 import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
+import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
@@ -88,15 +89,10 @@ export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Pa
 function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): void {
   const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
   const data = { ...(save.data as Partial<GameState>) };
-  // La save chargée est TOUJOURS à `SAVE_VERSION` (toute autre version est jetée, `saves.ts`) :
+  // La save chargée est TOUJOURS à `FORMAT_SAVE` (toute autre forme est jetée, `saves.ts`) :
   // `save.data` a donc la forme courante, sans remise à niveau à faire ici.
   // `net` : la SESSION coop courante prime sur celle figée dans la save (ne pas ressusciter un
   // salon mort, ne pas dissoudre un salon vivant — l'hôte peut charger une save en ligne).
-  // `camEdge` : une save d'avant la restriction aux quatre vues diagonales (#1289) peut porter une vue
-  // de FACE ; la partie chargée repart du cran diagonal, comme à l'entrée de scène. Chemin d'état NON
-  // rattrapé : `applyNetSnapshot` (`netFlow.ts`), où l'invité adopte l'état de l'hôte en bloc — aucun
-  // écrivain de `camEdge: true` ne subsiste dans l'arbre, seul un hôte tournant un build ANTÉRIEUR au
-  // lot pourrait en émettre un.
   // ASSISE : la scène persistée peut porter des places dont le meuble, le slot ou le héros n'existent
   // plus dans CE snapshot (paquet de campagne édité, groupe recomposé) — élaguée AVANT d'entrer en
   // état, par la même source unique que la superposition de mutation.
@@ -106,11 +102,10 @@ function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): 
   const scene = chargee?.seatAssignments
     ? { ...chargee, seatAssignments: pruneSeatAssignments(chargee, (data.party ?? []).length) }
     : chargee;
-  set({ ...base, ...data, ...(chargee ? { scene } : {}), screen: 'campaign', camEdge: false, net: useGame.getState().net });
+  set({ ...base, ...data, ...(chargee ? { scene } : {}), screen: 'campaign', net: useGame.getState().net });
   set(reposerPaquetDeCampagne(data.campaignDoc as CampaignDoc | null | undefined));
   // Règles maison de la save : on les applique au registre (parité avec la partie sauvegardée).
-  // Save d'avant ce champ (rules absent) → on garde les règles courantes de la machine.
-  if (save.rules) loadRuleOverrides(save.rules);
+  loadRuleOverrides(save.rules);
   bus.emit(EVT.SCENE_DIRTY);
 }
 import { ev, type CombatEvent, type ActorAim } from './combatLog';
@@ -648,7 +643,7 @@ export interface GameState extends RollFlowActionsMap {
    *  jusqu'à une issue — poursuite terrestre (LDB 15), jeu de taverne opposé (NADJ 16), demain les
    *  crises de mer. État GÉNÉRIQUE (id de définition, rang de manche, cumuls par camp, paramètres
    *  d'auteur) + la charge utile du domaine ; persisté entre les manches. `null` hors séquence. */
-  sequence: import('./sequenceCore').SequenceState | null;
+  sequence: EtatDeSequence | null;
   /** Abandon de la poursuite terrestre (le groupe renonce à fuir/traquer). */
   pursuitAbandon: () => void;
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
@@ -884,7 +879,8 @@ export interface GameState extends RollFlowActionsMap {
   /** Charge un slot (manuel OU auto) : reset zéro-maintenance + données de la save (écran campagne). */
   loadGame: (slot: AnySlot) => boolean;
   /** Applique une save importée (export/import JSON). */
-  importGame: (json: string) => boolean;
+  /** Importe une save : `null` quand elle est appliquée, sinon la cause de son refus. */
+  importGame: (json: string) => import('./saves').ObsoleteCause | null;
   setParty: (p: Combatant[]) => void;
   toggleEquip: (heroId: string, uid: string) => void;
   /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
@@ -1906,7 +1902,7 @@ export const useGame = create<GameState>((set, get) => ({
   camRot: 0,
   camEdge: false, // vue de COIN (losange) : le SEUL régime du chemin joueur ; la vue de face (+45°) reste une géométrie servie à la caméra libre DEV
   // QUATRE crans (90°, les vues diagonales — #1289) : le chemin joueur saute les états de face, donc
-  // `camEdge` en ressort toujours faux — y compris depuis une vue de face restaurée d'une sauvegarde.
+  // `camEdge` en ressort toujours faux.
   rotateCam: (dir) => {
     // Re-centre sur le point focal à chaque cran : sinon le décalage manuel (camPan) persiste à
     // travers le changement de projection (coin↔face, origines très différentes) → vue « téléportée ».
@@ -2186,9 +2182,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
   importGame: (json) => {
     const save = importSave(json);
-    if (!save) return false;
+    if (typeof save === 'string') return save;
     applyLoadedSave(set, save);
-    return true;
+    return null;
   },
 
   // ── Actions GROUPE (équipement / avancement) : déléguées à partyFlow ──

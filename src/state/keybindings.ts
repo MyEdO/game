@@ -550,14 +550,26 @@ export function parseCombo(combo: string): { code: string; mods: KeyMod[] } {
   return { code: parts[parts.length - 1], mods: parts.slice(0, -1) as KeyMod[] };
 }
 
+/** La surcharge du raccourci `b`, lue sous SON id : seule une combinaison canonique (`formatCombo` de
+ *  sa propre lecture, code non vide) compte ; toute autre valeur est ignorée, la touche déclarée
+ *  s'applique. Une surcharge d'un id absent du registre n'est jamais lue. */
+export function surchargeDe(b: KeyBinding, overrides: Readonly<Record<string, string>>): string | undefined {
+  const combo = overrides[b.id];
+  if (combo === undefined) return undefined;
+  const { code, mods } = parseCombo(combo);
+  return code !== '' && formatCombo(code, mods) === combo ? combo : undefined;
+}
+
 /** Touche(s) EFFECTIVE(s) d'un raccourci : la surcharge utilisateur remplace les codes par défaut. */
 export function effectiveCodes(b: KeyBinding, overrides: Record<string, string>): string[] {
-  return overrides[b.id] ? [parseCombo(overrides[b.id]).code] : b.codes;
+  const combo = surchargeDe(b, overrides);
+  return combo ? [parseCombo(combo).code] : b.codes;
 }
 
 /** Modificateurs EFFECTIFS d'un raccourci : la surcharge utilisateur remplace ceux déclarés. */
 export function effectiveMods(b: KeyBinding, overrides: Record<string, string>): readonly KeyMod[] {
-  return overrides[b.id] ? parseCombo(overrides[b.id]).mods : (b.mods ?? []);
+  const combo = surchargeDe(b, overrides);
+  return combo ? parseCombo(combo).mods : (b.mods ?? []);
 }
 
 /**

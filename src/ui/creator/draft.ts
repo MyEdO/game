@@ -53,7 +53,6 @@ import {
   speciesSkillDefaults,
   designer,
   poolDuJoker,
-  FORMAT_DES_CHOIX,
   fluxDeCreation,
   cleDOption,
   type ChoixDeCreation,
@@ -81,8 +80,6 @@ export const CAREER_CHAR_ADVANCES = 5;
 export interface CreatorDraft
   extends Required<Pick<ChoixDeCreation, 'seed' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'skillAdvances' | 'pettySpells'>>,
     Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices' | 'talentsRolled'> {
-  /** Format des choix (`FORMAT_DES_CHOIX`) — un brouillon persisté sans lui n'est pas relu. */
-  v: typeof FORMAT_DES_CHOIX;
   // 1) Espèce
   /** `id` STABLE de l'espèce (`SpeciesData.id`) — ≠ libellé. */
   speciesId: string;
@@ -157,7 +154,6 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
   // Page blanche cérémonielle (arbitrage 2026-07-13) : aucune race/carrière pré-tirée — l'id vide
   // signifie « non choisi », la fiche vivante démarre grisée et se remplit choix par choix.
   return {
-    v: FORMAT_DES_CHOIX,
     seed,
     speciesId: '',
     careerId: '',

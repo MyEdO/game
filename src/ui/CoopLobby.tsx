@@ -5,6 +5,7 @@ import { SaveLoadModal } from './SaveLoadModal';
 import { MenuSubScreen } from './MenuCard';
 import { Row, Grid } from './Layout';
 import { Icon } from './Icon';
+import { ChipDeRefus } from './ChipDeRefus';
 import { t } from '../i18n';
 
 /**
@@ -96,7 +97,7 @@ export function CoopLobby() {
             >
               {t("coop.join.btn")}
             </button>
-            {error && <p className="chip tone-danger" role="alert">{error}</p>}
+            {error && <ChipDeRefus refus={{ message: error }} />}
           </CoopSection>
         </Grid>
       </CoopShell>

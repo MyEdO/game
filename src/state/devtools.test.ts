@@ -23,8 +23,8 @@ import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { t } from '../i18n';
 import { findSpellById } from '../data';
 import { careerTalentAdditions } from '../engine/talentEffects';
-import { projectsLoad, __resetLibraryForTest } from './projectLibrary';
-import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { projectsLoad } from './projectLibrary';
+import { __setFabriqueIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { parseProject } from './worldMap';
 import { cascadeDeTest } from './cascadeTestKit';
@@ -232,11 +232,10 @@ describe('__wfrp — autres commandes de recette', () => {
 });
 
 describe('__wfrp.projectMinimal / projectSave — poser un projet en bibliothèque sans recharger (#1343)', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     brancherBasesSimulees();
-    await __resetLibraryForTest();
   });
-  afterEach(() => __setOuvertureIdbForTest(null));
+  afterEach(() => __setFabriqueIdbForTest(null));
 
   it('projectMinimal rend une entrée que la porte du document accepte', () => {
     const entree = buildApi().projectMinimal('p-recette', 'Recette');
