@@ -1,9 +1,5 @@
-/**
- * Schéma de `details.json` — formules d'Âge/Taille par espèce (LDB 05 l.691-707) + textes d'aide
- * (Noms/Âge/Taille/Ambitions). Dérivé de l'interface `DetailsData` (`src/data/index.ts`, +
- * `DetailText` co-localisée) et du contenu RÉEL (objet UNIQUE, 5 clés : `ageBase`/`ageRoll`/
- * `heightBase`/`heightRoll` = records espèce→nombre à 7 clés ; `texts` = 5 `DetailText`).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 05 l.691-707. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { raceKeySchema } from '../grammaire/valeurs';
@@ -11,13 +7,13 @@ import { raceKeySchema } from '../grammaire/valeurs';
 export const file = 'details.json';
 export const famille = 'config';
 
-const detailTextSchema = z.strictObject({
+const detailTextSchema = nommerChamps(z.strictObject({
   all: z.string(),
   /** Surcharges PAR ESPÈCE, colonne `raceKeySchema` (id stable, #313) — partiel : un texte d'aide
    *  ne couvre que les races qu'il nomme (7 pour les noms, 6 pour l'âge, 2 pour la taille, 0 pour
    *  les Ambitions). */
   bySpecies: z.partialRecord(raceKeySchema, z.string()),
-});
+}), { all: { label: 'toutes les espèces' }, bySpecies: { label: 'par espèce' } });
 
 const doc = document(
   'details',
@@ -28,12 +24,18 @@ const doc = document(
     ageRoll: z.partialRecord(raceKeySchema, z.number()),
     heightBase: z.partialRecord(raceKeySchema, z.number()),
     heightRoll: z.partialRecord(raceKeySchema, z.number()),
-    texts: z.strictObject({
+    texts: nommerChamps(z.strictObject({
       nom: detailTextSchema,
       age: detailTextSchema,
       taille: detailTextSchema,
       ambitionShort: detailTextSchema,
       ambitionLong: detailTextSchema,
+    }), {
+      nom: { label: 'nom' },
+      age: { label: 'âge' },
+      taille: { label: 'taille' },
+      ambitionShort: { label: 'ambition à court terme' },
+      ambitionLong: { label: 'ambition à long terme' },
     }),
   },
   {

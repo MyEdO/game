@@ -1,8 +1,5 @@
-/**
- * Schéma de `mutationTables.json` — Tableaux de Corruption (LDB 19, EDOC…), miroir de `MutationTable`
- * (`src/data/mutations.ts`). Plages d100 → référence de mutation par id (`ranges[].mutation`).
- * Inventaire réel (17 tables) : `id`/`label`/`ranges[{min,max,mutation}]` seulement.
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** LDB 19 ; EDOC */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema } from '../grammaire/valeurs';
@@ -15,11 +12,11 @@ const doc = document(
   famille,
   {
     ranges: z.array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         ...plageSchema.shape,
         /** id d'une entrée de `mutations.json` (résolu par `rollMutation`/`BY_ID`). */
         mutation: z.string(),
-      }),
+      }), { ...metaDesChamps(plageSchema, { exigees: true }), mutation: { label: 'Mutation' } }),
     ),
   },
   {

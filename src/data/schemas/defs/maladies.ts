@@ -1,10 +1,5 @@
-/**
- * Schéma de `maladies.json` — Maladies et infections (LDB 20). Dérivé du contenu RÉEL (16 maladies)
- * et de son consommateur typé `DiseaseDef` (`src/engine/disease.ts`, `DiseaseTime`/`DiceSpec` id.).
- * `source` : ABSENT de `DiseaseDef` (le moteur ne le lit pas) et seulement 5/16 entrées le portent
- * (les maladies hors-LDB — Mort sur le Reik Compagnon, EDO, Middenheim) ; l'enveloppe la laisse
- * optionnelle, le refine de provenance de la fabrique exigeant `source` OU `maison`.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 20. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { flowSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
@@ -14,16 +9,21 @@ import { diceSpecSchema, symptomSeveritySchema } from '../grammaire/valeurs';
 export const file = 'maladies.json';
 export const famille = 'entite';
 
-const diseaseTimeSchema = z.strictObject({
+const diseaseTimeSchema = nommerChamps(z.strictObject({
   dice: diceSpecSchema,
   unit: z.enum(['days', 'hours', 'minutes']),
-});
+}), { dice: { label: 'dés' }, unit: { label: 'unité' } });
 
-const diseaseSymptomSchema = z.strictObject({
+const diseaseSymptomSchema = nommerChamps(z.strictObject({
   symptomId: z.string(),
   severity: symptomSeveritySchema.optional(),
   difficulty: z.string().optional(),
   spec: z.string().optional(),
+}), {
+  symptomId: { label: 'symptôme' },
+  severity: { label: 'gravité' },
+  difficulty: { label: 'difficulté' },
+  spec: { label: 'spécialisation' },
 });
 
 const doc = document(
@@ -34,20 +34,18 @@ const doc = document(
     incubation: diseaseTimeSchema,
     duration: diseaseTimeSchema,
     symptoms: z.array(diseaseSymptomSchema),
-    /** Vérole Urticante (LDB 20 l.127-129) : immunité après guérison — absent ailleurs. */
+    /** LDB 20 l.127-129. */
     immuneAfterCure: z.boolean().optional(),
-    /** Passifs actifs pendant toute l'INFECTION (Vers du Reik −5 Résistance/30 j, MSRC 16 l.138). */
+    /** MSRC 16 l.138. */
     infectionPassive: z.array(gameOpSchema).optional(),
-    /** `DiseaseDef.contaminatesWaterBarrel` (`src/engine/disease.ts`) — MDG 14 l.209. */
+    /** MDG 14 l.209. */
     contaminatesWaterBarrel: z.boolean().optional(),
-    /** Test de cycle quotidien de la MALADIE (Pneumonie — EDOC 08 l.104-108) : le JET et sa
-     *  conséquence dans le nœud `test` du Flow ; `symptomId` NOMME le symptôme que le jet met en jeu. */
-    dailyTest: z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: z.string() }).optional(),
-    /** MUE en une autre maladie après N jours de phase active (Rhume commun — EDOC 08 l.122). */
-    mutation: z.strictObject({ afterDays: z.number(), into: idDe('maladie') }).optional(),
-    /** RÉ-EXPOSITION à la cause de contraction alors que la maladie est déjà portée (Rhume commun —
-     *  EDOC 08 l.122) : `prolonge` est un temps authoré, MÊME graphie que `incubation`/`duration`. */
-    reExposition: z.strictObject({ prolonge: diseaseTimeSchema }).optional(),
+    /** EDOC 08 l.104-108. */
+    dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: z.string() }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
+    /** EDOC 08 l.122. */
+    mutation: nommerChamps(z.strictObject({ afterDays: z.number(), into: idDe('maladie') }), { afterDays: { label: 'délai en jours' }, into: { label: 'maladie résultante' } }).optional(),
+    /** EDOC 08 l.122. */
+    reExposition: nommerChamps(z.strictObject({ prolonge: diseaseTimeSchema }), { prolonge: { label: 'prolongation' } }).optional(),
   },
   {
     contractDifficulty: { label: 'Difficulté de contraction' },

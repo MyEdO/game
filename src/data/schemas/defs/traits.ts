@@ -1,8 +1,5 @@
-/**
- * Schéma de `traits.json` — Traits de créature (LDB 85 + suppléments/frenchy.bzh), miroir de
- * `TraitData` (`src/data/index.ts`) + `TraitCapabilities` (`src/data/index.ts`).
- * `desc`/`source`/`alsoIn`/`maison` sont des clés d'ENVELOPPE, posées par la fabrique.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 85 */
 import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { refSchema } from '../grammaire/reference';
@@ -16,18 +13,24 @@ export const famille = 'entite';
  *  sur l'interface ; les autres appartiennent aux capabilities de qualités/symptômes ou sont réservées
  *  au bestiaire lu ailleurs). Schéma reflète l'INTERFACE complète (toutes optionnelles), pas seulement
  *  le sous-ensemble vu aujourd'hui — une future entrée peut légitimement en ajouter. */
-const traitCapabilitiesSchema = z.strictObject({
+const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   bonusWoundsBE: z.boolean().optional(),
   mutationAtSpawn: mutationKindSchema.optional(),
-  markMutations: z.strictObject({
+  markMutations: nommerChamps(z.strictObject({
     countDie: z.number(),
     countDivide: z.number(),
     first: mutationKindSchema,
     mentalTable: z.string(),
     physTable: z.string(),
+  }), {
+    countDie: { label: 'Dé du nombre' },
+    countDivide: { label: 'Diviseur du nombre' },
+    first: { label: 'Premier type de mutation' },
+    mentalTable: { label: 'Table de mutations mentales' },
+    physTable: { label: 'Table de mutations physiques' },
   }).optional(),
   swarm: z.boolean().optional(),
-  naturalWeapon: z.strictObject({ ranged: z.boolean().optional() }).optional(),
+  naturalWeapon: nommerChamps(z.strictObject({ ranged: z.boolean().optional() }), { ranged: { label: 'À distance' } }).optional(),
   spellcaster: z.boolean().optional(),
   undead: z.boolean().optional(),
   wardSave: z.boolean().optional(),
@@ -64,10 +67,54 @@ const traitCapabilitiesSchema = z.strictObject({
   seesInDark: z.boolean().optional(),
   darkSightTiles: z.number().optional(),
   wakelessBite: z.boolean().optional(),
-  /** ADE II 2 l.708 : « un ogre peut porter deux fois l'Encombrement normal d'un humain ». */
+  /** ADE II 2 l.708 */
   encumbranceFactor: z.number().optional(),
-  /** ADE II 2 l.708 : « les ogres doivent manger et boire au moins deux fois plus qu'un humain ». */
+  /** ADE II 2 l.708 */
   consumptionFactor: z.number().optional(),
+}), {
+  bonusWoundsBE: { label: 'Bonus de Blessures par Bonus d’Endurance' },
+  mutationAtSpawn: { label: 'Mutations à l’apparition' },
+  markMutations: { label: 'Marquer les mutations' },
+  swarm: { label: 'Nuée' },
+  naturalWeapon: { label: 'Arme naturelle' },
+  spellcaster: { label: 'Lanceur de sorts' },
+  undead: { label: 'Mort-vivant' },
+  wardSave: { label: 'Sauvegarde de protection' },
+  damageImmunity: { label: 'Immunité aux Dégâts' },
+  spellDomainImmunity: { label: 'Immunité aux domaines magiques' },
+  counterOnDefenseWin: { label: 'Riposte après défense réussie' },
+  counterRequiresFastParry: { label: 'Riposte avec parade rapide' },
+  unstable: { label: 'Instable' },
+  painless: { label: 'Insensible à la douleur' },
+  psychImmuneIfAhead: { label: 'Immunité psychologique en supériorité' },
+  psychType: { label: 'Type psychologique' },
+  psychImmune: { label: 'Immunité psychologique' },
+  psychIndice: { label: 'Indice psychologique' },
+  psychCible: { label: 'Cible psychologique' },
+  grantGroups: { label: 'Groupes accordés' },
+  frenzyCapable: { label: 'Frénésie' },
+  mindless: { label: 'Sans esprit' },
+  woundsUseForce: { label: 'Blessures calculées avec la Force' },
+  freeTrample: { label: 'Piétinement gratuit' },
+  bestial: { label: 'Bestial' },
+  coldBlooded: { label: 'À Sang froid' },
+  stupid: { label: 'Stupide' },
+  rage: { label: 'Rage' },
+  territorial: { label: 'Territorial' },
+  skittishMount: { label: 'Monture craintive' },
+  structResistant: { label: 'Structure résistante' },
+  structImpenetrable: { label: 'Structure impénétrable' },
+  fly: { label: 'Vol' },
+  leap: { label: 'Bond' },
+  stride: { label: 'Enjambée' },
+  autoClimb: { label: 'Escalade automatique' },
+  climbFullSpeed: { label: 'Escalade à pleine vitesse' },
+  noRun: { label: 'Course interdite' },
+  seesInDark: { label: 'Vision dans l’obscurité' },
+  darkSightTiles: { label: 'Portée de vision nocturne (cases)' },
+  wakelessBite: { label: 'Morsure sans réveil' },
+  encumbranceFactor: { label: 'Facteur d’Encombrement' },
+  consumptionFactor: { label: 'Facteur de consommation' },
 });
 
 /**
@@ -82,13 +129,12 @@ const doc = document(
   'traits',
   famille,
   {
-    indice: z.strictObject({ label: z.string() }).optional(),
+    indice: nommerChamps(z.strictObject({ label: z.string() }), { label: { label: 'Libellé' } }).optional(),
     range: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
     specsMulti: z.boolean().optional(),
-    /** Trait EXCLU d'un octroi en masse de Traits de créature — `LDB 48 l.23` : « Gagnez tous les Traits
-     *  standards de la créature sauf Bestial. » Lu par `polymorphOps` (engine/polymorph). */
+    /** LDB 48 l.23 */
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     grantsManeuvers: z.array(refSchema).optional(),
@@ -97,7 +143,7 @@ const doc = document(
     appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),
     suppressesCapabilities: z.array(z.string()).optional(),
-    aura: z
+    aura: nommerChamps(z
       .strictObject({
         rangeChar: charKeySchema.optional(),
         rangeMeters: z.number().optional(),
@@ -112,11 +158,17 @@ const doc = document(
          *  `marque-de-nurgle` n'existent pas en donnée (seuls le folder du bestiaire et `grantGroups` le
          *  dérivent). La conjonction se posera quand un statbloc l'exigera. */
         affectsGroups: z.array(z.string()).optional(),
-        /** L'ÉMETTEUR est lui-même touché par son aura (frenchy-bzh 295 l.233 / 313 l.341) — absent =
-         *  l'émetteur n'est jamais touché (Perturbant, LDB 85 l.260-262). */
+        /** frenchy-bzh 295 l.233 ; LDB 85 l.260-262 */
         includesSelf: z.boolean().optional(),
         passive: z.array(gameOpSchema),
-      })
+      }), {
+      rangeChar: { label: 'Caractéristique de portée' },
+      rangeMeters: { label: 'Portée (m)' },
+      affects: { label: 'Cibles affectées' },
+      affectsGroups: { label: 'Groupes affectés' },
+      includesSelf: { label: 'Porteur inclus' },
+      passive: { label: 'Passifs' },
+    })
       .optional(),
     standard: z.boolean().optional(),
   },
@@ -155,9 +207,7 @@ const doc = document(
     codex: { keys: ['traits', 'psychologie'] },
     edit: { dataset: 'traits' },
   },
-  // `indice` : `LDB 85` l.94 ; `range` : `LDB 85` l.209 ; lus par `refusDArgDeTrait` (`grammaire/reference.ts`).
-  // `specsOpen` : `LDB 85` (ex. l.83), lu par `entreeOuverte` (`grammaire/ref.ts`).
-  // `specsMulti` : lu par `partsDArg` (`grammaire/reference.ts`).
+  /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
   { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen', 'specsMulti'] } },
 );
 

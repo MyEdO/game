@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `skills.json` — dérivé de l'inventaire COMPLET des clés (script node, n=46/46), de
  * l'interface `SkillData` (`src/data/index.ts`) et de ses consommateurs (`ItemCapabilities`,
@@ -15,10 +16,7 @@ const doc = document(
   famille,
   {
     characteristic: charKeySchema,
-    /** ACCÈS à la Compétence (`LDB 09 l.25/l.30`) : `base` = testable sans formation, sur la
-     *  Caractéristique nue ; `avancee` = exige au moins une Augmentation, sinon le Test est impossible.
-     *  DISCRIMINANT DE LOGIQUE, jamais un libellé : lu par `possesses` (`engine/skillCombatApps.ts`) et
-     *  par la fourchette de tuteur de l'Entraînement (`engine/activities.ts`). Mesuré : 25 / 23 sur 48. */
+    /** LDB 09 l.25/l.30 */
     acces: enumNomme({ base: 'Base', avancee: 'Avancée' }),
     specs: specsSchema.optional(),
     specsSource: specsSourceSchema.optional(),
@@ -30,20 +28,24 @@ const doc = document(
      *  base à laquelle la substitution s'applique (absente = toute carac), `chars` = la carac à utiliser
      *  PAR VALEUR de la règle (clé = valeur rendue par `rule()`, en chaîne — `"true"` pour un interrupteur ;
      *  une LISTE = la meilleure des caracs citées chez le porteur). */
-    altChar: z.strictObject({
+    altChar: nommerChamps(z.strictObject({
       gatedByRule: z.string(),
       from: charKeySchema.optional(),
       chars: z.record(z.string(), z.union([charKeySchema, z.array(charKeySchema)])),
+    }), {
+      gatedByRule: { label: 'Règle optionnelle requise' },
+      from: { label: 'Caractéristique d’origine' },
+      chars: { label: 'Caractéristiques' },
     }).optional(),
-    combatAdvantage: z.strictObject({ cap: charKeySchema }).optional(),
-    combatSubstitute: z.strictObject({
+    combatAdvantage: nommerChamps(z.strictObject({ cap: charKeySchema }), { cap: { label: 'Plafond' } }).optional(),
+    combatSubstitute: nommerChamps(z.strictObject({
       role: z.enum(['defense', 'attack', 'both']),
       gate: z.literal('fear'),
-    }).optional(),
+    }), { role: { label: 'Rôle' }, gate: { label: 'Condition d’accès' } }).optional(),
     /** `capability` = clé de `ItemCapabilities` (`src/data/index.ts`) — sac de flags fermé côté TS ;
      *  laissé en `z.string()` ici (référence croisée hors périmètre d'un seul dataset, cf. `tool.json`
      *  n'existe pas comme catalogue séparé — c'est un type TS, pas une donnée). */
-    tool: z.strictObject({ capability: z.string(), withoutMod: z.number() }).optional(),
+    tool: nommerChamps(z.strictObject({ capability: z.string(), withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
   },
   {
     characteristic: { label: 'Caractéristique' },
@@ -77,7 +79,7 @@ const doc = document(
     codex: { keys: ['skills'] },
     edit: { dataset: 'skills' },
   },
-  // `specsOpen` : `LDB 09 l.40`, lu par `entreeOuverte` (`grammaire/ref.ts`).
+  /** LDB 09 l.40 */
   { exiges: ['desc', 'source'], espace: { marqueurs: ['specsOpen'] } },
 );
 

@@ -52,7 +52,8 @@ import { useEditorLayers } from './editorLayers';
 import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
 import { z } from 'zod';
-import { dialoguesSchema, triggersSchema, encountersSchema } from '../../data/schemas/defs-scenes/scene';
+import { dialoguesSchema, triggersSchema, encountersSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
+import { nommerChamps, metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
@@ -79,11 +80,11 @@ export function ouCaCasse(erreur: unknown): string {
  *  conteneur est réécrit parce que `sceneSchema.pick()` est refusé par zod sur un objet PORTANT DES
  *  RAFFINEMENTS, et un sous-ensemble de trois clés n'en hérite aucun.
  *  La porte de cette modale est `lireBlocsAvances`, ci-dessous. */
-export const SCHEMA_BLOCS_AVANCES = z.strictObject({
+export const SCHEMA_BLOCS_AVANCES = nommerChamps(z.strictObject({
   dialogues: dialoguesSchema.optional(),
   triggers: triggersSchema.optional(),
   encounters: encountersSchema.optional(),
-});
+}), { dialogues: metaDesChamps(sceneSchema, { exigees: true }).dialogues, triggers: metaDesChamps(sceneSchema, { exigees: true }).triggers, encounters: metaDesChamps(sceneSchema, { exigees: true }).encounters });
 
 /** Porte de la modale « Avancé » (`saveAdvanced`), EXPORTÉE pour être mesurable hors montage : c'est
  *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le

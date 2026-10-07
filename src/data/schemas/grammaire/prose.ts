@@ -16,6 +16,10 @@ import { enfantsDe, type PointDeDonnee } from './descente';
 import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
+import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
+
+export const META_PROSE = { desc: { label: 'texte' }, descRef: { label: 'adresse du texte' } };
+export const META_ADAPTE_DE = { adapteDe: { label: 'adapté de' } };
 
 type DefinitionNommee<C extends CheminProseDeScene> = (typeof PROSES_NOMMEES)[C];
 type ChampsNommes<C extends CheminProseDeScene> = {
@@ -41,6 +45,7 @@ export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScen
   } as ChampsNommes<C>;
   const compose = schema.extend(champs);
   const resultat = definition.regime === 'narration' ? compose.superRefine(refineAdapteDe) : compose;
+  nommerChamps(resultat, { ...metaDesChamps(schema, { exigees: true }), [definition.champ]: { label: definition.label }, source: { label: 'source' }, ...(definition.regime === 'narration' ? META_ADAPTE_DE : {}) } as MetaDesChamps<typeof resultat.shape>);
   declarationsNommees.add(resultat, { chemin });
   return resultat;
 }

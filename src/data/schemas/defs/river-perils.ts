@@ -1,9 +1,5 @@
-/**
- * Schéma de `river-perils.json` — Dangers fluviaux (MSRC 7 l.119-166 : Débris/Barrage/Rochers/Eaux
- * peu profondes). Dérivé de `RiverPerilDef` (`src/engine/riverNavigation.ts`), seul
- * consommateur. La racine est NUE : chaque péril porte son `source`
- * (`src/data/source-racine-aveugle.test.ts`).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MSRC 7 l.119-166 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { sourceRefSchema } from '../grammaire/valeurs';
@@ -18,27 +14,49 @@ const doc = document(
   {
   perils: marquerCollection(
     z.array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         id: z.string(),
         label: z.string(),
         kind: z.enum(['navTest', 'obstacle', 'detect']),
         /** Débris (l.125) : Test de Navigation raté → `hullHits` coups à la coque. */
-        onFail: z.strictObject({ hullHits: z.number(), damagePerHit: z.number() }).optional(),
+        onFail: nommerChamps(z.strictObject({ hullHits: z.number(), damagePerHit: z.number() }), { hullHits: { label: 'Coups à la coque' }, damagePerHit: { label: 'Dégâts par coup' } }).optional(),
         /** Barrage (l.128) : Endurance/Blessures d'expression dé (`1d10`…), bélier +`ramDamage`. */
-        obstacle: z
-          .strictObject({ endurance: z.string(), enduranceMult: z.number(), wounds: z.string(), ramDamage: z.number() })
+        obstacle: nommerChamps(z
+          .strictObject({ endurance: z.string(), enduranceMult: z.number(), wounds: z.string(), ramDamage: z.number() }), {
+          endurance: { label: 'Endurance' },
+          enduranceMult: { label: 'Multiplicateur d’Endurance' },
+          wounds: { label: 'Blessures' },
+          ramDamage: { label: 'Dégâts d’éperonnage' },
+        })
           .optional(),
-        /** Déblayage à la main (MSRC 7 l.128 : `objects` = 3d10 éléments de `encPerObject` = 4d10 Enc) ;
-         *  `encPerHour` = débit de halage, valeur maison éditable (MSRC 7 l.128, règle stricte 7). */
-        clear: z
-          .strictObject({ objects: z.string(), encPerObject: z.string(), encPerHour: z.number() })
+        /** MSRC 7 l.128 */
+        clear: nommerChamps(z
+          .strictObject({ objects: z.string(), encPerObject: z.string(), encPerHour: z.number() }), {
+          objects: { label: 'Objets' },
+          encPerObject: { label: 'Encombrement par objet' },
+          encPerHour: { label: 'Encombrement par heure' },
+        })
           .optional(),
         /** Rochers/eaux peu profondes (l.138-144) : Dégâts + chances de percée/échouage. */
-        onHit: z
-          .strictObject({ hullDamage: z.number(), holeChancePct: z.number().optional(), echouageChancePct: z.number().optional() })
+        onHit: nommerChamps(z
+          .strictObject({ hullDamage: z.number(), holeChancePct: z.number().optional(), echouageChancePct: z.number().optional() }), {
+          hullDamage: { label: 'Dégâts de coque' },
+          holeChancePct: { label: 'Risque de brèche (%)' },
+          echouageChancePct: { label: 'Risque d’échouage (%)' },
+        })
           .optional(),
         ref: z.string(),
         source: sourceRefSchema,
+      }), {
+        id: { label: 'Identifiant' },
+        label: { label: 'Libellé' },
+        kind: { label: 'Type' },
+        onFail: { label: 'À l’échec' },
+        obstacle: { label: 'Obstacle' },
+        clear: { label: 'Dégagement' },
+        onHit: { label: 'À l’impact' },
+        ref: { label: 'Référence' },
+        source: { label: 'Source' },
       }),
     ).superRefine((perils, ctx) => {
       // Un péril qui fait LANCER dit ce que l'échec coûte : sans `onFail`, l'enjeu du Test d'évitement

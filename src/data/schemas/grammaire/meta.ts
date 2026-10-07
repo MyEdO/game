@@ -1,13 +1,14 @@
 /**
  * MÉTA D'ÉDITION d'un champ de document (#1466 L1a) — le libellé FR et l'aide d'atelier vivent AU
  * MÊME ENDROIT que la forme du champ : `document()` exige une `MetaChamp` par clé de `champs`, si
- * bien qu'un champ ne peut pas exister sans son nom lisible (aujourd'hui l'éditeur affiche la clé
- * technique, `src/ui/compendium/editFields.ts`).
+ * bien qu'un champ ne peut pas exister sans son nom lisible.
  */
 import { defDe, enfantsDe } from './descente';
+import { z } from 'zod';
 
 /** Méta d'édition d'UN champ de premier niveau d'un document. */
 export interface MetaChamp {
+  transparent?: true;
   /** Libellé FR affiché par l'atelier (Codex/Compendium) à la place de la clé technique. */
   label: string;
   /** Aide d'atelier — jamais une prose de document (règle stricte 5 : la prose du RAW vit dans `desc`). */
@@ -23,6 +24,51 @@ export interface MetaChamp {
 
 /** Méta EXIGÉE pour chaque clé de `champs` d'un document — une clé de moins = erreur de type. */
 export type MetaDesChamps<C> = { [K in keyof C]: MetaChamp };
+
+export interface NomDeNoeud {
+  readonly label?: string;
+  readonly nom?: string;
+  readonly element?: string;
+}
+
+function verifierChamps(noeud: unknown, champs: Readonly<Record<string, MetaChamp>> | undefined): asserts champs is Readonly<Record<string, MetaChamp>> {
+  if (champs === undefined) throw new Error('métas de champs absentes');
+  const cles = enfantsDe(noeud).flatMap(e => e.cle === undefined ? [] : [e.cle]);
+  for (const cle of cles) if (!champs[cle]?.label?.trim()) throw new Error(`champ sans nom : ${cle}`);
+  for (const cle of Object.keys(champs)) if (!cles.includes(cle)) throw new Error(`méta sans champ : ${cle}`);
+}
+
+export function nommerChamps<N extends z.ZodObject>(noeud: N, champs: MetaDesChamps<N['shape']>, nom: NomDeNoeud = {}): N {
+  verifierChamps(noeud, champs);
+  z.globalRegistry.add(noeud, { ...noeud.meta(), champs, ...nom });
+  return noeud;
+}
+
+export function metaDesChamps<N extends z.ZodObject>(noeud: N, options: { exigees: true }): MetaDesChamps<N['shape']>;
+export function metaDesChamps<N extends z.ZodObject>(noeud: N): MetaDesChamps<N['shape']> | undefined;
+export function metaDesChamps(noeud: unknown): Readonly<Record<string, MetaChamp>> | undefined;
+export function metaDesChamps(noeud: unknown, options?: { exigees: true }): Readonly<Record<string, MetaChamp>> | undefined {
+  const champs = (noeud as { meta?: () => { champs?: Readonly<Record<string, MetaChamp>> } } | null)?.meta?.()?.champs;
+  if (options?.exigees) verifierChamps(noeud, champs);
+  return champs;
+}
+
+export function nomDeNoeud(noeud: unknown): NomDeNoeud | undefined {
+  return (noeud as { meta?: () => NomDeNoeud } | null)?.meta?.();
+}
+
+export function nommerNoeud<N extends z.ZodType>(noeud: N, nom: NomDeNoeud): N {
+  z.globalRegistry.add(noeud, { ...noeud.meta(), ...nom });
+  return noeud;
+}
+
+export function metasExtra(extra: Record<string, z.ZodType> | undefined): Readonly<Record<string, MetaChamp>> {
+  return Object.fromEntries(Object.entries(extra ?? {}).map(([cle, noeud]) => {
+    const label = nomDeNoeud(noeud)?.nom;
+    if (!label) throw new Error(`champ ajouté sans nom : ${cle}`);
+    return [cle, { label }];
+  }));
+}
 
 /** Nœud énuméré tel que `meta.ts` le lit : la `.meta()` que `enumNomme` y a posée. */
 type NoeudEnum = { meta?: () => unknown };

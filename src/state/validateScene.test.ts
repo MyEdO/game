@@ -25,10 +25,10 @@ describe('validateScene', () => {
       s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, appearance });
       return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
     };
-    expect(avec({ species: 'zorglub' })).toEqual(["pnj › appearance.species : espèce « zorglub » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur."]);
-    expect(avec({ hairstyle: 'zzz', sex: 'M' })).toEqual(['pnj › appearance.hairstyle : coiffure « zzz » inconnue : absente du catalogue des coiffures.']);
-    expect(avec({ hairstyle: 'queue-de-cheval-haute-f' })).toEqual(['pnj › appearance.hairstyle : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sans sexe posé — poser le sexe Féminin, ou retirer la coiffure.']);
-    expect(avec({ hairstyle: 'queue-de-cheval-haute-f', sex: 'M' })).toEqual(['pnj › appearance.hairstyle : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sur le sexe Masculin.']);
+    expect(avec({ species: 'zorglub' })).toEqual(["entité « pnj » › apparence › espèce : espèce « zorglub » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur."]);
+    expect(avec({ hairstyle: 'zzz', sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « zzz » inconnue : absente du catalogue des coiffures.']);
+    expect(avec({ hairstyle: 'queue-de-cheval-haute-f' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sans sexe posé — poser le sexe Féminin, ou retirer la coiffure.']);
+    expect(avec({ hairstyle: 'queue-de-cheval-haute-f', sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sur le sexe Masculin.']);
     // Domaine admis : espèce jouable, def de créature, forme de nuée ; coiffure au sexe posé.
     for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'rats' }, { hairstyle: 'queue-de-cheval-haute-f', sex: 'F' }])
       expect(avec(ok), JSON.stringify(ok)).toEqual([]);
@@ -51,7 +51,7 @@ describe('validateScene', () => {
     const s = base();
     s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
     const w = validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'table' && x.level === 'error');
-    expect(msgs(w)).toEqual(['table › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
+    expect(msgs(w)).toEqual(['entité « table » › orientation : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
 
     const cardinal = base();
     cardinal.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'E' });
@@ -210,10 +210,10 @@ describe('validateScene', () => {
   it.each([
     ['offset négatif', { offset: -0.1 }, /offset/],
     ['offset supérieur à 1', { offset: 1.1 }, /offset/],
-    ['offset non fini', { offset: Number.NaN }, /offset/],
+    ['offset non fini', { offset: Number.NaN }, /décalage/],
     ['largeur nulle', { width: 0 }, /largeur/],
     ['largeur négative', { width: -1 }, /largeur/],
-    ['largeur non finie', { width: Number.POSITIVE_INFINITY }, /width/],
+    ['largeur non finie', { width: Number.POSITIVE_INFINITY }, /largeur/],
   ])('architecture : refuse une feature avec %s', (_label, patch, champ) => {
     const s = base();
     s.architecture = [{
@@ -534,7 +534,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
       { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: 'auberge' },
     ], [{ kind: 'auberge' }]));
     expect(w.filter((x) => x.level === 'error')).toEqual([
-      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'B : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
+      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'points d’intérêt « B » : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
     ]);
   });
 
@@ -547,7 +547,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
       ],
     });
     expect(w.filter((x) => x.level === 'error')).toEqual([
-      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'B : POI « poi-1 » déjà posé au lieu « lieu-1 » : un id de POI est unique sur la carte.' }),
+      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'points d’intérêt « B » : POI « poi-1 » déjà posé au lieu « lieu-1 » : un id de POI est unique sur la carte.' }),
     ]);
   });
 

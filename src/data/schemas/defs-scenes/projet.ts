@@ -59,11 +59,6 @@ export const projetDoc = document(
     narratif: { label: 'Bloc narratif' },
   },
   {
-    // EXPOSITION DÉCORATIVE à ce jour, et c'est mesuré : `exposition-derivee.ts` dérive ses tables du
-    // SEUL registre `SCHEMA_DEFS` (racine `src/data`) ; aucun consommateur ne lit l'`exposition` des
-    // entrées de `SCHEMA_DEFS_SCENES`. Elle est déclarée quand même : la fabrique l'EXIGE de tout
-    // document, et cette déclaration-ci dit ce qu'un projet est — illisible au Codex, édité par
-    // l'éditeur de scènes. Le jour où la dérivation couvrira les deux racines, elle sera déjà vraie.
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',

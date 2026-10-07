@@ -1,8 +1,5 @@
-/**
- * Schéma de `mass-battle.json` — 5 tables de bataille de masse (ADE II 8), miroir strict de
- * `PowerEstimateRow`/`MightModifierRow`/`WarMachineRow`/`StructureRow`/`HazardRow`
- * (`src/engine/massBattle.ts`).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** ADE II 8. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { moneySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -11,24 +8,37 @@ import { listeCle } from '../grammaire/collection-cle';
 export const file = 'mass-battle.json';
 export const famille = 'config';
 
-const powerEstimateRowSchema = z.strictObject({
+const powerEstimateRowSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   ally: z.number(),
   enemy: z.number(),
   example: z.string(),
   source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  ally: { label: 'alliés' },
+  enemy: { label: 'ennemis' },
+  example: { label: 'exemple' },
+  source: { label: 'source' },
 });
 
-const mightModifierRowSchema = z.strictObject({
+const mightModifierRowSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   mod: z.number(),
   example: z.string(),
   source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  mod: { label: 'modificateur' },
+  example: { label: 'exemple' },
+  source: { label: 'source' },
 });
 
-const warMachineRowSchema = z.strictObject({
+const warMachineRowSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   price: moneySchema,
@@ -39,23 +49,47 @@ const warMachineRowSchema = z.strictObject({
   traits: z.string(),
   siege: z.boolean(),
   source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  price: { label: 'prix' },
+  crew: { label: 'équipage' },
+  availability: { label: 'disponibilité' },
+  range: { label: 'portée' },
+  damage: { label: 'dégâts' },
+  traits: { label: 'Traits' },
+  siege: { label: 'siège' },
+  source: { label: 'source' },
 });
 
-const structureRowSchema = z.strictObject({
+const structureRowSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   be: z.number(),
   wounds: z.number(),
   traits: z.string(),
   source: sourceRefSchema,
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  be: { label: 'Bonus d’Endurance' },
+  wounds: { label: 'Blessures' },
+  traits: { label: 'Traits' },
+  source: { label: 'source' },
 });
 
-const hazardRowSchema = z.strictObject({
+const hazardRowSchema = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
   desc: z.string(),
   source: sourceRefSchema,
+}), {
+  ...metaDesChamps(plageSchema, { exigees: true }),
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  desc: { label: 'texte' },
+  source: { label: 'source' },
 });
 
 const doc = document(

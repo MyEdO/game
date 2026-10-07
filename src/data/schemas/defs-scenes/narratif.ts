@@ -1,3 +1,4 @@
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : `src/state/campaignNarratif.ts`
  * en dérive ses types par `z.infer`.
@@ -15,7 +16,7 @@ import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { listeCle } from '../grammaire/collection-cle';
-import { champAdapteDe, proseNommee, refineAdapteDe } from '../grammaire/prose';
+import { champAdapteDe, proseNommee, refineAdapteDe, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { CreatureData, TrappingData } from '../../index';
@@ -24,21 +25,21 @@ import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 
 /** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier, le document qu'il croise
  *  (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
-export const indiceStadeSchema = proseNommee(z.strictObject({
+export const indiceStadeSchema = proseNommee(nommerChamps(z.strictObject({
   /** id STABLE du stade, unique DANS l'indice. */
   id: z.string().min(1, 'id vide.'),
   documentId: z.string().min(1, 'id de document vide.').optional(),
-}), 'narratif.indices[].stades[].prose');
+}), { id: { label: "identifiant" }, documentId: { label: "document" } }), 'narratif.indices[].stades[].prose');
 
 /** #679 ; #2427. */
-export const documentNarratifSchema = proseNommee(z.strictObject({
+export const documentNarratifSchema = proseNommee(nommerChamps(z.strictObject({
   /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
   id: z.string().min(1, 'id vide.'),
   titre: z.string().min(1, 'titre vide.'),
-}), 'narratif.documents[].prose');
+}), { id: { label: "identifiant" }, titre: { label: "titre" } }), 'narratif.documents[].prose');
 
 /** Un indice ou une rumeur d'une affaire — révélé par stades. */
-export const indiceSchema = z.strictObject({
+export const indiceSchema = nommerChamps(z.strictObject({
   /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
   id: z.string().min(1, 'id vide.'),
   affaireId: z.string(),
@@ -49,21 +50,21 @@ export const indiceSchema = z.strictObject({
   /** Autres indices (ids) que celui-ci recoupe/débloque. */
   refs: z.array(z.string()).optional(),
   couvre: couvreSchema.optional(),
-});
+}), { id: { label: "identifiant" }, affaireId: { label: "affaire" }, kind: { label: "type" }, titre: { label: "titre" }, stades: { label: "stades" }, refs: { label: "renvois" }, couvre: { label: "entrées couvertes" } });
 
 /** Une affaire (fil d'enquête) de la campagne. */
-export const affaireSchema = z.strictObject({
+export const affaireSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
   titre: z.string(),
   desc: z.string().optional(),
-});
+}), { id: { label: "identifiant" }, titre: { label: "titre" }, desc: { label: "texte" } });
 
 
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
  *  même forme qu'une entrée de `creatures.json`, partielle). Le nœud de l'entrée partielle est SCELLÉ
  *  (`z.infer` y vaut `unknown`) : sa vue TS est celle que le runtime consomme, `Partial<CreatureData>`
  *  (`state/campaignData.ts`), même régime que `objets` ci-dessous. */
-export const presetPnjSchema = z.strictObject({
+export const presetPnjSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
   base: idDeCreature.optional(),
   profil: (creatureEntreePartielle as z.ZodType<Partial<CreatureData>>).optional(),
@@ -75,7 +76,7 @@ export const presetPnjSchema = z.strictObject({
   ...champAdapteDe(),
 })
   .superRefine(refineAdapteDe)
-  .superRefine(refinePresetAdapte);
+  .superRefine(refinePresetAdapte), { id: { label: "identifiant" }, base: { label: "base" }, profil: { label: "profil" }, apparence: { label: "apparence" }, portrait: { label: "portrait" }, source: { label: "source" }, couvre: { label: "entrées couvertes" }, ...META_ADAPTE_DE });
 
 /** Un preset ADAPTÉ (`adapteDe`) ne porte pas de prose ADRESSÉE : la prose d'un preset est `profil.desc`,
  *  et `profil.descRef` en fait la copie du livre (#2001). */
@@ -87,29 +88,29 @@ function refinePresetAdapte(v: unknown, ctx: z.RefinementCtx): void {
 }
 
 /** Une entrée de fiche de dossier de chapitre ÉCARTÉE par l'adaptation (#2290), avec son motif. */
-export const ecartSchema = z.strictObject({
+export const ecartSchema = nommerChamps(z.strictObject({
   entree: entreeDeFicheSchema,
   motif: z.string().regex(/\S/, 'motif vide.'),
-});
+}), { entree: { label: "entrée" }, motif: { label: "motif" } });
 
 /** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
  *  pitch non vides sont la seule exigence. */
-export const ouvertureSchema = proseNommee(z.strictObject({
+export const ouvertureSchema = proseNommee(nommerChamps(z.strictObject({
   surtitre: z.string().optional(),
   titre: z.string().min(1, 'titre vide.'),
   sousTitre: z.string().optional(),
   chapitre: z.string().optional(),
   ambiance: z.enum(['veillee', 'parchemin']).optional(),
-}), 'narratif.ouverture.pitch');
+}), { surtitre: { label: "surtitre" }, titre: { label: "titre" }, sousTitre: { label: "sous-titre" }, chapitre: { label: "chapitre" }, ambiance: { label: "ambiance" } }), 'narratif.ouverture.pitch');
 
 /** CLÔTURE du chapitre (#717, `ClotureBlock`) — `when` évalué au contexte HORS COMBAT (`condCtx`),
  *  d'où le MÊME schéma borné que le `when` d'un lieu de carte (un kind non évaluable serait FAUX
  *  en silence : le chapitre ne se fermerait jamais, sans qu'aucune donnée ne soit fautive). */
-export const clotureSchema = z.strictObject({
+export const clotureSchema = nommerChamps(z.strictObject({
   when: conditionCondCtxSchema,
   titre: z.string().min(1, 'titre vide.'),
   sousTitre: z.string().optional(),
-});
+}), { when: { label: "condition" }, titre: { label: "titre" }, sousTitre: { label: "sous-titre" } });
 
 /** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà comme créature OU possession. */
 export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
@@ -199,7 +200,7 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
  *  `source` sont requis, là où un objet EMBARQUÉ de campagne porte un type libre et se passe de
  *  l'enveloppe de catalogue. Échéance : `TROUS_DE_VALIDATION['narratif.ts:objets']`
  *  (`trous-de-validation.ts`), UNIQUE source du lot de mort de ce trou. */
-const formeNarratif = z.strictObject({
+const formeNarratif = nommerChamps(z.strictObject({
   affaires: listeCle(affaireSchema, 'id'),
   indices: listeCle(indiceSchema, 'id'),
   presetsPnj: listeCle(presetPnjSchema, 'id'),
@@ -208,7 +209,12 @@ const formeNarratif = z.strictObject({
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
   ecartes: listeCle(ecartSchema, 'entree').optional(),
-});
+}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" }, documents: { label: "documents" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
 /** `NarratifBlock` (`state/campaignNarratif.ts`) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);
+
+nommerNoeud(indiceSchema, { element: 'indice' });
+nommerNoeud(indiceStadeSchema, { element: 'stade' });
+nommerNoeud(presetPnjSchema, { element: 'PNJ' });
+nommerNoeud(documentNarratifSchema, { element: 'document' });

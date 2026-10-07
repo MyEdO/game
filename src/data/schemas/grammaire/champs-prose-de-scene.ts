@@ -1,9 +1,9 @@
 /** #2427 — chemins en notation `scripts/source/adresses.mjs`. */
 export const PROSES_NOMMEES = {
-  'narratif.ouverture.pitch': { champ: 'pitch', regime: 'narration', presence: 'requis' },
-  'narratif.indices[].stades[].prose': { champ: 'prose', regime: 'narration', presence: 'optionnel' },
-  'narratif.documents[].prose': { champ: 'prose', regime: 'document', presence: 'requis' },
-  'massBattle.terrain': { champ: 'terrain', regime: 'narration', presence: 'optionnel' },
+  'narratif.ouverture.pitch': { champ: 'pitch', label: 'texte', regime: 'narration', presence: 'requis' },
+  'narratif.indices[].stades[].prose': { champ: 'prose', label: 'texte', regime: 'narration', presence: 'optionnel' },
+  'narratif.documents[].prose': { champ: 'prose', label: 'texte', regime: 'document', presence: 'requis' },
+  'massBattle.terrain': { champ: 'terrain', label: 'terrain', regime: 'narration', presence: 'optionnel' },
 } as const;
 
 export type CheminProseDeScene = keyof typeof PROSES_NOMMEES;

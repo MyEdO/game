@@ -1,3 +1,4 @@
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `creatures.json` — le BESTIAIRE (493 entrées), miroir de `CreatureData`
  * (`src/data/index.ts`). GROS dataset : inventaire de clés fait par script node sur
@@ -17,15 +18,15 @@ export const famille = 'entite';
  *  `TraitInstance` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
  *  joker « tous les traits » (Mutant, LDB 83 l.91) ou variante « remplacer des Traits par un bonus »
  *  (Grand Loup ZI 1 l.229, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
-const optionalWildcardSchema = z.strictObject({
+const optionalWildcardSchema = nommerChamps(z.strictObject({
   note: z.literal('all-traits'),
   label: z.string(),
-});
+}), { note: { label: "note" }, label: { label: "libellé" } });
 const swapGrantSchema = z.union([
-  z.strictObject({ char: z.string(), value: z.number() }),
-  refOuSpec('skill', { value: z.number() }),
+  nommerChamps(z.strictObject({ char: z.string(), value: nommerNoeud(z.number(), { nom: 'valeur' }) }), { char: { label: "caractéristiques" }, value: { label: "valeur" } }),
+  refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
 ]);
-const optionalSwapSchema = z.strictObject({
+const optionalSwapSchema = nommerChamps(z.strictObject({
   note: z.literal('swap'),
   label: z.string(),
   remove: z.array(z.string()),
@@ -33,7 +34,7 @@ const optionalSwapSchema = z.strictObject({
   grant: z.array(swapGrantSchema),
   size: z.string().optional(),
   wounds: z.number().optional(),
-});
+}), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } });
 const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
 
 /** `SkillRef` (`src/data/index.ts`) — la réf de Compétence de la GRAMMAIRE (`refOuSpec`, régime
@@ -41,7 +42,7 @@ const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema
  *  charge utile du statbloc : `value`, le nombre IMPRIMÉ (#1463, « `value` = le seul nom du NOMBRE
  *  IMPRIMÉ au statbloc »). MÊME nœud que `swapGrantSchema` ci-dessus, dont l'octroi DÉSIGNE (régime
  *  par défaut) — une seule graphie de Compétence dans ce document. */
-const competenceChiffreeAEmplacementSchema = refOuSpec('skill', { value: z.number() }, 'specOuChoixFacultatifs');
+const competenceChiffreeAEmplacementSchema = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }, 'specOuChoixFacultatifs');
 
 
 /** `HarvestDanger` (`src/data/index.ts`). */
@@ -63,10 +64,7 @@ const champs = {
     /** Ids de `groups.json` de cette créature (`groupsFor`) : sa CATÉGORIE (« demon », « bete »…) et,
      *  le cas échéant, le Groupe du dieu du Chaos qu'elle sert. Absent = aucun Groupe. */
     grantGroups: z.array(z.string()).optional(),
-    /** `Record<string, number|null>` (`src/data/index.ts`) — clés = abréviations de caractéristique
-     *  (10 attendues : CC/CT/F/E/I/Ag/Dex/Int/FM/Soc, + M/B hors-jet vus ailleurs sur d'autres profils).
-     *  `record` reste ouvert par construction (anomalie #1 de tête : clé `"undefined"` structurellement
-     *  acceptée, mais fausse — à corriger à la main, pas un défaut de CE schéma). */
+    /** src/data/index.ts */
     char: z.record(z.string(), z.union([z.number(), z.null()])),
     traits: z.array(traitInstanceSchema),
     optionals: z.array(optionalEntrySchema),
@@ -78,15 +76,15 @@ const champs = {
      *  marais : LDB 79 l.14, republiée verbatim par VDM 13 folio 179). L'ANCRE `source` reste seule
      *  à porter la `desc` ; jamais une seconde entrée. */
     appearance: entityAppearanceSchema.optional(),
-    harvest: z.strictObject({ rarity: harvestRaritySchema, danger: harvestDangerSchema, uses: z.string() }).optional(),
+    harvest: nommerChamps(z.strictObject({ rarity: harvestRaritySchema, danger: harvestDangerSchema, uses: z.string() }), { rarity: { label: "rareté" }, danger: { label: "danger" }, uses: { label: "usages" } }).optional(),
     followsCharacterRules: z.boolean().optional(),
     /** EDO 01 l.504 ; LDB 19. */
     corruption: z.number().int().min(0).optional(),
     /** Facette ACHAT (montures, LDB 70 / EDOC 07). */
-    purchase: z.strictObject({
+    purchase: nommerChamps(z.strictObject({
       price: moneySchema,
       availability: availabilitySchema.optional(),
-    }).optional(),
+    }), { price: { label: "prix" }, availability: { label: "disponibilité" } }).optional(),
 };
 
 const doc = document(
