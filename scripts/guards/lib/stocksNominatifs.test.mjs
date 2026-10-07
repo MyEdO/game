@@ -245,7 +245,7 @@ test('#2472 le bilan réduit toutes les clés signées du même porteur', () => 
 
 const sha256 = texte => createHash('sha256').update(texte).digest('hex');
 function temoinReel(ref) {
-  const fixture = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/2472-' + ref + '.json.gz', import.meta.url))).toString('utf8'));
+  const fixture = JSON.parse(gunzipSync(Buffer.from(readFileSync(new URL('./fixtures/2472-' + ref + '.json.gz.b64', import.meta.url), 'ascii').trim(), 'base64')).toString('utf8'));
   assert.match(fixture.sha, new RegExp('^' + ref + '[a-f0-9]{' + (40 - ref.length) + '}$'));
   assert.match(fixture.parent, /^[a-f0-9]{40}$/);
   assert.ok(fixture.commande.includes(fixture.sha));
