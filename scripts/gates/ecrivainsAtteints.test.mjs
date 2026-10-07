@@ -270,6 +270,13 @@ const ATTENDU = {
     // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
+    // +2 le 2026-10-07 (#2187) : `synchroniser.mjs` écrit l'arbre PRINCIPAL (fichiers W′, `.git/index`
+    // par `renameSync`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/`) derrière sa porte
+    // `import.meta.main` ; son banc `synchroniser.test.mjs` le joue sur des dépôts `instanceDeDepot` sous
+    // os.tmpdir() (et son processus enfant, écrit sous os.tmpdir()), jetés en `after` — l'arbre n'est
+    // jamais écrit.
+    'scripts/ops/synchroniser.mjs',
+    'scripts/ops/synchroniser.test.mjs',
     // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
     // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
     // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`

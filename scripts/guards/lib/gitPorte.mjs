@@ -38,7 +38,7 @@
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 import { Buffer } from 'node:buffer'
-import { spawnSync } from 'node:child_process'
+import { spawn as spawnAsync, spawnSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
@@ -202,10 +202,10 @@ function sansEntreeNonLue(vu, commande) {
 /** Lancement avec rejeu du processus qui n'a pas démarré. `spawn`/`attendre` injectables (mesure).
  *  `env` : l'environnement du processus (`envDeDepotForge`, `depotGabarit.mjs`), celui du parent par défaut.
  *  Une entrée que le processus n'a pas lue ne masque jamais son statut (`sansEntreeNonLue`). */
-function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSync, site = 'gitPorte', journal = process.stderr, timeout, entree, env } = {}) {
+function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSync, site = 'gitPorte', journal = process.stderr, timeout, entree, env, encodage = 'utf8' } = {}) {
   for (let essai = 0; ; essai += 1) {
     const stdio = [entree === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe']
-    const vu = sansEntreeNonLue(spawn(commande, args, { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28, stdio, timeout, input: entree }), commande)
+    const vu = sansEntreeNonLue(spawn(commande, args, { cwd, env, encoding: encodage, maxBuffer: 1 << 28, stdio, timeout, input: entree }), commande)
     if (!estEchecDeChargement(vu?.status) || essai >= BACKOFFS_MS.length) return vu
     rejeux.total += 1
     journal.write(`${MARQUE_REJEU} : ${site} — ${commande} (essai ${essai + 2}/${BACKOFFS_MS.length + 1})\n`)
@@ -259,7 +259,7 @@ function raisonDuSpawn(message, cwd, nature) {
 export function classer(vu, { cwd, nature = natureDuChemin } = {}) {
   if (!vu) return indisponible('aucun résultat de processus')
   const stderr = String(vu.stderr ?? '')
-  const stdout = String(vu.stdout ?? '')
+  const stdout = Buffer.isBuffer(vu.stdout) ? vu.stdout : String(vu.stdout ?? '')
   const diagnostic = { status: vu.status ?? null, stdout, stderr,
     ...(vu.error ? { error: vu.error } : {}), ...(vu.signal ? { signal: vu.signal } : {}) }
   if (vu.signal) return indisponible(`processus tué par le signal ${vu.signal}`, { issue: 'interruption', diagnostic })
@@ -364,8 +364,10 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
 }
 
 /** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
- *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. */
-function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE } = {}) {
+ *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. `index` : le
+ *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES ») ; `encodage` :
+ *  `'buffer'` rend `stdout` en octets. */
+function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE, index, encodage } = {}) {
   const { cwd, env, spawn, attendre } = lanceurDe(depot)
   const fournisseur = typeof env === 'function'
   const environnement = fournisseur ? env() : env
@@ -376,7 +378,8 @@ function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE 
   }
   const argv = [...options, ...args]
   const site = `git ${args[0]}`
-  const vu = feinteDeGit(environnement ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env: environnement, spawn, attendre, entree, timeout, site })
+  const envDeLaCommande = index === undefined ? environnement : { ...(environnement ?? process.env), GIT_INDEX_FILE: index }
+  const vu = feinteDeGit(environnement ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env: envDeLaCommande, spawn, attendre, entree, timeout, site, encodage })
   return classer(vu, { cwd })
 }
 
@@ -424,7 +427,7 @@ function lireLeLotOuLever(depot, args, opts, quoi) {
 
 /** Une ÉCRITURE de l'hôte, en union : sans `OPTIONS_DE_L_HOTE`, la configuration de l'utilisateur
  *  (identité, signature, proxy, identifiants) fait foi. */
-const ecrire = (depot, args, { timeout, entree } = {}) => interroger(depot, args, { entree, timeout, options: [] })
+const ecrire = (depot, args, { timeout, entree, index } = {}) => interroger(depot, args, { entree, timeout, index, options: [] })
 
 /** git-scm.com/docs/git-apply */
 export function appliquerCorrectif(depot, { patch, include }) {
@@ -1561,6 +1564,106 @@ export const estIgnore = (depot, chemin, opts) => cheminsIgnores(depot, [chemin]
 export const attributDe = (depot, chemin, nom) => enregistrementsDe(depot, ['check-attr', nom, '--', chemin])[2] ?? null
 
 /**
+ * Les VALEURS de l'attribut `nom` sur `chemins`, en UN lot (`check-attr -z --stdin`, `git help
+ * check-attr`) : chemin ↦ valeur posée, `unspecified`, `set` ou `unset`. Une indisponibilité suit
+ * `lire` (`enPanne`, ou `GitIndisponible`) ; sous `enPanne`, la `Map` est vide.
+ * @param {Depot} depot @param {readonly string[]} chemins @param {string} nom @returns {Map<string, string>}
+ */
+export function attributsDe(depot, chemins, nom) {
+  if (!chemins.length) return new Map()
+  const champs = (lire(depot, ['check-attr', '-z', '--stdin', nom], { entree: chemins.map((c) => `${c}\0`).join('') }) ?? '').split('\0')
+  const valeurs = new Map()
+  for (let i = 0; i + 2 < champs.length; i += 3) valeurs.set(champs[i], champs[i + 2])
+  return valeurs
+}
+
+/** @typedef {{ mode: string, sha: string }} EntreeDImage */
+
+/**
+ * Les ENTRÉES `{ mode, sha }` de `chemins` dans l'image `arbre` : une ref (`ls-tree -r -z`) ou
+ * `INDEX` (`ls-files --stage -z`, l'étape 0 seule ; `index` = le `GIT_INDEX_FILE` lu). Un chemin
+ * absent de l'image est absent de la `Map`. L'image entière est lue, puis filtrée : aucune liste de
+ * chemins ne passe en argument.
+ * @param {Depot} depot @param {string} arbre @param {readonly string[]} chemins @param {{ index?: string }} [opts]
+ * @returns {Map<string, EntreeDImage>}
+ * @throws {GitIndisponible} image illisible ; {BorneAbsente} la ref `arbre` absente du dépôt.
+ */
+export function entreesDe(depot, arbre, chemins, { index } = {}) {
+  const voulus = new Set(chemins)
+  const entrees = new Map()
+  if (arbre === INDEX) {
+    const brut = lireLeLotOuLever(depot, ['ls-files', '--stage', '-z'], { index }, 'index')
+    for (const e of brut.split('\0').filter(Boolean)) {
+      const [tete, chemin] = [e.slice(0, e.indexOf('\t')), e.slice(e.indexOf('\t') + 1)]
+      const [mode, sha, etape] = tete.split(' ')
+      if (etape === '0' && voulus.has(chemin)) entrees.set(chemin, { mode, sha })
+    }
+    return entrees
+  }
+  bornesDe(depot, 'entreesDe', [arbre], 'tree')
+  const brut = lireLeLotOuLever(depot, ['ls-tree', '-r', '-z', ...revisionsDe([arbre])], {}, `arbre ${arbre}`)
+  for (const e of brut.split('\0').filter(Boolean)) {
+    const [tete, chemin] = [e.slice(0, e.indexOf('\t')), e.slice(e.indexOf('\t') + 1)]
+    const [mode, , sha] = tete.split(' ')
+    if (voulus.has(chemin)) entrees.set(chemin, { mode, sha })
+  }
+  return entrees
+}
+
+/**
+ * Le DERNIER commit de la plage `de..vers` qui AJOUTE `chemin` (`log --diff-filter=A -1`, `git help
+ * log`), `null` s'il n'y en a aucun.
+ * @param {Depot} depot @param {string} de @param {string} vers @param {string} chemin @returns {string | null}
+ */
+export function ajoutDe(depot, de, vers, chemin) {
+  const brut = lire(depot, ['--literal-pathspecs', 'log', '--no-renames', '--diff-filter=A', '--format=%H', '-1', revisionsDe([de, vers]).join('..'), '--', chemin])
+  return brut?.trim() || null
+}
+
+/**
+ * Les commits de `tete` absents de `amont` (`cherry <amont> <tete>`, `git help cherry`), du plus
+ * ancien au plus récent : `signe` `+` = sans équivalent dans `amont`, `-` = un commit d'`amont` porte
+ * le même patch (`git patch-id`).
+ * @param {Depot} depot @param {string} amont @param {string} tete
+ * @returns {{ signe: '+' | '-', sha: string }[]}
+ * @throws {GitIndisponible} réponse illisible.
+ */
+export function ceriseDe(depot, amont, tete) {
+  const brut = lireLeLotOuLever(depot, ['cherry', ...revisionsDe([amont, tete])], {}, `cherry ${amont} ${tete}`)
+  return brut.split('\n').filter(Boolean).map((ligne) => {
+    const m = /^([+-]) ([0-9a-f]+)$/.exec(ligne.trim())
+    if (!m) throw new Error(`git cherry illisible : « ${ligne} »`)
+    return { signe: /** @type {'+' | '-'} */ (m[1]), sha: m[2] }
+  })
+}
+
+/**
+ * Le CONTENU du blob `sha`, en octets (`cat-file blob`) ; sous `chemin`, tel que l'arbre de travail
+ * l'écrirait à ce chemin (`cat-file --filters --path`, `git help cat-file` : fins de ligne et filtres).
+ * @param {Depot} depot @param {string} sha @param {{ chemin?: string }} [opts] @returns {Buffer}
+ * @throws {GitIndisponible} blob illisible.
+ */
+export function contenuDuBlob(depot, sha, { chemin } = {}) {
+  const args = chemin === undefined ? ['cat-file', 'blob', ...revisionsDe([sha])] : ['cat-file', '--filters', `--path=${chemin}`, ...revisionsDe([sha])]
+  const vu = interroger(depot, args, { encodage: 'buffer' })
+  if (!reussi(vu)) throw new GitIndisponible(vu.disponible ? indisponible(`blob ${sha} illisible`, { diagnostic: vu.absent ? vu.diagnostic : vu.valeur }) : vu)
+  return /** @type {Buffer} */ (/** @type {unknown} */ (vu.valeur.stdout))
+}
+
+/**
+ * Le SHA de blob de chacun des fichiers `chemins` de l'arbre de travail, tels que git les
+ * stockerait (`hash-object --stdin-paths`, filtres du chemin) ; aucun objet n'est écrit.
+ * @param {Depot} depot @param {readonly string[]} chemins @returns {Map<string, string>}
+ * @throws {GitIndisponible} un fichier illisible, ou git muet.
+ */
+export function shasDuTravail(depot, chemins) {
+  if (!chemins.length) return new Map()
+  const brut = lireLeLotOuLever(depot, ['hash-object', '--stdin-paths'], { entree: chemins.map((c) => `${c}\n`).join('') }, 'hash-object')
+  const shas = brut.split('\n').filter(Boolean)
+  return new Map(chemins.map((c, i) => [c, shas[i]]))
+}
+
+/**
  * Les WORKTREES du dépôt (`worktree list --porcelain -z`, `git help worktree`), le principal en tête
  * (`principal`) : `{ chemin, head, branche, principal, nu, verrouille, verrouillePour, prunable }`,
  * `branche` sans `refs/heads/` (`null` sous HEAD détaché), `verrouillePour`/`prunable` = la raison
@@ -1604,14 +1707,44 @@ export function worktreesDe(depot) {
  * @throws {GitIndisponible} git indisponible ; {Error} code de sortie d'erreur (255 et plus).
  */
 export function fusionDeTextes(depot, fichiers, labels) {
-  const vu = interroger(depot, ['merge-file', '-p', '-L', labels.ours, '-L', labels.base, '-L', labels.theirs, '--', fichiers.ours, fichiers.base, fichiers.theirs])
+  const vu = mergeFile(depot, fichiers, labels, [])
+  return { texte: vu.valeur.stdout, conflit: vu.valeur.status > 0 }
+}
+
+/** Ce que `merge-file` écrit sur un fichier BINAIRE (`xdiff-interface.c`, `buffer_is_binary` ;
+ *  mesuré sous git 2.51 : « error: Cannot merge binary files: <fichier> », code 255). */
+const FUSION_BINAIRE = /Cannot merge binary files/
+
+/**
+ * La FUSION À TROIS au style `diff3` (`merge-file -p --diff3`, `git help merge-file`) : le texte
+ * fusionné, chaque bloc en conflit portant sa base entre `|||||||` et `=======`, et `conflit` ; un
+ * fichier BINAIRE (`FUSION_BINAIRE`) rend `{ binaire: true }` au lieu de lever.
+ * @param {Depot} depot @param {{ ours: string, base: string, theirs: string }} fichiers
+ * @param {{ ours: string, base: string, theirs: string }} labels
+ * @returns {{ texte: string, conflit: boolean } | { binaire: true }}
+ * @throws {GitIndisponible} git indisponible ; code de sortie d'erreur hors binaire.
+ */
+export function fusionDiff3(depot, fichiers, labels) {
+  const binaire = (union) => {
+    const diagnostic = union.disponible ? (union.absent ? union.diagnostic : union.valeur) : union.diagnostic
+    return (diagnostic?.status ?? 0) >= 255 && FUSION_BINAIRE.test(diagnostic?.stderr ?? '')
+  }
+  const vu = mergeFile(depot, fichiers, labels, ['--diff3'], binaire)
+  if (binaire(vu)) return { binaire: true }
+  return { texte: vu.valeur.stdout, conflit: vu.valeur.status > 0 }
+}
+
+/** `merge-file -p` sous `drapeaux` ; tout échec LÈVE `GitIndisponible`, sauf celui qu'`admis` reconnaît. */
+function mergeFile(depot, fichiers, labels, drapeaux, admis = () => false) {
+  const vu = interroger(depot, ['merge-file', '-p', ...drapeaux, '-L', labels.ours, '-L', labels.base, '-L', labels.theirs, '--', fichiers.ours, fichiers.base, fichiers.theirs])
+  if (admis(vu)) return vu
   if (!vu.disponible || vu.absent || vu.valeur.status >= 255) {
     const raison = !vu.disponible ? vu.raison : `git merge-file en échec (${vu.absent ? 'objet absent' : vu.valeur.status})`
     const diagnostic = vu.disponible && !vu.absent ? vu.valeur : vu.diagnostic
     const flux = [diagnostic?.stdout, diagnostic?.stderr].filter((texte) => texte && !raison.includes(texte)).join('\n')
     throw new GitIndisponible(indisponible(`${raison}${flux ? ` — ${flux}` : ''}`, { issue: vu.disponible ? 'refus' : vu.issue, diagnostic }))
   }
-  return { texte: vu.valeur.stdout, conflit: vu.valeur.status > 0 }
+  return vu
 }
 
 /** Une écriture a-t-elle RÉUSSI (git a répondu, code 0) ? PUR. */
@@ -1721,3 +1854,113 @@ export const supprimerBranche = (depot, branche) => ecrire(depot, ['branch', '-d
 
 /** Les worktrees disparus du disque, oubliés (`worktree prune`). @param {Depot} depot */
 export const elaguerWorktrees = (depot) => ecrire(depot, ['worktree', 'prune'])
+
+/** Un blob écrit tel quel dans la base d'objets (`hash-object -w --no-filters --stdin`) : son SHA.
+ *  @param {Depot} depot @param {Buffer | string} contenu */
+export const ecrireBlob = (depot, contenu) => ecrire(depot, ['hash-object', '-w', '--no-filters', '--stdin'], { entree: contenu })
+
+/** Le SHA nul de la forme `--index-info` qui RETIRE une entrée (`git help update-index`, « USING
+ *  --INDEX-INFO » : mode 0). */
+const SHA_NUL = '0'.repeat(40)
+
+/**
+ * Les ENTRÉES `entrees` posées dans l'index `index` (`GIT_INDEX_FILE` de cette commande seule) par
+ * `update-index --index-info` : `{ chemin, mode, sha }` pose l'entrée, `{ chemin, retirer: true }` la
+ * retire.
+ * @param {Depot} depot @param {{ index: string, entrees: readonly ({ chemin: string, mode: string, sha: string } | { chemin: string, retirer: true })[] }} p
+ */
+export function poserDansIndex(depot, { index, entrees }) {
+  const lignes = entrees.map((e) => ('retirer' in e ? `0 ${SHA_NUL}\t${e.chemin}\n` : `${e.mode} ${e.sha}\t${e.chemin}\n`))
+  return ecrire(depot, ['update-index', '--index-info'], { index, entree: lignes.join('') })
+}
+
+/**
+ * L'ARBRE DE TRAVAIL et l'index `index` avancés de l'arbre `de` à l'arbre `vers` (`read-tree -m -u`,
+ * `git help read-tree`, « Two Tree Merge ») ; `index` est le `GIT_INDEX_FILE` de CETTE commande seule.
+ * @param {Depot} depot @param {{ index: string, de: string, vers: string }} p
+ */
+export const avancerArbre = (depot, { index, de, vers }) =>
+  ecrire(depot, ['read-tree', '-m', '-u', ...revisionsDe([de, vers])], { index, timeout: 600_000 })
+
+/**
+ * Les entrées de l'index `index` dont seules les stats ont bougé, RAFRAÎCHIES (`update-index -q --refresh`,
+ * `git help update-index`) : `read-tree -m -u` juge « not uptodate » une entrée aux stats périmées
+ * (`git help read-tree`, « Two Tree Merge »).
+ * @param {Depot} depot @param {{ index: string }} p
+ */
+export const rafraichirIndex = (depot, { index }) => ecrire(depot, ['update-index', '-q', '--refresh'], { index })
+
+/** Le hook `nom` du dépôt joué sur `args` (`hook run --ignore-missing`, `git help hook`) ; son code
+ *  de sortie est le `status` de l'union. @param {Depot} depot @param {string} nom @param {readonly string[]} args */
+export const lancerHook = (depot, nom, args) => ecrire(depot, ['hook', 'run', '--ignore-missing', ...revisionsDe([nom]), '--', ...args], { timeout: 3_600_000 })
+
+/**
+ * Une TRANSACTION de refs gardée OUVERTE (`update-ref --stdin`, `git help update-ref` : `start`,
+ * `update`, `prepare`, `commit`, `abort`), sous le message de reflog `message`. Chaque ordre qui
+ * répond (`start`, `prepare`, `commit`, `abort`) rend `{ ok: true }` à la ligne `<ordre>: ok`, ou
+ * `{ ok: false, raison }` quand git sort : sa sortie d'erreur ; `commit` et `abort` rendent la main
+ * processus fermé. Le processus mort sans `commit`, git
+ * ABANDONNE la transaction : `detached` le tient hors de l'objet job qui tue les enfants avec leur parent
+ * sous win32 (libuv, `uv_spawn`) ; mesuré le 2026-10-07 sans lui, `HEAD.lock` reste après la mort du parent.
+ * @param {Depot} depot @param {{ message: string }} p
+ */
+export function transactionDeRefs(depot, { message }) {
+  const { cwd, env } = lanceurDe(depot)
+  const environnement = typeof env === 'function' ? env() : env
+  const enfant = spawnAsync('git', ['update-ref', '-m', String(message), '--stdin'], { cwd, env: environnement, stdio: ['pipe', 'pipe', 'pipe'], detached: true, windowsHide: true })
+  let sortie = ''
+  let erreur = ''
+  /** @type {{ attendu: string, fini: (r: { ok: true } | { ok: false, raison: string }) => void } | null} */
+  let enAttente = null
+  /** @type {{ ok: false, raison: string } | null} */
+  let fin = null
+  const regler = () => {
+    if (!enAttente) return
+    const ligne = sortie.split('\n').find((l) => l.trim() === `${enAttente.attendu}: ok`)
+    if (ligne !== undefined) {
+      sortie = sortie.slice(sortie.indexOf(ligne) + ligne.length + 1)
+      const { fini } = enAttente
+      enAttente = null
+      fini({ ok: true })
+    } else if (fin) {
+      const { fini } = enAttente
+      enAttente = null
+      fini(fin)
+    }
+  }
+  enfant.stdout.setEncoding('utf8').on('data', (d) => { sortie += d; regler() })
+  enfant.stderr.setEncoding('utf8').on('data', (d) => { erreur += d })
+  enfant.stdin.on('error', () => {})
+  const sortir = (raison) => { fin ??= { ok: false, raison }; regler() }
+  enfant.on('error', (e) => sortir(`update-ref --stdin non lancé : ${e.message}`))
+  const ferme = new Promise((fini) => enfant.on('close', (code) => {
+    sortir(erreur.trim() || `update-ref --stdin sorti en ${code}`)
+    fini(undefined)
+  }))
+  /** @param {string} ligne @param {string | null} attendu @returns {Promise<{ ok: true } | { ok: false, raison: string }>} */
+  const ordre = (ligne, attendu) => new Promise((fini) => {
+    if (fin) return fini(fin)
+    if (attendu) enAttente = { attendu, fini }
+    enfant.stdin.write(`${ligne}\n`)
+    if (!attendu) fini({ ok: true })
+  })
+  return {
+    pid: enfant.pid,
+    start: () => ordre('start', 'start'),
+    /** @param {string} ref @param {string} nouveau @param {string} ancien */
+    update: (ref, nouveau, ancien) => ordre(`update ${revisionsDe([ref, nouveau, ancien]).join(' ')}`, null),
+    prepare: () => ordre('prepare', 'prepare'),
+    commit: async () => {
+      const vu = await ordre('commit', 'commit')
+      enfant.stdin.end()
+      await ferme
+      return vu
+    },
+    abort: async () => {
+      const vu = fin ?? await ordre('abort', 'abort')
+      enfant.stdin.end()
+      await ferme
+      return vu
+    },
+  }
+}
