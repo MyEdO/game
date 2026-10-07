@@ -1,8 +1,7 @@
 // Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : rappel de GROUNDING quand une donnée app-owned (src/data/*.json) est
 // éditée. Non bloquant — injecte du contexte (le hard-gate reste `npm test`). Atteint aussi les
 // SOUS-AGENTS, où les skills ne se déclenchent jamais. Motivé par l'incident #148 (doublon « Bélier »).
-import { OUTILS_ECRITURE, ecrituresDe } from '../guards/lib/contratGarde.mjs'
-import { cheminDEcriture } from './solde-ticket-guard.mjs'
+import { OUTILS_ECRITURE, cheminDEcriture, ecrituresDe } from '../guards/lib/contratGarde.mjs'
 
 /** Le rappel pour UNE écriture, `null` hors donnée app-owned ; un relatif se résout contre `base`. */
 function rappel(ecrit, base) {

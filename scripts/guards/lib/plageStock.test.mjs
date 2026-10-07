@@ -336,11 +336,11 @@ test('C : une ligne de contenu `-- …` retirée n\'est pas un en-tête de diff'
   }
 })
 
-// ÉQUIVALENCE DES DEUX VOIES. Le garde de solde (au commit, images de l'arbre de travail) et la
+// ÉQUIVALENCE DES DEUX VOIES. La porte du commit (`commit-msg`, images de l'index) et la
 // porte de plage (au push, images `git show <sha>:<f>`) doivent rendre le MÊME compte sur le MÊME
 // contenu : c'est leur divergence APPARENTE qui a fait payer des cliquets mensongers.
 test('équivalence — solde au commit et plage au push comptent la même chose', async (t) => {
-  const { diffDuCommit, evaluateStocksQuiGrandissent } = await import('../../hooks/solde-ticket-guard.mjs')
+  const { diffDuCommit, evaluateStocksQuiGrandissent } = await import('../../git-hooks/porte-du-commit.mjs')
   const porteur = PORTEUR
   const cas = {
     'argument d’appel': ["const S = readCorpus(['src/ui'])"],
@@ -352,12 +352,11 @@ test('équivalence — solde au commit et plage au push comptent la même chose'
     try {
       writeFileSync(join(racine, porteur), `// socle\n${ajout.join('\n')}\n`, 'utf8')
       git('add', '-A')
-      const commande = 'git commit -m "test: sans cliquet"'
-      const lectures = diffDuCommit(commande, racine)
+      const lectures = diffDuCommit(racine)
       const auCommit = evaluateStocksQuiGrandissent({
-        command: commande,
+        message: 'test: sans cliquet',
         diff: lectures.diff([porteur]),
-        images: { lirePostImage: lectures.contenu, lirePreImage: lectures.avant },
+        images: { ...lectures.images([porteur]), renommages: lectures.renommages() },
       })
       const base = git('rev-parse', 'HEAD').trim()
       git('commit', '-q', '--no-verify', '-m', 'test: sans cliquet')
@@ -379,12 +378,12 @@ test('équivalence — solde au commit et plage au push comptent la même chose'
 
 // #1709 D3 — sonde 3 de la revue du 2026-09-08, promue sur un dépôt RÉEL : un
 // `*-stock.json` qui NAÎT. Ses entrées vivent sur des propriétés (`"sites": [ … ]`) qu'aucune
-// lecture par ligne ne reconnaît : seule une IMAGE les compte. Les deux portes en ont une — l'arbre
-// de travail au commit, `git show <sha>:<f>` au push — et rendent le même compte ; un appelant qui
+// lecture par ligne ne reconnaît : seule une IMAGE les compte. Les deux portes en ont une — l'index
+// au commit, `git show <sha>:<f>` au push — et rendent le même compte ; un appelant qui
 // n'en fournit aucune est REFUSÉ, jamais servi d'un zéro.
-test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même compte aux deux portes', async (t) => {
+test('équivalence — un `*-stock.json` qui NAÎT, GRANDIT, puis se DÉPLACE : même compte aux deux portes', async (t) => {
   const { croissanceDesStocks } = await import('./stocksNominatifs.mjs')
-  const { diffDuCommit, evaluateStocksQuiGrandissent } = await import('../../hooks/solde-ticket-guard.mjs')
+  const { diffDuCommit, evaluateStocksQuiGrandissent } = await import('../../git-hooks/porte-du-commit.mjs')
   const porteur = 'scripts/raw/fixture-stock.json'
   const trous = (n) => Array.from({ length: n }, (_, i) => [`LIV ${i + 1}`, [`src/data/x${i + 1}.json`]])
   const stock = (entrees) => [
@@ -406,13 +405,13 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
   const git = gitDe(racine)
   const poser = (entrees) => { writeFileSync(join(racine, porteur), stock(entrees), 'utf8'); git('add', '-A') }
   const auPush = (debut) => croissancesDeLaPlage({ cwd: racine, debut, fin: git('rev-parse', 'HEAD').trim() })
-  const auCommit = (commande) => {
-    const lectures = diffDuCommit(commande, racine)
+  const auCommit = (message) => {
+    const lectures = diffDuCommit(racine)
     return {
       verdict: evaluateStocksQuiGrandissent({
-        command: commande,
+        message,
         diff: lectures.diff([porteur]),
-        images: { lirePostImage: lectures.contenu, lirePreImage: lectures.avant },
+        images: { ...lectures.images([porteur]), renommages: lectures.renommages() },
       }),
       diff: lectures.diff([porteur]),
     }
@@ -421,7 +420,7 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
     // NAISSANCE de 13 entrées, message muet : les deux portes refusent, et le compte est le VRAI.
     const base = git('rev-parse', 'HEAD').trim()
     poser(trous(13))
-    const naissance = auCommit('git commit -m "test: un stock qui naît"')
+    const naissance = auCommit('test: un stock qui naît')
     assert.match(naissance.verdict?.reason ?? '', /\+13 entrée\(s\) nette\(s\)/, 'porte au commit : le compte de la naissance')
     assert.deepEqual(
       croissanceDesStocks(naissance.diff, { lirePostImage: (f) => readFileSync(join(racine, f), 'utf8') })
@@ -440,7 +439,7 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
     const debut = git('rev-parse', 'HEAD').trim()
     poser(trous(15))
     const message = 'test: deux trous durs de plus\n\nCLIQUET: scripts/raw/fixture-stock.json +2 — deux chapitres non couverts par l’Atlas'
-    const croissance = auCommit(`git commit -m "${message}"`)
+    const croissance = auCommit(message)
     assert.equal(croissance.verdict, null, 'porte au commit : la croissance est DITE, elle passe')
     assert.deepEqual(
       croissanceDesStocks(croissance.diff, { lirePostImage: (f) => readFileSync(join(racine, f), 'utf8') })
@@ -449,7 +448,16 @@ test('équivalence — un `*-stock.json` qui NAÎT, puis qui GRANDIT : même com
     )
     git('commit', '-q', '--no-verify', '-m', message)
     assert.deepEqual(auPush(debut).refus, [], 'porte au push : le cliquet du message couvre la croissance')
-    t.diagnostic('naissance +13, croissance +2, trois lectures concordantes')
+
+    // DÉPLACEMENT d'une entrée, message muet : le compte vient de la PRÉ-IMAGE lue (sans elle, la
+    // lecture par ligne voit une entrée qui naît et ne voit pas celle qui part).
+    const avantDeplacement = git('rev-parse', 'HEAD').trim()
+    const quinze = trous(15)
+    poser([...quinze.slice(1), quinze[0]])
+    assert.equal(auCommit('test: une entrée déplacée').verdict, null, 'porte au commit : un déplacement ne fait rien naître')
+    git('commit', '-q', '--no-verify', '-m', 'test: une entrée déplacée')
+    assert.deepEqual(auPush(avantDeplacement).refus, [], 'porte au push : le même compte')
+    t.diagnostic('naissance +13, croissance +2, déplacement 0, trois lectures concordantes')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -522,17 +530,17 @@ test('RECLASSEMENT (D3″) : franchie puis rendue au stock dans la plage — le 
 })
 
 test('équivalence — RECLASSEMENT au commit et à la plage : même verdict', async () => {
-  const { diffDuCommit, evaluateReclassementsCss } = await import('../../hooks/solde-ticket-guard.mjs')
+  const { diffDuCommit, evaluateReclassementsCss } = await import('../../git-hooks/porte-du-commit.mjs')
   for (const message of ['feat: second écran', RECLASSE]) {
     const { racine, base, git } = depotCss()
     try {
       writeFileSync(join(racine, 'src/ui/Ecran2.tsx'), importeur('Ecran2'), 'utf8')
       git('add', '-A')
-      const commande = `git commit -m "${message}"`
+      const commit = diffDuCommit(racine)
       const auCommit = evaluateReclassementsCss({
-        command: commande,
-        deplace: () => diffDuCommit(commande, racine).deplaceLaFrontiereCss(['src/ui/Ecran2.tsx']),
-        cotes: diffDuCommit(commande, racine).cotesCss,
+        message,
+        deplace: () => commit.deplaceLaFrontiereCss(['src/ui/Ecran2.tsx']),
+        cotes: commit.cotesCss,
       })
       git('commit', '-q', '--no-verify', '-m', message)
       const auPush = croissancesDeLaPlage({ cwd: racine, debut: base, fin: git('rev-parse', 'HEAD').trim() })
@@ -546,7 +554,7 @@ test('équivalence — RECLASSEMENT au commit et à la plage : même verdict', a
 })
 
 test('RECLASSEMENT : le renommage PUR d’une primitive réutilisée ne fait franchir aucun module — ni au commit, ni à la plage', async () => {
-  const { diffDuCommit, evaluateReclassementsCss } = await import('../../hooks/solde-ticket-guard.mjs')
+  const { diffDuCommit, evaluateReclassementsCss } = await import('../../git-hooks/porte-du-commit.mjs')
   const { racine, git, commettre } = depotCss()
   try {
     const reutilisee = commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, RECLASSE)
@@ -556,9 +564,8 @@ test('RECLASSEMENT : le renommage PUR d’une primitive réutilisée ne fait fra
     writeFileSync(join(racine, 'src/ui/Ecran2.tsx'), pupitre('Ecran2'), 'utf8')
     writeFileSync(join(racine, MANIFESTE), manifesteAvec({ ...PRIMITIVE_CONSOLE, fichier: 'src/ui/Pupitre.tsx' }), 'utf8')
     git('add', '-A')
-    const commande = 'git commit -m "refactor: la console devient le pupitre"'
-    const commit = diffDuCommit(commande, racine)
-    assert.equal(evaluateReclassementsCss({ command: commande, deplace: () => commit.deplaceLaFrontiereCss([MANIFESTE, ECRAN1]), cotes: commit.cotesCss }), null)
+    const commit = diffDuCommit(racine)
+    assert.equal(evaluateReclassementsCss({ message: 'refactor: la console devient le pupitre', deplace: () => commit.deplaceLaFrontiereCss([MANIFESTE, ECRAN1]), cotes: commit.cotesCss }), null)
     git('commit', '-q', '--no-verify', '-m', 'refactor: la console devient le pupitre')
     const renomme = git('rev-parse', 'HEAD').trim()
     assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut: reutilisee, fin: renomme }).reclassements, [])
@@ -621,12 +628,11 @@ test('RECLASSEMENT : le second importeur au chemin NON-ASCII fait franchir la co
   }
 })
 
-test('RECLASSEMENT au commit : chaque FORME lit l’arbre que le commit emporte — index, pathspec, `-a` — chemin non-ASCII compris', async () => {
-  const { analyzeDiffDuCommit, diffDuCommit } = await import('../../hooks/solde-ticket-guard.mjs')
+test('RECLASSEMENT au commit : la porte lit l’INDEX que git emporte — chemin non-ASCII compris', async () => {
+  const { analyzeDiffDuCommit, diffDuCommit } = await import('../../git-hooks/porte-du-commit.mjs')
   const AUTRE = 'src/ui/Autre.tsx'
-  const NEUF = 'src/ui/Neuf.tsx'
   /** Console importée par PERSONNE au socle : un seul importeur emporté ne la réutilise pas, deux oui. */
-  const juger = ({ ecrire, indexer = [], commande }) => {
+  const juger = ({ ecrire, indexer }) => {
     const { racine } = instanceDeDepot({
       fichiers: {
         [MANIFESTE]: manifesteAvec(PRIMITIVE_CONSOLE), [CONSOLE]: '.c { color: red }\n', [COMPOSANT]: 'export const Console = 1\n',
@@ -636,26 +642,18 @@ test('RECLASSEMENT au commit : chaque FORME lit l’arbre que le commit emporte 
     })
     try {
       for (const f of ecrire) writeFileSync(join(racine, f), importeur(f.slice(7, -4)), 'utf8')
-      if (indexer.length) lancerGit(['add', '--', ...indexer], { cwd: racine })
-      const c = diffDuCommit(commande, racine)
+      lancerGit(['add', '--', ...indexer], { cwd: racine })
+      const c = diffDuCommit(racine)
       const { fichiers } = analyzeDiffDuCommit(c.numstat())
       return { fichiers: fichiers.sort(), deplace: c.deplaceLaFrontiereCss(fichiers), reutilises: [...c.cotesCss().commit.reutilises] }
     } finally {
       rmSync(racine, { recursive: true, force: true })
     }
   }
-  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], indexer: [ECRAN_ACCENTUE], commande: 'git commit -m "x"' }),
+  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], indexer: [ECRAN_ACCENTUE] }),
     { fichiers: [ECRAN_ACCENTUE], deplace: true, reutilises: [] }, 'index : `Autre` non indexé reste au socle')
-  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], indexer: [ECRAN_ACCENTUE, AUTRE], commande: 'git commit -m "x"' }),
+  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], indexer: [ECRAN_ACCENTUE, AUTRE] }),
     { fichiers: [AUTRE, ECRAN_ACCENTUE].sort(), deplace: true, reutilises: [COMPOSANT] }, 'index : les deux indexés')
-  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], indexer: [AUTRE], commande: `git commit -m "x" -- ${ECRAN_ACCENTUE}` }),
-    { fichiers: [ECRAN_ACCENTUE], deplace: true, reutilises: [] }, 'pathspec : `Autre`, indexé mais hors pathspec, est lu à HEAD')
-  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], commande: `git commit -m "x" -- ${ECRAN_ACCENTUE} ${AUTRE}` }),
-    { fichiers: [AUTRE, ECRAN_ACCENTUE].sort(), deplace: true, reutilises: [COMPOSANT] }, 'pathspec : les deux dans le pathspec, lus sur le disque')
-  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, NEUF], commande: 'git commit -a -m "x"' }),
-    { fichiers: [ECRAN_ACCENTUE], deplace: true, reutilises: [] }, '`-a` : le non-suivi `Neuf` n’est pas emporté')
-  assert.deepEqual(juger({ ecrire: [ECRAN_ACCENTUE, AUTRE], commande: 'git commit -a -m "x"' }),
-    { fichiers: [AUTRE, ECRAN_ACCENTUE].sort(), deplace: true, reutilises: [COMPOSANT] }, '`-a` : les suivis modifiés, lus sur le disque')
 })
 
 test('RECLASSEMENT (D3″) : un rebase qui fait disparaître le franchissement rend la ligne INVALIDE — refus bruyant', () => {
@@ -1382,47 +1380,11 @@ for (const muette of [false, true]) {
 
 // ── #2223 : le hook de commit juge une fusion EN COURS sur son apport, comme la plage ──────────────
 
-const commandeDeFusion = (lignes = '') => `git commit -m "chore(merge): refs #2223 — fusion de main${lignes}"`
-const auHook = async (repo, command) => {
-  const { garde } = await import('../../hooks/solde-ticket-guard.mjs')
-  return garde.evaluer({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } }, { dir: repo, cibleIgnoree: null, today: '2026-10-01', pannes: [] })
-}
-
-for (const option of ['-i', '--include', '-a']) {
-  test(`#2223 HOOK image emportée ${option} : fusion, index hors pathspec et disque inclus`, async () => {
-    const autre = 'scripts/autre.test.mjs'
-    const inclus = 'scripts/inclus.test.mjs'
-    const d = depotConstruit({ [autre]: sourceStock(SIX), [inclus]: sourceStock(SIX) })
-    try {
-      d.git('checkout', '-q', '-b', 'tronc', d.debut)
-      d.poser({ [PORTEUR]: sourceStock([...SIX, ent('src/tronc.ts')]) }, `tronc +1${cliquet(PORTEUR, 1)}`)
-      d.git('checkout', '-q', 'chantier')
-      d.poser({}, 'chantier')
-      d.fusionner('tronc')
-      writeFileSync(join(d.repo, autre), sourceStock([...SIX, ent('src/index.ts')]), 'utf8')
-      d.git('add', autre)
-      writeFileSync(join(d.repo, autre), sourceStock(SIX), 'utf8')
-      writeFileSync(join(d.repo, PORTEUR), sourceStock([...SIX, ent('src/tronc.ts'), ent('src/muette.ts')]), 'utf8')
-      d.git('add', PORTEUR)
-      writeFileSync(join(d.repo, inclus), sourceStock([...SIX, ent('src/disque.ts')]), 'utf8')
-      const lignes = cliquet(PORTEUR, 1) + cliquet(inclus, 1) + (option === '-a' ? '' : cliquet(autre, 1))
-      const commande = (texte) => `${commandeDeFusion(texte)} ${option}${option === '-a' ? '' : ` -- ${PORTEUR} ${inclus}`}`
-      const resultat = await auHook(d.repo, commande(lignes))
-      assert.notEqual(resultat?.decision, 'deny', JSON.stringify(resultat))
-      const refus = await auHook(d.repo, commande(''))
-      assert.equal(refus?.decision, 'deny')
-      assert.ok(refus.raison.includes(`${PORTEUR} : +1 entrée`))
-      assert.ok(refus.raison.includes(`${inclus} : +1 entrée`))
-      if (option !== '-a') assert.ok(refus.raison.includes(`${autre} : +1 entrée`))
-      const { diffDuCommit } = await import('../../hooks/solde-ticket-guard.mjs')
-      const lu = diffDuCommit(commande(lignes), d.repo)
-      assert.equal(lu.contenu(autre), sourceStock(option === '-a' ? SIX : [...SIX, ent('src/index.ts')]))
-      assert.equal(lu.contenu(inclus), sourceStock([...SIX, ent('src/disque.ts')]))
-      assert.ok(lu.fusion())
-    } finally {
-      rmSync(d.repo, { recursive: true, force: true })
-    }
-  })
+const messageDeFusion = (lignes = '') => `chore(merge): refs #2223 — fusion de main${lignes}`
+/** Le verdict de la porte du commit (`jugerLeCommit`) sur l'index de `repo`, sous le message `message`. */
+const auHook = async (repo, message) => {
+  const { jugerLeCommit } = await import('../../git-hooks/porte-du-commit.mjs')
+  return jugerLeCommit({ message, dir: repo, today: '2026-10-01' })
 }
 
 test('#2223 HOOK sous MERGE_HEAD : main ajoute +1 déclaré, la conclusion une entrée muette — seule l’entrée de la fusion se déclare, `+1`', async () => {
@@ -1435,11 +1397,12 @@ test('#2223 HOOK sous MERGE_HEAD : main ajoute +1 déclaré, la conclusion une e
     d.fusionner('tronc')
     writeFileSync(join(d.repo, PORTEUR), sourceStock([...SIX, ent('src/tronc.ts'), ent('src/muette.ts')]), 'utf8')
     d.git('add', PORTEUR)
-    assert.equal(await auHook(d.repo, commandeDeFusion(cliquet(PORTEUR, 1))), null, 'la ligne exacte de l’apport passe')
+    const { diffDuCommit } = await import('../../git-hooks/porte-du-commit.mjs')
+    assert.ok(diffDuCommit(d.repo).fusion(), 'l’index sous MERGE_HEAD est lu comme une fusion')
+    assert.equal(await auHook(d.repo, messageDeFusion(cliquet(PORTEUR, 1))), null, 'la ligne exacte de l’apport passe')
     for (const lignes of ['', cliquet(PORTEUR, 2)]) {
-      const refus = await auHook(d.repo, commandeDeFusion(lignes))
-      assert.equal(refus?.decision, 'deny', JSON.stringify(lignes))
-      assert.ok(refus.raison.includes(`${PORTEUR} : +1 entrée(s) nette(s)`))
+      const refus = await auHook(d.repo, messageDeFusion(lignes))
+      assert.ok(refus?.reason.includes(`${PORTEUR} : +1 entrée(s) nette(s)`), JSON.stringify([lignes, refus]))
     }
     const fin = d.poser({}, `fusion de main${cliquet(PORTEUR, 1)}`)
     assert.deepEqual(d.juger(d.debut, fin), [], 'la plage rend le même verdict sur la fusion posée')
@@ -1457,7 +1420,7 @@ test('#2223 HOOK sous MERGE_HEAD : un franchissement CSS amené par main n’est
     d.commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, RECLASSE)
     d.git('checkout', '-q', 'chantier')
     d.git('merge', '-q', '--no-ff', '--no-commit', 'main')
-    assert.equal(await auHook(d.racine, commandeDeFusion()), null)
+    assert.equal(await auHook(d.racine, messageDeFusion()), null)
   } finally {
     rmSync(d.racine, { recursive: true, force: true })
   }
@@ -1474,9 +1437,8 @@ test('#2223 HOOK sous MERGE_HEAD : le franchissement CSS que la conclusion pose 
     d.git('merge', '-q', '--no-ff', '--no-commit', 'main')
     writeFileSync(join(d.racine, 'src/ui/Ecran2.tsx'), importeur('Ecran2'), 'utf8')
     d.git('add', 'src/ui/Ecran2.tsx')
-    const refus = await auHook(d.racine, commandeDeFusion())
-    assert.equal(refus?.decision, 'deny')
-    assert.match(refus.raison, /RECLASSEMENT CSS : src\/ui\/styles\/console\.css : franchi au prix 3, aucune ligne/)
+    const refus = await auHook(d.racine, messageDeFusion())
+    assert.match(refus?.reason ?? '', /RECLASSEMENT CSS : src\/ui\/styles\/console\.css : franchi au prix 3, aucune ligne/)
   } finally {
     rmSync(d.racine, { recursive: true, force: true })
   }

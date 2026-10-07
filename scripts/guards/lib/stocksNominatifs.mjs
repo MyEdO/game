@@ -4,9 +4,9 @@
 // toujours le chemin le plus court pour rendre une CI verte — c'est exactement ce que le cliquet
 // doit rendre visible (même raison que l'interdit du PLAFOND en tête de `stock.mjs`).
 //
-// FRONTIÈRE (celle de `stock.mjs`) : cette lib CALCULE, le VERDICT appartient à l'appelant — le
-// garde de solde (au commit) et les portes a posteriori (dernier commit, plage poussée) décident,
-// avec quel message et sous quelle dérogation.
+// FRONTIÈRE (celle de `stock.mjs`) : cette lib CALCULE, le VERDICT appartient à l'appelant — la
+// porte du commit (`scripts/git-hooks/porte-du-commit.mjs`) et les portes a posteriori (dernier commit,
+// plage poussée) décident, avec quel message et sous quelle dérogation.
 //
 // PÉRIMÈTRE : les fichiers où un stock vit dans ce dépôt — tests de `src/**`, libs de garde
 // `scripts/guards/lib/**`, tests de `scripts/**`, tables JSON de `scripts/hooks/`, de
@@ -91,7 +91,7 @@
 // précision, jamais sa vue. Ce que le repli ne sait pas lire, il le rate : entrée MULTILIGNE,
 // entrée-objet JSON, propriété dont la CLÉ ne nomme pas de fichier alors que sa valeur en nomme
 // (`"sites": [ … ]` de `scripts/raw/reconciliation-stock.json`). Les appelants de production
-// fournissent l'image (`plageStock.mjs`, `solde-ticket-guard.mjs`).
+// fournissent l'image (`plageStock.mjs`, `scripts/git-hooks/porte-du-commit.mjs`).
 //
 // CE QUE LA RÈGLE MESURE MAL, par construction, et qui doit se lire ici plutôt que se découvrir :
 //   · plusieurs entrées sur UNE ligne = SOUS-COMPTAGE (la ligne compte pour une), jamais une cécité :

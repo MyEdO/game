@@ -50,15 +50,41 @@ function rendu() {
       .filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts')
   }
 
-  /** Évalue une expression de chaîne STATIQUE (littéral, ou concaténation `+` de littéraux/gabarits
-   *  sans substitution) — la seule forme admise dans la FICHE d'un scénario pour les champs
-   *  `id`/`title`/`tests`/`partyNote`. `null` si la forme n'est pas reconnue (fail-fast en amont). */
-  function evalStaticString(node) {
+  /** Évalue une expression de chaîne STATIQUE — littéral, gabarit, concaténation `+`, ou nom d'une
+   *  `const` de MODULE (`sf`) elle-même statique, ces formes composées entre elles — la seule forme
+   *  admise dans la FICHE d'un scénario pour les champs `id`/`title`/`tests`/`partyNote`. `null` si
+   *  la forme n'est pas reconnue (fail-fast en amont). */
+  function evalStaticString(node, sf, vus = new Set()) {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
+    if (ts.isParenthesizedExpression(node)) return evalStaticString(node.expression, sf, vus)
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-      const left = evalStaticString(node.left)
-      const right = evalStaticString(node.right)
+      const left = evalStaticString(node.left, sf, vus)
+      const right = evalStaticString(node.right, sf, vus)
       return left != null && right != null ? left + right : null
+    }
+    if (ts.isTemplateExpression(node)) {
+      let texte = node.head.text
+      for (const span of node.templateSpans) {
+        const valeur = evalStaticString(span.expression, sf, vus)
+        if (valeur == null) return null
+        texte += valeur + span.literal.text
+      }
+      return texte
+    }
+    if (ts.isIdentifier(node) && !vus.has(node.text)) {
+      const init = constDeModule(sf, node.text)
+      return init ? evalStaticString(init, sf, new Set([...vus, node.text])) : null
+    }
+    return null
+  }
+
+  /** Initialiseur de la `const` de MODULE `nom` de `sf` (`null` si absente, ou `let`/`var`). */
+  function constDeModule(sf, nom) {
+    for (const node of sf.statements) {
+      if (!ts.isVariableStatement(node) || !(node.declarationList.flags & ts.NodeFlags.Const)) continue
+      for (const decl of node.declarationList.declarations) {
+        if (ts.isIdentifier(decl.name) && decl.name.text === nom && decl.initializer) return decl.initializer
+      }
     }
     return null
   }
@@ -99,7 +125,7 @@ function rendu() {
       const key = prop.name.text
       if (!FIELDS.includes(key)) continue
       if (!ts.isPropertyAssignment(prop)) continue
-      row[key] = key === 'order' ? evalNumber(prop.initializer) : evalStaticString(prop.initializer)
+      row[key] = key === 'order' ? evalNumber(prop.initializer) : evalStaticString(prop.initializer, sf)
     }
     for (const key of FIELDS) {
       if (row[key] == null) {

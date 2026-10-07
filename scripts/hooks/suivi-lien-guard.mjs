@@ -19,7 +19,7 @@ import * as FS from 'node:fs'
 import { join } from 'node:path'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
 import { JOURNAL, argumentsDuSuivi, dossierDesSuivis, ligneDeLien, relire } from '../ops/suivi.mjs'
-import { finAvantOperateur, segmentsProfonds } from './solde-ticket-guard.mjs'
+import { finAvantOperateur, segmentsProfonds } from '../guards/lib/commandeShell.mjs'
 
 /** Un segment qui lance `scripts/ops/suivi.mjs`, et ses arguments. */
 const LANCE_SUIVI = /^node\s+(?:\S*[\\/])?scripts[\\/]ops[\\/]suivi\.mjs(?=\s|$)(.*)$/

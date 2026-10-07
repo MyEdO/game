@@ -72,7 +72,7 @@ export const sitesAveugles = (blind) => blind.map((b) => ({ file: b.file, ref: b
 
 /** Écart du volet : `{ neuves, perimees }`, phrases prêtes à afficher. */
 export function ecartDesRefsAveugles(blind, stock) {
-  // `STOCK_NOM` est hissé au module : dans une lib de garde, la porte de commit compte tout
+  // `STOCK_NOM` est hissé au module : dans une lib de garde, la porte du commit compte tout
   // objet-argument qui NOMME un fichier comme une entrée de stock nominatif.
   return ecartDuVolet({ sites: sitesAveugles(blind), stock, ou: STOCK_NOM })
 }

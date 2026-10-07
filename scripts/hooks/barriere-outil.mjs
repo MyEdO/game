@@ -1,5 +1,5 @@
 // BARRIÈRE des hooks d'appel d'outil (#2187, verdict `.git/suivi/2187-design-synchroniseur-verdict-2026-10-07.md`,
-// point 2) : le point d'entrée commun de `repartiteur.mjs` et `solde-ticket-hook.mjs`. Ses imports
+// point 2) : le point d'entrée de `repartiteur.mjs`. Ses imports
 // STATIQUES sont des modules intégrés de Node : un `npm ci` ou un `read-tree` en cours dans cet arbre ne
 // l'empêche pas de se charger. Il attend que le verrou d'OUTILLAGE de son arbre soit libre, puis charge
 // par `import()` la porte de version (`scripts/node-requis.mjs`) et le reste ; à échéance, ou sur un

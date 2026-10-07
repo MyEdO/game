@@ -17,10 +17,12 @@
 // les `CLIQUET:`. Le sujet se lit sur les lignes hors commentaire (`lectureDuMessage`, `satisfactions`).
 //
 // LECTURE DU MESSAGE (#2071) : `lectureDuMessage` est la seule lecture du fichier que git passe à
-// `commit-msg`, pour le sujet comme pour la porte (`jugerLeCommit`, scripts/hooks/solde-ticket-guard.mjs).
+// `commit-msg`, pour le sujet comme pour la porte (`jugerLeCommit`, scripts/git-hooks/porte-du-commit.mjs),
+// sous le caractère de commentaire du dépôt (`caractereDeCommentaire`, scripts/guards/lib/gitPorte.mjs).
 // Mesures du 2026-10-07 (git 2.51.0.windows.2) : sous `-m`/`-F`, git pose `GIT_EDITOR=:` et le
 // nettoyage `whitespace` ENREGISTRE les lignes `#` ; sous l'éditeur, `-v` écrit le diff après la ligne
-// des ciseaux, que git coupe.
+// des ciseaux, que git coupe, mais `-e` sans `-v` (nettoyage `strip`) ENREGISTRE ce qui la suit (sonde
+// P3bis du juge de #2071) : le hook ne distingue pas les deux.
 
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 
@@ -29,34 +31,37 @@ import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
  *  aucun outil (git log --oneline, `gh`, la CI) ne le rend lisible. */
 export const SUJET_MAX = 100
 
-/** La ligne des CISEAUX (`wt-status.c`, `cut_line`), derrière le caractère de commentaire. */
-const LIGNE_DES_CISEAUX = '# ------------------------ >8 ------------------------'
+/** La ligne des CISEAUX (`wt-status.c`, `cut_line`), derrière le caractère de commentaire et une espace. */
+const LIGNE_DES_CISEAUX = '------------------------ >8 ------------------------'
 
 /**
  * Le message d'un commit et ses deux lectures. PURE.
- *  - `texte` : le message, coupé à la ligne des ciseaux sous `ciseaux` (l'éditeur : `GIT_EDITOR` ≠ `:`) ;
- *  - `exigences` : toutes ses lignes, `#` comprises ;
- *  - `satisfactions` : ses lignes hors commentaire (`#` en colonne 0).
- * @param {string | null | undefined} message @param {{ ciseaux?: boolean }} [options]
+ *  - `texte` : le message tel que la porte le lit ; sous `ciseaux` (l'éditeur : `GIT_EDITOR` ≠ `:`), chaque
+ *    ligne qui suit la ligne des ciseaux y devient commentaire — git la coupe ou l'enregistre ;
+ *  - `exigences` : toutes ses lignes, commentaires compris ;
+ *  - `satisfactions` : ses lignes hors commentaire (`commentaire` en colonne 0, `#` par défaut).
+ * @param {string | null | undefined} message @param {{ ciseaux?: boolean, commentaire?: string }} [options]
  * @returns {{ texte: string, exigences: string, satisfactions: string }}
  */
-export function lectureDuMessage(message, { ciseaux = false } = {}) {
+export function lectureDuMessage(message, { ciseaux = false, commentaire = '#' } = {}) {
   const lignes = String(message ?? '').split(/\r?\n/)
-  const fin = ciseaux ? lignes.indexOf(LIGNE_DES_CISEAUX) : -1
-  const gardees = fin === -1 ? lignes : lignes.slice(0, fin)
-  const texte = gardees.join('\n')
-  return { texte, exigences: texte, satisfactions: gardees.filter((l) => !l.startsWith('#')).join('\n') }
+  const fin = ciseaux ? lignes.indexOf(`${commentaire} ${LIGNE_DES_CISEAUX}`) : -1
+  const lues = fin === -1 ? lignes : [...lignes.slice(0, fin + 1), ...lignes.slice(fin + 1).map((l) => `${commentaire} ${l}`)]
+  const texte = lues.join('\n')
+  return { texte, exigences: texte, satisfactions: lues.filter((l) => !l.startsWith(commentaire)).join('\n') }
 }
 
 /** La première ligne NON VIDE des `satisfactions` d'un message (`lectureDuMessage`) — son SUJET. `''`
- *  si le message n'en porte aucune (message vide, gabarit tout en commentaires). PURE. */
-export function sujetDuMessage(message) {
-  return lectureDuMessage(message).satisfactions.split('\n').map((l) => l.trim()).find((l) => l !== '') ?? ''
+ *  si le message n'en porte aucune (message vide, gabarit tout en commentaires). PURE.
+ *  @param {string | null | undefined} message @param {{ commentaire?: string }} [options] */
+export function sujetDuMessage(message, { commentaire = '#' } = {}) {
+  return lectureDuMessage(message, { commentaire }).satisfactions.split('\n').map((l) => l.trim()).find((l) => l !== '') ?? ''
 }
 
-/** La raison NOMMÉE de refuser un message, `null` si son sujet tient. PURE. */
-export function refusDeSujet(message) {
-  const sujet = sujetDuMessage(message)
+/** La raison NOMMÉE de refuser un message, `null` si son sujet tient. PURE.
+ *  @param {string | null | undefined} message @param {{ commentaire?: string }} [options] */
+export function refusDeSujet(message, { commentaire = '#' } = {}) {
+  const sujet = sujetDuMessage(message, { commentaire })
   if (sujet.length <= SUJET_MAX) return null
   return (
     `⛔ SUJET de commit de ${sujet.length} caractères : sujet ≤ ${SUJET_MAX} caractères, le solde et les `

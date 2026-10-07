@@ -35,7 +35,7 @@ export function testsDuCorpusPour(fichiers, importsAvantApres = []) {
   if (raw) selections.push({ lanceur: 'node-tests', gate: 'test:raw' });
   if (budget) {
     selections.push({ lanceur: 'node --test', tests: ['scripts/guards/budget-contexte.test.mjs'] });
-    selections.push({ lanceur: 'node --test', tests: ['scripts/hooks/solde-ticket-guard.test.mjs'], motif: 'budget' });
+    selections.push({ lanceur: 'node --test', tests: ['scripts/git-hooks/porte-du-commit.test.mjs'], motif: 'budget' });
   }
   return selections;
 }

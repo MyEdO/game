@@ -448,11 +448,10 @@ export interface Weapon {
    *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
   skin?: Record<string, string>;
   /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
-   *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par le rig (`formeResolue`).
-   *  Donnée opaque côté moteur. */
+   *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par `formeResolue` (`engine/items`). */
   form?: string;
   /** Forme CHOISIE par le joueur (`ItemInstance.formeChoisie`), propagée par `weaponFromItem`. La forme
-   *  dessinée se RÉSOUT au rig (`formeResolue`, #2113) ; absent = celle du catalogue. */
+   *  dessinée se RÉSOUT par `formeResolue` (`engine/items`, #2113) ; absent = celle du catalogue. */
   formeChoisie?: string;
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
    *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
@@ -1174,8 +1173,8 @@ export interface ItemInstance {
    *  siège à distance (ADE II 8 l.251/253). */
   minRangeBand?: RangeBandId;
   /** Forme CHOISIE par le joueur parmi les `formChoices` du trapping (`choisirForme`), slug
-   *  `WeaponDef.slug`. Jamais une copie du catalogue : la forme dessinée se RÉSOUT au rig
-   *  (`formeResolue`, #2113) ; absent = `TrappingData.shape`. */
+   *  `WeaponDef.slug`. Jamais une copie du catalogue : la forme dessinée se RÉSOUT par
+   *  `formeResolue` (`engine/items`, #2113) ; absent = `TrappingData.shape`. */
   formeChoisie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;

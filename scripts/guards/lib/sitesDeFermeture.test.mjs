@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { SITES_DECLARES, formesDeFermeture, recensementDesFermetures } from './sitesDeFermeture.mjs'
 
-// Les DEUX graphies que le dépôt peut écrire, plus celle que la porte de commit connaît aussi ; en
+// Les DEUX graphies que le dépôt peut écrire, plus celle que la porte du commit connaît aussi ; en
 // face, les TÉMOINS NÉGATIFS qui ressemblent à une fermeture sans en être une — c'est eux qui
 // disent que la garde MESURE au lieu de crier.
 const GRAPHIES = [

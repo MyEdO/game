@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId", "ticket", "worktree", "head", "publier", "resume"],
+  "properties": {
+    "sessionId": { "type": "string" },
+    "ticket": { "type": "integer" },
+    "worktree": { "type": "string" },
+    "head": { "type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" },
+    "publier": { "type": "boolean" },
+    "resume": { "type": "string" }
+  }
+}

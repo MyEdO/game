@@ -14,16 +14,123 @@ import { listerDossier } from '../../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './chemin-mesure.mjs'
 import { mesurerEnRendu, refusSourcesInsuffisantes } from '../build-all.mjs'
-import { lancerGit } from '../../test/gitDeBanc.mjs'
+import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
+import fs from 'node:fs'
+import childProcess, { spawnSync } from 'node:child_process'
+import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
 /** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure rendue (`mesurerEnRendu`). */
 const mesurer = (script) => mesurerEnRendu([script], { cwd: RACINE }).get(script).lues
+
+test('mesure 2456 : un module applicatif préchauffé reste source de son consommateur', () => {
+  const dossier = mkdtempSync(path.join(tmpdir(), 'prechauffage-'))
+  const source = pathToFileURL(path.join(RACINE, 'src/lib/coupeAuMot.mjs')).href
+  const fixture = path.join(dossier, 'generateur.mjs')
+  const ignores = path.join(dossier, 'ignores.json')
+  writeFileSync(ignores, JSON.stringify(['node_modules', '.git']))
+  writeFileSync(fixture, `import { coupeAuMot } from ${JSON.stringify(source)}; console.log(coupeAuMot('un deux trois', 8));\n`)
+  try {
+    const vu = spawnSync(process.execPath, ['--import', pathToFileURL(path.join(ICI, 'enregistreur-lectures.mjs')).href, fixture], {
+      cwd: RACINE, encoding: 'utf8', timeout: 15_000,
+      env: { ...process.env, NODE_OPTIONS: '', WFRP_LECTURES_RACINE: RACINE, WFRP_LECTURES_SORTIE: path.join(dossier, 'lecture'), WFRP_LECTURES_IGNORES: ignores, WFRP_LECTURES_CIBLE: '', WFRP_LECTURES_CIBLES_DERIVEES: '' },
+    })
+    assert.equal(vu.status, 0, vu.stderr)
+    assert.equal(vu.stdout.trim(), 'un deux…')
+    const lues = fusionnerLectures(dossier)
+    assert.ok(lues.fichiers.includes('src/lib/coupeAuMot.mjs'), `module consommé absent des sources : ${JSON.stringify(lues.fichiers)}`)
+    assert.ok(!lues.fichiers.includes('scripts/guards/lib/gitPorte.mjs'), 'une dépendance du préchargeur non importée par le générateur ne devient pas sa source')
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('mesure 2456 : sondes absentes, natures et restauration des fonctions', async () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'sondes-'))
+  writeFileSync(path.join(racine, 'f.md'), 'x')
+  const avant = [fs.existsSync, fs.statSync, fs.promises.stat, childProcess.execFileSync, childProcess.spawnSync]
+  const c = installer({ racine, ignores: new Set() })
+  try {
+    assert.equal(fs.existsSync(path.join(racine, 'absent.md')), false)
+    assert.throws(() => fs.statSync(path.join(racine, 'absent.md')), { code: 'ENOENT' })
+    fs.statSync(path.join(racine, 'f.md'))
+    await fs.promises.stat(path.join(racine, 'f.md'))
+    const s = c.rendu().sondes
+    assert.ok(s.some((v) => v.chemin === 'absent.md' && v.type === 'exists' && !v.existe))
+    assert.ok(s.some((v) => v.chemin === 'absent.md' && v.type === 'stat' && v.code === 'ENOENT'))
+    assert.ok(s.some((v) => v.chemin === 'f.md' && v.nature === 'file'))
+    assert.deepEqual(c.rendu().fichiers, [])
+  } finally {
+    c.restaurer()
+    assert.deepEqual([fs.existsSync, fs.statSync, fs.promises.stat, childProcess.execFileSync, childProcess.spawnSync], avant)
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('mesure 2456 : Git réel, échec préservé, racines normalisées et fichier nouvellement indexé', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.claude/memory/user-a.md': 'a' } })
+  const c = installer({ racine, ignores: new Set() })
+  try {
+    lancerGit(['ls-files', '.claude/memory/user-*.md'], { cwd: racine, env: process.env })
+    resultatDeGit(['log', '--diff-filter=A', '--format=%as', '-1', '--', '.claude/memory/user-a.md'], { cwd: racine, env: process.env })
+    lancerGit(['rev-parse', '--show-toplevel'], { cwd: racine, env: process.env })
+    assert.throws(() => lancerGit(['rev-parse', '--verify', 'inexistante'], { cwd: racine, env: process.env }), (e) => e.status === 128)
+  } finally { c.restaurer() }
+  try {
+    const mesure = c.rendu()
+    assert.deepEqual(mesure.incomplet, [])
+    assert.equal(mesure.git.length, 4)
+    assert.ok(mesure.git.some((q) => q.stdout.trim() === '<RACINE>'))
+    for (const q of mesure.git) assert.deepEqual(relireRequeteMesuree(depotDe(racine), q), q)
+    const fichiers = mesure.git.find((q) => q.args[0] === 'ls-files')
+    writeFileSync(path.join(racine, '.claude/memory/user-neuf.md'), 'neuf')
+    lancerGit(['add', '.claude/memory/user-neuf.md'], { cwd: racine })
+    assert.notDeepEqual(relireRequeteMesuree(depotDe(racine), fichiers), fichiers)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('mesure 2456 : les requêtes non rejouables rendent la mesure incomplète', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.md': 'a' } })
+  const c = installer({ racine, ignores: new Set() })
+  try {
+    resultatDeGit(['status', '--short'], { cwd: racine, env: process.env })
+    assert.match(c.rendu().incomplet.join('\n'), /commande status/)
+    assert.deepEqual(c.rendu().git, [])
+  } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('mesure 2456 : fusion et sérialisation conservent sondes, Git et refus', () => {
+  const dossier = mkdtempSync(path.join(tmpdir(), 'fusion-mesuree-'))
+  const q = { args: ['ls-files'], cwd: '', status: 0, stdout: 'a.md\n', stderr: '' }
+  const s = { chemin: 'absent', type: 'exists', existe: false, nature: null }
+  try {
+    writeFileSync(path.join(dossier, 'a.1.json'), JSON.stringify({ git: [q], sondes: [s], incomplet: ['refus'] }))
+    writeFileSync(path.join(dossier, 'a.1.hooks-mesures.jsonl'), `${JSON.stringify({ git: [q] })}\n${JSON.stringify({ sondes: [s] })}\n`)
+    const lues = fusionnerLectures(dossier)
+    assert.deepEqual(lues.git, [q]); assert.deepEqual(lues.sondes, [s]); assert.deepEqual(lues.incomplet, ['refus'])
+    const entree = { cibles: [], fichiers: [], dossiers: [], git: lues.git, sondes: lues.sondes, incomplet: lues.incomplet }
+    assert.deepEqual(JSON.parse(serialiserSourcesLues({ g: entree })).g, entree)
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('mesure 2456 : un dérivé ignoré lu est source, les cibles propres et caches ne le sont pas', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'derivees-lues-'))
+  mkdirSync(path.join(racine, 'gen'))
+  mkdirSync(path.join(racine, 'node_modules'))
+  for (const p of ['gen/autre.ts', 'gen/propre.ts', 'gen/nonlu.ts', 'node_modules/cache.ts']) writeFileSync(path.join(racine, p), 'x')
+  const c = installer({ racine, ignores: new Set(['gen', 'node_modules']), cibles: ['gen/propre.ts'], ciblesDerivees: ['gen/autre.ts', 'gen/propre.ts', 'gen/nonlu.ts'] })
+  try {
+    fs.readFileSync(path.join(racine, 'gen/autre.ts'))
+    fs.readFileSync(path.join(racine, 'gen/propre.ts'))
+    fs.readFileSync(path.join(racine, 'node_modules/cache.ts'))
+    listerDossier(path.join(racine, 'gen'))
+    assert.deepEqual(c.rendu().fichiers, ['gen/autre.ts'])
+    assert.deepEqual(c.rendu().dossiers.gen, ['autre.ts', 'nonlu.ts', 'propre.ts'])
+  } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
+})
 
 test('témoin : build-index-moteur mesure plus de 100 sources (liaisons ESM synchronisées)', () => {
   const lues = mesurer('scripts/docs/build-index-moteur.mjs')
@@ -54,6 +161,7 @@ test('thread des hooks : un générateur chargé par tsx mesure tsconfig.json (d
     lues.fichiers.includes('tsconfig.json'),
     `tsconfig.json absent du set (${lues.fichiers.length} sources) : les lectures du thread des hooks ne sont pas enregistrées`,
   )
+  assert.ok(lues.sondes.some((s) => s.chemin === 'tsconfig.json'), 'les sondes du thread tsx doivent voyager avec ses lectures')
   // Le hook `load` voit aussi des spécificateurs sans chemin sur le disque : un `node:child_process`
   // pris pour un chemin relatif fait échouer la lecture (ENOENT sur `<racine>/node:…`).
   assert.deepEqual(lues.fichiers.filter((f) => /^[a-z]+:/.test(f)), [], 'un spécificateur non-fichier est entré dans le set')

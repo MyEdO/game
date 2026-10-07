@@ -1,10 +1,13 @@
-// GRAMMAIRE UNIQUE des fermetures de ticket portées par un TEXTE : quels numéros un message de commit
-// (ou une commande `git commit` déroulée) FERME. Un seul module la définit, et tous ses lecteurs la
-// consomment — la porte de commit (`scripts/hooks/solde-ticket-guard.mjs`), le closer de publication
-// (`scripts/ops/fermer-depuis-main.mjs`), la mesure des fermetures non citées et les cliquets. Deux
-// graphies pour un même concept rendent des ensembles différents pour un même
-// message : un solde exigé au commit ne ferme alors pas son ticket à la publication.
+// GRAMMAIRE UNIQUE des fermetures de ticket : quels numéros un message de commit FERME, et quel argv
+// `gh` ferme un ticket hors commit (`fermetureGh`). Un seul module la définit, et tous ses lecteurs la
+// consomment — la porte du commit (`scripts/git-hooks/porte-du-commit.mjs`), la garde de fermeture hors
+// commit (`scripts/hooks/fermeture-hors-commit-guard.mjs`), le recensement des sites de fermeture
+// (`sitesDeFermeture.mjs`), le closer de publication (`scripts/ops/fermer-depuis-main.mjs`), la mesure
+// des fermetures non citées et les cliquets. Deux graphies pour un même concept rendent des ensembles
+// différents pour un même message : un solde exigé au commit ne ferme alors pas son ticket à la
+// publication.
 // PUR : aucune lecture de git, aucun accès disque.
+import { basenameExecutable } from './commandeShell.mjs'
 
 /** Les verbes de fermeture, insensibles à la casse, chacun collé à son `#<numéro>`. Une instance NEUVE
  *  par lecture : un motif global porte un `lastIndex` mutable que deux lecteurs se partageraient.
@@ -23,7 +26,7 @@ export const motifFermeture = () => /(?<![\p{L}\p{N}_])(corrige|fix(?:es)?|close
  *     qu'aucun solde ait été exigé au commit. Asymétrie de ce dépôt, énoncée, pas corrigée ici ;
  *   - un `#N` nu jamais précédé d'un verbe n'est pas lu (`corrige #12, #13` ferme {12}) : un
  *     mot-clef PAR ticket. Le `#N` nu qu'une clause de fermeture ÉNUMÈRE (`numerosNusEnumeres`) est
- *     refusé par la porte de commit (`evaluate`, `scripts/hooks/solde-ticket-guard.mjs`) ; ailleurs
+ *     refusé par la porte du commit (`evaluate`, `scripts/git-hooks/porte-du-commit.mjs`) ; ailleurs
  *     dans le texte, il n'est ni lu ni refusé (92f57ea33, #2225) ;
  *   - un texte qui RECOPIE le message d'un autre commit ferme ce que cette recopie nomme : la
  *     lecture porte sur du texte, jamais sur une provenance.
@@ -64,7 +67,7 @@ export function numerosNusEnumeres(texte) {
 
 /** Les verbes de RATTACHEMENT (`ref #N`/`refs #N`) : un commit qui CITE un ticket sans le fermer.
  *  Même hôte que la fermeture, et pour la même raison — deux graphies pour un concept rendent deux
- *  ensembles : la porte de commit exigeait un solde sur un `refs #N` que le pilotage de publication
+ *  ensembles : la porte du commit exigeait un solde sur un `refs #N` que le pilotage de publication
  *  n'aurait pas vu. Une instance NEUVE par lecture (`lastIndex` mutable d'un motif global).
  *
  *  Le motif capture la CHAÎNE ENTIÈRE (`refs #A #B #C`, `refs #A, #B`) : c'est la graphie dominante
@@ -95,4 +98,26 @@ export function numerosCites(texte) {
   for (const m of t.matchAll(motifFermeture())) trouves.push({ rang: m.index ?? 0, numero: String(Number(m[2])) })
   trouves.sort((a, b) => a.rang - b.rang)
   return [...new Set(trouves.map((t2) => t2.numero))]
+}
+
+/** `true` si les arguments portent un état `closed` (`--state closed`, `--state=closed`,
+ *  `-f state=closed`, `--field state=closed`, `--raw-field state=closed`). */
+function porteEtatFerme(args) {
+  return args.some((a, i) => {
+    if (/^(-f|-F|--field|--raw-field|--state)$/.test(a)) return /^(state=)?closed$/i.test(args[i + 1] ?? '')
+    return /^--state=closed$/i.test(a) || /^state=closed$/i.test(a)
+  })
+}
+
+/** Forme de fermeture `gh` portée par un segment (argv, exécutable en tête), ou `null` : le
+ *  RECONNAISSEUR canonique du geste, que consomment la garde de fermeture hors commit et le recensement
+ *  statique des sites de fermeture (`sitesDeFermeture.mjs`). */
+export function fermetureGh(segment) {
+  const start = segment[0] === '&' ? 1 : 0
+  if (basenameExecutable(segment[start]) !== 'gh') return null
+  const args = segment.slice(start + 1)
+  if (args[0] === 'issue' && args[1] === 'close') return 'gh issue close'
+  if (args[0] === 'issue' && args[1] === 'edit' && porteEtatFerme(args)) return 'gh issue edit --state closed'
+  if (args[0] === 'api' && porteEtatFerme(args)) return 'gh api … state=closed'
+  return null
 }

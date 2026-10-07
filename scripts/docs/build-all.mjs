@@ -37,6 +37,7 @@ import { SORTIE as SORTIE_DES_FORMATS } from '../gen-formats.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { ignoresGit } from './lib/chemin-mesure.mjs'
+import { avantGenerateur, certifierGenerateur, enregistrerPreuve, invaliderPreuve, preparerPreuves } from './lib/fraicheur-docs.mjs'
 
 /** `{ runner, script, targets, injecte }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`) ; `injecte` = fichiers commités
@@ -213,7 +214,7 @@ const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url
  * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`). `rendues` : le fichier
  * de `ENV_CIBLES_RENDUES`.
  */
-function commandeDe({ runner, script }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues }) {
+function commandeDe({ runner, script }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues, derivees }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     ...(mode === 'rendre' ? [RENDRE_SEUL] : []),
@@ -227,6 +228,7 @@ function commandeDe({ runner, script }, { cwd, mode, tsxEsm, lectures, ignores, 
     env.WFRP_LECTURES_RACINE = cwd
     env.WFRP_LECTURES_SORTIE = path.join(lectures, 'l')
     env.WFRP_LECTURES_IGNORES = ignores
+    if (derivees) env.WFRP_LECTURES_CIBLES_DERIVEES = derivees
     env.WFRP_LECTURES_CIBLE = cibles.join(',')
   }
   return { args, env }
@@ -334,13 +336,13 @@ export function preparerLectures(cwd, racineLectures) {
  * où il injecte un champ) : ses `targets` et `injecte` dépliés sortent de ses sources. LÈVE comme `run`.
  * REND `lues` (`fusionnerLectures`) et `entree`, ce que `SOURCES_LUES` consigne pour `g`.
  */
-export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues }) {
+export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues, derivees }) {
   mkdirSync(lectures, { recursive: true })
   const ecrites = ciblesSurDisque(g.targets, cwd)
   const injectees = ciblesSurDisque(g.injecte ?? [], cwd)
-  run(g, { cwd, quiet, mode, tsxEsm, lectures, ignores, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
+  run(g, { cwd, quiet, mode, tsxEsm, lectures, ignores, derivees, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
   const lues = fusionnerLectures(lectures)
-  return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()] } }
+  return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()], git: lues.git ?? [], sondes: lues.sondes ?? [], incomplet: lues.incomplet ?? [] } }
 }
 
 /**
@@ -358,9 +360,11 @@ export function mesurerEnRendu(scripts, { cwd, generateurs = GENERATORS }) {
   const racineLectures = mkdtempSync(path.join(tmpdir(), 'mesure-rendue-'))
   try {
     const ignores = preparerLectures(cwd, racineLectures)
+    const derivees = path.join(racineLectures, 'derivees.json')
+    writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
     return new Map(mesures.map((g, i) => [
       g.script,
-      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, lectures: path.join(racineLectures, String(i)) }),
+      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, derivees, lectures: path.join(racineLectures, String(i)) }),
     ]))
   } finally {
     rmSync(racineLectures, { recursive: true, force: true })
@@ -437,6 +441,7 @@ export async function executer({
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
   const only = argumentsDe(argv, '--only')
+  const fraicheur = { generateurs, verificateurs, ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES }
   if (only !== null) {
     const connus = new Set([...generateurs.map((g) => g.script), ...verificateurs])
     const inconnus = only.filter((script) => !connus.has(script))
@@ -445,9 +450,23 @@ export async function executer({
       return 1
     }
   }
-  if (argv.includes('--code')) return genererCode({ cwd, quiet, generateurs })
-  if (argv.includes('--mixtes')) return genererMixtes({ cwd, quiet, generateurs })
+  if (argv.includes('--code')) {
+    if (!check) invaliderPreuve(cwd, generateursDeCode(generateurs).map((g) => g.script))
+    return genererCode({ cwd, quiet, generateurs })
+  }
+  if (argv.includes('--mixtes')) {
+    if (!check) invaliderPreuve(cwd, perimetreDesMixtes(generateurs).map((g) => g.script))
+    return genererMixtes({ cwd, quiet, generateurs })
+  }
   const seulement = only && new Set(only)
+  let preparation
+  const records = new Map()
+  if (!check) {
+    try { preparation = preparerPreuves(cwd, fraicheur) } catch (e) {
+      console.error(`docs:build — certification indisponible : ${e.message}`)
+    }
+    invaliderPreuve(cwd, generateurs.filter((g) => !seulement || seulement.has(g.script)).map((g) => g.script))
+  }
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
   const tsxEsm = tsxEsmPour(generateurs, cwd)
   const { doublons } = proprietairesDeCibles(cwd, generateurs)
@@ -461,6 +480,8 @@ export async function executer({
   // Le cache de lectures de ce run se purge à chaque sortie d'`executer`.
   try {
     const ignoresLectures = preparerLectures(cwd, racineLectures)
+    const derivees = path.join(racineLectures, 'derivees.json')
+    writeFileSync(derivees, JSON.stringify([...new Set([...ecritesPar.values()].flat())].sort()))
     let ancienneMesure = {}
     if (seulement && !check) {
       try { ancienneMesure = JSON.parse(readFileSync(path.join(cwd, SOURCES_LUES), 'utf8')) } catch { ancienneMesure = {} }
@@ -475,10 +496,12 @@ export async function executer({
     for (const [rang, g] of generateurs.entries()) {
       if (seulement && !seulement.has(g.script)) continue
       const dossier = path.join(racineLectures, String(rang))
+      writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
       let mesure
+      const avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation)
       try {
         mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
-          cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures,
+          cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees,
           rendues: path.join(dossier, 'cibles-rendues'),
         }))
       } catch (e) {
@@ -530,6 +553,11 @@ export async function executer({
         continue
       }
       parGenerateur[g.script] = entree
+      if (!check && avant) {
+        const certification = certifierGenerateur(cwd, g, entree, fraicheur, avant)
+        records.set(g.script, certification.ok ? certification.record : null)
+        if (!certification.ok) console.error(`docs:build — ${g.script} non certifié : ${certification.raison}`)
+      }
     }
     if (!check) {
       ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
@@ -550,7 +578,13 @@ export async function executer({
         refuser(`docs:${check ? 'check' : 'build'} — ${script} — ${natureDuRouge(issueDe(e))}`)
       }
     }
-    if (!check) return refus.length ? 1 : 0
+    if (!check) {
+      if (!refus.length && preparation) {
+        const { preuve } = enregistrerPreuve(cwd, fraicheur, preparation, records)
+        console.log(`docs:build — ${[...records.keys()].filter((script) => preuve.generateurs[script]).length} générateur(s) certifié(s)`)
+      }
+      return refus.length ? 1 : 0
+    }
     if (refus.length) {
       process.stderr.write(`docs:check — ROUGE (${refus.length}) :\n${refus.map((m) => `  ${m}`).join('\n')}\n`)
       return 1

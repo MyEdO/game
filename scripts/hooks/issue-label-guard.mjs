@@ -15,7 +15,7 @@
 //     bloquer ; la mesure passe d'abord, le refus se re-décide sur la chute.
 //
 // Robustesse : on ne fait PAS un grep de sous-chaîne (`gh issue create` cité dans un `--body`/un
-// `echo` mordrait à tort) — on réutilise le TOKENIZER quote-aware de `solde-ticket-guard`
+// `echo` mordrait à tort) — on réutilise le TOKENIZER quote-aware de `scripts/guards/lib/commandeShell.mjs`
 // (`segmentsProfonds`, invariant partagé, jamais redupliqué) puis on détecte STRUCTURELLEMENT
 // l'exécutable `gh` et sa sous-commande. Les segments sont PROFONDS : un `sh -c "gh issue create
 // …"`, un `xargs gh issue create`, un `powershell -Command "…"` sont vus comme la création qu'ils
@@ -28,7 +28,7 @@
 // tant qu'AUCUN script `open-ticket` n'existe dans ce dépôt — le jour où il en porte un qui appelle
 // `gh issue create`, la création est refusée comme les autres.
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { REFUS_SATURE, nouveauBudget, segmentsProfonds } from './solde-ticket-guard.mjs'
+import { REFUS_SATURE, nouveauBudget, segmentsProfonds } from '../guards/lib/commandeShell.mjs'
 
 /** Un token porte-t-il une option de label ? (`--label`, `--label=X`, `-l`, `-lX` glué) */
 export const isLabelFlag = (t) => /^--label(=|$)/.test(t) || /^-l/.test(t)

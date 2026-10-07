@@ -28,7 +28,6 @@ export function sourceGit(p: {
   arbre: string;
   depot?: Depot;
 }): SourceCss & { existe: () => boolean };
-export function sourceMelee(p: { dans: (rel: string) => boolean; dedans: SourceCss; dehors: SourceCss }): SourceCss;
 export const CHEMIN_STOCK_CSS: string;
 export const COLLECTIONS_VENTILEES: Readonly<Record<'identite' | 'espacement', string>>;
 export function stockCssDe(texte: string, ou: string): Record<'identite' | 'espacement', EntreeDeSite[]>;

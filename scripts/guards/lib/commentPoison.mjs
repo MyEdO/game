@@ -1,4 +1,4 @@
-// Mécanique de scan du garde-fou commentaires (#136, CLAUDE.md règle 6b/6c).
+// Mécanique de scan du garde-fou commentaires (#136, CLAUDE.md règle 6).
 // Module ESM pur, exécutable par `node` nu (pas de tsx/TS) — consommé par
 // src/comment-poison-guard.test.ts, `scripts/git-hooks/pre-commit.mjs` et `scripts/hooks/poison-postcheck.mjs`.
 // Les listes d'exceptions/baselines restent DONNÉES DE POLICY dans le test (ex. EXCUSE_GUARD_ACTIVE) ;
@@ -163,8 +163,7 @@ export function extractComments(src) {
     }
     // Littéral d'EXPRESSION RÉGULIÈRE : ses guillemets ne sont pas des chaînes. Sans ce saut, un
     // motif comme `("[^"]*"|…)` désynchronise le balayage de chaînes et TOUT le reste du fichier
-    // devient invisible aux gardes (mesuré 2026-09-02 sur `scripts/hooks/solde-ticket-guard.mjs` :
-    // 2 commentaires vus sur 1 902 lignes, tout ce qui suit la ligne 55 muet).
+    // devient invisible aux gardes.
     if (ch === '/' && estDebutRegex(src, i)) {
       const fin = finRegex(src, i);
       if (fin > 0) {
@@ -255,7 +254,7 @@ export function excerptAt(comment, matchIndex) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Famille 1 — PIERRE TOMBALE (CLAUDE.md règle 6c). Tolérance ZÉRO, pas d'exception.
+// Famille 1 — PIERRE TOMBALE (CLAUDE.md règle 6). Tolérance ZÉRO, pas d'exception.
 // ---------------------------------------------------------------------------------------------
 
 // Bâti via String.fromCharCode (pas un caractère back-tick littéral dans CE fichier) : un back-tick
@@ -483,7 +482,7 @@ export function scanTombstones(relPath, contenu) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Famille 2 — commentaire-EXCUSE (CLAUDE.md règle 6b). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
+// Famille 2 — commentaire-EXCUSE (CLAUDE.md règle 6). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
 // commentaire neutralise la détection (décision utilisateur traçable).
 // ---------------------------------------------------------------------------------------------
 
@@ -830,7 +829,7 @@ export function scanLegacyVocab(relPath, contenu) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Famille 3 — AFFIRMATION-RAW non ancrée (CLAUDE.md règle 6a). Un commentaire qui AFFIRME ce que
+// Famille 3 — AFFIRMATION-RAW non ancrée (CLAUDE.md règle 6). Un commentaire qui AFFIRME ce que
 // le RAW exige/n'exige pas, sans réf de livre dans le MÊME commentaire, est du poison présumé :
 // c'est la classe « bélier » 2026-07-06 (« RAW ne l'exige pas » — faux, ADE II ch.8 exige l'Équipe)
 // — la vérité d'une thèse n'est pas machine-vérifiable, son ANCRAGE l'est. Canal ALERTE (jamais

@@ -29,6 +29,7 @@ const ATTENDU = {
   'agents:check': ['scripts/agents/compat-cli.mjs'],
   'test:agents': ['scripts/agents/compat-cli.mjs'],
   'test:hooks': [
+    'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/budget-contexte.test.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/guards/contrat-typescript.test.mjs',
@@ -101,6 +102,10 @@ const ATTENDU = {
     // jamais écrit.
     'scripts/git-hooks/merge-stocks.mjs',
     'scripts/git-hooks/merge-stocks.test.mjs',
+    // +1 −2 le 2026-10-07 (#2071), net −1 : les bancs de la porte du commit quittent `scripts/hooks/`
+    // avec elle ; ils forgent leurs dépôts JETABLES (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en
+    // finally) — l'index d'un commit ne se fabrique pas autrement, l'arbre versionné n'est jamais écrit.
+    'scripts/git-hooks/porte-du-commit.test.mjs',
     // +1 le 2026-09-27 (#1806) : le banc du pre-commit forge un dépôt JETABLE (`instanceDeDepot`, sous
     // os.tmpdir(), `rmSync` en finally), y stage un nom à tabulation et y JOUE le hook, `cwd` = ce
     // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
@@ -108,6 +113,10 @@ const ATTENDU = {
     'scripts/git-hooks/pre-commit.test.mjs',
     'scripts/git-hooks/pre-push.test.mjs',
     'scripts/git-hooks/three-way.mjs',
+    // +1 le 2026-10-07 (#2071) : le banc de `cheminDEcriture` pose ses fichiers sous un `mkdtempSync`
+    // de os.tmpdir() (`rmSync` en finally) — un chemin RÉEL ne se résout pas autrement ; l'arbre
+    // versionné n'est jamais écrit.
+    'scripts/guards/lib/contratGarde.test.mjs',
     // Le gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
     // jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
@@ -184,8 +193,6 @@ const ATTENDU = {
     'scripts/hooks/repartiteur.test.mjs',
     'scripts/hooks/repartition.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
-    'scripts/hooks/solde-ticket-guard-driver.test.mjs',
-    'scripts/hooks/solde-ticket-guard.test.mjs',
     'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La
@@ -231,6 +238,10 @@ const ATTENDU = {
   // l'histoire par git et rend son verdict.
   'livraison:plage': [],
   'test:ops': [
+    // #2461
+    'scripts/ops/session-runtime.mjs',
+    'scripts/ops/session.test.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` prend ses dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
     //   sous os.tmpdir() (fixture partagée + mkdtemp), jetés en finally — aucune écriture DANS
@@ -325,6 +336,7 @@ const ATTENDU = {
     'scripts/ops/vigie.test.mjs',
   ],
   'test:runner': [
+    'scripts/docs/lib/enregistreur-lectures.mjs',
     // +1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` importe le générateur, dont seule la
     // porte `import.meta.main` écrit (`ecrireOuVerifier`) ; le banc calcule les formats en mémoire,
     // recouvrement virtuel compris — l'arbre n'est jamais écrit.
@@ -376,6 +388,10 @@ const ATTENDU = {
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/docs/lib/fraicheur-docs.test.mjs',
+    'scripts/git-hooks/journal.mjs',
+    'scripts/test/verrou.mjs',
     // `scripts/docs/lib/jsdocUnion.test.mjs`
     'scripts/docs/lib/jsdocUnion.test.mjs',
     'scripts/docs/lib/plateforme-win32-fs.test.mjs',
@@ -388,7 +404,12 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
   ],
   'deps:unused': [],
-  'test:recette': ['scripts/recette/lib.mjs'],
+  'test:recette': [
+    'scripts/recette/lib.mjs',
+    // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
+    // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
+    'scripts/recette/lib.test.mjs',
+  ],
   typecheck: [],
   lint: [],
   // La purge des captures périmées du lanceur efface dans `node_modules/.cache`, jamais dans l'arbre versionné.
@@ -399,8 +420,16 @@ const ATTENDU = {
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
   // de CODE par `ecrireOuVerifier`.
-  build: ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
-  'docs:build': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
+  build: [
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+  ],
+  'docs:build': [
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/docs/lib/fraicheur-docs.mjs',
+  ],
   'test:raw': [
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE

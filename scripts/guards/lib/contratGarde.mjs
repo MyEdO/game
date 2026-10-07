@@ -6,6 +6,10 @@
 //   - `{ trace: { fichier, ligne } }` — une ligne que le répartiteur AJOUTE au fichier.
 // Le répartiteur (`scripts/hooks/repartition.mjs`) lit, construit le contexte, évalue et cumule.
 // Aucune garde ne DEMANDE (`ask`) : doctrine `user-doctrine-gardes-jamais-de-ask` (2026-09-28).
+import { dirname, relative, resolve, sep } from 'node:path'
+import { ancetreExistant, canoniser } from '../../docs/lib/chemin-mesure.mjs'
+import { depotAuxPannes, estIgnore, racineSurDisque } from './gitPorte.mjs'
+import { versCheminNatif } from './commandeShell.mjs'
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */
 export const commandeDe = (entree) => String(entree?.tool_input?.command ?? '')
@@ -256,6 +260,49 @@ export const cheminVise = (ecrit) => {
   const chemin = ecrit?.file_path ?? ecrit?.path
   return typeof chemin === 'string' && chemin.trim() !== '' ? chemin : undefined
 }
+
+/**
+ * Le chemin d'un `tool_input` d'écriture (`cheminVise`), résolu UNE fois à l'entrée d'un hook : toute la
+ * suite (périmètre, lecture disque, message) travaille sur lui, jamais sur le brut (#1973). Graphie MSYS
+ * `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base` (le `dir` du contexte,
+ * `construireContexte`, `scripts/hooks/repartition.mjs`), puis :
+ * `reel` = `canoniser` (jonctions et liens suivis, fichier à créer compris) ; `racine` = l'arbre git
+ * qui le contient (`racineSurDisque`), ou `null` ; `relatif` = POSIX sous `racine`, ou `reel` entier sans arbre.
+ * `horsContenu` : le fichier n'est pas du contenu VERSIONNÉ du dépôt, et les hooks d'écriture s'y
+ * taisent (#1973). Deux preuves POSITIVES, tirées de ce MÊME calcul :
+ *   - hors dépôt : `racine` est `null` et l'ancêtre EXISTANT le plus proche n'est pas une racine de
+ *     volume (lecteur absent, rien d'existant sous la racine : `false`, le hook garde) ;
+ *   - ignoré : `git check-ignore -q` sur `reel`, depuis `racine` (`ignoreParGit`) — un fichier SUIVI
+ *     qu'un motif couvre n'est pas ignoré (`--no-index` absent à dessein).
+ * Évalué au premier accès, une fois : le spawn git ne se paie que dans un dépôt, et seulement quand
+ * le hook a quelque chose à dire. `null` quand le `tool_input` ne porte aucun chemin.
+ * @returns {{ reel: string, racine: string|null, relatif: string, readonly horsContenu: boolean } | null}
+ */
+export function cheminDEcriture(toolInput, { base, platform = process.platform }) {
+  const brut = cheminVise(toolInput)
+  if (typeof brut !== 'string' || brut === '') return null
+  const absolu = resolve(base, versCheminNatif(brut, platform))
+  const ancetre = ancetreExistant(absolu)
+  const reel = canoniser(absolu)
+  const racine = racineSurDisque(dirname(reel))
+  const posix = (p) => p.split(sep).join('/')
+  let horsContenu
+  return {
+    reel,
+    racine,
+    relatif: racine === null ? posix(reel) : posix(relative(racine, reel)),
+    get horsContenu() {
+      horsContenu ??= racine === null
+        ? ancetre !== null && dirname(ancetre) !== ancetre
+        : ignoreParGit(reel, racine)
+      return horsContenu
+    },
+  }
+}
+
+/** `true` si git PROUVE que `reel` est ignoré dans l'arbre `racine`. Git indisponible, ou dépôt que
+ *  git ne reconnaît pas : aucune preuve, `false` — le hook garde (`gitPorte.mjs`, `estIgnore`). */
+const ignoreParGit = (reel, racine) => estIgnore(depotAuxPannes(racine, []), reel)
 
 /** Le texte posé : `new_string` (`Edit`), `content` (`Write`), la clé `neuf` de son op (`ctx_patch`,
  *  `OPS_CTX_PATCH`). */

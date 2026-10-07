@@ -1714,11 +1714,20 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale/formeResolue",
+    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, l'UNIQUE résolution de forme au catalogue courant ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
+    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, `engine/items.ts` ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
     "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
     "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
+  },
+  {
+    "id": "formeResolue",
+    "type": "primitives.manifest",
+    "label": "formeResolue/SourceDeForme",
+    "fichier": "src/engine/items.ts",
+    "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, `formeChoisie` parmi les `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
+    "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
+    "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/state/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
     "id": "successionDesCorps",

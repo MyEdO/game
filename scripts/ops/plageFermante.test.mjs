@@ -12,7 +12,7 @@ import {
 } from '../guards/lib/plageFermante.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
-import { extractClosedIssues } from '../hooks/solde-ticket-guard.mjs'
+import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 
 /** Un fil de commentaires DATÉS, un jour d'écart chacun à partir du 2026-01-01, dans l'ordre donné. */
@@ -138,7 +138,7 @@ test('les quatre verbes de fermeture sont reconnus, et rien d’autre', () => {
   assert.deepEqual(r.map((x) => x.numero), ['1', '2', '3', '4'])
 })
 
-// Les TROIS lecteurs de la grammaire de fermeture, sur la même table : porte de commit, closer de
+// Les TROIS lecteurs de la grammaire de fermeture, sur la même table : porte du commit, closer de
 // publication, primitive. L'attendu est ÉCRIT par message — trois lecteurs
 // tous d'accord sur un ensemble FAUX resteraient verts si le test ne comparait qu'eux entre eux.
 const TABLE_DE_FERMETURE = [
@@ -160,7 +160,7 @@ const TABLE_DE_FERMETURE = [
 test('les TROIS lecteurs de la grammaire rendent le MÊME ensemble, et celui qui est attendu', () => {
   for (const [message, attendu] of TABLE_DE_FERMETURE) {
     const lectures = {
-      porte: extractClosedIssues(`git commit -m ${JSON.stringify(message)}`).map(String),
+      porte: numerosFermes(lectureDuMessage(message).exigences),
       closer: fermeturesDeLaPlage([{ sha: 'a', message }]).map((f) => f.numero),
       primitive: numerosFermes(message),
     }

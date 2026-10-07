@@ -8,6 +8,7 @@ import { flowFromEffects } from '../../state/flow';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
+import { t } from '../../i18n';
 
 /**
  * SANDBOX combat « un terrain bien agencé, des mannequins bien placés » : un seul lieu qui exerce une
@@ -57,9 +58,13 @@ function tireur(): Combatant {
   return h;
 }
 
+/** Nom du Bretteur, que les textes du scénario citent tels que la fiche l'affiche. */
+const BRETTEUR = 'Bretteur (entraînement)';
+
 /** Bretteur : deux armes de mêlée 1 main (Arme simple à FORME changeable + Dague) + talent dédié. */
 function bretteur(): Combatant {
-  const h = pregen(PREGEN.soldat); // Sigmund
+  const h = pregen(PREGEN.soldat);
+  h.label = BRETTEUR;
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
     acquerirTalent(h, { id: 'maniement-de-deux-armes' });
   }
@@ -142,7 +147,7 @@ const construireScene = (): Scene => buildScene({
   ],
   startMessage:
     "Cour d'entraînement, de nuit (brouillard de guerre : ~5 cases de vue). Le Tireur porte une lanterne, le " +
-    "Tueur nain voit dans le noir, la Sorcière connaît Lumière. Ouvrez la fiche du Bretteur (onglet Sac) pour " +
+    `Tueur nain voit dans le noir, la Sorcière connaît Lumière. Ouvrez la fiche du ${BRETTEUR} (onglet ${t('sheet.tab.possessions')}) pour ` +
     "changer la FORME de son Arme simple (épée → hache…), puis avancez vers l'EST : franchir la lice lance " +
     "l'exercice. Cibles à tirer/recharger (une derrière un muret = hors LdV, une au loin dans le brouillard), " +
     "deux sparring-partners (charge / Engagé / désengagement / deux armes), une monture libre à enfourcher, " +
@@ -158,7 +163,7 @@ export const scenario: TestScenario = {
   tests:
     'Sandbox : tir + rechargement & ciblage/LdV (cible derrière un muret, cible au loin dans le brouillard), ' +
     'brouillard de guerre (nuit + lanterne portée + vision nocturne du Nain + sort Lumière), Engagé/charge/' +
-    'désengagement & deux armes sur sparring-partners, forme d’arme (fiche du Bretteur), combat monté (monture ' +
+    `désengagement & deux armes sur sparring-partners, forme d’arme (fiche « ${BRETTEUR} »), combat monté (monture ` +
     'libre, +20 vs plus petit), Explosion en zone (Sorcière).',
   partyNote: 'Tireur (arbalète + lanterne) · Bretteur (deux armes, forme changeable) · Tueur nain (vision nocturne) · Sorcière (Lumière/Explosion)',
   construire: () => {

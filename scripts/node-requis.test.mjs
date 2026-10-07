@@ -175,8 +175,7 @@ test('la porte refuse sous le code qui BLOQUE un hook d’agent `PreToolUse`', (
 
 test('hooks d’agent : lus sur `.claude/settings.json` et `.codex/hooks.json`, chaque commande lance un module de `scripts/hooks/`', () => {
   assert.deepEqual(HOOKS_AGENT.filter((h) => !h.script).map((h) => h.path), [])
-  for (const entree of ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/solde-ticket-hook.mjs'])
-    assert.ok(MODULES_HOOKS_AGENT.includes(entree), MODULES_HOOKS_AGENT.join('\n'))
+  assert.ok(MODULES_HOOKS_AGENT.includes('scripts/hooks/repartiteur.mjs'), MODULES_HOOKS_AGENT.join('\n'))
 })
 
 test('chargement de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent sous un Node sans retrait de types : la porte refuse — `CODE_DE_REFUS`, son message, stdout vide', () => {
