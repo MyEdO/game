@@ -19,7 +19,7 @@
  * `public/qc/baseline-affine/` — la référence de non-régression d'avant la bascule.
  */
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { openApp, evaluate, waitFor, consoleGuard, withReloadRetry, sleep, clickButtonByText, DEFAULT_URL } from '../recette/lib.mjs';
+import { openApp, evaluate, waitFor, consoleGuard, withReloadRetry, sleep, cliquerPremierOffert, ATTENTE_ECHUE, DEFAULT_URL } from '../recette/lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
 
 const OUT_DIR = 'public/qc/jeu';
@@ -115,16 +115,14 @@ async function fermerBriefing(session, { attendreApparition = true, timeoutMs = 
   if (attendreApparition) {
     try {
       await waitFor(session, voile, { timeoutMs, intervalMs: 150 });
-    } catch {
+    } catch (e) {
       // Scène sans `startMessage` : aucune fenêtre ne monte. L'absence est confirmée en fin de fonction.
+      if (e.code !== ATTENTE_ECHUE) throw e;
     }
   }
   for (let i = 0; i < 12; i++) {
     if (!(await evaluate(session, voile))) break;
-    const textes = await evaluate(session, `[...document.querySelectorAll('.modal-overlay button:not(:disabled)')].map((b) => b.textContent.trim()).filter(Boolean)`);
-    const label = LABELS_AVANCEMENT.find((l) => textes.some((t) => t.includes(l)));
-    if (!label) throw new Error(`fenêtre bloquante sans bouton d'avancement connu — boutons : ${textes.join(' | ')}`);
-    await clickButtonByText(session, label);
+    await cliquerPremierOffert(session, LABELS_AVANCEMENT);
     await sleep(500);
   }
   if (await evaluate(session, voile)) throw new Error('une fenêtre modale occupe encore le centre de l\'écran — capture refusée');

@@ -63,7 +63,10 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, decrireChoix, ouvrirRound, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
+
+/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
+const choixFaits = [];
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -490,9 +493,9 @@ async function monterLeDock(session) {
         + `fenêtre ${etat.modale ? 'ouverte' : 'ABSENTE'}, attentes posées : ${etat.attentes.join(', ') || 'aucune'}`);
     }
     if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='round-start']:not(:disabled)")`)) {
-      await clickButtonByText(session, 'Commencer');
+      await ouvrirRound(session);
       await sleep(900);
-      await resoudreModales(session, 'ouverture de Round');
+      choixFaits.push(...(await resoudreModales(session, 'ouverture de Round')));
       continue;
     }
     const verdict = await evaluate(session, `(() => {
@@ -503,7 +506,7 @@ async function monterLeDock(session) {
     })()`);
     console.log(`  (mise en place : premier tour tenu par un héros — ${verdict})`);
     await sleep(900);
-    await resoudreModales(session, 'mise en place du tour');
+    choixFaits.push(...(await resoudreModales(session, 'mise en place du tour')));
   }
   throw new Error('la console (.combat-console .cc-cell) ne monte pas : le combat ne parvient pas au tour d’un héros');
 }
@@ -828,12 +831,12 @@ async function main() {
     // AVANT elle, et toute l'exploration se mesurait sans groupe, puis sous cette fenêtre.
     await attendreSelecteur(session, '.stage .party-dock', { timeoutMs: 20000 });
     await sleep(400);
-    await resoudreModales(session, 'ouverture');
+    choixFaits.push(...(await resoudreModales(session, 'ouverture')));
     // Un objectif courant : c'est ce qu'un effet de scène pose (`combatEffects.ts`, op `objective`).
     // Le scénario de test n'en porte pas — sans lui la zone morte du bandeau n'est pas sondable.
     await evaluate(session, `window.__wfrp.store.setState({ objectives: [{ id: 'recette-hud', text: 'Retrouver la piste des mutants dans les collines' }] })`);
     await sleep(400);
-    await resoudreModales(session, 'pose objectif');
+    choixFaits.push(...(await resoudreModales(session, 'pose objectif')));
     await cliquerSelecteur(session, '.log-drawer .ld-btn');
     await sleep(400);
 
@@ -861,7 +864,7 @@ async function main() {
     await sleep(300);
     await evaluate(session, `window.__wfrp.fight('enc-mutants')`);
     await sleep(1500);
-    await resoudreModales(session, 'ouverture de combat');
+    choixFaits.push(...(await resoudreModales(session, 'ouverture de combat')));
 
     // ── Combat, PAUSE D'INITIATIVE ─────────────────────────────────────────────────────────────
     // Le combat s'ouvre sur cette pause, et c'est le SEUL état où chaque entrée porte son badge de
@@ -963,6 +966,7 @@ async function main() {
       }
     }
   } finally {
+    console.log(`\n${decrireChoix(choixFaits)}`);
     await session.close();
   }
 

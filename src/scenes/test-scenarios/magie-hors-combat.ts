@@ -3,6 +3,7 @@ import { buildScene } from '../../state/mapSpec';
 import { findSkill } from '../../data';
 import { slugId } from '../../data/slug';
 import type { TestScenario } from './_shared';
+import { t } from '../../i18n';
 import type { Scene } from '../../state/scene';
 import type { Combatant, CharKey } from '../../engine/types';
 
@@ -22,7 +23,7 @@ const construireScene = (): Scene => buildScene({
   size: [14, 9],
   heroStart: [2, 4],
   startMessage:
-    'Exploration (aucun combat). Cliquez une fiche de lanceur → section « Sorts » : soignez/bénissez ' +
+    `Exploration (aucun combat). Cliquez une fiche de lanceur → onglet « ${t('sheet.tab.magie')} » : soignez/bénissez ` +
     'l’allié blessé (Prêtre), puis « Focaliser » et « Lancer » un Sort d’Arcane (Sorcier). ' +
     'Les Projectiles magiques restent marqués « en combat ».',
 });

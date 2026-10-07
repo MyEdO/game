@@ -194,6 +194,28 @@ export const isShieldTrapping = (id: string | undefined, resolveTrapping: Trappi
 /** Arme ou objet reconnu bouclier par son IDENTITÉ de catalogue (`trappingId`). */
 export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTrapping(x.trappingId);
 
+/** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
+ *  invoquée, le choix du joueur. */
+export type SourceDeForme = Pick<Weapon, 'form' | 'formeChoisie' | 'natural' | 'trappingId'>;
+
+/**
+ * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
+ * d'inventaire, sélecteur de forme et outillage de recette la lisent. Routage PAR ID STABLE :
+ *  1. attaque naturelle → aucune forme ;
+ *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
+ *  3. choix du joueur, s'il est parmi les `formChoices` du catalogue ;
+ *  4. `shape` du catalogue, par `trappingId`.
+ * `undefined` : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
+ */
+export function formeResolue(x: SourceDeForme): string | undefined {
+  if (x.natural) return undefined;
+  const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
+  if (invoquee) return invoquee;
+  const t = x.trappingId ? findTrappingById(x.trappingId) : undefined;
+  if (x.formeChoisie && t?.formChoices?.includes(x.formeChoisie)) return x.formeChoisie;
+  return t?.shape;
+}
+
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
  *  des armes « wielded » / choisissables. */

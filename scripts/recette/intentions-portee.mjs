@@ -20,9 +20,12 @@
 //   4. Échap annule ; re-clic de la case annule ;
 //   5. un clic-ennemi SANS intention reste une attaque normale (non-régression).
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, sleep, shot, clickButtonByText, consoleGuard, frapperTouche, cliquerAction, resoudreModales } from './lib.mjs';
+import { openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, decrireChoix, piloterCombat, finDuTour } from './lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
 import { chebyshev } from '../../src/engine/grid.ts';
+
+/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
+const choixFaits = [];
 
 /** FILIGRANE : l'arbre RÉELLEMENT joué (une recette sans son arbre ne prouve rien). */
 const filigrane = () => enteteArbre(process.cwd());
@@ -37,27 +40,13 @@ function parseArgs(argv) {
   return out;
 }
 
-/** Pause de début de Round : la console la porte dans son bandeau de phase — on la franchit au VRAI
- *  bouton (« Commencer le combat » / « Commencer le round N »), comme un joueur. */
-async function ouvrirLeRound(session) {
-  for (let i = 0; i < 6; i++) {
-    const enPause = await evaluate(session, `!!document.querySelector('.cc-phase button')`);
-    if (!enPause) return;
-    await evaluate(session, `(() => { document.querySelector('.cc-phase button').click(); return true; })()`);
-    await sleep(700);
-  }
-}
+/** Arrêt du pilote : la main à un HÉROS piloté, Action et Mouvement intacts. */
+const herosIntact = (l) => !!l.auto.active && l.auto.active.kind === 'hero' && !l.auto.active.aiDriven && !l.battle.acted && l.battle.movementUsed === 0;
 
-/** Attend que la main revienne à un HÉROS (l'IA joue ses tours d'abord), Mouvement intact. */
-async function attendreLeHeros(session) {
-  for (let i = 0; i < 40; i++) {
-    await resoudreModales(session, 'tour d’IA');
-    await ouvrirLeRound(session);
-    const e = await etat(session);
-    if (e.actif && e.actif.kind === 'hero' && !e.acted && e.mouvementUse === 0) return e;
-    await sleep(700);
-  }
-  throw new Error('la main n’est jamais revenue à un héros au Mouvement intact');
+/** Pilote le combat (`piloterCombat`, au geste du joueur) jusqu'au tour d'un héros intact, puis lit l'état. */
+async function jusquAuHeros(session) {
+  choixFaits.push(...(await piloterCombat(session, { arret: herosIntact })).choix);
+  return etat(session);
 }
 
 /** Centre ÉCRAN d'une case, s'il tombe DANS la fenêtre et hors de la console (bande basse) — sinon
@@ -101,6 +90,9 @@ const etat = (session) => evaluate(session, `(() => {
   };
 })()`);
 
+/** Les boutons de SORTIE d'une fenêtre de jet, par ordre de préférence (`cliquerPremierOffert`). */
+const SORTIES_DU_JET = ['Renoncer', 'Annuler', 'Fermer'];
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   console.log(`FILIGRANE — ${filigrane()}`);
@@ -111,15 +103,10 @@ async function main() {
   try {
     await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
     await sleep(1500);
-    await resoudreModales(session, 'ouverture');
+    choixFaits.push(...(await resoudreModales(session, 'ouverture')));
     await evaluate(session, `window.__wfrp.fight('enc-mutants')`);
     await sleep(1600);
-    await resoudreModales(session, 'ouverture de combat');
-    await ouvrirLeRound(session);
-    await resoudreModales(session, 'ouverture de combat (suite)');
-    await sleep(600);
-
-    let e = await attendreLeHeros(session);
+    let e = await jusquAuHeros(session);
     console.log(`Combat monté — actif ${e.actif.id} en (${e.actif.pos.x},${e.actif.pos.y}), Mouvement ${e.actif.mvt}, ${e.ennemis.length} ennemi(s).`);
 
     // ── 0. Les cases LOINTAINES visibles (au-delà de la Marche : d > M en Chebyshev, donc hors
@@ -182,9 +169,7 @@ async function main() {
     dire(true, `le clic sous intention de Course ouvre le JET de Course (case ${caseCourse.x},${caseCourse.y})`);
     dire(e.intent === null, 'l’intention se dissout au commit');
     await shot(session, 'intention-course-jet', args.out);
-    for (const label of ['Renoncer', 'Annuler', 'Fermer']) {
-      try { await clickButtonByText(session, label); break; } catch { /* absent */ }
-    }
+    await cliquerPremierOffert(session, SORTIES_DU_JET);
     await sleep(500);
 
     // ── 5. ARMER LA CHARGE : la bande M×2 s'affiche, puis clic-ennemi → charge réelle ────────────
@@ -192,12 +177,10 @@ async function main() {
     //    — c'est LE terrain de la Charge (cf. docs/test-scenarios.md).
     await evaluate(session, `window.__wfrp.scenario('entrainement', 4)`);
     await sleep(1600);
-    await resoudreModales(session, 'ouverture entraînement');
+    choixFaits.push(...(await resoudreModales(session, 'ouverture entraînement')));
     console.log('goto lice :', await evaluate(session, `window.__wfrp.goto({ x: 7, y: 9 })`));
     await sleep(1600);
-    await resoudreModales(session, 'ouverture de combat (2)');
-    await ouvrirLeRound(session);
-    e = await attendreLeHeros(session);
+    e = await jusquAuHeros(session);
 
     const cibleDeCharge = (s2) => s2.ennemis
       .map((en) => ({ ...en, d: chebyshev(en.pos, s2.actif.pos) }))
@@ -209,11 +192,8 @@ async function main() {
     let cible = (await offreCharge()) ? cibleDeCharge(e) : null;
     // Personne dans la bande ? On finit le tour — les sparring-partners se rapprochent d'eux-mêmes.
     for (let tour = 0; !cible && tour < 12; tour++) {
-      await cliquerAction(session, 'end-turn');
-      await sleep(300);
-      await cliquerAction(session, 'end-turn'); // garde-fou « tour gâché » : 2ᵉ clic
-      await sleep(600);
-      e = await attendreLeHeros(session);
+      await finDuTour(session);
+      e = await jusquAuHeros(session);
       cible = (await offreCharge()) ? cibleDeCharge(e) : null;
     }
     if (!cible) throw new Error(`aucun combattant n'a offert la Charge avec une cible dans sa bande (M×2 = ${2 * e.actif.mvt})`);
@@ -229,18 +209,14 @@ async function main() {
     dire(!!e.pendingAttack && e.pendingAttack.charge, 'le clic-ennemi sous intention lance la CHARGE réelle');
     dire(e.intent === null, 'l’intention de Charge se dissout au commit');
     await shot(session, 'intention-charge-commit', args.out);
-    for (const label of ['Renoncer', 'Annuler', 'Fermer']) {
-      try { await clickButtonByText(session, label); break; } catch { /* absent */ }
-    }
+    await cliquerPremierOffert(session, SORTIES_DU_JET);
     await sleep(600);
 
     // ── 6. NON-RÉGRESSION : clic-ennemi SANS intention = attaque normale ─────────────────────────
     //    Combat FRAIS : aucune intention n'a jamais été armée dans ce tour-là.
     await evaluate(session, `window.__wfrp.fight('enc-entrainement')`);
     await sleep(1600);
-    await resoudreModales(session, 'ouverture de combat (3)');
-    await ouvrirLeRound(session);
-    e = await attendreLeHeros(session);
+    e = await jusquAuHeros(session);
     dire(e.intent === null, 'aucune intention armée au début du tour');
     const proche = e.ennemis.map((en) => ({ ...en, d: chebyshev(en.pos, e.actif.pos) })).sort((a, b) => a.d - b.d)[0];
     console.log(`Clic-ennemi nu : ${proche.id} à ${proche.d} case(s) de ${e.actif.id}.`);
@@ -252,6 +228,7 @@ async function main() {
     await shot(session, 'sans-intention-attaque', args.out);
   } finally {
     const err = journal.errors();
+    console.log(`\n${decrireChoix(choixFaits)}`);
     if (err.length) {
       console.error(`\nCONSOLE — ${err.length} erreur(s) :`);
       for (const x of err) console.error(`  · ${x.text}`);

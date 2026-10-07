@@ -210,7 +210,7 @@ export function MapCanvas({ computeFit, background, chrome, paths = [], markers 
           )}
           {paths.map((p) => (
             <g key={p.id} onClick={p.onClick} style={p.onClick ? { cursor: p.cursor ?? 'pointer' } : undefined}>
-              {p.onClick && <path d={p.d} fill="none" stroke="transparent" strokeWidth={p.hitWidth ?? 18} pointerEvents="stroke" />}
+              {p.onClick && <path d={p.d} fill="none" stroke="transparent" strokeWidth={p.hitWidth ?? 18} pointerEvents="stroke" data-path-id={p.id} />}
               {typeof p.children === 'function' ? p.children(view) : p.children}
             </g>
           ))}

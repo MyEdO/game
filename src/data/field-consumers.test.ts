@@ -104,16 +104,19 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(target, 'TrappingRef absent de TARGETS — le cas fondateur a perdu sa surface').toBeTruthy();
     const byField = rapport().byType.get('TrappingRef');
     expect(byField, 'TrappingRef absent du rapport mesuré').toBeTruthy();
-    // `fichier:LIGNE` : le fichier seul resterait vert si le lecteur déménageait dans une AUTRE
-    // fonction du même module — ce que le rapport, lui, publie site par site.
-    const specSites = [...new Set((byField!.get('spec') ?? []).map((h: { file: string; line: number }) => `${h.file}:${h.line}`))];
-    const specReaders = [...new Set(specSites.map((s) => s.slice(0, s.lastIndexOf(':'))))];
+    // `fichier @symbole` (ancre de `Hit`, `scripts/docs/build-field-consumers.mts`) : le fichier seul
+    // resterait vert si le lecteur déménageait dans une AUTRE fonction du même module, la ligne rougirait
+    // au premier ajout en amont. Le nombre de SITES distincts tient « un seul site par lecteur ».
+    const hits: { file: string; line: number; symbole: string }[] = byField!.get('spec') ?? [];
+    const specSites = new Set(hits.map((h) => `${h.file}:${h.line}`));
+    const specLecteurs = [...new Set(hits.map((h) => `${h.file} @${h.symbole}`))].sort();
     expect(
-      specSites.sort(),
-      'TrappingRef.spec devrait avoir EXACTEMENT 2 sites lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts:321', 'src/engine/trappingChoices.ts:107']);
+      specLecteurs,
+      'TrappingRef.spec devrait avoir EXACTEMENT 2 lecteurs : la résolution de choix et la matérialisation',
+    ).toEqual(['src/engine/items.ts @itemFromTrappingRef', 'src/engine/trappingChoices.ts @spec']);
+    expect(specSites.size, `un site lecteur par symbole — sites : ${[...specSites].join(', ')}`).toBe(2);
     expect(
-      specReaders.some((s: string) => s.includes('data/index.ts')),
+      hits.some((h) => h.file.includes('data/index.ts')),
       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',
     ).toBe(false);
   }, 240_000);

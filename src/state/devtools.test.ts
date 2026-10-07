@@ -6,7 +6,7 @@ import { bourseOf, partyMoneyTotal } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
-import { itemFromTrappingById } from '../engine/items';
+import { itemFromTrappingById, formeResolue } from '../engine/items';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { turnEconomyStamp } from './endTurnGuard';
@@ -233,6 +233,25 @@ describe('__wfrp — autres commandes de recette', () => {
     expect(await verdict).toContain("l'éditeur ne s'est pas monté");
     expect(await verdict, 'le refus nomme le helper appelé, jamais son voisin').toContain('editorPatchEntity');
   });
+
+  it('editorWorldMap (#2306) avec un pont VIDE : rejet NOMMÉ, portant CE helper-là', async () => {
+    expect(editeur.lireCarteDuMonde).toBeUndefined();
+    const p = buildApi().editorWorldMap(120);
+    const verdict = p.then(() => 'résolu', (e: Error) => e.message);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(await verdict).toContain('editorWorldMap');
+  });
+
+  it('attaque hors combat : refus nommé', () => {
+    expect(buildApi().attaque('a', 'b')).toBe('✗ pas de combat en cours');
+  });
+
+  it('faim / chance HORS combat : écrites sur le héros du groupe', () => {
+    const id = useGame.getState().party[0].id;
+    expect(buildApi().faim(id, { days: 1, tests: 1 })).toEqual({ days: 1, tests: 1, failures: 0 });
+    expect(buildApi().chance(id, 2)).toMatchObject({ fortune: 2 });
+    expect(useGame.getState().party[0]).toMatchObject({ hunger: { days: 1, tests: 1, failures: 0 }, fortune: 2 });
+  });
 });
 
 describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2312)', () => {
@@ -269,6 +288,22 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     buildApi().xp(100);
     expect(combattant().xp).toBe(avant + 100);
     expect(membre().xp).toBe(avant + 100);
+  });
+
+  it('xp() sans argument OBSERVE : il lit le combattant et ne donne rien', () => {
+    combattant().xp = 777;
+    const avant = membre().xp;
+    expect(buildApi().xp()).toEqual([{ id: heroId, label: membre().label, xp: 777 }]);
+    expect(membre().xp).toBe(avant);
+  });
+
+  it('loadout : le set actif, ses deux mains, l’arme qui pare et la défense choisie, lus sur le combattant', () => {
+    const c = combattant();
+    const vue = buildApi().loadout(heroId) as { set: string | null; principale: { label: string } | null; seconde: unknown; tenues: { label: string }[]; armeDeParade: string | null; defense: string };
+    expect(vue.tenues.map((w) => w.label)).toEqual((c.weapons ?? []).map((w) => w.label));
+    expect(vue.armeDeParade).toBe(c.weapons?.[0]?.label ?? null);
+    expect(['parade', 'esquive']).toContain(vue.defense);
+    expect(buildApi().loadout('absent')).toMatch(/^✗/);
   });
 
   it('giveTrapping (qty comprise) : le combattant ET le groupe portent l’objet', () => {
@@ -315,6 +350,105 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const phases = [combattant(), membre()].map((c) => c.diseases?.find((d) => d.id === 'vers-de-carie')?.phase);
     expect(phases[0]).not.toBe('incubation');
     expect(phases[1]).toBe(phases[0]);
+  });
+
+  it('faim / soif / chance : posées sur le combattant ET le groupe ; sans valeur, OBSERVENT sans écrire', () => {
+    const api = buildApi();
+    expect(api.faim(heroId, { days: 2 })).toEqual({ days: 2, tests: 0, failures: 0 });
+    expect(api.soif(heroId, { failures: 1 })).toEqual({ days: 0, tests: 0, failures: 1 });
+    expect(api.chance(heroId, 3)).toMatchObject({ id: heroId, fortune: 3 });
+    for (const c of [combattant(), membre()]) {
+      expect(c.hunger).toEqual({ days: 2, tests: 0, failures: 0 });
+      expect(c.thirst).toEqual({ days: 0, tests: 0, failures: 1 });
+      expect(c.fortune).toBe(3);
+    }
+    combattant().fortune = 5;
+    expect(api.chance(heroId)).toMatchObject({ fortune: 5 });
+    expect(membre().fortune, 'l’observation n’écrit rien').toBe(3);
+    expect(api.faim(heroId, null)).toBeNull();
+    for (const c of [combattant(), membre()]) expect('hunger' in c).toBe(false);
+    expect(api.faim(heroId, { days: -1 })).toMatch(/^✗/);
+    expect(api.faim(heroId, { jours: 1 } as never)).toMatch(/^✗ hunger : clé « jours » inconnue/);
+    expect(api.soif(heroId, { coveredDay: true } as never), 'coveredDay est de la faim seule').toMatch(/^✗ thirst : clé « coveredDay » inconnue/);
+    expect(api.chance(heroId, 1.5)).toMatch(/^✗/);
+    expect(api.soif('absent')).toMatch(/^✗/);
+  });
+
+  it('battle() expose les armes tenues de chaque combattant : trappingId, formeChoisie et forme résolue (K13)', () => {
+    const c = combattant();
+    const vue = buildApi().battle() as { combatants: { id: string; armes: { label: string; trappingId: string | null; formeChoisie: string | null; formeResolue: string | null }[] }[] };
+    const moi = vue.combatants.find((x) => x.id === heroId)!;
+    expect(moi.armes).toEqual(c.weapons.map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, formeChoisie: w.formeChoisie ?? null, formeResolue: formeResolue(w) ?? null })));
+    expect(moi.armes.some((w) => w.trappingId !== null && w.formeResolue !== null)).toBe(true);
+  });
+
+  /** Ouvre le Round (la pause n'a aucun actif) puis donne la main au héros, piloté par le joueur. */
+  const ouvrirLeRoundAuHeros = (api: ReturnType<typeof buildApi>) => {
+    if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
+    expect(api.turn(heroId)).toMatch(/^✓/);
+  };
+
+  it('attaque / turn pendant la pause de début de Round : refus nommés, la pause garde turn -1', () => {
+    const api = buildApi();
+    expect(useGame.getState().pendingRoundStart, 'le combat s’ouvre sur la pause').not.toBeNull();
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.attaque(mutant.id, heroId)).toMatch(/^✗ pause de début de Round/);
+    expect(api.turn(mutant.id)).toMatch(/^✗ pause de début de Round/);
+    expect(useGame.getState().battle!.turn).toBe(-1);
+  });
+
+  it('attaque pendant un tour d’IA en vol (minuteurs avancés) : refus nommé, rien n’est posé', () => {
+    const api = buildApi();
+    useGame.getState().confirmRoundStart();
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.turn(mutant.id)).toMatch(/^✓/);
+    vi.advanceTimersByTime(10);
+    expect(api.attaque(mutant.id, heroId)).toMatch(/^✗ tour de .*piloté par l'IA/);
+    expect(useGame.getState().pendingDefense).toBeNull();
+  });
+
+  it('attaque : pose l’attaque de l’IA sur le héros et OUVRE sa modale de Défense, au tour de l’attaquant', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.attaque(mutant.id, heroId), 'mutant loin du héros').toMatch(/^✗ .*pas au contact/);
+    expect(useGame.getState().pendingDefense).toBeNull();
+    const h = combattant().pos!;
+    api.place(mutant.id, { x: h.x + 1, y: h.y });
+    expect(api.attaque(heroId, mutant.id)).toMatch(/^✗ .*piloté par un joueur/);
+    expect(api.attaque(mutant.id, heroId)).toMatch(/^✓/);
+    const s = useGame.getState();
+    expect(s.pendingDefense).toMatchObject({ attackerId: mutant.id, defenderId: heroId });
+    expect(s.battle!.order[s.battle!.turn], 'le tour est celui de l’attaquant').toBe(mutant.id);
+    expect(api.attaque(mutant.id, heroId)).toMatch(/^✗ /);
+  });
+
+  it('attaque : défenseur non surfacé (piloté par l’IA) → refus nommé, aucune fenêtre', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const [m1, m2] = useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy');
+    api.place(m2.id, { x: m1.pos!.x + 1, y: m1.pos!.y });
+    expect(api.attaque(m1.id, m2.id)).toMatch(/^✗ .*n'est pas surfacé/);
+    expect(useGame.getState().pendingDefense).toBeNull();
+  });
+
+  it('gesteCarteAttendu : pose de zone, pilonnage, choix de cibles — lus aux prédicats du jeu', () => {
+    const api = buildApi();
+    expect(api.gesteCarteAttendu()).toBeNull();
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    useGame.setState({ pendingCast: { casterId: heroId, spellId: 'sort-fictif', zone: { center: null, radius: 2, placing: true } } as never });
+    expect(api.gesteCarteAttendu()).toEqual({ kind: 'zone', label: 'sort-fictif', casterId: heroId, radius: 2, rangeTiles: null });
+    useGame.setState({ pendingCast: { casterId: heroId, spellId: 'sort-fictif', pickingTargets: true, extraTargetIds: [mutant.id] } as never });
+    expect(api.gesteCarteAttendu()).toEqual({ kind: 'cibles', label: 'sort-fictif', casterId: heroId, cibles: [mutant.id] });
+    useGame.setState({ pendingCast: null, pendingSiegeAim: { gunnerId: heroId, radius: 1, rangeTiles: 12 } as never });
+    expect(api.gesteCarteAttendu()).toEqual({ kind: 'siege', label: 'Pilonnage', casterId: heroId, radius: 1, rangeTiles: 12 });
+    useGame.setState({ pendingSiegeAim: null });
+  });
+
+  it('advanceSeaDay devant un combat : résultat de JEU, jamais un refus « ✗ » (C4)', async () => {
+    const p = buildApi().advanceSeaDay();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(await p).toMatch(/^✓ voyage interrompu par un combat/);
   });
 });
 
@@ -965,5 +1099,22 @@ describe('__wfrp.ascii — le PLAN de la couche, ses trois légendes et son reli
     expect(texte).toContain('✗');
     expect(texte).toContain('z0');
     expect(texte).toContain('z1');
+  });
+});
+
+describe('__wfrp.maneuver — un jet RATÉ est un résultat de jeu, jamais un refus « ✗ » (C4)', () => {
+  afterEach(() => { vi.clearAllTimers(); useGame.setState({ battle: null }); });
+
+  it('sur une série de graines, un échec se rend sans « ✗ », une réussite par « ✓ »', () => {
+    const issues: string[] = [];
+    for (let graine = 1; graine <= 30 && !issues.some((x) => x.includes('rate la manœuvre')); graine++) {
+      buildApi().scenario('duel-naval', graine);
+      const s = useGame.getState();
+      const navire = s.battle!.combatants.find((c) => c.postes?.length && s.facing[c.id])!;
+      issues.push(String(buildApi().maneuver(navire.id, 'tribord')));
+    }
+    const ratees = issues.filter((x) => x.includes('rate la manœuvre'));
+    expect(ratees.length, `la série contient un échec : ${issues.slice(0, 4).join(' | ')}`).toBeGreaterThan(0);
+    for (const r of ratees) expect(r).toMatch(/^✓ Test joué : /);
   });
 });

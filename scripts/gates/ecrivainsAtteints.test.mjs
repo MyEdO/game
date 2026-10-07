@@ -404,7 +404,12 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
   ],
   'deps:unused': [],
-  'test:recette': ['scripts/recette/lib.mjs'],
+  'test:recette': [
+    'scripts/recette/lib.mjs',
+    // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
+    // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
+    'scripts/recette/lib.test.mjs',
+  ],
   typecheck: [],
   lint: [],
   // La purge des captures périmées du lanceur efface dans `node_modules/.cache`, jamais dans l'arbre versionné.

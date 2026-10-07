@@ -1212,8 +1212,8 @@ export interface TrappingData {
   siegeFootprint?: number;
   /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
    *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : le rig le résout par
-   *  `trappingId` (`formeResolue`, #2113). */
+   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : `formeResolue` (`engine/items`) le
+   *  résout par `trappingId` (#2113). */
   shape?: string;
   /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
    *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme

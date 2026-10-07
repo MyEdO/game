@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
-import { isShieldItem, isShieldTrapping, itemFromGive, itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
+import { isShieldItem, isShieldTrapping, itemFromGive, itemFromTrappingById, recomputeLoadout, weaponFromItem, formeResolue } from '../../../engine/items';
 import { shieldAdvantageLevel, shieldReactionCost } from '../../../engine/combatFeatures/dispatch';
 import { conjureFormOptions } from '../../../engine/conjuredWeapons';
 import { compareEquip } from '../../../engine/equipCompare';
@@ -10,7 +10,7 @@ import type { Combatant, ItemInstance } from '../../../engine/types';
 import { findTrappingById, trappings } from '../../../data';
 import { ItemIcon } from '../../../ui/ItemIcon';
 import { contexteDeGeste } from '../../fx/animTracks';
-import { armePrincipale, equipDe, equipPorte, formeResolue } from './equipment';
+import { armePrincipale, equipDe, equipPorte } from './equipment';
 import { resolveParts } from './resolve';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
