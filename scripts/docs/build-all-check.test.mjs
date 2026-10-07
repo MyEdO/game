@@ -16,6 +16,9 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
+import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
+import { chargerPreuve, preuveValide } from './lib/fraicheur-docs.mjs'
+import { ciblesPures, ciblesSurDisque, SOURCES_LUES } from './build-all.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 
@@ -78,11 +81,11 @@ function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENE
 }
 
 /** Dépôt jetable RÉGÉNÉRÉ par `executer` lui-même (docs, `.sources-lues.json`), puis stagé. */
-function depotReel() {
+function depotReel({ docsIgnores = false } = {}) {
   const { racine } = instanceDeDepot({
     commit: false,
     fichiers: {
-      '.gitignore': 'node_modules/\n',
+      '.gitignore': 'node_modules/\n' + (docsIgnores ? 'docs/\n' : ''),
       'src/a.ts': 'export const a = 1\n',
       'src/b.ts': 'export const b = 1\n',
       'src/commun.ts': 'export const commun = 1\n',
@@ -317,4 +320,75 @@ test('`--verifier-code` mesure le code identique sans écrire ; code absent ou p
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+test('premier baseline : CODE généré lu, requête Git et sonde stat sont réellement certifiés', () => {
+  const code = ['src', 'banc.generated.mjs'].join('/')
+  const generateurs = [{ runner: 'node', script: 'g/code.mjs', targets: [code] }, ...GENERATEURS_REELS]
+  const a = generateurReel('a') + '\n' + [
+    `import { lancerGit } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../test/gitDeBanc.mjs')).href)}`,
+    "import { statSync } from 'node:fs'",
+    `import { depotDe, listerImage, INDEX } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../guards/lib/gitPorte.mjs')).href)}`,
+    "listerImage(depotDe(process.cwd()), INDEX)",
+    `import { valeur } from '../${code}'`,
+    "const noms = lancerGit(['ls-files', '--cached', '--', 'src/*.ts'], { env: process.env })",
+    "statSync('src/absent.txt', { throwIfNoEntry: false })",
+    "if (valeur !== 1 || !noms.includes('src/a.ts')) throw new Error('fixture')",
+  ].join('\n')
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': `node_modules/\ndocs/\n${code}\n`,
+    'src/a.ts': 'a', 'src/b.ts': 'b', 'src/commun.ts': 'commun',
+    'g/a.mjs': a, 'g/b.mjs': generateurReel('b'),
+    'g/code.mjs': [
+      "import { readFileSync } from 'node:fs'",
+      `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
+      "readFileSync('src/a.ts'); readFileSync('src/commun.ts')",
+      `ecrireOuVerifier({ out: 'export const valeur = 1\\n', path: ${JSON.stringify(code)}, check: process.argv.includes('--check') })`,
+    ].join('\n'),
+  } })
+  try {
+    mkdirSync(path.join(racine, 'docs'))
+    const build = executer(racine, [], {}, [], generateurs)
+    assert.equal(build.status, 0, build.sortie)
+    const cache = chargerPreuve(racine)
+    assert.deepEqual(Object.keys(cache.generateurs).sort(), generateurs.map((g) => g.script).sort(), build.sortie)
+    const mesure = cache.generateurs['g/a.mjs'].mesure
+    assert.ok(mesure.fichiers.includes(code))
+    assert.ok(mesure.git.some((q) => q.args[0] === 'ls-files'))
+    assert.ok(mesure.sondes.some((q) => q.chemin === 'src/absent.txt' && q.existe === false && !q.code))
+    assert.equal(preuveValide(racine, { generateurs, ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('fraîcheur : ledger par générateur, partial conserve les autres ; check ne touche aucun certificat', () => {
+  const { racine, git } = depotReel({ docsIgnores: true })
+  try {
+    git('commit', '-q', '-m', 'sources')
+    const complet = executer(racine, [])
+    assert.equal(complet.status, 0, complet.sortie)
+    const initial = chargerPreuve(racine)
+    assert.ok(initial?.generateurs['g/a.mjs'], complet.sortie)
+    assert.ok(initial?.generateurs['g/b.mjs'], complet.sortie)
+    const cache = path.join(racine, CACHE_FRAICHEUR)
+    const bytes = readFileSync(cache)
+    assert.equal(executer(racine, ['--check']).status, 0)
+    assert.deepEqual(readFileSync(cache), bytes)
+    writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 999999\n')
+    const partiel = executer(racine, ['--only', 'g/a.mjs'])
+    assert.equal(partiel.status, 0, partiel.sortie)
+    const apres = chargerPreuve(racine)
+    assert.notDeepEqual(apres.generateurs['g/a.mjs'], initial.generateurs['g/a.mjs'])
+    assert.deepEqual(apres.generateurs['g/b.mjs'], initial.generateurs['g/b.mjs'])
+    for (const argv of [['--code'], ['--mixtes']]) {
+      assert.equal(executer(racine, argv).status, 0)
+      assert.deepEqual(chargerPreuve(racine), apres)
+    }
+    assert.equal(executer(racine, ['--only', 'g/b.mjs'], { BANC_SORTIE: '1' }).status, 1)
+    const rouge = chargerPreuve(racine)
+    assert.ok(rouge.generateurs['g/a.mjs'])
+    assert.equal(rouge.generateurs['g/b.mjs'], undefined)
+    const bytesRouges = readFileSync(cache)
+    assert.equal(executer(racine, ['--check']).status, 0)
+    assert.deepEqual(readFileSync(cache), bytesRouges)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
 })

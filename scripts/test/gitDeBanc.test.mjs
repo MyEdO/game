@@ -6,6 +6,7 @@ import { rmSync } from 'node:fs'
 import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { commitsNommes, depotDe } from '../guards/lib/gitPorte.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, resultatDeLArbreReel, sousCommande } from './gitDeBanc.mjs'
+import { installer } from '../docs/lib/enregistreur-lectures.mjs'
 
 /** `fn(racine)` sur une instance jetée à la sortie. */
 function dansUneInstance(fn) {
@@ -26,6 +27,34 @@ function sousEnv(vars, fn) {
   } finally {
     for (const [k, v] of Object.entries(avant)) { if (v === undefined) delete process.env[k]; else process.env[k] = v }
   }
+}
+
+for (const [nom, lancer] of [['execFileSync', lancerGit], ['spawnSync', resultatDeGit]]) {
+  test(`env strictement hérité : ${nom} reste une requête Git attestée`, () => {
+    dansUneInstance((racine) => {
+      const mesure = installer({ racine, ignores: new Set() })
+      try {
+        lancer(['rev-parse', 'HEAD'], { cwd: racine, env: process.env })
+        assert.deepEqual(mesure.rendu().incomplet, [])
+        assert.equal(mesure.rendu().git.length, 1)
+        assert.deepEqual(mesure.rendu().git[0].args, ['rev-parse', 'HEAD'])
+      } finally { mesure.restaurer() }
+    })
+  })
+
+  test(`env explicite conservé : ${nom} garde défaut forgé et copie personnalisée non rejouables`, () => {
+    dansUneInstance((racine) => {
+      const mesure = installer({ racine, ignores: new Set() })
+      try {
+        lancer(['rev-parse', 'HEAD'], { cwd: racine })
+        assert.match(mesure.rendu().incomplet.join('\n'), /environnement.*non rejouable/)
+        assert.deepEqual(mesure.rendu().git, [])
+        lancer(['rev-parse', 'HEAD'], { cwd: racine, env: { ...process.env } })
+        assert.deepEqual(mesure.rendu().git, [])
+        assert.match(mesure.rendu().incomplet.join('\n'), /environnement.*non rejouable/)
+      } finally { mesure.restaurer() }
+    })
+  })
 }
 
 test('un git qui ÉCHOUE jette un message qui porte SON stderr, pas la seule ligne de commande (#2155)', () => {

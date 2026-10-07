@@ -25,6 +25,9 @@ import { ECRIT_LU } from '../gates/toutes.mjs'
 import { GitIndisponible, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
+import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
+import { selectionDesGenerateurs } from '../git-hooks/docs-rebuild.mjs'
+import { copierDocsFrais } from '../docs/lib/fraicheur-docs.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -160,7 +163,7 @@ export const GESTES_DU_CHANTIER = Object.freeze({ arbrePrincipal, shaDe, fetchOr
  * @returns {{ok: true, cible: string, branche: string, base: string, resume: string, npmJoue: boolean}
  *   | {ok: false, refus: string, cible?: string, branche?: string}}
  */
-export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge }) {
+export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge, copierDocs = copierDocsFrais }) {
   const etape = (nomEtape, geste) => etapeProfilee(`[chantier] ${nomEtape}`, geste, { annoncer, horloge })
   if (!nomValide(nom)) {
     return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
@@ -206,7 +209,21 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   // `shell: true` MESURÉ nécessaire : `spawnSync('npm.cmd', …, { shell: false })` rend
   // `EINVAL` sous Node v22.20.0 / win32 (mesure du 2026-09-14). Aucun argument ne porte d'espace,
   // et le `cwd` ne passe pas par la ligne de commande — il n'y a donc rien à citer.
-  for (const { args, ou, relance } of EQUIPEMENTS) {
+  for (const { args: argsEquipe, ou, relance } of EQUIPEMENTS) {
+    let args = argsEquipe
+    if (args.includes('docs:build')) {
+      const copie = etape('copie des docs dérivés', () => copierDocs({
+        principal, cible, generateurs: GENERATORS, verificateurs: NON_GENERATOR_CHECKS,
+        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES, selecteur: selectionDesGenerateurs,
+      }))
+      if (copie.ok) {
+        ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] docs dérivés copiés : ${copie.copies}\n`)
+        if (!copie.scriptsARegenerer?.length) continue
+        args = [...argsEquipe, '--', '--only', ...copie.scriptsARegenerer]
+      } else {
+        ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] repli docs:build : ${copie.raison}\n`)
+      }
+    }
     const vuNpm = etape(`${relance}${ou}`, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {
       cwd: cible, stdio: 'inherit', shell: true,
     }))
