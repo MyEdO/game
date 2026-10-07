@@ -623,7 +623,7 @@ Trois origines humaines norses (`MDG 07 l.228-246`) :
 **Sources RAW** : `MDG 07 l.222-260`
 **Voir aussi** : [Carrières norses (MDG)](#carrières-norses-mdg) · [Trait Marque de Khorne (MDG)](#trait-marque-de-khorne-mdg)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 5` (l.484) → `SPECIES_SKILLS_PLUS5`, `SPECIES_SKILLS_PLUS3`, `ChoixDeCreation`, `CreatorDraft`, `libreDEspece`, `speciesSkillDefaults`, `rollRandomTalent`, `mouvement`, `resolveSpeciesTalents`, `TalentDEspece`, +13 — `src/data/characteristics.json`, `src/data/schemas/defs/talents.ts`, `src/engine/character.ts`, `src/ui/creator/CharacterCreator.tsx`, `src/ui/creator/draft.ts`
+- `LDB 5` (l.484) → `SPECIES_SKILLS_PLUS5`, `SPECIES_SKILLS_PLUS3`, `ChoixDeCreation`, `CreatorDraft`, `libreDEspece`, `speciesSkillDefaults`, `rollRandomTalent`, `resolveSpeciesTalents`, `mouvement`, `TalentDEspece`, +13 — `src/data/characteristics.json`, `src/data/schemas/defs/talents.ts`, `src/engine/character.ts`, `src/ui/creator/CharacterCreator.tsx`, `src/ui/creator/draft.ts`
 - `MDG 7` (l.222-260) → `hiddenGroupsOf`, `TraitInstance`, `passiveCastPenalties`, `careerTalentAdditions`, `traitGrantedTalents`, `effectiveTalents`, `humains-bjornling-norse`, `humains-sarl-norse`, `humains-skaeling-norse`, `norsca`, +5 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/mutations.json`, `src/data/skills.json`, `src/data/species.json`, `src/data/talents.json`, +5 fichiers
 
 ---

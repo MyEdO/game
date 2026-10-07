@@ -145,6 +145,18 @@ describe('coutures du héros en combat (#2312)', () => {
     expect(grp(id).fortune).toBe(avant - 1);
   });
 
+  it('un effet en Rounds posé hors combat entre dans le combat avec ses Rounds restants (LDB 46 l.93)', () => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const base = effectiveChar(h, 'capacite-de-tir');
+    h.activeEffects = [{ label: 'Sort', char: 'capacite-de-tir', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
+    useGame.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
+    useGame.getState().startScene(testScene());
+    useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    vi.clearAllTimers();
+    expect(cbt(h.id).activeEffects?.map((e) => e.duration)).toEqual([{ scale: 'rounds', left: 3 }]);
+    expect(effectiveChar(cbt(h.id), 'capacite-de-tir')).toBe(base + 10);
+  });
+
   it('un effet d’horloge posé hors combat (Exposition au froid) entre dans le combat', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const base = effectiveChar(h, 'capacite-de-tir');

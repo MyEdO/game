@@ -155,7 +155,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, buildWeapon, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, removeActiveEffects, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
 import { creatureAttacks, selfManeuversOf, selfManeuverApplicable, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -6765,12 +6765,6 @@ export function finalizeBattle(get: Get, set: SetFn): void {
     audience: battle.combatants.filter((c) => !isOutOfAction(c)),
     triggerCtx: { rng: battleRng() },
   });
-  // `activeEffects` (échelle `rounds`) N'EST JAMAIS reporté hors combat (les Rounds ne tickent pas hors
-  // combat) — sans purge ICI, un `grantedMutation`/`grantedTrait` encore actif (Allure démoniaque, EDOC 13
-  // l.270-276) laisserait sa DONNÉE portée (`c.mutations`/`c.traits`, carriées par `carryOverState`) orpheline
-  // et PERMANENTE (plus aucun porteur pour la détacher). Détachement propre AVANT writeback, comme une
-  // expiration normale (`removeActiveEffects` : MÊME couture que `tickDurations`).
-  for (const c of battle.combatants) removeActiveEffects(c, (e) => e.duration.scale === 'rounds');
   // Couture de RETOUR complète (`REPORT_DE_COMBATTANT`, #2312) : ce qui est propre à la rencontre
   // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
   const newParty = party.map((h) => {

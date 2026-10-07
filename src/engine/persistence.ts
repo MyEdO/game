@@ -56,7 +56,7 @@ export const REPORT_DE_COMBATTANT = {
   weapons: rencontre(DERIVE), armour: rencontre(DERIVE), items: PERSISTE, encumbrance: rencontre(DERIVE),
   skills: PERSISTE, talents: PERSISTE, loadouts: PERSISTE, activeLoadoutId: PERSISTE, barre: PERSISTE,
   spells: PERSISTE, componentSpells: PERSISTE, sinPoints: PERSISTE, masteredWeapons: PERSISTE,
-  activeEffects: PERSISTE, castPenalties: PERSISTE,
+  activeEffects: { sort: true, raison: 'LDB 46 l.93, CRB 070 l.27' }, castPenalties: PERSISTE,
   focus: rencontre('Focalisation en cours d’une incantation de la rencontre'),
   dispel: rencontre('cumul du Test étendu de Dissipation (LDB 46 l.158-162) mené pendant la rencontre'),
   craft: PERSISTE, ritual: PERSISTE, movement: PERSISTE,
