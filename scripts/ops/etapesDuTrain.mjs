@@ -187,9 +187,9 @@ export const MOTIF_REGENERATION = 'docs dérivés régénérés par le train de 
 /** Motif de la fusion d'`origin/main` qui reprend une PR éjectée de la file. */
 export const MOTIF_EJECTION = 'fusion d’origin/main après éjection de la file de fusion'
 
-/** Refus commun aux commits du train : sans `#N`, la porte de commit refuserait le message. */
+/** Refus commun aux commits du train : sans `#N`, la porte du commit refuserait le message. */
 export const REFUS_SANS_TICKET =
-  'aucun `#N` cité par la plage : le commit du train n’aurait aucun ticket, et la porte de commit le refuse — cite un ticket dans un commit de la plage'
+  'aucun `#N` cité par la plage : le commit du train n’aurait aucun ticket, et la porte du commit le refuse — cite un ticket dans un commit de la plage'
 
 /** La PLAGE dont les `#N` légitiment un commit du train : les commits de la branche absents du tronc. */
 export const PLAGE_DE_CITATIONS = `${TRONC.suivi}..HEAD`

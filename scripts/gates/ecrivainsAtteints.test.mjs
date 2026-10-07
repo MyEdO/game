@@ -102,6 +102,10 @@ const ATTENDU = {
     // jamais écrit.
     'scripts/git-hooks/merge-stocks.mjs',
     'scripts/git-hooks/merge-stocks.test.mjs',
+    // +1 −2 le 2026-10-07 (#2071), net −1 : les bancs de la porte du commit quittent `scripts/hooks/`
+    // avec elle ; ils forgent leurs dépôts JETABLES (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en
+    // finally) — l'index d'un commit ne se fabrique pas autrement, l'arbre versionné n'est jamais écrit.
+    'scripts/git-hooks/porte-du-commit.test.mjs',
     // +1 le 2026-09-27 (#1806) : le banc du pre-commit forge un dépôt JETABLE (`instanceDeDepot`, sous
     // os.tmpdir(), `rmSync` en finally), y stage un nom à tabulation et y JOUE le hook, `cwd` = ce
     // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
@@ -109,6 +113,10 @@ const ATTENDU = {
     'scripts/git-hooks/pre-commit.test.mjs',
     'scripts/git-hooks/pre-push.test.mjs',
     'scripts/git-hooks/three-way.mjs',
+    // +1 le 2026-10-07 (#2071) : le banc de `cheminDEcriture` pose ses fichiers sous un `mkdtempSync`
+    // de os.tmpdir() (`rmSync` en finally) — un chemin RÉEL ne se résout pas autrement ; l'arbre
+    // versionné n'est jamais écrit.
+    'scripts/guards/lib/contratGarde.test.mjs',
     // Le gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
     // jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
@@ -185,8 +193,6 @@ const ATTENDU = {
     'scripts/hooks/repartiteur.test.mjs',
     'scripts/hooks/repartition.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
-    'scripts/hooks/solde-ticket-guard-driver.test.mjs',
-    'scripts/hooks/solde-ticket-guard.test.mjs',
     'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La

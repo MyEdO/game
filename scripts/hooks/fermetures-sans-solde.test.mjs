@@ -1,6 +1,6 @@
 // CLIQUET (node --test, sans réseau) — fermetures de ticket SANS solde versionné.
 //
-// Le garde `solde-ticket-guard` est en vigueur depuis f8e3e670f (2026-07-14) et pourtant 118 tickets
+// La porte de solde (`scripts/git-hooks/porte-du-commit.mjs`) est en vigueur depuis f8e3e670f (2026-07-14) et pourtant 118 tickets
 // fermés par message de commit depuis le 2026-08-01 n'ont AUCUN `.claude/soldes/<N>.md` suivi par
 // git : le contrôle a été contourné à l'échelle (fermeture hors commit, message packé, arbre neuf).
 // Le stock est figé NOMINATIVEMENT et ne peut que DÉCROÎTRE — un nom neuf est une fermeture qui vient

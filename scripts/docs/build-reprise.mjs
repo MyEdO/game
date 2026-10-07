@@ -349,7 +349,7 @@ function rendu() {
     {
       quoi: `Sorties de QC (\`${motif('public/qc/*')}\`)`,
       pourquoi: 'planches de revue régénérables — pas du source',
-      acces: `régénérables par les scripts \`scripts/qc/\` ; deux exceptions restent VERSIONNÉES : \`${motif('!public/qc/baseline-affine/')}\` (baseline affine, #1176 C3) et \`${motif('!public/qc/soldes/')}\` (les captures que cite le champ \`capture:\` d'un solde — la porte \`verifierCapture\` de \`scripts/hooks/solde-ticket-guard.mjs\` refuse une capture ignorée par git)`,
+      acces: `régénérables par les scripts \`scripts/qc/\` ; deux exceptions restent VERSIONNÉES : \`${motif('!public/qc/baseline-affine/')}\` (baseline affine, #1176 C3) et \`${motif('!public/qc/soldes/')}\` (les captures que cite le champ \`capture:\` d'un solde — la porte \`verifierCapture\` de \`scripts/git-hooks/porte-du-commit.mjs\` refuse une capture ignorée par git)`,
     },
     {
       quoi: `Réglages Claude Code personnels (\`${motif('.claude/*')}\`)`,

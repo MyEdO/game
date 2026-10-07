@@ -130,7 +130,7 @@ test('le fichier est rapporté sous son chemin COMPLET relatif à la racine, mê
     const cible = join(racine, 'scripts', 'x', 'src', 'y.mjs')
     mkdirSync(dirname(cible), { recursive: true })
     writeFileSync(cible, tombale)
-    assert.match(contexteDe({ file_path: cible, content: tombale }), /POISON pierre tombale \(règle 6c, tolérance zéro\) — scripts\/x\/src\/y\.mjs:1 /)
+    assert.match(contexteDe({ file_path: cible, content: tombale }), /POISON pierre tombale \(règle 6, tolérance zéro\) — scripts\/x\/src\/y\.mjs:1 /)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

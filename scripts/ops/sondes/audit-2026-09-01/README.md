@@ -82,7 +82,7 @@ compteur d'ARBRE se re-mesure sur le sha courant, la valeur « L0 » date de `2a
 | Worktrees d'un niveau à setup fuyant | `probe-url-base.mjs` | `node scripts/ops/sondes/audit-2026-09-01/probe-url-base.mjs` | — | 3 (`.wt-1501`, `.wt-1624`, `.wt-1679-L0` — les seuls posés D'UN NIVEAU sous la racine principale) |
 | Worktrees à `node_modules` vide | `probe-resolve.mjs` | `node scripts/ops/sondes/audit-2026-09-01/probe-resolve.mjs` | — | 5 fuient vers un AUTRE arbre, 1 ne résout rien (`Game-1456`) = 6 |
 | `ex-Nom` en commentaire (corpus de la garde) | `sonde828b.mjs` | `node scripts/ops/sondes/audit-2026-09-01/sonde828b.mjs` | — | 0 (corpus 4119 sur `2ada0b8ac` avec les 99 sondes du lot, 4123 sur `d53b36c67` avec les 4 sondes de L1c ; 135 `guards/lib`, `commentPoison.mjs` scanné ; 4 017 avant l'entrée des sondes) |
-| `gh issue close` hors garde de solde | `sonde-guard-fermetures.mjs` | `node scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs` | — | SILENCE (le même message en `git commit` rend DENY) |
+| `gh issue close` hors commit | `sonde-guard-fermetures.mjs` | `node scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs` | — | DENY (garde `fermeture-hors-commit` du répartiteur, #2071) |
 
 ## Sondes nommées
 
@@ -114,7 +114,7 @@ compteur d'ARBRE se re-mesure sur le sha courant, la valeur « L0 » date de `2a
 | `probe-url-base.mjs` | fuite de `setupFiles` entre worktrees : l'ordre d'essai d'urls de vitest, worktree par worktree |
 | `probe-resolve.mjs` | vers quel `node_modules` se résolvent `vitest`/`vite`/`typescript`/`tsx` depuis chaque worktree |
 | `sonde828b.mjs` | stock de la famille TOMBSTONE d'ancien nom rappelé, sur le corpus RÉEL de la garde comment-poison |
-| `sonde-guard-fermetures.mjs` | périmètre du garde de solde : `git commit` jugé, `gh issue close` hors champ |
+| `sonde-guard-fermetures.mjs` | périmètre des fermetures hors commit au répartiteur : `gh issue close`, `gh api … state=closed`, `--input` |
 
 ## Sondes brutes (`brutes/`)
 

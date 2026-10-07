@@ -1,5 +1,6 @@
 // Conformité des CANAUX gardés : les hooks PreToolUse qui gardent les COMMANDES
-// (`commande-piege-guard`, `solde-ticket-guard`, `issue-label-guard`, `runner-capture-guard`)
+// (`commande-piege-guard`, `fermeture-hors-commit-guard`, `hooks-git-contournes-guard`,
+// `issue-label-guard`, `runner-capture-guard`)
 // doivent couvrir tous les outils par lesquels une commande shell part réellement — pas seulement
 // `Bash`/`PowerShell`.
 //
@@ -19,9 +20,10 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { ENTREES_OUTIL, MOTEUR_DE_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
-import { REGISTRE, REGISTRE_SOLDE } from './registre.mjs'
+import { REGISTRE } from './registre.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
-import { garde as solde } from './solde-ticket-guard.mjs'
+import { garde as fermetureHorsCommit } from './fermeture-hors-commit-guard.mjs'
+import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils } from '../guards/lib/contratGarde.mjs'
@@ -35,7 +37,8 @@ const hooksDe = (surface) => aplatirHooks(JSON.parse(readFileSync(join(REPO, sur
 
 /** Gardes de COMMANDES, avec le point d'entrée dont le registre les porte. */
 const GARDES_COMMANDE = [
-  [commandePiege, 'repartiteur.mjs', REGISTRE], [solde, 'solde-ticket-hook.mjs', REGISTRE_SOLDE],
+  [commandePiege, 'repartiteur.mjs', REGISTRE], [fermetureHorsCommit, 'repartiteur.mjs', REGISTRE],
+  [hooksGitContournes, 'repartiteur.mjs', REGISTRE],
   [issueLabel, 'repartiteur.mjs', REGISTRE], [runnerCapture, 'repartiteur.mjs', REGISTRE],
 ]
 /** Les registres des points d'entrée, avec leur script : la déclaration dont `agents:sync` dérive les
@@ -211,16 +214,15 @@ function decisionOf(script, command, outil = 'mcp__lean-ctx__ctx_shell') {
 }
 
 test('DRIVER : les gardes de commande décident bien sur un payload ctx_shell (câblage de bout en bout)', () => {
-  // Fermeture d'un ticket sans solde : deny quoi qu'il arrive (`.claude/soldes/999999.md` n'existe
-  // pas).
-  assert.equal(decisionOf('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #999999)"'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'gh issue close 999999'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'git commit --no-verify -m x'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'git show --stat -- 21d0153b7'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'npx vitest run | tail -20'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'taskkill //F //IM grep.exe', 'Bash'), 'deny')
 })
 
-test('DRIVER : une commande anodine passe par les deux points d’entrée sans décision', () => {
+test('DRIVER : une commande anodine passe par le point d’entrée sans décision', () => {
   for (const script of new Set(GARDES_COMMANDE.map(([, s]) => s))) {
     assert.equal(decisionOf(script, 'git status'), null, `${script} bloque un git status`)
   }

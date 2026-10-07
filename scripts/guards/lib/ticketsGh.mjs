@@ -26,7 +26,7 @@
 // Aucune FERMETURE ici. Le dépôt en compte DEUX sites, recensés et déclarés par
 // `sitesDeFermeture.mjs` : `fermer-depuis-main.mjs` pour les tickets SOLDÉS du job `fermetures`, et
 // `signaler-rouge.mjs` pour la survivante d'un signalement de course rouge. Le premier porte le geste
-// que la porte de commit impose, et il n'est hors de portée d'un tiers que parce qu'il est une
+// que la porte du commit impose, et il n'est hors de portée d'un tiers que parce qu'il est une
 // FEUILLE que rien n'importe (`modulesFeuilles.mjs`) : le vocabulaire de lecture d'une plage fermante
 // vit dans `plageFermante.mjs`, et le cliquet « le train n'importe pas le module qui FERME »
 // (`publier.test.mjs`) le mesure. Un cliquet qui ne lirait que des argv littéraux serait aveugle à

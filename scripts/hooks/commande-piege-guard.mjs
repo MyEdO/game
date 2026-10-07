@@ -13,7 +13,7 @@
 //   `kill -1` (#2173) les atteint TOUS.
 //
 // Détection STRUCTURELLE (jamais un grep de sous-chaîne sur la ligne entière) : on réutilise le
-// tokenizer quote-aware de `solde-ticket-guard` (`pipelinesDeJetons`/`gitSubcommand`, invariant
+// tokenizer quote-aware de `scripts/guards/lib/commandeShell.mjs` (`pipelinesDeJetons`/`gitSubcommand`, invariant
 // partagé) — une commande qui CITE le geste (`Write-Output "ln -s ../node_modules"`, un message de
 // commit) n'exécute rien et ne se refuse pas.
 //
@@ -40,7 +40,7 @@ import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.
 import {
   REFUS_SATURE, affectationPowerShell, argumentChaine, basenameExecutable, finDuBloc, gitSubcommand, jetonNu, nouveauBudget,
   pipelinesDeJetons, soldeParentheses, valeurParametre,
-} from './solde-ticket-guard.mjs'
+} from '../guards/lib/commandeShell.mjs'
 
 /** Nom d'exécutable d'un segment (`basenameExecutable`, call-operator sauté) ; `commande` = le segment à
  *  partir de lui. */
@@ -64,7 +64,7 @@ const PARAMS_NEW_ITEM = [
 
 /** `mklink` est un BUILTIN de `cmd` : derrière `cmd /c`, l'exécutable du segment est `cmd`, et la
  *  commande qu'il porte (chaînée par `&`, quotée ou non) contient l'invocation. On la lit dans la
- *  commande que lit `solde-ticket-guard` (`argumentChaine` : le reste de la ligne après `/c`/`/k`). */
+ *  commande que lit `commandeShell.mjs` (`argumentChaine` : le reste de la ligne après `/c`/`/k`). */
 const MKLINK_APRES_CMD_RE = /(?:^|[\s&;|("'])mklink(?=$|[\s"'])/i
 const MKLINK_FLAG_RE = /(?:^|[\s"'])\/[jdh](?=$|[\s"'])/i
 
