@@ -148,7 +148,7 @@ test('DRIVER : une op ANCRÉE qui ré-écrit une entrée déjà présente → si
   }
 })
 
-test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op déléguée, ou deux `path` d’un même fichier) est REFUSÉ ; un lot ancré à un `path` reste jugé — surfaces claude et codex', () => {
+test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op ancrée après une déléguée, ou deux `path` d’un même fichier) est REFUSÉ ; un lot ancré à un `path`, ou ancré puis délégué, reste jugé — surfaces claude et codex', () => {
   const { racine } = instanceDeDepot()
   try {
     const cible = join(racine, 'tables-guard.test.mjs')
@@ -178,6 +178,12 @@ test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op d
       const ancre = sortie({ path: cible, ops: [{ op: 'replace_lines', start_line: 1, end_line: 2, new_text: "export const EXC_B = [\n  'src/b.ts',\n  'src/a.ts'," }] })
       assert.equal(ancre.permissionDecision, undefined, `${surface} : lot ancré`)
       assert.ok((ancre.additionalContext ?? '').includes(AVERTISSEMENT), `${surface} : lot ancré jugé : ${ancre.additionalContext}`)
+      const ancreePuisDeleguee = sortie({ path: cible, ops: [
+        { op: 'set_line', line: 1, hash: '00', new_text: 'export const EXC_B = [' },
+        { op: 'replace_unique', old_text: "export const EXC_A = [\n  'src/a.ts',", new_text: "export const EXC_A = [\n  'src/a.ts',\n  'src/c.ts'," },
+      ] })
+      assert.equal(ancreePuisDeleguee.permissionDecision, undefined, `${surface} : ancrée puis déléguée`)
+      assert.ok((ancreePuisDeleguee.additionalContext ?? '').includes(AVERTISSEMENT), `${surface} : déléguée jugée : ${ancreePuisDeleguee.additionalContext}`)
     }
   } finally {
     rmSync(racine, { recursive: true, force: true })
