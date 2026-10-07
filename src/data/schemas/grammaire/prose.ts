@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 import { descRefSchemaDe, sourceRefSchema, type GenreDeFragment } from './valeurs';
-import { defDe, type PointDeDonnee } from './descente';
+import { enfantsDe, type PointDeDonnee } from './descente';
 import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
@@ -197,10 +197,7 @@ export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown
     if (!estObjetSimple(a.valeur)) continue;
     if (a.valeur.adapteDe !== undefined) return undefined;
     if (estObjetSimple(a.valeur.source)) return a.valeur.source;
-    if (a.noeuds.some((n) => {
-      const shape = defDe(n)?.shape;
-      return shape?.source !== undefined || shape?.adapteDe !== undefined;
-    })) return undefined;
+    if (a.noeuds.some((n) => enfantsDe(n).some((enfant) => enfant.cle === 'source' || enfant.cle === 'adapteDe'))) return undefined;
   }
   return undefined;
 }
