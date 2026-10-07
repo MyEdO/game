@@ -5,7 +5,7 @@ import path from 'node:path'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
-import { ciblesPures, ciblesSurDisque, SOURCES_LUES } from '../build-all.mjs'
+import { ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, SOURCES_LUES } from '../build-all.mjs'
 import { selectionDesGenerateurs } from '../../git-hooks/docs-rebuild.mjs'
 import { CACHE_FRAICHEUR, avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, preparerPreuves, preuveValide } from './fraicheur-docs.mjs'
 
@@ -18,7 +18,7 @@ const options = {
     { runner: 'node', script: 'g/code.mjs', targets: [code] },
   ],
   verificateurs: [],
-  ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES,
+  ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES,
 }
 const poser = (racine, rel, bytes) => {
   mkdirSync(path.dirname(path.join(racine, rel)), { recursive: true })
@@ -62,6 +62,183 @@ function banc() {
 }
 
 const copier = (b, extra = {}) => copierDocsFrais({ principal: b.racine, cible: b.cible, selecteur: selectionDesGenerateurs, ...options, ...extra })
+
+const docFroid = (nom) => ['docs', 'raw', `${nom}.md`].join('/')
+
+function bancFroid() {
+  const b = banc()
+  for (const nom of ['a', 'b']) rmSync(path.join(b.racine, ['docs', nom + '.md'].join('/')))
+  poser(b.racine, docFroid('a'), '# A\n')
+  poser(b.racine, docFroid('b'), '# B\n')
+  const injecteur = { runner: 'node', script: 'g/injecte.mjs', targets: [], injecte: ['docs/raw/**/*.md', 'notes/raw.md'] }
+  const lecteur = { runner: 'node', script: 'g/lecteur.mjs', targets: [docFroid('lecteur')] }
+  for (const racine of [b.racine, b.cible]) {
+    poser(racine, injecteur.script, 'export const injecte = 1\n')
+    poser(racine, lecteur.script, 'export const lecteur = 1\n')
+    poser(racine, 'notes/raw.md', '# RAW\n')
+  }
+  poser(b.racine, docFroid('lecteur'), '# lecteur\n')
+  const opts = { ...options, generateurs: [...options.generateurs.map((g) => ['g/a.mjs', 'g/b.mjs'].includes(g.script) ? { ...g, targets: [docFroid(path.posix.basename(g.script, '.mjs'))] } : g), injecteur, lecteur] }
+  for (const nom of ['a', 'b']) b.mesure['g/' + nom + '.mjs'].cibles = [docFroid(nom)]
+  b.mesure[injecteur.script] = { fichiers: [injecteur.script, 'notes/raw.md'], dossiers: ['docs/raw'], cibles: [], git: [], sondes: [], incomplet: [] }
+  b.mesure[lecteur.script] = {
+    fichiers: [lecteur.script, docFroid('a'), 'notes/raw.md'], dossiers: [], cibles: [docFroid('lecteur')], git: [],
+    sondes: [{ chemin: docFroid('b'), type: 'exists', existe: true, nature: null }, { chemin: docFroid('b'), type: 'stat', existe: true, nature: 'file' }], incomplet: [],
+  }
+  poser(b.racine, SOURCES_LUES, JSON.stringify(b.mesure))
+  certifier(b.racine, b.mesure, opts)
+  return { ...b, opts }
+}
+
+test('cible froide : glob injecte recoupant les docs purs, listing, fichiers et sondes restent identiques', () => {
+  const b = bancFroid()
+  try {
+    const vu = copier(b, b.opts)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.deepEqual(vu.scriptsARegenerer, [])
+    assert.equal(vu.copies, 3)
+    assert.equal(preuveValide(b.cible, b.opts).ok, true)
+    assert.equal(readFileSync(path.join(b.cible, 'notes/raw.md'), 'utf8'), '# RAW\n')
+  } finally { b.jeter() }
+})
+
+test('cible froide : source RAW différente suit la fermeture et retire seulement les provisoires sélectionnés', () => {
+  const b = bancFroid()
+  try {
+    poser(b.racine, 'notes/raw.md', '# RAW changé\n')
+    const vu = copier(b, b.opts)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.ok(vu.scriptsARegenerer.includes('g/injecte.mjs'))
+    assert.ok(vu.scriptsARegenerer.includes('g/lecteur.mjs'))
+    const attendu = selectionDesGenerateurs({ lot: [], scriptsInitiaux: ['g/injecte.mjs', 'g/lecteur.mjs'], mesure: b.mesure, cwd: b.racine, generateurs: b.opts.generateurs })
+    assert.deepEqual(vu.scriptsARegenerer, attendu.scripts)
+    assert.equal(vu.copies, 0)
+    assert.equal(existsSync(path.join(b.cible, docFroid('a'))), false)
+    assert.equal(existsSync(path.join(b.cible, docFroid('b'))), false)
+    assert.equal(existsSync(path.join(b.cible, docFroid('lecteur'))), false)
+    assert.equal(readFileSync(path.join(b.cible, 'notes/raw.md'), 'utf8'), '# RAW\n')
+  } finally { b.jeter() }
+})
+
+test('cible froide : doc existant d’un producteur sélectionné reste sur disque', () => {
+  const b = bancFroid()
+  try {
+    poser(b.cible, docFroid('a'), 'WIP cible')
+    const vu = copier(b, b.opts)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.ok(vu.scriptsARegenerer.includes('g/a.mjs'))
+    assert.equal(readFileSync(path.join(b.cible, docFroid('a')), 'utf8'), 'WIP cible')
+  } finally { b.jeter() }
+})
+
+test('cible froide : doc principal altéré jamais préparé dans la cible', () => {
+  const b = bancFroid()
+  try {
+    poser(b.racine, docFroid('a'), 'doc altéré')
+    let absentPendantPreparation
+    const vu = copier(b, { ...b.opts, apresPreparation: () => { absentPendantPreparation = !existsSync(path.join(b.cible, docFroid('a'))) } })
+    assert.equal(vu.ok, true, vu.raison)
+    assert.equal(absentPendantPreparation, true)
+    assert.ok(vu.scriptsARegenerer.includes('g/a.mjs'))
+    assert.equal(existsSync(path.join(b.cible, docFroid('a'))), false)
+  } finally { b.jeter() }
+})
+
+test('cible froide : CODE absent jamais préparé dans la cible', () => {
+  const b = bancFroid()
+  try {
+    rmSync(path.join(b.cible, code))
+    let absentPendantPreparation
+    const vu = copier(b, { ...b.opts, apresPreparation: () => { absentPendantPreparation = !existsSync(path.join(b.cible, code)) } })
+    assert.equal(vu.ok, true, vu.raison)
+    assert.equal(absentPendantPreparation, true)
+    assert.ok(vu.scriptsARegenerer.includes('g/code.mjs'))
+    assert.equal(existsSync(path.join(b.cible, code)), false)
+  } finally { b.jeter() }
+})
+
+test('cible froide : provisoire modifié avant retrait conservé, repli sans certificat', () => {
+  const b = bancFroid()
+  try {
+    const vu = copier(b, { ...b.opts, apresPreparation: () => {
+      poser(b.cible, docFroid('a'), 'écriture concurrente')
+      poser(b.racine, 'data/a/source.txt', 'source concurrente')
+    } })
+    assert.equal(vu.complete, true)
+    assert.match(vu.raison, /provisoire modifié avant retrait/)
+    assert.equal(readFileSync(path.join(b.cible, docFroid('a')), 'utf8'), 'écriture concurrente')
+    assert.equal(chargerPreuve(b.cible), null)
+  } finally { b.jeter() }
+})
+
+for (const [nom, changer] of [
+  ['source', (b) => poser(b.racine, 'data/a/source.txt', 'course')],
+  ['cache', (b) => poser(b.racine, CACHE_FRAICHEUR, '{}')],
+]) {
+  test(`cible froide : ${nom} change après préparation, repli sans certificat`, () => {
+    const b = bancFroid()
+    try {
+      const vu = copier(b, { ...b.opts, apresPreparation: () => changer(b) })
+      assert.equal(vu.complete, true)
+      assert.match(vu.raison, /modifiée? pendant copie/)
+      assert.equal(chargerPreuve(b.cible), null)
+    } finally { b.jeter() }
+  })
+}
+
+test('vues de copie : expansion partagée une fois par racine et passe, contexte propre à chaque générateur', () => {
+  const b = banc()
+  try {
+    const appels = new Map()
+    const motifsCommuns = JSON.stringify(options.generateurs.flatMap((g) => g.targets))
+    const vu = copier(b, { ciblesSurDisque: (motifs, racine) => {
+      const cle = JSON.stringify([racine, JSON.stringify(motifs)])
+      appels.set(cle, (appels.get(cle) ?? 0) + 1)
+      return ciblesSurDisque(motifs, racine)
+    } })
+    assert.equal(vu.ok, true, vu.raison)
+    assert.deepEqual(vu.scriptsARegenerer, [])
+    for (const racine of [b.racine, b.cible]) assert.equal(appels.get(JSON.stringify([racine, motifsCommuns])), 2)
+    const cache = chargerPreuve(b.cible)
+    for (const g of options.generateurs) assert.deepEqual(cache.generateurs[g.script].sources.contexte.generateur, g)
+    assert.equal(preuveValide(b.cible, options).ok, true)
+  } finally { b.jeter() }
+})
+
+for (const cote of ['principal', 'cible']) {
+  for (const nature of ['fichier', 'listing', 'sonde', 'git']) {
+    test(`vue finale neuve : ${nature} ${cote} modifié après copie, repli sans certificat`, () => {
+      const b = banc()
+      try {
+        if (nature === 'sonde') {
+          for (const racine of [b.racine, b.cible]) poser(racine, 'references/a.md', 'référence')
+          b.mesure['g/a.mjs'].sondes = [{ chemin: 'references/a.md', type: 'exists', existe: true, nature: null }]
+        }
+        if (nature === 'git') {
+          for (const [nom, motif] of [['a', 'user-a*.md'], ['b', 'user-b*.md']]) {
+            const requete = { args: ['ls-files', '--cached', '--', '.claude/memory/' + motif], cwd: '', canal: 'stdout', status: 0, stdout: '', stderr: '' }
+            b.mesure['g/' + nom + '.mjs'].git = [relireRequeteMesuree(depotDe(b.racine), requete)]
+          }
+        }
+        poser(b.racine, SOURCES_LUES, JSON.stringify(b.mesure))
+        certifier(b.racine, b.mesure)
+        const racine = cote === 'principal' ? b.racine : b.cible
+        const vu = copier(b, { apresCopie: () => {
+          if (nature === 'fichier') poser(racine, 'data/a/source.txt', 'course finale')
+          if (nature === 'listing') poser(racine, 'data/a/nouveau.txt', 'course finale')
+          if (nature === 'sonde') rmSync(path.join(racine, 'references/a.md'))
+          if (nature === 'git') {
+            poser(racine, '.claude/memory/user-b-cours.md', 'doctrine')
+            gitDe(racine)('add', '.claude/memory/user-b-cours.md')
+          }
+        } })
+        assert.equal(vu.complete, true, vu.raison)
+        assert.match(vu.raison, /modifiées? pendant copie/)
+        assert.equal(chargerPreuve(b.cible), null)
+      } finally { b.jeter() }
+    })
+  }
+}
 
 test('sources identiques : copie des deux docs et ledger cible complet ; code conservé', () => {
   const b = banc()

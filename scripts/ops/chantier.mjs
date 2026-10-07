@@ -25,7 +25,7 @@ import { ECRIT_LU } from '../gates/toutes.mjs'
 import { GitIndisponible, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
-import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque } from '../docs/build-all.mjs'
+import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
 import { selectionDesGenerateurs } from '../git-hooks/docs-rebuild.mjs'
 import { copierDocsFrais } from '../docs/lib/fraicheur-docs.mjs'
 
@@ -214,7 +214,7 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
     if (args.includes('docs:build')) {
       const copie = etape('copie des docs dérivés', () => copierDocs({
         principal, cible, generateurs: GENERATORS, verificateurs: NON_GENERATOR_CHECKS,
-        ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES, selecteur: selectionDesGenerateurs,
+        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES, selecteur: selectionDesGenerateurs,
       }))
       if (copie.ok) {
         ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] docs dérivés copiés : ${copie.copies}\n`)
