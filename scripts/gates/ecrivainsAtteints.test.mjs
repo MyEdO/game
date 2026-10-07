@@ -221,6 +221,9 @@ const ATTENDU = {
     'scripts/migrations/lib/joue.test.mjs',
     'scripts/migrations/replay-head.mjs',
     'scripts/ops/suivi.mjs',
+    // +1 le 2026-10-07 (#2460) : `suiviFichiers.mjs`, l'écriture atomique que `suivi.mjs` importe, n'écrit que
+    // sous la porte `import.meta.main` de `suivi.mjs` et dans les dépôts jetables des bancs.
+    'scripts/ops/suiviFichiers.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
     // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
@@ -290,6 +293,10 @@ const ATTENDU = {
     // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
+    // +1 le 2026-10-07 (#2460) : `suiviFichiers.mjs` porte l'écriture atomique (`ecrireSuivi` : temporaire voisin
+    // puis `renameSync`, `rmSync` du temporaire) que `suivi.mjs` et `suiviMesure.mjs` importent, sous la même
+    // porte `import.meta.main` de `suivi.mjs` et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs`.
+    'scripts/ops/suiviFichiers.mjs',
     // +2 le 2026-10-07 (#2187) : `synchroniser.mjs` écrit l'arbre PRINCIPAL (fichiers W′, `.git/index`
     // par `renameSync`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/`) derrière sa porte
     // `import.meta.main` ; son banc `synchroniser.test.mjs` le joue sur des dépôts `instanceDeDepot` sous
@@ -298,7 +305,7 @@ const ATTENDU = {
     'scripts/ops/synchroniser.mjs',
     'scripts/ops/synchroniser.test.mjs',
     // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque fichier sous le verrou exclusif `.<nom>.verrou`
-    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
+    // voisin, et `suiviMesure.mjs` mesure sous le verrou `.<N>.mesure.verrou` (#2460) (`ecrireSuivi`, `mesurerLeSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
     // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`
     // (`reprendre`), `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
     // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;

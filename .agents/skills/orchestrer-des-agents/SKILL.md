@@ -20,10 +20,23 @@ l'intégration triviale et les gates.
 - **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
   modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
   l'outil `mcp__harnais__suivi` (mod `harnais`) ou `npm run ops:suivi -- <N> --<geste> <args>…` (table
-  `GESTES` de `scripts/ops/suivi.mjs`, arité fixe : un texte se cite en UN argument), plusieurs gestes
+  des gestes de `scripts/ops/suiviDonnee.mjs`, arité fixe : un texte se cite en UN argument), plusieurs gestes
   par appel ou `--lot <json>`, appliqués TOUT OU RIEN, sous verrou ; `--creer <titre>` ouvre une vague
   neuve. La garde `suivi-ecriture` refuse toute autre écriture, et un suivi édité à la main se relit
-  « écrit hors de l'outil ».
+  « écrit hors de l'outil » : seul `--reconnaitre <motif>`, EN TÊTE de lot, le re-scelle, et il pose
+  d'office un signalement « écrit hors de l'outil, reconnu le <date> » ; un suivi hors schéma reste illisible.
+- **Il tient dans son BUDGET** (`BUDGET_DU_SUIVI` = `PLAFOND_INJECTION`, sur le plan complet) : un lot qui
+  le dépasse ET grossit est refusé avec ses gestes de condensation candidats (`--retirer-item`,
+  `--retirer-etape`, `--retirer-signalement`) ; un lot qui réduit, ou qui condense puis ajoute, passe.
+- **Il est CONFRONTÉ à la mesure à chaque lecture** (`confronter`, `scripts/ops/suiviDonnee.mjs`) : en
+  ligne 1 du bandeau, ⚠ suivi illisible ou hors outil, mesure absente, PÉRIMÉE ou portée changée — le
+  lecteur ne mesure jamais, il demande la re-mesure (`aMesurer`), que le mod `harnais` lance
+  (`--mesurer --sans-fetch`, verrou de mesure : une seule à la fois) ; côté Codex, `ops:suivi -- <N>
+  --mesurer` à la main. Puis « anomalies : k — … » : ticket fermé d'un item ouvert (ou item clos, ticket
+  ouvert), chantier vivant qu'aucun suivi ne nomme, prochain geste « à revalider », hors budget,
+  anomalies de la mesure (les récurrentes en une ligne), disposition sans objet. Une anomalie ACCEPTÉE se
+  tait par `--ignorer-anomalie <genre> <clé> <motif>` (`--lever-disposition` la rend) ; les autres se
+  corrigent. La ligne d'item dit « lot publié le <date>, ticket ouvert » ou « clos » selon la mesure.
 - **Un ticket prévu = un item** (`--ajouter-item <ticket> <libellé>`, ou `--enfiler` en file puis
   `--demarrer`), d'état `actif | attente | gare | clos` ; ses étapes (`--ajouter-etape <ticket> <texte>`,
   `--cocher <ticket>.<n>`) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication — et se

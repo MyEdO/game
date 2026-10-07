@@ -3,7 +3,10 @@
 // Elle REND l'état de session que calcule le lecteur `scripts/ops/suivi.mjs --session
 // <id> --json [--depuis <cle>]` (`etatDeSession`), enregistre l'outil que décrit `suivi.mjs --outil --json`
 // (son schéma est dérivé de la donnée, #2460) et lui confie chaque lot par `suivi.mjs <N> --session <id>
-// --json --lot <json>` (`editer`). Porteurs :
+// --json --lot <json>` (`editer`). Le lecteur ne mesure jamais : pour chaque épique de son `aMesurer`, la
+// relecture lance `suivi.mjs <N> --mesurer --sans-fetch --json` ; le verrou de mesure de
+// `scripts/ops/suiviMesure.mjs`, pris sans attente, dédoublonne — le mod n'en décide rien (#2460, design §5).
+// Porteurs :
 // https://github.com/MyEdO/game/issues/2278#issuecomment-5983942497
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, RenderElement } from 'claude-code'
@@ -35,7 +38,8 @@ async function suiviMjs<T>($: EngineInterface, args: readonly string[]): Promise
 
 /**
  * Relit l'état de session depuis la clé retenue. Ignorée si une transition qui retient une clé a eu lieu
- * depuis son lancement ; un échec garde le dernier état valide.
+ * depuis son lancement ; un échec garde le dernier état valide. Chaque épique de son `aMesurer` est mesurée
+ * (`mesurer`), sans attendre.
  */
 async function relire($: EngineInterface) {
   const lancee = await read($, atome)
@@ -46,6 +50,24 @@ async function relire($: EngineInterface) {
     etat: lu.valeur,
     enAttente: lu.valeur.ajout ? { ajout: lu.valeur.ajout, cle: lu.valeur.cle } : s.enAttente,
   }))
+  for (const epique of lu.valeur.aMesurer) void mesurer($, epique)
+}
+
+/** Borne (ms) d'une mesure : `gh` sur la portée, les branches et les worktrees. Valeur maison. */
+const BORNE_MESURE_MS = 300 * 1000
+
+/**
+ * La mesure de l'épique `epique` (`suivi.mjs <N> --mesurer --sans-fetch --json`) ; la relecture suivante en lit
+ * le résultat. Un échec va au journal de débogage.
+ */
+async function mesurer($: EngineInterface, epique: number) {
+  const args = [String(epique), '--mesurer', '--sans-fetch', '--json']
+  try {
+    const lu = lire(await $.process.run(...appel($.plugin.root, 'suivi', args, { borneMs: BORNE_MESURE_MS })))
+    if (!lu.ok) $.ui.log(`harnais, suivi.mjs ${args.join(' ')} : ${lu.motif}`, { to: 'debug' })
+  } catch (erreur) {
+    $.ui.log(`harnais, suivi.mjs ${args.join(' ')} : non lancé (${String(erreur)})`, { to: 'debug' })
+  }
 }
 
 const atomeSynchro = atom({ plugin: 'harnais', key: 'synchro' } as const, { texte: null } as HarnaisSynchroEnAttente)

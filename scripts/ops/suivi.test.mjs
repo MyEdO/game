@@ -15,12 +15,15 @@ import { z } from 'zod'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
-  ESSAIS_D_EDITION, GESTES, GESTES_DE_LA_DONNEE, HEURES_PEREMPTION, JOURNAL, PLAFOND_INJECTION, argumentsDuSuivi, digestDuSuivi,
-  ecrireSuivi, editer, etatDeSession, horodatage, ligneDeJournal, lignesDeSituation, lignesDuJournal, lireLeSuivi, listerSuivis,
-  mesureProfilee, mesurerLeSuivi, mutationsDuLot, renduDuSuivi, texteDeLaListe,
+  ESSAIS_D_EDITION, JOURNAL, argumentsDuSuivi, digestDuSuivi,
+  editer, etatDeSession, ligneDeJournal, lignesDeSituation, lignesDuJournal,
+  mutationsDuLot, renduDuSuivi, texteDeLaListe,
 } from './suivi.mjs'
+import { ecrireSuivi, lireLeSuivi, listerSuivis } from './suiviFichiers.mjs'
+import { mesureProfilee, mesurerLeSuivi } from './suiviMesure.mjs'
 import {
-  ETAPES_OUVERTES_PAR_ITEM, LONGUEUR_ETAPE, LONGUEUR_LIBELLE, Lot, OUTIL_SUIVI, appliquer, lireSuivi, sceller, texteDuSuivi,
+  BUDGET_DU_SUIVI, ETAPES_OUVERTES_PAR_ITEM, HEURES_PEREMPTION, LONGUEUR_ETAPE, LONGUEUR_LIBELLE, Lot, OUTIL_SUIVI, PLAFOND_INJECTION, appliquer,
+  confronter, horodatage, lireMesure, lireSuivi, sceller, tailleDuSuivi, texteDuSuivi,
 } from './suiviDonnee.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { poserSuivi } from '../test/suiviDeBanc.mjs'
@@ -96,7 +99,7 @@ test('TOUT OU RIEN — `cocher` + `ajouter-etape` + `etat` passent ENSEMBLE ; un
 
 test('DOUBLON — refusé à l’ÉCRITURE (item ∪ file) ET à la LECTURE', () => {
   const s = exemple()
-  assert.match(refusDe(s, [{ geste: 'ajouter-item', ticket: 2400, libelle: 'encore' }]), /mutation 1 \(ajouter-item\) : .*doublon : le ticket #2400/)
+  assert.match(refusDe(s, [{ geste: 'ajouter-item', ticket: 2400, libelle: 'encore' }]), /^lot refusé : l'état final est hors schéma : doublon : le ticket #2400/)
   assert.match(refusDe(s, [{ geste: 'enfiler', ticket: 2187, libelle: 'en file aussi' }]), /doublon : le ticket #2187 est deux fois sur items ∪ file \(items, file\)/)
   const double = sceller({ ...s, items: [...s.items, s.items[0]] }, { maintenant: MAINTENANT })
   const lu = lireSuivi(texteDuSuivi(double))
@@ -116,7 +119,7 @@ test('BORNES — libellé, étape, têtes de liste `[ ]`/`-`/`1.`, texte qui por
   assert.match(refusDe(s, [{ geste: 'signaler', texte: jeton }]), /64 caractères hexadécimaux/)
   assert.match(refusDe(s, [{ geste: 'arbitrer', date: '2026-10-07', nature: 'utilisateur', verbatim: jeton }]), /64 caractères hexadécimaux/)
   const ouvertes = Array.from({ length: ETAPES_OUVERTES_PAR_ITEM + 1 }, (_, k) => ({ geste: 'ajouter-etape', ticket: 2187, texte: `étape ${k}` }))
-  assert.match(refusDe(s, ouvertes), new RegExp(`mutation ${ETAPES_OUVERTES_PAR_ITEM + 1} \\(ajouter-etape\\) : l'état produit est hors schéma : .*${ETAPES_OUVERTES_PAR_ITEM + 1} étapes ouvertes`))
+  assert.match(refusDe(s, ouvertes), new RegExp(`^lot refusé : l'état final est hors schéma : .*${ETAPES_OUVERTES_PAR_ITEM + 1} étapes ouvertes`))
   assert.match(refusDe(s, [{ geste: 'arbitrer', date: '2026-10-07', nature: 'utilisateur', texte: 'sans verbatim' }]), /un arbitrage utilisateur porte son verbatim/)
 })
 
@@ -183,7 +186,6 @@ test('ARITÉ CLI — chaque geste consomme son arité : un mot en trop est refus
   assert.match(argumentsDuSuivi(['665', '--cocher', 'juge du brief']).refus, /--cocher : `ticket.n` attendu/)
   assert.match(argumentsDuSuivi(['665', '--ajouter-etape', '2400']).refus, /--ajouter-etape attend 2 argument\(s\)/)
   assert.match(argumentsDuSuivi(['665', '--ajouter-etape', '2400', '--json']).refus, /attend 2 argument/)
-  assert.deepEqual(Object.keys(GESTES).sort(), [...GESTES_DE_LA_DONNEE].sort(), 'le CLI couvre chaque mutation')
   const modes = {
     '': 'liste', '665': 'situation', '665 --rendu': 'rendu', '665 --mesurer --sans-fetch --json': 'mesurer', '--outil --json': 'outil',
     '--session s --json --depuis k': 'session', '665 --lot -': 'lot', '665 --session s --json --cocher 2400.1': 'lot',
@@ -201,14 +203,27 @@ test('`--lot` par ARGV et par STDIN, sur le CLI réel d’un dépôt forgé ; un
   try {
     const creer = cli(['665', '--lot', JSON.stringify({ epique: 665, mutations: BASE })])
     assert.equal(creer.status, 0, creer.stderr)
-    assert.match(creer.stdout, /^\[suivi #665\] en cours : #2400 périmètre de tests\n {2}prochain geste : #2400\.2 juge du diff\n/)
+    assert.match(creer.stdout, /^\[suivi #665\] ⚠ jamais mesurée \(re-mesure demandée\)\n\[suivi #665\] en cours : #2400 périmètre de tests\n {2}prochain geste : #2400\.2 juge du diff\n/)
     const stdin = cli(['665', '--lot', '-', '--session', 's', '--json'], JSON.stringify({ epique: 665, mutations: [{ geste: 'cocher', ticket: 2400, n: 2 }] }))
     assert.equal(stdin.status, 0, stdin.stderr)
-    assert.deepEqual(JSON.parse(stdin.stdout).suivis[0].lignes[0], '[suivi #665] en cours : #2400 périmètre de tests')
+    assert.deepEqual(JSON.parse(stdin.stdout).suivis[0].lignes[1], '[suivi #665] en cours : #2400 périmètre de tests')
     assert.deepEqual(lignesDuJournal(FS.readFileSync(join(dossier, JOURNAL), 'utf8')).map((l) => [l.session, l.epique]), [['s', 665]])
     const autre = cli(['665', '--lot', JSON.stringify({ epique: 1, mutations: [{ geste: 'friction', texte: 'x' }] })])
     assert.deepEqual([autre.status, /--lot porte l'épique #1, la commande vise #665/.test(autre.stderr)], [1, true])
     assert.match(mutationsDuLot('{"epique": 665, "mutations": []}', 665).refus, /--lot hors schéma : mutations/)
+  } finally { FS.rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('PROCESSUS `--mesurer --sans-fetch` — le CLI réel, point d’entrée, va au bout : code 0 et `<N>.mesure.json` écrit ; jamais 13 (« unsettled top-level await »)', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'fondation' })
+  const cli = (argv) => spawnSync(process.execPath, [SCRIPT, ...argv], { cwd: racine, encoding: 'utf8', timeout: 60_000 })
+  try {
+    assert.equal(cli(['665', '--creer', 'banc']).status, 0)
+    const vu = cli(['665', '--mesurer', '--sans-fetch'])
+    assert.doesNotMatch(vu.stderr, /unsettled top-level await/)
+    assert.equal(vu.status, 0, vu.stderr)
+    assert.match(vu.stdout, /^## Mesure\nmesurée le .* \(sans fetch\)\n/)
+    assert.equal(lireMesure(FS.readFileSync(join(racine, '.git', 'suivi', '665.mesure.json'), 'utf8')).ok, true)
   } finally { FS.rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -217,7 +232,17 @@ test('SCHÉMA MCP — `--outil --json` rend `OUTIL_SUIVI`, dont l’`inputSchema
   assert.deepEqual(sortie, JSON.parse(JSON.stringify(OUTIL_SUIVI)))
   assert.deepEqual(sortie.inputSchema, JSON.parse(JSON.stringify(z.toJSONSchema(Lot))))
   assert.equal(sortie.name, 'suivi')
-  assert.deepEqual(sortie.inputSchema.properties.mutations.items.oneOf.map((o) => o.properties.geste.const), GESTES_DE_LA_DONNEE)
+})
+
+test('ÉTAT FINAL — le schéma valide l’état FINAL du lot : ajouter une 6e étape ouverte puis cocher passe, cocher puis ajouter aussi ; le refus d’un GESTE garde son rang', () => {
+  let s = exemple()
+  for (let k = 0; k < ETAPES_OUVERTES_PAR_ITEM - 1; k += 1) s = apres(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: `e${k}` }])
+  assert.equal(s.items[0].etapes.filter((e) => !e.faite).length, ETAPES_OUVERTES_PAR_ITEM)
+  const ajouterPuisCocher = apres(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'sixième' }, { geste: 'cocher', ticket: 2400, n: 2 }])
+  assert.equal(ajouterPuisCocher.items[0].etapes.filter((e) => !e.faite).length, ETAPES_OUVERTES_PAR_ITEM)
+  assert.equal(apres(s, [{ geste: 'cocher', ticket: 2400, n: 2 }, { geste: 'ajouter-etape', ticket: 2400, texte: 'sixième' }]).items[0].etapes.length, 7)
+  assert.match(refusDe(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'sixième' }]), /^lot refusé : l'état final est hors schéma : .*6 étapes ouvertes, 5 au plus — rien n'est écrit$/)
+  assert.match(refusDe(s, [{ geste: 'ajouter-etape', ticket: 2400, texte: 'x' }, { geste: 'cocher', ticket: 2400, n: 1 }]), /^mutation 2 \(cocher\) : étape #2400\.1 déjà faite/)
 })
 
 // ————————————————————————————————————— l'écriture —————————————————————————————————————
@@ -337,7 +362,7 @@ test('listage : les suivis `^\\d+\\.json$` avec leur date, les orphelins NOMMÉS
 // ————————————————————————————————————— la mesure —————————————————————————————————————
 
 /** Des gestes de mesure FACTICES : un dépôt sans branche, `fetchOrigin` COMPTÉ, issues comptées. */
-function mesureFactice(compte, { fetchOrigin, issues } = {}) {
+function mesureFactice(compte, { fetchOrigin, issues, branches = [], avance = 0 } = {}) {
   const fait = (valeur) => ({ disponible: true, valeur })
   return {
     cwd: '/dep',
@@ -345,8 +370,8 @@ function mesureFactice(compte, { fetchOrigin, issues } = {}) {
     gestes: {
       arbrePrincipal: () => fait('/dep'),
       fetchOrigin: fetchOrigin ?? (() => { compte.fetch += 1; return fait({ status: 0, signal: null, stdout: '', stderr: '' }) }),
-      branchesDe: () => [],
-      divergenceDe: () => ({ avance: 0, retard: 0 }),
+      branchesDe: () => branches,
+      divergenceDe: () => ({ avance, retard: 0 }),
       journalDe: () => [],
     },
     inv: () => ({ ok: true, worktrees: [{ chemin: '/dep', principal: true, branche: 'main' }] }),
@@ -369,10 +394,11 @@ test('mesure : `<N>.mesure.json` écrit, JAMAIS le suivi ; portée = items ∪ f
     assert.match(vu.stdout, /^## Mesure\nmesurée le 2026-10-07 10:00 \(sans fetch\)\n- #2400 Ouvert · issue ouvert/)
     assert.match(vu.stdout, /\[suivi\] profil \(ms\) : arbrePrincipal \d+ .* reste -?\d+\.\d\n$/)
     const lu = lireLeSuivi({ dossier, epique: 665 })
-    assert.match(lignesDeSituation(lu, { maintenant: new Date(MAINTENANT.getTime() + 30 * 60_000), age: true }).at(-1), /mesurée il y a 30 min$/)
+    assert.match(lignesDeSituation(lu, { maintenant: new Date(MAINTENANT.getTime() + 30 * 60_000), age: true }).at(-1), /mesurée il y a 30 min, sans fetch$/)
     const tard = new Date(MAINTENANT.getTime() + (HEURES_PEREMPTION + 1) * 3_600_000)
-    assert.match(lignesDeSituation(lu, { maintenant: tard, age: true }).at(-1), /PÉRIMÉE, mesurée il y a 25 h$/)
-    assert.match(digestDuSuivi(lu, { maintenant: tard }), /\*\*PÉRIMÉE\*\* : mesurée il y a 25 h \(au-delà de 24 h\) — `npm run ops:suivi -- 665 --mesurer`/)
+    const perimee = lignesDeSituation(lu, { maintenant: tard, age: true })
+    assert.deepEqual([perimee[0], perimee.at(-1)], ['[suivi #665] ⚠ mesure PÉRIMÉE (re-mesure demandée)', `  ouverts : 2 item(s), 1 étape(s) · mesurée il y a ${HEURES_PEREMPTION + 1} h, sans fetch`])
+    assert.match(digestDuSuivi(lu, { maintenant: tard }), /\n\[suivi #665\] ⚠ mesure PÉRIMÉE \(re-mesure demandée\)\n# Vague du tome 1/)
     assert.deepEqual(restes(dossier), [])
     const absent = mesurerLeSuivi({ numero: 10, dossier, mesure: mesureFactice(compte) })
     assert.deepEqual([absent.code, /absent/.test(absent.stderr)], [1, true])
@@ -429,7 +455,7 @@ test('portée sur dépôt FORGÉ : une ligne par ticket, dans SON ordre ; publi�
       [2132, 'En cours', 'ouvert', ['chantier/2132-suivi']], [1988, 'Ouvert', 'ouvert', []], [1759, 'Fermé', 'fermé', []], [1, 'Introuvable', 'introuvable', []],
     ])
     assert.match(vu.lignes[2].dernierCommit, /^\d{4}-\d{2}-\d{2}$/, 'la publication de #1759 date sa ligne')
-    assert.deepEqual(vu.anomalies, [`ticket #1 introuvable dans ${DEPOT}`])
+    assert.deepEqual(vu.anomalies, [{ genre: 'ticket-introuvable', cle: '#1', texte: `ticket #1 introuvable dans ${DEPOT}` }])
     assert.deepEqual(mesurer({ cwd: racine, base: 'origin/main', portee: [], issues }).lignes, [])
     assert.equal(lectures.length, 1, 'une portée VIDE ne lit aucune issue')
   } finally {
@@ -445,7 +471,8 @@ test('lignesDeSituation : alerte en tête, PREMIER item actif, prochain geste NU
     poserSuivi({ dossier, epique: 9, lots: [[{ geste: 'creer', titre: 'neuf' }, { geste: 'ajouter-item', ticket: 1, libelle: 'en attente', etat: 'attente' }], BASE.slice(1)], maintenant: MAINTENANT })
     const lu = lireLeSuivi({ dossier, epique: 9 })
     assert.deepEqual(lignesDeSituation(lu, { maintenant: MAINTENANT, age: true }), [
-      '[suivi #9] en cours : #2400 périmètre de tests', '  prochain geste : #2400.2 juge du diff', '  ouverts : 3 item(s), 1 étape(s) · jamais mesurée',
+      '[suivi #9] ⚠ jamais mesurée (re-mesure demandée)', '[suivi #9] en cours : #2400 périmètre de tests', '  prochain geste : #2400.2 juge du diff',
+      '  ouverts : 3 item(s), 1 étape(s) · jamais mesurée',
     ])
     assert.deepEqual(lignesDeSituation(lireLeSuivi({ dossier, epique: 8 }), { maintenant: MAINTENANT, age: true }), [`[suivi #8] lié à cette session, mais absent : ${join(dossier, '8.json')}`])
     FS.writeFileSync(join(dossier, '7.md'), '# ancien')
@@ -460,7 +487,8 @@ test('digest et rendu : le digest tait le fait et le clos, le rendu `--rendu` mo
     const lu = lireLeSuivi({ dossier, epique: 665 })
     const digest = digestDuSuivi(lu, { maintenant: MAINTENANT })
     assert.ok(digest.length <= PLAFOND_INJECTION)
-    assert.ok(digest.startsWith(`[suivi #665] ${join(dossier, '665.json')} — écrit le 2026-10-07 10:00\n# Vague du tome 1\n\nObjectif : livrer le tome 1`), digest)
+    assert.ok(digest.startsWith(`[suivi #665] ${join(dossier, '665.json')} — écrit le 2026-10-07 10:00\n[suivi #665] ⚠ jamais mesurée (re-mesure demandée)\n`
+      + '# Vague du tome 1\n\nObjectif : livrer le tome 1'), digest)
     assert.ok(digest.includes('- #2400 [actif] périmètre de tests — game-21\n  - [ ] #2400.2 juge du diff\n- #2187 [attente]'))
     assert.ok(digest.includes('## File\n1. #2497 durées apprises (bloqué par #2400)'))
     assert.ok(digest.includes('## Arbitrages\n- n° 1, 2026-10-07, utilisateur : « deux sessions »'))
@@ -482,8 +510,9 @@ test('etatDeSession : sans lien, l’index en contexte ; lié, la clé suit l’
     FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
     const a = etatDeSession({ session: 's', dossier, maintenant: MAINTENANT })
     const b = etatDeSession({ session: 's', dossier, maintenant: new Date(MAINTENANT.getTime() + 3_600_000) })
-    assert.equal(a.ajout, ['[suivi] situation relue le 2026-10-07 10:00', '[suivi #9] en cours : #2400 périmètre de tests',
-      '  prochain geste : #2400.2 juge du diff', '  ouverts : 2 item(s), 1 étape(s) · jamais mesurée'].join('\n'))
+    assert.equal(a.ajout, ['[suivi] situation relue le 2026-10-07 10:00', '[suivi #9] ⚠ jamais mesurée (re-mesure demandée)',
+      '[suivi #9] en cours : #2400 périmètre de tests', '  prochain geste : #2400.2 juge du diff', '  ouverts : 2 item(s), 1 étape(s) · jamais mesurée'].join('\n'))
+    assert.deepEqual(a.aMesurer, [9], 'jamais mesurée : le lecteur DEMANDE la mesure, sans la faire')
     assert.equal(a.cle, b.cle, 'même état, même clé')
     assert.deepEqual([etatDeSession({ session: 's', dossier, maintenant: MAINTENANT, depuis: a.cle }).ajout, a.cle !== seul.cle], ['', true])
     poserSuivi({ dossier, epique: 9, lots: [[{ geste: 'cocher', ticket: 2400, n: 2 }]], maintenant: MAINTENANT })
@@ -567,11 +596,241 @@ test('CLI `--session <id> --json` sur un dépôt FORGÉ : l’état de la sessio
     FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
     const avant = FS.readdirSync(dossier).map((n) => [n, FS.statSync(join(dossier, n)).mtimeMs])
     const etat = JSON.parse(execFileSync(process.execPath, [SCRIPT, '--session', 's', '--json'], { cwd: racine, encoding: 'utf8' }))
-    assert.deepEqual(Object.keys(etat), ['session', 'suivis', 'contexte', 'ajout', 'cle'])
-    assert.equal(etat.suivis[0].lignes[0], '[suivi #9] en cours : #2400 périmètre de tests')
+    assert.deepEqual(Object.keys(etat), ['session', 'suivis', 'contexte', 'ajout', 'cle', 'aMesurer'])
+    assert.deepEqual([etat.suivis[0].lignes[1], etat.aMesurer], ['[suivi #9] en cours : #2400 périmètre de tests', [9]])
     assert.equal(FS.realpathSync(dirname(etat.suivis[0].chemin)), FS.realpathSync(dossier), 'le dossier des suivis du dépôt forgé')
     assert.deepEqual(FS.readdirSync(dossier).map((n) => [n, FS.statSync(join(dossier, n)).mtimeMs]), avant, 'rien n’est écrit')
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })
   }
+})
+
+// ———————————————————————————— la confrontation à la réalité (#2460, C2) ————————————————————————————
+
+/** Une ligne de mesure ouverte, `En cours`, sans mise à jour d'issue, que `reste` précise. */
+const ligneOuverte = (ticket, reste = {}) => ({ ticket, statut: 'En cours', etatIssue: 'ouvert', issueMiseAJour: '', branches: [], worktrees: [], avance: '', dernierCommit: '', ...reste })
+
+/** Une mesure LUE (`lireMesure`) datée de `date`, sur la portée de `suivi`, que `reste` précise. */
+const mesureLue = (suivi, { date = MAINTENANT, lignes, vivants = [], anomalies = [], portee } = {}) => ({
+  ok: true,
+  mesure: {
+    version: 1, epique: suivi.epique, date: date.toISOString(), sansFetch: true, portee: portee ?? [...suivi.items, ...suivi.file].map((e) => e.ticket),
+    ok: true, refus: null, lignes: lignes ?? [...suivi.items, ...suivi.file].map((e) => ligneOuverte(e.ticket)), vivants, anomalies,
+  },
+})
+
+/** Un suivi LU (forme de `lireLeSuivi`), scellé par l'outil, avec sa mesure et les autres suivis du dossier. */
+const luDe = (suivi, mesure, autres = []) => ({ epique: suivi.epique, chemin: `/s/${suivi.epique}.json`, suivi, alerte: null, mesure, autres })
+
+/** Le suivi d'exemple, l'item #2001 clos en plus. */
+const exempleClos = () => apres(exemple(), [{ geste: 'ajouter-item', ticket: 2001, libelle: 'fini', etat: 'clos' }])
+
+test('CONTRE-TÉMOIN — un suivi et une mesure COHÉRENTS ne rendent AUCUNE anomalie ; le bandeau n’a ni ⚠ ni ligne d’anomalies', () => {
+  const s = exempleClos()
+  const mesure = mesureLue(s, {
+    lignes: [ligneOuverte(2400), ligneOuverte(2187), ligneOuverte(2497), ligneOuverte(2001, { statut: 'Fermé', etatIssue: 'fermé' })],
+    vivants: [{ branche: 'chantier/2400', tickets: [2400], avance: 2, retard: 0, worktrees: ['/dep/.wt-2400 (propre)'], dernierCommit: MAINTENANT.toISOString(), sale: false }],
+  })
+  const c = confronter({ suivi: s, mesure, maintenant: MAINTENANT })
+  assert.deepEqual([c.alertes, c.anomalies, c.taisees, c.aMesurer], [[], [], 0, false])
+  const bandeau = lignesDeSituation(luDe(s, mesure), { maintenant: MAINTENANT, age: true })
+  assert.deepEqual(bandeau, ['[suivi #665] en cours : #2400 périmètre de tests', '  prochain geste : #2400.2 juge du diff', '  ouverts : 2 item(s), 1 étape(s) · mesurée il y a 0 min, sans fetch'])
+  assert.doesNotMatch(digestDuSuivi(luDe(s, mesure), { maintenant: MAINTENANT }), /## Anomalies|⚠/)
+})
+
+test('ANOMALIE 1 — ticket FERMÉ d’un item non clos ou d’une entrée de file ; symétrique : item CLOS, ticket OUVERT', () => {
+  const s = exempleClos()
+  const mesure = mesureLue(s, {
+    lignes: [ligneOuverte(2400), ligneOuverte(2187, { statut: 'Fermé', etatIssue: 'fermé' }), ligneOuverte(2497, { statut: 'Fermé', etatIssue: 'fermé' }), ligneOuverte(2001)],
+  })
+  const c = confronter({ suivi: s, mesure, maintenant: MAINTENANT })
+  assert.deepEqual(c.anomalies.map((a) => [a.genre, a.cle, a.court]), [
+    ['ticket-ferme', '#2187', '#2187 fermé'], ['clos-ticket-ouvert', '#2001', '#2001 clos, ticket ouvert'], ['ticket-ferme', '#2497', '#2497 fermé'],
+  ])
+  const bandeau = lignesDeSituation(luDe(s, mesure), { maintenant: MAINTENANT, age: true })
+  assert.equal(bandeau[2], '  anomalies : 3 — #2187 fermé · #2001 clos, ticket ouvert · #2497 fermé')
+  assert.match(digestDuSuivi(luDe(s, mesure), { maintenant: MAINTENANT }), /\n## Anomalies\n- ⚠ #2187 fermé, item « attente » : `--etat 2187 clos`\n/)
+})
+
+test('ANOMALIE 2 — chantier vivant que ne nomme AUCUN suivi du dossier ; celui d’une AUTRE vague n’est pas rendu', () => {
+  const s = exemple()
+  const autre = appliquer(null, [{ geste: 'creer', titre: 'autre vague' }, { geste: 'ajouter-item', ticket: 1882, libelle: 'garé', etat: 'gare' }], { maintenant: MAINTENANT, epique: 1816 }).suivi
+  const vivant = (branche, tickets) => ({ branche, tickets, avance: 1, retard: 4, worktrees: [], dernierCommit: MAINTENANT.toISOString(), sale: false })
+  const mesure = mesureLue(s, { vivants: [vivant('chantier/2400', [2400]), vivant('chantier/1882', [1882]), vivant('chantier/2456', [2456])] })
+  const c = confronter({ suivi: s, mesure, autresSuivis: [autre], maintenant: MAINTENANT })
+  assert.deepEqual(c.anomalies.map((a) => [a.genre, a.cle, a.court]), [['chantier-sans-item', 'chantier/2456', 'chantier/2456 sans item']])
+  assert.match(c.anomalies[0].texte, /^chantier\/2456 \(#2456\) vivant \(\+1 \/ −4\), nommé par AUCUN suivi/)
+  assert.equal(confronter({ suivi: s, mesure, maintenant: MAINTENANT }).anomalies.length, 2, 'sans l’autre suivi, #1882 crierait')
+})
+
+test('ANOMALIE 3 — prochain geste antérieur à l’issue ou à la publication : heuristique libellée « à revalider »', () => {
+  const s = exemple()
+  const plusTard = new Date(MAINTENANT.getTime() + 3_600_000).toISOString()
+  const parIssue = confronter({ suivi: s, mesure: mesureLue(s, { lignes: [ligneOuverte(2400, { issueMiseAJour: plusTard }), ligneOuverte(2187), ligneOuverte(2497)] }), maintenant: MAINTENANT })
+  assert.deepEqual(parIssue.anomalies.map((a) => [a.genre, a.cle, a.court]), [['geste-a-revalider', '#2400.2', '#2400.2 à revalider']])
+  assert.match(parIssue.anomalies[0].texte, /antérieur à l'issue, mise à jour le 2026-10-07 — heuristique, à revalider$/)
+  const parBase = confronter({ suivi: s, mesure: mesureLue(s, { lignes: [ligneOuverte(2400, { statut: 'Fusionné', dernierCommit: '2026-10-08' }), ligneOuverte(2187), ligneOuverte(2497)] }), maintenant: MAINTENANT })
+  assert.match(parBase.anomalies.find((a) => a.genre === 'geste-a-revalider').texte, /antérieur à la publication du 2026-10-08/)
+  const avant = new Date(MAINTENANT.getTime() - 3_600_000).toISOString()
+  assert.deepEqual(confronter({ suivi: s, mesure: mesureLue(s, { lignes: [ligneOuverte(2400, { issueMiseAJour: avant }), ligneOuverte(2187), ligneOuverte(2497)] }), maintenant: MAINTENANT }).anomalies, [])
+})
+
+test('ANOMALIE 4 — mesure absente, PÉRIMÉE ou portée changée : EN TÊTE du bandeau, et `aMesurer`', () => {
+  const s = exemple()
+  const tard = new Date(MAINTENANT.getTime() + (HEURES_PEREMPTION + 1) * 3_600_000)
+  const perimee = confronter({ suivi: s, mesure: mesureLue(s), maintenant: tard })
+  assert.deepEqual([perimee.alertes.map((a) => a.genre), perimee.aMesurer], [['mesure-perimee'], true])
+  assert.equal(confronter({ suivi: s, mesure: mesureLue(s), maintenant: new Date(MAINTENANT.getTime() + HEURES_PEREMPTION * 3_600_000 - 1) }).aMesurer, false)
+  const changee = mesureLue(s, { portee: [2400, 2187] })
+  assert.deepEqual(confronter({ suivi: s, mesure: changee, maintenant: MAINTENANT }).alertes.map((a) => a.court), ['portée changée depuis la mesure (re-mesure demandée)'])
+  assert.equal(confronter({ suivi: s, mesure: mesureLue(s, { portee: [2497, 2187, 2400] }), maintenant: MAINTENANT }).aMesurer, false, 'l’ordre de la portée ne compte pas')
+  const [tete] = lignesDeSituation(luDe(s, changee), { maintenant: tard, age: true })
+  assert.equal(tete, '[suivi #665] ⚠ mesure PÉRIMÉE (re-mesure demandée) · portée changée depuis la mesure (re-mesure demandée)')
+  assert.deepEqual(confronter({ suivi: s, mesure: null, maintenant: MAINTENANT }).alertes.map((a) => [a.genre, a.court]), [['mesure-absente', 'jamais mesurée (re-mesure demandée)']])
+  assert.equal(confronter({ suivi: s, mesure: { ok: false, refus: 'x' }, maintenant: MAINTENANT }).aMesurer, true)
+})
+
+/** Le suivi d'exemple, signalements de 280 caractères ajoutés lot après lot jusqu'au refus de budget ; rend le dernier accepté et le refus. */
+function jusquAuBudget() {
+  let s = exemple()
+  for (let k = 1; k < 100; k += 1) {
+    const vu = appliquer(s, [{ geste: 'signaler', texte: `signalement ${k} ${'x'.repeat(260)}` }], { maintenant: MAINTENANT })
+    if (!vu.ok) return { s, refus: vu.refus }
+    s = vu.suivi
+  }
+  throw new Error('jamais refusé')
+}
+
+test('ANOMALIE 6 — BUDGET : un lot qui GROSSIT au-delà est refusé, candidats nommés ; un lot qui réduit, ou qui condense puis ajoute, passe ; hors budget, la lecture reste possible et le dit', () => {
+  const { s, refus } = jusquAuBudget()
+  assert.ok(tailleDuSuivi(s) <= BUDGET_DU_SUIVI)
+  assert.match(refus, new RegExp(`^lot refusé : le suivi ferait \\d+ caractères \\(${tailleDuSuivi(s)} avant\\), au-delà du budget de ${BUDGET_DU_SUIVI} — `))
+  assert.match(refus, /candidats : --retirer-etape 2400\.1 · --retirer-signalement 1 · --retirer-signalement 2 · .*\(\+\d+\) — rien n'est écrit$/)
+  const condenserPuisAjouter = appliquer(s, [{ geste: 'retirer-signalement', n: 1 }, { geste: 'retirer-signalement', n: 2 }, { geste: 'signaler', texte: 'court' }], { maintenant: MAINTENANT })
+  assert.equal(condenserPuisAjouter.ok, true, condenserPuisAjouter.refus)
+  const trop = sceller({ ...s, compteurs: { ...s.compteurs, signalement: s.compteurs.signalement + 5 },
+    aSignaler: [...s.aSignaler, ...Array.from({ length: 5 }, (_, k) => ({ n: s.compteurs.signalement + k + 1, date: '2026-10-07', texte: 'y'.repeat(290) }))] }, { maintenant: MAINTENANT })
+  assert.ok(tailleDuSuivi(trop) > BUDGET_DU_SUIVI)
+  const lu = lireSuivi(texteDuSuivi(trop))
+  assert.equal(lu.ok, true, 'hors budget : LISIBLE, jamais refusé à la lecture')
+  const c = confronter({ suivi: lu.suivi, mesure: mesureLue(lu.suivi), maintenant: MAINTENANT })
+  assert.deepEqual(c.anomalies.map((a) => [a.genre, a.court]), [['budget', `hors budget (${tailleDuSuivi(trop)}/${BUDGET_DU_SUIVI})`]])
+  assert.match(c.anomalies[0].texte, /seuls les lots qui réduisent passent — candidats : --retirer-etape 2400\.1/)
+  assert.equal(appliquer(trop, [{ geste: 'retirer-signalement', n: 1 }], { maintenant: MAINTENANT }).ok, true, 'un lot qui réduit passe, même au-dessus du budget')
+  assert.match(appliquer(trop, [{ geste: 'cocher', ticket: 2400, n: 2 }, { geste: 'signaler', texte: 'encore' }], { maintenant: MAINTENANT }).refus, /^lot refusé : .*au-delà du budget/)
+})
+
+test('ANOMALIE 9 — récurrentes AGRÉGÉES en une ligne ; `ignorer` en tait une ; une disposition dont la clé n’apparaît plus est « sans objet »', () => {
+  const s = apres(exemple(), [
+    { geste: 'ignorer-anomalie', genre: 'branche-sans-ticket', cle: 'essai/a', motif: 'essai local' },
+    { geste: 'ignorer-anomalie', genre: 'worktree-detache', cle: '/dep/parti', motif: 'disparu depuis' },
+  ])
+  const vieille = new Date(MAINTENANT.getTime() - 48 * 3_600_000).toISOString()
+  const anomalie = (genre, cle, vueDepuis) => ({ genre, cle, texte: `${genre} ${cle} (+3 / −9)`, vueDepuis })
+  const mesure = mesureLue(s, { anomalies: [
+    anomalie('branche-sans-ticket', 'essai/neuve', MAINTENANT.toISOString()),
+    anomalie('branche-sans-ticket', 'essai/a', vieille), anomalie('branche-sans-ticket', 'essai/b', vieille), anomalie('worktree-detache', '/dep/w', vieille),
+  ] })
+  const c = confronter({ suivi: s, mesure, maintenant: MAINTENANT })
+  assert.deepEqual(c.anomalies.map((a) => a.court), [
+    'branche-sans-ticket essai/neuve', '2 récurrente(s) depuis le 2026-10-05', 'disposition sans objet : worktree-detache /dep/parti',
+  ])
+  assert.equal(c.taisees, 1)
+  assert.match(c.anomalies[1].texte, /branche-sans-ticket « essai\/b » · worktree-detache « \/dep\/w »/)
+  assert.doesNotMatch(c.anomalies[1].texte, /essai\/a/, 'tue par sa disposition')
+  assert.match(digestDuSuivi(luDe(s, mesure), { maintenant: MAINTENANT }), /- 1 anomalie\(s\) tue\(s\) par disposition/)
+  assert.equal(confronter({ suivi: s, mesure: null, maintenant: MAINTENANT }).anomalies.length, 0, 'sans mesure, aucune disposition n’est jugée sans objet')
+})
+
+test('ALLER-RETOUR — la mesure ÉCRITE par `mesurerLeSuivi` se RELIT (`lireMesure`) : un vivant porte son dernier commit et sa saleté', () => {
+  const dossier = dossierJetable()
+  try {
+    poserSuivi({ dossier, epique: 665, lots: [BASE], maintenant: MAINTENANT })
+    const branches = [{ nom: 'chantier/2400-perimetre', dernierCommitISO: MAINTENANT.toISOString(), sha: 'aaaaaaa' }]
+    const vu = mesurerLeSuivi({ numero: 665, dossier, sansFetch: true, maintenant: MAINTENANT, mesure: mesureFactice({ fetch: 0, issues: [] }, { branches, avance: 2 }) })
+    assert.equal(vu.code, 0, vu.stderr)
+    const lue = lireLeSuivi({ dossier, epique: 665 }).mesure
+    assert.equal(lue.ok, true, lue.refus)
+    assert.deepEqual(lue.mesure.vivants.map((v) => [v.branche, v.dernierCommit, v.sale]), [['chantier/2400-perimetre', MAINTENANT.toISOString(), false]])
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('ANOMALIE 9 — `vueDepuis` est REPORTÉ d’une mesure à la suivante, par (genre, clé)', () => {
+  const dossier = dossierJetable()
+  try {
+    poserSuivi({ dossier, epique: 665, lots: [BASE], maintenant: MAINTENANT })
+    const plusTard = new Date(MAINTENANT.getTime() + 3_600_000)
+    for (const maintenant of [MAINTENANT, plusTard]) {
+      assert.equal(mesurerLeSuivi({ numero: 665, dossier, sansFetch: true, maintenant, mesure: mesureFactice({ fetch: 0, issues: [] }) }).code, 0)
+    }
+    const ecrite = JSON.parse(FS.readFileSync(join(dossier, '665.mesure.json'), 'utf8'))
+    assert.deepEqual([ecrite.date, ecrite.anomalies.map((a) => [a.genre, a.cle, a.vueDepuis]), ecrite.vivants],
+      [plusTard.toISOString(), [['origin-non-rafraichi', 'origin/main', MAINTENANT.toISOString()]], []])
+    const c = confronter({ suivi: lireLeSuivi({ dossier, epique: 665 }).suivi, mesure: lireLeSuivi({ dossier, epique: 665 }).mesure, maintenant: plusTard })
+    assert.deepEqual(c.anomalies, [], '`origin-non-rafraichi` qualifie la mesure, ce n’est pas une anomalie du suivi')
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('SANS FETCH — une mesure `sansFetch` COHÉRENTE ne rend AUCUNE anomalie : « sans fetch » se dit sur la ligne de mesure, jamais en anomalie', () => {
+  const s = exemple()
+  const anomalies = [{ genre: 'origin-non-rafraichi', cle: 'origin/main', texte: 'origin non rafraîchi (--sans-fetch)', vueDepuis: new Date(MAINTENANT.getTime() - 48 * 3_600_000).toISOString() }]
+  const mesure = mesureLue(s, { anomalies })
+  assert.equal(mesure.mesure.sansFetch, true)
+  const c = confronter({ suivi: s, mesure, maintenant: MAINTENANT })
+  assert.deepEqual([c.alertes, c.anomalies, c.taisees], [[], [], 0])
+  const bandeau = lignesDeSituation(luDe(s, mesure), { maintenant: MAINTENANT, age: true })
+  assert.deepEqual([bandeau.length, bandeau.at(-1)], [3, '  ouverts : 2 item(s), 1 étape(s) · mesurée il y a 0 min, sans fetch'])
+  const digest = digestDuSuivi(luDe(s, mesure), { maintenant: MAINTENANT })
+  assert.doesNotMatch(digest, /## Anomalies|⚠/)
+  assert.match(digest, /\nmesurée le 2026-10-07 10:00 \(sans fetch\)\n/)
+})
+
+test('LIBELLÉ 10 — `Fusionné` se dit « lot publié le <date>, ticket ouvert », `Fermé` « clos », sur la ligne d’item', () => {
+  const s = exempleClos()
+  const mesure = mesureLue(s, { lignes: [
+    ligneOuverte(2400, { statut: 'Fusionné', dernierCommit: '2026-10-06' }), ligneOuverte(2187), ligneOuverte(2497), ligneOuverte(2001, { statut: 'Fermé', etatIssue: 'fermé' }),
+  ] })
+  assert.deepEqual(confronter({ suivi: s, mesure, maintenant: MAINTENANT }).etiquettes, { 2400: 'lot publié le 2026-10-06, ticket ouvert', 2001: 'clos' })
+  const rendu = renduDuSuivi(luDe(s, mesure), { maintenant: MAINTENANT })
+  assert.ok(rendu.includes('- #2400 [actif] périmètre de tests — game-21 · lot publié le 2026-10-06, ticket ouvert\n'), rendu)
+  assert.ok(rendu.includes('- #2001 [clos] fini · clos\n'), rendu)
+})
+
+test('RECONNAÎTRE — un suivi écrit hors de l’outil n’accepte que `reconnaitre` en tête, qui le re-scelle EN LE SIGNALANT ; ailleurs, refusé ; hors schéma, rien ne le reconnaît', () => {
+  const dossier = dossierJetable()
+  try {
+    poserSuivi({ dossier, epique: 665, lots: [BASE], maintenant: MAINTENANT })
+    const cible = join(dossier, '665.json')
+    const texte = FS.readFileSync(cible, 'utf8')
+    assert.match(refusDe(lireSuivi(texte).suivi, [{ geste: 'reconnaitre', motif: 'rien' }]), /`reconnaitre` ne vaut qu'en tête de lot, sur un suivi lu « écrit hors de l'outil »/)
+    FS.writeFileSync(cible, texte.replace('juge du diff', 'juge du diff édité'))
+    assert.match(lireLeSuivi({ dossier, epique: 665 }).alerte, /`npm run ops:suivi -- 665 --reconnaitre <motif>` le re-scelle en le signalant$/)
+    const sansReconnaitre = editer({ numero: 665, dossier, mutations: [{ geste: 'cocher', ticket: 2400, n: 2 }], maintenant: MAINTENANT })
+    assert.match(sansReconnaitre.stderr, /mutation 1 \(cocher\) : suivi écrit hors de l'outil : `reconnaitre` \(`--reconnaitre <motif>`\), en tête de lot/)
+    const enSecond = editer({ numero: 665, dossier, mutations: [{ geste: 'friction', texte: 'x' }, { geste: 'reconnaitre', motif: 'm' }], maintenant: MAINTENANT })
+    assert.equal(enSecond.code, 1)
+    const reconnu = editer({ numero: 665, dossier, mutations: [{ geste: 'reconnaitre', motif: 'sed de game-11' }, { geste: 'cocher', ticket: 2400, n: 2 }], maintenant: MAINTENANT })
+    assert.equal(reconnu.code, 0, reconnu.stderr)
+    const relu = lireSuivi(FS.readFileSync(cible, 'utf8'))
+    assert.equal(relu.ok, true)
+    assert.equal(relu.suivi.items[0].etapes[1].texte, 'juge du diff édité', 'le contenu reconnu TEL QUEL')
+    assert.deepEqual(relu.suivi.aSignaler.map((x) => x.texte), ['écrit hors de l\'outil, reconnu le 2026-10-07 : sed de game-11'])
+    FS.writeFileSync(cible, JSON.stringify({ ...JSON.parse(texte), version: 2 }))
+    assert.match(editer({ numero: 665, dossier, mutations: [{ geste: 'reconnaitre', motif: 'm' }], maintenant: MAINTENANT }).stderr, /hors schéma : version.*rien n'est écrit/)
+    assert.deepEqual(argumentsDuSuivi(['665', '--reconnaitre', 'sed de game-11']).gestes, [{ geste: 'reconnaitre', motif: 'sed de game-11' }])
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('RE-MESURE — un verrou de mesure tenu par un processus VIVANT : sortie 0 « déjà en cours », rien n’est mesuré ni écrit', () => {
+  const dossier = dossierJetable()
+  try {
+    poserSuivi({ dossier, epique: 665, lots: [BASE], maintenant: MAINTENANT })
+    FS.writeFileSync(join(dossier, '.665.mesure.verrou'), JSON.stringify({ pid: process.ppid, commande: 'autre mesure', cwd: dossier, date: 'x' }))
+    const compte = { fetch: 0, issues: [] }
+    const vu = mesurerLeSuivi({ numero: 665, dossier, sansFetch: true, json: true, maintenant: MAINTENANT, mesure: mesureFactice(compte) })
+    assert.deepEqual([vu.code, JSON.parse(vu.stdout), compte.issues, FS.existsSync(join(dossier, '665.mesure.json'))], [0, { epique: 665, dejaEnCours: true }, [], false])
+    FS.rmSync(join(dossier, '.665.mesure.verrou'))
+    assert.equal(mesurerLeSuivi({ numero: 665, dossier, sansFetch: true, maintenant: MAINTENANT, mesure: mesureFactice(compte) }).code, 0)
+    assert.deepEqual([compte.issues.length, FS.existsSync(join(dossier, '.665.mesure.verrou'))], [1, false], 'mesurée, verrou rendu')
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })

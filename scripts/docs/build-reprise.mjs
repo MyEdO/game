@@ -440,7 +440,10 @@ dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas
 \`npm run ops:suivi -- <N> --<geste> …\` (\`${script('ops:suivi')}\`) ou l'outil du mod \`harnais\` ;
 \`-- <N>\` en imprime la situation, \`-- <N> --rendu\` le suivi entier, \`-- <N> --mesurer\` mesure
 branche, avance et état d'issue de chaque ticket dans \`<N>.mesure.json\`, \`-- <N> --creer <titre>\` pose le
-suivi d'une vague neuve, et sans \`<N>\` il liste les suivis présents.
+suivi d'une vague neuve, et sans \`<N>\` il liste les suivis présents. À la relecture, le suivi est CONFRONTÉ à
+sa mesure : une mesure absente, périmée ou d'une autre portée, et chaque anomalie (ticket fermé, chantier
+qu'aucun suivi ne nomme…), se disent en tête ; sous Claude, le mod relance la mesure, sous Codex
+\`-- <N> --mesurer\` le fait à la main.
 
 \`ops:chantier\` annonce le fetch, la création du worktree et chaque équipement avant de les
 lancer ; \`ops:suivi -- <N> --mesurer\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces

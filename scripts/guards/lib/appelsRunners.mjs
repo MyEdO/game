@@ -5,8 +5,9 @@
 // `npx `/`node ` et son chemin), et les lecteurs de texte (grep, cat…) sont écartés d'emblée — une
 // recherche de texte n'est pas un appel.
 
-/** Lecteurs de texte : un segment qui commence par l'un d'eux MENTIONNE, il n'appelle pas. */
-export const LECTEURS = /^(?:grep|egrep|fgrep|rg|cat|echo|type|findstr|Select-String|sls|Select-Object|sed|awk|head|tail|ls|wc|cut|sort|uniq)(?=\s|$)/i
+/** Lecteurs de texte, POSIX et PowerShell (`Get-Content`/`gc`, `Select-String`/`sls`, `Test-Path`, `Get-Item`/`gi`) :
+ *  un segment qui commence par l'un d'eux MENTIONNE, il n'appelle pas. */
+export const LECTEURS = /^(?:grep|egrep|fgrep|rg|cat|echo|type|findstr|Select-String|sls|Select-Object|Get-Content|gc|Test-Path|Get-Item|gi|sed|awk|head|tail|ls|wc|cut|sort|uniq)(?=\s|$)/i
 /** Appel d'un exécutable local `outil`, sous ses graphies (`npx`, `node`, chemin, `.cmd`, `.js`, `.mjs`). */
 export const appelDe = (outil) =>
   new RegExp(`^(?:npx\\s+|node\\s+)?(?:\\S*[\\\\/])?${outil}(?:\\.cmd|\\.js|\\.mjs)?(?=\\s|$)`)

@@ -41,7 +41,16 @@ test('#2460 — `.git/suivi/665.json` : Write, Edit, ctx_patch et l’écriture 
       `npm run ops:suivi -- 665 --lot '{"epique": 665, "mutations": [{"geste": "cocher", "ticket": 2400, "n": 4}]}'`,
       'npm run ops:suivi -- 665 --ajouter-etape 2400 "tour 10 publié"',
       `cat .git/suivi/2437-query.json > copie.json`, 'echo x > .git/suivi/consignes/2460.md',
+      `gh issue comment 2460 --body "voir ${P}"`, `npm run ops:suivi -- 665 --signaler "> voir ${P}"`,
     ]) assert.equal(await decision(racine, 'Bash', { command }), null, command)
+    for (const command of [`Get-Content ${P}`, `gc ${P}`, `Select-String juge ${P}`, `Test-Path ${P}`]) {
+      assert.equal(await decision(racine, 'PowerShell', { command }), null, command)
+    }
+    for (const command of [`Set-Content -Path ${P} -Value x`, `'x' | Out-File ${P}`, `Copy-Item autre.json ${P}`]) {
+      assert.equal(await decision(racine, 'PowerShell', { command }), 'deny', command)
+    }
+    const { sortie } = await repartir({ PreToolUse: [garde] }, JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `cp a ${P}` }, session_id: 's' }), { env: {}, cwd: racine })
+    assert.match(sortie.hookSpecificOutput.permissionDecisionReason, /Pour le LIRE : `npm run ops:suivi -- <N> --rendu`/)
     for (const chemin of [join(racine, '.git', 'suivi', '2437-query.json'), join(racine, '.git', 'suivi', 'consignes', '665.md')]) {
       assert.equal(await decision(racine, 'Write', { file_path: chemin, content: 'x' }), null, chemin)
     }

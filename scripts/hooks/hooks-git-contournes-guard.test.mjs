@@ -12,7 +12,7 @@ const sortie = (command) => lancerHook('repartiteur.mjs', { hook_event_name: 'Pr
 const MSYS = '/c/tmp/claude/msg.txt'
 const TEMOINS = [
   `node -e "console.log('git commit -a -F ${MSYS}')"`,
-  `node scripts/ops/suivi.mjs 2071 --ajouter-etape "C2 : git commit -q -F ${MSYS} rejoué"`,
+  `node scripts/ops/suivi.mjs 2071 --ajouter-etape 2071 "C2 : git commit -q -F ${MSYS} rejoué"`,
   'S=/c/tmp/scratch; cd "$S/x/depot" && git commit -m "fix(a): refs #7 — témoin"',
   `F=${MSYS}; sed -i "s/a/b/" "$F" && git commit -q -F "$F"`,
   `git commit -a -F "${MSYS}"`,

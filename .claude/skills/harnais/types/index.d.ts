@@ -14,6 +14,8 @@ export type HarnaisEtatDeSession = {
   contexte: string
   ajout: string
   cle: string
+  /** Les épiques dont la confrontation demande une mesure (absente, illisible, périmée, portée changée). */
+  aMesurer: number[]
 }
 
 /** L'outil MCP que décrit `suivi.mjs --outil --json` (`OUTIL_SUIVI`, scripts/ops/suiviDonnee.mjs) : son schéma est dérivé de la donnée. */

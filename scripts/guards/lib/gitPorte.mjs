@@ -2072,3 +2072,15 @@ export function transactionDeRefs(depot, { message }) {
     },
   }
 }
+
+/**
+ * Le dossier des suivis, `<arbre principal>/.git/suivi`, depuis n'importe quel arbre du dépôt (un
+ * worktree lié compris) : l'union de `arbrePrincipal`, sa valeur prolongée du dossier. Ici, et non dans
+ * `scripts/ops/suivi.mjs`, pour que les gardes qui le lisent ne chargent ni le suivi ni sa mesure (#2460).
+ * @param {string} cwd
+ * @returns {{disponible: true, valeur: string} | {disponible: false, raison: string}}
+ */
+export function dossierDesSuivis(cwd) {
+  const vu = arbrePrincipal(depotDe(cwd))
+  return vu.disponible ? { ...vu, valeur: join(vu.valeur, '.git', 'suivi') } : vu
+}

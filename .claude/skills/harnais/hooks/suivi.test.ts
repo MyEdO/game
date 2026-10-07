@@ -8,15 +8,16 @@ import type { On, RenderElement } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 const SESSION = 'session-de-test'
-const lie = (cle: string, prochain: string) => ({
+const lie = (cle: string, prochain: string, aMesurer: number[] = []) => ({
   session: SESSION,
-  suivis: [{ epique: 9, chemin: '/s/9.md', lignes: ['[suivi #9] en cours : #4 ouvert', `  prochain geste : ${prochain}`] }],
-  contexte: `[suivi #9] /s/9.md — digest ${cle}`,
+  suivis: [{ epique: 9, chemin: '/s/9.json', lignes: ['[suivi #9] en cours : #4 ouvert', `  prochain geste : ${prochain}`] }],
+  contexte: `[suivi #9] /s/9.json — digest ${cle}`,
   ajout: `[suivi] situation relue\n[suivi #9] en cours : #4 ouvert\n  prochain geste : ${prochain}`,
   cle,
+  aMesurer,
 })
 type Etat = ReturnType<typeof lie>
-const SANS_LIEN: Etat = { session: SESSION, suivis: [], contexte: '[suivi] session sans suivi lié ; index', ajout: '', cle: 'vide' }
+const SANS_LIEN: Etat = { session: SESSION, suivis: [], contexte: '[suivi] session sans suivi lié ; index', ajout: '', cle: 'vide', aMesurer: [] }
 const BANDEAU = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100 } as never } as const
 const DEMARRAGE = { cwd: '/depot', surface: null, isInteractive: false } as never
 type Panne = { exitCode: number; stdout: string; stderr: string }
@@ -27,7 +28,8 @@ const LOT = [{ geste: 'cocher', ticket: 4, n: 2 }]
 /**
  * Le monde sous le mod : `session.id`, et `process.run` qui lit `fichier()` AU LANCEMENT et rend son état
  * comme le lecteur, ou `panne()` quand elle est donnée ; une course lancée quand `suspendre()` est vrai
- * attend `relacher()`, qui rend la plus ancienne. Rend les argv lancés, le journal et `relacher`.
+ * attend `relacher()`, qui rend la plus ancienne. Une MESURE (`--mesurer`) attend `finirMesure()`, qui rend
+ * la plus ancienne. Rend les argv lancés (lecteur, mesures), le journal, `relacher` et `finirMesure`.
  */
 function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => null, suspendre: () => boolean = () => false,
   synchro: () => Panne = () => ({ exitCode: 0, stdout: JSON.stringify({ etat: 'a-jour', sha: 'a' }), stderr: '' })) {
@@ -37,6 +39,8 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
   const ordre: string[] = []
   const journal: { text: string; to?: string }[] = []
   const suspendues: (() => void)[] = []
+  const mesures: string[][] = []
+  const mesuresSuspendues: (() => void)[] = []
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('tool.register', async (_$, e) => {
     outils.push(e)
@@ -54,6 +58,11 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
       synchros.push([...e.argv])
       ordre.push('synchroniser')
       return { value: { ...synchro(), isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    if (e.argv.includes('--mesurer')) {
+      mesures.push([...e.argv])
+      await new Promise<void>((finie) => { mesuresSuspendues.push(finie) })
+      return { value: { exitCode: 0, stdout: JSON.stringify({ epique: 9 }), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
     }
     if (e.argv.includes('--outil')) {
       ordre.push('outil')
@@ -73,7 +82,7 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     journal.push({ text: e.text, to: e.to })
     return { value: undefined } as never
   })
-  return { argvs, synchros, outils, ordre, journal, relacher: () => suspendues.shift()?.() }
+  return { argvs, synchros, outils, ordre, journal, mesures, relacher: () => suspendues.shift()?.(), finirMesure: () => mesuresSuspendues.shift()?.() }
 }
 
 /** Les lignes du journal qui disent une tentative d'ajout (le kit la fait échouer). */
@@ -94,6 +103,27 @@ test('session.start : le lecteur `--session <id> --json` ; le bandeau rend ses l
     expect(await textes(ui)).toEqual(['[suivi #9] en cours : #4 ouvert', '  prochain geste : juge du brief'])
     await ui.unmount()
   }
+})
+
+test('`aMesurer` (#2460) : chaque relecture lance `--mesurer --sans-fetch --json` pour CHAQUE épique de `aMesurer` ; le verrou du script dédoublonne, pas le mod', async ($, on) => {
+  const horloge = mock.clock(on)
+  const vu = monde(on, () => lie('k1', 'juge du brief', [9, 12]))
+  await $.session.start(DEMARRAGE)
+  await horloge.advance(0)
+  expect(vu.mesures.map((argv) => argv.slice(2))).toEqual([['9', '--mesurer', '--sans-fetch', '--json'], ['12', '--mesurer', '--sans-fetch', '--json']])
+  expect(vu.mesures[0]?.[1]?.endsWith('/../../../scripts/ops/suivi.mjs')).toBe(true)
+  await horloge.advance(60 * 1000)
+  expect([vu.argvs.length, vu.mesures.length]).toEqual([2, 4])
+  for (let k = 0; k < 4; k += 1) vu.finirMesure()
+  await horloge.advance(0)
+})
+
+test('sans `aMesurer`, aucune mesure n’est lancée', async ($, on) => {
+  const horloge = mock.clock(on)
+  const vu = monde(on, () => lie('k1', 'juge du brief'))
+  await $.session.start(DEMARRAGE)
+  await horloge.advance(60 * 1000)
+  expect([vu.argvs.length, vu.mesures.length]).toEqual([2, 0])
 })
 
 test('session.start : `synchroniser.mjs --json` AVANT le lecteur ; `a-jour` ne dit rien (#2187) ; l’outil enregistré est CELUI que rend `--outil --json` (#2460)', async ($, on) => {

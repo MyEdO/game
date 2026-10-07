@@ -8,11 +8,22 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { JOURNAL, PART_D_UN_DIGEST, PLAFOND_INJECTION, ligneDeJournal } from '../ops/suivi.mjs'
+import { JOURNAL, PART_D_UN_DIGEST, ligneDeJournal } from '../ops/suivi.mjs'
+import { PLAFOND_INJECTION, appliquer, texteDuSuivi } from '../ops/suiviDonnee.mjs'
 import { poserSuivi } from '../test/suiviDeBanc.mjs'
 import { texteDInjection } from './inject-suivi.mjs'
 
 const HOOK = fileURLToPath(new URL('./inject-suivi.mjs', import.meta.url))
+
+/**
+ * Le suivi neuf `epique` titré `titre`, produit par l'évaluateur commité (`appliquer`) et écrit tel quel : par
+ * l'outil, chaque lot relit le dossier entier pour sa confrontation, et des centaines de suivis coûteraient
+ * un temps quadratique au banc.
+ */
+function creerParLEvaluateur(dossier, epique, titre) {
+  const { suivi } = appliquer(null, [{ geste: 'creer', titre }], { maintenant: new Date(), epique })
+  FS.writeFileSync(join(dossier, `${epique}.json`), texteDuSuivi(suivi))
+}
 
 /** Le hook lancé dans `racine` sur l'entrée `entree` : son code et son stdout. */
 function lancer(racine, entree) {
@@ -71,6 +82,26 @@ test('compaction d’une session LIÉE : le digest JSON (objectif, étape ouvert
   }
 })
 
+test('#2266 — session SANS lien, 200 suivis aux titres de 80 caractères : le hook RÉEL injecte l’index sous PLAFOND_INJECTION, dit la troncature, garde le geste qui lie', () => {
+  const { racine } = instanceDeDepot({ commit: false })
+  const dossier = join(racine, '.git', 'suivi')
+  try {
+    FS.mkdirSync(dossier, { recursive: true })
+    const titre = (epique) => `Vague ${String(epique).padStart(4, '0')} ${'t'.repeat(69)}`
+    for (let epique = 1; epique <= 200; epique += 1) creerParLEvaluateur(dossier, epique, titre(epique))
+    assert.equal(titre(1).length, 80)
+    const { stdout: texte } = injection(racine, { hook_event_name: 'SessionStart', source: 'startup', session_id: 'sans-lien' }, dossier)
+    const lignes = texte.split('\n')
+    assert.match(lignes[0], /^\[suivi\] session sans suivi lié ; suivis de vague modifiés depuis moins de 72 h/)
+    const indexees = lignes.filter((l) => /^- #\d+ — Vague \d{4} t+ — /.test(l)).length
+    assert.ok(indexees > 0 && indexees < 200, `${indexees}`)
+    assert.equal(lignes.at(-3), `… ${200 - indexees} autre(s) suivi(s) omis sous le plafond de ${PLAFOND_INJECTION} caractères : \`npm run ops:suivi\` les liste tous`)
+    assert.equal(lignes.at(-2), '`npm run ops:suivi -- N` lie cette session au suivi #N.')
+  } finally {
+    FS.rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('un suivi ILLISIBLE ou écrit HORS DE L’OUTIL se dit EN TÊTE du contexte ; un `<N>.md` abandonné est nommé, jamais lu', () => {
   const dossier = FS.mkdtempSync(join(tmpdir(), 'inject-suivi-'))
   try {
@@ -96,7 +127,7 @@ test('deux épiques liées : le TOTAL injecté tient sous PLAFOND_INJECTION, cha
   try {
     FS.mkdirSync(dossier, { recursive: true })
     const long = 'étape ouverte du plan, assez longue pour remplir sa part du plafond '.repeat(2)
-    const items = Array.from({ length: 12 }, (_, k) => [
+    const items = Array.from({ length: 6 }, (_, k) => [
       { geste: 'ajouter-item', ticket: 100 + k, libelle: `item ${k}` },
       ...Array.from({ length: 5 }, () => ({ geste: 'ajouter-etape', ticket: 100 + k, texte: long })),
     ])
@@ -113,7 +144,7 @@ test('deux épiques liées : le TOTAL injecté tient sous PLAFOND_INJECTION, cha
 /** Un dossier jetable dont le journal lie la session `s` aux `epiques` ; `ecrits` y ont un suivi titré. */
 function dossierLie(epiques, ecrits = epiques) {
   const dossier = FS.mkdtempSync(join(tmpdir(), 'inject-suivi-'))
-  for (const epique of ecrits) poserSuivi({ dossier, epique, lots: [[{ geste: 'creer', titre: `Suivi de vague — épique #${epique}` }]] })
+  for (const epique of ecrits) creerParLEvaluateur(dossier, epique, `Suivi de vague — épique #${epique}`)
   FS.writeFileSync(join(dossier, JOURNAL), epiques.map((epique) => ligneDeJournal({ iso: new Date().toISOString(), session: 's', epique })).join(''))
   return dossier
 }

@@ -10,9 +10,9 @@
 // trace rien. Un lien déjà au journal pour ce `session_id` et cette épique n'est pas retracé.
 //
 // LES ARGUMENTS se lisent jeton par jeton, citations comprises : un geste du CLI a une arité FIXE, et son
-// texte cité est UN argument. Un `npm run ops:suivi -- …` se lit sur ses PROPRES jetons, non sur la
-// commande que `segmentsProfonds` en déplie (qui recolle les arguments d'une espace et perd leurs
-// citations) ; le segment déplié de ce lancement n'est pas relu.
+// texte cité est UN argument. Un `npm run ops:suivi -- …` se lit sur le segment `node scripts/ops/suivi.mjs …`
+// que le socle en déplie (`commandeScriptNpm` y CITE chaque argument recollé), sans ses redirections
+// (`sansRedirections`, sur les jetons : un argument CITÉ qui commence par `>` reste un argument).
 //
 // Le lien se trace en PreToolUse, AVANT la commande, jamais en PostToolUse : un PostToolUse sur les
 // outils shell coûte un démarrage de node à CHAQUE appel shell, mesuré 5,2 à 8,5 s (répartiteur sur
@@ -22,54 +22,36 @@
 import * as FS from 'node:fs'
 import { join } from 'node:path'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
-import { JOURNAL, argumentsDuSuivi, dossierDesSuivis, ligneDeLien, relire } from '../ops/suivi.mjs'
-import { basenameExecutable, finAvantOperateur, pipelinesDeJetons } from '../guards/lib/commandeShell.mjs'
+import { dossierDesSuivis } from '../guards/lib/gitPorte.mjs'
+import { JOURNAL, argumentsDuSuivi, ligneDeLien } from '../ops/suivi.mjs'
+import { relire } from '../ops/suiviFichiers.mjs'
+import { basenameExecutable, pipelinesDeJetons, sansRedirections } from '../guards/lib/commandeShell.mjs'
 
 /** Le script lancé par un segment `node <…>/scripts/ops/suivi.mjs`. */
 const SCRIPT_DU_SUIVI = /(?:^|[\\/])scripts[\\/]ops[\\/]suivi\.mjs$/
 
-/** Les sous-commandes npm qui lancent un script. */
-const RUN = new Set(['run', 'run-script'])
-
 /** Vrai pour la session PRINCIPALE : un `session_id`, aucun `agent_id` (sous-agent). PURE. */
 export const sessionPrincipale = (entree) => typeof entree?.session_id === 'string' && entree.session_id !== '' && !entree.agent_id
-
-/** Les arguments d'un `npm run <script> [--] …` : ce qui suit le premier `--`, sinon le nom du script. PURE. */
-function argumentsNpm(jetons) {
-  const separateur = jetons.indexOf('--')
-  if (separateur >= 0) return jetons.slice(separateur + 1)
-  const run = jetons.findIndex((t) => RUN.has(t))
-  const nom = jetons.findIndex((t, k) => k > run && !t.startsWith('-'))
-  return nom < 0 ? [] : jetons.slice(nom + 1)
-}
 
 /**
  * Les LANCEMENTS de `scripts/ops/suivi.mjs` d'une commande, par npm comme en direct : `segments`, les
  * segments exécutés (`pipelinesDeJetons`) ; `lancements`, ceux qui lancent le script (un `npm run` et le
- * segment qu'il déplie) ; `appels`, l'argv de chaque lancement, sans redirections (`finAvantOperateur`),
- * dans l'ordre de la commande. PURE.
+ * segment qu'il déplie, ou un `node` direct) ; `appels`, l'argv de chaque segment `node …/suivi.mjs`, sans
+ * ses redirections (`sansRedirections`), dans l'ordre de la commande. Chaque segment garde ses jetons
+ * objets sous `source`. PURE.
  * @param {string} commande
- * @returns {{segments: {jetons: string[]}[], lancements: Set<object>, appels: string[][]}}
+ * @returns {{segments: {jetons: string[], source: object}[], lancements: Set<object>, appels: string[][]}}
  */
 export function lancementsDuSuivi(commande) {
   const segments = (commande ? pipelinesDeJetons(commande).flat() : [])
     .filter((s) => s.jetons.length > 0).map((s) => ({ ...s, jetons: s.jetons.map((j) => j.text), source: s }))
   const lance = (s) => basenameExecutable(s.jetons[0]) === 'node' && SCRIPT_DU_SUIVI.test(s.jetons[1] ?? '')
   const deplieDe = (npm) => segments.find((s) => lance(s) && s.source.shell?.parent === npm.source.shell)
-  const lancements = new Set()
-  const appels = []
+  const lancements = new Set(segments.filter(lance))
   for (const s of segments.filter((x) => x.deploye && basenameExecutable(x.jetons[0]) === 'npm')) {
-    const deplie = deplieDe(s)
-    if (deplie) lancements.add(s).add(deplie)
+    if (deplieDe(s)) lancements.add(s)
   }
-  for (const s of segments) {
-    const jetons = s.jetons.slice(0, finAvantOperateur(s.jetons))
-    if (lancements.has(s) && !lance(s)) appels.push(argumentsNpm(jetons))
-    else if (!lancements.has(s) && lance(s)) {
-      lancements.add(s)
-      appels.push(jetons.slice(2))
-    }
-  }
+  const appels = segments.filter(lance).map((s) => sansRedirections(s.source.jetons).slice(2).map((j) => j.text))
   return { segments, lancements, appels }
 }
 

@@ -10,48 +10,38 @@
 // local (Recommandé) ». Le format : #2460, design jugé au commentaire 6044039158.
 //
 // LA MESURE (état de branche, d'avance, d'issue, de publication : il ne se saisit pas, il se mesure,
-// `mesurer` de scripts/ops/board.mjs) vit dans le fichier VOISIN `<N>.mesure.json`, jamais dans le suivi.
+// `mesurer` de scripts/ops/board.mjs) vit dans le fichier VOISIN `<N>.mesure.json`, jamais dans le suivi ;
+// elle se prend dans `scripts/ops/suiviMesure.mjs`, que le CLI charge pour `--mesurer` seulement : le lecteur,
+// le hook de session et les gardes ne chargent jamais `board.mjs`.
 //
-// L'ÉCRITURE. Suivi comme mesure : `ecrireSuivi`, sous le verrou exclusif `.<nom>.verrou` voisin
-// (`prendreVerrou`, scripts/test/verrou.mjs), par un temporaire `.<nom>.<pid>.tmp`, texte relu juste avant
-// le `rename` (refus s'il a changé). Un lot refusé pour un autre écrivain se rejoue sur le texte frais
+// L'ÉCRITURE. Suivi comme mesure : `ecrireSuivi` (scripts/ops/suiviFichiers.mjs, que ce CLI et la mesure
+// importent). Un lot refusé pour un autre écrivain se rejoue sur le texte frais
 // (`ESSAIS_D_EDITION`).
 //
-// LE PROFIL. Chaque geste injectable de la mesure (`GESTES_DU_BOARD`, `inv`, `issues`) est
-// chronométré ; le `reste` est le total moins leur somme.
-//
-// LA RELECTURE SANS MÉMOIRE (#2132, #2279). `lignesDeSituation` : le bandeau d'un suivi lié (alerte en
-// tête, item actif, prochain geste numéroté, ouverts, mesure). `digestDuSuivi` : titre, objectif, items et
-// étapes ouvertes NUMÉROTÉES, file, arbitrages, signalements, mesure datée, coupé à `PLAFOND_INJECTION`.
-// `etatDeSession` : pour les suivis liés à une session au JOURNAL `<dossier>/.journal`, le `contexte`, les
-// lignes du bandeau, la situation datée à `ajouter` et sa `cle` — ce que rendent le hook de session
-// (`scripts/hooks/inject-suivi.mjs`, surface Codex) et le mod `harnais` (`.claude/skills/harnais/hooks/suivi.ts`).
+// LA RELECTURE SANS MÉMOIRE (#2132, #2279), CONFRONTÉE À LA MESURE (#2460, `confronter`, suiviDonnee.mjs).
+// `lignesDeSituation` : le bandeau d'un suivi lié (⚠ en ligne 1 — illisible, hors outil, mesure absente,
+// PÉRIMÉE ou portée changée, `.md` abandonné —, item actif, prochain geste numéroté, anomalies, ouverts).
+// `digestDuSuivi` : titre, anomalies, items et étapes ouvertes NUMÉROTÉES, file, arbitrages, signalements,
+// mesure datée, coupé à `PLAFOND_INJECTION`. `etatDeSession` : pour les suivis liés à une session au JOURNAL
+// `<dossier>/.journal`, le `contexte`, les lignes du bandeau, la situation datée à `ajouter`, sa `cle` et
+// `aMesurer` — ce que rendent le hook de session (`scripts/hooks/inject-suivi.mjs`, surface Codex) et le mod
+// `harnais` (`.claude/skills/harnais/hooks/suivi.ts`). Le lecteur ne mesure JAMAIS (#2279) : il DIT les
+// épiques à re-mesurer, et le mod lance `--mesurer --sans-fetch`, sous le verrou de mesure sans attente.
 // Un lien de session vers un `<N>.md` sans `<N>.json` se dit « format .md abandonné », sans le lire.
 //
-// Usage : `USAGE`, dérivé de la table `GESTES`.
+// Usage : `USAGE`, dérivé de `FORMES_DU_CLI` (la table des gestes, scripts/ops/suiviDonnee.mjs).
 import * as FS from 'node:fs'
-import { etapeProfilee } from '../etape-profilee.mjs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
-import { z } from 'zod'
-import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
-import { listerDossier } from '../guards/lib/lister.mjs'
+import { dossierDesSuivis } from '../guards/lib/gitPorte.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
-import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { GESTES_DU_BOARD, issuesDeGh, mesurer } from './board.mjs'
-import { inventaire } from './worktrees.mjs'
-import { prendreVerrou } from '../test/verrou.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
-import { Lot, Mutation, OUTIL_SUIVI, appliquer, lireSuivi, texteDuSuivi } from './suiviDonnee.mjs'
+import {
+  FORMES_DU_CLI, Lot, OUTIL_SUIVI, PLAFOND_INJECTION, appliquer, confronter, heuresDe, horodatage, lignesDeLaMesure, lignesDuPlan,
+  lireSuivi, texteDuSuivi,
+} from './suiviDonnee.mjs'
+import { ecrireSuivi, lireLeSuivi, listerSuivis, nomDuSuivi, relire, suivisLisibles } from './suiviFichiers.mjs'
 
-const SUIVI = /^\d+\.json$/
-const ORPHELIN = /^\.\d+\.(?:mesure\.)?json\.\d+\.tmp$/
-const TENU = new Set(['EPERM', 'EACCES', 'EBUSY'])
-
-/** Âge (h) au-delà duquel une mesure est PÉRIMÉE. Valeur maison. */
-export const HEURES_PEREMPTION = 24
-/** Taille maximale (caractères) d'un digest injecté au contexte. Valeur maison. */
-export const PLAFOND_INJECTION = 8000
 /** Fenêtre (h) de l'index des suivis d'une session sans lien. Valeur maison. */
 export const HEURES_INDEX = 72
 /** Part (caractères) d'un digest en deçà de laquelle le contexte passe à une ligne par épique. Valeur maison. */
@@ -65,16 +55,7 @@ export const PAUSE_ENTRE_ESSAIS_MS = 25
 /** Nom du journal des liens de session, dans le dossier des suivis (le listage, `^\d+\.json$`, l'ignore). */
 export const JOURNAL = '.journal'
 
-/** Le fichier du suivi de l'épique `n`. PURE. */
-const nomDuSuivi = (n) => `${n}.json`
-/** Le fichier de la mesure du suivi de l'épique `n`. PURE. */
-const nomDeLaMesure = (n) => `${n}.mesure.json`
-
 // ————————————————————————————————— fonctions PURES —————————————————————————————————
-
-/** `AAAA-MM-JJ HH:MM`, heure LOCALE. PURE. */
-export const horodatage = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} `
-  + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 
 /**
  * `lignes` jointes, coupées à la ligne pour tenir sous `plafond`, `fin` comprise : jamais plus de
@@ -97,83 +78,30 @@ function plafonner(lignes, plafond, fin) {
   return `${tete.slice(0, plafond - fin.length - 1)}\n${fin}`
 }
 
-/** Le document `<N>.mesure.json`, tel que `mesurerLeSuivi` l'écrit. */
-const Mesure = z.looseObject({
-  version: z.literal(1), epique: z.number().int().min(1), date: z.iso.datetime(), sansFetch: z.boolean(),
-  portee: z.array(z.number().int()), ok: z.boolean(), refus: z.string().nullable(),
-  lignes: z.array(z.looseObject({ ticket: z.number().int() })), anomalies: z.array(z.string()),
-})
-
-/** La mesure lue : `null` absente, `{ ok: false, refus }` illisible, `{ ok: true, mesure }`. PURE. */
-function lireMesure(contenu) {
-  if (contenu === null) return null
-  let brut
-  try {
-    brut = JSON.parse(contenu)
-  } catch (e) {
-    return { ok: false, refus: `JSON invalide (${e.message})` }
-  }
-  const vu = Mesure.safeParse(brut)
-  if (vu.success) return { ok: true, mesure: vu.data }
-  const [p] = vu.error.issues
-  return { ok: false, refus: `hors schéma : ${p.path.join('.')} : ${p.message}` }
-}
-
-/** L'âge (h) d'une mesure à `maintenant`. PURE. */
-const heuresDe = (mesure, maintenant) => (maintenant.getTime() - new Date(mesure.date).getTime()) / 3_600_000
-
 /** L'âge d'une mesure, en minutes sous une heure, en heures au-delà. PURE. */
 const age = (heures) => (heures < 1 ? `${Math.floor(heures * 60)} min` : `${Math.floor(heures)} h`)
 
-/** `#a, #b` entre parenthèses, `''` sans ticket. PURE. */
-const tickets = (liste) => (liste?.length ? ` (${liste.map((n) => `#${n}`).join(', ')})` : '')
+/** La confrontation d'un suivi lu (`confronter`), `null` s'il n'est pas lu. PURE. */
+const confrontation = (lu, maintenant) => (lu.suivi ? confronter({ suivi: lu.suivi, mesure: lu.mesure, autresSuivis: lu.autres ?? [], maintenant }) : null)
 
-/**
- * Le plan d'un suivi en lignes Markdown : titre, objectif, items (sauf `clos` hors `complet`) et leurs
- * étapes NUMÉROTÉES `#ticket.n` (ouvertes seules hors `complet`), file, arbitrages, signalements, frictions
- * (non versées seules hors `complet`), dispositions. PURE.
- */
-function lignesDuPlan(suivi, { complet }) {
-  const items = suivi.items.filter((i) => complet || i.etat !== 'clos')
-  const frictions = suivi.frictions.filter((f) => complet || f.verseeA === null)
-  const section = (titre, lignes) => (lignes.length ? ['', `## ${titre}`, ...lignes] : [])
-  const arbitrage = (a) => (a.verbatim !== undefined ? `« ${a.verbatim.replace(/\r?\n/g, ' ')} »${a.texte ? ` — ${a.texte}` : ''}` : a.texte)
-  return [
-    `# ${suivi.titre}`,
-    ...(suivi.objectif ? ['', `Objectif : ${suivi.objectif}`] : []),
-    ...section('Items', items.flatMap((i) => [
-      `- #${i.ticket} [${i.etat}] ${i.libelle}${i.porteur ? ` — ${i.porteur}` : ''}`,
-      ...i.etapes.filter((e) => complet || !e.faite).map((e) => `  - [${e.faite ? 'x' : ' '}] #${i.ticket}.${e.n} ${e.texte}`),
-    ])),
-    ...section('File', suivi.file.map((f, k) => `${k + 1}. #${f.ticket} ${f.libelle}${f.bloquePar?.length ? ` (bloqué par ${f.bloquePar.map((n) => `#${n}`).join(', ')})` : ''}`)),
-    ...section('Arbitrages', suivi.arbitrages.map((a) => `- n° ${a.n}, ${a.date}, ${a.nature}${a.portee ? `, ${a.portee}` : ''}${tickets(a.tickets)} : ${arbitrage(a)}`)),
-    ...section('À signaler', suivi.aSignaler.map((s) => `- n° ${s.n}, ${s.date}${tickets(s.tickets)} : ${s.texte}`)),
-    ...section('Frictions', frictions.map((f) => `- n° ${f.n}, ${f.date} : ${f.texte}${f.verseeA ? ` → versée à #${f.verseeA}` : ''}`)),
-    ...section('Dispositions', suivi.dispositions.map((d) => `- ${d.disposition} ${d.genre} « ${d.cle} », ${d.date} : ${d.motif}`)),
-  ]
+/** L'alerte de LIGNE 1 d'un suivi lu et de sa confrontation `c`, `null` sans rien à dire. PURE. */
+const alerteDe = (lu, c) => {
+  const dites = [...(lu.alerte ? [lu.alerte.replace(/^⚠ /, '')] : []), ...(c?.alertes ?? []).map((a) => a.court)]
+  return dites.length ? `⚠ ${dites.join(' · ')}` : null
 }
 
-/** Les lignes de la mesure d'un suivi lu, datée, PÉRIMÉE au-delà de `HEURES_PEREMPTION`. PURE. */
-function lignesDeLaMesure({ epique, mesure }, { maintenant }) {
-  const rafraichir = `\`npm run ops:suivi -- ${epique} --mesurer\``
-  if (mesure === null) return ['## Mesure', `jamais mesurée : ${rafraichir}`]
-  if (!mesure.ok) return ['## Mesure', `⚠ mesure illisible (${mesure.refus}) : ${rafraichir}`]
-  const m = mesure.mesure
-  const heures = heuresDe(m, maintenant)
-  const ligne = (l) => `- #${l.ticket} ${l.statut} · issue ${l.etatIssue} · ${(l.branches ?? []).join(' ') || 'sans branche'} · `
-    + `avance ${l.avance || '—'} · dernier commit ${l.dernierCommit || '—'}${l.worktrees?.length ? ` · ${l.worktrees.join(' ')}` : ''}`
-  return [
-    '## Mesure',
-    `mesurée le ${horodatage(new Date(m.date))}${m.sansFetch ? ' (sans fetch)' : ''}`,
-    ...(heures > HEURES_PEREMPTION ? [`**PÉRIMÉE** : mesurée il y a ${Math.floor(heures)} h (au-delà de ${HEURES_PEREMPTION} h) — ${rafraichir}`] : []),
-    ...(m.ok ? m.lignes.map(ligne) : [`**Mesure refusée** : ${m.refus}`]),
-    ...m.anomalies.map((a) => `- ⚠ ${a}`),
+/** Le plan confronté d'un suivi lu : ses anomalies EN TÊTE (texte), ses étiquettes de mesure, puis sa mesure. PURE. */
+function lignesConfrontees(lu, c, { complet }) {
+  const anomalies = [
+    ...c.anomalies.map((a) => `- ⚠ ${a.texte}`),
+    ...(c.taisees ? [`- ${c.taisees} anomalie(s) tue(s) par disposition`] : []),
   ]
+  return [...lignesDuPlan(lu.suivi, { complet, anomalies, etiquettes: c.etiquettes }), '', ...lignesDeLaMesure(lu)]
 }
 
 /**
- * Le DIGEST d'un suivi lu (`lireLeSuivi`) : son en-tête, son alerte EN TÊTE, son plan sans ce qui est clos
- * ou fait, sa mesure. Coupé à `plafond`, terminé par le geste qui le rend entier. PURE.
+ * Le DIGEST d'un suivi lu (`lireLeSuivi`) : son en-tête, son alerte EN TÊTE, son titre, ses anomalies, son
+ * plan sans ce qui est clos ou fait, sa mesure. Coupé à `plafond`, terminé par le geste qui le rend entier. PURE.
  * @param {ReturnType<typeof lireLeSuivi>} lu
  * @param {{maintenant: Date, plafond?: number}} params
  * @returns {string}
@@ -181,18 +109,22 @@ function lignesDeLaMesure({ epique, mesure }, { maintenant }) {
 export function digestDuSuivi(lu, { maintenant, plafond = PLAFOND_INJECTION }) {
   const tete = `[suivi #${lu.epique}]`
   if (!lu.suivi) return plafonner([`${tete} ${lu.alerte}`], plafond, '…')
+  const c = confrontation(lu, maintenant)
+  const alerte = alerteDe(lu, c)
   const sortie = [
     `${tete} ${lu.chemin} — écrit le ${horodatage(new Date(lu.suivi.ecritLe))}`,
-    ...(lu.alerte ? [`${tete} ${lu.alerte}`] : []),
-    ...lignesDuPlan(lu.suivi, { complet: false }), '', ...lignesDeLaMesure(lu, { maintenant }),
+    ...(alerte ? [`${tete} ${alerte}`] : []),
+    ...lignesConfrontees(lu, c, { complet: false }),
   ]
   return plafonner(sortie, plafond, `… tronqué, \`npm run ops:suivi -- ${lu.epique} --rendu\` le rend entier`)
 }
 
-/** Le RENDU complet d'un suivi lu, pour l'humain (`--rendu`) : alerte en tête, plan entier, mesure. PURE. */
+/** Le RENDU complet d'un suivi lu, pour l'humain (`--rendu`) : alerte en tête, plan entier confronté, mesure. PURE. */
 export function renduDuSuivi(lu, { maintenant }) {
   if (!lu.suivi) return `[suivi #${lu.epique}] ${lu.alerte}\n`
-  return `${[...(lu.alerte ? [`> ${lu.alerte}`, ''] : []), ...lignesDuPlan(lu.suivi, { complet: true }), '', ...lignesDeLaMesure(lu, { maintenant })].join('\n')}\n`
+  const c = confrontation(lu, maintenant)
+  const alerte = alerteDe(lu, c)
+  return `${[...(alerte ? [`> ${alerte}`, ''] : []), ...lignesConfrontees(lu, c, { complet: true })].join('\n')}\n`
 }
 
 /** La ligne TSV d'un lien de session au `JOURNAL` (iso, session_id, épique), fin comprise. PURE. */
@@ -218,9 +150,11 @@ export const ligneDeLien = ({ journal, session, epique, iso }) =>
   (epiquesLiees(lignesDuJournal(journal), session).includes(epique) ? null : ligneDeJournal({ iso, session, epique }))
 
 /**
- * Les lignes d'ÉTAT d'un suivi lu, chacune sous `LARGEUR_D_UNE_LIGNE` : son alerte EN TÊTE, le premier
- * item `actif`, sa première étape ouverte `#ticket.n`, le compte des items non clos et de leurs étapes
- * ouvertes et la mesure — son ÂGE à `maintenant` pour le bandeau (`age: true`), sa DATE pour l'ajout. PURE.
+ * Les lignes d'ÉTAT d'un suivi lu, chacune sous `LARGEUR_D_UNE_LIGNE` : l'alerte EN TÊTE (`alerteDe` :
+ * illisible, hors outil, mesure absente, illisible, PÉRIMÉE ou portée changée), le premier item `actif`, sa
+ * première étape ouverte `#ticket.n`, les anomalies de la confrontation (compte et forme courte), le compte
+ * des items non clos et de leurs étapes ouvertes et la mesure — son ÂGE à `maintenant` pour le bandeau
+ * (`age: true`), sa DATE pour l'ajout. PURE.
  * @param {ReturnType<typeof lireLeSuivi>} lu
  * @param {{maintenant: Date, age: boolean}} params
  * @returns {string[]}
@@ -229,6 +163,8 @@ export function lignesDeSituation(lu, { maintenant, age: enAge }) {
   const tete = `[suivi #${lu.epique}]`
   const coupe = (lignes) => lignes.map((l) => coupeAuMot(l, LARGEUR_D_UNE_LIGNE))
   if (!lu.suivi) return coupe([`${tete} ${lu.alerte}`])
+  const c = confrontation(lu, maintenant)
+  const alerte = alerteDe(lu, c)
   const ouverts = lu.suivi.items.filter((i) => i.etat !== 'clos')
   const actif = ouverts.find((i) => i.etat === 'actif')
   const prochaine = actif?.etapes.find((e) => !e.faite)
@@ -236,135 +172,19 @@ export function lignesDeSituation(lu, { maintenant, age: enAge }) {
   let mesure = 'jamais mesurée'
   if (lu.mesure && !lu.mesure.ok) mesure = 'mesure illisible'
   else if (lu.mesure) {
-    const heures = heuresDe(lu.mesure.mesure, maintenant)
-    mesure = `${heures > HEURES_PEREMPTION ? 'PÉRIMÉE, ' : ''}mesurée ${enAge ? `il y a ${age(heures)}` : `le ${horodatage(new Date(lu.mesure.mesure.date))}`}`
+    mesure = `mesurée ${enAge ? `il y a ${age(heuresDe(lu.mesure.mesure, maintenant))}` : `le ${horodatage(new Date(lu.mesure.mesure.date))}`}`
+      + `${lu.mesure.mesure.sansFetch ? ', sans fetch' : ''}`
   }
   return coupe([
-    ...(lu.alerte ? [`${tete} ${lu.alerte}`] : []),
+    ...(alerte ? [`${tete} ${alerte}`] : []),
     actif ? `${tete} en cours : #${actif.ticket} ${actif.libelle}` : `${tete} aucun item actif`,
     ...(prochaine ? [`  prochain geste : #${actif.ticket}.${prochaine.n} ${prochaine.texte}`] : []),
+    ...(c.anomalies.length ? [`  anomalies : ${c.anomalies.length} — ${c.anomalies.map((a) => a.court).join(' · ')}`] : []),
     `  ouverts : ${ouverts.length} item(s), ${etapes} étape(s) · ${mesure}`,
   ])
 }
 
-// ————————————————————————————————— mesure, écriture, CLI —————————————————————————————————
-
-/**
- * `mesurer` sous PROFIL : chaque entrée de `GESTES_DU_BOARD`, `inv` et `issues` est enveloppée et
- * chronométrée ; `reste` = total − somme des gestes. Une exception de la mesure devient un refus.
- * @param {{gestes?: typeof GESTES_DU_BOARD, inv?: Function, issues?: Function,
- *   horloge?: () => number} & Record<string, unknown>} [params] le reste va à `mesurer`
- * @returns {{vu: ReturnType<typeof mesurer>, profil: {durees: Record<string, number>, total: number, reste: number}}}
- */
-export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), annoncer = (texte) => process.stderr.write(texte), ...params } = {}) {
-  const durees = tableTotale([...Object.keys(GESTES_DU_BOARD), 'inv', 'issues'], () => 0)
-  const envelopper = (nom, geste) => (...args) => {
-    return etapeProfilee(`[suivi] ${nom}`, () => geste(...args), { horloge, annoncer, mesurer: (ms) => { durees[nom] += ms } })
-  }
-  const enveloppes = tableTotale(Object.keys(GESTES_DU_BOARD), (nom) => envelopper(nom, gestes[nom]))
-  const depart = horloge()
-  let vu
-  try {
-    vu = mesurer({ ...params, gestes: enveloppes, inv: envelopper('inv', inv), issues: envelopper('issues', issues) })
-  } catch (e) {
-    vu = { ok: false, refus: e.message }
-  }
-  const total = horloge() - depart
-  const somme = Object.values(durees).reduce((a, b) => a + b, 0)
-  return { vu, profil: { durees, total, reste: total - somme } }
-}
-
-/** La ligne de profil. PURE. */
-const ligneDeProfil = ({ durees, total, reste }) => `[suivi] profil (ms) : ${Object.entries(durees)
-  .map(([nom, ms]) => `${nom} ${Math.round(ms)}`).join(' · ')} · total ${Math.round(total)} · reste ${reste.toFixed(1)}`
-
-/** Le texte de `cible`, ou `null` si elle n'existe plus (`ENOENT`) ; toute autre erreur est relancée. */
-export function relire(cible, fs) {
-  try {
-    return fs.readFileSync(cible, 'utf8')
-  } catch (e) {
-    if (e?.code === 'ENOENT') return null
-    throw e
-  }
-}
-
-/**
- * Écrit `contenu` sur `cible` par un temporaire `.<nom>.<pid>.tmp` voisin, APRÈS avoir relu `cible`
- * et vérifié qu'elle vaut encore `attendu` (`null` : qu'elle n'existe pas). Temporaire non écrit, cible
- * disparue ou apparue, texte changé, ou `rename` en EPERM/EACCES/EBUSY → refus nommé, temporaire supprimé,
- * cible intacte ; toute autre erreur est relancée, temporaire supprimé. Un temporaire que le nettoyage ne
- * peut pas supprimer est NOMMÉ dans le refus (`listerSuivis` le retrouve en orphelin), sans jamais masquer
- * l'erreur d'origine. La relecture, la comparaison et le `rename` se font sous le verrou EXCLUSIF
- * `.<nom>.verrou` voisin (`prendreVerrou`) ; un verrou tenu par un processus vivant est un refus.
- * `rejouable` dit qu'un refus tient à un autre écrivain (verrou pris, texte changé ou apparu) : le même
- * geste, rejoué sur le texte frais, peut passer. `geste` nomme ce pendant quoi le texte a changé.
- * @param {{cible: string, contenu: string, attendu: string|null, geste: string, fs?: typeof FS, pid?: number}} params
- * @returns {{ok: true} | {ok: false, refus: string, rejouable: boolean}}
- */
-export function ecrireSuivi({ cible, contenu, attendu, geste, fs = FS, pid = process.pid }) {
-  const dossier = join(cible, '..')
-  const nom = cible.replace(/\\/g, '/').split('/').pop()
-  const verrou = prendreVerrou({ chemin: join(dossier, `.${nom}.verrou`), libelle: `suivi ${nom} en cours d'écriture`, pid, commande: 'scripts/ops/suivi.mjs', cwd: dossier })
-  if (verrou.etat !== 'pris') return { ok: false, refus: `${cible} est en cours d'écriture par un autre processus : rien n'est écrit`, rejouable: true }
-  try {
-    return ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom })
-  } finally {
-    verrou.liberer()
-  }
-}
-
-/** Le corps de `ecrireSuivi`, verrou tenu. */
-function ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom }) {
-  const temporaire = join(dossier, `.${nom}.${pid}.tmp`)
-  const refuser = (refus, rejouable = false) => {
-    try {
-      fs.rmSync(temporaire, { force: true })
-      return { ok: false, refus, rejouable }
-    } catch (nettoyage) {
-      return { ok: false, refus: `${refus} ; temporaire RESTANT, non supprimé (${nettoyage?.code ?? nettoyage?.message}) : ${temporaire}`, rejouable: false }
-    }
-  }
-  const relancee = (e) => {
-    const reste = refuser('').refus
-    if (reste && e instanceof Error) e.message += reste
-    return e
-  }
-  try {
-    fs.writeFileSync(temporaire, contenu)
-  } catch (e) {
-    return refuser(`temporaire ${temporaire} non écrit (${e?.code ?? e?.message}) : rien n'est écrit, relancer`)
-  }
-  let actuel
-  try {
-    actuel = relire(cible, fs)
-  } catch (e) {
-    throw relancee(e)
-  }
-  if (attendu === null && actuel !== null) return refuser(`${cible} est apparu pendant ${geste} : rien n'est écrit, relancer`, true)
-  if (attendu !== null && actuel === null) return refuser(`${cible} a disparu pendant ${geste} : rien n'est écrit`)
-  if (attendu !== null && actuel !== attendu) return refuser(`${cible} a changé pendant ${geste} : rien n'est écrit, relancer`, true)
-  try {
-    fs.renameSync(temporaire, cible)
-    return { ok: true }
-  } catch (e) {
-    if (!TENU.has(e?.code)) throw relancee(e)
-    return refuser(`suivi tenu par un autre processus (${e.code} au rename de ${cible}), relancer`, true)
-  }
-}
-
-/**
- * Les suivis d'un dossier (`^\d+\.json$`, avec leur date) et les temporaires ORPHELINS
- * (`^\.\d+\.(mesure\.)?json\.\d+\.tmp$`) d'une écriture interrompue — nommés, jamais supprimés ici.
- * @param {{dossier: string, fs?: typeof FS}} params
- * @returns {{suivis: {nom: string, date: Date}[], orphelins: string[]}}
- */
-export function listerSuivis({ dossier, fs = FS }) {
-  const noms = listerDossier(dossier, { absent: 'vide' })
-  return {
-    suivis: noms.filter((n) => SUIVI.test(n)).map((nom) => ({ nom, date: fs.statSync(join(dossier, nom)).mtime })),
-    orphelins: noms.filter((n) => ORPHELIN.test(n)),
-  }
-}
+// ————————————————————————————————— écriture, CLI —————————————————————————————————
 
 /** Le texte de la liste des suivis. PURE. */
 export function texteDeLaListe({ dossier, suivis, orphelins }) {
@@ -376,29 +196,11 @@ export function texteDeLaListe({ dossier, suivis, orphelins }) {
     + orphelins.map((n) => `  ${n}\n`).join('')
 }
 
-/**
- * Le suivi de l'épique `epique` LU dans `dossier`, avec sa mesure : `suivi` (`null` s'il est absent ou
- * illisible ; le suivi lu s'il est valide mais écrit hors de l'outil), `alerte` (`null` s'il est lu et
- * scellé par l'outil) et `mesure` (`lireMesure`). Un `<N>.md` sans `<N>.json` est nommé, jamais lu.
- * @param {{dossier: string, epique: number, fs?: typeof FS}} params
- * @returns {{epique: number, chemin: string, suivi: object|null, alerte: string|null, mesure: ReturnType<typeof lireMesure>}}
- */
-export function lireLeSuivi({ dossier, epique, fs = FS }) {
-  const chemin = join(dossier, nomDuSuivi(epique))
-  const texte = relire(chemin, fs)
-  const mesure = lireMesure(relire(join(dossier, nomDeLaMesure(epique)), fs))
-  if (texte === null) {
-    const md = join(dossier, `${epique}.md`)
-    return { epique, chemin, suivi: null, mesure, alerte: fs.existsSync(md) ? `format .md abandonné : ${md}` : `lié à cette session, mais absent : ${chemin}` }
-  }
-  const vu = lireSuivi(texte)
-  if (vu.ok) return { epique, chemin, suivi: vu.suivi, mesure, alerte: null }
-  return { epique, chemin, suivi: vu.suivi ?? null, mesure, alerte: `⚠ ${vu.genre === 'empreinte' ? '' : 'illisible, '}${vu.refus} — ${chemin}` }
-}
-
 /** Les suivis liés à `session` au `JOURNAL` de `dossier`, dans l'ordre de leur premier lien (`lireLeSuivi`). */
 export function suivisLies({ session, dossier, fs = FS }) {
-  return epiquesLiees(lignesDuJournal(relire(join(dossier, JOURNAL), fs) ?? ''), session).map((epique) => lireLeSuivi({ dossier, epique, fs }))
+  const epiques = epiquesLiees(lignesDuJournal(relire(join(dossier, JOURNAL), fs) ?? ''), session)
+  const lisibles = epiques.length ? suivisLisibles({ dossier, fs }) : []
+  return epiques.map((epique) => lireLeSuivi({ dossier, epique, lisibles, fs }))
 }
 
 /** Le titre d'un suivi lu, son alerte s'il n'en a pas. PURE. */
@@ -432,9 +234,34 @@ function lignesParEpique({ lus, dossier }) {
 }
 
 /**
+ * L'INDEX d'une session sans lien : les suivis `recents` (le plus récent d'abord), une ligne chacun sous
+ * `LARGEUR_D_UNE_LIGNE`, l'en-tête et le geste qui lie TOUJOURS gardés ; quand le tout passe
+ * `PLAFOND_INJECTION`, les derniers sont omis et une ligne dit combien (#2266). PURE hors lecture des titres.
+ * @param {{recents: {nom: string, date: Date}[], dossier: string, fs: typeof FS}} params
+ * @returns {string}
+ */
+function indexDesSuivis({ recents, dossier, fs }) {
+  const tete = `[suivi] session sans suivi lié ; suivis de vague modifiés depuis moins de ${HEURES_INDEX} h (${dossier}) :`
+  const geste = '`npm run ops:suivi -- N` lie cette session au suivi #N.'
+  const omis = (k) => `… ${k} autre(s) suivi(s) omis sous le plafond de ${PLAFOND_INJECTION} caractères : \`npm run ops:suivi\` les liste tous`
+  const ordonnes = [...recents].sort((a, b) => b.date.getTime() - a.date.getTime())
+  const gardees = []
+  let taille = tete.length + 1 + geste.length + 1 + omis(ordonnes.length).length + 1
+  for (const { nom, date } of ordonnes) {
+    const epique = Number(nom.replace(/\.json$/, ''))
+    const ligne = coupeAuMot(`- #${epique} — ${titreDe(lireLeSuivi({ dossier, epique, lisibles: [], fs }))} — ${horodatage(date)}`, LARGEUR_D_UNE_LIGNE)
+    if (taille + ligne.length + 1 > PLAFOND_INJECTION) break
+    gardees.push(ligne)
+    taille += ligne.length + 1
+  }
+  const reste = ordonnes.length - gardees.length
+  return [tete, ...gardees, ...(reste ? [omis(reste)] : []), geste, ''].join('\n')
+}
+
+/**
  * Le CONTEXTE d'une session : les digests de ses suivis liés `lus` (une ligne par épique quand la part
  * d'un digest passe sous `PART_D_UN_DIGEST`), sinon l'index des suivis de `dossier` modifiés depuis
- * moins de `HEURES_INDEX` et le geste qui lie ; `''` sans rien à dire.
+ * moins de `HEURES_INDEX` (`indexDesSuivis`, sous `PLAFOND_INJECTION`) ; `''` sans rien à dire.
  * @param {{lus: ReturnType<typeof suivisLies>, dossier: string, maintenant: Date, fs?: typeof FS}} params
  * @returns {string}
  */
@@ -446,43 +273,39 @@ function contexteDeSession({ lus, dossier, maintenant, fs = FS }) {
   if (digests.length) return `${digests.join('\n\n')}\n`
   const recents = listerSuivis({ dossier, fs }).suivis
     .filter(({ date }) => maintenant.getTime() - date.getTime() < HEURES_INDEX * 3_600_000)
-  if (!recents.length) return ''
-  const lignes = recents.map(({ nom, date }) => {
-    const epique = Number(nom.replace(/\.json$/, ''))
-    return `- #${epique} — ${titreDe(lireLeSuivi({ dossier, epique, fs }))} — ${horodatage(date)}`
-  })
-  return [
-    `[suivi] session sans suivi lié ; suivis de vague modifiés depuis moins de ${HEURES_INDEX} h (${dossier}) :`,
-    ...lignes,
-    '`npm run ops:suivi -- N` lie cette session au suivi #N.',
-    '',
-  ].join('\n')
+  return recents.length ? indexDesSuivis({ recents, dossier, fs }) : ''
 }
 
 /**
  * L'ÉTAT d'une session, prêt à rendre, sans rien mesurer ni écrire : par suivi lié, ses `lignes` de
  * bandeau (`lignesDeSituation`, âge de la mesure) ; le `contexte` (`contexteDeSession`) ; l'`ajout`, l'état
- * daté des suivis liés (`''` sans lien, ou quand la `cle` vaut `depuis`) ; la `cle`, condensé de cet état hors
- * de sa date de relecture.
+ * daté des suivis liés (`''` sans lien, ou quand la `cle` vaut `depuis`) ; la `cle`, condensé de cet état et
+ * des (genre, clé) de ses anomalies, hors de leur âge et de la date de relecture ; `aMesurer`, les épiques
+ * dont la confrontation demande une mesure (absente, illisible, PÉRIMÉE, portée changée).
  * @param {{session: string, dossier: string, maintenant: Date, depuis?: string|null, fs?: typeof FS}} params
- * @returns {{session: string, suivis: {epique: number, chemin: string, lignes: string[]}[], contexte: string, ajout: string, cle: string}}
+ * @returns {{session: string, suivis: {epique: number, chemin: string, lignes: string[]}[], contexte: string, ajout: string,
+ *   cle: string, aMesurer: number[]}}
  */
 export function etatDeSession({ session, dossier, maintenant, depuis = null, fs = FS }) {
   const lus = suivisLies({ session, dossier, fs })
+  const confrontes = lus.map((lu) => confrontation(lu, maintenant))
   const situation = lus.flatMap((lu) => lignesDeSituation(lu, { maintenant, age: false }))
-  const cle = createHash('sha256').update(situation.join('\n')).digest('hex').slice(0, 16)
+  const anomalies = confrontes.flatMap((c) => (c ? [...c.alertes, ...c.anomalies].map((a) => `${a.genre}\t${a.cle}`) : []))
+  const cle = createHash('sha256').update([...situation, ...anomalies].join('\n')).digest('hex').slice(0, 16)
   return {
     session,
     suivis: lus.map((lu) => ({ epique: lu.epique, chemin: lu.chemin, lignes: lignesDeSituation(lu, { maintenant, age: true }) })),
     contexte: contexteDeSession({ lus, dossier, maintenant, fs }),
     ajout: situation.length && cle !== depuis ? [`[suivi] situation relue le ${horodatage(maintenant)}`, ...situation].join('\n') : '',
     cle,
+    aMesurer: lus.filter((_, k) => confrontes[k]?.aMesurer).map((lu) => lu.epique),
   }
 }
 
 /**
- * Le LOT entier sur un suivi : relecture (`lireSuivi` : un suivi illisible ou écrit hors de l'outil est
- * refusé), `appliquer` (tout ou rien), écriture atomique sous verrou (`ecrireSuivi`), rejouée sur le texte
+ * Le LOT entier sur un suivi : relecture (`lireSuivi` : un suivi illisible est refusé ; un suivi écrit hors
+ * de l'outil passe à `appliquer` sous `horsOutil`, qui exige `reconnaitre` en tête), `appliquer` (tout ou
+ * rien, budget compris), écriture atomique sous verrou (`ecrireSuivi`), rejouée sur le texte
  * frais tant que l'écriture la refuse pour un autre écrivain (`ESSAIS_D_EDITION` au plus), lien de
  * `session` à l'épique (`ligneDeLien`), puis l'état : `etatDeSession` en JSON sous `json`, la situation
  * sinon. Rend le code de sortie et les deux flux, sans rien imprimer.
@@ -496,12 +319,14 @@ export function editer({ numero, dossier, session = null, json = false, mutation
   for (let essai = 1; ; essai += 1) {
     const texte = relire(cible, fs)
     let suivi = null
+    let horsOutil = false
     if (texte !== null) {
       const vu = lireSuivi(texte)
-      if (!vu.ok) return refus(`${cible} : ${vu.refus} — rien n'est écrit`)
+      if (!vu.ok && vu.genre !== 'empreinte') return refus(`${cible} : ${vu.refus} — rien n'est écrit`)
       suivi = vu.suivi
+      horsOutil = !vu.ok
     }
-    const applique = appliquer(suivi, mutations, { maintenant, epique: numero })
+    const applique = appliquer(suivi, mutations, { maintenant, epique: numero, horsOutil })
     if (!applique.ok) {
       const creer = texte === null ? ` — \`npm run ops:suivi -- ${numero} --creer <titre>\` le pose` : ''
       return refus(`suivi #${numero} : ${applique.refus}${creer}`)
@@ -524,91 +349,6 @@ export function editer({ numero, dossier, session = null, json = false, mutation
   return { code: 0, stdout: `${stdout}\n`, stderr: '' }
 }
 
-/**
- * La MESURE d'un suivi : portée (les tickets de ses items et de sa file), mesure profilée, écriture
- * atomique de `<N>.mesure.json` sous son verrou ; le suivi n'est jamais écrit. Rend le code de sortie et
- * les deux flux ; la mesure annonce ses gestes sur stderr.
- * @param {{numero: number, dossier: string, sansFetch?: boolean, json?: boolean, fs?: typeof FS,
- *   pid?: number, maintenant?: Date, mesure?: Record<string, unknown>}} params `mesure` va à `mesureProfilee`
- * @returns {{code: number, stdout: string, stderr: string}}
- */
-export function mesurerLeSuivi({ numero, dossier, sansFetch = false, json = false, fs = FS, pid = process.pid, maintenant = new Date(), mesure = {} }) {
-  const lu = lireLeSuivi({ dossier, epique: numero, fs })
-  if (!lu.suivi) return { code: 1, stdout: '', stderr: `[suivi] ${lu.alerte}\n` }
-  const portee = [...lu.suivi.items, ...lu.suivi.file].map((e) => e.ticket)
-  const cible = join(dossier, nomDeLaMesure(numero))
-  const avant = relire(cible, fs)
-  const { vu, profil } = mesureProfilee({ ...mesure, portee, sansFetch, commandeSansFetch: `npm run ops:suivi -- ${numero} --mesurer --sans-fetch` })
-  const document = {
-    version: 1, epique: numero, date: maintenant.toISOString(), sansFetch, portee, ok: vu.ok, refus: vu.ok ? null : String(vu.refus),
-    lignes: vu.ok ? vu.lignes : [], anomalies: vu.ok ? vu.anomalies : [], profil,
-  }
-  const ecrit = ecrireSuivi({ cible, contenu: `${JSON.stringify(document, null, 2)}\n`, attendu: avant, geste: 'la mesure', fs, pid })
-  if (!ecrit.ok) return { code: 1, stdout: '', stderr: `[suivi] ${ecrit.refus}\n${vu.ok ? '' : `[suivi] mesure refusée : ${vu.refus}\n`}` }
-  const rendu = json
-    ? JSON.stringify(document)
-    : [...lignesDeLaMesure({ epique: numero, mesure: lireMesure(relire(cible, fs)) }, { maintenant }), ligneDeProfil(profil)].join('\n')
-  return { code: vu.ok ? 0 : 1, stdout: `${rendu}\n`, stderr: '' }
-}
-
-/**
- * Le dossier des suivis, `<arbre principal>/.git/suivi`, depuis n'importe quel arbre du dépôt (un
- * worktree lié compris) : l'union de `arbrePrincipal`, sa valeur prolongée du dossier.
- * @param {string} cwd
- * @returns {{disponible: true, valeur: string} | {disponible: false, raison: string}}
- */
-export function dossierDesSuivis(cwd) {
-  const vu = arbrePrincipal(depotDe(cwd))
-  return vu.disponible ? { ...vu, valeur: join(vu.valeur, '.git', 'suivi') } : vu
-}
-
-/** Un entier `>= 1` lu dans `texte`, sinon une erreur qui nomme `quoi`. PURE. */
-function entier(texte, quoi) {
-  if (!/^\d+$/.test(texte) || Number(texte) < 1) throw new Error(`${quoi} attendu, reçu « ${texte} »`)
-  return Number(texte)
-}
-
-/** `ticket.n` lu dans `texte` (`2400.4`). PURE. */
-function etapeVisee(texte) {
-  const m = /^(\d+)\.(\d+)$/.exec(texte)
-  if (!m) throw new Error(`\`ticket.n\` attendu (ex. 2400.4), reçu « ${texte} »`)
-  return { ticket: entier(m[1], 'ticket'), n: entier(m[2], 'n') }
-}
-
-/**
- * Les gestes du CLI, la table UNIQUE du parseur et de l'usage : pour chaque mutation (`Mutation`), son
- * option `--<geste>`, ses arguments (leur nombre est son ARITÉ, fixe) et leur conversion en mutation.
- * Un texte s'y passe en UN argument, cité.
- */
-export const GESTES = {
-  'creer': { args: ['titre'], vers: ([titre]) => ({ titre }) },
-  'ajouter-item': { args: ['ticket', 'libellé'], vers: ([t, libelle]) => ({ ticket: entier(t, 'ticket'), libelle }) },
-  'etat': { args: ['ticket', 'actif|attente|gare|clos'], vers: ([t, etat]) => ({ ticket: entier(t, 'ticket'), etat }) },
-  'condenser': { args: ['ticket', 'résumé'], vers: ([t, resume]) => ({ ticket: entier(t, 'ticket'), resume }) },
-  'retirer-item': { args: ['ticket'], vers: ([t]) => ({ ticket: entier(t, 'ticket') }) },
-  'ajouter-etape': { args: ['ticket', 'texte'], vers: ([t, texte]) => ({ ticket: entier(t, 'ticket'), texte }) },
-  'cocher': { args: ['ticket.n'], vers: ([e]) => etapeVisee(e) },
-  'retirer-etape': { args: ['ticket.n'], vers: ([e]) => etapeVisee(e) },
-  'enfiler': { args: ['ticket', 'libellé'], vers: ([t, libelle]) => ({ ticket: entier(t, 'ticket'), libelle }) },
-  'placer': { args: ['ticket', 'après|tete'], vers: ([t, a]) => ({ ticket: entier(t, 'ticket'), apres: a === 'tete' ? null : entier(a, 'ticket après') }) },
-  'defiler': { args: ['ticket'], vers: ([t]) => ({ ticket: entier(t, 'ticket') }) },
-  'demarrer': { args: ['ticket'], vers: ([t]) => ({ ticket: entier(t, 'ticket') }) },
-  'arbitrer': {
-    args: ['utilisateur|ingenierie', 'AAAA-MM-JJ', 'verbatim|texte'],
-    vers: ([nature, date, t]) => ({ nature, date, [nature === 'utilisateur' ? 'verbatim' : 'texte']: t }),
-  },
-  'retirer-arbitrage': { args: ['n'], vers: ([n]) => ({ n: entier(n, 'n') }) },
-  'signaler': { args: ['texte'], vers: ([texte]) => ({ texte }) },
-  'retirer-signalement': { args: ['n'], vers: ([n]) => ({ n: entier(n, 'n') }) },
-  'friction': { args: ['texte'], vers: ([texte]) => ({ texte }) },
-  'verser-friction': { args: ['n', 'ticket'], vers: ([n, t]) => ({ n: entier(n, 'n'), ticket: entier(t, 'ticket') }) },
-  'ignorer-anomalie': { args: ['genre', 'clé', 'motif'], vers: ([genre, cle, motif]) => ({ genre, cle, motif }) },
-  'lever-disposition': { args: ['genre', 'clé'], vers: ([genre, cle]) => ({ genre, cle }) },
-}
-
-/** Les gestes nommés par `Mutation`, que `GESTES` couvre tous. */
-export const GESTES_DE_LA_DONNEE = Mutation.options.map((o) => o.shape.geste.value)
-
 /** Les options hors gestes : `valeur` si elles prennent UN argument. */
 const OPTIONS = {
   '--session': { cle: 'session', valeur: true }, '--depuis': { cle: 'depuis', valeur: true }, '--lot': { cle: 'lot', valeur: true },
@@ -622,15 +362,15 @@ const HORS_DE_PROPOS = {
   mesurer: ['session', 'depuis'], lot: ['depuis', 'sansFetch'],
 }
 
-/** L'usage, DÉRIVÉ de `GESTES`. */
+/** L'usage, DÉRIVÉ de `FORMES_DU_CLI`. */
 const USAGE = '`npm run ops:suivi -- <N> [--<geste> <args>…] [--lot <json>|-] [--session <id> --json]`, gestes : '
-  + `${Object.entries(GESTES).map(([nom, { args }]) => `--${nom} ${args.map((a) => `<${a}>`).join(' ')}`).join(' · ')} ; `
+  + `${Object.entries(FORMES_DU_CLI).map(([nom, { args }]) => `--${nom} ${args.map((a) => `<${a}>`).join(' ')}`).join(' · ')} ; `
   + '`<N>` (la situation) · `<N> --rendu` · `<N> --mesurer [--sans-fetch] [--json]` · sans argument (la liste) · '
   + '`--session <id> --json [--depuis <cle>]` · `--outil --json`'
 
 /**
  * Les arguments de ce script, ou `{ refus }` qui nomme le défaut. `<N>` vient en PREMIER ; chaque geste
- * (`GESTES`) consomme EXACTEMENT son arité, et un mot qui n'est ni une option ni un geste est refusé
+ * (`FORMES_DU_CLI`) consomme EXACTEMENT son arité, et un mot qui n'est ni une option ni un geste est refusé
  * (« argument en trop »). Modes : `liste` (rien), `session` (`--session <id> --json [--depuis <cle>]`),
  * `outil` (`--outil --json`), `situation` (`<N>`), `rendu` (`<N> --rendu`), `mesurer` (`<N> --mesurer
  * [--sans-fetch] [--json]`), `lot` (`<N>` et des gestes ou `--lot`, `[--session <id>] [--json]`, `--json`
@@ -649,8 +389,8 @@ export function argumentsDuSuivi(argv) {
   while (i < argv.length) {
     const a = argv[i]
     const nom = a.startsWith('--') ? a.slice(2) : null
-    if (nom !== null && Object.hasOwn(GESTES, nom)) {
-      const { args, vers } = GESTES[nom]
+    if (nom !== null && Object.hasOwn(FORMES_DU_CLI, nom)) {
+      const { args, vers } = FORMES_DU_CLI[nom]
       const valeurs = argv.slice(i + 1, i + 1 + args.length)
       if (valeurs.length < args.length || valeurs.some((v) => v.startsWith('--'))) {
         return refus(`${a} attend ${args.length} argument(s) : ${args.map((x) => `<${x}>`).join(' ')}`)
@@ -712,9 +452,10 @@ export function mutationsDuLot(texte, numero) {
  * Le CLI entier, sans rien imprimer : `argv`, le dossier des suivis vu de `cwd`, et `stdin` (lu pour
  * `--lot -` seulement). Rend le code de sortie et les deux flux.
  * @param {{argv: string[], cwd: string, stdin: () => string, maintenant?: Date}} params
- * @returns {{code: number, stdout: string, stderr: string}}
+ * `--mesurer` charge `suiviMesure.mjs` (et `board.mjs`) à la demande.
+ * @returns {Promise<{code: number, stdout: string, stderr: string}>}
  */
-function executer({ argv, cwd, stdin, maintenant = new Date() }) {
+async function executer({ argv, cwd, stdin, maintenant = new Date() }) {
   const refus = (motif) => ({ code: 1, stdout: '', stderr: `[suivi] ${motif}\n` })
   const sortie = (stdout) => ({ code: 0, stdout, stderr: '' })
   const lus = argumentsDuSuivi(argv)
@@ -729,7 +470,7 @@ function executer({ argv, cwd, stdin, maintenant = new Date() }) {
     case 'liste': return sortie(texteDeLaListe({ dossier, ...listerSuivis({ dossier }) }))
     case 'situation': return sortie(`${lignesDeSituation(lu(), { maintenant, age: true }).join('\n')}\n`)
     case 'rendu': return sortie(renduDuSuivi(lu(), { maintenant }))
-    case 'mesurer': return mesurerLeSuivi({ numero: lus.numero, dossier, sansFetch: lus.sansFetch, json: lus.json, maintenant })
+    case 'mesurer': return (await import('./suiviMesure.mjs')).mesurerLeSuivi({ numero: lus.numero, dossier, sansFetch: lus.sansFetch, json: lus.json, maintenant })
     default: {
       const lot = lus.lot === null ? { mutations: [] } : mutationsDuLot(lus.lot === '-' ? stdin() : lus.lot, lus.numero)
       if (lot.refus) return refus(lot.refus)
@@ -739,7 +480,7 @@ function executer({ argv, cwd, stdin, maintenant = new Date() }) {
 }
 
 if (import.meta.main) {
-  const { code, stdout, stderr } = executer({ argv: process.argv.slice(2), cwd: process.cwd(), stdin: () => FS.readFileSync(0, 'utf8') })
+  const { code, stdout, stderr } = await executer({ argv: process.argv.slice(2), cwd: process.cwd(), stdin: () => FS.readFileSync(0, 'utf8') })
   process.stdout.write(stdout)
   process.stderr.write(stderr)
   process.exitCode = code
