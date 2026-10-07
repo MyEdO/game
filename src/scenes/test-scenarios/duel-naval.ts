@@ -1,7 +1,7 @@
 import { makeShowcaseParty } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
 import type { SkillRef } from '../../data';
-import type { ShipPoste } from '../../engine/types';
+import type { AuthoredShipPoste } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
@@ -18,10 +18,10 @@ function ammo(trappingId: string, qty: number) {
   return { ...base, uid: `duel-ammo-${trappingId}-${++ammoSeq}`, qty };
 }
 /** Poste d'artillerie ARMÉ (coffre à boulets, MDG 12 l.410-424). L'équipage abstrait le sert d'office à la Mer. */
-function canon(side: 'tribord' | 'babord' | 'proue' | 'poupe'): ShipPoste {
+function canon(side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {
   const a = ammo('boulet-et-poudre', 12);
   const m = ammo('mitraille-et-poudre', 4);
-  return { item: itemFromTrappingById('canon-moyen')!, side, ammo: [a, m], ammoUid: a.uid };
+  return { trappingId: 'canon-moyen', side, ammo: [a, m], ammoUid: a.uid };
 }
 /** Marin d'équipage COMPÉTENT (passager, hors rendu à la Mer) — CustomStatblock sourcé (règle stricte 7 : aucune
  *  créature « matelot » au bestiaire → omission documentée). Le barreur tient la Voile, l'artilleur la Poudre noire. */

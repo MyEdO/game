@@ -571,6 +571,14 @@ nomme ${NB_REFUS_PREPUSH} refus, dont celui de TOUT push vers la ref \`main\`.
 Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la récite.
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :
+Les gates de \`ECRIT_LU\` sont refusées à tous les appelants locaux par \`codeur-gates-guard\`.
+Pousser la branche puis lire la CI avec \`gh run watch\` ou \`gh run view --log-failed\`.
+Les tests de périmètre et \`typecheck:fast\` restent locaux. Sur demande explicite de l'utilisateur,
+\`node scripts/gates/sur-demande-utilisateur.mjs --raison "texte de la demande" --gates lint\`
+annonce le rejeu exceptionnel et sa raison avant de déléguer au lanceur canonique ; l'exemption
+porte sur cet appel seul. Une sonde Vitest sans filtre exige une configuration externe ou ignorée
+non suivie, statiquement vérifiable, dont \`test.include\` nomme un seul fichier sans glob.
+
 ${NB_GATES_CLASSEES} gates en ${LANES_CI.length} lanes parallèles de LECTEURS — aucune gate
 n'écrit dans l'arbre hors de sa porte (\`ecritFerme\`) :
 

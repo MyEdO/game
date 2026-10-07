@@ -13,7 +13,7 @@
  * `test` vient de la fabrique `noeudTest` de la grammaire, aucune structure n'est recopiée.
  */
 import { z } from 'zod';
-import { champAdapteDe, champsProse, proseDeScene, refineAdapteDe, refineProse } from '../grammaire/prose';
+import { champAdapteDe, champsProse, proseNommee, refineAdapteDe, refineProse } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
@@ -69,26 +69,24 @@ export const pursuitPolicySchema = z.strictObject({
   /** Ids des CIBLES PRIORITAIRES (`LDB 15 l.94`) — absente/vide = personne n'est ignoré. */
   prioritaires: z.array(z.string()).optional(),
 });
-/** `MassBattleSpec` (`engine/massBattle.ts`) — spec d'amorçage d'une bataille (`ADE II 8`). */
-export const massBattleSpecSchema = z.strictObject({
+/** ADE II 8. */
+export const massBattleSpecSchema = proseNommee(z.strictObject({
   allyName: z.string().optional(),
   enemyName: z.string().optional(),
   allyMight: z.number(),
   enemyMight: z.number(),
-  /** Rounds prévus (défaut 1 = escarmouche). */
+  /** ADE II 8 l.124. */
   plannedRounds: z.number().optional(),
-  terrain: proseDeScene('massBattle.terrain').optional(),
-  /** Catalogue de Scènes (défaut : tout le catalogue) — la pioche des situations. */
+  /** ADE II 8 l.128. */
   scenes: z.array(z.string()).optional(),
-  /** Situations authorées par Round (l.128) : chacune un ENSEMBLE de Scènes du moment. */
+  /** ADE II 8 l.128. */
   situations: z.array(z.array(z.string())).optional(),
-  /** Taille du tirage d'une situation par défaut (si non authorée). Défaut 3. */
   situationSize: z.number().optional(),
   /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
   sceneEncounters: z.record(z.string(), z.string()).optional(),
-  /** Modificateur de Planification permanent (l.81). */
+  /** ADE II 8 l.81. */
   allyMod: z.number().optional(),
-});
+}), 'massBattle.terrain');
 
 /** `ScheduleSpec` (`engine/clock.ts`) — échéance d'horloge, résolue par `scheduleAt` (source unique
  *  de `delayedEffect` ET `setObjective`). Étalée en SHAPE : les deux variantes qui la portent sont

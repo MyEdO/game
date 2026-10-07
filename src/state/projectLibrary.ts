@@ -1,37 +1,125 @@
-import { parseProject, exigerUnRefus, refusDeForme, type ProjectDoc } from './worldMap';
-import type { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
-import type { NarratifBlock } from './campaignNarratif';
+import { z } from 'zod';
+import { parseProject, exigerUnRefus, refusDeForme, ProjetRefuse, PROJET_AUTRE_FORMAT, type ProjectDoc } from './worldMap';
+import { validateDocument, rapportDeFautes } from '../data/schemas/validate';
 import type { GameState } from './store';
-import { accesBase, idbDisponible, type MigrationsIdb } from '../lib/indexedDb';
+import { accesBase, idbDisponible } from '../lib/indexedDb';
 import { stockageWeb } from '../lib/stockageWeb';
 
-/** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
- *  de projet, jamais un littéral `schema`/champs dupliqués), mais RELÂCHÉE pour le stock legacy : un
- *  projet enregistré à un format antérieur peut manquer de `narratif`, de `type` ou d'identité. Son
- *  `schema` est le courant ou tout format que `PROJECT_MIGRATIONS` sait migrer. La migration au format
- *  courant se fait au CHARGEMENT via `parseProject`, jamais dans ce module — et c'est là, pas ici,
- *  que l'absence d'identité se fait REFUSER. */
-export type StoredProject = Omit<ProjectDoc, 'schema' | 'narratif' | 'type' | 'id' | 'label' | 'versionContenu'> & {
-  schema: ProjectDoc['schema'] | keyof typeof PROJECT_MIGRATIONS;
-  narratif?: NarratifBlock;
-  type?: 'projet';
-  id?: string;
-  label?: string;
-  versionContenu?: number;
+/** Ce qu'un écran LIT d'un projet de la bibliothèque SANS l'ouvrir (liste, détail, dédup d'import).
+ *  Le document entier passe la porte `parseProject` au GESTE (ouvrir, jouer, exporter) : un projet
+ *  d'un autre format reste ainsi listé, son refus affiché au geste, et sa suppression reste un geste
+ *  de l'auteur (#2404). */
+const apercuDeProjetSchema = z.looseObject({
+  scenes: z.array(z.unknown()),
+  versionContenu: z.number().optional(),
+  desc: z.string().optional(),
+  auteur: z.string().optional(),
+});
+
+/** Une entrée de la bibliothèque de projets (localStorage, IndexedDB). `published` = jouable depuis le
+ *  menu ; `startSceneId` = scène de départ quand on JOUE la campagne. */
+export const savedProjectSchema = z.strictObject({
+  id: z.string().min(1),
+  label: z.string(),
+  startSceneId: z.string(),
+  savedAt: z.number(),
+  published: z.boolean(),
+  project: apercuDeProjetSchema,
+});
+
+/** Une entrée PROUVÉE par `savedProjectSchema`. */
+export type SavedProject = Omit<z.infer<typeof savedProjectSchema>, 'project'> & {
+  project: z.infer<typeof apercuDeProjetSchema> | ProjectDoc;
+  refus?: undefined;
 };
 
-/** Une entrée de la bibliothèque de projets (localStorage). `published` = jouable depuis le menu. */
-export interface SavedProject {
-  id: string;
-  label: string;
-  startSceneId: string; // scène de départ quand on JOUE la campagne
-  savedAt: number;
-  published: boolean;
-  project: StoredProject;
+/** Une entrée relue qui porte un `id` mais que l'ENVELOPPE refuse : LISTÉE, son refus levé au geste
+ *  (`projetDeLEntree`), son contenu `brut` réécrit tel quel par toute écriture du stockage (#2404). Les
+ *  champs d'affichage sont ceux du brut quand il les type, sinon vides. */
+export type EntreeRefusee = Omit<SavedProject, 'project' | 'refus'> & {
+  project: z.infer<typeof apercuDeProjetSchema>;
+  refus: ProjetRefuse;
+  brut: unknown;
+};
+
+/** Une entrée LISTÉE de la bibliothèque. */
+export type EntreeListee = SavedProject | EntreeRefusee;
+
+/** L'entrée que l'application ÉCRIT : son projet est un `ProjectDoc` entier. */
+export type EntreeEcrite = SavedProject & { project: ProjectDoc };
+
+/** Sujet du rapport d'une enveloppe refusée. */
+const SUJET_DU_REFUS_D_ENVELOPPE = 'Entrée de bibliothèque d’un autre format, ou mal formée';
+
+/** L'`id` qui désigne une entrée relue : une chaîne non vide, ou rien. */
+function idDesignable(brut: unknown): string | null {
+  if (brut === null || typeof brut !== 'object') return null;
+  const id = (brut as { id?: unknown }).id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
-/** Repli d'AFFICHAGE du nom d'un projet : une entrée dont le nom manque (stock d'avant #1552, entrée
- *  fabriquée hors éditeur) se rend NOMMÉE « (sans nom) » plutôt qu'en rangée muette — le geste de
+/** Une entrée relue du stockage : PROUVÉE, REFUSÉE (listée, refus au geste) si elle porte un `id`,
+ *  sinon `null` — journalisée, jamais listée, et conservée dans le stockage (`writeLocalMirror`). */
+function entreeRelue(brut: unknown): EntreeListee | null {
+  const fautes = validateDocument(savedProjectSchema, brut);
+  if (!fautes) return brut as SavedProject;
+  const rapport = rapportDeFautes(SUJET_DU_REFUS_D_ENVELOPPE, fautes);
+  console.error('[projectLibrary]', rapport);
+  const id = idDesignable(brut);
+  if (id === null) return null;
+  const champs = brut as { label?: unknown; published?: unknown; savedAt?: unknown };
+  return {
+    id,
+    label: typeof champs.label === 'string' ? champs.label : '',
+    startSceneId: '',
+    savedAt: typeof champs.savedAt === 'number' ? champs.savedAt : 0,
+    published: champs.published === true,
+    project: { scenes: [] },
+    refus: new ProjetRefuse('schema', fautes, rapport),
+    brut,
+  };
+}
+
+function entreesRelues(liste: readonly unknown[]): EntreeListee[] {
+  return liste.flatMap((brut) => entreeRelue(brut) ?? []);
+}
+
+/** Ce que le stockage reçoit d'une entrée listée : le brut d'une entrée refusée, jamais une réécriture. */
+function aEcrire(e: EntreeListee): unknown {
+  return e.refus ? e.brut : e;
+}
+
+/** Les entrées dont un geste a été refusé par la porte, par `id` : témoin de module, lu par chaque
+ *  écran qui liste la bibliothèque, levé par la réécriture ou le retrait de l'entrée (#2404). */
+let refuseesAuGeste = new Set<string>();
+
+/** Le `geste` sur l'entrée `p` ; un refus de la porte (`ProjetRefuse`) la note refusée, puis remonte. */
+function auGeste<T>(p: EntreeListee, geste: () => T): T {
+  try {
+    return geste();
+  } catch (err) {
+    if (err instanceof ProjetRefuse) refuseesAuGeste.add(p.id);
+    throw err;
+  }
+}
+
+/** L'entrée est refusée : par son enveloppe à la relecture, ou par la porte à un geste. SOURCE UNIQUE
+ *  de la marque `MARQUE_AUTRE_FORMAT` et du rang de ses actions dans chaque écran qui la liste. */
+export function estRefusee(p: EntreeListee): boolean {
+  return p.refus !== undefined || refuseesAuGeste.has(p.id);
+}
+
+/** Le projet d'une entrée, passé par la porte `parseProject` : une entrée refusée lève son refus.
+ *  SOURCE UNIQUE des gestes (ouvrir, jouer, exporter). */
+export function projetDeLEntree(p: EntreeListee): ProjectDoc {
+  return auGeste(p, () => {
+    if (p.refus) throw p.refus;
+    return parseProject(p.project);
+  });
+}
+
+/** Repli d'AFFICHAGE du nom d'un projet : une entrée dont le nom est vide (entrée fabriquée hors
+ *  éditeur) se rend NOMMÉE « (sans nom) » plutôt qu'en rangée muette — le geste de
  *  suppression/ouverture reste ainsi désignable. SOURCE UNIQUE des deux écrans qui listent des
  *  projets (« Ouvrir » de l'éditeur, bibliothèque de campagnes). */
 export const NOM_DE_PROJET_ABSENT = '(sans nom)';
@@ -39,35 +127,16 @@ export function nomDeProjet(label: string | undefined | null): string {
   return label?.trim() || NOM_DE_PROJET_ABSENT;
 }
 
-/** Le document de projet d'une entrée de bibliothèque, SOURCE UNIQUE de tout écran qui la lit
- *  (ouverture de l'éditeur, « Jouer » et « Exporter » de la bibliothèque de campagnes), rendu
- *  `unknown` : la porte `parseProject` décide, et refuse nommément ce qui reste sans identité.
- *  - `id` : celui du document ; à défaut (stock d'avant #1552), la clé de l'entrée.
- *  - `label` : le nom de l'entrée dès qu'il n'est pas vide — c'est lui que listent les deux écrans
- *    (`nomDeProjet`) ; à défaut, celui du document (#1343).
- *  - `versionContenu` : 0 quand le document n'en porte pas (dédup #766).
- *  Le `type` et la provenance d'un document antérieur viennent de la migration 6→7
- *  (`PROJECT_MIGRATIONS`), pas d'ici. */
-export function documentDeLEntree(p: SavedProject): unknown {
-  const doc = p.project as Record<string, unknown>;
-  return {
-    ...doc,
-    id: doc.id ?? p.id,
-    label: p.label?.trim() ? p.label : doc.label,
-    ...(doc.versionContenu === undefined ? { versionContenu: 0 } : {}),
-  };
-}
-
 /** La campagne LANCÉE depuis une entrée de bibliothèque (`setPendingCampaign`), SOURCE UNIQUE de tout
  *  écran qui la joue (« Jouer » de la bibliothèque, « Choisir » du picker de `PartyScreen`) : le
- *  document passe la porte `parseProject(documentDeLEntree(p))` — migré, validé — et un refus lève
- *  `ProjetRefuse`, laissé à l'appelant. Le `label` est celui du document PARSÉ, donc déjà celui de
- *  `documentDeLEntree` ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du picker), et une
- *  scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
-export function campagneDeLEntree(p: SavedProject): NonNullable<GameState['pendingCampaign']> {
-  const { label, scenes, worldMap, activeAxes, narratif } = parseProject(documentDeLEntree(p));
+ *  document passe la porte `parseProject` et un refus lève `ProjetRefuse`, laissé à l'appelant. Le
+ *  `label` est celui du document PARSÉ ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE (clé du
+ *  picker), et une scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
+export function campagneDeLEntree(p: EntreeListee): NonNullable<GameState['pendingCampaign']> {
+  const { label, scenes, worldMap, activeAxes, narratif } = projetDeLEntree(p);
   // #1627
   if (!scenes.some((s) => s.id === p.startSceneId)) {
+    refuseesAuGeste.add(p.id);
     throw refusDeForme('entree', ['startSceneId'], `scène de départ « ${p.startSceneId} » absente du projet`);
   }
   return {
@@ -81,17 +150,25 @@ export function campagneDeLEntree(p: SavedProject): NonNullable<GameState['pendi
   };
 }
 
+/** La marque, dans une liste, d'une entrée dont le projet est refusé. */
+export const MARQUE_AUTRE_FORMAT = 'Autre format';
+
 /**
  * Les gestes du JOUEUR sur une campagne de sa bibliothèque, chacun avec ce que son refus ÉNONCE : le
  * geste qui a échoué, rien de plus — le départ d'une entrée peut manquer sans que son export échoue.
  */
 const GESTES_DU_JOUEUR = {
-  jouer: 'Cette campagne ne peut pas être jouée en l’état.',
-  exporter: 'Cette campagne ne peut pas être exportée en l’état.',
+  jouer: 'cette campagne ne peut pas être jouée',
+  exporter: 'cette campagne ne peut pas être exportée',
 } as const;
 
 /** Geste du joueur sur une entrée de sa bibliothèque — union FERMÉE. */
 export type GesteDuJoueur = keyof typeof GESTES_DU_JOUEUR;
+
+/** Ce que dit au JOUEUR le refus du `geste` sur une campagne que la porte refuse. */
+export function messageDeRefusJoueur(geste: GesteDuJoueur): string {
+  return `${PROJET_AUTRE_FORMAT} : ${GESTES_DU_JOUEUR[geste]}.`;
+}
 
 /** Message à afficher au JOUEUR quand une campagne de SA bibliothèque ne passe plus la porte
  *  `parseProject` au moment du `geste` — même frontière que `playerImportError`
@@ -100,7 +177,7 @@ export function playerEntryError(err: unknown, geste: GesteDuJoueur): string {
   return refusJoueur(
     err,
     'Campagne de bibliothèque refusée :',
-    `${GESTES_DU_JOUEUR[geste]} Demandez-en une nouvelle version à son auteur.`,
+    messageDeRefusJoueur(geste),
   );
 }
 
@@ -119,8 +196,8 @@ export function refusJoueur(err: unknown, diagnostic: string, generique: string)
   return generique;
 }
 
-const KEY = 'wfrp4.editor-projects.v1';
-const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones.v1';
+const KEY = 'wfrp4.editor-projects';
+const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones';
 
 /** Taille sérialisée max (en caractères) d'UNE entrée au-delà de laquelle elle est écartée du miroir
  *  localStorage — la borne porte sur le PROJET, jamais sur la liste entière sérialisée (une seule
@@ -131,67 +208,23 @@ const LOCAL_MIRROR_ENTRY_LIMIT = 500_000;
 
 const STORE = 'projects';
 
-/** Migrations de `wfrp4-library`. */
-export const MIGRATIONS_BIBLIOTHEQUE = {
-  0: (db) => {
-    db.createObjectStore(STORE, { keyPath: 'id' });
-  },
-} satisfies MigrationsIdb;
-
 /** Bibliothèque persistée : source de vérité IndexedDB (base `wfrp4-library`) + un MIROIR localStorage
  *  tenu à jour à chaque écriture (borné PAR PROJET par `LOCAL_MIRROR_ENTRY_LIMIT`). `initLibrary`
  *  réconcilie les deux par id à chaque démarrage — c'est CE mécanisme, rejoué à chaque boot (jamais un
- *  flag one-shot), qui absorbe aussi bien la migration initiale que la reprise d'une écriture IndexedDB
+ *  flag one-shot), qui absorbe aussi bien la recréation de la base (`lib/indexedDb.ts`) que la reprise d'une écriture IndexedDB
  *  précédemment en échec (#776). */
-const bibliotheque = accesBase({ nom: 'wfrp4-library', migrations: MIGRATIONS_BIBLIOTHEQUE });
-const projets = bibliotheque.magasin<SavedProject, string>(STORE);
+const bibliotheque = accesBase({ nom: 'wfrp4-library', magasins: { [STORE]: { keyPath: 'id' } } });
+const projets = bibliotheque.magasin<unknown, string>(STORE);
 
 /** Cache mémoire = source SYNC servie au picker/éditeur/tests. `null` tant qu'`initLibrary` n'a rien chargé. */
-let cache: SavedProject[] | null = null;
-
-/** `SavedProject` : nom du projet (top-level, discriminant `startSceneId`+`published`+`project`). */
-function isProjectLike(o: Record<string, unknown>): boolean {
-  return typeof o.id === 'string' && typeof o.startSceneId === 'string'
-    && typeof o.published === 'boolean' && !!o.project;
-}
-
-/** `CustomStatblock` (`state/scene.ts`) embarqué dans `project.scenes[].entities[].statblock` — même
- *  discriminant que le formulaire d'édition (`char` structuré, aucun autre porteur de ce dépôt n'a ce
- *  champ). Distinct des `SceneOp` `setVessel`/`adjustVessel` (`name?` d'AUTEUR, hors renommage — leur
- *  forme n'a pas de `char`, jamais reconnue ici). */
-function isStatblockLike(o: Record<string, unknown>): boolean {
-  return typeof o.char === 'object' && o.char !== null && !Array.isArray(o.char);
-}
-
-/** Renommage `name` → `label` (#608) des DEUX porteurs authorés d'un projet éditeur sérialisé —
- *  l'entrée de bibliothèque elle-même (`SavedProject.name`) et tout `CustomStatblock` embarqué dans ses
- *  scènes. `projectLibrary.ts` n'a AUCUN axe de version (liste nue en localStorage) : repli IDEMPOTENT
- *  à chaque lecture, patron
- *  `roster.ts`/`remapNameToLabelDeep` — un projet déjà migré (ou jamais affecté) traverse en no-op. */
-export function remapProjectNamesDeep(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(remapProjectNamesDeep);
-  if (!node || typeof node !== 'object') return node;
-  const o = node as Record<string, unknown>;
-  const bearer = isProjectLike(o) || isStatblockLike(o);
-  if (bearer && typeof o.name === 'string' && !('label' in o)) {
-    const { name, ...rest } = o;
-    return Object.fromEntries(
-      Object.entries({ label: name, ...rest }).map(([k, v]) => [k, remapProjectNamesDeep(v)]),
-    );
-  }
-  if (bearer && o.label !== undefined && 'name' in o) {
-    const { name: _drop, ...rest } = o;
-    return Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, remapProjectNamesDeep(v)]));
-  }
-  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, remapProjectNamesDeep(v)]));
-}
+let cache: EntreeListee[] | null = null;
 
 /** Lecture SYNC de secours (localStorage) : sert tant que `cache` vaut `null`, et reste le MIROIR
  *  réconcilié avec IndexedDB à chaque `initLibrary`. Filtre aussi les tombes (`readTombstones`) — ce
  *  filtrage est la SEULE garantie contre la résurrection d'un projet supprimé, pour TOUTE lecture qui
  *  emprunte ce repli (`initLibrary` sans IndexedDB, son `catch`, et `projectsLoad` avant tout chargement) :
  *  ne JAMAIS lire `KEY` sans repasser par cette fonction (#776 pt.2). */
-function readLocalStorage(): SavedProject[] {
+function readLocalStorage(): EntreeListee[] {
   const s = stockageWeb('localStorage');
   if (!s) return [];
   try {
@@ -200,9 +233,19 @@ function readLocalStorage(): SavedProject[] {
     const arr: unknown = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
     const tombstones = readTombstones();
-    return (remapProjectNamesDeep(arr) as unknown[])
-      .filter(isSavedProject)
-      .filter((e) => !tombstones.has(e.id));
+    return entreesRelues(arr).filter((e) => !tombstones.has(e.id));
+  } catch {
+    return [];
+  }
+}
+
+/** Les entrées du miroir qu'aucun `id` ne désigne : relues telles quelles pour être RÉÉCRITES, jamais
+ *  retirées par une écriture (#2404). */
+function entreesIndesignables(s: Storage): unknown[] {
+  try {
+    const raw = s.getItem(KEY);
+    const arr: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((brut) => idDesignable(brut) === null) : [];
   } catch {
     return [];
   }
@@ -218,13 +261,14 @@ function readLocalStorage(): SavedProject[] {
  *  fonctionnel, entrée écartée) de « le stockage local lui-même est hors service » (absent, accès
  *  refusé, ou l'écriture échoue même pour une liste vide) — les deux font grossir `skipped`, mais
  *  seule la 2de justifie un message qui ne parle PAS de volume de campagne (#776 pt.3). */
-function writeLocalMirror(list: SavedProject[]): { skipped: Set<string>; storageUnavailable: boolean } {
+function writeLocalMirror(list: EntreeListee[]): { skipped: Set<string>; storageUnavailable: boolean } {
   const s = stockageWeb('localStorage');
   if (!s) return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
+  const indesignables = entreesIndesignables(s);
   const sized = list.map((e) => {
     let json: string;
     try {
-      json = JSON.stringify(e);
+      json = JSON.stringify(aEcrire(e));
     } catch {
       json = '';
     }
@@ -238,14 +282,16 @@ function writeLocalMirror(list: SavedProject[]): { skipped: Set<string>; storage
   });
   while (true) {
     try {
-      s.setItem(KEY, JSON.stringify(fits.map(({ e }) => e)));
+      s.setItem(KEY, JSON.stringify([...indesignables, ...fits.map(({ e }) => aEcrire(e))]));
       return { skipped, storageUnavailable: false };
     } catch {
       if (fits.length === 0) {
-        try {
-          s.removeItem(KEY);
-        } catch {
-          // accès refusé : rien de plus à faire, aucune version périmée n'est laissée volontairement.
+        if (indesignables.length === 0) {
+          try {
+            s.removeItem(KEY);
+          } catch {
+            // accès refusé : rien de plus à faire, aucune version périmée n'est laissée volontairement.
+          }
         }
         return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
       }
@@ -306,20 +352,11 @@ function writeTombstones(ids: Set<string>): boolean {
   }
 }
 
-function isSavedProject(e: unknown): e is SavedProject {
-  return (
-    !!e &&
-    typeof e === 'object' &&
-    typeof (e as SavedProject).id === 'string' &&
-    Array.isArray((e as SavedProject).project?.scenes)
-  );
-}
-
 /**
  * Charge la bibliothèque en `cache` depuis IndexedDB (source de vérité) réconciliée avec le miroir
  * localStorage. À AWAITER une fois au démarrage (`main.tsx`) AVANT le premier rendu. NE REJETTE JAMAIS :
  * toute erreur retombe sur la lecture localStorage. Réconciliation PAR ID à chaque appel (jamais un flag
- * one-shot) : les entrées présentes en localStorage mais absentes d'IndexedDB (migration initiale,
+ * one-shot) : les entrées présentes en localStorage mais absentes d'IndexedDB (base recréée,
  * écriture IndexedDB précédemment en échec) sont recopiées ; les id tombés en `TOMBSTONE_KEY` (supprimés) sont
  * exclus et leur suppression IndexedDB retentée — jamais ressuscités (#776 pt.2). Une tombe dont la
  * suppression IndexedDB vient d'aboutir ici est purgée du registre (elle ne sert plus à rien, #776 pt.2).
@@ -331,13 +368,12 @@ export async function initLibrary(): Promise<void> {
       return;
     }
     const tombstones = readTombstones();
-    const stored = (remapProjectNamesDeep(await projets.lireTout()) as unknown[])
-      .filter(isSavedProject) as SavedProject[];
-    const legacy = readLocalStorage();
+    const stored = entreesRelues(await projets.lireTout());
+    const miroir = readLocalStorage();
     const storedIds = new Set(stored.map((e) => e.id));
-    const toMigrate = legacy.filter((e) => !storedIds.has(e.id) && !tombstones.has(e.id));
+    const aReprendre = miroir.filter((e) => !storedIds.has(e.id) && !tombstones.has(e.id));
     const toPurge = stored.filter((e) => tombstones.has(e.id));
-    await Promise.allSettled(toMigrate.map((e) => projets.ecrire(e)));
+    await Promise.allSettled(aReprendre.map((e) => projets.ecrire(aEcrire(e))));
     const purgeResults = await Promise.allSettled(toPurge.map((e) => projets.supprimer(e.id)));
     const purgedFromRetry = toPurge
       .filter((_, i) => purgeResults[i].status === 'fulfilled')
@@ -353,7 +389,7 @@ export async function initLibrary(): Promise<void> {
       const remaining = new Set([...tombstones].filter((id) => !purgedIds.includes(id)));
       writeTombstones(remaining);
     }
-    const merged = [...stored.filter((e) => !tombstones.has(e.id)), ...toMigrate];
+    const merged = [...stored.filter((e) => !tombstones.has(e.id)), ...aReprendre];
     cache = merged;
     writeLocalMirror(merged);
   } catch {
@@ -361,7 +397,7 @@ export async function initLibrary(): Promise<void> {
   }
 }
 
-export function projectsLoad(): SavedProject[] {
+export function projectsLoad(): EntreeListee[] {
   return cache ?? readLocalStorage();
 }
 
@@ -380,6 +416,7 @@ export type LibraryWriteOutcome = { ok: true; degraded?: boolean } | { ok: false
 export async function projectSave(entry: SavedProject): Promise<LibraryWriteOutcome> {
   const list = [...projectsLoad().filter((e) => e.id !== entry.id), entry];
   cache = list;
+  refuseesAuGeste.delete(entry.id);
   const { skipped, storageUnavailable } = writeLocalMirror(list);
   const mirrored = !skipped.has(entry.id);
   const tombstones = readTombstones();
@@ -430,6 +467,7 @@ export async function projectSave(entry: SavedProject): Promise<LibraryWriteOutc
 export async function projectRemove(id: string): Promise<LibraryWriteOutcome> {
   const list = projectsLoad().filter((e) => e.id !== id);
   cache = list;
+  refuseesAuGeste.delete(id);
   writeLocalMirror(list);
   const tombstones = readTombstones();
   tombstones.add(id);
@@ -455,15 +493,16 @@ export async function projectRemove(id: string): Promise<LibraryWriteOutcome> {
 }
 
 /** Les projets marqués « publiés » — proposés au menu principal comme campagnes jouables. */
-export function publishedProjects(): SavedProject[] {
+export function publishedProjects(): EntreeListee[] {
   return projectsLoad().filter((e) => e.published);
 }
 
 /** Test-only : réinitialise le cache module-level, le miroir localStorage, les tombes (persistées et en
- *  mémoire) et vide IndexedDB si présent — pour l'isolation complète entre tests. */
+ *  mémoire), les refus au geste, et vide IndexedDB si présent — pour l'isolation complète entre tests. */
 export async function __resetLibraryForTest(): Promise<void> {
   cache = null;
   pendingTombstones = new Set();
+  refuseesAuGeste = new Set();
   try {
     const s = stockageWeb('localStorage');
     s?.removeItem(KEY);

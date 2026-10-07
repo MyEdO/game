@@ -15,8 +15,7 @@ import { Editor } from './Editor';
 import { buildApi } from '../../state/devtools';
 import { parseProject, ProjetRefuse } from '../../state/worldMap';
 import { emptyScene } from '../../state/scene';
-import { __resetLibraryForTest } from '../../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 import { diligenceCampaign, type BuiltinCampaign } from '../../scenes/campaign';
 import { campagnesLivrees } from '../../scenes/projetsLivres.testkit';
@@ -35,9 +34,7 @@ afterEach(async () => {
   container?.remove();
   root = null;
   container = null;
-  await __resetLibraryForTest();
-  __setOuvertureIdbForTest(null);
-  localStorage.clear();
+  __setFabriqueIdbForTest(null);
 });
 
 const ENTREE = 'Exporter forme dépôt (dev)';
@@ -76,7 +73,7 @@ async function offerte(): Promise<boolean> {
 
 /** « Fichier → Enregistrer… » sous le nom `nom` : le seul geste qui renomme le projet. */
 async function renommer(nom: string): Promise<void> {
-  brancherBasesSimulees().amorcer('wfrp4-library', 1, { projects: { keyPath: 'id' } });
+  brancherBasesSimulees().amorcer('wfrp4-library', { projects: { keyPath: 'id' } });
   await act(async () => { exigeBouton('Fichier').click(); });
   await act(async () => { exigeBouton('Enregistrer…').click(); });
   const champ = container!.querySelector('.modal input:not([type="checkbox"])') as HTMLInputElement;

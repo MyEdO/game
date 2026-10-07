@@ -17,6 +17,7 @@ import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../state/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
+import { refusDepensePx } from '../state/partyFlow';
 import { actorHasSkill } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
@@ -642,6 +643,7 @@ function SlotChoiceRow({
   options,
   acquireCost,
   afford,
+  refus,
   onPick,
 }: {
   entry: string;
@@ -649,6 +651,8 @@ function SlotChoiceRow({
   options: { key: string; display?: string; owned: boolean; hint?: string; cost?: number; maxReached?: boolean }[];
   acquireCost: number;
   afford: (c: number) => boolean;
+  /** Raison d'un refus de dépense de PX (`refusDepensePx`) ; la désignation d'une option possédée n'est pas une dépense. */
+  refus: string | null;
   onPick: (key: string, owned: boolean) => void;
 }) {
   const [choice, setChoice] = useState('');
@@ -656,6 +660,7 @@ function SlotChoiceRow({
   const optCost = opt?.cost ?? acquireCost;
   const cost = opt?.owned ? 0 : optCost;
   const bloquee = !!opt && !opt.owned && !!opt.maxReached;
+  const refuse = !!refus && !opt?.owned;
   return (
     <div className="adv-row acquire">
       <span className="adv-name">
@@ -672,9 +677,15 @@ function SlotChoiceRow({
           </option>
         ))}
       </select>
-      <button className="btn small" disabled={!opt || bloquee || !afford(cost)} onClick={() => opt && onPick(opt.key, opt.owned)}>
-        {opt?.owned ? 'Désigner · 0 PX' : `Acquérir · ${optCost} PX`}
-      </button>
+      <GatedAction
+        id={`adv-slot-${entry}`}
+        primary={false}
+        btnClassName="small"
+        enabled={!!opt && !bloquee && !refuse && afford(cost)}
+        {...raisonSi(refuse ? refus : null)}
+        onClick={() => opt && onPick(opt.key, opt.owned)}
+        label={opt?.owned ? 'Désigner · 0 PX' : `Acquérir · ${optCost} PX`}
+      />
     </div>
   );
 }
@@ -702,6 +713,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
   const changeCareer = useGame((s) => s.changeCareer);
   const trainProsthesis = useGame((s) => s.trainProsthesis);
   const [target, setTarget] = useState('');
+  const refus = useGame(refusDepensePx);
 
   const v = buildAdvancementView(hero);
   const afford = (c: number) => v.xp >= c;
@@ -716,6 +728,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
         <span>Points d'Expérience disponibles</span>
         <b>{v.xp}</b>
       </div>
+      {refus && <p className="muted" role="status">{refus}</p>}
 
       <AdvSection title="Caractéristiques" count={v.chars.length}>
       <div className="adv-grid">
@@ -725,9 +738,12 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               <CharValue charKey={c.key} value={c.value} size="sm" /> {pill(c.inCareer)}
             </span>
             <span className="adv-meta">×{c.advances}</span>
-            <button className="btn small" disabled={!afford(c.nextCost)} onClick={() => buyCharAdvance(hero.id, c.key)}>
-              +1 · {c.nextCost} PX
-            </button>
+            <GatedAction
+              id={`adv-car-${c.key}`} primary={false} btnClassName="small"
+              enabled={!refus && afford(c.nextCost)} {...raisonSi(refus)}
+              onClick={() => buyCharAdvance(hero.id, c.key)}
+              label={`+1 · ${c.nextCost} PX`}
+            />
           </div>
         ))}
       </div>
@@ -742,9 +758,12 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               {s.known ? '' : <span className="acquire-tag">à apprendre</span>}
             </span>
             <span className="adv-meta">+{s.advances}</span>
-            <button className="btn small" disabled={!afford(s.nextCost)} onClick={() => buySkillAdvance(hero.id, s.skillId, s.spec)}>
-              {s.known ? '+1' : 'Apprendre'} · {s.nextCost} PX
-            </button>
+            <GatedAction
+              id={`adv-comp-${s.skillId}-${s.spec ?? ''}`} primary={false} btnClassName="small"
+              enabled={!refus && afford(s.nextCost)} {...raisonSi(refus)}
+              onClick={() => buySkillAdvance(hero.id, s.skillId, s.spec)}
+              label={`${s.known ? '+1' : 'Apprendre'} · ${s.nextCost} PX`}
+            />
           </div>
         ))}
         {/* Emplacements de Compétence « (Au choix) » non désignés (LDB 09 l.38) */}
@@ -754,6 +773,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             entry={slot.entry}
             acquireCost={slot.nextCost}
             afford={afford}
+            refus={refus}
             options={slot.options.map((o) => ({
               key: refKey(slot.groupId, o.spec), // clé de câblage OPAQUE (id+spec), jamais affichée
               display: `${slot.group} (${o.display})`,
@@ -782,9 +802,12 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                 {t.times > 0 ? ` ×${t.times}` : ''} {pill(true)}
               </span>
               <span className="adv-meta">{t.maxReached ? 'Maxi atteint' : ''}</span>
-              <button className="btn small" disabled={t.maxReached || !afford(t.nextCost)} onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}>
-                {t.times > 0 ? '+1' : 'Acquérir'} · {t.nextCost} PX
-              </button>
+              <GatedAction
+                id={`adv-talent-${t.slotKey}`} primary={false} btnClassName="small"
+                enabled={!refus && !t.maxReached && afford(t.nextCost)} {...raisonSi(refus)}
+                onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}
+                label={`${t.times > 0 ? '+1' : 'Acquérir'} · ${t.nextCost} PX`}
+              />
             </div>
           ) : (
             <SlotChoiceRow
@@ -792,6 +815,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               entry={t.entry}
               acquireCost={t.nextCost}
               afford={afford}
+              refus={refus}
               options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached }))}
               onPick={(key, owned) => {
                 const { id, spec } = parseRefKey(key);
@@ -822,10 +846,12 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                     <span className="muted"> · {spell.ecole}{spell.subType ? ` (${spell.subType})` : ''}{spell.cn != null ? ` · NI ${spell.cn}` : ''}</span>
                   </span>
                   <span className="adv-meta" />
-                  <button className="btn small" disabled={cost > 0 && !afford(cost)} onClick={() => buySpell(hero.id, spell.id)}>
-                    {cost > 0 ? `Mémoriser · ${cost} PX` : 'Inclus au Talent'}
-                    {spell.family === 'chaos' ? ' · +1 Corruption' : ''}
-                  </button>
+                  <GatedAction
+                    id={`adv-sort-${spell.id}`} primary={false} btnClassName="small"
+                    enabled={!refus && (cost === 0 || afford(cost))} {...raisonSi(refus)}
+                    onClick={() => buySpell(hero.id, spell.id)}
+                    label={`${cost > 0 ? `Mémoriser · ${cost} PX` : 'Inclus au Talent'}${spell.family === 'chaos' ? ' · +1 Corruption' : ''}`}
+                  />
                 </div>
                 );
               })}
@@ -860,9 +886,12 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                 <div className="adv-row acquire" key={r.key}>
                   <span className="adv-name">{r.label}</span>
                   <span className="adv-meta" />
-                  <button className="btn small" disabled={!afford(r.cost)} onClick={r.onBuy}>
-                    Entraîner · {r.cost} PX
-                  </button>
+                  <GatedAction
+                    id={`adv-prothese-${r.key}`} primary={false} btnClassName="small"
+                    enabled={!refus && afford(r.cost)} {...raisonSi(refus)}
+                    onClick={r.onBuy}
+                    label={`Entraîner · ${r.cost} PX`}
+                  />
                 </div>
               ))}
             </div>
@@ -881,8 +910,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             key={t.level}
             id={`career-target-${t.level}`}
             label={`${t.level > v.careerLevel ? 'Monter' : 'Redescendre'} : ${t.label} (niv. ${t.level}) · ${t.cost} PX`}
-            enabled={t.ok && afford(t.cost)}
-            reason={!t.ok ? (t.reason ?? 'Ce changement de Carrière n’est pas ouvert.') : `PX insuffisants — ${t.cost} PX requis.`}
+            enabled={!refus && t.ok && afford(t.cost)}
+            reason={refus ?? (!t.ok ? (t.reason ?? 'Ce changement de Carrière n’est pas ouvert.') : `PX insuffisants — ${t.cost} PX requis.`)}
             onClick={() => changeCareer(hero.id, t.career, t.level)}
             primary={false}
             btnClassName="small"
@@ -899,16 +928,16 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                 </option>
               ))}
           </select>
-          <button
-            className="btn small"
-            disabled={!target || !afford(target ? v.changeCostFor(target) : v.changeCost)}
+          <GatedAction
+            id="adv-changer-carriere" primary={false} btnClassName="small"
+            enabled={!refus && !!target && afford(target ? v.changeCostFor(target) : v.changeCost)}
+            {...raisonSi(refus)}
             onClick={() => {
               if (target) changeCareer(hero.id, target, 1);
               setTarget('');
             }}
-          >
-            Changer{target ? ` · ${v.changeCostFor(target)} PX` : ''}
-          </button>
+            label={`Changer${target ? ` · ${v.changeCostFor(target)} PX` : ''}`}
+          />
         </div>
       </div>
       </AdvSection>

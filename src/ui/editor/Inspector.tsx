@@ -71,6 +71,7 @@ import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
 import { estCardinal, type Dir8 } from '../../state/dir8';
 import { propFootTiles } from '../../state/footprint';
 import { Row, Stack } from '../Layout';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { CAP_IDENTITE_PROP } from '../../data/props.types';
 import { CouvreField } from './CouvreField';
 
@@ -391,7 +392,7 @@ export function Inspector({
             </button>
           </div>
 
-          {ent && refusPatch?.id === ent.id && <p className="chip tone-danger" role="alert">{refusPatch.message}</p>}
+          {ent && refusPatch?.id === ent.id && <ChipDeRefus refus={{ message: refusPatch.message }} />}
           {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} narratif={narratif} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
 
           {sel?.type === 'architectureBody' && architectureBody && toiture && (
@@ -1119,7 +1120,7 @@ export function Inspector({
                   </Row>
                 </div>
                 {porteAuteur(selW) && (
-                  <label className="ed-check" title={secretAuteur(selW) ? 'Une porte secrète est fermée au départ : décoche d’abord « Porte secrète »' : undefined}>
+                  <label className="ed-check" title={secretAuteur(selW) ? 'Une porte secrète est fermée au départ : décochez d’abord « Porte secrète »' : undefined}>
                     <input type="checkbox" checked={!!selW.closed} disabled={!!secretAuteur(selW)} onChange={(e) => patchSelW({ closed: e.target.checked || undefined })} />
                     <Icon id="ui/lock" size="sm" /> Fermée au départ
                   </label>
@@ -1133,7 +1134,7 @@ export function Inspector({
                 {(() => {
                   const secret: Partial<WallSecret> | undefined = secretAuteur(selW) ?? brouillon?.secret;
                   if (!porteAuteur(selW) || !secret) return null;
-                  const etat = secret.difficulty && secret.face ? null : 'Porte secrète incomplète — choisis sa difficulté de Perception et sa face découvrable';
+                  const etat = secret.difficulty && secret.face ? null : 'Porte secrète incomplète — choisissez sa difficulté de Perception et sa face découvrable';
                   return (
                     <>
                       <div className="ed-field">
@@ -1150,7 +1151,7 @@ export function Inspector({
                           {Object.entries(valeursDe(faceDAreteSchema) ?? {}).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                         </select>
                       </div>
-                      {etat && <p className="chip tone-danger" role="alert">{etat}</p>}
+                      {etat && <ChipDeRefus fixe refus={{ message: etat }} />}
                     </>
                   );
                 })()}
@@ -1192,7 +1193,7 @@ export function Inspector({
                         brouillonner({ crossable: undefined, allegeVide: undefined });
                       }}
                     />
-                    {allegeSaisie === undefined && <p id="insp-allege-etat" className="chip tone-danger" role="alert">Croisée franchissable sans hauteur d’allège — saisis-la</p>}
+                    {allegeSaisie === undefined && <ChipDeRefus fixe id="insp-allege-etat" refus={{ message: 'Croisée franchissable sans hauteur d’allège — saisissez-la' }} />}
                   </>
                   );
                 })()}
@@ -1353,7 +1354,7 @@ function EntryRename({ label, caption = 'Nom (référencé par les transitions)'
  *
  * L'état est dit DEUX fois, et ce n'est pas une redite : un `<option>` natif est TRONQUÉ à la largeur
  * du champ — or l'id fautif EST l'information utile —, donc il se relit ENTIER hors du champ
- * (primitive `.chip.tone-danger`, `ui/styles/components.css`) et au survol (`title`). L'option, elle,
+ * (primitive `ChipDeRefus`) et au survol (`title`). L'option, elle,
  * n'est pas ÉLISIBLE : on n'élit pas une absence. Les mots sont ceux de `state/validateScene.ts` —
  * l'inspecteur et le validateur disent la MÊME chose. Élire un vrai type l'ÉCRIT (`changePropRef`).
  */
@@ -1361,7 +1362,7 @@ function SelecteurDeDecor({ scene, ent, setScene }: { scene: Scene; ent: SceneEn
   const etat = findPropById(ent.ref)
     ? null
     : ent.ref === undefined
-      ? 'Décor sans type — choisis-en un'
+      ? 'Décor sans type — choisissez-en un'
       : `Décor inexistant « ${ent.ref} »`;
   return (
     <>
@@ -1384,7 +1385,7 @@ function SelecteurDeDecor({ scene, ent, setScene }: { scene: Scene; ent: SceneEn
           ))}
         </select>
       </label>
-      {etat && <p className="chip tone-danger" role="alert">{etat}</p>}
+      {etat && <ChipDeRefus fixe refus={{ message: etat }} />}
     </>
   );
 }
@@ -1832,7 +1833,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
           <p className="hint">Pièce d'artillerie servie par un équipage. Enrôlez l'emplacement ET ses servants dans une rencontre (fold <Icon id="action/attack" size="sm" /> Combat) ; au combat, le chef (1ᵉʳ servant) sert la pièce et tire.</p>
           <label className="ed-field">
             Engin
-            <select value={poste.trappingId ?? poste.item?.trappingId ?? ''} onChange={(e) => setScene(setPosteEngine(scene, ent.id, e.target.value))}>
+            <select value={poste.trappingId} onChange={(e) => setScene(setPosteEngine(scene, ent.id, e.target.value))}>
               {siegeEngines().map((t) => (
                 <option key={t.id} value={t.id}>{t.label}</option>
               ))}

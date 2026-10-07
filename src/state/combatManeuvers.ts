@@ -37,6 +37,7 @@ import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons } from './rollSeam';
 import { defenseSurfaced } from './netOwnership';
 import { inBattleId } from './combatants';
+import { touchActors } from './combatOrParty';
 import type { CascadeStep } from './pendings';
 import type { GameOp } from '../engine/ops';
 import type { IconId } from '../ui/icons';
@@ -558,9 +559,7 @@ registerCascadeApplier('maneuverDefense', (get, set, step, hero) => {
   const def = findManeuverById(md.maneuverId);
   if (!attacker || !def) return;
   const syncManeuver = () => {
-    set({ party: [...get().party] });
-    const b = get().battle;
-    if (b) set({ battle: { ...b, combatants: [...b.combatants] } });
+    set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);
   };
   // `FLOWS.cascade` opposé : `success` = le DÉFENSEUR RÉSISTE (l'attaquant ne l'emporte pas) → aucun effet.

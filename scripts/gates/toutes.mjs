@@ -133,10 +133,6 @@ export const ECRIT_LU = {
       'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
       'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
-      '`guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
-      'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
-      'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
-      'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
@@ -260,7 +256,9 @@ export const ECRIT_LU = {
       'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
       'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) ; ' +
       '`scripts/test/perimetre.test.mjs` forge ses dépôts avec mkdtempSync(tmpdir()), mémos compris, et les nettoie par t.after ; ' +
-      '+1 écrivain le 2026-10-07 (#2400) : `lintStage.mjs`, atteint par `perimetre.mjs`, dont le banc injecte le lanceur de lint',
+      '+1 écrivain le 2026-10-07 (#2400) : `lintStage.mjs`, atteint par `perimetre.mjs`, dont le banc injecte le lanceur de lint ; ' +
+      '+1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` atteint `ecrireOuVerifier` par le générateur, ' +
+      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire)',
   },
   'test:docs': {
     ecrit: [],

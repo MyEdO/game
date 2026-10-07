@@ -18,7 +18,8 @@
 // bouts, #1806 D5″) : `debut..fin`, moins ce que le tronc a changé entre l'état qu'en connaît `debut`
 // et celui qu'en connaît `fin` (`merge-base` de chacun avec le tronc). Une dette neuve dans X qu'une
 // baisse dans Q du même porteur compenserait reste en croissance, et se refuse ; une baisse faite par
-// le tronc ne paie rien.
+// le tronc ne paie rien. Les migrations de sites de tests prouvées par `bilanDesStocks` (#1735)
+// ont déjà quitté les deux côtés de ce bilan ; le cumul conserve la mesure par clé.
 //
 // Chaque commit de la plage se lit par CE QU'IL FAIT, en ENTRÉES (#2223) : un commit ordinaire contre
 // sa base (`ceQueFaitLeCommit`) ; une FUSION contre la fusion automatique de ses parents, rejouée

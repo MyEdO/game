@@ -171,9 +171,11 @@ Cellules NON MESURÉES, et pourquoi :
   aucune modale de jet ; la structure reste gardée par `src/ui/ui-ratchets.test.ts`.
 - **Dock** `>900` « disposition de référence » : aucun contrat propre au-delà du bord à bord et du
   budget de hauteur, mesurés.
-Le TIROIR DU JOURNAL se juge **ouvert** : la sonde le déplie par clic réel sur sa poignée
-(`.ld-btn`) au premier tour tenu par un héros, puis refuse un panneau qui recouvre la console
-(« recouvre la console de N×Mpx ») — fermé, il ne recouvre rien, et la question n'a pas de sens.
+Le TIROIR DU JOURNAL se juge **ouvert**, en exploration et au premier tour tenu par un héros :
+la sonde le déplie par clic réel sur sa poignée (`.ld-btn`), puis vérifie par `elementFromPoint`
+les points à 10 %, 50 % et 90 % de hauteur du panneau à chaque largeur. Un tiroir absent, un
+panneau fermé ou non rendu, ou des points manquants rendent la sonde explicitement aveugle.
+En combat, elle refuse aussi un panneau qui recouvre la console (« recouvre la console de N×Mpx »).
 Chaque situation où la mesure serait verte par VACUITÉ (rail dissous sans ouvreur, bande de groupe
 sans carte ni poignée, tiroir qui ne s'ouvre pas, console sans case) se DIT « sonde aveugle ».
 La caméra n'a plus de plaque sur l'écran de jeu (`src/ui/camera-sans-plaque.test.ts`) : `.vc-btn`
@@ -524,7 +526,7 @@ pas la cible d'UX.
 | `resumeLastScenario()` | relance le DERNIER `scenario(id, seed)` de CET onglet — id ET seed mémorisés en `sessionStorage` (clé `wfrp.dev.lastScenario`, posée à chaque lancement d'un id connu) : un reload HMR ramène au menu en perdant tout, ce geste rejoue le même scénario à l'identique (#1335) | AUCUNE relance automatique au boot (un rechargement humain doit rendre le menu) ; mémoire PAR ONGLET (un nouvel onglet ne sait rien), et un lancement par le MENU « Scénarios de test » (bouton Lancer, `src/ui/TestScenariosScreen.tsx`) n'écrit RIEN — seul le helper mémorise ; `✗ aucun scénario mémorisé…` sinon. Relance = un vrai `scenario()` : l'état de jeu repart de zéro (progression, siège MJ hérité, cf. `gmSeat`), ce n'est pas une restauration de sauvegarde |
 | `campaign(id?, seed?, sceneId?)` | charge une CAMPAGNE BUILT-IN (`builtinCampaigns`, `scenes/campaign.ts`) SANS dérouler le character creator ×4 à la main — groupe canonique (`makeShowcaseParty`), MÊME chemin que le picker `PartyScreen` (`setPendingCampaign` + `loadProject`) ; sans argument : liste les ids | les campagnes built-in ne portent PAS de pré-tirés propres (seul `pregens.json`, libre-service au picker) → groupe canonique (les 4 piliers de l'Arène), pas le casting narratif de la campagne ; `sceneId` (optionnel) démarre ailleurs que l'entrée par défaut — hors des scènes de la campagne, `✗ scène « … » introuvable dans « id » — ids : …` et RIEN n'est chargé (ni groupe, ni scène) ; `pendingCampaign` redevient `null` juste après (comme le flux réel : `loadProject`→`startScene` réinitialise l'état à l'INITIAL hors le sous-ensemble préservé, `store.ts`) — pas une régression. ⚠ **L'ARÈNE N'EST PAS LISTÉE** (mesuré recette 2026-08-29, arbre 5e129a110) : `campaign()` sans argument rend 3 campagnes sur 4 — l'Arène passe par un autre chemin de chargement. CONTOURNEMENTS mesurés : (a) la bibliothèque de campagnes AUX CLICS (menu → groupe → picker), (b) `fight('enc-…')` pour tomber directement dans un combat |
 | `interlude(weeks=3)` | arme un INTERLUDE de démo jouable (`startInterlude` — MÊME flux réel : `state.interlude` peuplé, Événement d100/héros, budget `min(3, weeks)`, écran 'interlude') SANS voyager jusqu'à Altdorf | catalogue d'Activités dérivé de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé ; sans groupe chargé, pose le groupe canonique (`makeShowcaseParty`, comme `campaign()`) ; `✗` si combat en cours ; interlude déjà ouvert → message sans réarmer ; à conduire ensuite à la main (Activités, clôture) — pas `screen('interlude')` seul (écran vide) |
-| `rules(id?, value?)` | lit/force une règle optionnelle (`policy.ts`) | **ASYMÉTRIE À CONNAÎTRE** : `rules(id, value)` est une surcharge **RUNTIME NON PERSISTÉE** (elle meurt au rechargement), tandis que `rules(id, null)` réinitialise **ET purge la surcharge PERSISTÉE** (`resetHouseRule` → `localStorage['wfrp4.house-rules.v1']`). Une règle cochée un jour au **panneau Options** (seule couture qui persiste, `setHouseRule`) revient donc COCHÉE à chaque ouverture tant qu'elle n'est pas réinitialisée — piège vécu (#1279 : « Jeux de taverne rapides » retrouvée active 3 runs de suite malgré deux `rules(id, false)`). **Vérifier l'état PERSISTÉ en fin de run** : `localStorage.getItem('wfrp4.house-rules.v1')`. La CADENCE n'est plus ici (préférence de confort, cf. `prefs()`) — les règles sont VERROUILLÉES tant qu'un combat est en cours (`houseRulesMutability`) : l'écriture est refusée en silence, et `rules(id, null)` rend alors la raison |
+| `rules(id?, value?)` | lit/force une règle optionnelle (`policy.ts`) | **ASYMÉTRIE À CONNAÎTRE** : `rules(id, value)` est une surcharge **RUNTIME NON PERSISTÉE** (elle meurt au rechargement), tandis que `rules(id, null)` réinitialise **ET purge la surcharge PERSISTÉE** (`resetHouseRule` → `localStorage['wfrp4.house-rules']`). Une règle cochée un jour au **panneau Options** (seule couture qui persiste, `setHouseRule`) revient donc COCHÉE à chaque ouverture tant qu'elle n'est pas réinitialisée — piège vécu (#1279 : « Jeux de taverne rapides » retrouvée active 3 runs de suite malgré deux `rules(id, false)`). **Vérifier l'état PERSISTÉ en fin de run** : `localStorage.getItem('wfrp4.house-rules')`. La CADENCE n'est plus ici (préférence de confort, cf. `prefs()`) — les règles sont VERROUILLÉES tant qu'un combat est en cours (`houseRulesMutability`) : l'écriture est refusée en silence, et `rules(id, null)` rend alors la raison |
 | `prefs(id?, value?)` | lit/force une PRÉFÉRENCE de confort (`state/preferences.ts`) — dont `prefs('combat-cadence', 'auto')` (auto/rapide/manuel) | écriture PERSISTÉE (localStorage) + effet déclaré joué (reprise de boucle) ; `prefs(id, null)` réinitialise ; modifiable EN COMBAT, contrairement aux règles |
 | `seed(n)` | re-ensemence le RNG de bataille EN COURS de combat | même action que `scenario(id, seed)` au lancement |
 | `previewRoll(seed, count=1)` | lecture PURE des `count` premiers d100 d'un seed — `makeRNG(seed)` À PART, ZÉRO mutation d'état (jamais le `battleRng` du store) | fidèle au PROCHAIN jet réel du store UNIQUEMENT depuis un `seed(n)`/`scenario(id, seed)` FRAIS, avant toute autre consommation — `battleRng` est PARTAGÉ (initiative/dégâts/IA s'intercalent, désynchronisent la prédiction) ; deux previews du même seed renvoient TOUJOURS la même séquence |
@@ -1216,8 +1218,9 @@ que CHAQUE page rend, jamais à un `pending*` (identique des deux côtés, cf. i
 
 | Cas | Commande | Contrôle |
 |---|---|---|
-| **Défaut — aucun setup** | `npm run dev` seul | `relayHttpUrl` (`src/net/relay.ts`) retombe sur `RELAY_URL_PROD` = le Worker Cloudflare DÉPLOYÉ : héberger fonctionne sans rien lancer d'autre |
-| Relay LOCAL (Worker modifié / hors ligne) | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, **puis** Vite relancé avec la variable | `POST http://localhost:8787/rooms` doit rendre `{"code":…,"hostToken":…}` |
+| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `npm run dev` dans un autre | `relayHttpUrl` (`src/net/relay.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
+| Build de production sans variable | Build avec `import.meta.env.PROD` vrai | Le défaut `RELAY_URL_PROD` vise le Worker Cloudflare déployé |
+| Relais explicite | Relancer Vite avec `VITE_RELAY_URL` | La variable prend priorité dans tous les modes ; une URL locale convient aussi à un build de production |
 
 `VITE_RELAY_URL` est lue via `import.meta.env` **au démarrage de Vite** : la poser après coup ne
 change rien, il faut relancer le serveur de dev. Syntaxe PowerShell :
@@ -1228,6 +1231,11 @@ $env:VITE_RELAY_URL = 'http://localhost:8787'; npm run dev
 
 (bash : `VITE_RELAY_URL=http://localhost:8787 npm run dev`). L'URL WebSocket en est DÉRIVÉE
 (`http`→`ws`, `roomWsUrl`) — une seule variable pour les deux.
+
+Pour éprouver le refus de connexion hors production, arrêter le relais local, ou relancer Vite avec
+une URL locale sur un port fermé (par exemple `http://localhost:8799`). Héberger refuse ; rejoindre
+rend « Connexion impossible — réessayez. » après 15 secondes et conserve le mode local. Sans
+variable, aucune de ces tentatives ne vise le Worker de production.
 
 ### Le kit deux-navigateurs (`scripts/recette/lib.mjs`)
 

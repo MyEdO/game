@@ -805,23 +805,16 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 /**
  * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
  * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation, usure). MIGRATION
- * transparente de l'ancienne forme : `trappingId` manquant se dérive de `item.trappingId` (l'arme copiée
- * pré-#222) ; sa base copiée est JETÉE (re-résolue du catalogue). `trappingId` irrésoluble → throw explicite
- * (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
+ * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation). `trappingId`
+ * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
  */
 export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
-  const trappingId = a.trappingId ?? a.item?.trappingId;
-  if (!trappingId) throw new Error(`[poste] réf catalogue absente (ni trappingId ni item.trappingId) : ${JSON.stringify(a)} (#222)`);
-  const base = itemFromTrappingById(trappingId);
-  if (!base) throw new Error(`[poste] trappingId inconnu « ${trappingId} » — pièce non hydratable (#222)`);
-  const enchants = a.enchants ?? a.item?.enchants;
+  const base = itemFromTrappingById(a.trappingId);
+  if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
   const item: ItemInstance = {
     ...base,
-    uid: a.uid ?? a.item?.uid ?? base.uid, // uid d'instance STABLE (liens hotbar/log)
-    ...(enchants?.length ? { enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
-    ...(a.item?.damageTaken != null ? { damageTaken: a.item.damageTaken } : {}), // usure runtime (LDB 62 l.135)
-    ...(a.item?.destroyed ? { destroyed: true } : {}),
+    uid: a.uid ?? base.uid, // uid d'instance STABLE (liens hotbar/log)
+    ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
   };
   const poste: ShipPoste = { item };
   if (a.side) poste.side = a.side;
@@ -910,16 +903,16 @@ export function autoStowNewItem(c: Combatant, it: ItemInstance): void {
 }
 
 /**
- * Ajoute l'objet de catalogue `trappingId` à l'inventaire PERSONNEL d'un héros et re-dérive son équipement
- * actif. Retourne un NOUVEAU combattant (cloné). SOURCE UNIQUE du « donner un objet à un héros » : utilisée
- * par l'achat marchand (`buyItem`) ET l'assignation de butin. Id inconnu → inchangé.
+ * Ajoute une COPIE de l'instance `it` à l'inventaire PERSONNEL d'un héros, la range (`autoStowNewItem`) et
+ * re-dérive son équipement actif. Retourne un NOUVEAU combattant (cloné). SOURCE UNIQUE du « donner un objet
+ * à un héros » : l'appelant crée l'instance UNE fois (`itemFromTrappingById`, `itemFromGive`), et la même
+ * s'écrit sur chaque copie de l'acteur (`ecrireActeur`, #2312).
  */
-export function addItemToHero(hero: Combatant, trappingId: string): Combatant {
-  const it = itemFromTrappingById(trappingId);
-  if (!it) return hero;
+export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
   const clone: Combatant = structuredClone(hero);
-  clone.items = [...(clone.items ?? []), it];
-  autoStowNewItem(clone, it);
+  const recu = structuredClone(it);
+  clone.items = [...(clone.items ?? []), recu];
+  autoStowNewItem(clone, recu);
   recomputeLoadout(clone);
   return clone;
 }

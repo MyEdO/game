@@ -26,15 +26,13 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false); // reste faux tant que la vérification de reprise n'a pas conclu pour CETTE scène
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkedRef = useRef<string | null>(null); // id de scène déjà vérifié cette session
   const pendingRef = useRef<Scene | null>(null); // dernière scène modifiée en attente d'écriture (flush au démontage/pagehide)
   const firstPendingAtRef = useRef<number | null>(null); // début de la rafale en attente, pour le plafond MAX_WAIT_MS
 
   // Vérification de reprise — une fois PAR SCÈNE chargée (jamais à chaque frappe : dépend de scene.id seul).
+  // Sous StrictMode, le setup rejoué après le cleanup jeté RELANCE la lecture ; `cancelled` annule la première.
   useEffect(() => {
-    if (checkedRef.current === scene.id) return;
     flushPending(); // bascule de scène (#834 audit-2 défaut 3) : la scène QUITTÉE doit être écrite avant de vérifier la nouvelle, jamais jetée avec le minuteur en cours
-    checkedRef.current = scene.id;
     setReady(false);
     let cancelled = false;
     // Une faute du jeu à la relecture (`relire` ne rend que les refus de la porte) se PROPAGE jusqu'au
@@ -94,8 +92,8 @@ export function useEditorAutosave(scene: Scene, applyRecovered: (s: Scene) => vo
     };
   }, []);
 
-  /** La scène proposée est DÉJÀ montée au format courant par `autosaveLoad` (chaîne de forme du
-   *  projet) : un enregistrement écarté n'a rien à restaurer. */
+  /** La scène proposée est DÉJÀ prouvée par `autosaveLoad` (`sceneSchema`) : un enregistrement
+   *  refusé n'a rien à restaurer. */
   function restore(): void {
     if (!recovery?.ok) return;
     applyRecovered(recovery.record.scene);

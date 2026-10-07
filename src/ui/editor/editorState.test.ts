@@ -495,7 +495,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
     s = setPosteEngine(s, id, 'mortier');
     const mortier = siegeEngines().find((t) => t.id === 'mortier')!;
     expect(s.entities[0].postes![0].trappingId).toBe('mortier'); // #222 — la réf change, jamais une base copiée
-    expect(s.entities[0].postes![0].item).toBeUndefined(); // base HYDRATÉE au spawn, pas matérialisée à l'authoring
+    expect('item' in s.entities[0].postes![0]).toBe(false); // base HYDRATÉE au spawn, pas matérialisée à l'authoring
     expect(s.entities[0].label).toBe(mortier.label);
     expect(s.entities[0].ref).toBe('mortier'); // ref restampée → spawn construit le BON affût ET le rig suit la ref
     expect(s.entities[0].appearance).toBeUndefined(); // jamais d'`appearance.species` restampé : le rig dérive de `ref`

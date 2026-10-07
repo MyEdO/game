@@ -1,5 +1,4 @@
 import { pregen, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
 import { flowFromEffects } from '../../state/flow';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { buildScene } from '../../state/mapSpec';
@@ -75,7 +74,7 @@ function construireScene(): Scene {
         // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
         {
           ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
-          postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+          postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
         { ref: 'cheval', pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },
         { ref: 'garde-du-village', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },

@@ -10,8 +10,8 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { CodexEdit } from './CodexEdit';
 import { datasetArray } from '../../data/overrides';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
-import { baseSimulee, ouvertureSimulee } from '../../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
+import { baseSimulee, brancherOuvertures, ouvertureSimulee } from '../../lib/indexedDb.testkit';
 
 type FenetreFs = { showDirectoryPicker?: () => Promise<unknown> };
 
@@ -24,7 +24,7 @@ let root: Root;
 
 beforeEach(() => {
   (window as FenetreFs).showDirectoryPicker = () => Promise.resolve({ kind: 'directory' });
-  __setOuvertureIdbForTest(() => {
+  brancherOuvertures(() => {
     const o = ouvertureSimulee(baseSimulee());
     queueMicrotask(() => o.echouer(new DOMException('base illisible', 'UnknownError')));
     return o.req;
@@ -35,7 +35,7 @@ afterEach(() => {
   act(() => { root.unmount(); });
   container.remove();
   delete (window as FenetreFs).showDirectoryPicker;
-  __setOuvertureIdbForTest(null);
+  __setFabriqueIdbForTest(null);
 });
 
 async function monter(): Promise<void> {
@@ -83,7 +83,7 @@ describe('atelier du Codex — la base du dossier src/data qui échoue (#1956)',
       queryPermission: async () => 'prompt',
       requestPermission: async () => { throw new DOMException('permission refusée', 'SecurityError'); },
     });
-    __setOuvertureIdbForTest(() => {
+    brancherOuvertures(() => {
       const o = ouvertureSimulee(base);
       queueMicrotask(() => o.reussir());
       return o.req;

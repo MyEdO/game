@@ -39,6 +39,12 @@
 //
 // DÉFINITION. Un PORTEUR est un littéral de TABLEAU ou d'OBJET atteignable depuis une liaison de
 // MODULE — `export const X = …`, `const X = …` de module, IIFE, fonction déclarée puis exportée.
+// Les options imbriquées appartiennent à leur ARGUMENT. Un tableau scalaire joint avec '/' ou '\\'
+// et le descripteur canonique { dossier, suffixe, recursif } ne sont pas des collections nominatives.
+// Dans une suite, le littéral `fichiers` des options directement passées en argument 0 aux fabriques
+// de depotGabarit est une fixture jetable. L'appel est prouvé par `estAppelDeclare` ; les options
+// voisines et les collections déclarées séparément gardent leur mesure. Le checker n'est emprunté
+// que si un import candidat est présent, et reste vivant pendant tout le parcours.
 // Un ARGUMENT qui ne nomme AUCUN FICHIER est un PARAMÈTRE, pas un porteur : c'est une liste de
 // RACINES que l'appelé consomme (`readCorpus(['src/ui', 'src/gameIso'])`). Dès qu'un fichier y est
 // nommé (extension, ou `fichier:ligne`), le littéral RESTE un porteur quelle que soit la façade —
@@ -68,6 +74,13 @@
 // `429b9a1a2`, les deux faux positifs de `91c928d16` et le `+8` de `572e60b8b` sont tous de cette
 // classe ; précédent `0d6ddeee1` : la classe se règle au garde, jamais à la fixture).
 //
+// MIGRATION DE SITE DE TEST (#1735) : même propriétaire de stock (ou renommage Git), même contenu
+// complet hors fichier, même titre littéral. Le titre existe dans l'ancien fichier avant et dans le
+// nouveau après, manque dans le nouveau avant, et l'ancien fichier disparaît. Les deux membres
+// appariés quittent le bilan ; une panne de lecture ne prouve aucune disparition. Les deux adresses
+// sont des suites (`estSuiteVitest`). Les appels sont liés aux imports runtime Vitest/node:test
+// (`liaisonImportee`), ou aux globals it/test sans liaison locale. L'ordre des champs ne fait rien,
+// une clé calculée ou un étalement ne prouve rien. Lectures et titres sont cachés pour le seul bilan.
 // UNE SEULE SOURCE D'IMAGE : le lecteur `lirePostImage` que l'appelant fournit (contrat
 // `lirePostImage` de `gitPorte.mjs`). `croissanceDesStocks` REFUSE nommément l'appel qui n'en porte
 // pas — un compte sans image ment —, et ne reconstruit aucune image depuis le diff. VOIE NOMINALE :
@@ -108,9 +121,10 @@
 //   · les DIALECTES des porteurs de test ne sont pas énumérés ici : ils viennent du fragment
 //     `SUFFIXE_SUITE` (`fichierVitest.mjs`), qui les porte tous — une suite née en `.mts` ou en
 //     `.mjs` sous `src/` entre dans le périmètre sans qu'on revienne sur cette liste.
-import { SUFFIXE_SUITE } from './fichierVitest.mjs'
+import { estSuiteVitest, SUFFIXE_SUITE } from './fichierVitest.mjs'
 import { parUnitesDeCode } from './lister.mjs'
-import { ast, typescript } from './dialecte.mjs'
+import { analyserCorpus, ast, typescript } from './dialecte.mjs'
+import { contexteImports, estAppelDeclare, liaisonImportee } from './canonUnique.mjs'
 import { enteteDeHunk } from './hunks.mjs'
 
 /** Fichiers susceptibles de porter un stock nominatif. Une BASELINE de COMPTE
@@ -279,10 +293,10 @@ export function porteeDeModule(source, chemin) {
  *  fait partie : c'est elle que porte le registre `AUTO_RESOLUS` (`'criticals.json': …`). Rendre le
  *  NŒUD, et pas un booléen, donne à l'appelant la LIGNE où le fichier est nommé — celle qu'une
  *  entrée multiligne doit citer en exemple. */
-function noeudQuiNomme(ts, node, motif = NOMME) {
+function noeudQuiNomme(ts, node, motif = NOMME, ignorer = () => false) {
   let trouve = null;
   const visiter = (n) => {
-    if (trouve) return;
+    if (trouve || ignorer(n)) return;
     if (ts.isPropertyAssignment(n) && nomDePropriete(ts, n) === 'foyer') return;
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
       if (motif.test(n.text)) trouve = n;
@@ -325,10 +339,74 @@ function texteDeGabarit(ts, node) {
  * porteur, quelle que soit la façade — gel, construction, identité ou n'importe quel appelé.
  */
 function estParametreDAppel(ts, node) {
-  const parent = node.parent;
-  if (!parent || !ts.isCallExpression(parent)) return false;
-  if (!(parent.arguments ?? []).some((a) => a === node)) return false;
-  return !nommeUnFichier(ts, node, NOMME_FICHIER);
+  let argument = node;
+  for (let parent = argument.parent; parent; parent = argument.parent) {
+    if (ts.isCallExpression(parent)) {
+      return (parent.arguments ?? []).includes(argument) && !nommeUnFichier(ts, argument, NOMME_FICHIER);
+    }
+    if (ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent)
+      || ts.isTypeAssertion(parent) || ts.isSatisfiesExpression(parent)
+      || ts.isNonNullExpression(parent) || ts.isPropertyAssignment(parent)
+      || ts.isObjectLiteralExpression(parent) || ts.isArrayLiteralExpression(parent)) argument = parent;
+    else return false;
+  }
+  return false;
+}
+
+function estCheminScalaire(ts, node) {
+  if (!ts.isArrayLiteralExpression(node)) return false;
+  const acces = node.parent;
+  const appel = acces?.parent;
+  return !!acces && ts.isPropertyAccessExpression(acces) && acces.expression === node
+    && acces.name.text === 'join' && !!appel && ts.isCallExpression(appel)
+    && appel.expression === acces && appel.arguments.length === 1
+    && ts.isStringLiteral(appel.arguments[0]) && ['/', '\\'].includes(appel.arguments[0].text)
+    && node.elements.every(e => ts.isStringLiteral(e) || ts.isIdentifier(e) || ts.isNoSubstitutionTemplateLiteral(e));
+}
+
+function estDescripteurDeCorpus(ts, node) {
+  if (!ts.isObjectLiteralExpression(node) || node.properties.length !== 3
+    || !node.properties.every(ts.isPropertyAssignment)) return false;
+  const champs = new Map(node.properties.map(p => [nomDePropriete(ts, p), p.initializer]));
+  const dossier = champs.get('dossier');
+  const suffixe = champs.get('suffixe');
+  const recursif = champs.get('recursif');
+  return champs.size === 3 && !!dossier && ts.isStringLiteral(dossier)
+    && !NOMME_FICHIER.test(dossier.text) && !!suffixe && ts.isStringLiteral(suffixe)
+    && /^[.-][^/\\]+$/.test(suffixe.text) && !!recursif
+    && [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword].includes(recursif.kind);
+}
+
+const sitesDesEntrees = new WeakMap();
+function siteDeTest(ts, node) {
+  if (!ts.isObjectLiteralExpression(node) || !node.properties.every(ts.isPropertyAssignment)) return null;
+  const champs = new Map(node.properties.map(p => [nomDePropriete(ts, p), p.initializer]));
+  const fichier = champs.get('fichier');
+  const titre = champs.get('it');
+  if (champs.size !== node.properties.length || champs.has(null) || !fichier || !titre
+    || !ts.isStringLiteral(fichier) || !estSuiteVitest(fichier.text)
+    || !ts.isStringLiteral(titre) || !titre.text.trim()) return null;
+  const chemin = [];
+  const declarations = [];
+  for (let p = node.parent; p; p = p.parent) {
+    if (ts.isPropertyAssignment(p)) chemin.push(nomDePropriete(ts, p));
+    if (ts.isVariableDeclaration(p)) declarations.push(p.name.getText());
+    if (ts.isFunctionDeclaration(p)) {
+      if (!p.name) return null;
+      declarations.push(p.name.text);
+    }
+  }
+  if (!declarations.length || chemin.includes(null)) return null;
+  const proprietaire = declarations.reverse();
+  const signature = n => {
+    const enfants = [];
+    n.forEachChild(c => enfants.push(signature(c)));
+    return [n.kind, typeof n.text === 'string' ? n.text : null, enfants];
+  };
+  return { fichier: fichier.text, titre: titre.text,
+    proprietaire: JSON.stringify([proprietaire, chemin.reverse()]),
+    contenu: JSON.stringify(node.properties.filter(p => nomDePropriete(ts, p) !== 'fichier')
+      .sort((a, b) => parUnitesDeCode(nomDePropriete(ts, a), nomDePropriete(ts, b))).map(signature)) };
 }
 
 /** Le NOM d'une propriété, tel qu'écrit, ou `null` s'il est calculé. */
@@ -338,6 +416,24 @@ function nomDePropriete(ts, prop) {
   if (ts.isStringLiteral(nom) || ts.isNoSubstitutionTemplateLiteral(nom) || ts.isIdentifier(nom)) return nom.text;
   return null;
 }
+
+function importsDeType(ts, sf) {
+  const noms = new Set();
+  for (const st of sf.statements) {
+    if (!ts.isImportDeclaration(st) || !st.importClause) continue;
+    const clause = st.importClause;
+    if (clause.isTypeOnly && clause.name) noms.add(clause.name.text);
+    const liaisons = clause.namedBindings;
+    if (liaisons && ts.isNamespaceImport(liaisons) && clause.isTypeOnly) noms.add(liaisons.name.text);
+    if (liaisons && ts.isNamedImports(liaisons)) for (const el of liaisons.elements) {
+      if (clause.isTypeOnly || el.isTypeOnly) noms.add(el.name.text);
+    }
+  }
+  return noms;
+}
+
+const FOYER_DEPOT_JETABLE = 'scripts/guards/lib/depotGabarit.mjs';
+const FABRIQUES_DE_DEPOT = { [FOYER_DEPOT_JETABLE]: ['instanceDeDepot', 'gabaritDeDepot'] };
 
 /**
  * Les ENTRÉES de stock d'une IMAGE de fichier, par ligne croissante — ou `null` si le dialecte n'a
@@ -357,6 +453,31 @@ function nomDePropriete(ts, prop) {
 export function entreesNominatives(source, chemin) {
   const img = imageParsee(source, chemin);
   if (!img) return null;
+  const candidat = estSuiteVitest(chemin) && img.sf.statements.some(st => img.ts.isImportDeclaration(st)
+    && st.moduleSpecifier.text?.includes('depotGabarit'));
+  if (!candidat) return entreesDeLAnalyse(img);
+  for (const { sourceFile: sf, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: source }], { inconnu: 'refus' })) {
+    if (!sf) return null;
+    const analyse = { ts: img.ts, sf, texte: sf.text };
+    if (diagnostics.length) return entreesDeLAnalyse(analyse);
+    const contexte = contexteImports(sf, checker);
+    const typesSeuls = importsDeType(img.ts, sf);
+    const fichiersDeFixture = node => {
+      const prop = node.parent;
+      const options = prop?.parent;
+      const appel = options?.parent;
+      return !!prop && img.ts.isPropertyAssignment(prop) && prop.initializer === node
+        && nomDePropriete(img.ts, prop) === 'fichiers' && !!options && img.ts.isObjectLiteralExpression(options)
+        && !!appel && img.ts.isCallExpression(appel) && appel.arguments[0] === options
+        && !typesSeuls.has((img.ts.isPropertyAccessExpression(appel.expression) ? appel.expression.expression : appel.expression).text)
+        && estAppelDeclare(appel, sf, FABRIQUES_DE_DEPOT, contexte) !== null;
+    };
+    return entreesDeLAnalyse(analyse, fichiersDeFixture);
+  }
+  return null;
+}
+
+function entreesDeLAnalyse(img, fichiersDeFixture = () => false) {
   const { ts, sf } = img;
   const locales = lignesLocales(img);
   const ligneDe = (node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
@@ -366,17 +487,23 @@ export function entreesNominatives(source, chemin) {
   const poser = (porteur, nommant) => {
     const ligne = ligneDe(porteur);
     const nomme = ligneDe(nommant);
-    if (!lignes.has(ligne)) lignes.set(ligne, { nomme, cle: fichierNommePar(textes[nomme - 1] ?? '') });
+    if (!lignes.has(ligne)) {
+      const entree = { nomme, cle: fichierNommePar(textes[nomme - 1] ?? '') };
+      const site = siteDeTest(ts, porteur);
+      if (site) sitesDesEntrees.set(entree, site);
+      lignes.set(ligne, entree);
+    }
   };
   const litteral = (n) => n && (ts.isArrayLiteralExpression(n) || ts.isObjectLiteralExpression(n));
   const parcourir = (node) => {
-    if (!litteral(node) || locales.has(ligneDe(node)) || estParametreDAppel(ts, node)) {
+    if (litteral(node) && (fichiersDeFixture(node) || estParametreDAppel(ts, node) || estCheminScalaire(ts, node) || estDescripteurDeCorpus(ts, node))) return;
+    if (!litteral(node) || locales.has(ligneDe(node))) {
       node.forEachChild(parcourir);
       return;
     }
     if (ts.isArrayLiteralExpression(node)) {
       for (const element of node.elements) {
-        const nommant = noeudQuiNomme(ts, element);
+        const nommant = noeudQuiNomme(ts, element, NOMME, fichiersDeFixture);
         if (nommant) poser(element, nommant);
       }
       return;
@@ -386,12 +513,12 @@ export function entreesNominatives(source, chemin) {
       if (nom === 'foyer') continue;
       if (nom !== null && NOMME.test(nom)) { poser(prop, prop.name ?? prop); continue; }
       if (litteral(prop.initializer)) { parcourir(prop.initializer); continue; }
-      const nommant = noeudQuiNomme(ts, prop);
+      const nommant = noeudQuiNomme(ts, prop, NOMME, fichiersDeFixture);
       if (nommant) poser(prop, nommant);
     }
   };
   sf.forEachChild(parcourir);
-  return [...lignes].sort((a, b) => a[0] - b[0]).map(([ligne, { nomme, cle }]) => ({ ligne, nomme, cle }));
+  return [...lignes].sort((a, b) => a[0] - b[0]).map(([ligne, entree]) => copierSite(entree, { ligne, ...entree }));
 }
 
 /** Entrées d'une image de fichier (`entreesNominatives`), chacune avec le `texte` de sa ligne
@@ -405,7 +532,7 @@ function entreesDeLImage(lire, fichier) {
   if (typeof source !== 'string') return null;
   try {
     const lignes = source.split('\n');
-    return entreesNominatives(source, fichier)?.map((e) => ({ ...e, texte: (lignes[e.nomme - 1] ?? '').replace(/\r$/, '').trim() })) ?? null;
+    return entreesNominatives(source, fichier)?.map((e) => copierSite(e, { ...e, texte: (lignes[e.nomme - 1] ?? '').replace(/\r$/, '').trim() })) ?? null;
   } catch { return null; }
 }
 
@@ -452,7 +579,12 @@ function apparier(avant, apres) {
   return { paires, nees, mortes };
 }
 
-const vueDEntree = ({ cle, texte }) => ({ cle, texte });
+function copierSite(source, cible) {
+  const site = sitesDesEntrees.get(source);
+  if (site) sitesDesEntrees.set(cible, site);
+  return cible;
+}
+const vueDEntree = entree => copierSite(entree, { cle: entree.cle, texte: entree.texte });
 
 /**
  * Ce qui NAÎT et ce qui MEURT entre deux images, en ENTRÉES identifiées par leur `cle` (#2223,
@@ -548,8 +680,8 @@ const ENTETE_INERTE =
  *
  * BORNE : la source doit DISPARAÎTRE (son post-chemin est `/dev/null`). Sa raison est un
  * CONSERVATISME fail-closed, pas une doctrine du compte — entre deux porteurs VIVANTS, le retrait
- * reste créditable à SON site (le porteur source décroît de 1 et le reste plus tard), et une
- * redistribution délibérée se DIT par `CLIQUET:` chez le receveur. D'un porteur supprimé, rien ne
+ * reste créditable à SON site, hors migration de site de test prouvée par
+ * `apparierLesSitesDeTests`. Une redistribution sans cette preuve se DIT par `CLIQUET:`. Rien ne
  * reste à créditer : ses entrées ont déménagé, la porte le lit sans avoir à deviner une intention.
  * L'appariement se fait sur le TEXTE de l'entrée, un pour un.
  *
@@ -576,6 +708,80 @@ function apparierLesDeplacements(parFichier) {
       if (reste === 0) return true;
       partantes.set(texte, reste - 1);
       return false;
+    });
+  }
+}
+
+function apparierLesSitesDeTests(parFichier, { lirePreImage, lirePostImage, renommages }) {
+  if (typeof lirePreImage !== 'function') return;
+  const caches = [new Map(), new Map()];
+  const lire = (cote, chemin) => {
+    const cache = caches[cote];
+    if (!cache.has(chemin)) {
+      try { cache.set(chemin, [lirePreImage, lirePostImage][cote](chemin)); }
+      catch { cache.set(chemin, undefined); }
+    }
+    return cache.get(chemin);
+  };
+  const titresLus = new Map();
+  const titres = (source, chemin) => {
+    if (typeof source !== 'string' || !estSuiteVitest(chemin)) return null;
+    const cle = JSON.stringify([chemin, source]);
+    if (titresLus.has(cle)) return titresLus.get(cle);
+    let trouves = null;
+    for (const { sourceFile: sf, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: source }], { inconnu: 'refus' })) {
+      if (!sf || diagnostics.length) break;
+      const ts = typescript();
+      const imports = contexteImports(sf, checker);
+      const typesSeuls = importsDeType(ts, sf);
+      const apiDeTest = e => {
+        if (ts.isIdentifier(e)) {
+          if (typesSeuls.has(e.text)) return false;
+          const origine = liaisonImportee(e, sf, imports);
+          if (origine) return ['vitest', 'node:test'].includes(origine.spec)
+            && (['it', 'test'].includes(origine.nom) || (origine.spec === 'node:test' && origine.nom === 'default'));
+          return ['it', 'test'].includes(e.text) && !checker.getSymbolAtLocation(e);
+        }
+        if (!ts.isPropertyAccessExpression(e) || !ts.isIdentifier(e.expression)
+          || typesSeuls.has(e.expression.text) || !['it', 'test'].includes(e.name.text)) return false;
+        const origine = liaisonImportee(e.expression, sf, imports);
+        return !!origine && origine.nom === '*' && ['vitest', 'node:test'].includes(origine.spec);
+      };
+      trouves = new Set();
+      const visiter = node => {
+        if (ts.isCallExpression(node)) {
+          const titre = node.arguments[0];
+          if (titre && ts.isStringLiteral(titre) && apiDeTest(node.expression)) trouves.add(titre.text);
+        }
+        node.forEachChild(visiter);
+      };
+      visiter(sf);
+    }
+    titresLus.set(cle, trouves);
+    return trouves;
+  };
+  const preuve = (a, b) => {
+    if (a.fichier === b.fichier || a.titre !== b.titre || a.contenu !== b.contenu
+      || a.proprietaire !== b.proprietaire || lire(1, a.fichier) !== null) return false;
+    const avant = titres(lire(0, a.fichier), a.fichier);
+    const apres = titres(lire(1, b.fichier), b.fichier);
+    const preNouveau = lire(0, b.fichier);
+    const deja = preNouveau === null ? new Set() : titres(preNouveau, b.fichier);
+    return !!avant?.has(a.titre) && !!apres?.has(b.titre) && deja !== null && !deja.has(b.titre);
+  };
+  for (const receveur of parFichier) {
+    receveur.retenues = receveur.retenues.filter(nee => {
+      const b = sitesDesEntrees.get(nee);
+      if (!b) return true;
+      for (const donneur of parFichier) {
+        if (donneur.fichier !== receveur.fichier && renommages.get(donneur.fichier) !== receveur.fichier) continue;
+        const i = donneur.perdues.findIndex(morte => {
+          const a = sitesDesEntrees.get(morte);
+          return a && preuve(a, b);
+        });
+        if (i >= 0) { donneur.perdues.splice(i, 1); return false; }
+      }
+      return true;
     });
   }
 }
@@ -740,6 +946,7 @@ export function bilanDesStocks(diffU0, images) {
     })
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier));
   apparierLesDeplacements(lus);
+  apparierLesSitesDeTests(lus, { lirePreImage, lirePostImage, renommages });
   return lus.map(({ fichier, retenues, perdues }) => bilanDuPorteur(fichier, retenues, perdues, renommages));
 }
 

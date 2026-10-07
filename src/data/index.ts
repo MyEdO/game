@@ -3048,8 +3048,7 @@ export const premierOffert = (catalogue: readonly { id: string }[], quoi: string
   if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
   return premier.id;
 };
-/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
- *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
+/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`, `setVessel`). */
 export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
 export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
 export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');

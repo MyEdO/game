@@ -1,65 +1,57 @@
 /**
- * parseProject — validation de FORME du document de projet (courant : `{ type: 'projet', schema: 8,
- * Garde-fou robustesse : un document corrompu / d'un autre schéma doit LEVER proprement (capté en
- * amont : l'éditeur affiche « JSON invalide », pas un crash), jamais être parsé en silence.
+ * parseProject — validation de FORME du document de projet (`{ type: 'projet', id, label, versionContenu,
+ * scenes, worldMap?, narratif }`). Garde-fou robustesse : un document corrompu ou d'un autre format doit
+ * LEVER proprement (capté en amont : l'éditeur affiche son refus, pas un crash), jamais être parsé en
+ * silence ni migré (#2404).
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, declutterPositions, resolvePortRef, portVersDepot, placeServices, CURRENT_PROJECT_SCHEMA, type RenderPoint, type MapPlace } from './worldMap';
+import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, type RenderPoint, type MapPlace } from './worldMap';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
-import type { Scene } from './scene';
+import { emptyScene, type Scene } from './scene';
 import { emptyNarratif } from './campaignNarratif';
 
-const scene = (id: string) => ({ id, label: id, dimensions: { w: 3, h: 3 } } as unknown as Scene);
+const scene = (id: string): Scene => ({ ...emptyScene(3, 3), id, label: id });
 
-/** L'identité d'un document ANTÉRIEUR vivait dans la poche `meta`, aplatie par `PROJECT_MIGRATIONS[4]`.
- *  Elle est REQUISE depuis #1552 (l'enveloppe l'exige) et la migration n'en INVENTE pas : un document
- *  d'un schéma antérieur la porte, ou il se fait refuser à la porte. Chaque fixture ci-dessous la porte
- *  donc, et c'est la chaîne 2→7 ENTIÈRE qui est mesurée à chaque cas. */
-const metaAnterieure = { id: 'projet-de-test', label: 'Projet de test', version: 1 };
+/** Un document de projet au format courant, ses scènes et ses champs en plus fournis par le cas. */
+const projet = (scenes: unknown[], plus: Record<string, unknown> = {}) => ({
+  type: 'projet', id: 'projet-de-test', label: 'Projet de test', versionContenu: 1, maison: 'fixture de test',
+  narratif: emptyNarratif(), scenes, ...plus,
+});
 const wm = { id: 'm', label: 'Carte', places: [], routes: [] };
 
-describe('parseProject — validation du format projet v2', () => {
-  it('document valide { schema: 2, scenes } → scènes restituées', () => {
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1'), scene('s2')] };
-    expect(parseProject(doc).scenes.map((s) => s.id)).toEqual(['s1', 's2']);
+describe('parseProject — validation du format projet', () => {
+  it('document valide → scènes restituées', () => {
+    expect(parseProject(projet([scene('s1'), scene('s2')])).scenes.map((s) => s.id)).toEqual(['s1', 's2']);
   });
 
   it('worldMap optionnel : présent → restitué ; absent → undefined', () => {
-    expect(parseProject({ schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: wm }).worldMap).toEqual(wm);
-    expect(parseProject({ schema: 2, meta: metaAnterieure, scenes: [scene('s1')] }).worldMap).toBeUndefined();
+    expect(parseProject(projet([scene('s1')], { worldMap: wm })).worldMap).toEqual(wm);
+    expect(parseProject(projet([scene('s1')])).worldMap).toBeUndefined();
   });
 
-  it('schéma 1 (aucune migration 1→2 définie) → refus EXPLICITE, pas un throw sec muet', () => {
-    expect(() => parseProject({ schema: 1, scenes: [scene('s1')] }))
-      .toThrow(/Projet invalide : version non supportée \(schema=1\)/);
-  });
-
-  it('schéma futur inconnu (99) → refus EXPLICITE (on ne devine pas une structure future)', () => {
-    expect(() => parseProject({ schema: 99, scenes: [scene('s1')] }))
-      .toThrow(/Projet invalide : version future \(schema=99\)/);
-  });
-
-  it('schéma absent → lève', () => {
-    expect(() => parseProject({ scenes: [scene('s1')] })).toThrow(/Projet invalide/);
+  it('un numéro de forme `schema` (autre format) → refus EXPLICITE, nommé à la racine', () => {
+    expect(() => parseProject(projet([scene('s1')], { schema: 18 })))
+      .toThrow(/^Projet d’un autre format, ou mal formé — JSON invalide contre son schéma :\n {2}- \(racine\): Clé non reconnue : "schema"/);
   });
 
   it('scenes manquant ou non-tableau → lève', () => {
-    expect(() => parseProject({ schema: 2 })).toThrow(/Projet invalide/);
-    expect(() => parseProject({ schema: 2, meta: metaAnterieure, scenes: 'nope' })).toThrow(/Projet invalide/);
+    const { scenes: _sans, ...sansScenes } = projet([]);
+    expect(() => parseProject(sansScenes)).toThrow(/Projet d’un autre format, ou mal formé/);
+    expect(() => parseProject(projet([], { scenes: 'nope' }))).toThrow(/Projet d’un autre format, ou mal formé/);
   });
 
   it('formats ANTÉRIEURS (tableau de scènes nu, scène unique, null) → lèvent', () => {
-    expect(() => parseProject([scene('s1')])).toThrow(/Projet invalide/); // ancien : tableau nu
-    expect(() => parseProject(scene('s1'))).toThrow(/Projet invalide/); // ancien : scène unique
-    expect(() => parseProject(null)).toThrow(/Projet invalide/);
+    expect(() => parseProject([scene('s1')])).toThrow(/Projet d’un autre format, ou mal formé/); // ancien : tableau nu
+    expect(() => parseProject(scene('s1'))).toThrow(/Projet d’un autre format, ou mal formé/); // ancien : scène unique
+    expect(() => parseProject(null)).toThrow(/Projet d’un autre format, ou mal formé/);
   });
 
-  it('scène ANCIENNE (schema 2 mais sans les collections requises du Scene actuel) → normalisée, ne crashe pas validateScene', () => {
+  it('scène SANS ses collections optionnelles → normalisée, ne crashe pas validateScene', () => {
     // Reproduit le crash « Ouvrir → L'Embuscade » (TypeError sur s.encounters.map, validateScene.ts:59) :
-    // un projet localStorage sauvegardé avant que `Scene` ne gagne `encounters`/`dialogues`/… ne les porte pas.
-    const old = { id: 'old', label: 'Vieille scène', dimensions: { w: 3, h: 3 } } as Scene; // aucune collection
-    const { scenes } = parseProject({ schema: 2, meta: metaAnterieure, scenes: [old] });
+    // une scène qui n'écrit pas `encounters`/`dialogues`/… les reçoit de `normalizeScene`.
+    const { layers: _l, entities: _e, dialogues: _d, triggers: _t, encounters: _n, flags: _f, ...nue } = scene('nue');
+    const { scenes } = parseProject(projet([nue]));
     expect(scenes[0].encounters).toEqual([]);
     expect(scenes[0].dialogues).toEqual([]);
     expect(scenes[0].triggers).toEqual([]);
@@ -77,14 +69,14 @@ describe('parseProject — validation du format projet v2', () => {
       surplus: { 'produits-de-luxe': 1 }, demande: { cereales: 2 }, cosmopolite: true, lighthouse: true,
     };
     const mapWithPort = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Marienburg', pos: { x: 50, y: 50 }, scene: 's1', port }], routes: [] };
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapWithPort as never };
+    const doc = projet([scene('s1')], { worldMap: mapWithPort as never });
     const round = parseProject(JSON.parse(JSON.stringify(doc)));
     expect(round.worldMap!.places[0].port).toEqual(port);
   });
 
   it('#217 : MapPlace.port.ref seul → résolu aux valeurs du catalogue naval-ports.json au chargement', () => {
     const mapWithRef = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Salzenmund', pos: { x: 50, y: 50 }, scene: 's1', port: { ref: 'salzenmund' } }], routes: [] };
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapWithRef as never };
+    const doc = projet([scene('s1')], { worldMap: mapWithRef as never });
     const round = parseProject(JSON.parse(JSON.stringify(doc)));
     const port = round.worldMap!.places[0].port!;
     expect(port.taille).toBe(4);
@@ -94,7 +86,7 @@ describe('parseProject — validation du format projet v2', () => {
 
   it('#217 : MapPlace.port.ref + surcharge locale → la surcharge gagne sur le catalogue', () => {
     const mapWithOverride = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Salzenmund', pos: { x: 50, y: 50 }, scene: 's1', port: { ref: 'salzenmund', taille: 1 } }], routes: [] };
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapWithOverride as never };
+    const doc = projet([scene('s1')], { worldMap: mapWithOverride as never });
     const round = parseProject(JSON.parse(JSON.stringify(doc)));
     const port = round.worldMap!.places[0].port!;
     expect(port.taille).toBe(1); // surcharge locale
@@ -104,14 +96,14 @@ describe('parseProject — validation du format projet v2', () => {
   it('#217 : MapPlace.port SANS ref → comportement inchangé (aucune résolution)', () => {
     const port = { taille: 2, richesse: 2, production: ['sel'] };
     const mapNoRef = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Port maison', pos: { x: 50, y: 50 }, scene: 's1', port }], routes: [] };
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapNoRef as never };
+    const doc = projet([scene('s1')], { worldMap: mapNoRef as never });
     const round = parseProject(JSON.parse(JSON.stringify(doc)));
     expect(round.worldMap!.places[0].port).toEqual(port);
   });
 
   it('#217 : MapPlace.port.ref inconnue → erreur EXPLICITE (fail-fast, jamais un port silencieusement vide)', () => {
     const mapBadRef = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Nulle-part', pos: { x: 50, y: 50 }, scene: 's1', port: { ref: 'port-qui-n-existe-pas' } }], routes: [] };
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapBadRef as never };
+    const doc = projet([scene('s1')], { worldMap: mapBadRef as never });
     expect(() => parseProject(JSON.parse(JSON.stringify(doc)))).toThrow(/worldMap › places « l1 » › port\.ref: « port-qui-n-existe-pas » est absent du catalogue des ports \(naval-ports\.json\)/);
   });
 
@@ -133,7 +125,7 @@ describe('parseProject — validation du format projet v2', () => {
     // quelle. Sa présence désactive le déchevauchement (les lieux restent à leurs pos EXACTES).
     const bg = 'data:image/svg+xml;utf8,%3Csvg%2F%3E';
     const mapWithBg = { id: 'm', label: 'Reikland', background: bg, places: [{ id: 'l1', label: 'Altdorf', pos: { x: 60, y: 30 }, scene: 's1' }], routes: [] };
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapWithBg as never };
+    const doc = projet([scene('s1')], { worldMap: mapWithBg as never });
     const round = parseProject(JSON.parse(JSON.stringify(doc)));
     expect(round.worldMap!.background).toBe(bg);
   });
@@ -299,36 +291,20 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
 
 /**
  * La PORTE de schéma du seam (#1466 T3-a) : `parseProject` fait traverser un document par
- * `migrateDoc` PUIS par `projetSchema` (`validateDocument`). Les contrats ci-dessous sont ceux que
- * le schéma nu (`defs-scenes/projet-schema.test.ts`) ne peut pas tenir — ils portent sur le
- * CHEMINEMENT : ce qui est migré avant d'être jugé, ce qui est retiré avant d'être jugé, et la
- * forme des refus. Le refus de `encounters[].enemies` est le DURCISSEMENT acté par la purge
- * `f20f16e65` (2026-06-13) : ce champ n'est plus produit par l'app.
+ * `projetSchema` (`validateDocument`), seul contrôle de forme (#2404). Le refus de
+ * `encounters[].enemies` est le DURCISSEMENT acté par la purge `f20f16e65` (2026-06-13) : ce champ
+ * n'est plus produit par l'app.
  */
 describe('parseProject — porte de schéma', () => {
-  const narratifVide = emptyNarratif();
-
-  it('un document schema 2 (localStorage d\'avant #765) est MIGRÉ puis accepté par la porte', () => {
-    const res = parseProject({ schema: 2, meta: metaAnterieure, scenes: [scene('s1')] });
-    expect(res.scenes.map((s) => s.id)).toEqual(['s1']);
-    expect(res.narratif).toEqual(narratifVide);
-  });
-
-  it('la clé de travail `version` de `migrateDoc` est RETIRÉE avant la porte (schéma STRICT)', () => {
-    const res = parseProject({ schema: 3, version: 3, meta: metaAnterieure, scenes: [scene('s1')], narratif: narratifVide });
-    expect(res.scenes.map((s) => s.id)).toEqual(['s1']);
-  });
-
-  it('un schema FUTUR est refusé AVANT la porte, avec un message actionnable', () => {
-    // Le futur se DÉRIVE du courant : un littéral se périme en silence au prochain bump (il l'a fait
-    // au passage à 5, où « le futur » était devenu le présent et ne mesurait plus rien).
-    const futur = CURRENT_PROJECT_SCHEMA + 1;
-    expect(() => parseProject({ schema: futur, scenes: [scene('s1')], narratif: narratifVide }))
-      .toThrow(new RegExp(`Projet invalide : version future \\(schema=${futur}\\)`));
-  });
-
   it('`encounters[].enemies` (forme ANTÉRIEURE) est refusé PAR SON NOM, jamais absorbé en silence', () => {
-    const doc = { schema: 2, meta: metaAnterieure, scenes: [{ ...scene('s1'), encounters: [{ id: 'e1', enemies: [{ ref: 'gobelin', count: 2 }] }] }] };
+    const doc = projet([{ ...scene('s1'), encounters: [{ id: 'e1', enemies: [{ ref: 'gobelin', count: 2 }] }] }]);
     expect(() => parseProject(doc)).toThrow(/scenes « s1 » › encounters « e1 »: Clé non reconnue : "enemies"/);
+  });
+
+  it('un nœud `null` dans un Flow est REFUSÉ par les deux portes, jamais purgé', () => {
+    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] };
+    const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
+    expect(() => parseProject(projet([avecNull]))).toThrow(/triggers « t1 » › flow\.steps\.1: .*null reçu/);
+    expect(() => parseSceneDeProjet(avecNull)).toThrow(/flow\.steps\.1: .*null reçu/);
   });
 });

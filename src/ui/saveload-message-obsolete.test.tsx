@@ -3,7 +3,7 @@ import { StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SaveLoadModal } from './SaveLoadModal';
-import { SAVE_VERSION, takeObsoleteNotice } from '../state/saves';
+import { FORMAT_SAVE } from '../state/formats.generated';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -20,7 +20,7 @@ function fakeStorage(): Storage {
 }
 
 const ls = () => (globalThis as { localStorage: Storage }).localStorage;
-const save = (version: number) => JSON.stringify({ version, savedAt: '2026-08-17', sceneLabel: 'Ancienne', gameTime: 3, data: {} });
+const save = (version: string | number) => JSON.stringify({ version, savedAt: '2026-08-17', sceneLabel: 'Ancienne', gameTime: 3, data: {} });
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -36,7 +36,6 @@ function monter(): string {
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', fakeStorage());
-  takeObsoleteNotice(); // témoin remis à zéro entre les cas
 });
 
 afterEach(() => {
@@ -45,40 +44,56 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('écran de chargement — une sauvegarde jetée le DIT au joueur (sous StrictMode)', () => {
-  it('save d’une version ANTÉRIEURE : le message parle de version antérieure, et l’emplacement est vidé', () => {
-    ls().setItem('wfrp4.save.1', save(SAVE_VERSION - 1));
-    const texte = monter();
-    expect(texte).toContain('version antérieure');
-    expect(texte).toContain('retirée');
+/** Les messages de retrait rendus par `ChipDeRefus`, dans l'ordre de l'écran. */
+const retraitsAffiches = (): string[] =>
+  [...(container?.querySelectorAll('[role="alert"] p.chip.tone-danger.chip-phrase') ?? [])].map((p) => p.textContent ?? '');
+
+describe('écran de chargement — une sauvegarde jetée le DIT au joueur, emplacement NOMMÉ (sous StrictMode)', () => {
+  it('save d’un AUTRE FORMAT : le message nomme l’emplacement, par `ChipDeRefus`, et l’emplacement est vidé', () => {
+    ls().setItem('wfrp4.save.1', save('autre-format'));
+    monter();
+    expect(retraitsAffiches()).toEqual(['Emplacement 1 : sauvegarde d’un autre format, retirée.']);
     expect(ls().getItem('wfrp4.save.1')).toBeNull();
   });
 
-  it('save d’une version PLUS RÉCENTE : le message ne ment pas (« plus récente », jamais « antérieure »)', () => {
-    ls().setItem('wfrp4.save.2', save(SAVE_VERSION + 1));
-    const texte = monter();
-    expect(texte).toContain('version plus récente');
-    expect(texte).not.toContain('version antérieure');
+  it('save à numéro de version : même message, sous SON emplacement', () => {
+    ls().setItem('wfrp4.save.2', save(66));
+    monter();
+    expect(retraitsAffiches()).toEqual(['Emplacement 2 : sauvegarde d’un autre format, retirée.']);
+    expect(ls().getItem('wfrp4.save.2')).toBeNull();
   });
 
-  it('clé de QUARANTAINE historique (`wfrp4.save.future.N`) : purgée, et annoncée comme plus récente', () => {
-    ls().setItem('wfrp4.save.future.3', save(SAVE_VERSION + 1));
-    const texte = monter();
-    expect(texte).toContain('version plus récente');
-    expect(ls().getItem('wfrp4.save.future.3')).toBeNull();
+  it('emplacement AUTOMATIQUE : nommé comme tel', () => {
+    ls().setItem('wfrp4.save.auto', save('autre-format'));
+    monter();
+    expect(retraitsAffiches()).toEqual(['Emplacement automatique : sauvegarde d’un autre format, retirée.']);
+    expect(ls().getItem('wfrp4.save.auto')).toBeNull();
   });
 
-  it('contenu ILLISIBLE : le message le dit tel quel, sans invoquer une version', () => {
+  it('deux emplacements retirés : un message chacun', () => {
+    ls().setItem('wfrp4.save.1', save('autre-format'));
+    ls().setItem('wfrp4.save.3', 'pas du json');
+    monter();
+    expect(retraitsAffiches()).toEqual([
+      'Emplacement 1 : sauvegarde d’un autre format, retirée.',
+      'Emplacement 3 : sauvegarde illisible, retirée.',
+    ]);
+    const piles = new Set([...container!.querySelectorAll('[role="alert"]')].map((a) => a.parentElement));
+    expect([...piles].map((p) => p?.className), 'les pastilles dans UNE pile `Stack`, espacées par son gap').toEqual(['stack']);
+  });
+
+  it('contenu ILLISIBLE : le message le dit tel quel, sans invoquer un format', () => {
     ls().setItem('wfrp4.save.1', 'pas du json');
     const texte = monter();
-    expect(texte).toContain('Sauvegarde illisible');
-    expect(texte).not.toContain('version');
+    expect(retraitsAffiches()).toEqual(['Emplacement 1 : sauvegarde illisible, retirée.']);
+    expect(texte).not.toContain('format');
     expect(ls().getItem('wfrp4.save.1')).toBeNull();
   });
 
-  it('save à la version COURANTE : aucun message de rejet, la save reste chargeable', () => {
-    ls().setItem('wfrp4.save.1', save(SAVE_VERSION));
+  it('save au format COURANT : aucun message de rejet, la save reste chargeable', () => {
+    ls().setItem('wfrp4.save.1', save(FORMAT_SAVE));
     const texte = monter();
+    expect(retraitsAffiches()).toEqual([]);
     expect(texte).not.toContain('retirée');
     expect(ls().getItem('wfrp4.save.1')).not.toBeNull();
   });

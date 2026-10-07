@@ -13,7 +13,7 @@ import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CT
   type OpsCtx, type OpsCtxGele, type DemandeDe, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, testDeCorruption } from './corruptionFlow';
-import { spellCost } from '../engine/grimoire';
+import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './sceneNpc';
@@ -25,7 +25,7 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { recomputeLoadout, itemFromGive, giveTrappingLabel, withGiveQualities, autoStowNewItem } from '../engine/items';
+import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet } from '../engine/items';
 import { trappingById, indiceById, documentById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
@@ -69,7 +69,7 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId } from './combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId } from './combatants';
 import { addPossession, type PossessionInput } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef } from '../engine/possession';
 import { ev } from './combatLog';
@@ -1175,9 +1175,9 @@ export function runPureFlowLines(target: Combatant, caster: Combatant | undefine
 
 /**
  * Environnement d'exécution d'un Effet : l'état (get/set) + les helpers FACTORISÉS du switch d'origine.
- * `mutateHero` capture le motif RÉPÉTÉ « héros désigné par heroId, sinon une cible par défaut → clone →
- * muter le party » (7 cas) ; `targets` = `effectTargets` (cibles party/hero, file de combat ou groupe) ;
- * `log`/`pushReveal` = raccourcis. Aucune logique de domaine ici (chaque conséquence vit dans son handler).
+ * `hero` choisit le héros d'un Effet, `mutateHero` le choisit puis l'écrit par `ecrireActeur` (#2312) ;
+ * `targets` = `effectTargets` (cibles party/hero, file de combat ou groupe) ; `log`/`pushReveal` =
+ * raccourcis. Aucune logique de domaine ici (chaque conséquence vit dans son handler).
  */
 export interface EffectEnv {
   get: Get;
@@ -1190,15 +1190,20 @@ export interface EffectEnv {
   /** Cibles d'un effet `party`/`hero` (héros vivants concernés, bon ensemble) — `effectTargets`. */
   targets(on: 'party' | 'hero', heroId?: string): Combatant[];
   /**
-   * Applique `mutate` au héros choisi (heroId, sinon `pick`/le premier vivant) et renvoie l'ORIGINAL
-   * muté (pour le journal). `mutate(hero)` renvoie le NOUVEAU héros (immuable) ; renvoyer `hero`
-   * inchangé = pas de mutation (le héros reste, ex. maladie déjà présente). `pick(party)` choisit
-   * l'index défaut quand `heroId` est absent (−1 = abandon) ; absent → le premier (index 0).
+   * Héros choisi, lu là où le jeu le lit : chaque membre du groupe pris dans la file de combat en
+   * combat (`inBattleId`), sinon au groupe. `heroId` désigne ; absent, `pick(heros)` rend l'index
+   * (−1 = abandon), et sans `pick` le premier. `null` : aucun.
+   */
+  hero(heroId: string | undefined, pick?: (heros: Combatant[]) => number): Combatant | null;
+  /**
+   * Choisit le héros comme `hero`, l'écrit par `ecrireActeur` et rend l'ORIGINAL (pour le journal).
+   * `mutate` s'applique à chaque copie (groupe, file de combat), au contrat d'`ecrireActeur` ;
+   * renvoyer `hero` inchangé = pas de mutation.
    */
   mutateHero(
     heroId: string | undefined,
     mutate: (hero: Combatant) => Combatant,
-    pick?: (party: Combatant[]) => number,
+    pick?: (heros: Combatant[]) => number,
   ): Combatant | null;
 }
 
@@ -1210,23 +1215,22 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number): EffectEnv {
     log: (line) => get().log(line),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get, on, heroId),
+    hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
     mutateHero: (heroId, mutate, pick) => {
-      let chosen: Combatant | null = null;
-      set((s: GameState) => {
-        if (!s.party.length) return {};
-        const idx = heroId
-          ? s.party.findIndex((h) => h.id === heroId)
-          : pick
-            ? pick(s.party)
-            : 0;
-        if (idx < 0) return {};
-        chosen = s.party[idx];
-        return { party: s.party.map((h, i) => (i === idx ? mutate(h) : h)) };
-      });
+      const chosen = choisirHeros(get(), heroId, pick);
+      if (chosen) set((s: GameState) => ecrireActeur(s, chosen.id, mutate));
       return chosen;
     },
   };
 }
+
+function choisirHeros(s: GameState, heroId: string | undefined, pick?: (heros: Combatant[]) => number): Combatant | null {
+  const heros = s.party.map((h) => inBattleId(s.battle, h.id) ?? h);
+  const idx = heroId ? heros.findIndex((h) => h.id === heroId) : pick ? pick(heros) : 0;
+  return heros[idx] ?? null;
+}
+
+const idsDuGroupe = (s: GameState): string[] => s.party.map((h) => h.id);
 
 /** Issue de l'`apply` d'un handler : `'suspend'` STOPPE la boucle `applyEffects` (l'effet a ouvert une
  *  modale/pending qui reprend la suite — extendedTest, forceDoor) ; sinon (void) la boucle continue. */
@@ -1469,13 +1473,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.detectTried) it.detectTried = true;
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;
       if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
-      const who = env.mutateHero(e.heroId, (h) => {
-        const clone: Combatant = structuredClone(h);
-        clone.items = [...(clone.items ?? []), it]; // arrive NON équipé
-        autoStowNewItem(clone, it); // #204 : rangement par défaut (contenant avec le plus de place libre)
-        recomputeLoadout(clone); // met à jour l'encombrement
-        return clone;
-      });
+      const who = env.mutateHero(e.heroId, (h) => avecObjet(h, it)); // arrive NON équipé
       env.log(who ? t('eff.recover', { name: who.label, item: it.label }) : t('eff.recoverSansHeros', { item: it.label }));
     },
   },
@@ -1483,7 +1481,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: 'Donner une possession (bête/serviteur/véhicule)', icon: 'item/misc',
     make: () => ({ type: 'givePossession', nature: 'bete', ref: { creatureId: creatureSemee() } }),
     apply: (e, env) => {
-      const owner = env.mutateHero(e.heroId, (h) => h); // pas de mutation : choisit seulement le propriétaire
+      const owner = env.hero(e.heroId);
       if (!owner) return;
       // `nature`/`ref` corrélés par construction de l'Effet (vehicule ⟺ {vehicleId}, sinon LivingRef) —
       // l'union discriminée de `Possession` ne se reconstruit pas depuis 2 champs plats sans assertion.
@@ -1522,13 +1520,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: 'Donner des PX (groupe)', icon: 'resource/xp',
     make: () => ({ type: 'giveXp', amount: 50 }),
     apply: (e, env) => {
-      env.set((s: GameState) => ({
-        party: s.party.map((h) => {
-          const clone: Combatant = structuredClone(h);
-          clone.xp = (clone.xp ?? 0) + e.amount;
-          return clone;
-        }),
-      }));
+      env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
       env.log(t('eff.xp', { amount: e.amount }));
     },
   },
@@ -1536,23 +1528,18 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: 'Apprendre un sort (trouvaille, sans PX)', icon: 'magic/power',
     make: () => ({ type: 'learnSpell', spell: '', heroId: '' }),
     apply: (e, env) => {
-      // LDB 46 l.20
+      // LDB 46 l.14-20, #1702, #2312.
       const sp = findSpellById(e.spell);
       if (!sp) return;
-      // `c.spells` = IDS de sort (résolus par findSpellById dans la console/IA/grimoire) ; le libellé
-      // ne sert qu'à l'affichage (log ci-dessous). Même convention que pregens/buySpell/Béni.
-      // LDB 46 l.14 — #1702 : MÊME garde que `buySpell` (`spellCost` null = déjà connu ou Talent
-      // manquant), héros NOMMÉ ou repli ; `mutateHero` rend l'ORIGINAL, d'où la relecture du prédicat.
-      const learnable = (h: Combatant) => spellCost(h, sp) != null;
+      const learnable = (h: Combatant) => verdictApprentissage(h, sp) === 'ok';
       const who = env.mutateHero(
         e.heroId,
         (h) => (learnable(h) ? { ...h, spells: [...(h.spells ?? []), sp.id] } : h),
-        (party) => party.findIndex(learnable),
+        (heros) => heros.findIndex(learnable),
       );
-      // `heroId` authoré hors du groupe : le motif est l'ID, jamais l'éligibilité du groupe.
-      if (!who) env.log(e.heroId ? t('eff.heroUnknown', { id: e.heroId }) : t('eff.learnSpellNoOne', { spell: sp.label }));
-      else if (!learnable(who)) env.log(t('pf.spellCannotLearn', { name: who.label, spell: sp.label }));
-      else env.log(t('eff.learnSpell', { name: who.label, spell: sp.label }));
+      if (!who) { env.log(e.heroId ? t('eff.heroUnknown', { id: e.heroId }) : t('eff.learnSpellNoOne', { spell: sp.label })); return; }
+      const verdict = verdictApprentissage(who, sp);
+      env.log(t(verdict === 'deja-connu' ? 'pf.spellAlreadyKnown' : verdict === 'non-eligible' ? 'pf.spellCannotLearn' : 'eff.learnSpell', { name: who.label, spell: sp.label }));
     },
   },
   petitePriere: {
@@ -1602,7 +1589,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'restoreFortune' }),
     apply: (_e, env) => {
       // Début de session (LDB 17 l.41) : Chance regagnée jusqu'au maximum = Destin actuel.
-      env.set((s: GameState) => ({ party: restoreFortune(s.party) }));
+      env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => restoreFortune([h])[0]));
       env.log(t('eff.restoreFortune'));
     },
   },
@@ -1721,15 +1708,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Maladie (LDB 20) infligée par l'auteur (nourriture avariée, contact infecté…). Incubation/durée
       // tirées à la contraction ; les symptômes se déclareront au repos. Dédoublonnée par nom.
-      let whoId = '';
-      const who = env.mutateHero(e.heroId, (h) => {
-        if ((h.diseases ?? []).some((d) => d.id === e.disease)) return h; // déjà présente → no-op
-        const dz = contractDisease(e.disease, battleRng());
-        if (!dz) return h;
-        whoId = h.id;
-        return { ...h, diseases: [...(h.diseases ?? []), dz] };
-      });
-      if (who && whoId) {
+      const porte = (h: Combatant) => (h.diseases ?? []).some((d) => d.id === e.disease);
+      const cible = env.hero(e.heroId);
+      if (!cible || porte(cible)) return;
+      const dz = contractDisease(e.disease, battleRng());
+      if (!dz) return;
+      const whoId = cible.id;
+      const who = env.mutateHero(whoId, (h) => (porte(h) ? h : { ...h, diseases: [...(h.diseases ?? []), { ...dz }] }));
+      if (who) {
         const line = t('eff.diseaseContracted', { name: who.label, disease: e.disease });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
@@ -1827,20 +1813,18 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Blessure Critique posée rétroactivement par l'éditeur (LDB 18) : déchirure/fracture via `traumaById`
       // (fiche `traumas.json` résolue par `dechirureFractureFicheId`, effets en-combat + convalescence),
       // amputation via les séquelles permanentes (`permanentAmputations`). criticalWounds suit (compteur LDB 18).
-      let labels: string[] = [];
-      let whoId = '';
-      const who = env.mutateHero(e.heroId, (h) => {
-        whoId = h.id;
-        const be = Math.floor(effectiveChar(h, 'endurance') / 10);
-        // Amputation : séquelle PERMANENTE choisie par localisation (bras → main/bras ; jambe → membre
-        // inférieur ; tête → œil, choix d'éditeur) — ids de fiche `traumas.json`, plus de texte parsé.
-        const ampSequel = e.location === 'tete' ? 'oeil-perdu' : e.location === 'brasG' || e.location === 'brasD' ? 'main-bras-ampute' : 'membre-inferieur-ampute';
-        const traumas = e.kind === 'amputation'
-          ? permanentAmputations([ampSequel], e.location)
-          : [traumaById(dechirureFractureFicheId(e.kind, e.severity ?? 'mineur', e.location), { be, d10: d10(battleRng()) }, e.location)];
-        labels = traumas.map((tr) => tr.label);
-        return { ...h, traumas: [...(h.traumas ?? []), ...traumas], criticalWounds: (h.criticalWounds ?? 0) + 1 };
-      });
+      const cible = env.hero(e.heroId);
+      if (!cible) return;
+      const whoId = cible.id;
+      const be = Math.floor(effectiveChar(cible, 'endurance') / 10);
+      // Amputation : séquelle PERMANENTE choisie par localisation (bras → main/bras ; jambe → membre
+      // inférieur ; tête → œil, choix d'éditeur) — ids de fiche `traumas.json`, plus de texte parsé.
+      const ampSequel = e.location === 'tete' ? 'oeil-perdu' : e.location === 'brasG' || e.location === 'brasD' ? 'main-bras-ampute' : 'membre-inferieur-ampute';
+      const traumas = e.kind === 'amputation'
+        ? permanentAmputations([ampSequel], e.location)
+        : [traumaById(dechirureFractureFicheId(e.kind, e.severity ?? 'mineur', e.location), { be, d10: d10(battleRng()) }, e.location)];
+      const labels = traumas.map((tr) => tr.label);
+      const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: [...(h.traumas ?? []), ...structuredClone(traumas)], criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
         const line = t('eff.criticalSuffered', { name: who.label, kind: e.kind, location: e.location });
         env.log(line);
@@ -1865,19 +1849,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Trauma (ADE II Annexe I) : « témoin d'un événement qui rend une Ambition complètement irréalisable
       // → Test de Calme Accessible (+20) ; échec → Trauma Psychologique ». La fonction pure porte la garde de
       // la règle facultative `psych-acquisition-optional` (null si éteinte → effet inerte, aucun RNG consommé).
-      let shown: { roll: number; target: number } | null = null;
-      let acquired = false;
-      const who = env.mutateHero(e.heroId, (h) => {
-        const res = traumaOnImpossibleAmbition(h, battleRng());
-        if (!res) return h; // règle facultative éteinte
-        shown = { roll: res.test.roll, target: res.test.target };
-        if (!res.trait) return h; // Calme réussi → l'Ambition brisée n'a pas laissé de trauma
-        acquired = true;
-        return { ...h, psychTraits: [...(h.psychTraits ?? []), res.trait] };
-      });
-      if (!who || !shown) return;
-      const s = shown as { roll: number; target: number };
-      const line = t(acquired ? 'eff.ambitionTrauma' : 'eff.ambitionResisted', { name: who.label, roll: s.roll, target: s.target });
+      const cible = env.hero(e.heroId);
+      if (!cible) return;
+      const res = traumaOnImpossibleAmbition(cible, battleRng());
+      if (!res) return; // règle facultative éteinte
+      const trait = res.trait;
+      const acquired = !!trait;
+      const who = trait ? env.mutateHero(cible.id, (h) => ({ ...h, psychTraits: [...(h.psychTraits ?? []), { ...trait }] })) : cible;
+      if (!who) return;
+      const line = t(acquired ? 'eff.ambitionTrauma' : 'eff.ambitionResisted', { name: who.label, roll: res.test.roll, target: res.test.target });
       env.log(line);
       if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.ambitionTitle'), lines: [line], subjectId: who.id, severity: 'grave' });
     },
@@ -1916,20 +1896,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // l'op `sinMod` (COUTURE UNIQUE du Péché, partagée avec les issues d'Activité ACE).
       // Cible : héros désigné, sinon le premier sachant Prier (le Péché vise un Bienheureux).
       const amount = Math.max(1, e.amount ?? 1);
-      const lines: string[] = [];
-      const who = env.mutateHero(
-        e.heroId,
-        (h) => {
-          const clone = { ...h };
-          lines.push(...applyOps(clone, [{ op: 'sinMod', amount }], {}));
-          return clone;
-        },
-        (party) => {
-          const i = party.findIndex((h) => h.skills.some((sk) => sk.id === 'priere' && sk.advances >= 1));
-          return i >= 0 ? i : 0;
-        },
-      );
-      if (who) for (const l of lines) env.log(l);
+      const cible = env.hero(e.heroId, (heros) => {
+        const i = heros.findIndex((h) => h.skills.some((sk) => sk.id === 'priere' && sk.advances >= 1));
+        return i >= 0 ? i : 0;
+      });
+      if (!cible) return;
+      const apres = { ...cible };
+      const lines = applyOps(apres, [{ op: 'sinMod', amount }], {});
+      env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
+      for (const l of lines) env.log(l);
     },
   },
   waterExposure: {
@@ -1987,9 +1962,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       // Repas (#T2) : tout le groupe est nourri pour la journée sans consommer de ration —
       // compteurs/malus de Faim remis à zéro (LDB 18 l.337-343 ; prix éventuel porté par le choix).
-      const diners = env.get().party;
-      for (const h of diners) if (!h.dead) feedFromMeal(h);
-      env.set({ party: [...diners] });
+      env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => {
+        if (h.dead) return h;
+        const nourri = { ...h };
+        feedFromMeal(nourri);
+        return nourri;
+      }));
       env.log(t('eff.meal'));
     },
   },

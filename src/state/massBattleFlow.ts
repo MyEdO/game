@@ -21,6 +21,7 @@
 import type { Get, Set } from './flowTypes';
 import type { Combatant, CharKey, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
+import { ecrireActeur } from './combatants';
 import { d10, d100, type RNG } from '../engine/dice';
 import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, type SupportDetail } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -766,7 +767,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
         // HÉROS (pas la coque) : `applyOps` direct sur un clone, comme `armyWithMightDelta` ci-dessus.
         const healed = { ...hero, wounds: { ...hero.wounds } };
         applyOps(healed, [{ op: 'heal', amount: heal }]);
-        set({ party: get().party.map((h) => h.id === hero.id ? healed : h) });
+        set((s) => ecrireActeur(s, hero.id, (h) => ({ ...h, wounds: { ...healed.wounds } })));
         lines.push(t('mbf.rallyHeal', { name: hero.label, heal, dr: pa.sl, be }));
       } else {
         lines.push(t('mbf.rallyFail', { name: hero.label }));

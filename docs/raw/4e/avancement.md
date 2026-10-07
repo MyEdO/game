@@ -120,7 +120,7 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 7` (l.75-84) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `doc`, +29 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/activities.ts`, +7 fichiers
-- `LDB 9` (l.44) → `specIdOf`, `art`, `buySkillAdvance`, `doc`, `athletisme`, `buildAdvancementView`, `designateSpec`, `slotCovers`, `combatBaseValue`, `entreeOuverte`, +17 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +15 fichiers
+- `LDB 9` (l.44) → `specIdOf`, `art`, `buySkillAdvance`, `doc`, `athletisme`, `buildAdvancementView`, `slotCovers`, `designateSpec`, `combatBaseValue`, `entreeOuverte`, +17 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +15 fichiers
 
 ---
 
@@ -228,7 +228,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 **Sources RAW** : `LDB 07 l.136-139`, `LDB 07 l.140`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `changeCareer`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 
 ---
 
@@ -253,7 +253,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 **Sources RAW** : `LDB 07 l.144-148`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `changeCareer`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 - `LDB 23` (l.104) → `craft`, `learn`, `entrainement`, `interlude-elf-duty`, `dressage`, `Combatant` — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/engine/types.ts`
 
 ---

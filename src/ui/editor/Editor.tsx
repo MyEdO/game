@@ -18,14 +18,15 @@ import { LogicDock, LogicTab } from './LogicDock';
 import { WorldMapEditor } from './WorldMapEditor';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { renommeRef, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
-import { OpenProjectModal, SaveProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from './ProjectModals';
-import { projectSave, projectsLoad, documentDeLEntree, SavedProject } from '../../state/projectLibrary';
+import { OpenProjectModal, SaveProjectModal, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte } from './ProjectModals';
+import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
+import { projectSave, projectsLoad, projetDeLEntree, type EntreeListee } from '../../state/projectLibrary';
 import { downloadText } from '../../lib/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
-import { MAISON_PROJET_AUTHORE } from '../../data/migrationsDeProjet';
+import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
 import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nextEntityId } from '../../state/entityId';
@@ -43,7 +44,7 @@ import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
 import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from '../../state/traceCalibration';
 import {
-  traceLayerLoad, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
+  traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';
 import { Dims, tileCenter, screenToTileF } from '../../geometry/iso';
 import { useLowerLayerOpacity, setLowerLayerOpacity, useLowerLayerMode, setLowerLayerMode } from './lowerLayerGabarit';
@@ -196,8 +197,8 @@ export function Editor({
   const [saveError, setSaveError] = useState<RefusRendu | null>(null);
   /** Refus d'un geste du menu Fichier — export, import, mise à l'essai : ces gestes n'ont AUCUNE
    *  modale à eux où poser leur refus, là où `saveError`/`loadError` tiennent dans la leur. UN seul
-   *  état pour les trois, portant le TITRE du geste refusé : même matière (`.chip.tone-danger` en
-   *  `role="alert"`, dans une modale), et jamais une boîte du navigateur (#877). */
+   *  état pour les trois, portant le TITRE du geste refusé : même matière (`ChipDeRefus`, dans une
+   *  modale), et jamais une boîte du navigateur (#877). */
   const [refusDuGeste, setRefusDuGeste] = useState<({ titre: string } & RefusRendu) | null>(null);
   /** Refus du JSON collé dans la modale « Avancé » — rendu DANS cette modale, comme `saveError` dans
    *  la sienne : un refus se lit là où le geste a été fait. */
@@ -249,6 +250,7 @@ export function Editor({
   // rechargé à CHAQUE bascule de scène OU de couche. Le repli/dépli du panneau, lui, est PAR SCÈNE
   // SEULE (persiste au changement de couche, ne doit jamais ressurgir de force).
   const [traceLayer, setTraceLayerState] = useState<TraceLayerRecord | null>(null);
+  const [calqueEcarte, setCalqueEcarte] = useState(false);
   const [traceCalib, setTraceCalib] = useState<CalibProgress>({ step: 'idle' });
   const [tracePanelExpanded, setTracePanelExpanded] = useState(true); // défaut déplié tant que rien n'est réglé
 
@@ -256,7 +258,9 @@ export function Editor({
     let cancelled = false;
     setTraceCalib({ step: 'idle' });
     traceLayerLoad(scene.id, currentLayer).then((rec) => {
-      if (!cancelled) setTraceLayerState(rec);
+      if (cancelled) return;
+      setTraceLayerState(rec);
+      setCalqueEcarte(takeCalqueEcarte(scene.id, currentLayer));
     });
     return () => {
       cancelled = true;
@@ -282,6 +286,7 @@ export function Editor({
 
   function persistTraceLayer(next: TraceLayerRecord | null) {
     setTraceLayerState(next);
+    setCalqueEcarte(false);
     if (next) traceLayerSave(next);
     else traceLayerDelete(scene.id, currentLayer);
   }
@@ -852,16 +857,15 @@ export function Editor({
   /** Rend le REFUS quand le document ne s'ouvre pas (porte du document), `null`
    *  quand la scène est posée. La modale ignore cette valeur (elle lit `loadError`) ; le pont de
    *  recette (`editeur.ouvrir`, #1478) en fait son verdict — un `✓` sur un document refusé mentirait. */
-  function loadSaved(p: SavedProject): RefusRendu | null {
+  function loadSaved(p: EntreeListee): RefusRendu | null {
     let scenes: Scene[];
     let wm: WorldMap | undefined;
     let aa: string[] | undefined;
     let na: NarratifBlock;
     let label: string;
     let ident: Omit<ProjectIdentite, 'label'>;
-    const doc = documentDeLEntree(p);
     try {
-      ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = parseProject(doc)); // même validation/migration que l'import JSON
+      ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = projetDeLEntree(p)); // même porte que l'import JSON
     } catch (e) {
       const refus = refusDeLaPorteDuProjet(e, 'ouverture');
       setLoadError(refus);
@@ -1097,6 +1101,7 @@ export function Editor({
 
         <TraceLayerPanel
           hasLayer={!!traceLayer}
+          ecarte={calqueEcarte}
           visible={traceLayer?.visible ?? false}
           opacity={traceLayer?.opacity ?? 0.6}
           calibStep={traceCalib.step}
@@ -1249,7 +1254,7 @@ export function Editor({
       )}
       {autosaveRecovery && (
         <Modal
-          title="Reprendre une sauvegarde locale ?"
+          title={autosaveRecovery.ok ? 'Reprendre une sauvegarde locale ?' : 'Sauvegarde locale impossible à restaurer'}
           onClose={hideAutosaveRecovery}
           footer={
             <>
@@ -1330,7 +1335,7 @@ export function Editor({
           }
         >
           <p className="hint">Filet de sécurité pour l'édition en masse ; le format est celui du schéma de Scène.</p>
-          {advError && <p className="chip tone-danger" role="alert">{advError}</p>}
+          {advError && <ChipDeRefus refus={{ message: advError }} />}
           <textarea className="json-editor" value={advText} onChange={(e) => setAdvText(e.target.value)} />
         </Modal>
       )}

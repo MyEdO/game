@@ -1,5 +1,5 @@
 // Reconnaître un APPEL de runner dans un segment exécuté — motifs de `scripts/hooks/codeur-gates-guard.mjs`
-// (« ce segment lance-t-il un runner, ou ne fait-il que le MENTIONNER ? »), qui refuse à un `codeur` les gates
+// (« ce segment lance-t-il un runner, ou ne fait-il que le MENTIONNER ? »), qui refuse à tout appelant les gates
 // du train sur les segments profonds du socle (`pipelinesDeJetons`).
 // Le contrat que chaque motif porte : le segment doit COMMENCER par l'exécutable (éventuellement
 // `npx `/`node ` et son chemin), et les lecteurs de texte (grep, cat…) sont écartés d'emblée — une

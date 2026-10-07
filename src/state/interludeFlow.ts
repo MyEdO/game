@@ -43,7 +43,7 @@ import { focusSkillFor, castingValue, consumeMalepierre } from '../engine/magic'
 import { gainCorruption, poseCorruptionPending, testDeCorruption } from './corruptionFlow';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { applyMiscast } from './combatFlow';
-import { buySpell as partyBuySpell } from './partyFlow';
+import { buySpell as partyBuySpell, depenserPx } from './partyFlow';
 import { testValue, type SupportDetail } from '../engine/skills';
 import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
@@ -873,26 +873,28 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const talentId = pa.talent;
       if (!talentId) return { lines: [] };
       const talentLabel = refLabel('talents', { id: talentId });
-      // Tuteur payé dans TOUS les cas — débité APRÈS les mutations de `h` (l'allocation clone le
-      // héros, capturant l'acquisition du Talent au passage).
+      // Tuteur payé dans TOUS les cas — débité APRÈS l'écriture des PX (`depenserPx`) : la Bourse se lit
+      // sur l'acteur écrit (`actorIn`).
       const payTutor = () => payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.tutorBrass ?? 0)), recipient: h.id, purpose: 'tuteur' });
       if (pa.success) {
-        const fortuneBefore = fortuneMax(h);
-        const resolveBefore = resolveMax(h);
-        const r = engineBuyTalent(h, talentId); // débite les PX + acquiert le Talent
-        if (r.ok) {
-          applyTalentAcquisition(h, talentId);
-          h.wounds.max = heroMaxWounds(h); // Dur à cuire & co
-          h.wounds.current = Math.min(h.wounds.current, h.wounds.max);
-          h.fortune = (h.fortune ?? 0) + (fortuneMax(h) - fortuneBefore); // Chanceux
-          h.resolve = (h.resolve ?? 0) + (resolveMax(h) - resolveBefore); // Obstiné
-          payTutor();
-          return { lines: [msg('if.learnTalentOk', { name: h.label, label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] };
-        }
+        let r: ReturnType<typeof engineBuyTalent> = { ok: false, cost: 0 };
+        depenserPx(get, set, h.id, (lu) => {
+          const appris = structuredClone(lu);
+          const fortuneBefore = fortuneMax(appris);
+          const resolveBefore = resolveMax(appris);
+          r = engineBuyTalent(appris, talentId); // débite les PX + acquiert le Talent
+          if (!r.ok) return lu;
+          applyTalentAcquisition(appris, talentId);
+          appris.wounds.max = heroMaxWounds(appris); // Dur à cuire & co
+          appris.wounds.current = Math.min(appris.wounds.current, appris.wounds.max);
+          appris.fortune = (appris.fortune ?? 0) + (fortuneMax(appris) - fortuneBefore); // Chanceux
+          appris.resolve = (appris.resolve ?? 0) + (resolveMax(appris) - resolveBefore); // Obstiné
+          return appris;
+        });
         payTutor();
-        return { lines: [] };
+        return r.ok ? { lines: [msg('if.learnTalentOk', { name: h.label, label: talentLabel, cost: r.cost, tutor: formatMoney(fromBrass(pa.tutorBrass ?? 0)) })] } : { lines: [] };
       }
-      h.xp = Math.max(0, (h.xp ?? 0) - (pa.xpCost ?? 0)); // PX perdus en vain (échec)
+      depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) })); // PX perdus en vain (échec)
       const learnFails = { ...(st.learnFails ?? {}) };
       learnFails[talentId] = (learnFails[talentId] ?? 0) + 1; // clé = id stable du Talent, +10 à la reprise
       payTutor();
@@ -1150,29 +1152,35 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
     get().log(t('if.entrainementTutorKo', { cost: formatMoney(fromBrass(tutor)) }));
     return;
   }
-  const fortuneBefore = fortuneMax(h);
-  const resolveBefore = resolveMax(h);
-  const r = kind === 'characteristic'
-    ? engineBuyCharAdvance(h, id as CharKey, false)
-    : (() => {
-        if (!h.skills.some((k) => k.id === id && (k.spec ?? '') === (spec ?? ''))) {
-          h.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
-        }
-        return engineBuySkillAdvance(h, id, spec, false);
-      })();
+  let r: ReturnType<typeof engineBuyCharAdvance> = { ok: false, cost: 0 };
+  const accepte = depenserPx(get, set, heroId, (lu) => {
+    const entraine = structuredClone(lu);
+    const fortuneBefore = fortuneMax(entraine);
+    const resolveBefore = resolveMax(entraine);
+    if (kind === 'characteristic') r = engineBuyCharAdvance(entraine, id as CharKey, false);
+    else {
+      if (!entraine.skills.some((k) => k.id === id && (k.spec ?? '') === (spec ?? ''))) {
+        entraine.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });
+      }
+      r = engineBuySkillAdvance(entraine, id, spec, false);
+    }
+    if (!r.ok) return lu;
+    entraine.wounds.max = heroMaxWounds(entraine); // Résistance/Endurance : le max de Blessures peut augmenter
+    entraine.wounds.current = Math.min(entraine.wounds.current, entraine.wounds.max);
+    entraine.fortune = (entraine.fortune ?? 0) + (fortuneMax(entraine) - fortuneBefore); // Sociabilité (Chance/Fortune)
+    entraine.resolve = (entraine.resolve ?? 0) + (resolveMax(entraine) - resolveBefore); // Volonté (Résilience/Détermination)
+    return entraine;
+  });
+  if (!accepte) return;
   if (!r.ok) {
     get().log(t('if.entrainementRefused', { name: h.label, label: opt.label, reason: r.reason ?? '' }));
     return;
   }
-  h.wounds.max = heroMaxWounds(h); // Résistance/Endurance : le max de Blessures peut augmenter
-  h.wounds.current = Math.min(h.wounds.current, h.wounds.max);
-  h.fortune = (h.fortune ?? 0) + (fortuneMax(h) - fortuneBefore); // Sociabilité (Chance/Fortune)
-  h.resolve = (h.resolve ?? 0) + (resolveMax(h) - resolveBefore); // Volonté (Résilience/Détermination)
-  // Tuteur débité APRÈS les Augmentations : l'allocation clone `h` et capte les avances acquises.
+  // Tuteur débité APRÈS les Augmentations : la Bourse se lit sur l'acteur écrit (`actorIn`).
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(tutor)), recipient: heroId, purpose: 'tuteur' });
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
-  set({ interlude: { ...itl }, party: [...get().party] });
+  set({ interlude: { ...itl } });
   get().log(t('if.entrainementDone', { name: h.label, label: opt.label, cost: r.cost, tutor: formatMoney(fromBrass(tutor)) }));
 }
 

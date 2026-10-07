@@ -54,6 +54,10 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
     // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
     'scripts/hooks/bootstrap-conteneur.test.mjs',
+    // +1 le 2026-10-07 (#2436) : le banc du verrou des gates forge ses configurations Vitest et ses
+    // fichiers de test sous un `mkdtempSync` d'os.tmpdir(), retirés par `rmSync` en finally ; l'arbre
+    // n'est jamais écrit.
+    'scripts/hooks/codeur-gates-guard.test.mjs',
     // +1 le 2026-10-07 (#2187) : le banc de la barrière des hooks d'outil forge ses arbres (`.git` dossier
     // ou fichier `gitdir:`) et son verrou d'outillage sous un `mkdtempSync` de os.tmpdir() (`rmSync` en
     // finally) — un `gitdir:` et un verrou tenu ne se fabriquent pas autrement ; l'arbre n'est jamais écrit.
@@ -154,8 +158,6 @@ const ATTENDU = {
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
     'scripts/guards/lib/stockDeSites.test.mjs',
-    // #2226
-    'scripts/guards/lib/versionsDerivees-collision.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
@@ -330,6 +332,9 @@ const ATTENDU = {
     // +3 le 2026-10-07 (#2400) : `perimetre.mjs` importe `selectionDesGenerateurs` et `ancetresDe` de
     // `scripts/git-hooks/docs-rebuild.mjs`, qui atteint ces écrivains ; leurs écritures vivent derrière
     // `reconstruireApresGit`, `genererCode` et les `main` sous `import.meta.main`, que le banc n'appelle pas.
+    // `ecriture-derives.mjs` est aussi atteint le 2026-10-07 (#2404) par `scripts/gen-formats.test.mjs`, qui
+    // importe le générateur dont seule la porte `import.meta.main` écrit (`ecrireOuVerifier`) ; le banc calcule
+    // les formats en mémoire, recouvrement virtuel compris — l'arbre n'est jamais écrit.
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/git-hooks/journal.mjs',

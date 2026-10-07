@@ -13,19 +13,15 @@
 import { ruleOverrides, loadRuleOverrides, setRule, resetRule, type RuleValue } from '../engine/policy';
 import { useGame } from './store';
 import { t } from '../i18n';
-import { stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
 
 /** Clé du magasin des règles maison dans le `localStorage`. */
-export const HOUSE_RULES_STORAGE_KEY = 'wfrp4.house-rules.v1';
+export const HOUSE_RULES_STORAGE_KEY = 'wfrp4.house-rules';
 
 /** Charge les règles maison persistées vers le registre du moteur (démarrage de l'app). */
 export function loadHouseRules(): void {
-  try {
-    const raw = stockageWeb('localStorage')?.getItem(HOUSE_RULES_STORAGE_KEY);
-    if (raw) loadRuleOverrides(JSON.parse(raw) as Record<string, RuleValue>);
-  } catch {
-    /* localStorage indisponible ou JSON corrompu : on garde les défauts RAW. */
-  }
+  const o = lireDictionnaire('localStorage', HOUSE_RULES_STORAGE_KEY);
+  if (o) loadRuleOverrides(o);
 }
 
 /** Persiste l'état courant des surcharges. */

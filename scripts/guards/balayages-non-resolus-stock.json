@@ -285,6 +285,12 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/git-hooks/commit-msg.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
       "ref": "mesurerEnRendu : appel segments.slice(0, segments.findIndex((s) => s.includes('*'))).join",
       "occurrence": 1
@@ -2589,6 +2595,12 @@
     },
     {
       "famille": "forme non évaluée",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "evaluateGates : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
       "fichier": "scripts/migrations/lib/empreinteRejeu.test.mjs",
       "ref": "existsSync : forme ElementAccessExpression",
       "occurrence": 1
@@ -3183,6 +3195,18 @@
     },
     {
       "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/commit-msg.test.mjs",
+      "ref": "existsSync : paramètre base",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/commit-msg.test.mjs",
+      "ref": "readFileSync : paramètre base",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
       "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
       "ref": "reconstruireApresGit : paramètre chemin",
       "occurrence": 1
@@ -3672,180 +3696,6 @@
       "fichier": "scripts/migrations/lib/1686-ardoise-portes.test.mjs",
       "ref": "lireArbre : paramètre rel",
       "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 4
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 5
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 4
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 5
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 6
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 4
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 4
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 4
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "lireArbre : paramètre rel",
-      "occurrence": 5
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 4
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
-      "ref": "projetAvant : paramètre rel",
-      "occurrence": 5
     },
     {
       "famille": "paramètre non lié",
@@ -4883,12 +4733,6 @@
       "famille": "paramètre non lié",
       "fichier": "src/state/usable.test.ts",
       "ref": "readFileSync : paramètre chemin",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "src/ui/editor/scene-field-editability-guard.test.ts",
-      "ref": "readFileSync : paramètre rel",
       "occurrence": 1
     },
     {

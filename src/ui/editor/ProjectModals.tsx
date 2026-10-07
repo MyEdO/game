@@ -5,73 +5,45 @@ import { Icon } from '../Icon';
 import { ListRow } from '../ListRow';
 import { Scene } from '../../state/scene';
 import { testScenarios, TestScenario } from '../../scenes/test-scenarios';
-import { projectsLoad, projectRemove, nomDeProjet, SavedProject, IMPORT_FORME_DEPOT } from '../../state/projectLibrary';
+import { projectsLoad, projectRemove, nomDeProjet, estRefusee, type EntreeListee, IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT } from '../../state/projectLibrary';
+import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { allBuiltinCampaigns, BuiltinCampaign } from '../../scenes/campaign';
 import { Row, Stack } from '../Layout';
-import { exigerUnRefus, type ProjetRefuse } from '../../state/worldMap';
+import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus } from '../../state/worldMap';
 import { cheminLisible, type Faute, type SegmentDeLieu } from '../../data/schemas/validate';
 import { projetDoc } from '../../data/schemas/defs-scenes/projet';
 
-/** Un refus RENDU à l'auteur : `message` en mots d'auteur, `detail` = le rapport de la porte
- *  (`parseProject`), replié sous le message quand le message ne le reprend pas. */
-export type RefusRendu = { message: string; detail?: string };
-
-/** Le refus RENDU dans sa modale, en `role="alert"` : le message en `.chip.tone-danger`, le rapport
- *  replié derrière la primitive `.fold` (`components.css`), une ligne du rapport par bloc. */
-export function ChipDeRefus({ refus }: { refus: RefusRendu }) {
-  return (
-    <Stack role="alert">
-      <p className="chip tone-danger">{refus.message}</p>
-      {refus.detail && (
-        <details className="fold">
-          <summary><span className="fold-title">Détail technique</span></summary>
-          <div className="fold-body">
-            {refus.detail.split('\n').map((ligne, i) => <div key={i}>{ligne}</div>)}
-          </div>
-        </details>
-      )}
-    </Stack>
-  );
-}
-
 /**
  * Les gestes qui font passer un document par la porte du projet (`parseProject`, et
- * `migreSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
- * refus, la CONSÉQUENCE qu'il ÉNONCE, et ce qu'il dit d'un projet SANS NOM. UNE table : ces chaînes
+ * `parseSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
+ * refus, ce qu'il dit d'un document SANS NOM, le TERME du document d'un autre format
+ * (`autreFormat`), la PHRASE de chaque cause hors schéma (`causes`), et la CONSÉQUENCE qu'il
+ * ÉNONCE. Un geste qui RELIT une donnée persistée (ouverture, import, reprise) n'en énonce aucune (`null`) : son verbe la dit déjà ; son message tient
+ * en une phrase, le verbe et la cause, la faute reste au détail. Un geste qui valide l'état EN COURS
+ * de l'auteur énonce ce que son refus empêche et NOMME la faute (#2404). UNE table : ces chaînes
  * ne sont pas libres, un appelant ne peut pas les désaccorder — « Import refusé : ce projet ne
  * pourrait plus être rouvert » serait faux, rien n'ayant jamais été ouvert ni écrit.
  */
+const PROJET_SANS_NOM = 'ce projet n’a pas de nom';
+
+/** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE, selon ce que le geste LIT : le rapport
+ *  technique reste en détail. `IMPORT_FORME_DEPOT` ne vaut que pour un geste qui lit un FICHIER ;
+ *  ailleurs, la cause se dit sous le terme de l'autre format (#2404). */
+type PhrasesDeCause = Readonly<Record<Exclude<CauseDeRefus, 'schema'>, string>>;
+const PROJET_EN_MEMOIRE: PhrasesDeCause = {
+  'prose-non-materialisee': `${PROJET_AUTRE_FORMAT}.`,
+  entree: 'Sa scène de départ n’existe pas dans le projet.',
+};
+const FICHIER_DE_PROJET: PhrasesDeCause = { ...PROJET_EN_MEMOIRE, 'prose-non-materialisee': IMPORT_FORME_DEPOT };
+const SAUVEGARDE_LOCALE: PhrasesDeCause = { 'prose-non-materialisee': `${SCENE_AUTRE_FORMAT}.`, entree: `${SCENE_AUTRE_FORMAT}.` };
+
 const GESTES_DE_PORTE = {
-  ouverture: {
-    verbe: 'Ouverture refusée',
-    consequence: 'ce projet ne peut pas être ouvert',
-    sansNom: 'Ce projet n’a pas de nom : impossible de l’ouvrir tel quel.',
-  },
-  enregistrement: {
-    verbe: 'Enregistrement refusé',
-    consequence: 'ce projet ne pourrait plus être rouvert',
-    sansNom: 'Ce projet n’a pas de nom : impossible de l’enregistrer tel quel.',
-  },
-  export: {
-    verbe: 'Export refusé',
-    consequence: 'ce fichier ne pourrait plus être rouvert',
-    sansNom: 'Ce projet n’a pas de nom : impossible de l’exporter tel quel.',
-  },
-  import: {
-    verbe: 'Import refusé',
-    consequence: 'ce fichier ne peut pas être ouvert',
-    sansNom: 'Ce projet n’a pas de nom : impossible de l’importer tel quel.',
-  },
-  test: {
-    verbe: 'Mise à l’essai refusée',
-    consequence: 'ce projet ne pourrait pas être joué',
-    sansNom: 'Ce projet n’a pas de nom : impossible de le mettre à l’essai tel quel.',
-  },
-  reprise: {
-    verbe: 'Restauration refusée',
-    consequence: 'cette sauvegarde locale ne peut pas être restaurée',
-    sansNom: 'Cette sauvegarde locale n’a pas de nom : impossible de la restaurer telle quelle.',
-  },
+  ouverture: { verbe: 'Ouverture refusée', consequence: null, sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  enregistrement: { verbe: 'Enregistrement refusé', consequence: 'ce projet ne pourrait plus être rouvert', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  export: { verbe: 'Export refusé', consequence: 'ce fichier ne pourrait plus être rouvert', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  import: { verbe: 'Import refusé', consequence: null, sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: FICHIER_DE_PROJET },
+  test: { verbe: 'Mise à l’essai refusée', consequence: 'ce projet ne pourrait pas être joué', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  reprise: { verbe: 'Restauration refusée', consequence: null, sansNom: 'cette sauvegarde locale n’a pas de nom', autreFormat: SCENE_AUTRE_FORMAT, causes: SAUVEGARDE_LOCALE },
 } as const;
 
 /** Geste dont la porte du document peut opposer un refus — union FERMÉE. */
@@ -91,29 +63,26 @@ function lieuDAuteur(lieu: readonly SegmentDeLieu[]): string {
   return cheminLisible(tete === undefined ? [] : [tete, ...suite], (element) => element.libelle ?? element.cle);
 }
 
-/** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE : le rapport technique reste en détail. */
-const PHRASE_DE_CAUSE: Record<Exclude<ProjetRefuse['cause'], 'schema'>, string> = {
-  version: 'Ce projet vient d’une version du jeu que celle-ci ne sait pas lire.',
-  'mal-forme': 'Ce document n’est pas un projet lisible.',
-  'prose-non-materialisee': IMPORT_FORME_DEPOT,
-  entree: 'Sa scène de départ n’existe pas dans le projet.',
-};
-
 /**
  * Traduit en refus d'ÉCRAN le refus que la porte oppose à un geste — UN traducteur pour tous les
- * gestes, qui lit la CAUSE et les fautes (`ProjetRefuse`), jamais le texte du rapport. Une version
- * illisible ou un document mal formé se disent en mots d'auteur ; un projet SANS NOM aussi. Sinon,
- * ce que l'auteur doit savoir tient en deux faits : la CONSÉQUENCE du refus, et OÙ est la première
+ * gestes, qui lit la CAUSE et les fautes (`ProjetRefuse`), jamais le texte du rapport. Un document
+ * fautif à sa RACINE et un projet SANS NOM se disent en mots d'auteur, comme la faute d'un geste qui ne
+ * la nomme pas (conséquence `null`). Sinon, ce que l'auteur doit savoir tient en deux faits : la CONSÉQUENCE du refus, et OÙ est la première
  * faute ; les suivantes sont COMPTÉES. Le rapport de la porte reste en `detail` dès que le message
  * ne le reprend pas. Toute autre erreur n'est pas un refus de la porte : elle remonte telle quelle.
  */
 export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): RefusRendu {
   exigerUnRefus(erreur);
-  const { verbe, consequence, sansNom } = GESTES_DE_PORTE[geste];
+  const { verbe, consequence, sansNom, autreFormat: terme, causes } = GESTES_DE_PORTE[geste];
+  const phrase = (cause: string): string =>
+    consequence === null ? `${verbe} : ${cause.charAt(0).toLocaleLowerCase('fr') + cause.slice(1)}` : `${verbe} : ${consequence}. ${cause}`;
   if (erreur.cause !== 'schema') {
-    return { message: `${verbe} : ${consequence}. ${PHRASE_DE_CAUSE[erreur.cause]}`, detail: erreur.message };
+    return { message: phrase(causes[erreur.cause]), detail: erreur.message };
   }
-  if (erreur.fautes.some(estSansNom)) return { message: sansNom, detail: erreur.message };
+  const autreFormat = { message: phrase(`${terme}.`), detail: erreur.message };
+  if (erreur.fautes.some((f) => f.chemin.length === 0)) return autreFormat;
+  if (erreur.fautes.some(estSansNom)) return { message: `${verbe} : ${sansNom}.`, detail: erreur.message };
+  if (consequence === null) return autreFormat;
   const [premiere, ...autres] = erreur.fautes;
   const suite = autres.length > 0 ? ` (et ${autres.length} autre${autres.length > 1 ? 's' : ''} à corriger)` : '';
   // Une phrase reprend en MAJUSCULE après le point : `lieuDAuteur` rend un fragment (« Scènes … »),
@@ -139,7 +108,7 @@ export function OpenProjectModal({
   error,
 }: {
   onScenario: (sc: TestScenario) => void;
-  onProject: (p: SavedProject) => void;
+  onProject: (p: EntreeListee) => void;
   onBuiltin: (bc: BuiltinCampaign) => void;
   onClose: () => void;
   /** Refus de la porte à l'ouverture d'un projet (#1552) — la modale reste ouverte et le DIT :
@@ -167,18 +136,17 @@ export function OpenProjectModal({
         </button>
       }
     >
-      {error && <ChipDeRefus refus={error} />}
-      {delError && <p className="chip tone-danger" role="alert">{delError}</p>}
+      {error && <ChipDeRefus cle={error} refus={error} />}
+      {delError && <ChipDeRefus refus={{ message: delError }} />}
       {projects.length > 0 && (
         <>
           <div className="mini-title">Mes projets</div>
           <Stack>
             {projects.map((p) => (
               <ListRow key={p.id} label={nomDeProjet(p.label)}>
+                {estRefusee(p) && <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>}
                 {p.published && <span className="chip">publiée</span>}
-                <button className="btn small btn-primary" onClick={() => onProject(p)}>
-                  Ouvrir
-                </button>
+                <GatedAction id={`ouvrir-${p.id}`} label="Ouvrir" enabled primary={!estRefusee(p)} btnClassName="small" onClick={() => onProject(p)} />
                 <button className="btn small danger" onClick={() => del(p.id)}>
                   Suppr.
                 </button>
@@ -252,7 +220,7 @@ export function SaveProjectModal({
         </>
       }
     >
-      {error && <ChipDeRefus refus={error} />}
+      {error && <ChipDeRefus cle={error} refus={error} />}
       <label className="field">
         <span>Nom</span>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ma campagne" autoFocus />

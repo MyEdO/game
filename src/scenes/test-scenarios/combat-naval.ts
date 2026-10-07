@@ -1,6 +1,6 @@
 import { makeShowcaseParty, PREGEN } from '../../data/pregens';
 import { itemFromTrappingById, loadWeapon } from '../../engine/items';
-import type { Combatant, ShipPoste } from '../../engine/types';
+import type { AuthoredShipPoste, Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../state/scene';
@@ -15,12 +15,12 @@ const GUNNERS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as cons
  * plus à la besace du servant. La pièce appartient à la COQUE (source de vérité) ; au début du combat
  * `applyShipPostes` la sert au chef (`mannedPoste`) → l'attaque dédiée « Servir le pierrier ».
  */
-function pierrierPoste(chefId: string): ShipPoste {
+function pierrierPoste(chefId: string): AuthoredShipPoste {
   const balles = itemFromTrappingById('balles-et-poudre-pierrier')!;
   balles.qty = 10; // de quoi bombarder plusieurs Rounds (Recharge entre chaque tir)
   const mitraille = itemFromTrappingById('petites-munitions-et-poudre-pierrier')!;
   mitraille.qty = 6;
-  return { item: itemFromTrappingById('pierrier')!, side: 'tribord', crewIds: [chefId], ammo: [balles, mitraille], ammoUid: balles.uid };
+  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: [balles, mitraille], ammoUid: balles.uid };
 }
 
 /**
