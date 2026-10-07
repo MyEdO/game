@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { entreesNominatives, croissanceDesStocks, bilanDesStocks } from './stocksNominatifs.mjs';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { entreesNominatives, croissanceDesStocks, bilanDesStocks, croissanceDesCles, croissancesNonCouvertes, raisonDeRefus } from './stocksNominatifs.mjs';
 import { refusDeLaPlage } from './plageStock.mjs';
 
 const PORTEUR = 'scripts/guards/lib/temoin.mjs';
@@ -126,21 +128,25 @@ test('les trois sites de tests déménagés et le retrait quatrième ont un net 
   assert.equal(bilan[0].perdues.length, 1);
   assert.deepEqual(refusDeLaPlage({ commits: [{ sha: 'temoin', message: 'migration', diff, images }], cumul: bilan }), []);
 });
-test('chaque preuve manquante conserve les trois refus de croissance', () => {
+test('chaque preuve manquante conserve les trois entrées retenues au bilan', () => {
   for (const options of [
     { vivant: true }, { avantNouveau: tests(titres) }, { titresApres: [] }, { titresApres: ['nouveau titre'] },
     { extra: ', ref: "autre"' }, { proprietaire: 'AUTRE' }, { titresAvant: [] },
   ]) {
     const { diff, images } = cas(options);
-    assert.equal(croissanceDesStocks(diff, images)[0].net, 3, JSON.stringify(options));
+    assert.equal(bilanDesStocks(diff, images)[0].retenues.length, 3, JSON.stringify(options));
+    assert.deepEqual(croissanceDesStocks(diff, images), [], JSON.stringify(options));
   }
 });
 test('une copie supplémentaire du même site reste une croissance', () => {
   const { diff, images } = cas();
   const lire = images.lirePostImage;
   images.lirePostImage = p => p === PORTEUR
-    ? sourceStock(nouveau, [...titres, titres[0]]) : lire(p);
+    ? sourceStock(nouveau, [...titres, titres[0], titres[0]]) : lire(p);
+  assert.equal(compter(images.lirePreImage(PORTEUR)), 4);
+  assert.equal(compter(images.lirePostImage(PORTEUR)), 5);
   assert.equal(croissanceDesStocks(diff, images)[0].net, 1);
+  assert.equal(croissancesNonCouvertes({ diff, message: '' }, images)[0].net, 1);
 });
 test('les stocks RAW perdus et bénins restent deux classes distinctes', () => {
   const a = 'scripts/raw/empty-folios-perdues-stock.json';
@@ -186,7 +192,8 @@ test('migration APIs : production, machine.test et homonymes ne sont pas des sit
     const source = entete + '\n' + titres.map(titre => appel + '(' + JSON.stringify(titre) + ', () => {});').join('\n')
       + (entete.endsWith('{') ? '\n}' : '');
     const { diff, images } = avecSourcesDeSites(source, production);
-    assert.equal(croissanceDesStocks(diff, images)[0]?.net, 3, source);
+    assert.equal(bilanDesStocks(diff, images)[0].retenues.length, 3, source);
+    assert.deepEqual(croissanceDesStocks(diff, images), [], source);
   }
 });
 test('migration APIs : imports nommés alias, namespaces et défaut node:test prouvent les sites', () => {
@@ -217,12 +224,78 @@ test('migration payload : une clé calculée ou un étalement ne prouve pas une 
     const { diff, images } = cas({ extra });
     const lire = images.lirePreImage;
     images.lirePreImage = p => p === PORTEUR ? lire(p).replaceAll(' },', extra + ' },') : lire(p);
-    assert.equal(croissanceDesStocks(diff, images)[0]?.net, 3, extra);
+    assert.equal(bilanDesStocks(diff, images)[0].retenues.length, 3, extra);
+    assert.deepEqual(croissanceDesStocks(diff, images), [], extra);
   }
 });
 test('une panne du lecteur ne prouve pas la disparition du site', () => {
   const { diff, images } = cas();
   const lire = images.lirePostImage;
   images.lirePostImage = p => { if (p === ancien) throw new Error('panne'); return lire(p); };
-  assert.equal(croissanceDesStocks(diff, images)[0].net, 3);
+  assert.equal(bilanDesStocks(diff, images)[0].retenues.length, 3);
+  assert.deepEqual(croissanceDesStocks(diff, images), []);
+});
+
+test('#2472 le bilan réduit toutes les clés signées du même porteur', () => {
+  assert.equal(croissanceDesCles(new Map([['a', 2], ['b', -2]])), 0);
+  assert.equal(croissanceDesCles(new Map([['a', 189], ['b', -5]])), 184);
+  assert.equal(croissanceDesCles(new Map([['a', -2]])), -2);
+});
+
+const sha256 = texte => createHash('sha256').update(texte).digest('hex');
+function temoinReel(ref) {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/2472-' + ref + '.json', import.meta.url), 'utf8'));
+  assert.match(fixture.sha, new RegExp('^' + ref + '[a-f0-9]{' + (40 - ref.length) + '}$'));
+  assert.match(fixture.parent, /^[a-f0-9]{40}$/);
+  assert.ok(fixture.commande.includes(fixture.sha));
+  assert.equal(sha256(fixture.diff), fixture.hashDiff);
+  for (const image of fixture.images) {
+    assert.equal(sha256(image.pre), image.hashPre);
+    assert.equal(image.post === null ? null : sha256(image.post), image.hashPost);
+  }
+  const images = {
+    lirePreImage: fichier => fixture.images.find(i => i.fichier === fichier)?.pre ?? null,
+    lirePostImage: fichier => fixture.images.find(i => i.fichier === fichier)?.post ?? null,
+  };
+  return { ...fixture, images };
+}
+
+test('#2472 témoin réel 904a78dda : deux ajouts et deux retraits ont un net nul', () => {
+  const { sha, diff, images } = temoinReel('904a78dda');
+  const bilan = bilanDesStocks(diff, images);
+  const porteur = bilan.find(b => b.fichier === 'scripts/gates/ecrivainsAtteints.test.mjs');
+  assert.deepEqual([porteur.retenues.length, porteur.perdues.length], [2, 2]);
+  assert.deepEqual(croissanceDesStocks(diff, images), []);
+  assert.deepEqual(croissancesNonCouvertes({ diff, message: '' }, images), []);
+  assert.deepEqual(refusDeLaPlage({ commits: [{ sha, diff, images, message: '' }], cumul: bilan }), []);
+});
+
+test('#2472 témoin réel 1befc7e36 : le compte affiché, jugé et déclaré vaut 184', () => {
+  const { sha, diff, images } = temoinReel('1befc7e36');
+  const fichier = 'scripts/guards/balayages-non-resolus-stock.json';
+  const bilan = bilanDesStocks(diff, images);
+  const croissances = croissanceDesStocks(diff, images);
+  const mesure = croissances.find(c => c.fichier === fichier);
+  assert.deepEqual([mesure.ajoutees, mesure.retirees, mesure.net], [189, 5, 184]);
+  const jugement = croissancesNonCouvertes({ diff, message: '' }, images);
+  assert.equal(jugement.find(c => c.fichier === fichier).net, 184);
+  assert.match(raisonDeRefus(jugement), /\+184 entrée\(s\) nette\(s\) \(189 ajoutée\(s\), 5 retirée\(s\)\)/);
+  assert.equal(refusDeLaPlage({ commits: [{ sha, diff, images, message: '' }], cumul: bilan }).find(c => c.fichier === fichier).net, 184);
+  for (const [n, attendu] of [[184, false], [189, true]]) {
+    const message = 'CLIQUET: ' + fichier + ' +' + n + ' — croissance du stock mesurée sur les images réelles';
+    assert.equal(croissancesNonCouvertes({ diff, message }, images).some(c => c.fichier === fichier), attendu);
+    assert.equal(refusDeLaPlage({ commits: [{ sha, diff, images, message }], cumul: bilan }).some(c => c.fichier === fichier), attendu);
+  }
+  const autre = croissances.find(c => c.fichier !== fichier);
+  assert.equal(autre.net, 4);
+  assert.ok(croissancesNonCouvertes({ diff, message: '' }, images).some(c => c.fichier === autre.fichier && c.net === 4));
+});
+
+test('#2472 supprimer le fichier porteur retire toutes ses entrées', () => {
+  const { diff, images } = temoinReel('904a78dda');
+  const fichier = 'scripts/hooks/solde-ticket-guard.test.mjs';
+  assert.equal(images.lirePostImage(fichier), null);
+  const bilan = bilanDesStocks(diff, images).find(b => b.fichier === fichier);
+  assert.deepEqual([bilan.retenues.length, bilan.perdues.length, croissanceDesCles(bilan.parCle)], [0, 1, -1]);
+  assert.deepEqual(croissanceDesStocks(diff, images), []);
 });

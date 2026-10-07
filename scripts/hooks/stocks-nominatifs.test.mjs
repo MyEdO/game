@@ -435,10 +435,8 @@ test('entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIE
   )
 })
 
-// L'ÉCHANGE EN PLACE — réécrire le `fichier` d'une entrée pour couvrir un AUTRE site — fait naître
-// une entrée sous une clé neuve (#2223) : l'entrée se compte sur les deux IMAGES, jamais sur la
-// ligne touchée du diff.
-test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE fait naître une entrée sous sa clé neuve (échange en place)', () => {
+// #2472
+test('entrée MULTILIGNE — remplacer la ligne fichier échange une entrée à net nul', () => {
   const a = entreeFolio(CHAPITRE, 'LDB 8 65→67')
   const b = entreeFolio(CHAPITRE_ACE, 'ACE 12 3→5')
   const avant = stockFolio(a, b)
@@ -453,8 +451,8 @@ test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE fait naître une entr
   }])
   assert.deepEqual(
     croissanceDesStocks(diff, { lirePostImage: () => apres, lirePreImage: () => avant }).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net]),
-    [[FOLIO, 1, 1, 1]],
-    'l’entrée née sous `CHAPITRE_ACE` ne se paie pas de celle morte sous `CHAPITRE` (#1806 D5″)',
+    [],
+    'une entrée ajoutée moins une entrée retirée',
   )
 })
 
@@ -490,13 +488,13 @@ test('croissance — un stock qui NAÎT est une croissance nette, avec ses exemp
   assert.deepEqual(c.exemples, [ENTREE_A.trim(), ENTREE_B.trim()])
 })
 
-test('croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (#1806 D5″)', () => {
+test('croissance — un stock qui décroît ou échange ses entrées ne dit rien', () => {
   const porteur = 'scripts/guards/lib/folioRatchetStock.mjs'
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [], [ENTREE_A, ENTREE_B]), REPLI), [])
   assert.deepEqual(
     croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), REPLI).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net, c.exemples]),
-    [[porteur, 1, 1, 1, [ENTREE_A.trim()]]],
-    'B sort, A entre : la dette de A est NEUVE',
+    [],
+    'B sort, A entre : net nul',
   )
   const renommages = new Map([['src/ui/CampaignView.test.tsx', 'src/state/combatSlice.ts']])
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), { ...REPLI, renommages }), [],
@@ -505,7 +503,7 @@ test('croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se c
     'une entrée qui change de place sous la même clé ne grandit rien')
 })
 
-test('croissance par CLÉ (#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`', () => {
+test('croissance par porteur : X +3 moins Q −3 donne zéro, X +3 seul exige un cliquet', () => {
   const F = 'scripts/guards/lib/cssCouchesStock.mjs'
   const e = (f, r) => `  { fichier: '${f}', ref: '${r}', occurrence: 1 },`
   const Q = 'src/ui/styles/ecran-q.css'
@@ -518,7 +516,7 @@ test('croissance par CLÉ (#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derri
   const pre = tete([...qs, ...xs])
   const images = (post) => ({ lirePreImage: (f) => (f === F ? pre : null), lirePostImage: (f) => (f === F ? post : null) })
   const deplace = `diff --git a/${F} b/${F}\n--- a/${F}\n+++ b/${F}\n@@ -3,3 +2,0 @@\n${qs.map((l) => `-${l}`).join('\n')}\n@@ -8,0 +6,3 @@\n${xs2.map((l) => `+${l}`).join('\n')}\n`
-  assert.deepEqual(croissancesNonCouvertes({ diff: deplace, message: 'refactor' }, images(tete([...xs, ...xs2]))).map((c) => [c.fichier, c.net]), [[F, 3]])
+  assert.deepEqual(croissancesNonCouvertes({ diff: deplace, message: 'refactor' }, images(tete([...xs, ...xs2]))), [])
   const seul = `diff --git a/${F} b/${F}\n--- a/${F}\n+++ b/${F}\n@@ -8,0 +9,3 @@\n${xs2.map((l) => `+${l}`).join('\n')}\n`
   assert.deepEqual(croissancesNonCouvertes({ diff: seul, message: 'refactor' }, images(tete([...qs, ...xs, ...xs2]))).map((c) => [c.fichier, c.net]), [[F, 3]],
     'témoin positif : X +3 sans sortie de Q, même compte')
@@ -1307,12 +1305,14 @@ function croissanceReelle(pre, post, fichier = 'scripts/guards/lib/x.mjs') {
 const dictionnaire = (ligne) => `export const T = {\n  ${ligne}\n}\n`
 const carte = (ligne) => `export const M = new Map([\n  ${ligne}\n])\n`
 
-test('#2223 IDENTITÉ — dictionnaire : la valeur repointée vers un AUTRE fichier fait naître une entrée', () => {
-  assert.deepEqual(croissanceReelle(dictionnaire("regle: 'src/a.ts',"), dictionnaire("regle: 'src/b.ts',")), [1])
+test('#2223 IDENTITÉ — dictionnaire : repointer la valeur échange une entrée à net nul', () => {
+  assert.notEqual(fichierNommePar("regle: 'src/a.ts',"), fichierNommePar("regle: 'src/b.ts',"))
+  assert.deepEqual(croissanceReelle(dictionnaire("regle: 'src/a.ts',"), dictionnaire("regle: 'src/b.ts',")), [])
 })
 
-test('#2223 IDENTITÉ — Map : la valeur repointée vers un AUTRE fichier fait naître une entrée', () => {
-  assert.deepEqual(croissanceReelle(carte("['k', 'src/a.ts'],"), carte("['k', 'src/b.ts'],")), [1])
+test('#2223 IDENTITÉ — Map : repointer la valeur échange une entrée à net nul', () => {
+  assert.notEqual(fichierNommePar("['k', 'src/a.ts'],"), fichierNommePar("['k', 'src/b.ts'],"))
+  assert.deepEqual(croissanceReelle(carte("['k', 'src/a.ts'],"), carte("['k', 'src/b.ts'],")), [])
 })
 
 test('#2223 IDENTITÉ — dictionnaire : la clé renommée, la valeur égale, ne fait rien naître', () => {
@@ -1330,21 +1330,25 @@ test('#2223 IDENTITÉ — repli MIXTE : image post lisible, pré-image `null`, u
   assert.deepEqual(croissanceDesStocks(diff, { lirePostImage: () => post, lirePreImage: () => null }), [],
     'l’entrée retirée (repli de ligne) et l’ajoutée (image) ont la même identité')
   assert.deepEqual(croissanceDesStocks(diff.replace("+  'src/os/bones.ts',", "+  'src/os/autre.ts',"), { lirePostImage: () => post.replace('bones.ts', 'autre.ts'), lirePreImage: () => null })
-    .map((c) => c.net), [1], 'témoin positif : un autre fichier naît')
+    .map((c) => c.net), [], 'un ajout et un retrait : net nul')
 })
 
 const liste = (ligne) => `export const L = [\n  ${ligne}\n]\n`
 
 test('#2223 IDENTITÉ — l’extension fait partie du fichier nommé : deux chemins à extension sont deux fichiers', () => {
-  assert.deepEqual(croissanceReelle(liste("'src/a.ts',"), liste("'src/a.json',")), [1], 'a.ts → a.json')
-  assert.deepEqual(croissanceReelle(liste("'src/ui/X.css',"), liste("'src/ui/X.tsx',")), [1], 'X.css → X.tsx')
-  assert.deepEqual(croissanceReelle(liste("'src/ui/editor/vue.ts',"), liste("'src/ui/editor/vue.tsx',")), [1], 'vue.ts → vue.tsx')
+  for (const [a, b] of [['src/a.ts', 'src/a.json'], ['src/ui/X.css', 'src/ui/X.tsx'], ['src/ui/editor/vue.ts', 'src/ui/editor/vue.tsx']]) {
+    assert.notEqual(fichierNommePar(JSON.stringify(a)), fichierNommePar(JSON.stringify(b)))
+  }
+  assert.deepEqual(croissanceReelle(liste("'src/a.ts',"), liste("'src/a.json',")), [], 'a.ts → a.json')
+  assert.deepEqual(croissanceReelle(liste("'src/ui/X.css',"), liste("'src/ui/X.tsx',")), [], 'X.css → X.tsx')
+  assert.deepEqual(croissanceReelle(liste("'src/ui/editor/vue.ts',"), liste("'src/ui/editor/vue.tsx',")), [], 'vue.ts → vue.tsx')
 })
 
-test('#2223 IDENTITÉ — un stock de structures repointé de `criticals.json` vers `criticals.ts` fait naître une entrée', () => {
+test('#2223 IDENTITÉ — un stock de structures repointé échange une entrée à net nul', () => {
   const ligne = (dataset, champ) =>
     `{ concept: "reference", dataset: "${dataset}", champ: "${champ}", signature: "versTraumaId+…", statut: "divergente", strate: "Référence", occurrences: 2 },`
-  assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.ts', 'champNeuf'))), [1])
+  assert.notEqual(fichierNommePar(ligne('criticals.json', 'apresDelai')), fichierNommePar(ligne('criticals.ts', 'champNeuf')))
+  assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.ts', 'champNeuf'))), [])
   assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.json', 'champNeuf'))), [],
     'témoin : le même fichier, un autre champ, ne fait rien naître')
 })
