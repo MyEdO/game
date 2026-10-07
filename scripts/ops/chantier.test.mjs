@@ -126,7 +126,17 @@ describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `a
       creer: () => ({ ok: true, resume: 'worktree=x' }),
     })
     assert.equal(code, 0)
-    assert.equal(dits.join(''), `[chantier] principal non synchronisé, le chantier part d’origin/main : ${JSON.stringify(refus)}\n`)
+    assert.equal(dits.join(''), `[chantier] principal : ${JSON.stringify(refus)} ; le chantier part d’origin/main\n`)
+  })
+
+  test('exception de la synchronisation : dite à part, aucun état fabriqué ; le chantier se crée depuis origin (#2187 commentaire 6029118597, C5)', async () => {
+    const dits = []
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => { throw new Error('boum') }, relancer: pas('relancer'), dire: (t) => dits.push(t), imprimer: () => {},
+      creer: () => ({ ok: true, resume: 'worktree=x' }),
+    })
+    assert.equal(code, 0)
+    assert.equal(dits.join(''), '[chantier] synchronisation du principal en exception : boum ; le chantier part d’origin/main\n')
   })
 
   test('nom invalide : rien n’est synchronisé ; relance = `npm run ops:chantier -- <args>` depuis la racine, son code rendu', async () => {

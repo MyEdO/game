@@ -78,12 +78,24 @@ const atomeSynchro = atom({ plugin: 'harnais', key: 'synchro' } as const, { text
  */
 const BORNE_SYNCHRO_MS = 300 * 1000
 
-/** Les états de synchronisation qui ne disent rien à la session. */
+/** Les états de synchronisation qui ne disent rien à la session, sans configuration client changée. */
 const ETATS_MUETS = new Set(['a-jour', 'avance'])
 
 /**
- * Le principal synchronisé (`scripts/ops/synchroniser.mjs --json`, #2187) : un état autre que `a-jour` ou
- * `avance`, ou un échec, est retenu pour UN bloc de contexte, tel que reçu.
+ * Le texte d'un état reçu, `null` s'il est muet : `ETATS_MUETS` et `configurationClientChangee` vide ou
+ * absent (#2187 commentaire 6029118597, C4).
+ */
+function texteDeSynchro(vu: HarnaisSynchro): string | null {
+  const changes = Array.isArray(vu.configurationClientChangee) ? vu.configurationClientChangee.map(String) : []
+  const etatMuet = ETATS_MUETS.has(vu.etat)
+  if (etatMuet && !changes.length) return null
+  const configuration = changes.length ? ` — la session tourne sur la configuration d'avant : ${changes.join(', ')}` : ''
+  return `[synchroniser] principal : ${JSON.stringify(vu)}${configuration}${etatMuet ? '' : ' — reprise : `npm run ops:synchroniser`'}`
+}
+
+/**
+ * Le principal synchronisé (`scripts/ops/synchroniser.mjs --json`, #2187) : un état non muet
+ * (`texteDeSynchro`), ou un échec, est retenu pour UN bloc de contexte, tel que reçu.
  */
 async function synchroniser($: EngineInterface) {
   let lu: Lu<HarnaisSynchro>
@@ -92,9 +104,7 @@ async function synchroniser($: EngineInterface) {
   } catch (erreur) {
     lu = { ok: false, motif: `non lancé (${String(erreur)})` }
   }
-  const reprise = ' — reprise : `npm run ops:synchroniser`'
-  const texte = !lu.ok ? `[synchroniser] principal non synchronisé : ${lu.motif}${reprise}`
-    : ETATS_MUETS.has(lu.valeur.etat) ? null : `[synchroniser] principal : ${JSON.stringify(lu.valeur)}${reprise}`
+  const texte = lu.ok ? texteDeSynchro(lu.valeur) : `[synchroniser] principal non synchronisé : ${lu.motif} — reprise : \`npm run ops:synchroniser\``
   await update($, atomeSynchro, () => ({ texte }))
 }
 

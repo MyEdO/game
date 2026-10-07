@@ -54,6 +54,7 @@ import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { fusionDePr } from '../guards/lib/fusionPr.mjs'
 import { BORNE_EJECTIONS, ETAPES, prDeRest } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -899,7 +900,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
      *  `{ ok: true, vu }` (l'état rendu), ou `{ ok: false, raison }` quand aucun état n'est lisible. */
     synchroniserPrincipal() {
       const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/synchroniser.mjs'), '--json'], {
-        cwd: racine, stdio: ['ignore', 'pipe', fdLog], encoding: 'utf8',
+        cwd: racine, stdio: ['ignore', 'pipe', fdLog], encoding: 'utf8', timeout: TIMEOUT_SYNCHRONISEUR * 1000,
       })
       try {
         return { ok: true, vu: JSON.parse(vu.stdout) }

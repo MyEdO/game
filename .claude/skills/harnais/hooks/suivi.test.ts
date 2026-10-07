@@ -107,6 +107,18 @@ test('un état de synchronisation nommé (code 1) entre UNE fois en contexte, te
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
 })
 
+test('`avance` avec configuration client changée : en contexte, une fois, les chemins de la configuration d’avant (#2187 commentaire 6029118597, C4)', async ($, on) => {
+  mock.clock(on)
+  const avance = { etat: 'avance', de: 'a', vers: 'b', configurationClientChangee: ['.claude/settings.json'] }
+  monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 0, stdout: JSON.stringify(avance), stderr: '' }))
+  await $.session.start(DEMARRAGE)
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([
+    { name: 'synchroniser', text: `[synchroniser] principal : ${JSON.stringify(avance)} — la session tourne sur la configuration d'avant : .claude/settings.json` },
+    { name: 'suivi', text: SANS_LIEN.contexte },
+  ])
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
+})
+
 test('synchroniseur muet (code 1, stdout vide) : le motif en contexte, une fois (#2187)', async ($, on) => {
   mock.clock(on)
   monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 1, stdout: '', stderr: 'tué' }))

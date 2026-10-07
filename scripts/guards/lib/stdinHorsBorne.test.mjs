@@ -84,17 +84,24 @@ test('effetsDeModule : stdin, fin et code de sortie, écriture sur stdout, conso
   }
 })
 
-/** Les modules de `scripts/hooks/` qu'un point d'entrée charge DIRECTEMENT (`from`, `import()`) : sa machinerie
- *  (la barrière et `executer`, #2187), qui lit, écrit et sort pour lui. */
-const chargesPar = (script) => [...readFileSync(join(HOOKS, script), 'utf8').matchAll(/(?:from |import\()\s*'\.\/([\w.-]+\.mjs)'/g)].map((m) => m[1])
+const sourceDe = (module) => readFileSync(join(HOOKS, module), 'utf8')
+/** Les modules de `scripts/hooks/` qu'un point d'entrée charge DIRECTEMENT (`from`, `import()`). */
+const chargesPar = (script) => [...sourceDe(script).matchAll(/(?:from |import\()\s*'\.\/([\w.-]+\.mjs)'/g)].map((m) => m[1])
+/** Un module qui exporte `garde` est une garde (scripts/guards/lib/contratGarde.mjs). */
+const exporteGarde = (module) => /^export\s+(?:const|function)\s+garde\b/m.test(sourceDe(module))
 
 test('aucune garde de scripts/hooks/ hors des points d’entrée ne porte un effet de processus ni un état de module (#2125)', () => {
-  const machinerie = new Set([...POINTS_D_ENTREE].flatMap((script) => [script, ...chargesPar(script)]))
+  /** La machinerie des hooks d'outil (#2187) : les modules que charge un point d'entrée d'`ENTREES_OUTIL`, gardes exclues. */
+  const machinerie = new Set([
+    ...POINTS_D_ENTREE,
+    ...ENTREES_OUTIL.flatMap(({ script }) => chargesPar(script)).filter((module) => !exporteGarde(module)),
+  ])
   assert.ok(machinerie.has('barriere-outil.mjs') && machinerie.has('repartition.mjs'), [...machinerie].join(', '))
+  assert.deepEqual([...machinerie].filter(exporteGarde), [], 'aucune garde n’est exemptée')
   assert.deepEqual(
     gardesAEffets(HOOKS, machinerie).map((f) => `scripts/hooks/${f.fichier}:${f.ligne} ${f.texte}`),
     [],
-    'une garde est PURE (scripts/guards/lib/contratGarde.mjs) : le point d’entrée (scripts/hooks/repartiteur.mjs) lit, écrit et sort',
+    'une garde est PURE (scripts/guards/lib/contratGarde.mjs) : `executer` (scripts/hooks/repartition.mjs) lit, écrit et sort',
   )
 })
 

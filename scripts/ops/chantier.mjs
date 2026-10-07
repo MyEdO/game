@@ -238,8 +238,8 @@ export function relancerChantier(args, { npm = spawnSync, cwd = RACINE } = {}) {
 
 /**
  * L'ouverture depuis la ligne de commande : le principal SYNCHRONISÉ d'abord (`synchroniserPrincipal`,
- * #2187) ; `avance` → `relancer(args)`, dont le code est rendu ; tout autre état est annoncé tel quel,
- * et le chantier se crée depuis `origin/main`. Un nom invalide ne synchronise rien. REND le code de sortie.
+ * #2187) ; `avance` → `relancer(args)`, dont le code est rendu ; tout autre état est annoncé tel quel, une
+ * exception à part, et le chantier se crée depuis `origin/main`. Un nom invalide ne synchronise rien. REND le code de sortie.
  * @param {{nom: string, sansCi: boolean}} args
  */
 export async function ouvrirChantier(args, {
@@ -250,17 +250,17 @@ export async function ouvrirChantier(args, {
   imprimer = (texte) => process.stdout.write(texte),
 } = {}) {
   if (nomValide(args.nom)) {
-    let vu
+    let vu = null
     try {
       vu = await synchroniser()
     } catch (e) {
-      vu = { etat: 'exception', raison: String(/** @type {any} */ (e)?.message ?? e) }
+      dire(`[chantier] synchronisation du principal en exception : ${/** @type {any} */ (e)?.message ?? e} ; le chantier part d’origin/main\n`)
     }
-    if (vu.etat === 'avance') {
+    if (vu?.etat === 'avance') {
       dire(`[chantier] principal avancé (${JSON.stringify(vu)}) : relance \`npm run ops:chantier -- ${argvDe(args).join(' ')}\`\n`)
       return relancer(args)
     }
-    if (vu.etat !== 'a-jour') dire(`[chantier] principal non synchronisé, le chantier part d’origin/main : ${JSON.stringify(vu)}\n`)
+    if (vu && vu.etat !== 'a-jour') dire(`[chantier] principal : ${JSON.stringify(vu)} ; le chantier part d’origin/main\n`)
   }
   const vu = creer(args)
   if (!vu.ok) {

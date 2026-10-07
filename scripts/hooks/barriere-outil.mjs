@@ -4,6 +4,7 @@
 // l'empêche pas de se charger. Il attend que le verrou d'OUTILLAGE de son arbre soit libre, puis charge
 // par `import()` la porte de version (`scripts/node-requis.mjs`) et le reste ; à échéance, ou sur un
 // échec de chargement, il sort en 2 (refus nommé).
+// Limite : #2187 commentaire 6029118597, C6 (limite A).
 import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -58,7 +59,9 @@ export async function franchir(charger, { racine = RACINE, attente = ATTENTE_BAR
     const chemin = verrouOutillageDe(racine)
     const vu = chemin === null ? { etat: 'libre' } : attendreLibre({ chemin, attente })
     if (vu.etat !== 'libre') {
-      return refuser(`outillage de ${racine} en mise à jour : verrou ${chemin} tenu par le PID ${vu.tenant?.pid ?? '?'} (${vu.tenant?.commande ?? 'commande inconnue'}) — relancer l'appel une fois la mise à jour finie`)
+      const pid = vu.tenant?.pid ?? '?'
+      const commande = vu.tenant?.commande ?? 'commande inconnue'
+      return refuser(`outillage de ${racine} en mise à jour : verrou ${chemin} tenu par le PID ${pid} (${commande}) — relancer l'appel une fois la mise à jour finie ; si le PID ${pid} n'exécute pas ${commande}, supprimer ${chemin}`)
     }
     await import('../node-requis.mjs')
     geste = await charger()

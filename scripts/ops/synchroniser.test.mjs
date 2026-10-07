@@ -16,7 +16,7 @@ import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/dep
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { ETAPES, remplacerIndex, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur } from './synchroniser.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
-import { attendreLibre } from '../test/verrou.mjs'
+import { attendreLibre, sousEcheanceAsync } from '../test/verrou.mjs'
 
 const ENV = envDeDepotForge()
 const ATTENTE = { echeanceMs: 3_000, pasMs: 20 }
@@ -107,6 +107,17 @@ jetables.push(SCRIPT_ENFANT)
 
 /** Un processus synchroniseur réel sur `principal`, tué après l'étape `arret` ; borné à 60 s. */
 const lancer = (principal, arret = '') => spawnSync(process.execPath, [SCRIPT_ENFANT, principal, arret], { env: ENV, encoding: 'utf8', timeout: 60_000 })
+
+/**
+ * Les verrous de refs du `update-ref --stdin` détaché d'un synchroniseur mort, attendus ABSENTS avant qu'un
+ * test pose un verrou tiers au même chemin : son abandon sur EOF supprime ces chemins (#2187 commentaire
+ * 6029118597, rouge CI 37557960806). Borné à 10 s.
+ */
+async function attendreAbandonDuMort(principal) {
+  const verrous = [join(principal, '.git', 'HEAD.lock'), join(principal, '.git', 'refs', 'heads', 'main.lock')]
+  const tenus = await sousEcheanceAsync({ attente: { echeanceMs: 10_000, pasMs: 20 }, essai: () => verrous.filter(existsSync), abouti: (vus) => !vus.length })
+  assert.deepEqual(tenus, [], 'verrous de refs du mort toujours tenus')
+}
 
 /** `lancer`, sans bloquer : plusieurs processus réels tournent ensemble. REND `{ status, stdout }`. */
 function lancerEnParallele(principal) {
@@ -691,6 +702,7 @@ describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processu
     committer(m.amont, { 'm.md': 'titre\namont\n' })
     ecrireTravail(m.principal, 'm.md', 'titre\namont\nlocal\n')
     assert.notEqual(lancer(m.principal, 'travail').status, 0)
+    await attendreAbandonDuMort(m.principal)
     const perime = join(m.principal, '.git', 'refs', 'heads', 'main.lock')
     writeFileSync(perime, `${m.B}\n`)
     const vu = await sync(m.principal, { attente: { echeanceMs: 300, pasMs: 20 } })
@@ -708,6 +720,7 @@ describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processu
     committer(m.amont, { 'm.md': 'titre\namont\n' })
     ecrireTravail(m.principal, 'm.md', 'titre\namont\nlocal\n')
     assert.notEqual(lancer(m.principal, 'travail').status, 0)
+    await attendreAbandonDuMort(m.principal)
     const verrouIndex = join(m.principal, '.git', 'index.lock')
     rmSync(verrouIndex)
     const perime = join(m.principal, '.git', 'refs', 'heads', 'main.lock')

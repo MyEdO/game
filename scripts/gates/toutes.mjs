@@ -183,7 +183,9 @@ export const ECRIT_LU = {
       'écrit son evenement.json sous cette racine temporaire et la nettoie par rmSync en finally ; ' +
       '`mods/murDeMod.test.mjs` crée ses fichiers de sélection native par mkdirSync/writeFileSync ' +
       'sous mkdtempSync(join(os.tmpdir(), "lint-mod-perimetre-")), puis rmSync en finally ; ' +
-      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally',
+      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally ; +1 écrivain le 2026-10-07 (#2187) : ' +
+      '`hooks/barriere-outil.test.mjs` forge ses arbres (`.git` dossier ou fichier `gitdir:`, LF et CRLF, sous-module) ' +
+      'et y écrit le verrou d’outillage sous `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l’arbre n’est jamais écrit',
   },
   'mods:check': {
     ecrit: [],
