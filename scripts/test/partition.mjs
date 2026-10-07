@@ -192,6 +192,11 @@ export function cotesRequis(filtres, partition, racine, plateforme = process.pla
   return cotes.length ? cotes : ['node']
 }
 
+/** La capacité servie par le lanceur sous l'environnement `env` : `capacite` des cœurs (`coeurs`, mesure
+ *  `os.availableParallelism`) et de la mémoire disponible (`memoireDisponibleMo`). Lue par `run.mjs` et par
+ *  l'estimation du mur de `perimetre.mjs`. */
+export const capaciteDuLanceur = (env) => capacite(coeurs(env, () => os.availableParallelism()), memoireDisponibleMo(env))
+
 /** Drapeaux dont la sémantique est globale à UN processus : rapport unique (`--coverage`,
  *  `--outputFile`), sortie machine que le préfixage `[node] `/`[jsdom] ` rendrait illisible
  *  (`--reporter`, `--mergeReports` — cac accepte aussi la graphie `--merge-reports`), racine ou

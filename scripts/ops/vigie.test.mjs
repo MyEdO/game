@@ -8,7 +8,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CiIllisible, decoder, executer, encoder, ligneDe, optionsDe, tick, transitionsDe, verdictDeCi } from './vigie.mjs'
-import { cheminsDeJournal, journalVide, sauverJournal } from './publier.mjs'
+import { cheminsDeJournal, journalVide } from './publier.mjs'
+import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 
@@ -147,7 +148,7 @@ test('câblage : `tick` lit l’origine par UN ls-remote, la CI par sha, le jour
     assert.deepEqual(readdirSync(join(aval, '.git', 'vigie')), [`${main}.json`], 'le cache vit sous le .git commun')
 
     const { json } = cheminsDeJournal(aval, 'chantier/9')
-    sauverJournal(json, { ...journalVide('chantier/9'), tete: branche, run: `${process.pid}-1`, pid: process.pid, seq: 1, etapes: { preflight: { etat: 'en-vol', run: `${process.pid}-1`, seq: 1, tete: branche } } })
+    ecrireJsonAtomique(json, { ...journalVide('chantier/9'), tete: branche, run: `${process.pid}-1`, pid: process.pid, seq: 1, etapes: { preflight: { etat: 'en-vol', run: `${process.pid}-1`, seq: 1, tete: branche } } })
     verdicts.set(branche, 'failure')
     const second = tick({ arbre: aval, depuis: premier.etat, lire, jobs: rougesDuTick })
     assert.deepEqual(lus, [main, branche, branche], 'main, verte au cache, ne se relit pas')

@@ -56,6 +56,8 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
   (verbatim + source + la QUESTION à laquelle il répondait), le CAS CANONIQUE déjà couvert
   (`fichier:ligne`) + la preuve que le nouveau cas en est une INSTANCE, pas une variante à branche,
   `## Design jugé :` (un agent `juge` dépêché juge le design, son rendu est cité au brief).
+- **Le brief ne liste PLUS les tests du périmètre** : il prescrit `npm run test:perimetre`, qui les
+  dérive des fichiers touchés (#2400).
 - **Un brief POSE les questions, il ne les pré-répond pas** : toute classification que l'agent peut
   établir (provenance d'une règle, existence d'un consommateur, état d'un fichier) se demande en
   SORTIE, citation exigée. Le banni est l'affirmation NON citée ; citation verbatim, réf RAW nue, ligne
@@ -108,10 +110,10 @@ lire ni tester son WIP. Avant de relancer un agent mort, vérifier le CONTENU du
 la garde, le slot existe-t-il ?), jamais `git status` — un arbre propre confond « rien fait », « déjà
 committé » et « fait dans un autre worktree » ; le brief de relance porte l'état VÉRIFIÉ et daté et dit
 « si le livrable existe déjà, PIVOTE en revue ». Tout geste POSTÉRIEUR à une mesure la périme : le
-rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue les tests du
-périmètre avant de committer.
+rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue
+`npm run test:perimetre` avant de committer.
 
-**6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et tests du PÉRIMÈTRE
+**6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et `npm run test:perimetre`
 avant commit — la suite complète est jouée UNE fois par le run CI de la branche, jamais en local avant
 commit ; revue du diff, UI → skill `recette-navigateur`. Deux suites complètes simultanées sur la
 machine = effondrement de contention : les suites lourdes se SÉRIALISENT, ping inter-session avant
