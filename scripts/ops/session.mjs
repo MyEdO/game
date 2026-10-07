@@ -138,7 +138,7 @@ export async function commandeSession(argv, { stdout = process.stdout, stdin = p
   return resultat.etat === 'indeterminee' ? 3 : resultat.etat === 'echec-reservation' || resultat.carte?.issueSortie === 'echec' ? 1 : 0
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === script) {
+if (import.meta.main) {
   try { process.exitCode = await commandeSession(process.argv.slice(2)) }
   catch (e) { process.stderr.write(`[session] REFUS : ${e.message}\n`); process.exitCode = 1 }
 }

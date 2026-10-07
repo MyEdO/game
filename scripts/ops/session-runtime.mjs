@@ -359,7 +359,7 @@ export async function controleur({ dossier, id, hostPid = Number(process.env.WFR
   } catch (e) { return sessions.sortie(id, { codeAgent: null, raison: e.message }) }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   try { await controleur({ dossier: process.argv[2], id: process.argv[3] }) }
   catch (e) { process.stderr.write(`[session] ${e.message}\n`) }
   process.exitCode = 0
