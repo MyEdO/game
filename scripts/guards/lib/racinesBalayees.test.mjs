@@ -104,7 +104,7 @@ test('un dossier temporaire est HORS du dépôt, jamais un non résolu', () => {
   assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'), [[{ hors: true }], [{ hors: true }]])
 })
 
-test('CYCLE de relais : un appel en cours aux MÊMES arguments ne s’ajoute rien ; une ré-entrée à d’autres arguments s’évalue, la suivante est un cycle nommé', () => {
+test('CYCLE de relais : une ré-entrée aux MÊMES arguments se lit à son point fixe ; une ré-entrée à d’autres arguments s’évalue, la suivante est un cycle nommé', () => {
   const modules = {
     'scripts/lib/cycle.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\nexport function a(d, n) { return n ? a(d, n - 1) : readdirSync(d) }\n" +
       "export function b(d) { return readdirSync(d) || b(join(d, 'x')) }\n",
@@ -189,4 +189,72 @@ test('une raison qui embarque du TEXTE SOURCE tient sur une ligne : ses blancs, 
     "readdirSync(fabrique(\n  'x',\n)('y'))\nreaddirSync(outils\n    .calculer())\n"
   assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'),
     [[{ non: "appel fabrique( 'x', )" }], [{ non: 'appel outils .calculer' }]])
+})
+
+/** Les racines de chaque site de `fichiers`, lues dans CET ordre par UN évaluateur, valeurs triées. */
+const sitesDansLOrdre = (modules, fichiers) => {
+  const evaluateur = evaluateurDe(modules)
+  return fichiers.flatMap((f) => evaluateur.sitesDe(f).map((s) => [`${f}:${s.ligne} ${s.appel}`, s.relais,
+    s.valeurs.map((v) => JSON.stringify(v)).sort()]))
+}
+const ENTETE = "import { readdirSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n"
+
+test('POINT FIXE d’une récursion aux mêmes arguments : un relais MUTUEL garde ses deux sites, quel que soit le module lu d’abord', () => {
+  const modules = {
+    'scripts/lib/m.mjs': ENTETE + "export function a(d) { readdirSync(d); return b(d) }\nexport function b(d) { return a(d) }\n",
+    'scripts/t.test.mjs': "import { a, b } from './lib/m.mjs'\na('src')\nb('docs')\n",
+  }
+  const attendu = [
+    ['scripts/t.test.mjs:2 a', false, ['{"chemin":"src"}']],
+    ['scripts/t.test.mjs:3 b', false, ['{"chemin":"docs"}']],
+  ]
+  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/t.test.mjs']), attendu)
+  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/lib/m.mjs', 'scripts/t.test.mjs']).filter(([s]) => s.startsWith('scripts/t.')), attendu)
+})
+
+test('POINT FIXE d’une valeur rendue transformée par la récursion : chaque ancêtre en est', () => {
+  const modules = {
+    'scripts/lib/r.mjs': ENTETE + "export function haut(d) { return existsSync(d) ? d : dirname(haut(d)) }\n",
+    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { haut } from './lib/r.mjs'\nreaddirSync(haut('src/ui/x'))\n",
+  }
+  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/t.test.mjs']), [
+    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":""}', '{"chemin":"src"}', '{"chemin":"src/ui"}', '{"chemin":"src/ui/x"}']],
+    ['scripts/t.test.mjs:3 haut', false, ['{"chemin":"src/ui/x"}']],
+  ])
+})
+
+test('POINT FIXE : un résultat calculé pendant un cycle ouvert ne se mémoïse pas — l’ordre des tests lus ne change rien', () => {
+  const modules = {
+    'scripts/lib/p.mjs': ENTETE + "export function a(d) { readdirSync(d); b(d) }\nexport function b(d) { existsSync(join(d, 'x')); a(d) }\n",
+    'scripts/t1.test.mjs': "import { a } from './lib/p.mjs'\na('alpha')\n",
+    'scripts/t2.test.mjs': "import { b } from './lib/p.mjs'\nb('alpha')\n",
+  }
+  const attendu = { 'scripts/t1.test.mjs:2 a': ['{"chemin":"alpha"}', '{"chemin":"alpha/x"}'], 'scripts/t2.test.mjs:2 b': ['{"chemin":"alpha"}', '{"chemin":"alpha/x"}'] }
+  for (const ordre of [['scripts/t1.test.mjs', 'scripts/t2.test.mjs'], ['scripts/t2.test.mjs', 'scripts/t1.test.mjs']]) {
+    assert.deepEqual(Object.fromEntries(sitesDansLOrdre(modules, ordre).map(([s, , v]) => [s, v])), attendu, ordre.join(' puis '))
+  }
+})
+
+test('POINT FIXE introuvable : une récursion qui CREUSE aux mêmes arguments se nomme après `ITERATIONS` passes ; à d’autres arguments, après `REENTREES`', () => {
+  const modules = {
+    'scripts/lib/q.mjs': ENTETE + "export function f(d) { readdirSync(d); return f(join(d, '..')) }\n" +
+      "export function g(d) { return existsSync(d) ? d : join(g(d), 'x') }\n",
+    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { f, g } from './lib/q.mjs'\nf('src/ui/a/b')\nreaddirSync(g('src'))\n",
+  }
+  const [deF, deG] = sitesDansLOrdre(modules, ['scripts/t.test.mjs'])
+  assert.deepEqual(deF, ['scripts/t.test.mjs:3 f', false, ['{"chemin":"src/ui/a"}', '{"chemin":"src/ui/a/b"}', '{"non":"cycle d\'appels f"}']])
+  assert.equal(deG[2].length, 9, 'src, src/x … src/x/x/x/x/x/x/x, puis le non nommé')
+  assert.equal(deG[2].at(-1), '{"non":"cycle d\'appels g sans point fixe"}')
+})
+
+test('un RELAIS jugé sous une lecture COUPÉE (profondeur) ne se mémoïse pas : le relais appelé plus haut garde ses racines, quel que soit l’ordre', () => {
+  const chaine = Array.from({ length: 17 }, (_, i) => `export function f${i + 1}(d) { f${i + 2}(d) }\n`).join('')
+  const modules = {
+    'scripts/lib/m.mjs': "import { readdirSync } from 'node:fs'\n" + chaine + 'export function f18(d) { readdirSync(d) }\n',
+    'scripts/t1.test.mjs': "import { f1 } from './lib/m.mjs'\nf1('a')\n",
+    'scripts/t5.test.mjs': "import { f5 } from './lib/m.mjs'\nf5('b')\n",
+  }
+  for (const ordre of [['scripts/t1.test.mjs', 'scripts/t5.test.mjs'], ['scripts/t5.test.mjs', 'scripts/t1.test.mjs']]) {
+    assert.deepEqual(sitesDansLOrdre(modules, ordre).filter(([s]) => s.endsWith(' f5')), [['scripts/t5.test.mjs:2 f5', false, ['{"chemin":"b"}']]], ordre.join(' puis '))
+  }
 })
