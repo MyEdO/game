@@ -25,9 +25,10 @@ import { isOutOfAction } from '../engine/conditions';
 import type { SeaWind } from '../engine/domainAttributes';
 import { inBattleId } from './combatants';
 
-/** Patch Zustand pour re-render après mutation EN PLACE d'un acteur (Chance/Résilience) : combat → `battle`, sinon `party`. */
+/** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
+ *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe. */
 export function touchActors(state: GameState): Partial<GameState> {
-  return state.battle ? { battle: { ...state.battle } } : { party: [...state.party] };
+  return state.battle ? { battle: { ...state.battle, combatants: [...state.battle.combatants] } } : { party: [...state.party] };
 }
 
 /**

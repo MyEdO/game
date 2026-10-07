@@ -5,11 +5,13 @@
  * une ALLOCATION sur une ou plusieurs bourses — la bande peut se cotiser (`payWithAllocation`), le
  * bénéficiaire d'un achat est INDÉPENDANT des payeurs. Miroir de `creditPartyMoney`/`merchantFlow`.
  */
-import type { Combatant } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
 import { add as moneyAdd, subtract as moneySub, canAfford, toBrass, fromBrass, type Money } from '../engine/money';
 import { bourseInstanceOf, bourseOf, ensureBourse, withBourseMoney } from '../engine/bourse';
 import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
+import type { GameState } from './store';
+import { actorIn, ecrireActeur } from './combatants';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
@@ -31,16 +33,33 @@ export function condCtx(get: Get): ConditionCtx {
   return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: partyMoneyTotal(get) });
 }
 
+/** Pose les Bourses : le montant se calcule UNE fois sur l'acteur lu (`actorIn`), l'instance Bourse
+ *  se garantit UNE fois, puis la même s'écrit sur chaque copie (contrat d'`ecrireActeur`, #2312). */
+function ecrireBourses(s: GameState, montants: Record<string, (actuel: Money) => Money>): ReturnType<typeof ecrireActeur> {
+  const bourses: Record<string, ItemInstance> = {};
+  for (const [id, montant] of Object.entries(montants)) {
+    const lu = actorIn(s, id);
+    const bourse = lu && bourseInstanceOf(withBourseMoney(lu, montant(bourseOf(lu))));
+    if (bourse) bourses[id] = bourse;
+  }
+  return ecrireActeur(s, Object.keys(bourses), (h) => {
+    const bourse = structuredClone(bourses[h.id]!);
+    const actuelle = bourseInstanceOf(h);
+    const items = h.items ?? [];
+    return { ...h, items: actuelle ? items.map((i) => (i === actuelle ? bourse : i)) : [...items, bourse] };
+  });
+}
+
 /** Crédite la Bourse d'UN héros (atomique, jamais refusée — créditer ne peut pas échouer). */
 export function creditBourse(_get: Get, set: Set, heroId: string, m: Money): void {
-  set((s) => ({ party: s.party.map((h) => (h.id === heroId ? withBourseMoney(h, moneyAdd(bourseOf(h), m)) : h)) }));
+  set((s) => ecrireBourses(s, { [heroId]: (actuel) => moneyAdd(actuel, m) }));
 }
 
 /** Débite la Bourse d'UN héros — refusé (aucune mutation) si insolvable. Renvoie le succès. */
 export function debitBourse(get: Get, set: Set, heroId: string, m: Money): boolean {
-  const hero = get().party.find((h) => h.id === heroId);
+  const hero = actorIn(get(), heroId);
   if (!hero || !canAfford(bourseOf(hero), m)) return false;
-  set((s) => ({ party: s.party.map((h) => (h.id === heroId ? withBourseMoney(h, moneySub(bourseOf(h), m)!) : h)) }));
+  set((s) => ecrireBourses(s, { [heroId]: (actuel) => moneySub(actuel, m)! }));
   return true;
 }
 
@@ -62,17 +81,11 @@ export function payWithAllocation(
   opts: { debits: Record<string, Money>; recipient?: string; purpose?: string; consent?: (heroId: string) => boolean },
 ): boolean {
   const consent = opts.consent ?? canDebitBourse;
-  const party = get().party;
   for (const [heroId, m] of Object.entries(opts.debits)) {
-    const hero = party.find((h) => h.id === heroId);
+    const hero = actorIn(get(), heroId);
     if (!hero || !consent(heroId) || !canAfford(bourseOf(hero), m)) return false;
   }
-  set((s) => ({
-    party: s.party.map((h) => {
-      const m = opts.debits[h.id];
-      return m ? withBourseMoney(h, moneySub(bourseOf(h), m)!) : h;
-    }),
-  }));
+  set((s) => ecrireBourses(s, Object.fromEntries(Object.entries(opts.debits).map(([id, m]) => [id, (actuel: Money) => moneySub(actuel, m)!]))));
   return true;
 }
 
@@ -120,12 +133,7 @@ export function distributeCredit(get: Get, set: Set, m: Money, allocation?: Reco
   const party = get().party;
   if (!party.length) return;
   const alloc = allocation ?? perHead(party, m);
-  set((s) => ({
-    party: s.party.map((h) => {
-      const share = alloc[h.id];
-      return share ? withBourseMoney(h, moneyAdd(bourseOf(h), share)) : h;
-    }),
-  }));
+  set((s) => ecrireBourses(s, Object.fromEntries(Object.entries(alloc).map(([id, m]) => [id, (actuel: Money) => moneyAdd(actuel, m)]))));
 }
 
 /** Allocation « un seul payeur » (achat personnel) — utilitaire pour `payWithAllocation`. */

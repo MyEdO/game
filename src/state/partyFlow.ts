@@ -37,11 +37,11 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
-import { spellCost } from '../engine/grimoire';
+import { spellCost, verdictApprentissage } from '../engine/grimoire';
 import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
 import { seatSlotsRemaining } from './netOwnership';
-import { PARTY_MAX } from './combatants';
+import { PARTY_MAX, actorIn, ecrireActeur } from './combatants';
 import { releaseSeat } from './seating';
 import type { Scene } from './scene';
 import { rosterUpdate } from './roster';
@@ -49,6 +49,7 @@ import { ensureBourse, creditBourse, bourseOf, payWithAllocation, soloPayer } fr
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
+import type { GameState } from './store';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
  *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
@@ -115,16 +116,13 @@ export function toggleEquip(get: Get, set: Set, carrierId: string, uid: string):
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
     if (carrier.kind === 'hero') {
-      return {
-        party: s.party.map((h) => {
-          if (h.id !== carrierId) return h;
-          const clone: Combatant = structuredClone(h);
-          clone.items ??= [];
-          msg = applyToggleEquip(clone.items, uid, clone.label);
-          recomputeLoadout(clone);
-          return clone;
-        }),
-      };
+      return ecrireActeur(s, carrierId, (h) => {
+        const clone: Combatant = structuredClone(h);
+        clone.items ??= [];
+        msg = applyToggleEquip(clone.items, uid, clone.label);
+        recomputeLoadout(clone);
+        return clone;
+      });
     }
     return {
       possessions: s.possessions.map((p) => {
@@ -167,18 +165,15 @@ export function stowItem(get: Get, set: Set, carrierId: string, uid: string, con
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
     if (carrier.kind === 'hero') {
-      return {
-        party: s.party.map((h) => {
-          if (h.id !== carrierId) return h;
-          const clone: Combatant = structuredClone(h);
-          clone.items ??= [];
-          const r = applyStow(clone.items, uid, containerUid, clone.label);
-          msg = r.msg;
-          if (!r.moved) return h; // capacité insuffisante ou item introuvable : aucune mutation, pas de recompute
-          recomputeLoadout(clone);
-          return clone;
-        }),
-      };
+      return ecrireActeur(s, carrierId, (h) => {
+        const clone: Combatant = structuredClone(h);
+        clone.items ??= [];
+        const r = applyStow(clone.items, uid, containerUid, clone.label);
+        msg = r.msg;
+        if (!r.moved) return h; // capacité insuffisante ou item introuvable : aucune mutation, pas de recompute
+        recomputeLoadout(clone);
+        return clone;
+      });
     }
     return {
       possessions: s.possessions.map((p) => {
@@ -195,14 +190,11 @@ export function stowItem(get: Get, set: Set, carrierId: string, uid: string, con
 
 /** Applique une mutation de loadout à un héros (clone + recompute), même pattern que toggleEquip. */
 function mutLoadout(set: Set, heroId: string, fn: (c: Combatant) => void): void {
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      fn(clone);
-      recomputeLoadout(clone);
-      return clone;
-    }),
+  set((s) => ecrireActeur(s, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    fn(clone);
+    recomputeLoadout(clone);
+    return clone;
   }));
 }
 
@@ -243,26 +235,21 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   const movedUids = new Set([uid, ...contents.map((i) => i.uid)]);
 
   set((s) => {
-    const patch: Partial<{ party: Combatant[]; possessions: Possession[] }> = {};
+    let patch: Partial<Pick<GameState, 'party' | 'battle' | 'possessions'>> = {};
     if (from.kind === 'hero' || to.kind === 'hero') {
-      patch.party = s.party.map((h) => {
-        if (from.kind === 'hero' && h.id === fromCarrierId) {
-          const c: Combatant = structuredClone(h);
-          c.items = (c.items ?? []).filter((i) => !movedUids.has(i.uid));
-          recomputeLoadout(c);
-          return c;
-        }
-        if (to.kind === 'hero' && h.id === toCarrierId) {
-          const c: Combatant = structuredClone(h);
+      const heros = [...(from.kind === 'hero' ? [fromCarrierId] : []), ...(to.kind === 'hero' ? [toCarrierId] : [])];
+      patch = ecrireActeur(s, heros, (h) => {
+        const c: Combatant = structuredClone(h);
+        if (h.id === fromCarrierId) c.items = (c.items ?? []).filter((i) => !movedUids.has(i.uid));
+        else {
           c.items = [
             ...(c.items ?? []),
             { ...item, equipped: false, inside: undefined }, // arrive NON équipé, LIBRE
             ...contents.map((i) => ({ ...i, equipped: false })), // contenu du contenant, lien `inside` préservé
           ];
-          recomputeLoadout(c);
-          return c;
         }
-        return h;
+        recomputeLoadout(c);
+        return c;
       });
     }
     if (from.kind === 'possession' || to.kind === 'possession') {
@@ -302,18 +289,15 @@ export function setItemSkin(_get: Get, set: Set, carrierId: string, uid: string,
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
     if (carrier.kind === 'hero') {
-      return {
-        party: s.party.map((h) => {
-          if (h.id !== carrierId) return h;
-          const clone: Combatant = structuredClone(h);
-          const it = (clone.items ?? []).find((i) => i.uid === uid);
-          if (it) {
-            applySkinPatch(it, patch);
-            recomputeLoadout(clone); // propage skin → Weapon.skin actif
-          }
-          return clone;
-        }),
-      };
+      return ecrireActeur(s, carrierId, (h) => {
+        const clone: Combatant = structuredClone(h);
+        const it = (clone.items ?? []).find((i) => i.uid === uid);
+        if (it) {
+          applySkinPatch(it, patch);
+          recomputeLoadout(clone); // propage skin → Weapon.skin actif
+        }
+        return clone;
+      });
     }
     return {
       possessions: s.possessions.map((p) => {
@@ -343,39 +327,47 @@ export function choisirForme(_get: Get, set: Set, heroId: string, uid: string, f
 
 export function grantXp(get: Get, set: Set, heroId: string, amount: number): void {
   let name = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      name = h.label;
-      const clone: Combatant = structuredClone(h);
-      clone.xp = (clone.xp ?? 0) + amount;
-      return clone;
-    }),
+  set((s) => ecrireActeur(s, heroId, (h) => {
+    name = h.label;
+    const clone: Combatant = structuredClone(h);
+    clone.xp = (clone.xp ?? 0) + amount;
+    return clone;
   }));
   if (name) get().log(`${name} : ${amount >= 0 ? '+' : ''}${amount} PX.`);
 }
 
+/** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907. */
+export function refusDepensePx(s: Pick<GameState, 'battle'>): string | null {
+  return s.battle ? t('pf.xpInCombat') : null;
+}
+
+/** SEULE couture de dépense de PX : le refus (`refusDepensePx`) tombe ici, sinon `depense` s'écrit par
+ *  `ecrireActeur`. Rend `false` au refus. */
+export function depenserPx(get: Get, set: Set, heroId: string, depense: (h: Combatant) => Combatant): boolean {
+  const refus = refusDepensePx(get());
+  if (refus) { get().log(refus); return false; }
+  set((s) => ecrireActeur(s, heroId, depense));
+  return true;
+}
+
 export function buyCharAdvance(get: Get, set: Set, heroId: string, char: CharKey): void {
   let msg = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const inC = inCareerChar(careerCtx(clone).careerChars, char);
-      if (mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
-        msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
-        return h;
-      }
-      const r = engineBuyCharAdvance(clone, char, inC);
-      if (!r.ok) {
-        msg = t('pf.refused', { name: clone.label, what: CHAR_LABELS[char], reason: r.reason ?? '' });
-        return h;
-      }
-      recomputeWounds(clone);
-      msg = t('pf.advanceBought', { name: clone.label, what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
-      return clone;
-    }),
-  }));
+  if (!depenserPx(get, set, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const inC = inCareerChar(careerCtx(clone).careerChars, char);
+    if (mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
+      msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
+      return h;
+    }
+    const r = engineBuyCharAdvance(clone, char, inC);
+    if (!r.ok) {
+      msg = t('pf.refused', { name: clone.label, what: CHAR_LABELS[char], reason: r.reason ?? '' });
+      return h;
+    }
+    recomputeWounds(clone);
+    msg = t('pf.advanceBought', { name: clone.label, what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
+    return clone;
+  })) return;
   if (msg) get().log(msg);
 }
 
@@ -390,42 +382,39 @@ function lbl(name: string, spec?: string): string {
  *  dans la carrière (LDB 10 Maître artisan…). */
 export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: string, spec?: string): void {
   let msg = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const ctx = careerCtx(clone);
-      const skillLabel = byId('skill', skillId)?.label ?? skillId; // AFFICHAGE (messages) + conversion pour le moteur
-      const known = clone.skills.some((sk) => sk.id === skillId && (sk.spec ?? '') === (spec ?? ''));
-      const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
-      const inC = status != null;
-      if (known && mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
-        msg = t('pf.charNeedsMentor', { name: clone.label, what: lbl(skillLabel, spec) });
+  if (!depenserPx(get, set, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const ctx = careerCtx(clone);
+    const skillLabel = byId('skill', skillId)?.label ?? skillId; // AFFICHAGE (messages) + conversion pour le moteur
+    const known = clone.skills.some((sk) => sk.id === skillId && (sk.spec ?? '') === (spec ?? ''));
+    const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
+    const inC = status != null;
+    if (known && mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {
+      msg = t('pf.charNeedsMentor', { name: clone.label, what: lbl(skillLabel, spec) });
+      return h;
+    }
+    if (!known) {
+      if (!inC) {
+        msg = t('pf.skillNotAcquirable', { name: clone.label, what: lbl(skillLabel, spec) });
         return h;
       }
-      if (!known) {
-        if (!inC) {
-          msg = t('pf.skillNotAcquirable', { name: clone.label, what: lbl(skillLabel, spec) });
-          return h;
-        }
-        // Acquérir la Compétence de carrière à advances 0, puis l'augmenter (l'Augmentation est payée).
-        const characteristic = skillCharacteristicById(skillId); // par id (≠ 2e lookup par libellé)
-        clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
-      }
-      const r = engineBuySkillAdvance(clone, skillId, spec, inC, discount);
-      if (!r.ok) {
-        msg = t('pf.refused', { name: clone.label, what: lbl(skillLabel, spec), reason: r.reason ?? '' });
-        return h;
-      }
-      // Première allocation via un slot joker libre → désignation automatique (LDB 09 l.38).
-      if (status === 'free') {
-        const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
-        if (slot) designateSlot(clone, ctx.career, slot, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
-      }
-      msg = t('pf.advanceBought', { name: clone.label, what: lbl(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
-      return clone;
-    }),
-  }));
+      // Acquérir la Compétence de carrière à advances 0, puis l'augmenter (l'Augmentation est payée).
+      const characteristic = skillCharacteristicById(skillId); // par id (≠ 2e lookup par libellé)
+      clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
+    }
+    const r = engineBuySkillAdvance(clone, skillId, spec, inC, discount);
+    if (!r.ok) {
+      msg = t('pf.refused', { name: clone.label, what: lbl(skillLabel, spec), reason: r.reason ?? '' });
+      return h;
+    }
+    // Première allocation via un slot joker libre → désignation automatique (LDB 09 l.38).
+    if (status === 'free') {
+      const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
+      if (slot) designateSlot(clone, ctx.career, slot, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
+    }
+    msg = t('pf.advanceBought', { name: clone.label, what: lbl(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
+    return clone;
+  })) return;
   if (msg) get().log(msg);
 }
 
@@ -434,26 +423,23 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
  *  PX. Arbitrage RAW : specs distinctes par carrière, désignations par carrière. */
 export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey: string, optionId: string, spec?: string): void {
   let msg = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const ctx = careerCtx(clone);
-      const all = [...ctx.sSlots, ...ctx.tSlots];
-      const slot = all.find((sl) => sl.key === slotKey);
-      if (!slot) {
-        msg = t('pf.unknownSlot', { name: clone.label });
-        return h;
-      }
-      const r = designateSlot(clone, ctx.career, slot, optionId, spec, all);
-      if (!r.ok) {
-        msg = t('pf.designateRefused', { name: clone.label, reason: r.reason ?? '' });
-        return h;
-      }
-      const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', { id: optionId, spec }); // AFFICHAGE seul
-      msg = t('pf.designated', { name: clone.label, label });
-      return clone;
-    }),
+  set((s) => ecrireActeur(s, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const ctx = careerCtx(clone);
+    const all = [...ctx.sSlots, ...ctx.tSlots];
+    const slot = all.find((sl) => sl.key === slotKey);
+    if (!slot) {
+      msg = t('pf.unknownSlot', { name: clone.label });
+      return h;
+    }
+    const r = designateSlot(clone, ctx.career, slot, optionId, spec, all);
+    if (!r.ok) {
+      msg = t('pf.designateRefused', { name: clone.label, reason: r.reason ?? '' });
+      return h;
+    }
+    const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', { id: optionId, spec }); // AFFICHAGE seul
+    msg = t('pf.designated', { name: clone.label, label });
+    return clone;
   }));
   if (msg) get().log(msg);
 }
@@ -464,53 +450,50 @@ export function designateCareerSlot(get: Get, set: Set, heroId: string, slotKey:
  *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
 export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
   let msg = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const ctx = careerCtx(clone);
-      const talentLabel = refLabel('talents', { id: talentId, spec }); // AFFICHAGE + conversion pour le moteur
-      const status = talentEnCarriere(clone, ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
-      if (!status) {
-        msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
+  if (!depenserPx(get, set, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const ctx = careerCtx(clone);
+    const talentLabel = refLabel('talents', { id: talentId, spec }); // AFFICHAGE + conversion pour le moteur
+    const status = talentEnCarriere(clone, ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
+    if (!status) {
+      msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
+      return h;
+    }
+    if (talentMaxReached(clone, talentId, spec)) {
+      msg = t('pf.talentMaxed', { name: clone.label, label: talentLabel });
+      return h;
+    }
+    if (spec != null && findTalentById(talentId)?.grantsArcaneDomain) {
+      const gate = arcaneDomainGate(clone, spec);
+      if (!gate.ok) {
+        msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: gate.reason ?? '' });
         return h;
       }
-      if (talentMaxReached(clone, talentId, spec)) {
-        msg = t('pf.talentMaxed', { name: clone.label, label: talentLabel });
-        return h;
-      }
-      if (spec != null && findTalentById(talentId)?.grantsArcaneDomain) {
-        const gate = arcaneDomainGate(clone, spec);
-        if (!gate.ok) {
-          msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: gate.reason ?? '' });
-          return h;
-        }
-      }
-      const fortuneBefore = fortuneMax(clone);
-      const resolveBefore = resolveMax(clone);
-      const r = engineBuyTalent(clone, talentId, spec); // spec = identité PERSISTÉE (id si migré), jamais re-dérivée du libellé
-      if (!r.ok) {
-        msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: r.reason ?? '' });
-        return h;
-      }
-      if (status === 'free') {
-        const slot = freeSlotFor(ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
-        if (slot) designateSlot(clone, ctx.career, slot, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
-      }
-      // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + attributs dérivés.
-      applyTalentAcquisition(clone, talentId, spec);
-      recomputeWounds(clone); // Dur à cuire / Très résistant (BE)
-      clone.fortune = (clone.fortune ?? 0) + (fortuneMax(clone) - fortuneBefore); // Chanceux
-      clone.resolve = (clone.resolve ?? 0) + (resolveMax(clone) - resolveBefore); // Obstiné
-      msg = t('pf.talentBought', { name: clone.label, label: talentLabel, cost: r.cost });
-      // Magie mineure (LDB 10 l.714) : BFM sorts inclus au Talent — à choisir (0 PX, Avancement).
-      if (castingKindOf(talentId) === 'mineure') {
-        const q = bonus(effectiveChar(clone, 'force-mentale'));
-        if (q > 0) msg += t('pf.minorMagicIncluded', { n: q });
-      }
-      return clone;
-    }),
-  }));
+    }
+    const fortuneBefore = fortuneMax(clone);
+    const resolveBefore = resolveMax(clone);
+    const r = engineBuyTalent(clone, talentId, spec); // spec = identité PERSISTÉE (id si migré), jamais re-dérivée du libellé
+    if (!r.ok) {
+      msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: r.reason ?? '' });
+      return h;
+    }
+    if (status === 'free') {
+      const slot = freeSlotFor(ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
+      if (slot) designateSlot(clone, ctx.career, slot, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
+    }
+    // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + attributs dérivés.
+    applyTalentAcquisition(clone, talentId, spec);
+    recomputeWounds(clone); // Dur à cuire / Très résistant (BE)
+    clone.fortune = (clone.fortune ?? 0) + (fortuneMax(clone) - fortuneBefore); // Chanceux
+    clone.resolve = (clone.resolve ?? 0) + (resolveMax(clone) - resolveBefore); // Obstiné
+    msg = t('pf.talentBought', { name: clone.label, label: talentLabel, cost: r.cost });
+    // Magie mineure (LDB 10 l.714) : BFM sorts inclus au Talent — à choisir (0 PX, Avancement).
+    if (castingKindOf(talentId) === 'mineure') {
+      const q = bonus(effectiveChar(clone, 'force-mentale'));
+      if (q > 0) msg += t('pf.minorMagicIncluded', { n: q });
+    }
+    return clone;
+  })) return;
   if (msg) get().log(msg);
 }
 
@@ -521,37 +504,34 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
 export function buySpell(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
   let msg = '';
   let result: { ok: boolean; chaos?: boolean } = { ok: false };
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const sp = findSpellById(spellId); // accès UNIQUE par id stable (prod et tests)
-      if (!sp) {
-        msg = t('pf.spellNotFound', { id: spellId });
-        return h;
-      }
-      const clone: Combatant = structuredClone(h);
-      const full = spellCost(clone, sp);
-      if (full == null) {
-        msg = t('pf.spellCannotLearn', { name: clone.label, spell: sp.label });
-        return h;
-      }
-      // Recherche universitaire (ACE 12 l.55) : « mémoriser un sort pour 100PX de moins que
-      // son prix normal (pour un minimum de 100PX) » — remise sur CET achat seul, jamais au-dessus
-      // du prix normal (plancher inerte pour les sorts à moins de 100 PX).
-      const cost = opts.discountXp && full > 0 ? Math.min(full, Math.max(100, full - opts.discountXp)) : full;
-      if ((clone.xp ?? 0) < cost) {
-        msg = t('pf.spellNeedsXp', { name: clone.label, cost, spell: sp.label, left: clone.xp ?? 0 });
-        return h;
-      }
-      clone.xp = (clone.xp ?? 0) - cost;
-      clone.spells = [...(clone.spells ?? []), sp.id]; // runtime = id de sort (pas le libellé)
-      msg = cost > 0
-        ? t('pf.spellLearned', { name: clone.label, spell: sp.label, cost, remise: cost < full ? t('pf.fragSpellDiscount', { n: full - cost }) : '' })
-        : t('pf.spellGranted', { name: clone.label, spell: sp.label });
-      result = { ok: true, chaos: sp.family === 'chaos' };
-      return clone;
-    }),
-  }));
+  if (!depenserPx(get, set, heroId, (h) => {
+    const sp = findSpellById(spellId); // accès UNIQUE par id stable (prod et tests)
+    if (!sp) {
+      msg = t('pf.spellNotFound', { id: spellId });
+      return h;
+    }
+    const clone: Combatant = structuredClone(h);
+    const full = spellCost(clone, sp);
+    if (full == null) {
+      msg = t(verdictApprentissage(clone, sp) === 'deja-connu' ? 'pf.spellAlreadyKnown' : 'pf.spellCannotLearn', { name: clone.label, spell: sp.label });
+      return h;
+    }
+    // Recherche universitaire (ACE 12 l.55) : « mémoriser un sort pour 100PX de moins que
+    // son prix normal (pour un minimum de 100PX) » — remise sur CET achat seul, jamais au-dessus
+    // du prix normal (plancher inerte pour les sorts à moins de 100 PX).
+    const cost = opts.discountXp && full > 0 ? Math.min(full, Math.max(100, full - opts.discountXp)) : full;
+    if ((clone.xp ?? 0) < cost) {
+      msg = t('pf.spellNeedsXp', { name: clone.label, cost, spell: sp.label, left: clone.xp ?? 0 });
+      return h;
+    }
+    clone.xp = (clone.xp ?? 0) - cost;
+    clone.spells = [...(clone.spells ?? []), sp.id]; // runtime = id de sort (pas le libellé)
+    msg = cost > 0
+      ? t('pf.spellLearned', { name: clone.label, spell: sp.label, cost, remise: cost < full ? t('pf.fragSpellDiscount', { n: full - cost }) : '' })
+      : t('pf.spellGranted', { name: clone.label, spell: sp.label });
+    result = { ok: true, chaos: sp.family === 'chaos' };
+    return clone;
+  })) return { ok: false };
   if (msg) get().log(msg);
   return result;
 }
@@ -561,7 +541,7 @@ export function buySpell(get: Get, set: Set, heroId: string, spellId: string, op
  *  prélevé sur la Bourse de l'incantateur. « acheté pour un Sort spécifique […], ne marche que pour ce
  *  Sort. » Le composant absorbe le contrecoup à l'incantation (consumé) — cf. applyMiscast. */
 export function buySpellComponent(get: Get, set: Set, heroId: string, spellId: string): void {
-  const hero = get().party.find((h) => h.id === heroId);
+  const hero = actorIn(get(), heroId);
   const sp = findSpellById(spellId);
   if (!hero || !sp) { get().log(t('pf.componentSpellNotFound')); return; }
   if (!isArcaneSpell(sp) || sp.cn == null) { get().log(t('pf.componentArcaneOnly', { spell: sp.label })); return; }
@@ -570,22 +550,18 @@ export function buySpellComponent(get: Get, set: Set, heroId: string, spellId: s
   const cost = toMoney({ silver: sp.cn });
   if (!canAfford(bourseOf(hero), cost)) { get().log(t('pf.componentTooExpensive', { spell: sp.label, money: formatMoney(cost) })); return; }
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'Composant d’incantation' });
-  set((s) => ({
-    party: s.party.map((h) => h.id === heroId ? { ...h, componentSpells: [...(h.componentSpells ?? []), spellId] } : h),
-  }));
+  set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, componentSpells: [...(h.componentSpells ?? []), spellId] })));
   get().log(t('pf.componentBought', { name: hero.label, spell: sp.label, money: formatMoney(cost) }));
 }
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).
  *  Mute `store.party` (→ persisté par la save) ET propage au roster s'il y est (rosterUpdate). */
 export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }): void {
-  set((s) => ({
-    party: s.party.map((h) => h.id === heroId ? {
-      ...h,
-      motivation: patch.motivation ?? h.motivation,
-      details: { ...h.details, ambitionShort: patch.ambitionShort ?? h.details?.ambitionShort, ambitionLong: patch.ambitionLong ?? h.details?.ambitionLong },
-    } : h),
-  }));
+  set((s) => ecrireActeur(s, heroId, (h) => ({
+    ...h,
+    motivation: patch.motivation ?? h.motivation,
+    details: { ...h.details, ambitionShort: patch.ambitionShort ?? h.details?.ambitionShort, ambitionLong: patch.ambitionLong ?? h.details?.ambitionLong },
+  })));
   const hero = get().party.find((h) => h.id === heroId);
   if (hero) rosterUpdate(hero);
 }
@@ -605,38 +581,34 @@ export interface SessionRewards {
  */
 export function endSession(get: Get, set: Set, rewards: SessionRewards): void {
   const group = { short: rewards.group?.ambitionShort, long: rewards.group?.ambitionLong };
-  const lines: string[] = [];
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.kind !== 'hero') return h;
-      const f = rewards.heroes?.[h.id] ?? {};
-      const xp = heroSessionXp({ short: f.ambitionShort, long: f.ambitionLong }, group);
-      if (!xp && !f.motivation) return h;
-      const clone: Combatant = structuredClone(h);
-      if (xp) { clone.xp = (clone.xp ?? 0) + xp; lines.push(t('pf.ambitionXp', { name: clone.label, xp })); }
-      if (f.motivation) {
-        const before = clone.resolve ?? 0;
-        clone.resolve = regainDetermination(clone, 1);
-        if (clone.resolve > before) lines.push(t('pf.motivationResolve', { name: clone.label }));
-      }
-      return clone;
-    }),
+  const lines = new Map<string, string[]>();
+  set((s) => ecrireActeur(s, s.party.filter((h) => h.kind === 'hero').map((h) => h.id), (h) => {
+    const f = rewards.heroes?.[h.id] ?? {};
+    const xp = heroSessionXp({ short: f.ambitionShort, long: f.ambitionLong }, group);
+    if (!xp && !f.motivation) return h;
+    const clone: Combatant = structuredClone(h);
+    const siennes: string[] = [];
+    if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: clone.label, xp })); }
+    if (f.motivation) {
+      const before = clone.resolve ?? 0;
+      clone.resolve = regainDetermination(clone, 1);
+      if (clone.resolve > before) siennes.push(t('pf.motivationResolve', { name: clone.label }));
+    }
+    lines.set(h.id, siennes);
+    return clone;
   }));
-  for (const l of lines) get().log(l);
+  for (const l of [...lines.values()].flat()) get().log(l);
   get().restoreFortuneNow(); // Chance restaurée pour la prochaine séance (LDB 17 l.41)
 }
 
 /** Retire UN composant d'incantation possédé pour un Sort (sans remboursement). */
 export function removeSpellComponent(_get: Get, set: Set, heroId: string, spellId: string): void {
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const list = [...(h.componentSpells ?? [])];
-      const i = list.indexOf(spellId);
-      if (i < 0) return h;
-      list.splice(i, 1); // retire une seule occurrence
-      return { ...h, componentSpells: list };
-    }),
+  set((s) => ecrireActeur(s, heroId, (h) => {
+    const list = [...(h.componentSpells ?? [])];
+    const i = list.indexOf(spellId);
+    if (i < 0) return h;
+    list.splice(i, 1); // retire une seule occurrence
+    return { ...h, componentSpells: list };
   }));
 }
 
@@ -645,50 +617,58 @@ export function removeSpellComponent(_get: Get, set: Set, heroId: string, spellI
  *  aucune prothèse. Fausse jambe : 100 PX (Mouvement) puis 200 PX (Esquive) ; Crochet : 400 PX (l.23). */
 export function trainProsthesis(get: Get, set: Set, heroId: string, uid: string): void {
   let msg = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const it = (clone.items ?? []).find((i) => i.uid === uid);
-      if (!it) { msg = t('pf.prosthesisNotTrainable', { name: clone.label }); return h; }
-      const tier = nextProsthesisTier(it);
-      if (!tier) {
-        // Prothèse non entraînable (aucun palier déclaré / non portée) vs. déjà entièrement maîtrisée.
-        const done = it.equipped && !!it.trappingId && (findTrappingById(it.trappingId)?.prosthesisTraining?.length ?? 0) > 0;
-        msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: it.label }) : t('pf.prosthesisNotTrainable', { name: clone.label });
-        return h;
-      }
-      if ((clone.xp ?? 0) < tier.px) { msg = t('pf.notEnoughXp', { name: clone.label, cost: tier.px }); return h; }
-      clone.xp = (clone.xp ?? 0) - tier.px;
-      grantProsthesisTier(it, tier);
-      msg = t('pf.prosthesisTierBought', { name: clone.label, item: it.label, tier: tier.label, cost: tier.px });
-      return clone;
-    }),
-  }));
+  if (!depenserPx(get, set, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const it = (clone.items ?? []).find((i) => i.uid === uid);
+    if (!it) { msg = t('pf.prosthesisNotTrainable', { name: clone.label }); return h; }
+    const tier = nextProsthesisTier(it);
+    if (!tier) {
+      // Prothèse non entraînable (aucun palier déclaré / non portée) vs. déjà entièrement maîtrisée.
+      const done = it.equipped && !!it.trappingId && (findTrappingById(it.trappingId)?.prosthesisTraining?.length ?? 0) > 0;
+      msg = done ? t('pf.prosthesisTrained', { name: clone.label, item: it.label }) : t('pf.prosthesisNotTrainable', { name: clone.label });
+      return h;
+    }
+    if ((clone.xp ?? 0) < tier.px) { msg = t('pf.notEnoughXp', { name: clone.label, cost: tier.px }); return h; }
+    clone.xp = (clone.xp ?? 0) - tier.px;
+    grantProsthesisTier(it, tier);
+    msg = t('pf.prosthesisTierBought', { name: clone.label, item: it.label, tier: tier.label, cost: tier.px });
+    return clone;
+  })) return;
   if (msg) get().log(msg);
 }
 
 export function changeCareer(get: Get, set: Set, heroId: string, newCareer: string, newLevel: number): void {
   let msg = '';
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      // Validation LDB 07 l.137 + LDB 07 l.144-148 : complétion, niveau cible, surcoût de Classe.
-      const completed = isCompleted(clone);
-      const sameClass = findCareerById(clone.career ?? '')?.class === findCareerById(newCareer)?.class;
-      const targetLevelExists = levelsForCareer(newCareer).some((l) => l.level === newLevel);
-      const gmJump = rule('advancement-career-jump') === true;
-      const r = engineChangeCareer(clone, newCareer, newLevel, { completed, sameClass, targetLevelExists, gmJump });
-      if (!r.ok) {
-        msg = t('pf.careerRefused', { name: clone.label, reason: r.reason ?? '' });
-        return h;
-      }
-      msg = t('pf.careerChanged', { name: clone.label, career: dataLabel(findCareerById(newCareer)?.label ?? newCareer), level: newLevel, cost: r.cost });
-      return clone;
-    }),
-  }));
+  if (!depenserPx(get, set, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    // Validation LDB 07 l.137 + LDB 07 l.144-148 : complétion, niveau cible, surcoût de Classe.
+    const completed = isCompleted(clone);
+    const sameClass = findCareerById(clone.career ?? '')?.class === findCareerById(newCareer)?.class;
+    const targetLevelExists = levelsForCareer(newCareer).some((l) => l.level === newLevel);
+    const gmJump = rule('advancement-career-jump') === true;
+    const r = engineChangeCareer(clone, newCareer, newLevel, { completed, sameClass, targetLevelExists, gmJump });
+    if (!r.ok) {
+      msg = t('pf.careerRefused', { name: clone.label, reason: r.reason ?? '' });
+      return h;
+    }
+    msg = t('pf.careerChanged', { name: clone.label, career: dataLabel(findCareerById(newCareer)?.label ?? newCareer), level: newLevel, cost: r.cost });
+    return clone;
+  })) return;
   if (msg) get().log(msg);
+}
+
+/** Couture de la composition du groupe (ajout, retrait, remplacement, intentions coop comprises) : en
+ *  combat, le groupe est la file de combat, et `finalizeBattle` y reporte chaque combattant
+ *  (`REPORT_DE_COMBATTANT`, #2312) — la composition ne change pas. Journalise le refus, rend `true` s'il tombe. */
+function compositionRefusee(get: Get): boolean {
+  const refus = refusComposition(get());
+  if (refus) get().log(refus);
+  return refus !== null;
+}
+
+/** Raison du refus de composition (`compositionRefusee`), ou `null` — lue par l'écran d'équipe. */
+export function refusComposition(s: Pick<GameState, 'battle'>): string | null {
+  return s.battle ? t('pf.partyInCombat') : null;
 }
 
 /** Ajoute un héros au groupe dans un emplacement du siège `seat` (0 = hôte/solo) — point
@@ -697,6 +677,7 @@ export function changeCareer(get: Get, set: Set, heroId: string, newCareer: stri
  *  groupe plein, doublon d'id, ou quota d'emplacements du siège épuisé. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
 export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money, seat = 0): void {
+  if (compositionRefusee(get)) return;
   const s = get();
   if (s.party.length >= PARTY_MAX || s.party.some((h) => h.id === hero.id)) return;
   if (seatSlotsRemaining(s, seat) <= 0) return;
@@ -735,6 +716,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
  *  (groupe vidé ou tout-morts) → repli : rien à hériter, la Bourse/les Possessions du partant
  *  restent SUR LUI (il quitte le groupe avec son bien, aucun héritier vivant à défausser dessus). */
 export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
+  if (compositionRefusee(get)) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;
@@ -758,6 +740,7 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
 export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant, seat = 0): void {
+  if (compositionRefusee(get)) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là

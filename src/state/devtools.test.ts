@@ -9,6 +9,7 @@ import { isOutOfAction } from '../engine/conditions';
 import { itemFromTrappingById } from '../engine/items';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
+import { turnEconomyStamp } from './endTurnGuard';
 import { EMPTY_FLOW } from './flow';
 import type { BattleState } from './store';
 import type { Combatant, ShipPoste } from '../engine/types';
@@ -20,8 +21,6 @@ import { signalerEntreeEnScene } from './entreeEnScene';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
 import { sceneToAscii } from './sceneToAscii';
 import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
-import { t } from '../i18n';
-import { findSpellById } from '../data';
 import { careerTalentAdditions } from '../engine/talentEffects';
 import { projectsLoad } from './projectLibrary';
 import { __setFabriqueIdbForTest } from '../lib/indexedDb';
@@ -118,21 +117,26 @@ describe('__wfrp — autres commandes de recette', () => {
     expect(buildApi().trait(hero.id, 'trait-inexistant')).toContain('✗');
   });
 
-  it('spell : mémorise un sort au grimoire par l’EFFET MOTEUR (jamais une écriture parallèle)', () => {
+  it('spell : chaque raison se rend DISTINCTEMENT, au verdict `verdictApprentissage` (LDB 46 l.14, #2312)', () => {
     const hero = useGame.getState().party[0];
-    // Sans Talent de lanceur, l'effet REFUSE (LDB 46 l.14, #1702) : la console le dit, le journal le nomme.
     useGame.setState({ party: [{ ...hero, spells: [] }] });
-    expect(buildApi().spell(hero.id, 'sommeil')).toContain('✗');
+    const api = buildApi();
+    const raisons = [
+      api.spell(hero.id, 'sort-qui-nexiste-pas'),
+      api.spell('heros-absent', 'sommeil'),
+      api.spell(hero.id, 'sommeil'),
+    ];
     expect(useGame.getState().party[0].spells, 'rien n’a été écrit sans le Talent').toEqual([]);
-    expect(useGame.getState().journal).toContain(t('pf.spellCannotLearn', { name: hero.label, spell: findSpellById('sommeil')!.label }));
     // Magie mineure au Talent (talents.json:2926) → `sommeil` devient mémorisable.
     useGame.setState({ party: [{ ...hero, spells: [], talents: [...hero.talents, { talentId: 'magie-mineure', times: 1 }] }] });
-    const out = buildApi().spell(hero.id, 'sommeil');
-    expect(out, 'la commande DIT ce qu’elle a fait').toContain('✓');
-    expect(useGame.getState().party[0].spells, 'le grimoire porte l’ID du sort').toContain('sommeil');
-    // Sort INCONNU : l'effet moteur ne pose rien, et la commande le DIT au lieu de mentir.
-    expect(buildApi().spell(hero.id, 'sort-qui-nexiste-pas')).toContain('✗');
-    expect(useGame.getState().party[0].spells, 'rien n’a été écrit').toEqual(['sommeil']);
+    const ok = api.spell(hero.id, 'sommeil');
+    raisons.push(api.spell(hero.id, 'sommeil'));
+    expect(ok, 'la commande DIT ce qu’elle a fait').toMatch(/^✓/);
+    expect(useGame.getState().party[0].spells, 'le grimoire porte l’ID du sort').toEqual(['sommeil']);
+    expect(raisons.every((r) => r.startsWith('✗')), raisons.join(' | ')).toBe(true);
+    expect(new Set(raisons).size, 'inconnu, héros absent, sans Talent, déjà connu : quatre réponses').toBe(4);
+    expect(raisons[2]).toContain('Talent');
+    expect(raisons[3]).toContain('déjà');
   });
 
   it('flag/flags : force et relit un drapeau de scénario', () => {
@@ -228,6 +232,89 @@ describe('__wfrp — autres commandes de recette', () => {
     await vi.advanceTimersByTimeAsync(400);
     expect(await verdict).toContain("l'éditeur ne s'est pas monté");
     expect(await verdict, 'le refus nomme le helper appelé, jamais son voisin').toContain('editorPatchEntity');
+  });
+});
+
+describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2312)', () => {
+  let heroId = '';
+  beforeEach(() => {
+    vi.useFakeTimers();
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    hero.talents.push({ talentId: 'magie-mineure', times: 1 });
+    hero.spells = [];
+    heroId = hero.id;
+    useGame.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null });
+    useGame.getState().startScene(testScene());
+    seedBattleRng(777);
+    useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    vi.clearAllTimers();
+  });
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  const combattant = () => useGame.getState().battle!.combatants.find((c) => c.id === heroId)!;
+  const membre = () => useGame.getState().party.find((h) => h.id === heroId)!;
+
+  it('spell : le sort atteint le combattant, et la réponse dit vrai', () => {
+    expect(buildApi().spell(heroId, 'sommeil')).toMatch(/^✓/);
+    expect(combattant().spells).toContain('sommeil');
+    expect(membre().spells).toContain('sommeil');
+    expect(buildApi().spell(heroId, 'sommeil')).toContain('déjà');
+  });
+
+  it('xp : le combattant ET le groupe reçoivent les PX', () => {
+    const avant = combattant().xp ?? 0;
+    buildApi().xp(100);
+    expect(combattant().xp).toBe(avant + 100);
+    expect(membre().xp).toBe(avant + 100);
+  });
+
+  it('giveTrapping (qty comprise) : le combattant ET le groupe portent l’objet', () => {
+    expect(buildApi().giveTrapping(heroId, 'corde', 3)).toMatch(/^✓/);
+    for (const c of [combattant(), membre()]) expect(c.items?.filter((i) => i.trappingId === 'corde').map((i) => i.qty)).toEqual([3]);
+  });
+
+  it('talent, trait, quality, focus : le combattant ET le groupe', () => {
+    const api = buildApi();
+    expect(api.talent(heroId, 'maitrise-du-combat')).toMatch(/^✓/);
+    expect(api.trait(heroId, 'marque-de-tzeentch')).toMatch(/^✓/);
+    expect(api.quality(heroId, 'Déstabilisante', 2)).toMatch(/^✓/);
+    expect(api.focus(heroId, 'armure-aethyrique', 3)).toMatch(/^✓/);
+    for (const c of [combattant(), membre()]) {
+      expect(c.talents.some((x) => x.talentId === 'maitrise-du-combat')).toBe(true);
+      expect(c.traits?.some((x) => x.id === 'marque-de-tzeentch')).toBe(true);
+      expect(c.weapons[0].qualities?.length).toBeGreaterThan(0);
+      expect(c.focus).toEqual({ spell: 'armure-aethyrique', dr: 3 });
+    }
+  });
+
+  it('healParty : le combattant ET le groupe sont remis à neuf', () => {
+    useGame.setState((s) => ({ battle: { ...s.battle!, combatants: s.battle!.combatants.map((c) => (c.id === heroId ? { ...c, wounds: { ...c.wounds, current: 0 } } : c)) } }));
+    buildApi().healParty();
+    for (const c of [combattant(), membre()]) expect(c.wounds.current).toBe(c.wounds.max);
+  });
+
+  it('condition : l’État atteint le combattant que le jeu lit', () => {
+    expect(buildApi().condition(heroId, 'sonne', 2)).toMatch(/^✓/);
+    expect(combattant().conditions.find((c) => c.id === 'sonne')?.value).toBe(2);
+  });
+
+  it('battle() et auto() exposent `endTurnArmed` par le prédicat, jamais l’empreinte brute (K11)', () => {
+    const b = useGame.getState().battle!;
+    useGame.setState({ battle: { ...b, endTurnArmed: turnEconomyStamp(b) } });
+    const arme = buildApi();
+    expect([(arme.battle() as { endTurnArmed: boolean }).endTurnArmed, arme.auto().endTurnArmed]).toEqual([true, true]);
+    useGame.setState({ battle: { ...b, endTurnArmed: 'empreinte-perimee' } });
+    expect([(arme.battle() as { endTurnArmed: boolean }).endTurnArmed, arme.auto().endTurnArmed]).toEqual([false, false]);
+  });
+
+  it('disease (phase active) : le combattant ET le groupe portent la maladie, déclarée', () => {
+    expect(buildApi().disease(heroId, 'vers-de-carie', { phase: 'active' })).toMatch(/^✓/);
+    const phases = [combattant(), membre()].map((c) => c.diseases?.find((d) => d.id === 'vers-de-carie')?.phase);
+    expect(phases[0]).not.toBe('incubation');
+    expect(phases[1]).toBe(phases[0]);
   });
 });
 

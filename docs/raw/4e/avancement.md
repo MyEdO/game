@@ -228,7 +228,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 **Sources RAW** : `LDB 07 l.136-139`, `LDB 07 l.140`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.136-139, l.140) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `changeCareer`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 
 ---
 
@@ -253,7 +253,7 @@ Coût d'un saut accordé par le MJ : 100 PX si le Niveau courant est achevé, 20
 **Sources RAW** : `LDB 07 l.144-148`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `cieux`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
+- `LDB 7` (l.144-148) → `feu`, `careerCompletionAdvances`, `AdvancementView`, `lumiere`, `CareerChangeContext`, `validateCareerChange`, `buildAdvancementView`, `mort`, `vie`, `changeCareer`, +7 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/advancement.ts`, `src/state/advancement.ts`, `src/state/partyFlow.ts`, `src/state/store.ts`
 - `LDB 23` (l.104) → `craft`, `learn`, `entrainement`, `interlude-elf-duty`, `dressage`, `Combatant` — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/engine/types.ts`
 
 ---

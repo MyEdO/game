@@ -1,12 +1,8 @@
 /**
- * Persistance des conséquences de combat — ce qui suit le héros d'un combat au suivant.
- * Les États persistants sont sourcés du Livre de base (16-États.md) : ils exigent repos,
- * Compétence Guérison, Sort/Prière ou Tests hors combat — par opposition aux états de combat
- * transitoires (Surpris/À Terre/Sonné/Aveuglé/Assourdi/Empêtré), retirés en/par le combat.
- * La récupération elle-même (temps, repos, Guérison, Chirurgie) reste hors périmètre (Jalon 5).
+ * Persistance d'un combattant : ce qui entre du héros du groupe dans le combat, et ce qui en revient
+ * (`REPORT_DE_COMBATTANT`, #2312). États persistants : LDB 16 (`etats.json`, `persistsAfterCombat`).
  */
-import { Combatant, ConditionInstance, Trauma, ItemInstance } from './types';
-import type { Disease } from './disease';
+import type { Combatant, ConditionInstance } from './types';
 import { findConditionById } from '../data';
 
 /** Cet État suit-il le porteur hors du combat ? Drapeau DÉCLARÉ sur l'entrée d'`etats.json`
@@ -16,71 +12,107 @@ export function isPersistentCondition(id: string): boolean {
   return findConditionById(id)?.persistsAfterCombat === true;
 }
 
-/** État persistant d'un combattant à reporter vers le groupe (fin de combat) ou à ré-importer
- *  (combat suivant). N'inclut QUE ce qui survit hors combat ; le transitoire est omis. Copie défensive. */
-export function carryOverState(c: Combatant): {
-  wounds: { current: number; max: number };
-  conditions: ConditionInstance[];
-  criticalWounds: number;
-  dead: boolean;
-  soinRencontreUtilise: boolean;
-  traumas: Trauma[];
-  diseases?: Disease[];
-  diseaseImmunities?: string[];
-  items?: ItemInstance[];
-  sinPoints?: number;
-  castPenalties?: import('./types').CastPenalty[];
-  corruption?: number;
-  mutations?: import('./corruption').Mutation[];
-  damned?: boolean;
-  traits?: import('./statEntry').TraitList;
-  psychTraits?: import('./psychology').PsychTrait[];
-  briseFromTerreur?: number;
-  resistanceUsed?: string[];
-} {
-  return {
-    wounds: { current: c.wounds.current, max: c.wounds.max },
-    conditions: c.conditions.filter((x) => isPersistentCondition(x.id)).map((x) => ({ ...x })),
-    criticalWounds: c.criticalWounds ?? 0,
-    dead: c.dead === true,
-    // `outOfRencontre` n'y est PAS : il désigne l'éjection de LA rencontre (`LDB 17 l.31` — le
-    // Personnage « ne prendra plus part à la rencontre actuelle », `l.35` — il « se battra à nouveau à
-    // un moment ultérieur »), donc il ne SURVIT pas au combat : le teardown (`finalizeBattle`) le remet
-    // à zéro avec `exitReason`.
-    // Limite « 1 soin de Blessures par patient et par rencontre » (LDB 09 l.260) : le soin
-    // reçu en combat bloque un re-soin juste après ; remis à zéro au prochain startCombat.
-    soinRencontreUtilise: c.soinRencontreUtilise === true,
-    traumas: (c.traumas ?? []).map((t) => ({ ...t })),
-    // Maladies (LDB 20) : persistent hors combat — incubation/durée décomptées au repos.
-    ...(c.diseases ? { diseases: c.diseases.map((d) => ({ ...d })) } : {}),
-    ...(c.diseaseImmunities ? { diseaseImmunities: [...c.diseaseImmunities] } : {}),
-    // Inventaire à stats : persiste l'usure d'arme (damageTaken/destroyed) et la munition consommée
-    // (qty) entre combats (LDB 62 l.135). roundsAtZero N'est PAS persisté : l'horloge de mort
-    // lente repart à neuf au combat suivant (cohérent avec startCombat).
-    ...(c.items ? { items: c.items.map((i) => ({ ...i })) } : {}),
-    // Points de Péché (LDB 40) : la Colère des dieux en expie 1 par jet — le solde suit le héros.
-    ...(c.sinPoints != null ? { sinPoints: c.sinPoints } : {}),
-    // Contrecoups d'incantation (LDB 46/40) : les durées d'horloge (jours/minutes) et les blocages
-    // de Prière survivent au combat ; les durées en Rounds restantes continuent de ticker hors combat.
-    ...(c.castPenalties?.length ? { castPenalties: c.castPenalties.map((p) => ({ ...p })) } : {}),
-    // Corruption & mutations (LDB 19) : la DONNÉE persiste (les effets — caracs permanentes,
-    // Mouvement, PA naturels, Traits — sont relus à la volée). `damned` = hors-jeu définitif.
-    ...(c.corruption != null ? { corruption: c.corruption } : {}),
-    ...(c.mutations ? { mutations: c.mutations.map((m) => ({ ...m })) } : {}),
-    ...(c.damned ? { damned: true } : {}),
-    // Traits gagnés par mutation (Tentacules, Frénésie…) : un héros n'en change pas autrement.
-    ...(c.mutations?.length && c.traits ? { traits: [...c.traits] } : {}),
-    // Traits psychologiques : mutation-conférés OU ACQUIS en jeu (Phobie/Animosité/Haine/Trauma, ADE II
-    // Annexe I) — persistent dès qu'il en existe, plus seulement si une mutation est présente.
-    ...(c.psychTraits?.length ? { psychTraits: c.psychTraits.map((t) => ({ ...t })) } : {}),
-    // Phobie du noir (ADE II) : le compteur d'États Brisé issus de la Terreur suit le héros entre combats.
-    ...(c.briseFromTerreur ? { briseFromTerreur: c.briseFromTerreur } : {}),
-    // Résistance (Menace), LDB 10 : le compteur « 1 par séance » consommé EN combat suit le héros.
-    ...(c.resistanceUsed?.length ? { resistanceUsed: [...c.resistanceUsed] } : {}),
-  };
+/**
+ * Report d'un champ de `Combatant` entre le héros du groupe et son combattant (#2312) :
+ * - `sort: true` : le combattant EST le héros pendant le combat ; sa valeur revient au groupe ;
+ * - `sort: 'etats-persistants'` : seuls les États `persistsAfterCombat` reviennent, et entrent ;
+ * - `sort: false` : propre à la rencontre ; le héros du groupe garde la sienne. `raison` : la réf nue de
+ *   la règle, ou la raison d'ingénierie.
+ * `entree` : la valeur posée à l'entrée en combat (`entreeEnRencontre`) ; absente, celle du groupe entre.
+ */
+export type Report =
+  | { sort: true; entree?: unknown; raison?: string }
+  | { sort: 'etats-persistants' }
+  | { sort: false; raison: string; entree?: unknown };
+
+const PERSISTE: Report = { sort: true };
+const rencontre = (raison: string, entree?: unknown): Report => (entree === undefined ? { sort: false, raison } : { sort: false, raison, entree });
+
+const TOUR = 'compteur du tour ou du Round de combat';
+const COQUE = 'coque, poste ou équipage d’un combat naval, jamais porté par un héros du groupe';
+const POSITION = 'placement sur la grille de la rencontre';
+const DERIVE = 'dérivé des `items`, re-dérivé à l’entrée (`recomputeLoadout`)';
+const RELATION = 'relation à un autre combattant de la rencontre';
+
+/** Table TOTALE des champs de `Combatant` (#2312) : un champ ajouté au type sans classement ne compile pas. */
+export const REPORT_DE_COMBATTANT = {
+  id: PERSISTE, label: PERSISTE, kind: PERSISTE, followsCharacterRules: PERSISTE, creatureId: PERSISTE, porteurDeFiche: PERSISTE,
+  crewIds: rencontre(COQUE), postes: rencontre(COQUE), saboteurDR: rencontre(COQUE), cargoEnc: rencontre(COQUE),
+  lastShantyQuart: rencontre(COQUE), singingShanty: rencontre('MDG 09 l.38'), upgrades: rencontre(COQUE), mannedPoste: rencontre(COQUE),
+  teamCommanderId: rencontre('AA 13 l.29-35'),
+  species: PERSISTE, career: PERSISTE, careerHistory: PERSISTE,
+  offTerrain: rencontre(POSITION), size: PERSISTE, footprint: PERSISTE, bodyShape: PERSISTE,
+  structureEdge: rencontre(COQUE), inert: rencontre(COQUE), aiControlled: rencontre('pilotage d’un allié PNJ de la rencontre'),
+  causesPeur: PERSISTE, causesTerreur: PERSISTE, psychImmune: PERSISTE,
+  psychState: rencontre('LDB 21 l.9'),
+  groups: PERSISTE, aiDoctrine: PERSISTE, psychTraits: PERSISTE, briseFromTerreur: PERSISTE, traits: PERSISTE, liveTraits: PERSISTE, swarm: PERSISTE,
+  mountId: rencontre('LDB 14 l.175-187'), riderId: rencontre('LDB 14 l.175-187'), mountable: PERSISTE,
+  travelRole: PERSISTE, shipRole: PERSISTE, shipStation: PERSISTE,
+  pendingFreeAttacks: rencontre(TOUR), chargedThisTurn: rencontre(TOUR), approachMoves: rencontre('LDB 21 l.27'),
+  effortRounds: rencontre('LDB 16 l.97'), freeAttacksThisTurn: rencontre(TOUR), dispelledThisRound: rencontre('LDB 46 l.156'),
+  characteristics: PERSISTE, wounds: PERSISTE,
+  advantage: rencontre('LDB 14 l.219', 0),
+  conditions: { sort: 'etats-persistants' },
+  weapons: rencontre(DERIVE), armour: rencontre(DERIVE), items: PERSISTE, encumbrance: rencontre(DERIVE),
+  skills: PERSISTE, talents: PERSISTE, loadouts: PERSISTE, activeLoadoutId: PERSISTE, barre: PERSISTE,
+  spells: PERSISTE, componentSpells: PERSISTE, sinPoints: PERSISTE, masteredWeapons: PERSISTE,
+  activeEffects: { sort: true, raison: 'LDB 46 l.93, CRB 070 l.27' }, castPenalties: PERSISTE,
+  focus: rencontre('Focalisation en cours d’une incantation de la rencontre'),
+  dispel: rencontre('cumul du Test étendu de Dissipation (LDB 46 l.158-162) mené pendant la rencontre'),
+  craft: PERSISTE, ritual: PERSISTE, movement: PERSISTE,
+  fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, resistanceUsed: PERSISTE,
+  motivation: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
+  tookCriticalThisFight: rencontre('LDB 20 l.90', false),
+  critEntriesSuffered: PERSISTE,
+  woundDressed: rencontre('LDB 09 l.260', false),
+  traumas: PERSISTE, handGates: PERSISTE, corruption: PERSISTE, mutations: PERSISTE, damned: PERSISTE, nightmares: PERSISTE,
+  diseases: PERSISTE, hunger: PERSISTE, thirst: PERSISTE, drunk: PERSISTE, diseaseImmunities: PERSISTE, residualDiseaseTestMod: PERSISTE,
+  diseaseExposure: rencontre('LDB 20 l.25'),
+  nextActionPenalty: rencontre('LDB 14 l.26'), loseNextAction: rencontre('LDB 14 l.28'), loseNextMovement: rencontre('LDB 14 l.27'), actLastNextRound: rencontre('LDB 14 l.25'),
+  roundsAtZero: rencontre(TOUR, 0),
+  suffocationCountdown: rencontre('LDB 18 l.346'), breathHoldSeconds: rencontre('LDB 18 l.346'),
+  wateredThisRound: rencontre(TOUR),
+  soinRencontreUtilise: { sort: true, entree: false, raison: 'LDB 09 l.260' },
+  dead: PERSISTE, slainNotified: rencontre('garde d’unicité de l’émission `onSlain` dans la rencontre'), important: PERSISTE,
+  outOfRencontre: rencontre('LDB 17 l.31'), exitReason: rencontre('LDB 17 l.31'),
+  summon: rencontre('invocation liée à la rencontre (`summonFlow`)'),
+  shotsThisTurn: rencontre(TOUR), pushbackMode: rencontre('LDB 62 l.272-274'), auraMods: rencontre('LDB 85 l.262'),
+  xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,
+  pos: rencontre(POSITION), initiative: rencontre('Initiative de la rencontre'),
+  gainedAdvThisRound: rencontre(TOUR), usedShieldReactionRound: rencontre(TOUR), distractedRounds: rencontre(TOUR),
+  defensiveStance: rencontre(TOUR), dualStrikeDefensePenalty: rencontre(TOUR), aiming: rencontre(TOUR),
+  envWeather: rencontre('EDOC 8 l.82'),
+  engagedWith: rencontre(RELATION, []), meleeThisRound: rencontre(RELATION, []), attackedThisRound: rencontre(RELATION),
+  contactWith: rencontre(RELATION), grapplingWith: rencontre(RELATION),
+  appearance: PERSISTE, appearanceOverride: PERSISTE,
+} satisfies Record<keyof Combatant, Report>;
+
+const CHAMPS = Object.entries(REPORT_DE_COMBATTANT) as [keyof Combatant, Report][];
+
+/** États persistants seuls. Copie défensive. */
+function persistentConditions(c: Combatant): ConditionInstance[] {
+  return c.conditions.filter((x) => isPersistentCondition(x.id)).map((x) => ({ ...x }));
 }
 
-/** États persistants seuls (pour le carry-in au spawn d'un combat). Copie défensive. */
-export function persistentConditions(c: Combatant): ConditionInstance[] {
-  return c.conditions.filter((x) => isPersistentCondition(x.id)).map((x) => ({ ...x }));
+/** Couture de RETOUR (fin de combat, `finalizeBattle`) : tout ce qui sort du combattant vers le héros du
+ *  groupe, selon `REPORT_DE_COMBATTANT`. Copie défensive. */
+export function carryOverState(c: Combatant): Partial<Combatant> {
+  const out: Record<string, unknown> = {};
+  for (const [cle, r] of CHAMPS) {
+    if (r.sort === 'etats-persistants') out[cle] = persistentConditions(c);
+    else if (r.sort) out[cle] = structuredClone(c[cle]);
+  }
+  return out as Partial<Combatant>;
+}
+
+/** Couture d'ENTRÉE (`startCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
+ *  Copie défensive ; la position reste à poser par l'appelant. */
+export function entreeEnRencontre(h: Combatant): Combatant {
+  const c = structuredClone(h);
+  const champs = c as unknown as Record<string, unknown>;
+  for (const [cle, r] of CHAMPS) {
+    if (r.sort === 'etats-persistants') champs[cle] = persistentConditions(h);
+    else if (r.entree !== undefined) champs[cle] = structuredClone(r.entree);
+  }
+  return c;
 }

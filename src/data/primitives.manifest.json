@@ -218,11 +218,38 @@
   {
     "id": "actorIn",
     "type": "primitives.manifest",
-    "label": "actorIn/inBattleId",
+    "label": "actorIn/inBattleId/ecrireActeur",
     "fichier": "src/state/combatants.ts",
-    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement",
-    "perimetre": "toute résolution d'acteur",
+    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
+    "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
     "verrou": "in-battle-find-guard.test.ts"
+  },
+  {
+    "id": "touchActors",
+    "type": "primitives.manifest",
+    "label": "touchActors",
+    "fichier": "src/state/combatOrParty.ts",
+    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
+    "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
+    "verrou": "couture-de-retour.test.ts"
+  },
+  {
+    "id": "depenserPx",
+    "type": "primitives.manifest",
+    "label": "depenserPx/refusDepensePx",
+    "fichier": "src/state/partyFlow.ts",
+    "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
+    "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
+    "verrou": "couture-de-retour.test.ts"
+  },
+  {
+    "id": "corpsDeLActeur",
+    "type": "primitives.manifest",
+    "label": "estCorps/corpsDeLActeur",
+    "fichier": "src/gameIso/stage/corpsActeur.ts",
+    "concept": "corps d'acteur dans une image three rendue — quad de billboard, visible, dont l'identité décodée porte l'id (seul ou couple monté)",
+    "perimetre": "banc volumique (quads, corpsDessines), sonde de recette __wfrp.corps, tests de rétention de montage",
+    "verrou": "corps-sonde.test.tsx"
   },
   {
     "id": "meneurDuMonde",

@@ -903,16 +903,16 @@ export function autoStowNewItem(c: Combatant, it: ItemInstance): void {
 }
 
 /**
- * Ajoute l'objet de catalogue `trappingId` à l'inventaire PERSONNEL d'un héros et re-dérive son équipement
- * actif. Retourne un NOUVEAU combattant (cloné). SOURCE UNIQUE du « donner un objet à un héros » : utilisée
- * par l'achat marchand (`buyItem`) ET l'assignation de butin. Id inconnu → inchangé.
+ * Ajoute une COPIE de l'instance `it` à l'inventaire PERSONNEL d'un héros, la range (`autoStowNewItem`) et
+ * re-dérive son équipement actif. Retourne un NOUVEAU combattant (cloné). SOURCE UNIQUE du « donner un objet
+ * à un héros » : l'appelant crée l'instance UNE fois (`itemFromTrappingById`, `itemFromGive`), et la même
+ * s'écrit sur chaque copie de l'acteur (`ecrireActeur`, #2312).
  */
-export function addItemToHero(hero: Combatant, trappingId: string): Combatant {
-  const it = itemFromTrappingById(trappingId);
-  if (!it) return hero;
+export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
   const clone: Combatant = structuredClone(hero);
-  clone.items = [...(clone.items ?? []), it];
-  autoStowNewItem(clone, it);
+  const recu = structuredClone(it);
+  clone.items = [...(clone.items ?? []), recu];
+  autoStowNewItem(clone, recu);
   recomputeLoadout(clone);
   return clone;
 }

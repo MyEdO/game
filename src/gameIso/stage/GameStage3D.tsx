@@ -213,6 +213,8 @@ import { materiauProfondeurPerce, percerMateriau, PERCAGE_MAX_HEROS } from '../b
 import { creerPercage, type ActeurPerce, type Percage } from './percage';
 import type { Lid } from './architectureVisibility';
 import { demanderUneImage, signalerImagePeinte, subscribeStageFrames, useBattementContinu } from './stageFrames';
+import { corpsDeLActeur } from './corpsActeur';
+import { setImageRendue } from '../../state/devtools';
 import './iso-stage.css';
 
 /** Clé de verdict des frames SANS découpe locale (première personne, éditeur) : constante, donc le
@@ -1430,6 +1432,9 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     renderer.render(three.current, camera);
     rendus.current++;
     canvas.dataset.rendus = String(rendus.current);
+    // L'image rendue se déclare à l'outillage de recette (`__wfrp.corps`, #2198).
+    const scèneRendue = three.current;
+    setImageRendue({ toile: canvas, rendus: rendus.current, corps: (id) => corpsDeLActeur(scèneRendue, id).length });
     // `data-file` : ce qui ATTEND encore dans la file cadencée du cuiseur (#1372). Écrit ici, avec le
     // compteur d'images, parce qu'une file se vide entre deux commits React et qu'un attribut de rendu
     // resterait à la valeur du dernier. 0 = cuiseur au repos.

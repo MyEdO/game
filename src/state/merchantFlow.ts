@@ -6,7 +6,7 @@
 import type { GameState } from './store';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
-import { recomputeLoadout, itemFromTrappingById, addItemToHero, autoStowNewItem } from '../engine/items';
+import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor } from '../engine/bargain';
 import { SL_ASTOUNDING } from '../engine/tests';
@@ -31,7 +31,7 @@ import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
-import { actorIn, garanti } from './combatants';
+import { actorIn, ecrireActeur, garanti } from './combatants';
 import type { CascadeStep } from './pendings';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
@@ -449,9 +449,10 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
   const free = comptesFree(ent, get().party, listedBrassOf(entry));
   const cost = free ? fromBrass(0) : fromBrass(Math.round(toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * factor));
   const dest = heroId ?? get().party[0]?.id;
-  const destHero = get().party.find((h) => h.id === dest);
+  const destHero = dest ? actorIn(get(), dest) : undefined;
   if (!free && (!destHero || !canAfford(bourseOf(destHero), cost))) { get().log(t('mf.purseKo', { label: entry.label })); return; }
-  if (!entry.unit && !itemFromTrappingById(id)) return; // objet de sac introuvable → abandon (parité comportement)
+  const objet = entry.unit ? null : itemFromTrappingById(id);
+  if (!entry.unit && !objet) return; // objet de sac introuvable → abandon (parité comportement)
   if (!free) payWithAllocation(get, set, { debits: soloPayer(dest!, cost), recipient: dest, purpose: 'achat' });
   const decr = (st: { id: string; qty: number }[]) => st.map((l) => (l.id === id ? { ...l, qty: l.qty - 1 } : l));
   if (entry.unit && dest) {
@@ -463,7 +464,7 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
     const eid = s.merchant!.entityId;
     const persisted = s.merchantStocks[eid];
     return {
-      party: entry.unit ? s.party : s.party.map((h) => (h.id === dest ? addItemToHero(h, id) : h)), // flux objet→héros mutualisé
+      ...(!objet || !dest ? {} : ecrireActeur(s, dest, (h) => avecObjet(h, objet))), // flux objet→héros mutualisé
       merchant: { ...s.merchant!, stock: newStock },
       // Déplétion PERSISTANTE (#T3) : la quantité reste réduite entre visites (rolledAt inchangé).
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
@@ -575,16 +576,9 @@ export function confirmDistribution(get: Get, set: Set): void {
     const mm = s.merchant; if (!mm) return {};
     const byHero: Record<string, ItemInstance[]> = {};
     for (const d of dist) { if ('item' in d) (byHero[d.heroId] ??= []).push(d.item); }
-    const party = s.party.map((h) => {
-      const add = byHero[h.id]; if (!add) return h;
-      const clone: Combatant = structuredClone(h);
-      const added = add.map((it) => ({ ...it, equipped: false }));
-      clone.items = [...(clone.items ?? []), ...added];
-      for (const it of added) autoStowNewItem(clone, it); // #204 : rangement par défaut
-      recomputeLoadout(clone);
-      return clone;
-    });
-    return { party, merchant: { ...mm, pendingDistribution: null } };
+    const ecrit = ecrireActeur(s, Object.keys(byHero), (h) =>
+      byHero[h.id]!.reduce((porteur, it) => avecObjet(porteur, { ...it, equipped: false }), h)); // #204 : rangement par défaut
+    return { ...ecrit, merchant: { ...mm, pendingDistribution: null } };
   });
   for (const u of unitEntries) addPossession(get, set, possessionDUnite(u.unit, u.heroId));
 }
@@ -695,17 +689,16 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: donne, dispo: givable.length })); return; }
   if (stockLine.qty < getCount) { get().log(t('mf.barterNoStock')); return; }
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
+  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId)).filter((i) => i !== null);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
   set((s) => {
     const eid = s.merchant!.entityId;
     const persisted = s.merchantStocks[eid];
     return {
-      party: s.party.map((h) => {
-        if (h.id !== opts.giveHeroId) return h;
-        let clone: Combatant = structuredClone(h);
+      ...ecrireActeur(s, opts.giveHeroId, (h) => {
+        const clone: Combatant = structuredClone(h);
         clone.items = (clone.items ?? []).filter((i) => !soldUids.includes(i.uid)); // biens cédés
-        for (let i = 0; i < getCount; i++) clone = addItemToHero(clone, opts.getStockId); // biens acquis
-        return clone;
+        return acquis.reduce(avecObjet, clone); // biens acquis
       }),
       merchant: { ...s.merchant!, stock: newStock },
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
@@ -718,11 +711,10 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   }));
 }
 
-/** Retire de `party` (clone + recompute) les instances `entries` (uid+heroId) et renvoie la nouvelle liste. */
-function removeSold(party: Combatant[], entries: { uid: string; heroId: string }[]): Combatant[] {
-  return party.map((h) => {
+/** Retire de leurs porteurs (clone + recompute) les instances `entries` (uid+heroId) : patch `ecrireActeur`. */
+function removeSold(s: GameState, entries: { uid: string; heroId: string }[]): ReturnType<typeof ecrireActeur> {
+  return ecrireActeur(s, entries.map((e) => e.heroId), (h) => {
     const uids = entries.filter((e) => e.heroId === h.id).map((e) => e.uid);
-    if (!uids.length) return h;
     const clone: Combatant = structuredClone(h);
     clone.items = (clone.items ?? []).filter((i) => !uids.includes(i.uid));
     recomputeLoadout(clone);
@@ -775,7 +767,7 @@ export function confirmSell(get: Get, set: Set): void {
   if (!names.length) return;
   set((s) => ({
     merchant: s.merchant ? { ...s.merchant, sellCart: [], bargainSellUsed: true } : s.merchant,
-    party: removeSold(s.party, sold),
+    ...removeSold(s, sold),
   }));
   for (const [heroId, g] of Object.entries(gainByHero)) creditBourse(get, set, heroId, g);
   get().log(`Vente : ${names.join(', ')} (+${formatMoney(total)}).`);
@@ -793,14 +785,11 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
   const cost = fromBrass(itemRepairCostBrass(item, base));
   if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: item.label })); return; }
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const it = clone.items?.find((i) => i.uid === uid); if (it) it.damageTaken = 0;
-      recomputeLoadout(clone);
-      return clone;
-    }),
+  set((s) => ecrireActeur(s, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const it = clone.items?.find((i) => i.uid === uid); if (it) it.damageTaken = 0;
+    recomputeLoadout(clone);
+    return clone;
   }));
   get().log(msg('mf.repairDone', { label: item.label }));
 }
@@ -897,7 +886,7 @@ export function gameDay(get: Get): number {
 }
 
 export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
-  const hero = get().party.find((h) => h.id === heroId);
+  const hero = actorIn(get(), heroId);
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get)) {
@@ -918,7 +907,7 @@ export function appraiseGear(get: Get, set: Set, scope: 'loot' | 'victory', inde
 }
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
-function patchAppraiseTarget(_get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
+function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
   patch: { identified?: boolean; magicKnown?: boolean; detectTried?: boolean; appraiseTriedDay?: number }): void {
   if (pa.gear) {
     const key = pa.gear.scope === 'loot' ? 'pendingLoot' : 'pendingVictory';
@@ -936,17 +925,16 @@ function patchAppraiseTarget(_get: Get, set: Set, pa: { itemUid?: string; gear?:
     });
     return;
   }
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (!(h.items ?? []).some((i) => i.uid === pa.itemUid)) return h; // clone uniquement le porteur de l'objet
-      const clone: Combatant = structuredClone(h);
-      const it = clone.items?.find((i) => i.uid === pa.itemUid);
-      if (it) {
-        Object.assign(it, patch);
-        if (patch.identified) delete it.suspectedQualities; // la vraie révélation dissipe les fausses certitudes
-      }
-      return clone;
-    }),
+  const porteur = get().party.map((h) => actorIn(get(), h.id) ?? h).find((h) => (h.items ?? []).some((i) => i.uid === pa.itemUid));
+  if (!porteur) return;
+  set((s) => ecrireActeur(s, porteur.id, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const it = clone.items?.find((i) => i.uid === pa.itemUid);
+    if (it) {
+      Object.assign(it, patch);
+      if (patch.identified) delete it.suspectedQualities; // la vraie révélation dissipe les fausses certitudes
+    }
+    return clone;
   }));
 }
 

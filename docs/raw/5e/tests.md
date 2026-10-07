@@ -1163,8 +1163,9 @@ Ce que chaque exemple démontre :
 - aire `deplacement` (fiche à extraire) — poursuites (`CRB 032 l.81-87`)
 - aire `magie` (fiche à extraire) — dissipation (`CRB 070 l.149`), Touch Tests opposés (`CRB 070 l.35`, `CRB 067 l.13`)
 
-**Implémente :** (non implémenté)
-- dette : #1873
+**Implémente :** _(généré — `npm run raw:implemente`)_
+- `CRB 70` (l.35) → `REPORT_DE_COMBATTANT` — `src/engine/persistence.ts`
+- sans code : `CRB 23` (l.5), `CRB 24` (l.73, l.75-80, l.93-104, l.132-136, l.138-144), `CRB 25` (l.25, l.32) +13
 
 ---
 

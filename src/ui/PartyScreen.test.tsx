@@ -17,6 +17,7 @@ import { rosterAdd } from '../state/roster';
 import { initialNet, type NetState } from '../state/netFlow';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { emptyNarratif } from '../state/campaignNarratif';
 
 /** Storage isolé pour chaque fixture. */
@@ -234,6 +235,43 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
       />,
     );
     expect(html).toContain('Remplacer');
+  });
+});
+
+describe('PartyScreen en combat : la composition du groupe est fermée, avec sa raison', () => {
+  beforeEach(() => { vi.stubGlobal('localStorage', fakeStorage()); });
+  afterEach(() => { demonterRacines(); vi.unstubAllGlobals(); });
+
+  const RAISON = t('pf.partyInCombat');
+  const vue = (party: Combatant[], refus: string | null) => (
+    <PartyScreenView
+      party={party} net={initialNet()} title="Votre groupe d'aventuriers"
+      onMenu={noop} onQuitCoop={noop} onCreate={noop} onEditHero={noop}
+      onAddHero={noop} onRemoveHero={noop} onReplaceHero={noop}
+      onAssignSlot={noop} onStart={noop} refusComposition={refus}
+    />
+  );
+  const composition: string[] = [t('party.hero.edit'), t('party.hero.replace'), t('party.hero.remove'), t('party.seat.create'), t('party.seat.choose')];
+
+  it('chaque bouton de composition est fermé et porte la raison, rendue à l’écran', () => {
+    const el = monterRacine(vue([savedHero()], RAISON)).container;
+    expect(el.textContent).toContain(RAISON);
+    const fermes = [...el.querySelectorAll('button')].filter((b) => composition.includes(b.textContent ?? ''));
+    expect(new Set(fermes.map((b) => b.textContent))).toEqual(new Set(composition));
+    for (const b of fermes) {
+      expect(b.getAttribute('aria-disabled')).toBe('true');
+      expect(document.getElementById(b.getAttribute('aria-describedby') ?? '')?.textContent).toBe(RAISON);
+    }
+    for (const b of fermes) act(() => b.click());
+    expect(document.querySelector('.worldmap-overlay')).toBeNull(); // le sélecteur ne s'ouvre pas
+  });
+
+  it('hors combat, « Remplacer » ouvre le sélecteur', () => {
+    const el = monterRacine(vue([savedHero()], null)).container;
+    const remplacer = [...el.querySelectorAll('button')].find((b) => b.textContent === t('party.hero.replace'))!;
+    expect(remplacer.getAttribute('aria-disabled')).toBeNull();
+    act(() => remplacer.click());
+    expect(document.querySelector('.worldmap-overlay')).not.toBeNull();
   });
 });
 

@@ -514,7 +514,7 @@ comme non Groupée pour les non-formés.
 **Sources RAW :** LDB 09 l.246-252 ; ADE II 4 l.162, l.180, l.182 (Focalisation sur artefacts magiques).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-72, l.75-76, l.80-83, l.86-109, l.111-118, l.121-134, l.137-154, l.157-160, l.163-176, l.179-190, l.193-198, l.201-211, l.214-219, l.222-225, l.228-233, l.236-239, l.242-243, l.246-252, l.275-285) → `mendier-ennuis`, `GearAssignList`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `accidents-conduite-attelage`, `actBlockReason`, `carryOverState`, `useDefenseJetProps`, +52 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, +26 fichiers
+- `LDB 9` (l.65-72, l.75-76, l.80-83, l.86-109, l.111-118, l.121-134, l.137-154, l.157-160, l.163-176, l.179-190, l.193-198, l.201-211, l.214-219, l.222-225, l.228-233, l.236-239, l.242-243, l.246-252, l.275-285) → `mendier-ennuis`, `GearAssignList`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `accidents-conduite-attelage`, `actBlockReason`, `useDefenseJetProps`, `healDifficulty`, +52 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, +26 fichiers
 - sans code : `ADE II 4` (l.162)
 
 ---
@@ -541,7 +541,7 @@ En combat : Tests de Guérison Intermédiaires (+0).
 **Sources RAW :** LDB 09 l.255-269
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `carryOverState`, `useDefenseJetProps`, `healDifficulty`, `healWoundsDelta`, `rederiveAttack`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
+- `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `healDifficulty`, `REPORT_DE_COMBATTANT`, `healWoundsDelta`, `rederiveAttack`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
 
 ---
 

@@ -515,8 +515,8 @@ export const fr = {
   'countdown.soon': 'imminent',
   'countdown.due': 'échéance atteinte',
   'eff.learnSpell': '{name} apprend {spell}.',
-  // Refus d'un `learnSpell` sans héros désigné : même clause que `pf.spellCannotLearn`, cardinalité GROUPE
-  // (aucun nom à nommer — le repli n'a retenu personne).
+  // Refus d'un `learnSpell` sans héros désigné : aucun héros au verdict `ok` (`verdictApprentissage`) ;
+  // chacun tombe sous `pf.spellAlreadyKnown` ou `pf.spellCannotLearn`, d'où les deux causes.
   'eff.learnSpellNoOne': 'Personne ne peut apprendre {spell} (déjà connu ou Talent manquant).',
   'eff.restoreFortune': 'Début de session : Points de Chance regagnés (jusqu’au maximum).',
   'eff.setVessel': 'Le groupe prend possession du navire : {name}.',
@@ -2204,7 +2204,10 @@ export const fr = {
   'pf.talentBought': '{name} : Talent {label} (−{cost} PX).',
   'pf.minorMagicIncluded': ' {n} sorts de Magie mineure inclus — à mémoriser (Avancement).',
   'pf.spellNotFound': 'Sort « {id} » introuvable.',
-  'pf.spellCannotLearn': '{name} ne peut pas apprendre {spell} (déjà connu ou Talent manquant).',
+  'pf.spellCannotLearn': '{name} ne peut pas apprendre {spell} (Talent de lanceur manquant).',
+  'pf.spellAlreadyKnown': '{name} connaît déjà {spell}.',
+  'pf.xpInCombat': 'Les PX ne se dépensent pas en combat.',
+  'pf.partyInCombat': 'La composition du groupe ne change pas en combat.',
   'pf.spellNeedsXp': '{name} : {cost} PX requis pour mémoriser {spell} (reste {left}).',
   'pf.spellLearned': '{name} mémorise {spell} (−{cost} PX{remise}).',
   'pf.fragSpellDiscount': ', remise de {n} PX — Recherche universitaire',
