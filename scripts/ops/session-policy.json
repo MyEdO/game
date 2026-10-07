@@ -1,0 +1,6 @@
+{
+  "profile": "wfrp-agent",
+  "sandbox": "workspace-write",
+  "approveForMe": true,
+  "networkAccess": false
+}

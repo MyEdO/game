@@ -232,6 +232,9 @@ const ATTENDU = {
   // l'histoire par git et rend son verdict.
   'livraison:plage': [],
   'test:ops': [
+    // #2461
+    'scripts/ops/session-runtime.mjs',
+    'scripts/ops/session.test.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` prend ses dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
