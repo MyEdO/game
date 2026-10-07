@@ -325,7 +325,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     // `.min(1)` vient de l'ENVELOPPE (`grammaire/document.ts`) depuis #1552 : le libellé d'un document
     // n'est jamais la chaîne vide, et c'est vrai des 122 defs, pas du seul projet.
     expect(fautes(projet({ label: '' }))).toEqual([
-      expect.stringMatching(/^Libellé :: /),
+      expect.stringMatching(/^Nom :: /),
     ]);
   });
 
@@ -335,7 +335,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     // `versionContenu` du document : les trois se mesurent PAR AMPUTATION, jamais par un refine.
     for (const cle of ['id', 'label', 'versionContenu']) {
       expect(fautes(sans(cle)), `« ${cle} » amputé doit être rouge et NOMMÉ`).toEqual([
-        expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Libellé", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `)),
+        expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Nom", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `)),
       ]);
     }
     // Les ACCESSOIRES, eux, restent facultatifs — sur un document par ailleurs identifié.
@@ -417,9 +417,9 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
 
   it('ENVELOPPE sur la donnée réelle : chaque clé d’identité amputée est rouge, NOMMÉE', () => {
     for (const cle of ['id', 'label', 'versionContenu', 'type']) {
-      expect(fautes(sansCle(cle)), `« ${cle} » amputé`).toEqual([expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Libellé", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `))]);
+      expect(fautes(sansCle(cle)), `« ${cle} » amputé`).toEqual([expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Nom", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `))]);
     }
-    expect(fautes({ ...reel(), label: '' })).toEqual([expect.stringMatching(/^Libellé :: /)]);
+    expect(fautes({ ...reel(), label: '' })).toEqual([expect.stringMatching(/^Nom :: /)]);
     expect(fautesCodees({ ...reel(), type: 'scene' })).toEqual(['type :: invalid_value ["projet"]']);
   });
 

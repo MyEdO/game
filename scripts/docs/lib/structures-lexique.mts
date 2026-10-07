@@ -278,6 +278,16 @@ export const GRAPHIES_ENVELOPPANTES = ['ref', 'wildcard', 'choice', 'random'] as
 /** Concepts, du plus discriminant au plus général (le premier qui matche gagne). */
 export const CONCEPTS: readonly Concept[] = [
   {
+    id: 'prose-nommee',
+    label: 'porteur de prose nommée',
+    strate: 'Document',
+    signatures: [
+      { sig: 'texte', statut: 'cible' },
+      { sig: 'texte+…', statut: 'cible' },
+    ],
+    noyau: ['texte'],
+  },
+  {
     id: 'reference',
     label: 'référence à une entité',
     strate: 'Référence',

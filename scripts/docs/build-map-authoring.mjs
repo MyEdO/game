@@ -17,7 +17,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes, noyauZod, estOptionnel } from './lib/jsdocUnion.mjs'
+import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes, noyauZod, proprietesZod as lireProprietesZod } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
@@ -96,6 +96,7 @@ function rendu() {
   /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`) — au-delà, on casse bruyamment
    *  plutôt que d'écrire un type faux dans la doc. */
   function typeZod(init, cle, schema) {
+    if (!init) abandon(`clé héritée « ${cle} » de \`${schema}\` : initialiseur Zod absent`)
     const m = init.getText().match(/^z\.(string|number|boolean)\(\)/)
     if (!m) abandon(`clé héritée « ${cle} » de \`${schema}\` : type zod non primitif — étendre \`typeZod\` dans ${OUTIL}`)
     return m[1]
@@ -103,6 +104,14 @@ function rendu() {
 
   /** Schéma zod dont l'alias `nom` de `src/state/scene.ts` est inféré (`z.infer<typeof xSchema>`), ou undefined. */
   function schemaInfere(sfScene, nom) {
+    const acces = nom.match(/^([A-Za-z0-9_$]+)\[['"]([^'"]+)['"]\]$/)
+    if (acces) {
+      const owner = interfaceDe(sfScene, acces[1]) ?? aliasDe(sfScene, acces[1])?.type
+      const membre = owner?.members?.find(m => m.name?.getText(sfScene).replace(/^['"]|['"]$/g, '') === acces[2])
+      return membre?.type && schemaInfere(sfScene, membre.type.getText(sfScene))
+    }
+    const direct = nom.match(/^z\.infer<\s*typeof\s+([A-Za-z0-9_$]+)\s*>$/)
+    if (direct) return direct[1]
     const alias = aliasDe(sfScene, nom)
     return alias && (alias.type.getText(sfScene).match(/^z\.infer<\s*typeof\s+([A-Za-z0-9_$]+)\s*>$/) ?? [])[1]
   }
@@ -114,20 +123,7 @@ function rendu() {
   function proprietesZod(nomSchema) {
     const entree = SCHEMAS.get(nomSchema)
     if (!entree) abandon(`schéma \`${nomSchema}\` introuvable dans ${SCENE_SCHEMA} (déplacé ?)`)
-    const objet = noyauZod(entree.decl.initializer, entree)
-    if (!ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
-    const props = new Map()
-    let prevEnd = objet.arguments[0].properties.pos
-    for (const p of objet.arguments[0].properties) {
-      if (ts.isPropertyAssignment(p) && p.name) {
-        props.set(p.name.getText(entree.sf).replace(/^['"]|['"]$/g, ''), {
-          init: p.initializer,
-          role: jsdocRole(entree.text.slice(prevEnd, p.getStart(entree.sf))),
-        })
-      }
-      prevEnd = p.getEnd()
-    }
-    return props
+    return new Map(lireProprietesZod(entree.decl.initializer, entree).filter(p => p.nom).map(p => [p.nom, p]))
   }
 
   /** Options d'un `enumNomme({ valeur: 'Libellé', … })` (`grammaire/valeurs.ts`) : les CLÉS de son
@@ -142,6 +138,7 @@ function rendu() {
   /** Type TS d'un membre zod de SOUS-CHAMP : primitif (`typeZod`), `z.enum([...])` littéral, ou
    *  schéma d'énumération nommé (`difficultySchema`) — au-delà, on casse bruyamment. */
   function typeSousChamp(init, cle, schema) {
+    if (!init) abandon(`sous-champ « ${cle} » de \`${schema}\` : initialiseur Zod absent`)
     const texte = init.getText().replace(/\.optional\(\)$/, '')
     const litteraux = (src) => [...src.matchAll(/'([^']+)'/g)].map((m) => `'${m[1]}'`).join(String.raw` \| `)
     if (/^z\.enum\(\[/.test(texte)) return litteraux(texte)
@@ -160,15 +157,15 @@ function rendu() {
    *  sous-champs `champ.clé` — type et 1re phrase de JSDoc du schéma. */
   function avecSousChamps(rows) {
     return rows.flatMap((r) => {
-      const nomSchema = /^[A-Z][A-Za-z0-9_$]*$/.test(r.type) ? schemaInfere(SF_SCENE, r.type) : undefined
+      const nomSchema = schemaInfere(SF_SCENE, r.type)
       const init = nomSchema && SCHEMAS.get(nomSchema)?.decl.initializer
       const entree = nomSchema && SCHEMAS.get(nomSchema)
       const objet = init && noyauZod(init, entree)
-      if (!objet || !ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) return [r]
+      if (!entree?.formesFinales?.has(`${init?.pos}:${init?.end}`) && (!objet || !ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0]))) return [r]
       const parent = r.nom.replace(/\?$/, '')
       const sous = [...proprietesZod(nomSchema)].map(([cle, p]) => ({
-        nom: `${parent}.${cle}${estOptionnel(p.init, entree) ? '?' : ''}`,
-        type: typeSousChamp(p.init, cle, nomSchema),
+        nom: `${parent}.${cle}${p.optionnel ? '?' : ''}`,
+        type: p.typeSortie ? plat(p.typeSortie) : typeSousChamp(p.init, cle, nomSchema),
         role: p.role,
       }))
       return [r, ...sous]
@@ -195,8 +192,7 @@ function rendu() {
     return cles.map((cle) => {
       const p = props.get(cle)
       if (!p) abandon(`clé « ${cle} » de \`${nomCles}\` absente de \`${nomSchema}\` (${SCENE_SCHEMA})`)
-      const optionnel = /\.optional\(\)/.test(p.init.getText())
-      return { nom: cle + (optionnel ? '?' : ''), type: typeZod(p.init, cle, nomSchema), role: p.role }
+      return { nom: cle + (p.optionnel ? '?' : ''), type: p.typeSortie ? plat(p.typeSortie) : typeZod(p.init, cle, nomSchema), role: p.role }
     })
   }
 
@@ -240,7 +236,7 @@ function rendu() {
     return { rows, doc: aliasDoc(SRC, alias, SF) }
   }
 
-  const MAP_FIELDS = champsInterface('MapSpec')
+  const MAP_FIELDS = avecSousChamps(champsInterface('MapSpec'))
   const WALL_FIELDS = avecSousChamps(champsInterface('WallSpec'))
   const CELL_FIELDS = champsInterface('CellRecipe')
   const ENC_FIELDS = champsInterface('EncounterSpec')
@@ -388,7 +384,7 @@ function rendu() {
     )
     .join('\n')
 
-  const REQUIS = MAP_FIELDS.filter((c) => !c.nom.endsWith('?')).map((c) => c.nom)
+  const REQUIS = MAP_FIELDS.filter((c) => !c.nom.includes('.') && !c.nom.endsWith('?')).map((c) => c.nom)
 
   /** Valeurs d'EXEMPLE des champs requis (ÉDITORIAL) — un champ requis neuf casse ici plutôt que de
    *  laisser le bloc de démarrage devenir incompilable en silence. */

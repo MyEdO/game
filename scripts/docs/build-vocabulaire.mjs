@@ -64,7 +64,7 @@ function rendu() {
     ['Mort, retrait du jeu, bannissement', /\bmort\b|mourr|banni|retrait du jeu|[àa] la mort/i],
     ['Monnaie, bourse, argent', /monnaie|bourse|sous? de cuivre|pistole|couronne d'or/i],
     ['Mouvement, allonge, terrain', /mouvement|\bterrain\b/i],
-    ['Narratif, arbitrage non modélisé', /narrati|arbitrage mj|non mod[ée]lis/i],
+    ['Narration de campagne', /narrati/i],
     ['Navire, coque, équipage, poste d\'artillerie', /navire|coque|[ée]quipage|pi[èe]ce d'artillerie|commandant d'[ée]quipe|\bposte\b/i],
     ['Objets, possessions, inventaire', /\bobjets?\b|possession|inventaire|cr[ée]e un objet/i],
     ['Position, zone, poussée, téléportation, rebond', /\bzone\b|pouss[ée]e|t[ée]l[ée]portation|attaques en cha[îi]ne|positionnel|sur la grille/i],

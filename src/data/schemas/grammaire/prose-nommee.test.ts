@@ -15,6 +15,7 @@ import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { resolve } from 'node:path';
 import { couleurHexSchema } from './valeurs';
 import { refOuSpec } from './ref';
+import { detenteur } from '../../../detenteur.testkit';
 
 const SOURCE = { book: 'ennemi-dans-l-ombre', page: 12 };
 const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
@@ -38,15 +39,17 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
 
 describe('prose nommée — déclaration et provenance locales', () => {
   const primitives = { descendre, enfantsDe, metaDesChamps, nomDeNoeud, declarationProseNommee, declarationDEnfants, defDe };
-  const corpus = [...readCorpus(['src/data/schemas/defs-scenes']).filter(f => !f.rel.endsWith('.test.ts')), ...readCorpus(['src/data/schemas/grammaire']).filter(f => f.rel.endsWith('/mecanique.ts'))];
-  const mesure = classificationsProseLocale(resolve('.'), corpus);
+  const corpus = detenteur(() => [...readCorpus(['src/data/schemas/defs-scenes']).filter(f => !f.rel.endsWith('.test.ts')), ...readCorpus(['src/data/schemas/grammaire']).filter(f => f.rel.endsWith('/mecanique.ts'))]);
+  const mesurer = detenteur(() => classificationsProseLocale(resolve('.'), corpus()));
   it('le corpus local classe ses sorties ouvertes avant toute donnée', () => {
+    const mesure = mesurer();
     console.log('classification locale', JSON.stringify({ champs: mesure.champs.length, opaquesImportes: mesure.opaquesImportes.length, exclusions: mesure.champs.filter(c => c.horsContrat).length, catchalls: mesure.champs.filter(c => c.champ === '*').length, opsNonTypees: OPS_NON_TYPEES.length }));
     expect(mesure.fautes).toEqual([]);
   });
   it('les sites finaux et tous les payloads déclarés passent la descente réelle', async () => {
+    const mesure = mesurer();
     const bornes: unknown[] = [];
-    const corpusLocal = new Set(corpus.map(f => f.rel));
+    const corpusLocal = new Set(corpus().map(f => f.rel));
     for (const origine of mesure.importsSchemas) {
       expect(corpusLocal.has(origine.module)).toBe(false);
       const module = await import(resolve('.', origine.module));

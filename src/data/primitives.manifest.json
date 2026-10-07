@@ -382,6 +382,7 @@
     "type": "primitives.manifest",
     "label": "Prose",
     "fichier": "src/ui/Prose.tsx",
+    "css": "src/ui/styles/team-segments.css",
     "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée",
     "perimetre": "tout champ de prose RAW",
     "verrou": "no-html-in-prose.test.ts"
@@ -1032,7 +1033,6 @@
     "type": "primitives.manifest",
     "label": "TeamSegments",
     "fichier": "src/ui/TeamSegments.tsx",
-    "css": "src/ui/styles/team-segments.css",
     "concept": "segments tonés par camp réunis en Markdown complet, rendu compact par Prose avec annotations allié ou ennemi",
     "perimetre": "journal de combat, ligne de récap, fil d’événements",
     "verrou": "les deux vocabulaires de segments (NarratedSegment, RecapSegment) passent par ce rendu"
@@ -1588,9 +1588,9 @@
   {
     "id": "noyauZod",
     "type": "primitives.manifest",
-    "label": "indexerConstantes/noyauZod/estOptionnel",
+    "label": "indexerConstantes/proprietesZod/noyauZod/estOptionnel",
     "fichier": "scripts/docs/lib/jsdocUnion.mjs",
-    "concept": "lecture AST du noyau et de l'optionalité des schémas Zod sous décorateurs de métadonnées reconnus par leur import canonique",
+    "concept": "lecture AST des schémas Zod et de leurs métadonnées canoniques, propriétés de sortie des compositions de prose résolues par leur propriétaire et figées avant libération du programme sémantique",
     "perimetre": "générateurs build-effects, build-map-authoring, build-sort et build-vocabulaire",
     "verrou": "scripts/docs/lib/jsdocUnion.test.mjs"
   },

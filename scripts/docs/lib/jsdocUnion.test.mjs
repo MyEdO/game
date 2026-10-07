@@ -1,15 +1,91 @@
-import test from 'node:test'
+import test, { mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { libererCache } from '../../guards/lib/fieldConsumers.mjs'
-import { loadSource, findAlias, aliasDoc, readUnionMembers, indexerConstantes, readZodUnionMembers, noyauZod, estOptionnel } from './jsdocUnion.mjs'
+import { loadSource, findAlias, aliasDoc, readUnionMembers, indexerConstantes, readZodUnionMembers, noyauZod, estOptionnel, proprietesZod } from './jsdocUnion.mjs'
 import { fileExports } from './engineExports.mjs'
 import { shellZones, rowZones } from './rollShellUsage.mjs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { API } from 'typescript/unstable/sync'
+
+test('compositions de prose canoniques : champs finaux adresse, folio et document par import, alias, namespace et réexport', () => {
+  const racine = fileURLToPath(new URL('../../../', import.meta.url))
+  mkdirSync(join(racine, 'tmp'), { recursive: true })
+  const dossier = mkdtempSync(join(racine, 'tmp', 'jsdoc-prose-'))
+  try {
+    const chemin = join(dossier, 'schemas.ts')
+    writeFileSync(join(dossier, 'barrel.ts'), "export { proseNommee as compose } from '../../src/data/schemas/grammaire/prose.ts';")
+    const imports = [
+      "import { z } from 'zod';",
+      "import { nommerChamps } from '../../src/data/schemas/grammaire/meta.ts';",
+      "import { proseNommee, proseNommee as nommee } from '../../src/data/schemas/grammaire/prose.ts';",
+      "import * as prose from '../../src/data/schemas/grammaire/prose.ts';",
+      "import { compose } from './barrel.ts';",
+    ].join('\n')
+    const base = "nommerChamps(z.strictObject({ kind: z.literal('prose'), requis: z.number() }), { kind: { label: 'kind' }, requis: { label: 'requis' } })"
+    for (const [cheminProse, champs] of [
+      ['journal.desc', ['requis', 'desc?', 'descRef?', 'adapteDe?']],
+      ['scenes[].startMessage.texte', ['requis', 'source?', 'adapteDe?', 'texte']],
+      ['narratif.documents[].prose', ['requis', 'source?', 'prose']],
+    ]) for (const appel of ['proseNommee', 'nommee', 'prose.proseNommee', 'compose']) {
+      writeFileSync(chemin, `${imports}\n/** Rôle original. */\nexport const membre = ${appel}(${base}, '${cheminProse}');\nexport const union = z.discriminatedUnion('kind', [membre]);`)
+      assert.deepEqual(readZodUnionMembers(indexerConstantes([chemin]), 'union', 'kind', 'test'), {
+        rows: [{ name: 'prose', fieldGroups: [champs], role: 'Rôle original.' }], rawCount: 1,
+      })
+    }
+    writeFileSync(chemin, `${imports}\nexport const membre = proseNommee(${base}, 'journal.desc').omit({requis:true}).extend({desc:z.string().default('Maison'), indefini:z.string().or(z.undefined()), facultatif:z.string().optional()});`)
+    const index = indexerConstantes([chemin])
+    const entree = index.get('membre')
+    const sortie = proprietesZod(entree.decl.initializer, entree)
+    assert.ok(!sortie.some(p => p.nom === 'requis'))
+    assert.equal(sortie.find(p => p.nom === 'desc').optionnel, false)
+    assert.equal(sortie.find(p => p.nom === 'indefini').optionnel, false)
+    assert.equal(sortie.find(p => p.nom === 'facultatif').optionnel, true)
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('composition : union finale refusée explicitement, homonyme et masque de portée opaques', () => {
+  const racine = fileURLToPath(new URL('../../../', import.meta.url))
+  const dossier = mkdtempSync(join(racine, 'tmp', 'jsdoc-opaque-'))
+  const chemin = join(dossier, 'schemas.ts')
+  const imports = "import {z} from 'zod'; import {proseNommee} from '../../src/data/schemas/grammaire/prose.ts';"
+  const close = API.prototype.close
+  const fermetures = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    writeFileSync(chemin, `${imports}\nexport const membre=proseNommee(z.strictObject({kind:z.literal('x')}),'journal.desc').or(z.strictObject({autre:z.number()}));`)
+    assert.throws(() => indexerConstantes([chemin]), /sortie composée en union non représentable/)
+    assert.equal(fermetures.mock.callCount(), 2)
+    for (const sortie of ["'x'", "['x']", "['x', 1] as const"]) {
+      writeFileSync(chemin, `${imports}\nexport const membre=proseNommee(z.strictObject({kind:z.literal('x')}),'journal.desc').transform(()=>${sortie});`)
+      assert.throws(() => indexerConstantes([chemin]), /sortie composée non objet/)
+    }
+    for (const source of [
+      "import {z} from 'zod'; const proseNommee=(s:any)=>s; export const membre=proseNommee(z.strictObject({kind:z.literal('x')}));",
+      `${imports}\nfunction f(proseNommee:(s:any)=>any){const membre=proseNommee(z.strictObject({kind:z.literal('x')}));return membre;} export const membre=f(s=>s);`,
+    ]) {
+      writeFileSync(chemin, source)
+      const entree = indexerConstantes([chemin]).get('membre')
+      assert.equal(entree.formesFinales?.size ?? 0, 0)
+      assert.throws(() => proprietesZod(entree.decl.initializer, entree), /forme d'objet zod illisible/)
+    }
+  } finally { fermetures.mock.restore(); rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('préfiltre : un barrel nommé grammaire/meta.ts ne masque pas une composition canonique réexportée', () => {
+  const racine = fileURLToPath(new URL('../../../', import.meta.url))
+  const dossier = mkdtempSync(join(racine, 'tmp', 'jsdoc-barrel-meta-'))
+  const chemin = join(dossier, 'schemas.ts')
+  try {
+    mkdirSync(join(dossier, 'grammaire'))
+    writeFileSync(join(dossier, 'grammaire', 'meta.ts'), "export {proseNommee as nommerChamps} from '../../../src/data/schemas/grammaire/prose.ts';")
+    writeFileSync(chemin, "import {z} from 'zod'; import {nommerChamps} from './grammaire/meta.ts'; export const membre=nommerChamps(z.strictObject({kind:z.literal('x')}),'journal.desc'); export const union=z.discriminatedUnion('kind',[membre]);")
+    assert.deepEqual(readZodUnionMembers(indexerConstantes([chemin]), 'union', 'kind', 'test').rows[0].fieldGroups, [['desc?', 'descRef?', 'adapteDe?']])
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
 
 test('cleanup : propriétaires dédoublés, emprunt préservé, erreurs initiales et fermetures toutes observables', () => {
   for (const initiale of [new Error('analyse'), undefined, Symbol('analyse')]) {
@@ -134,6 +210,9 @@ test('optionalité native : générateur MapSpec conserve desc optionnel et son 
   assert.equal(enfant.status, 0, enfant.stderr)
   assert.match(enfant.stdout, /\| `desc\?` \| `string` \|/)
   assert.match(enfant.stdout, /Champs REQUIS de `MapSpec` : `size`, `id`, `label`\./)
+  assert.match(enfant.stdout, /`startMessage\.texte`/)
+  assert.match(enfant.stdout, /`startMessage\.source\?`/)
+  assert.match(enfant.stdout, /`startMessage\.adapteDe\?`/)
 })
 
 test('décorateurs canoniques : formes, champs, optionalité et JSDoc préservés par imports nommés, renommés et namespace imbriqués', () => {

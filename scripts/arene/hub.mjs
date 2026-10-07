@@ -467,8 +467,9 @@ export function makeHub() {
     desc: 'Le bourg fortifié qui vit de son arène : taverne, chapelle, forge, échoppe — quatre bâtiments GRANDS ouverts sur une place, et treize portes vers le sable.',
     ambiance: 'exterieur',
     music: { ambient: 'musique-ville' },
-    startMessage:
-      'LE BOURG DE L’ARÈNE. Une place pavée, quatre bâtiments et treize portes. Le Maître d’arène (au centre) ouvre l’échelle et les contrats. Entrez dans la Taverne (repos, repas, rations), la Chapelle (soins, bénédiction), la Forge (armes, réparations) ou l’Échoppe (herbes, fournitures) — le toit se lève quand vous y pénétrez. La route de l’est part vers le monde.',
+    startMessage: {
+      texte: 'LE BOURG DE L’ARÈNE. Une place pavée, quatre bâtiments et treize portes. Le Maître d’arène (au centre) ouvre l’échelle et les contrats. Entrez dans la Taverne (repos, repas, rations), la Chapelle (soins, bénédiction), la Forge (armes, réparations) ou l’Échoppe (herbes, fournitures) — le toit se lève quand vous y pénétrez. La route de l’est part vers le monde.',
+    },
     rows: ROWS,
     base: 'terre',
     legend: { p: 'pave', h: 'herbe', b: 'plancher', m: 'marbre', d: 'dalle' },
