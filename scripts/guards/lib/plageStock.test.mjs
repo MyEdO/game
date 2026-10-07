@@ -62,6 +62,26 @@ const diffDe = (ajoutees = [], retirees = [], ligne = 1) =>
     ...ajoutees.map((l) => `+${l}`),
   ].join('\n')
 
+test('#1735 : une migration prouvée quitte le commit et le cumul, une dette neuve reste refusée', () => {
+  const ancien = 'src/ancien.test.ts';
+  const nouveau = 'src/nouveau.test.ts';
+  const stock = (fichier, extra = '') => `const PREUVES = [
+    { fichier: '${fichier}', it: 'titre conservé' },
+    ${extra}
+  ];`;
+  const pre = stock(ancien);
+  for (const neuf of [false, true]) {
+    const post = stock(nouveau, neuf ? "{ fichier: 'src/neuf.test.ts', it: 'dette neuve' }," : '');
+    const images = {
+      lirePreImage: p => p === PORTEUR ? pre : p === ancien ? "it('titre conservé', () => {});" : null,
+      lirePostImage: p => p === PORTEUR ? post : p === nouveau ? "it('titre conservé', () => {});" : null,
+    };
+    const diff = diffDe(post.split('\n'), pre.split('\n'));
+    const cumul = bilanDesStocks(diff, images);
+    const refus = refusDeLaPlage({ commits: [{ sha: 'migration', message: '', diff, images }], cumul });
+    assert.deepEqual(refus.map(r => [r.fichier, r.net]), neuf ? [[PORTEUR, 1]] : []);
+  }
+});
 /** Lecteur d'image qui rend `null` : la porte l'a, et le REPLI de ligne juge — la voie des diffs
  *  FABRIQUÉS ci-dessous, dont aucun fichier n'existe. Sans lecteur du tout, `croissanceDesStocks`
  *  refuse nommément (un compte sans image ment). */
