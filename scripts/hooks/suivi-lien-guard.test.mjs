@@ -23,21 +23,19 @@ test('epiqueLiee : `ops:suivi -- N` par npm comme en direct ; rien sinon', () =>
   }
 })
 
-test('#2460 — les arguments se lisent avec leurs citations : un texte cité est UN argument, par npm comme en direct ; un mot en trop ne lie pas', () => {
-  const cite = 'npm run ops:suivi -- 665 --ajouter-etape 2400 "tour 10 publié" --cocher 2400.4'
-  assert.deepEqual(appelsDuSuivi(cite), [['665', '--ajouter-etape', '2400', 'tour 10 publié', '--cocher', '2400.4']], 'lu sur le segment que le socle déplie, citations gardées')
-  assert.equal(epiqueLiee(cite), 665)
-  assert.equal(epiqueLiee("node scripts/ops/suivi.mjs 665 --lot '{\"epique\": 665, \"mutations\": []}'"), 665)
-  assert.deepEqual(appelsDuSuivi('npm run ops:suivi -- 665 --rendu > rendu.md 2>&1 | tail -3'), [['665', '--rendu']])
-  assert.equal(epiqueLiee('npm run ops:suivi -- 665 --ajouter-etape 2400 tour 10'), null)
-})
-
-test('#2460 T1 — l’argv se lit sans ses REDIRECTIONS, sur les jetons : un argument CITÉ qui commence par `>` reste un argument, ce qui suit une redirection aussi', () => {
-  assert.deepEqual(appelsDuSuivi('node scripts/ops/suivi.mjs 665 --signaler ">x"'), [['665', '--signaler', '>x']])
-  assert.deepEqual(appelsDuSuivi('node scripts/ops/suivi.mjs 665 2>err.txt --rendu'), [['665', '--rendu']])
-  const voir = 'npm run ops:suivi -- 665 --signaler "> voir .git/suivi/665.json"'
-  assert.deepEqual(appelsDuSuivi(voir), [['665', '--signaler', '> voir .git/suivi/665.json']])
-  assert.equal(epiqueLiee(voir), 665)
+test('#2460 — les arguments se lisent avec leurs citations, sans leurs REDIRECTIONS, sur les jetons : un texte cité est UN argument, par npm comme en direct ; un argument CITÉ qui commence par `>` reste un argument ; un mot en trop ne lie pas', () => {
+  for (const [commande, argv, epique] of [
+    ['npm run ops:suivi -- 665 --ajouter-etape 2400 "tour 10 publié" --cocher 2400.4', ['665', '--ajouter-etape', '2400', 'tour 10 publié', '--cocher', '2400.4'], 665],
+    ["node scripts/ops/suivi.mjs 665 --lot '{\"epique\": 665, \"mutations\": []}'", ['665', '--lot', '{"epique": 665, "mutations": []}'], 665],
+    ['npm run ops:suivi -- 665 --rendu > rendu.md 2>&1 | tail -3', ['665', '--rendu'], 665],
+    ['npm run ops:suivi -- 665 --ajouter-etape 2400 tour 10', ['665', '--ajouter-etape', '2400', 'tour', '10'], null],
+    ['node scripts/ops/suivi.mjs 665 --signaler ">x"', ['665', '--signaler', '>x'], 665],
+    ['node scripts/ops/suivi.mjs 665 2>err.txt --rendu', ['665', '--rendu'], 665],
+    ['npm run ops:suivi -- 665 --signaler "> voir .git/suivi/665.json"', ['665', '--signaler', '> voir .git/suivi/665.json'], 665],
+  ]) {
+    assert.deepEqual(appelsDuSuivi(commande), [argv], commande)
+    assert.equal(epiqueLiee(commande), epique, commande)
+  }
 })
 
 test('#2233 — un `ops:suivi` aux arguments illisibles ne se tait pas : avertissement, aucune trace ; la liste sans argument, rien', async () => {

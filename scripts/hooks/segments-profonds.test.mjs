@@ -194,14 +194,14 @@ test('npm run <x> : les trois graphies, les arguments de la ligne, et un script 
 test('npm run <x> : chaque argument recollé GARDE ses citations — le tokeniseur UNIQUE relit le segment déplié au MÊME argv, depuis des citations doubles comme simples ; une redirection reste un opérateur', () => {
   const options = { scripts: { suivi: 'node scripts/ops/suivi.mjs' } }
   const argv = ['665', '--ajouter-etape', '2400', 'tour 10 publié', '--signaler', 'a "b" \\c `d` $(e) $f', '']
-  const deplie = (cmd) => segmentsProfonds(cmd, 0, options).find((s) => s[0] === 'node')
+  const deplie = (cmd) => pipelinesDeJetons(cmd, 0, options).flat().find((s) => s.jetons[0]?.text === 'node')
   for (const cmd of [
     'npm run suivi -- 665 --ajouter-etape 2400 "tour 10 publié" --signaler \'a "b" \\c `d` $(e) $f\' ""',
     "npm run suivi -- 665 --ajouter-etape 2400 'tour 10 publié' --signaler 'a \"b\" \\c `d` $(e) $f' ''",
-  ]) assert.deepEqual(deplie(cmd), ['node', 'scripts/ops/suivi.mjs', ...argv], cmd)
+  ]) assert.deepEqual(deplie(cmd).jetons.map((j) => j.text), ['node', 'scripts/ops/suivi.mjs', ...argv], cmd)
   assert.equal(citeArgument('tour 10 publié'), '"tour 10 publié"')
   assert.equal(citeArgument('--lot'), '--lot', 'un mot nu reste nu')
-  const redirige = pipelinesDeJetons('npm run suivi -- 665 "a b" > sortie.txt', 0, options).flat().find((s) => s.jetons[0]?.text === 'node')
+  const redirige = deplie('npm run suivi -- 665 "a b" > sortie.txt')
   assert.deepEqual(redirige.jetons.map((j) => j.text), ['node', 'scripts/ops/suivi.mjs', '665', 'a b', '>', 'sortie.txt'])
   assert.equal(finAvantOperateur(redirige.jetons.map((j) => j.text)), 4, 'la redirection reste un opérateur du segment déplié')
 })
