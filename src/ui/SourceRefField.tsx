@@ -21,7 +21,9 @@ type Commun<T extends Porteur> = {
   sujet?: string;
   value: T | undefined;
 };
-/** `facultative` : un brouillon incomplet émet `undefined`. Exigée : il n'émet rien. */
+/** Un brouillon incomplet n'émet rien : la source retenue reste la précédente. `facultative` : un
+ *  brouillon VIDE (livre, page et note vides) émet `undefined`. Seule une SAISIE se signale : la `value`
+ *  reçue, même incomplète (livre amorcé), s'affiche sans signal tant que l'auteur n'y a rien changé. */
 export type SourceRefFieldProps<T extends Porteur> = Commun<T> & (
   | { facultative: true; onChange: (v: (T & SourceRef) | undefined) => void }
   | { facultative?: false; onChange: (v: T & SourceRef) => void }
@@ -73,6 +75,8 @@ const folio = (page: number | null): boolean => page != null && Number.isInteger
 /** Une réf est COMPLÈTE quand elle nomme un livre et un folio imprimé. */
 const complete = (b: Brouillon): boolean => b.book !== '' && folio(b.page);
 
+const vide = (b: Brouillon): boolean => b.book === '' && b.page == null && b.note === '';
+
 /** La réf émise : les clés du porteur gardent leur place, `note` n'existe que non vide. */
 function poserSourceRef<T extends Porteur>(value: T | undefined, b: Brouillon): T & SourceRef {
   const ref: Porteur = { ...value, book: b.book, page: b.page ?? undefined, note: b.note };
@@ -88,7 +92,7 @@ export function SourceRefField<T extends Porteur>(props: SourceRefFieldProps<T>)
   const nom = (champ: string) => (sujet ? `${champ} de la source ${sujet}` : `${champ} — ${label}`);
   const [brouillon, setBrouillon] = useState<Brouillon>(() => versBrouillon(value));
   // Resynchronisation sur un AUTRE porteur, ou sur une RÉF externe nouvelle ; la réf que le champ
-  // vient d'émettre (ou `undefined` d'un brouillon facultatif incomplet) ne l'écrase pas, ni une clé
+  // vient d'émettre (ou `undefined` d'un brouillon facultatif vide) ne l'écrase pas, ni une clé
   // du porteur (`quote`) éditée à côté.
   const [precedente, setPrecedente] = useState({ identite, value });
   const [emise, setEmise] = useState<T | undefined>(value);
@@ -106,18 +110,17 @@ export function SourceRefField<T extends Porteur>(props: SourceRefFieldProps<T>)
       const ref = poserSourceRef(value, suivant);
       setEmise(ref);
       props.onChange(ref);
-    } else if (props.facultative) {
+    } else if (props.facultative && vide(suivant)) {
       setEmise(undefined);
       props.onChange(undefined);
     }
   };
-  const vide = brouillon.book === '' && brouillon.page == null && brouillon.note === '';
-  const incomplet = !complete(brouillon) && !(props.facultative && vide);
-  const enCours = incomplet && !memeBrouillon(brouillon, versBrouillon(value));
+  // Saisie EN COURS : incomplète et différente de la `value` reçue — l'unique état qui se signale.
+  const enCours = !complete(brouillon) && !(props.facultative && vide(brouillon)) && !memeBrouillon(brouillon, versBrouillon(value));
   useSaisieEnCours(enCours);
   const messageId = useId();
-  const livreManquant = incomplet && brouillon.book === '';
-  const pageManquante = incomplet && !folio(brouillon.page);
+  const livreManquant = enCours && brouillon.book === '';
+  const pageManquante = enCours && !folio(brouillon.page);
   return (
     <div className="ed-field">
       <span>{label}</span>
@@ -138,10 +141,9 @@ export function SourceRefField<T extends Porteur>(props: SourceRefFieldProps<T>)
         Note
         <input aria-label={nom('Note')} placeholder="facultatif" value={brouillon.note} onChange={(e) => poser({ note: e.target.value })} />
       </label>
-      {incomplet && (
+      {enCours && (
         <span id={messageId} className="hint" role="status">
-          {'Source incomplète : livre et page (≥ 1) requis.'}
-          {enCours && ` Cette saisie n'est pas retenue ; la source retenue reste ${decrire(value)}.`}
+          {`Source incomplète : livre et page (≥ 1) requis. Cette saisie n'est pas retenue ; la source retenue reste ${decrire(value)}.`}
         </span>
       )}
     </div>

@@ -25,10 +25,10 @@ import { findTavernGameById } from '../engine/tavernGame';
 import { effectiveTarget } from './rollSeam';
 import { testValue } from '../engine/skills';
 import { addCondition, COND } from '../engine/conditions';
-import { closeSequenceRound, type SequenceState } from './sequenceCore';
+import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernCombinedState, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep, PendingCascade } from './pendings';
+import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
@@ -46,7 +46,7 @@ function seul(): Combatant {
 
 /** Partie en cours, avec le compte que la table lui donne. Les MARQUES sont l'accumulateur du socle
  *  (`cum`), les échecs et effacements la charge utile du jeu. */
-function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks?: Record<string, number>): SequenceState<TavernPayload> {
+function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks?: Record<string, number>): EtatDeFamille<typeof TAVERN_SEQUENCE> {
   return {
     def: TAVERN_SEQUENCE, round: 2, cum: { ...marks },
     params: { combined: CEREVIS.combined! },
@@ -59,7 +59,7 @@ function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks
 
 /** Tour CLOS : le jet du challenger (cible POSÉE, dé POSÉ) et le jet adverse FIGÉ. Le dé du
  *  challenger est le SEUL de son camp — la seconde lecture se fait dessus. */
-function tour(actorId: string, mien: { roll: number; target: number; sl: number }, sien: { roll: number; sl: number }): PendingCascade {
+function tour(actorId: string, mien: { roll: number; target: number; sl: number }, sien: { roll: number; sl: number }): MancheClose {
   const step: CascadeStep = {
     id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId,
     label: fixtureText('Le Cerevis'), rollLabel: 'Pari', difficulty: 'accessible', base: mien.target, target: mien.target,
@@ -72,7 +72,7 @@ function tour(actorId: string, mien: { roll: number; target: number; sl: number 
       },
     },
   };
-  return { title: 'Cerevis', purpose: 'sequence', participants: [step], cursor: 1, log: [] };
+  return { participants: [step] };
 }
 
 /** Le compte tenu par la partie en cours. */
@@ -205,7 +205,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     // Un tour PERDU met une chouette au tableau ; le tour SUIVANT s'ouvre alors sur la question de
     // l'effacement — c'est le cycle du socle qui l'ouvre, aucune fenêtre n'est forgée ici.
-    const seq = get().sequence as SequenceState<TavernPayload>;
+    const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     useGame.setState({
       pendingCascade: null, // la fenêtre du 1ᵉʳ tour est remplacée par le tour POSÉ ci-dessous
       sequence: { ...seq, cum: { player: 1 }, payload: { ...seq.payload, combined: { fails: {}, erased: {}, tour: 1 } } },
@@ -227,8 +227,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
         tavernGames: null, journal: [], pendingCascade: null,
         sequence: partie(a.id, { erased: { player: erased } }, { player: 3 }),
       });
-      const pc: PendingCascade = {
-        title: 'Cerevis', purpose: 'sequence', cursor: 1, log: [],
+      const pc: MancheClose = {
         participants: [{
           id: 'tavern-erase-2', kind: 'tavern-erase', actorId: a.id, label: fixtureText('Effacer ?'),
           options: [{ key: 'efface', label: fixtureText('e') }, { key: 'garde', label: fixtureText('g') }], chosen: 'efface',

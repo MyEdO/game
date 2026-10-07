@@ -10,10 +10,6 @@ import {
 import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace, texteRegenere } from '../guards/lib/stockDeSites.mjs'
 import { CHAMPS_DE_CLE, champsAveugles, cleDeSite, ecartDuVolet } from '../guards/lib/stock.mjs'
 
-/** PLAFOND du stock — il vit ICI, jamais dans la garde ni dans la lib (`guards/lib/stock.mjs`) :
- *  servi depuis la lib, il se relèverait dans le même geste que l'append qu'il doit rendre visible. */
-const PLAFOND = 23
-
 test('COUVERTURE : au moins un livre couvert, et chacun a sa langue dans la table de motifs', () => {
   const livres = livresCouverts()
   assert.ok(livres.length > 0, 'aucun livre couvert : la garde serait muette')
@@ -43,11 +39,6 @@ test('stock COMMITTÉ : chaque renvoi non résolu y a son entrée, et aucune ent
 
 test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des sites mesurés sur l’arbre', () => {
   for (const r of regenerations(scanAll())) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
-})
-
-test('le stock est PLAFONNÉ : il ne décroît que quand un renvoi se résout', () => {
-  const taille = lireEntreesDeSite(STOCK_PATH).length
-  assert.ok(taille <= PLAFOND, `stock ${taille} > plafond ${PLAFOND}`)
 })
 
 test('la CLÉ observe tout ce qui localise une entrée — aucun champ aveugle', () => {

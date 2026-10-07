@@ -119,6 +119,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
   const nuitDuChat = quai.dialogues.find((d) => d.id === 'dlg-kramer-nuit-du-chat')!;
 
   it('Test → document ouvert → touche 2 inerte → document fermé → touche 2 joue', () => {
+    useGame.getState().loadProject(doc.scenes as Scene[], quai.id, doc.worldMap, doc.narratif);
     temoin({ scene: quai, document: null, dialogue: ouvrirDialogue({ dialogueHistory: [] }, nuitDuChat) });
     const get = useGame.getState;
 

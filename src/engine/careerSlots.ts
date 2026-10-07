@@ -123,25 +123,6 @@ function resumeDesOptions(options: SlotOption[]): string {
   return options.map((o) => `${refKey(o.optionId ?? '', o.spec)}${o.wildcard ? '*' : ''}`).join('+');
 }
 
-/** Position (`niveau:type:index`) d'une clé d'emplacement, quel que soit son résumé. */
-function positionDeCle(cle: string): string {
-  return cle.split(':').slice(0, 3).join(':');
-}
-
-/**
- * Clés de `careerSlotChoices` au résumé en ids (`resumeDesOptions`) : chaque clé prend celle de
- * l'emplacement de la donnée du jour à la même position (`positionDeCle`). Idempotent ; une clé sans
- * emplacement à sa position est gardée telle quelle (`designationsFor` ne la lit pas). Aucun libellé lu.
- */
-export function migrerClesDEmplacement(choix: Record<string, Record<string, string>>): Record<string, Record<string, string>> {
-  return Object.fromEntries(Object.entries(choix).map(([career, stored]) => {
-    const levels = levelsForCareer(career);
-    const top = Math.max(0, ...levels.map((l) => l.level));
-    const parPosition = new Map([...skillSlots(levels, top), ...talentSlotsUpTo(levels, top)].map((s) => [positionDeCle(s.key), s.key]));
-    return [career, Object.fromEntries(Object.entries(stored).map(([cle, v]) => [parPosition.get(positionDeCle(cle)) ?? cle, v]))];
-  }));
-}
-
 /** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.76). */
 export function skillSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'skill'));

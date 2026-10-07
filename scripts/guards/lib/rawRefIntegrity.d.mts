@@ -22,7 +22,6 @@ export interface EmptyLineRef {
   files: Set<string>;
 }
 
-export const SRC_DIR: string;
 export const EXCLUDE_SRC_PREFIX: string;
 export const WINDOW: number;
 export const MIN_WORD_LEN: number;
@@ -50,8 +49,8 @@ export function isBlindRef(
 ): boolean;
 export function refsInLine(ln: string): Generator<{ abbr: string; nn: string; lo: number; hi: number; ref: string }>;
 export function isExcludedSrc(rel: string): boolean;
-export function scanBlindRefs(srcDir?: string): BlindRef[];
-export function scanEmptyLineRefs(srcDir?: string): EmptyLineRef[];
+export function scanBlindRefs(racines?: string | readonly string[]): BlindRef[];
+export function scanEmptyLineRefs(racines?: string | readonly string[]): EmptyLineRef[];
 export function sitesAveugles(blind: BlindRef[]): Site[];
 export function ecartDesRefsAveugles(
   blind: BlindRef[], stock: (EntreeDeSite & Partial<Echeance>)[],

@@ -10,7 +10,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { castCommitZone } from './combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
-import { findSpellById } from '../data/index';
+import { findSpellById, spells } from '../data/index';
+import { setDataset } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import type { SpellTarget } from '../engine/spellRange';
 import type { CastResult } from '../engine/magic';
@@ -57,9 +58,9 @@ function setupBattle(c: Combatant, others: Combatant[], spellId: string) {
 const combatant = (id: string) => useGame.getState().battle!.combatants.find((cc) => cc.id === id)!;
 const boosted = (id: string) => combatant(id).activeEffects?.some((e) => e.char === 'force') === true;
 
-/** Pose la Cible du Sort d'épreuve (restaurée en `afterEach`). */
+/** Pose la Cible du Sort d'épreuve par le seam des datasets (restaurée en `afterEach`). */
 function setTarget(t: SpellTarget): void {
-  findSpellById(SPELL)!.target = t;
+  setDataset('spells', spells.map((s) => (s.id === SPELL ? { ...s, target: t } : s)));
 }
 const AREA: Extract<SpellTarget, { kind: 'area' }> = { kind: 'area', span: 'diameter', meters: { bonusOf: 'force-mentale' } };
 
@@ -68,7 +69,7 @@ function cast(): void {
 }
 
 describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
-  const original = findSpellById(SPELL)!.target;
+  const original = [...spells];
 
   beforeEach(() => {
     vi.useFakeTimers(); vi.clearAllTimers();
@@ -76,7 +77,7 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
     useGame.getState().seedRng(17);
   });
   afterEach(() => {
-    findSpellById(SPELL)!.target = original;
+    setDataset('spells', original);
     vi.clearAllTimers(); vi.useRealTimers();
   });
 

@@ -344,11 +344,29 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField/refusDuNoeud",
+    "label": "RefField/refusDuNoeud/RefNarrativeField",
     "fichier": "src/ui/compendium/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste",
-    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping`",
+    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste ; `RefNarrativeField` = son mode `single` sur les entrées (`entrees`) du registre du narratif que désigne une clé de `REFERENCES_NARRATIVES`",
+    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping` ; toute référence narrative de l'éditeur (Effects, stade d'indice, preset d'entité)",
     "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx"
+  },
+  {
+    "id": "sourceBadge",
+    "type": "primitives.manifest",
+    "label": "SourceBadge",
+    "fichier": "src/ui/SourceBadge.tsx",
+    "concept": "badge de lecture d'une source (« abréviation du livre p.page ») ; une `SourceRef` de donnée passe par `sourceAffichee` (abréviation du livre, jamais son id)",
+    "perimetre": "fiche et infobulle du Codex, catégorie du Compendium, stade d'indice du Carnet, modale de document",
+    "verrou": "DocumentModal.test.tsx"
+  },
+  {
+    "id": "proseField",
+    "type": "primitives.manifest",
+    "label": "ProseField",
+    "fichier": "src/ui/ProseField.tsx",
+    "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable), ou sa LECTURE (`lecture` : prose rendue sous le même libellé, à la même place que la zone)",
+    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène",
+    "verrou": "ui-ratchets.test.ts"
   },
   {
     "id": "prose",
@@ -366,7 +384,7 @@
     "fichier": "src/gameIso/rig/bodyPlan.ts",
     "concept": "résolution rendu + dispatch backend",
     "perimetre": "tout rendu iso/POV/portrait",
-    "verrou": "eslint.config.js"
+    "verrou": "oxlint.config.mjs"
   },
   {
     "id": "masterDetail",
@@ -404,6 +422,15 @@
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
     "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
+  },
+  {
+    "id": "genFormats",
+    "type": "primitives.manifest",
+    "label": "gen-formats (formats.generated)",
+    "fichier": "scripts/gen-formats.mjs",
+    "concept": "format d'une donnée persistée SANS schéma, dérivé de la forme canonique de son type sérialisé (racines déclarées dans `RACINES`) : la constante que l'écrivain stampe dans `version` et que le lecteur compare (#2404)",
+    "perimetre": "save de partie, roster, export de héros, calques de trace, `hello` coop",
+    "verrou": "scripts/gen-formats.test.mjs, P3 de scripts/guards/lib/versionsDerivees.mjs"
   },
   {
     "id": "pointDEntree",
@@ -462,20 +489,29 @@
   {
     "id": "texteDUneAdresse",
     "type": "primitives.manifest",
-    "label": "aligner/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte",
+    "label": "aligner/estDeContenu/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte/filDuChapitre/positionDuBloc/couvertureDe",
     "fichier": "src/data/source/decoupe.ts",
-    "concept": "décideur de texte d'une adresse de prose : unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment, d'une adresse ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées), unitesDuTexte prépare un texte libre, aligner décide texte libre contre rendu (égalité = ajoute vide, partie stricte sinon, témoin nommé), memeTexte compare une clé ou un rendu à un rendu",
+    "concept": "décideur de texte d'une adresse de prose : filDuChapitre est le fil d'un chapitre (le titre de chaque section en gras à son ouverture, puis ses blocs) et positionDuBloc la position d'un bloc sur ce fil ; unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment (un intervalle du fil, titres intermédiaires compris), d'une adresse (la tête d'un fragment qui en suit un autre précédée d'une ligne vide) ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées, la bannière absorbée et la légende d'une table marquées habillage) ; couvertureDe dit les positions qu'un fragment cite (et la case d'une cellule), que lisent le verrou de chevauchement et l'éditeur ; unitesDuTexte prépare un texte libre (un paragraphe découpé comme un bloc, une ligne de titre markdown traduite en titre du fil), aligner décide texte libre contre rendu sur le CONTENU des deux côtés (estDeContenu : la séparatrice de table est de la syntaxe), un habillage consommé entier ou sauté (égalité = ajoute vide, partie stricte sinon, témoin nommé, localisation jamais bornée par un habillage), memeTexte compare une clé ou un rendu à un rendu",
     "perimetre": "toute comparaison de deux textes au sens de normText : judge et verifier (scripts/source/derive-decoupes.mjs), résolution de cellule, éditeur d'adresse",
-    "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts"
+    "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts ; src/data/source/aligner-oracle.test.ts"
   },
   {
     "id": "constructeursDAdresse",
     "type": "primitives.manifest",
-    "label": "fragmentBlocs/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
+    "label": "fragmentBlocs/intervalleDe/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
     "fichier": "src/data/source/decoupe.ts",
-    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes ; section, clé de ligne, colonne, table), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
+    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes et section de fin d'un intervalle ; section, clé de ligne, colonne, table), intervalleDe l'intervalle du fil d'un bloc de départ à un bloc de fin, tous deux sous la forme canonique (une fin dans la section de départ ne s'écrit pas), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table — le tableau entier —, et, sa fin posée, l'intervalle qu'elles ouvrent (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
     "perimetre": "toute construction d'un fragment ou d'une adresse : éditeur d'adresse, renvois, chercheurs de judge, CLI de découpe, relocaliseur, migrations",
     "verrou": "src/construction-de-fragment-guard.test.ts ; src/data/source/decoupe.test.ts"
+  },
+  {
+    "id": "lieuxDUnTexte",
+    "type": "primitives.manifest",
+    "label": "lieuxDe/plusPetiteUnite/prouver",
+    "fichier": "scripts/source/lieux.mjs",
+    "concept": "lieux d'un texte dans son livre par la relation de texte (aligner) : les suites minimales de blocs contigus au fil qui le contiennent, un bloc seul compris ; plusPetiteUnite est l'adresse la plus petite qui contient un lieu (le tableau entier par adresseDe quand une table l'ouvre) ; prouver établit une adresse figée (résolution, contenance et ajoute consigné, unicité du lieu, plus petite unité)",
+    "perimetre": "raison d'un ECHEC de judge (scripts/source/derive-decoupes.mjs) et migrations qui adressent une prose par table figée (scripts/migrations/lib/adressesFigees.mjs)",
+    "verrou": "src/data/regles-adresses-prouvees.test.ts ; src/data/source/aligner-oracle.test.ts"
   },
   {
     "id": "menuCard",
@@ -519,7 +555,7 @@
     "label": "useRamenerEnVue / ramenerEnVue",
     "fichier": "src/ui/useRamenerEnVue.ts",
     "concept": "ramener un élément en vue dans son conteneur défilant : 'nearest' par défaut, 'smooth' seulement hors prefers-reduced-motion, appel protégé (scrollIntoView absent en jsdom)",
-    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche",
+    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche, pastille de `ChipDeRefus` (portée par la primitive, aucun site ne l’appelle)",
     "verrou": "aucun `scrollIntoView` écrit à la main : le geste, ses défauts et la préférence système vivent en UN point"
   },
   {
@@ -527,8 +563,8 @@
     "type": "primitives.manifest",
     "label": "useLongPress",
     "fichier": "src/ui/useLongPress.ts",
-    "concept": "appui long 450 ms tactile et souris, geste secondaire d’une alvéole",
-    "perimetre": "alvéoles de la console de combat",
+    "concept": "appui long 450 ms au doigt et au stylet (la souris a le clic droit : son clic gauche lent reste le geste primaire), geste secondaire d’une alvéole, d’un portrait ou d’un jeton",
+    "perimetre": "alvéoles de la console de combat, portraits (`PortraitTile.onInspect`), jetons du plateau (`useStagePointer`)",
     "verrou": "réflexe avant tout minuteur de pression recodé"
   },
   {
@@ -595,7 +631,7 @@
     "label": "ParchmentCard",
     "fichier": "src/ui/ParchmentCard.tsx",
     "concept": "carte-parchemin narrative adossée à un tirage : sceau d100, titre, ton",
-    "perimetre": "interlude, événement de bord en mer, révélation de scène",
+    "perimetre": "interlude, événement de bord en mer, révélation de scène, document d'un stade d'indice au Carnet",
     "verrou": "réflexe avant tout parchemin à sceau recodé"
   },
   {
@@ -630,9 +666,27 @@
     "type": "primitives.manifest",
     "label": "SourceRefField",
     "fichier": "src/ui/SourceRefField.tsx",
-    "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
-    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (ouverture, stade, PNJ)",
+    "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et, dès qu'une saisie l'a rendu différent de la valeur reçue, se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) — une valeur reçue incomplète (livre amorcé), non touchée, ne signale rien ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
+    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (document) ; à travers ProvenanceDuTexte : ouverture, stade, PNJ, réplique de dialogue, ligne de journal",
     "verrou": "src/ui/SourceRefField.test.tsx"
+  },
+  {
+    "id": "provenanceDuTexte",
+    "type": "primitives.manifest",
+    "label": "ProvenanceDuTexte",
+    "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
+    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
+    "perimetre": "éditeur narratif (ouverture, stade, PNJ), réplique de dialogue (DialogueDetail), ligne de journal (EffectFields)",
+    "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
+  },
+  {
+    "id": "couvreField",
+    "type": "primitives.manifest",
+    "label": "CouvreField / SelecteurDEntreeDeFiche",
+    "fichier": "src/ui/editor/CouvreField.tsx",
+    "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
+    "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/ui/editor/scene-field-editability-guard.test.ts"
   },
   {
     "id": "freeAttackLabel",
@@ -696,6 +750,15 @@
     "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap ; `classeBouton(ton)` compose la classe de tout bouton d'action (`btn`, ton primaire, variantes nue et tactile, classe de l'appelant), lue par `GatedAction`, `OptionChooser` et `RollShell`",
     "perimetre": "toute action refusable de la console et des écrans",
     "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
+  },
+  {
+    "id": "chipDeRefus",
+    "type": "primitives.manifest",
+    "label": "ChipDeRefus",
+    "fichier": "src/ui/ChipDeRefus.tsx",
+    "concept": "message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé) en `role=\"alert\"`, en `role=\"status\"` pour l'état permanent d'un champ (`fixe`) : la phrase en `.chip.tone-danger.chip-phrase`, pastille ajustée à son texte, le rapport technique replié en `.fold` ; `id` nomme le message que désigne l'`aria-describedby` d'un champ ; ramenée EN VUE par la primitive (`useRamenerEnVue`) au montage et à chaque changement de `message` / `detail`, jamais à un simple rendu de l'hôte ; `cle` remplace ce déclencheur (refus neuf au texte identique, modales Ouvrir / Enregistrer le projet) ; `fixe` le coupe et pose `role=\"status\"` pour l'état permanent d'un champ en saisie (inspecteur : porte secrète, allège, décor ; narratif : motif d'écart ; carte du monde : raison du refus ; spécimens de galerie)",
+    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
+    "verrou": "src/ui/ChipDeRefus.test.tsx, src/ui/editor/ProjectModals.test.tsx, src/ui/saveload-message-obsolete.test.tsx ; src/ui/ui-ratchets.test.ts (xxiv) — aucun `chip` + `tone-danger` hors de la primitive, exclusions au site"
   },
   {
     "id": "roseAxes",
@@ -1074,9 +1137,9 @@
       "src/ui/editor/Inspector.tsx"
     ],
     "nature": "organisme",
-    "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, statbloc",
+    "concept": "panneau d’INSPECTION en lecture seule : identité + jauge, badges de camp/états, puis onglets « Profil » (statbloc) et « Description » (prose de la fiche, avec son porteur) — sans prose, ni onglet ni barre",
     "perimetre": "clic sur l’ordre de bataille ; l’en-tête est partagé avec l’inspecteur de l’éditeur",
-    "verrou": "statbloc rendu par le rendu PARTAGÉ du Codex (CodexSections)"
+    "verrou": "statbloc et Description rendus par le rendu PARTAGÉ du Codex (CodexSections), la Description projetée par proseDeFiche (src/ui/compendium/registry.ts)"
   },
   {
     "id": "equipmentPanel",
@@ -1230,7 +1293,7 @@
     "type": "primitives.manifest",
     "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "base locale IndexedDB `{ nom, migrations }`, sa version dérivée de ses migrations keyées par version de départ (`migrerBase`, `versionCourante`) : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
+    "concept": "base locale IndexedDB DÉCLARÉE `{ nom, magasins: { [nom]: { keyPath } } }`, ouverte sans version : base neuve créée depuis la déclaration, base existante qui s'en écarte (magasins, `keyPath`) supprimée puis recréée une fois, `BaseIdbNonConforme` au second écart (#2404) ; disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture et toute suppression sur une base simulée par nom, à `keyPath` observable, transactions atomiques et pannes ciblées, derrière la seule couture `__setFabriqueIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1251,6 +1314,15 @@
     "concept": "écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
     "perimetre": "porte clavier de la pile (`useDismissLayer`), délégation de la couche d'infobulle (`Infobulle`)",
     "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
+  },
+  {
+    "id": "gelerProfond",
+    "type": "primitives.manifest",
+    "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
+    "fichier": "src/lib/gelerProfond.ts",
+    "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`, `TRAMPLE_WEAPON`)",
+    "perimetre": "clés de `memoByRef` (`state/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
+    "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
   },
   {
     "id": "echapperRegex",
@@ -1397,15 +1469,6 @@
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
   },
   {
-    "id": "versionCourante",
-    "type": "primitives.manifest",
-    "label": "versionCourante",
-    "fichier": "src/lib/versionCourante.ts",
-    "concept": "version courante d'une forme persistée, dérivée de sa table de migrations (littéral objet keyé par version de DÉPART, clés contiguës) : plus grande clé + 1, en valeur et en type littéral (#2226)",
-    "perimetre": "toute version de forme persistée : saves, export du roster, schéma de projet, format des choix de création, bases IndexedDB",
-    "verrou": "src/lib/versionCourante.test.ts"
-  },
-  {
     "id": "isDrawnView",
     "type": "primitives.manifest",
     "label": "isDrawnView",
@@ -1489,9 +1552,9 @@
   {
     "id": "ast",
     "type": "primitives.manifest",
-    "label": "ast",
+    "label": "analyserCorpus/analyserTexte/ast",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "AST d'un fichier lu, dans le dialecte de son extension",
+    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
   },
@@ -1518,18 +1581,18 @@
     "type": "primitives.manifest",
     "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker paresseux",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",
     "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts"
   },
   {
     "id": "tsProgram",
     "type": "primitives.manifest",
-    "label": "repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT",
+    "label": "repoProgram/virtualProgram/syntaxProgram/libererSessions/VIRTUAL_ROOT",
     "fichier": "scripts/guards/lib/tsProgram.mjs",
-    "concept": "fabriques de ts.Program : dépôt avec recouvrement, sources en mémoire, arbre déjà parsé",
-    "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types",
-    "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts"
+    "concept": "sessions natives avec libération explicite et collective conservant toutes les erreurs : dépôt recouvert, vérification de types de sources virtuelles isolées ou analyse syntaxique d'un corpus fermé aux noms originaux",
+    "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types ; syntaxProgram pour les AST et diagnostics syntaxiques, avec deux chemins réservés et des références aux chemins originaux sans encodage, refus nommé des chemins contenant les deux guillemets ou un séparateur de ligne",
+    "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts, scripts/guards/lib/tsProgram.test.mjs, scripts/guards/lib/dialecte.test.mjs"
   },
   {
     "id": "lecturesDeLArt",
@@ -1582,15 +1645,15 @@
     "label": "parUnitesDeCode/parLibelle/replier",
     "fichier": "src/lib/ordre.mjs",
     "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
-    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
-    "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
+    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (oxlint.config.mjs) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
+    "verrou": "mur de l'ordre total d'oxlint.config.mjs (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
   },
   {
     "id": "stockageWeb",
     "type": "primitives.manifest",
     "label": "stockageWeb",
     "fichier": "src/lib/stockageWeb.ts",
-    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
     "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
   },
@@ -1615,9 +1678,9 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale/formeResolue",
     "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`, `CLES_BOUCLIER`) et les valeurs dérivées (`bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
+    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, l'UNIQUE résolution de forme au catalogue courant ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
     "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
     "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },

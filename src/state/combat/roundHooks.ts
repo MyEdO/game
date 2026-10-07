@@ -147,7 +147,7 @@ registerCombatHook({
         const rangeM = aura.rangeChar ? bonus(effectiveChar(src, aura.rangeChar)) : (aura.rangeMeters ?? 0);
         // Le TRAIT émetteur voyage avec chaque op projetée (`PassiveMod.src`) : la pénalité arrive
         // chez la cible avec son nom et son renvoi Codex, jamais en modificateur anonyme.
-        const projected = aura.passive.map((op) => ({ op, src: { category: 'traits', id: traitId } }));
+        const projected = structuredClone(aura.passive).map((op) => ({ op, src: { category: 'traits', id: traitId } })); // #2097
         for (const c of battle.combatants) {
           if (isOutOfAction(c) || !c.pos) continue;
           // L'émetteur ne se touche que si sa DONNÉE le dit (`includesSelf`) — défaut : jamais.

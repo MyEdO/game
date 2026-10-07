@@ -16,16 +16,19 @@ import { Palette } from './Palette';
 import { Inspector } from './Inspector';
 import { LogicDock, LogicTab } from './LogicDock';
 import { WorldMapEditor } from './WorldMapEditor';
-import { NarratifEditor } from './NarratifEditor';
-import { OpenProjectModal, SaveProjectModal, ChipDeRefus, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte, type RefusRendu } from './ProjectModals';
-import { projectSave, projectsLoad, documentDeLEntree, SavedProject } from '../../state/projectLibrary';
+import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
+import { renommeRef, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
+import { OpenProjectModal, SaveProjectModal, refusDeLaPorteDuProjet, refusMotive, type GesteDePorte } from './ProjectModals';
+import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
+import { projectSave, projectsLoad, projetDeLEntree, type EntreeListee } from '../../state/projectLibrary';
 import { downloadText } from '../../lib/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
-import { MAISON_PROJET_AUTHORE } from '../../data/migrationsDeProjet';
+import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
 import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
+import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nextEntityId } from '../../state/entityId';
 import { publierEditeur } from '../../state/editeurBridge';
 import {
@@ -41,7 +44,7 @@ import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
 import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from '../../state/traceCalibration';
 import {
-  traceLayerLoad, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
+  traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';
 import { Dims, tileCenter, screenToTileF } from '../../geometry/iso';
 import { useLowerLayerOpacity, setLowerLayerOpacity, useLowerLayerMode, setLowerLayerMode } from './lowerLayerGabarit';
@@ -50,7 +53,7 @@ import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
 import { z } from 'zod';
 import { dialoguesSchema, triggersSchema, encountersSchema } from '../../data/schemas/defs-scenes/scene';
-import { rapportDeFautes, validateDocument } from '../../data/schemas/validate';
+import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
  *  même mot que le contrôle cliqué — l'auteur retrouve SON geste en tête de la fenêtre. */
@@ -75,13 +78,22 @@ export function ouCaCasse(erreur: unknown): string {
  *  redite : ce que l'auteur colle est tenu à la même exigence que ce que le document porte. Le
  *  conteneur est réécrit parce que `sceneSchema.pick()` est refusé par zod sur un objet PORTANT DES
  *  RAFFINEMENTS, et un sous-ensemble de trois clés n'en hérite aucun.
- *  EXPORTÉ pour que la porte de cette modale (`saveAdvanced` : ce schéma + `validateDocument`) soit
- *  mesurable hors montage — c'est elle qui rend le refus que l'auteur lit (#1588). */
+ *  La porte de cette modale est `lireBlocsAvances`, ci-dessous. */
 export const SCHEMA_BLOCS_AVANCES = z.strictObject({
   dialogues: dialoguesSchema.optional(),
   triggers: triggersSchema.optional(),
   encounters: encountersSchema.optional(),
 });
+
+/** Porte de la modale « Avancé » (`saveAdvanced`), EXPORTÉE pour être mesurable hors montage : c'est
+ *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le
+ *  schéma prouve la forme disque, la valeur collée est relue sous sa vue TS, son texte gardé — patron
+ *  de `parseProject`. */
+export function lireBlocsAvances(brut: unknown): { ok: true; lu: z.infer<typeof SCHEMA_BLOCS_AVANCES> } | { ok: false; rapport: string } {
+  const refus = validerFormeVivante(SCHEMA_BLOCS_AVANCES, brut);
+  if (refus) return { ok: false, rapport: rapportDeFautes('Blocs de logique', refus.fautes) };
+  return { ok: true, lu: brut as z.infer<typeof SCHEMA_BLOCS_AVANCES> };
+}
 
 export function architectureSelectionForWarning(warning: Warning): Warning['architectureRef'] | null {
   return warning.scope === 'architecture' ? warning.architectureRef ?? null : null;
@@ -123,7 +135,7 @@ export function Editor({
   const loadProject = useGame((s) => s.loadProject);
   const party = useGame((s) => s.party);
 
-  const { scene, setScene, setSceneNoHistory, pushSnapshot, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
+  const { scene, setScene, setSceneNoHistory, pushSnapshot, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
   // Filet de crash : sauvegarde locale débattue de LA scène active, indépendante de
   // « Fichier → Enregistrer » — un crash de rendu (`SceneErrorBoundary`) ne perd plus le travail en
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
@@ -163,7 +175,11 @@ export function Editor({
   const [hover, setHover] = useState<Pt | null>(null); // barre de statut
 
   // --- Projet multi-scènes + métadonnées ---
-  const [otherScenes, setOtherScenes] = useState<Scene[]>([]);
+  /** Les scènes du projet AVANT et APRÈS l'active : l'ordre du document n'a que cette vérité. */
+  const [voisines, setVoisines] = useState<{ avant: Scene[]; apres: Scene[] }>({ avant: [], apres: [] });
+  /** L'ordre du document — la première scène est l'entrée. */
+  const scenesDuProjet = useMemo(() => [...voisines.avant, scene, ...voisines.apres], [voisines, scene]);
+  const otherScenes = useMemo(() => [...voisines.avant, ...voisines.apres], [voisines]);
   const [worldMap, setWorldMap] = useState<WorldMap | null>(null);
   /** Axes de forces/faiblesses ACTIFS de la campagne (#409) — `undefined` = socle de base. */
   const [activeAxes, setActiveAxes] = useState<string[] | undefined>(undefined);
@@ -181,8 +197,8 @@ export function Editor({
   const [saveError, setSaveError] = useState<RefusRendu | null>(null);
   /** Refus d'un geste du menu Fichier — export, import, mise à l'essai : ces gestes n'ont AUCUNE
    *  modale à eux où poser leur refus, là où `saveError`/`loadError` tiennent dans la leur. UN seul
-   *  état pour les trois, portant le TITRE du geste refusé : même matière (`.chip.tone-danger` en
-   *  `role="alert"`, dans une modale), et jamais une boîte du navigateur (#877). */
+   *  état pour les trois, portant le TITRE du geste refusé : même matière (`ChipDeRefus`, dans une
+   *  modale), et jamais une boîte du navigateur (#877). */
   const [refusDuGeste, setRefusDuGeste] = useState<({ titre: string } & RefusRendu) | null>(null);
   /** Refus du JSON collé dans la modale « Avancé » — rendu DANS cette modale, comme `saveError` dans
    *  la sienne : un refus se lit là où le geste a été fait. */
@@ -234,6 +250,7 @@ export function Editor({
   // rechargé à CHAQUE bascule de scène OU de couche. Le repli/dépli du panneau, lui, est PAR SCÈNE
   // SEULE (persiste au changement de couche, ne doit jamais ressurgir de force).
   const [traceLayer, setTraceLayerState] = useState<TraceLayerRecord | null>(null);
+  const [calqueEcarte, setCalqueEcarte] = useState(false);
   const [traceCalib, setTraceCalib] = useState<CalibProgress>({ step: 'idle' });
   const [tracePanelExpanded, setTracePanelExpanded] = useState(true); // défaut déplié tant que rien n'est réglé
 
@@ -241,7 +258,9 @@ export function Editor({
     let cancelled = false;
     setTraceCalib({ step: 'idle' });
     traceLayerLoad(scene.id, currentLayer).then((rec) => {
-      if (!cancelled) setTraceLayerState(rec);
+      if (cancelled) return;
+      setTraceLayerState(rec);
+      setCalqueEcarte(takeCalqueEcarte(scene.id, currentLayer));
     });
     return () => {
       cancelled = true;
@@ -267,6 +286,7 @@ export function Editor({
 
   function persistTraceLayer(next: TraceLayerRecord | null) {
     setTraceLayerState(next);
+    setCalqueEcarte(false);
     if (next) traceLayerSave(next);
     else traceLayerDelete(scene.id, currentLayer);
   }
@@ -441,37 +461,58 @@ export function Editor({
     setHover((h) => (h && h.x === p.x && h.y === p.y ? h : p));
   };
 
-  // --- Projet multi-scènes : la scène éditée (avec historique) + les autres en réserve. ---
+  // --- Projet multi-scènes : la scène éditée (avec historique) à SA place dans l'ordre du document. ---
+  /** Pose un projet écrit par `NarratifEditor` (`scenes` dans l'ordre du document) : chaque morceau
+   *  n'est reposé que s'il a changé d'identité. Le narratif ne réécrit une scène que par un RENOMMAGE :
+   *  il s'applique aussi à tout l'historique de la scène active, et la scène se pose sans instantané —
+   *  annuler ne ramène jamais l'ancien id. */
+  function poserProjet(p: ProjetEdite, renommage?: Renommage) {
+    const rang = voisines.avant.length;
+    const avant = p.scenes.slice(0, rang);
+    const active = p.scenes[rang];
+    const apres = p.scenes.slice(rang + 1);
+    const memes = (a: Scene[], b: Scene[]) => a.length === b.length && a.every((s, i) => s === b[i]);
+    if (renommage) reecrireHistorique((s) => renommeRef({ scenes: [s] }, renommage.cible, renommage.nouveau).scenes[0]);
+    if (active !== scene) setSceneNoHistory(active);
+    if (!memes(avant, voisines.avant) || !memes(apres, voisines.apres)) setVoisines({ avant, apres });
+    if (p.worldMap !== worldMap) setWorldMap(p.worldMap);
+    if (p.narratif !== narratif) setNarratif(p.narratif);
+  }
   function switchScene(id: string) {
     if (id === scene.id) return;
-    const target = otherScenes.find((s) => s.id === id);
-    if (!target) return;
-    setOtherScenes([...otherScenes.filter((s) => s.id !== id), scene]); // ranger l'active, sortir la cible
+    const i = scenesDuProjet.findIndex((s) => s.id === id);
+    if (i < 0) return;
+    setVoisines({ avant: scenesDuProjet.slice(0, i), apres: scenesDuProjet.slice(i + 1) });
     setSel(null);
-    resetScene(target);
+    resetScene(scenesDuProjet[i]);
   }
   function addScene() {
     const s = emptyScene();
     s.id = `scene-${Date.now().toString(36)}`;
     s.label = 'Nouvelle scène';
-    setOtherScenes([...otherScenes, scene]);
+    setVoisines({ avant: scenesDuProjet, apres: [] });
     setSel(null);
     resetScene(s);
   }
   function duplicateScene() {
     const dup = clone(scene);
-    dup.id = nextEntityId(scene.id, [scene.id, ...otherScenes.map((s) => s.id)]);
+    dup.id = nextEntityId(scene.id, scenesDuProjet.map((s) => s.id));
     dup.label = `${scene.label || scene.id} (copie)`;
-    setOtherScenes([...otherScenes, scene]);
+    setVoisines({ avant: scenesDuProjet, apres: [] });
     setSel(null);
     resetScene(dup);
   }
   function deleteScene() {
-    if (otherScenes.length === 0) return; // ne pas supprimer la dernière scène
-    const [next, ...rest] = otherScenes;
-    setOtherScenes(rest);
-    setSel(null);
-    resetScene(next);
+    const { avant, apres } = voisines;
+    if (apres.length > 0) {
+      setVoisines({ avant, apres: apres.slice(1) });
+      setSel(null);
+      resetScene(apres[0]);
+    } else if (avant.length > 0) {
+      setVoisines({ avant: avant.slice(0, -1), apres: [] });
+      setSel(null);
+      resetScene(avant[avant.length - 1]);
+    }
   }
 
   // Commandes d'édition publiées au PONT (`state/editeurBridge`) : le registre de raccourcis unique
@@ -575,9 +616,9 @@ export function Editor({
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene([scene, ...otherScenes], worldMap)
+    () => validateScene(scenesDuProjet, worldMap)
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
-    [scene, otherScenes, worldMap],
+    [scenesDuProjet, scene.id, worldMap],
   );
   // Cases fautives à allumer MAINTENANT : re-résolution du défaut suivi contre les avertissements frais.
   const planFocus = useMemo(() => planFocusAt(warnings, planFocusKey), [warnings, planFocusKey]);
@@ -666,7 +707,7 @@ export function Editor({
   /** L'ÉTAT VIVANT de l'éditeur lié au constructeur unique du document (`state/worldMap`) — les
    *  trois sorties du projet (enregistrer, exporter, mettre à l'essai) partent d'ici. */
   function documentCourant(nom: string, id: string): ProjectDoc {
-    return documentDeProjet(identiteCourante(nom, id), [scene, ...otherScenes], { worldMap, activeAxes, narratif });
+    return documentDeProjet(identiteCourante(nom, id), scenesDuProjet, { worldMap, activeAxes, narratif });
   }
   /** La porte UNIQUE du document (`parseProject`), passée AVANT toute écriture : rend le refus À LIRE,
    *  ou `null`. */
@@ -679,9 +720,9 @@ export function Editor({
     }
   }
   function exportJson() {
-    // Exporte le PROJET (scènes + carte du monde) ; la première scène est l'entrée, et son id
-    // nomme le fichier — c'est donc lui qui identifie un projet encore jamais enregistré.
-    const project = documentCourant(projectName, projectId ?? scene.id);
+    // Exporte le PROJET (scènes + carte du monde) ; son id nomme le fichier. La première scène est
+    // l'entrée : son id identifie un projet encore jamais enregistré.
+    const project = documentCourant(projectName, projectId ?? scenesDuProjet[0].id);
     // Ce qui part au disque passe la porte unique du document, comme ce qui s'enregistre et ce qui
     // s'importe (#877) : refusé, rien n'est téléchargé et l'auteur le lit.
     const refus = refusDeLaPorte(project, 'export');
@@ -690,7 +731,7 @@ export function Editor({
       return;
     }
     setRefusDuGeste(null);
-    downloadText(`${scene.id}-projet.json`, JSON.stringify(project, null, 2));
+    downloadText(`${project.id}-projet.json`, JSON.stringify(project, null, 2));
   }
   /** Export en FORME DÉPÔT (DEV) d'une campagne livrée : le fichier que l'on commite sous `src/scenes/`
    *  (`projetVersDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
@@ -698,7 +739,7 @@ export function Editor({
    *  `datasetSerializeRoot` (`data/overrides.ts`) ; la même porte que l'export passe AVANT. */
   function exportDepot(origine: NonNullable<typeof origineLivree>) {
     const nom = projectName === origine.nomALOuverture ? origine.label : projectName;
-    const project = documentCourant(nom, projectId ?? scene.id);
+    const project = documentCourant(nom, projectId ?? scenesDuProjet[0].id);
     const refus = refusDeLaPorte(project, 'export');
     if (refus) {
       setRefusDuGeste({ titre: TITRE_EXPORT, ...refus });
@@ -730,7 +771,7 @@ export function Editor({
       }
       const { scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = paquet;
       setRefusDuGeste(null);
-      setOtherScenes(scenes.slice(1).map(clone));
+      setVoisines({ avant: [], apres: scenes.slice(1).map(clone) });
       setWorldMap(wm ?? null);
       setActiveAxes(aa);
       setNarratif(na);
@@ -759,18 +800,18 @@ export function Editor({
       });
       return;
     }
-    const refus = refusDeLaPorte(documentCourant(projectName, projectId ?? scene.id), 'test');
+    const refus = refusDeLaPorte(documentCourant(projectName, projectId ?? scenesDuProjet[0].id), 'test');
     if (refus) {
       setRefusDuGeste({ titre: TITRE_TEST, ...refus });
       return;
     }
     setRefusDuGeste(null);
-    loadProject([scene, ...otherScenes], scene.id, worldMap, narratif);
+    loadProject(scenesDuProjet, scene.id, worldMap, narratif);
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {
     const construit = sc.construire();
-    setOtherScenes((construit.extraScenes ?? []).map(clone));
+    setVoisines({ avant: [], apres: (construit.extraScenes ?? []).map(clone) });
     setWorldMap(construit.worldMap ? clone(construit.worldMap) : null);
     setActiveAxes(undefined);
     setNarratif(construit.narratif ? clone(construit.narratif) : emptyNarratif());
@@ -797,7 +838,7 @@ export function Editor({
       return refus;
     }
     setLoadError(null);
-    setOtherScenes(copie.autresScenes);
+    setVoisines({ avant: [], apres: copie.autresScenes });
     setWorldMap(copie.worldMap);
     setActiveAxes(copie.activeAxes);
     setNarratif(copie.narratif);
@@ -816,23 +857,22 @@ export function Editor({
   /** Rend le REFUS quand le document ne s'ouvre pas (porte du document), `null`
    *  quand la scène est posée. La modale ignore cette valeur (elle lit `loadError`) ; le pont de
    *  recette (`editeur.ouvrir`, #1478) en fait son verdict — un `✓` sur un document refusé mentirait. */
-  function loadSaved(p: SavedProject): RefusRendu | null {
+  function loadSaved(p: EntreeListee): RefusRendu | null {
     let scenes: Scene[];
     let wm: WorldMap | undefined;
     let aa: string[] | undefined;
     let na: NarratifBlock;
     let label: string;
     let ident: Omit<ProjectIdentite, 'label'>;
-    const doc = documentDeLEntree(p);
     try {
-      ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = parseProject(doc)); // même validation/migration que l'import JSON
+      ({ scenes, worldMap: wm, activeAxes: aa, narratif: na, label, ...ident } = projetDeLEntree(p)); // même porte que l'import JSON
     } catch (e) {
       const refus = refusDeLaPorteDuProjet(e, 'ouverture');
       setLoadError(refus);
       return refus;
     }
     setLoadError(null);
-    setOtherScenes(scenes.slice(1).map(clone));
+    setVoisines({ avant: [], apres: scenes.slice(1).map(clone) });
     setWorldMap(wm ? clone(wm) : null);
     setActiveAxes(aa);
     setNarratif(na);
@@ -886,11 +926,11 @@ export function Editor({
     // absorbé) ne purge RIEN — le projet ne vit alors QUE sur le miroir, le filet local reste le seul
     // recours tant qu'IndexedDB n'a pas absorbé une écriture réussie.
     if (!res.degraded) {
-      for (const s of [scene, ...otherScenes]) autosaveDelete(s.id);
+      for (const s of scenesDuProjet) autosaveDelete(s.id);
     }
   }
   function newProject() {
-    setOtherScenes([]);
+    setVoisines({ avant: [], apres: [] });
     setWorldMap(null);
     setActiveAxes(undefined);
     setNarratif(emptyNarratif());
@@ -929,12 +969,12 @@ export function Editor({
       setAdvError(`Ce texte n’est pas du JSON${ouCaCasse(erreur)}.`);
       return;
     }
-    const fautes = validateDocument(SCHEMA_BLOCS_AVANCES, brut);
-    if (fautes) {
-      setAdvError(rapportDeFautes('Blocs de logique', fautes));
+    const porte = lireBlocsAvances(brut);
+    if (!porte.ok) {
+      setAdvError(porte.rapport);
       return;
     }
-    const lu = SCHEMA_BLOCS_AVANCES.parse(brut);
+    const { lu } = porte;
     setAdvError(null);
     setScene({
       ...scene,
@@ -968,7 +1008,7 @@ export function Editor({
         redo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
-        scenes={[scene, ...otherScenes]}
+        scenes={scenesDuProjet}
         activeId={scene.id}
         onSwitchScene={switchScene}
         onAddScene={addScene}
@@ -976,7 +1016,7 @@ export function Editor({
         onDeleteScene={deleteScene}
         worldCount={worldMap ? worldMap.places.length : null}
         onWorld={() => setWorldOpen(true)}
-        narratifCount={narratif.affaires.length + narratif.indices.length + narratif.presetsPnj.length + narratif.objets.length}
+        narratifCount={REGISTRES_NARRATIFS.reduce((n, r) => n + narratif[r.cle].length, 0)}
         onNarratif={() => setNarratifOpen(true)}
         onTest={test}
       />
@@ -1061,6 +1101,7 @@ export function Editor({
 
         <TraceLayerPanel
           hasLayer={!!traceLayer}
+          ecarte={calqueEcarte}
           visible={traceLayer?.visible ?? false}
           opacity={traceLayer?.opacity ?? 0.6}
           calibStep={traceCalib.step}
@@ -1179,7 +1220,7 @@ export function Editor({
         scene={scene}
         otherScenes={otherScenes}
         worldMap={worldMap}
-        objets={narratif.objets}
+        narratif={narratif}
         setScene={setScene}
         warnings={warnings}
         onSelectWarning={selectWarning}
@@ -1213,7 +1254,7 @@ export function Editor({
       )}
       {autosaveRecovery && (
         <Modal
-          title="Reprendre une sauvegarde locale ?"
+          title={autosaveRecovery.ok ? 'Reprendre une sauvegarde locale ?' : 'Sauvegarde locale impossible à restaurer'}
           onClose={hideAutosaveRecovery}
           footer={
             <>
@@ -1245,10 +1286,10 @@ export function Editor({
         </Modal>
       )}
       {worldOpen && (
-        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={[scene, ...otherScenes]} objets={narratif.objets} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
+        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={scenesDuProjet} narratif={narratif} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
       )}
       {narratifOpen && (
-        <NarratifEditor narratif={narratif} onChange={setNarratif} onClose={() => setNarratifOpen(false)} />
+        <NarratifEditor projet={{ scenes: scenesDuProjet, worldMap, narratif }} onChange={poserProjet} onClose={() => setNarratifOpen(false)} />
       )}
       {openOpen && (
         <OpenProjectModal onScenario={loadScenario} onProject={loadSaved} onBuiltin={loadBuiltin} error={loadError} onClose={() => { setOpenOpen(false); setLoadError(null); }} />
@@ -1268,7 +1309,7 @@ export function Editor({
         <SaveProjectModal
           initialName={projectName}
           initialPublished={published}
-          scenes={[scene, ...otherScenes]}
+          scenes={scenesDuProjet}
           initialStartId={scene.id}
           onSave={saveProject}
           onClose={() => { setSaveOpen(false); setSaveError(null); }}
@@ -1294,7 +1335,7 @@ export function Editor({
           }
         >
           <p className="hint">Filet de sécurité pour l'édition en masse ; le format est celui du schéma de Scène.</p>
-          {advError && <p className="chip tone-danger" role="alert">{advError}</p>}
+          {advError && <ChipDeRefus refus={{ message: advError }} />}
           <textarea className="json-editor" value={advText} onChange={(e) => setAdvText(e.target.value)} />
         </Modal>
       )}

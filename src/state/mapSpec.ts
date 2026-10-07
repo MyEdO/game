@@ -24,7 +24,7 @@
  *                   celles dérivées du plancher réel — plus d'obligation de tout couvrir à la main.
  *   9. validation : masses de bâtiment (`validateBuildingMasses`, garde-fou des SURCHARGES) + support
  *                    de plancher (`validateFloorSupport`) + ids de catalogue authorés
- *                    (`assertAuthoredIds`) + schéma de scène (`validateDocument(sceneSchema, …)`) —
+ *                    (`assertAuthoredIds`) + schéma de scène (`validerFormeVivante(sceneSchema, …)`) —
  *                    fail-fast, une fois zones/plancher réel connus.
  */
 import type {
@@ -39,12 +39,14 @@ import type {
   SceneStationAnchor,
   VictoryCondition,
   WallClimb,
+  WallSecret,
   ArchitectureBody,
   ArchitectureRect,
   CellSide,
   WallOverlay,
+  WallSeg,
 } from './scene';
-import { DEFAULT_TERRAIN, emptyScene, tileAt, wallOverlayOf } from './scene';
+import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from './scene';
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
@@ -53,8 +55,8 @@ import { defautsDeCompilation } from '../data';
 // PLAGE de pente : la source UNIQUE est le schéma de scène, qui en borne DÉJÀ le parse
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
 // silence de la porte qui refuse une scène authorée.
-import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
-import { rapportDeFautes, validateDocument } from '../data/schemas/validate';
+import { PENTE_TOIT_DEG, sceneSchema, wallSegSchema } from '../data/schemas/defs-scenes/scene';
+import { rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 // SOLS NUS : la primitive PARTAGÉE de l'audit de plan (`terrains.json › built`, complément) — la CLI
 // `map:check` (famille `etage-sans-appui`) et cette porte jugent le même appui sur le même ensemble.
 import { groundTerrains } from './planDefects';
@@ -111,8 +113,24 @@ export interface WallSpec extends WallOverlay {
   side: CellSide | '\\' | '/';
   z?: number;
   door?: boolean;
-  /** DÉCORATIF : l'arête porte une fenêtre au rendu (mur plein serti d'une vitre — ne change pas le combat). */
+  /** L'arête porte une CROISÉE (`WallSeg.window`, arbitrage #1712 du 2026-09-08) : la vue passe, le
+   *  passage reste bloqué. */
   window?: boolean;
+  /** Croisée aux VOLETS CLOS (`WallSeg.shuttered`, #1712) : la vue ne passe plus. Exige `window`. */
+  shuttered?: boolean;
+  /** Croisée FRANCHISSABLE (`WallSeg.crossable`, #700) : on l'enjambe ou on saute par elle, par un
+   *  geste explicite — le pathfinding ne la traverse jamais. Exige `window`. */
+  crossable?: boolean;
+  /** Hauteur d'ALLÈGE (m) de CETTE croisée (`WallSeg.allege`, `LDB 15 l.55`). Exigée par `crossable`. */
+  allege?: number;
+  /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée (`WallSeg.suspendu`, `EDO 01 l.231`) :
+   *  valeur de CETTE fenêtre, offerte au saut seulement sous sa hauteur réelle. Exige `crossable`. */
+  suspendu?: number;
+  /** Porte SECRÈTE (`WallSeg.secret`, `EDO 08 l.404`) : masquée en jeu tant qu'elle n'est pas révélée.
+   *  Exige `door` ; la porte est posée FERMÉE (`closed`). Arête cardinale seulement. Porte sa
+   *  `difficulty` (Test de Perception, `LDB 12 l.137`) et sa `face` découvrable — `porteuse` (la case
+   *  `(x,y)` canonique), `voisine` (à travers `side`) ou `les-deux` (`EDO 07 l.263`). */
+  secret?: WallSecret;
   /** ESCALADABLE (LDB 15 l.53-57, cf. `WallSeg.climb`) : l'arête sépare deux surfaces de hauteurs
    *  différentes, franchissable en grimpant plutôt qu'à pied. */
   climb?: WallClimb;
@@ -683,7 +701,7 @@ export function buildScene(spec: MapSpec): Scene {
       const padded = walledRowsOf(rows, w);
       const parsed = parseWalledAscii(padded, base, effLegend, { wallLegend: spec.wallLegend });
       s = putLayer(s, z, parsed.tiles);
-      for (const seg of parsed.walls) walledWalls.push({ x: seg.x, y: seg.y, side: seg.side, ...(z ? { z } : {}), ...(seg.door ? { door: true } : {}), ...(seg.window ? { window: true } : {}), ...wallOverlayOf(seg) });
+      for (const seg of parsed.walls) walledWalls.push({ x: seg.x, y: seg.y, side: seg.side, ...(z ? { z } : {}), ...(porteAuteur(seg) ? { door: true } : {}), ...(seg.window ? { window: true } : {}), ...wallOverlayOf(seg) });
       scanChars(padded.filter((_, i) => i % 2 === 1), z, (r, x) => r[2 * x + 1] ?? ' '); // tuiles aux slots impairs
     }
   }
@@ -753,26 +771,36 @@ export function buildScene(spec: MapSpec): Scene {
   // Passe 1 : murs orthogonaux (N/E/S/O) — les diagonales lisent l'état des arêtes voisines pour leur
   // garde de coin (ci-dessous), elles doivent donc être TOUTES posées d'abord.
   for (const wall of allWalls) {
-    if (wall.side === '\\' || wall.side === '/') continue;
     const z = wall.z ?? 0;
-    s = setEdgeWall(s, wall.x, wall.y, wall.side, z, wall.door ? 'door' : 'wall');
-    if (wall.structure || wall.appearance || wall.window || wall.climb) {
-      const c = canonEdge(wall.x, wall.y, wall.side);
-      s = patchWall(s, c.x, c.y, c.side, z, { ...(wall.structure ? { structure: wall.structure } : {}), ...(wall.appearance ? { appearance: wall.appearance } : {}), ...(wall.window ? { window: true } : {}), ...(wall.climb ? { climb: wall.climb } : {}) });
+    const { side } = wall;
+    // Champs d'arête, écrits UNE fois : validés par `wallSegSchema`, puis posés par `patchWall`.
+    const champs: Partial<WallSeg> = {
+      ...(wall.structure ? { structure: wall.structure } : {}),
+      ...(wall.window ? { window: true } : {}),
+      ...(wall.shuttered ? { shuttered: true } : {}),
+      ...(wall.crossable ? { crossable: true } : {}),
+      ...(wall.allege !== undefined ? { allege: wall.allege } : {}),
+      ...(wall.suspendu !== undefined ? { suspendu: wall.suspendu } : {}),
+      ...(wall.climb ? { climb: wall.climb } : {}),
+      ...(wall.secret ? { secret: wall.secret, closed: true } : {}),
+    };
+    const compile = wallSegSchema.safeParse({
+      ...(side === '\\' || side === '/' ? { x: wall.x, y: wall.y, side } : canonEdge(wall.x, wall.y, side)), ...(z ? { z } : {}),
+      ...(wall.door ? { door: true } : {}), ...champs,
+    });
+    if (!compile.success) throw new Error(`buildScene: WallSpec (${wall.x},${wall.y},${wall.side}) — ${compile.error.issues.map((i) => i.message).join(' ; ')}`);
+    if (side === '\\' || side === '/') continue;
+    s = setEdgeWall(s, wall.x, wall.y, side, z, wall.door ? 'door' : 'wall');
+    if (wall.structure || wall.appearance || wall.window || wall.climb || wall.secret) {
+      const c = canonEdge(wall.x, wall.y, side);
+      s = patchWall(s, c.x, c.y, c.side, z, { ...champs, ...(wall.appearance ? { appearance: wall.appearance } : {}) });
     }
   }
-  // Passe 2 : diagonales — arête PUREMENT VISUELLE (scene.ts:698-700) : déplacement/vision/grimpe restent
-  // orthogonaux (`edgeOf`/`wallBetween`/`vision.ts` ne résolvent QUE N/E) → `climb`/`structure`/`door`
-  // ne bloqueraient/ouvriraient jamais rien : les poser mentirait silencieusement sur leur effet.
-    // `window` et `appearance` restent décoratifs purs (aucune règle mécanique ne les lit).
+  // Passe 2 : diagonales — arête PUREMENT VISUELLE : ce qu'elle ne porte jamais est refusé au parse de la
+  // passe 1 (`wallSegSchema`, `MUET_SUR_OBLIQUE`).
   for (const wall of allWalls) {
     if (wall.side !== '\\' && wall.side !== '/') continue;
     const z = wall.z ?? 0;
-    if (wall.climb || wall.structure || wall.door) {
-      throw new Error(
-        `buildScene: WallSpec diagonal (${wall.x},${wall.y}) ne peut pas porter climb/structure/door — arête oblique purement visuelle (mouvement/vision/grimpe restent orthogonaux, cf. scene.ts WallSide)`,
-      );
-    }
     // Garde #781 : un pan diagonal BISEAUTE deux coins opposés — il n'est légal que s'il adosse au
     // moins un coin FERMÉ (ses deux arêtes orthogonales murées), sinon c'est un pan flottant qui ferait
     // croire à une séparation/un blocage inexistants (le pan reste un habillage, jamais une frontière).
@@ -787,6 +815,7 @@ export function buildScene(spec: MapSpec): Scene {
     s = toggleDiagonalWall(s, wall.x, wall.y, wall.side, z);
     if (wall.window || wall.appearance) s = patchWall(s, wall.x, wall.y, wall.side, z, {
       ...(wall.window ? { window: true } : {}),
+      ...(wall.shuttered ? { shuttered: true } : {}),
       ...(wall.appearance ? { appearance: wall.appearance } : {}),
     });
   }
@@ -977,8 +1006,8 @@ export function buildScene(spec: MapSpec): Scene {
   validateFloorSupport(s, new Set((spec.knownUnsupportedFloor ?? []).map((c) => `${c.x},${c.y},${c.z}`)));
   assertAuthoredIds(spec, s);
   // La scène compilée passe la porte de TOUT document de scène (unicité des ids à clé comprise).
-  const fautes = validateDocument(sceneSchema, s);
-  if (fautes) throw new Error(rapportDeFautes(`buildScene « ${spec.id} »`, fautes));
+  const refus = validerFormeVivante(sceneSchema, s);
+  if (refus) throw new Error(rapportDeFautes(`buildScene « ${spec.id} »`, refus.fautes));
 
   return s;
 }

@@ -1,3 +1,4 @@
+import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // Mécanique de scan du garde-fou « tout champ de Scene a un chemin d'écriture d'UI » (#841).
 //
 // Le constat qui fonde le ticket : 22 champs du document de Scène n'étaient joignables QUE par le
@@ -10,8 +11,8 @@
 //  1. PÉRIMÈTRE DÉRIVÉ. Les champs surveillés se déduisent du type `Scene` par le TypeChecker —
 //     propriétés, éléments de tableau, membres d'union, types littéraux anonymes, valeurs d'index
 //     (`Record<K,V>`). Aucune liste de types recopiée à la main.
-//  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE, via
-//     `getRootSymbols`, à la déclaration exacte du champ dans `scene.ts`. Un `{ once: … }` d'un
+//  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE
+//     à la déclaration exacte du champ dans `scene.ts`. Un `{ once: … }` d'un
 //     symptôme de maladie, un `{ window: … }` de condition temporelle ou un `{ flags }` passé en
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
@@ -63,8 +64,8 @@
 //
 // Module ESM pur — consommé par `src/ui/editor/scene-field-editability-guard.test.ts`.
 import path from 'node:path';
-import ts from 'typescript';
-import { repoProgram } from './tsProgram.mjs';
+import * as ts from 'typescript/unstable/ast';
+import { repoProgram, libererSessions } from './tsProgram.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 
 /** Fichiers d'INTERFACE : un écrivain qui y vit est joignable au clic par construction — l'auteur
@@ -110,19 +111,6 @@ const FRONTIERE = [
   ['src/data/schemas/defs-scenes/effets.ts', 'effectSchema'],
 ];
 
-/**
- * FOSSILES — champs qu'un document ancien porte encore, que le parse TOLÈRE et que le chargement
- * DÉPOUILLE : hors du périmètre éditable, puisque ce ne sont pas des données de scène. La liste est
- * NOMINATIVE et sa PHASE DE MORT est écrite : elle disparaît au reset des saves (L5).
- * Le gate est BIDIRECTIONNEL (`fossileAudit`) : un tag `@fossile` sans entrée ici est ROUGE — sinon
- * le tag serait un canal d'évasion, un champ NEUF tagué sortant du périmètre sans que rien ne rougisse
- * (mesuré, sonde `scratchprobe/1463/lotA-juge/j10-hatch-reel.mjs` cas B) ; une entrée sans tag est
- * ROUGE aussi (tout compromis de TRANSITION se tient au REGISTRE DES FOSSILES du ticket-mère avec la
- * phase qui le tue — `.claude/skills/orchestrer-des-agents/SKILL.md` § Brief).
- * Clé = `<nom du export const>.<champ>` pour un shape zod, `<Type>.<champ>` pour un corps manuscrit.
- */
-export const FOSSILES = ['baseDEntiteSchema.foot'];
-
 /** Nom du `export const xSchema` dont le shape porte cette déclaration de propriété — chaînes
  *  `.optional()`/`.array()` traversées. Un littéral INLINE ne nomme rien. */
 const schemaConstName = (decl) => {
@@ -145,7 +133,7 @@ const schemaOwner = (decl) => {
 const norm = (p) => p.replace(/\\/g, '/');
 
 /** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (interface, pont,
- *  pipeline) plus le document et son schéma. Aucune rétention (`tsProgram.mjs`, en-tête). */
+ *  pipeline) plus le document et son schéma. Aucune rétention (`tsProgram.mjs`). */
 export function programmeDuPerimetre(root) {
   const key = norm(path.resolve(root));
   // Racines = les fichiers SCANNÉS plus le schéma ; TypeScript tire leur fermeture d'imports, donc
@@ -163,7 +151,7 @@ export function programmeDuPerimetre(root) {
 
 function sceneSourceFile(program, root) {
   const want = norm(path.resolve(root, SCENE_FILE));
-  return program.getSourceFiles().find((sf) => norm(sf.fileName) === want);
+  return program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file)).find((sf) => norm(sf.fileName) === want);
 }
 
 /** `VariableDeclaration`s auxquelles un identifiant se résout — alias d'import traversés. Résolution
@@ -171,14 +159,14 @@ function sceneSourceFile(program, root) {
 function variableDeclarationsOf(checker, id) {
   let sym = checker.getSymbolAtLocation(id);
   if (!sym) return [];
-  if (sym.flags & ts.SymbolFlags.Alias) {
+  if (sym.flags & SymbolFlags.Alias) {
     try {
       sym = checker.getAliasedSymbol(sym);
     } catch {
       return [];
     }
   }
-  return (sym.declarations ?? []).filter(ts.isVariableDeclaration);
+  return (sym.declarations ?? []).map((d) => d.resolve()).filter(ts.isVariableDeclaration);
 }
 
 const isCustomSchema = (init) =>
@@ -191,12 +179,12 @@ const isCustomSchema = (init) =>
  * ENSEMBLE D'IDENTITÉS du document : les `PropertyAssignment` des shapes atteints depuis
  * `sceneSchema`, frontières exclues (cf. FRONTIÈRE en tête). Vide si le module de schémas n'est pas
  * dans le programme — les programmes VIRTUELS des preuves ne déclarent que `src/state/scene.ts`.
- * @returns {Set<import('typescript').Node>}
+ * @returns {Set<import('typescript/unstable/ast').Node>}
  */
 export function documentDeclarations(program, root) {
-  const checker = program.getTypeChecker();
+  const checker = program.checker;
   const want = norm(path.resolve(root, SCHEMA_FILE));
-  const sf = program.getSourceFiles().find((s) => norm(s.fileName) === want);
+  const sf = program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file)).find((s) => norm(s.fileName) === want);
   const noeuds = new Set();
   if (!sf) return noeuds;
 
@@ -221,65 +209,19 @@ export function documentDeclarations(program, root) {
     const visiter = (n) => {
       if (ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n)) noeuds.add(n);
       if (ts.isIdentifier(n)) for (const d of variableDeclarationsOf(checker, n)) enfiler(d);
-      ts.forEachChild(n, visiter);
+      n.forEachChild(visiter);
     };
     if (file[i].initializer) visiter(file[i].initializer);
   }
   return noeuds;
 }
 
-const aTagFossile = (decl) => ts.getJSDocTags(decl).some((t) => t.tagName.text === 'fossile');
-
-/** Clé de fossile d'une déclaration : `<export const>.<champ>` (shape zod) ou `<Type>.<champ>`
- *  (corps manuscrit). `undefined` si la déclaration n'est pas nommable. */
-function fossileKey(decl) {
-  const nom = decl.name && (ts.isIdentifier(decl.name) || ts.isStringLiteral(decl.name)) ? decl.name.text : undefined;
-  if (!nom) return undefined;
-  if (ts.isPropertyAssignment(decl) || ts.isShorthandPropertyAssignment(decl)) {
-    const porteur = schemaConstName(decl);
-    return porteur ? `${porteur}.${nom}` : undefined;
-  }
-  const p = decl.parent;
-  if (p && (ts.isInterfaceDeclaration(p) || ts.isTypeAliasDeclaration(p)) && ts.isIdentifier(p.name))
-    return `${p.name.text}.${nom}`;
-  if (p && ts.isTypeLiteralNode(p) && p.parent && ts.isTypeAliasDeclaration(p.parent))
-    return `${p.parent.name.text}.${nom}`;
-  return undefined;
-}
-
-/**
- * Gate `@fossile` BIDIRECTIONNEL — cf. `FOSSILES`. Les deux sens sont des ROUGES.
- * @returns {{ taguesHorsListe: string[], entreesSansTag: string[] }}
- */
-export function fossileAudit(program, root) {
-  const tags = new Set();
-  const collecte = (decl) => {
-    if (!aTagFossile(decl)) return;
-    const k = fossileKey(decl);
-    tags.add(k ?? `<déclaration non nommable> ${norm(path.relative(root, decl.getSourceFile().fileName))}:${decl.getSourceFile().getLineAndCharacterOfPosition(decl.getStart()).line + 1}`);
-  };
-  for (const n of documentDeclarations(program, root)) collecte(n);
-  const sf = sceneSourceFile(program, root);
-  if (sf) {
-    const visiter = (n) => {
-      if (ts.isPropertySignature(n)) collecte(n);
-      ts.forEachChild(n, visiter);
-    };
-    visiter(sf);
-  }
-  const listes = new Set(FOSSILES);
-  return {
-    taguesHorsListe: [...tags].filter((k) => !listes.has(k)).sort(),
-    entreesSansTag: FOSSILES.filter((k) => !tags.has(k)).sort(),
-  };
-}
-
 /**
  * Champs du DOCUMENT de scène, dérivés du type `Scene` par le TypeChecker.
- * @returns {{ id: string, owner: string, field: string, decl: import('typescript').Declaration }[]}
+ * @returns {{ id: string, owner: string, field: string, decl: import('typescript/unstable/ast').Declaration }[]}
  */
 export function sceneScope(program, root) {
-  const checker = program.getTypeChecker();
+  const checker = program.checker;
   const sf = sceneSourceFile(program, root);
   if (!sf) throw new Error(`${SCENE_FILE} absent du programme`);
   const moduleSym = checker.getSymbolAtLocation(sf);
@@ -292,10 +234,6 @@ export function sceneScope(program, root) {
   const sceneFile = norm(path.resolve(root, SCENE_FILE));
   const declaredInScene = (decl) =>
     !!decl && (docNodes.has(decl) || norm(decl.getSourceFile().fileName) === sceneFile);
-  // Un fossile GATÉ (tagué ET tenu au registre `FOSSILES`) sort du périmètre éditable ; tagué sans
-  // entrée, il y RESTE — c'est `fossileAudit` qui en fait un rouge, jamais un silence.
-  const gate = new Set(FOSSILES);
-  const fossileGate = (decl) => aTagFossile(decl) && gate.has(fossileKey(decl));
 
   const out = [];
   const seenTypes = new Set();
@@ -305,18 +243,18 @@ export function sceneScope(program, root) {
     if (!type || seenTypes.has(type)) return;
     seenTypes.add(type);
 
-    if (type.isUnionOrIntersection()) {
-      for (const m of type.types) visit(m, ownerPath);
+    if ((type.isUnionType() || type.isIntersectionType())) {
+      for (const m of type.getTypes()) visit(m, ownerPath);
       return;
     }
     if (checker.isArrayType(type) || checker.isTupleType(type)) {
       for (const arg of checker.getTypeArguments(type)) visit(arg, ownerPath);
       return;
     }
-    if (!(type.flags & ts.TypeFlags.Object)) return;
+    if (!(type.flags & TypeFlags.Object)) return;
 
-    const idx = checker.getIndexInfoOfType(type, ts.IndexKind.String);
-    if (idx) visit(idx.type, ownerPath);
+    const idx = checker.getIndexInfosOfType(type).find((info) => info.keyType.flags & TypeFlags.String);
+    if (idx) visit(idx.valueType, ownerPath);
 
     // FRONTIÈRE (par PROPRIÉTÉ) : un objet dont aucune propriété n'est déclarée par un module du
     // document est du vocabulaire PARTAGÉ (Flow/Condition/GameOp/EntityAppearance/CustomStatblock…),
@@ -326,21 +264,21 @@ export function sceneScope(program, root) {
     // qu'une valeur, il n'y a rien à choisir. Exclusion STRUCTURELLE (la forme du type), jamais par
     // nom de champ : une union (`'interieur' | 'exterieur'`) reste dans le périmètre, elle SE CHOISIT.
     const discriminant = (p) => {
-      const t = checker.getTypeAtLocation(p.declarations[0]);
-      return !!(t.flags & ts.TypeFlags.StringLiteral);
+      const t = checker.getTypeAtLocation(p.declarations[0].resolve());
+      return !!(t.flags & TypeFlags.StringLiteral);
     };
     const dedans = checker
       .getPropertiesOfType(type)
-      .filter((p) => declaredInScene(p.declarations?.[0]) && !fossileGate(p.declarations[0]) && !discriminant(p));
+      .filter((p) => declaredInScene(p.declarations?.[0]?.resolve()) && !discriminant(p));
     if (dedans.length === 0) return;
 
-    const named = type.aliasSymbol?.name ?? type.symbol?.name;
+    const named = type.getAliasSymbol()?.name ?? type.getSymbol()?.name;
     const owner =
       (named && !named.startsWith('__') ? named : undefined) ??
-      dedans.map((p) => schemaOwner(p.declarations[0])).find(Boolean) ??
+      dedans.map((p) => schemaOwner(p.declarations[0].resolve())).find(Boolean) ??
       ownerPath;
     for (const prop of dedans) {
-      const decl = prop.declarations[0];
+      const decl = prop.declarations[0].resolve();
       const id = `${owner}.${prop.name}`;
       if (!seenIds.has(id)) {
         seenIds.add(id);
@@ -356,7 +294,7 @@ export function sceneScope(program, root) {
 
 function flatten(type, acc = []) {
   if (!type) return acc;
-  if (type.isUnionOrIntersection()) for (const m of type.types) flatten(m, acc);
+  if ((type.isUnionType() || type.isIntersectionType())) for (const m of type.getTypes()) flatten(m, acc);
   else acc.push(type);
   return acc;
 }
@@ -366,10 +304,10 @@ function flatten(type, acc = []) {
  *  chaîne de son type ; toute autre clé calculée ne rend rien. */
 function writtenNames(checker, prop) {
   if (!ts.isPropertyAssignment(prop) && !ts.isShorthandPropertyAssignment(prop)) return [];
-  if (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name)) return [prop.name.text];
+  if (('name' in prop && ts.isIdentifier(prop.name)) || ts.isStringLiteral(prop.name)) return [prop.name.text];
   if (ts.isComputedPropertyName(prop.name)) {
     return flatten(checker.getTypeAtLocation(prop.name.expression))
-      .filter((t) => t.isStringLiteral())
+      .filter((t) => t.isStringLiteralType())
       .map((t) => t.value);
   }
   return [];
@@ -377,7 +315,7 @@ function writtenNames(checker, prop) {
 
 /**
  * Champs du périmètre ÉCRITS par un fichier, rattachés au TYPE porteur.
- * Le crédit exige que la propriété écrite remonte (`getRootSymbols`) à la déclaration exacte du
+ * Le crédit exige que la propriété écrite remonte à la déclaration exacte du
  * champ dans `scene.ts` : les mappings (`Partial<WallSeg>`, `Pick`, accès indexé) sont donc suivis,
  * les homonymes d'autres types écartés.
  * `creditable(node)` filtre les sites d'écriture retenus — c'est par lui que passe l'exigence
@@ -393,12 +331,10 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
     for (const t of flatten(type)) {
       const prop = checker.getPropertyOfType(t, name);
       if (!prop) continue;
-      for (const root of [prop, ...checker.getRootSymbols(prop)]) {
-        for (const d of root.declarations ?? []) {
-          const id = declToId.get(d);
+        for (const d of prop.declarations) {
+          const id = declToId.get(d.resolve());
           if (id) ids.add(id);
         }
-      }
     }
     return ids;
   };
@@ -428,7 +364,7 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
   /** Types que le RETOUR de `fn` doit satisfaire : son annotation de retour, sinon — pour un
    *  callback de `map`/`flatMap`/`reduce` sur un tableau — ce que la position de l'APPEL impose. */
   const returnTypes = (fn, depth) => {
-    const ann = ts.getEffectiveReturnTypeNode(fn);
+    const ann = fn.type;
     if (ann) return [checker.getTypeFromTypeNode(ann)];
     if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn)) return [];
     const call = fn.parent;
@@ -467,7 +403,7 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
         flatten(t).flatMap((f) =>
           names.flatMap((n) => {
             const prop = checker.getPropertyOfType(f, n);
-            const d = prop?.declarations?.[0];
+            const d = prop?.declarations?.[0]?.resolve();
             return prop && d ? [checker.getTypeOfSymbolAtLocation(prop, d)] : [];
           })
         )
@@ -492,8 +428,8 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
 
     if (ts.isReturnStatement(parent)) {
       for (let n = parent.parent; n; n = n.parent) {
-        if (ts.isClassLike(n) || ts.isSourceFile(n)) return [];
-        if (ts.isFunctionLike(n)) return returnTypes(n, depth);
+        if (ts.isClassLikeDeclaration(n) || ts.isSourceFile(n)) return [];
+        if (ts.isFunctionLikeDeclaration(n)) return returnTypes(n, depth);
       }
       return [];
     }
@@ -508,8 +444,8 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
     node.properties.some(
       (p) =>
         ts.isSpreadAssignment(p) ||
-        (p.name && ts.isComputedPropertyName(p.name)) ||
-        (p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && fieldNames.has(p.name.text))
+        ('name' in p && p.name && ts.isComputedPropertyName(p.name)) ||
+        ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && fieldNames.has(p.name.text))
     ) || (ts.isArrayLiteralExpression(node.parent) && node.parent.elements.some((e) => ts.isSpreadElement(e)));
 
   const visit = (node) => {
@@ -553,7 +489,7 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
     ) {
       credit(checker.getTypeAtLocation(node.left.expression), node.left.name.text);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(sourceFile);
   return out;
@@ -573,7 +509,7 @@ const calleeNode = (decl) =>
  *  le corps du module quand il n'y en a aucune. */
 const owningScopes = (node) => {
   const out = [];
-  for (let n = node.parent; n; n = n.parent) if (ts.isFunctionLike(n)) out.push(n);
+  for (let n = node.parent; n; n = n.parent) if (ts.isFunctionLikeDeclaration(n)) out.push(n);
   return out.length > 0 ? out : [node.getSourceFile()];
 };
 
@@ -582,14 +518,14 @@ const owningScopes = (node) => {
 function calleeDeclarations(checker, call) {
   let sym = checker.getSymbolAtLocation(call.expression);
   if (!sym) return [];
-  if (sym.flags & ts.SymbolFlags.Alias) {
+  if (sym.flags & SymbolFlags.Alias) {
     try {
       sym = checker.getAliasedSymbol(sym);
     } catch {
       return [];
     }
   }
-  return (sym.declarations ?? []).map(calleeNode);
+  return (sym.declarations ?? []).map((d) => d.resolve()).map(calleeNode);
 }
 
 /**
@@ -605,7 +541,7 @@ function calleeDeclarations(checker, call) {
  *     même si aucun écran ne la monte, et un callback jamais rappelé compte pour sa porteuse. La
  *     frontière mesurée est celle du FICHIER — « une primitive hors interface a-t-elle un appelant
  *     dans l'interface ? » — pas la vivacité d'un composant.
- * @returns {Set<import('typescript').Node>}
+ * @returns {Set<import('typescript/unstable/ast').Node>}
  */
 export function uiReachableScopes(checker, program, root) {
   const reachable = new Set();
@@ -623,7 +559,7 @@ export function uiReachableScopes(checker, program, root) {
     set.add(to);
   };
 
-  for (const sf of program.getSourceFiles()) {
+  for (const sf of program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file))) {
     if (sf.isDeclarationFile) continue;
     const rel = path.relative(root, sf.fileName);
     if (rel.startsWith('..') || isTestFile(rel) || !isAuthorPath(rel)) continue;
@@ -635,7 +571,7 @@ export function uiReachableScopes(checker, program, root) {
         const spec = ts.isImportDeclaration(st) || ts.isExportDeclaration(st) ? st.moduleSpecifier : undefined;
         if (!spec) continue;
         for (const d of checker.getSymbolAtLocation(spec)?.declarations ?? [])
-          if (ts.isSourceFile(d)) seed(d);
+          if (ts.isSourceFile(d.resolve())) seed(d.resolve());
       }
     }
     const walk = (node) => {
@@ -644,7 +580,7 @@ export function uiReachableScopes(checker, program, root) {
         // Depuis l'interface, tout appel part d'un contexte déjà atteignable : le fichier fait foi.
         for (const from of ui ? [sf] : owningScopes(node)) for (const to of targets) edge(from, to);
       }
-      ts.forEachChild(node, walk);
+      node.forEachChild(walk);
     };
     walk(sf);
   }
@@ -656,11 +592,18 @@ export function uiReachableScopes(checker, program, root) {
 /**
  * Audite le dépôt : pour chaque champ du document de scène, qui l'écrit et par quel chemin.
  * @param {string} root racine du dépôt
- * @param {import('typescript').Program} [program] programme déjà construit — absent, bâti pour CET appel
+ * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
  * @returns {{ id: string, owner: string, field: string, at: string, authors: string[], pipeline: string[] }[]}
  */
-export function auditSceneFieldEditability(root, program = programmeDuPerimetre(root)) {
-  const checker = program.getTypeChecker();
+export function auditSceneFieldEditability(root, program) {
+  if (!program) {
+    const session = programmeDuPerimetre(root);
+    const erreurs = [];
+    try { return auditSceneFieldEditability(root, session); }
+    catch (erreur) { erreurs.push(erreur); }
+    finally { libererSessions([session], erreurs); }
+  }
+  const checker = program.checker;
   const scope = sceneScope(program, root);
   const declToId = new Map(scope.map((e) => [e.decl, e.id]));
   const fieldNames = new Set(scope.map((e) => e.field));
@@ -687,7 +630,7 @@ export function auditSceneFieldEditability(root, program = programmeDuPerimetre(
   // depuis `src/ui/**` : le crédit exige un APPELANT, jamais la seule existence d'une définition.
   const reachedFromUi = (node) => owningScopes(node).some((s) => reachable.has(s));
 
-  for (const sf of program.getSourceFiles()) {
+  for (const sf of program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file))) {
     if (sf.isDeclarationFile) continue;
     const rel = path.relative(root, sf.fileName);
     if (rel.startsWith('..')) continue;

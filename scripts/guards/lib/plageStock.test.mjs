@@ -9,13 +9,47 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
 import { franchisDuCommit } from './reclassementCss.mjs'
-import { TRONC } from './gitPorte.mjs'
+import { GitIndisponible, TRONC } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
+
+test('#2285 famille plage callback : indisponibilité complète', () => {
+  const { racine: cwd, sha } = instanceDeDepot({ fichiers: { 'a.txt': 'a' } })
+  try {
+    const stderr = 'note plage\n'.repeat(45) + 'cause plage tardive\n'
+    const stdout = 'stdout plage distinct'
+    assert.ok(stderr.indexOf('cause plage tardive') > 400)
+    const vu = sousGitFeint([{ si: ['rev-list', '--reverse'], status: 32, stdout, stderr }], () => croissancesDeLaPlage({ cwd, debut: sha, fin: sha }))
+    assert.equal(vu.indisponible, 'refus (status 32) — ' + stderr + '\n' + stdout)
+  } finally { rmSync(cwd, { recursive: true, force: true }) }
+})
+
+test('#2285 famille plage catch : lecteur strict complet', () => {
+  const { racine: cwd, sha } = instanceDeDepot({ fichiers: { 'a.txt': 'a' } })
+  try {
+    const stderr = 'note strict\n'.repeat(45) + 'cause strict tardive\n'
+    const stdout = 'stdout strict distinct'
+    assert.ok(stderr.indexOf('cause strict tardive') > 400)
+    const vu = sousGitFeint([{ si: ['rev-list', '--no-commit-header'], status: 33, stdout, stderr }], () => croissancesDeLaPlage({ cwd, debut: '0'.repeat(40), fin: sha }))
+    assert.equal(vu.indisponible, 'refus (status 33) — ' + stderr + '\n' + stdout)
+  } finally { rmSync(cwd, { recursive: true, force: true }) }
+})
+
+test('#2285 famille plage reclassement : Git complet et métier conservé', () => {
+  const stderr = 'note classement\n'.repeat(45) + 'cause classement tardive\n'
+  const stdout = 'stdout classement distinct'
+  assert.ok(stderr.indexOf('cause classement tardive') > 400)
+  const erreur = new GitIndisponible({ disponible: false, raison: stderr, issue: 'refus', diagnostic: { status: 34, stdout, stderr } })
+  const commits = [{ sha: 'a'.repeat(40), message: '', cotes: () => { throw erreur } }]
+  assert.deepEqual(reclassementsDeLaPlage({ commits }), [{ sha: 'a'.repeat(40), fusion: false, illisible: 'refus (status 34) — ' + stderr + '\n' + stdout }])
+  const metier = new Error('métier conservé')
+  commits[0].cotes = () => { throw metier }
+  assert.deepEqual(reclassementsDeLaPlage({ commits }), [{ sha: 'a'.repeat(40), fusion: false, illisible: 'métier conservé' }])
+})
 
 /** Diff `-U0` d'un ajout/retrait de lignes dans le porteur, à partir de la ligne `ligne`. */
 const diffDe = (ajoutees = [], retirees = [], ligne = 1) =>
@@ -28,6 +62,26 @@ const diffDe = (ajoutees = [], retirees = [], ligne = 1) =>
     ...ajoutees.map((l) => `+${l}`),
   ].join('\n')
 
+test('#1735 : une migration prouvée quitte le commit et le cumul, une dette neuve reste refusée', () => {
+  const ancien = 'src/ancien.test.ts';
+  const nouveau = 'src/nouveau.test.ts';
+  const stock = (fichier, extra = '') => `const PREUVES = [
+    { fichier: '${fichier}', it: 'titre conservé' },
+    ${extra}
+  ];`;
+  const pre = stock(ancien);
+  for (const neuf of [false, true]) {
+    const post = stock(nouveau, neuf ? "{ fichier: 'src/neuf.test.ts', it: 'dette neuve' }," : '');
+    const images = {
+      lirePreImage: p => p === PORTEUR ? pre : p === ancien ? "it('titre conservé', () => {});" : null,
+      lirePostImage: p => p === PORTEUR ? post : p === nouveau ? "it('titre conservé', () => {});" : null,
+    };
+    const diff = diffDe(post.split('\n'), pre.split('\n'));
+    const cumul = bilanDesStocks(diff, images);
+    const refus = refusDeLaPlage({ commits: [{ sha: 'migration', message: '', diff, images }], cumul });
+    assert.deepEqual(refus.map(r => [r.fichier, r.net]), neuf ? [[PORTEUR, 1]] : []);
+  }
+});
 /** Lecteur d'image qui rend `null` : la porte l'a, et le REPLI de ligne juge — la voie des diffs
  *  FABRIQUÉS ci-dessous, dont aucun fichier n'existe. Sans lecteur du tout, `croissanceDesStocks`
  *  refuse nommément (un compte sans image ment). */
@@ -323,7 +377,7 @@ test('équivalence — solde au commit et plage au push comptent la même chose'
   t.diagnostic('deux voies, deux cas, même verdict')
 })
 
-// #1709 D3 — sonde 3 de la revue de palier du 2026-09-08, promue sur un dépôt RÉEL : un
+// #1709 D3 — sonde 3 de la revue du 2026-09-08, promue sur un dépôt RÉEL : un
 // `*-stock.json` qui NAÎT. Ses entrées vivent sur des propriétés (`"sites": [ … ]`) qu'aucune
 // lecture par ligne ne reconnaît : seule une IMAGE les compte. Les deux portes en ont une — l'arbre
 // de travail au commit, `git show <sha>:<f>` au push — et rendent le même compte ; un appelant qui

@@ -2,7 +2,6 @@
 /** #1176 */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { useGame, type BattleState } from '../state/store';
 import type { Combatant } from '../engine/types';
 import { datasetArray, setDataset } from '../data/overrides';
@@ -10,16 +9,17 @@ import { areneCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import { makePregens } from '../data/pregens';
 import { CampaignView } from './CampaignView';
+import { t } from '../i18n';
 import { useGameKeyboard } from './useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, getStageYaw, resetStageYaw } from '../state/stageYaw';
+import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 let host: HTMLDivElement;
-let root: Root;
 
 /** Le hook de raccourcis est monté par `App`, AU-DESSUS des écrans (registre unique, tous écrans) :
  *  le monter ici avec l'écran reproduit l'application réelle. */
@@ -29,17 +29,14 @@ function Clavier() {
 }
 
 function monter(povActive: boolean) {
+  demonterRacines();
   useGame.setState({ screen: 'campaign', scene: testScene(), mode: 'exploration', povActive, battle: null });
-  host = document.createElement('div');
-  document.body.appendChild(host);
-  root = createRoot(host);
-  act(() => { root.render(<><Clavier /><CampaignView /></>); });
+  host = monterRacine(<><Clavier /><CampaignView /></>).container;
   return host;
 }
 
 afterEach(() => {
-  act(() => { root.unmount(); });
-  host.remove();
+  demonterRacines();
   resetStageYaw();
   resetStageFrames();
   vi.unstubAllGlobals();
@@ -51,11 +48,12 @@ beforeEach(() => {
   useGame.setState({ povActive: false });
 });
 
-describe('CampaignView — plus aucun interrupteur de voie de rendu à l’écran (#1176 C5a)', () => {
+describe('CampaignView — le monde et son refus WebGL sont affichés', () => {
   it.each([false, true])('POV=%s : le jeu n’a qu’un monde', (pov) => {
     const el = monter(pov);
-    expect(el.querySelector('[aria-label="Monde volumique (DEV)"]')).toBeNull();
-    expect(el.querySelector('[aria-label="Monde en couches SVG (DEV)"]')).toBeNull();
+    expect(el.querySelectorAll('main.stage')).toHaveLength(1);
+    expect(el.querySelectorAll('.sans-webgl[role="alert"]')).toHaveLength(1);
+    expect(el.querySelector('.sans-webgl[role="alert"] strong')?.textContent).toBe('Le monde ne peut pas être affiché');
   });
 });
 
@@ -165,14 +163,11 @@ describe('CampaignView — le geste de caméra du joueur, monté à l’écran',
   });
 });
 
-/**
- * PARITÉ PORTRAIT ⇄ JETON pendant un ciblage d'ENTITÉ, jugée à l'ÉCRAN (le dock monté pour de vrai).
- * En mode Dissiper (LDB 46 l.158-162) le porteur du Sort est le plus souvent un ALLIÉ : son portrait
- * du dock est le chemin naturel, et il doit router vers `battleClickEntity` comme le clic-jeton.
- */
+// LDB 46 l.158-162
 describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', () => {
   /** Combat à 2 héros, `h2` PORTEUR de 2 Sorts permanents. `action` arme (ou non) la Dissipation. */
   function combatDissipation(action: 'dispel' | null) {
+    demonterRacines();
     // `hoverClickCommits` (pointerCaps) interroge le pointeur : jsdom n'a pas `matchMedia`.
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
     const [h1, h2] = makePregens();
@@ -193,10 +188,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
       pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null,
       pendingSiegeAim: null, pendingDispel: null,
     });
-    host = document.createElement('div');
-    document.body.appendChild(host);
-    root = createRoot(host);
-    act(() => { root.render(<CampaignView />); });
+    host = monterRacine(<CampaignView />).container;
     return { h1, h2 };
   }
 
@@ -211,7 +203,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
   it('mode Dissiper ARMÉ : le portrait de l’allié porteur ÉLIT le porteur (comme son jeton)', () => {
     const { h2 } = combatDissipation('dispel');
     const b = portraitDock(h2.label);
-    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — cibler`);
+    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — cibler — ${t('ptile.geste2eInspecter')}`);
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().dispelCarrierId, 'le porteur est élu — le SORT reste à choisir').toBe('h2');
     expect(useGame.getState().sheetId, 'le clic ne doit pas ouvrir la fiche pendant un ciblage').toBeNull();
@@ -220,17 +212,16 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
   it('TÉMOIN — aucun ciblage armé : le même portrait ouvre la fiche du personnage', () => {
     const { h2 } = combatDissipation(null);
     const b = portraitDock(h2.label);
-    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — fiche du personnage`);
+    expect(b.getAttribute('aria-label')).toBe(`${h2.label} — fiche du personnage — ${t('ptile.geste2eInspecter')}`);
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().sheetId).toBe('h2');
     expect(useGame.getState().dispelCarrierId).toBeNull();
   });
 });
 
-/** Défaite sans scène (#1692) : « Reprendre » lance l'Arène par `lancerCampagne` ; le refus de la porte
- *  s'affiche, puis se lève quand la cause n'a plus lieu — il ne survit pas à la modale. */
+// #1692
 describe('CampaignView — le refus du repli de défaite vit le temps de la modale', () => {
-  const MESSAGE = 'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.';
+  const MESSAGE = 'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.';
 
   function defaite(party: Combatant[]): BattleState {
     return {
@@ -248,17 +239,15 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     [...host.querySelectorAll<HTMLButtonElement>('.defeat-modal .cadre-pied button')].find((x) => x.textContent === 'Menu principal');
 
   it('refus affiché, puis levé : la défaite suivante s’ouvre sans lui', () => {
+    demonterRacines();
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     const party = makePregens().slice(0, 1);
     const avant = [...datasetArray('props')];
     useGame.setState({ screen: 'campaign', scene: null, mode: 'battle', povActive: false, massBattle: null, party, battle: defaite(party) });
-    host = document.createElement('div');
-    document.body.appendChild(host);
-    root = createRoot(host);
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
     try {
-      act(() => { root.render(<CampaignView />); });
+      host = monterRacine(<CampaignView />).container;
       expect(menuPrincipal(), 'sans refus, la modale reste telle quelle').toBeUndefined();
       reprendre();
       expect(alerte()?.textContent).toBe(MESSAGE);

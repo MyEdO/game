@@ -2,7 +2,7 @@
 //
 // La plage d'un PUSH est ce qu'il APPORTE au tronc : l'appelant passe la ref poussée (`vers`), et un
 // commit déjà sur le tronc n'y est pas rejugé (stocks-nominatifs.test.mjs:33-36). Une FENÊTRE mesurée
-// (palier) ne passe pas de `vers`. Le tronc est lu tel que le dépôt qui juge le connaît : un
+// ne passe pas de `vers`. Le tronc est lu tel que le dépôt qui juge le connaît : un
 // `origin/main` local périmé retranche moins au cumul (le pre-push), la CI refetche le sien.
 //
 // DEUX NIVEAUX, tous deux nécessaires (discriminés par sonde le 2026-09-03) :
@@ -18,7 +18,8 @@
 // bouts, #1806 D5″) : `debut..fin`, moins ce que le tronc a changé entre l'état qu'en connaît `debut`
 // et celui qu'en connaît `fin` (`merge-base` de chacun avec le tronc). Une dette neuve dans X qu'une
 // baisse dans Q du même porteur compenserait reste en croissance, et se refuse ; une baisse faite par
-// le tronc ne paie rien.
+// le tronc ne paie rien. Les migrations de sites de tests prouvées par `bilanDesStocks` (#1735)
+// ont déjà quitté les deux côtés de ce bilan ; le cumul conserve la mesure par clé.
 //
 // Chaque commit de la plage se lit par CE QU'IL FAIT, en ENTRÉES (#2223) : un commit ordinaire contre
 // sa base (`ceQueFaitLeCommit`) ; une FUSION contre la fusion automatique de ses parents, rejouée
@@ -35,7 +36,7 @@
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
-import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, parentsDe, shasDe } from './gitPorte.mjs'
+import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, parentsDe, refusDeGit, shasDe } from './gitPorte.mjs'
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
@@ -109,7 +110,7 @@ export function reclassementsDeLaPlage({ commits = [] } = {}) {
     try {
       lus = cotes()
     } catch (e) {
-      refus.push({ sha, fusion: Boolean(fusion), illisible: e.message })
+      refus.push({ sha, fusion: Boolean(fusion), illisible: e instanceof GitIndisponible ? refusDeGit(e) : e.message })
       continue
     }
     const lignes = lignesDeReclassement(message)
@@ -210,7 +211,7 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  */
 export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const notes = []
   const avecLeTronc = (sha) => baseCommune(depot, sha, TRONC.suivi)
   if (debut === SHA_NUL) debut = null
@@ -254,7 +255,7 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
-    return { refus: [], reclassements: [], notes, plage, indisponible: e.raison }
+    return { refus: [], reclassements: [], notes, plage, indisponible: refusDeGit(e) }
   }
   const bilanEntre = (a, b) => {
     const change = ceQuiChange(depot, a, b)

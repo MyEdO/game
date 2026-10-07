@@ -2,7 +2,7 @@
 // `….journal.slice(-40)` (n'importe quel receveur : `state.journal`, `get().journal`, `s.journal`…)
 // réinvente l'action canonique `log` (`src/state/store.ts`, ~L2146 : `set((s) => ({ journal:
 // [...s.journal.slice(-40), ...] }))`). Module ESM pur, exécutable par `node` nu — consommé par
-// `src/state/journal-write-guard.test.ts` ET par un futur hook pre-commit. Même patron que
+// `src/state/journal-write-guard.test.ts`. Même patron que
 // `inBattleFind.mjs` (mécanique de détection ici, BASELINES en policy dans le test).
 
 /** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.

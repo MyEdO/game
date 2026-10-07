@@ -91,7 +91,7 @@ function monter(états: boolean[]): void {
   root = createRoot(hôte);
   act(() => {
     root!.render(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={MPT}
         frame={cadrePov()}

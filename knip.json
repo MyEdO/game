@@ -14,8 +14,11 @@
   "ignore": [
     "server/**",
     "dist/**",
-    "public/**"
+    "public/**",
+    ".claude/skills/*/{hooks,types,tests}/**"
   ],
   "ignoreBinaries": ["lean-ctx"],
+  "ignoreDependencies": ["oxlint"],
+  "oxlint": { "config": ["oxlint.config.mjs"] },
   "ignoreExportsUsedInFile": true
 }

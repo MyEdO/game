@@ -182,6 +182,12 @@ export function closeTavernGames(_get: Get, set: Set): void {
 /** Id de la définition de séquence des jeux de taverne (donnée : écrit dans les saves). */
 export const TAVERN_SEQUENCE = 'tavern';
 
+declare module './sequenceContract' {
+  interface SequenceFamilies {
+    [TAVERN_SEQUENCE]: TavernPayload;
+  }
+}
+
 /** Kind de l'étape-jet d'une manche (bande OU mono) — UNIQUE depuis #1279 S1. */
 export const TAVERN_ROUND_KIND = 'tavern-round';
 
@@ -267,7 +273,8 @@ const TAVERN_DRINK_KIND = 'tavern-drink';
  * PARAMÈTRES DE SÉQUENCE d'un jeu — TOUS lus de son entrée de données : aucune valeur de règle n'est
  * écrite ici, aucun `if` par id de jeu. Un jeu N+1 à mécanismes connus n'est qu'une entrée de plus.
  */
-export function tavernParams(game: TavernGame, joueurs = 0): SequenceParams {
+export function tavernParams(jeu: TavernGame, joueurs = 0): SequenceParams {
+  const game = structuredClone(jeu); // #2097
   // BORNE : les familles dont la manche n'est QU'UN lancer (pot, volée) déclarent l'unité de la leur
   // — la borne effective en découle, et reste sous le plafond absolu du contrat.
   const pot = game.pot;
@@ -2435,7 +2442,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
 /** APPLIER de l'effacement : la clôture seule en tire les conséquences (patron du réducteur unique). */
 registerCascadeApplier(TAVERN_ERASE_KIND, () => ({}));
 
-registerSequence<TavernPayload>(TAVERN_SEQUENCE, {
+registerSequence(TAVERN_SEQUENCE, {
   round: tavernRound, close: tavernClose, settle: tavernSettle, board: tavernBoard,
 });
 

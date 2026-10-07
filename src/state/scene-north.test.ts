@@ -8,15 +8,14 @@
  * couvrent les datasets `*.json`, pas le document de scène) : le setter EST la porte de validation, comme
  * pour `metresPerTile`/`ambientLight`.
  *
- * Sauvegarde : champ ADDITIF OPTIONNEL, absent = 0 = le nord implicite d'avant le lot. Une save écrite
- * sans lui se recharge à l'identique (rien ne disparaît en silence — le critère des `MIGRATIONS`), donc
- * AUCUN bump de `SAVE_VERSION` : ce qui se teste ici, c'est que la valeur authorée SURVIT au
- * round-trip et qu'une save qui l'ignore reste valide.
+ * Sauvegarde : champ OPTIONNEL, absent = 0 = le nord implicite. Ce qui se teste ici, c'est que la valeur
+ * authorée SURVIT au round-trip et qu'une scène qui ne le porte pas se sauve et se relit.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from './scene';
 import { setNorthDeg } from './sceneEdit';
-import { exportSave, importSave, snapshotSave, SAVE_VERSION } from './saves';
+import { exportSave, importSave, snapshotSave } from './saves';
+import { FORMAT_SAVE } from './formats.generated';
 
 describe('setNorthDeg — un cap, pas un compteur', () => {
   const base = () => emptyScene(6, 6);
@@ -50,15 +49,16 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
     const scene = setNorthDeg(emptyScene(5, 5), 90);
     const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
-    expect(relu?.version).toBe(SAVE_VERSION);
-    expect((relu?.data.scene as Scene).northDeg).toBe(90);
+    if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
+    expect(relu.version).toBe(FORMAT_SAVE);
+    expect(relu.data.scene).toMatchObject({ northDeg: 90 });
   });
 
-  it('une save SANS le champ (toute save d’avant le lot) reste valide, nord implicite', () => {
+  it('une scène SANS le champ se sauve et se relit, nord implicite', () => {
     const scene = emptyScene(5, 5);
     const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
-    expect(relu).not.toBeNull();
-    expect((relu!.data.scene as Scene).northDeg).toBeUndefined();
+    if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
+    expect((relu.data.scene as Scene).northDeg).toBeUndefined();
   });
 });

@@ -12,6 +12,10 @@ import type { ReactNode } from 'react';
  * (components.css). Les puces se passent en `children` (`<span className="chip">`) : la rangée décide
  * de leur PLACE, jamais de leur contenu. Une méta qui n'est pas une puce (une date, une ligne
  * descriptive) passe en `subtitle` : elle se range SOUS le nom, dans sa colonne.
+ *
+ * Sans `onClick`, la rangée est INERTE : un `<div className="listrow">` sans famille de style (ni
+ * curseur ni survol), dont les `children` peuvent porter l'action de fin (un bouton de retrait) —
+ * un bouton ne s'imbrique pas dans un `<button>`.
  */
 export function ListRow({
   onClick,
@@ -22,7 +26,8 @@ export function ListRow({
   variant = 'insp',
   children,
 }: {
-  onClick: () => void;
+  /** Absent : rangée INERTE (`variant` et `selected` sans objet). */
+  onClick?: () => void;
   /** Colonne gauche : icône + libellé. */
   label: ReactNode;
   /** Ligne secondaire sous le libellé, dans la colonne du nom (encre `.muted`). */
@@ -33,9 +38,24 @@ export function ListRow({
    *  sémantique de sélection (rangée de navigation) : ni classe d'état, ni attribut d'état. */
   selected?: boolean;
   variant?: 'insp' | 'codex';
-  /** Puces de méta, alignées à droite. */
+  /** Puces de méta, alignées à droite ; elles passent SOUS le nom quand la place manque. Sur une
+   *  rangée inerte, l'action de fin. */
   children?: ReactNode;
 }) {
+  const nom = (
+    <span className="lr-name">
+      {label}
+      {subtitle != null && <span className="lr-sub muted">{subtitle}</span>}
+    </span>
+  );
+  if (!onClick) {
+    return (
+      <div className="listrow" title={title}>
+        {nom}
+        {children}
+      </div>
+    );
+  }
   return (
     <button
       type="button"
@@ -45,10 +65,7 @@ export function ListRow({
       aria-current={selected ? 'true' : undefined}
       onClick={onClick}
     >
-      <span className="lr-name">
-        {label}
-        {subtitle != null && <span className="lr-sub muted">{subtitle}</span>}
-      </span>
+      {nom}
       {children}
     </button>
   );

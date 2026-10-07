@@ -67,7 +67,7 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { freeYaw, type ActorCapsule, type Dims, type Rot } from '../../geometry/iso';
-import { hauteurDe, type Scene } from '../../state/scene';
+import { hauteurDe, type LectureDArete, type Scene } from '../../state/scene';
 import { DIR8_DELTA, DIR8_ORDER, type Dir8 } from '../../state/dir8';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
@@ -352,6 +352,8 @@ export function centreDuGroupe(frame: StageFrame, actors: readonly ActorPose[]):
 
 export interface GameStage3DProps {
   scene: Scene;
+  /** Lecture des arêtes cuites (`buildWalls`) : `auteur` à l'éditeur, `jeu` en partie. EXPLICITE. */
+  lecture: LectureDArete;
   /** Mètres par tuile. */
   mpt: number;
   /** D'où la caméra de la frame se dérive (cf. `StageFrame`). */
@@ -656,7 +658,7 @@ function dir8DuSegment(dx: number, dz: number): Dir8 | null {
   return best;
 }
 
-export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, calage = false, spritePicking = true, percage, pionsEnDisques = false, onEntreeEnScene }: GameStage3DProps): JSX.Element {
+export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, calage = false, spritePicking = true, percage, pionsEnDisques = false, onEntreeEnScene }: GameStage3DProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<StageRenderer | null>(null);
   const boardsRef = useRef<BoardDeScène[]>([]);
@@ -902,8 +904,8 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // (dev seulement) : la géométrie du rendu jeté n'est montée dans aucune scène — mesuré, jamais
   // téléversée, donc rien à libérer côté GPU (`stage/gabarits-en-file.test.tsx`).
   const jeton = useRef({}).current;
-  const bakeDeps = worldBakeDeps(scene, mpt);
-  const baked = bakeRetenu(jeton, bakeDeps, () => bakeWorldGeometry(scene, mpt));
+  const bakeDeps = [...worldBakeDeps(scene, mpt), lecture];
+  const baked = bakeRetenu(jeton, bakeDeps, () => bakeWorldGeometry(scene, mpt, lecture));
   const geometry = baked.geometry;
   useEffect(() => () => baked.geometry.dispose(), [baked]);
   // CUISSONS RÉELLEMENT PAYÉES depuis le montage — la trace `data-bake` du canevas (un canevas n'a pas
@@ -919,7 +921,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     cuissons.current += 1;
   }
   // Les accents de sol sont semés sur les MÊMES faces : même read-set, donc mêmes deps.
-  const accents = accentsRetenus(jeton, bakeDeps, () => sceneGroundAccents(scene, mpt));
+  const accents = accentsRetenus(jeton, bakeDeps, () => sceneGroundAccents(scene, mpt, lecture));
   // ── DÉGAGEMENT : compactage de l'index du monde cuit (aucun sommet touché, aucun matériau refait).
   // Cette passe PEINT ce qu'elle vient de changer : elle mute une géométrie déjà montée, qu'aucune
   // dépendance du redessin ne voit (l'objet `baked` est le même). Un verdict inchangé n'écrit rien et
@@ -2160,7 +2162,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
         const marche = rigWalkDef(s.rig);
         const parade = s.enrolé ? rigDefenseDef({ defense: 'parade' }, s.rig) : null;
         const gestes: RigClipDef[] = s.enrolé
-          ? [rigAttackDef({ weapon: s.rig.mainWeapon }, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
+          ? [rigAttackDef({}, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
           : [];
         for (const def of [REPOS, ...(marche ? [marche] : []), ...gestes]) poser(def, s.view, s.mirror, PRIORITE_VUE_COURANTE);
         for (const v of VUES_REGARD) {

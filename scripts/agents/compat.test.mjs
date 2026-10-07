@@ -5,9 +5,10 @@ import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
   transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
+  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
+import { ETATS_MUETS } from '../hooks/synchroniser-principal.mjs';
 
 /** Registres de fixture : un point d'entrée par `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
@@ -111,6 +112,16 @@ test('préserve le frontmatter, adapte le corps et copie les ressources', () => 
   assert.deepEqual(out.get('.agents/skills/demo/assets/icon.bin'), Buffer.from([0, 255, 1]));
 });
 
+test('un MOD (racine de `.claude/skills/` qui porte `.claude-plugin/plugin.json`) n’a pas de miroir ; un skill voisin, si (#2278)', () => {
+  const out = transformSkillTree(new Map([
+    ['.claude/skills/mod/.claude-plugin/plugin.json', Buffer.from('{ "name": "mod" }')],
+    ['.claude/skills/mod/hooks/register.ts', Buffer.from('export const register = () => {}')],
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nCorps\n')],
+    ['.claude/skills/demo/exemples/.claude-plugin/plugin.json', Buffer.from('{}')],
+  ]));
+  assert.deepEqual([...out.keys()].sort(), ['.agents/skills/demo/SKILL.md', '.agents/skills/demo/exemples/.claude-plugin/plugin.json']);
+});
+
 test('refuse orphelin manuel et accepte ressource sous skill marqué', () => {
   const expected = buildExpectedOutputs(new Map([
     ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
@@ -175,14 +186,39 @@ test('CONTRAT — un hook de session n’est porté QUE par ses surfaces', () =>
   }
 });
 
-test('CÂBLAGE — le suivi de vague est injecté au SessionStart des DEUX surfaces, générées et commitées (#2132)', async () => {
+test('CÂBLAGE — le suivi de vague est injecté au SessionStart de Codex seul, généré et commité ; Claude le porte par le mod harnais (#2132, #2279)', async () => {
   for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
     const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
     for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
       const portes = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart' && h.script === 'inject-suivi.mjs');
-      assert.equal(portes.length, 1, `${origine} ${surface}`);
+      assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
     }
   }
+});
+
+test('CÂBLAGE — la synchronisation du principal est le PREMIER SessionStart de Codex, généré et commité ; Claude la porte par le mod harnais (#2187)', async () => {
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
+    for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
+      const session = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart');
+      const portes = session.filter((h) => h.script === 'synchroniser-principal.mjs');
+      assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
+      if (surface === SURFACE_CODEX) {
+        assert.equal(session[0].script, 'synchroniser-principal.mjs', `${origine} : en tête`);
+        assert.equal(portes[0].timeout, TIMEOUT_SYNCHRONISEUR, origine);
+      }
+    }
+  }
+});
+
+test('le mod harnais et le hook Codex partagent la borne et les états muets de la synchronisation (#2187 commentaire 6029118597, C7)', async () => {
+  const mod = await readFile(new URL('../../.claude/skills/harnais/hooks/suivi.ts', import.meta.url), 'utf8');
+  const borne = /^const BORNE_SYNCHRO_MS = ([\d_]+) \* 1000$/m.exec(mod);
+  assert.ok(borne, 'BORNE_SYNCHRO_MS introuvable dans suivi.ts');
+  assert.equal(Number(borne[1].replaceAll('_', '')), TIMEOUT_SYNCHRONISEUR, 'BORNE_SYNCHRO_MS === TIMEOUT_SYNCHRONISEUR * 1000');
+  const muets = /^const ETATS_MUETS = new Set\((\[[^\]]*\])\)$/m.exec(mod);
+  assert.ok(muets, 'ETATS_MUETS introuvable dans suivi.ts');
+  assert.deepEqual(JSON.parse(muets[1].replaceAll("'", '"')), [...ETATS_MUETS]);
 });
 
 test('sortie PAR CLÉ : sync réécrit la seule clé `hooks` de settings.json, permissions et ordre des clés à l’octet près', async () => {

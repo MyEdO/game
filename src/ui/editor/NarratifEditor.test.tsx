@@ -7,10 +7,12 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { NarratifEditor } from './NarratifEditor';
+import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
+import { emptyScene, type Scene } from '../../state/scene';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { narratifSchema } from '../../data/schemas/defs-scenes/narratif';
-import { creatures } from '../../data';
+import { charAbr, creatures } from '../../data';
+import { CHAR_KEYS } from '../../engine/types';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -19,18 +21,21 @@ beforeAll(() => {
 let container: HTMLDivElement;
 let root: Root;
 let last: NarratifBlock;
+let lastProjet: ProjetEdite;
 
-function Harness({ initial }: { initial?: NarratifBlock }) {
-  const [n, setN] = useState<NarratifBlock>(initial ?? emptyNarratif());
-  last = n;
-  return <NarratifEditor narratif={n} onChange={setN} onClose={() => {}} />;
+/** Projet CONTRÔLÉ : l'état vit chez le parent, comme chez `Editor` (`poserProjet`). */
+function Harness({ initial, scenes = [] }: { initial?: NarratifBlock; scenes?: Scene[] }) {
+  const [p, setP] = useState<ProjetEdite>({ scenes, worldMap: null, narratif: initial ?? emptyNarratif() });
+  last = p.narratif;
+  lastProjet = p;
+  return <NarratifEditor projet={p} onChange={setP} onClose={() => {}} />;
 }
 
-function mount(initial?: NarratifBlock) {
+function mount(initial?: NarratifBlock, scenes?: Scene[]) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<Harness initial={initial} />); });
+  act(() => { root.render(<Harness initial={initial} scenes={scenes} />); });
 }
 
 afterEach(() => {
@@ -110,6 +115,12 @@ function poserPage(sujet: string, valeur: string) {
 }
 const livre = (sujet: string) => champDeSource<HTMLSelectElement>('Livre', sujet);
 const note = (sujet: string) => champDeSource<HTMLInputElement>('Note', sujet);
+/** Choisit la provenance d'un texte (`ProvenanceDuTexte`) : un texte sans référence est « Maison », sans champ de source. */
+function provenance(mode: 'Copie' | 'Adapté' | 'Maison', sujet: string) {
+  const b = container.querySelector<HTMLButtonElement>(`[aria-label="${mode} — provenance ${sujet}"]`);
+  if (!b) throw new Error(`provenance « ${mode} » ${sujet} introuvable`);
+  click(b);
+}
 
 const avecIndice = (stades: NarratifBlock['indices'][number]['stades']): NarratifBlock => ({
   ...emptyNarratif(),
@@ -125,6 +136,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     setValue(field('Titre'), 'Ch. 1');
     setValue(container.querySelector('textarea')!, 'Pitch maison.');
     expect(last.ouverture?.source).toBeUndefined();
+    provenance('Copie', "de l'ouverture");
     setValue(livre("de l'ouverture"), 'ennemi-dans-l-ombre');
     expect(last.ouverture?.source).toBeUndefined();
     poserPage("de l'ouverture", '12');
@@ -156,6 +168,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount(avecIndice([{ id: 'stade-1', prose: 'p' }, { id: 'stade-2', prose: 'q' }]));
     click(btn('Indices'));
     click(btn('Un indice'));
+    provenance('Copie', 'du stade 2');
     setValue(livre('du stade 2'), 'ennemi-dans-l-ombre');
     poserPage('du stade 2', '7');
     expect(last.indices[0].stades[0].source).toBeUndefined();
@@ -183,6 +196,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount();
     click(btn('PNJ'));
     click(btn('Ajouter un PNJ'));
+    provenance('Copie', 'du PNJ');
     setValue(note('du PNJ'), 'ch. 2');
     expect(last.presetsPnj[0].source).toBeUndefined();
     setValue(livre('du PNJ'), 'ennemi-dans-l-ombre');
@@ -196,8 +210,11 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base, profil: { label: 'Alpha' } }, { id: 'pnj-b', base, profil: { label: 'Bravo' } }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
+    provenance('Copie', 'du PNJ');
     setValue(livre('du PNJ'), 'ennemi-dans-l-ombre');
     click(btn('Bravo'));
+    expect(container.querySelector('[aria-label="Livre de la source du PNJ"]'), 'le mode choisi sur Alpha s’affiche sur Bravo').toBeNull();
+    provenance('Copie', 'du PNJ');
     expect(livre('du PNJ').value, 'le livre choisi sur Alpha s’affiche sur Bravo').toBe('');
     poserPage('du PNJ', '12');
     expect(last.presetsPnj[1].source, 'la page tapée sur Bravo a posé le livre d’Alpha').toBeUndefined();
@@ -215,8 +232,10 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     });
     click(btn('Indices'));
     click(btn('Indice Un'));
+    provenance('Copie', 'du stade 1');
     setValue(livre('du stade 1'), 'ennemi-dans-l-ombre');
     click(btn('Indice Deux'));
+    provenance('Copie', 'du stade 1');
     expect(livre('du stade 1').value, 'le livre choisi sur Indice Un s’affiche sur Indice Deux').toBe('');
     poserPage('du stade 1', '5');
     expect(last.indices[1].stades[0].source, 'la page tapée sur Indice Deux a posé le livre d’Indice Un').toBeUndefined();
@@ -225,6 +244,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
 
   /** Renommer n'est pas changer d'entité : le brouillon survit, puis se complète sur le même porteur. */
   const brouillonSurvitAuRenommage = (sujet: string, renommer: () => void) => {
+    provenance('Copie', sujet);
     setValue(livre(sujet), 'aux-armes');
     setValue(note(sujet), 'ch. 3 l.4');
     renommer();
@@ -259,6 +279,78 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
   });
 });
 
+describe('NarratifEditor — provenance du texte : ouverture, stade, PNJ montent `ProvenanceDuTexte` (#2001)', () => {
+  const REF = { book: 'ennemi-dans-l-ombre', page: 12 };
+
+  it('ouverture : « Adapté » reporte `source` sur `adapteDe`, qui parse ; « Maison » la retire', () => {
+    mount({ ...emptyNarratif(), ouverture: { titre: 'Ch. 1', pitch: 'Pitch.', source: REF } });
+    click(btn('Cadre'));
+    provenance('Adapté', "de l'ouverture");
+    expect(last.ouverture).toMatchObject({ source: undefined, adapteDe: REF });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    provenance('Maison', "de l'ouverture");
+    expect(last.ouverture).toMatchObject({ source: undefined, adapteDe: undefined });
+  });
+
+  it('stade : « Adapté » écrit `adapteDe` dans CE stade, le voisin intact', () => {
+    mount(avecIndice([{ id: 'stade-1', prose: 'p' }, { id: 'stade-2', prose: 'q', source: REF }]));
+    click(btn('Indices'));
+    click(btn('Un indice'));
+    provenance('Adapté', 'du stade 2');
+    expect(last.indices[0].stades[1]).toMatchObject({ source: undefined, adapteDe: REF });
+    expect(last.indices[0].stades[0]).toEqual({ id: 'stade-1', prose: 'p' });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('PNJ : « Copie » reporte `adapteDe` sur `source`', () => {
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' }, adapteDe: REF }] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    provenance('Copie', 'du PNJ');
+    expect(last.presetsPnj[0]).toMatchObject({ source: REF, adapteDe: undefined });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('PNJ dont le profil ADRESSE sa description : « Adapté » refusé, sa raison dite ; sans adresse, offert', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    mount({ ...emptyNarratif(), presetsPnj: [
+      { id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF },
+      { id: 'pnj-b', base: creatures[0].id, profil: { label: 'Bravo' }, source: REF },
+    ] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    const adapte = () => container.querySelector<HTMLButtonElement>('[aria-label="Adapté — provenance du PNJ"]')!;
+    expect(adapte().getAttribute('aria-disabled')).toBe('true');
+    expect(container.textContent).toContain('La description du profil est la copie adressée du livre.');
+    click(adapte());
+    expect(last.presetsPnj[0]).toMatchObject({ source: REF });
+    expect(last.presetsPnj[0].adapteDe).toBeUndefined();
+    click(btn('Bravo'));
+    expect(adapte().getAttribute('aria-disabled')).toBeNull();
+    click(adapte());
+    expect(last.presetsPnj[1]).toMatchObject({ source: undefined, adapteDe: REF });
+  });
+
+  it('le document reste verbatim : sa source se saisit sans choix de provenance', () => {
+    mount({ ...emptyNarratif(), documents: [{ id: 'doc', titre: 'Affiche', prose: 'VOYAGEURS' }] });
+    click(btn('Documents'));
+    click(btn('Affiche'));
+    expect(container.querySelector('[aria-label="Livre de la source du document"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label$="— provenance du document"]')).toBeNull();
+  });
+});
+
+describe('NarratifEditor — PNJ › surcharges : la caractéristique s’affiche par son abréviation', () => {
+  it('chaque case porte `charAbr`, jamais l’id de caractéristique', () => {
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' } }] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    const cases = [...container.querySelectorAll('.statblock-grid .ed-subfield')].map((e) => e.textContent?.trim());
+    expect(cases).toEqual(CHAR_KEYS.map((k) => charAbr(k)));
+    expect(cases).not.toContain('capacite-de-combat');
+  });
+});
+
 describe('NarratifEditor — l\'éditeur ne produit jamais un bloc invalide (#670)', () => {
   const withOneAffaire = (): NarratifBlock => ({
     ...emptyNarratif(),
@@ -268,14 +360,14 @@ describe('NarratifEditor — l\'éditeur ne produit jamais un bloc invalide (#67
   it('0 affaire : « Ajouter un indice » est désactivé (défaut 1)', () => {
     mount();
     click(btn('Indices'));
-    expect(btn('Ajouter un indice').disabled).toBe(true);
+    expect(btn('Ajouter un indice').getAttribute('aria-disabled')).toBe('true');
   });
 
   it('1 affaire : « Ajouter un indice » émet un bloc qui PARSE contre narratifSchema', () => {
     mount(withOneAffaire());
     click(btn('Indices'));
     const addIndice = btn('Ajouter un indice');
-    expect(addIndice.disabled).toBe(false);
+    expect(addIndice.getAttribute('aria-disabled')).toBeNull();
     click(addIndice);
 
     expect(last.indices).toHaveLength(1);
@@ -336,6 +428,143 @@ describe('NarratifEditor — l\'éditeur ne produit jamais un bloc invalide (#67
     expect(last.indices[0].stades.map((s) => s.id)).toEqual(['stade-2', 'stade-3']);
     expect(idDuStade(1).getAttribute('aria-invalid')).toBeNull();
     expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+});
+
+describe('NarratifEditor — onglet Documents et stade à document (#679)', () => {
+  /** Le contrôle (`select`/`textarea`) de la plus PROCHE étiquette qui contient `libelle`. */
+  function controle<T extends HTMLSelectElement | HTMLTextAreaElement>(tag: 'select' | 'textarea', libelle: string): T {
+    const el = [...container.querySelectorAll(tag)].find((c) => c.closest('label')?.textContent?.includes(libelle));
+    if (!el) throw new Error(`${tag} « ${libelle} » introuvable`);
+    return el as T;
+  }
+  function saisir(el: HTMLSelectElement | HTMLTextAreaElement, value: string) {
+    const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLTextAreaElement.prototype;
+    act(() => {
+      Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+  const avecDocumentCroise = (): NarratifBlock => ({
+    ...emptyNarratif(),
+    affaires: [{ id: 'affaire-a', titre: 'La diligence' }],
+    indices: [{ id: 'indice-a', affaireId: 'affaire-a', kind: 'indice', titre: 'L’affiche', stades: [{ id: 'vue', documentId: 'doc-affiche' }] }],
+    documents: [{ id: 'doc-affiche', titre: 'L’affiche de la diligence', prose: 'VOYAGEURS' }],
+  });
+
+  it('ajoute, édite puis supprime un document ; le bloc rempli PARSE', () => {
+    mount();
+    click(btn('Documents'));
+    click(btn('Ajouter un document'));
+    expect(last.documents).toEqual([{ id: 'document-1', titre: 'Nouveau document', prose: '' }]);
+
+    setValue(field('Titre'), 'L’affiche');
+    saisir(controle('textarea', 'Texte'), '**Diligence** pour Altdorf');
+    expect(last.documents[0]).toMatchObject({ id: 'document-1', titre: 'L’affiche', prose: '**Diligence** pour Altdorf' });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+
+    click(btn('Supprimer ce document'));
+    expect(last.documents).toEqual([]);
+  });
+
+  it('la source d’un document : le livre se choisit dans les livres (SourceRefField), la page validée la complète, le bloc PARSE', () => {
+    mount(avecDocumentCroise());
+    click(btn('Documents'));
+    saisir(livre('du document'), 'livre-de-base');
+    expect(last.documents[0].source).toBeUndefined();
+    poserPage('du document', '12');
+    expect(last.documents[0].source).toEqual({ book: 'livre-de-base', page: 12 });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('un document qu’un stade croise ne se supprime pas', () => {
+    mount(avecDocumentCroise());
+    click(btn('Documents'));
+    const supprimer = btn('Supprimer ce document');
+    expect(supprimer.getAttribute('aria-disabled')).toBe('true');
+    click(supprimer);
+    expect(last.documents.map((d) => d.id)).toEqual(['doc-affiche']);
+  });
+
+  it('un stade croise un document par le sélecteur, sa prose devient facultative, et le bloc PARSE', () => {
+    mount({ ...avecDocumentCroise(), indices: [{ ...avecDocumentCroise().indices[0], stades: [{ id: 'vue', prose: 'On lit l’affiche.' }] }] });
+    click(btn('Indices'));
+    const doc = controle<HTMLSelectElement>('select', 'Document croisé');
+    expect([...doc.options].filter((o) => o.value !== '').map((o) => o.textContent)).toEqual(['L’affiche de la diligence']);
+    saisir(doc, 'doc-affiche');
+    expect(last.indices[0].stades[0]).toMatchObject({ documentId: 'doc-affiche', prose: 'On lit l’affiche.' });
+
+    saisir(controle('textarea', 'Prose'), '');
+    expect(last.indices[0].stades[0].prose).toBeUndefined();
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+});
+
+describe('NarratifEditor — une entrée désignée par le projet : retrait refusé et nommé, renommage propagé (#679)', () => {
+  const narratifDesigne = (): NarratifBlock => ({
+    ...emptyNarratif(),
+    affaires: [{ id: 'aff', titre: 'La route' }],
+    indices: [{ id: 'ind-lettre', affaireId: 'aff', kind: 'indice', titre: 'La lettre', stades: [{ id: 'lue', prose: 'a' }, { id: 'dechiffree', prose: 'b' }] }],
+    presetsPnj: [{ id: 'pnj-kastor', profil: { label: 'Kastor' } }],
+    documents: [{ id: 'doc-affiche', titre: 'L’affiche', prose: 'VOYAGEURS' }],
+  });
+  /** Une scène qui désigne chaque registre : un déclencheur (document, indice + stade) et un PNJ à preset. */
+  const salle = (): Scene => ({
+    ...emptyScene(4, 4),
+    id: 'salle',
+    label: 'Le relais',
+    entities: [{ id: 'kastor', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'pnj-kastor' }],
+    triggers: [{
+      id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
+      flow: { kind: 'seq', steps: [
+        { kind: 'do', effect: { type: 'document', documentId: 'doc-affiche' } },
+        { kind: 'do', effect: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } },
+      ] },
+    }],
+  });
+  const effets = () => {
+    const flow = lastProjet.scenes[0].triggers[0].flow as { steps: { effect: Record<string, unknown> }[] };
+    return flow.steps.map((s) => s.effect);
+  };
+
+  for (const [onglet, bouton] of [['Documents', 'Supprimer ce document'], ['Indices', 'Supprimer cet indice'], ['PNJ', 'Supprimer ce PNJ']] as const) {
+    it(`${onglet} : le retrait est refusé, la raison nomme la scène qui désigne l’entrée`, () => {
+      mount(narratifDesigne(), [salle()]);
+      click(btn(onglet));
+      const b = btn(bouton);
+      expect(b.getAttribute('aria-disabled')).toBe('true');
+      expect(container.textContent).toContain('Encore désigné par : scène « Le relais »');
+      const avant = last;
+      click(b);
+      expect(last).toBe(avant);
+    });
+  }
+
+  it('Documents : renommer l’id propage à l’Effect de la scène', () => {
+    mount(narratifDesigne(), [salle()]);
+    click(btn('Documents'));
+    setValue(field('Identifiant'), 'doc-placard');
+    expect(last.documents[0].id).toBe('doc-placard');
+    expect(effets()[0]).toEqual({ type: 'document', documentId: 'doc-placard' });
+  });
+
+  it('Indices : renommer l’id, puis un stade, propage à l’Effect de la scène', () => {
+    mount(narratifDesigne(), [salle()]);
+    click(btn('Indices'));
+    setValue(field('Identifiant'), 'ind-missive');
+    expect(effets()[1]).toEqual({ type: 'revealClue', indiceId: 'ind-missive', stade: 'dechiffree' });
+    const stade = [...container.querySelectorAll('label')].filter((l) => l.textContent?.includes('Id du stade'))[1].querySelector('input')!;
+    setValue(stade, 'traduite');
+    expect(last.indices[0].stades.map((s) => s.id)).toEqual(['lue', 'traduite']);
+    expect(effets()[1]).toEqual({ type: 'revealClue', indiceId: 'ind-missive', stade: 'traduite' });
+  });
+
+  it('PNJ : renommer l’id propage au `presetId` de l’entité', () => {
+    mount(narratifDesigne(), [salle()]);
+    click(btn('PNJ'));
+    setValue(field('Identifiant'), 'pnj-cousin');
+    expect(lastProjet.scenes[0].entities[0].presetId).toBe('pnj-cousin');
   });
 });
 

@@ -14,7 +14,7 @@ import type { GameState, BattleState, ShootingStanceKey } from './store';
 import type { BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup } from './pendings';
 import { fleeBackstab, fleeCalme, fleeNeedCalme } from './pendings';
-import { SceneEntity, structureIsDown } from './scene';
+import { SceneEntity, porteMasquee, structureIsDown } from './scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
@@ -25,7 +25,7 @@ import { battleRng } from './battleRng';
 import { defenseDodgeMod, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, resolveFreeAttacks, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, openRoundStartPsych, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, fireTurnStartTriggers, resolveActGates, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { losClear } from './lineOfSight';
-import { smokeOf, captureMoveSnapshot } from './combatGeometry';
+import { smokeOf, captureMoveSnapshot, formationDeCombat } from './combatGeometry';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { setTriggeredTestRouter, fireOwnTestFailed } from './triggeredEffects';
 import { emitCombatEvent } from './combatEvents';
@@ -113,7 +113,7 @@ import type {
   ConjureForm,
 } from '../engine/conjuredWeapons';
 import { findSpellById } from '../data/index';
-import { reachable, moveReachFor, chebyshev, Pt } from './path';
+import { reachable, moveReachFor, chebyshev, tileKey, Pt } from './path';
 import { combatDistance } from './footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './scene';
@@ -1083,12 +1083,11 @@ export function createCombatSlice(get: Get, set: Set) {
         // Mode-CASE (#198, résidus) : un commit qui tombe malgré tout sur une case non commettable
         // (occupant sans action pour ce mode) prévient — jamais muet — par la porte de refus commune
         // (`refusVisible` : le journal n'est pas affiché en combat). Hors mode-case : no-op voulu
-        // (allié sans Inspection, cf. combatCursor.test.ts).
+        // (allié non actionnable, cf. combatCursor.test.ts).
         if (currentTargetingMode(get).tileValidAt) refuserGeste(get, set, t('cs.cursorInvalidTile'));
         return;
       }
       if (intent.kind === 'entity') s.battleClickEntity(intent.id, { confirm: true });
-      else if (intent.kind === 'inspect') s.setInspectId(intent.id);
       else s.battleClickTile(intent.pt, { confirm: true });
     },
     // INTENTION LOCALE (spec zone 4) : la case d'action ARME le geste que le prochain clic du champ
@@ -2108,9 +2107,8 @@ export function createCombatSlice(get: Get, set: Set) {
       a.aiming = false; // recharger est une autre action → la visée est perdue
       // ARME rechargée = celle du pending (chaque arme à distance a SON cycle — arbitrage utilisateur
       // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
-      // munition ») ;
-      // repli sur la 1re arme à distance pour un pending sans uid (état antérieur).
-      const rw = a.weapons.find((x) => x.uid === pr.weaponUid) ?? a.weapons.find((x) => x.type === 'ranged');
+      // munition »).
+      const rw = garanti(a.weapons.find((x) => x.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée');
       // Rechargement rapide / Artilleur (LDB 10) : +niveau DR au Test de rechargement (sur un jet réussi).
       const reloadTalent = pr.success ? reloadDRBonus(a, rw) : 0;
       // Cumul LDB 12 mutualisé (`extendedTestStep`, #273 Étape 1) : même arithmétique que le Test étendu
@@ -2118,14 +2116,13 @@ export function createCombatSlice(get: Get, set: Set) {
       const { total: progress, done } = extendedTestStep(pr.progressBefore, { success: pr.success, sl: pr.sl + reloadTalent }, pr.reload);
       if (done) {
         loadWeapon(a, rw); // couture UNIQUE : état de charge + munition capturée, sur CETTE arme
-      } else if (rw) {
+      } else {
         setReloadProgress(a, rw, progress);
       }
       if (pr.success && reloadGrantsAssessAdvantage(a)) campGain(get, a, 1); // AA 13 l.9/90 : recharger = Action Évaluer → +1 Avantage (mode groupe)
       // ISSUE dérivée par le goulot (`FLOWS.reload.apply`, canal COMBAT) : `progress` inclut le bonus de
       // Talent (réalisé à l'application), le nom d'arme est résolu ici (uid → NOM d'affichage).
-      const reloadName = garanti(a.weapons.find((w) => w.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée').label;
-      const reloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: reloadName } });
+      const reloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ...evLines(reloadIssue, 'reload', a.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       // Acteur PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (comme cast/défense).
@@ -2747,8 +2744,9 @@ export function createCombatSlice(get: Get, set: Set) {
     startCombat: (encounterId: string, onVictory?: Flow, opts?: { noSurprise?: boolean }) => {
       const { scene, party, partyPos } = get();
       if (!scene) return;
-      const enc = scene.encounters.find((e) => e.id === encounterId);
-      if (!enc) return;
+      const rencontre = scene.encounters.find((e) => e.id === encounterId);
+      if (!rencontre) return;
+      const { enc, victoire } = structuredClone({ enc: rencontre, victoire: onVictory }); // #2097
       // Couture UNIVERSELLE de suspension (state/cascade.ts) : un combat qui s'ouvre PENDANT une
       // cascade active (ex. un abordage déclenché par l'applier d'une étape de voyage) la PARQUE au
       // lieu de la perdre au `resetFields('combatStart')` ci-dessous — jamais un cas spécial « mer ».
@@ -2756,12 +2754,14 @@ export function createCombatSlice(get: Get, set: Set) {
       // Placer les héros près de leur position de groupe, les ennemis selon l'encounter.
       // Couture d'ENTRÉE (`entreeEnRencontre`, #2312) ; on n'instancie pas les morts/éjectés.
       const livingParty = party.filter((h) => !h.dead && !h.outOfRencontre);
+      // Les cases des membres de la rencontre ne reçoivent aucun héros (`formationDeCombat`).
+      const prises = new Set((enc.members ?? []).flatMap((m) => {
+        const ent = scene.entities.find((e) => e.id === m.entityId);
+        return ent?.pos ? [tileKey(ent.pos.x, ent.pos.y, ent.z ?? 0)] : [];
+      }));
+      const formation = formationDeCombat(scene, partyPos, livingParty.length, prises);
       const heroes = livingParty.map((h, i) => {
-        const c: Combatant = {
-          ...entreeEnRencontre(h),
-          // z (étage) propagé depuis partyPos → Combatant.pos.z (omis au sol pour rester byte-identique, symétrique à #802 côté ennemis)
-          pos: { x: Math.max(0, partyPos.x - 1), y: Math.min(scene.dimensions.h - 1, partyPos.y + i), ...(partyPos.z ? { z: partyPos.z } : {}) },
-        };
+        const c: Combatant = { ...entreeEnRencontre(h), pos: formation[i] };
         // Re-dérive les armes ACTIVES depuis les items persistés : une arme usée/détruite au combat
         // précédent (damageTaken/destroyed sur l'ItemInstance) reste usée/détruite (LDB 62 l.135).
         if (c.items?.length) recomputeLoadout(c);
@@ -2813,9 +2813,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
       // un Combattant inerte à PV (kind 'npc' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
       // compte que les 'enemy'). Son `structureEdge` mémorise l'arête à ABATTRE (BRÈCHE) à sa destruction ;
-      // une structure déjà abattue n'est pas ré-instanciée. Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
+      // une structure déjà abattue n'est pas ré-instanciée, une porte secrète masquée (`porteMasquee`) non plus.
+      // Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
       const structures = (scene.walls ?? [])
-        .filter((w) => !!w.structure && !structureIsDown(scene, w))
+        .filter((w) => !!w.structure && !structureIsDown(scene, w) && !porteMasquee(scene, w))
         .map((w) => {
           const data = findStructureById(w.structure!);
           if (!data) return null;
@@ -2903,7 +2904,7 @@ export function createCombatSlice(get: Get, set: Set) {
         acted: false,
         log: [ev('round', t('cs.combatStart'))],
         over: null,
-        onVictory: onVictory ?? enc.onVictory,
+        onVictory: victoire ?? enc.onVictory,
         victoryCondition: enc.victoryCondition,
         banRanged: enc.banRanged,
         siege: enc.siege,

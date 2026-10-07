@@ -9,7 +9,7 @@ import { useRef } from 'react';
 import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
-import type { TrappingData } from '../../data';
+import type { NarratifBlock } from '../../state/campaignNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../state/flow';
 import type { Warning } from '../../state/validateScene';
@@ -20,6 +20,7 @@ import { effectCtxOf, Ctx } from './EffectList';
 import { FlowEditor } from './FlowEditor';
 import { WhenEditor, condSummary } from './ConditionEditor';
 import { DialogueDetail } from './DialogueDetail';
+import { CouvreField } from './CouvreField';
 import { ValidationPanel } from './ValidationPanel';
 import { Icon } from '../Icon';
 import { Tabs } from '../Tabs';
@@ -34,7 +35,7 @@ export function LogicDock({
   scene,
   otherScenes,
   worldMap,
-  objets,
+  narratif,
   setScene,
   warnings,
   onSelectWarning,
@@ -55,8 +56,8 @@ export function LogicDock({
   otherScenes: Scene[];
   /** Carte du monde du projet (id + label des lieux) pour `openPort` — absente ⇒ fallback texte. */
   worldMap: WorldMap | null;
-  /** Objets du projet (`narratif.objets`) — résolus avant le catalogue par l'Effet `giveTrapping`. */
-  objets: readonly TrappingData[];
+  /** Narratif du projet — ce que désignent les références narratives des Effects (`Ctx.narratif`). */
+  narratif: NarratifBlock;
   setScene: (s: Scene) => void;
   warnings: Warning[];
   onSelectWarning: (w: Warning) => void;
@@ -77,7 +78,7 @@ export function LogicDock({
   /** Couche (z) en cours d'édition — toute logique créée depuis le dock s'y pose. */
   currentLayer: number;
 }) {
-  const ctx: Ctx = { encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined, objets) };
+  const ctx = effectCtxOf({ scenes: [scene, ...otherScenes], worldMap, narratif }, scene);
   const dragRef = useRef<{ sy: number; sh: number } | null>(null);
 
   const errors = warnings.filter((w) => w.level === 'error').length;
@@ -201,6 +202,7 @@ function TriggersTab({
               Supprimer
             </button>
           </Row>
+          <CouvreField value={t.couvre} sujet="du déclencheur" onChange={(couvre) => upd({ couvre })} />
           <div className="mini-title" title="Le trigger ne se déclenche qu'en entrant dans la zone si la condition est vraie (flag, créneau horaire, ET/OU/NON).">Condition de déclenchement</div>
           <WhenEditor when={t.when} onChange={(when) => upd({ when })} />
           <div className="mini-title">Au déclenchement (effets · conditions · tests)</div>
@@ -240,7 +242,7 @@ function DialoguesTab({
           className="btn small"
           onClick={() => {
             const id = nextEntityId('dlg', scene.dialogues.map((x) => x.id));
-            setScene({ ...scene, dialogues: [...scene.dialogues, { id, start: 'n1', nodes: [{ id: 'n1', desc: '', choices: [] }] }] });
+            setScene({ ...scene, dialogues: [...scene.dialogues, { id, start: 'n1', nodes: [{ id: 'n1', choices: [] }] }] });
             setSel(id);
           }}
         >
@@ -345,6 +347,7 @@ function EncountersTab({
               Supprimer
             </button>
           </Row>
+          <CouvreField value={enc.couvre} sujet="de la rencontre" onChange={(couvre) => upd({ couvre })} />
           <div className="mini-title">Combattants (membres)</div>
           <div className="enemy-list">
             {members.map((m) => {

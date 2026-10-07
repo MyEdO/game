@@ -46,22 +46,22 @@ const anim: StageWalkAnim = {
 };
 
 const BASE = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
-/** Le héros `h1` tenant une arme de FORME donnée : une forme neuve est un dessin neuf, donc une cuisson. */
-function héros(forme: string): Combatant {
-  const arme = { uid: 'w1', label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], shape: forme } as unknown as Weapon;
+/** Le héros `h1` tenant l'arme `trappingId` du catalogue (#2113) : une arme neuve est un dessin neuf, donc une cuisson. */
+function héros(trappingId: string): Combatant {
+  const arme = ({ uid: 'w1', trappingId, label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } satisfies Partial<Weapon>) as Weapon;
   return { ...BASE, id: 'h1', weapons: [arme] } as Combatant;
 }
 const CHEVAL = {
   id: 'm1', label: 'Cheval', kind: 'enemy', creatureId: 'cheval', pos: { x: 5, y: 4 }, size: 'grande',
   conditions: [], wounds: { current: 10, max: 10 },
 } as unknown as Combatant;
-const àPied = (forme = 'dague'): ActorPose[] => [{ c: héros(forme), x: 4, y: 4, z: 0, facing: 'S' }, { c: CHEVAL, x: 5, y: 4, z: 0, facing: 'S' }];
-const enSelle = (forme = 'dague'): ActorPose[] => [{ c: CHEVAL, rider: héros(forme), x: 5, y: 4, z: 0, facing: 'S' }];
+const àPied = (arme = 'dague'): ActorPose[] => [{ c: héros(arme), x: 4, y: 4, z: 0, facing: 'S' }, { c: CHEVAL, x: 5, y: 4, z: 0, facing: 'S' }];
+const enSelle = (arme = 'dague'): ActorPose[] => [{ c: CHEVAL, rider: héros(arme), x: 5, y: 4, z: 0, facing: 'S' }];
 
 function rendre(actors: ActorPose[]): void {
   act(() => {
     root!.render(
-      <GameStage3D scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
+      <GameStage3D lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
         actors={actors} gameTime={MINUIT} lightLevel={1} lights={[]} anim={anim} />,
     );
   });

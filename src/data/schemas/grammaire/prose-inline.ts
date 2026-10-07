@@ -7,7 +7,8 @@
  *
  * MASQUE de la mesure, mot à mot : « nœud portant un `desc` chaîne non vide dont la source EFFECTIVE
  * — son `source.book` propre, sinon le `source.book` de l'ancêtre le plus proche qui en porte un —
- * désigne un livre à `dir` dans `books.json`, `maison` ou pas, à toute profondeur », sur les deux
+ * désigne un livre à `dir` dans `books.json`, `maison` ou pas, à toute profondeur », un nœud qui porte
+ * `adapteDe` coupant l'héritage (`champAdapteDe`, `./prose.ts`), sur les deux
  * racines de documents (les `.json` de `src/data`, les `-projet.json` de `src/scenes`). La mesure vit dans
  * `scripts/guards/lib/proseInline.mjs` et s'imprime par `node scripts/source/mesurer-prose-inline.mjs` :
  * les comptes ci-dessous en SORTENT, ils ne se tapent pas.
@@ -76,7 +77,6 @@ export const PROSE_INLINE_TOLEREE: Readonly<Record<string, LigneProseInline>> = 
   stars: { entrees: 23, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   characteristics: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée (19) et de rangée (2 : `[].options[]`), à adresser au Lot C' },
   etats: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
-  regles: { entrees: 21, lot: '#1887 lot 6a', date: '2026-09-28', motif: 'prose du livre recopiée en `desc` d’entrée que la migration `2026-09-28-1887-regles-desc-vers-descref` laisse inline (verdict `judge` ECHEC ou CELLULE), soldée par #1887 lot 6a-2' },
   'land-cargo': { entrees: 20, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`rumours[]`) — refus au parse à la migration de la famille, Lot C' },
   structures: { entrees: 19, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   maladies: { entrees: 18, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },

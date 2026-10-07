@@ -7,6 +7,7 @@
 import type { CharKey, Combatant } from '../types';
 import { TRAITS, TraitDef } from './registry';
 import { parseStatEntry, isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry } from '../statEntry';
+import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
 import { traitIdByLabel, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import { slugId } from '../../data/slug';
 import type { PassiveMod } from '../ops';
@@ -47,10 +48,6 @@ export function parseTraitInstance(raw: string): TraitInstance {
   return t;
 }
 
-/** Sentinelle « joker » d'un argument de trait (« au choix », « une au choix ») : reste verbatim
- *  (ni id ni libellé — l'auteur a laissé le choix ouvert, on n'a rien à résoudre). */
-const ARG_WILDCARD = /^(un |une |deux )?au choix$/i;
-
 /** Résout l'ARGUMENT `arg` d'une instance de trait en LIBELLÉ d'affichage via le catalogue partagé
  *  `SPEC_SOURCES` de sa def : « poison » → « Poison », « sigmar » → « Sigmar », « noble, homme-bete »
  *  → « Noble, Homme-bête ». Sans `specsSource` (trait indice-seul, arg descriptif libre) ou joker
@@ -59,7 +56,7 @@ const ARG_WILDCARD = /^(un |une |deux )?au choix$/i;
  *  [source].label` le rend tel quel (repli `?? id`), la saveur libre est donc préservée sans cas spécial. */
 function resolveTraitArg(def: TraitData | undefined, arg: string): string {
   const source = def?.specsSource;
-  if (!source || ARG_WILDCARD.test(arg)) return arg;
+  if (!source || ARG_JOKER.test(arg)) return arg;
   const one = (id: string) => (/au choix/i.test(id) ? id : SPEC_SOURCES[source].label(id));
   return def.specsMulti ? arg.split(',').map((p) => one(p.trim())).join(', ') : one(arg.trim());
 }
@@ -214,13 +211,16 @@ export function traitBonusWoundsBE(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'bonusWoundsBE');
 }
 
-/** Mutation / Corruption mentale (LDB 85) : mutations à appliquer au spawn. `mutationId` = mutation
- *  EXPLICITE figée (l'argument d'auteur « Mutation (Cornes asymétriques) » est résolu en id stable via
- *  `slugId` — runtime 100% id) ; absent = tirage sur le Tableau `kind`. */
+/** Mutation / Corruption mentale (LDB 85 l.92/245) : une entrée par INSTANCE à attacher au spawn. L'indice
+ *  du trait en est le NOMBRE (absent = 1, ZI 04 l.118 « Mutation 3 ») ; `mutationId` = mutation EXPLICITE
+ *  de la PREMIÈRE instance (son `arg`, un id de `mutations.json` garanti par le schéma d'instance) ; absent =
+ *  tirage sur le Tableau `kind`. */
 export function mutationsAtSpawn(traits: TraitList | undefined): { kind: 'physique' | 'mentale'; mutationId?: string }[] {
-  return (traits ?? [])
-    .filter((t) => findTraitById(t.id)?.capabilities?.mutationAtSpawn)
-    .map((t) => ({ kind: findTraitById(t.id)!.capabilities!.mutationAtSpawn!, mutationId: t.arg ? slugId(t.arg) : undefined }));
+  return (traits ?? []).flatMap((t) => {
+    const kind = findTraitById(t.id)?.capabilities?.mutationAtSpawn;
+    if (!kind) return [];
+    return Array.from({ length: t.value ?? 1 }, (_, i) => (i === 0 && t.arg ? { kind, mutationId: t.arg } : { kind }));
+  });
 }
 
 /** Marque du Chaos (Marque de Tzeentch, EDOC 13 l.522-524) : tirage PLURIEL et ALTERNÉ de Mutations au
@@ -314,7 +314,7 @@ export function bellicosePsychImmune(c: Pick<Combatant, 'traits' | 'advantage'>,
   return traitCapability(c.traits, 'psychImmuneIfAhead') && (c.advantage ?? 0) > foesMaxAdvantage;
 }
 
-/** Fabriqué (LDB 85 l.142) : pas d'Int/FM/Soc → Tests psychologiques auto-réussis. */
+/** Fabriqué (LDB 85 l.142). */
 export function isMindless(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'mindless');
 }
@@ -378,7 +378,7 @@ export function hasAutoClimb(traits: TraitList | undefined): boolean {
 }
 
 /** Grimpant (LDB 85 l.160-162) : vitesse de Mouvement MAXIMALE (coût normal) sur les surfaces
- *  d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.53, joueur). */
+ *  d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.55, joueur). */
 export function hasClimbFullSpeed(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'climbFullSpeed');
 }

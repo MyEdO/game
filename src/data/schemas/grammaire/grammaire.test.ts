@@ -84,10 +84,12 @@ describe('document() — enveloppe posée par la fabrique', () => {
 
   it('exige une PROVENANCE : `source` OU `maison`, jamais NI L’UN NI L’AUTRE (#1467 L1b)', () => {
     const nu = { id: 'a', type: 'talent', label: 'A', max: 2 };
-    // Sans provenance : refusé, et l'erreur NOMME le document et le champ attendu.
+    // Sans provenance : refusé, au chemin du champ attendu, la faute dite en français.
     const ko = fiche.entree.safeParse(nu);
     expect(ko.success).toBe(false);
-    expect(JSON.stringify(ko.error)).toMatch(/document\('talent'\).*maison/);
+    expect(ko.error!.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
+      { path: ['source'], message: 'provenance manquante : cite le livre et la page, ou dis la raison maison de l’entrée.' },
+    ]);
     // `maison` SEULE suffit : un arbitrage hors canon est une provenance, pas un trou.
     expect(fiche.entree.safeParse({ ...nu, maison: 'le canon ne chiffre pas ce point' }).success).toBe(true);
     // `source` seule suffit ; les DEUX ensemble restent légitimes (mesuré : 28 entrées, 9 fichiers).
@@ -946,7 +948,7 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
         const r = doc.entree.safeParse({ ...v, type: 'fiche-jouet' });
         return r.success ? [] : r.error.issues.map((i) => i.message);
       });
-    const REFINE = /entrée sans `source`/;
+    const REFINE = /provenance manquante/;
     const exigeant = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION, {
       exiges: ['source'],
     });
@@ -1294,16 +1296,28 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     expectTypeOf<z.infer<typeof descRefSchema>>().toEqualTypeOf<DescRefParseur>();
   });
 
+  it('un INTERVALLE porte sa section de fin, entière et distincte du départ (forme canonique unique)', () => {
+    const avec = (fin: Record<string, unknown>) => descRefSchema.safeParse({ ...ADRESSE, parts: [{ ...FRAGMENT, ...fin }] });
+    const chemins = (r: ReturnType<typeof avec>) => r.error?.issues.map((i) => i.path.join('.')) ?? [];
+    expect(avec({ finSec: 'la-suite', finSecOcc: 1, b1: 0 }).success, 'un intervalle dont la fin précède b0 en rang').toBe(true);
+    const egale = avec({ finSec: FRAGMENT.sec, finSecOcc: FRAGMENT.secOcc });
+    expect(egale.success).toBe(false);
+    expect(chemins(egale)).toEqual(['parts.0.finSec']);
+    expect(chemins(avec({ finSec: 'la-suite' }))).toEqual(['parts.0.finSecOcc']);
+    expect(chemins(avec({ finSecOcc: 2 }))).toEqual(['parts.0.finSec']);
+    expect(chemins(avec({ b0: 2, b1: 0 })), 'bornes inversées sans section de fin').toEqual(['parts.0.b1']);
+  });
+
   it('une adresse VALIDE est acceptée, et son livre doit être un livre EXTRAIT (V2)', () => {
     const doc = jouet(HORS_STOCK);
     expect(doc.entree.safeParse({ ...ENV(HORS_STOCK), source: SOURCE_REELLE, descRef: ADRESSE }).success).toBe(true);
     const ko = doc.entree.safeParse({ ...ENV(HORS_STOCK), source: SOURCE_SANS_EXTRACTION, descRef: ADRESSE_IRRESOLUBLE });
     expect(ko.success).toBe(false);
     expect(ko.error!.issues.map((i) => i.path.join('.'))).toContain('descRef.book');
-    expect(ko.error!.issues.map((i) => i.message).join(' ')).toMatch(/sans extraction/);
+    expect(ko.error!.issues.map((i) => i.message).join(' ')).toMatch(/passage introuvable : le livre « .+ » n’est pas extrait\./);
   });
 
-  it('V1 — `desc` ET `descRef` ensemble : un texte, un porteur', () => {
+  it('V1 — `desc` ET `descRef` ensemble : texte en double', () => {
     const ko = jouet(AU_STOCK).entree.safeParse({
       ...ENV(AU_STOCK),
       source: SOURCE_REELLE,
@@ -1312,7 +1326,7 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     });
     expect(ko.success).toBe(false);
     expect(ko.error!.issues.map((i) => i.path.join('.'))).toContain('descRef');
-    expect(ko.error!.issues.map((i) => i.message).join(' ')).toMatch(/un texte, un porteur/);
+    expect(ko.error!.issues.map((i) => i.message)).toContain('texte en double : saisi ici et adressé au livre — garde l’un ou l’autre.');
   });
 
   it('V2b — la `source` et l’adresse doivent citer le MÊME livre', () => {
@@ -1322,7 +1336,7 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
       descRef: ADRESSE,
     });
     expect(ko.success).toBe(false);
-    expect(ko.error!.issues.map((i) => i.message).join(' ')).toMatch(/un autre livre que l'adresse/);
+    expect(ko.error!.issues.map((i) => i.message).join(' ')).toMatch(/la source cite « aux-armes », le passage adressé « .+ » : une autre localisation va aux emplacements secondaires\./);
   });
 
   it('V3 — une prose recopiée d’un livre EXTRAIT est refusée hors stock, admise au stock, `maison` ou pas', () => {
@@ -1331,7 +1345,7 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     const ko = inline(HORS_STOCK);
     expect(ko.success).toBe(false);
     expect(ko.error!.issues.map((i) => i.path.join('.'))).toContain('desc');
-    expect(ko.error!.issues.map((i) => i.message).join(' ')).toMatch(/l'entrée l'ADRESSE/);
+    expect(ko.error!.issues.map((i) => i.message)).toContain('texte recopié d’un livre extrait : adresse le passage au lieu de le recopier.');
     expect(inline(AU_STOCK).success).toBe(true);
     // `maison` ne DISPENSE pas : le champ dit ce que le canon ne tranche pas, il ne dit pas d’où
     // vient le texte — 32 nœuds portent les deux (mesure du 2026-09-05).
@@ -1347,7 +1361,7 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     const nue = strict.entree.safeParse({ ...ENV(HORS_STOCK), source: SOURCE_REELLE });
     expect(nue.success).toBe(false);
     expect(nue.error!.issues.map((i) => i.path.join('.'))).toContain('desc');
-    expect(nue.error!.issues.map((i) => i.message).join(' ')).toMatch(/prose obligatoire/);
+    expect(nue.error!.issues.map((i) => i.message)).toContain('texte obligatoire.');
     expect(strict.entree.safeParse({ ...ENV(HORS_STOCK), source: SOURCE_REELLE, descRef: ADRESSE }).success).toBe(true);
     expect(strict.entree.safeParse({ ...ENV(HORS_STOCK), source: SOURCE_SANS_EXTRACTION, desc: 'Une prose.' }).success).toBe(true);
   });
@@ -1377,14 +1391,15 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
   it('`proseAdressable` porte la MÊME forme et les MÊMES verrous sur un schéma de RANGÉE', () => {
     const rangee = proseAdressable(z.strictObject({ roll: z.number(), source: sourceRefSchema.optional() }), {
       type: HORS_STOCK,
-      site: `${HORS_STOCK}>rangee`,
       exigeProse: true,
     });
     expect(rangee.safeParse({ roll: 1, descRef: ADRESSE }).success).toBe(true);
     expect(rangee.safeParse({ roll: 1 }).success).toBe(false);
     const ko = rangee.safeParse({ roll: 1, source: SOURCE_REELLE, desc: 'Une prose du livre.' });
     expect(ko.success).toBe(false);
-    expect(ko.error!.issues.map((i) => i.message).join(' ')).toContain(`${HORS_STOCK}>rangee`);
+    expect(ko.error!.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
+      { path: ['desc'], message: 'texte recopié d’un livre extrait : adresse le passage au lieu de le recopier.' },
+    ]);
   });
 
   it('`versDisque` retire le `desc` MATÉRIALISÉ d’un nœud adressé, à toute profondeur, et lui seul', () => {

@@ -68,7 +68,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "arene-projet.json", champ: "traits", occurrences: 11, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "walls", occurrences: 235, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "arene-projet.json", champ: "weapon", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "arene-projet.json", champ: "ref", occurrences: 421, lot: "L2/L3 #1473", date: "2026-09-27" }, // #1473 R1 : 291 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 130 `personnage` (`ref` en chaîne libre, résolue par `refEntiteResolue` et non par une feuille `idDe` : dette réelle, #1882) ; 406 → 421 à la fusion de #1897 : +15 `personnage` qui NOMMENT leur fiche (`2026-09-23-1882-fiche-de-personnage-nommee.mjs`, LDB 77)
+  { dataset: "arene-projet.json", champ: "ref", occurrences: 421, lot: "L2/L3 #1473", date: "2026-09-27" }, // #1473 R1 : 291 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 130 `personnage` (`ref` en chaîne libre, résolue par `refEntiteResolue` et non par une feuille `idDe` : dette réelle, #1882) ; 406 → 421 à la fusion de #1897 : +15 `personnage` qui NOMMENT leur fiche (#1882, LDB 77)
   { dataset: "barge-du-sel-projet.json", champ: "a", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "ambush", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "barge-du-sel-projet.json", champ: "ammo", occurrences: 8, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -121,12 +121,13 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "criticals.json", champ: "subject", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "criticals.json", champ: "traumas", occurrences: 48, lot: "L2/L3 #1473", date: "2026-09-02" },
   { dataset: "criticals.json", champ: "whenClear", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "diligence-projet.json", champ: "a", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "b", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "modes", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" }, // 38→76 : +38 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
-  { dataset: "diligence-projet.json", champ: "scene", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-31" },
-  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" }, // 668→1336 : +668 OCCURRENCES — copie de la-diligence en auberge-des-sept-rayons (#695, EDO 02 l.172)
+  { dataset: "diligence-projet.json", champ: "a", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "b", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "from", occurrences: 3, lot: "L2/L3 #1473", date: "2026-10-05" },
+  { dataset: "diligence-projet.json", champ: "modes", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "roomZoneIds", occurrences: 76, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "diligence-projet.json", champ: "scene", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-31" },
+  { dataset: "diligence-projet.json", champ: "walls", occurrences: 1336, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "amount", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "castBonus", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "domains.json", champ: "casterOps", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -139,7 +140,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "etats.json", champ: "ops", occurrences: 14, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "etats.json", champ: "passive", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "etats.json", champ: "subject", occurrences: 10, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "flow-stakes.json", champ: "rule", occurrences: 35, lot: "L2/L3 #1473", date: "2026-08-26" }, // 33 → 35 (#1920, 2026-09-24) : +4, quatre enjeux neufs nomment leur foyer (B2..B12) ; −2, `recover-empetre`/`recover-en-flammes` passent sur `etats.json` (`recover.enjeu`, B14)
+  { dataset: "flow-stakes.json", champ: "rule", occurrences: 36, lot: "L2/L3 #1473", date: "2026-08-26" }, // 35 → 36 (#700, 2026-09-30) : +1, `perception-detect`, stock de transition tué par #1473 ; 33 → 35 (#1920, 2026-09-24) : +4, quatre enjeux neufs nomment leur foyer (B2..B12) ; −2, `recover-empetre`/`recover-en-flammes` passent sur `etats.json` (`recover.enjeu`, B14)
   { dataset: "gods.json", champ: "grantGroups", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "grapple.json", champ: "amount", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "grapple.json", champ: "entangle", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -175,7 +176,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "loup-et-saumure-projet.json", champ: "start", occurrences: 8, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "loup-et-saumure-projet.json", champ: "victoryCondition", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "loup-et-saumure-projet.json", champ: "weapon", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "loup-et-saumure-projet.json", champ: "ref", occurrences: 23, lot: "L2/L3 #1473", date: "2026-09-27" }, // #1473 R1 : 2 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 21 `personnage` (`ref` en chaîne libre, résolue par `refEntiteResolue` et non par une feuille `idDe` : dette réelle, #1882) ; 12 → 23 à la fusion de #1897 : +11 `personnage` qui NOMMENT leur fiche (`2026-09-23-1882-fiche-de-personnage-nommee.mjs`, LDB 77)
+  { dataset: "loup-et-saumure-projet.json", champ: "ref", occurrences: 23, lot: "L2/L3 #1473", date: "2026-09-27" }, // #1473 R1 : 2 `prop` atteints (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 21 `personnage` (`ref` en chaîne libre, résolue par `refEntiteResolue` et non par une feuille `idDe` : dette réelle, #1882) ; 12 → 23 à la fusion de #1897 : +11 `personnage` qui NOMMENT leur fiche (#1882, LDB 77)
   { dataset: "maladies.json", champ: "dailyTest", occurrences: 1, lot: "L2/L3 #1473", date: "2026-09-01" }, // EDOC 08 l.104 (#674) — le Test quotidien DÉSIGNE son symptôme (#1657 geste A)
   { dataset: "maladies.json", champ: "symptoms", occurrences: 62, lot: "L2/L3 #1473", date: "2026-08-26" }, // +5 : Pneumonie (3) + Rhume commun (2), EDOC 08 folio 33 (#674) ; 54 → 62 : les 8 réfs à Difficulté PROPRE, jusque-là classées `test` (#1657 geste A)
   { dataset: "maneuvers.json", champ: "escapeStrength", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },

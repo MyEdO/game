@@ -5,8 +5,8 @@
  *
  * Trois volets, chacun sur le chemin RÉEL de son cas :
  *  - la porte par FICHIER (`validateDataset`) — le refus que le Compendium rend au save ;
- *  - la porte de la modale « Avancé » de l'éditeur (`SCHEMA_BLOCS_AVANCES` + `validateDocument`,
- *    `src/ui/editor/Editor.tsx:910`), qui ne passe PAS par le registre de documents ;
+ *  - la porte de la modale « Avancé » de l'éditeur (`lireBlocsAvances`, `src/ui/editor/Editor.tsx`), qui
+ *    ne passe PAS par le registre de documents ;
  *  - la GARDE DE CLASSE : tout fichier de PRODUCTION de `src/**` qui importe zod en VALEUR atteint la
  *    locale transitivement. Sans elle, un schéma futur bâti hors de la grammaire parlerait anglais
  *    sans qu'aucun banc ne bouge.
@@ -20,8 +20,8 @@ import { resolve } from 'node:path';
 import { clotureDImports, sourceALExecution, type Arc } from '../../../scripts/guards/lib/importGraph.mjs';
 import { estFichierVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
-import { validateDataset, validateDocument, rapportDeFautes } from './validate';
-import { SCHEMA_BLOCS_AVANCES } from '../../ui/editor/Editor';
+import { validateDataset } from './validate';
+import { lireBlocsAvances } from '../../ui/editor/Editor';
 import weatherJson from '../weather.json';
 
 /** Les mots que zod prononce en ANGLAIS, toutes familles d'issue confondues (sa locale `en`). */
@@ -46,15 +46,14 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
   /**
    * La modale « Avancé » colle un JSON de trois blocs de logique. Le cas MESURÉ à l'écran le
-   * 2026-09-21 (`{"dialogues": 42}`) : c'est CETTE paire — `validateDocument(SCHEMA_BLOCS_AVANCES, …)`
-   * puis `rapportDeFautes('Blocs de logique', …)` — que `saveAdvanced` pose dans `advError`, et rien
-   * d'autre ne transforme le texte entre là et le `role="alert"` (`Editor.tsx:1239`).
+   * 2026-09-21 (`{"dialogues": 42}`) : c'est le rapport de `lireBlocsAvances` que `saveAdvanced` pose dans
+   * `advError`, et rien d'autre ne transforme le texte entre là et le `role="alert"`.
    */
   it('porte de la modale « Avancé » — un bloc au MAUVAIS TYPE : refus français, au chemin', () => {
-    const fautes = validateDocument(SCHEMA_BLOCS_AVANCES, { dialogues: 42 });
+    const porte = lireBlocsAvances({ dialogues: 42 });
 
-    expect(fautes, 'un bloc au mauvais type doit être refusé').not.toBeNull();
-    const dit = rapportDeFautes('Blocs de logique', fautes!);
+    expect(porte.ok, 'un bloc au mauvais type doit être refusé').toBe(false);
+    const dit = porte.ok ? '' : porte.rapport;
 
     expect(dit).not.toMatch(ANGLAIS);
     expect(dit).toBe('Blocs de logique — JSON invalide contre son schéma :\n  - dialogues: Entrée invalide : tableau attendu, nombre reçu');

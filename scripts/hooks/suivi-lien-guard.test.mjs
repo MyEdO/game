@@ -7,8 +7,9 @@ import assert from 'node:assert/strict'
 import * as FS from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { repartir } from './repartiteur.mjs'
-import { JOURNAL, avertissementIllisible, epiqueLiee, epiquesLiees, garde, lignesDuJournal } from './suivi-lien-guard.mjs'
+import { repartir } from './repartition.mjs'
+import { JOURNAL, epiquesLiees, lignesDuJournal } from '../ops/suivi.mjs'
+import { avertissementIllisible, epiqueLiee, garde } from './suivi-lien-guard.mjs'
 
 const SCRIPTS = JSON.parse(FS.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).scripts
 
@@ -75,7 +76,7 @@ test('T3 — le lien est TRACÉ au journal du dépôt pour la session principale
 
 test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas retracé ; une autre épique ou une autre session, si', async () => {
   const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
-  // Le répartiteur rend les traces ; `executer` les AJOUTE au fichier (`scripts/hooks/repartiteur.mjs`).
+  // Le répartiteur rend les traces ; `executer` les AJOUTE au fichier (`scripts/hooks/repartition.mjs`).
   const appel = async (command, session_id = 's') => {
     const { traces } = await repartir({ PreToolUse: [garde] }, JSON.stringify({
       hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, session_id,
@@ -94,6 +95,25 @@ test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas 
     assert.equal(await appel('npm run ops:suivi -- 2132'), 1, 'une autre épique : une ligne de plus')
     assert.equal(await appel('npm run ops:suivi -- 1816', 'autre'), 1, 'une autre session : une ligne de plus')
     assert.deepEqual(journal(), [['s', 1816], ['s', 2132], ['autre', 1816]])
+  } finally {
+    FS.rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2279 — l’édition `<N> --session … --json [--ticket M] --geste …` lie la session à N, texte cité ou non ; le lecteur `--session … --json [--depuis …]` ne lie rien et n’avertit pas', async () => {
+  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2279 --session abc --json --ajouter-item "#12 un libellé"'), 2279)
+  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --cocher "brief écrit"'), 2279)
+  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --ajouter-etape juge'), 2279)
+  assert.equal(epiqueLiee('npm run ops:suivi -- --session abc --json'), null)
+  const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
+  const shell = (command) => repartir({ PreToolUse: [garde] }, JSON.stringify({
+    hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, session_id: 's',
+  }), { env: {}, cwd: racine })
+  try {
+    assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json'), { sortie: null, traces: [] })
+    assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json --depuis 0123abcd'), { sortie: null, traces: [] }, '--depuis : ni lien, ni avertissement')
+    const lie = await shell('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --cocher "brief écrit"')
+    assert.deepEqual(lignesDuJournal(lie.traces[0].ligne).map((l) => [l.session, l.epique]), [['s', 2279]])
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })
   }

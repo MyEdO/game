@@ -7,20 +7,20 @@ import {
   initLibrary,
   __resetLibraryForTest,
   SavedProject,
-  documentDeLEntree,
   campagneDeLEntree,
   playerEntryError,
-  MIGRATIONS_BIBLIOTHEQUE,
+  estRefusee,
+  projetDeLEntree,
 } from './projectLibrary';
-import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
-import { baseSimulee, brancherBasesSimulees } from '../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../lib/indexedDb';
+import { brancherBasesSimulees, brancherOuvertures } from '../lib/indexedDb.testkit';
 import { Scene, emptyScene } from './scene';
-import { parseProject, CURRENT_PROJECT_SCHEMA, ProjetRefuse } from './worldMap';
-import { allBuiltinCampaigns } from '../scenes/campaign';
+import { ProjetRefuse } from './worldMap';
 import { allAxes } from '../data';
+import { emptyNarratif } from './campaignNarratif';
 
-const KEY = 'wfrp4.editor-projects.v1';
-const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones.v1';
+const KEY = 'wfrp4.editor-projects';
+const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). `failSetItem` :
  *  clés dont `setItem` doit rejeter (simulation de quota dépassé/accès refusé CIBLÉE sur une clé). */
@@ -47,7 +47,7 @@ const NOM = 'wfrp4-library';
  *  `pannes.put`/`pannes.delete` : ids dont l'écriture échoue — des `Set` mutables, pour simuler une
  *  panne qui se résorbe entre deux appels (reprise au reload). */
 function bibliothequeSimulee(pannes: { put?: Set<string>; delete?: Set<string> } = {}): { store: Map<unknown, unknown> } {
-  const base = brancherBasesSimulees().amorcer(NOM, 1, { projects: { keyPath: 'id' } });
+  const base = brancherBasesSimulees().amorcer(NOM, { projects: { keyPath: 'id' } });
   base.panne = (q) => {
     const id = q.geste === 'put' ? (q.valeur as SavedProject).id : String(q.cle);
     const echoue = (q.geste === 'put' && pannes.put?.has(id)) || (q.geste === 'delete' && pannes.delete?.has(id));
@@ -63,28 +63,23 @@ const proj = (id: string, label = 'Projet', published = false): SavedProject => 
   startSceneId: 's1',
   savedAt: 1000,
   published,
-  project: { schema: 2, scenes: [scene('s1')] },
+  project: { scenes: [scene('s1')] },
 });
 /** Un projet dont la forme sérialisée dépasse largement la borne PAR PROJET du miroir localStorage
  *  (500 000 caractères) — sert à exercer le chemin « trop gros pour le miroir » sans dépendre d'un
  *  export du seuil interne. */
 const bigProj = (id: string, label = 'Grosse campagne'): SavedProject => ({
   ...proj(id, label),
-  project: {
-    schema: 2,
-    scenes: [scene(id)],
-    meta: { desc: 'x'.repeat(600_000) },
-  } as unknown as SavedProject['project'],
+  project: { scenes: [scene(id)], desc: 'x'.repeat(600_000) },
 });
 
 describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
-    await __resetLibraryForTest(); // cache module-level : reparte propre (isolation)
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
   });
 
   it('vide au départ', () => {
@@ -98,7 +93,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     expect(list).toHaveLength(1);
     expect(list[0].id).toBe('p1');
     expect(list[0].label).toBe('La Diligence');
-    expect(list[0].project.scenes[0].id).toBe('s1');
+    expect(list[0].project.scenes).toEqual([scene('s1')]);
   });
 
   it('projectSave avec le même id remplace (pas de doublon)', async () => {
@@ -133,40 +128,95 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     expect(projectsLoad()).toEqual([]);
   });
 
-  it('entrées invalides filtrées au chargement', () => {
+  it('enveloppe refusée (`savedProjectSchema`) : listée REFUSÉE si un `id` la désigne, refus levé au geste ; sans `id`, journalisée (#2404)', () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     localStorage.setItem(
       KEY,
       JSON.stringify([
         null,
         42,
-        { id: 'ok', name: 'X', startSceneId: 's1', savedAt: 1, published: false, project: { schema: 2, scenes: [{ id: 's1' }] } },
-        { id: 'bad' }, // pas de project.scenes
+        { id: 'ok', label: 'X', startSceneId: 's1', savedAt: 1, published: false, project: { scenes: [{ id: 's1' }] } },
+        { id: 'bad' },
+        { id: 'nom', name: 'Avant #608', startSceneId: 's1', savedAt: 1, published: true, project: { scenes: [] } },
       ]),
     );
     const list = projectsLoad();
-    expect(list).toHaveLength(1);
-    expect(list[0].id).toBe('ok');
+    expect(consoleErr, 'une relecture journalise chaque enveloppe refusée').toHaveBeenCalledTimes(4);
+    expect(list.map((e) => [e.id, e.refus === undefined])).toEqual([['ok', true], ['bad', false], ['nom', false]]);
+    expect(publishedProjects().map((e) => e.id), 'le drapeau `published` du brut est lu').toEqual(['nom']);
+    let refus: unknown;
+    try {
+      campagneDeLEntree(list[2]);
+    } catch (err) {
+      refus = err;
+    }
+    expect(refus).toBeInstanceOf(ProjetRefuse);
+    expect((refus as ProjetRefuse).message).toMatch(/^Entrée de bibliothèque d’un autre format, ou mal formée — /);
+    consoleErr.mockRestore();
   });
 
-  it('repli IDEMPOTENT (#608) : une entrée legacy `name` (pré-renommage) migre en `label` à la '
-    + 'lecture — sans casser un projet déjà enregistré', () => {
+  describe('une entrée refusée n’est jamais retirée par une écriture voisine (#2404)', () => {
+    const oeuvre = { id: 'oeuvre', label: 'Mon oeuvre', startSceneId: 's1', savedAt: 1, published: false, project: { scenes: [{ id: 's1' }] }, champEnTrop: 1 };
+    const sansId = { label: 'Sans id', project: { scenes: [] } };
+
+    it('sans IndexedDB : listée, et le miroir la réécrit TELLE QUELLE avec l’entrée sans `id`', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      localStorage.setItem(KEY, JSON.stringify([oeuvre, sansId]));
+      await initLibrary();
+      expect(projectsLoad().map((e) => e.id)).toEqual(['oeuvre']);
+      await projectSave(proj('voisin'));
+      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([sansId, oeuvre, proj('voisin')]);
+      await projectRemove('voisin');
+      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([sansId, oeuvre]);
+    });
+
+    it('avec IndexedDB : listée depuis la base, et le miroir la porte telle quelle', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { store } = bibliothequeSimulee();
+      store.set('oeuvre', oeuvre);
+      await initLibrary();
+      expect(projectsLoad().map((e) => e.id)).toEqual(['oeuvre']);
+      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([oeuvre]);
+      expect(store.get('oeuvre')).toEqual(oeuvre);
+    });
+
+    it('la suppression, geste de l’auteur, retire l’entrée refusée', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { store } = bibliothequeSimulee();
+      store.set('oeuvre', oeuvre);
+      await initLibrary();
+      await projectRemove('oeuvre');
+      expect(projectsLoad()).toEqual([]);
+      expect(store.has('oeuvre')).toBe(false);
+      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([]);
+    });
+  });
+
+  it('un PROJET d’un autre format, sous une enveloppe valide : LISTÉ, refusé au geste, jamais retiré (#2404)', async () => {
+    const entree = { id: 'p-ancien', label: 'Ancienne', startSceneId: 's1', savedAt: 1, published: true, project: { schema: 18, scenes: [{ id: 's1' }] } };
+    localStorage.setItem(KEY, JSON.stringify([entree]));
+    await initLibrary();
+    const [listee] = projectsLoad();
+    expect(listee.id, 'l’entrée reste listée : sa suppression est un geste de l’auteur').toBe('p-ancien');
+    let refus: unknown;
+    try {
+      campagneDeLEntree(listee);
+    } catch (err) {
+      refus = err;
+    }
+    expect(refus).toBeInstanceOf(ProjetRefuse);
+    expect((refus as ProjetRefuse).cause).toBe('schema');
+    expect((refus as ProjetRefuse).message).toMatch(/^Projet d’un autre format, ou mal formé — /);
+    await projectSave(proj('autre'));
+    expect(projectsLoad().map((e) => e.id), 'une écriture voisine ne l’efface pas').toEqual(['p-ancien', 'autre']);
+    expect(JSON.parse(localStorage.getItem(KEY)!).map((e: { id: string }) => e.id)).toEqual(['p-ancien', 'autre']);
+  });
+
+  it('miroir localStorage pré-peuplé + initLibrary() → cache le sert (repli sans IndexedDB en jsdom)', async () => {
     localStorage.setItem(
       KEY,
       JSON.stringify([
-        { id: 'p1', name: 'Legacy', startSceneId: 's1', savedAt: 1, published: false, project: { schema: 2, scenes: [{ id: 's1' }] } },
-      ]),
-    );
-    const list = projectsLoad();
-    expect(list).toHaveLength(1);
-    expect(list[0].label).toBe('Legacy');
-    expect((list[0] as unknown as { name?: string }).name).toBeUndefined();
-  });
-
-  it('migration one-time : localStorage pré-peuplé + initLibrary() → cache le sert (repli sans IndexedDB en jsdom)', async () => {
-    localStorage.setItem(
-      KEY,
-      JSON.stringify([
-        { id: 'p1', label: 'Ancienne', startSceneId: 's1', savedAt: 1, published: true, project: { schema: 2, scenes: [{ id: 's1' }] } },
+        { id: 'p1', label: 'Ancienne', startSceneId: 's1', savedAt: 1, published: true, project: { scenes: [{ id: 's1' }] } },
       ]),
     );
     await initLibrary();
@@ -248,8 +298,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
   });
 
-  describe('IndexedDB simulée (#776) — chemin de migration/réconciliation réellement exercé', () => {
-    it('migration complète : localStorage peuplé + idb vide → initLibrary recopie tout dans idb', async () => {
+  describe('IndexedDB simulée (#776) — chemin de réconciliation réellement exercé', () => {
+    it('recopie complète : localStorage peuplé + idb vide → initLibrary recopie tout dans idb', async () => {
       localStorage.setItem(
         KEY,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
@@ -261,7 +311,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       expect(idb.store.has('p2')).toBe(true);
     });
 
-    it('migration PARTIELLE (p2 rejette) puis reprise au reload suivant', async () => {
+    it('recopie PARTIELLE (p2 rejette) puis reprise au reload suivant', async () => {
       localStorage.setItem(
         KEY,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
@@ -401,7 +451,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
         KEY,
         JSON.stringify([proj('p1', 'Repli')]),
       );
-      __setOuvertureIdbForTest(() => {
+      brancherOuvertures(() => {
         const req = {} as IDBOpenDBRequest;
         queueMicrotask(() => req.onblocked?.(new Event('blocked') as unknown as IDBVersionChangeEvent));
         return req;
@@ -416,7 +466,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
         KEY,
         JSON.stringify([proj('p1', 'Repli')]),
       );
-      __setOuvertureIdbForTest(() => ({} as IDBOpenDBRequest)); // ne déclenche jamais aucun handler
+      brancherOuvertures(() => ({} as IDBOpenDBRequest)); // ne déclenche jamais aucun handler
       const pending = initLibrary();
       await vi.advanceTimersByTimeAsync(5000);
       await pending;
@@ -441,67 +491,35 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
   });
 });
 
-describe('documentDeLEntree — le document d’une entrée de bibliothèque, lu par UNE fonction (#1343)', () => {
-  const narratif = { affaires: [], indices: [], presetsPnj: [], objets: [] };
-  const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
-
-  it('entrée d’AVANT #1552 (document sans identité) : la porte accepte, avec l’id et le nom de l’entrée, version 0', () => {
-    const { type: _muette, ...sceneMuette } = scene;
-    const entree = {
-      id: 'proj-ancien', label: 'Campagne d’avant', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { schema: 6, scenes: [sceneMuette as Scene], narratif },
-    } as SavedProject;
-    expect(() => parseProject(structuredClone(entree.project)), 'le document brut est refusé').toThrow(/id/);
-    const doc = parseProject(documentDeLEntree(entree));
-    expect(doc.id).toBe('proj-ancien');
-    expect(doc.label).toBe('Campagne d’avant');
-    expect(doc.versionContenu).toBe(0);
-  });
-
-  it('copie d’AVANT E5 au nom divergent : le nom de l’ENTRÉE prime, l’id et la version restent ceux du document', () => {
-    const { paquet: _pq, fichier: _fi, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
-    const entree = {
-      id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { ...identiteDuPaquet, type: 'projet', schema: CURRENT_PROJECT_SCHEMA, label: 'Nom du paquet', versionContenu: 4, scenes: [scene], narratif },
-    } as unknown as SavedProject;
-    const doc = parseProject(documentDeLEntree(entree));
-    expect(doc.label).toBe('Mon nom');
-    expect(doc.id).toBe(allBuiltinCampaigns[0].id);
-    expect(doc.versionContenu).toBe(4);
-  });
-
-  it('entrée au nom VIDE : le nom du document reste', () => {
-    const entree = {
-      id: 'e', label: '  ', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'doc-id', label: 'Nom du document', versionContenu: 1, maison: 'fixture de test', scenes: [scene], narratif },
-    } as unknown as SavedProject;
-    expect(parseProject(documentDeLEntree(entree)).label).toBe('Nom du document');
-  });
-});
-
 describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la porte (#1343)', () => {
-  const narratif = { affaires: [], indices: [], presetsPnj: [], objets: [] };
+  const narratif = emptyNarratif();
   const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
 
-  it('entrée d’un ANCIEN schéma : ses scènes sont MIGRÉES avant d’être posées', () => {
-    const { type: _t, reliefDefaults: _r, ...sceneAncienne } = scene;
+  it('entrée d’un AUTRE format (scène sans `reliefDefaults`) : ProjetRefuse de cause `schema`, jamais migrée', () => {
+    const { reliefDefaults: _r, ...sceneAncienne } = scene;
     const entree = {
       id: 'proj-ancien', label: 'Campagne d’avant', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { schema: 6, scenes: [sceneAncienne as Scene], narratif },
-    } as SavedProject;
+      project: { type: 'projet', id: 'proj-ancien', label: 'Campagne d’avant', versionContenu: 1, maison: 'fixture de test', scenes: [sceneAncienne], narratif },
+    } as unknown as SavedProject;
+    expect(() => campagneDeLEntree(entree)).toThrow(expect.objectContaining({ cause: 'schema' }));
+  });
+
+  it('entrée au format courant : la campagne lancée porte l’id et la scène de départ de l’ENTRÉE', () => {
+    const entree = {
+      id: 'proj-courant', label: 'Campagne', startSceneId: 'scene-a', savedAt: 1, published: true,
+      project: { type: 'projet', id: 'proj-courant', label: 'Campagne', versionContenu: 1, maison: 'fixture de test', scenes: [scene], narratif },
+    } as unknown as SavedProject;
     const lancee = campagneDeLEntree(entree);
-    expect(lancee.id).toBe('proj-ancien');
-    expect(lancee.label).toBe('Campagne d’avant');
+    expect(lancee.id).toBe('proj-courant');
+    expect(lancee.label).toBe('Campagne');
     expect(lancee.startSceneId).toBe('scene-a');
     expect(lancee.worldMap).toBeNull();
-    expect(lancee.scenes[0].type).toBe('scene');
-    expect(lancee.scenes[0].reliefDefaults).toBeDefined();
   });
 
   it('entrée FAUTIVE : la porte lève ProjetRefuse, jamais rattrapé ici', () => {
     const entree = {
       id: 'proj-fautif', label: 'Fautive', startSceneId: 'x', savedAt: 1, published: true,
-      project: { schema: CURRENT_PROJECT_SCHEMA, scenes: [{ id: 'x' } as unknown as Scene], narratif },
+      project: { scenes: [{ id: 'x' } as unknown as Scene], narratif },
     } as SavedProject;
     expect(() => campagneDeLEntree(entree)).toThrow(ProjetRefuse);
   });
@@ -509,7 +527,7 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
   it('entrée dont la scène de départ n’est PAS une scène du document : ProjetRefuse de cause « entree », au chemin `startSceneId`', () => {
     const entree = {
       id: 'proj-depart', label: 'Départ perdu', startSceneId: 'scene-disparue', savedAt: 1, published: true,
-      project: { type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-depart', label: 'Départ perdu', versionContenu: 1, maison: 'fixture de test', scenes: [scene], narratif },
+      project: { type: 'projet', id: 'proj-depart', label: 'Départ perdu', versionContenu: 1, maison: 'fixture de test', scenes: [scene], narratif },
     } as unknown as SavedProject;
     let refus: unknown;
     try {
@@ -528,7 +546,7 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
     expect(axes.length, 'le registre porte des axes hors socle').toBeGreaterThan(0);
     const entree = {
       id: 'proj-axes', label: 'Campagne à axes', startSceneId: 'scene-a', savedAt: 1, published: true,
-      project: { type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-axes', label: 'Campagne à axes', versionContenu: 1, maison: 'fixture de test', scenes: [scene], narratif, activeAxes: axes },
+      project: { type: 'projet', id: 'proj-axes', label: 'Campagne à axes', versionContenu: 1, maison: 'fixture de test', scenes: [scene], narratif, activeAxes: axes },
     } as unknown as SavedProject;
     expect(campagneDeLEntree(entree).activeAxes).toEqual(axes);
   });
@@ -543,7 +561,7 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
     const entree = {
       id: 'proj-fautif', label: 'Fautive', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: {
-        type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj-fautif', label: 'Fautive', versionContenu: 1, maison: 'fixture de test',
+        type: 'projet', id: 'proj-fautif', label: 'Fautive', versionContenu: 1, maison: 'fixture de test',
         scenes: [{ ...scene, entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Fantôme', ref: 'decor-inexistant' }] }],
         narratif,
       },
@@ -556,17 +574,66 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
     }
     expect(refus, 'la porte refuse le décor à `ref` inexistante').toBeInstanceOf(ProjetRefuse);
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(playerEntryError(refus, 'jouer')).toBe('Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.');
-    expect(playerEntryError(refus, 'exporter')).toBe('Cette campagne ne peut pas être exportée en l’état. Demandez-en une nouvelle version à son auteur.');
+    expect(playerEntryError(refus, 'jouer')).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.');
+    expect(playerEntryError(refus, 'exporter')).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être exportée.');
     expect(consoleErr).toHaveBeenCalledWith('Campagne de bibliothèque refusée :', (refus as ProjetRefuse).message);
   });
 });
 
-describe('MIGRATIONS_BIBLIOTHEQUE — migration de `wfrp4-library`', () => {
-  it('base neuve : crée `projects` keyé id', () => {
-    const base = baseSimulee();
-    migrerBase(MIGRATIONS_BIBLIOTHEQUE, base.db, 0);
-    expect([...base.magasins.keys()]).toEqual(['projects']);
-    expect(base.magasins.get('projects')?.keyPath).toBe('id');
+describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#2404)', () => {
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+    __setFabriqueIdbForTest(null);
+  });
+
+  it('base neuve : `projects` keyé id', async () => {
+    const bases = brancherBasesSimulees();
+    await initLibrary();
+    expect(bases.base(NOM).magasins.get('projects')?.keyPath).toBe('id');
+  });
+
+  it('base d’une autre forme recréée : le miroir localStorage repeuple la bibliothèque', async () => {
+    const bases = brancherBasesSimulees();
+    bases.amorcer(NOM, { projects: { keyPath: 'cle' } });
+    localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Miroir')]));
+    await initLibrary();
+    expect(bases.suppressions).toEqual([NOM]);
+    expect(projectsLoad().map((e) => e.id)).toEqual(['p1']);
+    expect([...bases.contenu(NOM, 'projects').keys()]).toEqual(['p1']);
+  });
+});
+
+describe('estRefusee — le refus au GESTE, témoin de la bibliothèque lu par chaque écran (#2404)', () => {
+  const narratif = emptyNarratif();
+  const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
+  const entree = (id: string, startSceneId: string, scenes: unknown[]) => ({
+    id, label: id, startSceneId, savedAt: 1, published: true,
+    project: { type: 'projet', id, label: id, versionContenu: 1, maison: 'fixture de test', scenes, narratif },
+  }) as unknown as SavedProject;
+
+  it('contenu refusé : non refusée à la relecture, refusée après le geste, levée par la réécriture de l’entrée', async () => {
+    const fautive = entree('proj-fautif', 'x', [{ id: 'x' }]);
+    expect(estRefusee(fautive)).toBe(false);
+    expect(() => projetDeLEntree(fautive)).toThrow(ProjetRefuse);
+    expect(estRefusee(fautive)).toBe(true);
+    await projectSave(entree('proj-fautif', 'scene-a', [scene]));
+    expect(estRefusee(fautive), 'l’entrée réécrite n’est plus celle refusée').toBe(false);
+  });
+
+  it('départ inconnu : refusée après « Jouer », levée par le retrait de l’entrée', async () => {
+    const depart = entree('proj-depart', 'scene-disparue', [scene]);
+    expect(() => campagneDeLEntree(depart)).toThrow(ProjetRefuse);
+    expect(estRefusee(depart)).toBe(true);
+    await projectRemove('proj-depart');
+    expect(estRefusee(depart)).toBe(false);
+  });
+
+  it('entrée au format courant : jamais refusée', () => {
+    const saine = entree('proj-sain', 'scene-a', [scene]);
+    campagneDeLEntree(saine);
+    expect(estRefusee(saine)).toBe(false);
   });
 });

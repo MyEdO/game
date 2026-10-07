@@ -6,11 +6,13 @@
 // d'entrée qui rendent un verdict refusent donc avant lui :
 //   - `npm run gates` (`scripts/gates/toutes.mjs`), les `.mjs` que lancent les hooks shell du
 //     `core.hooksPath` de `postinstall` (un `post-*` sort 0 malgré le refus), les pilotes
-//     `merge.<nom>.driver` de `postinstall`, les hooks d'agent de `.claude/settings.json` et
-//     `.codex/hooks.json` : la porte est leur premier
+//     `merge.<nom>.driver` de `postinstall`, les hooks de session de `.claude/settings.json` et
+//     `.codex/hooks.json` (`HOOKS_DE_SESSION`) : la porte est leur premier
 //     import, donc la première ÉVALUATION ; leur clôture d'imports STATIQUE, chargée et liée avant
 //     toute évaluation, ne porte ni module TypeScript ni attribut d'import — ce qui en a besoin se
 //     charge après la porte, par `import()` ;
+//   - les hooks d'appel d'outil (`ENTREES_OUTIL`) : `scripts/hooks/barriere-outil.mjs` charge la porte
+//     par `import()`, après `scripts/test/verrou.mjs` ;
 //   - `npm install`/`npm ci` : `.npmrc` `engine-strict`.
 // Preuve : `scripts/node-requis.test.mjs`, pour chaque point d'entrée de cette liste ; les modules Node
 // s'y exécutent sous `--no-experimental-strip-types`, le chargement d'un Node 22 < 22.18. Sous un Node

@@ -28,6 +28,7 @@ import { DialogueBox } from '../DialogueBox';
 import type { Ctx } from './EffectList';
 import { paintEffectZone, type Sel, type Tool } from './editorState';
 import { evalCondition, conditionCtx } from '../../engine/flowCore';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -56,7 +57,7 @@ function mount(scene: Scene, sel: Sel) {
         enemyCreatures={[{ id: 'humain', label: 'Humain' }, { id: 'garde-du-village', label: 'Garde' }]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        narratif={emptyNarratif()}
         tool={tool}
         armZoneTiles={(zoneId, paint) => {
           tool = { mode: 'zoneTiles', zoneId, paint };
@@ -484,7 +485,7 @@ function sceneFacade(): Scene {
 
 /** Portée horizontale et abscisse du CENTRE de la face du pignon, telles que `buildWalls` les produit. */
 function gableSpan(scene: Scene): { width: number; center: number } {
-  const face = buildWalls(scene).flatMap((w) => w.faces)
+  const face = buildWalls(scene, 'auteur').flatMap((w) => w.faces)
     .find((f) => f.architectureFeatureKind === 'gable')!;
   const xs = face.poly.map((p) => p.x);
   return { width: Math.max(...xs) - Math.min(...xs), center: (Math.max(...xs) + Math.min(...xs)) / 2 };

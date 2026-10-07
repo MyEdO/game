@@ -115,6 +115,18 @@ export interface SequenceState<P = unknown> {
   payload: P;
 }
 
+/** REGISTRE DES FAMILLES au type : id de définition → charge utile. Chaque famille l'augmente à côté de
+ *  son `registerSequence` (`declare module './sequenceContract'`), dont la signature exige l'entrée. */
+// eslint-disable-next-line typescript/no-empty-object-type -- #2404 : registre ouvert à l'augmentation de module (`declare module './sequenceContract'`), que seule une interface reçoit.
+export interface SequenceFamilies {}
+
+/** L'état d'une séquence EN COURS, union discriminée par `def` DÉRIVÉE de `SequenceFamilies` : ce que
+ *  `GameState.sequence` persiste (#2404). */
+export type EtatDeSequence = { [K in keyof SequenceFamilies]: EtatDeFamille<K> }[keyof SequenceFamilies];
+
+/** L'état d'une séquence de la famille `K`. */
+export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<SequenceFamilies[K]> & { def: K };
+
 /**
  * UNE MANCHE déclarée par le système : sa fenêtre et ses étapes MINTÉES. `immediate` = aucune surface
  * à montrer (cadence auto, aucun siège humain sur le porteur) — l'orchestrateur résout d'office au
@@ -173,10 +185,13 @@ export interface SequenceRoundActors {
 
 /** Ce que le réducteur de clôture REÇOIT : l'état, les rangées CLOSES de la manche, et un RNG injecté
  *  (les jets d'un camp sans porteur jouable s'y roulent — un réducteur ne tire jamais son propre dé). */
+/** Ce que la clôture LIT de la manche close : ses étapes, rien d'autre. */
+export type MancheClose = Pick<PendingCascade, 'participants'>;
+
 export interface SequenceCloseCtx<P> {
   get: Get;
   seq: SequenceState<P>;
-  done: PendingCascade;
+  done: MancheClose;
   rng: RNG;
 }
 

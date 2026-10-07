@@ -6,7 +6,7 @@
 **Vérification** : après une feature UI, valider dans le navigateur (Playwright MCP) — charger
 l'app de CET arbre (`npm run dev` imprime son URL), dérouler le flux, vérifier `console` (0 erreur)
 et screenshoter. Le menu
-**« 🧪 Tests — scénarios »** ouvre un choix de scénarios de test (groupe fixé + scène adaptée,
+**« Scénarios de test »** (`menu.testScenarios`, `src/i18n/messages/fr.ts`) ouvre un choix de scénarios de test (groupe fixé + scène adaptée,
 combat direct) ; **passer par le scénario adapté, sinon en créer un** — un scénario = un fichier
 dans `src/scenes/test-scenarios/` (cf. `docs/test-scenarios.md`).
 
@@ -156,10 +156,13 @@ fait répondre `(pointer: coarse)`) et chaque commande vissée rendue offre 44px
 d'écran du rail n'est monté qu'avec un navire (`src/ui/CampaignView.tsx`) : la mise en place du combat
 pose un `vessel` de campagne.
 Cellules NON MESURÉES, et pourquoi :
-- **Caméra / inspection** `>900`, `701–900`, `561–700` : ces cellules décrivent `ViewControls`, monté
-  en jeu nulle part (#1822, « Inspection de combattant : aucun contrôle visible (ViewControls monté
-  nulle part, touche I seule)… ») — `grep -rn ViewControls src` ne le trouve qu'à
-  `src/ui/editor/EditorCanvas.tsx` et `src/ui/gallery/registry.tsx`.
+- **Caméra** `>900`, `701–900`, `561–700` : ces cellules décrivent `ViewControls`, la plaque de
+  l'ÉDITEUR — `grep -rn ViewControls src` ne la trouve qu'à `src/ui/editor/EditorCanvas.tsx` et
+  `src/ui/gallery/registry.tsx`. L'inspection n'a pas de plaque : c'est le GESTE SECONDAIRE d'un
+  jeton ou d'un portrait (clic droit, appui long ; Menu ou Maj+F10 sur un portrait focalisé ; touche
+  I, R3 à la manette — #1822), à recetter par ces gestes réels. Au tour d'un héros qui a une cible,
+  Tab est la liaison `target-next` (il pose le curseur de combat sur la cible, jamais le focus sur un
+  portrait) : le chemin clavier y est Tab puis I, qui inspecte la case du curseur.
 - **Dock** `701–900` « dock sur deux rangées au besoin » : conditionnel, aucun rendu ne le rend
   exigible.
 - **Dock** `561–700` « actions sur deux colonnes » : la grille du pont (`.cc-dock`) est réécrite sous
@@ -521,7 +524,7 @@ pas la cible d'UX.
 | `resumeLastScenario()` | relance le DERNIER `scenario(id, seed)` de CET onglet — id ET seed mémorisés en `sessionStorage` (clé `wfrp.dev.lastScenario`, posée à chaque lancement d'un id connu) : un reload HMR ramène au menu en perdant tout, ce geste rejoue le même scénario à l'identique (#1335) | AUCUNE relance automatique au boot (un rechargement humain doit rendre le menu) ; mémoire PAR ONGLET (un nouvel onglet ne sait rien), et un lancement par le MENU « Scénarios de test » (bouton Lancer, `src/ui/TestScenariosScreen.tsx`) n'écrit RIEN — seul le helper mémorise ; `✗ aucun scénario mémorisé…` sinon. Relance = un vrai `scenario()` : l'état de jeu repart de zéro (progression, siège MJ hérité, cf. `gmSeat`), ce n'est pas une restauration de sauvegarde |
 | `campaign(id?, seed?, sceneId?)` | charge une CAMPAGNE BUILT-IN (`builtinCampaigns`, `scenes/campaign.ts`) SANS dérouler le character creator ×4 à la main — groupe canonique (`makeShowcaseParty`), MÊME chemin que le picker `PartyScreen` (`setPendingCampaign` + `loadProject`) ; sans argument : liste les ids | les campagnes built-in ne portent PAS de pré-tirés propres (seul `pregens.json`, libre-service au picker) → groupe canonique (les 4 piliers de l'Arène), pas le casting narratif de la campagne ; `sceneId` (optionnel) démarre ailleurs que l'entrée par défaut — hors des scènes de la campagne, `✗ scène « … » introuvable dans « id » — ids : …` et RIEN n'est chargé (ni groupe, ni scène) ; `pendingCampaign` redevient `null` juste après (comme le flux réel : `loadProject`→`startScene` réinitialise l'état à l'INITIAL hors le sous-ensemble préservé, `store.ts`) — pas une régression. ⚠ **L'ARÈNE N'EST PAS LISTÉE** (mesuré recette 2026-08-29, arbre 5e129a110) : `campaign()` sans argument rend 3 campagnes sur 4 — l'Arène passe par un autre chemin de chargement. CONTOURNEMENTS mesurés : (a) la bibliothèque de campagnes AUX CLICS (menu → groupe → picker), (b) `fight('enc-…')` pour tomber directement dans un combat |
 | `interlude(weeks=3)` | arme un INTERLUDE de démo jouable (`startInterlude` — MÊME flux réel : `state.interlude` peuplé, Événement d100/héros, budget `min(3, weeks)`, écran 'interlude') SANS voyager jusqu'à Altdorf | catalogue d'Activités dérivé de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé ; sans groupe chargé, pose le groupe canonique (`makeShowcaseParty`, comme `campaign()`) ; `✗` si combat en cours ; interlude déjà ouvert → message sans réarmer ; à conduire ensuite à la main (Activités, clôture) — pas `screen('interlude')` seul (écran vide) |
-| `rules(id?, value?)` | lit/force une règle optionnelle (`policy.ts`) | **ASYMÉTRIE À CONNAÎTRE** : `rules(id, value)` est une surcharge **RUNTIME NON PERSISTÉE** (elle meurt au rechargement), tandis que `rules(id, null)` réinitialise **ET purge la surcharge PERSISTÉE** (`resetHouseRule` → `localStorage['wfrp4.house-rules.v1']`). Une règle cochée un jour au **panneau Options** (seule couture qui persiste, `setHouseRule`) revient donc COCHÉE à chaque ouverture tant qu'elle n'est pas réinitialisée — piège vécu (#1279 : « Jeux de taverne rapides » retrouvée active 3 runs de suite malgré deux `rules(id, false)`). **Vérifier l'état PERSISTÉ en fin de run** : `localStorage.getItem('wfrp4.house-rules.v1')`. La CADENCE n'est plus ici (préférence de confort, cf. `prefs()`) — les règles sont VERROUILLÉES tant qu'un combat est en cours (`houseRulesMutability`) : l'écriture est refusée en silence, et `rules(id, null)` rend alors la raison |
+| `rules(id?, value?)` | lit/force une règle optionnelle (`policy.ts`) | **ASYMÉTRIE À CONNAÎTRE** : `rules(id, value)` est une surcharge **RUNTIME NON PERSISTÉE** (elle meurt au rechargement), tandis que `rules(id, null)` réinitialise **ET purge la surcharge PERSISTÉE** (`resetHouseRule` → `localStorage['wfrp4.house-rules']`). Une règle cochée un jour au **panneau Options** (seule couture qui persiste, `setHouseRule`) revient donc COCHÉE à chaque ouverture tant qu'elle n'est pas réinitialisée — piège vécu (#1279 : « Jeux de taverne rapides » retrouvée active 3 runs de suite malgré deux `rules(id, false)`). **Vérifier l'état PERSISTÉ en fin de run** : `localStorage.getItem('wfrp4.house-rules')`. La CADENCE n'est plus ici (préférence de confort, cf. `prefs()`) — les règles sont VERROUILLÉES tant qu'un combat est en cours (`houseRulesMutability`) : l'écriture est refusée en silence, et `rules(id, null)` rend alors la raison |
 | `prefs(id?, value?)` | lit/force une PRÉFÉRENCE de confort (`state/preferences.ts`) — dont `prefs('combat-cadence', 'auto')` (auto/rapide/manuel) | écriture PERSISTÉE (localStorage) + effet déclaré joué (reprise de boucle) ; `prefs(id, null)` réinitialise ; modifiable EN COMBAT, contrairement aux règles |
 | `seed(n)` | re-ensemence le RNG de bataille EN COURS de combat | même action que `scenario(id, seed)` au lancement |
 | `previewRoll(seed, count=1)` | lecture PURE des `count` premiers d100 d'un seed — `makeRNG(seed)` À PART, ZÉRO mutation d'état (jamais le `battleRng` du store) | fidèle au PROCHAIN jet réel du store UNIQUEMENT depuis un `seed(n)`/`scenario(id, seed)` FRAIS, avant toute autre consommation — `battleRng` est PARTAGÉ (initiative/dégâts/IA s'intercalent, désynchronisent la prédiction) ; deux previews du même seed renvoient TOUJOURS la même séquence |
@@ -843,6 +846,14 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Les modales du jeu sont des `<div role="dialog">`, jamais la balise `<dialog>`** (mesuré recette
   #1279 S2) : un sélecteur `dialog` ne trouve RIEN et fait conclure à tort qu'aucune fenêtre n'est
   ouverte. Cibler `[role="dialog"]` (ou `.modal-overlay` pour le voile).
+- **Deux `role="dialog"` SUPERPOSÉS : `querySelector` rend le PREMIER du DOM, pas celui du dessus**
+  (recette #679, 2026-09-30) : la conversation et la modale de document qu'elle ouvre sont deux
+  `Modal` (`src/ui/Modal.tsx`) — `querySelector('[role="dialog"]')` a rendu la conversation, sous la
+  modale. Mesuré ce jour-là : le DERNIER `.modal-overlay` de `querySelectorAll` était la modale du
+  dessus. Ce n'est pas une règle : l'ordre du document ne dit pas l'ordre de la pile (un portal ajouté en
+  fin de `body` a déjà menti, `Modal.tsx:97-98`) ; la pile fait foi (`dialogueDuDessus`,
+  `src/ui/useDismissLayer.ts:107`). RÈGLE : viser la fenêtre par son CONTENU (titre, bouton propre),
+  et vérifier ce contenu avant d'y cliquer.
 - **Occlusion de la carte du monde sur le panneau latéral** (vécu 2026-08-05, recette 3) : sous 901px
   de large, la mise en page EMPILE carte et panneau ; `.map-canvas-frame` porte un `aspect-ratio` et
   débordait de sa cellule, son SVG recouvrant les commandes du panneau (« Rythme normal / Forcer +1 M »
@@ -930,11 +941,17 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   POV et à l'éditeur, et elle vaut pour Q/E du monde de jeu. Le `keyboard.down`/`up` de Playwright
   s'est révélé fragile pour ce geste tenu (échec silencieux : aucune rotation, aucune erreur) ;
   vérifier l'angle obtenu entre chaque geste plutôt que de le supposer.
+- **Pas d'EXPLORATION : une touche `explore-*` MAINTENUE fait COURIR le groupe** (recette #679,
+  2026-09-30) : `realKeyDown` / 350 ms / `realKeyUp` a mené le groupe de (1,2) à (4,0). La touche
+  ARME une marche (`demarrerMarche`, `src/state/stageWalk.ts:90`) qui enchaîne un pas à chaque fin de
+  glissement tant qu'elle est tenue ; le relâchement la désarme (`arreterMarche`, `:99`). Un TAP
+  (appui suivi aussitôt du relâchement) fait UN pas. Même famille que le lacet caméra ci-dessus, mais
+  sans seuil : ici, toute durée d'appui compte.
 - **Le bouton de bascule de vue nomme sa DESTINATION, pas l'état courant** (même recette) :
   « Vue du dessus » affiché ⇒ on est en ISO (`src/ui/ViewControls.tsx`). L'état RÉEL est dans
   l'`aria-pressed` de SON bouton — jamais dans un `[aria-pressed]` NU : la barre de vues en porte
-  PLUSIEURS (projection, POV, inspection — `ViewControls.tsx:68`, `:79`, `:92`), et le premier trouvé
-  n'est pas forcément celui de la projection. Le désigner par l'`aria-label` de son bouton
+  PLUSIEURS (projection, POV — `ViewControls.tsx:63`, `:74`), et le premier trouvé n'est pas
+  forcément celui de la projection. Le désigner par l'`aria-label` de son bouton
   (`[aria-label="Vue du dessus"][aria-pressed]`), comme pour tout contrôle de cette barre.
 - **EN JEU, aucune barre de vues** (relevé en recette #1343, 2026-09-22) : `ViewControls` n'est monté
   qu'à l'éditeur (`src/ui/editor/EditorCanvas.tsx`). La bascule ISO ⇄ dessus du monde de jeu est un
@@ -1199,8 +1216,9 @@ que CHAQUE page rend, jamais à un `pending*` (identique des deux côtés, cf. i
 
 | Cas | Commande | Contrôle |
 |---|---|---|
-| **Défaut — aucun setup** | `npm run dev` seul | `relayHttpUrl` (`src/net/relay.ts`) retombe sur `RELAY_URL_PROD` = le Worker Cloudflare DÉPLOYÉ : héberger fonctionne sans rien lancer d'autre |
-| Relay LOCAL (Worker modifié / hors ligne) | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, **puis** Vite relancé avec la variable | `POST http://localhost:8787/rooms` doit rendre `{"code":…,"hostToken":…}` |
+| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `npm run dev` dans un autre | `relayHttpUrl` (`src/net/relay.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
+| Build de production sans variable | Build avec `import.meta.env.PROD` vrai | Le défaut `RELAY_URL_PROD` vise le Worker Cloudflare déployé |
+| Relais explicite | Relancer Vite avec `VITE_RELAY_URL` | La variable prend priorité dans tous les modes ; une URL locale convient aussi à un build de production |
 
 `VITE_RELAY_URL` est lue via `import.meta.env` **au démarrage de Vite** : la poser après coup ne
 change rien, il faut relancer le serveur de dev. Syntaxe PowerShell :
@@ -1211,6 +1229,11 @@ $env:VITE_RELAY_URL = 'http://localhost:8787'; npm run dev
 
 (bash : `VITE_RELAY_URL=http://localhost:8787 npm run dev`). L'URL WebSocket en est DÉRIVÉE
 (`http`→`ws`, `roomWsUrl`) — une seule variable pour les deux.
+
+Pour éprouver le refus de connexion hors production, arrêter le relais local, ou relancer Vite avec
+une URL locale sur un port fermé (par exemple `http://localhost:8799`). Héberger refuse ; rejoindre
+rend « Connexion impossible — réessayez. » après 15 secondes et conserve le mode local. Sans
+variable, aucune de ces tentatives ne vise le Worker de production.
 
 ### Le kit deux-navigateurs (`scripts/recette/lib.mjs`)
 
@@ -1520,6 +1543,25 @@ mécaniques (Blessures / État / buffs… — vocabulaire des sorts) » → menu
 Le libellé de l'entrée est cité COMPLET (`src/state/combatEffects.ts:1535`) : viser « Effets
 mécaniques » en `{ exact: true }` rate (piège du suffixe ci-dessus) — soit le texte entier, soit
 `exact: false`.
+
+Un effet **Journal** (texte et provenance, #2001) suit le même chemin, mesuré au code :
+
+Éditeur → onglet **Triggers** (`src/ui/editor/LogicDock.tsx:85`) → **+ Nouveau trigger** (`:174`, qui
+sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:226`) →
+**Journal** (`src/state/combatEffects.ts:1308`).
+
+- « + Bloc » est le `<summary>` d'un `<details>` (`AddMenu`, `src/ui/editor/AddMenu.tsx`) : le cliquer
+  ouvre le menu, aucun bouton ne porte ce texte. Le menu s'ouvre avec TOUTES ses sections dépliées
+  (`AddMenu.tsx`, un `mini-title` par groupe, jamais cliquable) : « Narration » n'est qu'un titre, on
+  clique « Journal » directement.
+- La ligne d'effet posée est un `<details class="eff-row flow-node">` REPLIÉ (`open` n'est posé que pour
+  un nœud `if`/`test`, `FlowEditor.tsx:263`) : ouvrir son `<summary>` avant de viser la zone de texte.
+- Depuis la CARTE, un trigger sélectionné ouvre le même détail par le bouton **Effets (n)…** de
+  l'inspecteur (`src/ui/editor/Inspector.tsx:910`).
+
+**Mesurer un rognage** : sur le CONTENEUR qui clippe (celui qui porte `overflow: hidden`, ex. `.seg`),
+jamais sur l'élément clippé. Comparer `scrollWidth` à `clientWidth` du conteneur ; la largeur de
+l'élément rogné reste la sienne et ne dit rien du masquage.
 
 ## Chemins canoniques du Codex (niches ouvertes récemment)
 

@@ -1,13 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { setItemShape, transferItem, toggleEquip, stowItem, setLoadoutSlot } from './partyFlow';
+import { afterEach, describe, it, expect } from 'vitest';
+import { choisirForme, transferItem, toggleEquip, stowItem, setLoadoutSlot } from './partyFlow';
 import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { formeResolue } from '../gameIso/rig/parts/equipment';
+import { setDataset } from '../data/overrides';
+import { trappings } from '../data';
 import type { Possession } from '../engine/possession';
 import type { GameState } from './store';
 import type { Get, Set } from './flowTypes';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party`+`possessions` — `resolveCarrier` (#620) lit
- *  les deux ; `setItemShape` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
+ *  les deux ; `choisirForme` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
  *  fonctionnel de Zustand est miroité (merge du partiel renvoyé). */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
   let state = { party, possessions, log: () => {} } as unknown as GameState;
@@ -38,38 +41,65 @@ function heroWithArmeSimple(): Combatant {
 
 const activeWeapon = (h: Combatant, uid: string) => (h.weapons ?? []).find((w) => w.uid === uid);
 
-describe('setItemShape — sélecteur de forme d’une arme abstraite', () => {
-  it('une « Arme simple » créée via itemFromTrappingById a shape === "epee" (défaut du trapping)', () => {
+describe('choisirForme — sélecteur de forme d’une arme abstraite', () => {
+  const catalogueDOrigine = trappings.slice();
+  afterEach(() => setDataset('trappings', catalogueDOrigine));
+  const editerArmeSimple = (patch: object) =>
+    setDataset('trappings', trappings.map((t) => (t.id === 'arme-simple' ? { ...t, ...patch } : t)));
+
+  it('une « Arme simple » créée via itemFromTrappingById ne porte aucun choix : sa forme résolue est celle du catalogue', () => {
     const it = itemFromTrappingById('arme-simple')!;
-    expect(it.shape).toBe('epee');
+    expect(it.formeChoisie).toBeUndefined();
+    expect(formeResolue(it)).toBe('epee');
   });
 
-  it('pose item.shape sur une forme valide (∈ formChoices)', () => {
+  it('pose item.formeChoisie sur une forme valide (∈ formChoices)', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    setItemShape(get, set, hero.id, uid, 'hache');
+    choisirForme(get, set, hero.id, uid, 'hache');
     const after = get().party[0];
-    expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.shape).toBe('hache');
+    expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.formeChoisie).toBe('hache');
   });
 
-  it('ignore une forme HORS formChoices (no-op sur le shape)', () => {
+  it('ignore une forme HORS formChoices (aucun choix posé)', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    setItemShape(get, set, hero.id, uid, 'zweihander'); // arme réelle mais hors des 5 formes de l’Arme simple
+    choisirForme(get, set, hero.id, uid, 'zweihander'); // arme réelle mais hors des 5 formes de l’Arme simple
     const after = get().party[0];
-    expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.shape).toBe('epee'); // inchangé
+    expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.formeChoisie).toBeUndefined();
   });
 
-  it('l’arme ACTIVE (tenue) reprend le shape choisi après recompute (silhouette en jeu)', () => {
+  it('l’arme ACTIVE (tenue) porte le choix après recompute, et sa forme résolue le suit (silhouette en jeu)', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
-    expect(activeWeapon(hero, uid)?.shape).toBe('epee'); // état initial : épée
+    expect(formeResolue(activeWeapon(hero, uid)!)).toBe('epee'); // état initial : épée
     const { get, set } = makeHarness([hero]);
-    setItemShape(get, set, hero.id, uid, 'masse');
+    choisirForme(get, set, hero.id, uid, 'masse');
     const after = get().party[0];
-    expect(activeWeapon(after, uid)?.shape).toBe('masse'); // Weapon.shape suit ItemInstance.shape
+    expect(activeWeapon(after, uid)?.formeChoisie).toBe('masse');
+    expect(formeResolue(activeWeapon(after, uid)!)).toBe('masse');
+  });
+
+  it('#2113 — une édition du catalogue ne l’écrase pas : le choix prime sur la forme du catalogue', () => {
+    const hero = heroWithArmeSimple();
+    const uid = hero.items![0].uid;
+    const { get, set } = makeHarness([hero]);
+    choisirForme(get, set, hero.id, uid, 'masse');
+    editerArmeSimple({ shape: 'hache' });
+    const arme = activeWeapon(get().party[0], uid)!;
+    expect(formeResolue({ trappingId: 'arme-simple' }), 'la sonde mord : le catalogue a changé de forme').toBe('hache');
+    expect(formeResolue(arme)).toBe('masse');
+  });
+
+  it('#2113 — un choix sorti des `formChoices` du catalogue est ignoré : le catalogue l’emporte', () => {
+    const hero = heroWithArmeSimple();
+    const uid = hero.items![0].uid;
+    const { get, set } = makeHarness([hero]);
+    choisirForme(get, set, hero.id, uid, 'masse');
+    editerArmeSimple({ formChoices: ['epee', 'hache'] });
+    expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('epee');
   });
 });
 

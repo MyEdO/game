@@ -5,9 +5,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { livreDuReleve, preparerLivre } from './releve.mjs'
-import { CONSIGNE_DE_TRI, sectionsDuPaquet } from './paquet.mjs'
+import { CONSIGNE_DE_TRI, replier, sectionsDuPaquet } from './paquet.mjs'
 import { RAPPEL, adresseDeLaPreuve, fuitesDeLaConsigne, score, verifier } from './tri.mjs'
-import { estErreur, parseChapitre, resoudreAdresse } from '../../src/data/source/decoupe.ts'
+import { estErreur, fragmentBlocs, intervalleDe, parseChapitre, resoudreAdresse } from '../../src/data/source/decoupe.ts'
 
 const chapitre = (fichier, lignes) => ({ fichier, parse: parseChapitre(lignes.join('\n')) })
 const FIXTURE = preparerLivre({
@@ -31,6 +31,8 @@ const TERMES = ['poison']
 const SECTIONS = sectionsDuPaquet(FIXTURE, TERMES)
 const [POISONS, COMBAT, HEALING] = ['01 l.3', '01 l.11', '01 l.15']
 const chapitreFixture = FIXTURE.indexe.chapitres.get('01 - Rules.md')
+/** Un bloc de la section Poisons de la fixture (`BlocDuFil`). */
+const bloc = (idx) => ({ sec: 'poisons', secOcc: 1, idx })
 
 const valide = [
   { ref: POISONS, role: 'définit', preuve: 'Lethal poison kills within the hour.' },
@@ -77,7 +79,7 @@ test('#1887 : refus `preuve-introuvable` — preuve absente de sa section, ou d�
 })
 
 test('#1887 : refus `preuve-ambigue` — la même phrase à deux blocs de sa section, blocs nommés', () => {
-  assert.deepEqual(refusDe([...valide, { ref: POISONS, role: 'modifie', preuve: 'A poison harms whoever drinks it.' }]).map(sans), [{ refus: 'preuve-ambigue', ligne: 3, blocs: [0, 2] }])
+  assert.deepEqual(refusDe([...valide, { ref: POISONS, role: 'modifie', preuve: 'A poison harms whoever drinks it.' }]).map(sans), [{ refus: 'preuve-ambigue', ligne: 3, blocs: [bloc(0), bloc(2)] }])
 })
 
 test('#1887 : refus `preuve-introuvable` — une preuve qui coupe un mot n’est pas recopiée mot pour mot (bornes de mot)', () => {
@@ -85,8 +87,43 @@ test('#1887 : refus `preuve-introuvable` — une preuve qui coupe un mot n’est
   assert.deepEqual(refusDe([...valide, { ref: COMBAT, role: 'modifie', preuve: 'blade carries poi' }]).map(sans), [{ refus: 'preuve-introuvable', ligne: 3, blocs: [] }])
 })
 
+test('#1887 : refus `preuve-introuvable` — une preuve qui ne touche que la LÉGENDE d’une table ne localise rien (`couvertes` nul)', () => {
+  const livre = preparerLivre({
+    book: 'fixture-legende',
+    langue: 'VO',
+    chapitres: [chapitre('01 - Rules.md', [
+      '# **Poisons**', '',
+      '**Poison Table**', '',
+      '| Poison | Effect |', '|---|---|', '| Lethal poison | Death |',
+    ])],
+    indexMd: null,
+    horsRegle: () => false,
+    plages: [],
+  })
+  const [it] = sectionsDuPaquet(livre, TERMES)
+  assert.deepEqual(adresseDeLaPreuve(livre, it, 'Poison Table'), { refus: 'preuve-introuvable', blocs: [] })
+  assert.equal(adresseDeLaPreuve(livre, it, 'Lethal poison').adresse?.parts[0].b0, 1)
+})
+
 test('#1887 : refus `preuve-sans-terme` — la section nomme un terme, la preuve aucun', () => {
-  assert.deepEqual(refusDe([...valide, { ref: POISONS, role: 'modifie', preuve: 'kills within the hour' }]).map(sans), [{ refus: 'preuve-sans-terme', ligne: 3, blocs: [1] }])
+  assert.deepEqual(refusDe([...valide, { ref: POISONS, role: 'modifie', preuve: 'kills within the hour' }]).map(sans), [{ refus: 'preuve-sans-terme', ligne: 3, blocs: [bloc(1)] }])
+})
+
+test('#1887 : une section du paquet en INTERVALLE — la preuve se cherche sur toute sa couverture, section de fin comprise', () => {
+  const intervalle = intervalleDe(chapitreFixture, bloc(0), { sec: 'combat', secOcc: 1, idx: 0 })
+  const it = { ...SECTIONS[0], adresse: { ...SECTIONS[0].adresse, parts: [intervalle] } }
+  const d = adresseDeLaPreuve(FIXTURE, it, 'A coated blade carries poison into the wound.')
+  assert.deepEqual(d.adresse?.parts, [fragmentBlocs(chapitreFixture, { sec: 'combat', secOcc: 1, b0: 0, b1: 0 })])
+})
+
+test('#1887 : `replier` — une section incluse dans un INTERVALLE à plusieurs sections s’y replie, origines comprises', () => {
+  const copie = (it, adresse = it.adresse) => ({ ...it, adresse, origines: it.origines.map((o) => ({ ...o })) })
+  const [poisons, combat, healing] = SECTIONS
+  const intervalle = intervalleDe(chapitreFixture, bloc(0), { sec: 'combat', secOcc: 1, idx: 0 })
+  const hote = copie(poisons, { ...poisons.adresse, parts: [intervalle] })
+  const gardes = replier(FIXTURE, [hote, copie(combat), copie(healing)])
+  assert.deepEqual(gardes.map((it) => it.ref), [POISONS, HEALING])
+  assert.deepEqual(hote.origines, [...poisons.origines, ...combat.origines.filter((o) => !poisons.origines.some((h) => h.origine === o.origine && h.terme === o.terme))])
 })
 
 test('#1887 : score — tout retenu, tout rejeté : la matrice et les cas nommés', () => {
@@ -142,7 +179,7 @@ test('#1887 : CRB — chaque preuve du rappel dérive une adresse de bloc qui r�
       } else {
         assert.equal(d.refus, 'preuve-ambigue', `${id} ${a.ref} : ${d.refus}`)
         assert.ok(d.blocs.length > 1)
-        bilan.ambigues.push(`${id} ${a.ref} blocs ${d.blocs.join(',')}`)
+        bilan.ambigues.push(`${id} ${a.ref} blocs ${d.blocs.map((b) => `§${b.sec}#${b.secOcc}:${b.idx}`).join(',')}`)
       }
     }
   }

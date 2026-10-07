@@ -9,9 +9,8 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   construireContexte, cumuler, evaluerGardes, projeter, repartir, surfaceDe,
-} from './repartiteur.mjs'
-import { REGISTRE } from './registre.mjs'
-import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
+} from './repartition.mjs'
+import { REGISTRE, REGISTRE_SOLDE } from './registre.mjs'
 import { gitSubcommand } from './solde-ticket-guard.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
@@ -144,7 +143,7 @@ test('`npm run <x>` se lit dans le `cwd` de `ctx_shell`, garde par garde (comman
 })
 
 test('aucune garde n’a d’effet à l’import : les registres ENTIERS, importés dans un seul processus, rendent la main sans rien écrire', () => {
-  const code = ['registre.mjs', 'solde-ticket-hook.mjs'].map((m) => `await import(${JSON.stringify(pathToFileURL(join(HOOKS, m)).href)})`).join(';') + ";console.log('ok')"
+  const code = ['registre.mjs', 'repartition.mjs'].map((m) => `await import(${JSON.stringify(pathToFileURL(join(HOOKS, m)).href)})`).join(';') + ";console.log('ok')"
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], { encoding: 'utf8', timeout: 30_000, stdio: ['pipe', 'pipe', 'pipe'] })
   assert.equal(r.signal, null, 'le processus a été tué par la coupe : un import attend son stdin')
   assert.equal(r.status, 0, r.stderr)
@@ -181,7 +180,7 @@ test('câblage : le matcher déclaré de chaque point d’entrée couvre les `ou
 })
 
 test('cumuler : un contexte ENTIER déjà rendu par la même garde ne se répète pas ; une ligne commune à deux contextes distincts survit', async () => {
-  const { cumuler } = await import('./repartiteur.mjs')
+  const { cumuler } = await import('./repartition.mjs')
   const a = 'POINTEUR DÉRÉFÉRENCÉ (1 ligne(s) écrite(s) dans .claude/memory/a.md) : recoller le TITRE.\n  voir #1234'
   const b = 'POINTEUR DÉRÉFÉRENCÉ (1 ligne(s) écrite(s) dans .claude/memory/b.md) : recoller le TITRE.\n  voir #1234'
   assert.equal(cumuler([{ garde: 'poison-postcheck', contexte: a }, { garde: 'poison-postcheck', contexte: b }]).contexte, `${a}\n\n${b}`)
@@ -429,7 +428,7 @@ test('#2224 `declare`/`typeset`/`local` de `PATH` ou `ENV`, avec ou sans `-x` : 
     for (const command of ['declare PATH=./faux:$PATH; npm test', 'typeset PATH=./faux; npm test', 'local -x PATH=./faux; npm test', 'declare ENV=./x.sh; sh -c "npm test"']) {
       assert.match(await raison(racine, 'Bash', { command }), /(PATH|ENV) : /, command)
     }
-    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; npm test' }), null)
+    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; node --test scripts/a.test.mjs' }), null)
   })
 })
 
@@ -579,6 +578,16 @@ test('#2224 affectation HORS préfixe qui change l’environnement des segments 
       assert.equal(await decision(racine, shell, { command }), null, `${shell} « ${command} »`)
       assert.equal(await decision(racine, `${LC}ctx_shell`, { command, cwd: racine }), null, `ctx_shell « ${command} »`)
     }
+  })
+})
+
+// #2173 : un jeton QUOTÉ n'est pas une affectation, ni en tête de ligne ni dans un bloc.
+test('#2173 une chaîne quotée en tête n’est pas une affectation : `"PATH=x"` passe, `PATH=x` reste refusé', async () => {
+  await dansUnDepot(async (racine) => {
+    for (const [shell, command] of [['PowerShell', '1 | % { "PATH=$_" }'], ['PowerShell', '"PATH=x"; echo a'], ['Bash', '"PATH=x"; echo a']]) {
+      assert.equal(await decision(racine, shell, { command }), null, `${shell} « ${command} »`)
+    }
+    assert.match(await raison(racine, 'Bash', { command: 'PATH=x; echo a' }), /PATH/)
   })
 })
 

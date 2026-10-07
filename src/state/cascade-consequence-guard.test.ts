@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ESLint } from 'eslint';
+import { creerBancLint, selectionnerMessages } from '../../scripts/guards/lib/lint.testkit.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -229,9 +229,9 @@ describe('cliquet composeur — CONTENU des conséquences : re-print roll/target
 /**
  * VOLET ISSUE (#1262 V3 Lj) — le canal de l'ISSUE d'un jet. Le murage par export est impossible
  * (`get().log` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
- * `src/ui`) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `eslint.config.js`, patron
+ * `src/ui`) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `oxlint.config.mjs`, patron
  * `ownsLocally`), borné à `src/state` — la couche qui décidait — et MESURÉ ici sur la config RÉELLE
- * (API ESLint, jamais une copie de règle : une regex maison laissait passer les guillemets doubles).
+ * (lanceur Oxlint, jamais une copie de règle : une regex maison laissait passer les guillemets doubles).
  *
  * Deux goulots exemptés, nommés, et RIEN d'autre : la DÉCLARATION d'issue d'un flux à fenêtre
  * (`rollFlowSpecs.ts`, `spec.issue`, rendue par le verbe `apply`) et la conséquence d'étape de
@@ -251,12 +251,12 @@ const ISSUE_GOULOTS = [
 
 /** Fichier de sonde SOUS le périmètre de la règle (aucun goulot, hors test). */
 const SOUS_LA_REGLE = 'src/state/__sonde-canal-issue.ts';
-const eslint = new ESLint({ cwd: ROOT });
+const eslint = creerBancLint();
 
 /** Occurrences de la règle d'import restreint sur un CODE donné (config réelle). */
 async function violationsCanal(code: string, filePath = SOUS_LA_REGLE): Promise<number> {
-  const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
-  return res.messages.filter((m) => m.ruleId === 'murs/canal-issue').length;
+  const [res] = await eslint.lintText(code, { filePath });
+  return selectionnerMessages(res, (m) => m.ruleId === 'murs/canal-issue').length;
 }
 
 describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULOTS (#1262 V3 Lj)', () => {
@@ -269,8 +269,8 @@ describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULO
       .filter(({ text }) => text.includes('flowOutcomes'))
       .map(({ abs }) => abs);
     const res = await eslint.lintFiles(candidats);
-    const offenders = res.flatMap((r) => r.messages
-      .filter((m) => m.ruleId === 'murs/canal-issue')
+    const offenders = res.flatMap((r) => selectionnerMessages(r,
+      (m) => m.ruleId === 'murs/canal-issue')
       .map(() => relative(ROOT, r.filePath).split('\\').join('/')));
     expect(offenders, 'Issue composée hors goulot — déclarer `spec.issue` et acquitter par `flow.apply` :').toEqual([]);
   });

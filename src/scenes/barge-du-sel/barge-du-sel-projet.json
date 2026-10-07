@@ -2,7 +2,6 @@
  "id": "barge-du-sel",
  "type": "projet",
  "label": "La Barge du Sel",
- "schema": 17,
  "icon": "scenario/naval",
  "versionContenu": 1,
  "maison": "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer",
@@ -11,6 +10,7 @@
   "indices": [],
   "presetsPnj": [],
   "objets": [],
+  "documents": [],
   "ouverture": {
    "titre": "La Barge du Sel",
    "sousTitre": "Une traversée courte, une mer mal fréquentée",

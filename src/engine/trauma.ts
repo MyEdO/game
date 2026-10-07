@@ -27,7 +27,7 @@ import { drunkCharPenalties } from './drunkenness';
 import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
-import { normalizePassiveKind, resolveFormula } from './ops';
+import { resolveFormula } from './ops';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
@@ -175,11 +175,10 @@ function scalePalierOp(o: GameOp, paliers: number): GameOp {
  *  nombre de paliers (`floor(count / taille)`, LDB 18 l.247 « pour chaque paire », l.281 « pour chaque
  *  orteil »). SOURCE UNIQUE lue par `traumaById`, `permanentAmputations` et `consolidateAmputations`. */
 export function traumaCumulOps(f: TraumaFiche, count: number): GameOp[] {
-  const base = (f.ops ?? []).map((o) => ({ ...o }));
+  const base = f.ops ?? [];
   const p = f.cumul?.parPalier;
-  if (!p) return base;
-  const paliers = Math.floor(count / Math.max(1, p.taille));
-  return paliers <= 0 ? base : [...base, ...p.ops.map((o) => scalePalierOp(o, paliers))];
+  const paliers = p ? Math.floor(count / Math.max(1, p.taille)) : 0;
+  return structuredClone(p && paliers > 0 ? [...base, ...p.ops.map((o) => scalePalierOp(o, paliers))] : base); // #2097
 }
 
 /** Pose `count` unités sur une séquelle cumulative et recalcule ses ops (`traumaCumulOps`). Mute `t`. */
@@ -197,14 +196,14 @@ export function setTraumaCount(t: Trauma, f: TraumaFiche, count: number): Trauma
  *  portée par la fiche (déchirures ET fractures sont désormais des fiches par localisation+sévérité).
  *  Omis (tests/legacy) ⇒ pas de décompte (séquelle permanente jusqu'à traitement explicite). */
 export function traumaById(id: string, opts?: { be?: number; d10?: number }, location?: HitLocation): Trauma {
-  const f = traumaFicheById(id);
+  const f = structuredClone(traumaFicheById(id)); // #2097
   const out: Trauma = {
     label: f.label,
     traumaId: f.id,
     location: location ?? 'corps',
     desc: f.desc,
-    ...(f.ops ? { ops: f.ops.map((o) => ({ ...o })) } : {}),
-    ...(f.prosthesis ? { prosthesis: f.prosthesis.map((p) => ({ ...p })) } : {}),
+    ...(f.ops ? { ops: f.ops } : {}),
+    ...(f.prosthesis ? { prosthesis: f.prosthesis } : {}),
   };
   // Convalescence à étapes (déchirure/fracture seules). Une fracture MAJEURE « fort peu probable qu'il se soigne
   // correctement sans intervention médicale » (l.208) exige la Chirurgie ; la formule garde le 1d10 seedé chez l'appelant.
@@ -907,13 +906,9 @@ export function poseDeterminationCanceller(c: Combatant, duration: Duration, lab
 }
 
 /** Le `kind` est-il ADDITIF (sommé dans la base : mutation/qualité, corps/équipement permanent) plutôt que
- *  combiné en POOL non-cumul (trauma/maladie/faim/sort) ? Seuls les `charMod`/`skillMod` distinguent les deux.
- *  L'entrée est NORMALISÉE (`normalizePassiveKind`) : une valeur PERSISTÉE à l'ancien id accentué —
- *  arrivée par une porte NON versionnée (export de roster, document réécrit à la main ; une save
- *  obsolète, elle, est refusée à la lecture) — sortirait sinon de la somme additive pour le pool
- *  non-cumul SANS AUCUN SIGNE. Ce filet ferme ce silence-là. */
+ *  combiné en POOL non-cumul (trauma/maladie/faim/sort) ? Seuls les `charMod`/`skillMod` distinguent les deux. */
 function isAdditiveKind(kind: PassiveKind | undefined): boolean {
-  return (normalizePassiveKind(kind) ?? 'intrinseque') === 'intrinseque';
+  return (kind ?? 'intrinseque') === 'intrinseque';
 }
 
 /** `kind` DÉRIVÉ d'une op de séquelle (P0 : par type d'op ; la donnée pourra le surcharger plus tard). */
@@ -928,9 +923,7 @@ function traumaOpKind(op: GameOp): PassiveKind {
  *  `t` (la séquelle porteuse) n'est requis que pour les annulateurs liés au porteur (Insensible/prothèse) ;
  *  les sources SANS séquelle (maladie/faim — gating par Détermination seule) l'omettent. */
 function modSurvives(c: Combatant, kind: PassiveKind, t?: Trauma): boolean {
-  // `?? []` : la table est TOTALE sur l'union courante — un `kind` d'une autre forme (valeur persistée
-  // ancienne arrivée par une porte non migrée) ne doit pas faire LEVER le collecteur passif tout entier.
-  for (const canc of PASSIVE_CANCELLERS[normalizePassiveKind(kind) ?? kind] ?? []) {
+  for (const canc of PASSIVE_CANCELLERS[kind]) {
     if (canc === 'determination' && (c.activeEffects ?? []).some((e) => e.ignoreCritMods)) return false;
     if (canc === 'painless' && t && painlessIgnores(c, t)) return false;
     if (canc === 'prosthesis-all' && t && prosthesisCancels(c, t, 'all')) return false;
@@ -965,9 +958,7 @@ export function traumaPassiveMods(c: Combatant): PassiveMod[] {
     // `label` = LA séquelle porteuse (« Fracture à la jambe ») : elle porte son nom sur le Combattant,
     // donc une composante de jet issue d'elle n'a jamais à se replier sur sa famille. Aucun `src` : les
     // séquelles ne sont pas une catégorie du Codex — le NOM tient, le LIEN n'existe pas.
-    // `normalizePassiveKind` : le `kind` PERSISTÉ de la séquelle est ramené à la forme courante AVANT
-    // d'être gaté puis propagé (porte NON versionnée : export de roster, document réécrit à la main).
-    for (const o of traumaOps(t)) { const kind = normalizePassiveKind(t.passiveKind) ?? traumaOpKind(o); if (modSurvives(c, kind, t)) out.push({ op: o, kind, label: t.label }); }
+    for (const o of traumaOps(t)) { const kind = t.passiveKind ?? traumaOpKind(o); if (modSurvives(c, kind, t)) out.push({ op: o, kind, label: t.label }); }
   }
   return out;
 }
@@ -1147,8 +1138,8 @@ export function passiveGlobalTestMod(c: Combatant): number {
  *  - le NOM vient de l'ENTITÉ ATTACHÉE, qui le porte toujours (`Combatant.mutations` stocke l'objet
  *    COMPLET, `ItemInstance` et `Trauma` portent leur `label`…) ; le catalogue n'est interrogé
  *    (`refLabel`) que lorsque l'émetteur n'a fourni QUE son id.
- *  - le LIEN Codex vient du CATALOGUE, qui peut ne pas l'avoir (entrée supprimée depuis une vieille
- *    sauvegarde) : `ref` n'est posée que si l'id RÉSOUT, pour ne jamais offrir une chip morte. Elle
+ *  - le LIEN Codex vient du CATALOGUE, qui peut ne pas l'avoir (id absent du
+ *    catalogue) : `ref` n'est posée que si l'id RÉSOUT, pour ne jamais offrir une chip morte. Elle
  *    est TOUJOURS déclarée (`undefined` sinon) : le producteur affirme avoir cherché le lien, il ne
  *    l'omet pas en silence (cliquet #1078, `rule-refs.test.ts`).
  * `amount` : la magnitude de l'op, que le lecteur connaît (les op-types la nomment différemment —

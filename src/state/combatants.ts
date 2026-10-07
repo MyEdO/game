@@ -122,7 +122,7 @@ function partyLeaderOf(party: readonly Combatant[]): Combatant | undefined {
 /**
  * MENEUR DEBOUT — le même meneur, mais SANS le dernier repli sur le premier du roster : rend
  * `undefined` quand le groupe entier est à terre. Pour les gestes que seul un héros valide peut
- * accomplir (escalade, chute volontaire), qui refusent plutôt que de les faire accomplir par un
+ * accomplir (escalade, chute volontaire, enjambée d'une croisée), qui refusent plutôt que de les faire accomplir par un
  * corps à terre. PRIVÉ : les appelants passent par `meneurDeboutDuMonde`.
  */
 function partyLeaderDeboutOf(party: readonly Combatant[]): Combatant | undefined {

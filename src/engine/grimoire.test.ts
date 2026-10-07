@@ -1,5 +1,5 @@
 /**
- * Grimoire — apprentissage/mémorisation (LDB 46 l.44-47, 47 l.33-34, Talents LDB 10) :
+ * Grimoire — apprentissage/mémorisation (LDB 46 l.16-20, 47 l.33-34, Talents LDB 10) :
  * coûts par bandes (BFM ×50 / BInt ×100 / 100×connus), éligibilité par Talent,
  * Bénédictions par culte (six incluses), lecture au grimoire (NI ×2).
  */

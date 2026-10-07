@@ -1,4 +1,4 @@
-import type { SourceFile } from 'typescript';
+import type { SourceFile } from 'typescript/unstable/ast';
 
 export type RegistryIdBranchRule = 'id-equality' | 'id-switch' | 'id-membership' | 'id-record';
 

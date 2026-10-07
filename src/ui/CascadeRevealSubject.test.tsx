@@ -15,6 +15,7 @@ import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
 import type { RevealEntry } from '../state/pendings';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -34,10 +35,10 @@ function openReveal(make: (heroId: string) => RevealEntry, autoCloseMs?: number)
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
-    pendingCascade: {
-      title: entry.title, icon: 'nav/mutation', purpose: 'affichage', cursor: 0, log: [],
-      participants: [{ id: 'cons-0', kind: entry.kind, actorId: entry.subjectId, label: fixtureText(entry.title), reveal: entry, autoCloseMs}],
-    },
+    pendingCascade: cascadeDeTest(
+      [{ id: 'cons-0', kind: entry.kind, actorId: entry.subjectId, label: fixtureText(entry.title), reveal: entry, autoCloseMs }],
+      { title: entry.title, icon: 'nav/mutation', purpose: 'affichage' },
+    ),
   });
   return hero;
 }

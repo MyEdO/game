@@ -160,7 +160,7 @@ function construireScene(): Scene {
             statblock: { type: 'statblock',
               label: 'Knud Cratinx',
               char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, initiative: 35, agilite: 33, dexterite: 29, intelligence: 33, 'force-mentale': 35, sociabilite: 30, B: 12 },
-              traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'ecailles-epineuses' }],
+              traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'ecailles-epineuses-edoc' }],
             },
           },
           {

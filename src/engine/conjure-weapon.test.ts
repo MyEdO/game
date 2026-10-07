@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { applyOps } from './ops';
 import { endOfRound } from './conditions';
 import { effectiveWeaponDamage } from './weaponDamage';
-import { damageString } from './items';
+import { damageString, isImprovisedTrapping, isShieldTrapping, isUnarmedTrapping } from './items';
+import { trappings } from '../data';
 import { conjureFormOptions } from './conjuredWeapons';
 import { runPureFlowLines } from '../state/combatEffects';
 import { bonus } from './characteristics';
@@ -43,7 +44,9 @@ describe('grantWeapon — objet temporaire (Arme aethyrique, Dégâts = BFM)', (
     const c = mage({ skills: [{ id: 'corps-a-corps', spec: 'base', advances: 10 }] as Combatant['skills'] });
     const ids = conjureFormOptions(c).map((f) => f.weapon); // f.weapon = id de trapping
     expect(ids).toContain('arme-simple'); // arme de base commune (épée/hache/masse/lance courte)
-    expect(ids.every((l) => !/bouclier|improvis|mains-nues/i.test(l))).toBe(true); // junk exclu
+    const boucliersDeBase = trappings.filter((t) => isShieldTrapping(t.id) && t.subType === 'base').map((t) => t.id);
+    expect(boucliersDeBase, 'PRÉMISSE : des boucliers relèvent de la Spé Base').toEqual(expect.arrayContaining(['pavois', 'vision-de-vie']));
+    expect(ids.filter((id) => isShieldTrapping(id) || isImprovisedTrapping(id) || isUnarmedTrapping(id))).toEqual([]); // #2240
     expect(conjureFormOptions(c).every((f) => f.group === 'base')).toBe(true); // seulement la Spé connue (id de Groupe)
   });
 

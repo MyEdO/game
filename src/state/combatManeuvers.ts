@@ -164,9 +164,6 @@ export interface AttackOption {
   indirect?: boolean;
   def?: ManeuverDef;
   advantageMode?: 'fixed' | 'variable' | 'all';
-  /** Pertinence de BASE (poids éditable, depuis `ManeuverDef.priority`) — lue par le scoreur d'attaque
-   *  (clic droit joueur + décision IA). Défaut 1 ; combinée aux bonus situationnels AUTO. */
-  priority?: number;
 }
 
 /** Sources DONNÉE d'une attaque d'Arme gratuite « DISPONIBLE » (`grantFreeAttack when:'available'`) sur SON
@@ -246,7 +243,6 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
       targeting: melee ? 'melee' : 'zone',
       ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, advantageMode: a.advantageMode }),
       cost: { action: a.trigger === 'action', advantage: a.avantage },
-      priority: a.def?.priority, // poids éditable (maneuvers.json) lu par le scoreur
     });
   }
   // (2) Piétinement (Taille, LDB 85 l.320-321) : adversaire adjacent plus petit, ≥1 Avantage. Flux dédié.
@@ -273,15 +269,15 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   }
   // (5) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-weapon-reach`) :
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
-  //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. `priority:0` → jamais
-  //     auto-choisie (clic droit/IA) : c'est un choix EXPLICITE de l'« Attaque ▾ », pas une frappe.
+  //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
+  //     l'« Attaque ▾ », pas une frappe.
   if (rule('combat-weapon-reach') && !battle.acted && canTakeAction(active) && battle.combatants.some((c) => auContactEligible(active, c)))
-    out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 }, priority: 0 });
+    out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
   // (6) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire
-  //     est Empoigné. `priority:0` → jamais auto-choisie (choix EXPLICITE de l'« Attaque ▾ »).
+  //     est Empoigné. Choix EXPLICITE de l'« Attaque ▾ ».
   if (!battle.acted && canTakeAction(active) && battle.combatants.some((c) => grappleActionEligible(active, c)))
-    out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/squeeze', targeting: 'grapple', cost: { action: true, advantage: 0 }, priority: 0 });
+    out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/squeeze', targeting: 'grapple', cost: { action: true, advantage: 0 } });
   // Déduplique par id (la mutation Tentacule et le trait Tentacules ne coexistent pas, mais garde-fou).
   return out.filter((m, i) => out.findIndex((n) => n.id === m.id) === i);
 }
@@ -290,14 +286,13 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
 // l'IA pure ET le store) ; ré-exportés ici pour le baril `combatFlow` (importeurs store/UI inchangés).
 export { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 
-/** Résout l'`AttackOption` à exécuter/prévisualiser : clic droit = `forceId` (première abordable) ; sinon
- *  l'attaque ARMÉE (`selectedAttack`, défaut 'arme', repli sur 'arme' si périmée). `undefined` = mode
+/** Résout l'`AttackOption` à exécuter/prévisualiser : l'attaque ARMÉE (`selectedAttack`, défaut 'arme',
+ *  repli sur 'arme' si périmée). `undefined` = mode
  *  non-attaque (cast/heal/focus/…) ou aucune attaque abordable. SOURCE UNIQUE partagée par le clic (store)
  *  et le survol (targeting). */
-export function selectedAttackOption(active: Combatant, battle: BattleState, forceId?: string): AttackOption | undefined {
+export function selectedAttackOption(active: Combatant, battle: BattleState): AttackOption | undefined {
   if (battle.action !== null) return undefined; // l'attaque ne vit qu'en mode neutre (cast/heal/… = leurs propres modes)
   const opts = availableAttacks(active, battle);
-  if (forceId) return opts.find((o) => o.id === forceId) ?? opts[0]; // clic droit = première abordable (repli)
   const want = battle.selectedAttack ?? 'arme';
   return opts.find((o) => o.id === want) ?? opts.find((o) => o.id === 'arme'); // armée, repli sur l'Arme si périmée
 }

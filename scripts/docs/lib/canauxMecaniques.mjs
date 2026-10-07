@@ -1,3 +1,4 @@
+import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
 /**
  * Mesure des TROIS canaux par lesquels une entité mécanique porte sa mécanique EN DONNÉE, dérivée
  * des DÉCLARATIONS de champs (AST), jamais des commentaires :
@@ -10,7 +11,7 @@
  * un canal d'effet déclenché, `WeaponGroupData.combat: 'melee' | 'ranged'` n'est pas un drapeau de
  * capacité. C'est le type déclaré qui tranche, pas le nom.
  */
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { readFileSync } from 'node:fs'
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
@@ -34,7 +35,7 @@ export function canalDuMembre(nom, type) {
 function membres(decl, sf) {
   const out = []
   for (const m of decl.members) {
-    if (!ts.isPropertySignature(m) || !m.name) continue
+    if (!ts.isPropertySignatureDeclaration(m) || !m.name) continue
     out.push({ nom: m.name.getText(sf), type: m.type ? plat(m.type.getText(sf)) : '' })
   }
   return out
@@ -50,9 +51,7 @@ export function mesurerCanaux(fichiers) {
   /** nom de type de drapeaux → déclaration trouvée (toutes les interfaces du périmètre). */
   const interfaces = new Map()
 
-  for (const f of fichiers) {
-    const text = readFileSync(f, 'utf8')
-    const sf = ts.createSourceFile(f, text, ts.ScriptTarget.Latest, true)
+  for (const { fichier: { rel: f }, sourceFile: sf } of analyserCorpus(fichiers.map((f) => ({ rel: f, text: readFileSync(f, 'utf8') })))) {
     const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
     const visite = (n) => {
       if (ts.isInterfaceDeclaration(n)) {

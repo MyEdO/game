@@ -66,6 +66,7 @@ import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
+import { gelerLaConstante } from '../lib/gelerProfond';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -145,7 +146,7 @@ registerTableStep(INTERLUDE_EVENT_TABLE, {
 
 /** Aucun modificateur : le dé NATUREL est le dé du lookup — c'est aussi ce que `perHero.eventRoll`
  *  persiste, et donc ce que tout lecteur re-résout. */
-const INTERLUDE_EVENT_DECL: CascadeTableDecl = { tableId: INTERLUDE_EVENT_TABLE, spec: { n: 1, sides: 100 } };
+const INTERLUDE_EVENT_DECL: CascadeTableDecl = gelerLaConstante({ tableId: INTERLUDE_EVENT_TABLE, spec: { n: 1, sides: 100 } }); // #2097
 
 /** La séquence des tirages est SA propre séquence (`purpose:'interlude'`, doctrine du slot #942 L1) :
  *  l'interlude ne s'ouvre jamais en combat, et aucun autre `purpose` hors-combat ne doit y fusionner. */
@@ -233,7 +234,7 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const itl = get().interlude;
   const st = itl?.perHero[hero.id];
   if (!itl || !st) return [];
-  const ev = interludeEventFor(roll);
+  const ev = structuredClone(interludeEventFor(roll)); // #2097
   const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
   let left = st.left;
   if (ev.fx?.loseActivity) left -= 1;

@@ -30,6 +30,7 @@ import { careers, findSpellById, findStarById, spells as allSpells, speciesSingu
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
+import { formeResolue } from '../gameIso/rig/parts/equipment';
 import { CodexRef } from './compendium/CodexRef';
 import { CharValue } from './CharValue';
 import { HeroSheet } from './HeroSheet';
@@ -530,16 +531,15 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
 }
 
 /** Sélecteur visuel de FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de
- *  guerre/demi-lance) : pose `ItemInstance.shape` parmi les `formChoices` du trapping. Option courante =
- *  `item.shape ?? trapping.shape` ; chaque option = la silhouette (ItemIcon par shape) + le libellé du
- *  WeaponDef. Cosmétique RAW (stats identiques) — verrouillé en combat (le token rendu vient de la
- *  copie de bataille, pas du groupe muté). Réutilise la primitive `MediaSelect`. */
+ *  guerre/demi-lance) : pose `ItemInstance.formeChoisie` parmi les `formChoices` du trapping. Option
+ *  courante = la forme RÉSOLUE (`formeResolue`, celle du pion) ; chaque option = la silhouette (ItemIcon
+ *  de ce choix) + le libellé du WeaponDef. Cosmétique RAW (stats identiques) — verrouillé en combat (le
+ *  token rendu vient de la copie de bataille, pas du groupe muté). Réutilise la primitive `MediaSelect`. */
 function FormPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
-  const setItemShape = useGame((s) => s.setItemShape);
-  const trapping = it.trappingId ? findTrappingById(it.trappingId) : undefined;
-  const choices = trapping?.formChoices;
+  const choisirForme = useGame((s) => s.choisirForme);
+  const choices = it.trappingId ? findTrappingById(it.trappingId)?.formChoices : undefined;
   if (!choices || choices.length < 2) return null;
-  const current = it.shape ?? trapping?.shape ?? choices[0];
+  const current = formeResolue(it) ?? choices[0];
   return (
     <div className="ir-form" title="Forme de l’arme (silhouette)">
       <MediaSelect
@@ -547,10 +547,10 @@ function FormPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
         title="Choisir la forme de l’arme"
         options={choices.map((slug) => ({
           key: slug,
-          media: <ItemIcon item={{ ...it, shape: slug }} size="sm" />,
+          media: <ItemIcon item={{ ...it, formeChoisie: slug }} size="sm" />,
           label: weaponFormLabel(slug),
         }))}
-        onSelect={(slug) => setItemShape(hero.id, it.uid, slug)}
+        onSelect={(slug) => choisirForme(hero.id, it.uid, slug)}
       />
     </div>
   );

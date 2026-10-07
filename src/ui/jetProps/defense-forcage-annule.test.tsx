@@ -1,6 +1,4 @@
 // @vitest-environment jsdom
-import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../../state/store';
 import { openAttackCascade } from '../../state/combatFlow';
@@ -10,19 +8,15 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
 import { useDefenseJetProps } from './useDefenseJetProps';
 import { RollShell } from '../RollShell';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
-/**
- * #1000 — quand les DEUX camps ont dépensé « Je ne faillirai pas ! », l'arbitrage APPLIQUÉ (les deux
- * garanties de victoire s'éteignent) est AFFICHÉ dans la fenêtre de celui qui vient de brûler son
- * Point. La sonde monte la fenêtre ENTIÈRE (`RollShell`) : l'arbitrage est une note d'ÉTAT, distincte
- * de l'ISSUE du jet (#1078) — un test qui ne regarderait qu'une zone raterait le déplacement de l'autre.
- */
+// #1000 ; #1078
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
-  ({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
+  ({ id, name: id, label: id, kind, species: 'humains-reiklander', characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 },
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, resilience: 1 } as unknown as Combatant);
 
@@ -32,15 +26,11 @@ function Probe() {
   return props ? <RollShell {...props} /> : null;
 }
 
-let root: Root | null = null;
-let host: HTMLDivElement | null = null;
-afterEach(() => {
-  if (root) act(() => root!.unmount());
-  root = null; host = null;
-});
+afterEach(demonterRacines);
 
 /** Joue l'opposition PILOTÉE jusqu'à la fenêtre de Défense, en forçant les camps demandés. */
 function play(opts: { atk?: boolean; def?: boolean }): string {
+  demonterRacines();
   const enemy = mk('e', 'enemy', { x: 1, y: 0 });
   const hero = mk('h', 'hero', { x: 0, y: 0 });
   const battle: BattleState = {
@@ -60,12 +50,7 @@ function play(opts: { atk?: boolean; def?: boolean }): string {
   g().attackConfirm();
   g().defenseRoll();
   if (opts.def) g().defenseForceSuccess();
-  if (root) act(() => root!.unmount());
-  host = document.createElement('div');
-  document.body.appendChild(host);
-  root = createRoot(host);
-  act(() => root!.render(<Probe />));
-  return host.textContent ?? '';
+  return monterRacine(<Probe />).container.textContent ?? '';
 }
 
 describe('#1000 — l’annulation mutuelle des Résiliences est AFFICHÉE', () => {

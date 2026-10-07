@@ -14,9 +14,13 @@ import { FlowEditor } from './FlowEditor';
 import { WhenEditor, condSummary } from './ConditionEditor';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { CouvreField } from './CouvreField';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -37,7 +41,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
     let n = dialogue.nodes.length + 1;
     while (dialogue.nodes.some((x) => x.id === `n${n}`)) n++;
     const id = `n${n}`;
-    onChange({ ...dialogue, nodes: [...dialogue.nodes, { id, desc: '', choices: [] }] });
+    onChange({ ...dialogue, nodes: [...dialogue.nodes, { id, choices: [] }] });
     setNodeId(id);
   };
   const clesDesChoix = useClesDeRangees(node?.choices);
@@ -62,6 +66,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
           </select>
         </label>
       </Row>
+      <CouvreField value={dialogue.couvre} sujet="du dialogue" onChange={(couvre) => onChange({ ...dialogue, couvre })} />
 
       <div className="dlg-split">
         <div className="dlg-nodes">
@@ -125,7 +130,8 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                 ✕ nœud
               </button>
             </Row>
-            <textarea className="node-text" value={node.desc} onChange={(e) => updNode({ desc: e.target.value })} placeholder="Texte de la réplique" />
+            <ProseField label="Texte de la réplique" lecture={adresseUnPassage(node.descRef) ? node.desc ?? '' : undefined} value={node.desc ?? ''} onChange={(desc) => updNode({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={`noeud:${clesDesNoeuds[dialogue.nodes.indexOf(node)]}`} sujet="de la réplique" value={node} onChange={updNode} />
 
             <div className="mini-title">Choix ({node.choices.length})</div>
             <Stack>

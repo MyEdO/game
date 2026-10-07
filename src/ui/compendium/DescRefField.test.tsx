@@ -21,7 +21,7 @@ import { createRoot } from 'react-dom/client';
 import { inferFields } from './editFields';
 import { DescRefField, PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS, type ChargeursSource } from './DescRefField';
 import { defautsDeNoms, nomAccessible } from '../nomsAccessibles.testkit';
-import { MAX_FRAGMENTS, empreinteDe, fragmentBlocs, fragmentCellule, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type ChoixDeCellule, type DescRef, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
+import { MAX_FRAGMENTS, empreinteDe, fragmentBlocs, fragmentCellule, intervalleDe, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type ChoixDeCellule, type DescRef, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
 
 /** Ce que le chargeur injecté sert, et ce qu'on lui a demandé — réglable par cas. */
 const etat = { manifeste: true, appels: [] as string[] };
@@ -357,7 +357,7 @@ describe('`DescRefField` — l’empreinte est RECALCULÉE, jamais saisie', () =
     // L'aperçu reste RENDU, avec le fragment fautif MARQUÉ à sa place — l'auteur ne perd pas le texte.
     expect(container?.querySelector('.panel')?.textContent).toContain('[fragment 1 : non résolu]');
     // L'erreur vit DANS la rangée du fragment fautif, pas en pied de champ.
-    expect(container?.querySelector('.de-reflrow .de-warn'), 'le message doit désigner SA rangée').toBeTruthy();
+    expect(container?.querySelector('.fieldrow .de-warn'), 'le message doit désigner SA rangée').toBeTruthy();
   });
 });
 
@@ -386,14 +386,16 @@ describe('NOMS POSITIONNÉS — deux adresses en rangée, chaque contrôle a SON
 });
 
 describe('« + Fragment » — CONTINUE le montage, ou porte sa RAISON', () => {
-  it('le fragment neuf prend le bloc SUIVANT : aucun passage n’est cité deux fois', async () => {
+  it('le fragment neuf prend le premier passage LIBRE qui ne CONTINUE pas le dernier : aucun passage n’est cité deux fois', async () => {
     const poses: (DescRef | undefined)[] = [];
     await monter(adresse(frag('terreur', 0, 0)), (v) => poses.push(v));
     await clic(bouton('+ Fragment')!);
 
     const pose = poses[poses.length - 1]!;
     expect(pose.parts).toHaveLength(2);
-    expect(pose.parts[1]).toMatchObject({ sec: 'terreur', secOcc: 1, b0: 1, b1: 1 });
+    // `terreur` 1 CONTINUE le fragment 1 (`fragments-contigus` : il s'écrit en étendant sa fin), et
+    // `terreur` 2 est trop court pour un montage.
+    expect(pose.parts[1]).toMatchObject({ sec: 'peur', secOcc: 1, b0: 0, b1: 0 });
     expect(pose.parts[1].sum, 'le fragment neuf naît sans empreinte : il ne résout pas').toBeTruthy();
 
     // PREUVE SUR LE TEXTE RÉSOLU : le montage rend deux passages DISTINCTS, et il résout.
@@ -425,7 +427,9 @@ describe('« + Fragment » — CONTINUE le montage, ou porte sa RAISON', () => {
 
   it('le fragment neuf passe à la SECTION suivante quand la section courante est épuisée', async () => {
     const poses: (DescRef | undefined)[] = [];
-    await monter(adresse(frag('terreur', 0, 0), frag('terreur', 1, 1)), (v) => poses.push(v));
+    // Les deux blocs longs de `terreur`, dans l'ordre inverse du livre (à l'endroit, ils s'écrivent en
+    // UN fragment) : il ne reste à `terreur` que son bloc trop court.
+    await monter(adresse(frag('terreur', 1, 1), frag('terreur', 0, 0)), (v) => poses.push(v));
     await clic(bouton('+ Fragment')!);
 
     const pose = poses[poses.length - 1]!;
@@ -736,7 +740,7 @@ describe('AMORCE et APERÇU — un chapitre choisi n’attend pas', () => {
   it('une erreur de MONTAGE DÉSIGNE sa rangée (2ᵉ fragment trop court)', async () => {
     // Le 3ᵉ bloc de § terreur (« Bref. ») fait moins de 40 caractères normalisés.
     await monter(adresse(frag('terreur', 0, 0), frag('terreur', 2, 2)), () => {});
-    const rangees = [...(container?.querySelectorAll('.de-reflrow') ?? [])];
+    const rangees = [...(container?.querySelectorAll('.fieldrow') ?? [])];
     const avec = rangees.filter((r) => r.querySelector('.de-warn'));
     expect(avec, 'une seule rangée doit porter le refus').toHaveLength(1);
     expect(avec[0].textContent).toContain(PHRASE_REFUS['fragment-trop-court']);
@@ -750,5 +754,40 @@ describe('CHARGEMENT — un chapitre absent se dit en français', () => {
     await monter({ book: 'mer-des-griffes', ch: '98', parts: [] }, () => {});
     expect(container?.querySelector('.de-warn')?.textContent).toBe('Ce chapitre n’a pas pu être chargé — vérifiez le livre et son numéro.');
     expect(container?.querySelector('details.fold')?.textContent).toContain('chapitre-introuvable : mer-des-griffes ch.98');
+  });
+});
+
+describe('INTERVALLE — un fragment de blocs finit dans une section suivante (#1887)', () => {
+  const fragmentDe = (pose: DescRef | undefined) => pose?.parts[0] as FragmentBlocs;
+
+  it('choisir une section de fin COMPOSE l’intervalle, scellé, et l’aperçu rend le titre traversé', async () => {
+    const poses: (DescRef | undefined)[] = [];
+    await monterVivant(adresse(frag('terreur', 0, 0)), (v) => poses.push(v));
+    const fin = container?.querySelector('select[aria-label="Section de fin du fragment 1"]') as HTMLSelectElement | null;
+    expect(fin, 'aucune liste de section de fin').toBeTruthy();
+    expect(fin!.value).toBe('terreur#1');
+
+    await poserValeur(fin!, 'peur#1');
+    const f = fragmentDe(poses[poses.length - 1]);
+    expect(f).toEqual(intervalleDe(PARSE, { sec: 'terreur', secOcc: 1, idx: 0 }, { sec: 'peur', secOcc: 1, idx: 0 }));
+    expect(f.sum).toBe(empreinteDe(PARSE, f));
+    expect(container?.querySelector('.panel')?.textContent).toContain('Peur');
+    expect(container?.querySelector('.de-warn'), 'l’intervalle résout : aucun refus').toBeNull();
+
+    // Revenir à la section de départ rend la forme CANONIQUE : la fin ne s'écrit plus.
+    await poserValeur(container?.querySelector('select[aria-label="Section de fin du fragment 1"]') as HTMLSelectElement, 'terreur#1');
+    expect(Object.keys(fragmentDe(poses[poses.length - 1]))).toEqual(['kind', 'sec', 'secOcc', 'b0', 'b1', 'sum']);
+  });
+
+  it('une fin AVANT le départ dit sa phrase dans la rangée', async () => {
+    await monter(adresse(intervalleDe(PARSE, { sec: 'peur', secOcc: 1, idx: 0 }, { sec: 'terreur', secOcc: 1, idx: 0 })), () => {});
+    expect(container?.querySelector('.fieldrow .de-warn')?.textContent).toBe(PHRASE_REFUS['fin-avant-depart']);
+    expect(container?.querySelector('details.fold')?.textContent).toContain('fin-avant-depart');
+  });
+
+  it('deux fragments qui se TOUCHENT disent leur phrase dans la rangée du second', async () => {
+    await monter(adresse(frag('terreur', 0, 0), frag('terreur', 1, 1)), () => {});
+    const rangees = [...(container?.querySelectorAll('[data-fragment]') ?? [])];
+    expect(rangees.map((r) => r.querySelector(':scope > .ed-field .de-warn')?.textContent ?? null)).toEqual([null, PHRASE_REFUS['fragments-contigus']]);
   });
 });

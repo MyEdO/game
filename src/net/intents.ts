@@ -1,14 +1,15 @@
 /**
  * Allowlist des actions de store qu'un INVITÉ peut demander (intents) — périmètre : LE COMBAT
  * (portée V1 : seule la partie combat est jouée côté invité ; l'exploration est un miroir de
- * l'hôte) + la COMPOSITION DU GROUPE (chaque joueur remplit les emplacements que l'hôte lui a
- * attribués) + les ACTIVITÉS D'INTERLUDE de SES héros (audit POC→produit M7 : « Entre deux
- * aventures » est par nature individuel — chaque joueur mène les Activités de ses personnages ;
- * ouvrir/CLORE l'interlude reste l'hôte) + TOUT FLUX DE JET MONO à porteur (#1017) : dès que le
- * porteur d'un jet peut être le héros d'un autre siège, ses verbes d'influence lui sont ouverts,
- * qu'il roule en combat, en voyage, à l'auberge ou chez le marchand — c'est la POSSESSION qui
- * tranche la dépense (`netOwnership.intentAllowedFor`), jamais la liste. Tout le reste (sauvegarde,
- * voyage, ÉCRANS marchand/éditeur, persistance) est refusé par l'hôte.
+ * l'hôte, hors le CARNET D'ENQUÊTE : épingle de groupe et nouveauté vue par siège, #670) + la
+ * COMPOSITION DU GROUPE (chaque joueur remplit les emplacements que l'hôte lui a attribués) + les
+ * ACTIVITÉS D'INTERLUDE de SES héros (audit POC→produit M7 : « Entre deux aventures » est par
+ * nature individuel — chaque joueur mène les Activités de ses personnages ; ouvrir/CLORE l'interlude
+ * reste l'hôte) + TOUT FLUX DE JET MONO à porteur (#1017) : dès que le porteur d'un jet peut être
+ * le héros d'un autre siège, ses verbes d'influence lui sont ouverts, qu'il roule en combat, en
+ * voyage, à l'auberge ou chez le marchand — c'est la POSSESSION qui tranche la dépense
+ * (`netOwnership.intentAllowedFor`), jamais la liste. Tout le reste (sauvegarde, voyage, ÉCRANS
+ * marchand/éditeur, persistance) est refusé par l'hôte.
  *
  * `COMBAT_INTENTS` a DEUX parts :
  *  - les délégués `<prefix><Verbe>` des flux de jet ET leurs actions de `resolution`, DÉRIVÉS de
@@ -44,6 +45,8 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   'spendResolveCondition',
   // Escalade d'une arête (capacité `escalade`) : jumeau de `fallAcross`, même possession (l'actif).
   'climbAcross',
+  // Enjambement d'une croisée (capacité `fenetre`, #700) : même possession (l'actif), aucun jet.
+  'windowAcross',
   // attaque : paramètres de la modale différée + jet/appliquer propres au flux d'attaque
   'attackSetLocation', 'attackSetWeapon', 'attackSetDualMode',
   'attackSetWithhold', 'attackSetHarpoonRopeCut', 'attackSetGrapple',
@@ -98,8 +101,9 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   // ses verbes d'influence sont dérivés de `FLOW_VERBS` (mono → routés par le porteur).
   'battleBattement', 'battementSetFoe', 'battementConfirm', 'battementCancel',
   'battleDistraire', 'distraireSetFoe', 'distraireConfirm', 'distraireCancel',
-  // Chute volontaire (ouverte par `battleClickTile`) : trajet, choix d'issue, résolution.
-  'fallAcross', 'fallChoose', 'fallConfirm', 'fallCancel',
+  // Chute volontaire (ouverte par `battleClickTile`) : trajet, DÉCLARATION de rangée (routée par le siège
+  // du tombant, `netOwnership`). Les résolutions sont DÉRIVÉES (`FLOW_VERBS.resolution`).
+  'fallAcross', 'fallChoose',
   // Approche d'une source de Peur (ouverte par `battleClickTile`/`battleClickEntity`) : résolution.
   'approachConfirm', 'approachCancel',
   // Contre-magie (LDB 46) : OUVREUR (réaction au sort adverse) + résolution du jet de dissipation.
@@ -137,11 +141,10 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
 
 export const COMBAT_INTENTS: ReadonlySet<string> = new Set([...MANUAL_COMBAT_INTENTS, ...coopFlowIntents()]);
 
-/** Composition du groupe (écran d'équipe coop) : un invité remplit/retire SES emplacements.
- *  L'hôte injecte le siège autoritaire dans `partyAddHero` (netFlow) — jamais celui de l'invité.
- *  `toggleCluePin` (carnet d'enquête, #670) : état CAMPAGNE-scopé partagé par tout le groupe,
- *  hors-combat — même niveau d'autorisation que la composition du groupe. */
-export const PARTY_INTENTS: ReadonlySet<string> = new Set(['partyAddHero', 'partyRemoveHero', 'partyReplaceHero', 'toggleCluePin']);
+/** Groupe : composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet d'enquête
+ *  (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). L'hôte injecte le siège
+ *  autoritaire dans `partyAddHero` (netFlow) — jamais celui de l'invité. */
+export const PARTY_INTENTS: ReadonlySet<string> = new Set(['partyAddHero', 'partyRemoveHero', 'partyReplaceHero', 'toggleCluePin', 'markCluesSeen']);
 
 /** Activités d'interlude (LDB 23) : chacune vise un héros (1er argument ou pending/dépôt) —
  *  l'hôte valide la possession dans `intentAllowedFor`. `startInterlude`/`interludeEnd`

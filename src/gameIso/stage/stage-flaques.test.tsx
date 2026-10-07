@@ -418,7 +418,7 @@ describe('Le pool MONTÉ — un compte que rien ne fait varier (la clé de cache
     hôte = document.createElement('div');
     document.body.appendChild(hôte);
     root = createRoot(hôte);
-    act(() => root!.render(<GameStage3D {...props(scene, gameTime)} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...props(scene, gameTime)} />));
   }
 
   it('même compte de lampes de nuit et à midi, avec ou sans source — et toutes VISIBLES', () => {
@@ -479,24 +479,24 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     root = createRoot(hôte);
 
     écritures = 0;
-    act(() => root!.render(<GameStage3D {...p} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} />));
     // 12 constructions de lampe (le pool) + 12 écritures de la première passe.
     expect(écritures).toBe(2 * POINT_LIGHT_BUDGET);
 
     // Rendus de CAMÉRA : ni la translation ni le zoom ne touchent la lumière.
     écritures = 0;
-    act(() => root!.render(<GameStage3D {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
-    act(() => root!.render(<GameStage3D {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
     expect(écritures).toBe(0);
 
     // Changement d'HEURE : une seule passe sur le pool (12 lampes), jamais un remontage.
     écritures = 0;
-    act(() => root!.render(<GameStage3D {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
     expect(écritures).toBe(POINT_LIGHT_BUDGET);
 
     // La MÊME heure re-rendue : rien à réécrire.
     écritures = 0;
-    act(() => root!.render(<GameStage3D {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
     expect(écritures).toBe(0);
   });
 
@@ -514,19 +514,19 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     hôte = document.createElement('div');
     document.body.appendChild(hôte);
     root = createRoot(hôte);
-    act(() => root!.render(<GameStage3D {...p} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} />));
 
     // Deux frames de CAMÉRA : 2 flammes × 2 frames. Le lampadaire n'est pas du lot.
     écritures = 0;
-    act(() => root!.render(<GameStage3D {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
-    act(() => root!.render(<GameStage3D {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 40, y: 12 }, zoom: 1.5 }} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} frame={{ ...p.frame, cam: { x: 80, y: 24 }, zoom: 2 }} />));
     expect(écritures).toBe(2 * 2);
 
     // À MIDI les flaques s'éteignent : plus une seule flamme allumée, donc plus une écriture de frame
     // (et la boucle de vacillement, elle non plus, ne bat pas).
-    act(() => root!.render(<GameStage3D {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
     écritures = 0;
-    act(() => root!.render(<GameStage3D {...p} gameTime={MIDI} frame={{ ...p.frame, cam: { x: 12, y: 3 } }} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} frame={{ ...p.frame, cam: { x: 12, y: 3 } }} />));
     expect(écritures).toBe(0);
   });
 
@@ -537,7 +537,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     hôte = document.createElement('div');
     document.body.appendChild(hôte);
     root = createRoot(hôte);
-    act(() => root!.render(<GameStage3D {...p} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} />));
     const posesDeNuit = () => {
       const s = scènes[scènes.length - 1];
       const out: [number, number][] = [];
@@ -545,7 +545,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
       return out;
     };
     const avant = posesDeNuit();
-    act(() => root!.render(<GameStage3D {...p} gameTime={MIDI} />));
+    act(() => root!.render(<GameStage3D lecture="jeu" {...p} gameTime={MIDI} />));
     expect(posesDeNuit()).toEqual(avant); // chaque lampe est restée sur SA case, seule l'intensité est tombée
   });
 });

@@ -9,26 +9,23 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CampaignLibraryScreen, buildImportedProject, importDecision, playerImportError, PlayerFacingImportError } from './CampaignLibraryScreen';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
-import { CURRENT_PROJECT_SCHEMA, ProjetRefuse } from '../state/worldMap';
+import { ProjetRefuse } from '../state/worldMap';
 import {
   projectSave,
   projectsLoad,
   publishedProjects,
-  __resetLibraryForTest,
   IMPORT_FORME_DEPOT,
+  MARQUE_AUTRE_FORMAT,
+  messageDeRefusJoueur,
   type SavedProject,
 } from '../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees, type PanneSimulee } from '../lib/indexedDb.testkit';
-import { emptyScene, type Scene } from '../state/scene';
 import { useGame } from '../state/store';
 import { datasetArray, setDataset } from '../data/overrides';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-});
-beforeEach(async () => {
-  await __resetLibraryForTest();
 });
 
 /** Branche la bibliothèque IndexedDB sur une base simulée en `panne`. */
@@ -36,27 +33,29 @@ function brancherBibliotheque(panne: PanneSimulee): void {
   brancherBasesSimulees().base('wfrp4-library').panne = panne;
 }
 
-/** Document de projet PORTABLE valide au format ANTÉRIEUR (schema 3), construit depuis une
- *  campagne du jeu : l'import le fait traverser TOUTE la chaîne de migration (3→7). Son identité
- *  vit dans la poche `meta` — la forme qu'un document de ce schéma portait — et elle est REQUISE
- *  depuis #1552 : la migration n'en invente pas, un paquet anonyme se fait refuser à la porte. */
-function builtinDocJson(idx = 0): string {
+/** Document de projet PORTABLE au format courant, construit depuis une campagne du jeu, sous
+ *  l'`identite` du cas — REQUISE depuis #1552 : un paquet anonyme se fait refuser à la porte. */
+function docDuJeu(idx: number, identite: Record<string, unknown>): Record<string, unknown> {
   const bc = paquetDuJeu(allBuiltinCampaigns[idx]);
-  return JSON.stringify({
-    schema: 3,
-    meta: { id: bc.id, label: bc.label, icon: bc.icon, version: 1 },
+  return {
+    type: 'projet',
+    ...identite,
     maison: 'fixture de test — copie d’une campagne du jeu, aucun folio à citer',
     scenes: bc.scenes,
     ...(bc.worldMap ? { worldMap: bc.worldMap } : {}),
     narratif: bc.narratif,
-  });
+  };
+}
+function builtinDocJson(idx = 0): string {
+  const bc = allBuiltinCampaigns[idx];
+  return JSON.stringify(docDuJeu(idx, { id: bc.id, label: bc.label, icon: bc.icon, versionContenu: 1 }));
 }
 
 describe('buildImportedProject — import portable (#766)', () => {
   it('construit un SavedProject publié à partir d’un document de projet valide', () => {
     const entry = buildImportedProject(builtinDocJson(0));
     expect(entry.published).toBe(true);
-    expect(entry.project.schema).toBe(CURRENT_PROJECT_SCHEMA);
+    expect('schema' in entry.project, 'aucun numéro de forme').toBe(false);
     expect(entry.project.scenes.length).toBe(allBuiltinCampaigns[0].paquet.scenes.length);
     expect(entry.startSceneId).toBe(entry.project.scenes[0].id);
     expect(entry.id).toBeTruthy();
@@ -71,7 +70,6 @@ describe('buildImportedProject — import portable (#766)', () => {
     const axes = ['negoce', 'navigation'];
     const doc = JSON.stringify({
       type: 'projet',
-      schema: CURRENT_PROJECT_SCHEMA,
       id: 'axes-fixture',
       label: 'Campagne à axes',
       versionContenu: 1,
@@ -99,7 +97,7 @@ describe('buildImportedProject — import portable (#766)', () => {
     expect(entry.label).toBe(allBuiltinCampaigns[0].label);
 
     const anonyme = JSON.parse(builtinDocJson(0));
-    delete anonyme.meta;
+    delete anonyme.id;
     expect(() => buildImportedProject(JSON.stringify(anonyme))).toThrow(/id/);
   });
 
@@ -201,13 +199,13 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it.each([
-    ['Jouer', /ne peut pas être jouée en l’état/],
-    ['Exporter', /ne peut pas être exportée en l’état/],
-  ] as const)('« %s » une entrée que la porte REFUSE : message JOUEUR du GESTE AU PANNEAU DE DÉTAIL, effacé au changement de sélection', async (geste, message) => {
+    ['Jouer', 'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.'],
+    ['Exporter', 'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être exportée.'],
+  ] as const)('« %s » une entrée que la porte REFUSE : le terme commun par `ChipDeRefus` AU PANNEAU DE DÉTAIL, effacé au changement de sélection ; l’entrée MARQUÉE, son « Jouer » neutralisé', async (geste, message) => {
     const entry = buildImportedProject(builtinDocJson(0));
     entry.id = 'lib-fixture-refusee';
     entry.label = 'Campagne refusée';
-    entry.project = { ...entry.project, schema: 999 as typeof CURRENT_PROJECT_SCHEMA };
+    entry.project = { ...entry.project, schema: 999 } as typeof entry.project;
     projectSave(entry);
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     const onClose = vi.fn();
@@ -224,12 +222,16 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     expect(alertes).toHaveLength(1);
     const alerte = alertes[0];
     expect(alerte.closest('.master-detail-list'), 'jamais au rail de la liste').toBeNull();
-    expect(bouton.closest('.row[data-justify="end"]')!.parentElement!.contains(alerte), 'près des boutons de l’entrée').toBe(true);
-    expect(alerte.classList.contains('chip') && alerte.classList.contains('tone-danger')).toBe(true);
+    const actions = [...container.querySelectorAll('.row[data-justify="end"]')].find((r) => r.textContent?.includes('Exporter'))!;
+    expect(actions.parentElement!.contains(alerte), 'près des boutons de l’entrée').toBe(true);
+    expect(alerte.querySelector('p.chip.tone-danger.chip-phrase')?.textContent).toBe(message);
     const txt = alerte.textContent ?? '';
-    expect(txt).toMatch(message);
-    expect(txt).toMatch(/Demandez-en une nouvelle version à son auteur\./);
     expect(txt.toLowerCase()).not.toMatch(/schema|migration/);
+    expect(row.querySelector('.chip.tone-danger')?.textContent, 'l’entrée refusée est marquée').toBe(MARQUE_AUTRE_FORMAT);
+    const jouer = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === 'Jouer') as HTMLButtonElement;
+    expect(jouer.getAttribute('aria-disabled'), '« Jouer » neutralisé').toBe('true');
+    expect(jouer.classList.contains('btn-primary'), '« Jouer » n’est plus l’action principale').toBe(false);
+    expect(container.querySelector('#bibliotheque-jouer-reason')?.textContent).toBe(messageDeRefusJoueur('jouer'));
     expect(consoleErr).toHaveBeenCalled();
     expect(onClose, 'l’écran reste ouvert').not.toHaveBeenCalled();
 
@@ -241,6 +243,22 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     await unmount();
   });
 
+  it('une entrée dont l’ENVELOPPE est refusée : MARQUÉE dans la liste, son « Jouer » n’est pas l’action principale active', async () => {
+    const oeuvre = { id: 'oeuvre', label: 'Mon oeuvre', startSceneId: 's1', savedAt: 1, published: false, project: { scenes: [{ id: 's1' }] }, champEnTrop: 1 };
+    localStorage.setItem('wfrp4.editor-projects', JSON.stringify([oeuvre]));
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await mount();
+    const row = Array.from(container.querySelectorAll('button.listrow')).find((el) => el.textContent?.includes('Mon oeuvre')) as HTMLButtonElement;
+    expect(row.querySelector('.chip.tone-danger')?.textContent).toBe(MARQUE_AUTRE_FORMAT);
+    await act(async () => row.click());
+    const jouer = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === 'Jouer') as HTMLButtonElement;
+    expect(jouer.getAttribute('aria-disabled')).toBe('true');
+    expect(jouer.classList.contains('btn-primary')).toBe(false);
+    await act(async () => jouer.click());
+    expect(useGame.getState().pendingCampaign, 'aucune campagne posée').toBeNull();
+    consoleErr.mockRestore();
+  });
+
   /** Clique la rangée nommée `nom` puis le bouton `geste` de son panneau de détail. */
   async function clique(nom: string, geste: string) {
     const row = Array.from(container.querySelectorAll('button.listrow')).find((el) => el.textContent?.includes(nom)) as HTMLButtonElement;
@@ -248,29 +266,6 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     const bouton = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === geste) as HTMLButtonElement;
     await act(async () => bouton.click());
   }
-
-  it('« Jouer » une entrée d’AVANT #1552 (document sans identité) : elle SE JOUE, sans refus — même lecture que l’éditeur (#1343)', async () => {
-    const { type: _muette, ...sceneMuette } = { ...emptyScene(4, 4), id: 'scene-ancienne', label: 'Salle ancienne' };
-    const ancienne = {
-      id: 'proj-ancien', label: 'Campagne d’avant', startSceneId: 'scene-ancienne', savedAt: 1, published: true,
-      project: { schema: 6, scenes: [sceneMuette as Scene], narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] } },
-    } as SavedProject;
-    await projectSave(ancienne);
-    useGame.setState({ pendingCampaign: null } as never);
-    const onClose = vi.fn();
-
-    await act(async () => {
-      root.render(<CampaignLibraryScreen onClose={onClose} />);
-    });
-    await clique('Campagne d’avant', 'Jouer');
-
-    expect(container.querySelector('[role="alert"]'), 'aucun refus').toBeNull();
-    expect(onClose).toHaveBeenCalled();
-    const pc = useGame.getState().pendingCampaign;
-    expect(pc?.id).toBe('proj-ancien');
-    expect(pc?.scenes.map((s) => s.id)).toEqual(['scene-ancienne']);
-    await unmount();
-  });
 
   it('un id renommé au Codex (#1692) : l’écran reste debout, et « Jouer » d’une campagne du jeu qui le référence refuse par la voie des projets', async () => {
     const avant = [...datasetArray('props')];
@@ -283,9 +278,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
       await mount();
       for (const bc of allBuiltinCampaigns) expect(container.textContent).toContain(bc.label);
       await clique(campagne!.label, 'Jouer');
-      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
-        'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.',
-      );
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.');
       expect(useGame.getState().pendingCampaign, 'aucune campagne posée').toBeNull();
       expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
     } finally {
@@ -305,7 +298,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     await mount();
     await clique('Départ perdu', 'Jouer');
     const txt = container.querySelector('[role="alert"]')?.textContent ?? '';
-    expect(txt).toBe('Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.');
+    expect(txt).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.');
 
     const OrigCreateObjectURL = URL.createObjectURL;
     const OrigRevokeObjectURL = URL.revokeObjectURL;
@@ -323,40 +316,6 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     expect(telecharges).toHaveLength(1);
 
     consoleErr.mockRestore();
-    await unmount();
-  });
-
-  it('« Exporter » une copie au nom d’entrée DIVERGENT : le document exporté porte le nom que la liste montre (#1343)', async () => {
-    const { paquet: _pq, fichier: _fi, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
-    const copie = {
-      id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-copie', savedAt: 1, published: true,
-      project: {
-        ...identiteDuPaquet, type: 'projet', schema: CURRENT_PROJECT_SCHEMA, label: 'Nom du paquet',
-        scenes: [{ ...emptyScene(4, 4), id: 'scene-copie', label: 'Salle copiée' }],
-        narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
-      },
-    } as unknown as SavedProject;
-    await projectSave(copie);
-
-    await mount();
-    // Patron `export-passe-la-porte.test.tsx` : surcharges PLATES le temps du geste, puis restaurées.
-    const OrigCreateObjectURL = URL.createObjectURL;
-    const OrigRevokeObjectURL = URL.revokeObjectURL;
-    const telecharges: Blob[] = [];
-    URL.createObjectURL = (b: Blob | MediaSource) => { telecharges.push(b as Blob); return 'blob:fake'; };
-    URL.revokeObjectURL = () => {};
-    try {
-      await clique('Mon nom', 'Exporter');
-    } finally {
-      URL.createObjectURL = OrigCreateObjectURL;
-      URL.revokeObjectURL = OrigRevokeObjectURL;
-    }
-
-    expect(container.querySelector('[role="alert"]'), 'aucun refus').toBeNull();
-    expect(telecharges).toHaveLength(1);
-    const exporte = JSON.parse(await telecharges[0].text()) as { label: string; id: string };
-    expect(exporte.label).toBe('Mon nom');
-    expect(exporte.id).toBe(allBuiltinCampaigns[0].id);
     await unmount();
   });
 
@@ -385,14 +344,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it('ré-importer un même id PROPOSE le remplacement (window.confirm) au lieu d’écraser silencieusement (#766)', async () => {
-    const bc = paquetDuJeu(allBuiltinCampaigns[0]);
-    const docFor = (version: number) => JSON.stringify({
-      schema: 3,
-      scenes: bc.scenes,
-      ...(bc.worldMap ? { worldMap: bc.worldMap } : {}),
-      narratif: bc.narratif,
-      meta: { id: 'dup-fixture', label: 'Doublon', version },
-    });
+    const docFor = (version: number) => JSON.stringify(docDuJeu(0, { id: 'dup-fixture', label: 'Doublon', versionContenu: version }));
     const v1 = buildImportedProject(docFor(1));
     projectSave(v1);
     expect(projectsLoad().find((p) => p.id === 'dup-fixture')?.project.versionContenu).toBe(1);
@@ -415,16 +367,9 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it('échec réel de sauvegarde (IndexedDB en échec ET projet trop gros pour le miroir) : message visible au joueur (#776)', async () => {
-    const bc = paquetDuJeu(allBuiltinCampaigns[0]);
-    const doc = JSON.stringify({
-      schema: 3,
-      scenes: bc.scenes,
-      ...(bc.worldMap ? { worldMap: bc.worldMap } : {}),
-      narratif: bc.narratif,
-      // Champ méta hors-schéma volontairement énorme : dépasse la borne PAR PROJET du miroir
-      // localStorage (500 000 caractères), pour exercer le chemin de PERTE RÉEL.
-      meta: { id: 'big-fixture', label: 'Grosse campagne', version: 1, desc: 'x'.repeat(600_000) },
-    });
+    // Description volontairement énorme : dépasse la borne PAR PROJET du miroir localStorage
+    // (500 000 caractères), pour exercer le chemin de PERTE RÉEL.
+    const doc = JSON.stringify(docDuJeu(0, { id: 'big-fixture', label: 'Grosse campagne', versionContenu: 1, desc: 'x'.repeat(600_000) }));
     brancherBibliotheque((q) => (q.geste === 'put' && (q.valeur as SavedProject).id === 'big-fixture' ? new DOMException('put refusé', 'QuotaExceededError') : null));
 
     await mount();
@@ -447,7 +392,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     // bien emprunté le chemin d'échec de sauvegarde, pas juste un alert qui ressemble.
     expect(txt.toLowerCase()).toMatch(/volumineuse/);
 
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     await unmount();
   });
 
@@ -487,13 +432,13 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     expect(txt.toLowerCase()).toMatch(/réapparaître/);
 
     setItemSpy.mockRestore();
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     await unmount();
   });
 
   it('import d’un JSON valide mais structurellement invalide : message JOUEUR, jamais le langage de schéma (#780)', async () => {
-    // schema=999 : JSON valide, `parseProject` refuse (aucune migration disponible) — ce message
-    // parle de `schema=` et de migration, PAS pour l'écran.
+    // `{ schema: 999 }` : JSON valide, `parseProject` le refuse — son rapport parle de champs (`schema`,
+    // `id`…), PAS pour l'écran.
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     await mount();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;

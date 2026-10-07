@@ -17,8 +17,8 @@ export const TROUS_DE_VALIDATION: Readonly<Record<string, { raison: string; lot:
   },
   'scene.ts:authoredShipPosteSchema': {
     raison:
-      'AuthoredShipPoste (engine/types.ts:1198) porte DEUX formes vivantes en même temps — la neuve (`trappingId`) et l’ANCIENNE pré-#222 (`item: ItemInstance` copié en entier, migrée par `hydratePoste`) — plus `WeaponEnchant[]` : l’écrire strict aujourd’hui exigerait le schéma d’ItemInstance ET de figer une forme que la migration efface encore.',
-    lot: 'L3 #1463 — lot NAVAL (postes/artillerie MDG) : la forme ancienne meurt avec la migration, l’ItemInstance vient avec le lot possessions.',
+      'AuthoredShipPoste (engine/types.ts) porte le coffre de la pièce (`ammo: ItemInstance[]`) et `WeaponEnchant[]` : l’écrire strict aujourd’hui exigerait le schéma d’ItemInstance.',
+    lot: 'L3 #1463 — lot NAVAL (postes/artillerie MDG) : l’ItemInstance vient avec le lot possessions.',
   },
   'narratif.ts:objets': {
     raison:

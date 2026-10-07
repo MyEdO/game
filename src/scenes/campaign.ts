@@ -1,5 +1,4 @@
-/** Les campagnes du jeu : chacune est un paquet commité (`{schema: SCHEMA_PROJET, <identité>, scenes,
- *  worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
+/** Les campagnes du jeu : chacune est un paquet commité (`{<identité>, scenes, worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
  *  — celui de l'Arène est l'octet du `build()` de `scripts/arene/generate.mjs` (#1522, #1601) —, que
  *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, une campagne du jeu n'est que son IDENTITÉ, lue
  *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
@@ -36,7 +35,7 @@ export interface BuiltinCampaign extends ProjectIdentite {
 /** Le paquet d'une campagne du jeu passé par la porte `parseProject`, AU GESTE : un refus lève
  *  `ProjetRefuse`, laissé à l'appelant. Sa première scène est l'entrée. */
 export function paquetDuJeu(c: BuiltinCampaign): Omit<ProjectDoc, 'schema'> {
-  return parseProject(c.paquet);
+  return parseProject(structuredClone(c.paquet)); // #2097
 }
 
 /** La campagne LANCÉE depuis une campagne du jeu (`setPendingCampaign`), SOURCE UNIQUE de tout site
@@ -77,8 +76,8 @@ export function lancerCampagne(get: Get, choisie: GameState['pendingCampaign'], 
 }
 
 /** Ce qu'OUVRE dans l'éditeur la COPIE d'une campagne du jeu (#367) — SOURCE UNIQUE de `loadBuiltin`
- *  (`ui/editor/Editor.tsx`), qui ne fait que la poser. Tout y est une copie PROFONDE : l'édition ne
- *  touche jamais le paquet commité. L'identité est celle du paquet parsé, ENTIÈRE (provenance
+ *  (`ui/editor/Editor.tsx`), qui ne fait que la poser. Tout y est la copie PROFONDE de `paquetDuJeu` : l'édition
+ *  ne touche jamais le paquet commité. L'identité est celle du paquet parsé, ENTIÈRE (provenance
  *  comprise), sans le `label`, que l'éditeur renomme ; `activeAxes` n'y figure que si la campagne en
  *  déclare. Un refus de la porte lève `ProjetRefuse`. */
 export function copieDuJeu(c: BuiltinCampaign): {
@@ -90,13 +89,12 @@ export function copieDuJeu(c: BuiltinCampaign): {
   identite: Omit<ProjectIdentite, 'label'>;
 } {
   const { scenes: [depart, ...autresScenes], worldMap, activeAxes, narratif, label: _lb, ...identite } = paquetDuJeu(c);
-  const copie = <T>(v: T): T => JSON.parse(JSON.stringify(v));
   return {
-    depart: copie(depart),
-    autresScenes: autresScenes.map(copie),
-    worldMap: worldMap ? copie(worldMap) : null,
-    ...(activeAxes !== undefined ? { activeAxes: [...activeAxes] } : {}),
-    narratif: copie(narratif),
+    depart,
+    autresScenes,
+    worldMap: worldMap ?? null,
+    ...(activeAxes !== undefined ? { activeAxes } : {}),
+    narratif,
     identite,
   };
 }

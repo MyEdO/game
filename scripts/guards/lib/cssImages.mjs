@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { CHEMIN_TSCONFIG, aliasDe, directImportsOf, estModule, pathspecsDeModules } from './importGraph.mjs'
+import { analyserCorpus } from './dialecte.mjs'
 import { INDEX, SUIVI, TRAVAIL, ceQuiChange, depotDe, fichiersDuGrep, lireEnLot, listerImage, shaDe } from './gitPorte.mjs'
 import {
   CHEMIN_COUCHES, CHEMIN_MANIFESTE, RACINE_DES_MODULES, feuillesPartageesDe, fichiersReutilises,
@@ -74,10 +75,11 @@ export function importsDansLArbre(source, rels, { racine = '.' } = {}) {
   const arbre = new Set(source.lister(RACINE_DES_SOURCES).map((rel) => `${racineAbs}/${rel}`))
   const options = { racine, existe: (abs) => arbre.has(abs), alias: aliasDe(source.lire(CHEMIN_TSCONFIG), racineAbs) }
   const textes = source.lireTout(modules)
-  return rels.map((rel) => {
-    const texte = textes.get(rel)
-    return [rel, typeof texte === 'string' ? directImportsOf(rel, texte, options) : []]
-  })
+  const fichiers = [...new Set(modules)].map((rel) => ({ rel, text: textes.get(rel) })).filter(({ text }) => typeof text === 'string')
+  const imports = new Map()
+  for (const { fichier, sourceFile, diagnostics } of analyserCorpus(fichiers))
+    imports.set(fichier.rel, directImportsOf(fichier.rel, sourceFile, { ...options, diagnostics }))
+  return rels.map((rel) => [rel, [...(imports.get(rel) ?? [])]])
 }
 
 /**
@@ -105,8 +107,9 @@ export function imageCss(source, options) {
   const { manifeste, partagees, reutilises } = coteCss(source, options)
   const rels = new Set(source.lister(RACINE_DES_MODULES).filter((f) => f.endsWith('.css')))
   for (const c of modulesDePrimitive(manifeste)) rels.add(c)
+  const textes = source.lireTout([...rels])
   const fichiers = [...rels]
-    .map((rel) => ({ rel, text: source.lire(rel) }))
+    .map((rel) => ({ rel, text: textes.get(rel) ?? null }))
     .filter((f) => f.text !== null)
   return { fichiers, manifeste, partagees, reutilises }
 }

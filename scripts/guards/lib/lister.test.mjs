@@ -7,15 +7,15 @@
 //      être vert sur cette machine.
 //  (b) MUR        : toute racine du registre des générateurs (`GENERATORS` ∪ `NON_GENERATOR_CHECKS`,
 //      `scripts/docs/build-all.mjs`) est SOUS les globs `files:` de chaque bloc du mur « ordre total »
-//      de `eslint.config.js` — les globs se LISENT depuis la config, jamais recopiés ici. Chaque règle
+//      de `oxlint.config.mjs` — les globs se LISENT depuis la config, jamais recopiés ici. Chaque règle
 //      du mur y est déclarée par UN seul bloc, en `error` (UNICITÉ) ; aucun ignore global ne couvre un
-//      fichier sous le mur (IGNORES) ; les seuls commentaires ESLint qui l'éteignent sont les exemptions
+//      fichier sous le mur (IGNORES) ; les seuls commentaires de lint qui l'éteignent sont les exemptions
 //      nommées (DIRECTIVES).
 //  (c) CLÔTURE    : chaque module de la clôture d'imports NON bornée de ces racines (`clotureDImports`,
 //      donc `scripts/**` compris — `closureOf` est bornée à `src/` et ne verrait pas les libs de garde
 //      atteintes par un générateur, dont `fieldConsumers.mjs`, le fichier de l'incident fondateur) qui
-//      vit HORS des globs du mur est linté par ESLint, la config du dépôt surmontée de
-//      `REGLES_ORDRE_TOTAL` (les règles des deux blocs du mur, lues dans `eslint.config.js`) : les formes
+//      vit HORS des globs du mur est linté par Oxlint, la config du dépôt surmontée de
+//      `REGLES_ORDRE_TOTAL` (les règles des deux blocs du mur, lues dans `oxlint.config.mjs`) : les formes
 //      que le mur ferme s'expriment UNE fois, dans ses sélecteurs. Ce que le mur refuse dans un de ces
 //      modules est nommé `fichier:ligne: message`.
 //  (d) MOTIF     : `correspondGlob` lit un motif aux règles du PATHSPEC git — `*` ne franchit pas un
@@ -26,34 +26,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob } from './lister.mjs'
 import { clotureDImports, estModule } from './importGraph.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
-import { scriptKindDe } from './dialecte.mjs'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
-import { ESLint } from 'eslint'
-import configEslint, { REGLES_ORDRE_TOTAL } from '../../../eslint.config.js'
+import { lintFixtures, directivesLint } from './lint.testkit.mjs'
+import { lancerLint } from './lintStage.mjs'
+import configurationLint, { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
 
-/** Le parseur des commentaires ESLint, résolu DEPUIS `eslint` : la copie de `@eslint/plugin-kit` que le
- *  linter charge lui-même (`lib/languages/js/source-code/source-code.js`), jamais une autre. */
-const { ConfigCommentParser } = createRequire(import.meta.resolve('eslint'))('@eslint/plugin-kit')
 
 const RACINE_DEPOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
 
-/** Le bloc de la config ESLint réelle qui déclare cette règle du mur — UN seul (volet UNICITÉ). */
+/** Le bloc de la config réelle qui déclare cette règle du mur — UN seul (volet UNICITÉ). */
 function blocDe(regle) {
   const bloc = configEslint.find((c) => c?.rules && regle in c.rules)
-  assert.ok(bloc, `\`${regle}\` n’est déclarée par aucun bloc d’eslint.config.js`)
+  assert.ok(bloc, `\`${regle}\` n’est déclarée par aucun bloc d’oxlint.config.mjs`)
   return bloc
 }
 /** Les blocs du mur de l'ordre total, un par règle de `REGLES_ORDRE_TOTAL`. */
 const blocsDuMur = () => Object.keys(REGLES_ORDRE_TOTAL).map(blocDe)
 const couvre = (bloc, rel) => bloc.files.some((g) => correspondGlob(rel, g))
-const exempte = (bloc, rel) => (bloc.ignores ?? []).some((g) => correspondGlob(rel, g))
+const exempte = (bloc, rel) => (bloc.excludeFiles ?? []).some((g) => correspondGlob(rel, g))
 /** Sous le mur ENTIER (chaque règle l'arme) : la clôture des générateurs. */
 const sousLeMurEntier = (rel) => blocsDuMur().every((c) => couvre(c, rel) && !exempte(c, rel))
 
@@ -161,7 +157,7 @@ test('MUR — toute racine du registre des générateurs est sous les globs de c
   assert.deepEqual(
     hors,
     [],
-    `générateur N+1 hors du mur : ajoute son glob à \`GLOBS_GENERATEURS\` d’eslint.config.js (il arme les deux blocs du mur) —\n  ${hors.join('\n  ')}`,
+    `générateur N+1 hors du mur : ajoute son glob à \`GLOBS_GENERATEURS\` d’oxlint.config.mjs (il arme les deux blocs du mur) —\n  ${hors.join('\n  ')}`,
   )
 })
 
@@ -184,30 +180,11 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
     (rel) => estModule(rel) && !blocsDuMur().every((c) => couvre(c, rel)) && !blocsDuMur().some((c) => exempte(c, rel)),
   )
   assert.ok(horsDuMur.includes('src/data/index.ts'), 'le témoin `src/data/index.ts` n’est plus linté par ce volet')
-  const sonde = sondeDesDirectives(Object.keys(REGLES_ORDRE_TOTAL))
-  const eslint = new ESLint({
-    cwd: RACINE_DEPOT,
-    overrideConfig: [
-      { files: horsDuMur, linterOptions: { reportUnusedDisableDirectives: 'off' }, rules: REGLES_ORDRE_TOTAL },
-      sonde.bloc(horsDuMur),
-    ],
-  })
-  const sites = []
-  for (const { filePath, messages, suppressedMessages } of await eslint.lintFiles(horsDuMur)) {
-    const rel = filePath.slice(RACINE_DEPOT.length + 1).split('\\').join('/')
-    for (const m of messages) {
-      // Un module NON linté (ignoré, illisible au parseur) rend un message sans `ruleId` : il est nommé,
-      // jamais compté pour conforme.
-      if (m.ruleId === null || m.ruleId in REGLES_ORDRE_TOTAL) sites.push(`${rel}:${m.line}: ${m.message}`)
-    }
-    // Une directive ÉTEINT le mur sans le faire parler : hors des globs, aucune exemption n'est nommée.
-    for (const m of suppressedMessages) {
-      if (m.ruleId in REGLES_ORDRE_TOTAL) sites.push(`${rel}:${m.line}: (éteint par une directive) ${m.message}`)
-    }
-  }
-  // Un commentaire de configuration `/* eslint <mur>: … */` éteint le mur sans message ni suppression.
-  for (const site of sonde.vues) sites.push(`${site}: (commentaire ESLint qui éteint le mur)`)
-  assert.deepEqual(sites, [], `module de la clôture hors des globs du mur qui enfreint ses règles :\n  ${sites.join('\n  ')}`)
+  const fixtures = horsDuMur.map(filePath => ({filePath,code:readFileSync(join(RACINE_DEPOT,filePath),'utf8')}))
+  const resultats = lintFixtures(fixtures, {overrides:[...configurationLint.overrides,{files:horsDuMur,rules:REGLES_ORDRE_TOTAL}],options:{reportUnusedDisableDirectives:'off'}})
+  const sites = resultats.flatMap(r=>r.messages.filter(m=>m.ruleId===null||m.ruleId in REGLES_ORDRE_TOTAL).map(m=>r.filePath+':'+m.line+': '+m.message))
+  for(const f of fixtures) for(const ligne of directivesLint(f.code,f.filePath,Object.keys(REGLES_ORDRE_TOTAL))) sites.push(f.filePath+':'+ligne+': directive qui éteint le mur')
+  assert.deepEqual(sites, [], sites.join('\n'))
 })
 
 /** Les exemptions AU SITE du mur de l'ordre total, nommées : le crochet de l'enregistreur de lectures
@@ -222,47 +199,7 @@ const EXEMPTIONS_DU_MUR = [
   'scripts/test/partition.mjs:173', 'scripts/test/partition.mjs:178',
 ]
 
-/** Sonde des commentaires ESLint qui ÉTEIGNENT l'une de ces règles, lus par la grammaire d'ESLint
- *  elle-même (`SourceCode#getDisableDirectives`/`applyInlineConfig`, `ConfigCommentParser#parseListConfig`
- *  de la copie de `@eslint/plugin-kit` que charge le linter) : la directive `eslint-disable…` qui la
- *  nomme ou n'en nomme aucune (elle éteint tout), et le commentaire de configuration
- *  `/* eslint <règle>: … *\/` qui la redéclare (sévérité ou options) ; `eslint-enable` n'éteint rien. `bloc(fichiers)` est le bloc de config à greffer au lint ; `vues` reçoit les
- *  sites `rel:ligne`. */
-function sondeDesDirectives(regles) {
-  const parseur = new ConfigCommentParser()
-  const vues = []
-  const lire = {
-    create(ctx) {
-      const rel = ctx.filename.slice(RACINE_DEPOT.length + 1).split('\\').join('/')
-      const sc = ctx.sourceCode
-      for (const d of sc.getDisableDirectives().directives) {
-        if (d.type === 'enable') continue
-        const noms = Object.keys(parseur.parseListConfig(d.value))
-        if (noms.length === 0 || noms.some((n) => regles.includes(n))) vues.push(`${rel}:${d.node.loc.start.line}`)
-      }
-      for (const { config, loc } of sc.applyInlineConfig().configs) {
-        if (Object.keys(config.rules ?? {}).some((n) => regles.includes(n))) vues.push(`${rel}:${loc.start.line}`)
-      }
-      return {}
-    },
-  }
-  const bloc = (fichiers) => ({ files: fichiers, plugins: { sonde: { rules: { lire } } }, rules: { 'sonde/lire': 'error' } })
-  return { vues, bloc }
-}
-
-/** La config du dépôt SANS ses règles : ses parseurs lisent chaque dialecte, ses ignores globaux restent,
- *  seule la sonde tourne. Sûr tant qu'aucun bloc à `rules` n'a d'`ignores` sans `files` (réduit, il
- *  deviendrait un ignore global) : asserté ici, à chaque lecture. */
-function sansRegles(config = configEslint) {
-  assert.ok(!config.some((c) => c?.rules && c.ignores && !c.files), 'réduire à `rules` près un bloc à `rules` et `ignores` sans `files` en ferait un ignore global')
-  return config.map(({ rules: _regles, ...bloc }) => bloc)
-}
-const lintSonde = (sonde, fichiers) =>
-  new ESLint({ cwd: RACINE_DEPOT, overrideConfigFile: true, overrideConfig: [...sansRegles(), sonde.bloc(fichiers)] })
-
-/** Un commentaire ESLint s'ouvre par le mot `eslint` (`parseDirective`, `shared/directives.js`) : un
- *  source qui ne le porte pas n'en a aucun. */
-const porteCommentaireEslint = (texte) => texte.includes('eslint')
+const porteCommentaireEslint = texte => texte.includes('eslint') || texte.includes('oxlint')
 
 /** Les fichiers de code qu'arme au moins une règle du mur, marchés depuis les racines que ses globs
  *  nomment (premier segment de chaque glob). */
@@ -271,10 +208,10 @@ function fichiersSousLeMur() {
   const racines = [...new Set(blocs.flatMap((c) => c.files.map((g) => g.split('/')[0])))].sort(parUnitesDeCode)
   return racines
     .flatMap((racine) => listerArbre(join(RACINE_DEPOT, racine), { descendre: (r) => r !== 'node_modules' }).map((r) => `${racine}/${r}`))
-    .filter((rel) => scriptKindDe(rel) !== scriptKindDe('.json') && blocs.some((c) => couvre(c, rel) && !exempte(c, rel)))
+    .filter((rel) => estModule(rel) && blocs.some((c) => couvre(c, rel) && !exempte(c, rel)))
 }
 
-test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’eslint.config.js, en `error`, avec ses options', () => {
+test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’oxlint.config.mjs, en `error`, avec ses options', () => {
   for (const [regle, valeur] of Object.entries(REGLES_ORDRE_TOTAL)) {
     const blocs = configEslint.flatMap((c, i) => (c?.rules && regle in c.rules
       ? [`bloc ${i} [${(c.files ?? ['(tous les fichiers)']).join(', ')}] → ${JSON.stringify(c.rules[regle]).slice(0, 60)}`]
@@ -285,21 +222,17 @@ test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’esli
   }
 })
 
-test('IGNORES — aucun ignore GLOBAL d’eslint.config.js ne couvre un fichier sous le mur', async () => {
-  // ESLint décide de ce qu'est un ignore global : la config du dépôt sans ses règles (`sansRegles`, qui
-  // n'en crée aucun) arme tout fichier (`files: ['**']`) — un fichier qu'elle ignore l'est par un ignore
-  // global, jamais faute de bloc.
-  const lecteur = (config) => new ESLint({ cwd: RACINE_DEPOT, overrideConfigFile: true, overrideConfig: [...sansRegles(config), { files: ['**'] }] })
-  const reel = lecteur(configEslint)
-  const ignores = []
-  for (const rel of fichiersSousLeMur()) if (await reel.isPathIgnored(join(RACINE_DEPOT, rel))) ignores.push(rel)
-  assert.deepEqual(ignores, [], `fichier sous le mur éteint par un ignore global :\n  ${ignores.join('\n  ')}`)
-  // Deux ignores globaux plantés DANS la config lue, nu et à `basePath` (champ méta de
-  // `@eslint/config-array`).
-  const temoin = 'scripts/docs/build-all.mjs'
-  const plante = async (bloc) => lecteur([...configEslint, bloc]).isPathIgnored(join(RACINE_DEPOT, temoin))
-  assert.equal(await plante({ ignores: [temoin] }), true, 'le lecteur ne voit plus un ignore global planté')
-  assert.equal(await plante({ basePath: 'scripts', ignores: ['docs/build-all.mjs'] }), true, 'le lecteur ne voit pas un ignore global à `basePath`')
+test('IGNORES — aucun ignore global ne couvre un fichier sous le mur', () => {
+  const fichiers = fichiersSousLeMur()
+  const resultat = lancerLint(RACINE_DEPOT,fichiers,{cwd:RACINE_DEPOT,configuration:{overrides:[],rules:{},options:{reportUnusedDisableDirectives:'off'}}})
+  assert.deepEqual(resultat.defauts,[])
+  assert.equal(JSON.parse(resultat.stdout).number_of_files,new Set(fichiers).size)
+  const temoin='scripts/docs/build-all.mjs'
+  for(const motif of [temoin,'scripts/docs/**']) {
+    const plante=lancerLint(RACINE_DEPOT,[temoin],{cwd:RACINE_DEPOT,configuration:{overrides:[],rules:{},ignorePatterns:[...configurationLint.ignorePatterns,motif]}})
+    assert.deepEqual(plante.defauts,[])
+    assert.equal(JSON.parse(plante.stdout).number_of_files,0)
+  }
 })
 
 test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteignent sont les exemptions nommées', async () => {
@@ -309,24 +242,12 @@ test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteig
     assert.ok(sousLeMur.includes(temoin), `la marche des globs du mur ne voit plus \`${temoin}\``)
   }
   const porteurs = sousLeMur.filter((rel) => porteCommentaireEslint(readFileSync(join(RACINE_DEPOT, rel), 'utf8')))
-  const sonde = sondeDesDirectives(regles)
-  const lint = lintSonde(sonde, porteurs)
-  // Un porteur ignoré ou illisible au parseur tairait ses directives : il est nommé.
-  const ignores = []
-  for (const rel of porteurs) if (await lint.isPathIgnored(join(RACINE_DEPOT, rel))) ignores.push(`${rel}: ignoré`)
-  assert.deepEqual(ignores, [])
-  const resultats = await lint.lintFiles(porteurs)
-  assert.deepEqual(resultats.flatMap((r) => r.messages.filter((m) => m.fatal).map((m) => `${r.filePath}:${m.line}: ${m.message}`)), [])
-  assert.deepEqual(sonde.vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode))
-  // La lecture des directives se prouve sur un cas planté de chaque forme, sous les globs du mur, après
-  // le filtre des porteurs.
-  const PLANTE = 'scripts/docs/zz-plante-directives.mjs'
-  const plante = async (code) => {
-    if (!porteCommentaireEslint(code)) return []
-    const s = sondeDesDirectives(regles)
-    await lintSonde(s, [PLANTE]).lintText(code, { filePath: join(RACINE_DEPOT, PLANTE) })
-    return s.vues.map((v) => Number(v.slice(PLANTE.length + 1)))
-  }
+  const vues=porteurs.flatMap(rel=>directivesLint(readFileSync(join(RACINE_DEPOT,rel),'utf8'),rel,regles).map(l=>rel+':'+l))
+  assert.deepEqual(vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode))
+  const plante = code => directivesLint(code,'scripts/docs/zz-plante-directives.mjs',regles)
+  assert.deepEqual(plante('// oxlint-disable-next-line murs/ordre-total -- r\nx()'),[1])
+  assert.deepEqual(plante('/* oxlint-disable */\nx()'),[1])
+  assert.deepEqual(plante('const re = /eslint-disable/;'),[])
   assert.deepEqual(await plante('// eslint-disable-next-line murs/marques -- autre mur\nx()\n'), [])
   assert.deepEqual(await plante('// eslint-disable-next-line murs/ordre-total-locale -- r\nx()\n'), [1])
   assert.deepEqual(await plante('// eslint-disable-next-line murs/ordre-total-locale --- raison\nx()\n'), [1])

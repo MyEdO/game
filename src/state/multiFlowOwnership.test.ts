@@ -13,6 +13,7 @@ import { FLOW_VERBS, participantOwnedIntents, flowActionName } from './flowVerbs
 import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from '../net/intents';
 import type { GameState } from './store';
+import { cascadeDeTest } from './cascadeTestKit';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; pidIsActor?: boolean };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -36,10 +37,10 @@ const base = (over: Partial<GameState>): GameState =>
     ...over,
   }) as unknown as GameState;
 
-const parts = [{ id: H_HOST, result: null }, { id: H_OWNER, result: null }];
+const parts = [{ id: H_HOST, base: 40, target: 40, result: null }, { id: H_OWNER, base: 40, target: 40, result: null }];
 /** Cascade d'accueil des flux qui vivent en ÉTAPE (owner '*' : la modale ouvrirait TOUT à TOUS). */
 const groupCascade = {
-  pendingCascade: { participants: [{ id: 's0', kind: 'x', groupOwner: true }], cursor: 0 },
+  pendingCascade: cascadeDeTest([{ id: 's0', kind: 'x', groupOwner: true }]),
 } as unknown as Partial<GameState>;
 
 /** Un pending OUVERT par flux (les 2 héros en participants) — table totale, vérifiée ci-dessous. */
@@ -60,7 +61,11 @@ const FIXTURES: Record<string, Partial<GameState>> = {
   shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<GameState>,
   crewTest: { pendingCrewTest: { shipId: 'ship1', participants: parts } } as unknown as Partial<GameState>,
   cascadeBatch: {
-    pendingCascade: { participants: [{ id: 'batch', kind: 'stagePosteBatch', participants: parts }], cursor: 0 },
+    pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
+  } as unknown as Partial<GameState>,
+  // Chute volontaire du groupe (#700) : la fenêtre appartient à l'initiateur (l'hôte), chaque rangée à SON siège.
+  fall: {
+    pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: true })) },
   } as unknown as Partial<GameState>,
 };
 
@@ -136,4 +141,20 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
       }
     });
   }
+
+  it('fallChoose : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
+    const s = base({ pendingFall: { to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<GameState>);
+    expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, true]), 'le siège du héros déclare pour lui').toBe(true);
+    expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, true]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, false]), 'siège TIERS').toBe(false);
+    expect(intentAllowedFor(s, 1, 'fallChoose', [H_HOST, false]), 'le siège 1 ne déclare pas pour le héros de l’hôte').toBe(false);
+    expect(intentAllowedFor(s, 0, 'fallChoose', [H_HOST, false])).toBe(true);
+  });
+
+  it('fallChoose avec l’axe HAUTEUR (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
+    const s = base({ pendingFall: { to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<GameState>);
+    expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, false, true]), 'le siège du héros déclare sa suspension').toBe(true);
+    expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, false, true]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, true, true]), 'siège TIERS').toBe(false);
+  });
 });

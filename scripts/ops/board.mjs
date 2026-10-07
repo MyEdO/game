@@ -26,7 +26,7 @@
 // Usage : `npm run ops:board` (mesurer puis synchroniser) · `-- --liste` (mesurer et IMPRIMER, aucun
 // appel d'écriture, aucun Project requis ; `--sans-fetch` y tolère un `origin` injoignable) ·
 // `-- --creer` (créer le Project « Chantiers », ses champs et son lien au dépôt, puis synchroniser).
-import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe } from '../guards/lib/gitPorte.mjs'
+import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs'
 import { numerosDeLaChaine } from '../guards/lib/fermetures.mjs'
 import { inventaire } from './worktrees.mjs'
 import { DEPOT, appelGhRunner, pagesRest } from '../guards/lib/ticketsGh.mjs'
@@ -554,10 +554,10 @@ export function mesurer({
   joursDormant = JOURS_DORMANT, joursFusionRecente = JOURS_FUSION_RECENTE,
 } = {}) {
   const vuRacine = gestes.arbrePrincipal(depotDe(cwd))
-  if (!vuRacine.disponible) return { ok: false, refus: vuRacine.raison }
+  if (!vuRacine.disponible) return { ok: false, refus: refusDeGit(vuRacine) }
   const principal = vuRacine.valeur
   let panne = null
-  const depot = depotDe(principal, { enPanne: (raison) => { panne = raison } })
+  const depot = depotDe(principal, { enPanne: (_raison, vu) => { panne = refusDeGit(vu) } })
   const raison = () => {
     const dite = panne ?? 'objet absent'
     panne = null
@@ -567,10 +567,10 @@ export function mesurer({
 
   if (!sansFetch) {
     const vuFetch = gestes.fetchOrigin(depot)
-    if (vuFetch.disponible !== true || vuFetch.absent === true) {
+    if (!reussi(vuFetch)) {
       return {
         ok: false,
-        refus: `origin non consultable (${vuFetch.raison ?? 'objet absent'}) — la mesure contre ${base} `
+        refus: `origin non consultable (${refusDeGit(vuFetch)}) — la mesure contre ${base} `
           + `serait fausse ; \`${commandeSansFetch}\` mesure sur les refs déjà là`,
       }
     }

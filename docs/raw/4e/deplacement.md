@@ -598,7 +598,7 @@ imprévisible. `EDO 12 l.13`, `EDO 12 l.17`
 |---|---|---|
 | `EDO 12 l.13` | « Le monde de Warhammer met 400 jours pour évoluer autour de Söll, son soleil, une étoile bien plus grosse et plus chaude que la nôtre. » | 400 jours |
 | `EDO 12 l.17` | « Le Calendrier Impérial subdivise les 12 mois de l'année en 400 jours, plus 6 jours additionnels intercalés entre les mois. » | 400 + 6, à la lettre 406 |
-| `EDO 12 l.60-203` (table) | Nachhexen finit au 32 (`EDO 12 l.73`), Nachgeheim au 32 (`EDO 12 l.137`), les dix autres mois au 33 (ex. Jahrdrung, `EDO 12 l.81` : « \| Wellentag \| 1 \| 9  \| 17      \| 25 \| 33 \|  \| ») | 2 × 32 + 10 × 33 = 394, + 6 intercalaires = 400 |
+| `EDO 12 l.60-203` (table) | Nachhexen finit au 32 (`EDO 12 l.73`), Nachgeheim au 32 (`EDO 12 l.137`), les dix autres mois au 33 (ex. Jahrdrung, `EDO 12 l.79-81` : son Wellentag porte le 33) | 2 × 32 + 10 × 33 = 394, + 6 intercalaires = 400 |
 
 > « Quatre de ces jours excédentaires sont des fêtes qui marquent le tournant des saisons : les solstices d'été et d'hiver, et les équinoxes de printemps et d'automne. Les deux autres indiquent les jours où les deux lunes sont pleines en même temps » — `EDO 12 l.17`
 

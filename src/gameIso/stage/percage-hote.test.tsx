@@ -149,7 +149,7 @@ async function rendre(pos: { x: number; y: number }, percage: PercageEntrees | n
   await act(async () => {
     root!.render(
       <Profiler id="stage" onRender={() => { commitsReact += 1; }}>
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={cadre}

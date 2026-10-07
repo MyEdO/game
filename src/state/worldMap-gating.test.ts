@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseProject, routesFrom, routesEtat, visiblePlaces, type WorldMap } from './worldMap';
 import { emptyNarratif } from './campaignNarratif';
+import { emptyScene } from './scene';
 import type { ConditionCtx } from '../engine/flowCore';
 import areneProjet from '../scenes/arene/arene-projet.json';
 import loupEtSaumureProjet from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
@@ -195,14 +196,13 @@ describe('`routesEtat` — lecteur de la VUE : TOUTES les routes du lieu, chacun
 });
 
 describe('AUTHORING verrouillé par CONSTRUCTION — le schéma refuse la carte qui mentirait au joueur', () => {
-  const projet = (map: WorldMap) => ({
+  const projet = (map: unknown) => ({
     type: 'projet',
-    schema: 7,
     id: 'fixture-gating',
     label: 'Fixture de gating',
     versionContenu: 1,
     maison: 'fixture de test',
-    scenes: [{ type: 'scene', id: 's-auberge', label: 's-auberge', dimensions: { w: 3, h: 3 } }],
+    scenes: [{ ...emptyScene(3, 3), id: 's-auberge', label: 's-auberge' }],
     worldMap: map,
     narratif: emptyNarratif(),
   }) as unknown;
@@ -272,12 +272,11 @@ describe('`refus` — raison JOUEUR transportée jusqu’au consommateur (rendue
   it('survit au parse du paquet et est portée par la route offerte', () => {
     const doc = {
       type: 'projet',
-      schema: 7,
       id: 'fixture-gating',
       label: 'Fixture de gating',
       versionContenu: 1,
       maison: 'fixture de test',
-      scenes: [{ type: 'scene', id: 's-auberge', label: 's-auberge', dimensions: { w: 3, h: 3 } }],
+      scenes: [{ ...emptyScene(3, 3), id: 's-auberge', label: 's-auberge' }],
       worldMap: carteGatee,
       narratif: emptyNarratif(),
     };

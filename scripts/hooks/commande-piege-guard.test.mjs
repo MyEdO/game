@@ -5,6 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { evaluate } from './commande-piege-guard.mjs'
+import { CAS_HOTE_POWERSHELL, argumentsDuCas } from './hote-powershell-cas.mjs'
 
 const silent = (cmd) => evaluate(cmd) === null
 const refuse = (cmd) => evaluate(cmd)?.decision === 'deny'
@@ -124,6 +125,40 @@ test('DENY : chaque graphie de mise à mort par nom, et le refus nomme la graphi
     assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
     assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
   }
+})
+
+/** Ligne de commande d'un segment : chaque argument blanc ou à espace entre quotes simples (doubles s'il en porte). */
+const ligneDe = (segment) => segment.map((a) => (a.trim() === a && a !== '' && !a.includes(' ') ? a : a.includes("'") ? `"${a}"` : `'${a}'`)).join(' ')
+
+test('DENY : chaque forme que l\'hôte PowerShell EXÉCUTE porte une mise à mort par nom refusée (#2292, hote-powershell-cas.mjs)', () => {
+  const executees = CAS_HOTE_POWERSHELL.filter((cas) => cas.classe === 'execute')
+  assert.ok(executees.length > 0)
+  for (const cas of executees) {
+    const cmd = ligneDe([cas.exe, ...argumentsDuCas(cas, 'Stop-Process -Name node')])
+    assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  }
+})
+
+test('DENY : la mise à mort par nom que lit l\'hôte 5.1 (positionnel, inconnu) et le tiret typographique du lieur (#2292)', () => {
+  for (const cmd of [
+    'powershell "-zz; Stop-Process -Name node"',
+    'powershell -NoProfile Stop-Process -Name node',
+    'powershell.exe -ExecutionPolicy Bypass Stop-Process -Name node',
+    'pwsh -NoProfile \u2013c "Stop-Process -Name node"',
+    'Stop-Process \u2013Name node',
+    'Stop-Process \u2014Name node',
+    'Stop-Process \u2015Name node',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+})
+
+test('PASSE : l\'hôte PowerShell qui n\'exécute aucun texte de la ligne (#2292)', () => {
+  for (const cmd of [
+    'pwsh -NoProfile Stop-Process -Name node',
+    'pwsh -NoProfile -zz "Stop-Process -Name node"',
+    'pwsh -NoProfile -h -c "Stop-Process -Name node"',
+    'powershell -NoProfile -File x.ps1 -c "Stop-Process -Name node"',
+    'Stop-Process /Name node',
+  ]) assert.equal(evaluate(cmd), null, cmd)
 })
 
 test('DENY : la mise à mort par nom derrière cmd /c, powershell -Command, bash -c, un enrobeur de tête', () => {
@@ -320,18 +355,398 @@ test('DENY : les faux négatifs de la sonde du juge', () => {
   ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
 })
 
-test('PASSE : les formes que la détection par segments ne voit pas (en-tête du garde)', () => {
+test('PASSE : les formes que la détection ne voit pas (en-tête du garde), chacune avec sa route', () => {
   for (const cmd of [
     'Stop-Process -Name:node', // #2172
     'iex "Stop-Process -Name node"', // #2172
-    'kill $(pgrep node)', // #2172
-    'kill `pgrep node`', // #2172
-    'Stop-Process -InputObject (Get-Process node)', // #2172
-    '(Get-Process node).Kill()',
-    'Get-Process node | ForEach-Object { $_.Kill() }',
-    '$p = Get-Process node; Stop-Process $p',
+    'Stop-Process $p', // affectation hors de la commande, #2332
+    "echo 'a'\\''b' && pkill node", // #2172
+    '$x = (Stop-Process -Name node)', // #2172
+    'Write-Output (Stop-Process -Name node)', // #2172
     'Start-Process taskkill -ArgumentList "/IM node.exe"', // #2172
+    'Invoke-Command -ScriptBlock { Stop-Process -Name node }', // #2172
+    'Start-Job { Stop-Process -Name node }', // #2172
+    '. { Stop-Process -Name node }', // #2172
+    'cmd /c start taskkill /im node.exe', // #2172
+    "Write-Output 'Stop-Process -Name node' | pwsh -NoProfile -Command -", // #2172
+    "Write-Output 'Stop-Process -Name node' | powershell -NoProfile", // #2172
+    'pwsh -NoProfile -File arrete.ps1', // un script : hors de la ligne
+    'exec pkill node', // #2172
   ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+// ── Réfutation de fermeture #2173 (2026-10-05), sondes promues ─────────────────────────────────────
+test('DENY : `wmic path win32_process`, l’autre graphie de l’alias `process` (expression de chemin WMI)', () => {
+  for (const cmd of [
+    "wmic path win32_process where name='node.exe' delete",
+    "wmic path win32_process where \"name='node.exe'\" call terminate",
+    "wmic PATH Win32_Process WHERE Name='node.exe' DELETE",
+    "wmic /node:srv path win32_process where name='node.exe' call terminate",
+    `wmic /namespace:${BS}${BS}root${BS}cimv2 path win32_process where name='node.exe' delete`,
+    `wmic path ${BS}${BS}.${BS}root${BS}cimv2:win32_process where name='node.exe' delete`,
+    'wmic path win32_process delete',
+  ]) assert.ok(tue(cmd).includes('wmic path win32_process'), cmd)
+  for (const cmd of [
+    'wmic path win32_process.handle="1234" delete', 'wmic path win32_process.handle=1234 call terminate',
+    'wmic path win32_process where processid=1234 delete', 'wmic class win32_process delete',
+    'wmic path win32_process get name,processid',
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : `cmd //c` et `//k`, la graphie Git Bash de `cmd /c`', () => {
+  for (const cmd of [
+    'cmd //c taskkill //im node.exe', 'cmd //c "taskkill //F //IM node.exe"', 'cmd //C taskkill //IM node.exe',
+    'cmd //q //c pkill node', 'cmd //k taskkill //im node.exe',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+})
+
+test('DENY : `fkill` par nom, direct ou par `npx` ; PASSE par PID, par port, sans cible, en aide', () => {
+  for (const cmd of [
+    'npx fkill node', 'npx fkill-cli node --force', 'fkill node', 'fkill -f 1234 node', 'npx -p fkill-cli fkill node',
+    'fkill --force-timeout 5 node', 'fkill :8080 node',
+  ]) assert.ok(/fkill/.test(tue(cmd)), cmd)
+  for (const cmd of ['fkill 1234', 'fkill :8080', 'fkill', 'fkill --help', 'fkill --version', 'fkill -t 5 1234', 'fkill-cli 1234 :3000']) {
+    assert.equal(evaluate(cmd), null, cmd)
+  }
+})
+
+test('PASSE : `pkill`/`killall` qui ne rendent qu’une aide, une version ou la liste des signaux', () => {
+  for (const cmd of [
+    'pkill --help', 'pkill -h', 'pkill -V', 'pkill --version',
+    'killall --help', 'killall -h', 'killall -V', 'killall --version', 'killall -l', 'killall --list',
+  ]) assert.equal(evaluate(cmd), null, cmd)
+  for (const cmd of ['pkill -V node', 'killall -u gauch', 'pkill -F /tmp/x.pid', 'killall -l node']) {
+    assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  }
+})
+
+test('DENY : la commande en tête d’un bloc PowerShell (`%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`, `finally`, `if`)', () => {
+  for (const cmd of [
+    '1..3 | % { Stop-Process -Name node }', '1 | % { pkill node }', '1..3 | ForEach-Object { Stop-Process -Name node }',
+    'foreach ($i in 1..3) { Stop-Process -Name node }', 'try { Stop-Process -Name node } catch {}',
+    'try { 1 } catch { taskkill /IM node.exe }', 'try { 1 } finally { pkill node }',
+    'for ($i=0; $i -lt 1; $i++) { Stop-Process -Name node }', 'if($true){Stop-Process -Name node}', '1..3 | %{Stop-Process -Name node}',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+})
+
+test('DENY : une substitution ou une sous-expression qui liste par nom, en cible d’un arrêt', () => {
+  for (const [cmd, graphie] of [
+    ['kill $(pgrep node)', 'kill … (pgrep …)'], ['kill -9 `pgrep node`', 'kill … (pgrep …)'],
+    ['kill $(pgrep -f "vite --port")', 'kill … (pgrep …)'], ['kill "$(pgrep node)"', 'kill … (pgrep …)'],
+    ["kill $(ps aux | grep node | awk '{print $2}')", 'kill … (ps …)'],
+    ['Stop-Process -InputObject (Get-Process node)', 'Stop-Process … (Get-Process …)'],
+    ['Stop-Process -Id (Get-Process bash).Id -Force', 'Stop-Process … (Get-Process …)'],
+    ["Stop-Process -Id (Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\").ProcessId", 'Stop-Process … (Get-CimInstance …)'],
+    ['taskkill /F /PID $(pidof node)', 'taskkill … (pidof …)'],
+  ]) assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
+  for (const cmd of [
+    'kill $(cat pid.txt)', 'Stop-Process -Id (Get-Content pid.txt)', 'Stop-Process -Id (Get-Process -Id 1234).Id',
+    'kill $!', 'Stop-Process -Id $PID -WhatIf', 'echo $(pgrep node)', 'Stop-Process -Id (Get-Process node).Id -WhatIf',
+    "echo 'kill $(pgrep node)'",
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : la variable affectée par un listeur, et `.Kill()` sur un listeur ; PASSE si elle est réaffectée', () => {
+  for (const [cmd, graphie] of [
+    ['$p = Get-Process node; Stop-Process $p', '$p = Get-Process … → Stop-Process $p'],
+    ['$p = Get-Process node; $p | Stop-Process', '$p = Get-Process … → $p | Stop-Process'],
+    ['$ids = (Get-Process node).Id; foreach ($i in $ids) { kill $i }', 'foreach ($i in $ids = Get-Process …) → kill $i'],
+    ['(Get-Process node).Kill()', '(Get-Process …).Kill()'], ['(gps node).Kill()', '(gps …).Kill()'],
+    ['Get-Process node | Stop-Process -Id {$_.Id}', 'Get-Process … | Stop-Process {$_}'],
+  ]) assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
+  for (const cmd of ['(Get-Process -Id 1234).Kill()', '$p = Get-Process -Id 1234; Stop-Process $p', '$p = Get-Process node; $p = 1234; Stop-Process $p']) {
+    assert.equal(evaluate(cmd), null, cmd)
+  }
+})
+
+test('DENY : les trous de la réfutation de fermeture, et la seconde occurrence du ticket', () => {
+  for (const cmd of [
+    'Get-Process node | ForEach-Object { Stop-Process -Id $_.Id }', 'Get-Process node | % { kill $_.Id }',
+    'Get-Process -Name node | Select-Object -ExpandProperty Id | ForEach-Object { taskkill /PID $_ /F }',
+    'pgrep node | while read p; do kill $p; done', 'Get-Process node | % Kill', 'Get-Process node | ForEach-Object { $_.Kill() }',
+    'Get-WmiObject Win32_Process | ? Name -eq node.exe | % { $_.Terminate() }', 'npx fkill-cli node',
+    '$p = Get-Process node; $p | Stop-Process', 'Get-Process node | Stop-Process -Id {$_.Id}',
+    "Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\" | Where-Object { $_.CommandLine -match 'grep -noE' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+    "Get-CimInstance Win32_Process | Where-Object CommandLine -match 'seq 1 20' | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+    'Get-Process bash | Where-Object { $_.Id -ne $PID } | Stop-Process -Force',
+    "Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\" | Where-Object CommandLine -match 'grep' | Select-Object -ExpandProperty ProcessId | Stop-Process -Force",
+    'foreach ($p in Get-Process bash) { Stop-Process -Id $p.Id -Force }',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+})
+
+test('PASSE : les faux positifs de la sonde de fermeture', () => {
+  for (const cmd of [
+    'grep killall README', 'echo pkill', 'git log --grep=taskkill', 'ps aux', 'tasklist', 'Get-Process -Id 1234', 'Get-Process node',
+    'tasklist | findstr node', 'tasklist /FI "IMAGENAME eq node.exe"',
+    "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Select-Object ProcessId,CommandLine", 'pgrep -fl vite', 'man pkill',
+    'pkill --help', 'killall --help', 'pkill -V', 'Get-Help Stop-Process', 'Get-Command Stop-Process', 'which taskkill', 'taskkill /?',
+    `git grep -n -i "taskkill${BS}|Stop-Process${BS}|pkill${BS}|killall" -- scripts/hooks`, "rg -n 'Stop-Process -Name' scripts",
+    'git commit -m "fix: pkill node interdit"', 'gh issue comment 2173 --body "taskkill //IM grep.exe refusé"',
+    'Get-Process | Sort-Object CPU -Descending | Select-Object -First 5', 'ps -W | grep node', 'kill -l', 'kill -l 9', 'kill -0 1234',
+    'kill -1 1234', 'Stop-Process -Id $PID', 'kill $!', 'taskkill //PID $pid //F //T', 'Get-Process node | Stop-Process -WhatIf',
+    'npm run dev -- --port 5180', 'node scripts/x.mjs --name node', 'Get-Process node | Format-Table Id,ProcessName',
+    'taskkill /PID 1234 /PID 5678 /F', 'wmic process where processid=1234 get commandline', 'wmic process list brief',
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+// Table du juge de design #2173 (2026-10-05, `cas-d3.json`, 76 cas) et ses cas de bord : l'arrêt PAR
+// ÉLÉMENT d'une liste par nom.
+const TABLE_D3 = {
+  deny: [
+    'Get-Process node | ForEach-Object { Stop-Process -Id $_.Id }',
+    'Get-Process node | % { kill $_.Id }',
+    'Get-Process node | % Kill',
+    'Get-Process node | ForEach-Object -MemberName Kill',
+    "Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\" | Where-Object { $_.CommandLine -match 'grep -noE' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+    "Get-CimInstance Win32_Process | Where-Object CommandLine -match 'seq 1 20' | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }",
+    'pgrep node | while read p; do kill $p; done',
+    'for p in $(pgrep node); do kill $p; done',
+    'foreach ($p in Get-Process bash) { Stop-Process -Id $p.Id -Force }',
+    'Get-Process node | % { Stop-Process -Id $PSItem.Id }',
+    'Get-Process node | % { Stop-Process -Id ${_}.Id }',
+    'Get-Process node | % -Process { kill $_.Id }',
+    'Get-Process node | ForEach-Object -Process { Stop-Process -InputObject $_ }',
+    'Get-Process node | Where-Object { $_.Id -ne $PID } | % { kill $_.Id }',
+    'Get-Process -Name node | Select-Object -ExpandProperty Id | ForEach-Object { taskkill /PID $_ /F }',
+    'Get-Process node | Select-Object -ExpandProperty Id | % { kill $_ }',
+    'Get-Process node | ForEach-Object { $_.Kill() }',
+    'Get-WmiObject Win32_Process | ? Name -eq node.exe | % { $_.Terminate() }',
+    'gps node | %{ kill $_.Id }',
+    'gps node | %{kill $_.Id}',
+    'gps node | ForEach-Object{Stop-Process -Id $_.Id}',
+    'gps node | % { if ($_.Id -ne $PID) { kill $_.Id } }',
+    'gps node | % { Stop-Process $_ }',
+    "gcim Win32_Process -Filter \"Name='node.exe'\" | % { Invoke-CimMethod -InputObject $_ -MethodName Terminate }",
+    "gcim Win32_Process -Filter \"Name='node.exe'\" | % { Remove-CimInstance $_ }",
+    'Get-Process node | % { $_ | Stop-Process }',
+    'Get-Process node | Stop-Process -Id {$_.Id}',
+    'Get-Process node | % { $x = $_; kill $x.Id }',
+    'Get-Process node | % { $id = $_.Id; Stop-Process -Id $id }',
+    'Get-Process node | % -m Kill',
+    'Get-Process node | foreach { kill $_.Id }',
+    'pgrep node | while IFS= read -r p; do kill "$p"; done',
+    'pgrep node | while read -r p; do kill -9 ${p}; done',
+    'pgrep -f vite | while read p; do taskkill //PID $p //F; done',
+    'for p in `pgrep node`; do kill $p; done',
+    'for p in $(pgrep -f "vite --port"); do kill -9 $p; done',
+    'for p in $(pidof node); do kill "$p"; done',
+    'foreach ($p in (Get-Process -Name bash)) { $p.Kill() }',
+    'foreach ($p in gps node) { kill $p.Id }',
+    "foreach ($p in Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\") { Invoke-CimMethod -InputObject $p -MethodName Terminate }",
+    'foreach ($P in Get-Process bash) { Stop-Process -Id $p.Id }',
+    'bash -c "pgrep node | while read p; do kill $p; done"',
+    'pgrep node | xargs -I{} kill {}',
+    'foreach($p in Get-Process bash){Stop-Process -Id $p.Id}',
+    'foreach ($p in $(Get-Process bash)) { kill $p.Id }',
+    'pgrep node | { read p; kill $p; }',
+    '$p = Get-Process node; Stop-Process $p',
+    '$p = Get-Process node; $p | Stop-Process',
+    '$ids = (Get-Process node).Id; foreach ($i in $ids) { kill $i }',
+    'for p in $(pgrep node); do echo $p; done; kill $p',
+    'Get-Process node | % { cmd /c taskkill /PID $_.Id /F }',
+    'gps node | % { $x = $_.Id; }; Stop-Process -Id $x',
+    'Get-Process node | % { $x = $_; Write-Output $x; kill $x.Id }',
+  ],
+  pass: [
+    'Get-Process -Id 1234 | % { Stop-Process -Id $_.Id }',
+    'Get-Process node | % { $_.Id }',
+    'for p in 1234 5678; do kill $p; done',
+    'kill $!',
+    'Stop-Process -Id $pid',
+    'pgrep node | while read p; do echo $p; done',
+    'pgrep -f vite | while read p; do ps -p $p -o args=; done',
+    'Get-Process node | % { "$($_.Id) $($_.Name)" }',
+    'Get-Process node | % { echo kill $_.Id }',
+    'Get-Process node | % { Write-Output "kill $_" }',
+    'Get-Process node | % { Stop-Process -Id $_.Id -WhatIf }',
+    'Get-ChildItem | % { Remove-Item $_ }',
+    'Get-Content pids.txt | % { Stop-Process -Id $_ }',
+    'while read p; do kill $p; done < pids.txt',
+    'foreach ($p in Get-Process bash) { Write-Output $p.Id }',
+    'foreach ($p in 1234, 5678) { Stop-Process -Id $p }',
+    'foreach ($p in Get-Process bash) { Stop-Process -Id $PID -WhatIf }',
+    'for f in $(git ls-files); do echo $f; done',
+    'Get-Process node | % { $_.Id }; Stop-Process -Id $PID',
+    'pgrep node | while read p; do echo $p; done; kill $$',
+    'Get-Process node | Select-Object Id; foreach ($p in 1,2) { kill $p }',
+    'Get-Process node | % { $_.Name }; kill $x',
+    'for p in $(pgrep node); do echo $p; done; for q in 1 2; do kill $q; done',
+    "Get-Process node | % { Write-Output '$_.Kill()' }",
+    'pgrep node | while read pp; do kill $p; done',
+    'gps node | % { $n = $_.Name; }; Stop-Process -Id $PID',
+    'gps node | % { $x = $_.Id; }; $x = 1234; kill $x',
+    'gps node | % { $_.Id }; $x = 5; kill $x',
+  ],
+}
+
+test('table D3 : l’arrêt qui cible une variable liée à une liste par nom est refusé, le témoin silencieux passe', () => {
+  for (const cmd of TABLE_D3.deny) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  for (const cmd of TABLE_D3.pass) assert.equal(evaluate(cmd), null, cmd)
+})
+
+// Juge de diff #2173 (2026-10-05, `cas5.json` à `cas8.json`), sondes promues.
+const TABLE_JUGE_DE_DIFF = {
+  deny: [
+    'Get-Process node | % { $x = $_.Id; kill $x }',
+    'Get-Process node | % { $x = $_; Stop-Process -Id $x.Id }',
+    'Get-Process node | %{kill $_.Id}',
+    'foreach($p in Get-Process bash){Stop-Process -Id $p.Id}',
+    'Get-Process node | % { Stop-Process -Id $PSItem.Id }',
+    'Get-Process node | % { kill ${_}.Id }',
+    'Get-Process node | ForEach-Object -MemberName Kill',
+    'Get-Process node | % -MemberName Terminate',
+    '(Get-Process node).Kill()',
+    '1..3 | % { Stop-Process -Name node }',
+    'try { Stop-Process -Name node } catch {}',
+    'for ($i = 0; $i -lt 1; $i++) { Stop-Process -Name node }',
+    'if ($true) { Stop-Process -Name node }',
+    'for p in $(pgrep node); do kill $p; done',
+    'for p in `pgrep node`; do kill $p; done',
+    'kill `pgrep node`',
+    'taskkill /F /PID $(pidof node)',
+    '$ids = (Get-Process node).Id; foreach ($i in $ids) { kill $i }',
+    '$p = Get-Process node; Stop-Process $p',
+    'Get-Process node | % { if ($_.CPU -gt 1) { Stop-Process -Id $_.Id } }',
+    'Get-Process node | % { Write-Output $_.Id; Stop-Process -Id $_.Id }',
+    'pgrep node | while read -r p; do kill -9 "$p"; done',
+    'pgrep node | while read p; do kill ${p}; done',
+    'npx fkill node', 'npx fkill-cli node --force', 'fkill -t 5 node',
+    "wmic /node:localhost path Win32_Process where name='node.exe' delete",
+    `wmic path ${BS}${BS}.${BS}root${BS}cimv2:Win32_Process where name='x' delete`,
+    "wmic PROCESS where name='node.exe' call terminate",
+    "Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\" | % { Invoke-CimMethod -InputObject $_ -MethodName Terminate }",
+    "Get-WmiObject Win32_Process -Filter \"Name='x'\" | % { $_.Terminate() }",
+    'Get-Process node | % { Stop-Process -Id $_.Id }; Get-Content p',
+    'Get-Process node | % { & { Stop-Process -Id $_.Id } }',
+    'Get-Process node | % { cmd /c taskkill /PID $_.Id /F }',
+    'gps node | % { $_.Id; }; gps node | % { kill $_ }',
+    'Get-Process node | % { Start-Sleep 1; Stop-Process -Id $_.Id }',
+    // persistance après le bloc
+    'Get-Process node | % { $x = $_.Id }; kill $x',
+    'Get-Process node | % { $x = $_.Id; }; kill $x',
+    'Get-Process node | % { $x = $_.Id; 1 }; kill $x',
+    'foreach ($p in Get-Process node) { 1 }; kill $p.Id',
+    'for p in $(pgrep node); do echo $p; done; kill $p',
+    // têtes de bloc
+    'if ($false) { 1 } elseif ($true) { Stop-Process -Name node }',
+    'if ($false) { 1 } else { Stop-Process -Name node }',
+    'if ($x) { 1 } else { Stop-Process -Name node }',
+    'do { Stop-Process -Name node } while ($false)',
+    'do { Stop-Process -Name node } until ($true)',
+    'while ($true) { Stop-Process -Name node; break }',
+    'switch (1) { 1 { Stop-Process -Name node } }',
+    '1 | Where-Object { Stop-Process -Name node }',
+    '1 | ? { Stop-Process -Name node }',
+    '1 | ForEach-Object -Begin { Stop-Process -Name node } -Process { 1 }',
+    '1 | ForEach-Object -Begin { 1 } -Process { Stop-Process -Name node }',
+    '1 | ForEach-Object -Parallel { Stop-Process -Name node }',
+    'trap { Stop-Process -Name node }',
+    'try { 1 } catch [System.Exception] { Stop-Process -Name node }',
+    'Get-Process node | Where-Object { $_.Kill() }',
+    'Get-Process node | ? { $_.Kill(); $true }',
+    'Get-Process node | ForEach-Object -Begin { 1 } -Process { Stop-Process -Id $_.Id }',
+    // affectation POSIX par substitution
+    'p=$(pgrep node); kill $p',
+  ],
+  pass: [
+    'gps node | % { $_.Id; }; Get-Content p | % { kill $_ }',
+    'Get-Process node | % { $_.Id }; Get-Content pids.txt | % { Stop-Process -Id $_ }',
+    'Get-Process node | Format-Table; Get-Content pids.txt | % { Stop-Process -Id $_ }',
+    'Get-Process node | % { Write-Output $_.Id; }; foreach ($l in Get-Content p) { kill $l }',
+    'Get-Process node | % { if ($_.Id -eq 1) { $_.Id } }; Get-Content p | % { kill $_ }',
+    'gps node | % { 1; 2 }; Get-Content p | % { kill $_ }',
+    'gps node | % { $_.Id }; Get-Content p | % { kill $_ }',
+    'Get-ChildItem *.json | % { Get-Content $_ | Select-Object -First 3 }',
+    'foreach ($w in git worktree list) { $w }',
+    "git worktree list | % { ($_ -split ' ')[0] } | % { git -C $_ status --short }",
+    'foreach ($f in Get-ChildItem src -Recurse -Filter *.ts) { Select-String -Path $f -Pattern kill }',
+    "Get-Process node | % { Write-Output 'Stop-Process -Id $_.Id' }",
+    'pgrep node | while read p; do echo $p; done; kill 1234',
+    'pgrep -f vite | while read p; do ps -p $p; done',
+    'for p in $(pgrep node); do echo $p; done; for p in 1 2; do kill $p; done',
+    '$p = Get-Process node; $p = 1234; Stop-Process -Id $p',
+    '$procs = Get-Process node; $procs | Format-Table',
+    '(Get-Process -Id 1234).Id',
+    'npx fkill-cli', 'npx fkill-cli --help', 'npx fkill-cli 1234', 'npx fkill-cli :5173', 'fkill -t 1000 1234',
+    'wmic path win32_process.Handle=1234 delete', 'wmic class win32_process',
+    '$x = Get-Process node | % { $_.Id }; $x = 5; kill $x',
+    'Get-Process node | % { $id = $_.Id }; $id = 99; kill $id',
+    "Get-Process node | Select-Object -First 1 | % { $_.Id } ; 'Stop-Process -Id 3'",
+    'Get-Process node | % { "kill $($_.Id)" }',
+    'Get-Process node | % { Write-Host "kill $($_.Id)" }',
+    'Get-Process node | % { $x = $_.Id; }; $x = 1234; kill $x',
+    'for p in $(pgrep node); do echo $p; done; p=1234; kill $p',
+    'pgrep node | while read p; do echo $p; done; p=1; kill $p',
+  ],
+}
+
+test('table du juge de diff : portée des blocs, têtes de bloc, persistance et déliaison', () => {
+  for (const cmd of TABLE_JUGE_DE_DIFF.deny) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  for (const cmd of TABLE_JUGE_DE_DIFF.pass) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : la variable affectée dans un bloc persiste après lui, `$_` se délie à sa fermeture', () => {
+  assert.ok(tue('gps node | % { $x = $_.Id; }; Stop-Process -Id $x').includes('$x = gps … | % → Stop-Process $x'))
+  assert.equal(evaluate('gps node | % { $_.Id; }; Get-Content p | % { kill $_ }'), null)
+})
+
+test('PASSE : un filtre `Where-Object` par PID rend son aval « par PID » ; DENY pour tout autre filtre', () => {
+  for (const cmd of [
+    'Get-Process | Where-Object { $_.Id -eq 1234 } | Stop-Process', 'gps | ? Id -eq 1234 | kill',
+    'Get-CimInstance Win32_Process | ? ProcessId -eq 1234 | Remove-CimInstance', 'gps | ? { $PSItem.Id -eq 1234 } | % { kill $_.Id }',
+  ]) assert.equal(evaluate(cmd), null, cmd)
+  for (const cmd of [
+    'Get-Process bash | Where-Object { $_.Id -ne $PID } | Stop-Process -Force',
+    "Get-Process | Where-Object { $_.Id -eq 1 -or $_.Name -eq 'node' } | Stop-Process",
+    'Get-Process | Where-Object { $_.Id -eq 1234 } | Select-Object -First 1; Get-Process node | Stop-Process',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+})
+
+test('DENY : le call-operator `&` devant un exécutable cité, dans un bloc ou dans la chaîne d’un porteur, exécute', () => {
+  for (const cmd of [
+    "1 | % { & 'pkill' node }", '1 | % { & "taskkill" /IM node.exe }', `1 | % { bash -c "'pkill' node" }`,
+    `1 | % { sh -c '"pkill" node' }`, "1 | % { 'x' | Stop-Process -Name node }",
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  for (const cmd of ["1 | % { 'pkill node' }", '1 | % { "PATH=$_" }', "1 | % { 5; 'pkill node' }"]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : la commande d’une substitution `$(…)`, `` `…` `` ou `@(…)` s’exécute', () => {
+  for (const cmd of [
+    'echo $(pkill node)', 'x=$(pkill node)', 'y=`pkill node`', '$x = $(Stop-Process -Name node)', 'echo "$(pkill node)"',
+    'FOO=$(taskkill /IM node.exe) git status', '$a = @(Stop-Process -Name node)', '1 | % { "$(Stop-Process -Name node)" }',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  assert.equal(evaluate("echo '$(pkill node)'"), null, 'sous quote simple, rien ne se substitue')
+})
+
+test('DENY : la variable posée par une substitution qui liste par nom, valeur citée ou déclarée', () => {
+  for (const cmd of [
+    'p="$(pgrep node)"; kill $p', 'export p=$(pgrep node); kill $p', 'local p=$(pgrep node); kill $p',
+    'declare p=$(pgrep node); kill $p', 'typeset p=$(pgrep node); kill $p', 'readonly p=$(pgrep node); kill $p',
+  ]) assert.ok(tue(cmd).includes('p=$(pgrep …) → kill $p'), cmd)
+  assert.ok(tue('kill "$(pgrep node)"').includes('kill … (pgrep …)'))
+  for (const cmd of ['export p=1234; kill $p', 'p=$(pgrep node); p=1234; kill $p', 'p=$(cat pid); kill $p']) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('PASSE : une here-string ne se ferme qu’à la marque qui ouvre sa ligne ; DENY sur l’arrêt qui la suit', () => {
+  assert.equal(evaluate("$j = @'\nx 'a'@ | % { Stop-Process -Name node }\n'@\necho fin"), null)
+  assert.equal(evaluate("$j = @'\nx 'a'@\n'@\nStop-Process -Name node")?.decision, 'deny')
+})
+
+test('DENY : un filtre `awk` n’est pas lu, sa substitution passe pour une liste par nom (limite de l’en-tête)', () => {
+  assert.equal(evaluate("kill -9 $(ps -W | awk '$4==10372 {print $1}')")?.decision, 'deny')
+})
+
+test('DENY : le refus d’un arrêt par élément nomme le listeur, l’arrêt et la variable', () => {
+  for (const [cmd, graphie] of [
+    ['Get-Process node | % { kill $_.Id }', 'Get-Process … | % { kill $_ }'],
+    ['Get-Process node | % Kill', 'Get-Process … | % Kill'],
+    ['pgrep node | while read p; do kill $p; done', 'pgrep … | while read p → kill $p'],
+    ['for p in $(pgrep node); do kill $p; done', 'for p in $(pgrep …) → kill $p'],
+    ['foreach ($p in Get-Process bash) { Stop-Process -Id $p.Id }', 'foreach ($p in Get-Process …) → Stop-Process $p'],
+    ['Get-Process node | ForEach-Object { $_.Kill() }', 'Get-Process … | ForEach-Object { $_.Kill() }'],
+    ['$p = Get-Process node; $p | Stop-Process', '$p = Get-Process … → $p | Stop-Process'],
+    ['p=$(pgrep node); kill $p', 'p=$(pgrep …) → kill $p'],
+  ]) assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
 })
 
 // ── Contrat : le garde ne juge que ses pièges, toute autre commande rend `null` ───────────────────
@@ -341,4 +756,30 @@ test('PASSE : toute commande hors des pièges rend null', () => {
     'ln -s ../Source ./Source', 'cmd /c dir', 'Get-ChildItem src', 'node scripts/x.mjs && git status']) {
     assert.equal(evaluate(cmd), null, cmd)
   }
+})
+
+// ── Juge de diff, 3e passe (2026-10-05), sondes promues ────────────────────────────────────────────
+test('DENY : la substitution de processus `<(…)`, `>(…)` exécute sa commande, et son listeur lie la variable de `read`', () => {
+  for (const cmd of [
+    'cat <(pkill node)', 'diff <(pkill node) x', 'tee >(pkill node) < x',
+    'while read p; do kill $p; done < <(pgrep node)', 'read p < <(pgrep node); kill $p',
+  ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
+  for (const cmd of ['while read p; do kill $p; done < pids.txt', 'diff <(sort a) <(sort b)', 'arr=(pkill node)']) {
+    assert.equal(evaluate(cmd), null, cmd)
+  }
+})
+
+test('une here-string double déplie ses `$(…)` ; un littéral entre apostrophes ne déplie rien', () => {
+  assert.equal(evaluate('$t = @"\nfoo $(pkill node)\n"@')?.decision, 'deny')
+  for (const cmd of [
+    '$t = @"\nfoo `$(pkill node)\n"@', "Write-Output @'\n$(pkill node) `pkill node`\n'@",
+    "echo 'foo `pkill node` $(pkill node)'",
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : une commande trop imbriquée pour être jugée est refusée, en deçà de la borne elle est lue', () => {
+  const decision = evaluate('echo $($($($($(pkill node)))))')
+  assert.equal(decision?.decision, 'deny')
+  assert.match(decision.reason, /commande trop imbriquée pour être jugée/)
+  assert.match(evaluate('echo $($($(pkill node)))')?.reason ?? '', /PAR NOM/)
 })

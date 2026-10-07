@@ -2,7 +2,7 @@
  * Validation d'un document authoré contre son schéma zod — SOURCE UNIQUE, DEUX portes :
  *  - `validateDataset(file, value)` : porte par FICHIER, pour qui connaît le nom du document —
  *    contrat CI (`schema-contract.test.ts`), sauvegarde éditeur/Compendium (`CodexEdit.save`),
- *    chargement DEV (`dev-validate.ts`), garde de pré-commit (`scripts/guards/validate-data.mts`).
+ *    chargement DEV (`dev-validate.ts`).
  *    Le registre couvre les DEUX racines (`src/data` par basename, `src/scenes` par chemin relatif).
  *  - `validateDocument(schema, value)` : porte par SCHÉMA, pour un seam qui n'a PAS de nom de
  *    fichier — `parseProject` sert du JSON committé, du localStorage et de l'import utilisateur.
@@ -19,7 +19,8 @@ import { coDescendre, defDe, descendre, enfantsDe, ouverts } from './grammaire/d
 import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, type MetaChamp } from './grammaire/meta';
-import { versDisque } from './grammaire/prose';
+import { proseNonMaterialisee, versDisque } from './grammaire/prose';
+import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
 export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
@@ -140,6 +141,22 @@ export function noeudObjet(schema: unknown, accepte: (noeud: unknown) => boolean
 }
 
 /**
+ * PAYLOAD de l'op `op` dans la FAMILLE mécanique (`mecaniqueDe`) qui a construit la liste `liste` — ses
+ * champs réservés y figurent au régime du porteur (`charMod.min`). La famille est le premier nœud marqué
+ * (`regimesDuNoeud`) au-dessus de tout nœud objet ; `undefined` hors famille, ou pour une op encore loose
+ * (`OPS_NON_TYPEES`).
+ */
+export function payloadDeFamille(liste: unknown, op: string): unknown {
+  let regimes: Regimes | undefined;
+  descendre([liste], ({ noeud, def }) => {
+    regimes = regimesDuNoeud(noeud);
+    if (regimes) return 'arreter';
+    if (def.type === 'object') return 'elaguer';
+  });
+  return regimes && mecaniqueDe(regimes).opDefs[op];
+}
+
+/**
  * NŒUD OBJET de la RANGÉE `entree` du dataset `dataset`, lu sur sa route DÉCLARÉE (`exposition.edit`,
  * `exposition-derivee.ts`) : l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`,
  * `''` : la collection de racine), la valeur de la collection de racine d'un dataset-OBJET `record`, la
@@ -168,7 +185,7 @@ export function noeudDeLEntree(dataset: string, entree: object): unknown {
     const discriminants = [...new Set(ouverts(noeuds).map((n) => defDe(n)?.discriminator).filter((d): d is string => d !== undefined))];
     const valeurs = discriminants.map((d) => `« ${d} » = ${String(JSON.stringify((entree as Record<string, unknown>)[d]))}`).join(', ');
     const message = `${lieu} — la rangée porte ${objets.length} nœuds objets, pas un${valeurs ? ` (discriminant ${valeurs})` : ''}.`;
-    const refus = noeuds.map((n) => validateDocument(n as z.ZodType, versDisque(entree)));
+    const refus = noeuds.map((n) => validerFormeVivante(n as z.ZodType, entree)?.fautes ?? null);
     if (refus.length > 0 && refus.every((f): f is readonly Faute[] => f !== null)) throw new RangeeSansNoeud(message, refus.flat());
     throw new Error(message);
   }
@@ -268,4 +285,24 @@ export function validateDataset(file: string, value: unknown): string | null {
 export function validateDocument(schema: z.ZodType, value: unknown): readonly Faute[] | null {
   const result = schema.safeParse(value);
   return result.success ? null : fautesDe(schema, value, result.error);
+}
+
+/** Refus d'une forme VIVANTE (`validerFormeVivante`) : la cause dit laquelle des deux portes refuse. */
+export type RefusDeFormeVivante = { readonly cause: 'schema' | 'prose-non-materialisee'; readonly fautes: readonly Faute[] };
+
+/**
+ * Porte d'une forme VIVANTE (prose adressée matérialisée) : le schéma sur `versDisque(value)`, puis
+ * la complétude (`proseNonMaterialisee`) sur `value` reçue. Sites : `parseProject` et
+ * `parseSceneDeProjet` (`state/worldMap.ts`), `validateScene` (`state/validateScene.ts`).
+ */
+export function validerFormeVivante(schema: z.ZodType, value: unknown): RefusDeFormeVivante | null {
+  const fautes = validateDocument(schema, versDisque(value));
+  if (fautes) return { cause: 'schema', fautes };
+  const nus = proseNonMaterialisee(value);
+  if (nus.length === 0) return null;
+  const cause = 'prose-non-materialisee';
+  return {
+    cause,
+    fautes: nus.map((chemin) => ({ chemin, lieu: lieuDe(schema, value, chemin), message: 'passage adressé sans son texte.', code: cause })),
+  };
 }

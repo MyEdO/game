@@ -1212,7 +1212,8 @@ export interface TrappingData {
   siegeFootprint?: number;
   /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
    *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Propagé sur `ItemInstance.shape` puis `Weapon.shape`. */
+   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : le rig le résout par
+   *  `trappingId` (`formeResolue`, #2113). */
   shape?: string;
   /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
    *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
@@ -1222,9 +1223,12 @@ export interface TrappingData {
    *  (`engine/items`). À NE PAS confondre avec `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE à
    *  l'état improvisé par l'usure (`LDB 62 l.135`). */
   improvised?: true;
+  /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911), lue par `isShieldTrapping`
+   *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+  shield?: true;
   /** Formes choisibles (slugs `WeaponDef.slug`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
-   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.shape` ; défaut =
-   *  `shape` du trapping. Absent pour une arme à forme unique. */
+   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
+   *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
   /** Arme INHABITUELLE (ACE 12 l.17 « Entraînement avec une arme inhabituelle ») : exige la
    *  maîtrise (`Combatant.masteredWeapons`) pour être maniée avec la Compétence du Groupe. Flag
@@ -1685,10 +1689,6 @@ export interface ManeuverDef {
   /** Folio du Trait PROJETANT — la manœuvre ne porte AUCUNE prose (#1226) : sa description est celle du
    *  trait, résolue à l'affichage par `traitProjectingManeuver`. */
   source?: SourceRef;
-  /** Pertinence de BASE pour le scoreur d'attaque (clic droit joueur ET décision IA) : POIDS ÉDITABLE,
-   *  plus haut = choisie plus volontiers. Combinée aux bonus situationnels AUTO (dégâts attendus,
-   *  multi-cible, état onHit applicable). Défaut 1 ; 0 = jamais auto-choisie (reste manuelle). */
-  priority?: number;
   /** ENJEU porté par l'ENTRÉE (#1117 L2, patron `ActivityDef.stake`/`PsychologyData.stake`) : les
    *  `effects` d'une manœuvre sont AUTHORÉS entrée par entrée (aucune formule commune), donc un
    *  gabarit au `kind` serait tautologique. Rendu par `resolveStake` (dataset `combat`, kind
@@ -1771,9 +1771,9 @@ export interface TraitCapabilities {
   mindless?: boolean;
   /** Blessures calculées avec le Bonus de FORCE au lieu du Bonus de Force Mentale (Fabriqué, LDB 85
    *  l.142 : « au lieu d'utiliser son bonus de Force Mentale, utilisez son bonus de Force »). Lu par
-   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (qui porte l'auto-réussite
-   *  des Tests d'Int/FM/Soc et le profil IA « horde »), un autre trait pourrait un jour substituer la
-   *  même formule sans être Fabriqué. */
+   *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (immunité psychologique,
+   *  `engine/psych/registry.ts` ; profil IA « horde », `state/ai.ts` — LDB 85 l.142), un autre trait
+   *  pourrait un jour substituer la même formule sans être Fabriqué. */
   woundsUseForce?: boolean;
   bestial?: boolean;
   coldBlooded?: boolean;
@@ -1797,7 +1797,7 @@ export interface TraitCapabilities {
   autoClimb?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « avance à sa vitesse maximale de Mouvement sur toutes les surfaces
    *  appropriées » — coût de Mouvement NORMAL (1 case) au lieu de la ½ vitesse du Talent Grimpeur
-   *  (`climbMovementCost`, joueur, LDB 15 l.53). Orthogonal à `autoClimb` (accueille une future capacité
+   *  (`climbMovementCost`, joueur, LDB 15 l.55). Orthogonal à `autoClimb` (accueille une future capacité
    *  qui réussirait automatiquement sans pour autant grimper à pleine vitesse). */
   climbFullSpeed?: boolean;
   /** Rampant (MSRC 15) : la créature ne peut PAS réaliser d'Action de Course (budget de Course nul). */
@@ -3048,8 +3048,7 @@ export const premierOffert = (catalogue: readonly { id: string }[], quoi: string
   if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
   return premier.id;
 };
-/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
- *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
+/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`, `setVessel`). */
 export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
 export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
 export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');

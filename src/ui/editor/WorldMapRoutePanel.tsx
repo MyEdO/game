@@ -10,11 +10,13 @@ import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Scene } from '../../state/scene';
-import { type WorldMap, type MapRoute, placeById } from '../../state/worldMap';
+import { type WorldMap, type MapRoute, type MapRouteTrace, type Praticabilite, placeById } from '../../state/worldMap';
 import { type TravelMode, TRAVEL_DEFAULTS, travelVehicles, travelModeLabels, travelModeIcon } from '../../engine/travel';
 import { EffectList, type Ctx } from './EffectList';
 import { RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
+import { CouvreField } from './CouvreField';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
@@ -22,7 +24,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
   map: WorldMap;
   /** Toutes les scènes du projet (active + réserve) — pour lier embuscades/péripéties. */
   scenes: Scene[];
-  updRoute: (id: string, patch: Partial<MapRoute>) => void;
+  updRoute: (id: string, patch: Partial<MapRouteTrace> | Praticabilite) => void;
   effCtx: Ctx;
   toggleMode: (r: MapRoute, mode: TravelMode) => void;
 }) {
@@ -56,27 +58,25 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
               <option value={route.b}>Depuis {placeById(map, route.b)?.label ?? route.b}</option>
             </select>
           </label>
+          <CouvreField value={route.couvre} sujet="de la route" onChange={(couvre) => updRoute(route.id, { couvre })} />
           <div className="mini-title" title="Le trajet n'est proposé que si la condition est vraie ; sinon il reste à l'écran, refusé, avec sa raison.">Praticable si</div>
           {/* Retirer la condition retire la raison AVEC elle : `refus` n'a pas d'objet sans `when`. */}
           <WhenEditor
             when={route.when}
             kinds={CONDITION_KINDS_CARTE}
-            onChange={(when) => updRoute(route.id, when ? { when } : { when: undefined, refus: undefined })}
+            onChange={(when) => updRoute(route.id, when ? { when, refus: route.refus ?? '' } : { when: undefined, refus: undefined })}
           />
           {route.when && (
             <>
               <label className="ed-field">Raison du refus (montrée au joueur quand la condition est fausse)
                 <input
-                  value={route.refus ?? ''}
+                  value={route.refus}
                   placeholder="ex. Le pont est coupé par la crue."
-                  onChange={(e) => updRoute(route.id, { refus: e.target.value || undefined })}
+                  onChange={(e) => updRoute(route.id, { when: route.when, refus: e.target.value })}
                 />
               </label>
-              {!route.refus?.trim() && (
-                <p className="chip tone-danger" role="alert">
-                  Raison du refus exigée dès qu’une condition est posée : sans elle le projet est refusé au chargement
-                  (<code>mapRouteSchema</code>).
-                </p>
+              {!route.refus.trim() && (
+                <ChipDeRefus fixe refus={{ message: 'Raison du refus exigée dès qu’une condition est posée : sans elle le projet est refusé au chargement.' }} />
               )}
             </>
           )}

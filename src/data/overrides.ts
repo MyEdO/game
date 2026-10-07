@@ -12,6 +12,7 @@
  * ids navigue.
  */
 import { tableTotale } from '../lib/tableTotale';
+import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
@@ -296,12 +297,23 @@ export function datasetObjectFile(key: ObjectDatasetKey): string {
 const SEED = tableTotale(DATASET_KEYS, (k) => structuredClone(ARRAYS[k] as unknown[]));
 const OBJECT_SEED = tableTotale(OBJECT_DATASET_KEYS, (k): object => structuredClone(OBJECTS[k]));
 
+/** GEL des ENTRÉES d'un dataset-tableau en développement (#2097) : au chargement, et à chaque entrée
+ *  neuve (`setDataset`, `resetData`). Le tableau lui-même reste mutable (`splice` du seam). Les
+ *  datasets-OBJETS ne se gèlent pas : leur seam les fusionne en place (`setObjectDataset`), et leur
+ *  partage est jugé par la garde de partage des tests (`state/partage.testkit.ts`). */
+function gelerLesEntrees(entrees: readonly unknown[]): void {
+  if (!GELER_LA_DONNEE) return;
+  for (const e of entrees) if (e !== null && typeof e === 'object') gelerProfond(e);
+}
+for (const k of DATASET_KEYS) gelerLesEntrees(ARRAYS[k] as unknown[]);
+
 /** Remplace EN PLACE le contenu d'un dataset (jamais de réassignation du binding) et VERSIONNE
  *  l'écriture — l'identité du tableau ne bougeant pas, la version est le seul témoin qu'un index
  *  mémoïsé (`indexParId`, `data/index.ts`) puisse consulter (#1692). */
 export function setDataset<K extends DatasetKey>(key: K, next: readonly (typeof ARRAYS)[K][number][]): void {
   const arr = ARRAYS[key] as unknown[];
   arr.splice(0, arr.length, ...(next as readonly unknown[]));
+  gelerLesEntrees(arr);
   bumperDataset(key);
 }
 
@@ -428,6 +440,7 @@ export function resetData(): void {
   for (const k of DATASET_KEYS) {
     const arr = ARRAYS[k] as unknown[];
     arr.splice(0, arr.length, ...structuredClone(SEED[k]));
+    gelerLesEntrees(arr);
     bumperDataset(k);
   }
   for (const k of OBJECT_DATASET_KEYS) setObjectDataset(k, structuredClone(OBJECT_SEED[k]) as never);

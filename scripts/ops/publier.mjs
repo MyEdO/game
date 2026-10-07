@@ -6,18 +6,7 @@
 // "l'étape N+1 coûte une ligne" : ajouter une étape = une entrée dans la table `ETAPES` (nom,
 // `jouer(ctx)`, `dejaFaite(ctx)`), rien d'autre. » La table vit dans `etapesDuTrain.mjs`.
 //
-// RÉGIME (#2178) : commit FINAL → push de la BRANCHE → PR → course verte de la branche → demande de
-// fusion REST (`merge-async`) → la FILE DE FUSION du serveur sérialise, juge le commit de file et fusionne. Aucune gate ne se joue ici :
-// `.github/workflows/ci.yml` les joue toutes, et le ruleset `main` (`scripts/ops/ruleset-main.mjs`)
-// n'admet rien hors de la file. SEPT étapes — preflight, docs, push-branche, pr, file, pilotage, fin :
-// preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet), docs (`build-all.mjs
-// --mixtes`, puis commit des MIXTES et des miroirs d'agents sales — la plage sans source de mixte
-// saute la RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
-// bornée de la course verte de la tête, de sa demande de fusion (`sha` = la tête jugée) puis de la
-// fusion par la file, pilotage des tickets
-// cités, fin. Aucun client ne rebase sur un tronc mouvant : une PR ÉJECTÉE de la file pour un conflit
-// ou un dérivé périmé se reprend par une FUSION d'`origin/main` dans la branche, puis docs →
-// push-branche → pr → file, bornée par le compteur `ejections` (`BORNE_EJECTIONS`).
+// #2178 ; #2437 ; https://docs.github.com/en/graphql/reference/input-objects#enqueuepullrequestinput
 //
 // CLÔTURE DES ÉTAPES, gardée contre une retouche de bonne foi — les étapes vivent dans
 // `etapesDuTrain.mjs`, et le test de clôture (`etapesDuTrain.test.mjs`) refuse à ce module toute
@@ -32,8 +21,8 @@
 // FICHIERS, sous `--literal-pathspecs`),
 // `fusionner`, `abandonnerFusion`, `pousser`, `fetchOrigin` sous `tronc` (`gitPorte.mjs`), `npm` (un
 // nom de script), `docs` (un mode de build-all), `coursesCi` (un sha), `coursesDeFile`, `parentsDe` (un
-// sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
-// numéro et un uuid), `lireTicket` et `commenter`
+// sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr`, `demanderFusion` (un numéro et un sha), `lireFusion` (un
+// numéro, un sha et un uuid), `lireTicket` et `commenter`
 // (un numéro de ticket) —, jamais la poignée du dépôt ni un argv libre. Ce fichier ne porte aucun
 // `gh issue close` (la fermeture appartient au job `fermetures` de la CI). D'où, pour les étapes :
 // ni `git add -A`, ni un commit de l'arbre ou de l'index entier, ni `git stash`, ni `push --force`,
@@ -49,19 +38,23 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe,
+  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
   conclureFusionSansChemins, depotDe,
-  estAncetre, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
+  estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
-import { coursesCi, jobsRougesDe } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
 import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
+import { verdictDePublication } from '../guards/lib/livraison.mjs'
 import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { BORNE_EJECTIONS, ETAPES, attendre, issueDeFusion, prDeRest } from './etapesDuTrain.mjs'
+import { fusionDePr } from '../guards/lib/fusionPr.mjs'
+import { BORNE_EJECTIONS, ETAPES, prDeRest } from './etapesDuTrain.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -391,6 +384,47 @@ export const etatDeLEtape = (journal, nom, teteVivante) => {
   return vue.etat
 }
 
+/** L'état d'un VERDICT au journal, sous le nom que porte l'état du train. */
+const ETAT_DU_VERDICT = Object.freeze({ vert: 'vert', indeterminee: 'indéterminée' })
+
+/**
+ * L'ÉTAT DU TRAIN lu dans son journal — l'unique lecteur du journal pour `--etapes` et la vigie
+ * (`scripts/ops/vigie.mjs`). PUR hors de `vivant`. `etat` :
+ *   · `aucun` : aucun run au journal ;
+ *   · `en-vol` : pas de verdict, le pid du run vit — quelle que soit la tête, que le train fait avancer ;
+ *   · `périmé` : un run fini (verdict) ou mort dont la tête publiée n'est plus `teteVivante` ;
+ *   · `vert`, `rouge`, `indéterminée` : le verdict du run, pour la tête vivante ;
+ *   · `mort` : pas de verdict, le pid ne vit pas, pour la tête vivante.
+ * `etape` est la dernière TRANSITION du run (`seq` le plus haut), `rang` sa place dans `noms` (1 à
+ * `total`, 0 sans transition). `etapes` et `reprise` suivent la règle de tête (`etatDeLEtape`, `planDeReprise`).
+ * @param {object|null} journal @param {{teteVivante:string|null, noms?:string[], vivant?:(pid:number) => boolean}} p `noms` : ceux d’`ETAPES`
+ * @returns {{etat:string, etape:string|null, rang:number, total:number, run:string|null, seq:number,
+ *            etapes:{nom:string, etat:string}[], reprise:string|null}}
+ */
+export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = vivant }) {
+  const run = journal?.run ?? null
+  const transitions = Object.entries(journal?.etapes ?? {})
+    .filter(([nom, vue]) => run && vue?.run === run && Number.isInteger(vue.seq) && noms.includes(nom))
+    .sort(([, a], [, b]) => b.seq - a.seq)
+  const etape = transitions[0]?.[0] ?? null
+  const verdict = journal?.verdict ?? null
+  const etat = !run ? 'aucun'
+    : !verdict && estVivant(journal.pid) ? 'en-vol'
+      : journal.tete && journal.tete !== teteVivante ? 'périmé'
+        : verdict ? ETAT_DU_VERDICT[verdict.etat] ?? 'rouge'
+          : 'mort'
+  return {
+    etat,
+    etape,
+    rang: etape ? noms.indexOf(etape) + 1 : 0,
+    total: noms.length,
+    run,
+    seq: journal?.seq ?? 0,
+    etapes: noms.map((nom) => ({ nom, etat: etatDeLEtape(journal, nom, teteVivante) })),
+    reprise: planDeReprise(journal, noms, teteVivante),
+  }
+}
+
 // ── Purs : le run courant et sa veille (#2227) ────────────────────────────────────────────────
 
 /** Code de sortie d'un verdict indéterminé (la file n'a pas fusionné dans sa borne). */
@@ -548,7 +582,8 @@ export const cheminsDeJournal = (racine, branche) => {
   return { dossier, json: join(dossier, `${nom}.json`), log: join(dossier, `${nom}.log`) }
 }
 
-/** Écriture ATOMIQUE du journal (temporaire + renommage). */
+/** Écriture ATOMIQUE d'une valeur JSON (temporaire propre au processus, puis renommage) : le journal du
+ *  train, et le cache de la vigie (`scripts/ops/vigie.mjs`), que plusieurs sessions partagent. */
 export function sauverJournal(chemin, journal) {
   mkdirSync(join(chemin, '..'), { recursive: true })
   const tmp = `${chemin}.${process.pid}.tmp`
@@ -570,7 +605,8 @@ export function lireJournal(chemin, branche) {
 export const PERIODE_DE_VEILLE_MS = 5_000
 
 /** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
-function vivant(pid) {
+export function vivant(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false
   try {
     process.kill(pid, 0)
     return true
@@ -602,7 +638,7 @@ export function veillerLeTrain({
   log = '',
   vivant: estVivant = vivant,
   maintenant = Date.now,
-  dormir = attendre,
+  dormir = attendreSync,
   periodeMs = PERIODE_DE_VEILLE_MS,
 }) {
   const { pid, lancement } = runDe(run)
@@ -662,6 +698,7 @@ const questionsDuTrain = (depot) => Object.freeze({
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
+  verdictDesFusions: () => verdictDePublication(depot),
 })
 
 /** `gh <args>`, en union simple. Jamais `shell: true`. Un refus garde `stdout` : sous `--include`, un 4xx
@@ -682,7 +719,7 @@ function gh(args, cwd, input) {
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
 /** Les modes de `scripts/docs/build-all.mjs` que joue le train : l'étape `docs`, et les cibles de code
- *  après une fusion conclue par le fossile de la reprise. */
+ *  après une fusion conclue sur les cibles pures. */
 const MODES_DES_DOCS = Object.freeze(['--mixtes', '--code'])
 
 /**
@@ -697,7 +734,7 @@ export function lancementNpm(script, platform) {
 
 /** Un sha COMPLET, sinon levée. */
 function shaComplet(geste, sha) {
-  if (typeof sha === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha)) return sha
+  if (typeof sha === 'string' && estShaComplet(sha)) return sha
   throw new Error(`ctx.${geste} : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
 }
 
@@ -728,39 +765,6 @@ function lirePr(racine, branche) {
   }
 }
 
-/**
- * Une sortie de `gh api --include` : le code de la ligne d'état, puis le corps JSON après la ligne vide.
- * PURE. `gh` rend un code non nul sur un 4xx, mais écrit l'état et le corps sur stdout (mesuré
- * 2026-09-30 : `gh api -i` sur un 404 → `HTTP/2.0 404 Not Found`, en-têtes CRLF, corps JSON, exit 1).
- * @returns {{ok:true, code:number, corps:any}|{ok:false, raison:string}}
- */
-export function reponseHttp(sortie) {
-  const texte = String(sortie ?? '')
-  const etat = /^HTTP\/[\d.]+ (\d{3})/.exec(texte)
-  if (!etat) return { ok: false, raison: `réponse sans ligne d’état HTTP : ${JSON.stringify(texte.slice(0, 120))}` }
-  const vide = /\r?\n\r?\n/.exec(texte)
-  const brut = vide ? texte.slice(vide.index + vide[0].length).trim() : ''
-  try {
-    return { ok: true, code: Number(etat[1]), corps: brut ? JSON.parse(brut) : null }
-  } catch (e) {
-    return { ok: false, raison: `HTTP ${etat[1]}, corps illisible : ${e.message}` }
-  }
-}
-
-/** Le corps de `PUT …/pulls/{n}/merge-async` : `sha` = la tête jugée (« SHA that pull request head
- *  must match to allow merge »), `merge_action: default`. Aucun `merge_method` (« Only supported for
- *  direct merges ») : la file suit sa règle, scripts/ops/ruleset-main.mjs. PURE. */
-export const corpsDeFusion = (sha) => JSON.stringify({ sha, merge_action: 'default' })
-
-/** Un appel `gh api --include` de la demande de fusion, réduit par `issueDeFusion` : un 4xx porte un
- *  corps que l'étape lit. PURE. */
-export function fusionDe(vu) {
-  if (!vu.ok && vu.stdout === undefined) return vu
-  const lu = reponseHttp(vu.stdout)
-  if (!lu.ok) return { ok: false, raison: vu.ok ? lu.raison : `${vu.raison} — ${lu.raison}` }
-  return issueDeFusion(lu)
-}
-
 /** Un uuid de demande de fusion, sinon levée. */
 function uuidDe(uuid) {
   if (typeof uuid === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) return uuid
@@ -781,8 +785,8 @@ function numeroDeTicket(geste, numero) {
  * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
  * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
  * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
- * (un sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
- * un sha), `lireFusion` (un numéro de PR et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
+ * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
+ * un sha), `lireFusion` (un numéro de PR, un sha et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
  * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
@@ -821,7 +825,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     coursesCi(sha) {
       return coursesCi({ cwd: racine, commit: shaComplet('coursesCi', sha), limit: 30 })
     },
-    coursesDeFile: () => coursesCi({ cwd: racine, branche: null, evenement: 'merge_group', limit: 30 }),
+    coursesDeFile: () => coursesCi({ cwd: racine, evenement: 'merge_group', limit: 30 }),
     /** Les parents d'un commit (`GET /repos/{owner}/{repo}/commits/{ref}`), mémorisés : un commit ne
      *  change jamais de parents. */
     parentsDe(sha) {
@@ -839,9 +843,10 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
         return { ok: false, raison: e.message }
       }
     },
-    jobsRouges(id) {
-      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsRouges : un id de course — refusé : ${JSON.stringify(id)}`)
-      return jobsRougesDe({ cwd: racine, id })
+    jobsEnEchec(id, attempt = null) {
+      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`ctx.jobsEnEchec : un id de course — refusé : ${JSON.stringify(id)}`)
+      if (attempt !== null && !(Number.isSafeInteger(attempt) && attempt > 0)) throw new Error(`ctx.jobsEnEchec : un essai de course — refusé : ${JSON.stringify(attempt)}`)
+      return jobsEnEchecDe({ cwd: racine, id, attempt })
     },
     lirePr: () => lirePr(racine, branche),
     ouvrirPr({ titre, corps }) {
@@ -850,12 +855,12 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     },
     demanderFusion({ numero, sha } = {}) {
       numeroDeTicket('demanderFusion', numero)
-      const corps = corpsDeFusion(shaComplet('demanderFusion', sha))
-      return fusionDe(gh(['api', '--include', '-X', 'PUT', `repos/${DEPOT}/pulls/${numero}/merge-async`, '--input', '-'], racine, corps))
+      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('demanderFusion', sha), appel: appelGh(racine) })
     },
-    lireFusion({ numero, uuid } = {}) {
+    lireFusion({ numero, sha, uuid } = {}) {
       numeroDeTicket('lireFusion', numero)
-      return fusionDe(gh(['api', '--include', `repos/${DEPOT}/pulls/${numero}/merge-async/${uuidDe(uuid)}`], racine))
+      uuidDe(uuid)
+      return fusionDePr({ depot: DEPOT, numero, sha: shaComplet('lireFusion', sha), uuid, appel: appelGh(racine) })
     },
     lireTicket: (numero) => lireTicket({ depot: DEPOT, numero: numeroDeTicket('lireTicket', numero), appel: appelGh(racine) }),
     commenter(numero, corps) {
@@ -869,11 +874,12 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
     /**
      * Le TRONC distant, fetché puis relu — la seule porte d'`origin/main` des étapes qui doivent le
      * mesurer À CHAUD (`push`), donc le seul point d'injection en test.
-     * @returns {{disponible:true, sha:string|null}|{disponible:false, raison:string}}
+     * @returns {{disponible:true, sha:string|null}|import('../guards/lib/gitPorte.mjs').EchecGit}
      */
     tronc() {
       const vu = fetchOrigin(depot)
-      if (!vu.disponible) return { disponible: false, raison: vu.raison }
+      if (!vu.disponible) return vu
+      if (!reussi(vu)) return indisponible(`git fetch refusé (status ${(vu.diagnostic ?? vu.valeur)?.status ?? '?'})`, { issue: 'refus', diagnostic: vu.diagnostic ?? vu.valeur })
       return { disponible: true, sha: shaDe(depot, TRONC.suivi) }
     },
     commit: ({ message, chemins }) => commitDe(depot, { message, chemins }),
@@ -882,7 +888,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return fusionner(depot, { de: TRONC.suivi, message })
     },
     abandonnerFusion: () => abandonnerFusion(depot),
-    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    // #2203
     conclureFusionSansCiblesPures({ chemins, message }) {
       if (typeof message !== 'string' || !message.trim()) throw new Error(`ctx.conclureFusionSansCiblesPures : un MESSAGE — refusé : ${JSON.stringify(message)}`)
       const autres = (chemins ?? []).filter((c) => !estCiblePure(c, GENERATORS))
@@ -890,6 +896,18 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return conclureFusionSansChemins(depot, { chemins, message })
     },
     pousser: ({ vers, bail }) => pousser(depot, { vers, bail }),
+    /** La synchronisation du principal (`scripts/ops/synchroniser.mjs --json`, #2187) en processus neuf :
+     *  `{ ok: true, vu }` (l'état rendu), ou `{ ok: false, raison }` quand aucun état n'est lisible. */
+    synchroniserPrincipal() {
+      const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/synchroniser.mjs'), '--json'], {
+        cwd: racine, stdio: ['ignore', 'pipe', fdLog], encoding: 'utf8', timeout: TIMEOUT_SYNCHRONISEUR * 1000,
+      })
+      try {
+        return { ok: true, vu: JSON.parse(vu.stdout) }
+      } catch {
+        return { ok: false, raison: vu.error?.message ?? `aucun état lisible (code ${vu.status})` }
+      }
+    },
   }
 }
 
@@ -931,12 +949,13 @@ function main() {
 
   if (options.etapes) {
     const journal = surDisque ?? journalVide(branche)
-    const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), teteVivante)
+    const train = etatDuTrain(journal, { teteVivante })
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
-        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${journal.run ?? '—'}\n` +
-        ETAPES.map((e) => `  ${e.nom.padEnd(10)} ${etatDeLEtape(journal, e.nom, teteVivante)}`).join('\n') +
-        `\nreprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
+        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${train.run ?? '—'}\n` +
+        `train : ${train.etat}${train.etape ? ` — ${train.etape} ${train.rang}/${train.total}` : ''}\n` +
+        train.etapes.map((e) => `  ${e.nom.padEnd(10)} ${e.etat}`).join('\n') +
+        `\nreprise : ${train.reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
     )
     return 0
   }
@@ -984,7 +1003,8 @@ function main() {
     }
     verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => sauverJournal(chemins.json, j), journaliser })
   } catch (e) {
-    verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e?.stack ?? e}` }
+    verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : `ARRÊT INATTENDU : ${e?.stack ?? e}` }
+    if (e instanceof GitIndisponible) journaliser(`${verdict.raison}\n`)
   }
   journal.verdict = verdict
   sauverJournal(chemins.json, journal)
@@ -1003,8 +1023,8 @@ function mainNomme() {
     return main()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    const verdict = { etat: 'rouge', etape: 'moteur', raison: `git indisponible : ${e.raison}` }
-    const ligne = `${ligneDePublication(verdict)}\n`
+    const verdict = { etat: 'rouge', etape: 'moteur', raison: refusDeGit(e) }
+    const ligne = `${verdict.raison}\n${ligneDePublication(verdict)}\n`
     if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) appendFileSync(process.env.WFRP_PUBLIER_LOG, ligne)
     else process.stderr.write(ligne)
     return codeDeVerdict(verdict)

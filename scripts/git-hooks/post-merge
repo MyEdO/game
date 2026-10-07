@@ -1,6 +1,6 @@
 #!/bin/sh
 # scripts/git-hooks/post-merge — après une fusion : cibles de CODE, puis docs dérivés dont une source
 # a bougé (docs-rebuild.mjs, partagé avec post-rewrite et post-checkout ; #2203 A2). Contrat de
-# post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
-"${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-merge || true
-exit 0
+# post-hook : son code ne change pas la fusion (`git help githooks`, post-merge) ; il est rendu tel
+# quel à qui le lit (`scripts/ops/synchroniser.mjs`, état `avance-non-prete`).
+exec "${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-merge "$1"

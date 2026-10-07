@@ -48,7 +48,7 @@ function focusStep(container: HTMLElement, dir: -1 | 1): void {
 }
 
 export type PadDir = 'up' | 'down' | 'left' | 'right';
-export type PadButton = 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Back';
+export type PadButton = 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Back' | 'R3';
 
 /** POV : croix/stick → intention CAP-RELATIVE (haut/bas = avance/recul, gauche/droite = pivot du regard).
  *  Le pas latéral (strafe) vit sur les gâchettes LB/RB (cf. `padButton`). */
@@ -127,6 +127,11 @@ export function padButton(name: PadButton): void {
     case 'Back': // caméra : recentrer (carte et menu)
       if (ctx !== 'modal') runBindingById('cam-recenter', get);
       break;
+    case 'R3': // carte : INSPECTER ce que le curseur ou le survol désigne — la touche `inspecter` du clavier.
+      // RB est pris sur la carte (cible suivante) : le geste secondaire d'une entité y prend le clic
+      // du stick droit, qu'aucun autre geste n'emploie.
+      if (ctx === 'map') runBindingById('inspecter', get);
+      break;
   }
 }
 
@@ -142,7 +147,7 @@ export function padButtonUp(name: PadButton): void {
 }
 
 // ── Mapping « standard » W3C (https://w3c.github.io/gamepad/#remapping) ──────────────────────────
-const BUTTON_MAP: Record<number, PadButton> = { 0: 'A', 1: 'B', 2: 'X', 3: 'Y', 4: 'LB', 5: 'RB', 6: 'LT', 7: 'RT', 8: 'Back' };
+const BUTTON_MAP: Record<number, PadButton> = { 0: 'A', 1: 'B', 2: 'X', 3: 'Y', 4: 'LB', 5: 'RB', 6: 'LT', 7: 'RT', 8: 'Back', 11: 'R3' };
 const DPAD_INDEX: Record<PadDir, number> = { up: 12, down: 13, left: 14, right: 15 };
 const DIRS: PadDir[] = ['up', 'down', 'left', 'right'];
 const DEAD = 0.5; // zone morte du stick analogique

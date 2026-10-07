@@ -48,10 +48,11 @@ const anim: StageWalkAnim = {
   cam: () => ({ x: 6, y: 6 }),
 };
 
-/** Le même héros, tenant une arme de FORME donnée : changer la forme change son dessin. */
+/** Le même héros, tenant l'arme `trappingId` du catalogue : sa forme se résout au catalogue (#2113),
+ *  changer d'arme change son dessin. */
 const BASE = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
-function héros(forme: string): Combatant {
-  const arme = { uid: 'w1', label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], shape: forme } as unknown as Weapon;
+function héros(trappingId: string): Combatant {
+  const arme = ({ uid: 'w1', trappingId, label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } satisfies Partial<Weapon>) as Weapon;
   return { ...BASE, id: 'h1', weapons: [arme] } as Combatant;
 }
 const pose = (c: Combatant): ActorPose[] => [{ c, x: 4, y: 4, z: 0, facing: 'S' }];
@@ -97,7 +98,7 @@ function planchesDuCouple(espion: Parameters<typeof clésServies>[0]): string[] 
 function rendre(actors: ActorPose[], percage?: PercageEntrees): void {
   act(() => {
     root!.render(
-      <GameStage3D scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
+      <GameStage3D lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
         actors={actors} gameTime={720} lightLevel={1} lights={[]} anim={anim} percage={percage} />,
     );
   });
@@ -201,7 +202,7 @@ describe('#2097 P2 — l’état d’un board vit sur le board : le couple ne li
     const lues = vi.spyOn(atlasBake, 'getCachedAtlas');
     // Un cavalier au dessin NEUF : sa cuisson court, la monture seule (au cache) se monte et attend
     // derrière le couple en sursis.
-    rendre([{ c: héros('epee'), x: 4, y: 4, z: 0, facing: 'S' }, àPied()[1]]);
+    rendre([{ c: héros('arme-simple'), x: 4, y: 4, z: 0, facing: 'S' }, àPied()[1]]);
     const posées: string[] = [];
     let coexistence = false;
     const observer = (): void => {

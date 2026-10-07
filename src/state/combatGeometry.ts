@@ -10,7 +10,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import type { Dir8 } from './dir8';
 import { Scene, isWalkable } from './scene';
-import { Pt, MoveEnv, tileKey, climbTraverseFor } from './path';
+import { Pt, MoveEnv, tileKey, climbTraverseFor, walkComponentsFrom, walkComponentAt } from './path';
 import { footprintTiles, footprintN, occupiesTile } from './footprint';
 import { inBattleId, actorIn } from './combatants';
 import { sizeGap } from '../engine/size';
@@ -185,15 +185,48 @@ export function displaceSmaller(get: Get, mover: Combatant): boolean {
 function nearestFreeOutside(scene: Scene, battle: BattleState, c: Combatant, mover: Combatant): Pt | undefined {
   const blocked = occupied(battle, c.id); // Taille de `c` non prise en compte ici ⇒ TOUTES les empreintes bloquent (placement)
   const cz = c.pos!.z ?? 0; // le dégagement reste sur l'étage de `c` (z-aware)
-  for (let r = 1; r <= 6; r++)
+  const p = premiereCaseEnAnneaux(c.pos!, 1, 6, (x, y) =>
+    !occupiesTile(mover.pos!, footprintN(mover), x, y) // garder hors empreinte du mover
+    && isWalkable(scene, x, y, cz) && !blocked.has(tileKey(x, y, cz)));
+  return p && (cz ? { ...p, z: cz } : p); // même étage que `c`
+}
+
+/** Première case `{x,y}` acceptée en parcourant les ANNEAUX de Chebyshev autour de `origin`, du rayon
+ *  `rMin` au rayon `rMax` (ordre : rayon, puis ligne, puis colonne). `undefined` si aucune. */
+function premiereCaseEnAnneaux(origin: { x: number; y: number }, rMin: number, rMax: number, accepte: (x: number, y: number) => boolean): { x: number; y: number } | undefined {
+  for (let r = rMin; r <= rMax; r++)
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++) {
-        const x = c.pos!.x + dx, y = c.pos!.y + dy;
-        if (chebyshev({ x, y }, c.pos!) !== r) continue; // seulement l'anneau de rayon r
-        if (occupiesTile(mover.pos!, footprintN(mover), x, y)) continue; // garder hors empreinte du mover
-        if (isWalkable(scene, x, y, cz) && !blocked.has(tileKey(x, y, cz))) return cz ? { x, y, z: cz } : { x, y }; // même étage que `c`
+        const x = origin.x + dx, y = origin.y + dy;
+        if (chebyshev({ x, y }, origin) !== r) continue; // seulement l'anneau de rayon r
+        if (accepte(x, y)) return { x, y };
       }
   return undefined;
+}
+
+/**
+ * FORMATION des héros au début d'un combat : la colonne (`x − 1`, `y + i`) à côté de la position du groupe,
+ * à son étage. Chaque héros tient DEBOUT sur une case distincte : marchable à cet étage (`isWalkable`),
+ * joignable à pied depuis le groupe (`walkComponentsFrom`), hors des cases `prises` (adversaires posés).
+ * Une case de la colonne qui ne l'est pas cède la place à la case valable la plus proche du groupe
+ * (`premiereCaseEnAnneaux`) ; aucune case valable à l'étage : la case de la colonne. PUR.
+ */
+export function formationDeCombat(scene: Scene, groupe: Pt, n: number, prises: ReadonlySet<string> = new Set()): Pt[] {
+  const z = groupe.z ?? 0;
+  const { w, h } = scene.dimensions;
+  const composantes = walkComponentsFrom(scene, groupe);
+  const tenues = new Set(prises);
+  const tient = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < w && y < h
+    && !tenues.has(tileKey(x, y, z)) && isWalkable(scene, x, y, z)
+    && composantes.has(walkComponentAt(scene, x, y, z) ?? -1);
+  const out: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const colonne = { x: Math.max(0, groupe.x - 1), y: Math.min(h - 1, groupe.y + i) };
+    const p = tient(colonne.x, colonne.y) ? colonne : premiereCaseEnAnneaux(groupe, 0, Math.max(w, h), tient) ?? colonne;
+    tenues.add(tileKey(p.x, p.y, z));
+    out.push(z ? { ...p, z } : p);
+  }
+  return out;
 }
 
 /** Retrait par lot d'entités de scène (un seul `set` + un seul SCENE_DIRTY). No-op si rien à retirer.

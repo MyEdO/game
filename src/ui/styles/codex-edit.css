@@ -21,7 +21,6 @@
 .de-ok { color: var(--ok); font-size: 0.85rem; }
 .de-warn { color: var(--danger-soft); font-size: 0.85rem; }
 .de-msg { color: var(--muted); font-size: 0.85rem; }
-.de-hint { font-style: italic; color: var(--muted); font-size: 0.75rem; }
 /* erreurs BLOQUANTES de validateEntry (identité / refs) — Enregistrer reste grisé tant que non vide */
 .codex-edit-errors {
   margin: 0;
@@ -34,28 +33,6 @@
 .de-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 0.4rem; }
 .de-cell { display: flex; flex-direction: column; gap: 1px; }
 .de-cell span { font-size: 0.72rem; color: var(--muted); }
-
-/* Rangée dense de refs, et sa tenue à 360 px (règle stricte 4). Deux réglages, chacun MESURÉ sur les
-   deux largeurs qui comptent (sonde CDP, hôtes de 292 px et de 900 px) :
-   - `flex-wrap` fait passer la rangée à la ligne quand elle déborde ; il ne suffit pas, un `<select>`
-     refusant de rétrécir sous sa largeur intrinsèque tant que son `min-width` vaut `auto` ;
-   - sur les CONTRÔLES, `flex: 0 1 auto; min-width: 0; max-width: 100%`. La base `auto` garde la
-     largeur INTRINSÈQUE quand la place existe (900 px : le select fait 437 px, il montre ses
-     identifiants longs — une base fixe `min(9.5rem, 100%)` le rabotait à 152 px sur les 25 rangées
-     `.de-reflrow` du Codex) ; `min-width: 0` lève le plancher intrinsèque et `max-width: 100%` borne
-     au parent, donc à 292 px le bord droit tombe pile sur l'hôte, sans un débordement.
-   Le plancher se lève sur les ÉLÉMENTS de la rangée (`> *`) et sur les contrôles qu'ils enveloppent,
-   jamais sur la rangée : `min-width: auto` n'est un plancher que sur l'axe PRINCIPAL du flex, et la
-   rangée est un élément de la COLONNE `.ed-field` — le lui poser ne déplace aucun pixel (mesuré aux
-   deux largeurs). Un enveloppant `.de-cell` resté à `min-width: auto` gardait la largeur intrinsèque
-   de son `<select>` (recette 360 px du 2026-09-26 : scrollWidth 535 pour 350). */
-.de-reflrow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; }
-.de-reflrow > *, .de-reflrow input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
-/* Un `<select>` prend la largeur de son option courante — sa largeur NATURELLE reste la bonne (les
-   identifiants longs des 25 rangées du Codex y sont lisibles). Ce qui manquait, c'est un PLANCHER :
-   « 21 — PSYCHOLOG… » se rendait tronqué. `min-width: min(14rem, 100%)` le pose sans plafonner, et
-   se replie à la largeur de la rangée sous 360 px ; `max-width: 100%` le borne. */
-.de-reflrow select { flex: 0 1 auto; min-width: min(14rem, 100%); max-width: 100%; }
 
 /* Grille de drapeaux booléens (talents.combat) — cases denses, libellé = clé du type. */
 .de-flags { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }

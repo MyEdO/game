@@ -10,19 +10,18 @@
 //
 // Extension même jour (verbatim) — « De la même maniere, apres un certain nombre de ticket fermé,
 // il faudrait lancer une review adversarial. Ou a chaque ticket ... c'est peut etre la même régle
-// finalement. A toi de voir » : arbitrage orchestrateur — LES DEUX niveaux dans le MÊME hook.
-// (1) chaque solde porte sa propre réfutation adversariale (verdict CONFIRMÉ/PARTIEL/RÉFUTÉ) ;
-// (2) tous les `PALIER` tickets fermés, une revue adversariale de PALIER (cumul) est exigée avant
-// toute nouvelle fermeture.
+// finalement. A toi de voir » : chaque solde porte sa propre réfutation adversariale (verdict
+// CONFIRMÉ/PARTIEL/RÉFUTÉ). La revue PAR TICKET est la seule : décision utilisateur du 2026-10-05
+// (#2365, verbatim) — « Pour moi la revue de palier de 10 tickets n'a plus aucun sens. Autant une
+// review sur le ticket sur son ensemble OK, mais pas un mélange de commit entre ticket de chantier
+// séparé ».
 //
 // Extension 2026-07-14 (constat utilisateur, verbatim) — « je pensais que tu avais un hook qui te
 // forceait a faire une review reversal, elle ne doit clairement pas marcher » puis « Ou alors
 // seulement sur les tickets ? » : un commit « ref #N » (rattaché SANS fermer) échappait à tout
-// regard adversarial ET n'entrait pas dans le palier. Deux volets : (1) le palier se MESURE sur
-// l'histoire (`scripts/guards/lib/revuePalier.mjs` : commits touchant `src`/`scripts` depuis la tête
-// de fenêtre de la dernière revue archivée), donc TOUT commit de substance y entre, fermeture ou pas ;
-// (2) anti-esquive — un commit `ref #N` qui touche `src/**` (≥10 lignes de diff staged) exige lui
-// aussi sa réfutation (ligne `REFUTATION:` dans le message, ou fichier `.claude/soldes/ref-<N>.md`).
+// regard adversarial. Anti-esquive — un commit `ref #N` qui touche `src/**` (≥10 lignes de diff
+// staged) exige lui aussi sa réfutation (ligne `REFUTATION:` dans le message, ou fichier
+// `.claude/soldes/ref-<N>.md`).
 // Le déclencheur du mécanisme REFUTATION est le TICKET explicitement rattaché (fermeture ou `ref #N`),
 // et c'est la PORTE DU TICKET qui le précède : un commit de substance cite un ticket, donc tout commit
 // de substance arrive ici avec le sien.
@@ -53,6 +52,17 @@
 //   `evaluateReclassementsCss`    module qui FRANCHIT la frontière CSS (`reclassementCss.mjs`) sans
 //                                 `RECLASSEMENT:` au message, ou ligne sans franchissement.
 //
+// FUSION EN COURS (`MERGE_HEAD`, #2328, Attendu) — « Sauver une fusion résolue est un geste de
+// CONSERVATION, pas une livraison. Il se commite et se pousse sans les trailers de livraison. » :
+// `evaluateAntiEsquive` et `evaluateJuge` se TAISENT ; toutes les évaluations qui lisent le DIFF du
+// commit jugent son APPORT PROPRE (de sa fusion automatique à l'image qu'elle commite, `diffDuCommit`),
+// jamais ce que ses parents fusionnés apportent. Une fusion PROPRE n'apporte rien ; la commande ferme
+// toujours ses tickets par leur solde. Le pre-commit lit le même apport (`scripts/git-hooks/pre-commit.mjs`).
+// Sa RÉSOLUTION se juge à la PUBLICATION (`fusionsNonJugees`, scripts/guards/lib/livraison.mjs) : au moins
+// `SUBSTANTIVE_MIN_LINES` lignes changées sous src/ exigent `JUGE:` et `REFUTATION:` (plus `JUGE-VISION:`
+// sur un écran), portés par le message de la fusion elle-même, sinon par un commit postérieur de la plage
+// ou le solde d'un ticket qu'il cite, qui nomment son sha.
+//
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
 // reste à 10 s. Un hook tué au `timeout` n'émet RIEN, et le geste passe. D'où DEUX ÉTAGES : le premier
 // prend toutes les décisions que rien d'autre ne rejuge et sort au premier refus ; le second juge les
@@ -62,15 +72,17 @@
 // Lot `-a` de 3 686 modules de `src/` : l'étage 1 rend son refus en 1,4-3,1 s ; l'étage 2 y lit les
 // stocks en 8,2-9,5 s (1 716 porteurs, dont un `git diff` de 0,96 s ; le reste est l'évaluation), plus
 // les reclassements (1,8-3,9 s), donc il expire. Lot réel de 10 fichiers (07d9f850d) : stocks 46-48 ms.
-// Le PALIER (`mesureDuPalier`) ne se mesure que pour un commit qui ferme un ticket ou ajoute une revue,
-// et son compte s'arrête à `PALIER`. Remesuré le 2026-09-24, `.wt-1806`, charge 9,6 à 10,9 : hook
-// entier sur un commit qui ne ferme rien 0,41-0,49 s (1,5-1,6 s quand le palier se mesurait à chaque
-// commit) ; mesure du palier 0,9-1,4 s, dont 1,1-1,2 s pour trouver la dernière revue parmi 31
-// archives (`derniereRevueArchivee`) et 0,14-0,33 s pour compter 10 commits de substance
-// (`shasDeSubstance`, 0,9-1,2 s sans arrêt sur la plus longue fenêtre observée, 66 commits). Une
-// fusion à trois parents dans la fenêtre, ou toute fusion sous un git plus ancien que 2.40
-// (`exigerMergeTree`, `gitPorte.mjs`), rend le palier INMESURABLE : toute fermeture est refusée
-// jusqu'à ce qu'une revue neuve porte la fenêtre au-delà de la fusion.
+// Les captures citées (`verifierCaptures`) et les shas cités par « corrigé par »
+// (`histoireDesCitations`, sur le graphe de HEAD lu une fois, `histoireDeHead`) de TOUS les soldes
+// se lisent chacun en UN lot, compté au PROCESSUS (`lancesDeGit`, `scripts/test/gitDeBanc.mjs`). Hook
+// entier, processus neuf préchargé d'un compteur de lancements, dépôt jetable, mesuré le 2026-10-05
+// sous win32 (16 cœurs) : 37 processus git pour 1 comme pour 8 tickets fermés, chacun avec son solde
+// à citation et sa capture, et ses fichiers stagés (src, écran, scripts, porteur de stock). La lecture du graphe croît avec l'HISTOIRE : 133 à 387 ms, 455 Ko et
+// +9,7 Mo de tas à 5 480 commits.
+// VERSION DE GIT : une citation se lit sur le graphe, qui exige git 2.33 (`rev-list
+// --no-commit-header`) ; une FUSION citée exige git 2.40 (`merge-tree --write-tree --stdin`,
+// `exigerMergeTree`). Sous un git plus ancien, le refus NOMME la version requise (`versionManquante`,
+// `gitPorte.mjs`).
 // Ce qu'une expiration de l'étage 2 PERD :
 //   - le refus des stocks et des reclassements au commit. Restent, pour les STOCKS, le pre-push puis
 //     la CI, qui rejuge la plage poussée a posteriori (`scripts/hooks/stocks-nominatifs.test.mjs`,
@@ -97,30 +109,38 @@
 //   - tête d'un segment, épluchée jusqu'à stabilité : jetons nus et mots réservés (`TOKENS_TETE_NUS`),
 //     affectations `VAR=val` (relevées par nom, `affectationsDEnvironnement`), enrobeurs de tête (`ENROBEURS_TETE`) ;
 //   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
-//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
-//     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k`,
-//     `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de `env -S`/`--split-string` suivie des
-//     arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
+//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression` ; tout le reste de la ligne, joint
+//     par des espaces, après `cmd /c`/`/k` (ou `//c`/`//k`, graphie Git Bash) et `eval` ; le texte
+//     qu'exécute l'hôte `powershell`/`pwsh`, lu selon SA grammaire (`GRAMMAIRES_HOTE_POWERSHELL`, #2292) ;
+//     la chaîne de `env -S`/`--split-string` suivie des arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
+//   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
+//     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
+//   - substitutions `$(…)`, `` `…` ``, `@(…)`, et de processus `<(…)`, `>(…)`, nues ou sous quote double
+//     (`$(…)` seule dans une here-string `@"…"@`) : leur contenu relu comme une commande exécutée, où
+//     qu'elles se trouvent dans le segment ;
 //   - commit DIRECT : `git [options globales] commit` en tête d'un segment ainsi lu ;
 //   - commit EMBARQUÉ : sous une tête qui n'est pas CITEUSE, un `git … commit` en argv, ou un argument
 //     à espace — la valeur d'un jeton `<clé>=<valeur>` comprise — relu comme une commande. CITEUSE :
 //     une tête de `CITEURS`, ou `git` sous une sous-commande hors `SOUS_COMMANDES_GIT_EXECUTANTES`
 //     (`rebase`, `bisect`, `submodule` : `rebase -x '…'`, `bisect run …`, `submodule foreach '…'`,
-//     `git -c sequence.editor='…' rebase -i` sont lus) ;
+//     `git -c sequence.editor='…' rebase -i` sont lus), ou une affectation PowerShell `$nom = ` dont la
+//     valeur est citée (`affectationPowerShell`) ;
 //   - aide : un commit, direct ou embarqué, qui porte `-h`/`--help` n'en est pas un (git rend l'aide) ;
 //   - profondeur : `PROFONDEUR_MAX_ENROBEURS` niveaux de porteurs et `SEGMENTS_MAX` segments relus ;
-//     au-delà, les gardes consommatrices n'en voient rien, la garde de commit présume un commit
-//     embarqué.
+//     au-delà, les gardes consommatrices refusent la commande (`REFUS_SATURE`), la garde de commit
+//     présume un commit embarqué.
 // Tout autre chemin par lequel un commit s'exécute n'est pas vu (#2071, qui le juge dans le hook git
 // `commit-msg`, où le vrai commit est visible). Témoins, figés par les bancs « #2071 NON COUVERT » du
-// fichier de tests : `out=$(git commit -a -m x)` ; `GIT_SEQUENCE_EDITOR="sh -c '…'" git rebase -i`,
+// fichier de tests : `GIT_SEQUENCE_EDITOR="sh -c '…'" git rebase -i`,
 // `GIT_PAGER=… git log`, `GIT_EDITOR=… git tag -a v9` (variable de tête consommée par git) ;
 // `git -c core.editor='git commit -a' tag -a v9`, `git -c alias.ci='!git commit -a' ci` (sous-commande
 // citeuse qui exécute) ; `gh alias set --shell ci 'git commit -a' && gh ci` (tête citeuse qui
 // exécute) ; `git merge --no-ff -m x autre`, `git cherry-pick <sha>` (porcelaine) ; `git ci -a` (alias
 // du `.gitconfig`) ; `echo 'git commit -a' | sh`, `bash <<'EOF'` (corps sur stdin) ;
-// `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`, `make release`,
+// `echo 'git commit -a' | pwsh -Command -`, `| pwsh -`, `| powershell` (l'hôte lit sa commande sur stdin,
+// `-ServerMode` y lit du PSRP) ; `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`,
+// `pwsh -File x.ps1`, `make release`,
 // `node --run c`, `yarn c`, `npm --prefix ../autre run c` (script hors du dépôt ancré) ;
 // `python3 -c "os.system('git commit -a')"` (interpréteur non shell).
 import { Buffer } from 'node:buffer'
@@ -134,20 +154,17 @@ import {
 } from '../guards/lib/reclassementCss.mjs'
 import { coteCss, sourceGit, sourceMelee } from '../guards/lib/cssImages.mjs'
 import {
-  PORTEUR_DU_PLAFOND, estCheminDuBudget, importsDe, mesurerBudget, plafondDeLaSource, refusDeBudget,
+  estCheminDuBudget, importsDe, mesurerBudget, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
 import {
-  GitIndisponible, INDEX, SUIVI, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQuiChange, depotDe, enfantsDirects, estDansHead, estIgnore,
-  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, imageDeHead, listerImage, shaDe,
+  GitIndisponible, INDEX, SUIVI, apportDeLaFusionEnCours, ceQueFontLesCommits, ceQuiChange, cheminsIgnores, depotDe, enfantsDirects, estIgnore,
+  estRepertoire, etatDeLArbre, fichiersDuGrep, fusionnesEnCours, histoireDeHead, imageDeHead, listerImage, shaDe, refusDeGit,
 } from '../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
-import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
+import { SUBSTANTIVE_MIN_LINES, TRAILERS, corpsDuTrailer, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
-import {
-  DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
-  nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
-} from '../guards/lib/revuePalier.mjs'
+import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
@@ -263,10 +280,9 @@ function tokenizeCommand(command) {
   // saut de ligne, dans l'ordre d'ouverture.
   let heredocs = []
   // `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un mot réservé ou `time`) ouvre
-  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(`
-  // ouvre une SUBSTITUTION, dont le `)` reste dans le mot (le jeton reste non résolu).
+  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(` ouvre une SUBSTITUTION, qui reste
+  // dans le mot jusqu'à sa parenthèse fermante (`substitutions` du jeton).
   let sousShells = 0
-  let substitutions = 0
   while (i < n) {
     while (i < n && /\s/.test(command[i])) {
       // Un SAUT DE LIGNE hors quote termine la commande comme un `;` : sans lui, la ligne qui SUIT
@@ -290,15 +306,13 @@ function tokenizeCommand(command) {
       i += ouverture[0].length
       continue
     }
-    if (command[i] === '@' && (command[i + 1] === "'" || command[i + 1] === '"')) {
-      const quote = command[i + 1]
-      const closer = `${quote}@`
-      const end = command.indexOf(closer, i + 2)
-      if (end !== -1) {
-        tokens.push({ text: command.slice(i + 2, end), op: null, quote: quote === "'" ? 'simple' : 'double' })
-        i = end + closer.length
-        continue
-      }
+    const hereString = finDeHereString(command, i)
+    if (hereString !== -1) {
+      const corps = command.slice(i + 2, hereString - 2)
+      const double = command[i + 1] === '"'
+      tokens.push({ text: corps, op: null, quote: double ? 'double' : 'simple', substitutions: double ? substitutionsDeHereString(corps) : [] })
+      i = hereString
+      continue
     }
     const precedent = tokens.at(-1)
     if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && AVANT_SOUS_SHELL.has(precedent.text)))) {
@@ -307,7 +321,7 @@ function tokenizeCommand(command) {
       i += 1
       continue
     }
-    if (command[i] === ')' && sousShells > 0 && substitutions === 0) {
+    if (command[i] === ')' && sousShells > 0) {
       tokens.push({ text: ')', op: ')' })
       sousShells -= 1
       i += 1
@@ -317,7 +331,7 @@ function tokenizeCommand(command) {
     if (command.startsWith('||', i)) { tokens.push({ text: '||', op: '||' }); i += 2; continue }
     if (command[i] === ';') { tokens.push({ text: ';', op: ';' }); i += 1; continue }
     if (command[i] === '|') { tokens.push({ text: '|', op: '|' }); i += 1; continue }
-    const redirection = /^(?:\d*|&)>>?(?:&\d+)?/.exec(command.slice(i))
+    const redirection = command.startsWith('>(', i) ? null : /^(?:\d*|&)>[>|]?(?:&\d+)?/.exec(command.slice(i))
     if (redirection) { tokens.push({ text: redirection[0], raw: redirection[0], op: null }); i += redirection[0].length; continue }
     // MOT (bareword ± span(s) quoté(s) EMBARQUÉS) : le comportement shell réel colle une quote
     // rencontrée en PLEIN MILIEU d'un token à ce MÊME token (`-m"a b c"` → un seul token `-ma b c`,
@@ -327,7 +341,12 @@ function tokenizeCommand(command) {
     let buf = ''
     const quotes = new Set()
     let nu = false
-    let substitution = false
+    const substitutions = []
+    /** Retient la substitution `texte` (son ouvreur compris) au bout du mot, `interne` = la commande qu'elle exécute. */
+    const substitue = (texte, interne, expression = false) => {
+      substitutions.push({ debut: buf.length, fin: buf.length + texte.length, interne, expression })
+      buf += texte
+    }
     let j = i
     while (j < n) {
       const c = command[j]
@@ -336,6 +355,14 @@ function tokenizeCommand(command) {
       // Sans cela, `git commit --amend \` + saut + `-F msg.txt` perdait son `-F` (message jamais lu,
       // refus FAUX « SUBSTANCE sans ticket ») et le backtick devenait un pathspec.
       if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
+      // Substitution de commande `$(…)`, sous-expression `@(…)`, substitution de processus `<(…)`, `>(…)`.
+      if ('$@<>'.includes(c) && command[j + 1] === '(') {
+        const fermante = parentheseFermante(command, j + 1)
+        substitue(command.slice(j, fermante + 1), command.slice(j + 2, fermante), c === '@')
+        nu = true
+        j = fermante + 1
+        continue
+      }
       if (/\s/.test(c) || c === ';' || c === '|' || c === '>' || (c === '&' && (command[j + 1] === '&' || command[j + 1] === '>'))) break
       // ANSI-C quoting `$'…'` (bash) : span QUOTÉ au même titre que `'…'`. Sans lui le `$` restait
       // collé au mot suivant (`bash -c $'gh issue create …'` rendait un token `$gh`) et l'exécutable
@@ -351,27 +378,63 @@ function tokenizeCommand(command) {
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
+      const hereString = finDeHereString(command, j)
+      if (hereString !== -1) {
+        const corps = command.slice(j + 2, hereString - 2)
+        quotes.add(command[j + 1] === "'" ? 'simple' : 'double')
+        if (command[j + 1] === '"') substitutions.push(...substitutionsDeHereString(corps, buf.length))
+        buf += corps
+        j = hereString
+        continue
+      }
       if (c === '"' || c === "'") {
         const quote = c
         quotes.add(quote === "'" ? 'simple' : 'double')
         j++
+        // Sous quote double, `$(` s'ouvre et se ferme au solde de ses parenthèses, sans quitter la quote.
+        let ouverte = -1
+        let ouverteBuf = 0
+        let solde = 0
         while (j < n && command[j] !== quote) {
-          if (quote === '"' && (command.startsWith('$(', j) || command[j] === '`')) substitution = true
-          // Échappement réel `\"`/`\\` seulement — un backslash de chemin Windows (`C:\Program…`)
-          // n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins perdent leurs
-          // séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
-          if (quote === '"' && command[j] === '\\' && j + 1 < n && (command[j + 1] === '"' || command[j + 1] === '\\')) {
+          // Échappement réel `\"`, `\\`, `` \` `` et `\$` seulement (XCU 2.2.3) — un backslash de chemin
+          // Windows (`C:\Program…`) n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins
+          // perdent leurs séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
+          if (quote === '"' && command[j] === '\\' && j + 1 < n && '"\\`$'.includes(command[j + 1])) {
             buf += command[j + 1]; j += 2; continue
           }
+          if (quote === '"' && ouverte === -1 && command.startsWith('$(', j)) { ouverte = j; ouverteBuf = buf.length; solde = 0 }
+          if (ouverte !== -1 && command[j] === '(') solde += 1
+          else if (ouverte !== -1 && command[j] === ')' && --solde === 0) {
+            buf = buf.slice(0, ouverteBuf)
+            substitue(command.slice(ouverte, j + 1), command.slice(ouverte + 2, j))
+            ouverte = -1
+            j++
+            continue
+          }
+          const fermant = quote === '"' && ouverte === -1 && command[j] === '`' ? command.indexOf('`', j + 1) : -1
+          const finDeQuote = fermant === -1 ? -1 : command.indexOf('"', j + 1)
+          if (fermant !== -1 && (finDeQuote === -1 || fermant < finDeQuote)) {
+            substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
+            j = fermant + 1
+            continue
+          }
           buf += command[j]; j++
+        }
+        if (ouverte !== -1) {
+          buf = buf.slice(0, ouverteBuf)
+          substitue(command.slice(ouverte, j), command.slice(ouverte + 2, j))
         }
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
-      if (c === ')' && substitutions === 0 && sousShells > 0) break
-      if (c === '(' && command[j - 1] === '$') substitutions += 1
-      else if (c === ')' && substitutions > 0) substitutions -= 1
-      if (command.startsWith('$(', j) || c === '`') substitution = true
+      if (c === ')' && sousShells > 0) break
+      const fermant = c === '`' ? command.indexOf('`', j + 1) : -1
+      if (fermant !== -1) {
+        substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
+        nu = true
+        j = fermant + 1
+        continue
+      }
       buf += c
       nu = true
       j++
@@ -379,21 +442,60 @@ function tokenizeCommand(command) {
     // Un mot fait UNIQUEMENT de continuations n'est pas un token vide : il n'existe pas. Un vrai
     // argument vide (`''`) en reste un — c'est la quote qui le prouve.
     if (buf !== '' || quotes.size > 0) {
-      tokens.push({ text: buf, raw: command.slice(i, j), substitution, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
+      tokens.push({ text: buf, raw: command.slice(i, j), substitutions, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
     }
     i = j
   }
   return tokens
 }
 
+/** Index qui suit la here-string ouverte en `texte[k]` (`@'`/`@"` en fin de ligne, fermée par la marque
+ *  qui ouvre sa ligne, about_Quoting_Rules), ou `-1` si `texte[k]` n'en ouvre pas une refermée. */
+function finDeHereString(texte, k) {
+  const quote = texte[k + 1]
+  if (texte[k] !== '@' || (quote !== "'" && quote !== '"') || !/^\r?\n/.test(texte.slice(k + 2, k + 4))) return -1
+  const fin = texte.indexOf(`\n${quote}@`, k + 2)
+  return fin === -1 ? -1 : fin + 3
+}
+
+/** Les substitutions `$(…)` du corps d'une here-string `@"…"@` (about_Quoting_Rules), `decalage` = la position
+ *  du corps dans le mot ; un `$(` précédé du backtick d'échappement n'en ouvre pas. */
+function substitutionsDeHereString(corps, decalage = 0) {
+  const substitutions = []
+  for (let k = corps.indexOf('$('); k !== -1; k = corps.indexOf('$(', k + 1)) {
+    if (corps[k - 1] === '`') continue
+    const fermante = parentheseFermante(corps, k + 1)
+    substitutions.push({ debut: decalage + k, fin: decalage + Math.min(fermante + 1, corps.length), interne: corps.slice(k + 2, fermante), expression: false })
+    k = fermante
+  }
+  return substitutions
+}
+
+/** Index de la parenthèse qui ferme celle de `texte[k]`, hors quotes, ou `texte.length` si elle reste
+ *  ouverte. Seule lecture de la fin d'une substitution nue. */
+function parentheseFermante(texte, k) {
+  let solde = 0
+  for (let i = k; i < texte.length; i++) {
+    const c = texte[i]
+    if (c === "'" || c === '"') {
+      const fin = texte.indexOf(c, i + 1)
+      if (fin === -1) return texte.length
+      i = fin
+    } else if (c === '(') solde += 1
+    else if (c === ')' && --solde === 0) return i
+  }
+  return texte.length
+}
+
 /** Segments exécutables — leurs JETONS (`tokenizeCommand`, provenance quotée comprise) — AVEC
  *  l'opérateur qui les enchaîne (`&&`/`;`/`||`/`|`, `)` de fin de sous-shell, `null` pour le dernier). Source unique du
  *  découpage : `splitCommandSegments` et `pipelinesProfonds` en dérivent, le tube n'étant un
- *  séparateur QUE pour qui a besoin de le distinguer. */
-function segmentsAvecOperateur(command) {
+ *  séparateur QUE pour qui a besoin de le distinguer. `flux` = les jetons d'une commande, opérateurs compris
+ *  (`tokenizeCommand`, ou le corps d'un bloc). */
+function segmentsAvecOperateur(flux) {
   const segments = []
   let current = []
-  for (const tok of tokenizeCommand(command)) {
+  for (const tok of flux) {
     if (tok.op) {
       segments.push({ jetons: current, op: tok.op })
       current = []
@@ -409,7 +511,7 @@ function segmentsAvecOperateur(command) {
  *  niveau — les mêmes marqueurs À L'INTÉRIEUR d'une quote/here-string ont déjà été consommés comme
  *  contenu de token par `tokenizeCommand`, jamais comme séparateur). */
 export function splitCommandSegments(command) {
-  return segmentsAvecOperateur(command).map((s) => s.jetons.map((j) => j.text)).filter((s) => s.length > 0)
+  return segmentsAvecOperateur(tokenizeCommand(command)).map((s) => s.jetons.map((j) => j.text)).filter((s) => s.length > 0)
 }
 
 // ── Enrobeurs : voir DERRIÈRE les sous-shells et les préfixes de tête ───────────────────────────
@@ -427,39 +529,42 @@ export function splitCommandSegments(command) {
 //
 // HORS PORTÉE : tout ce que ne reconnaît pas le paragraphe LECTURE DE LA COMMANDE de l'en-tête.
 
-/** Nom d'exécutable d'un token : basename, sans extension `.exe`/`.cmd`, en minuscules. */
+/** Nom d'exécutable d'un token : basename, sans extension d'`EXTENSIONS_EXECUTABLES`, en minuscules. */
 export function basenameExecutable(token) {
-  return String(token ?? '').replace(/\\/g, '/').split('/').pop().replace(/\.(exe|cmd)$/i, '').toLowerCase()
+  const texte = typeof token === 'string' ? token : String(token ?? '')
+  const connu = NOMS_EXECUTABLES.get(texte)
+  if (connu !== undefined) return connu
+  const base = texte.slice(Math.max(texte.lastIndexOf('/'), texte.lastIndexOf('\\')) + 1).toLowerCase()
+  const nom = base.length >= 4 && base[base.length - 4] === '.' && EXTENSIONS_EXECUTABLES.has(base.slice(-3)) ? base.slice(0, -4) : base
+  if (NOMS_EXECUTABLES.size >= 4096) NOMS_EXECUTABLES.clear()
+  NOMS_EXECUTABLES.set(texte, nom)
+  return nom
+}
+const EXTENSIONS_EXECUTABLES = new Set(['exe', 'cmd', 'bat'])
+const NOMS_EXECUTABLES = new Map() // mémo-pur : jeton → son nom d'exécutable
+
+/** `true` si `c` est un tiret de PowerShell : `-`, U+2013, U+2014 ou U+2015 (`IsDash`, `CharTraits.cs:255-261`,
+ *  PowerShell v7.5.5). Le lieur de cmdlet (`valeurParametre`) et l'analyseur de l'hôte (`cleDeParametreHote`)
+ *  le partagent. */
+function estTiretPowerShell(c) {
+  return c === '-' || c === '\u2013' || c === '\u2014' || c === '\u2015'
 }
 
-/** Index d'un paramètre PowerShell nommé dans `args`, cherché par PRÉFIXE NON AMBIGU, OU par le nom
- *  EXACT, insensible à la casse : `-Command` s'écrit aussi bien `-com`, `-Comm`… — PowerShell accepte
- *  tout préfixe qu'aucun AUTRE paramètre de la commande ne partage, et lie le nom exact en priorité
- *  (`-Query` à côté de `QueryDialect`). `noms` = tous ses paramètres. `-1` si absent. */
-function indexParametre(args, nom, noms = [nom]) {
+/** Valeur d'un paramètre nommé d'une CMDLET (`''` si absent), selon le LIEUR DE CMDLET : le paramètre
+ *  s'ouvre par un tiret (`estTiretPowerShell`) et se nomme par son nom EXACT ou par un PRÉFIXE NON AMBIGU,
+ *  insensible à la casse — `-Command` s'écrit aussi bien `-com`, `-Comm`… : tout préfixe qu'aucun AUTRE
+ *  paramètre de la commande ne partage, le nom exact lié en priorité (`-Query` à côté de `QueryDialect`).
+ *  `noms` = tous ses paramètres. L'HÔTE `pwsh`/`powershell` suit une autre grammaire (`lireHotePowerShell`). */
+export function valeurParametre(args, nom, noms = [nom]) {
   const cible = nom.toLowerCase()
   const autres = noms.map((n) => n.toLowerCase()).filter((n) => n !== cible)
-  return args.findIndex((a) => {
-    if (a[0] !== '-') return false
+  const i = args.findIndex((a) => {
+    if (!estTiretPowerShell(a[0])) return false
     const p = a.slice(1).toLowerCase()
     return p !== '' && cible.startsWith(p) && (p === cible || !autres.some((n) => n.startsWith(p)))
   })
-}
-
-/** Valeur d'un paramètre PowerShell nommé (`''` si absent) — voir `indexParametre`. */
-export function valeurParametre(args, nom, noms = [nom]) {
-  const i = indexParametre(args, nom, noms)
   return i !== -1 ? (args[i + 1] ?? '') : ''
 }
-
-// Paramètres de l'hôte `powershell.exe`/`pwsh` : base d'ambiguïté des préfixes. `-c` y est traité à
-// part (`porteurCourt`) — l'hôte le résout en `-Command` bien qu'il préfixe aussi
-// `-ConfigurationName`.
-const PARAMS_HOTE_POWERSHELL = [
-  'Command', 'File', 'EncodedCommand', 'ExecutionPolicy', 'ConfigurationName', 'InputFormat',
-  'OutputFormat', 'NoProfile', 'NoLogo', 'NoExit', 'NonInteractive', 'Sta', 'Mta', 'Version',
-  'WindowStyle', 'WorkingDirectory',
-]
 
 // `-o` (isolé ou en fin de groupe court : `-euo pipefail`) et `--rcfile`/`--init-file` prennent le
 // token SUIVANT pour valeur : sans ce saut, `pipefail` passait pour la commande à exécuter.
@@ -472,19 +577,132 @@ const FAMILLE_SH = {
 // espaces (`cmd /c`, `powershell -Command`, `eval`) ; `jetons` = les arguments restants passés tels
 // quels à la commande découpée (`env -S`), ajoutés comme JETONS, provenance comprise ; absente = rien
 // (`sh -c 'cmd' arg0` : ses positionnels).
+// `//c` et `//k` : graphie Git Bash (MSYS) de `/c` et `/k`, l'argument à double barre que MSYS rend à
+// une seule (#2173). Hors Git Bash, `cmd //c x` n'exécute rien : la lecture sur-approxime, et aucun
+// consommateur d'`argumentChaine` n'accorde de droit sur ce qu'elle déplie.
 const FAMILLE_CMD = {
-  porteurs: ['/c', '/k'],
+  porteurs: ['/c', '/k', '//c', '//k'],
   porteurInsensible: true,
   estFlag: (t) => t.startsWith('/'),
   aValeur: () => false,
   suite: 'reste',
 }
-const FAMILLE_POWERSHELL = {
-  parametre: 'Command', parametreEncode: 'EncodedCommand', params: PARAMS_HOTE_POWERSHELL, porteurCourt: '-c',
-  suite: 'reste',
+
+// ── Analyseur de l'HÔTE PowerShell (#2292) ───────────────────────────────────────────────────────
+// `pwsh` et `powershell` ne lient pas leurs paramètres comme une cmdlet : ils les essaient dans l'ORDRE de
+// leur table, et le PREMIER couple `[nom, préfixe minimal]` qui correspond l'emporte (`MatchSwitch`,
+// `CLPP.cs:793-802` ; ordre de `ParseHelper`, `CLPP.cs:897-1257`). `CLPP.cs` =
+// `Microsoft.PowerShell.ConsoleHost/host/msh/CommandLineParameterParser.cs` du dépôt PowerShell, v7.5.5. La table de
+// `powershell` 5.1.26100.9444, sans source publique, est MESURÉE (`scripts/ops/sondes/hote-powershell.mjs`).
+// `lecture` : `commande` = la valeur et tout le reste de la ligne (`-CommandWithArgs` compris : ses `$args`
+// sont joints, car la commande peut les exécuter) ; `encodee` = la valeur, base64 d'UTF-16LE ; `valeur` = la
+// valeur est sautée ; `drapeau` = rien n'est sauté ; `fichier` = un script `.ps1` (ou stdin pour `-`), hors
+// portée ; `fin` = l'hôte n'exécute rien ; `commandeIncluse` = ce jeton et tout le reste de la ligne.
+// `nonReconnu` = la lecture d'un jeton qu'aucune entrée ne reconnaît, positionnel compris.
+const HOTE_PWSH = {
+  parametres: [
+    { alias: [['version', 'v']], lecture: 'fin' }, // CLPP.cs:897
+    { alias: [['help', 'h'], ['?', '?']], lecture: 'fin' }, // :908
+    { alias: [['login', 'l']], lecture: 'drapeau' }, // :915
+    { alias: [['noexit', 'noe']], lecture: 'drapeau' }, // :921
+    { alias: [['noprofile', 'nop']], lecture: 'drapeau' }, // :927
+    { alias: [['nologo', 'nol']], lecture: 'drapeau' }, // :932
+    { alias: [['noninteractive', 'noni']], lecture: 'drapeau' }, // :937
+    { alias: [['socketservermode', 'so']], lecture: 'drapeau' }, // :942
+    { alias: [['v2socketservermode', 'v2so']], lecture: 'drapeau' }, // :949
+    { alias: [['servermode', 's']], lecture: 'drapeau' }, // :956
+    { alias: [['namedpipeservermode', 'nam']], lecture: 'drapeau' }, // :962
+    { alias: [['sshservermode', 'sshs']], lecture: 'drapeau' }, // :968
+    { alias: [['noprofileloadtime', 'noprofileloadtime']], lecture: 'drapeau' }, // :974
+    { alias: [['interactive', 'i']], lecture: 'drapeau' }, // :979
+    { alias: [['configurationfile', 'configurationfile']], lecture: 'valeur' }, // :984
+    { alias: [['configurationname', 'config']], lecture: 'valeur' }, // :997
+    { alias: [['custompipename', 'cus']], lecture: 'valeur' }, // :1010
+    { alias: [['commandwithargs', 'commandwithargs'], ['cwa', 'cwa']], lecture: 'commande' }, // :1037
+    { alias: [['command', 'c']], lecture: 'commande' }, // :1050
+    { alias: [['windowstyle', 'w']], lecture: 'valeur' }, // :1059
+    { alias: [['file', 'f']], lecture: 'fichier' }, // :1088
+    { alias: [['outputformat', 'o'], ['of', 'o']], lecture: 'valeur' }, // :1103
+    { alias: [['inputformat', 'inp'], ['if', 'if']], lecture: 'valeur' }, // :1109
+    { alias: [['executionpolicy', 'ex'], ['ep', 'ep']], lecture: 'valeur' }, // :1114
+    { alias: [['encodedcommand', 'e'], ['ec', 'e']], lecture: 'encodee' }, // :1129
+    { alias: [['encodedarguments', 'encodeda'], ['ea', 'ea']], lecture: 'valeur' }, // :1139
+    { alias: [['settingsfile', 'settings']], lecture: 'valeur' }, // :1148
+    { alias: [['sta', 'sta']], lecture: 'drapeau' }, // :1158
+    { alias: [['mta', 'mta']], lecture: 'drapeau' }, // :1178
+    { alias: [['workingdirectory', 'wo'], ['wd', 'wd']], lecture: 'valeur' }, // :1198
+    { alias: [['removeworkingdirectorytrailingcharacter', 'removeworkingdirectorytrailingcharacter']], lecture: 'drapeau' }, // :1212
+    { alias: [['token', 'to']], lecture: 'valeur' }, // :1216
+    { alias: [['utctimestamp', 'utc']], lecture: 'valeur' }, // :1230
+  ],
+  nonReconnu: 'fichier', // :713-720, :1246-1253
 }
-const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste' }
-const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true }
+// `powershell` 5.1 : la table de pwsh, à ses écarts MESURÉS (`hote-powershell.mjs`) près — paramètres absents (lus
+// comme non reconnus), préfixes minimaux qui diffèrent, jeton blanc sauté ; ce que la table ne reconnaît pas OUVRE
+// la commande, lui compris.
+const ABSENTS_DE_51 = new Set([
+  'version', 'login', 'sshservermode', 'noprofileloadtime', 'interactive', 'configurationfile', 'custompipename',
+  'commandwithargs', 'settingsfile', 'removeworkingdirectorytrailingcharacter',
+])
+const MINIMUMS_51 = { inputformat: 'i', sta: 'st' }
+const HOTE_POWERSHELL_51 = {
+  parametres: [
+    { alias: [['', '']], lecture: 'drapeau' },
+    ...HOTE_PWSH.parametres
+      .filter(({ alias: [[nom]] }) => !ABSENTS_DE_51.has(nom))
+      .map(({ alias: [[nom, min], ...autres], lecture }) => ({ alias: [[nom, MINIMUMS_51[nom] ?? min], ...autres], lecture })),
+  ],
+  nonReconnu: 'commandeIncluse',
+}
+/** Grammaire de l'hôte PowerShell, par exécutable. */
+export const GRAMMAIRES_HOTE_POWERSHELL = { pwsh: HOTE_PWSH, powershell: HOTE_POWERSHELL_51 }
+const FAMILLE_PWSH = { hote: HOTE_PWSH, suite: 'reste' }
+const FAMILLE_POWERSHELL_51 = { hote: HOTE_POWERSHELL_51, suite: 'reste' }
+
+/** Blancs de .NET, ceux que retire `String.Trim()` : `Char.IsWhiteSpace` (documentation .NET, « Remarques ») =
+ *  U+0009-000D, U+0020, U+0085, U+00A0, U+1680, U+2000-200A, U+2028, U+2029, U+202F, U+205F, U+3000. Le `trim()` de JS
+ *  n'est pas cet ensemble : il garde U+0085 et retire U+FEFF. */
+const BLANCS_DOTNET = '[\t-\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]'
+const BLANCS_DOTNET_AUX_BORDS = new RegExp(`^${BLANCS_DOTNET}+|${BLANCS_DOTNET}+$`, 'g')
+
+/** Nom de paramètre que l'hôte lit dans ce jeton, en minuscules (`GetSwitchKey`, `CLPP.cs:705-734`) : le jeton
+ *  privé des blancs de .NET à ses bords (`Trim()`, `BLANCS_DOTNET`), ouvert par un tiret (`estTiretPowerShell`) ou
+ *  `/`, le second tiret retiré s'il est IDENTIQUE au premier ; `//` est la graphie Git Bash de `/`, comme le `//c`
+ *  de `FAMILLE_CMD` (#2173). `''` pour un jeton blanc, `null` pour un positionnel. */
+function cleDeParametreHote(jeton) {
+  const t = jeton.replace(BLANCS_DOTNET_AUX_BORDS, '').replace(/^\/\//, '/')
+  if (t === '') return ''
+  if (!estTiretPowerShell(t[0]) && t[0] !== '/') return null
+  return (estTiretPowerShell(t[0]) && t[1] === t[0] ? t.slice(2) : t.slice(1)).toLowerCase()
+}
+
+/** Lecture de l'hôte qui tranche `jeton` : celle de la PREMIÈRE entrée dont un couple
+ *  `[nom, min]` correspond (`MatchSwitch` : au moins `min.length` caractères, préfixe de `nom`), sinon
+ *  `nonReconnu`. */
+function lectureDuJetonHote(jeton, { parametres, nonReconnu }) {
+  const cle = cleDeParametreHote(jeton)
+  if (cle === null) return nonReconnu
+  const entree = parametres.find(({ alias }) => alias.some(([nom, min]) => cle.length >= min.length && nom.startsWith(cle)))
+  return entree?.lecture ?? nonReconnu
+}
+
+/** Texte qu'exécute l'hôte PowerShell `famille.hote` sur `args`, lus de gauche à droite comme `ParseHelper`
+ *  (`CLPP.cs:877-1257`) — forme de `lecturePorteur` —, `null` quand il n'exécute aucun texte de la ligne. */
+function lireHotePowerShell(famille, args) {
+  for (let i = 0; i < args.length; i++) {
+    const lecture = lectureDuJetonHote(args[i], famille.hote)
+    if (lecture === 'valeur') i += 1
+    else if (lecture === 'commande') return portee(famille, args[i + 1] ?? null, args, i + 2)
+    else if (lecture === 'commandeIncluse') return portee(famille, args[i], args, i + 1)
+    else if (lecture === 'encodee') {
+      const decodee = decodeCommandeEncodee(args[i + 1])
+      return decodee === null ? null : { commande: decodee, suite: null, memeShell: false }
+    } else if (lecture !== 'drapeau') return null
+  }
+  return null
+}
+const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste', memeShell: true }
+const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true, memeShell: true }
 // `npx` est à la fois un enrobeur de TÊTE (`npx gh issue create`) et, avec `-c`/`--call`, un
 // interpréteur à argument-chaîne : `epluchageTete` interroge la table A à chaque cran, la forme
 // `-c` part donc en récursion au lieu d'être AVALÉE comme la valeur d'un flag (contournement mesuré).
@@ -521,11 +739,13 @@ function groupeCourt(t, suivant, { porteur, aValeur }) {
 
 /** Lecture portée : `chaine`, et ce que l'hôte lit après elle (`suite` de la famille) à partir de
  *  `args[debut]` — joint au texte pour `reste`, index de segment des jetons ajoutés pour `jetons`.
- *  `null` sans chaîne. */
+ *  `memeShell` : la famille exécute la chaîne dans le shell de l'hôte (`eval`, `Invoke-Expression`), pas dans un
+ *  processus neuf. `null` sans chaîne. */
 function portee(famille, chaine, args, debut) {
   if (chaine === null) return null
-  if (famille.suite === 'reste') return { commande: [chaine, ...args.slice(debut)].join(' '), suite: null }
-  return { commande: chaine, suite: famille.suite === 'jetons' ? debut + 1 : null }
+  const memeShell = famille.memeShell === true
+  if (famille.suite === 'reste') return { commande: [chaine, ...args.slice(debut)].join(' '), suite: null, memeShell }
+  return { commande: chaine, suite: famille.suite === 'jetons' ? debut + 1 : null, memeShell }
 }
 
 /** Commande portée par un `-EncodedCommand` PowerShell : base64 d'UTF-16LE (contrat de l'hôte).
@@ -539,7 +759,7 @@ function decodeCommandeEncodee(valeur) {
  *  interpréteur = une ligne de plus ici, jamais un chemin de reconnaissance parallèle. */
 const ENROBEURS_ARGUMENT = new Map([
   ['sh', FAMILLE_SH], ['bash', FAMILLE_SH], ['dash', FAMILLE_SH], ['zsh', FAMILLE_SH],
-  ['powershell', FAMILLE_POWERSHELL], ['pwsh', FAMILLE_POWERSHELL],
+  ['powershell', FAMILLE_POWERSHELL_51], ['pwsh', FAMILLE_PWSH],
   ['cmd', FAMILLE_CMD],
   ['eval', FAMILLE_EVAL], ['invoke-expression', FAMILLE_INVOKE_EXPRESSION],
   ['npx', FAMILLE_NPX],
@@ -570,14 +790,7 @@ function lecturePorteur(segment) {
     if (args[k] === '--') k += 1
     return portee(famille, args[k] ?? null, args, k + 1)
   }
-  if (famille.parametre) {
-    const court = args.findIndex((a) => a.toLowerCase() === famille.porteurCourt)
-    const i = court !== -1 ? court : indexParametre(args, famille.parametre, famille.params)
-    if (i !== -1) return portee(famille, args[i + 1] ?? null, args, i + 2)
-    const encode = indexParametre(args, famille.parametreEncode, famille.params)
-    const decodee = encode !== -1 ? decodeCommandeEncodee(args[encode + 1]) : null
-    return decodee === null ? null : { commande: decodee, suite: null }
-  }
+  if (famille.hote) return lireHotePowerShell(famille, args)
   const memeFlag = famille.porteurInsensible
     ? (a, b) => a.toLowerCase() === b.toLowerCase()
     : (a, b) => a === b
@@ -606,9 +819,10 @@ const ENROBEURS_TETE = new Map([
   ['env', { flags: ['-u', '--unset'], affectations: true }],
   ['nohup', {}],
   ['command', { citeSous: ['-v', '-V'] }],
+  ['builtin', {}],
   ['winpty', {}],
   ['time', {}],
-  ['npx', { flags: ['-p', '--package'] }],
+  ['npx', { flags: ['-p', '--package', '--prefix'] }],
   ['sudo', { flags: ['-u', '--user', '-g', '--group', '-p', '--prompt'] }],
   ['setsid', { flags: [] }],
   ['timeout', { flags: ['-k', '--kill-after', '-s', '--signal'], positionnels: 1 }],
@@ -625,31 +839,162 @@ const TOKENS_TETE_NUS = new Set(['&', '{', '}', '(', '!', 'if', 'then', 'elif', 
 const AVANT_SOUS_SHELL = new Set([...TOKENS_TETE_NUS, 'time'])
 const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*[+]?=/
 
-/** Enrobeurs de TÊTE d'un segment, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
- *  `debut` = index du premier jeton exécuté (`segment.length` si le segment n'est fait que
- *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre,
- *  `affectations` = les noms des `VAR=val` épluchés, ceux d'un `env` compris. */
-function epluchageTete(segment) {
+// ── Blocs PowerShell : le contenu d'un `{ … }` s'exécute (#2173) ───────────────────────────────
+/** Têtes dont les blocs `{ … }` EXÉCUTENT leur contenu (about_ForEach-Object, about_Foreach, about_For,
+ *  about_Try_Catch_Finally, about_If, about_While, about_Switch, about_Trap, Where-Object). Sans parenthèse
+ *  collée, `if`, `else` et `while` sont des `TOKENS_TETE_NUS` : leur `{` s'épluche déjà en tête, comme celui de
+ *  `& { }`. */
+const TETES_DE_BLOC = new Set([
+  '%', 'foreach-object', 'foreach', 'for', 'try', 'catch', 'finally', 'if', 'else', 'while', 'switch', 'trap',
+  'where-object', 'where', '?',
+])
+/** Mots qui, juste après le `}` d'un bloc, en ouvrent un autre dans le même segment (`} else {`,
+ *  `} elseif (…) {`, `} catch [type] {`, `} finally {`). */
+const SUITES_DE_BLOC = new Set(['else', 'elseif', 'catch', 'finally'])
+const MOT_A_ENTETE_RE = /^(foreach|for|if|while|switch|elseif)(\(.*)$/i
+
+/** Un jeton NU : ni quoté, ni mêlé de quotes. */
+export const jetonNu = (j) => j.quote === undefined
+
+/** Morceaux `{ text, substitutions }` d'un texte nu à partir de `depart` : chaque `{` et `}` détaché,
+ *  `${nom}` et les `substitutions` du jeton (`tokenizeCommand`) gardés entiers. */
+function eclateAccolades(texte, substitutions, depart = 0) {
+  const morceaux = []
+  let buf = ''
+  let portees = []
+  const coupe = () => {
+    if (buf) morceaux.push({ text: buf, substitutions: portees })
+    buf = ''
+    portees = []
+  }
+  for (let i = depart; i < texte.length; i++) {
+    const c = texte[i]
+    const substitution = substitutions.find((s) => s.debut === i)
+    if (substitution) {
+      portees.push({ ...substitution, debut: buf.length, fin: buf.length + substitution.fin - substitution.debut })
+      buf += texte.slice(i, substitution.fin)
+      i = substitution.fin - 1
+    } else if (c === '$' && texte[i + 1] === '{') {
+      const fin = texte.indexOf('}', i)
+      const j = fin === -1 ? texte.length : fin + 1
+      buf += texte.slice(i, j)
+      i = j - 1
+    } else if (c === '{' || c === '}') {
+      coupe()
+      morceaux.push({ text: c, substitutions: [] })
+    } else {
+      buf += c
+    }
+  }
+  coupe()
+  return morceaux
+}
+
+/** Relecture des jetons d'un bloc : les accolades et la parenthèse d'en-tête collées à un jeton NU
+ *  (`%{kill`, `$_.Id}`, `foreach($p`, `bash){Stop-Process`) en sont détachées, `${nom}` et les substitutions
+ *  restent entiers. Un jeton quoté, ou qui porte une quote, reste tel quel. Rendue en `relus` par
+ *  `pipelinesDeJetons`. */
+function jetonsDeBloc(jetons) {
+  return jetons.flatMap((j) => {
+    if (!jetonNu(j) || !/[{}(]/.test(j.text) || /['"]/.test(j.raw ?? '')) return [j]
+    const substitutions = j.substitutions ?? []
+    const entete = MOT_A_ENTETE_RE.exec(j.text)
+    const morceaux = entete
+      ? [{ text: entete[1], substitutions: [] }, ...eclateAccolades(j.text, substitutions, entete[1].length)]
+      : eclateAccolades(j.text, substitutions)
+    return morceaux.length === 1 && morceaux[0].text === j.text ? [j] : morceaux.map((m) => ({ ...m, raw: m.text, op: null }))
+  })
+}
+
+/** `1` pour une accolade ouvrante NUE, `-1` pour une fermante, `0` sinon : seule lecture d'une accolade. */
+const accolade = (j) => (!jetonNu(j) ? 0 : j.text === '{' ? 1 : j.text === '}' ? -1 : 0)
+
+/** Index du `}` qui ferme le `{` de `jetons[k]` (jetons relus, `jetonsDeBloc`), ou `jetons.length` si le
+ *  bloc reste ouvert. Seule recherche de la fin d'un bloc. */
+export function finDuBloc(jetons, k) {
+  let profondeur = 0
+  for (let i = k + 1; i < jetons.length; i++) {
+    profondeur += accolade(jetons[i])
+    if (profondeur < 0) return i
+  }
+  return jetons.length
+}
+
+/** Les blocs qu'exécute ce segment (jetons relus) : `corps` = les jetons de chacun, `dehors` = ceux du
+ *  segment hors de ses blocs (accolades comprises) ; `suspens` = un bloc,
+ *  ou l'en-tête d'une tête de bloc, reste ouvert à la fin du segment (le tokeniseur le coupe au `;`, au `|`).
+ *  Une tête de `TETES_DE_BLOC` ouvre chaque `{` hors des parenthèses de son en-tête ; ailleurs, un `{`
+ *  s'ouvre après un `}` suivi d'un mot de `SUITES_DE_BLOC`. Les clauses d'un `switch` sont ses blocs. */
+function lectureDesBlocs(jetons, { toutes = false } = {}) {
+  const tete = basenameExecutable(jetons[0]?.text)
+  const ouvreTout = toutes || TETES_DE_BLOC.has(tete)
+  const corps = []
+  const dehors = toutes ? [] : jetons.slice(0, 1)
+  let porte = ouvreTout
+  let parens = 0
+  let suspens = false
+  for (let k = toutes ? 0 : 1; k < jetons.length; k++) {
+    const j = jetons[k]
+    dehors.push(j)
+    if (!jetonNu(j)) continue
+    if (jetons[k - 1]?.text === '}' && SUITES_DE_BLOC.has(j.text.toLowerCase())) { porte = true; continue }
+    if (/[()]/.test(j.text)) parens += soldeParentheses(j.text)
+    if (j.text !== '{' || !porte || parens > 0) continue
+    const fin = finDuBloc(jetons, k)
+    suspens ||= fin === jetons.length
+    corps.push(jetons.slice(k + 1, fin))
+    porte = ouvreTout
+    k = fin
+  }
+  const executes = tete === 'switch' ? corps.flatMap((c) => lectureDesBlocs(c, { toutes: true }).corps) : corps
+  return { corps: executes, dehors, suspens: suspens || (ouvreTout && !toutes && parens > 0) }
+}
+
+/** L'affectation `NOM=valeur` (`NOM+=valeur`) d'un jeton : `{ nom, valeur, jeton }`, la valeur DÉCITÉE
+ *  (le texte du jeton, ses quotes retirées), `jeton` celui qui porte ses substitutions. */
+function valeurDAffectation(jeton) {
+  const egal = jeton.text.indexOf('=')
+  return { nom: jeton.text.slice(0, egal).replace(/[+]$/, ''), valeur: jeton.text.slice(egal + 1), jeton }
+}
+
+/** Ouverture de substitution `$(` non refermée dans un texte : son solde de parenthèses. */
+export const soldeParentheses = (texte) => (texte.match(/\(/g)?.length ?? 0) - (texte.match(/\)/g)?.length ?? 0)
+
+/** Enrobeurs de TÊTE d'un segment (ses jetons), épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
+ *  `debut` = index du premier jeton exécuté (`jetons.length` si le segment n'est fait que d'enrobeurs),
+ *  `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre, `affectations` = les noms des
+ *  `VAR=val` épluchés, ceux d'un `env` compris, et `valeurs` = leurs `valeurDAffectation`. Un jeton QUOTÉ
+ *  n'est pas une affectation (`"PATH=x"`). */
+function epluchageTete(jetons) {
+  const segment = jetons.map((j) => j.text)
   const enrobeurs = []
   const affectations = []
-  const affecte = (t) => affectations.push(t.slice(0, t.indexOf('=')).replace(/[+]$/, ''))
+  const valeurs = []
+  const estAffectation = (i) => jetonNu(jetons[i]) && AFFECTATION_RE.test(segment[i])
+  /** Épluche l'affectation en `i` et rend l'index qui la suit. */
+  const affecte = (i) => {
+    const valeur = valeurDAffectation(jetons[i])
+    affectations.push(valeur.nom)
+    valeurs.push(valeur)
+    return i + 1
+  }
   let i = 0
   for (;;) {
     const t = segment[i]
-    if (t === undefined) return { debut: segment.length, enrobeurs, affectations }
-    if (AFFECTATION_RE.test(t)) affecte(t)
-    if (TOKENS_TETE_NUS.has(t) || AFFECTATION_RE.test(t)) { i += 1; continue }
+    if (t === undefined) return { debut: segment.length, enrobeurs, affectations, valeurs }
+    if (estAffectation(i)) { i = affecte(i); continue }
+    if (TOKENS_TETE_NUS.has(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
-    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations }
+    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations, valeurs }
     const nom = basenameExecutable(t)
     const enrobeur = ENROBEURS_TETE.get(nom)
-    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations }
+    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations, valeurs }
     enrobeurs.push(nom)
     i += 1
     if (enrobeur.flags) {
-      while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && AFFECTATION_RE.test(segment[i])))) {
-        if (enrobeur.affectations && AFFECTATION_RE.test(segment[i])) affecte(segment[i])
-        i += enrobeur.flags.includes(segment[i]) ? 2 : 1
+      while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && estAffectation(i)))) {
+        if (enrobeur.affectations && estAffectation(i)) i = affecte(i)
+        else i += enrobeur.flags.includes(segment[i]) ? 2 : 1
       }
     }
     i += enrobeur.positionnels ?? 0
@@ -713,43 +1058,129 @@ export function commandeScriptNpm(segment, scripts) {
  *  donc ceux dont les sorties/entrées se CHAÎNENT (les enchaînements `&&`/`;`/`||` en ouvrent un
  *  nouveau). Les enrobeurs de tête sont épluchés, et l'ARGUMENT-CHAÎNE d'un interpréteur est
  *  re-tokenisé : les pipelines qu'il porte sont rendus À PART (ceux d'un `sh -c "a | b"` ne se
- *  mêlent pas au pipeline hôte), avant le pipeline enrobant. `segmentsProfonds` en est l'APLATI :
- *  une garde qui n'a pas besoin du tube ignore ce groupement. */
+ *  mêlent pas au pipeline hôte), avant le pipeline enrobant ; le corps d'un bloc PowerShell
+ *  (`lectureDesBlocs`) l'est de même, avant le pipeline qui l'ouvre. Un segment que l'épluchage vide
+ *  (`VAR=val`, `}`) n'y figure pas. `segmentsProfonds` en est l'APLATI : une garde qui n'a pas besoin
+ *  du tube ignore ce groupement. */
 export function pipelinesProfonds(command, profondeur = 0, options) {
-  return pipelinesDeJetons(command, profondeur, options).map((p) => p.map((s) => s.jetons.map((j) => j.text)))
+  return pipelinesDeJetons(command, profondeur, options)
+    .map((p) => p.filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text)))
+    .filter((p) => p.length > 0)
 }
 
-/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, enrobeurs, deploye }` :
- *  les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise), les ENROBEURS de tête
- *  épluchés devant eux (`epluchageTete`), et `deploye` quand la commande qu'il porte (argument-chaîne,
- *  script npm) est rendue à part. Qui lit un jeton comme un chemin a besoin des deux premiers : la
- *  quote dit si le shell le change, l'enrobeur s'il ajoute des arguments hors du texte. Au-delà de
- *  `PROFONDEUR_MAX_ENROBEURS`, l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par
- *  toute la récursion) le dit ; tous les segments en deçà sont rendus. `suite` = jetons ajoutés au
- *  DERNIER segment de `command` : les arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`),
- *  avec leur provenance d'origine. `affectations` reçoit les noms de variables d'environnement que
- *  chaque segment lu pose (`affectationsDuSegment`). */
-function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [], affectations = [] } = {}) {
+/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, enrobeurs, deploye, ouvreDesBlocs,
+ *  valeurs, deplies, bloc, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
+ *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), leur
+ *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les ENROBEURS de
+ *  tête épluchés devant eux, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
+ *  affectations de tête quand l'épluchage le VIDE, ses arguments `NOM=val` sous une tête d'`AFFECTEURS`),
+ *  `deploye` quand la commande qu'il porte (argument-chaîne, script npm, corps de bloc) est rendue à part,
+ *  `deplies` = pour chaque jeton à substitution, les pipelines qu'elle exécute (rendus à part eux aussi),
+ *  `bloc` = le segment dont un bloc le contient, `tube` = son pipeline, `shell` = le shell qui l'exécute : un
+ *  `{ parent }` par commande relue dans un processus neuf (argument-chaîne hors `eval`/`Invoke-Expression`, qui gardent
+ *  celui de l'hôte, script npm, substitution), par sous-shell
+ *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande.
+ *  Un segment que l'épluchage VIDE y
+ *  figure, `jetons` vide. Un bloc ouvert absorbe les segments qui le suivent, séparateurs compris, jusqu'à
+ *  sa fermeture : un bloc est UNE commande. Dans un bloc, ou une sous-expression `@(…)`, un énoncé dont le
+ *  premier jeton est quoté est une chaîne, pas une commande : il n'est pas rendu. Qui lit
+ *  un jeton comme un chemin a besoin des jetons et des enrobeurs : la quote dit si le shell le change,
+ *  l'enrobeur s'il ajoute des arguments hors du texte. Au-delà de `PROFONDEUR_MAX_ENROBEURS` porteurs,
+ *  l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par toute la récursion) le dit ; tous
+ *  les segments en deçà sont rendus. `suite` = jetons ajoutés au DERNIER segment de `command` : les
+ *  arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`), avec leur provenance d'origine.
+ *  `affectations` reçoit les noms de variables d'environnement que chaque segment lu pose
+ *  (`affectationsDuSegment`). Lecture PARTAGÉE avec `commande-piege-guard`. */
+export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
+  const budget = options.budget ?? nouveauBudget()
+  if (!command) return []
+  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return [] }
+  return pipelinesDuFlux(tokenizeCommand(command), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
+}
+
+/** Le séparateur qu'un bloc absorbe (`;`, `|`, `&&`, `||`, `)`), jeton de son segment. */
+const separateur = (op) => ({ text: op, raw: op, op: null, separateur: op })
+/** Le corps d'un bloc rendu au flux : ses séparateurs redeviennent des opérateurs. */
+const versFlux = (j) => (j.separateur ? { text: j.separateur, op: j.separateur } : j)
+/** Les `{ nom, valeur, jeton }` qu'un segment épluché déclare sous une tête d'`AFFECTEURS`
+ *  (`export p=…`, `local p=…`). */
+function declarationsDuSegment(jetons) {
+  const affecte = AFFECTEURS.get(basenameExecutable(jetons[0]?.text))
+  const args = jetons.slice(1)
+  if (!affecte || !affecte(args.map((j) => j.text))) return []
+  return args.filter((j) => jetonNu(j) && AFFECTATION_RE.test(j.text)).map(valeurDAffectation)
+}
+
+/** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
+ *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
+ *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
+function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false }) {
   const pipelines = []
-  if (!command) return pipelines
-  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return pipelines }
+  const lus = segmentsAvecOperateur(flux)
+  const avecSuite = (k) => (lus[k].op === null ? [...lus[k].jetons, ...suite] : lus[k].jetons)
   let courant = []
-  for (const { jetons: lus, op } of segmentsAvecOperateur(command)) {
-    const jetons = op === null ? [...lus, ...suite] : lus
-    const { debut, enrobeurs, affectations: deTete } = epluchageTete(jetons.map((j) => j.text))
+  const shells = [shell]
+  let precedent = null
+  for (let s = 0; s < lus.length; s++) {
+    const jetons = avecSuite(s)
+    let { op } = lus[s]
+    const { debut, enrobeurs, affectations: deTete, valeurs } = epluchageTete(jetons)
+    for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push({ parent: shells.at(-1) })
     const segment = jetons.slice(debut)
-    affectations.push(...deTete, ...affectationsDuSegment(segment.map((j) => j.text)))
-    if (segment.length > 0) {
-      const textes = segment.map((j) => j.text)
-      const porteur = lecturePorteur(textes)
-      const inner = porteur?.commande ?? commandeScriptNpm(textes, scripts)
-      if (inner !== null) {
-        const debutSuite = porteur?.suite ?? null
-        const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
-        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations })) pipelines.push(p)
-      }
-      courant.push({ jetons: segment, enrobeurs, deploye: inner !== null })
+    const relus = relu ? [...segment] : jetonsDeBloc(segment)
+    let lecture = lectureDesBlocs(relus)
+    while (op !== null && lecture.suspens) {
+      let solde = relus.reduce((d, j) => d + accolade(j), 0)
+      do {
+        const ajout = relu ? avecSuite(s + 1) : jetonsDeBloc(avecSuite(s + 1))
+        segment.push(separateur(op), ...avecSuite(s + 1))
+        relus.push(separateur(op), ...ajout)
+        solde = ajout.reduce((d, j) => d + accolade(j), solde)
+        s += 1
+        op = lus[s].op
+      } while (op !== null && solde > 0)
+      lecture = lectureDesBlocs(relus)
     }
+    const ouvreDesBlocs = lecture.corps.length > 0 && TETES_DE_BLOC.has(basenameExecutable(relus[0]?.text))
+    const ici = op === '|' || precedent === '|' ? { parent: shells.at(-1) } : shells.at(-1)
+    // Les substitutions s'exécutent avant le segment, la chaîne citée comprise ; celles d'un corps de bloc se
+    // déplient dans ce corps.
+    const deplies = new Map()
+    const deplie = (j) => {
+      if (!j.substitutions?.length) return
+      const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression }) =>
+        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, expression: sousExpression }))
+      for (const p of rendus) pipelines.push(p)
+      deplies.set(j, rendus)
+    }
+    for (let k = 0; k < debut; k++) deplie(jetons[k])
+    for (const j of lecture.dehors) deplie(j)
+    const chaine = (relu || expression) && courant.length === 0 && jetons.length > 0 && (!jetonNu(jetons[0]) || /^['"]/.test(jetons[0].raw ?? ''))
+    if (!chaine) {
+      // Une tête de bloc n'affecte rien et ne porte aucune chaîne : elle n'exécute que ses corps.
+      const textes = ouvreDesBlocs ? [] : segment.map((j) => j.text)
+      affectations.push(...deTete, ...affectationsDuSegment(textes))
+      const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
+      const lu = { jetons: segment, relus, enrobeurs, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
+      if (segment.length > 0) {
+        const porteur = ouvreDesBlocs ? null : lecturePorteur(textes)
+        const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(textes, scripts))
+        if (inner !== null) {
+          const debutSuite = porteur?.suite ?? null
+          const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
+          const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici }
+          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache })) pipelines.push(p)
+        }
+        const { corps } = lecture
+        for (const c of corps) {
+          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true })) pipelines.push(p)
+        }
+        lu.deploye = inner !== null || corps.length > 0
+      }
+      courant.push(lu)
+    }
+    if (op === ')' && shells.length > 1) shells.pop()
+    precedent = op
     if (op !== '|' && op !== ')' && courant.length > 0) {
       pipelines.push(courant)
       courant = []
@@ -867,7 +1298,8 @@ function partageDuSegment(jetons) {
   const motif = recherche ? motifDe(segment) : null
   const hors = []
   const messages = []
-  const range = (t, canal, k) => ((jetons[k].substitution ?? (jetons[k].quote !== 'simple' && /\$\(|`/.test(t))) ? hors.push(t) : messages.push({ jeton: t, canal }))
+  const substitue = (k, t) => (jetons[k].substitutions ? jetons[k].substitutions.length > 0 : jetons[k].quote !== 'simple' && /\$\(|`/.test(t))
+  const range = (t, canal, k) => (substitue(k, t) ? hors.push(t) : messages.push({ jeton: t, canal }))
   for (let k = 0; k < segment.length; k++) {
     const t = segment[k]
     if (tout && k > 0 && !REDIRECTION_RE.test(t) && !REDIRECTION_RE.test(segment[k - 1])) { range(t, tout.canal, k); continue }
@@ -1012,6 +1444,13 @@ const CITEURS = new Set([
  *  têtes : les alias `!`, `filter-branch` et les `-c core.pager=…` y échappent (NON COUVERT, #2071). */
 const SOUS_COMMANDES_GIT_EXECUTANTES = new Set(['rebase', 'bisect', 'submodule'])
 
+/** Affectation PowerShell `$nom = …` en tête d'un segment (ses jetons) : `{ nom, valeur }`, `valeur` = les
+ *  jetons qui suivent le `=`, ou `null`. */
+export function affectationPowerShell(jetons) {
+  const nom = /^\$(\w+)$/.exec(jetons[0]?.text ?? '')?.[1]
+  return nom && jetonNu(jetons[0]) && jetons[1]?.text === '=' ? { nom, valeur: jetons.slice(2) } : null
+}
+
 /** `true` si la tête du segment CITE ses arguments (`CITEURS`, ou `git` hors
  *  `SOUS_COMMANDES_GIT_EXECUTANTES`). */
 function estCiteur(segment) {
@@ -1071,7 +1510,17 @@ export function commandeDeLecture(command) {
  *  arguments (`collecterCommits`) peut encore lire, au plus `SEGMENTS_MAX` ; `sature` dit qu'une
  *  borne (ces segments, ou la profondeur de `pipelinesDeJetons`) a coupé l'analyse. */
 const SEGMENTS_MAX = 2000
-const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
+export const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
+
+/** Le refus d'une garde de commande dont la lecture a levé `budget.sature` : elle ne voit pas ce qui s'exécute
+ *  au-delà de ses bornes. */
+export const REFUS_SATURE = Object.freeze({
+  decision: 'deny',
+  reason:
+    `⛔ commande trop imbriquée pour être jugée : au-delà de ${PROFONDEUR_MAX_ENROBEURS} niveaux de porteurs, de ` +
+    `scripts npm ou de substitutions, la lecture s'arrête et ne voit pas ce que la commande exécute. Aplatir la ` +
+    `commande (variable intermédiaire, ou script dans un fichier).`,
+})
 
 /** Lecture MÉMOÏSÉE par commande : la garde interroge la même commande pour chaque évaluation. Clé =
  *  racine de résolution npm (`racineNpmCourante`) + chaîne ; chaque lecture garde ses `MEMO_MAX` dernières
@@ -1129,7 +1578,8 @@ function collecterCommits(command, profondeur, origine, budget, commits) {
       const textes = jetons.map((j) => j.text)
       const sub = gitCommitSubcommandIndex(textes)
       if (sub !== -1) { ajouterCommit(commits, { jetons, enrobeurs, sub, embarque: origine !== null, origine }); continue }
-      if (deploye || estCiteur(textes)) continue
+      const affectee = affectationPowerShell(jetons)?.valeur[0]
+      if (deploye || estCiteur(textes) || (affectee && !jetonNu(affectee))) continue
       for (let k = 1; k < textes.length; k++) {
         const t = textes[k]
         const idx = estGit(t) ? gitCommitSubcommandIndex(textes, k) : -1
@@ -1228,15 +1678,31 @@ export function finAvantOperateur(segment, depart = 0) {
   return k === -1 ? segment.length : k
 }
 
+/** Opérateur de redirection en tête d'un jeton (`>`, `>>`, `>|`, `2>`, `&>`, `<`, `2>&1`, `>&-`), hors substitution de
+ *  processus `<(…)`. */
+const REDIRECTION_EN_TETE_RE = /^(?:\d*(?:>[>|]?|<(?!\())|&>>?)(&(?:\d+|-))?/
+
+/** Les jetons d'un segment à partir de `depart`, sans ses redirections : chaque opérateur nu de redirection est retiré
+ *  avec sa cible, collée (`>f`, `<in`, `<<MOT`) ou séparée (`> f`) ; une duplication (`2>&1`) n'en a pas. Les arguments
+ *  qui suivent restent : la commande les reçoit (XCU 2.7). */
+export function sansRedirections(jetons, depart = 1) {
+  const gardes = jetons.slice(0, depart)
+  for (let i = depart; i < jetons.length; i++) {
+    const m = jetonNu(jetons[i]) ? REDIRECTION_EN_TETE_RE.exec(jetons[i].text) : null
+    if (!m) { gardes.push(jetons[i]); continue }
+    if (m[0] === jetons[i].text && !m[1]) i += 1
+  }
+  return gardes
+}
+
 /** Jeton de pathspec NON RÉSOLU, par PROVENANCE quotée (`tokenizeCommand`) : sa valeur n'est connue
  *  qu'après le shell ou git, et la garde ne réimplémente ni l'un ni l'autre.
  *  - GIT, quelle que soit la quote : joker de pathspec (`*`, `?`, `[`) et magie en tête (`:(glob)`,
  *    `:/`, `:!`) — git les reçoit tels quels et les interprète ;
  *  - SHELL, jeton nu : substitution de commande `$(…)`, `` `…` ``, expansion de variable `$NOM`,
  *    `${NOM}`, d'accolades `{a,b}`, tilde en tête `~`, antislash d'échappement (`a\ b.ts`).
- *    `tokenizeCommand` coupe une substitution aux espaces (`$(cat`, `/tmp/liste.txt)`) : le critère
- *    mord sur N'IMPORTE QUEL fragment — `$`, backtick, antislash, parenthèse ou accolade, ouvrante
- *    ou orpheline ;
+ *    le critère mord sur N'IMPORTE QUEL de ces caractères — `$`, backtick, antislash, parenthèse ou
+ *    accolade, ouvrante ou orpheline ;
  *  - SHELL, sous quote double : `$` et le backtick seuls ;
  *  - SHELL, sous quote simple : rien, le jeton est littéral. */
 const JOKER_GIT = String.raw`[*?[]|^:`
@@ -1374,6 +1840,40 @@ export function extractFermeturesNues(command) {
   return numerosNusEnumeres(texteProfond(command)).map(Number).sort((a, b) => a - b)
 }
 
+/** Des numéros canoniques (`fermetures.mjs`) en nombres, dédupliqués et triés. PURE. */
+const enNombres = (numeros) => [...new Set(numeros.map(Number))].sort((a, b) => a - b)
+
+/** Les numéros que les chaînes de rattachement (`motifRattachement`) de `texte` citent. PURE. */
+const numerosRattaches = (texte) => enNombres([...texte.matchAll(motifRattachement())].flatMap((m) => numerosDeLaChaine(m[0])))
+
+/**
+ * Ce que lit une décision de la porte. `message` : le message que git enregistre (`lectureDuMessage`),
+ * ses fermetures lues sur ses `exigences`, ses rattachements et ses trailers sur ses `satisfactions`.
+ * `command` : la commande shell, lue par `isGitCommitCommand` et `texteProfond`.
+ * @param {{ command?: string, message?: string }} entree
+ * @returns {{ commit: boolean, satisfactions: string, fermes: () => number[], nus: () => number[], refs: () => number[] }}
+ */
+function lectureDeLaPorte({ command, message }) {
+  if (typeof message === 'string') {
+    const { exigences, satisfactions } = lectureDuMessage(message)
+    return {
+      commit: true,
+      satisfactions,
+      fermes: () => enNombres(numerosFermes(exigences)),
+      nus: () => enNombres(numerosNusEnumeres(exigences)),
+      refs: () => numerosRattaches(satisfactions),
+    }
+  }
+  // #2071
+  return {
+    commit: isGitCommitCommand(command),
+    satisfactions: command ?? '',
+    fermes: () => extractClosedIssues(command),
+    nus: () => extractFermeturesNues(command),
+    refs: () => extractRefIssues(command),
+  }
+}
+
 const VERIFIE_RE = /VERIFIE\s*:\s*(.+)/i
 const MIN_VERIFIE_LEN = 40
 // Une section d'un solde court de son titre de niveau 2 jusqu'au PROCHAIN titre de niveau 2, ou la
@@ -1383,16 +1883,8 @@ const MIN_VERIFIE_LEN = 40
 // grammaire de tout ce qui suivait le blanc (sonde D1 : 4 dispositions invalides sur 5 acceptées).
 const TITRE_RESTES = 'Restes'
 const TITRE_RECETTE_VISUELLE = 'Recette visuelle'
-const TITRE_REFUTATION = 'R[ée]futation'
+const TITRE_REFUTATION = TRAILERS.REFUTATION.section
 
-/** Corps de la section `## <titre>` d'un solde (`null` si elle est absente). `titre` est un motif
- *  d'expression régulière : le titre s'écrit avec ou sans accents selon la section. */
-export function sectionDe(content, titre) {
-  // Sans le drapeau `m`, `$` est la fin du TEXTE : avec lui, il vaudrait fin de chaque ligne et la
-  // section s'arrêterait à la première. Le titre se reconnaît donc en tête de ligne par `(?:^|\n)`.
-  const m = new RegExp(`(?:^|\\n)##\\s*${titre}\\s*\\n([\\s\\S]*?)(?=\\n##[^#]|$)`, 'i').exec(String(content ?? ''))
-  return m ? m[1] : null
-}
 
 /** Nombre de fois que le titre `## <titre>` apparaît dans le document. Une section DUPLIQUÉE n'est pas
  *  une section plus longue : `sectionDe` rend la PREMIÈRE, et tout ce que porte la seconde échappe au
@@ -1432,8 +1924,6 @@ const TAILLE_MIN_CAPTURE = 1024
 const COTE_MIN_CAPTURE = 200
 const VERDICT_RE = /verdict\s*:\s*([A-Za-zÀ-ÖØ-öø-ÿ]+)/i
 const MIN_REFUTATION_LEN = 40
-const PALIER = 10
-const MIN_REVUE_PALIER_LEN = 80
 
 /** `CONFIRMÉ`/`confirme`/`CONFIRME` → `CONFIRME` (compare sans accent, insensible à la casse). */
 function normalizeVerdict(word) {
@@ -1521,19 +2011,40 @@ export function lignesDeHunks(diffU0) {
  * CE QUE CETTE PORTE PROUVE : qu'une image d'écran plausible existe et vient d'être produite —
  * garde-fou d'ÉTOURDERIE (chemin périmé, fichier vide, capture d'avant le geste), PAS de
  * CONTREFAÇON. Rien ici ne dit que l'image montre l'écran modifié : c'est la recette qui le juge.
+ * `verifierCaptures` d'une seule capture.
  */
-export function verifierCapture(chemin, { racine = process.cwd(), mtimeMin = 0, pannes = [] } = {}) {
+export const verifierCapture = (chemin, options) => verifierCaptures([chemin], options).get(chemin)
+
+/** Le chemin d'une capture tel que la porte le lit : séparateurs POSIX, sans `./` de tête. PUR. */
+const cheminDeCapture = (chemin) => String(chemin ?? '').replace(/\\/g, '/').replace(/^\.\//, '')
+
+/**
+ * Le contrôle de chacune des `chemins` (`verifierCapture`) : chemin ↦ `{ ok, problemes }`. Le sort
+ * de TOUTES au commit se lit en UN lot (`cheminsIgnores`) dans `depot` (celui de `racine` par
+ * défaut, ses pannes dans `pannes`), quel que soit leur nombre.
+ * @param {readonly string[]} chemins
+ * @param {{ racine?: string, mtimeMin?: number, pannes?: string[], depot?: import('../guards/lib/gitPorte.mjs').Depot }} [options]
+ * @returns {Map<string, { ok: boolean, problemes: string[] }>}
+ */
+export function verifierCaptures(chemins, { racine = process.cwd(), mtimeMin = 0, pannes = [], depot = depotDuHook(racine, pannes) } = {}) {
+  const sousLeDossier = chemins.map(cheminDeCapture).filter((norm) => norm.startsWith(DOSSIER_CAPTURES))
+  const ignorees = cheminsIgnores(depot, [...new Set(sousLeDossier)], { suivisCompris: true })
+  return new Map(chemins.map((chemin) => [chemin, jugerCapture(chemin, { racine, mtimeMin, ignorees })]))
+}
+
+/** Le contrôle d'UNE capture (`verifierCapture`), son sort au commit lu dans `ignorees`. */
+function jugerCapture(chemin, { racine, mtimeMin, ignorees }) {
   const problemes = []
-  const norm = String(chemin ?? '').replace(/\\/g, '/').replace(/^\.\//, '')
+  const norm = cheminDeCapture(chemin)
   if (!norm.startsWith(DOSSIER_CAPTURES)) {
     problemes.push(`capture "${chemin}" hors de ${DOSSIER_CAPTURES} (les captures de recette y vivent, cf. scripts/qc/capture-jeu.mjs)`)
     return { ok: false, problemes }
   }
-  // Une capture qu'un `.gitignore` retient ne part PAS avec le commit : le palier suivant lit un
-  // solde qui cite une preuve inouvrable. Le refus vient AVANT la lecture du disque — exister sur la
+  // Une capture qu'un `.gitignore` retient ne part PAS avec le commit : quiconque relit le solde
+  // y trouve une preuve inouvrable. Le refus vient AVANT la lecture du disque — exister sur la
   // machine du geste ne la rend pas opposable. Hors dépôt, la porte ne juge que le disque : le banc
   // de `verifierCapture` travaille hors git.
-  if (estIgnore(depotDuHook(racine, pannes), norm, { suivisCompris: true })) {
+  if (ignorees.has(norm)) {
     problemes.push(`capture "${norm}" IGNORÉE par git (.gitignore) — un solde ne cite qu'une preuve versionnée : la poser sous public/qc/soldes/`)
     return { ok: false, problemes }
   }
@@ -1697,11 +2208,18 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
   if (section === null) {
     return ['section "## Recette visuelle" absente alors que le commit touche un écran (src/ui/** ou src/gameIso/**) — y porter "capture: public/qc/<fichier>.png"']
   }
-  const capture = CAPTURE_RE.exec(section)
+  const capture = captureDuSolde(content)
   if (!capture) {
     return ['"## Recette visuelle" sans ligne "capture: <chemin sous public/qc/>"']
   }
-  return verifierCaptureDe(capture[1]).problemes
+  return verifierCaptureDe(capture).problemes
+}
+
+/** La capture que cite la section « ## Recette visuelle » d'un solde, `null` sans section ni ligne
+ *  `capture:`. PUR. @param {string | null} content @returns {string | null} */
+function captureDuSolde(content) {
+  const section = content ? sectionDe(content, TITRE_RECETTE_VISUELLE) : null
+  return section === null ? null : CAPTURE_RE.exec(section)?.[1] ?? null
 }
 
 /**
@@ -1748,111 +2266,20 @@ export function validateSolde(content, today, {
 }
 
 /**
- * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures) : nommable
- * (`problemesDeRevue`, scripts/guards/lib/revuePalier.mjs), ligne `verdict:`, synthèse
- * ≥ `MIN_REVUE_PALIER_LEN`, date du jour. Le NOM du fichier se juge dans `problemesDeRevueNeuve`.
- */
-export function validateRevuePalier(content, today) {
-  if (!content) return { ok: false, problems: ['fichier absent'] }
-  const problems = [...problemesDeRevue(content)]
-  if (!VERDICT_RE.test(content)) {
-    problems.push('ligne "verdict: …" absente')
-  }
-  const descLen = lenWithoutVerdictLine(content)
-  if (descLen < MIN_REVUE_PALIER_LEN) {
-    problems.push(`synthèse trop maigre (${descLen} car. hors verdict, ${MIN_REVUE_PALIER_LEN} requis — revue du CUMUL des fermetures)`)
-  }
-  if (!content.includes(today)) {
-    problems.push(`date du jour (${today}) absente du fichier`)
-  }
-  return { ok: problems.length === 0, problems }
-}
-
-/**
- * Revues neuves STAGÉES croisées avec ce que le commit EMPORTE. PUR.
- * Une revue peut être dans l'index sans partir avec le commit : `git commit -- <chemins>` n'emporte
- * QUE ces chemins-là (forme recommandée en arbre PARTAGÉ : le WIP d'une session voisine ne part pas),
- * et `--amend` a le même angle mort. C'est exactement la règle du solde, qui se lit déjà par
- * `commit.contenu` : la preuve doit PARTIR avec le commit, pas rester dans l'index.
- * @returns {{ emportees: object[], omises: string[] }}
- */
-export function revuesDuCommit(stagees, fichiersEmportes) {
-  const emportes = new Set((fichiersEmportes ?? []).map((f) => String(f).replace(/\\/g, '/')))
-  return {
-    emportees: (stagees ?? []).filter((r) => emportes.has(r.chemin)),
-    omises: (stagees ?? []).filter((r) => !emportes.has(r.chemin)).map((r) => r.chemin),
-  }
-}
-
-/**
- * Verdict sur UNE revue neuve stagée : contenu, NOM, continuité de fenêtre, et tête dans l'histoire.
- * PUR — `dansHead(sha)` est injecté (c'est la seule lecture git de ce contrôle).
- * @returns {string[]} problèmes, vide = conforme
- */
-export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHead }) {
-  const problemes = [...validateRevuePalier(contenu, today).problems]
-  const attendu = nomDArchiveDeRevue(contenu)
-  if (attendu && nom !== attendu) {
-    problemes.push(`la revue s'appelle ${nom}, son contenu la nomme ${attendu} — le nom PORTE la fenêtre jugée`)
-  }
-  const { base, tete } = fenetreDeRevue(contenu)
-  // Les fenêtres s'ENCHAÎNENT : une revue part où la précédente s'est arrêtée. C'est cet invariant
-  // qui rend la suite des revues continue et vérifiable, quel que soit le nom d'un fichier.
-  if (base && palier.tete && !memeSha(base, palier.tete)) {
-    problemes.push(
-      `sa fenêtre part de ${base}, or la dernière revue de HEAD (${palier.chemin}) s'arrête à `
-      + `${palier.tete} — les fenêtres s'ENCHAÎNENT, base attendue : ${palier.tete}`,
-    )
-  }
-  // Aucun lecteur d'ascendance = le contrôle ne se JOUE PAS, et il le DIT. Un défaut `() => true`
-  // rendait « oui » sans avoir rien lu, ce qui est le contraire d'une porte.
-  if (tete && typeof dansHead !== 'function') {
-    problemes.push(`sa tête de fenêtre ${tete} n'a pas pu être vérifiée : aucun lecteur d'ascendance n'a été fourni`)
-  } else if (tete && !dansHead(tete)) {
-    problemes.push(`sa tête de fenêtre ${tete} n'est pas dans l'histoire de HEAD — elle juge une histoire absente d'ici`)
-  }
-  return problemes
-}
-
-/**
- * Décision du hook (PURE, testable). `readSolde(n)` renvoie le contenu STAGÉ (index git du commit
- * en cours) de `.claude/soldes/<n>.md`, ou `null`/`''` s'il n'y est pas. `soldeOnDisk(n)` renvoie le
+ * Décision du hook (PURE, testable). `readSoldes(ns)` rend, dans l'ordre de `ns` et en UNE lecture
+ * pour tous les tickets fermés, le contenu que le commit EMPORTE de chaque `.claude/soldes/<n>.md`, ou
+ * `null`/`''` s'il n'y est pas. `soldeOnDisk(n)` renvoie le
  * contenu du même fichier sur le DISQUE : il ne sert qu'à distinguer « jamais écrit » de « écrit mais
- * non stagé » dans le message. `palier()` rend la MESURE de `mesureDuPalier` (scripts/guards/lib/revuePalier.mjs),
- * lue une fois et seulement par une revue neuve ou une fermeture : `compte` de commits de substance
- * depuis `tete` (la tête de fenêtre de la dernière revue archivée dans HEAD, lue dans `chemin`), arrêté
- * à `PALIER`, ou `erreur` quand le palier est INMESURABLE. `neuves()` rend les
- * revues de palier AJOUTÉES par ce commit et EMPORTÉES par sa forme (`revuesDuCommit`) : ce sont
- * elles qui franchissent le palier, et une revue neuve non conforme refuse le commit même hors palier
- * — une revue fausse dans l'histoire fausse toutes les mesures suivantes. `omises()` rend les revues
- * stagées que la forme du commit laisse en rade : le refus les NOMME. `contexteSolde` = le contexte injecté de
- * `validateSolde` (diff stagé, hunks, écran touché, contrôle de capture) — `issuesFermees` y est posé
- * ICI, c'est cette décision qui connaît les tickets fermés.
+ * non stagé » dans le message. `contexteSolde` = le contexte injecté de
+ * `validateSolde` (diff stagé, hunks, écran touché), où `verifierCapturesDe(chemins)` contrôle d'un
+ * coup les captures de TOUS les soldes (`verifierCaptures`) et `histoireDe(shas)` lit d'un coup les
+ * shas que TOUS les soldes citent par « corrigé par » (`histoireDesCitations`) — `issuesFermees` y est
+ * posé ICI, c'est cette décision qui connaît les tickets fermés.
  * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
-export function evaluate({
-  command, today, readSolde, soldeOnDisk = () => null,
-  palier: mesurer = () => ({ compte: 0, tete: null, chemin: null }), neuves = () => [], omises = () => [],
-  dansHead,
-  contexteSolde = {},
-}) {
-  let mesure = null
-  const palier = () => (mesure ??= mesurer())
-  const revues = neuves()
-  for (const revue of revues) {
-    const problemes = problemesDeRevueNeuve(revue, { today, palier: palier(), dansHead })
-    if (problemes.length) {
-      return {
-        reason:
-          `⚠ Revue de palier NON CONFORME : ${revue.chemin} — ${problemes.join(' ; ')}. Une revue entre `
-          + `dans l'histoire sous le nom de ce qu'elle juge (\`${nomDeRevue('<date>', '<base>', '<tête>')}\`), avec sa `
-          + `ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-          + 'le CUMUL, sa date du jour en 1re ligne et sa fenêtre `<base>..<tête>`.',
-      }
-    }
-  }
-
-  const nus = extractFermeturesNues(command)
+export function evaluate({ command, message, today, readSoldes, soldeOnDisk = () => null, contexteSolde = {} }) {
+  const lu = lectureDeLaPorte({ command, message })
+  const nus = lu.nus()
   if (nus.length > 0) {
     const cites = nus.map((n) => `#${n}`).join(', ')
     return {
@@ -1864,39 +2291,27 @@ export function evaluate({
     }
   }
 
-  const issues = extractClosedIssues(command)
+  const issues = lu.fermes()
   if (issues.length === 0) return null
 
-  const { compte, tete, chemin, erreur } = palier()
-  if (erreur) {
-    return {
-      reason:
-        `⚠ Palier INMESURABLE, donc aucune fermeture : ${erreur}. Le palier se mesure sur `
-        + "l'HISTOIRE : les commits de `<tête de la dernière revue de HEAD>..HEAD` dont ce qu'ils font touche "
-        + '`src` ou `scripts` (`shasDeSubstance`, scripts/guards/lib/revuePalier.mjs).',
-    }
-  }
-
-  if (compte >= PALIER && revues.length === 0) {
-    const enRade = omises()
-    return {
-      reason:
-        `⚠ Palier atteint : au moins ${compte} commits de substance depuis ${tete} `
-        + `(${chemin}) — revue adversariale de PALIER exigée avant toute nouvelle fermeture. `
-        + (enRade.length
-          ? `${enRade.join(', ')} est écrite et stagée mais NON EMPORTÉE par ce commit : une commande `
-            + `par pathspec n'emporte QUE les chemins nommés — y AJOUTER ${enRade.join(', ')}. `
-          : '')
-        + `Sinon, l'écrire et la STAGER sous .claude/soldes/${nomDeRevue(today, tete, '<tête>')} `
-        + `(ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et les DEUX bornes `
-        + 'NOMMENT le fichier).',
-    }
-  }
-
+  const lus = readSoldes(issues)
+  const emportes = new Map(issues.map((n, i) => [n, lus[i]]))
+  const { verifierCapturesDe, histoireDe, ...contexte } = contexteSolde
+  let captures = null
+  const verifierCaptureDe = verifierCapturesDe && ((chemin) => {
+    captures ??= verifierCapturesDe([...new Set([...emportes.values()].map(captureDuSolde).filter(Boolean))])
+    return captures.get(chemin)
+  })
+  let histoire = null
+  const lue = () => (histoire ??= histoireDe([...new Set([...emportes.values()].flatMap(shasCitesDuSolde))]))
+  const citations = histoireDe ? {
+    commitEstAncetre: (sha) => lue().commitEstAncetre(sha),
+    fichiersDuCommit: (sha) => lue().fichiersDuCommit(sha),
+    lignesDuCommit: (sha, fichier) => lue().lignesDuCommit(sha, fichier),
+  } : {}
   const failures = []
   for (const n of issues) {
-    const emporte = readSolde(n)
+    const emporte = emportes.get(n)
     if (!emporte && soldeOnDisk(n)) {
       failures.push({
         n,
@@ -1909,7 +2324,7 @@ export function evaluate({
       })
       continue
     }
-    const { ok, problems } = validateSolde(emporte, today, { ...contexteSolde, issuesFermees: issues })
+    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...citations, verifierCaptureDe, issuesFermees: issues })
     if (!ok) failures.push({ n, problems })
   }
   if (failures.length === 0) return null
@@ -1939,18 +2354,37 @@ export function repoRoot(scriptUrl = import.meta.url) {
 /** Lecture du solde d'un ticket sur le DISQUE de `dir` — le répertoire où le commit s'exécute, comme
  *  tout ce que ce garde lit. `null` si absent/illisible. */
 export function readSoldeFile(n, dir = process.cwd()) {
-  try { return readFileSync(join(dir, '.claude/soldes', `${n}.md`), 'utf8') } catch { return null }
+  try { return readFileSync(join(dir, cheminDuSolde(n)), 'utf8') } catch { return null }
+}
+
+/** Le chemin du solde du ticket `n`, relatif à la racine du dépôt. */
+const cheminDuSolde = (n) => `.claude/soldes/${n}.md`
+
+/** Le solde de chacun des tickets `ns` que `commit` (`diffDuCommit`) EMPORTE, dans leur ordre, `null`
+ *  s'il n'y est pas : UNE lecture pour tous (`contenus`). @param {number[]} ns @returns {(string | null)[]} */
+export function soldesEmportes(commit, ns) {
+  const lus = commit.contenus(ns.map(cheminDuSolde))
+  return ns.map((n) => lus.get(cheminDuSolde(n)) ?? null)
 }
 
 // ── Porte du TICKET (option retenue par l'utilisateur le 2026-09-11) ──────────────────────────────
 // Le ticket est l'unité de travail : un commit qui touche `src` ou `scripts` cite au moins un ticket.
-// Le critère de SUBSTANCE est celui du palier (`estCheminDeSubstance`, scripts/guards/lib/revuePalier.mjs) —
-// une seule définition, sinon un commit franchit l'une des deux portes sans franchir l'autre. La
-// grammaire des références est celle des deux extracteurs déjà en place (`extractClosedIssues` pour
+// Le critère de SUBSTANCE (`estCheminDeSubstance`) est le même pour la porte et pour le pré-filtre des
+// commentaires de dette (`fichiersCitantTickets`) : une seule définition. La grammaire des références est celle des deux extracteurs déjà en place (`extractClosedIssues` pour
 // `corrige`/`fixes`/`closes`/`ferme`, `extractRefIssues` pour `ref`/`refs`), jamais une regex de plus.
 // Ce que le commit EMPORTE décide (`diffDuCommit`), pas l'index : un `git commit -- <chemins>` ou un
 // `-a` sans `git add` emporte l'arbre de travail, et c'est ce lot-là que la porte doit voir.
 const MAX_FICHIERS_NOMMES = 3
+
+/** Les dossiers qui font la SUBSTANCE d'un commit : le moteur et l'outillage. */
+const DOSSIERS_DE_SUBSTANCE = ['src', 'scripts']
+
+/** Ce chemin est-il de SUBSTANCE ? PUR — le pendant par-chemin de `DOSSIERS_DE_SUBSTANCE`, pour qui
+ *  tient déjà la liste des fichiers (le contenu qu'un commit EMPORTE) plutôt qu'un pathspec git. */
+function estCheminDeSubstance(chemin) {
+  const p = String(chemin ?? '').replace(/\\/g, '/')
+  return DOSSIERS_DE_SUBSTANCE.some((d) => p === d || p.startsWith(`${d}/`))
+}
 
 /**
  * Décision de la porte du ticket (PURE, testable). `fichiersEmportes` = les chemins que le commit
@@ -1965,14 +2399,15 @@ const MAX_FICHIERS_NOMMES = 3
  * tête du premier commit sans ticket quand la commande en porte plusieurs.
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluatePorteDuTicket({
-  command,
-  fichiersEmportes = [],
-  messages = messagesDesCommits(command, { readFile: () => null }).messages,
-}) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluatePorteDuTicket({ command, message, fichiersEmportes = [], messages }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit) return null
   const substance = fichiersEmportes.filter(estCheminDeSubstance)
   if (substance.length === 0) return null
+  // #2071
+  messages ??= typeof message === 'string'
+    ? [{ texte: lu.satisfactions, direct: true }]
+    : messagesDesCommits(command, { readFile: () => null }).messages
   let horsMessages = null
   const sansTicket = (m) => {
     if (m.texte !== null) return numerosCites(m.texte).length === 0
@@ -2014,18 +2449,13 @@ export function evaluatePorteDuTicket({
 // et « ref #N » devient l'esquive mécanique. Le mécanisme REFUTATION porte sur le ticket
 // EXPLICITEMENT rattaché ; le commit de substance qui n'en cite AUCUN est refusé en amont par
 // `evaluatePorteDuTicket`.
-const REFUTATION_LINE_RE = /REFUTATION\s*:\s*(.+)/i
-const MIN_REFUTATION_LINE_LEN = 40
-const SUBSTANTIVE_MIN_LINES = 10
+const REFUTATION_LINE_RE = TRAILERS.REFUTATION.ligne
+const MIN_REFUTATION_LINE_LEN = TRAILERS.REFUTATION.min
 
 /** Numéros de ticket que la commande RATTACHE sans fermer (`ref #N`/`refs #N`), dédupliqués/triés. */
 export function extractRefIssues(command) {
   if (!command || !isGitCommitCommand(command)) return []
-  const nums = new Set()
-  // Une correspondance porte la CHAÎNE ENTIÈRE (`refs #A #B #C`) : on en extrait TOUS les numéros.
-  for (const m of texteProfond(command).matchAll(motifRattachement()))
-    for (const n of numerosDeLaChaine(m[0])) nums.add(Number(n))
-  return [...nums].sort((a, b) => a - b)
+  return numerosRattaches(texteProfond(command))
 }
 
 /** `true` si le message porte une ligne "REFUTATION: <...>" d'au moins `MIN_REFUTATION_LINE_LEN`
@@ -2046,21 +2476,23 @@ export function validateRefFile(content) {
 /**
  * Décision anti-esquive (PURE, testable). `stagedTouchesSrc`/`stagedTotalLines` = état du diff
  * STAGED (`git diff --cached`), injectés par `evaluerSolde`. `readRefFile(n)` lit
- * `.claude/soldes/ref-<n>.md` (ou `null`).
+ * `.claude/soldes/ref-<n>.md` (ou `null`). `fusionEnCours` (`MERGE_HEAD`, `diffDuCommit(…).enFusion()`) :
+ * silence — sauver une fusion n'est pas une livraison (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateAntiEsquive({ command, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluateAntiEsquive({ command, message, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit || fusionEnCours) return null
   if (!stagedTouchesSrc) return null
   if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
 
   // Une fermeture est déjà couverte par `evaluate()` (solde complet, réfutation comprise) — pas de
   // double exigence ici.
-  if (extractClosedIssues(command).length > 0) return null
+  if (lu.fermes().length > 0) return null
 
-  if (hasInlineRefutation(command)) return null
+  if (hasInlineRefutation(lu.satisfactions)) return null
 
-  const refIssues = extractRefIssues(command)
+  const refIssues = lu.refs()
   // Aucun ticket rattaché (ni fermeture, ni `ref #N`) : hors du déclencheur — l'absence de ticket se
   // juge sur la SUBSTANCE, et c'est `evaluatePorteDuTicket` qui la juge.
   if (refIssues.length === 0) return null
@@ -2087,12 +2519,10 @@ export function evaluateAntiEsquive({ command, stagedTouchesSrc, stagedTotalLine
 // "## Réfutation" à verdict) : un `ref #N` qui touche `src/**` en substance doit en plus porter la
 // preuve qu'un agent juge adversarial est passé sur le diff. Si le diff touche `src/ui/**`, une
 // preuve DISTINCTE de jugement sur captures (JUGE-VISION) est exigée en plus.
-const JUGE_LINE_RE = /\bJUGE\s*:\s*(.+)/i
-const MIN_JUGE_LINE_LEN = 40
-const JUGE_VISION_LINE_RE = /\bJUGE-VISION\s*:\s*(.+)/i
-const MIN_JUGE_VISION_LINE_LEN = 40
-const JUGE_SECTION_RE = /##\s*Juge\s*\n([\s\S]*?)(?:\n\s*\n|\n##|$)/i
-const JUGE_VISION_SECTION_RE = /##\s*Juge-Vision\s*\n([\s\S]*?)(?:\n\s*\n|\n##|$)/i
+const JUGE_LINE_RE = TRAILERS.JUGE.ligne
+const MIN_JUGE_LINE_LEN = TRAILERS.JUGE.min
+const JUGE_VISION_LINE_RE = TRAILERS['JUGE-VISION'].ligne
+const MIN_JUGE_VISION_LINE_LEN = TRAILERS['JUGE-VISION'].min
 
 /** `true` si le message porte une ligne "JUGE: <...>" d'au moins `MIN_JUGE_LINE_LEN` caractères
  *  après le mot-clef (n'accroche jamais "JUGE-VISION:", le tiret casse le motif `JUGE\s*:`). */
@@ -2108,33 +2538,27 @@ function hasInlineJugeVision(command) {
   return !!m && m[1].trim().length >= MIN_JUGE_VISION_LINE_LEN
 }
 
-/** Section nommée générique (`## <label>`) : présence + longueur minimale du corps. */
-function checkNamedSection(content, sectionRe, minLen, label) {
-  const problems = []
-  const m = sectionRe.exec(content ?? '')
-  if (!m) {
-    problems.push(`section "## ${label}" absente`)
-    return { problems }
-  }
-  const body = m[1].trim()
-  if (body.length < minLen) {
-    problems.push(`"## ${label}" trop maigre (${body.length} car., ${minLen} requis)`)
-  }
-  return { problems }
+/** La section du trailer `nom` d'un solde (`corpsDuTrailer`, la grammaire de la publication) : présence
+ *  + longueur minimale du corps. */
+function checkNamedSection(content, nom) {
+  const { section: label, min } = TRAILERS[nom]
+  const body = corpsDuTrailer(content, nom)
+  if (body === null) return { problems: [`section "## ${label}" absente`] }
+  return { problems: body.length < min ? [`"## ${label}" trop maigre (${body.length} car., ${min} requis)`] : [] }
 }
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` pour sa section "## Juge" (symétrie exacte de
  *  `validateRefFile`, mécanisme distinct — n'exige pas de "## Réfutation"). */
 export function validateJugeFile(content) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
-  const { problems } = checkNamedSection(content, JUGE_SECTION_RE, MIN_JUGE_LINE_LEN, 'Juge')
+  const { problems } = checkNamedSection(content, 'JUGE')
   return { ok: problems.length === 0, problems }
 }
 
 /** Valide un fichier `.claude/soldes/ref-<N>.md` pour sa section "## Juge-Vision". */
 export function validateJugeVisionFile(content) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
-  const { problems } = checkNamedSection(content, JUGE_VISION_SECTION_RE, MIN_JUGE_VISION_LINE_LEN, 'Juge-Vision')
+  const { problems } = checkNamedSection(content, 'JUGE-VISION')
   return { ok: problems.length === 0, problems }
 }
 
@@ -2142,15 +2566,17 @@ export function validateJugeVisionFile(content) {
  * Décision JUGE (PURE, testable). Même périmètre de déclenchement qu'`evaluateAntiEsquive` (silence
  * sur les fermetures, déjà couvertes par leur propre solde ; silence aussi sur un commit sans AUCUN
  * ticket rattaché — #591). `stagedTouchesUi` = le diff staged touche `src/ui/**` (tests compris).
+ * `fusionEnCours` : silence, comme `evaluateAntiEsquive` (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateJuge({ command, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluateJuge({ command, message, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit || fusionEnCours) return null
   if (!stagedTouchesSrc) return null
   if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
-  if (extractClosedIssues(command).length > 0) return null
+  if (lu.fermes().length > 0) return null
 
-  const refIssues = extractRefIssues(command)
+  const refIssues = lu.refs()
   // Aucun ticket rattaché (ni fermeture, ni `ref #N`) : hors du déclencheur — l'absence de ticket se
   // juge sur la SUBSTANCE, et c'est `evaluatePorteDuTicket` qui la juge.
   if (refIssues.length === 0) return null
@@ -2158,11 +2584,11 @@ export function evaluateJuge({ command, stagedTouchesSrc, stagedTotalLines, stag
   const needsVision = !!stagedTouchesUi
 
   const jugeSatisfied =
-    hasInlineJuge(command) ||
+    hasInlineJuge(lu.satisfactions) ||
     (refIssues.length > 0 && refIssues.every((n) => validateJugeFile(readRefFile(n)).ok))
   const visionSatisfied =
     !needsVision ||
-    hasInlineJugeVision(command) ||
+    hasInlineJugeVision(lu.satisfactions) ||
     (refIssues.length > 0 && refIssues.every((n) => validateJugeVisionFile(readRefFile(n)).ok))
 
   if (jugeSatisfied && visionSatisfied) return null
@@ -2270,11 +2696,13 @@ function valeursGitDashC(segment) {
   return valeurs
 }
 
-/** Commandes qui CHANGENT le répertoire courant, dans les deux shells où ce hook est câblé : POSIX
- *  (`cd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `pushd`). Ne lire que `cd` faisait
- *  juger un commit de worktree contre l'ARBRE PRINCIPAL dès que la session parlait PowerShell
- *  (#1729 sonde 5). `popd` n'est pas lu : il dépend d'une pile que la commande ne dit pas. */
-const CHANGEMENTS_DE_REPERTOIRE = new Set(['cd', 'chdir', 'pushd', 'set-location', 'sl'])
+/** Commandes qui NOMMENT le répertoire où elles mènent, dans les deux shells où ce hook est câblé : POSIX (`cd`,
+ *  `pushd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `Push-Location`). Ne lire que `cd` faisait juger un
+ *  commit de worktree contre l'ARBRE PRINCIPAL dès que la session parlait PowerShell (#1729 sonde 5). */
+const VERS_UN_CHEMIN = ['cd', 'chdir', 'pushd', 'set-location', 'sl', 'push-location']
+/** Commandes qui CHANGENT le répertoire courant : celles de `VERS_UN_CHEMIN`, et `popd`/`Pop-Location`, qui dépilent
+ *  un lieu que la commande ne dit pas. */
+export const CHANGEMENTS_DE_REPERTOIRE = new Set([...VERS_UN_CHEMIN, 'popd', 'pop-location'])
 
 /** Chemin de commande NON EXPANSÉ (`$M`, `${M}`, `%M%`) : la variable vit dans le shell, pas dans le
  *  hook — le texte ne désigne aucun répertoire. */
@@ -2294,7 +2722,7 @@ function cheminNommeParLaCommande(command, cwd, platform) {
   for (const segment of segmentsLus(command)) {
     const dashC = valeursGitDashC(segment)
     if (dashC.length) return dashC.reduce(pas, lieu)
-    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
+    if (VERS_UN_CHEMIN.includes(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
   }
   return lieu
 }
@@ -2303,8 +2731,8 @@ function cheminNommeParLaCommande(command, cwd, platform) {
  * Répertoire CIBLE prouvé par la commande, et ce qu'elle nomme sans qu'il puisse servir de cwd.
  * `dir` n'est retenu que s'il désigne un répertoire RÉEL : un chemin porteur d'une variable non
  * expansée (`git -C "$M"`) et un chemin ABSENT du disque donnent au spawn de git un ENOENT
- * impossible à distinguer d'un git absent — la porte refusait alors « ascendance indisponible » un
- * geste que git exécutait très bien (#1729 sondes 1-2). La cible d'un `git worktree add <cible>`
+ * impossible à distinguer d'un git absent : la porte refuserait pour une lecture git indisponible un
+ * geste que git exécute très bien (#1729 sondes 1-2). La cible d'un `git worktree add <cible>`
  * n'est JAMAIS un cwd : ce n'est pas un `-C`, et c'est git qui la crée.
  * `ignore` (`null` ou `{ chemin, raison }`) est DIT dans le message quand la porte refuse : sinon le
  * refus juge un autre répertoire que celui que l'utilisateur lit.
@@ -2393,11 +2821,11 @@ export function ticketsDuRegistre(contenu) {
  * `lireRegistreEmporte(chemin)` renvoie la version que le commit EMPORTE (ou `null`) — la LISTE des
  * registres porteurs se lit par cette même couture, ici, jamais à l'import.
  * Le refus NOMME le fichier qui porte encore `#N` — sans quoi il faudrait deviner lequel.
- * @param {{ command: string, lireRegistreEmporte?: (chemin: string) => string|null }} entree
+ * @param {{ command?: string, message?: string, lireRegistreEmporte?: (chemin: string) => string|null }} entree
  * @returns {{ reason: string } | null}
  */
-export function evaluateRegistresPorteurs({ command, lireRegistreEmporte = () => null }) {
-  const issues = extractClosedIssues(command)
+export function evaluateRegistresPorteurs({ command, message, lireRegistreEmporte = () => null }) {
+  const issues = lectureDeLaPorte({ command, message }).fermes()
   if (issues.length === 0) return null
   let registres
   try {
@@ -2444,19 +2872,6 @@ function pathMatchesPathspec(path, ps) {
   return np === nps || np.startsWith(`${nps}/`)
 }
 
-/** Fichier d'ÉCRAN : ce que l'utilisateur VOIT — un composant `.tsx` de `src/ui/**`/`src/gameIso/**`
- *  ou une feuille de `src/ui/styles/**`, hors tests. Concept unique, partagé par la preuve
- *  JUGE-VISION (`evaluateJuge`) et la section « ## Recette visuelle » du solde.
- *  BORNÉ au rendu, à dessein : `src/ui/breakdown.ts` (calcul pur) et `src/gameIso/builders/**.ts`
- *  (géométrie pure) vivent sous ces racines sans rien AFFICHER — exiger d'eux une capture ferait de
- *  la recette visuelle une formalité qu'on remplit sans regarder. Un diff qui ne touche que des
- *  tests d'écran n'a pas davantage de capture à montrer. */
-export function estFichierEcran(path) {
-  const p = String(path ?? '').replace(/\\/g, '/')
-  if (estFichierVitest(p)) return false
-  if (/^src\/ui\/styles\/.+\.css$/.test(p)) return true
-  return /^src\/(ui|gameIso)\/.+\.tsx$/.test(p)
-}
 
 /** Analyse du `--numstat` du diff que le commit va produire (`diffDuCommit(...).numstat()`, entrées de
  *  `ceQuiChange`) : touche-t-il `src/**` ? un ÉCRAN (`estFichierEcran`, rendu par `touchesUi`) ?
@@ -2474,13 +2889,16 @@ export function estFichierEcran(path) {
  * `fichiers` porte les DEUX bouts d'un renommage (`chemins` de l'entrée) : c'est par eux que la porte
  * des stocks voit le porteur source ET le porteur cible, qu'un solde prouve sa correction au NOUVEAU chemin, et qu'un `.tsx` renommé reste un ÉCRAN (#1720).
  * `totalLines` compte le renommage replié : c'est le VOLUME écrit, et un renommage n'écrit rien.
- * @param {readonly { plus: number | null, moins: number | null, chemins: string[] }[]} [entrees] */
-export function analyzeDiffDuCommit(entrees = []) {
+ * `ecranParInsertion` (l'apport d'une fusion en cours, #2328 A5) : un écran ne compte que s'il y gagne
+ * des lignes (`plus > 0`).
+ * @param {readonly { plus: number | null, moins: number | null, chemins: string[] }[]} [entrees]
+ * @param {{ ecranParInsertion?: boolean }} [options] */
+export function analyzeDiffDuCommit(entrees = [], { ecranParInsertion = false } = {}) {
   const totalLines = entrees.reduce((n, e) => n + (e.plus ?? 0) + (e.moins ?? 0), 0)
   const fichiers = entrees.flatMap((e) => e.chemins)
   return {
     touchesSrc: fichiers.some((f) => /^src\//.test(f)),
-    touchesUi: fichiers.some(estFichierEcran),
+    touchesUi: entrees.some((e) => (!ecranParInsertion || e.plus > 0) && e.chemins.some(estFichierEcran)),
     totalLines,
     fichiers,
   }
@@ -2492,8 +2910,8 @@ export function analyzeDiffDuCommit(entrees = []) {
 // les autres ; sous `-i`/`--include` (`git commit -h`), l'arbre de ces chemins et l'INDEX pour les
 // autres ; avec `-a` c'est tout le modifié SUIVI, sinon c'est l'INDEX. Lire l'index dans les deux premiers cas
 // rendait un diff VIDE quand rien n'était stagé, et toute évaluation qui en dépend se taisait —
-// c'est par là que la croissance de stock de `429b9a1a2` est passée (revue de palier n°2, cause
-// prouvée par sonde le 2026-09-03). La forme se décide ICI, une fois, pour toutes les évaluations.
+// c'est par là que la croissance de stock de `429b9a1a2` est passée (cause prouvée par sonde le
+// 2026-09-03). La forme se décide ICI, une fois, pour toutes les évaluations.
 //
 // `--amend` ne change pas la règle et n'ajoute PAS le diff de HEAD : un amend n'introduit aucun
 // contenu que HEAD ne portait déjà (donc rien de neuf à juger), et le contenu final est de toute
@@ -2506,6 +2924,7 @@ export function analyzeDiffDuCommit(entrees = []) {
  *  des fragments le rend vide — dont un commit EMBARQUÉ, ou plusieurs commits, dont un seul ne borne
  *  pas ce que les autres emportent. */
 export function formeDuCommit(command) {
+  // #2071
   const jetons = command ? jetonsDuCommit(command) : null
   if (!jetons) return { forme: 'index', pathspecs: [] }
   if (jetons.nonResolus) return { forme: 'tout', pathspecs: [] }
@@ -2518,19 +2937,34 @@ export function formeDuCommit(command) {
  *  ou un code de sortie non nul ; une PANNE de git rend `null` elle aussi, et `pannes` (celles du
  *  contexte de l'appel, `contexte.pannes`) la garde : un refus NOMMÉ au rendu (`refusDesPannes`),
  *  jamais « rien n'est emporté ». */
-const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.push(raison) })
+const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
 
-/** Le refus des `pannes` de lecture vues depuis le début de l'appel, `null` s'il n'y en a aucune. */
-const refusDesPannes = (pannes) => (pannes.length
-  ? { reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
-  : null)
+/**
+ * Le refus UNIQUE de ce que git n'a pas lu : les `pannes` de lecture de l'appel, chacune nommée une
+ * fois, en UN refus — `null` s'il n'y en a aucune. La CAUSE se nomme telle qu'elle est : un répertoire
+ * qui existe mais n'est gouverné par aucun dépôt (`horsDepot`) n'est ni un git absent ni un cwd
+ * manquant, et le renvoyer vers « un arbre où git répond » désignait la mauvaise correction (#1729).
+ * @param {readonly string[]} pannes @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
+ * @returns {{ reason: string } | null}
+ */
+export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
+  if (!pannes.length) return null
+  const cause = [horsDepot ? `hors dépôt : ${cwd}` : null, ...new Set(pannes)].filter(Boolean).join(' ; ')
+  const geste = horsDepot
+    ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
+    : 'Geste : rejouer le commit depuis un arbre où git répond.'
+  return { reason: `⛔ lecture git indisponible : ${cause} — la porte ne juge pas ce que git n'a pas lu. ${geste}` }
+}
 
 /**
  * Lectures du contenu que `command` va committer dans `dir` : `numstat()` (les champs du `--numstat`,
  * `analyzeDiffDuCommit`), `diff(chemins)` (le `-U0` de ces chemins, de tout le commit sans argument,
  * en un `git diff` par côté de la forme), `contenu(f)`/`lirePreImage(f)` (le fichier APRÈS le commit, et dans sa BASE
- * — `sourceDeLaBase`), `images(chemins)` (les mêmes, lus par lot : `lireEnLot`). Diffs, chemins et renommages lus par `ceQuiChange` (plomberie), contre `base()` : l'image de HEAD
- * (`imageDeHead`), l'arbre vide dans un dépôt sans premier commit, qui n'a que l'index.
+ * — `sourceDeLaBase`), `contenus(rels)`/`preImages(rels)` puis `images(chemins)` (les mêmes, lus par lot : `lireEnLot`). Diffs, chemins et renommages lus par `ceQuiChange` (plomberie), contre `base()` : l'image de HEAD
+ * (`imageDeHead`), l'arbre vide dans un dépôt sans premier commit, qui n'a que l'index ; sous une
+ * fusion EN COURS (`enFusion()`), sa fusion automatique : le commit se lit par son APPORT PROPRE
+ * (`apport()`, `apportDeLaFusionEnCours`, une lecture), jamais par ce que ses parents fusionnés
+ * apportent (#2328 A2). Une fusion que git ne rejoue pas LÈVE `GitIndisponible` à la lecture de `base()`.
  *
  * `contenu(f)` est la lecture de `sourceDuCommit`, qui suit la forme JUSQU'AU FICHIER, et c'est là que
  * se règle la porte de FERMETURE : sous `git commit -m "… corrige #N" -- src/x.ts`, un solde stagé
@@ -2538,16 +2972,26 @@ const refusDesPannes = (pannes) => (pannes.length
  * une preuve que le commit ne portait pas (mesuré 2026-09-04). Donc : forme `index` → l'index ; forme
  * `pathspec` → l'arbre de travail pour un chemin DANS le pathspec, HEAD pour tous les autres
  * (`sourceMelee`) ; forme `inclus` → le même arbre, l'INDEX pour les autres ; forme `tout` → l'arbre
- * de travail des chemins suivis (`SUIVI`).
+ * de travail des chemins suivis (`SUIVI`). `depot` : celui de `dir` par défaut, ses pannes dans `pannes`.
+ * Sans `command` (`jugerLeCommit`), la forme `index` : l'index que git a préparé pour le commit, `-a`,
+ * `-i` et `-- <chemins>` compris (`GIT_INDEX_FILE`, hérité par `depotDe` sans `env`).
+ * @param {string | null} command
  */
-export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {}) {
+export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot = depotDuHook(dir, pannes) } = {}) {
   const { forme, pathspecs } = formeDuCommit(command)
-  const depot = depotDuHook(dir, pannes)
-  let head = null
-  const aHead = () => (head ??= shaDe(depot, 'HEAD') !== null)
+  let head
+  /** Le sha de HEAD, lu une fois ; `null` sans premier commit (ou en panne, confiée à `pannes`). */
+  const shaDeHead = () => (head === undefined ? (head = shaDe(depot, 'HEAD')) : head)
+  const aHead = () => shaDeHead() !== null
   const contreIndex = () => forme === 'index' || !aHead()
+  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours`.
+  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  let fusionnes
+  const enFusion = () => (fusionnes ??= aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []).length > 0
+  let apportLu
+  const apport = () => (apportLu ??= enFusion() ? apportDeLaFusionEnCours(depot, image(), fusionnes) : null)
   let imageDeBase
-  const base = () => (imageDeBase ??= imageDeHead(depot))
+  const base = () => (imageDeBase ??= enFusion() ? apport().change.base : imageDeHead(depot))
   const vers = (apres, avant = base()) => ceQuiChange(depot, avant, apres)
   const image = () => (contreIndex() ? INDEX : SUIVI)
   const dans = (f) => pathspecs.some((ps) => pathMatchesPathspec(f, ps))
@@ -2587,27 +3031,28 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
     }
   }
   const sourceDeLaBase = () => sourceGit({ cwd: dir, arbre: base(), depot })
-  // Sous `MERGE_HEAD`, le commit à venir est une FUSION de HEAD et de `fusionnesEnCours` : elle se lit
-  // comme la plage lit une fusion (`lecturesDeFusion`), son image étant ce que le commit emporte.
-  // `pathspec` : git le refuse (`builtin/commit.c`, « cannot do a partial commit during a merge »).
+  // La fusion en cours se lit aussi comme la plage lit une fusion (`lecturesDeFusion`), son image étant
+  // ce que le commit emporte.
   let enCours
   const fusion = () => {
     if (enCours !== undefined) return enCours
-    const fusionnes = aHead() && forme !== 'pathspec' ? fusionnesEnCours(depot) : []
-    if (!fusionnes.length) return (enCours = null)
-    const parents = [shaDe(depot, 'HEAD'), ...fusionnes]
+    if (!enFusion()) return (enCours = null)
     try {
-      const fait = ceQueFaitLaFusionEnCours(depot, parents, image())
-      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() && fait.base ? lireDepuis(fait.base) : fait, lireDepuis })
+      const { parents, change } = apport()
+      const lus = lecturesDeFusion(depot, { apres: image(), parents, fait: inclus() ? lireDepuis(base()) : change, lireDepuis })
       return (enCours = { ...lus, entree: entreeDeFusion(depot, lus.fusion, (f) => sourceDuCommit().lire(f)) })
     } catch (e) {
       if (!(e instanceof GitIndisponible)) throw e
-      pannes.push(e.raison)
+      pannes.push(refusDeGit(e))
       return (enCours = null)
     }
   }
   const sourceA = (arbre) => sourceGit({ cwd: dir, arbre, depot })
   let source = null
+  /** Les textes de `rels` que le commit EMPORTE, en un lot. */
+  const contenus = (rels) => sourceDuCommit().lireTout(rels)
+  /** Les textes de `rels` dans sa BASE, en un lot ; aucun sans premier commit. */
+  const preImages = (rels) => (aHead() ? sourceDeLaBase().lireTout(rels) : new Map())
   const sourceDuCommit = () => (source ??= (() => {
     if (contreIndex()) return sourceGit({ cwd: dir, arbre: INDEX, depot })
     const suivi = sourceGit({ cwd: dir, arbre: SUIVI, depot })
@@ -2628,15 +3073,21 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
     },
     contenu: (f) => sourceDuCommit().lire(f),
     lirePreImage: (f) => (aHead() ? sourceDeLaBase().lire(f) : null),
+    contenus,
+    preImages,
     images: (chemins) => {
-      const post = sourceDuCommit().lireTout(chemins)
-      const pre = aHead() ? sourceDeLaBase().lireTout(chemins) : new Map()
+      const post = contenus(chemins)
+      const pre = preImages(chemins)
       return {
         lirePostImage: (f) => (post.has(f) ? post.get(f) : sourceDuCommit().lire(f)),
         lirePreImage: (f) => (pre.has(f) ? pre.get(f) : aHead() ? sourceDeLaBase().lire(f) : null),
       }
     },
     renommages: () => new Map(unir((change, ps) => [...change.renommages(ps)], (e) => e)),
+    /** Les chemins que l'INDEX change contre `base()` : le lot stagé, l'apport stagé sous une fusion. */
+    stages: () => vers(INDEX).chemins(),
+    enFusion,
+    apport,
     fusion,
     deplaceLaFrontiereCss: (chemins) => {
       const f = fusion()
@@ -2654,12 +3105,10 @@ export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {})
   }
 }
 
-/** Chemins que l'arbre de travail change contre l'index (`etatDeLArbre`, colonne Y), ou, sous
- *  `cached`, que l'index change contre `HEAD` (`ceQuiChange`) dans `dir`. */
-export function readChangedNames(dir = process.cwd(), { cached = false, pannes = [] } = {}) {
-  const depot = depotDuHook(dir, pannes)
-  if (cached) return ceQuEmporteLIndex(depot).chemins()
-  return etatDeLArbre(depot).filter((e) => e.etat !== '??' && e.etat[1] !== ' ').map((e) => e.chemins[0])
+/** Chemins que l'arbre de travail change contre l'index (`etatDeLArbre`, colonne Y) dans `dir` ; ce
+ *  que l'index change, lui, se lit contre la base du commit (`diffDuCommit(…).stages()`). */
+export function readChangedNames(dir = process.cwd(), { pannes = [] } = {}) {
+  return etatDeLArbre(depotDuHook(dir, pannes)).filter((e) => e.etat !== '??' && e.etat[1] !== ' ').map((e) => e.chemins[0])
 }
 
 /** Fichiers de l'INDEX qui citent un des `numeros` (pré-filtre `git grep --cached -l`) : le scan de
@@ -2671,41 +3120,68 @@ export function fichiersCitantTickets(numeros, dir = process.cwd(), { pannes = [
 }
 
 /**
- * Le verdict PUR, ou le refus qui NOMME ce que git n'a pas pu lire. Une ascendance indisponible n'est
- * pas un « non » : la conclure ferait refuser un solde juste (ou passer un solde faux) sur rien.
- * La CAUSE se nomme telle qu'elle est — un répertoire qui existe mais n'est gouverné par aucun
- * dépôt (`horsDepot`) n'est ni un git absent ni un cwd manquant, et le renvoyer vers « un arbre où
- * git répond » désignait la mauvaise correction (#1729).
- * @param {() => ({ reason: string } | null)} juger
- * @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
+ * Le verdict PUR, ou `null` quand git n'a pas pu lire : sa raison (`GitIndisponible`) va à `pannes`,
+ * que `refusDesPannes` refuse au rendu, en UN refus avec les autres pannes de l'appel. Une lecture
+ * indisponible n'est pas un « non » : la conclure ferait refuser un solde juste (ou passer un solde
+ * faux) sur rien. Toute autre erreur remonte.
+ * @param {() => ({ reason: string } | null)} juger @param {string[]} pannes
  */
-export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = false } = {}) {
+export function jugerOuConfier(juger, pannes) {
   try {
     return juger()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
-    const cause = horsDepot ? `hors dépôt : ${cwd}` : e.raison
-    const geste = horsDepot
-      ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
-      : 'Geste : rejouer le commit depuis un arbre où git répond.'
-    return {
-      reason: `⛔ ascendance indisponible : ${cause} — la porte ne peut rien juger de ce que git n'a pas lu. ${geste}`,
-    }
+    pannes.push(refusDeGit(e))
+    return null
   }
 }
 
-/** Chemins que le commit `sha` touche dans `dir` (`ceQueFaitLeCommit`), `[]` quand sa base est `null`
- *  (`baseDuCommit`, gitPorte.mjs). Une panne de git y rend `null` elle aussi, et `refusDesPannes` la
- *  refuse au rendu ; `BorneAbsente` se lève là où `ceQueFaitLeCommit` la lève. */
-export function fichiersDuCommitGit(sha, dir = process.cwd(), { pannes = [] } = {}) {
-  return ceQueFaitLeCommit(depotDuHook(dir, pannes), sha).chemins()
+/**
+ * L'HISTOIRE que lit « corrigé par <sha> <fichier>:<ligne> » (`problemesCorrigePar`) pour les `shas`
+ * cités, tous annoncés d'avance (`shasCitesDuSolde`) : le commit est-il dans HEAD (`histoire`,
+ * `histoireDeHead`), quels chemins touche-t-il, quelles lignes de `fichier` — lus sur CE QUE FAIT le
+ * commit (`ceQueFontLesCommits`), dans `depot`. Chaque lecture porte sur TOUS les shas cités à la
+ * fois, au plus une fois : un sha cité de plus ne lance aucun processus. Une histoire vit le temps
+ * d'UNE évaluation : aucun cache ne survit d'un appel du hook au suivant. Le diff est celui d'UN SHA
+ * DÉJÀ POSÉ, à ne pas confondre avec `diffDuCommit`, qui lit ce que la commande EN COURS va emporter.
+ * Un sha hors de HEAD n'a ni chemins ni lignes (`null`) ; sous `depotDuHook`, une panne de git rend
+ * `[]`, et `refusDesPannes` la refuse au rendu.
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {readonly string[]} shas
+ * @param {{ histoire?: ReturnType<typeof histoireDeHead> }} [options] l'histoire de HEAD de l'évaluation
+ * @throws {Error} une question sur un sha que `shas` n'annonce pas.
+ */
+export function histoireDesCitations(depot, shas, { histoire = histoireDeHead(depot) } = {}) {
+  const annonces = [...new Set(shas)]
+  let lus = null
+  const lire = () => {
+    if (lus) return lus
+    const commits = histoire.commits(annonces)
+    lus = { parSha: new Map(annonces.map((sha, i) => [sha, commits[i]])), fait: ceQueFontLesCommits(depot, commits.filter(Boolean)) }
+    return lus
+  }
+  /** Le commit du graphe de HEAD que nomme `sha`, `null` hors de HEAD. */
+  const commitDe = (sha) => {
+    const { parSha } = lire()
+    if (!parSha.has(sha)) throw new Error(`histoireDesCitations : « ${sha} » n'est aucun des shas annoncés (${annonces.join(', ')})`)
+    return parSha.get(sha)
+  }
+  return {
+    commitEstAncetre: (sha) => commitDe(sha) !== null,
+    fichiersDuCommit: (sha) => {
+      const commit = commitDe(sha)
+      return commit && lire().fait.chemins().get(commit.sha)
+    },
+    lignesDuCommit: (sha, fichier) => {
+      const commit = commitDe(sha)
+      return commit && lignesDeHunks(lire().fait.patchs().get(commit.sha).get(fichier) ?? '')
+    },
+  }
 }
 
-/** Diff `-U0` de `fichier` dans le commit `sha` (`ceQueFaitLeCommit`), `''` si le commit ne touche pas
- *  le fichier ou si sa base est `null` (les cas de `fichiersDuCommitGit`) — le diff d'UN SHA DÉJÀ
- *  POSÉ, à ne pas confondre avec `diffDuCommit`, qui lit ce que la commande EN COURS va emporter. */
-export function diffDunSha(sha, fichier, dir = process.cwd(), { pannes = [] } = {}) {
-  return ceQueFaitLeCommit(depotDuHook(dir, pannes), sha).diff([fichier])
+/** Les shas que cite un solde par « corrigé par <sha> <fichier>:<ligne> » (`CORRIGE_PAR_RE`, la lecture
+ *  de `checkRestesSection`). PUR. @param {string | null} content @returns {string[]} */
+export function shasCitesDuSolde(content) {
+  return content ? restesItems(content).map((l) => CORRIGE_PAR_RE.exec(l)?.[1]).filter(Boolean) : []
 }
 
 /** Date de dernière écriture la plus RÉCENTE parmi `fichiers` (ms, `0` si aucune lisible). */
@@ -2720,7 +3196,7 @@ export function mtimeMaxDe(fichiers, racine = process.cwd()) {
 // ── Fermeture hors commit (l'angle mort mesuré du garde) ──────────────────────────────────────────
 // Le mécanisme entier s'accroche à `git commit` : `gh issue close` fermait le MÊME ticket sans que
 // rien ne demande son solde (sonde `scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs`,
-// revue de palier `revue-palier-2205fde51.md:17`). La fermeture passe par le commit, un point.
+// archive `.claude/soldes/revue-palier-2205fde51.md:17`). La fermeture passe par le commit, un point.
 
 /** `true` si les arguments portent un état `closed` (`--state closed`, `--state=closed`,
  *  `-f state=closed`, `--field state=closed`, `--raw-field state=closed`). */
@@ -2843,9 +3319,9 @@ export function porteUnGesteGh(command) {
  * s'ouvrent sur `isGitCommitCommand`) et une fermeture `gh` hors commit
  * (`evaluateFermetureHorsCommit`, le seul évaluateur qui ne demande pas de commit).
  *
- * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) lançait `mesureDuPalier` et
- * `readChangedNames` dans son cwd, et un cwd hors dépôt faisait refuser « ascendance indisponible »
- * une commande qui n'avait rien à voir avec un commit (#1729 sonde 3).
+ * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) n'a rien d'un commit, et lire
+ * `readChangedNames` dans son cwd hors dépôt la refuserait pour une lecture git indisponible (#1729
+ * sonde 3).
  * @returns {'commit'|'fermeture'|null}
  */
 export function gesteJuge(command) {
@@ -2887,7 +3363,7 @@ function racineDeLArbre(dir = process.cwd()) {
  * Le chemin d'un `tool_input` d'écriture (`file_path`, sinon `path`), résolu UNE fois à l'entrée d'un
  * hook : toute la suite (périmètre, lecture disque, message) travaille sur lui, jamais sur le brut
  * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base` (le `dir`
- * du contexte, `construireContexte`, `scripts/hooks/repartiteur.mjs`), puis :
+ * du contexte, `construireContexte`, `scripts/hooks/repartition.mjs`), puis :
  * `reel` = `canoniser` (jonctions et liens suivis, fichier à créer compris) ; `racine` = l'arbre git
  * qui le contient, ou `null` ; `relatif` = POSIX sous `racine`, ou `reel` entier sans arbre.
  * `horsContenu` : le fichier n'est pas du contenu VERSIONNÉ du dépôt, et les hooks d'écriture s'y
@@ -3012,9 +3488,10 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
  * deux : son APPORT est jugé (`bilanDuCommit`). Ne se prononce que sur un `git commit`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = null }) {
-  if (!command || !isGitCommitCommand(command) || (!fusion && !diff)) return null
-  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), command)
+export function evaluateStocksQuiGrandissent({ command, message, diff, images, fusion = null }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit || (!fusion && !diff)) return null
+  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), lu.satisfactions)
   return restantes.length ? { reason: raisonDeRefus(restantes) } : null
 }
 
@@ -3024,15 +3501,16 @@ export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = n
  * commit (`coteCss`) ; ne se prononce que sur un `git commit` dont le message porte une ligne ou qui
  * peut déplacer la frontière (`deplace()`, `deplaceLaFrontiere`). Une lecture qui lève est un refus
  * NOMMÉ, jamais un passage muet.
- * @param {{ command: string, deplace: () => boolean, cotes: () => { base: object, commit: object } }} p
+ * @param {{ command?: string, message?: string, deplace: () => boolean, cotes: () => { base: object, commit: object } }} p
  * @returns {{ reason: string } | null}
  */
-export function evaluateReclassementsCss({ command, deplace, cotes }) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluateReclassementsCss({ command, message, deplace, cotes }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit) return null
   let ecarts
   try {
-    if (!lignesDeReclassement(command).length && !deplace()) return null
-    ecarts = reclassementsNonDeclares({ message: command }, cotes())
+    if (!lignesDeReclassement(lu.satisfactions).length && !deplace()) return null
+    ecarts = reclassementsNonDeclares({ message: lu.satisfactions }, cotes())
   } catch (e) {
     return { reason: `⛔ RECLASSEMENT CSS injugeable : ${e.message}` }
   }
@@ -3045,9 +3523,10 @@ export function evaluateReclassementsCss({ command, deplace, cotes }) {
  * pré-image : c'est la même discipline de lecture que `evaluateStocksQuiGrandissent`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateBudgetContexte({ command, mesure, reference, plafond }) {
-  if (!command || !isGitCommitCommand(command)) return null
-  return refusDeBudget({ mesure, reference, plafond, message: command })
+export function evaluateBudgetContexte({ command, message, mesure, reference }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit) return null
+  return refusDeBudget({ mesure, reference, message: lu.satisfactions })
 }
 
 /**
@@ -3065,25 +3544,139 @@ export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
 /**
  * Le verdict de la porte sur la commande de `entree`. `contexte` (répartiteur, `construireContexte`) :
  * `dir` = le répertoire où la commande s'exécute RÉELLEMENT, `null` s'il n'est pas jugeable — tout ce que la porte lit sur disque ou
- * dans git s'y lit (index, message `-F`, palier, revue, histoire) ; `cibleIgnoree` = ce que la
+ * dans git s'y lit (index, message `-F`, histoire) ; `cibleIgnoree` = ce que la
  * commande nommait sans que ce soit un répertoire réel, DIT dans tout refus ; `today` = date locale ;
  * `pannes` = les pannes de lecture git de l'appel, refusées au rendu (`refusDesPannes`).
  */
-async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
+async function evaluerSolde(entree, contexte) {
+  try {
+    return await jugerLeSolde(entree, contexte)
+  } catch (e) {
+    // Une lecture que git ne rend pas, levée hors d'un juge (la base du commit, `imageDeHead`) : le
+    // refus NOMMÉ des pannes, jamais une garde « en panne » qui laisse passer le commit.
+    if (!(e instanceof GitIndisponible)) throw e
+    const presume = motifDuCommitPresume(commandeDe(entree))
+    const refus = refusDesPannes([...contexte.pannes, refusDeGit(e)], ouDeLaLecture(contexte.dir))
+    return verdictDe(avecCibleIgnoree({ reason: presume ? `${presume} || ${refus.reason}` : refus.reason }, contexte.cibleIgnoree))
+  }
+}
+
+/** Le répertoire où la lecture a été tentée, pour `refusDesPannes` : hors dépôt, la cause est là. */
+const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: natureDeLArbre(dir) === null })
+
+/** Les décisions de la porte sur `commit` (`diffDuCommit`), le commit que `entree` décrit : `{ message }`
+ *  (`jugerLeCommit`) ou `{ command }` (`jugerLeSolde`, #2071), lu par `lectureDeLaPorte`. Tout ce qui se
+ *  lit sur DISQUE se lit dans `dir`, où le commit s'exécute. `etage2()` lit les stocks et les
+ *  reclassements, à la demande. `messages` : ceux de la commande (`messagesDesCommits`). */
+async function decisionsDuCommit(entree, { commit, dir, today, pannes, messages }) {
+  const lu = lectureDeLaPorte(entree)
+  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat(), { ecranParInsertion: commit.enFusion() })
+  // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
+  // capture antérieure au geste montre l'écran d'avant.
+  const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), dir)
+  // UNE histoire de HEAD pour l'évaluation, que les citations « corrigé par » de tous les soldes
+  // partagent ; lue PARESSEUSEMENT, DANS le juge : une indisponibilité de git y est rattrapée et NOMMÉE.
+  const histoire = histoireDeHead(depotDe(dir))
+  const decision = jugerOuConfier(() => evaluate({
+    ...entree,
+    today,
+    // Le solde LU est celui que le commit EMPORTE (`commit.contenus`, un lot pour tous les soldes) :
+    // sous un commit par pathspec, un solde stagé hors pathspec reste à la version de HEAD et la
+    // preuve ne part pas.
+    readSoldes: (ns) => soldesEmportes(commit, ns),
+    soldeOnDisk: (n) => readSoldeFile(n, dir),
+    contexteSolde: {
+      fichiersEmportes: fichiers,
+      lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
+      touchesUi,
+      verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: dir, mtimeMin: mtimeEcrans, pannes }),
+      histoireDe: (shas) => histoireDesCitations(depotDuHook(dir, pannes), shas, { histoire }),
+    },
+  }), pannes)
+  // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
+  // lecture que toutes les autres évaluations de cette garde.
+  const porteDuTicket = evaluatePorteDuTicket({ ...entree, fichiersEmportes: fichiers, messages })
+  // TOUT ce que la garde lit sur DISQUE se lit dans `dir` : lu depuis le dépôt de la garde, un fichier
+  // de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
+  const antiEsquive = evaluateAntiEsquive({
+    ...entree,
+    fusionEnCours: commit.enFusion(),
+    stagedTouchesSrc: touchesSrc,
+    stagedTotalLines: totalLines,
+    readRefFile: (n) => readRefFile(n, dir),
+  })
+  const juge = evaluateJuge({
+    ...entree,
+    fusionEnCours: commit.enFusion(),
+    stagedTouchesSrc: touchesSrc,
+    stagedTotalLines: totalLines,
+    stagedTouchesUi: touchesUi,
+    readRefFile: (n) => readRefFile(n, dir),
+  })
+  const registresPorteurs = evaluateRegistresPorteurs({ ...entree, lireRegistreEmporte: (chemin) => commit.contenu(chemin) })
+  // Volet anti-tombale : `commentPoison` tire le vocabulaire RAW derrière lui — chargé SEULEMENT
+  // quand le commit ferme un ticket.
+  const fermes = lu.fermes()
+  let tombale = null
+  if (fermes.length > 0) {
+    const { evaluateTombale } = await import('./solde-tombale.mjs')
+    tombale = evaluateTombale({
+      issuesFermees: fermes,
+      fichiers: fichiersCitantTickets(fermes, dir, { pannes }),
+      lire: (p) => commit.contenu(p),
+    })
+  }
+  const importsDuContexte = [
+    ...importsDe(commit.contenu('CLAUDE.md')),
+    ...importsDe(commit.lirePreImage('CLAUDE.md')),
+  ]
+  const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
+    ? evaluateBudgetContexte({
+      ...entree,
+      mesure: mesurerBudget(dir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, dir, { pannes }) }),
+      reference: mesurerBudget(dir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), dir, { pannes }) }),
+    })
+    : null
+  // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
+  // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
+  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
+  const etage2 = () => {
+    const fusion = lu.commit ? commit.fusion() : null
+    const porteursDeStock = lu.commit ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
+    const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
+      ...entree,
+      ...(fusion
+        ? { fusion: fusion.entree }
+        : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
+    }) : null
+    const reclassements = evaluateReclassementsCss({
+      ...entree,
+      deplace: () => commit.deplaceLaFrontiereCss(fichiers),
+      cotes: commit.cotesCss,
+    })
+    return [stocks, reclassements]
+  }
+  return { touchesSrc, decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, etage2 }
+}
+
+/** Le jugement de `evaluerSolde`, dont une `GitIndisponible` levée remonte au refus nommé. */
+async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
   const command = commandeDe(entree)
   // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3) ; un
   // lieu d'exécution non jugeable (`dir` nul) est refusé par la garde `canal-outil` du répartiteur.
   if (!gesteJuge(command) || targetDir === null) return null
   // HOTE UNIQUE de sortie : tout refus porte la cible écartée.
   const dire = (decision) => verdictDe(avecCibleIgnoree(decision, cibleIgnoree))
-  // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`).
-  const commit = diffDuCommit(command, targetDir, { pannes })
-  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat())
-  // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT.
-  const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
+  const ou = ouDeLaLecture(targetDir)
   // Tout refus d'une commande qui porte un commit PRÉSUMÉ commence par son motif.
   const presume = motifDuCommitPresume(command)
   const prefixe = (motif) => (presume ? `${presume} || ${motif}` : motif)
+  // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`) ; sous une fusion
+  // en cours, son APPORT PROPRE (`commit.base()`, #2328 A2 et A5). Une fusion que git ne rejoue pas LÈVE
+  // `GitIndisponible` : le refus nommé d'`evaluerSolde`, jamais une retombée sur le diff contre HEAD (#2328 D2).
+  const commit = diffDuCommit(command, targetDir, { pannes })
+  // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT.
+  const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
   if (fileError) {
     return dire({
       reason: prefixe(
@@ -3091,97 +3684,17 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
         `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`),
     })
   }
-  // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
-  // capture antérieure au geste montre l'écran d'avant.
-  const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), targetDir)
-  // Lecture PARESSEUSE et unique : elle a lieu DANS le juge, donc une indisponibilité de git y est
-  // rattrapée et NOMMÉE au lieu d'emporter la garde.
-  let revuesVues = null
-  const revuesDuGeste = () => (revuesVues ??= revuesDuCommit(revuesNeuves(targetDir), fichiers))
-  const decision = jugerOuNommerLIndisponible(() => evaluate({
-    command: text,
-    today,
-    // Le solde LU est celui que le commit EMPORTE (`commit.contenu`) : sous un commit par pathspec,
-    // un solde stagé hors pathspec reste à la version de HEAD et la preuve ne part pas.
-    readSolde: (n) => commit.contenu(`.claude/soldes/${n}.md`),
-    soldeOnDisk: (n) => readSoldeFile(n, targetDir),
-    // Le commit en cours compte par ce qu'il EMPORTE (`fichiers`), la liste de la porte du ticket.
-    palier: () => mesureDuPalier(targetDir, { emportes: fichiers, seuil: PALIER }),
-    // La revue qui franchit le palier est celle que ce commit AJOUTE **et** EMPORTE : elle naît sous
-    // son nom d'archive. Une revue posée sur le disque sans être stagée, ou stagée hors des pathspecs
-    // de la commande, ne part pas avec le commit — donc ne franchit rien. Même règle que le solde.
-    neuves: () => revuesDuGeste().emportees.map((r) => ({ ...r, contenu: commit.contenu(r.chemin) ?? r.contenu })),
-    omises: () => revuesDuGeste().omises,
-    dansHead: (sha) => estDansHead(depotDe(targetDir), sha),
-    contexteSolde: {
-      fichiersEmportes: fichiers,
-      lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
-      touchesUi,
-      verifierCaptureDe: (chemin) => verifierCapture(chemin, { racine: targetDir, mtimeMin: mtimeEcrans, pannes }),
-      commitEstAncetre: (sha) => estDansHead(depotDe(targetDir), sha),
-      fichiersDuCommit: (sha) => fichiersDuCommitGit(sha, targetDir, { pannes }),
-      lignesDuCommit: (sha, fichier) => lignesDeHunks(diffDunSha(sha, fichier, targetDir, { pannes })),
-    },
-  }), { cwd: targetDir, horsDepot: natureDeLArbre(targetDir) === null })
-  // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
-  // lecture que toutes les autres évaluations de cette garde.
-  const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers, messages })
-  // TOUT ce que la garde lit sur DISQUE se lit dans le répertoire où le commit s'exécute — comme le
-  // solde stagé, la mesure du palier, le message `-F` et la revue de palier. Lu depuis le dépôt de la
-  // garde, un fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
-  const antiEsquive = evaluateAntiEsquive({
-    command: text,
-    stagedTouchesSrc: touchesSrc,
-    stagedTotalLines: totalLines,
-    readRefFile: (n) => readRefFile(n, targetDir),
-  })
-  const juge = evaluateJuge({
-    command: text,
-    stagedTouchesSrc: touchesSrc,
-    stagedTotalLines: totalLines,
-    stagedTouchesUi: touchesUi,
-    readRefFile: (n) => readRefFile(n, targetDir),
-  })
-  const amendInvisible = evaluateAmendInvisible({ command, stagedTouchesSrc: touchesSrc })
-  const registresPorteurs = evaluateRegistresPorteurs({ command: text, lireRegistreEmporte: (chemin) => commit.contenu(chemin) })
+  const d = await decisionsDuCommit({ command: text }, { commit, dir: targetDir, today, pannes, messages })
+  const amendInvisible = evaluateAmendInvisible({ command, stagedTouchesSrc: d.touchesSrc })
   // Corps `--input <chemin>` : résolu là où la commande s'exécute RÉELLEMENT, comme le `-F` du commit.
   const horsCommit = evaluateFermetureHorsCommit(command, {
     lire: (chemin) => readFileSync(resolve(targetDir, chemin), 'utf8'),
   })
-  // Volet anti-tombale : `commentPoison` tire le vocabulaire RAW derrière lui — chargé SEULEMENT
-  // quand la commande ferme un ticket.
-  const fermes = extractClosedIssues(text)
-  let tombale = null
-  if (fermes.length > 0) {
-    const { evaluateTombale } = await import('./solde-tombale.mjs')
-    tombale = evaluateTombale({
-      issuesFermees: fermes,
-      fichiers: fichiersCitantTickets(fermes, targetDir, { pannes }),
-      lire: (p) => commit.contenu(p),
-    })
-  }
   const hunks = evaluateHunksEmportes({
     command,
     fichiersModifies: readChangedNames(targetDir, { pannes }),
-    fichiersStages: readChangedNames(targetDir, { cached: true, pannes }),
+    fichiersStages: commit.stages(),
   })
-  // BUDGET DU CONTEXTE PERMANENT : mesuré seulement si le commit touche un chemin du périmètre —
-  // sinon aucune lecture n'est payée au-delà de l'image de `CLAUDE.md`, qui dit les fichiers IMPORTÉS
-  // (`@<chemin>`) et donc le périmètre lui-même : ce que le commit emporte s'il l'emporte, son texte de base sinon.
-  // La mesure porte sur ce que le commit EMPORTE (`commit.contenu`), la référence et le plafond sur son
-  // texte de BASE (`commit.lirePreImage`) : relever la ligne du plafond dans le même commit ne suffit donc pas à
-  // faire passer une accrétion. Le LISTAGE des skills/agents se lit PAR IMAGE lui aussi — l'index pour
-  // ce que le commit emporte, sa BASE (`commit.base()`) pour la référence — sans quoi un poste SUPPRIMÉ par le commit
-  // disparaîtrait des DEUX côtés et le refus dirait « aucun poste ne grossit ».
-  const importsDuContexte = importsDe(commit.contenu('CLAUDE.md') ?? commit.lirePreImage('CLAUDE.md'))
-  const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
-    ? evaluateBudgetContexte({
-      command: text,
-      mesure: mesurerBudget(targetDir, { lire: commit.contenu, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
-      reference: mesurerBudget(targetDir, { lire: commit.lirePreImage, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
-      plafond: plafondDeLaSource(commit.lirePreImage(PORTEUR_DU_PLAFOND)),
-    })
-    : null
   // Voir COÛT (en-tête) : un refus qu'aucun autre étage ne rejuge sort ICI, avant les deux décisions
   // que `scripts/git-hooks/pre-push.mjs` rejuge (`croissancesDeLaPlage`). Tout refus d'un étage porte
   // le motif du commit présumé en tête (`prefixe`).
@@ -3190,29 +3703,35 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
     return cumul ? dire({ ...cumul, reason: prefixe(cumul.reason) }) : null
   }
   const premier = cumuler([
-    decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
-    horsCommit, tombale, hunks?.reason ? hunks : null, budget, refusDesPannes(pannes),
+    d.decision, d.porteDuTicket, d.antiEsquive, d.juge, amendInvisible, d.registresPorteurs,
+    horsCommit, d.tombale, hunks?.reason ? hunks : null, d.budget, refusDesPannes(pannes, ou),
   ])
   if (premier) return premier
-  // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
-  // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
-  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
-  const fusion = isGitCommitCommand(text) ? commit.fusion() : null
-  const porteursDeStock = isGitCommitCommand(text) ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
-  const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
-    command: text,
-    ...(fusion
-      ? { fusion: fusion.entree }
-      : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
-  }) : null
-  const reclassements = evaluateReclassementsCss({
-    command: text,
-    deplace: () => commit.deplaceLaFrontiereCss(fichiers),
-    cotes: commit.cotesCss,
-  })
-  const second = cumuler([stocks, reclassements, refusDesPannes(pannes)])
+  const second = cumuler([...d.etage2(), refusDesPannes(pannes, ou)])
   if (second) return second
   return hunks?.contexte ? { contexte: hunks.contexte } : null
+}
+
+/**
+ * Le verdict UNIQUE de la porte sur le commit que git prépare (`scripts/git-hooks/commit-msg.mjs`) :
+ * `message` = le message qu'il enregistre (`lectureDuMessage(…).texte`) ; `commit` = ce qu'il emporte,
+ * l'index que git a préparé (`diffDuCommit` sans commande, `GIT_INDEX_FILE` hérité) ; `dir` = la racine
+ * de l'arbre qui committe ; `today` = date locale ; `pannes` = les pannes de lecture git, refusées au
+ * rendu (`refusDesPannes`). Toutes les décisions en UN cumul (`decisionCumulee`).
+ * @param {{ message: string, commit?: ReturnType<typeof diffDuCommit>, dir?: string, today: string, pannes?: string[] }} p
+ * @returns {Promise<{ reason: string } | null>}
+ */
+export async function jugerLeCommit({ message, dir = process.cwd(), today, pannes = [], commit = diffDuCommit(null, dir, { pannes }) }) {
+  try {
+    const d = await decisionsDuCommit({ message }, { commit, dir, today, pannes })
+    return decisionCumulee([
+      d.decision, d.porteDuTicket, d.antiEsquive, d.juge, d.registresPorteurs, d.tombale, d.budget, ...d.etage2(),
+      refusDesPannes(pannes, ouDeLaLecture(dir)),
+    ])
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    return refusDesPannes([...pannes, refusDeGit(e)], ouDeLaLecture(dir))
+  }
 }
 
 /** La garde de la porte (contrat : `scripts/guards/lib/contratGarde.mjs`) ; son point d'entrée propre :

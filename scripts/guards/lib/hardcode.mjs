@@ -1,7 +1,7 @@
 // Mécanique de scan du garde-fou « tout migrer » — réactions de combat hardcodées PAR-NOM
 // (État/trait/talent/atout d'arme) plutôt que par DONNÉE (TriggeredEffect/passive). Module ESM
-// pur, exécutable par `node` nu — consommé par src/state/combat-hardcode-guard.test.ts ET par un
-// futur hook pre-commit. Les BASELINES (nombre de sites tolérés par fichier, gelées au recensement)
+// pur, exécutable par `node` nu — consommé par src/state/combat-hardcode-guard.test.ts ET par le
+// hook pre-commit (scripts/git-hooks/pre-commit.mjs). Les BASELINES (nombre de sites tolérés par fichier, gelées au recensement)
 // restent DONNÉES DE POLICY dans le test — ici ne vit QUE la mécanique de détection, généralisée à
 // TOUT src/engine + src/state (cf. docs/combat-events-coherence.md, Lot 8).
 
@@ -113,9 +113,8 @@ function callHasLiteralArg(line, callRx) {
  * regex : un backtick en tête de 2e argument peut être suivi d'une interpolation ARBITRAIREMENT
  * loin dans le segment (`` `etat-${x}` ``), donc juger sa littéralité exige de lire le segment ENTIER
  * jusqu'au backtick fermant — pas juste le caractère suivant. C'est `perEtatHasLiteralArg` (même
- * mécanique que `nameCallHasLiteralArg`, #385) qui tranche cette forme, dans `scanHardcode` (#413,
- * corrige un faux positif de la 1ère version qui testait seulement `` `(?!\$\{) `` — flaguait à tort
- * un préfixe littéral suivi d'interpolation).
+ * mécanique que `nameCallHasLiteralArg`, #385) qui tranche cette forme, dans `scanHardcode` (#413) :
+ * un préfixe littéral suivi d'interpolation n'est pas un littéral.
  * @type {RegExp}
  */
 export const PER_ETAT_RX = /hasCondition\(\w+, ?(?:COND\.|['"])|stacks\(\w+, ?(?:COND\.|['"])/;

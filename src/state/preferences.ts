@@ -14,8 +14,8 @@
 import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
 import { useGame } from './store';
-import { HOUSE_RULES_STORAGE_KEY } from './houseRules';
-import { stockageWeb } from '../lib/stockageWeb';
+import { valeurConforme } from '../engine/policy';
+import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
 
 export type PrefValue = boolean | number | string;
 export type PrefKind = 'flag' | 'mode';
@@ -76,7 +76,7 @@ export function pref(id: string): PrefValue | undefined {
   return preferenceDef(id)?.get();
 }
 
-const KEY = 'wfrp4.prefs.v1';
+const KEY = 'wfrp4.prefs';
 
 /** Persiste l'état courant du registre. */
 export function savePreferences(): void {
@@ -90,39 +90,14 @@ export function savePreferences(): void {
   }
 }
 
-/**
- * REPRISE d'un réglage qui vivait dans le magasin des RÈGLES MAISON avant d'être reconnu comme une
- * préférence de confort (`combat-cadence`) : une partie déjà jouée porte son choix là-bas, et le
- * registre des règles ne le connaît plus (`loadRuleOverrides` ignore les ids inconnus) — sans cette
- * reprise, le joueur retrouve le défaut sans un mot. Le réglage est adopté puis RETIRÉ du magasin
- * d'origine : la reprise ne se joue qu'une fois. Le magasin des préférences PRIME (`already`) — c'est
- * le choix le plus récent.
- */
-function adoptHouseRulePreferences(already: Record<string, PrefValue>): void {
-  const raw = stockageWeb('localStorage')?.getItem(HOUSE_RULES_STORAGE_KEY);
-  if (!raw) return;
-  const o = JSON.parse(raw) as Record<string, PrefValue>;
-  if (!o || typeof o !== 'object') return;
-  const moved = PREFERENCES.filter((p) => p.id in o);
-  if (!moved.length) return;
-  for (const p of moved) {
-    if (!(p.id in already)) p.set(o[p.id]);
-    delete o[p.id];
-  }
-  stockageWeb('localStorage')?.setItem(HOUSE_RULES_STORAGE_KEY, JSON.stringify(o));
-  savePreferences();
-}
-
-/** Charge les préférences persistées (démarrage de l'app) — sans jouer les `onChange`. */
+/** Charge les préférences persistées (démarrage de l'app) — sans jouer les `onChange`. Une valeur non
+ *  conforme à la forme de son entrée (`valeurConforme`) est ignorée : le défaut s'applique. */
 export function loadPreferences(): void {
-  try {
-    const raw = stockageWeb('localStorage')?.getItem(KEY);
-    const o = raw ? (JSON.parse(raw) as Record<string, PrefValue>) : {};
-    if (!o || typeof o !== 'object') return;
-    for (const p of PREFERENCES) if (p.id in o) p.set(o[p.id]);
-    adoptHouseRulePreferences(o);
-  } catch {
-    /* JSON corrompu ou stockage indisponible : on garde les défauts */
+  const o = lireDictionnaire('localStorage', KEY);
+  if (!o) return;
+  for (const p of PREFERENCES) {
+    const v = o[p.id];
+    if (valeurConforme(p, v)) p.set(v);
   }
 }
 

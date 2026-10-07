@@ -1,3 +1,4 @@
+import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
 // SONDE des structures OBSERVÉES dans la donnée — moteur de mesure partagé par le générateur
 // `scripts/docs/build-structures.mts` et la garde `src/data/structures-contrat.test.ts`.
 // Aucun rendu ici : uniquement des mesures (l'affichage vit dans le générateur, le stock dans
@@ -32,13 +33,14 @@ import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/col
 import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { auPlusProcheAncetre, coDescendre, descendre } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
+import { sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import ts from 'typescript';
+import * as ts from 'typescript/unstable/ast';
 import {
   CLES_DE_SPECIALISATION,
   CLES_IDENTITE,
   CLES_PROSE_SANS_REFERENCE,
-  CLES_REFERENCE_SCOPEE,
+  estCleScopee,
   CLES_RESERVEES,
   CONCEPTS,
   CONCEPT_REFERENCE,
@@ -445,8 +447,8 @@ export type EntreePartielleEmbarquee = {
   readonly document: string;
   /** Nom du document hôte. */
   readonly hote: string;
-  /** Plus proche ANCÊTRE (l'objet exclu) portant un `id` chaîne, resp. un `source` objet
-   *  (`auPlusProcheAncetre`, `grammaire/descente.ts`). */
+  /** Plus proche ANCÊTRE (l'objet exclu) portant un `id` chaîne (`auPlusProcheAncetre`,
+   *  `grammaire/descente.ts`), resp. la `source` héritée (`sourceHeritee`, `grammaire/prose.ts`). */
   readonly id?: string;
   readonly source?: Readonly<Record<string, unknown>>;
 };
@@ -487,7 +489,7 @@ export function entreesPartiellesEmbarquees(
         const deja = reperes.get(p.valeur)?.document;
         if (deja !== undefined && deja !== cible) throw new Error(`${lieu} — entrée partielle de DEUX documents : ${deja}, ${cible}.`);
         const id = auPlusProcheAncetre(p, (o) => (typeof o.id === 'string' ? o.id : undefined));
-        const source = auPlusProcheAncetre(p, (o) => (estObjet(o.source) ? o.source : undefined));
+        const source = sourceHeritee(p);
         reperes.set(p.valeur, { document: cible, hote: d.file, ...(id !== undefined ? { id } : {}), ...(source !== undefined ? { source } : {}) });
       }
     });
@@ -635,7 +637,7 @@ export function scannerDonnees(
    */
   const ouvreReference = (dataset: string, k: string, v: string): boolean =>
     !(CLES_PROSE_SANS_REFERENCE as readonly string[]).includes(k) &&
-    !(k in CLES_REFERENCE_SCOPEE) &&
+    !estCleScopee(k) &&
     !choixDeclares.get(dataset)?.get(k)?.has(v);
 
   /** Résolution BRUTE (l'id est indexé quelque part, ou le `{text}` égale un libellé). */
@@ -1030,7 +1032,7 @@ export function scannerDonnees(
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
       if (!estDocument && !estCollectionACle && !classe && typeof o.op !== 'string') {
-        const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k));
+        const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k) && !estCleScopee(k));
         const cleReservee = cles.find((k) => (CLES_RESERVEES as readonly string[]).includes(k));
         const cleIdentite = cles.find((k) => (CLES_IDENTITE as readonly string[]).includes(k));
         const motif: SignatureOrpheline['motif'] | null = cleRef
@@ -1306,18 +1308,15 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 // looseObject dont la signature recoupe le lexique ou un schéma de la grammaire partagée.
 // ---------------------------------------------------------------------------
 
-/** AST d'un fichier, bâti pour l'appel qui le demande (`scripts/guards/lib/tsProgram.mjs`, en-tête). */
-const sourceDe = (fichier: string) =>
-  ts.createSourceFile(fichier, readFileSync(fichier, 'utf8'), ts.ScriptTarget.Latest, true);
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
  *  jamais dans un def. LUS AU DOSSIER : un module de grammaire ajouté est couvert sans liste à tenir. */
 const fichiersGrammaire = (root: string) =>
   listerDossier(join(root, 'src/data/schemas/grammaire')).filter((f) => f.endsWith('.ts') && !f.includes('.test.'));
 const sourcesGrammaire = (root: string) =>
-  fichiersGrammaire(root).map((nom) => {
+  [...analyserCorpus(fichiersGrammaire(root).map((nom) => {
     const fichier = join(root, 'src/data/schemas/grammaire', nom);
-    return sourceDe(fichier);
-  });
+    return { rel: fichier, text: readFileSync(fichier, 'utf8') };
+  }))].map(({ sourceFile }) => sourceFile!);
 
 /** `kind` reconnus par `conditionSchema` (`src/data/schemas/grammaire/mecanique.ts`) — lus par AST,
  *  jamais listés à la main : une Condition en donnée porte un `op` (comparateur) qui n'est PAS une
@@ -1336,12 +1335,12 @@ function kindsDeCondition(root: string): Set<string> {
       ts.isStringLiteral(n.initializer.arguments[0])
     )
       out.add((n.initializer.arguments[0] as ts.StringLiteral).text);
-    ts.forEachChild(n, collecte);
+    n.forEachChild(collecte);
   };
   const visite = (n: ts.Node) => {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === 'conditionSchema' && n.initializer)
       collecte(n.initializer);
-    ts.forEachChild(n, visite);
+    n.forEachChild(visite);
   };
   for (const sf of sourcesGrammaire(root)) visite(sf);
   return out;
@@ -1365,7 +1364,7 @@ function schemasCommuns(root: string): Map<string, string> {
         if (!cible.has(sig)) cible.set(sig, node.name.text);
       }
     }
-    ts.forEachChild(node, (n) => visite(n, sf));
+    node.forEachChild((n) => visite(n, sf));
   };
   for (const sf of sourcesGrammaire(root)) visite(sf, sf);
   for (const [sig, nom] of niches) if (!racines.has(sig)) racines.set(sig, nom);
@@ -1396,14 +1395,14 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
       constsObjet.set(n.name.text, n.initializer);
     }
-    ts.forEachChild(n, releve);
+    n.forEachChild(releve);
   };
   releve(node);
   const pousse = (lit: ts.ObjectLiteralExpression, champ: string) => {
     out.push({
       ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
       champ,
-      cles: lit.properties.flatMap((p) => (p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [])),
+      cles: lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [])),
     });
   };
   const visite = (n: ts.Node) => {
@@ -1425,11 +1424,11 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
         ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
         champ: champDuLitteral(n),
         cles: lit.properties.flatMap((p) =>
-          p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [],
+          'name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [],
         ),
       });
     }
-    ts.forEachChild(n, visite);
+    n.forEachChild(visite);
   };
   visite(node);
   return out;
@@ -1441,9 +1440,9 @@ type LitteralDef = { def: string; ligne: number; champ: string; cles: string[] }
 function litterauxDefs(root: string): LitteralDef[] {
   const dir = join(root, 'src/data/schemas/defs');
   const out: LitteralDef[] = [];
-  for (const f of listerDossier(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))) {
-    const chemin = join(dir, f);
-    const sf = sourceDe(chemin);
+  for (const { fichier, sourceFile: sf } of analyserCorpus(listerDossier(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).map((f) => ({ rel: join(dir, f), text: readFileSync(join(dir, f), 'utf8') })))) {
+    const f = basename(fichier.rel);
+    if (!sf) continue;
     for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
   }
   return out;

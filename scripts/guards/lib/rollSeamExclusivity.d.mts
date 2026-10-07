@@ -1,3 +1,4 @@
+import type { Checker } from 'typescript/unstable/sync';
 export interface Finding {
   line: number;
   detail: string;
@@ -10,11 +11,12 @@ export function scanRollSeamExclusivity(
   relPath: string,
   contenu: string,
   opts?: { includeExcluded?: boolean },
+  sourceFile?: SourceFile,
 ): Finding[];
 
 /** Registre des chemins de jet (#1066) — famille (F) « fabrication d'un pending de jet ». */
 export const PENDING_JET_RX: RegExp;
-export function scanPendingJetFabrication(relPath: string, contenu: string): Finding[];
+export function scanPendingJetFabrication(relPath: string, contenu: string, sourceFile?: SourceFile): Finding[];
 
 /** Registre des chemins de jet (#1066) — famille (D) « roulage délégué à un export de src/engine ». */
 export function engineRollerExports(
@@ -28,6 +30,8 @@ export function scanEngineDelegatedRoll(
   relPath: string,
   contenu: string,
   table: Readonly<Record<string, readonly string[]>>,
+  sourceFile?: SourceFile,
+  checker?: Checker,
 ): { line: number; name: string }[];
 
 /** Garde SŒUR (#1508) — famille (X) « tout dé tiré hors porte » : le SITE OÙ LE DÉ TOMBE. */
@@ -41,4 +45,7 @@ export function scanDesHorsPorte(
   relPath: string,
   contenu: string,
   table: Readonly<Record<string, readonly string[]>>,
+  sourceFile?: SourceFile,
+  checker?: Checker,
 ): { line: number; name: string }[];
+import type { SourceFile } from 'typescript/unstable/ast';

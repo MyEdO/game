@@ -24,6 +24,7 @@
 // Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
 // processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
+import { etapeProfilee } from '../etape-profilee.mjs'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -32,6 +33,7 @@ import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from '../raw/motif-catalogues.mjs'
 import { SORTIES as SORTIES_DU_REGISTRE } from '../gen-registry.mjs'
+import { SORTIE as SORTIE_DES_FORMATS } from '../gen-formats.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { ignoresGit } from './lib/chemin-mesure.mjs'
@@ -45,6 +47,7 @@ import { ignoresGit } from './lib/chemin-mesure.mjs'
  *  Ordre = ordre d'exécution. */
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
+  { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: [], injecte: ['docs/raw/**/00-index.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },
   { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: [], injecte: ['docs/raw/**/*.md'] },
@@ -71,6 +74,7 @@ export const GENERATORS = [
   { runner: 'node', script: 'scripts/docs/build-ajouter-donnee.mjs', targets: ['docs/ajouter-une-donnee.md'] },
   { runner: 'node', script: 'scripts/docs/build-regles-optionnelles.mjs', targets: ['docs/regles-optionnelles.md'] },
   { runner: 'node', script: 'scripts/docs/build-doctrines.mjs', targets: ['docs/doctrines.md'] },
+  { runner: 'node', script: 'scripts/docs/build-dossiers-de-chapitre.mjs', targets: ['docs/dossiers-de-chapitre.md'] },
   { runner: 'tsx', script: 'scripts/gen-sorts-doc.mts', targets: ['docs/sorts-implementation.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-field-consumers.mts', targets: ['docs/consommateurs-de-champs.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-structures.mts', targets: ['docs/structures-donnees.md'] },
@@ -119,7 +123,7 @@ export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
 }
 
 /**
- * `--mixtes` : `perimetreDesMixtes`, en écriture, sans enregistreur — comme `--only`, il ne réécrit pas
+ * `--mixtes` : `perimetreDesMixtes`, en écriture, sans enregistreur — il ne réécrit pas
  * `SOURCES_LUES`, dont il effacerait la mesure des générateurs non joués. REND le code de sortie : 0,
  * ou 1 au premier rouge, nommé.
  */
@@ -132,7 +136,7 @@ function ecrireSansMesure(liste, { cwd, quiet, nom, perimes }) {
   const tsxEsm = tsxEsmPour(liste, cwd)
   for (const g of liste) {
     try {
-      run(g, { cwd, quiet, mode: 'ecrire', tsxEsm })
+      etapeProfilee(`[${nom}] ${g.script}`, () => run(g, { cwd, quiet, mode: 'ecrire', tsxEsm }))
     } catch (e) {
       transmettreDiagnostic(e, quiet)
       process.stderr.write(`${nom} — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : ${perimes} ne sont PAS à jour.\n`)
@@ -431,10 +435,18 @@ export async function executer({
   verificateurs = NON_GENERATOR_CHECKS,
 }) {
   const quiet = argv.includes('--quiet')
-  if (argv.includes('--code')) return genererCode({ cwd, quiet, generateurs })
-  if (argv.includes('--mixtes')) return genererMixtes({ cwd, quiet, generateurs })
   const check = argv.includes('--check')
   const only = argumentsDe(argv, '--only')
+  if (only !== null) {
+    const connus = new Set([...generateurs.map((g) => g.script), ...verificateurs])
+    const inconnus = only.filter((script) => !connus.has(script))
+    if (only.length === 0 || inconnus.length) {
+      process.stderr.write(`docs:${check ? 'check' : 'build'} — ARRÊT : --only ${only.length === 0 ? 'sélection vide' : `nom(s) inconnu(s) : ${inconnus.join(', ')}`} ; fournir un générateur ou vérificateur du registre.\n`)
+      return 1
+    }
+  }
+  if (argv.includes('--code')) return genererCode({ cwd, quiet, generateurs })
+  if (argv.includes('--mixtes')) return genererMixtes({ cwd, quiet, generateurs })
   const seulement = only && new Set(only)
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
   const tsxEsm = tsxEsmPour(generateurs, cwd)
@@ -449,7 +461,11 @@ export async function executer({
   // Le cache de lectures de ce run se purge à chaque sortie d'`executer`.
   try {
     const ignoresLectures = preparerLectures(cwd, racineLectures)
-    const parGenerateur = {}
+    let ancienneMesure = {}
+    if (seulement && !check) {
+      try { ancienneMesure = JSON.parse(readFileSync(path.join(cwd, SOURCES_LUES), 'utf8')) } catch { ancienneMesure = {} }
+    }
+    const parGenerateur = Object.fromEntries(generateurs.filter((g) => Object.hasOwn(ancienneMesure, g.script)).map((g) => [g.script, ancienneMesure[g.script]]))
     // Verdicts de `--check`, TOUS collectés : un générateur rouge ne masque pas les suivants.
     const refus = []
     const refuser = (message) => {
@@ -457,16 +473,14 @@ export async function executer({
       refus.push(message)
     }
     for (const [rang, g] of generateurs.entries()) {
-      // `--only` ne restreint QUE la vérification : un `docs:build` partiel réécrirait
-      // `.sources-lues.json` avec les seuls générateurs joués, et effacerait la mesure des autres.
-      if (check && seulement && !seulement.has(g.script)) continue
+      if (seulement && !seulement.has(g.script)) continue
       const dossier = path.join(racineLectures, String(rang))
       let mesure
       try {
-        mesure = mesurerGenerateur(g, {
-          cwd, quiet, mode: check ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures,
+        mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
+          cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures,
           rendues: path.join(dossier, 'cibles-rendues'),
-        })
+        }))
       } catch (e) {
         transmettreDiagnostic(e, quiet)
         const issue = issueDe(e)
@@ -523,14 +537,14 @@ export async function executer({
     }
     // Les vérificateurs purs, en écriture comme en `--check` : ils n'écrivent rien, leur code de sortie
     // est leur verdict, et ils jugent le rendu que `docs:build` vient d'écrire.
-    const verificateursJoues = verificateurs.filter((script) => !seulement || seulement.has(script))
+    const verificateursJoues = verificateurs
     for (const script of verificateursJoues) {
       try {
-        execFileResilient(process.execPath, [script], {
+        etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${script}`, () => execFileResilient(process.execPath, [script], {
           cwd,
           env: envIsole(process.env, binLocal(cwd)),
           ...sortiesDe(quiet),
-        }, { site: `build-all/${script}` })
+        }, { site: `build-all/${script}` }))
       } catch (e) {
         transmettreDiagnostic(e, quiet)
         refuser(`docs:${check ? 'check' : 'build'} — ${script} — ${natureDuRouge(issueDe(e))}`)

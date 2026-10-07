@@ -14,13 +14,17 @@
 // Rien n'est jamais détruit : ni `--force`, ni suppression. Un équipement rouge (`npm ci`, `docs:build`)
 // LAISSE le worktree et le dit — c'est un équipement qui manque, pas un chantier à défaire.
 //
+// Le principal se synchronise d'abord (`ouvrirChantier`, #2187).
+//
 // Usage : `npm run ops:chantier -- <nom> [--sans-ci]`, `nom` = numéro de ticket + slug optionnel.
 import { spawnSync } from 'node:child_process'
+import { etapeProfilee } from '../etape-profilee.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { GitIndisponible, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
+import { synchroniserPrincipal } from './synchroniser.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -156,7 +160,8 @@ export const GESTES_DU_CHANTIER = Object.freeze({ arbrePrincipal, shaDe, fetchOr
  * @returns {{ok: true, cible: string, branche: string, base: string, resume: string, npmJoue: boolean}
  *   | {ok: false, refus: string, cible?: string, branche?: string}}
  */
-export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync }) {
+export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge }) {
+  const etape = (nomEtape, geste) => etapeProfilee(`[chantier] ${nomEtape}`, geste, { annoncer, horloge })
   if (!nomValide(nom)) {
     return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
   }
@@ -182,12 +187,12 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   const refus = refusDeCreation({ cibleExiste, brancheExiste, nom, cible })
   if (refus) return { ok: false, refus, cible, branche }
 
-  const vuFetch = gestes.fetchOrigin(depot)
+  const vuFetch = etape('git fetch origin', () => gestes.fetchOrigin(depot))
   if (!vuFetch.disponible) {
     return { ok: false, refus: `origin non consultable, le chantier ne peut pas partir d'origin/main : ${vuFetch.raison}` }
   }
 
-  const vuAdd = gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi })
+  const vuAdd = etape('git worktree add', () => gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi }))
   if (!vuAdd.disponible) return { ok: false, refus: `git worktree add a échoué : ${vuAdd.raison}`, cible, branche }
   if (!reussi(vuAdd)) {
     return { ok: false, refus: `git worktree add a échoué (code ${vuAdd.absent ? 'objet absent' : vuAdd.valeur.status})`, cible, branche }
@@ -202,9 +207,9 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   // `EINVAL` sous Node v22.20.0 / win32 (mesure du 2026-09-14). Aucun argument ne porte d'espace,
   // et le `cwd` ne passe pas par la ligne de commande — il n'y a donc rien à citer.
   for (const { args, ou, relance } of EQUIPEMENTS) {
-    const vuNpm = npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {
+    const vuNpm = etape(`${relance}${ou}`, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {
       cwd: cible, stdio: 'inherit', shell: true,
-    })
+    }))
     if (vuNpm?.error || vuNpm?.status !== 0) {
       return {
         ok: false,
@@ -218,18 +223,61 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   return { ok: true, cible, branche, base, resume, npmJoue: true }
 }
 
-function main() {
+/** Les arguments de la ligne de commande qui portent `args` (`argumentsDe`). PURE. */
+export const argvDe = ({ nom, sansCi }) => [nom, ...(sansCi ? ['--sans-ci'] : [])]
+
+/**
+ * La RELANCE de l'ouverture par `npm run ops:chantier -- <args>` depuis `cwd` (#2187, verdict
+ * 6026872846 point 3) : le code du principal avancé. REND son code de sortie.
+ * @param {{nom: string, sansCi: boolean}} args
+ */
+export function relancerChantier(args, { npm = spawnSync, cwd = RACINE } = {}) {
+  const vu = npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'ops:chantier', '--', ...argvDe(args)], { cwd, stdio: 'inherit', shell: true })
+  return vu?.error ? 1 : vu?.status ?? 1
+}
+
+/**
+ * L'ouverture depuis la ligne de commande : le principal SYNCHRONISÉ d'abord (`synchroniserPrincipal`,
+ * #2187) ; `avance` → `relancer(args)`, dont le code est rendu ; tout autre état est annoncé tel quel, une
+ * exception à part, et le chantier se crée depuis `origin/main`. Un nom invalide ne synchronise rien. REND le code de sortie.
+ * @param {{nom: string, sansCi: boolean}} args
+ */
+export async function ouvrirChantier(args, {
+  synchroniser = () => synchroniserPrincipal({ depuis: RACINE, annoncer: (texte) => process.stderr.write(`${texte}\n`) }),
+  relancer = relancerChantier,
+  creer = creerChantier,
+  dire = (texte) => process.stderr.write(texte),
+  imprimer = (texte) => process.stdout.write(texte),
+} = {}) {
+  if (nomValide(args.nom)) {
+    let vu = null
+    try {
+      vu = await synchroniser()
+    } catch (e) {
+      dire(`[chantier] synchronisation du principal en exception : ${/** @type {any} */ (e)?.message ?? e} ; le chantier part d’origin/main\n`)
+    }
+    if (vu?.etat === 'avance') {
+      dire(`[chantier] principal avancé (${JSON.stringify(vu)}) : relance \`npm run ops:chantier -- ${argvDe(args).join(' ')}\`\n`)
+      return relancer(args)
+    }
+    if (vu && vu.etat !== 'a-jour') dire(`[chantier] principal : ${JSON.stringify(vu)} ; le chantier part d’origin/main\n`)
+  }
+  const vu = creer(args)
+  if (!vu.ok) {
+    dire(`[chantier] ${vu.refus}\n`)
+    return 1
+  }
+  imprimer(`${vu.resume}\n`)
+  return 0
+}
+
+async function main() {
   const args = argumentsDe(process.argv.slice(2))
   if (!args) {
     process.stderr.write(`[chantier] usage : npm run ops:chantier -- ${FORME_DITE} [--sans-ci]\n`)
-    process.exit(1)
+    return 1
   }
-  const vu = creerChantier(args)
-  if (!vu.ok) {
-    process.stderr.write(`[chantier] ${vu.refus}\n`)
-    process.exit(1)
-  }
-  process.stdout.write(`${vu.resume}\n`)
+  return ouvrirChantier(args)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) process.exitCode = await main()

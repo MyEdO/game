@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../state/store';
 import {
-  KEYBINDINGS, bindingLabel, keySectionLabel, effectiveCodes, effectiveMods, eventMods, comboLabel, formatCombo,
+  KEYBINDINGS, bindingLabel, keySectionLabel, effectiveCodes, effectiveMods, surchargeDe, eventMods, comboLabel, formatCombo,
   type KeyBindingSection,
 } from '../state/keybindings';
 import { Icon } from './Icon';
@@ -82,7 +82,7 @@ export function KeyBindingsPanel() {
             <h4 className="opt-key-section-title">{keySectionLabel(sec)}</h4>
             {bySection.get(sec)!.map((b) => {
               const code = effectiveCodes(b, keyOverrides)[0];
-              const remapped = !!keyOverrides[b.id];
+              const remapped = surchargeDe(b, keyOverrides) !== undefined;
               const shared = sharedBy.get(b.id);
               return (
                 <div className="opt-key-row" key={b.id}>

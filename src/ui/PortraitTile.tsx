@@ -7,6 +7,8 @@ import { endState } from '../engine/conditions';
 import { END_STATE_VISUAL } from './endStateVisual';
 import { LifeBar } from './LifeBar';
 import type { Combatant } from '../engine/types';
+import { t } from '../i18n';
+import { useLongPress } from './useLongPress';
 
 /**
  * Tuile-portrait compacte et UNIFIÉE — la SEULE façon d'afficher un personnage (HUD, modales,
@@ -52,6 +54,10 @@ export interface PortraitTileProps {
    *  les rangées-personnages d'une LISTE gardent leurs colonnes alignées. Défaut `false` (HUD/dock). */
   reserveStates?: boolean;
   onClick?: () => void;
+  /** GESTE SECONDAIRE de la tuile : INSPECTER ce personnage. TROIS surfaces pour un chemin, le patron de
+   *  l'alvéole (`CombatConsole:ConsoleCell`) — clic droit, appui long (`useLongPress`), touche Menu ou
+   *  Maj+F10 sur la tuile focalisée —, annoncées dans le nom accessible. */
+  onInspect?: () => void;
   title?: string;
   /** Tuile DÉCORATIVE : rendue en `<span>` muet (`aria-hidden`) au lieu d'un `<button>` — pour une
    *  tuile posée DANS un contrôle qui porte déjà le geste et le nom (un candidat de panneau-paramètre
@@ -59,7 +65,7 @@ export interface PortraitTileProps {
   decoratif?: boolean;
 }
 
-export function PortraitTile({ c, ring, variant = 'full', size = 'md', active, selected, hovered, team, maxStates = 4, reserveStates = false, onClick, title, decoratif = false }: PortraitTileProps) {
+export function PortraitTile({ c, ring, variant = 'full', size = 'md', active, selected, hovered, team, maxStates = 4, reserveStates = false, onClick, onInspect, title, decoratif = false }: PortraitTileProps) {
   const px = CHAR_SIZE_PX[size];
   const ratio = c.wounds.max > 0 ? Math.max(0, Math.min(1, c.wounds.current / c.wounds.max)) : 0;
   // État de FIN (#237) : SOURCE UNIQUE (endState) — distingue mort / inconscient / rendu / hors-combat
@@ -69,13 +75,37 @@ export function PortraitTile({ c, ring, variant = 'full', size = 'md', active, s
   const showGauge = variant !== 'identity' && !c.inert;
   const showPv = showGauge && c.kind === 'hero' && px >= CHAR_SIZE_PX.md;
   const Boite = decoratif ? 'span' : 'button';
+  const inspecter = decoratif ? undefined : onInspect;
+  // L'appui long AVALE la salve qu'il précède (`consomme`, lu par `click` ET `contextmenu`) : sans quoi
+  // le doigt ouvrirait la fiche PUIS jouerait le clic primaire de la tuile.
+  const appuiLong = useLongPress(inspecter);
+  const nom = title ?? c.label;
+  const geste2e = inspecter
+    ? {
+        onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); if (appuiLong.consomme()) return; inspecter(); },
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return;
+          e.preventDefault();
+          inspecter();
+        },
+        ...appuiLong.handlers,
+      }
+    : null;
   return (
     <div className="ptile-wrap" style={{ '--ptile-px': `${px}px` } as CSSProperties}>
       {/* Le chevron est porté par la GRAPPE : dans la tuile, le `transform` de l'unité au trait le
           grossirait et le remonterait avec elle (portrait-tile.css). */}
       {active && <i className="ptile-caret">▼</i>}
       <Boite
-        {...(decoratif ? { 'aria-hidden': true } : { type: 'button' as const, onClick, title: title ?? c.label, 'aria-label': title ?? c.label })}
+        {...(decoratif
+          ? { 'aria-hidden': true }
+          : {
+              type: 'button' as const,
+              onClick: () => { if (appuiLong.consomme()) return; onClick?.(); },
+              title: nom,
+              'aria-label': inspecter ? `${nom} — ${t('ptile.geste2eInspecter')}` : nom,
+              ...geste2e,
+            })}
         className={`ptile ${active ? 'active' : ''} ${selected ? 'sel' : ''} ${hovered ? 'hov' : ''} ${endMark ? `ko ${endMark.className}` : ''} ${team ? `team-${team}` : ''}`}
       >
         <span className="ptile-face">

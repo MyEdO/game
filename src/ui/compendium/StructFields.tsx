@@ -29,6 +29,7 @@ import { NoeudTestField, noeudTestNeuf, type NoeudTest } from '../editor/FlowEdi
 import type { GameOp } from '../../engine/ops';
 import type { CrewTarget } from '../../data/shipCriticals';
 import { NumberField } from '../NumberField';
+import { ProseField } from '../ProseField';
 import { PlageField } from '../PlageField';
 import { OptionChooser } from '../OptionChooser';
 import type { OptionalRule, RuleValue } from '../../engine/policy';
@@ -61,7 +62,7 @@ export function SymptomsField({ value, onChange }: { value: DiseaseSymptom[] | u
     <div className="ed-field">
       <span>symptômes (LDB 20 — chacun = un symptôme du catalogue + sévérité/difficulté éventuelles)</span>
       {list.map((s, i) => (
-        <div className="de-reflrow" key={i}>
+        <div className="fieldrow" key={i}>
           <select value={s.symptomId} onChange={(e) => set(i, { symptomId: e.target.value })}>
             {!s.symptomId && <option value="">— (choisir un symptôme) —</option>}
             {syms.map((sym) => <option key={sym.id} value={sym.id}>{sym.label}</option>)}
@@ -142,7 +143,7 @@ export function DiseaseDailyTestField({ value, onChange }: { value: DiseaseDaily
       <label><input type="checkbox" checked={value != null} onChange={(e) => onChange(e.target.checked ? { test: noeudTestNeuf(), symptomId: syms[0]?.id ?? '' } : undefined)} /> test quotidien actif</label>
       {value && (
         <>
-          <div className="de-reflrow">
+          <div className="fieldrow">
             <span>symptôme mis en jeu</span>
             <select value={value.symptomId} onChange={(e) => onChange({ ...value, symptomId: e.target.value })}>
               {!value.symptomId && <option value="">— (choisir un symptôme) —</option>}
@@ -242,7 +243,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
       <input value={raw} placeholder="ligne « Tests : » du livre (verbatim)" onChange={(e) => emit(e.target.value, matches)} />
       {matches.map((m, i) => (
         <div key={i}>
-          <div className="de-reflrow">
+          <div className="fieldrow">
             <select value={m.char != null ? '@char' : (m.skill?.id ?? '')} onChange={(e) => {
               const v = e.target.value;
               if (v === '@char') setM(i, { skill: undefined, specFromInstance: undefined, exceptSpec: undefined, char: CHAR_KEYS[0] });
@@ -274,7 +275,7 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
             <button className="btn small danger" title="Retirer ce Test lié" onClick={() => emit(raw, matches.filter((_, j) => j !== i))}>✕</button>
           </div>
           {m.when ? (
-            <div className="de-reflrow" style={{ marginLeft: 16 }}>
+            <div className="fieldrow" style={{ marginLeft: 16 }}>
               <span>quand :</span>
               <ConditionEditor cond={m.when} onChange={(c) => setM(i, { when: c })} />
               <button className="btn small danger" title="Retirer le contexte" onClick={() => setM(i, { when: undefined })}>✕</button>
@@ -344,7 +345,7 @@ export function CombatField(
       <div className="ed-subfield">
         <span>Modes d'attaque ajoutés (ex. dual-wield)</span>
         {(c.attackModes ?? []).map((mode, i) => (
-          <div className="de-reflrow" key={i}>
+          <div className="fieldrow" key={i}>
             <input value={mode} onChange={(e) => emit({ ...c, attackModes: (c.attackModes ?? []).map((m, j) => (j === i ? e.target.value : m)) })} />
             <button className="btn small danger" title="Retirer" onClick={() => { const next = (c.attackModes ?? []).filter((_, j) => j !== i); emit({ ...c, attackModes: next.length ? next : undefined }); }}>✕</button>
           </div>
@@ -423,7 +424,7 @@ export function AdvancementRefField(
         const mode = advMode(a);
         return (
           <div className="ed-subfield" key={i}>
-            <div className="de-reflrow">
+            <div className="fieldrow">
               <select value={mode} onChange={(e) => set(i, advTo(a, e.target.value as AdvMode))}>
                 {(Object.keys(ADV_MODE_LABEL) as AdvMode[]).map((m) => <option key={m} value={m}>{ADV_MODE_LABEL[m]}</option>)}
               </select>
@@ -493,7 +494,7 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
       <span>possessions — par id du catalogue (+ quantité), dotation véhicule (`vehicles.json`), dotation bête (`creatures.json`), ou texte narratif hors catalogue</span>
       {list.map((t, i) => (
         <div className="ed-subfield" key={i}>
-          <div className="de-reflrow">
+          <div className="fieldrow">
             <select
               value={kindOf(t)}
               onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' ? { vehicleId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : e.target.value === 'creature' ? { creatureId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
@@ -610,9 +611,9 @@ export function SpecsField({ value, onChange }: { value: SpecEntry[] | undefined
     <div className="ed-field">
       <span>spécialisations (id auto-dérivé du libellé ; « proposée d’office » = offerte au créateur/à l’avancement, `LDB 09 l.40`)</span>
       {list.map((s, i) => (
-        <div key={i} className="de-reflrow">
+        <div key={i} className="fieldrow">
           <input value={specEntryLabel(s)} onChange={(e) => setLabel(i, e.target.value)} />
-          <em className="de-hint">{specEntryId(s)}</em>
+          <em className="ed-hint">{specEntryId(s)}</em>
           <OptionChooser
             layout="seg"
             options={[
@@ -711,7 +712,7 @@ export function TraitListField(
   const opts = suggestions ?? traitDatalistOptions();
   return (
     <div className="ed-field">
-      <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
+      <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
           <input list={dlId} value={formatTrait(t)} onChange={(e) => set(list.map((x, j) => (j === i ? parseTraitInstance(e.target.value) : x)))} />
@@ -737,7 +738,7 @@ export function OptionalsListField(
   const opts = traitDatalistOptions();
   return (
     <div className="ed-field">
-      <span>{label}{hint && <em className="de-hint"> {hint}</em>}</span>
+      <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
           {isOptionalNote(t) ? (
@@ -784,9 +785,7 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
               </select>
             </label>
           </div>
-          <label className="ed-subfield">Usages (organes, parties prélevées)
-            <textarea rows={2} value={h.uses} onChange={(e) => onChange({ ...h, uses: e.target.value })} />
-          </label>
+          <ProseField label="Usages (organes, parties prélevées)" value={h.uses} onChange={(uses) => onChange({ ...h, uses })} />
         </>
       )}
     </div>

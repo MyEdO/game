@@ -18,6 +18,7 @@
  */
 import { useMemo, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import { cellulesDe, estSeparateur } from '../data/source/decoupe';
 import remarkGfm from 'remark-gfm';
 import { CodexRef } from './compendium/CodexRef';
 import { ParchmentCard } from './ParchmentCard';
@@ -177,9 +178,14 @@ export function Prose({ md, porteur, exergues: avecExergues }: { md: string; por
 }
 
 /** Markdown → texte brut (tooltips/blurbs où l'on ne peut pas rendre de React). Approximatif (suffisant
- *  pour un aperçu tronqué) : retire la syntaxe d'emphase/listes/liens/titres et normalise les espaces. */
+ *  pour un aperçu tronqué) : retire la syntaxe d'emphase/listes/liens/titres et normalise les espaces ;
+ *  une rangée de table GFM rend ses cellules non vides jointes par « — » (séparatrice : `estSeparateur`). */
 export function mdToText(md: string): string {
   return md
+    .split('\n')
+    .filter((l) => !estSeparateur(l))
+    .map((l) => (/^\s*\|/.test(l) ? `${cellulesDe(l).filter(Boolean).join(' — ')} ;` : l))
+    .join('\n')
     .replace(/`{1,3}([^`]*)`{1,3}/g, '$1')        // code inline/fence
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')          // images
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')       // liens → texte

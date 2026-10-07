@@ -60,7 +60,6 @@ const doc = document(
     blast: maneuverMeasure.optional(),
     magic: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema),
-    priority: z.number().optional(),
     /** ENJEU de l'ENTRÉE (#1117) — ce que la manœuvre met en jeu, COLLÉ à ses `effects` (éditable au
      *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit du kind `maneuverDefense`. */
     stake: z.string().optional(),
@@ -78,10 +77,6 @@ const doc = document(
     blast: { label: 'Zone d’effet' },
     magic: { label: 'Magique' },
     effects: { label: 'Effets déclenchés' },
-    priority: {
-      label: 'Priorité',
-      hint: 'Poids de pertinence : classe la manœuvre au menu d’attaque et dans le choix de l’IA (défaut 1)',
-    },
     stake: { label: 'Enjeu', hint: 'Ce que la manœuvre met en jeu, collé à ses effets déclenchés' },
     stakeForm: { label: 'Forme de l’enjeu' },
   },

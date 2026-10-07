@@ -207,7 +207,7 @@ const SORTIE: TintAt = (x) => (x === 7 ? 0.35 : 1);
 
 function écran(tintAt: TintAt, actors: ActorPose[] = ACTEURS, els: SceneBillboardEls = ELS): JSX.Element {
   return (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE_NUE}
       mpt={MPT}
       frame={CADRE}
@@ -272,7 +272,7 @@ describe('Écran nu — un pas d’acteur et un lot d’éléments neuf ne remon
 
     await act(async () => {
       root!.render(
-        <GameStage3D scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
+        <GameStage3D lecture="jeu" scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
           actors={ailleurs} gameTime={720} lightLevel={1} lights={[]} anim={anim} />,
       );
     });
@@ -327,7 +327,7 @@ describe('Écran nu — un pas d’acteur et un lot d’éléments neuf ne remon
 
     await act(async () => {
       root!.render(
-        <GameStage3D scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={neuf}
+        <GameStage3D lecture="jeu" scene={SCENE_NUE} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={neuf}
           actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim} />,
       );
     });
@@ -440,7 +440,7 @@ describe('Scène neuve — le montage repart de zéro (#1396)', () => {
 
     await act(async () => {
       root!.render(
-        <GameStage3D scene={autreScène} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
+        <GameStage3D lecture="jeu" scene={autreScène} mpt={MPT} frame={CADRE} tintAt={PLEINE} keepEl={KEEP} els={ELS}
           actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim} />,
       );
     });

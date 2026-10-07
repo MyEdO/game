@@ -57,7 +57,7 @@ import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHul
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from './shipwreck';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from './worldMap';
-import { MAISON_PROJET_AUTHORE } from '../data/migrationsDeProjet';
+import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
 import { estAbsent } from './terrain';
@@ -89,14 +89,14 @@ import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { projectsLoad, projectSave, type SavedProject } from './projectLibrary';
+import { projectsLoad, projectSave, type EntreeEcrite, type SavedProject } from './projectLibrary';
 import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
 import { hoverTargeting } from './targeting';
 import { maneuverShip } from './shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from './visionState';
-import { doorIsOpen, emptyScene } from './scene';
+import { doorIsOpen, emptyScene, porteEnJeu } from './scene';
 import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
 import { houseRulesMutability, resetHouseRule } from './houseRules';
 import { cadence } from '../engine/cadence';
@@ -878,8 +878,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       return all.filter((w) => w.structure === structure).map((w) => ({
         x: w.x, y: w.y, z: w.z ?? 0, side: w.side, structure: w.structure,
-        window: !!w.window, door: !!w.door,
-        ...(w.door ? { closed: !doorIsOpen(sc, w) } : {}),
+        window: !!w.window, door: porteEnJeu(sc, w),
+        ...(porteEnJeu(sc, w) ? { closed: !doorIsOpen(sc, w) } : {}),
       }));
     },
 
@@ -1003,7 +1003,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  enveloppée par le constructeur UNIQUE du document (`documentDeProjet`), identité d'un projet
      *  d'auteur (`MAISON_PROJET_AUTHORE`) — elle passe `parseProject`. Rien n'est écrit : la recette la
      *  DÉFORME pour son cas, puis la pose par `projectSave`. */
-    projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): SavedProject => {
+    projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): EntreeEcrite => {
       const scene = emptyScene();
       const project = documentDeProjet(
         { type: 'projet', id, label, versionContenu: 1, maison: MAISON_PROJET_AUTHORE },

@@ -1,5 +1,6 @@
-import { heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
-import { startOf, unreachableDescriptiveZones } from './mapQC';
+import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from './scene';
+import { unreachableDescriptiveZones } from './mapQC';
+import { isRoomZone } from './rooms';
 import { footprintTiles, sizeFootprint } from './footprint';
 import { entitySize } from './spawn';
 import { METRES_PER_LEVEL } from './relief';
@@ -7,12 +8,12 @@ import { realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
-import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, EMPTY_FLOW } from './flow';
+import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from './flow';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
-import { validateDocument, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
+import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets (réfs de validation `handler.refs`) — importé via le BARIL `combatFlow` (qui
 // ré-exporte combatEffects), comme le store : entrer le cycle d'effets/combat par le MÊME nœud
 // canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
@@ -73,8 +74,8 @@ export type ArchitectureWarningRef =
  *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
  *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
-const fautesDeSchema = (schema: Parameters<typeof validateDocument>[0], objet: object): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validateDocument(schema, objet));
+const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validerFormeVivante(schema, objet)?.fautes ?? null);
 
 /** PORTÉE d'une faute pour l'éditeur (clic → sélection), par la suite des LISTES à clé que son lieu
  *  traverse depuis la racine ; les clés rencontrées nomment la sélection. Choix d'ÉCRAN : une façade
@@ -201,6 +202,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
       entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
       npcSheet: (id) => sceneNpc(s, id),
       within,
+      walkable: (x, y, z) => groupePosable(s, { x, y, z }),
     };
     // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
     // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).
@@ -244,18 +246,18 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     const startEntity = s.entities.find((e) => e.kind === 'heroStart');
     if (start && startEntity && echelleDuPas) {
       if (!isWalkable(s, start.x, start.y, start.z)) {
-        add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
+        add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
       } else {
         // Zones évaluées SEULEMENT depuis un départ praticable : depuis une case murée, la marche ne
         // rejoint rien et TOUTES les pièces se signaleraient — un seul défaut, pas N faux.
         for (const zone of unreachableDescriptiveZones(s, start))
-          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
+          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z ?? 0}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
       }
     }
     const validRect = (rect: { x: number; y: number; w: number; h: number }) =>
       Number.isInteger(rect.x) && Number.isInteger(rect.y) && Number.isInteger(rect.w) && Number.isInteger(rect.h)
       && rect.w > 0 && rect.h > 0 && within(rect.x, rect.y) && within(rect.x + rect.w - 1, rect.y + rect.h - 1);
-    const zoneInterior = (id: string) => s.effectZones?.find((zone) => zone.id === id && zone.presentation === 'interior');
+    const zoneInterior = (id: string) => s.effectZones?.find((zone) => zone.id === id && isRoomZone(zone));
     /** `revealBelow` : une TOITURE révèle par cutaway les pièces qu'elle COUVRE, potentiellement à
      *  un étage inférieur au sien (`architectureVisibility.ts` ne compare aucun z — seule
      *  l'appartenance de la zone à l'ensemble `roomZoneIds` compte) — jamais au-dessus (une toiture
@@ -377,10 +379,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           if (v != null && (v < 0 || v > 59)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-59`);
       });
     /** Parcours RÉCURSIF d'un Flow (branches `if`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
-     *  effets référencés + bornes des conditions horaires + ENJEU des jets. ENVELOPPÉ : un Flow corrompu
-     *  (nœud manquant/réf pendante — document ANCIEN qu'un `normalizeScene` ne peut pas tout réparer sans
-     *  inventer de donnée) rapporte un Warning `error` au lieu de faire tomber la validation de TOUTE la
-     *  scène — chaque flow est indépendant, un flow cassé ne masque pas les autres.
+     *  effets référencés + bornes des conditions horaires + ENJEU des jets.
      *
      *  FLOWS PORTÉS par une feuille : trouvés PAR LA FORME (`carriedFlows`, `engine/flowCore`) — l'échéance
      *  d'un `delayedEffect`, la récompense d'une `petitePriere`, et tout champ `Flow` d'un effet à écrire.
@@ -394,30 +393,24 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
      *  un enjeu authoré BLANC est un enjeu absent — sans ce partage, l'authoring déclarerait bon un
      *  document que `resolveStake` refuse d'afficher. */
     const checkFlow = (flow: Flow, refId: string, scope: Warning['scope']) => {
-      try {
-        walkFlow(flow, (node) => {
-          if (node.kind === 'do') {
-            checkEffect(node.effect, refId, scope);
-            for (const porte of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
-          } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
-          else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
-            add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
-          }
-        });
-      } catch {
-        add('error', scope, refId, `Flow « ${refId} » corrompu (nœud invalide/réf pendante)`);
-      }
+      walkFlow(flow, (node) => {
+        if (node.kind === 'do') {
+          checkEffect(node.effect, refId, scope);
+          for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
+        } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
+        else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
+          add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
+        }
+      });
     };
 
     for (const t of s.triggers) {
       if (!within(t.rect.x, t.rect.y) || !within(t.rect.x + t.rect.w - 1, t.rect.y + t.rect.h - 1)) add('warn', 'trigger', t.id, `Zone « ${t.id} » déborde de la carte`);
       if (t.when) checkCondTimes(t.when, t.id, 'trigger');
-      checkFlow(t.flow, t.id, 'trigger');
     }
-    // Flow d'INTERACTION d'une entité (fouiller, crocheter, examiner) : une PORTE de Flow authoré au
-    // même titre qu'une zone ou un choix de dialogue — donc validée par le même parcours (réfs d'effets,
-    // fenêtres horaires, enjeu des jets). Sans elle, la moitié des jets d'une scène échapperait à la garde.
-    for (const e of s.entities) for (const a of e.usable?.actions ?? []) checkFlow(a.flow, `${e.id}›${a.id}`, 'entity');
+    // Chaque RACINE de Flow authoré (`racinesDeFlow`) passe le même parcours : réfs d'effets, fenêtres
+    // horaires, enjeu des jets.
+    for (const r of racinesDeFlow(s)) checkFlow(r.flow as Flow, r.porteur.id, r.porteur.genre);
     for (const d of s.dialogues) {
       const nodeIds = new Set(d.nodes.map((n) => n.id));
       if (!nodeIds.has(d.start)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : départ « ${d.start} » inexistant`);
@@ -425,14 +418,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
         for (const c of n.choices) {
           if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
           if (c.when) checkCondTimes(c.when, d.id, 'dialogue');
-          if (c.flow) checkFlow(c.flow, d.id, 'dialogue');
           const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
           if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
         }
     }
     const entById = new Map(s.entities.map((e) => [e.id, e] as const));
     for (const e of s.encounters) {
-      checkFlow(e.onVictory ?? EMPTY_FLOW, e.id, 'encounter'); // onVictory est déjà un Flow (delayedEffect.flow récursé)
       // onVictory est APPLIQUÉ À PLAT à la victoire (finishVictory → flattenFlow), pour préserver la
       // déférence transition/dialogue → « Continuer ». flattenFlow lève sur un nœud interactif → on
       // l'interdit ici (les `if` conditionnels restent permis, eux, car flattenFlow les évalue).

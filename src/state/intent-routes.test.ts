@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { ROUTES, buildRoutes, type Route } from './netOwnership';
 import { jetOwnedIntents, participantOwnedIntents } from './flowVerbs';
 import { horsModalOwnedIntents } from './modalArbiter';
-import { GUEST_INTENTS, INTERLUDE_INTENTS } from '../net/intents';
+import { GUEST_INTENTS, INTERLUDE_INTENTS, PARTY_INTENTS } from '../net/intents';
 
 const JET = Object.keys(jetOwnedIntents());
 const PART = participantOwnedIntents();
@@ -75,7 +75,7 @@ describe('#1051 — les familles de routes sont DISJOINTES (invariant verrouill�
 describe('#1051 — frontière table ⇄ REPLI universel', () => {
   it('le repli n’est PAS une entrée de la table : la majorité des intents invités y passe', () => {
     const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a));
-    expect(repli.length, 'population du repli universel (mesure de référence #1051, +12 exposés #1050, −1 routé #1042 : counterspellCancel porte la frontière de phase, −1 verbe purgé #1117 : `cascadeDetermine`, +1 exposé #1279 Sf : `cascadeAmount`, jumeau de `cascadeChoose`, +3 exposés #1426 : les trois verbes du LOT DE DÉS d’étal — `etalLotSetForcedRoll`/`etalLotConfirm`/`etalLotCancel` — passent VOLONTAIREMENT par le repli, qui les route à l’owner de leur modale, soit le sentinel `WORLD_STEP_OWNER` : une route dédiée y recopierait la même réponse, −2 purgés / +1 exposé #1349 G5 : `attackSetHeldGround`/`attackSetIntoCrowd` remplacés par `battleToggleStance`, +1 exposé #1411 P2-A : `armEndTurn`, 1er temps du garde-fou « tour gâché » — geste du TOUR ACTIF, que le repli route à son propriétaire, +2 exposés #1508 : `cascadeDieRoll`/`cascadeDieSetForcedRoll`, jumeaux EXACTS des deux verbes de table — même goulot d’état, même routage par l’owner de leur étape, +1 exposé #1920 : `surgeryPassCancel`, jumeau de `surgeryNext`/`surgeryCancel` qui passent déjà par le repli — il les route à l’owner de la modale `medic`, le chirurgien de `pendingSurgery`, porteur même du jet)').toBe(189);
+    expect(repli.length, 'population du repli universel (mesure de référence #1051, +12 exposés #1050, −1 routé #1042 : counterspellCancel porte la frontière de phase, −1 verbe purgé #1117 : `cascadeDetermine`, +1 exposé #1279 Sf : `cascadeAmount`, jumeau de `cascadeChoose`, +3 exposés #1426 : les trois verbes du LOT DE DÉS d’étal — `etalLotSetForcedRoll`/`etalLotConfirm`/`etalLotCancel` — passent VOLONTAIREMENT par le repli, qui les route à l’owner de leur modale, soit le sentinel `WORLD_STEP_OWNER` : une route dédiée y recopierait la même réponse, −2 purgés / +1 exposé #1349 G5 : `attackSetHeldGround`/`attackSetIntoCrowd` remplacés par `battleToggleStance`, +1 exposé #1411 P2-A : `armEndTurn`, 1er temps du garde-fou « tour gâché » — geste du TOUR ACTIF, que le repli route à son propriétaire, +2 exposés #1508 : `cascadeDieRoll`/`cascadeDieSetForcedRoll`, jumeaux EXACTS des deux verbes de table — même goulot d’état, même routage par l’owner de leur étape, +1 exposé #1920 : `surgeryPassCancel`, jumeau de `surgeryNext`/`surgeryCancel` qui passent déjà par le repli — il les route à l’owner de la modale `medic`, le chirurgien de `pendingSurgery`, porteur même du jet, −1 routé #2415 : `toggleCluePin`, refusé à tout invité par le repli hors combat — il passe à `TOUJOURS` avec `markCluesSeen`, exposé et routé d’emblée)').toBe(188);
     expect(ROUTES.has('battleSelectAction'), 'un geste de tour ordinaire ne se route pas').toBe(false);
   });
 
@@ -87,6 +87,11 @@ describe('#1051 — frontière table ⇄ REPLI universel', () => {
     const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a));
     expect(repli.length + routes.length, 'partition exacte de l’allowlist').toBe(GUEST_INTENTS.size);
     expect(ROUTES.has('cascadeBatchDetermine'), 'la Détermination PAR RANGÉE est routée (#1117)').toBe(true);
+  });
+
+  it('GARDE DE CLASSE (#2415) : tout intent de GROUPE a sa route — hors combat, le repli le refuserait à tout invité', () => {
+    const sansRoute = [...PARTY_INTENTS].filter((a) => !ROUTES.has(a));
+    expect(sansRoute, 'intent de PARTY_INTENTS sans entrée dans ROUTES : le repli (`seatOwns(…, undefined)` hors combat) le réserve à l’hôte, surface morte pour l’invité').toEqual([]);
   });
 
   it('un intent INCONNU n’a pas de route (il tombe sur le repli, jamais sur une route voisine)', () => {

@@ -4,7 +4,7 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../state/netFlow';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
-import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport } from '../state/roster';
+import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice } from '../state/roster';
 import { PARTY_MAX } from '../state/combatants';
 import { downloadText, fileSlug } from '../lib/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -30,6 +30,7 @@ import { coreAxisIds } from '../data';
 import { resolveActiveAxes } from '../state/worldMap';
 import { t } from '../i18n';
 import { Row, Stack } from './Layout';
+import { ChipDeRefus } from './ChipDeRefus';
 
 /**
  * Écran d'équipe — solo ET coop. En coop, l'hôte attribue chaque SIÈGE (`net.slots`) ; chaque joueur
@@ -150,7 +151,7 @@ export function PartyScreen() {
             </button>
           }
         >
-          <p className="chip tone-danger" role="alert">{refusLancement}</p>
+          <ChipDeRefus refus={{ message: refusLancement }} />
         </Modal>
       )}
     </>
@@ -158,9 +159,8 @@ export function PartyScreen() {
 }
 
 /** Modale de choix de la campagne : l'Arène (intégrée) + les projets PUBLIÉS de l'éditeur.
- *  `currentId` = id de la campagne active (`'arene'` pour l'intégrée, `undefined` si une vieille
- *  save persistée sans id — aucun surlignage, pas de crash, #608 Lot B). */
-function CampaignSelect({ currentId, onClose }: { currentId: string | undefined; onClose: () => void }) {
+ *  `currentId` = id de la campagne active (`'arene'` pour l'intégrée, #608 Lot B). */
+function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: () => void }) {
   const setPendingCampaign = useGame((s) => s.setPendingCampaign);
   const published = useState(() => publishedProjects())[0];
   const [refusEntree, setRefusEntree] = useState<string | null>(null);
@@ -182,7 +182,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string | undefined;
   };
   return (
     <Modal title={t('party.campaign.pick.title')} onClose={onClose} backdropClose>
-        {refusEntree && <p className="chip tone-danger" role="alert">{refusEntree}</p>}
+        {refusEntree && <ChipDeRefus refus={{ message: refusEntree }} />}
         <div className="pregen-list">
           <div className="pregen-row">
             <span className="campaign-row-name"><Icon id="scenario/arena" size="sm" /> {t('campaign.builtin')}</span>
@@ -687,6 +687,11 @@ export function CandidatePool({
   const [roster, setRoster] = useState(() => rosterLoad());
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
+  // Le témoin de `rosterLoad` (roster d'un autre format retiré) devient le message au joueur ; consommé
+  // dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
+  useEffect(() => {
+    if (takeRosterNotice()) setImportErr(t('picker.roster.retire'));
+  }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -739,6 +744,11 @@ export function CandidatePool({
             onChange={setTab}
           />
         </Row>
+        {importErr && (
+          <Row justify="center">
+            <ChipDeRefus refus={{ message: importErr }} />
+          </Row>
+        )}
 
         <MasterDetail
           className="candidate-master-detail"
@@ -789,7 +799,6 @@ export function CandidatePool({
           }
         />
       </Stack>
-      {importErr && <p className="hint danger candidate-import-err">{importErr}</p>}
       <input
         ref={fileRef}
         type="file"

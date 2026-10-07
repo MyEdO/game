@@ -2,7 +2,6 @@
  "id": "arene",
  "type": "projet",
  "label": "L’Arène",
- "schema": 17,
  "icon": "scenario/arena",
  "versionContenu": 1,
  "maison": "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source",
@@ -10,7 +9,24 @@
   "affaires": [],
   "indices": [],
   "presetsPnj": [],
-  "objets": []
+  "objets": [],
+  "documents": [
+   {
+    "id": "document-titre-de-champion-de-l-arene",
+    "titre": "Titre de Champion de l’Arène",
+    "prose": "Par la présente, le porteur est proclamé CHAMPION DE L’ARÈNE DU BOURG — vainqueur de la Cour, des Ruines, des Égouts, du Charnier, des Lices, du Marais, du Nid, de la Fosse, de la Caverne, du Nid de Vermine, du Cercle Maudit, du Sépulcre… et du Dragon des ténèbres lui-même. Que les tavernes lui servent à boire et que les routes s’écartent."
+   },
+   {
+    "id": "document-stele-des-ruines",
+    "titre": "Stèle des Ruines",
+    "prose": "« Ici tint garnison la III^e bannière du Comte Palatin. Le feu prit la tour une nuit de Geheimnisnacht ; nul ne rebâtit. Que celui qui fouille nos pierres laisse une pièce aux morts. »"
+   },
+   {
+    "id": "document-journal-du-prevot-de-felsbach",
+    "titre": "Journal du prévôt de Felsbach",
+    "prose": "« 12 Sigmarzeit — Le colporteur est reparti vers le marais, fiévreux. 15 — Trois foyers touchés, on a muré la maison Brenner. 19 — L’eau du puits a un goût. TOUT LE MONDE a bu. 22 — Que Morr nous ouvre. Ne buvez pas l’e— » (la plume a traversé la page)"
+   }
+  ]
  },
  "scenes": [
   {
@@ -3638,8 +3654,7 @@
             "kind": "do",
             "effect": {
              "type": "document",
-             "title": "Titre de Champion de l’Arène",
-             "desc": "Par la présente, le porteur est proclamé CHAMPION DE L’ARÈNE DU BOURG — vainqueur de la Cour, des Ruines, des Égouts, du Charnier, des Lices, du Marais, du Nid, de la Fosse, de la Caverne, du Nid de Vermine, du Cercle Maudit, du Sépulcre… et du Dragon des ténèbres lui-même. Que les tavernes lui servent à boire et que les routes s’écartent."
+             "documentId": "document-titre-de-champion-de-l-arene"
             }
            },
            {
@@ -7000,8 +7015,7 @@
            "kind": "do",
            "effect": {
             "type": "document",
-            "title": "Stèle des Ruines",
-            "desc": "« Ici tint garnison la III^e bannière du Comte Palatin. Le feu prit la tour une nuit de Geheimnisnacht ; nul ne rebâtit. Que celui qui fouille nos pierres laisse une pièce aux morts. »"
+            "documentId": "document-stele-des-ruines"
            }
           },
           {
@@ -24042,8 +24056,7 @@
            "kind": "do",
            "effect": {
             "type": "document",
-            "title": "Journal du prévôt de Felsbach",
-            "desc": "« 12 Sigmarzeit — Le colporteur est reparti vers le marais, fiévreux. 15 — Trois foyers touchés, on a muré la maison Brenner. 19 — L’eau du puits a un goût. TOUT LE MONDE a bu. 22 — Que Morr nous ouvre. Ne buvez pas l’e— » (la plume a traversé la page)"
+            "documentId": "document-journal-du-prevot-de-felsbach"
            }
           },
           {

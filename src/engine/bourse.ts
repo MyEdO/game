@@ -15,7 +15,7 @@ import { fromBrass, toBrass, type Money } from './money';
 /** Id de trapping de la Bourse (`trappings.json`) — la seule graphie de cette référence. */
 export const BOURSE_TRAPPING_ID = 'bourse';
 
-const ZERO_MONEY: Money = { gold: 0, silver: 0, brass: 0 };
+const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
 /** Instance `ItemInstance` de la Bourse d'un héros, ou `undefined` s'il n'en a pas. */
 export function bourseInstanceOf(hero: Combatant): ItemInstance | undefined {

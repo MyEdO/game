@@ -44,7 +44,7 @@ function setup(port: PortProfile, party: Combatant[], enc = 40): void {
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois', enc, basePriceGold: 10 }], lastVoyageMilles: 0 },
-    port: { placeId: 'P', label: 'Port', port, freeEnc: 0, maxLoadEnc: 0, offers: [] },
+    port: { placeId: 'P', label: 'Port', port: structuredClone(port), freeEnc: 0, maxLoadEnc: 0, offers: [] },
     journal: [],
     pendingCascade: null,
   } as never);
@@ -155,7 +155,7 @@ function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
     battle: null,
     worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
-    port: { placeId: 'P', label: 'Port', port, freeEnc: 300, maxLoadEnc: 450, offers: [{ cargoId: 'bois', label: 'Bois', enc: offerEnc, basePrice, surplus: false }] },
+    port: { placeId: 'P', label: 'Port', port: structuredClone(port), freeEnc: 300, maxLoadEnc: 450, offers: [{ cargoId: 'bois', label: 'Bois', enc: offerEnc, basePrice, surplus: false }] },
     journal: [],
     pendingCascade: null,
   } as never);

@@ -54,6 +54,17 @@ export function envDeDepotForge() {
 }
 
 /**
+ * Le dépôt `racine` sous l'environnement d'un dépôt forgé (`envDeDepotForge`), SANS git feinte
+ * (`ENV_GIT_FEINT` répond sans processus) : la lecture que mesure `lancesDeGit` (gitDeBanc.mjs).
+ * @param {string} racine @returns {import('./gitPorte.mjs').Depot}
+ */
+export function depotReel(racine) {
+  const env = envDeDepotForge()
+  delete env[ENV_GIT_FEINT]
+  return depotDe(racine, { env })
+}
+
+/**
  * L'environnement d'une UTILISATRICE dont la configuration globale est le fichier `globale` : celui
  * d'un dépôt forgé (`envDeDepotForge`), sous sa configuration. La mesure des ÉCRIVAINS : l'identité
  * qui signe est celle de sa configuration, ou aucune.
@@ -86,6 +97,9 @@ export function sousLEnvDeLUtilisatrice(globale, fn) {
  * @returns {Record<string, string>}
  */
 export const envGitFeint = (regles) => ({ [ENV_GIT_FEINT]: JSON.stringify(regles) })
+
+/** La variable d'une git FEINTE, pour le banc (`gitDeBanc.mjs`), qui n'importe pas l'hôte en import statique. */
+export { ENV_GIT_FEINT }
 
 /**
  * `fn()` sous une git FEINTE (`envGitFeint(regles)`) posée sur `process.env`, retirée à la sortie :

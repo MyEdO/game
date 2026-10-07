@@ -8,21 +8,21 @@
  * (`CHEMINS_ADRESSES`, `src/ui/liage.ts`) — un module d'UI n'a pas à tirer le parseur pour lire une
  * liste de chaînes. Hôte UNIQUE : pas de second inventaire qui divergerait au premier champ ajouté.
  *
- * CRITÈRE D'ENTRÉE : le champ est rendu à l'écran PAR UN PORTEUR DE PROSE (`<Prose>` & co). Les
- * autres `z.string()` de prose des defs de scène ne sont PAS ici parce qu'aucun rendu ne les passe à
- * un porteur de prose (mesuré #1392 T0, corrections point 10) :
- *   `effets.ts:122` `reveal.text`      → `SceneRevealModal.tsx` : texte NU dans un `<p>`.
- *   `effets.ts:196` `dialogue.text`    → `DialogueModal.tsx` : texte NU (réplique jouée).
- *   `effets.ts:198` `dialogue.choices[].text` → libellé de bouton.
- *   `effets.ts:509` `journal.text`     → `CarnetScreen.tsx` : entrée de journal en texte nu.
- *   `narratif.ts:43` `indices[].resume` → libellé court de l'index du carnet.
- *   `scene.ts:424`  `objectives[].label` → libellé d'objectif.
- *   `scene.ts:702`  `hooks[].note`     → note d'authoring, jamais rendue au joueur.
- * Un de ces champs qui passerait un jour par `<Prose>` entre ICI dans le même geste.
+ * CRITÈRE D'ENTRÉE : le champ appartient au périmètre du LIAGE automatique (`CHEMINS_ADRESSES`,
+ * `src/ui/liage.ts`) — une prose que `<Prose>` rend avec son `Porteur`, qui arme les liens du Codex.
+ * Hors catalogue, rendus sans porteur ou hors `<Prose>` :
+ *   `journal.desc` (`effets.ts`, `champsProse`) → `EFFECT_HANDLERS.journal` (`state/combatEffects.ts`).
+ *   `dialogues[].nodes[].desc` (`scene.ts`, `champsProse`) → `DialogueBox.tsx` (texte nu, #2428),
+ *     `DialogueHistoryScreen.tsx` (`<Prose>` sans porteur).
+ *   `setObjective.desc`, `grantFavor.desc` (`effets.ts`) → `store.objectives`, `BackgroundPanel.tsx`.
+ *   `choice.prompt` (`effets.ts`, `sceneFlowSchema`), `dialogues[].nodes[].choices[].label` (`scene.ts`) → libellés.
+ *   `narratif.affaires[].desc` (`narratif.ts`), `desc` de scène (`scene.ts`) → jamais rendus au joueur.
+ * Un de ces champs rendu un jour par `<Prose>` AVEC son porteur entre ICI dans le même geste.
  */
 export const CHAMPS_PROSE_DE_SCENE = [
   'narratif.ouverture.pitch',
   'narratif.indices[].stades[].prose',
+  'narratif.documents[].prose',
   'massBattle.terrain',
 ] as const;
 

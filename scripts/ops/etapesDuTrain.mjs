@@ -4,8 +4,8 @@
 // (`contexteDe`, `publier.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
-// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsRouges`, `lirePr`, `ouvrirPr`, `demanderFusion`,
-// `lireFusion`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
+// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
+// `lireFusion`, `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
 // inertes, import d'un paquet, import d'un module du dépôt qui l'exporte lanceuse ou n'est pas lu,
@@ -13,7 +13,9 @@
 // lu hors de ses inertes), évaluation ; `import.meta` est inerte. Résidu que le test ne garde pas :
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
-import { TRONC, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
@@ -64,6 +66,25 @@ export function verdictDesRuns(courses, sha, { workflow = WORKFLOW } = {}) {
   // `ROUGES` nomme les trois échecs connus ; toute AUTRE conclusion (`neutral`, `skipped`, une
   // valeur neuve de GitHub) n'est pas verte non plus — elle rougit, et le journal la porte.
   return { etat: 'rouge', course, inattendue: !ROUGES.has(conclusion) }
+}
+
+/**
+ * Le verdict d'une course `rouge` (`verdictDesRuns`) jugé sur ses JOBS (`jobsEnEchecDe`). PUR. Une course
+ * conclue en échec dont AUCUN job n'est rouge et dont un job au moins est annulé (panne d'Actions) est
+ * `annulee` : personne n'a jugé ce contenu, le geste est une relance. Sans job rouge ni annulé, elle reste
+ * `rouge`, marquée `sansJobEnEchec`, pour que son lecteur le dise. Tout autre verdict passe tel quel.
+ * @param {{etat:string, course?:object}} verdict @param {{rouges:string[], annules:string[]}} jobs
+ * @returns {{etat:string, course?:object, rouges:string[], annules:string[], sansJobEnEchec?:true}}
+ */
+export function verdictDesJobs(verdict, { rouges, annules }) {
+  if (verdict.etat !== 'rouge' || rouges.length) return { ...verdict, rouges, annules }
+  return annules.length ? { ...verdict, etat: 'annulee', rouges, annules } : { ...verdict, rouges, annules, sansJobEnEchec: true }
+}
+
+/** Ce que disent les jobs d'un verdict jugé (`verdictDesJobs`), en une phrase. PUR. */
+export function phraseDesJobs({ rouges, annules, sansJobEnEchec }) {
+  if (sansJobEnEchec) return 'aucun job rouge ni annulé dans la course'
+  return [rouges.length ? `jobs rouges : ${rouges.join(', ')}` : '', annules.length ? `jobs annulés : ${annules.join(', ')}` : ''].filter(Boolean).join(' ; ')
 }
 
 /**
@@ -133,34 +154,10 @@ export function etatDeLaPr(pr, tete) {
 }
 
 /**
- * Une réponse de `PUT …/pulls/{n}/merge-async` ou de `GET …/merge-async/{uuid}` (schéma
- * `pull-request-merge-async-result`), réduite à ce que l'étape `file` lit. PUR. `409` : une demande
- * est déjà PENDANTE, et la réponse porte son `uuid` ; `400` : la PR n'est pas fusionnable, `failed`.
- * Tout autre code, ou un corps hors schéma, est un refus NOMMÉ.
- * @param {{code:number, corps:any}} reponse
- * @returns {{ok:true, statut:'pending', uuid:string, attendue:string|null, deja:boolean}
- *   |{ok:true, statut:'merged', fusion:string|null}|{ok:true, statut:'enqueued'}
- *   |{ok:true, statut:'failed', message:string}|{ok:false, raison:string}}
- */
-export function issueDeFusion({ code, corps }) {
-  const statut = corps?.status
-  const details = corps?.details ?? {}
-  const message = String(details.message ?? '')
-  if (![200, 202, 400, 409].includes(code)) return { ok: false, raison: `HTTP ${code}${message || corps?.message ? ` : ${message || corps.message}` : ''}` }
-  if (statut === 'pending' && typeof details.uuid === 'string' && details.uuid)
-    return { ok: true, statut, uuid: details.uuid, attendue: details.expected_head_sha ?? null, deja: code === 409 }
-  if (statut === 'merged') return { ok: true, statut, fusion: details.sha ?? null }
-  if (statut === 'enqueued') return { ok: true, statut }
-  if (statut === 'failed') return { ok: true, statut, message: message || `HTTP ${code}` }
-  return { ok: false, raison: `HTTP ${code} hors schéma : ${JSON.stringify(corps).slice(0, 200)}` }
-}
-
-/**
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
  * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
  * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les sorties de `npm run agents:sync` (le pre-commit joue `agents:check` à
- * chaque commit). PURE.
+ * commités (#2203) —, et les sorties de `npm run agents:sync` (`synchroniserAgents`). PURE.
  */
 export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
@@ -223,26 +220,6 @@ export const finDeSortie = (texte, max = 400) => {
   return t.slice(-max)
 }
 
-/**
- * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
- * indisponibilité, puis `stderr`, puis `stdout` — chaque morceau retenu sur son CONTENU, jamais par
- * un repli `??` (une chaîne vide n'est pas nullish : `classer` rend `{status, stdout, stderr:''}`
- * quand git n'écrit que sur stdout). PURE.
- * @param {object} vu union git @param {number} [max] borne de `finDeSortie`
- * @returns {string} '' quand git n'a rien imprimé
- */
-export const sortieDe = (vu, max = 400) =>
-  finDeSortie(
-    [vu?.raison, vu?.valeur?.stderr, vu?.valeur?.stdout]
-      .map((t) => String(t ?? '').trim())
-      .filter(Boolean)
-      .join('\n'),
-    max,
-  )
-
-/** Ce que DIT un échec de git, jamais vide : sa sortie, ou son code de sortie nommé. PURE. */
-export const refusDeGit = (vu, max = 400) => sortieDe(vu, max) || `(status ${vu?.valeur?.status ?? '?'}) — git n'a rien imprimé`
-
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
 export const titreDeCommit = (message, max = 120) => {
   const ligne = String(message ?? '').split('\n')[0].trim()
@@ -299,17 +276,11 @@ function commettreDerives(ctx, { chemins, numeros, journal }) {
 }
 
 
-/** Attente BLOQUANTE sans busy-loop (le train est synchrone de bout en bout). */
-export function attendre(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
-}
-
-
 /**
  * Remet les miroirs d'agents en phase AVANT le commit des dérivés, par la porte `ctx.npm`.
  * `agents:sync` se déclenche sur un `agents:check` ROUGE, jamais sur la saleté de `CLAUDE.md` : un
  * commit de la plage qui touche `.claude/skills/**` ou `.claude/credo.md` sans resynchroniser laisse
- * `agents:check` rouge au pre-commit, et le commit des docs échouerait sans nommer la cause.
+ * `agents:check` rouge, et la gate `agents:check` de la CI refuserait la plage sans nommer la cause.
  * @param {{npm: Function, journaliser: Function}} ctx
  * @returns {{ok: true} | {ok: false, raison: string}}
  */
@@ -319,16 +290,20 @@ export function synchroniserAgents(ctx) {
   ctx.journaliser(`[publier] docs — \`agents:check\` rendu ${verif.status} : \`npm run agents:sync\`\n`)
   const sync = ctx.npm('agents:sync')
   if (sync.status !== 0)
-    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : le pre-commit jouerait \`agents:check\` et refuserait le commit` }
+    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : la gate \`agents:check\` de la CI refuserait la plage` }
   return { ok: true }
 }
 
-/** Le refus nommé d'une course de BRANCHE rouge ou annulée sur la tête `tete` de la PR `pr`, ou `null`. */
+/** Le refus nommé d'une course de BRANCHE rouge ou annulée sur la tête `tete` de la PR `pr`, ou `null` ; une
+ *  course rouge se juge sur ses jobs (`verdictDesJobs`). */
 function rougeDeBranche(ctx, pr, tete) {
   const vues = ctx.coursesCi(tete)
-  const ci = vues.disponible ? verdictDesRuns(vues.valeur, tete) : null
-  if (!ci || (ci.etat !== 'rouge' && ci.etat !== 'annulee')) return null
-  return `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)} — la PR #${pr.numero} n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/${ci.course.databaseId}`
+  const lu = vues.disponible ? verdictDesRuns(vues.valeur, tete) : null
+  if (!lu || (lu.etat !== 'rouge' && lu.etat !== 'annulee')) return null
+  const jobs = lu.etat === 'rouge' ? ctx.jobsEnEchec(lu.course.databaseId, lu.course.attempt) : null
+  const ci = jobs?.disponible ? verdictDesJobs(lu, jobs.valeur) : lu
+  const dit = jobs ? ` (${jobs.disponible ? phraseDesJobs(ci) : `jobs illisibles : ${jobs.raison}`})` : ''
+  return `course CI ${ci.etat} de la branche sur ${tete.slice(0, 9)}${dit} — la PR #${pr.numero} n’entre pas dans la file : https://github.com/${DEPOT}/actions/runs/${ci.course.databaseId}`
 }
 
 /**
@@ -354,15 +329,16 @@ function causeDEjection(ctx, pr, tete) {
   const url = `https://github.com/${DEPOT}/actions/runs/${course.databaseId}`
   const base = ctx.parentsDe(course.headSha).parents?.[0]
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${vuTronc.raison}` }
+  if (!vuTronc.disponible) return { attendre: true, dit: `course de file ${verdict.etat} ${url}, origin non consultable : ${refusDeGit(vuTronc)}` }
   const dansLeTronc = base && vuTronc.sha ? ctx.questions.estAncetre(base, vuTronc.sha) : null
   if (!(dansLeTronc?.disponible && !dansLeTronc.absent && dansLeTronc.valeur))
     return { attendre: true, dit: `course de file ${verdict.etat} ${url} sur un groupe (G^1 ${String(base ?? '?').slice(0, 9)} hors d’${TRONC.suivi}) : GitHub reconstruit l’entrée` }
-  const jobs = ctx.jobsRouges(course.databaseId)
+  const jobs = ctx.jobsEnEchec(course.databaseId, course.attempt)
   if (!jobs.disponible) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${jobs.raison}` }
+  const juge = verdictDesJobs(verdict, jobs.valeur)
   const derives = new Set(ctx.jobsDesDerives)
-  const reprendre = jobs.valeur.length > 0 && jobs.valeur.every((j) => derives.has(j))
-  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url} — jobs rouges : ${jobs.valeur.join(', ') || '(aucun nommé)'}` }
+  const reprendre = juge.etat === 'rouge' && juge.rouges.length > 0 && juge.rouges.every((j) => derives.has(j))
+  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url}${juge.etat === 'annulee' ? ' ANNULÉE' : ''} — ${phraseDesJobs(juge) || 'aucun job nommé'}` }
 }
 
 /**
@@ -376,13 +352,13 @@ function reprendreApresEjection(ctx, journal, cause) {
   if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
     return { ok: false, raison: `${cause.raison} — éjectée une ${journal.ejections + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS}) : la cause n’est pas le tronc` }
   const vuTronc = ctx.tronc()
-  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${vuTronc.raison}` }
+  if (!vuTronc.disponible) return { ok: false, raison: `${cause.raison} — origin non consultable pour la reprise : ${refusDeGit(vuTronc)}` }
   const numeros = numerosDeLaPlage(ctx.questions)
   if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
   const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${TRONC.suivi} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
   const vu = ctx.fusionner({ message })
   if (!reussi(vu)) {
-    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
+    // #2203
     const conflits = ctx.questions.cheminsEnConflit()
     const pures = conflits.length > 0 && conflits.every((c) => estCiblePure(c, ctx.generators))
     const conclue = pures ? ctx.conclureFusionSansCiblesPures({ chemins: conflits, message }) : null
@@ -390,7 +366,7 @@ function reprendreApresEjection(ctx, journal, cause) {
       if (conflits.length) ctx.abandonnerFusion()
       return {
         ok: false,
-        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
+        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ''} : ${refusDeGit(vu)}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
       }
     }
     const code = ctx.docs('--code')
@@ -441,7 +417,10 @@ export const ETAPES = [
       const origine = questions.origineDe()
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
       const vuFetch = ctx.tronc()
-      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${vuFetch.raison}` }
+      if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuFetch)}` }
+      // #2328 A3
+      const fusions = questions.verdictDesFusions()
+      if (!fusions.ok) return { ok: false, raison: fusions.texte }
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
       if (outil.refus) return { ok: false, raison: outil.refus }
       // Une branche déjà fusionnée (étape `file` verte) n'a plus rien d'absent du tronc : sa reprise
@@ -531,7 +510,7 @@ export const ETAPES = [
       if (!pr) {
         const ouverte = ctx.ouvrirPr({
           titre: titreDePr(ctx.branche),
-          corps: `Train de publication (\`npm run ops:publier\`), tête ${journal.tete}.`,
+          corps: corpsDePr(journal.tete),
         })
         if (!ouverte.ok) return { ok: false, raison: `\`POST /repos/{owner}/{repo}/pulls\` REFUSÉ : ${ouverte.raison}` }
         const relu = ctx.lirePr()
@@ -542,14 +521,7 @@ export const ETAPES = [
     },
   },
   {
-    // ATTENTE BORNÉE (`--file-timeout-min`), en trois temps : la course VERTE de la branche sur la tête
-    // (managing-a-merge-queue.md : « Once a pull request has passed all required branch protection
-    // checks, a user with write access to the repository can add the pull request to the queue »),
-    // puis `PUT …/pulls/{n}/merge-async` sur cette tête (`merge_action: default` : la file si elle
-    // est configurée, la fusion directe sinon), puis le suivi de la demande (`GET …/merge-async/{uuid}`)
-    // et, mise en file, de la PR jusqu'à sa fusion. Le serveur sérialise : aucun rebase, aucun
-    // fast-forward client. Une éjection se NOMME, et se reprend une fois (`reprendreApresEjection`)
-    // quand sa cause est le tronc. Le temps passé ici est du temps d'ATTENTE (`attenteSecondes`).
+    // #2178 ; #2437 ; https://docs.github.com/en/graphql/reference/input-objects#enqueuepullrequestinput
     nom: 'file',
     dejaFaite(ctx, journal) {
       const vue = journal.etapes.file
@@ -563,7 +535,7 @@ export const ETAPES = [
         attendu({ ok: true, detail: { pr: pr.numero, fusion }, dit: `PR #${pr.numero} fusionnée en ${String(fusion ?? '?').slice(0, 9)}` })
       // `null` : aucune demande ; `{uuid}` : demande PENDANTE ; `{enFile:true}` : PR mise en file.
       let demande = null
-      const patienter = () => attendre(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
+      const patienter = () => attendreSync(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
       while (Date.now() < fin) {
         const lu = ctx.lirePr()
         if (!lu.ok) ctx.journaliser(`[publier] file — PR illisible : ${lu.raison}\n`)
@@ -590,14 +562,14 @@ export const ETAPES = [
             if (ci?.etat !== 'verte') ctx.journaliser(`[publier] file — course de la branche ${ci?.etat ?? `illisible : ${vues.raison}`}\n`)
             else {
               issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
-              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `\`PUT …/pulls/${pr.numero}/merge-async\` REFUSÉ : ${issue.raison}` })
+              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} REFUSÉE : ${issue.raison}` })
               if (issue.statut === 'pending' && issue.deja && issue.attendue !== journal.tete)
                 return attendu({ ok: false, detail: { pr: pr.numero }, raison: `une demande de fusion de la PR #${pr.numero} est DÉJÀ pendante (409, ${issue.uuid}) sur ${String(issue.attendue).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : GitHub l’annule (schéma de \`merge-async\`, \`sha\`) — \`--reprendre\` après son échec` })
               if (issue.statut === 'pending' && issue.deja)
                 ctx.journaliser(`[publier] file — demande DÉJÀ pendante (409) ${issue.uuid} sur la tête publiée : elle est suivie\n`)
             }
           } else if (demande.uuid) {
-            issue = ctx.lireFusion({ numero: pr.numero, uuid: demande.uuid })
+            issue = ctx.lireFusion({ numero: pr.numero, sha: journal.tete, uuid: demande.uuid })
             if (!issue.ok) {
               ctx.journaliser(`[publier] file — demande ${demande.uuid} illisible : ${issue.raison}\n`)
               issue = null
@@ -636,7 +608,7 @@ export const ETAPES = [
       const fusion = file.fusion
       if (!fusion) return { ok: false, raison: 'aucun commit de fusion au journal de l’étape `file`' }
       const vuTronc = ctx.tronc()
-      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${vuTronc.raison}` }
+      if (!vuTronc.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuTronc)}` }
       // Méthode MERGE (scripts/ops/ruleset-main.mjs) : `fusion^1` = `main` d'avant, `fusion^2` = la tête
       // de la PR. La plage est celle de la branche, jamais le commit de fusion (« Merge pull request #N »).
       const base = ctx.questions.shaDe(`${fusion}^1`)
@@ -683,8 +655,13 @@ export const ETAPES = [
     dejaFaite(ctx, journal) {
       return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
     },
+    // #2187 : le principal synchronisé après la fusion ; son état est un fait distinct de la publication,
+    // jamais un échec du train.
     jouer(ctx, journal) {
-      return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}` }
+      const principal = ctx.synchroniserPrincipal()
+      const publie = `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}`
+      const dit = principal.ok ? `principal : ${JSON.stringify(principal.vu)}` : `principal non synchronisé : ${principal.raison}`
+      return { ok: true, detail: { principal }, dit: `${publie} ; ${dit}` }
     },
   },
 ]

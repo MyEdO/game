@@ -11,7 +11,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  */
 const CIBLES = ["input[aria-invalid='true']", "select[aria-invalid='true']", "textarea[aria-invalid='true']"];
 /** Ce qui NOMME un état invalide de CHAMP : l'attribut, la pseudo-classe, une classe `…invalid…`, ou une
- *  classe d'erreur posée sur le contrôle lui-même. Un message d'erreur (`.save-error`) n'est pas un champ. */
+ *  classe d'erreur posée sur le contrôle lui-même. Un message d'erreur (`ChipDeRefus`) n'est pas un champ. */
 const ETAT_INVALIDE = /invalid|(?:input|select|textarea)\S*[.-](?:err|erreur|error)\b/i;
 
 describe('état invalide d’un champ — un style canonique', () => {

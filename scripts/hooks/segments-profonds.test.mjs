@@ -1,6 +1,6 @@
 // Tests du SOCLE de reconnaissance de commande partagé par les gardes PreToolUse (#1679 L1a T1) :
 // `segmentsProfonds` (sous-shells + enrobeurs de tête), `extractTargetDir` (répertoire cible réel),
-// le refus de PALIER (mesuré sur l'histoire), et le contrat de sortie du point d'entrée.
+// et le contrat de sortie du point d'entrée.
 //
 // Les formes couvertes ici viennent de sondes jouées contre les évaluateurs RÉELS avant écriture :
 // onze formes que le tokenizer voyait déjà par accident, dix-sept qu'il laissait passer (flags avant
@@ -22,12 +22,14 @@ import {
   segmentsProfonds,
   finAvantOperateur,
   pipelinesProfonds,
+  pipelinesDeJetons,
+  sansRedirections,
+  affectationsDEnvironnement,
   isGitCommitCommand,
   extractClosedIssues,
   extractTargetDir,
   versCheminNatif,
   scriptsNpm,
-  evaluate as evaluateSolde,
 } from './solde-ticket-guard.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
@@ -94,6 +96,22 @@ const FORMES_VUES = [
     nom: 'powershell -EncodedCommand (base64 UTF-16LE)',
     git: `powershell -EncodedCommand ${encodePourPowerShell('git commit -m "corrige #42"')}`,
     gh: `powershell -EncodedCommand ${encodePourPowerShell('gh issue create --title x')}`,
+  },
+  // L'hôte PowerShell lit sa ligne selon SA grammaire (#2292) : préfixes ordonnés, caractère de paramètre,
+  // positionnel de 5.1.
+  { nom: 'pwsh -co (préfixe de l\'hôte)', git: 'pwsh -co "git commit -m \'corrige #42\'"', gh: 'pwsh -co "gh issue create --title x"' },
+  {
+    nom: 'pwsh -ec (alias de -EncodedCommand)',
+    git: `pwsh -ec ${encodePourPowerShell('git commit -m "corrige #42"')}`,
+    gh: `pwsh -ec ${encodePourPowerShell('gh issue create --title x')}`,
+  },
+  { nom: 'pwsh /c', git: 'pwsh /c "git commit -m \'corrige #42\'"', gh: 'pwsh /c "gh issue create --title x"' },
+  { nom: 'pwsh \u2013c (tiret demi-cadratin)', git: 'pwsh \u2013c "git commit -m \'corrige #42\'"', gh: 'pwsh \u2013c "gh issue create --title x"' },
+  { nom: 'pwsh -cwa', git: 'pwsh -cwa "git commit -m \'corrige #42\'"', gh: 'pwsh -cwa "gh issue create --title x"' },
+  {
+    nom: 'powershell positionnel (5.1)',
+    git: 'powershell -NoProfile "git commit -m \'corrige #42\'"',
+    gh: 'powershell -NoProfile "gh issue create --title x"',
   },
 ]
 
@@ -325,7 +343,6 @@ test('DRIVER : une décision NULLE ne produit AUCUNE sortie (silence, jamais un 
 test('DRIVER solde : une fermeture sans solde est refusée, et le refus dit l\'ordre stage-puis-commit', () => {
   const { base, principal } = depotAvecWorktree()
   try {
-    // Aucune revue dans l'histoire de ce dépôt : le palier n'a pas d'origine, et c'est le SOLDE qui refuse.
     const out = sortieDriver('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #424242)"', principal)
     const { hookSpecificOutput } = JSON.parse(out)
     assert.equal(hookSpecificOutput.permissionDecision, 'deny')
@@ -334,33 +351,6 @@ test('DRIVER solde : une fermeture sans solde est refusée, et le refus dit l\'o
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
-})
-
-test('refus de PALIER : le message NOMME la MESURE (compte, tête, archive) — elle se re-vérifie en une commande', () => {
-  const d = evaluateSolde({
-    command: 'git commit -m "feat: x (corrige #77)"',
-    today: '2026-09-02',
-    readSolde: () => null,
-    palier: () => ({ compte: 11, tete: '2c11fdd9a', chemin: '.claude/soldes/revue-palier-82e95be10.md' }),
-  })
-  assert.ok(d, 'palier atteint sans revue : le refus manque')
-  assert.deepEqual(Object.keys(d), ['reason'])
-  assert.match(d.reason, /11 commits de substance depuis 2c11fdd9a/)
-  assert.match(d.reason, /revue-palier-82e95be10\.md/)
-  assert.match(d.reason, /2c11fdd9a\.\.<tête>/, 'le refus doit dire la fenêtre attendue de la revue à écrire')
-  assert.match(d.reason, /revue-palier-2026-09-02-2c11fdd9a-<tête>\.md/, 'et le NOM du fichier à écrire, aux DEUX bornes')
-})
-
-test('refus de PALIER : un palier INMESURABLE refuse aussi — jamais un silence', () => {
-  const d = evaluateSolde({
-    command: 'git commit -m "feat: x (corrige #77)"',
-    today: '2026-09-02',
-    readSolde: () => null,
-    palier: () => ({ compte: 0, tete: null, chemin: null, erreur: 'toutes les archives sont orphelines' }),
-  })
-  assert.ok(d)
-  assert.match(d.reason, /Palier INMESURABLE/)
-  assert.match(d.reason, /toutes les archives sont orphelines/)
 })
 
 // ── Cumul de refus ──────────────────────────────────────────────────────────────────────────
@@ -402,6 +392,108 @@ test('pipelinesProfonds : un pipeline IMBRIQUÉ est rendu à part, avant son enr
   )
 })
 
+// #2173 : la commande en tête d'un bloc PowerShell s'exécute ; son corps est rendu à part, avant le
+// pipeline qui l'ouvre, comme celui d'un porteur de chaîne.
+test('pipelinesProfonds : le corps d’un bloc PowerShell est rendu à part, avant le pipeline qui l’ouvre', () => {
+  assert.deepEqual(pipelinesProfonds('1..3 | % { Stop-Process -Name node }'), [
+    [['Stop-Process', '-Name', 'node']],
+    [['1..3'], ['%', '{', 'Stop-Process', '-Name', 'node', '}']],
+  ])
+  assert.deepEqual(pipelinesProfonds('try { a x } catch { b } finally { c }').slice(0, 3), [[['a', 'x']], [['b']], [['c']]])
+  assert.deepEqual(pipelinesProfonds('for ($i=0; $i -lt 1; $i++) { pkill node }'), [
+    [['pkill', 'node']],
+    [['for', '($i=0', ';', '$i', '-lt', '1', ';', '$i++)', '{', 'pkill', 'node', '}']],
+  ], 'l’en-tête que les `;` coupent se suit jusqu’à sa parenthèse fermante : la boucle est UNE commande')
+  assert.deepEqual(pipelinesProfonds('foreach ($p in Get-Process bash) { kill $p.Id }')[0], [['kill', '$p.Id']],
+    'l’en-tête du `foreach` n’est pas un corps')
+  for (const [cmd, corps] of [
+    ['gps node | %{kill $_.Id}', [['kill', '$_.Id']]],
+    ['if($true){pkill node}', [['pkill', 'node']]],
+    ['ForEach-Object -Begin { a } -Process { b }', [['a']]],
+    ['% { cmd /c taskkill /PID $_.Id /F }', [['taskkill', '/PID', '$_.Id', '/F']]],
+    ["% { Write-Output '$_.Kill()' }", [['Write-Output', '$_.Kill()']]],
+  ]) assert.deepEqual(pipelinesProfonds(cmd)[0], corps, cmd)
+  assert.deepEqual(pipelinesProfonds('pgrep node | xargs -I{} kill {}'), [[['pgrep', 'node'], ['kill', '{}']]],
+    'hors d’une tête de bloc, une accolade reste dans son jeton')
+  assert.deepEqual(pipelinesProfonds('Write-Output "% { pkill node }"'), [[['Write-Output', '% { pkill node }']]],
+    'un bloc CITÉ n’est pas un bloc')
+})
+
+// #2173 (juge de diff) : un bloc est UNE commande — son corps se lit d'un tenant, à travers `;` et `|`,
+// jusqu'à son `}` ; un énoncé quoté y est une chaîne ; d'autres mots ouvrent un bloc après un `}`.
+test('pipelinesProfonds : le corps d’un bloc se prolonge à travers `;` et `|` ; un énoncé quoté n’y est pas une commande', () => {
+  assert.deepEqual(pipelinesProfonds('1 | % { npx vitest run | tail -5 }')[0], [['vitest', 'run'], ['tail', '-5']])
+  assert.deepEqual(pipelinesProfonds('gps node | % { $_.Id; }; Get-Content p | % { kill $_ }'), [
+    [['$_.Id']], [['gps', 'node'], ['%', '{', '$_.Id', ';', '}']],
+    [['kill', '$_']], [['Get-Content', 'p'], ['%', '{', 'kill', '$_', '}']],
+  ])
+  for (const cmd of ["1 | % { 'npx vitest run' }", '1 | % { "PATH=$_" }', 'Get-ChildItem | % { "gh issue create $_" }']) {
+    assert.equal(pipelinesProfonds(cmd).length, 1, cmd)
+  }
+  for (const cmd of [
+    'if ($false) { 1 } else { pkill node }', 'if ($false) { 1 } elseif ($true) { pkill node }', 'try { 1 } catch [System.Exception] { pkill node }',
+    'switch (1) { 1 { pkill node } }', 'trap { pkill node }', '1 | ? { pkill node }', '1 | Where-Object { pkill node }',
+  ]) assert.ok(pipelinesProfonds(cmd).some((p) => p.some((s) => s[0] === 'pkill')), cmd)
+})
+
+test('pipelinesDeJetons : un segment vidé par l’épluchage pose ses affectations, valeur décitée ; sa substitution se déplie', () => {
+  const [[pgrep], [vide], [kill]] = pipelinesDeJetons('p="$(pgrep node)"; kill $p')
+  assert.deepEqual(pgrep.jetons.map((j) => j.text), ['pgrep', 'node'])
+  assert.deepEqual(vide.jetons, [])
+  assert.deepEqual(vide.valeurs.map(({ nom, valeur }) => ({ nom, valeur })), [{ nom: 'p', valeur: '$(pgrep node)' }])
+  assert.deepEqual(vide.deplies.get(vide.valeurs[0].jeton), [ [pgrep] ])
+  assert.deepEqual(kill.jetons.map((j) => j.text), ['kill', '$p'])
+  assert.deepEqual(kill.valeurs, [], 'un segment qui exécute ne pose pas ses affectations de tête')
+  assert.deepEqual(pipelinesProfonds('p=$(pgrep node); kill $p'), [[['pgrep', 'node']], [['kill', '$p']]], '`node)` n’est pas une commande')
+  assert.deepEqual(affectationsDEnvironnement('"PATH=x"; echo a'), [], 'un jeton quoté n’est pas une affectation')
+  assert.deepEqual(affectationsDEnvironnement('PATH=x; echo a'), ['PATH'])
+})
+
+test('pipelinesDeJetons : `export`, `local`, `declare`, `typeset` et `readonly` posent leurs arguments `NOM=val`', () => {
+  for (const tete of ['export', 'local', 'declare', 'typeset', 'readonly']) {
+    const declaration = pipelinesDeJetons(`${tete} p=$(pgrep node) -x q`).flat().find((s) => s.jetons[0]?.text === tete)
+    assert.deepEqual(declaration.valeurs.map(({ nom, valeur }) => ({ nom, valeur })), [{ nom: 'p', valeur: '$(pgrep node)' }], tete)
+  }
+  assert.deepEqual(pipelinesDeJetons('export -n p=1').flat()[0].valeurs, [], '`export -n` ne pose rien')
+})
+
+test('pipelinesProfonds : `$(…)`, `` `…` `` et `@(…)` se déplient en commandes exécutées, nus ou sous quote double', () => {
+  for (const [cmd, attendu] of [
+    ['x=$(npx vitest run)', [[['vitest', 'run']]]],
+    ['echo $(pkill node)', [[['pkill', 'node']], [['echo', '$(pkill node)']]]],
+    ['y=`pkill node`', [[['pkill', 'node']]]],
+    ['$x = $(Stop-Process -Name node)', [[['Stop-Process', '-Name', 'node']], [['$x', '=', '$(Stop-Process -Name node)']]]],
+    ['echo "a $(pkill node) b"', [[['pkill', 'node']], [['echo', 'a $(pkill node) b']]]],
+    ['x=$(echo a; pkill node | head)', [[['echo', 'a']], [['pkill', 'node'], ['head']]]],
+    ['$a = @(git worktree list)', [[['git', 'worktree', 'list']], [['$a', '=', '@(git worktree list)']]]],
+    ["echo '$(pkill node)'", [[['echo', '$(pkill node)']]]],
+  ]) assert.deepEqual(pipelinesProfonds(cmd), attendu, cmd)
+  assert.deepEqual(pipelinesProfonds("$a = @('npx vitest run', 'b')"), [[['$a', '=', "@('npx vitest run', 'b')"]]],
+    'dans `@(…)`, un énoncé quoté est une chaîne')
+  assert.deepEqual(pipelinesProfonds("x=$('pkill' node)"), [[['pkill', 'node']]], 'dans `$(…)`, un exécutable cité reste une commande')
+})
+
+test('pipelinesProfonds : sous quote double, `` \\` `` et `\\$` sont littéraux, rien ne s’y substitue', () => {
+  assert.deepEqual(pipelinesProfonds('gh issue comment 1 --body "voir \\`npm run gates\\` et \\$(pkill node)"'),
+    [[['gh', 'issue', 'comment', '1', '--body', 'voir `npm run gates` et $(pkill node)']]])
+  assert.deepEqual(pipelinesProfonds('git -C "C:\\Program Files\\x" status'), [[['git', '-C', 'C:\\Program Files\\x', 'status']]])
+})
+
+test('pipelinesProfonds : une here-string ne se ferme qu’à la marque qui ouvre sa ligne (about_Quoting_Rules)', () => {
+  assert.deepEqual(pipelinesProfonds("$j = @'\nx 'a'@ | % { Stop-Process -Name node }\n'@\necho fin"), [
+    [['$j', '=', "\nx 'a'@ | % { Stop-Process -Name node }\n"]],
+    [['echo', 'fin']],
+  ])
+  assert.deepEqual(pipelinesProfonds("$t=@'\na `npx vitest run` b\n'@\nSet-Content x $t"), [
+    [['$t=\na `npx vitest run` b\n']],
+    [['Set-Content', 'x', '$t']],
+  ], 'collée au mot qui la précède, elle reste une donnée')
+})
+
+test('pipelinesProfonds : une substitution dans un bloc se déplie dans son corps, accolades détachées autour d’elle', () => {
+  assert.deepEqual(pipelinesProfonds('%{kill $(pgrep node)}'), [[['pgrep', 'node']], [['kill', '$(pgrep node)']], [['%{kill', '$(pgrep node)}']]])
+})
+
 test('segmentsProfonds EST l’aplati de pipelinesProfonds (une seule traversée)', () => {
   for (const cmd of [
     'npx eslint . ; git log | head -5',
@@ -420,4 +512,45 @@ test('finAvantOperateur : les arguments d\'un segment s\'arrêtent à sa premiè
   assert.equal(finAvantOperateur(['node', 's.mjs', '&>', 'f.txt']), 2)
   assert.equal(finAvantOperateur(['node', 's.mjs', '2189']), 3)
   assert.equal(finAvantOperateur(['>', 'git', 'commit', '>', 'f'], 1), 3, 'à partir de `depart`')
+})
+
+// #2173 (juge de diff, 3e passe) : substitutions de processus, here-string double, shell de chaque segment.
+test('pipelinesProfonds : `<(…)` et `>(…)` se déplient en commandes exécutées', () => {
+  assert.deepEqual(pipelinesProfonds('cat <(pkill node)'), [[['pkill', 'node']], [['cat', '<(pkill node)']]])
+  assert.deepEqual(pipelinesProfonds('tee >(gzip) < x'), [[['gzip']], [['tee', '>(gzip)', '<', 'x']]])
+  assert.deepEqual(pipelinesProfonds('echo x > f'), [[['echo', 'x', '>', 'f']]], 'une redirection reste une redirection')
+})
+
+test('pipelinesProfonds : une here-string double déplie ses `$(…)` ; une here-string simple et une quote simple ne déplient rien', () => {
+  assert.deepEqual(pipelinesProfonds('$t = @"\nfoo $(git status)\n"@'), [[['git', 'status']], [['$t', '=', '\nfoo $(git status)\n']]])
+  assert.deepEqual(pipelinesProfonds('$t = @"\nfoo `$(git status)\n"@'), [[['$t', '=', '\nfoo `$(git status)\n']]])
+  assert.deepEqual(pipelinesProfonds("$t = @'\nfoo $(git status) `git status`\n'@"), [[['$t', '=', '\nfoo $(git status) `git status`\n']]])
+  assert.deepEqual(pipelinesProfonds("echo 'a $(git status) `git status`'"), [[['echo', 'a $(git status) `git status`']]])
+})
+
+test('pipelinesDeJetons : `shell` = un shell par processus neuf, sous-shell et membre de tube, partagé par les corps de bloc', () => {
+  const segments = pipelinesDeJetons('cd a && bash -c "b" && echo $(c) && 1 | % { d } && (e; f) && g').flat()
+  const de = (tete) => segments.find((s) => s.jetons[0]?.text === tete).shell
+  const racine = de('cd')
+  assert.equal(racine.parent, null)
+  assert.equal(de('b').parent, racine, 'argument-chaîne')
+  assert.equal(de('c').parent, racine, 'substitution')
+  assert.equal(de('1').parent, racine, 'membre de tube')
+  assert.equal(de('d'), de('%'), 'corps de bloc')
+  assert.equal(de('%').parent, racine, 'membre de tube')
+  assert.equal(de('e').parent, racine, 'sous-shell')
+  assert.equal(de('f'), de('e'), 'même sous-shell')
+  assert.equal(de('g'), racine, 'après le sous-shell')
+  const evalue = pipelinesDeJetons("eval 'h' && builtin i").flat()
+  assert.equal(evalue.find((s) => s.jetons[0]?.text === 'h').shell, evalue.find((s) => s.jetons[0]?.text === 'eval').shell, '`eval` : le shell hôte')
+  assert.ok(evalue.some((s) => s.jetons[0]?.text === 'i'), '`builtin` s’épluche')
+})
+
+test('sansRedirections : chaque redirection se retire avec sa cible, les arguments qui la suivent restent', () => {
+  const textes = (cmd) => sansRedirections(pipelinesDeJetons(cmd).at(-1)[0].jetons).map((j) => j.text)
+  assert.deepEqual(textes('tsc >x.txt --noEmit'), ['tsc', '--noEmit'])
+  assert.deepEqual(textes('tsc > x.txt --noEmit 2>&1'), ['tsc', '--noEmit'])
+  assert.deepEqual(textes('tsc >|x.txt --noEmit'), ['tsc', '--noEmit'], '`>|` (noclobber) est une redirection, pas un tube')
+  assert.deepEqual(textes('vitest run <in.txt 2>err.txt src/a.ts'), ['vitest', 'run', 'src/a.ts'])
+  assert.deepEqual(textes('diff <(sort a) ">" b'), ['diff', '<(sort a)', '>', 'b'], 'substitution de processus et quote : des arguments')
 })

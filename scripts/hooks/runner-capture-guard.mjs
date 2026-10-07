@@ -28,7 +28,7 @@
 //     (3 faux positifs mesurés avant ce groupement). La profondeur reste couverte : les pipelines
 //     d'un `sh -c "npx vitest | tail"` sont rendus comme les autres.
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { pipelinesProfonds } from './solde-ticket-guard.mjs'
+import { REFUS_SATURE, nouveauBudget, pipelinesProfonds } from './solde-ticket-guard.mjs'
 
 /** `{ exe, args }` d'un segment : basename sans extension, en minuscules (call-operator sauté). */
 function executableDe(segment) {
@@ -129,7 +129,10 @@ export function lecteurTronquantDeFlux(segment) {
  */
 export function evaluate(command) {
   if (!command) return null
-  for (const pipeline of pipelinesProfonds(command)) {
+  const budget = nouveauBudget()
+  const pipelines = pipelinesProfonds(command, 0, { budget })
+  if (budget.sature) return REFUS_SATURE
+  for (const pipeline of pipelines) {
     const rangRunner = pipeline.findIndex((s) => estRunnerNonCapturant(s) && !capture(s))
     if (rangRunner === -1) continue
     // `tee <fichier>` DANS ce pipeline : la sortie entière est écrite, ce qui suit peut tronquer.

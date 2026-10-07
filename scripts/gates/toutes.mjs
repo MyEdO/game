@@ -52,6 +52,8 @@ import {
   rejeux,
 } from '../guards/lib/spawnResilient.mjs'
 import { codeEnfant } from '../test/partition.mjs'
+import { prendreVerrouAsync } from '../test/verrou.mjs'
+import { OPT_OUT_SUITE, VERROU_SUITE, attenteDeSuite, prendreVerrouDeSuite } from '../test/verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -104,24 +106,33 @@ export const ECRIT_LU = {
   'test:hooks': {
     ecrit: [],
     ecritFerme: {
+      '.lint-':
+        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) dans son cwd, la racine quand un test la lui passe ; ' +
+        'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
+      'node_modules/typescript/dist/api/node/wtf8.js':
+        'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +
+        'borne git apply à cet unique --include ; postinstall exécute verifierContratTypeScript avant les générateurs et hooks, donc le banc réel ' +
+        'rencontre le SDK déjà corrigé : --reverse --check puis return false sans écriture, éprouvé par le banc d’idempotence ; ' +
+        'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
       '.claude/logs/new-src-guard-skips.log':
         'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
-        'scripts/hooks/repartiteur.mjs) : il est ' +
+        'scripts/hooks/repartition.mjs) : il est ' +
         'GITIGNORÉ (motif `.claude/*` de .gitignore, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
         'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },
     lit: [
-      '.claude/', '.codex/', '.github/workflows/', 'docs/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
-      'CLAUDE.md', 'eslint.config.js', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
+      '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
+      'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'le reste des fixtures vit sous os.tmpdir() ; `guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
-      'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
-      'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
-      'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
+      'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
+      'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
+      'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
+      'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
@@ -131,7 +142,7 @@ export const ECRIT_LU = {
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
       'sonde n’enregistre pas : la déclaration tient de la LECTURE du code, et une sur-déclaration ne peut ' +
       'que RESSERRER les lanes ; LIT .codex/hooks.json et .claude/settings.json ' +
-      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, eslint.config.js et package.json — ' +
+      '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, oxlint.config.mjs et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
       '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
@@ -161,11 +172,42 @@ export const ECRIT_LU = {
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal',
+      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
+      '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
+      '`scripts/guards/budget-contexte.test.mjs` forge ses fixtures avec instanceDeDepot sous os.tmpdir(), ' +
+      'écrit son evenement.json sous cette racine temporaire et la nettoie par rmSync en finally ; ' +
+      '`mods/murDeMod.test.mjs` crée ses fichiers de sélection native par mkdirSync/writeFileSync ' +
+      'sous mkdtempSync(join(os.tmpdir(), "lint-mod-perimetre-")), puis rmSync en finally ; ' +
+      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally ; +1 écrivain le 2026-10-07 (#2187) : ' +
+      '`hooks/barriere-outil.test.mjs` forge ses arbres (`.git` dossier ou fichier `gitdir:`, LF et CRLF, sous-module) ' +
+      'et y écrit le verrou d’outillage sous `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l’arbre n’est jamais écrit',
+  },
+  'mods:check': {
+    ecrit: [],
+    lit: ['.claude/skills/', 'scripts/mods/', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'src/lib/tableTotale.ts', 'src/lib/ordre.mjs'],
+    raison:
+      'découvre les mods sous .claude/skills/ (`racinesDeMods`, scripts/mods/racines.mjs, par `listerDossier` de ' +
+      'scripts/guards/lib/lister.mjs, qui réexporte src/lib/ordre.mjs), compose ses env par `tableTotale` (src/lib/tableTotale.ts) et lance par l’hôte ' +
+      'de processus (scripts/guards/lib/spawnResilient.mjs) ; chaque ' +
+      'mod est COPIÉ, sans les artefacts du moteur, sous `mkdtempSync` de os.tmpdir() : `claude plugin validate --strict`, ' +
+      '`claude -p` qui y pose ses types, `tsc --project <copie>` (noEmit du tsconfig posé par le moteur) et ' +
+      '`claude plugin test` portent sur la COPIE ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
+      'Le CLI vit hors de l’arbre (PATH, ou cache npm de `npx`)',
+  },
+  'livraison:plage': {
+    ecrit: [],
+    lit: ['.claude/soldes/', 'scripts/guards/livraison-plage.mjs', 'scripts/guards/lib/', 'scripts/node-requis.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'package.json'],
+    raison:
+      'aucune écriture : la porte de publication (#2328, scripts/guards/lib/livraison.mjs) lit l’HISTOIRE par git — ' +
+      'le graphe de `merge-base origin/main..HEAD`, le patch de chaque fusion contre sa fusion automatique ' +
+      '(`merge-tree --write-tree`, dont les objets inaccessibles vont à l’odb, jamais à l’arbre), le journal ' +
+      'des messages, et les soldes `.claude/soldes/ref-<N>.md`, `<N>.md` de HEAD ; LIT son code, la porte de ' +
+      'version de Node (`engines` de package.json) et ce qu’importe l’hôte git (scripts/port-dev.mjs, src/lib/coupeAuMot.mjs)',
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'eslint.config.js', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison:
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
       '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
@@ -174,19 +216,27 @@ export const ECRIT_LU = {
       '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
       '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
-      '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
-      '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
-      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      '`suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
+      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `synchroniser.mjs` (#2187 : il avance ' +
+      'l’arbre PRINCIPAL — fichiers W′, `.git/index`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/` — ' +
+      'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; `publier.mjs` encore, par `sauverJournal`, ' +
+      'pour `vigie.mjs` (#2280 : le cache des verdicts `verte` sous `<arbre principal>/.git/vigie/`, répertoire git ' +
+      'COMMUN, hors de l’arbre ; ses bancs `vigie.test.mjs` et `ci.test.mjs` n’écrivent que sous `mkdtempSync`) ; ' +
+      '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
+      '`import.meta.main` ET si `GITHUB_STEP_SUMMARY` est défini ; ' +
+      'le runner fournit ce fichier hors du dépôt, et le banc CLI le remplace par un fichier de ' +
+      '`mkdtempSync` sous os.tmpdir(), avec événement CI rouge, configuration GitHub temporaire et tokens GitHub vides, sans API ni écriture dans l’arbre ; ' +
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
-      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, eslint.config.js, ' +
+      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, oxlint.config.mjs, ' +
       'kill-pid.mjs), que la porte `workflows.test.mjs` parse pour y RECONNAÎTRE les scripts de workflow et ' +
       'les bancs qui importent `jouer-workflow.mjs` (`reconnaissanceDuDepot`, `bancsDeWorkflowDuDepot`), sans ' +
       'processus fils ; LIT .claude/agents/ (le cliquet d’EXCEPTIONS_MECANIQUES exige `.claude/agents/<type>.md`) ; ' +
       '`workflows-joues.test.mjs` joue les scripts de .claude/workflows/ EN PLACE, sur l’arbre réel ; ' +
-      'scripts/hooks/ est lu par `validateRevuePalier` (solde-ticket-guard.mjs), sans rien y écrire ; LIT ' +
-      'knip.json (le cliquet d’exports le relit). ' +
+      'LIT knip.json (le cliquet d’exports le relit). ' +
       'Ce que `soldesSuivis()` lirait de .claude/soldes/ n’est atteint que par le `main()` du script, ' +
       'gardé par `import.meta.main` (fermetures-non-citees.mjs) : les tests passent leurs ' +
       'PROPRES dépôts jetables, et la sonde n’a mesuré aucune lecture sous .claude/soldes/ ; ' +
@@ -203,17 +253,27 @@ export const ECRIT_LU = {
       'LIT package.json (les scripts que le runner relaie) et .npmrc (copié par scripts/node-requis.test.mjs ' +
       'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
-      'le 2026-09-27, #1801)',
+      'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
+      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) ; ' +
+      '`scripts/test/corpus.test.mjs` forge ses fixtures avec mkdtempSync(tmpdir()) et les nettoie par t.after ; ' +
+      '+1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` atteint `ecrireOuVerifier` par le générateur, ' +
+      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire)',
   },
   'test:docs': {
     ecrit: [],
     lit: [
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
+      'scripts/etape-profilee.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
     ],
     raison:
-      'fixtures sous os.tmpdir() ; `build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
+      'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
+      'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
+      '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
+      'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous os.tmpdir(), préfixe plateforme-win32-decodage-, ' +
+      'puis supprime chaque dossier par rmSync en finally ; ' +
+      '`build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
       'os.tmpdir() hors racine canonique par `canoniser` et `relatifSousRacine`, puis exige l’instance hors ' +
       'arbre ; son finally supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé ' +
       'avant `instanceDeDepot` ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
@@ -234,7 +294,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: [
       'src/', 'scripts/', 'server/', 'docs/', 'Source/', 'package.json', 'knip.json', 'knip-exports-baseline.json',
-      'tsconfig.json', 'vite.config.ts', 'eslint.config.js', 'index.html', '.gitignore', 'CLAUDE.md',
+      'tsconfig.json', 'vite.config.ts', 'oxlint.config.mjs', 'index.html', '.gitignore', 'CLAUDE.md',
     ],
     raison:
       'knip et le cliquet LISENT ; la baseline ne s’écrit que sous `--sync`, absent de la commande de ci.yml ; ' +
@@ -257,10 +317,12 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'eslint.config.js', 'package.json', 'kill-pid.mjs'],
+    lit: ['src/', 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
     raison:
-      '`eslint .` sans `--fix` ni `--cache` ; LIT sa config à plat, package.json et le seul module de ' +
-      'racine qu’il ramène — aucune lecture sous docs/ ni .claude/ (sonde 2026-09-08, 4 009 lectures)',
+      'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et les ' +
+      'modules de code sélectionnés, dont .claude/workflows/ : lecture du code et découverte native ' +
+      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-10-05 ; les configurations imbriquées sont désactivées ; ' +
+      'le mur des mods (#2278) porte le périmètre hooks/types/tests sous .claude/skills/.',
   },
   test: {
     ecrit: [],
@@ -615,18 +677,6 @@ export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
 }
 
 /**
- * Le refus du VERROU DE SUITE (`scripts/test/verrou.mjs`) : quand une autre session joue déjà une
- * suite complète, `npm test` sort en 2 SANS avoir rien joué. Reconnu par sa SORTIE, jamais par le
- * code seul — un 2 est aussi ce que rend une invocation mal formée du lanceur.
- */
-export const estRefusDuVerrou = (code, sortie) =>
-  code === 2 && /^\[verrou\] (?:une suite complète tourne déjà|verrou disputé)/m.test(sortie)
-
-/** Pas et borne de l'attente du verrou de suite. Au-delà, c'est un rouge : une suite qui n'a pas
- *  tourné ne justifie rien, et attendre sans fin ne le dirait jamais. */
-export const ATTENTE_VERROU = { pasMs: 15_000, borneMs: 20 * 60 * 1000 }
-
-/**
  * Tue l'ARBRE d'un enfant. Un `kill` sur le seul PID laisse vivre `npm`, `vitest` et leurs workers :
  * ils garderaient le verrou de suite et les cœurs après un Ctrl-C.
  *
@@ -791,6 +841,12 @@ export function photoArbre(racine) {
 
 const secondesDepuis = (debut) => (Date.now() - debut) / 1000
 
+/** Le script de `package.json` que joue une gate (`npm test` → `test`, `npm run x` → `x`). */
+const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
+
+/** Ce script lance-t-il la suite complète (`scripts/test/run.mjs`, preneur du verrou de suite) ? */
+export const lanceLaSuite = (script) => /(?:^|\s)(?:\.\/)?scripts\/test\/run\.mjs(?:\s|$)/.test(script ?? '')
+
 /**
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
  * politique d'arrêt ni le résumé ne se mesurent autrement qu'en jouant les vraies gates.
@@ -802,6 +858,7 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
+  verrouSuite = VERROU_SUITE,
 } = {}) {
   const LISTE = argv.includes('--liste')
   const SERIE = argv.includes('--serie') || !lanesPortees(machine)
@@ -890,39 +947,43 @@ export async function principal({
   // verdict. AUCUN verdict de gate n'arrête quoi que ce soit, pas même un refus de prérequis : les
   // autres gates lisent le même arbre propre, et chacune teste SES PROPRES prérequis
   // (`prerequisAbsents`), donc leur verdict est juste.
+  /** Verrous de suite tenus par ce run, libérés à l'arrêt sur signal. */
+  const verrousTenus = new Set()
   const arreterSurSignal = (signal) => {
     journal(
       `\n[gates] ${signal} — arrêt : l'ARBRE de chaque gate en cours est tué (un enfant survivant garderait ` +
         'le verrou de suite et des cœurs).\n',
     )
     for (const pid of vivants.values()) tuerArbre(pid)
+    for (const tenu of verrousTenus) tenu.liberer()
     process.exit(130)
   }
   process.on('SIGINT', () => arreterSurSignal('SIGINT'))
   process.on('SIGTERM', () => arreterSurSignal('SIGTERM'))
 
+  /** Un ROUGE de gate rendu SANS spawn : `sortie` écrite dans le fichier de la gate. */
+  const rougeSansSpawn = (gate, sortie, code = 1) => {
+    const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
+    writeFileSync(fichier, sortie)
+    return { code, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
+  }
+
   /** Joue UNE gate, sortie dans son fichier, bornée par son plafond, rejouée si elle n'a pas démarré. */
-  const jouerUneFois = async (gate, coeurs) => {
+  const jouerGate = async (gate, coeurs, envEnPlus) => {
     const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
     // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
     // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
     // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
     // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
     const absents = prerequisAbsents(ecritLu[gate.nom], racine)
-    if (absents.length) {
-      const sortie = refusDePrerequis(gate.nom, absents)
-      writeFileSync(fichier, sortie)
-      return { code: 1, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
-    }
+    if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
     // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.
     // Un script absent de `package.json` est un rouge NOMMÉ, pas un `npm` qui se plaint tout seul.
-    const script = gate.nom === 'test' ? 'test' : gate.nom
+    const script = scriptDeGate(gate)
     if (!scripts[script]) {
-      const sortie = `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`
-      writeFileSync(fichier, sortie)
-      return { code: 1, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
+      return rougeSansSpawn(gate, `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`)
     }
-    const env = { ...process.env }
+    const env = { ...process.env, ...envEnPlus }
     if (coeurs && !process.env.WFRP_TEST_COEURS) env.WFRP_TEST_COEURS = String(coeurs)
     const [commande, ...args] = gate.commande.split(' ')
     const r = await spawnBorne({
@@ -939,29 +1000,6 @@ export async function principal({
     return r
   }
 
-  let attenteVerrouMs = 0
-  /** Joue une gate, en ATTENDANT quand le verrou de suite d'un autre arbre la refuse sans rien jouer. */
-  const jouerGate = async (gate, coeurs) => {
-    const debutAttente = Date.now()
-    for (;;) {
-      const r = await jouerUneFois(gate, coeurs)
-      if (!estRefusDuVerrou(r.code, r.sortie)) return r
-      attenteVerrouMs = Math.max(attenteVerrouMs, Date.now() - debutAttente)
-      if (Date.now() - debutAttente >= ATTENTE_VERROU.borneMs) {
-        journal(
-          `[gates] ${gate.nom} — verrou de suite tenu depuis ${(ATTENTE_VERROU.borneMs / 60000).toFixed(0)} min : ` +
-            'abandon (une suite qui n’a pas tourné ne justifie rien).\n',
-        )
-        return r
-      }
-      journal(
-        `[gates] ${gate.nom} — suite d'un autre arbre en cours : attente ` +
-          `${(ATTENTE_VERROU.pasMs / 1000).toFixed(0)} s (déjà ${((Date.now() - debutAttente) / 1000).toFixed(0)} s)\n`,
-      )
-      await new Promise((patienter) => setTimeout(patienter, ATTENTE_VERROU.pasMs))
-    }
-  }
-
   /** Pose le verdict d'une gate. Aucun verdict n'ARME quoi que ce soit : le résumé compte tout
    *  verdict non vert, et les lanes vont au bout. */
   const poser = (nom, r) => {
@@ -975,11 +1013,34 @@ export async function principal({
   const jouerLane = async (lane) => {
     const debut = Date.now()
     for (const nom of lane.gates) {
+      const gate = aJouerParNom.get(nom)
+      // Le verrou de suite se prend ICI, hors du chronomètre de la gate et de son plafond (`TIMEOUTS`) ;
+      // l'enfant, qui l'aurait repris, part sous l'opt-out explicite.
+      const suite = lanceLaSuite(scripts[scriptDeGate(gate)])
+      const debutAttente = Date.now()
+      const verrou = suite
+        ? await prendreVerrouDeSuite({
+            verrou: verrouSuite,
+            prendre: prendreVerrouAsync,
+            commande: `${process.execPath} scripts/gates/toutes.mjs (gate ${nom})`,
+            cwd: racine,
+            annoncer: (tenant) => journal(`[gates] ${nom} — attente du verrou de suite : ${attenteDeSuite(tenant)}\n`),
+          })
+        : null
+      if (verrou?.liberer) verrousTenus.add(verrou)
+      if (suite) journal(`[gates] ${nom} — ${((Date.now() - debutAttente) / 1000).toFixed(1)} s d'attente du verrou de suite (hors chronomètre)\n`)
       const debutGate = Date.now()
-      // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
-      // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
-      const r = await jouerGate(aJouerParNom.get(nom), !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null)
-      poser(nom, { ...r, debut: debutGate })
+      try {
+        // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
+        // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
+        const r = verrou?.etat === 'refus'
+          ? rougeSansSpawn(gate, `${verrou.message}\n`, 2)
+          : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, suite ? { [OPT_OUT_SUITE]: '0' } : {})
+        poser(nom, { ...r, debut: debutGate })
+      } finally {
+        verrou?.liberer?.()
+        verrousTenus.delete(verrou)
+      }
     }
     return { nom: lane.nom, secondes: secondesDepuis(debut) }
   }
@@ -1018,7 +1079,6 @@ export async function principal({
       ? `[gates] ${totalRejeux} spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)\n`
       : '[gates] 0 spawn rejoué — aucune pression de chargement\n',
   )
-  if (attenteVerrouMs) journal(`[gates] dont ${(attenteVerrouMs / 1000).toFixed(0)} s d'attente du verrou de suite\n`)
 
   // Les durées de CE run sont la mesure des LANES et des TIMEOUTS — écriture au mieux, jamais un verdict.
   try {

@@ -12,11 +12,11 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { sourceRefSchema, secondarySourceRefSchema, variantOf } from './valeurs';
+import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe } from './descente';
 import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
-import { champsProse, refineProse } from './prose';
+import { champsProse, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
@@ -203,6 +203,16 @@ export interface OptionsDocument {
    */
   readonly exiges?: readonly CleExigible[];
   /**
+   * Genres de fragment qu'une `descRef` de CE document admet (`descRefSchemaDe`, `grammaire/valeurs.ts`) — défaut :
+   * tous. Un genre absent est refusé au parse, à l'adresse de l'entrée.
+   */
+  readonly fragmentsAdmis?: readonly GenreDeFragment[];
+  /**
+   * Porteurs de prose que CE document admet (`refineProse`, V5, `grammaire/prose.ts`) — défaut : les deux.
+   * `['descRef']` refuse au parse toute `desc` inline, quel que soit le livre cité.
+   */
+  readonly porteursDeProse?: readonly PorteurDeProse[];
+  /**
    * Raffinement de l'ENTRÉE, appliqué AVANT le sceau.
    * Mesuré (zod 4.4.3) : `superRefine`/`refine` rendent un `ZodObject` ENCORE extensible — l'ordre
    * entrée → affiner → `.pipe` est donc le seul qui scelle. Consommateurs cibles : `projet.ts`
@@ -289,7 +299,7 @@ function champEnveloppe<S extends z.ZodType>(optionnel: S, exige: boolean, nonVi
   return (exige ? nonVide : optionnel.optional()) as z.ZodOptional<S>;
 }
 
-function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonly CleExigible[] = []) {
+function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonly CleExigible[] = [], fragmentsAdmis?: readonly GenreDeFragment[]) {
   const requis = (k: CleExigible) => exiges.includes(k);
   return {
     id: (idDocument ?? z.string().min(1)) as z.ZodType<string>,
@@ -300,7 +310,7 @@ function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonl
      *  livre) — posés par `grammaire/prose.ts`, avec les verrous qui les gouvernent. Ni l'un ni
      *  l'autre n'est rendu requis ICI : l'EXIGENCE de prose se dit sur le texte, pas sur un porteur
      *  (`exiges: ['desc']` → refine V4). */
-    ...champsProse(),
+    ...champsProse(fragmentsAdmis),
     source: champEnveloppe(sourceRefSchema, requis('source')),
     alsoIn: champEnveloppe(z.array(secondarySourceRefSchema), requis('alsoIn'), z.array(secondarySourceRefSchema).min(1)),
     /**
@@ -391,7 +401,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   exposition: Exposition,
   options: OptionsDocument = {},
 ): DocumentHandle<T> {
-  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
+  const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
   if (idDocument && idDocument.safeParse('').success) {
     throw new Error(
       `document('${type}') : \`idDocument\` admet la CHAÎNE VIDE — l'enveloppe ferme l'id à \`.min(1)\`, un schéma d'id ne le ré-ouvre pas.`,
@@ -455,7 +465,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   }
   verifieExposition(type, exposition);
   const entree = z.strictObject({
-    ...enveloppe(type, idDocument, exiges),
+    ...enveloppe(type, idDocument, exiges, fragmentsAdmis),
     ...(champs as Record<string, z.ZodType>),
   }) as z.ZodObject<z.ZodRawShape>;
   const declarees = [...(variantes ?? [])];
@@ -505,14 +515,14 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
           ctx.addIssue({
             code: 'custom',
             path: ['source'],
-            message: `document('${type}') : entrée sans \`source\` — un document sans folio porte \`maison\` (la raison de l'arbitrage).`,
+            message: 'provenance manquante : cite le livre et la page, ou dis la raison maison de l’entrée.',
           });
         }
       }) as z.ZodObject<z.ZodRawShape>);
-  // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V4), au même stade et
+  // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
-    refineProse({ type, site: type, exigeProse: exiges.includes('desc') }),
+    refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));

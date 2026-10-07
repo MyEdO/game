@@ -447,14 +447,13 @@ export interface Weapon {
   /** SKIN cosmétique (objets uniques/légendaires) : override de palette clé→hex appliqué au
    *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
   skin?: Record<string, string>;
-  /** Silhouette de RENDU forcée (libellé d'arme du catalogue, ex. arme invoquée affichée comme
-   *  « Bâton de combat » bien que nommée « Arme aethyrique ») — résolue par le rig (weaponFamily).
-   *  Donnée opaque côté moteur (un simple libellé). */
+  /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
+   *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par le rig (`formeResolue`).
+   *  Donnée opaque côté moteur. */
   form?: string;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art (rig `weaponFamily`/
-   *  `shieldPart`), ≠ libellé. Stampé au spawn/à la construction depuis `ItemInstance.shape` ou le trait.
-   *  Absent = attaque naturelle / arme générique (repli par Groupe au rendu). */
-  shape?: string;
+  /** Forme CHOISIE par le joueur (`ItemInstance.formeChoisie`), propagée par `weaponFromItem`. La forme
+   *  dessinée se RÉSOUT au rig (`formeResolue`, #2113) ; absent = celle du catalogue. */
+  formeChoisie?: string;
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
    *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
@@ -652,7 +651,7 @@ export interface ConditionChange {
 export type ConditionEmit = (e: ConditionChange) => void;
 
 /** Pénalité/blocage d'incantation temporisé (contrecoups des tables d'Imparfaites /
- *  Colère des dieux — LDB 46 l.61-136, LDB 40 l.55-89). Une seule des deux durées :
+ *  Colère des dieux — LDB 46 l.34-80, LDB 40 l.52-89). Une seule des deux durées :
  *  `roundsLeft` (échelle tactique) ou `untilTime` (minutes d'horloge `gameTime`). */
 /** SENTINELLE de portée d'une `CastPenalty` RUNTIME : toute magie (Prière + Langue + Focalisation).
  *  C'est la projection de l'op `castPenalty` SANS référence de Compétence (`src/engine/ops.ts`). */
@@ -1174,9 +1173,10 @@ export interface ItemInstance {
   /** PORTÉE MINIMALE de tir (bande, cf. `Weapon.minRangeBand`) — propagée à l'arme dérivée. Machines de
    *  siège à distance (ADE II 8 l.251/253). */
   minRangeBand?: RangeBandId;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art (rig), ≠ libellé.
-   *  Copié du catalogue (`TrappingData.shape`) par `itemFromTrappingById` ; propagé à `Weapon.shape`. */
-  shape?: string;
+  /** Forme CHOISIE par le joueur parmi les `formChoices` du trapping (`choisirForme`), slug
+   *  `WeaponDef.slug`. Jamais une copie du catalogue : la forme dessinée se RÉSOUT au rig
+   *  (`formeResolue`, #2113) ; absent = `TrappingData.shape`. */
+  formeChoisie?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */
@@ -1267,15 +1267,10 @@ export type CoverClass = 'none' | DeckCoverClass;
 /** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222). La base (Dégâts/Qualités/Enc/
  *  Portée…) n'est PLUS matérialisée : elle est HYDRATÉE au spawn depuis `trappingId` par `hydratePoste`
  *  (`itemFromTrappingById`/`buildWeapon`, coutures UNIQUES). Ne persiste QUE la réf catalogue + l'état propre
- *  au poste (uid, côté, équipage, recharge, munitions, dérogations). L'ancienne forme (`item` complet) est
- *  MIGRÉE au spawn (`item?` toléré en entrée d'hydratation, extrait `item.trappingId`). */
+ *  au poste (uid, côté, équipage, recharge, munitions, dérogations). */
 export interface AuthoredShipPoste {
-  /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). Requise en forme neuve ;
-   *  absente en forme ANCIENNE (dérivée de `item.trappingId` à la migration). */
-  trappingId?: string;
-  /** ANCIENNE forme (pré-#222) : l'arme copiée en entier. Jamais authorée en neuf ; MIGRÉE par `hydratePoste`
-   *  (extrait `trappingId`/`uid`/`enchants`/usure, jette la base copiée). Absente en forme neuve. */
-  item?: ItemInstance;
+  /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). */
+  trappingId: string;
   /** uid d'instance STABLE (liens hotbar/log/persistance) ; généré à l'hydratation si absent. */
   uid?: string;
   /** Dérogations d'INSTANCE : enchants ajoutés à CETTE pièce (magie/qualité hors catalogue), repliés sur
@@ -1324,7 +1319,7 @@ export interface AuthoredShipPoste {
  *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `state/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
-export interface ShipPoste extends Omit<AuthoredShipPoste, 'item'> {
+export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
   /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
    *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
@@ -1937,7 +1932,7 @@ export type UpkeepDeferTest = (spec: {
    *  scopés à la maladie). Couture GÉNÉRIQUE (16 `kind`) : rien n'y est codé en dur, un `kind` futur
    *  apporte SES règles ou n'affiche aucune chip. */
   mods?: ModLine[];
-  meta?: Record<string, unknown>; // p.ex. { diseaseName, onFail: GameOp[] } — porté tel quel par l'étape de cascade
+  meta?: Record<string, unknown>; // p.ex. { diseaseName, opsEchec: GameOp[] } — porté tel quel par l'étape de cascade
 } & (
   /** Le producteur NOMME les ids de son Test : la valeur est celle de la PORTE (`rollLine` →
    *  `testValue` : États, Encombrement, séquelles, passifs), décomposée en Niveau de Compétence NU +

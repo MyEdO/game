@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,6 +36,9 @@ import {
 } from '../../scripts/guards/lib/cssCouchesStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartageesStock.mjs';
+import { sitesNomSansTexteVisible } from '../../scripts/guards/lib/nomVisibleDansNom.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { sitesChipDeRefusNu } from '../../scripts/guards/lib/chipDeRefusNu.mjs';
 
 /**
  * Cliquets d'hygiène UI (#236) — même patron que `combat-hardcode-guard`/`no-emoji-affordance` : une
@@ -45,10 +48,14 @@ import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartagees
  */
 
 const UI = fileURLToPath(new URL('.', import.meta.url)); // src/ui/
+/** L'image CSS de l'arbre de travail, lue UNE fois avant les `it` : chaque lecture rejoue tout le corpus
+ *  git, et un `it` qui la paierait dépasserait sa limite sous charge (#2349). */
+let image: ReturnType<typeof imageDuDisque>;
+beforeAll(() => { image = imageDuDisque(); }, 120_000);
 /** Les modules d'ÉCRAN de l'arbre de travail. */
-const ecransDuDisque = () => modulesDEcran(imageDuDisque());
+const ecransDuDisque = () => modulesDEcran(image);
 /** Les trois volets du stock CSS, mesurés sur l'arbre de travail. */
-const mesureDuDisque = () => mesureCssCouches(imageDuDisque(), composantsDuDisque());
+const mesureDuDisque = () => mesureCssCouches(image, composantsDuDisque());
 
 /** Un fichier du corpus tel que `readCorpus` le rend : chemin POSIX depuis la racine + texte. */
 type Fichier = { rel: string; text: string };
@@ -114,10 +121,8 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // -1 (#1834) : l'enroulement du titre de section suit `.panel h3` en couche PARTAGÉE
   // (`components.css`, hors cliquet) — une base et sa tranche dans la MÊME feuille.
   'styles/base.css': 3,
-  // +1 (#1388) : `.de-reflrow` (rangée dense de réfs de l'atelier Codex) s'enroule dès 360 px —
-  // motif `.bar` non composable ici (c'est une rangée de CHAMPS d'un formulaire d'édition, pas un
-  // bandeau d'écran) ; le `flex-wrap` seul ne suffisait pas, il va de pair avec `min-width: 0`.
-  'styles/codex-edit.css': 2,
+  // -1 (#2290) : la rangée de champs `.fieldrow` est une primitive de `components.css`, hors cliquet.
+  'styles/codex-edit.css': 1,
   'styles/gear-assign-list.css': 1,
   'styles/compendium.css': 3,
   // +1 : `.creator-race-lineages` (#393, correction structurelle Race) — rangée de chips de
@@ -595,7 +600,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   //    silence. Toute feuille hors de `src/ui/styles/` doit donc être déclarée nommément, et les
   //    trois statuts couvrent `src/ui/styles/` par construction — ce que l'union vérifie.
   it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', { timeout: 60_000 }, () => {
-    const primitives = modulesDePrimitive(imageDuDisque().manifeste);
+    const primitives = modulesDePrimitive(image.manifeste);
     const toutes = readCorpus(['src'], { exts: ['.css'] }).map((f) => f.rel);
     const partagees = new Set(SHARED_CSS_FILES.map((f) => `src/ui/${f}`));
     const sansStatut = toutes.filter((f) => !partagees.has(f) && !primitives.has(f) && !f.startsWith('src/ui/styles/')).sort();
@@ -927,7 +932,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
     const orchestrateur = readFileSync(join(UI, 'styles.css'), 'utf8');
     const rang = (rel: string) => orchestrateur.indexOf(`/${base(rel)}'`);
     const rangPeau = Math.max(...FEUILLES_PARTAGEES.map(rang));
-    const modules = [...ecransDuDisque().map((f) => f.rel), ...modulesDePrimitive(imageDuDisque().manifeste)];
+    const modules = [...ecransDuDisque().map((f) => f.rel), ...modulesDePrimitive(image.manifeste)];
 
     // 0. Les MATIÈRES de la couche partagée, DÉRIVÉES de ses sélecteurs.
     const PEAUX = new Set<string>();
@@ -1038,10 +1043,10 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
   // Une DÉCLARATION, pas une mesure : l'enroulement réel dépend des largeurs intrinsèques, que seul
   // un navigateur calcule (`docs/recette-navigateur.md`). Ce contrat tient la condition NÉCESSAIRE —
   // un enfant de la rangée qui ne peut pas rétrécir la fait déborder même enroulée.
-  it('≤360 : tout ENFANT de `.de-reflrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
-    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'codex-edit.css'), 'utf8'))
-      .filter((r) => !r.media && r.selecteurs.includes('.de-reflrow > *'));
-    expect(enfants.length, '`.de-reflrow > *` a sa règle dans `codex-edit.css`').toBe(1);
+  it('≤360 : tout ENFANT de `.fieldrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
+    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'components.css'), 'utf8'))
+      .filter((r) => !r.media && r.selecteurs.includes('.fieldrow > *'));
+    expect(enfants.length, '`.fieldrow > *` a sa règle dans `components.css`').toBe(1);
     expect(enfants[0].corps).toMatch(/min-width:\s*0\b/);
     expect(enfants[0].corps).toMatch(/max-width:\s*100%/);
   });
@@ -1151,7 +1156,6 @@ const REFUS_MUET_BASELINE: Record<string, number> = {
   'editor/FlowEditor.tsx': 2,
   'editor/GameOpEditor.tsx': 4,
   'editor/Inspector.tsx': 2,
-  'editor/NarratifEditor.tsx': 3,
   'editor/Palette.tsx': 1,
   'editor/StatblockEditor.tsx': 2,
   'editor/WorldMapEditor.tsx': 1,
@@ -1491,7 +1495,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
 
   it('(xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée', () => {
     const fautes: string[] = [];
-    for (const css of modulesDePrimitive(imageDuDisque().manifeste)) {
+    for (const css of modulesDePrimitive(image.manifeste)) {
       if (!css.endsWith('.css')) fautes.push(`${css} — n’est pas une feuille CSS`);
       if (!existsSync(join(UI, '..', '..', css))) fautes.push(`${css} — absent du disque`);
       if (FEUILLES_PARTAGEES.includes(css)) fautes.push(`${css} — feuille PARTAGÉE, aucune primitive ne la possède`);
@@ -1592,5 +1596,84 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
   it('(xxii) preuve — un commentaire n’est pas du markup', () => {
     expect(sitesStyleInline([fixture('src/ui/Faux.tsx', '{/* style={{ color }} */}')])).toEqual([]);
     expect(sitesStyleInline([fixture('src/ui/Faux.tsx', '// style={{ color }}')])).toEqual([]);
+  });
+});
+
+describe('#2199 — le nom accessible d’un contrôle CONTIENT son texte vu (WCAG 2.5.3)', () => {
+  it('(xxiii) aucun `aria-label` littéral ne remplace un texte visible littéral qu’il ne reprend pas', () => {
+    const fichiers = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f));
+    expect(fichiers.length, 'le corpus de contrôles UI est non vide').toBeGreaterThan(0);
+    const sites: string[] = [];
+    for (const { fichier, sourceFile } of analyserCorpus(fichiers)) {
+      if (sourceFile) sites.push(...sitesNomSansTexteVisible(fichier, sourceFile));
+    }
+    expect(sites, 'nommer par le CONTENU, ou un `aria-label` qui commence par le texte vu').toEqual([]);
+  });
+
+  it('(xxiii) preuve — le détecteur voit un nom qui écarte le texte vu, branche de ternaire comprise', () => {
+    const vus = (tsx: string) => sitesNomSansTexteVisible({ rel: 'Faux.tsx', text: tsx });
+    expect(vus('const x = <button aria-label="Finir le tour">Fin du tour</button>;')).toEqual(['Faux.tsx:1']);
+    expect(vus("const x = <button aria-label={a ? 'Finir' : 'Passer'}><span>{a ? 'Finir' : 'Fin du tour'}</span></button>;")).toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <div role="button" aria-label="Ouvrir">Fermer</div>;')).toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <span onClick={f} aria-label="Ouvrir">Fermer</span>;')).toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <button aria-label="Ouvrir"><>Fermer</></button>;'), 'fragment traversé').toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <button aria-label="Ouvrir"><span aria-hidden={false}>Fermer</span></button>;'), '`{false}` ne masque pas').toEqual(['Faux.tsx:1']);
+    expect(vus('const x = <button aria-label="Ouvrir"><span aria-hidden={a || undefined}>Fermer</span></button>;'), 'masque conditionnel : vu dans un état').toEqual(['Faux.tsx:1']);
+  });
+
+  it('(xxiii) preuve — ni glyphe, ni touche d’une lettre, ni valeur de liste, ni texte masqué, ni nom qui le reprend', () => {
+    const vus = (tsx: string) => sitesNomSansTexteVisible({ rel: 'Faux.tsx', text: tsx });
+    expect(vus('const x = <button aria-label="Retirer">✕</button>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Arsenal"><i>1</i><span>X</span></button>;')).toEqual([]);
+    expect(vus('const x = <select aria-label="Facteur"><option>Choisir un facteur…</option></select>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Fermer"><span aria-hidden>Croix</span></button>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Fermer"><span aria-hidden="true">Croix</span><span aria-hidden={true}>X ici</span></button>;')).toEqual([]);
+    expect(vus('const x = <button aria-label="Fin du tour, touche Espace">Fin du tour</button>;')).toEqual([]);
+    expect(vus('const x = <span aria-label="Ouvrir">Fermer</span>;'), 'un élément non interactif n’est pas un contrôle').toEqual([]);
+  });
+});
+
+// ── (xxiv) CHIP DE REFUS NU (#2404) — question : un REFUS (geste ou donnée refusés, champ exigé
+//    manquant) se rend-il ailleurs que par `ChipDeRefus` ? Primitive : `src/ui/ChipDeRefus.tsx`, seule
+//    à composer `chip` + `tone-danger` (`docs/charte-ui.md`, `.chip.chip-phrase`). Périmètre : tout
+//    `.tsx` de `src/` hors instruments Vitest. Angle mort : en-tête de `chipDeRefusNu.mjs`.
+//    EXCLUSIONS AU SITE (fichier + texte de l'élément) — chacune une alerte qui n'est PAS un refus :
+const CHIP_DANGER_HORS_REFUS = new Map<string, string>([
+  ['src/ui/CampaignLibraryScreen.tsx :: <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>', 'marque de RANGÉE de liste, non un message : le refus de l’entrée se dit par `ChipDeRefus` au panneau de détail'],
+  ['src/ui/editor/ProjectModals.tsx :: <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>', 'marque de RANGÉE de liste, non un message : le refus d’« Ouvrir » se dit par `ChipDeRefus` en tête de modale'],
+  ['src/ui/CarnetScreen.tsx :: <span className="chip tone-danger">Fausse piste</span>', 'statut d’un indice réfuté, état de jeu'],
+  ['src/ui/CoopPanels.tsx :: <div className="chip tone-danger coop-banner" role="status"><Icon id={icone} size="sm" /> {children}</div>', 'bandeau d’état de la liaison réseau (`role="status"`), aucun geste refusé'],
+  ['src/ui/EtatPanel.tsx :: <span className="chip tone-danger">DAMNÉ</span>', 'état de jeu du héros'],
+  ["src/ui/editor/ValidationPanel.tsx :: <span className={`chip${w.level === 'error' ? ' tone-danger' : ''}`}>{w.level === 'error' ? 'erreur' : 'avertissement'}</span>", 'niveau d’un constat du validateur dans sa rangée, non un message'],
+]);
+
+describe('#2404 — un refus se rend par `ChipDeRefus`', () => {
+  it('(xxiv) aucun `chip` + `tone-danger` hors de `ChipDeRefus.tsx`, sauf exclusion au site ; toute exclusion vise un site vivant', () => {
+    const fichiers = readCorpus(['src'], { exts: ['.tsx'] }).filter((f) => f.rel !== 'src/ui/ChipDeRefus.tsx');
+    const sites: string[] = [];
+    const lignes: string[] = [];
+    for (const { fichier, sourceFile } of analyserCorpus(fichiers)) {
+      if (!sourceFile) continue;
+      for (const s of sitesChipDeRefusNu(fichier, sourceFile)) {
+        sites.push(`${fichier.rel} :: ${s.texte}`);
+        lignes.push(`${fichier.rel}:${s.ligne} ${s.texte}`);
+      }
+    }
+    const nus = lignes.filter((_, i) => !CHIP_DANGER_HORS_REFUS.has(sites[i]));
+    expect(nus, 'refus rendu hors de `ChipDeRefus` — composer la primitive, ou exclure AU SITE une alerte qui n’est pas un refus').toEqual([]);
+    const mortes = [...CHIP_DANGER_HORS_REFUS.keys()].filter((k) => !sites.includes(k));
+    expect(mortes, 'exclusion sans site vivant — la retirer').toEqual([]);
+  });
+
+  it('(xxiv) preuve — chaîne, gabarit, ternaire ; ni `chip` seul, ni `tone-danger` seul, ni commentaire', () => {
+    const vus = (tsx: string) => sitesChipDeRefusNu({ rel: 'Faux.tsx', text: tsx }).map((s) => s.ligne);
+    expect(vus('const x = <p className="chip tone-danger" role="alert">M</p>;')).toEqual([1]);
+    expect(vus('const x = <p className="tone-danger x chip">M</p>;')).toEqual([1]);
+    expect(vus("const x = <span className={`chip${e ? ' tone-danger' : ''}`}>M</span>;")).toEqual([1]);
+    expect(vus("const x = <span className={e ? 'chip tone-danger' : 'chip'} />;")).toEqual([1]);
+    expect(vus('const x = <span className="chip tone-warn">M</span>;')).toEqual([]);
+    expect(vus('const x = <span className="btn tone-danger">M</span>;')).toEqual([]);
+    expect(vus('const x = <span className="chip-phrase tone-danger">M</span>;')).toEqual([]);
+    expect(vus('// <p className="chip tone-danger">M</p>')).toEqual([]);
   });
 });

@@ -9,11 +9,10 @@ import { join } from 'node:path'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
-import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
+import { EXTS_IMPLEMENTANTES, RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
 export const RAWDIR = 'docs/raw'
-export const SRC_DIR = 'src'
 const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture, pas une règle
 // Manifests ÉDITORIAUX de `src/data/` : ils parlent DU dépôt (dette d'un topic, inventaire d'une
 // donnée), ils n'appliquent aucune règle. Leurs réfs sont de la méta, jamais une implémentation.
@@ -279,13 +278,13 @@ export function parseFiche(relatif, content) {
 /** Index du code : citations non-test / test, lignes des .ts(x) (symboles), textes non-test (appelants).
  *  `abbrMap` (optionnel, `loadAbbrMap()`) active le pont FOLIO des `.json` : chaque `source:{book,page}`
  *  devient une citation `impl` (id = symbole), stats folio accumulées dans `folioStats`. */
-export function indexCode(srcDir = SRC_DIR, abbrMap = null) {
+export function indexCode(racines = RACINES_DU_CODE, abbrMap = null) {
   const impl = []
   const tests = []
   const fileLines = new Map()       // rel -> lines[]  (.ts/.tsx)
   const nonCommentText = new Map()  // rel -> lignes NON-commentaires jointes (non-test, pour les appelants)
   const folioStats = { byBook: new Map(), noAtlas: 0, noPage: 0 }
-  for (const f of fichiersCitants(srcDir, EXTS_IMPLEMENTANTES)) {
+  for (const f of fichiersCitants(racines, EXTS_IMPLEMENTANTES)) {
     const rel = f.replace(/\\/g, '/')
     if (estHorsImplementation(rel)) continue
     const isTest = estFichierVitest(rel)
@@ -570,8 +569,8 @@ export function couvertureDe(entree, topics, dette) {
 }
 
 /** Contexte complet (index code + closure + dette) + parse de toutes les fiches. */
-export function buildContext({ rawDir = RAWDIR, srcDir = SRC_DIR, manifestPath = MANIFEST_PATH, booksPath = BOOKS_JSON_PATH } = {}) {
-  const index = indexCode(srcDir, loadAbbrMap(booksPath))
+export function buildContext({ rawDir = RAWDIR, racines = RACINES_DU_CODE, manifestPath = MANIFEST_PATH, booksPath = BOOKS_JSON_PATH } = {}) {
+  const index = indexCode(racines, loadAbbrMap(booksPath))
   const closure = closureOf([APP_ROOT_MODULE])
   const fiches = pagesDeLAtlas(rawDir, { classes: CLASSES }).map(({ relatif: doc, chemin }) => {
     const content = readText(chemin)

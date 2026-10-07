@@ -541,8 +541,9 @@ plus `"ticket": "#N"` — la dette d'EXTRACTION, due par le chantier qui extrait
 `ticket` de `src/data/raw.manifest.json`, qui porte, lui, la dette d'IMPLÉMENTATION d'une fiche déjà
 écrite). L'index du cœur la rend alors SANS lien, avec son ticket : lier une fiche absente serait un
 lien mort. La marque se RETIRE dans le commit qui publie la fiche — une entrée qui a sa fiche ET un
-`ticket` est refusée, comme une entrée sans fiche ni `ticket`. Tant qu'une aire porte `#N`, le
-pre-commit REFUSE de fermer `#N` (même garde que pour le manifeste : `registres-porteurs.json`).
+`ticket` est refusée, comme une entrée sans fiche ni `ticket`. Tant qu'une aire porte `#N`, la
+garde de solde (`scripts/hooks/solde-ticket-guard.mjs`, PreToolUse) REFUSE de fermer `#N` (même
+garde que pour le manifeste : `registres-porteurs.json`).
 
 Un `titre` d'aire ne porte **aucun `#`** : le hook de fermeture scanne les registres porteurs à la
 recherche de `#N`, et y lirait un ticket que ce registre ne doit rien (`scripts/raw/domaines.test.mjs`).
@@ -655,7 +656,7 @@ Pour un SYSTÈME de règles (ses termes), trois outils enchaînés, sans agent j
   (`scripts/raw/tri.mjs`) : le paquet est REJOUÉ depuis les termes. Le verdict est un tableau de lignes
   `{ ref, role, preuve }` (`définit`, `modifie`, `déclenche`, `consomme`) ou `{ ref, role: 'hors-système' }`,
   exclusive dans sa section. L'adresse de chaque preuve est DÉRIVÉE, jamais lue : l'unique bloc de sa
-  section où elle s'aligne (`aligner`) entre deux BORNES DE MOT, jugées sur la première occurrence,
+  couverture (`couvertureDe`), section de fin comprise, où elle s'aligne (`aligner`) entre deux BORNES DE MOT, jugées sur l'occurrence que rend son témoin,
   adressé par `fragmentBlocs`. Quand le texte de la section nomme un de ses termes, la preuve doit en
   nommer un (le prédicat de `passagesDe`). Refus nommés, avec leur ligne : `ref-hors-paquet`,
   `section-sans-verdict`, `hors-systeme-non-exclusif`, `role-inconnu`, `preuve-introuvable`,

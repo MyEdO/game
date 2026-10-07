@@ -8,7 +8,7 @@
 //
 // Ce module est aussi importé depuis le thread principal (le `node:url` de remplacement y prend
 // `versWindows` / `versPosix`) : il n'a donc AUCUN effet de bord à l'import.
-import { realpathSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import url from 'node:url'
 
@@ -41,8 +41,8 @@ export const cwdDonne = (cwdHote, racineDonnee, racineReelle) =>
  *  modules et le cwd du noyau : une racine par lien symbolique ne reconnaîtrait aucun module. */
 export const urlDuDepot = (racine) => url.pathToFileURL(path.join(realpathSync(racine), '/')).href
 
-/** Les deux modules de la simulation : sous la racine, ils rendent à l'hôte des chemins POSIX. */
-const SIMULATION = new Set(['plateforme-win32.mjs', 'plateforme-win32-hooks.mjs'].map((f) => new URL(f, import.meta.url).href))
+/** Les modules de la simulation : sous la racine, ils rendent à l'hôte des chemins POSIX. */
+const SIMULATION = new Set(['plateforme-win32.mjs', 'plateforme-win32-hooks.mjs', 'plateforme-win32-fs.mjs'].map((f) => new URL(f, import.meta.url).href))
 
 /** `true` si l'adresse (URL `file:`) est celle d'un module du dépôt, hors `node_modules` et hors simulation. */
 export const estModuleDuDepot = (adresse, depot) =>
@@ -55,6 +55,37 @@ export function initialize({ racine }) {
 }
 
 const moduleDeSource = (source) => `data:text/javascript,${encodeURIComponent(source)}`
+
+// node:module registerHooks ; typescript/dist/api/options.d.ts
+export function hooksSdkSousWin32(racine) {
+  const racineDuDepot = urlDuDepot(racine)
+  const sources = new Map()
+  return {
+    resolve(specificateur, contexte, suivant) {
+      if (specificateur !== 'typescript/unstable/sync' || !estModuleDuDepot(contexte.parentURL, racineDuDepot)) {
+        return suivant(specificateur, contexte)
+      }
+      const reel = suivant(specificateur, contexte)
+      const source = [
+        `export * from ${JSON.stringify(reel.url)}`,
+        `import { API as APIHote } from ${JSON.stringify(reel.url)}`,
+        `import { fsSousWin32 } from ${JSON.stringify(new URL('plateforme-win32-fs.mjs', import.meta.url).href)}`,
+        'export class API extends APIHote {',
+        '  constructor(options = {}) { super({ ...options, fs: fsSousWin32(options.fs) }) }',
+        '}',
+      ].join('\n')
+      const adresse = new URL('./.wfrp-win32-sdk-bridge.mjs', reel.url).href
+      if (existsSync(url.fileURLToPath(adresse))) throw new Error(`hooksSdkSousWin32 : URL virtuelle déjà présente sur disque : ${adresse}`)
+      if (sources.has(adresse) && sources.get(adresse) !== source) throw new Error(`hooksSdkSousWin32 : sources différentes pour la même URL virtuelle : ${adresse}`)
+      sources.set(adresse, source)
+      return { url: adresse, format: 'module', shortCircuit: true }
+    },
+    load(adresse, contexte, suivant) {
+      if (sources.has(adresse)) return { source: sources.get(adresse), format: 'module', shortCircuit: true }
+      return suivant(adresse, contexte)
+    },
+  }
+}
 
 /** Noms exportables d'un module builtin, hors ceux que le remplaçant redéfinit. */
 const nomsExportes = (objet, redefinis = []) =>

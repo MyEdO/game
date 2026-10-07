@@ -276,7 +276,7 @@ async function applyGaps(dom, entries, gaps) {
  *  d un verificateur ne porte aucun id (VERIFY_SCHEMA). */
 async function verdictsDeFidelite(dom, entries, etiquette) {
   const rendus = await parallel(entries.map((e) => () =>
-    agent(verifyPrompt(dom, e), { label: dom.domain + ':' + etiquette + ':' + e.topicId, phase: 'Verif', agentType: 'juge', model: 'opus', effort: 'medium', schema: VERIFY_SCHEMA })
+    agent(verifyPrompt(dom, e), { label: dom.domain + ':' + etiquette + ':' + e.topicId, phase: 'Verif', agentType: 'juge', model: 'opus', effort: 'high', schema: VERIFY_SCHEMA })
       .then((v) => ({ e, v: recolter(v, 'Verif') }))))
   const parId = {}
   rendus.forEach((x) => { if (x && x.v) parId[x.e.topicId] = { faithful: x.v.faithful, issues: x.v.issues || [] } })
@@ -419,7 +419,7 @@ async function runDomain(domain) {
   while (loops < MAXLOOPS) {
     phase('Audit')
     // L audit CONFRONTE les entrees a la source et refute : c est un JUGEMENT, pas une redaction.
-    const audit = await agent(auditPrompt(dom, entries, inventory, autre), { label: dom.domain + ':audit#' + (loops + 1), phase: 'Audit', agentType: 'juge', model: 'opus', effort: 'medium', schema: AUDIT_SCHEMA })
+    const audit = await agent(auditPrompt(dom, entries, inventory, autre), { label: dom.domain + ':audit#' + (loops + 1), phase: 'Audit', agentType: 'juge', model: 'opus', effort: 'high', schema: AUDIT_SCHEMA })
     recolter(audit, 'Audit')
     const gaps = (audit && audit.gaps) || []
     lastDry = !!(audit && audit.dry)

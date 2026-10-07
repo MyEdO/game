@@ -609,7 +609,7 @@ describe('MondeDeCampagne — un étage peint montre son décor, les deux voies 
     (viewMode, attendu) => {
       const scene = galerie();
       const { loi } = monter(scene, viewMode);
-      const baked = sceneMeshes.bakeWorldGeometry(scene, sceneMetresPerTile(scene));
+      const baked = sceneMeshes.bakeWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu');
       const { geometry } = sceneMeshes.applyCutawayMask(baked, loi);
       expect(visable(geometry, 'lustre')).toBe(attendu);
     },

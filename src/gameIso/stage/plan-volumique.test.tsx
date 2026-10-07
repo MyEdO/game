@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import * as THREE from 'three';
 import { TopoScene } from '../TopoScene';
 import { planLights, setPlanRendererFactory, HEURE_INERTE, PLAN_PLAT, type PlanRenderer } from './planSnapshot';
@@ -9,6 +8,7 @@ import { viewPolicy } from './viewPolicy';
 import { stageLightScalars, stageLights } from './stageLights';
 import { emptyScene, type Scene } from '../../state/scene';
 import type { Station } from '../../state/stations';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
 /**
  * LE PLAN DE STATION SUR LA VOIE VOLUMIQUE (#1176, P3-4, commit C2). Ce qui se mesure ici :
@@ -26,12 +26,8 @@ let rendus = 0;
 /** BOÎTE que jsdom rendra à `clientWidth`/`clientHeight` — jsdom ne met rien en page, et la boîte
  *  mesurée est justement ce dont la clé de rétention dépend. */
 let mesure = { w: 420, h: 180 };
-for (const prop of ['clientWidth', 'clientHeight'] as const) {
-  Object.defineProperty(HTMLCanvasElement.prototype, prop, {
-    configurable: true,
-    get() { return prop === 'clientWidth' ? mesure.w : mesure.h; },
-  });
-}
+const dimensions = ['clientWidth', 'clientHeight'] as const;
+const descripteurs = new Map<typeof dimensions[number], PropertyDescriptor | undefined>();
 /** Ce que la scène three portait AU MOMENT du rendu — relevé dans la passe, jamais après : l'instantané
  *  démonte et libère tout avant de rendre la main, et il n'y aurait plus rien à interroger. */
 let contenu: { lampes: string[]; casteurs: number } | null = null;
@@ -59,12 +55,27 @@ function rendererDeBanc(): PlanRenderer {
   };
 }
 
-beforeAll(() => setPlanRendererFactory(rendererDeBanc));
-afterAll(() => { setPlanRendererFactory(null); });
+beforeAll(() => {
+  for (const prop of dimensions) {
+    descripteurs.set(prop, Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, prop));
+    Object.defineProperty(HTMLCanvasElement.prototype, prop, {
+      configurable: true,
+      get() { return prop === 'clientWidth' ? mesure.w : mesure.h; },
+    });
+  }
+  setPlanRendererFactory(rendererDeBanc);
+});
+afterAll(() => {
+  setPlanRendererFactory(null);
+  for (const prop of dimensions) {
+    const avant = descripteurs.get(prop);
+    if (avant) Object.defineProperty(HTMLCanvasElement.prototype, prop, avant);
+    else delete (HTMLCanvasElement.prototype as unknown as Record<string, unknown>)[prop];
+  }
+});
 
-const racines: Root[] = [];
 afterEach(() => {
-  act(() => { for (const r of racines.splice(0)) r.unmount(); });
+  demonterRacines();
   setPlanRendererFactory(rendererDeBanc);
   mesure = { w: 420, h: 180 };
   créations = 0;
@@ -75,12 +86,7 @@ afterEach(() => {
 });
 
 function monte(ui: React.ReactElement): HTMLDivElement {
-  const hôte = document.createElement('div');
-  document.body.appendChild(hôte);
-  const root = createRoot(hôte);
-  racines.push(root);
-  act(() => root.render(ui));
-  return hôte;
+  return monterRacine(ui).container;
 }
 
 function station(over: Partial<Station> = {}): Station {
@@ -143,12 +149,8 @@ describe('Plan de station — le monde volumique ne laisse aucun contexte vivant
   it('CINQ ouvertures de fiche : cinq contextes créés, cinq rendus, cinq perdus — rien ne s’empile', () => {
     const scene = scèneDePlan();
     for (let i = 0; i < 5; i++) {
-      const hôte = document.createElement('div');
-      document.body.appendChild(hôte);
-      const root = createRoot(hôte);
-      act(() => root.render(<TopoScene scene={scene} stations={STATIONS} />));
-      act(() => root.unmount());
-      hôte.remove();
+      monterRacine(<TopoScene scene={scene} stations={STATIONS} />);
+      demonterRacines();
     }
     expect(créations).toBe(5);
     // C'est LE mode de défaillance de l'éphémère : un contexte gardé par ouverture évincerait le stage
@@ -175,45 +177,33 @@ describe('Plan de station — sans contexte volumique, le plan le DIT', () => {
 describe('Plan de station — rétention de l’instantané par CONTENU', () => {
   it('une scène REFORGÉE à contenu égal ne repaie aucun instantané ; changer d’étage en repaie un', () => {
     const scene = scèneDePlan();
-    const hôte = document.createElement('div');
-    document.body.appendChild(hôte);
-    const root = createRoot(hôte);
-    racines.push(root);
-    act(() => root.render(<TopoScene scene={scene} stations={STATIONS} z={0} />));
+    const { rendre } = monterRacine(<TopoScene scene={scene} stations={STATIONS} z={0} />);
     expect(créations).toBe(1);
     // Référence NEUVE, même contenu : c'est ce que produit le store à chaque geste de jeu.
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} z={0} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} z={0} />));
     expect(créations).toBe(1);
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} z={1} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} z={1} />));
     expect(créations).toBe(2);
   });
 
   it('la BOÎTE DE PIXELS entre dans la clé : redimensionner recuit, la même boîte ne recuit pas', () => {
     const scene = scèneDePlan();
-    const hôte = document.createElement('div');
-    document.body.appendChild(hôte);
-    const root = createRoot(hôte);
-    racines.push(root);
-    act(() => root.render(<TopoScene scene={scene} stations={STATIONS} />));
+    const { rendre } = monterRacine(<TopoScene scene={scene} stations={STATIONS} />);
     expect(créations).toBe(1);
     mesure = { w: 700, h: 300 };
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
     expect(créations).toBe(2); // une image cuite pour l'ancienne boîte serait étirée par la CSS
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
     expect(créations).toBe(2);
   });
 
   it('un instantané pris HORS MESURE n’est jamais retenu : la première mesure le refait', () => {
     mesure = { w: 0, h: 0 }; // avant toute mise en page — le plan cuit à sa résolution par défaut
     const scene = scèneDePlan();
-    const hôte = document.createElement('div');
-    document.body.appendChild(hôte);
-    const root = createRoot(hôte);
-    racines.push(root);
-    act(() => root.render(<TopoScene scene={scene} stations={STATIONS} />));
+    const { rendre } = monterRacine(<TopoScene scene={scene} stations={STATIONS} />);
     expect(créations).toBe(1);
     mesure = { w: 420, h: 180 };
-    act(() => root.render(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
+    act(() => rendre(<TopoScene scene={{ ...scene }} stations={STATIONS} />));
     expect(créations).toBe(2);
   });
 });

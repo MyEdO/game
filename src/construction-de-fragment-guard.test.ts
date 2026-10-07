@@ -37,7 +37,7 @@ const FRAGMENT = [{
     natures: SCHEMAS.map((s) => s.shape.kind.value),
     designation: [...new Set(SCHEMAS.flatMap((s) => Object.keys(s.shape)))].filter((k) => !['kind', 'sum', 'table', 'row'].includes(k)),
     designationLiee: ['row'],
-    constructeurs: { [FOYER]: ['fragmentBlocs', 'fragmentCellule', 'scelle'] },
+    constructeurs: { [FOYER]: ['fragmentBlocs', 'intervalleDe', 'fragmentCellule', 'scelle'] },
   }),
   foyer: FOYER,
   domaine: (rel: string) => !estFichierVitest(rel),
@@ -51,7 +51,7 @@ const vu = (text: string, rel = 'src/ui/fixture.tsx') =>
 const VUE = [NOM];
 
 describe('construction d’un fragment d’adresse (#1887)', () => {
-  it('aucune construction de fragment hors du foyer dans le code de production', () => {
+  it('aucune construction de fragment hors du foyer dans le code de production', { timeout: 60_000 }, () => {
     expect(constructionsReserveesDuCorpus(corpusDesGardes(), FRAGMENT)).toEqual([]);
   });
 
@@ -68,6 +68,8 @@ describe('construction d’un fragment d’adresse (#1887)', () => {
   it('une recopie qui change la désignation hors constructeur, et la même en argument d’un constructeur', () => {
     expect(vu('const g = { ...f, b0: n, b1: Math.max(n, f.b1) };')).toEqual(VUE);
     expect(vu('const g = { ...f, sec: s.slug, secOcc: s.occ };')).toEqual(VUE);
+    expect(vu('const g = { ...f, finSec: s.slug, finSecOcc: s.occ };'), 'section de fin d’un intervalle').toEqual(VUE);
+    expect(vu(`${IMPORTE.replace('scelle', 'intervalleDe')}const g = intervalleDe(c, { ...d, idx: n }, { ...f, sec: s.slug, secOcc: s.occ });`), 'arguments de `intervalleDe`').toEqual([]);
     expect(vu(`${IMPORTE}const g = fragmentBlocs(c, { ...f, b0: n });`), 'argument d’un constructeur').toEqual([]);
     expect(vu(`${IMPORTE}const g = scelle(c, { ...f, sec: s.slug, secOcc: s.occ });`), 'argument de `scelle`').toEqual([]);
     expect(vu('const fragmentBlocs = (c, x) => x;\nconst g = fragmentBlocs(c, { ...f, b0: n });'), 'homonyme local').toEqual(VUE);

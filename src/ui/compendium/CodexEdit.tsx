@@ -24,11 +24,12 @@ import { weatherCondition } from '../../engine/travelStages';
 import { weatherIdSchema } from '../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../data/schemas/defs/water-exposure';
-import { RefField, refFieldCfg } from './RefField';
+import { RefField, refFieldCfg, libelleDeDataset } from './RefField';
 import { DescRefField } from './DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
+import { ProseField } from '../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { PlageField, type PlageValue } from '../PlageField';
@@ -284,7 +285,7 @@ function LignesFormatLivreField({ label, hint, value, onCommit }: { label: strin
   return (
     <label className="ed-field">
       <span>{label}</span>
-      <span className="de-hint">{hint}</span>
+      <span className="ed-hint">{hint}</span>
       <textarea
         rows={6}
         value={brouillon ?? value}
@@ -695,7 +696,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {isPassive && (
           <div className="ed-field">
             <span>modificateurs PASSIFS continus (mêmes ops que les sorts — sans déclencheur)</span>
-            <GameOpEditor ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
+            <GameOpEditor noeud={noeudDe('passive')} ops={(entry.passive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('passive', ops)} />
           </div>
         )}
         {isOptionalRule && (
@@ -1279,7 +1280,7 @@ function AlsoInField({ chemin, value, onChange }: { chemin: string; value: Secon
       {rangees.map((r, i) => (
         <div className="ed-field" key={r.cle}>
           <SourceRefField identite={`${chemin}/${r.cle}`} label={`Emplacement ${i + 1}`} sujet={`de l'emplacement ${i + 1}`} value={r.valeur} onChange={(v) => poser(remplacer(r.cle, { cle: r.cle, valeur: r.valeur || !r.quote ? v : { ...v, quote: r.quote } }), true)} />
-          <div className="de-reflrow">
+          <div className="fieldrow">
             <input aria-label={`Citation de l'emplacement ${i + 1}`} placeholder="citation verbatim — preuve du span (obligatoire si le label n'y est pas imprimé)" value={(r.valeur ? r.valeur.quote : r.quote) ?? ''} onChange={(e) => {
               const quote = e.target.value || undefined;
               poser(remplacer(r.cle, r.valeur ? { cle: r.cle, valeur: { ...r.valeur, quote } } : { cle: r.cle, quote }), r.valeur !== undefined);
@@ -1335,9 +1336,7 @@ function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onCh
             <button className="btn small danger" aria-label={`Retirer la variante ${i + 1}`} title={`Retirer la variante ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
           {resolved.includes('desc') && (
-            <label className="ed-subfield">description (facultatif — sinon celle de l'ancre)
-              <textarea aria-label={`Description de la variante ${i + 1}`} rows={2} value={v.desc ?? ''} onChange={(e) => patch(i, 'desc', e.target.value || undefined)} />
-            </label>
+            <ProseField label="description (facultatif — sinon celle de l'ancre)" ariaLabel={`Description de la variante ${i + 1}`} value={v.desc ?? ''} onChange={(d) => patch(i, 'desc', d || undefined)} />
           )}
           {resolved.includes('source') && (
             <SourceRefField identite={`${chemin}/${cles[i]}/source`} label="source (facultatif)" facultative sujet={`de la variante ${i + 1}`} value={v.source} onChange={(s) => patch(i, 'source', s)} />
@@ -1550,7 +1549,7 @@ function ChainsField({ value, onChange }: { value: string[] | undefined; onChang
     <div className="ed-subfield">
       <span>scènes enchaînées (imposées au Round suivant) — ids de rencontre/scène</span>
       {list.map((c, i) => (
-        <div className="de-reflrow" key={i}>
+        <div className="fieldrow" key={i}>
           <input value={c} onChange={(e) => onChange(list.map((x, j) => (j === i ? e.target.value : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
@@ -1630,9 +1629,7 @@ function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefin
             </label>
             <button className="btn small danger" title="Supprimer la bande" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
           </div>
-          <label className="ed-subfield">note (texte de résultat VERBATIM de la source)
-            <textarea rows={2} value={b.note ?? ''} onChange={(e) => set(i, { note: e.target.value || undefined })} />
-          </label>
+          <ProseField label="note (texte de résultat VERBATIM de la source)" value={b.note ?? ''} onChange={(t) => set(i, { note: t || undefined })} />
           <div className="tf-row">
             <label className="dr">résolveur (bespoke)
               <select value={b.resolver ?? ''} onChange={(e) => set(i, { resolver: (e.target.value || undefined) as ActivityResolver | undefined })}>
@@ -1732,7 +1729,7 @@ const DETAIL_TEXT_LABEL: Record<string, string> = {
 
 /** Éditeur du bloc `details.texts` (objet `details.json`) — pour chaque entrée d'aide : un texte GLOBAL
  *  (`all`) + des surcharges PAR ESPÈCE (`bySpecies`, clé = id `RaceKey`). HTML léger autorisé (rendu via
- *  LoreText au Codex). Réutilise le motif `de-reflrow` (rangée + ✕ + « + »). Sort `texts` du repli JSON. */
+ *  LoreText au Codex). Réutilise le motif `fieldrow` (rangée + ✕ + « + »). Sort `texts` du repli JSON. */
 export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | undefined; onChange: (v: DetailsTexts) => void }) {
   const texts = value ?? {};
   const EMPTY_TEXT: DetailText = { all: '', bySpecies: {} };
@@ -1756,19 +1753,19 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
         return (
           <div className="ed-field" key={key}>
             <b>{DETAIL_TEXT_LABEL[key] ?? key}</b>
-            <label className="ed-subfield">global<textarea rows={3} value={t.all} onChange={(e) => setText(key, { all: e.target.value })} /></label>
-            <span className="de-hint">par espèce</span>
+            <ProseField label="global" value={t.all} onChange={(all) => setText(key, { all })} />
+            <span className="ed-hint">par espèce</span>
             <Grid min="md" stackBelow={700}>
               {Object.keys(t.bySpecies ?? {}).map((sp) => (
                 <div className="ed-field" key={sp}>
-                  <div className="de-reflrow">
+                  <div className="fieldrow">
                     <select aria-label={`Espèce de la surcharge — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={sp} onChange={(e) => renameSpecies(key, sp, e.target.value)}>
                       {clesLibres(key, sp).map((k) => <option key={k} value={k}>{k}</option>)}
                     </select>
                     <div className="de-spacer" />
                     <button className="btn small danger" title="Retirer l'espèce" onClick={() => removeSpecies(key, sp)}>✕</button>
                   </div>
-                  <textarea rows={2} value={t.bySpecies[sp]} onChange={(e) => setSpecies(key, sp, e.target.value)} />
+                  <ProseField nu label={`Surcharge de l'espèce ${sp} — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={t.bySpecies[sp]} onChange={(txt) => setSpecies(key, sp, txt)} />
                 </div>
               ))}
             </Grid>
@@ -1798,9 +1795,9 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     const set = (next: string[]) => onChange(next);
     return (
       <div className="ed-field">
-        <span>{label}{refDs && <em className="de-hint"> (autocomplétion {refDs})</em>}</span>
+        <span>{label}{refDs && libelleDeDataset(refDs) && <em className="ed-hint"> (suggestions : {libelleDeDataset(refDs)})</em>}</span>
         {list.map((item, i) => (
-          <div key={i} className="de-reflrow">
+          <div key={i} className="fieldrow">
             <input aria-label={`${nom} — valeur ${i + 1}`} value={item} list={refDs ? `dl-${refDs}` : undefined}
               onChange={(e) => set(list.map((x, j) => (j === i ? e.target.value : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
@@ -1818,7 +1815,7 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
       <div className="ed-field">
         <span>{label}</span>
         {list.map((item, i) => (
-          <div key={i} className="de-reflrow">
+          <div key={i} className="fieldrow">
             <NumberField variant="nu" label={`${nom} — valeur ${i + 1}`} value={item} onChange={(n) => set(list.map((x, j) => (j === i ? n : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
@@ -1850,7 +1847,7 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
     );
   }
   if (kind === 'textarea')
-    return <label className="ed-field"><span>{label}</span><textarea aria-label={nomPositionne} rows={3} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} /></label>;
+    return <ProseField label={label} ariaLabel={nomPositionne} value={(value as string) ?? ''} onChange={onChange} />;
   if (kind === 'number')
     return <label className="ed-field"><span>{label}</span><NumberField variant="nu" label={nom} vide value={value as number | null} onChange={(n) => onChange(n ?? (field.nullable ? null : 0))} /></label>;
   if (kind === 'checkbox')
@@ -1862,7 +1859,7 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
   if (kind === 'recordNumber') {
     const rec = (value as Record<string, number | null>) ?? {};
     const keys = Object.keys(rec);
-    return <div className="ed-field"><span>{label}</span>{keys.length === 0 ? <em className="de-hint">vide</em> : <div className="de-grid">{keys.map((k) => <label key={k} className="de-cell"><span>{k}</span><NumberField variant="nu" label={`${nom} — ${k}`} vide value={rec[k]} onChange={(n) => onChange({ ...rec, [k]: n })} /></label>)}</div>}</div>;
+    return <div className="ed-field"><span>{label}</span>{keys.length === 0 ? <em className="ed-hint">vide</em> : <div className="de-grid">{keys.map((k) => <label key={k} className="de-cell"><span>{k}</span><NumberField variant="nu" label={`${nom} — ${k}`} vide value={rec[k]} onChange={(n) => onChange({ ...rec, [k]: n })} /></label>)}</div>}</div>;
   }
   if (kind === 'recordText') return <RecordTextField label={label} nom={nom} value={value as Record<string, string> | undefined} onChange={onChange} />;
   if (kind === 'object') return <ObjectField chemin={chemin} sujet={sujet} label={label} value={value as Record<string, unknown> | undefined} noeud={field.noeud} onChange={onChange} />;
@@ -1950,7 +1947,7 @@ function RecordTextField({ label, nom, value, onChange }: { label: string; nom: 
         const message = `${base}-conflit-${i}`;
         return (
           <Fragment key={cles[i]}>
-            <div className="de-reflrow">
+            <div className="fieldrow">
               <input
                 aria-label={`${nom} — clé ${i + 1}`} style={{ width: 140 }} value={r.saisie}
                 aria-invalid={conflit ? true : undefined} aria-describedby={conflit ? message : undefined}

@@ -16,7 +16,7 @@
  *  - Limites (l.87) : mutations physiques > BE ou mentales > BFM → DAMNÉ (le
  *    personnage bascule dans le Chaos — hors-jeu définitif).
  */
-import { Combatant, HitLocation } from './types';
+import { Combatant, HitLocation, type EffectSource } from './types';
 import { RNG, defaultRNG } from './dice';
 import { bonus, effectiveChar } from './characteristics';
 import { talentCorruptionThreshold } from './combatFeatures/dispatch';
@@ -24,7 +24,8 @@ import { findTableEntry } from './tables';
 import { mutationBodyMaxForSpecies } from '../data';
 import { rollObsession } from '../data/obsessions';
 import { acquerirTalent, retirerTalent } from './careerSlots';
-import { grantTrait, grantPsychTrait, removeGrantedTrait } from './grantedTraits';
+import { passiveCharSum } from './trauma';
+import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
 import type { PsychType } from './psychology';
 import type { GameOp } from './ops';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -189,14 +190,27 @@ export function mutationLimitExceeded(c: Combatant): boolean {
   return phys > bonus(effectiveChar(c, 'endurance')) || ment > bonus(effectiveChar(c, 'force-mentale'));
 }
 
+/** `charMod` à plancher résolu en delta FIGÉ sur la base PERMANENTE du porteur (`characteristics` +
+ *  `passiveCharSum`, hors pool volatil) : `max(mod, min(0, plancher − base))`, jamais positif. EDO 11 l.190 ; #1853. */
+function resoudrePlancher(c: Combatant, op: GameOp): GameOp {
+  if (op.op !== 'charMod' || op.min == null) return op;
+  const { min, ...fige } = op;
+  const base = c.characteristics[op.char] + passiveCharSum(c, op.char);
+  return { ...fige, mod: Math.max(op.mod, Math.min(0, min - base)) };
+}
+
 /** Attache une mutation au personnage : donnée + traits dérivés (créature/psychologie). RNG seedable
  *  pour les Cibles TIRÉES (`argFrom:'obsessions'` — Haine sporadique / Terribles phobies, EDOC 12).
+ *  Un `charMod` à plancher (`min`) est FIGÉ sur l'instance en son delta (`resoudrePlancher`).
  *  `grantTrait`/`grantPsychTrait` (noyau PARTAGÉ `grantedTraits.ts`, ci-dessus importé) : MÊME chemin
  *  que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect` porteur — une mutation n'expire
  *  jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les passifs d'une mutation ne passant
- *  pas par `applyOps`. */
-export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG): void {
+ *  pas par `applyOps`. Rend l'instance attachée. */
+export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG = defaultRNG): Mutation {
+  const m = structuredClone(tiree); // #2097
+  if (m.passive) m.passive = m.passive.map((op) => resoudrePlancher(c, op));
   const talentsAcquis: RefDesignee[] = [];
+  const src: EffectSource = { kind: 'mutation', id: m.id };
   for (const op of m.passive ?? []) {
     if (op.op === 'grantTrait') {
       // Valeur LITTÉRALE (les mutations RAW ont des indices fixes : Peur 3, Morsure +5).
@@ -204,20 +218,20 @@ export function attachMutation(c: Combatant, m: Mutation, rng: RNG = defaultRNG)
       // Cible : littérale (`arg`), ou TIRÉE sur le Tableau des Obsessions (`argFrom:'obsessions'`,
       // « Haine sporadique » → Haine (Cible) déterminée par les Obsessions, EDOC 12).
       const arg = op.arg ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-      // PROVENANCE de l'instance : la mutation elle-même (registre `TraitInstance.src`) — c'est ce que
-      // son propre `removeTrait` de re-ciblage interroge, et rien d'autre.
-      grantTrait(c, { id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src: { kind: 'mutation', id: m.id } });
+      // PROVENANCE de l'instance : la mutation elle-même (registre `TraitInstance.src`), interrogée par
+      // son `removeTrait` de re-ciblage et par `detachMutation`.
+      grantTrait(c, { id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src });
     } else if (op.op === 'grantPsychTrait') {
       const cible = op.cible ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-      grantPsychTrait(c, op.psychType as PsychType, cible);
+      grantPsychTrait(c, op.psychType as PsychType, cible, src);
     } else if (op.op === 'grantTalent') {
       if (acquerirTalent(c, op.talent)) talentsAcquis.push(op.talent);
     }
   }
-  const attachee: Mutation = { ...m };
-  delete attachee.talentsAcquis;
-  if (talentsAcquis.length) attachee.talentsAcquis = talentsAcquis;
-  c.mutations = [...(c.mutations ?? []), attachee];
+  delete m.talentsAcquis;
+  if (talentsAcquis.length) m.talentsAcquis = talentsAcquis;
+  c.mutations = [...(c.mutations ?? []), m];
+  return m;
 }
 
 /** INVERSE structurel d'`attachMutation` : retire l'instance de `c.mutations` (ses passifs charMod/moveMod/
@@ -235,12 +249,15 @@ export function detachMutation(c: Combatant, m: Mutation): void {
   const attachee = list[i];
   c.mutations = [...list.slice(0, i), ...list.slice(i + 1)];
   for (const talent of attachee.talentsAcquis ?? []) retirerTalent(c, talent);
+  // Retrait PAR PROVENANCE (`src` posé par `attachMutation`) : la Cible tirée d'un `argFrom` n'est pas dans
+  // l'op, et un Trait natif identique n'est pas celui de la mutation. Une instance retirée par op.
+  const deLaMutation = (src: EffectSource | undefined): boolean => src?.kind === 'mutation' && src.id === attachee.id;
   for (const op of attachee.passive ?? []) {
     if (op.op === 'grantTrait') {
-      const value = typeof op.indice === 'number' ? op.indice : undefined;
-      removeGrantedTrait(c, { id: op.traitId, ...(op.arg ? { arg: op.arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src: { kind: 'mutation', id: attachee.id } });
+      const i = dernierIndex(c.traits ?? [], (t) => t.id === op.traitId && deLaMutation(t.src));
+      if (i >= 0) removeGrantedTrait(c, c.traits![i]);
     } else if (op.op === 'grantPsychTrait') {
-      const j = (c.psychTraits ?? []).findIndex((x) => x.type === op.psychType && (x.cible ?? '') === (op.cible ?? ''));
+      const j = dernierIndex(c.psychTraits ?? [], (x) => x.type === op.psychType && deLaMutation(x.src));
       if (j >= 0) c.psychTraits = [...c.psychTraits!.slice(0, j), ...c.psychTraits!.slice(j + 1)];
       if (c.psychTraits && !c.psychTraits.length) delete c.psychTraits;
     }

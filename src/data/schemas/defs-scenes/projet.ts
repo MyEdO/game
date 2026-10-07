@@ -1,14 +1,13 @@
 /**
  * Schéma zod d'un PROJET DE SCÈNE (`ProjectDoc`, `src/state/worldMap.ts`) — le paquet de campagne
- * auto-suffisant `{ type: 'projet', schema: SCHEMA_PROJET, id, label, versionContenu, narratif, scenes,
- * worldMap?, activeAxes? }`, `schema` étant la version de forme courante.
+ * auto-suffisant `{ type: 'projet', id, label, versionContenu, narratif, scenes, worldMap?, activeAxes? }`.
  *
  * C'est la porte UNIQUE du seam `parseProject`. Le document ADOPTE la fabrique `document()`
  * (`../grammaire/document.ts`, #1552) en famille `config` — même code que les defs de configuration
  * sur objet unique (patron `defs/crew-morale.ts`) : l'enveloppe pose `type`, `id`, `label`, `desc`,
  * `icon` et la provenance (`source` ∨ `maison`), la fabrique scelle, et les sémantiques restantes du
- * seam passent par `options.affinerEntree` — FK intra-document `entity.presetId` →
- * `narratif.presetsPnj`. `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
+ * seam passent par `options.affinerEntree` — FK intra-document des références narratives
+ * (`refsNarrativesPendantes` : `entity.presetId`, Effects). `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine` :
  * jamais des `ref()` (une référence intra-document n'entre pas au registre global).
  *
@@ -17,7 +16,7 @@
  * se NOMME avant d'être enregistré (Recommandé) ») : `id` et `label` sont posés REQUIS par
  * l'enveloppe, `versionContenu` l'est ici — le trio d'identité de #766 était déjà tout-ou-rien, il
  * devient toujours-vrai, et son `superRefine` meurt avec l'optionalité qui le motivait.
- * La version de FORME du document reste le littéral `schema`, champ de charge utile de ce document.
+ * Aucun numéro de forme : ce schéma EST le contrôle de format du document (#2404).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -26,20 +25,21 @@ import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
-import { PROJECT_MIGRATIONS } from '../../migrationsDeProjet';
-import { versionCourante } from '../../../lib/versionCourante';
+import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
 
-/** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = versionCourante(PROJECT_MIGRATIONS);
+/** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se
+ *  devine pas. SOURCE UNIQUE — posée par l'éditeur sur un projet qu'il nomme pour la première fois
+ *  (`src/ui/editor/Editor.tsx`). */
+export const MAISON_PROJET_AUTHORE =
+  'campagne authorée à l’éditeur de scènes — aucun livre ne la publie, le document ne cite aucun folio à sa racine';
 
-/** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
+/** Handle du document de projet : le schéma sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(
   'projet',
   'config',
   {
-    schema: z.literal(SCHEMA_PROJET),
     /** Numéro de CONTENU de l'auteur (dédup d'import : même `id`, version supérieure → remplacement
-     *  proposé). La version de FORME du document est `schema`, jamais ce champ. */
+     *  proposé), jamais un numéro de forme. */
     versionContenu: z.number(),
     auteur: z.string().min(1).optional(),
     scenes: listeCle(sceneSchema, 'id', {
@@ -51,7 +51,6 @@ export const projetDoc = document(
     narratif: narratifSchema,
   },
   {
-    schema: { label: 'Version de forme du document' },
     versionContenu: { label: 'Version de contenu', hint: "Numéro de l'auteur, comparé à l'import (dédup de bibliothèque)" },
     auteur: { label: 'Auteur' },
     scenes: { label: 'Scènes' },
@@ -79,22 +78,11 @@ export const projetDoc = document(
   {
     affinerEntree: (entree) =>
       entree.superRefine((valeur, ctx) => {
-        const doc = valeur as {
-          scenes: { entities?: { presetId?: string }[] }[];
-          narratif: { presetsPnj: { id: string }[] };
-        };
-        /** FK INTRA-document (#671) : tout `presetId` d'entité de scène résout un preset déclaré. */
-        const presets = new Set(doc.narratif.presetsPnj.map((p) => p.id));
-        doc.scenes.forEach((s, is) => {
-          (s.entities ?? []).forEach((e, ie) => {
-            if (!e.presetId || presets.has(e.presetId)) return;
-            ctx.addIssue({
-              code: 'custom',
-              path: ['scenes', is, 'entities', ie, 'presetId'],
-              message: `preset de PNJ inconnu « ${e.presetId} » (narratif.presetsPnj).`,
-            });
-          });
-        });
+        const doc = valeur as { scenes: unknown[]; worldMap?: unknown; narratif: NarratifAReferences };
+        /** FK INTRA-document (#671, #679) : toute référence narrative des scènes (`presetId` d'entité,
+         *  `documentId`/`indiceId`/`stade` d'Effect, Flows portés compris) et de la carte du monde résout
+         *  au narratif du document — visiteur unique `./refs-narratives.ts`. */
+        for (const f of refsNarrativesPendantes(doc, doc.narratif)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
       }),
   },
 );

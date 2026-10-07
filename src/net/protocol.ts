@@ -5,7 +5,10 @@
  * (`campaign`). `parseMessage` valide la FORME de chaque message : le réseau est une entrée
  * non fiable → null, jamais d'exception.
  *
- * `error` : envoyé par l'hôte AVANT de fermer le transport (ex. mismatch de protocole au hello)
+ * `hello.build` : le format de l'état (`FORMAT_SAVE`, `state/netFlow.ts`), comparée par
+ * l'hôte au hello.
+ *
+ * `error` : envoyé par l'hôte AVANT de fermer le transport (mismatch de protocole ou de format au hello)
  * pour distinguer une fermeture VOLONTAIRE d'une coupure réseau banale côté invité. N'entraîne
  * PAS un bump de PROTOCOL_VERSION : c'est un AJOUT de type de message, les formes existantes
  * (`hello`/`intent`/`snapshot`/…) sont inchangées — un invité plus ANCIEN qui ne connaît pas
@@ -21,6 +24,7 @@ export type NetMessage =
   | { kind: 'campaign'; label: string; scenes: unknown[]; startSceneId: string; worldMap: unknown }
   | { kind: 'assign'; heroId: string; seat: number }
   | { kind: 'error'; reason: 'protocol-mismatch'; expected: number; got: number }
+  | { kind: 'error'; reason: 'format-mismatch'; expected: string; got: string }
   | { kind: 'bye' };
 
 export function serializeMessage(m: NetMessage): string {
@@ -58,8 +62,10 @@ export function parseMessage(raw: string): NetMessage | null {
         ? { kind: 'assign', heroId: m.heroId, seat: m.seat }
         : null;
     case 'error':
-      return m.reason === 'protocol-mismatch' && typeof m.expected === 'number' && typeof m.got === 'number'
-        ? { kind: 'error', reason: 'protocol-mismatch', expected: m.expected, got: m.got }
+      if (m.reason === 'protocol-mismatch' && typeof m.expected === 'number' && typeof m.got === 'number')
+        return { kind: 'error', reason: 'protocol-mismatch', expected: m.expected, got: m.got };
+      return m.reason === 'format-mismatch' && typeof m.expected === 'string' && typeof m.got === 'string'
+        ? { kind: 'error', reason: 'format-mismatch', expected: m.expected, got: m.got }
         : null;
     case 'bye':
       return { kind: 'bye' };

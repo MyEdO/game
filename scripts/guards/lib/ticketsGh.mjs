@@ -78,7 +78,7 @@ export const appelGhRunner = ({ cwd, maxBuffer = 64 * 1024 * 1024, executer = ex
       }),
     }
   } catch (err) {
-    return { ok: false, raison: String(err?.stderr || err?.message || err).trim().slice(0, BORNE_RAISON) }
+    return { ok: false, ...(String(err?.stdout ?? '').length === 0 ? {} : { stdout: String(err.stdout) }), raison: String(err?.stderr || err?.message || err).trim().slice(0, BORNE_RAISON) }
   }
 }
 

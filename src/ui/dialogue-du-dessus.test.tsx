@@ -31,6 +31,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { PovControls } from './PovControls';
 import { campaignStart } from '../engine/clock';
 import type { Combatant } from '../engine/types';
+import { cascadeDeTest } from '../state/cascadeTestKit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -413,7 +414,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
   it('(d) désignation des cibles d’un sort par la carte (aucune fenêtre) : ↑ déplace le curseur', async () => {
     const h = ouvrirCombat();
     act(() => useGame.setState({
-      pendingCascade: { participants: [{ actorId: h.id, id: 'c', kind: 'castJet', jet: 'cast' }], cursor: 0 } as never,
+      pendingCascade: cascadeDeTest([{ actorId: h.id, id: 'c', kind: 'castJet', jet: 'cast' }]),
       pendingCast: { casterId: h.id, pickingTargets: true } as never,
     }));
     act(() => root.render(<StrictMode><ActiveModal /></StrictMode>));
@@ -509,11 +510,11 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     for (const [code, key] of [['KeyC', 'c'], ['KeyF', 'f'], ['KeyQ', 'q'], ['KeyE', 'e'], ['KeyV', 'v'], ['ArrowUp', 'ArrowUp'], ['ArrowLeft', 'ArrowLeft']]) touche(code, key);
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
     expect(useGame.getState().viewMode, 'la vue n’a pas basculé').toBe(s0.viewMode);
-    act(() => useGame.setState({ mode: 'battle', inspectEnabled: false, battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never }));
-    expect(KEYBINDINGS.find((k) => k.id === 'toggle-inspect')!.when(useGame.getState()), 'hors pile, I partirait en combat').toBe(true);
+    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never }));
+    expect(KEYBINDINGS.find((k) => k.id === 'inspecter')!.when(useGame.getState()), 'hors pile, I partirait en combat').toBe(true);
     touche('KeyI', 'i');
     expect(pris(), 'en plein combat, I se tait aussi').toEqual([]);
-    expect(useGame.getState().inspectEnabled).toBe(false);
+    expect(useGame.getState().inspectId).toBeNull();
   });
 
   it('manette : Back et LT sont inertes pendant la conversation', async () => {

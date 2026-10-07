@@ -1,6 +1,13 @@
 /** Zones 1-7 de l'échelle — refaites en GRAND (24×16 → 32×24), layouts structurés, fouilles,
  *  rencontres enrichies. Ids/flags conservés (`arene-zoneN`, `zoneN_clear`). */
-import { scene, P, hero, resetIds, fouille, fightTrigger, zoneVictory, NUEE_DE_RATS, NUEE_DE_RATS_APPEARANCE, flowOf, testNode } from '../campagne/lib.mjs';
+import { scene, P, hero, resetIds, fouille, fightTrigger, zoneVictory, NUEE_DE_RATS, NUEE_DE_RATS_APPEARANCE, flowOf, testNode, remetLeDocument } from '../campagne/lib.mjs';
+
+/** Document du paquet (`narratif.documents`, #679) lu sur la stèle des Ruines. */
+export const DOC_STELE_DES_RUINES = {
+  id: 'document-stele-des-ruines',
+  titre: 'Stèle des Ruines',
+  prose: '« Ici tint garnison la III^e bannière du Comte Palatin. Le feu prit la tour une nuit de Geheimnisnacht ; nul ne rebâtit. Que celui qui fouille nos pierres laisse une pièce aux morts. »',
+};
 
 // ── Zone 1 — La Cour (24×16, sable) : échauffement, tutoriel du couvert ────────────────────
 
@@ -118,11 +125,7 @@ export function makeZone2() {
       P(3, 3, 'panneau', {
         label: 'Stèle gravée',
         ...fouille([
-          {
-            type: 'document',
-            title: 'Stèle des Ruines',
-            desc: '« Ici tint garnison la III^e bannière du Comte Palatin. Le feu prit la tour une nuit de Geheimnisnacht ; nul ne rebâtit. Que celui qui fouille nos pierres laisse une pièce aux morts. »',
-          },
+          remetLeDocument(DOC_STELE_DES_RUINES),
           { type: 'journal', desc: 'La stèle parle d’une garnison brûlée une nuit de Geheimnisnacht…' },
         ]),
       }),

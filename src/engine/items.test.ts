@@ -487,14 +487,14 @@ describe('items — recomputeLoadout / encombrement', () => {
       traumas: [{ label: 'Main', location: 'brasG', ops: [{ op: 'maxWeaponHands', hands: 1 }] }],
       items: [
         item({ uid: 'ep', label: 'Épée', kind: 'melee', damage: { plusBF: true, flat: 4 }, equipped: true }),
-        item({ uid: 'bo', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }], equipped: true }),
+        item({ uid: 'bo', trappingId: 'bouclier', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }], equipped: true }),
       ],
       loadouts: [{ id: 'l1', name: 'Épée+Bouclier', main: 'ep', off: 'bo' }],
       activeLoadoutId: 'l1',
     } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.map((w) => w.label)).toContain('Épée');
-    expect(c.weapons.map((w) => w.label)).not.toContain('Bouclier'); // main secondaire amputée → impossible de tenir le bouclier
+    expect(c.weapons.map((w) => w.trappingId)).not.toContain('bouclier'); // main secondaire amputée → impossible de tenir le bouclier
   });
   it('amputation de la main DIRECTRICE (brasD) : arme directrice conservée (−20, adaptation) ; la 2e arme (slot off) tombe', () => {
     const c = {
@@ -542,14 +542,14 @@ describe('items — recomputeLoadout / encombrement', () => {
       traumas: [{ label: 'Main', location: 'brasG', ops: [{ op: 'maxWeaponHands', hands: 1 }], prosthesis: [{ trappingId: 'merveille-d-ingenierie', cancels: 'all' }] }],
       items: [
         item({ uid: 'ep', label: 'Épée', kind: 'melee', damage: { plusBF: true, flat: 4 }, equipped: true }),
-        item({ uid: 'bo', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }], equipped: true }),
+        item({ uid: 'bo', trappingId: 'bouclier', label: 'Bouclier', kind: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 1 }], equipped: true }),
         item({ trappingId: 'merveille-d-ingenierie', label: "Merveille d'ingénierie", subType: 'protheses', equipped: true }),
       ],
       loadouts: [{ id: 'l1', name: 'X', main: 'ep', off: 'bo' }],
       activeLoadoutId: 'l1',
     } as unknown as Combatant;
     recomputeLoadout(c);
-    expect(c.weapons.map((w) => w.label)).toContain('Bouclier'); // prothèse « tout » → main rétablie, bouclier de nouveau tenu
+    expect(c.weapons.map((w) => w.trappingId)).toContain('bouclier'); // prothèse « tout » → main rétablie, bouclier de nouveau tenu
   });
   it('prothèse PORTÉE = Enc 0 ; possédée mais non portée = son Enc (LDB 73)', () => {
     const worn = { items: [item({ label: 'Fausse jambe', subType: 'protheses', enc: 2, equipped: true })] } as unknown as Combatant;
@@ -741,8 +741,8 @@ describe('Munitions & rechargement', () => {
 });
 
 // #222 — hydratation d'un poste d'artillerie : la base est RÉSOLUE du catalogue au spawn, l'état d'instance
-// préservé ; l'ancienne forme (item copié) est MIGRÉE ; une réf inconnue échoue franchement (fail-fast).
-describe('hydratePoste (#222) — réf catalogue → arme hydratée, migration de l’ancienne forme, fail-fast', () => {
+// préservé ; une réf inconnue échoue franchement (fail-fast).
+describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast', () => {
   const chef = { characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, weapons: [] } as unknown as Combatant;
 
   it('forme NEUVE : `{ trappingId }` → item complet du catalogue, arme dérivée FONCTIONNELLE', () => {
@@ -764,23 +764,8 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, migration d
     expect(hydratePoste({ trappingId: 'pierrier' }).item.uid).toBeTruthy();
   });
 
-  it('MIGRATION de l’ancienne forme : `{ item }` complet → base re-résolue, uid conservé, base copiée jetée', () => {
-    const old = itemFromTrappingById('canon-moyen')!;
-    old.uid = 'itm-legacy-9';
-    (old.damage as { flat: number }).flat = 999; // base copiée PÉRIMÉE (dérive du catalogue)
-    const p = hydratePoste({ item: old, side: 'babord' });
-    expect(p.item.trappingId).toBe('canon-moyen');
-    expect(p.item.uid).toBe('itm-legacy-9'); // état d'instance préservé
-    expect(p.item.damage).toEqual(itemFromTrappingById('canon-moyen')!.damage); // base FRAÎCHE (la copie périmée est jetée)
-    expect(p.side).toBe('babord');
-  });
-
   it('fail-fast : `trappingId` inconnu → throw explicite', () => {
     expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' })).toThrow(/trappingId inconnu/);
-  });
-
-  it('fail-fast : ni `trappingId` ni `item.trappingId` → throw explicite', () => {
-    expect(() => hydratePoste({ crewIds: ['g1'] })).toThrow(/réf catalogue absente/);
   });
 });
 

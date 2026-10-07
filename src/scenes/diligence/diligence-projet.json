@@ -2,7 +2,6 @@
  "id": "la-diligence",
  "type": "projet",
  "label": "L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf",
- "schema": 17,
  "icon": "scenario/travel",
  "desc": "Les Personnages se forment à l’auberge-relais La Diligence, à deux jours d’Altdorf, et cherchent une place à bord d’une diligence pour la capitale.",
  "versionContenu": 2,
@@ -21,6 +20,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 18
     },
+    "couvre": [
+     "EDO-01#pnj4"
+    ],
     "profil": {
      "label": "Fhluger'dagh",
      "title": "Démon mineur",
@@ -77,6 +79,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 20
     },
+    "couvre": [
+     "EDO-01#pnj1"
+    ],
     "profil": {
      "label": "Gustav Fondleburger",
      "title": "Bourgeois humain (Argent 2)",
@@ -170,6 +175,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 21
     },
+    "couvre": [
+     "EDO-01#pnj3"
+    ],
     "profil": {
      "label": "Noiraud",
      "title": "Corbeau",
@@ -247,6 +255,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 21
     },
+    "couvre": [
+     "EDO-01#pnj2"
+    ],
     "profil": {
      "label": "Herpin Stiggerwurt",
      "title": "Villageois humain (Bronze 3)",
@@ -316,6 +327,11 @@
      "book": "ennemi-dans-l-ombre",
      "page": 21
     },
+    "couvre": [
+     "EDO-01#pnj6",
+     "EDO-02#pnj8",
+     "EDO-02#pnj9"
+    ],
     "profil": {
      "label": "Gunnar et Hultz",
      "title": "Cocher humain (Argent 2)",
@@ -410,6 +426,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj7",
+     "EDO-02#pnj12"
+    ],
     "profil": {
      "label": "Isolde von Strudeldorf",
      "title": "Héritier humain (Or 1)",
@@ -498,6 +518,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj8",
+     "EDO-02#pnj13"
+    ],
     "profil": {
      "label": "Janna Elleiner",
      "title": "Serviteur humain (Argent 3)",
@@ -573,6 +597,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj9",
+     "EDO-02#pnj11"
+    ],
     "profil": {
      "label": "Marie Schultz",
      "title": "Garde d'honneur humain (Argent 3)",
@@ -692,6 +720,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 22
     },
+    "couvre": [
+     "EDO-01#pnj10",
+     "EDO-02#pnj14"
+    ],
     "profil": {
      "label": "Ernst Heidlemann",
      "title": "Sorcier novice humain (Bronze 3)",
@@ -805,6 +837,10 @@
      "book": "ennemi-dans-l-ombre",
      "page": 23
     },
+    "couvre": [
+     "EDO-01#pnj5",
+     "EDO-02#pnj10"
+    ],
     "profil": {
      "label": "Phillipe Descartes",
      "title": "Prostitué humain (Bronze 1)",
@@ -996,6 +1032,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 20
     },
+    "couvre": [
+     "EDO-01#pnj12"
+    ],
     "profil": {
      "label": "Fredrick",
      "title": "Portier",
@@ -1045,6 +1084,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 20
     },
+    "couvre": [
+     "EDO-01#pnj12"
+    ],
     "profil": {
      "label": "Artur",
      "title": "Forgeron",
@@ -1095,6 +1137,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 18
     },
+    "couvre": [
+     "EDO-01#pnj11"
+    ],
     "profil": {
      "label": "Lukas",
      "named": true,
@@ -1108,6 +1153,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 29
     },
+    "couvre": [
+     "EDO-02#pnj1"
+    ],
     "profil": {
      "label": "Rolf Hurtsis",
      "title": "Bandit mutant (Bronze 1)",
@@ -1198,6 +1246,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj3"
+    ],
     "profil": {
      "label": "Terenz",
      "title": "Bandit mutant (Bronze 1)",
@@ -1254,6 +1305,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj4"
+    ],
     "profil": {
      "label": "Mikael",
      "title": "Bandit mutant (Bronze 1)",
@@ -1310,6 +1364,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj5"
+    ],
     "profil": {
      "label": "Johann",
      "title": "Bandit mutant (Bronze 1)",
@@ -1366,6 +1423,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj6"
+    ],
     "profil": {
      "label": "Erik",
      "title": "Bandit mutant (Bronze 1)",
@@ -1422,6 +1482,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj2"
+    ],
     "profil": {
      "label": "Knud Cratinx",
      "title": "Hors-la-loi mutant (Bronze 2)",
@@ -1530,6 +1593,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 30
     },
+    "couvre": [
+     "EDO-02#pnj15"
+    ],
     "profil": {
      "label": "Magnus Pflaster",
      "title": "Sergent patrouilleur routier humain (Argent 4)",
@@ -1650,6 +1716,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 31
     },
+    "couvre": [
+     "EDO-02#pnj16"
+    ],
     "profil": {
      "label": "Baldwin, Leopold, Sunna, Willirun",
      "title": "Patrouilleur routier humain (Argent 2)",
@@ -1770,6 +1839,9 @@
      "book": "ennemi-dans-l-ombre",
      "page": 31
     },
+    "couvre": [
+     "EDO-02#pnj17"
+    ],
     "profil": {
      "label": "Anida Pflaster",
      "title": "Doktor humain (Argent 5)",
@@ -1859,6 +1931,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 40
     },
+    "couvre": [
+     "EDO-01#comp3"
+    ],
     "profil": {
      "label": "Johann Hindersson",
      "title": "Péager humain (Bronze 5)",
@@ -1980,6 +2055,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 41
     },
+    "couvre": [
+     "EDO-01#comp4"
+    ],
     "profil": {
      "label": "Aleanora 'Al' Basfond",
      "title": "Péager halfling (Bronze 5)",
@@ -2129,6 +2207,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 41
     },
+    "couvre": [
+     "EDO-01#comp8"
+    ],
     "profil": {
      "label": "Charlotte-Samantha Maiers",
      "title": "Sergent patrouilleur humain (Argent 4)",
@@ -2313,6 +2394,9 @@
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 42
     },
+    "couvre": [
+     "EDO-01#comp9"
+    ],
     "profil": {
      "label": "Heinrich Steele",
      "title": "Capitaine patrouilleur routier humain (Or 1)",
@@ -2515,6 +2599,107 @@
    }
   ],
   "objets": [],
+  "documents": [
+   {
+    "id": "edo-document-1-on-recherche",
+    "titre": "On recherche ! Aventuriers courageux !",
+    "prose": "*Son Excellence le Prince Héritier Hergard von Tasseninck de la Grande Principauté d'Ostland, fait savoir par la présente qu'il réside actuellement à Altdorf et souhaite s'attacher les services d'un groupe d'aventuriers chevronnés. L'engagement prendra effet dès que possible, pour une période indéterminée.*\n\n*Que les postulants soient avisés qu'il leur sera demandé d'entreprendre une mission des plus périlleuses dans les régions inexplorées des Montagnes Grises. L'objet de la mission est très délicat et la plus haute discrétion est impérative en ce qui concerne sa nature précise.*\n\n*La rémunération est négociable et dépendra de l'expérience des candidats, mais un minimum de 8 Couronnes par personne et par jour est assuré. De plus, une prime généreuse sera accordée une fois la mission accomplie. Couards, traînards et nains s'abstenir.*\n\n*Signé*\n\n*Scribe personnel du Prince Héritier Hergard*",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 16
+    }
+   },
+   {
+    "id": "edo-document-2-rolf-hurtsis",
+    "titre": "Rolf Hurtsis",
+    "prose": "*La silhouette qui se précipite frénétiquement vers vous te semble étrangement familière. D'un coup, tu réalises pourquoi ! Sous la chair pourrie et les écoulements de pus, tu reconnais les traits de Rolf Hurtsis, un vieil ami voleur. Vous avez fait de nombreux coups ensemble quand vous étiez jeunes, mais il a désormais subi d'horribles transformations.*\n\n*Il y a un an, Rolf a commencé à souffrir d'une étrange maladie. Il a changé, est devenu irritable, et parfois même violent. Pour cacher son problème de peau, il s'est fabriqué une cagoule avec un vieux sac, mais cela le gênait pour bien voir. C'est ce qui l'a empêché d'échapper au Guet lorsqu'un plan s'est mal déroulé. La dernière fois que tu en as entendu parler, il venait de s'échapper de prison et avait disparu sans laisser de trace. Jusqu'à aujourd'hui !*",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 24
+    }
+   },
+   {
+    "id": "edo-document-3-heritage",
+    "titre": "L'héritage",
+    "prose": "*Messires Lock, Stock & Barl*\n\n*Notaires, Commissaires aux serments, etc.*\n\n*Garten Weg*\n\n*Bögenhafen*\n\n*Cher Herr Lieberung,*\n\n*Après de longues recherches, nous sommes portés à croire que vous êtes le dernier parent vivant de feu le baronet Lieberung, d'Ubersreik. Si cela s'avère exact, et si aucun autre élément inconnu de nous à ce jour ne venait à se présenter, je suis chargé de vous informer que vous êtes l'unique bénéficiaire des dernières volontés et du testament de feu le Baronet (ci-après dénommé la première partie), ainsi que du titre et de toutes les terres et propriétés s'y rattachant.*\n\n*Je, soussigné, agissant en ma qualité d'exécuteur légal du document de la première partie mentionné ci-dessus, vous prie de vous rendre avec toute la célérité voulue à mes bureaux situés à l'adresse indiquée dans la présente lettre. Dès lors, et sous réserve que vous puissiez produire une déclaration sous serment signée et attestée par deux témoins confirmant votre identité de Kastor Aloysius Lieberung, nous aurons le plaisir de vous remettre le titre de propriété du manoir de Lieberung et de toutes les terres et propriétés s'y rattachant, ainsi que la somme de vingt mille couronnes d'or impériales.*\n\n*Votre humble et dévoué serviteur,*\n\n*Dietrich Barl. K.C., LL.B. (Alt)*\n\n*Signé en ce dixième jour de Nachhexen, dans la deux mille cinq cent douzième année de l'Empire.*",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 27
+    }
+   },
+   {
+    "id": "edo-document-4-affidavit",
+    "titre": "L'affidavit",
+    "prose": "Nous, soussignés, jurons solennellement que le porteur de ce document se nomme Kastor Aloysius Lieberung.\n\nIngrid Zicherman, prêtresse\n\nTemple de Sigmar, Nuln\n\nOskar Helmut, maître de guilde\n\nGuilde des marchands, Nuln\n\nSous le regard de\n\nJulius Schwungrad, Honorable Société des Avocats, Nuln",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 28
+    }
+   },
+   {
+    "id": "edo-document-5-josef-quartjin",
+    "titre": "Josef Quartjin",
+    "prose": "Enfin un visage amical ! Impossible de ne pas reconnaître cette barbe, ni la bedaine qu'elle dissimule. Il s'agit de ton vieil ami Josef Quartjin. Cela fait plus de dix ans que vous vous connaissez, et tu as passé de nombreuses soirées avec lui dans diverses tavernes le long du fleuve. Josef peut ingurgiter d'incroyables quantités d'alcool, et il a un don pour trouver les meilleures tavernes où qu'il se trouve.",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 36
+    }
+   },
+   {
+    "id": "edo-document-6-schaffenfest",
+    "titre": "La Schaffenfest",
+    "prose": "*Le Conseil et les Citoyens de Bögenhafen*\n\n*Vous invitent à l'inauguration de la Schaffenfest*\n\n*Qui se tiendra sur le pré communal le jour de Mitterfrülh*\n\n*La foire durera trois jours, du lever au coucher du soleil.*\n\n*Avec la gracieuse permission de Son Excellence*\n\n*Le Graf Wilhelm von Saponatheim*\n\n*Et de Son Altesse*\n\n*Le Grand-Duc Leopold du Middenland*\n\n*Une grande joute*\n\n*Sera organisée entre les chevaliers et écuyers de leurs maisons*\n\n*Tout ceci en plus des distractions habituelles de notre fameux*\n\n*Marché aux bestiaux*\n\n*Et de la plus grande foire ambulante du Reikland*",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 37
+    }
+   },
+   {
+    "id": "edo-document-7-lettre-q-f",
+    "titre": "La lettre",
+    "prose": "*À l'attention personnelle de Herr Adolphus Kuftsos*\n\n*À l'auberge-relais des Neuf Etoiles*\n\n*Route de Middenheim*\n\n*Altdorf*\n\n*Mon cher Herr Kuftsos,*\n\n*Vous vous souvenez certainement de la conversation que nous avons eue en Brauzeit dernier, à la taverne du Crochet et de la Hachette, à Nuln. Vous y aviez mentionné votre intérêt pour les activités d'une certaine société dont je ne mentionnerai pas le nom ici, et vous étiez notamment fort désireux de retrouver la trace d'un des sociétaires, connu sous le seul nom de Magister impedimentae.*\n\n*Je suis maintenant en mesure de confirmer tous vos soupçons. Après votre départ, je me suis livré à quelques recherches, et je suis désormais certain que la personne que vous recherchez utilise actuellement le nom de Kastor Lieberung. En accord avec vos plans, Herr Lieberung devrait se rendre à Altdorf par la route de Middenheim vers la fin du mois de Jahrdrung.*\n\n*J'ai également eu la bonne fortune de pouvoir me procurer un portrait de Herr Lieberung, que je joins à cette missive.* \n\n*Je reste, cher Monsieur, votre plus fidèle serviteur,*\n\n*Q.F.*",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 48
+    }
+   },
+   {
+    "id": "edo-document-8-invitation-de-teugen",
+    "titre": "Une heure après le coucher du soleil",
+    "prose": "Une heure après le coucher du soleil, chez moi.\n\nTous les membres du Conseil intérieur sont attendus.\n\nJohannes Teugen",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 82
+    }
+   },
+   {
+    "id": "edo-document-9-tout-se-passe-bien",
+    "titre": "« Tout se passe bien »",
+    "prose": "Tout se passe bien ; le temple est prêt. Après la fin de la Schaffenfest, au douzième coup de minuit, notre œuvre sera achevée. Nous serons bientôt tous riches.\n\nTeugen",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 90
+    }
+   },
+   {
+    "id": "edo-document-10-lettre-d-herzen",
+    "titre": "La lettre d'Herzen",
+    "prose": "Les Crêtes Noires\n\nGrissenwald\n\nPrès Nuln\n\nMon cher ami,\n\nVoici le parchemin dont vous aurez besoin pour le rituel que vous avez évoqué dans votre dernière lettre. N'oubliez pas que le temple nécessaire à une telle entreprise doit être consacré avec du sang frais.\n\nComme toujours, je suis profondément impressionnée devant les sommets (ou plutôt devrais-je dire les profondeurs) que votre savoir atteint désormais. Il me semble qu'hier encore nous n'étions que deux dilettantes implorant le Grand Maître de nous initier, et aujourd'hui vous vous tenez au seuil même des Abysses. Si vous en trouvez le temps, décrivez-moi en détail la façon dont s'est déroulé le rituel. Peut-être qu'un jour prochain je pourrai à mon tour suivre vos illustres traces.\n\nVotre amie,\n\nEtelka Herzen",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 101
+    }
+   },
+   {
+    "id": "edo-document-11-mot-de-magirius",
+    "titre": "Le mot de Magirius",
+    "prose": "Hôtel de ville, Bureau du Conseiller Magirius\n\nJe dois vous voir de toute urgence. Rendez-vous à ma résidence sur l'Adel Ring dès que vous le pourrez.\n\nMagirius",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 101
+    }
+   }
+  ],
   "ouverture": {
    "surtitre": "Une campagne pour Warhammer Fantasy Roleplay",
    "titre": "L’Ennemi Intérieur",
@@ -2531,7 +2716,7 @@
   "cloture": {
    "when": {
     "kind": "flag",
-    "expr": "edo-ch1-altdorf-revelee"
+    "expr": "edo-ch1-clos"
    },
    "titre": "Chapitre 1 — la route d’Altdorf",
    "sousTitre": "Ce que la compagnie emporte vers la capitale"
@@ -2542,6 +2727,10 @@
    "type": "scene",
    "id": "la-diligence",
    "label": "La Diligence",
+   "couvre": [
+    "EDO-01#lieu2",
+    "EDO-01#b2"
+   ],
    "dimensions": {
     "w": 32,
     "h": 38
@@ -7661,10 +7850,43 @@
       "y": 19
      },
      "facing": "E"
+    },
+    {
+     "id": "diligence-remise-charrette",
+     "kind": "prop",
+     "ref": "charrette",
+     "pos": {
+      "x": 13,
+      "y": 32
+     },
+     "facing": "N"
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-depart-remise",
+     "rect": {
+      "x": 12,
+      "y": 31,
+      "w": 4,
+      "h": 3
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setFlag",
+         "flag": "edo-ch1-depart"
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {},
    "metresPerTile": 2,
@@ -14733,6 +14955,9 @@
     {
      "id": "zone-A-z0",
      "label": "Portier",
+     "couvre": [
+      "EDO-01#lieu3"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -14746,6 +14971,9 @@
     {
      "id": "zone-C-z0",
      "label": "Cour",
+     "couvre": [
+      "EDO-01#lieu4"
+     ],
      "presentation": "exterior",
      "area": {
       "kind": "rect",
@@ -15502,6 +15730,9 @@
     {
      "id": "zone-R-z0",
      "label": "Réserves",
+     "couvre": [
+      "EDO-01#lieu8"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -15730,6 +15961,9 @@
     {
      "id": "zone-S-z0",
      "label": "Salle principale",
+     "couvre": [
+      "EDO-01#lieu5"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16161,6 +16395,9 @@
     {
      "id": "zone-U-z0",
      "label": "Salle commune",
+     "couvre": [
+      "EDO-01#lieu10"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16529,6 +16766,9 @@
     {
      "id": "zone-H-z0",
      "label": "Chambre",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16542,6 +16782,9 @@
     {
      "id": "zone-I-z0",
      "label": "Chambre",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16555,6 +16798,9 @@
     {
      "id": "zone-j-z0",
      "label": "Chambre",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -16581,6 +16827,9 @@
     {
      "id": "zone-Z-z0",
      "label": "Cour",
+     "couvre": [
+      "EDO-01#lieu4"
+     ],
      "presentation": "exterior",
      "area": {
       "kind": "rect",
@@ -17432,6 +17681,9 @@
     {
      "id": "zone-B-z0",
      "label": "Brasserie",
+     "couvre": [
+      "EDO-01#lieu9"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17445,6 +17697,9 @@
     {
      "id": "zone-F-z0",
      "label": "Forge",
+     "couvre": [
+      "EDO-01#lieu7"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17458,6 +17713,9 @@
     {
      "id": "zone-E-z0",
      "label": "Écuries & remise",
+     "couvre": [
+      "EDO-01#lieu6"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17471,6 +17729,9 @@
     {
      "id": "zone-e-z0",
      "label": "Écuries & remise",
+     "couvre": [
+      "EDO-01#lieu6"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17583,6 +17844,9 @@
     {
      "id": "zone-r-z0",
      "label": "Réserves",
+     "couvre": [
+      "EDO-01#lieu8"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17622,6 +17886,9 @@
     {
      "id": "zone-T-z1",
      "label": "Patrouilleurs routiers",
+     "couvre": [
+      "EDO-01#lieu13"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17635,6 +17902,9 @@
     {
      "id": "zone-t-z1",
      "label": "Patrouilleurs routiers",
+     "couvre": [
+      "EDO-01#lieu13"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17661,6 +17931,9 @@
     {
      "id": "zone-Q-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17687,6 +17960,9 @@
     {
      "id": "zone-r-z1",
      "label": "Réserves",
+     "couvre": [
+      "EDO-01#lieu8"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17970,6 +18246,9 @@
     {
      "id": "zone-D-z1",
      "label": "Quartier des serviteurs",
+     "couvre": [
+      "EDO-01#lieu12"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -17983,6 +18262,9 @@
     {
      "id": "zone-d-z1",
      "label": "Quartier des serviteurs",
+     "couvre": [
+      "EDO-01#lieu12"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18156,6 +18438,9 @@
     {
      "id": "zone-q-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18802,6 +19087,9 @@
     {
      "id": "zone-a-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18815,6 +19103,9 @@
     {
      "id": "zone-b-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -18828,6 +19119,9 @@
     {
      "id": "zone-c-z1",
      "label": "Chambres individuelles",
+     "couvre": [
+      "EDO-01#lieu11"
+     ],
      "presentation": "interior",
      "area": {
       "kind": "rect",
@@ -19391,7 +19685,30 @@
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-entree-altdorf",
+     "rect": {
+      "x": 5,
+      "y": 8,
+      "w": 5,
+      "h": 4
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setFlag",
+         "flag": "edo-ch1-clos"
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {}
   },
@@ -19399,6 +19716,9 @@
    "type": "scene",
    "id": "route-principale-virage",
    "label": "La route principale — le virage",
+   "couvre": [
+    "EDO-02#lieu1"
+   ],
    "dimensions": {
     "w": 40,
     "h": 24
@@ -22502,7 +22822,30 @@
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-corps-kastor",
+     "rect": {
+      "x": 35,
+      "y": 2,
+      "w": 4,
+      "h": 3
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setFlag",
+         "flag": "edo-ch1-corps-kastor-fouille"
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {},
    "environment": "sauvage"
@@ -22511,6 +22854,10 @@
    "type": "scene",
    "id": "auberge-des-sept-rayons",
    "label": "Auberge des Sept Rayons",
+   "couvre": [
+    "EDO-01#lieu19",
+    "EDO-02#lieu8"
+   ],
    "dimensions": {
     "w": 32,
     "h": 38
@@ -39144,6 +39491,34 @@
     "icon": "scenario/hamlet"
    },
    {
+    "id": "route-principale",
+    "label": "La route principale",
+    "pos": {
+     "x": 36,
+     "y": 59
+    },
+    "scene": "route-principale-virage",
+    "icon": "scenario/travel",
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-depart"
+    }
+   },
+   {
+    "id": "auberge-des-sept-rayons",
+    "label": "Auberge des Sept Rayons",
+    "pos": {
+     "x": 44,
+     "y": 51
+    },
+    "scene": "auberge-des-sept-rayons",
+    "icon": "scenario/hamlet",
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-depart"
+    }
+   },
+   {
     "id": "altdorf",
     "label": "Altdorf",
     "pos": {
@@ -39154,16 +39529,17 @@
     "icon": "scenario/village",
     "when": {
      "kind": "flag",
-     "expr": "edo-ch1-altdorf-revelee"
+     "expr": "edo-ch1-depart"
     }
    }
   ],
   "routes": [
    {
-    "id": "route-la-diligence-altdorf",
+    "id": "route-la-diligence-route-principale",
     "a": "la-diligence",
-    "b": "altdorf",
-    "km": 180,
+    "b": "route-principale",
+    "from": "la-diligence",
+    "km": 40,
     "modes": [
      "pied",
      "diligence"
@@ -39174,9 +39550,44 @@
     "inns": true,
     "when": {
      "kind": "flag",
-     "expr": "edo-ch1-altdorf-revelee"
+     "expr": "edo-ch1-depart"
     },
     "refus": "Aucun trajet ne part encore de ce relais."
+   },
+   {
+    "id": "route-route-principale-sept-rayons",
+    "a": "route-principale",
+    "b": "auberge-des-sept-rayons",
+    "from": "route-principale",
+    "km": 35,
+    "modes": [
+     "pied",
+     "diligence"
+    ],
+    "speed": {
+     "diligence": 15
+    },
+    "inns": true,
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-corps-kastor-fouille"
+    },
+    "refus": "Vous n'avez pas fini d'examiner les lieux de l'embuscade."
+   },
+   {
+    "id": "route-sept-rayons-altdorf",
+    "a": "auberge-des-sept-rayons",
+    "b": "altdorf",
+    "from": "auberge-des-sept-rayons",
+    "km": 115,
+    "modes": [
+     "pied",
+     "diligence"
+    ],
+    "speed": {
+     "diligence": 15
+    },
+    "inns": true
    }
   ]
  }

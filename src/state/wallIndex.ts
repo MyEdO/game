@@ -26,7 +26,7 @@ import type { Scene, WallSeg, WallSide } from './scene';
 
 /** Tableau STABLE (identité fixe) pour une scène sans mur — clé de mémoïsation valide, et réponse
  *  partagée des arêtes vides. */
-const AUCUNE: readonly WallSeg[] = [];
+const AUCUNE: readonly WallSeg[] = Object.freeze([]); // #2097
 
 /** Clé CANONIQUE d'une arête — la forme d'identité de cet index, et celle que tout dériveur d'arête
  *  reprend pour départager deux lectures de la MÊME arête (`state/aretes.ts`). */

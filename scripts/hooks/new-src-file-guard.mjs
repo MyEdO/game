@@ -153,7 +153,7 @@ function verdictsDe(ecrit, env) {
 
   if (estComposantUI(rel)) {
     // Registre ou manifeste illisible → on REFUSE (fail-closed) : une garde qui lève rend un contexte
-    // de panne (`scripts/hooks/repartiteur.mjs`), jamais un refus — la garde passerait à vide.
+    // de panne (`scripts/hooks/repartition.mjs`), jamais un refus — la garde passerait à vide.
     let déclaré = false
     let panne = null
     try {

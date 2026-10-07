@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { intentAllowedFor, modalOwnerOf, seatOwns, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocally, rolledLocally } from './netOwnership';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { GameState } from './store';
+import { cascadeDeTest } from './cascadeTestKit';
 
 const base = (over: Partial<GameState>): GameState =>
   ({
@@ -77,7 +78,7 @@ describe('possession réseau (netOwnership)', () => {
     // données) ; l'owner de la modale `cascade` = l'actorId de l'étape (le défenseur h2).
     const s = base({
       pendingDefense: { attackerId: 'e1', defenderId: 'h2' } as GameState['pendingDefense'],
-      pendingCascade: { participants: [{ jet: 'defense', kind: 'defenseJet', actorId: 'h2' }], cursor: 0 } as unknown as GameState['pendingCascade'],
+      pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
     });
     expect(modalOwnerOf(s)).toBe('h2');
     expect(intentAllowedFor(s, 1, 'defenseRoll')).toBe(true);
@@ -90,7 +91,7 @@ describe('possession réseau (netOwnership)', () => {
     // met l'owner à '*' (moment partagé + Contre-sort multi en coop). `pendingCast` coexiste comme data.
     const s = base({
       pendingCast: { casterId: 'e1', targetId: 'h1' } as GameState['pendingCast'],
-      pendingCascade: { participants: [{ jet: 'cast', kind: 'cast', actorId: 'e1', groupOwner: true }], cursor: 0 } as unknown as GameState['pendingCascade'],
+      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'cast', kind: 'cast', actorId: 'e1', groupOwner: true }]),
     });
     expect(modalOwnerOf(s)).toBe('*');
     expect(intentAllowedFor(s, 1, 'castCounterspell')).toBe(true);
@@ -101,7 +102,7 @@ describe('possession réseau (netOwnership)', () => {
     // (absent pour un entretien de Round) → `seatOwns(…, undefined)` = l'hôte, et le verbe
     // d'acquittement est celui de la cascade (`cascadeNext`).
     const s = base({
-      pendingCascade: { participants: [{ kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }], cursor: 0 } as unknown as GameState['pendingCascade'],
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]),
     });
     expect(intentAllowedFor(s, 0, 'cascadeNext')).toBe(true);
     expect(intentAllowedFor(s, 1, 'cascadeNext')).toBe(false);
@@ -143,6 +144,17 @@ describe('possession réseau (netOwnership)', () => {
     const s = base({ battle: null } as unknown as Partial<GameState>);
     expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h2'])).toBe(true);  // h2 = siège 1
     expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h1'])).toBe(false); // h1 = hôte
+  });
+
+  it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
+    const vu = [{ id: 'ind', étapes: 1, statut: 'révélé', stadeCourant: 's1' }];
+    const horsCombat = base({ battle: null } as unknown as Partial<GameState>);
+    expect(intentAllowedFor(horsCombat, 1, 'toggleCluePin', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'markCluesSeen', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'partyRemoveHero', ['h1']), 'opposé : un geste de groupe POSSÉDÉ reste refusé').toBe(false);
+    const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
+    expect(intentAllowedFor(enCombat, 1, 'toggleCluePin', ['ind'])).toBe(true);
+    expect(intentAllowedFor(enCombat, 1, 'markCluesSeen', [vu])).toBe(true);
   });
 });
 

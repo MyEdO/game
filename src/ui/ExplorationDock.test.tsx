@@ -16,9 +16,11 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
 import type { WorldMap } from '../state/worldMap';
-import type { NarratifBlock } from '../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import { testScene } from '../scenes/test-fixture';
 import { CampaignView } from './CampaignView';
+import { TIME_COST } from '../engine/timeCost';
+import { t } from '../i18n';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -32,7 +34,7 @@ function explorationNue() {
   useGame.setState({
     scene: testScene(), mode: 'exploration', battle: null, povActive: false,
     worldMap: null, travelPlan: null, vessel: null, campaignNarratif: null,
-    port: null, landMarket: null, travelRecap: null,
+    port: null, landMarket: null, travelRecap: null, clues: {},
   });
 }
 
@@ -111,13 +113,36 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
     act(() => {
       useGame.setState({
         campaignNarratif: {
+          ...emptyNarratif(),
           affaires: [{ id: 'aff', titre: 'Affaire' }],
           indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'Indice', stades: [{ id: 's1', prose: 'Prose.' }] }],
-          presetsPnj: [], objets: [],
         } satisfies NarratifBlock,
       });
     });
     expect(ouvreurs()).toEqual(['Possessions du groupe', 'Carnet d’enquête', 'Camper — dormir sur place jusqu’à l’aube']);
+  });
+
+  it('carnet d’enquête : en `.attention`, nom accessible augmenté, SEULEMENT quand un indice est nouveau POUR CE SIÈGE (#2415)', () => {
+    const enquete = {
+      ...emptyNarratif(),
+      affaires: [{ id: 'aff', titre: 'Affaire' }],
+      indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'Indice', stades: [{ id: 's1', prose: 'Prose.' }] }],
+    } satisfies NarratifBlock;
+    const neuf = { stadeCourant: 's1', statut: 'révélé' as const, historique: [{ stade: 's1', at: 0 }] };
+    const net = useGame.getState().net;
+    useGame.setState({ campaignNarratif: enquete, clues: { ind: { ...neuf, vuParSiège: { 0: true } } }, net: { ...net, mySeat: 0 } });
+    monter();
+    const carnet = () => [...host.querySelectorAll('.exploration-dock .worldmap-btn')]
+      .find((b) => b.getAttribute('title') === t('pont.carnet') || b.getAttribute('title') === t('pont.carnetNouveau'))!;
+    expect(carnet().getAttribute('title')).toBe(t('pont.carnet'));
+    expect(carnet().classList.contains('attention')).toBe(false);
+    act(() => { useGame.setState({ clues: { ind: neuf } }); });
+    expect(carnet().getAttribute('title')).toBe(t('pont.carnetNouveau'));
+    expect(carnet().classList.contains('attention')).toBe(true);
+    // Vu par le siège 0 seulement : le pont du siège 1 garde l'alerte.
+    act(() => { useGame.setState({ clues: { ind: { ...neuf, vuParSiège: { 0: true } } }, net: { ...net, mySeat: 1 } }); });
+    expect(carnet().classList.contains('attention'), 'la vue du siège 0 a éteint l’alerte du siège 1').toBe(true);
+    act(() => { useGame.setState({ net }); });
   });
 
   it('CONDITIONNEL — carte du monde : offerte seulement quand la scène EST un lieu connu', () => {
@@ -135,6 +160,36 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
     // tient — `placeServices` offre au moins l'hébergement) : les deux conditions sont satisfaites
     // par la même donnée, l'attendu le dit tel quel.
     expect(ouvreurs()).toEqual(['Possessions du groupe', 'Carte du monde — voyager', 'Terrain de test — services du lieu']);
+  });
+});
+
+describe('Fouiller la pièce (#700) — un GESTE du groupe, dans son groupe nommé, offert DANS une pièce', () => {
+  const gestes = () => host.querySelector('.exploration-dock [role="group"][aria-label="Gestes du groupe"]');
+  /** Une pièce intérieure authorée sur les cases 0..3 × 0..3, étage 0. */
+  const avecPiece = () => {
+    const sc = testScene();
+    sc.effectZones = [...(sc.effectZones ?? []), { id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w: 4, h: 4 }, z: 0 }];
+    return sc;
+  };
+
+  it('hors de toute pièce : le geste n’est pas offert', () => {
+    useGame.setState({ scene: avecPiece(), partyPos: { x: 8, y: 8 } });
+    monter();
+    expect(gestes()).toBeNull();
+    expect(ouvreurs()).not.toContain(t('fouille.geste'));
+  });
+
+  it('DANS une pièce : offert dans « Gestes du groupe », jamais parmi les écrans de campagne ; le clic fouille', () => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    useGame.setState({ scene: avecPiece(), partyPos: { x: 1, y: 1 }, party: [h], dialogue: null });
+    const el = monter();
+    const bouton = gestes()?.querySelector('button');
+    expect(bouton?.getAttribute('title')).toBe(t('fouille.geste'));
+    expect(el.querySelector('[aria-label="Écrans de campagne"]')!.contains(bouton!)).toBe(false);
+    const avant = useGame.getState().gameTime;
+    act(() => { bouton!.click(); });
+    expect(useGame.getState().journal.slice(-1)[0]).toBe(t('fouille.journal'));
+    expect(useGame.getState().gameTime).toBe(avant + TIME_COST.search);
   });
 });
 

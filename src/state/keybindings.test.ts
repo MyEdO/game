@@ -10,6 +10,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { KEYBINDINGS, bindingParId, formatCombo, modsDeLaTouche, modsMatch, type KeyBinding } from './keybindings';
 import { modalHolds, pickActiveModalKey } from './modalArbiter';
 import type { GameState } from './store';
+import { spawnEnemy } from './spawn';
+import { cascadeDeTest } from './cascadeTestKit';
 
 const binding = (id: string) => bindingParId(id)!;
 
@@ -28,14 +30,14 @@ const cartePilote = (over: Partial<GameState> = {}) =>
     // Étape `jet:'cast'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
     // `cascade`, `modalArbiter`). Une étape sans `jet` ne mesurerait pas la garde — l'arbitre élirait
     // la cascade et toutes les portes seraient fermées pour une autre raison.
-    pendingCascade: { participants: [{ actorId: 'h1', id: 'c', kind: 'castJet', jet: 'cast' }], cursor: 0 } as never,
+    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: 'castJet', jet: 'cast' }]),
     pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     ...over,
   });
 
 /** Cascade ORDINAIRE (révélation) : elle bloque la carte — clavier ET souris se taisent. */
 const cascadeBloquante = (over: Partial<GameState> = {}) =>
-  fake({ pendingCascade: { participants: [{ actorId: 'h1' }], cursor: 0 } as never, ...over });
+  fake({ pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]), ...over });
 
 const CURSEUR = ['cursor-up', 'cursor-down', 'cursor-left', 'cursor-right'];
 
@@ -148,14 +150,22 @@ describe('raccourcis — la caméra se pilote au clavier : bascule de vue, inspe
     expect(toggleViewMode).toHaveBeenCalledOnce();
   });
 
-  it('I commute l’inspection des combattants, en COMBAT seulement', () => {
-    const b = binding('toggle-inspect');
+  it('I INSPECTE ce que le joueur désigne (#1822) — jamais une bascule de mode', () => {
+    const b = binding('inspecter');
     expect(b.codes).toEqual(['KeyI']);
-    expect(b.when(fake())).toBe(true);
-    expect(b.when(fake({ mode: 'exploration' }))).toBe(false);
-    const toggleInspectEnabled = vi.fn();
-    b.run(() => ({ toggleInspectEnabled }) as never);
-    expect(toggleInspectEnabled).toHaveBeenCalledOnce();
+    const run = (s: GameState) => { const setInspectId = vi.fn(); b.run(() => ({ ...s, setInspectId }) as never); return setInspectId; };
+    // Combat : la case du CURSEUR prime, puis le portrait survolé, puis le jeton survolé.
+    const surCase = { combatCursor: { tile: { x: 2, y: 3 } }, battle: { over: null, order: [], turn: 0, combatants: [spawnEnemy({ ref: 'brigand' }, 'e1', { x: 2, y: 3 })] } } as unknown as Partial<GameState>;
+    expect(run(fake({ ...surCase, hoverCombatantId: 'h2', hovered: 'h3' }))).toHaveBeenCalledWith('e1');
+    expect(run(fake({ hoverCombatantId: 'h2', hovered: 'h3' }))).toHaveBeenCalledWith('h2');
+    expect(run(fake({ hovered: 'h3' }))).toHaveBeenCalledWith('h3');
+    // Hors combat : l'entité survolée.
+    expect(b.when(fake({ mode: 'exploration', battle: null, hovered: 'npc-phillipe' }))).toBe(true);
+    expect(run(fake({ mode: 'exploration', battle: null, hovered: 'npc-phillipe' }))).toHaveBeenCalledWith('npc-phillipe');
+    // Rien de désigné : la touche se tait, en combat comme hors combat.
+    expect(b.when(fake())).toBe(false);
+    expect(b.when(fake({ mode: 'exploration', battle: null }))).toBe(false);
+    expect(run(fake())).not.toHaveBeenCalled();
   });
 
   it('C recentre HORS combat aussi, et remet le zoom à 100 %', () => {
@@ -245,7 +255,7 @@ describe('raccourcis — X commute le set d’armes', () => {
 
   it('se tait pendant un ciblage par la carte, comme les autres gestes qui ENGAGENT', () => {
     const s = avecSets(['lo-a', 'lo-b'], 'lo-a', {
-      pendingCascade: { participants: [{ actorId: 'h1' }], cursor: 0 } as never,
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]),
       pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     });
     expect(binding('switch-loadout').when(s)).toBe(false);

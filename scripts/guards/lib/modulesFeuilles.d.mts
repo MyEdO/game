@@ -1,3 +1,6 @@
+import type { SourceFile } from 'typescript/unstable/ast';
+import type { Diagnostic } from 'typescript/unstable/sync';
+
 /** Racine du dépôt, chemin absolu (en-tête de `modulesFeuilles.mjs`). */
 export const RACINE: string;
 
@@ -8,7 +11,7 @@ export const FEUILLES: ReadonlyArray<{ module: string; bancs: readonly string[];
 export function sourcesSuivies(racine?: string): string[];
 
 /** Imports d'un fichier, résolus. */
-export function importsResolus(fichierAbsolu: string, texte: string): import('./importGraph.mjs').Arc[];
+export function importsResolus(fichierAbsolu: string, texte: string | SourceFile, diagnostics?: readonly Diagnostic[]): import('./importGraph.mjs').Arc[];
 
 /** Manquements à l'invariant des feuilles. */
 export function manquementsDeFeuilles(p?: {

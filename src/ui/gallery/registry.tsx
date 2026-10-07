@@ -11,7 +11,7 @@
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
 import { tableTotale } from '../../lib/tableTotale';
-import { type ComponentType, useRef, useState } from 'react';
+import { type ComponentType, type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
 import { Tabs, type TabItem } from '../Tabs';
 import { ChoiceButtons, OptionChooser } from '../OptionChooser';
@@ -26,10 +26,15 @@ import { useInfobulle } from '../Infobulle';
 import { CodexRef } from '../compendium/CodexRef';
 import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
-import { DescRefField } from '../compendium/DescRefField';
 import { SourceRefField } from '../SourceRefField';
+import { ProvenanceDuTexte } from '../editor/ProvenanceDuTexte';
+import { SourceBadge } from '../SourceBadge';
+import { ProseField } from '../ProseField';
+import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
+import { adresseUnPassage, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { GatedAction } from '../GatedAction';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { ReadyRow } from '../ReadyRow';
 import { CoopInvite, CoopCodeInput, SeatList, CoopAssignRow, CoopBanner } from '../CoopPanels';
 import { CharFrame } from '../CharFrame';
@@ -73,6 +78,8 @@ import { MenuCard, MenuSection, MenuButton, MenuToggle } from '../MenuCard';
 import { CreatorDice } from '../creator/CreatorDice';
 import { GameOpEditor } from '../editor/GameOpEditor';
 import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
+import { CouvreField } from '../editor/CouvreField';
+import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
 import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById } from '../../data';
@@ -374,12 +381,30 @@ function NumberFieldDemo() {
   );
 }
 
+function SourceBadgeDemo() {
+  return (
+    <Stack>
+      <SourceBadge source={{ book: 'LDB', page: 181 }} />
+      <ParchmentCard title="Lettre scellée">
+        Badge posé sur le parchemin : encre et filet lus aux jetons de la carte.{' '}
+        <SourceBadge source={{ book: 'EDO', page: 42 }} />
+      </ParchmentCard>
+    </Stack>
+  );
+}
+
+function ProseFieldDemo() {
+  const [texte, setTexte] = useState('Premier paragraphe de la prose verbatim.\n\nSecond paragraphe.');
+  return <ProseField label="Texte du document" value={texte} onChange={setTexte} />;
+}
+
 /** Réf de source RÉELLE d'un sort du registre, montrée par le spécimen de `SourceRefField`. */
 const sourceDeSort = memoParVersion('spells', () => spells.find((s) => s.source?.note)?.source ?? spells[0].source);
 
 function SourceRefFieldDemo() {
-  // Facultative puis exigée, chacune vide / incomplète / complète : un brouillon incomplet reste à
-  // l'écran et se dit incomplet, seule une réf complète remonte.
+  // Facultative puis exigée, chacune vide / amorcée incomplète / complète : une valeur reçue incomplète
+  // s'affiche sans signal, la première saisie qui la laisse incomplète se dit incomplète, seule une réf
+  // complète remonte.
   type Saisie = { book?: string; page?: number; note?: string } | undefined;
   const reelle = sourceDeSort();
   const [vide, setVide] = useState<Saisie>(undefined);
@@ -391,12 +416,53 @@ function SourceRefFieldDemo() {
   return (
     <>
       <SourceRefField identite="facultative-vide" label="Facultative — vide" facultative value={vide} onChange={setVide} />
-      <SourceRefField identite="facultative-livre-seul" label="Facultative — livre seul (incomplète)" facultative value={livreSeul} onChange={setLivreSeul} />
+      <SourceRefField identite="facultative-livre-seul" label="Facultative — livre seul amorcé (incomplète)" facultative value={livreSeul} onChange={setLivreSeul} />
       <SourceRefField identite="facultative-complete" label="Facultative — complète" facultative value={complete} onChange={setComplete} />
       <SourceRefField identite="exigee-vide" label="Exigée — vide" value={exigeeVide} onChange={setExigeeVide} />
-      <SourceRefField identite="exigee-incomplete" label="Exigée — page manquante (incomplète)" value={exigeeIncomplete} onChange={setExigeeIncomplete} />
+      <SourceRefField identite="exigee-incomplete" label="Exigée — page manquante, amorcée (incomplète)" value={exigeeIncomplete} onChange={setExigeeIncomplete} />
       <SourceRefField identite="exigee-complete" label="Exigée — complète" value={exigee} onChange={setExigee} />
     </>
+  );
+}
+
+function ProvenanceDuTexteDemo() {
+  // Les trois états d'un site qui offre la copie (`source`), puis deux répliques : adaptée, et ADRESSÉE
+  // (l'adresse et la prose matérialisée de la Terreur, `psychology.json`) — lue, à détacher.
+  type Provenance = { source?: SourceRef; adapteDe?: SourceRef };
+  type Replique = { adapteDe?: SourceRef; desc?: string; descRef?: DescRef };
+  const reelle = sourceDeSort();
+  const terreur = findPsychologyById('terreur');
+  const [maison, setMaison] = useState<Provenance>({});
+  const [copie, setCopie] = useState<Provenance>({ source: reelle });
+  const [adapte, setAdapte] = useState<Provenance>({ adapteDe: reelle });
+  const [replique, setReplique] = useState<Replique>({ adapteDe: reelle });
+  const [adressee, setAdressee] = useState<Replique>({ desc: terreur?.desc, descRef: terreur?.descRef });
+  const poser = <V,>(set: Dispatch<SetStateAction<V>>) => (patch: Partial<V>) => set((v) => ({ ...v, ...patch }));
+  return (
+    <Grid min="sm" gap="lg">
+      <Stack className="panel sunken" gap="sm">
+        <strong>Maison</strong>
+        <ProvenanceDuTexte identite="maison" copie sujet="du texte maison" value={maison} onChange={poser(setMaison)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Copie</strong>
+        <ProvenanceDuTexte identite="copie" copie sujet="du texte copié" value={copie} onChange={poser(setCopie)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Adapté</strong>
+        <ProvenanceDuTexte identite="adapte" copie sujet="du texte adapté" value={adapte} onChange={poser(setAdapte)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Réplique adaptée</strong>
+        <ProvenanceDuTexte identite="replique" sujet="de la réplique" value={replique} onChange={poser(setReplique)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Réplique adressée</strong>
+        {/* Composée comme `DialogueDetail` : le texte se lit, puis s'édite une fois détaché. */}
+        <ProseField label="Texte de la réplique" lecture={adresseUnPassage(adressee.descRef) ? adressee.desc ?? '' : undefined} value={adressee.desc ?? ''} onChange={(desc) => setAdressee((v) => ({ ...v, desc: desc || undefined }))} />
+        <ProvenanceDuTexte identite="adressee" sujet="de la réplique adressée" value={adressee} onChange={poser(setAdressee)} />
+      </Stack>
+    </Grid>
   );
 }
 
@@ -740,6 +806,26 @@ function GatedActionDemo() {
         <GatedAction id="gal-gated-dense" label="Pause au prochain Round" enabled dense onClick={() => {}} />
       </div>
     </div>
+  );
+}
+
+/** Refus et état perdu : une phrase courte, une phrase et son rapport technique replié, puis l'alerte
+ *  d'un champ exigé, nommée par `id` et désignée par l'`aria-describedby` du champ. Spécimens posés
+ *  sans geste : `fixe`, la planche ne défile pas vers eux à son ouverture. */
+function ChipDeRefusDemo() {
+  return (
+    <>
+      <ChipDeRefus fixe refus={{ message: 'Emplacement 1 : sauvegarde d’un autre format, retirée.' }} />
+      <ChipDeRefus
+        fixe
+        refus={{
+          message: 'Ouverture refusée : projet d’un autre format, ou mal formé.',
+          detail: 'Projet d’un autre format, ou mal formé — 1 faute\n  - scenes « s1 » › entities « p0 » › ref: « ref » absente',
+        }}
+      />
+      <textarea aria-label="Motif de l'écart" aria-invalid aria-describedby="galerie-refus-motif" rows={2} />
+      <ChipDeRefus fixe id="galerie-refus-motif" refus={{ message: 'Motif requis.' }} />
+    </>
   );
 }
 
@@ -1104,6 +1190,20 @@ function BandDemo() {
 function GameOpEditorDemo() {
   const [ops, setOps] = useState<GameOp[]>([]);
   return <GameOpEditor ops={ops} onChange={setOps} />;
+}
+
+/** Trois états : deux entrées RÉELLES des fiches commitées, liste vide, entrée introuvable. */
+function CouvreFieldDemo() {
+  const [connues, setConnues] = useState<string[] | undefined>(ENTREES_DE_DOSSIER.slice(0, 2).map((e) => e.id));
+  const [vide, setVide] = useState<string[] | undefined>(undefined);
+  const [introuvable, setIntrouvable] = useState<string[] | undefined>(['EDO-99#b1']);
+  return (
+    <>
+      <CouvreField value={connues} onChange={setConnues} sujet="du spécimen connu" />
+      <CouvreField value={vide} onChange={setVide} sujet="du spécimen vide" />
+      <CouvreField value={introuvable} onChange={setIntrouvable} sujet="du spécimen introuvable" />
+    </>
+  );
 }
 
 function ReglagesApparenceDemo() {
@@ -1492,7 +1592,7 @@ function CombatConsoleMock() {
                       <Icon id="item/weapon" size="sm" />
                       <span className="cc-key">X</span>
                     </button>
-                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse">
+                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse, VIDE">
                       <i className="cc-set-n">2</i>
                       <Icon id="item/weapon" size="sm" />
                       <i className="cc-set-load">VIDE</i>
@@ -1536,7 +1636,7 @@ function CombatConsoleMock() {
             </div>
           </div>
           <div className="cc-corner">
-            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end" aria-label="Finir le tour">
+            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end">
               <span className="cc-ico"><Icon id="ui/turn-end" /></span>
               <span className="cc-lbl">Fin du tour</span>
               <span className="cc-key">F</span>
@@ -1580,7 +1680,6 @@ function ObjectiveBannerDemo() {
 /** Rangée de caméra : commandes vissées (peau `.skin-tole`), état enfoncé par `aria-pressed`. */
 function ViewControlsDemo() {
   const [vue, setVue] = useState<'iso' | 'top'>('iso');
-  const [inspection, setInspection] = useState(false);
   return (
     <ViewControls
       zoom={1}
@@ -1591,8 +1690,6 @@ function ViewControlsDemo() {
       onRotateRight={() => {}}
       view={vue}
       onToggleView={() => setVue((v) => (v === 'iso' ? 'top' : 'iso'))}
-      inspectEnabled={inspection}
-      onToggleInspect={() => setInspection((v) => !v)}
     />
   );
 }
@@ -1714,12 +1811,17 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'qtystepper', label: 'QtyStepper', file: 'src/ui/QtyStepper.tsx', category: 'Négoce & activités', render: QtyStepperDemo },
   { id: 'numberfield', label: 'NumberField', file: 'src/ui/NumberField.tsx', category: 'Négoce & activités', render: NumberFieldDemo },
   { id: 'gatedaction', label: 'GatedAction', file: 'src/ui/GatedAction.tsx', category: 'Négoce & activités', render: GatedActionDemo },
+  { id: 'chipderefus', label: 'ChipDeRefus', file: 'src/ui/ChipDeRefus.tsx', category: 'Atomes', render: ChipDeRefusDemo },
   { id: 'parchmentcard', label: 'ParchmentCard', file: 'src/ui/ParchmentCard.tsx', category: 'Négoce & activités', render: ParchmentCardDemo },
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
+  { id: 'couvrefield', label: 'CouvreField', file: 'src/ui/editor/CouvreField.tsx', category: 'Éditeur', render: CouvreFieldDemo },
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
+  { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
+  { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
+  { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },
   { id: 'metalstatus', label: 'MetalStatus', file: 'src/ui/MetalStatus.tsx', category: 'Atelier du scribe', render: MetalStatusDemo },
   { id: 'waxseal-sealedplaque', label: 'WaxSeal / SealedPlaque', file: 'src/ui/WaxSeal.tsx', category: 'Atelier du scribe', render: WaxSealDemo },

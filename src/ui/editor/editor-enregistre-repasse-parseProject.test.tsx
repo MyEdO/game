@@ -10,27 +10,26 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee } from '../../lib/indexedDb.testkit';
-import { parseProject, CURRENT_PROJECT_SCHEMA } from '../../state/worldMap';
+import { parseProject } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import { Editor } from './Editor';
 import { allBuiltinCampaigns, paquetDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-afterEach(async () => {
+afterEach(() => {
   demonterRacines();
-  await __resetLibraryForTest();
-  __setOuvertureIdbForTest(null);
-  localStorage.clear();
+  __setFabriqueIdbForTest(null);
 });
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 
 /** Branche la bibliothèque IndexedDB sur une base simulée amorcée avec `entrees`. */
 function bibliotheque(entrees: SavedProject[] = []): BaseSimulee {
-  const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } });
+  const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, { projects: { keyPath: 'id' } });
   for (const e of entrees) base.magasins.get('projects')!.contenu.set(e.id, e);
   return base;
 }
@@ -80,11 +79,11 @@ describe('Éditeur — un projet ENREGISTRÉ repasse sa propre porte `parseProje
     // L'éditeur démarre SANS identité ; c'est le geste d'enregistrement (le champ
     // pré-rempli de `SaveProjectModal`) qui la pose. Le document écrit s'annonce, se nomme, et dit
     // sa provenance — sans quoi sa propre porte le refuserait à la relecture ci-dessus.
-    expect(saved.project).toMatchObject({ type: 'projet', schema: CURRENT_PROJECT_SCHEMA, versionContenu: 1 });
+    expect(saved.project).toMatchObject({ type: 'projet', versionContenu: 1 });
     expect(saved.project.id, 'identité posée par le geste').toBeTruthy();
     expect(saved.project.label, 'le NOM vient du champ de la modale').toBeTruthy();
     expect(saved.project.maison, 'provenance : une campagne d’éditeur ne cite aucun folio').toBeTruthy();
-    expect(Object.keys(saved.project).sort()).toEqual(['id', 'label', 'maison', 'narratif', 'scenes', 'schema', 'type', 'versionContenu']);
+    expect(Object.keys(saved.project).sort()).toEqual(['id', 'label', 'maison', 'narratif', 'scenes', 'type', 'versionContenu']);
   });
 });
 
@@ -114,8 +113,8 @@ describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
 
   it('le document de la scène fautive est bien celui que la porte REFUSE (sans quoi on ne mesurerait rien)', () => {
     expect(() => parseProject({
-      type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'p', label: 'P', versionContenu: 1,
-      maison: 'fixture de test', narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      type: 'projet', id: 'p', label: 'P', versionContenu: 1,
+      maison: 'fixture de test', narratif: emptyNarratif(),
       scenes: [sceneAuDecorSansType()],
     })).toThrow(/« ref » absente/);
   });
@@ -132,11 +131,9 @@ describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
   });
 });
 
-/** Un projet déjà en bibliothèque, écrit AVANT #1552 : son document n'a ni `type`, ni identité à la
- *  racine, et ses scènes ne s'annoncent pas. L'ENTRÉE, elle, porte un id et un nom — la clé et le
+/** Un projet déjà en bibliothèque, au format courant. L'ENTRÉE porte l'id et le nom — la clé et le
  *  libellé de la bibliothèque (`SavedProject`). */
-function entreeAncienne(over: Partial<SavedProject> = {}): SavedProject {
-  const { type: _muette, ...sceneMuette } = { ...emptyScene(4, 4), id: 'scene-ancienne', label: 'Salle ancienne' };
+function entreeEnBibliotheque(over: Partial<SavedProject> = {}): SavedProject {
   return {
     id: 'proj-ancien',
     label: 'Campagne d’avant',
@@ -144,9 +141,13 @@ function entreeAncienne(over: Partial<SavedProject> = {}): SavedProject {
     savedAt: 1,
     published: false,
     project: {
-      schema: 6,
-      scenes: [sceneMuette as Scene],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      type: 'projet',
+      id: 'proj-ancien',
+      label: 'Campagne d’avant',
+      versionContenu: 1,
+      maison: 'fixture de test',
+      scenes: [{ ...emptyScene(4, 4), id: 'scene-ancienne', label: 'Salle ancienne' }],
+      narratif: emptyNarratif(),
     },
     ...over,
   } as SavedProject;
@@ -189,79 +190,42 @@ async function ouvreLaPremiereEntree(entrees: SavedProject[]): Promise<{ refus: 
   return { refus, texte, ecrits, enregistre };
 }
 
-describe('Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE', () => {
-  it('sans identité au document : l’identité DE L’ENTRÉE est reconduite, le projet CHARGE et se réenregistre', async () => {
-    const { refus, texte, ecrits, enregistre } = await ouvreLaPremiereEntree([entreeAncienne()]);
+describe('Éditeur — un projet de bibliothèque se ROUVRE, ou se refuse en mots d’AUTEUR', () => {
+  it('au format courant : le projet CHARGE et se réenregistre, son document repasse sa porte', async () => {
+    const { refus, texte, ecrits, enregistre } = await ouvreLaPremiereEntree([entreeEnBibliotheque()]);
     expect(refus, 'aucun refus ne doit s’afficher').toBeNull();
-    expect(texte, 'la scène du projet ancien est chargée').toContain('Salle ancienne');
+    expect(texte, 'la scène du projet est chargée').toContain('Salle ancienne');
 
     await enregistre();
     expect(ecrits).toHaveLength(1);
     const doc = ecrits[0].project as Record<string, unknown>;
-    expect(doc.id, 'l’id de l’entrée est reconduit au document').toBe('proj-ancien');
+    expect(doc.id).toBe('proj-ancien');
     expect(doc.label).toBe('Campagne d’avant');
-    expect(doc.versionContenu, 'version de contenu inconnue du document → 0').toBe(0);
-    expect(doc.type).toBe('projet');
+    expect(doc.versionContenu).toBe(1);
     expect(() => parseProject(doc), 'le document réécrit repasse sa porte').not.toThrow();
   });
 
-  it('avec identité au document : l’id et la version sont CEUX DU DOCUMENT, le nom est CELUI DE L’ENTRÉE', async () => {
-    const entree = entreeAncienne();
-    const projet = { ...(entree.project as Record<string, unknown>), id: 'id-du-document', label: 'Nom du document', versionContenu: 4 };
-    const { refus, ecrits, enregistre } = await ouvreLaPremiereEntree([{ ...entree, project: projet } as SavedProject]);
-    expect(refus).toBeNull();
-    await enregistre();
-    const doc = ecrits[0].project as Record<string, unknown>;
-    expect(doc.id).toBe('id-du-document');
-    expect(doc.label, 'le nom que la liste montre est celui qui se réécrit').toBe('Campagne d’avant');
-    expect(doc.versionContenu).toBe(4);
+  it('d’un AUTRE format (numéro `schema`) : LISTÉ, refusé en mots d’AUTEUR, jamais chargé (#2404)', async () => {
+    const entree = entreeEnBibliotheque();
+    const ancien = { ...entree, project: { ...entree.project, schema: 18 } } as SavedProject;
+    const { refus, texte } = await ouvreLaPremiereEntree([ancien]);
+    expect(refus).toContain('Ouverture refusée : projet d’un autre format, ou mal formé.');
+    expect(texte, 'la scène n’est pas chargée').not.toContain('Salle ancienne');
+    expect(texte, 'la modale « Ouvrir » reste à l’écran, l’entrée listée').toContain('Campagne d’avant');
   });
 
-  it('copie d’une campagne du jeu d’AVANT E5 (document au nom du paquet, entrée au nom de l’auteur) : s’ouvre et se réenregistre sous le nom de l’ENTRÉE', async () => {
-    const paquet = paquetDuJeu(allBuiltinCampaigns[0]);
-    const { scenes: _sc, worldMap: _wm, activeAxes: _aa, narratif: _na, label: _lb, ...identiteDuPaquet } = paquet;
-    const projet = {
-      ...identiteDuPaquet,
-      type: 'projet',
-      schema: CURRENT_PROJECT_SCHEMA,
-      label: 'L’Arène',
-      scenes: [{ ...emptyScene(4, 4), id: 'scene-copie', label: 'Salle copiée' }],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
-    };
-    const copie = { ...entreeAncienne(), id: 'entree-copie', label: 'Mon nom', project: projet } as SavedProject;
-    const { refus, ecrits, enregistre } = await ouvreLaPremiereEntree([copie]);
-    expect(refus).toBeNull();
-    const nomAffiche = await enregistre();
-    expect(nomAffiche, 'le champ Nom de « Enregistrer » montre le nom de l’entrée').toBe('Mon nom');
-    expect(ecrits).toHaveLength(1);
-    const entree = ecrits[0];
-    expect((entree.project as Record<string, unknown>).label).toBe('Mon nom');
-    expect(entree.label).toBe('Mon nom');
-  });
-
-  it('IRRÉCUPÉRABLE (entrée sans nom ni id) : refus en mots d’AUTEUR, détail technique dessous — jamais une boîte du navigateur', async () => {
-    const anonyme = { ...entreeAncienne(), id: '', label: '' } as SavedProject;
-    const { refus, texte } = await ouvreLaPremiereEntree([anonyme]);
-    // Ce que l'auteur lit d'abord est en mots d'AUTEUR (règle 4) : le rapport de la porte nomme des
-    // chemins de schéma, il reste consultable mais ne tient plus lieu de message.
-    expect(refus, 'le refus doit être RENDU par l’éditeur').toContain('Ce projet n’a pas de nom');
-    expect(refus, 'le détail technique reste consultable').toMatch(/id/);
-    expect(refus).toMatch(/label/);
-    expect(texte, 'la scène ancienne n’est pas chargée').not.toContain('Salle ancienne');
-  });
-
-  it('document SANS SCÈNE : le refus se LIT dans la modale « Ouvrir », jamais un clic muet', async () => {
-    const entree = entreeAncienne();
+  it('document SANS SCÈNE : le refus se LIT dans la modale « Ouvrir », jamais un clic muet — le titre dit l’autre format, la faute vit au détail (#2404)', async () => {
+    const entree = entreeEnBibliotheque();
     const vide: SavedProject = { ...entree, project: { ...entree.project, scenes: [] } };
     const { refus, texte } = await ouvreLaPremiereEntree([vide]);
-    expect(refus).toBe(
-      'Ouverture refusée : ce projet ne peut pas être ouvert. Faute : Scènes — le projet ne porte aucune scène : il en faut au moins une pour l’ouvrir ou le jouer.',
-    );
+    expect(refus).toContain('Ouverture refusée : projet d’un autre format, ou mal formé.');
+    expect(refus).not.toContain('Faute :');
+    expect(refus, 'le rapport de la porte, replié').toContain('Détail technique');
     expect(texte, 'la modale « Ouvrir » reste à l’écran').toContain('Mes projets');
   });
 
   it('entrée dont la scène de départ n’existe pas : l’éditeur l’OUVRE quand même (c’est là qu’on la répare)', async () => {
-    const { refus, texte } = await ouvreLaPremiereEntree([entreeAncienne({ startSceneId: 'scene-disparue' })]);
+    const { refus, texte } = await ouvreLaPremiereEntree([entreeEnBibliotheque({ startSceneId: 'scene-disparue' })]);
     expect(refus).toBeNull();
     expect(texte).toContain('Salle ancienne');
   });
@@ -269,16 +233,18 @@ describe('Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE', ()
   it.each([
     ['scènes nulles', [null]],
     ['scène en chaîne', ['a']],
-  ])('document que la MIGRATION ne traverse pas (%s) : le refus se LIT dans « Ouvrir »', async (_nom, scenes) => {
-    const entree = entreeAncienne();
-    const casse = { ...entree, project: { ...entree.project, schema: 2, scenes } } as unknown as SavedProject;
+  ])('document MAL FORMÉ (%s) : le refus se LIT dans « Ouvrir »', async (_nom, scenes) => {
+    const entree = entreeEnBibliotheque();
+    const casse = { ...entree, project: { ...entree.project, scenes } } as unknown as SavedProject;
     const { refus } = await ouvreLaPremiereEntree([casse]);
-    expect(refus).toContain('Ouverture refusée : ce projet ne peut pas être ouvert. Ce document n’est pas un projet lisible.');
+    expect(refus).toContain('Ouverture refusée : projet d’un autre format, ou mal formé.');
   });
 
   it('une entrée SANS NOM se rend « (sans nom) » dans « Ouvrir », jamais une rangée muette', async () => {
-    const { texte } = await ouvreLaPremiereEntree([{ ...entreeAncienne(), label: '' } as SavedProject]);
+    const entree = entreeEnBibliotheque();
+    const { refus, texte } = await ouvreLaPremiereEntree([{ ...entree, label: '', project: { ...entree.project, label: '' } } as SavedProject]);
     expect(texte).toContain('(sans nom)');
+    expect(refus, 'un projet sans nom ne s’ouvre pas tel quel').toContain('Ouverture refusée : ce projet n’a pas de nom.');
   });
 });
 
@@ -322,13 +288,12 @@ describe('Éditeur — un projet IMPORTÉ garde son identité jusqu’à la bibl
   it('import → enregistrement : l’ENTRÉE et le DOCUMENT portent le MÊME id et le MÊME nom', async () => {
     const doc = {
       type: 'projet',
-      schema: CURRENT_PROJECT_SCHEMA,
       id: 'proj-importe',
       label: 'Campagne importée',
       versionContenu: 3,
       maison: 'fixture de test — aucun folio à citer',
       scenes: [{ ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée' }],
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+      narratif: emptyNarratif(),
     };
     const ecrits = await importePuisEnregistre(JSON.stringify(doc));
     expect(ecrits).toHaveLength(1);

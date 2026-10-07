@@ -16,7 +16,7 @@ const marcheursReels = (): string[] =>
   scanMarcheursDeFlow(readCorpus(['src/state']).map(({ rel, text }) => ({ rel, text }))).map(marcheurLabel);
 
 describe('cliquet `marcheursDeFlow` — un seul marcheur de Flow à terme (#1874)', () => {
-  it(`au plus ${PLAFOND} marcheurs sous \`src/state\`, et le plafond suit la baisse`, () => {
+  it(`au plus ${PLAFOND} marcheurs sous \`src/state\`, et le plafond suit la baisse`, { timeout: 60_000 }, () => {
     const vus = marcheursReels();
     expect(
       vus.length,

@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { detenteur } from '../detenteur.testkit';
@@ -21,7 +22,8 @@ import {
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
 import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
-import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, ecartsDeStock, SEPARATEUR_DE_REMEDE, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
+import { siteDeForme } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import {
   ANGLES_MORTS,
@@ -137,9 +139,6 @@ const cleForme = (
   `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.strate} | ${f.occurrences}` +
   trace(f, lotDeForme(f.concept, f.signature, f.cibles ?? [])) +
   (f.motif ? ` | ${f.motif}` : '');
-/** SITE d'une forme : ce qui l'identifie indépendamment de sa mesure et de son pilotage. */
-const siteDeForme = (f: { concept: string; dataset: string; champ: string; signature: string }) =>
-  `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature}`;
 /** Le stock des formes, typé pour la lecture de son PILOTAGE (`lot`, `motif`, `date`). */
 const FORMES: readonly (Parameters<typeof cleForme>[0])[] = STRUCTURES_FORMES;
 /**
@@ -150,6 +149,25 @@ const FORMES: readonly (Parameters<typeof cleForme>[0])[] = STRUCTURES_FORMES;
  */
 const pilotageDeForme = new Map(FORMES.map((f) => [siteDeForme(f), { lot: f.lot, motif: f.motif, date: f.date }]));
 const cleFormeObservee = (f: Parameters<typeof cleForme>[0]) => cleForme({ ...f, ...pilotageDeForme.get(siteDeForme(f)) });
+const ecartsDeFormes = (mesure: typeof scan) => ecartsDeStock({
+  observe: mesure.formes.filter((f) => f.statut === 'historique' || f.statut === 'divergente'),
+  stock: FORMES,
+  cle: cleFormeObservee,
+  remede: {
+    neuve: (cle: string, f: Parameters<typeof cleForme>[0]) => {
+      const connue = FORMES.find((s) => siteDeForme(s) === siteDeForme(f));
+      return connue && cleFormeObservee({ ...f, occurrences: connue.occurrences }) === cleFormeObservee(connue)
+        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
+        : `${cle} — Migrer la référence vers la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts), sans l’ajouter au stock.`;
+    },
+    perimee: (cle: string, f: Parameters<typeof cleForme>[0]) => {
+      const vue = mesure.formes.find((s) => siteDeForme(s) === siteDeForme(f));
+      return vue && cleFormeObservee({ ...vue, occurrences: f.occurrences }) === cleFormeObservee(f)
+        ? `${cle} — Déclarer les occurrences mesurées : node scripts/lancer-local.mjs tsx -- tsx scripts/guards/occurrences-structures.mts --write.`
+        : `${cle} — Retirer l’entrée périmée de scripts/guards/lib/structuresStock.mjs.`;
+    },
+  },
+});
 const cleOrpheline = (o: { dataset: string; champ: string; signature: string; motif: string; occurrences: number } & Trace) =>
   `${o.dataset} | ${o.champ} | ${o.signature} | ${o.motif} | ${o.occurrences}` +
   trace(o, o.motif === 'clé de référence non résolue' ? 'L1a #1466' : '#1553');
@@ -177,6 +195,15 @@ const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrphe
  */
 const cleOp = (o: { op: string; signature: string; dataset: string; occurrences: number } & Trace) =>
   `${o.op} | ${o.signature} | ${o.dataset} | ${o.occurrences}` + trace(o, 'L1c #1468');
+const ecartsHorsStrate = (
+  sites: Parameters<typeof ecartDuVolet>[0]['sites'],
+  stock: Parameters<typeof ecartDuVolet>[0]['stock'] = HORS_STRATE_RATCHET,
+) => ecartDuVolet({
+  sites, stock, ou: '`scripts/guards/lib/horsStrateStock.mjs`',
+  remede: {
+    neuve: (cle: string) => `${cle} — Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.`,
+  },
+});
 
 describe('structures de la donnée — stock nominatif décroissant (#1463 L0)', () => {
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
@@ -200,13 +227,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   });
 
   it('formes à éteindre : observé == stock (présence, statut, strate ET occurrences)', () => {
-    const observees = scan.formes
-      .filter((f) => f.statut === 'historique' || f.statut === 'divergente')
-      .map(cleFormeObservee);
-    expect(
-      lignes(observees),
-      'écart entre les formes OBSERVÉES et `STRUCTURES_FORMES` — une ligne en trop côté observé est une dérive neuve (elle se migre), une ligne en trop côté stock est périmée (elle se retire). Le `statut` et la `strate` entrent dans la clé : un statut menteur rougit.',
-    ).toEqual(lignes(STRUCTURES_FORMES.map(cleForme)));
+    const ecarts = ecartsDeFormes(scan);
+    expect(lignes(ecarts.neuves), 'forme(s) observée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
+    expect(lignes(ecarts.perimees), 'forme(s) déclarée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
+    expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_FORMES').toBe(FORMES.length);
   });
 
   it('signatures ORPHELINES (hors strate) : observé == stock', () => {
@@ -217,15 +241,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   });
 
   it('signatures HORS STRATE : observé == stock nominatif, les neuves ET les périmées sont NOMMÉES', () => {
-    const { neuves, perimees } = ecartDuVolet({
-      sites: sitesHorsStrate(scan.invisibles, scan.documents),
-      stock: HORS_STRATE_RATCHET,
-      ou: '`scripts/guards/lib/horsStrateStock.mjs`',
-    });
+    const { neuves, perimees } = ecartsHorsStrate(sitesHorsStrate(scan.invisibles, scan.documents));
     expect(
       lignes(neuves),
-      'signature(s) HORS STRATE NEUVE(s) — une structure neuve se pose à la forme CIBLE du lexique ' +
-        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock.',
+      'signature(s) HORS STRATE NEUVE(s) : appliquer le remède de chaque site nommé.',
     ).toEqual([]);
     expect(
       lignes(perimees),
@@ -235,6 +254,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual([]);
   });
 
+  it('HORS STRATE : remède applicable à une forme valide absente du lexique, sans modifier sa clé', () => {
+    const sites = [{ file: 'src/scenes/fixture.json', ref: 'flow — effect,kind' }];
+    const { neuves, perimees } = ecartsHorsStrate(sites, []);
+    const cle = cleDeSite(sitesEnEntrees(sites)[0]);
+    expect(neuves).toEqual([cle + SEPARATEUR_DE_REMEDE + 'Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.']);
+    expect(neuves[0]).not.toContain('CLIQUET:');
+    expect(perimees).toEqual([]);
+  });
+
   it('le stock hors strate committé est un point fixe de sa régénération', () => {
     for (const r of regenerations(scan)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
@@ -242,7 +270,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   it('signatures d’OPS : observé == stock (dénominateur du lot L1c #1468)', () => {
     expect(
       lignes(scan.ops.map(cleOp)),
-      'écart entre les signatures d’op OBSERVÉES et `STRUCTURES_OPS` — `gameOpSchema` ne valide rien, ce stock EST le dénominateur de la strate Ops.',
+      'écart entre les signatures d’op OBSERVÉES et `STRUCTURES_OPS` : vérifier chaque site nommé contre `gameOpSchema` (src/data/schemas/grammaire/mecanique.ts), puis migrer sa signature vers la forme CIBLE du lexique (scripts/docs/lib/structures-lexique.mts). Un ajout au stock nominatif appartient au cas autorisé du lot de migration et porte son échéance ; retirer les signatures soldées. Aucun plafond numérique à recopier.',
     ).toEqual(lignes(STRUCTURES_OPS.map(cleOp)));
   });
 
@@ -407,419 +435,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const stock = readFileSync(join(ROOT, 'scripts/guards/lib/structuresStock.mjs'), 'utf8');
     expect(
       /statut:\s*["']cible-declaree["']/.test(stock),
-      'une ligne `cible-declaree` est entrée au stock : elle CROÎTRAIT (une forme se déclare avant d’être posée), et rendrait menteurs `GARDE.baseline.decroissant` et le cliquet des huit stocks.',
+      'une ligne `cible-declaree` est entrée au stock : elle CROÎTRAIT (une forme se déclare avant d’être posée), et rendrait menteurs `GARDE.baseline.decroissant` et les stocks nominatifs.',
     ).toBe(false);
     expect(Object.keys(LOTS_DE_PEUPLEMENT).length, 'aucun lot de peuplement déclaré : la table B du doc serait vide de sens.').toBeGreaterThan(0);
-  });
-
-  it('les huit stocks ne font que DÉCROÎTRE (aucune ligne neuve hors migration)', () => {
-    const mesure = [
-      // #1443 (mobilier volumique) : trois lignes s'ajoutent au dénominateur, chacune INSTANCE d'une
-      // famille déjà stockée et rangée dans son lot — `ref` id-nu d'un pion de scène (L3, comme les
-      // 306 des trois autres scènes), `primitives {material+…}` (L3, comme `walls`/`masses`),
-      // `source` absente de `materials.json` (L1d, comme `lightTones.json`).
-      // #1466 T3-b (dons de `giveTrapping`) : deux lignes s'ajoutent au dénominateur, chacune
-      // INSTANCE de la famille déjà stockée `arene-projet.json › effect {<réf>,type}` (`encounter,type`,
-      // `entityId,type`, `scene,type`, `spell,type`…) et rangée dans le MÊME lot L3. Elles n'existaient
-      // pas AVANT la migration parce que le champ portait un LIBELLÉ, qui n'ouvre aucune référence :
-      // c'est la donnée qui ENTRE dans la strate mesurée, pas une dérive de forme.
-      // #1466 T3-b (migration qualités LIBELLÉ→id) : une ligne s'ajoute au dénominateur — le tableau
-      // résolu DEVIENT une forme refs/ids-nus mesurée (ligne nominative `arene-projet.json › qualities`),
-      // rangée dans le MÊME lot L3 : la donnée ENTRE dans la strate, ce n'est pas une dérive de forme.
-      // #1466 L1a volet A : le DÉCLARÉ couvre les 2 racines — la fermeture des discriminants de
-      // scène retire 8 lignes de formes (`ambiance`/`weather`/`threat` des 4 projets : leurs valeurs
-      // sont des littéraux d'enum du schéma, elles n'ouvrent plus de référence). Le cliquet SUIT la
-      // baisse : 679 → 671, sinon la marge regagnée servirait à absorber une dérive future.
-      // Cliquet REMONTÉ 15 → 16 (L2 #1548, commit 0) : `refs / ids-nus` reçoit le statut `cible`. DESIGN
-      // v2 S2 (#1463, commentaire du 2026-08-23) : « `refs(type)` = liste d'ids nus brandée (75 champs
-      // `string[]`) » — la liste d'ids nus EST la forme visée, ce qui reste à faire est le TYPAGE du
-      // champ. Une cible neuve se décide en revue : celle-ci porte sa citation et sa date.
-      // Cliquet REMONTÉ 16 → 19 (L2 #1548, commit 4bis) : trois graphies reçoivent le statut `cible`
-      // AU SITE du statbloc (`id,value`, `id,spec,value`, `choix,id,value`). Une cible neuve se
-      // décide en revue : celles-ci portent leur citation (#1463, « `value` = le seul nom du NOMBRE
-      // IMPRIMÉ au statbloc ») et leur date au stock, et leur réserve ouverte y est dite.
-      // Cliquet REMONTÉ 19 → 21 (L4 #1463, vague `plage`, 2026-08-31) : deux graphies reçoivent le
-      // statut `cible`, et aucune donnée ne bouge pour ça. (1) `plage | max,min+…` : la cible d'une
-      // rangée de table est TRANCHÉE — fourchette PLATE `{min, max}` + `findTableEntry`
-      // (`src/engine/tables.ts`, primitive de la table `docs/primitives.md`), et la charge utile d'une rangée
-      // (102 charges distinctes mesurées) est INHÉRENTE : c'est ce que le suffixe `+…` de la
-      // projection nomme, pas une divergence. Mesuré 2026-08-31 : 1441 objets à deux bornes, TOUS
-      // `min,max` — zéro `from/to`, zéro `de/a`, zéro `low/high` — et ZÉRO `{range:{min,max}}`, la
-      // cible emboîtée que le lexique déclarait n'existait NULLE PART (#1463 S1 amendé 2026-08-31,
-      // motif au pilotage). (2) `bornes | max,min+…` : concept NEUF du lexique, les 23 objets de
-      // `reglesOptionnelles.json` étaient comptés `plage divergente` par MISCLASSEMENT — ce sont les
-      // bornes du DOMAINE d'un réglage (co-présence `default`/`step`), aucun d100 ne les traverse.
-      // (3) `monnaie` × 6 sous-signatures (#1463 L-monnaie-3) : `moneyPartialSchema` déclare les 3
-      // dénominations OPTIONNELLES et `toMoney` complète à 0 — un coût authoré qui n'écrit que ce
-      // qu'il chiffre est à la forme cible. Les variantes `+…` restent HORS cibles : un étalement se
-      // migre, il ne se blanchit pas.
-      // Cliquet REMONTÉ 27 → 34 (#1633, 2026-09-01) : la strate `Document` reçoit ses quatre concepts
-      // d'ENVELOPPE, et chacun déclare la ou les PROJECTIONS de son noyau requis — `ouverture`
-      // (`pitch,titre` ± optionnels), `cloture` (`titre,when` ±), `narratif`
-      // (`affaires,indices,objets,presetsPnj` ±) et `condition` (`expr,kind`). Chaque ligne porte SA
-      // PORTE zod au stock ; aucune donnée n'est réécrite, 12 lignes hors strate s'éteignent.
-      // (5) `formule | sum` et `formule | sinPoints` (#1463 L-de-1) : concept NEUF du lexique — la
-      // COMPOSITION d'une `Formula` (`formulaSchema`, `grammaire/valeurs.ts`) et le terme de Péché qui
-      // s'y ajoute (`sinPointsSchema`, LDB 40). Deux cibles de plus, mesurées : elles ne blanchissent
-      // AUCUN étalement (`sea-cargo › offerPrice {sum+…}` reste divergent au stock), et le noyau du
-      // concept est borné aux deux clés qui ne nomment QU'une formule — `dice`/`times` en sont exclus,
-      // ils nomment aussi un `DiseaseTime` et le COMPTE d'une réf de Talent (motif mesuré au lexique).
-      // Cliquet REMONTÉ 36 → 39 (#1389, épique #1388) : deux concepts NEUFS du lexique, trois
-      // signatures cibles — l'ADRESSE d'un passage du Source (`book,ch,parts`) et ses deux FRAGMENTS
-      // (suite de blocs, cellule de table). Elles ne blanchissent AUCUN étalement : ces objets
-      // n'existaient nulle part avant la migration du pilote (`psychology.json`), et `descRefSchema`
-      // (`grammaire/valeurs.ts`) refuse toute autre graphie — il n'y a pas d'ancienne forme à
-      // éteindre. Sans elles, `book` les rangeait sous `source` et `sum` sous `formule`.
-      // Cliquet REMONTÉ 39 → 40 (#1797) : `formule | minimum,of` — la BORNE BASSE d'un terme de
-      // `Formula` (`{minimum, of}`, `formulaSchema`), où vit le « minimum de 1 » des deux
-      // entrées « Choc au bras » (AA 07 l.113, LDB 18 l.88) que le moteur portait au site d'appel.
-      // Elle ne blanchit AUCUN étalement : la graphie naît avec le terme, et `minimum` ne nomme que
-      // lui (`atLeast`, lui, est déjà le seuil d'un palier et d'une Condition — il n'entre pas au noyau).
-      // Cliquet REMONTÉ 40 → 42 (#1897) : `source | book,page,quote` et `source | book,note,page,quote`,
-      // CIBLES au seul site `alsoIn` — l'emplacement secondaire et sa preuve (`secondarySourceRefSchema`).
-      // 10 lignes `source | alsoIn` (69 occurrences) sortent de `STRUCTURES_FORMES` ; aucune donnée
-      // n'est réécrite.
-      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 42],
-      // Cliquet DESCENDU 671 → 670 (#1467) : le statbloc à `size` d'`arene-projet.json` quitte
-      // ce stock — le profil embarqué s'ANNONCE (`type: 'statblock'`) et sa forme est déclarée champ par
-      // champ (`defs-scenes/communs.ts`), donc sa signature n'est plus lue comme une référence non
-      // résolue. Il réapparaît à `STRUCTURES_ORPHELINES` ci-dessous : même objet, autre stock.
-      // Cliquet DESCENDU 670 → 594 (L2 #1548, commit 0) : les 76 lignes `refs / ids-nus` quittent le
-      // dénominateur avec la cible ci-dessus — aucune donnée ne bouge, c'est le LEXIQUE qui reconnaît
-      // la forme déjà posée. Le cliquet SUIT la baisse.
-      // Cliquet DESCENDU 594 → 587 (L2 #1548, commit 3b) : la graphie `skillId` MEURT de la donnée —
-      // 8 lignes de référence de Compétence s'éteignent (activities ×2, axes ×2, crew-roles ×2,
-      // talents, creatures.grant : 92 occurrences migrées vers la forme canonique `{id, spec?}`),
-      // 1 ligne neuve apparaît (`creatures.json › spec` mesuré en id nu). Les conteneurs de TEST
-      // gardent leur ligne (lot L4) : seule la référence DEDANS s'est emboîtée. Le cliquet SUIT.
-      // Cliquet DESCENDU 587 → 557 (L2 #1548, commit 3c) : les FRÈRES PLATS `skill`+`spec` MEURENT de la
-      // donnée — 334 références de Compétence s'emboîtent en `skill: { id, spec? }` sur 21 documents, si
-      // bien que 31 lignes de graphie plate s'éteignent (ops `skillMod`/`skillDRBonus`/`castPenalty`/
-      // `corruptionExposure`, conteneurs de Test, `talents.matches`/`reverseFailed`, `tavernGames`) et
-      // qu'1 ligne neuve apparaît (`domains.json › test` : la même entrée, sa signature perdant le `spec`
-      // frère — `difficulty,skill+…` → `difficulty,skill`). Le cliquet SUIT.
-      // Cliquet REMONTÉ 557 → 558 (L2 #1548, commit 3d) : AUCUNE dérive neuve — la valeur de Test du
-      // PNJ soigneur (`medicalAid`) ÉTAIT un NOMBRE nu, INVISIBLE à ce scan qui ne mesure que des
-      // références ; devenue la référence de statbloc `{id, value}` de la racine scènes, elle entre au
-      // dénominateur à la MÊME graphie historique que ses 4 562 sœurs (`creatures.json › skills`). Le
-      // dénominateur GLOBAL, lui, DÉCROÎT : 557+106 = 663 → 558+104 = 662.
-      // Cliquet DESCENDU 558 → 557 (L2 #1548, geste modèle) : les DEUX pseudo-PNJ de l'effet
-      // `medicalAid` meurent de la donnée — la valeur de Guérison recopiée (`skill {id,value}`, 2
-      // occurrences) s'éteint AVEC sa signature d'effet (`effect entityId,skill,type+…` → `entityId,type+…`),
-      // et les 2 soigneurs de l'arène RÉFÉRENCENT leur fiche de bestiaire (`ref id-nu` :
-      // 291 → 293, la graphie déjà canonique du pion de scène). Une ligne de moins au stock.
-      // Cliquet DESCENDU 557 → 538 (L2 #1548, commit 4) : les QUATRE graphies enveloppantes du champ
-      // d'AVANCEMENT meurent de la donnée (careerLevels + species, 4 462 nœuds) — 20 lignes
-      // s'éteignent (les 6 enveloppes `ref>…`/`wildcard>…` du lot L2, et les 14 lignes de graphie
-      // côté champ porteur `skills`/`talents`), 1 ligne neuve apparaît (`species.json › of {random}` :
-      // les 2 tirages qui vivaient en branche de `choice` vivent en branche de `pick`). Le cliquet SUIT.
-      // Cliquet REMONTÉ 538 → 540 (#862) : deux lignes s'ajoutent au dénominateur, chacune INSTANCE
-      // d'une famille déjà stockée et rangée dans son lot — `mutations.json › ops` reçoit les deux
-      // graphies de référence de Trait que `mutations.json › passive` porte déjà (`traitId+…`,
-      // `argFrom,traitId+…`, L3). C'est la donnée qui ENTRE dans la strate mesurée (le dataset n'avait
-      // aucune op authorée avant le re-ciblage quotidien de Haine sporadique), pas une dérive de forme.
-      // Cliquet DESCENDU 540 → 534 (L2 #1548, commit 4bis) : les 6 lignes de référence de Compétence
-      // sous `skills` d'un STATBLOC (bestiaire ×2, `barge-du-sel` ×2, `loup-et-saumure` ×2 — 5 996
-      // occurrences) sortent du dénominateur : ce sont des CIBLES au site (cf. `STRUCTURES_CIBLES`).
-      // RECLASSEMENT, pas migration — aucune de ces 5 996 occurrences n'est réécrite ; ce que le
-      // commit MIGRE, ce sont les 59 sentinelles textuelles qui vivaient DANS ces lignes.
-      // Cliquet REMONTÉ 534 → 538 (#674, 2026-08-31) : la Pneumonie et le Rhume commun (EDOC 08
-      // l.94-122) ENTRENT dans la strate mesurée avec deux champs que `maladies.json` ne portait pas
-      // — `mutation {into+…}`, `dailyTest {difficulty+…}` — et deux conteneurs d'ops (`onFail`,
-      // `otherwise`, tous deux `disease,symptomId+…`). Chacune est l'INSTANCE d'une famille déjà
-      // stockée et rangée dans son lot (L3 pour les 3 références, L4 pour le Test) : donnée neuve, pas
-      // forme neuve.
-      // Cliquet REMONTÉ 538 → 541 (#684 L4, 2026-08-31) : le premier tronçon de carte du chapitre 1
-      // fait ENTRER `diligence-projet.json` dans la strate des références de CARTE — `a`, `b`, `scene`
-      // en `id-nu`, les trois lignes que les trois autres projets portent déjà pour leur worldMap,
-      // rangées dans le MÊME lot L3. Donnée neuve à la forme déjà stockée, pas forme neuve : leur
-      // extinction est celle de la fabrique de référence du schéma de carte (L2/L3 #1473), pour les
-      // quatre projets à la fois.
-      // Cliquet DESCENDU 541 → 480 (L4 #1463, vague `plage`, 2026-08-31) : les 61 lignes `plage`
-      // (1421 occurrences) sortent du dénominateur — la fourchette PLATE `{min, max}` est la CIBLE
-      // (cf. `STRUCTURES_CIBLES` ci-dessus), et ces objets y étaient déjà. AUCUNE de ces 1421
-      // occurrences n'est réécrite : le suffixe `+…` que la projection leur donnait n'était pas une
-      // divergence de graphie, c'était la charge utile INHÉRENTE d'une rangée de table. Le cliquet
-      // SUIT la baisse, sinon la marge regagnée servirait à absorber une dérive future.
-      // Cliquet REMONTÉ 480 → 481 (équipage de la Louve grise, 3fe450675, 2026-09-01) : les entités d'équipage de la barge portent
-      // `appearance {species, tenue}`, la ligne SŒUR de celles que `loup-et-saumure`, `arene` et
-      // `creatures.json` portent déjà (même concept, même lot L3). Donnée neuve à la forme déjà
-      // stockée, pas forme neuve : son extinction est celle d'`entityAppearanceSchema`
-      // (`src/data/schemas/grammaire/valeurs.ts`), où `species`/`tenue` sont des `z.string()` nus —
-      // aucun `idDe(...)`, donc aucun slot, pour AUCUN des quatre porteurs.
-      // Cliquet REMONTÉ 481 → 483 (équipage du Grimm et statblocs d'auteur de l'arène, 2026-09-01) : le MÊnE trou
-      // étendu aux deux paquets restants — `loup-et-saumure` gagne la ligne `species,tenue` (équipage adverse
-      // anonyme des deux abordages), `arene` la ligne `species` (les statblocs d'auteur Nuée de rats / Dragon
-      // des ténèbres, sans tenue : une bête ne s'habille pas). Deux lignes SŒURS de plus, même lot, même
-      // extinction qu'au cliquet précédent — donnée neuve à la forme déjà stockée, pas forme neuve.
-      // Cliquet DESCENDU 483 → 481 (#1463 L-ref-2, 2026-09-01) : les DEUX lignes
-      // `spells.json › range|target {text+… (résolvable)}` sont SOLDÉES — les 38 occurrences stockées (54 sites migrés — les 16 Mage/Shaman n'entraient pas au stock) qui
-      // désignaient le lanceur en toutes lettres portent `{kind:'self'}`. Le cliquet SUIT la baisse :
-      // deux crans libres absorberaient en silence la réapparition de la forme.
-      // Cliquet DESCENDU 481 → 479 (#1463 L-ref-0 + L-ref-1, 2026-09-01) : les DEUX lignes
-      // `careerLevels.json › trappings {text|count,text (résolvable)}` (64 occurrences) MEURENT. Elles
-      // ne mesuraient rien : la résolvabilité d'un `{text}` se calculait sur la seule clé `text` du
-      // site — vide de cible par construction, donc « n'importe quel dataset » (« Assistant »
-      // → `careerLevels`, « Bureau » → `props`, « Munitions » → `weaponGroups`). La mesure est
-      // scopée aux cibles majoritaires du SITE (`structures-scan.mts` › `ciblesMajoritairesDuSite`),
-      // et les 49 dotations qui NOMMAIENT vraiment une possession sont liées (`{id, spec}`, `{id}`,
-      // `choice`). Une ligne ENTRE en route — `careerLevels.json › choice {choice>id,spec}`, les deux
-      // branches d'`alchimiste-4` —, sœur des `choice>id` déjà stockées : le MÊME objet qui change de
-      // classement, pas une structure neuve. Solde : −2.
-      // Cliquet DESCENDU 480 → 479 (#1463 L-ref-1bis, 2026-09-01) : `creatures.json › trappings
-      // {text (résolvable)}` est SOLDÉE — son unique porteur (`long-drong-silver` › « cache-œil »,
-      // MDG `16 - Bestiaire.md` l.407) est lié à `{id:'cache-oeil'}`, la forme CIBLE que la même liste
-      // portait déjà (`{id:'crochet'}`). Plus AUCUNE ligne `text (résolvable)` au stock. Le cliquet
-      // SUIT la baisse : un cran libre absorberait en silence la réapparition de la forme.
-      // Cliquet DESCENDU 479 → 468 (#1463 L-de-1, 2026-09-01), en DEUX temps. (a) Le lot : la ligne
-      // `miscast.json › dice {n,sides+…}` est SOLDÉE — les 6 dés qui portaient un `sinPlus` en 4ᵉ clé
-      // écrivent la somme générale `{sum:[{dice},{sinPoints:true}]}` — et une ligne ENTRE, le constat
-      // `sea-cargo.json › offerPrice {sum+…}` que le concept `formule` rend enfin mesurable : −1 +1 = 0.
-      // (b) Le MOU : le plafond portait 11 crans libres sur une liste de 468 — il est posé AU RÉEL
-      // (même doctrine que le cliquet par lot, l.915 : « le terrain gagné se VERROUILLE : abaisser le
-      // plafond au réel mesuré » ; #1654 « plafond ≤ réel puis décroissant »). Le concept `de` ne pèse
-      // plus AUCUNE ligne ici.
-      // Cliquet DESCENDU 468 → 467 (#1463 L-gram-2, 2026-09-01) : `species.json › preview {career}`
-      // est SOLDÉE — les 27 aperçus de vitrine nomment leur carrière par la RÉFÉRENCE `previewCareer
-      // {id}`, résolue au parse contre `careers.json` (`ref('career')`). Le cliquet SUIT la baisse.
-      // Cliquet DESCENDU 467 → 462 (#1657 geste A) : le concept `test` cède les objets qui DÉSIGNENT
-      // (identité ou clé de référence) et passe APRÈS `plage` — 7 lignes s'éteignent (81 occurrences :
-      // `activities › (racine)` 51 et `› skills` 2, `sea-weather › temperatures` 4, `maladies › symptoms` 8
-      // et `› dailyTest` 1, `sea-navigation › table` 5 et `› voirLaLumiere` 3 ; `tavernGames › rows` 14 → 7),
-      // les 3 lignes du concept `sequence` s'éteignent avec lui (son noyau de 10 clés hétérogènes ne
-      // nommait aucune forme partagée : 3 entrées de racine de `tavernGames.json`, 3 jeux), et 5 lignes
-      // entrent — la RÉFÉRENCE que ces objets portaient déjà et que `test` masquait (`activities › skills`
-      // ×2, `› rule` id-nu, `maladies › symptoms {difficulty,symptomId}`, `› dailyTest`). Aucune donnée ne
-      // bouge : −10 +5.
-      // Cliquet DESCENDU 462 → 461 (#1463 L-gram-3, 2026-09-01) : `sea-cargo.json › offerPrice {sum+…}`
-      // est SOLDÉE — la colonne d'entrée du tableau du Prix d'offre ÉTAIT un seuil (une borne basse
-      // seule, relue à l'envers) ; c'est une FOURCHETTE `{min, max}` que `findTableEntry` lit, la
-      // dernière bande gardant sa borne haute OUVERTE (« 4 ou plus », MDG 15 l.383). Le cliquet SUIT.
-      // Cliquet REMONTÉ 461 → 462 (#1691, 2026-09-07) : la matière de RELIEF quitte le code pour la
-      // donnée — CINQ lignes NEUVES au dénominateur (`terrains.json › matiere`, id nu comme son voisin
-      // `overlayProp` ; `reliefDefaults` sur les 4 projets de scène). Le stock mesuré passe de 457 à
-      // 462, au-delà des 4 places que les lots précédents avaient laissées sous le plafond. Ce ne sont
-      // pas des graphies neuves : ce sont les références que `gameIso/builders/floors.ts` portait EN DUR
-      // et qui deviennent mesurables, à la forme CIBLE (`idDe('material', 'relief')` les refine au parse).
-      // Cliquet REMONTÉ 464 → 468 (#1715 volet b, 2026-09-09) : la TOITURE PAR DÉFAUT d'une scène passe
-      // en donnée (`Scene.roofDefaults`, EXIGÉE). Les QUATRE projets livrés portent le record sur chaque
-      // scène, et le scan y voit UN nœud de référence à graphie divergente par projet — même forme et
-      // même solde que `reliefDefaults` (#1691) : la ligne meurt avec le dériveur d'un niveau.
-      // Cliquet REMONTÉ 462 → 464 (#1715, 2026-09-09) : le catalogue des BÂTIMENTS quitte le code pour
-      // la donnée — TROIS lignes NEUVES (`buildings.json › roofMaterial` id nu, `› features` référence
-      // enveloppée à charge, `diligence-projet.json › style` id nu, le TYPE de bâtiment d'un corps
-      // devenu une référence résolue au parse), UNE morte (`arene-projet.json › style` : ses deux corps
-      // COMPOSITES n'ont pas de type de bâtiment, le champ y est absent). Aucune graphie neuve : ce
-      // sont celles que le registre TypeScript des bâtiments portait EN DUR avant #1715, devenues mesurables.
-      // Cliquet REMONTÉ 468 → 471 (#1789, 2026-09-18) : les DÉFAUTS DU COMPILATEUR de scène quittent le
-      // code pour la donnée — TROIS lignes NEUVES, une par champ de `defauts-de-compilation.json`
-      // (`cheminDeRonde`, `masse`, `pont`), toutes trois ids nus SCALAIRES à la forme HISTORIQUE. Aucune
-      // graphie neuve : ce sont les trois terrains que `state/mapSpec.ts` (`CELL_WALKWAY`, `CELL_MASS`)
-      // et `buildBoardingScene` portaient EN DUR, devenus mesurables et refinés au parse
-      // (`idDe('terrain')`). MÊMES forme et solde que `semences-de-scene.json › terrain` (#1716) : les
-      // quatre lignes meurent d'un seul geste au lot L3.
-      // Cliquet DESCENDU 471 → 459 (#1473 R1) : 12 lignes `reference` sortent — `char` (`charKeySchema`)
-      // et `act` y sont des littéraux d'enum DÉCLARÉS que `choixDeclares` atteint sans borne.
-      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 459],
-      // 8ᵉ stock, né du volet A : les clés déclarées jamais observées des DEUX racines (dont 5
-      // apportées par les 4 projets de scène qui entrent au déclaré).
-      // Cliquet DESCENDU 24 → 23 (#1467 L1b V-FLIP-ENTITE-c) : `creatures.json › group` est SOLDÉ —
-      // 0 porteur en donnée ET 0 consommateur mesuré, le champ MEURT du def. Le cliquet SUIT la
-      // baisse (même doctrine qu'à `STRUCTURES_FORMES` ci-dessus).
-      // Cliquet REMONTÉ 23 → 27 (#1467 L1b V-formeProjet) : c'est la COUVERTURE du relevé qui a
-      // changé, pas la donnée ni les defs — même mécanique que `STRUCTURES_REDECLARATIONS` ci-dessous.
-      // Ce scan mesure les clés de RACINE d'un document ; `auteur` (identité de campagne #766,
-      // optionnelle, portée par 0 des 4 projets committés) vivait sous la poche `meta`, où il lui
-      // échappait. L'aplatissement de l'enveloppe le SURFACE sur les 4 documents. La donnée est
-      // INCHANGÉE : aucun projet n'en portait avant, aucun n'en porte après.
-      // Cliquet DESCENDU 27 → 26 (#684 L4, 2026-08-31) : `diligence-projet.json › worldMap` cesse
-      // d'être un déclaré-jamais-observé — le document PORTE sa carte. Le cliquet suit la baisse.
-      // Cliquet REMONTÉ 26 → 27 : c'est la COUVERTURE du relevé qui revient, pas la donnée qui
-      // régresse. `introspecterDefs` prenait pour entrée d'un `pipe` à la racine sa SORTIE — un
-      // `transform` sans clés : les 45 documents scellés par `document()` rendaient ZÉRO clé
-      // déclarée. Le relevé lit le PORTEUR du pipe, et les 8 clés des 4 `*-projet.json`
-      // (`activeAxes`, `auteur`) redeviennent mesurables. Mesure du doc §2.4 : 370 → 621 clés
-      // déclarées-jamais-observées, dont 243 posées d'office par la fabrique, hors dénominateur ici
-      // (`CLES_POSEES_INCONDITIONNELLEMENT`) — ces 8-là sont les seules à entrer au stock.
-      // Réel 26 → 27 sous le plafond 27 INCHANGÉ (#1716, 2026-09-18 ; le cran 28 posé au train 2 était
-      // un mou sans contrepartie, redescendu à la revue de palier) : `semences-de-scene.json › ambientLight`, le
-      // réglage OPTIONNEL de la semence d'une scène neuve, que la donnée livrée n'écrit pas — son
-      // ABSENCE EST la valeur de départ (`auto`, l'éclairage suit l'horloge), à l'identique de la
-      // scène elle-même, dont l'inspecteur écrit `undefined` pour « Automatique ». Même nature que
-      // `merchants.json › buyMarkup` et `psychology.json › gating` déjà stockés, même solde : la ligne
-      // meurt quand l'auteur nomme un palier de départ, ou quand le champ quitte le def.
-      ['STRUCTURES_DEFAUT', STRUCTURES_DEFAUT.length, 27],
-      // Cliquet DESCENDU 6 → 5 : le stock est à 5 depuis un lot antérieur et la marge n'avait pas été
-      // reprise. Aucune raison de garder un cran libre : il servirait à absorber un homonyme neuf.
-      // … et 5 → 4 (L2 #1548, commit 3d) : l'homonyme `skill` MEURT — la clé a seulement UNE classe
-      // (object) dans les deux racines (coûts en PX renommés, valeur de Test emboîtée, `null` devenu
-      // absence, liste renommée `skills`).
-      ['STRUCTURES_HOMONYMES', STRUCTURES_HOMONYMES.length, 4],
-      // Cliquet REMONTÉ 102 → 108 (#1467 L1b V-FLIP-ENTITE-b) : c'est la COUVERTURE du relevé qui a
-      // changé, pas la donnée ni les defs. `litterauxZod` (structures-scan.mts) visite
-      // l'argument `champs` de `document()` — forme DOMINANTE (43 defs adoptés) qu'il ne voyait pas :
-      // 8 déclarations SURFACÉES (7 `entries` de defs config/table + `interludeEvents` min/max, qui
-      // était stockée AVANT l'adoption et revit à l'identique). Sans l'extension, l'adoption faisait
-      // DISPARAÎTRE des lignes et ce cliquet lisait la perte comme un solde.
-      // Cliquet DESCENDU 108 → 105 (L2 #1548, commit 3b) : `activities.ts`, `axes.ts` et
-      // `crew-roles.ts` ne redéclarent plus leur propre objet de référence de Compétence — ils
-      // composent la grammaire (`refOuSpec('skill')`, `grammaire/ref.ts`). Le cliquet SUIT.
-      // Cliquet DESCENDU 105 → 104 (L2 #1548, commit 4bis) : `creatures.ts` ne redéclare plus son
-      // objet de référence de Compétence — il compose `refOuSpec('skill', {value})`, comme le fait
-      // `defs-scenes/communs.ts`. Le cliquet SUIT.
-      // Cliquet REMONTÉ 104 → 105 (#674, 2026-08-31) : `maladies.ts` déclare le Test quotidien de la
-      // Pneumonie (`dailyTest {difficulty+…}`, EDOC 08 l.104) avec son propre objet, comme le font
-      // encore les autres porteurs de Test du même lot L4. La ligne s'éteindra avec eux.
-      // Cliquet REMONTÉ 105 → 107 (L4 #1463, vague `plage`, 2026-08-31) — deux lignes ENTRENT, et
-      // c'est l'empreinte de la vague `plage` sur les defs, pas une dérive de forme : `weather.json`
-      // et `advancementCosts.json` encodaient leurs tables par la BORNE HAUTE SEULE (19 + 15 rangées,
-      // borne basse reconstruite par POSITION, donc ni authorée ni éditable). Leurs deux bornes étant
-      // en donnée (EDOC 08 l.52-59 ; LDB 07 l.56-70), leurs deux schémas déclarent le
-      // littéral `{min, max, …}` — ils rejoignent la famille des 30 defs qui le redéclarent déjà.
-      // RESTE NOMMÉ : le schéma PARTAGÉ (`grammaire/valeurs.ts`) éteint les 32 d'un coup ; ces
-      // deux lignes-là sont à éteindre AVEC elles, pas séparément.
-      // Cliquet DESCENDU 107 → 97 (L4 #1463, vague `plage`) : les deux bornes d'une rangée
-      // de table se déclarent UNE fois — `plageSchema` (`grammaire/valeurs.ts`) — et les schémas de
-      // RANGÉE la composent PAR SHAPE (`z.strictObject({ ...plageSchema.shape, … })`, graphie unique
-      // de dérivation tenue par `grammaire-guard.test.ts`). Dix lignes SORTENT : sept par composition
-      // (criticals × 2 jeux, localisation — une ligne à 2 occurrences —, structure-criticals,
-      // water-exposure › diseases, mutationTables › ranges, obsessions › entries), trois par ADOPTION
-      // NUE, les deux bornes y étant toute la charge utile (sea-navigation, tavernGames › libre et
-      // › targetRange). `shipCritEntrySchema` (grammaire) porte river/ship-criticals, déjà hors stock.
-      // Le scanner ne résout PAS un spread : la garde est le test POSITIF de composition
-      // (`grammaire/formes-partagees.test.ts`), qui refuse une rangée sans borne AU SCHÉMA PARTAGÉ et
-      // à chacun des 9 documents adoptants. Le cliquet SUIT la baisse.
-      // Cliquet DESCENDU 97 → 88 (même graphie) : les rangées de table de MAGIE et les tables
-      // générales composent à leur tour `plageSchema` par la SHAPE — miscast › entries,
-      // arcane-phenomena › tables[].rows, vents-tourbillonnants › entries, tables › rows,
-      // interludeEvents (racine), drunkenness › entries, weather › seasons[].ranges, tavernGames › table
-      // et › pot.rows. TROIS lignes RESTENT au stock, refusées AVEC leur mesure : `oups.ts` et
-      // `reglesOptionnelles.ts` portent des bornes OPTIONNELLES (le premier hors table pour `misfire`, le
-      // second relève du concept `bornes` d'un réglage), `advancementCosts.ts` a une borne haute
-      // `nullable` (dernière bande ouverte). Le gate reste POSITIF (`grammaire/formes-partagees.test.ts`,
-      // +10 sites à la porte réelle `validateDataset`), le scanner ne résolvant pas un spread.
-      // Cliquet DESCENDU 88 → 76 (même graphie) : les rangées de table de MER, de ROUTE et de
-      // BATAILLE composent à leur tour `plageSchema` par la SHAPE — artillery-misfire › entries,
-      // crew-morale › bands, driving-mishap › entries, land-cargo › wineQuality et › rumours,
-      // mass-battle › hazards, naval-progression › entries, river-navigation › windForces/windDirections
-      // (même `bandRow`), sea-events › boardEvents/portEvents (même `seaEventDef`) et › fastVoyage.paliers,
-      // sea-weather › table et › roseDesVents, steam-breakdown (racine). La famille `plage` est à son
-      // ÉTAT TERMINAL : TROIS lignes restent, chacune refusée AVEC sa mesure — `oups.ts` (bornes
-      // OPTIONNELLES, le `kind` misfire est hors table), `advancementCosts.ts` (borne haute `nullable`,
-      // dernière bande ouverte) et `water-exposure.ts` (les deux bornes y sont celles d'un PRÉDICAT
-      // `auto.{kind:'woundsLost', op:'between'}` sur des Blessures perdues — aucune rangée tirable,
-      // aucun `findTableEntry` ; la table du document, `diseases`, compose `plageSchema`).
-      // Cliquet DESCENDU 76 → 69 (#1463 L-de-1, 2026-09-01), en DEUX temps. (a) Le lot : les TROIS dés
-      // re-tapés dans les defs sortent — `maladies.ts` et `miscast.ts › engineFormulaSchema.dice`
-      // composent le `diceSpecSchema` de la grammaire, et le `jsonDiceSchema` du dialecte
-      // (`{n,sides,plus,sinPlus}`) MEURT ; une ligne ENTRE, `sea-cargo.ts › offerPrice {sum+…}`, que le
-      // concept `formule` rend mesurable : −3 +1 = −2. Le concept `de` disparaît de la table.
-      // (b) Le MOU : 5 crans libres restants sur une liste de 69, posés AU RÉEL — même doctrine que le
-      // cliquet par lot (l.915 : « le terrain gagné se VERROUILLE : abaisser le plafond au réel
-      // mesuré ») et #1654 « plafond ≤ réel puis décroissant ». #1463 reste ouvert tant que ce stock
-      // n'est pas à ZÉRO : l'inventaire nominatif par concept est au ticket.
-      // Cliquet DESCENDU 69 → 66 (#1463 L-gram-1, 2026-09-01) : les TROIS dernières lignes de la
-      // famille à deux bornes qui pouvaient sortir sortent — `water-exposure.ts` compose
-      // `plageSchema` par la SHAPE, `advancementCosts.ts` compose `plageOuverteSchema` (la bande
-      // FINALE sans plafond, LDB 07 l.49/l.70) et `reglesOptionnelles.ts` compose `bornesSchema`,
-      // le concept `bornes` recevant enfin son nœud de grammaire (`grammaire/valeurs.ts`). Le scanner
-      // ne résolvant pas un spread, le gate est POSITIF : `grammaire/formes-partagees.test.ts` mesure
-      // les deux nœuds neufs à la porte réelle `validateDataset`. UNE ligne du concept `plage` reste,
-      // refusée AVEC sa mesure — `oups.ts`, dont le refus MOTIVÉ est en tête du stock (#1544).
-      // Cliquet DESCENDU 66 → 59 (#1463 L-gram-2, 2026-09-01) : le concept `reference` ne pèse plus
-      // AUCUNE ligne ici — `domains.requiresSkill` adopte `refOuSpec('skill')`, `species.preview`
-      // devient `previewCareer: ref('career')`, `structures.traits` `ref('trait')` (le `value` jamais
-      // posé meurt), `trappings` (racine + `derivedWeapon.qualities`) importe `qualityRefSchema`, et
-      // `vehicles.ship.traits` compose `ref('navalTrait', {value})` tandis que le schéma MORT
-      // `hull.traits` (0 porteur, 0 lecteur) tombe. 489 références entrent en garde FK.
-      // Cliquet DESCENDU 59 → 55 (#1657 geste A) : le MÊME discriminant retire 4 littéraux du concept
-      // `test` — `maladies.ts` (le symptôme référencé et son `dailyTest`), `sea-weather.ts › temperatures`
-      // (une entrée de table à `id`) et `tavernGames.ts › (racine)` (le concept `sequence` n'existe plus) ;
-      // le 5ᵉ, `tavernGames.ts › rows`, change de concept et reste au dénominateur (`plage | max,min+…`,
-      // cible — le littéral porte deux bornes numériques et `plage` le classe avant `test`).
-      // Cliquet DESCENDU 55 → 52 (#1463 L-gram-3, 2026-09-01) : le concept `prix` reçoit ses NŒUDS
-      // (`prixSaisonnierSchema` / `prixTireSchema`, `grammaire/valeurs.ts`) et les deux defs de commerce
-      // cessent de retaper l'union — `land-cargo.ts › price` et `sea-cargo.ts › price` sortent, la
-      // colonne saisonnière passant par la fabrique `parSaison` (que `avail` compose aussi, sinon la
-      // signature à quatre saisons du nœud neuf faisait ENTRER deux lignes — contrefactuel CF1/CF2 en
-      // fin de fichier) ; `sea-cargo.ts › offerPrice` sort avec elle, en composant `plageOuverteSchema`.
-      // Cliquet DESCENDU 52 → 51 (#1463 L-gram-4, 2026-09-01) : la dernière ligne du concept `source`
-      // sort — la bande de schéma de progression cessait de nommer `folio` ce que la grammaire appelle
-      // `page` (`sourceRefSchema`, `grammaire/valeurs.ts`), et le def compose sa SHAPE. La
-      // correction est au GÉNÉRATEUR (`scripts/data/gen-progression-schemas.py`), l'artefact étant
-      // dérivé : `--check` le revalide à l'octet.
-      // Cliquet DESCENDU 51 → 44 (#1654 geste A, 2026-09-01) : les 7 lignes `signature: entries` du
-      // stock sortent — la charge d'un document est POSÉE par la fabrique (`options.rangee`,
-      // `META_CHARGE`), plus aucun def ne la retape. Les 4 sites `die,entries` d'`artillery-misfire`,
-      // `incidents-monture`, `problemes-vehicule` et `structure-criticals` meurent du même geste : ils
-      // étaient INVISIBLES à ce cliquet (appariement par signature exacte), ils le seraient restés.
-      ['STRUCTURES_REDECLARATIONS', STRUCTURES_REDECLARATIONS.length, 44],
-      // Cliquets DESCENDUS 165 → 77 et 93 → 91 : même geste. Le dénominateur d'enveloppe a fondu au
-      // fil des vagues d'adoption (l'enveloppe étant POSÉE, ses divergences s'éteignent) sans que le
-      // plafond suive ; 88 crans libres auraient absorbé en silence la régression de tout un lot.
-      // Cliquet DESCENDU 77 → 73 (#1467 L1b V-formeProjet) : les 4 lignes « identité | `id` | clé
-      // absente » des projets sont SOLDéES — l'enveloppe aplatie pose `id`/`label` à la RACINE des 4
-      // documents. Le cliquet SUIT la baisse.
-      // Cliquet DESCENDU 73 → 58 (#1467) : les 14 lignes « `nom` | clé divergente » des 4
-      // projets sont SOLDÉES (le libellé de scène et de carte prend sa graphie `label`, `schema` 5 → 6),
-      // et la 15ᵉ part avec la ligne FORMES ci-dessus. Le cliquet SUIT la baisse.
-      // … et 58 → 56 : `title` reçoit son RÔLE PROPRE au lexique (« sous-titre », forme cible), donc
-      // `creatures.json` (490) et `gods.json` (40) ne sont plus comptés en graphie divergente du libellé.
-      // … et 56 → 52 (L2 #1548) : les 4 lignes `progression-schemas.derived.json` sont SOLDÉES — la
-      // marque de niveau nomme sa Caractéristique `characteristic`, graphie de RÉFÉRENCE.
-      // … et 52 → 47 (#1552) : le rôle `source` déclare son ALTERNATIVE `maison`, comme la
-      // grammaire l'exige déjà (`document.ts:402-413` : `source` OU `maison`, jamais ni l'un ni
-      // l'autre). Les 4 documents dont TOUTES les entrées portent `maison` sortent du
-      // dénominateur — les 3 projets authorés (`arene`, `barge-du-sel`, `loup-et-saumure`) et
-      // `axes.json` (9/9 entrées `maison`). AUCUNE donnée n'est touchée : c'est le lexique qui
-      // cessait de mesurer une divergence là où le schéma, lui, est satisfait.
-      ['STRUCTURES_ENVELOPPE', STRUCTURES_ENVELOPPE.length, 47],
-      // Cliquet REMONTÉ 91 → 92 (#1467) : AUCUNE dérive neuve — c'est le statbloc à `size`
-      // d'`arene-projet.json` qui ARRIVE de `STRUCTURES_FORMES` (sa signature gagne `type`, elle ne se
-      // confond plus avec les deux autres). La somme des deux stocks est CONSTANTE : 671 + 91 = 670 + 92.
-      // Cliquet REMONTÉ 92 → 106 (L2 #1548, commit 3c) : AUCUNE dérive neuve — ce sont 14 lignes qui
-      // ARRIVENT de `STRUCTURES_FORMES` (−31 ci-dessus). Un conteneur dont la valeur de `skill` ÉTAIT un
-      // id résolvable ouvrait une référence AU CONTENEUR ; la référence étant l'objet EMBOÎTÉ,
-      // elle se compte sur LUI (forme CIBLE `{id}`, hors dénominateur) et le conteneur, qui annonce
-      // encore une clé réservée sans résoudre lui-même, tombe ici. MÊME objet, autre stock — le
-      // dénominateur GLOBAL décroît de 16 lignes (587+92 = 679 → 557+106 = 663).
-      // Cliquet DESCENDU 106 → 104 (L2 #1548, commit 3d) : les 2 conteneurs `talents.json ›
-      // reverseFailed` sortent — leur clé n'est plus le nom de concept RÉSERVÉ `skill` mais `skills`,
-      // la LISTE que le champ porte toujours. Le cliquet SUIT la baisse.
-      // Cliquet REMONTÉ 104 → 105 (#717) : l'OUVERTURE cérémonielle du chapitre 1 est une enveloppe
-      // EMBARQUÉE qui porte sa `source` (le pitch est un verbatim EDO, règle stricte 5) sans résoudre
-      // elle-même — même famille que les blocs sourcés déjà stockés ici. Une ligne de PLUS à éteindre,
-      // qui tombera avec le volet #1553 (les sources embarquées), pas une dérive de forme.
-      // Cliquet DESCENDU 105 → 97 (#1633) : le plafond était PÉRIMÉ de 7 places (L-monnaie-4 avait fait
-      // sortir 7 lignes sans le resserrer), et `diligence-projet.json › ouverture` sort à son tour —
-      // le concept `ouverture` la CLASSE, et le classement précède la route orpheline. Un optionnel
-      // peuplé (`source`) ne partage donc plus une même porte en deux buckets : la PROJECTION réunit.
-      // Cliquet REMONTÉ 97 → 99 (#1473 R1) : les 2 objets `etats.json › value` sortis de la forme
-      // `char+…` ci-dessus, mêmes objets, autre stock.
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 99],
-      // Cliquet DESCENDU 403 → 400 (L2 #1548, commit 3c) : 5 signatures d'op portant le `spec` FRÈRE
-      // s'éteignent (`bonus,op,skill,spec` de spells/tables, `blocked,op,rounds,skill`/`mod,op,rounds,skill`
-      // de spells dont le `skill: "all"` disparaît au profit de l'ABSENCE) et 2 se fondent dans des
-      // signatures existantes. Le cliquet SUIT la baisse.
-      // Cliquet REMONTÉ 400 → 402 (#862) : deux signatures d'op neuves, chacune INSTANCE d'une famille
-      // déjà stockée — `removeTrait {op,traitId}` (l'INVERSE de `grantTrait {op,traitId}`) et
-      // `grantTrait {durationHours,op,traitId}` (même patron que `condition {durationHours,id,op,value}`).
-      // Cliquet REMONTÉ 402 → 404 (#674, 2026-08-31) : deux signatures d'op neuves, portées par le
-      // cycle quotidien de la Pneumonie — `aggravateSymptom {disease,op,otherwise,severity,symptomId}`
-      // et `grantSymptom {disease,op,symptomId}` (EDOC 08 l.104-108). Chacune est une op AUTHORÉE de
-      // `maladies.json`, dataset qui n'en portait qu'une (`diseaseTestMod`).
-      // Cliquet DESCENDU 404 → 403 (#1463 L-de-1, 2026-09-01) : la graphie `condition {id, op,
-      // sinPlus1Value}` MEURT — le drapeau qui encodait « 1 + (Points de Péché) » sur l'op lui-même
-      // (LDB 40 l.71/72/77) devient la `value` que l'op déclarait déjà, à la forme générale
-      // `{sum:[1, {sinPoints:true}]}` : ses 3 occurrences rejoignent `condition {id, op, value}`
-      // (37 → 40). Le cliquet SUIT la baisse.
-      ['STRUCTURES_OPS', STRUCTURES_OPS.length, 403],
-    ] as const;
-    const gonfles = mesure.filter(([, n, plafond]) => n > plafond).map(([nom, n, plafond]) => `${nom} ${n} > ${plafond}`);
-    expect(
-      gonfles,
-      'stock(s) qui ont GONFLÉ — une structure neuve se pose à la forme CIBLE du lexique, elle ne se stocke pas ; une cible neuve se décide en revue.',
-    ).toEqual([]);
   });
 
   it('chaque ligne du stock porte sa DATE et son LOT d’extinction', () => {
@@ -849,8 +467,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual([]);
   });
 
-  it('chaque ligne porte un LOT CONNU, et les comptes PAR LOT ne font que décroître', () => {
-    const parLot = new Map<string, number>();
+  it('chaque ligne porte un LOT CONNU', () => {
     const toutes = [
       ...STRUCTURES_FORMES,
       ...STRUCTURES_HOMONYMES,
@@ -859,303 +476,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       ...STRUCTURES_ORPHELINES,
       ...STRUCTURES_OPS,
     ];
-    for (const l of toutes) parLot.set(l.lot, (parLot.get(l.lot) ?? 0) + 1);
     expect(
-      [...parLot.keys()].filter((l) => !(LOTS_CONNUS as readonly string[]).includes(l)).sort(),
+      [...new Set(toutes.map((l) => l.lot))].filter((l) => !(LOTS_CONNUS as readonly string[]).includes(l)).sort(),
       `lot(s) inconnu(s) : un dénominateur ne se range que dans l’un des ${LOTS_CONNUS.length} lots d’extinction (\`LOTS_CONNUS\`).`,
-    ).toEqual([]);
-    // Cliquet PAR LOT BIDIRECTIONNEL (patron `assertRatchet`, `src/ui/ui-ratchets.test.ts`) : un plafond PAR
-    // lot connu, réel > plafond = dérive, réel < plafond = plafond PÉRIMÉ à abaisser au réel mesuré.
-    // L2 #1548 commit 0 — c'est le LOTISSEMENT qui bouge, pas le terrain (aucun `src/data/**.json`,
-    // aucun `src/scenes/**` touché) :
-    //   • `L2 #1463` 141 → 57 : 23 lignes `ids-nus` sortent du dénominateur (cible neuve) et 62 lignes
-    //     se re-lotissent en L3 — leur concept réel n'est pas la Compétence (règle, carrière, espèce,
-    //     tenue, trait, talent, domaine, sous-type d'objet, pion de scène…) : `lotDeForme` les lisait
-    //     L2 par COLLISION d'ids (angle mort déclaré). Chacune porte son `motif`.
-    //   • `L3 #1463` 389 → 397 : +62 reçues, −53 `ids-nus` sorties, −1 partie en L2
-    //     (`tavernGames.json › spec`, SPÉCIALISATION de Compétence — DESIGN v2 : « L2 … + `spec`
-    //     pool/ouverte », et le `skill` frère du même document est déjà L2). Ce lot GROSSIT sans
-    //     dérive : les lignes viennent d'un autre lot du même stock, la somme des deux baisse de 76.
-    const plafonds: Record<string, number> = {
-      // L1a #1466 : 23 → 22 (#1463 L-de-1) — le `{sum}` d'`engineFormulaSchema` (`defs/miscast.ts`)
-      // cesse d'être « hors lexique » : le concept `formule` le nomme, à sa forme CIBLE. La ligne ne
-      // meurt pas, elle change de lot (L4 #1463 la reçoit ci-dessous).
-      // … puis 22 → 23 (#1463 L-gram-1) : la MÊME ligne revient — le `{sum}` d'`engineFormulaSchema`
-      // est la 10ᵉ branche du schéma dont les 9 sœurs sont lotées ICI (`defs/miscast.ts`) ; le concept
-      // `formule` la NOMME, il ne la déplace pas de porteur. Re-lotissement de REVUE (design jugé du
-      // 2026-09-01, §0.b) : elle s'éteindra avec les 9 autres, pas avec la vague `grammaire`.
-      // … puis 23 → 16 (#1654 geste A, 2026-09-01) : les 7 redéclarations `entries` du lot MEURENT par
-      // CONSTRUCTION — `options.rangee` est admissible en TOUTE famille, la fabrique pose
-      // `entries` (et `die` sous `deDeTirage`) avec leur méta FR, et la garde de `document()` refuse
-      // l'une comme l'autre dans les `champs` d'un def à rangées : `driving-mishap`,
-      // `drunkenness`, `montures`, `naval-progression`, `obsessions`, `surincantation`,
-      // `vents-tourbillonnants`.
-      // … puis 16 → 5 (#1993) : les 11 lignes de `defs/miscast.ts` s'éteignent, `escapeStrength`
-      // compose `formulaSchema`.
-      'L1a #1466': 5,
-      'L1b #1467': 0,
-      // L1c #1468 : 403 → 400 (commit 3c) — cf. le cliquet `STRUCTURES_OPS` ci-dessus.
-      // … puis 400 → 402 (#862) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
-      // … puis 402 → 404 (#674) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
-      // … puis 404 → 403 (#1463 L-de-1) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
-      // … puis 403 → 391 (#1657) : les 12 lignes de signature d'op d'`aa-criticals.json` FUSIONNENT
-      // dans celles de `criticals.json` — un fichier de moins, les mêmes ops (les occurrences se
-      // somment, cf. le cliquet `STRUCTURES_OPS` ci-dessus).
-      // … puis 391 → 392 (#1657) : l'op `fall` NEUVE — les 5 rangées du gréement font tomber
-      // (MDG 13 l.678-688), hauteur lue en donnée et non authorée au site.
-      // … puis 392 → 393 (#1653 train A, 2026-09-04) : la signature `condition {durationRounds, id, op,
-      // perRound, unlessCondition, value}` de « Purifier la chair » (LDB 40 l.75) — INSTANCE des deux
-      // signatures d'op déjà stockées de ce dataset (`condition {durationRounds,id,op}` et
-      // `condition {id,op,value}`), aucune forme neuve : la cause récurrente porte SA durée.
-      // … puis 393 → 394 (#1599, 2026-09-06) : la signature `condition {id, op, resolveWindow}` — les
-      // DEUX États portés par un canal passif de `symptoms.json` déclarent SUR L'OP ce qu'un
-      // Point de Détermination y fait (fenêtre d'horloge de la Fièvre (Grave), `LDB 20 l.170` ; refus du
-      // Malaise, `l.188`), là où deux drapeaux de SYMPTÔME le disaient. Les 2 occurrences quittent
-      // `condition {id,op}` (6 → 4) : mêmes op, une ligne de plus, ZÉRO drapeau de porteur en moins.
-      // #1612 (2026-09-06) : 394 → 398 — QUATRE signatures d'op NEUVES, posées par Mendier et sa table
-      // MAISON, toutes à la forme DÉCLARÉE du moteur : `money {montant, op}` côté `activities.json` (le
-      // gain et le sou de consolation) ET côté `tables.json` (l'amende des gardes locaux — `LDB 09 l.97`
-      // nomme l'ennui sans le chiffrer, le montant vit en règle optionnelle), `statusMod {amount, op}`
-      // (« surpris à mendier », `l.99`) et `condition {id, op}` dans `tables.json`. Les deux autres ops du
-      // train rejoignent des signatures DÉJÀ stockées (`rollTable` 12 → 13 ; `wounds` à mitigations
-      // déclarées 5 → 6). Cf. `STRUCTURES_OPS` ci-dessus.
-      // … puis 398 → 393 (#1473 train 2a) : les 13 lignes `op,talentId`/`op,spec,talentId` des ops de Talent deviennent 8 lignes `op,talent` (`refOuSpec('talent')`).
-      // … puis 393 → 394 (#1957, 2026-09-24) : la signature `grantTrait {indice, op, range,
-      // traitId}` de `tables.json` — la Langue préhensile de l'Allure démoniaque de Slaanesh porte sa
-      // Portée en `range` (`LDB 85` l.209) et non plus en `arg`. Même op, une ligne de plus
-      // (`arg,indice,op,traitId` 3 → 2 dans ce dataset), aucune occurrence en plus.
-      'L1c #1468': 394,
-      // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
-      // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
-      // sa ligne « source | clé absente » est SOLDÉE.
-      // … puis 61 → 57 (#1552) : le rôle `source` déclare son alternative `maison` et les 4
-      // documents qui la portent sur TOUTES leurs entrées sortent du dénominateur (cf. le cliquet
-      // `STRUCTURES_ENVELOPPE` ci-dessus).
-      // … puis 59 → 58 (#1463 L-gram-4) : la redéclaration du def `progression-schemas-derived.ts`
-      // sort — il compose `sourceRefSchema.shape` et le générateur émet `page`.
-      // … puis 58 → 56 (#1657) : les DEUX lignes « source | clé absente » des racines de
-      // `criticals.json` et `aa-criticals.json` sont SOLDÉES — les 8 documents-tables qui les
-      // remplacent portent chacun leur `source` (LDB 174 ×4, AA 83/84/85/86).
-      // … puis 55 → 53 (#1686) : les TROIS lignes « `source` absente » des catalogues de matières
-      // (`propMaterials`/`roofMaterials`/`reliefMaterials`) en font seulement UNE — les trois documents
-      // fusionnent en `materials.json`, mêmes 16 entrées, un seul porteur de la divergence.
-      'L1d #1469': 42 /* 43→42 (#680, 2026-09-29) : la ligne « `source` | clé absente » de `groups.json` meurt — ses 2 Groupes neufs de #680 portent `source`. 53→43 (#1897) : les 10 lignes `source | alsoIn` sortent, l'emplacement secondaire et sa preuve `quote` étant CIBLES au site `alsoIn` (`SITE_EMPLACEMENT_SECONDAIRE`) — le +2 ci-dessous (creatures/species) est soldé avec elles. 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). */,
-      // L2 #1463 : 57 → 48 (commit 3b) — les 9 lignes de référence de Compétence à graphie `skillId`
-      // (donnée + defs) meurent ; ce qui reste du lot est la référence PLATE `skill: "<id>"` des ops.
-      // … puis 48 → 18 (commit 3c) : cette référence PLATE MEURT à SON TOUR — 30 lignes s'éteignent avec
-      // l'emboîtement `skill: { id, spec? }` (cf. le cliquet `STRUCTURES_FORMES` ci-dessus).
-      // … puis 18 → 16 (geste modèle) : les 2 lignes du pseudo-PNJ soigneur quittent le lot — la
-      // valeur de Guérison recopiée MEURT (`skill {id,value}`), et la signature de l'effet qui la
-      // portait annonce seulement une entité (elle passe donc en `L3`, +1 ci-dessous : même mécanique
-      // de transfert entre lots du MÊME stock, somme des deux en BAISSE 415 → 414).
-      // … puis 16 → 10 (commit 4) : les 6 dernières lignes du lot sont les enveloppes `{ref:{…}}` et
-      // `{wildcard:{…}}` de l'AVANCEMENT (careerLevels + species) — la référence y est À
-      // PLAT, régime de spécialisation compris (`{id}`, `{id, spec}`, `{id, choix}`).
-      // … puis 10 → 4 (commit 4bis) : les 6 lignes `skills {id,value}`/`{id,spec,value}` des statblocs
-      //     passent CIBLE au site et sortent du dénominateur (cf. le cliquet `STRUCTURES_FORMES`).
-      // L2 #1463 : 4 → 6 (#1657 geste A) — les 2 voies de Compétence d'une Activité qui portent leur
-      // Difficulté PROPRE (`activities.json › skills`) ENTRENT au dénominateur : `test` les revendiquait
-      // par le seul `difficulty`, ce sont des RÉFÉRENCES à charge utile (cible `skills.json`, d'où ce lot).
-      // Aucune donnée ne bouge — c'est le même objet, compté sous le concept qui le nomme.
-      'L2 #1463': 6,
-      'L2 #1548': 0,
-      // L3 #1463 : 398 → 385 (commit 4) — le MÊME geste éteint les 14 lignes de graphie du champ
-      // d'avancement côté PORTEUR (`skills`/`talents` à signature `ref`/`wildcard`/`choice`, et les
-      // `choice>…` de leurs branches) et en pose UNE : `species.json › of {random}`, les 2 tirages
-      // qui vivaient en branche de `choice` et vivent maintenant en branche de `pick`. La branche
-      // `{random}` NE migre PAS (sa cible `{pick, table}` est le lot L4) : elle reste traçée ici et
-      // sur `species.json › talents {random}` (×19).
-      // … puis 385 → 387 (#862) : cf. le cliquet `STRUCTURES_FORMES` ci-dessus (les deux graphies de
-      // référence de Trait sous `mutations.json › ops`).
-      // … puis 387 → 386 (commit 4bis) : la redéclaration `creatures.ts {id,spec,value}` s'éteint —
-      // le def compose `refOuSpec('skill', {value})`.
-      // … puis 386 → 389 (#674) : les 3 références de la Pneumonie/du Rhume commun — `mutation`
-      // (maladie visée), `onFail` et `otherwise` (maladie + symptôme de chaque op). Cf. le cliquet
-      // `STRUCTURES_FORMES` ci-dessus.
-      // … puis 389 → 392 (#684 L4) : `a`, `b`, `scene` du premier tronçon de carte du chapitre 1 —
-      // les trois références de CARTE que les trois autres projets portent déjà, même lot.
-      // … puis 392 → 393 (équipage de la Louve grise, 3fe450675) : `barge-du-sel-projet.json › appearance {species, tenue}` — la
-      // ligne sœur de `loup-et-saumure`/`arene`/`creatures.json`, même concept, même lot.
-      // … puis 393 → 395 (équipage du Grimm et statblocs d'auteur de l'arène, 2026-09-01) :
-      // `loup-et-saumure-projet.json › appearance {species, tenue}` et `arene-projet.json › appearance {species}` —
-      // les deux dernières lignes sœurs du même concept, même lot.
-      // … puis 395 → 393 (L-ref-2, 2026-09-01) : `spells.json › range` et `spells.json › target`
-      // `{text+… (résolvable)}` s'éteignent — les 38 occurrences stockées (54 sites migrés — les 16 Mage/Shaman n'entraient pas au stock) qui désignaient le lanceur en
-      // toutes lettres portent `{kind:'self'}`. Cf. le cliquet `STRUCTURES_FORMES` ci-dessus.
-      // … puis 393 → 392 (L-ref-0 + L-ref-1, 2026-09-01) : `careerLevels.json › trappings` rend ses
-      // deux lignes `text (résolvable)` et reçoit `choice>id,spec`. Cf. le cliquet `STRUCTURES_FORMES`
-      // ci-dessus.
-      // … puis 392 → 391 (L-ref-1bis, 2026-09-01) : `creatures.json › trappings {text (résolvable)}`
-      // part avec son unique porteur lié. Cf. le cliquet `STRUCTURES_FORMES` ci-dessus.
-      // … puis 391 → 383 (#1463 L-gram-2, 2026-09-01) : les SEPT redéclarations de référence des defs
-      // s'éteignent (domains, species, structures, trappings ×2, vehicles ×2) et la forme de donnée
-      // `species.json › preview` part avec la migration — le stock des FORMES perd sa ligne, celui des
-      // REDÉCLARATIONS ses sept : −8. 489 références entrent en garde FK au passage.
-      // … puis 383 → 385 (#1657 geste A) : même mécanique — la 8ᵉ réf de symptôme à Difficulté propre
-      // (`maladies › symptoms {difficulty,symptomId}`, sa Difficulté RÉSOUT donc la projection garde les
-      // deux clés) et la RÈGLE d'une Activité (`activities › rule {id-nu}`, `augure` → `tableau-augure`,
-      // que la classification en `test` empêchait de mesurer). La somme L2+L3+L4 BAISSE : 494 → 485.
-      // … puis 385 → 376 (#1657) : 7 lignes de référence d'`aa-criticals.json` fusionnent dans
-      // celles de `criticals.json`, et les 2 lignes `onFail` MEURENT — la conséquence d'un jet vit
-      // dans la branche `fail` du nœud `test`, sous `ops` — une seule graphie au lieu de deux.
-      // … puis 376 → 374 (#1657) : les DEUX lignes `onFail` des maladies meurent à leur tour —
-      // `symptoms.json › onFail` (2 signatures) fusionne dans `› ops`, et la 8ᵉ réf de symptôme à
-      // Difficulté propre (posée au geste A) part : le document déclare sa Difficulté par
-      // l'enum de la grammaire, un littéral d'enum n'ouvrant jamais de référence.
-      // … puis 374 → 373 (#1657) : la ligne `river-criticals.json › onFail` MEURT à son tour — la
-      // conséquence du coup à l'équipage rejoint `› ops` (4 → 5 occurrences), une seule graphie.
-      // … puis 373 → 374 (#1653 train A, 2026-09-04) : `miscast.json › ops` gagne la signature
-      // `id,unlessCondition,value+…` — MÊME famille que `id,value+…` déjà stockée (11+31 lignes) :
-      // le gate d'État d'une op récurrente désigne un État par son id NU, comme l'`id` frère.
-      // Elle s'éteindra avec eux (référence d'État à la forme cible), pas avant.
-      // … puis 374 → 376 (#1599, 2026-09-05) : `symptoms.json › severePassive` MEURT (−1) et les passifs
-      // s'indexent PAR PALIER — le scan nomme le champ PORTEUR, d'où `› moderee {char+…}` (Convulsions
-      // −20, LDB 20 l.157) et `› grave {id+…}` (Fièvre : le seul État *Inconscient*, LDB 20 l.170 — le
-      // palier S'AJOUTE, les −10 de base tiennent sans être recopiés) ; `› passive {id+…}` (+1) est
-      // l'État *Exténué* du Malaise
-      // (l.188), qui cesse d'être un drapeau nommé dans le moteur. MÊMES familles que les lignes voisines
-      // (référence de Caractéristique, référence d'État par id NU) : elles s'éteindront avec elles.
-      // … puis 376 → 377 (#1599, 2026-09-06) : `symptoms.json › minutes {rule}` — la fenêtre de
-      // conscience (`LDB 20 l.170`) lit sa durée au registre des règles optionnelles par le terme
-      // `{rule}` d'une `Formula`. MÊME graphie que le gate `variants[].when` de `spells.json` (18) et
-      // `talents.json` (12), déjà stockée dans ce lot : elle s'éteindra AVEC eux, d'un seul geste.
-      // … puis 377 → 378 (#1690, 2026-09-06) : UNE ligne NEUVE, qui n'est pas une dérive de graphie —
-      // `terrains.json › overlayProp` (l'id de décor posé sur chaque tuile, forme CIBLE refinée par
-      // `idDe('prop')`) entre au dénominateur avec son document.
-      // #1612 (2026-09-06) : 377 → 382 — CINQ lignes de référence NEUVES, posées par Mendier et sa table
-      // MAISON : les QUATRE porteurs du terme `{rule}` d'une `Formula` (`cible`/`factor`/`mod` côté
-      // `activities.json`, le `times.of` de l'amende des gardes côté `tables.json`) et l'op `condition`
-      // de la table MAISON, qui désigne l'État de sa rangée. MÊME graphie que leurs sœurs déjà stockées
-      // ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1691 (2026-09-07) : 383 → 388 — CINQ lignes de référence NEUVES, posant en DONNÉE la matière
-      // que `gameIso/builders/floors.ts` choisissait en dur : `terrains.json › matiere` (les flancs d'un
-      // terrain à bloc plein, id nu comme son voisin `overlayProp`) et `<projet> › reliefDefaults` sur
-      // les quatre projets de scène (l'enveloppe des quatre parties émises). MÊME graphie que leurs
-      // sœurs déjà stockées ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1715 volet b (2026-09-09) : 390 → 394 — QUATRE lignes NEUVES, une par projet livré : le record
-      // `roofDefaults` que chaque scène porte depuis que la toiture par défaut est en donnée.
-      // #1715 (2026-09-09) : 388 → 390 — TROIS lignes de référence NEUVES pour UNE morte, toutes du
-      // catalogue de BÂTIMENTS passé en donnée (`buildings.json › roofMaterial` et `› features`,
-      // `diligence-projet.json › style` ; `arene-projet.json › style` s'éteint). MÊME graphie que leurs
-      // sœurs déjà stockées ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1687 (2026-09-11) : 394 → 391 — TROIS lignes MEURENT sans un octet de donnée changé :
-      // `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et `type+…` (1), dont
-      // `choixDeclares` (`zod-introspect.mts`) atteint le littéral d'enum DÉCLARÉ ; `ouvreReference`
-      // (`structures-scan.mts`) ne l'ouvre pas en référence.
-      // #1716 (2026-09-18) : 391 → 394 — TROIS lignes de référence NEUVES, posant en DONNÉE ce que
-      // `emptyScene` (`state/scene.ts`) choisissait en littéraux : `semences-de-scene.json › terrain`
-      // (id nu du sol dont la couche 0 est remplie), `› reliefDefaults` et `› roofDefaults` (les deux
-      // records que la semence compose par les schémas PARTAGÉS de la scène). MÊME graphie que leurs
-      // sœurs des quatre projets (#1691, #1715) : elles s'éteindront avec elles, d'un seul geste.
-      // #1789 (2026-09-18) : 394 → 397 — TROIS lignes de référence NEUVES, même mouvement d'un cran plus
-      // loin : `defauts-de-compilation.json › cheminDeRonde`, `› masse` et `› pont` posent en DONNÉE les
-      // trois terrains que le COMPILATEUR (`state/mapSpec.ts`, `buildBoardingScene`) choisissait en
-      // littéraux. Ids nus scalaires, MÊME graphie que `semences-de-scene.json › terrain` : même lot,
-      // même extinction.
-      // #1473 R1 : 397 → 385 — DOUZE lignes `char+…`/`act+…` sortent sans un octet de donnée changé :
-      // `char` et `act` sont des littéraux d'enum DÉCLARÉS, que `choixDeclares` atteint depuis que sa
-      // descente n'est plus bornée.
-      // #1473 R1-bis : 385 → 384 — `sea-weather.json › spec` (record `{ projectiles: 'poudre-noire' }`)
-      // meurt : la spécialisation vit DANS la référence de `skills[]` (`refOuSpec('skill')`).
-      // #1473 train 2a : 384 → 372 — les 13 lignes `reference` à clé `talentId` (ops de Talent, `axes.json ›
-      // talents`) meurent avec la graphie `talent: { id, spec? }` / `{ id, spec? }` ; l'homonyme `talent`
-      // (objet des ops / chaîne nue de 79 sites) entre, +1.
-      // #1920 B14 (2026-09-24) : 372 → 370 — `flow-stakes.json › flow` et `› phase` s'éteignent : l'enjeu
-      // de modale se keye par son `id` (`FlowStakeId`, généré).
-      // #680 (2026-09-29) : 370 → 371 — UNE ligne de référence NEUVE, `diligence-projet.json › base` (id nu
-      // scalaire imposé par `presetPnjSchema.base`, #671) ; MÊME graphie que ses sœurs `a`/`b`/`scene` du
-      // même projet : même lot, même extinction.
-      'L3 #1463': 371,
-      // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
-      // une seule dès que la référence sort de leur signature.
-      // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
-      // donnée (`maladies.json › dailyTest`) et sa redéclaration au def (`maladies.ts › dailyTest`).
-      // L4 #1463 : 221 → 162 (vague `plage`, 2026-08-31). −61 lignes de FORMES (les rangées de table
-      // à fourchette plate passent CIBLE, cf. le cliquet `STRUCTURES_FORMES` ci-dessus) et +2 lignes
-      // de REDÉCLARATIONS (`weather.ts`, `advancementCosts.ts` — leurs schémas déclarent le
-      // littéral à DEUX bornes, empreinte de la vague `plage` ; cf. le cliquet
-      // `STRUCTURES_REDECLARATIONS`). Solde net −59.
-      // … puis 162 → 152 (vague `plage`) : les 10 lignes de REDÉCLARATIONS des rangées de
-      // table « critiques & corps » sortent — leurs schémas composent `plageSchema` par la SHAPE, ou
-      // l'adoptent nu quand les deux bornes sont toute la charge utile.
-      // … puis 152 → 143 : les 9 lignes de REDÉCLARATIONS des rangées de table de magie et
-      // des tables générales sortent à leur tour, par composition de `plageSchema`.
-      // … puis 143 → 131 : les 12 lignes de REDÉCLARATIONS des rangées de table de mer, de
-      // route et de bataille sortent à leur tour, par composition de `plageSchema`.
-      // … puis 131 → 130 (L-monnaie-1) : `activities.minInvest` compose `moneyPartialSchema` de la
-      // grammaire (`grammaire/valeurs.ts`) au lieu de re-taper `{gold}`.
-      // … puis 130 → 121 (L-monnaie-2) : la clé `bronze` meurt (5 lignes de FORMES, 455 montants) et
-      // les 4 catalogues composent le `moneySchema` de la grammaire (4 REDÉCLARATIONS).
-      // … puis 121 → 113 (L-monnaie-3) : les 8 dernières lignes de FORMES du concept monnaie sortent
-      // (53 occurrences) — 44 `giveMoney` enveloppés dans `montant`, et les 9 montants PARTIELS
-      // (`activities.minInvest`, coûts de choix d'arène) reconnus CIBLES par le lexique. Le concept
-      // monnaie ne pèse plus AUCUNE ligne au stock des formes.
-      // … puis 113 → 112 (L-monnaie-4) : l'HOMONYME `cost` sort — le nom porte seulement la monnaie
-      // (8 tarifs d'arène), les 85 porteurs d'un autre type ayant reçu le nom de ce qu'ils chiffrent.
-      // … puis 112 → 111 (#1463 L-de-1) : QUATRE lignes du concept `de` sortent — la forme divergente
-      // `miscast.json › dice {n,sides+…}` et les TROIS dés re-tapés dans les defs (`maladies.ts`,
-      // `miscast.ts` ×2, qui composent `diceSpecSchema`) —, et TROIS entrent : le constat
-      // `sea-cargo` (donnée + def) que le concept `formule` rend mesurable, et le `{sum}`
-      // d'`engineFormulaSchema` reçu de `L1a #1466` (−1 là-bas, somme des deux lots INCHANGÉE dessus).
-      // … puis 111 → 107 (#1463 L-gram-1) : les TROIS redéclarations à deux bornes qui pouvaient
-      // sortir sortent (cf. le cliquet `STRUCTURES_REDECLARATIONS` ci-dessus), et la quatrième ligne
-      // rend son lot à `L1a #1466` (le `{sum}` d'`engineFormulaSchema`, ci-dessus) : −3 −1.
-      // … puis 107 → 94 (#1657 geste A) : les 10 lignes de FORMES (`test` ×7, `sequence` ×3) et les
-      // 4 REDÉCLARATIONS ci-dessus sortent, et `maladies › dailyTest` entre ICI plutôt qu'en L3 —
-      // c'est un JET (EDOC 08 l.104) que l'enveloppe `épreuve` de #1657 geste B reprendra, le lot des
-      // références ne l'éteindrait jamais : −14 +1.
-      // … puis 94 → 90 (#1463 L-gram-3) : les DEUX `price` re-tapés des defs de commerce, la
-      // redéclaration `sea-cargo.ts › offerPrice` et la forme `sea-cargo.json › offerPrice {sum+…}`
-      // sortent ENSEMBLE (cf. les deux cliquets ci-dessus) : −4.
-      // … #1657 : 90 → 85. Les 4 lignes de test d'`aa-criticals.json` fusionnent dans celles de
-      // `criticals.json` (amputation, loss, resist ×2), et `resist` devient le nœud `test` PARTAGÉ :
-      // deux lignes (`test | difficulty` 38, `test | difficulty,skill` 1) là où il y en avait quatre,
-      // plus la redéclaration de def `criticals.ts › resist` qui meurt avec la graphie propriétaire.
-      // … #1657 : le plafond TIENT à 85, mesuré — le lot ne décroît pas ici. `symptoms.json ›
-      // onTick {difficulty+…}` et sa redéclaration de def (`symptoms.ts › onTick`) meurent avec la
-      // graphie propriétaire (−2), et le nœud partagé rend UNE forme par document porteur
-      // (`symptoms.json › test {difficulty}` 3, `maladies.json › test {difficulty}` 1, +2) : solde 0.
-      // Le terrain gagné est de SIGNATURE, pas de compte — les deux lignes neuves portent l'exacte
-      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test`, là où la
-      // graphie propriétaire projetait `difficulty+…`. Le décompte L3 (−2), lui, baisse.
-      // … #1657 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` en font seulement UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
-      // (1 → 39), la seule graphie que la porte sache tester. Ce que le silence coûtait : le moteur
-      // recomposait la valeur à la main (Endurance + avances de Résistance), hors `testValue`.
-      // … #1657 : 84 → 85, cliquet REMONTÉ d'UNE ligne, et c'est une CONVERGENCE, pas une dérive.
-      // Les 4 nœuds du cycle de maladie NOMMENT ce qu'ils testent (`LDB 20 l.145/l.212` Résistance,
-      // `MSRC 16 l.90` Endurance, `EDOC 08 l.104` Résistance) : la graphie APPAUVRIE `test
-      // {difficulty}` — celle qui laissait le moteur recomposer la valeur à la main (#1685) — MEURT
-      // dans les deux documents (−2 lignes), et ses occurrences se répartissent sur DEUX graphies déjà
-      // au lexique et déjà majoritaires ailleurs : `difficulty,skill` (`criticals`, `spells`,
-      // `maneuvers`, `talents`…) ×2+1, `characteristic,difficulty` ×1 (+3 lignes). Le +1 net est
-      // mécanique : un document qui distingue Compétence et Caractéristique porte deux lignes là où
-      // l'appauvrissement n'en portait qu'une.
-      'L4 #1463': 85,
-      // #1553 : 92 → 106 (commit 3c) — le lot des ORPHELINES reçoit les 14 conteneurs qui quittent
-      // `L2 #1463` (−30 ci-dessus) : mêmes objets, autre stock, somme des deux en BAISSE.
-      // … puis 106 → 104 (commit 3d) — `talents.json › reverseFailed` sort du lot : sa clé `skills`
-      // n'est plus un nom de concept réservé.
-      // … puis 104 → 105 (#717) — l'ouverture du chapitre 1 et sa `source` embarquée (même motif).
-      // … puis 105 → 98 (#1463 L-monnaie-4) — 7 lignes sortent : elles n'étaient ORPHELINES que par le
-      // NOM `cost`, rendu à son type (naval `install` ×2, `qualities.flow`, `advantageDefenseReaction`,
-      // `prosthesisTraining` ×3 ; 29 occurrences).
-      // … puis 98 → 97 (#1633) — `diligence-projet.json › ouverture` sort : le concept `ouverture` de
-      // la strate `Document` la classe à sa forme CIBLE, elle n'annonce plus rien qu'elle ne résolve.
-      // … puis 97 → 99 (#1473 R1) — les 2 objets `etats.json › value` quittent la forme `char+…` de `L3 #1463`.
-      '#1553': 99,
-    };
-    expect(
-      Object.keys(plafonds).sort(),
-      'les plafonds par lot et `LOTS_CONNUS` sont le MÊME ensemble : un lot sans plafond n’est cliqueté par rien.',
-    ).toEqual([...LOTS_CONNUS].sort());
-    const reel = (lot: string) => parLot.get(lot) ?? 0;
-    expect(
-      Object.keys(plafonds).filter((lot) => reel(lot) > plafonds[lot]).map((lot) => `${lot} ${reel(lot)} > ${plafonds[lot]}`),
-      'lot(s) qui ont GONFLÉ — une ligne ne change pas de lot sans revue, et un lot ne grossit pas sans dérive.',
-    ).toEqual([]);
-    expect(
-      Object.keys(plafonds).filter((lot) => reel(lot) < plafonds[lot]).map((lot) => `${lot} : plafond PÉRIMÉ ${plafonds[lot]}, abaisser à ${reel(lot)}`),
-      'plafond(s) PÉRIMÉ(S) — le terrain gagné se VERROUILLE : abaisser le plafond au réel mesuré.',
     ).toEqual([]);
   });
 
@@ -1438,10 +761,10 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       'un noyau d’enveloppe a mordu ailleurs que sur sa porte (ou l’a lâchée) — un concept qui déborde est le débordement global que le DoD interdit, et il se NOMME ici avant de se déclarer.',
     ).toEqual(
       lignes([
-        'narratif | arene-projet.json › narratif | affaires,indices,objets,presetsPnj',
-        'narratif | loup-et-saumure-projet.json › narratif | affaires,indices,objets,presetsPnj',
-        'narratif | barge-du-sel-projet.json › narratif | affaires,indices,objets,presetsPnj+…',
-        'narratif | diligence-projet.json › narratif | affaires,indices,objets,presetsPnj+…',
+        'narratif | arene-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
+        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
+        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
+        'narratif | diligence-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
         'ouverture | barge-du-sel-projet.json › ouverture | pitch,titre+…',
         'ouverture | diligence-projet.json › ouverture | pitch,titre+…',
         'cloture | barge-du-sel-projet.json › cloture | titre,when+…',
@@ -1522,9 +845,8 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
    * égalité de stock ne bouge (les lignes volées seraient simplement absentes des deux côtés).
    * Ici on mesure les DEUX scans et on exige : ce que la strate `Document` gagne, elle le prend à ce
    * qui n’était CLASSÉ PAR PERSONNE (invisibles + orphelines), jamais à un concept existant.
-   * COÛT MESURÉ (2026-09-01, cette machine) : ~3 s — démarrage `tsx` ~1,7 s + DEUX scans à ~0,6 s.
    */
-  it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 30_000 }, () => {
+  it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 60_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-strate-'));
     try {
       const pilote = join(dossier, 'diff-strate-document.mjs');
@@ -1717,7 +1039,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
       (f) => f.concept === 'reference' && f.dataset === 'careerLevels.json' && f.champ === 'trappings' && f.signature === signature,
     );
 
-  it('un `{text}` qui nomme une POSSESSION est `text (résolvable)` ; « Sa Honte » et « Assistant » restent `text` declaree (#1463 L-ref-0)', () => {
+  it('un `{text}` qui nomme une POSSESSION est `text (résolvable)` ; « Sa Honte » et « Assistant » restent `text` declaree (#1463 L-ref-0)', { timeout: 30_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-text-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1764,7 +1086,35 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
 });
 
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
-  it('trois dérives injectées dans une COPIE de l’arbre sont VUES : forme neuve, orpheline neuve, op neuve', () => {
+  it('un lieu et un déclencheur supplémentaires donnent un écart nominatif avec son producteur', () => {
+    const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
+    try {
+      for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
+      const relatif = listerProjetsLivres(copie).find((p) =>
+        JSON.parse(readFileSync(join(copie, 'src/scenes', p), 'utf8')).id === 'la-diligence',
+      )!;
+      const chemin = join(copie, 'src/scenes', relatif);
+      const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
+      const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
+      paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hamlet' });
+      const declencheur = structuredClone(scene.triggers.find((t: { id: string }) => t.id === 'edo-ch1-depart-remise'));
+      declencheur.id = 'declencheur-croissance-2337';
+      declencheur.flow.steps[0].effect.flag = 'croissance-2337';
+      scene.triggers.push(declencheur);
+      writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
+      const apres = scannerDonnees(copie, DEFS, CHOIX);
+      const ecarts = ecartsDeFormes(apres);
+      const site = (f: { dataset: string; champ: string; signature: string }) =>
+        f.dataset === 'diligence-projet.json' && f.champ === 'scene' && f.signature === 'id-nu';
+      expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
+      expect(ecarts.neuves.some((ligne) => ligne.includes('diligence-projet.json | scene | id-nu') && ligne.includes('occurrences-structures.mts --write'))).toBe(true);
+      expect(apres.ops.map(cleOp)).toEqual(scan.ops.map(cleOp));
+    } finally {
+      rmSync(copie, { recursive: true, force: true });
+    }
+  });
+
+  it('trois dérives injectées dans une COPIE de l’arbre sont VUES : forme neuve, orpheline neuve, op neuve', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1814,7 +1164,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
   const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
-  it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', () => {
+  it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -2095,7 +1445,7 @@ const verdictRedecl = (nom: string): VerdictRedecl => verdictsRedecl()[nom]!;
  * ligne NOMINATIVE.
  */
 describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', () => {
-  it('une redéclaration INJECTÉE dans une copie des defs est VUE — N → N+1, ligne nominative', () => {
+  it('une redéclaration INJECTÉE dans une copie des defs est VUE — N → N+1, ligne nominative', { timeout: 120_000 }, () => {
     const diff = verdictRedecl('sonde');
     // La copie mesure le MÊME arbre que le scan du fichier : sans cet ancrage, le +1 ne prouverait rien.
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);

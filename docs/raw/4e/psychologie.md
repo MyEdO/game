@@ -408,11 +408,11 @@ Applique les mêmes règles que le Préjugé des personnages.
 
 La *Cible* peut être un groupe de COMPORTEMENT, que ni l'espèce ni la carrière ne confèrent (`groups.json`) :
 
-> « **Traits :** À distance (Arbalète) +9 (60), Arme (Épées) +7, Armure (Veste de cuir) 1, Préjugé (Criminels, Personnes qui ne leur offrent rien) » — `EDO 02 l.289`
+> « **Traits :** À distance (Arbalète) +9 (60), Arme (Épées) +7, Armure (Veste de cuir) 1, Préjugé (Criminels, Personnes qui ne leur offrent rien) » — `EDO 02 l.301`
 
-> « **Traits :** Arme (Poings) +3, Préjugé (Rustres et Idiots) » — `EDO 02 l.315`
+> « **Traits :** Arme (Poings) +3, Préjugé (Rustres et Idiots) » — `EDO 02 l.327`
 
-**Sources RAW** : `LDB 85 l.274` — renvoi LDB 21 ; cibles de comportement `EDO 02 l.289`, `EDO 02 l.315`
+**Sources RAW** : `LDB 85 l.274` — renvoi LDB 21 ; cibles de comportement `EDO 02 l.301`, `EDO 02 l.327`
 
 ---
 

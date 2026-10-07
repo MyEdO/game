@@ -16,4 +16,4 @@ Arbitrage 1 du pilotage https://github.com/cgauche/game/issues/665#issuecomment-
 - Une réplique absente du livre s'authore maison ; une narration destinée au MJ peut se reformuler en texte lu à l'écran, même portée par le livre, sans `source`.
 - Prose `narratif` SANS `source` = maison ; AVEC, chaque paragraphe est copié à l'octet (`proseSourcees`, `src/scenes/bundled-projects.test.ts`).
 - Tout texte maison passe un juge esprit (skill `adapter-une-campagne`). La prose de `src/data` n'est pas concernée.
-- Réf du passage d'un texte maison : #2001 (un texte MAISON n'a aucun champ pour la référence du passage dont il dérive).
+- Réf du passage d'un texte maison : `adapteDe`, exclusif de `source` et `descRef` (`grammaire/prose.ts`).

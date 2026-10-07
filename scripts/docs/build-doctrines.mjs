@@ -15,8 +15,7 @@
  * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, jamais commité, #2203) :
  * `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`
- * et au pre-commit dès qu'une fiche `user-*` ou `docs/doctrines.md` est stagé.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-doctrines.mjs [--check]
  */

@@ -52,7 +52,8 @@ export type OrigineProse =
 
 /**
  * Un SITE TERMINAL qui rend du markdown : un élément JSX d'un composant porteur de prose
- * (`Prose{md}`, `ActivityPane{desc}`, `DetailFrame{prose}`, `LoreText{md}`, les volets d'interlude)
+ * (`Prose{md}`, `ActivityPane{desc}`, `DetailFrame{prose}`, `LoreText{md}`, `ProseField{lecture}`, les volets
+ * d'interlude)
  * dont la valeur n'est PAS la simple transmission d'une prop du composant courant.
  *
  * `cle` = `fichier#Balise.prop#n` (`n` = rang de ce couple balise/prop DANS le fichier, en ordre de
@@ -118,7 +119,6 @@ export const SITES_PROSE: SiteProse[] = [
 
   // ── Nus par nature ────────────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/StakeNote.tsx#Prose.md#1', origine: 'Y', note: 'les 3 formes de `resolveStake` (`src/data/index.ts`) : synthèse, texte authoré de scène, gabarit substitué — aucune n’est un champ rendu verbatim' },
-  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'R', note: '`store.document.text` — instantané posé par l’effet `document` (`src/state/combatEffects.ts`) ou le rapport de naufrage (`src/state/shipwreck.ts`), sans adresse' },
   { cle: 'src/ui/DialogueHistoryScreen.tsx#Prose.md#1', origine: 'R', note: 'texte de nœud RECOPIÉ au tour joué (journal runtime)' },
   { cle: 'src/ui/MerchantPanel.tsx#Prose.md#1', origine: 'R', note: '`ItemInstance.desc` — snapshot d’instance, surchargeable par un objet custom (`giveTrapping`)' },
   { cle: 'src/ui/PartyScreen.tsx#DetailFrame.prose#1', origine: 'Y', note: 'présentation composée des champs du héros + libellés i18n' },
@@ -127,12 +127,16 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.ouverture.pitch` est un champ adressé (cf. `CHEMINS_ADRESSES`) mais l’id du projet n’est pas en portée — `campaignDoc` (`src/state/store.ts:2218`) ne porte pas d’id et `pendingCampaign` redevient `null` après `loadProject` (`src/state/devtools.test.ts:444`). Un porteur à l’id faux serait pire que pas de porteur.' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.indices[].stades[].prose` — même blocage d’identité de projet' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', note: 'RESTE T0 : idem (lectures précédentes)' },
+  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `store.document.text` — la prose de `narratif.documents[].prose` que pose l’effet `document` (`src/state/combatEffects.ts`), même blocage d’identité de projet ; la même surface rend aussi le rapport de naufrage, texte RUNTIME (`src/state/shipwreck.ts`)' },
   { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `massBattle.terrain`, authoré dans l’effet de scène — même blocage d’identité de projet' },
+  { cle: 'src/ui/editor/DialogueDetail.tsx#ProseField.lecture#1', origine: 'S', note: 'RESTE T0 : réplique d’un nœud de dialogue lue tant qu’elle adresse un passage (`descRef`) — prose de scène, même blocage d’identité de projet' },
+  { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#1', origine: 'S', note: 'RESTE T0 : ligne de l’effet `journal` lue tant qu’elle adresse un passage (`descRef`) — prose de scène, même blocage d’identité de projet' },
 
   // ── Galerie DEV (montée vivante : des sites réels, pas des fixtures) ──────────────────────────
   { cle: 'src/ui/gallery/registry.tsx#DetailFrame.prose#1', origine: 'S', porteur: 'careers.desc' },
   { cle: 'src/ui/gallery/registry.tsx#DetailFrame.prose#2', origine: 'S', porteur: 'careers.desc' },
   { cle: 'src/ui/gallery/registry.tsx#ActivityPane.desc#1', origine: 'UI', note: 'démo : chaîne de galerie' },
+  { cle: 'src/ui/gallery/registry.tsx#ProseField.lecture#1', origine: 'S', note: 'démo de la réplique adressée, composée comme `DialogueDetail` et amorcée de `psychology.json#terreur` (`desc` + `descRef`) : nue comme le site qu’elle montre' },
 ];
 
 /**

@@ -104,9 +104,13 @@ for (const [rel, etat] of docs) {
 const TYPES_EFFET = new Set(['journal', 'document', 'setObjective']);
 const canoniqueScene = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 
-/** Un objet EST-il un porteur de prose de ce lot ? `dansNodes` = on descend `dialogues[].nodes`. */
+/**
+ * Un objet EST-il un porteur de prose de ce lot ? `dansNodes` = on descend `dialogues[].nodes`.
+ * L'effet qui DÉSIGNE sa prose par `documentId` (#679, `narratif.documents`) n'en porte aucune.
+ */
 const estPorteur = (o, dansNodes) =>
-  (dansNodes && Array.isArray(o.choices)) || (typeof o.type === 'string' && TYPES_EFFET.has(o.type));
+  (dansNodes && Array.isArray(o.choices))
+  || (typeof o.type === 'string' && TYPES_EFFET.has(o.type) && o.documentId === undefined);
 
 const RACINE_SCENES = path.join(ROOT, 'src/scenes');
 for (const d of fs.readdirSync(RACINE_SCENES, { withFileTypes: true })) {

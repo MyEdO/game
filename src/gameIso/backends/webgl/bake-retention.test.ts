@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { bakeWorldGeometry, roomZonesByElKey, worldBakeDeps, type BakedWorld } from './sceneMeshes';
 import { memoByRefDeps } from '../../../state/sceneMemo';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../../state/scene';
+import { emptyScene, sceneMetresPerTile, setDoorOpen, setDoorRevealed, setStructureDown, setTileCollapsed, type Scene } from '../../../state/scene';
 import { scenario } from '../../../scenes/test-scenarios/zones-pieces';
 import { findPropById, materials, matieresDe, props, terrains } from '../../../data';
 import { setDataset, resetData } from '../../../data/overrides';
@@ -91,6 +91,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
   flags: (s) => ({ ...s, flags: { ...s.flags, neuf: true } }),
   entryPoints: (s) => ({ ...s, entryPoints: { ...(s.entryPoints ?? {}), porte: { x: 1, y: 1 } } }),
   startMessage: (s) => ({ ...s, startMessage: 'Autre message' }),
+  couvre: (s) => ({ ...s, couvre: ['EDO-01#b1'] }),
 };
 
 /** Le read-set DÉCLARÉ, champ par champ — la liste que la garde confronte à la réalité. */
@@ -111,13 +112,13 @@ describe('Cuisson du monde — rétention par CONTENU, read-set gardé champ par
       // La rétention TELLE QUE L'ÉCRAN la monte : le patron canonique, sur les deps déclarées.
       const memo = memoByRefDeps<object, BakedWorld>();
       const clé = {};
-      const avant = memo(clé, worldBakeDeps(base, mpt), () => bakeWorldGeometry(base, mpt));
-      const après = memo(clé, worldBakeDeps(muté, mpt), () => bakeWorldGeometry(muté, mpt));
+      const avant = memo(clé, worldBakeDeps(base, mpt), () => bakeWorldGeometry(base, mpt, 'jeu'));
+      const après = memo(clé, worldBakeDeps(muté, mpt), () => bakeWorldGeometry(muté, mpt, 'jeu'));
       expect(memesDeps(worldBakeDeps(base, mpt), worldBakeDeps(muté, mpt))).toBe(!attendu);
       expect(après !== avant).toBe(attendu);
       // Hors read-set : la cuisson FRAÎCHE de la scène mutée doit être identique — sans quoi la
       // rétention laisserait un monde périmé à l'écran, et personne ne le verrait.
-      if (!attendu) expect(empreinte(bakeWorldGeometry(muté, mpt))).toEqual(empreinte(avant));
+      if (!attendu) expect(empreinte(bakeWorldGeometry(muté, mpt, 'jeu'))).toEqual(empreinte(avant));
     });
   }
 
@@ -126,13 +127,53 @@ describe('Cuisson du monde — rétention par CONTENU, read-set gardé champ par
   it('l’empreinte comparée MORD : une seule case de terrain changée la fait diverger', () => {
     const layers = cloneLayers(base);
     layers[0].tiles[0] = layers[0].tiles[0] === 'eau' ? 'herbe' : 'eau';
-    expect(empreinte(bakeWorldGeometry({ ...base, layers }, mpt))).not.toEqual(empreinte(bakeWorldGeometry(base, mpt)));
+    expect(empreinte(bakeWorldGeometry({ ...base, layers }, mpt, 'jeu'))).not.toEqual(empreinte(bakeWorldGeometry(base, mpt, 'jeu')));
   });
 
   /** L'ÉCHELLE est le sixième terme du read-set : elle n'est pas un champ de `Scene`, mais elle cuit. */
   it('l’ÉCHELLE (`mpt`) recuit le monde, elle aussi', () => {
     expect(memesDeps(worldBakeDeps(base, mpt), worldBakeDeps(base, mpt * 2))).toBe(false);
-    expect(empreinte(bakeWorldGeometry(base, mpt * 2))).not.toEqual(empreinte(bakeWorldGeometry(base, mpt)));
+    expect(empreinte(bakeWorldGeometry(base, mpt * 2, 'jeu'))).not.toEqual(empreinte(bakeWorldGeometry(base, mpt, 'jeu')));
+  });
+});
+
+/**
+ * `scene.flags` n'entre PAS entier au read-set : seuls les flags qu'une LECTURE de cuisson consulte
+ * (état d'arête de `wallGeometry` — porte en jeu, battant, structure abattue — et tuiles effondrées de
+ * `isWalkable`) recuisent. Fixture portant les trois arêtes : porte fermée, porte secrète, structure.
+ */
+describe('Cuisson du monde — l’état RUNTIME des arêtes recuit, un flag sans lecteur non', () => {
+  const aretes = (): Scene => {
+    const s = emptyScene(6, 6);
+    s.walls = [
+      { x: 1, y: 1, side: 'E', door: true, closed: true },
+      { x: 3, y: 1, side: 'E', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' } },
+      { x: 1, y: 3, side: 'E', structure: 'mur-de-chateau' },
+    ];
+    return s;
+  };
+  const cas: [string, (s: Scene) => Scene, boolean][] = [
+    ['flag SANS lecteur de cuisson', (s) => ({ ...s, flags: { ...s.flags, neuf: true } }), false],
+    ['porte OUVERTE', (s) => setDoorOpen(s, 1, 1, 'E', 0, true), true],
+    ['porte secrète RÉVÉLÉE', (s) => setDoorRevealed(s, 3, 1, 'E', 0, true), true],
+    ['structure ABATTUE', (s) => setStructureDown(s, 1, 3, 'E', 0, true), true],
+    ['tuile EFFONDRÉE', (s) => setTileCollapsed(s, 2, 2, 1), true],
+  ];
+  for (const [quoi, muter, recuit] of cas) {
+    it(`${quoi} : ${recuit ? 'recuit le monde' : 'ne le recuit pas'}`, () => {
+      const s = aretes();
+      const m = muter(s);
+      expect(m.flags, 'la mutation passe par `scene.flags`').not.toEqual(s.flags);
+      expect(memesDeps(worldBakeDeps(s, mpt), worldBakeDeps(m, mpt))).toBe(!recuit);
+      if (!recuit) expect(empreinte(bakeWorldGeometry(m, mpt, 'jeu'))).toEqual(empreinte(bakeWorldGeometry(s, mpt, 'jeu')));
+    });
+  }
+
+  it('la cuisson FRAÎCHE diverge bien pour les trois arêtes (la dep n’est pas gratuite)', () => {
+    const s = aretes();
+    const avant = empreinte(bakeWorldGeometry(s, mpt, 'jeu'));
+    for (const m of [setDoorOpen(s, 1, 1, 'E', 0, true), setDoorRevealed(s, 3, 1, 'E', 0, true), setStructureDown(s, 1, 3, 'E', 0, true)])
+      expect(empreinte(bakeWorldGeometry(m, mpt, 'jeu'))).not.toEqual(avant);
   });
 });
 
@@ -145,7 +186,7 @@ describe('Cuisson du monde — rétention par CONTENU, read-set gardé champ par
  */
 describe('Zones de pièce — hors du monde CUIT, résolues sur la scène VIVE (#1176, P3-3)', () => {
   it('aucune zone de pièce ne survit à la cuisson (toits ET façades)', () => {
-    const cuit = bakeWorldGeometry(base, mpt);
+    const cuit = bakeWorldGeometry(base, mpt, 'jeu');
     const porteurs = cuit.spans.filter((s) => s.el.kind === 'roof' || s.el.kind === 'wall');
     expect(porteurs.length).toBeGreaterThan(0); // la fixture porte bien des toits et des murs
     expect(porteurs.filter((s) => 'roomZoneIds' in s.el)).toEqual([]);
@@ -163,7 +204,7 @@ describe('Zones de pièce — hors du monde CUIT, résolues sur la scène VIVE (
     expect(après).toContain('zone-neuve');
     expect(avant).not.toContain('zone-neuve');
     // …et la cuisson, elle, n'a pas bougé d'un sommet (c'est tout l'intérêt de l'exclusion).
-    expect(empreinte(bakeWorldGeometry(muté, mpt))).toEqual(empreinte(bakeWorldGeometry(base, mpt)));
+    expect(empreinte(bakeWorldGeometry(muté, mpt, 'jeu'))).toEqual(empreinte(bakeWorldGeometry(base, mpt, 'jeu')));
   });
 });
 
@@ -337,10 +378,10 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
     const memo = memoByRefDeps<object, BakedWorld>();
     const clé = {};
     const depsAvant = worldBakeDeps(scene, mptS);
-    const avant = memo(clé, depsAvant, () => bakeWorldGeometry(scene, mptS));
+    const avant = memo(clé, depsAvant, () => bakeWorldGeometry(scene, mptS, 'jeu'));
     setDataset('props', props.map((p) => (p.id === DEF_A ? { ...p, volume: { ...p.volume!, primitives: [...p.volume!.primitives] } } : p)));
     expect(memesDeps(depsAvant, worldBakeDeps(scene, mptS))).toBe(false);
-    const après = memo(clé, worldBakeDeps(scene, mptS), () => bakeWorldGeometry(scene, mptS));
+    const après = memo(clé, worldBakeDeps(scene, mptS), () => bakeWorldGeometry(scene, mptS, 'jeu'));
     expect(après).not.toBe(avant);
     expect(partRecettes(scene)).toContain(findPropById(DEF_A)!.volume);
   });

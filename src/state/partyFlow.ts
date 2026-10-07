@@ -312,16 +312,16 @@ export function setItemSkin(_get: Get, set: Set, carrierId: string, uid: string,
 }
 
 /** Change la FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de guerre/demi-lance) :
- *  pose `item.shape` parmi les `formChoices` du trapping (forme hors-liste → no-op), puis recompute pour que
- *  l'arme active (si tenue) reprenne la silhouette (`Weapon.shape`). Cosmétique RAW — toutes les formes d'une
+ *  pose `item.formeChoisie` parmi les `formChoices` du trapping (forme hors-liste → no-op), puis recompute
+ *  pour que l'arme active (si tenue) porte ce choix (`Weapon.formeChoisie`). Cosmétique RAW — toutes les formes d'une
  *  Arme simple partagent les mêmes stats (LDB 62). Même patron (clone + recomputeLoadout) que setItemSkin. */
-export function setItemShape(_get: Get, set: Set, heroId: string, uid: string, shape: string): void {
+export function choisirForme(_get: Get, set: Set, heroId: string, uid: string, forme: string): void {
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
     const choices = findTrappingById(it.trappingId)?.formChoices;
-    if (!choices?.includes(shape)) return; // forme hors `formChoices` → ignorée
-    it.shape = shape;
+    if (!choices?.includes(forme)) return; // forme hors `formChoices` → ignorée
+    it.formeChoisie = forme;
   });
 }
 

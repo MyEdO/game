@@ -215,6 +215,19 @@ describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c
     expect(tombstonesIn("// avant : pas d'arme à 2 mains")).toEqual([]);
   });
 
+  it('cas planté : le RANG de version du code raconte l’histoire du site, quelle que soit la graphie (#2199)', () => {
+    const rang = 'rang de version du code (histoire du site)';
+    expect(tombstonesIn('// Écran POSSESSIONS — PREMIÈRE version, composition PURE de primitives.')).toContain(rang);
+    expect(tombstonesIn('// la 1re version en Q non monotones s’auto-croisait')).toContain(rang);
+    expect(tombstonesIn('// corrige un faux positif de la 1ère version qui testait seulement le préfixe')).toContain(rang);
+    expect(tombstonesIn('// Première mouture, à reprendre.')).toContain(rang);
+  });
+
+  it('faux positif écarté : la version d’un artefact TIERS, introduite par de/du/des/d’ (#2199)', () => {
+    expect(tombstonesIn('// La première version de git dont `merge-tree --write-tree` lit `--stdin`.')).toEqual([]);
+    expect(tombstonesIn('// la première version d’Electron qui expose cette API')).toEqual([]);
+  });
+
   it('cas planté : `ex-` nomme un artefact révolu QUELLE QUE SOIT la casse (#828)', () => {
     expect(tombstonesIn("// Mêmes teintes que l'ex-houseWallIso.")).toContain('ex-Nom');
     expect(tombstonesIn("// Reprend la logique de l'ex-mode manœuvre.")).toContain('ex-Nom');
@@ -439,6 +452,22 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
     expect(untaggedExcuseMatch("// on garde X pour l'instant [entériné 2026-07-06]")).toBeNull();
   });
 
+  it('cas plantés : le site qui se déclare INACHEVÉ ici, ou renvoie à un lot à venir (#2199)', () => {
+    expect(untaggedExcuseMatch(' * Soute/Voyage = sous-lots suivants, non codés ici.')).not.toBeNull();
+    expect(untaggedExcuseMatch('// dette de nommage distincte, non traitée ici ;')).not.toBeNull();
+    expect(untaggedExcuseMatch('// portés — NON implémenté ici (la sommation compte tout).')).not.toBeNull();
+    expect(untaggedExcuseMatch('// le cas naval pas encore géré ici')).not.toBeNull();
+    expect(untaggedExcuseMatch('// le picker de choix (lot suivant) reste hors périmètre.')).not.toBeNull();
+    expect(untaggedExcuseMatch('// Recherche = lots à venir.')).not.toBeNull();
+  });
+
+  it('faux positifs écartés par la forme : délégation, lot sujet d’une hypothèse, incise après un ticket (#2199)', () => {
+    expect(untaggedExcuseMatch('// le tir n’est pas traité par cette fonction : `resolveAttack` le porte.')).toBeNull();
+    expect(untaggedExcuseMatch('// la baseline ne fond jamais : un fichier nettoyé par un lot suivant')).toBeNull();
+    expect(untaggedExcuseMatch('// STOCK gelé, résorbé par #276 (lots futurs) ; la garde arrête la croissance')).toBeNull();
+    expect(untaggedExcuseMatch('// un lot futur ne sait pas laquelle doit tomber à zéro.')).toBeNull();
+  });
+
   it('cas planté : un commentaire neutre ne matche pas (contrôle négatif)', () => {
     expect(untaggedExcuseMatch('// Calcule le total des dégâts appliqués à la cible.')).toBeNull();
   });
@@ -545,6 +574,43 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
     expect(untaggedExcuseMatch('/** Enregistre une relève et rend le matériau nu en attendant. */')).toBeNull();
     expect(untaggedExcuseMatch("// c'est son PÉRIMÈTRE : il ne doit pas s'étendre à un septième document en attendant.")).toBeNull();
     expect(untaggedExcuseMatch('// `dominos` tient la place en attendant, et ce n’est PAS le même Test.')).toBeNull();
+  });
+
+  it.each([
+    '// La fonction est conservée jusqu’à la suppression de ses anciens appels.',
+    "// Les modules sont maintenus jusqu'au remplacement des anciens usages.",
+    '// Les méthodes sont gardées en attendant le retrait des anciennes branches.',
+    '/** La méthode est maintenue\n * jusqu’au retrait des anciens appelants. */',
+    '// Les fonctions sont conservées\n// jusqu’à la disparition de leurs anciens appels.',
+    `// La fonction est conservée ${'avec sa liaison explicite '.repeat(12)}jusqu’à la suppression des anciens appels.`,
+  ])('#2285 maintien transitoire détecté : %s', (source) => {
+    const trouve = scanExcuses('scripts/ops/temoin.mjs', source);
+    expect(trouve).toHaveLength(1);
+    expect(trouve[0].line).toBe(1);
+  });
+
+  it.each([
+    '// Le personnage est conservé jusqu’au retrait des anciens appels.',
+    '// La durée de vie de cet objet est maintenue jusqu’au retrait des anciens usages.',
+    '// La fonction est conservée jusqu’au prochain appel.',
+    '// La branche de cet algorithme est gardée jusqu’au résultat du calcul.',
+    '// La fonction est conservée pour ses appels courants.',
+    '// La fonction est conservée. Le retrait des anciens appels appartient à une autre phrase.',
+    '// La fonction est conservée jusqu’au prochain appel. Les anciens usages sont décrits ici.',
+    '// La fonction est conservée ; jusqu’au retrait des anciens appels.',
+    '// FOSSILE #2203 — mort quand aucune branche chantier ne reste.',
+    '// La branche est morte quand la condition vaut faux.',
+    '// #2203',
+    'const texte = "La fonction est conservée jusqu’au retrait des anciens appels";',
+  ])('#2285 maintien transitoire : opposé innocent : %s', (source) => {
+    expect(scanExcuses('scripts/ops/temoin.mjs', source)).toEqual([]);
+  });
+
+  it('#2285 phrase partagée : aucun seuil ni contamination de la phrase suivante', () => {
+    const suite = 'avec sa liaison explicite '.repeat(12);
+    expect(scanExcuses('x.ts', `// Affichage en attendant ${suite}la primitive partagée.`)).toHaveLength(1);
+    expect(scanExcuses('x.ts', `// Le héros attend son tour en attendant ${suite}son résultat. La primitive partagée existe.`)).toEqual([]);
+    expect(scanExcuses('x.ts', 'const texte = "Affichage en attendant la primitive partagée";')).toEqual([]);
   });
 
   it('faux positif écarté : une phrase de DONNÉE qui dit « séparément »/« ailleurs » décrit le découpage RÉEL', () => {
@@ -708,6 +774,28 @@ describe('garde-fou commentaires — vocabulaire de l’ancien état (#1486, cre
       const sites = scanLegacyVocab(rel, texte).filter((x) => /^\[second nom/.test(x.detail));
       expect(sites.length, `${rel} : ${JSON.stringify(texte)}`).toBe(attendu);
     }
+  });
+
+  it('cas plantés : le repli justifié par un état antérieur, en phrase ou en incise (#2199)', () => {
+    const repli = 'repli pour un état antérieur';
+    expect(legacyVocabIn('// repli sur la 1re arme à distance pour un pending sans uid (état antérieur).', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// le repli ne sert que les paquets antérieurs.', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// REPLI sur la longueur quand `seq` manque — une séquence restaurée d’une sauvegarde ANTÉRIEURE à #1508', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// Repli = pending d’avant le gel.', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// absent sur une vieille save migrée = pas de surlignage, pas de crash.', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// `undefined` si une vieille save persistée sans id', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// entrée supprimée depuis une ancienne sauvegarde', HORS_ART)).toContain(repli);
+    expect(legacyVocabIn('// les anciennes saves portent encore `name`', HORS_ART)).toContain(repli);
+  });
+
+  it('faux positifs écartés par la forme : participe, objet de jeu, repli sans état antérieur (#2199)', () => {
+    const repli = 'repli pour un état antérieur';
+    expect(legacyVocabIn("// TÉMOIN du repli mort : 'soir' (l'ancienne cible de `[length - 2]`) n'est PAS le crépuscule.", HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// s’appliquent donc en repli IDEMPOTENT à chaque chargement', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// Le chemin replié `src/ui/{Ancien.tsx => Nouveau.tsx}` du `--numstat` ne nomme aucun état', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// le slot écrase l’ancienne sauvegarde après confirmation', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// une sauvegarde ancienne de trois jours de JEU reste chargeable', HORS_ART)).not.toContain(repli);
+    expect(legacyVocabIn('// le vieux saule et l’ancienne savane du décor', HORS_ART)).not.toContain(repli);
   });
 
   it('cas plantés : chaque mot qui nomme l’état d’avant est détecté (preuve TDD)', () => {
@@ -957,20 +1045,6 @@ describe('baseline nominative des signaux de commentaires (#136, 2026-08-03)', (
  *  une entrée dont le site ne matche plus se purge (les listes décroissent). Chaque entrée cite la
  *  SOURCE du verbatim — sans elle, la revendication n'est qu'une évaluation d'ingénierie. */
 const TEST_DECISION_SITES: BaselineEntry[] = [
-  {
-    fichier: 'src/state/saves-flow.test.ts',
-    motif: 'politique de version des saves (en-tête)',
-    ancre: 'Plus la POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17)',
-    raison: 'verbatim utilisateur du 2026-08-17 consigné dans `.claude/memory/user-arbitrage-saves-reset-pas-migration.md` (une save d’une autre version se jette, elle ne se migre plus)',
-    date: '2026-08-17',
-  },
-  {
-    fichier: 'src/state/saves-flow.test.ts',
-    motif: 'politique de version des saves (describe)',
-    ancre: 'Arbitrage utilisateur 2026-08-17 : un changement de forme persistée',
-    raison: 'même verbatim, même fiche mémoire (`user-arbitrage-saves-reset-pas-migration.md`) : c’est lui qui fixe le comportement mesuré par ce describe',
-    date: '2026-08-17',
-  },
   {
     fichier: 'src/data/schemas/defs-scenes/projet-schema.test.ts',
     motif: 'identité requise d’un projet (#1552)',

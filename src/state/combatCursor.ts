@@ -24,8 +24,7 @@ export type ScreenDir = 'up' | 'down' | 'left' | 'right';
 
 export type CursorIntent =
   | { kind: 'entity'; id: string }
-  | { kind: 'tile'; pt: Pt }
-  | { kind: 'inspect'; id: string };
+  | { kind: 'tile'; pt: Pt };
 
 /** Construit une case en omettant `z` quand il vaut 0 (byte-identique à `{x,y}`, comme `path.ts`). */
 const mk = (x: number, y: number, z = 0): Pt => (z ? { x, y, z } : { x, y });
@@ -107,7 +106,7 @@ export function nextCursorTile(scene: Scene, cur: CombatCursor | null, dir: Scre
 /**
  * Décision de commit du curseur — RÉPLIQUE EXACTE de la branche `battle` de `performClick` (IsoStage) :
  * occupant d'une tuile de l'empreinte, `combatantClickActs` (mode courant) → attaque/cible, sinon allié/soi
- * → inspection (uniquement si activée, jamais de clic-case), case libre → déplacement. PUR (lit `get`).
+ * → aucun commit (jamais de clic-case sous un combattant), case libre → déplacement. PUR (lit `get`).
  */
 export function cursorCommitIntent(get: Get, cur: CombatCursor): CursorIntent | null {
   const b = get().battle;
@@ -116,7 +115,7 @@ export function cursorCommitIntent(get: Get, cur: CombatCursor): CursorIntent | 
   const z = cur.tile.z ?? 0;
   const occ = combatantAtTile(b.combatants, x, y, z);
   if (occ && combatantClickActs(get, occ)) return { kind: 'entity', id: occ.id };
-  if (occ) return get().inspectEnabled ? { kind: 'inspect', id: occ.id } : null;
+  if (occ) return null;
   return { kind: 'tile', pt: mk(x, y, z) };
 }
 

@@ -231,7 +231,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
           const bySev = cycles().find((x) => x.id === e.meta!.symptomId)?.tick?.difficultyBySeverity as Record<string, string> | undefined;
           const difficulty = (sev && bySev?.[sev]) || att!.difficulty;
           couverture.add(`${maladie} | ${String(e.meta!.symptomId)} | ${sev ?? '-'}`);
-          if (e.difficulty !== difficulty || JSON.stringify(e.meta!.onFail) !== JSON.stringify(att!.onFail)) {
+          if (e.difficulty !== difficulty || JSON.stringify(e.meta!.opsEchec) !== JSON.stringify(att!.onFail)) {
             menteuses.push(`${maladie}/seed ${seed}/${String(e.meta!.symptomId)} : ${e.difficulty} vs ${difficulty}`);
           }
         }

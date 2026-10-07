@@ -7,7 +7,7 @@
  * garantit, par porte, dans un `Record<AdresseDeCreation, V>` :
  * - typecheck : une `string` (libellé ou texte à la forme d'une adresse) ne l'indexe ni en lecture ni en
  *   écriture, et n'est pas une clé d'un littéral d'objet écrit AU TYPE du Record (TS7053, TS2353) ;
- * - lint `murs/marques` (`eslint.config.js`, tests compris) : pas de cast vers la marque hors de
+ * - lint `murs/marques` (`oxlint.config.mjs`, tests compris) : pas de cast vers la marque hors de
  *   `marquer`, pas d'adresse écrite en texte (littéral complet, gabarit ouvert sur une famille) hors des
  *   fabriques.
  * Ce qu'elle ne garantit PAS : tsc laisse entrer, sans vérifier ni la clé ni la valeur, tout objet à
@@ -15,14 +15,13 @@
  * `[s]`) et tout objet intermédiaire à clés littérales ; un libellé y passe. Aucun typage simple ne le
  * refuse (un gabarit `` `dotation:${number}` `` non plus). Ces entrées ne sont sûres qu'aux minteurs.
  *
- * Trois minteurs : les fabriques de `adresseDeCreation` ; `adresseLue` à la couture de chargement d'un
- * JSON persisté (`brouillonRelu`, `state/roster.ts`) ; le cast de chargement des pré-tirés
+ * Trois minteurs : les fabriques de `adresseDeCreation` ; le cast de chargement du roster (`rosterLoad`,
+ * `state/roster.ts`), sous l'empreinte de son type (#2404) ; le cast de chargement des pré-tirés
  * (`pregens`, `data/index.ts`), qui ne lit pas ses clés. Celles-ci sont lues par `adresseLue` au PARSE
  * du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`), à chaque porte de
  * `validateDataset` (`data/schemas/validate.ts`) : les tests (`data/schema-contract.test.ts`,
- * `data/pregens.test.ts`), la sauvegarde du Compendium (`ui/compendium/CodexEdit.tsx`, `save`), le boot
- * DEV (`main.tsx` → `data/dev-validate.ts`) et le pré-commit (`scripts/git-hooks/pre-commit.mjs` →
- * `scripts/guards/validate-data.mts`).
+ * `data/pregens.test.ts`), la sauvegarde du Compendium (`ui/compendium/CodexEdit.tsx`, `save`) et le
+ * boot DEV (`main.tsx` → `data/dev-validate.ts`).
  *
  * La GRAMMAIRE (familles, tirage sous un talent d'espèce) vit dans CE module : `deFamille` et
  * `tirageSous` répondent aux questions de famille, et le lint `murs/marques` refuse ailleurs un préfixe

@@ -11,15 +11,7 @@ import type { Porteur } from '../liage';
 import { libelleDuChamp } from './editFields';
 import { uniqueSlugId } from '../../data/slug';
 import { Row } from '../Layout';
-
-export function CodexSourceBadge({ source }: { source: CodexItem['source'] }) {
-  if (!source) return null;
-  return (
-    <span className="codex-src" title={`${source.book} page ${source.page}`}>
-      {source.book} p.{source.page}
-    </span>
-  );
-}
+import { SourceBadge } from '../SourceBadge';
 
 /**
  * Porteur d'une rangée : la rangée dit SON `chemin` (et, si le champ vit dans une AUTRE entrée, son
@@ -83,7 +75,7 @@ function CodexRowView({ row, entree }: { row: CodexRow; entree?: { type: string;
 function CodexSectionView({ section, entree }: { section: CodexSection; entree?: { type: string; id: string } }) {
   return (
     <section className="codex-sec">
-      <h3 className="codex-sec-title section-label">{section.title}</h3>
+      {section.title && <h3 className="codex-sec-title section-label">{section.title}</h3>}
       <div className={`codex-sec-body codex-${section.layout ?? 'list'}`}>
         {section.rows.map((row, i) => (
           <CodexRowView key={i} row={row} entree={entree} />
@@ -176,7 +168,7 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
       <TabbedEntry
         figure={item.appearance ? <OrnateFrame className="codex-figure"><CreaturePreview label={item.previewRef ?? item.label} appearance={item.appearance} porteur={item.previewPorteur} /></OrnateFrame> : undefined}
         title={item.label}
-        aside={item.source ? <CodexSourceBadge source={item.source} /> : undefined}
+        aside={item.source ? <SourceBadge source={item.source} /> : undefined}
         blurb={item.sub}
         meta={meta}
         tabs={tabs}
@@ -202,7 +194,7 @@ export function CodexEntry({ item, instance, category, exergues }: { item: Codex
       />
       {item.maison && (
         // PROVENANCE d'un document sans folio : la valeur maison se LIT sur la fiche, comme la réf
-        // de livre d'une entrée sourcée (`CodexSourceBadge`). Rendu UNE fois ici, jamais par catégorie.
+        // de livre d'une entrée sourcée (`SourceBadge`). Rendu UNE fois ici, jamais par catégorie.
         <section className="codex-sec">
           <h3 className="codex-sec-title section-label">{libelleDuChamp('maison')}</h3>
           <div className="codex-sec-body codex-body"><Prose md={item.maison} porteur={entree && { ...entree, chemin: 'maison' }} /></div>

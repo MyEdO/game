@@ -13,7 +13,7 @@ import type { Get, Set } from './flowTypes';
 import type { GameState } from './store';
 import { actorIn, ecrireActeur } from './combatants';
 
-const ZERO_MONEY: Money = { gold: 0, silver: 0, brass: 0 };
+const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
 // Parts PURES de la Bourse : `src/engine/bourse.ts` (voisin de `money.ts`) — le state les COMPOSE et
 // les ré-expose à ses appelants historiques, l'op `money` du moteur lit les mêmes.

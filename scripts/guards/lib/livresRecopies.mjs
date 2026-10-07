@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « liste de LIVRES recopiée dans le code » (#1825).
 //
 // INVARIANT : le code ne nomme AUCUN livre — un livre de plus, c'est de la DONNÉE
@@ -25,8 +26,7 @@
 // Module ESM pur. Le registre entre par
 // INJECTION (`identitesDe`) : un banc l'éprouve sur un registre FIXTURE à sigles inventés, sans
 // jamais recopier une identité réelle.
-import tsModule from 'typescript';
-import { scriptKindDe } from './dialecte.mjs'
+import * as tsModule from 'typescript/unstable/ast';
 import { REGISTRE_LIVRES } from '../../raw/_lib.mjs'
 
 /** Liaison LOCALE du compilateur — même raison que dans `registryIdBranch.mjs` : sous le
@@ -112,7 +112,7 @@ const texteLitteral = (n) =>
 
 /** Nom d'une propriété quand il est écrit en clair (identifiant ou chaîne), sinon `null`. */
 const nomDePropriete = (p) =>
-  p.name && (ts.isStringLiteral(p.name) || ts.isIdentifier(p.name)) ? p.name.text : null;
+  'name' in p && p.name && (ts.isStringLiteral(p.name) || ts.isIdentifier(p.name)) ? p.name.text : null;
 
 /**
  * Chaînes d'une ALTERNATION, écrite en littéral de regex (`/A|B/`) ou en texte destiné à en
@@ -152,8 +152,8 @@ const chainesDAlternation = (texte) => texte.replace(/\\/g, '').split(/[^A-Za-z0
  * @param {Map<string, string>} [identites] registre INJECTÉ (défaut : `src/data/books.json`)
  * @returns {{ line: number, forme: string, valeurs: string[] }[]}
  */
-export function scanLivresRecopies(relPath, contenu, identites = IDENTITES) {
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+export function scanLivresRecopies(relPath, contenu, identites = IDENTITES, sourceFile) {
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const sites = [];
   const juger = (valeurs, node, forme) => {
     const retenues = [...new Set(valeurs)].filter((v) => typeof v === 'string' && identites.has(v));
@@ -200,7 +200,7 @@ export function scanLivresRecopies(relPath, contenu, identites = IDENTITES) {
         'union',
       );
     } else if (ts.isEnumDeclaration(n)) {
-      juger(n.members.map((m) => (ts.isIdentifier(m.name) || ts.isStringLiteral(m.name) ? m.name.text : null)), n, 'enum');
+      juger(n.members.map((m) => (('name' in m && ts.isIdentifier(m.name)) || ts.isStringLiteral(m.name) ? m.name.text : null)), n, 'enum');
       juger(n.members.map((m) => (m.initializer ? texteLitteral(m.initializer) : null)), n, 'enum');
     } else {
       const t = texteLitteral(n);
@@ -208,7 +208,7 @@ export function scanLivresRecopies(relPath, contenu, identites = IDENTITES) {
       // contient deux noms de livre est de la PROSE (un libellé, un message), pas une population.
       if (t !== null && t.includes('|')) juger(chainesDAlternation(t), n, 'chaine');
     }
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   };
   visit(sf);
   return sites;

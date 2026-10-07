@@ -16,6 +16,9 @@ l'intégration triviale et les gates.
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
   Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
   `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
+- **La zone écrite s'édite par l'outil `mcp__harnais__suivi`** (mod `harnais`), ou par
+  `node scripts/ops/suivi.mjs <N> --session <id> --json [--ticket <M>] --ajouter-item|--ajouter-etape|--cocher <texte>` :
+  une ligne par geste, sous verrou, et la session se lie au suivi.
 - **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
   indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
   branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
@@ -87,7 +90,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
 la session : ultracode = xhigh silencieux), définition épinglée. Workflows lourds SÉQUENTIELS (en
 parallèle : rate-limit, finders morts). Un type qui hérite tous les outils (`tools:` omis) porte
 `disallowedTools: Agent, Workflow`, sinon il se re-délègue sa mission à l'infini. **UN juge par
-jugement** (design, diff, palier) : les lentilles tiennent dans un seul prompt nourri du grounding
+jugement** (design, diff, fermeture) : les lentilles tiennent dans un seul prompt nourri du grounding
 déjà écrit, il ne re-mesure que ce qu'il conteste ; un workflow multi-agents ne se justifie que sur des
 travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regards sur la même entrée.
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
@@ -140,10 +143,11 @@ lancement.
 **7. Push.** Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
 tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMENT : son run CI
 (`.github/workflows/ci.yml`, `push.branches`) joue les mêmes gates que `main`, une fois. **Après CHAQUE
-push de branche, sonder son run** (`gh run list --branch chantier/<N> --json
-headSha,status,conclusion`) AVANT de dépêcher un juge ou d'entrer dans une attente longue ; un rouge de
-branche ne bloque que cette branche, et se rejoue localement gate par gate (`npm run gates -- --gates
-<noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
+push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`run_in_background` ou
+`Monitor`), qui sort sur le verdict du sha poussé avec un code par verdict et, sur un rouge, les tests en
+échec de chaque job rouge ; `npm run ops:ci -- --echecs <run>` relit ceux d'une course nommée — jamais
+un `gh run` ni un `sleep` à la main. Un rouge de branche ne bloque que cette branche, et se rejoue
+localement gate par gate (`npm run gates -- --gates <noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
 (étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Un train `--detache` se suit par la
 commande `veille=` qu'il imprime (`Monitor`, ré-armé par `--depuis <dernier #seq>`), jamais par un
 filtre de son log. Migrations : le job `migrations` de `ci.yml`
@@ -181,9 +185,6 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
   ce qui n'appelle aucun goût (données, gardes, ré-instruction) ; écrans et arbitrages en PRÉSENCE.
 - **Checkpoint avant épuisement de quota** : suivi de vague à jour (`npm run ops:suivi -- <N>`),
   tickets commentés.
-- **Revue de palier et réfutation de fermeture = UN juge**, nourri de `npm run ops:faits-de-palier --
-  --base <sha> --tete <sha>` : le script mesure, le juge juge. Le texte s'écrit sous le nom d'archive
-  qu'il donne (`nomDArchiveDeRevue`) et passe la porte de solde (`validateRevuePalier`).
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
   à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
   suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
@@ -200,7 +201,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
 | Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
 | Code sous spec précise | `codeur` | opus | medium |
-| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | medium |
+| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |

@@ -568,21 +568,33 @@ export interface PendingRun {
   result: { success: boolean; roll: number; target?: number; dr: number; bonusCases: number } | null;
   rerolled?: boolean;
 }
-/** Chute VOLONTAIRE en attente (LDB 15 l.82) : posée par `fallAcross` (case de départ en bordure d'une
- *  falaise, `state/fallMove.planFall`) vers `to` (case d'arrivée, au pied), hauteur RÉELLE `metres`
- *  (relief). `attempt` = choix RAW (« vous pouvez TENTER un Test d'Athlétisme ») : `null` = pas encore
- *  choisi (deux boutons pré-jet), `false` = saut direct → chute PLEINE (résolue IMMÉDIATEMENT par
- *  `fallChoose`, jamais de `result`), `true` = Test d'Athlétisme Accessible (+20) ouvert (Lancer →
- *  Chance/Pacte/Résilience → Appliquer, patron `pendingRun`). */
-export interface PendingFall {
-  combatantId: string;
+/** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `fallAcross` (case de départ en
+ *  bordure d'une falaise, `state/fallMove.planFranchissement`) vers `to` (case d'atterrissage, couche
+ *  comprise), hauteur RÉELLE `metres` (relief). Étape À PARTICIPANTS, patron Contre-sort
+ *  (`CounterParticipant.declared`) : UNE rangée par TOMBANT, chacune déclare son choix pré-jet. La PHASE
+ *  (`'choice' | 'roll'`) se DÉRIVE de l'état par `phaseDeChute` (`state/fallMove.ts`), jamais stockée
+ *  ni déduite au site UI (#1117). `initiateurId` = qui a ouvert le geste (le meneur en exploration,
+ *  l'actif en combat) : propriétaire de la fenêtre (Confirmer / Annuler). */
+export interface PendingFall extends MultiPending<TombantParticipant> {
   to: Pt;
   metres: number;
+  /** Hauteur de chute de qui SE SUSPEND d'abord (EDO 01 l.231), offerte par `planFranchissement`
+   *  seulement sous `metres` ; absente = aucun axe de hauteur. */
+  suspendu?: number;
+  /** Allège (m) de la croisée franchissable par laquelle passe le saut (`WallSeg.allege`) : elle se
+   *  paie (`mouvementDeLaChute`). Absente = saut hors croisée. */
+  allege?: number;
+  initiateurId: string;
+}
+/** Un TOMBANT d'une chute volontaire (`PendingFall`) — `id` = le combattant qui tombe. `attempt` = sa
+ *  DÉCLARATION (LDB 15 l.82) : `null` = non déclarée (les jets restent verrouillés tant qu'une rangée
+ *  ne l'est pas), `false` = chute PLEINE sans Test (rangée résolue sans jet, comme `declared === 'pass'`),
+ *  `true` = Test d'Athlétisme Accessible (+20). */
+export interface TombantParticipant extends RollParticipant {
   attempt: boolean | null;
-  /** PHASE de la fenêtre — champ d'ÉTAT, jamais une constante de rendu (#1117) : la modale ne déduit
-   *  plus sa phase d'un `attempt === null` lu au site UI. `'choice'` = le menu Sauter / Tenter ;
-   *  `'roll'` = le Test d'Athlétisme ouvert. C'est la moitié « phase » de l'id de jet `{flow, phase}`. */
-  phase: 'choice' | 'roll';
+  /** Axe HAUTEUR (EDO 01 l.231), présent quand `PendingFall.suspendu` est offert : `null` = non déclaré,
+   *  `true` = se suspend d'abord (chute de `suspendu`), `false` = saute de toute la hauteur. */
+  suspendre?: boolean | null;
   /** `target` absent sur un résultat synthétique (Résilience pré-jet) — la RollLine retombe sur la base. */
   result: { success: boolean; roll: number; target?: number; dr: number; effectiveMetres: number } | null;
   rerolled?: boolean;
@@ -1589,6 +1601,9 @@ export interface CascadeStepMeta {
   onSuccess?: Flow;
   /** Branche d'échec d'une étape `triggeredTest`. */
   onFail?: Flow;
+  /** Ops d'échec d'un Test de cycle de maladie (`diseaseTick`, `engine/disease.ts`), appliquées à plat
+   *  par `applyOps` (`state/restFlow.ts`). */
+  opsEchec?: GameOp[];
   /** Branche OUI d'une étape `triggeredChoice` (décision opt-in acceptée — Frappe réactive « tenter »). */
   choiceYes?: Flow;
   /** Branche NON d'une étape `triggeredChoice` (décision refusée — défaut = renoncer). */
@@ -2139,7 +2154,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    * à chaque écriture du slot : le goulot ne le relit pas du store, qu'un pilote peut n'avoir pas encore
    * écrit — c'est ce qui le garde monotone sur les trois pilotes.
    */
-  seq?: number;
+  seq: number;
   /** Journal de la cascade (entretien, conséquences validées) — affiché sous l'étape courante. */
   log: string[];
   /** Finalisation : 'night' (bilan de repos), 'travel' (halte → reprise), 'travelDay' (jets du JOUR de

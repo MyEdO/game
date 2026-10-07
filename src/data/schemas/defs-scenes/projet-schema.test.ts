@@ -11,11 +11,12 @@
  *  - le `schema` littéral courant (un document non migré n'entre pas par cette porte).
  */
 import { describe, it, expect } from 'vitest';
-import { projetSchema, projetDoc, SCHEMA_PROJET } from './projet';
+import { projetSchema, projetDoc } from './projet';
 import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
 import { cheminLisible, validateDocument } from '../validate';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
+import { emptyNarratif } from '../../../state/campaignNarratif';
 
 type Jouet = Record<string, unknown>;
 
@@ -37,12 +38,11 @@ const sceneMinimale = (over: Jouet = {}): Jouet => ({
 /** Projet-JOUET au format COURANT : l'enveloppe exige le `type`, l'identité et la provenance. */
 const projet = (over: Jouet = {}): Jouet => ({
   type: 'projet',
-  schema: SCHEMA_PROJET,
   id: 'projet-jouet',
   label: 'Projet jouet',
   versionContenu: 1,
   maison: 'fixture de test — aucun livre ne publie ce projet-jouet',
-  narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+  narratif: emptyNarratif(),
   scenes: [sceneMinimale()],
   ...over,
 });
@@ -92,7 +92,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
   /**
    * DÉCOR UTILISABLE (#1687) : l'enveloppe `usable` porte DEUX faits nommés, et le champ `interact`
    * d'avant le lot n'existe plus — un document qui en porte un est REFUSÉ, à son chemin, plutôt
-   * qu'ignoré en silence (c'est ce refus que `PROJECT_MIGRATIONS[10]` rattrape au chargement).
+   * qu'ignoré en silence.
    */
   it('`usable` : l’enveloppe à deux faits passe, `interact` est REFUSÉ, un `id` d’action DOUBLÉ aussi', () => {
     const FLOW = { kind: 'seq', steps: [] };
@@ -275,9 +275,10 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       indices: [{ id: 'indice-1', affaireId: 'affaire-fantome', kind: 'indice', titre: 'x', stades: [{ id: 's1', prose: '' }] }],
       presetsPnj: [],
       objets: [],
+      documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome ».',
+      'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome » (narratif.affaires).',
     ]);
   });
 
@@ -287,6 +288,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       indices: [],
       presetsPnj: [{ id: 'gobelin', base: 'gobelin' }],
       objets: [],
+      documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'narratif › presetsPnj « gobelin » › id :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
@@ -294,7 +296,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(b ter) un preset sans base ni profil → rouge nommé (contrat de `presetPnjSchema`)', () => {
-    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [] };
+    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [] };
     expect(fautes(projet({ narratif }))).toEqual([
       'narratif › presetsPnj « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
     ]);
@@ -314,6 +316,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       indices: [],
       presetsPnj: [{ id: 'le-borgne', profil: { char: { CC: 40 }, traits: [] } }],
       objets: [],
+      documents: [],
     };
     expect(projetSchema.safeParse(projet({ scenes, narratif })).success).toBe(true);
   });
@@ -359,11 +362,8 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(d ter) la poche `meta` et le `version` RACINE sont REFUSÉS par le SCEAU de l’enveloppe plate', () => {
-    // Portée EXACTE de cette assertion : elle juge `projetSchema` SEUL. Par le seam réel, un `version`
-    // racine n'arrive JAMAIS jusqu'ici (`parseProject` l'écrase puis le purge avant de valider —
-    // mesuré par `state/projet-migration-4-vers-5.test.ts`). Le sceau est donc la garde du document
-    // AU REPOS : un `.json` authioré/exporté à la mauvaise forme est nommé à la porte du schéma,
-    // plutôt que d'être absorbé en silence par le seam.
+    // `projetSchema` est le seul contrôle de forme de `parseProject` (#2404) : le sceau nomme la clé
+    // d'un autre format à la porte.
     expect(fautes(projet({ version: 1 })).join(' ')).toMatch(/version/);
     expect(fautes(projet({ meta: { id: 'c', label: 'C', version: 1 } })).join(' ')).toMatch(/meta/);
   });
@@ -430,8 +430,8 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     expect(ok({ ...reel(), maison: 'arbitrage maison, en plus du folio' })).toBe(true);
   });
 
-  it('SCEAU sur la donnée réelle : `schema` non courant, clé inconnue et scène muette sont refusés', () => {
-    expect(fautesCodees({ ...reel(), schema: 6 })).toEqual([`schema :: invalid_value [${SCHEMA_PROJET}]`]);
+  it('SCEAU sur la donnée réelle : un numéro de forme d’un autre format, clé inconnue et scène muette sont refusés', () => {
+    expect(fautesCodees({ ...reel(), schema: 18 })).toEqual([' :: unrecognized_keys ["schema"]']);
     // Chemin VIDE : la clé inconnue est rapportée à la RACINE du document.
     expect(fautesCodees({ ...reel(), champInconnu: 1 })).toEqual([' :: unrecognized_keys ["champInconnu"]']);
     const d = reel();
@@ -441,7 +441,7 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
 });
 
 describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, chemin nommé', () => {
-  const narratif = (over: Jouet = {}): Jouet => ({ affaires: [], indices: [], presetsPnj: [], objets: [], ...over });
+  const narratif = (over: Jouet = {}): Jouet => ({ ...emptyNarratif(), ...over });
   const indice = (over: Jouet = {}): Jouet => ({ id: 'indice-1', affaireId: 'affaire-a', kind: 'indice', titre: 'x', stades: [{ id: 'stade-1', prose: '' }], ...over });
 
   it('affaire : `id` vide', () => {
@@ -471,4 +471,41 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
       'objets.0.id :: id absent.',
     ]);
   });
+});
+
+/**
+ * `couvre` (#2290, `couvreSchema` de `./communs.ts`) — le lien d'un élément du paquet vers les entrées de
+ * fiche de dossier de chapitre, posé sur CHAQUE porteur du projet : une liste d'identifiants globaux
+ * `ID_D_ENTREE` (`src/data/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
+ */
+describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
+  const FLOW = { kind: 'seq', steps: [] };
+  const lieu = (id: string, over: Jouet = {}): Jouet => ({ id, label: id, pos: { x: 1, y: 2 }, scene: 'scene-1', ...over });
+  const carte = (over: { place?: Jouet; route?: Jouet }): Jouet => ({
+    worldMap: {
+      id: 'carte',
+      label: 'Le monde',
+      places: [lieu('lieu-1', over.place), lieu('lieu-2')],
+      routes: [{ id: 'route-1', a: 'lieu-1', b: 'lieu-2', km: 10, modes: ['pied'], ...over.route }],
+    },
+  });
+  const PORTEURS: Record<string, (couvre: unknown) => Jouet> = {
+    scène: (couvre) => projet({ scenes: [sceneMinimale({ couvre })] }),
+    entité: (couvre) => projet({ scenes: [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', couvre }] })] }),
+    déclencheur: (couvre) => projet({ scenes: [sceneMinimale({ triggers: [{ id: 'trig-1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: FLOW, couvre }] })] }),
+    dialogue: (couvre) => projet({ scenes: [sceneMinimale({ dialogues: [{ id: 'dlg-1', start: 'n1', nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [] }], couvre }] })] }),
+    rencontre: (couvre) => projet({ scenes: [sceneMinimale({ encounters: [{ id: 'enc-1', couvre }] })] }),
+    'zone d’effet': (couvre) => projet({ scenes: [sceneMinimale({ effectZones: [{ id: 'zone-1', label: 'Cour', area: { kind: 'rect', x: 0, y: 0, w: 1, h: 1 }, couvre }] })] }),
+    'lieu de carte': (couvre) => projet(carte({ place: { couvre } })),
+    'route de carte': (couvre) => projet(carte({ route: { couvre } })),
+  };
+
+  for (const [nom, doc] of Object.entries(PORTEURS)) {
+    it(`${nom} : des identifiants globaux passent ; hors format, puis en double, refusés au chemin`, () => {
+      const ok = projetSchema.safeParse(doc(['EDO-01#b3', 'EDO-02#pnj1']));
+      expect(ok.success, ok.success ? '' : JSON.stringify(ok.error.issues.slice(0, 3))).toBe(true);
+      expect(fautes(doc(['EDO-01-b3']))).toEqual([expect.stringMatching(/couvre « EDO-01-b3 » :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu\.$/)]);
+      expect(fautes(doc(['EDO-01#b3', 'EDO-01#b3']))).toEqual([expect.stringMatching(/couvre « EDO-01#b3 » :: « EDO-01#b3 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique\.$/)]);
+    });
+  }
 });

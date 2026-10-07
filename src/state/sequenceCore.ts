@@ -25,11 +25,10 @@
  * s'ajoutent à `SequenceParams` avec le système qui les exerce — le socle ne porte que du vocabulaire vivant.
  */
 import type { Get, Set } from './flowTypes';
-import type { PendingCascade } from './pendings';
 import { openSequence } from './rollSeam';
 import {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
-  type SequenceDef, type SequenceParams, type SequenceState,
+  type SequenceDef, type SequenceParams, type SequenceState, type MancheClose, type SequenceFamilies, type EtatDeSequence,
 } from './sequenceContract';
 import { runCascadeImmediate } from './cascade';
 import { extendedTestStep } from '../engine/tests';
@@ -52,7 +51,8 @@ export {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
 } from './sequenceContract';
 export type {
-  SequenceDef, SequenceParams, SequenceState, SequenceRound, SequenceVerdict, SequenceCloseCtx,
+  SequenceDef, SequenceParams, SequenceState, SequenceRound, SequenceVerdict, SequenceCloseCtx, MancheClose,
+  SequenceFamilies, EtatDeSequence, EtatDeFamille,
   SequenceTableRow, SequenceBoard, SequenceRoundActors,
   SequencePotRow, SequencePotTurn, SequencePotOutcome,
   SequenceVolleyRow, SequenceVolleyRules, SequenceThrowTurn, SequenceThrowOutcome, SequenceSide,
@@ -63,7 +63,7 @@ export type {
 const sequenceDefs: Record<string, SequenceDef<never>> = {};
 
 /** Enregistre (ou remplace) la définition d'une séquence sous son id. */
-export function registerSequence<P>(id: string, def: SequenceDef<P>): void {
+export function registerSequence<K extends keyof SequenceFamilies>(id: K, def: SequenceDef<SequenceFamilies[K]>): void {
   sequenceDefs[id] = def as unknown as SequenceDef<never>;
 }
 
@@ -442,7 +442,7 @@ export function startSequence<P>(
   const state: SequenceState<P> = {
     def: init.def, round: 0, cum: init.cum ?? {}, params: init.params ?? {}, payload: init.payload,
   };
-  set({ sequence: state as SequenceState });
+  set({ sequence: state as EtatDeSequence });
   openSequenceRound(get, set);
 }
 
@@ -455,7 +455,7 @@ export function activeSequence<P>(get: Get): SequenceState<P> | null {
 export function setSequencePayload<P>(get: Get, set: Set, payload: P): void {
   const seq = activeSequence<P>(get);
   if (!seq) return;
-  set({ sequence: { ...seq, payload } as SequenceState });
+  set({ sequence: { ...seq, payload } as EtatDeSequence });
 }
 
 /**
@@ -468,7 +468,7 @@ export function setSequencePayload<P>(get: Get, set: Set, payload: P): void {
 export function setSequenceCum(get: Get, set: Set, cum: Record<string, number>): void {
   const seq = activeSequence(get);
   if (!seq) return;
-  set({ sequence: { ...seq, cum } as SequenceState });
+  set({ sequence: { ...seq, cum } as EtatDeSequence });
 }
 
 /** Retire la séquence en cours (dénouement, abandon) — sans dénouer : l'appelant joue sa suite. */
@@ -487,7 +487,7 @@ export function openSequenceRound(get: Get, set: Set): void {
   if (!seq) return;
   const def = sequenceDefOf(seq.def);
   if (!def) { clearSequence(set); return; }
-  const next: SequenceState = { ...seq, round: seq.round + 1 };
+  const next = { ...seq, round: seq.round + 1 } as EtatDeSequence;
   const rng = battleRng();
   const manche = def.round(get, next as never, rng);
   if (!manche || !manche.steps.length) { clearSequence(set); return; }
@@ -496,9 +496,7 @@ export function openSequenceRound(get: Get, set: Set): void {
   if (manche.immediate) {
     const resolues = runCascadeImmediate(get, set, [...manche.steps], { title: manche.title, purpose: SEQUENCE_PURPOSE, log: manche.log });
     for (const l of manche.log ?? []) get().log(l);
-    closeSequenceRound(get, set, {
-      title: manche.title, purpose: SEQUENCE_PURPOSE, participants: resolues, cursor: resolues.length, log: [],
-    });
+    closeSequenceRound(get, set, { participants: resolues });
     return;
   }
   openSequence(get, set, {
@@ -515,23 +513,23 @@ export function openSequenceRound(get: Get, set: Set): void {
  * (cumuls/charge), puis ROUVRE ou DÉNOUE. La BORNE est tenue ICI, une fois pour tous les jeux : un
  * verdict « continue » à la borne devient une fin sur l'issue réservée `SEQUENCE_BORNE`.
  */
-export function closeSequenceRound(get: Get, set: Set, done: PendingCascade): void {
+export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void {
   const seq = activeSequence(get);
   if (!seq) return;
   const def = sequenceDefOf(seq.def);
   if (!def) { clearSequence(set); return; }
   const verdict = def.close({ get, seq: seq as never, done, rng: battleRng() });
-  const apres: SequenceState = {
+  const apres = {
     ...seq,
     ...(verdict.cum ? { cum: verdict.cum } : {}),
     ...(verdict.payload !== undefined ? { payload: verdict.payload } : {}),
-  };
+  } as EtatDeSequence;
   const borne = verdict.go === 'continue' && apres.round >= borneOf(apres.params);
   // EFFETS DE MANCHE (famille 4) : le socle DÉCLENCHE ce que la donnée déclare, sur les porteurs que
   // le verdict NOMME — le réducteur du domaine, lui, ne mute rien. La manche qui CONCLUT (verdict de
   // fin, ou borne atteinte) est dite comme telle : l'attrition ne frappe que les manches qui passent.
   const effets = verdict.roundActors
-    ? sequenceRoundOps(get, apres, apres.round, verdict.roundActors, verdict.go === 'end' || borne)
+    ? sequenceRoundOps(get, apres as SequenceState, apres.round, verdict.roundActors, verdict.go === 'end' || borne)
     : [];
   for (const l of [...(verdict.log ?? []), ...effets]) get().log(l);
   if (verdict.go === 'continue' && !borne) {

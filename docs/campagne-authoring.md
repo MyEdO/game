@@ -1,7 +1,7 @@
 # Authoring de campagne — la carte des coutures d'auteur
 
 Référence VIVANTE (maintenue au fil du code). Une **campagne** = un projet multi-scènes relié par une
-carte du monde (`{ schema: SCHEMA_PROJET, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
+carte du monde (`{ <identité>, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
 pas-à-pas « par où commencer », voir le skill `creer-une-campagne`. Ce document cartographie CHAQUE
 système qu'un auteur mobilise. Règle d'or transverse : **on n'authore que des IDS stables** (le libellé
 est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **personne ne lit le journal**
@@ -10,18 +10,21 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 ## 1. Pipeline
 
 - **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
-  `user-doctrine-campagne-jamais-generee-par-script`), édité comme document JSON. À l'éditeur, « Ouvrir »
-  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> », et « Fichier → Exporter
-  JSON » passe la porte du document puis télécharge `<id de la scène COURANTE>-projet.json`, scène courante
-  en tête (donc scène d'entrée) : ce fichier ne remplace PAS le paquet commité tel quel, son label, son nom
-  et sa scène d'entrée ont changé (`src/ui/editor/Editor.tsx`, `exportJson` et `loadBuiltin` ; #1997). Tout paquet neuf se
+  `user-doctrine-campagne-jamais-generee-par-script`), édité à l'éditeur ou comme document JSON. « Ouvrir »
+  une campagne du jeu en fait une COPIE de travail libellée « Copie de <label> ». L'aller-retour vers le
+  paquet est « Fichier → Exporter forme dépôt (dev) » (offert en DEV pour une campagne livrée,
+  `origineLivree`) : le fichier `BuiltinCampaign.fichier`, au format du dépôt (`projetVersDepot`, §10ter),
+  libellé d'origine tant que le projet n'est pas renommé, ordre des scènes et scène d'entrée conservés
+  (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
+  « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
+  copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
   déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
   `src/scenes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
   (`src/state/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
-  confrontent le contenu. Un bump de forme (`SCHEMA_PROJET`) migre les paquets par un script daté de
-  `scripts/migrations/` (banc `src/scenes/migrations-format-projet.test.ts`).
+  confrontent le contenu. Un changement de forme réécrit les paquets commités dans le MÊME commit, par
+  leur générateur ou, pour un paquet manuscrit, par un script one-shot non commité (#2404).
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
   (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
@@ -275,48 +278,104 @@ projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarrati
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
-            ouverture?: OuvertureBlock; cloture?: ClotureBlock }
+            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock;
+            ecartes?: EcartDeFiche[] }
 ```
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
-  rattachés à une affaire (`affaireId`), révélés par `stades` (`IndiceStade`, prose verbatim quand `source` est posé, maison sans) et
-  recoupés par `refs` (ids d'autres indices) ; **`presetsPnj`** (`PresetPnj`) — PNJ pré-composés (`base`
-  = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`** (`TrappingData`) —
-  possessions propres à la campagne.
+  rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
+  indices) ; l'ORDRE de `stades` fait sens — des paliers : le stade courant d'un indice est le plus
+  avancé atteint, jamais un recul, et un stade antérieur lu après coup s'ajoute à son historique
+  (`revealClue`, `src/state/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
+  `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
+  pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
+  (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
+  `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
+  (règle 5), non vide.
+- **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
+  (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
+  anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la
+  lisent. Un registre de plus = une ligne de cette table.
+- **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
+  `narratif.documents` ; `apply` la résout (`documentById`) et ouvre la modale `DocumentModal`
+  (`store.document`). Un id inconnu n'ouvre rien (avertissement console).
 - **Frontière RÉFÉRENCE vs NARRATIF.** Le narratif RÉFÉRENCE la règle globale (`src/data`) PAR ID
   (`base` → id de `creatures.json`), il ne la copie PAS et n'entre JAMAIS dans `src/data` global : c'est
   du contenu EMBARQUÉ dans le JSON, révélé seulement en jeu. `narratifSchema`
   (`src/data/schemas/defs-scenes/narratif.ts`, composé par `projetSchema`) garde cet invariant
   fail-fast au parse : aucun id narratif ne peut collisionner avec un id global (créature/possession),
-  `affaireId`/`refs`/`base` doivent résoudre, ids internes uniques.
+  `refs`/`base` doivent résoudre, ids internes uniques.
+- **Références narratives : UN visiteur.** `sitesDuProjet` (`src/data/schemas/defs-scenes/refs-narratives.ts`)
+  énumère chaque clé de `REFERENCES_NARRATIVES` (`affaireId`, `indiceId`, `presetId`, `documentId`) et
+  chaque `stade` d'un `indiceId`, à son chemin complet : entités de scène (`presetId`), toutes les
+  racines de Flow d'une scène (déclencheurs, actions d'entité, choix de dialogue, `onVictory`) et leurs
+  Flows portés, périls de route de `worldMap`, `indices[].affaireId` et `stades[].documentId` du
+  narratif. Tous ses lecteurs le partagent : la FK de `projetSchema` (`refsNarrativesPendantes`, scènes
+  et carte), le raffinage de `narratifSchema` (références internes au narratif), le contrat des
+  scénarios de test (`scenarios-contrat.test.ts`) et l'éditeur (`referencesA`, `renommeRef`). La faute
+  nomme son chemin : id vide chez un porteur qui EXIGE la référence (Effect, indice) → « aucun
+  document choisi » (« aucun indice », « aucune affaire » — `aucunDe`, `registres-narratifs.ts`) ; id
+  vide chez un porteur où elle est FACULTATIVE (entité, #1882 ; stade d'indice) → une absence, dont
+  le schéma du porteur juge seul la forme ; id inconnu → son registre ; stade inconnu → son indice.
 - **Identité (à plat).** Le paquet porte aussi son identité de campagne (`ProjectIdentite`,
   `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
-  sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; la version de FORME du
-  document est `schema`. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
+  sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; le document ne porte aucun
+  numéro de FORME. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
   `id`, `label` ou `versionContenu` est refusé en nommant le champ (#1552,
   `src/data/schemas/defs-scenes/projet-schema.test.ts` cas (d bis)).
-- **Migration.** La forme courante du document est `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) ;
-  un document d'une forme antérieure monte au format courant au chargement, un saut de forme par entrée
-  de `PROJECT_MIGRATIONS` (`src/data/migrationsDeProjet.ts`). La fabrique UNIQUE du document est
+- **Forme.** `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`) est le SEUL contrôle de forme du
+  document : aucun numéro de version, aucune migration de chargement — un document d'une autre forme est
+  REFUSÉ par `parseProject` (`ProjetRefuse`, cause `schema`, rapport zod), et une scène d'autosave par
+  `parseSceneDeProjet` (#2404, décision utilisateur du 2026-10-05). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
   `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
-  tous passent `parseProject` en CI (`src/scenes/bundled-projects.test.ts`).
+  tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
+  Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
-  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/PNJ/Objets).
+  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets/Écarts). L'onglet
+  **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les
+  registres), le formulaire édite `titre`, le texte Markdown verbatim et la `source` (`SourceRefField`,
+  `src/ui/SourceRefField.tsx` : livre choisi dans `books`, page — le même éditeur sert la source d'un
+  stade, d'un PNJ et celles du Codex). Dans un stade d'indice, « Document croisé » choisit le
+  `documentId` ; la prose du stade devient alors facultative.
+- **Renommer, retirer une entrée.** L'éditeur reçoit le PROJET entier (`ProjetEdite` : scènes, carte,
+  narratif ; `Editor.poserProjet` ne repose que les racines changées). Renommer l'id d'une affaire, d'un
+  indice, d'un stade, d'un document ou d'un PNJ le PROPAGE à toute référence du projet (`renommeRef`,
+  copie des seules racines touchées) ET à tout l'historique d'annulation de la scène active
+  (`reecrireHistorique`, `useSceneHistory.ts`), sans poser d'instantané : annuler ne ramène jamais
+  l'ancien id. Retirer une entrée (ou un stade) que le projet désigne encore est
+  REFUSÉ (`GatedAction`) ; la raison nomme les lieux qui la désignent (« Encore désigné par : scène
+  « Le relais », indice « La lettre » — … »).
+- **Choisir une référence narrative.** Un seul sélecteur, `RefNarrativeField`
+  (`src/ui/compendium/RefField.tsx`, mode `single` de `RefField` sur des entrées fournies) : il lit à
+  `REFERENCES_NARRATIVES` le registre que désigne la clé, affiche le libellé de l'entrée (`titre` ; pour
+  un preset, le nom de son profil ou de sa créature de base) et écrit l'id. Il sert `document.documentId`,
+  `revealClue.indiceId` (puis son `stade`, parmi les stades de l'indice choisi), `discreditClue.indiceId`,
+  le `documentId` d'un stade et le `presetId` d'une entité (Inspecteur). Le narratif entre au contexte des
+  Effects par `effectCtxOf` (`src/ui/editor/EffectList.tsx`), pour les trois racines de projet : l'Inspecteur,
+  le dock Logique et les périls de route de la carte du monde. Un Effect neuf naît avec un id vide :
+  le sélecteur affiche « choisir dans documents de la campagne » (`SOURCE_NARRATIVE`), le résumé
+  « ? », et la porte du projet refuse l'enregistrement tant qu'aucune entrée n'est choisie. Une racine de CATALOGUE (Compendium,
+  `ctxDeCatalogue`) n'a pas de narratif : ses menus d'Effets (`menuDEffets`) ne proposent aucun Effect
+  dont la fabrique pose une clé de `REFERENCES_NARRATIVES`.
+- **Relire au Carnet.** Le Carnet d'enquête (`src/ui/CarnetScreen.tsx`) rend, sous la prose d'un stade
+  révélé (absente permise), le document qu'il croise : `ParchmentCard` titrée par le `titre`, `Prose`
+  et badge de source — au stade courant comme dans « Lectures précédentes ». Un document n'atteint le
+  Carnet qu'à travers un stade d'indice.
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
   terse) porte `presetId` = l'id d'un `narratif.presetsPnj`. Présent, l'entité est INSTANCIÉE
   « base globale + surcharges du preset » (jamais depuis `ref`/`statblock`) : `resolvePresetCreature`
   (`src/state/campaignData.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
-  passées à `spawnEnemy` (canal `presetCreature`) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
+  passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
   dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
-  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (clause `presetId` de
-  `projetSchema`) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
+  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
+  narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
@@ -325,10 +384,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
   refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
   livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
-  `?raw`. L'export portable garde `desc` ET `descRef` ; l'éditeur offre en DEV, pour une campagne LIVRÉE
-  ouverte (`origineLivree`), « Exporter forme dépôt » (`projetVersDepot`, `src/state/worldMap.ts` : prose
-  ET ports par référence ramenés à leur forme canonique) : le fichier téléchargé sous son nom
-  (`BuiltinCampaign.fichier`), avec le libellé d'origine tant que le projet n'est pas renommé.
+  `?raw`. L'export portable garde `desc` ET `descRef` ; « Exporter forme dépôt » (§1) passe par
+  `projetVersDepot` (`src/state/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
+  canonique.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
 
@@ -354,6 +412,30 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   système). Aucun journal parallèle n'est écrit.
 - **Édition.** Onglet « Cadre » du `NarratifEditor` (champs texte, pitch, ambiance, `ConditionEditor`
   pour la clôture) — le cadre est de la DONNÉE de campagne, jamais du texte au catalogue i18n.
+
+## 10quinquies. Lien aux fiches de dossier de chapitre (`couvre` / `narratif.ecartes`, #2290)
+
+Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `ficheDeDossier` de
+`src/data/source/dossier.ts`) nomme chaque entrée par un identifiant GLOBAL `<ABBR>-<NN>#<id>`
+(`ID_D_ENTREE`). Le paquet de campagne CITE ces entrées ; la fiche ne connaît pas le paquet.
+
+- **`couvre?: string[]`** (`couvreSchema`, `src/data/schemas/defs-scenes/communs.ts`) — les entrées de
+  fiche que l'élément couvre, sans doublon. Porteurs : `Scene`, `SceneEntity`, `SceneEffectZone`,
+  `Trigger`, `Dialogue`, `EncounterDef`, `MapPlace`, `MapRoute`, `PresetPnj`, `Indice`.
+- **`narratif.ecartes?: EcartDeFiche[]`** (`ecartSchema`, `src/data/schemas/defs-scenes/narratif.ts`) —
+  `{ entree, motif }` : une entrée de fiche que l'adaptation écarte, une fois, motif non vide.
+- **Édition.** La primitive `CouvreField` (`src/ui/editor/CouvreField.tsx`) pose `couvre` dans chaque
+  inspecteur porteur : pli « Identité » de l'entité et de la scène, pli de la zone d'effet, panneau
+  Logique (déclencheur, dialogue, rencontre), panneaux de lieu et de route de la carte, formulaires
+  d'indice et de PNJ du `NarratifEditor`. Les écarts s'éditent à l'onglet « Écarts » du
+  `NarratifEditor`. Les entrées offertes sont celles des fiches commitées.
+- **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
+  famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
+  Il lit le paquet commité sous `src/scenes/` : un lien posé à l'éditeur ne l'atteint qu'après « Fichier →
+  Exporter forme dépôt (dev) » et le remplacement du fichier du paquet par l'export (§1) — « Enregistrer… »
+  n'écrit qu'une copie locale (localStorage).
+  Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
+  entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 
 ## 11. Règles d'or
 

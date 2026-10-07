@@ -9,20 +9,27 @@
 // `scripts/gates/toutes.mjs`, mesuré), jamais par un dossier deviné. La décision est FAIL-CLOSED
 // des deux côtés : un fichier hors `DOCUMENTAIRE` rend le push PRODUIT, une gate dont `lit` est
 // vide n'est jamais sautée, un diff vide est PRODUIT.
+import { basename, join } from 'node:path'
 import { env, exit, stderr, stdout } from 'node:process'
-import { TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
  * sous l'un de ces préfixes est documentaire. La liste est fail-closed : `docs/`, `.github/`,
  * `package*.json`, `scripts/`, `src/`, `Source/` n'y sont pas et rendent le push produit.
- * Un chemin qui finit par `/` désigne le dossier et tout ce qu'il contient.
+ * Un chemin qui finit par `/` désigne le dossier et tout ce qu'il contient. Une racine de mod
+ * (scripts/mods/racines.mjs) est PRODUIT même sous `.claude/` (`classer`, option `mods`).
  */
 export const DOCUMENTAIRE = {
   '.claude/':
-    'instructions, mémoire, soldes et workflows d’agent — côté SOURCE de la compat d’agents que ' +
-    '`agents:check` compare (scripts/agents/compat-cli.mjs) ; aucun module de src/ ni server/src/ ' +
-    'ne lit ce dossier hors test (sonde 2026-09-16 : 3 mentions, toutes en commentaire)',
+    'documentaire pour le PRODUIT : instructions, mémoire, soldes et workflows d’agent — côté SOURCE de ' +
+    'la compat d’agents que `agents:check` compare (scripts/agents/compat-cli.mjs) ; aucun module de src/ ' +
+    'ni server/src/ ne lit ce dossier hors test (sonde 2026-09-16 : 3 mentions, toutes en commentaire). ' +
+    'Hors les racines de mod (`.claude/skills/<x>/` qui porte `.claude-plugin/plugin.json`, #2278), du ' +
+    'code exécuté par le moteur Claude Code et jugé par le mur `murs/mod-sans-regle` (garde `lint`) et par la garde ' +
+    '`mods:check` : `classer` les rend PRODUIT, et ces deux gardes LISENT `.claude/skills/`, qui chevauche ce ' +
+    'préfixe, donc `gatesSautables` ne les saute jamais',
   '.agents/':
     'miroir de la compat d’agents, écrit par `agents:sync` et comparé par `agents:check` — aucune ' +
     'lecture depuis src/ ni server/src/ (sonde 2026-09-16 : 0 mention)',
@@ -63,24 +70,28 @@ export const CONDITION_PRODUIT = `steps.${ID_PROLOGUE}.outputs.produit != 'false
 /** Deux chemins CHEVAUCHENT quand l'un est préfixe de l'autre : `.claude/` et `.claude/memory/`. */
 const chevauche = (a, b) => a.startsWith(b) || b.startsWith(a)
 
-/** `true` si `fichier` tombe sous une entrée de `DOCUMENTAIRE`. */
-const estDocumentaire = (fichier) =>
+/** `true` si `fichier` tombe sous une entrée de `DOCUMENTAIRE` et hors des racines de mod `mods`. */
+const estDocumentaire = (fichier, mods) =>
+  !mods.some((racine) => fichier.startsWith(racine)) &&
   Object.keys(DOCUMENTAIRE).some((p) => (p.endsWith('/') ? fichier.startsWith(p) : fichier === p))
 
 /**
  * Classe une liste de fichiers changés. Une liste VIDE est PRODUIT : un diff qu'on n'a pas su lire
  * ne prouve rien, et le conservateur est de tout jouer.
  * @param {readonly string[]} fichiers chemins relatifs POSIX
+ * @param {{ mods?: readonly string[] }} [contexte] racines de mod (`.claude/skills/<x>/`) de l'arbre classé ;
+ *   celles que nomme `fichiers` s'y ajoutent
  * @returns {{ produit: boolean, motifs: string[] }}
  */
-export function classer(fichiers) {
+export function classer(fichiers, { mods = [] } = {}) {
   if (!fichiers || fichiers.length === 0)
     return { produit: true, motifs: ['diff vide : conservateur — rien de mesuré, tout se joue'] }
-  const fautif = fichiers.find((f) => !estDocumentaire(f))
+  const racines = [...mods, ...racinesDeModsParmi(fichiers)]
+  const fautif = fichiers.find((f) => !estDocumentaire(f, racines))
   if (fautif)
     return {
       produit: true,
-      motifs: [`${fautif} : hors DOCUMENTAIRE (${fichiers.length} fichier(s) changé(s))`],
+      motifs: [`${fautif} : ${racines.some((r) => fautif.startsWith(r)) ? 'racine de mod' : 'hors DOCUMENTAIRE'} (${fichiers.length} fichier(s) changé(s))`],
     }
   return { produit: false, motifs: [`${fichiers.length} fichier(s), tous sous DOCUMENTAIRE`] }
 }
@@ -118,12 +129,18 @@ const shaNul = (sha) => !sha || !/[^0]/.test(sha)
 export function baseDuDiff({ base, sha, cwd = process.cwd() } = {}) {
   if (!shaNul(base)) return { base }
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const conservateur = (motif) => ({
     base: null,
     motif: `${motif}${pannes.length ? ` — git indisponible : ${pannes.join(' ; ')}` : ''} : conservateur`,
   })
-  if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null && !reussi(fetchOrigin(depot))) return conservateur('origin/main absent après fetch')
+  if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null) {
+    const vu = fetchOrigin(depot)
+    if (!reussi(vu)) {
+      pannes.push(refusDeGit(vu))
+      return conservateur('origin/main absent après fetch')
+    }
+  }
   const commune = baseCommune(depot, TRONC.suivi, sha)
   return commune ? { base: commune } : conservateur('merge-base origin/main en échec')
 }
@@ -134,7 +151,8 @@ export function classerPush({ base, sha, cwd = process.cwd() } = {}) {
   const socle = baseDuDiff({ base, sha, cwd })
   if (socle.base === null) return { produit: true, base: null, fichiers: [], motifs: [socle.motif] }
   const fichiers = ceQuiChange(depotDe(cwd), socle.base, sha).chemins()
-  return { ...classer(fichiers), base: socle.base, fichiers }
+  const mods = racinesDeMods(join(cwd, ...SKILLS.split('/'))).map((racine) => `${SKILLS}${basename(racine)}/`)
+  return { ...classer(fichiers, { mods }), base: socle.base, fichiers }
 }
 
 if (import.meta.main) {
@@ -148,7 +166,7 @@ if (import.meta.main) {
         verdict.motifs.map((m) => `  - ${m}\n`).join(''),
     )
   } catch (erreur) {
-    stderr.write(`[classerPush] erreur git non prévue : ${erreur.message}\n`)
+    stderr.write(`[classerPush] erreur git non prévue : ${erreur instanceof GitIndisponible ? refusDeGit(erreur) : erreur.message}\n`)
     exit(1)
   }
 }

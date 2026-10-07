@@ -109,8 +109,8 @@ export interface WeaponSpec {
   uid?: string | { prefix: string };
   skin?: Record<string, string>;
   form?: string;
-  /** Slug de FORME (routage de l'art rig) — propagé de l'ItemInstance/trait vers `Weapon.shape`. */
-  shape?: string;
+  /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
+  formeChoisie?: string;
   /** Attaque naturelle de corps (aucune arme dessinée) — propagé vers `Weapon.natural`. */
   natural?: boolean;
   /** Nature d'attaque naturelle STAMPÉE (morsure/cornes/caudale/tentacules/pietinement…) — pour la
@@ -152,7 +152,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
   if (spec.skin !== undefined) w.skin = spec.skin;
   if (spec.form !== undefined) w.form = spec.form;
-  if (spec.shape !== undefined) w.shape = spec.shape;
+  if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
   if (spec.builtinId !== undefined) w.builtinId = spec.builtinId;
@@ -185,6 +185,14 @@ export const isUnarmedTrapping = (id: string | undefined, resolveTrapping: Trapp
  *  ≠ `weaponDamage.isImprovised` (arme RÉDUITE à cet état par l'usure). */
 export const isImprovisedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
   !!(id && resolveTrapping(id)?.improvised);
+
+/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Bouclier » (`TrappingData.shield`) ? LDB 62 l.33-35 ;
+ *  AA 08 l.156 ; ZI 13 l.911. ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+export const isShieldTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
+  !!(id && resolveTrapping(id)?.shield);
+
+/** Arme ou objet reconnu bouclier par son IDENTITÉ de catalogue (`trappingId`). */
+export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTrapping(x.trappingId);
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
@@ -242,10 +250,11 @@ function kindOf(categorie: string): ItemKind {
  *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
  *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
-  const t = resolveTrapping(id);
-  if (!t) return null;
-  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, t))
-    throw new Error(`itemFromTrappingById: "${t.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
+  const resolu = resolveTrapping(id);
+  if (!resolu) return null;
+  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, resolu))
+    throw new Error(`itemFromTrappingById: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
+  const t = structuredClone(resolu); // #2097
   const kind = kindOf(t.categorie);
   const locs =
     t.loc != null
@@ -253,15 +262,15 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
           .split(',')
           .flatMap((p) => ARMOUR_LOC_BY_ID[slugId(p)] ?? [])
       : undefined;
+  // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
+  // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
+  // POSSÈDE, et une édition du catalogue ne les repeint pas.
   return {
     uid: newUid(),
     trappingId: t.id,
     label: t.label,
     kind,
-    // Le spec de Dégâts est CLONÉ (jamais l'objet du catalogue) : une instance possède son profil, une
-    // mutation d'instance ne peut PAS corrompre la def de trapping partagée (aliasing → pollution cross-test
-    // sous isolate:false : un canon muté à 999 coulait toute coque, #379 #339).
-    damage: t.damage ? { ...t.damage } : undefined,
+    damage: t.damage ?? undefined, // #379 #339
     // Allonge (mêlée) ⊥ Portée (tir) — LDB 62. La donnée est NORMALISÉE : `reach` = string|null (Allonge
     // ou formule de jet « BFx3 »), `range` = Portée numérique (m) des armes à portée fixe → copie DIRECTE,
     // plus de `Number(t.reach)` (le « type menteur » d'avant la migration est éliminé).
@@ -273,7 +282,6 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     enc: typeof t.enc === 'number' ? t.enc : 0, // 'ND' (ateliers) / 'Variable' (arme improvisée) → non-encombrant (0), jamais NaN
     ...(t.sizeFor ? { sizeFor: t.sizeFor } : {}), // taille prévue (ADE II 2 l.706-710) — version « taille ogre » d'une possession ordinaire
     equipped: false,
-    ...(t.shape ? { shape: t.shape } : {}), // slug de FORME (routage de l'art rig) — absent pour munitions/siège/Mains nues
     desc: t.desc,
     ...(t.consumable ? { consumable: t.consumable } : {}), // effet de consommable (Flow) copié du catalogue
     ...(t.consumableDuration ? { consumableDuration: t.consumableDuration } : {}), // durée d'horloge (LDB 71/72 « Durée : … »), résolue au boire
@@ -671,7 +679,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { 
     weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
     bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
     minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    skin: it.skin, form: it.form, shape: it.shape, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    skin: it.skin, form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
   }), it.enchants ?? []);
 }
@@ -797,23 +805,16 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 /**
  * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
  * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation, usure). MIGRATION
- * transparente de l'ancienne forme : `trappingId` manquant se dérive de `item.trappingId` (l'arme copiée
- * pré-#222) ; sa base copiée est JETÉE (re-résolue du catalogue). `trappingId` irrésoluble → throw explicite
- * (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
+ * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation). `trappingId`
+ * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
  */
 export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
-  const trappingId = a.trappingId ?? a.item?.trappingId;
-  if (!trappingId) throw new Error(`[poste] réf catalogue absente (ni trappingId ni item.trappingId) : ${JSON.stringify(a)} (#222)`);
-  const base = itemFromTrappingById(trappingId);
-  if (!base) throw new Error(`[poste] trappingId inconnu « ${trappingId} » — pièce non hydratable (#222)`);
-  const enchants = a.enchants ?? a.item?.enchants;
+  const base = itemFromTrappingById(a.trappingId);
+  if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
   const item: ItemInstance = {
     ...base,
-    uid: a.uid ?? a.item?.uid ?? base.uid, // uid d'instance STABLE (liens hotbar/log)
-    ...(enchants?.length ? { enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
-    ...(a.item?.damageTaken != null ? { damageTaken: a.item.damageTaken } : {}), // usure runtime (LDB 62 l.135)
-    ...(a.item?.destroyed ? { destroyed: true } : {}),
+    uid: a.uid ?? base.uid, // uid d'instance STABLE (liens hotbar/log)
+    ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
   };
   const poste: ShipPoste = { item };
   if (a.side) poste.side = a.side;

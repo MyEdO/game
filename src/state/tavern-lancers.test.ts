@@ -29,12 +29,12 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import {
   resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, sequenceScoreOf,
   registerSequenceTieBreak, closeSequenceRound, sequenceBoardOf, SEQUENCE_HARD_MAX_ROUNDS,
-  type SequenceState, type SequenceThrowTurn, type SequenceVolleyRules,
+  type EtatDeFamille, type SequenceThrowTurn, type SequenceVolleyRules, type MancheClose,
 } from './sequenceCore';
 import { resolveTavernRound } from '../engine/tavernGame';
 import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
-import type { CascadeStep, PendingCascade } from './pendings';
+import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
@@ -252,7 +252,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
   function aDeuxDoigts(points: number): Combatant {
     const a = seul();
     get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
-    const seq = get().sequence as SequenceState<TavernPayload>;
+    const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.83), on le fixe pour mesurer.
     const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'player' ? -1 : 1));
     useGame.setState({
@@ -391,7 +391,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
 describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l.27-28)', () => {
   /** Partie en cours, le challenger menant le camp `side`, avec les prises déjà faites. */
-  function partie(side: string, cum: Record<string, number>, challengerId: string): SequenceState<TavernPayload> {
+  function partie(side: string, cum: Record<string, number>, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
     return {
       def: TAVERN_SEQUENCE, round: 2, cum,
       params: { drBonus: 'intelligence', sides: ALVATAFL.sides! },
@@ -400,7 +400,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
   }
 
   /** Manche close : le jet du challenger et le jet adverse FIGÉ. */
-  function manche(actorId: string, mien: { roll: number; sl: number }, sien: { roll: number; sl: number }): PendingCascade {
+  function manche(actorId: string, mien: { roll: number; sl: number }, sien: { roll: number; sl: number }): MancheClose {
     const step: CascadeStep = {
       id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId,
       label: fixtureText('L\'Alvatafl'), rollLabel: 'Savoir', difficulty: 'intermediaire', base: 40, target: 40,
@@ -410,7 +410,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
         opposed: { aT: { roll: sien.roll, target: 40, sl: sien.sl, success: true, isDouble: false, base: 40 }, attackerName: NOM_HABITUE },
       },
     };
-    return { title: 'Alvatafl', purpose: 'sequence', participants: [step], cursor: 1, log: [] };
+    return { participants: [step] };
   }
 
   it('la donnée porte les deux camps : 48 pièces naines, 12 elfes, et leurs conversions', () => {

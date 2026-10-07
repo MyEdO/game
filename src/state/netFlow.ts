@@ -35,6 +35,7 @@ import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
 import type { Get, Set } from './flowTypes';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
+import { FORMAT_SAVE } from './formats.generated';
 
 /** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
  *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
@@ -86,15 +87,13 @@ const BUFFER_MAX = 256 * 1024;
 /** Token de reprise persisté par room — un reload de l'onglet reprend le même siège. */
 const tokenKey = (code: string) => `wfrp4.coop.token.${code}`;
 
-export const BUILD_ID = 'w4-dev'; // V1 : même build requis de part et d'autre (check au hello)
-
 /** Snapshot d'état pour le réseau — mêmes clés que la sauvegarde, SANS les scènes du projet de
  *  campagne (313 Ko pour l'Arène : elles voyagent UNE fois au join via le message `campaign`,
  *  spec v2 §5). Un stub nom-seul reste : les invités affichent la campagne choisie (cartouche
  *  de l'écran d'équipe) sans jamais la charger eux-mêmes (« Commencer » est hôte-seul).
  *  La FORME de ce `data` est celle de la sauvegarde : `PROTOCOL_VERSION` (`net/protocol.ts`) versionne
- *  les messages, pas leur charge — c'est `SAVE_VERSION` qui date cette forme, et `BUILD_ID` ci-dessus
- *  qui refuse deux clients de builds différents au `hello`. */
+ *  les messages, pas leur charge — c'est `FORMAT_SAVE` qui date cette forme, et le `hello` refuse
+ *  deux clients de formats différents. */
 export function netSnapshot(get: Get): Record<string, unknown> {
   const { data } = snapshotSave(
     get() as unknown as Record<string, unknown>,
@@ -102,9 +101,10 @@ export function netSnapshot(get: Get): Record<string, unknown> {
     'net',
   );
   const pc = (data as { pendingCampaign?: GameState['pendingCampaign'] }).pendingCampaign;
-  (data as Record<string, unknown>).pendingCampaign = pc
-    ? { label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null }
+  const stub: GameState['pendingCampaign'] = pc
+    ? { id: pc.id, label: pc.label, scenes: [], startSceneId: pc.startSceneId, worldMap: null }
     : null;
+  (data as Record<string, unknown>).pendingCampaign = stub;
   // L'INTENTION armée est un mode d'ÉCRAN, LOCAL au client (spec HUD zone 4) : elle ne voyage pas —
   // la case armée de l'hôte n'a rien à allumer chez ses invités.
   delete (data as Record<string, unknown>).localIntent;
@@ -254,7 +254,7 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
   const rh = new RoomHost(room.code, room.hostToken);
   roomHost = rh;
   host = new HostSession({
-    build: BUILD_ID,
+    build: FORMAT_SAVE,
     allow: GUEST_INTENTS,
     applyIntent: (action, args, seat) => {
       // Validation de POSSESSION (spec §4bis) : un invité ne pilote que SES combattants —
@@ -346,7 +346,7 @@ export function netJoin(get: Get, set: Set, codeRaw: string, name: string): Prom
       settled = true;
       clearTrackedTimer(timeout);
       guest = new GuestSession({
-        build: BUILD_ID,
+        build: FORMAT_SAVE,
         label: name,
         applySnapshot: (data) => applyNetSnapshot(set, data),
         onCampaign: (m) => {
@@ -357,6 +357,7 @@ export function netJoin(get: Get, set: Set, codeRaw: string, name: string): Prom
         // onClose générique qui suit juste après (silencieux, cf. session.ts).
         onProtocolMismatch: (expected, got) =>
           get().log(t('coop.protocolMismatch', { got, expected })),
+        onFormatMismatch: () => get().log(t('coop.formatMismatch')),
         onClosed: () => netLeave(get, set),
       });
       set({ net: { ...initialNet(), mode: 'guest', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });

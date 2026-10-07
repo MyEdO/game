@@ -6,7 +6,7 @@
  * Chaque fonction renvoie une NOUVELLE Scène (immuable). `editorState.ts` les RÉ-EXPORTE : les câblages
  * du canvas (couplés UI/gameIso) y restent. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './scene';
 import { memoByRef } from './sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from './dir8';
@@ -235,7 +235,7 @@ export function canonEdge(x: number, y: number, side: CellSide): { x: number; y:
 export function edgeWallState(scene: Scene, x: number, y: number, side: CellSide, z = 0): 'none' | 'wall' | 'door' {
   const e = canonEdge(x, y, side);
   const w = (scene.walls ?? []).find((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z);
-  return !w ? 'none' : w.door ? 'door' : 'wall';
+  return !w ? 'none' : porteAuteur(w) ? 'door' : 'wall';
 }
 
 /** Pose / change / retire l'arête à l'état `want`. Source unique de l'écriture d'une cloison cardinale.
@@ -265,17 +265,27 @@ export function toggleDiagonalWall(scene: Scene, x: number, y: number, diag: '\\
 }
 
 /** Forme CANONIQUE compacte d'un segment d'arête : on n'écrit que les champs significatifs (pas de z:0,
- *  pas de door:false, closed sans porte, structure vide) — même convention que `setEdgeWall`. */
+ *  pas de door:false, closed sans porte, secret hors porte fermée, fenêtre sur une porte, shuttered sans
+ *  fenêtre, allège et suspendu hors croisée franchissable, structure vide) — même convention que `setEdgeWall`. */
 function normWall(w: WallSeg): WallSeg {
-  const out: WallSeg = { x: w.x, y: w.y, side: w.side };
-  if (w.z) out.z = w.z;
-  if (w.door) out.door = true;
-  if (w.door && w.closed) out.closed = true;
-  if (w.structure) out.structure = w.structure;
-  if (w.appearance) out.appearance = w.appearance;
-  if (w.window) out.window = true; // fenêtre décorative (champ significatif : préservé au patch)
-  if (w.climb) out.climb = w.climb;
-  return out;
+  const porte = porteAuteur(w);
+  const secret = secretAuteur(w);
+  const fenetre = !porte && !!w.window;
+  return {
+    x: w.x, y: w.y, side: w.side,
+    ...(w.z ? { z: w.z } : {}),
+    ...(porte ? { door: true } : {}),
+    ...(porte && w.closed ? { closed: true } : {}),
+    ...(w.structure ? { structure: w.structure } : {}),
+    ...(w.appearance ? { appearance: w.appearance } : {}),
+    ...(porte && w.closed && secret ? { secret } : {}),
+    ...(fenetre ? { window: true } : {}),
+    ...(fenetre && w.shuttered ? { shuttered: true } : {}),
+    ...(fenetre && w.crossable ? { crossable: true } : {}),
+    ...(fenetre && w.crossable && w.allege !== undefined ? { allege: w.allege } : {}),
+    ...(fenetre && w.crossable && w.suspendu !== undefined ? { suspendu: w.suspendu } : {}),
+    ...(w.climb ? { climb: w.climb } : {}),
+  };
 }
 
 /** Patche le segment-mur canonique (x,y,side,z) : applique `patch` puis re-normalise (drop des champs
@@ -371,7 +381,7 @@ export function setPosteEngine(scene: Scene, entityId: string, trappingId: strin
   return editEntity(scene, entityId, {
     label: t.label,
     ref: trappingId,
-    postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, trappingId, item: undefined } : p)),
+    postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, trappingId } : p)),
   });
 }
 

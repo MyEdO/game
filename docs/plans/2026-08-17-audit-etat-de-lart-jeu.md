@@ -36,7 +36,7 @@ Ticket: #1361
 | Édition de barre | drag & drop in-place universel | arbitré in-place (ee5d4c3f) | tranché, lot 2 |
 | Date/lieu en barre haute permanente | médaillon carte/annonces | boussole-horloge-lieu + annonce de zone (arbitré) | tranché, lot matière |
 | Clic droit combat = attaque directe (pas de menu) | BG3 : menu contextuel ; XCOM-likes : action directe | action directe | acceptable, revoir si les actions par cible se multiplient |
-| Inspection : combat seulement (option), pas d'« examiner » en exploration | examiner partout (survol/clic droit) | InspectPanel combat-only | À TRANCHER (l'examen d'exploration sert l'apprentissage) |
+| Inspection : combat seulement (option), pas d'« examiner » en exploration | examiner partout (survol/clic droit) | InspectPanel combat-only | À TRANCHER (l'examen d'exploration sert l'apprentissage) — tranché 2026-10-05 (#1822) : clic droit / appui long / touche I, en combat et hors combat |
 | Loot par source (une fenêtre par fouille) | loot de zone (rayon) chez BG3/PoE | par source | QoL, candidat backlog |
 | Objectifs = bannière empilée ; Carnet = enquête seulement | écran journal de quêtes complet | pas d'écran de quêtes | candidat backlog |
 | Météo par écran (repos/voyage/hub) | HUD léger ou par écran selon le jeu | par écran | acceptable ; la boussole-horloge peut porter un glyphe météo plus tard |

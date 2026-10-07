@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
 import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
+import { racinesDeModsParmi } from '../mods/racines.mjs';
 
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
@@ -107,8 +108,10 @@ export function transformGuide(text) {
 
 export function transformSkillTree(sourceFiles) {
   const outputs = new Map();
+  // Un mod Claude Code (#2278) n'a pas de miroir Codex.
+  const mods = racinesDeModsParmi(sourceFiles.keys());
   for (const [source, bytes] of sourceFiles) {
-    if (!source.startsWith('.claude/skills/')) continue;
+    if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');
     if (!source.endsWith('/SKILL.md')) {
       outputs.set(destination, Buffer.from(bytes));
@@ -183,6 +186,13 @@ export function compilerMatcher(matcher, surface) {
 }
 
 /**
+ * Le `timeout` (s) du hook de synchronisation du principal : l'attente de ses verrous
+ * (`ATTENTE`, `scripts/ops/synchroniser.mjs`), le `fetch`, puis `post-merge`
+ * (`npm ci`, docs dérivés). Valeur maison.
+ */
+export const TIMEOUT_SYNCHRONISEUR = 300
+
+/**
  * Les points d'entrée des hooks d'APPEL D'OUTIL (#2125) : `script` de `scripts/hooks/`, le `module` qui
  * exporte son registre (`exporte` : événement → gardes), son `timeout` (s) et son message. Le
  * répartiteur porte toutes les gardes ; la porte de fermeture a le sien, parce qu'un commit de
@@ -191,7 +201,7 @@ export function compilerMatcher(matcher, surface) {
  */
 export const ENTREES_OUTIL = [
   { script: 'repartiteur.mjs', module: 'registre.mjs', exporte: 'REGISTRE', timeout: 10, statusMessage: 'Gardes des appels d’outil (répartiteur)' },
-  { script: 'solde-ticket-hook.mjs', module: 'solde-ticket-hook.mjs', exporte: 'REGISTRE_SOLDE', timeout: 10, statusMessage: 'Fermeture de ticket au commit = solde écrit obligatoire' },
+  { script: 'solde-ticket-hook.mjs', module: 'registre.mjs', exporte: 'REGISTRE_SOLDE', timeout: 10, statusMessage: 'Fermeture de ticket au commit = solde écrit obligatoire' },
 ];
 
 /**
@@ -206,12 +216,17 @@ export const ENTREES_OUTIL = [
  * (`scripts/hooks/bootstrap-conteneur.mjs`) : sur la surface Codex, ce hook ne pourrait que naître
  * et rendre une liste vide. Un spawn qui ne mesure rien n'est pas une parité, c'est un mort.
  *
- * Le suivi de vague (`scripts/hooks/inject-suivi.mjs`, #2132) se relit sur les deux surfaces.
+ * Le suivi de vague (`scripts/hooks/inject-suivi.mjs`, #2132) : surface Codex seule. Côté Claude, le mod
+ * `harnais` (`.claude/skills/harnais/hooks/suivi.ts`, #2279) le porte : une seule injection par surface.
+ *
+ * La synchronisation du principal (`scripts/hooks/synchroniser-principal.mjs`, #2187) : surface Codex
+ * seule, EN TÊTE ; côté Claude, le mod `harnais` (`suivi.ts`, `session.start`).
  */
 export const HOOKS_DE_SESSION = [
+  { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
-  { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
+  { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
 ];
 
 /**

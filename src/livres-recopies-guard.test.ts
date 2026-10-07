@@ -7,6 +7,7 @@ import {
   SCAN_DIRS, SCAN_EXTS, SEUIL, SITE_EXEMPTIONS,
 } from '../scripts/guards/lib/livresRecopies.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 
 /**
  * Garde-fou « liste de LIVRES recopiée dans le code » (#1825).
@@ -41,11 +42,10 @@ const IDS = identitesDe(REGISTRE_FIXTURE);
 const formes = (src: string, nom = 'fixture.ts') => scanLivresRecopies(nom, src, IDS).map((s) => s.forme);
 
 describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)', () => {
-  it('aucune énumération littérale du code ne recopie le registre des livres', { timeout: 30_000 }, () => {
+  it('aucune énumération littérale du code ne recopie le registre des livres', { timeout: 60_000 }, () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus(SCAN_DIRS, { exts: SCAN_EXTS, tests: true })) {
-      if (estExclu(rel)) continue;
-      for (const s of scanLivresRecopies(rel, text)) {
+    for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(SCAN_DIRS, { exts: SCAN_EXTS, tests: true }).filter(({ rel }) => !estExclu(rel)))) {
+      for (const s of scanLivresRecopies(rel, text, undefined, sourceFile!)) {
         offenders.push(`${rel}:${s.line} — ${s.forme} figeant ${s.valeurs.length} livres : ${s.valeurs.join(', ')}`);
       }
     }

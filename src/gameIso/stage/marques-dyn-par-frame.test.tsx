@@ -88,7 +88,7 @@ describe('Marques dynamiques — la pose se prend à la FRAME (#1176 P3-0d)', ()
     document.body.appendChild(hôte);
     root = createRoot(hôte);
     act(() => root!.render(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={{ mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 }}
