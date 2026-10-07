@@ -44,7 +44,8 @@ import {
   TAS_UTILISE,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
-import { estPidVivant, prendreVerrou, verrouRequis } from './verrou.mjs'
+import { estPidVivant } from './verrou.mjs'
+import { attenteDeSuite, prendreVerrouDeSuite, verrouRequis } from './verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -106,13 +107,12 @@ const estFichier = (t) => {
     return false
   }
 }
-const verrou = !verrouRequis(filtres, estFichier)
-  ? { etat: 'ignore' }
-  : prendreVerrou({
-      commande: [process.execPath, ...process.argv.slice(1)].join(' '),
-      cwd: RACINE,
-      estVivant: estPidVivant,
-    })
+const verrou = prendreVerrouDeSuite({
+  requis: verrouRequis(filtres, estFichier),
+  commande: [process.execPath, ...process.argv.slice(1)].join(' '),
+  cwd: RACINE,
+  annoncer: (tenant) => console.error(`[verrou] ${attenteDeSuite(tenant)}`),
+})
 if (verrou.etat === 'refus') {
   console.error(verrou.message)
   process.exit(2)

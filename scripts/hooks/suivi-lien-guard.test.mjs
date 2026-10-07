@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import * as FS from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { repartir } from './repartiteur.mjs'
+import { repartir } from './repartition.mjs'
 import { JOURNAL, epiquesLiees, lignesDuJournal } from '../ops/suivi.mjs'
 import { avertissementIllisible, epiqueLiee, garde } from './suivi-lien-guard.mjs'
 
@@ -76,7 +76,7 @@ test('T3 — le lien est TRACÉ au journal du dépôt pour la session principale
 
 test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas retracé ; une autre épique ou une autre session, si', async () => {
   const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
-  // Le répartiteur rend les traces ; `executer` les AJOUTE au fichier (`scripts/hooks/repartiteur.mjs`).
+  // Le répartiteur rend les traces ; `executer` les AJOUTE au fichier (`scripts/hooks/repartition.mjs`).
   const appel = async (command, session_id = 's') => {
     const { traces } = await repartir({ PreToolUse: [garde] }, JSON.stringify({
       hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, session_id,

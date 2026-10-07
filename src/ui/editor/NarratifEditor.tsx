@@ -12,6 +12,8 @@ import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNa
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { estDerive } from '../compendium/editFields';
 import { LIBELLE_NARRATIF, RefNarrativeField } from '../compendium/RefField';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
@@ -514,7 +516,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
             <input value={ouverture.chapitre ?? ''} onChange={(e) => patchOuv({ chapitre: e.target.value || undefined })} />
           </label>
           <ProseField label="Pitch (Markdown)" value={ouverture.pitch} onChange={(pitch) => patchOuv({ pitch })} />
-          <SourceRefField identite="ouverture" label="Source" facultative sujet="de l'ouverture" value={ouverture.source} onChange={(source) => patchOuv({ source })} />
+          <ProvenanceDuTexte identite="ouverture" copie sujet="de l'ouverture" value={ouverture} onChange={patchOuv} />
           <label className="ed-field">
             Ambiance
             <select value={ouverture.ambiance ?? 'veillee'} onChange={(e) => patchOuv({ ambiance: e.target.value as AmbianceCadre })}>
@@ -719,7 +721,7 @@ function IndiceForm({ porteur, indice, narratif, affaires, otherIndices, porteur
               onChange={(documentId) => updateStade(s.id, { documentId, prose: documentId ? s.prose : (s.prose ?? '') })}
               nullable
             />
-            <SourceRefField identite={`${porteur}/stade:${clesStades[idx]}`} label="Source" facultative sujet={`du stade ${idx + 1}`} value={s.source} onChange={(source) => updateStade(s.id, { source })} />
+            <ProvenanceDuTexte identite={`${porteur}/stade:${clesStades[idx]}`} copie sujet={`du stade ${idx + 1}`} value={s} onChange={(p) => updateStade(s.id, p)} />
             <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle={`Supprimer le stade ${idx + 1}`} refus={refusDuRetrait(s.id)} onRemove={() => removeStade(s.id)} />
           </div>
         ))}
@@ -815,7 +817,10 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
                 ))}
               </div>
             </div>
-            <SourceRefField identite={porteur} label="Source" facultative sujet="du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
+            <ProvenanceDuTexte
+              identite={porteur} copie sujet="du PNJ" value={preset} onChange={onPatch}
+              adapteRefuse={estDerive({ ...preset.profil }, 'desc') ? 'La description du profil est la copie adressée du livre.' : undefined}
+            />
           </>
         )}
         {onglet === 'apparence' && (

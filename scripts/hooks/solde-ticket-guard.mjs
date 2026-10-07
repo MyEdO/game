@@ -3324,7 +3324,7 @@ function racineDeLArbre(dir = process.cwd()) {
  * Le chemin d'un `tool_input` d'écriture (`file_path`, sinon `path`), résolu UNE fois à l'entrée d'un
  * hook : toute la suite (périmètre, lecture disque, message) travaille sur lui, jamais sur le brut
  * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base` (le `dir`
- * du contexte, `construireContexte`, `scripts/hooks/repartiteur.mjs`), puis :
+ * du contexte, `construireContexte`, `scripts/hooks/repartition.mjs`), puis :
  * `reel` = `canoniser` (jonctions et liens suivis, fichier à créer compris) ; `racine` = l'arbre git
  * qui le contient, ou `null` ; `relatif` = POSIX sous `racine`, ou `reel` entier sans arbre.
  * `horsContenu` : le fichier n'est pas du contenu VERSIONNÉ du dépôt, et les hooks d'écriture s'y

@@ -27,6 +27,7 @@ import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
+import { champAdapteDe, champsProse, refineAdapteDe, refineProse } from '../grammaire/prose';
 import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
@@ -467,16 +468,20 @@ export const dialogueChoiceSchema = z.strictObject({
   /** Id du nœud suivant. */
   next: z.string().optional(),
 });
-/** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. */
+/** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
+ *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
 export const dialogueNodeSchema = z.strictObject({
   id: z.string(),
   /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
    *  SESSION (`state.dialogue.speakerId`, posé par `interactEntity` ou `startDialogue.speakerId`). */
   speakerId: z.string().optional(),
-  desc: z.string(),
+  ...champsProse(),
+  ...champAdapteDe(),
   choices: z.array(dialogueChoiceSchema),
-});
+})
+  .superRefine(refineProse({ type: 'projet', exigeProse: true }))
+  .superRefine(refineAdapteDe);
 /** `Dialogue` — arbre de nœuds, `start` = id du nœud d'entrée. */
 export const dialogueSchema = z.strictObject({
   id: z.string(),
@@ -760,9 +765,9 @@ export const wallSegSchema = z.strictObject({
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
  * PREMIER (`aretesA(...)[0]`, composé par `gameIso/builders/roofs.ts`) : un second segment sur la
  * même clé `x,y,side,z` serait une donnée MUETTE, jamais rendue ni lue. `setEdgeWall`
- * (`state/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap`, les
- * migrations et l'import de projet ne passent pas par lui : le verrou est ICI. La clé est la MÊME
- * graphie que l'index d'arêtes.
+ * (`state/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap` et les
+ * documents relus par la porte (`parseProject`, `parseSceneDeProjet`, `state/worldMap.ts`) ne passent
+ * pas par lui : le verrou est ICI. La clé est la MÊME graphie que l'index d'arêtes.
  */
 const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): string => `${w.x},${w.y},${w.side},${w.z ?? 0}` };
 

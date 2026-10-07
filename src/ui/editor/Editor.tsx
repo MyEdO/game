@@ -53,7 +53,7 @@ import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
 import { z } from 'zod';
 import { dialoguesSchema, triggersSchema, encountersSchema } from '../../data/schemas/defs-scenes/scene';
-import { rapportDeFautes, validateDocument } from '../../data/schemas/validate';
+import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
  *  même mot que le contrôle cliqué — l'auteur retrouve SON geste en tête de la fenêtre. */
@@ -78,13 +78,22 @@ export function ouCaCasse(erreur: unknown): string {
  *  redite : ce que l'auteur colle est tenu à la même exigence que ce que le document porte. Le
  *  conteneur est réécrit parce que `sceneSchema.pick()` est refusé par zod sur un objet PORTANT DES
  *  RAFFINEMENTS, et un sous-ensemble de trois clés n'en hérite aucun.
- *  EXPORTÉ pour que la porte de cette modale (`saveAdvanced` : ce schéma + `validateDocument`) soit
- *  mesurable hors montage — c'est elle qui rend le refus que l'auteur lit (#1588). */
+ *  La porte de cette modale est `lireBlocsAvances`, ci-dessous. */
 export const SCHEMA_BLOCS_AVANCES = z.strictObject({
   dialogues: dialoguesSchema.optional(),
   triggers: triggersSchema.optional(),
   encounters: encountersSchema.optional(),
 });
+
+/** Porte de la modale « Avancé » (`saveAdvanced`), EXPORTÉE pour être mesurable hors montage : c'est
+ *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le
+ *  schéma prouve la forme disque, la valeur collée est relue sous sa vue TS, son texte gardé — patron
+ *  de `parseProject`. */
+export function lireBlocsAvances(brut: unknown): { ok: true; lu: z.infer<typeof SCHEMA_BLOCS_AVANCES> } | { ok: false; rapport: string } {
+  const refus = validerFormeVivante(SCHEMA_BLOCS_AVANCES, brut);
+  if (refus) return { ok: false, rapport: rapportDeFautes('Blocs de logique', refus.fautes) };
+  return { ok: true, lu: brut as z.infer<typeof SCHEMA_BLOCS_AVANCES> };
+}
 
 export function architectureSelectionForWarning(warning: Warning): Warning['architectureRef'] | null {
   return warning.scope === 'architecture' ? warning.architectureRef ?? null : null;
@@ -960,12 +969,12 @@ export function Editor({
       setAdvError(`Ce texte n’est pas du JSON${ouCaCasse(erreur)}.`);
       return;
     }
-    const fautes = validateDocument(SCHEMA_BLOCS_AVANCES, brut);
-    if (fautes) {
-      setAdvError(rapportDeFautes('Blocs de logique', fautes));
+    const porte = lireBlocsAvances(brut);
+    if (!porte.ok) {
+      setAdvError(porte.rapport);
       return;
     }
-    const lu = SCHEMA_BLOCS_AVANCES.parse(brut);
+    const { lu } = porte;
     setAdvError(null);
     setScene({
       ...scene,

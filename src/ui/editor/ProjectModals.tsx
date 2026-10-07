@@ -9,7 +9,7 @@ import { projectsLoad, projectRemove, nomDeProjet, estRefusee, type EntreeListee
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { allBuiltinCampaigns, BuiltinCampaign } from '../../scenes/campaign';
 import { Row, Stack } from '../Layout';
-import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type ProjetRefuse } from '../../state/worldMap';
+import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus } from '../../state/worldMap';
 import { cheminLisible, type Faute, type SegmentDeLieu } from '../../data/schemas/validate';
 import { projetDoc } from '../../data/schemas/defs-scenes/projet';
 
@@ -17,21 +17,33 @@ import { projetDoc } from '../../data/schemas/defs-scenes/projet';
  * Les gestes qui font passer un document par la porte du projet (`parseProject`, et
  * `parseSceneDeProjet` pour la reprise d'une sauvegarde locale), chacun avec le VERBE de son
  * refus, ce qu'il dit d'un document SANS NOM, le TERME du document d'un autre format
- * (`autreFormat`), et la CONSÉQUENCE qu'il ÉNONCE. Un geste qui RELIT une donnée persistée
- * (ouverture, import, reprise) n'en énonce aucune (`null`) : son verbe la dit déjà ; son message tient
+ * (`autreFormat`), la PHRASE de chaque cause hors schéma (`causes`), et la CONSÉQUENCE qu'il
+ * ÉNONCE. Un geste qui RELIT une donnée persistée (ouverture, import, reprise) n'en énonce aucune (`null`) : son verbe la dit déjà ; son message tient
  * en une phrase, le verbe et la cause, la faute reste au détail. Un geste qui valide l'état EN COURS
  * de l'auteur énonce ce que son refus empêche et NOMME la faute (#2404). UNE table : ces chaînes
  * ne sont pas libres, un appelant ne peut pas les désaccorder — « Import refusé : ce projet ne
  * pourrait plus être rouvert » serait faux, rien n'ayant jamais été ouvert ni écrit.
  */
 const PROJET_SANS_NOM = 'ce projet n’a pas de nom';
+
+/** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE, selon ce que le geste LIT : le rapport
+ *  technique reste en détail. `IMPORT_FORME_DEPOT` ne vaut que pour un geste qui lit un FICHIER ;
+ *  ailleurs, la cause se dit sous le terme de l'autre format (#2404). */
+type PhrasesDeCause = Readonly<Record<Exclude<CauseDeRefus, 'schema'>, string>>;
+const PROJET_EN_MEMOIRE: PhrasesDeCause = {
+  'prose-non-materialisee': `${PROJET_AUTRE_FORMAT}.`,
+  entree: 'Sa scène de départ n’existe pas dans le projet.',
+};
+const FICHIER_DE_PROJET: PhrasesDeCause = { ...PROJET_EN_MEMOIRE, 'prose-non-materialisee': IMPORT_FORME_DEPOT };
+const SAUVEGARDE_LOCALE: PhrasesDeCause = { 'prose-non-materialisee': `${SCENE_AUTRE_FORMAT}.`, entree: `${SCENE_AUTRE_FORMAT}.` };
+
 const GESTES_DE_PORTE = {
-  ouverture: { verbe: 'Ouverture refusée', consequence: null, sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT },
-  enregistrement: { verbe: 'Enregistrement refusé', consequence: 'ce projet ne pourrait plus être rouvert', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT },
-  export: { verbe: 'Export refusé', consequence: 'ce fichier ne pourrait plus être rouvert', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT },
-  import: { verbe: 'Import refusé', consequence: null, sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT },
-  test: { verbe: 'Mise à l’essai refusée', consequence: 'ce projet ne pourrait pas être joué', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT },
-  reprise: { verbe: 'Restauration refusée', consequence: null, sansNom: 'cette sauvegarde locale n’a pas de nom', autreFormat: SCENE_AUTRE_FORMAT },
+  ouverture: { verbe: 'Ouverture refusée', consequence: null, sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  enregistrement: { verbe: 'Enregistrement refusé', consequence: 'ce projet ne pourrait plus être rouvert', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  export: { verbe: 'Export refusé', consequence: 'ce fichier ne pourrait plus être rouvert', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  import: { verbe: 'Import refusé', consequence: null, sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: FICHIER_DE_PROJET },
+  test: { verbe: 'Mise à l’essai refusée', consequence: 'ce projet ne pourrait pas être joué', sansNom: PROJET_SANS_NOM, autreFormat: PROJET_AUTRE_FORMAT, causes: PROJET_EN_MEMOIRE },
+  reprise: { verbe: 'Restauration refusée', consequence: null, sansNom: 'cette sauvegarde locale n’a pas de nom', autreFormat: SCENE_AUTRE_FORMAT, causes: SAUVEGARDE_LOCALE },
 } as const;
 
 /** Geste dont la porte du document peut opposer un refus — union FERMÉE. */
@@ -51,13 +63,6 @@ function lieuDAuteur(lieu: readonly SegmentDeLieu[]): string {
   return cheminLisible(tete === undefined ? [] : [tete, ...suite], (element) => element.libelle ?? element.cle);
 }
 
-
-/** Ce qu'un refus HORS SCHÉMA dit à l'auteur, par CAUSE : le rapport technique reste en détail. */
-const PHRASE_DE_CAUSE: Record<Exclude<ProjetRefuse['cause'], 'schema'>, string> = {
-  'prose-non-materialisee': IMPORT_FORME_DEPOT,
-  entree: 'Sa scène de départ n’existe pas dans le projet.',
-};
-
 /**
  * Traduit en refus d'ÉCRAN le refus que la porte oppose à un geste — UN traducteur pour tous les
  * gestes, qui lit la CAUSE et les fautes (`ProjetRefuse`), jamais le texte du rapport. Un document
@@ -68,11 +73,11 @@ const PHRASE_DE_CAUSE: Record<Exclude<ProjetRefuse['cause'], 'schema'>, string> 
  */
 export function refusDeLaPorteDuProjet(erreur: unknown, geste: GesteDePorte): RefusRendu {
   exigerUnRefus(erreur);
-  const { verbe, consequence, sansNom, autreFormat: terme } = GESTES_DE_PORTE[geste];
+  const { verbe, consequence, sansNom, autreFormat: terme, causes } = GESTES_DE_PORTE[geste];
   const phrase = (cause: string): string =>
     consequence === null ? `${verbe} : ${cause.charAt(0).toLocaleLowerCase('fr') + cause.slice(1)}` : `${verbe} : ${consequence}. ${cause}`;
   if (erreur.cause !== 'schema') {
-    return { message: phrase(PHRASE_DE_CAUSE[erreur.cause]), detail: erreur.message };
+    return { message: phrase(causes[erreur.cause]), detail: erreur.message };
   }
   const autreFormat = { message: phrase(`${terme}.`), detail: erreur.message };
   if (erreur.fautes.some((f) => f.chemin.length === 0)) return autreFormat;

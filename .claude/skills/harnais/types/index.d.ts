@@ -1,6 +1,7 @@
 // Types du mod `harnais` : fonction `suivi` (#2279), l'état de session que rend `node scripts/ops/suivi.mjs
 // --session <id> --json` (`etatDeSession`, scripts/ops/suivi.mjs) et l'atome `harnais.suivi` ; fonction `vigie`
-// (#2280), la mesure que rend `node scripts/ops/vigie.mjs --json --arbre <racine>` et l'atome `harnais.vigie`.
+// (#2280), la mesure que rend `node scripts/ops/vigie.mjs --json --arbre <racine>` et l'atome `harnais.vigie` ;
+// l'état que rend `node scripts/ops/synchroniser.mjs --json` (#2187) et l'atome `harnais.synchro`.
 
 /** Un suivi lié à la session : son épique, son chemin et les lignes de sa situation (le bandeau). */
 export type HarnaisSuiviLie = { epique: number; chemin: string; lignes: string[] }
@@ -38,11 +39,18 @@ export type HarnaisMesureDeVigie = { ligne: string; transitions: string[]; etat:
 /** L'atome de la fonction `vigie` : l'`etat` de la dernière mesure VALIDE (`null` avant la première), le `--depuis` suivant. */
 export type HarnaisVigie = { etat: string | null }
 
+/** L'état que rend `synchroniser.mjs --json` (#2187) : son `etat` nommé et ses champs, opaques au mod. */
+export type HarnaisSynchro = { etat: string } & Record<string, unknown>
+
+/** L'atome `harnais.synchro` : le texte de l'état de synchronisation à porter UNE fois en contexte, `null` sinon. */
+export type HarnaisSynchroEnAttente = { texte: string | null }
+
 declare module 'claude-code' {
   interface PluginState {
     harnais: {
       suivi: HarnaisSuivi
       vigie: HarnaisVigie
+      synchro: HarnaisSynchroEnAttente
     }
   }
 }

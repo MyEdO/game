@@ -28,8 +28,9 @@ export const PREREQUIS = [
     // fusion (fiches MIXTES, stocks), puis produit les cibles de code ; sans lui, aucune garde de
     // commit ne joue.
     manque: ({ depot, gestes }) => gestes.dossierDesHooks(depot) !== 'scripts/git-hooks',
-    poser: ({ racine, run, budget }) =>
-      run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget }),
+    // Sous le verrou d'outillage de l'arbre (#2187) : la barrière des hooks d'outil l'attend.
+    poser: ({ racine, run, budget, gestes }) =>
+      gestes.sousOutillage(racine, () => run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget })),
     geste: 'npm install',
     budget: 90,
   },

@@ -73,7 +73,7 @@ export function DialogueHistoryScreen({ onClose }: { onClose: () => void }) {
       {selected.turns.map((turn, i) => (
         <Stack key={i}>
           {turn.speaker && <div className="mini-title">{turn.speaker}</div>}
-          <Prose md={turn.nodeText} />
+          {turn.nodeText && <Prose md={turn.nodeText} />}
           <p className="dlg-history-reply">{turn.choiceText}</p>
         </Stack>
       ))}

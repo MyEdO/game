@@ -22,7 +22,8 @@ type Commun<T extends Porteur> = {
   value: T | undefined;
 };
 /** Un brouillon incomplet n'émet rien : la source retenue reste la précédente. `facultative` : un
- *  brouillon VIDE (livre, page et note vides) émet `undefined`. */
+ *  brouillon VIDE (livre, page et note vides) émet `undefined`. Seule une SAISIE se signale : la `value`
+ *  reçue, même incomplète (livre amorcé), s'affiche sans signal tant que l'auteur n'y a rien changé. */
 export type SourceRefFieldProps<T extends Porteur> = Commun<T> & (
   | { facultative: true; onChange: (v: (T & SourceRef) | undefined) => void }
   | { facultative?: false; onChange: (v: T & SourceRef) => void }
@@ -114,12 +115,12 @@ export function SourceRefField<T extends Porteur>(props: SourceRefFieldProps<T>)
       props.onChange(undefined);
     }
   };
-  const incomplet = !complete(brouillon) && !(props.facultative && vide(brouillon));
-  const enCours = incomplet && !memeBrouillon(brouillon, versBrouillon(value));
+  // Saisie EN COURS : incomplète et différente de la `value` reçue — l'unique état qui se signale.
+  const enCours = !complete(brouillon) && !(props.facultative && vide(brouillon)) && !memeBrouillon(brouillon, versBrouillon(value));
   useSaisieEnCours(enCours);
   const messageId = useId();
-  const livreManquant = incomplet && brouillon.book === '';
-  const pageManquante = incomplet && !folio(brouillon.page);
+  const livreManquant = enCours && brouillon.book === '';
+  const pageManquante = enCours && !folio(brouillon.page);
   return (
     <div className="ed-field">
       <span>{label}</span>
@@ -140,10 +141,9 @@ export function SourceRefField<T extends Porteur>(props: SourceRefFieldProps<T>)
         Note
         <input aria-label={nom('Note')} placeholder="facultatif" value={brouillon.note} onChange={(e) => poser({ note: e.target.value })} />
       </label>
-      {incomplet && (
+      {enCours && (
         <span id={messageId} className="hint" role="status">
-          {'Source incomplète : livre et page (≥ 1) requis.'}
-          {enCours && ` Cette saisie n'est pas retenue ; la source retenue reste ${decrire(value)}.`}
+          {`Source incomplète : livre et page (≥ 1) requis. Cette saisie n'est pas retenue ; la source retenue reste ${decrire(value)}.`}
         </span>
       )}
     </div>

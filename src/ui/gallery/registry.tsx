@@ -11,7 +11,7 @@
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
 import { tableTotale } from '../../lib/tableTotale';
-import { type ComponentType, useRef, useState } from 'react';
+import { type ComponentType, type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
 import { Tabs, type TabItem } from '../Tabs';
 import { ChoiceButtons, OptionChooser } from '../OptionChooser';
@@ -27,10 +27,12 @@ import { CodexRef } from '../compendium/CodexRef';
 import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
 import { SourceRefField } from '../SourceRefField';
+import { ProvenanceDuTexte } from '../editor/ProvenanceDuTexte';
 import { SourceBadge } from '../SourceBadge';
 import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
+import { adresseUnPassage, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { GatedAction } from '../GatedAction';
 import { ChipDeRefus } from '../ChipDeRefus';
 import { ReadyRow } from '../ReadyRow';
@@ -400,8 +402,9 @@ function ProseFieldDemo() {
 const sourceDeSort = memoParVersion('spells', () => spells.find((s) => s.source?.note)?.source ?? spells[0].source);
 
 function SourceRefFieldDemo() {
-  // Facultative puis exigée, chacune vide / incomplète / complète : un brouillon incomplet reste à
-  // l'écran et se dit incomplet, seule une réf complète remonte.
+  // Facultative puis exigée, chacune vide / amorcée incomplète / complète : une valeur reçue incomplète
+  // s'affiche sans signal, la première saisie qui la laisse incomplète se dit incomplète, seule une réf
+  // complète remonte.
   type Saisie = { book?: string; page?: number; note?: string } | undefined;
   const reelle = sourceDeSort();
   const [vide, setVide] = useState<Saisie>(undefined);
@@ -413,12 +416,53 @@ function SourceRefFieldDemo() {
   return (
     <>
       <SourceRefField identite="facultative-vide" label="Facultative — vide" facultative value={vide} onChange={setVide} />
-      <SourceRefField identite="facultative-livre-seul" label="Facultative — livre seul (incomplète)" facultative value={livreSeul} onChange={setLivreSeul} />
+      <SourceRefField identite="facultative-livre-seul" label="Facultative — livre seul amorcé (incomplète)" facultative value={livreSeul} onChange={setLivreSeul} />
       <SourceRefField identite="facultative-complete" label="Facultative — complète" facultative value={complete} onChange={setComplete} />
       <SourceRefField identite="exigee-vide" label="Exigée — vide" value={exigeeVide} onChange={setExigeeVide} />
-      <SourceRefField identite="exigee-incomplete" label="Exigée — page manquante (incomplète)" value={exigeeIncomplete} onChange={setExigeeIncomplete} />
+      <SourceRefField identite="exigee-incomplete" label="Exigée — page manquante, amorcée (incomplète)" value={exigeeIncomplete} onChange={setExigeeIncomplete} />
       <SourceRefField identite="exigee-complete" label="Exigée — complète" value={exigee} onChange={setExigee} />
     </>
+  );
+}
+
+function ProvenanceDuTexteDemo() {
+  // Les trois états d'un site qui offre la copie (`source`), puis deux répliques : adaptée, et ADRESSÉE
+  // (l'adresse et la prose matérialisée de la Terreur, `psychology.json`) — lue, à détacher.
+  type Provenance = { source?: SourceRef; adapteDe?: SourceRef };
+  type Replique = { adapteDe?: SourceRef; desc?: string; descRef?: DescRef };
+  const reelle = sourceDeSort();
+  const terreur = findPsychologyById('terreur');
+  const [maison, setMaison] = useState<Provenance>({});
+  const [copie, setCopie] = useState<Provenance>({ source: reelle });
+  const [adapte, setAdapte] = useState<Provenance>({ adapteDe: reelle });
+  const [replique, setReplique] = useState<Replique>({ adapteDe: reelle });
+  const [adressee, setAdressee] = useState<Replique>({ desc: terreur?.desc, descRef: terreur?.descRef });
+  const poser = <V,>(set: Dispatch<SetStateAction<V>>) => (patch: Partial<V>) => set((v) => ({ ...v, ...patch }));
+  return (
+    <Grid min="sm" gap="lg">
+      <Stack className="panel sunken" gap="sm">
+        <strong>Maison</strong>
+        <ProvenanceDuTexte identite="maison" copie sujet="du texte maison" value={maison} onChange={poser(setMaison)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Copie</strong>
+        <ProvenanceDuTexte identite="copie" copie sujet="du texte copié" value={copie} onChange={poser(setCopie)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Adapté</strong>
+        <ProvenanceDuTexte identite="adapte" copie sujet="du texte adapté" value={adapte} onChange={poser(setAdapte)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Réplique adaptée</strong>
+        <ProvenanceDuTexte identite="replique" sujet="de la réplique" value={replique} onChange={poser(setReplique)} />
+      </Stack>
+      <Stack className="panel sunken" gap="sm">
+        <strong>Réplique adressée</strong>
+        {/* Composée comme `DialogueDetail` : le texte se lit, puis s'édite une fois détaché. */}
+        <ProseField label="Texte de la réplique" lecture={adresseUnPassage(adressee.descRef) ? adressee.desc ?? '' : undefined} value={adressee.desc ?? ''} onChange={(desc) => setAdressee((v) => ({ ...v, desc: desc || undefined }))} />
+        <ProvenanceDuTexte identite="adressee" sujet="de la réplique adressée" value={adressee} onChange={poser(setAdressee)} />
+      </Stack>
+    </Grid>
   );
 }
 
@@ -1775,6 +1819,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
+  { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
   { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
   { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },

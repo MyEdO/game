@@ -12,8 +12,8 @@ import { OpenProjectModal, refusDeLaPorteDuProjet, refusMotive, type GesteDePort
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { allBuiltinCampaigns } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
-import { parseProject, parseSceneDeProjet } from '../../state/worldMap';
-import { emptyScene } from '../../state/scene';
+import { parseProject, parseSceneDeProjet, refusDeForme, type CauseDeRefus, type ProjetRefuse } from '../../state/worldMap';
+import { emptyScene, type Scene } from '../../state/scene';
 import { emptyNarratif } from '../../state/campaignNarratif';
 import { IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT, initLibrary, projectsLoad, projectSave, projetDeLEntree, type EntreeListee, type SavedProject } from '../../state/projectLibrary';
 import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
@@ -134,6 +134,41 @@ function rendu(doc: unknown, geste: GesteDePorte) {
 
 const GESTES: GesteDePorte[] = ['ouverture', 'enregistrement', 'export', 'import', 'test'];
 
+/** La table geste × cause : ce que chaque geste DIT de chaque cause. Seul l'import lit un FICHIER ;
+ *  une sauvegarde locale n'est pas un projet. */
+const PHRASE_VRAIE: Record<GesteDePorte, Record<CauseDeRefus, string>> = {
+  ouverture: {
+    schema: 'Ouverture refusée : projet d’un autre format, ou mal formé.',
+    'prose-non-materialisee': 'Ouverture refusée : projet d’un autre format, ou mal formé.',
+    entree: 'Ouverture refusée : sa scène de départ n’existe pas dans le projet.',
+  },
+  enregistrement: {
+    schema: 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Projet d’un autre format, ou mal formé.',
+    'prose-non-materialisee': 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Projet d’un autre format, ou mal formé.',
+    entree: 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Sa scène de départ n’existe pas dans le projet.',
+  },
+  export: {
+    schema: 'Export refusé : ce fichier ne pourrait plus être rouvert. Projet d’un autre format, ou mal formé.',
+    'prose-non-materialisee': 'Export refusé : ce fichier ne pourrait plus être rouvert. Projet d’un autre format, ou mal formé.',
+    entree: 'Export refusé : ce fichier ne pourrait plus être rouvert. Sa scène de départ n’existe pas dans le projet.',
+  },
+  import: {
+    schema: 'Import refusé : projet d’un autre format, ou mal formé.',
+    'prose-non-materialisee': 'Import refusé : ce fichier est la version de travail d’une campagne : les textes du livre n’y sont pas. Importez le fichier exporté par le jeu.',
+    entree: 'Import refusé : sa scène de départ n’existe pas dans le projet.',
+  },
+  test: {
+    schema: 'Mise à l’essai refusée : ce projet ne pourrait pas être joué. Projet d’un autre format, ou mal formé.',
+    'prose-non-materialisee': 'Mise à l’essai refusée : ce projet ne pourrait pas être joué. Projet d’un autre format, ou mal formé.',
+    entree: 'Mise à l’essai refusée : ce projet ne pourrait pas être joué. Sa scène de départ n’existe pas dans le projet.',
+  },
+  reprise: {
+    schema: 'Restauration refusée : scène d’un autre format, ou mal formée.',
+    'prose-non-materialisee': 'Restauration refusée : scène d’un autre format, ou mal formée.',
+    entree: 'Restauration refusée : scène d’un autre format, ou mal formée.',
+  },
+};
+
 describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CHEMIN', () => {
   it('le document de base passe la porte (sans quoi aucun cas ne mesurerait rien)', () => {
     expect(() => parseProject(projet())).not.toThrow();
@@ -198,6 +233,34 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     expect(rendu(decorSansType(projet()), 'enregistrement').detail).toBeUndefined();
   });
 
+  /** Une scène dont l'unique dialogue porte le nœud donné. */
+  const avecNoeud = (noeud: Record<string, unknown>) => {
+    const doc = projet();
+    const [sc] = doc.scenes as Record<string, unknown>[];
+    return { ...doc, scenes: [{ ...sc, dialogues: [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] }] };
+  };
+
+  const ENREGISTREMENT = 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : Scènes « Salle du banc » › dialogues « dlg » › nodes « n1 » › ';
+  const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
+
+  /** Mêmes documents refusés qu'avant la réécriture des messages (#2001) : seuls le NOMBRE de fautes
+   *  (une par défaut) et leur TEXTE (la faute seule, le site au chemin) changent. */
+  it.each([
+    ['réplique VIDE', { desc: '' }, 'desc — texte vide.'],
+    ['réplique SANS TEXTE', {}, 'desc — texte obligatoire.'],
+    ['réplique adaptée SANS TEXTE', { adapteDe: ADAPTE }, 'desc — texte obligatoire.'],
+    ['réplique adaptée VIDE', { desc: '', adapteDe: ADAPTE }, 'desc — texte vide.'],
+  ])('%s (#2001) : refusée, UNE faute, dite en français, le nœud au chemin', (_cas, noeud, faute) => {
+    expect(rendu(avecNoeud(noeud), 'enregistrement').message).toBe(`${ENREGISTREMENT}${faute}`);
+  });
+
+  it.each([
+    ['réplique maison', { desc: 'Bonjour.' }],
+    ['réplique adaptée', { desc: 'Bonjour.', adapteDe: ADAPTE }],
+  ])('%s (#2001) : ouverte', (_cas, noeud) => {
+    expect(parseProject(avecNoeud(noeud)).scenes[0].dialogues[0].nodes[0].desc).toBe('Bonjour.');
+  });
+
   it.each([
     ['ouverture', 'Ouverture refusée :'],
     ['import', 'Import refusé :'],
@@ -217,6 +280,33 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     const r = refusDeLaPorteDuProjet(erreur, 'reprise');
     expect(r.message).toBe('Restauration refusée : scène d’un autre format, ou mal formée.');
     expect(r.detail).toMatch(/^ {2}- entities « p0 » › ref: /m);
+  });
+
+  it.each(Object.entries(PHRASE_VRAIE) as [GesteDePorte, Record<CauseDeRefus, string>][])(
+    '%s — chaque cause se dit par la phrase VRAIE pour ce geste, le rapport de la porte en détail (#2404)',
+    (geste, attendu) => {
+      for (const cause of Object.keys(attendu) as CauseDeRefus[]) {
+        const r = refusDeLaPorteDuProjet(refusDeForme(cause, [], 'faute de la porte'), geste);
+        expect(r, `${geste} × ${cause}`).toEqual({ message: attendu[cause], detail: 'Projet invalide : faute de la porte.' });
+      }
+    },
+  );
+
+  it('reprise d’une sauvegarde locale en forme DISQUE (prose adressée sans son texte) : la scène d’un autre format, jamais l’import d’un fichier', () => {
+    const sc = emptyScene(4, 4);
+    sc.id = 's1';
+    sc.label = 'Salle';
+    sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], descRef: { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] } }] }] as Scene['dialogues'];
+    let erreur: unknown;
+    try {
+      parseSceneDeProjet(sc);
+    } catch (e) {
+      erreur = e;
+    }
+    expect((erreur as ProjetRefuse).cause).toBe('prose-non-materialisee');
+    const r = refusDeLaPorteDuProjet(erreur, 'reprise');
+    expect(r.message).toBe(PHRASE_VRAIE.reprise['prose-non-materialisee']);
+    expect(r.detail).toMatch(/dialogues\[0\]\.nodes\[0\]/);
   });
 
   it('un numéro de forme `schema` (autre format) : en mots d’AUTEUR, le rapport technique en détail seulement', () => {

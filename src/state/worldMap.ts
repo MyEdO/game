@@ -508,11 +508,11 @@ export function declutterPositions(
 // auto-suffisant, #765 ; enveloppe PLATE depuis #1467 L1b, posée par la fabrique `document()` depuis
 // #1552). Aucun numéro de forme : `projetSchema` est le contrôle de format (#2404).
 import { type NarratifBlock } from './campaignNarratif';
-import { validateDocument, rapportDeFautes, type Faute } from '../data/schemas/validate';
+import { validerFormeVivante, rapportDeFautes, type Faute, type RefusDeFormeVivante } from '../data/schemas/validate';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
-import { proseNonMaterialisee, versDisque } from '../data/schemas/grammaire/prose';
+import { versDisque } from '../data/schemas/grammaire/prose';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
@@ -633,43 +633,42 @@ export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | num
 }
 
 /** Une scène persistée HORS de son projet (filet de crash de l'éditeur, `editorAutosave.ts`), PROUVÉE
- *  par `sceneSchema`, puis `normalizeScene`. Les FK intra-document de `projetSchema` (`entity.presetId` →
- *  `narratif.presetsPnj`, références narratives des Effects) restent à la porte du projet : une scène
- *  seule n'a pas de narratif. Ce qui suit le schéma est une faute du jeu, et se propage. */
+ *  par la porte de `parseProject` (`validerFormeVivante`, sur `sceneSchema`), puis `normalizeScene`. Les
+ *  FK intra-document de `projetSchema` (`entity.presetId` → `narratif.presetsPnj`, références narratives
+ *  des Effects) restent à la porte du projet : une scène seule n'a pas de narratif. Ce qui suit la porte
+ *  est une faute du jeu, et se propage. */
 export function parseSceneDeProjet(scene: unknown): Scene {
-  const fautes = validateDocument(sceneSchema, scene);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes(SCENE_AUTRE_FORMAT, fautes));
+  const refus = validerFormeVivante(sceneSchema, scene);
+  if (refus) throw refusDeFormeVivante('Scène', refus);
   return normalizeScene(scene as Scene);
 }
 
-/** Parse un document de projet. `projetSchema` est le SEUL contrôle de forme (#2404) : un document d'un
- *  autre format, ou fautif, est REFUSÉ (`ProjetRefuse`, cause `schema`, rapport zod), jamais migré. Il
- *  porte la FORME et les sémantiques du seam — FK `activeAxes` → `axes.json`, FK
- *  `worldMap.places[].port.ref` → `naval-ports.json`, invariants du bloc narratif, FK intra-document
- *  `entity.presetId` → `narratif.presetsPnj`, invariant d'identité —, validé AVANT `resolvePortRef` et
- *  `normalizeScene` : le schéma voit le document tel qu'il est authoré. Une prose adressée sans son
- *  texte (la forme disque d'un projet livré : un lecteur Node passe par `lireProjetLivre`) est refusée
- *  à part. Chaque scène ressort passée par `normalizeScene` (`scene.ts`), au SEUL point d'entrée. La
- *  porte n'altère JAMAIS ce qu'on lui passe. Ce qui suit le schéma travaille sur un document PROUVÉ :
- *  une exception y est une faute du jeu, pas de l'auteur, et se propage. Inverse : `projetVersDepot`. */
+/** Le refus de `validerFormeVivante` en `ProjetRefuse`, sous sa cause : le schéma enfreint se rapporte
+ *  sous le terme de l'autre format (`PROJET_AUTRE_FORMAT`, `SCENE_AUTRE_FORMAT`), la prose adressée sans
+ *  son texte nomme chaque nœud par son chemin JSON. */
+function refusDeFormeVivante(sujet: 'Projet' | 'Scène', { cause, fautes }: RefusDeFormeVivante): ProjetRefuse {
+  if (cause === 'schema') return new ProjetRefuse(cause, fautes, rapportDeFautes(sujet === 'Projet' ? PROJET_AUTRE_FORMAT : SCENE_AUTRE_FORMAT, fautes));
+  return new ProjetRefuse(cause, fautes, `${sujet} invalide : ${fautes.map((f) => cheminJson(f.chemin)).join(', ')} — ${fautes[0].message}`);
+}
+
+/** Parse un document de projet. `validerFormeVivante` (`projetSchema` sur la forme disque, puis la
+ *  complétude de la prose sur le reçu, #2001) est le SEUL contrôle de forme (#2404) : un document d'un
+ *  autre format, ou fautif, est REFUSÉ (`ProjetRefuse`, cause `schema`, rapport zod), jamais migré ; une
+ *  prose adressée sans son texte (la forme disque d'un projet livré : un lecteur Node passe par
+ *  `lireProjetLivre`) l'est sous la cause `prose-non-materialisee`. `projetSchema` porte la FORME et les
+ *  sémantiques du seam — FK `activeAxes` → `axes.json`, FK `worldMap.places[].port.ref` →
+ *  `naval-ports.json`, invariants du bloc narratif, FK intra-document `entity.presetId` →
+ *  `narratif.presetsPnj`, invariant d'identité —, validé AVANT `resolvePortRef` et `normalizeScene`.
+ *  Chaque scène ressort passée par `normalizeScene` (`scene.ts`), au SEUL point d'entrée. La porte
+ *  n'altère JAMAIS ce qu'on lui passe. Ce qui suit la porte travaille sur un document PROUVÉ : une
+ *  exception y est une faute du jeu, pas de l'auteur, et se propage. Inverse : `projetVersDepot`. */
 export function parseProject(data: unknown): ProjectDoc {
-  const fautes = validateDocument(projetSchema, data);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes(PROJET_AUTRE_FORMAT, fautes));
-  // Le schéma VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
+  const refus = validerFormeVivante(projetSchema, data);
+  if (refus) throw refusDeFormeVivante('Projet', refus);
+  // La porte VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
   // (`ProjetProuve`, ci-dessus) plutôt que par un aller-retour `unknown`. Les champs d'identité sortent
   // du RESTE, typés : rien de ce que le document porte en plus ne peut s'y glisser muet.
   const doc = data as ProjetProuve;
-  // Un nœud ADRESSÉ sans son texte est la forme disque : le lire tel quel perdrait la prose en silence.
-  const nus = proseNonMaterialisee(doc);
-  if (nus.length > 0) {
-    const cause = 'prose-non-materialisee';
-    const message = 'prose adressée (`descRef`) sans son texte (`desc`)';
-    throw new ProjetRefuse(
-      cause,
-      nus.map((chemin) => ({ chemin, lieu: chemin, message, code: cause })),
-      `Projet invalide : ${message} — ${nus.map(cheminJson).join(', ')}.`,
-    );
-  }
 
   // Carte et lieux NEUFS : les ports se résolvent sur la copie, jamais sur le document reçu.
   const { scenes, worldMap: carteRecue, activeAxes, narratif, ...identite } = doc;
