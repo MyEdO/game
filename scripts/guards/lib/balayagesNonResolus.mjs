@@ -45,6 +45,8 @@ export const CLASSES = Object.freeze([
   Object.freeze({ classe: 'identifiant introuvable', motif: / introuvable$/ }),
   Object.freeze({ classe: 'chemin absolu', motif: /^chemin absolu / }),
   Object.freeze({ classe: 'propriété non suivie', motif: /^propriété / }),
+  Object.freeze({ classe: "cycle d'appels", motif: /^cycle d'appels / }),
+  Object.freeze({ classe: "profondeur d'appels", motif: /^profondeur d'appels / }),
   Object.freeze({ classe: 'autre', motif: /^/ }),
 ])
 

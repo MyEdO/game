@@ -104,14 +104,14 @@ test('un dossier temporaire est HORS du dépôt, jamais un non résolu', () => {
   assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'), [[{ hors: true }], [{ hors: true }]])
 })
 
-test('CYCLE de relais : une ré-entrée aux MÊMES arguments se lit à son point fixe ; une ré-entrée à d’autres arguments s’évalue, la suivante est un cycle nommé', () => {
+test('CYCLE de relais : une ré-entrée aux MÊMES arguments est un cycle nommé ; à d’autres arguments elle s’évalue, la suivante est un cycle nommé', () => {
   const modules = {
     'scripts/lib/cycle.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\nexport function a(d, n) { return n ? a(d, n - 1) : readdirSync(d) }\n" +
       "export function b(d) { return readdirSync(d) || b(join(d, 'x')) }\n",
     'scripts/t.test.mjs': "import { a, b } from './lib/cycle.mjs'\na('src', 3)\nb('docs')\n",
   }
   const [deA, deB] = racinesDe(modules, 'scripts/t.test.mjs')
-  assert.deepEqual(deA, [{ chemin: 'src' }])
+  assert.deepEqual(deA, [{ non: "cycle d'appels a" }, { chemin: 'src' }])
   assert.deepEqual(deB, [{ chemin: 'docs' }, { chemin: 'docs/x' }, { non: 'cycle d’appels b'.replace('’', "'") }])
 })
 
@@ -181,7 +181,11 @@ test('FONCTION ANONYME passée en argument : appelée, elle rend ses retours dan
       "export function lire(racine, rel, vue) { return readFileSync(cheminSous(racine, rel, vue)) }\nlire('donnees', 'a.json')\n",
   }
   const sites = evaluateurDe(modules).sitesDe('scripts/x/vue.mjs').filter((s) => !s.relais)
-  assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.valeurs]), [['10 lire', [{ non: 'appel vue.get' }, { chemin: 'donnees/a.json' }]]])
+  assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.valeurs]), [
+    ['6 cheminSous', [{ non: "cycle d'appels cheminSous" }]],
+    ['9 cheminSous', [{ non: "cycle d'appels cheminSous" }]],
+    ['10 lire', [{ non: "cycle d'appels cheminSous, dansVue" }, { non: 'appel vue.get' }, { chemin: 'donnees/a.json' }, { non: "cycle d'appels cheminSous" }]],
+  ])
 })
 
 test('une raison qui embarque du TEXTE SOURCE tient sur une ligne : ses blancs, retours à la ligne compris, se replient en une espace', () => {
@@ -199,43 +203,52 @@ const sitesDansLOrdre = (modules, fichiers) => {
 }
 const ENTETE = "import { readdirSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n"
 
-test('POINT FIXE d’une récursion aux mêmes arguments : un relais MUTUEL garde ses deux sites, quel que soit le module lu d’abord', () => {
+test('CYCLE ouvert aux mêmes arguments : un relais MUTUEL garde ses deux sites et nomme le cycle, quel que soit le module lu d’abord (CAS 1)', () => {
   const modules = {
     'scripts/lib/m.mjs': ENTETE + "export function a(d) { readdirSync(d); return b(d) }\nexport function b(d) { return a(d) }\n",
     'scripts/t.test.mjs': "import { a, b } from './lib/m.mjs'\na('src')\nb('docs')\n",
   }
   const attendu = [
-    ['scripts/t.test.mjs:2 a', false, ['{"chemin":"src"}']],
-    ['scripts/t.test.mjs:3 b', false, ['{"chemin":"docs"}']],
+    ['scripts/t.test.mjs:2 a', false, ['{"chemin":"src"}', '{"non":"cycle d\'appels a, b"}']],
+    ['scripts/t.test.mjs:3 b', false, ['{"chemin":"docs"}', '{"non":"cycle d\'appels a, b"}']],
   ]
   assert.deepEqual(sitesDansLOrdre(modules, ['scripts/t.test.mjs']), attendu)
   assert.deepEqual(sitesDansLOrdre(modules, ['scripts/lib/m.mjs', 'scripts/t.test.mjs']).filter(([s]) => s.startsWith('scripts/t.')), attendu)
 })
 
-test('POINT FIXE d’une valeur rendue transformée par la récursion : chaque ancêtre en est', () => {
-  const modules = {
+test('CYCLE ouvert aux mêmes arguments : la valeur rendue par la récursion est un cycle nommé, aucun ancêtre inventé, jamais la racine du dépôt (CAS 2, I1, I2)', () => {
+  const haut = {
     'scripts/lib/r.mjs': ENTETE + "export function haut(d) { return existsSync(d) ? d : dirname(haut(d)) }\n",
     'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { haut } from './lib/r.mjs'\nreaddirSync(haut('src/ui/x'))\n",
   }
-  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/t.test.mjs']), [
-    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":""}', '{"chemin":"src"}', '{"chemin":"src/ui"}', '{"chemin":"src/ui/x"}']],
-    ['scripts/t.test.mjs:3 haut', false, ['{"chemin":"src/ui/x"}']],
+  assert.deepEqual(sitesDansLOrdre(haut, ['scripts/t.test.mjs']), [
+    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":"src/ui/x"}', '{"non":"cycle d\'appels haut"}']],
+    ['scripts/t.test.mjs:3 haut', false, ['{"chemin":"src/ui/x"}', '{"non":"cycle d\'appels haut"}']],
+  ])
+  const mutuel = {
+    'scripts/lib/r.mjs': ENTETE + "export function a(d) { return existsSync(d) ? d : dirname(b(d)) }\nexport function b(d) { return a(d) }\n",
+    'scripts/t.test.mjs': "import { readdirSync } from 'node:fs'\nimport { a } from './lib/r.mjs'\nreaddirSync(a('src/ui/x/y/z'))\n",
+  }
+  assert.deepEqual(sitesDansLOrdre(mutuel, ['scripts/t.test.mjs']), [
+    ['scripts/t.test.mjs:3 readdirSync', false, ['{"chemin":"src/ui/x/y/z"}', '{"non":"cycle d\'appels a, b"}']],
+    ['scripts/t.test.mjs:3 a', false, ['{"chemin":"src/ui/x/y/z"}', '{"non":"cycle d\'appels a, b"}']],
   ])
 })
 
-test('POINT FIXE : un résultat calculé pendant un cycle ouvert ne se mémoïse pas — l’ordre des tests lus ne change rien', () => {
+test('CYCLE ouvert : un résultat calculé pendant un cycle ouvert ne se mémoïse pas — l’ordre des tests lus ne change rien (CAS 3)', () => {
   const modules = {
     'scripts/lib/p.mjs': ENTETE + "export function a(d) { readdirSync(d); b(d) }\nexport function b(d) { existsSync(join(d, 'x')); a(d) }\n",
     'scripts/t1.test.mjs': "import { a } from './lib/p.mjs'\na('alpha')\n",
     'scripts/t2.test.mjs': "import { b } from './lib/p.mjs'\nb('alpha')\n",
   }
-  const attendu = { 'scripts/t1.test.mjs:2 a': ['{"chemin":"alpha"}', '{"chemin":"alpha/x"}'], 'scripts/t2.test.mjs:2 b': ['{"chemin":"alpha"}', '{"chemin":"alpha/x"}'] }
+  const valeurs = ['{"chemin":"alpha"}', '{"chemin":"alpha/x"}', '{"non":"cycle d\'appels a, b"}']
+  const attendu = { 'scripts/t1.test.mjs:2 a': valeurs, 'scripts/t2.test.mjs:2 b': valeurs }
   for (const ordre of [['scripts/t1.test.mjs', 'scripts/t2.test.mjs'], ['scripts/t2.test.mjs', 'scripts/t1.test.mjs']]) {
     assert.deepEqual(Object.fromEntries(sitesDansLOrdre(modules, ordre).map(([s, , v]) => [s, v])), attendu, ordre.join(' puis '))
   }
 })
 
-test('POINT FIXE introuvable : une récursion qui CREUSE aux mêmes arguments se nomme après `ITERATIONS` passes ; à d’autres arguments, après `REENTREES`', () => {
+test('une récursion qui CREUSE : aux mêmes arguments, cycle nommé dès la ré-entrée ; à d’autres arguments, après `REENTREES` (CAS 4)', () => {
   const modules = {
     'scripts/lib/q.mjs': ENTETE + "export function f(d) { readdirSync(d); return f(join(d, '..')) }\n" +
       "export function g(d) { return existsSync(d) ? d : join(g(d), 'x') }\n",
@@ -243,8 +256,7 @@ test('POINT FIXE introuvable : une récursion qui CREUSE aux mêmes arguments se
   }
   const [deF, deG] = sitesDansLOrdre(modules, ['scripts/t.test.mjs'])
   assert.deepEqual(deF, ['scripts/t.test.mjs:3 f', false, ['{"chemin":"src/ui/a"}', '{"chemin":"src/ui/a/b"}', '{"non":"cycle d\'appels f"}']])
-  assert.equal(deG[2].length, 9, 'src, src/x … src/x/x/x/x/x/x/x, puis le non nommé')
-  assert.equal(deG[2].at(-1), '{"non":"cycle d\'appels g sans point fixe"}')
+  assert.deepEqual(deG, ['scripts/t.test.mjs:4 readdirSync', false, ['{"chemin":"src"}', '{"non":"cycle d\'appels g"}']])
 })
 
 test('une lecture COUPÉE (profondeur) ne tranche pas le relais : le site qui l’appelle porte la coupe nommée, jamais disparu ; non mémoïsée, le relais appelé plus haut garde ses racines, quel que soit l’ordre', () => {
@@ -262,7 +274,7 @@ test('une lecture COUPÉE (profondeur) ne tranche pas le relais : le site qui l�
   }
 })
 
-test('une lecture COUPÉE par un CYCLE à d’autres arguments ne tranche pas le relais : le site porte le cycle nommé (cas réel minimisé : analyseRetenue.mjs, `rendTeinte` et `teinte`)', () => {
+test('une lecture COUPÉE par un CYCLE ne tranche pas le relais : le site porte le cycle nommé (cas réel minimisé : analyseRetenue.mjs, `rendTeinte` et `teinte`)', () => {
   const modules = {
     'scripts/guards/lib/analyseRetenue.mjs':
     "function rendTeinte(fn, ctx) {\n" +
@@ -277,6 +289,6 @@ test('une lecture COUPÉE par un CYCLE à d’autres arguments ne tranche pas le
     "}\n",
   }
   assert.deepEqual(sitesDansLOrdre(modules, ['scripts/guards/lib/analyseRetenue.mjs']), [
-    ['scripts/guards/lib/analyseRetenue.mjs:2 teinte', false, [JSON.stringify({ non: "cycle d'appels teinte" })]],
+    ...[2, 7, 9, 9].map((ligne) => [`scripts/guards/lib/analyseRetenue.mjs:${ligne} teinte`, false, [JSON.stringify({ non: "cycle d'appels teinte" })]]),
   ])
 })

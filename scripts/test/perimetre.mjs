@@ -7,7 +7,7 @@
 // racine de chaque test Vitest, au rang `setup` ; la toolchain touchée (`TOOLCHAIN`) retient la suite entière.
 // Exécution : le lint des fichiers touchés (`lancerLint`), puis les tests sous `BUDGET_LOCAL_S` de MUR estimé,
 // ordonnés par rang, spécificité de racine et signal (`planDExecution`, `signalDe`), estimés par les durées
-// APPRISES, sinon A PRIORI (`estimationsDe`, `DUREES`, reporters `dureesVitest.mjs` et `dureesNodeTest.mjs`), réparties sur les
+// APPRISES (`estimationsDe`, `DUREES`, reporters `dureesVitest.mjs` et `dureesNodeTest.mjs`), réparties sur les
 // workers de chaque famille, plus le surcoût de lancement appris (`murEstime`, `SURCOUTS`) ; le reste à la CI.
 // Docs dérivés : `selectionDesGenerateurs`, joués en `--check` sous `--docs` seulement.
 // Le graphe résout contre la post-image ∪ la base : l'importeur pendu vers un fichier SUPPRIMÉ reste lié.
@@ -468,8 +468,8 @@ export function murEstime(tests, { estimations = new Map(), ...options } = {}) {
  * INCONNUE (`estimationsDe`) part à la CI sans couper les suivants ; au rang touché, il est lancé hors estimation. PURE.
  * @param {Map<string, { rang: number, specificite?: number }>} retenus
  * @param {{ budget?: number, estimations?: Map<string, { ms: number }>, signaux?: Map<string, { signal: string }>, workers?: Record<string, number>, surcouts?: Record<string, number> }} [options]
- * Chaque mur porte sa part A PRIORI (`prioriMs`) et ses tests lancés SANS DURÉE (`sansDuree`), dont il n'est qu'un minorant.
- * @returns {{ lances: string[], aLaCI: string[], murMs: number, murBudgeteMs: number, prioriMs: number, sansDuree: number, rangs: { rang: string, murMs: number, prioriMs: number, sansDuree: number, lances: number, aLaCI: number, inconnues: number }[] }}
+ * Chaque mur porte ses tests lancés SANS DURÉE (`sansDuree`), dont il n'est qu'un minorant.
+ * @returns {{ lances: string[], aLaCI: string[], murMs: number, murBudgeteMs: number, sansDuree: number, rangs: { rang: string, murMs: number, sansDuree: number, lances: number, aLaCI: number, inconnues: number }[] }}
  */
 export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations = new Map(), signaux = new Map(), workers, surcouts } = {}) {
   const parRang = new Map()
@@ -479,11 +479,8 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const force = (t) => SIGNAUX.indexOf(signaux.get(t)?.signal ?? 'reste')
   const specificite = (t) => retenus.get(t).specificite ?? 0
   const mur = (cumuls) => murDesCumuls(cumuls, { workers, surcouts })
-  const appris = (t) => estimations.get(t)?.source === 'apprise' ? cout(t) : 0
   const cumuls = cumulsDe([], cout)
-  const cumulsAppris = cumulsDe([], appris)
   const avec = (t) => ({ ...cumuls, [familleDe(t)]: cumulAvec(cumuls[familleDe(t)], cout(t)) })
-  const priori = () => mur(cumuls) - mur(cumulsAppris)
   const lances = []
   const aLaCI = []
   const rangs = []
@@ -491,8 +488,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   for (const rang of [...parRang.keys()].sort((a, b) => a - b)) {
     const tests = parRang.get(rang).sort((a, b) => force(a) - force(b) || specificite(a) - specificite(b) || cout(a) - cout(b) || (a < b ? -1 : 1))
     const avant = mur(cumuls)
-    const prioriAvant = priori()
-    const bilan = { rang: libelleDuRang(rang), murMs: 0, prioriMs: 0, sansDuree: 0, lances: 0, aLaCI: 0, inconnues: 0 }
+    const bilan = { rang: libelleDuRang(rang), murMs: 0, sansDuree: 0, lances: 0, aLaCI: 0, inconnues: 0 }
     for (const t of tests) {
       if (inconnue(t)) bilan.inconnues += 1
       if (rang > 0 && inconnue(t)) {
@@ -506,18 +502,16 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
         continue
       }
       Object.assign(cumuls, avec(t))
-      cumulsAppris[familleDe(t)] = cumulAvec(cumulsAppris[familleDe(t)], appris(t))
       if (rang === 0) horsBudget = mur(cumuls)
       if (inconnue(t)) bilan.sansDuree += 1
       lances.push(t)
       bilan.lances += 1
     }
     bilan.murMs = mur(cumuls) - avant
-    bilan.prioriMs = priori() - prioriAvant
     rangs.push(bilan)
   }
   const sansDuree = rangs.reduce((n, r) => n + r.sansDuree, 0)
-  return { lances, aLaCI, murMs: mur(cumuls), murBudgeteMs: mur(cumuls) - horsBudget, prioriMs: priori(), sansDuree, rangs }
+  return { lances, aLaCI, murMs: mur(cumuls), murBudgeteMs: mur(cumuls) - horsBudget, sansDuree, rangs }
 }
 
 /** Les modules `entrees` (`{ rel, text }`, `text` null : absent) analysés par lots de `LOT_D_ANALYSE`,
@@ -560,31 +554,19 @@ function parBlob(entrees, famille, memos, extraire) {
 const familleDe = (test) => estTestNode(test) ? 'node' : 'vitest'
 
 /**
- * L'ESTIMATION de durée de chaque test (#2400) : sa durée APPRISE ; sinon un A PRIORI, la MÉDIANE des durées
- * apprises de sa famille (`familleDe`), qui s'apprend au lancement ; sans durée apprise dans la famille, `null` :
- * son test part à la CI hors du rang touché (`planDExecution`). PURE.
+ * L'ESTIMATION de durée de chaque test (#2400) : sa durée APPRISE, sinon `null` — une durée inconnue ne
+ * s'estime pas : hors du rang touché son test part à la CI, au rang touché il est lancé et le mur n'est plus
+ * qu'un minorant (`planDExecution`). PURE.
  * @param {string[]} tests @param {Record<string, number>} durees
- * @returns {Map<string, { ms: number | null, source: 'apprise' | 'a priori' | 'inconnue' }>}
+ * @returns {Map<string, { ms: number | null, source: 'apprise' | 'inconnue' }>}
  */
 export function estimationsDe(tests, durees) {
-  const medianes = tableTotale(FAMILLES, (famille) => mediane(Object.entries(durees).filter(([t]) => familleDe(t) === famille).map(([, ms]) => ms)))
-  return new Map(tests.map((t) => [t, Object.hasOwn(durees, t) ? { ms: durees[t], source: 'apprise' }
-    : medianes[familleDe(t)] === null ? { ms: null, source: 'inconnue' } : { ms: medianes[familleDe(t)], source: 'a priori' }]))
+  return new Map(tests.map((t) => [t, Object.hasOwn(durees, t) ? { ms: durees[t], source: 'apprise' } : { ms: null, source: 'inconnue' }]))
 }
 
-/** La médiane de `valeurs`, `null` si vide. PURE. */
-const mediane = (valeurs) => {
-  if (!valeurs.length) return null
-  const tries = [...valeurs].sort((a, b) => a - b)
-  const milieu = tries.length >> 1
-  return tries.length % 2 ? tries[milieu] : (tries[milieu - 1] + tries[milieu]) / 2
-}
-
-/** Le MUR `murMs` en texte : `dont Y s a priori` (`prioriMs`) ; avec `sansDuree` tests lancés sans durée, un
- *  MINORANT `≥ X s`. PURE. */
-export const texteDuMur = (murMs, { prioriMs = 0, sansDuree = 0 } = {}) =>
-  `${sansDuree ? '≥ ' : ''}${secondes(murMs)}${prioriMs > 0 ? ` dont ${secondes(prioriMs)} a priori` : ''}` +
-  `${sansDuree ? ` (minorant : ${sansDuree} test(s) sans durée)` : ''}`
+/** Le MUR `murMs` en texte ; avec `sansDuree` tests lancés sans durée, un MINORANT `≥ X s`. PURE. */
+export const texteDuMur = (murMs, { sansDuree = 0 } = {}) =>
+  `${sansDuree ? '≥ ' : ''}${secondes(murMs)}${sansDuree ? ` (minorant : ${sansDuree} test(s) sans durée)` : ''}`
 
 /**
  * Les déclarations EXPORTÉES d'un module, nom → texte (`export *` sous `*`, l'export par défaut sous
@@ -789,9 +771,8 @@ export function surcoutObserve(famille, murMs, durees, workers) {
 
 /** Le libellé d'une durée en secondes. */
 const secondes = (ms) => `${(ms / 1000).toFixed(1)} s`
-/** L'estimation d'un test en texte : apprise (`~`), a priori (`≈`, sa famille), ou inconnue. PURE. */
-export const texteDeLEstimation = ({ ms, source }, famille) => source === 'apprise' ? ` ~${secondes(ms)} (apprise)`
-  : source === 'a priori' ? ` ≈ ${secondes(ms)} (a priori : médiane de ${famille})` : ' durée inconnue'
+/** L'estimation d'un test en texte : apprise (`~`), ou inconnue. PURE. */
+export const texteDeLEstimation = ({ ms }) => ms === null ? ' durée inconnue' : ` ~${secondes(ms)} (apprise)`
 
 function principal() {
   const options = lireArguments(process.argv.slice(2))
@@ -822,7 +803,7 @@ function principal() {
   }
   const lancesAuPlan = new Set(plan.lances)
   for (const [test, lien] of [...retenus].sort(([a], [b]) => (a < b ? -1 : 1)))
-    console.log(`  ${test} ← ${texteDuLien(lien)}${texteDuSignal(test)}${texteDeLEstimation(estimations.get(test), familleDe(test))} → ${lancesAuPlan.has(test) ? 'lancé' : 'CI'}`)
+    console.log(`  ${test} ← ${texteDuLien(lien)}${texteDuSignal(test)}${texteDeLEstimation(estimations.get(test))} → ${lancesAuPlan.has(test) ? 'lancé' : 'CI'}`)
   const jouerDocs = options.docs && !docs.complete && docs.scripts.length > 0
   journal(`docs dérivés : ${docs.scripts.length} générateur(s) (${docs.raison}) ${jouerDocs ? 'en --check' : `→ CI${docs.complete || !docs.scripts.length ? '' : ' (`--docs` pour les jouer)'}`}${docs.scripts.length ? ` : ${docs.scripts.join(', ')}` : ''}`)
   journal(`balayages non résolus : ${nonResolus.length} site(s)`)
@@ -851,8 +832,9 @@ function principal() {
     const r = spawnSync(process.execPath, args, { cwd: racine, stdio: 'inherit' })
     const murMs = performance.now() - debutDuLancement
     if (code === 0) code = codeEnfant(r.status, r.signal)
-    const appris = apprendre(racine, rapport, mesures)
-    if (!famille || !Object.keys(appris).length) continue
+    if (!famille) continue
+    const appris = apprendre(racine, rapport, mesures, famille)
+    if (!Object.keys(appris).length) continue
     const estime = murEstime(Object.keys(appris), { estimations: new Map(Object.entries(appris).map(([t, ms]) => [t, { ms }])), workers, surcouts })
     const surcout = surcoutObserve(famille, murMs, Object.values(appris), workers)
     journal(`${famille} : ${Object.keys(appris).length} fichier(s), mur réel ${secondes(murMs)}, estimé ${secondes(estime)} ; surcoût observé ${secondes(surcout)}`)
@@ -861,21 +843,17 @@ function principal() {
   return code
 }
 
-/** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) les rapports de durées du dernier lancement
- *  (`dureesVitest`, `dureesNodeTest` : `{ [chemin absolu]: ms }`), et ne les efface qu'une fois écrites
- *  (`ecrireLesMesures`) ; rend les durées apprises, chemins relatifs. */
-export function apprendre(racine, rapport, mesures) {
+/** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) le rapport de durées du dernier lancement de la famille
+ *  `famille` (`rapport(famille)`, `dureesVitest` ou `dureesNodeTest` : `{ [chemin absolu]: ms }`), et ne l'efface qu'une
+ *  fois écrit (`ecrireLesMesures`) ; le rapport d'une AUTRE famille n'est pas lu. Rend les durées apprises, chemins
+ *  relatifs. */
+export function apprendre(racine, rapport, mesures, famille) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
-  const appris = {}
-  const lus = []
-  for (const famille of FAMILLES) {
-    let lu
-    try { lu = JSON.parse(readFileSync(rapport(famille), 'utf8')) } catch { continue }
-    for (const [f, ms] of Object.entries(lu)) appris[relDe(f)] = Math.round(ms)
-    lus.push(rapport(famille))
-  }
-  if (Object.keys(appris).length && ecrireLesMesures(mesures, DUREES, appris)) for (const r of lus) rmSync(r, { force: true })
+  let lu
+  try { lu = JSON.parse(readFileSync(rapport(famille), 'utf8')) } catch { return {} }
+  const appris = Object.fromEntries(Object.entries(lu).map(([f, ms]) => [relDe(f), Math.round(ms)]))
+  if (Object.keys(appris).length && ecrireLesMesures(mesures, DUREES, appris)) rmSync(rapport(famille), { force: true })
   return appris
 }
 

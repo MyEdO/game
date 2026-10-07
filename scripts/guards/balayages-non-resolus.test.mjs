@@ -46,7 +46,9 @@ test('classifieur : valeur nulle et module qui balaie la racine exemptés par r�
     { fichier: 'b.mjs', helper: 'existsSync', raison: 'courant introuvable' },
     { fichier: 'b.mjs', helper: 'glob', raison: 'chemin absolu /src/data' },
     { fichier: 'c.mjs', helper: 'readFile', raison: "URL new URL(s,\n  racine)" },
-    { fichier: 'c.mjs', helper: 'readFile', raison: 'cycle d’appels lire' },
+    { fichier: 'c.mjs', helper: 'readFile', raison: "cycle d'appels lire, sous" },
+    { fichier: 'c.mjs', helper: 'readFile', raison: "profondeur d'appels > 16 (f17)" },
+    { fichier: 'c.mjs', helper: 'readFile', raison: 'ancetre réaffectée en récurrence' },
   ])
   assert.deepEqual(exemptes, { 'valeur nulle': 1, 'module qui balaie la racine du dépôt': 1 })
   assert.deepEqual(classes.map((s) => [s.famille, s.file, s.ref]), [
@@ -57,7 +59,9 @@ test('classifieur : valeur nulle et module qui balaie la racine exemptés par r�
     ['identifiant introuvable', 'b.mjs', 'existsSync : courant introuvable'],
     ['chemin absolu', 'b.mjs', 'glob : chemin absolu /src/data'],
     ['URL', 'c.mjs', 'readFile : URL new URL(s, racine)'],
-    ['autre', 'c.mjs', 'readFile : cycle d’appels lire'],
+    ["cycle d'appels", 'c.mjs', "readFile : cycle d'appels lire, sous"],
+    ["profondeur d'appels", 'c.mjs', "readFile : profondeur d'appels > 16 (f17)"],
+    ['autre', 'c.mjs', 'readFile : ancetre réaffectée en récurrence'],
   ])
 })
 

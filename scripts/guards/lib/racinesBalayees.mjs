@@ -52,8 +52,6 @@ const PROFONDEUR_D_APPELS = 16
 const REENTREES = 1
 /** Les raisons d'une lecture COUPÉE par les bornes de `sousPile` : sans elles, la lecture aurait pu continuer. */
 const COUPE = /^(cycle|profondeur) d'appels/
-/** Les passes d'un appel récursif aux mêmes arguments vers son point fixe (`sousPile`) ; au-delà, `non` nommé. */
-const ITERATIONS = 8
 
 /**
  * Le LECTEUR d'expressions de chemin d'un module : `expr(noeud)` rend son `Expr`, constantes locales et
@@ -566,10 +564,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   const cleDesArgs = (args) => args ? args.map((a) => a.map(cleDe).join(',')).join('|') : ''
 
   /** Borne la pile d'appels de la fonction `fonction` (`<nature> <module>#<nom>`) aux arguments `args`. Un appel
-   *  déjà en cours AUX MÊMES arguments rend l'approximation courante de cet appel, qui se recalcule jusqu'au POINT
-   *  FIXE (ensemble de valeurs stable) en au plus `ITERATIONS` passes, au-delà `cycle d'appels … sans point fixe` ;
-   *  une `REENTREES`+1-ième ré-entrée à d'autres arguments et la profondeur rendent un `non` nommé. Chacun dépend
-   *  de la pile qui l'a vu (`dependre`). Un cycle se nomme par ses fonctions, triées : il porte le même nom quel
+   *  déjà en cours AUX MÊMES arguments, une `REENTREES`+1-ième ré-entrée à d'autres arguments et la profondeur
+   *  rendent un `non` nommé. Chacun dépend de la pile qui l'a vu (`dependre`). Un cycle se nomme par ses fonctions, triées : il porte le même nom quel
    *  que soit l'appel par lequel on y entre. */
   const sousPile = (fonction, args, nom, faire) => {
     const cle = `${fonction}(${cleDesArgs(args)})`
@@ -578,27 +574,14 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       dependre(depuis)
       return [{ non: `cycle d'appels ${[...new Set(pile.slice(depuis).map((p) => p.nom))].sort().join(', ')}` }]
     }
-    if (enCoursAuxMemes >= 0) {
-      dependre(enCoursAuxMemes)
-      pile[enCoursAuxMemes].reentre = true
-      return pile[enCoursAuxMemes].approximation
-    }
+    if (enCoursAuxMemes >= 0) return cycle(enCoursAuxMemes)
     if (pile.filter((p) => p.fonction === fonction).length > REENTREES) return cycle(pile.findIndex((p) => p.fonction === fonction))
     if (pile.length >= PROFONDEUR_D_APPELS) {
       dependre(0)
       return [{ non: `profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})` }]
     }
-    const appel = { fonction, cle, nom, approximation: [], reentre: false }
-    pile.push(appel)
-    try {
-      for (let passe = 1; ; passe += 1) {
-        appel.reentre = false
-        const rendu = uniques([...appel.approximation, ...faire()])
-        if (!appel.reentre || rendu.length === appel.approximation.length) return rendu
-        if (passe === ITERATIONS) return [...rendu, { non: `cycle d'appels ${nom} sans point fixe` }]
-        appel.approximation = rendu
-      }
-    } finally { pile.pop() }
+    pile.push({ fonction, cle, nom })
+    try { return faire() } finally { pile.pop() }
   }
 
   const retour = (fn, args) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
@@ -628,7 +611,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
 
   /** La fonction est-elle un RELAIS : un de ses paramètres alimente-t-il une lecture ? Une fonction déjà en
    *  cours d'évaluation est supposée relais : ses lectures liées s'évaluent, et une boucle s'y nomme (`sousPile`).
-   *  Une lecture COUPÉE (`COUPE`) ne tranche pas : supposée relais, la coupe se nomme au site qui l'appelle. */
+   *  Une lecture COUPÉE (`COUPE`) ne tranche pas : supposée relais, la coupe se nomme au site qui l'appelle. Toute
+   *  coupe répute relais : un « non » n'est jamais l'effet de la pile qui l'a vu, et la réponse se mémoïse. */
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
     const deja = relais.get(cle)
@@ -640,8 +624,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     if (!peutLire(fn.f)) return false
     enCours.add(cle)
     try {
-      const { resultat: { resultat: oui, stable }, requetes } = tracer(() => memoisable(() => lecturesDe(fn, null).some((v) => 'relais' in v || ('non' in v && COUPE.test(v.non)))))
-      if (stable) relais.set(cle, { oui, requetes })
+      const { resultat: oui, requetes } = tracer(() => lecturesDe(fn, null).some((v) => 'relais' in v || ('non' in v && COUPE.test(v.non))))
+      relais.set(cle, { oui, requetes })
       return oui
     } finally { enCours.delete(cle) }
   }
