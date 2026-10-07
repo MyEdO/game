@@ -55,6 +55,7 @@ import { codeEnfant } from '../test/partition.mjs'
 import { prendreVerrouAsync } from '../test/verrou.mjs'
 import { OPT_OUT_SUITE, VERROU_SUITE, attenteDeSuite, prendreVerrouDeSuite } from '../test/verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
+import { CACHE_FRAICHEUR } from '../docs/lib/cache-fraicheur.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
@@ -126,6 +127,7 @@ export const ECRIT_LU = {
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
     raison:
+      'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
       'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
@@ -209,6 +211,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison:
+      'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
       '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
       '`mkdtempSync`, ou les dépôts jetables de `depotGabarit.mjs`, dont toutes les écritures visent ' +
@@ -249,6 +252,8 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json'],
     raison:
+      'gitDeBanc.test.mjs importe installer du collecteur et ses dépendances sous scripts/ : aucune SORTIE fournie, aucun flush appelé ; ' +
+      'ses captures Git restent en mémoire sur des dépôts instanceDeDepot sous os.tmpdir(), restaurés puis supprimés en finally ; ' +
       'chaque cas fabrique son arbre sous os.tmpdir() (`mkdtempSync`), y compris son node_modules/.cache ; ' +
       'LIT package.json (les scripts que le runner relaie) et .npmrc (copié par scripts/node-requis.test.mjs ' +
       'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
@@ -258,7 +263,10 @@ export const ECRIT_LU = {
       '`scripts/test/perimetre.test.mjs` forge ses dépôts avec mkdtempSync(tmpdir()), mémos compris, et les nettoie par t.after ; ' +
       '+1 écrivain le 2026-10-07 (#2400) : `lintStage.mjs`, atteint par `perimetre.mjs`, dont le banc injecte le lanceur de lint ; ' +
       '+1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` atteint `ecrireOuVerifier` par le générateur, ' +
-      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire)',
+      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire) ; +1 le 2026-10-07 (#2400, fusion de #2456) : ' +
+      '`fraicheur-docs.mjs`, atteint par `perimetre.mjs` → `docs-rebuild.mjs` → `build-all.mjs`, n’écrit sa preuve ' +
+      '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
+      'que les bancs de la gate n’appellent pas',
   },
   'test:docs': {
     ecrit: [],
@@ -266,10 +274,14 @@ export const ECRIT_LU = {
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
+      'scripts/git-hooks/docs-rebuild.mjs', 'scripts/git-hooks/journal.mjs', 'scripts/hooks/barriere-outil.mjs',
+      'scripts/test/verrou.mjs', 'scripts/node-requis.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
     ],
     raison:
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
+      'les bancs fraîcheur écrivent leur cache dans leurs dépôts sous os.tmpdir(), supprimés en finally ; ' +
+      'la sélection pure de docs-rebuild est importée sans son main : ni journaliserLeHook ni prendreOutillage/prendreVerrou ne sont appelés ; ' +
       'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
       '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
       'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous os.tmpdir(), préfixe plateforme-win32-decodage-, ' +
@@ -355,6 +367,10 @@ export const ECRIT_LU = {
   build: {
     ecrit: [],
     ecritFerme: {
+      [CACHE_FRAICHEUR]:
+        '`build-all.mjs --code` appelle invaliderPreuve : écriture seulement si chargerPreuve reconnaît un cache v2 valide existant ; ' +
+        'destination sous node_modules/ gitignoré, hors arbre versionné ; les seuls lecteurs réels build/docs:build sont dans le même job/lane docs de ci.yml, ' +
+        'séquentiels par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'src/':
         'les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs) sont produites AVANT toute gate ' +
         '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
@@ -366,7 +382,7 @@ export const ECRIT_LU = {
         'il ne salit pas l’arbre. `ecrit` le dirait CHEVAUCHANT `vite.config.ts` (recouvrement par PRÉFIXE), ' +
         'que `test` et `typecheck` lisent depuis d’autres lanes : ce serait un faux conflit',
     },
-    lit: ['src/', 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html'],
+    lit: ['src/', 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html', CACHE_FRAICHEUR],
     raison:
       '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
@@ -381,6 +397,9 @@ export const ECRIT_LU = {
   'docs:build': {
     ecrit: [],
     ecritFerme: {
+      [CACHE_FRAICHEUR]:
+        'cache gitignoré sous node_modules/, hors arbre versionné ; seuls build et docs:build lisent celui de la racine réelle : ' +
+        'même job/lane docs de ci.yml, joués séquentiellement par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'docs/':
         'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
         '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
@@ -389,7 +408,7 @@ export const ECRIT_LU = {
         'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
         'ne réécrit pas un rendu identique',
     },
-    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/'],
+    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/', CACHE_FRAICHEUR],
     raison:
       'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
       '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +

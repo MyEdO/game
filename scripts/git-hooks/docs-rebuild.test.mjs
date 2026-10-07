@@ -295,6 +295,30 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
   }
 })
 
+test('sélection initiale explicite : cibles nues tolérées, fermeture des producteurs et lecteurs conservée', () => {
+  const doc = (nom) => ['docs', `${nom}.md`].join('/')
+  const { racine } = instanceDeDepot({ fichiers: {} })
+  const generateurs = [
+    { script: 'g/code.mjs', targets: ['src/code.gen.ts'] },
+    { script: 'g/a.mjs', targets: [doc('a')] },
+    { script: 'g/b.mjs', targets: [doc('b')] },
+    { script: 'g/c.mjs', targets: [doc('c')] },
+  ]
+  const mesure = {
+    'g/code.mjs': { fichiers: ['data/code.json'], dossiers: [], cibles: [] },
+    'g/a.mjs': { fichiers: ['src/code.gen.ts'], dossiers: [], cibles: [doc('a')] },
+    'g/b.mjs': { fichiers: [doc('a')], dossiers: [], cibles: [doc('b')] },
+    'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: [doc('c')] },
+  }
+  try {
+    const plan = selectionDesGenerateurs({ lot: [], scriptsInitiaux: ['g/a.mjs'], mesure, cwd: racine, generateurs })
+    assert.equal(plan.complete, false)
+    assert.deepEqual(plan.scripts, ['g/code.mjs', 'g/a.mjs', 'g/b.mjs'])
+    assert.deepEqual(selectionDesGenerateurs({ lot: [], scriptsInitiaux: [], mesure, cwd: racine, generateurs }).scripts, [])
+    assert.equal(selectionDesGenerateurs({ lot: [], scriptsInitiaux: ['g/inconnu.mjs'], mesure, cwd: racine, generateurs }).complete, true)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('post-commit réel : fusion automatique unique, conflit résolu, amend lock/message et reflog inconnu', () => {
   const module = pathToFileURL(join(RACINE, 'scripts/git-hooks/docs-rebuild.mjs')).href
   for (const conflit of [false, true]) {

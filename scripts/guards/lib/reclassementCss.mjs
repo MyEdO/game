@@ -9,8 +9,8 @@
 // Le discriminant est la FRONTIÈRE lue dans chaque côté (`coteCss`, `cssImages.mjs`) — manifeste,
 // `FEUILLES_PARTAGEES`, `fichier`s réutilisés —, jamais le libellé `nature` qu'un commit écrit lui-même.
 //
-// FRONTIÈRE : cette lib CALCULE ; le VERDICT appartient aux appelants — le garde de solde au commit
-// (`scripts/hooks/solde-ticket-guard.mjs`), la porte de plage au push (`plageStock.mjs`), chaque
+// FRONTIÈRE : cette lib CALCULE ; le VERDICT appartient aux appelants — la porte du commit
+// (`scripts/git-hooks/porte-du-commit.mjs`), la porte de plage au push (`plageStock.mjs`), chaque
 // commit contre sa base (#1806 D3″).
 import {
   CHEMIN_COUCHES, CHEMIN_MANIFESTE, RACINE_DES_MODULES, manifesteDe, modulesDePrimitive, modulesExemptes, ventiler,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // SONDE de l'hôte PowerShell (#2292) : rejoue sur l'hôte RÉEL (`pwsh`, `powershell` 5.1) ce que lit
-// `argumentChaine` (`scripts/hooks/solde-ticket-guard.mjs`), et signale tout écart.
+// `argumentChaine` (`scripts/guards/lib/commandeShell.mjs`), et signale tout écart.
 //   node scripts/ops/sondes/hote-powershell.mjs <dossier-de-sortie> [--liste]   (`--liste` : sans la grille des préfixes)
 // Se rejoue à la main, à chaque changement de version d'un hôte ; la suite ne la lance jamais (elle lance l'hôte).
 //
@@ -23,7 +23,7 @@ import { Buffer } from 'node:buffer'
 import { spawn, execFileSync } from 'node:child_process'
 import { existsSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine } from '../../hooks/solde-ticket-guard.mjs'
+import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine } from '../../guards/lib/commandeShell.mjs'
 import { CAS_HOTE_POWERSHELL, HOTES_MESURES, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
 
 const DELAI_MS = 20_000

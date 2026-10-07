@@ -47,6 +47,9 @@ const PROJECTIONS = new Set(['map', 'flatMap'])
 const PROFONDEUR = 24
 /** La profondeur d'appels imbriqués d'une évaluation ; au-delà, `non` nommé. */
 const PROFONDEUR_D_APPELS = 16
+/** Les ré-entrées d'une fonction déjà en cours, à d'autres arguments (`sousPile`) : une enveloppe qui se rappelle
+ *  sans son option (`fraicheur-docs.mjs`, `cheminSous`) s'évalue ; une récursion qui creuse est un cycle nommé. */
+const REENTREES = 1
 
 /**
  * Le LECTEUR d'expressions de chemin d'un module : `expr(noeud)` rend son `Expr`, constantes locales et
@@ -64,6 +67,8 @@ export function lecteurDExpressions(rel, arbre) {
     : ts.isPropertyAccessExpression(appel.expression) ? appel.expression.name.text : null
   const estImportMeta = (n) => ts.isMetaProperty(n) && n.keywordToken === ts.SyntaxKind.ImportKeyword
   const non = (raison) => ({ k: 'non', raison })
+  /** Le texte source de `n`, ses blancs (retours à la ligne compris) repliés en une espace : une raison tient sur une ligne. */
+  const texteDe = (n) => n.getText(arbre).replace(/\s+/g, ' ')
   const estFonction = (n) => ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n)
   const ligneDe = (n) => arbre.getLineAndCharacterOfPosition(n.getStart(arbre)).line + 1
   /** Les expressions RENDUES par la fonction `n` : son corps d'expression, ou ses `return` hors fonctions imbriquées. */
@@ -262,6 +267,9 @@ export function lecteurDExpressions(rel, arbre) {
     } finally { enLecture.pop() }
   }
 
+  /** Les fonctions anonymes lues (`expr`), une fois par nœud ; `null` pendant leur lecture : une fonction qui se
+   *  nomme elle-même dans ses retours est récursive. */
+  const lambdas = new Map()
   const expr = (n, profondeur = 0) => {
     if (profondeur > PROFONDEUR) return non('expression trop profonde')
     const p = profondeur + 1
@@ -271,6 +279,13 @@ export function lecteurDExpressions(rel, arbre) {
     if (ts.isArrayLiteralExpression(n)) return { k: 'liste', v: n.elements.map((e) => expr(e, p)) }
     if (ts.isIdentifier(n)) return lier(n, p)
     if (idDe.has(n)) return { k: 'fn', id: idDe.get(n) }
+    if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
+      if (lambdas.has(n)) return lambdas.get(n) ?? non('fonction anonyme récursive')
+      lambdas.set(n, null)
+      const lue = { k: 'lambda', retours: retoursDe(n).map((x) => expr(x, p)) }
+      lambdas.set(n, lue)
+      return lue
+    }
     if (ts.isTemplateExpression(n))
       return { k: 'concat', v: [{ k: 'lit', v: n.head.text }, ...n.templateSpans.flatMap((s) => [expr(s.expression, p), { k: 'lit', v: s.literal.text }])] }
     if (ts.isConditionalExpression(n)) return { k: 'union', v: [expr(n.whenTrue, p), expr(n.whenFalse, p)] }
@@ -287,7 +302,7 @@ export function lecteurDExpressions(rel, arbre) {
         if (ts.isPropertyAssignment(prop) && (ts.isIdentifier(prop.name) || ts.isStringLiteralLikeNode(prop.name))) v[prop.name.text] = expr(prop.initializer, p)
         else if (ts.isShorthandPropertyAssignment(prop)) v[prop.name.text] = lier(prop.name, p)
         else if (ts.isSpreadAssignment(prop)) etales.push(expr(prop.expression, p))
-        else if (ts.isPropertyAssignment(prop)) etales.push(non(`propriété calculée ${prop.name.getText(arbre)}`))
+        else if (ts.isPropertyAssignment(prop)) etales.push(non(`propriété calculée ${texteDe(prop.name)}`))
       }
       return { k: 'objet', v, ...(etales.length ? { etales } : {}) }
     }
@@ -295,13 +310,13 @@ export function lecteurDExpressions(rel, arbre) {
       if (estImportMeta(n.expression) && n.name.text === 'dirname') return { k: 'chemin', v: dossier }
       if (estImportMeta(n.expression) && (n.name.text === 'url' || n.name.text === 'filename')) return { k: 'chemin', v: rel }
       if (n.name.text === 'pathname') return expr(n.expression, p)
-      return { k: 'champ', de: expr(n.expression, p), nom: n.name.text, texte: n.getText(arbre) }
+      return { k: 'champ', de: expr(n.expression, p), nom: n.name.text, texte: texteDe(n) }
     }
     if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'URL') {
       const [cible, depuis] = n.arguments ?? []
       if (cible && ts.isStringLiteralLikeNode(cible) && depuis && ts.isPropertyAccessExpression(depuis) && estImportMeta(depuis.expression) && depuis.name.text === 'url')
         return { k: 'chemin', v: posix.join(dossier, cible.text) }
-      return non(`URL ${n.getText(arbre)}`)
+      return non(`URL ${texteDe(n)}`)
     }
     if (ts.isCallExpression(n)) {
       const nom = nomAppele(n)
@@ -313,7 +328,7 @@ export function lecteurDExpressions(rel, arbre) {
       if (nom === 'join' && receveur && ts.isCallExpression(receveur) && nomAppele(receveur) === 'split' && ts.isPropertyAccessExpression(receveur.expression))
         return expr(receveur.expression.expression, p)
       if (nom === 'dirname' && args[0]) return { k: 'dir', v: expr(args[0], p) }
-      if (nom === 'cwd' && ts.isPropertyAccessExpression(n.expression) && n.expression.expression.getText(arbre) === 'process') return { k: 'chemin', v: '' }
+      if (nom === 'cwd' && ts.isPropertyAccessExpression(n.expression) && texteDe(n.expression.expression) === 'process') return { k: 'chemin', v: '' }
       if (nom === 'tmpdir' || nom === 'mkdtempSync') return { k: 'hors' }
       if (['fileURLToPath', 'depotDe', 'depotReel', 'freeze'].includes(nom) && args[0]) return expr(args[0], p)
       if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
@@ -321,9 +336,9 @@ export function lecteurDExpressions(rel, arbre) {
       const rendus = PROJECTIONS.has(nom) && args[0] && (ts.isArrowFunction(args[0]) || ts.isFunctionExpression(args[0])) ? retoursDe(args[0]) : []
       if (rendus.length && ts.isPropertyAccessExpression(n.expression)) return { k: 'union', v: rendus.map((r) => expr(r, p)) }
       if (ITERATEURS.has(nom) && ts.isPropertyAccessExpression(n.expression))
-        return { k: 'transforme', raison: `appel ${n.expression.getText(arbre)}`, v: expr(n.expression.expression, p) }
-      if (ts.isIdentifier(n.expression)) return { k: 'appel', cible: lier(n.expression, p), args: args.map((a) => expr(a, p)), texte: n.expression.getText(arbre) }
-      return non(`appel ${n.expression.getText(arbre)}`)
+        return { k: 'transforme', raison: `appel ${texteDe(n.expression)}`, v: expr(n.expression.expression, p) }
+      if (ts.isIdentifier(n.expression)) return { k: 'appel', cible: lier(n.expression, p), args: args.map((a) => expr(a, p)), texte: texteDe(n.expression) }
+      return non(`appel ${texteDe(n.expression)}`)
     }
     return non(`forme ${ts.SyntaxKind[n.kind]}`)
   }
@@ -438,6 +453,11 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     if ('fn' in v) return `f${v.fn.f}#${v.fn.id}`
     if ('hors' in v) return 'h'
     if ('absent' in v) return 'a'
+    if ('lambda' in v) return `l${identiteDe(v.lambda)}@${v.ctx.f}#${v.ctx.env?.fn ?? ''}(${v.ctx.env?.args ? cleDesArgs(v.ctx.env.args) : '*'})`
+    return identiteDe(v)
+  }
+  /** L'identité d'une valeur sans clé de contenu (objet rendu, fonction anonyme) : une par objet. */
+  const identiteDe = (v) => {
     if (!identites.has(v)) identites.set(v, `objet ${objets += 1}`)
     return identites.get(v)
   }
@@ -472,6 +492,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       case 'liste': case 'union': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
       case 'importe': return importe(ctx.f, e.spec, e.nom)
       case 'fn': return [{ fn: { f: ctx.f, id: e.id } }]
+      case 'lambda': return [{ lambda: e, ctx }]
       case 'objet': return [{ objet: e.v, ctx, ...(e.etales ? { etales: e.etales } : {}) }]
       case 'param': {
         if (ctx.env?.fn !== e.fn) return [{ non: `paramètre ${e.nom}` }]
@@ -489,7 +510,8 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {
         const args = e.args.map((a) => valeurs(a, ctx))
-        return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, args) : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
+        return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
+          : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
       }
       case 'dir': return valeurs(e.v, ctx).map((v) => 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
       case 'join': case 'concat': {
@@ -519,15 +541,28 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     }
   }
 
-  /** Borne la pile d'appels : profondeur et cycle rendent un `non` nommé. */
-  const sousPile = (cle, nom, faire) => {
-    if (pile.includes(cle)) return [{ non: `cycle d'appels ${nom}` }]
+  /** Les valeurs rendues par une fonction ANONYME (`lambda`), évaluées dans le contexte qui l'a définie : ses
+   *  variables capturées s'y lient ; ses propres paramètres restent non liés. */
+  const rendusDeLambda = ({ lambda, ctx }, texte) => lambda.retours.length
+    ? uniques(lambda.retours.flatMap((x) => valeurs(x, ctx))) : [{ non: `appel ${texte} sans retour` }]
+
+  /** La clé des arguments d'un appel (`cleDe`) : deux appels de mêmes valeurs ont la même. */
+  const cleDesArgs = (args) => args ? args.map((a) => a.map(cleDe).join(',')).join('|') : ''
+
+  /** Borne la pile d'appels de la fonction `fonction` (`<nature> <module>#<nom>`) aux arguments `args`. Un appel
+   *  déjà en cours AUX MÊMES arguments ne s'ajoute rien (plus petit point fixe : ses valeurs sont celles de l'appel
+   *  en cours) ; une fonction se ré-entre au plus `REENTREES` fois à d'autres arguments, puis `cycle d'appels` ;
+   *  au-delà de la profondeur, `non` nommé. */
+  const sousPile = (fonction, args, nom, faire) => {
+    const cle = `${fonction}(${cleDesArgs(args)})`
+    if (pile.some((p) => p.cle === cle)) return []
+    if (pile.filter((p) => p.fonction === fonction).length > REENTREES) return [{ non: `cycle d'appels ${nom}` }]
     if (pile.length >= PROFONDEUR_D_APPELS) return [{ non: `profondeur d'appels > ${PROFONDEUR_D_APPELS} (${nom})` }]
-    pile.push(cle)
+    pile.push({ fonction, cle })
     try { return faire() } finally { pile.pop() }
   }
 
-  const retour = (fn, args) => sousPile(`retour ${fn.f}#${fn.id}`, fn.id, () => {
+  const retour = (fn, args) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
     const decl = lecture(fn.f)?.fonctions[fn.id]
     if (!decl) return [{ non: `fonction ${fn.id} illisible` }]
     if (!decl.retours.length) return [{ non: `${fn.id} sans retour` }]
@@ -537,16 +572,13 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   /** Les racines lues par la fonction `fn`, paramètres liés à `args` ; `args` null : marqueurs `relais`. */
   const lecturesDe = (fn, args) => {
     const memo = args ? lies : libres
-    let cle = `${fn.f}#${fn.id}`
-    if (args) {
-      cle += args.map((a) => a.map(cleDe).join(',')).join('|')
-    }
+    const cle = `${fn.f}#${fn.id}${cleDesArgs(args)}`
     const deja = memo.get(cle)
     if (deja) {
       fusionner(deja.requetes)
       return deja.rendu
     }
-    const { resultat: rendu, requetes } = tracer(() => sousPile(`lectures ${fn.f}#${fn.id}`, fn.id, () => {
+    const { resultat: rendu, requetes } = tracer(() => sousPile(`lectures ${fn.f}#${fn.id}`, args, fn.id, () => {
       const lu = lecture(fn.f)
       if (!lu) return [{ non: `module ${fn.f} illisible` }]
       return uniques(lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args })))
@@ -598,7 +630,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   }
 
   const finir = (vals) => uniques(vals).filter((v) => !('absent' in v))
-    .map((v) => 'texte' in v ? ancrer(v.texte) : 'fn' in v || 'objet' in v ? { non: 'racine non chemin' } : v)
+    .map((v) => 'texte' in v ? ancrer(v.texte) : 'fn' in v || 'objet' in v || 'lambda' in v ? { non: 'racine non chemin' } : v)
 
   return {
     /** Les sites de lecture d'un module et leurs racines ; un site RELAIS (racine liée à un paramètre de
@@ -659,7 +691,7 @@ function joindre(a, s) {
     const prefixe = 'chemin' in a ? a : a.texte ? ancrer(a.texte) : null
     return prefixe && 'chemin' in prefixe && prefixe.chemin ? { chemin: prefixe.chemin, sous: s.non } : s
   }
-  if ('fn' in s || 'objet' in s) return { non: 'racine non chemin' }
+  if ('fn' in s || 'objet' in s || 'lambda' in s) return { non: 'racine non chemin' }
   if ('chemin' in s) return s
   if ('chemin' in a) return /^([a-zA-Z]:)?[\\/]/.test(s.texte) ? { non: `chemin absolu ${s.texte}` } : borne(posix.join(a.chemin || '.', s.texte.replace(/\\/g, '/')))
   return { texte: a.texte ? posix.join(a.texte, s.texte) : s.texte }

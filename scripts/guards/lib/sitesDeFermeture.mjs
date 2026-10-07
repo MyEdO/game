@@ -9,11 +9,11 @@
 // deps-report.yml).
 //
 // CE QUI EST RÉUTILISÉ, et pourquoi rien n'est réécrit ici :
-//   · le RECONNAISSEUR du geste est `fermetureGh` (scripts/hooks/solde-ticket-guard.mjs) — celui-là
-//     même dont la porte de commit se sert pour REFUSER une fermeture hors commit. Les trois graphies
+//   · le RECONNAISSEUR du geste est `fermetureGh` (fermetures.mjs) — celui-là
+//     même dont la garde `fermeture-hors-commit` se sert pour REFUSER une fermeture hors commit. Les trois graphies
 //     qu'il connaît (`gh issue close`, `gh issue edit --state closed`, `gh api … state=closed`, cette
 //     dernière couvrant le PATCH REST `-f state=closed`) sont donc mesurées ici à l'identique : une
-//     seconde table dirait « ferme » d'une commande que la porte laisse passer, ou l'inverse ;
+//     seconde table dirait « ferme » d'une commande que la garde laisse passer, ou l'inverse ;
 //   · le CORPUS est `sourcesSuivies` (modulesFeuilles.mjs) — git, jamais le disque ;
 //   · le BLANCHIMENT est `codeSeul` (commentPoison.mjs), qui retire les COMMENTAIRES en gardant les
 //     chaînes : un argv de fermeture EST une donnée littérale, l'effacer rendrait la garde aveugle.
@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { codeSeul } from './commentPoison.mjs'
 import { RACINE, sourcesSuivies } from './modulesFeuilles.mjs'
-import { fermetureGh } from '../../hooks/solde-ticket-guard.mjs'
+import { fermetureGh } from './fermetures.mjs'
 
 /**
  * Les sites AUTORISÉS à porter la graphie, nominatifs. Tout site hors de cette liste est un
@@ -38,7 +38,7 @@ export const SITES_DECLARES = Object.freeze([
     pourquoi:
       'ferme les tickets SOLDÉS d’une plage de main rattrapée depuis la dernière course réussie (`baseDeLaPlage`), checks requis du sha poussé verts ' +
       '(scripts/ops/checks-requis.mjs) — job `fermetures` ' +
-      'de .github/workflows/fermetures.yml ; c’est la route que la porte de commit impose (`la fermeture passe ' +
+      'de .github/workflows/fermetures.yml ; c’est la route que la porte du commit impose (`la fermeture passe ' +
       'par un commit corrige #N porteur de son solde`)',
   }),
   Object.freeze({

@@ -6,6 +6,11 @@ declare const MARQUE_DEPOT: unique symbol;
 /** Le DÉPÔT git d'un `cwd` (`depotDe`) : une poignée opaque et MARQUÉE, premier paramètre de chaque
  *  question ; un `{ cwd }` écrit à la main n'en est pas une. */
 export type Depot = Readonly<{ cwd: string; [MARQUE_DEPOT]: true }>;
+export type RequeteMesuree = { args: string[]; cwd: string; canal?: 'stdout'; status: number | null; stdout: string; stderr: string };
+export const MARQUE_RACINE_MESUREE: '<RACINE>';
+export function verifierRequeteMesuree(requete: RequeteMesuree): true;
+export function normaliserRequeteMesuree(racine: string, requete: RequeteMesuree): RequeteMesuree;
+export function relireRequeteMesuree(depot: Depot, requete: RequeteMesuree): RequeteMesuree;
 
 export type DiagnosticGit = {
   status: number | null;
@@ -64,7 +69,7 @@ export type EntreeDImage = { mode: string; sha: string };
 /** La valeur de l'attribut `nom` sur chacun des `chemins` (`check-attr --stdin`). */
 export function attributsDe(depot: Depot, chemins: readonly string[], nom: string): Map<string, string>;
 /** Les entrées de `chemins` dans l'image `arbre` (une ref, ou `INDEX`). */
-export function entreesDe(depot: Depot, arbre: string, chemins: readonly string[], opts?: { index?: string }): Map<string, EntreeDImage>;
+export function entreesDe(depot: Depot, arbre: string, chemins: readonly string[], opts?: { index?: string | null }): Map<string, EntreeDImage>;
 /** Le dernier commit de `de..vers` qui ajoute `chemin`, `null` sans lui. */
 export function ajoutDe(depot: Depot, de: string, vers: string, chemin: string): string | null;
 /** Les commits de `tete` absents de `amont` (`git cherry`). */

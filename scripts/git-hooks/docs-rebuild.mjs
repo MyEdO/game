@@ -118,15 +118,16 @@ export function touchesDocSources(chemins, mesure, { seulement = null } = {}) {
   })
 }
 
-export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS }) {
+export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS, scriptsInitiaux = null }) {
   const tous = (raison) => ({ scripts: generateurs.map((g) => g.script), complete: true, raison })
-  if (lot === null) return tous('plage Git inconnue')
-  if (lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
+  if (scriptsInitiaux === null && lot === null) return tous('plage Git inconnue')
+  if (scriptsInitiaux === null && lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
   if (!mesure || generateurs.some((g) => !Array.isArray(mesure[g.script]?.fichiers) || !Array.isArray(mesure[g.script]?.dossiers) || !Array.isArray(mesure[g.script]?.cibles))) return tous('mesure absente ou incomplète')
-  if (lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
-  if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
+  if (scriptsInitiaux === null && lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
+  if (scriptsInitiaux === null && generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
     [...g.targets, ...(g.injecte ?? [])].some((c) => !c.includes('*') && !existsSync(join(cwd, c))))) return tous('cible absente')
-  const selection = new Set(generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
+  if (scriptsInitiaux && scriptsInitiaux.some((s) => !generateurs.some((g) => g.script === s))) return tous('générateur initial inconnu')
+  const selection = new Set(scriptsInitiaux ?? generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
   const sorties = (g) => [...g.targets, ...(g.injecte ?? [])]
   let changement = true
   while (changement) {

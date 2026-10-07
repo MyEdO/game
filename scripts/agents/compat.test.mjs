@@ -10,10 +10,9 @@ import {
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 import { ETATS_MUETS } from '../hooks/synchroniser-principal.mjs';
 
-/** Registres de fixture : un point d'entrée par `ENTREES_OUTIL`, deux gardes au répartiteur. */
+/** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
   ['repartiteur.mjs', { PreToolUse: [{ outils: ['Write', 'Edit'] }, { outils: ['Bash', 'Edit'] }], PostToolUse: [{ outils: ['Write'] }] }],
-  ['solde-ticket-hook.mjs', { PreToolUse: [{ outils: ['Bash'] }] }],
 ]);
 /** Les sorties attendues d'un snapshot, sous les registres de fixture. */
 const buildExpectedOutputs = (snapshot) => sortiesAttendues(snapshot, REGISTRES);
@@ -154,7 +153,6 @@ test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et p
   const outil = (liste) => liste.filter((h) => h.phase !== 'SessionStart').map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
   assert.deepEqual(outil(claude), [
     { phase: 'PreToolUse', matcher: 'Write|Edit|Bash', script: 'repartiteur.mjs', timeout: 10 },
-    { phase: 'PreToolUse', matcher: 'Bash', script: 'solde-ticket-hook.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },
   ]);
   assert.deepEqual(outil(codex), outil(claude).map((h) => ({ ...h, matcher: `^(?:${h.matcher})$` })), 'la même source, ANCRÉE pour le moteur regex de Codex (`MOTEUR_DE_SURFACE`)');

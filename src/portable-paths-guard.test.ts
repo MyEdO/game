@@ -16,7 +16,7 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  *
  * CODE SEUL (`codeSeul`, `scripts/guards/lib/commentPoison.mjs`) : la garde juge ce qui S'EXÉCUTE.
  * Une graphie de chemin CITÉE dans une JSDoc documente le comportement de la fonction (deux sites :
- * `scripts/hooks/new-src-file-guard.mjs`, `scripts/hooks/solde-ticket-guard.mjs`) et ne casse aucune
+ * `scripts/hooks/new-src-file-guard.mjs`, `scripts/guards/lib/contratGarde.mjs`) et ne casse aucune
  * machine ; le même littéral dans une expression, si. Le blanchiment conserve la numérotation des
  * lignes, donc les `fichier:ligne` du rapport valent pour la source d'origine.
  *

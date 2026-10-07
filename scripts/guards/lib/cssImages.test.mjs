@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CHEMIN_MANIFESTE } from './cssCouches.mjs'
-import { COLLECTIONS_VENTILEES, coteCss, importsDansLArbre, sourceMelee, stockCssDe } from './cssImages.mjs'
+import { COLLECTIONS_VENTILEES, coteCss, importsDansLArbre, stockCssDe } from './cssImages.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -87,23 +87,6 @@ test('coteCss : un fichier qui n’est pas un MODULE de code (`.md`, `.json`, `.
     ['src/ui/data.json', '{ "exemple": "import X from \'./RollShell\'" }\n'],
     ['src/ui/b.css', "@import './RollShell.tsx';\n"],
   ]) assert.deepEqual(reutilises(sourceDe({ [IMPORTEURS[0]]: reel, [f]: t })), [], f)
-})
-
-test('sourceMelee : chaque chemin vient de SON côté — `lister` et `citants` sans doublon, un chemin du pathspec absent de l’arbre ne part pas', () => {
-  const faux = (fichiers) => ({
-    lister: (dossier) => Object.keys(fichiers).filter((f) => f.startsWith(`${dossier}/`)),
-    lire: (rel) => fichiers[rel] ?? null,
-    lireTout: (rels) => new Map(rels.map((rel) => [rel, fichiers[rel] ?? null])),
-    citants: (motif) => Object.keys(fichiers).filter((f) => fichiers[f].includes(motif)),
-  })
-  const dedans = faux({ 'src/a.ts': 'a arbre motif', 'src/b.ts': 'b arbre motif' })
-  const dehors = faux({ 'src/a.ts': 'a head motif', 'src/b.ts': 'b head motif', 'src/c.ts': 'c head motif', 'src/d.ts': 'd head motif' })
-  const melee = sourceMelee({ dans: (f) => f === 'src/a.ts' || f === 'src/d.ts', dedans, dehors })
-  assert.deepEqual(melee.lister('src').sort(), ['src/a.ts', 'src/b.ts', 'src/c.ts'])
-  assert.deepEqual(melee.citants('motif').sort(), ['src/a.ts', 'src/b.ts', 'src/c.ts'])
-  assert.equal(melee.lire('src/a.ts'), 'a arbre motif')
-  assert.equal(melee.lire('src/b.ts'), 'b head motif')
-  assert.deepEqual([...melee.lireTout(['src/a.ts', 'src/b.ts', 'src/d.ts'])], [['src/a.ts', 'a arbre motif'], ['src/b.ts', 'b head motif'], ['src/d.ts', null]])
 })
 
 test('stockCssDe : les deux volets ventilés du stock écrit ; une collection absente ou hors forme LÈVE en se nommant', () => {

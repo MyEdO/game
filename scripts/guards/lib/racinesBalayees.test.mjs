@@ -104,12 +104,15 @@ test('un dossier temporaire est HORS du dépôt, jamais un non résolu', () => {
   assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'), [[{ hors: true }], [{ hors: true }]])
 })
 
-test('CYCLE de relais : borné, rendu avec sa raison nommée', () => {
+test('CYCLE de relais : un appel en cours aux MÊMES arguments ne s’ajoute rien ; une ré-entrée à d’autres arguments s’évalue, la suivante est un cycle nommé', () => {
   const modules = {
-    'scripts/lib/cycle.mjs': "import { readdirSync } from 'node:fs'\nexport function a(d, n) { return n ? a(d, n - 1) : readdirSync(d) }\n",
-    'scripts/t.test.mjs': "import { a } from './lib/cycle.mjs'\na('src', 3)\n",
+    'scripts/lib/cycle.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\nexport function a(d, n) { return n ? a(d, n - 1) : readdirSync(d) }\n" +
+      "export function b(d) { return readdirSync(d) || b(join(d, 'x')) }\n",
+    'scripts/t.test.mjs': "import { a, b } from './lib/cycle.mjs'\na('src', 3)\nb('docs')\n",
   }
-  assert.deepEqual(racinesDe(modules, 'scripts/t.test.mjs'), [[{ non: 'cycle d’appels a'.replace('’', "'") }, { chemin: 'src' }]])
+  const [deA, deB] = racinesDe(modules, 'scripts/t.test.mjs')
+  assert.deepEqual(deA, [{ chemin: 'src' }])
+  assert.deepEqual(deB, [{ chemin: 'docs' }, { chemin: 'docs/x' }, { non: 'cycle d’appels b'.replace('’', "'") }])
 })
 
 test('rien n’est deviné : paramètre d’une fonction locale, appel inconnu', () => {
@@ -168,4 +171,22 @@ test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit
     ['11 existsSync', true, [{ non: 'ancetre réaffectée en récurrence' }]],
     ['20 readFileSync', false, [{ chemin: 'a.json' }, { non: 'n réaffectée' }]],
   ])
+})
+
+test('FONCTION ANONYME passée en argument : appelée, elle rend ses retours dans le contexte qui l’a définie (fraicheur-docs.mjs:17-27)', () => {
+  const modules = {
+    'scripts/x/vue.mjs': "import { readFileSync } from 'node:fs'\nimport { join } from 'node:path'\n" +
+      "function dansVue(vue, mesurer) { if (!vue) return mesurer()\n  return vue.get('x') }\n" +
+      "function cheminSous(racine, rel, vue) {\n  if (vue) return dansVue(vue, () => cheminSous(racine, rel))\n  return join(racine, rel)\n}\n" +
+      "export function lire(racine, rel, vue) { return readFileSync(cheminSous(racine, rel, vue)) }\nlire('docs', 'a.md')\n",
+  }
+  const sites = evaluateurDe(modules).sitesDe('scripts/x/vue.mjs').filter((s) => !s.relais)
+  assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.valeurs]), [['10 lire', [{ non: 'appel vue.get' }, { chemin: 'docs/a.md' }]]])
+})
+
+test('une raison qui embarque du TEXTE SOURCE tient sur une ligne : ses blancs, retours à la ligne compris, se replient en une espace', () => {
+  const texte = "import { readdirSync } from 'node:fs'\nimport { outils } from 'ailleurs'\n" +
+    "readdirSync(fabrique(\n  'x',\n)('y'))\nreaddirSync(outils\n    .calculer())\n"
+  assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'),
+    [[{ non: "appel fabrique( 'x', )" }], [{ non: 'appel outils .calculer' }]])
 })

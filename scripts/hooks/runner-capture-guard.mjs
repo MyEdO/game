@@ -28,7 +28,7 @@
 //     (3 faux positifs mesurés avant ce groupement). La profondeur reste couverte : les pipelines
 //     d'un `sh -c "npx vitest | tail"` sont rendus comme les autres.
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { REFUS_SATURE, nouveauBudget, pipelinesProfonds } from './solde-ticket-guard.mjs'
+import { REFUS_SATURE, nouveauBudget, pipelinesProfonds } from '../guards/lib/commandeShell.mjs'
 
 /** `{ exe, args }` d'un segment : basename sans extension, en minuscules (call-operator sauté). */
 function executableDe(segment) {

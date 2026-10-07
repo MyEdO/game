@@ -1,5 +1,5 @@
 {
-  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 61, paramètre non lié 284, appel non suivi 360, forme non évaluée 59, déstructuration de tableau 69, variable sans valeur initiale 0, import non suivi 107, URL 32, environnement de processus 23, identifiant introuvable 5, chemin absolu 11, propriété non suivie 3, autre 87. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
+  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 61, paramètre non lié 290, appel non suivi 422, forme non évaluée 61, déstructuration de tableau 69, variable sans valeur initiale 0, import non suivi 107, URL 32, environnement de processus 24, identifiant introuvable 5, chemin absolu 11, propriété non suivie 3, autre 233. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
   "entrees": [
     {
       "famille": "URL",
@@ -195,6 +195,90 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "preuveValide : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "avantGenerateur : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "certifierGenerateur : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "enregistrerPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "executer : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "invaliderPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "invaliderPreuve : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "invaliderPreuve : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "preparerPreuves : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/docs/build-doctrines.test.mjs",
       "ref": "readFileSync : appel l.trim",
       "occurrence": 1
@@ -210,6 +294,732 @@
       "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
       "ref": "readdirSync : appel fs.realpathSync.native",
       "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "contexte : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "contexte : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "enregistrerPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "existsSync : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "existsSync : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "existsSync : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "existsSync : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "existsSync : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 12
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 13
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : appel mesures.get",
+      "occurrence": 14
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "invaliderPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "lireMesure : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "lireMesure : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listerDossier : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listing : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listing : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listing : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSorties : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSorties : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSorties : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : appel mesures.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "readFileSync : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "readFileSync : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "readFileSync : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : appel mesures.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "sonde : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "sonde : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "statSync : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "statSync : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : appel mesures.get",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 12
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : appel mesures.get",
+      "occurrence": 13
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 12
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 13
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 14
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 15
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 16
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 17
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 18
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 19
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : appel mesures.get",
+      "occurrence": 20
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copierDocsFrais : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : appel mesures.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : appel mesures.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : appel mesures.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : appel mesures.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : appel mesures.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : appel mesures.get",
+      "occurrence": 4
     },
     {
       "famille": "appel non suivi",
@@ -315,6 +1125,42 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/git-hooks/porte-du-commit.test.mjs",
+      "ref": "existsSync : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/commandeShell.mjs",
+      "ref": "scriptsNpm : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/contratGarde.mjs",
+      "ref": "racineSurDisque : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/guards/lib/depotGabarit.mjs",
       "ref": "commitDe : appel lanceurs.get",
       "occurrence": 1
@@ -354,36 +1200,6 @@
       "fichier": "scripts/guards/lib/gitPorte.mjs",
       "ref": "natureDuChemin : appel lanceurs.get",
       "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "ceQueFaitLeCommit : appel lecteur",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "ceQueFaitLeCommit : appel lecteur",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "ceQueFaitLeCommit : appel lecteur",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "ceQueFaitLeCommit : appel lecteur",
-      "occurrence": 4
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "ceQueFaitLeCommit : appel lecteur",
-      "occurrence": 5
     },
     {
       "famille": "appel non suivi",
@@ -450,48 +1266,6 @@
       "fichier": "scripts/guards/lib/gitPorte.test.mjs",
       "ref": "commitDe : appel lanceurs.get",
       "occurrence": 11
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "lireEnLot : appel rendant",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "lireEnLot : appel rendant",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
-      "ref": "natureDuChemin : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/lister.test.mjs",
-      "ref": "listerArbre : appel poser",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/lister.test.mjs",
-      "ref": "listerArbre : appel poser",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/lister.test.mjs",
-      "ref": "listerArbre : appel poser",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/modulesFeuilles.mjs",
-      "ref": "readFileSync : appel absolu",
-      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -639,158 +1413,14 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 4
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 5
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 6
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 7
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 8
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 9
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 10
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 11
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 12
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "verdictDe : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartiteur.test.mjs",
-      "ref": "verdictDe : appel refus",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartition.mjs",
-      "ref": "baseDeLAppel : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartition.mjs",
-      "ref": "canoniser : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/hooks/repartition.mjs",
       "ref": "construireContexte : appel JSON.parse",
       "occurrence": 1
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/hooks/repartition.mjs",
-      "ref": "construireContexte : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "racineDeLArbre : appel fs.realpathSync.native",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "scriptsNpm : appel portee.getStore",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : appel fs.realpathSync.native",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : appel fs.realpathSync.native",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : appel fs.realpathSync.native",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "existsSync : appel JSON.parse",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
       "ref": "readFileSync : appel l.trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
-      "ref": "relire : appel refus",
       "occurrence": 1
     },
     {
@@ -894,30 +1524,6 @@
       "fichier": "scripts/ops/ruleset-main.test.mjs",
       "ref": "ciALaRef : appel GABARITS.get",
       "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/suivi.mjs",
-      "ref": "editer : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/suivi.mjs",
-      "ref": "etatDeSession : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/suivi.mjs",
-      "ref": "listerSuivis : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/suivi.mjs",
-      "ref": "suivre : appel refus",
-      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -1173,56 +1779,8 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/ops/vigie.mjs",
-      "ref": "tick : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/vigie.mjs",
-      "ref": "verdictDeCi : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/vigie.mjs",
-      "ref": "verdictDeCi : appel refus",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/vigie.test.mjs",
-      "ref": "tick : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/vigie.test.mjs",
-      "ref": "tick : appel refus",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/ops/vigie.test.mjs",
-      "ref": "tick : appel refus",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/raw/_lib.mjs",
       "ref": "readText : appel _chapterCache.get",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/anchor-fill.mjs",
-      "ref": "pdfDuSigle : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/anchor-fill.mjs",
-      "ref": "runBook : appel refus",
       "occurrence": 1
     },
     {
@@ -1587,18 +2145,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/raw/folio-bootstrap.mjs",
-      "ref": "pdfDuSigle : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/folio-bootstrap.mjs",
-      "ref": "runBook : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/raw/lib/carte-lignes.mjs",
       "ref": "lireEnLot : appel String",
       "occurrence": 1
@@ -1607,18 +2153,6 @@
       "famille": "appel non suivi",
       "fichier": "scripts/raw/lib/carte-lignes.mjs",
       "ref": "readFileSync : appel String",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
-      "ref": "mesurerLivre : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
-      "ref": "pdfDuSigle : appel refus",
       "occurrence": 1
     },
     {
@@ -1738,18 +2272,6 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/raw/reparer-titres.mjs",
-      "ref": "readFileSync : appel opt",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/reparer-titres.mjs",
-      "ref": "readFileSync : appel opt",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/reparer-titres.mjs",
       "ref": "readText : appel String",
       "occurrence": 1
     },
@@ -1774,38 +2296,8 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/raw/sonde-titres.test.mjs",
-      "ref": "pdfDe : appel refus",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/sonde-titres.test.mjs",
       "ref": "readText : appel String",
       "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/workflow-args.test.mjs",
-      "ref": "lireRendu : appel ecrire",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/workflow-args.test.mjs",
-      "ref": "lireRendu : appel ecrire",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/workflow-args.test.mjs",
-      "ref": "lireRendu : appel ecrire",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/raw/workflow-args.test.mjs",
-      "ref": "lireRendu : appel ecrire",
-      "occurrence": 4
     },
     {
       "famille": "appel non suivi",
@@ -1827,20 +2319,14 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/test/perimetre.test.mjs",
-      "ref": "apprendre : appel rapport",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : appel fs.realpathSync.native",
       "occurrence": 1
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/test/perimetre.test.mjs",
-      "ref": "existsSync : appel rapport",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/test/perimetre.test.mjs",
-      "ref": "existsSync : appel rapport",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : appel fs.realpathSync.native",
       "occurrence": 2
     },
     {
@@ -1853,12 +2339,6 @@
       "famille": "appel non suivi",
       "fichier": "src/data/criticals-folio.test.ts",
       "ref": "makeChapterReader : appel JSON.parse",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/data-wellformed.test.ts",
-      "ref": "readFileSync : appel jsonSous",
       "occurrence": 1
     },
     {
@@ -1911,60 +2391,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-projection-art.test.ts",
-      "ref": "projeterDefs : appel dossier",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-projection-art.test.ts",
-      "ref": "projeterDefs : appel dossier",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-projection-art.test.ts",
-      "ref": "projeterDefs : appel dossier",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-projection-art.test.ts",
-      "ref": "projeterDefs : appel dossier",
-      "occurrence": 4
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-projection-art.test.ts",
-      "ref": "projeterDefs : appel dossier",
-      "occurrence": 5
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-projection-art.test.ts",
-      "ref": "projeterDefs : appel dossier",
-      "occurrence": 6
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
-      "ref": "lireDefs : appel dossierDe",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
-      "ref": "lireDefs : appel dossierDe",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
-      "ref": "lireDefs : appel dossierDe",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "src/data/source/decoupe.test.ts",
       "ref": "readFileSync : appel _chapterCache.get",
       "occurrence": 1
@@ -1997,24 +2423,6 @@
       "famille": "appel non suivi",
       "fichier": "src/data/source/index-imprime.test.ts",
       "ref": "readText : appel _chapterCache.get",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/source/numero-de-chapitre.test.ts",
-      "ref": "corpusDe : appel chemin",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/source/numero-de-chapitre.test.ts",
-      "ref": "corpusDe : appel chemin",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/data/source/numero-de-chapitre.test.ts",
-      "ref": "readFileSync : appel chemin",
       "occurrence": 1
     },
     {
@@ -2157,12 +2565,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "src/data/structures-contrat.test.ts",
-      "ref": "readFileSync : appel jsons",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "src/raw-ref-integrity.test.ts",
       "ref": "readFileSync : appel JSON.parse",
       "occurrence": 1
@@ -2206,30 +2608,6 @@
     {
       "famille": "appel non suivi",
       "fichier": "src/state/netownership-import-isole.test.ts",
-      "ref": "chemin : appel fichier",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/state/netownership-import-isole.test.ts",
-      "ref": "chemin : appel fichier",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/state/netownership-import-isole.test.ts",
-      "ref": "chemin : appel fichier",
-      "occurrence": 3
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/state/netownership-import-isole.test.ts",
-      "ref": "chemin : appel fichier",
-      "occurrence": 4
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/state/netownership-import-isole.test.ts",
       "ref": "chemin : appel file.shift",
       "occurrence": 1
     },
@@ -2298,12 +2676,6 @@
       "fichier": "src/state/netownership-import-isole.test.ts",
       "ref": "chemin : appel fs.realpathSync.native",
       "occurrence": 6
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "src/state/netownership-import-isole.test.ts",
-      "ref": "cheminCanonique : appel fichier",
-      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -2355,6 +2727,90 @@
     },
     {
       "famille": "autre",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all-check.test.mjs",
+      "ref": "preuveValide : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "avantGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "certifierGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "enregistrerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "executer : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "invaliderPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "invaliderPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "invaliderPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "preparerPreuves : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
       "fichier": "scripts/docs/lib/chemin-mesure.mjs",
       "ref": "ancetreExistant : ancetre réaffectée en récurrence",
       "occurrence": 1
@@ -2399,6 +2855,912 @@
       "famille": "autre",
       "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
       "ref": "installer : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 8
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 9
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 10
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 11
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 12
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 13
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 14
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 15
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 16
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 17
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "cheminSous : ancetre réaffectée en récurrence",
+      "occurrence": 18
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "contexte : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "contexte : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "ecrirePreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "ecrirePreuve : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "enregistrerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "entreeValide : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "entreeValide : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "entreeValide : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 8
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 9
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 10
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 11
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 12
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 13
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "hashFichier : ancetre réaffectée en récurrence",
+      "occurrence": 14
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "invaliderPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "lireMesure : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "lireMesure : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listing : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listing : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "listing : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSorties : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSorties : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSorties : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "mesurerSources : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "recordValide : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "sonde : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.mjs",
+      "ref": "sonde : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "avantGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifier : ancetre réaffectée en récurrence",
+      "occurrence": 8
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "certifierGenerateur : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 8
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 9
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 10
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 11
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 12
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 13
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 6
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 7
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 8
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 9
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 10
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 11
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 12
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 13
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 14
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 15
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 16
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 17
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 18
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 19
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copier : ancetre réaffectée en récurrence",
+      "occurrence": 20
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "copierDocsFrais : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "enregistrerPreuve : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preparerPreuves : ancetre réaffectée en récurrence",
+      "occurrence": 5
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "preuveValide : ancetre réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.mjs",
+      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.mjs",
+      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.mjs",
+      "ref": "racineSurDisque : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.test.mjs",
+      "ref": "jugerLeCommit : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.test.mjs",
+      "ref": "jugerLeCommit : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.test.mjs",
+      "ref": "jugerLeCommit : courant réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/git-hooks/porte-du-commit.test.mjs",
+      "ref": "jugerLeCommit : courant réaffectée en récurrence",
+      "occurrence": 4
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.mjs",
+      "ref": "ancetreExistant : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.mjs",
+      "ref": "racineSurDisque : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 2
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/contratGarde.test.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 3
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/guards/lib/gitPorte.mjs",
+      "ref": "existsSync : courant réaffectée en récurrence",
       "occurrence": 1
     },
     {
@@ -2601,129 +3963,15 @@
     },
     {
       "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "ancetreExistant : ancetre réaffectée en récurrence",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : ancetre réaffectée en récurrence",
       "occurrence": 1
     },
     {
       "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "canoniser : ancetre réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "existsSync : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "jugerLeSolde : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "natureDeLArbre : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : ancetre réaffectée en récurrence",
       "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
-      "occurrence": 3
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
-      "occurrence": 4
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "racineDeLArbre : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "racineDeLArbre : courant réaffectée en récurrence",
-      "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "statSync : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
-      "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
-      "occurrence": 3
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : courant réaffectée en récurrence",
-      "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "cheminDEcriture : courant réaffectée en récurrence",
-      "occurrence": 3
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "natureDeLArbre : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "natureDeLArbre : courant réaffectée en récurrence",
-      "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
-      "ref": "natureDeLArbre : courant réaffectée en récurrence",
-      "occurrence": 3
     },
     {
       "famille": "autre",
@@ -3369,6 +4617,12 @@
     },
     {
       "famille": "environnement de processus",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "readFileSync : process introuvable",
+      "occurrence": 2
+    },
+    {
+      "famille": "environnement de processus",
       "fichier": "scripts/guards/budget-contexte.mjs",
       "ref": "controlerBudgetDeLaPlage : process introuvable",
       "occurrence": 1
@@ -3780,6 +5034,18 @@
       "fichier": "scripts/raw/check-source-format.test.mjs",
       "ref": "titresSoudesAll : forme NewExpression",
       "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/reparer-titres.mjs",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/reparer-titres.mjs",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 2
     },
     {
       "famille": "forme non évaluée",
@@ -4533,6 +5799,18 @@
     },
     {
       "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "chargerPreuve : paramètre b",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/fraicheur-docs.test.mjs",
+      "ref": "ciblesSurDisque : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
       "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
       "ref": "listerDossier : paramètre nom",
       "occurrence": 1
@@ -4959,6 +6237,12 @@
     },
     {
       "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/fermeture-hors-commit-guard.mjs",
+      "ref": "readFileSync : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
       "fichier": "scripts/hooks/repartiteur.test.mjs",
       "ref": "construireContexte : paramètre racine",
       "occurrence": 1
@@ -4973,12 +6257,6 @@
       "famille": "paramètre non lié",
       "fichier": "scripts/hooks/repartiteur.test.mjs",
       "ref": "verdictDe : paramètre entree",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
-      "ref": "readFileSync : paramètre p",
       "occurrence": 1
     },
     {
@@ -6018,6 +7296,30 @@
       "fichier": "scripts/recette/lib.mjs",
       "ref": "statSync : paramètre chemin",
       "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : paramètre p",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/gitDeBanc.test.mjs",
+      "ref": "installer : paramètre racine",
+      "occurrence": 2
     },
     {
       "famille": "paramètre non lié",

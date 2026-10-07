@@ -212,7 +212,7 @@ const META = /[…<>{}]|AAAA|MM-JJ/
 const RECUP = /git\s+(?:log|show|diff)|diff-filter/
 /** Exemptions AU SITE (fichier + jeton) — fixtures de test, jamais un fichier entier. */
 const SITES_EXEMPTS = new Set([
-  'scripts/hooks/solde-ticket-guard.test.mjs|docs/plans/truc.md', // fixture de la garde de solde
+  'scripts/git-hooks/porte-du-commit.test.mjs|docs/plans/truc.md', // fixture de la porte du commit
 ])
 /** Les DEUX fichiers de cette garde, hors des SENS 2 et 3 : les fixtures du test citent des plans
  *  fictifs par construction ; le script cite la fixture d'un autre garde. */
