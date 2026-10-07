@@ -81,6 +81,13 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
   if (manquants.length) refuser(`CONTRAT CLI INCOMPATIBLE : ${manquants.join(', ')}`)
 }
 
+export function argsTerminal({ profil, nom, worktree, script, node, commande }) {
+  const payload = Buffer.from(JSON.stringify({ script, node, commande, worktree }), 'utf8').toString('base64')
+  const expression = `$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json; & $p.script -Node $p.node -CommandLine $p.commande -Worktree $p.worktree; if ($null -ne $LASTEXITCODE) { exit $LASTEXITCODE }`
+  const optionWT = (valeur) => valeur.replaceAll(';', '\\;')
+  return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
+}
+
 export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, profilExiste = profilCodexExiste, contrat = verifierContratAgent, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env } = {}) {
   const options = normaliserLancement(entree, cwd)
   if (options.agent === 'codex' && options.worktree && !fs.existsSync(options.worktree)) refuser(`CHANTIER ABSENT : npm run ops:chantier -- ${options.ticket}`)
@@ -102,10 +109,14 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
   const r = sessions.reserver({ ...c, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, profilExiste: existe, onglet: { titre: options.nom, profil } })
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
-  const args = ['-w', '0', 'new-tab', '--profile', profil.nom, '--title', options.nom, '--suppressApplicationTitle', '--startingDirectory', c.worktree, 'powershell.exe', '-NoLogo', '-NoProfile', '-File', join(ops, 'session-process.ps1'), '-Node', process.execPath, '-CommandLine', commande, '-Worktree', c.worktree]
-  const vu = lancerWT('wt.exe', args, { cwd: c.worktree, shell: false, encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(env) })
-  if (vu.error || vu.status !== 0) { sessions.sortie(r.carte.sessionId, { codeAgent: null, raison: `WT SPAWN : ${vu.error?.message ?? vu.stderr}` }); refuser('WT SPAWN ÉCHOUÉ') }
-  return { sessionId: r.carte.sessionId, ticket: r.carte.ticket, etat: r.carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${r.carte.sessionId} --timeout-ms 3600000` }
+  const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree })
+  let vu
+  try { vu = lancerWT('wt.exe', args, { cwd: c.worktree, shell: false, encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(env) }) }
+  catch (error) { vu = { error } }
+  if (vu.error || vu.status !== 0) { await sessions.echecDemarrage(r.carte.sessionId, r.jeton, `WT SPAWN : ${vu.error?.message ?? vu.stderr ?? vu.status}`); refuser('WT SPAWN ÉCHOUÉ') }
+  const carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton)
+  if (!carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || (carte.etat !== 'vivante' && !['sortie', 'echec'].includes(carte.issueSortie))) refuser(`DÉMARRAGE ÉCHOUÉ : ${carte.raison ?? 'REVENDICATION ABSENTE OU SORTIE INCONNUE'}`)
+  return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 3600000` }
 }
 
 async function jetonDe(env, stdin) {

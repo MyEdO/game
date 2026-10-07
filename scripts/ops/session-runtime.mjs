@@ -110,6 +110,23 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     return validerCarte(brut, fichier)
   }
   const maintenant = () => new Date(horloge()).toISOString()
+  const sansControleur = (c) => !c.controleur && !c.jobHost && !c.agentProcessus
+  const capacite = (c, jeton) => {
+    if (!jeton) throw new Error('JETON ABSENT')
+    if (!timingSafeEqual(Buffer.from(c.empreinteJeton, 'hex'), Buffer.from(empreinte(jeton), 'hex'))) throw new Error('JETON INCORRECT')
+  }
+  const signalerEchec = (c, raison) => {
+    c.raison = raison; c.echecLe = maintenant()
+    if (!c.evenements.some((e) => e.type === 'échec')) c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
+  }
+  const libererReservation = (c, etat, raison) => {
+    c.etat = etat; delete c.empreinteNonce; delete c.codeEnveloppe
+    fs.rmSync(bootstrap(c.sessionId), { force: true })
+    const date = maintenant()
+    if (raison) signalerEchec(c, raison)
+    if (etat === 'fermee') { c.fermeeLe = date; c.issueSortie = c.raison ? 'echec' : 'sortie' }
+    if (etat === 'fermee') c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date, type: 'clôture' })
+  }
   const sousVerrou = (geste) => {
     const prise = prendreVerrou({ chemin: join(dossier, 'registre.lock'), libelle: 'sessions', commande: 'ops:session', cwd: dossier, attente: { echeanceMs: 5000, pasMs: 20 } })
     if (prise.etat !== 'pris') throw new Error(prise.message)
@@ -126,9 +143,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       for (const c of ensemble.cartes) {
         if (c.producteur !== PRODUCTEUR) continue
         if (c.etat === 'reservee' && horloge() > c.reserveJusqua) {
-          c.etat = 'echec-reservation'; c.raison = 'RÉSERVATION EXPIRÉE'; c.echecLe = maintenant(); delete c.empreinteNonce
-          c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
-          sauver(chemin(c.sessionId), c); fs.rmSync(bootstrap(c.sessionId), { force: true })
+          libererReservation(c, 'echec-reservation', 'RÉSERVATION EXPIRÉE')
+          sauver(chemin(c.sessionId), c)
         } else if (c.etat === 'nettoyage' && !encorePresent(c, vue)) {
           c.etat = 'fermee'; c.fermeeLe = maintenant(); c.codeEnveloppe = 0
           c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.fermeeLe, type: 'clôture' })
@@ -164,7 +180,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     if (!identique(vue.processus.get(carte.jobHost?.pid), carte.jobHost)) throw new Error('CONTRÔLE PERDU : JobHost absent ou recyclé')
   }
   const estSortieObservee = (carte) => carte.etat === 'fermee'
-  const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw new Error('DÉJÀ SORTIE'); Object.assign(c, fin, { etat: 'nettoyage', issueSortie: fin.raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
+  const sortie = (id, fin) => muter(id, (c) => { if (c.etat === 'fermee' || c.etat === 'nettoyage') throw new Error('DÉJÀ SORTIE'); const raison = fin.raison ?? c.raison; Object.assign(c, fin, { raison, etat: 'nettoyage', issueSortie: raison || (fin.codeAgent !== 0 && !fin.arret) ? 'echec' : 'sortie', sortieLe: maintenant() }); delete c.codeEnveloppe })
   const revendiquer = (id, nonce, ids) => sousVerrou(() => {
     const c = lire(id)
     if (c.producteur !== PRODUCTEUR) throw new Error('CARTE ÉTRANGÈRE')
@@ -197,12 +213,12 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     revendiquer,
     agentDemarre: (id, agentProcessus) => muter(id, (c) => { if (!agentProcessus?.creation) throw new Error('IDENTITÉ AGENT ABSENTE'); c.agentProcessus = agentProcessus }),
     demanderArret(cible, jeton) {
-      const vue = reconcilier(), choisie = choisir(cible, { vue })
+      const vue = reconcilier(), choisie = choisir(cible, { vue, attente: true })
       return muter(choisie.sessionId, (c) => {
-        if (!jeton) throw new Error('JETON ABSENT')
-        if (!timingSafeEqual(Buffer.from(c.empreinteJeton, 'hex'), Buffer.from(empreinte(jeton), 'hex'))) throw new Error('JETON INCORRECT')
+        capacite(c, jeton)
+        if (sansControleur(c) && ['reservee', 'echec-reservation'].includes(c.etat)) { libererReservation(c, 'fermee'); return }
         if (terminaux.has(c.etat) || c.etat === 'nettoyage') throw new Error('DÉJÀ SORTIE')
-        controle(c, vue)
+        controle(c, constater())
         if (c.etat === 'arret-demande') return
         c.etat = 'arret-demande'; c.demandeId = randomUUID(); c.arretDemandeLe = maintenant()
         sauver(stop(c.sessionId), { sessionId: c.sessionId, demandeId: c.demandeId })
@@ -215,6 +231,27 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       return muter(id, (c) => { c.arretAckLe = maintenant() })
     },
     sortie,
+    async echecDemarrage(id, jeton, raison) {
+      const c = muter(id, (carte) => {
+        capacite(carte, jeton)
+        if (sansControleur(carte) && ['reservee', 'echec-reservation'].includes(carte.etat)) {
+          libererReservation(carte, 'echec-reservation', raison)
+        } else { signalerEchec(carte, raison); if (['nettoyage', 'fermee'].includes(carte.etat)) carte.issueSortie = 'echec' }
+      })
+      if (sansControleur(c)) return c
+      if (['nettoyage', 'fermee', 'echec-controle'].includes(c.etat)) return (await api.attendre(id, { timeoutMs: 30_000 })).carte
+      return (await api.fermer(id, jeton)).carte ?? lire(id)
+    },
+    async attenteDemarrage(id, jeton) {
+      const limite = lire(id).reserveJusqua
+      do {
+        reconcilier()
+        const c = lire(id)
+        if (c.etat !== 'reservee') return c
+        if (horloge() >= limite) return api.echecDemarrage(id, jeton, 'CONTRÔLEUR NON DÉMARRÉ')
+        await dormir(Math.min(100, limite - horloge()))
+      } while (true)
+    },
     lister() {
       const vue = reconcilier()
       const toutes = vue.cartes.map((c) => {
@@ -243,6 +280,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     },
     async fermer(cible, jeton, { timeoutMs = 30_000 } = {}) {
       const demande = api.demanderArret(cible, jeton), debut = horloge()
+      if (demande.etat === 'fermee' && sansControleur(demande)) return { etat: 'fermee', carte: demande }
       do {
         const vue = reconcilier()
         const c = lire(demande.sessionId)
