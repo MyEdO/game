@@ -1265,7 +1265,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
       }
       if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
-      return `✗ ${arme?.label ?? 'aucune arme'} de ${att.label} : aucune Défense opposable contre ${def.label}`;
+      return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
 
     /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée). Cible une

@@ -8,8 +8,6 @@
 //
 // Le script s'écrit avec l'outil d'écriture de fichier, jamais par heredoc, sed ou `node -e` : Git Bash
 // y casse les antislashs, les regex et l'accentué.
-import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
 import { decrireChoix, leverApresNettoyage } from './lib.mjs';
 import { demarrer } from './setup.mjs';
 
@@ -52,7 +50,4 @@ export async function recette(corps, { attacher = true, scenario, graine, combat
   return { choix, avertissements };
 }
 
-const principal = process.argv[1] && (process.platform === 'win32'
-  ? resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
-  : resolve(process.argv[1]) === fileURLToPath(import.meta.url));
-if (principal) process.stdout.write(squelette());
+if (import.meta.main) process.stdout.write(squelette());

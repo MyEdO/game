@@ -306,7 +306,7 @@ export const ECRIT_LU = {
   'test:recette': {
     ecrit: [],
     lit: ['scripts/recette/', 'scripts/port-dev.mjs'],
-    raison: 'le profil de navigateur et les captures vivent hors de l’arbre ; LIT le dériveur de port qu’il éprouve',
+    raison: 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
   },
   typecheck: {
     ecrit: [],
