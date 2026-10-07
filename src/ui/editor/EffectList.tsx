@@ -905,7 +905,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </div>
         )}
         {effect.type === 'startMassBattle' && (
-          <MassBattleFields battle={e.battle ?? {}} onChange={(battle) => upd({ battle })} ctx={ctx} />
+          <MassBattleFields identite={identite} battle={e.battle ?? {}} onChange={(battle) => upd({ battle })} ctx={ctx} />
         )}
         {effect.type === 'transition' && (ctx.scenes ? (
           <>
@@ -1102,7 +1102,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
 /** Éditeur complet du `MassBattleSpec` (armées, Rounds, situations par Round, rencontres de combat).
  *  Réutilise les primitives d'effet (`.test-fields`/`.tf-row`/`.dr`, patron `ListRefField`, select de
  *  rencontre de `startCombat`). Aucun id tapé : toute Scène/rencontre passe par un picker. */
-function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; onChange: (b: MassBattleSpec) => void; ctx: Ctx }) {
+function MassBattleFields({ identite, battle, onChange, ctx }: { identite: string; battle: MassBattleSpec; onChange: (b: MassBattleSpec) => void; ctx: Ctx }) {
   const b = battle ?? ({ allyMight: 50, enemyMight: 50 } as MassBattleSpec);
   const set = (patch: Partial<MassBattleSpec>) => onChange({ ...b, ...patch });
   const rounds = Math.max(1, Math.floor(b.plannedRounds ?? 1));
@@ -1130,7 +1130,8 @@ function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; o
         <label className="dr">Taille de tirage<NumberField variant="nu" label="Taille de tirage" min={1} value={b.situationSize ?? 3} onChange={(situationSize) => set({ situationSize })} /></label>
         <label className="dr">Modif. permanent (Planification)<NumberField variant="nu" label="Modificateur permanent (Planification)" value={b.allyMod ?? 0} onChange={(allyMod) => set({ allyMod })} /></label>
       </div>
-      <label className="dr">Terrain (description)<input value={b.terrain ?? ''} placeholder="Configuration du terrain (narratif)" onChange={(ev) => set({ terrain: ev.target.value || undefined })} /></label>
+      <ProseField label="Terrain (description)" ariaLabel="Description du terrain" value={b.terrain ?? ''} onChange={(terrain) => set({ terrain: terrain || undefined })} />
+      <ProvenanceDuTexte copie identite={identite} sujet="du terrain" value={b} onChange={set} />
       <div className="branch">
         <span className="branch-label">Catalogue de Scènes (pioche des situations) — vide = tout le catalogue.</span>
         <SceneMultiSelect value={b.scenes ?? []} onChange={(scenes) => set({ scenes: scenes.length ? scenes : undefined })} placeholder="Aucune restriction : les 12 Scènes du catalogue sont disponibles." />

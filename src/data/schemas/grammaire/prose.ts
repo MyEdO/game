@@ -12,19 +12,37 @@
  */
 import { z } from 'zod';
 import { descRefSchemaDe, sourceRefSchema, type GenreDeFragment } from './valeurs';
-import { auPlusProcheAncetre, type PointDeDonnee } from './descente';
+import { defDe, type PointDeDonnee } from './descente';
 import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
-import type { CheminProseDeScene } from './champs-prose-de-scene';
+import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
 
-/**
- * DÉCLARE un champ de prose de scène : `z.string()` NOMMÉ par son chemin. Le type du paramètre est le
- * catalogue fermé `CHAMPS_PROSE_DE_SCENE` (`./champs-prose-de-scene`) — un champ de prose déclaré
- * sans être inventorié ne compile pas, et un chemin inventorié sans site de déclaration ici est
- * rouge à la garde de câblage (`src/ui/compendium/liens-du-catalogue.test.tsx`, qui balaie les defs).
- */
-export function proseDeScene(_chemin: CheminProseDeScene) {
-  return z.string();
+type DefinitionNommee<C extends CheminProseDeScene> = (typeof PROSES_NOMMEES)[C];
+type ChampsNommes<C extends CheminProseDeScene> = {
+  [K in DefinitionNommee<C>['champ']]: DefinitionNommee<C>['presence'] extends 'requis' ? z.ZodString : z.ZodOptional<z.ZodString>;
+} & { source: z.ZodOptional<typeof sourceRefSchema> } & (
+  DefinitionNommee<C>['regime'] extends 'narration' ? ReturnType<typeof champAdapteDe> : object
+);
+const declarationsNommees = z.registry<{ chemin: CheminProseDeScene }>();
+
+export function declarationProseNommee(noeud: unknown): ProseNommee | undefined {
+  if (!(noeud instanceof z.ZodType)) return undefined;
+  const declaration = declarationsNommees.get(noeud);
+  return declaration ? PROSES_NOMMEES[declaration.chemin] : undefined;
+}
+
+export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScene>(schema: z.ZodObject<S>, chemin: C) {
+  const definition = PROSES_NOMMEES[chemin];
+  const texte = definition.presence === 'requis' ? z.string().min(1, `${definition.champ} vide.`) : z.string().optional();
+  const champs = {
+    [definition.champ]: texte,
+    source: sourceRefSchema.optional(),
+    ...(definition.regime === 'narration' ? champAdapteDe() : {}),
+  } as ChampsNommes<C>;
+  const compose = schema.extend(champs);
+  const resultat = definition.regime === 'narration' ? compose.superRefine(refineAdapteDe) : compose;
+  declarationsNommees.add(resultat, { chemin });
+  return resultat;
 }
 
 /**
@@ -170,14 +188,21 @@ const estObjetSimple = (v: unknown): v is Record<string | number, unknown> => v 
 
 /**
  * `source` HÉRITÉE d'un point de donnée : celle du plus proche ANCÊTRE qui en porte une, le point exclu
- * (`auPlusProcheAncetre`). Un ancêtre qui porte `adapteDe` COUPE l'héritage : ce qu'il contient est
- * adapté, jamais la copie du livre d'un ancêtre plus haut.
+ * La racine n'est pas héritée ; une déclaration locale coupe la recherche, même sans référence.
  */
 export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown> | undefined {
-  const lue = auPlusProcheAncetre<Record<string | number, unknown> | null>(p, (o) =>
-    o.adapteDe !== undefined ? null : estObjetSimple(o.source) ? o.source : undefined,
-  );
-  return lue ?? undefined;
+  if (p.noeuds.some((n) => declarationProseNommee(n) !== undefined)) return undefined;
+  for (let a = p.parent; a; a = a.parent) {
+    if (a.chemin.length === 0) return undefined;
+    if (!estObjetSimple(a.valeur)) continue;
+    if (a.valeur.adapteDe !== undefined) return undefined;
+    if (estObjetSimple(a.valeur.source)) return a.valeur.source;
+    if (a.noeuds.some((n) => {
+      const shape = defDe(n)?.shape;
+      return shape?.source !== undefined || shape?.adapteDe !== undefined;
+    })) return undefined;
+  }
+  return undefined;
 }
 
 /**

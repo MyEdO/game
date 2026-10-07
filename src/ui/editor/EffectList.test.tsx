@@ -14,12 +14,75 @@ import type { Effect } from '../../state/scene';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { talents } from '../../data';
 import { DAY_PHASES } from '../../engine/clock';
+import { startMassBattleSchema } from '../../data/schemas/defs-scenes/effets';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+
+describe('terrain de bataille — prose et provenance', () => {
+  it('la saisie multiligne et les bascules conservent le texte, le folio et les autres champs à la sérialisation', async () => {
+    const source = { book: 'ennemi-dans-l-ombre', page: 12 };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    let dernier: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 60, terrain: 'Texte copié.', source } };
+    function Controle() {
+      const [effect, setEffect] = useState(dernier);
+      return <EffectFields effect={effect} ctx={ctx} onChange={(next) => { dernier = next; setEffect(next); }} />;
+    }
+    const basculer = async (mode: string) => {
+      const bouton = container.querySelector<HTMLButtonElement>(`button[aria-label="${mode} — provenance du terrain"]`);
+      expect(bouton).not.toBeNull();
+      await act(async () => { bouton!.click(); });
+    };
+    const bataille = () => startMassBattleSchema.parse(JSON.parse(JSON.stringify(dernier))).battle;
+    try {
+      await act(async () => { root.render(<Controle />); });
+      const zone = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Description du terrain"]');
+      expect(zone?.classList.contains('prose-field')).toBe(true);
+      await basculer('Adapté');
+      expect(bataille()).toMatchObject({ adapteDe: source, terrain: 'Texte copié.', allyMight: 50, enemyMight: 60 });
+      expect(bataille().source).toBeUndefined();
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(zone, 'Premier paragraphe.\n\nDeuxième paragraphe.');
+        zone!.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(bataille().terrain).toBe('Premier paragraphe.\n\nDeuxième paragraphe.');
+      await basculer('Copie');
+      expect(bataille().source).toEqual(source);
+      expect(bataille().adapteDe).toBeUndefined();
+      await basculer('Maison');
+      expect(bataille().source).toBeUndefined();
+      expect(bataille().adapteDe).toBeUndefined();
+      expect(bataille().terrain).toBe('Premier paragraphe.\n\nDeuxième paragraphe.');
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
+  });
+
+  it('le brouillon de copie appartient à l’instance d’effet', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const effect: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, terrain: 'Maison.' } };
+    try {
+      await act(async () => { root.render(<EffectFields key="a" effect={effect} ctx={ctx} onChange={() => {}} />); });
+      const copie = container.querySelector<HTMLButtonElement>('button[aria-label="Copie — provenance du terrain"]');
+      expect(copie).not.toBeNull();
+      await act(async () => { copie!.click(); });
+      expect(container.querySelector('button[aria-label="Copie — provenance du terrain"]')?.getAttribute('aria-pressed')).toBe('true');
+      await act(async () => { root.render(<EffectFields key="b" effect={effect} ctx={ctx} onChange={() => {}} />); });
+      expect(container.querySelector('button[aria-label="Maison — provenance du terrain"]')?.getAttribute('aria-pressed')).toBe('true');
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
+  });
+});
 
 describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
   it('newEffect("setTime") crée un défaut phase nuit', () => {

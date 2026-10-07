@@ -338,8 +338,17 @@
     "label": "ProseField",
     "fichier": "src/ui/ProseField.tsx",
     "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable), ou sa LECTURE (`lecture` : prose rendue sous le même libellé, à la même place que la zone)",
-    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène",
+    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille",
     "verrou": "ui-ratchets.test.ts"
+  },
+  {
+    "id": "proseNommee",
+    "type": "primitives.manifest",
+    "label": "proseNommee/declarationProseNommee",
+    "fichier": "src/data/schemas/grammaire/prose.ts",
+    "concept": "composition d'une prose nommée et de sa provenance locale depuis le registre PROSES_NOMMEES, avec exclusivité automatique pour la narration et source seule pour un document ; lecture de la déclaration pendant la co-descente",
+    "perimetre": "ouverture, stade d'indice, document narratif, terrain de bataille ; gardes des projets livrés",
+    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/scenes/bundled-projects.test.ts"
   },
   {
     "id": "prose",
@@ -640,7 +649,7 @@
     "label": "SourceRefField",
     "fichier": "src/ui/SourceRefField.tsx",
     "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et, dès qu'une saisie l'a rendu différent de la valeur reçue, se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) — une valeur reçue incomplète (livre amorcé), non touchée, ne signale rien ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
-    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (document) ; à travers ProvenanceDuTexte : ouverture, stade, PNJ, réplique de dialogue, ligne de journal",
+    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (document) ; à travers ProvenanceDuTexte : ouverture, stade, PNJ, réplique de dialogue, ligne de journal, terrain de bataille",
     "verrou": "src/ui/SourceRefField.test.tsx"
   },
   {
@@ -649,7 +658,7 @@
     "label": "ProvenanceDuTexte",
     "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
     "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
-    "perimetre": "éditeur narratif (ouverture, stade, PNJ), réplique de dialogue (DialogueDetail), ligne de journal (EffectFields)",
+    "perimetre": "éditeur narratif (ouverture, stade, PNJ), réplique de dialogue (DialogueDetail), ligne de journal et terrain de bataille (EffectFields)",
     "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
   },
   {
