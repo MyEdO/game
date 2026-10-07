@@ -14,7 +14,7 @@ test('l’arbre : aucun module de porte ne lit git hors de l’hôte, aucun test
 
 test('le périmètre : les sources suivies des dossiers de portes et les importeurs de l’hôte, hors instruments Vitest et hors l’hôte', () => {
   const sources = sourcesDesPortes()
-  assert.ok(sources.includes('scripts/hooks/solde-ticket-guard.mjs'))
+  assert.ok(sources.includes('scripts/git-hooks/porte-du-commit.mjs'))
   assert.ok(sources.includes('scripts/git-hooks/pre-commit.mjs'))
   assert.ok(sources.includes('scripts/guards/lib/plageStock.mjs'))
   assert.ok(!sources.includes(HOTE), 'l’hôte est la définition, pas un site')
@@ -27,7 +27,7 @@ test('le périmètre : les sources suivies des dossiers de portes et les importe
 
 test('les tests de `scripts/` : suivis, instruments seulement, et le banc hors d’eux comme hors des portes (#2155)', () => {
   const tests = testsDeScripts()
-  assert.ok(tests.includes('scripts/hooks/solde-ticket-guard-driver.test.mjs'))
+  assert.ok(tests.includes('scripts/git-hooks/porte-du-commit.test.mjs'))
   assert.ok(tests.includes('scripts/test/run.test.mjs'))
   assert.ok(tests.every((f) => f.startsWith('scripts/') && estFichierVitest(f)))
   assert.ok(existsSync(join(RACINE, BANC)), `le module de banc ${BANC} est absent`)

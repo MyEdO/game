@@ -67,7 +67,7 @@ test('les imports du budget des deux images sont jugés, le RAW utilise le runne
   assert.deepEqual(testsDuCorpusPour(['.claude/memory/fiche.md', 'Source/Livre/08.md', 'scripts/raw/coverage.mjs'], ['.claude/memory/fiche.md']), [
     { lanceur: 'node-tests', gate: 'test:raw' },
     { lanceur: 'node --test', tests: ['scripts/guards/budget-contexte.test.mjs'] },
-    { lanceur: 'node --test', tests: ['scripts/hooks/solde-ticket-guard.test.mjs'], motif: 'budget' },
+    { lanceur: 'node --test', tests: ['scripts/git-hooks/porte-du-commit.test.mjs'], motif: 'budget' },
   ]);
   assert.deepEqual(testsDuCorpusPour(['src/engine/test.ts']), []);
 });
@@ -83,7 +83,7 @@ test('les refus sont collectés séquentiellement, y compris un signal sans code
   assert.deepEqual(refus.map((r) => r.code), [7, 1]);
   assert.equal(appels[0][1][0], 'scripts/test/run.mjs');
   assert.deepEqual(appels[1][1], ['scripts/test/node-tests.mjs', 'test:raw']);
-  assert.deepEqual(appels.at(-1)[1], ['--test', '--test-name-pattern=budget', 'scripts/hooks/solde-ticket-guard.test.mjs']);
+  assert.deepEqual(appels.at(-1)[1], ['--test', '--test-name-pattern=budget', 'scripts/git-hooks/porte-du-commit.test.mjs']);
 });
 
 test('le périmètre explicite et la base se combinent, les arguments incomplets sont refusés', () => {

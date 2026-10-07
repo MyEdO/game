@@ -1,5 +1,5 @@
 // LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes
-// (pre-push, garde de solde, stocks de plage, closer) exécutent.
+// (pre-push, porte du commit, stocks de plage, closer) exécutent.
 //
 // COMBIEN D'ISSUES A UNE LECTURE GIT ? TROIS :
 //   1. `{ disponible: true, valeur }`      — git a répondu ;
@@ -39,8 +39,8 @@
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 import { Buffer } from 'node:buffer'
 import { spawn as spawnAsync, spawnSync } from 'node:child_process'
-import { readFileSync, statSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
@@ -309,6 +309,25 @@ export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {
   return depot
 }
 
+/** Le dépôt de `dir` (`depotDe`) dont les PANNES vont à `pannes` (`refusDeGit`) : une lecture rend `null`
+ *  pour un objet absent, un code de sortie non nul ou une panne, et la panne reste dite pour un refus
+ *  NOMMÉ au rendu — jamais « rien n'est lu ».
+ *  @param {string} dir @param {string[]} pannes @returns {Depot} */
+export const depotAuxPannes = (dir, pannes) => depotDe(dir, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
+
+/** Racine de l'arbre git qui contient `dir` — le premier dossier porté par un `.git` en remontant —,
+ *  ou `null` s'il n'y en a aucun. Lue sur le DISQUE, pas par `racineDe` : elle répond sans git, et
+ *  pour une cible qui n'existe pas encore. @param {string} [dir] @returns {string | null} */
+export function racineSurDisque(dir = process.cwd()) {
+  let courant = resolve(dir)
+  for (;;) {
+    if (existsSync(join(courant, '.git'))) return courant
+    const parent = dirname(courant)
+    if (parent === courant) return null
+    courant = parent
+  }
+}
+
 function lanceurDe(depot) {
   const lanceur = lanceurs.get(depot)
   if (!lanceur) throw new TypeError('gitPorte : un dépôt se construit par `depotDe(cwd)`')
@@ -365,8 +384,8 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
 
 /** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
  *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. `index` : le
- *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES ») ; `encodage` :
- *  `'buffer'` rend `stdout` en octets. */
+ *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES »), `INDEX_DU_DEPOT`
+ *  le retire de son environnement ; `encodage` : `'buffer'` rend `stdout` en octets. */
 function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE, index, encodage } = {}) {
   const { cwd, env, spawn, attendre } = lanceurDe(depot)
   const fournisseur = typeof env === 'function'
@@ -378,7 +397,9 @@ function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE,
   }
   const argv = [...options, ...args]
   const site = `git ${args[0]}`
-  const envDeLaCommande = index === undefined ? environnement : { ...(environnement ?? process.env), GIT_INDEX_FILE: index }
+  const envDeLaCommande = index === undefined ? environnement
+    : index === INDEX_DU_DEPOT ? sansIndexEmprunte(environnement ?? process.env)
+    : { ...(environnement ?? process.env), GIT_INDEX_FILE: index }
   const vu = feinteDeGit(environnement ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env: envDeLaCommande, spawn, attendre, entree, timeout, site, encodage })
   return classer(vu, { cwd })
 }
@@ -388,6 +409,31 @@ function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE,
  *  `indisponible` n'a PAS de repli : `lire` le confie à `enPanne`, ou le JETTE. */
 const sortieOuNull = (union) =>
   union.disponible && !union.absent && union.valeur.status === 0 ? union.valeur.stdout : null
+
+/** L'option `index` d'une lecture qui lit l'index DU DÉPÔT, hors du `GIT_INDEX_FILE` que pose la commande
+ *  en cours (`interroger`, `indexEmprunte`). */
+export const INDEX_DU_DEPOT = null
+
+/** `env` sans `GIT_INDEX_FILE`. PURE. @param {NodeJS.ProcessEnv} env */
+const sansIndexEmprunte = (env) => Object.fromEntries(Object.entries(env).filter(([cle]) => cle !== 'GIT_INDEX_FILE'))
+
+/**
+ * La commande en cours lit-elle un index EMPRUNTÉ : le `GIT_INDEX_FILE` de l'environnement du dépôt,
+ * quand il n'est pas l'index du dépôt (`rev-parse --git-path index` sous `INDEX_DU_DEPOT`, `git help git`,
+ * « GIT_INDEX_FILE ») ? Mesure du 2026-10-07 (git 2.51.0.windows.2) sous `commit-msg` : `git commit -a`
+ * et `-i` posent `index.lock`, `git commit -- <chemins>` et `-o` un `next-index-*.lock`, le commit simple
+ * l'index du dépôt. `null` si git ne le dit pas (confié).
+ * @param {Depot} depot @returns {boolean | null}
+ */
+export function indexEmprunte(depot) {
+  const { cwd, env } = lanceurDe(depot)
+  const pose = ((typeof env === 'function' ? env() : env) ?? process.env).GIT_INDEX_FILE
+  if (!pose) return false
+  const propre = lire(depot, ['rev-parse', '--path-format=absolute', '--git-path', 'index'], { index: INDEX_DU_DEPOT })?.trim()
+  if (!propre) return null
+  const forme = (chemin) => (process.platform === 'win32' ? chemin.toLowerCase() : chemin)
+  return forme(resolve(cwd, pose)) !== forme(resolve(propre))
+}
 
 /** Une INDISPONIBILITÉ de lecture : confiée à `enPanne`, qui fait rendre `null`, sinon JETÉE. */
 function confier(depot, cause) {
@@ -709,7 +755,7 @@ export function commitsNommes(depot, revisions) {
 /**
  * L'HISTOIRE de HEAD dans `depot`, lue au plus UNE fois (`grapheDe`, à la première question) et
  * partagée par les questions d'UNE évaluation — les commits qu'un solde dit correcteurs
- * (`histoireDesCitations`, scripts/hooks/solde-ticket-guard.mjs) ; elle ne survit pas à
+ * (`histoireDesCitations`, scripts/git-hooks/porte-du-commit.mjs) ; elle ne survit pas à
  * l'évaluation, HEAD pouvant bouger. Chaque question porte sur une LISTE de révisions, résolue en UN
  * lot (`commitsNommes`) comme git la résout, parmi TOUS les objets du dépôt : un préfixe ambigu ou
  * inconnu n'est pas dans l'histoire. Une révision de plus ne lance donc aucun processus.
@@ -1516,6 +1562,15 @@ export function estSuperficiel(depot) {
  *  @param {Depot} depot @returns {string | null} */
 export const dossierDesHooks = (depot) => lire(depot, ['config', '--get', 'core.hooksPath'])?.trim() || null
 
+/** Le caractère de commentaire des messages de commit, `#` sans réglage ; `auto` rendu tel quel.
+ *  `core.commentChar` et `core.commentString` sont des alias, la dernière valeur lue l'emporte (`git
+ *  help config`, « these two variables are aliases of each other » ; « which will override commentChar
+ *  because it comes later in the file ») : la dernière entrée de `config -z --get-regexp`, dans
+ *  l'ordre de lecture de git.
+ *  @param {Depot} depot @returns {string} */
+export const caractereDeCommentaire = (depot) => (lire(depot, ['config', '-z', '--get-regexp', '^core\\.comment(char|string)$']) ?? '')
+  .split('\0').filter(Boolean).map((entree) => entree.slice(entree.indexOf('\n') + 1)).at(-1) || '#'
+
 /** L'URL de l'origine (`remote get-url origin`), `null` sans origine.
  *  @param {Depot} depot @returns {string | null} */
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
@@ -1581,10 +1636,11 @@ export function attributsDe(depot, chemins, nom) {
 
 /**
  * Les ENTRÉES `{ mode, sha }` de `chemins` dans l'image `arbre` : une ref (`ls-tree -r -z`) ou
- * `INDEX` (`ls-files --stage -z`, l'étape 0 seule ; `index` = le `GIT_INDEX_FILE` lu). Un chemin
+ * `INDEX` (`ls-files --stage -z`, l'étape 0 seule ; `index` = le `GIT_INDEX_FILE` lu, `INDEX_DU_DEPOT`
+ * celui du dépôt). Un chemin
  * absent de l'image est absent de la `Map`. L'image entière est lue, puis filtrée : aucune liste de
  * chemins ne passe en argument.
- * @param {Depot} depot @param {string} arbre @param {readonly string[]} chemins @param {{ index?: string }} [opts]
+ * @param {Depot} depot @param {string} arbre @param {readonly string[]} chemins @param {{ index?: string | null }} [opts]
  * @returns {Map<string, EntreeDImage>}
  * @throws {GitIndisponible} image illisible ; {BorneAbsente} la ref `arbre` absente du dépôt.
  */
@@ -1807,7 +1863,7 @@ export function commitDe(depot, { message, chemins, vide = false }) {
 
 /**
  * FUSION de `de` dans la branche courante, toujours par un commit de fusion (`merge --no-ff`), sous
- * le `message` donné (`-m`) : la porte de commit exige un `#N` que le message par défaut ne porte pas.
+ * le `message` donné (`-m`) : la porte du commit exige un `#N` que le message par défaut ne porte pas.
  * @param {Depot} depot @param {{ de: string, message: string }} p
  */
 export const fusionner = (depot, { de, message }) =>

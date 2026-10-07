@@ -1,23 +1,22 @@
-// SONDE (lecture seule) — PÉRIMÈTRE du garde de solde de ticket, mesuré sur le CHEMIN RÉEL.
-// Deux commandes qui ferment les MÊMES tickets sont-elles jugées pareil ? La mesure passe par le
-// DRIVER stdin (`scripts/hooks/solde-ticket-guard.mjs` lancé comme le fait le hook PreToolUse), donc
-// par le cumul de TOUS ses évaluateurs — interroger `evaluate` seul ne mesurerait que le volet
-// « solde du commit » et rendrait SILENCE sur une fermeture qu'un AUTRE volet refuse.
+// SONDE (lecture seule) — PÉRIMÈTRE des fermetures HORS commit, mesuré sur le CHEMIN RÉEL : le
+// répartiteur (`scripts/hooks/repartiteur.mjs`) lancé comme le fait le hook PreToolUse, donc le cumul
+// de TOUTES ses gardes (`fermeture-hors-commit` comprise). Une fermeture PAR commit se juge au hook git
+// `commit-msg` (`scripts/git-hooks/porte-du-commit.mjs`), hors de cette sonde.
 // COMPTEUR : verdict rendu pour chacune des commandes (attendu : DENY partout, sauf le témoin
-// `gh issue create` et `gh api --input -`, dont le corps arrive par l'entrée standard : SILENCE).
+// `gh issue create`, labellisé, et `gh api --input -`, dont le corps arrive par l'entrée standard :
+// aucun refus).
 // Usage : node scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { RACINE } from './_socle.mjs';
 
-const GARDE = join(RACINE, 'scripts', 'hooks', 'solde-ticket-guard.mjs');
+const GARDE = join(RACINE, 'scripts', 'hooks', 'repartiteur.mjs');
 
 const CAS = [
-  ['git commit', 'git commit -m "fix(data): stock recalé — corrige #1636 corrige #1637"'],
   ['gh issue close', 'gh issue close 1636 1637 --comment "corrige #1636 corrige #1637"'],
   ['gh issue close (sous-shell)', 'bash -lc "gh issue close 1636 1637"'],
   ['gh api PATCH state', 'gh api repos/cgauche/game/issues/1636 -X PATCH -f state=closed'],
-  ['gh issue create (témoin)', 'gh issue create --title "x" --body-file b.md'],
+  ['gh issue create (témoin)', 'gh issue create --title "x" --body-file b.md --label bug'],
   // Le corps de la requête (donc l'état `closed`) vit dans un FICHIER dont le CHEMIN est sur la
   // ligne : le garde le LIT, et un corps illisible est refusé (fail-closed) plutôt que silencé.
   ['gh api --input (corps lu, fail-closed)', 'gh api repos/cgauche/game/issues/1636 -X PATCH --input corps.json'],

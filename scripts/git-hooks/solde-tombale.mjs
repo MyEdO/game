@@ -1,5 +1,5 @@
-// Volet ANTI-TOMBALE du garde de solde : fermer un ticket dont le code porte encore, EN COMMENTAIRE,
-// une trace de dette qui le cite laisse une pierre tombale (CLAUDE.md règle 6c, tolérance ZÉRO).
+// Volet ANTI-TOMBALE de la porte du commit (`porte-du-commit.mjs`) : fermer un ticket dont le code porte encore, EN COMMENTAIRE,
+// une trace de dette qui le cite laisse une pierre tombale (CLAUDE.md règle 6, tolérance ZÉRO).
 //
 // La détection réutilise `extractComments` (scripts/guards/lib/commentPoison.mjs), la mécanique
 // EXISTANTE du garde-fou commentaires — jamais un `git grep` sur le texte brut : un motif écrit dans
@@ -10,10 +10,9 @@
 // HORS de ce volet, dit : le canal DONNÉE (un stock JSON/MJS qui déclare un blocage dans une VALEUR,
 // et non dans un commentaire) — la sémantique des stocks se traite avec eux.
 //
-// Chargé par IMPORT DYNAMIQUE depuis `evaluerSolde` (`solde-ticket-guard`) : `commentPoison` tire le
-// vocabulaire RAW derrière lui, et les autres gardes Bash qui importent `solde-ticket-guard` n'ont
-// aucune raison de le payer. Ce module ne dépend d'AUCUN autre garde — les tickets fermés lui sont
-// PASSÉS (une importation en retour vers `solde-ticket-guard` boucle sur son propre évaluateur).
+// Chargé par IMPORT DYNAMIQUE depuis `decisionsDuCommit` (`porte-du-commit.mjs`) : `commentPoison` tire
+// le vocabulaire RAW derrière lui, et un commit qui ne ferme rien n'a aucune raison de le payer. Les
+// tickets fermés lui sont PASSÉS : il n'importe pas la porte.
 import { extractComments, estFichierScanne } from '../guards/lib/commentPoison.mjs'
 
 /** Motifs de DETTE : les tournures par lesquelles un commentaire annonce un travail NON FAIT.
@@ -45,7 +44,7 @@ const SITES_EXEMPTES = new Set(EXEMPTIONS_TOMBALE.map((e) => e.site))
 
 /**
  * Lignes de commentaire qui portent À LA FOIS un motif de dette et la citation d'un des `numeros`.
- * `fichiers` = chemins à scanner, `lire(chemin)` = leur contenu (l'INDEX git côté garde, pour juger
+ * `fichiers` = chemins à scanner, `lire(chemin)` = leur contenu (l.INDEX git côté porte, pour juger
  * ce qui PART dans le commit).
  *
  * La lecture est à la LIGNE, pas au bloc : un en-tête de fichier de plusieurs dizaines de lignes
@@ -89,7 +88,7 @@ export function tombalesDansSource(numeros, { fichiers = [], lire = () => null }
 
 /**
  * Décision « fermeture d'un ticket encore cité comme dette dans un commentaire du code ».
- * `issuesFermees` = les tickets que le commit ferme (`extractClosedIssues`, côté appelant).
+ * `issuesFermees` = les tickets que le commit ferme (`lectureDeLaPorte(…).fermes()`, `decisionsDuCommit`, porte-du-commit.mjs).
  * @returns {{ decision: 'deny', reason: string } | null}
  */
 export function evaluateTombale({ issuesFermees = [], fichiers = [], lire = () => null }) {
@@ -102,7 +101,7 @@ export function evaluateTombale({ issuesFermees = [], fichiers = [], lire = () =
   return {
     decision: 'deny',
     reason:
-      `⛔ Fermeture d'un ticket encore cité comme DETTE dans un commentaire du code (CLAUDE.md règle 6c, ` +
+      `⛔ Fermeture d'un ticket encore cité comme DETTE dans un commentaire du code (CLAUDE.md règle 6, ` +
       `tolérance zéro) : ${detail}. Retirer le commentaire dans le MÊME commit (git porte l'historique) ` +
       `— ou ne pas fermer, si la dette est réelle.`,
   }

@@ -5,7 +5,7 @@
 // modules que `git grep -l` (`fichiersDuGrep`, `gitPorte.mjs`) présélectionne (`motifDeCitation`), lus par lot
 // (`lireEnLot`) et résolus contre l'arbre lu. Appelants : `cssCouchesAudit.ts` (disque),
 // `ventilationDeGit` (l'admission du RETOURNÉ par la régénération de `cssCouchesAudit.ts`, et
-// `scripts/ui/ventilation-css-couches.mts`), le garde de solde au commit, la porte de plage au push.
+// `scripts/ui/ventilation-css-couches.mts`), la porte du commit, la porte de plage au push.
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { CHEMIN_TSCONFIG, aliasDe, directImportsOf, estModule, pathspecsDeModules } from './importGraph.mjs'
@@ -133,24 +133,6 @@ export function sourceGit({ cwd = process.cwd(), arbre, depot = depotDe(cwd) }) 
       ? (rels) => new Map(rels.map((rel) => [rel, lireDuTravail(cwd, rel)]))
       : (rels) => lireEnLot(depot, arbre, rels),
     citants: (motif) => fichiersDuGrep(depot, portee, motif, pathspecsDeModules(RACINE_DES_SOURCES)),
-  }
-}
-
-/**
- * La source des chemins que `dans` retient lus dans `dedans`, et de tous les autres dans `dehors` :
- * l'arbre d'un `git commit -- <pathspec>` (`dedans` = l'arbre de travail, `dehors` = `HEAD`).
- * @param {{ dans: (rel: string) => boolean, dedans: SourceCss, dehors: SourceCss }} p @returns {SourceCss}
- */
-export function sourceMelee({ dans, dedans, dehors }) {
-  const hors = (rel) => !dans(rel)
-  return {
-    lister: (dossier) => [...dehors.lister(dossier).filter(hors), ...dedans.lister(dossier).filter(dans)],
-    lire: (rel) => (dans(rel) ? dedans : dehors).lire(rel),
-    lireTout: (rels) => {
-      const lus = new Map([...dehors.lireTout(rels.filter(hors)), ...dedans.lireTout(rels.filter(dans))])
-      return new Map(rels.map((rel) => [rel, lus.get(rel) ?? null]))
-    },
-    citants: (motif) => [...dehors.citants(motif).filter(hors), ...dedans.citants(motif).filter(dans)],
   }
 }
 

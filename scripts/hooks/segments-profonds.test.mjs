@@ -1,5 +1,5 @@
 // Tests du SOCLE de reconnaissance de commande partagé par les gardes PreToolUse (#1679 L1a T1) :
-// `segmentsProfonds` (sous-shells + enrobeurs de tête), `extractTargetDir` (répertoire cible réel),
+// `segmentsProfonds` (sous-shells + enrobeurs de tête), `cibleDeLaCommande` (répertoire cible réel),
 // et le contrat de sortie du point d'entrée.
 //
 // Les formes couvertes ici viennent de sondes jouées contre les évaluateurs RÉELS avant écriture :
@@ -13,11 +13,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, posix, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   segmentsProfonds,
   finAvantOperateur,
@@ -27,19 +26,28 @@ import {
   affectationsDEnvironnement,
   versCheminNatif,
   scriptsNpm,
+  argumentChaine,
+  cibleDeLaCommande,
+  gitSubcommand,
 } from '../guards/lib/commandeShell.mjs'
-import { isGitCommitCommand, extractClosedIssues, extractTargetDir } from './solde-ticket-guard.mjs'
+import { numerosFermes } from '../guards/lib/fermetures.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { evaluate as evaluateLabel } from './issue-label-guard.mjs'
 import { evaluate as evaluateGates } from './codeur-gates-guard.mjs'
-import { lancerGit } from '../test/gitDeBanc.mjs'
 
 // Lecteurs Windows et racines de profil ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin
 // absolu littéral, il reste donc soumis à `src/portable-paths-guard.test.ts` comme `scripts/**`.
 const BS = String.fromCharCode(92)
 const REPO = fileURLToPath(new URL('../..', import.meta.url))
+
+/** `true` si un segment RÉELLEMENT exécuté de `command` est un `git commit` (`segmentsProfonds`, `gitSubcommand`). */
+const executeUnCommit = (command) => segmentsProfonds(command).some((s) => gitSubcommand(s)?.sub === 'commit')
+/** Les numéros que ferment (`numerosFermes`) les segments `git commit` réellement exécutés de `command`. */
+const fermesDuCommit = (command) => segmentsProfonds(command).filter((s) => gitSubcommand(s)?.sub === 'commit').flatMap((s) => numerosFermes(s.join(' ')))
+/** Le répertoire où s'exécute la commande (`cibleDeLaCommande`), `base` sans cible prouvée. */
+const lieuDuCommit = (command, base, platform, opts) => cibleDeLaCommande(command, base, platform, opts).dir ?? base
 const LECTEUR_C = 'C' + ':'
 const LECTEUR_D = 'D' + ':'
 const PROFIL_WIN = ['/c/Users', 'x'].join('/')
@@ -115,8 +123,8 @@ const FORMES_VUES = [
 
 for (const { nom, git, gh } of FORMES_VUES) {
   test(`forme VUE — ${nom} : le git commit est reconnu ET la création sans label refusée`, () => {
-    assert.equal(isGitCommitCommand(git), true, `git commit invisible derrière « ${nom} »`)
-    assert.deepEqual(extractClosedIssues(git), [42])
+    assert.equal(executeUnCommit(git), true, `git commit invisible derrière « ${nom} »`)
+    assert.deepEqual(fermesDuCommit(git), ['42'])
     assert.ok(evaluateLabel(gh), `gh issue create sans label invisible derrière « ${nom} »`)
   })
 }
@@ -146,7 +154,7 @@ const FORMES_HORS_PORTEE = [
 
 for (const [nom, cmd] of FORMES_HORS_PORTEE) {
   test(`forme HORS PORTÉE — ${nom} : passe, dit`, () => {
-    assert.equal(isGitCommitCommand(cmd), false)
+    assert.equal(executeUnCommit(cmd), false)
     assert.equal(evaluateLabel(cmd), null)
   })
 }
@@ -200,11 +208,11 @@ test('npm run <x> : la résolution suit le dépôt ANCRÉ, pas celui du hook', (
 test('$\'…\' (ANSI-C quoting) est un span QUOTÉ : l\'exécutable de tête reste lisible', () => {
   assert.deepEqual(segmentsProfonds("bash -c $'gh issue create --title x'")[0].slice(0, 3), ['gh', 'issue', 'create'])
   assert.ok(evaluateLabel("bash -c $'gh issue create --title x'"))
-  assert.equal(isGitCommitCommand("bash -c $'git commit -m x'"), true)
+  assert.equal(executeUnCommit("bash -c $'git commit -m x'"), true)
 })
 
 test('imbrication à DEUX niveaux : sh -c "bash -lc \'…\'"', () => {
-  assert.equal(isGitCommitCommand('sh -c "bash -lc \'git commit -m x\'"'), true)
+  assert.equal(executeUnCommit('sh -c "bash -lc \'git commit -m x\'"'), true)
   assert.ok(evaluateLabel('sh -c "bash -lc \'gh issue create --title x\'"'))
 })
 
@@ -213,13 +221,13 @@ test('borne DITE de la récursion : au-delà de PROFONDEUR_MAX_ENROBEURS l\'anal
   // au-delà de deux niveaux, les quotes d'un vrai shell s'épuisent et la chaîne n'imbrique plus
   // rien — un tel cas passerait pour la RAISON D'À CÔTÉ.
   const cmd = 'sh -c "git commit -m x"'
-  assert.equal(isGitCommitCommand(cmd), true)
+  assert.equal(executeUnCommit(cmd), true)
   assert.ok(segmentsProfonds(cmd, 4).length > 0, 'la borne mord trop tôt')
   assert.deepEqual(segmentsProfonds(cmd, 5), [], 'au-delà de la borne, aucun segment n\'est rendu : la commande PASSE')
 })
 
-// 4e juge, BUDGET-CONSOMMATEURS-1 : la borne de segments ne vaut que pour la ré-analyse des
-// arguments de la garde de commit ; les gardes consommatrices voient TOUS les segments (#1801).
+// 4e juge, BUDGET-CONSOMMATEURS-1 : aucune borne de segments, les gardes consommatrices voient TOUS les
+// segments (#1801).
 test('les gardes consommatrices voient tous les segments, au-delà de 2000', () => {
   const cmd = `${'true ; '.repeat(2100)}gh issue create --title t --body b`
   assert.deepEqual(segmentsProfonds(cmd).at(-1), ['gh', 'issue', 'create', '--title', 't', '--body', 'b'])
@@ -228,8 +236,8 @@ test('les gardes consommatrices voient tous les segments, au-delà de 2000', () 
 
 test('#591 : un `git commit` CITÉ dans le corps d\'un gh issue create reste une citation', () => {
   const cmd = 'gh issue create --label sev:mineur --title "x" --body "reproduire avec git commit -m corrige #42"'
-  assert.equal(isGitCommitCommand(cmd), false)
-  assert.deepEqual(extractClosedIssues(cmd), [])
+  assert.equal(executeUnCommit(cmd), false)
+  assert.deepEqual(fermesDuCommit(cmd), [])
   assert.equal(evaluateLabel(cmd), null)
 })
 
@@ -238,7 +246,7 @@ test('un label présent DANS le sous-shell suffit (le refus porte sur le manque,
 })
 
 test('`command -v git` ne lance rien : aucun flag n\'est épluché derrière `command`', () => {
-  assert.equal(isGitCommitCommand('command -v git commit'), false)
+  assert.equal(executeUnCommit('command -v git commit'), false)
 })
 
 test('le segment ENROBANT est rendu après le segment qu\'il porte (`cmd /c mklink …`)', () => {
@@ -247,22 +255,22 @@ test('le segment ENROBANT est rendu après le segment qu\'il porte (`cmd /c mkli
   assert.deepEqual(segments[0], ['mklink', '/J', 'node_modules', 'cible'], '`cmd /c` porte le RESTE de la ligne')
 })
 
-// ── extractTargetDir : le répertoire où le commit s'exécute VRAIMENT ──────────────────────────────
+// ── cibleDeLaCommande : le répertoire où le commit s'exécute VRAIMENT ──────────────────────────────
 // Ces attendus mesurent la RÉSOLUTION de chemin (graphies, pliage des `cd`, priorité du `-C`) sur des
 // chemins FABRIQUÉS : la sonde d'existence du disque y est donc injectée à vrai. Qu'un chemin
-// INEXISTANT ne serve pas de cwd est un AUTRE contrat, mesuré dans `solde-ticket-guard.test.mjs`.
+// INEXISTANT ne serve pas de cwd est un AUTRE contrat, mesuré plus bas (#1729).
 const TOUT_EXISTE = { existe: () => true }
 
-test('extractTargetDir : un chemin POSIX de disque (`/c/…`) devient natif sur win32, inchangé ailleurs', () => {
+test('cibleDeLaCommande : un chemin POSIX de disque (`/c/…`) devient natif sur win32, inchangé ailleurs', () => {
   const cmd = 'cd ' + PROFIL_WIN + '/dépôt && git commit -m "corrige #42"'
   const base = resolve('/base')
-  assert.equal(extractTargetDir(cmd, base, 'win32', TOUT_EXISTE), resolve(base, PROFIL_NATIF + '/dépôt'))
-  assert.equal(extractTargetDir(cmd, base, 'linux', TOUT_EXISTE), resolve(base, PROFIL_WIN + '/dépôt'))
-  assert.notEqual(extractTargetDir(cmd, base, 'linux', TOUT_EXISTE), extractTargetDir(cmd, base, 'win32', TOUT_EXISTE))
+  assert.equal(lieuDuCommit(cmd, base, 'win32', TOUT_EXISTE), resolve(base, PROFIL_NATIF + '/dépôt'))
+  assert.equal(lieuDuCommit(cmd, base, 'linux', TOUT_EXISTE), resolve(base, PROFIL_WIN + '/dépôt'))
+  assert.notEqual(lieuDuCommit(cmd, base, 'linux', TOUT_EXISTE), lieuDuCommit(cmd, base, 'win32', TOUT_EXISTE))
 })
 
-test('extractTargetDir : l\'attendu s\'ancre sur la base FOURNIE, jamais sur le cwd du process', () => {
-  // `extractTargetDir` résout contre la base qu'on lui passe. Un attendu écrit `resolve(NATIF)`
+test('cibleDeLaCommande : l\'attendu s\'ancre sur la base FOURNIE, jamais sur le cwd du process', () => {
+  // `cibleDeLaCommande` résout contre la base qu'on lui passe. Un attendu écrit `resolve(NATIF)`
   // s'ancre, lui, sur le cwd du PROCESS : les deux ne coïncident que là où `C:/…` est ABSOLU,
   // c'est-à-dire sur win32. Rejoué ici sur les DEUX moteurs de `node:path`, la divergence mord sans
   // dépendre de l'hôte : sur POSIX (la CI) l'ancrage fautif décalait l'attendu sous le cwd du runner.
@@ -283,15 +291,15 @@ test('versCheminNatif : ne convertit QUE la graphie `/<lettre>/…`', () => {
   assert.equal(versCheminNatif('/d/wt', 'win32'), LECTEUR_D + '/wt')
 })
 
-test('extractTargetDir : un `cd` ou un `git -C` DANS un sous-shell désigne le même répertoire réel', () => {
+test('cibleDeLaCommande : un `cd` ou un `git -C` DANS un sous-shell désigne le même répertoire réel', () => {
   const base = resolve('/base')
-  assert.equal(extractTargetDir('sh -c "cd wt && git commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
-  assert.equal(extractTargetDir('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
+  assert.equal(lieuDuCommit('sh -c "cd wt && git commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
+  assert.equal(lieuDuCommit('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
 })
 
-test('extractTargetDir : `git -C` se résout là où tourne son segment, après les `cd` ; ses `-C` se composent comme git', () => {
+test('cibleDeLaCommande : `git -C` se résout là où tourne son segment, après les `cd` ; ses `-C` se composent comme git', () => {
   const base = resolve('/base')
-  const lieu = (command) => extractTargetDir(command, base, 'linux', TOUT_EXISTE)
+  const lieu = (command) => lieuDuCommit(command, base, 'linux', TOUT_EXISTE)
   assert.equal(lieu('cd a && git -C b commit -m x'), resolve(base, 'a', 'b'))
   assert.equal(lieu('git -C b commit -m x && cd a'), resolve(base, 'b'))
   assert.equal(lieu('git -C a -C b commit -m x'), resolve(base, 'a', 'b'))
@@ -301,17 +309,6 @@ test('extractTargetDir : `git -C` se résout là où tourne son segment, après 
   assert.equal(lieu('git.exe -C b commit -m x'), resolve(base, 'b'), 'tête lue par `estGit`')
   assert.equal(lieu('git commit -m x'), base)
 })
-
-/** Dépôt jetable avec un worktree LIÉ, posé DANS l'instance : la garde s'y joue comme dans un arbre
- *  réel — `.gitignore` compris, qui y tient le rôle de l'entrée `.wt-` du dépôt (.gitignore:54) et
- *  garde l'arbre principal PROPRE. */
-function depotAvecWorktree() {
-  const { racine: principal } = instanceDeDepot({ fichiers: { 'a.txt': 'a', '.gitignore': '/wt/\n' }, message: 'racine' })
-  const worktree = join(principal, 'wt')
-  const git = (cwd, ...args) => lancerGit(args, { cwd })
-  git(principal, 'worktree', 'add', '-q', worktree)
-  return { base: principal, principal, worktree }
-}
 
 // ── Driver : le JSON rendu au hook ────────────────────────────────────────────────────────────────
 /** Sortie BRUTE d'un point d'entrée réel pour un payload de hook. */
@@ -335,20 +332,7 @@ test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)',
 
 test('DRIVER : une décision NULLE ne produit AUCUNE sortie (silence, jamais un JSON vide)', () => {
   assert.equal(sortieDriver('repartiteur.mjs', 'gh issue list --state open').trim(), '')
-  assert.equal(sortieDriver('solde-ticket-hook.mjs', 'ls -la').trim(), '')
-})
-
-test('DRIVER solde : une fermeture sans solde est refusée, et le refus dit l\'ordre stage-puis-commit', () => {
-  const { base, principal } = depotAvecWorktree()
-  try {
-    const out = sortieDriver('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #424242)"', principal)
-    const { hookSpecificOutput } = JSON.parse(out)
-    assert.equal(hookSpecificOutput.permissionDecision, 'deny')
-    assert.match(hookSpecificOutput.permissionDecisionReason, /424242/)
-    assert.match(hookSpecificOutput.permissionDecisionReason, /L'index est lu AVANT l'exécution/)
-  } finally {
-    rmSync(base, { recursive: true, force: true })
-  }
+  assert.equal(sortieDriver('repartiteur.mjs', 'ls -la').trim(), '')
 })
 
 // ── Cumul de refus ──────────────────────────────────────────────────────────────────────────
@@ -551,4 +535,125 @@ test('sansRedirections : chaque redirection se retire avec sa cible, les argumen
   assert.deepEqual(textes('tsc >|x.txt --noEmit'), ['tsc', '--noEmit'], '`>|` (noclobber) est une redirection, pas un tube')
   assert.deepEqual(textes('vitest run <in.txt 2>err.txt src/a.ts'), ['vitest', 'run', 'src/a.ts'])
   assert.deepEqual(textes('diff <(sort a) ">" b'), ['diff', '<(sort a)', '>', 'b'], 'substitution de processus et quote : des arguments')
+})
+
+// 7e juge, ENV-S-SUITE-1 et PORTEURS-RESTE-1 : ce que l'hôte lit APRÈS l'argument porteur (#1801).
+test('argumentChaine : `env -S` suivi de ses arguments ; `cmd /c`, `-Command`, `eval` prennent le reste', () => {
+  for (const commande of [
+    "env -S 'git' commit -a -m x", 'env -S git commit -a -m x', "env --split-string='git' commit -a -m x",
+    "env -S'git' commit -a -m x",
+  ]) {
+    assert.equal(executeUnCommit(commande), true, commande)
+  }
+  const commit = segmentsProfonds(`env -S 'git' commit -a -m "c'est refs #1801"`).find((s) => gitSubcommand(s)?.sub === 'commit')
+  assert.equal(commit?.at(-1), 'c\'est refs #1801', 'les arguments suivants gardent leur valeur exacte, quote simple comprise')
+  // 8e juge, ENV-PROVENANCE-1 : les arguments suivants gardent leur PROVENANCE (#1801).
+  const dernierJeton = (commande) => pipelinesDeJetons(commande).flat().find(({ jetons }) => jetons.some((j) => j.text === 'commit')).jetons.at(-1)
+  assert.equal(dernierJeton('env -S git commit -m x -- $F').quote, undefined, 'un jeton nu reste nu')
+  assert.equal(dernierJeton('env -S git commit -m x -- "src/a b.ts"').quote, 'double')
+  for (const commande of [
+    'cmd /c git commit -a -m x', 'cmd /C git commit -a -m x', 'cmd.exe /c git commit -a -m x',
+    'powershell -Command git commit -a -m x', 'pwsh -c git commit -a -m x', 'powershell -NoProfile -Command git commit -a -m x',
+    'eval git commit -a -m x', 'eval -- git commit -a -m x',
+  ]) {
+    assert.equal(executeUnCommit(commande), true, commande)
+  }
+  assert.equal(argumentChaine(['Invoke-Expression', 'echo a', 'b']), 'echo a', '`Invoke-Expression` lit son premier argument')
+  assert.equal(argumentChaine(['sh', '-c', 'echo "$1"', '_', 'x']), 'echo "$1"', 'les arguments suivants de `sh -c` sont ses positionnels')
+})
+
+// #2173 : `//c`/`//k` est la graphie Git Bash (MSYS) de `/c`/`/k`.
+test('argumentChaine : `cmd //c` et `//k` portent leur chaîne comme `/c` et `/k` ; un chemin UNC n’est pas un porteur', () => {
+  assert.equal(argumentChaine(['cmd', '//c', 'taskkill', '//im', 'node.exe']), 'taskkill //im node.exe')
+  assert.equal(argumentChaine(['cmd', '//C', 'echo', 'x']), 'echo x')
+  assert.equal(argumentChaine(['cmd', '//q', '//k', 'echo']), 'echo')
+  assert.equal(argumentChaine(['cmd', '//serveur/partage']), null)
+  assert.equal(executeUnCommit('cmd //c git commit -a -m x'), true)
+})
+
+// 5e juge, MEMO-ANCRE-1 : la lecture d'un `npm run` dépend du dépôt ancré, le mémo (`segmentsLus`) aussi.
+test('cibleDeLaCommande : le mémo de la lecture suit la racine npm de la portée', () => {
+  const base = mkdtempSync(join(tmpdir(), 'memo-ancre-'))
+  try {
+    for (const [d, c] of [['pa', 'cd sous && git status'], ['pb', 'echo rien']]) {
+      mkdirSync(join(base, d, 'sous'), { recursive: true })
+      writeFileSync(join(base, d, 'package.json'), JSON.stringify({ scripts: { c } }))
+    }
+    assert.equal(sousRacineNpm(join(base, 'pa'), () => cibleDeLaCommande('npm run c', join(base, 'pa')).dir), join(base, 'pa', 'sous'))
+    assert.equal(sousRacineNpm(join(base, 'pb'), () => cibleDeLaCommande('npm run c', join(base, 'pb')).dir), null, 'le résultat lu sous pa ne vaut pas pour pb')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// ── Continuation de ligne : la commande CONTINUE, le saut n'est pas une fin (#1729) ───────────
+test('tokenizeCommand : `\\` POSIX et backtick PowerShell en fin de ligne ne coupent pas la commande', () => {
+  const LF = '\n'
+  const BS = String.fromCharCode(92)
+  const BT = String.fromCharCode(96)
+  assert.deepEqual(segmentsProfonds(`git commit --amend ${BS}${LF}  -F msg.txt`), [['git', 'commit', '--amend', '-F', 'msg.txt']])
+  // Le marqueur lui-même ne devient pas un jeton parasite (`["`"]` mesuré avant correction).
+  assert.deepEqual(
+    segmentsProfonds(`git commit -m "fix: refs #1729" ${BT}${LF}  -- scripts/hooks/x.mjs`),
+    [['git', 'commit', '-m', 'fix: refs #1729', '--', 'scripts/hooks/x.mjs']],
+  )
+})
+
+// ── Répertoire CIBLE : ce que la commande nomme n'est un cwd que s'il EXISTE (#1729) ─────────────
+// Un cwd inexistant et un git absent rendent le MÊME ENOENT de spawn : retenir un chemin non prouvé
+// refuserait pour une lecture git indisponible un geste que git exécute (sondes 1-2 du ticket).
+test('cibleDeLaCommande : un chemin INEXISTANT ou NON EXPANSÉ n’est pas un cwd, et la raison est dite', () => {
+  const base = mkdtempSync(join(tmpdir(), 'cible-'))
+  try {
+    mkdirSync(join(base, 'wt'))
+    assert.deepEqual(
+      cibleDeLaCommande('cd wt && git commit -m x', base),
+      { dir: join(base, 'wt'), ignore: null },
+      'un répertoire RÉEL reste la cible',
+    )
+
+    const absent = cibleDeLaCommande('cd .wt-1728-L1 && git commit -m x', base)
+    assert.equal(absent.dir, null, 'la cible d’un worktree absente du disque servait de cwd → ENOENT du spawn')
+    assert.match(absent.ignore.raison, /inexistant/)
+    assert.equal(absent.ignore.chemin, join(base, '.wt-1728-L1'))
+
+    const variable = cibleDeLaCommande('M=/c/x; git -C "$M" merge --ff-only x', base)
+    assert.equal(variable.dir, null)
+    assert.equal(variable.ignore.chemin, '$M')
+    assert.match(variable.ignore.raison, /non expansée/)
+
+    assert.deepEqual(
+      cibleDeLaCommande('git worktree add -b wt-1728-L1 .wt-1728-L1 HEAD', base),
+      { dir: null, ignore: null },
+      'la CIBLE d’un `git worktree add` n’est jamais un cwd : la commande ne nomme aucun répertoire',
+    )
+
+    // #2173 (juge de diff, 5e passe) : `popd`/`Pop-Location` dépilent un lieu que la commande ne nomme pas.
+    for (const cmd of ['Pop-Location -StackName x; git commit -m y', 'popd +1; git commit -m y']) {
+      assert.deepEqual(cibleDeLaCommande(cmd, base), { dir: null, ignore: null }, cmd)
+    }
+    assert.deepEqual(cibleDeLaCommande('Push-Location wt; git commit -m y', base), { dir: join(base, 'wt'), ignore: null })
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// ── Le CORPS d’un heredoc est une DONNÉE, pas des commandes (#1729 sonde 6) ───────────────────
+test('segmentsProfonds : un heredoc qui ÉCRIT un texte citant « git commit » n’exécute aucun commit', () => {
+  const ecriture = [
+    "cat > note.md <<'EOF'",
+    'Geste joué : `Set-Location .wt-1728-L1; git commit -m \'fix\'` — du texte, pas une commande.',
+    'EOF',
+  ].join('\n')
+  assert.equal(executeUnCommit(ecriture), false)
+  assert.equal(executeUnCommit(ecriture.replace("<<'EOF'", '<<-"FIN"').replace(/\nEOF$/, '\nFIN')), false, 'graphies `<<-` et mot entre guillemets doubles')
+  // Le `git commit` HORS du corps reste vu, message packé en heredoc compris.
+  assert.equal(executeUnCommit('git commit -m "$(cat <<EOF\nfix(x): refs #1729\nEOF\n)"'), true)
+  assert.equal(executeUnCommit(`${ecriture}\ngit commit -m "fix(x): refs #1729"`), true, 'la commande qui SUIT le corps est rendue à la lumière')
+  // Fidélité au shell : seule la ligne du mot SEUL ferme un `<<MOT` — une ligne de prose INDENTÉE
+  // qui cite le mot ne rouvre pas le texte en commandes (sans quoi la prose suivante redevient un
+  // commit). Après `<<-`, seules les TABULATIONS de tête sont retirées.
+  const indente = ['cat > note.md <<EOF', '  EOF', "git commit -m 'du texte, pas un geste'", 'EOF', 'echo fin'].join('\n')
+  assert.equal(executeUnCommit(indente), false)
+  assert.equal(executeUnCommit(['cat > note.md <<-EOF', '\tEOF', 'git commit -m "vrai"'].join('\n')), true, '`<<-` ferme sur une tabulation')
 })

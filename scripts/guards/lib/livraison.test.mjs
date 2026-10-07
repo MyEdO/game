@@ -36,7 +36,7 @@ test('#2285 consommateurs livraison : diagnostic autonome et erreur programme pa
   const depot = depotDe('/fixture-consommateurs', { env: {}, spawn: () => { throw erreur } })
   assert.throws(() => verdictDePublication(depot), (e) => e === erreur)
 })
-import { validateJugeFile, validateJugeVisionFile } from '../../hooks/solde-ticket-guard.mjs'
+import { validateJugeFile, validateJugeVisionFile } from '../../git-hooks/porte-du-commit.mjs'
 import { gitDe, resultatDeGit } from '../../test/gitDeBanc.mjs'
 
 const GATE = fileURLToPath(new URL('../livraison-plage.mjs', import.meta.url))

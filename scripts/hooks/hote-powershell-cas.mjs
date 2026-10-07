@@ -1,5 +1,5 @@
 // Cas de l'hôte PowerShell (#2292) : UNE liste, lue par les tests (`argumentChaine` dans
-// `scripts/hooks/solde-ticket-guard.test.mjs`, la garde réelle dans
+// `scripts/hooks/segments-profonds.test.mjs`, la garde réelle dans
 // `scripts/hooks/commande-piege-guard.test.mjs`) et rejouée sur l'hôte RÉEL par la sonde `scripts/ops/sondes/hote-powershell.mjs`, qui signale tout écart.
 //
 // `args` : les arguments de l'hôte, où `CHARGE` (dans un argument) devient la commande portée, `CHARGE_ETALEE`
@@ -107,7 +107,7 @@ export const CAS_HOTE_POWERSHELL = [
   ...pour(['powershell'], ['-NoProfile', '-zz', ';', CHARGE_ETALEE], 'execute'),
   ...pour(['powershell'], ['-NoProfile', '-NoExit:$false', ';', CHARGE_ETALEE], 'execute'),
   ...pour(['powershell'], ['-NoProfile', '', '-c', CHARGE], 'execute'),
-  // L'hôte lit sa commande sur stdin : limite nommée en tête de `solde-ticket-guard.mjs`.
+  // L'hôte lit sa commande sur stdin : #2172.
   ...pour(LES_DEUX, ['-NoProfile', '-c', '-'], 'stdin', { entree: true }),
   ...pour(LES_DEUX, ['-NoProfile', '-'], 'stdin', { entree: true }),
   ...pour(LES_DEUX, ['-NoProfile'], 'stdin', { entree: true }),

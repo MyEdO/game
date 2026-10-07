@@ -79,7 +79,7 @@ const MAQUETTE_RESERVEE = /^(?:(?:todo|à faire|a faire|tbd|fixme)\b|[-–—?.�
  *
  *  CE QUE CETTE PORTE PROUVE : qu'une trace de validation a été ÉCRITE — garde-fou d'ÉTOURDERIE
  *  (déclaration oubliée, réservation laissée en place), PAS de CONTREFAÇON (même statut que le
- *  contrôle de capture de `solde-ticket-guard`). Rien ici ne dit que la maquette a été vue : c'est la
+ *  contrôle de capture de `verifierCaptures`, `scripts/git-hooks/porte-du-commit.mjs`). Rien ici ne dit que la maquette a été vue : c'est la
  *  revue qui le juge. */
 export const maquetteEntree = (e) => {
   if (typeof e === 'string') return ''

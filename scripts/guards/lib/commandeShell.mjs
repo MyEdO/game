@@ -1,5 +1,4 @@
-// LECTEUR de commande shell : les gardes de commande de `scripts/hooks/` et la porte de commit
-// (`scripts/hooks/solde-ticket-guard.mjs`) le partagent.
+// LECTEUR de commande shell : les gardes de commande de `scripts/hooks/` le partagent.
 //
 // LECTURE DE LA COMMANDE (`segmentsProfonds`) — ce qu'elle reconnaît, et rien d'autre :
 //   - découpage : quotes, here-strings, heredocs (leur corps n'est pas une commande), enchaînements
@@ -17,9 +16,8 @@
 //   - substitutions `$(…)`, `` `…` ``, `@(…)`, et de processus `<(…)`, `>(…)`, nues ou sous quote double
 //     (`$(…)` seule dans une here-string `@"…"@`) : leur contenu relu comme une commande exécutée, où
 //     qu'elles se trouvent dans le segment ;
-//   - profondeur : `PROFONDEUR_MAX_ENROBEURS` niveaux de porteurs et `SEGMENTS_MAX` segments relus ;
-//     au-delà, les gardes consommatrices refusent la commande (`REFUS_SATURE`), la garde de commit
-//     présume un commit embarqué.
+//   - profondeur : `PROFONDEUR_MAX_ENROBEURS` niveaux de porteurs ; au-delà, les gardes consommatrices
+//     refusent la commande (`REFUS_SATURE`).
 import { Buffer } from 'node:buffer'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -29,17 +27,12 @@ import { LECTEURS } from './appelsRunners.mjs'
 import { racineNpmCourante } from './racineNpm.mjs'
 
 // ── Parsing STRUCTUREL de la ligne de commande (#591 défaut 3) ───────────────────────────────────
-// « est-ce un `git commit` ? » ne se décide plus par un grep de sous-chaîne sur la ligne entière
-// (un `gh issue create --body "... git commit ..."` la faisait mordre à tort) : on TOKENISE la
-// commande (quotes simples/doubles + here-strings PowerShell `@'…'@`/`@"…"@`), on la découpe en
-// segments aux enchaînements top-level (`&&`, `;`, `||`, `|`), puis on identifie dans CHAQUE segment
-// l'exécutable de tête et sa sous-commande (`git [-C <path>|-c <k=v>|...] commit`).
+// La commande se TOKENISE (quotes simples/doubles + here-strings PowerShell `@'…'@`/`@"…"@`), se
+// découpe en segments aux enchaînements top-level (`&&`, `;`, `||`, `|`), puis chaque segment rend
+// l'exécutable de tête et sa sous-commande (`git [-C <path>|-c <k=v>|...] <sous-commande>`).
 // Ouverture d'un HEREDOC (`<<EOF`, `<<-'EOF'`, `<<"EOF"`) : ce qui suit, à partir de la LIGNE
 // suivante et jusqu'à la ligne qui répète le mot, est une DONNÉE écrite par la commande, pas des
-// commandes — sauf pour un shell qui lit son stdin (`bash <<'EOF'`, NON COUVERT, #2071). Sans cette
-// borne, le corps se tokenisait : ses `;`/`&&` ouvraient des segments et une ligne de PROSE citant
-// « git commit » devenait un commit (`cat > f.md <<'EOF' … EOF` d'un commentaire de ticket, demande
-// de confirmation sur une écriture de fichier, #1729 sonde 6).
+// commandes, y compris sous un shell qui la lit sur son stdin (`bash <<'EOF'`). #1729 sonde 6.
 // Le mot de fin ne peut pas être quoté ici : les quotes de l'ouverture n'appartiennent pas au mot.
 const HEREDOC_OUVERTURE_RE = /^<<(-?)\s*(['"]?)([A-Za-z_][\w.-]*)\2/
 
@@ -81,9 +74,8 @@ function tokenizeCommand(command) {
   let sousShells = 0
   while (i < n) {
     while (i < n && /\s/.test(command[i])) {
-      // Un SAUT DE LIGNE hors quote termine la commande comme un `;` : sans lui, la ligne qui SUIT
-      // le corps d'un heredoc se recollait au `cat` (segment unique) et son `git commit` devenait
-      // invisible. Les sauts de ligne d'un message vivent DANS un token quoté, jamais ici.
+      // Un SAUT DE LIGNE hors quote termine la commande comme un `;`, y compris la ligne qui suit le
+      // corps d'un heredoc. Les sauts de ligne d'un message vivent DANS un token quoté, jamais ici.
       if (command[i] === '\n') {
         i = heredocs.length > 0 ? finDesCorpsHeredoc(command, i + 1, heredocs) : i + 1
         heredocs = []
@@ -148,8 +140,6 @@ function tokenizeCommand(command) {
       const c = command[j]
       // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
       // se POURSUIT — les deux caractères disparaissent, et le saut n'est pas la fin d'une commande.
-      // Sans cela, `git commit --amend \` + saut + `-F msg.txt` perdait son `-F` (message jamais lu,
-      // refus FAUX « SUBSTANCE sans ticket ») et le backtick devenait un pathspec.
       if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
       // Substitution de commande `$(…)`, sous-expression `@(…)`, substitution de processus `<(…)`, `>(…)`.
       if ('$@<>'.includes(c) && command[j + 1] === '(') {
@@ -311,8 +301,7 @@ function segmentsAvecOperateur(flux) {
 // reconnaissance reste STRUCTURELLE de bout en bout : l'argument-chaîne est RE-TOKENISÉ par
 // `tokenizeCommand`, jamais grepé (invariant du parseur ci-dessus, #591 défaut 3).
 //
-// `npm run <x>` est VU : son corps vit dans `package.json`, un fichier LISIBLE que le socle lit
-// (même classe que le message `-F <fichier>` d'un commit, lu depuis toujours) — le script est
+// `npm run <x>` est VU : son corps vit dans `package.json`, un fichier LISIBLE que le socle lit — le script est
 // re-tokenisé et récursé, si bien qu'un `npm run <x>` porteur d'un `gh issue create` est vu comme
 // la création qu'il exécute.
 //
@@ -602,9 +591,8 @@ function lecturePorteur(segment) {
  *  VALEUR SÉPARÉE de cet enrobeur (les autres flags sont sautés seuls ; sans clef `flags`, aucun flag
  *  n'est sauté — `command -v git` n'exécute rien) ; `affectations` = `VAR=val` admis parmi eux ;
  *  `positionnels` = arguments propres avant la commande (la durée de `timeout`) ;
- *  `ajouteArguments` = l'enrobeur ajoute à la commande des arguments ABSENTS de son texte ;
  *  `citeSous` = les flags sous lesquels il n'exécute rien et reste la tête (`command -v`). */
-export const ENROBEURS_TETE = new Map([
+const ENROBEURS_TETE = new Map([
   ['env', { flags: ['-u', '--unset'], affectations: true }],
   ['nohup', {}],
   ['command', { citeSous: ['-v', '-V'] }],
@@ -615,7 +603,7 @@ export const ENROBEURS_TETE = new Map([
   ['sudo', { flags: ['-u', '--user', '-g', '--group', '-p', '--prompt'] }],
   ['setsid', { flags: [] }],
   ['timeout', { flags: ['-k', '--kill-after', '-s', '--signal'], positionnels: 1 }],
-  ['xargs', { flags: ['-I', '-i', '-n', '-P', '-d', '-E', '-e', '-s', '-a', '-L'], ajouteArguments: true }],
+  ['xargs', { flags: ['-I', '-i', '-n', '-P', '-d', '-E', '-e', '-s', '-a', '-L'] }],
   ['stdbuf', { flags: ['-i', '-o', '-e', '--input', '--output', '--error'] }],
   ['nice', { flags: ['-n', '--adjustment'] }],
 ])
@@ -751,12 +739,10 @@ export const soldeParentheses = (texte) => (texte.match(/\(/g)?.length ?? 0) - (
 
 /** Enrobeurs de TÊTE d'un segment (ses jetons), épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
  *  `debut` = index du premier jeton exécuté (`jetons.length` si le segment n'est fait que d'enrobeurs),
- *  `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre, `affectations` = les noms des
- *  `VAR=val` épluchés, ceux d'un `env` compris, et `valeurs` = leurs `valeurDAffectation`. Un jeton QUOTÉ
+ *  `affectations` = les noms des `VAR=val` épluchés, ceux d'un `env` compris, et `valeurs` = leurs `valeurDAffectation`. Un jeton QUOTÉ
  *  n'est pas une affectation (`"PATH=x"`). */
 function epluchageTete(jetons) {
   const segment = jetons.map((j) => j.text)
-  const enrobeurs = []
   const affectations = []
   const valeurs = []
   const estAffectation = (i) => jetonNu(jetons[i]) && AFFECTATION_RE.test(segment[i])
@@ -770,15 +756,13 @@ function epluchageTete(jetons) {
   let i = 0
   for (;;) {
     const t = segment[i]
-    if (t === undefined) return { debut: segment.length, enrobeurs, affectations, valeurs }
+    if (t === undefined) return { debut: segment.length, affectations, valeurs }
     if (estAffectation(i)) { i = affecte(i); continue }
     if (TOKENS_TETE_NUS.has(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
-    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations, valeurs }
-    const nom = basenameExecutable(t)
-    const enrobeur = ENROBEURS_TETE.get(nom)
-    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations, valeurs }
-    enrobeurs.push(nom)
+    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, affectations, valeurs }
+    const enrobeur = ENROBEURS_TETE.get(basenameExecutable(t))
+    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, affectations, valeurs }
     i += 1
     if (enrobeur.flags) {
       while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && estAffectation(i)))) {
@@ -792,7 +776,7 @@ function epluchageTete(jetons) {
 
 // Une commande réelle dépasse rarement deux niveaux ; au-delà de quatre, l'analyse s'arrête (borne
 // dite, préférée à une récursion non bornée dans un hook) : les gardes consommatrices ne voient pas
-// la suite, et la garde de commit y présume un commit EMBARQUÉ (`commitsDe`, forme `tout`).
+// la suite (`REFUS_SATURE`).
 const PROFONDEUR_MAX_ENROBEURS = 4
 
 // ── `npm run <x>` : le corps du script est LU dans package.json ─────────────────────────────────
@@ -858,11 +842,10 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
     .filter((p) => p.length > 0)
 }
 
-/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, enrobeurs, deploye, ouvreDesBlocs,
+/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, deploye, ouvreDesBlocs,
  *  valeurs, deplies, bloc, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
  *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), leur
- *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les ENROBEURS de
- *  tête épluchés devant eux, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
+ *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
  *  affectations de tête quand l'épluchage le VIDE, ses arguments `NOM=val` sous une tête d'`AFFECTEURS`),
  *  `deploye` quand la commande qu'il porte (argument-chaîne, script npm, corps de bloc) est rendue à part,
  *  `deplies` = pour chaque jeton à substitution, les pipelines qu'elle exécute (rendus à part eux aussi),
@@ -874,8 +857,8 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  figure, `jetons` vide. Un bloc ouvert absorbe les segments qui le suivent, séparateurs compris, jusqu'à
  *  sa fermeture : un bloc est UNE commande. Dans un bloc, ou une sous-expression `@(…)`, un énoncé dont le
  *  premier jeton est quoté est une chaîne, pas une commande : il n'est pas rendu. Qui lit
- *  un jeton comme un chemin a besoin des jetons et des enrobeurs : la quote dit si le shell le change,
- *  l'enrobeur s'il ajoute des arguments hors du texte. Au-delà de `PROFONDEUR_MAX_ENROBEURS` porteurs,
+ *  un jeton comme un chemin a besoin de sa quote : elle dit si le shell le change. Au-delà de
+ *  `PROFONDEUR_MAX_ENROBEURS` porteurs,
  *  l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par toute la récursion) le dit ; tous
  *  les segments en deçà sont rendus. `suite` = jetons ajoutés au DERNIER segment de `command` : les
  *  arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`), avec leur provenance d'origine.
@@ -914,7 +897,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
   for (let s = 0; s < lus.length; s++) {
     const jetons = avecSuite(s)
     let { op } = lus[s]
-    const { debut, enrobeurs, affectations: deTete, valeurs } = epluchageTete(jetons)
+    const { debut, affectations: deTete, valeurs } = epluchageTete(jetons)
     for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push({ parent: shells.at(-1) })
     const segment = jetons.slice(debut)
     const relus = relu ? [...segment] : jetonsDeBloc(segment)
@@ -951,7 +934,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       const textes = ouvreDesBlocs ? [] : segment.map((j) => j.text)
       affectations.push(...deTete, ...affectationsDuSegment(textes))
       const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
-      const lu = { jetons: segment, relus, enrobeurs, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
+      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
       if (segment.length > 0) {
         const porteur = ouvreDesBlocs ? null : lecturePorteur(textes)
         const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(textes, scripts))
@@ -1266,11 +1249,9 @@ export function commandeDeLecture(command) {
   })
 }
 
-/** Bornes PARTAGÉES par toute la récursion d'une analyse : `reste` = segments que la RÉ-ANALYSE des
- *  arguments (`collecterCommits`) peut encore lire, au plus `SEGMENTS_MAX` ; `sature` dit qu'une
- *  borne (ces segments, ou la profondeur de `pipelinesDeJetons`) a coupé l'analyse. */
-const SEGMENTS_MAX = 2000
-export const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
+/** Borne PARTAGÉE par toute la récursion d'une analyse : `sature` dit que la profondeur de
+ *  `pipelinesDeJetons` a coupé l'analyse. */
+export const nouveauBudget = () => ({ sature: false })
 
 /** Le refus d'une garde de commande dont la lecture a levé `budget.sature` : elle ne voit pas ce qui s'exécute
  *  au-delà de ses bornes. */
@@ -1285,7 +1266,7 @@ export const REFUS_SATURE = Object.freeze({
 /** Lecture MÉMOÏSÉE par commande : la garde interroge la même commande pour chaque évaluation. Clé =
  *  racine de résolution npm (`racineNpmCourante`) + chaîne ; chaque lecture garde ses `MEMO_MAX` dernières
  *  clés (la plus ancienne sort). La valeur rendue est PARTAGÉE : l'appelant ne la modifie pas. */
-export function memoParCommande(calcul) {
+function memoParCommande(calcul) {
   const memo = new Map()
   return (command) => {
     const clef = `${racineNpmCourante() ?? ''}\0${command}`
@@ -1299,13 +1280,11 @@ export function memoParCommande(calcul) {
 const MEMO_MAX = 16
 
 /** `segmentsProfonds` au premier niveau, mémoïsé (`memoParCommande`). */
-export const segmentsLus = memoParCommande((command) => segmentsProfonds(command))
+const segmentsLus = memoParCommande((command) => segmentsProfonds(command))
 
 /** Token de REDIRECTION ou d'OPÉRATEUR de shell (`2>&1`, `>`, `>>`, `2>/dev/null`, `<`, `|`, `&&`,
  *  `;`) : à partir de lui, le segment ne parle plus à `git`, et rien de ce qui suit n'est un
- *  pathspec. Sans cette borne, `git commit -F msg.txt 2>&1 | tail -3` faisait de `2>&1` un pathspec :
- *  `analyzeStagedDiff` filtrait sur un chemin inexistant et déclarait ABSENT du diff tout fichier
- *  cité par le solde (mesuré 2026-09-04 sur un vrai commit de fermeture depuis un worktree). */
+ *  argument. */
 const OPERATEUR_SHELL_RE = /^(?:\d*(?:>>?|>&)|&(?![&>])|&>>?|<<?|\|\|?|&&|;)/
 
 /** Index du premier jeton de `segment` (textes), à partir de `depart`, qui est une redirection ou un
@@ -1338,8 +1317,8 @@ export function sansRedirections(jetons, depart = 1) {
 // (`sh -c "cd wt && git commit …"`) désigne le même répertoire réel qu'en surface.
 
 // Chemin POSIX de disque Windows (`/c/Users/…`, graphie Git Bash / MSYS) : sur win32 `resolve()` le
-// prend pour un relatif du disque courant (`C:\c\Users\…`) et le garde lisait l'index du MAUVAIS
-// dépôt. Hors win32, `/c/...` est un vrai chemin absolu — aucune conversion.
+// prend pour un relatif du disque courant (`C:\c\Users\…`). Hors win32, `/c/...` est un vrai chemin
+// absolu — aucune conversion.
 const DISQUE_POSIX_RE = /^\/([A-Za-z])\/(.*)$/
 
 /** Chemin de commande rendu natif pour la plateforme (`/c/Users/x` → `C:/Users/x` sur win32). */
@@ -1365,8 +1344,7 @@ function valeursGitDashC(segment) {
 }
 
 /** Commandes qui NOMMENT le répertoire où elles mènent, dans les deux shells où ce hook est câblé : POSIX (`cd`,
- *  `pushd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `Push-Location`). Ne lire que `cd` faisait juger un
- *  commit de worktree contre l'ARBRE PRINCIPAL dès que la session parlait PowerShell (#1729 sonde 5). */
+ *  `pushd`) et PowerShell (`Set-Location` et ses alias `sl`/`chdir`, `Push-Location`). #1729 sonde 5. */
 const VERS_UN_CHEMIN = ['cd', 'chdir', 'pushd', 'set-location', 'sl', 'push-location']
 /** Commandes qui CHANGENT le répertoire courant : celles de `VERS_UN_CHEMIN`, et `popd`/`Pop-Location`, qui dépilent
  *  un lieu que la commande ne dit pas. */

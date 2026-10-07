@@ -492,7 +492,7 @@ commit, pas au parent, et présent au parent — revendication au manifeste, sec
 à `FEUILLES_PARTAGEES` : le message porte `RECLASSEMENT: <module> +N — <motif #ticket>`, UNE ligne par
 module franchi, N = ses clés (fichier, réf) sorties du stock et entrées en zone exempte. Trois refus :
 un franchissement sans ligne, une ligne sans franchissement, un N faux ; chaque commit est jugé contre
-son parent, au commit (`scripts/hooks/solde-ticket-guard.mjs`) comme au push
+son parent, au commit (`scripts/git-hooks/porte-du-commit.mjs`) comme au push
 (`scripts/guards/lib/plageStock.mjs`), par `scripts/guards/lib/reclassementCss.mjs`. La matière qui
 monte dans un module DÉJÀ exempté est PRIMITIVISÉE, sans ligne. Un module qui QUITTE la zone exempte
 ramène ses sites au stock, RETOURNÉS : la régénération (`npx tsx scripts/guards/lib/regenStock.mts

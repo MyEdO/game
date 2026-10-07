@@ -195,13 +195,10 @@ export const TIMEOUT_SYNCHRONISEUR = 300
 /**
  * Les points d'entrée des hooks d'APPEL D'OUTIL (#2125) : `script` de `scripts/hooks/`, le `module` qui
  * exporte son registre (`exporte` : événement → gardes), son `timeout` (s) et son message. Le
- * répartiteur porte toutes les gardes ; la porte de fermeture a le sien, parce qu'un commit de
- * fermeture la fait durer plusieurs secondes et qu'un dépassement jetterait la sortie de toutes les
- * gardes d'un même processus.
+ * répartiteur porte toutes les gardes.
  */
 export const ENTREES_OUTIL = [
   { script: 'repartiteur.mjs', module: 'registre.mjs', exporte: 'REGISTRE', timeout: 10, statusMessage: 'Gardes des appels d’outil (répartiteur)' },
-  { script: 'solde-ticket-hook.mjs', module: 'registre.mjs', exporte: 'REGISTRE_SOLDE', timeout: 10, statusMessage: 'Fermeture de ticket au commit = solde écrit obligatoire' },
 ];
 
 /**

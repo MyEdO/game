@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   construireContexte, cumuler, evaluerGardes, projeter, repartir, surfaceDe,
 } from './repartition.mjs'
-import { REGISTRE, REGISTRE_SOLDE } from './registre.mjs'
+import { REGISTRE } from './registre.mjs'
 import { gitSubcommand } from '../guards/lib/commandeShell.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
@@ -151,7 +151,7 @@ test('aucune garde n’a d’effet à l’import : les registres ENTIERS, import
 })
 
 test('câblage : chaque module de scripts/hooks/ qui exporte une `garde` est au registre d’un point d’entrée', async () => {
-  const inscrites = new Set([...Object.values(REGISTRE), ...Object.values(REGISTRE_SOLDE)].flat())
+  const inscrites = new Set(Object.values(REGISTRE).flat())
   const modules = readdirSync(HOOKS).filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs'))
   const absentes = []
   for (const m of modules) {
@@ -162,7 +162,7 @@ test('câblage : chaque module de scripts/hooks/ qui exporte une `garde` est au 
 })
 
 test('câblage : le matcher déclaré de chaque point d’entrée couvre les `outils` de ses gardes, sur les deux surfaces', () => {
-  const registres = new Map([['repartiteur.mjs', REGISTRE], ['solde-ticket-hook.mjs', REGISTRE_SOLDE]])
+  const registres = new Map([['repartiteur.mjs', REGISTRE]])
   for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
     const declares = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
     for (const { script } of ENTREES_OUTIL) {

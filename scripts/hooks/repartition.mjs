@@ -1,7 +1,7 @@
 // RÉPARTITION des hooks d'appel d'outil (#2125) : UNE lecture du stdin (`lireStdinBorne`), UN contexte,
 // les gardes du registre (`registre.mjs`) retenues par `hook_event_name` et `tool_name`, UN cumul, UNE
-// sortie projetée sur la surface. Les deux points d'entrée, `repartiteur.mjs` et `solde-ticket-hook.mjs`,
-// la chargent après la barrière (`barriere-outil.mjs`, #2187) et passent par le même `executer`. Contrat
+// sortie projetée sur la surface. Le point d'entrée, `repartiteur.mjs`, la charge après la barrière
+// (`barriere-outil.mjs`, #2187) et passe par `executer`. Contrat
 // d'une garde : `scripts/guards/lib/contratGarde.mjs`. Déclarations : `scripts/agents/compat-core.mjs`.
 import '../node-requis.mjs'
 import { appendFileSync, mkdirSync } from 'node:fs'
@@ -21,9 +21,6 @@ import {
 /** Surface qui lance le hook : Claude Code pose `CLAUDE_PROJECT_DIR` dans l'environnement de ses hooks,
  *  Codex ne le pose jamais. */
 export const surfaceDe = (env) => (env.CLAUDE_PROJECT_DIR ? 'claude' : 'codex')
-
-/** Date LOCALE `AAAA-MM-JJ` (pas UTC) : un solde écrit après minuit heure locale porte la date locale. */
-export const dateLocale = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 /**
  * Variables d'environnement qui changent le programme lancé, le dépôt ou la configuration sans que le
@@ -222,11 +219,10 @@ function refusDesLieuxPoses(command, poses) {
  * de l'appel (`baseDeLAppel`) ; `null` quand ce n'est pas jugeable, avec `nonJugeable` = `{ raison,
  * canal }` (refusé par `canal-outil-guard.mjs`) — lieu non jugeable, ou ce que la commande pose
  * (`lieuxPosesParLaCommande`). `racineNpm` = la racine npm de `dir` (`racineNpmDe`), où `npm run <x>`
- * se résout. `cibleIgnoree` = ce que la commande nommait sans que ce soit un répertoire réel ;
- * `pannes` = pannes de lecture git de l'appel.
+ * se résout. `cibleIgnoree` = ce que la commande nommait sans que ce soit un répertoire réel.
  */
-export function construireContexte(entree, { env = process.env, cwd = process.cwd(), maintenant = new Date(), platform = process.platform } = {}) {
-  const commun = { today: dateLocale(maintenant), pannes: [], env }
+export function construireContexte(entree, { env = process.env, cwd = process.cwd(), platform = process.platform } = {}) {
+  const commun = { env }
   const lieu = baseDeLAppel(entree, cwd, platform)
   if (lieu.nonJugeable) return { ...commun, dir: null, racineNpm: null, cibleIgnoree: null, nonJugeable: lieu.nonJugeable }
   const command = commandeDe(entree)

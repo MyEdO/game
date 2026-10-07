@@ -1,8 +1,8 @@
 // PORTE A POSTERIORI (node --test, sans réseau) — un STOCK NOMINATIF qui naît ou grandit dans la
 // PLAGE POUSSÉE sans que le message de son commit le dise.
 //
-// Le garde `solde-ticket-guard` pose la même règle AU COMMIT, mais il vit dans le hook PreToolUse :
-// un commit fait hors de ce canal (autre outil, autre machine, hook non installé) n'y passe pas.
+// La porte du commit (`scripts/git-hooks/porte-du-commit.mjs`) pose la même règle AU COMMIT, dans le
+// hook git `commit-msg` : un commit fait hors de ce canal (autre machine, hook non installé) n'y passe pas.
 // Cette mesure relit les commits une fois posés — même règle, mêmes libs (`stocksNominatifs.mjs`,
 // `plageStock.mjs`), un seul endroit où elle est écrite. Lancée par `npm run test:hooks`.
 import { test } from 'node:test'
