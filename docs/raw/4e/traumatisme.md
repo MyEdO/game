@@ -284,7 +284,7 @@ Un personnage est **blessé** s'il a perdu au moins 1 PB. Il n'y a **aucune pén
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 9` (l.255-269) → `SOURCES_DE_SPECS`, `useDefenseJetProps`, `healDifficulty`, `REPORT_DE_COMBATTANT`, `healWoundsDelta`, `rederiveAttack`, `stopBleedOutcome`, `HealWoundsOptions`, `applyHealWounds`, `defenseSubOf`, +12 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/grammaire/sourcesDeSpecs.ts`, `src/data/skills.json`, `src/engine/healing.ts`, `src/engine/persistence.ts`, +5 fichiers
-- `LDB 18` (l.289-300) → `cumulSchema`, `faim`, `soif`, `recovery`, `dechirure-jambe-majeure`, `critEscalationSchema`, `exposure`, `dechirure-autre-majeure`, `exposure-heat-drop`, `TraumaFiche`, +37 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/traumas.ts`, `src/data/schemas/grammaire/mecanique.ts`, +12 fichiers
+- `LDB 18` (l.289-300) → `cumulSchema`, `faim`, `soif`, `recovery`, `dechirure-jambe-majeure`, `critEscalationSchema`, `exposure`, `dechirure-autre-majeure`, `exposure-heat-drop`, `TraumaFiche`, +38 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/traumas.ts`, +13 fichiers
 
 ---
 
@@ -312,7 +312,7 @@ Certaines entrées exigent une **Chirurgie** (indiquée dans le résultat). Les 
 **Voir aussi** : Compétence Guérison → [competences.md](competences.md) ; [Fractures](#7-fractures-mineure--majeure) ; [Déchirures](#8-déchirures-musculaires-mineure--majeure) ; [Amputation](#9-amputation--choc-traitement-et-séquelles-permanentes).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.303-320) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `critEscalationSchema`, `exposure`, `ExposureKind`, `exposure-heat-drop`, `exposureTestCount`, +29 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/voyage-stakes.json`, +15 fichiers
+- `LDB 18` (l.303-320) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `critEscalationSchema`, `exposure`, `ExposureKind`, `exposure-heat-drop`, `exposureTestCount`, +30 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/voyage-stakes.json`, +15 fichiers
 
 ---
 
