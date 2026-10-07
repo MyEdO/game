@@ -1898,7 +1898,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
 
   it('en combat : applyEffectsLoot passe en direct (pas de fenêtre — Ramasser/victoire ont leurs flux)', () => {
     lootScene();
-    useGame.setState({ battle: {} as unknown as BattleState });
+    useGame.setState({ battle: { combatants: [] } as unknown as BattleState });
     applyEffectsLoot(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Test');
     expect(useGame.getState().pendingLoot).toBeNull();
     expect((useGame.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);

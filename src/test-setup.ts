@@ -41,6 +41,13 @@
  *      sommet reproduit le rouge à l'identique, et le TEMPS n'y change rien (la fermeture est synchrone).
  *      Les bancs de la couture gardent en plus leur propre `resetDismissLayers` en `beforeEach` — ils
  *      posent leur décor de pile, ils ne dépendent pas de ce filet.
+ *    - les STOCKAGES WEB (`lib/stockageWeb`) et la BIBLIOTHÈQUE DE PROJETS (`state/projectLibrary`,
+ *      `__resetLibraryForTest`) : jsdom garde `localStorage`/`sessionStorage` d'un fichier à l'autre du
+ *      worker, et la bibliothèque tient un cache de module. Un fichier qui laisse un projet, un roster ou
+ *      un miroir de bibliothèque le lègue à `initLibrary`/`rosterLoad` du fichier suivant : un banc
+ *      qui ne remet à zéro qu'en `afterEach` rougit selon l'ordre des fichiers (#2404). Vidés
+ *      AVANT chaque test, avec les témoins de retrait du roster (`takeRosterNotice`), des saves
+ *      (`takeObsoleteNotice`) et des calques (`__resetTraceLayerForTest`).
  *    - les REGISTRES D'ART du rig (cf. `rigArtRegistrySignatures` plus bas) : objets de module, donc
  *      partagés par tous les fichiers du worker. Un test qui en pose un le remet lui-même : on DÉTECTE
  *      leur dérive après chaque test, on échoue AU SITE qui l'a laissée, puis on remet EN PLACE la
@@ -94,6 +101,11 @@ import { resetDesFixes } from './engine/fixedDie';
 import { seedBattleRng } from './state/battleRng';
 import { reinitWebglRefusé } from './gameIso/stage/webglSupport';
 import { resetDismissLayers } from './ui/useDismissLayer';
+import { stockageWeb } from './lib/stockageWeb';
+import { __resetLibraryForTest } from './state/projectLibrary';
+import { takeObsoleteNotice } from './state/saves';
+import { __resetTraceLayerForTest } from './state/traceLayer';
+import { takeRosterNotice } from './state/roster';
 
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
 // immunisé à toute mutation du gabarit) ; chaque test n'en `parse` qu'une copie fraîche.
@@ -400,6 +412,15 @@ export function messagePartage(partages: readonly string[]): string | null {
 // singletons ci-dessous reste synchrone.
 beforeEach(async () => {
   await instrumenterRacines();
+});
+
+beforeEach(async () => {
+  stockageWeb('localStorage')?.clear();
+  stockageWeb('sessionStorage')?.clear();
+  takeRosterNotice();
+  takeObsoleteNotice();
+  await __resetLibraryForTest();
+  await __resetTraceLayerForTest();
 });
 
 beforeEach(() => {

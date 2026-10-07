@@ -7,17 +7,22 @@ import { useGame } from '../state/store';
 import { downloadText, fileSlug } from '../lib/fileIo';
 import { parseProject, documentDeProjet, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import {
-  projectsLoad, projectSave, projectRemove, nomDeProjet, documentDeLEntree, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
+  projectsLoad, projectSave, projetDeLEntree, projectRemove, nomDeProjet, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
+  messageDeRefusJoueur, MARQUE_AUTRE_FORMAT, estRefusee,
   type SavedProject,
+  type EntreeListee,
+  type EntreeEcrite,
 } from '../state/projectLibrary';
 import { allBuiltinCampaigns, campagneDuJeu, documentDuJeu, type BuiltinCampaign } from '../scenes/campaign';
 import { Row, Stack } from './Layout';
+import { ChipDeRefus } from './ChipDeRefus';
+import { GatedAction, raisonSi } from './GatedAction';
 
 /** Une entrée sélectionnable de la bibliothèque : soit une campagne EMBARQUÉE (lecture seule,
  *  exportable mais jamais supprimable), soit un projet de la bibliothèque locale (supprimable). */
 type Entry =
   | { kind: 'builtin'; id: string; bc: BuiltinCampaign }
-  | { kind: 'library'; id: string; sp: SavedProject };
+  | { kind: 'library'; id: string; sp: EntreeListee };
 
 /** Cause typée d'un message d'échec d'import déjà écrit en langage JOUEUR (JSON illisible) — le
  *  tri dans `playerImportError` se fait sur CETTE classe, jamais sur le TEXTE du message (une
@@ -30,7 +35,7 @@ export class PlayerFacingImportError extends Error {}
  *  invalidité passe par la validation `parseProject` (#765, message d'authoring, jamais affiché tel
  *  quel — voir `playerImportError`). L'id et le libellé de l'entrée sont ceux du DOCUMENT (dédup
  *  portable, #766) : l'enveloppe les EXIGE (#1552). */
-export function buildImportedProject(text: string): SavedProject {
+export function buildImportedProject(text: string): EntreeEcrite {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -55,7 +60,7 @@ export function buildImportedProject(text: string): SavedProject {
 }
 
 /** Message d'échec d'import à afficher au JOUEUR (jamais le langage de schéma/authoring de
- *  `parseProject`/`projetSchema`, qui parle de champs — `versionContenu`, `schema=`, noms d'id).
+ *  `parseProject`/`projetSchema`, qui parle de champs — `versionContenu`, noms d’id).
  *  Le tri est STRUCTUREL : `PlayerFacingImportError` porte un message déjà écrit pour le joueur
  *  (JSON illisible) — jamais une comparaison de TEXTE (une reformulation FR ne doit jamais changer
  *  le comportement). Un refus de la porte (`ProjetRefuse`) est journalisé
@@ -81,7 +86,7 @@ export function playerImportError(err: unknown): string {
  *  deux cas le remplacement reste soumis à confirmation, jamais silencieux. */
 export function importDecision(
   entry: SavedProject,
-  existing: SavedProject | undefined,
+  existing: EntreeListee | undefined,
 ): 'new' | 'replace-newer' | 'replace-older-or-equal' {
   if (!existing) return 'new';
   const vNew = entry.project.versionContenu ?? 0;
@@ -89,12 +94,12 @@ export function importDecision(
   return vNew > vExist ? 'replace-newer' : 'replace-older-or-equal';
 }
 
-/** Document de projet PORTABLE (schema courant) reconstruit pour l'export d'une entrée. */
+/** Document de projet PORTABLE reconstruit pour l'export d'une entrée. */
 function toProjectDoc(e: Entry): ProjectDoc {
   if (e.kind === 'builtin') return documentDuJeu(e.bc);
   // `activeAxes` NOMMÉ et RECONDUIT (même raison qu'à `buildImportedProject`) : un export de
   // bibliothèque qui le perdrait rendrait un document PORTABLE amputé de ses axes (#409).
-  const { scenes, worldMap, activeAxes, narratif, ...identite } = parseProject(documentDeLEntree(e.sp));
+  const { scenes, worldMap, activeAxes, narratif, ...identite } = projetDeLEntree(e.sp);
   return documentDeProjet(identite, scenes, { worldMap, activeAxes, narratif });
 }
 
@@ -109,13 +114,15 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
   const setScreen = useGame((s) => s.setScreen);
   const setPendingCampaign = useGame((s) => s.setPendingCampaign);
 
-  const [library, setLibrary] = useState<SavedProject[]>(() => projectsLoad());
+  const [library, setLibrary] = useState<EntreeListee[]>(() => projectsLoad());
   const [selId, setSelId] = useState<string | null>(null);
   /** Refus d'un geste de la BIBLIOTHÈQUE (import, suppression) : rendu au rail, sous « Importer ». */
   const [refusBibliotheque, setRefusBibliotheque] = useState<string | null>(null);
   /** Refus d'un geste de l'ENTRÉE sélectionnée (« Jouer », « Exporter ») : rendu au panneau de détail,
    *  effacé à chaque changement de sélection (`choisir`). */
   const [refusEntree, setRefusEntree] = useState<string | null>(null);
+  /** Une entrée refusée (`estRefusee`, témoin de la bibliothèque) : son « Jouer » est neutralisé. */
+  const refusee = (e: Entry): boolean => e.kind === 'library' && estRefusee(e.sp);
 
   const builtins: Entry[] = allBuiltinCampaigns.map((bc) => ({ kind: 'builtin', id: bc.id, bc }));
   const locals: Entry[] = library.map((sp) => ({ kind: 'library', id: sp.id, sp }));
@@ -197,6 +204,7 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
       onClick={() => choisir(e.id)}
       label={<>{e.kind === 'builtin' && <Icon id={e.bc.icon} size="sm" />} {entryLabel(e)}</>}
     >
+      {refusee(e) && <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>}
       <span className="chip">{entrySceneCount(e)} scène{entrySceneCount(e) > 1 ? 's' : ''}</span>
     </ListRow>
   );
@@ -219,7 +227,7 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
           }}
         />
       </label>
-      {refusBibliotheque && <p className="chip tone-danger" role="alert">{refusBibliotheque}</p>}
+      {refusBibliotheque && <ChipDeRefus refus={{ message: refusBibliotheque }} />}
       {locals.length > 0
         ? <Stack>{locals.map(row)}</Stack>
         : <p className="empty">Aucune campagne importée pour l’instant.</p>}
@@ -243,13 +251,20 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
           <p className="mini-title">Par {selected.sp.project.auteur}</p>
         )}
         <Row justify="end">
-          <button type="button" className="btn btn-primary" onClick={() => play(selected)}>Jouer</button>
+          <GatedAction
+            id="bibliotheque-jouer"
+            label="Jouer"
+            enabled={!refusee(selected)}
+            primary={!refusee(selected)}
+            {...raisonSi(refusee(selected) ? messageDeRefusJoueur('jouer') : null)}
+            onClick={() => play(selected)}
+          />
           <button type="button" className="btn" onClick={() => exportEntry(selected)}>Exporter</button>
           {selected.kind === 'library' && (
             <button type="button" className="btn danger" onClick={() => remove(selected)}>Supprimer</button>
           )}
         </Row>
-        {refusEntree && <p className="chip tone-danger" role="alert">{refusEntree}</p>}
+        {refusEntree && <ChipDeRefus refus={{ message: refusEntree }} />}
       </Stack>
     );
 

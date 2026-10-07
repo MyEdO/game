@@ -14,98 +14,19 @@
  * Les règles maison (surcharges de `policy.ts`, hors GameState) voyagent à part dans `rules` :
  * une save reste portable d'une machine à l'autre AVEC ses règles (le localStorage ne suffit pas).
  *
- * POLITIQUE DE VERSION (2026-08-17, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`) — deux
- * filets DISTINCTS :
- * 1. Champs manquants (donnée AJOUTÉE depuis la save) : tolérés gratuitement par le zustand `set`
- *    au chargement (`applyLoadedSave`, `store.ts`) — un champ absent du snapshot chargé garde sa
- *    valeur d'`initialFields` (`stateFields.ts`), jamais `undefined`.
- * 2. Changement de FORME persistée : bump de `SAVE_VERSION`, et RIEN d'autre — aucune chaîne de
- *    migration, aucune fixture golden. Une save dont la version diffère de `SAVE_VERSION`
- *    (antérieure comme future) est REJETÉE et RETIRÉE du stockage à la lecture (`readSlot`), avec
- *    un message au joueur (témoin `takeObsoleteNotice`, rendu par `ui/SaveLoadModal`).
+ * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`) : `version` vaut
+ * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Une save d'un autre
+ * format, ou illisible, est REJETÉE et RETIRÉE du stockage à la lecture (`readSlot`), avec un message
+ * au joueur (témoin `takeObsoleteNotice`, rendu par `ui/SaveLoadModal`). Aucune migration.
  */
 import type { RuleValue } from '../engine/policy';
 import type { Scene } from './scene';
+import type { GameState } from './store';
 import { stockageWeb } from '../lib/stockageWeb';
-import { versionCourante } from '../lib/versionCourante';
-
-/** Migrations de la forme persistée, keyées par version de DÉPART (#2226). */
-const MIGRATIONS_DE_SAVE = {
-  // #1548
-  32: '#1548 une personne se référence dans la scène',
-  // #1548
-  33: '#1548 spécialisations en ids de catalogue',
-  // #1548
-  34: '#1548 spécialisation concrète des créatures spawnées',
-  // #1548
-  35: '#1548 `SkillInstance.skillId` devient `id`',
-  // #717
-  36: '#717 cadre de campagne au snapshot',
-  // #1552
-  37: '#1552 la scène s’annonce',
-  // #1680
-  38: '#1680 ids de place par rang',
-  // #1657 · #1682
-  39: '#1657 `critTrigger` en nœud `test`',
-  40: '#1507 recettes volumiques en mètres',
-  // #1509
-  41: '#1509 cases occupées dérivées du corps tourné',
-  // #1657
-  42: '#1657 enjeu du `critTrigger`',
-  // #1657
-  43: '#1657 amputation différée en nœuds `test`',
-  44: '#1657 `riverSplinterDodge` hors du vocabulaire',
-  // #1657 · #1685 · LDB 16 l.125
-  45: '#1685 étapes d’entretien sous les États du porteur',
-  // #1599
-  46: '#1599 États dérivés marqués',
-  47: '#1599 suspension par `suppressedSource`',
-  // #1695 · LDB 48 l.495
-  48: '#1695 État porté par l’effet actif du sort',
-  // #1791
-  49: '#1791 `ActiveEffect.passive` canal unique',
-  // #1882
-  50: '#1882 un personnage nomme sa fiche',
-  // #1882 · #1906
-  51: '#1906 jets en attente nommés',
-  // #1362
-  52: '#1362 cap d’exploration de groupe',
-  // #1874
-  53: '#1874 `PendingTest.subi`',
-  // #1869
-  54: '#1869 session de conversation',
-  // #1897
-  55: '#1897 sorts fusionnés',
-  // #1924
-  56: '#1924 clés d’emplacement de carrière en ids',
-  // #1473
-  57: '#1473 graphie `talent: { id, spec? }` des ops de Talent',
-  // #1692
-  58: '#1692 Arène lancée par `loadProject`',
-  // #1920
-  59: '#1920 clé d’enjeu de modale en id',
-  // #2113
-  60: '#2113 forme d’objet choisie (`formeChoisie`), jamais recopiée du catalogue',
-  // #2206
-  61: '#2206 le porteur de fiche d’un preset nomme son preset (`presetId`)',
-  // #2199
-  62: '#2199 ops d’échec de maladie en `opsEchec`, unité achetée en `kind`, `pendingCampaign.id` obligatoire',
-  // #679
-  63: '#679 l’Effect `document` désigne une entrée de `narratif.documents` (`{ documentId }`), projet au schéma 18',
-  // #700
-  64: '#700 chute volontaire en flux MULTI : une rangée par tombant (`participants`), axes `suspendu` et `allege`',
-  // #1853 · EDO 11 l.190
-  65: '#1853 plancher de `charMod` figé sur l’instance de mutation',
-  // #1822
-  66: '#1822 l’inspection est un geste, plus une préférence (`inspectEnabled`)',
-  // #2001
-  67: '#2001 texte de campagne : `desc` optionnel, `adapteDe` exclusif de `source`/`descRef`, `nodeText` optionnel',
-} as const;
-
-export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);
+import { FORMAT_SAVE } from './formats.generated';
 
 export interface SaveMeta {
-  version: number;
+  version: string;
   /** ISO — horodatage réel de la sauvegarde (méta d'affichage). */
   savedAt: string;
   /** Étiquette du slot (nom de la scène courante). */
@@ -115,11 +36,9 @@ export interface SaveMeta {
 }
 
 export interface SaveGame extends SaveMeta {
-  /** Clés de données de GameState (deep-copiées, JSON-sûres). */
-  data: Record<string, unknown>;
-  /** Surcharges de règles maison (`policy.ts`) actives à la sauvegarde — optionnel : une save
-   *  d'avant ce champ n'en a pas (on garde alors les règles courantes de la machine au chargement). */
-  rules?: Record<string, RuleValue>;
+  data: DonneesDeSave;
+  /** Surcharges de règles maison (`policy.ts`) actives à la sauvegarde. */
+  rules: Record<string, RuleValue>;
 }
 
 export type SaveSlot = 1 | 2 | 3;
@@ -129,7 +48,6 @@ export const AUTO_SLOT = 'auto' as const;
 export type AnySlot = SaveSlot | typeof AUTO_SLOT;
 // #898
 const KEY = (slot: AnySlot) => `wfrp4.save.${slot}`;
-const LEGACY_KEY = (version: number, slot: AnySlot) => `wfrp4.save.v${version}.${slot}`;
 
 /**
  * Les clés de DONNÉES qui ne partent PAS en save — l'ensemble NOMMÉ, une raison par clé. Le contrat
@@ -139,7 +57,7 @@ const LEGACY_KEY = (version: number, slot: AnySlot) => `wfrp4.save.v${version}.$
  * La même couture sert la sauvegarde locale ET le snapshot réseau (`state/netFlow.ts`
  * `netSnapshot`) : ce qui sort d'ici ne traverse pas non plus vers un invité coop.
  */
-const HORS_SAVE: Record<string, string> = {
+const HORS_SAVE = {
   // #767 · #766
   campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, store.ts)',
   // #1687 — état de la TOUCHE Alt à l'instant, pas une préférence : une save qui le porterait
@@ -150,6 +68,11 @@ const HORS_SAVE: Record<string, string> = {
   // l'invité coop en hériterait par `netSnapshot`.
   debugLabels: 'drapeau de recette (overlay de debug)',
   debugRoofCut: 'drapeau de recette (lève-toit débrayé)',
+} as const satisfies Partial<Record<keyof GameState, string>>;
+
+/** Les clés de DONNÉES de `GameState` (ni action, ni `HORS_SAVE`) : la forme du `data` d'une save. */
+export type DonneesDeSave = {
+  [K in keyof GameState as GameState[K] extends (...args: never[]) => unknown ? never : K extends keyof typeof HORS_SAVE ? never : K]: GameState[K];
 };
 
 /** Snapshot des clés de DONNÉES de l'état courant (les fonctions/actions sont ignorées). */
@@ -170,11 +93,11 @@ export function snapshotSave(
   // un `Record` opaque, et un cast maison sur les noms de champs rendrait un renommage de `Scene`
   // INVISIBLE au typecheck — `sceneLabel` retomberait en silence sur l'id. Garde : `saves-flow.test.ts`.
   const scene = state.scene as Pick<Scene, 'label' | 'id'> | null;
-  const copie = JSON.parse(JSON.stringify(data)) as Record<string, unknown>; // deep copy JSON-sûre
+  const copie = JSON.parse(JSON.stringify(data)) as DonneesDeSave; // deep copy JSON-sûre
   purgeFoldMemo(copie.pendingCascade);
   purgeFoldMemo(copie.suspendedCascades);
   return {
-    version: SAVE_VERSION,
+    version: FORMAT_SAVE,
     savedAt,
     sceneLabel: scene?.label ?? scene?.id ?? 'Sans scène',
     gameTime: typeof state.gameTime === 'number' ? state.gameTime : 0,
@@ -216,56 +139,44 @@ export function unpackHouseRules(data: Record<string, unknown>): { game: Record<
   return { game, rules: rules as Record<string, RuleValue> | undefined };
 }
 
-/** Validation de forme d'une save (version COURANTE + data objet). */
+/** Validation de forme d'une save (format COURANT + data objet). */
 export function isValidSave(s: unknown): s is SaveGame {
   return !!s && typeof s === 'object'
-    && (s as SaveGame).version === SAVE_VERSION
+    && (s as SaveGame).version === FORMAT_SAVE
     && typeof (s as SaveGame).savedAt === 'string'
     && !!(s as SaveGame).data && typeof (s as SaveGame).data === 'object';
 }
 
-/** Lit un document de save parsé : la version DOIT être `SAVE_VERSION`. Toute autre version —
- *  antérieure comme future — et toute forme invalide rendent `null`. */
+/** Lit un document de save parsé : la version DOIT être `FORMAT_SAVE`. Toute autre forme rend `null`. */
 export function parseSave(parsed: unknown): SaveGame | null {
   return isValidSave(parsed) ? parsed : null;
 }
 
-/** CAUSE du rejet d'une sauvegarde — l'écran de chargement en fait un message DISTINCT : la save
- *  d'une version antérieure, celle d'une version plus récente (retour à un build ancien) et le
- *  contenu illisible ne se disent pas d'un même mot. */
-export type ObsoleteCause = 'anterieure' | 'future' | 'illisible';
+/** CAUSE du rejet d'une sauvegarde — l'écran de chargement en fait un message DISTINCT : une save d'un
+ *  autre format et un contenu illisible ne se disent pas d'un même mot. */
+export type ObsoleteCause = 'autreFormat' | 'illisible';
 
-/** Témoin « une sauvegarde a été trouvée puis retirée » + sa cause — posé par `readSlot`, consommé
- *  par l'écran de chargement. La PREMIÈRE cause d'une salve de lectures (`listSaves` en balaie trois)
- *  est celle qui parle : elle correspond à l'emplacement le plus haut de la liste. */
-let obsoleteCause: ObsoleteCause | null = null;
+/** Une sauvegarde retirée du stockage : son emplacement et la cause du retrait. */
+export type RetraitDeSave = { slot: AnySlot; cause: ObsoleteCause };
 
-/** Consomme le témoin de rejet (et le remet à zéro) — la cause si une save a été retirée du stockage
- *  depuis la dernière consommation, `null` sinon. */
-export function takeObsoleteNotice(): ObsoleteCause | null {
-  const c = obsoleteCause;
-  obsoleteCause = null;
-  return c;
+/** Témoin des sauvegardes trouvées puis retirées, dans l'ordre des lectures — posé par `readSlot`,
+ *  consommé par l'écran de chargement. Un emplacement n'y figure qu'une fois. */
+let retraits: RetraitDeSave[] = [];
+
+/** Consomme le témoin de rejet (et le remet à zéro) — les retraits survenus depuis la dernière
+ *  consommation, `[]` sinon. */
+export function takeObsoleteNotice(): readonly RetraitDeSave[] {
+  const r = retraits;
+  retraits = [];
+  return r;
 }
 
-/** Clé de mise à l'écart d'une save FUTURE, plus récente que l'app (arbitrage 2026-08-17). Aucun code
- *  ne l'écrit : elle se PURGE avec le reste de l'emplacement. */
-const FUTURE_KEY = (slot: AnySlot) => `wfrp4.save.future.${slot}`;
-
-/** TOUTES les clés de stockage d'un emplacement : la clé stable, la clé de QUARANTAINE historique et
- *  les clés VERSIONNÉES historiques (`wfrp4.save.vN.slot`, #898). */
-function slotKeys(slot: AnySlot): string[] {
-  const keys = [KEY(slot), FUTURE_KEY(slot)];
-  for (let v = 1; v <= SAVE_VERSION; v++) keys.push(LEGACY_KEY(v, slot));
-  return keys;
-}
-
-/** JETTE le contenu d'un emplacement (toutes ses clés) et pose le témoin de message avec sa cause. Un
- *  stockage qui refuse la suppression ne fait pas échouer la lecture — le message part quand même. */
+/** JETTE le contenu d'un emplacement et pose le témoin de message avec sa cause. Un stockage qui
+ *  refuse la suppression ne fait pas échouer la lecture — le message part quand même. */
 function discardSlot(s: Storage, slot: AnySlot, cause: ObsoleteCause): void {
-  obsoleteCause ??= cause;
+  if (!retraits.some((r) => r.slot === slot)) retraits.push({ slot, cause });
   try {
-    for (const k of slotKeys(slot)) s.removeItem(k);
+    s.removeItem(KEY(slot));
   } catch {
     // stockage indisponible : rien à supprimer
   }
@@ -282,23 +193,8 @@ export function saveToSlot(slot: AnySlot, save: SaveGame): boolean {
   }
 }
 
-/** Cause du rejet d'un document parsé dont la forme n'est pas celle d'une save COURANTE : la version
- *  la dit quand elle est lisible, sinon le document est simplement illisible. */
-function causeOf(parsed: unknown): ObsoleteCause {
-  const v = (parsed as { version?: unknown } | null | undefined)?.version;
-  if (typeof v !== 'number') return 'illisible';
-  return v > SAVE_VERSION ? 'future' : 'anterieure';
-}
-
-/** Cause du rejet d'un emplacement SANS clé stable mais dont une clé résiduelle survit : la clé de
- *  quarantaine ne portait que des saves FUTURES, une clé versionnée que des versions antérieures. */
-function residualCause(s: Storage, slot: AnySlot): ObsoleteCause | null {
-  if (s.getItem(FUTURE_KEY(slot)) != null) return 'future';
-  return slotKeys(slot).some((k) => s.getItem(k) != null) ? 'anterieure' : null;
-}
-
-/** Lit l'emplacement : une save à `SAVE_VERSION`, ou `null`. Tout contenu d'une AUTRE version (clé
- *  stable, clé de quarantaine ou clé versionnée historique) ou illisible est JETÉ, témoin posé. */
+/** Lit l'emplacement : une save à `FORMAT_SAVE`, ou `null`. Tout contenu d'une AUTRE forme ou
+ *  illisible est JETÉ, témoin posé. */
 export function readSlot(slot: AnySlot): SaveGame | null {
   const s = stockageWeb('localStorage');
   if (!s) return null;
@@ -308,41 +204,32 @@ export function readSlot(slot: AnySlot): SaveGame | null {
   } catch {
     return null;
   }
-  if (raw == null) {
-    try {
-      const cause = residualCause(s, slot);
-      if (cause) discardSlot(s, slot, cause);
-    } catch {
-      // stockage devenu indisponible en cours de sondage : rien à jeter
-    }
+  if (raw == null) return null;
+  const lu = lireSave(raw);
+  if (typeof lu === 'string') {
+    discardSlot(s, slot, lu);
     return null;
   }
+  return lu;
+}
+
+/** Un texte de save : la save au `FORMAT_SAVE`, ou la CAUSE de son refus. SOURCE UNIQUE de la lecture
+ *  d'un emplacement (`readSlot`) et de l'import (`importSave`). */
+function lireSave(raw: string): SaveGame | ObsoleteCause {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    discardSlot(s, slot, 'illisible'); // contenu illisible : il ne redeviendra jamais chargeable
-    return null;
+    return 'illisible';
   }
-  const save = parseSave(parsed);
-  if (!save) {
-    discardSlot(s, slot, causeOf(parsed));
-    return null;
-  }
-  // La save est valide, mais une clé résiduelle d'un ancien code peut encore squatter l'emplacement.
-  try {
-    for (const k of slotKeys(slot)) if (k !== KEY(slot) && s.getItem(k) != null) s.removeItem(k);
-  } catch {
-    // stockage indisponible : rien à nettoyer
-  }
-  return save;
+  return parseSave(parsed) ?? 'autreFormat';
 }
 
 export function deleteSlot(slot: AnySlot): void {
   try {
     const s = stockageWeb('localStorage');
     if (!s) return;
-    for (const k of slotKeys(slot)) s.removeItem(k);
+    s.removeItem(KEY(slot));
   } catch {
     // stockage indisponible : rien à supprimer
   }
@@ -361,11 +248,7 @@ export function exportSave(save: SaveGame): string {
   return JSON.stringify(save, null, 2);
 }
 
-/** Import : parse + validation (null si invalide ou d'une AUTRE version que `SAVE_VERSION`). */
-export function importSave(json: string): SaveGame | null {
-  try {
-    return parseSave(JSON.parse(json));
-  } catch {
-    return null;
-  }
+/** Import : la save au `FORMAT_SAVE`, ou la cause de son refus (illisible, ou d'un autre format). */
+export function importSave(json: string): SaveGame | ObsoleteCause {
+  return lireSave(json);
 }

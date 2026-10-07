@@ -1,6 +1,7 @@
 /**
- * RECHERCHE d'un combattant par id — les deux primitives partagées (`docs/primitives.md`) : `actorIn`
- * (combat OU groupe) et `inBattleId` (en combat seulement). Pure lecture d'état.
+ * RECHERCHE d'un combattant par id — les primitives partagées (`docs/primitives.md`) : `actorIn`
+ * (combat OU groupe), `inBattleId` (en combat seulement), et leur jumelle d'écriture `ecrireActeur`,
+ * qui rend un patch d'état sans jamais l'appliquer. Fonctions pures de l'état.
  *
  * Module VOLONTAIREMENT LÉGER (patron `targetingHolder`, #1054) : aucun import runtime vers
  * `src/state`, le type de l'état seulement. INVARIANT — `netOwnership` ne demande que « qui est ce
@@ -35,6 +36,28 @@ export function garanti<T>(valeur: T | undefined | null, id: string | number | u
 /** Acteur d'une action joueur résolu dans le bon ensemble : file de combat si en combat, sinon le groupe. */
 export function actorIn(state: GameState, id: string): Combatant | undefined {
   return (state.battle?.combatants ?? state.party).find((c) => c.id === id);
+}
+
+/**
+ * ÉCRITURE d'un acteur par id, jumelle d'`actorIn` (#2312) : `transformer` s'applique à la copie du
+ * groupe (`party`) ET, en combat, à celle de la file de combat (`battle.combatants`). Rend le patch
+ * d'état, que l'appelant compose dans SON `set`. `qui` : un id, ou une liste d'ids.
+ * `transformer` s'applique à CHAQUE copie : il ne tire aucun dé — un dé se tire AVANT, sur l'acteur lu,
+ * et entre dans la transformation comme une valeur. Il ne mute pas la copie reçue. Le seul effet de bord
+ * admis est une AFFECTATION idempotente (un message, un verdict) : chaque copie y écrit la même valeur.
+ */
+export function ecrireActeur(
+  state: Pick<GameState, 'party' | 'battle'>,
+  qui: string | readonly string[],
+  transformer: (c: Combatant) => Combatant,
+): Pick<GameState, 'party'> & Partial<Pick<GameState, 'battle'>> {
+  const ids = new Set(typeof qui === 'string' ? [qui] : qui);
+  const patch = (c: Combatant): Combatant => (ids.has(c.id) ? transformer(c) : c);
+  const b = state.battle;
+  return {
+    party: state.party.map(patch),
+    ...(b ? { battle: { ...b, combatants: b.combatants.map(patch) } } : {}),
+  };
 }
 
 /**

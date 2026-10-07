@@ -8,7 +8,7 @@
  * effacée » au diff du document.
  */
 import { describe, it, expect } from 'vitest';
-import { documentDeProjet, parseProject, CURRENT_PROJECT_SCHEMA, type ProjectIdentite } from './worldMap';
+import { documentDeProjet, parseProject, type ProjectIdentite } from './worldMap';
 import { emptyScene, type Scene } from './scene';
 import { emptyNarratif } from './campaignNarratif';
 
@@ -23,10 +23,9 @@ const IDENTITE: ProjectIdentite = {
 const SCENES = (): Scene[] => [{ ...emptyScene(4, 4), id: 'scene-banc', label: 'Salle du banc' }];
 
 describe('documentDeProjet — l’enveloppe UNIQUE du document de projet', () => {
-  it('écrit `id`, `type`, `label`, `schema` EN TÊTE, puis le reste de l’identité, `narratif`, `scenes`', () => {
+  it('écrit `id`, `type`, `label` EN TÊTE, puis le reste de l’identité, `narratif`, `scenes` — aucun numéro de forme', () => {
     const doc = documentDeProjet(IDENTITE, SCENES(), { narratif: emptyNarratif() });
-    expect(Object.keys(doc)).toEqual(['id', 'type', 'label', 'schema', 'versionContenu', 'maison', 'narratif', 'scenes']);
-    expect(doc.schema).toBe(CURRENT_PROJECT_SCHEMA);
+    expect(Object.keys(doc)).toEqual(['id', 'type', 'label', 'versionContenu', 'maison', 'narratif', 'scenes']);
   });
 
   it('une clé optionnelle NON fournie n’est pas écrite (absente, jamais `undefined`)', () => {
@@ -47,7 +46,7 @@ describe('documentDeProjet — l’enveloppe UNIQUE du document de projet', () =
       narratif: emptyNarratif(),
     });
     expect(Object.keys(doc)).toEqual(
-      ['id', 'type', 'label', 'schema', 'versionContenu', 'maison', 'narratif', 'scenes', 'worldMap', 'activeAxes'],
+      ['id', 'type', 'label', 'versionContenu', 'maison', 'narratif', 'scenes', 'worldMap', 'activeAxes'],
     );
     expect(doc.activeAxes).toEqual(['negoce']);
   });

@@ -29,6 +29,7 @@ import { registerCascadeApplier, startCascade } from './cascade';
 import { describeEncounterPsych } from './flowOutcomes';
 import { freeCons, resultLines, makeBandFactory, type Consequence } from './rollSeam';
 import { actorIn } from './combatants';
+import { touchActors } from './combatOrParty';
 import { dataLabel } from '../data';
 import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
 
@@ -213,6 +214,6 @@ registerCascadeApplier('encounterPsych', (get, set, step) => {
     part.outcome = lines;
     for (const l of lines) get().log(l.text);
   }
-  set({ party: [...get().party] });
+  set(touchActors(get()));
   return { consequences: [] };
 });

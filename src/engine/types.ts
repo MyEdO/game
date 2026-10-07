@@ -1267,15 +1267,10 @@ export type CoverClass = 'none' | DeckCoverClass;
 /** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222). La base (Dégâts/Qualités/Enc/
  *  Portée…) n'est PLUS matérialisée : elle est HYDRATÉE au spawn depuis `trappingId` par `hydratePoste`
  *  (`itemFromTrappingById`/`buildWeapon`, coutures UNIQUES). Ne persiste QUE la réf catalogue + l'état propre
- *  au poste (uid, côté, équipage, recharge, munitions, dérogations). L'ancienne forme (`item` complet) est
- *  MIGRÉE au spawn (`item?` toléré en entrée d'hydratation, extrait `item.trappingId`). */
+ *  au poste (uid, côté, équipage, recharge, munitions, dérogations). */
 export interface AuthoredShipPoste {
-  /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). Requise en forme neuve ;
-   *  absente en forme ANCIENNE (dérivée de `item.trappingId` à la migration). */
-  trappingId?: string;
-  /** ANCIENNE forme (pré-#222) : l'arme copiée en entier. Jamais authorée en neuf ; MIGRÉE par `hydratePoste`
-   *  (extrait `trappingId`/`uid`/`enchants`/usure, jette la base copiée). Absente en forme neuve. */
-  item?: ItemInstance;
+  /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). */
+  trappingId: string;
   /** uid d'instance STABLE (liens hotbar/log/persistance) ; généré à l'hydratation si absent. */
   uid?: string;
   /** Dérogations d'INSTANCE : enchants ajoutés à CETTE pièce (magie/qualité hors catalogue), repliés sur
@@ -1324,7 +1319,7 @@ export interface AuthoredShipPoste {
  *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `state/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
-export interface ShipPoste extends Omit<AuthoredShipPoste, 'item'> {
+export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
   /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
    *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
@@ -1745,9 +1740,6 @@ export interface Combatant {
    *  `battleWater`) sur une cible adjacente, immunise le Round courant, puis consommé par
    *  `suffocationTick` (`engine/suffocation.ts`) : à reposer chaque Round pour rester immunisé. */
   wateredThisRound?: boolean;
-  /** Attribut de Shyish (LDB 48 l.501) : « Une cible ne peut avoir qu'un seul État Exténué gagné
-   *  de cette façon à la fois » — marqueur posé au premier Exténué d'un Sort de la Mort. */
-  shyishExhausted?: boolean;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).
    *  Réinitialisé au début de chaque combat (startCombat). N'affecte PAS l'arrêt d'Hémorragie. */
   soinRencontreUtilise?: boolean;

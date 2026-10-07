@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../state/store';
-import { listSaves, readSlot, deleteSlot, exportSave, takeObsoleteNotice, SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveMeta, type ObsoleteCause } from '../state/saves';
+import { listSaves, readSlot, deleteSlot, exportSave, takeObsoleteNotice, SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveMeta, type ObsoleteCause, type RetraitDeSave } from '../state/saves';
 import { downloadText } from '../lib/fileIo';
 import { GameDate } from './GameDate';
 import { Modal } from './Modal';
 import { Icon } from './Icon';
+import { ChipDeRefus } from './ChipDeRefus';
+import { Stack } from './Layout';
 import { t, type MsgKey } from '../i18n';
 
 /**
@@ -18,12 +20,21 @@ const autoMetaOf = (): SaveMeta | null => {
   return s ? { version: s.version, savedAt: s.savedAt, sceneLabel: s.sceneLabel, gameTime: s.gameTime } : null;
 };
 
-/** Message du joueur par CAUSE de rejet (`ObsoleteCause`) : la version antérieure, la version plus
- *  récente et le contenu illisible ne se disent pas d'un même mot. */
+/** Message du joueur par CAUSE de rejet (`ObsoleteCause`) : l'autre format et le contenu illisible ne
+ *  se disent pas d'un même mot. */
 const OBSOLETE_MSG: Record<ObsoleteCause, MsgKey> = {
-  anterieure: 'saveload.error.obsolete',
-  future: 'saveload.error.futureSave',
+  autreFormat: 'saveload.error.autreFormat',
   illisible: 'saveload.error.unreadable',
+};
+
+/** Le nom, dans un message, d'un emplacement de sauvegarde. */
+const nomDEmplacement = (slot: AnySlot): string =>
+  (slot === AUTO_SLOT ? t('saveload.slot.auto.nom') : t('saveload.slot.label', { n: slot }));
+
+/** Le message d'un import refusé, par cause. */
+const IMPORT_MSG: Record<ObsoleteCause, MsgKey> = {
+  autreFormat: 'saveload.error.import.autreFormat',
+  illisible: 'saveload.error.import',
 };
 
 export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClose: () => void }) {
@@ -33,23 +44,24 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
   const [metas, setMetas] = useState(listSaves());
   const [autoMeta, setAutoMeta] = useState(autoMetaOf);
   const [error, setError] = useState<string | null>(null);
+  const [retraits, setRetraits] = useState<readonly RetraitDeSave[]>([]);
+  const noterLesRetraits = () => {
+    const neufs = takeObsoleteNotice();
+    if (neufs.length) setRetraits((dits) => [...dits.filter((d) => !neufs.some((n) => n.slot === d.slot)), ...neufs]);
+  };
   const fileRef = useRef<HTMLInputElement>(null);
-  // Une save dont la version diffère de `SAVE_VERSION` est retirée du stockage à la lecture
+  // Une save dont la version diffère de `FORMAT_SAVE` est retirée du stockage à la lecture
   // (`readSlot`) : le témoin, posé par la lecture qui l'a jetée (`listSaves` ci-dessus, ou l'écran
   // d'accueil), devient ICI le message au joueur — sans quoi l'emplacement se viderait en silence.
   // La consommation est un EFFET, jamais un initialiseur de rendu : sous `<React.StrictMode>` (le
   // montage réel, `main.tsx`) le corps est joué DEUX fois, et la 2ᵉ passe — qui trouverait le témoin
   // déjà consommé — retiendrait `null`. L'effet ne fait que POSER un message, jamais l'effacer : son
   // double-appel StrictMode est donc sans effet.
-  useEffect(() => {
-    const cause = takeObsoleteNotice();
-    if (cause) setError(t(OBSOLETE_MSG[cause]));
-  }, []);
+  useEffect(() => { noterLesRetraits(); }, []);
   const refresh = () => {
     setMetas(listSaves());
     setAutoMeta(autoMetaOf());
-    const cause = takeObsoleteNotice();
-    if (cause) setError(t(OBSOLETE_MSG[cause]));
+    noterLesRetraits();
   };
 
   const onSave = (slot: SaveSlot) => { setError(saveGame(slot) ? null : t('saveload.error.save')); refresh(); };
@@ -59,8 +71,9 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
   const onImportFile = async (file: File | undefined) => {
     if (!file) return;
     const json = await file.text();
-    if (importGame(json)) onClose();
-    else setError(t('saveload.error.import'));
+    const refus = importGame(json);
+    if (refus) setError(t(IMPORT_MSG[refus]));
+    else onClose();
   };
 
   // Une RANGÉE de slot — partagée par les emplacements manuels (1-3) ET l'emplacement AUTO. `canSave`
@@ -114,7 +127,14 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
         {SAVE_SLOTS.map((slot) => slotRow(slot, t('saveload.slot.label', { n: slot }), metas[slot - 1], mode === 'save'))}
         {autoMeta && slotRow(AUTO_SLOT, 'Auto ⟳', autoMeta, false)}
       </div>
-      {error && <p className="save-error">{error}</p>}
+      {(retraits.length > 0 || error) && (
+        <Stack>
+          {retraits.map((r) => (
+            <ChipDeRefus key={String(r.slot)} refus={{ message: t(OBSOLETE_MSG[r.cause], { emplacement: nomDEmplacement(r.slot) }) }} />
+          ))}
+          {error && <ChipDeRefus refus={{ message: error }} />}
+        </Stack>
+      )}
     </Modal>
   );
 }

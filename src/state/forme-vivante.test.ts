@@ -1,10 +1,10 @@
 /**
  * `validerFormeVivante` (#2001, `data/schemas/validate.ts`) — la porte d'une forme VIVANTE valide le
  * schéma sur la forme disque (`versDisque`) et la complétude de la prose (`proseNonMaterialisee`) sur
- * le reçu, à ses trois sites : `parseProject`, `migreSceneDeProjet` et `validateScene`.
+ * le reçu, à ses trois sites : `parseProject`, `parseSceneDeProjet` et `validateScene`.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, migreSceneDeProjet, projetVersDepot, ProjetRefuse, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse } from './worldMap';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './scene';
 import { flowFromEffects } from './flow';
@@ -30,7 +30,7 @@ function scene(noeud: Record<string, unknown>, journal: Record<string, unknown> 
   return sc;
 }
 const projet = (sc: Scene) => ({
-  type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj', label: 'Projet', versionContenu: 1,
+  type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(), scenes: [sc],
 });
 const MATERIALISE = { desc: TEXTE, descRef: DESC_REF };
@@ -87,7 +87,7 @@ describe('parseProject — forme vivante', () => {
 
   it('T8 : `projetVersDepot` rend la forme disque — l’adresse seule', () => {
     const lu = parseProject(projet(scene(MATERIALISE)));
-    const depot = projetVersDepot({ ...lu, schema: CURRENT_PROJECT_SCHEMA });
+    const depot = projetVersDepot(lu);
     expect(depot.scenes[0].dialogues[0].nodes[0]).toEqual({ id: 'n1', choices: [], descRef: DESC_REF });
   });
 });
@@ -124,13 +124,13 @@ describe('P5 — un preset ADAPTÉ dont le profil ADRESSE sa description est ref
   });
 });
 
-describe('T6 — migreSceneDeProjet, la même porte', () => {
+describe('T6 — parseSceneDeProjet, la même porte', () => {
   it('matérialisée acceptée ; disque refusée ; `descRef` + `adapteDe` refusé', () => {
-    expect(migreSceneDeProjet(scene(MATERIALISE), CURRENT_PROJECT_SCHEMA).dialogues[0].nodes[0]).toMatchObject(MATERIALISE);
-    const disque = refus(() => migreSceneDeProjet(scene({ descRef: DESC_REF }), CURRENT_PROJECT_SCHEMA));
+    expect(parseSceneDeProjet(scene(MATERIALISE)).dialogues[0].nodes[0]).toMatchObject(MATERIALISE);
+    const disque = refus(() => parseSceneDeProjet(scene({ descRef: DESC_REF })));
     expect(disque.cause).toBe('prose-non-materialisee');
     expect(disque.fautes.map((f) => f.chemin)).toContainEqual(['dialogues', 0, 'nodes', 0]);
-    const double = refus(() => migreSceneDeProjet(scene({ ...MATERIALISE, adapteDe: ADAPTE }, MATERIALISE), CURRENT_PROJECT_SCHEMA));
+    const double = refus(() => parseSceneDeProjet(scene({ ...MATERIALISE, adapteDe: ADAPTE }, MATERIALISE)));
     expect(double.fautes.map((f) => f.chemin)).toEqual([['dialogues', 0, 'nodes', 0, 'adapteDe']]);
   });
 });

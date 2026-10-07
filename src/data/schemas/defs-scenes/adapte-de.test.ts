@@ -11,7 +11,6 @@ import { journalSchema } from './effets';
 import { projetSchema } from './projet';
 import { coDescendre, type PointDeDonnee } from '../grammaire/descente';
 import { sourceHeritee } from '../grammaire/prose';
-import { CURRENT_PROJECT_SCHEMA } from '../../../state/worldMap';
 import { emptyScene } from '../../../state/scene';
 import { emptyNarratif } from '../../../state/campaignNarratif';
 
@@ -25,7 +24,7 @@ const DESC_REF = {
 
 /** Un projet VALIDE minimal (même forme que `projet()` de `state/forme-vivante.test.ts`). */
 const projetValide = () => ({
-  type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj', label: 'Projet', versionContenu: 1,
+  type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(), scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle' }],
 });
 
@@ -92,25 +91,31 @@ describe('preset : `adapteDe` et profil ADRESSÉ s’excluent', () => {
   });
 });
 
-describe('`sourceHeritee` — sur un projet VALIDE, `adapteDe` coupe l’héritage de la racine', () => {
-  it('le profil d’un preset nu hérite de la `source` du projet ; celui d’un preset adapté, de rien', () => {
+describe('`sourceHeritee` — frontière locale de provenance', () => {
+  it('le profil hérite du preset sourcé ; Maison et adapté coupent la source de la racine', () => {
     const base = projetValide();
     const projet = {
       ...base,
       source: SOURCE,
-      narratif: { ...base.narratif, presetsPnj: [{ id: 'nu', base: 'humain', profil: { label: 'A' } }, { id: 'adapte', base: 'humain', adapteDe: ADAPTE, profil: { label: 'B' } }] },
+      narratif: { ...base.narratif, presetsPnj: [
+        { id: 'nu', base: 'humain', profil: { label: 'A' } },
+        { id: 'adapte', base: 'humain', adapteDe: ADAPTE, profil: { label: 'B' } },
+        { id: 'copie', base: 'humain', source: { ...SOURCE, page: 15 }, profil: { label: 'C' } },
+      ] },
     };
     const v = projetSchema.safeParse(projet);
     expect(v.error?.issues).toBeUndefined();
-    const [nu, adapte] = projet.narratif.presetsPnj.map((p) => p.profil);
+    const [nu, adapte, copie] = projet.narratif.presetsPnj.map((p) => p.profil);
     const heritees = new Map<unknown, unknown>();
     coDescendre(projetSchema, projet, (p: PointDeDonnee) => {
-      if (p.valeur === nu || p.valeur === adapte) heritees.set(p.valeur, sourceHeritee(p));
+      if (p.valeur === nu || p.valeur === adapte || p.valeur === copie) heritees.set(p.valeur, sourceHeritee(p));
       return undefined;
     });
-    expect(heritees.get(nu)).toEqual(SOURCE);
+    expect(heritees.has(nu)).toBe(true);
+    expect(heritees.get(nu)).toBeUndefined();
     expect(heritees.has(adapte)).toBe(true);
     expect(heritees.get(adapte)).toBeUndefined();
+    expect(heritees.get(copie)).toEqual({ ...SOURCE, page: 15 });
   });
 });
 

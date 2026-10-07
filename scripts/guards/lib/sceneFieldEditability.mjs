@@ -111,19 +111,6 @@ const FRONTIERE = [
   ['src/data/schemas/defs-scenes/effets.ts', 'effectSchema'],
 ];
 
-/**
- * FOSSILES — champs qu'un document ancien porte encore, que le parse TOLÈRE et que le chargement
- * DÉPOUILLE : hors du périmètre éditable, puisque ce ne sont pas des données de scène. La liste est
- * NOMINATIVE et sa PHASE DE MORT est écrite : elle disparaît au reset des saves (L5).
- * Le gate est BIDIRECTIONNEL (`fossileAudit`) : un tag `@fossile` sans entrée ici est ROUGE — sinon
- * le tag serait un canal d'évasion, un champ NEUF tagué sortant du périmètre sans que rien ne rougisse
- * (mesuré, sonde `scratchprobe/1463/lotA-juge/j10-hatch-reel.mjs` cas B) ; une entrée sans tag est
- * ROUGE aussi (tout compromis de TRANSITION se tient au REGISTRE DES FOSSILES du ticket-mère avec la
- * phase qui le tue — `.claude/skills/orchestrer-des-agents/SKILL.md` § Brief).
- * Clé = `<nom du export const>.<champ>` pour un shape zod, `<Type>.<champ>` pour un corps manuscrit.
- */
-export const FOSSILES = ['baseDEntiteSchema.foot'];
-
 /** Nom du `export const xSchema` dont le shape porte cette déclaration de propriété — chaînes
  *  `.optional()`/`.array()` traversées. Un littéral INLINE ne nomme rien. */
 const schemaConstName = (decl) => {
@@ -229,52 +216,6 @@ export function documentDeclarations(program, root) {
   return noeuds;
 }
 
-const aTagFossile = (decl) => ts.getJSDocTags(decl).some((t) => t.tagName.text === 'fossile');
-
-/** Clé de fossile d'une déclaration : `<export const>.<champ>` (shape zod) ou `<Type>.<champ>`
- *  (corps manuscrit). `undefined` si la déclaration n'est pas nommable. */
-function fossileKey(decl) {
-  const nom = decl.name && (ts.isIdentifier(decl.name) || ts.isStringLiteral(decl.name)) ? decl.name.text : undefined;
-  if (!nom) return undefined;
-  if (ts.isPropertyAssignment(decl) || ts.isShorthandPropertyAssignment(decl)) {
-    const porteur = schemaConstName(decl);
-    return porteur ? `${porteur}.${nom}` : undefined;
-  }
-  const p = decl.parent;
-  if (p && (ts.isInterfaceDeclaration(p) || ts.isTypeAliasDeclaration(p)) && ('name' in p && ts.isIdentifier(p.name)))
-    return `${p.name.text}.${nom}`;
-  if (p && ts.isTypeLiteralNode(p) && p.parent && ts.isTypeAliasDeclaration(p.parent))
-    return `${p.parent.name.text}.${nom}`;
-  return undefined;
-}
-
-/**
- * Gate `@fossile` BIDIRECTIONNEL — cf. `FOSSILES`. Les deux sens sont des ROUGES.
- * @returns {{ taguesHorsListe: string[], entreesSansTag: string[] }}
- */
-export function fossileAudit(program, root) {
-  const tags = new Set();
-  const collecte = (decl) => {
-    if (!aTagFossile(decl)) return;
-    const k = fossileKey(decl);
-    tags.add(k ?? `<déclaration non nommable> ${norm(path.relative(root, decl.getSourceFile().fileName))}:${decl.getSourceFile().getLineAndCharacterOfPosition(decl.getStart()).line + 1}`);
-  };
-  for (const n of documentDeclarations(program, root)) collecte(n);
-  const sf = sceneSourceFile(program, root);
-  if (sf) {
-    const visiter = (n) => {
-      if (ts.isPropertySignatureDeclaration(n)) collecte(n);
-      n.forEachChild(visiter);
-    };
-    visiter(sf);
-  }
-  const listes = new Set(FOSSILES);
-  return {
-    taguesHorsListe: [...tags].filter((k) => !listes.has(k)).sort(),
-    entreesSansTag: FOSSILES.filter((k) => !tags.has(k)).sort(),
-  };
-}
-
 /**
  * Champs du DOCUMENT de scène, dérivés du type `Scene` par le TypeChecker.
  * @returns {{ id: string, owner: string, field: string, decl: import('typescript/unstable/ast').Declaration }[]}
@@ -293,10 +234,6 @@ export function sceneScope(program, root) {
   const sceneFile = norm(path.resolve(root, SCENE_FILE));
   const declaredInScene = (decl) =>
     !!decl && (docNodes.has(decl) || norm(decl.getSourceFile().fileName) === sceneFile);
-  // Un fossile GATÉ (tagué ET tenu au registre `FOSSILES`) sort du périmètre éditable ; tagué sans
-  // entrée, il y RESTE — c'est `fossileAudit` qui en fait un rouge, jamais un silence.
-  const gate = new Set(FOSSILES);
-  const fossileGate = (decl) => aTagFossile(decl) && gate.has(fossileKey(decl));
 
   const out = [];
   const seenTypes = new Set();
@@ -332,7 +269,7 @@ export function sceneScope(program, root) {
     };
     const dedans = checker
       .getPropertiesOfType(type)
-      .filter((p) => declaredInScene(p.declarations?.[0]?.resolve()) && !fossileGate(p.declarations[0].resolve()) && !discriminant(p));
+      .filter((p) => declaredInScene(p.declarations?.[0]?.resolve()) && !discriminant(p));
     if (dedans.length === 0) return;
 
     const named = type.getAliasSymbol()?.name ?? type.getSymbol()?.name;

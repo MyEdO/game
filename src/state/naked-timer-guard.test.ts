@@ -17,8 +17,8 @@ import { scanNakedTimers, SCAN_DIRS, ALLOWED } from '../../scripts/guards/lib/na
 // périme rien, mais RÉÉCRIRE la ligne (ou la retirer) fait échouer le CLIQUET ci-dessous — à réviser,
 // jamais à re-décaler. Un motif qui deviendrait AMBIGU dans son fichier échoue aussi (2e cliquet).
 const ALLOWED_SITES: Record<string, string> = {
-  "src/lib/indexedDb.ts :: const timer = setTimeout(() => regler(() => reject(new Error('IndexedDB open : délai dépassé'))), IDB_OPEN_TIMEOUT_MS);":
-    "délai d'ouverture de TOUTE base IndexedDB (#776, #1956) — ne mute ni `battle` ni un flux de " +
+  "src/lib/indexedDb.ts :: const timer = setTimeout(() => echouer(new Error('IndexedDB open : délai dépassé')), IDB_OPEN_TIMEOUT_MS);":
+    "délai d'ouverture de TOUTE base IndexedDB, recréation d'une base non conforme comprise (#776, #1956, #2404) — ne mute ni `battle` ni un flux de " +
     "scène (la bibliothèque de projets s'ouvre au BOOT, avant qu'aucun n'existe), n'est jamais " +
     'nettoyé par `clearTrackedTimers` (afterEach de test) : nature d\'infrastructure, hors du ' +
     'périmètre COMBAT/FLUX de `combatTimers.ts`, pas un contournement de son suivi.',

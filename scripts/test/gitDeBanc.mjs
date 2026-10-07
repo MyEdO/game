@@ -34,7 +34,7 @@ const stdioDe = (input) => /** @type {const} */ ([input === undefined ? 'ignore'
 export function lancerGit(args, { cwd, env = envDeDepotForge(), input, net = false } = {}) {
   let sortie
   try {
-    sortie = execFileSync('git', args, { cwd, env, input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
+    sortie = execFileSync('git', args, { cwd, ...(env === process.env ? {} : { env }), input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
   } catch (e) {
     throw echecDeGit(args, cwd, e)
   }
@@ -71,7 +71,7 @@ export const gitDeLArbreReel = (cwd, options = {}) => gitDe(cwd, { ...options, e
  * @param {string[]} args @param {{ cwd?: string, env?: NodeJS.ProcessEnv, input?: string }} [options]
  */
 export const resultatDeGit = (args, { cwd, env = envDeDepotForge(), input } = {}) =>
-  spawnSync('git', args, { cwd, env, input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
+  spawnSync('git', args, { cwd, ...(env === process.env ? {} : { env }), input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
 
 /**
  * `resultatDeGit` sous l'env HÉRITÉ du processus : le site dont le code de sortie, lu dans l'arbre

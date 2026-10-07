@@ -119,8 +119,25 @@ export function ruleOverrides(): Record<string, RuleValue> {
   return Object.fromEntries(overrides);
 }
 
-/** Remplace les surcharges (depuis la persistance). Ignore les ids inconnus. */
-export function loadRuleOverrides(o: Record<string, RuleValue>): void {
+/** `v` est-elle une valeur de la forme `kind` que déclare `regle` : `flag` booléen, `param` nombre dans ses
+ *  bornes, `mode` l'une de ses `options` ? */
+export function valeurConforme(regle: Pick<OptionalRule, 'kind' | 'options' | 'min' | 'max'>, v: unknown): v is RuleValue {
+  switch (regle.kind) {
+    case 'flag':
+      return typeof v === 'boolean';
+    case 'param':
+      return typeof v === 'number' && Number.isFinite(v) && (regle.min === undefined || v >= regle.min) && (regle.max === undefined || v <= regle.max);
+    case 'mode':
+      return typeof v === 'string' && (regle.options ?? []).includes(v);
+  }
+}
+
+/** Remplace les surcharges (depuis la persistance). Ignore les ids inconnus et les valeurs non conformes
+ *  à leur règle (`valeurConforme`) : le défaut s'applique. */
+export function loadRuleOverrides(o: Readonly<Record<string, unknown>>): void {
   overrides.clear();
-  for (const [k, v] of Object.entries(o)) if (regleParId(k)) overrides.set(k, v);
+  for (const [k, v] of Object.entries(o)) {
+    const regle = regleParId(k);
+    if (regle && valeurConforme(regle, v)) overrides.set(k, v);
+  }
 }

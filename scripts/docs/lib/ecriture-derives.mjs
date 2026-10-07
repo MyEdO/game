@@ -63,28 +63,43 @@ export function fusionnerLectures(dossier) {
   const fichiers = new Set()
   const ecrits = new Set()
   const dossiers = new Map()
+  const git = new Map()
+  const sondes = new Map()
+  const incomplet = new Set()
   // Chemins LUS hors racine, refusés par les enveloppes : sans ce compte, un rejet est indiscernable
   // d'une absence de lecture. UNITÉ : des chemins canoniques distincts PAR PROCESSUS, sommés entre
-  // PID — un même fichier hors racine lu par deux processus compte 2. Le thread des hooks n'en rend
-  // aucun : il n'appende que ce qu'il retient.
+  // PID — un même fichier hors racine lu par deux processus compte 2.
   let cheminsRejetes = 0
+  const fusionner = (lu) => {
+    cheminsRejetes += lu.cheminsRejetes ?? 0
+    for (const f of lu.fichiers ?? []) fichiers.add(f)
+    for (const e of lu.ecrits ?? []) ecrits.add(e)
+    for (const [d, entrees] of Object.entries(lu.dossiers ?? {})) if (!dossiers.has(d)) dossiers.set(d, entrees)
+    for (const q of lu.git ?? []) git.set(JSON.stringify(q), q)
+    for (const s of lu.sondes ?? []) sondes.set(JSON.stringify(s), s)
+    for (const motif of lu.incomplet ?? []) incomplet.add(motif)
+  }
   for (const nom of listerDossier(dossier, { absent: 'vide' })) {
+    if (nom.endsWith('.hooks-mesures.jsonl')) {
+      const lignes = readFileSync(path.join(dossier, nom), 'utf8').trim().split('\n').filter(Boolean)
+      for (const ligne of lignes) fusionner(JSON.parse(ligne))
+      continue
+    }
     if (nom.endsWith('.hooks.jsonl')) {
       for (const rel of readFileSync(path.join(dossier, nom), 'utf8').split('\n')) if (rel) fichiers.add(rel)
       continue
     }
     if (!nom.endsWith('.json')) continue
     const lu = JSON.parse(readFileSync(path.join(dossier, nom), 'utf8'))
-    cheminsRejetes += lu.cheminsRejetes ?? 0
-    for (const f of lu.fichiers ?? []) fichiers.add(f)
-    for (const e of lu.ecrits ?? []) ecrits.add(e)
     // Un dossier listé par DEUX processus (un dumper et son parent) : le premier PID lu gagne, et
     // les PID sont parcourus dans l'ordre des noms de fichiers. Deux listings du même dossier au
     // cours d'un même `docs:build` ne divergent que si un tiers écrit dedans pendant la génération.
-    for (const [d, entrees] of Object.entries(lu.dossiers ?? {})) if (!dossiers.has(d)) dossiers.set(d, entrees)
+    fusionner(lu)
   }
   for (const e of ecrits) fichiers.delete(e)
-  return { fichiers: [...fichiers].sort(), dossiers, ecrits: [...ecrits].sort(), cheminsRejetes }
+  const trier = (m) => [...m].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([, v]) => v)
+  return { fichiers: [...fichiers].sort(), dossiers, ecrits: [...ecrits].sort(), cheminsRejetes,
+    git: trier(git), sondes: trier(new Map([...sondes].filter(([, s]) => !ecrits.has(s.chemin)))), incomplet: [...incomplet].sort() }
 }
 
 /** Sérialisation de `docs/.sources-lues.json` : trié, UN chemin par ligne (diff lisible). */
@@ -94,7 +109,8 @@ export function serialiserSourcesLues(parGenerateur) {
     valeurs.length ? `    "${nom}": [\n${valeurs.map((v) => `      ${JSON.stringify(v)}`).join(',\n')}\n    ]` : `    "${nom}": []`
   const corps = cles.map((cle) => {
     const e = parGenerateur[cle]
-    return `  ${JSON.stringify(cle)}: {\n${[bloc('cibles', [...e.cibles].sort()), bloc('fichiers', [...e.fichiers].sort()), bloc('dossiers', [...e.dossiers].sort())].join(',\n')}\n  }`
+    const supplement = ['git', 'sondes', 'incomplet'].map((nom) => bloc(nom, [...(e[nom] ?? [])].sort((a, b) => JSON.stringify(a) < JSON.stringify(b) ? -1 : JSON.stringify(a) > JSON.stringify(b) ? 1 : 0)))
+    return `  ${JSON.stringify(cle)}: {\n${[bloc('cibles', [...e.cibles].sort()), bloc('fichiers', [...e.fichiers].sort()), bloc('dossiers', [...e.dossiers].sort()), ...supplement].join(',\n')}\n  }`
   })
   return `{\n${corps.join(',\n')}\n}\n`
 }

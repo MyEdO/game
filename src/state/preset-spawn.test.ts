@@ -6,7 +6,7 @@ import { mergeCreatureProfile, resolvePresetCreature } from './campaignData';
 import { FicheAbsente, sceneNpc } from './sceneNpc';
 import { creatureToCombatant } from './spawn';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
-import { parseProject, CURRENT_PROJECT_SCHEMA } from './worldMap';
+import { parseProject } from './worldMap';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import { emptyScene, type Scene } from './scene';
 import { findCreatureById, type CreatureData } from '../data';
@@ -111,7 +111,7 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
 
 /** L'ENVELOPPE que la fabrique exige d'un document de projet (#1552) : il s'annonce, se nomme et
  *  dit sa provenance. Ce fichier mesure la cross-ref `presetId` — pas l'enveloppe. */
-const enveloppe = { type: 'projet' as const, schema: CURRENT_PROJECT_SCHEMA, id: 'fixture', label: 'Fixture', versionContenu: 1, maison: 'fixture de test' };
+const enveloppe = { type: 'projet' as const, id: 'fixture', label: 'Fixture', versionContenu: 1, maison: 'fixture de test' };
 
 describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
   it('un presetId d’entité de scène qui ne résout aucun preset → parseProject throw', () => {

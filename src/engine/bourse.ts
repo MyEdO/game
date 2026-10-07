@@ -39,7 +39,7 @@ export function ensureBourseInstance(hero: Combatant): ItemInstance | undefined 
   return inst;
 }
 
-/** Garantit une instance Bourse SUR UN CLONE du héros (patron `addItemToHero`, engine/items.ts) —
+/** Garantit une instance Bourse SUR UN CLONE du héros, créée ici (`itemFromTrappingById`) —
  *  no-op (retourne `hero` tel quel) si déjà présente. Money initialisée à 0. */
 export function ensureBourse(hero: Combatant): Combatant {
   if (bourseInstanceOf(hero)) return hero;

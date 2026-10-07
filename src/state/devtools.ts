@@ -31,11 +31,33 @@ let sondeDePicking: PickProbe | null = null;
 export function setPickProbe(p: PickProbe | null): void {
   sondeDePicking = p;
 }
+
+/** Une IMAGE RENDUE, que le rendu déclare juste après `renderer.render` (`gameIso/stage/GameStage3D`) :
+ *  son canevas, son numéro (`canvas.dataset.rendus`) et la lecture de ses corps d'acteur
+ *  (`gameIso/stage/corpsActeur.ts:corpsDeLActeur`). Forme ÉCRITE ici, conformité tenue côté rendu
+ *  (`gameIso/stage/corps-sonde.test.tsx`) : la frontière `src/state ↛ src/gameIso` (#2198). */
+export type ImageRendue = { toile: object; rendus: number; corps(id: string): number };
+
+/** Un échantillon : le numéro de l'image rendue et le compte de corps de l'acteur à cette image. */
+export type EchantillonDeCorps = { image: number; corps: number };
+
+let derniereImage: ImageRendue | null = null;
+let echantillonnage: { id: string; toile: object | null; tampon: EchantillonDeCorps[] } | null = null;
+
+/** Le rendu déclare CHAQUE image rendue ; un échantillonnage armé la lit sur-le-champ, et ne retient
+ *  que le canevas de sa première image (une seule numérotation `rendus`). */
+export function setImageRendue(image: ImageRendue): void {
+  derniereImage = image;
+  const e = echantillonnage;
+  if (!e) return;
+  e.toile ??= image.toile;
+  if (e.toile === image.toile) e.tampon.push({ image: image.rendus, corps: image.corps(e.id) });
+}
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from './seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from './shipwreck';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from './worldMap';
-import { MAISON_PROJET_AUTHORE } from '../data/migrationsDeProjet';
+import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
 import { estAbsent } from './terrain';
@@ -43,20 +65,22 @@ import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
-import { actorIn, inBattleId } from './combatants';
+import { actorIn, ecrireActeur, inBattleId } from './combatants';
+import { touchActors } from './combatOrParty';
 import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget } from './combatFlow';
 import { shipHitLocation } from '../engine/combat';
 import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappingsInstanciables, findCreatureById, findTraitById } from '../data';
+import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById } from '../data';
+import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
 import { ev } from './combatLog';
-import { isOutOfAction, addCondition, syncDerivedConditions } from '../engine/conditions';
-import { contractDisease, tickDisease } from '../engine/disease';
+import { isOutOfAction, syncDerivedConditions } from '../engine/conditions';
+import { tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
 import { acquerirTalent } from '../engine/careerSlots';
@@ -65,7 +89,7 @@ import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { projectsLoad, projectSave, type SavedProject } from './projectLibrary';
+import { projectsLoad, projectSave, type EntreeEcrite, type SavedProject } from './projectLibrary';
 import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
 import { hoverTargeting } from './targeting';
@@ -80,6 +104,7 @@ import { PREFERENCES, preferenceDef, setPreference, resetPreference, type PrefVa
 import { pickActiveModalKey, autoPolicyOf } from './modalArbiter';
 import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
+import { endTurnArmed } from './endTurnGuard';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
@@ -134,6 +159,9 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           ({tile, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune',
  *                           nature, geste:{entId?}} — `geste.entId` = l'entité qu'un clic traiterait)
  *                           — lecture seule, aucun clic
+ *   __wfrp.corps(id)      → corps VISIBLES de l'acteur à la dernière image rendue (null avant la 1re)
+ *   __wfrp.echantillonner('corps', id) puis __wfrp.echantillons() → une entrée {image, corps} PAR IMAGE
+ *                           rendue, relue puis vidée (un rechargement Vite l'efface)
  *   __wfrp.talk('id')     → téléporte le groupe à côté de l'entité et l'interpelle (dialogue/marchand)
  *   __wfrp.goto('id')     → place le groupe sur la case de l'entité (déclenche portes/triggers au pas)
  *   __wfrp.screen('menu') → navigue vers un écran
@@ -171,8 +199,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.give(co)       → crédite la bourse (couronnes d'or) ; __wfrp.xp(n) → +PX au groupe
  *   __wfrp.giveTrapping(heroId, trappingId, qty?) → donne un objet de catalogue à un héros (VRAI
  *                           pipeline giveTrapping : item bien formé, qualités comprises)
- *   __wfrp.disease(heroId, maladieId, { phase? }) → contracte une maladie via le VRAI cycle
- *                           (contractDisease + tickDisease de l'incubation) ; `phase:'active'` la déclare
+ *   __wfrp.disease(heroId, maladieId, { phase? }) → contracte une maladie par l'effet `inflictDisease`
+ *                           (+ tickDisease de l'incubation) ; `phase:'active'` la déclare
  *                           en avançant son horloge (jamais un état forgé)
  *   __wfrp.flags()        → drapeaux de scénario ; __wfrp.flag('id', true) → force un drapeau
  *   __wfrp.go('scene-id') → saute vers une scène du projet ; __wfrp.fight() → liste/lance une rencontre
@@ -616,6 +644,25 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      */
     pickTileAt: (px: { x: number; y: number }) => (sondeDePicking ? sondeDePicking(px) : null),
 
+    /** OBSERVATION : corps VISIBLES de l'acteur `id` à la dernière image rendue (`setImageRendue`).
+     *  `null` tant qu'aucune image n'est rendue. */
+    corps: (id: string) => (derniereImage ? derniereImage.corps(id) : null),
+
+    /** OBSERVATION : arme l'échantillonnage — une entrée PAR IMAGE RENDUE, numérotée par
+     *  `canvas.dataset.rendus`. Un rechargement Vite l'efface. */
+    echantillonner: (quoi: 'corps', id: string) => {
+      echantillonnage = { id, toile: null, tampon: [] };
+      return `✓ échantillonnage des ${quoi} de « ${id} » armé`;
+    },
+
+    /** OBSERVATION : relit puis vide le tampon de l'échantillonnage armé. */
+    echantillons: (): EchantillonDeCorps[] => {
+      if (!echantillonnage) return [];
+      const lus = echantillonnage.tampon;
+      echantillonnage.tampon = [];
+      return lus;
+    },
+
     /** ACCÈS DIRECT : ouvre le dialogue/marchand d'une entité (téléporte le groupe à côté puis interagit). */
     talk: (id: string) => {
       const ent = find(id);
@@ -956,7 +1003,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  enveloppée par le constructeur UNIQUE du document (`documentDeProjet`), identité d'un projet
      *  d'auteur (`MAISON_PROJET_AUTHORE`) — elle passe `parseProject`. Rien n'est écrit : la recette la
      *  DÉFORME pour son cas, puis la pose par `projectSave`. */
-    projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): SavedProject => {
+    projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): EntreeEcrite => {
       const scene = emptyScene();
       const project = documentDeProjet(
         { type: 'projet', id, label, versionContenu: 1, maison: MAISON_PROJET_AUTHORE },
@@ -1048,6 +1095,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         // lui que le 2e clic commet (`targetingModes.samePreview`), donc la seule façon de vérifier
         // qu'un 1er clic a bien armé le geste qu'on croit.
         preview: b.preview,
+        endTurnArmed: endTurnArmed(b),
         modales: pendings,
         combatants: b.combatants.map((c) => ({
           id: c.id, name: c.label, kind: c.kind, pos: c.pos,
@@ -1286,7 +1334,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : remet le groupe à neuf — PB max, états purgés, critiques/maladies effacés,
-     *  morts relevés (party ET clones du combat en cours). */
+     *  morts relevés (`ecrireActeur` : groupe et file de combat). */
     healParty: () => {
       const fix = (c: Combatant): Combatant => ({
         ...c,
@@ -1297,12 +1345,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         dead: false,
         outOfRencontre: false,
       });
-      useGame.setState((s) => ({
-        party: s.party.map(fix),
-        battle: s.battle
-          ? { ...s.battle, combatants: s.battle.combatants.map((c) => (c.kind === 'hero' ? fix(c) : c)) }
-          : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, [
+        ...s.party.map((h) => h.id),
+        ...(s.battle?.combatants ?? []).filter((c) => c.kind === 'hero').map((c) => c.id),
+      ], fix));
       return `✓ groupe soigné (${g().party.length} héros)`;
     },
 
@@ -1323,10 +1369,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // Une feuille `giveTrapping` LITTÉRALE ne porte aucun canal de dés (#1508) : la relecture de
       // l'objet donné qui suit ne peut donc pas passer devant un dé — et si ça changeait, ça lèverait.
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveTrapping', trappingId, heroId: hero.id }]), 'devtools.giveTrapping');
-      const after = useGame.getState().party.find((h) => h.id === hero.id);
+      const after = actorIn(useGame.getState(), hero.id);
       const it = [...(after?.items ?? [])].reverse().find((i) => i.trappingId === trappingId);
       if (!it) return `✗ don échoué (trappingId « ${trappingId} » inconnu au catalogue ?)`;
-      if (qty != null) { it.qty = qty; useGame.setState((st) => ({ party: [...st.party] })); }
+      if (qty != null) useGame.setState((st) => ecrireActeur(st, hero.id, (h) => ({ ...h, items: (h.items ?? []).map((i) => (i.uid === it.uid ? { ...i, qty } : i)) })));
       return `✓ ${after!.label} reçoit « ${it.label} »${qty != null ? ` ×${qty}` : ''}`;
     },
 
@@ -1385,10 +1431,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
 
-    /** RECETTE : +PX à tout le groupe (teste l'avancement). */
+    /** RECETTE : +PX à tout le groupe, par l'effet `giveXp`. */
     xp: (amount = 100) => {
-      useGame.setState((s) => ({ party: s.party.map((h) => ({ ...h, xp: (h.xp ?? 0) + amount })) }));
-      return g().party.map((h) => `${h.label} : ${h.xp} PX`);
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveXp', amount }]), 'devtools.xp');
+      return g().party.map((h) => `${h.label} : ${actorIn(g(), h.id)?.xp ?? h.xp} PX`);
     },
 
     /** RECETTE : drapeaux de scénario (portes de l'arène, etc.). */
@@ -1420,14 +1466,21 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return v ? '✓ siège MJ posé (siège 0)' : '✓ siège MJ retiré (IA)';
     },
 
-    /** RECETTE : MÉMORISE un sort au grimoire d'un héros (par id) — jumeau de `talent()` pour la magie.
-     *  Passe par l'EFFET MOTEUR `learnSpell` (`state/combatEffects`, trouvaille de campagne, sans PX),
-     *  jamais par une écriture parallèle de `c.spells` : ce que la console pose est ce que le jeu pose. */
+    /** RECETTE : MÉMORISE un sort au grimoire d'un héros (par id), par l'effet `learnSpell` ; la raison
+     *  se lit au verdict `verdictApprentissage` (#2312). */
     spell: (heroId: string, spellId: string) => {
+      const sp = findSpellById(spellId);
+      if (!sp) return `✗ sort « ${spellId} » inconnu`;
+      const lu = () => (g().party.some((h) => h.id === heroId) ? actorIn(g(), heroId) : undefined);
+      const avant = lu();
+      if (!avant) return `✗ héros « ${heroId} » introuvable — ${g().party.map((h) => h.id).join(', ')}`;
+      const verdict = verdictApprentissage(avant, sp);
+      if (verdict === 'deja-connu') return `✗ ${avant.label} connaît déjà « ${spellId} »`;
+      if (verdict === 'non-eligible') return `✗ ${avant.label} n'a aucun Talent de lanceur pour « ${spellId} »`;
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'learnSpell', spell: spellId, heroId }]), 'devtools.spell');
-      const who = actorIn(useGame.getState(), heroId);
-      return who && (who.spells ?? []).includes(spellId)
-        ? `✓ ${who.label} mémorise « ${spellId} »`
+      const apres = lu();
+      return apres && verdictApprentissage(apres, sp) === 'deja-connu'
+        ? `✓ ${apres.label} mémorise « ${spellId} »`
         : `✗ sort « ${spellId} » non mémorisé — voir le journal`;
     },
 
@@ -1439,15 +1492,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     talent: (id: string, talentId: string, opts: number | { spec?: string; times?: number } = 1) => {
       const { spec, times } = typeof opts === 'number' ? { spec: undefined, times: opts } : { spec: opts.spec, times: opts.times ?? 1 };
       const grant = (c: Combatant): Combatant => {
-        if (c.id !== id) return c;
-        const acquis = { ...c };
+        const acquis = structuredClone(c);
         for (let i = 0; i < times; i++) acquerirTalent(acquis, { id: talentId, ...(spec != null ? { spec } : {}) });
         return acquis;
       };
-      useGame.setState((s) => ({
-        party: s.party.map(grant),
-        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, id, grant));
       const pose = actorIn(useGame.getState(), id)?.talents?.find((t) => t.talentId === talentId && (t.spec ?? null) === (spec ?? null));
       return pose
         ? `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''} ×${pose.times}`
@@ -1462,15 +1511,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
       const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
       const grant = (c: Combatant): Combatant => {
-        if (c.id !== id) return c;
-        const porteur = { ...c };
+        const porteur = structuredClone(c);
         grantTrait(porteur, instance);
         return porteur;
       };
-      useGame.setState((s) => ({
-        party: s.party.map(grant),
-        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, id, grant));
       const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
       return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
@@ -1504,56 +1549,48 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities). */
     quality: (id: string, label = 'Déstabilisante', advantage?: number) => {
       const tweak = (c: Combatant): Combatant => {
-        if (c.id !== id) return c;
         const weapons = (c.weapons ?? []).map((w, i) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), parseQualityInstance(label) ?? { id: label }] } : w));
         return { ...c, weapons, ...(advantage != null ? { advantage } : {}) };
       };
-      useGame.setState((s) => ({
-        party: s.party.map(tweak),
-        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(tweak) } : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, id, tweak));
       const c = actorIn(g(), id);
       return c ? `✓ ${c.label} : arme « ${c.weapons?.[0]?.label} » + ${label}${advantage != null ? ` · ${advantage} Av` : ''}` : `✗ ${id} introuvable`;
     },
 
-    /** RECETTE : applique un État à un combattant (par id) via le VRAI addCondition → déclenche les
-     *  triggers onGainCondition (Mâchoires d'acier ouvre alors sa modale de Résistance influençable). */
+    /** RECETTE : applique un État à un combattant (par id) par l'effet `ops` (op `condition`). */
     condition: (id: string, name = 'sonne', n = 1) => {
-      const s = g();
-      const c = actorIn(s, id);
+      const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
-      addCondition(c, name, n);
-      useGame.setState((st) => ({
-        party: [...st.party],
-        battle: st.battle ? { ...st.battle, combatants: [...st.battle.combatants] } : st.battle,
-      }));
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: name, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
 
-    /** RECETTE : contracte une MALADIE sur un héros via le VRAI cycle (`contractDisease`) — jamais un état
+    /** RECETTE : contracte une MALADIE sur un héros par l'effet `inflictDisease` — jamais un état
      *  forgé. `disease('hero-1','vers-de-carie', { phase:'active' })` fait AVANCER l'horloge de la maladie
      *  (`tickDisease` sur son incubation) pour la déclarer, avec le vrai jet de Localisation / transitions.
      *  Défaut : phase d'incubation (comme à la contraction réelle). */
     disease: (heroId: string, maladieId: string, opts?: { phase?: 'incubation' | 'active' }) => {
-      const c = actorIn(g(), heroId);
-      if (!c) return `✗ combattant ${heroId} introuvable`;
-      const dz = contractDisease(maladieId, battleRng());
-      if (!dz) return `✗ maladie inconnue : ${maladieId}`;
-      c.diseases = [...(c.diseases ?? []), dz];
-      // `phase:'active'` : on AVANCE le cycle réel de l'incubation (jamais `phase='active'` posé à la main)
-      // → transition, jet de Localisation de la cloque, infectedMinutes… exactement comme le temps qui passe.
-      // Les Tests du cycle ne se roulent PLUS nulle part (#1657 B3-3) : la triche les COMPTE et le dit
-      // — ils se jouent à la nuit/l'avance d'horloge, par la porte. (Une incubation n'en doit aucun.)
+      if (!actorIn(g(), heroId)) return `✗ combattant ${heroId} introuvable`;
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'inflictDisease', disease: maladieId, heroId }]), 'devtools.disease');
+      const c = actorIn(g(), heroId)!;
+      const dz = c.diseases?.find((d) => d.id === maladieId);
+      if (!dz) return `✗ maladie « ${maladieId} » non contractée (inconnue, ou combattant hors du groupe) — voir le journal`;
+      // `phase:'active'` : le cycle RÉEL avance de l'incubation (#1657 B3-3) ; ses Tests dus se comptent.
+      // Les dés se tirent UNE fois, sur l'acteur lu ; la valeur s'écrit par `ecrireActeur`.
       const dus: string[] = [];
-      if (opts?.phase === 'active' && dz.phase === 'incubation') tickDisease(c, dz.minutesLeft, battleRng(), (spec) => dus.push(spec.kind));
-      // Les États PORTÉS par les passifs des symptômes (op `condition` — Fièvre (Grave) → Inconscient)
-      // sont MATÉRIALISÉS par la réconciliation : sans elle, la triche rendrait un état à moitié vrai.
-      syncDerivedConditions(c);
-      useGame.setState((st) => ({
-        party: [...st.party],
-        battle: st.battle ? { ...st.battle, combatants: [...st.battle.combatants] } : st.battle,
-      }));
-      return `✓ ${c.label} : ${maladieId} (${c.diseases[c.diseases.length - 1].phase})${dus.length ? ` — ${dus.length} Test(s) dû(s) à la prochaine nuit : ${dus.join(', ')}` : ''}`;
+      if (opts?.phase === 'active' && dz.phase === 'incubation') {
+        const lu = structuredClone(c);
+        tickDisease(lu, dz.minutesLeft, battleRng(), (spec) => dus.push(spec.kind));
+        useGame.setState((st) => ecrireActeur(st, heroId, (h) => {
+          const porteur = structuredClone(h);
+          porteur.diseases = structuredClone(lu.diseases);
+          porteur.residualDiseaseTestMod = lu.residualDiseaseTestMod;
+          syncDerivedConditions(porteur);
+          return porteur;
+        }));
+      }
+      const phase = actorIn(g(), heroId)?.diseases?.find((d) => d.id === maladieId)?.phase;
+      return `✓ ${c.label} : ${maladieId} (${phase})${dus.length ? ` — ${dus.length} Test(s) dû(s) à la prochaine nuit : ${dus.join(', ')}` : ''}`;
     },
 
     /** RECETTE : instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — VRAI
@@ -1604,7 +1641,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         options: [{ key: 'trap', label: t('opt.piegerLame') }, { key: 'crit', label: t('opt.coupCritique') }],
         defaultChoice: 'crit', bladeTrap: pbt,
       });
-      useGame.setState((s) => ({ battle: s.battle ? { ...s.battle, combatants: [...s.battle.combatants] } : s.battle }));
+      useGame.setState(touchActors);
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },
 
@@ -1612,14 +1649,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  Armure Aethyrique DR 3. Frapper ensuite le focaliseur (attaque ennemie / `__wfrp.condition` +
      *  dégâts) déclenche `checkFocusInterruption` : Test de Calme Difficile INFLUENÇABLE (héros manuel). */
     focus: (id: string, spell = 'armure-aethyrique', dr = 3) => {
-      const s = g();
-      const c = actorIn(s, id);
+      const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
-      c.focus = { spell, dr };
-      useGame.setState((st) => ({
-        party: [...st.party],
-        battle: st.battle ? { ...st.battle, combatants: [...st.battle.combatants] } : st.battle,
-      }));
+      useGame.setState((st) => ecrireActeur(st, id, (h) => ({ ...h, focus: { spell, dr } })));
       return `✓ ${c.label} : Focalisation ${spell} (DR ${dr})`;
     },
 
@@ -1640,7 +1672,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       ];
       // `fromPos` plus loin que la position actuelle → l'approche est mesurée comme un rapprochement réel.
       const fromPos = { x: enemy.pos.x + Math.sign(enemy.pos.x - hero.pos.x || 1) * 5, y: enemy.pos.y };
-      useGame.setState((s) => ({ battle: s.battle ? { ...s.battle, combatants: [...s.battle.combatants] } : s.battle }));
+      useGame.setState(touchActors);
       approachFearTrigger(() => useGame.getState(), useGame.setState, enemy, fromPos);
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${enemy.label} (Peur ${indice}) s'approche de ${hero.label} → Test de Calme ou Brisé`;
@@ -1749,6 +1781,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         roundPause: !!s.pendingRoundStart,
         medic: !!s.medic,
         active: act ? { id: act.id, kind: act.kind, aiDriven: aiDriven(s, act), acted: !!b!.acted } : null,
+        endTurnArmed: b ? endTurnArmed(b) : false,
       };
     },
 

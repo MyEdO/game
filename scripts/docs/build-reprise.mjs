@@ -395,7 +395,19 @@ npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
 **Chantier et publication.** \`npm run ops:chantier -- <N>\` (\`${script('ops:chantier')}\`) ouvre le
 chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantier se pose à côté de
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
-\`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. \`npm run ops:publier -- --detache\`
+\`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. L’équipement final copie les docs
+Markdown dérivés depuis le principal lorsque les deux HEAD complets concordent. Chaque générateur
+porte son certificat local dans \`node_modules/.cache/docs-fraicheur.json\` : fichiers réellement lus,
+listings réellement parcourus, requêtes Git et sondes de présence, outillage et sorties. Pour chaque
+doc, des sources identiques permettent la copie ; des sources différentes sélectionnent son
+générateur et les dépendances de la sélection canonique, puis \`docs:build --only\` les rejoue. Un
+fichier hors de ses sources ne bloque pas sa copie. Le code et les fichiers mixtes ne sont jamais
+copiés ; leur divergence sélectionne leurs producteurs. Une preuve absente ou incomplète, un doc
+absent ou une divergence pendant la copie déclenche le \`docs:build\` complet, avec sa raison. Une
+sélection partielle renouvelle les certificats des seuls générateurs rejoués ; un rouge, \`--code\` ou
+\`--mixtes\` retire seulement les certificats concernés. La certification exige des sources stables
+pendant la génération et au contrôle final. Le code généré reste celui du \`npm ci\` du chantier. \`docs:check\` rejoue toujours les générateurs et
+vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
 du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte
 (\`node <racine>/scripts/ops/publier.mjs --veiller <run>\`) qui SUIT ce run jusqu'au verdict — elle lit le
