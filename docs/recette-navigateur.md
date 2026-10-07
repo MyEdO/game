@@ -1216,8 +1216,9 @@ que CHAQUE page rend, jamais à un `pending*` (identique des deux côtés, cf. i
 
 | Cas | Commande | Contrôle |
 |---|---|---|
-| **Défaut — aucun setup** | `npm run dev` seul | `relayHttpUrl` (`src/net/relay.ts`) retombe sur `RELAY_URL_PROD` = le Worker Cloudflare DÉPLOYÉ : héberger fonctionne sans rien lancer d'autre |
-| Relay LOCAL (Worker modifié / hors ligne) | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, **puis** Vite relancé avec la variable | `POST http://localhost:8787/rooms` doit rendre `{"code":…,"hostToken":…}` |
+| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `npm run dev` dans un autre | `relayHttpUrl` (`src/net/relay.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
+| Build de production sans variable | Build avec `import.meta.env.PROD` vrai | Le défaut `RELAY_URL_PROD` vise le Worker Cloudflare déployé |
+| Relais explicite | Relancer Vite avec `VITE_RELAY_URL` | La variable prend priorité dans tous les modes ; une URL locale convient aussi à un build de production |
 
 `VITE_RELAY_URL` est lue via `import.meta.env` **au démarrage de Vite** : la poser après coup ne
 change rien, il faut relancer le serveur de dev. Syntaxe PowerShell :
@@ -1228,6 +1229,11 @@ $env:VITE_RELAY_URL = 'http://localhost:8787'; npm run dev
 
 (bash : `VITE_RELAY_URL=http://localhost:8787 npm run dev`). L'URL WebSocket en est DÉRIVÉE
 (`http`→`ws`, `roomWsUrl`) — une seule variable pour les deux.
+
+Pour éprouver le refus de connexion hors production, arrêter le relais local, ou relancer Vite avec
+une URL locale sur un port fermé (par exemple `http://localhost:8799`). Héberger refuse ; rejoindre
+rend « Connexion impossible — réessayez. » après 15 secondes et conserve le mode local. Sans
+variable, aucune de ces tentatives ne vise le Worker de production.
 
 ### Le kit deux-navigateurs (`scripts/recette/lib.mjs`)
 
