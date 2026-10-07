@@ -1,11 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { libererCache } from '../../guards/lib/fieldConsumers.mjs'
-import { loadSource, findAlias, aliasDoc, readUnionMembers, indexerConstantes, readZodUnionMembers } from './jsdocUnion.mjs'
+import { loadSource, findAlias, aliasDoc, readUnionMembers, indexerConstantes, readZodUnionMembers, noyauZod, estOptionnel } from './jsdocUnion.mjs'
 import { fileExports } from './engineExports.mjs'
 import { shellZones, rowZones } from './rollShellUsage.mjs'
 import { spawnSync } from 'node:child_process'
@@ -128,10 +128,94 @@ test('optionalité native : zones shell et row distinguent propriété optionnel
 })
 
 test('optionalité native : générateur MapSpec conserve desc optionnel et son démarrage compilable', () => {
-  const enfant = spawnSync(process.execPath, ['--input-type=module', '-e', "import { rendre } from './scripts/docs/build-map-authoring.mjs'; console.log(rendre().get('docs/map-authoring.md'))"], {
+  const enfant = spawnSync(process.execPath, ['scripts/docs/lib/rendre-seul.mjs', 'scripts/docs/build-map-authoring.mjs'], {
     cwd: fileURLToPath(new URL('../../../', import.meta.url)), encoding: 'utf8',
   })
   assert.equal(enfant.status, 0, enfant.stderr)
   assert.match(enfant.stdout, /\| `desc\?` \| `string` \|/)
   assert.match(enfant.stdout, /Champs REQUIS de `MapSpec` : `size`, `id`, `label`\./)
+})
+
+test('décorateurs canoniques : formes, champs, optionalité et JSDoc préservés par imports nommés, renommés et namespace imbriqués', () => {
+  const racine = fileURLToPath(new URL('../../../', import.meta.url))
+  mkdirSync(join(racine, 'tmp'), { recursive: true })
+  const dossier = mkdtempSync(join(racine, 'tmp', 'jsdoc-decorateurs-'))
+  try {
+    const chemin = join(dossier, 'schemas.ts')
+    const imports = [
+      "import { nommerChamps, nommerNoeud as nommer } from '../../src/data/schemas/grammaire/meta.ts';",
+      "import * as meta from '../../src/data/schemas/grammaire/meta.ts';",
+    ].join('\n')
+    const forme = "z.strictObject({ kind: z.literal('journal'), /** Texte réel. */ texte: CHAMP, requis: z.number() })"
+    const variantes = [
+      forme.replace('CHAMP', 'z.string().optional()'),
+      `nommerChamps(${forme.replace('CHAMP', "nommer(z.string().optional(), { label: 'Texte' })")}, z.strictObject({ faux: z.number() }))`,
+      `meta.nommerNoeud(nommerChamps((${forme.replace('CHAMP', "meta.nommerNoeud(nommer(z.string().optional(), {}), {})")}), {}), {}).superRefine(() => {})`,
+    ]
+    for (const variante of variantes) {
+      writeFileSync(chemin, `${imports}\n/** Journal réel. */\nexport const journal = ${variante};\nconst FAMILLE = { journal };\nexport const delegue = FAMILLE.journal;\nexport const choix = nommerChamps(z.discriminatedUnion('kind', [delegue]), {});`)
+      const index = indexerConstantes([chemin])
+      assert.deepEqual(readZodUnionMembers(index, 'choix', 'kind', 'test'), {
+        rows: [{ name: 'journal', fieldGroups: [['texte?', 'requis']], role: 'Journal réel.' }], rawCount: 1,
+      })
+      const entree = index.get('journal')
+      const objet = noyauZod(entree.decl.initializer, entree)
+      assert.deepEqual(objet.arguments[0].properties.map(p => p.name.text), ['kind', 'texte', 'requis'])
+      const texte = objet.arguments[0].properties[1]
+      assert.equal(estOptionnel(texte.initializer, entree), true)
+      assert.match(texte.getFullText(), /Texte réel\./)
+    }
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('décorateurs : homonyme local, import étranger et masque de portée restent opaques', () => {
+  const racine = fileURLToPath(new URL('../../../', import.meta.url))
+  mkdirSync(join(racine, 'tmp'), { recursive: true })
+  const dossier = mkdtempSync(join(racine, 'tmp', 'jsdoc-opaque-'))
+  try {
+    const chemin = join(dossier, 'schemas.ts')
+    writeFileSync(join(dossier, 'etranger.ts'), 'export function nommerChamps(x) { return x }')
+    writeFileSync(chemin, [
+      "import { nommerChamps as canon } from '../../src/data/schemas/grammaire/meta.ts';",
+      "import { nommerChamps as etranger } from './etranger.ts';",
+      'function nommerChamps(x) { return x }',
+      'export const local = nommerChamps(z.object({ vrai: z.string() }), z.object({ faux: z.string() }));',
+      'export const autre = etranger(z.object({ vrai: z.string() }), {});',
+      'export const masque = (() => { const canon = x => x; return canon(z.object({ vrai: z.string() }), {}) });',
+    ].join('\n'))
+    const index = indexerConstantes([chemin])
+    for (const nom of ['local', 'autre']) {
+      const entree = index.get(nom)
+      assert.equal(noyauZod(entree.decl.initializer, entree) === entree.decl.initializer, true, nom)
+    }
+    const entree = index.get('masque')
+    const retour = entree.decl.initializer.expression.body.statements.find(ts.isReturnStatement).expression
+    assert.equal(noyauZod(retour, entree) === retour, true, 'masque')
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('preuve des décorateurs : coordonnées identiques dans un autre fichier ou texte restent opaques', () => {
+  const racine = fileURLToPath(new URL('../../../', import.meta.url))
+  mkdirSync(join(racine, 'tmp'), { recursive: true })
+  const dossier = mkdtempSync(join(racine, 'tmp', 'jsdoc-identite-'))
+  try {
+    const chemin = join(dossier, 'original.ts')
+    const autre = join(dossier, 'autre.ts')
+    const texte = "import { nommerChamps } from '../../src/data/schemas/grammaire/meta.ts';\nexport const schema = nommerChamps(z.object({ x: z.string() }), { x: { label: 'Texte' } });"
+    writeFileSync(chemin, texte)
+    const entree = indexerConstantes([chemin]).get('schema')
+    assert.equal(noyauZod(entree.decl.initializer, entree).expression.name.text, 'object')
+    writeFileSync(autre, texte)
+    const autreSf = loadSource(autre).sf
+    const autreAppel = autreSf.statements.find(ts.isVariableStatement).declarationList.declarations[0].initializer
+    assert.equal(autreAppel.pos, entree.decl.initializer.pos)
+    assert.equal(autreAppel.end, entree.decl.initializer.end)
+    assert.equal(noyauZod(autreAppel, entree) === autreAppel, true, 'autre fichier')
+    writeFileSync(chemin, texte.replace('Texte', 'Autre'))
+    const texteSf = loadSource(chemin).sf
+    const texteAppel = texteSf.statements.find(ts.isVariableStatement).declarationList.declarations[0].initializer
+    assert.equal(texteAppel.pos, entree.decl.initializer.pos)
+    assert.equal(texteAppel.end, entree.decl.initializer.end)
+    assert.equal(noyauZod(texteAppel, entree) === texteAppel, true, 'autre texte')
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
 })

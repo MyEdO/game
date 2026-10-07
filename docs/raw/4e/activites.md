@@ -121,7 +121,7 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 | 98–00 | **Mercenaires Particuliers** | Entraînement/Apprentissage particulier : −20 % des coûts. *Entraînement au Combat* : +20 % à tout Test adapté. |
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 22` (l.11-135) → `allie-inculpe`, `encheres-esoteriques`, `trahison`, `imprevu`, `eh-tu-as-renverse-ma-pinte`, `repression-du-crime`, `le-prevot-arrive`, `fausse-monnaie`, `profits-abondants`, `un-homme-averti-en-vaut-deux`, +24 — `src/data/combat-stakes.json`, `src/data/interludeEvents.json`, `src/state/favorFlow.ts`, `src/state/interludeFlow.ts`
+- `LDB 22` (l.11-135) → `allie-inculpe`, `encheres-esoteriques`, `trahison`, `imprevu`, `eh-tu-as-renverse-ma-pinte`, `repression-du-crime`, `le-prevot-arrive`, `fausse-monnaie`, `profits-abondants`, `un-homme-averti-en-vaut-deux`, +25 — `src/data/combat-stakes.json`, `src/data/interludeEvents.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/state/favorFlow.ts`, `src/state/interludeFlow.ts`
 
 ---
 
@@ -136,7 +136,7 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 L'argent non sécurisé (voir *Opérations Bancaires*) disparaît avant la prochaine aventure. Les Revenus sont crédités **après** le gaspillage (LDB 23 l.191 : « vous est seulement remis une fois que vous avez disposé de l'argent de votre dernière aventure »).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `everBelongedClasses`, `openCatalogActivity`, `confirmActivity`, `Combatant`, `dernieres-nouvelles`, +2 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, `src/state/massBattleFlow.ts`
+- `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `everBelongedClasses`, `interludeSchema`, `openCatalogActivity`, `confirmActivity`, `Combatant`, +3 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, +1 fichiers
 
 ---
 
@@ -158,7 +158,7 @@ Si un Personnage a atteint le **Niveau 3 ou 4** de son Évolution de Carrière e
 Le Statut inférieur entraîne des Revenus moindres lors des futures Activités. Pour récupérer le Niveau perdu : payer à nouveau le coût en PX.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.22-56) → `craft`, `finishInterludeEvent`, `learn`, `interlude-elf-duty` — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/state/interludeFlow.ts`
+- `LDB 23` (l.22-56) → `craft`, `finishInterludeEvent`, `learn`, `interludeSchema`, `interlude-elf-duty` — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/state/interludeFlow.ts`
 - sans code : `LDB 23` (l.31-37)
 
 ### Amélioration Elfique / Prestige Elfique
@@ -205,7 +205,7 @@ Apprendre un Talent **en dehors de sa Carrière**, avec un tuteur. Nécessite un
 - Échec → peut réessayer à une future Activité ; gagne **+10 par tentative ratée**.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.5, l.59-250) → `FavorLevel`, `ReverseButton`, `Duration`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `tokenReverseAvailable`, `useTestJetProps`, `useDefenseJetProps`, `FavorRow`, `InterludeHeroState`, +44 — `src/data/activities.json`, `src/data/gods.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/duration.ts`, +20 fichiers
+- `LDB 23` (l.5, l.59-250) → `FavorLevel`, `ReverseButton`, `Duration`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `tokenReverseAvailable`, `useTestJetProps`, `useDefenseJetProps`, `FavorRow`, `InterludeHeroState`, +44 — `src/data/activities.json`, `src/data/gods.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/duration.ts`, +19 fichiers
 
 ---
 
@@ -285,7 +285,7 @@ Une relation établie avec un expert = consultable gratuitement (sans Activité)
 Test **Dressage Accessible (+20)**. Succès → ajouter 1 Compétence à un animal, choisie parmi les Traits **Dressé** (LDB 85 p.339).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.129-130) → `FavorLevel`, `InterludeHeroState`, `creatureToCombatant`, `entrainement`, `statblockToCombatant`, `grantFavorSchema`, `GameState`, `fr`, `dressage`, `EFFECT_HANDLERS` — `src/data/activities.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/combatEffects.ts`, `src/state/favorFlow.ts`, +3 fichiers
+- `LDB 23` (l.129-130) → `FavorLevel`, `InterludeHeroState`, `creatureToCombatant`, `entrainement`, `statblockToCombatant`, `grantFavorSchema`, `GameState`, `fr`, `dressage` — `src/data/activities.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/favorFlow.ts`, `src/state/interludeFlow.ts`, +2 fichiers
 
 ---
 
@@ -300,7 +300,7 @@ S'entraîner dans une Compétence ou Caractéristique **en dehors de la Carrièr
 - Compétences Avancées : **double** du montant ci-dessus.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.133-153) → `FavorLevel`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `FavorRow`, `InterludeHeroState`, `revenus`, `creatureToCombatant`, `entrainement`, `statblockToCombatant`, `grantFavorSchema`, +7 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/combatEffects.ts`, +6 fichiers
+- `LDB 23` (l.133-153) → `FavorLevel`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `FavorRow`, `InterludeHeroState`, `revenus`, `creatureToCombatant`, `entrainement`, `statblockToCombatant`, `grantFavorSchema`, +6 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/favorFlow.ts`, +5 fichiers
 
 ---
 
@@ -319,7 +319,7 @@ Système transversal aux Activités : une **Faveur** est un engagement futur acc
 | **Importante** | Risque mortel, mois de voyage, violence extrême probable | Joué comme aventure complète (pas via Activités) |
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.140-151) → `FavorLevel`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `FavorRow`, `InterludeHeroState`, `creatureToCombatant`, `entrainement`, `statblockToCombatant`, `grantFavorSchema`, `ActivityList`, +6 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/combatEffects.ts`, +6 fichiers
+- `LDB 23` (l.140-151) → `FavorLevel`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `FavorRow`, `InterludeHeroState`, `creatureToCombatant`, `entrainement`, `statblockToCombatant`, `grantFavorSchema`, `ActivityList`, +5 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/favorFlow.ts`, +5 fichiers
 
 ---
 
@@ -336,7 +336,7 @@ En deux étapes :
 - *Passer commande* : trouver d'abord un expert (*Consulter un expert*) ; coût = 6× le prix courant des équipements à combiner.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.154-162) → `FavorLevel`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `InterludeHeroState`, `BankDeposit`, `revenus`, `entrainement`, `grantFavorSchema`, `ActivityList`, `GameState`, +5 — `src/data/activities.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/combatEffects.ts`, `src/state/favorFlow.ts`, +3 fichiers
+- `LDB 23` (l.154-162) → `FavorLevel`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `InterludeHeroState`, `BankDeposit`, `revenus`, `entrainement`, `grantFavorSchema`, `ActivityList`, `GameState`, +4 — `src/data/activities.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/favor.ts`, `src/i18n/messages/fr.ts`, `src/state/favorFlow.ts`, `src/state/interludeFlow.ts`, +2 fichiers
 
 ---
 

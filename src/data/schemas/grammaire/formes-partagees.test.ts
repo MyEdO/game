@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
+import { nommerChamps, metaDesChamps } from './meta';
 import { trappingRefSchema } from './reference';
 import { flowTestSchema, gameOpSchema } from './mecanique';
 import { TESTS_DE_CORRUPTION, bornesSchema, ecartDeCoPresenceDesBornes, plageOuverteSchema, plageSchema } from './valeurs';
@@ -118,7 +119,7 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
   });
 
   it('reste STRICT après composition par SHAPE — une clé inconnue est refusée', () => {
-    const etendu = z.strictObject({ ...plageSchema.shape, mutation: plageSchema.shape.min });
+    const etendu = nommerChamps(z.strictObject({ ...plageSchema.shape, mutation: plageSchema.shape.min }), { ...metaDesChamps(plageSchema, { exigees: true }), mutation: { label: 'mutation' } });
     expect(etendu.safeParse({ ...CHARGE, mutation: 3 }).success).toBe(true);
     expect(etendu.safeParse({ ...CHARGE, mutation: 3, inconnue: 1 }).success).toBe(false);
     expect(etendu.safeParse({ ...CHARGE }).success).toBe(false); // la charge utile reste requise
@@ -488,7 +489,8 @@ describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant
     // et `max: null` est refusé AU TYPE, avant même la mesure de couverture.
     const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }));
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
-    expect(ouverte).toContain('sell.offerByRichesse.4.max');
+    expect(ouverte).toContain('Règles de vente › offre selon la richesse 5 › maximum');
+    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('sell.offerByRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.
     const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: 6 }));

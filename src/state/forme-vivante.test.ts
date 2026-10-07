@@ -58,7 +58,7 @@ describe('parseProject — forme vivante', () => {
     expect(r.cause).toBe('prose-non-materialisee');
     expect(r.fautes.map((f) => f.chemin)).toContainEqual(CHEMIN_NOEUD);
     expect(r.fautes).toHaveLength(2);
-    expect(r.message).toMatch(/^Projet invalide : scenes\[0\]\.dialogues\[0\]\.nodes\[0\], .+ — passage adressé sans son texte\.$/);
+    expect(r.message).toMatch(/^Projet invalide : scène « s1 » › dialogue « dlg » › nœud « n1 », .+ — passage adressé sans son texte\.$/);
   });
 
   it('T3 : `desc: \'\'` sous une adresse est refusé', () => {

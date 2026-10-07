@@ -326,7 +326,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     const refus = refusDe(ENVELOPPE({}));
     expect(refus?.cause).toBe('schema');
     expect(refus?.fautes.some((f) => f.chemin.join('.') === 'id'), 'une faute au chemin `id`').toBe(true);
-    expect(refus?.message, 'le rapport des scripts nomme toujours le champ').toMatch(/^\s*- id: /m);
+    expect(refus?.message, 'le rapport des scripts nomme toujours le champ').toMatch(/^\s*- Identifiant: /m);
   });
 
   /**

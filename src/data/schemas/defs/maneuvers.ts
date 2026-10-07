@@ -1,17 +1,5 @@
-/**
- * Schéma de `maneuvers.json` — manœuvres/attaques naturelles de créature (LDB 85), résolues ENTIÈREMENT
- * depuis cette donnée par `state/combatManeuvers.resolveManeuver` (`ManeuverDef`, `src/data/index.ts`).
- * `kind` = `AttackKind` (`src/engine/creatureAttacks.ts`, anim/pose/icône seulement — jamais la
- * résolution). `effects` = `TriggeredEffect<EffectOp>[]` (`src/engine/flowCore.ts`), PROMU dans
- * `grammaire/mecanique.ts` (`conditionSchema`/`flowSchema`/`triggeredEffectSchema` — partagés avec
- * `qualities.ts`/`talents.ts`/`etats.ts`/`spells.ts`).
- *
- * AUCUN champ de PROSE (#1226) : une manœuvre est la PROJECTION mécanique d'un Trait de créature qui la
- * déclare (`TraitData.grantsManeuvers`) et qui porte SEUL le verbatim + l'ancrage. L'ENVELOPPE de la
- * fabrique offre `desc` à tout document ; ce document la REFUSE nommément par `options.affinerEntree`
- * — sans quoi l'adoption rouvrirait en silence la porte que `strictObject` fermait (0/20 en donnée).
- * Résolution du trait : `traitProjectingManeuver` (`src/data/index.ts`).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 85. */
 import { z } from 'zod';
 import { charKeySchema, enumNomme, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
@@ -21,10 +9,10 @@ export const file = 'maneuvers.json';
 export const famille = 'entite';
 
 /** `ManeuverMeasure` (`src/data/index.ts`) — Portée/Souffle en mètres = `bonus(ref) + plus`. */
-const maneuverMeasure = z.strictObject({
+const maneuverMeasure = nommerChamps(z.strictObject({
   bonusOf: charKeySchema.optional(),
   plus: z.number().optional(),
-});
+}), { bonusOf: { label: 'bonus de caractéristique' }, plus: { label: 'ajout' } });
 
 /**
  * FAMILLE d'attaque d'une manœuvre (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est

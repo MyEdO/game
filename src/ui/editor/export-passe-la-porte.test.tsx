@@ -180,7 +180,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
     expect(refus, 'un fichier RELU se dit d’un autre format ; rien n’a été ouvert ni écrit')
       .toContain('Import refusé : projet d’un autre format, ou mal formé.');
     expect(refus, 'le titre ne nomme pas la faute').not.toContain('Faute :');
-    expect(refus, 'le détail technique nomme la scène et l’entité').toContain('scenes « scene-importee » › entities « p0 » › ref');
+    expect(refus, 'le détail technique nomme la scène et l’entité').toContain('scène « scene-importee » › entité « p0 » › référence');
     expect(refus, 'et la règle enfreinte').toContain('« ref » absente');
     expect(scenesChargees, 'rien du document refusé n’est chargé').not.toContain('Salle importée');
     expect(scenesChargees, 'la scène ouverte est intacte').toContain('Salle d’export');

@@ -1,3 +1,4 @@
+import { nommerChamps, metasExtra } from './meta';
 /**
  * FABRIQUE DE RÉFÉRENCE (#1466) — la seule façon de désigner une entité par son id.
  *
@@ -484,7 +485,7 @@ export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = 
   type: T,
   extra?: E,
 ): z.ZodType<unknown> {
-  return z.strictObject({ id: idDe(type), ...((extra ?? {}) as Record<string, z.ZodType>) });
+  return nommerChamps(z.strictObject({ id: idDe(type), ...((extra ?? {}) as Record<string, z.ZodType>) }), { id: { label: "identifiant" }, ...metasExtra(extra) });
 }
 
 /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
@@ -541,7 +542,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   const catalogue = TYPES[type].catalogue;
   const unRegime = (id: unknown): string =>
     `« ${String(id)} » : une spécialisation se désigne par « spec » OU par « choix », exactement un des deux (catalogue des ${catalogue}).`;
-  return z
+  return nommerChamps(z
     .strictObject({
       id: idDe(type),
       spec: z.string().min(1).optional(),
@@ -590,7 +591,7 @@ function noeudASpecialisation<T extends TypeEntite>(
               : `« ${c} » est absente des spécialisations de « ${String(v.id)} » au catalogue des ${catalogue} (${espace}).`,
         });
       }
-    });
+    }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, choix: { label: "choix" }, ...metasExtra(extra) });
 }
 
 /**
@@ -653,8 +654,8 @@ export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z
   const n = z.number().int().positive();
   const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
   const noeud: z.ZodType<unknown> = z.union([
-    z.strictObject({ pick: n, of: z.array(option).min(1) }),
-    z.strictObject({ pick: n, table: ref('table') }),
+    nommerChamps(z.strictObject({ pick: n, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }),
+    nommerChamps(z.strictObject({ pick: n, table: ref('table') }), { pick: { label: "sélection" }, table: { label: "table" } }),
   ]);
   return noeud;
 }

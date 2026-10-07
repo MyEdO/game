@@ -1,23 +1,5 @@
-/**
- * Schéma de `reglesOptionnelles.json` — registre des RÈGLES OPTIONNELLES (« règles maison »), couche
- * PRÉSENTATION + BORNES en donnée : `id` STABLE (clé de surcharge, de persistance et de
- * `variants[].when.rule`), libellé/aide/groupe d'affichage, forme du contrôle auto-rendu (`kind`),
- * valeur par défaut et bornes de saisie. Lu par `src/engine/policy.ts` (types + `rule()`/`ruleDef()`),
- * rendu par le panneau in-game (`src/state/houseRules.ts` + `src/ui/HouseRulesModal.tsx`).
- *
- * `ref` = citation de la règle (même champ que `obsessions.json.ref`) : l'abréviation DOIT être un
- * `abbr` de `books.json` (garde `src/engine/policy-donnee.test.ts`), le reste est la localisation la
- * plus précise dont on dispose : `<ABRÉV> <ch> l.<ligne>`, ou le CHAPITRE seul quand le passage ne
- * chiffre rien à pointer (`LDB 18`, `LDB 65`…). La `ref` porte la RÉFÉRENCE, jamais de justification en prose : celle
- * d'une valeur que le RAW ne chiffre pas va dans `maison` (CLAUDE.md règle 7, même sémantique que
- * `castingNumberMod.maison`, `grammaire/valeurs.ts`) — 27 entrées ; `maison` et `source` sont des clés
- * d'ENVELOPPE, posées par la fabrique.
- * `source` = ancre `{book, page}` de la couverture par ENTRÉE : le folio IMPRIMÉ, relevé au marqueur
- * `data-folio` qui gouverne la ligne de la `ref` (#1318 E8) — jamais dérivé d'un calcul sur la ligne.
- * `action` : action de jeu rendue sous la rangée quand la règle vaut `when` — `icon` (registre
- * `src/ui/icons/`) et `run` (action du store) restent des `string` ici, liés par
- * `src/ui/rule-action-wiring.test.ts`.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 18 ; LDB 65 */
 import { z } from 'zod';
 import { bornesSchema, ecartDeCoPresenceDesBornes, enumNomme, ruleValueSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
@@ -36,13 +18,18 @@ const doc = document(
     options: z.array(z.string()).min(2).optional(),
     ...bornesSchema.shape,
     hint: z.string().optional(),
-    action: z
+    action: nommerChamps(z
       .strictObject({
         when: ruleValueSchema,
         label: z.string().min(1),
         icon: z.string().min(1),
         run: z.string().min(1),
-      })
+      }), {
+      when: { label: 'Condition' },
+      label: { label: 'Libellé' },
+      icon: { label: 'Icône' },
+      run: { label: 'Course' },
+    })
       .optional(),
   },
   {

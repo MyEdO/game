@@ -3,13 +3,22 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES } from './mecanique';
+import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
 import { applyOps, messageRecurrenceHorloge, SELF_REF } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
+  it('chaque famille garde les slots directs et confie les opérations imbriquées à leur propre entrée', () => {
+    for (const famille of [mecaniqueDe({}), mecaniqueDe({ 'grantTalent.talent': 'specOuChoixFacultatifs' })]) {
+      const champs = champsDOpASlot(famille.opDefs);
+      expect(champs.has('rollTable.tableId')).toBe(true);
+      expect(champs.has('removeTrait.traitId')).toBe(true);
+      expect(champs.has('rollTable.rows')).toBe(false);
+      expect(champs.has('transform.ops')).toBe(false);
+    }
+  });
   it('une op TYPÉE valide son payload et refuse un champ étranger', () => {
     expect(gameOpSchema.safeParse({ op: 'heal', amount: { dice: { n: 1, sides: 10 } } }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'heal', amount: 2, perSL: { every: 2, amount: 1 } }).success).toBe(true);

@@ -1,3 +1,4 @@
+import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schémas zod des formes d'une SCÈNE (`src/state/scene.ts`) — racine de documents `src/scenes`.
  *
@@ -27,7 +28,7 @@ import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
-import { champAdapteDe, champsProse, refineAdapteDe, refineProse } from '../grammaire/prose';
+import { champAdapteDe, champsProse, refineAdapteDe, refineProse, META_PROSE, META_ADAPTE_DE } from '../grammaire/prose';
 import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
@@ -38,9 +39,9 @@ import type { OptionalEntry } from '../../../engine/statEntry';
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
 export { dir8Schema };
 /** Rectangle de zone/déclencheur — `z` = étage (défaut 0). */
-export const rectSchema = z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number(), z: z.number().optional() });
+export const rectSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" }, z: { label: "étage" } });
 /** Offre de couchage d'une scène/zone (`RestPlaces` sans `bord`, réservé au navire de campagne). */
-export const restPlacesSchema = z.strictObject({ auberge: z.boolean().optional(), maison: z.boolean().optional(), camp: z.boolean().optional() });
+export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean().optional(), maison: z.boolean().optional(), camp: z.boolean().optional() }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" } });
 
 /** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. */
 export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
@@ -51,8 +52,8 @@ export const navalTraitRefSchema = refIndiceSchema;
 export const optionalEntrySchema = z.custom<OptionalEntry>();
 /** `SeatOccupant` (`state/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('party'), rang: z.number() }),
-  z.strictObject({ kind: z.literal('entity'), entityId: z.string() }),
+  nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type" }, rang: { label: "rang" } }),
+  nommerChamps(z.strictObject({ kind: z.literal('entity'), entityId: z.string() }), { kind: { label: "type" }, entityId: { label: "entité" } }),
 ]);
 
 // ── Entité de scène ─────────────────────────────────────────────────────────────────────────────
@@ -101,19 +102,19 @@ export function typeNonNomme(ent: { id: string; kind: string; ref?: unknown; sta
  *  surcharge d'AFFICHAGE, absent le libellé vient du catalogue i18n à la clé `usable.<id>` ; `consume` : l'entité est retirée après ;
  *  `unique` : jouable une fois (drapeau `__action_<entId>_<id>`), absent ou `false` = REJOUABLE ;
  *  `minutes` : ce que l'action coûte à l'horloge, absent = `TIME_COST.search` (`engine/timeCost.ts`). */
-export const actionAuthoreeSchema = z.strictObject({
+export const actionAuthoreeSchema = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string().optional(),
   flow: sceneFlowSchema,
   consume: z.boolean().optional(),
   unique: z.boolean().optional(),
   minutes: z.number().min(0).optional(),
-});
+}), { id: { label: "identifiant" }, label: { label: "libellé" }, flow: { label: "enchaînement", transparent: true }, consume: { label: "consommer" }, unique: { label: "unique" }, minutes: { label: "minutes" } });
 
 /** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
-const baseDEntiteSchema = z.strictObject({
+const baseDEntiteSchema = nommerChamps(z.strictObject({
   id: z.string(),
-  pos: z.strictObject({ x: z.number(), y: z.number() }),
+  pos: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
   /** Couche d'empilement (cf. `layers`) : 0/absent = couche de base. */
   z: z.number().optional(),
   facing: dir8Schema.optional(),
@@ -132,9 +133,9 @@ const baseDEntiteSchema = z.strictObject({
   weapon: z.string().optional(),
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
-  light: z.strictObject({ radiusM: z.number(), tone: z.string().optional() }).optional(),
+  light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: z.string().optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" } }).optional(),
   /** Marchand : archétype + surcharges de prix et des 3 règles maison Marché (LDB 59/60). */
-  merchant: z
+  merchant: nommerChamps(z
     .strictObject({
       archetype: z.string(),
       settlement: z.enum(['village', 'ville', 'cite']).optional(),
@@ -144,23 +145,23 @@ const baseDEntiteSchema = z.strictObject({
       guild: z.boolean().optional(),
       marketMode: z.enum(['complet', 'sans-disponibilite', 'sans-marchandage', 'simplifie']).optional(),
       tenirComptes: z.boolean().optional(),
-    })
+    }), { archetype: { label: "archétype" }, settlement: { label: "localité" }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché" }, tenirComptes: { label: "tenir les comptes" } })
     .optional(),
   /** JOUEUR de taverne (`NADJ 04 l.72`) : `gameId` de `tavernGames.json`, mise de DÉPART en sous. */
-  tavernGame: z.strictObject({ gameId: z.string(), stakeBrass: z.number().optional() }).optional(),
+  tavernGame: nommerChamps(z.strictObject({ gameId: z.string(), stakeBrass: z.number().optional() }), { gameId: { label: "jeu" }, stakeBrass: { label: "mise en cuivre" } }).optional(),
   /** DÉCOR UTILISABLE — deux faits NOMMÉS que l'auteur pose sur CETTE instance : `assise` ouvre les
    *  places que le TYPE porte (`seatSlots` → `placesJouables`, `state/seating.ts` — la seule capacité
    *  qui vive sur le TYPE, donc la seule qu'un opt-in d'instance ait à ouvrir), `actions` porte les
    *  gestes AUTHORÉS. Les autres capacités (dialogue, marchand, jeu de taverne) vivent DÉJÀ sur
    *  l'instance et se dérivent sans lui (`actionsDe`, `state/usable.ts`). */
-  usable: z
+  usable: nommerChamps(z
     .strictObject({
       assise: z.literal(true).optional(),
       actions: listeCle(actionAuthoreeSchema, 'id').optional(),
-    })
+    }), { assise: { label: "assise" }, actions: { label: "actions" } })
     .optional(),
   /** RÔLE combat optionnel : ce que l'auteur choisit pour CETTE personne au combat. */
-  combat: z
+  combat: nommerChamps(z
     .strictObject({
       /** OPTIONNELS choisis (`LDB 76 l.45`). */
       optionals: z.array(optionalEntrySchema).optional(),
@@ -170,15 +171,15 @@ const baseDEntiteSchema = z.strictObject({
       skills: z.array(competenceChiffreeSchema).optional(),
       /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. */
       hiddenUntilCombat: z.boolean().optional(),
-    })
+    }), { optionals: { label: "options" }, spells: { label: "sorts" }, randomChars: { label: "caractéristiques aléatoires" }, skills: { label: "Compétences" }, hiddenUntilCombat: { label: "caché jusqu’au combat" } })
     .optional(),
   couvre: couvreSchema.optional(),
-});
+}), { id: { label: "identifiant" }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation" }, label: { label: "libellé" }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" }, crewIds: { label: "membres d’équipage" }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" }, appearance: { label: "apparence" }, anim: { label: "animation" }, weapon: { label: "arme" }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" } });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
  *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
 const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
-  z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref });
+  nommerChamps(z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref }), { ...metaDesChamps(baseDEntiteSchema, { exigees: true }), kind: { label: "type" }, ref: { label: "référence" } });
 
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
@@ -216,18 +217,18 @@ export const sceneEntitySchema = z.discriminatedUnion('kind', [
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────
 
 /** `ArchitectureRect` — emprise rectangulaire d'une part/masse. */
-export const architectureRectSchema = z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number() });
+export const architectureRectSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } });
 /** `ArchitectureEdgeRef` — arête porteuse d'une façade/d'un ornement. */
-export const architectureEdgeRefSchema = z.strictObject({ x: z.number(), y: z.number(), side: wallSideSchema, z: z.number().optional() });
+export const architectureEdgeRefSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), side: wallSideSchema, z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, side: { label: "côté" }, z: { label: "étage" } });
 /** `ArchitecturePart` — empreinte nommée d'un étage. */
-export const architecturePartSchema = z.strictObject({ id: z.string(), foot: architectureRectSchema });
+export const architecturePartSchema = nommerChamps(z.strictObject({ id: z.string(), foot: architectureRectSchema }), { id: { label: "identifiant" }, foot: { label: "emprise" } });
 /** `ArchitectureStorey` — un étage : ses parts et les zones-pièces qu'il couvre. */
-export const architectureStoreySchema = z.strictObject({
+export const architectureStoreySchema = nommerChamps(z.strictObject({
   id: z.string(),
   z: z.number(),
   parts: listeCle(architecturePartSchema, 'id'),
   roomZoneIds: z.array(z.string()),
-});
+}), { id: { label: "identifiant" }, z: { label: "étage" }, parts: { label: "parties" }, roomZoneIds: { label: "pièces" } });
 /** Nature d'un ornement de façade — les trois `KINDS_DE_DECOR` (`builders/walls.ts`) portent le libellé
  *  du prop que le catalogue de façades leur pose (`data/props.json`). */
 export const facadeFeatureKindSchema = enumNomme({
@@ -239,23 +240,23 @@ export const facadeFeatureKindSchema = enumNomme({
   belfry: 'Clocheton',
 });
 /** `FacadeFeature` — ornement posé sur une arête de façade. */
-export const facadeFeatureSchema = z.strictObject({
+export const facadeFeatureSchema = nommerChamps(z.strictObject({
   id: z.string(),
   kind: facadeFeatureKindSchema,
   edge: architectureEdgeRefSchema,
   offset: z.number().optional(),
   width: z.number().optional(),
   appearance: z.string().optional(),
-});
+}), { id: { label: "identifiant" }, kind: { label: "type" }, edge: { label: "arête" }, offset: { label: "décalage" }, width: { label: "largeur" }, appearance: { label: "apparence" } });
 /** `FacadeSection` — pan de façade d'un étage. */
-export const facadeSectionSchema = z.strictObject({
+export const facadeSectionSchema = nommerChamps(z.strictObject({
   id: z.string(),
   z: z.number(),
   edges: z.array(architectureEdgeRefSchema),
   appearance: z.string(),
   roomZoneIds: z.array(z.string()).optional(),
   features: listeCle(facadeFeatureSchema, 'id').optional(),
-});
+}), { id: { label: "identifiant" }, z: { label: "étage" }, edges: { label: "arêtes" }, appearance: { label: "apparence" }, roomZoneIds: { label: "pièces" }, features: { label: "détails" } });
 /** Profil de toiture d'une masse/d'une intention de toiture. */
 export const roofProfileSchema = enumNomme({
   hip: 'Croupe (hip) — 4 pans',
@@ -311,9 +312,9 @@ const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief'
  * avec une valeur devinée. La face d'un terrain à BLOC PLEIN, elle, tient sa matière du TERRAIN
  * (`terrains.json › matiere`) : ce record ne couvre que le relief du sol lui-même.
  */
-export const reliefDefaultsSchema = z.strictObject(
+export const reliefDefaultsSchema = nommerChamps(z.strictObject(
   tableTotale(PARTS_RELIEF, () => matiereReliefSchema),
-);
+), { cliff: { label: 'falaise' }, ramp: { label: 'rampe' }, deck: { label: 'tablier' }, pilier: { label: 'pilier' } });
 /**
  * AMBIANCE d'une scène — dedans/dehors, ce qui décide si l'éclairage suit l'horloge du monde.
  * Source UNIQUE de la liste : le champ `Scene.ambiance` ci-dessous ET la semence d'une scène neuve
@@ -338,7 +339,7 @@ export const PENTE_TOIT_DEG = { min: 5, max: 75 } as const;
  * ici : un profil non posé se choisit par PORTÉE (`ROOF_GABLE_SPAN_MAX_M`), c'est le socle qui le
  * résout ; un `profile` de scène serait soit mort, soit une seconde vérité face à la portée.
  */
-export const sceneRoofDefaultsSchema = z.strictObject({
+export const sceneRoofDefaultsSchema = nommerChamps(z.strictObject({
   /** Matière de COUVERTURE de dernier recours — même porte que `BuildingMass.material`. Le TYPE de
    *  bâtiment du corps (`buildings.json › roofMaterial`) et le corps lui-même passent avant. */
   material: couvertureSchema,
@@ -350,7 +351,7 @@ export const sceneRoofDefaultsSchema = z.strictObject({
   /** BORNE de comble en hauteurs d'ÉTAGE (`METRES_PER_LEVEL`) — c'est elle qui fait s'adapter la
    *  pente à la portée (#947). */
   riseMaxStoreys: z.number().int().min(1),
-});
+}), { material: { label: "matériau" }, pitchDeg: { label: "pente en degrés" }, riseMaxStoreys: { label: "élévation maximale" } });
 /** MASSE de bâtiment (#823, remplace `RoofSection` authoré à la main) : l'INTENTION, jamais la
  *  géométrie du toit — `gameIso/builders/roofs.ts` DÉRIVE pans/faîte/noues/croupes par une formule
  *  UNIQUE (`hauteur(case) = hauteurÉgout + distance(case, bord de la masse) × métresParCase ×
@@ -370,7 +371,7 @@ export const sceneRoofDefaultsSchema = z.strictObject({
  *  `state/sceneEdit.ts`) — éditer un mur/une pièce fait suivre la toiture sans redéclaration. Une masse
  *  authorée ici CORRIGE la dérivation là où elle se trompe (passage couvert, appentis,
  *  cour à ne pas coiffer via `ArchitectureBody.roofExclusions`, encorbellement voulu). */
-export const buildingMassSchema = z.strictObject({
+export const buildingMassSchema = nommerChamps(z.strictObject({
   id: z.string(),
   z: z.number(),
   footprint: z.array(architectureRectSchema),
@@ -392,7 +393,7 @@ export const buildingMassSchema = z.strictObject({
    *  (#841) : l'intention de toiture y produit un effet immédiat sur le rendu, qui ne lit QUE les
    *  masses matérialisées. */
   derived: z.literal(true).optional(),
-});
+}), { id: { label: "identifiant" }, z: { label: "étage" }, footprint: { label: "empreinte" }, levels: { label: "niveaux" }, profile: { label: "profil" }, pitchDeg: { label: "pente en degrés" }, material: { label: "matériau" }, ridge: { label: "faîtage" }, eaveSide: { label: "côté de l’égout" }, derived: { label: "dérivé" } });
 /** Intention de toiture pour les masses DÉRIVÉES d'un corps (#829) — réglée dans l'outil Architecture
  *  de l'éditeur. SURCHARGE PARTIELLE de la toiture de la SCÈNE (`Scene.roofDefaults`, #1715) : chaque
  *  champ absent se résout par `toitureEffective` (`sceneEdit.ts`) — type de bâtiment du corps puis
@@ -403,7 +404,7 @@ export const buildingMassSchema = z.strictObject({
  *  composantes 4-connexes, et chacune reçoit UNE masse (`deriveArchitectureMasses`, `sceneEdit.ts`),
  *  faîtage le long de sa plus grande dimension. Le profil déclaré ici PRIME sur la lecture de portée
  *  (`ROOF_GABLE_SPAN_MAX_M`) qui, à défaut, choisit entre pignon et croupe. */
-export const roofDefaultsSchema = z.strictObject({
+export const roofDefaultsSchema = nommerChamps(z.strictObject({
   /** Profil POSÉ par l'auteur : il PRIME sur la lecture de portée. ABSENT : la portée tranche entre
    *  pignon et croupe (`ROOF_GABLE_SPAN_MAX_M`, `sceneEdit.ts`) — la scène n'en porte aucun. */
   profile: roofProfileSchema.optional(),
@@ -425,9 +426,9 @@ export const roofDefaultsSchema = z.strictObject({
    *  couverture ne se découpe jamais. Absente = celle de la scène (`Scene.roofDefaults`). Sans effet
    *  dès que `pitchDeg` est posé : l'intention de l'auteur passe avant la borne. */
   riseMaxStoreys: z.number().int().min(1).optional(),
-});
+}), { profile: { label: "profil" }, pitchDeg: { label: "pente en degrés" }, material: { label: "matériau" }, eaveSide: { label: "côté de l’égout" }, riseMaxStoreys: { label: "élévation maximale" } });
 /** `ArchitectureBody` — corps architectural authoré (volumes, façades, toitures). */
-export const architectureBodySchema = z.strictObject({
+export const architectureBodySchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string().optional(),
   /** TYPE de bâtiment du corps (`buildings.json`) : il porte la couverture de référence du type et
@@ -444,13 +445,13 @@ export const architectureBodySchema = z.strictObject({
   roofDefaults: roofDefaultsSchema.optional(),
   /** Cases à NE JAMAIS couvrir par la dérivation par défaut (cour intérieure à ciel ouvert…), par
    *  étage — surcharge NÉGATIVE (#829), symétrique des `masses` (surcharge positive). */
-  roofExclusions: z.array(z.strictObject({ z: z.number(), rect: architectureRectSchema })).optional(),
-});
+  roofExclusions: z.array(nommerChamps(z.strictObject({ z: z.number(), rect: architectureRectSchema }), { z: { label: "étage" }, rect: { label: "rectangle" } })).optional(),
+}), { id: { label: "identifiant" }, label: { label: "libellé" }, style: { label: "style" }, storeys: { label: "étages" }, facades: { label: "façades" }, masses: { label: "toitures" }, roofDefaults: { label: "toit par défaut" }, roofExclusions: { label: "exclusions de toit" } });
 
 // ── Dialogue ────────────────────────────────────────────────────────────────────────────────────
 
 /** `DialogueChoice` — `when` gate l'AFFICHAGE, `cost` est débité AVANT le flow. */
-export const dialogueChoiceSchema = z.strictObject({
+export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   /** LIBELLÉ du choix — rôle libellé de l'enveloppe (`label`), pas de la prose : c'est l'étiquette
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
@@ -467,10 +468,10 @@ export const dialogueChoiceSchema = z.strictObject({
   flow: sceneFlowSchema.optional(),
   /** Id du nœud suivant. */
   next: z.string().optional(),
-});
+}), { label: { label: "libellé" }, icon: { label: "icône" }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" } });
 /** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
  *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
-export const dialogueNodeSchema = z.strictObject({
+export const dialogueNodeSchema = nommerChamps(z.strictObject({
   id: z.string(),
   /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
@@ -481,19 +482,19 @@ export const dialogueNodeSchema = z.strictObject({
   choices: z.array(dialogueChoiceSchema),
 })
   .superRefine(refineProse({ type: 'projet', exigeProse: true }))
-  .superRefine(refineAdapteDe);
+  .superRefine(refineAdapteDe), { id: { label: "identifiant" }, speakerId: { label: "locuteur" }, ...META_PROSE, ...META_ADAPTE_DE, choices: { label: "réponses" } });
 /** `Dialogue` — arbre de nœuds, `start` = id du nœud d'entrée. */
-export const dialogueSchema = z.strictObject({
+export const dialogueSchema = nommerChamps(z.strictObject({
   id: z.string(),
   start: z.string(),
   nodes: listeCle(dialogueNodeSchema, 'id'),
   couvre: couvreSchema.optional(),
-});
+}), { id: { label: "identifiant" }, start: { label: "nœud de départ" }, nodes: { label: "nœuds" }, couvre: { label: "entrées couvertes" } });
 
 // ── Déclencheur ─────────────────────────────────────────────────────────────────────────────────
 
 /** `Trigger` — `rect` (avec son étage `z`, #803) ET `when` en ET, évalués à l'entrée dans la zone. */
-export const triggerSchema = z.strictObject({
+export const triggerSchema = nommerChamps(z.strictObject({
   id: z.string(),
   /** Zone du déclencheur — son étage est `rect.z` (défaut 0, rez), comme `SceneEffectZone.z` (#782) :
    *  sans lui, un trigger posé au rez se déclenche depuis/vers l'étage au-dessus (`checkTriggers`, #803). */
@@ -501,12 +502,12 @@ export const triggerSchema = z.strictObject({
   once: z.boolean().optional(),
   /** Condition d'ENTRÉE (algèbre `Condition`, cf. `evalCondition`) — combinée en ET avec le `rect` et
    *  évaluée à l'entrée dans la zone. Absente = pas de garde (un pur événement horaire sans position =
-   *  `delayedEffect`). Remplace les anciens `condition`/`temporalCondition`. */
+   *  `delayedEffect`). */
   when: conditionSchema.optional(),
   /** LOGIQUE exécutée à l'entrée : séquence d'effets + branches `if`/`test` (exécutée par `runFlow`). */
   flow: sceneFlowSchema,
   couvre: couvreSchema.optional(),
-});
+}), { id: { label: "identifiant" }, rect: { label: "rectangle" }, once: { label: "une seule fois" }, when: { label: "condition" }, flow: { label: "enchaînement", transparent: true }, couvre: { label: "entrées couvertes" } });
 
 // ── Rencontre ───────────────────────────────────────────────────────────────────────────────────
 
@@ -535,24 +536,24 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
  *  règle 7. Testé PAR-COUP (`resolveFirstBlood`, combatFlow.ts) — pas un seuil cumulatif comme
  *  `woundsThreshold`. */
 export const victoryConditionSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('allEnemiesDead') }),
-  z.strictObject({ type: z.literal('destroyStructure'), edge: architectureEdgeRefSchema }),
-  z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }),
-  z.strictObject({
+  nommerChamps(z.strictObject({ type: z.literal('allEnemiesDead') }), { type: { label: "type" } }),
+  nommerChamps(z.strictObject({ type: z.literal('destroyStructure'), edge: architectureEdgeRefSchema }), { type: { label: "type" }, edge: { label: "arête" } }),
+  nommerChamps(z.strictObject({ type: z.literal('surviveRounds'), rounds: z.number() }), { type: { label: "type" }, rounds: { label: "Rounds" } }),
+  nommerChamps(z.strictObject({
     type: z.literal('reachZone'),
-    rect: z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }),
+    rect: nommerChamps(z.strictObject({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } }),
     camp: campSchema.optional(),
-  }),
+  }), { type: { label: "type" }, rect: { label: "rectangle" }, camp: { label: "camp" } }),
   /** Reddition à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`. */
-  z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string(), belowPercent: z.number() }),
+  nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string(), belowPercent: z.number() }), { type: { label: "type" }, targetId: { label: "cible" }, belowPercent: { label: "seuil en pourcentage" } }),
   /** Duel judiciaire (`NADJ 06 l.175-177`) — `threshold` ÉDITABLE, défaut 3. */
-  z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }),
+  nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type" }, threshold: { label: "seuil" } }),
 ]);
 
 /** Membre d'une rencontre : RÉFÉRENCE une `SceneEntity` (kind 'personnage') de la scène — c'est
  *  ELLE qui porte le profil (ref/statblock/apparence/arme/label/facing/combat). Le membre n'ajoute
  *  que le contexte propre à CETTE rencontre (camp, monture). */
-export const encounterMemberSchema = z.strictObject({
+export const encounterMemberSchema = nommerChamps(z.strictObject({
   /** id de la `SceneEntity` enrôlée. */
   entityId: z.string(),
   /** Camp au spawn : 'ally' pose un combattant du côté des héros (ex. monture prêtée). Défaut 'enemy'. */
@@ -564,10 +565,10 @@ export const encounterMemberSchema = z.strictObject({
   mount: z.boolean().optional(),
   /** id d'entité de la monture chevauchée au spawn (pré-monté) — réf stable (≠ ancien index `rides`). */
   ridesEntityId: z.string().optional(),
-});
+}), { entityId: { label: "entité" }, side: { label: "côté" }, ai: { label: "intelligence artificielle" }, mount: { label: "monture" }, ridesEntityId: { label: "monture" } });
 
 /** `EncounterDef` — les circonstances d'Avantage initial (`AA 11 l.53-65`) et la fin de combat. */
-export const encounterDefSchema = z.strictObject({
+export const encounterDefSchema = nommerChamps(z.strictObject({
   id: z.string(),
   /** Membres référençant des entités de la scène (peuplés par l'éditeur, ou à l'authoring via
    *  `buildEncounter`). SOURCE UNIQUE lue par le runtime — chaque membre pointe une `SceneEntity`
@@ -590,11 +591,11 @@ export const encounterDefSchema = z.strictObject({
   /** Avantage initial — Menace (`AA 11 l.53-65`) : le camp `camp` représente une menace notoire pour
    *  l'autre camp (`tier` : dangereuse +1, très dangereuse +3, extrême +5) → crédite sa réserve
    *  d'Avantage en mode groupe. Absent = pas de circonstance. */
-  threat: z.strictObject({ camp: campSchema, tier: threatTierSchema }).optional(),
+  threat: nommerChamps(z.strictObject({ camp: campSchema, tier: threatTierSchema }), { camp: { label: "camp" }, tier: { label: "niveau" } }).optional(),
   /** Avantage initial — Terrain (`AA 11 l.53-65`) : le camp `camp` tient une position avantageuse
    *  (fortification/couvert léger/hauteur → +1 ; `heavy` : couvert lourd/position décisive type pont
    *  → +2) → crédite sa réserve d'Avantage en mode groupe. Absent = pas de circonstance. */
-  terrain: z.strictObject({ camp: campSchema, heavy: z.boolean().optional() }).optional(),
+  terrain: nommerChamps(z.strictObject({ camp: campSchema, heavy: z.boolean().optional() }), { camp: { label: "camp" }, heavy: { label: "lourd" } }).optional(),
   /** Restriction d'armes à DISTANCE (#471) — Duel judiciaire (`NADJ 06 l.181`) : « les parties concernées
    *  […] ont normalement le libre choix des armes bien que la plupart des lois locales interdisent de
    *  faire appel à des projectiles. » DÉFAUT SÉMANTIQUE (#471 défaut 1) : « la plupart » = interdit PAR
@@ -617,17 +618,12 @@ export const encounterDefSchema = z.strictObject({
    *  (`ADE II 08 l.292`). */
   siege: z.boolean().optional(),
   couvre: couvreSchema.optional(),
-});
+}), { id: { label: "identifiant" }, members: { label: "participants" }, onVictory: { label: "à la victoire" }, victoryCondition: { label: "condition de victoire" }, surprise: { label: "surprise" }, maneuverability: { label: "manœuvrabilité" }, threat: { label: "menace" }, terrain: { label: "terrain" }, banRanged: { label: "interdire le tir" }, siege: { label: "siège" }, couvre: { label: "entrées couvertes" } });
 
 // ── Couches, zones, murs ────────────────────────────────────────────────────────────────────────
 
-/** Une COUCHE d'empilement de la scène : son index discret `z` (0 = couche de base) — identité
- *  d'empilement, clé de pathfinding ET clé de tri de profondeur — et sa grille de tuiles (w×h aplatie).
- *  `height[]` est PARALLÈLE à `tiles` (indexation y·w+x) : la hauteur RÉELLE de la surface, en MÈTRES
- *  (échelle RAW 2 m/case, `LDB 15 l.12`). Absent = tout à 0 m. PORTEUSE (plus cosmétique) : pilote la
- *  marchabilité (rampe/falaise via `surfaceLink`), la distance/−10 en combat et la chute. Le RENDU pose
- *  la tuile au lift métrique (`metricToLift(height)`) ; le TRI garde `z` (occlusion dessus/dessous). */
-export const layerSchema = z.strictObject({
+/** LDB 15 l.12. */
+export const layerSchema = nommerChamps(z.strictObject({
   z: z.number(),
   /** Ids de TERRAIN résolus contre `terrains.json` (#1690) : une tuile qui nomme un sol absent du
    *  dataset est refusée AU PARSE, nommément, au lieu de peindre le repli d'alarme en silence. */
@@ -638,16 +634,16 @@ export const layerSchema = z.strictObject({
    *  sur le PÉRIMÈTRE (arête dont le voisin même-z n'est pas crénelé) — jamais à l'intérieur. Marqueur de
    *  DÉCORATION seulement (comme un toit auto-dessiné) : n'affecte NI la passabilité NI la LdV plongeante. */
   crenellated: z.array(z.string().nullable()).optional(),
-});
+}), { z: { label: "étage" }, tiles: { label: "cases" }, height: { label: "hauteurs" }, crenellated: { label: "créneaux" } });
 
 /** `ZoneArea` — rectangle ou disque de Chebyshev (rayon en CASES). */
 export const zoneAreaSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('rect'), x: z.number(), y: z.number(), w: z.number(), h: z.number() }),
-  z.strictObject({ kind: z.literal('disc'), cx: z.number(), cy: z.number(), radius: z.number() }),
+  nommerChamps(z.strictObject({ kind: z.literal('rect'), x: z.number(), y: z.number(), w: z.number(), h: z.number() }), { kind: { label: "type" }, x: { label: "abscisse" }, y: { label: "ordonnée" }, w: { label: "largeur" }, h: { label: "hauteur" } }),
+  nommerChamps(z.strictObject({ kind: z.literal('disc'), cx: z.number(), cy: z.number(), radius: z.number() }), { kind: { label: "type" }, cx: { label: "centre horizontal" }, cy: { label: "centre vertical" }, radius: { label: "rayon" } }),
 ]);
 
 /** `SceneEffectZone` — sans aucun champ mécanique la zone est DESCRIPTIVE (#782, `isDescriptiveZone`). */
-export const sceneEffectZoneSchema = z.strictObject({
+export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   area: zoneAreaSchema,
@@ -660,7 +656,7 @@ export const sceneEffectZoneSchema = z.strictObject({
   perRound: z.array(gameOpSchema).optional(),
   crossTest: flowTestSchema.optional(),
   /** BARRIÈRE : `blockGroups` vide/absent = bloque tout le monde ; sinon ids de Groupes. */
-  barrier: z.strictObject({ blockGroups: z.array(z.string()).optional() }).optional(),
+  barrier: nommerChamps(z.strictObject({ blockGroups: z.array(z.string()).optional() }), { blockGroups: { label: "groupes bloqués" } }).optional(),
   z: z.number().optional(),
   couvre: couvreSchema.optional(),
 }).superRefine((zone, ctx) => {
@@ -670,19 +666,17 @@ export const sceneEffectZoneSchema = z.strictObject({
   (zone.tiles ?? []).forEach((t, i) => {
     if (t.z !== undefined && t.z !== etage) ctx.addIssue({ code: 'custom', path: ['tiles', i, 'z'], message: `zone intérieure « ${zone.id} » : la case (${t.x},${t.y}) est à l'étage ${t.z}, la pièce à l'étage ${etage} (\`z\`) — une pièce vit à un seul étage` });
   });
-});
+}), { id: { label: "identifiant" }, label: { label: "libellé" }, area: { label: "surface" }, presentation: { label: "présentation" }, tiles: { label: "cases" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, z: { label: "étage" }, couvre: { label: "entrées couvertes" } });
 
 /** Nature d'une arête grimpable (`WallSeg.climb`). */
-export const wallClimbSchema = z.strictObject({
-  /** `ladder` = échelle ou surface facile (pas de Test, `LDB 15 l.55`) ; `surface` = paroi à prises
-   *  (Test d'Escalade, `l.57`). */
+export const wallClimbSchema = nommerChamps(z.strictObject({
+  /** LDB 15 l.55/57. */
   kind: z.enum(['ladder', 'surface']),
-  /** Surface uniquement — difficulté du Test d'Escalade. `LDB 15 l.57` la laisse « définie par le MJ » ;
-   *  sans MJ (règle 7) c'est un arbitrage ÉDITABLE par arête. Absent = `intermediaire` (défaut moteur). */
+  /** LDB 15 l.57. */
   difficulty: difficultySchema.optional(),
-  /** Surface uniquement — paroi « bien trop compliquée » sans le Talent Grimpeur (`LDB 15 l.57`). */
+  /** LDB 15 l.57. */
   requiresGrimpeur: z.boolean().optional(),
-});
+}), { kind: { label: "type" }, difficulty: { label: "difficulté" }, requiresGrimpeur: { label: "Grimpeur requis" } });
 
 /** Case(s) bordant une arête : la case PORTEUSE `(x,y)`, sa VOISINE à travers `side`, ou LES DEUX
  *  (`parapetTilesAbove`, `structureFaceCells`). */
@@ -693,12 +687,12 @@ export const faceDAreteSchema = enumNomme({
 });
 
 /** Porte SECRÈTE (`WallSeg.secret`) — `EDO 08 l.404`, `LDB 09 l.399`. */
-export const wallSecretSchema = z.strictObject({
+export const wallSecretSchema = nommerChamps(z.strictObject({
   /** Difficulté du Test de Perception qui la découvre — `LDB 12 l.137`, fixée par l'auteur (règle 7). */
   difficulty: difficultySchema,
   /** Face(s) depuis laquelle la porte peut être découverte — `EDO 07 l.263`. */
   face: faceDAreteSchema,
-});
+}), { difficulty: { label: "difficulté" }, face: { label: "face" } });
 
 /** Ce qu'une cloison OBLIQUE (`\\`, `/`) ne porte jamais : elle est purement visuelle — déplacement,
  *  vision et grimpe ne résolvent que les arêtes cardinales (`edgeOf`, `state/scene.ts`). `window`,
@@ -706,7 +700,7 @@ export const wallSecretSchema = z.strictObject({
 const MUET_SUR_OBLIQUE = ['door', 'secret', 'crossable', 'allege', 'suspendu', 'climb', 'structure'] as const;
 
 /** `WallSeg` — cloison sur ARÊTE. `door` = franchissable (porte) ; `z` = étage. */
-export const wallSegSchema = z.strictObject({
+export const wallSegSchema = nommerChamps(z.strictObject({
   x: z.number(),
   y: z.number(),
   side: wallSideSchema,
@@ -758,7 +752,7 @@ export const wallSegSchema = z.strictObject({
       if (w[k]) ctx.addIssue({ code: 'custom', path: [k], message: `cloison oblique (\`${w.side}\`) avec \`${k}\` — une arête oblique est purement visuelle, déplacement, vision et grimpe restent cardinaux` });
     }
   }
-});
+}), { x: { label: "abscisse" }, y: { label: "ordonnée" }, side: { label: "côté" }, z: { label: "étage" }, door: { label: "porte" }, closed: { label: "fermé" }, structure: { label: "structure" }, appearance: { label: "apparence" }, window: { label: "créneau horaire" }, shuttered: { label: "volets fermés" }, crossable: { label: "franchissable" }, allege: { label: "hauteur de l’allège" }, suspendu: { label: "suspendu" }, secret: { label: "secret" }, climb: { label: "escalade" } });
 
 /**
  * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`state/wallIndex.ts`) est la
@@ -776,10 +770,10 @@ const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): s
  *  Puissance des armées reste une abstraction NON rendue — seul l'emplacement de l'ACTION est posé.
  *  Consommé par `battleScenesToStations` (state/stations.ts) ; absence d'ancre → repli déterministe
  *  côté consommateur. */
-export const sceneStationAnchorSchema = z.strictObject({
+export const sceneStationAnchorSchema = nommerChamps(z.strictObject({
   sceneId: z.string(),
-  pos: z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }),
-});
+  pos: nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } }),
+}), { sceneId: { label: "scène" }, pos: { label: "position" } });
 
 /** Les trois BLOCS DE LOGIQUE d'une scène, listes à clé : la scène les compose, et la modale « Avancé »
  *  de l'éditeur (`SCHEMA_BLOCS_AVANCES`) les reprend TELS QUELS — une seule déclaration de leur clé. */
@@ -795,7 +789,7 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
  * schéma voit le document AVANT `normalizeScene`, qui les comble aux portes (`parseProject`,
  * `parseSceneDeProjet`).
  */
-export const sceneSchema = z.strictObject({
+export const sceneSchema = nommerChamps(z.strictObject({
   type: z.literal('scene'),
   id: z.string(),
   label: z.string(),
@@ -803,7 +797,7 @@ export const sceneSchema = z.strictObject({
    *  (`grammaire/document.ts`) : une prose ABSENTE est une CLÉ ABSENTE, jamais une chaîne vide (le
    *  troisième état, vu « présent » par les uns et « absent » par les autres). */
   desc: z.string().min(1).optional(),
-  dimensions: z.strictObject({ w: z.number(), h: z.number() }),
+  dimensions: nommerChamps(z.strictObject({ w: z.number(), h: z.number() }), { w: { label: "largeur" }, h: { label: "hauteur" } }),
   /** Échelle métrique d'une CASE (m/case) — défaut 2 ; ≥ 4 = Scène MER (`isMerScene`). */
   metresPerTile: z.number().optional(),
   ambiance: ambianceSchema.optional(),
@@ -817,27 +811,27 @@ export const sceneSchema = z.strictObject({
   ambientLight: z.string().optional(),
   /** NORD de la carte — rotation horaire en degrés `[0,360[` du nord réel (posé par `setNorthDeg`). */
   northDeg: z.number().optional(),
-  rest: z
+  rest: nommerChamps(z
     .strictObject({
       auberge: z.boolean().optional(),
       maison: z.boolean().optional(),
       camp: z.boolean().optional(),
       quality: z.enum(['normale', 'pietre']).optional(),
-    })
+    }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, quality: { label: "qualité" } })
     .optional(),
   /** Offre de repos PAR ZONE — prioritaire sur `rest` là où le groupe se tient. */
   restZones: z
     .array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         rect: rectSchema,
         places: restPlacesSchema,
         quality: z.enum(['normale', 'pietre']).optional(),
-      }),
+      }), { rect: { label: "rectangle" }, places: { label: "lieux" }, quality: { label: "qualité" } }),
     )
     .optional(),
   effectZones: listeCle(sceneEffectZoneSchema, 'id').optional(),
   /** Ids de pistes du registre audio ; `null` = SILENCE forcé, absent = AUTOMATIQUE. */
-  music: z.strictObject({ ambient: z.string().nullable().optional(), combat: z.string().nullable().optional() }).optional(),
+  music: nommerChamps(z.strictObject({ ambient: z.string().nullable().optional(), combat: z.string().nullable().optional() }), { ambient: { label: "ambiance sonore" }, combat: { label: "combat" } }).optional(),
   /** Matière de chaque PARTIE de relief (#1691) — EXIGÉE : c'est la donnée que le builder LIT. */
   reliefDefaults: reliefDefaultsSchema,
   /** Toiture par défaut de la scène (#1715) — EXIGÉE : c'est la donnée que la dérivation LIT. */
@@ -855,7 +849,7 @@ export const sceneSchema = z.strictObject({
   stations: listeCle(sceneStationAnchorSchema, 'sceneId').optional(),
   flags: z.record(z.string(), z.boolean()).optional(),
   /** Points d'arrivée nommés — `z` = étage visé (défaut 0, #835 FU-5). */
-  entryPoints: z.record(z.string(), z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() })).optional(),
+  entryPoints: z.record(z.string(), nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } })).optional(),
   startMessage: z.string().optional(),
   couvre: couvreSchema.optional(),
 }).superRefine((scene, ctx) => {
@@ -876,4 +870,11 @@ export const sceneSchema = z.strictObject({
       });
     }
   });
-});
+}), { type: { label: "type" }, id: { label: "identifiant" }, label: { label: "libellé" }, desc: { label: "texte" }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance" }, environment: { label: "environnement" }, weather: { label: "météo" }, ambientLight: { label: "éclairage ambiant" }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" }, entryPoints: { label: "points d’entrée" }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" } });
+
+nommerNoeud(sceneSchema, { element: 'scène' });
+nommerNoeud(triggerSchema, { element: 'déclencheur' });
+nommerNoeud(dialogueSchema, { element: 'dialogue' });
+nommerNoeud(dialogueNodeSchema, { element: 'nœud' });
+nommerNoeud(dialogueChoiceSchema, { element: 'réponse' });
+nommerNoeud(sceneEntitySchema, { element: 'entité' });

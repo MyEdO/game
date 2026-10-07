@@ -560,7 +560,7 @@ compte des Rounds de combat, `LDB 16 l.97`). Le Test est donc roulé à chaque j
 Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les pénalités sont **permanentes** (seuls des moyens magiques ou miraculeux peuvent les annuler).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `onTickSchema`, `doc`, `autoExposureMods`, `DiseaseDef`, `water-exposure`, `OPS_FIELDS`, `Disease`, +41 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +20 fichiers
+- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `doc`, `onTickSchema`, `autoExposureMods`, `DiseaseDef`, `water-exposure`, `OPS_FIELDS`, `Disease`, +41 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +20 fichiers
 
 ---
 
@@ -604,7 +604,7 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 **Traitement** : aucun traitement connu. Toute tentative d'extraction chirurgicale fait plus de mal que de bien.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.121-144) → `onTickSchema`, `doc`, `DiseaseDef`, `OPS_FIELDS`, `Disease`, `diseaseTestModLines`, `snapshotInfectionResidual`, `crampes-abdominales`, `resolveInlineFlowTest`, `colique`, +15 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/maladies.ts`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, +10 fichiers
+- `MSRC 16` (l.121-144) → `doc`, `onTickSchema`, `DiseaseDef`, `OPS_FIELDS`, `Disease`, `diseaseTestModLines`, `snapshotInfectionResidual`, `crampes-abdominales`, `resolveInlineFlowTest`, `colique`, +15 — `src/data/index.ts`, `src/data/maladies.json`, `src/data/schemas/defs/maladies.ts`, `src/data/schemas/defs/symptoms.ts`, `src/data/symptoms.json`, `src/engine/conditions.ts`, +10 fichiers
 
 ---
 

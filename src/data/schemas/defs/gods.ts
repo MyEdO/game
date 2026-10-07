@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `gods.json` — dérivé du contenu RÉEL (41 entrées, script d'inventaire) et de
  * `GodData` (`src/data/index.ts`). `blessings`/`miracles`/`chaosSpells` = ids de sort (`refs('spell')`).
@@ -19,12 +20,10 @@ const doc = document(
     title: z.string().optional(),
     blessings: refs('spell'),
     miracles: refs('spell'),
-    /** Sorts du Chaos accordés (LDB 10 « Magie du Chaos »/Domaine du Chaos) — 3/41 dieux (Nurgle/
-     *  Slaanesh/Tzeentch). */
+    /** LDB 10. */
     chaosSpells: refs('spell').optional(),
-    /** VERROU de Péché (MDG 11 l.148, Stromfels) : seuil de Points de Péché retirant l'usage du
-     *  Talent de Prière (Béni/Invocation). 1/41 dieu observé (Stromfels). */
-    sinLocks: z.strictObject({ beni: z.number().optional(), invocation: z.number().optional() }).optional(),
+    /** MDG 11 l.148. */
+    sinLocks: nommerChamps(z.strictObject({ beni: z.number().optional(), invocation: z.number().optional() }), { beni: { label: 'Béni' }, invocation: { label: 'Invocation' } }).optional(),
   },
   {
     grantGroups: { label: 'Groupes accordés' },

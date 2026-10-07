@@ -90,7 +90,7 @@ describe('parseProject — le refus est une DONNÉE (`ProjetRefuse`)', () => {
     expect(refus.cause).toBe('schema');
     const faute = refus.fautes.find((f) => f.chemin.join('.') === 'label');
     expect(faute, 'une faute au chemin `label`').toBeTruthy();
-    expect(refus.message).toContain(`  - label: ${faute!.message}`);
+    expect(refus.message).toContain(`  - Libellé: ${faute!.message}`);
   });
 
   it('réfs de port inconnues : fautes de SCHÉMA, TOUTES nommées à leur chemin', () => {
@@ -130,14 +130,14 @@ describe('parseProject — le refus est une DONNÉE (`ProjetRefuse`)', () => {
 
   it('la FORME DISQUE d’un projet livré (prose adressée sans son texte) : `prose-non-materialisee`, chaque nœud à son chemin ; servie, elle passe', () => {
     const rel = 'diligence/diligence-projet.json';
-    const disque = JSON.parse(readFileSync(join(SCENES_DIR, rel), 'utf8')) as { narratif: { presetsPnj: { profil?: { descRef?: unknown } }[] } };
-    const adresses = disque.narratif.presetsPnj.flatMap((p, i) => (p.profil?.descRef ? [['narratif', 'presetsPnj', i, 'profil']] : []));
+    const disque = JSON.parse(readFileSync(join(SCENES_DIR, rel), 'utf8')) as { narratif: { presetsPnj: { id: string; profil?: { descRef?: unknown } }[] } };
+    const adresses = disque.narratif.presetsPnj.flatMap<[string, string, number, string]>((p, i) => (p.profil?.descRef ? [['narratif', 'presetsPnj', i, 'profil']] : []));
     expect(adresses.length, 'aucun preset adressé sur le disque — le refus ne mesurerait rien').toBeGreaterThan(0);
     const refus = refusDe(disque);
     expect(refus.cause).toBe('prose-non-materialisee');
     expect(refus.fautes.map((f) => f.chemin)).toEqual(adresses);
     const [, , premier] = adresses[0];
-    expect(refus.message).toContain(`narratif.presetsPnj[${premier}].profil`);
+    expect(refus.message).toContain(`Bloc narratif › PNJ « ${disque.narratif.presetsPnj[premier].id} » › profil`);
     expect(() => parseProject(lireProjetLivre(rel)), 'la forme SERVIE (`materialiser`) passe la porte').not.toThrow();
   });
 });

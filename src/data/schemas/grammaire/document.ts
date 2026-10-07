@@ -14,7 +14,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe } from './descente';
-import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
+import { noyauEnum, nommerChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { champsProse, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
@@ -464,10 +464,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
     }
   }
   verifieExposition(type, exposition);
-  const entree = z.strictObject({
+  const nomsEntree = { ...tableTotale(Object.keys(enveloppe(type)) as CleEnveloppe[], k => ({ label: LIBELLES_ENVELOPPE[k] })), ...meta };
+  const entree = nommerChamps(z.strictObject({
     ...enveloppe(type, idDocument, exiges, fragmentsAdmis),
     ...(champs as Record<string, z.ZodType>),
-  }) as z.ZodObject<z.ZodRawShape>;
+  }) as z.ZodObject<z.ZodRawShape>, nomsEntree);
   const declarees = [...(variantes ?? [])];
   for (const k of declarees) {
     if (!(k in entree.shape)) {
@@ -496,7 +497,8 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
             entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
           }) as z.ZodObject<z.ZodRawShape>)
         : complet;
-  const entreePartielle: z.ZodType<unknown> = corps.partial().pipe(z.transform((v) => v));
+  const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(corps.partial(), noms).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
   // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
@@ -525,6 +527,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
     refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
+  nommerChamps(affine as z.ZodObject<z.ZodRawShape>, noms);
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées

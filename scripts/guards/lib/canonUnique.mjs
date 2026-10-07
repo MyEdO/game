@@ -594,6 +594,38 @@ export function estAppelDeclare(appel, sf, fonctions, contexte) {
   return module && (fonctions[module] ?? []).includes(nom) ? nom : null;
 }
 
+export function sansDeclarationsDeMetadonnees(fichier, sourceFile, checker) {
+  if (!/\bnommer(?:Champs|Noeud)\b/.test(fichier.text)) return fichier.text;
+  if (!sourceFile) {
+    for (const analyse of analyserCorpus([fichier])) return sansDeclarationsDeMetadonnees(fichier, analyse.sourceFile, analyse.checker);
+  }
+  const contexte = contexteImports(sourceFile, checker);
+  const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] };
+  const plages = [];
+  const declaratif = (n) => {
+    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n)) return declaratif(n.expression);
+    if (ts.isArrayLiteralExpression(n)) { for (const element of n.elements) declaratif(element); return; }
+    if (!ts.isObjectLiteralExpression(n)) return;
+    plages.push([n.getStart(sourceFile), n.getStart(sourceFile) + 1], [n.end - 1, n.end]);
+    for (const propriete of n.properties) {
+      if (!ts.isPropertyAssignment(propriete) || ts.isComputedPropertyName(propriete.name)) continue;
+      plages.push([propriete.name.getStart(sourceFile), propriete.name.end]);
+      declaratif(propriete.initializer);
+    }
+  };
+  const walk = (n) => {
+    if (ts.isCallExpression(n)) {
+      const nom = estAppelDeclare(n, sourceFile, fonctions, contexte);
+      if (nom) for (const argument of n.arguments.slice(1, nom === 'nommerChamps' ? 3 : 2)) declaratif(argument);
+    }
+    n.forEachChild(walk);
+  };
+  walk(sourceFile);
+  let texte = fichier.text;
+  for (const [debut, fin] of plages.sort((a, b) => b[0] - a[0])) texte = texte.slice(0, debut) + texte.slice(debut, fin).replace(/[^\r\n]/g, ' ') + texte.slice(fin);
+  return texte;
+}
+
 /**
  * TABLE DES EXPORTS de fichiers lus : `{ '<rel>': ['<nom exporté>', …] }`, les exports déclarés
  * (`export function f`, `export const f = (…) => …`) ou réexportés (`export { a, b as c } from '…'`,

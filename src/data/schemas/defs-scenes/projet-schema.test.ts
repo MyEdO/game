@@ -102,7 +102,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
     expect(fautesCodees(projet({ scenes: entite({ interact: { flow: FLOW } }) })))
       .toEqual(['scenes.0.entities.0 :: unrecognized_keys ["interact"]']);
     expect(fautes(projet({ scenes: entite({ usable: { actions: [{ id: 'fouiller', flow: FLOW }, { id: 'fouiller', flow: FLOW }] } }) })))
-      .toEqual(['scenes « scene-1 » › entities « coffre » › usable › actions « fouiller » :: « fouiller » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.']);
+      .toEqual(['scène « scene-1 » › entité « coffre » › utilisable › actions « fouiller » :: « fouiller » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.']);
     // `assise` ne se DÉSACTIVE pas par `false` : le fait est présent ou absent, jamais nié.
     expect(fautes(projet({ scenes: entite({ usable: { assise: false } }) })).length).toBeGreaterThan(0);
   });
@@ -116,8 +116,8 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
     });
     expect(projetSchema.safeParse(projet({ worldMap: carte({ ref: 'marienburg', lighthouse: true }) })).success).toBe(true);
     expect(fautes(projet({ worldMap: carte({ taille: 3 }) }))).toEqual([
-      expect.stringContaining('worldMap › places « lieu-1 » › port.richesse'),
-      expect.stringContaining('worldMap › places « lieu-1 » › port.production'),
+      expect.stringContaining('Carte du monde › lieux « lieu-1 » › port › richesse'),
+      expect.stringContaining('Carte du monde › lieux « lieu-1 » › port › production'),
     ]);
   });
 
@@ -192,7 +192,7 @@ describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () 
   const avecMurs = (walls: Jouet[]): Jouet => projet({ scenes: [sceneMinimale({ walls })] });
 
   it('une arête DUPLIQUÉE est refusée, la clé NOMMÉE à chaque doublon', () => {
-    const doublon = (cle: string) => `scenes « scene-1 » › walls « ${cle} » :: « ${cle} » dupliqué : « x,y,side,z » identifie l’élément dans sa liste, il y est unique.`;
+    const doublon = (cle: string) => `scène « scene-1 » › murs « ${cle} » :: « ${cle} » dupliqué : « x,y,side,z » identifie l’élément dans sa liste, il y est unique.`;
     expect(fautes(avecMurs([{ x: 14, y: 6, side: 'E' }, { x: 14, y: 6, side: 'E', door: true }]))).toEqual([doublon('14,6,E,0')]);
     // `z` ABSENT et `z: 0` sont la MÊME arête (l'index lit `w.z ?? 0`) : chaque segment en trop est une faute.
     expect(fautes(avecMurs([{ x: 1, y: 2, side: 'N', z: 0 }, { x: 1, y: 2, side: 'N' }, { x: 1, y: 2, side: 'N', window: true }]))).toEqual([
@@ -227,25 +227,25 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
 
   it('une couche AMPUTÉE est refusée, le LIEU nommant la scène et l’étage, le message la longueur et l’attendu', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(15) }]))).toEqual([
-      'scenes « scene-1 » › layers « 0 » › tiles :: `tiles` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scène « scene-1 » › couches « 0 » › cases :: `tiles` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
   });
 
   it('une couche TROP LONGUE est refusée de la même façon, et l’étage fautif est celui qui est nommé', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(16) }, { z: 1, tiles: pleine(17) }]))).toEqual([
-      'scenes « scene-1 » › layers « 1 » › tiles :: `tiles` porte 17 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scène « scene-1 » › couches « 1 » › cases :: `tiles` porte 17 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
   });
 
   it('`height` amputé est refusé en NOMMANT `height` — même index, même trou silencieux (`heightAt` replierait à 0 m)', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(16), height: Array.from({ length: 15 }, () => 0) }]))).toEqual([
-      'scenes « scene-1 » › layers « 0 » › height :: `height` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scène « scene-1 » › couches « 0 » › hauteurs :: `height` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
   });
 
   it('`crenellated` amputé est refusé en NOMMANT `crenellated`, et les deux tableaux présents au cardinal passent', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(16), crenellated: Array.from({ length: 4 }, () => null) }]))).toEqual([
-      'scenes « scene-1 » › layers « 0 » › crenellated :: `crenellated` porte 4 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scène « scene-1 » › couches « 0 » › créneaux :: `crenellated` porte 4 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
     expect(projetSchema.safeParse(avecCouches([{ z: 0, tiles: pleine(16), height: Array.from({ length: 16 }, () => 0), crenellated: Array.from({ length: 16 }, () => null) }])).success).toBe(true);
   });
@@ -265,7 +265,7 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
 describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', () => {
   it('(a) `activeAxes` référence un axe inconnu de axes.json → rouge nommant l\'index et l\'id', () => {
     expect(fautes(projet({ activeAxes: ['negoce', 'plongee-sous-marine'] }))).toEqual([
-      'activeAxes.1 :: « plongee-sous-marine » est absent du catalogue des axes (axes.json).',
+      'Axes actifs 2 :: « plongee-sous-marine » est absent du catalogue des axes (axes.json).',
     ]);
   });
 
@@ -278,7 +278,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome » (narratif.affaires).',
+      'Bloc narratif › indice « indice-1 » › affaire :: affaire inconnue « affaire-fantome » (narratif.affaires).',
     ]);
   });
 
@@ -291,21 +291,21 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif › presetsPnj « gobelin » › id :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
+      'Bloc narratif › PNJ « gobelin » › identifiant :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
     ]);
   });
 
   it('(b ter) un preset sans base ni profil → rouge nommé (contrat de `presetPnjSchema`)', () => {
     const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [] };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif › presetsPnj « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
+      'Bloc narratif › PNJ « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
     ]);
   });
 
   it('(c) `entity.presetId` sans preset déclaré → rouge nommant la scène ET l\'entité', () => {
     const scenes = [sceneMinimale({ entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'le-borgne' }] })];
     expect(fautes(projet({ scenes }))).toEqual([
-      'scenes « scene-1 » › entities « pnj-1 » › presetId :: preset de PNJ inconnu « le-borgne » (narratif.presetsPnj).',
+      'scène « scene-1 » › entité « pnj-1 » › profil précomposé :: preset de PNJ inconnu « le-borgne » (narratif.presetsPnj).',
     ]);
   });
 
@@ -325,7 +325,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     // `.min(1)` vient de l'ENVELOPPE (`grammaire/document.ts`) depuis #1552 : le libellé d'un document
     // n'est jamais la chaîne vide, et c'est vrai des 122 defs, pas du seul projet.
     expect(fautes(projet({ label: '' }))).toEqual([
-      expect.stringMatching(/^label :: /),
+      expect.stringMatching(/^Libellé :: /),
     ]);
   });
 
@@ -335,7 +335,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     // `versionContenu` du document : les trois se mesurent PAR AMPUTATION, jamais par un refine.
     for (const cle of ['id', 'label', 'versionContenu']) {
       expect(fautes(sans(cle)), `« ${cle} » amputé doit être rouge et NOMMÉ`).toEqual([
-        expect.stringMatching(new RegExp(`^${cle} :: `)),
+        expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Libellé", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `)),
       ]);
     }
     // Les ACCESSOIRES, eux, restent facultatifs — sur un document par ailleurs identifié.
@@ -356,7 +356,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   it('(f) PROVENANCE : ni `source` ni `maison` → rouge ; l’une des deux suffit', () => {
     // Refine de FABRIQUE (`grammaire/document.ts`) : une campagne sans folio n'est pas interdite,
     // elle doit DIRE pourquoi. Mesuré au dépôt : la Diligence cite EDO, les 3 autres sont maison.
-    expect(fautes(sans('maison'))).toEqual([expect.stringMatching(/^source :: /)]);
+    expect(fautes(sans('maison'))).toEqual([expect.stringMatching(/^Source :: /)]);
     const avecSource = { ...sans('maison'), source: { book: 'ennemi-dans-l-ombre', page: 12 } };
     expect(projetSchema.safeParse(avecSource).success).toBe(true);
   });
@@ -392,7 +392,7 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     expect(ok({ ...reel(), activeAxes: [] }), 'liste vide = socle de base').toBe(true);
     expect(ok(sansCle('activeAxes')), 'absente = socle de base').toBe(true);
     expect(fautes({ ...reel(), activeAxes: ['axe-qui-nexiste-pas'] })).toEqual([
-      'activeAxes.0 :: « axe-qui-nexiste-pas » est absent du catalogue des axes (axes.json).',
+      'Axes actifs 1 :: « axe-qui-nexiste-pas » est absent du catalogue des axes (axes.json).',
     ]);
     // Un id qui n'est pas un AXE (c'est une compétence) est refusé comme un id inventé : la FK vise
     // `axes.json`, pas « un id connu quelque part ».
@@ -411,21 +411,21 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     };
     expect(ok(avecPreset('preset-temoin', true)), 'preset DÉCLARÉ refusé').toBe(true);
     expect(fautes(avecPreset('preset-fantome', false))).toEqual([
-      expect.stringMatching(/^scenes « [^»]+ » › entities « [^»]+ » › presetId :: preset de PNJ inconnu « preset-fantome »/),
+      expect.stringMatching(/^scène « [^»]+ » › entité « [^»]+ » › profil précomposé :: preset de PNJ inconnu « preset-fantome »/),
     ]);
   });
 
   it('ENVELOPPE sur la donnée réelle : chaque clé d’identité amputée est rouge, NOMMÉE', () => {
     for (const cle of ['id', 'label', 'versionContenu', 'type']) {
-      expect(fautes(sansCle(cle)), `« ${cle} » amputé`).toEqual([expect.stringMatching(new RegExp(`^${cle} :: `))]);
+      expect(fautes(sansCle(cle)), `« ${cle} » amputé`).toEqual([expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Libellé", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `))]);
     }
-    expect(fautes({ ...reel(), label: '' })).toEqual([expect.stringMatching(/^label :: /)]);
+    expect(fautes({ ...reel(), label: '' })).toEqual([expect.stringMatching(/^Libellé :: /)]);
     expect(fautesCodees({ ...reel(), type: 'scene' })).toEqual(['type :: invalid_value ["projet"]']);
   });
 
   it('PROVENANCE réelle : la Diligence cite son folio ; sans provenance c’est rouge, les DEUX ensemble passent', () => {
     expect(reel().source, 'la Diligence cite EDO à sa racine').toBeTruthy();
-    expect(fautes(sansCle('source'))).toEqual([expect.stringMatching(/^source :: /)]);
+    expect(fautes(sansCle('source'))).toEqual([expect.stringMatching(/^Source :: /)]);
     // `source` ∨ `maison` : le refine exige AU MOINS une provenance, il n'en interdit pas deux.
     expect(ok({ ...reel(), maison: 'arbitrage maison, en plus du folio' })).toBe(true);
   });
@@ -446,29 +446,29 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
 
   it('affaire : `id` vide', () => {
     expect(fautes(narratif({ affaires: [{ id: '', titre: 'Le Marché noir' }] }), narratifSchema)).toEqual([
-      'affaires.0.id :: id vide.',
+      'affaires 1 › identifiant :: id vide.',
     ]);
   });
 
   it('indice : `id` vide', () => {
     const doc = narratif({ affaires: [{ id: 'affaire-a', titre: 'x' }], indices: [indice({ id: '' })] });
-    expect(fautes(doc, narratifSchema)).toEqual(['indices.0.id :: id vide.']);
+    expect(fautes(doc, narratifSchema)).toEqual(['indice 1 › identifiant :: id vide.']);
   });
 
   it('stade d\'indice : `id` vide', () => {
     const doc = narratif({ affaires: [{ id: 'affaire-a', titre: 'x' }], indices: [indice({ stades: [{ id: '', prose: '' }] })] });
-    expect(fautes(doc, narratifSchema)).toEqual(['indices « indice-1 » › stades.0.id :: id vide.']);
+    expect(fautes(doc, narratifSchema)).toEqual(['indice « indice-1 » › stade 1 › identifiant :: id vide.']);
   });
 
   it('preset PNJ : `id` vide', () => {
     expect(fautes(narratif({ presetsPnj: [{ id: '', base: 'gobelin' }] }), narratifSchema)).toEqual([
-      'presetsPnj.0.id :: id vide.',
+      'PNJ 1 › identifiant :: id vide.',
     ]);
   });
 
   it('objet : `id` vide (contrôle — la même exigence, déjà tenue par `raffineNarratif`)', () => {
     expect(fautes(narratif({ objets: [{ id: '' }] }), narratifSchema)).toEqual([
-      'objets.0.id :: id absent.',
+      'objets 1 › champ inconnu « id » :: id absent.',
     ]);
   });
 });
@@ -504,8 +504,8 @@ describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
     it(`${nom} : des identifiants globaux passent ; hors format, puis en double, refusés au chemin`, () => {
       const ok = projetSchema.safeParse(doc(['EDO-01#b3', 'EDO-02#pnj1']));
       expect(ok.success, ok.success ? '' : JSON.stringify(ok.error.issues.slice(0, 3))).toBe(true);
-      expect(fautes(doc(['EDO-01-b3']))).toEqual([expect.stringMatching(/couvre « EDO-01-b3 » :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu\.$/)]);
-      expect(fautes(doc(['EDO-01#b3', 'EDO-01#b3']))).toEqual([expect.stringMatching(/couvre « EDO-01#b3 » :: « EDO-01#b3 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique\.$/)]);
+      expect(fautes(doc(['EDO-01-b3']))).toEqual([expect.stringMatching(/entrées couvertes « EDO-01-b3 » :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu\.$/)]);
+      expect(fautes(doc(['EDO-01#b3', 'EDO-01#b3']))).toEqual([expect.stringMatching(/entrées couvertes « EDO-01#b3 » :: « EDO-01#b3 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique\.$/)]);
     });
   }
 });

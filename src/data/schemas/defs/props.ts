@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `props.json` — accessoires de scène : couche sémantique (solidité/opacité/couvert/lumière),
  * EMPREINTE de grille, recette VOLUMIQUE locale et places assises. Les sous-schémas sont des exports
@@ -17,8 +18,8 @@ export const famille = 'entite';
  *  MÈTRES sur les trois axes (#1507) : `xM`/`yM` depuis l'ancre du décor, `hM` depuis le sol de la case.
  *  `z.strictObject` : une recette qui porterait encore `x`/`y`/`h` (cases) n'entre pas — c'est le
  *  verrou d'unité, il n'a PAS d'alias. */
-export const propPoint3Schema = z.strictObject({ xM: z.number().finite(), yM: z.number().finite(), hM: z.number().finite() });
-export const propSize3Schema = z.strictObject({ xM: z.number().finite(), yM: z.number().finite(), hM: z.number().finite() });
+export const propPoint3Schema = nommerChamps(z.strictObject({ xM: z.number().finite(), yM: z.number().finite(), hM: z.number().finite() }), { xM: { label: 'Abscisse (m)' }, yM: { label: 'Ordonnée (m)' }, hM: { label: 'Hauteur en mètres' } });
+export const propSize3Schema = nommerChamps(z.strictObject({ xM: z.number().finite(), yM: z.number().finite(), hM: z.number().finite() }), { xM: { label: 'Abscisse (m)' }, yM: { label: 'Ordonnée (m)' }, hM: { label: 'Hauteur en mètres' } });
 
 /** FOYER d'un décor qui éclaire (`PropPrimitive.emet`, `src/data/props.types.ts`). `true` SEUL est
  *  admis, comme au type : un `emet: false` dirait l'absence en une seconde graphie. Le CARDINAL (une
@@ -31,16 +32,38 @@ const emetSchema = z.literal(true).optional();
  *  la sous-liste discriminée (`idDe('material', 'prop')`) refuse AU PARSE une couverture de toit ou une
  *  matière de relief posée sur un volume de décor. */
 export const propPrimitiveSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('box'), center: propPoint3Schema, size: propSize3Schema, material: idDe('material', 'prop'), emet: emetSchema }),
-  z.strictObject({
+  nommerChamps(z.strictObject({ kind: z.literal('box'), center: propPoint3Schema, size: propSize3Schema, material: idDe('material', 'prop'), emet: emetSchema }), {
+    kind: { label: 'Type' },
+    center: { label: 'Centre' },
+    size: { label: 'Taille' },
+    material: { label: 'Matériau' },
+    emet: { label: 'Émission' },
+  }),
+  nommerChamps(z.strictObject({
     kind: z.literal('cylinder'), center: propPoint3Schema,
     // AXE REQUIS (#1343 lot C) : les clés de `REPERE_D_AXE` (`PROP_CYLINDER_AXES`) ; `longueurM` se mesure le long de lui.
     axis: z.literal(PROP_CYLINDER_AXES), radiusM: z.number().finite(), longueurM: z.number().finite(),
     // CÔTÉS ADMIS : la même source que le type et le validateur de catalogue (`PROP_CYLINDER_SIDES`,
     // `src/data/props.types.ts`) — une union recopiée ici dériverait de l'union TS au premier ajout.
     sides: z.literal(PROP_CYLINDER_SIDES), material: idDe('material', 'prop'), emet: emetSchema,
+  }), {
+    kind: { label: 'Type' },
+    center: { label: 'Centre' },
+    axis: { label: 'Axe' },
+    radiusM: { label: 'Rayon en mètres' },
+    longueurM: { label: 'Longueur (m)' },
+    sides: { label: 'Faces' },
+    material: { label: 'Matériau' },
+    emet: { label: 'Émission' },
   }),
-  z.strictObject({ kind: z.literal('prism'), center: propPoint3Schema, size: propSize3Schema, slope: z.enum(['x+', 'x-', 'y+', 'y-']), material: idDe('material', 'prop'), emet: emetSchema }),
+  nommerChamps(z.strictObject({ kind: z.literal('prism'), center: propPoint3Schema, size: propSize3Schema, slope: z.enum(['x+', 'x-', 'y+', 'y-']), material: idDe('material', 'prop'), emet: emetSchema }), {
+    kind: { label: 'Type' },
+    center: { label: 'Centre' },
+    size: { label: 'Taille' },
+    slope: { label: 'Pente' },
+    material: { label: 'Matériau' },
+    emet: { label: 'Émission' },
+  }),
 ]);
 
 /** `PropVolumeRecipe` (`src/data/props.types.ts`) — la recette volumique d'un décor. `capIdentite`
@@ -48,12 +71,12 @@ export const propPrimitiveSchema = z.discriminatedUnion('kind', [
  *  égal au défaut du monde (`CAP_IDENTITE_PROP`, même source que le type et `rotatePropLocal` — une
  *  chaîne recopiée ici dériverait au premier changement de repère). REQUIS : une recette écrite sous un
  *  autre repère ne peut pas entrer en silence (#1680 ligne 16). */
-export const propVolumeRecipeSchema = z.strictObject({ capIdentite: z.literal(CAP_IDENTITE_PROP), primitives: z.array(propPrimitiveSchema).min(1) });
+export const propVolumeRecipeSchema = nommerChamps(z.strictObject({ capIdentite: z.literal(CAP_IDENTITE_PROP), primitives: z.array(propPrimitiveSchema).min(1) }), { capIdentite: { label: 'Identité visuelle' }, primitives: { label: 'Primitives' } });
 
 /** `PropSeatSlot` (`src/data/props.types.ts`) — place assise offerte par un décor : ancre MÉTRIQUE du
  *  corps (`propPoint3Schema`), cap du corps assis (Dir8), et case d'ABORD relative à l'ancre de
  *  l'empreinte (`cell2Schema` : un offset de CASE, pas une longueur). */
-export const propSeatSlotSchema = z.strictObject({
+export const propSeatSlotSchema = nommerChamps(z.strictObject({
   // `place-<rang>` — un id de place ne porte JAMAIS de côté (#1680 ligne 16) : le côté vit dans
   // `anchor`/`facing`/`approach`, qui tournent avec le cap de l'instance quand l'id, lui, ne tourne pas.
   // Verrou par CONSTRUCTION : un `place-nord` ne peut plus entrer.
@@ -61,6 +84,11 @@ export const propSeatSlotSchema = z.strictObject({
   anchor: propPoint3Schema,
   facing: dir8Schema,
   approach: cell2Schema,
+}), {
+  id: { label: 'Identifiant' },
+  anchor: { label: 'Ancre' },
+  facing: { label: 'Orientation' },
+  approach: { label: 'Approche' },
 });
 
 /** `PropData` (`src/data/props.types.ts`) — type de décor app-owned : vérité UNIQUE de l'empreinte,
@@ -77,8 +105,8 @@ const doc = document(
     cover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
     // `tone` (#1245, L4) = APPARENCE seule (`lightTones.json` : couleur/intensité/vacillement),
     // résolue au bord du rendu ; le RAYON reste la seule chose que le moteur lise d'une source.
-    light: z.strictObject({ radiusM: z.number(), tone: z.string().optional() }).optional(),
-    foot: z.strictObject({ w: z.number().int().positive(), h: z.number().int().positive() }).optional(),
+    light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: z.string().optional() }), { radiusM: { label: 'Rayon en mètres' }, tone: { label: 'Ton' } }).optional(),
+    foot: nommerChamps(z.strictObject({ w: z.number().int().positive(), h: z.number().int().positive() }), { w: { label: 'Largeur' }, h: { label: 'Hauteur' } }).optional(),
     volume: propVolumeRecipeSchema.optional(),
     seatSlots: z.array(propSeatSlotSchema).optional(),
   },
@@ -104,16 +132,7 @@ const doc = document(
   {
     // `volume` : cap cardinal seul (`defs-scenes/scene.ts`, `porteLeMarqueur`).
     espace: { marqueurs: ['volume'] },
-    /**
-     * PROVENANCE PAR CHAMP (#1680 ligne 5). Le DATASET est exempté de provenance (`SANS_LIVRE`) parce
-     * que ce qu'il décrit est de l'art : un volume, un libellé, une empreinte, la solidité physique de
-     * l'objet — rien de tout cela n'a de table à citer. Trois de ses champs ne sont PAS de l'art : ils
-     * portent des concepts que le canon chiffre — l'ÉCLAIRAGE (`light`, LDB 74 l.43/56/58) et le
-     * COUVERT (`cover`/`opaque`, LDB 14 l.72/81/86). Une entrée qui en porte un doit donc dire d'OÙ
-     * vient sa valeur : `source` quand un folio la donne, `maison` quand elle est extrapolée d'un
-     * étalon — jamais rien. C'est l'exemption du dataset qui rendait ces trois champs muets ; le
-     * refine la referme à l'ENTRÉE, là où la valeur est écrite.
-     */
+    /** LDB 74 l.43/56/58 ; LDB 14 l.72/81/86 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const e = v as { id: string; light?: unknown; cover?: unknown; opaque?: unknown; source?: unknown; maison?: unknown; foot?: unknown; volume?: unknown; seatSlots?: unknown };

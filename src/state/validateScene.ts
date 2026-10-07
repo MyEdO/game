@@ -105,7 +105,7 @@ function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap')
   const cles: string[] = [];
   let trouve: (Portee & { element: ElementDeLieu; reste: readonly SegmentDeLieu[] }) | undefined;
   for (const [k, segment] of lieu.entries()) {
-    if (typeof segment !== 'object') break;
+    if (segment.genre !== 'element') break;
     listes.push(segment.liste);
     cles.push(segment.cle);
     const portee = PORTEE_DU_LIEU[listes.join(' › ')];
@@ -119,7 +119,7 @@ function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap')
  *  le lieu du champ fautif, puis le message du schéma. */
 const nomDAuteur = (element: ElementDeLieu): string => element.libelle ?? element.cle;
 function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string {
-  const ou = [f.element && nomDAuteur(f.element), f.reste.length ? cheminLisible(f.reste, nomDAuteur) : undefined].filter(Boolean).join(' › ');
+  const ou = cheminLisible([...(f.element ? [f.element] : []), ...f.reste], nomDAuteur);
   return ou ? `${ou} : ${message}` : message;
 }
 

@@ -104,7 +104,7 @@ describe('parseProject — validation du format projet', () => {
   it('#217 : MapPlace.port.ref inconnue → erreur EXPLICITE (fail-fast, jamais un port silencieusement vide)', () => {
     const mapBadRef = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Nulle-part', pos: { x: 50, y: 50 }, scene: 's1', port: { ref: 'port-qui-n-existe-pas' } }], routes: [] };
     const doc = projet([scene('s1')], { worldMap: mapBadRef as never });
-    expect(() => parseProject(JSON.parse(JSON.stringify(doc)))).toThrow(/worldMap › places « l1 » › port\.ref: « port-qui-n-existe-pas » est absent du catalogue des ports \(naval-ports\.json\)/);
+    expect(() => parseProject(JSON.parse(JSON.stringify(doc)))).toThrow(/Carte du monde › lieux « l1 » › port › référence: « port-qui-n-existe-pas » est absent du catalogue des ports \(naval-ports\.json\)/);
   });
 
   it('resolvePortRef : sans ref, retourne le port TEL QUEL (même référence)', () => {
@@ -298,13 +298,13 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
 describe('parseProject — porte de schéma', () => {
   it('`encounters[].enemies` (forme ANTÉRIEURE) est refusé PAR SON NOM, jamais absorbé en silence', () => {
     const doc = projet([{ ...scene('s1'), encounters: [{ id: 'e1', enemies: [{ ref: 'gobelin', count: 2 }] }] }]);
-    expect(() => parseProject(doc)).toThrow(/scenes « s1 » › encounters « e1 »: Clé non reconnue : "enemies"/);
+    expect(() => parseProject(doc)).toThrow(/scène « s1 » › rencontres « e1 »: Clé non reconnue : "enemies"/);
   });
 
   it('un nœud `null` dans un Flow est REFUSÉ par les deux portes, jamais purgé', () => {
     const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] };
     const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
-    expect(() => parseProject(projet([avecNull]))).toThrow(/triggers « t1 » › flow\.steps\.1: .*null reçu/);
-    expect(() => parseSceneDeProjet(avecNull)).toThrow(/flow\.steps\.1: .*null reçu/);
+    expect(() => parseProject(projet([avecNull]))).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
+    expect(() => parseSceneDeProjet(avecNull)).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
   });
 });

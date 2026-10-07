@@ -16,6 +16,39 @@ const calls = (sf) => {
   return out;
 };
 
+test('métadonnées : alias, namespace et arguments propriétaires seuls', () => {
+  const fichier = { rel: 'src/state/probe.ts', text: `
+    import { nommerChamps as champs } from '../data/schemas/grammaire/meta';
+    import * as noms from '../data/schemas/grammaire/meta';
+    champs({ xp: 1 }, { xp: { label: 'PX' } }, { nom: 'profil' });
+    noms.nommerNoeud(schema, ({ xp: { label: 'PX' } } as const));
+    function locale(champs) { champs(schema, { xp: 2 }); }
+    import { nommerChamps as autre } from './etranger';
+    autre(schema, { xp: 3 });
+  ` };
+  const code = canon.sansDeclarationsDeMetadonnees(fichier);
+  assert.equal([...code.matchAll(/\bxp:/g)].length, 3);
+  assert.equal(code.length, fichier.text.length);
+  assert.equal(code.split('\n').length, fichier.text.split('\n').length);
+});
+
+test('métadonnées : expressions exécutées, clés calculées et argument schéma restent lisibles', () => {
+  const fichier = { rel: 'src/state/probe.ts', text: `
+    import { nommerChamps } from '../data/schemas/grammaire/meta';
+    nommerChamps({ kind: 'test', target: 1 }, {
+      xp: { label: (hero.xp -= 1) },
+      exemple: fabrique({ xp: 4, kind: 'test', target: 2 }),
+      ...(() => ({ xp: 5 }))(),
+      [hero.xp = 6]: { xp: 7 }
+    });
+  ` };
+  const code = canon.sansDeclarationsDeMetadonnees(fichier);
+  assert.equal([...code.matchAll(/\bxp:/g)].length, 3);
+  assert.match(code, /hero\.xp -= 1/);
+  assert.match(code, /hero\.xp = 6/);
+  assert.equal([...code.matchAll(/\bkind:/g)].length, 2);
+});
+
 test('appel direct : le paramètre homonyme ne provient pas du compilateur', () => {
   assert.equal(scan("import { createProgram } from 'typescript'; function f(createProgram) { createProgram({}); }").length, 0);
 });

@@ -11,7 +11,6 @@ import { allBuiltinCampaigns, BuiltinCampaign } from '../../scenes/campaign';
 import { Row, Stack } from '../Layout';
 import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus } from '../../state/worldMap';
 import { cheminLisible, type Faute, type SegmentDeLieu } from '../../data/schemas/validate';
-import { projetDoc } from '../../data/schemas/defs-scenes/projet';
 
 /**
  * Les gestes qui font passer un document par la porte du projet (`parseProject`, et
@@ -56,11 +55,7 @@ const estSansNom = (f: Faute): boolean => f.chemin.length === 1 && (f.chemin[0] 
 /** Le lieu d'une faute en mots d'AUTEUR : le champ RACINE sous son LIBELLÉ de document
  *  (`projetDoc.meta`), chaque élément à clé par son libellé (sa clé à défaut). */
 function lieuDAuteur(lieu: readonly SegmentDeLieu[]): string {
-  const [racine, ...suite] = lieu;
-  const libelleDe = (champ: string): string => projetDoc.meta[champ]?.label ?? champ;
-  const tete: SegmentDeLieu | undefined =
-    typeof racine === 'string' ? libelleDe(racine) : typeof racine === 'object' ? { ...racine, liste: libelleDe(racine.liste) } : racine;
-  return cheminLisible(tete === undefined ? [] : [tete, ...suite], (element) => element.libelle ?? element.cle);
+  return cheminLisible(lieu, element => element.libelle ?? element.cle);
 }
 
 /**

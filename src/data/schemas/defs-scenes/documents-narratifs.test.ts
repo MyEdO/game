@@ -69,20 +69,20 @@ describe('registre `documents` — un registre narratif comme les autres (table 
     'un id de document déjà pris au registre `%s` est refusé, nommé',
     (cle, de) => {
       const doc = narratif({ [cle]: [...((narratif()[cle] as unknown[]) ?? []), ENTREE_DE[cle]('commun')], documents: [ENTREE_DE.documents('commun')] });
-      expect(fautes(doc, narratifSchema)).toContain(`documents « commun » › id :: l'id de document « commun » collisionne avec un id ${de}.`);
+      expect(fautes(doc, narratifSchema)).toContain(`document « commun » › identifiant :: l'id de document « commun » collisionne avec un id ${de}.`);
     },
   );
 
   it('un id de document qui résout dans la règle globale est refusé, nommé', () => {
     expect(fautes(narratif({ documents: [ENTREE_DE.documents('gobelin')] }), narratifSchema)).toEqual([
-      'documents « gobelin » › id :: l\'id de document « gobelin » collisionne avec un id de la règle globale (créature/possession).',
+      'document « gobelin » › identifiant :: l\'id de document « gobelin » collisionne avec un id de la règle globale (créature/possession).',
     ]);
   });
 
   it('titre et prose VIDES sont refusés, nommés', () => {
     expect(fautes(narratif({ documents: [{ id: 'd', titre: '', prose: '' }] }), narratifSchema)).toEqual([
-      'documents « d » › titre :: titre vide.',
-      'documents « d » › prose :: prose vide.',
+      'document « d » › titre :: titre vide.',
+      'document « d » › texte :: prose vide.',
     ]);
   });
 
@@ -94,12 +94,12 @@ describe('registre `documents` — un registre narratif comme les autres (table 
 describe('stade d’indice — prose, document, ou les deux', () => {
   it('un stade sans prose ni document est refusé, nommé', () => {
     const doc = narratif({ indices: [{ ...INDICE, stades: [{ id: 's1' }] }], documents: [LETTRE] });
-    expect(fautes(doc, narratifSchema)).toEqual(['indices « ind-moulin » › stades « s1 » :: ni prose ni document : un stade en porte au moins un.']);
+    expect(fautes(doc, narratifSchema)).toEqual(['indice « ind-moulin » › stade « s1 » :: ni prose ni document : un stade en porte au moins un.']);
   });
 
   it('un `documentId` de stade qui ne résout pas est refusé, nommé', () => {
     const doc = narratif({ indices: [{ ...INDICE, stades: [{ id: 's1', documentId: 'doc-fantome' }] }], documents: [LETTRE] });
-    expect(fautes(doc, narratifSchema)).toEqual(['indices « ind-moulin » › stades « s1 » › documentId :: document inconnu « doc-fantome » (narratif.documents).']);
+    expect(fautes(doc, narratifSchema)).toEqual(['indice « ind-moulin » › stade « s1 » › document :: document inconnu « doc-fantome » (narratif.documents).']);
   });
 });
 
@@ -107,7 +107,7 @@ describe('références narratives des Effects — résolues au parse du projet',
   it('`document.documentId` inconnu, dans un Flow PORTÉ : refusé à son chemin complet', () => {
     const f = fautes(projet({ scenes: [scene({ triggers: [declencheurPortant({ type: 'document', documentId: 'doc-fantome' })] })] }));
     expect(f).toHaveLength(1);
-    expect(f[0]).toMatch(/triggers.*steps.*effect.*flow.*effect.*documentId :: document inconnu « doc-fantome » \(narratif\.documents\)\.$/);
+    expect(f[0]).toBe('scène « scene-1 » › déclencheur « courrier » › étape 1 › effet Effet différé › effet Document › document :: document inconnu « doc-fantome » (narratif.documents).');
   });
 
   it('`revealClue.indiceId` inconnu et `stade` inconnu : refusés, nommés', () => {
@@ -119,9 +119,9 @@ describe('références narratives des Effects — résolues au parse du projet',
     ] }] };
     const f = fautes(projet({ scenes: [scene({ dialogues: [dialogue] })] }));
     expect(f).toHaveLength(3);
-    expect(f[0]).toMatch(/choices\.0.*then.*indiceId :: indice inconnu « ind-fantome » \(narratif\.indices\)\.$/);
-    expect(f[1]).toMatch(/choices\.1.*then.*stade :: stade inconnu « s9 » de l'indice « ind-moulin »\.$/);
-    expect(f[2]).toMatch(/choices\.2.*then.*indiceId :: indice inconnu « ind-perdu » \(narratif\.indices\)\.$/);
+    expect(f[0]).toBe('scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse 1 › alors › effet Révéler un indice › indice :: indice inconnu « ind-fantome » (narratif.indices).');
+    expect(f[1]).toBe("scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse 2 › alors › effet Révéler un indice › stade :: stade inconnu « s9 » de l'indice « ind-moulin ».");
+    expect(f[2]).toBe('scène « scene-1 » › dialogue « dlg » › nœud « n1 » › réponse 3 › alors › effet Écarter un indice › indice :: indice inconnu « ind-perdu » (narratif.indices).');
   });
 
   it('dans la carte du monde (péril de route) : refusé, nommé', () => {
@@ -132,7 +132,7 @@ describe('références narratives des Effects — résolues au parse du projet',
     };
     const f = fautes(projet({ worldMap }));
     expect(f).toHaveLength(1);
-    expect(f[0]).toMatch(/worldMap.*perils.*effects.*documentId :: document inconnu « doc-fantome »/);
+    expect(f[0]).toBe('Carte du monde › routes « r » › périls 1 › effets 1 › document :: document inconnu « doc-fantome » (narratif.documents).');
   });
 
   it('`documentId` pendant sous une ACTION d’entité (`usable.actions[].flow`) : refusé à son chemin complet', () => {
@@ -140,14 +140,14 @@ describe('références narratives des Effects — résolues au parse du projet',
       { id: 'fouiller', flow: { kind: 'do', effect: { type: 'document', documentId: 'doc-fantome' } } },
     ] } };
     expect(fautes(projet({ scenes: [scene({ entities: [coffre] })] }))).toEqual([
-      'scenes « scene-1 » › entities « coffre » › usable › actions « fouiller » › flow.effect.documentId :: document inconnu « doc-fantome » (narratif.documents).',
+      'scène « scene-1 » › entité « coffre » › utilisable › actions « fouiller » › effet Document › document :: document inconnu « doc-fantome » (narratif.documents).',
     ]);
   });
 
   it('`indiceId` pendant sous l’`onVictory` d’une RENCONTRE : refusé à son chemin complet', () => {
     const embuscade = { id: 'embuscade', onVictory: { kind: 'do', effect: { type: 'revealClue', indiceId: 'ind-fantome' } } };
     expect(fautes(projet({ scenes: [scene({ encounters: [embuscade] })] }))).toEqual([
-      'scenes « scene-1 » › encounters « embuscade » › onVictory.effect.indiceId :: indice inconnu « ind-fantome » (narratif.indices).',
+      'scène « scene-1 » › rencontres « embuscade » › à la victoire › effet Révéler un indice › indice :: indice inconnu « ind-fantome » (narratif.indices).',
     ]);
   });
 

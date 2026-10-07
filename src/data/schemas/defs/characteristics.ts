@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `characteristics.json` — l'EXEMPLAIRE de la convention des defs de schéma (Lot 1 du
  * contrat de donnée). Dérivé du contenu RÉEL du JSON (10 caracs à jet + Blessure/Destin/Chance/
@@ -34,11 +35,16 @@ const champs = {
    *  Rendue en SECTION de la fiche par `registry.ts` (patron `symptoms.onTick`). */
   options: z
     .array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         id: z.string(),
         label: z.string(),
         desc: z.string(),
         source: sourceRefSchema,
+      }), {
+        id: { label: 'identifiant' },
+        label: { label: 'libellé' },
+        desc: { label: 'texte' },
+        source: { label: 'source' },
       }),
     )
     .optional(),

@@ -15,10 +15,10 @@ import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
-import { coDescendre, defDe, descendre, enfantsDe, ouverts } from './grammaire/descente';
+import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './grammaire/descente';
 import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
-import { valeursDe, type MetaChamp } from './grammaire/meta';
+import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
 import { proseNonMaterialisee, versDisque } from './grammaire/prose';
 import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
 
@@ -27,9 +27,9 @@ export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA
 
 /** Un ÉLÉMENT de liste à clé, nommé par la valeur de sa clé (`cle`) et, s'il en porte un, par son
  *  `label` (`libelle`) ; `liste` = le champ qui porte la liste (`''` pour une liste racine). */
-export type ElementDeLieu = { readonly liste: string; readonly cle: string; readonly libelle?: string };
+export type ElementDeLieu = { readonly genre: 'element'; readonly liste: string; readonly cle: string; readonly nom: string; readonly libelle?: string };
 /** Un segment du LIEU d'une faute : un champ, un rang de liste sans clé, ou un élément à clé. */
-export type SegmentDeLieu = string | number | ElementDeLieu;
+export type SegmentDeLieu = { readonly genre: 'champ'; readonly cle: string; readonly nom: string; readonly transparent?: boolean } | { readonly genre: 'rang'; readonly rang: number; readonly nom: string } | ElementDeLieu;
 
 /** Une FAUTE d'un document refusé, telle que zod la trouve : son chemin BRUT (pour les machines), son
  *  LIEU (pour l'auteur), son message (jamais reformulé) et son code. Type SANS zod : une surface lit
@@ -43,31 +43,38 @@ export type Faute = {
 
 const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object';
 
-/** Le LIEU d'un chemin, par la CO-DESCENTE du schéma et de la valeur (`coDescendre`), élaguée hors du
- *  chemin : un rang dans une liste à clé devient l'élément nommé par sa clé (lue sur la valeur), le
- *  champ qui porte la liste s'y fond ; au-delà du dernier point atteint, les segments restent bruts. */
-function lieuDe(schema: unknown, valeur: unknown, chemin: readonly (string | number)[]): SegmentDeLieu[] {
+/** #2432 */
+export function lieuDe(schema: unknown, valeur: unknown, chemin: readonly (string | number)[]): SegmentDeLieu[] {
   const lieu: SegmentDeLieu[] = [];
-  let atteint = 0;
-  coDescendre(schema, valeur, (p) => {
-    const n = p.chemin.length;
-    if (n === 0) return chemin.length === 0 ? 'arreter' : undefined;
-    const segment = chemin[n - 1];
-    if (n > chemin.length || p.chemin[n - 1] !== segment) return 'elaguer';
-    const marque = typeof segment === 'number' ? p.parent!.noeuds.map(collectionDe).find((m) => m !== undefined) : undefined;
-    const cle = marque?.forme === 'liste' ? marque.de(p.valeur) : undefined;
-    if (cle === undefined) lieu.push(segment);
-    else {
-      const precedent = lieu[lieu.length - 1];
-      const liste = typeof precedent === 'string' ? precedent : '';
-      if (typeof precedent === 'string') lieu.pop();
-      const libelle = estObjet(p.valeur) && typeof p.valeur.label === 'string' ? p.valeur.label : undefined;
-      lieu.push(libelle === undefined ? { liste, cle } : { liste, cle, libelle });
+  let noeuds = ouverts([schema], valeur);
+  for (const segment of chemin) {
+    const enfant = estObjet(valeur) ? valeur[segment] : undefined;
+    const suivants = ouverts(pasDeDonnee(noeuds, segment), enfant);
+    const precedent = lieu[lieu.length - 1];
+    if (typeof segment === 'number') {
+      const marque = noeuds.map(collectionDe).find(m => m !== undefined);
+      const cle = marque?.forme === 'liste' ? marque.de(enfant) : undefined;
+      const noms = suivants.map(nomDeNoeud).map(n => n?.element).filter((n): n is string => !!n);
+      const nom = noms.length && new Set(noms).size === 1 ? noms[0] : precedent?.nom ?? 'élément';
+      const liste = precedent?.genre === 'champ' ? precedent.cle : '';
+      if (precedent?.genre === 'champ') lieu.pop();
+      if (cle === undefined) lieu.push({ genre: 'rang', rang: segment + 1, nom });
+      else lieu.push({ genre: 'element', liste, cle, nom, ...(estObjet(enfant) && typeof enfant.label === 'string' ? { libelle: enfant.label } : {}) });
+    } else {
+      const metas = noeuds.map(n => metaDesChamps(n)?.[segment]).filter((m): m is MetaChamp => !!m);
+      const declares = noeuds.filter(n => enfantsDe(n).some(e => e.cle === segment));
+      if (declares.length && !metas.length) throw new Error(`champ connu sans nom : ${segment}`);
+      const noms = [...new Set(metas.map(m => m.label))];
+      const parents = [...new Set(noeuds.map(nomDeNoeud).map(n => n?.nom).filter((n): n is string => !!n))];
+      const commun = parents.length === 1 ? parents[0] : undefined;
+      if (noms.length > 1 && !commun) throw new Error(`noms divergents sans parent commun : ${segment}`);
+      const variantes = [...new Set(suivants.map(nomDeNoeud).map(n => n?.nom).filter((n): n is string => !!n))];
+      const nom = variantes.length === 1 ? variantes[0] : noms.length === 1 ? noms[0] : commun ?? `champ inconnu « ${segment} »`;
+      lieu.push({ genre: 'champ', cle: segment, nom, transparent: declares.length > 0 && declares.every(n => metaDesChamps(n)?.[segment]?.transparent === true) });
     }
-    atteint = n;
-    return n === chemin.length ? 'arreter' : undefined;
-  });
-  lieu.push(...chemin.slice(atteint));
+    noeuds = suivants;
+    valeur = enfant;
+  }
   return lieu;
 }
 
@@ -79,25 +86,17 @@ function fautesDe(schema: unknown, valeur: unknown, error: z.ZodError): readonly
   });
 }
 
-/** Le LIEU d'une faute tel que l'auteur le lit : les champs joints par `.`, un élément à clé écrit
- *  `liste « clé »`, les deux séparés par ` › ` — `scenes « arene » › entities « p-1 » › ref`,
- *  `(racine)` si vide. `nom` choisit ce qui nomme l'élément (la clé par défaut, stable). */
 export function cheminLisible(
   lieu: readonly SegmentDeLieu[],
   nom: (element: ElementDeLieu) => string = (element) => element.cle,
 ): string {
   const parties: string[] = [];
-  let champs: (string | number)[] = [];
-  for (const segment of lieu) {
-    if (typeof segment !== 'object') {
-      champs.push(segment);
-      continue;
-    }
-    if (champs.length) parties.push(champs.join('.'));
-    champs = [];
-    parties.push(segment.liste ? `${segment.liste} « ${nom(segment)} »` : `« ${nom(segment)} »`);
+  for (const [i, segment] of lieu.entries()) {
+    if (segment.genre === 'champ') {
+      if (!segment.transparent || i === lieu.length - 1) parties.push(segment.nom);
+    } else if (segment.genre === 'rang') parties.push(`${segment.nom} ${segment.rang}`);
+    else parties.push(`${segment.nom} « ${nom(segment)} »`);
   }
-  if (champs.length) parties.push(champs.join('.'));
   return parties.join(' › ') || '(racine)';
 }
 

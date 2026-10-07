@@ -1,18 +1,5 @@
-/**
- * Schéma de `talents.json` — dérivé de l'inventaire COMPLET des clés (script node, n=179/179), de
- * l'interface `TalentData` (`src/data/index.ts`), `TalentTest`/`TestMatch` (`src/data/index.ts`) et
- * `CombatFeature` (`src/engine/combatFeatures/types.ts`). `effects` (`TriggeredEffect[]`) et son
- * `Flow` récursif (`src/engine/flowCore.ts`) sont PROMUS dans `grammaire/mecanique.ts` (`conditionSchema`/
- * `flowSchema`/`triggeredEffectSchema` — partagés avec talents/etats/spells).
- * `desc`/`source`/`alsoIn`/`maison` sont des clés d'ENVELOPPE, posées par la fabrique.
- *
- * ÉCART D'EXIGENCE MESURÉ : `exiges` ne nomme que `source`. `desc` est portée par 186/187 entrées ;
- * la 187ᵉ, `talent-aleatoire`, est une entrée MÉTA du vocabulaire de tirage (« N Talent(s) au hasard »,
- * LDB 05 l.484 — exemptée d'obtenabilité par `META_CATALOG_ENTRIES`,
- * `scripts/guards/lib/entityConsumers.mjs:144`), sans prose à citer. Sa `desc: ""` — l'un des deux
- * porteurs que la migration `2026-08-27-l1b-3h-desc-null.mjs` a nommément renvoyés « au lot qui posera
- * `min(1)` » — est PURGÉE par la migration de ce lot ; exiger `desc` ici refuserait cette entrée.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 05 l.484 */
 import { z } from 'zod';
 import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
@@ -27,7 +14,7 @@ export const famille = 'entite';
  *  élue du talent) ou `exceptSpec` (toutes SAUF). Les combiner ne se résout pas — `matchApplies`
  *  (`src/engine/magic.ts`) laisse `specFromInstance` ÉCRASER `skill.spec`, et rend `exceptSpec`
  *  inerte dès que la spec est épinglée : la donnée mentirait sur ce qu'elle déclare. */
-const testMatchSchema = z.strictObject({
+const testMatchSchema = nommerChamps(z.strictObject({
   skill: refOuSpec('skill').optional(),
   char: charKeySchema.optional(),
   specFromInstance: z.boolean().optional(),
@@ -45,12 +32,19 @@ const testMatchSchema = z.strictObject({
       message: `TestMatch « ${String((v.skill as { id?: string }).id)} (${spec}) » : « ${cle} » et « skill.spec » désignent tous deux la spécialisation — un seul régime à la fois (matchApplies, src/engine/magic.ts).`,
     });
   }
+}), {
+  skill: { label: 'Compétence' },
+  char: { label: 'Caractéristique' },
+  specFromInstance: { label: 'Spécialisation de l’instance' },
+  exceptSpec: { label: 'Spécialisation exclue' },
+  when: { label: 'Condition' },
+  manual: { label: 'Manuel' },
 });
 
-const talentTestSchema = z.strictObject({
+const talentTestSchema = nommerChamps(z.strictObject({
   raw: z.string(),
   matches: z.array(testMatchSchema),
-});
+}), { raw: { label: 'Texte source' }, matches: { label: 'Correspondances' } });
 
 // ── CombatFeature (src/engine/combatFeatures/types.ts) — PROMU dans `grammaire/valeurs.ts` (#563, SOURCE
 // UNIQUE) : `combatFeatureSchema` importé ci-dessus ; `variantOf` est composé par la fabrique.
@@ -71,7 +65,7 @@ const doc = document(
   'talents',
   famille,
   {
-    max: z.union([z.number(), z.strictObject({ bonusOf: charKeySchema }), z.null()]),
+    max: z.union([z.number(), nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: 'Bonus de caractéristique' } }), z.null()]),
     test: talentTestSchema.nullable(),
     specs: specsSchema.optional(),
     size: sizeCategorySchema.optional(),
@@ -79,12 +73,7 @@ const doc = document(
     /** Le `spec` de ce Talent nomme un CULTE (`gods.json`) : ses `grantGroups` sont accordés au
      *  porteur (`groupsFor`). Absent = le `spec` n'ouvre aucun Groupe d'appartenance. */
     grantSpecGroups: z.literal(true).optional(),
-    /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que son porteur PRATIQUE : il
-     *  compte alors dans les Domaines tenus et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
-     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` et `arcaneDomainGate` (engine/careerSlots, câblé
-     *  à l'achat par `buyTalent`, state/partyFlow). Son Maxi se compte alors PAR Domaine
-     *  (`talentMaxReached`, `LDB 46 l.177`). Distinct de `specsSource`, qui ne décrit que le POOL de
-     *  spécialisations proposé. */
+    /** LDB 46 l.177 ; VDM 02 l.190-192 */
     grantsArcaneDomain: z.literal(true).optional(),
     specsOpen: z.boolean().optional(),
     rand: z.number().nullable(),

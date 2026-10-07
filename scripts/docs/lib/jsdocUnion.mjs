@@ -1,4 +1,5 @@
 import { ast, analyserCorpus } from '../../guards/lib/dialecte.mjs';
+import { contexteImports, estAppelDeclare } from '../../guards/lib/canonUnique.mjs';
 // Socle PARTAGÉ des générateurs de doc « vocabulaire » (#298bis) : lecture d'une union discriminée
 // TypeScript par AST (jamais de regex sur les accolades, les unions imbriquent
 // des littéraux d'objet et des intersections) et extraction du JSDoc de chaque membre. Consommé par
@@ -181,16 +182,37 @@ export function renderFields(fieldGroups) {
 // membre est un `export const xSchema = z.strictObject({ … })` porteur de son JSDoc.
 
 /** Déballe `z.lazy(() => X)`, `X.superRefine(…)`, `X.optional()`… jusqu'à l'appel `z.strictObject`. */
-function noyauZod(node) {
-  if (ts.isArrowFunction(node)) return noyauZod(node.body)
-  if (ts.isParenthesizedExpression(node)) return noyauZod(node.expression)
+function decorateursZod(sf, checker, chemin) {
+  const contexte = contexteImports(sf, checker)
+  const appels = new Set()
+  const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] }
+  const visiter = (node) => {
+    if (ts.isCallExpression(node) && estAppelDeclare(node, sf, fonctions, contexte)) appels.add(`${node.pos}:${node.end}`)
+    node.forEachChild(visiter)
+  }
+  visiter(sf)
+  const normaliser = nom => {
+    const absolu = path.resolve(nom).replaceAll('\\', '/')
+    return process.platform === 'win32' ? absolu.toLowerCase() : absolu
+  }
+  const fichiers = new Set([normaliser(sf.fileName), normaliser(path.resolve(VIRTUAL_ROOT, chemin))])
+  return { has: node => {
+    const source = node.getSourceFile()
+    return source.text === sf.text && fichiers.has(normaliser(source.fileName)) && appels.has(`${node.pos}:${node.end}`)
+  } }
+}
+
+export function noyauZod(node, entree) {
+  if (ts.isArrowFunction(node)) return noyauZod(node.body, entree)
+  if (ts.isParenthesizedExpression(node)) return noyauZod(node.expression, entree)
   if (ts.isCallExpression(node)) {
+    if (entree?.decorateursZod.has(node)) return noyauZod(node.arguments[0], entree)
     const cible = node.expression
     if (ts.isPropertyAccessExpression(cible)) {
       const membre = cible.name.text
-      if (membre === 'lazy') return noyauZod(node.arguments[0])
+      if (membre === 'lazy') return noyauZod(node.arguments[0], entree)
       if (membre === 'strictObject' || membre === 'object' || membre === 'looseObject' || membre === 'discriminatedUnion') return node
-      return noyauZod(cible.expression) // .superRefine(…), .optional(), .refine(…)
+      return noyauZod(cible.expression, entree) // .superRefine(…), .optional(), .refine(…)
     }
   }
   return node
@@ -198,9 +220,11 @@ function noyauZod(node) {
 
 // eslint-disable-next-line no-irregular-whitespace
 /** Le membre est-il OPTIONNEL ? (`…​.optional()` quelque part dans la chaîne d'appels). */
-function estOptionnel(node) {
+export function estOptionnel(node, entree) {
   let n = node
+  if (ts.isParenthesizedExpression(n)) return estOptionnel(n.expression, entree)
   while (ts.isCallExpression(n)) {
+    if (entree?.decorateursZod.has(n)) return estOptionnel(n.arguments[0], entree)
     const cible = n.expression
     if (!ts.isPropertyAccessExpression(cible)) break
     if (cible.name.text === 'optional') return true
@@ -212,11 +236,12 @@ function estOptionnel(node) {
 /** Index `nom → { statement, sf, text }` des `export const NOM = …` de plusieurs fichiers. */
 export function indexerConstantes(fichiers) {
   const index = new Map()
-  for (const { fichier: { rel: chemin, text }, sourceFile: sf } of analyserCorpus(fichiers.map((chemin) => ({ rel: chemin, text: readFileSync(chemin, 'utf8') })))) {
+  for (const { fichier: { rel: chemin, text }, sourceFile: sf, checker } of analyserCorpus(fichiers.map((chemin) => ({ rel: chemin, text: readFileSync(chemin, 'utf8') })))) {
+    const decorateurs = decorateursZod(sf, checker, chemin)
     sf.forEachChild((node) => {
       if (!ts.isVariableStatement(node)) return
       for (const d of node.declarationList.declarations) {
-        if (ts.isIdentifier(d.name)) index.set(d.name.text, { statement: node, decl: d, sf, text, chemin })
+        if (ts.isIdentifier(d.name)) index.set(d.name.text, { statement: node, decl: d, sf, text, chemin, decorateursZod: decorateurs })
       }
     })
   }
@@ -251,7 +276,8 @@ function declarationReelle(entree, programmes) {
     const decl = symbole?.valueDeclaration?.resolve()
     if (!decl || !ts.isVariableDeclaration(decl) || !ts.isVariableStatement(decl.parent.parent)) return null
     if (decl.initializer && ts.isPropertyAccessExpression(decl.initializer)) { acces = decl.initializer; continue }
-    return { decl, statement: decl.parent.parent, sf: decl.getSourceFile(), text: decl.getSourceFile().text }
+    const source = decl.getSourceFile()
+    return { decl, statement: decl.parent.parent, sf: source, text: source.text, decorateursZod: entree.decorateursZod }
   }
 }
 
@@ -266,7 +292,7 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
     console.error(`${tool} — schéma « ${alias} » introuvable`)
     process.exit(1)
   }
-  const appel = noyauZod(entree.decl.initializer)
+  const appel = noyauZod(entree.decl.initializer, entree)
   if (!ts.isCallExpression(appel) || !ts.isArrayLiteralExpression(appel.arguments[1])) {
     console.error(`${tool} — « ${alias} » n'est pas un z.discriminatedUnion(…, [ … ])`)
     process.exit(1)
@@ -286,7 +312,7 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
       if (!cible) {
         throw new Error(`${tool} — membre « ${m.text} » de « ${alias} » : schéma introuvable dans les fichiers indexés`)
       }
-      const objet = noyauZod(cible.decl.initializer)
+      const objet = noyauZod(cible.decl.initializer, cible)
       if (!ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) {
         throw new Error(`${tool} — membre « ${m.text} » : forme d'objet zod illisible`)
       }
@@ -306,7 +332,7 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
           name = litt.arguments[0].text
           continue
         }
-        fields.push(pname + (estOptionnel(litt) ? '?' : ''))
+        fields.push(pname + (estOptionnel(litt, cible) ? '?' : ''))
       }
       if (!name) {
         throw new Error(`${tool} — membre « ${m.text} » sans « ${discriminant}: z.literal('…') »`)

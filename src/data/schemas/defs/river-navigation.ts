@@ -1,9 +1,5 @@
-/**
- * Schéma de `river-navigation.json` — Navigation fluviale (MSRC 7 « Navigation fluviale »), pendant
- * fluvial de `sea-navigation.json`. Dérivé de la vue typée `DATA` (`src/engine/riverNavigation.ts`),
- * seul consommateur. `source` = réf structurée book+page+note PAR entrée/sous-objet (#278), non lue
- * par le moteur (`DATA as unknown as { ... }` ignore le champ superflu).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** MSRC 7 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -14,20 +10,26 @@ export const famille = 'config';
 const riverWindDirId = z.enum(['arriere', 'cote', 'contraire']);
 
 /** `BandRow` (`src/engine/riverNavigation.ts`) — table de tirage par fourchette d10. */
-const bandRow = z.strictObject({ ...plageSchema.shape, id: z.string(), label: z.string() });
+const bandRow = nommerChamps(z.strictObject({ ...plageSchema.shape, id: z.string(), label: z.string() }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: 'Identifiant' }, label: { label: 'Libellé' } });
 
 /** `RiverWindEffect` (`src/engine/riverNavigation.ts`). */
-const riverWindEffect = z.strictObject({
+const riverWindEffect = nommerChamps(z.strictObject({
   pct: z.number().optional(),
   drift: z.boolean().optional(),
   tack: z.boolean().optional(),
   capsizeRisk: z.boolean().optional(),
   riggingRisk: z.boolean().optional(),
+}), {
+  pct: { label: 'Pourcentage' },
+  drift: { label: 'Dérive' },
+  tack: { label: 'Louvoyage' },
+  capsizeRisk: { label: 'Risque de chavirage' },
+  riggingRisk: { label: 'Risque pour le gréement' },
 });
 
 const champs = {
-  windForces: z.array(bandRow.extend({ source: sourceRefSchema })),
-  windDirections: z.array(bandRow.extend({ source: sourceRefSchema })),
+  windForces: z.array(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
+  windDirections: z.array(nommerChamps(bandRow.extend({ source: sourceRefSchema }), { ...metaDesChamps(bandRow, { exigees: true }), source: { label: 'Source' } })),
   windTickThreshold: z.number(),
   windTicksPerDay: z.number(),
   windEffect: z.record(z.string(), z.record(riverWindDirId, riverWindEffect)),
@@ -36,26 +38,42 @@ const champs = {
   navBaseDifficulty: difficultySchema,
   tackDifficulty: difficultySchema,
   savoirVoiesFluvialesDR: z.number(),
-  rowingAgility: z.strictObject({
+  rowingAgility: nommerChamps(z.strictObject({
     difficulty: difficultySchema,
     failSpeedPct: z.number(),
     spectacularSL: z.number(),
     spectacularSpeedFactor: z.number(),
     source: sourceRefSchema,
+  }), {
+    difficulty: { label: 'Difficulté' },
+    failSpeedPct: { label: 'Vitesse à l’échec (%)' },
+    spectacularSL: { label: 'Seuil de DR spectaculaire' },
+    spectacularSpeedFactor: { label: 'Facteur de vitesse spectaculaire' },
+    source: { label: 'Source' },
   }),
-  capsize: z.strictObject({
+  capsize: nommerChamps(z.strictObject({
     removeSailDifficulty: difficultySchema,
     rightDifficulty: difficultySchema,
     rightCumulativePenalty: z.number(),
     source: sourceRefSchema,
+  }), {
+    removeSailDifficulty: { label: 'Difficulté pour amener la voile' },
+    rightDifficulty: { label: 'Difficulté de redressement' },
+    rightCumulativePenalty: { label: 'Pénalité cumulative de redressement' },
+    source: { label: 'Source' },
   }),
-  outOfControl: z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }),
-  echouage: z.strictObject({ hullDamage: z.number(), source: sourceRefSchema }),
-  temporaryRepair: z.strictObject({
+  outOfControl: nommerChamps(z.strictObject({ navPenalty: z.number(), source: sourceRefSchema }), { navPenalty: { label: 'Pénalité de Navigation' }, source: { label: 'Source' } }),
+  echouage: nommerChamps(z.strictObject({ hullDamage: z.number(), source: sourceRefSchema }), { hullDamage: { label: 'Dégâts de coque' }, source: { label: 'Source' } }),
+  temporaryRepair: nommerChamps(z.strictObject({
     difficulty: difficultySchema,
     charpentierPenalty: z.number(),
     woundsPerRepair: z.string(),
     source: sourceRefSchema,
+  }), {
+    difficulty: { label: 'Difficulté' },
+    charpentierPenalty: { label: 'Pénalité de Charpentier' },
+    woundsPerRepair: { label: 'Blessures par réparation' },
+    source: { label: 'Source' },
   }),
 };
 

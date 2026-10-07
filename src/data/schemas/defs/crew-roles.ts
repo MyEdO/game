@@ -1,13 +1,5 @@
-/**
- * Schéma de `crew-roles.json` — rôles d'équipage naval (MDG 14 « Tests d'équipage »). Consommé par
- * `src/data/index.ts` (`CrewRoleData`) et `src/engine/crewMorale.ts`/`src/state/shipCrew.ts` (le
- * rôle mappe une ou plusieurs Compétences par référence `{ id, spec? }`, ex. Artilleur = Projectiles
- * (Poudre noire), Chansonnier = Divertissement (Chant)).
- *
- * PROVENANCE : `source`/`maison` (clés d'ENVELOPPE) sont le reflet TOP-LEVEL de `wage.source`/
- * `wage.maison` — seule source réelle de l'entrée, jamais une 2ᵉ recherche indépendante (contrat du
- * garde `citation-coverage-guard.test.ts`, #309 phase 3).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MDG 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { moneySchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -21,16 +13,19 @@ const doc = document(
   famille,
   {
     skills: z.array(refOuSpec('skill')),
-    // Barème de solde (MDG 14 l.293-302 « Exemples de mercenaires ») : coûts quotidien ET hebdomadaire
-    // verbatim (colonnes non-multiples l'une de l'autre). `source` = correspondance RAW explicite ;
-    // `maison` = correspondance rôle→type de mercenaire arbitrée. #216
-    wage: z
+    // MDG 14 l.293-302.
+    wage: nommerChamps(z
       .strictObject({
         daily: moneySchema,
         weekly: moneySchema,
         source: sourceRefSchema.optional(),
         maison: z.string().optional(),
-      })
+      }), {
+      daily: { label: 'paie quotidienne' },
+      weekly: { label: 'paie hebdomadaire' },
+      source: { label: 'source' },
+      maison: { label: 'arbitrage maison' },
+    })
       .optional(),
   },
   {
