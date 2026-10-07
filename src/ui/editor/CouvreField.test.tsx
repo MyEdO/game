@@ -154,14 +154,14 @@ describe('NarratifEditor — `couvre` d’un PNJ et onglet Écarts (#2290)', () 
 
     choisir(parNom('Écarter une entrée de fiche'), ID_BEAT);
     expect(narratif.ecartes).toEqual([{ entree: ID_BEAT, motif: '' }]);
-    const alerte = container.querySelector('[role="alert"]');
+    const alerte = container.querySelector('[role="status"]');
     expect(alerte?.textContent).toBe('Motif requis.');
     expect(parNom('Motif de l\'écart 1').getAttribute('aria-describedby'), 'le motif désigne SON alerte').toBe(alerte?.id);
     expect(narratifSchema.safeParse(narratif).success).toBe(false);
 
     choisir(parNom('Motif de l\'écart 1'), 'Scène résumée en narration.');
     expect(narratif.ecartes).toEqual([{ entree: ID_BEAT, motif: 'Scène résumée en narration.' }]);
-    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[role="status"]')).toBeNull();
     expect(narratifSchema.safeParse(narratif).success).toBe(true);
 
     click(parNom('Retirer l\'écart 1'));

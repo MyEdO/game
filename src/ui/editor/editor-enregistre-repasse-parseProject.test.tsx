@@ -10,7 +10,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee } from '../../lib/indexedDb.testkit';
 import { parseProject } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
@@ -20,18 +20,16 @@ import { allBuiltinCampaigns, paquetDuJeu, type BuiltinCampaign } from '../../sc
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-afterEach(async () => {
+afterEach(() => {
   demonterRacines();
-  await __resetLibraryForTest();
-  __setOuvertureIdbForTest(null);
-  localStorage.clear();
+  __setFabriqueIdbForTest(null);
 });
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 
 /** Branche la bibliothèque IndexedDB sur une base simulée amorcée avec `entrees`. */
 function bibliotheque(entrees: SavedProject[] = []): BaseSimulee {
-  const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } });
+  const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, { projects: { keyPath: 'id' } });
   for (const e of entrees) base.magasins.get('projects')!.contenu.set(e.id, e);
   return base;
 }
@@ -211,18 +209,18 @@ describe('Éditeur — un projet de bibliothèque se ROUVRE, ou se refuse en mot
     const entree = entreeEnBibliotheque();
     const ancien = { ...entree, project: { ...entree.project, schema: 18 } } as SavedProject;
     const { refus, texte } = await ouvreLaPremiereEntree([ancien]);
-    expect(refus).toContain('Ouverture refusée : ce projet ne peut pas être ouvert. Ce document est d’un autre format, ou mal formé.');
+    expect(refus).toContain('Ouverture refusée : projet d’un autre format, ou mal formé.');
     expect(texte, 'la scène n’est pas chargée').not.toContain('Salle ancienne');
     expect(texte, 'la modale « Ouvrir » reste à l’écran, l’entrée listée').toContain('Campagne d’avant');
   });
 
-  it('document SANS SCÈNE : le refus se LIT dans la modale « Ouvrir », jamais un clic muet', async () => {
+  it('document SANS SCÈNE : le refus se LIT dans la modale « Ouvrir », jamais un clic muet — le titre dit l’autre format, la faute vit au détail (#2404)', async () => {
     const entree = entreeEnBibliotheque();
     const vide: SavedProject = { ...entree, project: { ...entree.project, scenes: [] } };
     const { refus, texte } = await ouvreLaPremiereEntree([vide]);
-    expect(refus).toBe(
-      'Ouverture refusée : ce projet ne peut pas être ouvert. Faute : Scènes — le projet ne porte aucune scène : il en faut au moins une pour l’ouvrir ou le jouer.',
-    );
+    expect(refus).toContain('Ouverture refusée : projet d’un autre format, ou mal formé.');
+    expect(refus).not.toContain('Faute :');
+    expect(refus, 'le rapport de la porte, replié').toContain('Détail technique');
     expect(texte, 'la modale « Ouvrir » reste à l’écran').toContain('Mes projets');
   });
 
@@ -239,14 +237,14 @@ describe('Éditeur — un projet de bibliothèque se ROUVRE, ou se refuse en mot
     const entree = entreeEnBibliotheque();
     const casse = { ...entree, project: { ...entree.project, scenes } } as unknown as SavedProject;
     const { refus } = await ouvreLaPremiereEntree([casse]);
-    expect(refus).toContain('Ouverture refusée : ce projet ne peut pas être ouvert. Faute : Scènes');
+    expect(refus).toContain('Ouverture refusée : projet d’un autre format, ou mal formé.');
   });
 
   it('une entrée SANS NOM se rend « (sans nom) » dans « Ouvrir », jamais une rangée muette', async () => {
     const entree = entreeEnBibliotheque();
     const { refus, texte } = await ouvreLaPremiereEntree([{ ...entree, label: '', project: { ...entree.project, label: '' } } as SavedProject]);
     expect(texte).toContain('(sans nom)');
-    expect(refus, 'un projet sans nom ne s’ouvre pas tel quel').toContain('Ce projet n’a pas de nom');
+    expect(refus, 'un projet sans nom ne s’ouvre pas tel quel').toContain('Ouverture refusée : ce projet n’a pas de nom.');
   });
 });
 

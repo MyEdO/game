@@ -14,20 +14,18 @@ import {
   projectSave,
   projectsLoad,
   publishedProjects,
-  __resetLibraryForTest,
   IMPORT_FORME_DEPOT,
+  MARQUE_AUTRE_FORMAT,
+  messageDeRefusJoueur,
   type SavedProject,
 } from '../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees, type PanneSimulee } from '../lib/indexedDb.testkit';
 import { useGame } from '../state/store';
 import { datasetArray, setDataset } from '../data/overrides';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-});
-beforeEach(async () => {
-  await __resetLibraryForTest();
 });
 
 /** Branche la bibliothèque IndexedDB sur une base simulée en `panne`. */
@@ -201,9 +199,9 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   });
 
   it.each([
-    ['Jouer', /ne peut pas être jouée en l’état/],
-    ['Exporter', /ne peut pas être exportée en l’état/],
-  ] as const)('« %s » une entrée que la porte REFUSE : message JOUEUR du GESTE AU PANNEAU DE DÉTAIL, effacé au changement de sélection', async (geste, message) => {
+    ['Jouer', 'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.'],
+    ['Exporter', 'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être exportée.'],
+  ] as const)('« %s » une entrée que la porte REFUSE : le terme commun par `ChipDeRefus` AU PANNEAU DE DÉTAIL, effacé au changement de sélection ; l’entrée MARQUÉE, son « Jouer » neutralisé', async (geste, message) => {
     const entry = buildImportedProject(builtinDocJson(0));
     entry.id = 'lib-fixture-refusee';
     entry.label = 'Campagne refusée';
@@ -224,12 +222,16 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     expect(alertes).toHaveLength(1);
     const alerte = alertes[0];
     expect(alerte.closest('.master-detail-list'), 'jamais au rail de la liste').toBeNull();
-    expect(bouton.closest('.row[data-justify="end"]')!.parentElement!.contains(alerte), 'près des boutons de l’entrée').toBe(true);
-    expect(alerte.classList.contains('chip') && alerte.classList.contains('tone-danger')).toBe(true);
+    const actions = [...container.querySelectorAll('.row[data-justify="end"]')].find((r) => r.textContent?.includes('Exporter'))!;
+    expect(actions.parentElement!.contains(alerte), 'près des boutons de l’entrée').toBe(true);
+    expect(alerte.querySelector('p.chip.tone-danger.chip-phrase')?.textContent).toBe(message);
     const txt = alerte.textContent ?? '';
-    expect(txt).toMatch(message);
-    expect(txt).toMatch(/Demandez-en une nouvelle version à son auteur\./);
     expect(txt.toLowerCase()).not.toMatch(/schema|migration/);
+    expect(row.querySelector('.chip.tone-danger')?.textContent, 'l’entrée refusée est marquée').toBe(MARQUE_AUTRE_FORMAT);
+    const jouer = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === 'Jouer') as HTMLButtonElement;
+    expect(jouer.getAttribute('aria-disabled'), '« Jouer » neutralisé').toBe('true');
+    expect(jouer.classList.contains('btn-primary'), '« Jouer » n’est plus l’action principale').toBe(false);
+    expect(container.querySelector('#bibliotheque-jouer-reason')?.textContent).toBe(messageDeRefusJoueur('jouer'));
     expect(consoleErr).toHaveBeenCalled();
     expect(onClose, 'l’écran reste ouvert').not.toHaveBeenCalled();
 
@@ -239,6 +241,22 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
 
     consoleErr.mockRestore();
     await unmount();
+  });
+
+  it('une entrée dont l’ENVELOPPE est refusée : MARQUÉE dans la liste, son « Jouer » n’est pas l’action principale active', async () => {
+    const oeuvre = { id: 'oeuvre', label: 'Mon oeuvre', startSceneId: 's1', savedAt: 1, published: false, project: { scenes: [{ id: 's1' }] }, champEnTrop: 1 };
+    localStorage.setItem('wfrp4.editor-projects', JSON.stringify([oeuvre]));
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await mount();
+    const row = Array.from(container.querySelectorAll('button.listrow')).find((el) => el.textContent?.includes('Mon oeuvre')) as HTMLButtonElement;
+    expect(row.querySelector('.chip.tone-danger')?.textContent).toBe(MARQUE_AUTRE_FORMAT);
+    await act(async () => row.click());
+    const jouer = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === 'Jouer') as HTMLButtonElement;
+    expect(jouer.getAttribute('aria-disabled')).toBe('true');
+    expect(jouer.classList.contains('btn-primary')).toBe(false);
+    await act(async () => jouer.click());
+    expect(useGame.getState().pendingCampaign, 'aucune campagne posée').toBeNull();
+    consoleErr.mockRestore();
   });
 
   /** Clique la rangée nommée `nom` puis le bouton `geste` de son panneau de détail. */
@@ -260,9 +278,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
       await mount();
       for (const bc of allBuiltinCampaigns) expect(container.textContent).toContain(bc.label);
       await clique(campagne!.label, 'Jouer');
-      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
-        'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.',
-      );
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.');
       expect(useGame.getState().pendingCampaign, 'aucune campagne posée').toBeNull();
       expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
     } finally {
@@ -282,7 +298,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     await mount();
     await clique('Départ perdu', 'Jouer');
     const txt = container.querySelector('[role="alert"]')?.textContent ?? '';
-    expect(txt).toBe('Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.');
+    expect(txt).toBe('Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.');
 
     const OrigCreateObjectURL = URL.createObjectURL;
     const OrigRevokeObjectURL = URL.revokeObjectURL;
@@ -376,7 +392,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     // bien emprunté le chemin d'échec de sauvegarde, pas juste un alert qui ressemble.
     expect(txt.toLowerCase()).toMatch(/volumineuse/);
 
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     await unmount();
   });
 
@@ -416,7 +432,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     expect(txt.toLowerCase()).toMatch(/réapparaître/);
 
     setItemSpy.mockRestore();
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     await unmount();
   });
 

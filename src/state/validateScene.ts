@@ -379,10 +379,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           if (v != null && (v < 0 || v > 59)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-59`);
       });
     /** Parcours RÉCURSIF d'un Flow (branches `if`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
-     *  effets référencés + bornes des conditions horaires + ENJEU des jets. ENVELOPPÉ : un Flow corrompu
-     *  (nœud manquant/réf pendante — document ANCIEN qu'un `normalizeScene` ne peut pas tout réparer sans
-     *  inventer de donnée) rapporte un Warning `error` au lieu de faire tomber la validation de TOUTE la
-     *  scène — chaque flow est indépendant, un flow cassé ne masque pas les autres.
+     *  effets référencés + bornes des conditions horaires + ENJEU des jets.
      *
      *  FLOWS PORTÉS par une feuille : trouvés PAR LA FORME (`carriedFlows`, `engine/flowCore`) — l'échéance
      *  d'un `delayedEffect`, la récompense d'une `petitePriere`, et tout champ `Flow` d'un effet à écrire.
@@ -396,19 +393,15 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
      *  un enjeu authoré BLANC est un enjeu absent — sans ce partage, l'authoring déclarerait bon un
      *  document que `resolveStake` refuse d'afficher. */
     const checkFlow = (flow: Flow, refId: string, scope: Warning['scope']) => {
-      try {
-        walkFlow(flow, (node) => {
-          if (node.kind === 'do') {
-            checkEffect(node.effect, refId, scope);
-            for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
-          } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
-          else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
-            add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
-          }
-        });
-      } catch {
-        add('error', scope, refId, `Flow « ${refId} » corrompu (nœud invalide/réf pendante)`);
-      }
+      walkFlow(flow, (node) => {
+        if (node.kind === 'do') {
+          checkEffect(node.effect, refId, scope);
+          for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
+        } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
+        else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
+          add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
+        }
+      });
     };
 
     for (const t of s.triggers) {

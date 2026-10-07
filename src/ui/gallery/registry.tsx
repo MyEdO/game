@@ -32,6 +32,7 @@ import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { ReadyRow } from '../ReadyRow';
 import { CoopInvite, CoopCodeInput, SeatList, CoopAssignRow, CoopBanner } from '../CoopPanels';
 import { CharFrame } from '../CharFrame';
@@ -761,6 +762,26 @@ function GatedActionDemo() {
         <GatedAction id="gal-gated-dense" label="Pause au prochain Round" enabled dense onClick={() => {}} />
       </div>
     </div>
+  );
+}
+
+/** Refus et état perdu : une phrase courte, une phrase et son rapport technique replié, puis l'alerte
+ *  d'un champ exigé, nommée par `id` et désignée par l'`aria-describedby` du champ. Spécimens posés
+ *  sans geste : `fixe`, la planche ne défile pas vers eux à son ouverture. */
+function ChipDeRefusDemo() {
+  return (
+    <>
+      <ChipDeRefus fixe refus={{ message: 'Emplacement 1 : sauvegarde d’un autre format, retirée.' }} />
+      <ChipDeRefus
+        fixe
+        refus={{
+          message: 'Ouverture refusée : projet d’un autre format, ou mal formé.',
+          detail: 'Projet d’un autre format, ou mal formé — 1 faute\n  - scenes « s1 » › entities « p0 » › ref: « ref » absente',
+        }}
+      />
+      <textarea aria-label="Motif de l'écart" aria-invalid aria-describedby="galerie-refus-motif" rows={2} />
+      <ChipDeRefus fixe id="galerie-refus-motif" refus={{ message: 'Motif requis.' }} />
+    </>
   );
 }
 
@@ -1746,6 +1767,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'qtystepper', label: 'QtyStepper', file: 'src/ui/QtyStepper.tsx', category: 'Négoce & activités', render: QtyStepperDemo },
   { id: 'numberfield', label: 'NumberField', file: 'src/ui/NumberField.tsx', category: 'Négoce & activités', render: NumberFieldDemo },
   { id: 'gatedaction', label: 'GatedAction', file: 'src/ui/GatedAction.tsx', category: 'Négoce & activités', render: GatedActionDemo },
+  { id: 'chipderefus', label: 'ChipDeRefus', file: 'src/ui/ChipDeRefus.tsx', category: 'Atomes', render: ChipDeRefusDemo },
   { id: 'parchmentcard', label: 'ParchmentCard', file: 'src/ui/ParchmentCard.tsx', category: 'Négoce & activités', render: ParchmentCardDemo },
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },

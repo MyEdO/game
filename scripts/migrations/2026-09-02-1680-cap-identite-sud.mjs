@@ -33,10 +33,9 @@
  * PORTEUR TIERS : ce script ne convertit aucun document de scène — `Scene.seatAssignments` (clé
  * `propId → slotId`) n'a AUCUNE occurrence dans les documents committés (mesuré). Il reste UN porteur,
  * la SAUVEGARDE : `snapshotSave` (`src/state/saves.ts`) recopie le `state` entier, `state.scene`
- * comprise. La politique de ce fichier est « changement de FORME persistée : bump de `SAVE_VERSION`,
- * et RIEN d'autre — aucune chaîne de migration » : le bump **38 → 39** porte donc ce renommage côté
- * sauvegardes, et une save d'avant est JETÉE avec un message plutôt qu'élaguée en silence par
- * `pruneSeatAssignments` (`src/state/store.ts`). Contrat : `src/state/saves-flow.test.ts`.
+ * comprise. Une save d'une autre forme est JETÉE avec un message (`FORMAT_SAVE`, #2404) plutôt
+ * qu'élaguée en silence par `pruneSeatAssignments` (`src/state/store.ts`). Contrat :
+ * `src/state/saves-flow.test.ts`.
  *
  * MARQUEURS D'IDEMPOTENCE — un par volet, chacun mesurable sur la FORME rendue : la clé d'ENVELOPPE
  * `capIdentite` en TÊTE de chaque `volume` pour la rotation, et la GRAPHIE `place-<n>` des ids de place

@@ -5,7 +5,7 @@
  * silence ni migré (#2404).
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, declutterPositions, resolvePortRef, portVersDepot, placeServices, type RenderPoint, type MapPlace } from './worldMap';
+import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, type RenderPoint, type MapPlace } from './worldMap';
 import { lieuxServices, navalPorts } from '../data';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './scene';
@@ -299,5 +299,12 @@ describe('parseProject — porte de schéma', () => {
   it('`encounters[].enemies` (forme ANTÉRIEURE) est refusé PAR SON NOM, jamais absorbé en silence', () => {
     const doc = projet([{ ...scene('s1'), encounters: [{ id: 'e1', enemies: [{ ref: 'gobelin', count: 2 }] }] }]);
     expect(() => parseProject(doc)).toThrow(/scenes « s1 » › encounters « e1 »: Clé non reconnue : "enemies"/);
+  });
+
+  it('un nœud `null` dans un Flow est REFUSÉ par les deux portes, jamais purgé', () => {
+    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] };
+    const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
+    expect(() => parseProject(projet([avecNull]))).toThrow(/triggers « t1 » › flow\.steps\.1: .*null reçu/);
+    expect(() => parseSceneDeProjet(avecNull)).toThrow(/flow\.steps\.1: .*null reçu/);
   });
 });

@@ -8,7 +8,7 @@
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../engine/types';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import { sanitizeFlow, type Flow, type EffectOp } from './flow';
+import type { Flow, EffectOp } from './flow';
 import { type ScheduleSpec } from '../engine/clock';
 // Les FORMES des 57 variantes d'`Effect` vivent en zod (`data/schemas/defs-scenes/effets.ts`) ;
 // l'union ci-dessous les compose par `z.infer`. Import de TYPE seul — aucun cycle runtime.
@@ -971,44 +971,19 @@ export function emptyScene(w = 20, h = 15): Scene {
   };
 }
 
-/** Assainit une feuille `Effect` d'un Flow de scène : recurse dans le Flow imbriqué d'un
- *  `delayedEffect` (le seul cas d'un Flow porté par une feuille, plutôt qu'un nœud de structure —
- *  `sanitizeFlow` de l'engine ne connaît que la forme générique `Flow<E>`, pas cette feuille state). */
-function sanitizeEffectLeaf(e: Effect): Effect {
-  return e.type === 'delayedEffect' ? { ...e, flow: sanitizeFlow(e.flow, sanitizeEffectLeaf) } : e;
-}
-
-/** Assainit un Flow de scène (purge des nœuds `null` inexprimables, cf. `sanitizeFlow`) — `undefined`
- *  passe tel quel (un Flow requis mais absent sur un document ANCIEN reste à la charge de la
- *  validation, jamais d'une invention silencieuse). */
-function sanitizeSceneFlow(flow: Flow | undefined): Flow | undefined {
-  return flow == null ? flow : sanitizeFlow(flow, sanitizeEffectLeaf);
-}
-
 /**
  * Complète les COLLECTIONS qu'une Scène PROUVÉE peut omettre (optionnelles à `sceneSchema`, requises
- * sur `Scene`), et assainit les FLOWS portés (triggers/dialogues/rencontres/entités) — purge des nœuds
- * `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement absent reste
- * rapportée par `validateScene`, jamais réparée en silence. Appelée APRÈS la porte du schéma, par
- * `parseProject` (`projetSchema`) et `parseSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais
- * un `?? []` saupoudré côté consommateur. PUR — ne mute pas `s`. */
+ * sur `Scene`). Appelée APRÈS la porte du schéma, par `parseProject` (`projetSchema`) et
+ * `parseSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais un `?? []` saupoudré côté
+ * consommateur. PUR — ne mute pas `s`. */
 export function normalizeScene(s: Scene): Scene {
   return {
     ...s,
     layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
-    entities: (s.entities ?? []).map((e) => (
-      e.usable?.actions
-        ? { ...e, usable: { ...e.usable, actions: e.usable.actions.map((a) => ({ ...a, flow: sanitizeSceneFlow(a.flow) as Flow })) } }
-        : e)),
-    dialogues: (s.dialogues ?? []).map((d) => ({
-      ...d,
-      nodes: d.nodes.map((n) => ({
-        ...n,
-        choices: n.choices.map((c) => (c.flow ? { ...c, flow: sanitizeSceneFlow(c.flow) } : c)),
-      })),
-    })),
-    triggers: (s.triggers ?? []).map((t) => ({ ...t, flow: sanitizeSceneFlow(t.flow) as Flow })),
-    encounters: (s.encounters ?? []).map((e) => (e.onVictory ? { ...e, onVictory: sanitizeSceneFlow(e.onVictory) } : e)),
+    entities: s.entities ?? [],
+    dialogues: s.dialogues ?? [],
+    triggers: s.triggers ?? [],
+    encounters: s.encounters ?? [],
     flags: s.flags ?? {},
   };
 }

@@ -22,6 +22,7 @@ import type { WorldMap } from '../../state/worldMap';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { GatedAction, raisonSi } from '../GatedAction';
 import { NumberField } from '../NumberField';
 import { CouvreField, SelecteurDEntreeDeFiche } from './CouvreField';
@@ -874,7 +875,7 @@ function EcartesForm({ ecartes, onChange }: {
                     onChange={(ev) => remplacer(i, { motif: ev.target.value })}
                   />
                 </div>
-                {sansMotif && <p id={alerte} className="chip tone-danger" role="alert">Motif requis.</p>}
+                {sansMotif && <ChipDeRefus fixe id={alerte} refus={{ message: 'Motif requis.' }} />}
               </div>
             );
           })}

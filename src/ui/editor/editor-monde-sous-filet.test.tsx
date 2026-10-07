@@ -6,7 +6,7 @@ import { Editor } from './Editor';
 import { emptyScene, type Scene } from '../../state/scene';
 import { editeur } from '../../state/editeurBridge';
 import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 
 beforeAll(() => {
@@ -21,7 +21,7 @@ afterEach(async () => {
   root = null;
   container = null;
   vi.restoreAllMocks();
-  __setOuvertureIdbForTest(null);
+  __setFabriqueIdbForTest(null);
 });
 
 async function monter(initialScene: Scene): Promise<HTMLDivElement> {
@@ -63,10 +63,11 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
 /**
  * LE FILET DE CRASH NE CONTOURNE PLUS RIEN — la relecture de l'autosave passe par le schéma de scène
  * (`parseSceneDeProjet`) : une scène qui porte un décor volumique au cap refusé est ÉCARTÉE, la
- * modale de reprise nomme la faute et son lieu, et rien n'entre dans l'éditeur.
+ * modale de reprise la dit d'un autre format, la faute et son lieu au détail, et rien n'entre dans
+ * l'éditeur.
  */
 describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
-  it('la modale nomme la faute et son lieu, sans « Restaurer » ; la scène chargée reste', async () => {
+  it('la modale dit la scène d’un autre format, la faute et son lieu au détail, sans « Restaurer » ; la scène chargée reste', async () => {
     brancherBasesSimulees();
     await __resetAutosaveForTest();
     const fautive: Scene = {
@@ -78,8 +79,13 @@ describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
     const container = await monter({ ...emptyScene(6, 6), id: fautive.id });
 
     expect([...container.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Restaurer'), 'rien à restaurer').toBe(false);
+    expect(container.textContent, 'le titre dit l’état, sans question').toContain('Sauvegarde locale impossible à restaurer');
+    expect(container.textContent, 'aucune question à laquelle on ne peut répondre oui').not.toContain('Reprendre une sauvegarde locale ?');
     expect(container.querySelector('[role="alert"] .chip.tone-danger')?.textContent).toBe(
-      "Restauration refusée : cette sauvegarde locale ne peut pas être restaurée. Faute : entities « p3 » › facing — décor volumique « tonneau » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+      'Restauration refusée : scène d’un autre format, ou mal formée.',
+    );
+    expect(container.querySelector('[role="alert"] .fold-body')?.textContent).toContain(
+      "entities « p3 » › facing: décor volumique « tonneau » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     );
     expect(editeur.listerEntites!().find((e) => e.id === 'p3'), 'la scène fautive n’entre pas').toBeUndefined();
   });

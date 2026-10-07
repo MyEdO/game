@@ -596,9 +596,11 @@ type ProjetProuve = { [K in keyof ProjectDoc]: ProjectDoc[K] };
  *  bibliothèque (`campagneDeLEntree`, #1627). */
 export type CauseDeRefus = 'schema' | 'prose-non-materialisee' | 'entree';
 
-/** Sujet du rapport d'un refus de forme : sans numéro de version, un document d'un autre format et un
- *  document fautif se refusent par le MÊME schéma (#2404). */
-const SUJET_DU_REFUS = 'Projet d’un autre format, ou mal formé';
+/** LE terme d'un projet, puis d'une scène, que la porte refuse : sans numéro de version, un document
+ *  d'un autre format et un document fautif se refusent par le MÊME schéma (#2404). Sujet du rapport de
+ *  la porte, et dit par chaque écran qui montre un refus. */
+export const PROJET_AUTRE_FORMAT = 'Projet d’un autre format, ou mal formé';
+export const SCENE_AUTRE_FORMAT = 'Scène d’un autre format, ou mal formée';
 
 /** Un chemin brut en notation JSON (`narratif.presetsPnj[3].profil`). */
 const cheminJson = (chemin: readonly (string | number)[]): string =>
@@ -636,7 +638,7 @@ export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | num
  *  seule n'a pas de narratif. Ce qui suit le schéma est une faute du jeu, et se propage. */
 export function parseSceneDeProjet(scene: unknown): Scene {
   const fautes = validateDocument(sceneSchema, scene);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Scène d’un autre format, ou mal formée', fautes));
+  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes(SCENE_AUTRE_FORMAT, fautes));
   return normalizeScene(scene as Scene);
 }
 
@@ -652,7 +654,7 @@ export function parseSceneDeProjet(scene: unknown): Scene {
  *  une exception y est une faute du jeu, pas de l'auteur, et se propage. Inverse : `projetVersDepot`. */
 export function parseProject(data: unknown): ProjectDoc {
   const fautes = validateDocument(projetSchema, data);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes(SUJET_DU_REFUS, fautes));
+  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes(PROJET_AUTRE_FORMAT, fautes));
   // Le schéma VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
   // (`ProjetProuve`, ci-dessus) plutôt que par un aller-retour `unknown`. Les champs d'identité sortent
   // du RESTE, typés : rien de ce que le document porte en plus ne peut s'y glisser muet.

@@ -1046,20 +1046,6 @@ describe('baseline nominative des signaux de commentaires (#136, 2026-08-03)', (
  *  SOURCE du verbatim — sans elle, la revendication n'est qu'une évaluation d'ingénierie. */
 const TEST_DECISION_SITES: BaselineEntry[] = [
   {
-    fichier: 'src/state/saves-flow.test.ts',
-    motif: 'politique de version des saves (en-tête)',
-    ancre: 'Plus la POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17)',
-    raison: 'verbatim utilisateur du 2026-08-17 consigné dans `.claude/memory/user-arbitrage-saves-reset-pas-migration.md` (une save d’une autre version se jette, elle ne se migre plus)',
-    date: '2026-08-17',
-  },
-  {
-    fichier: 'src/state/saves-flow.test.ts',
-    motif: 'politique de version des saves (describe)',
-    ancre: 'Arbitrage utilisateur 2026-08-17 : un changement de forme persistée',
-    raison: 'même verbatim, même fiche mémoire (`user-arbitrage-saves-reset-pas-migration.md`) : c’est lui qui fixe le comportement mesuré par ce describe',
-    date: '2026-08-17',
-  },
-  {
     fichier: 'src/data/schemas/defs-scenes/projet-schema.test.ts',
     motif: 'identité requise d’un projet (#1552)',
     ancre: 'arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi)',

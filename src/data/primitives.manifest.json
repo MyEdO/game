@@ -397,6 +397,15 @@
     "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
   },
   {
+    "id": "genFormats",
+    "type": "primitives.manifest",
+    "label": "gen-formats (formats.generated)",
+    "fichier": "scripts/gen-formats.mjs",
+    "concept": "format d'une donnée persistée SANS schéma, dérivé de la forme canonique de son type sérialisé (racines déclarées dans `RACINES`) : la constante que l'écrivain stampe dans `version` et que le lecteur compare (#2404)",
+    "perimetre": "save de partie, roster, export de héros, calques de trace, `hello` coop",
+    "verrou": "scripts/gen-formats.test.mjs, P3 de scripts/guards/lib/versionsDerivees.mjs"
+  },
+  {
     "id": "pointDEntree",
     "type": "primitives.manifest",
     "label": "import.meta.main",
@@ -519,7 +528,7 @@
     "label": "useRamenerEnVue / ramenerEnVue",
     "fichier": "src/ui/useRamenerEnVue.ts",
     "concept": "ramener un élément en vue dans son conteneur défilant : 'nearest' par défaut, 'smooth' seulement hors prefers-reduced-motion, appel protégé (scrollIntoView absent en jsdom)",
-    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche",
+    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche, pastille de `ChipDeRefus` (portée par la primitive, aucun site ne l’appelle)",
     "verrou": "aucun `scrollIntoView` écrit à la main : le geste, ses défauts et la préférence système vivent en UN point"
   },
   {
@@ -705,6 +714,15 @@
     "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap ; `classeBouton(ton)` compose la classe de tout bouton d'action (`btn`, ton primaire, variantes nue et tactile, classe de l'appelant), lue par `GatedAction`, `OptionChooser` et `RollShell`",
     "perimetre": "toute action refusable de la console et des écrans",
     "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
+  },
+  {
+    "id": "chipDeRefus",
+    "type": "primitives.manifest",
+    "label": "ChipDeRefus",
+    "fichier": "src/ui/ChipDeRefus.tsx",
+    "concept": "message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé) en `role=\"alert\"`, en `role=\"status\"` pour l'état permanent d'un champ (`fixe`) : la phrase en `.chip.tone-danger.chip-phrase`, pastille ajustée à son texte, le rapport technique replié en `.fold` ; `id` nomme le message que désigne l'`aria-describedby` d'un champ ; ramenée EN VUE par la primitive (`useRamenerEnVue`) au montage et à chaque changement de `message` / `detail`, jamais à un simple rendu de l'hôte ; `cle` remplace ce déclencheur (refus neuf au texte identique, modales Ouvrir / Enregistrer le projet) ; `fixe` le coupe et pose `role=\"status\"` pour l'état permanent d'un champ en saisie (inspecteur : porte secrète, allège, décor ; narratif : motif d'écart ; carte du monde : raison du refus ; spécimens de galerie)",
+    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
+    "verrou": "src/ui/ChipDeRefus.test.tsx, src/ui/editor/ProjectModals.test.tsx, src/ui/saveload-message-obsolete.test.tsx ; src/ui/ui-ratchets.test.ts (xxiv) — aucun `chip` + `tone-danger` hors de la primitive, exclusions au site"
   },
   {
     "id": "roseAxes",
@@ -1239,7 +1257,7 @@
     "type": "primitives.manifest",
     "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "base locale IndexedDB `{ nom, migrations }`, sa version dérivée de ses migrations keyées par version de départ (`migrerBase`, `versionCourante`) : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
+    "concept": "base locale IndexedDB DÉCLARÉE `{ nom, magasins: { [nom]: { keyPath } } }`, ouverte sans version : base neuve créée depuis la déclaration, base existante qui s'en écarte (magasins, `keyPath`) supprimée puis recréée une fois, `BaseIdbNonConforme` au second écart (#2404) ; disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture et toute suppression sur une base simulée par nom, à `keyPath` observable, transactions atomiques et pannes ciblées, derrière la seule couture `__setFabriqueIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1413,15 +1431,6 @@
     "concept": "table TOTALE keyée par les éléments d'une liste, clés dans l'ordre de la liste, rappel (clé, indice) ; le seul cast du concept",
     "perimetre": "toute couche, src/engine et .mjs compris",
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
-  },
-  {
-    "id": "versionCourante",
-    "type": "primitives.manifest",
-    "label": "versionCourante",
-    "fichier": "src/lib/versionCourante.ts",
-    "concept": "version courante d'une forme persistée, dérivée de sa table de migrations (littéral objet keyé par version de DÉPART, clés contiguës) : plus grande clé + 1, en valeur et en type littéral (#2226)",
-    "perimetre": "toute version de forme persistée : saves, export du roster, schéma de projet, format des choix de création, bases IndexedDB",
-    "verrou": "src/lib/versionCourante.test.ts"
   },
   {
     "id": "isDrawnView",
@@ -1608,7 +1617,7 @@
     "type": "primitives.manifest",
     "label": "stockageWeb",
     "fichier": "src/lib/stockageWeb.ts",
-    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
     "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
   },

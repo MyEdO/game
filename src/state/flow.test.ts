@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Effect } from './scene';
 import {
-  evalCondition, flattenFlow, flowFromEffects, flowHasTest, sanitizeFlow, EMPTY_FLOW, conditionCtx, type Condition, type Flow,
+  evalCondition, flattenFlow, flowFromEffects, flowHasTest, EMPTY_FLOW, conditionCtx, type Condition, type Flow,
 } from './flow';
 import { createHero } from '../engine/character';
 
@@ -185,25 +185,5 @@ describe('flowHasTest / flattenFlow refuse les nœuds interactifs', () => {
   });
   it('flattenFlow lève sur un nœud test (interactif → store)', () => {
     expect(() => flattenFlow(test, { flags: {}, gameTime: 0 })).toThrow(/interactif/);
-  });
-});
-
-describe('sanitizeFlow — purge des nœuds `null` inexprimables (document ANCIEN, crash n°2 éditeur)', () => {
-  it('purge les entrées `null` d’un `seq.steps` (JSON sérialise `undefined` en `null`)', () => {
-    const corrupted = { kind: 'seq', steps: [null, { kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] } as unknown as Flow;
-    expect(sanitizeFlow(corrupted)).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }] });
-  });
-  it('recurse dans les branches if/test/choice sans inventer de branche manquante', () => {
-    const withNullStep: Flow = { kind: 'if', cond: { kind: 'always' }, then: { kind: 'seq', steps: [null as unknown as Flow, { kind: 'do', effect: { type: 'setFlag', flag: 'y' } }] } };
-    expect(sanitizeFlow(withNullStep)).toEqual({ kind: 'if', cond: { kind: 'always' }, then: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'y' } }] } });
-  });
-  it('laisse `undefined`/`null` de premier niveau tel quel (à la charge de la validation)', () => {
-    expect(sanitizeFlow(undefined)).toBeUndefined();
-    expect(sanitizeFlow(null as unknown as Flow)).toBeNull();
-  });
-  it('un nœud `test` sans branche `success` (réf pendante) traverse sans throw ni invention', () => {
-    const dangling = { kind: 'test', test: { skill: 'perception' }, fail: EMPTY_FLOW } as unknown as Flow;
-    expect(() => sanitizeFlow(dangling)).not.toThrow();
-    expect((sanitizeFlow(dangling) as { success?: unknown }).success).toBeUndefined();
   });
 });

@@ -48,7 +48,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
    * La modale « Avancé » colle un JSON de trois blocs de logique. Le cas MESURÉ à l'écran le
    * 2026-09-21 (`{"dialogues": 42}`) : c'est CETTE paire — `validateDocument(SCHEMA_BLOCS_AVANCES, …)`
    * puis `rapportDeFautes('Blocs de logique', …)` — que `saveAdvanced` pose dans `advError`, et rien
-   * d'autre ne transforme le texte entre là et le `role="alert"` (`Editor.tsx:1239`).
+   * d'autre ne transforme le texte entre là et le `role="alert"` (`advError`, `Editor.tsx`).
    */
   it('porte de la modale « Avancé » — un bloc au MAUVAIS TYPE : refus français, au chemin', () => {
     const fautes = validateDocument(SCHEMA_BLOCS_AVANCES, { dialogues: 42 });

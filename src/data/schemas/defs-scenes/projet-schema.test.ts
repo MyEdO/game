@@ -362,11 +362,8 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(d ter) la poche `meta` et le `version` RACINE sont REFUSÉS par le SCEAU de l’enveloppe plate', () => {
-    // Portée EXACTE de cette assertion : elle juge `projetSchema` SEUL. Par le seam réel, un `version`
-    // racine n'arrive JAMAIS jusqu'ici (`parseProject` l'écrase puis le purge avant de valider —
-    // mesuré par `state/projet-migration-4-vers-5.test.ts`). Le sceau est donc la garde du document
-    // AU REPOS : un `.json` authioré/exporté à la mauvaise forme est nommé à la porte du schéma,
-    // plutôt que d'être absorbé en silence par le seam.
+    // `projetSchema` est le seul contrôle de forme de `parseProject` (#2404) : le sceau nomme la clé
+    // d'un autre format à la porte.
     expect(fautes(projet({ version: 1 })).join(' ')).toMatch(/version/);
     expect(fautes(projet({ meta: { id: 'c', label: 'C', version: 1 } })).join(' ')).toMatch(/meta/);
   });

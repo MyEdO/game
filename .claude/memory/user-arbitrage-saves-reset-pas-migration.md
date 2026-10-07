@@ -1,6 +1,6 @@
 ---
 name: user-arbitrage-saves-reset-pas-migration
-description: "Formats persistés (saves, projets de l'éditeur) : aucune migration de chargement — une donnée d'une autre forme est refusée, jamais migrée"
+description: "Formats persistés (saves, roster, export de héros, calques, projets de l'éditeur) : aucune migration de chargement — une donnée d'une autre forme est refusée, jamais migrée"
 metadata:
   type: user
 ---
@@ -9,11 +9,11 @@ metadata:
 
 **Verbatim 2026-10-05** (projets de l'éditeur) : « Pour le moment, comme les sauvegarde, applique ma régle »
 
-**Why :** une donnée perdue coûte moins cher qu'une migration écrite, testée et maintenue à chaque changement de forme.
+**Verbatim 2026-10-05** : « J'étais sûre qu'a un moment j'avais demandé de ne pas gerer la retrocompatibilité sur les migrations pour le moment (on invalide tout et on recharge), histoire d'éviter tous ces conflits. »
+
+**Why :** une donnée perdue coûte moins qu'une migration écrite, testée et maintenue.
 **How to apply :**
-- Aucun numéro de version ne s'écrit à la main.
-- Projet de l'éditeur (bibliothèque, import, autosave) : le schéma zod (`projetSchema`, `sceneSchema` pour une scène d'autosave) est le SEUL contrôle de forme ; le document ne porte aucun champ de version. Une autre forme est REFUSÉE avec son rapport, AFFICHÉE, jamais retirée automatiquement : la suppression reste un geste de l'auteur (#2404).
-- Le contenu commité (`src/scenes/**`) se réécrit dans le MÊME commit que le changement de forme (générateur, ou script one-shot non commité).
-- Un changement de SENS à forme égale RENOMME sa clé (précédent #1507, `radiusM`).
-- Save de partie : une save d'une autre version se jette avec un message clair au joueur ; aucune chaîne de migration ni fixture golden.
-- À re-discuter à la mise en prod réelle.
+- Aucune version écrite à la main ; une donnée d'un autre format est REFUSÉE avec message, jamais migrée.
+- Projet de l'éditeur : le schéma zod seul. Format sans schéma : `version` = format dérivé du type (`src/state/formats.generated.ts`). IndexedDB déclarative ; dictionnaires validés au registre.
+- Roster et export de héros jetés : évaluation d'ingénierie de game-32, révisable, aucun verbatim ne les couvre.
+- Détail : `docs/architecture.md`, section FORMATS PERSISTÉS. À re-discuter à la mise en prod réelle.

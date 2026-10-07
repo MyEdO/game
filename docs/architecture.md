@@ -159,17 +159,20 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
                             `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
                             son chemin relatif, extension comprise.
-                            `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
-                            `{ nom, migrations }`, une connexion par opération) et leur poignée
-                            `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
-                            (`brancherBasesSimulees`).
+                            `indexedDb.ts` : bases IndexedDB DÉCLARÉES `{ nom, magasins: { [nom]:
+                            { keyPath } } }`, ouvertes SANS version (#2404) : une base neuve reçoit ses
+                            magasins de la déclaration, une base existante qui s'en écarte (magasin
+                            manquant ou en trop, `keyPath` différente) est supprimée puis recréée, ses
+                            données perdues ; ouverture bornée #776, une connexion par opération ; leur
+                            poignée `accesBase` (magasins typés, `vider`) ; doublure
+                            `indexedDb.testkit.ts` (`brancherBasesSimulees`).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
-                            (`stockageWeb`).
+                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
+                            chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
+                            de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
+                            `wfrp4.prefs.v1`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
-                            `versionCourante.ts` : la version courante d'une forme persistée, dérivée
-                            de sa table de migrations keyée par version de DÉPART, en valeur et en type
-                            littéral (#2226).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
@@ -323,19 +326,11 @@ src/state/
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
                               réutilise pour l'icône/la coloration par camp, hors du périmètre `state`)
-  migrateDoc.ts                PRIMITIVE GÉNÉRIQUE de migration séquentielle de document versionné
-                              (`{version, ...}` → `MigrationMap` chaînée jusqu'à sa `versionCourante` ;
-                              refuse net — jamais ne corrompt — objet malformé/version future/trou
-                              dans la chaîne). Consommée par `roster.ts` (`ROSTER_MIGRATIONS`) ; PAS
-                              par les saves de partie ni par les projets de l'éditeur
   saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
-                              JSON). POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17) : un
-                              changement de forme persistée bump `SAVE_VERSION` et RIEN d'autre —
-                              aucune chaîne de migration, aucune fixture golden. Une save dont la
-                              version diffère de `SAVE_VERSION` est REJETÉE et RETIRÉE du stockage
-                              par `readSlot` (clé stable ET clés versionnées historiques), et le
-                              témoin `takeObsoleteNotice` fait afficher le message au joueur par
-                              `ui/SaveLoadModal`.
+                              JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
+                              une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
+                              stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
+                              le message au joueur par `ui/SaveLoadModal`.
                               Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
                               (`store.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
                               paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
@@ -344,10 +339,12 @@ src/state/
                               module ne connaîtrait que l'Arène + la scène courante et les transitions
                               vers les AUTRES scènes du paquet échoueraient en silence. `campaignNarratif`
                               reste NON persisté (re-dérivé de `campaignDoc`).
-  roster.ts                   Roster persistant (localStorage) des personnages créés au créateur —
-                              son propre couple `EXPORT_VERSION`/`ROSTER_MIGRATIONS` (même primitive
-                              `migrateDoc`), indépendant de `saves.ts` (le roster ne voyage PAS dans
-                              la save de partie)
+  roster.ts                   Roster persistant (localStorage) des personnages créés au créateur, et
+                              export/import d'un héros en fichier : enveloppes `RosterStocke` et
+                              `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`. Un
+                              roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
+                              par `ui/PartyScreen`) ; un export d'un autre format est refusé. Le
+                              roster ne voyage PAS dans la save de partie
   seating.ts                  ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
                               (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
                               avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
@@ -364,8 +361,11 @@ src/state/
                               `initLibrary` (jamais un flag one-shot, #776) ; `indexedDB` absent
                               (test/SSR) → repli localStorage. L'enveloppe d'une entrée est prouvée
                               par `savedProjectSchema` ; son projet passe `parseProject` au GESTE
-                              (ouvrir, jouer, exporter) : un projet d'un autre format reste LISTÉ, son
-                              refus affiché, et sa suppression reste un geste de l'auteur (#2404).
+                              (`projetDeLEntree` : ouvrir, jouer, exporter) : une entrée d'un autre
+                              format, enveloppe comprise, reste LISTÉE dès qu'un `id` la désigne, son
+                              refus affiché au geste, et sa suppression reste un geste de l'auteur ;
+                              une entrée sans `id` est journalisée et CONSERVÉE telle quelle au miroir
+                              (#2404).
                               FORMATS PERSISTÉS (#2404) : aucun ne porte de chaîne de migration de
                               chargement ni de numéro écrit à la main ; une donnée d'une autre forme
                               est REFUSÉE à la lecture, avec un message clair, et le contenu commité
@@ -373,6 +373,19 @@ src/state/
                               forme. Un changement de SENS à forme égale RENOMME sa clé (précédent
                               #1507 : `light.radiusTiles` devenu `light.radiusM`, le rayon du folio en mètres) : sans
                               renommage, l'ancienne valeur passerait le schéma et serait lue faux.
+                              Un format À SCHÉMA (projet) se reconnaît à son schéma zod. Un format SANS
+                              schéma porte le FORMAT de son type sérialisé : `scripts/gen-formats.mjs`
+                              (cible de code de `build-all --code`) DÉCLARE ses racines (`RACINES` : la
+                              save `SaveGame`, le roster `RosterStocke`, l'export `ExportDeHeros`, le
+                              calque `CalqueStocke`) et écrit `src/state/formats.generated.ts`
+                              (gitignoré) : une forme canonique du graphe des types (propriétés triées,
+                              `?` porté, unions triées, fonctions nues sautées ; `any`/`unknown` ou un
+                              drapeau de type non traité ÉCHOUE), indépendante des ids internes
+                              et de l'ordre de chargement, hachée. L'écrivain du format y STAMPE sa
+                              constante ; le lecteur compare, refuse et retire, puis prévient. Le coop
+                              compare `FORMAT_SAVE` au `hello`. LIMITE EN DEV : `registryGen`
+                              (`vite.config.ts`) ne régénère qu'au démarrage et sur ajout/suppression de
+                              fichier ; un format reste PÉRIMÉ jusqu'au redémarrage du serveur.
 src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE three.js ; les surcouches
                             de jeu sont du SVG posé sur son canevas. Pipeline détaillé (pivot, peintres,
                             matériaux, QC) : docs/rendu-pipeline.md

@@ -1,10 +1,10 @@
 /**
  * Doublures d'IndexedDB pour les tests (node et jsdom n'ont pas `indexedDB`) : une base simulée qui
- * trace sa montée, ses transactions, ses écritures validées et sa fermeture ; une requête d'ouverture
- * dont le test déclenche les événements ; et le branchement de toutes les ouvertures sur des bases
- * simulées, routées par nom.
+ * trace ses magasins (et leur `keyPath`), ses transactions, ses écritures validées, ses connexions et
+ * leur fermeture ; une requête d'ouverture dont le test déclenche les événements ; et le branchement de
+ * toutes les ouvertures et suppressions sur des bases simulées, routées par nom.
  */
-import { __setOuvertureIdbForTest } from './indexedDb';
+import { __setFabriqueIdbForTest } from './indexedDb';
 
 /** Magasin simulé : sa `keyPath` (absente = clés externes) et son contenu, par clé. Une clé composée
  *  (tableau) y est rangée sérialisée en JSON. */
@@ -45,6 +45,8 @@ export interface BaseSimulee {
   transactions: TransactionSimulee[];
   /** Les écritures VALIDÉES, dans l'ordre. */
   ecritures: RequeteSimulee[];
+  /** Connexions abouties (`reussir`). */
+  ouvertures: number;
   fermetures: number;
   panne: PanneSimulee;
   /** Annulation au COMMIT de toute transaction qui écrit (`abort` sans `error`, comme un quota
@@ -64,12 +66,12 @@ function requeteSimulee(valeur: unknown, erreur: DOMException | null = null): ID
   return req;
 }
 
-/** Base simulée ; `existants` : magasins déjà présents (base d'une version antérieure). */
+/** Base simulée ; `existants` : magasins déjà présents. */
 export function baseSimulee(existants: Record<string, { keyPath?: string | string[] }> = {}): BaseSimulee {
   const magasins = new Map<string, MagasinSimule>(
     Object.entries(existants).map(([nom, o]) => [nom, { ...o, contenu: new Map() }]),
   );
-  const etat: BaseSimulee = { magasins, transactions: [], ecritures: [], fermetures: 0, panne: sansPanne, annulationAuCommit: undefined, db: null as unknown as IDBDatabase };
+  const etat: BaseSimulee = { magasins, transactions: [], ecritures: [], ouvertures: 0, fermetures: 0, panne: sansPanne, annulationAuCommit: undefined, db: null as unknown as IDBDatabase };
   const rangement = (c: unknown): unknown => (Array.isArray(c) ? JSON.stringify(c) : c);
   const cleDe = (m: MagasinSimule, valeur: unknown, cleExterne: unknown): unknown => {
     if (m.keyPath === undefined) return rangement(cleExterne);
@@ -85,6 +87,8 @@ export function baseSimulee(existants: Record<string, { keyPath?: string | strin
       return requeteSimulee(erreur ? undefined : valeur(), erreur);
     };
     return {
+      name: nom,
+      keyPath: m.keyPath ?? null,
       get: (cle: unknown) => lire({ magasin: nom, geste: 'get', cle }, () => m.contenu.get(rangement(cle))),
       getAll: () => lire({ magasin: nom, geste: 'getAll' }, () => [...m.contenu.values()]),
       put: (valeur: unknown, cle?: unknown) => {
@@ -105,9 +109,6 @@ export function baseSimulee(existants: Record<string, { keyPath?: string | strin
       if (magasins.has(nom)) throw new DOMException(`magasin « ${nom} » déjà présent`, 'ConstraintError');
       magasins.set(nom, { keyPath: o?.keyPath, contenu: new Map() });
       return vueMagasin(nom, ecritureImmediate);
-    },
-    deleteObjectStore: (nom: string) => {
-      if (!magasins.delete(nom)) throw new DOMException(`magasin « ${nom} » absent`, 'NotFoundError');
     },
     transaction: (noms: string | string[], mode: IDBTransactionMode = 'readonly') => {
       const enAttente: { q: RequeteSimulee; geste: () => void }[] = [];
@@ -154,7 +155,8 @@ export function baseSimulee(existants: Record<string, { keyPath?: string | strin
 /** Requête d'ouverture simulée : le test en déclenche les événements. */
 export interface OuvertureSimulee {
   req: IDBOpenDBRequest;
-  monter(ancienneVersion: number): void;
+  /** Base neuve : `upgradeneeded`, depuis la version 0. */
+  monter(): void;
   reussir(): void;
   echouer(error: DOMException): void;
   bloquer(): void;
@@ -164,8 +166,11 @@ export function ouvertureSimulee(base: BaseSimulee): OuvertureSimulee {
   const req = { result: base.db, error: null } as unknown as IDBOpenDBRequest;
   return {
     req,
-    monter: (ancienneVersion) => req.onupgradeneeded?.({ oldVersion: ancienneVersion } as IDBVersionChangeEvent),
-    reussir: () => req.onsuccess?.(new Event('success')),
+    monter: () => req.onupgradeneeded?.({ oldVersion: 0 } as IDBVersionChangeEvent),
+    reussir: () => {
+      base.ouvertures++;
+      req.onsuccess?.(new Event('success'));
+    },
     echouer: (error) => {
       (req as { error: DOMException | null }).error = error;
       req.onerror?.(new Event('error'));
@@ -174,43 +179,67 @@ export function ouvertureSimulee(base: BaseSimulee): OuvertureSimulee {
   };
 }
 
-/** Les bases simulées d'un branchement, par nom. */
-export interface BasesSimulees {
-  /** La base `nom` ; neuve (version 0) si ni ouverte ni amorcée. */
-  base(nom: string): BaseSimulee;
-  /** Amorce la base `nom` à `version`, avec ses magasins `existants` : ouverte ensuite à une version
-   *  supérieure, elle monte depuis `version`. */
-  amorcer(nom: string, version: number, existants: Record<string, { keyPath?: string | string[] }>): BaseSimulee;
-  /** Le contenu du magasin `nomMagasin` de la base `nom` ; lève s'il n'existe pas. */
-  contenu(nom: string, nomMagasin: string): Map<unknown, unknown>;
+/** Branche toute ouverture sur `ouvrir` ; une suppression de base y lève. */
+export function brancherOuvertures(ouvrir: (nom: string) => IDBOpenDBRequest): void {
+  __setFabriqueIdbForTest({
+    open: ouvrir,
+    deleteDatabase: (nom) => {
+      throw new Error(`suppression de « ${nom} » non simulée`);
+    },
+  });
 }
 
-/** Branche toute ouverture sur une base simulée routée par son NOM : chacune réussit au microtask
- *  suivant, après la montée quand la version demandée dépasse celle de la base. */
+/** Les bases simulées d'un branchement, par nom. */
+export interface BasesSimulees {
+  /** La base `nom` ; neuve si ni ouverte ni amorcée. */
+  base(nom: string): BaseSimulee;
+  /** Amorce la base `nom`, existante avec ses magasins `existants`. */
+  amorcer(nom: string, existants: Record<string, { keyPath?: string | string[] }>): BaseSimulee;
+  /** Le contenu du magasin `nomMagasin` de la base `nom` ; lève s'il n'existe pas. */
+  contenu(nom: string, nomMagasin: string): Map<unknown, unknown>;
+  /** Les noms des bases supprimées, dans l'ordre. */
+  suppressions: string[];
+}
+
+/** Branche toute ouverture et toute suppression sur une base simulée routée par son NOM : chacune
+ *  réussit au microtask suivant ; l'ouverture d'une base neuve passe d'abord par sa création. Une base
+ *  supprimée est neuve à sa prochaine ouverture. */
 export function brancherBasesSimulees(): BasesSimulees {
-  const bases = new Map<string, { base: BaseSimulee; version: number }>();
+  const bases = new Map<string, { base: BaseSimulee; neuve: boolean }>();
+  const suppressions: string[] = [];
   const entree = (nom: string) => {
     let e = bases.get(nom);
-    if (!e) bases.set(nom, (e = { base: baseSimulee(), version: 0 }));
+    if (!e) bases.set(nom, (e = { base: baseSimulee(), neuve: true }));
     return e;
   };
-  __setOuvertureIdbForTest((nom, version) => {
-    const e = entree(nom);
-    const o = ouvertureSimulee(e.base);
-    queueMicrotask(() => {
-      if (e.version < version) {
-        o.monter(e.version);
-        e.version = version;
-      }
-      o.reussir();
-    });
-    return o.req;
+  __setFabriqueIdbForTest({
+    open: (nom) => {
+      const e = entree(nom);
+      const o = ouvertureSimulee(e.base);
+      queueMicrotask(() => {
+        if (e.neuve) {
+          o.monter();
+          e.neuve = false;
+        }
+        o.reussir();
+      });
+      return o.req;
+    },
+    deleteDatabase: (nom) => {
+      const req = { result: undefined, error: null } as unknown as IDBOpenDBRequest;
+      queueMicrotask(() => {
+        bases.delete(nom);
+        suppressions.push(nom);
+        req.onsuccess?.(new Event('success'));
+      });
+      return req;
+    },
   });
   return {
     base: (nom) => entree(nom).base,
-    amorcer: (nom, version, existants) => {
+    amorcer: (nom, existants) => {
       const base = baseSimulee(existants);
-      bases.set(nom, { base, version });
+      bases.set(nom, { base, neuve: false });
       return base;
     },
     contenu: (nom, nomMagasin) => {
@@ -218,5 +247,6 @@ export function brancherBasesSimulees(): BasesSimulees {
       if (!m) throw new Error(`magasin « ${nomMagasin} » absent de la base « ${nom} »`);
       return m.contenu;
     },
+    suppressions,
   };
 }

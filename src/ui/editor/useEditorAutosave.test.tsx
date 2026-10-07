@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveSave, __resetAutosaveForTest, type EditorAutosaveRecord, type RepriseLocale } from '../../state/editorAutosave';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 import { emptyScene, type Scene } from '../../state/scene';
 
@@ -48,7 +48,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
 
   beforeEach(async () => {
     sauvegardes = brancherBasesSimulees()
-      .amorcer('wfrp4-editor-autosave', 1, { autosave: { keyPath: 'sceneId' } })
+      .amorcer('wfrp4-editor-autosave', { autosave: { keyPath: 'sceneId' } })
       .magasins.get('autosave')!.contenu as Map<string, EditorAutosaveRecord>;
     await __resetAutosaveForTest();
     container = document.createElement('div');
@@ -59,7 +59,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     container.remove();
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     delete (window as unknown as { __probe?: Probe }).__probe;
   });
 
@@ -198,6 +198,23 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     expect(sauvegardes.has('scene-ancienne'), 'la relecture refusée ne retire rien').toBe(true);
     await act(async () => { probe().dismiss(); });
     expect(sauvegardes.has('scene-ancienne')).toBe(false);
+  });
+
+  it('sous StrictMode (le montage RÉEL, `src/main.tsx`) : la reprise de la scène chargée au montage est PROPOSÉE, et l’écriture débattue reprend une fois tranchée', async () => {
+    await autosaveSave({ sceneId: 'scene-strict', scene: { ...emptyScene(), id: 'scene-strict', label: 'récupérée' }, savedAt: 999 });
+    const scene = { ...emptyScene(), id: 'scene-strict', label: 'chargée' };
+    await act(async () => {
+      root.render(<StrictMode><Harness scene={scene} onRecovered={() => {}} /></StrictMode>);
+    });
+    await act(async () => { await flush(); });
+    expect(proposee()?.label, 'le cycle setup→cleanup→setup jeté ne doit pas avaler la vérification').toBe('récupérée');
+
+    await act(async () => { probe().dismiss(); });
+    await act(async () => {
+      root.render(<StrictMode><Harness scene={{ ...scene, label: 'éditée' }} onRecovered={() => {}} /></StrictMode>);
+    });
+    await act(async () => { await new Promise((r) => setTimeout(r, 1700)); });
+    expect(sauvegardes.get('scene-strict')?.scene.label, 'la vérification a conclu : l’écriture n’est pas gelée').toBe('éditée');
   });
 
   it('ignorer une reprise proposée supprime la sauvegarde locale et ne restaure rien', async () => {

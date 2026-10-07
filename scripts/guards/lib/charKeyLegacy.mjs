@@ -3,9 +3,8 @@
 // passé de `'CC'|'CT'|'F'|'E'|'I'|'Ag'|'Dex'|'Int'|'FM'|'Soc'` à des slugs pleins
 // (`capacite-de-combat`…) — plus jamais de token court en VALEUR mécanique (clé de `Characteristics`,
 // champ `char`/`resolveChar`/`testModChar`/`characteristic`). Cible les DATASETS + le STATE :
-// jamais l'AFFICHAGE (`charAbr`, dérivé de `characteristics.json` par id, cf. `src/data/index.ts`)
-// ni `charKeyMigration.ts` (le foyer documenté de la migration, qui cite les anciens tokens pour les
-// CONVERTIR). Module ESM pur, exécutable par `node` nu — même patron que `hardcode.mjs`.
+// jamais l'AFFICHAGE (`charAbr`, dérivé de `characteristics.json` par id, cf. `src/data/index.ts`).
+// Module ESM pur, exécutable par `node` nu — même patron que `hardcode.mjs`.
 
 /** Retire commentaires ET imports nommés — mêmes règles que `hardcode.mjs`.
  * @param {string} src @returns {string} */

@@ -33,6 +33,7 @@ import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from '../raw/motif-catalogues.mjs'
 import { SORTIES as SORTIES_DU_REGISTRE } from '../gen-registry.mjs'
+import { SORTIE as SORTIE_DES_FORMATS } from '../gen-formats.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { ignoresGit } from './lib/chemin-mesure.mjs'
@@ -46,6 +47,7 @@ import { ignoresGit } from './lib/chemin-mesure.mjs'
  *  Ordre = ordre d'exécution. */
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
+  { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: [], injecte: ['docs/raw/**/00-index.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },
   { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: [], injecte: ['docs/raw/**/*.md'] },

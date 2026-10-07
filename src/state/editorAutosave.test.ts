@@ -6,10 +6,9 @@ import {
   __resetAutosaveForTest,
   type EditorAutosaveRecord,
   type RepriseLocale,
-  MIGRATIONS_AUTOSAVE,
 } from './editorAutosave';
-import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
-import { baseSimulee, brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../lib/indexedDb';
+import { brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
 import { cheminLisible } from '../data/schemas/validate';
 import { emptyScene, type Scene } from './scene';
 
@@ -27,14 +26,14 @@ const operationsAchevees = () => new Promise<void>((fin) => setTimeout(fin, 0));
 
 const NOM = 'wfrp4-editor-autosave';
 let bases: BasesSimulees;
-/** Le magasin `autosave` de la base simulée, amorcée à sa version courante. */
+/** Le magasin `autosave` de la base simulée, amorcée conforme à sa déclaration. */
 const sauvegardes = () => bases.contenu(NOM, 'autosave');
 
 beforeEach(() => {
   bases = brancherBasesSimulees();
-  bases.amorcer(NOM, 1, { autosave: { keyPath: 'sceneId' } });
+  bases.amorcer(NOM, { autosave: { keyPath: 'sceneId' } });
 });
-afterEach(() => __setOuvertureIdbForTest(null));
+afterEach(() => __setFabriqueIdbForTest(null));
 
 describe('editorAutosave — filet local de crash de l’éditeur', () => {
   beforeEach(async () => {
@@ -102,22 +101,16 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
   });
 });
 
-describe('MIGRATIONS_AUTOSAVE — migration de `wfrp4-editor-autosave`', () => {
-  it('base neuve : crée `autosave` keyé sceneId', () => {
-    const base = baseSimulee();
-    migrerBase(MIGRATIONS_AUTOSAVE, base.db, 0);
-    expect([...base.magasins.keys()]).toEqual(['autosave']);
-    expect(base.magasins.get('autosave')?.keyPath).toBe('sceneId');
-  });
-
-  it('une base neuve monte puis passe sauvegarde, reprise, suppression', async () => {
+describe('`wfrp4-editor-autosave` — déclarée (#2404)', () => {
+  it('une base neuve, créée `autosave` keyé sceneId, passe sauvegarde, reprise, suppression', async () => {
     bases = brancherBasesSimulees();
     const base = bases.base(NOM);
     await autosaveSave({ sceneId: 's1', scene: { ...emptyScene(), id: 's1' }, savedAt: 5 });
+    expect(base.magasins.get('autosave')?.keyPath).toBe('sceneId');
     expect((await repris('s1')).savedAt).toBe(5);
     await autosaveDelete('s1');
     expect(await autosaveLoad('s1')).toBeNull();
-    expect(base.fermetures).toBe(base.transactions.length);
+    expect(base.fermetures).toBe(base.ouvertures);
   });
 });
 

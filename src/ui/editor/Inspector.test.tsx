@@ -162,15 +162,15 @@ describe('Inspector — ce que le schéma exige de l’auteur ne se préremplit 
       expect(select.options[select.selectedIndex].disabled, libelle).toBe(true);
       expect(select.getAttribute('aria-invalid'), libelle).toBe('true');
     }
-    expect(h.container.querySelector('[role="alert"]')?.textContent).toBe('Porte secrète incomplète — choisis sa difficulté de Perception et sa face découvrable');
+    expect(h.container.querySelector('[role="status"]')?.textContent).toBe('Porte secrète incomplète — choisissez sa difficulté de Perception et sa face découvrable');
 
     await elire(selectDe(h.container, 'Difficulté de Perception'), 'complexe');
     expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', door: true });
-    expect(h.container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(h.container.querySelector('[role="status"]')).not.toBeNull();
 
     await elire(selectDe(h.container, 'Découvrable depuis'), 'porteuse');
     expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', door: true, closed: true, secret: { difficulty: 'complexe', face: 'porteuse' } });
-    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+    expect(h.container.querySelector('[role="status"]')).toBeNull();
   });
 
   it('croisée franchissable (#700 issuecomment-5984719806) : l’allège est à SAISIR, état NOMMÉ, rien d’écrit avant la saisie', async () => {
@@ -183,8 +183,8 @@ describe('Inspector — ce que le schéma exige de l’auteur ne se préremplit 
     const champ = h.container.querySelector('#' + CSS.escape(Array.from(h.container.querySelectorAll('label.field')).find((l) => l.textContent?.includes('Hauteur d’allège'))!.getAttribute('for')!)) as HTMLInputElement;
     expect(champ.value).toBe('');
     expect(champ.getAttribute('aria-invalid')).toBe('true');
-    const alerte = h.container.querySelector('[role="alert"]') as HTMLElement;
-    expect(alerte.textContent).toBe('Croisée franchissable sans hauteur d’allège — saisis-la');
+    const alerte = h.container.querySelector('[role="status"]') as HTMLElement;
+    expect(alerte.textContent).toBe('Croisée franchissable sans hauteur d’allège — saisissez-la');
     expect(champ.getAttribute('aria-describedby')).toBe(alerte.id);
 
     await act(async () => {
@@ -192,7 +192,7 @@ describe('Inspector — ce que le schéma exige de l’auteur ne se préremplit 
       champ.dispatchEvent(new Event('input', { bubbles: true }));
     });
     expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1.2 });
-    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+    expect(h.container.querySelector('[role="status"]')).toBeNull();
   });
 
   it('vider l’allège d’une croisée authorée reste au brouillon : la Scène garde la croisée et sa suspension, l’état est NOMMÉ', async () => {
@@ -208,11 +208,11 @@ describe('Inspector — ce que le schéma exige de l’auteur ne se préremplit 
     expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1, suspendu: 2 });
     expect(champ.value).toBe('');
     expect(champ.getAttribute('aria-invalid')).toBe('true');
-    expect(h.container.querySelector('[role="alert"]')?.textContent).toBe('Croisée franchissable sans hauteur d’allège — saisis-la');
+    expect(h.container.querySelector('[role="status"]')?.textContent).toBe('Croisée franchissable sans hauteur d’allège — saisissez-la');
 
     await taper('1.5');
     expect(h.wallOf()).toEqual({ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1.5, suspendu: 2 });
-    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+    expect(h.container.querySelector('[role="status"]')).toBeNull();
   });
 });
 
@@ -254,7 +254,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
 
     const select = selecteurDeDecor(h.container);
     const affichee = select.options[select.selectedIndex];
-    expect(affichee.textContent).toBe('Décor sans type — choisis-en un');
+    expect(affichee.textContent).toBe('Décor sans type — choisissez-en un');
     expect(affichee.disabled).toBe(true);
     // Et rien n'a été écrit sur l'entité : afficher un état n'est pas élire un type.
     expect(h.entOf()).not.toHaveProperty('ref');
@@ -280,7 +280,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
     const h = mount({ id: 'mort', kind: 'prop', pos: { x: 0, y: 0 }, ref: id });
     await h.mount();
 
-    const alerte = h.container.querySelector('[role="alert"]') as HTMLElement;
+    const alerte = h.container.querySelector('[role="status"]') as HTMLElement;
     expect(alerte.textContent).toBe(`Décor inexistant « ${id} »`);
     expect(selecteurDeDecor(h.container).title).toBe(`Décor inexistant « ${id} »`);
   });
@@ -289,7 +289,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
     const h = mount({ id: 'sain', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau' });
     await h.mount();
 
-    expect(h.container.querySelector('[role="alert"]')).toBeNull();
+    expect(h.container.querySelector('[role="status"]')).toBeNull();
     expect(selecteurDeDecor(h.container).title).toBe('');
   });
 

@@ -16,6 +16,7 @@ import { EffectList, type Ctx } from './EffectList';
 import { RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
+import { ChipDeRefus } from '../ChipDeRefus';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
@@ -75,10 +76,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
                 />
               </label>
               {!route.refus.trim() && (
-                <p className="chip tone-danger" role="alert">
-                  Raison du refus exigée dès qu’une condition est posée : sans elle le projet est refusé au chargement
-                  (<code>mapRouteSchema</code>).
-                </p>
+                <ChipDeRefus fixe refus={{ message: 'Raison du refus exigée dès qu’une condition est posée : sans elle le projet est refusé au chargement.' }} />
               )}
             </>
           )}
