@@ -30,6 +30,12 @@ import { CHEMIN_DU_JOURNAL } from './journal.mjs'
 import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
+
+/** Le shell des formes de commit : un bash réel sur toute plateforme (le `sh` de git sous win32 en est un,
+ *  `sh` est dash sous Linux), car des formes jugées (`<(…)`) ne sont pas POSIX. */
+const BASH = process.platform === 'win32' ? 'sh' : 'bash'
+/** `script` lancé par `BASH -c` dans `cwd` sous `env`. */
+const lancerBash = (script, { cwd, env }) => spawnSync(BASH, ['-c', script], { cwd, env, encoding: 'utf8' })
 const DRIVER = join(ICI, 'commit-msg.mjs')
 
 const SUJET_LONG = `fix(x): refs #1728 — ${'a'.repeat(130)}`
@@ -127,7 +133,7 @@ for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime $
     lancerGit(['add', 'a.txt'], { cwd: racine, env })
 
     if (!runtimeExplicite) {
-      const sonde = spawnSync('sh', ['-c', 'node -p process.versions.node'], { cwd: racine, env, encoding: 'utf8' })
+      const sonde = lancerBash('node -p process.versions.node', { cwd: racine, env })
       assert.equal(sonde.status, 0, sonde.stderr)
       const { engines } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
       const refus = refusDeVersion(engines.node, sonde.stdout.trim())
@@ -158,11 +164,11 @@ for (const runtimeExplicite of [false, true]) test(`git commit réel : runtime $
 // ── La porte du COMMIT (#2071) ─────────────────────────────────────────────────────────────────
 
 /** Le dépôt jeté de chaque banc : du `src/` (substance), la liste des registres porteurs que lit une
- *  fermeture (`evaluateRegistresPorteurs`), et de la doc (hors substance). */
+ *  fermeture (`evaluateRegistresPorteurs`), et une note (hors substance). */
 const SOCLE = {
   'src/a.ts': 'export const a = 1\n',
   'src/b.ts': 'export const b = 1\n',
-  'docs/x.md': 'x\n',
+  'notes/x.md': 'x\n',
   'scripts/hooks/registres-porteurs.json': '[]\n',
 }
 
@@ -191,8 +197,8 @@ function banc(fichiers = SOCLE) {
     hooks,
     env,
     git,
-    /** `script` lancé par `sh -c` (le bash de git sous Windows) dans `cwd` (la racine par défaut). */
-    sh: (script, extra = {}, cwd = racine) => spawnSync('sh', ['-c', script], { cwd, env: { ...env, ...extra }, encoding: 'utf8' }),
+    /** `script` lancé par `lancerBash` dans `cwd` (la racine par défaut). */
+    sh: (script, extra = {}, cwd = racine) => lancerBash(script, { cwd, env: { ...env, ...extra } }),
     head: (cwd = racine) => lancerGit(['rev-parse', 'HEAD'], { cwd, env }).trim(),
     ecrire: (rel, texte, base = racine) => {
       mkdirSync(dirname(join(base, rel)), { recursive: true })
@@ -262,7 +268,7 @@ for (const { classe, script, statutLibre = false, saut = false, propre = false }
       const b = banc()
       try {
         if (propre) {
-          b.ecrire('docs/x.md', 'y\n')
+          b.ecrire('notes/x.md', 'y\n')
           assert.equal(b.git('commit', '-a', '-m', 'docs: refs #7 — un second commit').status, 0)
         } else b.ecrire('src/a.ts', 'export const a = 2\n')
         const avant = b.head()
@@ -355,8 +361,8 @@ test('#2071 porte au commit-msg — `-i` : l’arbre des chemins nommés ET l’
   const b = banc()
   try {
     b.ecrire('src/a.ts', 'export const a = 2\n')
-    b.ecrire('docs/x.md', 'y\n')
-    assert.equal(b.git('add', 'docs/x.md').status, 0)
+    b.ecrire('notes/x.md', 'y\n')
+    assert.equal(b.git('add', 'notes/x.md').status, 0)
     const avant = b.head()
     refuse(b, b.git('commit', '-i', '-m', SANS_TICKET, '--', 'src/a.ts'), avant, MANQUE_DE_TICKET)
     passe(b, b.git('commit', '-i', '-m', TEMOIN, '--', 'src/a.ts'), avant)
@@ -370,7 +376,7 @@ test('#2071 porte au commit-msg — `--amend --no-edit` et `-C HEAD` : le messag
     for (const [herite, attendu] of [['docs: refs #7 — hérité', 'passe'], ['docs: hérité sans ticket', 'refuse']]) {
       const b = banc()
       try {
-        b.ecrire('docs/x.md', 'y\n')
+        b.ecrire('notes/x.md', 'y\n')
         assert.equal(b.git('commit', '-a', '-m', herite).status, 0, 'un commit sans substance passe')
         b.ecrire('src/a.ts', 'export const a = 2\n')
         assert.equal(b.git('add', 'src/a.ts').status, 0)
@@ -456,9 +462,9 @@ test('#2071 porte au commit-msg — les commits scriptés du train (`commitDe`, 
   try {
     const depot = depotDe(b.racine, { env: b.env })
     assert.equal(b.git('checkout', '-q', '-b', 'br').status, 0)
-    b.ecrire('docs/x.md', 'y\n')
+    b.ecrire('notes/x.md', 'y\n')
     b.ecrire('src/b.ts', 'export const b = 2\n')
-    const docs = commitDe(depot, { message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros: ['7'], motif: MOTIF_REGENERATION }), chemins: ['docs/x.md', 'src/b.ts'] })
+    const docs = commitDe(depot, { message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros: ['7'], motif: MOTIF_REGENERATION }), chemins: ['notes/x.md', 'src/b.ts'] })
     assert.ok(reussi(docs), JSON.stringify(docs))
     assert.equal(b.git('checkout', '-q', 'main').status, 0)
     b.ecrire('src/a.ts', 'export const a = 2\n')
