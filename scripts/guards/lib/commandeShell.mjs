@@ -806,9 +806,24 @@ export function scriptsNpm(dir = racineNpmCourante() ?? DEPOT_DU_LECTEUR) {
   return CACHE_SCRIPTS.get(clef)
 }
 
+/** Un mot nu que `tokenizeCommand` relit tel quel : ni blanc, ni quote, ni opérateur, ni substitution. */
+const MOT_NU_RE = /^[\w./:=@%+,\\-]+$/
+
+/** `texte` sous la forme que `tokenizeCommand` relit en UN jeton de ce texte exact : nu s'il le permet,
+ *  sinon sous quote double, `"`, `\`, `` ` `` et `$` échappés (les seuls échappements qu'elle lit sous
+ *  quote double ; sans `$` nu, aucune substitution ne s'ouvre). PUR. */
+export function citeArgument(texte) {
+  return MOT_NU_RE.test(texte) ? texte : `"${texte.replace(/["\\`$]/g, (c) => `\\${c}`)}"`
+}
+
 /** Commande RÉELLE d'un segment `npm run <x>` (script résolu dans `scripts`, arguments de la ligne
- *  recollés derrière lui comme npm le fait), ou `null` si le segment ne lance aucun script connu. */
-export function commandeScriptNpm(segment, scripts) {
+ *  recollés derrière lui comme npm le fait), ou `null` si le segment ne lance aucun script connu.
+ *  `jetons` : ceux du segment (`tokenizeCommand`). Chaque argument recollé est CITÉ (`citeArgument`) :
+ *  la re-tokenisation du corps rend le même argv, `"tour 10 publié"` reste UN argument ; un jeton
+ *  NU d'opérateur (redirection, heredoc : `OPERATEUR_SHELL_RE`) reste nu, donc opérateur. La même tokenisation
+ *  lit un segment POSIX comme PowerShell : la citation vaut pour les deux. */
+export function commandeScriptNpm(jetons, scripts) {
+  const segment = jetons.map((j) => j.text)
   const start = segment[0] === '&' ? 1 : 0
   if (basenameExecutable(segment[start] ?? '') !== 'npm') return null
   // Les flags PROPRES à npm (`--silent`, `-s`…) précèdent aussi bien la sous-commande que le nom du
@@ -824,7 +839,8 @@ export function commandeScriptNpm(segment, scripts) {
   const corps = nom === undefined ? undefined : scripts?.[nom]
   if (typeof corps !== 'string') return null
   // npm colle les arguments de la ligne derrière le script, `--` retiré (il n'est qu'un séparateur).
-  const suite = segment.slice(iNom + 1).filter((t) => t !== '--')
+  const suite = jetons.slice(iNom + 1).filter((j) => j.text !== '--')
+    .map((j) => (j.quote === undefined && OPERATEUR_SHELL_RE.test(j.text) ? j.text : citeArgument(j.text)))
   return suite.length > 0 ? `${corps} ${suite.join(' ')}` : corps
 }
 
@@ -937,7 +953,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
       if (segment.length > 0) {
         const porteur = ouvreDesBlocs ? null : lecturePorteur(textes)
-        const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(textes, scripts))
+        const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(segment, scripts))
         if (inner !== null) {
           const debutSuite = porteur?.suite ?? null
           const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
@@ -1214,7 +1230,7 @@ const SUBSTITUTION_SED_RE = /(?:^|[;\n{}\d$/])\s*s([^\n\\])(?:\\.|(?!\1)[^\\])*\
  *  `-o`/`--output[=]` (`sort -of` compris), `uniq <entrée> <sortie>`, `tail -f`/`-F`/`--follow` (qui
  *  ne rend pas la main), `sed -i`/`--in-place` et commande `w` de sed (`info sed`, « w filename »),
  *  `print >` d'awk (`info gawk`, « Redirecting Output of print and printf »). */
-function ecritMalgreLaTete(segment) {
+export function ecritMalgreLaTete(segment) {
   const tete = basenameExecutable(segment[0])
   const args = segment.slice(1)
   if (args.some((t) => t === '-o' || /^--output(=|$)/.test(t))) return true
@@ -1299,17 +1315,35 @@ export function finAvantOperateur(segment, depart = 0) {
  *  processus `<(…)`. */
 const REDIRECTION_EN_TETE_RE = /^(?:\d*(?:>[>|]?|<(?!\())|&>>?)(&(?:\d+|-))?/
 
-/** Les jetons d'un segment à partir de `depart`, sans ses redirections : chaque opérateur nu de redirection est retiré
- *  avec sa cible, collée (`>f`, `<in`, `<<MOT`) ou séparée (`> f`) ; une duplication (`2>&1`) n'en a pas. Les arguments
- *  qui suivent restent : la commande les reçoit (XCU 2.7). */
-export function sansRedirections(jetons, depart = 1) {
-  const gardes = jetons.slice(0, depart)
+/** Le segment à partir de `depart` LU en une passe : les `arguments` (jetons hors redirection) et les `redirections`,
+ *  chacune avec son opérateur, sa duplication (`2>&1` n'a pas de cible) et sa cible, collée (`>f`, `<in`, `<<MOT`) ou
+ *  séparée (`> f`). PURE. */
+function lireRedirections(jetons, depart) {
+  const lu = { arguments: [], redirections: [] }
   for (let i = depart; i < jetons.length; i++) {
     const m = jetonNu(jetons[i]) ? REDIRECTION_EN_TETE_RE.exec(jetons[i].text) : null
-    if (!m) { gardes.push(jetons[i]); continue }
-    if (m[0] === jetons[i].text && !m[1]) i += 1
+    if (!m) { lu.arguments.push(jetons[i]); continue }
+    const separee = m[0] === jetons[i].text && !m[1]
+    const cible = m[1] ? null : separee ? (jetons[i + 1]?.text ?? null) : jetons[i].text.slice(m[0].length)
+    lu.redirections.push({ operateur: m[0], cible })
+    if (separee) i += 1
   }
-  return gardes
+  return lu
+}
+
+/** Les jetons d'un segment à partir de `depart`, sans ses redirections : chaque opérateur nu de redirection est retiré
+ *  avec sa cible ; les arguments qui suivent restent : la commande les reçoit (XCU 2.7). */
+export function sansRedirections(jetons, depart = 1) {
+  return [...jetons.slice(0, depart), ...lireRedirections(jetons, depart).arguments]
+}
+
+/** Les CIBLES d'écriture des redirections d'un segment à partir de `depart` — le complément de
+ *  `sansRedirections` : le fichier qu'ouvre en écriture chaque opérateur nu `>`, `>>`, `>|`, `2>`, `&>` ; une
+ *  duplication (`2>&1`) et une entrée (`<`, `<<MOT`) n'en ont pas. */
+export function ciblesDeRedirection(jetons, depart = 0) {
+  return lireRedirections(jetons, depart).redirections
+    .filter((r) => r.cible !== null && r.operateur.includes('>'))
+    .map((r) => r.cible)
 }
 
 // ── Répertoire CIBLE de la commande (#587) ─────────────────────────────────────────────────────────

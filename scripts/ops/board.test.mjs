@@ -10,7 +10,7 @@ import {
   CHAMPS, COULEURS_STATUT, JOURS_DORMANT, STATUTS, avanceDite,
   construireLignes, cleNormalisee, indexerIssues, issuesDeGh, jourDe, lireChamps,
   lireItems, mesurer, mutationOptions, optionsAReecrire, optionsDuChamp, planDeSync, poserChamp,
-  statutDe, statutLePlusVivant, synchroniser, ticketsCites, ticketsDe, valeursDeLigne,
+  estVivante, statutDe, statutLePlusVivant, synchroniser, texteDuBoard, ticketsCites, ticketsDe, valeursDeLigne,
 } from './board.mjs'
 import { GESTES_DE_L_INVENTAIRE, inventaire } from './worktrees.mjs'
 import { sousGitFeint } from '../guards/lib/depotGabarit.mjs'
@@ -268,18 +268,18 @@ test('indexerIssues : un numéro absent de la liste est une ANOMALIE nommée, pa
   const vu = indexerIssues([{ number: 1727, state: 'open', closed_at: null, title: 'T' }], [1727, 9999])
   assert.equal(vu.issues.get(1727).title, 'T')
   assert.equal(vu.issues.has(9999), false)
-  assert.deepEqual(vu.anomalies, [`ticket #9999 introuvable dans ${DEPOT}`])
+  assert.deepEqual(vu.anomalies, [{ genre: 'ticket-introuvable', cle: '#9999', texte: `ticket #9999 introuvable dans ${DEPOT}` }])
 })
 
-test('indexerIssues rend la forme que lisent les consommateurs : state MAJUSCULE, closedAt', () => {
-  // REST rend `open`/`closed` et `closed_at` ; `statutDe` et `planDeSync` comparent à `CLOSED`.
+test('indexerIssues rend la forme que lisent les consommateurs : state MAJUSCULE, closedAt, updatedAt', () => {
+  // REST rend `open`/`closed`, `closed_at` et `updated_at` ; `statutDe` et `planDeSync` comparent à `CLOSED`.
   const vu = indexerIssues([
-    { number: 1388, state: 'closed', closed_at: '2026-09-01T10:00:00Z', title: 'Fini' },
+    { number: 1388, state: 'closed', closed_at: '2026-09-01T10:00:00Z', updated_at: '2026-09-02T08:00:00Z', title: 'Fini' },
     { number: 1727, state: 'open', closed_at: null, title: 'Cliquets' },
   ], [1388, 1727])
   assert.deepEqual(vu.issues.get(1388),
-    { number: 1388, state: 'CLOSED', closedAt: '2026-09-01T10:00:00Z', title: 'Fini' })
-  assert.deepEqual(vu.issues.get(1727), { number: 1727, state: 'OPEN', closedAt: null, title: 'Cliquets' })
+    { number: 1388, state: 'CLOSED', closedAt: '2026-09-01T10:00:00Z', updatedAt: '2026-09-02T08:00:00Z', title: 'Fini' })
+  assert.deepEqual(vu.issues.get(1727), { number: 1727, state: 'OPEN', closedAt: null, updatedAt: null, title: 'Cliquets' })
   assert.deepEqual(vu.anomalies, [])
 })
 
@@ -288,7 +288,7 @@ test('indexerIssues ÉCARTE les pull requests : la route /issues les sert aussi'
     { number: 1813, state: 'open', closed_at: null, title: 'PR homonyme', pull_request: { url: '…' } },
   ], [1813])
   assert.equal(vu.issues.has(1813), false)
-  assert.deepEqual(vu.anomalies, [`ticket #1813 introuvable dans ${DEPOT}`])
+  assert.deepEqual(vu.anomalies.map((a) => a.texte), [`ticket #1813 introuvable dans ${DEPOT}`])
 })
 
 const issueFeinte = (number, reste = {}) => ({ number, state: 'open', closed_at: null, title: 'x', ...reste })
@@ -320,7 +320,7 @@ test('issuesDeGh lit la LISTE page par page — un seul chemin, jamais un GET pa
   ])
   assert.equal(vu.issues.get(1727).state, 'CLOSED')
   assert.equal(vu.issues.get(2000).state, 'OPEN')
-  assert.deepEqual(vu.anomalies, [`ticket #4242 introuvable dans ${DEPOT}`])
+  assert.deepEqual(vu.anomalies.map((a) => a.texte), [`ticket #4242 introuvable dans ${DEPOT}`])
 })
 
 test('issuesDeGh s’arrête dès que TOUS les numéros demandés sont vus — l’ORDRE est DEMANDÉ', () => {
@@ -475,8 +475,86 @@ test('la mesure NOMME le worktree détaché et la branche sans ticket, et les ti
   })
   assert.equal(vu.ok, true)
   assert.deepEqual(vu.lignes, [])
-  assert.equal(vu.anomalies.filter((a) => a.startsWith('worktree détaché')).length, 1)
-  assert.equal(vu.anomalies.filter((a) => a.startsWith('branche sans ticket dérivable')).length, 2)
+  assert.deepEqual(vu.anomalies.map((a) => [a.genre, a.cle]), [
+    ['worktree-detache', '/dep/.codex/worktrees/914b/Game'], ['branche-sans-ticket', 'ab/phanes'], ['branche-sans-ticket', 'chantier/vide'],
+  ])
+  assert.ok(vu.anomalies[1].texte.startsWith('branche sans ticket dérivable : ab/phanes (+2 / −3'), vu.anomalies[1].texte)
+  assert.ok(vu.anomalies[0].texte.startsWith('worktree détaché'), vu.anomalies[0].texte)
+})
+
+test('ANOMALIE STRUCTURÉE : la clé est le NOM (branche, worktree), jamais l’avance — deux mesures à avances différentes rendent les mêmes (genre, cle)', () => {
+  const mesureA = (avance) => mesurer({
+    cwd: '/dep',
+    sansFetch: true,
+    gestes: gestesFactices({
+      branches: [branche('ab/phanes', '2026-09-10T09:00:00+02:00')],
+      divergence: () => ({ avance, retard: avance * 10 }),
+      journal: () => [{ sha: 'aaaaaaa', date: '2026-09-10T09:00:00+02:00', message: 'sans citation\n' }],
+    }),
+    inv: () => ({ ok: true, worktrees: [{ chemin: '/dep', principal: true, branche: 'main' }] }),
+    issues: () => ({ issues: new Map(), anomalies: [] }),
+    maintenant: MAINTENANT,
+  })
+  const [a, b] = [mesureA(1), mesureA(5)]
+  assert.deepEqual(a.anomalies.map((x) => [x.genre, x.cle]), [['origin-non-rafraichi', 'origin/main'], ['branche-sans-ticket', 'ab/phanes']])
+  assert.deepEqual(b.anomalies.map((x) => [x.genre, x.cle]), a.anomalies.map((x) => [x.genre, x.cle]))
+  assert.notEqual(a.anomalies[1].texte, b.anomalies[1].texte, 'le TEXTE porte l’avance, la clé non')
+})
+
+test('VIVANTS : toute branche de chantier VIVANTE à ticket est rendue, dans la portée ou HORS d’elle, avec avance, retard, worktrees, dernier commit et saleté', () => {
+  const vu = mesurer({
+    cwd: '/dep',
+    sansFetch: true,
+    portee: [1727],
+    gestes: gestesFactices({
+      branches: [branche('chantier/1727-cliquets', '2026-09-14T09:00:00+02:00'), branche('chantier/2456-hors', '2026-09-14T09:00:00+02:00')],
+      divergence: (_base, nom) => (nom === 'chantier/1727-cliquets' ? { avance: 1, retard: 2 } : { avance: 3, retard: 4 }),
+    }),
+    inv: () => ({
+      ok: true,
+      worktrees: [{ chemin: '/dep', principal: true, branche: 'main' }, { chemin: '/dep/.wt-2456', principal: false, branche: 'chantier/2456-hors', classe: 'sale', sale: true }],
+    }),
+    issues: (numeros) => indexerIssues(numeros.map((number) => ({ number, state: 'open' })), numeros),
+    maintenant: MAINTENANT,
+  })
+  assert.equal(vu.ok, true, vu.refus)
+  assert.deepEqual(vu.lignes.map((l) => l.ticket), [1727], 'les lignes restent sous la portée')
+  assert.deepEqual(vu.vivants, [
+    { branche: 'chantier/1727-cliquets', tickets: [1727], avance: 1, retard: 2, worktrees: [], dernierCommit: '2026-09-14T09:00:00+02:00', sale: false },
+    { branche: 'chantier/2456-hors', tickets: [2456], avance: 3, retard: 4, worktrees: ['/dep/.wt-2456 (sale)'], dernierCommit: '2026-09-14T09:00:00+02:00', sale: true },
+  ])
+})
+
+test('VIVANTE : worktree SALE, ou avance ET (worktree, ou dernier commit récent) — une vieille branche sans worktree et une branche +0 au worktree propre ne le sont pas', () => {
+  const branche = (reste) => ({ avance: 0, worktrees: [], dernierCommit: '2026-09-14T09:00:00Z', sale: false, ...reste })
+  const cadre = { maintenant: MAINTENANT }
+  assert.equal(estVivante(branche({ avance: 5, dernierCommit: '2026-06-01T09:00:00Z' }), cadre), false, 'vieille branche sans worktree')
+  assert.equal(estVivante(branche({ worktrees: ['/dep/.wt-2400 (propre+fusionné)'] }), cadre), false, '+0, worktree propre')
+  assert.equal(estVivante(branche({ worktrees: ['/dep/.wt-2400 (sale)'], sale: true }), cadre), true, 'worktree sale à +0')
+  assert.equal(estVivante(branche({ avance: 2 }), cadre), true, 'récente, sans worktree, avec avance')
+  assert.equal(estVivante(branche({ avance: 2, dernierCommit: '2026-06-01T09:00:00Z', worktrees: ['/dep/.wt-1 (propre)'] }), cadre), true, 'avance et worktree')
+})
+
+test('VIVANTS sur la mesure : une vieille branche sans worktree n’est pas rendue, la ligne du board la garde', () => {
+  const vu = mesurer({
+    cwd: '/dep',
+    sansFetch: true,
+    gestes: gestesFactices({ branches: [branche('chantier/1456-choix', '2026-06-01T09:00:00+02:00')], divergence: () => ({ avance: 4, retard: 1200 }) }),
+    inv: () => ({ ok: true, worktrees: [{ chemin: '/dep', principal: true, branche: 'main' }] }),
+    issues: (numeros) => indexerIssues(numeros.map((number) => ({ number, state: 'open' })), numeros),
+    maintenant: MAINTENANT,
+  })
+  assert.equal(vu.ok, true, vu.refus)
+  assert.deepEqual([vu.vivants, vu.lignes.map((l) => l.ticket)], [[], [1456]])
+})
+
+test('CLI board : `--liste` imprime le TEXTE de chaque anomalie, à l’identique de la forme d’avant (chaînes)', () => {
+  const lignes = [{ ticket: 1727, statut: 'En cours', etatIssue: 'ouvert', branches: ['chantier/1727'], worktrees: [], avance: '+1 / −2', dernierCommit: '2026-09-14' }]
+  const anomalies = [{ genre: 'branche-sans-ticket', cle: 'ab/phanes', texte: 'branche sans ticket dérivable : ab/phanes (+2 / −3)' }]
+  const texte = texteDuBoard({ lignes, anomalies })
+  assert.ok(texte.endsWith('\n\nANOMALIES\n  branche sans ticket dérivable : ab/phanes (+2 / −3)\n\n[board] 1 lignes · En cours=1 · anomalies 1\n'), texte)
+  assert.ok(!texte.includes('ab/phanes\t') && !texte.includes('genre'), 'ni genre ni clé à l’écran')
+  assert.ok(texteDuBoard({ lignes, anomalies: [] }).endsWith('\n\n[board] 1 lignes · En cours=1 · anomalies 0\n'))
 })
 
 test('la mesure REFUSE nommément quand origin n’est pas consultable', () => {
@@ -562,9 +640,9 @@ test('la mesure NOMME un journal de base illisible, et ne dit pas « sans ticket
     maintenant: MAINTENANT,
   })
   assert.deepEqual(vu.lignes, [])
-  assert.equal(vu.anomalies.filter((a) => a.startsWith('messages d’avance de ab/phanes illisibles')).length, 1)
-  assert.equal(vu.anomalies.filter((a) => a.startsWith('journal de origin/main illisible')).length, 1)
-  assert.equal(vu.anomalies.filter((a) => a.startsWith('branche sans ticket dérivable')).length, 0)
+  assert.equal(vu.anomalies.filter((a) => a.texte.startsWith('messages d’avance de ab/phanes illisibles')).length, 1)
+  assert.equal(vu.anomalies.filter((a) => a.texte.startsWith('journal de origin/main illisible')).length, 1)
+  assert.equal(vu.anomalies.filter((a) => a.genre === 'branche-sans-ticket').length, 0)
 })
 
 const CHAMPS_FIXTURE = {

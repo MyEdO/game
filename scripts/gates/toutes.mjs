@@ -172,9 +172,10 @@ export const ECRIT_LU = {
       '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +3 écrivains le ' +
       '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
-      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
+      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, et `ops/suiviFichiers.mjs` (#2460), son écriture atomique, n’écrivent que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      'sur l’arbre principal ; +1 écrivain le 2026-10-07 (#2460) : `hooks/suivi-ecriture-guard.test.mjs` forge un ' +
+      'dépôt jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), la garde n’y écrit rien ; +2 écrivains le 2026-10-04 (#2278) : ' +
       '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
       '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
       '`scripts/guards/budget-contexte.test.mjs` forge ses fixtures avec instanceDeDepot sous os.tmpdir(), ' +
@@ -221,9 +222,9 @@ export const ECRIT_LU = {
       '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
       '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
-      '`suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      '`suivi.mjs` et `suiviFichiers.mjs` (#2460) (ils écrivent `.git/suivi/<N>.json` et `<N>.mesure.json`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
-      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<nom>.verrou` voisin du fichier écrit, le verrou de mesure `.<N>.mesure.verrou` (#2460), leur temporaire et leur reprise, dans ce même ' +
       'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `synchroniser.mjs` (#2187 : il avance ' +
       'l’arbre PRINCIPAL — fichiers W′, `.git/index`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/` — ' +
       'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; `ecritureJsonAtomique.mjs` (scripts/guards/lib), atteint par `publier.mjs`, ' +

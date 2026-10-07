@@ -3676,6 +3676,18 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : appel portee.getStore",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : appel portee.getStore",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "pipelinesProfonds : appel portee.getStore",
       "occurrence": 1
     },
@@ -3975,6 +3987,42 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "lancementsDuSuivi : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDeCommande : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/hooks/suivi-lien-guard.mjs",
       "ref": "appelsDuSuivi : appel portee.getStore",
       "occurrence": 1
@@ -3988,7 +4036,19 @@
     {
       "famille": "appel non suivi",
       "fichier": "scripts/hooks/suivi-lien-guard.mjs",
-      "ref": "segmentsProfonds : appel portee.getStore",
+      "ref": "lancementsDuSuivi : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
+      "ref": "pipelinesDeJetons : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
+      "ref": "appelsDuSuivi : appel portee.getStore",
       "occurrence": 1
     },
     {
@@ -4044,30 +4104,6 @@
       "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
       "ref": "epiqueLiee : appel portee.getStore",
       "occurrence": 9
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : appel portee.getStore",
-      "occurrence": 10
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : appel portee.getStore",
-      "occurrence": 11
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : appel portee.getStore",
-      "occurrence": 12
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : appel portee.getStore",
-      "occurrence": 13
     },
     {
       "famille": "appel non suivi",
@@ -7151,6 +7187,42 @@
       "famille": "autre",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "evaluate : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "canoniser : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "cheminDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "cheminDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDEcriture : ancetre réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDEcriture : courant réaffectée en récurrence",
+      "occurrence": 1
+    },
+    {
+      "famille": "autre",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : ancetre réaffectée en récurrence",
       "occurrence": 1
     },
     {
@@ -19330,6 +19402,18 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels lectureDesBlocs",
+      "occurrence": 8
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels lectureDesBlocs",
+      "occurrence": 9
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "pipelinesDeJetons : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 1
     },
@@ -19372,6 +19456,18 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 8
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 9
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "pipelinesDeJetons : cycle d'appels pipelinesDuFlux",
       "occurrence": 1
     },
@@ -19410,6 +19506,18 @@
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "pipelinesDeJetons : cycle d'appels pipelinesDuFlux",
       "occurrence": 7
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels pipelinesDuFlux",
+      "occurrence": 8
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/segments-profonds.test.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels pipelinesDuFlux",
+      "occurrence": 9
     },
     {
       "famille": "cycle d'appels",
@@ -20292,6 +20400,60 @@
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "segmentsProfonds : cycle d'appels pipelinesDuFlux",
       "occurrence": 17
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "lancementsDuSuivi : cycle d'appels lectureDesBlocs",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "lancementsDuSuivi : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "lancementsDuSuivi : cycle d'appels pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDeCommande : cycle d'appels lectureDesBlocs",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDeCommande : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDeCommande : cycle d'appels pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : cycle d'appels lectureDesBlocs",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : cycle d'appels pipelinesDuFlux",
+      "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
@@ -20332,19 +20494,55 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/suivi-lien-guard.mjs",
-      "ref": "segmentsProfonds : cycle d'appels lectureDesBlocs",
+      "ref": "lancementsDuSuivi : cycle d'appels lectureDesBlocs",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/suivi-lien-guard.mjs",
-      "ref": "segmentsProfonds : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "ref": "lancementsDuSuivi : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/suivi-lien-guard.mjs",
-      "ref": "segmentsProfonds : cycle d'appels pipelinesDuFlux",
+      "ref": "lancementsDuSuivi : cycle d'appels pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels lectureDesBlocs",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
+      "ref": "pipelinesDeJetons : cycle d'appels pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
+      "ref": "appelsDuSuivi : cycle d'appels lectureDesBlocs",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
+      "ref": "appelsDuSuivi : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
+      "ref": "appelsDuSuivi : cycle d'appels pipelinesDuFlux",
       "occurrence": 1
     },
     {
@@ -20404,30 +20602,6 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels lectureDesBlocs",
-      "occurrence": 10
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels lectureDesBlocs",
-      "occurrence": 11
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels lectureDesBlocs",
-      "occurrence": 12
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels lectureDesBlocs",
-      "occurrence": 13
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
       "ref": "epiqueLiee : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
       "occurrence": 1
     },
@@ -20482,30 +20656,6 @@
     {
       "famille": "cycle d'appels",
       "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
-      "occurrence": 10
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
-      "occurrence": 11
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
-      "occurrence": 12
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDeJetons, pipelinesDuFlux",
-      "occurrence": 13
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
       "ref": "epiqueLiee : cycle d'appels pipelinesDuFlux",
       "occurrence": 1
     },
@@ -20556,30 +20706,6 @@
       "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
       "ref": "epiqueLiee : cycle d'appels pipelinesDuFlux",
       "occurrence": 9
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDuFlux",
-      "occurrence": 10
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDuFlux",
-      "occurrence": 11
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDuFlux",
-      "occurrence": 12
-    },
-    {
-      "famille": "cycle d'appels",
-      "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
-      "ref": "epiqueLiee : cycle d'appels pipelinesDuFlux",
-      "occurrence": 13
     },
     {
       "famille": "cycle d'appels",
@@ -28449,8 +28575,8 @@
     },
     {
       "famille": "forme non évaluée",
-      "fichier": "scripts/ops/suivi.test.mjs",
-      "ref": "etatDeSession : forme ElementAccessExpression",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "readFileSync : forme FirstLiteralToken",
       "occurrence": 1
     },
     {
@@ -32901,6 +33027,24 @@
     },
     {
       "famille": "sortie de processus",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "canoniser : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.mjs",
+      "ref": "refusDEcriture : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/suivi-ecriture-guard.test.mjs",
+      "ref": "repartir : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
       "fichier": "scripts/hooks/suivi-lien-guard.mjs",
       "ref": "relire : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
@@ -32968,13 +33112,13 @@
     {
       "famille": "sortie de processus",
       "fichier": "scripts/ops/suivi.mjs",
-      "ref": "listerSuivis : appel String(vu.valeur.stdout).trim",
+      "ref": "lireLeSuivi : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
     },
     {
       "famille": "sortie de processus",
       "fichier": "scripts/ops/suivi.mjs",
-      "ref": "suivre : appel String(vu.valeur.stdout).trim",
+      "ref": "listerSuivis : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
     },
     {

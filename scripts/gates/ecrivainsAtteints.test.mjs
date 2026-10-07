@@ -193,6 +193,9 @@ const ATTENDU = {
     'scripts/hooks/repartiteur.test.mjs',
     'scripts/hooks/repartition.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
+    // +1 le 2026-10-07 (#2460) : le banc de la garde d'écriture du suivi forge un dépôt JETABLE
+    // (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally) ; la garde juge l'entrée, rien n'est écrit.
+    'scripts/hooks/suivi-ecriture-guard.test.mjs',
     'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La
@@ -218,6 +221,9 @@ const ATTENDU = {
     'scripts/migrations/lib/joue.test.mjs',
     'scripts/migrations/replay-head.mjs',
     'scripts/ops/suivi.mjs',
+    // +1 le 2026-10-07 (#2460) : `suiviFichiers.mjs`, l'écriture atomique que `suivi.mjs` importe, n'écrit que
+    // sous la porte `import.meta.main` de `suivi.mjs` et dans les dépôts jetables des bancs.
+    'scripts/ops/suiviFichiers.mjs',
     'scripts/raw/build-implemente.mjs',
     // +1 le 2026-10-07 (#2400) : la garde des balayages non résolus (`scripts/guards/balayages-non-resolus.test.mjs`)
     // dérive par `balayagesNonResolus` de `perimetre.mjs`, qui sauve ses mémos sous `node_modules/.cache/perimetre/`,
@@ -291,11 +297,15 @@ const ATTENDU = {
     'scripts/ops/reprendre-file.mjs',
     'scripts/ops/reprendre-file.test.mjs',
     'scripts/ops/worktrees.test.mjs',
-    // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.md` (temporaire voisin puis
-    // `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
+    // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.json` et `<N>.mesure.json` (temporaire
+    // voisin puis `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
     // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
+    // +1 le 2026-10-07 (#2460) : `suiviFichiers.mjs` porte l'écriture atomique (`ecrireSuivi` : temporaire voisin
+    // puis `renameSync`, `rmSync` du temporaire) que `suivi.mjs` et `suiviMesure.mjs` importent, sous la même
+    // porte `import.meta.main` de `suivi.mjs` et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs`.
+    'scripts/ops/suiviFichiers.mjs',
     // +2 le 2026-10-07 (#2187) : `synchroniser.mjs` écrit l'arbre PRINCIPAL (fichiers W′, `.git/index`
     // par `renameSync`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/`) derrière sa porte
     // `import.meta.main` ; son banc `synchroniser.test.mjs` le joue sur des dépôts `instanceDeDepot` sous
@@ -303,8 +313,8 @@ const ATTENDU = {
     // jamais écrit.
     'scripts/ops/synchroniser.mjs',
     'scripts/ops/synchroniser.test.mjs',
-    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
-    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
+    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque fichier sous le verrou exclusif `.<nom>.verrou`
+    // voisin, et `suiviMesure.mjs` mesure sous le verrou `.<N>.mesure.verrou` (#2460) (`ecrireSuivi`, `mesurerLeSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
     // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`
     // (`reprendre`), `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la
     // porte `import.meta.main` de `suivi.mjs`, et sous le `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ;

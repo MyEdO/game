@@ -187,14 +187,15 @@ export const jourDe = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(String(iso ?? '')) ? S
  * sont EXACTEMENT celles de la portée, dans SON ordre : un ticket clos garde sa ligne, un ticket sans
  * branche ni publication reçoit `branches: []` et le statut de son issue, un ticket absent de
  * `issues` prend le statut `Introuvable`. Sans portée, `Introuvable` n'apparaît jamais.
- * `etatIssue` est posé sur TOUTE ligne, lu dans `issues`.
+ * `etatIssue` et `issueMiseAJour` (l'`updatedAt` de l'issue, `''` sans elle) sont posés sur TOUTE ligne,
+ * lus dans `issues`.
  * @param {{branches?: {nom: string, avance: number, retard: number, dernierCommitISO: string,
  *   tickets: number[], worktrees?: string[]}[],
  *   fusionnes?: {ticket: number, dateISO: string}[],
- *   issues?: Map<number, {state?: string, closedAt?: string|null}>,
+ *   issues?: Map<number, {state?: string, closedAt?: string|null, updatedAt?: string|null}>,
  *   portee?: number[]|null}} mesure
  * @param {{maintenant?: Date, joursDormant?: number}} [cadre]
- * @returns {{ticket: number, statut: string, etatIssue: 'ouvert'|'fermé'|'introuvable',
+ * @returns {{ticket: number, statut: string, etatIssue: 'ouvert'|'fermé'|'introuvable', issueMiseAJour: string,
  *   branches: string[], worktrees: string[], avance: string, dernierCommit: string}[]}
  */
 export function construireLignes({ branches = [], fusionnes = [], issues = new Map(), portee = null },
@@ -254,6 +255,7 @@ export function construireLignes({ branches = [], fusionnes = [], issues = new M
       ...reste,
       statut: prevus && !issues.has(reste.ticket) ? 'Introuvable' : reste.statut,
       etatIssue: etatIssueDe(issues.get(reste.ticket)),
+      issueMiseAJour: issues.get(reste.ticket)?.updatedAt ?? '',
       avance: avances.join(' · '),
       dernierCommit: jourDe(dernierCommitISO),
     }))
@@ -331,17 +333,17 @@ export function planDeSync(lignes, itemsExistants = [], { issues = new Map() } =
 }
 
 /**
- * Les entrées de `repos/<dépôt>/issues?state=all` → l'état des tickets DEMANDÉS, et une anomalie par
- * numéro absent de la liste. PURE.
+ * Les entrées de `repos/<dépôt>/issues?state=all` → l'état des tickets DEMANDÉS, et une anomalie
+ * (`anomalie`, genre `ticket-introuvable`, clé `#N`) par numéro absent de la liste. PURE.
  * La route `/issues` sert AUSSI les pull requests : une charge portant `pull_request` est ÉCARTÉE —
  * sans quoi une PR dont le numéro coïncide avec un ticket cité par une branche rendrait l'état d'un
  * objet qui n'est pas ce ticket (mesuré 2026-09-19 : 9 PR parmi les 1827 entrées de la liste).
  * La forme rendue est CELLE QUE LISENT les consommateurs : `state` en MAJUSCULES (REST rend
- * `open`/`closed`) et `closed_at` sous `closedAt`, une seule forme dans la carte plutôt qu'une
+ * `open`/`closed`), `closed_at` sous `closedAt` et `updated_at` sous `updatedAt`, une seule forme dans la carte plutôt qu'une
  * normalisation reportée sur chaque lecteur (`statutDe`, `construireLignes`, `planDeSync`).
  * @param {unknown} entrees @param {number[]} numeros
- * @returns {{issues: Map<number, {number:number, state:string, closedAt:string|null, title:string}>,
- *   anomalies: string[]}}
+ * @returns {{issues: Map<number, {number:number, state:string, closedAt:string|null, updatedAt:string|null, title:string}>,
+ *   anomalies: Anomalie[]}}
  */
 export function indexerIssues(entrees, numeros) {
   const parNumero = new Map()
@@ -353,6 +355,7 @@ export function indexerIssues(entrees, numeros) {
       number: numero,
       state: String(entree?.state ?? '').toUpperCase(),
       closedAt: entree?.closed_at ?? null,
+      updatedAt: entree?.updated_at ?? null,
       title: String(entree?.title ?? ''),
     })
   }
@@ -361,10 +364,33 @@ export function indexerIssues(entrees, numeros) {
   for (const numero of [...new Set(numeros.map(Number))].sort((a, b) => a - b)) {
     const vue = parNumero.get(numero)
     if (vue) issues.set(numero, vue)
-    else anomalies.push(`ticket #${numero} introuvable dans ${DEPOT}`)
+    else anomalies.push(anomalie('ticket-introuvable', `#${numero}`, `ticket #${numero} introuvable dans ${DEPOT}`))
   }
   return { issues, anomalies }
 }
+
+/**
+ * Une branche de chantier est VIVANTE quand un de ses worktrees est SALE, ou quand elle a de l'avance ET un
+ * worktree, ou un dernier commit de moins de `joursFusionRecente` jours. Une vieille branche sans worktree, ou
+ * une branche fusionnée (+0) au worktree propre, ne l'est pas. PURE.
+ * @param {{avance: number, worktrees: string[], dernierCommit: string, sale: boolean}} branche
+ * @param {{maintenant: Date, joursFusionRecente?: number}} cadre
+ * @returns {boolean}
+ */
+export function estVivante({ avance, worktrees, dernierCommit, sale }, { maintenant, joursFusionRecente = JOURS_FUSION_RECENTE }) {
+  if (sale) return true
+  if (avance <= 0) return false
+  return worktrees.length > 0 || maintenant.getTime() - new Date(dernierCommit).getTime() < joursFusionRecente * MS_JOUR
+}
+
+/**
+ * Une ANOMALIE de la mesure : son `genre`, sa `cle` STABLE d'une mesure à l'autre (nom de branche, de
+ * worktree, de base, `#ticket` — jamais une avance), son `texte` lisible.
+ * @typedef {{genre: string, cle: string, texte: string}} Anomalie
+ */
+
+/** L'anomalie `genre` de clé `cle`. PURE. @returns {Anomalie} */
+export const anomalie = (genre, cle, texte) => ({ genre, cle, texte })
 
 /** Les champs d'un `gh project field-list --format json`, par nom normalisé. PURE. */
 export function lireChamps(json) {
@@ -542,10 +568,14 @@ export const GESTES_DU_BOARD = Object.freeze({ arbrePrincipal, fetchOrigin, bran
  * lecture porte sur `portee` SEULE, et une portée vide ne lit rien. Son coût suit l'âge du plus
  * vieux ticket de la portée (`issuesDeGh`). Les lignes sont celles de `construireLignes` sous
  * `portee`. `commandeSansFetch` est la commande que cite le refus « origin non consultable ».
+ * `vivants` : les branches de chantier à ticket, dans la portée ou non, qui sont VIVANTES (`estVivante`) ;
+ * les autres restent des lignes du board.
  * @param {{cwd?: string, base?: string, gestes?: typeof GESTES_DU_BOARD, inv?: Function,
  *   issues?: Function, sansFetch?: boolean, portee?: number[]|null, commandeSansFetch?: string,
  *   maintenant?: Date, joursDormant?: number, joursFusionRecente?: number}} [params]
- * @returns {{ok: true, lignes: object[], anomalies: string[]} | {ok: false, refus: string}}
+ * @returns {{ok: true, lignes: object[], vivants: {branche: string, tickets: number[], avance: number, retard: number,
+ *   dernierCommit: string, sale: boolean,
+ *   worktrees: string[]}[], anomalies: Anomalie[]} | {ok: false, refus: string}}
  */
 export function mesurer({
   cwd = process.cwd(), base = BASE, gestes = GESTES_DU_BOARD, inv = inventaire,
@@ -575,31 +605,33 @@ export function mesurer({
       }
     }
   } else {
-    anomalies.push(`origin non rafraîchi (--sans-fetch) : la mesure porte sur les refs déjà présentes pour ${base}`)
+    anomalies.push(anomalie('origin-non-rafraichi', base, `origin non rafraîchi (--sans-fetch) : la mesure porte sur les refs déjà présentes pour ${base}`))
   }
 
   const refs = gestes.branchesDe(depot)
   if (refs === null) return { ok: false, refus: `git for-each-ref illisible : ${raison()}` }
 
   const parBranche = new Map()
+  const sales = new Set()
   const vuInv = inv({ racine: principal, cwd, sansFetch: true })
   if (!vuInv.ok) return { ok: false, refus: vuInv.refus }
   for (const w of vuInv.worktrees) {
     if (w.principal) continue
     if (!w.branche) {
-      anomalies.push(`worktree détaché : ${w.chemin} (${w.classe}) — aucune branche à poser au board`)
+      anomalies.push(anomalie('worktree-detache', w.chemin, `worktree détaché : ${w.chemin} (${w.classe}) — aucune branche à poser au board`))
       continue
     }
     const poses = parBranche.get(w.branche) ?? []
     poses.push(`${w.chemin} (${w.classe})`)
     parBranche.set(w.branche, poses)
+    if (w.sale) sales.add(w.branche)
   }
 
   const branches = []
   for (const brute of refs.filter((b) => estBrancheDeChantier(b.nom))) {
     const comptes = gestes.divergenceDe(depot, base, brute.nom)
     if (comptes === null) {
-      anomalies.push(`avance de ${brute.nom} non mesurable contre ${base} : ${raison()}`)
+      anomalies.push(anomalie('avance-non-mesurable', brute.nom, `avance de ${brute.nom} non mesurable contre ${base} : ${raison()}`))
       continue
     }
     const { avance, retard } = comptes
@@ -611,16 +643,16 @@ export function mesurer({
       const journal = gestes.journalDe(depot, [`${base}..${brute.nom}`])
       messagesLus = journal !== null
       if (!messagesLus) {
-        anomalies.push(`messages d’avance de ${brute.nom} illisibles : ${raison()}`
-          + ' — le repli par citation n’a pas pu être tenté')
+        anomalies.push(anomalie('messages-illisibles', brute.nom, `messages d’avance de ${brute.nom} illisibles : ${raison()}`
+          + ' — le repli par citation n’a pas pu être tenté'))
       }
       messages = (journal ?? []).map((c) => c.message).join('\n')
     }
     const tickets = ticketsDe(brute.nom, messages)
     if (!tickets.length) {
       if (messagesLus) {
-        anomalies.push(`branche sans ticket dérivable : ${brute.nom} (${avanceDite({ avance, retard })}`
-          + `${worktrees.length ? `, ${worktrees.join(' · ')}` : ''})`)
+        anomalies.push(anomalie('branche-sans-ticket', brute.nom, `branche sans ticket dérivable : ${brute.nom} (${avanceDite({ avance, retard })}`
+          + `${worktrees.length ? `, ${worktrees.join(' · ')}` : ''})`))
       }
       continue
     }
@@ -629,8 +661,8 @@ export function mesurer({
 
   const journalBase = gestes.journalDe(depot, [base], { depuis: `${joursFusionRecente} days` })
   if (journalBase === null) {
-    anomalies.push(`journal de ${base} illisible : ${raison()} — la classe `
-      + 'Fusionné est incomplète (aucune preuve de publication n’a pu être lue)')
+    anomalies.push(anomalie('journal-illisible', base, `journal de ${base} illisible : ${raison()} — la classe `
+      + 'Fusionné est incomplète (aucune preuve de publication n’a pu être lue)'))
   }
   const fusionnes = []
   for (const commit of journalBase ?? []) {
@@ -651,7 +683,10 @@ export function mesurer({
     { branches, fusionnes, issues: vuIssues.issues, portee },
     { maintenant, joursDormant },
   )
-  return { ok: true, lignes, anomalies }
+  const vivants = branches
+    .map((b) => ({ branche: b.nom, tickets: b.tickets, avance: b.avance, retard: b.retard, worktrees: b.worktrees, dernierCommit: b.dernierCommitISO, sale: sales.has(b.nom) }))
+    .filter((v) => estVivante(v, { maintenant, joursFusionRecente }))
+  return { ok: true, lignes, vivants, anomalies }
 }
 
 /**
@@ -777,6 +812,18 @@ export const MOT_DE_LA_VUE = 'La VUE « Board » (disposition par colonnes, grou
   + '`--creer` RÉÉCRIT les options du champ intégré `Status` : Todo / In Progress / Done DISPARAISSENT, '
   + 'et tout item qui portait l’une d’elles perd sa valeur de Status.'
 
+/**
+ * Le texte de `--liste` d'une mesure réussie : la table, le TEXTE de chaque anomalie, le bilan. PURE.
+ * @param {{lignes: object[], anomalies: Anomalie[]}} vu
+ * @returns {string}
+ */
+export function texteDuBoard({ lignes, anomalies }) {
+  const comptes = Object.entries(comptesParStatut(lignes)).map(([s, n]) => `${s}=${n}`).join(' ')
+  return `${tableDeLignes(lignes)}\n`
+    + (anomalies.length ? `\nANOMALIES\n${anomalies.map(({ texte }) => `  ${texte}\n`).join('')}` : '')
+    + `\n[board] ${lignes.length} lignes · ${comptes || 'aucun statut'} · anomalies ${anomalies.length}\n`
+}
+
 function main() {
   const argv = process.argv.slice(2)
   const veutListe = argv.includes('--liste')
@@ -801,14 +848,7 @@ function main() {
   }
 
   if (veutListe) {
-    process.stdout.write(`${tableDeLignes(vu.lignes)}\n`)
-    if (vu.anomalies.length) {
-      process.stdout.write('\nANOMALIES\n')
-      for (const anomalie of vu.anomalies) process.stdout.write(`  ${anomalie}\n`)
-    }
-    const comptes = Object.entries(comptesParStatut(vu.lignes)).map(([s, n]) => `${s}=${n}`).join(' ')
-    process.stdout.write(`\n[board] ${vu.lignes.length} lignes · ${comptes || 'aucun statut'} · `
-      + `anomalies ${vu.anomalies.length}\n`)
+    process.stdout.write(texteDuBoard(vu))
     return
   }
 
@@ -823,8 +863,9 @@ function main() {
     process.stderr.write(`[board] ${bilan.refus}\n`)
     process.exit(1)
   }
-  for (const anomalie of vu.anomalies) process.stdout.write(`anomalie\t${anomalie}\n`)
-  if (bilan.cree) process.stdout.write(`${MOT_DE_LA_VUE}\n`)
+  for (const { texte } of vu.anomalies) process.stdout.write(`anomalie\t${texte}\n`)
+  if (bilan.cree)
+ process.stdout.write(`${MOT_DE_LA_VUE}\n`)
   process.stdout.write(`[board] Project #${bilan.numero} · ${vu.lignes.length} lignes · `
     + `ajoutés ${bilan.ajoutes} · mis à jour ${bilan.misAJour} · archivés ${bilan.archives} · `
     + `anomalies ${vu.anomalies.length}\n`)
