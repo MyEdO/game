@@ -140,12 +140,11 @@ export const SITES_PROSE: SiteProse[] = [
 ];
 
 /**
- * Les champs ADRESSÉS : la liste fermée des couples `(type, chemin)` sur lesquels un lien
- * automatique peut exister. C'est elle que le rapport de T1 balaiera, et que le test de câblage de
- * T0 confronte aux porteurs réellement émis par le registre du Codex.
+ * Liste des couples `(type, chemin)` comparés aux porteurs émis par le registre du Codex.
  *
- * Les chemins de PROJET (`type: 'projet'`) viennent de l'HÔTE UNIQUE de la grammaire des scènes
- * (`champsProseDeScene`, `src/data/schemas/grammaire/champs-prose-de-scene.ts`) — jamais recopiés ici.
+ * Les chemins de PROJET sont la projection du registre des proses nommées
+ * (`champsProseDeScene`, `src/data/schemas/grammaire/champs-prose-de-scene.ts`). Leur présence au
+ * registre ne dit pas que le rendu porte une identité de liage : le terrain est rendu sans porteur.
  */
 export const CHEMINS_ADRESSES: readonly { type: string; chemin: string }[] = [
   // Enveloppe de document : les deux clés de prose de toute entrée (`champsProse` + `maison`).

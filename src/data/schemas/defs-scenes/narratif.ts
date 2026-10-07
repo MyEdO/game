@@ -7,9 +7,7 @@
  * est gardé ICI : aucun id narratif ne collisionne avec un id de la règle globale
  * (créature/possession), et les registres (`REGISTRES_NARRATIFS`) n'ont aucun id en commun.
  *
- * Stade d'indice, preset PNJ, ouverture : `source` (règle stricte 5) ⊕ `adapteDe` (`champAdapteDe`,
- * `grammaire/prose.ts` ; fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`). Document :
- * `source` seul.
+ * #2427 ; fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`.
  */
 import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
@@ -17,7 +15,7 @@ import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { listeCle } from '../grammaire/collection-cle';
-import { champAdapteDe, proseDeScene, refineAdapteDe } from '../grammaire/prose';
+import { champAdapteDe, proseNommee, refineAdapteDe } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { CreatureData, TrappingData } from '../../index';
@@ -26,24 +24,18 @@ import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 
 /** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier, le document qu'il croise
  *  (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
-export const indiceStadeSchema = z.strictObject({
+export const indiceStadeSchema = proseNommee(z.strictObject({
   /** id STABLE du stade, unique DANS l'indice. */
   id: z.string().min(1, 'id vide.'),
-  prose: proseDeScene('narratif.indices[].stades[].prose').optional(),
   documentId: z.string().min(1, 'id de document vide.').optional(),
-  source: sourceRefSchema.optional(),
-  ...champAdapteDe(),
-}).superRefine(refineAdapteDe);
+}), 'narratif.indices[].stades[].prose');
 
-/** Un document remis au joueur (#679) — prose VERBATIM (règle 5, Markdown), servie par l'Effect
- *  `document { documentId }`. */
-export const documentNarratifSchema = z.strictObject({
+/** #679 ; #2427. */
+export const documentNarratifSchema = proseNommee(z.strictObject({
   /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
   id: z.string().min(1, 'id vide.'),
   titre: z.string().min(1, 'titre vide.'),
-  prose: proseDeScene('narratif.documents[].prose').min(1, 'prose vide.'),
-  source: sourceRefSchema.optional(),
-});
+}), 'narratif.documents[].prose');
 
 /** Un indice ou une rumeur d'une affaire — révélé par stades. */
 export const indiceSchema = z.strictObject({
@@ -102,16 +94,13 @@ export const ecartSchema = z.strictObject({
 
 /** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
  *  pitch non vides sont la seule exigence. */
-export const ouvertureSchema = z.strictObject({
+export const ouvertureSchema = proseNommee(z.strictObject({
   surtitre: z.string().optional(),
   titre: z.string().min(1, 'titre vide.'),
   sousTitre: z.string().optional(),
   chapitre: z.string().optional(),
-  pitch: proseDeScene('narratif.ouverture.pitch').min(1, 'pitch vide.'),
-  source: sourceRefSchema.optional(),
-  ...champAdapteDe(),
   ambiance: z.enum(['veillee', 'parchemin']).optional(),
-}).superRefine(refineAdapteDe);
+}), 'narratif.ouverture.pitch');
 
 /** CLÔTURE du chapitre (#717, `ClotureBlock`) — `when` évalué au contexte HORS COMBAT (`condCtx`),
  *  d'où le MÊME schéma borné que le `when` d'un lieu de carte (un kind non évaluable serait FAUX
