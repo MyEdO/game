@@ -5,7 +5,7 @@
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
 // `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
-// `lireFusion`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
+// `lireFusion`, `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
 // inertes, import d'un paquet, import d'un module du dépôt qui l'exporte lanceuse ou n'est pas lu,
@@ -14,6 +14,7 @@
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
 import { TRONC, refusDeGit, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -272,12 +273,6 @@ function commettreDerives(ctx, { chemins, numeros, journal }) {
   if (!reussi(commit)) return { ok: false, raison: `\`git add\` puis \`git commit\` des docs ont échoué : ${refusDeGit(commit)}` }
   journal.tete = ctx.tete
   return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} doc(s) dérivé(s) commis — tête ${journal.tete.slice(0, 9)}` }
-}
-
-
-/** Attente BLOQUANTE sans busy-loop (le train est synchrone de bout en bout). */
-export function attendre(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
 
 
@@ -540,7 +535,7 @@ export const ETAPES = [
         attendu({ ok: true, detail: { pr: pr.numero, fusion }, dit: `PR #${pr.numero} fusionnée en ${String(fusion ?? '?').slice(0, 9)}` })
       // `null` : aucune demande ; `{uuid}` : demande PENDANTE ; `{enFile:true}` : PR mise en file.
       let demande = null
-      const patienter = () => attendre(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
+      const patienter = () => attendreSync(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
       while (Date.now() < fin) {
         const lu = ctx.lirePr()
         if (!lu.ok) ctx.journaliser(`[publier] file — PR illisible : ${lu.raison}\n`)
@@ -660,8 +655,13 @@ export const ETAPES = [
     dejaFaite(ctx, journal) {
       return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
     },
+    // #2187 : le principal synchronisé après la fusion ; son état est un fait distinct de la publication,
+    // jamais un échec du train.
     jouer(ctx, journal) {
-      return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}` }
+      const principal = ctx.synchroniserPrincipal()
+      const publie = `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}`
+      const dit = principal.ok ? `principal : ${JSON.stringify(principal.vu)}` : `principal non synchronisé : ${principal.raison}`
+      return { ok: true, detail: { principal }, dit: `${publie} ; ${dit}` }
     },
   },
 ]

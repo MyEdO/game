@@ -6,7 +6,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { genererCode, mesurerEnRendu } from '../docs/build-all.mjs'
@@ -257,7 +257,7 @@ test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon 
 test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout ses deux HEAD, post-merge son drapeau squash', () => {
   const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
   assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
-  assert.match(lire('post-merge'), /docs-rebuild\.mjs" post-merge "\$1" /)
+  assert.match(lire('post-merge'), /^exec "\$\{npm_node_execpath:-node\}" "\$\(dirname "\$0"\)\/docs-rebuild\.mjs" post-merge "\$1"$/m, 'post-merge rend le code de docs-rebuild tel quel')
   for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
   assert.match(lire('post-commit'), /docs-rebuild\.mjs" post-commit /)
 })
@@ -415,6 +415,41 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
     assert.equal(generations, 0)
     assert.match(sorties.join(''), /équipement incomplet : relancer `npm ci`/)
     assert.match(sorties.join(''), /npm ci — fin \(\d+ ms\)/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+/** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière, le verrou, la porte. */
+const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
+
+test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {
+  const lock = JSON.stringify({ name: 'banc2187', version: '1.0.0', lockfileVersion: 3, packages: { '': { name: 'banc2187', version: '1.0.0' } } })
+  const { racine, lot } = fusionReelle({ 'package-lock.json': lock }, { 'package-lock.json': `${lock}\n` })
+  for (const module of CHAINE_DE_LA_BARRIERE) {
+    mkdirSync(dirname(join(racine, module)), { recursive: true })
+    copyFileSync(join(RACINE, module), join(racine, module))
+  }
+  const hookDOutil = () => spawnSync(process.execPath, [join(racine, 'scripts', 'hooks', 'repartiteur.mjs')], {
+    cwd: racine, encoding: 'utf8', timeout: 30_000,
+    input: JSON.stringify({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'ls' } }),
+  })
+  const pendant = []
+  try {
+    assert.deepEqual(lot, ['package-lock.json'])
+    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: () => {}, code: () => 0, docs: () => {},
+      npm: () => {
+        pendant.push(hookDOutil())
+        return { status: 0 }
+      },
+    })
+    assert.equal(vu, 0)
+    assert.equal(pendant.length, 1, 'un seul npm ci')
+    assert.equal(pendant[0].status, 2, pendant[0].stderr)
+    assert.match(pendant[0].stderr, /outillage de .* en mise à jour : verrou .*outillage\.verrou tenu par le PID \d+ \(docs-rebuild post-merge\)/)
+    const apres = hookDOutil()
+    assert.equal(apres.status, 2, `node_modules absent, verrou libre : ${apres.stderr}`)
+    assert.match(apres.stderr, /chargement des gardes impossible/)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

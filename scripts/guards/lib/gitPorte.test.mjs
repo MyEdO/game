@@ -2284,3 +2284,83 @@ test('tenter : une erreur SYSTÈME ou de lecture git est une indisponibilité ; 
   assert.match(tenter(() => { throw systeme }).raison, /ENOENT/)
   assert.deepEqual(tenter(() => { throw new GitIndisponible('fatal: panne simulée') }).disponible, false)
 })
+
+// #2187 lot B — lecteurs et écrivains du synchroniseur du principal, contre git RÉEL.
+import * as porte from './gitPorte.mjs'
+
+test('#2187 entreesDe, ajoutDe, attributsDe, contenuDuBlob, shasDuTravail : sur un dépôt jetable', (t) => {
+  const { racine, premier, second, g } = depot()
+  t.after(() => jeter(racine))
+  writeFileSync(join(racine, '.gitattributes'), '*.md merge=union\n')
+  const d = forge(racine)
+  const blobA = g('rev-parse', `${premier}:a.txt`).trim()
+  assert.deepEqual([...porte.entreesDe(d, premier, ['a.txt', 'neuf.txt'])], [['a.txt', { mode: '100644', sha: blobA }]])
+  assert.deepEqual(porte.entreesDe(d, INDEX, ['neuf.txt']).get('neuf.txt')?.sha, g('rev-parse', `${second}:neuf.txt`).trim())
+  assert.equal(porte.ajoutDe(d, premier, second, 'neuf.txt'), second)
+  assert.equal(porte.ajoutDe(d, premier, second, 'a.txt'), null)
+  assert.deepEqual([...porte.attributsDe(d, ['x.md', 'a.txt'], 'merge')], [['x.md', 'union'], ['a.txt', 'unspecified']])
+  assert.deepEqual([...porte.contenuDuBlob(d, blobA)], [...Buffer.from('a\n')])
+  assert.equal(porte.shasDuTravail(d, ['a.txt']).get('a.txt'), blobA)
+})
+
+test('#2187 ceriseDe : + sans équivalent, - patch déjà en amont', (t) => {
+  const { racine, premier, g } = depot()
+  t.after(() => jeter(racine))
+  const amont = g('rev-parse', 'HEAD').trim()
+  g('checkout', '-q', '-b', 'locale', premier)
+  writeFileSync(join(racine, 'neuf.txt'), 'n\n')
+  g('add', 'neuf.txt'); g('commit', '-q', '-m', 'equivalent')
+  writeFileSync(join(racine, 'l.txt'), 'l\n')
+  g('add', 'l.txt'); g('commit', '-q', '-m', 'unique')
+  const [equivalent, unique] = g('rev-list', '--reverse', `${premier}..HEAD`).trim().split('\n')
+  assert.deepEqual(porte.ceriseDe(forge(racine), amont, 'HEAD'), [{ signe: '-', sha: equivalent }, { signe: '+', sha: unique }])
+})
+
+test('#2187 fusionDiff3 : base vide visible, binaire rendu au lieu de levé', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'diff3-'))
+  t.after(() => jeter(dossier))
+  const d = forge(dossier)
+  const f = (nom, contenu) => { writeFileSync(join(dossier, nom), contenu); return join(dossier, nom) }
+  const labels = { ours: 'local', base: 'base', theirs: 'amont' }
+  const fichiers = { ours: f('l', 'titre\nligne a\nligne b\najout local\n'), base: f('b', 'titre\nligne a\n'), theirs: f('a', 'titre\nligne a\nligne b\n') }
+  assert.deepEqual(porte.fusionDiff3(d, fichiers, labels, 7), { texte: 'titre\nligne a\n<<<<<<< local\nligne b\najout local\n||||||| base\n=======\nligne b\n>>>>>>> amont\n', conflit: true })
+  assert.deepEqual(porte.fusionDiff3(d, fichiers, labels, 8), { texte: 'titre\nligne a\n<<<<<<<< local\nligne b\najout local\n|||||||| base\n========\nligne b\n>>>>>>>> amont\n', conflit: true })
+  assert.deepEqual(porte.fusionDiff3(d, { ours: f('x', Buffer.from([0, 1])), base: f('y', Buffer.from([0, 2])), theirs: f('z', Buffer.from([0, 3])) }, labels, 7), { binaire: true })
+})
+
+test('#2187 poserDansIndex, rafraichirIndex, avancerArbre : sous un index de transport, .git/index intact', (t) => {
+  const { racine, premier, second } = depot()
+  t.after(() => jeter(racine))
+  const d = forge(racine)
+  const g = gitDe(racine)
+  g('update-ref', 'HEAD', premier)
+  g('read-tree', '-u', '--reset', premier)
+  const avant = readFileSync(join(racine, '.git', 'index'))
+  const transport = join(racine, '.git', 'transport')
+  writeFileSync(transport, avant)
+  assert.ok(reussi(porte.rafraichirIndex(d, { index: transport })))
+  assert.ok(reussi(porte.avancerArbre(d, { index: transport, de: premier, vers: second })))
+  assert.equal(readFileSync(join(racine, 'neuf.txt'), 'utf8'), 'n\n')
+  assert.deepEqual(readFileSync(join(racine, '.git', 'index')), avant)
+  assert.ok(reussi(porte.poserDansIndex(d, { index: transport, entrees: [{ chemin: 'neuf.txt', retirer: true }] })))
+  assert.equal(porte.entreesDe(d, INDEX, ['neuf.txt'], { index: transport }).has('neuf.txt'), false)
+})
+
+test('#2187 transactionDeRefs : prepare refuse un ancien sha faux, commit avance HEAD ; lancerHook absent = 0', async (t) => {
+  const { racine, premier, second } = depot()
+  t.after(() => jeter(racine))
+  const d = forge(racine)
+  const faux = porte.transactionDeRefs(d, { message: 'sonde' })
+  assert.deepEqual(await faux.start(), { ok: true })
+  await faux.update('HEAD', premier, premier)
+  const refus = await faux.prepare()
+  assert.equal(refus.ok, false)
+  assert.match(/** @type {{ raison: string }} */ (refus).raison, /cannot lock ref|is at/)
+  assert.deepEqual(await faux.abort(), refus)
+  const tx = porte.transactionDeRefs(d, { message: 'sonde' })
+  for (const ordre of [() => tx.start(), () => tx.update('HEAD', premier, second), () => tx.prepare(), () => tx.commit()]) assert.deepEqual(await ordre(), { ok: true })
+  assert.equal(shaDe(d, 'HEAD'), premier)
+  assert.equal(brancheDe(d), 'main')
+  const hook = porte.lancerHook(d, 'post-merge', ['0'])
+  assert.ok(reussi(hook))
+})
