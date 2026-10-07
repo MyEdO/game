@@ -23,7 +23,7 @@ import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.
 import { APPEL_VITEST, appelDe, appelleTscNu, appelleVitestNu, LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import {
   CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
-} from './solde-ticket-guard.mjs'
+} from '../guards/lib/commandeShell.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { fileURLToPath } from 'node:url'
 import { resolve, isAbsolute } from 'node:path'

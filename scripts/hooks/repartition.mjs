@@ -16,7 +16,7 @@ import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import {
   NOM_NON_LITTERAL, affectationsDEnvironnement, canauxDesMessages, cibleDeLaCommande, commandeDeLecture, configsGitDeLaCommande, gitSubcommand,
   nomsDeLaCommande, optionsGitGlobales, segmentsProfonds, versCheminNatif,
-} from './solde-ticket-guard.mjs'
+} from '../guards/lib/commandeShell.mjs'
 
 /** Surface qui lance le hook : Claude Code pose `CLAUDE_PROJECT_DIR` dans l'environnement de ses hooks,
  *  Codex ne le pose jamais. */

@@ -11,7 +11,7 @@ import {
   construireContexte, cumuler, evaluerGardes, projeter, repartir, surfaceDe,
 } from './repartition.mjs'
 import { REGISTRE, REGISTRE_SOLDE } from './registre.mjs'
-import { gitSubcommand } from './solde-ticket-guard.mjs'
+import { gitSubcommand } from '../guards/lib/commandeShell.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'

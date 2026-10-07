@@ -25,12 +25,10 @@ import {
   pipelinesDeJetons,
   sansRedirections,
   affectationsDEnvironnement,
-  isGitCommitCommand,
-  extractClosedIssues,
-  extractTargetDir,
   versCheminNatif,
   scriptsNpm,
-} from './solde-ticket-guard.mjs'
+} from '../guards/lib/commandeShell.mjs'
+import { isGitCommitCommand, extractClosedIssues, extractTargetDir } from './solde-ticket-guard.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
