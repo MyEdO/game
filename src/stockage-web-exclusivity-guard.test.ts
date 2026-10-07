@@ -68,9 +68,9 @@ describe('garde — une clé de stockage n’est écrite qu’une fois', () => {
   it('MORSURE : une clé recopiée dans un second fichier est vue', () => {
     const dir = mkdtempSync(join(tmpdir(), 'cle-stockage-guard-'));
     try {
-      writeFileSync(join(dir, 'proprietaire.ts'), "export const CLE = 'wfrp4.essai.v1';\n");
-      writeFileSync(join(dir, 'copie.ts'), "const CLE = `wfrp4.essai.v1`;\nexport const k = (s: string) => `wfrp4.essai.${s}`;\n");
-      expect(Object.keys(clesEnDouble([dir]))).toEqual(['wfrp4.essai.v1']);
+      writeFileSync(join(dir, 'proprietaire.ts'), "export const CLE = 'wfrp4.essai';\n");
+      writeFileSync(join(dir, 'copie.ts'), "const CLE = `wfrp4.essai`;\nexport const k = (s: string) => `wfrp4.essai.${s}`;\n");
+      expect(Object.keys(clesEnDouble([dir]))).toEqual(['wfrp4.essai']);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

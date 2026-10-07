@@ -15,7 +15,7 @@ import {
   type PursuitPayload,
 } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type SequenceState, type MancheClose } from './sequenceCore';
+import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { startCascade } from './cascade';
 import { monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { combatStakeRef } from '../data';
@@ -49,7 +49,7 @@ function doneRound(party: { id: string }[], sl: number): MancheClose {
 
 /** SÉQUENCE de poursuite EN COURS — l'état vit dans le socle (`sequence`), la poursuite en est la
  *  charge utile ; les formules de score de camp (l.93) sont des PARAMÈTRES, comme à l'ouverture. */
-function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): SequenceState<PursuitPayload> {
+function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
     def: 'pursuit', round: p.manche ?? 1, cum: {},
     params: { score: { fleeing: 'min', pursuers: 'max' } },

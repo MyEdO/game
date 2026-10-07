@@ -27,7 +27,7 @@ import { drunkCharPenalties } from './drunkenness';
 import { hasActiveFlag } from './activeFlags';
 import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
-import { normalizePassiveKind, resolveFormula } from './ops';
+import { resolveFormula } from './ops';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
@@ -906,13 +906,9 @@ export function poseDeterminationCanceller(c: Combatant, duration: Duration, lab
 }
 
 /** Le `kind` est-il ADDITIF (sommé dans la base : mutation/qualité, corps/équipement permanent) plutôt que
- *  combiné en POOL non-cumul (trauma/maladie/faim/sort) ? Seuls les `charMod`/`skillMod` distinguent les deux.
- *  L'entrée est NORMALISÉE (`normalizePassiveKind`) : une valeur PERSISTÉE à l'ancien id accentué —
- *  arrivée par une porte NON versionnée (export de roster, document réécrit à la main ; une save
- *  obsolète, elle, est refusée à la lecture) — sortirait sinon de la somme additive pour le pool
- *  non-cumul SANS AUCUN SIGNE. Ce filet ferme ce silence-là. */
+ *  combiné en POOL non-cumul (trauma/maladie/faim/sort) ? Seuls les `charMod`/`skillMod` distinguent les deux. */
 function isAdditiveKind(kind: PassiveKind | undefined): boolean {
-  return (normalizePassiveKind(kind) ?? 'intrinseque') === 'intrinseque';
+  return (kind ?? 'intrinseque') === 'intrinseque';
 }
 
 /** `kind` DÉRIVÉ d'une op de séquelle (P0 : par type d'op ; la donnée pourra le surcharger plus tard). */
@@ -927,9 +923,7 @@ function traumaOpKind(op: GameOp): PassiveKind {
  *  `t` (la séquelle porteuse) n'est requis que pour les annulateurs liés au porteur (Insensible/prothèse) ;
  *  les sources SANS séquelle (maladie/faim — gating par Détermination seule) l'omettent. */
 function modSurvives(c: Combatant, kind: PassiveKind, t?: Trauma): boolean {
-  // `?? []` : la table est TOTALE sur l'union courante — un `kind` d'une autre forme (valeur persistée
-  // ancienne arrivée par une porte non migrée) ne doit pas faire LEVER le collecteur passif tout entier.
-  for (const canc of PASSIVE_CANCELLERS[normalizePassiveKind(kind) ?? kind] ?? []) {
+  for (const canc of PASSIVE_CANCELLERS[kind]) {
     if (canc === 'determination' && (c.activeEffects ?? []).some((e) => e.ignoreCritMods)) return false;
     if (canc === 'painless' && t && painlessIgnores(c, t)) return false;
     if (canc === 'prosthesis-all' && t && prosthesisCancels(c, t, 'all')) return false;
@@ -964,9 +958,7 @@ export function traumaPassiveMods(c: Combatant): PassiveMod[] {
     // `label` = LA séquelle porteuse (« Fracture à la jambe ») : elle porte son nom sur le Combattant,
     // donc une composante de jet issue d'elle n'a jamais à se replier sur sa famille. Aucun `src` : les
     // séquelles ne sont pas une catégorie du Codex — le NOM tient, le LIEN n'existe pas.
-    // `normalizePassiveKind` : le `kind` PERSISTÉ de la séquelle est ramené à la forme courante AVANT
-    // d'être gaté puis propagé (porte NON versionnée : export de roster, document réécrit à la main).
-    for (const o of traumaOps(t)) { const kind = normalizePassiveKind(t.passiveKind) ?? traumaOpKind(o); if (modSurvives(c, kind, t)) out.push({ op: o, kind, label: t.label }); }
+    for (const o of traumaOps(t)) { const kind = t.passiveKind ?? traumaOpKind(o); if (modSurvives(c, kind, t)) out.push({ op: o, kind, label: t.label }); }
   }
   return out;
 }

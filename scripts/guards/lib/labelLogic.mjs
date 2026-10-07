@@ -994,7 +994,7 @@ export function estDansLeCorpus(rel) {
  *  « coutures légitimes »), qui juge le SITE par la déclaration qui le porte. Une DETTE n'y entre
  *  jamais : elle va au stock `DETTES_DE_LIBELLE`, avec son ticket. */
 export const RATCHET_EXCEPTIONS = {
-  'data/index.ts:3313':
+  'data/index.ts:3312':
     "(c) `qualityIdByLabel` rend un ID, pas un texte : couture libellé→id d'AUTHORING (invariant 1, « aider " +
     'à la saisie »), déjà recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
   'ui/editor/refFormatLivre.ts:20':
@@ -1009,15 +1009,15 @@ export const RATCHET_EXCEPTIONS = {
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
   // `collectLabelEntityResolvers`, donc chacun de ses appels hors couture est une dette au stock.
-  'data/index.ts:3141':
+  'data/index.ts:3140':
     '`findSkill` : résolveur libellé→entrée de la couture de saisie (statblocs de campagne, #909).',
-  'data/index.ts:3175':
+  'data/index.ts:3174':
     '`findTalent` : résolveur libellé→entrée de la couture de saisie (#909).',
-  'data/index.ts:3278':
+  'data/index.ts:3277':
     '`findSpell` : résolveur libellé→entrée de la couture de saisie (#909).',
-  'data/index.ts:3308':
+  'data/index.ts:3307':
     '`qualiteParSlugDeLabel` : index du slug de libellé, lu par `qualityIdByLabel` SEUL (#909).',
-  'data/index.ts:3319':
+  'data/index.ts:3318':
     '`qualityIdByLabel` : l’entrée CANONIQUE d’un libellé doublon est celle dont l’id est son slug (#909).',
 };
 

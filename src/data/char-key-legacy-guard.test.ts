@@ -1,7 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scanCharKeyLegacy } from '../../scripts/guards/lib/charKeyLegacy.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
@@ -14,19 +11,13 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * dérivé (`charAbr`, issu de `characteristics.json` par id). Extension #410 : moteur/UI/rendu ajoutés
  * au périmètre (recensement 2026-07-13 — ZÉRO offender, extension à coût nul, tout nouveau dossier
  * naît couvert plutôt que d'attendre un opt-in par dossier).
- *
- * `src/state/charKeyMigration.ts` HORS SCAN : foyer documenté de la migration #311, qui CITE les
- * anciens tokens pour les convertir (pas une régression).
  */
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/data/ → ../../ = racine du projet
 const SCAN_DIRS = ['src/data', 'src/state', 'src/engine', 'src/ui', 'src/gameIso'];
-const EXCLUDED = (rel: string) => rel === 'src/state/charKeyMigration.ts';
 
 function countsByFile(): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { rel, text } of readCorpus(SCAN_DIRS)) {
-    if (EXCLUDED(rel)) continue;
     const n = scanCharKeyLegacy(rel, text).length;
     if (n > 0) counts[rel] = n;
   }
@@ -34,7 +25,7 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou « CharKey » — anciens tokens courts en valeur (cliquet, #302/#311)', () => {
-  it('aucun fichier de src/data|state|engine|ui|gameIso (hors charKeyMigration.ts) ne réintroduit CC/CT/F/E/I/Ag/Dex/Int/FM/Soc en valeur', () => {
+  it('aucun fichier de src/data|state|engine|ui|gameIso ne réintroduit CC/CT/F/E/I/Ag/Dex/Int/FM/Soc en valeur', () => {
     const counts = countsByFile();
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(
@@ -46,11 +37,5 @@ describe('garde-fou « CharKey » — anciens tokens courts en valeur (cliquet, 
   it('fail-closed : le scanner détecte une écriture SYNTHÉTIQUE du motif', () => {
     const regressed = "const c = { characteristics: { CC: 40, FM: 30 } };";
     expect(scanCharKeyLegacy('src/state/x.ts', regressed).length).toBeGreaterThan(0);
-  });
-
-  it('le foyer de migration (hors scan) n\'est pas ré-audité — il ÉNUMÈRE les anciens tokens pour les convertir, pas un usage-valeur', () => {
-    const src = readFileSync(join(ROOT, 'src/state/charKeyMigration.ts'), 'utf8');
-    expect(EXCLUDED('src/state/charKeyMigration.ts')).toBe(true);
-    void src;
   });
 });

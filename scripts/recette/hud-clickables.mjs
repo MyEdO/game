@@ -121,8 +121,14 @@ const PROBE = `(() => {
   const panneau = document.querySelector('.ld-panel');
   const rp = panneau ? panneau.getBoundingClientRect() : null;
   const tiroir = document.querySelector('.log-drawer') ? {
+    panneau: !!panneau,
     ouvert: !!(rp && rp.width > 0 && rp.height > 0),
     rect: box(rp),
+    points: rp && rp.width > 0 && rp.height > 0 ? [0.1, 0.5, 0.9].map((hauteur) => {
+      const x = rp.x + rp.width / 2, y = rp.y + rp.height * hauteur;
+      const top = document.elementFromPoint(x, y);
+      return { hauteur, x: +x.toFixed(1), y: +y.toFixed(1), ok: !!(top && panneau.contains(top)), hitBy: cn(top) };
+    }) : [],
     surPont: overlap(rp, pont ? pont.getBoundingClientRect() : null),
   } : null;
 
@@ -581,6 +587,14 @@ export function defautsFrise(m, phase) {
  */
 export function defauts(m, phase) {
   const out = [];
+  if (!m.tiroir) out.push(`${phase} ${m.largeur}px : aucun tiroir du journal — sonde aveugle`);
+  else if (!m.tiroir.panneau) out.push(`${phase} ${m.largeur}px : le tiroir du journal ne s'ouvre pas (panneau absent) — sonde aveugle`);
+  else if (!m.tiroir.ouvert) out.push(`${phase} ${m.largeur}px : le tiroir du journal ne s'ouvre pas (panneau non rendu) — sonde aveugle`);
+  else if (m.tiroir.points?.length !== 3 || [0.1, 0.5, 0.9].some((hauteur) => !m.tiroir.points.some((p) => p.hauteur === hauteur))) {
+    out.push(`${phase} ${m.largeur}px : les trois points du journal ouvert ne sont pas mesurés — sonde aveugle`);
+  } else for (const p of m.tiroir.points) {
+    if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
+  }
   // Rail DISSOUS : son ouvreur d'écran porte son propre ancrage, ou il retombe dans le flux.
   if (m.rail?.dissous) {
     // Un rail dissous SANS ouvreur ne rendait aucun verdict : la mesure était verte par VACUITÉ.
@@ -606,10 +620,7 @@ export function defauts(m, phase) {
     // TIROIR DU JOURNAL : c'est ici que se mesure sa réserve du bas — un panneau qui passe SOUS la
     // console de tour lui mange ses cases. Fermé, il n'y a rien à dire ; pas ouvrable, la mesure est
     // aveugle et le dit.
-    if (m.tiroir) {
-      if (!m.tiroir.ouvert) out.push(`${phase} ${m.largeur}px : le tiroir du journal ne s'ouvre pas (panneau non rendu) — sonde aveugle sur sa réserve du bas`);
-      else if (m.tiroir.surPont) out.push(`${phase} ${m.largeur}px : le tiroir du journal ouvert recouvre la console de ${m.tiroir.surPont.ox}×${m.tiroir.surPont.oy}px`);
-    }
+    if (m.tiroir?.ouvert && m.tiroir.surPont) out.push(`${phase} ${m.largeur}px : le tiroir du journal ouvert recouvre la console de ${m.tiroir.surPont.ox}×${m.tiroir.surPont.oy}px`);
     if (m.piste) {
       if (!m.piste.tientDansLaBande) out.push(`${phase} ${m.largeur}px : la piste d'initiative (${m.piste.clientWidth}px) déborde de sa bande (${m.piste.bande}px) — overflow-x ne mord pas`);
       // Le défilement n'est EXIGÉ que si le contenu excède la bande : en colonne latérale (largeurs
@@ -823,6 +834,8 @@ async function main() {
     await evaluate(session, `window.__wfrp.store.setState({ objectives: [{ id: 'recette-hud', text: 'Retrouver la piste des mutants dans les collines' }] })`);
     await sleep(400);
     await resoudreModales(session, 'pose objectif');
+    await cliquerSelecteur(session, '.log-drawer .ld-btn');
+    await sleep(400);
 
     for (const w of args.widths) {
       await setViewport(session, w, HEIGHT);

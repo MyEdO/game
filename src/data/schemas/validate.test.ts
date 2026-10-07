@@ -60,8 +60,8 @@ describe('validateDataset — point de validation partagé (#176)', () => {
 
   it('validateDocument — porte par SCHÉMA (le seam n\'a pas de nom de fichier) : rend les FAUTES', () => {
     expect(validateDocument(projetSchema, areneProjet)).toBeNull();
-    const fautes = validateDocument(projetSchema, { ...(areneProjet as object), schema: 2 });
-    expect(fautes?.map((f) => f.chemin)).toContainEqual(['schema']);
+    const fautes = validateDocument(projetSchema, { ...(areneProjet as object), type: 'scene' });
+    expect(fautes?.map((f) => f.chemin)).toContainEqual(['type']);
     expect(rapportDeFautes('Projet', fautes!)).toContain('Projet — JSON invalide');
   });
 

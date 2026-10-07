@@ -164,6 +164,7 @@ import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { SUBSTANTIVE_MIN_LINES, TRAILERS, corpsDuTrailer, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
+import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
@@ -1839,6 +1840,40 @@ export function extractFermeturesNues(command) {
   return numerosNusEnumeres(texteProfond(command)).map(Number).sort((a, b) => a - b)
 }
 
+/** Des numéros canoniques (`fermetures.mjs`) en nombres, dédupliqués et triés. PURE. */
+const enNombres = (numeros) => [...new Set(numeros.map(Number))].sort((a, b) => a - b)
+
+/** Les numéros que les chaînes de rattachement (`motifRattachement`) de `texte` citent. PURE. */
+const numerosRattaches = (texte) => enNombres([...texte.matchAll(motifRattachement())].flatMap((m) => numerosDeLaChaine(m[0])))
+
+/**
+ * Ce que lit une décision de la porte. `message` : le message que git enregistre (`lectureDuMessage`),
+ * ses fermetures lues sur ses `exigences`, ses rattachements et ses trailers sur ses `satisfactions`.
+ * `command` : la commande shell, lue par `isGitCommitCommand` et `texteProfond`.
+ * @param {{ command?: string, message?: string }} entree
+ * @returns {{ commit: boolean, satisfactions: string, fermes: () => number[], nus: () => number[], refs: () => number[] }}
+ */
+function lectureDeLaPorte({ command, message }) {
+  if (typeof message === 'string') {
+    const { exigences, satisfactions } = lectureDuMessage(message)
+    return {
+      commit: true,
+      satisfactions,
+      fermes: () => enNombres(numerosFermes(exigences)),
+      nus: () => enNombres(numerosNusEnumeres(exigences)),
+      refs: () => numerosRattaches(satisfactions),
+    }
+  }
+  // #2071
+  return {
+    commit: isGitCommitCommand(command),
+    satisfactions: command ?? '',
+    fermes: () => extractClosedIssues(command),
+    nus: () => extractFermeturesNues(command),
+    refs: () => extractRefIssues(command),
+  }
+}
+
 const VERIFIE_RE = /VERIFIE\s*:\s*(.+)/i
 const MIN_VERIFIE_LEN = 40
 // Une section d'un solde court de son titre de niveau 2 jusqu'au PROCHAIN titre de niveau 2, ou la
@@ -2242,8 +2277,9 @@ export function validateSolde(content, today, {
  * posé ICI, c'est cette décision qui connaît les tickets fermés.
  * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
-export function evaluate({ command, today, readSoldes, soldeOnDisk = () => null, contexteSolde = {} }) {
-  const nus = extractFermeturesNues(command)
+export function evaluate({ command, message, today, readSoldes, soldeOnDisk = () => null, contexteSolde = {} }) {
+  const lu = lectureDeLaPorte({ command, message })
+  const nus = lu.nus()
   if (nus.length > 0) {
     const cites = nus.map((n) => `#${n}`).join(', ')
     return {
@@ -2255,7 +2291,7 @@ export function evaluate({ command, today, readSoldes, soldeOnDisk = () => null,
     }
   }
 
-  const issues = extractClosedIssues(command)
+  const issues = lu.fermes()
   if (issues.length === 0) return null
 
   const lus = readSoldes(issues)
@@ -2363,14 +2399,15 @@ function estCheminDeSubstance(chemin) {
  * tête du premier commit sans ticket quand la commande en porte plusieurs.
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluatePorteDuTicket({
-  command,
-  fichiersEmportes = [],
-  messages = messagesDesCommits(command, { readFile: () => null }).messages,
-}) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluatePorteDuTicket({ command, message, fichiersEmportes = [], messages }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit) return null
   const substance = fichiersEmportes.filter(estCheminDeSubstance)
   if (substance.length === 0) return null
+  // #2071
+  messages ??= typeof message === 'string'
+    ? [{ texte: lu.satisfactions, direct: true }]
+    : messagesDesCommits(command, { readFile: () => null }).messages
   let horsMessages = null
   const sansTicket = (m) => {
     if (m.texte !== null) return numerosCites(m.texte).length === 0
@@ -2418,11 +2455,7 @@ const MIN_REFUTATION_LINE_LEN = TRAILERS.REFUTATION.min
 /** Numéros de ticket que la commande RATTACHE sans fermer (`ref #N`/`refs #N`), dédupliqués/triés. */
 export function extractRefIssues(command) {
   if (!command || !isGitCommitCommand(command)) return []
-  const nums = new Set()
-  // Une correspondance porte la CHAÎNE ENTIÈRE (`refs #A #B #C`) : on en extrait TOUS les numéros.
-  for (const m of texteProfond(command).matchAll(motifRattachement()))
-    for (const n of numerosDeLaChaine(m[0])) nums.add(Number(n))
-  return [...nums].sort((a, b) => a - b)
+  return numerosRattaches(texteProfond(command))
 }
 
 /** `true` si le message porte une ligne "REFUTATION: <...>" d'au moins `MIN_REFUTATION_LINE_LEN`
@@ -2447,18 +2480,19 @@ export function validateRefFile(content) {
  * silence — sauver une fusion n'est pas une livraison (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateAntiEsquive({ command, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
-  if (!command || !isGitCommitCommand(command) || fusionEnCours) return null
+export function evaluateAntiEsquive({ command, message, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, readRefFile = () => null }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit || fusionEnCours) return null
   if (!stagedTouchesSrc) return null
   if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
 
   // Une fermeture est déjà couverte par `evaluate()` (solde complet, réfutation comprise) — pas de
   // double exigence ici.
-  if (extractClosedIssues(command).length > 0) return null
+  if (lu.fermes().length > 0) return null
 
-  if (hasInlineRefutation(command)) return null
+  if (hasInlineRefutation(lu.satisfactions)) return null
 
-  const refIssues = extractRefIssues(command)
+  const refIssues = lu.refs()
   // Aucun ticket rattaché (ni fermeture, ni `ref #N`) : hors du déclencheur — l'absence de ticket se
   // juge sur la SUBSTANCE, et c'est `evaluatePorteDuTicket` qui la juge.
   if (refIssues.length === 0) return null
@@ -2535,13 +2569,14 @@ export function validateJugeVisionFile(content) {
  * `fusionEnCours` : silence, comme `evaluateAntiEsquive` (#2328 A1).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluateJuge({ command, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
-  if (!command || !isGitCommitCommand(command) || fusionEnCours) return null
+export function evaluateJuge({ command, message, fusionEnCours = false, stagedTouchesSrc, stagedTotalLines, stagedTouchesUi, readRefFile = () => null }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit || fusionEnCours) return null
   if (!stagedTouchesSrc) return null
   if (typeof stagedTotalLines === 'number' && stagedTotalLines < SUBSTANTIVE_MIN_LINES) return null
-  if (extractClosedIssues(command).length > 0) return null
+  if (lu.fermes().length > 0) return null
 
-  const refIssues = extractRefIssues(command)
+  const refIssues = lu.refs()
   // Aucun ticket rattaché (ni fermeture, ni `ref #N`) : hors du déclencheur — l'absence de ticket se
   // juge sur la SUBSTANCE, et c'est `evaluatePorteDuTicket` qui la juge.
   if (refIssues.length === 0) return null
@@ -2549,11 +2584,11 @@ export function evaluateJuge({ command, fusionEnCours = false, stagedTouchesSrc,
   const needsVision = !!stagedTouchesUi
 
   const jugeSatisfied =
-    hasInlineJuge(command) ||
+    hasInlineJuge(lu.satisfactions) ||
     (refIssues.length > 0 && refIssues.every((n) => validateJugeFile(readRefFile(n)).ok))
   const visionSatisfied =
     !needsVision ||
-    hasInlineJugeVision(command) ||
+    hasInlineJugeVision(lu.satisfactions) ||
     (refIssues.length > 0 && refIssues.every((n) => validateJugeVisionFile(readRefFile(n)).ok))
 
   if (jugeSatisfied && visionSatisfied) return null
@@ -2786,11 +2821,11 @@ export function ticketsDuRegistre(contenu) {
  * `lireRegistreEmporte(chemin)` renvoie la version que le commit EMPORTE (ou `null`) — la LISTE des
  * registres porteurs se lit par cette même couture, ici, jamais à l'import.
  * Le refus NOMME le fichier qui porte encore `#N` — sans quoi il faudrait deviner lequel.
- * @param {{ command: string, lireRegistreEmporte?: (chemin: string) => string|null }} entree
+ * @param {{ command?: string, message?: string, lireRegistreEmporte?: (chemin: string) => string|null }} entree
  * @returns {{ reason: string } | null}
  */
-export function evaluateRegistresPorteurs({ command, lireRegistreEmporte = () => null }) {
-  const issues = extractClosedIssues(command)
+export function evaluateRegistresPorteurs({ command, message, lireRegistreEmporte = () => null }) {
+  const issues = lectureDeLaPorte({ command, message }).fermes()
   if (issues.length === 0) return null
   let registres
   try {
@@ -2889,6 +2924,7 @@ export function analyzeDiffDuCommit(entrees = [], { ecranParInsertion = false } 
  *  des fragments le rend vide — dont un commit EMBARQUÉ, ou plusieurs commits, dont un seul ne borne
  *  pas ce que les autres emportent. */
 export function formeDuCommit(command) {
+  // #2071
   const jetons = command ? jetonsDuCommit(command) : null
   if (!jetons) return { forme: 'index', pathspecs: [] }
   if (jetons.nonResolus) return { forme: 'tout', pathspecs: [] }
@@ -2937,6 +2973,9 @@ export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
  * `pathspec` → l'arbre de travail pour un chemin DANS le pathspec, HEAD pour tous les autres
  * (`sourceMelee`) ; forme `inclus` → le même arbre, l'INDEX pour les autres ; forme `tout` → l'arbre
  * de travail des chemins suivis (`SUIVI`). `depot` : celui de `dir` par défaut, ses pannes dans `pannes`.
+ * Sans `command` (`jugerLeCommit`), la forme `index` : l'index que git a préparé pour le commit, `-a`,
+ * `-i` et `-- <chemins>` compris (`GIT_INDEX_FILE`, hérité par `depotDe` sans `env`).
+ * @param {string | null} command
  */
 export function diffDuCommit(command, dir = process.cwd(), { pannes = [], depot = depotDuHook(dir, pannes) } = {}) {
   const { forme, pathspecs } = formeDuCommit(command)
@@ -3449,9 +3488,10 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
  * deux : son APPORT est jugé (`bilanDuCommit`). Ne se prononce que sur un `git commit`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = null }) {
-  if (!command || !isGitCommitCommand(command) || (!fusion && !diff)) return null
-  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), command)
+export function evaluateStocksQuiGrandissent({ command, message, diff, images, fusion = null }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit || (!fusion && !diff)) return null
+  const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), lu.satisfactions)
   return restantes.length ? { reason: raisonDeRefus(restantes) } : null
 }
 
@@ -3461,15 +3501,16 @@ export function evaluateStocksQuiGrandissent({ command, diff, images, fusion = n
  * commit (`coteCss`) ; ne se prononce que sur un `git commit` dont le message porte une ligne ou qui
  * peut déplacer la frontière (`deplace()`, `deplaceLaFrontiere`). Une lecture qui lève est un refus
  * NOMMÉ, jamais un passage muet.
- * @param {{ command: string, deplace: () => boolean, cotes: () => { base: object, commit: object } }} p
+ * @param {{ command?: string, message?: string, deplace: () => boolean, cotes: () => { base: object, commit: object } }} p
  * @returns {{ reason: string } | null}
  */
-export function evaluateReclassementsCss({ command, deplace, cotes }) {
-  if (!command || !isGitCommitCommand(command)) return null
+export function evaluateReclassementsCss({ command, message, deplace, cotes }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit) return null
   let ecarts
   try {
-    if (!lignesDeReclassement(command).length && !deplace()) return null
-    ecarts = reclassementsNonDeclares({ message: command }, cotes())
+    if (!lignesDeReclassement(lu.satisfactions).length && !deplace()) return null
+    ecarts = reclassementsNonDeclares({ message: lu.satisfactions }, cotes())
   } catch (e) {
     return { reason: `⛔ RECLASSEMENT CSS injugeable : ${e.message}` }
   }
@@ -3482,9 +3523,10 @@ export function evaluateReclassementsCss({ command, deplace, cotes }) {
  * pré-image : c'est la même discipline de lecture que `evaluateStocksQuiGrandissent`.
  * @returns {{ reason: string } | null}
  */
-export function evaluateBudgetContexte({ command, mesure, reference }) {
-  if (!command || !isGitCommitCommand(command)) return null
-  return refusDeBudget({ mesure, reference, message: command })
+export function evaluateBudgetContexte({ command, message, mesure, reference }) {
+  const lu = lectureDeLaPorte({ command, message })
+  if (!lu.commit) return null
+  return refusDeBudget({ mesure, reference, message: lu.satisfactions })
 }
 
 /**
@@ -3522,6 +3564,101 @@ async function evaluerSolde(entree, contexte) {
 /** Le répertoire où la lecture a été tentée, pour `refusDesPannes` : hors dépôt, la cause est là. */
 const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: natureDeLArbre(dir) === null })
 
+/** Les décisions de la porte sur `commit` (`diffDuCommit`), le commit que `entree` décrit : `{ message }`
+ *  (`jugerLeCommit`) ou `{ command }` (`jugerLeSolde`, #2071), lu par `lectureDeLaPorte`. Tout ce qui se
+ *  lit sur DISQUE se lit dans `dir`, où le commit s'exécute. `etage2()` lit les stocks et les
+ *  reclassements, à la demande. `messages` : ceux de la commande (`messagesDesCommits`). */
+async function decisionsDuCommit(entree, { commit, dir, today, pannes, messages }) {
+  const lu = lectureDeLaPorte(entree)
+  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat(), { ecranParInsertion: commit.enFusion() })
+  // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
+  // capture antérieure au geste montre l'écran d'avant.
+  const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), dir)
+  // UNE histoire de HEAD pour l'évaluation, que les citations « corrigé par » de tous les soldes
+  // partagent ; lue PARESSEUSEMENT, DANS le juge : une indisponibilité de git y est rattrapée et NOMMÉE.
+  const histoire = histoireDeHead(depotDe(dir))
+  const decision = jugerOuConfier(() => evaluate({
+    ...entree,
+    today,
+    // Le solde LU est celui que le commit EMPORTE (`commit.contenus`, un lot pour tous les soldes) :
+    // sous un commit par pathspec, un solde stagé hors pathspec reste à la version de HEAD et la
+    // preuve ne part pas.
+    readSoldes: (ns) => soldesEmportes(commit, ns),
+    soldeOnDisk: (n) => readSoldeFile(n, dir),
+    contexteSolde: {
+      fichiersEmportes: fichiers,
+      lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
+      touchesUi,
+      verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: dir, mtimeMin: mtimeEcrans, pannes }),
+      histoireDe: (shas) => histoireDesCitations(depotDuHook(dir, pannes), shas, { histoire }),
+    },
+  }), pannes)
+  // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
+  // lecture que toutes les autres évaluations de cette garde.
+  const porteDuTicket = evaluatePorteDuTicket({ ...entree, fichiersEmportes: fichiers, messages })
+  // TOUT ce que la garde lit sur DISQUE se lit dans `dir` : lu depuis le dépôt de la garde, un fichier
+  // de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
+  const antiEsquive = evaluateAntiEsquive({
+    ...entree,
+    fusionEnCours: commit.enFusion(),
+    stagedTouchesSrc: touchesSrc,
+    stagedTotalLines: totalLines,
+    readRefFile: (n) => readRefFile(n, dir),
+  })
+  const juge = evaluateJuge({
+    ...entree,
+    fusionEnCours: commit.enFusion(),
+    stagedTouchesSrc: touchesSrc,
+    stagedTotalLines: totalLines,
+    stagedTouchesUi: touchesUi,
+    readRefFile: (n) => readRefFile(n, dir),
+  })
+  const registresPorteurs = evaluateRegistresPorteurs({ ...entree, lireRegistreEmporte: (chemin) => commit.contenu(chemin) })
+  // Volet anti-tombale : `commentPoison` tire le vocabulaire RAW derrière lui — chargé SEULEMENT
+  // quand le commit ferme un ticket.
+  const fermes = lu.fermes()
+  let tombale = null
+  if (fermes.length > 0) {
+    const { evaluateTombale } = await import('./solde-tombale.mjs')
+    tombale = evaluateTombale({
+      issuesFermees: fermes,
+      fichiers: fichiersCitantTickets(fermes, dir, { pannes }),
+      lire: (p) => commit.contenu(p),
+    })
+  }
+  const importsDuContexte = [
+    ...importsDe(commit.contenu('CLAUDE.md')),
+    ...importsDe(commit.lirePreImage('CLAUDE.md')),
+  ]
+  const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
+    ? evaluateBudgetContexte({
+      ...entree,
+      mesure: mesurerBudget(dir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, dir, { pannes }) }),
+      reference: mesurerBudget(dir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), dir, { pannes }) }),
+    })
+    : null
+  // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
+  // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
+  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
+  const etage2 = () => {
+    const fusion = lu.commit ? commit.fusion() : null
+    const porteursDeStock = lu.commit ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
+    const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
+      ...entree,
+      ...(fusion
+        ? { fusion: fusion.entree }
+        : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
+    }) : null
+    const reclassements = evaluateReclassementsCss({
+      ...entree,
+      deplace: () => commit.deplaceLaFrontiereCss(fichiers),
+      cotes: commit.cotesCss,
+    })
+    return [stocks, reclassements]
+  }
+  return { touchesSrc, decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, etage2 }
+}
+
 /** Le jugement de `evaluerSolde`, dont une `GitIndisponible` levée remonte au refus nommé. */
 async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
   const command = commandeDe(entree)
@@ -3538,7 +3675,6 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   // en cours, son APPORT PROPRE (`commit.base()`, #2328 A2 et A5). Une fusion que git ne rejoue pas LÈVE
   // `GitIndisponible` : le refus nommé d'`evaluerSolde`, jamais une retombée sur le diff contre HEAD (#2328 D2).
   const commit = diffDuCommit(command, targetDir, { pannes })
-  const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat(), { ecranParInsertion: commit.enFusion() })
   // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT.
   const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
   if (fileError) {
@@ -3548,83 +3684,17 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
         `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`),
     })
   }
-  // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
-  // capture antérieure au geste montre l'écran d'avant.
-  const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), targetDir)
-  // UNE histoire de HEAD pour l'évaluation, que les citations « corrigé par » de tous les soldes
-  // partagent ; lue PARESSEUSEMENT, DANS le juge : une indisponibilité de git y est rattrapée et NOMMÉE.
-  const histoire = histoireDeHead(depotDe(targetDir))
-  const decision = jugerOuConfier(() => evaluate({
-    command: text,
-    today,
-    // Le solde LU est celui que le commit EMPORTE (`commit.contenus`, un lot pour tous les soldes) :
-    // sous un commit par pathspec, un solde stagé hors pathspec reste à la version de HEAD et la
-    // preuve ne part pas.
-    readSoldes: (ns) => soldesEmportes(commit, ns),
-    soldeOnDisk: (n) => readSoldeFile(n, targetDir),
-    contexteSolde: {
-      fichiersEmportes: fichiers,
-      lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
-      touchesUi,
-      verifierCapturesDe: (chemins) => verifierCaptures(chemins, { racine: targetDir, mtimeMin: mtimeEcrans, pannes }),
-      histoireDe: (shas) => histoireDesCitations(depotDuHook(targetDir, pannes), shas, { histoire }),
-    },
-  }), pannes)
-  // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
-  // lecture que toutes les autres évaluations de cette garde.
-  const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers, messages })
-  // TOUT ce que la garde lit sur DISQUE se lit dans le répertoire où le commit s'exécute — comme le
-  // solde stagé et le message `-F`. Lu depuis le dépôt de la
-  // garde, un fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
-  const antiEsquive = evaluateAntiEsquive({
-    command: text,
-    fusionEnCours: commit.enFusion(),
-    stagedTouchesSrc: touchesSrc,
-    stagedTotalLines: totalLines,
-    readRefFile: (n) => readRefFile(n, targetDir),
-  })
-  const juge = evaluateJuge({
-    command: text,
-    fusionEnCours: commit.enFusion(),
-    stagedTouchesSrc: touchesSrc,
-    stagedTotalLines: totalLines,
-    stagedTouchesUi: touchesUi,
-    readRefFile: (n) => readRefFile(n, targetDir),
-  })
-  const amendInvisible = evaluateAmendInvisible({ command, stagedTouchesSrc: touchesSrc })
-  const registresPorteurs = evaluateRegistresPorteurs({ command: text, lireRegistreEmporte: (chemin) => commit.contenu(chemin) })
+  const d = await decisionsDuCommit({ command: text }, { commit, dir: targetDir, today, pannes, messages })
+  const amendInvisible = evaluateAmendInvisible({ command, stagedTouchesSrc: d.touchesSrc })
   // Corps `--input <chemin>` : résolu là où la commande s'exécute RÉELLEMENT, comme le `-F` du commit.
   const horsCommit = evaluateFermetureHorsCommit(command, {
     lire: (chemin) => readFileSync(resolve(targetDir, chemin), 'utf8'),
   })
-  // Volet anti-tombale : `commentPoison` tire le vocabulaire RAW derrière lui — chargé SEULEMENT
-  // quand la commande ferme un ticket.
-  const fermes = extractClosedIssues(text)
-  let tombale = null
-  if (fermes.length > 0) {
-    const { evaluateTombale } = await import('./solde-tombale.mjs')
-    tombale = evaluateTombale({
-      issuesFermees: fermes,
-      fichiers: fichiersCitantTickets(fermes, targetDir, { pannes }),
-      lire: (p) => commit.contenu(p),
-    })
-  }
   const hunks = evaluateHunksEmportes({
     command,
     fichiersModifies: readChangedNames(targetDir, { pannes }),
     fichiersStages: commit.stages(),
   })
-  const importsDuContexte = [
-    ...importsDe(commit.contenu('CLAUDE.md')),
-    ...importsDe(commit.lirePreImage('CLAUDE.md')),
-  ]
-  const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
-    ? evaluateBudgetContexte({
-      command: text,
-      mesure: mesurerBudget(targetDir, { lireTout: commit.contenus, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
-      reference: mesurerBudget(targetDir, { lireTout: commit.preImages, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
-    })
-    : null
   // Voir COÛT (en-tête) : un refus qu'aucun autre étage ne rejuge sort ICI, avant les deux décisions
   // que `scripts/git-hooks/pre-push.mjs` rejuge (`croissancesDeLaPlage`). Tout refus d'un étage porte
   // le motif du commit présumé en tête (`prefixe`).
@@ -3633,29 +3703,35 @@ async function jugerLeSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
     return cumul ? dire({ ...cumul, reason: prefixe(cumul.reason) }) : null
   }
   const premier = cumuler([
-    decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
-    horsCommit, tombale, hunks?.reason ? hunks : null, budget, refusDesPannes(pannes, ou),
+    d.decision, d.porteDuTicket, d.antiEsquive, d.juge, amendInvisible, d.registresPorteurs,
+    horsCommit, d.tombale, hunks?.reason ? hunks : null, d.budget, refusDesPannes(pannes, ou),
   ])
   if (premier) return premier
-  // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
-  // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
-  // Sous une fusion en cours, les porteurs sont ceux de son APPORT (`commit.fusion`).
-  const fusion = isGitCommitCommand(text) ? commit.fusion() : null
-  const porteursDeStock = isGitCommitCommand(text) ? (fusion ? fusion.entree.fichiers : fichiers).filter(estPorteurDeStock) : []
-  const stocks = porteursDeStock.length ? evaluateStocksQuiGrandissent({
-    command: text,
-    ...(fusion
-      ? { fusion: fusion.entree }
-      : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
-  }) : null
-  const reclassements = evaluateReclassementsCss({
-    command: text,
-    deplace: () => commit.deplaceLaFrontiereCss(fichiers),
-    cotes: commit.cotesCss,
-  })
-  const second = cumuler([stocks, reclassements, refusDesPannes(pannes, ou)])
+  const second = cumuler([...d.etage2(), refusDesPannes(pannes, ou)])
   if (second) return second
   return hunks?.contexte ? { contexte: hunks.contexte } : null
+}
+
+/**
+ * Le verdict UNIQUE de la porte sur le commit que git prépare (`scripts/git-hooks/commit-msg.mjs`) :
+ * `message` = le message qu'il enregistre (`lectureDuMessage(…).texte`) ; `commit` = ce qu'il emporte,
+ * l'index que git a préparé (`diffDuCommit` sans commande, `GIT_INDEX_FILE` hérité) ; `dir` = la racine
+ * de l'arbre qui committe ; `today` = date locale ; `pannes` = les pannes de lecture git, refusées au
+ * rendu (`refusDesPannes`). Toutes les décisions en UN cumul (`decisionCumulee`).
+ * @param {{ message: string, commit?: ReturnType<typeof diffDuCommit>, dir?: string, today: string, pannes?: string[] }} p
+ * @returns {Promise<{ reason: string } | null>}
+ */
+export async function jugerLeCommit({ message, dir = process.cwd(), today, pannes = [], commit = diffDuCommit(null, dir, { pannes }) }) {
+  try {
+    const d = await decisionsDuCommit({ message }, { commit, dir, today, pannes })
+    return decisionCumulee([
+      d.decision, d.porteDuTicket, d.antiEsquive, d.juge, d.registresPorteurs, d.tombale, d.budget, ...d.etage2(),
+      refusDesPannes(pannes, ouDeLaLecture(dir)),
+    ])
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    return refusDesPannes([...pannes, refusDeGit(e)], ouDeLaLecture(dir))
+  }
 }
 
 /** La garde de la porte (contrat : `scripts/guards/lib/contratGarde.mjs`) ; son point d'entrée propre :

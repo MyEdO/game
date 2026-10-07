@@ -1,7 +1,7 @@
 # Authoring de campagne — la carte des coutures d'auteur
 
 Référence VIVANTE (maintenue au fil du code). Une **campagne** = un projet multi-scènes relié par une
-carte du monde (`{ schema: SCHEMA_PROJET, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
+carte du monde (`{ <identité>, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
 pas-à-pas « par où commencer », voir le skill `creer-une-campagne`. Ce document cartographie CHAQUE
 système qu'un auteur mobilise. Règle d'or transverse : **on n'authore que des IDS stables** (le libellé
 est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **personne ne lit le journal**
@@ -23,8 +23,8 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 - **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
   (`src/state/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
-  confrontent le contenu. Un bump de forme (`SCHEMA_PROJET`) migre les paquets par un script daté de
-  `scripts/migrations/` (banc `src/scenes/migrations-format-projet.test.ts`).
+  confrontent le contenu. Un changement de forme réécrit les paquets commités dans le MÊME commit, par
+  leur générateur ou, pour un paquet manuscrit, par un script one-shot non commité (#2404).
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
   (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
@@ -320,24 +320,21 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 - **Identité (à plat).** Le paquet porte aussi son identité de campagne (`ProjectIdentite`,
   `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
-  sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; la version de FORME du
-  document est `schema`. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
+  sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; le document ne porte aucun
+  numéro de FORME. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
   `id`, `label` ou `versionContenu` est refusé en nommant le champ (#1552,
   `src/data/schemas/defs-scenes/projet-schema.test.ts` cas (d bis)).
-- **Migration.** La forme courante du document est `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) ;
-  un document d'une forme antérieure monte au format courant au chargement, un saut de forme par entrée
-  de `PROJECT_MIGRATIONS` (`src/data/migrationsDeProjet.ts`). La fabrique UNIQUE du document est
+- **Forme.** `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`) est le SEUL contrôle de forme du
+  document : aucun numéro de version, aucune migration de chargement — un document d'une autre forme est
+  REFUSÉ par `parseProject` (`ProjetRefuse`, cause `schema`, rapport zod), et une scène d'autosave par
+  `parseSceneDeProjet` (#2404, décision utilisateur du 2026-10-05). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
   `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
-  tous passent `parseProject` en CI (`src/scenes/bundled-projects.test.ts`).
-  La montée 17→18 (`PROJECT_MIGRATIONS[17]`, #679) soulève chaque Effect `document` en ligne
-  `{ title, desc }` en entrée `narratif.documents` — id `document-<slug du titre>`, suffixé `-2`,
-  `-3`… s'il est pris (`src/data/documentsAuNarratif.ts`) — et l'Effect devient `{ documentId }`. Une
-  scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un document est REFUSÉE nommément
-  (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser.
+  tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
+  Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
   `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets/Écarts). L'onglet
   **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les

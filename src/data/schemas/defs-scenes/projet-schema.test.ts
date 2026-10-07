@@ -11,7 +11,7 @@
  *  - le `schema` littéral courant (un document non migré n'entre pas par cette porte).
  */
 import { describe, it, expect } from 'vitest';
-import { projetSchema, projetDoc, SCHEMA_PROJET } from './projet';
+import { projetSchema, projetDoc } from './projet';
 import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
 import { cheminLisible, validateDocument } from '../validate';
@@ -38,7 +38,6 @@ const sceneMinimale = (over: Jouet = {}): Jouet => ({
 /** Projet-JOUET au format COURANT : l'enveloppe exige le `type`, l'identité et la provenance. */
 const projet = (over: Jouet = {}): Jouet => ({
   type: 'projet',
-  schema: SCHEMA_PROJET,
   id: 'projet-jouet',
   label: 'Projet jouet',
   versionContenu: 1,
@@ -93,7 +92,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
   /**
    * DÉCOR UTILISABLE (#1687) : l'enveloppe `usable` porte DEUX faits nommés, et le champ `interact`
    * d'avant le lot n'existe plus — un document qui en porte un est REFUSÉ, à son chemin, plutôt
-   * qu'ignoré en silence (c'est ce refus que `PROJECT_MIGRATIONS[10]` rattrape au chargement).
+   * qu'ignoré en silence.
    */
   it('`usable` : l’enveloppe à deux faits passe, `interact` est REFUSÉ, un `id` d’action DOUBLÉ aussi', () => {
     const FLOW = { kind: 'seq', steps: [] };
@@ -363,11 +362,8 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(d ter) la poche `meta` et le `version` RACINE sont REFUSÉS par le SCEAU de l’enveloppe plate', () => {
-    // Portée EXACTE de cette assertion : elle juge `projetSchema` SEUL. Par le seam réel, un `version`
-    // racine n'arrive JAMAIS jusqu'ici (`parseProject` l'écrase puis le purge avant de valider —
-    // mesuré par `state/projet-migration-4-vers-5.test.ts`). Le sceau est donc la garde du document
-    // AU REPOS : un `.json` authioré/exporté à la mauvaise forme est nommé à la porte du schéma,
-    // plutôt que d'être absorbé en silence par le seam.
+    // `projetSchema` est le seul contrôle de forme de `parseProject` (#2404) : le sceau nomme la clé
+    // d'un autre format à la porte.
     expect(fautes(projet({ version: 1 })).join(' ')).toMatch(/version/);
     expect(fautes(projet({ meta: { id: 'c', label: 'C', version: 1 } })).join(' ')).toMatch(/meta/);
   });
@@ -434,8 +430,8 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     expect(ok({ ...reel(), maison: 'arbitrage maison, en plus du folio' })).toBe(true);
   });
 
-  it('SCEAU sur la donnée réelle : `schema` non courant, clé inconnue et scène muette sont refusés', () => {
-    expect(fautesCodees({ ...reel(), schema: 6 })).toEqual([`schema :: invalid_value [${SCHEMA_PROJET}]`]);
+  it('SCEAU sur la donnée réelle : un numéro de forme d’un autre format, clé inconnue et scène muette sont refusés', () => {
+    expect(fautesCodees({ ...reel(), schema: 18 })).toEqual([' :: unrecognized_keys ["schema"]']);
     // Chemin VIDE : la clé inconnue est rapportée à la RACINE du document.
     expect(fautesCodees({ ...reel(), champInconnu: 1 })).toEqual([' :: unrecognized_keys ["champInconnu"]']);
     const d = reel();

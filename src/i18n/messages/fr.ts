@@ -210,12 +210,14 @@ export const fr = {
   'picker.import.btn': 'Importer un personnage…',
   'picker.import.btn.title': 'Importer un personnage depuis un fichier JSON exporté',
   'picker.import.error': 'Fichier de personnage invalide.',
-  'picker.import.error.version': "Version de fichier non reconnue — ré-exportez ce personnage depuis une version à jour du jeu.",
+  'picker.import.error.autreFormat': 'Personnage d’un autre format : il ne peut pas être importé.',
+  'picker.roster.retire': 'Personnages enregistrés d’un autre format : ils ont été retirés.',
   // Sauvegarde / chargement (SaveLoadModal) — Phase D.
   'saveload.title.save': 'Sauvegarder',
   'saveload.title.load': 'Charger une partie',
   'saveload.slot.label': 'Emplacement {n}',
   'saveload.slot.empty': '— vide —',
+  'saveload.slot.auto.nom': 'Emplacement automatique',
   'saveload.btn.save': 'Sauvegarder',
   'saveload.btn.load': 'Charger',
   'saveload.btn.export': 'Exporter',
@@ -227,11 +229,11 @@ export const fr = {
   'saveload.btn.close': 'Fermer',
   'saveload.error.save': 'Sauvegarde impossible (stockage indisponible ou plein).',
   'saveload.error.load': 'Emplacement vide ou incompatible.',
-  'saveload.error.import': 'Fichier de sauvegarde invalide ou de version inconnue.',
-  // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `state/saves.ts`).
-  'saveload.error.obsolete': 'Sauvegarde d’une version antérieure du jeu — incompatible, elle a été retirée.',
-  'saveload.error.futureSave': 'Sauvegarde d’une version plus récente du jeu — incompatible, elle a été retirée.',
-  'saveload.error.unreadable': 'Sauvegarde illisible — elle a été retirée.',
+  'saveload.error.import': 'Fichier de sauvegarde illisible.',
+  'saveload.error.import.autreFormat': 'Sauvegarde d’un autre format : elle ne peut pas être importée.',
+  // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `state/saves.ts`), sous le nom de son emplacement.
+  'saveload.error.autreFormat': '{emplacement} : sauvegarde d’un autre format, retirée.',
+  'saveload.error.unreadable': '{emplacement} : sauvegarde illisible, retirée.',
   // Lobby coop (CoopLobby) — Phase D.
   'coop.title.local': 'Jouer en ligne',
   'coop.title.guest': 'Salon — invité',
@@ -2124,6 +2126,7 @@ export const fr = {
   'coop.joinFailed': 'Connexion impossible — réessayez.',
   'coop.reason': 'Coop : {reason}',
   'coop.protocolMismatch': "Version du jeu différente de l'hôte (protocole {got} ≠ {expected}) — mettez à jour.",
+  'coop.formatMismatch': "Format de partie différent de celui de l'hôte — l'hôte et l'invité doivent jouer la même version du jeu.",
   'coop.seatClosed': "Un joueur a quitté — ses héros reviennent à l'hôte.",
 
   // ── #1318 V8c₄ — POSTES D'ÉTAPE DE VOYAGE (`state/travelPostes.ts`, `tp.*`, EDOC 08). La protection

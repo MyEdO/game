@@ -1,5 +1,6 @@
 import type { TraceTransform } from './traceCalibration';
-import { accesBase, type MigrationsIdb } from '../lib/indexedDb';
+import { accesBase } from '../lib/indexedDb';
+import { FORMAT_CALQUE } from './formats.generated';
 
 /**
  * Persistance du CALQUE DE RÉFÉRENCE de l'éditeur (planche de livre décalquée, #830) — jamais de la
@@ -41,30 +42,45 @@ export interface TraceLayerRecord {
   savedAt: number;
 }
 
+/** L'enregistrement tel que stocké : `version` vaut `FORMAT_CALQUE` (#2404). */
+export interface CalqueStocke extends TraceLayerRecord {
+  version: string;
+}
+
 const STORE = 'layers';
 const PANEL_STORE = 'panelExpanded';
 
-/** Migrations de `wfrp4-trace-layers` : la forme v1 ne survit pas à la migration v1 → v2 (#830), où `layers`
- *  est keyé `(sceneId, z)`. */
-export const MIGRATIONS_CALQUES = {
-  0: () => {},
-  1: (db) => {
-    if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
-    db.createObjectStore(STORE, { keyPath: ['sceneId', 'z'] });
-    if (!db.objectStoreNames.contains(PANEL_STORE)) db.createObjectStore(PANEL_STORE, { keyPath: 'sceneId' });
-  },
-} satisfies MigrationsIdb;
-
-const base = accesBase({ nom: 'wfrp4-trace-layers', migrations: MIGRATIONS_CALQUES });
-const calques = base.magasin<TraceLayerRecord, [string, number]>(STORE);
+const base = accesBase({
+  nom: 'wfrp4-trace-layers',
+  magasins: { [STORE]: { keyPath: ['sceneId', 'z'] }, [PANEL_STORE]: { keyPath: 'sceneId' } },
+});
+const calques = base.magasin<CalqueStocke, [string, number]>(STORE);
 const panneaux = base.magasin<{ sceneId: string; expanded: boolean }, string>(PANEL_STORE);
+
+/** Témoin « un calque d'un autre format a été retiré », par (scène, couche) — posé par
+ *  `traceLayerLoad`, consommé par l'éditeur (`takeCalqueEcarte`). Même geste que la save
+ *  (`takeObsoleteNotice`, `saves.ts`). */
+const calquesEcartes = new Set<string>();
+const cleDeCalque = (sceneId: string, z: number): string => JSON.stringify([sceneId, z]);
+
+/** Consomme le témoin de (scène, couche) : vrai si son calque a été retiré depuis la dernière consommation. */
+export function takeCalqueEcarte(sceneId: string, z: number): boolean {
+  return calquesEcartes.delete(cleDeCalque(sceneId, z));
+}
 
 /** Lecture — `null` si aucun calque enregistré pour cette (scène, couche), ou si IndexedDB est
  *  indisponible (mode privé strict, jsdom…) : le calque reste alors une aide de SESSION, jamais une
- *  donnée qui bloque l'ouverture de l'éditeur. */
+ *  donnée qui bloque l'ouverture de l'éditeur. Un enregistrement d'un autre format est RETIRÉ, et
+ *  le témoin de sa (scène, couche) posé. */
 export async function traceLayerLoad(sceneId: string, z: number): Promise<TraceLayerRecord | null> {
   try {
-    return await calques.lire([sceneId, z]);
+    const lu = await calques.lire([sceneId, z]);
+    if (!lu) return null;
+    const { version, ...calque } = lu;
+    if (version === FORMAT_CALQUE) return calque;
+    calquesEcartes.add(cleDeCalque(sceneId, z));
+    await calques.supprimer([sceneId, z]);
+    return null;
   } catch {
     return null;
   }
@@ -75,7 +91,7 @@ export async function traceLayerLoad(sceneId: string, z: number): Promise<TraceL
  *  la session, seul le round-trip disque est perdu. */
 export async function traceLayerSave(entry: TraceLayerRecord): Promise<void> {
   try {
-    await calques.ecrire(entry);
+    await calques.ecrire({ ...entry, version: FORMAT_CALQUE });
   } catch (err) {
     console.error(`[traceLayer] persistance du calque de « ${entry.sceneId} » (couche ${entry.z}) en échec (session non affectée).`, err);
   }
@@ -110,5 +126,6 @@ export async function panelExpandedSave(sceneId: string, expanded: boolean): Pro
 
 /** Test-only : vide la base pour l'isolation entre tests. */
 export async function __resetTraceLayerForTest(): Promise<void> {
+  calquesEcartes.clear();
   await base.vider();
 }

@@ -589,10 +589,6 @@
   letter-spacing: 0;
   color: var(--muted);
 }
-.candidate-import-err {
-  text-align: center;
-  margin: 6px 0 0;
-}
 /* Candidat ÉLU (déplié à droite) — bordure or, langage `.fig-tile.sel` (#417). */
 .candidate-card.selected {
   border-color: var(--gold);

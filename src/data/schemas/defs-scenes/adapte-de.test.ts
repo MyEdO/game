@@ -11,7 +11,6 @@ import { journalSchema } from './effets';
 import { projetSchema } from './projet';
 import { coDescendre, type PointDeDonnee } from '../grammaire/descente';
 import { sourceHeritee } from '../grammaire/prose';
-import { CURRENT_PROJECT_SCHEMA } from '../../../state/worldMap';
 import { emptyScene } from '../../../state/scene';
 import { emptyNarratif } from '../../../state/campaignNarratif';
 
@@ -25,7 +24,7 @@ const DESC_REF = {
 
 /** Un projet VALIDE minimal (même forme que `projet()` de `state/forme-vivante.test.ts`). */
 const projetValide = () => ({
-  type: 'projet', schema: CURRENT_PROJECT_SCHEMA, id: 'proj', label: 'Projet', versionContenu: 1,
+  type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(), scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle' }],
 });
 

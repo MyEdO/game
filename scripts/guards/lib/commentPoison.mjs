@@ -720,7 +720,7 @@ export const LEGACY_VOCAB_FAMILIES = [
   },
   { rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_DE_LA_TABLE_TOTALE), 'im'), label: 'second nom de la table totale' },
   // #2199 : le REPLI justifié par un état qui précède la forme courante — une save jetée à la lecture
-  // (`SAVE_VERSION`), un document refusé par la porte : le chemin qu'il garde est mort. Trois formes : le
+  // (`FORMAT_SAVE`), un document refusé par la porte : le chemin qu'il garde est mort. Trois formes : le
   // nom `repli` suivi, dans la même phrase, d'un porteur d'état qualifié d'antérieur ; ce qualificatif
   // posé seul en incise ; la save dite vieille ou ancienne, qui n'atteint jamais le code. Le participe
   // (`replié`), l'ancienneté d'un objet de JEU (une cible, un libellé) et `l'ancienne sauvegarde` (le

@@ -38,6 +38,7 @@ import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/sto
 import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartageesStock.mjs';
 import { sitesNomSansTexteVisible } from '../../scripts/guards/lib/nomVisibleDansNom.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { sitesChipDeRefusNu } from '../../scripts/guards/lib/chipDeRefusNu.mjs';
 
 /**
  * Cliquets d'hygiène UI (#236) — même patron que `combat-hardcode-guard`/`no-emoji-affordance` : une
@@ -1629,5 +1630,50 @@ describe('#2199 — le nom accessible d’un contrôle CONTIENT son texte vu (WC
     expect(vus('const x = <button aria-label="Fermer"><span aria-hidden="true">Croix</span><span aria-hidden={true}>X ici</span></button>;')).toEqual([]);
     expect(vus('const x = <button aria-label="Fin du tour, touche Espace">Fin du tour</button>;')).toEqual([]);
     expect(vus('const x = <span aria-label="Ouvrir">Fermer</span>;'), 'un élément non interactif n’est pas un contrôle').toEqual([]);
+  });
+});
+
+// ── (xxiv) CHIP DE REFUS NU (#2404) — question : un REFUS (geste ou donnée refusés, champ exigé
+//    manquant) se rend-il ailleurs que par `ChipDeRefus` ? Primitive : `src/ui/ChipDeRefus.tsx`, seule
+//    à composer `chip` + `tone-danger` (`docs/charte-ui.md`, `.chip.chip-phrase`). Périmètre : tout
+//    `.tsx` de `src/` hors instruments Vitest. Angle mort : en-tête de `chipDeRefusNu.mjs`.
+//    EXCLUSIONS AU SITE (fichier + texte de l'élément) — chacune une alerte qui n'est PAS un refus :
+const CHIP_DANGER_HORS_REFUS = new Map<string, string>([
+  ['src/ui/CampaignLibraryScreen.tsx :: <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>', 'marque de RANGÉE de liste, non un message : le refus de l’entrée se dit par `ChipDeRefus` au panneau de détail'],
+  ['src/ui/editor/ProjectModals.tsx :: <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>', 'marque de RANGÉE de liste, non un message : le refus d’« Ouvrir » se dit par `ChipDeRefus` en tête de modale'],
+  ['src/ui/CarnetScreen.tsx :: <span className="chip tone-danger">Fausse piste</span>', 'statut d’un indice réfuté, état de jeu'],
+  ['src/ui/CoopPanels.tsx :: <div className="chip tone-danger coop-banner" role="status"><Icon id={icone} size="sm" /> {children}</div>', 'bandeau d’état de la liaison réseau (`role="status"`), aucun geste refusé'],
+  ['src/ui/EtatPanel.tsx :: <span className="chip tone-danger">DAMNÉ</span>', 'état de jeu du héros'],
+  ["src/ui/editor/ValidationPanel.tsx :: <span className={`chip${w.level === 'error' ? ' tone-danger' : ''}`}>{w.level === 'error' ? 'erreur' : 'avertissement'}</span>", 'niveau d’un constat du validateur dans sa rangée, non un message'],
+]);
+
+describe('#2404 — un refus se rend par `ChipDeRefus`', () => {
+  it('(xxiv) aucun `chip` + `tone-danger` hors de `ChipDeRefus.tsx`, sauf exclusion au site ; toute exclusion vise un site vivant', () => {
+    const fichiers = readCorpus(['src'], { exts: ['.tsx'] }).filter((f) => f.rel !== 'src/ui/ChipDeRefus.tsx');
+    const sites: string[] = [];
+    const lignes: string[] = [];
+    for (const { fichier, sourceFile } of analyserCorpus(fichiers)) {
+      if (!sourceFile) continue;
+      for (const s of sitesChipDeRefusNu(fichier, sourceFile)) {
+        sites.push(`${fichier.rel} :: ${s.texte}`);
+        lignes.push(`${fichier.rel}:${s.ligne} ${s.texte}`);
+      }
+    }
+    const nus = lignes.filter((_, i) => !CHIP_DANGER_HORS_REFUS.has(sites[i]));
+    expect(nus, 'refus rendu hors de `ChipDeRefus` — composer la primitive, ou exclure AU SITE une alerte qui n’est pas un refus').toEqual([]);
+    const mortes = [...CHIP_DANGER_HORS_REFUS.keys()].filter((k) => !sites.includes(k));
+    expect(mortes, 'exclusion sans site vivant — la retirer').toEqual([]);
+  });
+
+  it('(xxiv) preuve — chaîne, gabarit, ternaire ; ni `chip` seul, ni `tone-danger` seul, ni commentaire', () => {
+    const vus = (tsx: string) => sitesChipDeRefusNu({ rel: 'Faux.tsx', text: tsx }).map((s) => s.ligne);
+    expect(vus('const x = <p className="chip tone-danger" role="alert">M</p>;')).toEqual([1]);
+    expect(vus('const x = <p className="tone-danger x chip">M</p>;')).toEqual([1]);
+    expect(vus("const x = <span className={`chip${e ? ' tone-danger' : ''}`}>M</span>;")).toEqual([1]);
+    expect(vus("const x = <span className={e ? 'chip tone-danger' : 'chip'} />;")).toEqual([1]);
+    expect(vus('const x = <span className="chip tone-warn">M</span>;')).toEqual([]);
+    expect(vus('const x = <span className="btn tone-danger">M</span>;')).toEqual([]);
+    expect(vus('const x = <span className="chip-phrase tone-danger">M</span>;')).toEqual([]);
+    expect(vus('// <p className="chip tone-danger">M</p>')).toEqual([]);
   });
 });

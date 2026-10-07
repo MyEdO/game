@@ -47,6 +47,11 @@ export class HostSession {
           transport.close();
           return;
         }
+        if (m.build !== this.opts.build) {
+          transport.send(serializeMessage({ kind: 'error', reason: 'format-mismatch', expected: this.opts.build, got: m.build }));
+          transport.close();
+          return;
+        }
         this.seats[seat] = { label: m.label, transport };
         joined = true;
         transport.send(serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: this.opts.build, label: 'hôte' }));
@@ -104,6 +109,8 @@ export class GuestSession {
       /** Fermeture VOLONTAIRE de l'hôte pour incompatibilité de protocole (message `error` reçu
        *  AVANT le `onClose` du transport) — distinct d'une coupure réseau banale. */
       onProtocolMismatch?: (expected: number, got: number) => void;
+      /** Même chose pour une forme d'état (`build`) différente de celle de l'hôte. */
+      onFormatMismatch?: () => void;
       onClosed?: () => void;
     },
   ) {}
@@ -127,6 +134,7 @@ export class GuestSession {
       }
       if (m.kind === 'assign') this.opts.onAssign?.(m.heroId, m.seat);
       if (m.kind === 'error' && m.reason === 'protocol-mismatch') this.opts.onProtocolMismatch?.(m.expected, m.got);
+      if (m.kind === 'error' && m.reason === 'format-mismatch') this.opts.onFormatMismatch?.();
     });
     transport.onClose(() => {
       this.joined = false;

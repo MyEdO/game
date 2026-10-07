@@ -10,8 +10,6 @@ import {
   orphanFields,
   sceneScope,
   programmeDuPerimetre,
-  fossileAudit,
-  FOSSILES,
 } from '../../../scripts/guards/lib/sceneFieldEditability.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
 import { detenteur } from '../../detenteur.testkit';
@@ -35,8 +33,8 @@ import { detenteur } from '../../detenteur.testkit';
  * ANGLE MORT DÉCLARÉ — les répliques virtuelles (`forme({ … })`) éprouvent le NOMMAGE du porteur
  * anonyme, l'inclusion par IDENTITÉ et la coupe aux nœuds-frontière, pas la POSITION réelle du
  * symbole rendu par `z.infer` (`zod/v4/core/util.d.cts`) : ce chemin-là n'est couvert que par la
- * mesure sur le programme RÉEL (cliquet de compte + les mesures du gate `@fossile`, qui bâtissent
- * le programme du DOCUMENT avec un module modifié EN MÉMOIRE).
+ * mesure sur le programme RÉEL (cliquet de compte + la mesure du SEAM, qui bâtit le programme du
+ * DOCUMENT avec un module modifié EN MÉMOIRE).
  */
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 
@@ -361,74 +359,12 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     } finally { program.dispose(); }
   });
 
-  // ── Gate `@fossile`, BIDIRECTIONNEL, mesuré sur le programme RÉEL ─────────────────────────
-  // Un tag lu SANS liste nominative est un canal d'évasion : un champ NEUF tagué sortirait du
-  // périmètre sans qu'aucun rouge ne sorte (ni orphelin, ni cliquet — mesure du juge, sonde j10).
-  // Le programme ci-dessous est celui du DOCUMENT — ses deux fichiers en racines, la fermeture
-  // d'imports étant tirée par TypeScript —, un module servi MODIFIÉ EN MÉMOIRE : aucune écriture
-  // disque, et la mesure porte sur les vraies déclarations, pas sur une réplique. `src/ui/**` n'y
-  // entre pas : l'audit `@fossile` et le SEAM lisent les DÉCLARATIONS du document, jamais les
-  // écrivains d'interface — ceux-là se mesurent sur `programmeDuPerimetre(ROOT)`, qui porte l'interface,
-  // le pont et le pipeline.
+  // Le programme du DOCUMENT — ses deux fichiers en racines, la fermeture d'imports étant tirée par
+  // TypeScript —, un module servi MODIFIÉ EN MÉMOIRE : aucune écriture disque, et la mesure porte sur
+  // les vraies déclarations, pas sur une réplique.
   const DOCUMENT = ['src/state/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
   const programAvec = (patch: Record<string, string>) =>
     repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
-
-  /** Le module RÉEL, avec `ancre` remplacée — échec bruyant si l'ancre a bougé. */
-  const modifie = (rel: string, ancre: string, remplacement: string) => {
-    const brut = fs.readFileSync(path.resolve(ROOT, rel), 'utf8');
-    expect(brut, `ancre introuvable dans ${rel}`).toContain(ancre);
-    return { [rel]: brut.replace(ancre, remplacement) };
-  };
-
-  // ANCRE d'un champ de `SceneEntity` PROPRE à elle : `label?` ne l'est plus depuis que
-  // `ActionAuthoree` en porte un (#1687), et c'est la PREMIÈRE occurrence que `replace` prend.
-  const ANCRE_LABEL = '  dialogueId?: string;\n';
-  const ANCRE_FOOT = '   *  @fossile */\n';
-
-  it('gate @fossile (cas A) : un champ EXISTANT que l’on tague sans l’inscrire au registre est ROUGE', { timeout: 60_000 }, () => {
-    const audit = fossileAudit(
-      programAvec(modifie('src/state/scene.ts', ANCRE_LABEL, `  /** @fossile */\n${ANCRE_LABEL}`)),
-      ROOT
-    );
-    expect(audit.taguesHorsListe, 'un tag posé hors registre doit être nommé').toEqual(['SceneEntity.dialogueId']);
-  });
-
-  it('gate @fossile (cas B) : un champ NEUF né tagué — LE canal d’évasion — est ROUGE, et il RESTE dans le périmètre', { timeout: 60_000 }, () => {
-    // Sans gate, ce champ (vraie donnée de scène, éditable par personne) sortait du périmètre en
-    // silence : ni orphelin, ni cliquet, aucun rouge — la mesure du juge sur le dépôt réel.
-    const program = programAvec(
-      modifie(
-        'src/state/scene.ts',
-        ANCRE_LABEL,
-        `${ANCRE_LABEL}  /** Couleur de bannière du fief.\n   *  @fossile */\n  couleurDeBanniere?: string;\n`
-      )
-    );
-    try {
-      expect(fossileAudit(program, ROOT).taguesHorsListe).toEqual(['SceneEntity.couleurDeBanniere']);
-      expect(ids(sceneScope(program, ROOT)), 'un tag non gaté ne retire RIEN du périmètre').toContain(
-        'SceneEntity.couleurDeBanniere'
-      );
-
-    } finally { program.dispose(); }
-  });
-
-  it('gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim)', { timeout: 60_000 }, () => {
-    // TÉMOIN de non-vacuité : le contrôle NON patché est MUET. Un programme privé de ses racines
-    // rendrait déjà `entreesSansTag` peuplé — le rouge ci-dessous viendrait alors du vide, pas du
-    // tag absent que le patch mesure.
-    expect(fossileAudit(programAvec({}), ROOT)).toEqual({ taguesHorsListe: [], entreesSansTag: [] });
-    const audit = fossileAudit(
-      programAvec(modifie('src/data/schemas/defs-scenes/scene.ts', ANCRE_FOOT, '   */\n')),
-      ROOT
-    );
-    expect(audit.entreesSansTag).toEqual([...FOSSILES].sort());
-  });
-
-  it('gate @fossile : les deux sens sont muets à l’arbre, et le fossile gaté est HORS périmètre', () => {
-    expect(fossileAudit(perimetre(), ROOT)).toEqual({ taguesHorsListe: [], entreesSansTag: [] });
-    expect(ids(sceneScope(perimetre(), ROOT))).not.toContain('SceneEntity.foot');
-  });
 
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {
     const program = virtualProgram({

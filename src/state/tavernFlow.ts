@@ -182,6 +182,12 @@ export function closeTavernGames(_get: Get, set: Set): void {
 /** Id de la définition de séquence des jeux de taverne (donnée : écrit dans les saves). */
 export const TAVERN_SEQUENCE = 'tavern';
 
+declare module './sequenceContract' {
+  interface SequenceFamilies {
+    [TAVERN_SEQUENCE]: TavernPayload;
+  }
+}
+
 /** Kind de l'étape-jet d'une manche (bande OU mono) — UNIQUE depuis #1279 S1. */
 export const TAVERN_ROUND_KIND = 'tavern-round';
 
@@ -2436,7 +2442,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
 /** APPLIER de l'effacement : la clôture seule en tire les conséquences (patron du réducteur unique). */
 registerCascadeApplier(TAVERN_ERASE_KIND, () => ({}));
 
-registerSequence<TavernPayload>(TAVERN_SEQUENCE, {
+registerSequence(TAVERN_SEQUENCE, {
   round: tavernRound, close: tavernClose, settle: tavernSettle, board: tavernBoard,
 });
 
