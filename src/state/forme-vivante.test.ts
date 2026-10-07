@@ -4,19 +4,20 @@
  * le reçu, à ses trois sites : `parseProject`, `parseSceneDeProjet` et `validateScene`.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse } from './worldMap';
+import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from './worldMap';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './scene';
 import { flowFromEffects } from './flow';
 import { lireBlocsAvances } from '../ui/editor/Editor';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { emptyNarratif } from './campaignNarratif';
+import type { DescRef } from '../data/schemas/grammaire/valeurs';
 
 const DESC_REF = {
   book: 'ennemi-dans-l-ombre',
   ch: '01',
   parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }],
-};
+} satisfies DescRef;
 const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
 const TEXTE = 'Le propriétaire essuie un gobelet.';
 
@@ -47,6 +48,29 @@ function refus(geste: () => unknown): ProjetRefuse {
 const CHEMIN_NOEUD = ['scenes', 0, 'dialogues', 0, 'nodes', 0];
 
 describe('parseProject — forme vivante', () => {
+  it('les neuf textes locaux et leurs provenances traversent export et parse', () => {
+    const sc = scene({ desc: 'Réplique maison.' });
+    sc.startMessage = { texte: 'Introduction dynamique : ' + sc.id, adapteDe: ADAPTE };
+    sc.triggers[0].flow = { kind: 'seq', steps: [
+      { kind: 'do', effect: { type: 'setObjective', id: 'objectif', ...MATERIALISE } },
+      { kind: 'do', effect: { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', ...MATERIALISE } },
+      { kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu.', adapteDe: ADAPTE } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
+      { kind: 'choice', prompt: 'Entrer ?', adapteDe: ADAPTE, yes: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration.', adapteDe: ADAPTE }] } } },
+    ] };
+    const recu = { ...projet(sc), narratif: { ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', sousTitre: { texte: 'Ouverture.', adapteDe: ADAPTE } }, cloture: { titre: 'Fin', sousTitre: { texte: 'Clôture.', adapteDe: ADAPTE }, when: { kind: 'flag', expr: 'fin' } } }, worldMap: { ...emptyWorldMap(), places: [{ id: 'a', label: 'A', scene: 's1', pos: { x: 10, y: 10 } }, { id: 'b', label: 'B', scene: 's1', pos: { x: 20, y: 10 } }], routes: [{ id: 'route', a: 'a', b: 'b', km: 1, modes: ['pied'], when: { kind: 'flag', expr: 'pont' }, refus: { texte: 'Pont fermé.', adapteDe: ADAPTE } }] } };
+    const lu = parseProject(recu);
+    const disque = JSON.parse(JSON.stringify(projetVersDepot(lu)));
+    expect(disque.scenes[0].startMessage).toEqual(sc.startMessage);
+    expect(disque.narratif).toEqual(recu.narratif);
+    expect(disque.worldMap.routes[0].refus).toEqual(recu.worldMap.routes[0].refus);
+    expect(disque.scenes[0].triggers[0].flow.steps.slice(0, 2).map((n: { effect: Record<string, unknown> }) => n.effect)).toEqual([
+      { type: 'setObjective', id: 'objectif', descRef: DESC_REF },
+      { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', descRef: DESC_REF },
+    ]);
+    const materialise = structuredClone(disque);
+    for (const n of materialise.scenes[0].triggers[0].flow.steps.slice(0, 2)) n.effect.desc = TEXTE;
+    expect(parseProject(materialise).scenes[0].triggers[0].flow).toEqual(sc.triggers[0].flow);
+  });
   it('T1 : nœud et journal MATÉRIALISÉS acceptés, `desc` intact', () => {
     const sc = parseProject(projet(scene(MATERIALISE))).scenes[0];
     expect(sc.dialogues[0].nodes[0]).toMatchObject(MATERIALISE);

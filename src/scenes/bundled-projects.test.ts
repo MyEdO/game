@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import type { ZodType } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
@@ -248,7 +249,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
         }
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
       if (eff.type === 'journal' && eff.desc && jargon.test(eff.desc)) fautifs.push(`${sceneId} : journal « ${eff.desc} »`);
-      if (eff.type === 'setObjective' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : objectif « ${eff.desc} »`);
+      if (eff.type === 'setObjective' && eff.desc && jargon.test(eff.desc)) fautifs.push(`${sceneId} : objectif « ${eff.desc} »`);
     }
     // Les modales document lisent le registre (#679) : tout document du paquet, remis ou non.
     for (const d of doc.narratif.documents)
@@ -499,31 +500,19 @@ function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
     for (const [k, x] of Object.entries(v)) marche(x, `${chemin}.${k}`);
   };
   marche(doc, '');
-  if (!doc.source) return fautes;
-
-  const exige = (chemin: string, n: { source?: unknown; descRef?: unknown; adapteDe?: unknown }, verbatim: 'source' | 'descRef'): void => {
-    if (n[verbatim] === undefined && n.adapteDe === undefined) fautes.push(`${fichier}${chemin} : ni \`${verbatim}\` ni \`adapteDe\` dans un paquet adapté d’un livre`);
-  };
   coDescendre(projetSchema, doc, (p) => {
-    const declaration = p.noeuds.map(declarationProseNommee).find((d) => d !== undefined);
-    if (!declaration || !estSource(p.valeur)) return;
-    const n = p.valeur as Record<string, unknown>;
-    if (typeof n[declaration.champ] !== 'string') return;
-    if (declaration.regime === 'document') {
-      if (n.source === undefined) fautes.push(`${fichier}${cheminDe(p)} : document sans \`source\` dans un paquet adapté d’un livre`);
-    } else exige(cheminDe(p), n, 'source');
-  });
-  const { narratif } = doc;
-  narratif.presetsPnj.forEach((p) => exige(`.narratif.presetsPnj[${p.id}]`, p, 'source'));
-  for (const sc of doc.scenes) for (const dlg of sc.dialogues) for (const n of dlg.nodes) exige(`.scenes[${sc.id}].dialogues[${dlg.id}].nodes[${n.id}]`, n, 'descRef');
-  effetsDuProjet(doc).forEach(({ sceneId, eff }, i) => {
-    if (eff.type === 'journal') exige(`.scenes[${sceneId}] journal #${i}`, eff, 'descRef');
+    const schema = p.noeuds.find((n): n is ZodType => declarationProseNommee(n)?.regime === 'document');
+    if (!schema) return;
+    const resultat = schema.safeParse(p.valeur);
+    if (!resultat.success) for (const issue of resultat.error.issues) {
+      fautes.push(`${fichier}${cheminDe(p)}${issue.path.length ? '.' + issue.path.join('.') : ''} : ${issue.message}`);
+    }
   });
   return fautes;
 }
 
-describe('provenance d’un paquet adapté d’un livre — verbatim OU `adapteDe` (#2001)', () => {
-  it.each(bundledFiles.map((f) => [f] as const))('%s : chaque site porte son verbatim ou `adapteDe`, et tout `adapteDe` résout son livre', (file) => {
+describe('provenance locale, références présentes résolubles et régime documentaire canonique (#2001)', () => {
+  it.each(bundledFiles.map((f) => [f] as const))('%s : provenance locale, références présentes résolubles et régime documentaire canonique', (file) => {
     expect(fautesDeProvenance(parseProject(lireProjetLivre(file)), file)).toEqual([]);
   });
 
@@ -538,11 +527,8 @@ describe('provenance d’un paquet adapté d’un livre — verbatim OU `adapteD
     return { ...(source ? { source } : {}), scenes: [sc], narratif: emptyNarratif() };
   };
 
-  it('un nœud et un journal NUS sous une racine `source` sont nommés', () => {
-    expect(fautesDeProvenance(paquet(NU, NU), 'f')).toEqual([
-      'f.scenes[sc].dialogues[dlg].nodes[n1] : ni `descRef` ni `adapteDe` dans un paquet adapté d’un livre',
-      'f.scenes[sc] journal #0 : ni `descRef` ni `adapteDe` dans un paquet adapté d’un livre',
-    ]);
+  it('la prose Maison coupe la source documentaire racine', () => {
+    expect(fautesDeProvenance(paquet(NU, NU), 'f')).toEqual([]);
   });
 
   it('les mêmes, ADRESSÉS (`descRef`), passent : l’adresse est leur verbatim', () => {
@@ -573,25 +559,55 @@ describe('provenance d’un paquet adapté d’un livre — verbatim OU `adapteD
     return doc;
   };
 
-  it('un terrain présent dans un effet imbriqué exige sa provenance, un terrain absent n’en exige pas', () => {
+  it('le terrain Maison reste local sous une racine sourcée', () => {
     const fautes = fautesDeProvenance(terrainDans({ terrain: 'Terrain maison.' }), 'f');
-    expect(fautes).toHaveLength(1);
-    expect(fautes[0]).toContain('.battle : ni `source` ni `adapteDe`');
+    expect(fautes).toEqual([]);
     expect(fautesDeProvenance(terrainDans({}), 'f')).toEqual([]);
     expect(fautesDeProvenance(terrainDans({ terrain: 'Terrain maison.' }, null), 'f')).toEqual([]);
     expect(fautesDeProvenance(terrainDans({ terrain: 'Terrain adapté.', ...ADAPTE }), 'f')).toEqual([]);
     expect(fautesDeProvenance(terrainDans({ terrain: 'Terrain copié.', source: SOURCE }), 'f')).toEqual([]);
   });
 
-  it('un stade document seul n’exige pas de provenance ; un document livré exige source seule', () => {
+  it('un stade document et un document Maison sont admis ; Adapté est refusé par le document canonique', () => {
     const doc = terrainDans({});
     doc.narratif.indices = [{ id: 'indice', affaireId: 'affaire', titre: 'Indice', kind: 'indice', stades: [{ id: 'stade', documentId: 'lettre' }] }];
     doc.narratif.documents = [{ id: 'lettre', titre: 'Lettre', prose: 'Texte.' }];
-    expect(fautesDeProvenance(doc, 'f')).toEqual(['f.narratif.documents[lettre] : document sans `source` dans un paquet adapté d’un livre']);
+    expect(fautesDeProvenance(doc, 'f')).toEqual([]);
     doc.narratif.documents[0].source = SOURCE;
     expect(fautesDeProvenance(doc, 'f')).toEqual([]);
     expect(fautesDeProvenance({ ...doc, narratif: { ...doc.narratif, documents: [{ ...doc.narratif.documents[0], source: undefined, ...ADAPTE }] } }, 'f'))
-      .toEqual(['f.narratif.documents[lettre] : document sans `source` dans un paquet adapté d’un livre']);
+      .toEqual(['f.narratif.documents[lettre] : Clé non reconnue : "adapteDe"']);
+  });
+
+  it('les refus et sous-titres Maison sous racine sourcée restent locaux', () => {
+    const doc = paquet(NU, NU);
+    const valeur = {
+      ...doc,
+      worldMap: { routes: [{ id: 'a', refus: { texte: 'Refus Maison.' } }, { id: 'b', refus: { texte: 'Autre refus Maison.' } }] },
+      narratif: { ...doc.narratif,
+        ouverture: { titre: 'Ouverture', pitch: 'Maison.', sousTitre: { texte: 'Sous-titre Maison.' } },
+        cloture: { titre: 'Clôture', when: { kind: 'always' }, sousTitre: { texte: 'Clôture Maison.' } },
+      },
+    };
+    expect(fautesDeProvenance(valeur as DocDeProvenance, 'f')).toEqual([]);
+    const out: ProseSourcee[] = [];
+    proseSourcees(valeur, 'f', out);
+    expect(out).toEqual([]);
+  });
+
+  it('un document Maison accepte les deux racines et conserve sa copie locale ; Adapté est refusé par son canon', () => {
+    for (const source of [SOURCE, null]) {
+      const doc = paquet(NU, NU, source);
+      doc.narratif.documents = [{ id: 'lettre', titre: 'Lettre', prose: 'Texte.' }];
+      expect(fautesDeProvenance(doc, 'f')).toEqual([]);
+      doc.narratif.documents[0].source = SOURCE;
+      expect(fautesDeProvenance(doc, 'f')).toEqual([]);
+      const out: ProseSourcee[] = [];
+      proseSourcees(doc, 'f', out);
+      expect(out).toEqual([{ chemin: 'f.narratif.documents[lettre].prose', texte: 'Texte.', source: SOURCE }]);
+      expect(fautesDeProvenance({ ...doc, narratif: { ...doc.narratif, documents: [{ ...doc.narratif.documents[0], ...ADAPTE }] } }, 'f'))
+        .toEqual(['f.narratif.documents[lettre] : Clé non reconnue : "adapteDe"']);
+    }
   });
 
   it('les copies suivent la provenance locale du terrain, jamais celle de la racine', () => {

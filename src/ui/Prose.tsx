@@ -16,7 +16,7 @@
  * d'entrée d'où sort ce texte, VERBATIM. Sans `porteur`, le markdown est rendu tel quel : aucune
  * mention n'est liée. Deux états, aucun intermédiaire.
  */
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, type ReactNode, type ComponentPropsWithoutRef } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { cellulesDe, estSeparateur } from '../data/source/decoupe';
 import remarkGfm from 'remark-gfm';
@@ -24,6 +24,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { ParchmentCard } from './ParchmentCard';
 import { tokenizeLinks } from './compendium/relations';
 import type { Porteur } from './liage';
+import { decodeString } from 'micromark-util-decode-string';
 
 /** Nœud HAST minimal (sous-ensemble manipulé par le plugin d'auto-liage). */
 interface HastNode {
@@ -32,6 +33,54 @@ interface HastNode {
   value?: string;
   properties?: Record<string, unknown>;
   children?: HastNode[];
+  position?: { start: { offset?: number }; end: { offset?: number } };
+}
+
+export interface AnnotationProse { text: string; team?: 'ally' | 'enemy'; }
+
+function annoter(tree: HastNode, md: string, segments: readonly AnnotationProse[]): void {
+  let offset = 0;
+  const plages = segments.flatMap(segment => {
+    const debut = offset;
+    offset += segment.text.length;
+    return segment.team ? [{ debut, fin: offset, team: segment.team }] : [];
+  });
+  if (segments.map(s => s.text).join('') !== md) throw new Error('annotations de prose : texte distinct du Markdown');
+  const decoder = (texte: string) => decodeString(texte.split('\r\n').join('\n'));
+  const walk = (node: HastNode): void => {
+    if (!node.children || node.tagName === 'code' || node.tagName === 'pre') return;
+    node.children = node.children.flatMap(child => {
+      if (child.type !== 'text' || typeof child.value !== 'string') { walk(child); return [child]; }
+      const debut = child.position?.start.offset;
+      const fin = child.position?.end.offset;
+      if (debut == null || fin == null) return [child];
+      const brut = md.slice(debut, fin);
+      const decode = decoder(brut);
+      if (decode !== child.value) return [child];
+      const coupure = (raw: number): number | undefined => {
+        const gauche = decoder(brut.slice(0, raw));
+        const droite = decoder(brut.slice(raw));
+        return gauche + droite === decode ? gauche.length : undefined;
+      };
+      const visibles = plages.flatMap(plage => {
+        if (plage.fin <= debut || plage.debut >= fin) return [];
+        const a = coupure(Math.max(plage.debut, debut) - debut);
+        const b = coupure(Math.min(plage.fin, fin) - debut);
+        return a == null || b == null || a === b ? [] : [{ a, b, team: plage.team }];
+      });
+      if (!visibles.length) return [child];
+      const morceaux: HastNode[] = [];
+      let position = 0;
+      for (const plage of visibles) {
+        if (plage.a > position) morceaux.push({ type: 'text', value: decode.slice(position, plage.a) });
+        morceaux.push({ type: 'element', tagName: 'b', properties: { className: plage.team === 'ally' ? 'nm-ally' : 'nm-foe' }, children: [{ type: 'text', value: decode.slice(plage.a, plage.b) }] });
+        position = plage.b;
+      }
+      if (position < decode.length) morceaux.push({ type: 'text', value: decode.slice(position) });
+      return morceaux;
+    });
+  };
+  walk(tree);
 }
 
 /** Sous-arbres dont le texte n'est PAS auto-lié (liens existants, code). */
@@ -130,6 +179,7 @@ function exergues(tree: HastNode): void {
 }
 
 const COMPONENTS = {
+  a: ({ node: _node, ...props }: ComponentPropsWithoutRef<'a'> & { node?: unknown }) => <a {...props} className="prose-link" />,
   // Bloc d'exergue injecté par le plugin `exergues` → la carte-parchemin PARTAGÉE.
   exergue: ({ children }: { children?: ReactNode }) => (
     <div className="prose-exergue"><ParchmentCard>{children}</ParchmentCard></div>
@@ -156,25 +206,27 @@ const COMPONENTS = {
  * carte-parchemin à leur place — et RIEN n'y est lié, une citation étant la voix du livre et non du
  * texte de règle.
  */
-export function Prose({ md, porteur, exergues: avecExergues }: { md: string; porteur?: Porteur; exergues?: boolean }) {
+export function Prose({ md, porteur, exergues: avecExergues, annotations, compact }: { md: string; porteur?: Porteur; exergues?: boolean; annotations?: readonly AnnotationProse[]; compact?: boolean }) {
   // Mémo sur les VALEURS du porteur (type/id), pas sur l'objet : les appelants le composent à la volée
   // (`{ type, id, chemin }`), un mémo par référence re-tokeniserait la prose à chaque rendu.
   const type = porteur?.type;
   const id = porteur?.id;
   const rehypePlugins = useMemo(
     () => [
+      ...(annotations ? [() => (tree: HastNode) => annoter(tree, md, annotations)] : []),
       // ORDRE SIGNIFIANT : les exergues d'abord — `autolink` doit trouver l'élément `exergue` déjà
       // posé pour s'y arrêter (`NO_LINK_TAGS`).
       ...(avecExergues ? [() => exergues] : []),
       ...(type && id ? [() => (tree: HastNode) => autolink(tree, type, id)] : []),
     ],
-    [type, id, avecExergues],
+    [type, id, avecExergues, md, annotations],
   );
-  return (
+  const contenu = (
     <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins} components={COMPONENTS}>
       {md}
     </ReactMarkdown>
   );
+  return compact ? <div className="prose-compact">{contenu}</div> : contenu;
 }
 
 /** Markdown → texte brut (tooltips/blurbs où l'on ne peut pas rendre de React). Approximatif (suffisant

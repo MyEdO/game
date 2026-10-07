@@ -1,10 +1,11 @@
 /**
  * Panneau ROUTE de l'éditeur de carte du monde (#419) — extrait du monolithe `WorldMapEditor.tsx`
  * (règle 4 CLAUDE.md : 4 sections à plat → 2 onglets `Tabs`). « Trajet » (distance/sens/modes/prix/
- * vitesse + maritime), « Péripéties » (embuscade + péripéties d'auteur via EffectList). Zéro logique
- * métier déplacée : découpage JSX pur, coutures runtime intactes.
+ * vitesse + maritime), « Péripéties » (embuscade + péripéties d'auteur via EffectList).
  */
 import { useState } from 'react';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { Tabs } from '../Tabs';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
@@ -64,18 +65,13 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
           <WhenEditor
             when={route.when}
             kinds={CONDITION_KINDS_CARTE}
-            onChange={(when) => updRoute(route.id, when ? { when, refus: route.refus ?? '' } : { when: undefined, refus: undefined })}
+            onChange={(when) => updRoute(route.id, when ? { when, refus: route.refus ?? { texte: '' } } : { when: undefined, refus: undefined })}
           />
           {route.when && (
             <>
-              <label className="ed-field">Raison du refus (montrée au joueur quand la condition est fausse)
-                <input
-                  value={route.refus}
-                  placeholder="ex. Le pont est coupé par la crue."
-                  onChange={(e) => updRoute(route.id, { when: route.when, refus: e.target.value })}
-                />
-              </label>
-              {!route.refus.trim() && (
+              <ProseField label="Raison du refus" value={route.refus.texte} onChange={(texte) => updRoute(route.id, { when: route.when, refus: { ...route.refus, texte } })} />
+              <ProvenanceDuTexte copie identite={`${route.id}/refus`} sujet="du refus de route" value={route.refus} onChange={(patch) => updRoute(route.id, { when: route.when, refus: { ...route.refus, ...patch } })} />
+              {!route.refus.texte.trim() && (
                 <ChipDeRefus fixe refus={{ message: 'Raison du refus exigée dès qu’une condition est posée : sans elle le projet est refusé au chargement.' }} />
               )}
             </>

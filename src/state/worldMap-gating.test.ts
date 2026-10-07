@@ -44,7 +44,7 @@ const carteBarge: WorldMap = {
     km: 30,
     modes: ['mer'],
     when: { kind: 'flag', expr: CAP_SEL },
-    refus: 'Aucun cap n’est donné : la barge ne sait pas encore où porter le sel.',
+    refus: { texte: 'Aucun cap n’est donné : la barge ne sait pas encore où porter le sel.' },
   }],
 };
 
@@ -107,7 +107,7 @@ const carteGatee: WorldMap = {
       km: 100,
       modes: ['pied'],
       when: { kind: 'not', of: { kind: 'flag', expr: 'edo-ch1-clos' } },
-      refus: 'La route du relais est derrière vous.',
+      refus: { texte: 'La route du relais est derrière vous.' },
     },
   ],
 };
@@ -282,7 +282,7 @@ describe('`refus` — raison JOUEUR transportée jusqu’au consommateur (rendue
     };
     const map = parseProject(doc as unknown).worldMap!;
     const route = routesFrom(map, 'altdorf', ctx()).find((r) => r.id === 'altdorf-auberge-retour')!;
-    expect(route.refus).toBe('La route du relais est derrière vous.');
+    expect(route.refus?.texte).toBe('La route du relais est derrière vous.');
     expect(route.when).toEqual({ kind: 'not', of: { kind: 'flag', expr: 'edo-ch1-clos' } });
     expect(map.places.find((p) => p.id === 'bogenhafen')!.when).toEqual({
       kind: 'flag',

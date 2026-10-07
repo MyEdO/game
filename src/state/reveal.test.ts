@@ -12,6 +12,7 @@ import { spawnEnemy } from './spawn';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { cascadeDeTest } from './cascadeTestKit';
+import { parseSceneDeProjet } from './worldMap';
 
 /** Stockage local en mémoire (patron partagé des tests de save). */
 function fakeStorage(): Storage {
@@ -117,11 +118,23 @@ describe('révélation → étape d’affichage de cascade', () => {
  * celle de Sang-froid — reprise à la clôture), et elle ne SURVIT PAS au départ de la scène qu'elle narre.
  */
 describe('carte d’entrée de zone — préséance et durée de vie', () => {
+  it('une introduction calculée traverse le parse et la révélation en texte', () => {
+    const texte = ['Vous entrez', 'dans la salle.'].join(' ');
+    const scene = parseSceneDeProjet({
+      ...testScene(), id: 'probe-intro-calculée',
+      startMessage: { texte }, encounters: [],
+      entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }],
+    });
+    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
+    useGame.getState().startScene(scene);
+    expect(useGame.getState().pendingCascade!.participants[0].reveal?.lines).toEqual([texte]);
+  });
+
   const CRYPTE: Scene = {
     ...testScene(),
     id: 'probe-crypte',
     label: 'Crypte',
-    startMessage: 'Vous poussez la porte de la crypte.',
+    startMessage: { texte: 'Vous poussez la porte de la crypte.' },
     encounters: [],
     entities: [
       { id: 'start', kind: 'heroStart', pos: { x: 6, y: 10 } },
@@ -151,7 +164,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
   });
 
   it('la carte d’une scène QUITTÉE ne resurgit pas : le changement de scène la purge de la pile parquée', () => {
-    const suite: Scene = { ...testScene(), id: 'probe-suite', label: 'Salle basse', startMessage: 'Un escalier descend.', encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
+    const suite: Scene = { ...testScene(), id: 'probe-suite', label: 'Salle basse', startMessage: { texte: 'Un escalier descend.' }, encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(CRYPTE);
     registerScene(suite);
     useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
@@ -170,7 +183,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
   it('une révélation appendue DERRIÈRE la carte survit à la transition SANS être sautée', () => {
     // Scène de crypte JOUABLE en combat (la rencontre de fixture) : `startCombat` est le vrai parqueur.
     const crypteCombat: Scene = { ...CRYPTE, id: 'probe-crypte-combat', encounters: testScene().encounters, entities: testScene().entities };
-    const suite: Scene = { ...testScene(), id: 'probe-suite-2', label: 'Salle basse', startMessage: 'Un escalier descend.', encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
+    const suite: Scene = { ...testScene(), id: 'probe-suite-2', label: 'Salle basse', startMessage: { texte: 'Un escalier descend.' }, encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(crypteCombat);
     registerScene(suite);
     useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
@@ -187,7 +200,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
   });
 
   it('une séquence parquée SANS carte d’entrée traverse la transition avec son curseur INCHANGÉ', () => {
-    const suite: Scene = { ...testScene(), id: 'probe-suite-3', label: 'Salle basse', startMessage: 'Un escalier descend.', encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
+    const suite: Scene = { ...testScene(), id: 'probe-suite-3', label: 'Salle basse', startMessage: { texte: 'Un escalier descend.' }, encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(CRYPTE);
     registerScene(suite);
     useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });

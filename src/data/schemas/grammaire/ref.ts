@@ -485,7 +485,7 @@ export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = 
   type: T,
   extra?: E,
 ): z.ZodType<unknown> {
-  return nommerChamps(z.strictObject({ id: idDe(type), ...((extra ?? {}) as Record<string, z.ZodType>) }), { id: { label: "identifiant" }, ...metasExtra(extra) });
+  return nommerChamps(z.strictObject({ id: idDe(type), ...((extra ?? {}) as Record<string, z.ZodType>) }), { id: { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } }, ...metasExtra(extra) });
 }
 
 /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
@@ -591,7 +591,7 @@ function noeudASpecialisation<T extends TypeEntite>(
               : `« ${c} » est absente des spécialisations de « ${String(v.id)} » au catalogue des ${catalogue} (${espace}).`,
         });
       }
-    }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, choix: { label: "choix" }, ...metasExtra(extra) });
+    }), { id: { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } }, spec: { label: "spécialisation", texte: { regime: 'designation' } }, choix: { label: "choix", texte: { regime: 'designation' } }, ...metasExtra(extra) });
 }
 
 /**

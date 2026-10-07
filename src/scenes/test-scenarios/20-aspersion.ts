@@ -34,10 +34,10 @@ const HERO_START = { x: 2, y: 4 };
 function construireScene(): Scene {
   const scene = arena({ id: 'test-aspersion', label: 'Aspersion — créature marine hors de l’eau', heroStart: HERO_START });
   scene.startMessage =
-    "Une anguille mâcheprise s'est échouée sur la berge, loin de l'eau, ALLIÉE égarée du groupe : hors " +
+    { texte: "Une anguille mâcheprise s'est échouée sur la berge, loin de l'eau, ALLIÉE égarée du groupe : hors " +
     "de son terrain, elle suffoque (Trait Créature marine, MDG 16 l.19). Le Soldat porte une outre à " +
     "eau — l'Action « Asperger d'eau » l'immunise pour le Round où elle est posée ; sans elle, l'anguille " +
-    "perd 1 Blessure par Round.";
+    "perd 1 Blessure par Round." };
   setEncounters(scene, [
     {
       id: 'enc-aspersion',

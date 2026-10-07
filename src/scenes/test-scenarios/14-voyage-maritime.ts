@@ -72,12 +72,12 @@ const construireDepart = (): Scene => buildScene({
   heroStart: [3, 4],
   weather: 'brouillard',
   startMessage:
-    'Le capitaine Brenner arpente le pont de la cogue. « Cap sur Marienburg, plusieurs jours de mer nous attendent. ' +
+    { texte: 'Le capitaine Brenner arpente le pont de la cogue. « Cap sur Marienburg, plusieurs jours de mer nous attendent. ' +
     'Chacun tient son poste : au vent et à la Progression, à l’Orientation, à l’entretien de la coque — elle a pris ' +
     'l’eau à Salzenmund, alors on la choie chaque soir. Vigie, ouvre l’œil dès qu’on approche : le phare de Marienburg ' +
     'annoncera la côte. Une fois à quai, on répare et on commerce au Grand Port. » Le Navigateur, qui sert aussi ' +
     'd’astromancien de bord, sait invoquer le Bienfait de Bel Shanaar pour affiner sa route en mer. (Ouvrez la carte ' +
-    'du monde pour appareiller vers Marienburg.)',
+    'du monde pour appareiller vers Marienburg.)' },
 });
 
 const construireArrivee = (): Scene => buildScene({
@@ -88,9 +88,9 @@ const construireArrivee = (): Scene => buildScene({
   terrain: 'planches',
   heroStart: [3, 4],
   startMessage:
-    'Marienburg, au bout de la traversée. Un maître de port vous hèle depuis le quai : « Charpentiers et calfats sont ' +
+    { texte: 'Marienburg, au bout de la traversée. Un maître de port vous hèle depuis le quai : « Charpentiers et calfats sont ' +
     'là pour la coque (1 CO la Blessure), le carénage débarrasse la coque de ses Salissures, et le grand marché ' +
-    'cosmopolite achète comme il vend. » (Ouvrez l’écran Port depuis la scène ; reprenez la carte du monde pour repartir.)',
+    'cosmopolite achète comme il vend. » (Ouvrez l’écran Port depuis la scène ; reprenez la carte du monde pour repartir.)' },
 });
 
 // ── Carte du monde : une seule route, MARITIME (milles), avec phare à l'arrivée ──

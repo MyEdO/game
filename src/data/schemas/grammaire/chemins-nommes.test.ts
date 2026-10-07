@@ -191,7 +191,7 @@ describe('chemins nommés par leur schéma', () => {
     expect(message).not.toMatch(/flow|steps|\.desc|\.prose/);
     const sceneWarnings = validateScene(projet.scenes);
     if (cas === 'journal') expect(sceneWarnings).toContainEqual(expect.objectContaining({ scope: 'trigger', refId: 'trig-0', message: expect.stringContaining('étape 1 › effet Journal › texte') }));
-    if (cas === 'réplique') expect(sceneWarnings).toContainEqual(expect.objectContaining({ scope: 'dialogue', refId: 'dialogue-0', message: expect.stringContaining('nœud « node-0 » › texte') }));
+    if (cas === 'réplique') expect(sceneWarnings).toContainEqual(expect.objectContaining({ scope: 'dialogue', refId: 'dialogue-0', message: expect.stringContaining('nœud « node-0 » › réplique') }));
     if (cas === 'stade') expect(refus!.fautes.some(f => cheminLisible(f.lieu).includes('stade « stade-0 »'))).toBe(true);
   });
 });

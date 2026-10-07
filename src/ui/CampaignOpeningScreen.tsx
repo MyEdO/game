@@ -32,7 +32,7 @@ export function CampaignOpeningScreen() {
 
   return (
     <ScreenShell
-      title={<>{ouv.titre}{ouv.sousTitre ? <small> {ouv.sousTitre}</small> : null}</>}
+      title={ouv.titre}
       onClose={() => setScreen('party')}
       closeLabel={t('ouv.retour')}
       body="centered"
@@ -49,6 +49,7 @@ export function CampaignOpeningScreen() {
         </>
       }
     >
+      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} />}
       {ouv.surtitre && <p className="section-label">{ouv.surtitre}</p>}
       <RuleDivider />
       {ouv.chapitre && <p className="subtitle">{ouv.chapitre}</p>}

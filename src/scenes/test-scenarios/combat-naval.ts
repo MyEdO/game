@@ -52,10 +52,10 @@ const construireScene = (): Scene => buildScene({
   terrain: 'planches',
   heroStart: [2, 6],
   startMessage:
-    'Le capitaine rugit par-dessus le vent : « Cogue pirate à l’horizon, coque blindée de fer — ça va cogner dur ! ' +
+    { texte: 'Le capitaine rugit par-dessus le vent : « Cogue pirate à l’horizon, coque blindée de fer — ça va cogner dur ! ' +
     'Canonniers, à vos pièces, servez les pierriers et arrosez-la de boulets ! Un coup bien placé peut l’ouvrir à ' +
     'la voie d’eau ou y mettre le feu. Le reste, apprêtez les grappins, on aborde ! » Sur le pont adverse, les ' +
-    'pirates restent exposés au feu et à l’abordage.',
+    'pirates restent exposés au feu et à l’abordage.' },
   encounters: [
     {
       id: 'enc-naval',

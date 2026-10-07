@@ -65,7 +65,15 @@ export function contexteImports(sf, verificateur) {
       return verificateur;
     },
     module: (spec) => {
-      if (!modules.has(spec)) modules.set(spec, moduleDe(spec, sf));
+      if (!modules.has(spec)) {
+        let module = moduleDe(spec, sf);
+        if (!module && verificateur && spec.startsWith('.')) {
+          const declaration = sf.statements.find(n => ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) && n.moduleSpecifier.text === spec);
+          const proprietaire = declaration && verificateur.getSymbolAtLocation(declaration.moduleSpecifier)?.declarations?.map(d => d.resolve()).find(d => ts.isSourceFile(d));
+          if (proprietaire) module = relative(RACINE, proprietaire.fileName).split('\\').join('/');
+        }
+        modules.set(spec, module);
+      }
       return modules.get(spec);
     },
   };
@@ -571,7 +579,7 @@ function moduleDe(spec, sf) {
 export function origineImportee(identifiant, sf, contexte) {
   exigerContexte(sf, contexte);
   const l = typeof identifiant === 'string' ? liaisonDe(identifiant, sf, contexte) : origineConstruction(identifiant, sf, contexte);
-  const module = l && (moduleDe(l.spec, sf) ?? (/^typescript\/unstable\//.test(l.spec) ? l.spec : null));
+  const module = l && (contexte.module(l.spec) ?? (/^typescript\/unstable\//.test(l.spec) ? l.spec : null));
   return module ? { module, nom: l.nom } : null;
 }
 

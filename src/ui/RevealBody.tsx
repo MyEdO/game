@@ -7,6 +7,7 @@ import { conditionMeta } from '../gameIso/effectIcons';
 import { conditionLabel } from '../data';
 import { Icon } from './Icon';
 import type { Combatant } from '../engine/types';
+import { Prose } from './Prose';
 
 /** Nom de la table tirée pour la rangée d100 (présentation canonique `TableRollLine`). */
 const TABLE_LABEL: Partial<Record<RevealEntry['kind'], string>> = {
@@ -78,9 +79,7 @@ export function RevealBody({ entry, actor, subject }: { entry: RevealEntry; acto
     return (
       <ParchmentCard>
         {entry.lines.map((l, i) => (
-          <p key={i} className="modal-log">
-            {l}
-          </p>
+          <div key={i} className="modal-log"><Prose md={l} /></div>
         ))}
       </ParchmentCard>
     );

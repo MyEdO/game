@@ -2,6 +2,8 @@ import type { RecapLine } from '../state/recapLine';
 import { groupRecapLinesByPhase } from '../state/recapLine';
 import { Icon } from './Icon';
 import { TeamSegments } from './TeamSegments';
+import { Prose } from './Prose';
+import { Row } from './Layout';
 
 /**
  * RENDERER UNIQUE d'une ligne de récap structurée (#349) — icône + texte teinté par `tone` (mêmes
@@ -14,10 +16,10 @@ import { TeamSegments } from './TeamSegments';
  */
 export function RecapLineRow({ line }: { line: RecapLine }) {
   return (
-    <p className={`recap-line ${line.tone ?? ''}`}>
-      {line.icon && <Icon id={line.icon} size="sm" />}{' '}
-      {line.segments ? <TeamSegments segments={line.segments} /> : line.text}
-    </p>
+    <Row className={`recap-line ${line.tone ?? ''}`} align="start" gap="xs" wrap={false}>
+      {line.icon && <Icon id={line.icon} size="sm" />}
+      {line.segments ? <TeamSegments segments={line.segments} /> : <Prose md={line.text} compact />}
+    </Row>
   );
 }
 

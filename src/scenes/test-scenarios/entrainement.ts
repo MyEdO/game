@@ -146,12 +146,12 @@ const construireScene = (): Scene => buildScene({
     },
   ],
   startMessage:
-    "Cour d'entraînement, de nuit (brouillard de guerre : ~5 cases de vue). Le Tireur porte une lanterne, le " +
+    { texte: "Cour d'entraînement, de nuit (brouillard de guerre : ~5 cases de vue). Le Tireur porte une lanterne, le " +
     `Tueur nain voit dans le noir, la Sorcière connaît Lumière. Ouvrez la fiche du ${BRETTEUR} (onglet ${t('sheet.tab.possessions')}) pour ` +
     "changer la FORME de son Arme simple (épée → hache…), puis avancez vers l'EST : franchir la lice lance " +
     "l'exercice. Cibles à tirer/recharger (une derrière un muret = hors LdV, une au loin dans le brouillard), " +
     "deux sparring-partners (charge / Engagé / désengagement / deux armes), une monture libre à enfourcher, " +
-    "l'Explosion de la Sorcière en zone.",
+    "l'Explosion de la Sorcière en zone." },
 });
 
 export const scenario: TestScenario = {

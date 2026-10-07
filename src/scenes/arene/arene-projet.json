@@ -733,7 +733,9 @@
    "flags": {},
    "desc": "La cour d’échauffement de l’arène : du sable, des caisses, de la vermine.",
    "rest": {},
-   "startMessage": "L’ARÈNE — La Cour. Pour s’échauffer : de la vermine. Utilisez le couvert (tonneaux, caisses, murets) — et fouillez le râtelier avant d’avancer."
+   "startMessage": {
+    "texte": "L’ARÈNE — La Cour. Pour s’échauffer : de la vermine. Utilisez le couvert (tonneaux, caisses, murets) — et fouillez le râtelier avant d’avancer."
+   }
   },
   {
    "type": "scene",
@@ -4901,7 +4903,9 @@
    "rest": {
     "auberge": true
    },
-   "startMessage": "LE BOURG DE L’ARÈNE. Une place pavée, quatre bâtiments et treize portes. Le Maître d’arène (au centre) ouvre l’échelle et les contrats. Entrez dans la Taverne (repos, repas, rations), la Chapelle (soins, bénédiction), la Forge (armes, réparations) ou l’Échoppe (herbes, fournitures) — le toit se lève quand vous y pénétrez. La route de l’est part vers le monde.",
+   "startMessage": {
+    "texte": "LE BOURG DE L’ARÈNE. Une place pavée, quatre bâtiments et treize portes. Le Maître d’arène (au centre) ouvre l’échelle et les contrats. Entrez dans la Taverne (repos, repas, rations), la Chapelle (soins, bénédiction), la Forge (armes, réparations) ou l’Échoppe (herbes, fournitures) — le toit se lève quand vous y pénétrez. La route de l’est part vers le monde."
+   },
    "walls": [
     {
      "x": 3,
@@ -7341,7 +7345,9 @@
    "flags": {},
    "desc": "Un pan de forteresse effondrée annexé par l’arène — et squatté par des peaux-vertes.",
    "rest": {},
-   "startMessage": "LES RUINES. Des gobelins nichent dans les chambres effondrées. On murmure qu’une salle au nord-est garde encore son trésor… et son gardien."
+   "startMessage": {
+    "texte": "LES RUINES. Des gobelins nichent dans les chambres effondrées. On murmure qu’une salle au nord-est garde encore son trésor… et son gardien."
+   }
   },
   {
    "type": "scene",
@@ -8294,7 +8300,9 @@
    "flags": {},
    "desc": "Le collecteur sous l’arène : un canal d’eau croupie, deux passerelles, de la vermine.",
    "rest": {},
-   "startMessage": "LES ÉGOUTS. Un canal d’eau croupie coupe le collecteur — deux passerelles de planches le franchissent. Retenez votre souffle : les miasmes rendent MALADE."
+   "startMessage": {
+    "texte": "LES ÉGOUTS. Un canal d’eau croupie coupe le collecteur — deux passerelles de planches le franchissent. Retenez votre souffle : les miasmes rendent MALADE."
+   }
   },
   {
    "type": "scene",
@@ -9334,7 +9342,9 @@
    "flags": {},
    "desc": "La fosse commune de l’arène, murée en cryptes — les pensionnaires se relèvent.",
    "rest": {},
-   "startMessage": "LE CHARNIER. Les vaincus de l’arène finissent ici… et n’y restent pas. Les morts SURGISSENT — attendez-vous à être surpris."
+   "startMessage": {
+    "texte": "LE CHARNIER. Les vaincus de l’arène finissent ici… et n’y restent pas. Les morts SURGISSENT — attendez-vous à être surpris."
+   }
   },
   {
    "type": "scene",
@@ -10213,7 +10223,9 @@
    "desc": "Le champ de joute de l’arène, sous la pluie — duels montés et lances de cavalerie.",
    "weather": "pluie",
    "rest": {},
-   "startMessage": "LES LICES, sous la pluie battante. Des cavaliers vous attendent — un destrier SELLÉ broute près de la barrière : enfourchez-le ! (Et fouillez le râtelier de lances.)"
+   "startMessage": {
+    "texte": "LES LICES, sous la pluie battante. Des cavaliers vous attendent — un destrier SELLÉ broute près de la barrière : enfourchez-le ! (Et fouillez le râtelier de lances.)"
+   }
   },
   {
    "type": "scene",
@@ -11447,7 +11459,9 @@
    "desc": "La fondrière au pied des murs — hommes-bêtes et loups y chassent dans la brume.",
    "weather": "brouillard",
    "rest": {},
-   "startMessage": "LE MARAIS, noyé de brouillard. La harde chasse en silence et l’eau cache pire encore. Restez groupés — l’embuscade est CERTAINE."
+   "startMessage": {
+    "texte": "LE MARAIS, noyé de brouillard. La harde chasse en silence et l’eau cache pire encore. Restez groupés — l’embuscade est CERTAINE."
+   }
   },
   {
    "type": "scene",
@@ -12601,7 +12615,9 @@
    "flags": {},
    "desc": "Une grotte tendue de toiles sous l’arène — et le perchoir d’une vouivre.",
    "rest": {},
-   "startMessage": "LE NID. Toiles, cocons… et un sifflement de VOUIVRE au fond. Les cocons cachent des trésors — et des morsures. Prudence en fouillant."
+   "startMessage": {
+    "texte": "LE NID. Toiles, cocons… et un sifflement de VOUIVRE au fond. Les cocons cachent des trésors — et des morsures. Prudence en fouillant."
+   }
   },
   {
    "type": "scene",
@@ -13557,7 +13573,9 @@
    "flags": {},
    "desc": "La grande fosse aux bêtes : des gouffres la découpent en passes étroites.",
    "rest": {},
-   "startMessage": "LA FOSSE. Des gouffres coupent l’arène en passes étroites — et un GLADIATEUR enchaîné combat à vos côtés : la harde a capturé le mauvais homme."
+   "startMessage": {
+    "texte": "LA FOSSE. Des gouffres coupent l’arène en passes étroites — et un GLADIATEUR enchaîné combat à vos côtés : la harde a capturé le mauvais homme."
+   }
   },
   {
    "type": "scene",
@@ -14684,7 +14702,9 @@
    "flags": {},
    "desc": "Le garde-manger du troll de l’arène — une crevasse, des os, et un invité de marque.",
    "rest": {},
-   "startMessage": "LA CAVERNE DU TROLL. Ça pue le rance et la chair faisandée. Au fond, une alcôve murée abrite le magot — et son NOUVEAU propriétaire."
+   "startMessage": {
+    "texte": "LA CAVERNE DU TROLL. Ça pue le rance et la chair faisandée. Au fond, une alcôve murée abrite le magot — et son NOUVEAU propriétaire."
+   }
   },
   {
    "type": "scene",
@@ -16067,7 +16087,9 @@
    "flags": {},
    "desc": "Un quartier muré du vieux Bourg, rendu aux skavens — terriers, rouages et cages.",
    "rest": {},
-   "startMessage": "LE NID DE VERMINE. Les hommes-rats ont percé leurs terriers sous le vieux quartier. Une voix appelle depuis une CAGE — et mille yeux rouges vous regardent."
+   "startMessage": {
+    "texte": "LE NID DE VERMINE. Les hommes-rats ont percé leurs terriers sous le vieux quartier. Une voix appelle depuis une CAGE — et mille yeux rouges vous regardent."
+   }
   },
   {
    "type": "scene",
@@ -17270,7 +17292,9 @@
    "flags": {},
    "desc": "L’ancien sanctuaire du culte sous l’arène — l’idole noire y saigne encore.",
    "rest": {},
-   "startMessage": "LE CERCLE MAUDIT. Le culte psalmodie autour de l’idole noire — leur CHAMANE tisse déjà ses sorts et l’air vous corrompt la moelle. Frappez vite."
+   "startMessage": {
+    "texte": "LE CERCLE MAUDIT. Le culte psalmodie autour de l’idole noire — leur CHAMANE tisse déjà ses sorts et l’air vous corrompt la moelle. Frappez vite."
+   }
   },
   {
    "type": "scene",
@@ -18350,7 +18374,9 @@
    "flags": {},
    "desc": "Le tombeau d’un seigneur oublié, sous l’arène — il reçoit, à la nuit tombée.",
    "rest": {},
-   "startMessage": "LE SÉPULCRE. La porte se referme : il fera NUIT, quoi qu’en dise le soleil. Le seigneur des lieux apprécie les visites — ses gens hurlent déjà."
+   "startMessage": {
+    "texte": "LE SÉPULCRE. La porte se referme : il fera NUIT, quoi qu’en dise le soleil. Le seigneur des lieux apprécie les visites — ses gens hurlent déjà."
+   }
   },
   {
    "type": "scene",
@@ -19967,7 +19993,9 @@
    "flags": {},
    "desc": "Le secret du Maître : sous la treizième porte dort un dragon des ténèbres, sur son or.",
    "rest": {},
-   "startMessage": "L’ANTRE DU DRAGON. La chaleur racle la gorge, l’or scintille entre les coulées de lave. Le dragon DORT. On peut chiper une poignée d’or sans le réveiller… en théorie."
+   "startMessage": {
+    "texte": "L’ANTRE DU DRAGON. La chaleur racle la gorge, l’or scintille entre les coulées de lave. Le dragon DORT. On peut chiper une poignée d’or sans le réveiller… en théorie."
+   }
   },
   {
    "type": "scene",
@@ -21696,7 +21724,9 @@
    ],
    "flags": {},
    "desc": "La grande forêt à l’est du Bourg — hommes-bêtes en lisière, brigands au cœur.",
-   "startMessage": "LA VIEILLE FUTAIE. La harde chasse en lisière — et au cœur du bois, la bande de BELLA LA NOIRE compte son butin. Les herbes du sous-bois valent leur pesant d’or."
+   "startMessage": {
+    "texte": "LA VIEILLE FUTAIE. La harde chasse en lisière — et au cœur du bois, la bande de BELLA LA NOIRE compte son butin. Les herbes du sous-bois valent leur pesant d’or."
+   }
   },
   {
    "type": "scene",
@@ -23039,7 +23069,9 @@
    "flags": {},
    "desc": "Une tourbière d’eau noire au sud de la Futaie — les pontons sont le seul chemin sûr. Enfin, « sûr »…",
    "weather": "brouillard",
-   "startMessage": "LA TOURBIÈRE NOIRE. Les pontons de planches serpentent sur l’eau morte. Ce qui traîne les voyageurs sous la surface a été FABRIQUÉ — et il régénère. Apportez du feu."
+   "startMessage": {
+    "texte": "LA TOURBIÈRE NOIRE. Les pontons de planches serpentent sur l’eau morte. Ce qui traîne les voyageurs sous la surface a été FABRIQUÉ — et il régénère. Apportez du feu."
+   }
   },
   {
    "type": "scene",
@@ -24279,7 +24311,9 @@
    ],
    "flags": {},
    "desc": "Un village qui ne répond plus : portes ouvertes, marmites froides… et des pas traînants.",
-   "startMessage": "FELSBACH. Plus une lumière, des portes battantes — et des silhouettes qui TRAÎNENT entre les maisons. Ne buvez pas l’eau du puits. Cherchez le journal du prévôt.",
+   "startMessage": {
+    "texte": "FELSBACH. Plus une lumière, des portes battantes — et des silhouettes qui TRAÎNENT entre les maisons. Ne buvez pas l’eau du puits. Cherchez le journal du prévôt."
+   },
    "walls": [
     {
      "x": 3,
@@ -25574,7 +25608,9 @@
    ],
    "flags": {},
    "desc": "Un gué encaissé sur la route de l’est — l’endroit rêvé pour détrousser les voyageurs.",
-   "startMessage": "EMBUSCADE AU GUÉ ! Des silhouettes jaillissent des fourrés — défendez-vous, puis reprenez la route."
+   "startMessage": {
+    "texte": "EMBUSCADE AU GUÉ ! Des silhouettes jaillissent des fourrés — défendez-vous, puis reprenez la route."
+   }
   }
  ],
  "worldMap": {

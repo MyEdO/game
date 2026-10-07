@@ -11,6 +11,6 @@ Question (non-verbatim utilisateur) : répliques à partir des motivations du MJ
 **Verbatim —** option retenue (2026-09-26) : « **Narration reformulée aussi** » : « Comme la réplique maison, et les descriptions destinées au MJ peuvent en plus être reformulées en texte lu à l'écran. La règle 5 ne tiendrait plus que pour les documents et les règles. »
 Option Réplique maison (non-verbatim utilisateur) : verbatim d'abord ; sinon texte éditable maison, référencé et jugé. Sans MJ, sa narration se lit à l'écran.
 
-- `proseNommee`/`PROSES_NOMMEES` : ouverture, stade, document, terrain. Provenance locale : `source` = copie par folio, `adapteDe` = adaptation, aucune = Maison. Document : `source` seule. `adapteDe` exclut `source` et `descRef`.
+- Les proses de campagne composent `proseNommee`/`PROSES_NOMMEES`. Provenance locale : `source` = copie par folio ; réplique/journal/objectif/faveur : copie adressée `descRef` ; `adapteDe` = adaptation ; aucune = Maison. Document : Maison ou copie `source`, jamais Adapté. `adapteDe` exclut `source` et `descRef`.
 - La source racine est documentaire ; elle ne porte ni n'alimente la prose. Une frontière locale coupe l'héritage, même Maison ; preset→profil subsiste, adapté coupe.
-- Copies à l'octet : `proseSourcees` (`src/scenes/bundled-projects.test.ts`). Maison : juge esprit (`adapter-une-campagne`). La prose de `src/data` reste hors arbitrage.
+- Garde de copie par folio : `proseSourcees` (`src/scenes/bundled-projects.test.ts`) cherche chaque paragraphe trimé dans le livre entier ; elle ne prouve ni folio, ni ordre ou adjacence d'un passage complet. Maison : juge esprit (`adapter-une-campagne`). La prose de `src/data` reste hors arbitrage.

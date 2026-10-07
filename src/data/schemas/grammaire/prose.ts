@@ -22,7 +22,7 @@ export const META_PROSE = { desc: { label: 'texte' }, descRef: { label: 'adresse
 export const META_ADAPTE_DE = { adapteDe: { label: 'adapté de' } };
 
 type DefinitionNommee<C extends CheminProseDeScene> = (typeof PROSES_NOMMEES)[C];
-type ChampsNommes<C extends CheminProseDeScene> = {
+type ChampsNommes<C extends CheminProseDeScene> = DefinitionNommee<C>['porteur'] extends 'adresse' ? ReturnType<typeof champsProse> & ReturnType<typeof champAdapteDe> : {
   [K in DefinitionNommee<C>['champ']]: DefinitionNommee<C>['presence'] extends 'requis' ? z.ZodString : z.ZodOptional<z.ZodString>;
 } & { source: z.ZodOptional<typeof sourceRefSchema> } & (
   DefinitionNommee<C>['regime'] extends 'narration' ? ReturnType<typeof champAdapteDe> : object
@@ -37,15 +37,16 @@ export function declarationProseNommee(noeud: unknown): ProseNommee | undefined 
 
 export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScene>(schema: z.ZodObject<S>, chemin: C): z.ZodObject<z.util.Extend<S, z.util.Writeable<ChampsNommes<C>>>> {
   const definition = PROSES_NOMMEES[chemin];
-  const texte = definition.presence === 'requis' ? z.string().min(1, `${definition.champ} vide.`) : z.string().optional();
-  const champs = {
+  const texte = definition.presence === 'requis' ? z.string().regex(/\S/, `${definition.champ} vide.`) : z.string().optional();
+  const champs = (definition.porteur === 'adresse' ? { ...champsProse(), ...champAdapteDe() } : {
     [definition.champ]: texte,
     source: sourceRefSchema.optional(),
     ...(definition.regime === 'narration' ? champAdapteDe() : {}),
-  } as ChampsNommes<C>;
+  }) as ChampsNommes<C>;
   const compose = schema.extend(champs);
-  const resultat = definition.regime === 'narration' ? compose.superRefine(refineAdapteDe) : compose;
-  nommerChamps(resultat, { ...metaDesChamps(schema, { exigees: true }), [definition.champ]: { label: definition.label }, source: { label: 'source' }, ...(definition.regime === 'narration' ? META_ADAPTE_DE : {}) } as MetaDesChamps<typeof resultat.shape>);
+  const avecProse = definition.porteur === 'adresse' ? compose.superRefine(refineProse({ type: 'projet', exigeProse: true })) : compose;
+  const resultat = definition.regime === 'narration' ? avecProse.superRefine(refineAdapteDe) : avecProse;
+  nommerChamps(resultat, { ...metaDesChamps(schema, { exigees: true }), ...(definition.porteur === 'adresse' ? META_PROSE : { source: { label: 'source' } }), [definition.champ]: { label: definition.label, texte: { regime: definition.regime } }, ...(definition.regime === 'narration' ? META_ADAPTE_DE : {}) } as MetaDesChamps<typeof resultat.shape>);
   declarationsNommees.add(resultat, { chemin });
   return resultat;
 }
@@ -199,6 +200,7 @@ export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown
   if (p.noeuds.some((n) => declarationProseNommee(n) !== undefined)) return undefined;
   for (let a = p.parent; a; a = a.parent) {
     if (a.chemin.length === 0) return undefined;
+    if (a.noeuds.some((n) => declarationProseNommee(n) !== undefined)) return undefined;
     if (!estObjetSimple(a.valeur)) continue;
     if (a.valeur.adapteDe !== undefined) return undefined;
     if (estObjetSimple(a.valeur.source)) return a.valeur.source;

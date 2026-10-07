@@ -41,17 +41,9 @@
    couleur). Les tons du vocabulaire partagé restent ceux de `recap-line.css` (même spécificité,
    module importé APRÈS celui-ci) — aucune règle de ton n'est redéclarée ici. */
 .rm-journal .recap-line {
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
   margin: 0;
   font-size: inherit;
   color: inherit;
-}
-/* Gouttière d'icône du journal (`.jr-ic`, log-drawer.css) reprise ici : boîte FIXE devant le texte,
-   pour que le retour à la ligne s'aligne sous la première ligne au lieu de repartir du bord. */
-.rm-journal .recap-line > svg {
-  flex: 0 0 16px;
 }
 /* DR net du Test opposé (2 rangées) : la différence de DR entre les deux jets, sous l'issue. */
 .rm-netsl {

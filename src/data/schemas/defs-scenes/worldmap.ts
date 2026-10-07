@@ -8,6 +8,7 @@ import { nommerChamps } from '../grammaire/meta';
  * CONCRÈTE à plat (`PortProfile` complet). Un port sans `ref` porte donc son profil en entier.
  */
 import { z } from 'zod';
+import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme } from '../grammaire/valeurs';
@@ -18,6 +19,7 @@ import type { Condition } from '../../../engine/flowCore';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
 export const travelModeSchema = z.string();
+export const refusRouteSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'worldMap.routes[].refus.texte');
 /** `WindDirection` (`engine/seaWeather.ts`) — cap dominant d'une route maritime (`MDG 13 l.262-270`). */
 export const windDirectionSchema = enumNomme({ nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest' });
 
@@ -55,7 +57,7 @@ export const portProfileSchema = nommerChamps(z
         });
       }
     }
-  }), { ref: { label: "référence" }, taille: { label: "taille" }, richesse: { label: "richesse" }, production: { label: "production" }, surplus: { label: "surplus" }, demande: { label: "demande" }, cosmopolite: { label: "cosmopolite" }, lighthouse: { label: "phare" } });
+  }), { ref: { label: "référence" , texte: { regime: "technique"} }, taille: { label: "taille" }, richesse: { label: "richesse" }, production: { label: "production" , texte: { regime: "technique"} }, surplus: { label: "surplus" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, cosmopolite: { label: "cosmopolite" }, lighthouse: { label: "phare" } });
 
 /** `LandMarketProfile` (`engine/landCargo.ts:62`) — indices de commerce terrestre/fluvial (`MSRC 13`). */
 export const landMarketProfileSchema = nommerChamps(z.strictObject({
@@ -74,7 +76,7 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
   wineBonusEchelons: z.number().optional(),
   hostLine: z.string().optional(),
   backdrop: z.string().optional(),
-}), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" }, demande: { label: "demande" }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" }, backdrop: { label: "fond" } });
+}), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" , texte: { regime: "technique"} } });
 
 /** `PlaceService` — service extensible d'un lieu (`kind` = id de `lieux-services.json`), hors
  *  port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE au lieu. */
@@ -89,7 +91,7 @@ export const placeServiceSchema = nommerChamps(z.strictObject({
       bord: z.boolean().optional(),
   }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" }, bord: { label: "bord" } })
     .optional(),
-}), { kind: { label: "type" }, label: { label: "libellé" }, rest: { label: "repos" } });
+}), { kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" } });
 
 /** `PlacePoi` (#345) — marqueur de PLAN, cible EXCLUSIVE `sceneId` OU `serviceKind`. */
 export const placePoiSchema = nommerChamps(z
@@ -109,7 +111,7 @@ export const placePoiSchema = nommerChamps(z
         message: 'cible EXCLUSIVE — « sceneId » (transition) OU « serviceKind » (service résolu du lieu), jamais les deux ni aucun.',
       });
     }
-  }), { id: { label: "identifiant" }, label: { label: "libellé" }, pos: { label: "position" }, icon: { label: "icône" }, sceneId: { label: "scène" }, serviceKind: { label: "type de service" } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, serviceKind: { label: "type de service" , texte: { regime: "technique"} } });
 
 /**
  * Kinds de `Condition` réellement ÉVALUABLES avec le contexte de la CARTE (`condCtx`,
@@ -175,14 +177,14 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" }, label: { label: "libellé" }, pos: { label: "position" }, scene: { label: "scène" }, entry: { label: "entrée" }, icon: { label: "icône" }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" , texte: { regime: "technique"} }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. */
 export const routePerilSchema = nommerChamps(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
   effects: z.array(effectSchema),
-}), { label: { label: "libellé" }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
+}), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** `MapRoute` — route entre deux lieux, bidirectionnelle sauf `from` (sens unique d'initiation). */
 export const mapRouteSchema = nommerChamps(z.strictObject({
@@ -202,7 +204,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   perils: z.array(routePerilSchema).optional(),
   /** Cible du « Attaqués ! » ; `at` = ancrage DÉTERMINISTE en mer (fraction 0-1, défaut 0.5, #212). */
   ambush: nommerChamps(z
-    .strictObject({ scene: z.string(), entry: z.string().optional(), encounter: z.string(), at: z.number().optional() }), { scene: { label: "scène" }, entry: { label: "entrée" }, encounter: { label: "rencontre" }, at: { label: "position" } })
+    .strictObject({ scene: z.string(), entry: z.string().optional(), encounter: z.string(), at: z.number().optional() }), { scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, at: { label: "position" } })
     .optional(),
   /** Relais d'auberges en bord de route : la halte de NUIT propose l'auberge. */
   inns: z.boolean().optional(),
@@ -212,31 +214,31 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   /** Route FLUVIALE JOUÉE (`MSRC 7`) : la descente se joue jour par jour en mode `barge`. */
   river: z.boolean().optional(),
   /** Périls de rivière tirés chaque jour (`MSRC 7 l.119-166`, `river-perils.json`). */
-  riverPerils: z.array(nommerChamps(z.strictObject({ perilId: z.string(), chancePct: z.number() }), { perilId: { label: "péril" }, chancePct: { label: "probabilité" } })).optional(),
+  riverPerils: z.array(nommerChamps(z.strictObject({ perilId: z.string(), chancePct: z.number() }), { perilId: { label: "péril" , texte: { regime: "technique"} }, chancePct: { label: "probabilité" } })).optional(),
   /** PRATICABILITÉ du trajet (algèbre `Condition`, cf. `evalCondition`) — axe ARÊTE du gating
    *  narratif, indépendant de `mapPlaceSchema.when`. Absente = toujours praticable. */
   when: conditionCondCtxSchema.optional(),
   /** Raison JOUEUR de l'indisponibilité, rendue par `GatedAction` en infobulle — EXIGÉE dès que
    *  `when` est posé (superRefine ci-dessous) : un trajet fermé MUET est un cul-de-sac inexplicable. */
-  refus: z.string().optional(),
+  refus: refusRouteSchema.optional(),
   /** Exposition HYDRIQUE de la descente (`MSRC 16 l.5-13`) — déclenche l'Effet `waterExposure`. */
   riverExposure: nommerChamps(z
     .strictObject({
       source: z.string().optional(),
       mode: waterExposureModeSchema,
       chancePct: z.number(),
-    }), { source: { label: "source" }, mode: { label: "mode" }, chancePct: { label: "probabilité" } })
+    }), { source: { label: "source" , texte: { regime: "technique"} }, mode: { label: "mode"  }, chancePct: { label: "probabilité" } })
     .optional(),
   couvre: couvreSchema.optional(),
 })
   .superRefine((route, ctx) => {
-    if (route.when !== undefined && !route.refus?.trim()) {
+    if (route.when !== undefined && !route.refus?.texte.trim()) {
       ctx.addIssue({
         code: 'custom',
         message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",
       });
     }
-  }), { id: { label: "identifiant" }, a: { label: "extrémité de départ" }, b: { label: "extrémité d’arrivée" }, from: { label: "provenance" }, km: { label: "kilomètres" }, modes: { label: "modes" }, prices: { label: "prix" }, speed: { label: "vitesse" }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer" }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, prices: { label: "prix" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({
@@ -270,4 +272,4 @@ export const worldMapSchema = nommerChamps(z
         else lieuDuPoi.set(poi.id, lieu.id);
       });
     });
-  }), { id: { label: "identifiant" }, label: { label: "libellé" }, params: { label: "paramètres" }, background: { label: "arrière-plan" }, places: { label: "lieux" }, routes: { label: "routes" } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, params: { label: "paramètres" }, background: { label: "arrière-plan" , texte: { regime: "technique"} }, places: { label: "lieux" }, routes: { label: "routes" } });

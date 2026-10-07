@@ -17,6 +17,7 @@ import { formatMoney, canAfford } from '../engine/money';
 import { partyMoneyTotal, condCtx } from '../state/bourseFlow';
 import { Coins } from './Coins';
 import { GatedAction } from './GatedAction';
+import { mdToText } from './Prose';
 import { rule } from '../engine/policy';
 import { forcePaceDifficulty } from '../engine/seaNavigation';
 import { shipHasNavalTrait, vesselNavalTraits, navalTraitsDe } from '../engine/navalTraits';
@@ -659,7 +660,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               label={<><Icon id="scenario/travel" size="sm" /> Partir</>}
               ariaLabel={`Partir vers ${destFermee.label}`}
               enabled={false}
-              reason={garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)')}
+              reason={mdToText(garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)').texte)}
               onClick={() => {}}
             />
           </Row>

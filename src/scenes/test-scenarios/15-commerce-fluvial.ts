@@ -99,12 +99,12 @@ function quay(e: ReikEntry, start: boolean): Scene {
     size,
     terrain: 'planches',
     heroStart: [3, 4],
-    startMessage: start
+    startMessage: { texte: start
       ? `Berta Kaufmann inspecte les étals de ${e.label} d’un œil connaisseur. « On achète bon marché ici, on redescend ` +
         `le Reik en barge, et on revend plus cher où la ville est florissante — à Altdorf, on paiera dix bons pour cent ` +
         `de plus. Le chariot de convoi porte la cargaison tout le voyage. » (Ouvrez le marché pour acheter, puis la carte ` +
         `du monde pour prendre la barge.) Berta marchande, jauge le vin et tend l’oreille aux rumeurs de marché.`
-      : `${e.label}, sur le Reik. (Le marché pour acheter ou vendre ; la carte du monde pour reprendre la barge.)`,
+      : `${e.label}, sur le Reik. (Le marché pour acheter ou vendre ; la carte du monde pour reprendre la barge.)` },
   });
 }
 

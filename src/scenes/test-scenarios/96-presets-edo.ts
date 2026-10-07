@@ -121,7 +121,7 @@ function construireScene(): Scene {
     },
     heroStart: [1, 4],
     startMessage:
-      'Un homme séduisant, épée au côté et dés à la ceinture, vous fait signe depuis la clairière.',
+      { texte: 'Un homme séduisant, épée au côté et dés à la ceinture, vous fait signe depuis la clairière.' },
     // Fiches par PRESET (`presetId`, #671) : `narratif` ci-dessus, `resolvePresetCreature` ; preset
     // irrésoluble → `FicheAbsente` (`state/sceneNpc.ts`, #1882).
     entities: [

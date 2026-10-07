@@ -308,7 +308,7 @@ export function startTravel(
   // unique — la vue rend le trajet en affordance refusée, mais tout autre appelant (devtools, coop,
   // reprise de sauvegarde) bute sur la même porte. La raison d'auteur part au journal.
   if (route.when != null && !evalCondition(route.when, condCtx(get))) {
-    log(get, set, route.refus ? [route.refus] : []);
+    log(get, set, route.refus ? [route.refus.texte] : []);
     return;
   }
   // « En selle » suit les mêmes chemins qu'à pied (mode IMPLICITE des routes `pied`) — règle
