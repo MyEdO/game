@@ -12,11 +12,11 @@
 import type { Transport } from './transport';
 import { deflateB64, inflateB64 } from './compress';
 
-/** URL de PROD du Worker (`npm run relay:deploy`). */
 export const RELAY_URL_PROD = 'https://w4-coop-relay.gauche-c.workers.dev';
 
 export function relayHttpUrl(): string {
-  return (import.meta.env?.VITE_RELAY_URL as string | undefined) ?? RELAY_URL_PROD;
+  return (import.meta.env?.VITE_RELAY_URL as string | undefined)
+    ?? (import.meta.env.PROD ? RELAY_URL_PROD : 'http://localhost:8787');
 }
 
 export function roomWsUrl(code: string, params: Record<string, string>): string {
