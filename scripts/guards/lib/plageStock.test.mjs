@@ -699,9 +699,9 @@ test('PLAGE : un stock au chemin NON-ASCII qui grandit sans CLIQUET est refusé'
   }
 })
 
-// ── CLIQUET par clé (#1806 D5″) sur une plage réelle ────────────────────────────────────────────
+// #2472
 
-test('CLIQUET (D5″) : le renommage PUR d’un fichier cité par un stock coûte 0 ; la même réécriture sans renommage coûte +1', () => {
+test('CLIQUET : renommer ou remplacer une entrée coûte zéro ; ajouter une entrée coûte +1', () => {
   const { racine, sha } = instanceDeDepot({
     fichiers: { [PORTEUR]: `export const STOCK = [\n${A}\n${B}\n]\n`, 'src/a.ts': 'export const a = 1\n'.repeat(20) },
     message: 'socle',
@@ -718,7 +718,11 @@ test('CLIQUET (D5″) : le renommage PUR d’un fichier cité par un stock coût
     git('add', '-A')
     git('commit', '-q', '--no-verify', '-m', 'refactor: b devient y, sans renommage')
     const reecrit = git('rev-parse', 'HEAD').trim()
-    assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut: renomme, fin: reecrit }).refus.map((r) => [r.fichier, r.net]), [[PORTEUR, 1]])
+    assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut: renomme, fin: reecrit }).refus, [])
+    writeFileSync(join(racine, PORTEUR), `export const STOCK = [\n  'src/z.ts',\n  'src/y.ts',\n${C}\n]\n`, 'utf8')
+    git('add', '-A')
+    git('commit', '-q', '--no-verify', '-m', 'feat: une entrée de plus')
+    assert.deepEqual(croissancesDeLaPlage({ cwd: racine, debut: reecrit, fin: git('rev-parse', 'HEAD').trim() }).refus.map((r) => [r.fichier, r.net]), [[PORTEUR, 1]])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -1328,7 +1332,7 @@ const CONSTRUITS = {
     d.git('checkout', '-q', 'chantier')
     d.fusionner('cote')
     const fin = d.poser({ [PORTEUR]: sourceStock([...SIX.map(ren), ent('src/kk.ts:5')]) }, 'fusion : entrée suivie en kk')
-    return [debut, fin, () => [[fin, PORTEUR, 1]]]
+    return [debut, fin, () => []]
   },
   'N7 chantier retire k1, cote ajoute k1:7 déclaré, la fusion garde k1 et k1:7': (d) => {
     d.poser({ [PORTEUR]: sourceStock(SIX.slice(1)) }, 'chantier retire k1')
