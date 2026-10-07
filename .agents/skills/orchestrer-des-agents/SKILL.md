@@ -12,20 +12,26 @@ l'intégration triviale et les gates.
 
 ## Suivi
 
-- **Le suivi de vague `.git/suivi/<N>.md` est la SEULE source du plan et du prochain geste** — un
+- **Le suivi de vague `.git/suivi/<N>.json` est la SEULE source du plan et du prochain geste** — un
   fichier par épique `<N>`, dans le répertoire git commun (utilisateur, 2026-09-28 : « Il faut
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
-  Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
-  `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
-- **La zone écrite s'édite par l'outil `mcp__harnais__suivi`** (mod `harnais`), ou par
-  `node scripts/ops/suivi.mjs <N> --session <id> --json [--ticket <M>] --ajouter-item|--ajouter-etape|--cocher <texte>` :
-  une ligne par geste, sous verrou, et la session se lie au suivi.
-- **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
-  indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
-  branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
-- **À la FERMETURE d'un ticket** (issue fermée, liste « À condenser » de la zone mesurée), ses
-  arbitrages utilisateur partent au TICKET, verbatim et datés, PUIS sa section se réduit à une ligne :
-  le ticket, ce qui a été publié (sha) et les pointeurs utiles. Le suivi reste un PLAN.
+  Il se relit EN PREMIER à toute reprise (compaction, lendemain) : `npm run ops:suivi -- <N>` (la
+  situation), `-- <N> --rendu` (le suivi entier), `-- <N> --mesurer [--sans-fetch]` (la mesure).
+- **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
+  modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
+  l'outil `mcp__harnais__suivi` (mod `harnais`) ou `npm run ops:suivi -- <N> --<geste> <args>…` (table
+  `GESTES` de `scripts/ops/suivi.mjs`, arité fixe : un texte se cite en UN argument), plusieurs gestes
+  par appel ou `--lot <json>`, appliqués TOUT OU RIEN, sous verrou ; `--creer <titre>` ouvre une vague
+  neuve. La garde `suivi-ecriture` refuse toute autre écriture, et un suivi édité à la main se relit
+  « écrit hors de l'outil ».
+- **Un ticket prévu = un item** (`--ajouter-item <ticket> <libellé>`, ou `--enfiler` en file puis
+  `--demarrer`), d'état `actif | attente | gare | clos` ; ses étapes (`--ajouter-etape <ticket> <texte>`,
+  `--cocher <ticket>.<n>`) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication — et se
+  rendent numérotées `#<ticket>.<n>`. Aucun état de branche, d'issue ou de publication n'y est saisi :
+  la mesure (`<N>.mesure.json`) le porte.
+- **À la FERMETURE d'un ticket**, ses arbitrages utilisateur partent au TICKET, verbatim et datés, PUIS
+  son item passe `clos` et se condense (`--condenser <ticket> <résumé>` : ce qui a été publié, sha et
+  pointeurs). Le suivi reste un PLAN.
 - **Le task-tracker n'est qu'un miroir de session**, jamais une source : ce qu'il porte et que le suivi
   n'a pas est perdu à la reprise.
 - **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101+,

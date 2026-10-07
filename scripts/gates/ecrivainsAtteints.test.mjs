@@ -193,6 +193,9 @@ const ATTENDU = {
     'scripts/hooks/repartiteur.test.mjs',
     'scripts/hooks/repartition.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
+    // +1 le 2026-10-07 (#2460) : le banc de la garde d'écriture du suivi forge un dépôt JETABLE
+    // (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally) ; la garde juge l'entrée, rien n'est écrit.
+    'scripts/hooks/suivi-ecriture-guard.test.mjs',
     'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La
@@ -282,8 +285,8 @@ const ATTENDU = {
     'scripts/ops/reprendre-file.mjs',
     'scripts/ops/reprendre-file.test.mjs',
     'scripts/ops/worktrees.test.mjs',
-    // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.md` (temporaire voisin puis
-    // `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
+    // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.json` et `<N>.mesure.json` (temporaire
+    // voisin puis `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
     // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
@@ -294,7 +297,7 @@ const ATTENDU = {
     // jamais écrit.
     'scripts/ops/synchroniser.mjs',
     'scripts/ops/synchroniser.test.mjs',
-    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
+    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque fichier sous le verrou exclusif `.<nom>.verrou`
     // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs` : tenant écrit dans le temporaire
     // voisin `<chemin>.<pid>.<uuid>` puis `linkSync` exclusif (`prendreDepuis`), reprise sous `<chemin>.reprise`
     // (`reprendre`), `rmSync` des temporaires), tous dans le dossier du suivi : sous `.git/suivi` derrière la

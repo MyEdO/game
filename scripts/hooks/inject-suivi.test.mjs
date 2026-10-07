@@ -1,3 +1,5 @@
+// Hook SessionStart du suivi de vague (surface Codex) : lancé POUR DE VRAI sur un dépôt forgé, il injecte
+// le `contexte` de `etatDeSession`. Les suivis sont posés par l'outil (`poserSuivi`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -7,9 +9,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { JOURNAL, PART_D_UN_DIGEST, PLAFOND_INJECTION, ligneDeJournal } from '../ops/suivi.mjs'
+import { poserSuivi } from '../test/suiviDeBanc.mjs'
 import { texteDInjection } from './inject-suivi.mjs'
 
-const REEL = FS.readFileSync(new URL('../ops/fixtures/suivi-1816.md', import.meta.url), 'utf8')
 const HOOK = fileURLToPath(new URL('./inject-suivi.mjs', import.meta.url))
 
 /** Le hook lancé dans `racine` sur l'entrée `entree` : son code et son stdout. */
@@ -27,40 +29,64 @@ function injection(racine, entree, dossier) {
   assert.equal(texte, texteDInjection({ entree, dossier, maintenant: new Date() }))
   assert.ok(texte.length <= PLAFOND_INJECTION, `${texte.length} > ${PLAFOND_INJECTION}`)
   assert.match(texte, /^\[/)
-  assert.throws(() => JSON.parse(texte), SyntaxError)
   return { ...execution, stdout: texte }
 }
 
-test('T4 — compaction d’une session LIÉE : le digest du suivi, Objectif et prochaine étape `[ ]` ; sans lien, l’index', () => {
+/** Les lots d'un suivi titré `titre`, son objectif, un item #2400 à deux étapes dont la première cochée, un item clos. */
+const VAGUE = (titre) => [[
+  { geste: 'creer', titre, objectif: 'livrer le tome 1' },
+  { geste: 'ajouter-item', ticket: 2400, libelle: 'périmètre de tests' },
+  { geste: 'ajouter-etape', ticket: 2400, texte: 'juge du brief' },
+  { geste: 'ajouter-etape', ticket: 2400, texte: 'juge du diff' },
+  { geste: 'cocher', ticket: 2400, n: 1 },
+  { geste: 'ajouter-item', ticket: 2001, libelle: 'fini', etat: 'clos' },
+]]
+
+test('compaction d’une session LIÉE : le digest JSON (objectif, étape ouverte NUMÉROTÉE, rien de fait ni de clos) ; sans lien, l’index', () => {
   const { racine } = instanceDeDepot({ commit: false })
   const dossier = join(racine, '.git', 'suivi')
   try {
     FS.mkdirSync(dossier, { recursive: true })
-    FS.writeFileSync(join(dossier, '1816.md'), REEL)
-    FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: new Date().toISOString(), session: 's', epique: 1816 }))
+    poserSuivi({ dossier, epique: 665, lots: VAGUE('Vague du tome 1') })
+    FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: new Date().toISOString(), session: 's', epique: 665 }))
 
     const lie = injection(racine, { hook_event_name: 'SessionStart', source: 'compact', session_id: 's' }, dossier)
-    assert.equal(lie.code, 0, lie.stderr)
-    assert.match(lie.stdout, /^\[suivi #1816\] .*1816\.md — écrit le /)
-    assert.ok(lie.stdout.includes('## Objectif\nÉpique #1816, « Tout le plan, dans l\'ordre »'), lie.stdout.slice(0, 600))
-    assert.ok(lie.stdout.includes(REEL.split('\n').find((l) => l.includes('[ ]'))), 'la prochaine étape ouverte')
-    assert.doesNotMatch(lie.stdout, /\[x\]|lie cette session/)
+    assert.match(lie.stdout, /^\[suivi #665\] .*665\.json — écrit le /)
+    assert.ok(lie.stdout.includes('# Vague du tome 1\n\nObjectif : livrer le tome 1'), lie.stdout.slice(0, 600))
+    assert.ok(lie.stdout.includes('  - [ ] #2400.2 juge du diff'), 'l’étape ouverte, numérotée')
+    assert.doesNotMatch(lie.stdout, /#2400\.1|#2001|lie cette session/)
 
     const seul = injection(racine, { hook_event_name: 'SessionStart', source: 'startup', session_id: 'autre' }, dossier)
-    assert.equal(seul.code, 0, seul.stderr)
     assert.match(seul.stdout, /^\[suivi\] session sans suivi lié ; suivis de vague modifiés depuis moins de 72 h/)
-    assert.match(seul.stdout, /\n- #1816 — Suivi de vague — épique #1816 \(5e sélectionnable\), session 60c2b9c9 — \d{4}-\d{2}-\d{2} \d{2}:\d{2}\n/)
+    assert.match(seul.stdout, /\n- #665 — Vague du tome 1 — \d{4}-\d{2}-\d{2} \d{2}:\d{2}\n/)
     assert.match(seul.stdout, /`npm run ops:suivi -- N` lie cette session au suivi #N\.\n$/)
-    assert.doesNotMatch(seul.stdout, /## Objectif/)
 
     const agent = lancer(racine, { hook_event_name: 'SessionStart', session_id: 's', agent_id: 'agent' })
-    assert.equal(agent.code, 0, agent.stderr)
-    assert.equal(agent.stdout, '')
+    assert.deepEqual([agent.code, agent.stdout], [0, ''])
 
-    FS.utimesSync(join(dossier, '1816.md'), new Date(), new Date(Date.now() - 73 * 3_600_000))
+    FS.utimesSync(join(dossier, '665.json'), new Date(), new Date(Date.now() - 73 * 3_600_000))
     assert.equal(lancer(racine, { hook_event_name: 'SessionStart', source: 'startup', session_id: 'autre' }).stdout, '', 'rien de récent : silence')
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('un suivi ILLISIBLE ou écrit HORS DE L’OUTIL se dit EN TÊTE du contexte ; un `<N>.md` abandonné est nommé, jamais lu', () => {
+  const dossier = FS.mkdtempSync(join(tmpdir(), 'inject-suivi-'))
+  try {
+    poserSuivi({ dossier, epique: 1, lots: VAGUE('Un') })
+    FS.writeFileSync(join(dossier, '1.json'), FS.readFileSync(join(dossier, '1.json'), 'utf8').replace('juge du diff', 'juge du diff édité à la main'))
+    FS.writeFileSync(join(dossier, '2.json'), '{ pas du JSON')
+    FS.writeFileSync(join(dossier, '3.md'), '# ancien format\n## En cours\n1. #3 secret jamais lu\n')
+    FS.writeFileSync(join(dossier, JOURNAL), [1, 2, 3].map((epique) => ligneDeJournal({ iso: 'x', session: 's', epique })).join(''))
+    const texte = texteDInjection({ entree: { session_id: 's' }, dossier, maintenant: new Date() })
+    const [un, deux, trois] = texte.trimEnd().split('\n\n').filter((b) => b.startsWith('[suivi #'))
+    assert.match(un.split('\n')[1], /^\[suivi #1\] ⚠ écrit hors de l'outil/)
+    assert.match(deux, /^\[suivi #2\] ⚠ illisible, JSON invalide/)
+    assert.equal(trois, `[suivi #3] format .md abandonné : ${join(dossier, '3.md')}`)
+    assert.doesNotMatch(texte, /secret jamais lu/)
+  } finally {
+    FS.rmSync(dossier, { recursive: true, force: true })
   }
 })
 
@@ -69,15 +95,16 @@ test('deux épiques liées : le TOTAL injecté tient sous PLAFOND_INJECTION, cha
   const dossier = join(racine, '.git', 'suivi')
   try {
     FS.mkdirSync(dossier, { recursive: true })
-    const etapes = Array.from({ length: 300 }, (_, i) => `   - [ ] étape ouverte numéro ${i} du plan`)
-    for (const epique of [1, 2]) {
-      FS.writeFileSync(join(dossier, `${epique}.md`), ['# Suivi', '', '## Objectif', 'x', '', '## En cours', `1. #${epique} item`, ...etapes, ''].join('\n'))
-    }
+    const long = 'étape ouverte du plan, assez longue pour remplir sa part du plafond '.repeat(2)
+    const items = Array.from({ length: 12 }, (_, k) => [
+      { geste: 'ajouter-item', ticket: 100 + k, libelle: `item ${k}` },
+      ...Array.from({ length: 5 }, () => ({ geste: 'ajouter-etape', ticket: 100 + k, texte: long })),
+    ])
+    for (const epique of [1, 2]) poserSuivi({ dossier, epique, lots: [[{ geste: 'creer', titre: `Suivi ${epique}` }], ...items] })
     FS.writeFileSync(join(dossier, JOURNAL), [1, 2].map((epique) => ligneDeJournal({ iso: new Date().toISOString(), session: 's', epique })).join(''))
     const texte = injection(racine, { hook_event_name: 'SessionStart', session_id: 's' }, dossier).stdout
-    assert.ok(texte.length <= PLAFOND_INJECTION, `${texte.length} > ${PLAFOND_INJECTION}`)
     for (const epique of [1, 2]) assert.match(texte, new RegExp(`^\\[suivi #${epique}\\] `, 'm'))
-    assert.equal(texte.match(/… tronqué, lire /g)?.length, 2, 'chaque digest coupé à sa part')
+    assert.equal(texte.match(/… tronqué, `npm run ops:suivi -- \d --rendu` le rend entier/g)?.length, 2, 'chaque digest coupé à sa part')
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })
   }
@@ -86,7 +113,7 @@ test('deux épiques liées : le TOTAL injecté tient sous PLAFOND_INJECTION, cha
 /** Un dossier jetable dont le journal lie la session `s` aux `epiques` ; `ecrits` y ont un suivi titré. */
 function dossierLie(epiques, ecrits = epiques) {
   const dossier = FS.mkdtempSync(join(tmpdir(), 'inject-suivi-'))
-  for (const epique of ecrits) FS.writeFileSync(join(dossier, `${epique}.md`), [`# Suivi de vague — épique #${epique}`, '', '## Objectif', 'x', ''].join('\n'))
+  for (const epique of ecrits) poserSuivi({ dossier, epique, lots: [[{ geste: 'creer', titre: `Suivi de vague — épique #${epique}` }]] })
   FS.writeFileSync(join(dossier, JOURNAL), epiques.map((epique) => ligneDeJournal({ iso: new Date().toISOString(), session: 's', epique })).join(''))
   return dossier
 }
@@ -112,7 +139,7 @@ test('peu d’épiques : la ligne dit le titre et le chemin ; au-delà de ce que
   try {
     const texte = texteDInjection({ entree: { session_id: 's' }, dossier, maintenant: new Date() })
     const [premiere, seconde] = texte.split('\n')
-    assert.equal(premiere, `[suivi #1] Suivi de vague — épique #1 — lire ${join(dossier, '1.md')}`)
+    assert.equal(premiere, `[suivi #1] Suivi de vague — épique #1 — lire ${join(dossier, '1.json')}`)
     assert.ok(seconde.startsWith('[suivi #2] lié à cette session, mais absent'), seconde)
   } finally {
     FS.rmSync(dossier, { recursive: true, force: true })
@@ -131,11 +158,11 @@ test('peu d’épiques : la ligne dit le titre et le chemin ; au-delà de ce que
   }
 })
 
-test('un lien vers un suivi ABSENT (`--creer` en échec) se dit tel quel, sans digest', () => {
+test('un lien vers un suivi ABSENT se dit tel quel, sans digest', () => {
   const dossier = dossierLie([7], [])
   try {
     assert.equal(texteDInjection({ entree: { session_id: 's' }, dossier, maintenant: new Date() }),
-      `[suivi #7] lié à cette session, mais absent : ${join(dossier, '7.md')}\n`)
+      `[suivi #7] lié à cette session, mais absent : ${join(dossier, '7.json')}\n`)
   } finally {
     FS.rmSync(dossier, { recursive: true, force: true })
   }

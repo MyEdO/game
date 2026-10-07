@@ -1,5 +1,6 @@
 // Types du mod `harnais` : fonction `suivi` (#2279), l'état de session que rend `node scripts/ops/suivi.mjs
-// --session <id> --json` (`etatDeSession`, scripts/ops/suivi.mjs) et l'atome `harnais.suivi` ; fonction `vigie`
+// --session <id> --json` (`etatDeSession`, scripts/ops/suivi.mjs), l'outil que rend `--outil --json` et l'atome
+// `harnais.suivi` ; fonction `vigie`
 // (#2280), la mesure que rend `node scripts/ops/vigie.mjs --json --arbre <racine>` et l'atome `harnais.vigie` ;
 // l'état que rend `node scripts/ops/synchroniser.mjs --json` (#2187) et l'atome `harnais.synchro`.
 
@@ -14,6 +15,9 @@ export type HarnaisEtatDeSession = {
   ajout: string
   cle: string
 }
+
+/** L'outil MCP que décrit `suivi.mjs --outil --json` (`OUTIL_SUIVI`, scripts/ops/suiviDonnee.mjs) : son schéma est dérivé de la donnée. */
+export type HarnaisOutil = { name: string; description: string; inputSchema: Record<string, unknown> }
 
 /** Une situation datée rendue par le lecteur, en attente du prochain tour, et la clé qu'elle porte. */
 export type HarnaisAjout = { ajout: string; cle: string }

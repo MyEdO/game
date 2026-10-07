@@ -9,25 +9,27 @@ import { basename, dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { repartir } from './repartition.mjs'
 import { JOURNAL, epiquesLiees, lignesDuJournal } from '../ops/suivi.mjs'
-import { avertissementIllisible, epiqueLiee, garde } from './suivi-lien-guard.mjs'
+import { appelsDuSuivi, avertissementIllisible, epiqueLiee, garde } from './suivi-lien-guard.mjs'
 
 const SCRIPTS = JSON.parse(FS.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).scripts
 
 test('epiqueLiee : `ops:suivi -- N` par npm comme en direct ; rien sinon', () => {
   assert.equal(epiqueLiee('npm run ops:suivi -- 1816'), 1816)
-  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2132 --sans-fetch'), 2132)
+  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2132 --mesurer --sans-fetch'), 2132)
   assert.equal(epiqueLiee('git status && npm run ops:suivi -- 665'), 665)
-  assert.equal(epiqueLiee('npm run ops:suivi -- 1816 --creer'), 1816)
+  assert.equal(epiqueLiee('npm run ops:suivi -- 1816 --creer "Vague 1816"'), 1816)
   for (const rien of ['npm run ops:suivi', 'npm run ops:suivi -- 0', 'npm run ops:suivi -- 1816 --bogue', 'npm run ops:suivi -- 1 2', 'npm run ops:publier -- --detache', 'git commit -m x', 'echo npm run ops:suivi -- 3', '']) {
     assert.equal(epiqueLiee(rien), null, rien)
   }
 })
 
-test('epiqueLiee : #2233 — un segment précédé d’un `cd`, ou suivi d’une redirection et d’un tube, lie quand même', () => {
-  assert.equal(epiqueLiee('npm run ops:suivi -- 2189 2>&1 | tail -4'), 2189)
-  assert.equal(epiqueLiee('cd x && npm run ops:suivi -- 2189'), 2189)
-  assert.equal(epiqueLiee('cd /depot/Game && npm run ops:suivi -- 2189 2>&1 | tail -4; tail -2 .git/suivi/.journal'), 2189)
-  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2189 --sans-fetch > sortie.txt 2>/dev/null'), 2189)
+test('#2460 — les arguments se lisent avec leurs citations : un texte cité est UN argument, par npm comme en direct ; un mot en trop ne lie pas', () => {
+  const cite = 'npm run ops:suivi -- 665 --ajouter-etape 2400 "tour 10 publié" --cocher 2400.4'
+  assert.deepEqual(appelsDuSuivi(cite), [['665', '--ajouter-etape', '2400', 'tour 10 publié', '--cocher', '2400.4']], 'le segment déplié par npm n’est pas relu')
+  assert.equal(epiqueLiee(cite), 665)
+  assert.equal(epiqueLiee("node scripts/ops/suivi.mjs 665 --lot '{\"epique\": 665, \"mutations\": []}'"), 665)
+  assert.deepEqual(appelsDuSuivi('npm run ops:suivi -- 665 --rendu > rendu.md 2>&1 | tail -3'), [['665', '--rendu']])
+  assert.equal(epiqueLiee('npm run ops:suivi -- 665 --ajouter-etape 2400 tour 10'), null)
 })
 
 test('#2233 — un `ops:suivi` aux arguments illisibles ne se tait pas : avertissement, aucune trace ; la liste sans argument, rien', async () => {
@@ -100,10 +102,9 @@ test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas 
   }
 })
 
-test('#2279 — l’édition `<N> --session … --json [--ticket M] --geste …` lie la session à N, texte cité ou non ; le lecteur `--session … --json [--depuis …]` ne lie rien et n’avertit pas', async () => {
-  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2279 --session abc --json --ajouter-item "#12 un libellé"'), 2279)
-  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --cocher "brief écrit"'), 2279)
-  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --ajouter-etape juge'), 2279)
+test('#2460 — le lot `<N> [--session …] [--json] --<geste> …` lie la session à N ; le lecteur `--session … --json [--depuis …]` ne lie rien et n’avertit pas', async () => {
+  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2279 --session abc --json --ajouter-item 12 "un libellé"'), 2279)
+  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --cocher 12.1'), 2279)
   assert.equal(epiqueLiee('npm run ops:suivi -- --session abc --json'), null)
   const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
   const shell = (command) => repartir({ PreToolUse: [garde] }, JSON.stringify({
@@ -112,8 +113,11 @@ test('#2279 — l’édition `<N> --session … --json [--ticket M] --geste …`
   try {
     assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json'), { sortie: null, traces: [] })
     assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json --depuis 0123abcd'), { sortie: null, traces: [] }, '--depuis : ni lien, ni avertissement')
-    const lie = await shell('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --cocher "brief écrit"')
+    const lie = await shell('npm run ops:suivi -- 2279 --ajouter-etape 12 "brief écrit"')
     assert.deepEqual(lignesDuJournal(lie.traces[0].ligne).map((l) => [l.session, l.epique]), [['s', 2279]])
+    const trop = await shell('npm run ops:suivi -- 2279 --ajouter-etape 12 brief écrit')
+    assert.deepEqual(trop.traces, [])
+    assert.match(trop.sortie?.hookSpecificOutput?.additionalContext, /argument en trop « écrit »/)
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })
   }

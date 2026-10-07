@@ -507,8 +507,8 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   l'idiome UNIQUE `$.process.run(...appel($.plugin.root, …)`. Raison, `claude plugin validate` 2.1.289 :
   « $ is followed only into a function declared in this same file, never across an import ; $ is
   always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
-  régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
-  puis réécrit le suivi.
+  régime se lit par un LECTEUR `--json` en lecture seule ; l'outil du suivi s'obtient par
+  `suivi.mjs --outil --json`, son schéma dérivé de la donnée (`scripts/ops/suiviDonnee.mjs`).
 - **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`oxlint.config.mjs`, joué par la garde `lint`, banc
   `scripts/mods/murDeMod.test.mjs` sur la config résolue) : son périmètre est l'`include` du tsconfig
   que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
