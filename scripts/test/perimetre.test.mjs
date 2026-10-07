@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { lireArguments, paliersDe, perimetreDuDepot, planDExecution } from './perimetre.mjs'
+import { estimationsDe, exportsTouches, lintDesTouches, lireArguments, memosDe, paliersDe, perimetreDuDepot, planDExecution, signalDe, versionDesMemos } from './perimetre.mjs'
 
 const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
 
@@ -77,20 +77,20 @@ test('importeur pendu vers un fichier SUPPRIMÉ : la résolution contre la base 
 })
 
 test('fichier AJOUTÉ, non suivi, sous une racine balayée littérale', (t) => {
-  const racine = forger(t, { 'scripts/d.test.mjs': "listerArbre('donnees')\n", 'donnees/un.json': '{}' },
+  const racine = forger(t, { 'scripts/d.test.mjs': "import { readdirSync } from 'node:fs'\nreaddirSync('donnees')\n", 'donnees/un.json': '{}' },
     { 'donnees/deux.json': '{}' }, { commiter: false })
   const lien = lienDe(deriver(racine, { base: 'HEAD' }), 'scripts/d.test.mjs')
-  assert.deepEqual([lien.nature, lien.racine, lien.site, lien.touche], ['racine balayée', 'donnees', 'scripts/d.test.mjs:1 listerArbre', 'donnees/deux.json'])
+  assert.deepEqual([lien.nature, lien.racine, lien.site, lien.touche], ['racine balayée', 'donnees', 'scripts/d.test.mjs:2 readdirSync', 'donnees/deux.json'])
 })
 
 test('racine portée par une constante IMPORTÉE', (t) => {
   const racine = forger(t, {
-    'scripts/e.test.mjs': "import { RACINES_SCAN } from './scan.mjs'\nreadCorpus(RACINES_SCAN)\n",
+    'scripts/e.test.mjs': "import { RACINES_SCAN } from './scan.mjs'\nimport { readdirSync } from 'node:fs'\nreaddirSync(RACINES_SCAN)\n",
     'scripts/scan.mjs': "export const RACINES_SCAN = ['corpus']\n",
     'corpus/x.ts': 'export const x = 1\n',
   }, { 'corpus/x.ts': 'export const x = 2\n' })
   const lien = lienDe(deriver(racine), 'scripts/e.test.mjs')
-  assert.deepEqual([lien.nature, lien.racine, lien.site], ['racine balayée', 'corpus', 'scripts/e.test.mjs:2 readCorpus'])
+  assert.deepEqual([lien.nature, lien.racine, lien.site], ['racine balayée', 'corpus', 'scripts/e.test.mjs:3 readdirSync'])
 })
 
 test('import.meta.glob à motif littéral : arc vers chaque fichier visé', (t) => {
@@ -115,19 +115,20 @@ test('setupFiles : chaque test Vitest est retenu au rang `setup`, sans distance 
   assert.deepEqual([g.nature, g.touche], ['setup', 'src/store.ts'])
   const h = lienDe(perimetre, 'src/h.test.ts')
   assert.deepEqual([h.nature, h.distance, h.chaine], ['import', 1, ['src/h.test.ts', 'src/store.ts']])
-  assert.deepEqual(planDExecution(perimetre.retenus, { seuil: 1 }), { lances: ['src/h.test.ts'], aLaCI: ['src/g.test.ts'], ciParRang: [['setup', 1]] })
+  const estimations = new Map([['src/h.test.ts', { ms: 1000 }], ['src/g.test.ts', { ms: 1000 }]])
+  assert.deepEqual(planDExecution(perimetre.retenus, { budget: 1, estimations }).aLaCI, ['src/g.test.ts'])
   assert.deepEqual(paliersDe(perimetre.retenus), { 'touché': 0, 'racine balayée': 0, 'import d=1': 1, 'import d=2': 0, 'import d=3': 0, 'import d≥4': 0, 'setup seul': 1, 'toolchain seule': 0 })
 })
 
 test('racine balayée dont le site n’est atteint que par les setupFiles : rang `setup`', (t) => {
   const racine = forger(t, {
     'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
-    'src/setup.ts': "listerArbre('donnees')\n",
+    'src/setup.ts': "import { readdirSync } from 'node:fs'\nreaddirSync('donnees')\n",
     'donnees/x.json': '{}',
     'src/g.test.ts': 'export const g = 1\n',
   }, { 'donnees/x.json': '{"x":1}' })
   const g = lienDe(deriver(racine), 'src/g.test.ts')
-  assert.deepEqual([g.nature, g.racine, g.site, g.touche], ['setup', 'donnees', 'src/setup.ts:1 listerArbre', 'donnees/x.json'])
+  assert.deepEqual([g.nature, g.racine, g.site, g.touche], ['setup', 'donnees', 'src/setup.ts:2 readdirSync', 'donnees/x.json'])
 })
 
 test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entière', (t) => {
@@ -140,33 +141,129 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entièr
 })
 
 test('renommage : le chemin QUITTÉ reste touché sous la racine qui le balayait', (t) => {
-  const racine = forger(t, { 'scripts/i.test.mjs': "listerArbre('anciens')\n", 'anciens/a.md': 'a\n', 'anciens/b.md': 'b\n' },
+  const racine = forger(t, { 'scripts/i.test.mjs': "import { readdirSync } from 'node:fs'\nreaddirSync('anciens')\n", 'anciens/a.md': 'a\n', 'anciens/b.md': 'b\n' },
     { 'nouveaux/a.md': { de: 'anciens/a.md' } })
   const lien = lienDe(deriver(racine), 'scripts/i.test.mjs')
   assert.deepEqual([lien.nature, lien.racine, lien.touche], ['racine balayée', 'anciens', 'anciens/a.md'])
 })
 
+test('readFileSync d’un fichier EXACT : retenu quand ce fichier change, pas quand son voisin change', (t) => {
+  const base = { 'scripts/j.test.mjs': "import { readFileSync } from 'node:fs'\nreadFileSync('donnees/lu.json', 'utf8')\n", 'donnees/lu.json': '{}', 'donnees/voisin.json': '{}' }
+  const lien = lienDe(deriver(forger(t, base, { 'donnees/lu.json': '{"a":1}' })), 'scripts/j.test.mjs')
+  assert.deepEqual([lien.nature, lien.racine, lien.touche], ['racine balayée', 'donnees/lu.json', 'donnees/lu.json'])
+  assert.equal(deriver(forger(t, base, { 'donnees/voisin.json': '{"a":1}' })).retenus.has('scripts/j.test.mjs'), false)
+})
+
+test('existsSync d’un fichier qui APPARAÎT : la sonde d’absence est une lecture', (t) => {
+  const racine = forger(t, { 'scripts/k.test.mjs': "import { existsSync } from 'node:fs'\nexistsSync('donnees/drapeau.json')\n" },
+    { 'donnees/drapeau.json': '{}' })
+  const lien = lienDe(deriver(racine), 'scripts/k.test.mjs')
+  assert.deepEqual([lien.nature, lien.racine, lien.site], ['racine balayée', 'donnees/drapeau.json', 'scripts/k.test.mjs:2 existsSync'])
+})
+
+test('RELAIS inter-module : le site d’appel, ses arguments liés, déclare la racine', (t) => {
+  const racine = forger(t, {
+    'scripts/lib/lister.mjs': "import { readdirSync } from 'node:fs'\nexport function listerTests(racine = process.cwd()) {\n  return readdirSync(racine)\n}\n",
+    'scripts/l.test.mjs': "import { listerTests } from './lib/lister.mjs'\nlisterTests('donnees')\n",
+    'donnees/a.json': '{}',
+  }, { 'donnees/a.json': '{"a":1}' })
+  const lien = lienDe(deriver(racine), 'scripts/l.test.mjs')
+  assert.deepEqual([lien.nature, lien.racine, lien.site], ['racine balayée', 'donnees', 'scripts/l.test.mjs:2 listerTests'])
+})
+
 /** Rangs : touché 0, racine balayée 1, import d=1 2, import d=2 3. */
 const RETENUS = new Map([['t.test.mjs', { rang: 0 }], ['r.test.mjs', { rang: 1 }], ['b.test.mjs', { rang: 2 }], ['a.test.mjs', { rang: 2 }], ['z.test.mjs', { rang: 3 }]])
 
-test('planDExecution : un rang qui tient s’ajoute ENTIER', () => {
-  assert.deepEqual(planDExecution(RETENUS, { seuil: 4 }), { lances: ['t.test.mjs', 'r.test.mjs', 'a.test.mjs', 'b.test.mjs'], aLaCI: ['z.test.mjs'], ciParRang: [['import d=2', 1]] })
+/** Estimations : 10 s chacun, sauf `b` (2 s). */
+const ESTIMATIONS = new Map([...RETENUS.keys()].map((t) => [t, { ms: t === 'b.test.mjs' ? 2000 : 10_000 }]))
+
+test('planDExecution : sous budget, tout est lancé ; touché et racine balayée ne comptent pas', () => {
+  const plan = planDExecution(RETENUS, { budget: 22, estimations: ESTIMATIONS })
+  assert.deepEqual([plan.lances, plan.aLaCI], [['t.test.mjs', 'r.test.mjs', 'b.test.mjs', 'a.test.mjs', 'z.test.mjs'], []])
 })
 
-test('planDExecution : le rang qui déborde part à la CI ENTIER, avec tous les suivants', () => {
-  assert.deepEqual(planDExecution(RETENUS, { seuil: 3 }), { lances: ['t.test.mjs', 'r.test.mjs'], aLaCI: ['a.test.mjs', 'b.test.mjs', 'z.test.mjs'], ciParRang: [['import d=1', 2], ['import d=2', 1]] })
+test('planDExecution : la coupe passe À L’INTÉRIEUR d’un rang, le moins cher d’abord, et tout ce qui suit part à la CI', () => {
+  const plan = planDExecution(RETENUS, { budget: 5, estimations: ESTIMATIONS })
+  assert.deepEqual([plan.lances, plan.aLaCI], [['t.test.mjs', 'r.test.mjs', 'b.test.mjs'], ['a.test.mjs', 'z.test.mjs']])
+  assert.deepEqual(plan.rangs.map((r) => [r.rang, r.estimeMs, r.lances, r.aLaCI]),
+    [['touché', 10_000, 1, 0], ['racine balayée', 10_000, 1, 0], ['import d=1', 12_000, 1, 1], ['import d=2', 10_000, 0, 1]])
 })
 
-test('planDExecution : touché et racine balayée toujours lancés, même au-delà du seuil', () => {
-  assert.deepEqual(planDExecution(RETENUS, { seuil: 1 }).lances, ['t.test.mjs', 'r.test.mjs'])
+test('planDExecution : budget 0 = touché et racine balayée seuls, hors budget', () => {
+  assert.deepEqual(planDExecution(RETENUS, { budget: 0, estimations: ESTIMATIONS }).lances, ['t.test.mjs', 'r.test.mjs'])
+  assert.deepEqual(planDExecution(RETENUS, { budget: 0 }).lances, ['t.test.mjs', 'r.test.mjs'])
 })
 
-test('planDExecution : seuil 0 = touché et racine balayée seuls', () => {
-  assert.deepEqual(planDExecution(RETENUS, { seuil: 0 }), { lances: ['t.test.mjs', 'r.test.mjs'], aLaCI: ['a.test.mjs', 'b.test.mjs', 'z.test.mjs'], ciParRang: [['import d=1', 2], ['import d=2', 1]] })
+test('planDExecution : dans un rang, le SIGNAL passe avant le prix', () => {
+  const signaux = new Map([['a.test.mjs', { signal: 'symbole' }], ['b.test.mjs', { signal: 'module' }]])
+  const plan = planDExecution(RETENUS, { budget: 10, estimations: ESTIMATIONS, signaux })
+  assert.deepEqual([plan.lances, plan.aLaCI], [['t.test.mjs', 'r.test.mjs', 'a.test.mjs'], ['b.test.mjs', 'z.test.mjs']])
 })
 
-test('lireArguments : --tete exige --base, --seuil exige un entier', () => {
-  assert.deepEqual(lireArguments(['--liste', '--base', 'b', '--tete', 't', '--seuil', '40', '--docs']), { liste: true, base: 'b', tete: 't', seuil: 40, docs: true })
+test('estimationsDe : durée apprise, sinon médiane de la famille, sinon repli de la famille', () => {
+  const durees = { 'scripts/a.test.mjs': 100, 'scripts/b.test.mjs': 300, 'scripts/c.test.mjs': 900 }
+  assert.deepEqual([...estimationsDe(['scripts/a.test.mjs', 'scripts/z.test.mjs', 'src/v.test.ts'], durees, { vitest: 7, node: 5 })], [
+    ['scripts/a.test.mjs', { ms: 100, source: 'apprise' }],
+    ['scripts/z.test.mjs', { ms: 300, source: 'médiane' }],
+    ['src/v.test.ts', { ms: 7, source: 'repli' }],
+  ])
+})
+
+test('exportsTouches : modifié, ajouté, supprimé, renommé ; inchangé exclu ; module neuf = tout', () => {
+  const avant = 'export const a = 1\nexport function b() { return 1 }\nexport const c = 3\nexport const d = 4\nconst e = 5\nexport { e }\n'
+  const apres = 'export const a = 2\nexport function b() { return 1 }\nexport const f = 6\nexport const d2 = 4\nconst e = 5\nexport { e }\n'
+  assert.deepEqual([...exportsTouches('m.ts', avant, apres)].sort(), ['a', 'c', 'd', 'd2', 'f'])
+  assert.deepEqual([...exportsTouches('m.ts', null, 'export const x = 1\nexport default 2\n')].sort(), ['default', 'x'])
+})
+
+test('signalDe : symbole touché importé par nom, module sinon ; espace de noms = module ; d≥2 module ou reste', () => {
+  const nommee = (nom) => ({ forme: 'nommee', importe: { nom } })
+  const touches = new Set(['a'])
+  assert.deepEqual(signalDe({ distance: 1 }, [nommee('a'), nommee('b')], touches), { signal: 'symbole', noms: ['a'] })
+  assert.deepEqual(signalDe({ distance: 1 }, [nommee('b')], touches), { signal: 'module', noms: [] })
+  assert.deepEqual(signalDe({ distance: 1 }, [{ forme: 'espace', importe: { nom: '*' } }], touches), { signal: 'module', noms: [] })
+  assert.deepEqual(signalDe({ distance: 2 }, [nommee('a')], touches), { signal: 'module', noms: ['a'] })
+  assert.deepEqual(signalDe({ distance: 2 }, [{ forme: 'espace', importe: { nom: '*' } }], touches), { signal: 'reste', noms: [] })
+})
+
+test('signal dérivé sur un dépôt : l’import par nom d’un export modifié est un SYMBOLE', (t) => {
+  const racine = forger(t, {
+    'scripts/lib.mjs': 'export const a = 1\nexport const b = 1\n',
+    'scripts/s.test.mjs': "import { a } from './lib.mjs'\n",
+    'scripts/m.test.mjs': "import { b } from './lib.mjs'\n",
+    'scripts/e.test.mjs': "import * as lib from './lib.mjs'\nexport default lib\n",
+  }, { 'scripts/lib.mjs': 'export const a = 2\nexport const b = 1\n' })
+  const { signaux } = deriver(racine)
+  assert.deepEqual(['scripts/s.test.mjs', 'scripts/m.test.mjs', 'scripts/e.test.mjs'].map((f) => signaux.get(f)),
+    [{ signal: 'symbole', noms: ['a'] }, { signal: 'module', noms: [] }, { signal: 'module', noms: [] }])
+})
+
+test('mémos signés par le tsconfig : le même blob sous deux tsconfig ne partage pas son mémo (T3)', (t) => {
+  const [a, b, c] = ['{}', '{ "compilerOptions": { "verbatimModuleSyntax": true } }', '{}'].map((tsconfig) => {
+    const racine = mkdtempSync(join(tmpdir(), 'perimetre-tsconfig-'))
+    t.after(() => rmSync(racine, { recursive: true, force: true }))
+    writeFileSync(join(racine, 'tsconfig.json'), tsconfig)
+    return racine
+  })
+  const dossier = mkdtempSync(join(tmpdir(), 'perimetre-memos-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const ecrits = memosDe(dossier, versionDesMemos(a))
+  ecrits.ecrire('specificateurs', '.ts:blob', [])
+  ecrits.sauver()
+  assert.equal(memosDe(dossier, versionDesMemos(b)).lire('specificateurs', '.ts:blob'), undefined)
+  assert.deepEqual(memosDe(dossier, versionDesMemos(c)).lire('specificateurs', '.ts:blob'), [])
+})
+
+test('lint : lancé sur les fichiers touchés PRÉSENTS à extension lintée, son code de sortie compte', () => {
+  const appels = []
+  const lancer = (racine, fichiers, { cwd }) => { appels.push([racine, fichiers, cwd]); return { defauts: [], codeSortie: 1 } }
+  const lint = lintDesTouches('/r', ['a.ts', 'b.json', 'parti.mjs', 'c.mjs'], ['a.ts', 'b.json', 'c.mjs'], lancer)
+  assert.deepEqual([appels, lint.code], [[['/r', ['a.ts', 'c.mjs'], '/r']], 1])
+  assert.deepEqual(lintDesTouches('/r', ['b.json'], ['b.json'], lancer), { fichiers: [], defauts: [], code: 0 })
+})
+
+test('lireArguments : --tete exige --base, --budget exige un entier de secondes', () => {
+  assert.deepEqual(lireArguments(['--liste', '--base', 'b', '--tete', 't', '--budget', '40', '--docs']), { liste: true, base: 'b', tete: 't', budget: 40, docs: true })
   assert.throws(() => lireArguments(['--tete', 't']), /--tete exige --base/)
-  assert.throws(() => lireArguments(['--seuil', 'beaucoup']), /--seuil attend un entier/)
+  assert.throws(() => lireArguments(['--budget', 'beaucoup']), /--budget attend un entier/)
 })

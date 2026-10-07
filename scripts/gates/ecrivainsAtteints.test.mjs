@@ -333,6 +333,9 @@ const ATTENDU = {
     // jetables à la primitive (`instanceDeDepot`, `rmSync` en finally) ; elle n'écrit que sous
     // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
+    // +1 le 2026-10-07 (#2400) : `perimetre.mjs` lint ses fichiers touchés par `lancerLint`, qui pose sa config
+    // jetable dans `cwd` ; seule la CLI l'appelle, le banc injecte son lanceur (`lintDesTouches`).
+    'scripts/guards/lib/lintStage.mjs',
     'scripts/lancer-local.test.mjs',
     // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
     // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un

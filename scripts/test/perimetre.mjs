@@ -1,29 +1,33 @@
 #!/usr/bin/env node
-// PÉRIMÈTRE DE TESTS d'un diff (#2400) : `npm run test:perimetre [-- --base <ref> --tete <ref> --liste --seuil <n> --docs]`.
+// PÉRIMÈTRE DE TESTS d'un diff (#2400) : `npm run test:perimetre [-- --base <ref> --tete <ref> --liste --budget <s> --docs]`.
 // Les tests retenus se DÉRIVENT des fichiers touchés : le test touché, le test dont la clôture d'imports
 // (`clotureDImports`, `typesEffaces`, `import.meta.glob` compris) atteint un fichier touché, le test dont
 // une RACINE BALAYÉE (`racinesBalayees.mjs`) est un ancêtre d'un fichier touché (`ancetresDe`,
 // `scripts/git-hooks/docs-rebuild.mjs`), M, A, D et R. Les `setupFiles` de `vite.config.ts` sont une
 // racine de chaque test Vitest, au rang `setup` ; la toolchain touchée (`TOOLCHAIN`) retient la suite entière.
-// Exécution par rangs entiers sous `SEUIL_DE_TESTS` (`planDExecution`), le reste à la CI.
+// Exécution : le lint des fichiers touchés (`lancerLint`), puis les tests sous `BUDGET_LOCAL_S`, ordonnés par
+// rang et par signal (`planDExecution`, `signalDe`), estimés par les durées APPRISES (`estimationsDe`,
+// `DUREES`, rapports de `run.mjs` et de `dureesNodeTest.mjs`) ; le reste à la CI.
 // Docs dérivés : `selectionDesGenerateurs`, joués en `--check` sous `--docs` seulement.
 // Le graphe résout contre la post-image ∪ la base : l'importeur pendu vers un fichier SUPPRIMÉ reste lié.
-// Les spécificateurs non résolus et les lectures de module se mémoïsent par blob sous `CACHE`.
+// Les spécificateurs non résolus et les lectures de module se mémoïsent par blob sous `CACHE`, signés par
+// `versionDesMemos`.
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { performance } from 'node:perf_hooks'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
-import { clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_BALAYAGE, evaluer, lecteurDExpressions, lectureDeModule } from '../guards/lib/racinesBalayees.mjs'
+import { clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
+import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluer, lecteurDExpressions, lectureDeModule } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
 import { baseCommune, ceQuiChange, depotDe, lireEnLot, listerImage, racineDe, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
 import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/docs-rebuild.mjs'
 import { codeEnfant } from './partition.mjs'
+import { EXTS_LINT, lancerLint } from '../guards/lib/lintStage.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -38,7 +42,17 @@ const rangDe = (lien) => lien.nature === 'touché' ? 0 : lien.nature === 'racine
   : lien.nature === 'import' ? 1 + lien.distance : lien.nature === 'setup' ? RANG_SETUP : RANG_TOOLCHAIN
 
 /** #2400 */
-const SEUIL_DE_TESTS = 250
+const BUDGET_LOCAL_S = 180
+
+/** Les signaux d'un test d'import, du plus fort au plus faible (#2400) : il importe par NOM un export
+ *  touché (`symbole`), il importe le module sans symbole touché (`module`), le reste. */
+const SIGNAUX = Object.freeze(['symbole', 'module', 'reste'])
+
+/** La durée de REPLI d'un fichier de test par famille, en ms, sans durée apprise ni médiane (#2400). */
+const REPLI_MS = Object.freeze({ vitest: 55_871, node: 3227 })
+
+/** Le mémo des durées apprises, sous `CACHE` : `{ [test]: ms }`. */
+const DUREES = 'durees.json'
 
 /** Le libellé d'un rang, pour le rapport. */
 const libelleDuRang = (rang) => rang === 0 ? 'touché' : rang === 1 ? 'racine balayée' : rang === RANG_SETUP ? 'setup'
@@ -58,11 +72,30 @@ export function paliersDe(retenus) {
 /** La config Vitest d'où se lisent les `setupFiles`. */
 const CONFIG_VITEST = 'vite.config.ts'
 
+/** Les modules analysés par programme TypeScript (`prelire`). */
+const LOT_D_ANALYSE = 400
+
 /** Le dossier des mémos, relatif à la racine du dépôt. */
 const CACHE = 'node_modules/.cache/perimetre'
 
 /** Les modules dont le code DÉCIDE du contenu des mémos : leur texte signe la version des mémos. */
 const VERSIONNANTS = ['scripts/guards/lib/importGraph.mjs', 'scripts/guards/lib/racinesBalayees.mjs', 'scripts/guards/lib/dialecte.mjs']
+/** Les paquets dont la version DÉCIDE aussi des mémos : l'analyseur et le transpileur (`sourceALExecution`). */
+const PAQUETS_VERSIONNANTS = ['typescript', 'rolldown']
+
+/**
+ * La version des mémos du dépôt de `racine` : le texte des `VERSIONNANTS`, le `tsconfig.json` du dépôt
+ * (`CHEMIN_TSCONFIG`, lu par `sourceALExecution`) et la version installée des `PAQUETS_VERSIONNANTS`.
+ * @param {string} racine
+ */
+export function versionDesMemos(racine) {
+  const texte = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
+  return blobDe([
+    ...VERSIONNANTS.map((f) => readFileSync(join(RACINE, f), 'utf8')),
+    texte(join(racine, CHEMIN_TSCONFIG)),
+    ...PAQUETS_VERSIONNANTS.map((p) => `${p}@${JSON.parse(texte(join(RACINE, 'node_modules', p, 'package.json')) || '{}').version ?? ''}`),
+  ].join('\0'))
+}
 
 /** L'empreinte de blob git d'un texte (`git hash-object`). */
 const blobDe = (texte) => {
@@ -94,7 +127,7 @@ function imagesDuDiff(depot, { base, tete } = {}) {
 }
 
 /** Les mémos du dossier `dossier` (JSON par famille), signés par `version` : une autre version les vide. */
-function memosDe(dossier, version) {
+export function memosDe(dossier, version) {
   const familles = {}
   const charger = (nom) => {
     if (familles[nom]) return familles[nom].entrees
@@ -127,7 +160,7 @@ function setupFilesDe(texte) {
   const { expr } = lecteurDExpressions(CONFIG_VITEST, sourceFile)
   const vus = []
   const visiter = (n) => {
-    if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === 'setupFiles') vus.push(...evaluer(expr(n.initializer), { importe: () => [] }))
+    if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === 'setupFiles') vus.push(...evaluer(expr(n.initializer)))
     n.forEachChild(visiter)
   }
   visiter(sourceFile)
@@ -141,7 +174,7 @@ function setupFilesDe(texte) {
  * @param {{ racine: string, touches: string[], post: string[], avant: string[], lire: (rels: string[]) => Map<string, string | null>, memos?: ReturnType<typeof memosDe> }} entree
  * @returns {{ retenus: Map<string, Lien>, toolchain: string[], nonResolus: { site: string, helper: string, raison: string }[], vitest: string[], node: string[], modules: number }}
  */
-function deriverPerimetre({ racine, touches, post, avant, lire, memos }) {
+function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos }) {
   const base = resolve(racine).split(sep).join('/')
   const abs = (rel) => `${base}/${rel}`
   const rel = (a) => a.slice(base.length + 1)
@@ -155,7 +188,7 @@ function deriverPerimetre({ racine, touches, post, avant, lire, memos }) {
     const lus = lire(abss.map(rel))
     return new Map(abss.map((a) => {
       const t = lus.get(rel(a)) ?? null
-      if (t !== null && APPEL_DE_BALAYAGE.test(t)) textes.set(rel(a), t)
+      if (t !== null && estModule(rel(a))) textes.set(rel(a), t)
       return [a, t]
     }))
   }
@@ -174,7 +207,8 @@ function deriverPerimetre({ racine, touches, post, avant, lire, memos }) {
     inverse.set(rel(cible), arcs.map((a) => ({ importeur: rel(a.importeur), spec: a.spec })))
   /** La clôture des `setupFiles` : ce que tout test Vitest atteint par eux, hors des distances. */
   const clotureSetup = new Set()
-  for (let pile = setup.map(abs); pile.length;) {
+  const pile = setup.map(abs)
+  while (pile.length) {
     const a = pile.pop()
     if (clotureSetup.has(rel(a))) continue
     clotureSetup.add(rel(a))
@@ -237,77 +271,186 @@ function deriverPerimetre({ racine, touches, post, avant, lire, memos }) {
     }
     return lectures.set(f, lu).get(f)
   }
+  /** Lit d'un coup les modules `fichiers` absents des mémos : un programme d'analyse par lot. */
+  const prelire = (fichiers) => {
+    const aLire = []
+    for (const f of fichiers) {
+      const texte = textes.get(f)
+      if (lectures.has(f) || texte === undefined) continue
+      const lu = memos?.lire('lectures', `${f}:${blobDe(texte)}`)
+      if (lu) lectures.set(f, lu)
+      else aLire.push({ rel: f, text: texte })
+    }
+    for (let i = 0; i < aLire.length; i += LOT_D_ANALYSE)
+      for (const { fichier, sourceFile } of analyserCorpus(aLire.slice(i, i + LOT_D_ANALYSE))) {
+        const lu = lectureDeModule(fichier.rel, sourceFile)
+        memos?.ecrire('lectures', `${fichier.rel}:${blobDe(fichier.text)}`, lu)
+        lectures.set(fichier.rel, lu)
+      }
+  }
   const alias = aliasDuDepot(racine)
   const cibleDe = (f, spec) => {
     const arc = (cache.get(abs(f)) ?? []).find((a) => a.spec === spec)
     const cible = arc?.cible ?? resolveImport(abs(f), spec, (a) => ensemble.has(rel(a)), alias)
     return cible ? rel(cible) : null
   }
-  const constante = (f, nom, vus) => {
-    const cle = `${f}#${nom}`
-    if (vus.has(cle)) return [{ non: `cycle de constantes ${cle}` }]
-    vus.add(cle)
-    const lu = lectureDe(f)
-    if (!lu) return [{ non: `module ${f} illisible` }]
-    if (Object.hasOwn(lu.exports, nom)) return evaluer(lu.exports[nom], contexteDe(f, vus))
-    for (const spec of lu.etoiles) {
-      const cible = cibleDe(f, spec)
-      const vu = cible && lectureDe(cible)
-      if (vu && (Object.hasOwn(vu.exports, nom) || vu.etoiles.length)) return constante(cible, nom, vus)
+  /** Les modules LECTEURS : ceux qui appellent une lecture, puis, au point fixe, les importeurs qui
+   *  nomment un relais exporté d'un lecteur. L'évaluateur se refait à chaque tour : un relais se juge
+   *  sur l'ensemble final. */
+  const lecteurs = new Set([...textes].filter(([, t]) => APPEL_DE_LECTURE.test(t)).map(([f]) => f))
+  let evaluateur
+  prelire(new Set([...lecteurs, ...[...lecteurs].flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
+  for (let frontiere = [...lecteurs]; ;) {
+    evaluateur = evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: (f) => lecteurs.has(f) })
+    const suivante = []
+    for (const f of frontiere) {
+      const noms = evaluateur.relaisExportes(f)
+      if (!noms.length) continue
+      const motif = new RegExp(`\\b(?:${noms.join('|')})\\b|export\\s*\\*`)
+      for (const { importeur } of inverse.get(f) ?? [])
+        if (!lecteurs.has(importeur) && textes.has(importeur) && motif.test(textes.get(importeur))) { lecteurs.add(importeur); suivante.push(importeur) }
     }
-    return [{ non: `${nom} non exporté par ${f}` }]
+    if (!suivante.length) break
+    prelire(suivante)
+    frontiere = [...lecteurs]
   }
-  const contexteDe = (f, vus = new Set()) => ({
-    importe: (spec, nom) => {
-      const cible = cibleDe(f, spec)
-      return cible ? constante(cible, nom, vus) : [{ non: `import ${spec} non résolu` }]
-    },
-  })
 
   const nonResolus = []
-  for (const f of [...textes.keys()].sort()) {
-    const lu = lectureDe(f)
-    for (const site of lu?.sites ?? []) {
-      if (site.relais) continue
-      const valeurs = evaluer(site.racines, contexteDe(f))
+  for (const f of [...lecteurs].sort()) {
+    for (const site of evaluateur.sitesDe(f)) {
       const ici = `${f}:${site.ligne}`
-      for (const v of valeurs) if ('non' in v) nonResolus.push({ site: ici, helper: site.helper, raison: v.non })
-      for (const v of valeurs) {
+      for (const v of site.valeurs) if ('non' in v) nonResolus.push({ site: ici, helper: site.appel, raison: v.non })
+      for (const v of site.valeurs) {
         if (!('chemin' in v)) continue
         const touche = touches.find((t) => couvre(v.chemin, t))
         if (!touche) continue
-        const lien = { racine: v.chemin || '.', site: `${ici} ${site.helper}`, touche }
+        const lien = { racine: v.chemin || '.', site: `${ici} ${site.appel}`, touche }
         for (const [test, { distance }] of remonter(f)) retenir(test, { nature: 'racine balayée', distance, ...lien })
         if (clotureSetup.has(f)) parSetup(lien)
       }
     }
   }
-  return { retenus, toolchain, nonResolus, vitest, node, modules: cache.size, setup }
+  /** Le SIGNAL de chaque test d'import (`signalDe`) : exports touchés du module touché (base contre
+   *  post-image), liaisons du dernier maillon de sa chaîne. */
+  const cibles = [...new Set([...retenus.values()].filter((l) => l.nature === 'import' && estModule(l.touche)).map((l) => l.touche))]
+  const avantDe = cibles.length && lireAvant ? lireAvant(cibles) : new Map()
+  const exportsDe = new Map(cibles.map((m) => [m, exportsTouches(m, avantDe.get(m) ?? null, textes.get(m) ?? null)]))
+  const signaux = new Map()
+  for (const [test, lien] of retenus) {
+    if (lien.nature !== 'import') continue
+    const importeur = lien.chaine[lien.chaine.length - 2]
+    const liaisons = (() => {
+      try { return liaisonsDe(importeur, textes.get(importeur) ?? '').filter((l) => l.spec && cibleDe(importeur, l.spec) === lien.touche) } catch { return [] }
+    })()
+    signaux.set(test, signalDe(lien, liaisons, exportsDe.get(lien.touche) ?? new Set()))
+  }
+  return { retenus, toolchain, nonResolus, vitest, node, modules: cache.size, setup, signaux }
 }
 
 /**
- * La politique d'exécution (#2400) : coupe aux FRONTIÈRES de rang (`rangDe`). Touché et racine balayée
- * toujours lancés ; chaque rang suivant entier tant que le cumul reste ≤ `seuil` ; le premier qui déborde
- * part à la CI avec tous les suivants. PURE.
- * @param {Map<string, { rang: number }>} retenus @param {{ seuil?: number }} [options]
- * @returns {{ lances: string[], aLaCI: string[], ciParRang: [string, number][] }}
+ * La politique d'exécution (#2400) : touché et racine balayée HORS budget, toujours lancés ; puis les
+ * rangs d'import, setup et toolchain dans l'ordre, chacun trié par signal (`SIGNAUX`), puis estimation
+ * croissante, puis chemin. Un test s'ajoute tant que l'estimation cumulée reste ≤ `budget` secondes ; le
+ * premier qui déborde part à la CI avec tous les suivants. PURE.
+ * @param {Map<string, { rang: number }>} retenus
+ * @param {{ budget?: number, estimations?: Map<string, { ms: number }>, signaux?: Map<string, { signal: string }> }} [options]
+ * @returns {{ lances: string[], aLaCI: string[], rangs: { rang: string, estimeMs: number, lances: number, aLaCI: number }[] }}
  */
-export function planDExecution(retenus, { seuil = SEUIL_DE_TESTS } = {}) {
+export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations = new Map(), signaux = new Map() } = {}) {
   const parRang = new Map()
   for (const [test, { rang }] of retenus) parRang.set(rang, [...(parRang.get(rang) ?? []), test])
+  const cout = (t) => estimations.get(t)?.ms ?? 0
+  const force = (t) => SIGNAUX.indexOf(signaux.get(t)?.signal ?? 'reste')
   const lances = []
   const aLaCI = []
-  const ciParRang = []
-  let deborde = false
+  const rangs = []
+  let cumul = 0
+  let coupe = false
   for (const rang of [...parRang.keys()].sort((a, b) => a - b)) {
-    const tests = parRang.get(rang).sort()
-    if (rang > 1 && (deborde || lances.length + tests.length > seuil)) {
-      deborde = true
-      aLaCI.push(...tests)
-      ciParRang.push([libelleDuRang(rang), tests.length])
-    } else lances.push(...tests)
+    const tests = parRang.get(rang).sort((a, b) => force(a) - force(b) || cout(a) - cout(b) || (a < b ? -1 : 1))
+    const bilan = { rang: libelleDuRang(rang), estimeMs: tests.reduce((n, t) => n + cout(t), 0), lances: 0, aLaCI: 0 }
+    for (const t of tests) {
+      if (rang > 1 && (coupe || budget === 0 || cumul + cout(t) > budget * 1000)) {
+        coupe = true
+        aLaCI.push(t)
+        bilan.aLaCI += 1
+        continue
+      }
+      if (rang > 1) cumul += cout(t)
+      lances.push(t)
+      bilan.lances += 1
+    }
+    rangs.push(bilan)
   }
-  return { lances, aLaCI, ciParRang }
+  return { lances, aLaCI, rangs }
+}
+
+/** La famille d'un test : `vitest` ou `node`. */
+const familleDe = (test) => estTestNode(test) ? 'node' : 'vitest'
+
+/**
+ * L'ESTIMATION de durée de chaque test (#2400) : sa durée apprise, sinon la médiane des durées apprises
+ * de sa famille, sinon `repli` de sa famille. PURE.
+ * @param {string[]} tests @param {Record<string, number>} durees @param {Record<string, number>} [repli]
+ * @returns {Map<string, { ms: number, source: 'apprise' | 'médiane' | 'repli' }>}
+ */
+export function estimationsDe(tests, durees, repli = REPLI_MS) {
+  const medianes = {}
+  for (const famille of ['vitest', 'node']) {
+    const valeurs = Object.entries(durees).filter(([t]) => familleDe(t) === famille).map(([, ms]) => ms).sort((a, b) => a - b)
+    if (valeurs.length) medianes[famille] = valeurs.length % 2 ? valeurs[(valeurs.length - 1) / 2] : (valeurs[valeurs.length / 2 - 1] + valeurs[valeurs.length / 2]) / 2
+  }
+  return new Map(tests.map((t) => [t, Object.hasOwn(durees, t) ? { ms: durees[t], source: 'apprise' }
+    : Object.hasOwn(medianes, familleDe(t)) ? { ms: medianes[familleDe(t)], source: 'médiane' } : { ms: repli[familleDe(t)], source: 'repli' }]))
+}
+
+/**
+ * Les déclarations EXPORTÉES d'un module, nom → texte (`export *` sous `*`, l'export par défaut sous
+ * `default`) ; un export local `export { a as b }` porte le texte de la déclaration de `a`. `null` : aucune.
+ * @param {string} rel @param {string | null} texte @returns {Map<string, string>}
+ */
+export function declarationsExportees(rel, texte) {
+  const exportees = new Map()
+  if (texte === null) return exportees
+  const ts = typescript()
+  const [{ sourceFile }] = [...analyserCorpus([{ rel, text: texte }])]
+  const texteDe = (n) => n.getText(sourceFile)
+  const nomsDe = (s) => ts.isVariableStatement(s) ? s.declarationList.declarations.flatMap((d) => ts.isIdentifier(d.name) ? [d.name.text] : [])
+    : s.name && ts.isIdentifier(s.name) ? [s.name.text] : []
+  const locales = new Map()
+  for (const s of sourceFile.statements) for (const nom of nomsDe(s)) locales.set(nom, texteDe(s))
+  for (const s of sourceFile.statements) {
+    const modificateurs = s.modifiers ?? []
+    if (ts.isExportAssignment(s)) exportees.set('default', texteDe(s))
+    else if (ts.isExportDeclaration(s)) {
+      if (!s.exportClause) exportees.set('*', `${exportees.get('*') ?? ''}${texteDe(s)}`)
+      else if (ts.isNamespaceExport(s.exportClause)) exportees.set(s.exportClause.name.text, texteDe(s))
+      else for (const e of s.exportClause.elements)
+        exportees.set(e.name.text, s.moduleSpecifier ? texteDe(s) : locales.get((e.propertyName ?? e.name).text) ?? texteDe(s))
+    } else if (modificateurs.some((m) => m.kind === ts.SyntaxKind.ExportKeyword))
+      for (const nom of modificateurs.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword) ? ['default'] : nomsDe(s)) exportees.set(nom, texteDe(s))
+  }
+  return exportees
+}
+
+/** Les exports TOUCHÉS d'un module entre deux images (`null` : absent) : ajoutés, supprimés ou modifiés. PURE. */
+export function exportsTouches(rel, avant, apres) {
+  const a = declarationsExportees(rel, avant)
+  const b = declarationsExportees(rel, apres)
+  return new Set([...new Set([...a.keys(), ...b.keys()])].filter((nom) => a.get(nom) !== b.get(nom)))
+}
+
+/**
+ * Le SIGNAL d'un test d'import (`SIGNAUX`) : le dernier maillon de sa chaîne (`importeur` → `touche`)
+ * importe-t-il par nom un export touché ? Oui : `symbole` à d=1, `module` au-delà. Non : `module` à d=1,
+ * `reste` au-delà : un import par espace de noms, par défaut ou `export *` n'est pas un import par nom. PURE.
+ * @param {{ distance: number }} lien @param {{ forme: string, importe: { nom: string } | null }[]} liaisons
+ *   les liaisons du maillon vers `touche` @param {Set<string>} touches les exports touchés de `touche`
+ */
+export function signalDe(lien, liaisons, touches) {
+  const noms = [...new Set(liaisons.filter((l) => l.forme === 'nommee' && l.importe && touches.has(l.importe.nom)).map((l) => l.importe.nom))].sort()
+  if (noms.length) return lien.distance === 1 ? { signal: 'symbole', noms } : { signal: 'module', noms }
+  return lien.distance === 1 ? { signal: 'module', noms: [] } : { signal: 'reste', noms: [] }
 }
 
 /** Le texte d'un lien, pour le rapport « test ← lien ». */
@@ -325,12 +468,12 @@ export function lireArguments(args) {
     const a = args[i]
     if (a === '--liste' || a === '--docs') { options[a.slice(2)] = true; continue }
     const valeur = args[i + 1]
-    if (!['--base', '--tete', '--seuil'].includes(a) || valeur === undefined || valeur.startsWith('--'))
-      throw new Error('usage : test:perimetre -- [--base <ref>] [--tete <ref>] [--liste] [--seuil <n>] [--docs]')
+    if (!['--base', '--tete', '--budget'].includes(a) || valeur === undefined || valeur.startsWith('--'))
+      throw new Error('usage : test:perimetre -- [--base <ref>] [--tete <ref>] [--liste] [--budget <s>] [--docs]')
     i += 1
-    if (a === '--seuil') {
-      if (!/^\d+$/.test(valeur)) throw new Error(`--seuil attend un entier, reçu « ${valeur} »`)
-      options.seuil = Number(valeur)
+    if (a === '--budget') {
+      if (!/^\d+$/.test(valeur)) throw new Error(`--budget attend un entier de secondes, reçu « ${valeur} »`)
+      options.budget = Number(valeur)
     } else options[a.slice(2)] = valeur
   }
   if (options.tete && !options.base) throw new Error('--tete exige --base')
@@ -349,21 +492,48 @@ export function perimetreDuDepot(racine, { base, tete } = {}, { dossierDesMemos 
     : (rels) => new Map(rels.map((r) => {
       try { return [r, readFileSync(join(racine, r), 'utf8')] } catch { return [r, null] }
     }))
-  const version = blobDe(VERSIONNANTS.map((f) => readFileSync(join(RACINE, f), 'utf8')).join('\0'))
-  const memos = memosDe(dossierDesMemos, version)
-  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, memos })
+  const memos = memosDe(dossierDesMemos, versionDesMemos(racine))
+  const lireAvant = (rels) => lireEnLot(depot, images.base, rels)
+  const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos })
   memos.sauver()
   return { ...images, ...derive }
 }
+
+/** Les fichiers touchés PRÉSENTS dont l'extension est lintée (`EXTS_LINT`). PURE. */
+const aLinter = (touches, post) => touches.filter((t) => post.includes(t) && EXTS_LINT.some((e) => t.endsWith(e)))
+
+/**
+ * Le LINT des fichiers touchés (`aLinter`) par la couture `lancerLint` : ses défauts et son code de sortie.
+ * @param {string} racine @param {string[]} touches @param {string[]} post
+ * @param {typeof lancerLint} [lancer]
+ */
+export function lintDesTouches(racine, touches, post, lancer = lancerLint) {
+  const fichiers = aLinter(touches, post)
+  if (!fichiers.length) return { fichiers, defauts: [], code: 0 }
+  const { defauts, codeSortie } = lancer(racine, fichiers, { cwd: racine })
+  return { fichiers, defauts, code: codeSortie || (defauts.length ? 1 : 0) }
+}
+
+/** Les durées apprises du dossier `dossier` (`DUREES`), `{}` si absentes ou illisibles. */
+const dureesDe = (dossier) => {
+  try { return JSON.parse(readFileSync(join(dossier, DUREES), 'utf8')) } catch { return {} }
+}
+
+/** Le libellé d'une durée en secondes. */
+const secondes = (ms) => `${(ms / 1000).toFixed(1)} s`
 
 function principal() {
   const options = lireArguments(process.argv.slice(2))
   const debut = performance.now()
   const racine = racineDe(depotDe(RACINE)) ?? RACINE
-  const { base, tete, touches, retenus, toolchain, nonResolus, vitest, node, modules } = perimetreDuDepot(racine, options)
+  const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux } = perimetreDuDepot(racine, options)
   const duree = Math.round(performance.now() - debut)
   const docs = selectionDesGenerateurs({ lot: touches, mesure: sourcesMesurees(racine), cwd: racine })
-  const plan = planDExecution(retenus, { seuil: options.seuil })
+  const cache = join(racine, CACHE)
+  const durees = dureesDe(cache)
+  const estimations = estimationsDe([...retenus.keys()], durees)
+  const budget = options.budget ?? BUDGET_LOCAL_S
+  const plan = planDExecution(retenus, { budget, estimations, signaux })
   const part = (liste) => liste.filter((t) => retenus.has(t)).length
   const journal = (texte) => console.log(`[perimetre] ${texte}`)
   journal(`base ${base} → ${tete ?? 'arbre de travail'} : ${touches.length} fichier(s) touché(s)`)
@@ -371,25 +541,56 @@ function principal() {
   if (toolchain.length) journal(`toolchain touchée (${toolchain.join(', ')}) ⇒ suite entière`)
   journal(`sélection : ${retenus.size} test(s) / ${vitest.length + node.length} — vitest ${part(vitest)}/${vitest.length}, node ${part(node)}/${node.length}`)
   journal(`rangs : ${Object.entries(paliersDe(retenus)).map(([palier, n]) => `${palier} ${n}`).join(' | ')}`)
-  for (const [test, lien] of [...retenus].sort(([a], [b]) => (a < b ? -1 : 1))) console.log(`  ${test} ← ${texteDuLien(lien)}`)
+  const texteDuSignal = (test) => {
+    const s = signaux.get(test)
+    return s ? ` [${s.signal}${s.noms.length ? ` : ${s.noms.join(', ')}` : ''}]` : ''
+  }
+  for (const [test, lien] of [...retenus].sort(([a], [b]) => (a < b ? -1 : 1)))
+    console.log(`  ${test} ← ${texteDuLien(lien)}${texteDuSignal(test)} ~${secondes(estimations.get(test).ms)} (${estimations.get(test).source})`)
   const jouerDocs = options.docs && !docs.complete && docs.scripts.length > 0
   journal(`docs dérivés : ${docs.scripts.length} générateur(s) (${docs.raison}) ${jouerDocs ? 'en --check' : `→ CI${docs.complete || !docs.scripts.length ? '' : ' (`--docs` pour les jouer)'}`}${docs.scripts.length ? ` : ${docs.scripts.join(', ')}` : ''}`)
   journal(`balayages non résolus : ${nonResolus.length} site(s)`)
   for (const { site, helper, raison } of nonResolus) console.log(`  non résolu ${site} ${helper} — ${raison}`)
-  journal(`seuil ${options.seuil ?? SEUIL_DE_TESTS} : ${plan.lances.length} lancé(s) ; → CI ${plan.aLaCI.length}${plan.ciParRang.length ? ` (${plan.ciParRang.map(([r, n]) => `${r} ${n}`).join(' | ')})` : ''}`)
+  const sources = [...estimations.values()].reduce((n, { source }) => ({ ...n, [source]: (n[source] ?? 0) + 1 }), {})
+  journal(`estimations : ${Object.entries(sources).map(([s, n]) => `${s} ${n}`).join(' | ') || 'aucune'}`)
+  for (const r of plan.rangs)
+    journal(`  ${r.rang} : estimé ${secondes(r.estimeMs)}, ${r.lances} lancé(s)${r.aLaCI ? ` ; ${r.aLaCI} fichier(s) ${r.rang.replace('import ', '')} restent à la CI` : ''}`)
+  journal(`budget ${budget} s (touché et racine balayée hors budget) : ${plan.lances.length} lancé(s) ; → CI ${plan.aLaCI.length}`)
+  journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
   if (options.liste) return 0
+  const lint = lintDesTouches(racine, touches, post)
+  for (const d of lint.defauts) console.log(`  ${d.site} ${d.gravite} ${d.regle} — ${d.message}`)
+  let code = lint.code
   const lances = new Set(plan.lances)
+  mkdirSync(cache, { recursive: true })
+  const rapport = (famille) => join(cache, `${famille}-${process.pid}.json`)
   const lancements = [
-    ...paquetsDArgv(vitest.filter((t) => lances.has(t))).map((p) => ['scripts/test/run.mjs', ...p]),
-    ...paquetsDArgv(node.filter((t) => lances.has(t))).map((p) => ['--test', ...p]),
+    ...paquetsDArgv(vitest.filter((t) => lances.has(t))).map((p) => ['scripts/test/run.mjs', ...p, '--reporter=default', '--reporter=json', `--outputFile.json=${rapport('vitest')}`]),
+    ...paquetsDArgv(node.filter((t) => lances.has(t))).map((p) => ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
+      `--test-reporter=${pathToFileURL(join(RACINE, 'scripts/test/dureesNodeTest.mjs')).href}`, `--test-reporter-destination=${rapport('node')}`, ...p]),
     ...(jouerDocs ? [['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts]] : []),
   ]
-  let code = 0
   for (const args of lancements) {
     const r = spawnSync(process.execPath, args, { cwd: racine, stdio: 'inherit' })
     if (code === 0) code = codeEnfant(r.status, r.signal)
+    apprendre(racine, cache, rapport)
   }
   return code
+}
+
+/** Fusionne dans `DUREES` les rapports de durées du dernier lancement (Vitest JSON, `dureesNodeTest`), puis les efface. */
+function apprendre(racine, cache, rapport) {
+  const base = resolve(racine).split(sep).join('/')
+  const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
+  const appris = {}
+  for (const famille of ['vitest', 'node']) {
+    let lu
+    try { lu = JSON.parse(readFileSync(rapport(famille), 'utf8')) } catch { continue }
+    if (famille === 'vitest') for (const r of lu.testResults ?? []) appris[relDe(r.name)] = r.endTime - r.startTime
+    else for (const [f, ms] of Object.entries(lu)) appris[relDe(f)] = Math.round(ms)
+    rmSync(rapport(famille), { force: true })
+  }
+  if (Object.keys(appris).length) writeFileSync(join(cache, DUREES), JSON.stringify({ ...dureesDe(cache), ...appris }))
 }
 
 if (import.meta.main) {
