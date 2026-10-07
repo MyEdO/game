@@ -5691,7 +5691,7 @@ Note spéciale : le **Canon à flammes nain** inflige **2 + DR États *En flamme
 **Voir aussi** : aa-structures-sieges (armes de siège *maniables* d'AA, stats distinctes — Baliste +12 / Recharge 3 vs ici +14 / Recharge 2) ; les entrées Combat (Tests spectaculaires, DR, États En flammes/Empoisonné/Empêtré/Surpris/À Terre/Sans défense) ; Corruption (Facteurs Environnementaux, influence corruptrice) ; Psychologie (Peur/Terreur/Animosité/Haine, Horreurs de la Guerre).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ADE II 8` (l.13-19, l.24-33, l.34-47, l.48, l.55-56, l.65-110, l.112-135, l.138-178, l.207-225, l.227-270, l.281-304, l.307-321) → `construireScene`, `insignifiante`, `porte`, `warMachineCrewPenalty`, `RAM_POS`, `MassBattleView`, `desavantagee`, `RAM_CREW`, `egale`, `isMeleeWarMachine`, +119 — `src/data/activities.json`, `src/data/index.ts`, `src/data/mass-battle.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +38 fichiers
+- `ADE II 8` (l.13-19, l.24-33, l.34-47, l.48, l.55-56, l.65-110, l.112-135, l.138-178, l.207-225, l.227-270, l.281-304, l.307-321) → `construireScene`, `insignifiante`, `porte`, `warMachineCrewPenalty`, `RAM_POS`, `MassBattleView`, `desavantagee`, `RAM_CREW`, `egale`, `isMeleeWarMachine`, +120 — `src/data/activities.json`, `src/data/index.ts`, `src/data/mass-battle.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +39 fichiers
 - sans code : `ADE II 8` (l.174-175, l.181-186)
 
 ---
