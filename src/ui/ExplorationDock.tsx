@@ -9,7 +9,7 @@ import type { IconIdInput } from './icons';
  * et même liseré que le pont de combat (tokens `--cc-*`), à hauteur d'une rangée d'icônes : la
  * transition combat↔exploration change le CONTENU du pont, jamais son existence.
  *
- * Extrémité DROITE = la rangée d'icônes-écrans, tiroir-journal compris (§1c-ter : une plaque unique,
+ * Extrémité DROITE = la rangée d'icônes-écrans et son voisin tiroir-journal (§1c-ter : une plaque unique,
  * jamais des éléments épars — hors combat le rail d'outils ne se rend pas). Les ÉTATS d'ouverture
  * (dossier, carnet, hub…) restent chez `CampaignView` : ici, une entrée est OFFERTE quand son rappel
  * est fourni — la condition d'apparition vit au call site, jamais dupliquée.
@@ -39,7 +39,7 @@ export type ExplorationDockProps = {
   rest?: { title: string; onOpen: () => void };
   /** Fouiller la pièce où se tient le groupe (`fouillerLaPiece`) — offert DANS une pièce. */
   onFouiller?: () => void;
-  /** Tiroir-journal (`LogDrawer`) : DERNIÈRE entrée de la rangée hors combat. */
+  /** Tiroir-journal (`LogDrawer`) : DERNIER enfant du pont hors combat. */
   journal?: ReactNode;
 };
 
@@ -100,8 +100,8 @@ export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage
             <Icon id="nav/rest" size="lg" />
           </button>
         )}
-        {journal}
       </div>
+      {journal}
     </div>
   );
 }

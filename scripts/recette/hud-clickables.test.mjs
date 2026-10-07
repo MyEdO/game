@@ -27,7 +27,7 @@ const combat = () => ({
   objectif: null,
   feedXfrise: null,
   piste: { scrollWidth: 633, clientWidth: 294, bande: 294, defile: true, tientDansLaBande: true },
-  tiroir: { ouvert: true, rect: { x: 200, y: 120, w: 160, h: 240 }, surPont: null },
+  tiroir: journalOuvert(),
   dock: { rect: { x: 0, y: 380, w: 360, h: 260 } },
   dockBtns: [{ i: 0, label: 'Attaquer', rendu: true, ok: true, entier: true, hitBy: 'rien', rect: { x: 8, y: 400, w: 60, h: 40 } }],
 })
@@ -47,10 +47,15 @@ const exploration = () => ({
   objectif: { marge: 0, avale: false, hitBy: 'boîte au ras de la tête (aucune marge morte)' },
   feedXfrise: null,
   piste: null,
-  tiroir: { ouvert: false, rect: null, surPont: null },
+  tiroir: journalOuvert(),
   dock: null,
   dockBtns: [],
 })
+
+function journalOuvert() {
+  return { panneau: true, ouvert: true, rect: { x: 200, y: 120, w: 160, h: 240 }, surPont: null,
+    points: [0.1, 0.5, 0.9].map((hauteur) => ({ hauteur, x: 280, y: 120 + 240 * hauteur, ok: true, hitBy: 'ld-panel <DIV>' })) }
+}
 
 /** La mesure `m` doit lever EXACTEMENT un défaut, dont le texte porte `motif`. */
 function rouge(m, phase, motif) {
@@ -319,14 +324,47 @@ test('tiroir du journal OUVERT qui recouvre la console : défaut chiffré', () =
 
 test('tiroir du journal qui ne s’ouvre pas : sonde aveugle sur sa réserve', () => {
   const m = combat()
-  m.tiroir = { ouvert: false, rect: null, surPont: null }
+  m.tiroir = { panneau: false, ouvert: false, rect: null, points: [], surPont: null }
   rouge(m, 'combat', /le tiroir du journal ne s'ouvre pas/)
 })
 
-test('aucun tiroir monté : rien à dire (l’écran ne le porte pas)', () => {
+test('aucun tiroir monté : sonde aveugle explicite', () => {
   const m = combat()
   m.tiroir = null
-  assert.deepEqual(defauts(m, 'combat'), [])
+  rouge(m, 'combat', /aucun tiroir du journal — sonde aveugle/)
+})
+
+test('journal : chaque point géométrique est exigé aux deux phases et aux petites largeurs', () => {
+  for (const [phase, fixture] of [['combat', combat], ['exploration', exploration]]) {
+    for (const largeur of [360, 560, 700]) for (const hauteur of [0.1, 0.5, 0.9]) {
+      const m = fixture()
+      m.largeur = largeur
+      const point = m.tiroir.points.find((p) => p.hauteur === hauteur)
+      point.ok = false
+      point.hitBy = 'iso-stage <svg>'
+      rouge(m, phase, new RegExp(`journal à ${hauteur * 100} %.*iso-stage`))
+      point.ok = true
+      assert.deepEqual(defauts(m, phase), [])
+    }
+  }
+})
+
+test('journal : panneau absent, rect nul et mesures manquantes sont explicites aux deux phases', () => {
+  for (const [phase, fixture] of [['combat', combat], ['exploration', exploration]]) {
+    const m = fixture()
+    m.tiroir.panneau = false
+    rouge(m, phase, /panneau absent/)
+    m.tiroir.panneau = true
+    m.tiroir.ouvert = false
+    m.tiroir.rect = { x: 0, y: 0, w: 0, h: 0 }
+    rouge(m, phase, /panneau non rendu/)
+    m.tiroir = journalOuvert()
+    m.tiroir.points.pop()
+    rouge(m, phase, /trois points.*sonde aveugle/)
+    m.tiroir = journalOuvert()
+    m.tiroir.points[2].hauteur = 0.5
+    rouge(m, phase, /trois points.*sonde aveugle/)
+  }
 })
 
 // ── Fil, piste ───────────────────────────────────────────────────────────────────────────────────

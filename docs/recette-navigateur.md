@@ -171,9 +171,11 @@ Cellules NON MESURÉES, et pourquoi :
   aucune modale de jet ; la structure reste gardée par `src/ui/ui-ratchets.test.ts`.
 - **Dock** `>900` « disposition de référence » : aucun contrat propre au-delà du bord à bord et du
   budget de hauteur, mesurés.
-Le TIROIR DU JOURNAL se juge **ouvert** : la sonde le déplie par clic réel sur sa poignée
-(`.ld-btn`) au premier tour tenu par un héros, puis refuse un panneau qui recouvre la console
-(« recouvre la console de N×Mpx ») — fermé, il ne recouvre rien, et la question n'a pas de sens.
+Le TIROIR DU JOURNAL se juge **ouvert**, en exploration et au premier tour tenu par un héros :
+la sonde le déplie par clic réel sur sa poignée (`.ld-btn`), puis vérifie par `elementFromPoint`
+les points à 10 %, 50 % et 90 % de hauteur du panneau à chaque largeur. Un tiroir absent, un
+panneau fermé ou non rendu, ou des points manquants rendent la sonde explicitement aveugle.
+En combat, elle refuse aussi un panneau qui recouvre la console (« recouvre la console de N×Mpx »).
 Chaque situation où la mesure serait verte par VACUITÉ (rail dissous sans ouvreur, bande de groupe
 sans carte ni poignée, tiroir qui ne s'ouvre pas, console sans case) se DIT « sonde aveugle ».
 La caméra n'a plus de plaque sur l'écran de jeu (`src/ui/camera-sans-plaque.test.ts`) : `.vc-btn`

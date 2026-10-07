@@ -484,12 +484,12 @@ describe('Zone 11 — la tôle du pont est une PEAU partagée, jamais un scope d
 });
 
 describe('Zone 11 — le journal est SUR le pont hors combat, au RAIL en combat', () => {
-  it('EXPLORATION : le tiroir est la dernière entrée de la rangée, et le rail n’est pas monté', () => {
+  it('EXPLORATION : le tiroir est le dernier enfant du pont, hors de la rangée défilante, et le rail n’est pas monté', () => {
     const el = monter();
     expect(el.querySelector('.hud-rail'), 'hors combat, une seule plaque : le pont').toBeNull();
     const rangee = el.querySelector('.xd-openers')!;
-    expect(rangee.querySelector('.log-drawer'), 'le tiroir est assis DANS la rangée d’ouvreurs').not.toBeNull();
-    expect(rangee.lastElementChild!.classList.contains('log-drawer')).toBe(true);
+    expect(rangee.querySelector('.log-drawer'), 'le panneau reste hors du défileur des ouvreurs').toBeNull();
+    expect(dock()!.lastElementChild!.classList.contains('log-drawer')).toBe(true);
     // Aucun tiroir hors du pont : plus de boîte flottante au coin du champ.
     expect(el.querySelectorAll('.log-drawer')).toHaveLength(el.querySelectorAll('.exploration-dock .log-drawer').length);
   });
