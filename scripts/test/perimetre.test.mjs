@@ -1,11 +1,11 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { estimationsDe, exportsTouches, lintDesTouches, lireArguments, memosDe, paliersDe, perimetreDuDepot, planDExecution, signalDe, versionDesMemos } from './perimetre.mjs'
+import { apprendre, estimationsDe, exportsTouches, lintDesTouches, lireArguments, memosDe, paliersDe, perimetreDuDepot, planDExecution, signalDe, versionDesMemos } from './perimetre.mjs'
 
 const TEMOIN = { 'scripts/temoin.test.mjs': "import './seul.mjs'\n", 'scripts/seul.mjs': 'export const seul = 1\n' }
 
@@ -129,6 +129,40 @@ test('racine balayée dont le site n’est atteint que par les setupFiles : rang
   }, { 'donnees/x.json': '{"x":1}' })
   const g = lienDe(deriver(racine), 'src/g.test.ts')
   assert.deepEqual([g.nature, g.racine, g.site, g.touche], ['setup', 'donnees', 'src/setup.ts:2 readdirSync', 'donnees/x.json'])
+})
+
+test('relais de la clôture des setupFiles appelé par un test : la racine s’attribue au site où elle devient concrète, rang racine balayée', (t) => {
+  const racine = forger(t, {
+    'vite.config.ts': "export default { test: { setupFiles: ['src/setup.ts'] } }\n",
+    'src/setup.ts': "import '../scripts/lib/corpus.mjs'\n",
+    'scripts/lib/corpus.mjs': "import { readdirSync } from 'node:fs'\nimport { join } from 'node:path'\n" +
+      "export function lireCorpus(dirs) {\n  const bases = dirs.map((d) => join('.', d))\n  return bases.flatMap((b) => readdirSync(b))\n}\n",
+    'src/n.test.ts': "import { lireCorpus } from '../scripts/lib/corpus.mjs'\nlireCorpus(['donnees'])\n",
+    'src/g.test.ts': 'export const g = 1\n',
+    'donnees/x.json': '{}',
+  }, { 'donnees/x.json': '{"x":1}' })
+  const perimetre = deriver(racine)
+  const n = lienDe(perimetre, 'src/n.test.ts')
+  assert.deepEqual([n.nature, n.rang, n.racine, n.site], ['racine balayée', 1, 'donnees', 'src/n.test.ts:2 lireCorpus'])
+  assert.equal(perimetre.retenus.has('src/g.test.ts'), false)
+})
+
+test('mémo d’évaluation par module : un module CONSULTÉ qui change invalide l’évaluation de son appelant, mémos internes compris', (t) => {
+  const depot = (corps) => forger(t, {
+    'scripts/lib/r.mjs': "import { readdirSync } from 'node:fs'\nimport { base } from './q.mjs'\nexport function lister(d) { return readdirSync(base(d)) }\n",
+    'scripts/lib/q.mjs': `import { join } from 'node:path'\nexport const base = (d) => ${corps}\n`,
+    'scripts/a.test.mjs': "import { lister } from './lib/r.mjs'\nlister('donnees')\n",
+    'scripts/b.test.mjs': "import { lister } from './lib/r.mjs'\nlister('donnees')\n",
+    'autre/donnees/x.json': '{}',
+  }, { 'autre/donnees/x.json': '{"x":1}' })
+  const memos = mkdtempSync(join(tmpdir(), 'perimetre-memos-'))
+  t.after(() => rmSync(memos, { recursive: true, force: true }))
+  const avecMemos = (racine) => perimetreDuDepot(racine, { base: 'HEAD~1', tete: 'HEAD' }, { dossierDesMemos: memos })
+  const premier = avecMemos(depot('d')).retenus
+  assert.deepEqual(['scripts/a.test.mjs', 'scripts/b.test.mjs'].map((f) => premier.has(f)), [false, false])
+  const { retenus } = avecMemos(depot("join('autre', d)"))
+  assert.deepEqual(['scripts/a.test.mjs', 'scripts/b.test.mjs'].map((f) => [retenus.get(f)?.nature, retenus.get(f)?.racine]),
+    [['racine balayée', 'autre/donnees'], ['racine balayée', 'autre/donnees']])
 })
 
 test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entière', (t) => {
@@ -266,4 +300,18 @@ test('lireArguments : --tete exige --base, --budget exige un entier de secondes'
   assert.deepEqual(lireArguments(['--liste', '--base', 'b', '--tete', 't', '--budget', '40', '--docs']), { liste: true, base: 'b', tete: 't', budget: 40, docs: true })
   assert.throws(() => lireArguments(['--tete', 't']), /--tete exige --base/)
   assert.throws(() => lireArguments(['--budget', 'beaucoup']), /--budget attend un entier/)
+})
+
+test('apprendre : les rapports Vitest (fin − début) et node (arrondi) se fusionnent dans durees.json, chemins relatifs, puis s’effacent', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const cache = join(racine, 'cache')
+  mkdirSync(cache)
+  const rapport = (famille) => join(cache, `${famille}-1.json`)
+  writeFileSync(join(cache, 'durees.json'), JSON.stringify({ 'src/ancien.test.ts': 7, 'src/v.test.ts': 1 }))
+  writeFileSync(rapport('vitest'), JSON.stringify({ testResults: [{ name: join(racine, 'src', 'v.test.ts'), startTime: 1000, endTime: 1250 }] }))
+  writeFileSync(rapport('node'), JSON.stringify({ [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }))
+  apprendre(racine, cache, rapport)
+  assert.deepEqual(JSON.parse(readFileSync(join(cache, 'durees.json'), 'utf8')), { 'src/ancien.test.ts': 7, 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
+  assert.deepEqual([existsSync(rapport('vitest')), existsSync(rapport('node'))], [false, false])
 })

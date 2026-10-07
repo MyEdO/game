@@ -6,10 +6,13 @@
 //   · RELAIS : une fonction de premier niveau dont un PARAMÈTRE alimente la racine d'une lecture. Chacun
 //     de ses sites d'appel, dans n'importe quel module, est évalué avec ses arguments (`lecturesDe`).
 //   · VALEUR DE RETOUR : l'appel d'une fonction du dépôt s'évalue sur ses `return`, paramètres liés ; un
-//     objet rendu s'évalue champ par champ (déstructuration, accès de propriété).
+//     objet rendu s'évalue champ par champ (déstructuration, accès de propriété, défaut d'un champ
+//     absent) ; `map`/`flatMap` rendent les valeurs de leur rappel (`PROJECTIONS`) ; une boucle `for…of`,
+//     déstructurée ou non, parcourt les valeurs de son tableau.
 // L'arbre syntaxique se lit une fois par module (`lectureDeModule`, sérialisable, mémoïsable) ;
-// l'évaluation attend la résolution des imports (`evaluateurDuDepot`). Ce qui ne se lit pas ainsi n'est
-// pas deviné : il rend `{ non: raison }`, et son site sort au rapport de l'appelant.
+// l'évaluation attend la résolution des imports (`evaluateurDuDepot`), et `tracer` rend les REQUÊTES dont
+// elle dépend (`requeteDe`). Ce qui ne se lit pas ainsi n'est pas deviné : il rend `{ non: raison }`, et
+// son site sort au rapport de l'appelant.
 import { posix } from 'node:path'
 import { typescript } from './dialecte.mjs'
 
@@ -30,9 +33,13 @@ const PORTES_GIT = Object.freeze({
 export const APPEL_DE_LECTURE = new RegExp(`\\b(?:${[...PRIMITIVES, ...Object.keys(PORTES_GIT)].join('|')})\\s*\\(`)
 
 const CHEMINS = new Set(['join', 'resolve'])
+/** Les receveurs d'un `join`/`resolve` de chemin : le module `node:path` et ses variantes. */
+const MODULES_DE_CHEMIN = new Set(['path', 'posix', 'win32'])
 const ITERATEURS = new Set(['map', 'flatMap', 'forEach', 'filter', 'some', 'every', 'find'])
 /** Ce qui rend une PARTIE de son receveur : la valeur du receveur la couvre. */
-const SOUS_ENSEMBLES = new Set(['filter', 'sort', 'toSorted', 'slice'])
+const SOUS_ENSEMBLES = new Set(['filter', 'sort', 'toSorted', 'slice', 'find'])
+/** Ce qui rend les valeurs rendues par son rappel, élément du receveur lié à son premier paramètre. */
+const PROJECTIONS = new Set(['map', 'flatMap'])
 const PROFONDEUR = 24
 /** La profondeur d'appels imbriqués d'une évaluation ; au-delà, `non` nommé. */
 const PROFONDEUR_D_APPELS = 16
@@ -55,6 +62,19 @@ export function lecteurDExpressions(rel, arbre) {
   const non = (raison) => ({ k: 'non', raison })
   const estFonction = (n) => ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n)
   const ligneDe = (n) => arbre.getLineAndCharacterOfPosition(n.getStart(arbre)).line + 1
+  /** Les expressions RENDUES par la fonction `n` : son corps d'expression, ou ses `return` hors fonctions imbriquées. */
+  const retoursDe = (n) => {
+    if (!n.body) return []
+    if (!ts.isBlock(n.body)) return [n.body]
+    const retours = []
+    const visiter = (x) => {
+      if (estFonction(x)) return
+      if (ts.isReturnStatement(x) && x.expression) retours.push(x.expression)
+      x.forEachChild(visiter)
+    }
+    n.body.forEachChild(visiter)
+    return retours
+  }
 
   /** Le chemin de champs qui mène à `texte` dans un motif de liaison : `null` s'il n'y est pas, `false`
    *  s'il passe par un tableau ou un reste. */
@@ -73,8 +93,23 @@ export function lecteurDExpressions(rel, arbre) {
     return null
   }
   const lie = (nom, texte) => champsVers(nom, texte) !== null
-  const parChamps = (base, champs, texte) => champs === false ? non(`déstructuration de tableau ${texte}`)
-    : champs.reduce((de, nom) => ({ k: 'champ', de, nom, texte }), base)
+  /** La valeur par défaut de l'élément de liaison qui lie `texte` dans le motif `nom`, ou `undefined`. */
+  const defautVers = (nom, texte) => {
+    if (!nom || ts.isIdentifier(nom)) return undefined
+    for (const e of nom.elements) {
+      if (!ts.isBindingElement(e)) continue
+      if (ts.isIdentifier(e.name) && e.name.text === texte) return e.initializer
+      const sous = defautVers(e.name, texte)
+      if (sous) return sous
+    }
+    return undefined
+  }
+  const parChamps = (base, champs, texte, motif, profondeur = 0) => {
+    if (champs === false) return non(`déstructuration de tableau ${texte}`)
+    const defaut = motif && defautVers(motif, texte)
+    return champs.reduce((de, nom, i) => ({ k: 'champ', de, nom, texte,
+      ...(defaut && i === champs.length - 1 ? { defaut: expr(defaut, profondeur) } : {}) }), base)
+  }
 
   /** Les fonctions de PREMIER NIVEAU : déclarations et `const f = () => …` du module. */
   const idDe = new Map()
@@ -88,43 +123,72 @@ export function lecteurDExpressions(rel, arbre) {
       }
   }
 
+  /** Les noms qu'un motif de liaison lie. */
+  const nomsLies = (nom, vus = []) => {
+    if (!nom) return vus
+    if (ts.isIdentifier(nom)) vus.push(nom.text)
+    else for (const e of nom.elements) if (ts.isBindingElement(e)) nomsLies(e.name, vus)
+    return vus
+  }
+  /** Les noms liés par chaque paramètre d'une fonction, une fois par fonction. */
+  const parametres = new Map()
+  const parametresDe = (n) => parametres.get(n) ?? parametres.set(n, n.parameters.map((p) => new Set(nomsLies(p.name)))).get(n)
+  /** Les DÉCLARATIONS d'un bloc d'instructions, nom → première déclaration, une fois par bloc. */
+  const blocs = new Map()
+  const declarationsDuBloc = (instructions) => {
+    if (blocs.has(instructions)) return blocs.get(instructions)
+    const index = new Map()
+    const poser = (nom, decl) => { if (!index.has(nom)) index.set(nom, decl) }
+    for (const s of instructions) {
+      if (ts.isFunctionDeclaration(s) && s.name) poser(s.name.text, { fonction: s })
+      if (ts.isVariableStatement(s))
+        for (const d of s.declarationList.declarations) for (const nom of nomsLies(d.name)) poser(nom, { variable: d })
+      if (ts.isImportDeclaration(s) && ts.isStringLiteralLikeNode(s.moduleSpecifier) && s.importClause) {
+        const liaisons = s.importClause.namedBindings
+        if (liaisons && ts.isNamedImports(liaisons))
+          for (const e of liaisons.elements) poser(e.name.text, { importe: s.moduleSpecifier.text, nom: (e.propertyName ?? e.name).text })
+        if (s.importClause.name) poser(s.importClause.name.text, { horsNom: true })
+        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, { horsNom: true })
+      }
+    }
+    blocs.set(instructions, index)
+    return index
+  }
+
   const lier = (id, profondeur) => {
     if (id.text === '__dirname') return { k: 'chemin', v: dossier }
+    const texte = id.text
     for (let n = parents.get(id), enfant = id; n; enfant = n, n = parents.get(n)) {
-      if (estFonction(n) && n.parameters.some((p) => lie(p.name, id.text))) {
-        const index = n.parameters.findIndex((p) => lie(p.name, id.text))
+      if (estFonction(n) && parametresDe(n).some((noms) => noms.has(texte))) {
+        const index = parametresDe(n).findIndex((noms) => noms.has(texte))
         const appel = parents.get(n)
         if (appel && ts.isCallExpression(appel) && appel.arguments[0] === n && ts.isPropertyAccessExpression(appel.expression) &&
-          ITERATEURS.has(appel.expression.name.text) && index === 0 && ts.isIdentifier(n.parameters[0].name))
-          return expr(appel.expression.expression, profondeur)
+          ITERATEURS.has(appel.expression.name.text) && index === 0)
+          return parChamps(expr(appel.expression.expression, profondeur), champsVers(n.parameters[0].name, id.text), id.text, n.parameters[0].name, profondeur)
         if (!idDe.has(n)) return non(`paramètre ${id.text}`)
-        return parChamps({ k: 'param', fn: idDe.get(n), index, nom: id.text }, champsVers(n.parameters[index].name, id.text), id.text)
+        const motif = n.parameters[index].name
+        return parChamps({ k: 'param', fn: idDe.get(n), index, nom: id.text }, champsVers(motif, id.text), id.text, motif, profondeur)
       }
       if ((ts.isForOfStatement(n) || ts.isForInStatement(n)) && enfant !== n.initializer && ts.isVariableDeclarationList(n.initializer) &&
         n.initializer.declarations.some((d) => lie(d.name, id.text))) {
         const [d] = n.initializer.declarations
-        return ts.isForOfStatement(n) && ts.isIdentifier(d.name) ? expr(n.expression, profondeur) : non(`variable de boucle ${id.text}`)
+        return ts.isForOfStatement(n) ? parChamps(expr(n.expression, profondeur), champsVers(d.name, id.text), id.text, d.name, profondeur)
+          : non(`variable de boucle ${id.text}`)
       }
       const instructions = ts.isSourceFile(n) || ts.isBlock(n) || ts.isModuleBlock(n) || ts.isCaseClause(n) || ts.isDefaultClause(n) ? n.statements : null
       if (!instructions) continue
-      for (const s of instructions) {
-        if (ts.isFunctionDeclaration(s) && s.name?.text === id.text) return idDe.has(s) ? { k: 'fn', id: id.text } : non(`fonction locale ${id.text}`)
-        if (ts.isVariableStatement(s))
-          for (const d of s.declarationList.declarations)
-            if (lie(d.name, id.text))
-              return !d.initializer ? non(`${id.text} sans valeur initiale`)
-                : parChamps(expr(d.initializer, profondeur), champsVers(d.name, id.text), id.text)
-        if (ts.isImportDeclaration(s) && ts.isStringLiteralLikeNode(s.moduleSpecifier) && s.importClause) {
-          const liaisons = s.importClause.namedBindings
-          if (liaisons && ts.isNamedImports(liaisons))
-            for (const e of liaisons.elements)
-              if (e.name.text === id.text) return { k: 'importe', spec: s.moduleSpecifier.text, nom: (e.propertyName ?? e.name).text }
-          if (s.importClause.name?.text === id.text || (liaisons && ts.isNamespaceImport(liaisons) && liaisons.name.text === id.text))
-            return non(`import par défaut ou espace ${id.text}`)
-        }
+      const decl = declarationsDuBloc(instructions).get(texte)
+      if (!decl) continue
+      if (decl.fonction) return idDe.has(decl.fonction) ? { k: 'fn', id: texte } : non(`fonction locale ${texte}`)
+      if (decl.variable) {
+        const d = decl.variable
+        return !d.initializer ? non(`${texte} sans valeur initiale`)
+          : parChamps(expr(d.initializer, profondeur), champsVers(d.name, texte), texte, d.name, profondeur)
       }
+      if (decl.importe) return { k: 'importe', spec: decl.importe, nom: decl.nom }
+      return non(`import par défaut ou espace ${texte}`)
     }
-    return non(`${id.text} introuvable`)
+    return non(`${texte} introuvable`)
   }
 
   const expr = (n, profondeur = 0) => {
@@ -168,13 +232,20 @@ export function lecteurDExpressions(rel, arbre) {
     if (ts.isCallExpression(n)) {
       const nom = nomAppele(n)
       const args = [...n.arguments]
-      if (CHEMINS.has(nom)) return { k: 'join', v: args.map((a) => expr(a, p)) }
+      const receveur = ts.isPropertyAccessExpression(n.expression) ? n.expression.expression : null
+      if (CHEMINS.has(nom) && (!receveur || (ts.isIdentifier(receveur) && MODULES_DE_CHEMIN.has(receveur.text)) ||
+        (ts.isPropertyAccessExpression(receveur) && MODULES_DE_CHEMIN.has(receveur.name.text))))
+        return { k: 'join', v: args.map((a) => expr(a, p)) }
+      if (nom === 'join' && receveur && ts.isCallExpression(receveur) && nomAppele(receveur) === 'split' && ts.isPropertyAccessExpression(receveur.expression))
+        return expr(receveur.expression.expression, p)
       if (nom === 'dirname' && args[0]) return { k: 'dir', v: expr(args[0], p) }
       if (nom === 'cwd' && ts.isPropertyAccessExpression(n.expression) && n.expression.expression.getText(arbre) === 'process') return { k: 'chemin', v: '' }
       if (nom === 'tmpdir' || nom === 'mkdtempSync') return { k: 'hors' }
       if (['fileURLToPath', 'depotDe', 'depotReel', 'freeze'].includes(nom) && args[0]) return expr(args[0], p)
       if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
       if (SOUS_ENSEMBLES.has(nom) && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
+      const rendus = PROJECTIONS.has(nom) && args[0] && (ts.isArrowFunction(args[0]) || ts.isFunctionExpression(args[0])) ? retoursDe(args[0]) : []
+      if (rendus.length && ts.isPropertyAccessExpression(n.expression)) return { k: 'union', v: rendus.map((r) => expr(r, p)) }
       if (ITERATEURS.has(nom) && ts.isPropertyAccessExpression(n.expression))
         return { k: 'transforme', raison: `appel ${n.expression.getText(arbre)}`, v: expr(n.expression.expression, p) }
       if (ts.isIdentifier(n.expression)) return { k: 'appel', cible: lier(n.expression, p), args: args.map((a) => expr(a, p)), texte: n.expression.getText(arbre) }
@@ -185,20 +256,11 @@ export function lecteurDExpressions(rel, arbre) {
 
   /** Paramètres (reste, défaut) et expressions rendues de chaque fonction de premier niveau. */
   const fonctions = {}
-  for (const [n, id] of idDe) {
-    const retours = []
-    if (n.body && !ts.isBlock(n.body)) retours.push(expr(n.body))
-    const visiter = (x) => {
-      if (estFonction(x)) return
-      if (ts.isReturnStatement(x) && x.expression) retours.push(expr(x.expression))
-      x.forEachChild(visiter)
-    }
-    if (n.body && ts.isBlock(n.body)) n.body.forEachChild(visiter)
+  for (const [n, id] of idDe)
     fonctions[id] = {
       params: n.parameters.map((prm) => ({ reste: !!prm.dotDotDotToken, ...(prm.initializer ? { defaut: expr(prm.initializer) } : {}) })),
-      retours,
+      retours: retoursDe(n).map((r) => expr(r)),
     }
-  }
 
   /** La fonction de premier niveau qui contient `n`, ou `null`. */
   const dansDe = (n) => {
@@ -261,11 +323,32 @@ export function lectureDeModule(rel, arbre) {
 /**
  * L'ÉVALUATEUR du dépôt : les racines lues par chaque site, relais et valeurs de retour résolus d'un
  * module à l'autre.
+ * Chaque question posée à `acces` est une REQUÊTE (`requeteDe`) : `tracer` rend celles d'une évaluation,
+ * mémos internes compris — son résultat ne dépend que de leurs réponses.
  * @param {{ lecture: (f: string) => Lecture | null, cible: (f: string, spec: string) => string | null, peutLire?: (f: string) => boolean }} acces
  *   `lecture` : la lecture d'un module (null s'il est illisible) ; `cible` : le module qu'un spécificateur désigne ;
  *   `peutLire` : le module peut-il porter un relais (un module sans lecture ni relais appelé n'en porte aucun).
  */
-export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
+export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: peutLireDe = () => true }) {
+  /** Les requêtes de chaque évaluation tracée en cours, la plus interne au sommet. */
+  const traces = []
+  const noter = (requete) => { if (traces.length) traces[traces.length - 1].add(requete) }
+  const fusionner = (requetes) => { if (traces.length) for (const r of requetes) traces[traces.length - 1].add(r) }
+  const tracer = (faire) => {
+    const requetes = new Set()
+    traces.push(requetes)
+    try { return { resultat: faire(), requetes } } finally {
+      traces.pop()
+      fusionner(requetes)
+    }
+  }
+  const requetesDeLecture = new Map()
+  const lecture = (f) => {
+    noter(requetesDeLecture.get(f) ?? requetesDeLecture.set(f, requeteDe('lecture', f)).get(f))
+    return lectureDe(f)
+  }
+  const cible = (f, spec) => { noter(requeteDe('cible', f, spec)); return cibleDe(f, spec) }
+  const peutLire = (f) => { noter(requeteDe('peutLire', f)); return peutLireDe(f) }
   const pile = []
   const libres = new Map()
   const lies = new Map()
@@ -280,6 +363,7 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
     if ('relais' in v) return `r${v.relais}`
     if ('fn' in v) return `f${v.fn.f}#${v.fn.id}`
     if ('hors' in v) return 'h'
+    if ('absent' in v) return 'a'
     if (!identites.has(v)) identites.set(v, `objet ${objets += 1}`)
     return identites.get(v)
   }
@@ -322,10 +406,10 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
         if (decl?.reste) return ctx.env.args.slice(e.index).flat()
         const arg = ctx.env.args[e.index]
         if (arg) return arg
-        return decl?.defaut ? valeurs(decl.defaut, ctx) : [{ non: `paramètre ${e.nom} absent` }]
+        return decl?.defaut ? valeurs(decl.defaut, ctx) : [{ absent: true }]
       }
-      case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'objet' in o
-        ? (Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx) : [{ non: `champ ${e.nom} absent` }])
+      case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
+        : 'objet' in o || 'absent' in o ? (e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }])
         : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {
         const args = e.args.map((a) => valeurs(a, ctx))
@@ -333,10 +417,25 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
       }
       case 'dir': return valeurs(e.v, ctx).map((v) => 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
       case 'join': case 'concat': {
+        const lier = e.k === 'join' ? joindre : concatener
         let acc = [{ texte: '' }]
         for (const partie of e.v) {
           const suite = valeurs(partie, ctx)
-          acc = uniques(acc.flatMap((a) => suite.map((s) => (e.k === 'join' ? joindre : concatener)(a, s))))
+          const absente = suite.find((x) => 'absent' in x)
+          const presente = suite.some((x) => !('absent' in x))
+          const vus = new Map()
+          for (const a of acc) {
+            if (FINALES.some((k) => k in a)) {
+              if (presente) vus.set(cleDe(a), a)
+              if (absente) vus.set(cleDe(absente), absente)
+              continue
+            }
+            for (const x of suite) {
+              const v = lier(a, x)
+              vus.set(cleDe(v), v)
+            }
+          }
+          acc = [...vus.values()]
         }
         return acc
       }
@@ -366,13 +465,17 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
     if (args) {
       cle += args.map((a) => a.map(cleDe).join(',')).join('|')
     }
-    if (memo.has(cle)) return memo.get(cle)
-    const rendu = sousPile(`lectures ${fn.f}#${fn.id}`, fn.id, () => {
+    const deja = memo.get(cle)
+    if (deja) {
+      fusionner(deja.requetes)
+      return deja.rendu
+    }
+    const { resultat: rendu, requetes } = tracer(() => sousPile(`lectures ${fn.f}#${fn.id}`, fn.id, () => {
       const lu = lecture(fn.f)
       if (!lu) return [{ non: `module ${fn.f} illisible` }]
       return uniques(lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args })))
-    })
-    memo.set(cle, rendu)
+    }))
+    memo.set(cle, { rendu, requetes })
     return rendu
   }
 
@@ -380,12 +483,16 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
    *  cours ne s'ajoute rien (plus petit point fixe). */
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
-    if (relais.has(cle)) return relais.get(cle)
+    const deja = relais.get(cle)
+    if (deja) {
+      fusionner(deja.requetes)
+      return deja.oui
+    }
     if (enCours.has(cle) || !peutLire(fn.f)) return false
     enCours.add(cle)
     try {
-      const oui = lecturesDe(fn, null).some((v) => 'relais' in v)
-      relais.set(cle, oui)
+      const { resultat: oui, requetes } = tracer(() => lecturesDe(fn, null).some((v) => 'relais' in v))
+      relais.set(cle, { oui, requetes })
       return oui
     } finally { enCours.delete(cle) }
   }
@@ -406,7 +513,7 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
       if (!site.args[0]) return [{ non: 'argument absent' }]
       if (!GLOBS.has(site.lecture)) return finir(arg(0))
       const cwd = site.args[1]
-        ? valeurs({ k: 'champ', de: site.args[1], nom: 'cwd', texte: 'cwd' }, ctx).map((v) => 'non' in v && v.non === 'champ cwd absent' ? { chemin: '' } : v)
+        ? valeurs({ k: 'champ', de: site.args[1], nom: 'cwd', texte: 'cwd' }, ctx).map((v) => 'absent' in v ? { chemin: '' } : v)
         : [{ chemin: '' }]
       return finir(cwd.flatMap((c) => arg(0).map((m) => 'texte' in m ? joindre(c, { texte: prefixeDeMotif(m.texte) }) : m)))
     }
@@ -414,7 +521,8 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
     return cibles.flatMap((c) => estRelais(c.fn) ? finir(lecturesDe(c.fn, site.args.map((a) => valeurs(a, ctx)))) : [])
   }
 
-  const finir = (vals) => uniques(vals).map((v) => 'texte' in v ? ancrer(v.texte) : 'fn' in v || 'objet' in v ? { non: 'racine non chemin' } : v)
+  const finir = (vals) => uniques(vals).filter((v) => !('absent' in v))
+    .map((v) => 'texte' in v ? ancrer(v.texte) : 'fn' in v || 'objet' in v ? { non: 'racine non chemin' } : v)
 
   return {
     /** Les sites de lecture d'un module et leurs racines ; un site RELAIS (racine liée à un paramètre de
@@ -438,8 +546,19 @@ export function evaluateurDuDepot({ lecture, cible, peutLire = () => true }) {
         valeurs(e, { f, env: null }).some((v) => 'fn' in v && estRelais(v.fn))).map(([nom]) => nom)
     },
     valeurs,
+    /** `faire()` et les requêtes qu'il a posées (`requeteDe`). */
+    tracer,
   }
 }
+
+/** Les valeurs qui absorbent ce qui les suit dans un `join` ou un gabarit (`joindre`). */
+const FINALES = Object.freeze(['relais', 'hors', 'non', 'absent'])
+
+/** Une REQUÊTE de l'évaluateur, en texte : `lecture` d'un module, `cible` d'un spécificateur, `peutLire`. */
+export const requeteDe = (...parties) => JSON.stringify(parties)
+
+/** Les parties d'une requête (`requeteDe`). */
+export const partiesDeRequete = (requete) => JSON.parse(requete)
 
 /** Le préfixe sans métacaractère d'un motif de glob. */
 const prefixeDeMotif = (motif) => {
@@ -457,7 +576,8 @@ const borne = (chemin) => {
 /** `join` : une partie non résolue APRÈS un préfixe résolu non vide rend le préfixe, lu comme dossier
  *  (`sous`) ; un relais absorbe ce qui le suit. */
 function joindre(a, s) {
-  if ('relais' in a || 'hors' in a || 'non' in a) return a
+  if ('absent' in s) return s
+  if ('relais' in a || 'hors' in a || 'non' in a || 'absent' in a) return a
   if ('relais' in s || 'hors' in s) return s
   if ('non' in s) {
     const prefixe = 'chemin' in a ? a : a.texte ? ancrer(a.texte) : null
@@ -484,5 +604,5 @@ function concatener(a, s) {
  */
 export function evaluer(e) {
   return evaluateurDuDepot({ lecture: () => null, cible: () => null }).valeurs(e, { f: '', env: null })
-    .map((v) => 'texte' in v ? ancrer(v.texte) : v)
+    .filter((v) => !('absent' in v)).map((v) => 'texte' in v ? ancrer(v.texte) : v)
 }

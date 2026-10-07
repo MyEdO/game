@@ -1543,9 +1543,9 @@
   {
     "id": "racinesBalayees",
     "type": "primitives.manifest",
-    "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/APPEL_DE_LECTURE",
+    "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/APPEL_DE_LECTURE/requeteDe/partiesDeRequete",
     "fichier": "scripts/guards/lib/racinesBalayees.mjs",
-    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour et déstructuration ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée)",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; requêtes tracées d'une évaluation, clé de son mémo",
     "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
     "verrou": "racinesBalayees.test.mjs"
   },

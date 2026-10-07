@@ -10,8 +10,9 @@
 // `DUREES`, rapports de `run.mjs` et de `dureesNodeTest.mjs`) ; le reste à la CI.
 // Docs dérivés : `selectionDesGenerateurs`, joués en `--check` sous `--docs` seulement.
 // Le graphe résout contre la post-image ∪ la base : l'importeur pendu vers un fichier SUPPRIMÉ reste lié.
-// Les spécificateurs non résolus et les lectures de module se mémoïsent par blob sous `CACHE`, signés par
-// `versionDesMemos`.
+// Les spécificateurs non résolus, les lectures de module, leurs liaisons et leurs déclarations exportées se
+// mémoïsent par blob sous `CACHE` ; l'évaluation de chaque module, avec les réponses des requêtes qu'elle a
+// posées (`tracer`, `VARIANTES`). Tous signés par `versionDesMemos`.
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -20,7 +21,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { performance } from 'node:perf_hooks'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
-import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluer, lecteurDExpressions, lectureDeModule } from '../guards/lib/racinesBalayees.mjs'
+import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
@@ -49,7 +50,7 @@ const BUDGET_LOCAL_S = 180
 const SIGNAUX = Object.freeze(['symbole', 'module', 'reste'])
 
 /** La durée de REPLI d'un fichier de test par famille, en ms, sans durée apprise ni médiane (#2400). */
-const REPLI_MS = Object.freeze({ vitest: 55_871, node: 3227 })
+const REPLI_MS = Object.freeze({ vitest: 100, node: 2786 })
 
 /** Le mémo des durées apprises, sous `CACHE` : `{ [test]: ms }`. */
 const DUREES = 'durees.json'
@@ -72,8 +73,12 @@ export function paliersDe(retenus) {
 /** La config Vitest d'où se lisent les `setupFiles`. */
 const CONFIG_VITEST = 'vite.config.ts'
 
-/** Les modules analysés par programme TypeScript (`prelire`). */
+/** Les modules analysés par programme TypeScript (`analyserEnLots`). */
 const LOT_D_ANALYSE = 400
+
+/** Les VARIANTES gardées par évaluation de module (`evaluations`) : une par jeu de réponses, les tours du
+ *  point fixe des lecteurs en posant plusieurs. */
+const VARIANTES = 8
 
 /** Le dossier des mémos, relatif à la racine du dépôt. */
 const CACHE = 'node_modules/.cache/perimetre'
@@ -281,12 +286,11 @@ function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos
       if (lu) lectures.set(f, lu)
       else aLire.push({ rel: f, text: texte })
     }
-    for (let i = 0; i < aLire.length; i += LOT_D_ANALYSE)
-      for (const { fichier, sourceFile } of analyserCorpus(aLire.slice(i, i + LOT_D_ANALYSE))) {
-        const lu = lectureDeModule(fichier.rel, sourceFile)
-        memos?.ecrire('lectures', `${fichier.rel}:${blobDe(fichier.text)}`, lu)
-        lectures.set(fichier.rel, lu)
-      }
+    for (const { fichier, sourceFile } of analyserEnLots(aLire)) {
+      const lu = lectureDeModule(fichier.rel, sourceFile)
+      memos?.ecrire('lectures', `${fichier.rel}:${blobDe(fichier.text)}`, lu)
+      lectures.set(fichier.rel, lu)
+    }
   }
   const alias = aliasDuDepot(racine)
   const cibleDe = (f, spec) => {
@@ -298,26 +302,55 @@ function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos
    *  nomment un relais exporté d'un lecteur. L'évaluateur se refait à chaque tour : un relais se juge
    *  sur l'ensemble final. */
   const lecteurs = new Set([...textes].filter(([, t]) => APPEL_DE_LECTURE.test(t)).map(([f]) => f))
+  /** La réponse COURANTE à une requête de l'évaluateur (`partiesDeRequete`) : l'empreinte de la lecture
+   *  d'un module (blob, `null` s'il n'est pas un module lisible), la cible d'un spécificateur — stables
+   *  le temps d'une dérivation —, `peutLire`, qui suit les tours des lecteurs. */
+  const stables = new Map()
+  const reponseA = (requete) => {
+    if (stables.has(requete)) return stables.get(requete)
+    const [nature, f, spec] = partiesDeRequete(requete)
+    if (nature === 'peutLire') return lecteurs.has(f)
+    const texte = nature === 'lecture' ? textes.get(f) ?? lire([f]).get(f) ?? null : null
+    return stables.set(requete, nature === 'cible' ? cibleDe(f, spec) : texte === null || !estModule(f) ? null : blobDe(texte)).get(requete)
+  }
+  /** L'évaluation `nature` (`sitesDe`, `relaisExportes`) du module `f`, mémoïsée sous `evaluations` avec
+   *  les réponses de ses requêtes : une variante vaut tant que chacune de ses réponses tient. */
+  const variante = (nature, f) => (memos?.lire('evaluations', `${nature}:${f}`) ?? [])
+    .find(({ requetes }) => requetes.every(([r, reponse]) => reponseA(r) === reponse))
+  const evaluationDe = (evaluateur, nature, f) => {
+    const vue = variante(nature, f)
+    if (vue) return vue.resultat
+    const { resultat, requetes } = evaluateur.tracer(() => evaluateur[nature](f))
+    const cle = `${nature}:${f}`
+    memos?.ecrire('evaluations', cle, [{ requetes: [...requetes].map((r) => [r, reponseA(r)]), resultat }, ...(memos.lire('evaluations', cle) ?? [])].slice(0, VARIANTES))
+    return resultat
+  }
+  /** Lit d'un coup les modules dont l'évaluation `nature` n'a pas de variante valide, et leurs imports. */
+  const prelireManquants = (nature, fichiers) => {
+    const manquants = fichiers.filter((f) => !variante(nature, f))
+    prelire(new Set([...manquants, ...manquants.flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
+  }
   let evaluateur
-  prelire(new Set([...lecteurs, ...[...lecteurs].flatMap((f) => (cache.get(abs(f)) ?? []).map((arc) => rel(arc.cible)))]))
   for (let frontiere = [...lecteurs]; ;) {
     evaluateur = evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire: (f) => lecteurs.has(f) })
+    prelireManquants('relaisExportes', frontiere)
     const suivante = []
     for (const f of frontiere) {
-      const noms = evaluateur.relaisExportes(f)
+      const noms = evaluationDe(evaluateur, 'relaisExportes', f)
       if (!noms.length) continue
       const motif = new RegExp(`\\b(?:${noms.join('|')})\\b|export\\s*\\*`)
       for (const { importeur } of inverse.get(f) ?? [])
         if (!lecteurs.has(importeur) && textes.has(importeur) && motif.test(textes.get(importeur))) { lecteurs.add(importeur); suivante.push(importeur) }
     }
     if (!suivante.length) break
-    prelire(suivante)
     frontiere = [...lecteurs]
   }
 
   const nonResolus = []
-  for (const f of [...lecteurs].sort()) {
-    for (const site of evaluateur.sitesDe(f)) {
+  const tries = [...lecteurs].sort()
+  prelireManquants('sitesDe', tries)
+  for (const f of tries) {
+    for (const site of evaluationDe(evaluateur, 'sitesDe', f)) {
       const ici = `${f}:${site.ligne}`
       for (const v of site.valeurs) if ('non' in v) nonResolus.push({ site: ici, helper: site.appel, raison: v.non })
       for (const v of site.valeurs) {
@@ -334,14 +367,21 @@ function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos
    *  post-image), liaisons du dernier maillon de sa chaîne. */
   const cibles = [...new Set([...retenus.values()].filter((l) => l.nature === 'import' && estModule(l.touche)).map((l) => l.touche))]
   const avantDe = cibles.length && lireAvant ? lireAvant(cibles) : new Map()
-  const exportsDe = new Map(cibles.map((m) => [m, exportsTouches(m, avantDe.get(m) ?? null, textes.get(m) ?? null)]))
+  const [declarationsAvant, declarationsApres] = [(m) => avantDe.get(m) ?? null, (m) => textes.get(m) ?? null]
+    .map((texte) => parBlob(cibles.map((rel) => ({ rel, text: texte(rel) })), 'declarations', memos,
+      (rel, sourceFile) => [...declarationsDeLArbre(sourceFile)]))
+  const exportsDe = new Map(cibles.map((m) => [m, nomsTouches(new Map(declarationsAvant.get(m) ?? []), new Map(declarationsApres.get(m) ?? []))]))
+  const importeurs = [...new Set([...retenus.values()].filter((l) => l.nature === 'import').map((l) => l.chaine[l.chaine.length - 2]))]
+  const liaisonsPar = parBlob(importeurs.map((rel) => ({ rel, text: textes.get(rel) ?? '' })), 'liaisons', memos, (rel, sourceFile, diagnostics) => {
+    try {
+      return liaisonsDe(rel, sourceFile, diagnostics).map(({ spec, forme, importe }) => ({ spec, forme, importe: importe ? { nom: importe.nom } : null }))
+    } catch { return [] }
+  })
   const signaux = new Map()
   for (const [test, lien] of retenus) {
     if (lien.nature !== 'import') continue
     const importeur = lien.chaine[lien.chaine.length - 2]
-    const liaisons = (() => {
-      try { return liaisonsDe(importeur, textes.get(importeur) ?? '').filter((l) => l.spec && cibleDe(importeur, l.spec) === lien.touche) } catch { return [] }
-    })()
+    const liaisons = (liaisonsPar.get(importeur) ?? []).filter((l) => l.spec && cibleDe(importeur, l.spec) === lien.touche)
     signaux.set(test, signalDe(lien, liaisons, exportsDe.get(lien.touche) ?? new Set()))
   }
   return { retenus, toolchain, nonResolus, vitest, node, modules: cache.size, setup, signaux }
@@ -385,6 +425,42 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   return { lances, aLaCI, rangs }
 }
 
+/** Les modules `entrees` (`{ rel, text }`, `text` null : absent) analysés par lots de `LOT_D_ANALYSE`,
+ *  un module par chemin et par lot. */
+function* analyserEnLots(entrees) {
+  const restes = [...entrees]
+  while (restes.length) {
+    const vus = new Set()
+    const lot = []
+    for (let i = 0; i < restes.length && lot.length < LOT_D_ANALYSE;)
+      if (vus.has(restes[i].rel)) i += 1
+      else { vus.add(restes[i].rel); lot.push(...restes.splice(i, 1)) }
+    yield* analyserCorpus(lot)
+  }
+}
+
+/**
+ * `extraire(rel, sourceFile, diagnostics)` de chaque module `entrees`, mémoïsé sous la famille `famille`
+ * par chemin et blob ; les absents des mémos s'analysent par lots. Un texte `null` rend `null`.
+ * @returns {Map<string, unknown>}
+ */
+function parBlob(entrees, famille, memos, extraire) {
+  const rendus = new Map()
+  const aLire = []
+  for (const e of entrees) {
+    if (e.text === null) { rendus.set(e.rel, null); continue }
+    const vu = memos?.lire(famille, `${e.rel}:${blobDe(e.text)}`)
+    if (vu !== undefined) rendus.set(e.rel, vu)
+    else aLire.push(e)
+  }
+  for (const { fichier, sourceFile, diagnostics } of analyserEnLots(aLire)) {
+    const rendu = extraire(fichier.rel, sourceFile, diagnostics)
+    memos?.ecrire(famille, `${fichier.rel}:${blobDe(fichier.text)}`, rendu)
+    rendus.set(fichier.rel, rendu)
+  }
+  return rendus
+}
+
 /** La famille d'un test : `vitest` ou `node`. */
 const familleDe = (test) => estTestNode(test) ? 'node' : 'vitest'
 
@@ -410,10 +486,15 @@ export function estimationsDe(tests, durees, repli = REPLI_MS) {
  * @param {string} rel @param {string | null} texte @returns {Map<string, string>}
  */
 export function declarationsExportees(rel, texte) {
-  const exportees = new Map()
-  if (texte === null) return exportees
-  const ts = typescript()
+  if (texte === null) return new Map()
   const [{ sourceFile }] = [...analyserCorpus([{ rel, text: texte }])]
+  return declarationsDeLArbre(sourceFile)
+}
+
+/** `declarationsExportees` d'un arbre déjà analysé. */
+function declarationsDeLArbre(sourceFile) {
+  const exportees = new Map()
+  const ts = typescript()
   const texteDe = (n) => n.getText(sourceFile)
   const nomsDe = (s) => ts.isVariableStatement(s) ? s.declarationList.declarations.flatMap((d) => ts.isIdentifier(d.name) ? [d.name.text] : [])
     : s.name && ts.isIdentifier(s.name) ? [s.name.text] : []
@@ -435,10 +516,11 @@ export function declarationsExportees(rel, texte) {
 
 /** Les exports TOUCHÉS d'un module entre deux images (`null` : absent) : ajoutés, supprimés ou modifiés. PURE. */
 export function exportsTouches(rel, avant, apres) {
-  const a = declarationsExportees(rel, avant)
-  const b = declarationsExportees(rel, apres)
-  return new Set([...new Set([...a.keys(), ...b.keys()])].filter((nom) => a.get(nom) !== b.get(nom)))
+  return nomsTouches(declarationsExportees(rel, avant), declarationsExportees(rel, apres))
 }
+
+/** Les noms dont la déclaration diffère entre deux tables (`declarationsExportees`). PURE. */
+const nomsTouches = (a, b) => new Set([...new Set([...a.keys(), ...b.keys()])].filter((nom) => a.get(nom) !== b.get(nom)))
 
 /**
  * Le SIGNAL d'un test d'import (`SIGNAUX`) : le dernier maillon de sa chaîne (`importeur` → `touche`)
@@ -579,7 +661,7 @@ function principal() {
 }
 
 /** Fusionne dans `DUREES` les rapports de durées du dernier lancement (Vitest JSON, `dureesNodeTest`), puis les efface. */
-function apprendre(racine, cache, rapport) {
+export function apprendre(racine, cache, rapport) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
   const appris = {}
