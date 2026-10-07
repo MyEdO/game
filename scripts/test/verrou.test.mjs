@@ -8,7 +8,7 @@ import fsReel from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { attendreLibre, prendreVerrou } from './verrou.mjs'
+import { attendreLibre, prendreVerrou, sousEcheanceAsync } from './verrou.mjs'
 
 const MODULE = pathToFileURL(path.join(import.meta.dirname, 'verrou.mjs')).href
 const SOMMEIL = pathToFileURL(path.join(import.meta.dirname, '../guards/lib/spawnResilient.mjs')).href
@@ -209,6 +209,26 @@ test('#2187 — prise EN ATTENTE d’un tenant qui ne meurt jamais : REFUS à l�
   assert.equal(refus.tenant.pid, 1234)
   assert.deepEqual(temps.sommeils, [15_000, 15_000, 10_000], 'l’échéance borne l’attente totale')
   assert.equal(JSON.parse(fs.boite.contenu).pid, 1234)
+})
+
+test('#2187 — sousEcheanceAsync : rejoue l’essai sous l’échéance au sommeil attendu, annonce chaque refus, rend le dernier essai', async () => {
+  const temps = tempsFactice()
+  const annonces = []
+  const essais = [{ etat: 'tenu', tenant: { pid: 7 } }, { etat: 'tenu', tenant: { pid: 7 } }, { etat: 'pris' }]
+  const vu = await sousEcheanceAsync({
+    attente: { echeanceMs: 60_000, pasMs: 15_000, annoncer: (tenant) => annonces.push(tenant.pid) },
+    horloge: temps.horloge, essai: () => essais.shift(), abouti: (e) => e.etat === 'pris',
+    dormir: async (ms) => temps.dormir(ms),
+  })
+  assert.deepEqual(vu, { etat: 'pris' })
+  assert.deepEqual(annonces, [7, 7])
+  assert.deepEqual(temps.sommeils, [15_000, 15_000])
+  const echu = await sousEcheanceAsync({
+    attente: { echeanceMs: 40_000, pasMs: 15_000 }, horloge: temps.horloge, essai: () => ({ etat: 'tenu' }),
+    abouti: (e) => e.etat === 'pris', dormir: async (ms) => temps.dormir(ms),
+  })
+  assert.deepEqual(echu, { etat: 'tenu' })
+  assert.deepEqual(temps.sommeils.slice(2), [15_000, 15_000, 10_000], 'l’échéance borne l’attente totale')
 })
 
 test('#2187 — attendreLibre : absent, illisible ou tenu par un MORT vaut libre, sans rien prendre ni dormir', () => {

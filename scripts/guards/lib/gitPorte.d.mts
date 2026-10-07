@@ -73,11 +73,12 @@ export function ceriseDe(depot: Depot, amont: string, tete: string): { signe: '+
 export function contenuDuBlob(depot: Depot, sha: string, opts?: { chemin?: string }): Buffer;
 /** Le sha de blob de chacun des fichiers `chemins` de l'arbre de travail. */
 export function shasDuTravail(depot: Depot, chemins: readonly string[]): Map<string, string>;
-/** La fusion à trois au style diff3, ou `{ binaire: true }`. */
+/** La fusion à trois au style diff3, marqueurs de `taille` caractères, ou `{ binaire: true }`. */
 export function fusionDiff3(
   depot: Depot,
   fichiers: { ours: string; base: string; theirs: string },
   labels: { ours: string; base: string; theirs: string },
+  taille: number,
 ): { texte: string; conflit: boolean } | { binaire: true };
 /** Un blob écrit tel quel dans la base d'objets. */
 export function ecrireBlob(depot: Depot, contenu: Buffer | string): ResultatGit;

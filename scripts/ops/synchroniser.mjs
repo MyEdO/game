@@ -8,7 +8,7 @@
 //
 // Usage : `npm run ops:synchroniser [-- --json]`, depuis n'importe quel worktree du dépôt.
 import { randomUUID, createHash } from 'node:crypto'
-import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, rmdirSync, writeFileSync, writeSync } from 'node:fs'
+import { accessSync, closeSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, rmdirSync, writeFileSync, writeSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import {
   GitIndisponible, INDEX, TRONC, ajoutDe, arbrePrincipal, attributsDe, avancerArbre, brancheDe, ceQuiChange, ceriseDe,
@@ -17,13 +17,14 @@ import {
   reussi, shaDe, shasDuTravail, transactionDeRefs,
 } from '../guards/lib/gitPorte.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
-import { estPidVivant, prendreVerrouAsync } from '../test/verrou.mjs'
+import { estPidVivant, prendreVerrouAsync, sousEcheanceAsync } from '../test/verrou.mjs'
 
 /** Les chemins dont un changement B..U ne prend effet qu'à la PROCHAINE session d'un client (verdict, D2). */
 export const CONFIGURATION_CLIENT = Object.freeze([/^\.claude\/settings\.json$/, /^\.codex\/hooks\.json$/, /^\.claude\/skills\/harnais\//])
 
-/** Les étapes 4 à 10 du verdict, dans l'ordre : le point d'arrêt `gestes.etape(nom)` suit chacune, et
- *  la capture (étape 3, `capture`). */
+/** Les points d'arrêt `gestes.etape(nom)` des étapes 4 à 10 du verdict, dans l'ordre ; la capture
+ *  (étape 3) et la reprise reconnue (avant sa transaction) ont les leurs, `capture` et `reprise`, hors
+ *  de cette liste. */
 export const ETAPES = Object.freeze(['transaction', 'travail', 'arbre', 'index', 'commit', 'consommateurs', 'liberation'])
 
 /** L'attente bornée des verrous (`synchro.verrou`, `index.lock`, verrous de refs d'une reprise) : un essai
@@ -63,22 +64,35 @@ function estSousSuite(petite, grande) {
   return i === petite.length
 }
 
-/** Le marqueur de conflit `<<<<<<<`, `|||||||`, `=======` ou `>>>>>>>` qui ouvre `ligne`, `null` sinon. PURE. */
-const marqueurDe = (ligne) => /^(<{7}|\|{7}|={7}|>{7})(?: |\r?\n|$)/.exec(ligne)?.[1][0] ?? null
+/**
+ * La taille des marqueurs de conflit (`--marker-size`, `git help merge-file`) qu'aucune ligne de `textes`
+ * n'imite : 1 + la plus longue suite de `<`, `=`, `>` ou `|` en tête de ligne, 7 au moins. PURE.
+ * @param {...(string | Buffer)} textes
+ */
+export function tailleDeMarqueur(...textes) {
+  let plusLongue = 0
+  for (const texte of textes) {
+    for (const [suite] of String(texte).matchAll(/^(?:<+|=+|>+|\|+)/gm)) plusLongue = Math.max(plusLongue, suite.length)
+  }
+  return Math.max(7, plusLongue + 1)
+}
+
+/** Le marqueur de conflit (`<`, `|`, `=` ou `>` répété `taille` fois) qui ouvre `ligne`, `null` sinon. PURE. */
+const marqueurDe = (ligne, taille) => new RegExp(`^(<{${taille}}|\\|{${taille}}|={${taille}}|>{${taille}})(?: |\\r?\\n|$)`).exec(ligne)?.[1][0] ?? null
 
 /**
  * La sortie `merge-file -p --diff3` dont chaque bloc en conflit à base VIDE, où un côté est une
  * sous-suite ordonnée de l'autre, est résolu par le PLUS LONG (verdict, D3) ; `null` dès qu'un bloc
- * ne l'est pas. PURE.
- * @param {string} texte @returns {string | null}
+ * ne l'est pas ; `taille` = celle des marqueurs (`tailleDeMarqueur`). PURE.
+ * @param {string} texte @param {number} taille @returns {string | null}
  */
-export function resoudreBaseVide(texte) {
+export function resoudreBaseVide(texte, taille) {
   const sortie = []
   /** @type {{ local: string[], base: string[], amont: string[] } | null} */
   let bloc = null
   let cote = 'local'
   for (const ligne of lignesDe(texte)) {
-    const marqueur = marqueurDe(ligne)
+    const marqueur = marqueurDe(ligne, taille)
     if (!bloc) {
       if (marqueur === '<') [bloc, cote] = [{ local: [], base: [], amont: [] }, 'local']
       else sortie.push(ligne)
@@ -104,11 +118,9 @@ const empreinteDe = (chemin) => (existsSync(chemin) ? createHash('sha256').updat
 /** Les octets d'un fichier de l'arbre, `null` s'il est absent. @param {string} chemin */
 const octetsDe = (chemin) => (existsSync(chemin) ? readFileSync(chemin) : null)
 
-/** `a` et `b` (octets en base64, ou `null`) sont-ils les mêmes ? */
+/** Les octets `lus` (`null` = absent) sont-ils ceux d'`attendu` (base64 du journal, `null` = absent) ? PURE. */
 const memes = (/** @type {Buffer | null} */ lus, /** @type {string | null} */ attendu) =>
   lus === null ? attendu === null : attendu !== null && lus.equals(Buffer.from(attendu, 'base64'))
-
-const dormir = (ms) => new Promise((fini) => setTimeout(fini, ms))
 
 /** Les codes d'un `rename` que Windows refuse pendant qu'un autre processus tient la cible ouverte. */
 const RENOMMAGE_REFUSE = new Set(['EPERM', 'EACCES', 'EBUSY'])
@@ -139,10 +151,12 @@ export function remplacerIndex(candidat, cible, { attendre = attendreSync } = {}
  * `avance`, `avance-non-prete` (hook `post-merge` en échec), `a-jour`, ou un refus `branche-etrangere`,
  * `operation-en-cours`, `origin-indisponible`, `divergent`, `occupe`, `conflit`, `collision-ignore`,
  * `ecriture-concurrente`, `reprise-impossible`, ou `git-indisponible` quand git ne répond pas (avec
- * `journal` si l'avance est entamée : la reprise le relira). Un `conflit` dépose ses versions sous
- * `<git-common-dir>/synchro-conflits/<U>/` (`depot`) ; `avance` et `a-jour` purgent ces dépôts.
- * `env` : l'environnement de git ; `gestes` : `etape(nom)` après chaque étape d'`ETAPES`, `estVivant`
- * et `attente` du verrou (mesure) ; `annoncer(texte)` : chaque attente d'un verrou tenu.
+ * `journal` si l'avance est entamée : la reprise le relira), ou `interrompu` : l'avance arrêtée en cours
+ * de route, `journal` et `verrous` conservés, que le passage suivant reprend. Un `conflit` dépose ses
+ * versions sous `<git-common-dir>/synchro-conflits/<U>/` (`versions`) ; `avance` et `a-jour` purgent ces
+ * dépôts. `env` : l'environnement de git ; `gestes` : `etape(nom)` après chaque étape d'`ETAPES`,
+ * `estVivant` et `attente` des verrous (mesure), UNE échéance pour `synchro.verrou` puis `index.lock` ;
+ * `annoncer(texte)` : chaque attente d'un verrou tenu.
  * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, annoncer?: (texte: string) => void,
  *   gestes?: { etape?: (nom: string) => void | Promise<void>, estVivant?: (pid: number) => boolean, attente?: { echeanceMs: number, pasMs: number, annonceMs?: number } } }} [p]
  */
@@ -153,6 +167,7 @@ export async function synchroniserPrincipal({ depuis = process.cwd(), env, geste
   if (!racine.disponible) return { etat: 'git-indisponible', raison: racine.raison }
   const depot = depotDe(racine.valeur, { env })
   const commun = join(racine.valeur, '.git')
+  const debut = horloge()
   const verrou = await prendreVerrouAsync({
     chemin: join(commun, 'synchro.verrou'), libelle: 'synchronisation du principal', commande: 'ops:synchroniser',
     cwd: racine.valeur, estVivant, horloge,
@@ -160,7 +175,7 @@ export async function synchroniserPrincipal({ depuis = process.cwd(), env, geste
   })
   if (verrou.etat !== 'pris') return { etat: 'occupe', message: verrou.message, tenant: verrou.tenant ?? null }
   /** @type {any} */
-  const ctx = { depot, racine: racine.valeur, commun, index: '', verrouIndex: '', etape, attente, horloge, annoncer: annonceEspacee(annoncer, horloge, attente.annonceMs), tx: null }
+  const ctx = { depot, racine: racine.valeur, commun, index: '', verrouIndex: '', jeton: null, etape, attente, debut, horloge, annoncer: annonceEspacee(annoncer, horloge, attente.annonceMs), tx: null }
   try {
     const relatif = cheminGit(depot, 'index')
     if (!relatif) throw new GitIndisponible('chemin de l’index non rendu')
@@ -171,17 +186,34 @@ export async function synchroniserPrincipal({ depuis = process.cwd(), env, geste
     if (vu.etat === 'avance' || vu.etat === 'a-jour') rmSync(join(commun, CONFLITS), { recursive: true, force: true })
     return vu
   } catch (e) {
-    if (!(e instanceof GitIndisponible)) throw e
-    if (ctx.tx) await ctx.tx.abort()
+    const indisponible = e instanceof GitIndisponible
+    if (!indisponible && ctx.jeton === null) throw e
+    await abandonner(ctx)
     const laisse = journalEnCours(commun)
-    return { etat: 'git-indisponible', raison: e.raison, ...(laisse ? { journal: join(dossierDe(ctx, laisse.vers), 'journal.json') } : {}) }
+    const journal = laisse ? { journal: cheminDuJournal(ctx, laisse.vers) } : {}
+    if (indisponible) return { etat: 'git-indisponible', raison: e.raison, ...journal }
+    const verrous = octetsDe(ctx.verrouIndex)?.toString('utf8') === ctx.jeton ? [ctx.verrouIndex] : []
+    return { etat: 'interrompu', raison: String(/** @type {any} */ (e)?.stack ?? e), ...journal, verrous }
   } finally {
     verrou.liberer()
   }
 }
 
-/** Le dossier de la transaction vers U. */
+/** Le dossier du journal de l'avance vers U (journal, index de transport et candidat). */
 const dossierDe = (ctx, vers) => join(ctx.commun, 'synchro', vers)
+
+/** Le fichier du journal de l'avance vers U. */
+const cheminDuJournal = (ctx, vers) => join(dossierDe(ctx, vers), 'journal.json')
+
+/** La transaction de refs ouverte ABANDONNÉE (`abort`), s'il y en a une. */
+async function abandonner(ctx) {
+  const tx = ctx.tx
+  ctx.tx = null
+  if (tx) await tx.abort()
+}
+
+/** L'attente d'un verrou sous l'échéance UNIQUE du passage (`ctx.debut`), `annoncer` à chaque refus. */
+const attenteRestante = (ctx, annoncer) => ({ echeanceMs: ctx.debut + ctx.attente.echeanceMs - ctx.horloge(), pasMs: ctx.attente.pasMs, annoncer })
 
 /** Le journal laissé par un synchroniseur mort, `null` s'il n'y en a pas. @param {string} commun */
 function journalEnCours(commun) {
@@ -196,34 +228,41 @@ function journalEnCours(commun) {
 
 /** Le journal écrit d'un seul geste (temporaire puis `rename`). */
 function ecrireJournal(ctx, journal) {
-  const chemin = join(dossierDe(ctx, journal.vers), 'journal.json')
+  const chemin = cheminDuJournal(ctx, journal.vers)
   writeFileSync(`${chemin}.tmp`, JSON.stringify(journal))
   renameSync(`${chemin}.tmp`, chemin)
 }
 
+/** Un essai de prise d'`index.lock` (`wx`) sous `jeton` : `cree`, `repris` s'il porte déjà `jetonConnu`, `tenu` sinon. */
+function prendreVerrouIndexUneFois(ctx, jeton, jetonConnu) {
+  try {
+    const fd = openSync(ctx.verrouIndex, 'wx')
+    try {
+      writeSync(fd, jeton)
+    } finally {
+      closeSync(fd)
+    }
+    return 'cree'
+  } catch (e) {
+    if (/** @type {any} */ (e)?.code !== 'EEXIST') throw e
+  }
+  return jetonConnu !== null && octetsDe(ctx.verrouIndex)?.toString('utf8') === jetonConnu ? 'repris' : 'tenu'
+}
+
 /**
- * `index.lock` pris en exclusif (`wx`) sous le `jeton`, rejoué jusqu'à l'échéance d'`attente` ; un
- * `index.lock` qui porte déjà `jetonConnu` est le NÔTRE, repris. REND `true`, ou `false` à échéance.
+ * `index.lock` pris sous le `jeton` (`prendreVerrouIndexUneFois`), rejoué jusqu'à l'échéance du passage
+ * (`attenteRestante`). REND `cree` ou `repris` (`ctx.jeton` posé), ou `tenu` à échéance.
+ * @returns {Promise<'cree' | 'repris' | 'tenu'>}
  */
 async function prendreVerrouIndex(ctx, jeton, jetonConnu = null) {
-  const debut = ctx.horloge()
-  for (;;) {
-    try {
-      const fd = openSync(ctx.verrouIndex, 'wx')
-      try {
-        writeSync(fd, jeton)
-      } finally {
-        closeSync(fd)
-      }
-      return true
-    } catch (e) {
-      if (/** @type {any} */ (e)?.code !== 'EEXIST') throw e
-    }
-    if (jetonConnu !== null && octetsDe(ctx.verrouIndex)?.toString('utf8') === jetonConnu) return true
-    if (ctx.horloge() - debut >= ctx.attente.echeanceMs) return false
-    ctx.annoncer(`[synchroniser] index.lock tenu : ${ctx.verrouIndex}`)
-    await dormir(ctx.attente.pasMs)
-  }
+  const vu = await sousEcheanceAsync({
+    attente: attenteRestante(ctx, () => ctx.annoncer(`[synchroniser] index.lock tenu : ${ctx.verrouIndex}`)),
+    horloge: ctx.horloge,
+    essai: () => prendreVerrouIndexUneFois(ctx, jeton, jetonConnu),
+    abouti: (etat) => etat !== 'tenu',
+  })
+  if (vu !== 'tenu') ctx.jeton = jeton
+  return vu
 }
 
 /** `index.lock` retiré s'il porte encore `jeton`. */
@@ -262,7 +301,7 @@ async function synchroniser(ctx) {
   if (!ancetre.disponible) throw new GitIndisponible(ancetre)
   if (!('valeur' in ancetre) || !ancetre.valeur) return { etat: 'divergent', de, vers, cerise: ceriseDe(depot, vers, de) }
   const jeton = randomUUID()
-  if (!(await prendreVerrouIndex(ctx, jeton))) {
+  if ((await prendreVerrouIndex(ctx, jeton)) === 'tenu') {
     return { etat: 'operation-en-cours', operations: ['index.lock'], raison: `Unable to create '${ctx.verrouIndex}': File exists.` }
   }
   let applique = false
@@ -280,21 +319,30 @@ async function synchroniser(ctx) {
   } finally {
     if (!applique && existsSync(ctx.verrouIndex)) {
       libererVerrouIndex(ctx, jeton)
-      oublierTransaction(ctx, vers)
+      oublierJournal(ctx, vers)
     }
   }
 }
 
-/** Le refus ou le succès qui CLÔT une transaction : `index.lock` libéré, journal supprimé (étape 10). */
+/** Le refus ou le succès qui CLÔT un passage : `index.lock` libéré, journal supprimé (étape 10). */
 async function finir(ctx, journal, resultat) {
   libererVerrouIndex(ctx, journal.jeton)
   await ctx.etape('liberation')
-  oublierTransaction(ctx, journal.vers)
+  oublierJournal(ctx, journal.vers)
   return resultat
 }
 
-/** Le dossier de la transaction vers `vers` supprimé, puis `synchro/` s'il est vide. */
-function oublierTransaction(ctx, vers) {
+/**
+ * L'avance arrêtée APRÈS une écriture que la reprise sait finir : transaction de refs abandonnée,
+ * `index.lock` et journal CONSERVÉS et nommés ; le passage suivant reprend (`reprendre`).
+ */
+async function interrompre(ctx, journal, raison, details = {}) {
+  await abandonner(ctx)
+  return { etat: 'interrompu', raison, journal: cheminDuJournal(ctx, journal.vers), verrous: [ctx.verrouIndex], ...details }
+}
+
+/** Le dossier du journal vers `vers` supprimé, puis `synchro/` s'il est vide. */
+function oublierJournal(ctx, vers) {
   rmSync(dossierDe(ctx, vers), { recursive: true, force: true })
   try {
     rmdirSync(join(ctx.commun, 'synchro'))
@@ -328,7 +376,7 @@ function capturer(ctx, de, vers) {
     else chemins.push(vu)
   }
   if (conflits.length) {
-    return { refus: { etat: 'conflit', chemins: conflits.map(({ chemin, raison }) => ({ chemin, raison })), depot: deposerConflits(ctx, de, vers, conflits) } }
+    return { refus: { etat: 'conflit', chemins: conflits.map(({ chemin, raison }) => ({ chemin, raison })), versions: deposerConflits(ctx, de, vers, conflits) } }
   }
   const horsP = D.filter((p) => !sales.has(p)).map((p) => ({ chemin: p, b: entree(b.get(p)), u: entree(u.get(p)) }))
   const configuration = D.filter((p) => CONFIGURATION_CLIENT.some((re) => re.test(p)))
@@ -402,9 +450,10 @@ function fusionner(ctx, p, local, base, amont) {
   writeFileSync(fichiers.base, base)
   writeFileSync(fichiers.theirs, amont)
   try {
-    const vu = fusionDiff3(ctx.depot, fichiers, { ours: 'local', base: 'base', theirs: 'amont' })
+    const taille = tailleDeMarqueur(local, base, amont)
+    const vu = fusionDiff3(ctx.depot, fichiers, { ours: 'local', base: 'base', theirs: 'amont' }, taille)
     if ('binaire' in vu) return { conflit: 'binaire' }
-    const texte = vu.conflit ? resoudreBaseVide(vu.texte) : vu.texte
+    const texte = vu.conflit ? resoudreBaseVide(vu.texte, taille) : vu.texte
     return texte === null ? { conflit: `fusion de ${p} en conflit`, proposition: vu.texte } : { octets: Buffer.from(texte, 'utf8') }
   } finally {
     rmSync(dossier, { recursive: true, force: true })
@@ -418,13 +467,13 @@ async function ouvrirTransaction(ctx, journal) {
   for (const ordre of [() => tx.start(), () => tx.update('HEAD', journal.vers, journal.de), () => tx.prepare()]) {
     const vu = await ordre()
     if (!vu.ok) {
-      await tx.abort()
+      await abandonner(ctx)
       return { refus: { etat: 'operation-en-cours', operations: ['refs'], raison: vu.raison } }
     }
   }
   const branche = brancheDe(ctx.depot)
   if (branche !== TRONC.nom) {
-    await tx.abort()
+    await abandonner(ctx)
     return { refus: { etat: 'branche-etrangere', branche } }
   }
   await ctx.etape('transaction')
@@ -442,14 +491,14 @@ function defaire(ctx, ecrits) {
 /**
  * Les étapes 4 à 10 depuis le `journal` ; `aU` = les chemins de D\P déjà à U (reprise).
  */
-async function avancer(ctx, journal, aU) {
+async function avancer(ctx, journal, aU, { reprise = false } = {}) {
   const ouverte = await ouvrirTransaction(ctx, journal)
-  if ('refus' in ouverte) return finir(ctx, journal, ouverte.refus)
+  if ('refus' in ouverte) return reprise ? refusEnReprise(ctx, journal, ouverte.refus) : finir(ctx, journal, ouverte.refus)
   const { tx } = ouverte
   const ecrits = []
   const echouer = async (resultat) => {
     defaire(ctx, ecrits)
-    await tx.abort()
+    await abandonner(ctx)
     return finir(ctx, journal, resultat)
   }
   for (const c of journal.chemins) {
@@ -480,7 +529,7 @@ async function avancer(ctx, journal, aU) {
   const indexees = journal.chemins.filter((c) => c.sPrime && c.u && c.sPrime.sha !== c.u.sha).map((c) => ({ chemin: c.chemin, ...c.sPrime }))
   if (indexees.length) {
     const vu = poserDansIndex(ctx.depot, { index: candidat, entrees: indexees })
-    if (!reussi(vu)) return echouer({ etat: 'ecriture-concurrente', raison: refusDeGit(vu) })
+    if (!reussi(vu)) return interrompre(ctx, journal, refusDeGit(vu))
   }
   const avecCandidat = { ...journal, etape: 'candidat', empreinteCandidat: empreinteDe(candidat) }
   ecrireJournal(ctx, avecCandidat)
@@ -493,7 +542,7 @@ async function avancer(ctx, journal, aU) {
 async function conclure(ctx, journal, tx) {
   const vu = await tx.commit()
   ctx.tx = null
-  if (!vu.ok) return { etat: 'reprise-impossible', raison: vu.raison }
+  if (!vu.ok) return interrompre(ctx, journal, vu.raison)
   const orig = poserRef(ctx.depot, 'ORIG_HEAD', journal.de)
   if (!reussi(orig)) throw new GitIndisponible(orig.disponible ? refusDeGit(orig) : orig)
   ecrireJournal(ctx, { ...journal, etape: 'avance' })
@@ -503,12 +552,37 @@ async function conclure(ctx, journal, tx) {
 
 /** Les étapes 9 et 10 : `post-merge` lancé, son code LU ; puis libération. */
 async function consommer(ctx, journal) {
+  const commun = { de: journal.de, vers: journal.vers, configurationClientChangee: journal.configuration }
+  const ignore = hookIgnore(ctx, 'post-merge')
+  if (ignore) {
+    await ctx.etape('consommateurs')
+    return finir(ctx, journal, { etat: 'avance-non-prete', ...commun, code: null, hookIgnore: ignore, sortie: `hook présent mais non exécutable, ignoré par git : ${ignore}` })
+  }
   const vu = lancerHook(ctx.depot, 'post-merge', ['0'])
   const diagnostic = vu.disponible ? (vu.absent ? vu.diagnostic : vu.valeur) : vu.diagnostic
   const code = diagnostic?.status ?? null
   await ctx.etape('consommateurs')
-  const commun = { de: journal.de, vers: journal.vers, configurationClientChangee: journal.configuration }
   return finir(ctx, journal, code === 0 ? { etat: 'avance', ...commun } : { etat: 'avance-non-prete', ...commun, code, sortie: refusDeGit(vu) })
+}
+
+/**
+ * Le chemin du hook `nom` (`rev-parse --git-path hooks/<nom>`, `core.hooksPath` compris) PRÉSENT mais que
+ * git ignore sans échouer, `null` sinon : hors win32, `access(X_OK)` refusé (`hook.c`, `find_hook`).
+ * Sous win32, git lance le fichier sans tester son mode, et un hook sans `#!` sort en 1 (mesuré le
+ * 2026-10-07, git 2.51.0.windows.2).
+ */
+function hookIgnore(ctx, nom) {
+  if (process.platform === 'win32') return null
+  const relatif = cheminGit(ctx.depot, `hooks/${nom}`)
+  if (!relatif) throw new GitIndisponible(`chemin du hook ${nom} non rendu`)
+  const chemin = resolve(ctx.racine, relatif)
+  if (!existsSync(chemin)) return null
+  try {
+    accessSync(chemin, fsConstants.X_OK)
+    return null
+  } catch {
+    return chemin
+  }
 }
 
 /** Les verrous de refs qu'une transaction morte laisserait (`HEAD.lock`, `<branche>.lock`). */
@@ -520,13 +594,17 @@ const verrousDeRefs = (ctx) => [join(ctx.commun, 'HEAD.lock'), join(ctx.commun, 
  */
 async function reprendre(ctx, journal) {
   const { depot } = ctx
-  if (!(await prendreVerrouIndex(ctx, journal.jeton, journal.jeton))) {
+  const prise = await prendreVerrouIndex(ctx, journal.jeton, journal.jeton)
+  if (prise === 'tenu') {
     return { etat: 'operation-en-cours', operations: ['index.lock'], raison: `Unable to create '${ctx.verrouIndex}': File exists.` }
   }
-  const impossible = (raison, details = {}) => ({ etat: 'reprise-impossible', raison, journal: join(dossierDe(ctx, journal.vers), 'journal.json'), ...details })
-  const debut = ctx.horloge()
-  while (verrousDeRefs(ctx).some(existsSync) && ctx.horloge() - debut < ctx.attente.echeanceMs) await dormir(ctx.attente.pasMs)
-  const perimes = verrousDeRefs(ctx).filter(existsSync)
+  const impossible = (raison, { verrous = [], ...details } = {}) => {
+    if (prise === 'cree') libererVerrouIndex(ctx, journal.jeton)
+    return { etat: 'reprise-impossible', raison, journal: cheminDuJournal(ctx, journal.vers), verrous: prise === 'repris' ? [...verrous, ctx.verrouIndex] : verrous, ...details }
+  }
+  const perimes = await sousEcheanceAsync({
+    attente: attenteRestante(ctx), horloge: ctx.horloge, essai: () => verrousDeRefs(ctx).filter(existsSync), abouti: (tenus) => !tenus.length,
+  })
   if (perimes.length) return impossible('verrous de refs périmés', { verrous: perimes })
   if (brancheDe(depot) !== TRONC.nom) return impossible('HEAD hors de main')
   const tete = shaDe(depot, 'HEAD')
@@ -555,11 +633,15 @@ async function reprendre(ctx, journal) {
     else hors.push(h.chemin)
   }
   if (hors.length) return impossible('fichiers ni B ni U', { chemins: hors })
-  if (!candidat) return avancer(ctx, journal, aU)
+  await ctx.etape('reprise')
+  if (!candidat) return avancer(ctx, journal, aU, { reprise: true })
   const ouverte = await ouvrirTransaction(ctx, journal)
-  if ('refus' in ouverte) return finir(ctx, journal, ouverte.refus)
+  if ('refus' in ouverte) return refusEnReprise(ctx, journal, ouverte.refus)
   return conclure(ctx, journal, ouverte.tx)
 }
+
+/** La transaction d'une REPRISE refusée : l'état laissé par le mort reste tel quel, `interrompu` le nomme. */
+const refusEnReprise = (ctx, journal, refus) => interrompre(ctx, journal, `transaction de refs refusée en reprise : ${refus.etat}`, { refus })
 
 /** La CLI : `--json` imprime l'état en JSON. Code 0 pour `avance` et `a-jour`, 1 pour un autre état, 2 si git manque. */
 async function principal(argv) {

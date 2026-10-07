@@ -389,8 +389,16 @@ test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son
   ])
   const dossier = mkdtempSync(join(tmpdir(), 'gates-verrou-suite-'))
   const chemin = join(dossier, 'suite.lock')
-  // Un TENANT vivant ~1,5 s : un processus réel, dont le verrou se reprend à sa mort.
-  const tenant = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 1500)'], { stdio: 'ignore' })
+  const arret = join(dossier, 'arret-tenant')
+  // Un TENANT réel, vivant jusqu'au fichier `arret` (borne de secours 60 s) ; son verrou se reprend à sa mort.
+  const tenant = spawn(process.execPath, ['-e', `
+    const { existsSync } = require('node:fs')
+    const fin = Date.now() + 60000
+    const t = setInterval(() => { if (existsSync(${JSON.stringify(arret)}) || Date.now() > fin) clearInterval(t) }, 20)
+  `], { stdio: 'ignore' })
+  // `arret` posé à la PAS_TENUS-ième annonce du tenant : l'attente compte ces pas, la gate n'en compte aucun.
+  const PAS_TENUS = 20
+  let annonces = 0
   try {
     writeFileSync(chemin, JSON.stringify({ pid: tenant.pid, commande: 'tenant du banc', cwd: dossier }))
     const lignes = []
@@ -398,7 +406,10 @@ test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son
       racine,
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
-      journal: (t) => lignes.push(t),
+      journal: (t) => {
+        lignes.push(t)
+        if (t.includes(`attente du verrou de suite :`) && t.includes(`PID ${tenant.pid}`) && ++annonces === PAS_TENUS) writeFileSync(arret, '')
+      },
       ecritLu: tableTotale(['suite'], () => ({ ecrit: [], lit: ['src/'] })),
       verrouSuite: { chemin, libelle: 'suite du banc', attente: { pasMs: 100, echeanceMs: 20_000 } },
     })
@@ -407,11 +418,13 @@ test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son
     assert.match(sortie, new RegExp(`\\[gates\\] suite — attente du verrou de suite : .*PID ${tenant.pid}`), 'l’attente annonce le tenant')
     const attente = Number(/\[gates\] suite — ([\d.]+) s d'attente du verrou de suite \(hors chronomètre\)/.exec(sortie)?.[1])
     const duree = Number(/\[gates\] suite — vert \(exit 0\) en ([\d.]+) s/.exec(sortie)?.[1])
-    assert.ok(attente >= 1, `attente mesurée : ${attente} s`)
+    assert.ok(annonces >= PAS_TENUS, `annonces du tenant : ${annonces}`)
+    assert.ok(attente > 0, `attente mesurée : ${attente} s`)
     assert.ok(duree < attente, `la durée de la gate (${duree} s) ne compte pas l’attente (${attente} s)`)
     assert.match(readFileSync(/\[gates\] suite — vert \(exit 0\) en [\d.]+ s · (.+)\n/.exec(sortie)?.[1] ?? '', 'utf8'), /opt-out=0/, 'l’enfant part sous WFRP_SUITE_LOCK=0')
     assert.equal(existsSync(chemin), false, 'le verrou est rendu après la gate')
   } finally {
+    writeFileSync(arret, '')
     tenant.kill()
     rmSync(dossier, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true })

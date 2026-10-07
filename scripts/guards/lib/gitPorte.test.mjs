@@ -2322,9 +2322,10 @@ test('#2187 fusionDiff3 : base vide visible, binaire rendu au lieu de levé', (t
   const d = forge(dossier)
   const f = (nom, contenu) => { writeFileSync(join(dossier, nom), contenu); return join(dossier, nom) }
   const labels = { ours: 'local', base: 'base', theirs: 'amont' }
-  const vu = porte.fusionDiff3(d, { ours: f('l', 'titre\nligne a\nligne b\najout local\n'), base: f('b', 'titre\nligne a\n'), theirs: f('a', 'titre\nligne a\nligne b\n') }, labels)
-  assert.deepEqual(vu, { texte: 'titre\nligne a\n<<<<<<< local\nligne b\najout local\n||||||| base\n=======\nligne b\n>>>>>>> amont\n', conflit: true })
-  assert.deepEqual(porte.fusionDiff3(d, { ours: f('x', Buffer.from([0, 1])), base: f('y', Buffer.from([0, 2])), theirs: f('z', Buffer.from([0, 3])) }, labels), { binaire: true })
+  const fichiers = { ours: f('l', 'titre\nligne a\nligne b\najout local\n'), base: f('b', 'titre\nligne a\n'), theirs: f('a', 'titre\nligne a\nligne b\n') }
+  assert.deepEqual(porte.fusionDiff3(d, fichiers, labels, 7), { texte: 'titre\nligne a\n<<<<<<< local\nligne b\najout local\n||||||| base\n=======\nligne b\n>>>>>>> amont\n', conflit: true })
+  assert.deepEqual(porte.fusionDiff3(d, fichiers, labels, 8), { texte: 'titre\nligne a\n<<<<<<<< local\nligne b\najout local\n|||||||| base\n========\nligne b\n>>>>>>>> amont\n', conflit: true })
+  assert.deepEqual(porte.fusionDiff3(d, { ours: f('x', Buffer.from([0, 1])), base: f('y', Buffer.from([0, 2])), theirs: f('z', Buffer.from([0, 3])) }, labels, 7), { binaire: true })
 })
 
 test('#2187 poserDansIndex, rafraichirIndex, avancerArbre : sous un index de transport, .git/index intact', (t) => {

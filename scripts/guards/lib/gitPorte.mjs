@@ -1717,19 +1717,20 @@ const FUSION_BINAIRE = /Cannot merge binary files/
 
 /**
  * La FUSION À TROIS au style `diff3` (`merge-file -p --diff3`, `git help merge-file`) : le texte
- * fusionné, chaque bloc en conflit portant sa base entre `|||||||` et `=======`, et `conflit` ; un
- * fichier BINAIRE (`FUSION_BINAIRE`) rend `{ binaire: true }` au lieu de lever.
+ * fusionné, chaque bloc en conflit portant sa base entre ses marqueurs de `taille` caractères
+ * (`--marker-size`), et `conflit` ; un fichier BINAIRE (`FUSION_BINAIRE`) rend `{ binaire: true }` au
+ * lieu de lever.
  * @param {Depot} depot @param {{ ours: string, base: string, theirs: string }} fichiers
- * @param {{ ours: string, base: string, theirs: string }} labels
+ * @param {{ ours: string, base: string, theirs: string }} labels @param {number} taille
  * @returns {{ texte: string, conflit: boolean } | { binaire: true }}
  * @throws {GitIndisponible} git indisponible ; code de sortie d'erreur hors binaire.
  */
-export function fusionDiff3(depot, fichiers, labels) {
+export function fusionDiff3(depot, fichiers, labels, taille) {
   const binaire = (union) => {
     const diagnostic = union.disponible ? (union.absent ? union.diagnostic : union.valeur) : union.diagnostic
     return (diagnostic?.status ?? 0) >= 255 && FUSION_BINAIRE.test(diagnostic?.stderr ?? '')
   }
-  const vu = mergeFile(depot, fichiers, labels, ['--diff3'], binaire)
+  const vu = mergeFile(depot, fichiers, labels, ['--diff3', `--marker-size=${taille}`], binaire)
   if (binaire(vu)) return { binaire: true }
   return { texte: vu.valeur.stdout, conflit: vu.valeur.status > 0 }
 }

@@ -47,9 +47,23 @@ export function prendreVerrou({ dormir = attendreSync, ...prise }) {
   return derouler(etapesDePrise(prise), dormir)
 }
 
+/** Le sommeil NON bloquant : une promesse résolue après `ms`. */
+const dormirAsync = (ms) => new Promise((fini) => setTimeout(fini, ms))
+
 /** `prendreVerrou`, au sommeil NON bloquant (`dormir` rend une promesse). */
-export function prendreVerrouAsync({ dormir = (ms) => new Promise((fini) => setTimeout(fini, ms)), ...prise }) {
+export function prendreVerrouAsync({ dormir = dormirAsync, ...prise }) {
   return deroulerAsync(etapesDePrise(prise), dormir)
+}
+
+/**
+ * Rejoue `essai` jusqu'à `abouti` ou l'échéance de `attente` (`sousEcheance`), au sommeil NON bloquant :
+ * REND le dernier essai. `annoncer(tenant)` de `attente` suit chaque refus, `tenant` lu sur l'essai.
+ * @template T
+ * @param {{ attente: Attente, horloge?: () => number, essai: () => T, abouti: (vu: T) => boolean, dormir?: (ms: number) => Promise<void> }} p
+ * @returns {Promise<T>}
+ */
+export function sousEcheanceAsync({ attente, horloge = Date.now, essai, abouti, dormir = dormirAsync }) {
+  return deroulerAsync(sousEcheance({ attente, horloge, essai, abouti }), dormir)
 }
 
 /**
