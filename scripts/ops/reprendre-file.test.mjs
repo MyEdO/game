@@ -12,7 +12,8 @@ import { corpsDePr } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { ENTREE_2495 } from './fixtures/github-2495-file.mjs'
 
-const capture = (nom) => JSON.parse(readFileSync(new URL(`./fixtures/github-2495-${nom}.json`, import.meta.url), 'utf8'))
+const dossier = fileURLToPath(new URL('.', import.meta.url))
+const capture = (nom) => JSON.parse(readFileSync(join(dossier, `fixtures/github-2495-${nom}.json`), 'utf8'))
 const GROUPE_2495 = capture('course')
 
 const SHA = 'a'.repeat(40)

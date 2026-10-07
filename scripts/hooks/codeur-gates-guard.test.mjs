@@ -81,6 +81,8 @@ const PASSANTES = [
   'npx eslint scripts/ops/board.mjs',
   'npm run ops:board -- --liste',
   'npm test -- src/a.test.ts',
+  'npm run test:perimetre',
+  'npm run test:perimetre -- --liste',
   // Le sous-projet `server/` a son propre tsconfig et ses propres scripts : les gates de la RACINE
   // n'y répondent pas, et son typecheck est le périmètre du codeur dépêché dessus.
   'cd server && npm run typecheck',
@@ -118,7 +120,9 @@ test('la raison NOMME la commande refusée et le geste de remplacement', () => {
   const { reason } = pourCodeur('npm run lint')
   assert.match(reason, /« npm run lint »/)
   assert.match(reason, /pousser la branche/)
+  assert.match(reason, /Avant de rendre ou de committer : `npm run test:perimetre`/)
   assert.match(reason, /typecheck:fast/)
+  assert.doesNotMatch(reason, /\b(?:te|tu|joue)\b/, 'la raison vaut pour tout appelant, jamais adressée au seul codeur')
 })
 
 test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)', () => {

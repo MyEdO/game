@@ -54,6 +54,7 @@ import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { etatFileDePr, fusionDePr } from '../guards/lib/fusionPr.mjs'
 import { BORNE_EJECTIONS, ETAPES, prDeRest } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
@@ -307,7 +308,7 @@ export function nomDeRotation(chemin, date) {
 }
 
 /** Motif des logs de ROTATION d'un log courant — il ne matche NI `<nom>.log`, NI le `<nom>.json.<pid>.tmp`
- *  de `sauverJournal`. PURE. @param {string} chemin log courant @returns {RegExp} sur le NOM de fichier */
+ *  de `ecrireJsonAtomique`. PURE. @param {string} chemin log courant @returns {RegExp} sur le NOM de fichier */
 export function motifDeRotation(chemin) {
   const nom = String(chemin).split(/[\\/]/).pop().replace(/\.log$/, '')
   return new RegExp(`^${nom.replace(/[.+^${}()|[\]\\*?]/g, '\\$&')}\\.\\d{8}-\\d{6}\\.log$`)
@@ -582,14 +583,6 @@ export const cheminsDeJournal = (racine, branche) => {
   return { dossier, json: join(dossier, `${nom}.json`), log: join(dossier, `${nom}.log`) }
 }
 
-/** Écriture ATOMIQUE d'une valeur JSON (temporaire propre au processus, puis renommage) : le journal du
- *  train, et le cache de la vigie (`scripts/ops/vigie.mjs`), que plusieurs sessions partagent. */
-export function sauverJournal(chemin, journal) {
-  mkdirSync(join(chemin, '..'), { recursive: true })
-  const tmp = `${chemin}.${process.pid}.tmp`
-  writeFileSync(tmp, `${JSON.stringify(journal, null, 2)}\n`)
-  renameSync(tmp, chemin)
-}
 
 /** Journal lu sur disque, ou neuf. */
 export function lireJournal(chemin, branche) {
@@ -996,7 +989,7 @@ function main() {
   const { journal, repris, vertes } = journalInitial({ reprendre: options.reprendre, lu: surDisque, branche })
   const lancement = lancementDe(process.env)
   entameDuRun(journal, { run: idDeRun({ pid: process.pid, lancement }), pid: process.pid, fileTimeoutMin: options.fileTimeoutMin })
-  sauverJournal(chemins.json, journal)
+  ecrireJsonAtomique(chemins.json, journal)
   journaliser(`[publier] ${new Date().toISOString()} — branche ${branche}${options.reprendre ? ' (--reprendre)' : ''}\n`)
   journaliser(`[publier] ${repris ? `journal repris (${vertes} étape(s) verte(s))` : 'journal neuf'}\n`)
   let verdict
@@ -1005,13 +998,13 @@ function main() {
       const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), ctx.tete)
       journaliser(`[publier] reprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`)
     }
-    verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => sauverJournal(chemins.json, j), journaliser })
+    verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => ecrireJsonAtomique(chemins.json, j), journaliser })
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : `ARRÊT INATTENDU : ${e?.stack ?? e}` }
     if (e instanceof GitIndisponible) journaliser(`${verdict.raison}\n`)
   }
   journal.verdict = verdict
-  sauverJournal(chemins.json, journal)
+  ecrireJsonAtomique(chemins.json, journal)
   journaliser(`${ligneDePublication(verdict, journal.tete)}\n`)
   closeSync(fdLog)
   return codeDeVerdict(verdict)

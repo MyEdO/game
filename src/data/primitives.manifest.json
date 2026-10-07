@@ -1606,11 +1606,47 @@
   {
     "id": "grapheDImports",
     "type": "primitives.manifest",
-    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports",
+    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports/globsDe/grapheInverse",
     "fichier": "scripts/guards/lib/importGraph.mjs",
-    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports, lecture après effacement des types",
+    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports contre le disque ou un ensemble de fichiers, motifs d'import.meta.glob, graphe inverse, lecture après effacement des types",
     "perimetre": "toute lecture de noms, de chargements ou de spécificateurs de module, ou marche d'import dans les gardes et générateurs",
     "verrou": "importGraph.test.mjs"
+  },
+  {
+    "id": "racinesBalayees",
+    "type": "primitives.manifest",
+    "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/APPEL_DE_LECTURE/requeteDe/partiesDeRequete",
+    "fichier": "scripts/guards/lib/racinesBalayees.mjs",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; requêtes tracées d'une évaluation, clé de son mémo",
+    "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
+    "verrou": "racinesBalayees.test.mjs"
+  },
+  {
+    "id": "ecritureJsonAtomique",
+    "type": "primitives.manifest",
+    "label": "ecrireJsonAtomique",
+    "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
+    "concept": "écriture d'une valeur JSON en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
+    "perimetre": "journal du train (`publier.mjs`), cache de la vigie (`vigie.mjs`), mesures du périmètre de tests (`perimetre.mjs`)",
+    "verrou": "ecritureJsonAtomique.test.mjs"
+  },
+  {
+    "id": "capaciteDuLanceur",
+    "type": "primitives.manifest",
+    "label": "capaciteDuLanceur",
+    "fichier": "scripts/test/partition.mjs",
+    "concept": "capacité servie par le lanceur de tests sous un environnement : cœurs et mémoire disponible",
+    "perimetre": "workers de `run.mjs` et mur estimé de `perimetre.mjs`",
+    "verrou": "—"
+  },
+  {
+    "id": "ancetresDe",
+    "type": "primitives.manifest",
+    "label": "ancetresDe/LECTURES_DES_DEPENDANCES",
+    "fichier": "scripts/git-hooks/docs-rebuild.mjs",
+    "concept": "dossiers qui contiennent un chemin, du parent à la racine du dépôt ; manifestes de dépendances dont les lectures ne sont pas mesurées",
+    "perimetre": "sélection des docs dérivés par lectures (`docs-rebuild.mjs`) et périmètre de tests (`perimetre.mjs`)",
+    "verrou": "docs-rebuild.test.mjs"
   },
   {
     "id": "constructionsReservees",

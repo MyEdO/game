@@ -125,12 +125,14 @@ export const ECRIT_LU = {
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
       'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
+      '.lint-',
     ],
     raison:
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
       'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'le balayage des lectures PDF peut lire cette configuration .lint- pendant son existence ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
@@ -226,7 +228,7 @@ export const ECRIT_LU = {
       'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
       'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `synchroniser.mjs` (#2187 : il avance ' +
       'l’arbre PRINCIPAL — fichiers W′, `.git/index`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/` — ' +
-      'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; `publier.mjs` encore, par `sauverJournal`, ' +
+      'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; `ecritureJsonAtomique.mjs` (scripts/guards/lib), atteint par `publier.mjs`, ' +
       'pour `vigie.mjs` (#2280 : le cache des verdicts `verte` sous `<arbre principal>/.git/vigie/`, répertoire git ' +
       'COMMUN, hors de l’arbre ; ses bancs `vigie.test.mjs` et `ci.test.mjs` n’écrivent que sous `mkdtempSync`) ; ' +
       '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
@@ -262,9 +264,13 @@ export const ECRIT_LU = {
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
       'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
       'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) ; ' +
-      '`scripts/test/corpus.test.mjs` forge ses fixtures avec mkdtempSync(tmpdir()) et les nettoie par t.after ; ' +
+      '`scripts/test/perimetre.test.mjs` forge ses dépôts avec mkdtempSync(tmpdir()), mémos compris, et les nettoie par t.after ; ' +
+      '+1 écrivain le 2026-10-07 (#2400) : `lintStage.mjs`, atteint par `perimetre.mjs`, dont le banc injecte le lanceur de lint ; ' +
       '+1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` atteint `ecrireOuVerifier` par le générateur, ' +
-      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire)',
+      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire) ; +1 le 2026-10-07 (#2400, fusion de #2456) : ' +
+      '`fraicheur-docs.mjs`, atteint par `perimetre.mjs` → `docs-rebuild.mjs` → `build-all.mjs`, n’écrit sa preuve ' +
+      '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
+      'que les bancs de la gate n’appellent pas',
   },
   'test:docs': {
     ecrit: [],

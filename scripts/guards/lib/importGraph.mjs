@@ -7,6 +7,7 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { analyserTexte, analyserCorpus, typescript } from './dialecte.mjs';
+import { correspondGlob } from './lister.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
@@ -122,6 +123,30 @@ export const specificateursDe = (fichier, source, diagnostics) => sitesDeModule(
   .filter(({ acquisition, spec }) => acquisition && spec !== null)
   .map(({ spec, nature, ligne, debut, fin, texte }) => ({ spec, nature, ligne, debut, fin, texte }));
 
+/**
+ * Les motifs LITTÉRAUX des appels `import.meta.glob(…)` d'un arbre (Vite, « Glob Import ») : une chaîne
+ * ou un tableau de chaînes, `!` d'exclusion compris. Un argument calculé n'est pas un motif : il ne rend
+ * rien.
+ * @param {import('typescript/unstable/ast').SourceFile} arbre
+ * @returns {{ motifs: string[], ligne: number }[]}
+ */
+export function globsDe(arbre) {
+  const ts = typescript();
+  const vus = [];
+  const visiter = (n) => {
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'glob' &&
+      ts.isMetaProperty(n.expression.expression) && n.expression.expression.keywordToken === ts.SyntaxKind.ImportKeyword) {
+      const [premier] = n.arguments;
+      const elements = premier && ts.isArrayLiteralExpression(premier) ? [...premier.elements] : premier ? [premier] : [];
+      if (elements.length && elements.every((e) => ts.isStringLiteralLikeNode(e)))
+        vus.push({ motifs: elements.map((e) => e.text), ligne: arbre.getLineAndCharacterOfPosition(n.getStart(arbre)).line + 1 });
+    }
+    n.forEachChild(visiter);
+  };
+  visiter(arbre);
+  return vus;
+}
+
 /** Le `tsconfig.json` d'un dépôt, à sa racine. */
 export const CHEMIN_TSCONFIG = 'tsconfig.json';
 
@@ -226,6 +251,8 @@ const NON_LIEES = new Set(['dynamique', 'require']);
 /** Le régime sous lequel chaque cache de marche a été rempli : `typesEffaces` et la racine dont les
  *  alias résolvent. Un cache n'est valable que sous son régime. */
 const regimeDesCaches = new WeakMap();
+/** L'ensemble de fichiers (`arbre`) contre lequel chaque cache de marche a été rempli. */
+const arbreDesCaches = new WeakMap();
 
 /**
  * MARCHE du graphe d'imports RELATIFS depuis un jeu de modules racines : résolution + parcours
@@ -244,17 +271,27 @@ const regimeDesCaches = new WeakMap();
  * `dynamiques: false` marche la clôture STATIQUE, celle qu'ESM charge et lie avant d'évaluer quoi
  * que ce soit (ECMA-262, Cyclic Module Records : `Link` avant `Evaluate`) : ni `import('…')` ni
  * `require` n'y entrent.
+ * `arbre` dit l'ENSEMBLE de fichiers contre lequel la marche résout et lit, le disque de `racine` par
+ * défaut : `existe` (chemin absolu POSIX → membre ?), `lire` (chemins absolus → texte, `null` = illisible)
+ * et `fichiers` (chemins absolus POSIX de l'ensemble). Avec `fichiers`, un motif d'`import.meta.glob`
+ * (`globsDe`) fait un arc `glob` vers chaque membre qu'il vise (`correspondGlob`) ; sans, il n'en fait aucun.
+ * `specificateurs` mémoïse les spécificateurs NON RÉSOLUS d'un texte brut, sous le régime de la marche (`lire(abs, texte)` → sites
+ * ou `undefined`, `ecrire(abs, texte, sites)`) : la résolution, elle, dépend de l'ensemble et se refait.
  * @param {string[]} roots
- * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean }} [options]
+ * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean,
+ *   arbre?: { existe: (abs: string) => boolean, lire: (abss: string[]) => Map<string, string | null>, fichiers?: readonly string[] },
+ *   specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à `racine`
  */
-export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true } = {}) {
+export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs } = {}) {
   const base = resolve(racine);
   const alias = aliasDuDepot(base);
   const regime = `${typesEffaces ? 'typesEffaces' : 'typage'}, racine ${base}`;
   const deja = regimeDesCaches.get(cache);
   if (deja === undefined) regimeDesCaches.set(cache, regime);
   else if (deja !== regime) throw new Error(`clotureDImports : cache rempli sous le régime « ${deja} », réutilisé sous « ${regime} »`);
+  if (!arbreDesCaches.has(cache)) arbreDesCaches.set(cache, arbre);
+  else if (arbreDesCaches.get(cache) !== arbre) throw new Error('clotureDImports : cache rempli contre un autre ensemble de fichiers (`arbre`)');
   const relatif = (abs, importeur, spec) => {
     const rel = relative(base, abs);
     if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel))
@@ -263,6 +300,10 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
         : `clotureDImports : la racine de marche ${abs} est hors de la racine ${base}`);
     return rel.split(sep).join('/');
   };
+  const existeResolu = arbre === ARBRE_DU_DISQUE ? fichierExiste : arbre.existe;
+  const resoudre = (abs, sites) => sites.flatMap((site) => site.nature === 'glob'
+    ? arcsDeGlob(abs, site, arbre.fichiers, base)
+    : [resolveImport(abs, site.spec, existeResolu, alias)].filter(Boolean).map((cible) => ({ ...site, cible })));
   const seen = new Set();
   let frontiere = roots.map(r => ({ abs: resolve(base, r).split(sep).join('/') }));
   while (frontiere.length) {
@@ -273,16 +314,25 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
       relatif(abs, importeur, spec);
       if (seen.has(relatif(abs)) || cache.has(abs) || ajoutes.has(abs)) continue;
       ajoutes.add(abs);
-      if (!existsSync(abs)) { cache.set(abs, null); continue; }
+      if (!arbre.existe(abs)) { cache.set(abs, null); continue; }
       if (!estModule(abs)) { cache.set(abs, []); continue; }
-      let text;
-      try { text = readFileSync(abs, 'utf8'); }
-      catch { cache.set(abs, []); continue; }
-      if (typesEffaces) text = sourceALExecution(abs, text, { racine: base });
-      aLire.push({ rel: abs, text });
+      aLire.push(abs);
     }
-    for (const { fichier, sourceFile, diagnostics } of analyserCorpus(aLire))
-      cache.set(fichier.rel, arcsDe(fichier.rel, sourceFile, { alias, diagnostics }));
+    const textes = aLire.length ? arbre.lire(aLire) : new Map();
+    const aAnalyser = [];
+    for (const abs of aLire) {
+      const brut = textes.get(abs) ?? null;
+      if (brut === null) { cache.set(abs, []); continue; }
+      const memoises = specificateurs?.lire(abs, brut);
+      if (memoises) { cache.set(abs, resoudre(abs, memoises)); continue; }
+      aAnalyser.push({ rel: abs, text: typesEffaces ? sourceALExecution(abs, brut, { racine: base }) : brut, brut });
+    }
+    for (const { fichier, sourceFile, diagnostics } of analyserCorpus(aAnalyser)) {
+      const sites = [...specificateursDe(fichier.rel, sourceFile, diagnostics),
+        ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))];
+      specificateurs?.ecrire(fichier.rel, fichier.brut, sites);
+      cache.set(fichier.rel, resoudre(fichier.rel, sites));
+    }
     for (const { abs, importeur, spec } of frontiere) {
       const rel = relatif(abs, importeur, spec);
       if (seen.has(rel)) continue;
@@ -296,6 +346,45 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
     frontiere = suivants;
   }
   return seen;
+}
+
+/** @typedef {Omit<Arc, 'cible' | 'nature'> & { nature: Arc['nature'] | 'glob', motifs?: string[] }} SiteNonResolu */
+
+/** Le DISQUE comme ensemble de fichiers : le défaut de `clotureDImports`. */
+const ARBRE_DU_DISQUE = Object.freeze({
+  existe: existsSync,
+  lire: (abss) => new Map(abss.map((abs) => {
+    try { return [abs, readFileSync(abs, 'utf8')]; } catch { return [abs, null]; }
+  })),
+});
+
+/** Les arcs `glob` d'un module `abs` : chaque membre de `fichiers` que visent ses `motifs` (relatifs au
+ *  module, ou à `base` sous `/`), moins ceux d'un motif `!`. Sans `fichiers`, aucun. */
+function arcsDeGlob(abs, site, fichiers, base) {
+  if (!fichiers) return [];
+  const posix = base.split(sep).join('/');
+  const absolu = (motif) => motif.startsWith('/') ? `${posix}${motif}` : resolve(dirname(abs), motif).split(sep).join('/');
+  const inclus = site.motifs.filter((m) => !m.startsWith('!')).map(absolu);
+  const exclus = site.motifs.filter((m) => m.startsWith('!')).map((m) => absolu(m.slice(1)));
+  return fichiers
+    .filter((f) => f !== abs && inclus.some((m) => correspondGlob(f, m)) && !exclus.some((m) => correspondGlob(f, m)))
+    .map((cible) => ({ ...site, cible }));
+}
+
+/**
+ * Le graphe INVERSE d'un cache de marche (`clotureDImports`, option `cache`) : chaque cible ↦ les arcs qui
+ * l'atteignent, `importeur` compris. Chemins absolus POSIX, comme le cache.
+ * @param {Map<string, Arc[] | null>} cache
+ * @returns {Map<string, (Arc & { importeur: string })[]>}
+ */
+export function grapheInverse(cache) {
+  const inverse = new Map();
+  for (const [importeur, arcs] of cache)
+    for (const arc of arcs ?? []) {
+      if (!inverse.has(arc.cible)) inverse.set(arc.cible, []);
+      inverse.get(arc.cible).push({ ...arc, importeur });
+    }
+  return inverse;
 }
 
 /**

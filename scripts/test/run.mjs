@@ -21,8 +21,7 @@ import {
   argumentsEnfant,
   bilanDiagnostic,
   bornesWorkers,
-  capacite,
-  coeurs,
+  capaciteDuLanceur,
   codeAgrege,
   codeEnfant,
   compterSentinelles,
@@ -38,7 +37,6 @@ import {
   resumeLancement,
   SENTINELLES,
   cotesRequis,
-  memoireDisponibleMo,
   separerArguments,
   cheminsGlobSuspects,
   TAS_UTILISE,
@@ -121,10 +119,7 @@ if (verrou.avertissement) console.error(verrou.avertissement)
 const ENV = envEnfant(process.env)
 // Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
 // cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
-const CAPACITE = capacite(
-  coeurs(process.env, () => os.availableParallelism()),
-  memoireDisponibleMo(process.env),
-)
+const CAPACITE = capaciteDuLanceur(process.env)
 const CPUS = CAPACITE.servis
 const WORKERS = repartitionWorkers(CPUS)
 // Mode RÉELLEMENT servi : le partage se décide au-delà du seuil, mais se retire encore après coup

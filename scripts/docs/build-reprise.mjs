@@ -29,15 +29,20 @@ import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { DELAI_RELANCE_MS } from '../ops/reprendre-file.mjs'
 import { DELAI_FILE_MS } from '../guards/lib/fusionPr.mjs'
 
+const OUTIL = 'build-reprise'
+
+function abandon(msg) {
+  console.error(`${OUTIL} — ${msg}`)
+  process.exit(1)
+}
+
+function chemin(p) {
+  if (!existsSync(p)) abandon(`chemin « ${p} » introuvable (déplacé/supprimé ?)`)
+  return p
+}
+
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
-  const OUTIL = 'build-reprise'
-
-  function abandon(msg) {
-    console.error(`${OUTIL} — ${msg}`)
-    process.exit(1)
-  }
-
   // ── Sources FACTUELLES ───────────────────────────────────────────────────────────────────────────
 
   const PKG = JSON.parse(readFileSync('package.json', 'utf8'))
@@ -47,12 +52,6 @@ function rendu() {
     const v = PKG.scripts?.[nom]
     if (!v) abandon(`script npm « ${nom} » absent de package.json (renommé/supprimé ?)`)
     return v
-  }
-
-  /** Chemin qui doit exister sur disque (fail-fast). */
-  function chemin(p) {
-    if (!existsSync(p)) abandon(`chemin « ${p} » introuvable (déplacé/supprimé ?)`)
-    return p
   }
 
   // Clés `git config` posées par `postinstall` — dédupliquées sur leur préfixe `<section>.<nom>`.
@@ -261,8 +260,8 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` REFUSE au nom de l'intégrité (arbre imbriqué, lock npm amputé, fins de ligne) et
-    AVERTIT sur la forme, que la CI refuse ; les tests liés au diff se jouent à la main
-    (\`npm run test:lies\`). \`post-checkout\`,
+    AVERTIT sur la forme, que la CI refuse ; les tests du périmètre se jouent à la main
+    (\`npm run test:perimetre\`). \`post-checkout\`,
     \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
     commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
     un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
