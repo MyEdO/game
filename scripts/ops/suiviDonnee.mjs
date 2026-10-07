@@ -458,6 +458,14 @@ const candidatsDits = (suivi) => {
   return `candidats : ${tous.slice(0, CANDIDATS_NOMMES).join(' · ')}${reste > 0 ? ` (+${reste})` : ''}`
 }
 
+/** Le sort des autres mutations d'un lot refusé à la mutation `k` sur `n` : l'évaluateur s'arrête au premier refus. */
+function voisinesDuRefus(k, n) {
+  if (n === 1) return 'seule du lot'
+  const avant = k === 1 ? 'aucune avant' : k === 2 ? "1 s'appliquait" : `1 à ${k - 1} s'appliquaient`
+  const apres = k === n ? 'aucune après' : k + 1 === n ? `${n} non évaluée` : `${k + 1} à ${n} non évaluées`
+  return `${avant}, ${apres}`
+}
+
 /**
  * Le suivi après le lot `mutations`, TOUT OU RIEN. `suivi` vaut `null` pour un suivi neuf : la première
  * mutation est alors `creer` (le suivi de l'épique `epique`), et `creer` est refusé ailleurs. Chaque
@@ -488,7 +496,7 @@ export function appliquer(suivi, mutations, { maintenant, epique, horsOutil = fa
   let avant = s === null ? 0 : tailleDuSuivi(s)
   for (const [k, brute] of mutations.entries()) {
     const nom = typeof brute?.geste === 'string' ? brute.geste : '?'
-    const fautive = (motif) => ({ ok: false, refus: `mutation ${k + 1} (${nom}) : ${motif} — rien n'est écrit` })
+    const fautive = (motif) => ({ ok: false, refus: `mutation ${k + 1}/${mutations.length} (${nom}) : ${motif} — ${voisinesDuRefus(k + 1, mutations.length)} ; rien n'est écrit` })
     const vue = Mutation.safeParse(brute)
     if (!vue.success) return fautive(`hors schéma : ${probleme(vue.error)}`)
     const m = vue.data
