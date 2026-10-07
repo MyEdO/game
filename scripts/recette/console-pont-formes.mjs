@@ -23,8 +23,11 @@
 //     `detecteurs-pont.mjs`, testés à fixtures par `test:recette`.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, VUES_RECETTE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, decrireChoix, ouvrirRound, VUES_RECETTE } from './lib.mjs';
 import { surfaceOcculteeParUnPont, elementsHorsFenetre } from './detecteurs-pont.mjs';
+
+/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
+const choixFaits = [];
 
 /** VUES de la passe EXPLORATION : les trois vues JUGÉES (bureau, portable, mobile), lues à leur
  *  source UNIQUE `vues-recette.json` — jamais recopiées. Le pont léger n'a qu'une forme : ce qui
@@ -205,12 +208,12 @@ const PROBE = `(() => {
 /** Amène le combat jusqu'aux CASES du tour d'un héros (le pont COMPLET). */
 async function jusquAuTourDuJoueur(session) {
   for (let i = 0; i < 6; i++) {
-    await resoudreModales(session, 'mise en place');
+    choixFaits.push(...(await resoudreModales(session, 'mise en place')));
     if (await evaluate(session, `!!document.querySelector('.combat-console button.cc-cell')`)) return;
     if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='round-start']:not(:disabled)")`)) {
-      await clickButtonByText(session, 'Commencer');
+      await ouvrirRound(session);
       await sleep(800);
-      await resoudreModales(session, 'ouverture de Round');
+      choixFaits.push(...(await resoudreModales(session, 'ouverture de Round')));
       continue;
     }
     await evaluate(session, AU_TOUR_DU_JOUEUR);
@@ -403,7 +406,7 @@ async function main() {
   try {
     await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
     await sleep(1500);
-    await resoudreModales(session, 'ouverture');
+    choixFaits.push(...(await resoudreModales(session, 'ouverture')));
     // ── PASSE EXPLORATION, AVANT tout combat : le pont LÉGER porte le même invariant que le pont de
     //    combat, et c'est SOUS LUI que le défaut fondateur du ticket a été vu. Trois vues jugées.
     for (const [w, h] of VUES_EXPLORATION) {
@@ -433,7 +436,7 @@ async function main() {
     await setViewport(session, VUES[0][0], VUES[0][1]);
     await evaluate(session, `window.__wfrp.fight('enc-mutants')`);
     await sleep(1500);
-    await resoudreModales(session, 'ouverture de combat');
+    choixFaits.push(...(await resoudreModales(session, 'ouverture de combat')));
     await jusquAuTourDuJoueur(session);
     // STRESS : le CONTENU de l'arche dérive (une rangée de plus, un chrome mal calibré) SANS que sa
     // déclaration bouge, et on exige que la sonde le voie. Faire dériver le TOKEN ne prouverait
@@ -451,7 +454,7 @@ async function main() {
       // Chaque largeur repart du TOUR DU JOUEUR : les deux autres formes sont posées par-dessus.
       await evaluate(session, AU_TOUR_DU_JOUEUR);
       await sleep(300);
-      await resoudreModales(session, `largeur ${w}`);
+      choixFaits.push(...(await resoudreModales(session, `largeur ${w}`)));
       const formes = await mesurer(session, w);
       const z = formes['ouverture'];
       if (args.mesures && formes['pont complet'].arche) console.log(`    arche ${JSON.stringify(formes['pont complet'].arche)}`);
@@ -475,6 +478,7 @@ async function main() {
       }
     }
   } finally {
+    console.log(`\n${decrireChoix(choixFaits)}`);
     await session.close();
   }
 

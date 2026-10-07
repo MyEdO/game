@@ -5,7 +5,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './Tabs';
-import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
+import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, formeResolue } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -18,6 +18,7 @@ import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '
 import { effectiveSpellOf } from '../state/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { refusDepensePx } from '../state/partyFlow';
+import { t, type MsgKey } from '../i18n';
 import { actorHasSkill } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
@@ -30,7 +31,6 @@ import { careers, findSpellById, findStarById, spells as allSpells, speciesSingu
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
 import { weaponFormLabel } from '../gameIso/rig/parts/weaponForms';
-import { formeResolue } from '../gameIso/rig/parts/equipment';
 import { CodexRef } from './compendium/CodexRef';
 import { CharValue } from './CharValue';
 import { HeroSheet } from './HeroSheet';
@@ -93,13 +93,15 @@ function SheetActiveEffects({ hero }: { hero: Combatant }) {
   return <EffectChips conditions={hero.conditions} effects={hero.activeEffects} flags={combatantFlags(hero)} />;
 }
 
-const TAB_LABELS: Record<SheetTab, string> = {
-  etat: 'État',
-  possessions: 'Possessions',
-  competences: 'Compétences & Talents',
-  magie: 'Magie & Foi',
-  avancement: 'Avancement',
-  histoire: 'Histoire',
+/** Libellé d'un onglet de la fiche : sa clé de catalogue `sheet.tab.<onglet>` — un texte qui NOMME un
+ *  onglet (scénario de test, aide) lit la même clé, et ne peut donc pas mentir sur son nom. */
+export const TAB_LABELS: Record<SheetTab, MsgKey> = {
+  etat: 'sheet.tab.etat',
+  possessions: 'sheet.tab.possessions',
+  competences: 'sheet.tab.competences',
+  magie: 'sheet.tab.magie',
+  avancement: 'sheet.tab.avancement',
+  histoire: 'sheet.tab.histoire',
 };
 
 export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: () => void }) {
@@ -173,7 +175,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
       onClose={onClose}
       tabs={
         <Tabs
-          tabs={tabs.map((t) => ({ key: t, label: TAB_LABELS[t] }))}
+          tabs={tabs.map((onglet) => ({ key: onglet, label: t(TAB_LABELS[onglet]) }))}
           active={tab}
           onChange={setSheetTab}
         />
