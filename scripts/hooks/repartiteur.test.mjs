@@ -19,6 +19,7 @@ import { garde as issueLabel } from './issue-label-guard.mjs'
 import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
 
 const HOOKS = fileURLToPath(new URL('.', import.meta.url))
 const REPO = fileURLToPath(new URL('../..', import.meta.url))
@@ -611,4 +612,9 @@ test('#2224 contrat positif : Bash sans `cd` jugé à son `cwd` ; ctx_shell à `
     }
     assert.equal(construireContexte({ tool_name: 'Bash', cwd: racine, tool_input: { command: 'ls' } }).dir, resolve(racine))
   })
+})
+
+test('#1062 : `gh api … -F body=@fichier` passe le répartiteur réel en silence (le `-F` de `gh` n’est pas celui de `git commit`)', () => {
+  const command = 'gh api repos/o/r/issues/comments/1 -X PATCH -F body=@corps.md --jq .html_url'
+  assert.equal(lancerHook('repartiteur.mjs', shell(command)).specifique, null)
 })

@@ -9,7 +9,7 @@ metadata:
 La porte du commit lit un horodatage : toute `capture:` du solde doit être plus récente que le dernier
 `.tsx`/`.css` d'écran stagé (`mtimeMaxDe`). Elle ne lit pas `docs/.sources-lues.json` (dérivé local,
 `scripts/docs/build-all.mjs:85`) : les post-hooks le lisent pour choisir les docs à régénérer
-(`touchesDocSources`, `scripts/git-hooks/docs-rebuild.mjs:70`). La porte
+(`touchesDocSources`, `scripts/git-hooks/docs-rebuild.mjs:95`). La porte
 (`scripts/git-hooks/porte-du-commit.mjs`) tourne dans le hook git `commit-msg` : elle juge l'index que
 git emporte et le message final, quelle que soit la forme de la commande (`-m`, `-F`, `-a`, pathspec,
 `git add X && git commit` compris) ; son refus annule le commit, l'index reste tel quel.
