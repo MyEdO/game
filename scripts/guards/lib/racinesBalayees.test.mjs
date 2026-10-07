@@ -124,13 +124,13 @@ test('evaluer : une expression sans module', () => {
   assert.deepEqual(evaluer({ k: 'join', v: [{ k: 'chemin', v: '' }, { k: 'lit', v: 'src' }] }), [{ chemin: 'src' }])
 })
 
-test('INVARIANT : aucune branche perdue — un site non littéralement `null` ne rend jamais pour seules valeurs des formes nulles (folioLineAlign.mjs:189-192)', () => {
+test('INVARIANT : aucune branche perdue — un site non littéralement `null` ne rend jamais pour seules valeurs des formes nulles (folioLineAlign.mjs, `makeChapterReader`)', () => {
   const modules = {
     'scripts/raw/lib.mjs': "import { join } from 'node:path'\nlet sourcePrincipale = null\nexport function sourceDe() {\n  if (sourcePrincipale) return sourcePrincipale\n" +
       "  sourcePrincipale = join(calculer(), 'Source')\n  return sourcePrincipale\n}\nexport const livreDuSigle = (abbr, registre) => registre.find((b) => b.abbr === abbr) ?? null\n",
     'scripts/guards/folio.mjs': "import { readdirSync, readFileSync } from 'node:fs'\nimport { join } from 'node:path'\nimport { livreDuSigle, sourceDe } from '../raw/lib.mjs'\n" +
       "export function lecteurDeChapitres(books) {\n  return (abbr) => {\n    const dir = livreDuSigle(abbr, books)?.dir\n    return dir ? readdirSync(dir) : null\n  }\n}\n" +
-      "readFileSync(join(sourceDe(), 'livre.pdf'))\nconst env = () => ({ ...process.env, AUTRE: 'x' })\nreadFileSync(env().CONFIG)\n" +
+      "readFileSync(join(sourceDe(), 'livre.txt'))\nconst env = () => ({ ...process.env, AUTRE: 'x' })\nreadFileSync(env().CONFIG)\n" +
       "function lireSous(dir = 'docs') { return readdirSync(dir) }\nlireSous({}.dir)\n",
     'scripts/guards/folio.test.mjs': "import { readFileSync } from 'node:fs'\nimport { lecteurDeChapitres } from './folio.mjs'\n" +
       "lecteurDeChapitres(JSON.parse(readFileSync('src/data/books.json', 'utf8')))\n",
@@ -152,12 +152,12 @@ test('INVARIANT : aucune branche perdue — un site non littéralement `null` ne
 
 test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit qui la vise ; la récurrence se nomme', () => {
   const modules = {
-    // `scripts/raw/_lib.mjs:437-446` : `let res` sans valeur initiale, posé par branches.
+    // `scripts/raw/_lib.mjs`, `chapterFile` : `let res` sans valeur initiale, posé par branches.
     'scripts/raw/lib.mjs': "import { join } from 'node:path'\nconst cache = new Map()\nexport function chapitre(abbr) {\n  let res\n" +
       "  if (cache.has(abbr)) {\n    res = cache.get(abbr)\n  } else {\n    const dir = 'Source/livre'\n    res = null\n" +
       "    if (dir) res = { path: join(dir, 'ch.md') }\n  }\n  return res\n}\n",
-    // `src/data/prop-art-labels-failfast.test.ts:16-19` : `let racine` posé dans `beforeAll`.
-    // `scripts/docs/lib/chemin-mesure.mjs:19-24` : `ancetre = parent`, parent = `dirname(ancetre)`.
+    // `src/data/prop-art-labels-failfast.test.ts`, `beforeAll` : `let racine` posé dans `beforeAll`.
+    // `scripts/docs/lib/chemin-mesure.mjs`, `ancetreExistant` : `ancetre = parent`, parent = `dirname(ancetre)`.
     'scripts/x/garde.test.mjs': "import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs'\nimport { tmpdir } from 'node:os'\n" +
       "import path, { join } from 'node:path'\nimport { chapitre } from '../raw/lib.mjs'\nreadFileSync(chapitre('LDB').path)\n" +
       "let racine\nbeforeAll(() => { racine = mkdtempSync(join(tmpdir(), 'x-')) })\nit('lit', () => readdirSync(join(racine, 'defs')))\n" +
@@ -173,7 +173,7 @@ test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit
   ])
 })
 
-test('FONCTION ANONYME passée en argument : appelée, elle rend ses retours dans le contexte qui l’a définie (fraicheur-docs.mjs:17-27)', () => {
+test('FONCTION ANONYME passée en argument : appelée, elle rend ses retours dans le contexte qui l’a définie (fraicheur-docs.mjs, `dansVue`)', () => {
   const modules = {
     'scripts/x/vue.mjs': "import { readFileSync } from 'node:fs'\nimport { join } from 'node:path'\n" +
       "function dansVue(vue, mesurer) { if (!vue) return mesurer()\n  return vue.get('x') }\n" +

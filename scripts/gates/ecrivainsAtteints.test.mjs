@@ -360,10 +360,9 @@ const ATTENDU = {
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-10-07 (#2400, fusion de #2456) : `fraicheur-docs.mjs`, atteint par le même chemin (`perimetre.mjs` →
-    // `docs-rebuild.mjs` → `build-all.mjs`) ; ses écritures (`ecrirePreuve`, fraicheur-docs.mjs:126-131, et
-    // `copierDocsFrais`, :240-311) ne partent que d'`executer` (build-all.mjs:454-583, porte `import.meta.main`
-    // :618), du `main` de docs-rebuild.mjs (:231) et de `creerChantier` (ops/chantier.mjs:166), qu'aucun banc de la
-    // gate n'appelle — l'arbre n'est jamais écrit.
+    // `docs-rebuild.mjs` → `build-all.mjs`) ; ses écritures (`ecrirePreuve` et `copierDocsFrais`, fraicheur-docs.mjs)
+    // ne partent que d'`executer` (build-all.mjs, sous sa porte `import.meta.main`), du `main` de docs-rebuild.mjs et
+    // de `creerChantier` (ops/chantier.mjs), qu'aucun banc de la gate n'appelle — l'arbre n'est jamais écrit.
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/git-hooks/journal.mjs',
     // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts
