@@ -42,6 +42,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node scripts/hooks/synchroniser-principal.mjs",
+            "timeout": 300,
+            "statusMessage": "Synchronisation du principal sur origin/main"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "node scripts/hooks/inject-project-credo.mjs codex",
             "timeout": 10,
             "statusMessage": "Injection du credo de travail"

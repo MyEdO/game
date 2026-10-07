@@ -116,7 +116,7 @@ export const ECRIT_LU = {
         'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
       '.claude/logs/new-src-guard-skips.log':
         'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
-        'scripts/hooks/repartiteur.mjs) : il est ' +
+        'scripts/hooks/repartition.mjs) : il est ' +
         'GITIGNORÉ (motif `.claude/*` de .gitignore, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
         'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },

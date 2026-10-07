@@ -3,6 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ENTREES_OUTIL, HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../../agents/compat-core.mjs'
 import { accesStdin, demandes, effetsDeModule, gardesAEffets, hooksHorsBorne, modulesQuiDemandent } from './stdinHorsBorne.mjs'
@@ -83,9 +84,15 @@ test('effetsDeModule : stdin, fin et code de sortie, écriture sur stdout, conso
   }
 })
 
+/** Les modules de `scripts/hooks/` qu'un point d'entrée charge DIRECTEMENT (`from`, `import()`) : sa machinerie
+ *  (la barrière et `executer`, #2187), qui lit, écrit et sort pour lui. */
+const chargesPar = (script) => [...readFileSync(join(HOOKS, script), 'utf8').matchAll(/(?:from |import\()\s*'\.\/([\w.-]+\.mjs)'/g)].map((m) => m[1])
+
 test('aucune garde de scripts/hooks/ hors des points d’entrée ne porte un effet de processus ni un état de module (#2125)', () => {
+  const machinerie = new Set([...POINTS_D_ENTREE].flatMap((script) => [script, ...chargesPar(script)]))
+  assert.ok(machinerie.has('barriere-outil.mjs') && machinerie.has('repartition.mjs'), [...machinerie].join(', '))
   assert.deepEqual(
-    gardesAEffets(HOOKS, POINTS_D_ENTREE).map((f) => `scripts/hooks/${f.fichier}:${f.ligne} ${f.texte}`),
+    gardesAEffets(HOOKS, machinerie).map((f) => `scripts/hooks/${f.fichier}:${f.ligne} ${f.texte}`),
     [],
     'une garde est PURE (scripts/guards/lib/contratGarde.mjs) : le point d’entrée (scripts/hooks/repartiteur.mjs) lit, écrit et sort',
   )

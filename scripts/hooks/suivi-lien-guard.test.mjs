@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import * as FS from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { repartir } from './repartiteur.mjs'
+import { repartir } from './repartition.mjs'
 import { JOURNAL, epiquesLiees, lignesDuJournal } from '../ops/suivi.mjs'
 import { avertissementIllisible, epiqueLiee, garde } from './suivi-lien-guard.mjs'
 

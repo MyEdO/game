@@ -49,6 +49,10 @@ const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...MODULES_DES_HOO
 const CODE_BLOQUANT_PRETOOLUSE = 2
 /** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
+/** Les `post-*` qui rendent le code de leur `.mjs` tel quel (#2187, verdict 6026872846 point 2) : son lecteur le lit. */
+const POST_TRANSPARENTS = new Set(['post-merge'])
+/** Le point d'entrée commun des hooks d'outil (#2187) : il charge la porte par `import()`, après le verrou d'outillage. */
+const BARRIERE = 'scripts/hooks/barriere-outil.mjs'
 /** githooks(5) : les arguments que git passe au hook dans le geste qui le fait AGIR — `post-checkout`
  *  un changement de BRANCHE (`$3` = 1), `post-rewrite` un `rebase`. Les autres refusent avant de les lire. */
 const ARGUMENTS_D_UN_GESTE = { 'post-checkout': ['0'.repeat(40), 'f'.repeat(40), '1'], 'post-rewrite': ['rebase'] }
@@ -149,7 +153,7 @@ test('câblage des hooks shell de `scripts/git-hooks/` : chacun lance un `.mjs` 
         env: { ...envNu(), NODE_OPTIONS: '--no-experimental-strip-types' },
         encoding: 'utf8',
       })
-      assert.equal(r.status, estPostHook(hook) ? 0 : CODE_DE_REFUS, `${hook} : ${r.stdout}${r.stderr}`)
+      assert.equal(r.status, estPostHook(hook) && !POST_TRANSPARENTS.has(hook) ? 0 : CODE_DE_REFUS, `${hook} : ${r.stdout}${r.stderr}`)
       assert.match(r.stderr, refusShell, hook)
       assert.equal(r.stdout, '', hook)
     }
@@ -219,8 +223,19 @@ test('câblage de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fu
     const chemin = join(RACINE, module)
     const source = ast({ rel: chemin, text: readFileSync(chemin, 'utf8') })
     const premiere = source.statements.find((s) => (ts.isImportDeclaration(s) || ts.isExportDeclaration(s)) && s.moduleSpecifier)
-    const porte = relative(dirname(chemin), join(RACINE, 'scripts', 'node-requis.mjs')).replaceAll('\\', '/')
-    assert.equal(premiere?.moduleSpecifier.text, porte.startsWith('.') ? porte : `./${porte}`, module)
+    const versDepuis = (de, cible) => {
+      const rel = relative(dirname(join(RACINE, de)), join(RACINE, cible)).replaceAll('\\', '/')
+      return rel.startsWith('.') ? rel : `./${rel}`
+    }
+    if (premiere?.moduleSpecifier.text === versDepuis(module, BARRIERE)) {
+      const statiques = ast({ rel: join(RACINE, BARRIERE), text: readFileSync(join(RACINE, BARRIERE), 'utf8') }).statements
+        .filter((s) => ts.isImportDeclaration(s)).map((s) => s.moduleSpecifier.text)
+      assert.deepEqual(statiques.filter((m) => !m.startsWith('node:')), [], `${BARRIERE} : des modules intégrés seulement`)
+      const dynamiques = [...readFileSync(join(RACINE, BARRIERE), 'utf8').matchAll(/await import\('([^']+)'\)/g)].map((m) => m[1])
+      assert.equal(dynamiques[1], versDepuis(BARRIERE, 'scripts/node-requis.mjs'), `${BARRIERE} : la porte, premier chargement après le verrou d'outillage`)
+      continue
+    }
+    assert.equal(premiere?.moduleSpecifier.text, versDepuis(module, 'scripts/node-requis.mjs'), module)
     assert.equal(premiere.importClause, undefined, `${module} : la porte s’importe pour son seul effet d’évaluation`)
   }
 })

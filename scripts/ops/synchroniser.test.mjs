@@ -15,6 +15,8 @@ import {
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { ETAPES, remplacerIndex, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur } from './synchroniser.mjs'
+import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
+import { attendreLibre } from '../test/verrou.mjs'
 
 const ENV = envDeDepotForge()
 const ATTENTE = { echeanceMs: 3_000, pasMs: 20 }
@@ -122,13 +124,17 @@ function lancerEnParallele(principal) {
 async function boucleGitStatus(racine) {
   const arret = join(racine, '.git', 'arret-boucle')
   const boucle = spawn(process.execPath, ['--input-type=module', '-e', `
-    import { spawnSync } from 'node:child_process'
     import { existsSync } from 'node:fs'
+    import { lancerGit } from ${JSON.stringify(pathToFileURL(join(import.meta.dirname, '..', 'test', 'gitDeBanc.mjs')).href)}
     const fin = Date.now() + 120000
     let n = 0
     process.stdout.write('pret ')
     while (!existsSync(${JSON.stringify(arret)}) && Date.now() < fin) {
-      spawnSync('git', ['-C', ${JSON.stringify(racine)}, 'status', '--porcelain'], { stdio: 'ignore' })
+      try {
+        lancerGit(['-C', ${JSON.stringify(racine)}, 'status', '--porcelain'], { env: process.env })
+      } catch {
+        /* un passage en échec compte aussi : la boucle ne mesure que la concurrence sur index.lock */
+      }
       n += 1
     }
     process.stdout.write(String(n))
@@ -207,6 +213,32 @@ describe('synchroniserPrincipal — matrice', () => {
     assert.deepEqual(stage(m.principal), [])
     assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
     assert.deepEqual(await sync(m.principal), { etat: 'a-jour', sha: U })
+  })
+
+  test('verrou d’outillage (barrière des hooks d’outil, #2187) : tenu des étapes 5 à 8, libre avant et dès les consommateurs ; tenu par un vivant → occupe, rien appliqué', async () => {
+    const m = monde({ 'a.md': 'un\n' })
+    committer(m.amont, { 'a.md': 'deux\n' })
+    const chemin = /** @type {string} */ (verrouOutillageDe(m.principal))
+    const tenu = {}
+    const vu = await sync(m.principal, { etape: (nom) => { tenu[nom] = attendreLibre({ chemin }).etat === 'occupe' } })
+    assert.equal(vu.etat, 'avance')
+    assert.deepEqual(tenu, { capture: false, transaction: false, travail: true, arbre: true, index: true, commit: true, consommateurs: false, liberation: false })
+    assert.equal(existsSync(chemin), false)
+
+    const autre = monde({ 'a.md': 'un\n' })
+    committer(autre.amont, { 'a.md': 'deux\n' })
+    const cheminAutre = /** @type {string} */ (verrouOutillageDe(autre.principal))
+    writeFileSync(cheminAutre, JSON.stringify({ pid: process.pid, commande: 'npm ci' }))
+    try {
+      const refus = await sync(autre.principal, { attente: { echeanceMs: 300, pasMs: 20 } })
+      assert.equal(refus.etat, 'occupe')
+      assert.equal(refus.tenant.commande, 'npm ci')
+      assert.equal(head(autre.principal), autre.B)
+      assert.equal(travail(autre.principal, 'a.md'), 'un\n')
+      assert.deepEqual(traces(autre.principal), { verrouIndex: false, synchro: false })
+    } finally {
+      rmSync(cheminAutre, { force: true })
+    }
   })
 
   test('2 non indexé : W = U, W ⊋ U, W ⊊ U', async () => {
@@ -755,7 +787,7 @@ describe('incertains', () => {
     const m = monde({ 'a.md': 'a\n' })
     const arreter = await boucleGitStatus(m.principal)
     const refus = []
-    let passages = 0
+    let passages
     try {
       const source = join(m.principal, '.git', 'index')
       for (let i = 0; i < 1000; i += 1) {

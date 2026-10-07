@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
   transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
+  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 
@@ -191,6 +191,21 @@ test('CÂBLAGE — le suivi de vague est injecté au SessionStart de Codex seul,
     for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
       const portes = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart' && h.script === 'inject-suivi.mjs');
       assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
+    }
+  }
+});
+
+test('CÂBLAGE — la synchronisation du principal est le PREMIER SessionStart de Codex, généré et commité ; Claude la porte par le mod harnais (#2187)', async () => {
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
+    for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
+      const session = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart');
+      const portes = session.filter((h) => h.script === 'synchroniser-principal.mjs');
+      assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
+      if (surface === SURFACE_CODEX) {
+        assert.equal(session[0].script, 'synchroniser-principal.mjs', `${origine} : en tête`);
+        assert.equal(portes[0].timeout, TIMEOUT_SYNCHRONISEUR, origine);
+      }
     }
   }
 });

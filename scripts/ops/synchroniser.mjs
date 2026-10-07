@@ -18,6 +18,7 @@ import {
 } from '../guards/lib/gitPorte.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { estPidVivant, prendreVerrouAsync, sousEcheanceAsync } from '../test/verrou.mjs'
+import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 
 /** Les chemins dont un changement B..U ne prend effet qu'à la PROCHAINE session d'un client (verdict, D2). */
 export const CONFIGURATION_CLIENT = Object.freeze([/^\.claude\/settings\.json$/, /^\.codex\/hooks\.json$/, /^\.claude\/skills\/harnais\//])
@@ -175,7 +176,7 @@ export async function synchroniserPrincipal({ depuis = process.cwd(), env, geste
   })
   if (verrou.etat !== 'pris') return { etat: 'occupe', message: verrou.message, tenant: verrou.tenant ?? null }
   /** @type {any} */
-  const ctx = { depot, racine: racine.valeur, commun, index: '', verrouIndex: '', jeton: null, etape, attente, debut, horloge, annoncer: annonceEspacee(annoncer, horloge, attente.annonceMs), tx: null }
+  const ctx = { depot, racine: racine.valeur, commun, index: '', verrouIndex: '', jeton: null, etape, attente, debut, horloge, estVivant, annoncer: annonceEspacee(annoncer, horloge, attente.annonceMs), tx: null, outillage: null }
   try {
     const relatif = cheminGit(depot, 'index')
     if (!relatif) throw new GitIndisponible('chemin de l’index non rendu')
@@ -195,6 +196,7 @@ export async function synchroniserPrincipal({ depuis = process.cwd(), env, geste
     const verrous = octetsDe(ctx.verrouIndex)?.toString('utf8') === ctx.jeton ? [ctx.verrouIndex] : []
     return { etat: 'interrompu', raison: String(/** @type {any} */ (e)?.stack ?? e), ...journal, verrous }
   } finally {
+    libererOutillage(ctx)
     verrou.liberer()
   }
 }
@@ -501,6 +503,8 @@ async function avancer(ctx, journal, aU, { reprise = false } = {}) {
     await abandonner(ctx)
     return finir(ctx, journal, resultat)
   }
+  const outillage = await prendreOutillage(ctx)
+  if (outillage) return reprise ? interrompre(ctx, journal, outillage.message, { refus: outillage }) : echouer(outillage)
   for (const c of journal.chemins) {
     const chemin = join(ctx.racine, c.chemin)
     const lus = octetsDe(chemin)
@@ -552,6 +556,7 @@ async function conclure(ctx, journal, tx) {
 
 /** Les étapes 9 et 10 : `post-merge` lancé, son code LU ; puis libération. */
 async function consommer(ctx, journal) {
+  libererOutillage(ctx)
   const commun = { de: journal.de, vers: journal.vers, configurationClientChangee: journal.configuration }
   const ignore = hookIgnore(ctx, 'post-merge')
   if (ignore) {
@@ -637,7 +642,32 @@ async function reprendre(ctx, journal) {
   if (!candidat) return avancer(ctx, journal, aU, { reprise: true })
   const ouverte = await ouvrirTransaction(ctx, journal)
   if ('refus' in ouverte) return refusEnReprise(ctx, journal, ouverte.refus)
+  const outillage = await prendreOutillage(ctx)
+  if (outillage) return interrompre(ctx, journal, outillage.message, { refus: outillage })
   return conclure(ctx, journal, ouverte.tx)
+}
+
+/**
+ * Le verrou d'outillage du principal (`verrouOutillageDe`, barrière des hooks d'outil) pris sous
+ * l'échéance du passage, pour les étapes 5 à 8 ; `consommer` le libère. REND `null` s'il est pris, le
+ * refus `occupe` sinon.
+ */
+async function prendreOutillage(ctx) {
+  const chemin = verrouOutillageDe(ctx.racine)
+  if (chemin === null) throw new GitIndisponible(`git-dir de ${ctx.racine} illisible`)
+  const vu = await prendreVerrouAsync({
+    chemin, libelle: 'outillage du principal', commande: 'ops:synchroniser', cwd: ctx.racine, estVivant: ctx.estVivant, horloge: ctx.horloge,
+    attente: attenteRestante(ctx, (tenant) => ctx.annoncer(`[synchroniser] outillage tenu par le PID ${tenant?.pid ?? '?'}`)),
+  })
+  if (vu.etat !== 'pris') return { etat: 'occupe', message: vu.message, tenant: vu.tenant ?? null }
+  ctx.outillage = vu
+  return null
+}
+
+/** Le verrou d'outillage libéré, s'il est tenu. */
+function libererOutillage(ctx) {
+  ctx.outillage?.liberer()
+  ctx.outillage = null
 }
 
 /** La transaction d'une REPRISE refusée : l'état laissé par le mort reste tel quel, `interrompu` le nomme. */

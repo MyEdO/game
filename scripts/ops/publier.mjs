@@ -895,6 +895,18 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return conclureFusionSansChemins(depot, { chemins, message })
     },
     pousser: ({ vers, bail }) => pousser(depot, { vers, bail }),
+    /** La synchronisation du principal (`scripts/ops/synchroniser.mjs --json`, #2187) en processus neuf :
+     *  `{ ok: true, vu }` (l'état rendu), ou `{ ok: false, raison }` quand aucun état n'est lisible. */
+    synchroniserPrincipal() {
+      const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/synchroniser.mjs'), '--json'], {
+        cwd: racine, stdio: ['ignore', 'pipe', fdLog], encoding: 'utf8',
+      })
+      try {
+        return { ok: true, vu: JSON.parse(vu.stdout) }
+      } catch {
+        return { ok: false, raison: vu.error?.message ?? `aucun état lisible (code ${vu.status})` }
+      }
+    },
   }
 }
 

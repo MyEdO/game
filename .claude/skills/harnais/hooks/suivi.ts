@@ -1,11 +1,12 @@
 // Fonction `suivi` du mod `harnais` (#2279) : le suivi de vague `.git/suivi/<N>.md` sous les yeux pendant
-// toute la session. Elle REND l'état de session que calcule le lecteur `scripts/ops/suivi.mjs --session
+// toute la session ; au démarrage, elle synchronise d'abord le principal (`synchroniser.mjs --json`, #2187).
+// Elle REND l'état de session que calcule le lecteur `scripts/ops/suivi.mjs --session
 // <id> --json [--depuis <cle>]` (`etatDeSession`) et confie l'édition à `suivi.mjs <N> --session <id>
 // --json [--ticket <M>] --<geste> <texte>` (`editer`). Porteurs :
 // https://github.com/MyEdO/game/issues/2278#issuecomment-5983942497
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, RenderElement } from 'claude-code'
-import type { HarnaisEtatDeSession, HarnaisSuivi } from '../types'
+import type { HarnaisEtatDeSession, HarnaisSuivi, HarnaisSynchro, HarnaisSynchroEnAttente } from '../types'
 import { appel, lire } from './ops'
 import type { Lu } from './ops'
 
@@ -68,12 +69,42 @@ async function relire($: EngineInterface) {
   }))
 }
 
+const atomeSynchro = atom({ plugin: 'harnais', key: 'synchro' } as const, { texte: null } as HarnaisSynchroEnAttente)
+
+/**
+ * Borne (ms) de `synchroniser.mjs` : l'attente de ses verrous, le `fetch`, puis `post-merge` (`npm ci`,
+ * docs dérivés) ; même valeur que `TIMEOUT_SYNCHRONISEUR` (`scripts/agents/compat-core.mjs`), côté Codex.
+ * Valeur maison.
+ */
+const BORNE_SYNCHRO_MS = 300 * 1000
+
+/** Les états de synchronisation qui ne disent rien à la session. */
+const ETATS_MUETS = new Set(['a-jour', 'avance'])
+
+/**
+ * Le principal synchronisé (`scripts/ops/synchroniser.mjs --json`, #2187) : un état autre que `a-jour` ou
+ * `avance`, ou un échec, est retenu pour UN bloc de contexte, tel que reçu.
+ */
+async function synchroniser($: EngineInterface) {
+  let lu: Lu<HarnaisSynchro>
+  try {
+    lu = lire(await $.process.run(...appel($.plugin.root, 'synchroniser', ['--json'], { borneMs: BORNE_SYNCHRO_MS })), { codes: [0, 1, 2] })
+  } catch (erreur) {
+    lu = { ok: false, motif: `non lancé (${String(erreur)})` }
+  }
+  const reprise = ' — reprise : `npm run ops:synchroniser`'
+  const texte = !lu.ok ? `[synchroniser] principal non synchronisé : ${lu.motif}${reprise}`
+    : ETATS_MUETS.has(lu.valeur.etat) ? null : `[synchroniser] principal : ${JSON.stringify(lu.valeur)}${reprise}`
+  await update($, atomeSynchro, () => ({ texte }))
+}
+
 /** La transition qui retient la clé `cle` : l'attente est vidée, une génération neuve est tirée. */
 const retenir = (s: HarnaisSuivi, cle: string, etat: HarnaisEtatDeSession | null = s.etat): HarnaisSuivi =>
   ({ etat, cle, enAttente: null, generation: crypto.randomUUID() })
 
 export function suivi(on: On) {
   on('session.start', async ($, e, next) => {
+    await synchroniser($)
     await relire($)
     $.clock.every(PERIODE_MS, () => {
       void relire($)
@@ -96,8 +127,17 @@ export function suivi(on: On) {
       porte.etat = s.etat?.contexte ? s.etat : null
       return porte.etat ? retenir(s, porte.etat.cle) : s
     })
+    const synchro: { texte: string | null } = { texte: null }
+    await update($, atomeSynchro, (s) => {
+      synchro.texte = s.texte
+      return s.texte ? { texte: null } : s
+    })
     const { etat } = porte
-    return etat ? next({ ...e, blocks: [...e.blocks, { name: 'suivi', text: etat.contexte }] }) : next(e)
+    const blocs = [
+      ...(synchro.texte ? [{ name: 'synchroniser', text: synchro.texte }] : []),
+      ...(etat ? [{ name: 'suivi', text: etat.contexte }] : []),
+    ]
+    return blocs.length ? next({ ...e, blocks: [...e.blocks, ...blocs] }) : next(e)
   })
 
   on('turn.start', async ($, e, next) => {

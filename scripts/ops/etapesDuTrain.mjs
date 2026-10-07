@@ -5,7 +5,7 @@
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
 // `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
-// `lireFusion`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
+// `lireFusion`, `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
 // inertes, import d'un paquet, import d'un module du dépôt qui l'exporte lanceuse ou n'est pas lu,
@@ -655,8 +655,13 @@ export const ETAPES = [
     dejaFaite(ctx, journal) {
       return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
     },
+    // #2187 : le principal synchronisé après la fusion ; son état est un fait distinct de la publication,
+    // jamais un échec du train.
     jouer(ctx, journal) {
-      return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}` }
+      const principal = ctx.synchroniserPrincipal()
+      const publie = `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}`
+      const dit = principal.ok ? `principal : ${JSON.stringify(principal.vu)}` : `principal non synchronisé : ${principal.raison}`
+      return { ok: true, detail: { principal }, dit: `${publie} ; ${dit}` }
     },
   },
 ]

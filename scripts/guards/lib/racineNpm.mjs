@@ -1,5 +1,5 @@
 // Le dépôt où `npm run <x>` se résout pendant l'évaluation d'UNE garde (#2125) : la racine npm du
-// contexte (`scripts/hooks/repartiteur.mjs`, `construireContexte`, `racineNpmDe`), portée par la portée
+// contexte (`scripts/hooks/repartition.mjs`, `construireContexte`, `racineNpmDe`), portée par la portée
 // asynchrone de l'appel, jamais par une variable de module.
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { existsSync } from 'node:fs'

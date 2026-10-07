@@ -26,8 +26,11 @@ type Panne = { exitCode: number; stdout: string; stderr: string }
  * comme le lecteur, ou `panne()` quand elle est donnée ; une course lancée quand `suspendre()` est vrai
  * attend `relacher()`, qui rend la plus ancienne. Rend les argv lancés, le journal et `relacher`.
  */
-function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => null, suspendre: () => boolean = () => false) {
+function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => null, suspendre: () => boolean = () => false,
+  synchro: () => Panne = () => ({ exitCode: 0, stdout: JSON.stringify({ etat: 'a-jour', sha: 'a' }), stderr: '' })) {
   const argvs: string[][] = []
+  const synchros: string[][] = []
+  const ordre: string[] = []
   const journal: { text: string; to?: string }[] = []
   const suspendues: (() => void)[] = []
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
@@ -40,6 +43,12 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     return h(Text, { key: 'moteur' }, 'moteur') as RenderElement
   })
   on('process.run', async (_$, e) => {
+    if (e.argv[1]?.endsWith('/scripts/ops/synchroniser.mjs')) {
+      synchros.push([...e.argv])
+      ordre.push('synchroniser')
+      return { value: { ...synchro(), isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    ordre.push('suivi')
     argvs.push([...e.argv])
     const lu = fichier()
     const enPanne = panne()
@@ -53,7 +62,7 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     journal.push({ text: e.text, to: e.to })
     return { value: undefined } as never
   })
-  return { argvs, journal, relacher: () => suspendues.shift()?.() }
+  return { argvs, synchros, ordre, journal, relacher: () => suspendues.shift()?.() }
 }
 
 /** Les lignes du journal qui disent une tentative d'ajout (le kit la fait échouer). */
@@ -74,6 +83,35 @@ test('session.start : le lecteur `--session <id> --json` ; le bandeau rend ses l
     expect(await textes(ui)).toEqual(['[suivi #9] en cours : #4 ouvert', '  prochain geste : juge du brief'])
     await ui.unmount()
   }
+})
+
+test('session.start : `synchroniser.mjs --json` AVANT le lecteur ; `a-jour` ne dit rien (#2187)', async ($, on) => {
+  mock.clock(on)
+  const vu = monde(on, () => SANS_LIEN)
+  await $.session.start(DEMARRAGE)
+  expect(vu.ordre).toEqual(['synchroniser', 'suivi'])
+  expect(vu.synchros[0]?.slice(2)).toEqual(['--json'])
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
+})
+
+test('un état de synchronisation nommé (code 1) entre UNE fois en contexte, tel quel ; un échec de lancement aussi (#2187)', async ($, on) => {
+  mock.clock(on)
+  const conflit = { etat: 'conflit', chemins: [{ chemin: 'a.md', raison: 'fusion de a.md en conflit' }], versions: '/v' }
+  monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 1, stdout: JSON.stringify(conflit), stderr: '' }))
+  await $.session.start(DEMARRAGE)
+  const reprise = ' — reprise : `npm run ops:synchroniser`'
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([
+    { name: 'synchroniser', text: `[synchroniser] principal : ${JSON.stringify(conflit)}${reprise}` },
+    { name: 'suivi', text: SANS_LIEN.contexte },
+  ])
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
+})
+
+test('synchroniseur muet (code 1, stdout vide) : le motif en contexte, une fois (#2187)', async ($, on) => {
+  mock.clock(on)
+  monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 1, stdout: '', stderr: 'tué' }))
+  await $.session.start(DEMARRAGE)
+  expect((await $.prompt.context({ blocks: [] })).blocks[0]).toEqual({ name: 'synchroniser', text: '[synchroniser] principal non synchronisé : sortie JSON illisible — reprise : `npm run ops:synchroniser`' })
 })
 
 test('sans lien : bandeau vide sur terminal ET desktop, l’index en contexte', async ($, on) => {

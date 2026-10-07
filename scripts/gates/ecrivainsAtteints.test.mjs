@@ -175,8 +175,8 @@ const ATTENDU = {
     // (`{ trace: { fichier, ligne } }`, la dérogation `SKIP_NEW_SRC_GUARD` vers
     // `.claude/logs/new-src-guard-skips.log`) ; son banc pose des `package.json` jetables sous `os.tmpdir()` (`rmSync` en finally)
     // pour le `cwd` de `ctx_shell`. L'arbre versionné n'est jamais écrit.
-    'scripts/hooks/repartiteur.mjs',
     'scripts/hooks/repartiteur.test.mjs',
+    'scripts/hooks/repartition.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
     'scripts/hooks/solde-ticket-guard-driver.test.mjs',
     'scripts/hooks/solde-ticket-guard.test.mjs',
