@@ -428,7 +428,7 @@ test('#2224 `declare`/`typeset`/`local` de `PATH` ou `ENV`, avec ou sans `-x` : 
     for (const command of ['declare PATH=./faux:$PATH; npm test', 'typeset PATH=./faux; npm test', 'local -x PATH=./faux; npm test', 'declare ENV=./x.sh; sh -c "npm test"']) {
       assert.match(await raison(racine, 'Bash', { command }), /(PATH|ENV) : /, command)
     }
-    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; npm test' }), null)
+    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; node --test scripts/a.test.mjs' }), null)
   })
 })
 

@@ -54,6 +54,10 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
     // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
     'scripts/hooks/bootstrap-conteneur.test.mjs',
+    // +1 le 2026-10-07 (#2436) : le banc du verrou des gates forge ses configurations Vitest et ses
+    // fichiers de test sous un `mkdtempSync` d'os.tmpdir(), retirés par `rmSync` en finally ; l'arbre
+    // n'est jamais écrit.
+    'scripts/hooks/codeur-gates-guard.test.mjs',
     // +1 le 2026-10-07 (#2187) : le banc de la barrière des hooks d'outil forge ses arbres (`.git` dossier
     // ou fichier `gitdir:`) et son verrou d'outillage sous un `mkdtempSync` de os.tmpdir() (`rmSync` en
     // finally) — un `gitdir:` et un verrou tenu ne se fabriquent pas autrement ; l'arbre n'est jamais écrit.

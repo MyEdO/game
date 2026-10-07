@@ -1,4 +1,4 @@
-// Contrat du verrou « un `codeur` ne joue pas les gates de la CI ».
+// #2436
 // POURQUOI — verbatims utilisateur du 2026-09-15 :
 //   « C'est absurde ... on a dépêché un agent pour créer un fichier (+ son test, + le lien pour
 //     l'appeler) et ça va nous prendre 25 min ? »
@@ -11,6 +11,10 @@ import assert from 'node:assert/strict'
 import { evaluate, gatesDeLaCi } from './codeur-gates-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { contexteSonde } from '../guards/lib/sondeVitest.mjs'
 
 
 /** Sortie BRUTE du répartiteur pour un payload de hook (stdin tel que l'hôte l'envoie). */
@@ -76,7 +80,6 @@ const PASSANTES = [
   'node --test scripts/ops/board.test.mjs',
   'npx eslint scripts/ops/board.mjs',
   'npm run ops:board -- --liste',
-  'npm run agents:check',
   'npm test -- src/a.test.ts',
   // Le sous-projet `server/` a son propre tsconfig et ses propres scripts : les gates de la RACINE
   // n'y répondent pas, et son typecheck est le périmètre du codeur dépêché dessus.
@@ -92,8 +95,8 @@ for (const commande of REFUSEES) {
     const decision = pourCodeur(commande)
     assert.ok(decision, `aucun refus sur « ${commande} » — la gate du train passe`)
     assert.equal(decision.decision, 'deny')
-    assert.match(decision.reason, /\[codeur\]/)
-    assert.match(decision.reason, /BRIEF REFUSÉ : gates hors périmètre/)
+    assert.match(decision.reason, /\[gates-ci\]/)
+    assert.match(decision.reason, /gh run watch/)
   })
 }
 
@@ -103,16 +106,18 @@ for (const commande of PASSANTES) {
   })
 }
 
-test('un agent qui n’est PAS un codeur n’est jamais visé', () => {
-  assert.equal(evaluate({ agentType: 'juge', commande: 'npm run lint', gates: GATES }), null)
-  assert.equal(evaluate({ agentType: null, commande: 'npm run lint', gates: GATES }), null)
-  assert.equal(evaluate({ commande: 'npm run lint', gates: GATES }), null)
+test('tous les appelants refusent toutes les gates ECRIT_LU', () => {
+  for (const agentType of [undefined, null, 'codeur', 'juge', 'lecteur', 'artiste', 'recetteur']) {
+    for (const nom of Object.keys(ECRIT_LU)) {
+      assert.equal(evaluate({ agentType, commande: `npm run ${nom}` })?.decision, 'deny', `${agentType}: ${nom}`)
+    }
+  }
 })
 
 test('la raison NOMME la commande refusée et le geste de remplacement', () => {
   const { reason } = pourCodeur('npm run lint')
   assert.match(reason, /« npm run lint »/)
-  assert.match(reason, /le run de la branche la joue une fois sur la tête poussée/)
+  assert.match(reason, /pousser la branche/)
   assert.match(reason, /typecheck:fast/)
 })
 
@@ -120,7 +125,7 @@ test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)',
   const { hookSpecificOutput } = JSON.parse(sortieDriver(payload('npm run lint', 'codeur')))
   assert.equal(hookSpecificOutput.hookEventName, 'PreToolUse')
   assert.equal(hookSpecificOutput.permissionDecision, 'deny')
-  assert.match(hookSpecificOutput.permissionDecisionReason, /\[codeur\]/)
+  assert.match(hookSpecificOutput.permissionDecisionReason, /\[gates-ci\]/)
   assert.deepEqual(
     Object.keys(hookSpecificOutput).sort(),
     ['hookEventName', 'permissionDecision', 'permissionDecisionReason'],
@@ -128,9 +133,10 @@ test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)',
 })
 
 test('DRIVER : silence (aucune sortie) hors du cas visé, et jamais une sortie non nulle', () => {
-  assert.equal(sortieDriver(payload('npm run lint')).trim(), '', 'session principale : pas d’agent_type')
-  assert.equal(sortieDriver(payload('npm run lint', 'juge')).trim(), '', 'un juge ne joue pas de gate')
-  assert.equal(sortieDriver(payload('node --test scripts/ops/board.test.mjs', 'codeur')).trim(), '')
+  for (const agentType of [undefined, 'juge']) {
+    assert.equal(JSON.parse(sortieDriver(payload('npm run lint', agentType))).hookSpecificOutput.permissionDecision, 'deny')
+  }
+  assert.equal(sortieDriver(payload('node --test scripts/ops/board.test.mjs')).trim(), '')
   assert.equal(sortieDriver('').trim(), '', 'stdin vide')
   assert.equal(sortieDriver('{pas du json').trim(), '', 'stdin illisible')
 })
@@ -241,4 +247,112 @@ test('une commande trop imbriquée pour être lue est refusée', () => {
   const decision = pourCodeur('echo $($($($($(npx vitest run)))))')
   assert.equal(decision?.decision, 'deny')
   assert.match(decision.reason, /commande trop imbriquée pour être jugée/)
+})
+
+test('SONDE : configuration externe réelle, un fichier ; suite et formes inconnues refusées', () => {
+  const dir = mkdtempSync(join(tmpdir(), '2436-sonde-'))
+  try {
+    const fichier = join(dir, 'unique.test.ts').replaceAll('\\', '/')
+    const config = join(dir, 'vitest.config.mts').replaceAll('\\', '/')
+    writeFileSync(fichier, 'export {}')
+    const commande = `npx vitest run --config "${config}"`
+    const contexte = contexteSonde({ dir: process.cwd(), racineNpm: process.cwd() })
+    for (const text of [
+      `export default ({ test: { include: ['${fichier}'] } })`,
+      `import { defineConfig } from 'vitest/config'; export default defineConfig({test:{include:['${fichier}']}})`,
+      `const R = '${process.cwd().replaceAll('\\', '/')}'; export default ({ root: R, test: { environment: 'node', include: ['${fichier}'], setupFiles: [R + '/src/test-setup.ts'] } });`,
+    ]) {
+      writeFileSync(config, text)
+      assert.equal(evaluate({ commande, contexte }), null)
+      assert.equal(sortieDriver(payload(commande)).trim(), '')
+    }
+    for (const text of [
+      `export default {test:{include:['**/*.test.ts']}}`,
+      `export default {test:{include:['${fichier}','${fichier}']}}`,
+      `export default {test:{include:['${fichier}'],projects:[]}}`,
+      `export default {test:{include:['${fichier}']}}; mutate()`,
+      `export default {test:{...x,include:['${fichier}']}}`,
+      `export default {test:{include:['${fichier}'],include:['${fichier}']}}`,
+      `let R = '/tmp'; export default { root: R, test:{include:['${fichier}']}}`,
+      `const R = readRoot(); export default { root: R, test:{include:['${fichier}']}}`,
+      `export default {test:{include:['${fichier}'],setupFiles:[setup()]}}`,
+    ]) {
+      writeFileSync(config, text)
+      assert.equal(evaluate({ commande, contexte })?.decision, 'deny', text)
+    }
+    writeFileSync(config, `export default {test:{include:['${fichier}']}}`)
+    for (const suffix of [' --root .', ` --config "${config}"`, ' --project all']) {
+      assert.equal(evaluate({ commande: commande + suffix, contexte })?.decision, 'deny')
+    }
+    assert.equal(evaluate({ commande: 'npx vitest run --config vite.config.ts', contexte })?.decision, 'deny')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('EXCEPTION : au site exact, raison littérale ; le segment suivant reste refusé', () => {
+  const site = resolve('scripts/gates/sur-demande-utilisateur.mjs').replaceAll('\\', '/')
+  const commande = `node "${site}" --raison "demande utilisateur" --gates lint`
+  assert.equal(evaluate({ commande }), null)
+  for (const cmd of [
+    commande + '; npm run lint',
+    commande.replace('--raison "demande utilisateur"', '--raison "$RAISON"'),
+    commande.replace(' --raison "demande utilisateur"', ''),
+    commande.replace('--gates lint', '--gates inconnue'),
+    'node scripts/gates/toutes.mjs --raison "demande utilisateur" --gates lint',
+    commande.replace(site, '/tmp/scripts/gates/sur-demande-utilisateur.mjs'),
+    'cd autre; node scripts/gates/sur-demande-utilisateur.mjs --raison demande --gates lint',
+    'node scripts/gates/sur-demande-utilisateur.mjs --raison demande --gates lint; cd docs',
+  ]) assert.equal(evaluate({ commande: cmd })?.decision, 'deny', cmd)
+})
+
+test('DRIVER Codex : canal shell sans agent_type refuse une gate', () => {
+  const entree = { hook_event_name: 'PreToolUse', tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command: 'npm run lint' } }
+  const run = lancerHook('repartiteur.mjs', entree, { surface: 'codex' })
+  assert.equal(run.code, 0)
+  assert.equal(run.specifique.permissionDecision, 'deny')
+})
+
+test('EXTGLOB : un fichier littéral existant ne certifie pas un motif de plusieurs suites', () => {
+  const dir = mkdtempSync(join(tmpdir(), '2436-extglob-'))
+  try {
+    const cible = join(dir, 'unique+(x).test.ts').replaceAll('\\', '/')
+    writeFileSync(cible, 'export {}')
+    writeFileSync(join(dir, 'uniquex.test.ts'), 'export {}')
+    writeFileSync(join(dir, 'uniquexx.test.ts'), 'export {}')
+    const config = join(dir, 'vitest.config.mts').replaceAll('\\', '/')
+    writeFileSync(config, `export default {test:{include:['${cible}']}}`)
+    assert.equal(evaluate({ commande: `npx vitest run --config "${config}"`, contexte: contexteSonde({ dir: process.cwd(), racineNpm: process.cwd() }) })?.decision, 'deny')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('SERVER LANCEUR : les lanceurs de racine restent jugés après cd server', () => {
+  const racine = process.cwd().replaceAll('\\', '/')
+  const wrapper = `${racine}/scripts/gates/sur-demande-utilisateur.mjs`
+  for (const cmd of [
+    `cd server; node ${racine}/scripts/gates/toutes.mjs`,
+    'cd server; node ../scripts/gates/toutes.mjs',
+    `cd server; node ${racine}/scripts/test/node-tests.mjs test:ops`,
+    `cd server; node ${wrapper}`,
+    `cd server; node ${wrapper} --raison demande --gates inconnue`,
+    `cd server; node ${wrapper} --raison demande --gates lint; node ${racine}/scripts/gates/toutes.mjs`,
+  ]) assert.equal(evaluate({ commande: cmd })?.decision, 'deny', cmd)
+  assert.equal(evaluate({ commande: `cd server; node ${wrapper} --raison demande --gates lint` }), null)
+  assert.equal(evaluate({ commande: 'cd server; npm run typecheck' }), null)
+})
+
+test('REPERTOIRE SONDE : après cd, seules les adresses indépendantes du cwd certifient un fichier', () => {
+  const dir = mkdtempSync(join(tmpdir(), '2436-cwd-'))
+  try {
+    const fichier = join(dir, 'unique.test.ts').replaceAll('\\', '/')
+    const config = join(dir, 'vitest.config.mts').replaceAll('\\', '/')
+    const contexte = contexteSonde({ dir, racineNpm: process.cwd() })
+    writeFileSync(fichier, 'export {}')
+    writeFileSync(config, `export default {test:{include:['${fichier}']}}`)
+    assert.equal(evaluate({ commande: 'cd docs; npx vitest run --config vitest.config.mts', contexte })?.decision, 'deny')
+    assert.equal(evaluate({ commande: 'npx vitest run --config vitest.config.mts; cd docs', contexte })?.decision, 'deny')
+    assert.equal(evaluate({ commande: `cd docs; npx vitest run --config "${config}"`, contexte }), null)
+    writeFileSync(config, "export default {test:{include:['unique.test.ts']}}")
+    assert.equal(evaluate({ commande: `cd docs; npx vitest run --config "${config}"`, contexte })?.decision, 'deny')
+    writeFileSync(config, `export default {root:'${dir.replaceAll('\\', '/')}',test:{include:['unique.test.ts']}}`)
+    assert.equal(evaluate({ commande: `cd docs; npx vitest run --config "${config}"`, contexte }), null)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
 })

@@ -115,7 +115,7 @@ function decisionOf(command) {
 
 test('DRIVER : le hook décide de bout en bout sur un payload ctx_shell', () => {
   assert.equal(decisionOf('npx vitest run | tail -20'), 'deny')
-  assert.equal(decisionOf('npm test | tail -20'), null)
+  assert.equal(decisionOf('npm test -- src/a.test.ts | tail -20'), null)
   assert.equal(decisionOf('git status'), null)
 })
 

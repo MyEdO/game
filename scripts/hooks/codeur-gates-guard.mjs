@@ -1,4 +1,5 @@
-// Garde PreToolUse (canaux shell) : un sous-agent `codeur` ne joue PAS les gates de la CI.
+// #2436 ; verbatims utilisateur du 2026-09-17 et du 2026-10-06.
+// Garde PreToolUse : les gates de ECRIT_LU sont refusées à tous les appelants des canaux shell.
 // POURQUOI — verbatims utilisateur du 2026-09-15 :
 //   « C'est absurde ... on a dépêché un agent pour créer un fichier (+ son test, + le lien pour
 //     l'appeler) et ça va nous prendre 25 min ? »
@@ -14,11 +15,6 @@
 // `ci.yml` et une dans `ECRIT_LU`, zéro ligne ici (#1750 : « un geste du régime qu'une session doit
 // encore savoir par cœur est un défaut d'outillage »).
 //
-// Le champ `agent_type` du payload PreToolUse nomme le type du sous-agent appelant (doc Claude Code,
-// hooks.md § Subagent Behavior) et n'existe pas depuis la session principale : l'orchestrateur n'est
-// jamais visé. Sous Codex (`.codex/hooks.json`, même point d'entrée `scripts/hooks/repartiteur.mjs`)
-// ces champs n'existent pas non plus : la garde s'y tait, par construction.
-//
 // Ce que la garde ne LIT pas :
 // - la commande qui suit un commentaire `#` porteur d'une apostrophe, sous PowerShell : l'apostrophe ouvre une quote (#2172) ;
 // - la sous-expression `$x = ( … )` (#2172) ;
@@ -29,15 +25,11 @@ import {
   CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
 } from './solde-ticket-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-
-/** Types de sous-agent visés : seul le `codeur` reçoit des briefs porteurs de gates. */
-const TYPES_VISES = new Set(['codeur'])
-
-/**
- * Gates qu'un codeur joue LÉGITIMEMENT : lecture seule, coût quasi nul, et elles portent sur son
- * propre livrable (la parité des définitions d'agent se vérifie au site qui l'édite).
- */
-const HORS_VERROU = new Set(['agents:check'])
+import { fileURLToPath } from 'node:url'
+import { resolve, isAbsolute } from 'node:path'
+import { canoniser } from '../docs/lib/chemin-mesure.mjs'
+import { contexteSonde, estSondeVitest } from '../guards/lib/sondeVitest.mjs'
+import { demandeDe } from '../gates/sur-demande-utilisateur.mjs'
 
 /**
  * `npm test` est la suite ENTIÈRE sous son nom npm canonique — une gate même si la liste ne la
@@ -79,7 +71,7 @@ const entreDansServer = ([exe, cible, ...reste]) =>
   !cible.substitutions?.length && cible.text !== '-' && CIBLE_LITTERALE_RE.test(cible.text) && EST_SERVER.test(cible.text)
 
 /** Drapeaux qui CONSOMMENT le mot suivant : sa valeur n'est pas un chemin. */
-const DRAPEAUX_A_VALEUR = new Set(['-t', '--testNamePattern', '--reporter', '--project', '--config', '-c'])
+const DRAPEAUX_A_VALEUR = new Set(['-t', '--testNamePattern', '--reporter', '--project', '--config', '-c', '--root', '--dir', '--workspace'])
 
 /**
  * Arguments POSITIONNELS d'un segment, l'exécutable et les drapeaux (avec leur valeur) retirés.
@@ -130,7 +122,7 @@ function nomScriptNpm(tokens) {
 
 /** Noms de scripts npm que la CI joue, tirés de la table `ECRIT_LU` du dépôt. */
 export const gatesDeLaCi = (ecritLu = ECRIT_LU) =>
-  Object.keys(ecritLu).filter((nom) => !HORS_VERROU.has(nom))
+  Object.keys(ecritLu)
 
 /**
  * Le GESTE à nommer dans le refus : le segment fautif quand il figure tel quel dans la commande,
@@ -149,19 +141,17 @@ const gesteNomme = (segment, commande) => (commande.includes(segment) ? segment 
  * @returns {string}
  */
 const raisonDuRefus = (geste) =>
-  `[codeur] « ${geste} » est une gate de la CI — le run de la branche la joue une fois sur la tête ` +
-  `poussée, et c'est lui la porte. Joue le test de TON périmètre (\`node --test <fichier>\`, ` +
-  `\`npm test -- <chemins>\`, \`npm run typecheck:fast\`). Un brief qui te l'impose se REFUSE : ` +
-  `« BRIEF REFUSÉ : gates hors périmètre ».`
+  `[gates-ci] « ${geste} » est une gate de la CI : pousser la branche, puis \`gh run watch\` ` +
+  `ou \`gh run view --log-failed\`. En local : \`node --test <fichier>\`, \`npm test -- <chemins>\`, ` +
+  `\`npm run typecheck:fast\`. Une sonde dont la configuration ne peut être vérifiée exige un filtre de fichier explicite.`
 
 /**
  * Décision PURE du hook.
- * @param {{ agentType?: string|null, commande?: string, gates?: string[] }} entree
+ * @param {{ commande?: string, gates?: string[], options?: object, contexte?: object }} entree
  *   `gates` = les noms de scripts npm que la CI joue (défaut : lus dans `ECRIT_LU`).
  * @returns {{ decision: 'deny', reason: string }|null} `null` = rien à dire.
  */
-export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(), options } = {}) {
-  if (!TYPES_VISES.has(String(agentType ?? ''))) return null
+export function evaluate({ commande = '', gates = gatesDeLaCi(), options, contexte } = {}) {
   const deLaCi = new Set(gates)
   const brute = String(commande)
 
@@ -172,6 +162,7 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
   const budget = nouveauBudget()
   const pipelines = pipelinesDeJetons(brute, 0, { ...options, budget })
   if (budget.sature) return REFUS_SATURE
+  const repertoireChange = pipelines.flat().some(({ jetons }) => CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(sansRedirections(jetons)[0]?.text ?? '')))
   const repertoires = new Map() // shell → `true` dans `server/`, `false` à la racine, après son dernier `cd`
   const dansServer = (shell) => (shell ? repertoires.get(shell) ?? dansServer(shell.parent) : false)
   for (const { jetons, shell, enTete } of pipelines.flat()) {
@@ -184,11 +175,27 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
       continue
     }
     const segment = tokens.join(' ')
+    const script = nomScriptNpm(tokens)
     const remonte = [...enTete, ...lus].some((j) => REMONTE_RE.test(j.text))
-    if ((dansServer(shell) && !remonte) || PREFIX_SERVER.test(segment) || LECTEURS.test(segment)) continue
+    if (LECTEURS.test(segment)) continue
+
+    const site = fileURLToPath(new URL('../gates/sur-demande-utilisateur.mjs', import.meta.url))
+    if (basenameExecutable(tokens[0]) === 'node' && tokens[1] &&
+      (!repertoireChange || isAbsolute(tokens[1])) &&
+      canoniser(resolve(contexte?.dir ?? process.cwd(), tokens[1])) === canoniser(site)) {
+      if (lus.some(j => j.substitutions?.length) || !demandeDe(tokens.slice(2))) {
+        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+      }
+      continue
+    }
+
+    if (LANCEUR_DE_GATE.test(segment) || LANCEUR_NODE_TESTS.test(segment)) {
+      return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+    }
+    const expliciteRacine = deLaCi.has(script) && !['typecheck', 'lint', 'test'].includes(script)
+    if (!expliciteRacine && ((dansServer(shell) && !remonte) || PREFIX_SERVER.test(segment))) continue
 
     // 1. Un script npm que la CI joue, sous son nom.
-    const script = nomScriptNpm(tokens)
     if (script) {
       const estUneGate = SUITE_ENTIERE_NPM.has(script) || deLaCi.has(script)
       const restreintAUnPerimetre =
@@ -196,11 +203,6 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
       if (estUneGate && !restreintAUnPerimetre) {
         return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
       }
-    }
-
-    // 2. Le lanceur d'une gate entière.
-    if (LANCEUR_DE_GATE.test(segment) || LANCEUR_NODE_TESTS.test(segment)) {
-      return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
     }
 
     // 3. `knip` : il n'y a pas de knip « de périmètre », il balaie le graphe entier.
@@ -218,7 +220,8 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
     if (appelleVitestNu(segment)) {
       const cibles = argumentsPositionnels(segment, APPEL_VITEST)
         .filter((cible) => cible !== 'run')
-      if (!cibles.some(designeUnChemin)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+      const contexteDuShell = contexte && { ...contexte, repertoireChange }
+      if (!cibles.some(designeUnChemin) && !estSondeVitest(lus, contexteDuShell)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
     }
 
     // 6. `tsc --noEmit` nu : la porte de vérité full, ~42 s, portée par le train.
@@ -231,8 +234,8 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
 export const garde = {
   nom: 'codeur-gates',
   outils: OUTILS_SHELL,
-  evaluer: (entree) => verdictDe(evaluate({
-    agentType: typeof entree?.agent_type === 'string' ? entree.agent_type : null,
+  evaluer: (entree, contexte) => verdictDe(evaluate({
     commande: commandeDe(entree),
+    contexte: contexteSonde(contexte),
   })),
 }
