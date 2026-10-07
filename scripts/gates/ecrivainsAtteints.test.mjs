@@ -54,6 +54,10 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
     // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
     'scripts/hooks/bootstrap-conteneur.test.mjs',
+    // +1 le 2026-10-07 (#2436) : le banc du verrou des gates forge ses configurations Vitest et ses
+    // fichiers de test sous un `mkdtempSync` d'os.tmpdir(), retirés par `rmSync` en finally ; l'arbre
+    // n'est jamais écrit.
+    'scripts/hooks/codeur-gates-guard.test.mjs',
     // +1 le 2026-09-20 (#1825) : le banc de l'ENVELOPPE de jeu d'un workflow écrit ses
     // scripts JOUETS sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l'enveloppe
     // charge un FICHIER, un script jouet ne se fabrique pas autrement ; l'arbre n'est jamais écrit.

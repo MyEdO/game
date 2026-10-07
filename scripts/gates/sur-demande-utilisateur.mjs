@@ -1,5 +1,4 @@
 import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
 import { ECRIT_LU, principal } from './toutes.mjs'
 
 export function demandeDe(argv, gates = Object.keys(ECRIT_LU)) {
@@ -25,4 +24,4 @@ export async function rejouer({ argv = process.argv.slice(2), journal = t => pro
   return deleguer({ argv: [process.execPath, fileURLToPath(new URL('./toutes.mjs', import.meta.url)), '--gates', demande.noms.join(',')], journal })
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = await rejouer()
+if (import.meta.main) process.exitCode = await rejouer()
