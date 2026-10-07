@@ -555,8 +555,8 @@ const familleDe = (test) => estTestNode(test) ? 'node' : 'vitest'
 
 /**
  * L'ESTIMATION de durée de chaque test (#2400) : sa durée APPRISE, sinon `null` — une durée inconnue ne
- * s'estime pas : hors du rang touché son test part à la CI, au rang touché il est lancé et le mur n'est plus
- * qu'un minorant (`planDExecution`). PURE.
+ * s'estime pas : hors du rang touché son test part à la CI, au rang touché il est lancé et le mur devient un
+ * minorant (`planDExecution`). PURE.
  * @param {string[]} tests @param {Record<string, number>} durees
  * @returns {Map<string, { ms: number | null, source: 'apprise' | 'inconnue' }>}
  */
