@@ -365,6 +365,10 @@ const ATTENDU = {
     'scripts/test/verrou.test.mjs',
   ],
   'test:docs': [
+    // #2499
+    'scripts/gates/toutes.mjs',
+    'scripts/guards/lib/purgerPerimes.mjs',
+    'scripts/ops/reprendre-file.mjs',
     'scripts/docs/build-all-check.test.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/check-plans-anchors.test.mjs',
