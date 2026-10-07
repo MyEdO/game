@@ -1,4 +1,5 @@
 import test from 'node:test'
+import fs from 'node:fs'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -7,19 +8,19 @@ import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, publierSession } from './session-runtime.mjs'
-import { lancerSession, optionsSession, profilTerminal, profilCodexExiste, verifierContratAgent, commandeSession } from './session.mjs'
+import { lancerSession, optionsSession, profilTerminal, profilCodexExiste, verifierContratAgent, commandeSession, argsTerminal } from './session.mjs'
 import { veillerLeTrain } from './publier.mjs'
 
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
-function banc(t) {
-  const dossier = mkdtempSync(join(tmpdir(), 'sessions-'))
+function banc(t, { auSommeil = () => {} } = {}) {
+  const dossier = mkdtempSync(join(process.env.WFRP_SESSION_TEST_FIXTURES ?? tmpdir(), 'sessions-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fixtures = join(dossier, 'fixtures'); mkdirSync(fixtures)
   const fichiers = { codex: join(fixtures, 'codex.exe'), claude: join(fixtures, 'claude.exe'), rapport: join(fixtures, 'rapport.json'), schema: join(fixtures, 'schema.json') }
   for (const fichier of Object.values(fichiers)) writeFileSync(fichier, '')
   let maintenant = 1000
   const vivants = new Map([[10, identite(10)], [20, identite(20)], [30, identite(30)]])
-  const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => vivants.get(pid) ?? null, inventaire: () => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }], dormir: async () => { maintenant += 50 }, lanceur: () => identite(99) })
+  const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => vivants.get(pid) ?? null, inventaire: () => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }], dormir: async () => { maintenant += 50; auSommeil(sessions, vivants) }, lanceur: () => identite(99) })
   const reserver = (p = {}) => sessions.reserver({ ticket: 2461, nom: 'banc', agent: 'claude', consigne: join(dossier, 'consigne.md'), worktree: dossier, racine: dossier, branche: 'chantier/2461', head: 'a'.repeat(40), ...p })
   const revendiquer = (r) => sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(10), jobHost: identite(30) })
   return { sessions, reserver, revendiquer, vivants, dossier, fichiers, avance: (ms) => { maintenant += ms } }
@@ -78,6 +79,46 @@ test('réservation bornée, nonce distinct, double revendication et collisions',
   assert.equal(b.sessions.lire(tardif.carte.sessionId).raison, 'RÉSERVATION EXPIRÉE')
 })
 
+test('réservation sans contrôleur fermée par capacité, même expirée, interdit claim tardif', async (t) => {
+  for (const expiree of [false, true]) {
+    const b = banc(t), r = b.reserver()
+    if (expiree) { b.avance(61_000); b.sessions.lister() }
+    await assert.rejects(b.sessions.fermer(r.carte.sessionId), /JETON ABSENT/)
+    await assert.rejects(b.sessions.fermer(r.carte.sessionId, 'faux'), /JETON INCORRECT/)
+    const fin = await b.sessions.fermer(r.carte.sessionId, r.jeton)
+    assert.equal(fin.etat, 'fermee'); assert.equal(fin.carte.etat, 'fermee')
+    assert.equal(fin.carte.codeEnveloppe, undefined)
+    assert.equal(fin.carte.empreinteNonce, undefined)
+    assert.equal(existsSync(join(b.dossier, `${r.carte.sessionId}.bootstrap`)), false)
+    assert.throws(() => b.revendiquer(r), /REVENDICATION REFUSÉE/)
+  }
+})
+
+test('attente démarrage observe revendication et fin naturelle ou libère absence contrôleur', async (t) => {
+  const b = banc(t), r = b.reserver()
+  b.revendiquer(r)
+  assert.equal((await b.sessions.attenteDemarrage(r.carte.sessionId, r.jeton)).etat, 'vivante')
+  b.sessions.sortie(r.carte.sessionId, { codeAgent: 0 }); b.vivants.clear()
+  assert.equal((await b.sessions.attenteDemarrage(r.carte.sessionId, r.jeton)).etat, 'fermee')
+  const absent = b.reserver({ ticket: 2, nom: 'absent' })
+  assert.equal((await b.sessions.attenteDemarrage(absent.carte.sessionId, absent.jeton)).etat, 'echec-reservation')
+  assert.equal(existsSync(join(b.dossier, `${absent.carte.sessionId}.bootstrap`)), false)
+  assert.equal(b.sessions.lire(absent.carte.sessionId).codeEnveloppe, undefined)
+})
+
+test('argsTerminal transporte valeurs arbitraires dans PowerShell réel sans interpolation', { skip: process.platform !== 'win32' }, (t) => {
+  const b = banc(t), capture = join(b.dossier, "capture ; ' ‘ ’ “ ”.ps1"), sortie = join(b.dossier, 'capture.json')
+  writeFileSync(capture, 'param($Node,$CommandLine,$Worktree)\n@{Node=$Node;CommandLine=$CommandLine;Worktree=$Worktree}|ConvertTo-Json -Compress|Set-Content -LiteralPath $Worktree -Encoding UTF8')
+  const node = join(b.dossier, 'Node espace ; "quote"', 'node.exe'), commande = JSON.stringify(join(b.dossier, 'script ; apostrophe\' ‘ ’ “ ”', 'x'))
+  const args = argsTerminal({ profil: 'profil ; spécial', nom: 'nom ; spécial', script: capture, node, commande, worktree: sortie })
+  assert.equal(args[4], 'profil \\; spécial'); assert.equal(args[6], 'nom \\; spécial')
+  assert.ok(args.includes('-EncodedCommand')); assert.ok(!args.includes('-File'))
+  const debut = args.indexOf('powershell.exe')
+  const vu = spawnSync(args[debut], args.slice(debut + 1), { encoding: 'utf8', windowsHide: true, timeout: 10_000 })
+  assert.equal(vu.status, 0, vu.stderr); assert.equal(vu.error, undefined)
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8').replace(/^\uFEFF/, '')), { Node: node, CommandLine: commande, Worktree: sortie })
+})
+
 test('fermeture concurrente idempotente et fin naturelle refuse arrêt', (t) => {
   const b = banc(t), r = b.reserver(); b.revendiquer(r)
   const a = b.sessions.demanderArret('banc', r.jeton)
@@ -127,7 +168,7 @@ test('lanceur injecté : capacité une fois, bootstrap nonce consommé, refus pr
     contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
     terminal: () => ({ nom: 'PS', closeOnExit: 'graceful' }), natif: () => b.fichiers.codex, profilExiste: () => true, contrat: () => true,
     sessionsDe: () => b.sessions, env: { WFRP_SESSION_JETON: 'ancien', GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint' },
-    lancerWT: (exe, args, opts) => { ouvert++; argv = args; env = opts.env; assert.equal(exe, 'wt.exe'); return { status: 0 } },
+    lancerWT: (exe, args, opts) => { ouvert++; argv = args; env = opts.env; assert.equal(exe, 'wt.exe'); const c = b.sessions.lister().cartes.find((c) => c.nom === 'banc'); b.sessions.revendiquer(c.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } },
   }
   await assert.rejects(lancerSession(options, { ...gestes, profilExiste: () => false }), /PROFIL ABSENT/)
   assert.equal(ouvert, 0)
@@ -136,9 +177,7 @@ test('lanceur injecté : capacité une fois, bootstrap nonce consommé, refus pr
   assert.ok(!argv.join(' ').includes(r.jeton)); assert.ok(argv.includes('0'))
   assert.equal(env.WFRP_SESSION_JETON, undefined); assert.equal(env.GH_TOKEN, undefined); assert.equal(env.GITHUB_TOKEN, undefined)
   assert.equal(env.WFRP_SESSION_REVENDICATION, undefined)
-  const bootstrap = JSON.parse(readFileSync(join(b.dossier, `${r.sessionId}.bootstrap`), 'utf8'))
-  assert.ok(bootstrap.nonce); assert.notEqual(bootstrap.nonce, r.jeton)
-  b.sessions.revendiquer(r.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) })
+  assert.equal(r.etat, 'vivante')
   assert.throws(() => readFileSync(join(b.dossier, `${r.sessionId}.bootstrap`)), /ENOENT/)
   assert.throws(() => optionsSession(['fermer', '2461', '--jeton', 'secret']), /OPTION REFUSÉE/)
 })
@@ -169,6 +208,103 @@ test('lanceur WT échoué conserve raison ; carte voisine inchangée', async (t)
   }), /WT SPAWN ÉCHOUÉ/)
   assert.match(b.sessions.lister().cartes.find((c) => c.nom === 'banc').raison, /refus banc/)
   assert.equal(readFileSync(join(b.dossier, 'voisine.json'), 'utf8'), avant)
+})
+
+test('lanceur : WT thrown libère nonce ; erreur après claim demande arrêt et attend host', async (t) => {
+  for (const revendique of [false, true]) {
+    let id, attenduHost = false
+    const b = banc(t, { auSommeil: (sessions, vivants) => {
+      if (!revendique) return
+      const c = sessions.lire(id)
+      assert.equal(c.etat, 'arret-demande')
+      assert.ok(existsSync(join(b.dossier, `${id}.stop`)))
+      assert.equal(c.issueSortie, undefined)
+      assert.equal(c.codeEnveloppe, undefined)
+      attenduHost = true
+      sessions.sortie(id, { codeAgent: null, arret: true }); vivants.clear()
+    } })
+    const consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+    await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+      contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+      terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, sessionsDe: () => b.sessions, env: {},
+      lancerWT: () => {
+        id = b.sessions.lister().cartes.find((c) => c.nom === 'banc').sessionId
+        if (revendique) { b.sessions.revendiquer(id, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 1, stderr: 'erreur après claim' } }
+        throw new Error('throw WT')
+      },
+    }), /WT SPAWN ÉCHOUÉ/)
+    const c = b.sessions.lire(id)
+    assert.equal(c.etat, revendique ? 'fermee' : 'echec-reservation')
+    assert.equal(attenduHost, revendique)
+    assert.equal(existsSync(join(b.dossier, `${id}.bootstrap`)), false)
+    if (!revendique) { assert.match(c.raison, /throw WT/); assert.equal(c.codeEnveloppe, undefined) }
+  }
+})
+
+test('lanceur : absence contrôleur échoue, claim rapide et sortie naturelle rapide observés', async (t) => {
+  for (const mode of ['absent', 'vivante', 'sortie']) {
+    const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+    const lancement = lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+      contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+      terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, sessionsDe: () => b.sessions, env: {},
+      lancerWT: () => {
+        const id = b.sessions.lister().cartes.find((c) => c.nom === 'banc').sessionId
+        if (mode !== 'absent') b.sessions.revendiquer(id, undefined, { controleur: identite(10), jobHost: identite(30) })
+        if (mode === 'sortie') { b.sessions.sortie(id, { codeAgent: 0 }); b.vivants.clear() }
+        return { status: 0 }
+      },
+    })
+    if (mode === 'absent') await assert.rejects(lancement, /DÉMARRAGE ÉCHOUÉ/)
+    else assert.equal((await lancement).etat, mode === 'sortie' ? 'fermee' : 'vivante')
+  }
+})
+
+test('raccord : WT zéro après fermeture sans claim refuse faux succès', async (t) => {
+  const b = banc(t), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  let reservation
+  await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {},
+    sessionsDe: () => ({ ...b.sessions, reserver: (p) => { reservation = b.sessions.reserver(p); return reservation } }),
+    lancerWT: () => { b.sessions.demanderArret(reservation.carte.sessionId, reservation.jeton); return { status: 0 } },
+  }), /DÉMARRAGE ÉCHOUÉ/)
+})
+
+test('raccord : claim entre snapshot et mutation ferme sur constat frais sous verrou', async (t) => {
+  const b = banc(t, { auSommeil: (sessions, vivants) => {
+    assert.equal(sessions.lire(id).etat, 'arret-demande')
+    sessions.sortie(id, { codeAgent: null, arret: true }); vivants.clear()
+  } }), r = b.reserver(), id = r.carte.sessionId
+  b.vivants.delete(10); b.vivants.delete(30)
+  const rm = fs.rmSync
+  let intercale = false
+  fs.rmSync = function (chemin, ...args) {
+    const resultat = rm.call(this, chemin, ...args)
+    if (!intercale && String(chemin) === join(b.dossier, 'registre.lock')) {
+      intercale = true
+      b.vivants.set(10, identite(10)); b.vivants.set(30, identite(30)); b.revendiquer(r)
+    }
+    return resultat
+  }
+  try { assert.equal((await b.sessions.fermer(id, r.jeton, { timeoutMs: 100 })).etat, 'sortie'); assert.ok(intercale) }
+  finally { fs.rmSync = rm }
+})
+
+test('raccord : WT erreur après claim conserve raison et événement unique après sortie superviseur', async (t) => {
+  let id
+  const b = banc(t, { auSommeil: (sessions, vivants) => {
+    assert.equal(sessions.lire(id).etat, 'arret-demande')
+    sessions.sortie(id, { codeAgent: null, arret: true, raison: undefined }); vivants.clear()
+  } }), consigne = join(b.dossier, 'consigne.md'); writeFileSync(consigne, 'faire')
+  await assert.rejects(lancerSession({ ticket: 2461, nom: 'banc', agent: 'claude', consigne }, {
+    contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }),
+    terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, contrat: () => true, env: {}, sessionsDe: () => b.sessions,
+    lancerWT: () => { id = b.sessions.lister().cartes.find((c) => c.nom === 'banc').sessionId; b.sessions.revendiquer(id, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 1, stderr: 'diagnostic WT original' } },
+  }), /WT SPAWN ÉCHOUÉ/)
+  const c = b.sessions.lire(id)
+  assert.equal(c.etat, 'fermee'); assert.equal(c.raison, 'WT SPAWN : diagnostic WT original'); assert.equal(c.issueSortie, 'echec')
+  assert.equal(c.evenements.filter((e) => e.type === 'échec').length, 1)
+  assert.equal(c.evenements.filter((e) => e.type === 'clôture').length, 1)
 })
 
 test('profil WT JSONC default/override : never refusé, profil absent refusé ; profil Codex local requis', (t) => {
@@ -299,7 +435,7 @@ test('correction 2 : lancer consigne relative, Claude défaut depuis main, Codex
   const gestes = {
     cwd: b.dossier, contexte: (worktree) => ({ racine: b.dossier, gitCommun: b.dossier, worktree, branche: 'main', head: 'a'.repeat(40) }),
     terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.claude, profilExiste: () => true, contrat: () => true,
-    sessionsDe: () => b.sessions, lancerWT: () => { wt++; return { status: 0 } }, env: {},
+    sessionsDe: () => b.sessions, lancerWT: () => { wt++; const c = b.sessions.lister().cartes.find((c) => c.nom === 's2461'); b.sessions.revendiquer(c.sessionId, undefined, { controleur: identite(10), jobHost: identite(30) }); return { status: 0 } }, env: {},
   }
   const r = await lancerSession(options, gestes), c = b.sessions.lire(r.sessionId)
   assert.equal(c.agent, 'claude'); assert.equal(c.nom, 's2461'); assert.equal(c.ticket, 2461); assert.equal(c.worktree, b.dossier); assert.equal(c.branche, 'main')
