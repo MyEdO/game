@@ -150,8 +150,9 @@ const gesteNomme = (segment, commande) => (commande.includes(segment) ? segment 
  */
 const raisonDuRefus = (geste) =>
   `[codeur] « ${geste} » est une gate de la CI — le run de la branche la joue une fois sur la tête ` +
-  `poussée, et c'est lui la porte. Joue le test de TON périmètre (\`node --test <fichier>\`, ` +
-  `\`npm test -- <chemins>\`, \`npm run typecheck:fast\`). Un brief qui te l'impose se REFUSE : ` +
+  `poussée, et c'est lui la porte. Avant le rendu, joue \`npm run test:perimetre\` (après ` +
+  `\`npm run typecheck:fast\` si du \`.ts\` bouge) ; pendant l'itération, \`node --test <fichier>\` et ` +
+  `\`npm test -- <chemins>\` restent admis. Un brief qui te l'impose se REFUSE : ` +
   `« BRIEF REFUSÉ : gates hors périmètre ».`
 
 /**

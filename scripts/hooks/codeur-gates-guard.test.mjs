@@ -78,6 +78,8 @@ const PASSANTES = [
   'npm run ops:board -- --liste',
   'npm run agents:check',
   'npm test -- src/a.test.ts',
+  'npm run test:perimetre',
+  'npm run test:perimetre -- --liste',
   // Le sous-projet `server/` a son propre tsconfig et ses propres scripts : les gates de la RACINE
   // n'y répondent pas, et son typecheck est le périmètre du codeur dépêché dessus.
   'cd server && npm run typecheck',
@@ -113,6 +115,7 @@ test('la raison NOMME la commande refusée et le geste de remplacement', () => {
   const { reason } = pourCodeur('npm run lint')
   assert.match(reason, /« npm run lint »/)
   assert.match(reason, /le run de la branche la joue une fois sur la tête poussée/)
+  assert.match(reason, /`npm run test:perimetre`/)
   assert.match(reason, /typecheck:fast/)
 })
 
